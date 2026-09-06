@@ -507,3 +507,49 @@ public interface IRepositorioPainelDoCen
     Task<PainelDoResponsavel?> ObterPainelAsync(
         Guid? responsavelChave, DateTime agoraUtc, CancellationToken ct);
 }
+
+/// <summary>Um mês da série de faturamento.</summary>
+/// <param name="Competencia">O primeiro dia do mês.</param>
+/// <param name="ValorLiquido">O que foi faturado no mês.</param>
+/// <param name="Clientes">Quantos clientes distintos compraram.</param>
+/// <param name="Notas">Quantas notas fiscais.</param>
+public sealed record MesDeFaturamento(
+    DateOnly Competencia, decimal ValorLiquido, int Clientes, int Notas);
+
+/// <summary>Um cliente no ranking de faturamento.</summary>
+/// <param name="ClienteChave">A chave pública, para a tela linkar a ficha.</param>
+/// <param name="Nome">A razão social.</param>
+/// <param name="Classe">A letra da curva ABC, quando apurada.</param>
+/// <param name="ValorLiquido">O faturamento acumulado na janela.</param>
+/// <param name="UltimaCompraEm">O mês da compra mais recente.</param>
+public sealed record ClienteNoRanking(
+    Guid ClienteChave, string Nome, string? Classe, decimal ValorLiquido, DateOnly? UltimaCompraEm);
+
+/// <summary>
+/// O acesso ao faturamento — a leitura que sustenta a série de doze meses e o ranking de clientes.
+/// </summary>
+public interface IRepositorioFaturamento
+{
+    /// <summary>
+    /// A série mensal dos últimos meses, do mais antigo para o mais novo.
+    /// </summary>
+    /// <param name="meses">Quantos meses trazer, contados da competência mais recente que existe.</param>
+    /// <param name="ct">Cancelamento.</param>
+    Task<IReadOnlyList<MesDeFaturamento>> SerieMensalAsync(int meses, CancellationToken ct);
+
+    /// <summary>
+    /// Os maiores clientes por faturamento acumulado.
+    /// </summary>
+    /// <param name="quantos">Quantos trazer.</param>
+    /// <param name="ct">Cancelamento.</param>
+    Task<IReadOnlyList<ClienteNoRanking>> TopClientesAsync(int quantos, CancellationToken ct);
+
+    /// <summary>
+    /// A competência mais recente com faturamento, ou nula quando não há nenhum.
+    ///
+    /// <para>É o que permite a tela escrever o período em vez de dizer "faturamento do mês" — e o
+    /// que denuncia, sozinho, se a carga do ERP parar de novo.</para>
+    /// </summary>
+    /// <param name="ct">Cancelamento.</param>
+    Task<DateOnly?> CompetenciaMaisRecenteAsync(CancellationToken ct);
+}

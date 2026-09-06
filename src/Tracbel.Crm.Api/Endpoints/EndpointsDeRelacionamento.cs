@@ -158,6 +158,13 @@ public static class EndpointsDeRelacionamento
                 "As vendas perdidas registradas no formulário: por motivo, para qual concorrente " +
                 "e a que distância de preço.");
 
+        grupo.MapGet("/faturamento", async (ObterFaturamento caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ObterFaturamento")
+            .WithSummary(
+                "O faturamento lido da SD2 do Protheus: série dos últimos doze meses e os cinco " +
+                "maiores clientes, com a competência mais recente sempre junto do número.");
+
         grupo.MapGet("/cen", async (
                 ObterPainelDoCen caso, CancellationToken ct, Guid? responsavel = null) =>
                 (await caso.ExecutarAsync(responsavel, ct)).Responder())

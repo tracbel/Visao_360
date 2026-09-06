@@ -9,6 +9,8 @@ using Tracbel.Crm.Carga;
 using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao.Carga;
+using Microsoft.Extensions.DependencyInjection;
+using Tracbel.Crm.Integracao.Protheus;
 using Tracbel.Crm.Integracao.Vortice;
 
 Console.OutputEncoding = Encoding.UTF8;
@@ -108,6 +110,35 @@ CrmDbContext AbrirContexto() => new(opcoesDoBanco, contexto, diario);
 var leitor = new LeitorDeCargaDoVortice(
     Options.Create(new OpcoesDoVortice { Conexao = conexaoDoLegado, TempoLimiteSegundos = 15 }),
     fabricaDeLog.CreateLogger<LeitorDeCargaDoVortice>());
+
+// A PONTE DO PROTHEUS. Ela lê o faturamento da ORIGEM, e não da cópia no Vórtice que parou em
+// 11/04/2025. As credenciais vêm de Protheus__Base, Protheus__Usuario e Protheus__Senha — nunca
+// de arquivo versionado, porque a senha viaja na query string do endpoint de token.
+var opcoesDoProtheus = new OpcoesDoProtheus
+{
+    Base = configuracao["Protheus:Base"],
+    Usuario = configuracao["Protheus:Usuario"],
+    Senha = configuracao["Protheus:Senha"]
+};
+
+if (!opcoesDoProtheus.EstaConfigurada)
+{
+    Console.Error.WriteLine(
+        "A carga do faturamento exige as variáveis Protheus__Base, Protheus__Usuario e " +
+        "Protheus__Senha. Sem elas o faturamento não entra — e sem faturamento a curva ABC não " +
+        "tem base, então a classe A/B/C/D do cliente não é apurada. " +
+        "Ver docs/projeto/28-PROTHEUS-ACESSO-E-TABELAS.md.");
+    return 2;
+}
+
+var colecao = new ServiceCollection();
+colecao.AddHttpClient(PonteDoProtheus.NomeDoCliente);
+var provedorDeHttp = colecao.BuildServiceProvider();
+
+var faturamentoDoProtheus = new LeitorDeFaturamentoDoProtheus(
+    new PonteDoProtheus(
+        provedorDeHttp.GetRequiredService<IHttpClientFactory>(),
+        Options.Create(opcoesDoProtheus)));
 
 var recorte = new RecorteDaCarga(ano, deParaDeFiliais.Keys.Order().ToList(), limite);
 
@@ -220,7 +251,8 @@ if (!somenteCadastro)
     Console.WriteLine("Carga do relacionamento - usuario, carteira, processo, tarefa e interacao.");
 
     var cargaDeRelacionamento = new CargaDeProcessoDoVortice(
-        AbrirContexto, leitor, deParaDeFiliais, usuarioId, Console.WriteLine);
+        AbrirContexto, leitor, faturamentoDoProtheus, deParaDeFiliais, usuarioId,
+        Console.WriteLine);
 
     var resultadoDoRelacionamento =
         await cargaDeRelacionamento.ExecutarAsync(recorte, CancellationToken.None);

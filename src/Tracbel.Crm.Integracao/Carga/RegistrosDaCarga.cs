@@ -307,7 +307,15 @@ public sealed record VendaPerdidaParaCarga(
 /// </summary>
 /// <param name="ChaveDeOrigem">Documento, filial e competência — o que identifica a linha.</param>
 /// <param name="DocumentoDoCliente">CPF ou CNPJ, com 11 ou 14 dígitos.</param>
-/// <param name="CodigoDaFilialNoLegado">A filial que faturou, no número da origem.</param>
+/// <param name="CodigoDaFilialNoLegado">
+/// A filial que faturou, no NÚMERO do Vórtice. Zero quando a origem é o Protheus, que identifica
+/// filial por código de seis dígitos — ver <paramref name="CodigoDaFilial"/>.
+/// </param>
+/// <param name="CodigoDaFilial">
+/// A filial no CÓDIGO de <c>organizacao.Empresa</c> (ex.: <c>010101</c>). É o que o Protheus
+/// devolve, e é melhor que o número do Vórtice: dispensa de-para, porque é o mesmo código que o
+/// CRM já usa. Nulo quando a origem é o Vórtice.
+/// </param>
 /// <param name="Competencia">O mês, sempre no dia 1.</param>
 /// <param name="ValorLiquido">O total líquido do mês.</param>
 /// <param name="Notas">Notas fiscais distintas.</param>
@@ -316,6 +324,7 @@ public sealed record FaturamentoParaCarga(
     string ChaveDeOrigem,
     string DocumentoDoCliente,
     int CodigoDaFilialNoLegado,
+    string? CodigoDaFilial,
     DateOnly Competencia,
     decimal ValorLiquido,
     int Notas,

@@ -678,3 +678,109 @@ public sealed record PainelDoCenResumido(
 /// <param name="Natureza">Se é <c>Pessoa</c> ou <c>Departamento</c>.</param>
 /// <param name="Carteiras">Quantas carteiras comerciais ele responde.</param>
 public sealed record ResponsavelParaSelecao(Guid Chave, string Nome, string Natureza, int Carteiras);
+
+/// <summary>
+/// O faturamento — a série de doze meses e o ranking de clientes, lidos do ERP.
+///
+/// <para><b>Esta consulta existe porque uma premissa caiu.</b> Até 06/09/2026 o CRM afirmava que
+/// o faturamento tinha parado em 11/04/2025, e três cartões do painel executivo mostravam "sem
+/// dado" por causa disso. A frase vinha da tabela que o Vórtice RECEBE do Protheus; na origem,
+/// medida, há nota emitida na mesma semana. O que morreu foi a integração.</para>
+///
+/// <para><b>O período vai junto do número, sempre.</b> Não é zelo: é a defesa contra a repetição
+/// do defeito. Se a carga do ERP parar de novo, a competência mais recente para de avançar e a
+/// tela diz isso — em vez de mostrar um total plausível e velho.</para>
+/// </summary>
+/// <param name="repositorio">O acesso ao faturamento.</param>
+/// <param name="relogio">O relógio, para a procedência e para medir o atraso.</param>
+public sealed class ObterFaturamento(IRepositorioFaturamento repositorio, IRelogio relogio)
+{
+    /// <summary>Quantos meses a série traz.</summary>
+    private const int MesesDaSerie = 12;
+
+    /// <summary>Quantos clientes o ranking traz.</summary>
+    private const int ClientesNoRanking = 5;
+
+    /// <summary>
+    /// A partir de quantos dias de atraso a tela avisa que o dado envelheceu.
+    ///
+    /// <para>Sessenta dias porque a competência é mensal: um mês fechado só aparece completo
+    /// depois de virar o mês, então trinta dias de "atraso" é operação normal. Sessenta já é
+    /// sinal de que alguma coisa parou — e foi exatamente esse sinal que faltou por dezessete
+    /// meses.</para>
+    /// </summary>
+    private const int DiasParaAvisarAtraso = 60;
+
+    /// <summary>Executa a leitura.</summary>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<ComProcedencia<FaturamentoResumido>>> ExecutarAsync(CancellationToken ct)
+    {
+        var ultima = await repositorio.CompetenciaMaisRecenteAsync(ct);
+        var ausentes = new List<MetricaSemDado>();
+
+        if (ultima is null)
+        {
+            ausentes.Add(new MetricaSemDado(
+                "faturamento",
+                "Não há faturamento carregado para esta filial. Ele vem da SD2 do Protheus, pela " +
+                "carga — se ela nunca rodou com a ponte configurada, não há o que mostrar."));
+
+            return Resultado<ComProcedencia<FaturamentoResumido>>.Ok(
+                ComProcedencia<FaturamentoResumido>.DoNossoBanco(
+                    new FaturamentoResumido(null, 0m, false, [], [], ausentes),
+                    "comercial.FaturamentoDoCliente", relogio));
+        }
+
+        var serie = await repositorio.SerieMensalAsync(MesesDaSerie, ct);
+        var top = await repositorio.TopClientesAsync(ClientesNoRanking, ct);
+
+        // O ÚLTIMO MÊS DA SÉRIE, e ele pode estar ABERTO. Medido em 06/09/2026: setembro tinha
+        // R$ 1,7 milhão contra R$ 15,9 milhões de agosto — não porque a empresa parou de vender,
+        // mas porque o mês tinha seis dias. Mostrar esse número como "faturamento do mês" ao
+        // lado dos onze meses cheios do gráfico erraria por 90%, e é exatamente o tipo de
+        // comparação que faz uma diretoria decidir errado.
+        var doUltimoMes = serie.LastOrDefault()?.ValorLiquido ?? 0m;
+        var hoje = DateOnly.FromDateTime(relogio.Agora);
+        var mesAindaAberto = ultima.Value.Year == hoje.Year && ultima.Value.Month == hoje.Month;
+
+        if (mesAindaAberto)
+            ausentes.Add(new MetricaSemDado(
+                "mesEmCurso",
+                $"{ultima.Value:MM/yyyy} ainda está em curso — o valor é do que já foi faturado " +
+                $"até {hoje:dd/MM}, e não do mês inteiro. Compará-lo com um mês fechado " +
+                "subestima o mês corrente."));
+
+        var fimDaCompetencia = ultima.Value.AddMonths(1).AddDays(-1);
+        var atraso = DateOnly.FromDateTime(relogio.Agora).DayNumber - fimDaCompetencia.DayNumber;
+
+        if (atraso > DiasParaAvisarAtraso)
+            ausentes.Add(new MetricaSemDado(
+                "faturamentoDesatualizado",
+                $"O faturamento mais recente é de {ultima.Value:MM/yyyy} — {atraso} dias atrás. " +
+                "A carga lê a SD2 do Protheus; um atraso deste tamanho quer dizer que ela parou " +
+                "de rodar, e não que a empresa deixou de vender."));
+
+        return Resultado<ComProcedencia<FaturamentoResumido>>.Ok(
+            ComProcedencia<FaturamentoResumido>.DoNossoBanco(
+                new FaturamentoResumido(ultima, doUltimoMes, mesAindaAberto, serie, top, ausentes),
+                "comercial.FaturamentoDoCliente", relogio));
+    }
+}
+
+/// <summary>O faturamento como a tela o consome.</summary>
+/// <param name="CompetenciaMaisRecente">O mês mais recente com movimento. Nulo quando não há dado.</param>
+/// <param name="ValorDoUltimoMes">O faturamento do mês mais recente da série.</param>
+/// <param name="UltimoMesEstaAberto">
+/// Se o mês mais recente ainda está em curso. Quando verdadeiro, o valor é parcial — e a tela
+/// precisa dizer isso, senão o número aparece ao lado de meses cheios como se fosse um deles.
+/// </param>
+/// <param name="Serie">Os últimos doze meses, do mais antigo para o mais novo.</param>
+/// <param name="TopClientes">Os maiores clientes por faturamento acumulado.</param>
+/// <param name="MetricasSemDado">O que estes números não dizem.</param>
+public sealed record FaturamentoResumido(
+    DateOnly? CompetenciaMaisRecente,
+    decimal ValorDoUltimoMes,
+    bool UltimoMesEstaAberto,
+    IReadOnlyList<MesDeFaturamento> Serie,
+    IReadOnlyList<ClienteNoRanking> TopClientes,
+    IReadOnlyList<MetricaSemDado> MetricasSemDado);

@@ -21,7 +21,8 @@ namespace Tracbel.Crm.Carga;
 /// </summary>
 internal sealed partial class CargaDeProcessoDoVortice
 {
-    private const string FluxoDeFaturamento = "VORTICE.CARGA.FATURAMENTO";
+    /// <summary>Quantos anos para trás a curva ABC olha.</summary>
+    private const int AnosDeFaturamento = 3;
 
     /// <summary>Onde a classe A termina: os clientes que somam os primeiros 80% do faturamento.</summary>
     private const decimal CorteDaClasseA = 0.80m;
@@ -37,6 +38,12 @@ internal sealed partial class CargaDeProcessoDoVortice
         if (faturamento.Count == 0) return (0, 0);
 
         var porDocumento = await MapaDeClientesPorDocumentoAsync(ct);
+
+        // A FILIAL VEM DE DOIS JEITOS, PORQUE HÁ DUAS ORIGENS. O Vórtice identifica por número
+        // (`NroEmpresa`) e exige de-para; o Protheus identifica pelo CÓDIGO de seis dígitos, que
+        // é o mesmo de `organizacao.Empresa` e dispensa tradução. Quem manda é o que veio
+        // preenchido na linha.
+        var porCodigoDeEmpresa = await MapaDeEmpresasPorCodigoAsync(ct);
         var gravados = 0;
         var semCliente = 0;
         var documentosSemCliente = new HashSet<string>(StringComparer.Ordinal);
@@ -53,7 +60,9 @@ internal sealed partial class CargaDeProcessoDoVortice
                 {
                     Linha = f,
                     ClienteId = porDocumento.GetValueOrDefault(f.DocumentoDoCliente),
-                    EmpresaId = deParaDeFiliais.GetValueOrDefault(f.CodigoDaFilialNoLegado)
+                    EmpresaId = f.CodigoDaFilial is { Length: > 0 } codigo
+                        ? porCodigoDeEmpresa.GetValueOrDefault(codigo)
+                        : deParaDeFiliais.GetValueOrDefault(f.CodigoDaFilialNoLegado)
                 })
                 .Where(x => x.ClienteId != 0 && x.EmpresaId != 0)
                 .ToList();
@@ -197,6 +206,15 @@ internal sealed partial class CargaDeProcessoDoVortice
         }
 
         return contagem;
+    }
+
+    /// <summary>O identificador de cada filial em operação, pelo código de seis dígitos.</summary>
+    private async Task<Dictionary<string, int>> MapaDeEmpresasPorCodigoAsync(CancellationToken ct)
+    {
+        await using var contexto = abrirContexto();
+
+        return await contexto.Empresas.AsNoTracking()
+            .ToDictionaryAsync(e => e.Codigo, e => e.Id, StringComparer.Ordinal, ct);
     }
 
     /// <summary>O identificador de cada cliente carregado, pelo documento sem máscara.</summary>

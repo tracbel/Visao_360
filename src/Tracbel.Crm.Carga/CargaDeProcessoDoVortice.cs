@@ -11,6 +11,7 @@ using Tracbel.Crm.Dominio.Processo;
 using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao.Carga;
+using Tracbel.Crm.Integracao.Protheus;
 using Tracbel.Crm.Integracao.Saneamento;
 
 namespace Tracbel.Crm.Carga;
@@ -35,6 +36,7 @@ namespace Tracbel.Crm.Carga;
 internal sealed partial class CargaDeProcessoDoVortice(
     Func<CrmDbContext> abrirContexto,
     LeitorDeCargaDoVortice leitor,
+    LeitorDeFaturamentoDoProtheus faturamentoDoProtheus,
     IReadOnlyDictionary<int, int> deParaDeFiliais,
     long usuarioResponsavelId,
     Action<string> relatar)
@@ -252,16 +254,35 @@ internal sealed partial class CargaDeProcessoDoVortice(
         // Entra depois do cliente porque casa por documento, e antes dos derivados porque a
         // classe A/B/C/D é a chave de leitura de toda métrica de cobertura da gerência.
         // -----------------------------------------------------------------------------------------
-        relatar("Lendo o faturamento do ERP — três anos, para a curva ABC ter base…");
-        var faturamento = await leitor.LerFaturamentoAsync(recorte, ct);
+        // O FATURAMENTO VEM DO PROTHEUS, E NÃO DA CÓPIA NO VÓRTICE.
+        //
+        // Até 06/09/2026 esta etapa lia `X_TOTVS_CRM_FATURAMENTO`, a tabela que o Vórtice RECEBE
+        // do ERP — e que para em 11/04/2025. Era de lá que vinha a frase "o faturamento parou",
+        // repetida em todas as telas por meses. Medido na origem: a SD2 tem nota emitida na
+        // mesma semana. Morreu a integração, não o faturamento.
+        //
+        // A janela olha três anos para trás a partir de HOJE, porque agora o dado alcança hoje.
+        relatar("Lendo o faturamento direto do Protheus — três anos, para a curva ABC ter base…");
+        var desde = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-AnosDeFaturamento));
+        var faturamento = await faturamentoDoProtheus.LerAsync(desde, relatar, ct);
         if (!faturamento.EhSucesso)
             return Resultado<ResumoDoRelacionamento>.Indisponivel(faturamento.Erro!);
-        _recusas.AddRange(faturamento.Valor.Recusadas);
-        relatar($"  {faturamento.Valor.LinhasLidas} linha(s) de faturamento lidas.");
+
+        if (faturamento.Valor.ClientesSemCadastro > 0)
+            Decidir(
+                "Códigos de cliente na nota fiscal sem correspondência no cadastro do Protheus",
+                faturamento.Valor.ClientesSemCadastro);
+
+        if (faturamento.Valor.ItensSemData > 0)
+            Decidir("Itens de nota descartados por não ter data de emissão legível",
+                faturamento.Valor.ItensSemData);
 
         var (faturamentoGravado, _) = await GravarFaturamentoAsync(
-            sistemaId, faturamento.Valor.Aceitos, ct);
-        relatar($"  {faturamentoGravado} mês(es) de faturamento gravado(s).");
+            sistemaId, faturamento.Valor.Faturamento, ct);
+
+        relatar(
+            $"  {faturamentoGravado} mês(es) de faturamento gravado(s) · nota mais recente: " +
+            $"{faturamento.Valor.EmissaoMaisRecente:dd/MM/yyyy}.");
 
         var curva = await ApurarCurvaAbcAsync(ct);
         relatar(
@@ -293,8 +314,6 @@ internal sealed partial class CargaDeProcessoDoVortice(
             sistemaId, FluxoDeInteracao, interacoes.Valor, interacoesGravadas, ct);
         await MarcarSincronismoAsync(
             sistemaId, FluxoDeVendaPerdida, vendasPerdidas.Valor, vendasPerdidasGravadas, ct);
-        await MarcarSincronismoAsync(
-            sistemaId, FluxoDeFaturamento, faturamento.Valor, faturamentoGravado, ct);
 
         return Resultado<ResumoDoRelacionamento>.Ok(new ResumoDoRelacionamento(
             UsuariosLidos: usuarios.Valor.LinhasLidas,
