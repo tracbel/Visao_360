@@ -25,7 +25,7 @@ a integração com o Vórtice.
 | Base de produção | `http://10.100.10.98:5891/rest` — **HTTP puro**, não HTTPS |
 | Ambiente | `envId: TMPRD` |
 | Usuário | `Integracao.IA` (do `.env`, chave `TOTVS_API_USER_PROD`) |
-| Token | `POST /api/oauth2/v1/token?grant_type=password&username=…&password=…`, validade **3600s** |
+| Token | `POST /api/oauth2/v1/token` com as credenciais em `form-urlencoded` **no corpo**, validade **3600s** |
 | Homologação (`10.100.10.252:5891`) | **Sem rota** desta estação |
 
 **A credencial vai no CORPO, e não na query string.** A documentação do fornecedor e o Postman
