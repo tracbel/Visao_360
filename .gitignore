@@ -33,3 +33,4 @@ Thumbs.db
 # memoria de projeto). Sao artefatos de quem esta editando, e nao do produto: mudam a cada
 # execucao e nao dizem nada a quem clonar o repositorio amanha.
 .omc/
+**/.omc/
