@@ -435,3 +435,40 @@ export type PainelDoCen = {
   responsaveis: ResponsavelParaSelecao[];
   metricasSemDado: MetricaSemDado[];
 };
+
+/** Um mês da série de faturamento. */
+export type MesDeFaturamento = {
+  /** O primeiro dia do mês. */
+  competencia: string;
+  valorLiquido: number;
+  /** Clientes DISTINTOS que compraram no mês — não linhas. */
+  clientes: number;
+  notas: number;
+};
+
+/** Um cliente no ranking de faturamento. */
+export type ClienteNoRanking = {
+  clienteChave: string;
+  nome: string;
+  /** A letra da curva ABC, quando apurada. */
+  classe: string | null;
+  valorLiquido: number;
+  ultimaCompraEm: string | null;
+};
+
+/**
+ * O faturamento lido da SD2 do Protheus.
+ *
+ * `competenciaMaisRecente` viaja junto de propósito: se a carga do ERP parar de novo, ela para
+ * de avançar e a tela diz isso — em vez de mostrar um total plausível e velho, que foi
+ * exatamente o defeito que passou dezessete meses sem ninguém notar.
+ */
+export type Faturamento = {
+  competenciaMaisRecente: string | null;
+  valorDoUltimoMes: number;
+  /** Quando verdadeiro, o valor do último mês é parcial: o mês ainda está correndo. */
+  ultimoMesEstaAberto: boolean;
+  serie: MesDeFaturamento[];
+  topClientes: ClienteNoRanking[];
+  metricasSemDado: MetricaSemDado[];
+};

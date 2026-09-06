@@ -28,9 +28,19 @@ a integração com o Vórtice.
 | Token | `POST /api/oauth2/v1/token?grant_type=password&username=…&password=…`, validade **3600s** |
 | Homologação (`10.100.10.252:5891`) | **Sem rota** desta estação |
 
-**A senha viaja na query string** — é assim que a API do Protheus funciona. Toda mensagem de
-erro precisa passar por um filtro que troque `password=…` por `***` antes de ir para tela ou
-log, senão a credencial vaza no primeiro `catch`. O `scripts/protheus/_comum.ps1` faz isso.
+**A credencial vai no CORPO, e não na query string.** A documentação do fornecedor e o Postman
+interno mandam a senha na URL, e foi assim que este acesso foi descoberto — mas **medido contra
+a produção em 06/09/2026, o endpoint aceita `application/x-www-form-urlencoded` no corpo** e
+devolve o mesmo token. Senha na URL entra no log de acesso do servidor, no histórico de proxy e
+em qualquer mensagem de erro que cite o endereço; de lá não sai mais. Tanto a ponte em C# quanto
+o `_comum.ps1` foram corrigidos.
+
+> Detalhe medido, para quem for mexer: `grant_type` na URL **com** as credenciais no corpo
+> devolve **500**. Ou tudo na URL, ou tudo no corpo.
+
+**O que continua exposto é o transporte.** A base é **HTTP puro** — o AppServer não expõe TLS na
+porta 5891 —, então a senha trafega em claro dentro da rede da Tracbel. Isso não se resolve do
+lado do CRM: **é pendência de infraestrutura**, e está na seção 5.
 
 ### 1.1 O que a API publica — e o que não publica
 
@@ -183,7 +193,10 @@ abril de 2025 e passa a poder ser apurada sobre dado de hoje.
    não segmenta nada hoje.
 4. **A `VVX` não preenche o nome da marca.** `JD` não vira "John Deere" por ela. O de-para de
    marca precisa de outra fonte, ou de uma lista mantida pelo negócio.
-5. **Autorização para leitura em volume.** A conta `Integracao.IA` funciona, mas ler a `SD2`
+5. **A API de produção é HTTP puro, sem TLS.** A senha da conta de integração trafega em claro
+   dentro da rede. Enquanto a porta 5891 não tiver certificado, qualquer captura no caminho lê a
+   credencial. É a pendência de segurança mais séria deste documento.
+6. **Autorização para leitura em volume.** A conta `Integracao.IA` funciona, mas ler a `SD2`
    inteira são ~325 requisições contra um ERP de produção. Falta combinar com a TI qual janela e
    com que frequência.
 

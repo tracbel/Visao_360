@@ -21,8 +21,12 @@
 
   ---------------------------------------------------------------------------------------------
   CREDENCIAL: sai de .env na raiz do repositorio (TOTVS_API_USER_PROD / TOTVS_API_PASSWORD_PROD),
-  que o .gitignore bloqueia. A senha viaja na QUERY STRING — e assim que a API do Protheus
-  funciona —, entao toda mensagem de erro passa por Ocultar() antes de chegar na tela ou no log.
+  que o .gitignore bloqueia. Ela vai no CORPO da requisicao, nao na URL — a documentacao do
+  fornecedor manda na query string, mas medido contra a producao o endpoint aceita o corpo, e
+  senha em URL fica no log de acesso do servidor para sempre.
+
+  Ocultar() continua existindo porque a base ainda e HTTP puro e porque mensagem de erro de rede
+  as vezes carrega o que foi enviado.
 #>
 
 $Global:ProtheusBase = 'http://10.100.10.98:5891/rest'
@@ -65,12 +69,19 @@ function Get-ProtheusToken {
     }
 
     $c = Get-ProtheusCredencial
-    $url = "$Global:ProtheusBase/api/oauth2/v1/token?grant_type=password" +
-           "&username=$([uri]::EscapeDataString($c.Usuario))" +
-           "&password=$([uri]::EscapeDataString($c.Senha))"
+
+    # A CREDENCIAL VAI NO CORPO, E NAO NA URL. A documentacao do fornecedor e o Postman interno
+    # mandam a senha na query string; testado contra a producao em 06/09/2026, o endpoint aceita
+    # form-urlencoded no corpo e devolve o mesmo token. Senha na URL fica no log de acesso do
+    # servidor e no historico de qualquer proxy, e de la nao sai mais.
+    #
+    # Detalhe medido: `grant_type` na URL com as credenciais no corpo devolve 500. Ou tudo na
+    # URL, ou tudo no corpo.
+    $corpo = @{ grant_type = 'password'; username = $c.Usuario; password = $c.Senha }
 
     try {
-        $tk = Invoke-RestMethod -Uri $url -Method Post -TimeoutSec 60
+        $tk = Invoke-RestMethod -Uri "$Global:ProtheusBase/api/oauth2/v1/token" -Method Post `
+            -Body $corpo -ContentType 'application/x-www-form-urlencoded' -TimeoutSec 60
     } catch {
         throw ('Falha ao autenticar no Protheus: ' + (Ocultar $_.Exception.Message))
     }

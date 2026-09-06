@@ -27,6 +27,7 @@ import type {
   ConsultaDeProcessos,
   ConsultaDeTarefas,
   ContagemPorRotulo,
+  Faturamento,
   PainelDoCen,
   VendasPerdidas,
   FaseDoFunil,
@@ -359,4 +360,17 @@ export function obterPainelDoCen(
     : '/v1/relatorios/cen';
 
   return ler<PainelDoCen>(caminho, contexto, { sinal });
+}
+
+/**
+ * O faturamento — série de doze meses e os maiores clientes, lidos da SD2 do Protheus.
+ *
+ * Até 06/09/2026 as telas diziam "depende do Protheus, que está parado". Estava errado: o que
+ * tinha parado era a cópia que o Vórtice recebe. A origem tem nota da mesma semana.
+ */
+export function obterFaturamento(
+  contexto: ContextoDeAcesso,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<Faturamento>> {
+  return ler<Faturamento>('/v1/relatorios/faturamento', contexto, { sinal });
 }

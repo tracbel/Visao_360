@@ -42,6 +42,14 @@ namespace Tracbel.Crm.Integracao.Protheus;
 /// <para><b>Retentativa só em GET.</b> O AppServer devolve 428 e 503 intermitentes — o próprio
 /// fornecedor documenta. Três tentativas com espera crescente é seguro numa leitura e seria
 /// perigoso numa escrita; como aqui não há escrita, a questão não se coloca.</para>
+///
+/// <para><b>A credencial vai no corpo, e não na URL.</b> A documentação do fornecedor e o
+/// Postman interno mandam a senha na query string — e foi assim que este acesso foi descoberto.
+/// Testado contra a produção: o endpoint aceita <c>form-urlencoded</c> no corpo. Senha na URL
+/// fica no log de acesso do servidor e no histórico de qualquer proxy, e de lá não sai mais.
+/// <b>O que continua exposto é o transporte:</b> a base é HTTP puro, sem TLS na porta 5891, e
+/// enquanto for assim a senha trafega em claro dentro da rede. É pendência de infraestrutura,
+/// registrada no documento 28 — não dá para resolver deste lado.</para>
 /// </summary>
 /// <param name="fabrica">De onde sai o <c>HttpClient</c>.</param>
 /// <param name="opcoes">A configuração da ponte.</param>
@@ -53,7 +61,7 @@ public sealed partial class PonteDoProtheus(IHttpClientFactory fabrica, IOptions
     private const string NaoConfigurada =
         "A ponte do Protheus não está configurada. Ela exige as variáveis de ambiente " +
         "Protheus__Base, Protheus__Usuario e Protheus__Senha — que nunca moram em arquivo " +
-        "versionado, porque a senha viaja na query string do endpoint de token.";
+        "versionado.";
 
     /// <summary>Cinco minutos de folga antes de o token vencer.</summary>
     private static readonly TimeSpan FolgaDoToken = TimeSpan.FromMinutes(5);
@@ -198,15 +206,30 @@ public sealed partial class PonteDoProtheus(IHttpClientFactory fabrica, IOptions
             if (_token is not null && DateTime.UtcNow < _tokenValidoAte) return Resultado<string>.Ok(_token);
 
             var config = opcoes.Value;
-            var caminho =
-                $"{config.Base}/api/oauth2/v1/token?grant_type=password" +
-                $"&username={Uri.EscapeDataString(config.Usuario!)}" +
-                $"&password={Uri.EscapeDataString(config.Senha!)}";
+
+            // A CREDENCIAL VAI NO CORPO, E NÃO NA URL.
+            //
+            // A documentação interna e o Postman do projeto de onboarding mandam a senha na
+            // query string, e foi assim que este acesso foi descoberto. Testado contra a
+            // produção em 06/09/2026: o endpoint **aceita o corpo em form-urlencoded** e
+            // devolve o mesmo token. Senha na URL entra no log de acesso do servidor, no
+            // histórico de proxy e em qualquer mensagem de erro que cite o endereço — nada
+            // disso some depois.
+            //
+            // Curiosidade que vale registrar para quem for mexer: `grant_type` na URL com as
+            // credenciais no corpo devolve 500. Ou tudo na URL, ou tudo no corpo.
+            using var credenciais = new FormUrlEncodedContent(
+            [
+                new KeyValuePair<string, string>("grant_type", "password"),
+                new KeyValuePair<string, string>("username", config.Usuario!),
+                new KeyValuePair<string, string>("password", config.Senha!)
+            ]);
 
             using var cliente = fabrica.CreateClient(NomeDoCliente);
             cliente.Timeout = TimeSpan.FromSeconds(60);
 
-            using var resposta = await cliente.PostAsync(caminho, null, ct);
+            using var resposta = await cliente.PostAsync(
+                $"{config.Base}/api/oauth2/v1/token", credenciais, ct);
 
             if (!resposta.IsSuccessStatusCode)
                 return Resultado<string>.Indisponivel(
