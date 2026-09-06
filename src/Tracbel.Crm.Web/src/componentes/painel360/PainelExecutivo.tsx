@@ -25,6 +25,7 @@ import {
   obterConsolidado,
   perdasConsolidadas,
   somarConsolidado,
+  faturamentoConsolidado,
   vendasPerdidasConsolidadas,
 } from '../../dados/api/consolidado';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
@@ -33,6 +34,55 @@ import { BlocoCarregando, BlocoErro } from '../cadastro/EstadosDeTela';
 import { GraficoBarrasHorizontais } from '../GraficoBarrasHorizontais';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { GraficoDonutCentro } from '../GraficoDonutCentro';
+import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
+
+/**
+ * O valor em milhões, como a diretoria fala dele.
+ *
+ * "R$ 15,9 M" cabe num cartão e num eixo de gráfico; "R$ 15.928.084,70" não cabe em nenhum dos
+ * dois e ninguém lê os centavos de um total de filial.
+ */
+function emMilhoes(valor: number): string {
+  if (Math.abs(valor) >= 1_000_000) {
+    return `R$ ${(valor / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} M`;
+  }
+
+  return `R$ ${(valor / 1_000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`;
+}
+
+/** `2026-09-01` vira `set/2026`. */
+function mesPorExtenso(competencia: string): string {
+  const [ano, mes] = competencia.slice(0, 7).split('-');
+  return `${MESES[Number(mes) - 1]}/${ano}`;
+}
+
+/** `2026-09-01` vira `set/26` — o rótulo curto do eixo. */
+function mesCurto(competencia: string): string {
+  const [ano, mes] = competencia.slice(0, 7).split('-');
+  return `${MESES[Number(mes) - 1]}/${ano.slice(2)}`;
+}
+
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+/**
+ * A cor da classe na curva ABC.
+ *
+ * Verde escuro em A e cinza em D não é juízo sobre o cliente: é a mesma escala de intensidade
+ * que o resto do painel usa para "pesa mais" e "pesa menos". D quer dizer "não comprou na
+ * janela", e é justamente quem a cobertura existe para atacar.
+ */
+function corDaClasse(classe: string | null): string {
+  switch (classe) {
+    case 'A':
+      return '#1B5E20';
+    case 'B':
+      return '#367C2B';
+    case 'C':
+      return '#6FBF5E';
+    default:
+      return '#9CA3AF';
+  }
+}
 
 /** As cores das faixas de cobertura, iguais às da legenda do protótipo. */
 const COR_EM_DIA = '#367C2B';
@@ -126,6 +176,7 @@ export function PainelExecutivo() {
   const cens = useMemo(() => censConsolidados(dados), [dados]);
   const perdas = useMemo(() => perdasConsolidadas(dados), [dados]);
   const vendasPerdidas = useMemo(() => vendasPerdidasConsolidadas(dados), [dados]);
+  const faturamento = useMemo(() => faturamentoConsolidado(dados), [dados]);
 
   /* Cobertura por tempo sem contato — as cinco faixas da legenda original. */
   const emDia = total.em30;
@@ -194,12 +245,32 @@ export function PainelExecutivo() {
 
       {/* ROW 1: os cinco indicadores ------------------------------------- */}
       <div className="v360-kpi-row">
-        <CartaoSemDado
-          titulo="Faturamento do mês"
-          cor="#367C2B"
-          motivo="Integração parada em 11/04/2025"
-          icone="trending-up"
-        />
+        {/* O KPI QUE ESTAVA VAZIO POR UMA PREMISSA FALSA.
+            Ele dizia "integração parada em 11/04/2025" — e isso era verdade da CÓPIA que o
+            Vórtice recebe, não da origem. Lendo a SD2 do Protheus direto, há nota da mesma
+            semana. O subtexto diz de que mês é o número, e avisa quando o mês ainda corre:
+            dia 6 de setembro tem seis dias de faturamento, e compará-lo com agosto cheio
+            erraria por 90%. */}
+        {faturamento.competenciaMaisRecente ? (
+          <CartaoIndicador
+            titulo={faturamento.ultimoMesEstaAberto ? 'Faturamento em curso' : 'Faturamento do mês'}
+            valor={emMilhoes(faturamento.valorDoUltimoMes)}
+            subtexto={
+              faturamento.ultimoMesEstaAberto
+                ? `${mesPorExtenso(faturamento.competenciaMaisRecente)} até hoje · mês em curso`
+                : `${mesPorExtenso(faturamento.competenciaMaisRecente)} · mês fechado`
+            }
+            cor="#367C2B"
+            icone="trending-up"
+          />
+        ) : (
+          <CartaoSemDado
+            titulo="Faturamento do mês"
+            cor="#367C2B"
+            motivo="Nenhum faturamento carregado"
+            icone="trending-up"
+          />
+        )}
         <CartaoSemDado
           titulo="Previsão FY 2026"
           cor="#1B5E20"
@@ -280,13 +351,36 @@ export function PainelExecutivo() {
           <div className="v360-card-header">
             <div>
               <div className="v360-card-title">Faturamento — 12 meses</div>
-              <div className="v360-card-sub">Realizado vs previsto vs meta</div>
+              <div className="v360-card-sub">
+                {faturamento.serie.length > 0
+                  ? `${mesPorExtenso(faturamento.serie[0].competencia)} a ${mesPorExtenso(faturamento.competenciaMaisRecente!)} · nota fiscal de saída`
+                  : 'nota fiscal de saída, lida do Protheus'}
+              </div>
             </div>
           </div>
-          <SemDado
-            oQue="o faturamento"
-            porque="A integração com o Protheus parou em 11/04/2025. O CRM não recebe nota fiscal desde então."
-          />
+
+          {/* O SUBTÍTULO ESCREVE O PERÍODO, SEMPRE. Se a carga do ERP parar de novo, a série
+              para de avançar e o período denuncia — em vez de mostrar um total plausível e
+              velho, que foi o defeito que passou dezessete meses sem ninguém notar. */}
+          {faturamento.serie.length > 0 ? (
+            <MolduraDeGrafico altura={200}>
+              {(l, a) => (
+                <GraficoLinhaMensal
+                  rotulos={faturamento.serie.map((m) => mesCurto(m.competencia))}
+                  valores={faturamento.serie.map((m) => m.valorLiquido)}
+                  largura={l}
+                  altura={a}
+                  formatar={emMilhoes}
+                  ultimoParcial={faturamento.ultimoMesEstaAberto}
+                />
+              )}
+            </MolduraDeGrafico>
+          ) : (
+            <SemDado
+              oQue="o faturamento"
+              porque="Nenhuma nota carregada. A carga lê a SD2 do Protheus; se ela não rodou com a ponte configurada, não há série para desenhar."
+            />
+          )}
         </div>
       </div>
 
@@ -296,13 +390,48 @@ export function PainelExecutivo() {
           <div className="v360-card-header">
             <div>
               <div className="v360-card-title">Top 5 clientes</div>
-              <div className="v360-card-sub">Maior faturamento acumulado</div>
+              <div className="v360-card-sub">
+                Maior faturamento acumulado · classe da curva ABC
+              </div>
             </div>
           </div>
-          <SemDado
-            oQue="o ranking de clientes"
-            porque="O ranking é por faturamento, que depende do Protheus."
-          />
+
+          {faturamento.topClientes.length > 0 ? (
+            <div className="v360-topbar-list">
+              {faturamento.topClientes.map((cliente, i) => (
+                <div className="v360-topbar-item" key={cliente.clienteChave}>
+                  <div className="v360-topbar-pos">#{i + 1}</div>
+                  {/* A LETRA NO LUGAR DA INICIAL. Nos outros rankings o quadrado traz as
+                      iniciais da pessoa; aqui ele traz a classe da curva ABC, que é a
+                      informação que qualifica o cliente — e ela é apurada do mesmo
+                      faturamento que ordena a lista. */}
+                  <div
+                    className="v360-topbar-avatar"
+                    style={{ background: corDaClasse(cliente.classe) }}
+                    title={cliente.classe ? `Classe ${cliente.classe}` : 'Classe não apurada'}
+                  >
+                    {cliente.classe ?? '—'}
+                  </div>
+                  <div className="v360-topbar-info">
+                    <div className="v360-topbar-nome" title={cliente.nome}>
+                      {cliente.nome}
+                    </div>
+                    <div className="v360-topbar-meta">
+                      {cliente.ultimaCompraEm
+                        ? `última compra em ${mesPorExtenso(cliente.ultimaCompraEm)}`
+                        : 'sem compra na janela'}
+                    </div>
+                  </div>
+                  <div className="v360-topbar-valor">{emMilhoes(cliente.valorLiquido)}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <SemDado
+              oQue="o ranking de clientes"
+              porque="Nenhum faturamento carregado para ordenar os clientes."
+            />
+          )}
         </div>
 
         <div className="v360-card v360-card-md">

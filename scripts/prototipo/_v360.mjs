@@ -4,7 +4,7 @@ const pg = await nav.newPage({ viewport: { width: 1280, height: 900 }, deviceSca
 const erros = [];
 pg.on('pageerror', e => erros.push(e.message));
 pg.on('console', m => { if (m.type()==='error') erros.push('console: '+m.text()); });
-await pg.goto('http://localhost:5173/#/', { waitUntil: 'networkidle' });
+await pg.goto('http://localhost:5200/#/', { waitUntil: 'networkidle' });
 await pg.waitForTimeout(2200);
 const alt = await pg.evaluate(() => document.body.scrollHeight);
 console.log('altura:', alt, '| referencia (css px):', 1981);

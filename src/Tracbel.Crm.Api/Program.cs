@@ -60,7 +60,20 @@ builder.Services.AddDbContext<CrmDbContext>(opcoes =>
             .MigrationsHistoryTable("__EFMigrationsHistory", "metadado")
             // A migração cria 63 tabelas, ~200 chaves estrangeiras e ~230 índices;
             // 30 segundos não bastam numa máquina carregada.
-            .CommandTimeout(180)));
+            .CommandTimeout(180)
+            // RETENTATIVA EM FALHA TRANSITÓRIA, e ela vale SÓ NA API.
+            //
+            // A Visão 360 consolida treze filiais e dispara mais de setenta consultas quase ao
+            // mesmo tempo. Medido em 06/09/2026, com o container recém-reiniciado: o SQL Server
+            // recusou parte delas com falha de conexão transitória, e a tela inteira caiu com
+            // uma exceção em vez de mostrar número nenhum. Não é defeito de consulta — é a
+            // natureza de conexão de rede, e o próprio EF recomenda tratar assim.
+            //
+            // NÃO SE LIGA ISTO NA CARGA. Lá as gravações rodam dentro de transação explícita, e
+            // a estratégia de retentativa recusa `BeginTransaction` — a carga precisa de
+            // `ExecutionStrategy.Execute` em volta de cada bloco, que é outro trabalho. Leitura
+            // não tem transação e não tem esse problema.
+            .EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null)));
 
 // -------------------------------------------------------------------------------------------
 // O CONTEXTO DE ACESSO — quem está agindo nesta requisição.

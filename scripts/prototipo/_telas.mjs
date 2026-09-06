@@ -10,7 +10,7 @@ const erros = [];
 pg.on('pageerror', e => erros.push(e.message));
 for (const [rota, nome] of ROTAS) {
   erros.length = 0;
-  await pg.goto('http://localhost:5173/#' + rota, { waitUntil: 'networkidle' });
+  await pg.goto('http://localhost:5200/#' + rota, { waitUntil: 'networkidle' });
   await pg.waitForTimeout(2000);
   const alt = await pg.evaluate(() => document.body.scrollHeight);
   await pg.screenshot({ path: `c:/tmp/tela-${nome}.png`, fullPage: true });

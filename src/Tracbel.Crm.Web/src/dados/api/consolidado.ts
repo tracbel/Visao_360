@@ -35,15 +35,21 @@ import type {
   Agregado,
   ContagemPorRotulo,
   FaseDoFunil,
+  Faturamento,
   FatiaDeVendaPerdida,
   PainelDaAgenda,
   ProcessoResumo,
+  ClienteNoRanking,
+  MesDeFaturamento,
   ResumoDeCobertura,
   VendasPerdidas,
 } from '../../tipos/relacionamento';
 import { ler, type ContextoDeAcesso } from './http';
 
 /** Uma filial em operação, como o catálogo `EMPRESA` a declara. */
+/** Quantos meses a série consolidada mostra. O mesmo número que o cartão promete no título. */
+const MESES_NA_SERIE = 12;
+
 /** As naturezas de responsável que contam como operação. Sistema, fornecedor e teste não. */
 export const ENTRAM_NO_RANKING = new Set(['Pessoa', 'Departamento']);
 
@@ -79,6 +85,9 @@ export type ConsolidadoDaFilial = {
 
   /** As vendas perdidas registradas no formulário: motivo, concorrente e diferença de preço. */
   vendasPerdidas: VendasPerdidas | null;
+
+  /** O faturamento desta filial, lido da SD2 do Protheus. */
+  faturamento: Faturamento | null;
   /** As fases do funil desta filial, para o consolidado somar por fase. */
   fases: FaseDoFunil[];
 };
@@ -160,16 +169,19 @@ async function lerFilial(
     porResponsavel: [],
     perdasPorMotivo: [],
     vendasPerdidas: null,
+    faturamento: null,
     fases: [],
   };
 
   try {
-    const [cobertura, agenda, funil, perdas, vendasPerdidas, ganhos, perdidos] = await Promise.all([
+    const [cobertura, agenda, funil, perdas, vendasPerdidas, faturamento, ganhos, perdidos] =
+      await Promise.all([
       ler<Agregado<ResumoDeCobertura>>('/v1/relatorios/cobertura', contexto, { sinal }),
       ler<Agregado<PainelDaAgenda>>('/v1/relatorios/agenda', contexto, { sinal }),
       ler<Agregado<FaseDoFunil>>('/v1/relatorios/funil', contexto, { sinal }),
       ler<Agregado<ContagemPorRotulo>>('/v1/relatorios/perdas', contexto, { sinal }),
       ler<VendasPerdidas>('/v1/relatorios/vendas-perdidas', contexto, { sinal }),
+      ler<Faturamento>('/v1/relatorios/faturamento', contexto, { sinal }),
       contar(contexto, 'Ganho', sinal),
       contar(contexto, 'Perdido', sinal),
     ]);
@@ -234,6 +246,7 @@ async function lerFilial(
       porResponsavel: [...porCen.values()].sort((a, b) => b.clientes - a.clientes),
       perdasPorMotivo: perdas.dados.itens,
       vendasPerdidas: vendasPerdidas.dados,
+      faturamento: faturamento.dados,
       fases: funil.dados.itens,
     };
   } catch (causa) {
@@ -434,5 +447,70 @@ export function vendasPerdidasConsolidadas(c: Consolidado | null): {
     processosPerdidos: vivas.reduce((s, f) => s + (f.vendasPerdidas?.processosPerdidos ?? 0), 0),
     porMotivo: juntar(vivas.map((f) => f.vendasPerdidas!.porMotivo)),
     porConcorrente: juntar(vivas.map((f) => f.vendasPerdidas!.porConcorrente)),
+  };
+}
+
+/**
+ * Junta o faturamento das treze filiais numa série só, e num ranking só.
+ *
+ * A SÉRIE SE SOMA POR COMPETÊNCIA, e não se concatena: o mesmo mês existe em cada filial, e
+ * emendar as listas produziria treze pontos de janeiro em vez de um.
+ *
+ * O RANKING DE CLIENTES SE SOMA POR CLIENTE. Um grupo que compra em Ribeirão Preto e em
+ * Votuporanga aparece nas duas listas, e é o total dele que interessa à diretoria.
+ */
+export function faturamentoConsolidado(c: Consolidado | null): {
+  competenciaMaisRecente: string | null;
+  valorDoUltimoMes: number;
+  ultimoMesEstaAberto: boolean;
+  serie: MesDeFaturamento[];
+  topClientes: ClienteNoRanking[];
+} {
+  const vivas = (c?.filiais ?? []).filter((f) => !f.falhou && f.faturamento !== null);
+  const comDado = vivas.map((f) => f.faturamento!);
+
+  const porMes = new Map<string, MesDeFaturamento>();
+  for (const filial of comDado) {
+    for (const mes of filial.serie) {
+      const atual = porMes.get(mes.competencia);
+      if (atual) {
+        atual.valorLiquido += mes.valorLiquido;
+        atual.clientes += mes.clientes;
+        atual.notas += mes.notas;
+      } else {
+        porMes.set(mes.competencia, { ...mes });
+      }
+    }
+  }
+
+  // OS ÚLTIMOS DOZE MESES DA UNIÃO, e não a união inteira.
+  //
+  // Cada filial devolve os doze meses dela, ancorados na competência mais recente DELA. Uma
+  // filial que parou de faturar em 2024 traz meses de 2024; emendadas, as treze séries cobriam
+  // vinte e nove meses num cartão que diz "12 meses". Cortar no fim mantém o cartão honesto e
+  // preserva o que interessa: o período recente, que é o que a diretoria compara.
+  const serie = [...porMes.values()]
+    .sort((a, b) => a.competencia.localeCompare(b.competencia))
+    .slice(-MESES_NA_SERIE);
+
+  const porCliente = new Map<string, ClienteNoRanking>();
+  for (const filial of comDado) {
+    for (const cliente of filial.topClientes) {
+      const atual = porCliente.get(cliente.clienteChave);
+      if (atual) atual.valorLiquido += cliente.valorLiquido;
+      else porCliente.set(cliente.clienteChave, { ...cliente });
+    }
+  }
+
+  return {
+    competenciaMaisRecente: serie.at(-1)?.competencia ?? null,
+    valorDoUltimoMes: serie.at(-1)?.valorLiquido ?? 0,
+    // BASTA UMA FILIAL COM O MÊS ABERTO para o consolidado ser parcial: o total já não é de um
+    // mês inteiro, e apresentá-lo como se fosse subestimaria o consolidado inteiro.
+    ultimoMesEstaAberto: comDado.some((f) => f.ultimoMesEstaAberto),
+    serie,
+    topClientes: [...porCliente.values()]
+      .sort((a, b) => b.valorLiquido - a.valorLiquido)
+      .slice(0, 5),
   };
 }
