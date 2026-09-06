@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"python - <<'PY'\\nimport io\\np='Agenda.tsx'\\ns=io.open(p,encoding='utf-8').read()\\ni=s.index(\\\".replace(/[\\\")\\nj=s.index(\\\"/g, '')\\\", i)+len(\\\"/g, '')\\\")\\ns = s[:i] + \\\".replace(/[\\\\\\\\u0300...",
-  "error": "Exit code 1\nTraceback (most recent call last):\r\n  File \"<stdin>\", line 8, in <module>\r\n  File \"C:\\Python314\\Lib\\encodings\\cp1252.py\", line 19, in encode\r\n    return codecs.charmap_encode(input,self.errors,encoding_table)[0]\r\n           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nUnicodeEncodeError: 'charmap' codec can't encode character '\\u0300' in position 54: character maps to <undefined>",
-  "timestamp": "2026-09-06T02:36:29.216Z",
-  "retry_count": 1
-}

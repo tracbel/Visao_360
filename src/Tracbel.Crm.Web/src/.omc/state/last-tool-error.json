@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"for c in GraficoLinhaMultipla GraficoBarraVendasPerdidas AlertaGerencial Kpi360 LinhaDoTempo ChipsFiltro; do echo \\\"--- $c\\\"; grep -rn \\\"$c\\\" --include=*.tsx --include=*.ts . | grep -v \\\"^...",
-  "error": "Exit code 1\n--- GraficoLinhaMultipla\n--- GraficoBarraVendasPerdidas\n--- AlertaGerencial\n./tipos/visao360.ts:47:export interface AlertaGerencialDado {\n./tipos/visao360.ts:53:export type AlertasPorPerfil360 = Record<PerfilId360, AlertaGerencialDado[]>;\n--- Kpi360\n--- LinhaDoTempo\n--- ChipsFiltro",
-  "timestamp": "2026-09-06T02:38:38.317Z",
-  "retry_count": 1
-}
