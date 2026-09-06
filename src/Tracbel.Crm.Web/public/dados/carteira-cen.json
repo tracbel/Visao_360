@@ -1,0 +1,439 @@
+[
+  {
+    "id": 84391,
+    "razao": "Agroindustrial Salvador Arena Ltda",
+    "apelido": "Salvador Arena",
+    "classe": "A",
+    "cidade": "Lucas do Rio Verde",
+    "uf": "MT",
+    "lat": -13.05,
+    "lng": -55.91,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-08-22",
+      "cat": "ligacao",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 4820000,
+    "oportunidades": 1,
+    "oportunidades_valor": 3200000,
+    "obs": "Oportunidade #1517613 em Neg. Fechado · limite pendente"
+  },
+  {
+    "id": 84402,
+    "razao": "Fazenda Boa Vista Agropecuária S/A",
+    "apelido": "Boa Vista",
+    "classe": "A",
+    "cidade": "Sorriso",
+    "uf": "MT",
+    "lat": -12.54,
+    "lng": -55.72,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-05-14",
+      "cat": "visita",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 2680000,
+    "oportunidades": 0,
+    "obs": "Sem interação há 103 dias · meta 30d (Classe A visita obrigatória)"
+  },
+  {
+    "id": 84418,
+    "razao": "Grupo SLC Bocaiúva Fazenda Parceiro",
+    "apelido": "SLC Bocaiúva",
+    "classe": "A",
+    "cidade": "Sapezal",
+    "uf": "MT",
+    "lat": -13.54,
+    "lng": -58.81,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-05-30",
+      "cat": "visita",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 6120000,
+    "oportunidades": 2,
+    "oportunidades_valor": 1850000,
+    "obs": "Frota mista JD/Case · atenção ao competidor"
+  },
+  {
+    "id": 84425,
+    "razao": "Agropecuária Três Marias Ltda",
+    "apelido": "Três Marias",
+    "classe": "B",
+    "cidade": "Nova Mutum",
+    "uf": "MT",
+    "lat": -13.83,
+    "lng": -56.08,
+    "exige_visita": false,
+    "ult_int": {
+      "data": "2026-04-18",
+      "cat": "ligacao",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 890000,
+    "oportunidades": 0,
+    "obs": "Aceita atendimento remoto · 129 dias sem contato"
+  },
+  {
+    "id": 84430,
+    "razao": "Fazenda Santa Clara Grãos Ltda",
+    "apelido": "Santa Clara",
+    "classe": "A",
+    "cidade": "Sinop",
+    "uf": "MT",
+    "lat": -11.86,
+    "lng": -55.51,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-07-14",
+      "cat": "visita",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 1980000,
+    "oportunidades": 1,
+    "oportunidades_valor": 720000,
+    "obs": "Revisão 500h pendente na frota"
+  },
+  {
+    "id": 84437,
+    "razao": "Grupo Bom Futuro Sinop",
+    "apelido": "Bom Futuro",
+    "classe": "A",
+    "cidade": "Sinop",
+    "uf": "MT",
+    "lat": -11.87,
+    "lng": -55.5,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-07-19",
+      "cat": "visita",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 3420000,
+    "oportunidades": 1,
+    "oportunidades_valor": 2100000,
+    "obs": "Cliente estratégico · 37 dias sem visita"
+  },
+  {
+    "id": 84445,
+    "razao": "Agropecuária Vale Verde Ltda",
+    "apelido": "Vale Verde",
+    "classe": "B",
+    "cidade": "Campo Novo dos Parecis",
+    "uf": "MT",
+    "lat": -13.67,
+    "lng": -57.89,
+    "exige_visita": false,
+    "ult_int": {
+      "data": "2026-06-30",
+      "cat": "whatsapp",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 640000,
+    "oportunidades": 0,
+    "obs": "Prefere WhatsApp · próxima renovação em Q1/27"
+  },
+  {
+    "id": 84448,
+    "razao": "Fazenda Nova Esperança S/A",
+    "apelido": "Nova Esperança",
+    "classe": "B",
+    "cidade": "Lucas do Rio Verde",
+    "uf": "MT",
+    "lat": -13.06,
+    "lng": -55.89,
+    "exige_visita": false,
+    "ult_int": {
+      "data": "2026-06-22",
+      "cat": "ligacao",
+      "autor": "Marina Costa · Admin"
+    },
+    "fat_12m": 512000,
+    "oportunidades": 0,
+    "obs": "Último contato foi Admin · CEN não visitou há 89 dias"
+  },
+  {
+    "id": 84452,
+    "razao": "Sementes do Cerrado Ltda",
+    "apelido": "Sementes do Cerrado",
+    "classe": "A",
+    "cidade": "Sorriso",
+    "uf": "MT",
+    "lat": -12.55,
+    "lng": -55.71,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-08-02",
+      "cat": "visita",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 1420000,
+    "oportunidades": 0,
+    "obs": "23 dias desde última visita"
+  },
+  {
+    "id": 84458,
+    "razao": "Agroindustrial Bragagnolo Ltda",
+    "apelido": "Bragagnolo",
+    "classe": "A",
+    "cidade": "Lucas do Rio Verde",
+    "uf": "MT",
+    "lat": -13.04,
+    "lng": -55.92,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-08-05",
+      "cat": "visita",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 2140000,
+    "oportunidades": 2,
+    "oportunidades_valor": 1450000,
+    "obs": "20 dias · dentro do prazo mas monitorar"
+  },
+  {
+    "id": 84461,
+    "razao": "Grupo Amaggi Fazenda Tanguro",
+    "apelido": "Amaggi Tanguro",
+    "classe": "A",
+    "cidade": "Sapezal",
+    "uf": "MT",
+    "lat": -13.55,
+    "lng": -58.82,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-08-08",
+      "cat": "visita",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 5820000,
+    "oportunidades": 1,
+    "oportunidades_valor": 4200000,
+    "obs": "Cliente TOP 3 da região"
+  },
+  {
+    "id": 84467,
+    "razao": "Fazenda Rio Verde Grãos Ltda",
+    "apelido": "Rio Verde Grãos",
+    "classe": "B",
+    "cidade": "Lucas do Rio Verde",
+    "uf": "MT",
+    "lat": -13.07,
+    "lng": -55.9,
+    "exige_visita": false,
+    "ult_int": {
+      "data": "2026-07-08",
+      "cat": "ligacao",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 780000,
+    "oportunidades": 0,
+    "obs": "48 dias · dentro da meta B (60d)"
+  },
+  {
+    "id": 84472,
+    "razao": "Agropecuária Bela Vista Ltda",
+    "apelido": "Bela Vista",
+    "classe": "C",
+    "cidade": "Sinop",
+    "uf": "MT",
+    "lat": -11.85,
+    "lng": -55.52,
+    "exige_visita": false,
+    "ult_int": {
+      "data": "2026-06-17",
+      "cat": "email",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 240000,
+    "oportunidades": 0,
+    "obs": "69 dias · meta C 90d"
+  },
+  {
+    "id": 84478,
+    "razao": "Fazenda Passo Fundo Sementes",
+    "apelido": "Passo Fundo",
+    "classe": "A",
+    "cidade": "Nova Mutum",
+    "uf": "MT",
+    "lat": -13.82,
+    "lng": -56.09,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-08-18",
+      "cat": "visita",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 1680000,
+    "oportunidades": 1,
+    "oportunidades_valor": 890000,
+    "obs": "7 dias · visita recente"
+  },
+  {
+    "id": 84483,
+    "razao": "Agroindustrial Cachoeira Ltda",
+    "apelido": "Cachoeira",
+    "classe": "A",
+    "cidade": "Sorriso",
+    "uf": "MT",
+    "lat": -12.56,
+    "lng": -55.7,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-08-15",
+      "cat": "visita",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 1890000,
+    "oportunidades": 0,
+    "obs": "10 dias · em dia"
+  },
+  {
+    "id": 84489,
+    "razao": "Grupo SLC Agrícola Sinop",
+    "apelido": "SLC Sinop",
+    "classe": "A",
+    "cidade": "Sinop",
+    "uf": "MT",
+    "lat": -11.88,
+    "lng": -55.49,
+    "exige_visita": true,
+    "ult_int": {
+      "data": "2026-08-20",
+      "cat": "visita",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 4210000,
+    "oportunidades": 3,
+    "oportunidades_valor": 2650000,
+    "obs": "Conta estratégica · 3 oportunidades ativas"
+  },
+  {
+    "id": 84495,
+    "razao": "Fazenda Aliança Grãos Ltda",
+    "apelido": "Aliança",
+    "classe": "B",
+    "cidade": "Lucas do Rio Verde",
+    "uf": "MT",
+    "lat": -13.03,
+    "lng": -55.93,
+    "exige_visita": false,
+    "ult_int": {
+      "data": "2026-08-11",
+      "cat": "whatsapp",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 520000,
+    "oportunidades": 0,
+    "obs": "14 dias"
+  },
+  {
+    "id": 84501,
+    "razao": "Agropecuária São Lucas Ltda",
+    "apelido": "São Lucas",
+    "classe": "B",
+    "cidade": "Sorriso",
+    "uf": "MT",
+    "lat": -12.53,
+    "lng": -55.73,
+    "exige_visita": false,
+    "ult_int": {
+      "data": "2026-08-13",
+      "cat": "remota",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 610000,
+    "oportunidades": 0,
+    "obs": "Reunião mensal via Teams"
+  },
+  {
+    "id": 84508,
+    "razao": "Fazenda Cerrado Verde Ltda",
+    "apelido": "Cerrado Verde",
+    "classe": "C",
+    "cidade": "Campo Novo dos Parecis",
+    "uf": "MT",
+    "lat": -13.68,
+    "lng": -57.9,
+    "exige_visita": false,
+    "ult_int": {
+      "data": "2026-08-04",
+      "cat": "ligacao",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 190000,
+    "oportunidades": 0,
+    "obs": "21 dias · meta C 90d"
+  },
+  {
+    "id": 84512,
+    "razao": "Sitio Boa Sorte Ltda ME",
+    "apelido": "Boa Sorte",
+    "classe": "C",
+    "cidade": "Nova Mutum",
+    "uf": "MT",
+    "lat": -13.84,
+    "lng": -56.07,
+    "exige_visita": false,
+    "ult_int": {
+      "data": "2026-07-28",
+      "cat": "whatsapp",
+      "autor": "José Rufino"
+    },
+    "fat_12m": 128000,
+    "oportunidades": 0,
+    "obs": "28 dias"
+  },
+  {
+    "id": 84518,
+    "razao": "Grupo Wehrmann Fazenda Nova Divisa",
+    "apelido": "Wehrmann",
+    "classe": "A",
+    "cidade": "Campo Novo dos Parecis",
+    "uf": "MT",
+    "lat": -13.66,
+    "lng": -57.88,
+    "exige_visita": true,
+    "ult_int": null,
+    "fat_12m": 0,
+    "oportunidades": 0,
+    "obs": "Prospect indicado por Amaggi · nunca contatado"
+  },
+  {
+    "id": 84522,
+    "razao": "Fazenda Terra Nova Agropecuária",
+    "apelido": "Terra Nova",
+    "classe": "B",
+    "cidade": "Sinop",
+    "uf": "MT",
+    "lat": -11.9,
+    "lng": -55.53,
+    "exige_visita": false,
+    "ult_int": null,
+    "fat_12m": 0,
+    "oportunidades": 0,
+    "obs": "Lead frio · CNPJ ativo Protheus mas zero histórico"
+  },
+  {
+    "id": 84527,
+    "razao": "Agropecuária Nova Aurora Ltda ME",
+    "apelido": "Nova Aurora",
+    "classe": "D",
+    "cidade": "Lucas do Rio Verde",
+    "uf": "MT",
+    "lat": -13.08,
+    "lng": -55.88,
+    "exige_visita": false,
+    "ult_int": {
+      "data": "2026-04-02",
+      "cat": "email",
+      "autor": "Marina Costa · Admin"
+    },
+    "fat_12m": 0,
+    "oportunidades": 0,
+    "obs": "Cadastro reativado · sem faturamento em 12m"
+  }
+]

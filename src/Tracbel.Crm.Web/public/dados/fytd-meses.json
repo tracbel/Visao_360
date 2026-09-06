@@ -1,0 +1,53 @@
+[
+  {
+    "key": "2025-11",
+    "label": "Nov/25",
+    "dias_uteis": 20
+  },
+  {
+    "key": "2025-12",
+    "label": "Dez/25",
+    "dias_uteis": 18
+  },
+  {
+    "key": "2026-01",
+    "label": "Jan/26",
+    "dias_uteis": 21
+  },
+  {
+    "key": "2026-02",
+    "label": "Fev/26",
+    "dias_uteis": 19
+  },
+  {
+    "key": "2026-03",
+    "label": "Mar/26",
+    "dias_uteis": 22
+  },
+  {
+    "key": "2026-04",
+    "label": "Abr/26",
+    "dias_uteis": 20
+  },
+  {
+    "key": "2026-05",
+    "label": "Mai/26",
+    "dias_uteis": 21
+  },
+  {
+    "key": "2026-06",
+    "label": "Jun/26",
+    "dias_uteis": 20
+  },
+  {
+    "key": "2026-07",
+    "label": "Jul/26",
+    "dias_uteis": 22
+  },
+  {
+    "key": "2026-08",
+    "label": "Ago/26",
+    "dias_uteis": 17,
+    "parcial": true
+  }
+]

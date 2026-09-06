@@ -1,0 +1,35 @@
+{
+  "catalogo": "tipo_de_tarefa",
+  "descricao": "Classificação da tarefa/compromisso da Agenda do CEN",
+  "origem": "prototipo/dados-seed/tipo-meta.json (4 itens). O README de dados-seed identifica esta constante (TIPO_META) como o catálogo \"wf.TipoTarefa\" / processo.TipoTarefa. NÃO É a mesma coisa que IV_Acao (980 ações) do Vórtice — ver PENDENTES.md.",
+  "itens": [
+    {
+      "codigo": "MONITORAR",
+      "descricao": "Monitoramento",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Ícone 'eye', cor #0284C7 sobre fundo #E0F2FE (protótipo, tipo-meta.json). Classifica a tarefa na Agenda do CEN."
+    },
+    {
+      "codigo": "VISITAR",
+      "descricao": "Visita",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Ícone 'nav', cor #16A34A sobre fundo #DCFCE7 (protótipo, tipo-meta.json). Classifica a tarefa na Agenda do CEN."
+    },
+    {
+      "codigo": "LIGAR",
+      "descricao": "Ligação",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Ícone 'phone', cor #7C3AED sobre fundo #EDE9FE (protótipo, tipo-meta.json). Classifica a tarefa na Agenda do CEN."
+    },
+    {
+      "codigo": "PROPOSTA",
+      "descricao": "Proposta",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "Ícone 'file', cor #EA580C sobre fundo #FFEDD5 (protótipo, tipo-meta.json). Classifica a tarefa na Agenda do CEN."
+    }
+  ]
+}

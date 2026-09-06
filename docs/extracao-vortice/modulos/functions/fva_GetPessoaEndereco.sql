@@ -1,0 +1,12 @@
+/* ==============================================================
+   Objeto ..........: dbo.fva_GetPessoaEndereco
+   Tipo ............: SQL_SCALAR_FUNCTION
+   Criado em .......: 2025-02-17 17:35:37
+   Modificado em ...: 2025-02-17 17:35:37
+   Linhas ..........: 1
+   Escreve em tabela: nao
+   Tabelas referidas: GE_PESSOA, GE_PESSOAEND
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+ CREATE FUNCTION dbo.fva_GetPessoaEndereco    (  @pnSeqPessoa numeric, @pnCorrespondencia Int   ) RETURNS  varchar(250) AS   BEGIN 	DECLARE  @vsRetorno   		  varchar(250)  	DECLARE  @vnQtde		  Int 	DECLARE  @vsHifen  		  varchar(3) 	DECLARE  @vsTIPOLOGRADOURO        VARCHAR(15) 	DECLARE  @vsLOGRADOURO            VARCHAR(80) 	DECLARE  @vsNROLOGRADOURO         VARCHAR(10) 	DECLARE  @vsCMPLTOLOGRADOURO      VARCHAR(30) If @pnCorrespondencia > 0    BEGIN      SET @vnQtde = (         SELECT COUNT(*)           FROM GE_PESSOAEND PE           WHERE PE.SEQPESSOA = @pnSeqPessoa          AND   PE.TIPOENDERECO = 'R')   END  ELSE      BEGIN     SET @vnQtde = 0     END if  @vnQtde = 0    BEGIN     SET @vnQtde =            (SELECT COUNT(*)        FROM GE_PESSOA          WHERE  SEQPESSOA = @pnSeqPessoa)          If @vnQtde = 1      	  BEGIN     	    SELECT @vsTIPOLOGRADOURO=PE.TIPOLOGRADOURO,  	           @vsLOGRADOURO=PE.LOGRADOURO,  			   @vsNROLOGRADOURO=PE.NROLOGRADOURO,  			   @vsCMPLTOLOGRADOURO=PE.CMPLTOLOGRADOURO          FROM GE_PESSOA PE          WHERE PE.SEQPESSOA = @pnSeqPessoa       END   END      Else      BEGIN 	SELECT @vsTIPOLOGRADOURO=PE.TIPOLOGRADOURO,  		   @vsLOGRADOURO=PE.LOGRADOURO,  		   @vsNROLOGRADOURO=PE.NROLOGRADOURO,  		   @vsCMPLTOLOGRADOURO=PE.CMPLTOLOGRADOURO          FROM GE_PESSOAEND PE          WHERE PE.SEQPESSOA = @pnSeqPessoa             AND   PE.TIPOENDERECO = 'R'   END If @vnQtde > 0   BEGIN    If @vsTIPOLOGRADOURO is Not Null       SET @vsRetorno = @vsTIPOLOGRADOURO + ' ' + @vsLOGRADOURO    Else          SET @vsRetorno = @vsLOGRADOURO        If @vsNROLOGRADOURO is Not Null       SET @vsRetorno = @vsRetorno + ', ' + @vsNROLOGRADOURO      If @vsCMPLTOLOGRADOURO is Not Null       SET @vsRetorno = @vsRetorno + ' ' + @vsCMPLTOLOGRADOURO   END Return(@vsRetorno) END  

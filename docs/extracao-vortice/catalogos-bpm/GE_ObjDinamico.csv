@@ -1,0 +1,1205 @@
+﻿"SeqObjDyn","Tipo","TipoRetorno","Descricao","MensInicial","MensFalso","MensVerdadeiro","Uso","Conexao","BancoDados","Usuario","DBVersion","Comando","UsoJuncaoPessoa","UsoPessoa","UsoProcesso","UsoAgenda","UsoHistorico","UsoAcao","UsoResultado","UsoReqResultado","UsoResultadoCmpl","UsoWorkFlow","DtaAlteracao","UsuAlteracao","USOMSGCENTER","ChkSum","USOMSGCTRSMS"
+"1","TESTE","","Fin_Probabilidade Aprovação Crédito","Não preenchido *Probabilidade Aprovação Crédito*","Dispensa *Probabilidade Aprovação Crédito*","Não preenchido *Probabilidade Aprovação Crédito*","Fin_Probabilidade Aprovação Crédito","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM  IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.PROB_APROV_CRED1 IS NOT NULL
+","0","0","0","1","0","","","1","0","0","19/12/2014 00:00:00","VTCCONS","0","",""
+"2","TESTE","","Fin_Nro Chassi","Não preenchido *Nro Chassi*","Dispensa *Nro Chassi*","Não preenchido *Nro Chassi*","Fin_Nro Chassi","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ISNULL (ACV.NRO_CHASSI1, '') <> ''
+AND RTRIM (ACV.NRO_CHASSI1) <> ''","0","0","0","1","0","","","1","0","0","24/04/2019 00:00:00","VTCCONS","0","",""
+"3","TESTE","","Fin_Valor Recurso Próprio","Não preenchido *Valor Recurso Próprio*","Dispensa *Valor Recurso Próprio*","Não preenchido *Valor Recurso Próprio*","Fin_Valor Recurso Próprio","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAMENTO_VENDA ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.VLR_REC_PROPRIO IS NOT NULL
+","0","0","0","1","0","","","1","0","0","09/12/2012 00:00:00","VTCCONS","0","",""
+"4","TESTE","","Fin_Origem do Faturamento","Não preenchido *Origem do Faturamento*","Não preenchido *Origem do Faturamento* no formulario Acompanhamento de Vendas.","Dispensa *Origem do Faturamento*","Fin_Origem do Faturamento","","","","","SELECT COUNT (*) into :vnIgualZero
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.ORIGEM_FATURAMENTO IS NOT NULL
+","0","0","0","1","0","","","1","0","0","17/08/2015 00:00:00","VTCCONS","0","",""
+"5","TESTE","","Fin_Data Prevista de Faturamento","Não preenchido *Data Prevista de Faturamento*","Dispensa *Data Prevista de Faturamento* no formulario Acompanhamento de Vendas.","Não preenchido *Data Prevista de Faturamento*","Fin_Data Prevista de Faturamento","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.PREV_FATURAM1 IS NOT NULL
+","0","0","0","1","0","","","1","0","0","17/08/2015 00:00:00","VTCCONS","0","",""
+"6","TESTE","","Fin_Instituição Financeira","Não preenchido *Instituição Financeira*","Dispensa *Instituição Financeira*","Não preenchido *Instituição Financeira*","Fin_Instituição Financeira","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAMENTO_VENDA ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.INST_FINANCEIRA IS NOT NULL
+","0","0","0","1","0","","","1","0","0","09/12/2012 00:00:00","VTCCONS","0","",""
+"7","TESTE","","Fin_Agência","Não preenchido *Agência*","Dispensa *Agência*","Não preenchido *Agência*","Fin_Agência","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NOME_AGENC1 IS NOT NULL
+
+","0","0","0","1","0","","","1","0","0","18/01/2015 00:00:00","VTCCONS","0","",""
+"8","TESTE","","Fin_Nro Agência","Não preenchido *Nro Agência*","Dispensa *Nro Agência*","Não preenchido *Nro Agência*","Fin_Nro Agência","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NRO_AGENC1 IS NOT NULL
+","0","0","0","1","0","","","1","0","0","18/01/2015 00:00:00","VTCCONS","0","",""
+"9","TESTE","","Fin_Nº Pedido na Fábrica","Não preenchido *Nº Pedido na Fábrica*","Dispensa *Nº Pedido na Fábrica*","Não preenchido *Nº Pedido na Fábrica*","Fin_Nº Pedido na Fábrica","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAMENTO_VENDA ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.N__PEDIDO_NA_FABRI IS NOT NULL
+","0","0","0","1","0","","","1","0","0","09/12/2012 00:00:00","VTCCONS","0","",""
+"10","TESTE","","Fin_Nro PAC","Não preenchido *Nro PAC*","Dispensa *Nro PAC*","Não preenchido *Nro PAC*","Fin_Nro PAC","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NRO_PAC1 IS NOT NULL
+","0","0","0","1","0","","","1","0","0","19/12/2014 00:00:00","VTCCONS","0","",""
+"11","TESTE","","Fin_Nro Contrato","Não preenchido *Nro Contrato*","Dispensa *Nro Contrato*","Não preenchido *Nro Contrato*","Fin_Nro Contrato","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAMENTO_VENDA ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NRO_CONTRATO IS NOT NULL
+","0","0","0","1","0","","","1","0","0","09/12/2012 00:00:00","VTCCONS","0","",""
+"12","TESTE","","Fin_Nro NF","Não preenchido *Nro NF*","Dispensa *Nro NF*","Não preenchido *Nro NF*","Fin_Nro NF","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAMENTO_VENDA ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NRO_NF IS NOT NULL
+","0","0","0","1","0","","","1","0","0","09/12/2012 00:00:00","VTCCONS","0","",""
+"16","TESTE","","Segmentação de Contato Venda de Máquinas","Papel de Comprador de Máquinas não vinculado","Vinculado Ok","Papel de Comprador de Máquinas não vinculado","Exigir que um papel de Comprador Máquinas seja defindo nos contatos da Pessoa","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM GE_CONTATOPAPEL CPP
+LEFT JOIN IV_PROCDADO PRD ON PRD.SEQPESSOA = CPP.SEQPESSOA
+AND PRD.CODPROCESSO = 9401 WHERE CPP.SEQPESSOA = :vknSeqPessoa
+AND CPP.PAPEL = 'Comprador de Máquina'
+AND CPP.SEQPESSOA IS NOT NULL
+","0","0","1","0","0","","","1","0","0","20/03/2013 00:00:00","VTCCONS","0","",""
+"17","TESTE","","Segmentação de Contato Pesquisa Satisfaç","Necessário preencher ""Papéis - Resp. Pesq. Satisfação"" na aba Contatos","Vinculado Ok","Necessário preencher ""Papéis - Resp. Pesq. Satisfação"" na aba Contatos","Exigir que um papel de Pesquisa de Satisfação","","","","","SELECT  COUNT (*) into :vnDiferenteZero
+FROM GE_CONTATOPAPEL CPP
+LEFT JOIN IV_PROCDADO PRD ON PRD.SEQPESSOA = CPP.SEQPESSOA 
+AND PRD.CODPROCESSO IN ('37','34')
+WHERE CPP.SEQPESSOA = :vknSeqPessoa
+AND CPP.PAPEL = 'Resp Pesq Satisfação'
+AND CPP.SEQPESSOA IS NOT NULL","0","0","1","0","0","","","1","0","0","02/12/2024 00:00:00","NETO.PRADO","0","",""
+"18","TESTE","","Segmentação de Contato Venda de Peças","Papel de Comprador de Peças não vinculado","Vinculado Ok","Papel de Comprador de Peças não vinculado","Exigir que um papel de Comprador de Peças seja defindo nos contatos da Pessoa","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM GE_CONTATOPAPEL CPP
+LEFT JOIN IV_PROCDADO PRD ON PRD.SEQPESSOA = CPP.SEQPESSOA 
+AND PRD.CODPROCESSO = 9406
+WHERE CPP.SEQPESSOA = :vknSeqPessoa
+AND CPP.PAPEL = 'Comprador de Pecas'
+AND CPP.SEQPESSOA IS NOT NULL
+
+
+","0","0","1","0","0","","","1","0","0","20/03/2013 00:00:00","VTCCONS","0","",""
+"19","TESTE","","Segmentação de Contato Venda de Serviços","Papel de Resp. Manutenção não vinculado","Vinculado Ok","Papel de Resp. Manutenção não vinculado","Exigir que um papel de Comprador de Serviços seja defindo nos contatos da Pessoa","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM GE_CONTATOPAPEL CPP
+LEFT JOIN IV_PROCDADO PRD ON PRD.SEQPESSOA = CPP.SEQPESSOA 
+AND PRD.CODPROCESSO = 9405
+WHERE CPP.SEQPESSOA = :vknSeqPessoa 
+AND CPP.PAPEL = 'Respons. Manutenção'
+AND CPP.SEQPESSOA IS NOT NULL
+
+","0","0","1","0","0","","","1","0","0","20/03/2013 00:00:00","VTCCONS","0","",""
+"20","TESTE","","Segmentação de Contato Origem de Receita","Origem de Receita não definido nas propriedades da Pessoa","Vinculado Ok","Origem de Receita não definido nas propriedades da Pessoa","Exigir que Origem de Receita seja defindo nas Propriedades da Pessoa.","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_CLIENTEPROPR CPP
+WHERE CPP.SEQPESSOA = :vknSeqPessoa
+AND CPP.SeqPropriedade = 9400
+AND CPP.SEQPESSOA IS NOT NULL
+","0","0","1","0","0","","","0","0","0","07/04/2017 00:00:00","VTCCONS","0","",""
+"21","TESTE","","Fin_Data Prevista de Faturamento IMPLEME","Não preenchido *Data Prevista de Faturamento IMPLEMENTO*","Dispensa *Data Prevista de Faturamento IMPLEMENTO*","Não preenchido *Data Prevista de Faturamento IMPLEMENTO*","Fin_Data Prevista de Faturamento IMPLEMENTO","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAM_VENDA_IMP ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.DATA_PREV_FATURAM IS NOT NULL
+","0","0","0","1","0","","","1","0","0","14/01/2015 00:00:00","VTCCONS","0","",""
+"22","TESTE","","Fin_Instituição Financeira_IMPLEMENTO","Não preenchido *Instituição Financeira Implemento*","Dispensa *Instituição Financeira Implemento*","Não preenchido *Instituição Financeira Implemento*","Fin_Instituição Financeira_IMPLEMENTO","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAM_VENDA_IMP ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.INST_FINANC IS NOT NULL
+","0","0","0","1","0","","","1","0","0","18/01/2015 00:00:00","VTCCONS","0","",""
+"23","TESTE","","Fin_Nro Agência_IMPLEMENTO","Não preenchido *Nro Agência Implemento*","Dispensa *Nro Agência Implemento*","Não preenchido *Nro Agência Implemento*","Fin_Nro Agência IMPLEMENTO","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHA_VENDA_IMP ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NUMERO_AGENCIA IS NOT NULL
+","0","0","0","1","0","","","1","0","0","18/01/2015 00:00:00","VTCCONS","0","",""
+"24","TESTE","","Fin_Nro Chassi_IMPLEMENTO","Não preenchido *Nro Chassi Implemento*","Dispensa *Nro Chassi Implemento*","Não preenchido *Nro Chassi Implemento*","Fin_Nro Chassi IMPLEMENTO","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAM_VENDA_IMP ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ISNULL (ACV.NUM_CHASSI_IMPL, '') <> ''
+AND RTRIM (ACV.NUM_CHASSI_IMPL) <> ''","0","0","0","1","0","","","1","0","0","04/02/2015 00:00:00","VTCCONS","0","",""
+"25","TESTE","","Fin_Nro NF_IMPLEMENTO","Não preenchido *Nro NF Implemento*","Dispensa *Nro NF*","Não preenchido *Nro NF Implemento*","Fin_Nro NF IMPLEMENTO","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAM_VENDA_IMP ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NUMERO_NOTAFISCAL IS NOT NULL
+
+
+ ","0","0","0","1","0","","","1","0","0","18/01/2015 00:00:00","VTCCONS","0","",""
+"26","TESTE","","Fin_Nro PAC_IMPLEMENTO","Não preenchido *Nro PAC Implemento*","Dispensa *Nro PAC Implemento*","Não preenchido *Nro PAC Implemento*","Fin_Nro PAC IMPLEMENTO","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAM_VENDA_IMP ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NRO_DO_PAC IS NOT NULL
+","0","0","0","1","0","","","1","0","0","18/01/2015 00:00:00","VTCCONS","0","",""
+"27","TESTE","","Fin_Probabilidade Aprovação Crédito_IMPL","Não preenchido *Probabilidade Aprovação Crédito Implemento*","Dispensa *Probabilidade Aprovação Crédito Implemento*","Não preenchido *Probabilidade Aprovação Crédito Implemento*","Fin_Probabilidade Aprovação Crédito IMPLEMENTO","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM  IV_Q$ACOMPANHAM_VENDA_IMP ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.PROBAB_APR_CREDITO IS NOT NULL
+
+
+","0","0","0","1","0","","","1","0","0","18/01/2015 00:00:00","VTCCONS","0","",""
+"28","TESTE","","Fin_Agência_IMPLEMENTO","Não preenchido *Agência Implemento*","Dispensa *Agência Implemento*","Não preenchido *Agência Implemento*","Fin_Agência Implemento","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAM_VENDA_IMP ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.AGENCIA_BANC IS NOT NULL
+","0","0","0","1","0","","","1","0","0","18/01/2015 00:00:00","VTCCONS","0","",""
+"29","TESTE","","OD_Faturamento: Agrega","Faturamento autorizado","Não contem agrega ou desagrega","Resultado: Realizado Agrega Custo e Autorizado Banco","OD_Faturamento: Agrega","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO HST
+WHERE HST.Resultado = 218
+AND HST.Processo = :vCRMnProcessoAtivo 
+AND EXISTS (SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HST.Processo AND RESULTADO = 225)
+AND EXISTS (SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HST.Processo AND RESULTADO = 274)
+
+","0","1","1","0","0","","","1","0","1","27/01/2015 00:00:00","VTCCONS","0","",""
+"32","TESTE","","OD_Faturamento: Agrega/Desagrega","Faturamento autorizado","Não contem agrega ou desagrega","Resultado: Realizado Agrega Custo e Autorizado Banco e Confirmado Desagrega","OD_Faturamento: Agrega/Desagrega","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO HST
+WHERE HST.Resultado = 291
+AND HST.Processo = :vCRMnProcessoAtivo 
+AND EXISTS (SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HST.Processo AND RESULTADO = 225)
+AND EXISTS (SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HST.Processo AND RESULTADO = 274)
+AND EXISTS (SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HST.Processo AND RESULTADO = 447)
+
+","0","1","1","0","0","","","1","0","1","09/12/2015 00:00:00","JULIANA.PLACIDI","0","",""
+"33","TESTE","","OD_Faturamento: Desagrega","Faturamento autorizado","Não contem agrega ou desagrega","Resultado: Confirmado Desagrega e Autorizado Banco","OD_Faturamento: Desagrega","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO HST
+WHERE HST.Resultado = 219
+AND HST.Processo = :vCRMnProcessoAtivo 
+AND EXISTS (SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HST.Processo AND RESULTADO = 225)
+AND EXISTS (SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HST.Processo AND RESULTADO = 447)
+
+","0","1","1","0","0","","","1","0","1","09/12/2015 00:00:00","JULIANA.PLACIDI","0","",""
+"34","TESTE","","OD_Faturamento: Sem Alterações","Faturamento autorizado","Não Sem Alterações","Resultado: Autorizado Banco","OD_Faturamento: Sem Alterações","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO HST
+WHERE HST.Resultado = 331
+AND HST.Processo = :vCRMnProcessoAtivo 
+AND EXISTS (SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HST.Processo AND RESULTADO = 350)
+
+
+","0","1","1","0","0","","","1","0","1","02/02/2015 00:00:00","VTCCONS","0","",""
+"35","TESTE","","OD_Fat Implemento: Agrega","Faturamento autorizado","Não contem agrega ou desagrega","Resultado: Realizado Agrega Custo Implemento","OD_Faturamento Implemento: Agrega","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_PROCDADO PRC, IV_PROCDADO PRC2, IV_HISTORICO HIS
+WHERE PRC.PROCESSO = :vCRMnProcessoAtivo 
+  AND PRC2.PROCESSODNA = PRC.PROCESSODNA
+  AND HIS.Processo = PRC2.PROCESSO
+  AND HIS.Resultado = 331
+  AND EXISTS (SELECT 1 FROM IV_HISTORICO H2 WHERE H2.PROCESSO = PRC2.PROCESSO  AND H2.RESULTADO = 347)
+","0","1","1","0","0","","","1","0","1","06/04/2015 00:00:00","VTCCONS","0","",""
+"36","TESTE","","OD_Fat Implemento: Implemento em Estoque","Faturamento autorizado","Não contem agrega ou desagrega","Resultado: Implemento em estoque","OD_Faturamento Impl: Sem alteracao Impl","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_PROCDADO PRC, IV_PROCDADO PRC2, IV_HISTORICO HIS
+WHERE PRC.PROCESSO = :vCRMnProcessoAtivo 
+  AND PRC2.PROCESSODNA = PRC.PROCESSODNA
+  AND HIS.Processo = PRC2.PROCESSO
+  AND HIS.Resultado in (333,334)
+
+
+
+","0","1","1","0","0","","","1","0","1","05/06/2015 00:00:00","VTCCONS","0","",""
+"37","TESTE","","OD_Fat Implemento: Não Agrega","Faturamento autorizado","Não contem agrega ou desagrega","Resultado: Não Realizado Agrega Custo Implemento","OD_Fat Implemento: Não Agrega","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_PROCDADO PRC, IV_PROCDADO PRC2, IV_HISTORICO HIS
+WHERE PRC.PROCESSO = :vCRMnProcessoAtivo 
+  AND PRC2.PROCESSODNA = PRC.PROCESSODNA
+  AND HIS.Processo = PRC2.PROCESSO
+  AND HIS.Resultado = 331
+  AND EXISTS (SELECT 1 FROM IV_HISTORICO H2 WHERE H2.PROCESSO = PRC2.PROCESSO  AND H2.RESULTADO = 348)
+","0","1","1","0","0","","","1","0","1","06/04/2015 00:00:00","VTCCONS","0","",""
+"39","TESTE","","OD_Acomp.Venda Equipamento:NroNF e Data","OD_Acompanhamento de venda Equip","Incluir Nro Nota fiscal no formulário de Credito JD","OK","Utilizado como pré requisito de resultado ""Faturamento realizado"" da ação de Vender Equipamento.
+Condição: Existir número da Nota Fiscal e Data da NF no formulário de acompanhamento de vendas","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_CREDITO
+WHERE NOTA_FISCAL is not null
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+AND STATUS_PROCESSO <> 'Fatur Autorizado'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","0","26/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"40","TESTE","","OD_Acomp.Venda Implemento:NroNF","OD_Acompanhamento de venda Implemento","Incluir Nro.Nota Fiscal no formulário Acompanhamento de Venda Implemento","OK","Utilizado como pré requisito de resultado ""Faturamento realizado"" da ação de Vender Equipamento.
+Condição: Existir número da Nota Fiscal no formulário de acompanhamento de vendas.","","","","","SELECT COUNT(1) INTO :vnIgualZero
+  FROM IV_Q$ACOMPANHAM_VENDA_IMP ACV, IV_PROCDADO PRC, IV_PROCDADO PRC2
+WHERE 1 = 1
+  AND ACV.PROCESSO = :vCRMnProcessoAtivo
+  AND PRC2.PROCESSODNA = PRC.PROCESSODNA
+  AND ACV.Processo = PRC2.PROCESSO
+  AND ACV.NUMERO_NOTAFISCAL > 0","0","0","1","0","0","","","1","0","0","09/04/2015 00:00:00","VTCCONS","0","",""
+"41","TESTE","","OD_Fat Implemento: Result.Atual.Banc.PAC","Faturamento autorizado","Não atualiza banco PAC","Resultado: Atualiza Banco PAC","OD_Fat Implemento: Resultado Atualiza Banco PAC (315).","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_PROCDADO PRC, IV_PROCDADO PRC2, IV_HISTORICO HIS
+WHERE PRC.PROCESSO = :vCRMnProcessoAtivo 
+  AND PRC2.PROCESSODNA = PRC.PROCESSODNA
+  AND HIS.Processo = PRC2.PROCESSO
+  AND HIS.Resultado = 315
+
+
+
+","0","1","1","0","0","","","1","0","1","06/04/2015 00:00:00","VTCCONS","0","",""
+"42","PESQUISA_PESSOA","","PES - Pesquisa Classe do Cliente","","","","","","","","","SELECT SEQPESSOA
+FROM GE_PESSOACLASSE
+WHERE CLASSE =  UPPER('{#TV=S#LAB=Classe do cliente#INS=Informe a classe desejada }' )
+","0","1","0","0","0","","","0","0","0","07/07/2015 00:00:00","VTCCONS","0","",""
+"43","TESTE","","OD_Exige carteira para processo vendas","OD_Exige carteira de vendedor","Cadastro necessita de carteira para dar andamento no processo","OK","Utilizado para exigir carteira para o processo de vendas","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+FROM IV_PROCDADO PRD
+WHERE PRD.PROCESSO = 245482
+  AND PRD.CODPROCESSO = 7
+  AND EXISTS ( SELECT 1 FROM IVS_PES WHERE SEQPESSOA = PRD.SEQPESSOA)
+","0","0","1","0","0","","","1","0","0","27/07/2015 00:00:00","VTCCONS","0","",""
+"44","TESTE","","OD_Data_pedido_venda","Não preenchido *Data do pedido de venda* no formulário de Acompanhamento de vendas","Não preenchido *Data do pedido de venda* no formulário de Acompanhamento de Vendas","Dispensa *Data do pedido de venda*","OD_Data_pedido_venda","","","","","SELECT COUNT (*) into :vnIgualZero
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND DAY(ACV.DATA_PEDIDO_DE_VENDA) > 0
+","0","0","0","1","0","","","1","0","0","17/08/2015 00:00:00","VTCCONS","0","",""
+"45","PESQUISA_PESSOA","","PES - Pesquisa Cotação em Processo","","","","","","","","","SELECT SEQPESSOA
+FROM IV_Q$INCENTIVO 
+WHERE NRO_COTACAO_ALCADA =  ({#TV=S#LAB=Nº da cotação#INS=Informe o nº da cotação})
+","0","1","0","0","0","","","0","0","0","09/09/2015 00:00:00","VTCCONS","0","",""
+"47","TESTE","","Fin_Nro Cotação Alçada","Não preenchido *Nro Cotação Alçada*","Dispensa *Nro Cotação Alçada*","Não preenchido *Nro Cotação Alçada*","Fin_Nro Cotação Alçada","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$INCENTIVO ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NRO_COTACAO_ALCADA > 0
+","0","0","0","1","0","","","1","0","0","09/09/2015 00:00:00","VTCCONS","0","",""
+"48","TESTE","","Fin_Nro Cotação","Não preenchido *Nro Cotação*","Dispensa *Nro Cotação*","Não preenchido *Nro Cotação*","Fin_Nro Cotação","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$INCENTIVO ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NRO_COTACAO > 0
+","0","0","0","1","0","","","1","0","0","09/09/2015 00:00:00","VTCCONS","0","",""
+"49","TESTE","","Fin_Marcar Vendido","Não preenchido *Marcar Vendido*","Dispensa *Marcar Vendido*","Não preenchido *Marcar Vendido*","Fin_Marcar Vendido","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$INCENTIVO ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.MARCAR_VENDIDO > 0
+","0","0","0","1","0","","","1","0","0","09/09/2015 00:00:00","VTCCONS","0","",""
+"50","TESTE","","OD_Recebimento Parcial Implemento","**RESULTADO **","Utilize o resultado **Recebimento Total - Comissão Paga Implemento**","**RESULTADO USADO**","OD_Recebimento Parcial Implemento","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO HST
+WHERE HST.RESULTADO IN (379, 203, 357)
+AND HST.PROCESSO = :vCRMnProcessoAtivo 
+;","0","1","1","0","1","","","1","0","0","22/12/2015 00:00:00","VTCCONS","0","",""
+"51","TESTE","","OD_Recebimento Parcial Equipamento","**RESULTADO **","Utilize o resultado **Recebimento Total - Comissão Paga Equipamento**","**RESULTADO USADO**","OD_Recebimento Parcial Equipamento","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO HST
+WHERE HST.RESULTADO IN (379, 203, 357)
+AND HST.PROCESSO = :vCRMnProcessoAtivo 
+;","0","1","1","0","1","","","1","0","0","22/12/2015 00:00:00","VTCCONS","0","",""
+"52","TESTE","","OD_Recebimento Parcial Diretoria","**RESULTADO **","Utilize o resultado **Recebimento Total - Comissão Paga Diretoria**","**RESULTADO USADO**","OD_Recebimento Parcial Diretoria","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO HST
+WHERE HST.RESULTADO IN (379, 203, 357)
+AND HST.PROCESSO = :vCRMnProcessoAtivo 
+;","0","1","1","0","1","","","1","0","0","22/12/2015 00:00:00","VTCCONS","0","",""
+"53","TESTE","","OD_ProgEntrega_A_Vista_Compra","OD_ProgEntrega_A_Vista_Compra","Não contem Compra,Sinal e Pedido À vista","Resultado: Compra,Sinal e Pedido À vista","OD_ProgEntrega_A_Vista_Compra","","","","","SELECT COUNT(1) into :vnDiferenteZero 
+  FROM IV_HISTORICO HIST
+WHERE HIST.RESULTADO = 421
+  AND HIST.RESULTADOCMPL in ('À vista', 'Financ. Colorado')
+  AND EXISTS ( SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HIST.Processo AND RESULTADO in ( 413,521 )
+  AND EXISTS ( SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HIST.Processo AND RESULTADO = 272 )
+  AND NOT EXISTS ( SELECT 1 FROM IV_AGENDA WHERE PROCESSO = HIST.PROCESSO AND ACAO = 76 )
+  AND HIST.PROCESSO = :vCRMnProcessoAtivo
+
+","0","0","0","0","0","","","0","0","1","13/07/2017 00:00:00","VANESSA.ALVES","0","",""
+"54","TESTE","","OD_Requisito_Data_Combinada","Informar Data combinada","Não contem Data combinada Form.Acomp.Venda","Questão: Data combinada Form.Acomp.Venda","OD_Requisito_Data_Combinada","","","","","SELECT COUNT(1) into :vnDiferenteZero 
+  FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+  AND LEN(ACV.DATA_COMBINADA_CLIEN) > 0","0","1","1","0","0","","","1","0","0","04/04/2016 00:00:00","VTCCONS","0","",""
+"56","TESTE","","OD_ProgEntrega_Financ_Estoque","OD_ProgEntrega_Financ_Estoque","Não contem Financiado_Maq_Estoque","Resultado: Financiado_Maq_Estoque","OD_ProgEntrega_Financ_Estoque","","","","","SELECT COUNT(1) into :vnDiferenteZero 
+  FROM IV_HISTORICO HIST
+	JOIN IV_RESULTADO RES ON RES.RESULTADO = HIST.RESULTADO
+	      AND RES.IDENTSITUACAO = 'S'
+  WHERE HIST.ACAOGERADORA = 39
+  AND EXISTS ( SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HIST.PROCESSO AND RESULTADO = 225 )
+  AND EXISTS ( SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HIST.PROCESSO AND RESULTADO IN ( 206, 421) AND RESULTADOCMPL = 'Financiado' )
+  AND NOT EXISTS ( SELECT 1 FROM IV_AGENDA WHERE PROCESSO = HIST.PROCESSO AND ACAO = 76 )
+  AND HIST.PROCESSO = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","1","14/04/2016 00:00:00","VTCCONS","0","",""
+"59","TESTE","","OD_ProgEntrega_A_Vista_Estoque","Informar_Data_Inf_Agrega_Desagrega","Não contem Estoque e Res Conclusivo e A vista","Resultado: Estoque e Res Conclusivo e A vista","OD_Informar_Data_Inf_Agrega_Desagrega","","","","","SELECT COUNT(1)  INTO :vnDiferenteZero 
+  FROM IV_HISTORICO HIST
+	JOIN IV_RESULTADO RES ON RES.RESULTADO = HIST.RESULTADO
+	      AND RES.IDENTSITUACAO = 'S'
+  WHERE HIST.ACAOGERADORA = 39
+  AND EXISTS ( SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HIST.Processo AND RESULTADO in (413,521)  )
+  AND EXISTS ( SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HIST.PROCESSO AND RESULTADO = 421 AND RESULTADOCMPL in ( 'À vista', 'Financ. Colorado'))
+  AND NOT EXISTS ( SELECT 1 FROM IV_AGENDA WHERE PROCESSO = HIST.PROCESSO AND ACAO = 76 )
+  AND HIST.PROCESSO = :vCRMnProcessoAtivo
+","0","1","1","0","0","","","1","0","1","13/07/2017 00:00:00","VANESSA.ALVES","0","",""
+"60","TESTE","","OD_ProgEntrega_Financ_Compra","OD_ProgEntrega_Financ_Compra","Não contem Financiado_Compra","Resultado: Financiado_Compra","OD_ProgEntrega_Financ_Compra","","","","","SELECT COUNT(1) into :vnDiferenteZero 
+  FROM IV_HISTORICO HIST
+WHERE HIST.RESULTADO IN (206, 421)
+  AND HIST.RESULTADOCMPL = 'Financiado'
+  AND EXISTS ( SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HIST.PROCESSO AND RESULTADO = 225 )
+  AND EXISTS ( SELECT 1 FROM IV_HISTORICO WHERE PROCESSO = HIST.PROCESSO AND RESULTADO = 272 )
+  AND NOT EXISTS ( SELECT 1 FROM IV_AGENDA WHERE PROCESSO = HIST.PROCESSO AND ACAO = 76 )
+  AND HIST.PROCESSO = :vCRMnProcessoAtivo","0","0","0","0","0","","","0","0","1","12/07/2017 00:00:00","VTCCONS","0","",""
+"62","TESTE","","OD_PagarComissao","PagarComissao","Já existe agenda de comissão","Não existe agendas de comissão","Objeto dinâmico para impossibilitar a geração de nova ação (pagar comissão - 75) caso essa ação já tenha sido gerada","","","","","SELECT COUNT(*) into :vnIgualZero 
+  FROM IV_AGENDA
+WHERE PROCESSO = :vCRMnProcessoAtivo 
+  AND ACAO = 75","0","0","0","0","0","","","1","0","1","01/08/2017 00:00:00","VTCCONS","0","",""
+"63","TESTE","","OD_Interesse Venda_PedidoJDOK - Gerar","Pedido Ok JD","Náo tem acao de gerar JD","Resultado: Pedido JD Ok","OD_Interesse Venda_PedidoJDOK","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_PROCDADO PRC, IV_PROCDADO PRC2, IV_HISTORICO HIS
+WHERE PRC.PROCESSO = :vCRMnProcessoAtivo 
+  AND PRC2.PROCESSODNA = PRC.PROCESSODNA
+  AND HIS.Processo = PRC2.PROCESSO
+  AND HIS.Resultado in (578);
+
+","0","1","1","0","0","","","1","0","1","22/09/2016 00:00:00","VANESSA.ALVES","0","",""
+"67","LINHA_INFORMAÇÃO","","Cadastro - Status X Depto","Cadastro - Status X Depto","","","Visualiza o Status da pessoa nos respectivos departamentos (Equipamentos, Serviços e Peças)
+Alimentado por procedure [PR_ATU_STATUS_DEPTO]","","","","","SELECT X.TIPO + '  ' + ISNULL(X.STATUS, 'Prospect') + ISNULL(X.ULTCOMPRA, ' ***Sem compra' ) into :vsLINHA_RETORNO 
+FROM (
+SELECT TAB.TIPO, MAX(TAB.STATUS) AS STATUS, MAX(TAB.ULTCOMPRA) AS ULTCOMPRA
+FROM (
+SELECT 'Máquinas =>' AS TIPO, NULL AS STATUS, NULL AS ULTCOMPRA
+FROM DUAL
+UNION
+SELECT 'Serviços =====>', NULL, NULL
+FROM DUAL
+UNION
+SELECT 'Peças =======>', NULL, NULL
+FROM DUAL
+UNION
+SELECT 'Máquinas =>', STATUS, ' ***Ultima compra ' + convert(varchar(12), UltCompra, 103)
+from IV_STATUS_DEPTO
+Where Depto = 'Máquinas'
+and seqpessoa = :vknSeqPessoa 
+UNION
+SELECT 'Equipamentos =>', STATUS, ' ***Ultima compra ' + convert(varchar(12), UltCompra, 103)
+from IV_STATUS_DEPTO
+Where Depto = 'Equipamentos'
+and seqpessoa = :vknSeqPessoa 
+union
+SELECT 'Serviços =====>', STATUS,  ' ***Ultima compra ' + convert(varchar(12), UltCompra, 103)
+from IV_STATUS_DEPTO
+Where Depto = 'Serviços'
+and seqpessoa = :vknSeqPessoa 
+union
+SELECT 'Peças =======>', STATUS, ' ***Ultima compra ' + convert(varchar(12), UltCompra, 103)
+from IV_STATUS_DEPTO
+Where Depto = 'Peças'
+and seqpessoa = :vknSeqPessoa 
+) TAB
+GROUP BY TAB.TIPO
+) X","0","1","1","0","0","","","1","0","0","23/03/2018 00:00:00","VTCCONS","0","",""
+"68","LINHA_INFORMAÇÃO","","Advertência-Cliente ativo Peças S/ Frota","","","","Visualiza no perfil o cliente se ele é ativo em peças mas não contém frota.
+Alimentado por procedure [PR_ATU_STATUS_DEPTO]","","","","","select 'Ativo em peças ***Sem frota' into :vsLINHA_RETORNO 
+  from IV_STATUS_DEPTO dep
+where seqpessoa = :vknSeqPessoa 
+and depto = 'Peças'
+and status = 'Ativo'
+and not exists ( select 1 from iv_clientepropr where seqpessoa = dep.seqpessoa and seqpropriedade in (9402, 9403, 9404, 9405, 9407, 9408, 9409, 9410, 9411, 9413) and ativo = 'S')","0","1","1","0","0","","","1","0","0","28/02/2017 00:00:00","VTCCONS","0","",""
+"69","LINHA_INFORMAÇÃO","","PERFIL - Meta Peças (mensal)","PERFIL - Meta Peças","","","teste","","","","","SELECT 'META mês: ' + cast(format(X.MES, 'N', 'pt-br') as varchar(10)) + 
+               ', VENDA mês: ' + cast(ISNULL(format(X.VLR, 'N', 'pt-br'), 0) as varchar(10)) +
+               ' >>>>>>>>>>> ' + CASE WHEN (X.MES - ISNULL(X.VLR, 0)) >= 0 
+                   THEN 'R$' + CAST( format(ABS(X.MES - ISNULL(X.VLR, 0)), 'N', 'pt-br')  AS VARCHAR(12)) + ' para bater a meta mensal'
+               ELSE 'Parabéns, atingimos a meta mensal!' END AS RESULTADO INTO :vsLINHA_RETORNO 
+  FROM (
+SELECT NFS.SEQPESSOA,
+           CASE 
+	WHEN MONTH(GETDATE()) = 1 THEN JAN
+	WHEN MONTH(GETDATE()) = 2 THEN FEV
+	WHEN MONTH(GETDATE()) = 3 THEN MAR
+	WHEN MONTH(GETDATE()) = 4 THEN ABR
+	WHEN MONTH(GETDATE()) = 5 THEN MAI
+	WHEN MONTH(GETDATE()) = 6 THEN JUN
+	WHEN MONTH(GETDATE()) = 7 THEN JUL
+	WHEN MONTH(GETDATE()) = 8 THEN AGO
+	WHEN MONTH(GETDATE()) = 9 THEN ""SET""
+	WHEN MONTH(GETDATE()) = 10 THEN OUT
+	WHEN MONTH(GETDATE()) = 11 THEN NOV
+	WHEN MONTH(GETDATE()) = 12 THEN DEZ
+            ELSE NULL END AS MES,
+SUM(NFSI.VLRLIQITEM) AS VLR
+  FROM EXT_POT_PECAS PEC
+	LEFT JOIN EXT_NFS NFS 
+	              JOIN EXT_NFSITEM NFSI ON NFSI.IDNFS = NFS.IDNFS
+	 ON NFS.SEQPESSOA = PEC.SEQ
+	AND NFS.SEQDEPTO = 3
+	AND MONTH(NFS.DTAEMISSAONF) = MONTH(GETDATE())
+WHERE 1 = 1
+  AND PEC.SEQ = :vknSeqPessoa 
+GROUP BY NFS.SEQPESSOA,
+           CASE 
+	WHEN MONTH(GETDATE()) = 1 THEN JAN
+	WHEN MONTH(GETDATE()) = 2 THEN FEV
+	WHEN MONTH(GETDATE()) = 3 THEN MAR
+	WHEN MONTH(GETDATE()) = 4 THEN ABR
+	WHEN MONTH(GETDATE()) = 5 THEN MAI
+	WHEN MONTH(GETDATE()) = 6 THEN JUN
+	WHEN MONTH(GETDATE()) = 7 THEN JUL
+	WHEN MONTH(GETDATE()) = 8 THEN AGO
+	WHEN MONTH(GETDATE()) = 9 THEN ""SET""
+	WHEN MONTH(GETDATE()) = 10 THEN OUT
+	WHEN MONTH(GETDATE()) = 11 THEN NOV
+	WHEN MONTH(GETDATE()) = 12 THEN DEZ
+            ELSE NULL END
+  ) X","0","1","1","0","0","","","1","0","0","01/05/2017 00:00:00","VTCCONS","0","",""
+"70","LINHA_INFORMAÇÃO","","PERFIL - Bloq Documentação(Linx)","PERFIL - Bloq Documentação(Linx)","","","","SISDIA","","","",";EXTERNA;SELECT 'Cliente com status ""Bloqueado Documentação"" no LinxMaq' into :vsLINHA_RETORNO 
+  FROM CLCLIENT CCLI
+     JOIN GE_PESSOASISDIA SDI 
+           ON SDI.CGCCPF = CCLI.CGCCPF 
+         AND SDI.TPPESSOA = CCLI.TPPESSOA
+WHERE CONCEITO = 8
+AND SDI.SEQPESSOA = :vknSeqPessoa","0","1","1","0","0","","","1","0","0","24/04/2017 00:00:00","VTCCONS","0","",""
+"71","LINHA_INFORMAÇÃO","","PERFIL - Meta Peças (anual)","PERFIL - Meta Peças anual","","","PERFIL - Meta Peças (anual)","","","","","SELECT 'META ano: ' + cast(format(X.MES, 'N', 'pt-br') as varchar(10)) + 
+               ' VENDA ano: ' + cast(ISNULL(format(X.VLR, 'N', 'pt-br'), 0) as varchar(10)) + 
+               ' >>>>>>>>>>> ' + CASE WHEN (X.MES - ISNULL(X.VLR, 0)) >= 0 
+                   THEN 'R$' + CAST( format(ABS(X.MES - ISNULL(X.VLR, 0)), 'N', 'pt-br')  AS VARCHAR(12)) + ' para bater a meta anual'
+               ELSE 'Parabéns, atingimos a meta mensal!' END AS RESULTADO  INTO :vsLINHA_RETORNO 
+  FROM (
+SELECT NFS.SEQPESSOA,
+           JAN + FEV + MAR + ABR + MAI + JUN + JUL + AGO + ""SET"" + OUT + NOV + DEZ AS MES,
+SUM(NFSI.VLRLIQITEM) AS VLR
+  FROM EXT_POT_PECAS PEC
+	LEFT JOIN EXT_NFS NFS 
+	              JOIN EXT_NFSITEM NFSI ON NFSI.IDNFS = NFS.IDNFS
+	 ON NFS.SEQPESSOA = PEC.SEQ
+	AND NFS.SEQDEPTO = 3
+                AND YEAR(NFS.DTAEMISSAONF) = YEAR(GETDATE())
+WHERE PEC.SEQ = :vknSeqPessoa 
+GROUP BY NFS.SEQPESSOA,
+           JAN + FEV + MAR + ABR + MAI + JUN + JUL + AGO + ""SET"" + OUT + NOV + DEZ
+  ) X","0","1","1","0","0","","","1","0","0","01/05/2017 00:00:00","VTCCONS","0","",""
+"72","LINHA_INFORMAÇÃO","","COB-VIsualizar Agenda","","","","","","","","","SELECT DISTINCT 
+'Esp:' + CAST  (IsNull(TIT.ESPECIE, '**') AS VARCHAR(18)) + ' - ' +
+'Título:' + CAST(TIT.NROTITULO AS VARCHAR(10)) + ' - ' + 
+' Vlr.Orig:' + CAST(TIT.VLRORIGINAL AS VARCHAR(12)) + ' - ' + 
+' Vlr.Aberto:' + CAST(TIT.VLRABERTO AS VARCHAR(12)) 
+ into :vsLINHA_RETORNO
+  FROM EXT_TITULO TIT
+	JOIN IV_CBRCOBRANCATIT CBRT 
+	       JOIN IV_CBRCOBRANCA CBR ON CBR.SEQCBRCOBRANCA = CBRT.SEQCBRCOBRANCA
+	ON CBRT.IDTITULO = TIT.IDTITULO
+WHERE PROCESSO = :vCRMnProcessoAtivo
+AND TIT.INDQUITADO = 0 
+AND TIT.INDATIVO = 1
+","0","1","1","1","0","","","0","0","0","26/09/2017 00:00:00","VTCCONS","0","",""
+"73","TESTE","","OD_Validação Gestor Venda Equip JD","OD_Validação gestor de venda JD","Incluir data de validação do gestor no formulário acompanhamento de Venda Equipamento JD","OK","Utilizado no momento da aprovação exigindo que o gestor valide todos os campos do formulário de acompanhamento e insira no mesmo formulário a data de validação.","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+ FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE 1 = 1
+ AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+  AND DAY(ACV.VALIDACAO_GESTOR) > 0","0","0","1","0","0","","","1","0","0","15/03/2019 00:00:00","DIEGO.MARQUES","0","",""
+"74","LINHA_INFORMAÇÃO","","ADV - Treino Diego","","","","","","","","","SELECT DETALHE + ' Diego' into :vsLINHA_RETORNO 
+FROM IV_HISTORICO
+WHERE SEQPESSOA = 74331
+      AND SEQHISTORICO = :vCRMnHistoricoAtivo ;","0","1","0","0","1","","","0","0","0","26/04/2018 00:00:00","VTCCONS","0","",""
+"76","TESTE","","DSV - Participação de evento","","Não é funcionario","É funcionario","","","","","","SELECT COUNT(*)  into :vnDiferenteZero 
+FROM GE_Pessoa PES
+WHERE Grupo = 'Funcionário'
+  AND SeqPessoa = :vknSeqPessoa ","0","0","1","0","0","","","1","0","0","26/04/2018 00:00:00","VTCCONS","0","",""
+"77","PESQUISA_PESSOA","","PES - Pessoa no SISDIA","","","","","","","","","SELECT SEQPESSOA
+FROM GE_PESSOALINK
+WHERE PESSOALINK =  UPPER('{#TV=S#LAB=Busca no SISDIA#INS=Informe o link:}' )","0","1","0","0","0","","","0","0","0","26/04/2018 00:00:00","VTCCONS","0","",""
+"78","TESTE","","OD_Form_Avalia_Usado","OD_Form_Avaliação_Usado","Há usado - preencher formulário","Não há usado - sem formulário","","","","","","SELECT COUNT(*)  into :vnDiferenteZero 
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.Processo = :vCRMnProcessoAtivo 
+  AND ACV.HAVERA_USADO_NA_NEGO = 'Sim'
+  AND NOT EXISTS (SELECT 1 FROM IV_Q$AVALIA_USADO_ENTRADA AVU WHERE AVU.Processo  = :vCRMnProcessoAtivo )","0","0","1","0","0","","","1","0","0","26/04/2018 00:00:00","VTCCONS","0","",""
+"79","TESTE","","OD_Validação Assistente Comercial","OD_Validação Assistente Comercial","Incluir data de Validação Assistente Comercial no Formulario acompanhamento de Venda Equipamento JD","OK","Utilizado para Assistente Comercial validar todos os dados que foram prenchidos no formulario","","","","","SELECT COUNT(1) INTO :vnIgualZero
+ FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHER 1= 1
+ AND ACV.PROCESSO = :vCRMnProcessoAtivo
+ AND DAY(ACV.CONFIRMACAO_DE_DADOS) > 0","0","0","1","0","0","","","1","0","0","15/08/2018 00:00:00","DIEGO.MARQUES","0","",""
+"80","TESTE","","OD_Comissao_Maquinas - Rodolfo","OD_PAGAR COMISSAO","Não Gerar Pagar Comissao","Gerar Pagar Comissao","Gerar ação automatica Pagar Comissao","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO 
+WHERE RESULTADO = 212
+AND VENDEDOR = 'RODOLFO.CRISPIM'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","28/02/2019 00:00:00","DIEGO.MARQUES","0","",""
+"81","TESTE","","OD_GERAR_AÇÃO_FATURAR_DESCONTO_INCOND_JD","OD_GERAR_AÇÃO_FATURAR_DESCONTO_INCONDICI","Não Gerar Ação Desconto Incondicional JD","Gerar Ação Faturar Desconto Incondicional JD","Gerar Ação de desconto Incondicional JD","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMP_VEND_MAQUINAS
+WHERE DESCONTO_INCONDICION = 'SIM'
+And processo = :vCRMnProcessoAtivo
+","0","0","1","0","0","","","1","0","1","26/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"84","TESTE","","OD_Acao_Bonificacao","OD_BONIFICACAO","Não Gerar Acao Bonificacao","Gerar Acao Bonificacao","Gerar acao quando tiver bonificação","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$GESTAO_CREDITO
+WHERE TIPO_BONIFICACAO_DES <> 'Sem Bonificação'
+And processo = :vCRMnProcessoAtivo
+","0","0","1","0","0","","","1","0","1","10/05/2022 00:00:00","DIEGO.MARQUES","0","",""
+"85","TESTE","","OD_Acao_Bonificacao_Implemento","OD_Bonificacao","Não Gerar Acao Bonificacao","Gerar Acao Bonificacao","Gerar ação quando tiver bonificação","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$GESTAO_CREDITO_IMP
+WHERE TIPO_BONIFICACAO_DES <> 'Sem Bonificação'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","10/05/2022 00:00:00","DIEGO.MARQUES","0","",""
+"86","TESTE","","OD_Retirar_Maquina_Usada","OD_Acao_Maquina_Usada","Não Gerar Ação de Retirar Maquina Usada","Gerar Ação Retirar Maquina Usada","Gerar Ação retirar maquina usada","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_USADO_ENTRADA
+WHERE COMO_SERA_REALIZADO_ = 'Durante entrega novo'","0","0","1","0","0","","","1","0","1","22/03/2019 00:00:00","DIEGO.MARQUES","0","",""
+"87","TESTE","","OD_DEFINIR_VALOR_USADO","OD_DEFINIR_VALOR_USADO","Incluir valor de equipamento usado no formulario usados","OK","VALIDAÇÃO DE GESTOR EQUIP USADO","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+FROM IV_Q$AVAL_USADO_ENTRADA ACV
+WHERE 1 = 1
+AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND DAY(ACV.VALOR_VALIDACAO_GEST) > 0","0","0","1","0","0","","","1","0","0","10/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"88","TESTE","","OD_PagarComissao AMS Field","Pagar Comissao","Ja existe agenda de comissao","Não existe agendas de comissao","Objeto Dinamico para impossibilitar a geração de nova ação (Pagar Comissao - 190) caso essa ação ja tenha sido gerado","","","","","SELECT COUNT(*) into :vnIgualZero 
+  FROM IV_AGENDA
+WHERE PROCESSO = :vCRMnProcessoAtivo 
+  AND ACAO = 190","0","0","0","0","0","","","1","0","1","20/03/2019 00:00:00","DIEGO.MARQUES","0","",""
+"89","TESTE","","OD_Informar_data_retirada_antes","OD_Informar_data_retirada_antes","Não Gerar Acao Assistente Comercial","Gerar Acao Assistente Comercial Informar data da retirada do usado antes da entrega do novo","Gerar ação para assistente informar data da retirada do usado antes da entrega do novo","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_USADO_ENTRADA
+WHERE COMO_SERA_REALIZADO_ = 'Antes entrega novo'
+And processo = :vCRMnProcessoAtivo
+","0","0","0","0","0","","","1","0","1","25/03/2019 00:00:00","DIEGO.MARQUES","0","",""
+"90","TESTE","","OD_Cliente_Entrega","OD_Cliente_Entrega","Não Gerar ação Entrega Fisica","Gerar Ação Acompanhar Entrega Usado","Gerar Ação Acompanhar Entrega Usado Assistente","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_USADO_ENTRADA
+WHERE COMO_SERA_REALIZADO_ = 'Cliente entrega'
+And processo = :vCRMnProcessoAtivo
+","0","0","0","0","0","","","1","0","1","25/03/2019 00:00:00","DIEGO.MARQUES","0","",""
+"91","TESTE","","OD_Retirada_Usado_Apos_Novo","OD_Retirada_Usado_Apos_Novo","Não Gerar Ação de Retirar usado apos entrega do novo","Gerar Ação de Retirar usado apos entrega do novo","Gerar Ação Assistenta Comercial caso tenha no formulario Retirado usado apos entrega novo","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_USADO_ENTRADA
+WHERE COMO_SERA_REALIZADO_ = 'Apos entrega novo'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","25/03/2019 00:00:00","DIEGO.MARQUES","0","",""
+"92","TESTE","","OD_Retirar_Durante_Entrega_Novo","OD_Retirar_Durante_Entrega_Novo","Não Gerar Ação de Retirar Usado na Entraga do Novo","Gerar Ação Retirar Usado na Entrega do Novo","Gerar Ação Retirar Usado qunado for durante entrega do novo","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_USADO_ENTRADA
+WHERE COMO_SERA_REALIZADO_ = 'Durante entrega novo'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","25/03/2019 00:00:00","DIEGO.MARQUES","0","",""
+"94","TESTE","","OD_DOC_USADO","OD_DOC_USADO","Não Gerar Ação Documentação Usado","Gerar Ação Documentação Usado","Utilizado para Gerar Ação Documentação Usado","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO 
+WHERE RESULTADO = 2143
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","10/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"96","TESTE","","OD_INFORMARÇAO_FRETE","OD_INFORMAR_FRETE","Informar Tipo de Frete e Valor","OK","Adicionar informação do Frete","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE 1 = 1
+ AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+  AND DAY(ACV.VALOR_DO_FRETE) > 0","0","0","1","0","0","","","1","0","0","14/06/2019 00:00:00","DIEGO.MARQUES","0","",""
+"97","TESTE","","OD_Validação Venda AMS Field","OD_Validação Venda AMS Field","Incluir data de validação do gestor no formulário Venda AMS FIELD","OK","Utilizado quando Gestor validar a Venda do AMS Field","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+ FROM IV_Q$VENDA_AMS ACV
+WHERE 1 = 1
+ AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+  AND DAY(ACV.DATA_APROVACAO) > 0","0","0","1","0","0","","","1","0","0","11/08/2019 00:00:00","DIEGO.MARQUES","0","",""
+"98","TESTE","","0D_Faturar AMS Pecas","","Não Gerar Ação de faturar por peças","Gerar Ação Faturar por peças","Utilizado para desvio de workflow conforme seleção no formulario","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$VENDA_AMS
+WHERE FAT_CENTRO_DE_CUSTO = 'SAP PEÇAS'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","11/08/2019 00:00:00","DIEGO.MARQUES","0","",""
+"99","TESTE","","Fin_Data Prevista de Faturamento AMS Fie","Fin_Data Prevista Faturamento AMS Field","Dispensa *Data Prevista de Faturamento AMS Field* no formulario Venda AMS","Não preenchido *Data Prevista de Faturamento AMS Field*","Informar Data Prevista Faturamento AMS Field","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$VENDA_AMS ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.PREVISAO_DO_FATURAME IS NOT NULL","0","0","0","1","0","","","1","0","0","11/08/2019 00:00:00","DIEGO.MARQUES","0","",""
+"100","TESTE","","Fin_Nro Nota Fiscal AMS Field","Fin_Nro Nota Fiscal AMS Field","Dispensa Nro Nota Fiscal","Não Preenchido Nro Nota Fiscal AMS","Incluir numero nota fiscal","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$VENDA_AMS ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NUMERO_NOTA_FISCAL IS NOT NULL
+","0","0","0","1","0","","","1","0","0","11/08/2019 00:00:00","DIEGO.MARQUES","0","",""
+"103","TESTE","","Fin Nro Chassi AMS","Fin Nro Chassi AMS","Dispensa *Nro Chassi AMS Field*","Não preenchido *Chassi AMS Field*","Preencher Nro Chassi AMS","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$VENDA_AMS ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ISNULL (ACV.CHASSI_DO_ITEM_AMS, '') <> ''
+AND RTRIM (ACV.CHASSI_DO_ITEM_AMS) <> ''","0","0","0","1","0","","","1","0","0","11/08/2019 00:00:00","DIEGO.MARQUES","0","",""
+"104","TESTE","","OD_Incluir Numero OS Agre/Des AMS Field","OD_Incluir Numero OS Agre/Des AMS Field","Incluir OS Agre/Desgr AMS Field","OK","Incluir OS AGRE/DEsgrega","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+FROM IV_Q$VENDA_AMS ACV
+WHERE 1 = 1
+AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND DAY(ACV.NUMERO_OS_AGREGA_DES) > 0","0","0","1","0","0","","","1","0","0","11/08/2019 00:00:00","DIEGO.MARQUES","0","",""
+"105","TESTE","","OD_Informar Comar AMS Field","OD_Informar Comar AMS Field","Informar Numero Comar AMS Field","OK","Informar Numero Comar","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+FROM IV_Q$VENDA_AMS ACV
+WHERE 1 = 1
+AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+
+","0","0","1","0","0","","","1","0","0","03/09/2019 00:00:00","DIEGO.MARQUES","0","",""
+"106","LINHA_INFORMAÇÃO","","DSV - Desvia auditoria para assistente","","","","Usado para desviar o wokflow gerando a auditoria para o assistente do vendedor que alterou a propriedade.","","","","","SELECT USR.SEQUSUARIO INTO :vsLINHA_RETORNO
+FROM IV_HISTORICO HST
+               JOIN IV_GlobalPar GPAR 
+                    ON GPAR.CAMPO2 = HST.CODUSUARIO
+                  AND GPAR.SeqGlbPar = 12
+               JOIN GE_USUARIO USR ON USR.CODUSUARIO = GPAR.CAMPO3
+WHERE HST.SEQHISTORICO = :vCRMnHistoricoAtivo ","0","0","0","0","0","","","0","0","1","15/08/2019 00:00:00","VTCCONS","0","",""
+"108","TESTE","","OD_Analise_Fluido_Oficina","","Não Gerar Ação Comunicar Resultado","Gerar Ação Comunicar Resultado","Utilizado quando utilizar material coletado oficina","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Historico
+WHERE ResultadoCmpl = 'Oficina'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","06/11/2019 00:00:00","DIEGO.MARQUES","0","",""
+"109","TESTE","","OD_Desconto_AMS FIELD","","Gerar Ação Emitir Desconto Incondicional","Não Gerar Ação Emitir Desconto Incondicional","Desconto Incondicional AMS FIELD","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$VENDA_AMS
+WHERE DESCONTO_INCODICION = 'SIM'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","20/11/2019 00:00:00","DIEGO.MARQUES","0","",""
+"110","TESTE","","OD_Usado_Implemento","","Quando Tiver Usado","Quando Não tiver Usado","Quando Tiver Implemento Usado","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Historico
+WHERE where ResultadoCmpl = 'C/Usado no negocio'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","01/12/2019 00:00:00","DIEGO.MARQUES","0","",""
+"112","TESTE","","OD_DEFINIR_VALOR_USADO_IMP","OD_DEFINIR_VALOR_USADO_IMP","Incluir valor do implemento usado no formulario","OK","OD_DEFINIR_VALOR_USADO_IMP","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+FROM IV_Q$AVALIA_IMPLEM_USADO ACV
+WHERE 1 = 1
+AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND DAY(ACV.VALOR_FINAL_AVA) > 0","0","0","1","0","0","","","1","0","0","01/12/2019 00:00:00","DIEGO.MARQUES","0","",""
+"113","TESTE","","OD_DECLARAÇÃO_ONUS_IMP","OD_DECLARAÇÃO_ONUS_IMP","Não Gerar Ação solicitar Declaração de onus IMP","Gerar Ação solicitar Declaração de Onus IMP","GERAR AÇÃO PARA DECLARAÇÃO DE ONUS IMP","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO 
+WHERE RESULTADO = 305
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","14/05/2020 00:00:00","DIEGO.MARQUES","0","",""
+"114","TESTE","","OD_CLIENTE_ENTREGA_IMP_USADO","","Não Gerar Ação acompanhar entraga","Gerar Ação acompanhar entrega IMP usado","Gerar ação para acompanhar entrega do usado","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_IMPLEM_USADO
+WHERE RETIRADA_USADO = 'Cliente entrega'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","01/12/2019 00:00:00","DIEGO.MARQUES","0","",""
+"115","TESTE","","OD_Retirar_imp_usado","OD_RETIRAR_IMP_USADO","Não Gerar Ação Retirar IMP","Gerar Ação Retirar IMP Usado","Gerar Ação Retirar Usado qunado for durante entrega do novo","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_IMPLEM_USADO
+WHERE RETIRADA_USADO = 'Durante entrega novo'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","01/12/2019 00:00:00","DIEGO.MARQUES","0","",""
+"116","TESTE","","OD_Direciona_Venda_Bebedouro_Luiz e Jose","OD_Direciona_Venda","Não Gerar Ação Seguinte","Gerar Ação Seguinte para responsavel da cidade","Usado para direcionar a proxima ação para colaborador de forma correta","","","","","SELECT count (*)into :vCRMnHistoricoAtivo 
+FROM IV_HISTORICO HST
+WHERE HST.VENDEDOR = 'LUIZ.GUSTAVO'
+OR HST.VENDEDOR = 'JOSE.MENDONCA'
+And HST.PROCESSO = :vCRMnProcessoAtivo ","0","0","1","0","0","","","1","0","1","09/03/2020 00:00:00","DIEGO.MARQUES","0","",""
+"117","TESTE","","OD_Validação Gestor Venda direta JD","OD_validação gestor venda direta jd","Incluir data de validação do gestor no formulario acompanhamento de venda direta jd","Ok","Utilizado no momento da aprovação do gestor para validar campos do formulario","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+ FROM IV_Q$ACOMP_VENDA_DIRETAJD ACV
+WHERE 1 = 1
+ AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+  AND DAY(ACV.VALIDACAO_GESTOR) > 0","0","0","1","0","0","","","1","0","0","01/03/2020 00:00:00","DIEGO.MARQUES","0","",""
+"118","TESTE","","OD_Bonificacao_Pecas_Venda_Direta JD","OD_Bonificacao_Pecas_Venda_Direta JD","Não Gerar Proxima ação de Validar desconto incondicional Peças","Gerar Proxima ação de Validar desconto incondicional Peças","Utilizado para gerar ação de validação de desconto incodicional de peças venda direta","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMP_VENDA_DIRETAJD
+WHERE ITENS_BONIF_PECAS = 'SIM'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","01/03/2020 00:00:00","DIEGO.MARQUES","0","",""
+"119","TESTE","","OD_Bonificacao_Serviços_venda_direta JD","OD_Bonificacao_Serviços_venda_direta JD","Não gerar proxima ação de validar desconto incondicional Serviços","Gerar proxima ação de validar desconto incondicional Serviços","Utilizado para gerar ação de desconto incondicional de serviços venda direta jd","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMP_VENDA_DIRETAJD
+WHERE bonificacao_servicos = 'SIM'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","01/03/2020 00:00:00","DIEGO.MARQUES","0","",""
+"120","TESTE","","OD_Bonificacao_AMS_venda_direta JD","OD_Bonificacao_AMS_venda_direta JD","Não gerar proxima ação de validar desconto incondicional AMS","Gerar proxima ação de validar desconto incondicional AMS","Utilizado para gerar ação de validacao de desconto incondicional AMS venda direta jd","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMP_VENDA_DIRETAJD
+WHERE BONIFICACAO_AMS = 'SIM'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","01/03/2020 00:00:00","DIEGO.MARQUES","0","",""
+"121","TESTE","","OD_ResultadoCmpl_Parcial_Venda Direta JD","OD_ResultadoCmpl_Parcial_Venda Direta JD","Deve ser utilizado o Resultado Complementar Parcial","Utilizar o Resultado complementar total","Utilizado para resultado complementar Parcial na Venda Direta JD","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO HST
+WHERE HST.RESULTADOCmpl = 'parcial'
+AND HST.Resultado = 436
+AND HST.PROCESSO = :vCRMnProcessoAtivo ","0","0","1","0","0","","","1","0","0","01/03/2020 00:00:00","DIEGO.MARQUES","0","",""
+"122","TESTE","","OD_ResultadoCompl_Total_Venda Direta JD","OD_ResultadoCompl_Total_Venda Direta JD","Devo utlizad o Resultar Complementar Total","Utilizar o Resultado Complementar Parcial","Utilizado quando for utilizado o resultado complementar Total","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO HST
+WHERE HST.RESULTADOCmpl = 'Total'
+and HST.Resultado = 436
+AND HST.PROCESSO = :vCRMnProcessoAtivo ","0","0","1","0","0","","","1","0","0","28/08/2026 00:00:00","V:AMAURY","0","",""
+"123","TESTE","","OD_EmitirNF_Bonificacao_Venda_Direta JD","OD_EmitirNF_Bonificacao_Venda_Direta JD","Não Gerar Ação para emissão de Bonificação Venda Direta JD","Gerar Ação para emissão de Bonificação Venda Direta JD","Utilizado para gerar ação de emissão NF Bonificação","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMP_VENDA_DIRETAJD
+WHERE ITENS_BONIF_PECAS = 'SIM'
+Or Bonificacao_ams = 'SIM'
+OR BONIFICACAO_SERVICOS = 'SIM'
+","0","0","1","0","0","","","1","0","1","10/03/2021 00:00:00","DIEGO.MARQUES","0","",""
+"125","TESTE","","OD_Direciona_Vend_Bebedouro Rodolfo Alem","OD_gerar_ação_vendedor","Não Gerar Proxima Ação","Gerar Ação Seguinte para responsavel da cidade dos vendedores Rodolfo e Alemão","Direcionar processo para atendentes que realizam a região de Rodolfo e Alemao","","","","","SELECT count(*)into :vCRMnHistoricoAtivo 
+FROM IV_HISTORICO HST
+WHERE HST.VENDEDOR = 'RODOLFO.CRISPIM'
+OR HST.VENDEDOR = 'BENEDITO.FELICIO'
+AND HST.PROCESSO = :vCRMnProcessoAtivo ","0","1","1","0","1","","","1","0","1","09/03/2020 00:00:00","DIEGO.MARQUES","0","",""
+"126","TESTE","","OD_Aprovação Gestor Demonstração","OD_aprovação gestor demonstração","Incluir data de validação do gestor no formulario de demonstração","OK","Utiliza no momento da aprovação da Demonstração para informar a data","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+ FROM IV_Q$DEMO_MAQUINAS ACV
+WHERE 1 = 1
+ AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+  AND DAY(ACV.APROVAR_GERENTE) > 0","0","0","1","0","0","","","1","0","0","04/05/2020 00:00:00","DIEGO.MARQUES","0","",""
+"127","TESTE","","OD_Data Agendada Demonstração","OD_Data agendada demonstração","Informar data agendada demonstração","OK","Utilizado para informar a data agendada da demonstração","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+ FROM IV_Q$DEMO_MAQUINAS ACV
+WHERE 1 = 1
+ AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+  AND DAY(ACV.DATA_AGENDADA) > 0","0","0","1","0","0","","","1","0","0","04/05/2020 00:00:00","DIEGO.MARQUES","0","",""
+"128","LINHA_INFORMAÇÃO","","OS-VIsualizar Agenda","","","","","SISDIA","","","","SELECT MAX(HIS.DTAREALIZACAO) AS ULTDTA INTO :DT1
+FROM IV_Historico HIS
+JOIN IV_Resultado RES ON RES.Resultado = HIS.RESULTADO AND RES.Conclusivo='S'
+WHERE HIS.SeqPessoa = :vknSeqPessoa 
+  AND HIS.AcaoGeradora = 940027
+;
+SELECT ACAO INTO :NR1 FROM IV_AGENDA WHERE SEQAGENDA = :vCRMnAgendaAtiva 
+;
+
+EXTERNA;
+
+SELECT 'OS: ' || NROOS || ' Data: ' || TO_CHAR( DTAFECHAMENTO, '%d/%m/%Y' ) || ' Nro.chassi: ' || nrochassi || decode(nrochassi, 'DIVERSOS', '         ', '')  || ' Km: ' || kilometragem AS CAMPO
+ into :vsLINHA_RETORNO_Long
+FROM IV$ORDEMSERVICO
+WHERE SEQPESSOA = :vknSeqPessoa 
+  AND :NR1 = 940027
+  AND DTAFECHAMENTO > TO_DATE(SUBSTR(:DT1, 1, 19), '%Y-%m-%d %H:%M:%S')
+  AND :vknUsr_Seq IN ( 2, 3, 4 )
+ORDER BY DTAFECHAMENTO DESC
+
+","0","1","1","1","0","","","0","0","0","08/05/2020 00:00:00","VTCCONS","0","",""
+"129","LINHA_INFORMAÇÃO","","DIRECIONA EMAIL RECLAMAÇÃO","DIRECIONA EMAIL RECLAMAÇÃO","","","Direcionar email de reclamação para atendente","","","","","SELECT COUNT(1) INTO :vnIgualZero
+FROM IV_HISTORICO 
+where CodUsuario <> ' '
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","0","0","0","14/05/2020 00:00:00","DIEGO.MARQUES","1","",""
+"131","TESTE","","Direciona Promotor","","Não Gerar Ação Promotor","Gerar a ação de Promotor","Usado para direcionar Promotor","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+from IV_Q_AFERICAO_SERV_WEB
+where NOTANPS IN (9,10)
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","14/05/2020 00:00:00","DIEGO.MARQUES","0","",""
+"132","TESTE","","OD_Incluir data NF demonstração","Incluir data da emissão NF Demonstração","Incluir data da emissão NF Demonstração","OK","Incluir data da emissão NF Demonstração","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+FROM IV_Q$DEMO_MAQUINAS ACV
+WHERE 1 = 1
+AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND DAY(ACV.DATA_NOTA) > 0","0","0","1","0","0","","","1","0","1","17/05/2020 00:00:00","DIEGO.MARQUES","0","",""
+"133","TESTE","","OD_Sinal_Embutido_Maquinas","OD_Sinal_Embutido_Maquinas","OK","Informar se houve Sinal Embutido Maquinas","Utilizado no momento da aprovação do credito deve informar o Sinal Embutido Maquinas","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ISNULL (ACV.SINAL_EMBUTIDO, '') <> ''
+AND RTRIM (ACV.SINAL_EMBUTIDO) <> ''
+","0","0","1","0","0","","","1","0","0","05/08/2020 00:00:00","DIEGO.MARQUES","0","",""
+"134","TESTE","","OD_Sinal_Embutido_Implemento","OD_Sinal_Embutido_Implemento","OK","Informar se Houve Sinal Embutido Implemento","Utilizado no momento da aprovação do credito deve informar o Sinal Embutido Implemento","","","",""," SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAM_VENDA_IMP ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ISNULL (ACV.SINAL_EMBUTIDO, '') <> ''
+AND RTRIM (ACV.SINAL_EMBUTIDO) <> ''","0","0","1","0","0","","","1","0","0","05/08/2020 00:00:00","DIEGO.MARQUES","0","",""
+"135","TESTE","","OD_Sinal_Embutido_AMS","OD_Sinal_Embutido_Implemento","OK","Informar se houve sinal embutido AMS","Utilizado no momento da aprovação do credito deve informar o Sinal Embutido AMS","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$VENDA_AMS ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ISNULL (ACV.SINAL_EMBUTIDO, '') <> ''
+AND RTRIM (ACV.SINAL_EMBUTIDO) <> ''
+","0","0","1","0","0","","","1","0","0","05/08/2020 00:00:00","DIEGO.MARQUES","0","",""
+"136","TESTE","","OD_Não_Aferir_180Dias_Peças","OD_Não_Aferir_180Dias_Peças","Não Gerar Ação Aferir de Peças","Gerar Ação Aferir de Peças","Não gerar ação de aferição peças caso o resultado depreciador,neutro e promotor nos ultimos 180 Dias","","","","","select COUNT (*) into :vnDiferenteZero
+from IV_historico where AcaoGeradora = 940030
+And CAST(DtaRealizacao as date)
+between cast( dateadd (day,-180,getdate()) as date) and cast (getdate() as date)
+And (Resultado = '940390' or Resultado = '940133' or Resultado = '940134')
+and seqpessoa = :vknSeqPessoa 
+","0","0","1","0","0","","","1","0","1","20/07/2020 00:00:00","DIEGO.MARQUES","0","",""
+"137","TESTE","","OD_Não_Aferir_30Dias_Serviços","OD_Não_Aferir_30Dias_Serviços","Não Gerar Ação de Aferir Serviços","Gerar Ação de Aferir Serviços","Não gerar Ação de Aferir Serviços caso Resultado Depreciador,Promotor e Neutro nos ultimos 30 Dias","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+from IV_historico where AcaoGeradora = 940027
+And CAST(DtaRealizacao as date)
+between cast( dateadd (day,-30,getdate()) as date) and cast (getdate() as date)
+And (Resultado = 940126 or Resultado = 940127 or Resultado = 940391)
+And seqpessoa = :vknSeqPessoa ","0","0","1","0","0","","","1","0","1","20/07/2020 00:00:00","DIEGO.MARQUES","0","",""
+"139","TESTE","","OD_VALOR_COMISSAO_ESPECIALISTA_FULL","OD_VALOR_COMISSAO_ESPECIALISTA_FULL","OK","Informar se ocorreu particiipação de Especialista e Valor Comissao Especialista","Informar valor comissao de Especialista Full quando tiver","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$CONT_COMISSAO_22 ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ISNULL (ACV.ESPECIALISTA_PARTICI,'') <> ''
+AND RTRIM (ACV.ESPECIALISTA_PARTICI) <> ''
+","0","0","1","0","0","","","1","0","1","17/04/2022 00:00:00","DIEGO.MARQUES","0","",""
+"140","TESTE","","OD_PREENCHER_COMISSAO","OD_PREENCHER_COMISSAO","OK","Preencher o Formulario de Comissao","Utilizado para preencher todos os campos formulario de comissao","","","",""," SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$Comissao ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo
+
+
+","0","0","1","0","0","","","1","0","0","04/03/2021 00:00:00","DIEGO.MARQUES","0","",""
+"141","TESTE","","OD_Retirada_Implemento_Usado_Apos_Novo","OD_Retirada_Implemento_Usado_Apos_Novo","Não Gerar Ação de Retirar implemento usado apos entregado do novo","Gerar Ação de Retirar implemento usado apos entrega do novo","Gerar Ação Assitente Comercial caso tenha no formulario Retirado usado apos entrega do novo","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_IMPLEM_USADO
+WHERE RETIRADA_USADO = 'Apos entrega novo'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","24/09/2020 00:00:00","DIEGO.MARQUES","0","",""
+"142","TESTE","","OD_RETIRAR_IMP_DURANTE_ENTREGA_NOVO_JD","OD_RETIRAR_IMP_DURANTE_ENTREGA_NOVO_JD","Não Gerar Ação Retirar Implemento Usado na Entrega do Novo JD","Gerar Ação Retirar Implemento Usado na Entrega do Novo JD","Gerar ação Retirar implemento usado durante entrega de novo jd","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_IMPLEM_USADO
+WHERE RETIRADA_USADO = 'Durante entrega novo'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","28/09/2020 00:00:00","DIEGO.MARQUES","0","",""
+"143","TESTE","","OD_Cliente_Entrega_Imp_Compra_Novo_JD","OD_Cliente_Entrega_Imp_Compra_Novo_JD","Não Gerar Ação Acompanhar Entrega Implemento Usado/Compra Novo JD","Gerar Ação Acompanhar Entrega Implemento Usado/Compra Novo JD","Gerar Ação Acompanhar Entrega de Implemento Usado na Compra de novo JD (Assistente Comercial)","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_IMPLEM_USADO
+WHERE RETIRADA_USADO = 'Cliente Entrega'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","28/09/2020 00:00:00","DIEGO.MARQUES","0","",""
+"144","TESTE","","OD_AFERIÇÃO_SERVIÇO","OD_AFERIÇÃO_SERVIÇO","Não Gerar Ação de Aferição de Serviço Ordem ATH,ATC,MTH,MTC,SAP","Gerar Ação de Aferição de Serviço Ordem ATH,ATC,MTH,MTC,SAP","Gerar Ação Aferição de Serviço Somente com seguintes Tipos de Ordem ATH,ATC,MTH,MTC,SAP","SISDIA","","","","EXTERNA;SELECT Tpordem
+from Cnnfcapa 
+where Tpordem in ('ATH','ATC','MTH','MTC','SAP')","0","0","0","0","0","","","1","0","1","18/10/2020 00:00:00","DIEGO.MARQUES","0","",""
+"145","TESTE","","OD_Cliente_Entrega_Equip_Compra_Novo_IMP","OD_Cliente_Entrega_Equip_Compra_Novo_IMP","Não Gerar Ação Acompanhar Entrega Equipamento Usado na Compra Novo Implemento","Gerar Ação Acompanhar Entrega Equipamento Usado na Compra Novo Implemento","Gerar Ação Acompanhar Entrega Equipamento Usado na Compra Novo Implemento","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_USADO_ENTRADA
+WHERE COMO_SERA_REALIZADO_ = 'Cliente entrega'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","1","0","1","04/10/2020 00:00:00","DIEGO.MARQUES","0","",""
+"146","TESTE","","OD_Monitor_AMS","OD_Monitor_AMS","Incluir Informação de Monitor e Controlador","OK","Utliza para adicionar o numero do monitor e do controlador","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+FROM IV_Q$VENDA_AMS ACV
+WHERE 1 = 1
+AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.ID_MONITOR_1 is null
+AND ACV.ID_MONITOR_2 is null
+AND ACV.ID_CONTROLADORA is null","0","0","1","0","0","","","1","0","0","27/10/2020 00:00:00","DIEGO.MARQUES","0","",""
+"147","TESTE","","FIN_CHASSI_CONCESSONARIO","Não Preenchido ""Chassi""","Dispenda Chassi","Não Preenchido ""Chassi""","FIN_CHASSI_CONCESSONARIO","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPAN_VEND_CONCESS ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ISNULL (ACV.CHASSI, '') <> ''
+AND RTRIM (ACV.CHASSI) <> ''","0","0","0","1","0","","","1","0","0","31/01/2021 00:00:00","DIEGO.MARQUES","0","",""
+"148","TESTE","","Fin_NRO_NF_CONCESSONARIO","Não Preenchido NF Concessonario","OK","Não Preenchido NF Concessonario","Fin_NRO_NF_CONCESSONARIO","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPAN_VEND_CONCESS ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.NOTA_FISCAL IS NOT NULL
+","0","0","0","1","0","","","1","0","0","31/01/2021 00:00:00","DIEGO.MARQUES","0","",""
+"150","TESTE","","OD_DEFINIR_VALOR_USADO_AMS","OD_DEFINIR_VALOR_USADO_AMS","Incluir valor de AMS usado no formulario usados","OK","GESTOR DEFINI VALOR DO AMS USADO","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+FROM IV_Q$AVALIACAO_AMS_USADO ACV
+WHERE 1 = 1
+AND ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND DAY(ACV.VALOR_FINAL_DEFINIDO) > 0","0","0","1","0","0","","","1","0","0","07/02/2021 00:00:00","DIEGO.MARQUES","0","",""
+"151","TESTE","","OD_RECEBER_AMS_USADO","OD_RECEBER_AMS_USADO","Não Gear Ação para Receber AMS Usado","Gear Ação para Receber AMS Usado","Gerar a ação para recebimento do AMS Usado","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO 
+WHERE RESULTADO = 1920
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","07/02/2021 00:00:00","DIEGO.MARQUES","0","",""
+"152","TESTE","","OD_USADO_OUTRAS_MARCAS","OD_USADO_OUTRAS_MARCAS","Não gerar ação Financeiro acompanhar recebimento usado","Gerar ação Financeiro acompanhar recebimento usado","Obejto para redirecionar outras marcas","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_USADO_ENTRADA 
+WHERE MARCA <> 'JOHN DEERE'
+AND PROCESSO = :vCRMnProcessoAtivo 
+
+","0","0","1","0","0","","","1","0","1","08/03/2021 00:00:00","DIEGO.MARQUES","0","",""
+"153","TESTE","","MEU_1_JD","MEU_1_JD","Não gerar ação","Gerar Ação de Entregar KIT","Quando for meu 1 JD gerar ação de entregar kit","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANH_VENDA_JDE
+WHERE MEU_1_JD = 'SIM'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","07/03/2021 00:00:00","DIEGO.MARQUES","0","",""
+"154","TESTE","","OD_ANO_IMPLEMENT0","OD_ANO_IMPLEMENT0","Dispensa Ano","Informar Ano Implemento","Informar Ano Implemento","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAM_VENDA_IMP ACV
+WHERE ACV.PROCESSO = :vCRMnProcessoAtivo 
+AND ACV.ANO_IMPLEMENTO IS NOT NULL","0","0","0","1","0","","","1","0","0","07/03/2021 00:00:00","DIEGO.MARQUES","0","",""
+"155","TESTE","","OD_ANO_USADO","OD_ANO_USADO","Não gerar ação","Gerar ação com ano menor","Ano do equipamento usado","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$AVALIA_USADO_ENTRADA 
+WHERE ANO_EQUIPAMENTO <= 2018
+OR MARCA <> 'John Deere'
+AND PROCESSO = :vCRMnProcessoAtivo ","0","0","1","0","0","","","1","0","1","29/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"160","TESTE","","OD Auditar Margem Processo Linha 5000 >=","OD_auditar_margem_processo","Não realizar auditoria Linha 5000 >=","Realizar auditoria Linha 5000 >=","Auditar Margem do Processo Linha 5000 >=","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Tratores Linha 5000'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) >= 15
+And processo = :vCRMnProcessoAtivo
+","0","0","1","0","0","","","1","0","1","29/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"161","TESTE","","OD Auditar Margem Processo Linha 5000 <=","OD_Auditar Margem Processo Linha 5000","Não Realizar Auditoria Linha 5000 <=","Realizar Auditoria Linha 5000 <=","Auditar Margem do Processo Linha 5000 <=","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Tratores Linha 5000'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) <= 5
+and processo = :vCRMnProcessoAtivo
+","0","0","1","0","0","","","1","0","1","29/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"162","TESTE","","OD Auditar Margem Processo Linha 6000 >=","OD Auditar Margem do Processo Linha 6000 >=","Não Realizar Auditoria Processo 6000 >=","Realizar Auditoria Processo 6000 >=","OD Auditar Margem do Processo Linha 6000 >=","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Tratores Linha 6000'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) >= 27
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","29/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"165","TESTE","","OD Auditar Margem Processo Linha 6000 <=","OD Auditar Margem Processo Linha 6000 <=","Não Realizar Auditoria Linha 6000 <=","Realizar Auditoria Linha 6000 <=","Realizar Auditoria do Processo Linha 6000 <=","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Tratores Linha 6000'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) <= 9
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","29/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"166","TESTE","","OD Auditar Margem Processo Linha 7000 <=","OD Auditar Margem Processo Linha 7000 e 8000 <=","Não Auditar Margem Linha 7000 e 8000 < =","Auditar Margem Linha 7000 e 8000< =","Auditar Margem do Processo Linha 7000 e 8000 <=","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Tratores Linha 7000'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) <= 10
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","31/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"167","TESTE","","OD Auditar Margem Processo Linha 7000 >=","OD Auditar Margem Processo Linha 7000 e 8000 >=","Não Auditar Margem Linha 7000 e 8000 >=","Auditar Margem Linha 7000 e 8000 >=","Auditar Margem do Processo Linha 7000 e 8000 >=","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Tratores Linha 7000'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) >= 30
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","31/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"168","TESTE","","OD Auditar Margem Processo Pulverizad >=","OD Auditar Margem Processo Pulverizador >=","Não Auditar Margem Pulverizador >=","Auditar Margem Pulverizador>=","Auditar Margem do Processo Pulverizador >=","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Pulverizadores'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) >= 28
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","30/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"169","TESTE","","OD Auditar Margem Processo Pulverizad <=","OD Auditar Margem Processo Pulverizad >=","Não Auditar Margem Pulverizador >=","Auditar Margem Pulverizador >=","","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Pulverizadores'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) <= 9
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","30/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"170","TESTE","","OD Auditar Margem Processo Colhetadei <=","OD Auditar Margem Processo Colhetadeira <=","Não Auditar Margem Processo Colhetadeira <=","Auditar Margem Processo Colhetadeira <=","","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Colheitadeiras e Plataformas'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) <= 11
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","30/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"171","TESTE","","OD Auditar Margem Processo Colhetadei >=","OD Auditar Margem Processo Colhetadeira >=","Não Auditar Margem Processo Colhetadeira <=","Auditar Margem Processo Colhetadeira >=","","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Colheitadeiras e Plataformas'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) >= 34
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","30/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"172","TESTE","","OD Auditar Margem Processo Colhedora >=","OD Auditar Margem Processo Colhedora >=","Não Auditar Margem Processo Colhedora >=","Auditar Margem Processo Colhedora >=","","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Colhedoras'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) >= 18
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","30/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"173","TESTE","","OD Auditar Margem Processo Colhedora <=","OD Auditar Margem Processo Colhedora <=","Não Auditar Margem Processo Colhedora <=","Auditar Margem Processo Colhedora <=","","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Colhedoras'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) <= 6
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","30/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"174","TESTE","","OD Auditar Margem Processo IMP >=","OD Auditar Margem Processo IMP >=","Não Auditar Margem Processo IMP >=","Auditar Margem Processo IMP >=","Auditar Margem do Processo IMP >=","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Implementos'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) >= 22
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","30/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"175","TESTE","","OD Auditar Margem Processo IMP <=","OD Auditar Margem Processo IMP <=","Não Auditar Margem Processo IMP <=","Auditar Margem Processo IMP <=","Auditar Margem Processo IMP <=","","","","","select  COUNT (*) into :vnDiferenteZero
+FROM IV_Q$COMISSAO as A
+where a.linha = 'Implementos'
+and TRY_CAST( REPLACE( dbo.fn_StripCharacters(a.MARGEM_LUCRO_OPE, '^0-9-,-.'),',','.') AS DECIMAL(10, 2)) >= 7
+and processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","30/05/2021 00:00:00","DIEGO.MARQUES","0","",""
+"176","TESTE","","FATURAR IMP COLORADO EQUIPAMENTOS","Redirecionar faturamento Colorado Equipamentos","Não faturar imp colorado equipamentos","Faturar imp colorado equipamentos","Redirecionar faturamento Colorado Equipamentos","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$ACOMPANHAM_VENDA_IMP
+WHERE LOCAL_DE_FATURAMENTO = 'Colorado Equipamento'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","11/08/2021 00:00:00","DIEGO.MARQUES","0","",""
+"178","TESTE","","OD_Pedido Com Usado","Pedido com Usado","Pedido Com Usado","Utilizar Pedido Sem Usado","Validar usado na negociação","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+FROM IV_Q$GESTAO_CREDITO
+WHERE 1 = 1
+AND VALOR_USADO = '0'
+and processo :{AcAuto_MesmoProcesso_SN} 
+
+","0","0","1","0","0","","","1","0","1","12/04/2022 00:00:00","DIEGO.MARQUES","0","",""
+"179","TESTE","","OD_DESCONTO_INCONDICIONAL_JD","OD_DESCONTO_INCONDICIONAL_JD","Favor Informar Desconto Incondicional JD","Desconto Incondicional Preenchido","Gestão de Estoque Informar Desconto Incondicional jd","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$ACOMP_VEND_MAQUINAS
+WHERE DESCONTO_INCONDICION = ' '
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","26/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"180","TESTE","","0D_STATUS_PROCESSO_ASSISTENTE_JD","0D_STATUS_PROCESSO_ASSISTENTE","Preencher Campo Status","Não Preencher Campo","Processo Assistente JD","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_CREDITO
+WHERE PROCESSO_STATUS = ' '
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo
+
+","0","1","1","0","0","","","1","0","0","26/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"181","TESTE","","OD_STATUS_PROCESSO_ASSISTENTE_IMP","OD_STATUS_PROCESSO_ASSISTENTE_IMP","Preencher Campos Status_imp","Não Preencher Campo_imp","Processo Assiste","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_CREDITO
+WHERE PROCESSO_STATUS = ' '
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","27/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"182","TESTE","","OD_STATUS_PROCESSO_ASSISTENTE_AMS","OD_STATUS_PROCESSO_ASSISTENTE_IMP","Preencher Campo Status AMS","Não Preencher Campo AMS","Processo Assitente","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_CREDITO_AMS
+WHERE PROCESSO_STATUS = ' '
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","26/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"184","TESTE","","OD_DESCONTO_INCONDICIONAL_IMP","OD_DESCONTO_INCONDICIONAL_IMP","Favor Informar Desconto Incondicional IMP","Desconto Incondiconal IMP","Gestão de Estoque informa Desconto Incondicional","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_PRODUTO_IMPL
+WHERE DESCONTO_INCONDICION = ' '
+AND FORMULARIO_NFORMULAR IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","26/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"185","TESTE","","OD_DESCONTO_INCONDICIONAL_AMS","OD_DESCONTO_INCONDICIONAL_AMS","Favor Informar Desconto Incondicional AMS","Desconto Incondicional AMS","Gestão de estoque informa Desconto Incondicional","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_PRODUTO___AMS
+WHERE DESCONTO_INCONDICION = ' '
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","26/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"186","TESTE","","OD_GERAR_AÇÃO_FATURAR_DESCONTO_INCON_IMP","OD_GERAR_AÇÃO_FATURAR_DESCONTO_INCON_IMP","Não Gerar Ação Faturar Desconto Incondicional JD","Gerar Ação Faturar Desconto Incondicional IMP","Gerar Ação de Faturar Desconto Incondicional IMP","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_Q$GESTAO_PRODUTO_IMPL
+WHERE DESCONTO_INCONDICION = 'SIM'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","26/06/2022 00:00:00","DIEGO.MARQUES","0","",""
+"188","LINHA_INFORMAÇÃO","","VIS - MOSTRAR PRODUTOS","","","","VIS - MOSTRAR PRODUTOS","","","","","","0","0","0","0","1","","","0","0","0","07/10/2022 00:00:00","VTCCONS","0","",""
+"189","TESTE","","OD_COM_CONTRATO_AMS","OD_COM_CONTRATO_AMS","Preencher Campo Com Contrato Formulário AMS","Não Preencher Campo Com Contrato Formulário AMS","Com Contrato AMS","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_CREDITO_AMS
+WHERE COM_CONTRATO = ' '
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo
+","0","1","1","0","0","","","1","0","0","06/12/2022 00:00:00","LIVIA.SILVA","0","",""
+"190","TESTE","","OD_COM_CONTRATO_IMP","OD_COM_CONTRATO_IMP","Preencher Campo Com Contrato Formulário IMP","Não Preencher Campo Com Contrato Formulário IMP","Com Contrato Imp","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_CREDITO_IMP
+WHERE COM_CONTRATO = ' '
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo
+","0","1","1","0","0","","","1","0","0","06/12/2022 00:00:00","LIVIA.SILVA","0","",""
+"191","TESTE","","OD_COM_CONTRATO_JD","OD_COM_CONTRATO_JD","Preencher Campo Com Contrato Formulário JD","Não Preencher Campo com Contrato Formulário JD","Com Contrato JD","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_CREDITO
+WHERE COM_CONTRATO = ' '
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","06/12/2022 00:00:00","LIVIA.SILVA","0","",""
+"192","TESTE","","OD_BANCO_AMS","OD_BANCO_AMS","Preencher Instituição Financeira","Não Preencher Campo","Banco AMS","","","","","","0","1","1","0","0","","","1","0","0","01/12/2022 00:00:00","LIVIA.SILVA","0","",""
+"193","TESTE","","OD GFC Atendimento CSC","","Não possui resultado complementar GFC","Possui resultado complementar GFC","OD GFC Atendimento CSC","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IV_HISTORICO HST
+WHERE HST.RESULTADOCmpl = 'GFC'
+AND HST.Resultado = 1297
+AND HST.PROCESSO = :vCRMnProcessoAtivo","0","1","1","0","0","","","0","0","1","28/12/2022 00:00:00","LIVIA.SILVA","0","",""
+"194","TESTE","","Verifica AMS Disponibilizar Produto","","Não é implemento","É implemento","Verifica AMS Disponibilizar Produto","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+  FROM  IV_Q$GESTAO_PRODUTO_IMPL
+WHERE Formulario = 'GESTAO_PRODUTO_IMPL'
+AND PROCESSO = :vCRMnProcessoAtivo","0","1","1","0","0","","","0","0","1","29/12/2022 00:00:00","LIVIA.SILVA","0","",""
+"195","TESTE","","OD Entrega JD","","Preencher Campo de Entrega JD (Valor Frete, Transportadora e Transporte Entrega)","Não Preencher Campo de Entrega JD","OD Entrega JD","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$ACOMP_VEND_MAQUINAS
+WHERE TRANSPORTADORA = ' '
+AND TRANSPORTE_ENTREGA1 = ' '
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","02/01/2023 00:00:00","LIVIA.SILVA","0","",""
+"196","TESTE","","OD Entrega IMP","","Preencher Campo de Entrega IMP (Valor Frete, Transportadora e Transporte Entrega)","Não Preencher Campo de Entrega IMP","OD Entrega IMP","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_PRODUTO_IMPL
+WHERE TRANSPORTADORA = ' '
+AND TRANSPORTE_ENTREGA = ' '
+AND FORMULARIO_NFORMULAR IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","02/01/2023 00:00:00","LIVIA.SILVA","0","",""
+"197","TESTE","","OD Entrega AMS","","Preencher Campo de Entrega AMS (Valor Frete, Transportadora e Transporte Entrega)","Não Preencher Campo de Entrega AMS","OD Entrega AMS","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$GESTAO_PRODUTO___AMS
+WHERE TRANSPORTADORA = ' '
+AND TRANSPORTE_ENTREGA = ' '
+AND FORMULARIO_NUMERO IN ('01','02','03','04','05','06','07','08','09','10')
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","02/01/2023 00:00:00","LIVIA.SILVA","0","",""
+"198","TESTE","","OD Entrada Usado","","Preencher Campo Entrada do Usado","Não Preencher Campo Entrada do Usado","OD Entrada Usado","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$AVAL_USADO_ENTRADA
+WHERE ENTRADA_DO_USADO = ' '
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","02/01/2023 00:00:00","LIVIA.SILVA","0","",""
+"199","TESTE","","OD Chassi no Entrada Usado","","Preencher campo chassi","Não preencher campo chassi","OD Chassi no Entrada Usado","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$AVAL_USADO_ENTRADA
+WHERE CHASSI = ' '
+And processo = :vCRMnProcessoAtivo","0","1","1","0","0","","","1","0","0","10/03/2023 00:00:00","LIVIA.SILVA","0","",""
+"200","TESTE","","OD GERAR AÇÃO CLIENTE ENTREGA","","Não gerar ações de Realizar Baixa Financeira Equipamento Usado e Receber Equipamento Usado","Gerar ações de Realizar Baixa Financeira Equipamento Usado e Receber Equipamento Usado","Gera as ações de Realizar Baixa Financeira Equipamento Usado e Receber Equipamento Usado","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$AVAL_USADO_ENTRADA
+WHERE RETIRADO_DO_USADO = 'Cliente Entrega'
+And processo = :vCRMnProcessoAtivo
+","0","0","1","0","0","","","1","0","1","13/03/2023 00:00:00","LIVIA.SILVA","0","",""
+"201","TESTE","","OD GERA AÇÃO COLORADO RETIRA","","Não gerar ação de Retirar Equipamento Usado","Gerar ação de Retirar Equipamento Usado","Gera a ação de Retirar Equipamento Usado","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$AVAL_USADO_ENTRADA
+WHERE RETIRADO_DO_USADO = 'Retirado Colorado'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","23/03/2023 00:00:00","LIVIA.SILVA","0","",""
+"202","TESTE","","OD_Sem interesse valley","OD_Sem interesse valley","Não gerar formulário","Gerar o formulário","","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Historico
+
+WHERE Resultado = 2495
+
+AND ResultadoCmpl = 'Sem Interesse'
+AND SEQHISTORICO = :vCRMnHistoricoAtivo ","0","0","1","0","0","","","1","0","0","05/12/2023 00:00:00","DIEGO.MARQUES","0","",""
+"203","TESTE","","OD_Com interesse valley","OD_Com interesse valley","Não Gerar formulário projeto","Gerar formulário projeto","OD_Com interesse valley","","","","","SELECT * FROM IV_Historico
+WHERE Resultado = 2495
+AND ResultadoCmpl = 'Com Interesse'
+","0","0","1","0","0","","","1","0","0","04/12/2023 00:00:00","LIVIA.SILVA","0","",""
+"204","TESTE","","SEGMENTAR CLIENTE (NOVO)","**CLIENTE NÃO SEGMENTADO**","Vinculado OK","**CLIENTE NÃO SEGMENTADO**","SEGMENTAR CLIENTE","","","","","SELECT COUNT (*) into :vnDiferenteZero 
+FROM IVS_PES PES
+WHERE PES.SEQPESSOA = :vknSeqPessoa 
+AND PES.SEQPESSOA IS NOT NULL","0","1","1","0","0","","","1","0","0","29/01/2024 00:00:00","NETO.PRADO","0","",""
+"205","TESTE","","TESTE PRIMEIRO JOHN DEERE","PRIMEIRO_JOHN_DEERE_","Não Gerar Ação","Gerar Ação Teste Kit Primeiro John Deere","QUANDO CLIENTES ADQUIRIREM SEU PRIMEIRO JOHN DEERE, GERA AGENDA DE ENTREGA DE BRINDE.","","","","","SELECT COUNT (*) 
+INTO :vnDiferenteZero 
+FROM IV_Q$TESTE_PRIMEIRO_JD
+WHERE TST_1JD = 'Sim'
+AND PROCESSO = :vCRMnProcessoAtivo ","0","0","1","0","0","","","1","0","1","20/08/2024 00:00:00","MATHEUS.AUGUSTO","0","",""
+"206","TESTE","","CAMPANHA 1º JOHN DEERE","PRIMEIRO JOHN DEERE","Não Gerar Ação","Gera Ação Entrega Kit 1º John Deere","GERAR AÇÃO DE ENTREGA DE KIT A CLIENTES QUE COMPARAM SEU PRIMEIRO JOHN DEERE.","","","","","SELECT COUNT (*) 
+INTO :vnDiferenteZero 
+FROM IV_Q$VENDA
+WHERE PRIMEIRO_JOHN_DEERE = 'Sim'
+AND PROCESSO = :vCRMnProcessoAtivo ","0","0","1","0","0","","","1","0","1","26/08/2024 00:00:00","NETO.PRADO","0","",""
+"207","LINHA_INFORMAÇÃO","","DESVIO DE CARTEIRA - DSI (PRODxSERV)","","","","DESVIAR A AÇÃO A GERAR DE ACORDO COM O RESULTADO COMPLEMENTAR: PRODUTO VAI PARA VENDAS E SERVIÇOS VAI PARA SOLUÇÕES INTEGRADAS.","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+INTO :vsLINHA_RETORNO 
+FROM iv$s_usuario USR
+WHERE USR.CODUSUARIO = (
+
+SELECT CODUSUARIO
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.SEQPESSOA = :vknSeqPessoa 
+AND CRT.DEPTO = 'DSI'
+AND :vCRMsResultadoCMPLAtivo  = 'Serviço'
+
+UNION 
+SELECT CODUSUARIO
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.SEQPESSOA = :vknSeqPessoa
+AND CRT.DEPTO = 'MAQ-NOVOS'
+AND :vCRMsResultadoCMPLAtivo  = 'Produto'
+)","0","0","0","0","0","0","0","0","0","1","26/11/2024 09:56:57","MATHEUS.AUGUSTO","0","",""
+"208","LINHA_INFORMAÇÃO","","CICLO DE VISITA x POTENCIAL A","","","","AÇÃO A GERAR DE ACORDO COM O POTENCIAL ASSOCIADO x CICLO DE VISITA","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+INTO :vsLINHA_RETORNO 
+FROM GE_USUARIO USR
+WHERE USR.CODUSUARIO = (
+
+SELECT USRRESP
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.DEPTO = 'DSI'
+AND CRT.POTENCIAL = 'A'
+)","0","0","0","0","0","0","0","0","0","1","21/01/2025 00:00:00","NETO.PRADO","0","",""
+"209","LINHA_INFORMAÇÃO","","CICLO DE VISITA x POTENCIAL B","","","","AÇÃO A GERAR DE ACORDO COM O POTENCIAL ASSOCIADO x CICLO DE VISITA","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+INTO :vsLINHA_RETORNO 
+FROM GE_USUARIO USR
+WHERE USR.CODUSUARIO = (
+
+SELECT USRRESP
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.DEPTO = 'DSI'
+AND CRT.POTENCIAL = 'B'
+)","0","0","0","0","0","0","0","0","0","1","21/01/2025 00:00:00","NETO.PRADO","0","",""
+"210","LINHA_INFORMAÇÃO","","CICLO DE VISITA x POTENCIAL C","","","","AÇÃO A GERAR DE ACORDO COM O POTENCIAL ASSOCIADO x CICLO DE VISITA","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+INTO :vsLINHA_RETORNO 
+FROM GE_USUARIO USR
+WHERE USR.CODUSUARIO = (
+
+SELECT USRRESP
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.DEPTO = 'DSI'
+AND CRT.POTENCIAL = 'C'
+)","0","0","0","0","0","0","0","0","0","1","21/01/2025 00:00:00","NETO.PRADO","0","",""
+"211","LINHA_INFORMAÇÃO","","DESVIO FLUXO DSI (1)","","","","DEPARTAMENTO SOLUÇÕES INTEGRADAS","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+into :vsLINHA_RETORNO 
+FROM GE_USUARIO USR
+WHERE USR.CODUSUARIO = (SELECT USRRESP
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.DEPTO = 'DSI'
+AND SEQPESSOA = :vknSeqPessoa 
+)","0","0","0","0","0","0","0","0","0","1","06/02/2025 00:00:00","NETO.PRADO","0","",""
+"212","LINHA_INFORMAÇÃO","","DESVIO FLUXO PEÇAS","","","","ESCOLHE RESPNSÁVEL DA CARTEIRA DE PEÇAS","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+into :vsLINHA_RETORNO 
+FROM GE_USUARIO USR
+WHERE USR.CODUSUARIO = (SELECT CRT.CODUSUARIO
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.DEPTO = 'MAQ-PEÇAS'
+AND SEQPESSOA = :vknSeqPessoa 
+)","0","0","0","0","0","0","0","0","0","1","10/03/2025 00:00:00","V:NICOLAS","0","",""
+"213","LINHA_INFORMAÇÃO","","DESVIO FLUXO VENDAS","","","","ESCOLHE O RESPONSÁVEL PELA CARTEIRA DE VENDAS","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+into :vsLINHA_RETORNO 
+FROM GE_USUARIO USR
+WHERE USR.CODUSUARIO = (SELECT USRRESP
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.DEPTO = 'MAQ-NOVOS'
+AND SEQPESSOA = :vknSeqPessoa 
+)","0","0","0","0","0","0","0","0","0","1","06/02/2025 00:00:00","NETO.PRADO","0","",""
+"214","LINHA_INFORMAÇÃO","","DESVIO FLUXO SERVIÇOS (COORD)","","","","ESCOLHE O COORDENADOR DE SERVIÇOS NA CARTEIRA DO CLIENTE","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+into :vsLINHA_RETORNO 
+FROM GE_USUARIO USR
+WHERE USR.CODUSUARIO = (SELECT USRRESP
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.DEPTO = 'SRVS-COORD'
+AND SEQPESSOA = :vknSeqPessoa 
+)","0","0","0","0","0","0","0","0","0","1","06/02/2025 00:00:00","NETO.PRADO","0","",""
+"215","LINHA_INFORMAÇÃO","","DESVIO DE CARTEIRA - DSI (PRODxSERV)","","","","DESVIAR A AÇÃO A GERAR DE ACORDO COM O RESULTADO COMPLEMENTAR: PRODUTO VAI PARA VENDAS E SERVIÇOS VAI PARA SOLUÇÕES INTEGRADAS.","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+INTO :vsLINHA_RETORNO 
+FROM iv$s_usuario USR
+WHERE USR.CODUSUARIO = (
+ 
+SELECT CODUSUARIO
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.SEQPESSOA = :vknSeqPessoa 
+AND CRT.DEPTO = 'DSI'
+AND :vCRMsResultadoCMPLAtivo  = 'Serviço'
+ 
+UNION 
+SELECT CODUSUARIO
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.SEQPESSOA = :vknSeqPessoa
+AND CRT.DEPTO = 'MAQ-NOVOS'
+AND :vCRMsResultadoCMPLAtivo  = 'Produto'
+)","0","0","0","0","0","","","0","0","1","26/11/2024 00:00:00","NETO.PRADO","0","",""
+"216","LINHA_INFORMAÇÃO","","RESPONSÁVEL DE VENDAS (CEN)","","","","ESCOLHE O RESPONSÁVEL PELA CARTEIRA DE VENDAS","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+INTO :vsLINHA_RETORNO 
+FROM BI_USUARIO USR
+WHERE USR.USR_CODIGO = (
+
+SELECT USRRESP
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.SEQPESSOA = :vknSeqPessoa 
+AND CRT.DEPTO = 'MAQ-NOVOS'
+)","0","0","0","0","0","","","0","0","1","02/12/2024 00:00:00","NETO.PRADO","0","",""
+"217","LINHA_INFORMAÇÃO","","DESVIO FLUXO DSI (PUK)","","","","DEPARTAMENTO DE SOLUÇÕES INTEGRADAS - PRECISION UPGRADES KIT","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+into :vsLINHA_RETORNO 
+FROM GE_USUARIO USR
+WHERE USR.CODUSUARIO = (SELECT USRRESP
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.DEPTO = 'DSI-PUK'
+AND SEQPESSOA = :vknSeqPessoa 
+)","0","0","0","0","0","","","0","0","1","06/02/2025 00:00:00","NETO.PRADO","0","",""
+"218","LINHA_INFORMAÇÃO","","DESVIO DE FLUXO - DSI (SERVIÇO)","","","","DESVIAR A AÇÃO COM BASE NO RESULTADO SERVIÇO, SENDO ENCAMINHADO AO TIME DE ESPECIALISTAS DE SOLUÇÕES INTEGRADAS.","","","","","SELECT USR.SEQUSUARIO AS RETORNO
+into :vsLINHA_RETORNO 
+FROM GE_USUARIO USR
+WHERE USR.CODUSUARIO = (SELECT USRRESP
+FROM IV$S_CARTEIRA CRT
+WHERE CRT.DEPTO = 'DSI'
+AND SEQPESSOA = :vknSeqPessoa 
+)","0","0","0","0","0","","","0","0","1","06/02/2025 00:00:00","NETO.PRADO","0","",""
+"219","TESTE","","VENDA DE SEMINOVO","VENDA SEMINOVO","Não Gerar Ação","Gerar Ação Acompanhar Venda Seminovo","GERAR AÇÃO PARA ACOMPANHAMENTO DE VENDA DE SEMINOVO","","","","","SELECT COUNT (*) 
+INTO :vnDiferenteZero 
+FROM IV_Q$VENDA
+WHERE TIPO_DE_VENDA = 'Seminovo'
+AND PROCESSO = :vCRMnProcessoAtivo ","0","0","1","0","0","","","1","0","1","24/04/2025 00:00:00","NETO.PRADO","0","",""
+"220","TESTE","","PREPARAÇÃO AMS (GC)","ITENS DE TECNOLOGIA (GC)","Não Gerar Ação","Gerar Ação PREPARAÇÃO AMS (GC)","ENVIAR AÇÃO AO TIME DE SOLUÇÕES INTEGRADAS QUANDO A VENDA POSSUIR ITENS DE TECNOLOGIA.","","","","","SELECT COUNT (*)
+INTO :vnDiferenteZero
+FROM IV_Q$PEDIDO_GC
+WHERE GC_TECNOLOGIA = 'Sim'
+AND PROCESSO = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","30/09/2025 00:00:00","NETO.PRADO","0","",""
+"221","TESTE","","Entrega Kit Primeiro John Deere","Primeiro John Deere","Não Gerar Ação","Entrega Kit Primeiro John Deere","GERAR AÇÃO DE ENTREGA KIT A CLIENTES QUE COMPRARAM PRIMEIRO JOHN DEERE","","","","","SELECT COUNT (*) 
+INTO :vnDiferenteZero 
+FROM IV_Q$VENDA_EQUIPAMENTO
+WHERE VENDA_PRIMEIRO_JD = 'Sim'
+AND PROCESSO = :vCRMnProcessoAtivo ","0","0","1","0","0","","","1","0","1","18/12/2025 00:00:00","MATHEUS.AUGUSTO","0","",""
+"222","TESTE","","OD_Checar_CPF_EMAIL","OD_Checar_CPF_EMAIL","Verificar CPF CNPJ e email do cadastro","Ok","Validar se cliente possui email e CPF/CPNPJ","","","","","SELECT COUNT(1) INTO :vnIgualZero 
+ FROM GE_PESSOA PES
+WHERE 1 = 1
+  AND PES.NROCGCCPF IS NOT NULL
+  AND PES.EMAIL IS NOT NULL
+  AND PES.SEQPESSOA = :vknSeqPessoa 
+","0","0","1","0","0","","","1","0","0","29/12/2025 00:00:00","V:AMAURY","0","",""
+"225","TESTE","","OD GERAR AÇÃO ESPECIALISTA","","Não Gerar ações de Agendas Especialista","Gerar ações de Agendas Especialista","Gerar Ação a partir de um campo dentro do formulário de demonstração.","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$DEMONSTRACAO_JD
+WHERE ITEM_TECNOLOGIA = 'Sim'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","09/01/2026 00:00:00","MATHEUS.AUGUSTO","0","",""
+"226","TESTE","","OD_Formulario Especialista CSC","OD_Formulario Especialista CSC","Preencher Formulário de haverá Especialista","Ok","Informar se havera especialista no formulario de demonstração","","","","","SELECT COUNT(*) INTO :vnIgualZero
+FROM IV_Q$DEMONSTRACAO_JD DMO
+WHERE DMO.PROCESSO = :vCRMnProcessoAtivo
+  AND ISNULL(DMO.ITEM_TECNOLOGIA, '') <> ''","0","0","1","0","0","","","1","0","0","20/01/2026 00:00:00","MATHEUS.AUGUSTO","0","",""
+"227","TESTE","","OD GERAR AÇÃO SERVIÇOS","","Não Gerar ações de Agendas Serviços/PUK","Gerar ações de Agendas Serviços/PUK","Gerar Ação a partir de um campo dentro do formulário de venda.","","","","","SELECT COUNT (*) into :vnDiferenteZero
+FROM IV_Q$VENDA_EQUIPAMENTO
+WHERE VENDA_TIPO_VENDA = 'Serviços'
+And processo = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","30/01/2026 00:00:00","MATHEUS.AUGUSTO","0","",""
+"228","TESTE","","OD_Formulario Financeiro Entrega","OD_Formulario Financeiro Entrega","Preencher Formulário de financeiro com a data entrega","Ok","Informar quando o equipamento for entregue.","","","","","SELECT COUNT(*) INTO :vnIgualZero
+FROM IV_Q$ACOMP_VENDA_FINANC VND
+WHERE VND.PROCESSO = :vCRMnProcessoAtivo
+  AND ISNULL(VND.VENDA_FINANC_DATAENT, '') <> ''","0","0","1","0","0","","","1","0","0","04/02/2026 00:00:00","MATHEUS.AUGUSTO","0","",""
+"229","TESTE","","OD_Formulario Demonstracao Logistica","OD_Formulario Demonstracao Logistica","Preencher Formulário Demonstracao Logistica Retorno","Ok","Informar se havera especialista no formulario de demonstração","","","","","SELECT COUNT(*) INTO :vnIgualZero
+FROM IV_Q$DEMONSTRACAO_LOG DMO
+WHERE DMO.PROCESSO = :vCRMnProcessoAtivo
+  AND ISNULL(DMO.VALOR_FRETE_RETORNO, -1) <> -1","0","0","1","0","0","","","1","0","0","22/05/2026 00:00:00","MATHEUS.AUGUSTO","0","",""
+"230","LINHA_INFORMAÇÃO","","DIRECIONA EMAIL DESCONTO INCONDICIONAL","DIRECIONA EMAIL DESCONTO INCONDICIONAL","","","Direcionar email de desconto incondicional","","","","","SELECT COUNT(1) INTO :vnIgualZero
+FROM IV_Q$VENDA_EQUIPAMENTO
+where DESCONTO_INCONDICION = 'Sim'
+And processo = :vCRMnProcessoAtivo","0","0","0","0","0","","","0","0","0","11/02/2026 00:00:00","MATHEUS.AUGUSTO","1","",""
+"231","LINHA_INFORMAÇÃO","","DIRECIONA EMAIL PUK","DIRECIONA EMAIL RECLAMAÇÃO","","","Direcionar email de PUK","","","","","select 122981
+from IV_HISTORICO HST
+ where HST.SEQHISTORICO = :vCRMnHistoricoAtivo
+ and HST.sequsuario = 811
+ and HST.resultado = 3440","0","0","0","0","0","","","0","0","0","27/05/2026 00:00:00","MATHEUS.AUGUSTO","1","",""
+"235","TESTE","","OD_Form_Avalia_Seminovo","OD_Form_Avaliação_Usado","Há seminovo - preencher formulário","Não há seminovo - sem formulário","","","","","","SELECT COUNT(*)  into :vnDiferenteZero 
+FROM IV_Q$VENDA_EQUIPAMENTO ACV
+WHERE ACV.Processo = :vCRMnProcessoAtivo 
+  AND ACV.VENDA_TIPO_VENDA = 'Seminovos'
+  AND NOT EXISTS (SELECT 1 FROM IV_Q$VENDA_SEMINOVO AVU WHERE AVU.Processo  = :vCRMnProcessoAtivo )","0","0","1","0","0","","","1","0","1","08/06/2026 00:00:00","MATHEUS.AUGUSTO","0","",""
+"236","TESTE","","OD_Formulario CSC Organização","OD_Formulario CSC Organização","Não Gerar Ação","Gerar ação CSC Organização","Informar se havera necessidade de incluir na organização.","","","","","SELECT COUNT (*) 
+INTO :vnDiferenteZero 
+FROM IV_Q$VENDA_EQUIPAMENTO
+WHERE VENDA_TIPO_EQUIPAMEN  in ( 'Agricultura precisão', 'Colhedora de cana', 'Colheitadeira grãos', 'Plantadeira', 'Pulverizador', 'Tratores')
+AND PROCESSO = :vCRMnProcessoAtivo","0","0","1","0","0","","","1","0","1","10/06/2026 00:00:00","V:GUI.BATISTA","0","",""
+"237","TESTE","","REQ - VENDA DE SEMINOVO","VENDA SEMINOVO","Não Exigir preenchimento formulario Venda Seminovo","Exigir preenchimento formulario Venda Seminovo","EXIGIR FORMULARIO DE SEMINOVO QUANDO FORMULARIO DE VENDA TIVER TIPO DE VENDA SEMINOVO","","","","","SELECT COUNT (*) 
+INTO :vnIgualZero 
+FROM IV_Q$VENDA_EQUIPAMENTO EQ
+WHERE EQ.VENDA_TIPO_VENDA = 'Seminovos'
+AND EQ.PROCESSO = :vCRMnProcessoAtivo 
+AND NOT EXISTS (SELECT 1 FROM IV_Q$VENDA_SEMINOVO WHERE PROCESSO = EQ.PROCESSO )","0","0","1","0","0","","","1","0","1","28/08/2026 00:00:00","V:AMAURY","0","",""

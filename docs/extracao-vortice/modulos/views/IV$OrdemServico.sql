@@ -1,0 +1,62 @@
+/* ==============================================================
+   Objeto ..........: dbo.IV$OrdemServico
+   Tipo ............: VIEW
+   Criado em .......: 2021-08-18 18:07:43
+   Modificado em ...: 2021-08-19 10:12:35
+   Linhas ..........: 52
+   Escreve em tabela: nao
+   Tabelas referidas: EXT_OS, EXT_OSITEM
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+
+
+CREATE VIEW [dbo].[IV$OrdemServico] ( IDOS, NROEMPRESA,
+       NROOS, SEQPESSOA, 
+       NROCHASSI, PLACA, 
+       COMBUSTIVEL, 
+       CODVEICULO, 
+       MODELO, 
+       CORVEICULO, 
+       ANOFABRICACAO, ANOMODELO, 
+       DTAVENDA, CONSULTOR, TIPOOS, 
+       DTAABERTURA, DTAENCERRAMENTO, DTAFECHAMENTO, 
+       VALORLIQPECAS, 
+       VALORLIQSERVICO, 
+       VALORDESCPECAS, 
+       VALORDESCSERV,
+       OBSERVACAO, 
+       DEPARTAMENTO, 
+       CODORIGEM, 
+       NRODN, 
+       KILOMETRAGEM, 
+       ORIGEM )  
+AS 
+SELECT OS.IDOS, 
+       OS.NROEMPRESA,
+       OS.NROOS, 
+	   OS.SEQPESSOA AS SEQPESSOA,
+       OS.NROCHASSI, 
+	   OS.PLACA,
+	   CASE OS.COMBUSTIVEL WHEN 'G' THEN 'Gasolina'
+	                       WHEN 'A' THEN 'Álcool'
+						   WHEN 'F' THEN 'Flex'
+						   WHEN 'D' THEN 'Diesel'
+						   ELSE OS.Combustivel END AS COMBUSTIVEL, 
+	   OS.CODVEICULO AS CODVEICULO, 
+	   OS.MODELO AS MODELO,
+	   OS.CORVEICULO AS CORVEICULO,
+       OS.ANOFABRICACAO, OS.ANOMODELO,
+       OS.DTAVENDA, OS.CONSULTOR, OS.TIPOOS,
+       OS.DTAABERTURA, OS.DTAENCERRAMENTO, OS.DTAFECHAMENTO,
+       ( SELECT SUM (IT.VLRTOTITEM ) FROM EXT_OSITEM IT WHERE IT.IDOS = OS.IDOS AND IT.TIPOITEM = 'P' AND IT.STATUSITEM = 'A' ) AS VALORLIQPECAS, 
+       ( SELECT SUM (IT.VLRTOTITEM ) FROM EXT_OSITEM IT WHERE IT.IDOS = OS.IDOS AND IT.TIPOITEM = 'S' AND IT.STATUSITEM = 'A' ) AS VALORLIQSERVICO, 
+       ( SELECT SUM (IT.VLRTOTITEMBRUTO ) - SUM (IT.VLRTOTITEM ) FROM EXT_OSITEM IT WHERE IT.IDOS = OS.IDOS AND IT.TIPOITEM = 'P' AND IT.STATUSITEM = 'A' ) AS VALORDESCPECAS, 
+       ( SELECT SUM (IT.VLRTOTITEMBRUTO ) - SUM(IT.VLRTOTITEM ) FROM EXT_OSITEM IT WHERE IT.IDOS = OS.IDOS AND IT.TIPOITEM = 'S' AND IT.STATUSITEM = 'A' ) AS VALORDESCSERV,        
+       OS.OBSERVACAO,
+       '' AS DEPARTAMENTO, 
+       OS.IDOSEXTERNO, 
+	   OS.NRODN AS NRODN,
+       OS.KILOMETRAGEM,
+       OS.ORIGEM        
+FROM EXT_OS OS ;

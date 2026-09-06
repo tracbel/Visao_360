@@ -1,0 +1,38 @@
+[
+  {
+    "motivo": "Preço acima do concorrente",
+    "qtd": 87,
+    "valor": 42800000,
+    "cor": "#DC2626"
+  },
+  {
+    "motivo": "Prazo de entrega",
+    "qtd": 52,
+    "valor": 24500000,
+    "cor": "#EA580C"
+  },
+  {
+    "motivo": "Financiamento negado",
+    "qtd": 41,
+    "valor": 18200000,
+    "cor": "#B45309"
+  },
+  {
+    "motivo": "Preferência por concorrente",
+    "qtd": 78,
+    "valor": 38900000,
+    "cor": "#7C3AED"
+  },
+  {
+    "motivo": "Cliente adiou investimento",
+    "qtd": 65,
+    "valor": 29100000,
+    "cor": "#6B7280"
+  },
+  {
+    "motivo": "Configuração indisponível",
+    "qtd": 40,
+    "valor": 17800000,
+    "cor": "#9CA3AF"
+  }
+]

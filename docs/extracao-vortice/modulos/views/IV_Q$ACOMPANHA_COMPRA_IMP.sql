@@ -1,0 +1,56 @@
+/* ==============================================================
+   Objeto ..........: dbo.IV_Q$ACOMPANHA_COMPRA_IMP
+   Tipo ............: VIEW
+   Criado em .......: 2021-06-04 15:37:44
+   Modificado em ...: 2026-05-22 08:41:34
+   Linhas ..........: 45
+   Escreve em tabela: nao
+   Tabelas referidas: GE_PESSOA, IV_FORMULARIO, IV_Q_ACOMPANHA_COMPRA_IMP, IV_QUESTIONARIO
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+-- dbo.IV_Q$ACOMPANHA_COMPRA_IMP fonte
+
+CREATE VIEW dbo.IV_Q$ACOMPANHA_COMPRA_IMP ( 
+
+	SeqPessoa, Pessoa, SeqQuestionario, SeqFormulario, Formulario,  DtaRealizacao, UsuInclusao, DtaAlteracao, UsuAlteracao,  Observacao,  SeqHistorico, Resultado, Processo, Departamento, LinkDocto, LinkNro, LinkSerie, /*Q001_,*/ TP_EQUIP2, MARCAJD2, MDL_EQUIP2, QT2, FDD2, QTD_PES_TRS2, KG_TRAS1_JD2, QTD_PES_TRS_OPC22, KG_TRS2_JD2, QTD_PES_DIAN2, KG_DIANT_JD2, RDD_TRS_JD2, RDD_DIAN_JD2, QTD_VCR_100_JD2, QTDE_VCR_300_JD2
+
+) AS
+
+SELECT	TBASE.SEQPESSOA,
+		TBASE.NOMERAZAO,
+		QST.SEQQUESTIONARIO,
+		FRM.SEQFORMULARIO,
+		FRM.DESCRICAO,
+		QST.DTAREALIZACAO,
+		QST.USUINCLUSAO,
+		QST.DTAALTERACAO,
+		QST.USUALTERACAO,
+		QST.OBS,
+		QST.SEQHISTORICO,
+		QST.RESULTADO,
+		QST.PROCESSO,
+		QST.DEPARTAMENTO,
+		QST.LINKDOCTO,
+		QST.LINKNRO,
+		QST.LINKSERIE,
+		--TABF.Q001_,			/*	Não existe esssa coluna?	*/
+		TABF.TP_EQUIP2,
+		TABF.MARCAJD2,
+		TABF.MDL_EQUIP2,
+		TABF.QT2,
+		TABF.FDD2,
+		TABF.QTD_PES_TRS2,
+		TABF.KG_TRAS1_JD2,
+		TABF.QTD_PES_TRS_OPC22,
+		TABF.KG_TRS2_JD2,
+		TABF.QTD_PES_DIAN2,
+		TABF.KG_DIANT_JD2,
+		TABF.RDD_TRS_JD2,
+		TABF.RDD_DIAN_JD2,
+		TABF.QTD_VCR_100_JD2,
+		TABF.QTDE_VCR_300_JD2
+FROM	IV_Q_ACOMPANHA_COMPRA_IMP	TABF
+JOIN	IV_QUESTIONARIO				QST		ON	QST.SEQQUESTIONARIO		=	TABF.SEQQUESTIONARIO
+JOIN	IV_FORMULARIO				FRM		ON	FRM.SEQFORMULARIO		=	QST.SEQFORMULARIO
+JOIN	GE_PESSOA					TBASE	ON	TBASE.SEQPESSOA			=	QST.SEQPESSOA;

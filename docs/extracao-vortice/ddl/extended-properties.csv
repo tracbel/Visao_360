@@ -1,0 +1,1658 @@
+﻿"class_desc","major_id","minor_id","propriedade","valor","esquema","objeto","coluna"
+"OBJECT_OR_COLUMN","172683813","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 136
+               Right = 260
+            End
+            DisplayFlags = 280
+            TopColumn = 15
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 138
+               Left = 38
+               Bottom = 268
+               Right = 234
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 138
+               Left = 272
+               Bottom = 268
+               Right = 468
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 270
+               Left = 38
+               Bottom = 400
+               Right = 234
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV_Q$COMISSAO_CONTACHAVE",""
+"OBJECT_OR_COLUMN","172683813","0","MS_DiagramPaneCount","1","dbo","IV_Q$COMISSAO_CONTACHAVE",""
+"OBJECT_OR_COLUMN","465540842","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 8
+               Left = 52
+               Bottom = 178
+               Right = 290
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 184
+               Left = 52
+               Bottom = 354
+               Right = 290
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 360
+               Left = 52
+               Bottom = 530
+               Right = 290
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 536
+               Left = 52
+               Bottom = 706
+               Right = 350
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","GE$PESSOA",""
+"OBJECT_OR_COLUMN","465540842","0","MS_DiagramPaneCount","1","dbo","GE$PESSOA",""
+"OBJECT_OR_COLUMN","1166783364","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 7
+               Left = 48
+               Bottom = 170
+               Right = 326
+            End
+            DisplayFlags = 280
+            TopColumn = 47
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 175
+               Left = 48
+               Bottom = 338
+               Right = 277
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 343
+               Left = 48
+               Bottom = 506
+               Right = 295
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 511
+               Left = 48
+               Bottom = 674
+               Right = 277
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1176
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1356
+         SortOrder = 1416
+         GroupBy = 1350
+         Filter = 1356
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV_Q$GESTAO_CREDITO_IMP",""
+"OBJECT_OR_COLUMN","1166783364","0","MS_DiagramPaneCount","1","dbo","IV_Q$GESTAO_CREDITO_IMP",""
+"OBJECT_OR_COLUMN","1230783592","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 7
+               Left = 48
+               Bottom = 170
+               Right = 326
+            End
+            DisplayFlags = 280
+            TopColumn = 47
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 175
+               Left = 48
+               Bottom = 338
+               Right = 277
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 343
+               Left = 48
+               Bottom = 506
+               Right = 295
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 511
+               Left = 48
+               Bottom = 674
+               Right = 277
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV_Q$GESTAO_CREDITO_AMS",""
+"OBJECT_OR_COLUMN","1230783592","0","MS_DiagramPaneCount","1","dbo","IV_Q$GESTAO_CREDITO_AMS",""
+"OBJECT_OR_COLUMN","1276687746","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 136
+               Right = 274
+            End
+            DisplayFlags = 280
+            TopColumn = 12
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 138
+               Left = 38
+               Bottom = 268
+               Right = 234
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 138
+               Left = 272
+               Bottom = 268
+               Right = 468
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 270
+               Left = 38
+               Bottom = 400
+               Right = 234
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV_Q$DEMO_MAQUINAS",""
+"OBJECT_OR_COLUMN","1276687746","0","MS_DiagramPaneCount","1","dbo","IV_Q$DEMO_MAQUINAS",""
+"OBJECT_OR_COLUMN","1288495769","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 136
+               Right = 286
+            End
+            DisplayFlags = 280
+            TopColumn = 31
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 138
+               Left = 38
+               Bottom = 268
+               Right = 234
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 270
+               Left = 38
+               Bottom = 400
+               Right = 246
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 138
+               Left = 272
+               Bottom = 268
+               Right = 468
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1176
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1356
+         SortOrder = 1416
+         GroupBy = 1350
+         Filter = 1356
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV_Q$COMISSAO",""
+"OBJECT_OR_COLUMN","1288495769","0","MS_DiagramPaneCount","1","dbo","IV_Q$COMISSAO",""
+"OBJECT_OR_COLUMN","1321211907","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 7
+               Left = 48
+               Bottom = 170
+               Right = 314
+            End
+            DisplayFlags = 280
+            TopColumn = 16
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 175
+               Left = 48
+               Bottom = 338
+               Right = 277
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 343
+               Left = 48
+               Bottom = 506
+               Right = 295
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 511
+               Left = 48
+               Bottom = 674
+               Right = 277
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV_Q$COMISSAO_AMS",""
+"OBJECT_OR_COLUMN","1321211907","0","MS_DiagramPaneCount","1","dbo","IV_Q$COMISSAO_AMS",""
+"OBJECT_OR_COLUMN","1381736125","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 7
+               Left = 48
+               Bottom = 170
+               Right = 329
+            End
+            DisplayFlags = 280
+            TopColumn = 35
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 175
+               Left = 48
+               Bottom = 338
+               Right = 277
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 343
+               Left = 48
+               Bottom = 506
+               Right = 295
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 511
+               Left = 48
+               Bottom = 674
+               Right = 277
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV_Q$ACOMPANHAM_VENDA_IMP",""
+"OBJECT_OR_COLUMN","1381736125","0","MS_DiagramPaneCount","1","dbo","IV_Q$ACOMPANHAM_VENDA_IMP",""
+"OBJECT_OR_COLUMN","1425492207","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[29] 4[4] 2[49] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""GP""
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 114
+               Right = 189
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""CTR""
+            Begin Extent = 
+               Top = 6
+               Left = 227
+               Bottom = 114
+               Right = 378
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV$PRODUTO",""
+"OBJECT_OR_COLUMN","1425492207","0","MS_DiagramPaneCount","1","dbo","IV$PRODUTO",""
+"OBJECT_OR_COLUMN","1484688487","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 136
+               Right = 271
+            End
+            DisplayFlags = 280
+            TopColumn = 12
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 138
+               Left = 38
+               Bottom = 268
+               Right = 234
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 138
+               Left = 272
+               Bottom = 268
+               Right = 468
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 270
+               Left = 38
+               Bottom = 400
+               Right = 234
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV_Q$AFERICAO_SERV_WEB",""
+"OBJECT_OR_COLUMN","1484688487","0","MS_DiagramPaneCount","1","dbo","IV_Q$AFERICAO_SERV_WEB",""
+"OBJECT_OR_COLUMN","1632165010","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 136
+               Right = 269
+            End
+            DisplayFlags = 280
+            TopColumn = 32
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 138
+               Left = 38
+               Bottom = 268
+               Right = 234
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 138
+               Left = 272
+               Bottom = 268
+               Right = 468
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 270
+               Left = 38
+               Bottom = 400
+               Right = 234
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV_Q$AVALIA_IMPLEM_USADO",""
+"OBJECT_OR_COLUMN","1632165010","0","MS_DiagramPaneCount","1","dbo","IV_Q$AVALIA_IMPLEM_USADO",""
+"OBJECT_OR_COLUMN","1664165124","0","MS_DiagramPane1","[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = ""(H (1[40] 4[20] 2[20] 3) )""
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 4 [25] 3))""
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = ""(H (1 [50] 2 [25] 3))""
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = ""(H (4 [30] 2 [40] 3))""
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = ""(H (1 [56] 3))""
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = ""(H (2 [66] 3))""
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = ""(H (4 [50] 3))""
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = ""(V (3))""
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = ""(H (1[56] 4[18] 2) )""
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = ""(H (1 [75] 4))""
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = ""(H (1[66] 2) )""
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = ""(H (4 [60] 2))""
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = ""(H (1) )""
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = ""(V (4))""
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = ""(V (2))""
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = ""TABF""
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 136
+               Right = 277
+            End
+            DisplayFlags = 280
+            TopColumn = 61
+         End
+         Begin Table = ""QST""
+            Begin Extent = 
+               Top = 138
+               Left = 38
+               Bottom = 268
+               Right = 234
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""FRM""
+            Begin Extent = 
+               Top = 270
+               Left = 38
+               Bottom = 400
+               Right = 246
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = ""TBASE""
+            Begin Extent = 
+               Top = 138
+               Left = 272
+               Bottom = 268
+               Right = 468
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = """"
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+","dbo","IV_Q$VENDA_AMS",""
+"OBJECT_OR_COLUMN","1664165124","0","MS_DiagramPaneCount","1","dbo","IV_Q$VENDA_AMS",""
+"OBJECT_OR_COLUMN","1714157202","0","microsoft_database_tools_support","1","dbo","sp_upgraddiagrams",""
+"OBJECT_OR_COLUMN","1730157259","0","microsoft_database_tools_support","1","dbo","sysdiagrams",""
+"OBJECT_OR_COLUMN","1778157430","0","microsoft_database_tools_support","1","dbo","sp_helpdiagrams",""
+"OBJECT_OR_COLUMN","1794157487","0","microsoft_database_tools_support","1","dbo","sp_helpdiagramdefinition",""
+"OBJECT_OR_COLUMN","1810157544","0","microsoft_database_tools_support","1","dbo","sp_creatediagram",""
+"OBJECT_OR_COLUMN","1826157601","0","microsoft_database_tools_support","1","dbo","sp_renamediagram",""
+"OBJECT_OR_COLUMN","1842157658","0","microsoft_database_tools_support","1","dbo","sp_alterdiagram",""
+"OBJECT_OR_COLUMN","1858157715","0","microsoft_database_tools_support","1","dbo","sp_dropdiagram",""
+"OBJECT_OR_COLUMN","1874157772","0","microsoft_database_tools_support","1","dbo","fn_diagramobjects",""

@@ -1,0 +1,12 @@
+/* ==============================================================
+   Objeto ..........: dbo.IMPV_VEICULO
+   Tipo ............: VIEW
+   Criado em .......: 2017-01-16 12:01:57
+   Modificado em ...: 2017-01-16 12:01:57
+   Linhas ..........: 1
+   Escreve em tabela: nao
+   Tabelas referidas: IMP_VEICULO
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+Create view IMPV_VEICULO  ( idveiculo,       Origem,              NroEmpresa,          PessoaLinkOrigem,       Pessoalink,          NroCNPJCPF,          DigCNPJCPF,       CNPJx,               NroChassi,           NroChassiRed,       TipoVeiculo,         Placa,               Combustivel,       Marca,               CodFamilia,          Familia,       CodModelo,           Modelo,              CorExterna,       CorInterna,          Potencia,            QtdeEixo,       EstadoVenda,         FormaPgto,           Financiador,       CanalVenda,          Nronf,               Serienf,       Anofabricacao,       AnoModelo,           Dtavenda,       Dtaprevquitacao,     VlrVenda,            Observacao,       KMAtual,             DtaKMAtual,          KMProxRevisao,       DtaProxRevisao,      Revenda,             Vendedor,       TipoUso,             UsuarioAlteracao,    DtaAlteracao,       DtaGeracao,          StatusIMP,           DtaImport ) as   select   idveiculo,   Origem,              NroEmpresa,          PessoaLinkOrigem,       Pessoalink,          NroCNPJCPF,          DigCNPJCPF,       CNPJx,               NroChassi,           NroChassiRed,       TipoVeiculo,         Placa,               Combustivel,       Marca,               CodFamilia,          Familia,       CodModelo,           Modelo,              CorExterna,       CorInterna,          Potencia,            QtdeEixo,       EstadoVenda,         FormaPgto,           Financiador,       CanalVenda,          Nronf,               Serienf,       Anofabricacao,       AnoModelo,           Dtavenda,       Dtaprevquitacao,     VlrVenda,            Observacao,       KMAtual,             DtaKMAtual,          KMProxRevisao,       DtaProxRevisao,      Revenda,             Vendedor,       TipoUso,             UsuarioAlteracao,    DtaAlteracao,       DtaGeracao,          StatusIMP,           DtaImport   From   IMP_VEICULO 

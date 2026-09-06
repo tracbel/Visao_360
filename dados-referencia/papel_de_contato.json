@@ -1,0 +1,28 @@
+{
+  "catalogo": "papel_de_contato",
+  "descricao": "Papel do contato no processo de decisão de compra do cliente",
+  "origem": "docs/extracao-vortice/dominios/00-INDICE.md item 4 + valores.csv (coluna GE_Contato.NivelDecisao: D/I/N, 14,37% nulo/não classificado — 5.932 contatos). O protótipo só tem 'cargo' como texto livre (cliente-84391.json: 'Proprietário / Diretor', 'Gerente de Frota' etc.) e um booleano 'decisor' — não um catálogo fechado. Ver PENDENTES.md.",
+  "itens": [
+    {
+      "codigo": "DECISOR",
+      "descricao": "Decisor",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Equivale a GE_Contato.NivelDecisao = 'D' no Vórtice: 13.954 contatos, 33,8% dos classificados."
+    },
+    {
+      "codigo": "INFLUENCIADOR",
+      "descricao": "Influenciador",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Equivale a GE_Contato.NivelDecisao = 'I' no Vórtice: 6.712 contatos, 16,3% dos classificados."
+    },
+    {
+      "codigo": "NAO_DECISOR",
+      "descricao": "Não decisor",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Equivale a GE_Contato.NivelDecisao = 'N' no Vórtice: 14.684 contatos, 35,6% dos classificados."
+    }
+  ]
+}

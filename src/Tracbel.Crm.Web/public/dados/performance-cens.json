@@ -1,0 +1,82 @@
+[
+  {
+    "id": "joao",
+    "nome": "João Ribeiro",
+    "regional": "MT Norte",
+    "foto": "JR",
+    "avatar": "#367C2B",
+    "meta_mes": 4200000,
+    "meta_fytd": 42000000,
+    "admissao": "2019-03-01"
+  },
+  {
+    "id": "rufino",
+    "nome": "José Rufino",
+    "regional": "MT Norte",
+    "foto": "JS",
+    "avatar": "#1B5E20",
+    "meta_mes": 4500000,
+    "meta_fytd": 45000000,
+    "admissao": "2016-08-15"
+  },
+  {
+    "id": "ana",
+    "nome": "Ana Paula Silveira",
+    "regional": "MT Norte",
+    "foto": "AP",
+    "avatar": "#7C3AED",
+    "meta_mes": 4000000,
+    "meta_fytd": 40000000,
+    "admissao": "2021-05-10"
+  },
+  {
+    "id": "ricardo",
+    "nome": "Ricardo Alves",
+    "regional": "MT Norte",
+    "foto": "RA",
+    "avatar": "#0EA5E9",
+    "meta_mes": 3800000,
+    "meta_fytd": 38000000,
+    "admissao": "2018-11-22"
+  },
+  {
+    "id": "fernanda",
+    "nome": "Fernanda Melo",
+    "regional": "MT Norte",
+    "foto": "FM",
+    "avatar": "#EC4899",
+    "meta_mes": 4200000,
+    "meta_fytd": 42000000,
+    "admissao": "2023-02-01"
+  },
+  {
+    "id": "marcelo",
+    "nome": "Marcelo Silva",
+    "regional": "MT Sul",
+    "foto": "MS",
+    "avatar": "#F59E0B",
+    "meta_mes": 4500000,
+    "meta_fytd": 45000000,
+    "admissao": "2017-06-15"
+  },
+  {
+    "id": "renata",
+    "nome": "Renata Costa",
+    "regional": "GO",
+    "foto": "RC",
+    "avatar": "#EF4444",
+    "meta_mes": 4300000,
+    "meta_fytd": 43000000,
+    "admissao": "2020-09-01"
+  },
+  {
+    "id": "pedro",
+    "nome": "Pedro Almeida",
+    "regional": "BA",
+    "foto": "PA",
+    "avatar": "#0D9488",
+    "meta_mes": 4100000,
+    "meta_fytd": 41000000,
+    "admissao": "2019-12-05"
+  }
+]

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
+    <!-- Exigido pelo 'dotnet ef': as ferramentas de migração rodam a partir do projeto de inicialização. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tracbel.Crm.Aplicacao\Tracbel.Crm.Aplicacao.csproj" />
+    <ProjectReference Include="..\Tracbel.Crm.Infraestrutura\Tracbel.Crm.Infraestrutura.csproj" />
+    <!--
+      A ponte de leitura do sistema legado.
+
+      A SETA APONTA PARA DENTRO e por isso e legitima: Tracbel.Crm.Integracao depende so do
+      Dominio. Esta referencia existe pela mesma razao da de Infraestrutura — a Api e a RAIZ DE
+      COMPOSICAO, o unico lugar que pode conhecer os adaptadores para liga-los as portas. O caso
+      de uso continua conhecendo so IPonteDeLeituraDoVortice, declarada no Dominio.
+
+      Decisao registrada em docs/projeto/23-API.md e refletida no grafo permitido de
+      SolidTestes.As_referencias_de_projeto_apontam_sempre_para_dentro.
+    -->
+    <ProjectReference Include="..\Tracbel.Crm.Integracao\Tracbel.Crm.Integracao.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,194 @@
+{
+  "84391": {
+    "cnpj": "18.245.339/0001-42",
+    "segmento": "Grãos",
+    "porte": "Grande",
+    "n_equipamentos": 12,
+    "cen": "joao",
+    "ult_compra": "2025-11-14"
+  },
+  "84402": {
+    "cnpj": "14.567.821/0001-08",
+    "segmento": "Grãos",
+    "porte": "Corporate",
+    "n_equipamentos": 24,
+    "cen": "rufino",
+    "ult_compra": "2024-08-22"
+  },
+  "84418": {
+    "cnpj": "22.851.774/0001-91",
+    "segmento": "Grãos",
+    "porte": "Corporate",
+    "n_equipamentos": 31,
+    "cen": "ana",
+    "ult_compra": "2025-03-11"
+  },
+  "84425": {
+    "cnpj": "09.472.318/0001-55",
+    "segmento": "Grãos",
+    "porte": "Médio",
+    "n_equipamentos": 4,
+    "cen": "ricardo",
+    "ult_compra": "2024-04-05"
+  },
+  "84430": {
+    "cnpj": "11.234.567/0001-89",
+    "segmento": "Grãos",
+    "porte": "Grande",
+    "n_equipamentos": 8,
+    "cen": "ricardo",
+    "ult_compra": "2025-06-30"
+  },
+  "84437": {
+    "cnpj": "27.881.443/0001-17",
+    "segmento": "Grãos",
+    "porte": "Corporate",
+    "n_equipamentos": 18,
+    "cen": "ana",
+    "ult_compra": "2025-09-19"
+  },
+  "84445": {
+    "cnpj": "15.442.998/0001-33",
+    "segmento": "Grãos",
+    "porte": "Médio",
+    "n_equipamentos": 3,
+    "cen": "rufino",
+    "ult_compra": "2024-11-08"
+  },
+  "84448": {
+    "cnpj": "19.556.101/0001-70",
+    "segmento": "Grãos",
+    "porte": "Médio",
+    "n_equipamentos": 2,
+    "cen": "rufino",
+    "ult_compra": "2023-12-15"
+  },
+  "84452": {
+    "cnpj": "31.775.802/0001-64",
+    "segmento": "Grãos",
+    "porte": "Grande",
+    "n_equipamentos": 6,
+    "cen": "fernanda",
+    "ult_compra": "2025-04-22"
+  },
+  "84458": {
+    "cnpj": "08.123.456/0001-27",
+    "segmento": "Agroindústria",
+    "porte": "Grande",
+    "n_equipamentos": 9,
+    "cen": "ana",
+    "ult_compra": "2025-07-30"
+  },
+  "84461": {
+    "cnpj": "02.994.181/0001-88",
+    "segmento": "Grãos",
+    "porte": "Corporate",
+    "n_equipamentos": 45,
+    "cen": "joao",
+    "ult_compra": "2025-10-14"
+  },
+  "84467": {
+    "cnpj": "17.663.220/0001-45",
+    "segmento": "Grãos",
+    "porte": "Médio",
+    "n_equipamentos": 4,
+    "cen": "ana",
+    "ult_compra": "2024-09-11"
+  },
+  "84472": {
+    "cnpj": "25.114.789/0001-52",
+    "segmento": "Pecuária",
+    "porte": "Pequeno",
+    "n_equipamentos": 1,
+    "cen": "ricardo",
+    "ult_compra": "2023-05-18"
+  },
+  "84478": {
+    "cnpj": "13.885.223/0001-04",
+    "segmento": "Grãos",
+    "porte": "Grande",
+    "n_equipamentos": 7,
+    "cen": "joao",
+    "ult_compra": "2025-08-25"
+  },
+  "84483": {
+    "cnpj": "29.447.116/0001-89",
+    "segmento": "Agroindústria",
+    "porte": "Grande",
+    "n_equipamentos": 8,
+    "cen": "fernanda",
+    "ult_compra": "2025-05-13"
+  },
+  "84489": {
+    "cnpj": "00.732.981/0001-72",
+    "segmento": "Grãos",
+    "porte": "Corporate",
+    "n_equipamentos": 27,
+    "cen": "joao",
+    "ult_compra": "2025-08-12"
+  },
+  "84495": {
+    "cnpj": "16.994.552/0001-38",
+    "segmento": "Grãos",
+    "porte": "Médio",
+    "n_equipamentos": 3,
+    "cen": "ricardo",
+    "ult_compra": "2024-10-19"
+  },
+  "84501": {
+    "cnpj": "21.336.774/0001-16",
+    "segmento": "Grãos",
+    "porte": "Médio",
+    "n_equipamentos": 4,
+    "cen": "rufino",
+    "ult_compra": "2025-01-08"
+  },
+  "84508": {
+    "cnpj": "32.114.855/0001-93",
+    "segmento": "Grãos",
+    "porte": "Pequeno",
+    "n_equipamentos": 2,
+    "cen": "fernanda",
+    "ult_compra": "2023-08-20"
+  },
+  "84512": {
+    "cnpj": "18.223.664/0001-15",
+    "segmento": "Pecuária",
+    "porte": "Pequeno",
+    "n_equipamentos": 1,
+    "cen": "ricardo",
+    "ult_compra": "2024-02-14"
+  },
+  "84518": {
+    "cnpj": "04.556.882/0001-49",
+    "segmento": "Grãos",
+    "porte": "Corporate",
+    "n_equipamentos": 0,
+    "cen": "fernanda",
+    "ult_compra": null
+  },
+  "84523": {
+    "cnpj": "28.771.033/0001-61",
+    "segmento": "Grãos",
+    "porte": "Médio",
+    "n_equipamentos": 0,
+    "cen": "rufino",
+    "ult_compra": null
+  },
+  "84528": {
+    "cnpj": "10.884.552/0001-77",
+    "segmento": "Cana",
+    "porte": "Grande",
+    "n_equipamentos": 5,
+    "cen": "joao",
+    "ult_compra": "2025-02-08"
+  },
+  "84532": {
+    "cnpj": "23.667.114/0001-08",
+    "segmento": "Cana",
+    "porte": "Corporate",
+    "n_equipamentos": 14,
+    "cen": "ana",
+    "ult_compra": "2024-12-03"
+  }
+}

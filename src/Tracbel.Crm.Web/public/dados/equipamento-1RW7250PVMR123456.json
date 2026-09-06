@@ -1,0 +1,226 @@
+{
+  "chassi": "1RW7250PVMR123456",
+  "numero_serie": "7250R-2023-BR-4487",
+  "modelo": "Trator 7250R",
+  "linha": "Tratores 7J · Alta potência",
+  "marca": "John Deere",
+  "potencia": "250 CV",
+  "potencia_faixa": "n) >= 250 CV",
+  "ano_modelo": 2023,
+  "ano_fabricacao": 2023,
+  "cor": "Verde/Amarelo padrão JD",
+  "transmissao": "e23 · 23 velocidades",
+  "cabine": "CommandView III · Ar condicionado",
+  "tracao": "4x4 MFWD",
+  "pneus_diant": "380/85R30",
+  "pneus_tras": "520/85R42",
+  "peso_operacional": "11.850 kg",
+  "tanque_diesel": "620 L",
+  "status": "Operacional",
+  "cliente": {
+    "id": 84391,
+    "razao": "Agroindustrial Salvador Arena Ltda",
+    "classe": "A"
+  },
+  "localizacao": "Fazenda Boa Vista · Sorriso/MT",
+  "fazenda_id": "fbv-01",
+  "operador_principal": "Jailson Ferreira",
+  "aquisicao": {
+    "tipo": "Venda direta · Financiamento BNDES",
+    "data_venda": "2023-05-10",
+    "data_entrega": "2023-05-24",
+    "vendedor": "José Rufino",
+    "valor_faturado": 780000,
+    "valor_lista": 895000,
+    "desconto": 115000,
+    "pedido_protheus": "PV-2023-04891",
+    "nota_fiscal": "NF-e 001.847.559",
+    "concessionaria": "Tracbel Lucas do Rio Verde"
+  },
+  "garantia": {
+    "tipo": "Fábrica + Estendida PowerGard",
+    "inicio": "2023-05-24",
+    "fim": "2028-05-24",
+    "horas_limite": 8000,
+    "horas_atual": 2840,
+    "percentual_uso": 35.5,
+    "cobertura": "Motor, transmissão, sistemas hidráulicos, elétricos e AutoTrac",
+    "exclusoes": "Pneus, filtros, óleos, itens de manutenção regular",
+    "contrato": "PGD-2023-4487"
+  },
+  "horas_operacao": {
+    "atual": 2840,
+    "media_diaria_30d": 8.2,
+    "media_diaria_90d": 6.7,
+    "ultima_leitura": "2026-08-24T18:30",
+    "fonte": "JD Operations Center · Sync 4x/dia",
+    "proxima_revisao_horas": 3000,
+    "horas_para_proxima_revisao": 160,
+    "proxima_revisao_previsao": "2026-09-14"
+  },
+  "historico_horas": [
+    {
+      "data": "2026-02",
+      "horas": 1980
+    },
+    {
+      "data": "2026-03",
+      "horas": 2120
+    },
+    {
+      "data": "2026-04",
+      "horas": 2280
+    },
+    {
+      "data": "2026-05",
+      "horas": 2410
+    },
+    {
+      "data": "2026-06",
+      "horas": 2550
+    },
+    {
+      "data": "2026-07",
+      "horas": 2700
+    },
+    {
+      "data": "2026-08",
+      "horas": 2840
+    }
+  ],
+  "revisoes": [
+    {
+      "id": 8,
+      "data": "2026-05-18",
+      "horas": 2450,
+      "tipo": "Preventiva 2500h",
+      "tecnico": "Ronaldo Pires",
+      "duracao_h": 6,
+      "custo": 4850,
+      "os": "OS-2026-01887",
+      "status": "Concluída",
+      "obs": "Troca de óleo hidráulico, filtros, verificação sistema AutoTrac. Sem anomalia."
+    },
+    {
+      "id": 7,
+      "data": "2025-11-12",
+      "horas": 1820,
+      "tipo": "Preventiva 1500h",
+      "tecnico": "Ronaldo Pires",
+      "duracao_h": 4,
+      "custo": 2340,
+      "os": "OS-2025-04521",
+      "status": "Concluída",
+      "obs": "Troca óleo motor + filtros. Cliente relatou pequena vibração no cardan — verificado, dentro do normal."
+    },
+    {
+      "id": 6,
+      "data": "2025-04-08",
+      "horas": 890,
+      "tipo": "Preventiva 750h",
+      "tecnico": "André Kobayashi",
+      "duracao_h": 3,
+      "custo": 1180,
+      "os": "OS-2025-01443",
+      "status": "Concluída",
+      "obs": "Primeira revisão pós-safra. Tudo dentro do padrão fábrica."
+    },
+    {
+      "id": 5,
+      "data": "2024-08-22",
+      "horas": 420,
+      "tipo": "Preventiva 250h",
+      "tecnico": "André Kobayashi",
+      "duracao_h": 2,
+      "custo": 890,
+      "os": "OS-2024-03102",
+      "status": "Concluída",
+      "obs": "Revisão obrigatória de garantia. Assinada por Salvador Jr."
+    },
+    {
+      "id": 4,
+      "data": "2024-03-15",
+      "horas": 180,
+      "tipo": "Preventiva 100h",
+      "tecnico": "André Kobayashi",
+      "duracao_h": 2,
+      "custo": 620,
+      "os": "OS-2024-00891",
+      "status": "Concluída",
+      "obs": "Ajuste inicial, obrigatória de garantia."
+    }
+  ],
+  "chamados_abertos": [
+    {
+      "id": 91245,
+      "tipo": "Preventiva 3000h",
+      "prioridade": "Média",
+      "abertura": "2026-08-15",
+      "previsao": "2026-09-14",
+      "tecnico_agendado": "Ronaldo Pires",
+      "descricao": "Revisão programada 3000h — próxima janela: 14/09/2026 (10 dias antes do plantio começar)."
+    }
+  ],
+  "pecas": [
+    {
+      "data": "2026-05-18",
+      "codigo": "RE504914",
+      "descricao": "Filtro de óleo motor",
+      "qtd": 1,
+      "valor": 187,
+      "os": "OS-2026-01887"
+    },
+    {
+      "data": "2026-05-18",
+      "codigo": "RE522688",
+      "descricao": "Filtro hidráulico",
+      "qtd": 2,
+      "valor": 445,
+      "os": "OS-2026-01887"
+    },
+    {
+      "data": "2026-05-18",
+      "codigo": "AT445962",
+      "descricao": "Óleo Torq-Gard 15W40 (balde 20L)",
+      "qtd": 1,
+      "valor": 890,
+      "os": "OS-2026-01887"
+    },
+    {
+      "data": "2025-11-12",
+      "codigo": "RE504914",
+      "descricao": "Filtro de óleo motor",
+      "qtd": 1,
+      "valor": 178,
+      "os": "OS-2025-04521"
+    },
+    {
+      "data": "2025-11-12",
+      "codigo": "AT445962",
+      "descricao": "Óleo Torq-Gard 15W40 (balde 20L)",
+      "qtd": 1,
+      "valor": 845,
+      "os": "OS-2025-04521"
+    },
+    {
+      "data": "2025-04-08",
+      "codigo": "RE504914",
+      "descricao": "Filtro de óleo motor",
+      "qtd": 1,
+      "valor": 172,
+      "os": "OS-2025-01443"
+    }
+  ],
+  "telemetria": {
+    "ultimo_sync": "2026-08-24T18:30",
+    "consumo_medio_lh": 21.4,
+    "consumo_ideal_lh": 19.8,
+    "eficiencia": 92.5,
+    "horas_ociosas_pct": 8.2,
+    "velocidade_media_trabalho": 8.4,
+    "autotrac_uso_pct": 87,
+    "alertas_ativos": 0,
+    "codigos_falha_30d": 2,
+    "codigos_falha_historico": 14
+  }
+}

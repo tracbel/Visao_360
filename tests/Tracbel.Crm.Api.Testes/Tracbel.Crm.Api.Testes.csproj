@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="FluentAssertions" Version="6.12.2" />
+    <!--
+      A ferramenta de teste de API prevista no documento 03, secao 8: sobe a aplicacao INTEIRA em
+      memoria — o mesmo Program.cs, o mesmo meio de campo, o mesmo registro de injecao — e fala
+      com ela por HTTP de verdade. E o unico jeito de provar contrato e codigo de status sem
+      subir processo, e foi so exercitando a API que o defeito do corpo em DELETE apareceu.
+    -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.10" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Tracbel.Crm.Api\Tracbel.Crm.Api.csproj" />
+  </ItemGroup>
+
+</Project>

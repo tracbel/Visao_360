@@ -1,0 +1,5 @@
+[ECS-ST-TSPLUS:TDev] varrendo \\10.150.5.172\c$\Vortice\TDev ...
+  ... 200 arquivos (11:58)
+  ... 400 arquivos (17:35)
+[ECS-ST-TSPLUS:TDev] 454 arquivos.
+OK -> c:\projetos\tracbel-crm\docs\extracao-vortice\binarios\inventario-ts172-TDev.csv (454 linhas, 18:31)

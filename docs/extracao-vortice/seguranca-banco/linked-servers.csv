@@ -1,0 +1,3 @@
+﻿"server_id","name","product","provider","data_source","catalog","provider_string","is_linked","is_remote_login_enabled","is_rpc_out_enabled","is_data_access_enabled","modify_date","connect_timeout","query_timeout"
+"0","COLWCRM","SQL Server","SQLNCLI","COLWCRM","","","False","True","True","False","21/02/2022 09:30:09","0","0"
+"1","TOTVS","totvs6","MSDASQL","totvs6","","","True","False","False","True","11/08/2022 10:13:50","0","0"

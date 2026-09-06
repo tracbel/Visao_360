@@ -1,0 +1,6 @@
+{
+  "catalogo": "condicao_de_pagamento",
+  "descricao": "Forma de pagamento/financiamento oferecida na proposta comercial",
+  "origem": "SEM FONTE. Doc 17 §6.1 cita EXT_CONDPAGTO (21 linhas), IMP_FORMAPGTO (0) e EXT_FormaPgto (0) no Vórtice; nenhuma das três está entre os 116 catálogos exportados em docs/extracao-vortice/catalogos-bpm/. O protótipo só menciona condição de pagamento como texto narrativo dentro de aprovações (oportunidade-1517613.json: \"Financiamento BNDES Finame 7 anos + entrada 20%\"), nunca como lista fechada. Ver PENDENTES.md.",
+  "itens": []
+}

@@ -1,0 +1,49 @@
+{
+  "catalogo": "categoria_de_interacao",
+  "descricao": "Como o contato com o cliente aconteceu (canal da interação)",
+  "origem": "prototipo/dados-seed/config-categorias-interacao-cfg.json (6 itens, tela Configurações › Taxonomias) + config-categorias-interacao.json (cor/ícone do drawer de Cobertura, 5 itens — não cobre \"Feira/Evento\"). No modelo unificado (doc 17 §8.4/§9.5), processo.TipoTarefa.Categoria absorve este domínio.",
+  "itens": [
+    {
+      "codigo": "VISITA",
+      "descricao": "Visita presencial",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Conta para o cálculo de cobertura de carteira. Cor #367C2B no drawer de registro de contato da Cobertura."
+    },
+    {
+      "codigo": "LIGACAO",
+      "descricao": "Ligação",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Conta para o cálculo de cobertura de carteira. Cor #2563EB no drawer de registro de contato da Cobertura."
+    },
+    {
+      "codigo": "WHATSAPP",
+      "descricao": "WhatsApp",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Conta para o cálculo de cobertura de carteira. Cor #25D366 no drawer de registro de contato da Cobertura."
+    },
+    {
+      "codigo": "EMAIL",
+      "descricao": "E-mail",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "NÃO conta para o cálculo de cobertura de carteira. Cor #7C3AED no drawer de registro de contato da Cobertura."
+    },
+    {
+      "codigo": "REMOTA",
+      "descricao": "Reunião remota",
+      "ordem": 5,
+      "ativo": true,
+      "observacao": "Conta para o cálculo de cobertura de carteira. Cor #0891B2 no drawer de registro de contato da Cobertura."
+    },
+    {
+      "codigo": "FEIRA_EVENTO",
+      "descricao": "Feira/Evento",
+      "ordem": 6,
+      "ativo": true,
+      "observacao": "NÃO conta para o cálculo de cobertura de carteira. Sem cor/ícone definido no protótipo (ausente de config-categorias-interacao.json — só existe na taxonomia administrativa)."
+    }
+  ]
+}

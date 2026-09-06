@@ -1,0 +1,306 @@
+{
+  "id": 84391,
+  "razao_social": "Agroindustrial Salvador Arena Ltda",
+  "nome_fantasia": "Fazenda Santa Fé",
+  "cnpj": "11.234.567/0001-89",
+  "ie": "13.456.789-0",
+  "ie_uf": "MT",
+  "data_fundacao": "2003-04-12",
+  "tipo_pessoa": "juridica",
+  "classe": "A",
+  "status": "Ativo",
+  "bloqueio": null,
+  "regional": "MT Norte",
+  "cen_dono": {
+    "user": "jose.rufino",
+    "nome": "José Rufino",
+    "avatar": "JR"
+  },
+  "cen_pos_venda": {
+    "user": "ricardo.moretti",
+    "nome": "Ricardo Moretti",
+    "avatar": "RM"
+  },
+  "origem_inclusao": "CRM-Manual · 15/03/2020",
+  "origem_alteracao": "Protheus-Sync · 22/08/2026 14:31",
+  "endereco_principal": {
+    "logradouro": "Rodovia MT-235, KM 87",
+    "numero": "S/N",
+    "complemento": "Zona Rural",
+    "bairro": "Gleba Santa Fé",
+    "cidade": "Lucas do Rio Verde",
+    "uf": "MT",
+    "cep": "78455-000",
+    "pais": "Brasil",
+    "latitude": -13.0489,
+    "longitude": -55.9142
+  },
+  "enderecos_adicionais": [
+    {
+      "tipo": "Fazenda Boa Vista",
+      "cidade": "Sorriso/MT",
+      "hectares": 2450,
+      "cultura": "Soja + Milho safrinha"
+    },
+    {
+      "tipo": "Fazenda São Luiz",
+      "cidade": "Nova Mutum/MT",
+      "hectares": 1820,
+      "cultura": "Soja + Algodão"
+    },
+    {
+      "tipo": "Escritório administrativo",
+      "cidade": "Lucas do Rio Verde/MT",
+      "hectares": 0,
+      "cultura": "—"
+    }
+  ],
+  "preferencias_contato": {
+    "telefonema": true,
+    "correspondencia": false,
+    "email": true,
+    "sms": false,
+    "whatsapp": true
+  },
+  "consentimento_lgpd": {
+    "ativo": true,
+    "data": "2024-01-15",
+    "versao": "v2.1"
+  },
+  "contatos": [
+    {
+      "nome": "Salvador Arena Jr.",
+      "cargo": "Proprietário / Diretor",
+      "celular": "(65) 99988-4455",
+      "email": "salvador@arena.agr.br",
+      "decisor": true,
+      "aniversario": "1975-08-14"
+    },
+    {
+      "nome": "Marina Arena Silva",
+      "cargo": "Gerente Administrativa",
+      "celular": "(65) 99987-1122",
+      "email": "marina@arena.agr.br",
+      "decisor": true,
+      "aniversario": "1982-03-22"
+    },
+    {
+      "nome": "Carlos Eduardo Ribeiro",
+      "cargo": "Gerente de Frota",
+      "celular": "(65) 99976-3344",
+      "email": "carlos.frota@arena.agr.br",
+      "decisor": false,
+      "aniversario": "1978-11-08"
+    },
+    {
+      "nome": "José Aparecido",
+      "cargo": "Comprador Técnico",
+      "celular": "(65) 99965-8877",
+      "email": "compras@arena.agr.br",
+      "decisor": false,
+      "aniversario": null
+    }
+  ],
+  "telefones": [
+    {
+      "tipo": "Fixo",
+      "numero": "(65) 3549-8800"
+    },
+    {
+      "tipo": "Comercial",
+      "numero": "(65) 3549-8801"
+    },
+    {
+      "tipo": "Fax",
+      "numero": "(65) 3549-8899"
+    }
+  ],
+  "emails": [
+    "salvador@arena.agr.br",
+    "financeiro@arena.agr.br",
+    "compras@arena.agr.br"
+  ],
+  "home_page": "www.agroarena.com.br",
+  "segmentacao": {
+    "grupo": "Grandes Produtores MT",
+    "atividade": "Agricultura extensiva · Soja/Milho/Algodão",
+    "rota": "Rota 12 · Lucas-Sorriso-Nova Mutum",
+    "faturamento_declarado": "R$ 80 a 120 milhões / ano",
+    "porte": "GRANDE",
+    "hectares_totais": 4270,
+    "culturas": [
+      "Soja",
+      "Milho safrinha",
+      "Algodão"
+    ]
+  },
+  "frota": [
+    {
+      "chassi": "1RW7250PVMR123456",
+      "modelo": "Trator 7250R",
+      "linha": "Tratores",
+      "ano": 2023,
+      "aquisicao": "2023-05-10",
+      "horas": 2840,
+      "garantia": "Ativa · até 05/2028",
+      "status": "Operacional"
+    },
+    {
+      "chassi": "1RW7250PVMR123457",
+      "modelo": "Trator 7250R",
+      "linha": "Tratores",
+      "ano": 2023,
+      "aquisicao": "2023-05-10",
+      "horas": 2650,
+      "garantia": "Ativa · até 05/2028",
+      "status": "Operacional"
+    },
+    {
+      "chassi": "1H0S780PXMR234567",
+      "modelo": "Colheitadeira S780",
+      "linha": "Colheitadeiras",
+      "ano": 2024,
+      "aquisicao": "2024-03-15",
+      "horas": 1240,
+      "garantia": "Ativa · até 03/2027",
+      "status": "Operacional"
+    },
+    {
+      "chassi": "1H0S780PXMR234568",
+      "modelo": "Colheitadeira S780",
+      "linha": "Colheitadeiras",
+      "ano": 2024,
+      "aquisicao": "2024-03-15",
+      "horas": 1180,
+      "garantia": "Ativa · até 03/2027",
+      "status": "Operacional"
+    },
+    {
+      "chassi": "1HDB44PXVMR345678",
+      "modelo": "Plantadeira DB44",
+      "linha": "Plantadeiras",
+      "ano": 2022,
+      "aquisicao": "2022-08-20",
+      "horas": 3520,
+      "garantia": "Expirada · 08/2024",
+      "status": "Manutenção agendada"
+    },
+    {
+      "chassi": "1H0S770PXMR456789",
+      "modelo": "Colheitadeira S770",
+      "linha": "Colheitadeiras",
+      "ano": 2020,
+      "aquisicao": "2020-04-05",
+      "horas": 5840,
+      "garantia": "Expirada · 04/2023",
+      "status": "Operacional"
+    },
+    {
+      "chassi": "1H4630PVXMR567890",
+      "modelo": "Pulverizador 4630",
+      "linha": "Pulverizadores",
+      "ano": 2021,
+      "aquisicao": "2021-06-18",
+      "horas": 4230,
+      "garantia": "Expirada · 06/2024",
+      "status": "Operacional"
+    }
+  ],
+  "oportunidades": [
+    {
+      "id": 1517613,
+      "titulo": "Renovação 2x Trator 7J → 8R",
+      "linha": "Tratores",
+      "valor": 3200000,
+      "fase": "Negociação",
+      "prob": 60,
+      "previsao": "2026-10-15",
+      "cen": "José Rufino"
+    },
+    {
+      "id": 1517614,
+      "titulo": "Kit plantio direto DB44 + acessórios",
+      "linha": "Plantadeiras",
+      "valor": 890000,
+      "fase": "Proposta",
+      "prob": 40,
+      "previsao": "2026-09-30",
+      "cen": "José Rufino"
+    },
+    {
+      "id": 1517615,
+      "titulo": "Pulverizador autopropelido 4730",
+      "linha": "Pulverizadores",
+      "valor": 1450000,
+      "fase": "Orçamento",
+      "prob": 20,
+      "previsao": "2026-11-20",
+      "cen": "José Rufino"
+    }
+  ],
+  "interacoes": [
+    {
+      "data": "2026-08-22T10:15",
+      "tipo": "ligacao",
+      "autor": "José Rufino",
+      "assunto": "Follow-up proposta 8R",
+      "resultado": "Cliente confirmou análise até 30/08",
+      "obs": "Marina pediu revisão do desconto financeiro. Passei para o gerente aprovar."
+    },
+    {
+      "data": "2026-08-15T14:00",
+      "tipo": "visita",
+      "autor": "José Rufino",
+      "assunto": "Apresentação linha 8R 250 e 8R 310",
+      "resultado": "Interesse confirmado",
+      "obs": "Salvador quer trocar 2x 7250R por 2x 8R 250. Frota mais nova reduz consumo diesel. Enviei catálogo técnico."
+    },
+    {
+      "data": "2026-08-01T09:30",
+      "tipo": "visita",
+      "autor": "Ricardo Moretti",
+      "assunto": "Manutenção preventiva DB44",
+      "resultado": "Peças pedidas",
+      "obs": "Cliente reclamou de barulho na transmissão. Técnico agendado 08/08. Peças no orçamento 1587091."
+    },
+    {
+      "data": "2026-07-20T16:45",
+      "tipo": "email",
+      "autor": "sistema",
+      "assunto": "Newsletter linha 6M",
+      "resultado": "Enviado",
+      "obs": "Aberto em 21/07 · Sem cliques"
+    },
+    {
+      "data": "2026-06-14T11:00",
+      "tipo": "visita",
+      "autor": "José Rufino",
+      "assunto": "Monitoramento Cliente FY25",
+      "resultado": "Cliente contactado",
+      "obs": "Colheita safra 2026 iniciando em setembro. Frota atual atendendo bem."
+    }
+  ],
+  "financeiro": {
+    "faturamento_ytd_2026": 4320000,
+    "faturamento_2025": 6180000,
+    "faturamento_2024": 8450000,
+    "limite_credito": 2500000,
+    "limite_usado": 890000,
+    "limite_disponivel": 1610000,
+    "inadimplencia": 0,
+    "dias_atraso_max": 0,
+    "ultima_fatura": "2026-08-05"
+  },
+  "alteracoes_pendentes": [
+    {
+      "id": 782,
+      "campo": "Limite de crédito",
+      "valor_atual": "R$ 2.500.000,00",
+      "valor_solicitado": "R$ 3.500.000,00",
+      "solicitante": "José Rufino",
+      "data": "2026-08-20",
+      "motivo": "Cliente pediu aumento para viabilizar 2x 8R 250. Faturamento 2024 e histórico zero atraso justificam.",
+      "status": "Aguardando aprovação · Diretor Comercial"
+    }
+  ]
+}

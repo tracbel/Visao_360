@@ -1,0 +1,55 @@
+/* ==============================================================
+   Objeto ..........: dbo.IV$S_AGENDA
+   Tipo ............: VIEW
+   Criado em .......: 2025-08-12 15:05:02
+   Modificado em ...: 2025-08-12 15:05:02
+   Linhas ..........: 45
+   Escreve em tabela: nao
+   Tabelas referidas: IV_ACAO, IV_AGENDA, IV_OPERADOR, IV_PROCDADO, IV_PROCESSO, IV_PROCPERSP
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+
+ CREATE VIEW [dbo].[IV$S_AGENDA] 
+(
+    NROEMPRESA,
+    ACAO,
+    ACAO_COD,
+    DATA_AGENDA,
+    DATA_AGENORIGINAL,
+    REALIZADA,
+    SEQPESSOA,
+    ATENDENTE,
+    CLASSE,
+    PRIORIDADE,
+    GERADA_POR,
+    TAREFA_COMPROMISSO,
+    PERSPECTIVA
+)
+AS
+SELECT
+    AG.NROEMPRESA,
+    AC.DESCRICAO,
+    AG.ACAO,
+    AG.DTAAGENDA,
+    AG.DTAAGENDAORIGINAL,
+    AG.REALIZADA,
+    AG.SEQPESSOA,
+    OP.CODUSUARIO,
+    AG.CLASSE,
+    AG.PRIORIDADE,
+    AG.USUGEROUACAO,
+    AG.TAREFACOMPROMISSO,
+    PER.PERSPECTIVA AS PERSPECTIVA
+FROM IV_AGENDA AG
+JOIN IV_ACAO AC 
+    ON AC.ACAO = AG.ACAO
+JOIN IV_OPERADOR OP 
+    ON OP.SEQUSUARIO = AG.SEQUSUARIO
+LEFT JOIN IV_PROCESSO PRO 
+    ON PRO.PROCESSO = AG.PROCESSO
+LEFT JOIN IV_PROCDADO PDD 
+    ON PDD.PROCESSO = AG.PROCESSO
+LEFT JOIN IV_PROCPERSP PER 
+    ON PER.CODPROCESSO = PDD.CODPROCESSO
+   AND PER.PERSPORDEM = PRO.PERSPECTIVA

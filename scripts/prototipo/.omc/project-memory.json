@@ -1,0 +1,52 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1788656447744,
+  "projectRoot": "C:\\projetos\\tracbel-crm\\scripts\\prototipo",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "playwright",
+        "version": "1.62.1",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {
+      "capturar": "node capturar-referencia.mjs",
+      "comparar": "node comparar-telas.mjs"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {},
+  "hotPaths": [],
+  "userDirectives": []
+}

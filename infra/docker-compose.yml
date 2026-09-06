@@ -1,0 +1,104 @@
+name: tracbel-crm
+
+# SQL Server 2022 de DESENVOLVIMENTO e CI — nunca de producao.
+#
+# A decisao de banco esta em docs/projeto/20-DECISAO-SQL-SERVER.md (que substitui a
+# 19-DECISAO-POSTGRESQL.md); a de manter o banco fora de container em producao esta em
+# docs/projeto/12-DECISAO-CONTAINERS.md, secao 5: "container para o que e descartavel; VM ou
+# servico gerenciado para o que guarda estado". Em dev e CI o raciocinio se inverte — aqui o
+# banco E descartavel, e e exatamente esse o caso de uso em que o container funciona bem.
+#
+# Em PRODUCAO nao ha container nenhum: o banco e criado como um banco NOVO dentro da instancia
+# SQL Server que ja hospeda o Vortice (10.150.14.65:1433), com as condicoes de convivencia
+# registradas no documento 20, secao 6.
+#
+# Padrao de banco (schema, nomenclatura, tipos, integridade): docs/projeto/14-PADRAO-DE-BANCO.md.
+#
+# PORTAS: 1433 para o banco e 8081 para a tela de administracao. As portas 5432 a 5440 e a 8080
+# ja estao ocupadas nesta maquina — por isso NAO sao usadas aqui. Ambas sao configuraveis em
+# infra/.env (DB_PORTA e ADMINER_PORTA).
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: tracbel-crm-db
+    # A imagem 2022 roda como o usuario 'mssql' (uid 10001) por padrao e, no Docker Desktop
+    # desta maquina, nao consegue criar o diretorio /.system na raiz do container:
+    #     "Error: The system directory [/.system] could not be created ... Permission denied"
+    # e o servidor nem chega a subir. Rodar como root resolve, e o custo e ZERO aqui: este
+    # container e de DESENVOLVIMENTO e CI, descartavel, e nao existe em producao — la o banco
+    # e um banco novo dentro da instancia que ja hospeda o Vortice (documento 20, secao 6).
+    user: "0:0"
+    environment:
+      # Aceite de licenca da imagem oficial. Developer Edition: gratuita para desenvolvimento,
+      # com o conjunto de recursos da Enterprise — o que permite exercitar em dev exatamente o
+      # que a Standard de producao suporta (particionamento inclusive, disponivel na Standard
+      # desde o SQL Server 2016 SP1).
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      # Nunca com valor padrao aqui: se DB_SENHA nao estiver definida em infra/.env, o
+      # `docker compose up` falha com uma mensagem clara em vez de subir com senha fraca.
+      # O SQL Server exige senha forte (8+ caracteres, com maiuscula, minuscula, digito e
+      # simbolo) — senha fraca faz o container morrer no boot, sem banco nenhum.
+      MSSQL_SA_PASSWORD: ${DB_SENHA:?defina DB_SENHA em infra/.env — copie infra/.env.exemplo}
+      # COLACAO DO SERVIDOR, fixada na criacao da instancia — documento 14, regra 9.5.
+      # CI = ignora caixa, AI = ignora acento: e o que faz "Jose" encontrar "Jose" com acento
+      # e o que impede FINALIZADO/FINALIZADA de conviverem num catalogo.
+      # [V] o Vortice usa SQL_Latin1_General_CP1_CI_AS — accent-SENSITIVE.
+      # A migration tambem declara a colacao do BANCO (ALTER DATABASE ... COLLATE), entao o
+      # esquema continua correto mesmo num servidor com outra colacao padrao.
+      MSSQL_COLLATION: ${DB_COLACAO:-Latin1_General_CI_AI}
+      # Fuso horario do container. O dado e gravado sempre em UTC (o tipo de valor DataHoraUtc
+      # garante isso); isto so muda como o log do servidor exibe a hora.
+      TZ: ${TZ:-America/Sao_Paulo}
+    ports:
+      # Porta configuravel. 1433 e a padrao do SQL Server e esta livre nesta maquina.
+      - "${DB_PORTA:-1433}:1433"
+    volumes:
+      # Volume nomeado: sobrevive a `docker compose down` (sem --volumes) e a rebuild de imagem.
+      # `resetar-banco.ps1` remove este volume de proposito quando o objetivo e recomecar do zero.
+      - tracbel_crm_dados:/var/opt/mssql
+    healthcheck:
+      # sqlcmd responde pelo SERVIDOR, nao so pelo processo: o container so fica saudavel
+      # quando o banco realmente aceita conexao e executa consulta.
+      # -C confia no certificado autoassinado da instancia (sem isso o sqlcmd 18 recusa).
+      # O caminho do sqlcmd mudou entre versoes da imagem — as duas tentativas cobrem ambas.
+      test:
+        - CMD-SHELL
+        - >-
+          /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -b -Q "SELECT 1"
+          || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -b -Q "SELECT 1"
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 40s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------------------
+  # Administracao pela tela — OPCIONAL, num profile proprio.
+  #
+  # NAO sobe com `docker compose up`. Para subir:
+  #     docker compose -f infra/docker-compose.yml --profile administracao up -d
+  #
+  # Fica de fora do padrao de proposito: o que o dia a dia precisa e o banco, e uma tela de
+  # administracao aberta na maquina de todo mundo e uma superficie a mais sem necessidade.
+  # ---------------------------------------------------------------------------------------
+  adminer:
+    image: adminer:5
+    container_name: tracbel-crm-adminer
+    profiles: ["administracao"]
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DEFAULT_DRIVER: mssql
+      ADMINER_DESIGN: dracula
+    ports:
+      # 8080 ja esta ocupada nesta maquina — por isso 8081.
+      - "${ADMINER_PORTA:-8081}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  tracbel_crm_dados:
+    name: tracbel_crm_dados

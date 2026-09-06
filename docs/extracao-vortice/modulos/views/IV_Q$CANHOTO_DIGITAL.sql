@@ -1,0 +1,12 @@
+/* ==============================================================
+   Objeto ..........: dbo.IV_Q$CANHOTO_DIGITAL
+   Tipo ............: VIEW
+   Criado em .......: 2025-06-13 08:39:13
+   Modificado em ...: 2025-06-13 08:39:13
+   Linhas ..........: 1
+   Escreve em tabela: nao
+   Tabelas referidas: GE_PESSOA, IV_FORMULARIO, IV_Q_CANHOTO_DIGITAL, IV_QUESTIONARIO
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+CREATE VIEW dbo.IV_Q$CANHOTO_DIGITAL ( SeqPessoa, Pessoa, SeqQuestionario, SeqFormulario, Formulario, DtaRealizacao, UsuInclusao, DtaAlteracao, UsuAlteracao,  Observacao, SeqHistorico, Resultado, Processo, Departamento, LinkDocto, LinkNro, LinkSerie , CANHOTO_NRO_NF, CANHOTO_RESP_RETIRAD, CANHOTO_DOC_RESP, CANHOTO_DATA_RETIRAD)    AS SELECT TBASE.SEQPESSOA, TBASE.NOMERAZAO, QST.SEQQUESTIONARIO, FRM.SEQFORMULARIO, FRM.DESCRICAO, QST.DTAREALIZACAO, QST.USUINCLUSAO, QST.DTAALTERACAO, QST.USUALTERACAO, QST.OBS, QST.SEQHISTORICO, QST.RESULTADO, QST.PROCESSO, QST.DEPARTAMENTO, QST.LINKDOCTO, QST.LINKNRO, QST.LINKSERIE , TABF.CANHOTO_NRO_NF, TABF.CANHOTO_RESP_RETIRAD, TABF.CANHOTO_DOC_RESP, TABF.CANHOTO_DATA_RETIRAD   FROM IV_Q_CANHOTO_DIGITAL TABF 	JOIN IV_QUESTIONARIO QST ON QST.SEQQUESTIONARIO =  TABF.SEQQUESTIONARIO 	JOIN IV_FORMULARIO FRM ON   FRM.SEQFORMULARIO = QST.SEQFORMULARIO 	JOIN GE_PESSOA TBASE ON TBASE.SEQPESSOA = QST.SEQPESSOA  

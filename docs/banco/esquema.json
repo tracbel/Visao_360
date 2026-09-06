@@ -1,0 +1,5658 @@
+﻿[
+  {
+    "schema": "auditoria",
+    "tabela": "AlteracaoDeCampo",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "Campo",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CorrelacaoId",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "Entidade",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RegistroId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ValorAnterior",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ValorNovo",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "auditoria",
+    "tabela": "CampoAuditado",
+    "colunas": [
+      {
+        "c": "Campo",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Entidade",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RetencaoMeses",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "auditoria",
+    "tabela": "EventoDeAcesso",
+    "colunas": [
+      {
+        "c": "AgenteUsuario",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Detalhe",
+        "t": "nvarchar(1000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EnderecoIp",
+        "t": "varchar(45)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Entidade",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "NomePrincipal",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "OcorreuEm",
+        "t": "datetime2(3)",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RegistroId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Tipo",
+        "t": "varchar(30)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "UsuarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "comercial",
+    "tabela": "Alerta",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Detalhe",
+        "t": "nvarchar(2000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Severidade",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Titulo",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "VigenteAte",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "VigenteDe",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "comercial",
+    "tabela": "CanalContato",
+    "colunas": [
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": false
+      },
+      {
+        "c": "ContatoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Contato",
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EhPrincipal",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EhValido",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Rotulo",
+        "t": "nvarchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Tipo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ValidadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Valor",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ValorNormalizado",
+        "t": "varchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "comercial",
+    "tabela": "Cliente",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AtividadeEconomica",
+        "t": "varchar(7)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "CatalogoDaOrigemId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "CatalogoDoMotivoInativacaoId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ClienteMatrizId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Documento",
+        "t": "varchar(14)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "InscricaoEstadual",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "MotivoInativacaoId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": false
+      },
+      {
+        "c": "NomeFantasia",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "NomeRazao",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "OrigemId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": false
+      },
+      {
+        "c": "ProprietarioEquipeId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Equipe",
+        "nn": false
+      },
+      {
+        "c": "ProprietarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "Situacao",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "SituacaoDesde",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoDePessoa",
+        "t": "varchar(10)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "comercial",
+    "tabela": "ClienteCarteira",
+    "colunas": [
+      {
+        "c": "CarteiraId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "organizacao.Carteira",
+        "nn": true
+      },
+      {
+        "c": "Classe",
+        "t": "char(1)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": true
+      },
+      {
+        "c": "DesvinculadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "DiasCicloContato",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PotencialAnual",
+        "t": "decimal(18,2)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "UltimaInteracaoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "VinculadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "VinculadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "comercial",
+    "tabela": "ClienteContato",
+    "colunas": [
+      {
+        "c": "CatalogoDoPapelId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": true
+      },
+      {
+        "c": "ContatoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Contato",
+        "nn": true
+      },
+      {
+        "c": "EhPrincipal",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EncerrouEm",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "IniciouEm",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "PapelId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "comercial",
+    "tabela": "ConsentimentoComunicacao",
+    "colunas": [
+      {
+        "c": "Canal",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": false
+      },
+      {
+        "c": "Concedido",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ContatoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Contato",
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "DecididaEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "EnderecoIp",
+        "t": "varchar(45)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Finalidade",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "OrigemEvidencia",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ReferenciaEvidencia",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "RegistradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "comercial",
+    "tabela": "Contato",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Cargo",
+        "t": "nvarchar(80)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "DataNascimento",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Documento",
+        "t": "varchar(14)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ProprietarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "Sobrenome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "comercial",
+    "tabela": "Endereco",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Bairro",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "CatalogoDaCulturaId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "Cep",
+        "t": "char(8)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": true
+      },
+      {
+        "c": "Complemento",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CulturaId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": false
+      },
+      {
+        "c": "EhPrincipal",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Hectares",
+        "t": "decimal(12,2)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Identificacao",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Latitude",
+        "t": "decimal(10,7)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Logradouro",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Longitude",
+        "t": "decimal(10,7)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Municipio",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Numero",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Tipo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Uf",
+        "t": "char(2)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "comercial",
+    "tabela": "Lead",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "CatalogoDaOrigemId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "CatalogoDoMotivoDescarteId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ClienteGeradoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": false
+      },
+      {
+        "c": "ContatoGeradoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Contato",
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Documento",
+        "t": "varchar(14)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Email",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Interesse",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "LinhaNegocioId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.LinhaDeNegocio",
+        "nn": false
+      },
+      {
+        "c": "MotivoDescarteId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": false
+      },
+      {
+        "c": "NomeContato",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "NomeEmpresa",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "OrigemId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "PayloadOriginal",
+        "t": "nvarchar(max)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ProcessoGeradoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Processo",
+        "nn": false
+      },
+      {
+        "c": "ProprietarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "QualificadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "QualificadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      },
+      {
+        "c": "Situacao",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Telefone",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "documento",
+    "tabela": "Documento",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "CaminhoArmazenamento",
+        "t": "nvarchar(600)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CatalogoDoTipoDocumentoId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(260)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "NumeroVersao",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ResumoConteudo",
+        "t": "char(64)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TamanhoBytes",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoConteudo",
+        "t": "varchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoDocumentoId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "ValidoAte",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "documento",
+    "tabela": "Vinculo",
+    "colunas": [
+      {
+        "c": "DocumentoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "documento.Documento",
+        "nn": true
+      },
+      {
+        "c": "Entidade",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RegistroId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "VinculadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "VinculadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "frota",
+    "tabela": "Equipamento",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AnoFabricacao",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AnoModelo",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Chassi",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "EnderecoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Endereco",
+        "nn": false
+      },
+      {
+        "c": "EquipamentoPaiId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "frota.Equipamento",
+        "nn": false
+      },
+      {
+        "c": "EquipamentoSubstitutoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "frota.Equipamento",
+        "nn": false
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "GarantiaAte",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "HorimetroAtual",
+        "t": "decimal(12,2)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "HorimetroAtualizadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "LocalizacaoDescrita",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ModeloId",
+        "t": "int",
+        "pk": false,
+        "fk": "frota.Modelo",
+        "nn": true
+      },
+      {
+        "c": "NumeroSerie",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Origem",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Placa",
+        "t": "varchar(10)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Situacao",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "VendidoEm",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "frota",
+    "tabela": "Familia",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "MarcaId",
+        "t": "int",
+        "pk": false,
+        "fk": "frota.Marca",
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(80)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "frota",
+    "tabela": "LeituraDeHorimetro",
+    "colunas": [
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EquipamentoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "frota.Equipamento",
+        "nn": true
+      },
+      {
+        "c": "Fonte",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Horas",
+        "t": "decimal(12,2)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "LidaEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RegistradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "frota",
+    "tabela": "Marca",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EhRepresentada",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(80)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "frota",
+    "tabela": "Modelo",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "FamiliaId",
+        "t": "int",
+        "pk": false,
+        "fk": "frota.Familia",
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "IntervaloManutencaoHoras",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PotenciaCv",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "integracao",
+    "tabela": "ChaveExterna",
+    "colunas": [
+      {
+        "c": "ChaveOrigem",
+        "t": "varchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Entidade",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RegistroId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "SincronizadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "SistemaId",
+        "t": "int",
+        "pk": false,
+        "fk": "integracao.Sistema",
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "integracao",
+    "tabela": "MensagemDeSaida",
+    "colunas": [
+      {
+        "c": "Conteudo",
+        "t": "nvarchar(max)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CorrelacaoId",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EntregueEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ProximaTentativaEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "SistemaId",
+        "t": "int",
+        "pk": false,
+        "fk": "integracao.Sistema",
+        "nn": true
+      },
+      {
+        "c": "Situacao",
+        "t": "varchar(30)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Tentativas",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Tipo",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "UltimoErro",
+        "t": "nvarchar(2000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "integracao",
+    "tabela": "MensagemDescartada",
+    "colunas": [
+      {
+        "c": "Conteudo",
+        "t": "nvarchar(max)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "DescartadaEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Erro",
+        "t": "nvarchar(4000)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Fluxo",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "MensagemDeSaidaId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "integracao.MensagemDeSaida",
+        "nn": false
+      },
+      {
+        "c": "Tentativas",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TratadaEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "TratadaPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      },
+      {
+        "c": "Tratativa",
+        "t": "nvarchar(1000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "integracao",
+    "tabela": "PontoDeSincronismo",
+    "colunas": [
+      {
+        "c": "Fluxo",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "MinutosParaAlarme",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ProcessadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RegistrosErro",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RegistrosGravados",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RegistrosLidos",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "SistemaId",
+        "t": "int",
+        "pk": false,
+        "fk": "integracao.Sistema",
+        "nn": true
+      },
+      {
+        "c": "UltimoValor",
+        "t": "varchar(100)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "integracao",
+    "tabela": "Recepcao",
+    "colunas": [
+      {
+        "c": "ChaveOrigem",
+        "t": "varchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Conteudo",
+        "t": "nvarchar(max)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Entidade",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Erro",
+        "t": "nvarchar(4000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ExpurgarApos",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ProcessadaEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "RecebidaEm",
+        "t": "datetime2(3)",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "SistemaId",
+        "t": "int",
+        "pk": false,
+        "fk": "integracao.Sistema",
+        "nn": true
+      },
+      {
+        "c": "Situacao",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "integracao",
+    "tabela": "Sistema",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "MeioDeAcesso",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ResponsavelTecnico",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "metadado",
+    "tabela": "CampoPersonalizado",
+    "colunas": [
+      {
+        "c": "Campo",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CatalogoId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.Catalogo",
+        "nn": false
+      },
+      {
+        "c": "CondicaoVisibilidade",
+        "t": "nvarchar(1000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EhObrigatorio",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EhPersonalizado",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Entidade",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Grupo",
+        "t": "nvarchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "NoResumo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Ordem",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Rotulo",
+        "t": "nvarchar(80)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TamanhoMaximo",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "TipoDeCampo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Validacao",
+        "t": "nvarchar(max)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "metadado",
+    "tabela": "Catalogo",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Descricao",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PermiteItemNovo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "metadado",
+    "tabela": "CatalogoItem",
+    "colunas": [
+      {
+        "c": "CatalogoId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.Catalogo",
+        "nn": true
+      },
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Descricao",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExigeObservacao",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ItemPaiId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": false
+      },
+      {
+        "c": "Ordem",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "UltimoUsoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "metadado",
+    "tabela": "Formulario",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Descricao",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoProcessoId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.TipoProcesso",
+        "nn": false
+      },
+      {
+        "c": "VersaoPublicada",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "metadado",
+    "tabela": "Pergunta",
+    "colunas": [
+      {
+        "c": "CatalogoId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.Catalogo",
+        "nn": false
+      },
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EhObrigatoria",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "FormularioId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.Formulario",
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Ordem",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PerguntaCondicaoId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.Pergunta",
+        "nn": false
+      },
+      {
+        "c": "Texto",
+        "t": "nvarchar(1000)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoDeResposta",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ValorCondicao",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "metadado",
+    "tabela": "Preenchimento",
+    "colunas": [
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": false
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "FormularioId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.Formulario",
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "InteracaoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Interacao",
+        "nn": false
+      },
+      {
+        "c": "PreenchidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PreenchidoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "ProcessoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Processo",
+        "nn": false
+      },
+      {
+        "c": "Situacao",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TarefaId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Tarefa",
+        "nn": false
+      },
+      {
+        "c": "VersaoFormulario",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "metadado",
+    "tabela": "Resposta",
+    "colunas": [
+      {
+        "c": "CatalogoItemId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": false
+      },
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EquipamentoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "frota.Equipamento",
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PerguntaId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.Pergunta",
+        "nn": true
+      },
+      {
+        "c": "PreenchimentoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "metadado.Preenchimento",
+        "nn": true
+      },
+      {
+        "c": "ValorBooleano",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ValorData",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ValorEstruturado",
+        "t": "nvarchar(max)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ValorNumero",
+        "t": "decimal(18,6)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ValorTexto",
+        "t": "nvarchar(4000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "metadado",
+    "tabela": "TratadorDeEvento",
+    "colunas": [
+      {
+        "c": "CamposFiltro",
+        "t": "varchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EhAssincrono",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Evento",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Momento",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Ordem",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoImplementacao",
+        "t": "varchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "organizacao",
+    "tabela": "Carteira",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "EquipeId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Equipe",
+        "nn": false
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "LinhaDeNegocioId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.LinhaDeNegocio",
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PracaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Praca",
+        "nn": false
+      },
+      {
+        "c": "ResponsavelId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "SupervisorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "organizacao",
+    "tabela": "Empresa",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Caminho",
+        "t": "varchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Cnpj",
+        "t": "varchar(14)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Codigo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaPaiId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": false
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nivel",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "organizacao",
+    "tabela": "HierarquiaComercial",
+    "colunas": [
+      {
+        "c": "AncestralId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "DescendenteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Profundidade",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "organizacao",
+    "tabela": "LinhaDeNegocio",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "DiasCicloClasseA",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "DiasCicloClasseB",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "DiasCicloClasseC",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "DiasCicloClasseD",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(80)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Ordem",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "organizacao",
+    "tabela": "Meta",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Alvo",
+        "t": "decimal(18,2)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CarteiraId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "organizacao.Carteira",
+        "nn": false
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "LinhaDeNegocioId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.LinhaDeNegocio",
+        "nn": false
+      },
+      {
+        "c": "Observacao",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "PeriodoFim",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PeriodoInicio",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Tipo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "UsuarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "organizacao",
+    "tabela": "Praca",
+    "colunas": [
+      {
+        "c": "AnoReferencia",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Codigo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "LinhaDeNegocioId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.LinhaDeNegocio",
+        "nn": true
+      },
+      {
+        "c": "MaquinasEstimadas",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PotencialEstimado",
+        "t": "decimal(18,2)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Uf",
+        "t": "char(2)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "Fase",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EhFinal",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExigeCamposObrigatorios",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Marco",
+        "t": "nvarchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(80)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Ordem",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ProbabilidadePercentual",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "TipoProcessoId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.TipoProcesso",
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "Interacao",
+    "colunas": [
+      {
+        "c": "Assunto",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": false
+      },
+      {
+        "c": "ContatoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Contato",
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Detalhe",
+        "t": "nvarchar(4000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "DuracaoMinutos",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Latitude",
+        "t": "decimal(10,7)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "LeadId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Lead",
+        "nn": false
+      },
+      {
+        "c": "Longitude",
+        "t": "decimal(10,7)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Natureza",
+        "t": "varchar(12)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "OcorridaEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ProcessoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Processo",
+        "nn": false
+      },
+      {
+        "c": "RegistradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "ResultadoComplemento",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ResultadoId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.Resultado",
+        "nn": false
+      },
+      {
+        "c": "TarefaId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Tarefa",
+        "nn": false
+      },
+      {
+        "c": "TipoTarefaId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.TipoTarefa",
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "InteracaoParticipante",
+    "colunas": [
+      {
+        "c": "ContatoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Contato",
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "InteracaoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Interacao",
+        "nn": true
+      },
+      {
+        "c": "NomeExterno",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Papel",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "UsuarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "ItemDeProposta",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "CatalogoDaCondicaoPagamentoId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CondicaoPagamentoId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "DescontoPercentual",
+        "t": "decimal(5,2)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Descricao",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "EquipamentoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "frota.Equipamento",
+        "nn": false
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ModeloId",
+        "t": "int",
+        "pk": false,
+        "fk": "frota.Modelo",
+        "nn": false
+      },
+      {
+        "c": "Ordem",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PrecoUnitario",
+        "t": "decimal(18,2)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ProcessoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Processo",
+        "nn": true
+      },
+      {
+        "c": "Quantidade",
+        "t": "decimal(12,3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ValorTotal",
+        "t": "decimal(18,2)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "MotivoDePerda",
+    "colunas": [
+      {
+        "c": "Categoria",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExigeConcorrente",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExigeObservacao",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Ordem",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "PassagemDeFase",
+    "colunas": [
+      {
+        "c": "EntrouEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EntrouPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "FaseId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.Fase",
+        "nn": true
+      },
+      {
+        "c": "HorasUteis",
+        "t": "decimal(10,2)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "InteracaoOrigemId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Interacao",
+        "nn": false
+      },
+      {
+        "c": "Ordem",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ProcessoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Processo",
+        "nn": true
+      },
+      {
+        "c": "RegraOrigemId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.Regra",
+        "nn": false
+      },
+      {
+        "c": "SaiuEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "Processo",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "CarteiraId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "organizacao.Carteira",
+        "nn": false
+      },
+      {
+        "c": "CatalogoDoConcorrenteId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": true
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": true
+      },
+      {
+        "c": "ConcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ConcorrenteId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.CatalogoItem",
+        "nn": false
+      },
+      {
+        "c": "ContatoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Contato",
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Descricao",
+        "t": "nvarchar(4000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "FaseDesde",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "FaseId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.Fase",
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "MotivoDePerdaId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.MotivoDePerda",
+        "nn": false
+      },
+      {
+        "c": "Numero",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ObservacaoDaPerda",
+        "t": "nvarchar(1000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "PrevisaoConclusao",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "PrevisaoConclusaoOriginal",
+        "t": "date",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ProprietarioEquipeId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Equipe",
+        "nn": false
+      },
+      {
+        "c": "ProprietarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "Quantidade",
+        "t": "decimal(12,3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Situacao",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "SituacaoDesde",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoProcessoId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.TipoProcesso",
+        "nn": true
+      },
+      {
+        "c": "Titulo",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ValorEstimado",
+        "t": "decimal(18,2)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ValorFinal",
+        "t": "decimal(18,2)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "Regra",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Codigo",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Condicao",
+        "t": "nvarchar(2000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Descricao",
+        "t": "nvarchar(1000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Efeito",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EfeitoFaseId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.Fase",
+        "nn": false
+      },
+      {
+        "c": "EfeitoParametros",
+        "t": "nvarchar(max)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EfeitoTipoTarefaId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.TipoTarefa",
+        "nn": false
+      },
+      {
+        "c": "EhCritica",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Evento",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExpressaoDestinatario",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Ordem",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PrazoDiasUteis",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ResultadoId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.Resultado",
+        "nn": false
+      },
+      {
+        "c": "TipoProcessoId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.TipoProcesso",
+        "nn": false
+      },
+      {
+        "c": "TipoTarefaId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.TipoTarefa",
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "RegraExecucao",
+    "colunas": [
+      {
+        "c": "CorrelacaoId",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "DestinatarioResolvidoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      },
+      {
+        "c": "DuracaoMs",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Evento",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExecutadoEm",
+        "t": "datetime2(3)",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "InteracaoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Interacao",
+        "nn": false
+      },
+      {
+        "c": "Motivo",
+        "t": "nvarchar(1000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ProcessoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Processo",
+        "nn": false
+      },
+      {
+        "c": "RegraId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.Regra",
+        "nn": true
+      },
+      {
+        "c": "Resultado",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TarefaCriadaId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Tarefa",
+        "nn": false
+      },
+      {
+        "c": "TarefaId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Tarefa",
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "Resultado",
+    "colunas": [
+      {
+        "c": "Classe",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExigeJustificativa",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "FaseDestinoId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.Fase",
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoTarefaId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.TipoTarefa",
+        "nn": true
+      },
+      {
+        "c": "UltimoUsoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "Tarefa",
+    "colunas": [
+      {
+        "c": "AgendadaPara",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Assunto",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ClienteId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Cliente",
+        "nn": false
+      },
+      {
+        "c": "ConcluidaEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ConcluidaPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      },
+      {
+        "c": "ContatoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "comercial.Contato",
+        "nn": false
+      },
+      {
+        "c": "CriadaPorRegraId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.Regra",
+        "nn": false
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Detalhe",
+        "t": "nvarchar(4000)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "InteracaoConclusaoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Interacao",
+        "nn": false
+      },
+      {
+        "c": "InteracaoOrigemId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Interacao",
+        "nn": false
+      },
+      {
+        "c": "OrigemAtribuicao",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PrazoLimite",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Prioridade",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ProcessoId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "processo.Processo",
+        "nn": false
+      },
+      {
+        "c": "ResponsavelEquipeId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Equipe",
+        "nn": false
+      },
+      {
+        "c": "ResponsavelId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "ResultadoId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.Resultado",
+        "nn": false
+      },
+      {
+        "c": "Situacao",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoTarefaId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.TipoTarefa",
+        "nn": true
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "TipoProcesso",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "LinhaDeNegocioId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.LinhaDeNegocio",
+        "nn": false
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Versao",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "processo",
+    "tabela": "TipoTarefa",
+    "colunas": [
+      {
+        "c": "Categoria",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Codigo",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ContaParaCobertura",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Cor",
+        "t": "varchar(7)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EhAprovacao",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExigeGeorreferencia",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "FormularioId",
+        "t": "int",
+        "pk": false,
+        "fk": "metadado.Formulario",
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PrazoDiasUteis",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoProcessoId",
+        "t": "int",
+        "pk": false,
+        "fk": "processo.TipoProcesso",
+        "nn": false
+      },
+      {
+        "c": "UltimoUsoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "relatorio",
+    "tabela": "Fonte",
+    "colunas": [
+      {
+        "c": "AtualizadaEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Codigo",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Descricao",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EhMaterializada",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EntidadeRaiz",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "NomeDaVisao",
+        "t": "varchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "SistemaId",
+        "t": "int",
+        "pk": false,
+        "fk": "integracao.Sistema",
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "relatorio",
+    "tabela": "FonteCampo",
+    "colunas": [
+      {
+        "c": "Campo",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "FonteId",
+        "t": "int",
+        "pk": false,
+        "fk": "relatorio.Fonte",
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Ordem",
+        "t": "smallint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PermiteAgrupar",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PermiteFiltrar",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "PermiteSomar",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Rotulo",
+        "t": "nvarchar(80)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "TipoDeDado",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "relatorio",
+    "tabela": "Relatorio",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Definicao",
+        "t": "nvarchar(max)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "FonteId",
+        "t": "int",
+        "pk": false,
+        "fk": "relatorio.Fonte",
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ProprietarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Visibilidade",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "seguranca",
+    "tabela": "CompartilhamentoDeRegistro",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "Entidade",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EquipeId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Equipe",
+        "nn": false
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ExpiraEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Motivo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nivel",
+        "t": "varchar(10)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RegistroId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "RegraOrigemId",
+        "t": "int",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "UsuarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "seguranca",
+    "tabela": "ConjuntoDePermissao",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(60)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Descricao",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "seguranca",
+    "tabela": "ConjuntoDePermissaoItem",
+    "colunas": [
+      {
+        "c": "CodigoPermissao",
+        "t": "varchar(80)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ConjuntoPermissaoId",
+        "t": "int",
+        "pk": false,
+        "fk": "seguranca.ConjuntoDePermissao",
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Profundidade",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "seguranca",
+    "tabela": "Equipe",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Descricao",
+        "t": "nvarchar(400)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "EstaAtiva",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Nome",
+        "t": "nvarchar(120)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Tipo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "seguranca",
+    "tabela": "EquipeMembro",
+    "colunas": [
+      {
+        "c": "EhLider",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EntrouEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EquipeId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Equipe",
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "SaiuEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "UsuarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "seguranca",
+    "tabela": "Permissao",
+    "colunas": [
+      {
+        "c": "Codigo",
+        "t": "varchar(80)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Descricao",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Entidade",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Id",
+        "t": "int",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Verbo",
+        "t": "varchar(20)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      }
+    ]
+  },
+  {
+    "schema": "seguranca",
+    "tabela": "Usuario",
+    "colunas": [
+      {
+        "c": "AlteradoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "AlteradoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "ChavePublica",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "CriadoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "DesativadoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Email",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "EmpresaId",
+        "t": "int",
+        "pk": false,
+        "fk": "organizacao.Empresa",
+        "nn": true
+      },
+      {
+        "c": "EstaAtivo",
+        "t": "bit",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ExcluidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "GestorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "IdentidadeExterna",
+        "t": "uniqueidentifier",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "NomeCompleto",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "NomeExibicao",
+        "t": "nvarchar(80)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "NomePrincipal",
+        "t": "nvarchar(200)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "Papel",
+        "t": "varchar(40)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "UltimoLoginEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Versao",
+        "t": "rowversion",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      }
+    ]
+  },
+  {
+    "schema": "seguranca",
+    "tabela": "UsuarioConjuntoDePermissao",
+    "colunas": [
+      {
+        "c": "ConcedidoEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ConcedidoPorId",
+        "t": "bigint",
+        "pk": false,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "ConjuntoPermissaoId",
+        "t": "int",
+        "pk": false,
+        "fk": "seguranca.ConjuntoDePermissao",
+        "nn": true
+      },
+      {
+        "c": "ExpiraEm",
+        "t": "datetime2(3)",
+        "pk": false,
+        "fk": null,
+        "nn": false
+      },
+      {
+        "c": "Id",
+        "t": "bigint",
+        "pk": true,
+        "fk": null,
+        "nn": true
+      },
+      {
+        "c": "UsuarioId",
+        "t": "bigint",
+        "pk": false,
+        "fk": "seguranca.Usuario",
+        "nn": true
+      }
+    ]
+  }
+]

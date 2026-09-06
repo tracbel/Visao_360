@@ -1,0 +1,2714 @@
+﻿"SeqTxtPadrao","Aplicacao","Descricao","AssPadrao","Texto","DtaInclusao","UsuInclusao","DtaAlteracao","UsuAlteracao","HoraAGUARDARET","IDEXTERNO"
+"1","MsCtr_Andamento_EML","Compra Finalizada","Processo de venda Colorado - Cliente [AndNomePessoa].","Prezados, analisar com a área comercial sobre o andamento da venda para o cliente [AndNomePessoa]. Sua compra já passou pela etapa de faturamento e financeiro de acordo com o processo [AndNroProcesso] no CRM.
+
+","13/01/2012 15:23:00","VTCCONS","27/09/2013 16:20:00","VTCCONS","",""
+"2","MsCtr_Andamento_EML","Controle Nova Venda","COMUNICADO CRM - Controle Nova Venda","Para conhecimento da área de peças e atualização do parque de máquinas, a Colorado fechou a venda de máquina agrícola para o cliente [AndNomePessoa] - processo [AndNroProcesso]. Verifique com os departamentos Comercial e Serviços sobre a data de entrega e modelo do equipamento.","24/02/2012 10:11:00","VTCCONS","24/02/2012 11:07:00","VTCCONS","",""
+"3","MsCtr_Andamento_EML","ATENDIMENTO RECLAMAÇÃO","[AndDescResultado] - Cliente [AndNomePessoa]","Cliente [AndNomePessoa] registrou reclamação.
+
+Seguem informações sobre a insatisfação do cliente referente ao processo n° [AndNroProcesso]:
+
+[AndDetalhe]
+[AndDetalheAdicional]
+
+Unidade envolvida na reclamação: [AndNroEmpresa]
+
+Atendimento Reclamação processo [AndNroProcesso] 
+
+
+Importante salientar que o contato com o cliente deve ser realizado no máximo em 24 horas, se possível imediatamente. 
+Este contato deve ser registrado no processo do CRM, bem como a tratativa mais adequada para o caso.
+O prazo para solução da insatisfação é 5 dias úteis e todo e qualquer andamento no processo deve ser registrado para que todos os envolvidos tenham acesso as informações.
+
+
+""Agradeça quando um cliente insatisfeito chega para reclamar. Se ele fez isso é porque acredita na empresa e sabe que você pode fazer melhor!""","23/04/2012 10:18:00","MARCELO.EDER","26/10/2020 16:30:00","MARCELO.EDER","0,0",""
+"4","MsCtr_Andamento_EML","Cliente Insatisf Máquina","CLIENTE INSATISFEITO PESQUISA - [AndNomePessoa] - Depreciador Máquinas","Cliente [AndNomePessoa], sinalizou em Pesquisa Vendas de Máquinas insatisfação.
+
+Número do processo: [AndNroProcesso]
+
+Seguem informações sobre a insatisfação do cliente:
+[AndDetalhe]
+
+
+Importante salientar que o contato com o cliente deve ser realizado no máximo em 24 horas, se possível imediatamente. 
+Este contato deve ser registrado no processo do CRM, bem como a tratativa mais adequada para o caso.
+O prazo para solução da insatisfação é 5 dias úteis e todo e qualquer andamento no processo deve ser registrado para que todos os envolvidos tenham acesso as informações.
+
+
+""Experiência do Cliente Satisfatória não é uma técnica a ser implantada, mas uma postura a ser cultivada!""","23/04/2012 10:48:00","MARCELO.EDER","26/10/2020 16:39:00","MARCELO.EDER","0,0",""
+"5","MsCtr_Andamento_EML","Cliente Insatisf Peças","CLIENTE INSATISFEITO PESQUISA - [AndNomePessoa] - Depreciador Peças","Cliente [AndNomePessoa], sinalizou em Pesquisa de Peças insatisfação.
+
+Número do processo: [AndNroProcesso]
+
+Seguem informações sobre a insatisfação do cliente:
+[AndDetalhe]
+
+
+Importante salientar que o contato com o cliente deve ser realizado no máximo em 24 horas, se possível imediatamente. 
+Este contato deve ser registrado no processo do CRM, bem como a tratativa mais adequada para o caso.
+O prazo para solução da insatisfação é 5 dias úteis e todo e qualquer andamento no processo deve ser registrado para que todos os envolvidos tenham acesso as informações.
+
+
+""Experiência do Cliente Satisfatória não é uma técnica a ser implantada, mas uma postura a ser cultivada!""","23/04/2012 15:00:00","VTCCONS","26/10/2020 16:48:00","VTCCONS","0,0",""
+"6","MsCtr_Andamento_EML","Cliente Insatisf Serviços","CLIENTE INSATISFEITO PESQUISA - [AndNomePessoa] - Depreciador Serviços","Cliente [AndNomePessoa], sinalizou em Pesquisa de Serviços insatisfação.
+
+Número do processo: [AndNroProcesso]
+
+Seguem informações sobre a insatisfação do cliente:
+[AndDetalhe]
+
+
+Importante salientar que o contato com o cliente deve ser realizado no máximo em 24 horas, se possível imediatamente. 
+Este contato deve ser registrado no processo do CRM, bem como a tratativa mais adequada para o caso.
+O prazo para solução da insatisfação é 5 dias úteis e todo e qualquer andamento no processo deve ser registrado para que todos os envolvidos tenham acesso as informações
+
+
+
+","23/04/2012 15:02:00","VTCCONS","17/04/2023 09:56:00","VANESSA.ALVES","0,0",""
+"7","eMail Mkt","E-MAIL MKT - DIA DO AGRICULTOR","28 DE JULHO - DIA DO AGRICULTOR","<html>
+<head>
+<title>Colorado</title>
+<meta http-equiv=""Content-Type"" content=""text/html; charset=iso-8859-1"">
+</head>
+<body bgcolor=""#FFFFFF"" leftmargin=""0"" topmargin=""0"" marginwidth=""0"" marginheight=""0"">
+<!-- Save for Web Slices (colorado.psd) -->
+<table width=""800"" height=""1087"" border=""0"" align=""center"" cellpadding=""0"" cellspacing=""0"" id=""Table_01"">
+ <tr>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/colorado_mkt_01.png"" width=""100"" height=""1087"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/colorado_mkt_02.png"" width=""100"" height=""1087"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/colorado_mkt_03.png"" width=""100"" height=""1087"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/colorado_mkt_04.png"" width=""100"" height=""1087"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/colorado_mkt_05.png"" width=""100"" height=""1087"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/colorado_mkt_06.png"" width=""100"" height=""1087"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/colorado_mkt_07.png"" width=""100"" height=""1087"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/colorado_mkt_08.png"" width=""100"" height=""1087"" alt=""""></td>
+ </tr>
+</table>
+<!-- End Save for Web Slices -->
+</body>
+</html>","26/07/2012 10:13:00","MARCELO.EDER","07/05/2018 10:27:00","MARCELO.EDER","",""
+"8","RESULTADOS","Valor Parcial Recebido","","Valor Parcial Recebido:","31/08/2012 13:53:00","VTCCONS","31/08/2012 13:58:00","VTCCONS","",""
+"9","RESULTADOS","Valor","","Valor:","31/08/2012 14:37:00","VTCCONS","31/08/2012 14:37:00","VTCCONS","",""
+"11","MsCtr_Andamento_EML","Tratamento Insatisfação","TRATAMENTO INSATISFAÇÃO - CLIENTE [AndNomePessoa]","Processo: [AndNroProcesso] - Data: [AndDataRealizacao] - [AndNroEmpresa] 
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Insatisfação: [AndDescricaoProcesso]
+
+Registro CRM: [AndDescResultado], [AndComplementoResultado]
+
+Tratativa: [AndDetalheAdicional][AndDetalhe]
+
+[AndAssinaturaAtendente]
+","31/08/2012 15:43:00","VTCCONS","17/04/2023 10:17:00","VANESSA.ALVES","0,0",""
+"12","eMail Mkt","E-MAIL MKT - COLORADO SHOW","VENHA PARTICIPAR DA COLORADO SHOW - FEIRA DE PEÇAS E SERVIÇOS JOHN DEERE","<html>
+<head>
+<title>3º Colorado Show</title>
+<meta http-equiv=""Content-Type"" content=""text/html; charset=iso-8859-1"">
+</head>
+<body bgcolor=""#FFFFFF"" leftmargin=""0"" topmargin=""0"" marginwidth=""0"" marginheight=""0"">
+<!-- Save for Web Slices (ColoradoShow.jpg) -->
+<table width=""700"" height=""907"" border=""0"" align=""center"" cellpadding=""0"" cellspacing=""0"" id=""Table_01"">
+ <tr>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/coloradoshow_01.jpg"" width=""100"" height=""907"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/coloradoshow_02.jpg"" width=""100"" height=""907"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/coloradoshow_03.jpg"" width=""100"" height=""907"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/coloradoshow_04.jpg"" width=""100"" height=""907"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/coloradoshow_05.jpg"" width=""100"" height=""907"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/coloradoshow_06.jpg"" width=""100"" height=""907"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/coloradoshow_07.jpg"" width=""100"" height=""907"" alt=""""></td>
+ </tr>
+</table>
+<!-- End Save for Web Slices -->
+</body>
+</html>","14/09/2012 14:46:00","MARCELO.EDER","14/09/2012 14:46:00","MARCELO.EDER","",""
+"13","eMail Mkt","E-MAIL MKT - DIA DO CLIENTE","DIA DO CLIENTE - COLORADO JOHN DEERE","<html>
+<head>
+<title>comunicacao</title>
+<meta http-equiv=""Content-Type"" content=""text/html; charset=iso-8859-1"">
+</head>
+<body bgcolor=""#FFFFFF"" leftmargin=""0"" topmargin=""0"" marginwidth=""0"" marginheight=""0"">
+<!-- Save for Web Slices (comunicacao.psd) -->
+<table width=""700"" height=""700"" border=""0"" align=""center"" cellpadding=""0"" cellspacing=""0"" id=""Table_01"">
+ <tr>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/comunicacao_01.jpg"" width=""100"" height=""700"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/comunicacao_02.jpg"" width=""100"" height=""700"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/comunicacao_03.jpg"" width=""100"" height=""700"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/comunicacao_04.jpg"" width=""100"" height=""700"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/comunicacao_05.jpg"" width=""100"" height=""700"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/comunicacao_06.jpg"" width=""100"" height=""700"" alt=""""></td>
+ <td>
+ <img src=""http://www.almapropaganda.com.br/colorado-mkt/images/comunicacao_07.jpg"" width=""100"" height=""700"" alt=""""></td>
+ </tr>
+</table>
+<!-- End Save for Web Slices -->
+</body>
+</html>","14/09/2012 15:49:00","MARCELO.EDER","14/09/2012 16:06:00","MARCELO.EDER","",""
+"14","MsCtr_Andamento_EML","AVISO NOVA RECLAMAÇÃO","AVISO - INSATISFAÇÃO CLIENTE [AndNomePessoa] NO CRM","Gestores 
+
+Consta uma insatisfação via pesquisa ou registro interno, referente ao cliente [AndNomePessoa] no CRM. Esta atividade está relacionada a uma das áreas: Peças, Serviços ou Vendas de Máquinas. 
+Favor consultar se está em sua agenda, caso positivo, entrar em contato com o cliente e buscar uma solução. Lembre-se de registrar no CRM todo o andamento do caso.
+
+Número do processo: [AndNroProcessoDNA]
+
+Vide resumo da insatisfação do cliente:
+[AndDetalhe]
+[AndDetalheAdicional]
+
+","08/02/2013 13:53:00","MARCELO.EDER","27/09/2013 16:30:00","MARCELO.EDER","",""
+"15","MsCtr_Andamento_EML","Cliente Insat. Trein/Clínica","Cliente Insatisfeito Treinamento/Clínica","Você possui um tratamento de insatisfação referente a Treinamento e/ou Clínica pendente em seu CRM. 
+Por favor acesse o sistema para dar andamento.","27/06/2014 14:18:00","JULIANA.PLACIDI","27/06/2014 14:18:00","JULIANA.PLACIDI","",""
+"16","MsCtr_Andamento_EML","Equipamento Faturado","Equipamento Faturado - Cliente [AndNomePessoa] [AndNroProcesso]","Prezados, o equipamento do cliente [AndNomePessoa] já passou pela etapa de faturamento de acordo com o processo [AndNroProcesso] do vendedor [AndVendedor]. A NF está anexada ao processo dentro do CRM.
+
+Veja o histórico do processo:
+[AndDetalhe]","21/07/2014 17:23:00","JULIANA.PLACIDI","23/05/2016 09:25:00","JULIANA.PLACIDI","",""
+"17","MsCtr_Andamento_EML","Preparar Doctcao-Credit Negado","Preparar Documentação Máquina de [AndNomePessoa]","<!DOCTYPE html PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"">
+<html>
+<head>
+ <meta
+ content=""text/html; charset=ISO-8859-1""
+ http-equiv=""content-type"">
+ <title></title>
+</head>
+<body>
+<p class=""MsoNormal"" style=""""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Prezado,
+[DestNomeCurto] <o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">O&nbsp;equipamento
+do Sr(a)&nbsp;[AndNomePessoa], referente ao
+processo n&uacute;mero [AndNroProcesso] teve seu cr&eacute;dito
+negado junto ao banco. <o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">A
+a&ccedil;&atilde;o foi devolvida ao CEN
+[andNomeVendedor]&nbsp;na fase
+Vender para negocia&ccedil;&atilde;o. <o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">&nbsp;<br>
+Atenciosamente,<span style=""""></span><o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">[AndNomeReduzidoAtendente]
+<br>
+[AndEmailAtendente]<br>
+Visite nosso site: </span><a
+ href=""http://www.coloradomaquinas.com.br/""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">www.coloradomaquinas.com.br</span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+</body>
+</html>
+","12/01/2015 10:53:00","VTCCONS","13/01/2015 17:31:00","VTCCONS","0,0",""
+"18","MsCtr_Andamento_EML","Prep Doc Equip-Doc Pendente","Documento Pendente de [AndNomePessoa]","<!DOCTYPE html PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"">
+<html>
+<head>
+ <meta
+ content=""text/html; charset=ISO-8859-1""
+ http-equiv=""content-type"">
+ <title></title>
+</head>
+<body>
+<br>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Prezado,
+[DestNomeCurto] <o:p></o:p></span></p>
+<p class=""MsoNormal"" style=""""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Favor
+entrar em contato com o&nbsp;cliente [AndNomePessoa], referente ao
+processo
+n&uacute;mero [AndNroProcesso] para verificar
+documenta&ccedil;&atilde;o que encontra-se pendente no
+Banco. <o:p></o:p></span></p>
+<p class=""MsoNormal"" style=""""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Atenciosamente,<o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">[AndNomeReduzidoAtendente]
+<br>
+[AndEmailAtendente]<br>
+Visite nosso site: </span><a
+ href=""http://www.coloradomaquinas.com.br/""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">www.coloradomaquinas.com.br</span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">
+<o:p></o:p></span></p>
+<br>
+</body>
+</html>
+","12/01/2015 10:58:00","VTCCONS","12/01/2015 15:37:00","VTCCONS","0,0",""
+"19","MsCtr_Andamento_EML","Prepar Doct Eq-Autor Banco PAC","Autorização para Faturamento de [AndNomePessoa]","Prezado, [DestNomeCurto]
+
+
+O equipamento do(a) [AndNomePessoa], referente ao processo número [AndNroProcesso] já está com autorização do banco (PAC). 
+
+[AndDetalhe]
+ 
+Atenciosamente, 
+
+[AndNomeReduzidoAtendente] 
+
+","12/01/2015 14:10:00","VTCCONS","11/08/2020 08:04:00","VTCCONS","0,0",""
+"20","MsCtr_Andamento_EML","Receber Pedidos e Doc-Pendente","Verificar Documentons Pendentes de [AndNomePessoa]","<!DOCTYPE html PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"">
+<html>
+<head>
+ <meta
+ content=""text/html; charset=ISO-8859-1""
+ http-equiv=""content-type"">
+ <title></title>
+</head>
+<body>
+<span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Prezad[DestGenero],
+[DestNomeCurto]<o:p></o:p></span>
+<p class=""MsoNormal"" style=""""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Favor
+enviar com URG&Ecirc;NCIA&nbsp;documentos e/ou pedido
+f&iacute;sico para os devidos
+andamentos internos. O&nbsp;&nbsp;processo n&uacute;mero
+[AndNroProcesso] do(a)
+cliente [AndNomePessoa]&nbsp; encontra-se parado.&nbsp; <o:p></o:p></span></p>
+<p class=""MsoNormal"" style=""""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Atenciosamente,<o:p></o:p></span></p>
+<p class=""MsoNormal""><strong><u><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">[AndNomeReduzidoAtendente]
+</span></u></strong><b><u><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><br>
+<strong><span
+ style=""font-family: &quot;Arial&quot;,&quot;sans-serif&quot;;"">[AndEmailAtendente]</span></strong><br>
+<strong><span
+ style=""font-family: &quot;Arial&quot;,&quot;sans-serif&quot;;"">Visite
+nosso site: </span></strong></span></u></b><a
+ href=""http://www.coloradomaquinas.com.br/""><strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">www.coloradomaquinas.com.br</span></strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">
+</span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+<br>
+</body>
+</html>
+","12/01/2015 17:13:00","VTCCONS","13/01/2015 09:11:00","VTCCONS","0,0",""
+"21","MsCtr_Andamento_EML","Realiz Chec Inter-Paralisada","Documentação Pendente na Checagem Interna de [AndNomePessoa]","<!DOCTYPE html PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"">
+<html>
+<head>
+ <meta
+ content=""text/html; charset=ISO-8859-1""
+ http-equiv=""content-type"">
+ <title></title>
+</head>
+<body>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Prezado,
+[DestNomeCurto]<o:p></o:p></span></p>
+<p class=""MsoNormal"" style=""""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Favor
+enviar com URG&Ecirc;NCIA&nbsp;documentos para os devidos
+andamentos internos.
+O&nbsp;&nbsp;processo n&uacute;mero [AndNroProcesso] do(a)
+cliente
+[AndNomePessoa]&nbsp; encontra-se parado na fase de Realizar Chegam
+Interna
+(Alessandra).&nbsp; <o:p></o:p></span></p>
+<p class=""MsoNormal"" style=""""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Atenciosamente,<o:p></o:p></span></p>
+<p class=""MsoNormal""><strong><u><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">[AndNomeReduzidoAtendente]
+</span></u></strong><b><u><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><br>
+<strong><span
+ style=""font-family: &quot;Arial&quot;,&quot;sans-serif&quot;;"">[AndEmailAtendente]</span></strong><br>
+<strong><span
+ style=""font-family: &quot;Arial&quot;,&quot;sans-serif&quot;;"">Visite
+nosso site: </span></strong></span></u></b><a
+ href=""http://www.coloradomaquinas.com.br/""><strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">www.coloradomaquinas.com.br</span></strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">
+</span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+
+</body>
+</html>
+","13/01/2015 09:16:00","VTCCONS","13/01/2015 17:51:00","VTCCONS","0,0",""
+"22","MsCtr_Andamento_EML","Realiz Chec Intern-Cred Ñ Apro","Checagem Interna de [AndNomePessoa]","<!DOCTYPE html PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"">
+<html>
+<head>
+ <meta
+ content=""text/html; charset=ISO-8859-1""
+ http-equiv=""content-type"">
+ <title></title>
+</head>
+<body>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Prezado,
+[DestNomeCurto]&nbsp;<br>
+<br>
+O&nbsp;equipamento do Sr(a)&nbsp;[AndNomePessoa], referente ao
+processo n&uacute;mero [AndNroProcesso] teve seu cr&eacute;dito
+negado pelo financeiro da
+Colorado M&aacute;quinas. <o:p></o:p><br>
+A a&ccedil;&atilde;o foi devolvida ao CEN [andNomeVendedor] na
+fase Vender
+para negocia&ccedil;&atilde;o.&nbsp;<o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Atenciosamente,
+<o:p></o:p></span></p>
+<p class=""MsoNormal"" style=""""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+<p class=""MsoNormal""><strong><u><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">[AndNomeReduzidoAtendente]
+</span></u></strong><b><u><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><br>
+<strong><span
+ style=""font-family: &quot;Arial&quot;,&quot;sans-serif&quot;;"">[AndEmailAtendente]</span></strong><br>
+<strong><span
+ style=""font-family: &quot;Arial&quot;,&quot;sans-serif&quot;;"">Visite
+nosso site: </span></strong></span></u></b><a
+ href=""http://www.coloradomaquinas.com.br/""><strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">www.coloradomaquinas.com.br</span></strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">
+</span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+</body>
+</html>
+","13/01/2015 10:07:00","VTCCONS","13/01/2015 10:07:00","VTCCONS","0,0",""
+"23","MsCtr_Andamento_EML","Vender Equipa-Pedido Realizado","Verificar aprovação de pedido de [AndNomePessoa]","Prezado, 
+
+O pedido de venda do Sr(a) [AndNomePessoa] foi lançado no CRM pelo CEN [AndVendedor] com o nº do processo [AndNroProcesso]. A ação APROVAR PEDIDO consta pendente em sua agenda e o prazo para andamento é de 4 horas. 
+ 
+Atenciosamente, 
+
+
+
+Inteligência de Mercado
+","13/01/2015 10:43:00","VTCCONS","09/05/2017 11:08:00","VTCCONS","0,0",""
+"24","MsCtr_Andamento_EML","Realiz Chec Inte-Fatur Autoriz","Faturamento Autorizado do cliente [AndNomePessoa]","<!DOCTYPE html PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"">
+<html>
+<head>
+ <meta
+ content=""text/html; charset=ISO-8859-1""
+ http-equiv=""content-type"">
+ <title></title>
+</head>
+<body>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Prezado,
+[DestNomeCurto]<o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">O&nbsp;equipamento
+do(a) [AndNomePessoa], referente ao processo
+n&uacute;mero [AndNroProcesso] j&aacute; est&aacute; com
+autoriza&ccedil;&atilde;o do banco para faturamento. A
+pr&oacute;xima etapa encontra-se com a Analista de
+Cr&eacute;dito&nbsp;para realiza&ccedil;&atilde;o de
+checagem interna. <o:p></o:p></span>&nbsp;<o:p></o:p></p>
+<span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""></span>
+<p class=""MsoNormal"" style=""""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+<p class=""MsoNormal""><strong><u><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">[AndNomeReduzidoAtendente]
+</span></u></strong><b><u><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><br>
+<strong><span
+ style=""font-family: &quot;Arial&quot;,&quot;sans-serif&quot;;"">[AndEmailAtendente]</span></strong><br>
+<strong><span
+ style=""font-family: &quot;Arial&quot;,&quot;sans-serif&quot;;"">Visite
+nosso site: </span></strong></span></u></b><a
+ href=""http://www.coloradomaquinas.com.br/""><strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">www.coloradomaquinas.com.br</span></strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">
+</span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+</body>
+</html>
+","13/01/2015 17:48:00","VTCCONS","13/01/2015 17:48:00","VTCCONS","0,0",""
+"25","MsCtr_Andamento_EML","Equi Receb-Com Ressalva","Equipamento de [AndNomePessoa], recebido com ressalva.","<!DOCTYPE html PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"">
+<html>
+<head>
+ <meta
+ content=""text/html; charset=ISO-8859-1""
+ http-equiv=""content-type"">
+ <title></title>
+</head>
+<body>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Prezado
+ANTONIO ZUFELLATO, <o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">&nbsp;<o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">O&nbsp;equipamento
+do Sr(a)&nbsp;[AndNomePessoa]&nbsp;que
+possui&nbsp;o n&ordm;&nbsp;do processo&nbsp;
+[AndNroProcesso] foi&nbsp;recebido
+pela&nbsp;oficina de (cidade) com o resultado:&nbsp;RECEBIDO
+COM
+RESSALVA.&nbsp;&nbsp; <o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">&nbsp;<o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Atenciosamente,
+<o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">[AndNomeReduzidoAtendente]
+<br>
+[AndEmailAtendente]<br>
+Visite nosso site: </span><a
+ href=""http://www.coloradomaquinas.com.br/"" target=""_blank""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">www.coloradomaquinas.com.br</span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+<p class=""MsoNormal""><a
+ href=""http://www.coloradomaquinas.com.br/""><strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""></span></strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""></span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+</body>
+</html>
+","13/01/2015 17:58:00","VTCCONS","13/01/2015 17:58:00","VTCCONS","0,0",""
+"26","MsCtr_Andamento_EML","Equip Receb-Equip Estoque","Em Estoque o Equipamento de [AndNomePessoa]","<!DOCTYPE html PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"">
+<html>
+<head>
+ <meta
+ content=""text/html; charset=ISO-8859-1""
+ http-equiv=""content-type"">
+ <title></title>
+</head>
+<body>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Prezado
+ANTONIO ZUFELLATO,<o:p></o:p><br>
+<br>
+O&nbsp;equipamento do Sr(a)&nbsp;[AndNomePessoa]&nbsp;que
+possui&nbsp;o n&ordm;&nbsp;do processo&nbsp;
+[AndNroProcesso] foi&nbsp;recebido
+pela&nbsp;oficina da [CnxNomeRedEmpresa] com o resultado:&nbsp;EQUIPAMENTO EM
+ESTOQUE.&nbsp;</span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Atenciosamente,
+<o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">[AndNomeReduzidoAtendente]
+<br>
+[AndEmailAtendente]<br>
+Visite nosso site: </span><a
+ href=""http://www.coloradomaquinas.com.br/"" target=""_blank""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">www.coloradomaquinas.com.br</span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+<p class=""MsoNormal""><a
+ href=""http://www.coloradomaquinas.com.br/"" target=""_blank""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""></span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+<p class=""MsoNormal""><a
+ href=""http://www.coloradomaquinas.com.br/""><strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""></span></strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""></span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+</body>
+</html>
+","13/01/2015 18:11:00","VTCCONS","13/01/2015 18:11:00","VTCCONS","0,0",""
+"27","MsCtr_Andamento_EML","Realiz Pre Entr-Reli com Agreg","Maquina liberada Com Agrega de [AndNomePessoa]","Prezado (a),
+
+Maquina liberada com Agrega no equipamento do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] pela oficina. 
+[AndDetalhe]
+
+
+Atenciosamente, 
+
+","13/01/2015 18:17:00","VTCCONS","14/12/2022 10:18:00","DIEGO.MARQUES","0,0",""
+"28","MsCtr_Andamento_EML","Realiz Pre Entr-Com Desagrega","Pré Entrega de [AndNomePessoa], realizada com Desagrega.","Prezado (a),
+
+ Foi realizada a Pré-Entrega com Desagrega no equipamento do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] pela oficina. 
+
+ Atenciosamente, 
+
+Inteligência de Mercado","13/01/2015 18:19:00","VTCCONS","18/02/2015 08:21:00","VTCCONS","0,0",""
+"29","MsCtr_Andamento_EML","Realiz Pre Entre-Com Desagreg2","Pré Entrega de [AndNomePessoa], realizada com Desagrega","Prezado (a),
+
+Foi realizada a Pré-Entrega com Desagrega no equipamento do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] pela oficina. Por favor proceder com os devidos cadastros (se necessário) e recebimento da peça em estoque. 
+
+ Atenciosamente, 
+
+[AndNomeReduzidoAtendente] 
+ [AndEmailAtendente]
+
+","13/01/2015 18:24:00","VTCCONS","16/02/2015 15:39:00","VTCCONS","0,0",""
+"30","MsCtr_Andamento_EML","Realiz Chec Inte-Demon Autoriz","Demonstração Autorizada de [AndNomePessoa]","<!DOCTYPE html PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"">
+<html>
+<head>
+ <meta
+ content=""text/html; charset=ISO-8859-1""
+ http-equiv=""content-type"">
+ <title></title>
+</head>
+<body>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Prezado(a) [DestNomeCurto]&nbsp;,<o:p></o:p><br>
+<br>
+O&nbsp;equipamento&nbsp;do&nbsp;Sr(a)&nbsp;[AndNomePessoa]&nbsp;que
+possui&nbsp;o n&ordm;&nbsp;do processo&nbsp;
+[AndNroProcesso]&nbsp;teve seu
+faturamento autorizada em demonstra&ccedil;&atilde;o. Por
+favor, proceder no CRM com o
+faturamento.&nbsp;&nbsp;<o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Atenciosamente,
+<o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">[AndNomeReduzidoAtendente]
+<br>
+[AndEmailAtendente]<br>
+Visite nosso site: </span><a
+ href=""http://www.coloradomaquinas.com.br"" target=""_blank""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">www.coloradomaquinas.com.br</span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+</body>
+</html>
+","13/01/2015 18:28:00","VTCCONS","13/01/2015 18:28:00","VTCCONS","0,0",""
+"31","MsCtr_Andamento_EML","Progr Entreg Fisic-Sem Entrega","Sem entrega físca do Equipamento do cliente [AndNomePessoa]","A entrega física do Equipamento do Sr(a) [AndNomePessoa] não será feita pela Colorado Máquinas. Conforme processo número [AndNroProcesso] a venda foi feita com o equipamento posto nas instalações da Colorado, para retirada por parte do cliente. 
+
+Caso, algum fato diferente do relato acima ocorra, favor informar a equipe de Logística. 
+
+Atenciosamente,
+ANTONIO.ZUFELLATO 
+antonio.zufellato@colorado.com.br
+Visite nosso site: www.coloradomaquinas.com.br","14/01/2015 11:36:00","VTCCONS","30/09/2015 13:49:00","VTCCONS","0,0",""
+"32","MsCtr_Andamento_EML","Equip Receb-Implement Estoque","Em Estoque o Implemento de [AndNomePessoa]","<!DOCTYPE html PUBLIC ""-//W3C//DTD HTML 4.01 Transitional//EN"">
+<html>
+<head>
+ <meta
+ content=""text/html; charset=ISO-8859-1""
+ http-equiv=""content-type"">
+ <title></title>
+</head>
+<body>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Prezado
+JOSÉ APARECIDO,<o:p></o:p><br>
+<br>
+O&nbsp;equipamento do Sr(a)&nbsp;[AndNomePessoa]&nbsp;que
+possui&nbsp;o n&ordm;&nbsp;do processo&nbsp;
+[AndNroProcesso] foi&nbsp;recebido
+pela&nbsp;oficina da [CnxNomeRedEmpresa] com o resultado:&nbsp;EQUIPAMENTO EM
+ESTOQUE.&nbsp;</span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">Atenciosamente,
+<o:p></o:p></span></p>
+<p class=""MsoNormal""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">[AndNomeReduzidoAtendente]
+<br>
+[AndEmailAtendente]<br>
+Visite nosso site: </span><a
+ href=""http://www.coloradomaquinas.com.br/"" target=""_blank""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);"">www.coloradomaquinas.com.br</span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+<p class=""MsoNormal""><a
+ href=""http://www.coloradomaquinas.com.br/"" target=""_blank""><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""></span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+<p class=""MsoNormal""><a
+ href=""http://www.coloradomaquinas.com.br/""><strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""></span></strong><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""></span></a><span
+ style=""font-size: 11pt; font-family: &quot;Arial&quot;,&quot;sans-serif&quot;; color: rgb(0, 51, 0);""><o:p></o:p></span></p>
+</body>
+</html>
+","23/01/2015 09:05:00","VTCCONS","23/01/2015 09:05:00","VTCCONS","0,0",""
+"33","MsCtr_Andamento_EML","Recebimento Total Implemento","Entrega de Implemento autorizada","Prezado(a) [DestNomeCurto] ,
+
+O implemento do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] teve sua entrega autorizada via Recebimento Total. Por favor, providenciar a entrega do implemento.
+
+Atenciosamente, 
+
+[AndNomeReduzidoAtendente] 
+[AndEmailAtendente]
+
+","06/02/2015 08:39:00","JULIANA.PLACIDI","06/02/2015 08:47:00","JULIANA.PLACIDI","0,0",""
+"34","MsCtr_Andamento_EML","Entrega Física Adiada","Verificar Entrega Física Adiada [AndNomePessoa]","A entrega física do equipamento ao cliente [AndNomePessoa] processo [AndNroProcesso] foi adiada pelo atendente [AndNomeReduzidoAtendente], segue abaixo o histórico:
+[AndDetalhe]
+
+Atenciosamente,
+Inteligência de Mercado","16/02/2015 07:20:00","JACQUELINE.DUARTE","16/02/2015 07:22:00","JACQUELINE.DUARTE","0,0",""
+"35","MsCtr_Andamento_EML","Faturamento Autorizado","Faturamento Autorizado [AndNomePessoa] [AndNroProcesso]","Prezados, 
+
+O equipamento do(a) [AndNomePessoa], referente ao processo número [AndNroProcesso] já está com autorização para faturamento. A próxima etapa encontra-se com a contabilidade para faturamento.
+","16/02/2015 08:36:00","JACQUELINE.DUARTE","12/08/2020 11:33:00","JACQUELINE.DUARTE","0,0",""
+"36","MsCtr_Andamento_EML","Confirmado Agrega Custo","Confirmado Agrega Custo [AndNomePessoa] [AndNroProcesso]","Prezado, 
+ 
+Foi confirmado agrega do equipamento do Sr(a) [AndNomePessoa], referente ao processo número [AndNroProcesso]. 
+ 
+ 
+Atenciosamente, 
+ 
+[AndNomeReduzidoAtendente] 
+[AndEmailAtendente] 
+","16/02/2015 15:23:00","JACQUELINE.DUARTE","18/04/2021 21:19:00","DIEGO.MARQUES","0,0",""
+"37","MsCtr_Andamento_EML","Entrega Física Programada","Entrega Física Programada do cliente [AndNomePessoa]","Prezado (a),
+
+Foi programado a entrega física do maquinário do cliente [AndNomePessoa] referente ao processo [AndNroProcesso], conforme o histórico abaixo:
+[AndDetalhe] 
+Por favor providenciar chaves e manuais correspondentes a máquina que será entregue.","18/02/2015 08:01:00","JACQUELINE.DUARTE","18/02/2015 08:05:00","JACQUELINE.DUARTE","0,0",""
+"38","MsCtr_Andamento_EML","Reliz Pré entrega agrega/desag","Pré entrega realizada com agrega/desagrega de [AndNomePessoa] [AndNroProcesso]","Prezado (a),
+
+Foi realizada a Pré-Entrega com Agrega/Desagrega no equipamento do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] pela oficina. 
+
+Atenciosamente, 
+
+","18/02/2015 08:14:00","JACQUELINE.DUARTE","28/04/2022 07:57:00","DIEGO.MARQUES","0,0",""
+"39","MsCtr_Andamento_EML","Realiz Pré entrega desagrega","Pré entrega realizada com desagrega","Prezado (a),
+
+Foi realizada a Pré-Entrega com desagrega no equipamento do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] pela oficina. 
+
+Atenciosamente, 
+
+Inteligência de Mercado","18/02/2015 08:14:00","JACQUELINE.DUARTE","18/02/2015 08:14:00","JACQUELINE.DUARTE","0,0",""
+"40","MsCtr_Andamento_EML","Real Pré Entrega s/ alterações","Realizado pré entrega sem alterações","Prezado (a),
+
+ Foi realizada a Pré-Entrega sem alterações no equipamento do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] pela oficina. 
+
+ Atenciosamente, 
+
+Inteligência de Mercado","18/02/2015 08:26:00","JACQUELINE.DUARTE","18/02/2015 08:26:00","JACQUELINE.DUARTE","0,0",""
+"41","MsCtr_Andamento_EML","Autorizado entrega Implemento","Autorizado entrega de implemento com Recebimento Parcial","Prezado(a) 
+
+O implemento do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] teve sua entrega autorizada via Recebimento Parcial. Por favor, providenciar a entrega do implemento.
+
+Atenciosamente, 
+
+Inteligência de Mercado","19/02/2015 17:35:00","JACQUELINE.DUARTE","19/04/2021 13:19:00","DIEGO.MARQUES","0,0",""
+"42","MsCtr_Andamento_EML","AVISO RECLAMAÇÃO EXP. CLIENTE","AVISO DE INSATISFAÇÃO - PESQUISA EXPERIÊNCIA DO CLIENTE JD","Gestores,
+Foi identificada uma Insatisfação na pesquisa Experiência do Cliente realizada pela John Deere, referente ao cliente [AndNomePessoa]. 
+Favor verificar a Ação que consta em sua agenda do CRM e entrar em contato com o cliente buscando uma solução para a resolução do caso. Lembre-se de registrar no sistema todo o andamento com as tratativas e concluir a Ação após sua finalização.
+Obrigado!
+
+""Nossos clientes insatisfeitos são nossa maior fonte de aprendizado!"" 
+
+
+Número do processo: [AndNroProcesso]
+
+Seguem informações sobre a insatisfação do cliente:
+[AndDetalhe]
+[AndDetalheAdicional]
+
+
+
+Importante salientar que o contato com o cliente deve ser realizado no máximo em 24 horas, se possível imediatamente. 
+Este contato deve ser registrado no processo do CRM, bem como a tratativa mais adequada para o caso.
+O prazo para solução da insatisfação é 5 dias úteis e todo e qualquer andamento no processo deve ser registrado para que todos os envolvidos tenham acesso as informações.
+
+","19/02/2015 17:52:00","JACQUELINE.DUARTE","26/10/2020 16:33:00","JACQUELINE.DUARTE","0,0",""
+"43","MsCtr_Andamento_EML","AVISO RECLAMAÇÃO -ENTREGA SHOW","AVISO DE RECLAMAÇÃO REGISTRADA DURANTE ENTREGA SHOW","Gestores,
+
+Na Entrega Show realizada ao cliente [AndNomePessoa], foi identificado reclamação que consta no CRM no processo N° [AndNroProcesso]. Esta reclamação esta relacionada a uma das áreas: Peças, Serviços ou Vendas de Máquinas. 
+Favor consultar se está em sua agenda, caso positivo, entrar em contato com o cliente e buscar uma solução. 
+
+Lembre-se de registrar no CRM todo o andamento do caso.
+
+Veja abaixo a ""Não-conformidade"" registrada pelo Carlos Cola:
+
+[AndDetalhe]
+","25/02/2015 14:46:00","JACQUELINE.DUARTE","10/12/2015 11:37:00","JACQUELINE.DUARTE","0,0",""
+"44","RESULTADOS","ENTREGA SHOW","","As configurações da máquina estão conforme o pedido do CRM?
+
+O Cen participou da Entrega?
+
+
+As etapas do processo de pré-entrega (lavagem, adesivagem, combustivel e etc) foram realizados?
+
+
+Qual a probabilidade do cliente recomendar a Colorado como concessionário JD? (menor que 9 tem que abrir caso)
+
+
+O cliente está satisfeito com o processo de vendas? (desde a prospecção do CEN até a entrega da máquina)
+
+","23/03/2015 12:14:00","JULIANA.PLACIDI","23/03/2015 12:14:00","JULIANA.PLACIDI","0,0",""
+"45","RESULTADOS","Analisar Insatisfação","","Feito contato pessoal ou telefônico com o cliente?
+
+
+Solução informada ao cliente:
+
+
+O cliente está satisfeito com a solução aplicada?
+
+","31/03/2015 11:21:00","JACQUELINE.DUARTE","31/03/2015 14:34:00","JACQUELINE.DUARTE","0,0",""
+"46","MsCtr_Andamento_EML","Verificar AMS","Pedido aprovado, verificar AMS","Prezado, [DestNomeCurto] 
+
+O pedido de venda do Sr(a) [AndNomePessoa] foi lançado no CRM pelo CEN [AndNomeReduzidoAtendente] com o nº do processo [AndNroProcesso]. A ação VERIFICAR AMS consta pendente em sua agenda e o prazo para andamento é de 24 horas. 
+ 
+Atenciosamente, 
+
+
+
+Inteligência de Mercado","20/05/2015 12:42:00","JULIANA.PLACIDI","20/05/2015 13:13:00","JULIANA.PLACIDI","0,0",""
+"47","MsCtr_Andamento_EML","Contato com o Banco","[AndDescResultado] - Cliente [AndNomePessoa]","Prezado [DestNomeCurto],
+
+Foi realizado contato com o Banco do processo [AndNroProcesso] referente ao cliente [AndNomePessoa]
+
+Vide abaixo o resumo do contato:
+[AndDetalhe]
+[AndDetalheAdicional]","25/06/2015 10:47:00","JULIANA.PLACIDI","25/06/2015 10:53:00","JULIANA.PLACIDI","0,0",""
+"48","MsCtr_Andamento_EML","Call Center: Cliente c/ Intere","Clientes contatados pelo Call Center que demonstraram interesse em visitas","O Call Center entrou em contato com [AndNomePessoa] processo [AndNroProcesso] e o cliente demonstrou interesse em receber visita do CEN [AndVendedor] .
+Gerente, acompanhar se o CEN cumprirá a agenda de ATENDER DEMANDA CALL CENTER que está programada em sua agenda.","25/06/2015 16:40:00","JULIANA.PLACIDI","06/07/2015 11:23:00","JULIANA.PLACIDI","0,0",""
+"49","MsCtr_Andamento_EML","Confirmar Incentivo Alçada","Confirmar Incentivo Alçada [AndNomePessoa]","Prezado Sidnei, 
+
+O equipamento do [AndNomePessoa] está aguardando sua confirmação sobre o incentivo alçada.
+Favor enviar a confirmação para o Rodrigo do financeiro (rodrigo.lopes@colorado.com.br).
+
+Atenciosamente,
+Colorado Máquinas","18/09/2015 16:20:00","JULIANA.PLACIDI","18/09/2015 16:53:00","JULIANA.PLACIDI","0,0",""
+"50","MsCtr_Andamento_EML","VENDA DIRETA","Venda Direta cliente [AndNomePessoa]","Prezados, 
+
+O cliente [AndNomePessoa] efetuou uma compra direta com a fábrica que está registrada no processo de nº [AndNroProcesso] 
+As informações dessa venda encontram-se no Formulário Acompanhamento Venda Direta e o Contrato está anexado na aba Documentos do Processo.
+
+Atenciosamente,
+Equipe CRM","02/10/2015 17:01:00","VTCCONS","02/10/2015 17:45:00","VTCCONS","0,0",""
+"51","MsCtr_Andamento_EML","NF Faturar","NF Faturar - Cliente [AndNomePessoa] [AndNroProcesso]","Seguem as informações do financeiro para faturamento do equipamento do cliente [AndNomePessoa] com o processo[AndNroProcesso]:
+
+[AndDescResultado]","13/04/2016 09:31:00","JULIANA.PLACIDI","13/04/2016 09:56:00","JULIANA.PLACIDI","0,0",""
+"52","MsCtr_Andamento_EML","Data _ finalização Pré Entrega","Data de finalização da pré-entrega processo [AndNroProcesso] - [AndNomePessoa]","Equipamento do sr(a) [AndNomePessoa] do processo [AndNroProcesso]:
+[AndDetalhe]
+","13/04/2016 10:37:00","JULIANA.PLACIDI","13/04/2016 10:51:00","JULIANA.PLACIDI","0,0",""
+"53","MsCtr_Andamento_EML","NF Comissão Venda Direta","Emissão da NF Comissão Venda Direta - [AndNomePessoa]","Foi emitida a NF de comissão de venda direta do cliente [AndNomePessoa] com processo nº [AndNroProcesso].
+O centro de custo creditado foi [AndComplementoResultado] na data [AndDataRealizacao].
+
+[AndDetalhe]
+
+Qualquer dúvida acessar o processo nº [AndNroProcesso] e consultar os formulários e históricos.
+
+","10/05/2016 11:57:00","JULIANA.PLACIDI","13/07/2016 12:00:00","JULIANA.PLACIDI","0,0",""
+"54","MsCtr_Andamento_EML","Entrega Física com Divergência","Entrega Física com Divergência - Processo nº [AndNroProcesso]","O processo nº [AndNroProcesso] do cliente [AndNomePessoa] teve divergência no andamento da entrega física.
+O CEN responsável é o [AndVendedor].
+
+[AndDetalhe]
+
+","12/05/2016 11:07:00","JULIANA.PLACIDI","04/10/2016 08:32:00","JULIANA.PLACIDI","0,0",""
+"55","MsCtr_Andamento_EML","Venda Perdida","Venda Perdida - Cliente [AndNomePessoa] / Sequencial [AndSeqPessoa] / Processo [AndNroProcesso]","O CEN [AndNomeReduzidoAtendente] registrou no processo [AndNroProcesso] a venda perdida no cliente [AndNomePessoa] - [AndSeqPessoa].
+
+Detalhes do histórico:
+[AndDetalhe]
+
+
+","17/05/2016 14:46:00","JULIANA.PLACIDI","16/08/2023 11:21:00","LIVIA.SILVA","0,0",""
+"56","MsCtr_Andamento_EML","Pagamento de Sinal Implemento","Pagamento de Sinal Implemento - Cliente [AndNomePessoa] - [AndNroProcesso]","Prezados,
+
+Foi realizado o pagamento do sinal do cliente [AndNomePessoa] e número do processo [AndNroProcesso].
+
+Veja o histórico do processo abaixo:
+[AndDetalhe]","20/05/2016 17:12:00","JULIANA.PLACIDI","20/05/2016 17:12:00","JULIANA.PLACIDI","0,0",""
+"57","MsCtr_Andamento_EML","ATENDIMENTO SOLICITAÇÃO","ATENDIMENTO SOLICITAÇÃO - [AndNomePessoa]","Cliente [AndNomePessoa] entrou em contato para realizar um Atendimento Solicitação na Colorado Máquinas.
+
+Vide resumo da solicitação do cliente inserida no processo n° [AndNroProcesso]:
+[AndDetalhe]
+[AndDetalheAdicional]
+
+
+
+
+Solicitação registrada pelo colaborador [AndNomeReduzidoAtendente]
+Unidade envolvida na reclamação [AndNroEmpresa]","31/05/2016 15:36:00","BRUNA.FELICIO","31/05/2016 15:36:00","BRUNA.FELICIO","0,0",""
+"58","RESULTADOS","Número Cotação Cliente","","Número cotação cliente:","05/07/2016 11:58:00","VANESSA.ALVES","05/07/2016 11:58:00","VANESSA.ALVES","0,0",""
+"59","RESULTADOS","Dados NF","","Data de emissão:
+Nº NF:
+Valor NF:","13/07/2016 11:55:00","VANESSA.ALVES","13/07/2016 11:55:00","VANESSA.ALVES","0,0",""
+"60","MsCtr_Andamento_EML","Faturamento Pendente Máquinas","Faturamento Pendente (Máquinas)","Prezado, [DestNomeCurto]
+
+O equipamento do(a) [AndNomePessoa], negociado no processo número [AndNroProcesso] está com pendência para faturamento. O Departamento [AndComplementoResultado] deverá solucionar a pendência mencionada abaixo para darmos continuidade no processo.
+
+[AndDetalhe]
+
+Atenciosamente,
+
+Contabilidade","01/08/2016 15:46:00","VANESSA.ALVES","23/02/2023 15:03:00","LIVIA.SILVA","0,0",""
+"61","MsCtr_Andamento_EML","ATUALIZAÇÃO CRÉDITO","Documentação para Análise de Crédito - [AndNomePessoa] Processo [AndNroProcesso].","Prezados, 
+
+Documentação cadastral atualizada. 
+
+Favor disponibilizar crédito e/ou desbloquear o status do(a) cliente [AndNomePessoa] no sistema Linx.
+
+Processo [AndNroProcesso].
+
+[AndDescResultado]
+
+Atenciosamente,
+
+Inteligência de Mercado","04/08/2016 16:32:00","VANESSA.ALVES","22/11/2017 08:49:00","VANESSA.ALVES","0,0",""
+"62","MsCtr_Andamento_EML","PROGRAMAR_ENTREGA","Programação de Entrega","Prezados,
+ 
+Foi programado data de entrega para o cliente Sr(a) [AndNomePessoa], referente ao processo número [AndNroProcesso]. 
+
+[AndDetalhe]
+ 
+ 
+Atenciosamente, 
+ 
+
+[AndNomeReduzidoAtendente] 
+[AndEmailAtendente]","05/08/2016 14:16:00","VANESSA.ALVES","20/10/2020 08:02:00","VANESSA.ALVES","0,0",""
+"63","MsCtr_Andamento_EML","Faturamento Pendente Implement","Faturamento Pendente (Implemento)","Prezado, [DestNomeCurto]
+
+O implemento do(a) [AndNomePessoa], negociado no processo número [AndNroProcesso] está com pendência para faturamento. O Departamento [AndComplementoResultado] deverá solucionar a pendência mencionada abaixo para darmos continuidade no processo.
+
+[AndDetalhe]
+[AndVendedor]
+
+
+Atenciosamente,
+
+Contabilidade","12/08/2016 11:52:00","VANESSA.ALVES","24/04/2017 09:54:00","VANESSA.ALVES","0,0",""
+"64","MsCtr_Andamento_EML","Aprov Credito Pendente Impl","Pendência para Aprovação de Crédito Implemento","Prezado, [DestNomeCurto]
+
+O implemento do(a) [AndNomePessoa], negociado no processo número [AndNroProcesso] está com pendência para aprovação de crédito. Por gentileza providencie o documento mencionado abaixo para darmos continuidade na análise.
+
+[AndDetalhe]
+
+Atenciosamente,
+
+[AndNomeReduzidoAtendente]
+Depto Financeiro","12/08/2016 12:57:00","VANESSA.ALVES","12/08/2016 13:03:00","VANESSA.ALVES","0,0",""
+"65","MsCtr_Andamento_EML","Processo Venda à Vista","Processo de Venda à Vista - Cliente [AndNomePessoa],[AndNroProcesso]","Prezados,
+
+Informamos à todos que o processo de venda do (a) cliente [AndNomePessoa], processo nº [AndNroProcesso] foi aprovado pelo gerente. Por trata-se de um processo de venda à vista, todos deverão agilizar o processo para cumprimento do prazo de entrega de 3 dias.
+
+Atenciosamente 
+
+Inteligência de Mercado
+","30/08/2016 14:38:00","VANESSA.ALVES","09/09/2016 07:57:00","VANESSA.ALVES","0,0",""
+"66","MsCtr_Andamento_EML","Implemento Faturado","Implemento Faturado [AndNomePessoa] - [AndNroProcesso]","Prezado,
+
+O implemento do cliente [AndNomePessoa] já passou pela etapa de faturamento de acordo com o processo [AndNroProcesso] do vendedor [AndVendedor]. A NF está anexada ao processo dentro do CRM.
+
+Veja o histórico do processo:
+[AndDetalhe]
+[AndNroProcesso]","02/09/2016 15:04:00","VANESSA.ALVES","28/04/2017 08:51:00","VANESSA.ALVES","0,0",""
+"67","MsCtr_Andamento_EML","TXT_TESTE","TXT_TESTE","teste","15/02/2017 15:25:00","VTCCONS","20/03/2023 10:40:00","LIVIA.SILVA","0,0",""
+"68","MsCtr_Andamento_EML","Pedido Aprovado","Pedido Aprovado","Prezado, 
+
+O pedido de venda do(a) Sr(a) [AndNomePessoa] foi lançado no CRM pelo CEN [AndNomeReduzidoAtendente] com o nº do processo [AndNroProcesso]. O pedido de venda foi autorizado pelo gestor [AndNomeReduzidoAtendente].
+
+Caso necessite de mais informações acesse o processo [AndNroProcesso]
+ 
+
+Atenciosamente, 
+
+
+","15/02/2017 15:49:00","VANESSA.ALVES","15/04/2022 22:45:00","DIEGO.MARQUES","0,0",""
+"69","MsCtr_Andamento_EML","AMS Faturado","Faturamento de AMS - Cliente [AndNomePessoa] [AndNroProcesso]","Prezados, o AMS do cliente [AndNomePessoa] já passou pela etapa de faturamento de acordo com o processo [AndNroProcesso] do vendedor [AndVendedor]. A NF está anexa ao processo dentro do CRM.
+
+Veja o histórico do processo:
+[AndDetalhe]","03/03/2017 16:34:00","VANESSA.ALVES","24/03/2017 14:23:00","VANESSA.ALVES","0,0",""
+"70","MsCtr_Andamento_SMS","Entrega Técnica Realizada","","Entrega Técnica Realizada com o cliente [DestNomeCompleto], por favor realizar Pesquisa de Satisfação/1º Contato 3,3,3","17/03/2017 11:15:00","BRUNA.FELICIO","17/03/2017 11:15:00","BRUNA.FELICIO","0,0",""
+"71","MsCtr_Andamento_EML","Realizar Entrega Técnica","Realizar Entrega Técnica","Entrega técnica realizada com o cliente [AndNomePessoa] Processo [AndNroProcesso], por favor realizar a Pesquisa de Satisfação, 1º Contato 3,3,3.
+
+[AndSeqPessoa]
+[AndDetalhe]","17/03/2017 11:22:00","BRUNA.FELICIO","20/11/2018 11:00:00","BRUNA.FELICIO","0,0",""
+"72","MsCtr_Andamento_EML","Proc Venda Financiado Colorado","Processo de Venda Financiado Colorado - Cliente [AndNomePessoa],[AndNroProcesso]","Prezados,
+
+Informamos à todos que o processo de venda do (a) cliente [AndNomePessoa], processo nº [AndNroProcesso] foi aprovado pelo gerente. Por trata-se de um processo de venda "" Financiamento Colorado"", todos deverão agilizar o processo para cumprimento do prazo de entrega.
+
+Atenciosamente 
+
+Inteligência de Mercado
+
+","12/06/2017 12:35:00","VANESSA.ALVES","12/06/2017 12:35:00","VANESSA.ALVES","0,0",""
+"73","MsCtr_Andamento_EML","REGISTRO SATISFAÇÃO - Elogio","Registro de Satisfação - Elogio","
+Origem: [AndAgendaAssunto]
+
+Processo: [AndNroProcesso] - Data: [AndDataRealizacao] - [AndNroEmpresa] 
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Registro CRM: [AndDescResultado], [AndComplementoResultado]
+
+[AndDetalheAdicional][AndDetalhe]
+
+[AndAssinaturaAtendente]","28/06/2017 10:47:00","VANESSA.ALVES","17/04/2023 10:13:00","VANESSA.ALVES","0,0",""
+"74","MsCtr_Andamento_EML","Aprov Pedido Máquinas/AMS/IMP","Processo para Aprovação de Pedido [AndNroProcesso]","Prezado Gestor
+
+O processo número [AndNroProcesso] do cliente do(a) [AndNomePessoa] encontra-se em sua agenda para Aprovação de Pedido.
+
+Por gentileza sequencie o processo o mais breve possível.
+
+Atenciosamente.
+
+
+
+","14/08/2017 15:08:00","VANESSA.ALVES","15/04/2022 22:01:00","DIEGO.MARQUES","0,0",""
+"75","MsCtr_Andamento_EML","Aprovação AMS","Processo para Aprovação de Pedido [AndNroProcesso]","Prezado Gestor
+
+O processo número [AndNroProcesso] do cliente do(a) [AndNomePessoa] encontra-se em sua agenda para Aprovação de Pedido AMS.
+
+Por gentileza sequencie o processo o mais breve possível.
+
+Atenciosamente.
+
+Inteligência de Mercado
+
+","08/09/2017 16:17:00","VANESSA.ALVES","08/09/2017 16:18:00","VANESSA.ALVES","0,0",""
+"76","MsCtr_Andamento_EML","Implemento_Estoque","Implemento em Estoque","Prezados
+
+O processo número [AndNroProcesso] do cliente do(a) [AndNomePessoa] encontra-se com o implemento em estoque.
+
+Por gentileza sequencie o processo o mais breve possível.
+
+Atenciosamente.
+
+Inteligência de Mercado","27/09/2017 09:10:00","VANESSA.ALVES","27/09/2017 09:10:00","VANESSA.ALVES","0,0",""
+"77","MsCtr_Andamento_EML","Cliente Neutro Máquinas","CLIENTE NEUTRO PESQUISA - [AndNomePessoa] - Neutro Máquinas","Cliente [AndNomePessoa], realizou comentários em Pesquisa Venda de Máquinas.
+
+Número do processo: [AndNroProcesso]
+
+[AndDetalhe]
+[AndDetalheAdicional]
+
+""Experiência do Cliente Satisfatória é trabalho de cada um e resultado de todos!""
+
+","06/11/2017 15:47:00","BRUNA.FELICIO","26/10/2020 16:43:00","BRUNA.FELICIO","0,0",""
+"78","MsCtr_Andamento_EML","Cliente Neutro Peças","CLIENTE NEUTRO PESQUISA - [AndNomePessoa] - Neutro Peças","Cliente [AndNomePessoa], realizou comentários em Pesquisa de Peças.
+
+Número do processo: [AndNroProcesso]
+
+[AndDetalhe]
+[AndDetalheAdicional]
+
+""Experiência do Cliente Satisfatória é trabalho de cada um e resultado de todos!""
+","06/11/2017 17:02:00","BRUNA.FELICIO","26/10/2020 16:55:00","BRUNA.FELICIO","0,0",""
+"79","MsCtr_Andamento_EML","Cliente Neutro Serviços","CLIENTE NEUTRO PESQUISA - [AndNomePessoa] - Neutro Serviços","Cliente [AndNomePessoa], realizou comentários em Pesquisa de Serviços.
+
+Número do processo: [AndNroProcesso]
+
+[AndDetalhe]
+[AndDetalheAdicional]
+
+
+""Experiência do Cliente Satisfatória é trabalho de cada um e resultado de todos!""","07/11/2017 11:16:00","BRUNA.FELICIO","26/10/2020 17:00:00","BRUNA.FELICIO","0,0",""
+"80","MsCtr_Andamento_EML","SOLICITAÇÃO CRÉDITO","Solicitação de análise de crédito - Cliente [AndNomePessoa] Processo [AndNroProcesso]","Senhores, 
+
+Foi solicitado análise de crédito para o(a) Cliente [AndNomePessoa] , processo [AndNroProcesso].
+
+Favor realizar a análise e sequenciar o processo.
+
+Veja o histórico do processo:
+
+[AndDetalhe]
+
+Atenciosamente,
+
+Inteligência de Mercado","21/11/2017 17:34:00","VANESSA.ALVES","22/11/2017 08:49:00","VANESSA.ALVES","0,0",""
+"81","MsCtr_Andamento_EML","Equipamento Usado Faturado","Equipamento Usado Faturado - [AndNomePessoa] - [AndNroProcesso]","Prezados, 
+
+O equipamento usado do cliente [AndNomePessoa] foi faturamento de acordo com o processo [AndNroProcesso]
+A NF está anexa ao processo dentro do CRM.
+
+Atenciosamente
+[AndDetalhe]","30/01/2018 08:33:00","VANESSA.ALVES","21/01/2020 13:39:00","VANESSA.ALVES","0,0",""
+"82","MsCtr_Andamento_EML","Equipamento Manitou Faturado","Equipamento Manitou Faturado - Cliente [AndNomePessoa] - [AndNroProcesso]","Prezados, 
+
+O equipamento Manitou do cliente [AndNomePessoa] [AndSeqPessoa] já passou pela etapa de faturamento de acordo com o processo [AndNroProcesso].Vendedor [AndVendedor].
+
+A NF está anexa ao processo dentro do CRM.
+
+Veja o histórico do processo:
+
+[AndDetalhe]","30/01/2018 09:14:00","DIEGO.MARQUES","30/01/2018 10:01:00","DIEGO.MARQUES","0,0",""
+"83","MsCtr_Andamento_EML","Equipamento Locação Faturado","Equipamento Locação Faturado - Cliente [AndNomePessoa] - [AndNroProcesso]","Prezados,
+
+Realizado o faturamento do Contrato de Locação do cliente [AndNomePessoa] [AndSeqPessoa] processo [AndNroProcesso] e vendedor [AndVendedor].
+
+A NF está anexa ao processo dentro do CRM.
+
+Veja o histórico do processo:
+
+[AndDetalhe]","30/01/2018 09:27:00","DIEGO.MARQUES","30/01/2018 10:01:00","DIEGO.MARQUES","0,0",""
+"84","MsCtr_Andamento_EML","Refaturamento de Implemento","Implemento Refaturado - Cliente [AndNomePessoa] - [AndNroProcesso]","Prezados,
+
+O implemento do cliente [AndNomePessoa] [AndSeqPessoa]foi refaturado de acordo com o processo [AndNroProcesso]. Vendedor [AndVendedor].
+
+ A NF está anexada ao processo dentro do CRM.
+
+Veja o histórico do processo:
+
+[AndDetalhe]","30/01/2018 09:43:00","DIEGO.MARQUES","30/01/2018 10:00:00","DIEGO.MARQUES","0,0",""
+"85","MsCtr_Andamento_EML","Refaturamento de Maquina","Maquina Refaturada - Cliente [AndNomePessoa] - [AndNroProcesso]","Prezados,
+
+O equipamento do cliente [AndNomePessoa] [AndSeqPessoa] foi refaturado de acordo com o processo [AndNroProcesso]. Vendedor [AndVendedor].
+
+ A NF está anexada ao processo dentro do CRM.
+
+Veja o histórico do processo:
+
+[AndDetalhe]","30/01/2018 09:58:00","DIEGO.MARQUES","30/01/2018 10:00:00","DIEGO.MARQUES","0,0",""
+"86","MsCtr_Andamento_EML","O.S AMS Faturada","O.S de AMS Faturada - Cliente [AndNomePessoa] [AndNroProcesso]","Prezados, 
+
+A Ordem de Serviço referente a Serviços de A.M.S. foi faturado ao cliente [AndNomePessoa] [AndSeqPessoa]
+
+A NF está anexada ao processo dentro do CRM. Vendedor [AndVendedor]
+
+Veja o histórico do processo:
+[AndDetalhe]","30/01/2018 15:51:00","DIEGO.MARQUES","01/02/2018 14:17:00","DIEGO.MARQUES","0,0",""
+"87","MsCtr_Andamento_EML","Preparação Docto Financeiro","PREPARAR PEDIDO E DOCUMENTAÇÃO PARA APROVAÇÃO FINANCEIRA - Cliente [AndNomePessoa] - [AndNroProcesso]","Prezado CEN
+
+Você acaba de receber em sua agenda no CRM a ação de PREPARAR PEDIDO E DOCUMENTAÇÃO PARA APROVAÇÃO, assim que o pedido e documentação do cliente estiverem prontos para envio ao departamento financeiro, esta ação deverá ser concluída imediatamente no CRM.
+
+Este processo permanecerá parado até que você sequencie o processo.
+
+Cliente [AndNomePessoa]
+[AndNroProcesso]
+
+Qualquer dúvida entre em contato com o departamento de Inteligência de Mercado
+
+Atenciosamente.
+
+Inteligência de Mercado
+","23/02/2018 08:22:00","VANESSA.ALVES","23/02/2018 08:27:00","VANESSA.ALVES","0,0",""
+"88","MsCtr_Andamento_EML","Teste e-mail mkt","Teste E-mail Mkt - [AndNomePessoa] - [AndSeqPessoa]","<html>
+<head>
+<title>07 - E-mail marketing_MT2550</title>
+<meta http-equiv=""Content-Type"" content=""text/html; charset=utf-8"">
+</head>
+<body bgcolor=""#FFFFFF"" leftmargin=""0"" topmargin=""0"" marginwidth=""0"" marginheight=""0"">
+<!-- Save for Web Slices (07 - E-mail marketing_MT2550.psd) -->
+<table id=""Table_01"" width=""650"" height=""1151"" border=""0"" align=""center"" cellpadding=""0"" cellspacing=""0"">
+ <tr>
+ <td height=""30"" align=""center"" style=""font-family:Arial, Helvetica, sans-serif;font-size:10px;color:#333"">Caso n&atilde;o consiga visualizar esta mensagem, <a href=""http://www.coloradolocacao.com.br/envio/2017/julho/index.html"" style=""color:#333"">acesse aqui</a>.</td>
+ </tr>
+ <tr>
+ <td>
+ <img border=""0"" style=""display:block;"" src=""http://www.coloradolocacao.com.br/envio/2017/julho/images/MT2550_01.jpg"" width=""650"" height=""58"" alt=""Colorado Loca&#231;&#227;o e Equipamentos - Manitou MRT 2550""></td>
+ </tr>
+ <tr>
+ <td>
+ <img border=""0"" style=""display:block;"" src=""http://www.coloradolocacao.com.br/envio/2017/julho/images/MT2550_02.jpg"" width=""650"" height=""174"" alt=""Colorado Loca&#231;&#227;o e Equipamentos - Manitou MRT 2550""></td>
+ </tr>
+ <tr>
+ <td>
+ <img border=""0"" style=""display:block;"" src=""http://www.coloradolocacao.com.br/envio/2017/julho/images/MT2550_03.jpg"" width=""650"" height=""177"" alt=""Colorado Loca&#231;&#227;o e Equipamentos - Manitou MRT 2550""></td>
+ </tr>
+ <tr>
+ <td>
+ <img border=""0"" style=""display:block;"" src=""http://www.coloradolocacao.com.br/envio/2017/julho/images/MT2550_04.jpg"" width=""650"" height=""161"" alt=""Colorado Loca&#231;&#227;o e Equipamentos - Manitou MRT 2550""></td>
+ </tr>
+ <tr>
+ <td>
+ <a href=""#""
+ onmouseover=""window.status='O 3 em 1 mais versátil do mercado'; return true;""
+ onmouseout=""window.status=''; return true;"">
+ <img border=""0"" style=""display:block;"" src=""http://www.coloradolocacao.com.br/envio/2017/julho/images/MT2550_05.jpg"" width=""650"" height=""126"" border=""0"" alt=""Colorado Loca&#231;&#227;o e Equipamentos - Manitou MRT 2550""></a></td>
+ </tr>
+ <tr>
+ <td>
+ <img border=""0"" style=""display:block;"" src=""http://www.coloradolocacao.com.br/envio/2017/julho/images/MT2550_06.jpg"" width=""650"" height=""92"" alt=""Colorado Loca&#231;&#227;o e Equipamentos - Manitou MRT 2550""></td>
+ </tr>
+ <tr>
+ <td>
+ <img border=""0"" style=""display:block;"" src=""http://www.coloradolocacao.com.br/envio/2017/julho/images/MT2550_07.jpg"" width=""650"" height=""79"" alt=""Colorado Loca&#231;&#227;o e Equipamentos - Manitou MRT 2550""></td>
+ </tr>
+ <tr>
+ <td>
+ <img border=""0"" style=""display:block;"" src=""http://www.coloradolocacao.com.br/envio/2017/julho/images/MT2550_08.jpg"" width=""650"" height=""80"" alt=""Colorado Loca&#231;&#227;o e Equipamentos - Manitou MRT 2550""></td>
+ </tr>
+ <tr>
+ <td>
+ <a href=""http://www.coloradolocacao.com.br/contato/orcamento"" target=""_blank"">
+ <img border=""0"" style=""display:block;"" src=""http://www.coloradolocacao.com.br/envio/2017/julho/images/MT2550_09.jpg"" width=""650"" height=""109"" border=""0"" alt=""Colorado Loca&#231;&#227;o e Equipamentos - Manitou MRT 2550 - saiba mais e solicite or&#231;amento""></a></td>
+ </tr>
+ <tr>
+ <td>
+ <img border=""0"" style=""display:block;"" src=""http://www.coloradolocacao.com.br/envio/2017/julho/images/MT2550_10.jpg"" width=""650"" height=""95"" alt=""Colorado Loca&#231;&#227;o e Equipamentos - Manitou MRT 2550""></td>
+ </tr>
+</table>
+<!-- End Save for Web Slices -->
+</body>
+</html>","18/05/2018 16:08:00","VANESSA.ALVES","18/05/2018 16:30:00","VANESSA.ALVES","0,0",""
+"89","MsCtr_Andamento_EML","Evento Dia de Campo","Evento Dia de Campo - [AndNomePessoa] - [AndSeqPessoa]","<html>
+
+<head>
+
+<title>E-mail_dia_campo</title>
+<meta http-equiv=""Content-Type"" content=""text/html; charset=utf-8"">
+
+</head>
+<body bgcolor=""#FFFFFF"" leftmargin=""0"" topmargin=""0"" marginwidth=""0"" marginheight=""0"">
+<!-- Save for Web Slices (E-mail_dia_campo.jpg) -->
+<table id=""Tabela_01"" width=""850"" height=""1201"" border=""0"" cellpadding=""0"" cellspacing=""0"">
+ <tr>
+ <td colspan=""7"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_01.jpg"" width=""850"" height=""210"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""3"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_02.jpg"" width=""303"" height=""371"" alt=""""></td>
+ <td colspan=""3"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_03.jpg"" width=""255"" height=""371"" alt=""""></td>
+ <td>
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_04.jpg"" width=""220"" height=""371"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""7"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_05.jpg"" width=""850"" height=""285"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""7"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_06.jpg"" width=""850"" height=""181"" alt=""""></td>
+ </tr>
+ <tr>
+ <td rowspan=""4"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_07.jpg"" width=""37"" height=""159"" alt=""""></td>
+ <td colspan=""4"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_08.jpg"" width=""486"" height=""30"" alt=""""></td>
+ <td colspan=""2"" rowspan=""3"">
+ <a href=""http://www.coloradolocacao.com.br/envio/2017/Teste/images "" target=""_blank"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/Site-John-Deere.jpg"" width=""327"" height=""110"" border=""0"" alt=""Site John Deere""></a></td>
+ </tr>
+ <tr>
+ <td>
+ <a href=""http://www.coloradolocacao.com.br/envio/2017/Teste/images "" target=""_blank"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_10.jpg"" width=""165"" height=""48"" border=""0"" alt=""""></a></td>
+ <td colspan=""3"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_11.jpg"" width=""321"" height=""48"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""3"">
+ <a href=""http://www.coloradolocacao.com.br/envio/2017/Teste/images "" target=""_blank"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/Site-Colorado.jpg"" width=""308"" height=""32"" border=""0"" alt=""Site Colorado""></a></td>
+ <td>
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_13.jpg"" width=""178"" height=""32"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""4"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_14.jpg"" width=""486"" height=""49"" alt=""""></td>
+ <td colspan=""2"">
+ <img src=""http://www.coloradolocacao.com.br/envio/2017/Teste/images/E-mail_dia_campo_15.jpg"" width=""327"" height=""49"" alt=""""></td>
+ </tr>
+ <tr>
+ <td>
+ <img src=""images/spacer.gif"" width=""37"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""165"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""101"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""42"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""178"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""35"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""292"" height=""1"" alt=""""></td>
+ </tr>
+</table>
+<!-- End Save for Web Slices -->
+</body>
+</html>
+","29/05/2018 12:22:00","VANESSA.ALVES","02/07/2018 20:28:00","VANESSA.ALVES","0,0",""
+"90","MsCtr_Andamento_EML","Evento Hora Certa","Evento Hora Certa - [AndNomePessoa] - [AndSeqPessoa]","<html>
+<head>
+<title>E-mail_hora-certa</title>
+<meta http-equiv=""Content-Type"" content=""text/html; charset=utf-8"">
+</head>
+<body bgcolor=""#FFFFFF"" leftmargin=""0"" topmargin=""0"" marginwidth=""0"" marginheight=""0"">
+<!-- Save for Web Slices (E-mail_hora-certa.jpg) -->
+<table id=""Tabela_01"" width=""850"" height=""1201"" border=""0"" cellpadding=""0"" cellspacing=""0"">
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_hora-certa_01.jpg"" width=""850"" height=""236"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_hora-certa_02.jpg"" width=""850"" height=""334"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_hora-certa_03.jpg"" width=""850"" height=""293"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_hora-certa_04.jpg"" width=""850"" height=""178"" alt=""""></td>
+ </tr>
+ <tr>
+ <td rowspan=""4"">
+ <img src=""images/E-mail_hora-certa_05.jpg"" width=""43"" height=""159"" alt=""""></td>
+ <td colspan=""3"">
+ <img src=""images/E-mail_hora-certa_06.jpg"" width=""465"" height=""35"" alt=""""></td>
+ <td rowspan=""3"">
+ <a href=""https://www.deere.com.br/pt/index.html"" target=""_blank"">
+ <img src=""images/Site-John-Deere.jpg"" width=""342"" height=""107"" border=""0"" alt=""Site John Deere""></a></td>
+ </tr>
+ <tr>
+ <td>
+ <img src=""images/E-mail_hora-certa_08.jpg"" width=""150"" height=""43"" alt=""""></td>
+ <td colspan=""2"">
+ <img src=""images/E-mail_hora-certa_09.jpg"" width=""315"" height=""43"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""2"">
+ <img src=""images/E-mail_hora-certa_10.jpg"" width=""299"" height=""29"" alt=""""></td>
+ <td>
+ <img src=""images/E-mail_hora-certa_11.jpg"" width=""166"" height=""29"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""3"">
+ <img src=""images/E-mail_hora-certa_12.jpg"" width=""465"" height=""52"" alt=""""></td>
+ <td>
+ <img src=""images/E-mail_hora-certa_13.jpg"" width=""342"" height=""52"" alt=""""></td>
+ </tr>
+ <tr>
+ <td>
+ <img src=""images/spacer.gif"" width=""43"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""150"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""149"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""166"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""342"" height=""1"" alt=""""></td>
+ </tr>
+</table>
+<!-- End Save for Web Slices -->
+</body>
+</html>","29/05/2018 14:49:00","VANESSA.ALVES","04/06/2018 15:41:00","VANESSA.ALVES","0,0",""
+"91","MsCtr_Andamento_EML","Cliente Realizou Contato","Contato Mídia Social","Prezado Colaborador, 
+
+O processo número [AndNroProcesso] registrado em nosso CRM encontra-se em sua agenda para continuidade do atendimento. 
+
+Este contato solicitou atendimento via [AndCanal] referente a [AndComplementoResultado]
+
+Por gentileza retorne o contato e sequencie o processo o mais breve possível.
+
+Detalhe do Processo: 
+
+[AndDetalhe]
+
+
+Atenciosamente 
+
+Inteligência de Mercado","04/06/2018 10:57:00","DIEGO.MARQUES","07/11/2019 13:01:00","DIEGO.MARQUES","0,0",""
+"92","MsCtr_Andamento_EML","Evento Feira Original","Evento Feira Original - [AndNomePessoa] - [AndSeqPessoa]","<html>
+<head>
+<title>E-mail_feira-original</title>
+<meta http-equiv=""Content-Type"" content=""text/html; charset=utf-8"">
+</head>
+<body bgcolor=""#FFFFFF"" leftmargin=""0"" topmargin=""0"" marginwidth=""0"" marginheight=""0"">
+<!-- Save for Web Slices (E-mail_feira-original.jpg) -->
+<table id=""Tabela_01"" width=""850"" height=""1201"" border=""0"" cellpadding=""0"" cellspacing=""0"">
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_feira-original_01.png"" width=""850"" height=""221"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""2"">
+ <img src=""images/E-mail_feira-original_02.png"" width=""310"" height=""363"" alt=""""></td>
+ <td colspan=""2"">
+ <img src=""images/E-mail_feira-original_03.png"" width=""239"" height=""363"" alt=""""></td>
+ <td>
+ <img src=""images/E-mail_feira-original_04.png"" width=""301"" height=""363"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_feira-original_05.png"" width=""850"" height=""277"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_feira-original_06.png"" width=""850"" height=""180"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""3"">
+ <img src=""images/E-mail_feira-original_07.png"" width=""499"" height=""75"" alt=""""></td>
+ <td colspan=""2"" rowspan=""2"">
+ <a href=""https://www.deere.com.br/pt/index.html"" target=""_blank"">
+ <img src=""images/Site-John-Deere.png"" width=""351"" height=""114"" border=""0"" alt=""Site John Deere""></a></td>
+ </tr>
+ <tr>
+ <td colspan=""3"">
+ <a href=""http://www.coloradomaquinas.com.br/"" target=""_blank"">
+ <img src=""images/Site-Colorado.jpg"" width=""499"" height=""39"" border=""0"" alt=""Site Colorado""></a></td>
+ </tr>
+ <tr>
+ <td>
+ <img src=""images/E-mail_feira-original_10.png"" width=""214"" height=""45"" alt=""""></td>
+ <td colspan=""4"">
+ <img src=""images/E-mail_feira-original_11.jpg"" width=""636"" height=""45"" alt=""""></td>
+ </tr>
+ <tr>
+ <td>
+ <img src=""images/spacer.gif"" width=""214"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""96"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""189"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""50"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""301"" height=""1"" alt=""""></td>
+ </tr>
+</table>
+<!-- End Save for Web Slices -->
+</body>
+</html>","04/06/2018 15:39:00","VANESSA.ALVES","04/06/2018 15:40:00","VANESSA.ALVES","0,0",""
+"93","MsCtr_Andamento_EML","Evento Tecnologia de Precisão","Evento Tecnologia de Precisão- [AndNomePessoa] - [AndSeqPessoa]","<html>
+<head>
+<title>E-mail_tecnologia_precisao</title>
+<meta http-equiv=""Content-Type"" content=""text/html; charset=utf-8"">
+</head>
+<body bgcolor=""#FFFFFF"" leftmargin=""0"" topmargin=""0"" marginwidth=""0"" marginheight=""0"">
+<!-- Save for Web Slices (E-mail_tecnologia_precisao.jpg) -->
+<table id=""Tabela_01"" width=""850"" height=""1201"" border=""0"" cellpadding=""0"" cellspacing=""0"">
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_tecnologia_precisao_01.jpg"" width=""850"" height=""213"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_tecnologia_precisao_02.jpg"" width=""850"" height=""309"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_tecnologia_precisao_03.jpg"" width=""850"" height=""350"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""5"">
+ <img src=""images/E-mail_tecnologia_precisao_04.jpg"" width=""850"" height=""169"" alt=""""></td>
+ </tr>
+ <tr>
+ <td rowspan=""4"">
+ <img src=""images/E-mail_tecnologia_precisao_05.jpg"" width=""39"" height=""159"" alt=""""></td>
+ <td colspan=""3"">
+ <img src=""images/E-mail_tecnologia_precisao_06.jpg"" width=""462"" height=""33"" alt=""""></td>
+ <td rowspan=""3"">
+ <a href=""https://www.deere.com.br/pt/index.html"" target=""_blank"">
+ <img src=""images/Site-John-Deere.jpg"" width=""349"" height=""110"" border=""0"" alt=""Site John Deere""></a></td>
+ </tr>
+ <tr>
+ <td>
+ <img src=""images/E-mail_tecnologia_precisao_08.jpg"" width=""157"" height=""44"" alt=""""></td>
+ <td colspan=""2"">
+ <img src=""images/E-mail_tecnologia_precisao_09.jpg"" width=""305"" height=""44"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""2"">
+ <a href=""http://www.coloradomaquinas.com.br/"" target=""_blank"">
+ <img src=""images/Site-Colorado.jpg"" width=""298"" height=""33"" border=""0"" alt=""Site Colorado""></a></td>
+ <td>
+ <img src=""images/E-mail_tecnologia_precisao_11.jpg"" width=""164"" height=""33"" alt=""""></td>
+ </tr>
+ <tr>
+ <td colspan=""3"">
+ <img src=""images/E-mail_tecnologia_precisao_12.jpg"" width=""462"" height=""49"" alt=""""></td>
+ <td>
+ <img src=""images/E-mail_tecnologia_precisao_13.jpg"" width=""349"" height=""49"" alt=""""></td>
+ </tr>
+ <tr>
+ <td>
+ <img src=""images/spacer.gif"" width=""39"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""157"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""141"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""164"" height=""1"" alt=""""></td>
+ <td>
+ <img src=""images/spacer.gif"" width=""349"" height=""1"" alt=""""></td>
+ </tr>
+</table>
+<!-- End Save for Web Slices -->
+</body>
+</html>","04/06/2018 15:57:00","VANESSA.ALVES","04/06/2018 17:31:00","VANESSA.ALVES","0,0",""
+"94","MsCtr_Andamento_EML","Visita à Campo","Visita Experiência do Cliente","Visitamos o cliente [AndNomePessoa]
+
+
+Vide resumo da visita do cliente inserida no processo nº: [AndNroProcesso]
+
+[AndDetalhe]
+
+
+Atenciosamente,
+Bruna Felício
+
+
+
+
+
+
+
+
+","21/08/2018 10:30:00","BRUNA.FELICIO","29/08/2018 08:38:00","BRUNA.FELICIO","0,0",""
+"95","Pesquisa_Web","Meu 1 JD email","Meu Primeiro John Deere","<html>
+
+<a href=""http://www.coloradomaquinas.com.br/"">
+<img src=""http://trabalheconosco.coloradomaquinas.com.br/static/assinatura/ciclo_de_vida.jpg"" alt=""ciclo_de_vida"">
+</a>
+
+</html>","13/03/2019 16:26:00","DIEGO.MARQUES","15/04/2021 08:09:00","DIEGO.MARQUES","0,0",""
+"96","MsCtr_Andamento_EML","Valor Usado","Definido valor do equipamento usado cliente [AndNomePessoa] - [AndNroProcesso]","Processo [AndNroProcesso], usado definido pelo valor de:
+[sql>] SELECT VALOR_FINAL_DE_AVALI 
+FROM IV_Q$AVALIA_USADO_ENTRADA
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Modelo Do Equipamento
+[sql>] 
+SELECT MODELO_DO_EQUIPAMENT 
+FROM IV_Q$AVALIA_USADO_ENTRADA
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Chassi
+[sql>] 
+SELECT CHASSI_DO_EQUIPAMENT 
+FROM IV_Q$AVALIA_USADO_ENTRADA
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+
+[AndDetalhe]
+ 
+Atenciosamente, 
+ 
+[AndNomeReduzidoAtendente] 
+[AndEmailAtendente]","14/03/2019 12:25:00","DIEGO.MARQUES","16/05/2019 08:49:00","DIEGO.MARQUES","0,0",""
+"97","MsCtr_Andamento_EML","Maquina com divergencia","Maquina usada do Processo [AndNroProcesso] com divergencia","Recebemos a maquina do cliente [AndNomePessoa] - [AndNroProcesso]
+
+Porem essa maquina esta com divergencia do que foi informado.
+Aguardo a autorização para correção das divergencias
+
+[AndDetalhe]
+Atenciosamente","15/03/2019 10:15:00","DIEGO.MARQUES","26/03/2019 13:25:00","DIEGO.MARQUES","0,0",""
+"98","MsCtr_Andamento_EML","Entrada_NF_Usado","Realizado Entrada NF Usado Cliente [AndNomePessoa] - Processo [AndNroProcesso]","Prezados,
+
+Foi realizado a entrada da nota fiscal do equipamento usado nesta data
+
+[AndDetalhe]
+
+Atenciosamente
+","18/03/2019 10:27:00","DIEGO.MARQUES","06/08/2019 22:47:00","DIEGO.MARQUES","0,0",""
+"99","MsCtr_Andamento_EML","Retirada do Usado Antes do Nov","Retirar Usado Cliente [AndNomePessoa] - Processo [AndNroProcesso]","Programar a retirada do equipamento usado do processo [AndNroProcesso]
+
+[AndDescResultado]
+
+
+OBS:IMPRIMIR CHECK LIST LOGISTICA PARA RETIRADA DO USADO
+
+Atenciosamente
+[DestNomeCompleto]","22/03/2019 13:54:00","DIEGO.MARQUES","22/03/2019 14:16:00","DIEGO.MARQUES","0,0",""
+"100","MsCtr_Andamento_EML","Maquina Recebida Oficina","Recebimento maquina usada cliente [AndNomePessoa] Processo [AndNroProcesso]","Prezados,
+
+Recebemos a maquinas usada do cliente [AndNomePessoa] do processo [AndNroProcesso]
+
+Atenciosamente,","26/03/2019 13:35:00","DIEGO.MARQUES","26/03/2019 13:35:00","DIEGO.MARQUES","0,0",""
+"101","MsCtr_Andamento_EML","Validado Venda Usado","Validado Venda do Equipamento Usado Cliente [AndNomePessoa] Processo [AndNroProcesso]","Prezados,
+
+Foi validado a venda do equipamento Usado.
+
+[AndDetalhe]
+
+[AndNroProcesso]
+[AndNomeReduzidoAtendente]","21/05/2019 10:28:00","DIEGO.MARQUES","21/05/2019 12:12:00","DIEGO.MARQUES","0,0",""
+"102","MsCtr_Andamento_EML","CBR_EML_Maquina","Aviso de Cobrança","Olá, [DestNomeCompleto].
+
+Ainda não identificamos o pagamento do seu título [AppDado].
+
+Segue abaixo o codigo de barras para pagamento 800012229239900319901000999103.
+
+Caso já tenha efetuado o pagamento, desconsiderar.
+
+Att.
+Colorado Máquinas.","24/05/2019 14:01:00","VTCCONS","24/05/2019 14:08:00","VTCCONS","0,0",""
+"103","MsCtr_Andamento_EML","Alteração de Chassi","Alteração de Chassi Processo [AndNroProcesso] Cliente [AndNomePessoa]","Prezados,
+
+Informo que foi realizado a alteração Chassi para:
+[sql>] 
+SELECT NRO_CHASSI1
+FROM IV_Q$ACOMPANH_VENDA_JDE
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+[AndDetalhe]
+
+","26/05/2019 21:32:00","DIEGO.MARQUES","27/05/2019 10:23:00","DIEGO.MARQUES","0,0",""
+"104","MsCtr_Andamento_EML","Informar Chassi Equipamento","Informado Chassi do Processo [AndNroProcesso] Cliente [AndNomePessoa]","Prezados,
+
+Foi disponibilizado o produto!
+Segue abaixo as informações
+[AndDetalhe]
+
+
+Atenciosamente","27/05/2019 10:46:00","DIEGO.MARQUES","13/05/2022 09:14:00","DIEGO.MARQUES","0,0",""
+"105","MsCtr_Andamento_EML","Informar Chassi Implemento","Informado Chassi do Processo [AndNroProcesso] Cliente [AndNomePessoa]","Prezados,
+
+Informo que foi realizado a inclusão do Chassi!
+[sql>] 
+SELECT NUM_CHASSI_IMPL
+FROM IV_Q$ACOMPANHAM_VENDA_IMP
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Atenciosamente","27/05/2019 13:41:00","DIEGO.MARQUES","27/05/2019 13:41:00","DIEGO.MARQUES","0,0",""
+"106","MsCtr_Andamento_EML","2_Dias_Antes_Vencimento","Titulo Proximo do vencimento","Prezado(a) [AndNomePessoa],
+
+Informamos que o seu(s) título(s) de nº[sql>] 
+SELECT NRODOCTO
+FROM IV$TITULO
+WHERE seqpessoa = [AndSeqPessoa] and QTDEDIA = '-4' and QTDEDIA = '-4' and QUITADO = '0'
+ORDER BY 1 
+[sql<]
+está próximo da data de vencimento/pagamento. 
+Caso o respectivo débito já tenha sido liquidado, solicitamos a desconsideração da presente mensagem. 
+Obrigado por escolher a Colorado Máquinas. 
+Conte sempre conosco!
+
+COLORADO COMÉRCIO DE MÁQUINAS AGRÍCOLAS LTDA.
+E-mail:liberacao@coloradoagro.com.br
+Telefone: 16-3968-8080 /Cel: 16-99129-4311","30/05/2019 15:15:00","DIEGO.MARQUES","18/06/2019 14:17:00","DIEGO.MARQUES","0,0",""
+"107","MsCtr_Andamento_EML","Dia_Do_Vencimento_Fatura","Titulo Vencendo Hoje","Prezado(a) [AndSeqPessoa] 
+Informamos que o seu(s) título(s) de nº[sql>] 
+SELECT NRODOCTO
+FROM IV$TITULO
+WHERE seqpessoa = [AndSeqPessoa] and QTDEDIA = '0' and QTDEDIA = '0' and QUITADO = '0'
+ORDER BY 1 
+[sql<]
+vence na data de hoje. 
+Caso o respectivo débito já tenha sido liquidado, solicitamos a desconsideração da presente mensagem. 
+Obrigado por escolher a Colorado Máquinas. 
+Conte sempre conosco!
+
+COLORADO COMÉRCIO DE MÁQUINAS AGRÍCOLAS LTDA. 
+E-mail:liberacao@coloradoagro.com.br
+Telefone: 16-3968-8080 /Cel: 16-99129-4311
+
+","30/05/2019 16:32:00","DIEGO.MARQUES","05/06/2019 08:59:00","DIEGO.MARQUES","0,0",""
+"108","MsCtr_Andamento_SMS","SMS_2_Dias_para_vencimento","","Prezado(a) [AndNomePessoa],
+Informamos que o seu título está próximo da data de vencimento. 
+Se o respectivo débito já tiver sido liquidado, solicitamos a desconsideração da presente mensagem.
+Colorado Máquinas
+Telefone: 16-3968-8080
+
+","31/05/2019 10:01:00","DIEGO.MARQUES","04/06/2019 09:09:00","DIEGO.MARQUES","0,0",""
+"109","MsCtr_Andamento_EML","2_Dias_apos_vencimento","Titulo Vencido","Prezado(a) [AndNomePessoa]
+Servimo-nos da presente notificação para informar a Vossa Senhoria que encontra-se em aberto junto a  nossa empresa um débito de sua responsabilidade do(s) Titulo(s) Nº[sql>] 
+SELECT NRODOCTO
+FROM IV$TITULO
+WHERE seqpessoa = [AndSeqPessoa] and QTDEDIA = '3' and QTDEDIA = '3' and QUITADO = '0'
+ORDER BY 1 
+[sql<]
+Caso o débito já tenha sido liquidado, solicitamos a desconsideração da presente notificação e pedimos desculpas.
+
+COLORADO COMÉRCIO DE MÁQUINAS AGRÍCOLAS LTDA.
+E-mail:liberacao@coloradoagro.com.br
+Telefone: 16-3968-8080 /Cel: 16-99129-4311","03/06/2019 13:46:00","DIEGO.MARQUES","05/06/2019 08:59:00","DIEGO.MARQUES","0,0",""
+"110","MsCtr_Andamento_SMS","SMS_dia_do_vencimento","","Prezado(a) [AndNomePessoa]
+Informamos que o seu título vence na data de hoje. 
+Se o respectivo débito já tiver sido liquidado, solicitamos a desconsideração da presente mensagem.
+Colorado Máquinas 
+Telefone: 16-3968-8080","03/06/2019 13:48:00","DIEGO.MARQUES","04/06/2019 15:42:00","DIEGO.MARQUES","0,0",""
+"111","MsCtr_Andamento_SMS","SMS_2_Dias_apos_vencimento","","Prezado(a) [AndNomePessoa],
+Informarmos que encontra-se em aberto um débito de sua responsabilidade. 
+Caso o débito tiver sido liquidado, solicitamos a desconsideração da mensagem.
+Colorado Máquinas
+Telefone 16 -39688080","03/06/2019 13:51:00","DIEGO.MARQUES","04/06/2019 15:42:00","DIEGO.MARQUES","0,0",""
+"112","MsCtr_Andamento_EML","Inf_Venda_Perdida","Venda Perdida - Cliente [AndNomePessoa]","Prezados,
+
+Houve o registro de uma venda perdida no cliente [AndNomePessoa] sequencial [AndSeqPessoa] e processo [AndNroProcesso]
+
+Por gentileza avalie e verifique a autenticidade das informações.
+
+[AndDetalhe]","11/07/2019 16:56:00","DIEGO.MARQUES","11/07/2019 16:56:00","DIEGO.MARQUES","0,0",""
+"113","MsCtr_Andamento_EML","Credito Aprovado A.M.S Field","Credito Financeiro Aprovado A.M.S Field Cliente [AndNomePessoa]","Prezados,
+
+Foi realizado a checagem e aprovado o credito do cliente [AndNomePessoa] 
+Referente ao processo [AndNroProcesso] 
+
+
+Atenciosamente","31/07/2019 22:22:00","DIEGO.MARQUES","31/07/2019 22:22:00","DIEGO.MARQUES","0,0",""
+"114","MsCtr_Andamento_EML","Solicitação de Serviço JD","Solicitação de Serviço JD [AndNroProcesso]","Prezado,
+
+Foi realizado uma solicitação de Serviço pelo colaborador [AndNomeReduzidoAtendente]
+
+[AndDescResultado]
+
+Atenciosamente","19/08/2019 09:58:00","DIEGO.MARQUES","20/08/2019 08:21:00","DIEGO.MARQUES","0,0",""
+"115","MsCtr_Andamento_EML","Cliente c Interesse serviço JD","Cliente [AndNomePessoa] com interesse em Serviço","Prezado,
+
+O Cliente [AndNomePessoa] mostrou interese em serviço processo [AndNroProcesso]
+
+[AndDescResultado]
+
+Atenciosamente","19/08/2019 12:59:00","DIEGO.MARQUES","19/08/2019 13:28:00","DIEGO.MARQUES","0,0",""
+"116","MsCtr_Andamento_EML","Venda_Cancelada","Venda Cancelada Cliente [AndNomePessoa] Processo[AndNroProcesso]","Prezados,
+
+Foi cancelado a venda do cliente [AndNomePessoa] Processo [AndNroProcesso]
+
+O Processo voltara para a agenda do CEN 
+
+Atenciosamente","19/09/2019 18:02:00","DIEGO.MARQUES","19/09/2019 18:02:00","DIEGO.MARQUES","0,0",""
+"117","MsCtr_Andamento_EML","Venda Licença","Realizado Venda Serviço AMS Licença processo [AndNroProcesso]","Prezado,
+
+Foi realizado venda de Licença para o cliente [AndNomePessoa] processo [AndNroProcesso]
+no valor de
+[sql>] SELECT VALOR_DA_VENDA
+FROM IV_Q$VENDA_SERVICOS_AMS
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+
+Atenciosamente","11/10/2019 12:13:00","DIEGO.MARQUES","14/10/2019 14:32:00","DIEGO.MARQUES","0,0",""
+"118","MsCtr_Andamento_EML","Disponibilidade AMS","Disponivel o AMS do Processo [AndNroProcesso] Cliente [AndNomePessoa]","Preazados,
+
+O Equipamento AMS esta disponivel.
+Processo [AndNroProcesso] 
+
+Atenciosamente","29/10/2019 16:41:00","DIEGO.MARQUES","29/10/2019 16:41:00","DIEGO.MARQUES","0,0",""
+"119","MsCtr_Andamento_EML","Valor IMP Usado","Definido valor do Implemento usado cliente [AndNomePessoa] - [AndNroProcesso]","Processo [AndNroProcesso], usado definido pelo valor de:
+[sql>] SELECT VALOR_FINAL_AVA
+FROM IV_Q$AVALIA_IMPLEM_USADO
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Modelo Do Implemento
+[sql>] 
+SELECT MODELO_IMP_USADO
+FROM IV_Q$AVALIA_IMPLEM_USADO
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Chassi
+[sql>] 
+SELECT CHASSI_IMP_USADO
+FROM IV_Q$AVALIA_IMPLEM_USADO
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]","01/12/2019 19:45:00","DIEGO.MARQUES","01/12/2019 22:05:00","DIEGO.MARQUES","0,0",""
+"120","MsCtr_Andamento_EML","Alterado Pessoa do Processo","Realizado a alteração da Pessoa Processo [AndNroProcesso]","Prezados,
+
+Foi realizado a alteração de pessoa no processo [AndNroProcesso]
+
+Atenciosamente","17/12/2019 16:22:00","DIEGO.MARQUES","17/12/2019 16:22:00","DIEGO.MARQUES","0,0",""
+"121","MsCtr_Andamento_EML","Oportunidade_Parada","O Processo [AndNroProcesso] esta em aberto","Boa Tarde,
+
+O processo [AndNroProcesso] esta em aberto.
+Cliente [AndNomePessoa] responsavel pelo processo [AndVendedor]
+
+Atenciosamente","17/02/2020 14:21:00","DIEGO.MARQUES","17/02/2020 14:21:00","DIEGO.MARQUES","0,0",""
+"122","MsCtr_Andamento_EML","Realizado_Demonstração","Realizado demonstração equipamento JD Numero do Processo [AndNroProcesso]","Prezados,
+
+O cliente [AndNomePessoa] recebeu a demonstração do equipamento conforme registro no processo [AndNroProcesso]
+
+[AndDetalhe]
+
+
+
+Atenciosamente","20/02/2020 10:58:00","DIEGO.MARQUES","25/02/2020 21:10:00","DIEGO.MARQUES","0,0",""
+"123","MsCtr_Andamento_EML","Autorizado Fat venda direta","Faturamento Venda Direta Autorizado [AndNomePessoa][AndNroProcesso]","Prezados,
+
+O Processo [AndNroProcesso] já esta com autorização de faturamento.
+A proxima etapa encontra-se na contabilidade para faturamento
+
+Atenciosamente","25/02/2020 21:05:00","DIEGO.MARQUES","25/02/2020 21:05:00","DIEGO.MARQUES","0,0",""
+"124","MsCtr_Andamento_EML","Cliente Interesse Prospecçao","Cliente [AndNomePessoa] [AndSeqPessoa]com interesse [AndComplementoResultado]","Prezado Colaborador [AndVendedor]
+
+O processo número [AndNroProcesso] registrado em nosso CRM no cliente [AndNomePessoa] SEQ [AndSeqPessoa] encontra-se em sua agenda para continuidade do atendimento. 
+
+O cliente apresentou interesse em [AndComplementoResultado]
+
+Por gentileza retorne o contato e sequencie o processo o mais breve possível.
+
+Detalhe do Processo: 
+[AndDetalhe]
+
+Responsável: [AndNomeReduzidoAtendente]
+
+Atenciosamente 
+
+Equipe Inteligência de Mercado","27/02/2020 21:50:00","DIEGO.MARQUES","19/05/2021 10:19:00","DIEGO.MARQUES","0,0",""
+"125","Pesquisa_Web","Verificar Parecer","Verificado o paracer do Cliente [AndNomePessoa] processo [AndNroProcesso]","Prezados,
+
+Foi verificado o processo [AndNroProcesso] do cliente [AndNomePessoa]
+
+[AndDetalhe]
+
+Atenciosamente","30/04/2020 15:16:00","DIEGO.MARQUES","30/04/2020 16:16:00","DIEGO.MARQUES","0,0",""
+"126","MsCtr_Andamento_EML","APROVAÇAO_DEMO","Aprovado Demonstração Cliente [AndNomePessoa] Processo [AndNroProcesso]","Prezados,
+
+Foi aprovado a demonstração do equipamento para o cliente [AndNomePessoa]
+
+Atenciosamente","05/05/2020 16:48:00","DIEGO.MARQUES","05/05/2020 16:48:00","DIEGO.MARQUES","0,0",""
+"127","MsCtr_Andamento_EML","RETORNO_ATENDIMENTO RECLAMAÇÃO","Atendimento reclamação processo [AndNroProcesso] em atendimento","Prezado,
+
+Recebemos seu comunicado de ""Atendimento Reclamação"" e a Experiência do Cliente entrará em contato com o cliente,
+para obter o máximo de informações e posteriormente encaminhará para o responsável tratar a resolução
+
+Obrigado!","11/05/2020 20:47:00","DIEGO.MARQUES","14/05/2020 12:48:00","DIEGO.MARQUES","0,0",""
+"128","MsCtr_Andamento_EML","NF Demonstração","Emitida NF Demonstração [AndNomePessoa] Processo [AndNroProcesso]","Prezados,
+
+Foi emitida a NF Demonstração do Cliente [AndNomePessoa] Processo [AndNroProcesso].
+Lembrando que são 60 dias para o Retorno da nota
+
+
+Atenciosamente","17/05/2020 18:01:00","DIEGO.MARQUES","17/05/2020 18:01:00","DIEGO.MARQUES","0,0",""
+"129","Pesquisa_Web","Pesquisa Serviço Web","Sua opinião é muito importante para nós!","<html>
+<div class=""separator"" style=""clear: both; text-align: center;"">
+<a href=""https://1.bp.blogspot.com/-gm6Ni64mnhA/XrQ5GEmhdnI/AAAAAAAAF10/1_3dn6YSOBsz4sUxMgNjB-mBDhIXI8xMQCEwYBhgL/s1600/Colorado%2BM%25C3%25A1quinas.gif"" imageanchor=""1"" style=""margin-left: 1em; margin-right: 1em;""><img border=""0"" data-original-height=""541"" data-original-width=""634"" height=""273"" src=""https://1.bp.blogspot.com/-gm6Ni64mnhA/XrQ5GEmhdnI/AAAAAAAAF10/1_3dn6YSOBsz4sUxMgNjB-mBDhIXI8xMQCEwYBhgL/s320/Colorado%2BM%25C3%25A1quinas.gif"" width=""320"" /></a></div>
+<div class=""separator"" style=""clear: both; text-align: center;"">
+<link href=""C:/Icones/fontawesome-free-5.13.0-web/css/all.css"" rel=""stylesheet"">
+<span style=""font-family: georgia, &quot;times new roman&quot;, serif;"">Olá prezado cliente!</span></div>
+<div style=""text-align: center; font-family: georgia, times new roman, serif;"">
+<br>
+<span>Sua opinião é muito importante para nós!</span>
+<br>
+<span>Será fácil, rápido e seguro!</span>
+<br><br>
+<span>Pedimos por gentileza que preencha o questionário através do link abaixo:</span>
+<br><br><br>
+<div class=""separator"" style=""clear: both; text-align: center;"">
+<a href=""http://189.112.5.172/crmweb/Forms/frmFormularioPesquisa.aspx?p=PES=[AndSeqPessoa]&PROC=[AndNroProcesso]&FORM=[PesqSeqForm]&EMP=[AndNroEmpresa]&RES=[AndResultadoEmail]""> <img border=""0"" data-original-height=""102"" data-original-width=""476"" height=""81"" src=""https://1.bp.blogspot.com/-pJ-xjGchR6c/XrRY9ZLFQjI/AAAAAAAAF2c/O_5uP2zRaiAE1RKLn3-7E5DHLpCD8IwaQCLcBGAsYHQ/s400/IMP.GIF"" width=""400"" /></a></div>
+<br><br><br>
+<span>Ficou com alguma dúvida?</span>
+<br>
+<span>Entre em contato conosco!</span>
+</div>
+<div style=""text-align: center;"">
+<br>
+<i class=""fas fa-phone-alt""></i> 16 3968 8080<br>
+<i class=""fab fa-whatsapp""></i><a href=""http://web.whatsapp.com/""> 16 996087703<br> </a>
+<i class=""fas fa-envelope-open-text""</i> <a href=""mailto:experienciadocliente@coloradoagro.com.br"">experienciadocliente@coloradoagro.com.br</a><br>
+<i class=""fab fa-facebook""></i> <a href=""https://www.facebook.com/coloradomaquinas/""> Facebook </a> <br> 
+<i class=""fab fa-instagram""></i> <a href=""https://www.instagram.com/coloradomaquinas/""> Instagram </a></i><br>
+<br>
+<div style=""text-align: center; font-family: georgia, times new roman, serif;"">
+<span>Agradecemos sua disponibilidade!</span>
+<br>
+<html/>","26/05/2020 08:43:00","DIEGO.MARQUES","26/05/2020 08:43:00","DIEGO.MARQUES","0,0",""
+"130","Pesquisa_Web","Pesquisa Peças Web","Sua opinião é muito importante para nós!","<html>
+<div class=""separator"" style=""clear: both; text-align: center;"">
+<a href=""https://1.bp.blogspot.com/-gm6Ni64mnhA/XrQ5GEmhdnI/AAAAAAAAF10/1_3dn6YSOBsz4sUxMgNjB-mBDhIXI8xMQCEwYBhgL/s1600/Colorado%2BM%25C3%25A1quinas.gif"" imageanchor=""1"" style=""margin-left: 1em; margin-right: 1em;""><img border=""0"" data-original-height=""541"" data-original-width=""634"" height=""273"" src=""https://1.bp.blogspot.com/-gm6Ni64mnhA/XrQ5GEmhdnI/AAAAAAAAF10/1_3dn6YSOBsz4sUxMgNjB-mBDhIXI8xMQCEwYBhgL/s320/Colorado%2BM%25C3%25A1quinas.gif"" width=""320"" /></a></div>
+<div class=""separator"" style=""clear: both; text-align: center;"">
+<link href=""C:/Icones/fontawesome-free-5.13.0-web/css/all.css"" rel=""stylesheet"">
+<span style=""font-family: georgia, &quot;times new roman&quot;, serif;"">Olá prezado cliente!</span></div>
+<div style=""text-align: center; font-family: georgia, times new roman, serif;"">
+<br>
+<span>Sua opinião é muito importante para nós!</span>
+<br>
+<span>Será fácil, rápido e seguro!</span>
+<br><br>
+<span>Pedimos por gentileza que preencha o questionário através do link abaixo:</span>
+<br><br><br>
+<div class=""separator"" style=""clear: both; text-align: center;"">
+<a href=""http://189.112.5.172/crmweb/Forms/frmFormularioPesquisa.aspx?p=PES=[AndSeqPessoa]&PROC=[AndNroProcesso]&FORM=[PesqSeqForm]&EMP=[AndNroEmpresa]&RES=[AndResultadoEmail]""> <img border=""0"" data-original-height=""102"" data-original-width=""476"" height=""81"" src=""https://1.bp.blogspot.com/-pJ-xjGchR6c/XrRY9ZLFQjI/AAAAAAAAF2c/O_5uP2zRaiAE1RKLn3-7E5DHLpCD8IwaQCLcBGAsYHQ/s400/IMP.GIF"" width=""400"" /></a></div>
+<br><br><br>
+<span>Ficou com alguma dúvida?</span>
+<br>
+<span>Entre em contato conosco!</span>
+</div>
+<div style=""text-align: center;"">
+<br>
+<i class=""fas fa-phone-alt""></i> 16 3968 8080<br>
+<i class=""fab fa-whatsapp""></i><a href=""http://web.whatsapp.com/""> 16 996087703<br> </a>
+<i class=""fas fa-envelope-open-text""</i> <a href=""mailto:experienciadocliente@coloradoagro.com.br"">experienciadocliente@coloradoagro.com.br</a><br>
+<i class=""fab fa-facebook""></i> <a href=""https://www.facebook.com/coloradomaquinas/""> Facebook </a> <br> 
+<i class=""fab fa-instagram""></i> <a href=""https://www.instagram.com/coloradomaquinas/""> Instagram </a></i><br>
+<br>
+<div style=""text-align: center; font-family: georgia, times new roman, serif;"">
+<span>Agradecemos sua disponibilidade!</span>
+<br>
+<html/>","17/06/2020 22:33:00","DIEGO.MARQUES","17/06/2020 22:34:00","DIEGO.MARQUES","0,0",""
+"131","MsCtr_Andamento_EML","Pre Entrega Imp c/ agrega","Realizada Pré Entrega Com Agrega de [AndNomePessoa]","Prezado (a),
+
+Foi realizada a Pré-Entraga com Agrega no implemento do Sr(a) [AndNomePessoa] que possui o n° do processo 
+[AndNroProcesso] pela oficina.
+
+Atenciosamente,","14/07/2020 13:50:00","GABRIEL.PILO","14/07/2020 13:50:00","GABRIEL.PILO","0,0",""
+"132","Pesquisa_Web","Pesquisa Maq 1 Web","Sua opinião é muito importante para nós!","<html>
+<div class=""separator"" style=""clear: both; text-align: center;"">
+<a href=""https://1.bp.blogspot.com/-gm6Ni64mnhA/XrQ5GEmhdnI/AAAAAAAAF10/1_3dn6YSOBsz4sUxMgNjB-mBDhIXI8xMQCEwYBhgL/s1600/Colorado%2BM%25C3%25A1quinas.gif"" imageanchor=""1"" style=""margin-left: 1em; margin-right: 1em;""><img border=""0"" data-original-height=""541"" data-original-width=""634"" height=""273"" src=""https://1.bp.blogspot.com/-gm6Ni64mnhA/XrQ5GEmhdnI/AAAAAAAAF10/1_3dn6YSOBsz4sUxMgNjB-mBDhIXI8xMQCEwYBhgL/s320/Colorado%2BM%25C3%25A1quinas.gif"" width=""320"" /></a></div>
+<div class=""separator"" style=""clear: both; text-align: center;"">
+<link href=""C:/Icones/fontawesome-free-5.13.0-web/css/all.css"" rel=""stylesheet"">
+<span style=""font-family: georgia, &quot;times new roman&quot;, serif;"">Olá prezado cliente!</span></div>
+<div style=""text-align: center; font-family: georgia, times new roman, serif;"">
+<br>
+<span>Sua opinião é muito importante para nós!</span>
+<br>
+<span>Será fácil, rápido e seguro!</span>
+<br><br>
+<span>Pedimos por gentileza que preencha o questionário através do link abaixo:</span>
+<br><br><br>
+<div class=""separator"" style=""clear: both; text-align: center;"">
+<a href=""http://189.112.5.172/crmweb/Forms/frmFormularioPesquisa.aspx?p=PES=[AndSeqPessoa]&PROC=[AndNroProcesso]&FORM=[PesqSeqForm]&EMP=[AndNroEmpresa]&RES=[AndResultadoEmail]""> <img border=""0"" data-original-height=""102"" data-original-width=""476"" height=""81"" src=""https://1.bp.blogspot.com/-pJ-xjGchR6c/XrRY9ZLFQjI/AAAAAAAAF2c/O_5uP2zRaiAE1RKLn3-7E5DHLpCD8IwaQCLcBGAsYHQ/s400/IMP.GIF"" width=""400"" /></a></div>
+<br><br><br>
+<span>Ficou com alguma dúvida?</span>
+<br>
+<span>Entre em contato conosco!</span>
+</div>
+<div style=""text-align: center;"">
+<br>
+<i class=""fas fa-phone-alt""></i> 16 3968 8080<br>
+<i class=""fab fa-whatsapp""></i><a href=""http://web.whatsapp.com/""> 16 996087703<br> </a>
+<i class=""fas fa-envelope-open-text""</i> <a href=""mailto:experienciadocliente@coloradoagro.com.br"">experienciadocliente@coloradoagro.com.br</a><br>
+<i class=""fab fa-facebook""></i> <a href=""https://www.facebook.com/coloradomaquinas/""> Facebook </a> <br> 
+<i class=""fab fa-instagram""></i> <a href=""https://www.instagram.com/coloradomaquinas/""> Instagram </a></i><br>
+<br>
+<div style=""text-align: center; font-family: georgia, times new roman, serif;"">
+<span>Agradecemos sua disponibilidade!</span>
+<br>
+<html/>","26/07/2020 10:42:00","DIEGO.MARQUES","26/07/2020 10:47:00","DIEGO.MARQUES","0,0",""
+"133","MsCtr_Andamento_EML","Credito_Aprovado_Contrato","Credito aprovado do cliente [AndNomePessoa] processo [AndNroProcesso]","Prezados,
+
+Foi aprovado o credito com contrato do cliente [AndNomePessoa]
+Processo [AndNroProcesso]
+[AndDetalhe]
+
+
+Atenciosamente","11/08/2020 08:03:00","DIEGO.MARQUES","22/10/2020 10:50:00","DIEGO.MARQUES","0,0",""
+"134","MsCtr_Andamento_EML","Autorização_Recurso_Proprio","Autorizado Recurso Proprio Cliente[AndNomePessoa] processo [AndNroProcesso]","Prezado,
+
+
+O equipamento do(a) [AndNomePessoa], referente ao processo número [AndNroProcesso].
+Foi autorizado com Recurso Proprio 
+
+[AndDetalhe]
+ 
+Atenciosamente, 
+
+[AndNomeReduzidoAtendente] 
+","12/08/2020 11:04:00","DIEGO.MARQUES","12/08/2020 11:13:00","DIEGO.MARQUES","0,0",""
+"135","MsCtr_Andamento_EML","Autorização_Financiamento_Colo","Autorizado financiamento colorado do cliente [AndNomePessoa] processo [AndNroProcesso]","Prezado,
+
+
+O equipamento do(a) [AndNomePessoa], referente ao processo número [AndNroProcesso].
+Foi autorizado financiamento colorado
+
+[AndDetalhe]
+ 
+Atenciosamente, 
+
+[AndNomeReduzidoAtendente] 
+","12/08/2020 11:15:00","DIEGO.MARQUES","12/08/2020 11:15:00","DIEGO.MARQUES","0,0",""
+"136","MsCtr_Andamento_EML","Cliente_interesse_Peças","O Cliente [AndNomePessoa] tem interesse em peças","Prezado Colaborador [AndVendedor]
+
+O processo número [AndNroProcesso] registrado em nosso CRM no cliente [AndNomePessoa] SEQ [AndSeqPessoa] encontra-se em sua agenda para continuidade do atendimento. 
+
+O cliente apresentou interesse em Peças
+
+Por gentileza retorne o contato e sequencie o processo o mais breve possível.
+
+Detalhe do Processo: 
+[AndDetalhe]
+
+Responsável: [AndNomeReduzidoAtendente]
+
+Atenciosamente 
+","20/08/2020 22:33:00","DIEGO.MARQUES","27/12/2022 14:04:00","LIVIA.SILVA","0,0",""
+"137","MsCtr_Andamento_EML","Bonificacao venda trator","Foi validado a boniticação no processo [AndNroProcesso] para o cliente [AndNomePessoa]","Prezados,
+
+Foi validado a bonificação no valor:
+Informo que foi realizado a inclusão do Chassi!
+[sql>] 
+SELECT VALOR_BONIFICACAO_DE
+FROM IV_Q$ACOMPANH_VENDA_JDE
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Para o cliente [AndNomePessoa] numero do processo [AndNroProcesso]
+
+Atenciosamente","09/09/2020 13:22:00","DIEGO.MARQUES","09/09/2020 13:22:00","DIEGO.MARQUES","0,0",""
+"138","MsCtr_Andamento_EML","cliente_interesse_serviços","O Cliente [AndNomePessoa] tem interesse em Serviços","Prezado Colaborador [AndVendedor]
+
+O processo número [AndNroProcesso] registrado em nosso CRM no cliente [AndNomePessoa] SEQ [AndSeqPessoa] encontra-se em sua agenda para continuidade do atendimento. 
+
+O cliente apresentou interesse em [AndComplementoResultado]
+
+Por gentileza retorne o contato e sequencie o processo o mais breve possível.
+
+Detalhe do Processo: 
+[AndDetalhe]
+
+Responsável: [AndNomeReduzidoAtendente]
+
+Atenciosamente 
+
+Equipe Inteligência de Mercado","14/09/2020 14:05:00","DIEGO.MARQUES","19/05/2021 10:18:00","DIEGO.MARQUES","0,0",""
+"139","MsCtr_Andamento_EML","Cliente Neutro Implemento","CLIENTE NEUTRO PESQUISA - [AndNomePessoa] - Neutro Implemento","Cliente [AndNomePessoa], realizou comentários em Pesquisa Venda de Implemento
+Número do processo: [AndNroProcesso]
+
+[AndDetalhe]
+[AndDetalheAdicional]
+
+""Experiência do Cliente Satisfatória é trabalho de cada um e resultado de todos!""
+","28/10/2020 08:40:00","DIEGO.MARQUES","28/10/2020 08:41:00","DIEGO.MARQUES","0,0",""
+"140","MsCtr_Andamento_EML","Cliente Insatisf Implemento","CLIENTE INSATISFEITO PESQUISA - [AndNomePessoa] - Depreciador Implemento","Cliente [AndNomePessoa], sinalizou em Pesquisa Vendas de Máquinas insatisfação.
+
+Número do processo: [AndNroProcesso]
+
+Seguem informações sobre a insatisfação do cliente:
+[AndDetalhe]
+
+
+Importante salientar que o contato com o cliente deve ser realizado no máximo em 24 horas, se possível imediatamente. 
+Este contato deve ser registrado no processo do CRM, bem como a tratativa mais adequada para o caso.
+O prazo para solução da insatisfação é 5 dias úteis e todo e qualquer andamento no processo deve ser registrado para que todos os envolvidos tenham acesso as informações.
+
+
+""A experiência do cliente é toda interação que nossos clientes têm conosco durante todo o relacionamento que se estabelece. Investir em uma boa experiência para o cliente é deixar nossa empresa presente na memória do consumidor.""","28/10/2020 08:42:00","DIEGO.MARQUES","28/10/2020 08:47:00","DIEGO.MARQUES","0,0",""
+"141","MsCtr_Andamento_EML","Sinal Embutido Trator","Sinal Embutido Trator do Processo [AndNroProcesso] Cliente [AndNomePessoa]","Prezados,
+
+Informado no Processo [AndNroProcesso]
+Houve Sinal Embutido:
+[sql>] SELECT SINAL_EMBUTIDO 
+FROM IV_Q$Comissao
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Atenciosamente","09/11/2020 21:13:00","DIEGO.MARQUES","09/11/2020 21:13:00","DIEGO.MARQUES","0,0",""
+"142","MsCtr_Andamento_EML","Sinal Embutido Implemento","Sinal Embutido Implemento do Processo [AndNroProcesso] Cliente [AndNomePessoa]","Prezados,
+
+Informado no Processo [AndNroProcesso]
+Houve Sinal Embutido:
+[sql>] SELECT SINAL_EMBUTIDO 
+FROM IV_Q$Comissao
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Atenciosamente","09/11/2020 21:19:00","DIEGO.MARQUES","09/11/2020 21:20:00","DIEGO.MARQUES","0,0",""
+"143","MsCtr_Andamento_EML","Sinal Embutido AMS","Sinal Embutido AMS do Processo [AndNroProcesso] Cliente [AndNomePessoa]","Prezados,
+
+Informado no Processo [AndNroProcesso]
+Houve Sinal Embutido:
+[sql>] SELECT SINAL_EMBUTIDO 
+FROM IV_Q$Comissao_ams
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Atenciosamente","09/11/2020 21:27:00","DIEGO.MARQUES","09/11/2020 21:28:00","DIEGO.MARQUES","0,0",""
+"144","MsCtr_Andamento_EML","Data_Demonstração","Definido data Demonstração do Cliente [AndNomePessoa] Processo [AndNroProcesso]","Prezados,
+
+Foi definido a data da demonstração do processo [AndNroProcesso] para o cliente [AndNomePessoa]:
+Data da Demonstração
+[sql>] SELECT DATA_AGENDADA 
+FROM IV_Q$DEMO_MAQUINAS
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+","07/03/2021 14:45:00","DIEGO.MARQUES","07/03/2021 14:45:00","DIEGO.MARQUES","0,0",""
+"145","MsCtr_Andamento_EML","Preparado Implemento","Implemento do cliente [AndNomePessoa] foi finalizado a preparação","Prezado(a) 
+
+O implemento do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] foi finalizado a prepação
+
+
+Atenciosamente, 
+
+","19/04/2021 13:21:00","DIEGO.MARQUES","19/04/2021 13:22:00","DIEGO.MARQUES","0,0",""
+"146","MsCtr_Andamento_EML","CONDICAO_COMERCIAL_USADO","Condição Comercial do Usado Processo [AndNroProcesso] Com Divergencia","Prezados,
+
+Referente a processo[AndNroProcesso] do Cliente [AndNomePessoa].
+Esta com Divergencia na Condição Comercial conforme informado abaixo:
+[AndDetalhe]
+
+
+Atenciosamente,","29/05/2021 18:20:00","DIEGO.MARQUES","29/05/2021 18:20:00","DIEGO.MARQUES","0,0",""
+"147","MsCtr_Andamento_EML","GARANTIA_CORREÇAO","Processo [AndNroProcesso] de garantia para correção do cliente [AndNomePessoa]","Prezados,
+
+Favor corrigir o processo de garantia [AndNroProcesso].
+Segue informação para correção
+[AndDetalhe]
+
+
+Atenciosamente","20/06/2021 21:03:00","DIEGO.MARQUES","20/06/2021 21:03:00","DIEGO.MARQUES","0,0",""
+"148","MsCtr_Andamento_EML","Cliente_interesse_Pneus","O Cliente [AndNomePessoa] tem interesse em pneus","Prezado Colaborador [AndVendedor]
+
+O processo número [AndNroProcesso] registrado em nosso CRM no cliente [AndNomePessoa] SEQ [AndSeqPessoa] encontra-se em sua agenda para continuidade do atendimento. 
+
+O cliente apresentou interesse em Pneus
+
+Por gentileza retorne o contato e sequencie o processo o mais breve possível.
+
+Detalhe do Processo: 
+[AndDetalhe]
+
+Responsável: [AndNomeReduzidoAtendente]
+
+Atenciosamente 
+
+Equipe Inteligência de Mercado","27/06/2021 19:35:00","DIEGO.MARQUES","27/06/2021 19:35:00","DIEGO.MARQUES","0,0",""
+"149","MsCtr_Andamento_EML","SEM_ASSINATURA_NF_REMESSA","O Processo [AndNroProcesso] esta faltando a assinatura da nota remessa","Prezados,
+
+Referente ao processo[AndNroProcesso] do cliente[AndNomePessoa].
+Esta faltando a assinatura da nota de remessa
+
+Atenciosamente","18/07/2021 10:38:00","DIEGO.MARQUES","18/07/2021 10:38:00","DIEGO.MARQUES","0,0",""
+"150","MsCtr_Andamento_EML","Não Entregrar Equipamento","Não entregar equipamento do Cliente [AndNomePessoa] processo [AndNroProcesso]","Prezado(a) 
+
+Foi autorizado o faturamento do equipamento Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso].Porem a sua entrega não deve ser realizada
+
+Atenciosamente, 
+
+","01/02/2022 12:48:00","DIEGO.MARQUES","01/02/2022 12:54:00","DIEGO.MARQUES","0,0",""
+"151","MsCtr_Andamento_EML","Realizar Entrega Equipamento","Realizar entrega do equipamento processo [AndNroProcesso] cliente [AndNomePessoa]","Prezado(a) 
+
+O Equipamento do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] teve sua entrega autorizada via Por favor, providenciar a entrega do equipmaneto.
+
+Atenciosamente, 
+
+","01/02/2022 12:55:00","DIEGO.MARQUES","01/02/2022 12:55:00","DIEGO.MARQUES","0,0",""
+"152","MsCtr_Andamento_EML","Provisão Equipamento JD","Preparação Equipamento Oficina Processo [AndNroProcesso]","Prezados,
+
+O Equipamento do cliente [AndNomePessoa] numero do processo [AndNroProcesso].
+Foi preparado pela Oficina e sera [AndComplementoResultado]
+
+
+Atenciosamente","01/02/2022 14:29:00","DIEGO.MARQUES","01/02/2022 14:29:00","DIEGO.MARQUES","0,0",""
+"153","MsCtr_Andamento_EML","Provisionamento Realizado JD","Provisionamento realizado processo [AndNroProcesso]","Prezados,
+
+Foi concluido o processo de provisionamento do processo [AndNroProcesso] cliente [AndNomePessoa]
+
+Atenciosamente","03/02/2022 10:28:00","DIEGO.MARQUES","03/02/2022 10:28:00","DIEGO.MARQUES","0,0",""
+"154","MsCtr_Andamento_EML","Assinatura Nota Entrega","Aguardando assinatura da NF, processo [AndNroProcesso] cliente [AndNomePessoa]","Prezados,
+
+Referente ao processo [AndNroProcesso] do Cliente [AndNomePessoa].
+Precisamos da assinatura da NF fico no aguardo
+
+Atenciosamente","03/02/2022 10:35:00","DIEGO.MARQUES","03/02/2022 10:35:00","DIEGO.MARQUES","0,0",""
+"155","MsCtr_Andamento_EML","Pre Entr-Reliz com agreg ams","Realizada Pré Entrega Com Agrega de AMS de [AndNomePessoa]","Prezados,
+
+Foi realizada a Pré-Entrega com Agrega AMS no equipamento do cliente [AndNomePessoa] que possui o numero do processo [AndNroProcesso]
+
+Atenciosamente","10/02/2022 14:51:00","DIEGO.MARQUES","10/02/2022 14:51:00","DIEGO.MARQUES","0,0",""
+"156","MsCtr_Andamento_EML","Rlz Pre Entr-Com Desagraga AMS","Pré Entrega de [AndNomePessoa], realizada com Desagrega AMS","Prezados,
+
+Foi realizado a Pré´-Entrega com Desagrega no equipamento do Cliente [AndNomePessoa] que possui o processo [AndNroProcesso]
+
+Atenciosamente","10/02/2022 15:38:00","DIEGO.MARQUES","10/02/2022 15:38:00","DIEGO.MARQUES","0,0",""
+"157","MsCtr_Andamento_EML","Cotação Equipamento","Solicitação de Cotação para Venda [AndNomePessoa] - [AndNroProcesso]","Prezado,
+
+Foi solicitado cotação de preço para venda ao cliente [AndNomePessoa] - [AndNroProcesso].
+
+Favor realizar a cotação e direcionar ao gestor para formação de Preço de Venda.
+
+Dados para cotação:
+[AndDetalhe]
+
+
+Solicitante: [CnxCodAtendente]","02/06/2022 10:16:00","VANESSA.ALVES","02/06/2022 10:16:00","VANESSA.ALVES","0,0",""
+"158","MsCtr_Andamento_EML","Processo_Devolvido","Processo Devolvido do Cliente [AndNomePessoa] Processo[AndNroProcesso]","Prezados,
+
+O Processo [AndNroProcesso] do cliente [AndNomePessoa] foi devolvido para o Gestor
+
+
+Atenciosamente","26/06/2022 23:28:00","DIEGO.MARQUES","26/06/2022 23:30:00","DIEGO.MARQUES","0,0",""
+"159","MsCtr_Andamento_EML","Cotação Implemento","O processo [AndNroProcesso] cliente [AndNomePessoa]","
+
+O processo [AndNroProcesso] no cliente [AndNomePessoa], recebeu andamento.
+
+[AndDetalhe]
+
+Para mais detalhes consulte a plataforma de CRM ou fale com os responsáveis.","26/07/2022 11:26:00","VANESSA.ALVES","26/07/2022 11:26:00","VANESSA.ALVES","0,0",""
+"160","MsCtr_Andamento_EML","Autorizado Entrega Produto","Autorizado entrega do produto do cliente [AndNomePessoa], processo [AndNroProcesso]","Prezado(a) 
+
+O produto do Sr(a) [AndNomePessoa] que possui o nº do processo [AndNroProcesso] teve sua entrega autorizada. 
+Por favor, providenciar a entrega do produto.
+
+Atenciosamente.","20/09/2022 13:49:00","LIVIA.SILVA","20/09/2022 13:49:00","LIVIA.SILVA","0,0",""
+"161","MsCtr_Andamento_EML","Sem Preparação","Produto liberado sem preparação. Cliente [AndNomePessoa]. Processo [AndNroProcesso]","Prezado (a),
+
+Foi realizada a liberação do produto do Sr(a) [AndNomePessoa] sem preparação, que possui o nº do processo [AndNroProcesso].
+
+Atenciosamente.
+
+","23/09/2022 14:35:00","LIVIA.SILVA","23/09/2022 14:35:00","LIVIA.SILVA","0,0",""
+"163","MsCtr_Andamento_EML","Doc. Complementar Enviada","PREPARADO PROCESSO DE VENDA [AndNroProcesso] , DO CLIENTE [AndNomePessoa]","Prezados,
+
+Foi enviado a documentação complementar do processo [AndNroProcesso], do cliente [AndSeqPessoa].
+
+
+Atenciosamente","08/11/2022 10:55:00","LIVIA.SILVA","08/11/2022 10:55:00","LIVIA.SILVA","0,0",""
+"164","MsCtr_Andamento_EML","Pendência Contabilizar Desagr.","Pendência Contabilizar Desagregar Produto, processo [AndNroProcesso]","Prezados,
+
+Estamos com pendência para contabilizar o desagrega do processo [AndNroProcesso], do cliente [AndNomePessoa].
+Devido a pendência [AndDetalhe].
+
+Att
+
+","26/12/2022 15:44:00","LIVIA.SILVA","27/12/2022 09:14:00","LIVIA.SILVA","0,0",""
+"165","MsCtr_Andamento_EML","Atender Solicitação Visita Téc","O cliente [AndNomePessoa] solicita visita consultoras","Prezada, 
+
+O processo número [AndNroProcesso] registrado em nosso CRM no cliente [AndNomePessoa] SEQ [AndSeqPessoa] encontra-se em sua agenda para continuidade do atendimento.
+
+O cliente solicita visita consultoras.
+
+Por gentileza retorne o contato e sequencie o processo o mais breve possível.
+
+
+Atenciosamente","28/12/2022 15:41:00","LIVIA.SILVA","11/01/2023 14:25:00","LIVIA.SILVA","0,0",""
+"166","MsCtr_Andamento_EML","Atender serviço csc","O cliente [AndNomePessoa] solicita atendimento de serviço","Prezado colaborador, 
+
+O processo número [AndNroProcesso] registrado em nosso CRM no cliente [AndNomePessoa] SEQ [AndSeqPessoa] encontra-se em sua agenda para continuidade do atendimento.
+
+O cliente solicita atendimento de serviço..
+
+Por gentileza retorne o contato e sequencie o processo o mais breve possível.
+
+
+Atenciosamente","25/01/2023 15:41:00","LIVIA.SILVA","25/01/2023 15:41:00","LIVIA.SILVA","0,0",""
+"167","MsCtr_Andamento_EML","Experiencia Cliente - Colorado","Registro Experiencia Cliente - Pesquisa Interna","Origem: Pesquisa Interna
+
+Ação: [AndAgendaAssunto]
+
+Data: [AndAgendaData]
+
+Processo: [AndNroProcesso]
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Registro CRM: [AndDescResultado], [AndComplementoResultado]
+
+[AndDetalheAdicional][AndDetalhe]
+
+Experiência do Cliente - Colorado Máquinas
+
+
+","13/02/2023 10:15:00","VANESSA.ALVES","29/03/2023 09:44:00","LIVIA.SILVA","0,0",""
+"168","MsCtr_Andamento_EML","Análise crédito com pendência","Análise de Crédito com Pendência, cliente [AndNomePessoa] processo [AndNroProcesso]","Prezado,
+
+O processo [AndNroProcesso] do cliente [AndNomePessoa], se encontra com pendência na análise de crédito. Por favor, solucione a pendência mencionada abaixo para darmos continuidade no processo.
+
+Pendência: [AndDetalhe]
+
+Atenciosamente","23/02/2023 15:11:00","LIVIA.SILVA","27/04/2023 09:24:00","LIVIA.SILVA","0,0",""
+"169","MsCtr_Andamento_EML","Experiencia Cliente - JD","Registro Experiencia Cliente - Pesquisa John Deere","Origem: Pesquisa John Deere
+
+Ação: [AndAgendaAssunto]
+
+Data: [AndAgendaData]
+
+Processo: [AndNroProcesso]
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Registro CRM: [AndDescResultado], [AndComplementoResultado]
+
+[AndDetalheAdicional][AndDetalhe]
+
+ATENÇÃO: Deve-se realizar o contato com o cliente no máximo em 24 horas, se possível imediatamente e realizar o respectivo registrado no processo de CRM, bem como detalhar a tratativa mais adequada para o caso.
+
+O prazo para solução da insatisfação é 5 dias úteis.
+
+Experiência do Cliente - Colorado Máquinas
+
+
+","27/02/2023 11:42:00","VANESSA.ALVES","27/02/2023 11:42:00","VANESSA.ALVES","0,0",""
+"170","MsCtr_Andamento_EML","Registro Insatisfação Colorado","Experiencia Cliente - Registro de Insatisfação Pesquisa Interna","Fonte: Pesquisa Interna Tracbel Agro
+
+Origem: [AndAgendaAssunto]
+
+Processo: [AndNroProcesso] - Data: [AndDataRealizacao] - Empresa: [AndNroEmpresa] 
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Registro CRM: [AndDescResultado], [AndComplementoResultado]
+
+[AndDetalheAdicional][AndDetalhe]
+
+[AndAssinaturaAtendente]
+
+
+","27/02/2023 11:44:00","VANESSA.ALVES","24/05/2024 10:50:00","LIVIA.SILVA","0,0",""
+"171","MsCtr_Andamento_EML","Solução Insatisfação Colorado","Tratativa de insatisfação","Processo: [AndNroProcesso] - Data: [AndDataRealizacao] - [AndNroEmpresa] [CnxNomeEmpresa]
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Insatisfação: [AndDescricaoProcesso]
+
+
+
+
+
+
+","27/02/2023 12:31:00","VANESSA.ALVES","22/03/2024 17:09:00","LIVIA.SILVA","0,0",""
+"172","MsCtr_Andamento_EML","Entrega Realizada JD","Realizada entrega JD do cliente [AndNomePessoa] / processo [AndNroProcesso]","Realizada a entrega JD do cliente [AndNomePessoa].
+
+Realizar a transferência de equipamento operations center.
+FORM1
+Chassi: 
+
+
+Att","28/02/2023 11:26:00","LIVIA.SILVA","20/03/2023 10:14:00","LIVIA.SILVA","0,0",""
+"173","MsCtr_Andamento_EML","Registro Insatisfação JD","Experiencia Cliente - Registro de Insatisfação Pesquisa John Deere","Fonte: Pesquisa John Deere
+
+Origem: [AndAgendaAssunto]
+
+Processo: [AndNroProcesso] - Data: [AndDataRealizacao] - [AndNroEmpresa] 
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Registro CRM: [AndDescResultado], [AndComplementoResultado]
+
+[AndDetalheAdicional][AndDetalhe]
+
+[AndAssinaturaAtendente]","07/03/2023 21:43:00","VANESSA.ALVES","17/04/2023 10:07:00","VANESSA.ALVES","0,0",""
+"174","MsCtr_Andamento_EML","Recebido Equipamento Usado","Recebido o Equipamento Usado do Processo [AndNroProcesso]","Prezados,
+
+O equipamento usado do cliente [AndNomePessoa], foi recebido de acordo com o processo [AndNroProcesso].
+
+Att","08/03/2023 14:57:00","LIVIA.SILVA","08/03/2023 14:57:00","LIVIA.SILVA","0,0",""
+"175","MsCtr_Andamento_EML","Receber Pagamento Produto","RECEBIMENTO TOTAL, PROCESSO [AndNroProcesso] CLIENTE [AndNomePessoa]","Prezado,
+
+Foi realizado o recebimento total do pagamento do produto, do processo [AndNroProcesso] cliente [AndNomePessoa]
+
+[AndDetalhe]
+
+Atenciosamente","14/03/2023 11:05:00","LIVIA.SILVA","14/03/2023 12:50:00","LIVIA.SILVA","0,0",""
+"176","MsCtr_Andamento_EML","Receber Pgt Parcial Produto","RECEBIMENTO PARCIAL, PROCESSO [AndNroProcesso] CLIENTE [AndNomePessoa]","Prezado,
+
+Foi realizado o recebimento parcial do pagamento do produto, do processo [AndNroProcesso] cliente [AndNomePessoa]
+
+[AndDetalhe]
+
+Atenciosamente","14/03/2023 11:12:00","LIVIA.SILVA","14/03/2023 12:51:00","LIVIA.SILVA","0,0",""
+"177","MsCtr_Andamento_EML","Critica_Sugestao_CEX","Processo: [AndNroProcesso] - [AndNomePessoa] - Sugestão/Crítica","Processo: [AndNroProcesso] - Data: [AndDataRealizacao] - [AndNroEmpresa] [CnxNomeEmpresa]
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Registro CRM: [AndDescResultado], [AndComplementoResultado]
+
+Tratativa: [AndDetalheAdicional][AndDetalhe]
+
+[AndAssinaturaAtendente]","15/03/2023 17:57:00","VANESSA.ALVES","15/03/2023 17:57:00","VANESSA.ALVES","0,0",""
+"178","MsCtr_Andamento_EML","Realizada Entrega JD","Realizada entrega JD do cliente [AndNomePessoa] / processo [AndNroProcesso]","Realizada a entrega JD do cliente [AndNomePessoa].
+
+Realizar a transferência de equipamento operations center.
+Chassi: 
+[sql>] 
+SELECT NRO_CHASSI1
+FROM IV_Q$ACOMPANH_VENDA_JDE
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Att","16/03/2023 10:48:00","LIVIA.SILVA","10/04/2023 14:24:00","LIVIA.SILVA","0,0",""
+"179","MsCtr_Andamento_EML","Registro Satisação JD","Experiencia Cliente - Registro de Satisfação","Origem: [AndAgendaAssunto]
+
+Processo: [AndNroProcesso] - Data: [AndDataRealizacao] - [AndNroEmpresa] 
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Registro CRM: [AndDescResultado], [AndComplementoResultado]
+
+[AndDetalheAdicional][AndDetalhe]
+
+[AndAssinaturaAtendente]
+","17/03/2023 10:05:00","LIVIA.SILVA","17/04/2023 10:07:00","VANESSA.ALVES","0,0",""
+"180","MsCtr_Andamento_EML","Registro Satisfação Colorado","Experiencia Cliente - Registro de Satisfação","Origem: [AndAgendaAssunto]
+
+Processo: [AndNroProcesso] - Data: [AndDataRealizacao] - [AndNroEmpresa] 
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Registro CRM: [AndDescResultado], [AndComplementoResultado]
+
+[AndDetalheAdicional][AndDetalhe]
+
+[AndAssinaturaAtendente]","17/04/2023 10:11:00","VANESSA.ALVES","17/04/2023 10:11:00","VANESSA.ALVES","0,0",""
+"181","MsCtr_Andamento_EML","Analisar Garantia","Analisar Processo de Cortesia","Prezado,
+
+Favor analisar o processo [AndNroProcesso] referente a Cortesia
+
+
+Atenciosamente","07/06/2023 09:49:00","DIEGO.MARQUES","07/06/2023 09:49:00","DIEGO.MARQUES","0,0",""
+"182","MsCtr_Andamento_EML","Não é insatisfação","ANALISAR DEMANDA - [AndNomePessoa]","Prezado, 
+
+O processo número [AndNroProcesso] registrado em nosso CRM no cliente [AndNomePessoa] SEQ [AndSeqPessoa] encontra-se em sua agenda para continuidade do atendimento.
+
+Por gentileza retorne o contato e sequencie o processo o mais breve possível, entendendo a demanda do cliente.
+
+
+Atenciosamente","14/06/2023 12:02:00","LIVIA.SILVA","14/06/2023 12:02:00","LIVIA.SILVA","0,0",""
+"183","MsCtr_Andamento_EML","Faturado Desconto Incondiciona","Faturado Desconto Incondicional - Cliente [AndNomePessoa] [AndNroProcesso]","Prezados, o equipamento do cliente [AndNomePessoa] já passou pela etapa de faturamento de desconto incondicional acordo com o processo [AndNroProcesso] do vendedor [AndVendedor]. A NF está anexada ao processo dentro do CRM.
+
+Configurações AMS:
+[sql>] 
+SELECT CONFIGURACOES_AMS
+FROM IV_Q$ACOMP_VEND_MAQUINAS
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+","01/08/2023 10:25:00","LIVIA.SILVA","10/08/2023 13:11:00","LIVIA.SILVA","0,0",""
+"184","MsCtr_Andamento_EML","Reavaliar insatisfação peças","CLIENTE INSATISFEITO PESQUISA - [AndNomePessoa]","Cliente [AndNomePessoa], sinalizou em Pesquisa de Peças insatisfação.
+
+Número do processo: [AndNroProcesso]
+
+Seguem informações sobre a insatisfação do cliente:
+[AndDetalhe]
+
+
+RESUMO DO PROCESSO:
+[AndResumoProcesso]
+
+
+DESCRIÇÃO DO PROCESSO:
+[AndDescricaoProcesso]","12/09/2023 13:14:00","LIVIA.SILVA","12/09/2023 13:14:00","LIVIA.SILVA","0,0",""
+"185","MsCtr_Andamento_EML","Potencial_Seguro","Cliente potencial para venda de Seguro.","
+Processo: [AndNroProcesso] - Data: [AndDataRealizacao] - [CnxNomeEmpresa]
+
+Cliente: [AndNomePessoa] - [AndSeqPessoa] 
+
+Logradouro
+[sql>] 
+select
+A.Logradouro
+from GE_pessoa AS A
+JOIN IV_HISTORICo AS B
+ON A.SEQPESSOA = B.SEQPESSOA
+WHERE B.Processo = [AndNroProcesso]
+[sql<]
+
+Cidade
+[sql>] 
+select
+A.Cidade
+from GE_pessoa AS A
+JOIN IV_HISTORICo AS B
+ON A.SEQPESSOA = B.SEQPESSOA
+WHERE B.Processo = [AndNroProcesso]
+[sql<]
+
+Contato
+[sql>] 
+SELECT
+
+A.CONTATO
+from IV$S_CONTATO AS A
+
+JOIN IV_HISTORICo AS B
+
+ON A.SEQPESSOA = B.SEQPESSOA
+
+WHERE B.Processo = [AndNroProcesso]
+AND A.PAPEL = 'Comprador de Máquina'
+
+AND A.EMUSO <> '0'
+[sql<]
+
+
+Telefone:
+[sql>] 
+SELECT
+
+A.fonenro1
+from IV$S_CONTATO AS A
+
+JOIN IV_HISTORICo AS B
+
+ON A.SEQPESSOA = B.SEQPESSOA
+WHERE B.Processo = [AndNroProcesso]
+AND A.PAPEL = 'Comprador de Máquina'
+
+AND A.EMUSO <> '0'
+[sql<]
+
+CEN
+[sql>] 
+SELECT 
+VENDEDOR
+FROM IV_ProcDADO
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1 
+[sql<]
+
+Registro CRM: [AndDescResultado], [AndComplementoResultado]
+
+Andamento no Processo: [AndDetalhe]
+
+
+[AndAssinaturaAtendente]
+
+","28/09/2023 14:48:00","VANESSA.ALVES","29/09/2023 17:14:00","DIEGO.MARQUES","0,0",""
+"186","MsCtr_Andamento_EML","Alerta desconto incondicional","Desconto incondicional - Cliente [AndNomePessoa] Processo [AndNroProcesso]","Prezado,
+Atente-se ao Processo [AndNroProcesso] do cliente [AndNomePessoa], pois o mesmo possui informação de Saída de Cabine/Capota ou AMS, podendo ser necessário a realização de desconto incondicional.
+
+Contém AMS:
+[sql>] 
+select VENDA_MODELO_EQUIPAM
+from IV_Q$VENDA_EQUIPAMENTO
+WHERE Processo = [AndNroProcesso]
+[sql<]
+
+
+
+","28/09/2023 16:08:00","LIVIA.SILVA","11/02/2026 15:38:00","MATHEUS.AUGUSTO","0,0",""
+"187","MsCtr_Andamento_EML","Análise de crédito AMS","Análise de crédito - Cliente [AndNomePessoa] [AndNroProcesso]","Prezados, o processo [AndNroProcesso] do cliente [AndNomePessoa] já passou pela etapa de análise de crédito.
+
+Veja o histórico do processo:
+[AndDetalhe]","17/10/2023 15:04:00","LIVIA.SILVA","17/10/2023 15:04:00","LIVIA.SILVA","0,0",""
+"188","MsCtr_Andamento_EML","Projeto Finalizado Valley","Projeto Finalizado - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Prezados,
+
+O projeto do cliente [AndNomePessoa], processo [AndNroProcesso] foi finalizado!
+
+[AndDetalhe]","01/12/2023 15:48:00","LIVIA.SILVA","01/12/2023 16:07:00","LIVIA.SILVA","0,0",""
+"189","MsCtr_Andamento_EML","Cliente com interesse irrigaçã","Interesse - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Prezados,
+
+O Cliente [AndNomePessoa] mostrou interese no projeto de irrigação.
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+Atenciosamente
+","01/12/2023 15:59:00","LIVIA.SILVA","01/12/2023 16:41:00","LIVIA.SILVA","0,0",""
+"190","MsCtr_Andamento_EML","Desistiu Projeto Irrigação","Desistiu do Projeto - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Prezados,
+
+O cliente [AndNomePessoa] desistiu do projeto de irrigação no processo [AndNroProcesso].
+
+[AndDetalhe]
+
+Atenciosamente","01/12/2023 16:05:00","LIVIA.SILVA","01/12/2023 16:05:00","LIVIA.SILVA","0,0",""
+"191","MsCtr_Andamento_EML","Interesse futuro irrigação","Interesse Futuro - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Prezados,
+
+O Cliente [AndNomePessoa] mostrou interese futuro no projeto de irrigação.
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+","01/12/2023 16:41:00","LIVIA.SILVA","01/12/2023 16:41:00","LIVIA.SILVA","0,0",""
+"192","MsCtr_Andamento_EML","Venda Perdida Valley","Venda Perdida - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","[AndNomeReduzidoAtendente] registrou no processo [AndNroProcesso] a venda perdida no cliente [AndNomePessoa] - [AndSeqPessoa].
+
+Detalhes do histórico:
+[AndDetalhe]
+","13/12/2023 09:57:00","LIVIA.SILVA","13/12/2023 09:57:00","LIVIA.SILVA","0,0",""
+"193","MsCtr_Andamento_EML","Prospecção Seguros","Prospectar Seguros - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+
+
+O Cliente [AndNomePessoa] acaba de ter o pedido de seu equipamento aprovado.
+Processo: [AndNroProcesso]
+
+
+
+[AndDetalhe]
+
+
+
+Atenciosamente","31/01/2024 16:11:00","NETO.PRADO","31/01/2024 16:11:00","NETO.PRADO","0,0",""
+"194","MsCtr_Andamento_EML","Pedido Aprovado Financiado","Pedido Aprovado Financiado - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+O Cliente [AndNomePessoa] teve seu peddo aprovado (financiado).
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+
+
+Atenciosamente
+","31/01/2024 16:34:00","NETO.PRADO","31/01/2024 16:34:00","NETO.PRADO","0,0",""
+"195","MsCtr_Andamento_EML","Faturamento Cancelado","Faturamento Cancelado - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+O Cliente [AndNomePessoa] teve seu faturamento cancelado.
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+
+
+Atenciosamente","31/01/2024 17:03:00","NETO.PRADO","31/01/2024 17:03:00","NETO.PRADO","0,0",""
+"196","MsCtr_Andamento_EML","Recebimento Financeiro Cancela","Recebimento Cancelado - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+O Recebimento Financeiro do Cliente [AndNomePessoa] foi cancelado.
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+
+
+Atenciosamente
+
+","31/01/2024 17:29:00","NETO.PRADO","31/01/2024 17:31:00","NETO.PRADO","0,0",""
+"197","MsCtr_Andamento_EML","VERIFICAR RECEBIMENTO PEDIDO","Verificar Recebimento do Pedido - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+Você possui uma tarefa de Verificar Recebimento do Pedido do Cliente [AndNomePessoa]
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+Atenciosamente,","01/02/2024 09:16:00","NETO.PRADO","01/02/2024 09:16:00","NETO.PRADO","0,0",""
+"198","MsCtr_Andamento_EML","Crédito Aprovado","Realizar Checagem FInanceira - Crédito Aprovado - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+O Cliente [AndNomePessoa] teve seu crédito aprovado.
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+
+Atenciosamente,","01/02/2024 09:46:00","NETO.PRADO","01/02/2024 09:46:00","NETO.PRADO","0,0",""
+"199","MsCtr_Andamento_EML","Crédito Não Aprovado","Crédito Não Aprovado - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+O Cliente [AndNomePessoa] não teve seu crédito aprovado.
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+Atenciosamente,","01/02/2024 09:55:00","NETO.PRADO","01/02/2024 09:55:00","NETO.PRADO","0,0",""
+"200","MsCtr_Andamento_EML","Desistiu da Compra","Desistiu da Compra - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+O Cliente [AndNomePessoa] desistiu da compra.
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+Atencionsamente,","01/02/2024 10:01:00","NETO.PRADO","01/02/2024 10:01:00","NETO.PRADO","0,0",""
+"201","MsCtr_Andamento_EML","Processo Sem Pendência","Processo Sem Pendência - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+Processo Sem Pendência - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+Atenciosamente,","01/02/2024 10:07:00","NETO.PRADO","26/03/2025 14:21:00","MATHEUS.AUGUSTO","0,0",""
+"202","MsCtr_Andamento_EML","Processo Com Pendência","Processo Com Pendência - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+Processo Com Pendência - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+Atenciosamente,","01/02/2024 10:15:00","NETO.PRADO","01/02/2024 10:15:00","NETO.PRADO","0,0",""
+"203","MsCtr_Andamento_EML","Crédito Renegociável","Crédito Renegociável - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+Crédito Renegociável - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+Atenciosamente,","01/02/2024 10:38:00","NETO.PRADO","01/02/2024 10:38:00","NETO.PRADO","0,0",""
+"204","MsCtr_Andamento_EML","Alterada Forma de Pagamento","Alterada Forma de Pagamento - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+Alterada Forma de Pagamento - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+Atenciosamente,","01/02/2024 10:43:00","NETO.PRADO","01/02/2024 10:43:00","NETO.PRADO","0,0",""
+"205","MsCtr_Andamento_EML","CCB Emitida","CCB Emitida - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+CCB Emitida - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+Atenciosamente,","01/02/2024 10:52:00","NETO.PRADO","01/02/2024 10:52:00","NETO.PRADO","0,0",""
+"206","MsCtr_Andamento_EML","Faturamento Autorizado","Faturamento Autorizado - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]","Olá,
+
+Faturamento Autorizado - Cliente [AndNomePessoa] / Seq [AndSeqPessoa]
+Processo: [AndNroProcesso]
+
+[AndDetalhe]
+
+Atencionsamente,","01/02/2024 11:00:00","NETO.PRADO","01/02/2024 11:00:00","NETO.PRADO","0,0",""
+"207","MsCtr_Andamento_EML","Histórico do Processo","[AndAgendaAssunto] - Cliente [AndNomePessoa]","Olá,
+
+Cliente: [AndNomePessoa]
+Sequencial: [AndSeqPessoa]
+Processo: [AndNroProcesso]
+Ação: [AndAgendaAssunto]
+Resultado: [AndDescResultado]
+Vendedor: [AndVendedor]
+
+Detalhe do histórico:
+[AndDetalhe]","06/02/2024 10:14:00","NETO.PRADO","06/02/2024 10:48:00","NETO.PRADO","0,0",""
+"208","MsCtr_Andamento_EML","Pedido de Venda","Pedido Realizado Tracbel Agro Norte - Cliente [AndNomePessoa]","Olá,
+
+O CEN [AndVendedor] acaba de tirar um pedido para o Cliente [AndNomePessoa].
+O Produto que esta sendo negociado é:
+Tipo: [sql>]
+SELECT TIPO_DO_EQUIPAMENTO
+FROM IV_Q$VENDA
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1
+[sql<]
+Modelo: [sql>]
+SELECT CODIGO_DO_MODELO
+FROM IV_Q$VENDA
+WHERE Processo = [AndNroProcesso]
+ORDER BY 1
+[sql<]
+Processo CRM: [AndNroProcesso]
+
+Atenciosamente,
+Equipe CRM.","08/04/2024 16:39:00","NETO.PRADO","11/04/2024 17:06:00","NETO.PRADO","0,0",""
+"209","MsCtr_Andamento_EML","Remoção Cliente Carteira","Remoção Cliente [AndNomePessoa] da carteira.","Olá,
+
+Conforme solicitado, o Cliente [AndNomePessoa] foi removido da carteira do CEN [AndVendedor].
+
+Atenciosamente,
+Equipe CRM.","09/04/2024 16:30:00","NETO.PRADO","09/04/2024 16:30:00","NETO.PRADO","0,0",""
+"210","MsCtr_Andamento_EML","CAMPANHA 1º JD","Preparação Entrega Kit 1º John Deere - Cliente [AndNomePessoa]","Olá,
+
+O equipamento do Cliente: [AndNomePessoa] Sequencial: [AndSeqPessoa] acaba de ser faturado.
+
+Mais informações
+Processo: [AndNroProcesso]
+Ação: [AndAgendaAssunto]
+Resultado: [AndDescResultado]
+Vendedor: [AndVendedor]
+
+Detalhe do histórico:
+[AndDetalhe]","26/08/2024 14:33:00","NETO.PRADO","26/08/2024 14:34:00","NETO.PRADO","0,0",""
+"211","MsCtr_Andamento_EML","Agrega c/ Orçamento","Preparação Agrega c/ Orçamento Extra - Cliente: [AndNomePessoa]","Olá,
+
+Cliente: [AndNomePessoa]
+Sequencial: [AndSeqPessoa]
+Resultado: [AndDescResultado]
+
+Detalhe do histórico:
+[AndDetalhe]","21/01/2025 15:46:00","NETO.PRADO","21/01/2025 15:46:00","NETO.PRADO","0,0",""
+"212","MsCtr_Andamento_EML","Agrega s/ Orçamento","Preparação Agrega s/ Orçamento - Cliente: [AndNomePessoa]","Olá,
+
+Cliente: [AndNomePessoa]
+Sequencial: [AndSeqPessoa]
+Resultado: [AndDescResultado]
+
+Detalhe do histórico:
+[AndDetalhe]","21/01/2025 15:51:00","NETO.PRADO","21/01/2025 15:51:00","NETO.PRADO","0,0",""
+"213","MsCtr_Andamento_EML","Desagrega Efetuado","[AndDescResultado] - Cliente [AndNomePessoa]","Olá,
+
+Cliente: [AndNomePessoa]
+Sequencial: [AndSeqPessoa]
+Processo: [AndNroProcesso]
+Ação: [AndAgendaAssunto]
+Resultado: [AndDescResultado]
+Vendedor: [AndVendedor]
+
+Detalhe do histórico:
+[AndDetalhe]","11/04/2025 10:22:00","NETO.PRADO","11/04/2025 10:22:00","NETO.PRADO","0,0",""
+"214","MsCtr_Andamento_EML","Ativação Licenças (CSC)","Verificar Ativação Licença - Cliente [AndNomePessoa] / Seq [AndSeqPessoa] 
+","Olá, 
+
+Faturamos um equipamento para o Cliente [AndNomePessoa] / Seq [AndSeqPessoa] 
+Por gentileza, verificar se o mesmo possui ativação de licenças.
+Processo: [AndNroProcesso] 
+
+[AndDetalhe] 
+
+Atencionsamente,","18/02/2026 10:45:58","NETO.PRADO","18/02/2026 10:45:58","NETO.PRADO","0,0",""

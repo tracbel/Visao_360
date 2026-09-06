@@ -1,0 +1,32 @@
+[
+  {
+    "id": "qualificacao",
+    "label": "Qualificação",
+    "hint": "Descoberta e fit inicial"
+  },
+  {
+    "id": "diagnostico",
+    "label": "Diagnóstico",
+    "hint": "Levantamento técnico e financeiro"
+  },
+  {
+    "id": "proposta",
+    "label": "Proposta",
+    "hint": "Preparo, envio e apresentação"
+  },
+  {
+    "id": "negociacao",
+    "label": "Negociação",
+    "hint": "Contraprop., desconto e condições"
+  },
+  {
+    "id": "fechamento",
+    "label": "Fechamento",
+    "hint": "Aprovações finais e formalização"
+  },
+  {
+    "id": "ganho_perdido",
+    "label": "Ganho / Perdido",
+    "hint": "Concluídas no período"
+  }
+]

@@ -1,0 +1,35 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+artifacts/
+TestResults/
+coverage*.xml
+*.coverage
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+
+# Segredos — NUNCA versionar
+appsettings.Development.json
+appsettings.Local.json
+*.pfx
+.env
+.env.*
+!.env.example
+!.env.exemplo
+
+# SO
+Thumbs.db
+.DS_Store
+
+.fake
+
+# Estado das ferramentas de assistente que rodam sobre o repositorio (sessoes, notepad,
+# memoria de projeto). Sao artefatos de quem esta editando, e nao do produto: mudam a cada
+# execucao e nao dizem nada a quem clonar o repositorio amanha.
+.omc/

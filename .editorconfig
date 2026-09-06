@@ -1,0 +1,43 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+trim_trailing_whitespace = true
+
+[*.cs]
+indent_size = 4
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_when_type_is_apparent = true:suggestion
+# for_non_interface_members, não "always": membro de interface é implicitamente público,
+# e exigir o modificador lá é ruído que vira erro por causa do TreatWarningsAsErrors.
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_diagnostic.CA2007.severity = none
+
+# Documentação XML obrigatória no que é público
+dotnet_diagnostic.CS1591.severity = warning
+
+[*.{json,yml,yaml,md}]
+indent_size = 2
+
+[*.sql]
+indent_size = 4
+
+# ---------------------------------------------------------------------------------------------
+# Migrations do EF Core são CÓDIGO GERADO.
+#
+# O documento 14, regra 9.1, diz que o código gerado é revisado em PR como qualquer outro, mas
+# não reescrito à mão — logo o estilo do projeto não pode barrar o build por causa da forma que
+# a ferramenta escolhe (namespace com chaves, ausência de documentação XML, `var` implícito).
+# O que continua valendo aqui é o CONTEÚDO: schema, nomenclatura, tipos e integridade, que os
+# testes de padrão de banco verificam sobre o modelo.
+# ---------------------------------------------------------------------------------------------
+[**/Migrations/*.cs]
+generated_code = true
+csharp_style_namespace_declarations = block_scoped:silent
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.CS1591.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+dotnet_diagnostic.IDE0090.severity = none

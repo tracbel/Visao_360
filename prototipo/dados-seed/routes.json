@@ -1,0 +1,126 @@
+{
+  "/": {
+    "title": "Visão 360",
+    "crumb": [
+      "Visão 360"
+    ],
+    "render": "[function renderVisao360]"
+  },
+  "/inicio-antigo": {
+    "title": "Início (mapa do protótipo)",
+    "crumb": [
+      "Início"
+    ],
+    "render": "[function renderHome]"
+  },
+  "/agenda": {
+    "title": "Agenda do CEN",
+    "crumb": [
+      "Comercial",
+      "Agenda do CEN"
+    ],
+    "render": "[function renderAgenda]"
+  },
+  "/cobertura": {
+    "title": "Cobertura de Carteira",
+    "crumb": [
+      "Comercial",
+      "Cobertura"
+    ],
+    "render": "[function renderCarteiraCEN]"
+  },
+  "/pipeline": {
+    "title": "Pipeline de Vendas",
+    "crumb": [
+      "Comercial",
+      "Pipeline"
+    ],
+    "render": "[function renderPipelineVendas]"
+  },
+  "/clientes": {
+    "title": "Clientes",
+    "crumb": [
+      "Comercial",
+      "Clientes"
+    ],
+    "render": "[function renderClientesLista]"
+  },
+  "/clientes/84391": {
+    "title": "Ficha do Cliente",
+    "crumb": [
+      "Comercial",
+      "Clientes",
+      "Agroindustrial Salvador Arena Ltda"
+    ],
+    "render": "[function renderClienteFicha]"
+  },
+  "/equipamentos/1RW7250PVMR123456": {
+    "title": "Ficha do Equipamento",
+    "crumb": [
+      "Comercial",
+      "Equipamentos",
+      "Trator 7250R · 1RW7250PVMR123456"
+    ],
+    "render": "[function renderEquipamentoFicha]"
+  },
+  "/oportunidades/1517613": {
+    "title": "Ficha de Oportunidade",
+    "crumb": [
+      "Comercial",
+      "Oportunidades",
+      "OP-2026-08471 · Salvador Arena"
+    ],
+    "render": "[function renderOportunidadeFicha]"
+  },
+  "/equipamentos": {
+    "title": "Equipamentos",
+    "crumb": [
+      "Comercial",
+      "Equipamentos"
+    ],
+    "render": "[function renderPlaceholder]"
+  },
+  "/relatorios/funil": {
+    "title": "Funil de Vendas do Mês",
+    "crumb": [
+      "Relatórios",
+      "Funil de Vendas"
+    ],
+    "render": "[function renderFunil]"
+  },
+  "/relatorios/performance": {
+    "title": "Performance de CEN",
+    "crumb": [
+      "Relatórios",
+      "Performance de CEN"
+    ],
+    "render": "[function renderPerformanceCEN]"
+  },
+  "/oportunidades/nova": {
+    "title": "Nova Oportunidade",
+    "crumb": [
+      "Comercial",
+      "Oportunidades",
+      "Nova"
+    ],
+    "render": "[function renderNovaOportunidade]",
+    "mount": "[function mountNovaOportunidade]"
+  },
+  "/relatorios/cobertura": {
+    "title": "Cobertura de Carteira · Painel Regional",
+    "crumb": [
+      "Relatórios",
+      "Cobertura Regional"
+    ],
+    "render": "[function renderCobertura]"
+  },
+  "/config": {
+    "title": "Configurações",
+    "crumb": [
+      "Sistema",
+      "Configurações"
+    ],
+    "render": "[function renderConfig]",
+    "mount": "[function mountConfig]"
+  }
+}

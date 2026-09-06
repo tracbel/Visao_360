@@ -1,0 +1,357 @@
+{
+  "gerado_por": "prototipo/dados-seed/extrair.mjs",
+  "fonte": "prototipo/referencia/assets/app.js",
+  "arquivos": [
+    {
+      "nome": "ROUTES",
+      "arquivo": "routes.json",
+      "linha": 3,
+      "registros": 15,
+      "descricao": "Tabela de rotas do router por hash",
+      "status": "ok"
+    },
+    {
+      "nome": "FUNIL_DATA",
+      "arquivo": "funil.json",
+      "linha": 281,
+      "registros": 3,
+      "descricao": "Relatório Funil de Vendas do Mês",
+      "status": "ok"
+    },
+    {
+      "nome": "COBERTURA_DATA",
+      "arquivo": "cobertura.json",
+      "linha": 693,
+      "registros": 4,
+      "descricao": "Painel Regional de Cobertura de Carteira",
+      "status": "ok"
+    },
+    {
+      "nome": "AGENDA_DATA",
+      "arquivo": "agenda.json",
+      "linha": 1125,
+      "registros": 3,
+      "descricao": "Agenda do CEN (tarefas)",
+      "status": "ok"
+    },
+    {
+      "nome": "TIPO_META",
+      "arquivo": "tipo-meta.json",
+      "linha": 1173,
+      "registros": 4,
+      "descricao": "Taxonomia de tipo de tarefa da agenda",
+      "status": "ok"
+    },
+    {
+      "nome": "CLIENTE_DATA",
+      "arquivo": "cliente-84391.json",
+      "linha": 1634,
+      "registros": 30,
+      "descricao": "Ficha 360 do cliente 84391",
+      "status": "ok"
+    },
+    {
+      "nome": "EQUIPAMENTO_DATA",
+      "arquivo": "equipamento-1RW7250PVMR123456.json",
+      "linha": 2212,
+      "registros": 30,
+      "descricao": "Ficha do equipamento por chassi",
+      "status": "ok"
+    },
+    {
+      "nome": "OPORTUNIDADE_DATA",
+      "arquivo": "oportunidade-1517613.json",
+      "linha": 2712,
+      "registros": 22,
+      "descricao": "Ficha da oportunidade OP-2026-08471",
+      "status": "ok"
+    },
+    {
+      "nome": "META_FREQ",
+      "arquivo": "meta-frequencia.json",
+      "linha": 3376,
+      "registros": 4,
+      "descricao": "Meta de frequência de contato por classe ABCD",
+      "status": "ok"
+    },
+    {
+      "nome": "CAT_INTERACAO",
+      "arquivo": "config-categorias-interacao.json",
+      "linha": 3379,
+      "registros": 5,
+      "descricao": "Categorias de interação (cobertura)",
+      "status": "ok"
+    },
+    {
+      "nome": "CARTEIRA_CEN",
+      "arquivo": "carteira-cen.json",
+      "linha": 3389,
+      "registros": 23,
+      "descricao": "Carteira de clientes do CEN",
+      "status": "ok"
+    },
+    {
+      "nome": "STATUS_LABELS",
+      "arquivo": "status-cobertura-labels.json",
+      "linha": 3445,
+      "registros": 5,
+      "descricao": "Rótulos de status de cobertura",
+      "status": "ok"
+    },
+    {
+      "nome": "CARTEIRA_STATE",
+      "arquivo": "estado-carteira.json",
+      "linha": 3718,
+      "registros": 2,
+      "descricao": "Estado inicial dos filtros da Cobertura",
+      "status": "ok"
+    },
+    {
+      "nome": "CIDADE_LATLNG",
+      "arquivo": "cidades-latlng.json",
+      "linha": 3750,
+      "registros": 6,
+      "descricao": "Geocodificação das cidades do mapa",
+      "status": "ok"
+    },
+    {
+      "nome": "PIPELINE_FASES",
+      "arquivo": "pipeline-fases.json",
+      "linha": 4049,
+      "registros": 6,
+      "descricao": "Fases do kanban de pipeline",
+      "status": "ok"
+    },
+    {
+      "nome": "CENS",
+      "arquivo": "cens.json",
+      "linha": 4059,
+      "registros": 8,
+      "descricao": "Cadastro de CENs (consultores)",
+      "status": "ok"
+    },
+    {
+      "nome": "LINHA_ICON",
+      "arquivo": "linha-icon.json",
+      "linha": 4071,
+      "registros": 6,
+      "descricao": "Emoji por linha de produto",
+      "status": "ok"
+    },
+    {
+      "nome": "PIPELINE_MOCK",
+      "arquivo": "pipeline.json",
+      "linha": 4081,
+      "registros": 34,
+      "descricao": "Oportunidades do kanban",
+      "status": "ok"
+    },
+    {
+      "nome": "PIPELINE_STATE",
+      "arquivo": "estado-pipeline.json",
+      "linha": 4130,
+      "registros": 8,
+      "descricao": "Estado inicial dos filtros do Pipeline",
+      "status": "ok"
+    },
+    {
+      "nome": "CLIENTES_EXTRA",
+      "arquivo": "clientes-extra.json",
+      "linha": 4622,
+      "registros": 24,
+      "descricao": "Enriquecimento da carteira para a lista de Clientes",
+      "status": "ok"
+    },
+    {
+      "nome": "CLIENTES_OUTRAS",
+      "arquivo": "clientes-outras.json",
+      "linha": 4651,
+      "registros": 29,
+      "descricao": "Clientes de outras regionais/CENs",
+      "status": "ok"
+    },
+    {
+      "nome": "CLIENTES_STATE",
+      "arquivo": "estado-clientes.json",
+      "linha": 4721,
+      "registros": 6,
+      "descricao": "Estado inicial dos filtros de Clientes",
+      "status": "ok"
+    },
+    {
+      "nome": "CONFIG_STATE",
+      "arquivo": "estado-config.json",
+      "linha": 5096,
+      "registros": 2,
+      "descricao": "Estado inicial de Configurações",
+      "status": "ok"
+    },
+    {
+      "nome": "CONFIG_METAS",
+      "arquivo": "config-metas.json",
+      "linha": 5102,
+      "registros": 8,
+      "descricao": "Metas comerciais e SLAs de aprovação",
+      "status": "ok"
+    },
+    {
+      "nome": "CONFIG_MOTIVOS_PERDA",
+      "arquivo": "config-motivos-perda.json",
+      "linha": 5113,
+      "registros": 8,
+      "descricao": "Taxonomia de motivos de perda",
+      "status": "ok"
+    },
+    {
+      "nome": "CONFIG_CATEGORIAS_INTERACAO",
+      "arquivo": "config-categorias-interacao-cfg.json",
+      "linha": 5124,
+      "registros": 6,
+      "descricao": "Taxonomia de categorias de interação (Config)",
+      "status": "ok"
+    },
+    {
+      "nome": "CONFIG_INTEGRACOES",
+      "arquivo": "config-integracoes.json",
+      "linha": 5133,
+      "registros": 7,
+      "descricao": "Integrações e jobs de sincronização",
+      "status": "ok"
+    },
+    {
+      "nome": "CONFIG_USUARIOS",
+      "arquivo": "config-usuarios.json",
+      "linha": 5220,
+      "registros": 12,
+      "descricao": "Usuários do sistema",
+      "status": "ok"
+    },
+    {
+      "nome": "CONFIG_ROLES",
+      "arquivo": "config-roles.json",
+      "linha": 5235,
+      "registros": 5,
+      "descricao": "Perfis de acesso (roles)",
+      "status": "ok"
+    },
+    {
+      "nome": "PERF_STATE",
+      "arquivo": "estado-performance.json",
+      "linha": 5923,
+      "registros": 4,
+      "descricao": "Estado inicial de Performance de CEN",
+      "status": "ok"
+    },
+    {
+      "nome": "FYTD_MESES",
+      "arquivo": "fytd-meses.json",
+      "linha": 5931,
+      "registros": 10,
+      "descricao": "Calendário fiscal Tracbel (nov-out)",
+      "status": "ok"
+    },
+    {
+      "nome": "PERF_CENS",
+      "arquivo": "performance-cens.json",
+      "linha": 5945,
+      "registros": 8,
+      "descricao": "CENs com metas para o painel de performance",
+      "status": "ok"
+    },
+    {
+      "nome": "NOVA_OP_STATE",
+      "arquivo": "estado-nova-oportunidade.json",
+      "linha": 6583,
+      "registros": 14,
+      "descricao": "Estado inicial do formulário Nova Oportunidade",
+      "status": "ok"
+    },
+    {
+      "nome": "CATALOGO_MODELOS",
+      "arquivo": "catalogo-modelos.json",
+      "linha": 6601,
+      "registros": 6,
+      "descricao": "Catálogo de modelos por linha de produto",
+      "status": "ok"
+    },
+    {
+      "nome": "MERCADO_JD_PRACAS",
+      "arquivo": "mercado-pracas.json",
+      "linha": 7203,
+      "registros": 4,
+      "descricao": "Mercado John Deere por praça",
+      "status": "ok"
+    },
+    {
+      "nome": "VENDAS_PERDIDAS_MOTIVOS",
+      "arquivo": "vendas-perdidas-motivos.json",
+      "linha": 7211,
+      "registros": 6,
+      "descricao": "Vendas perdidas por motivo (12m)",
+      "status": "ok"
+    },
+    {
+      "nome": "FATURAMENTO_12M",
+      "arquivo": "faturamento-12m.json",
+      "linha": 7222,
+      "registros": 4,
+      "descricao": "Faturamento realizado x meta, 12 meses",
+      "status": "ok"
+    },
+    {
+      "nome": "MIX_LINHAS",
+      "arquivo": "mix-linhas.json",
+      "linha": 7233,
+      "registros": 5,
+      "descricao": "Mix de faturamento por linha de produto",
+      "status": "ok"
+    },
+    {
+      "nome": "TOP_CLIENTES_GLOBAL",
+      "arquivo": "top-clientes.json",
+      "linha": 7242,
+      "registros": 8,
+      "descricao": "Top clientes por faturamento FYTD",
+      "status": "ok"
+    },
+    {
+      "nome": "ALERTAS_POR_PERFIL",
+      "arquivo": "alertas.json",
+      "linha": 7254,
+      "registros": 3,
+      "descricao": "Alertas da Visão 360 por perfil",
+      "status": "ok"
+    },
+    {
+      "nome": "PERFIS_360",
+      "arquivo": "perfis-360.json",
+      "linha": 7273,
+      "registros": 3,
+      "descricao": "Perfis/personas da Visão 360",
+      "status": "ok"
+    },
+    {
+      "nome": "POSVENDAS_CLIENTE_84391",
+      "arquivo": "pos-vendas-cliente-84391.json",
+      "linha": 8095,
+      "registros": 8,
+      "descricao": "Aba Pós-Vendas da ficha do cliente 84391",
+      "status": "ok"
+    },
+    {
+      "nome": "(escalares)",
+      "arquivo": "constantes-escalares.json",
+      "linha": "66,67,1123,3373,7229,7230",
+      "registros": 6,
+      "status": "ok"
+    },
+    {
+      "nome": "PERF_SERIES",
+      "arquivo": "performance-series.json",
+      "linha": 6022,
+      "registros": 8,
+      "descricao": "Séries mensais FYTD por CEN (geradas por mulberry32)",
+      "status": "ok (materializado)"
+    }
+  ]
+}

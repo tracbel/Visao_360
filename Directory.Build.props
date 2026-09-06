@@ -1,0 +1,48 @@
+<Project>
+
+  <!--
+    Configurações comuns a TODOS os projetos da solução.
+    Mexer aqui vale para tudo — é o único lugar onde a versão do .NET é declarada.
+  -->
+  <PropertyGroup>
+    <!--
+      ALVO DE PRODUÇÃO: net10.0 (LTS, suporte até nov/2028).
+
+      Hoje o esqueleto está em net9.0 porque é o único SDK instalado na máquina de
+      desenvolvimento. NÃO subir para produção assim: o .NET 9 é STS e saiu de suporte
+      em 12/05/2026, e o .NET 8 sai em 10/11/2026.
+
+      Para migrar: instale o SDK do .NET 10 e troque a linha abaixo. Só ela.
+    -->
+    <TargetFramework>net9.0</TargetFramework>
+
+    <LangVersion>latest</LangVersion>
+
+    <!-- Referências nulas explícitas. Evita metade dos NullReferenceException. -->
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!--
+      Warning é erro. Um aviso ignorado hoje é um bug em produção depois — e é assim
+      que um sistema chega ao estado do Vórtice, onde uma falha crítica de integração
+      é registrada como "Warning" e ninguém olha.
+    -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Documentação XML obrigatória no código público (só nos projetos de src). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Português do Brasil como cultura neutra das mensagens do domínio. -->
+    <NeutralLanguage>pt-BR</NeutralLanguage>
+
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <!-- Nos projetos de teste, XML doc não faz sentido e CS1591 vira ruído. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Testes'))">
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

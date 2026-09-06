@@ -1,0 +1,6 @@
+{
+  "catalogo": "resultado",
+  "descricao": "O desfecho registrado ao concluir uma tarefa — move a fase do processo",
+  "origem": "SEM FONTE UTILIZÁVEL. O Vórtice tem IV_Resultado com 4.209 linhas, mas cada uma é específica de uma Ação (IV_Acao, 980 linhas) e carrega 35 colunas de flag de comportamento (CTRL*) — não é uma lista plana reaproveitável sem decisão de negócio sobre como consolidar por tipo de tarefa. IV_ClasseRes (40 linhas) agrupa por segmento×etapa de funil (Cobertura/Oportunidade/Pedido/Faturamento × Manitou/Usado/Peças/Pneus/Serviço/Prospecção) — um recorte diferente do que a tela precisa, e não um vocabulário de desfecho. O protótipo só mostra \"resultado\" como texto narrativo livre (cliente-84391.json.interacoes[].resultado: \"Cliente confirmou análise até 30/08\") ou como campo binário ganho/perdido do processo (pipeline.json), nunca como seleção fechada por tipo de tarefa. Ver PENDENTES.md.",
+  "itens": []
+}

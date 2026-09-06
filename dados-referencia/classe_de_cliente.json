@@ -1,0 +1,35 @@
+{
+  "catalogo": "classe_de_cliente",
+  "descricao": "Classificação ABCD do cliente — define a frequência de visita/contato esperada",
+  "origem": "prototipo/dados-seed/meta-frequencia.json (4 itens) + uso em cliente-84391.json, carteira-cen.json, clientes-extra.json. Doc 15 §3.1 confirma: \"não existe formalizado\" como coluna própria no Vórtice — ver PENDENTES.md quanto a GE_PessoaClasse (que existe, mas guarda valores diferentes de A/B/C/D).",
+  "itens": [
+    {
+      "codigo": "A",
+      "descricao": "Classe A",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Meta de frequência de contato: a cada 30 dias (protótipo, meta-frequencia.json). Usado em cliente-84391.json (\"classe\":\"A\") e nos filtros de Cobertura/Clientes."
+    },
+    {
+      "codigo": "B",
+      "descricao": "Classe B",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Meta de frequência de contato: a cada 60 dias (protótipo, meta-frequencia.json). Usado em cliente-84391.json (\"classe\":\"B\") e nos filtros de Cobertura/Clientes."
+    },
+    {
+      "codigo": "C",
+      "descricao": "Classe C",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Meta de frequência de contato: a cada 90 dias (protótipo, meta-frequencia.json). Usado em cliente-84391.json (\"classe\":\"C\") e nos filtros de Cobertura/Clientes."
+    },
+    {
+      "codigo": "D",
+      "descricao": "Classe D",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "Meta de frequência de contato: a cada 120 dias (protótipo, meta-frequencia.json). Usado em cliente-84391.json (\"classe\":\"D\") e nos filtros de Cobertura/Clientes."
+    }
+  ]
+}

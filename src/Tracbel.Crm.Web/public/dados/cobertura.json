@@ -1,0 +1,105 @@
+{
+  "meta": 80,
+  "geral": {
+    "cobertura": 74.5,
+    "totalClientesAB": 1247,
+    "tocados120d": 929,
+    "naoTocados": 318
+  },
+  "regionais": [
+    {
+      "key": "MT-N",
+      "label": "MT Norte",
+      "clientesAB": 245,
+      "tocados": 218,
+      "cobertura": 88.9,
+      "vendas_perdidas": 42,
+      "gpe_perdidas": 187
+    },
+    {
+      "key": "MT-S",
+      "label": "MT Sul",
+      "clientesAB": 198,
+      "tocados": 159,
+      "cobertura": 80.3,
+      "vendas_perdidas": 38,
+      "gpe_perdidas": 112
+    },
+    {
+      "key": "GO",
+      "label": "Goiás",
+      "clientesAB": 187,
+      "tocados": 116,
+      "cobertura": 62,
+      "vendas_perdidas": 62,
+      "gpe_perdidas": 156
+    },
+    {
+      "key": "MS",
+      "label": "Mato Grosso do Sul",
+      "clientesAB": 143,
+      "tocados": 118,
+      "cobertura": 82.5,
+      "vendas_perdidas": 24,
+      "gpe_perdidas": 89
+    },
+    {
+      "key": "MG-T",
+      "label": "MG Triângulo",
+      "clientesAB": 176,
+      "tocados": 102,
+      "cobertura": 58,
+      "vendas_perdidas": 59,
+      "gpe_perdidas": 143
+    },
+    {
+      "key": "BA-O",
+      "label": "BA Oeste",
+      "clientesAB": 138,
+      "tocados": 126,
+      "cobertura": 91.3,
+      "vendas_perdidas": 18,
+      "gpe_perdidas": 67
+    },
+    {
+      "key": "TO-MA",
+      "label": "Tocantins/MA",
+      "clientesAB": 160,
+      "tocados": 90,
+      "cobertura": 56.3,
+      "vendas_perdidas": 48,
+      "gpe_perdidas": 128
+    }
+  ],
+  "vendas_perdidas": {
+    "total_mes_anterior": 291,
+    "valor_perdido": 34800000,
+    "percentual_gpe": 65,
+    "breakdown_motivo": [
+      {
+        "motivo": "Preço",
+        "qtd": 87
+      },
+      {
+        "motivo": "Prazo de entrega",
+        "qtd": 64
+      },
+      {
+        "motivo": "Conhecimento de mercado",
+        "qtd": 62
+      },
+      {
+        "motivo": "Concorrência (Case/AGCO)",
+        "qtd": 41
+      },
+      {
+        "motivo": "Condição financeira do cliente",
+        "qtd": 22
+      },
+      {
+        "motivo": "Outros",
+        "qtd": 15
+      }
+    ]
+  }
+}

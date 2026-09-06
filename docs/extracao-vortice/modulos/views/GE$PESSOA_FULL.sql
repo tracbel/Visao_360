@@ -1,0 +1,12 @@
+/* ==============================================================
+   Objeto ..........: dbo.GE$PESSOA_FULL
+   Tipo ............: VIEW
+   Criado em .......: 2025-02-17 17:35:39
+   Modificado em ...: 2025-02-17 17:35:39
+   Linhas ..........: 1
+   Escreve em tabela: nao
+   Tabelas referidas: GE_PESSOA
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+ CREATE VIEW GE$PESSOA_FULL AS  SELECT SEQPESSOA,        SEQPESSOAPRC,        SEQCIDADE,        SEQBAIRRO,        VERSAO,        STATUS,        DTAATIVACAO,        NOMERAZAO,        FANTASIA,        PALAVRACHAVE,        FISICAJURIDICA,        SEXO,        CIDADE,        UF,        PAIS,        BAIRRO,        TIPOLOGRADOURO,        LOGRADOURO,        NROLOGRADOURO,        CMPLTOLOGRADOURO,        CEP,        CXPOSTAL,        REFENDERECO,        LATITUDE,        LONGITUDE,        SEQPESSOAENDCOBR,        FONEDDD1,        FONENRO1,        FONECMPL1,        FONEDDD2,        FONENRO2,        FONECMPL2,        FONEDDD3,        FONENRO3,        FONECMPL3,        FAXDDD,        FAXNRO,        NROCGCCPF,        DIGCGCCPF,        INSCRICAORG,        UFEMISSOR,        ORGAOEMISSOR,        INSCMUNIC,        INSCPRODUTOR,        CNAE,        DTANASCFUND,        ORIGEM,        ULTORIGEM,        EMAIL,        SKYPE,        HOMEPAGE,        ESTADOCIVIL,        ATIVIDADE,        RENDAFATURAMENTO,        GRAUINSTRUCAO,        GRUPO,        PORTE,        DTAINCLUSAO,        USUINCLUSAO,        DTAALTERACAO,        USUALTERACAO,        DTAINATIVACAO,        USUINATIVACAO,        OBSINATIVACAO,        CODVENDEDOR,        CODVENDEDOR as CODEQUIPE,        TELEFONEMA,        CORRESPONDENCIA,        RECEBEEMAIL,        RECEBESMS,        NAOPOSSUIEMAIL,        PROBLEMACREDITO,        INDCONTRIBICMS,        SEQREGIAO,        SEQROTA,        SMSCODIGO,        SMSCODIGODTA        , NOMERAZAO AS z_NOMERAZAO        , FANTASIA AS z_FANTASIA        , PALAVRACHAVE AS z_PALAVRACHAVE        , LOGRADOURO AS z_LOGRADOURO        , NROLOGRADOURO AS z_NROLOGRADOURO         , EMAIL AS z_EMAIL        , SKYPE AS z_SKYPE        , NROCGCCPF as z_NROCGCCPF        ,FONEDDD1 as z_FONEDDD1        ,FONENRO1 as z_FONENRO1        ,FONEDDD2 as z_FONEDDD2        ,FONENRO2 as z_FONENRO2        ,FONEDDD3 as z_FONEDDD3        ,FONENRO3 as z_FONENRO3        ,FAXDDD as z_FAXDDD        ,FAXNRO as z_FAXNRO        ,DTANASCFUND as z_DTANASCFUND FROM GE_PESSOA  

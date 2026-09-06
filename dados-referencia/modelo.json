@@ -1,0 +1,133 @@
+{
+  "catalogo": "modelo",
+  "descricao": "Modelo de equipamento vendável — cascata Linha de Negócio → Modelo do formulário Nova Oportunidade",
+  "origem": "prototipo/dados-seed/catalogo-modelos.json (18 itens em 6 linhas). No Vórtice, EXT_VeicModelo tem 4.431.168 linhas (doc 17 §8.5: \"catálogo que virou dump\") — não é fonte utilizável; frota.Familia (nível intermediário) não existe nesta rodada, ver familia.json/PENDENTES.md.",
+  "itens": [
+    {
+      "codigo": "5075E",
+      "descricao": "5075E",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Linha de negócio: Tratores (código TRATORES). Valor de referência no protótipo: R$ 320.000,00."
+    },
+    {
+      "codigo": "5090E",
+      "descricao": "5090E",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Linha de negócio: Tratores (código TRATORES). Valor de referência no protótipo: R$ 380.000,00."
+    },
+    {
+      "codigo": "6110J",
+      "descricao": "6110J",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Linha de negócio: Tratores (código TRATORES). Valor de referência no protótipo: R$ 745.000,00."
+    },
+    {
+      "codigo": "6135J",
+      "descricao": "6135J",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "Linha de negócio: Tratores (código TRATORES). Valor de referência no protótipo: R$ 890.000,00."
+    },
+    {
+      "codigo": "7230J",
+      "descricao": "7230J",
+      "ordem": 5,
+      "ativo": true,
+      "observacao": "Linha de negócio: Tratores (código TRATORES). Valor de referência no protótipo: R$ 1.150.000,00."
+    },
+    {
+      "codigo": "8R_250",
+      "descricao": "8R 250",
+      "ordem": 6,
+      "ativo": true,
+      "observacao": "Linha de negócio: Tratores (código TRATORES). Valor de referência no protótipo: R$ 1.890.000,00."
+    },
+    {
+      "codigo": "8R_340",
+      "descricao": "8R 340",
+      "ordem": 7,
+      "ativo": true,
+      "observacao": "Linha de negócio: Tratores (código TRATORES). Valor de referência no protótipo: R$ 2.440.000,00."
+    },
+    {
+      "codigo": "S770",
+      "descricao": "S770",
+      "ordem": 8,
+      "ativo": true,
+      "observacao": "Linha de negócio: Colheitadeiras (código COLHEITADEIRAS). Valor de referência no protótipo: R$ 2.700.000,00."
+    },
+    {
+      "codigo": "S780",
+      "descricao": "S780",
+      "ordem": 9,
+      "ativo": true,
+      "observacao": "Linha de negócio: Colheitadeiras (código COLHEITADEIRAS). Valor de referência no protótipo: R$ 3.100.000,00."
+    },
+    {
+      "codigo": "S680_SEMINOVA",
+      "descricao": "S680 seminova",
+      "ordem": 10,
+      "ativo": true,
+      "observacao": "Linha de negócio: Colheitadeiras (código COLHEITADEIRAS). Valor de referência no protótipo: R$ 2.200.000,00."
+    },
+    {
+      "codigo": "4630",
+      "descricao": "4630",
+      "ordem": 11,
+      "ativo": true,
+      "observacao": "Linha de negócio: Pulverizadores (código PULVERIZADORES). Valor de referência no protótipo: R$ 2.100.000,00."
+    },
+    {
+      "codigo": "4730",
+      "descricao": "4730",
+      "ordem": 12,
+      "ativo": true,
+      "observacao": "Linha de negócio: Pulverizadores (código PULVERIZADORES). Valor de referência no protótipo: R$ 2.400.000,00."
+    },
+    {
+      "codigo": "DB40",
+      "descricao": "DB40",
+      "ordem": 13,
+      "ativo": true,
+      "observacao": "Linha de negócio: Plantadeiras (código PLANTADEIRAS). Valor de referência no protótipo: R$ 1.800.000,00."
+    },
+    {
+      "codigo": "DB44",
+      "descricao": "DB44",
+      "ordem": 14,
+      "ativo": true,
+      "observacao": "Linha de negócio: Plantadeiras (código PLANTADEIRAS). Valor de referência no protótipo: R$ 2.650.000,00."
+    },
+    {
+      "codigo": "DB50",
+      "descricao": "DB50",
+      "ordem": 15,
+      "ativo": true,
+      "observacao": "Linha de negócio: Plantadeiras (código PLANTADEIRAS). Valor de referência no protótipo: R$ 2.900.000,00."
+    },
+    {
+      "codigo": "2730",
+      "descricao": "2730",
+      "ordem": 16,
+      "ativo": true,
+      "observacao": "Linha de negócio: Implementos (código IMPLEMENTOS). Valor de referência no protótipo: R$ 420.000,00."
+    },
+    {
+      "codigo": "ARADO_4_DISCOS",
+      "descricao": "Arado 4 discos",
+      "ordem": 17,
+      "ativo": true,
+      "observacao": "Linha de negócio: Implementos (código IMPLEMENTOS). Valor de referência no protótipo: R$ 180.000,00."
+    },
+    {
+      "codigo": "CONTRATO_ANUAL",
+      "descricao": "Contrato anual",
+      "ordem": 18,
+      "ativo": true,
+      "observacao": "Linha de negócio: Peças & Serviços (código PECAS_SERVICOS). Valor de referência no protótipo: R$ 520.000,00. Item de serviço/contrato, não equipamento — cardinalidade de catálogo diferente dos demais."
+    }
+  ]
+}

@@ -1,0 +1,441 @@
+{
+  "catalogo": "tipo_de_processo",
+  "descricao": "Modelo de fluxo que um processo/oportunidade segue (o que a Tracbel está processando)",
+  "origem": "docs/extracao-vortice/catalogos-bpm/IV_CodProcesso.csv (62 linhas no legado, 58 com EmUso=1). Sem equivalente no protótipo — a UI aprovada só mostra a \"Oportunidade\" (CodProcesso 50, \"Venda Equipamento Tracbel Agro\") de forma implícita.",
+  "itens": [
+    {
+      "codigo": "ATENDIMENTO_A_CLIENTES",
+      "descricao": "ATENDIMENTO A CLIENTES",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 1. Nome reduzido no Vórtice: 'ATEND CLIENTES'. Tipo Vórtice: OUTRO."
+    },
+    {
+      "codigo": "NOTA_FISCAL",
+      "descricao": "Nota Fiscal",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 3. Nome reduzido no Vórtice: 'NOTA FISCAL'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "ATIVIDADE_OFF_LINE_CENS",
+      "descricao": "ATIVIDADE OFF LINE CENS",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 4. Nome reduzido no Vórtice: 'OFF LINE'. Tipo Vórtice: OUTRO."
+    },
+    {
+      "codigo": "POS_VENDAS",
+      "descricao": "PÓS VENDAS",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 5. Nome reduzido no Vórtice: 'PÓS VENDAS'. Tipo Vórtice: SERVIÇOS."
+    },
+    {
+      "codigo": "VENDA_DE_IMPLEMENTO",
+      "descricao": "Venda de Implemento",
+      "ordem": 5,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 6. Nome reduzido no Vórtice: 'VENDA_IMPLEM'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "VENDA_EQUIPAMENTO_JD",
+      "descricao": "VENDA EQUIPAMENTO JD",
+      "ordem": 6,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 7. Nome reduzido no Vórtice: 'VENDA EQUIPAMEN'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "MONITOR_CLIENTE_ESTRATEGICO",
+      "descricao": "Monitor Cliente Estratégico",
+      "ordem": 7,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 11. Nome reduzido no Vórtice: 'MONIT CLI ESTR'. Tipo Vórtice: OUTRO."
+    },
+    {
+      "codigo": "PROSPECCAO_DE_PECAS",
+      "descricao": "Prospecção de Peças",
+      "ordem": 8,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 12. Nome reduzido no Vórtice: 'PROSP PEÇAS'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "VENDA_DIRETA_EQUIPAMENTO",
+      "descricao": "VENDA DIRETA EQUIPAMENTO",
+      "ordem": 9,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 13. Nome reduzido no Vórtice: 'VENDA DIRETA JD'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "VENDA_AMS",
+      "descricao": "VENDA AMS",
+      "ordem": 10,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 14. Nome reduzido no Vórtice: 'VENDA AMS'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "VENDA_EQUIPAMENTO",
+      "descricao": "VENDA EQUIPAMENTO",
+      "ordem": 11,
+      "ativo": false,
+      "observacao": "CodProcesso legado: 15. Nome reduzido no Vórtice: 'VENDA EQUIP'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "VENDA_EQUIPAMENTO_MANITOU",
+      "descricao": "Venda Equipamento Manitou",
+      "ordem": 12,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 16. Nome reduzido no Vórtice: 'VENDA MANITOU'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "PROSPECCAO_MANITOU",
+      "descricao": "Prospecção Manitou",
+      "ordem": 13,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 17. Nome reduzido no Vórtice: 'PROSP MANITOU'. Tipo Vórtice: (sem tipo definido no legado)."
+    },
+    {
+      "codigo": "COBRANCA",
+      "descricao": "Cobrança",
+      "ordem": 14,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 18. Nome reduzido no Vórtice: 'COBRANÇA'. Tipo Vórtice: OUTRO."
+    },
+    {
+      "codigo": "VENDA_USADOS",
+      "descricao": "VENDA USADOS",
+      "ordem": 15,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 19. Nome reduzido no Vórtice: 'VENDA USADOS'. Tipo Vórtice: (sem tipo definido no legado)."
+    },
+    {
+      "codigo": "VENDA_IBM",
+      "descricao": "Venda IBM",
+      "ordem": 16,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 20. Nome reduzido no Vórtice: 'VENDA IBM'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "PROCESSO_LOCACAO_EQUIPAMENTOS",
+      "descricao": "Processo Locação Equipamentos",
+      "ordem": 17,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 21. Nome reduzido no Vórtice: 'LOCAÇÃO EQUIP'. Tipo Vórtice: (sem tipo definido no legado)."
+    },
+    {
+      "codigo": "ANALISE_DE_CEDITO",
+      "descricao": "Análise de Cédito",
+      "ordem": 18,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 22. Nome reduzido no Vórtice: 'CRÉDITO'. Tipo Vórtice: OUTRO. Descrição transcrita literalmente do legado ('Cédito', sic) — provável erro de digitação de 'Crédito' na fonte."
+    },
+    {
+      "codigo": "VENDA_SERVICO_AMS",
+      "descricao": "Venda Serviço AMS",
+      "ordem": 19,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 23. Nome reduzido no Vórtice: 'SERVIÇO AMS'. Tipo Vórtice: (sem tipo definido no legado)."
+    },
+    {
+      "codigo": "VENDA_DE_SERVICOS",
+      "descricao": "VENDA DE SERVIÇOS",
+      "ordem": 20,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 24. Nome reduzido no Vórtice: 'VENDA SERVIÇOS'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "GARANTIA_JD",
+      "descricao": "GARANTIA JD",
+      "ordem": 21,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 25. Nome reduzido no Vórtice: 'GARANTIA JD'. Tipo Vórtice: (sem tipo definido no legado)."
+    },
+    {
+      "codigo": "PROSPECCAO_IM",
+      "descricao": "PROSPECÇÃO IM",
+      "ordem": 22,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 26. Nome reduzido no Vórtice: 'PROSPECÇÃO IM'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "PROSPECCAO_USADOS",
+      "descricao": "Prospecção Usados",
+      "ordem": 23,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 27. Nome reduzido no Vórtice: 'PROSPECÇÃO USAD'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "PROCESSO_DE_SUPORTE",
+      "descricao": "Processo de Suporte",
+      "ordem": 24,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 28. Nome reduzido no Vórtice: 'PROC SUPORTE'. Tipo Vórtice: OUTRO."
+    },
+    {
+      "codigo": "ATENDIMENTO_REMOTO_CSO",
+      "descricao": "ATENDIMENTO REMOTO CSO",
+      "ordem": 25,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 29. Nome reduzido no Vórtice: 'ATEND CSO'. Tipo Vórtice: OUTRO."
+    },
+    {
+      "codigo": "VALIDACAO_USADO",
+      "descricao": "VALIDAÇÃO USADO",
+      "ordem": 26,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 30. Nome reduzido no Vórtice: 'VALIDAÇÃO USADO'. Tipo Vórtice: (sem tipo definido no legado)."
+    },
+    {
+      "codigo": "PROSPECCAO_CLIENTES_MAQ_IM",
+      "descricao": "Prospecção Clientes MAQ IM",
+      "ordem": 27,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 31. Nome reduzido no Vórtice: 'PROSP CLIENTE'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "PROSPECCAO_PECAS_SERVICOS",
+      "descricao": "Prospecção Peças/Serviços",
+      "ordem": 28,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 32. Nome reduzido no Vórtice: 'PROSP PEC/SERV'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "PROSPECCAO_CLIENTE_POSVENDA_IM",
+      "descricao": "Prospecção Cliente PosVenda IM",
+      "ordem": 29,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 33. Nome reduzido no Vórtice: 'PROSP POSVEN IM'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "VENDA_PECAS_PNEUS_TRACBEL_AGRO",
+      "descricao": "Venda Peças/Pneus Tracbel Agro",
+      "ordem": 30,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 34. Nome reduzido no Vórtice: 'VEND PEC/PN'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "DEMONSTRACAO",
+      "descricao": "Demonstracao",
+      "ordem": 31,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 35. Nome reduzido no Vórtice: 'DEMOSTRACAO'. Tipo Vórtice: (sem tipo definido no legado)."
+    },
+    {
+      "codigo": "VENDA_IMPLEMENTOS",
+      "descricao": "VENDA IMPLEMENTOS",
+      "ordem": 32,
+      "ativo": false,
+      "observacao": "CodProcesso legado: 36. Nome reduzido no Vórtice: 'VENDA IMPLEMENT'. Tipo Vórtice: OUTRO."
+    },
+    {
+      "codigo": "VENDA_PRODUTO_COLORADO_NOVO",
+      "descricao": "Venda Produto Colorado - NOVO",
+      "ordem": 33,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 37. Nome reduzido no Vórtice: 'VENDA COLORADO'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "PROSPECCAO_CLIENTE_SEGUROS",
+      "descricao": "Prospecção Cliente Seguros",
+      "ordem": 34,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 38. Nome reduzido no Vórtice: 'PROSP_SEGURO'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "DEMONSTRACAO_TRACBEL_AGRO",
+      "descricao": "Demonstração Tracbel Agro",
+      "ordem": 35,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 39. Nome reduzido no Vórtice: 'DEMONSTRAÇÃO'. Tipo Vórtice: (sem tipo definido no legado)."
+    },
+    {
+      "codigo": "PROJETO_IRRIGACAO",
+      "descricao": "Projeto Irrigação",
+      "ordem": 36,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 40. Nome reduzido no Vórtice: 'PROJETO IRRIGAÇ'. Tipo Vórtice: (sem tipo definido no legado)."
+    },
+    {
+      "codigo": "VENDA_MAQUINA_IMPLEMENTO_AMS",
+      "descricao": "Venda Maquina/Implemento/AMS",
+      "ordem": 37,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 41. Nome reduzido no Vórtice: 'VEN MAQ/IMP/AMS'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "VENDA_DE_CONSORCIO",
+      "descricao": "VENDA DE CONSÓRCIO",
+      "ordem": 38,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 42. Nome reduzido no Vórtice: 'VENDA CONSÓRCIO'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "TESTE_WORKFLOW",
+      "descricao": "Teste Workflow",
+      "ordem": 39,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 44. Nome reduzido no Vórtice: 'TESTE WORKFLOW'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "GARANTIA",
+      "descricao": "Garantia",
+      "ordem": 40,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 45. Nome reduzido no Vórtice: 'GARANTIA'. Tipo Vórtice: SERVIÇOS."
+    },
+    {
+      "codigo": "PRE_ENTREGA",
+      "descricao": "Pre-Entrega",
+      "ordem": 41,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 46. Nome reduzido no Vórtice: 'PRE-ENTREGA'. Tipo Vórtice: OUTRO."
+    },
+    {
+      "codigo": "ENTREGA_FISICA_TECNICA",
+      "descricao": "Entrega Física / Técnica",
+      "ordem": 42,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 47. Nome reduzido no Vórtice: 'Entrega Física'. Tipo Vórtice: OUTRO."
+    },
+    {
+      "codigo": "SOLUCOES_INTEGRADAS",
+      "descricao": "Soluções Integradas",
+      "ordem": 43,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 48. Nome reduzido no Vórtice: 'SOLUÇÕES INTEGR'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "VENDA_DE_SEGURO_NV",
+      "descricao": "Venda de Seguro (NV)",
+      "ordem": 44,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 49. Nome reduzido no Vórtice: 'VENDA_SEGURO'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "VENDA_EQUIPAMENTO_TRACBEL_AGRO",
+      "descricao": "Venda Equipamento Tracbel Agro",
+      "ordem": 45,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 50. Nome reduzido no Vórtice: 'VENDA EQUIP TBA'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "SEGUROS_FY25",
+      "descricao": "SEGUROS (FY25)",
+      "ordem": 46,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 51. Nome reduzido no Vórtice: 'SEGUROS'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "PILOTO_GRANDES_CONTAS",
+      "descricao": "Piloto Grandes Contas",
+      "ordem": 47,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 52. Nome reduzido no Vórtice: 'GRANDES CONTAS'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "PROSPECCAO_MAQUINA_IMPLEM_JDE",
+      "descricao": "Prospecção Máquina/Implem JDE",
+      "ordem": 48,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9400. Nome reduzido no Vórtice: 'PROSP MAQ/IMP'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "VENDA_MAQUINA_IMPLEMENTO_JDE",
+      "descricao": "Venda Máquina/Implemento JDE",
+      "ordem": 49,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9401. Nome reduzido no Vórtice: 'VENDA MAQ/IMP'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "ENTREGA_MAQUINA_JDE",
+      "descricao": "Entrega Máquina JDE",
+      "ordem": 50,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9402. Nome reduzido no Vórtice: 'ENTR MAQ JDEERE'. Tipo Vórtice: OUTRO."
+    },
+    {
+      "codigo": "VENDA_IMPLEMENTO_JDE",
+      "descricao": "Venda Implemento JDE",
+      "ordem": 51,
+      "ativo": false,
+      "observacao": "CodProcesso legado: 9403. Nome reduzido no Vórtice: 'VENDA IMPLEMENT'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "VENDA_AGRICULTURA_PRECISAO_JDE",
+      "descricao": "Venda Agricultura Precisão JDE",
+      "ordem": 52,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9404. Nome reduzido no Vórtice: 'VD AGRIC PRECIS'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "VENDA_SERVICOS_JDE",
+      "descricao": "Venda Serviços JDE",
+      "ordem": 53,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9405. Nome reduzido no Vórtice: 'VENDA SERVIÇOS'. Tipo Vórtice: SERVIÇOS."
+    },
+    {
+      "codigo": "VENDA_PECAS_JDE",
+      "descricao": "Venda Peças JDE",
+      "ordem": 54,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9406. Nome reduzido no Vórtice: 'VENDA DE PEÇAS'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "VENDA_CONSORCIO_JDE",
+      "descricao": "Venda Consórcio JDE",
+      "ordem": 55,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9407. Nome reduzido no Vórtice: 'VENDA CONSÓRCIO'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "AFERICAO_QUALIDADE_JDE",
+      "descricao": "Aferição Qualidade JDE",
+      "ordem": 56,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9408. Nome reduzido no Vórtice: 'AFER QUALIDADE'. Tipo Vórtice: AFERIÇÃO."
+    },
+    {
+      "codigo": "PROSPECCAO_PECAS_JDE",
+      "descricao": "Prospecção Peças JDE",
+      "ordem": 57,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9409. Nome reduzido no Vórtice: 'PROSPEC PEÇAS'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "PROSPECCAO_SERVICOS_JDE",
+      "descricao": "Prospecção Serviços JDE",
+      "ordem": 58,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9410. Nome reduzido no Vórtice: 'PROSPEC SERVIC'. Tipo Vórtice: PROSPECÇÃO."
+    },
+    {
+      "codigo": "VENDA_SEGUROS_JDE",
+      "descricao": "Venda Seguros JDE",
+      "ordem": 59,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9411. Nome reduzido no Vórtice: 'VENDA SEGUROS'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "ENTREGA_IMPLEMENTO_JDE",
+      "descricao": "Entrega Implemento JDE",
+      "ordem": 60,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9412. Nome reduzido no Vórtice: 'ENTREGA IMPLEM'. Tipo Vórtice: (sem tipo definido no legado)."
+    },
+    {
+      "codigo": "VENDA_MAQ_IMPL_USADOS_JDE",
+      "descricao": "Venda Máq/Impl Usados JDE",
+      "ordem": 61,
+      "ativo": true,
+      "observacao": "CodProcesso legado: 9413. Nome reduzido no Vórtice: 'VDA MAQ/IMP USA'. Tipo Vórtice: VENDA."
+    },
+    {
+      "codigo": "TESTE",
+      "descricao": "Teste",
+      "ordem": 62,
+      "ativo": false,
+      "observacao": "CodProcesso legado: 9414. Nome reduzido no Vórtice: 'TESTE'. Tipo Vórtice: VENDA."
+    }
+  ]
+}

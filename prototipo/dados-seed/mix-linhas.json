@@ -1,0 +1,32 @@
+[
+  {
+    "linha": "Tratores",
+    "pct": 42,
+    "valor": 152000000,
+    "cor": "#367C2B"
+  },
+  {
+    "linha": "Colheitadeiras",
+    "pct": 28,
+    "valor": 102000000,
+    "cor": "#1B5E20"
+  },
+  {
+    "linha": "Plantadeiras",
+    "pct": 14,
+    "valor": 51000000,
+    "cor": "#4A9040"
+  },
+  {
+    "linha": "Pulverizadores",
+    "pct": 9,
+    "valor": 32000000,
+    "cor": "#7CB342"
+  },
+  {
+    "linha": "Peças e Serviços",
+    "pct": 7,
+    "valor": 25000000,
+    "cor": "#FFDE00"
+  }
+]

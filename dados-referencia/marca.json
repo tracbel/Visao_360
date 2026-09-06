@@ -1,0 +1,42 @@
+{
+  "catalogo": "marca",
+  "descricao": "Fabricante do equipamento (marca comercial)",
+  "origem": "RECONSTRUÍDA por inferência — nenhuma tabela de marca (EXT_VeicMarca) está entre os 116 catálogos exportados em docs/extracao-vortice/catalogos-bpm/, e o protótipo não tem campo \"marca\" explícito (todos os modelos de catalogo-modelos.json são implicitamente John Deere). Cada item cita a evidência textual exata que o sustenta. PRECISA de confirmação do negócio — ver PENDENTES.md.",
+  "itens": [
+    {
+      "codigo": "JOHN_DEERE",
+      "descricao": "John Deere",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Inferida: todos os modelos do protótipo (catalogo-modelos.json) são John Deere, e o Vórtice tem processos 'VENDA EQUIPAMENTO JD' (CodProcesso 7) e a série JDE completa (CodProcesso 9400-9413). EXT_VeicMarca (a tabela real de marca, 5 linhas segundo doc 17) NÃO está entre os 116 catálogos exportados — ver PENDENTES.md."
+    },
+    {
+      "codigo": "MANITOU",
+      "descricao": "Manitou",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Inferida de IV_CodProcesso (docs/extracao-vortice/catalogos-bpm/IV_CodProcesso.csv): CodProcesso 16 'Venda Equipamento Manitou' e 17 'Prospecção Manitou', ambos EmUso=1."
+    },
+    {
+      "codigo": "HUSQVARNA",
+      "descricao": "Husqvarna",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Inferida de IVS_Depto (docs/extracao-vortice/catalogos-bpm/IVS_Depto.csv): SeqDepto 23 'MAQ-HUSQV — Venda produtos Husqvarna'."
+    },
+    {
+      "codigo": "VALLEY",
+      "descricao": "Valley (irrigação)",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "Inferida de IVS_Depto: SeqDepto 24 'IRRIGACAO — VALLEY IRRIGACAO'. Linha de negócio distinta (pivô de irrigação), não máquina agrícola de linha."
+    },
+    {
+      "codigo": "COLORADO",
+      "descricao": "Colorado",
+      "ordem": 5,
+      "ativo": false,
+      "observacao": "Inferida de GE_Empresa (duas razões sociais 'Colorado...', NroEmpresa 6 e 891 — ver empresa.json) e IV_CodProcesso 37 'Venda Produto Colorado - NOVO'. AMBAS as empresas Colorado estão EmUso=0 no legado — marca possivelmente descontinuada ou absorvida; marcada inativa até confirmação."
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "catalogo": "praca",
+  "descricao": "Praça de mercado (região) usada para o KPI \"Conhecimento de mercado\" da Visão 360",
+  "origem": "prototipo/dados-seed/mercado-pracas.json (4 itens) — protótipo declara esta geografia como exemplo hipotético. DIVERGE da geografia real das filiais do Vórtice (GE_Empresa, todas em SP) — ver empresa.json e PENDENTES.md para o achado completo.",
+  "itens": [
+    {
+      "codigo": "MT_NORTE",
+      "descricao": "MT Norte",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "ATENÇÃO — valor FICTÍCIO do protótipo (mercado-pracas.json: mercado total 480, vendemos 156). A extração real do Vórtice (GE_Empresa, 16 filiais ativas) mostra Tracbel Agro operando só em cidades de SÃO PAULO (Ribeirão Preto, Araraquara, Barretos, Franca, etc.) — nenhuma filial em MT/GO/BA. Ver PENDENTES.md."
+    },
+    {
+      "codigo": "MT_SUL",
+      "descricao": "MT Sul",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "ATENÇÃO — valor FICTÍCIO do protótipo (mercado-pracas.json: mercado total 320, vendemos 98). A extração real do Vórtice (GE_Empresa, 16 filiais ativas) mostra Tracbel Agro operando só em cidades de SÃO PAULO (Ribeirão Preto, Araraquara, Barretos, Franca, etc.) — nenhuma filial em MT/GO/BA. Ver PENDENTES.md."
+    },
+    {
+      "codigo": "GO",
+      "descricao": "GO",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "ATENÇÃO — valor FICTÍCIO do protótipo (mercado-pracas.json: mercado total 410, vendemos 142). A extração real do Vórtice (GE_Empresa, 16 filiais ativas) mostra Tracbel Agro operando só em cidades de SÃO PAULO (Ribeirão Preto, Araraquara, Barretos, Franca, etc.) — nenhuma filial em MT/GO/BA. Ver PENDENTES.md."
+    },
+    {
+      "codigo": "BA",
+      "descricao": "BA",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "ATENÇÃO — valor FICTÍCIO do protótipo (mercado-pracas.json: mercado total 260, vendemos 76). A extração real do Vórtice (GE_Empresa, 16 filiais ativas) mostra Tracbel Agro operando só em cidades de SÃO PAULO (Ribeirão Preto, Araraquara, Barretos, Franca, etc.) — nenhuma filial em MT/GO/BA. Ver PENDENTES.md."
+    }
+  ]
+}

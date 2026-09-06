@@ -1,0 +1,12 @@
+/* ==============================================================
+   Objeto ..........: dbo.IV$PG_MARCAS
+   Tipo ............: VIEW
+   Criado em .......: 2017-05-10 17:29:50
+   Modificado em ...: 2017-05-10 17:29:50
+   Linhas ..........: 1
+   Escreve em tabela: nao
+   Tabelas referidas: IV_GLOBALPAR, IV_GLOBALPARCTRL
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+CREATE VIEW dbo.IV$PG_MARCAS ( SeqPar,    Parametro,   NroEmpresa,    DtaAlteracao,    UsuAlteracao ,    TRATOR,    COLHEITADEIRA_DE_GRA,    COLHEDORA_DE_CANA,    PLANTADEIRA,    AGRICULTURA_DE_PRECI,    PULVERIZADOR,    FENO_E_FORRAGEM,    IMP_GREEN_SYSTEM,    IMPLEMENTOS,    OUTROS,    MARCA)   AS SELECT  IV_GLOBALPAR.SEQPAR,    IV_GLOBALPARCTRL.PARAMETRO,    IV_GLOBALPAR.NROEMPRESA,    IV_GLOBALPAR.DTAALTERACAO,    IV_GLOBALPAR.USUALTERACAO ,    IV_GLOBALPAR.SIMNAO1,    IV_GLOBALPAR.SIMNAO2,    IV_GLOBALPAR.SIMNAO3,    IV_GLOBALPAR.SIMNAO4,    IV_GLOBALPAR.SIMNAO5,    IV_GLOBALPAR.SIMNAO6,    IV_GLOBALPAR.SIMNAO7,    IV_GLOBALPAR.SIMNAO8,    IV_GLOBALPAR.SIMNAO9,    IV_GLOBALPAR.SIMNAO10,    IV_GLOBALPAR.LITERAL1 FROM IV_GLOBALPARCTRL, IV_GLOBALPAR   WHERE IV_GLOBALPARCTRL.SEQGLBPAR = IV_GLOBALPAR.SEQGLBPAR         AND IV_GLOBALPARCTRL.SEQGLBPAR = 9400

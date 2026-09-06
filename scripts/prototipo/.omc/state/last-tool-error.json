@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd /c/projetos/tracbel-crm/src/Tracbel.Crm.Web && cat >> src/estilos/design-system.css <<'EOF'\\n\\n/* --------------------------------------------------------------------------\\n   As três ...",
+  "error": "Exit code 1\n\u001b[32m✓ built in 384ms\u001b[39m\nnode:internal/modules/cjs/loader:1478\r\n  throw err;\r\n  ^\r\n\r\nError: Cannot find module 'C:\\projetos\\tracbel-crm\\src\\Tracbel.Crm.Web\\_v360.mjs'\r\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1475:15)\r\n    at wrapResolveFilename (node:internal/modules/cjs/loader:1048:27)\r\n    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1072:10)\r\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1093:12)\r\n    at Module._...",
+  "timestamp": "2026-09-06T00:57:55.269Z",
+  "retry_count": 1
+}

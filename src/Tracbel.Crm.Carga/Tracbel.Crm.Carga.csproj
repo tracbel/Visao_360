@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Tracbel.Crm.Carga</RootNamespace>
+    <AssemblyName>Tracbel.Crm.Carga</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Configuracao por arquivo + variavel de ambiente, e log de console. So isso. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      A MESMA configuracao da Api, LIGADA e nao copiada.
+
+      A cadeia de conexao de desenvolvimento mora num arquivo so: duas copias divergiriam, e a
+      primeira vez que divergissem seria numa carga gravando no banco errado. A credencial do
+      sistema legado NAO esta neste arquivo nem em nenhum outro do repositorio — vem de
+      Vortice__Conexao, variavel de ambiente.
+    -->
+    <Content Include="..\Tracbel.Crm.Api\appsettings.json" Link="appsettings.json"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      A CARGA E UMA RAIZ DE COMPOSICAO, como a Api.
+
+      E o unico outro lugar autorizado a conhecer adaptadores, porque e ele que os liga no boot:
+      o CrmDbContext (Infraestrutura) de um lado, o leitor do sistema legado (Integracao) do
+      outro. As duas setas apontam para dentro. Decisao registrada em
+      docs/projeto/24-CARGA-DE-DADOS-2026.md e no grafo permitido de
+      SolidTestes.As_referencias_de_projeto_apontam_sempre_para_dentro.
+    -->
+    <ProjectReference Include="..\Tracbel.Crm.Infraestrutura\Tracbel.Crm.Infraestrutura.csproj" />
+    <ProjectReference Include="..\Tracbel.Crm.Integracao\Tracbel.Crm.Integracao.csproj" />
+  </ItemGroup>
+
+</Project>

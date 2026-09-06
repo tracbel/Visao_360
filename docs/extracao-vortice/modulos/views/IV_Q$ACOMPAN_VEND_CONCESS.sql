@@ -1,0 +1,12 @@
+/* ==============================================================
+   Objeto ..........: dbo.IV_Q$ACOMPAN_VEND_CONCESS
+   Tipo ............: VIEW
+   Criado em .......: 2021-01-25 23:24:10
+   Modificado em ...: 2021-01-25 23:24:10
+   Linhas ..........: 1
+   Escreve em tabela: nao
+   Tabelas referidas: GE_PESSOA, IV_FORMULARIO, IV_Q_ACOMPAN_VEND_CONCESS, IV_QUESTIONARIO
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+CREATE VIEW dbo.IV_Q$ACOMPAN_VEND_CONCESS ( SeqPessoa, Pessoa, SeqQuestionario, SeqFormulario, Formulario,  DtaRealizacao, UsuInclusao, DtaAlteracao, UsuAlteracao,  Observacao,  SeqHistorico, Resultado, Processo, Departamento, LinkDocto, LinkNro, LinkSerie , FORMA_PAGAMENTO, CHASSI, AMS, RODADO, PESO, CONFIGURACOES, NOTA_FISCAL, MODELO)     AS SELECT TBASE.SEQPESSOA, TBASE.NOMERAZAO, QST.SEQQUESTIONARIO, FRM.SEQFORMULARIO, FRM.DESCRICAO,  QST.DTAREALIZACAO, QST.USUINCLUSAO, QST.DTAALTERACAO, QST.USUALTERACAO, QST.OBS,  QST.SEQHISTORICO, QST.RESULTADO, QST.PROCESSO, QST.DEPARTAMENTO,  QST.LINKDOCTO, QST.LINKNRO, QST.LINKSERIE , TABF.FORMA_PAGAMENTO, TABF.CHASSI, TABF.AMS, TABF.RODADO, TABF.PESO, TABF.CONFIGURACOES, TABF.NOTA_FISCAL, TABF.MODELO    FROM IV_Q_ACOMPAN_VEND_CONCESS TABF  	JOIN IV_QUESTIONARIO QST ON QST.SEQQUESTIONARIO =  TABF.SEQQUESTIONARIO  	JOIN IV_FORMULARIO FRM ON   FRM.SEQFORMULARIO = QST.SEQFORMULARIO  	JOIN GE_PESSOA TBASE ON TBASE.SEQPESSOA = QST.SEQPESSOA 

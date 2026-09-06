@@ -1,0 +1,86 @@
+[
+  {
+    "nome": "TOTVS Protheus",
+    "tipo": "ERP",
+    "icone": "🏭",
+    "status": "online",
+    "ambiente": "PRODUÇÃO · ORACLE",
+    "endpoint": "https://protheus-app.tracbel.local:8181",
+    "last_sync": "2026-08-25 18:32",
+    "frequencia": "A cada 15 min",
+    "donos": "TI · Hugo Rocha",
+    "notas": "Sync de clientes SA1, oportunidades SC5/SC6, faturamento SD2"
+  },
+  {
+    "nome": "Microsoft Entra ID (AD)",
+    "tipo": "Identidade",
+    "icone": "🔐",
+    "status": "online",
+    "ambiente": "Tenant tracbelagro.onmicrosoft.com",
+    "endpoint": "graph.microsoft.com/v1.0",
+    "last_sync": "2026-08-25 18:30",
+    "frequencia": "Login em tempo real · SCIM diário 03:00",
+    "donos": "TI · Hugo Rocha",
+    "notas": "SSO federado · MFA obrigatório para roles Gerente+"
+  },
+  {
+    "nome": "Microsoft 365 (E-mail e Calendário)",
+    "tipo": "Produtividade",
+    "icone": "📧",
+    "status": "online",
+    "ambiente": "Exchange Online",
+    "endpoint": "graph.microsoft.com/v1.0/me/messages",
+    "last_sync": "Em tempo real (webhook)",
+    "frequencia": "Push",
+    "donos": "TI · Hugo Rocha",
+    "notas": "Registra e-mails com clientes automaticamente via subject-line regex"
+  },
+  {
+    "nome": "John Deere Operations Center",
+    "tipo": "Telemetria",
+    "icone": "🚜",
+    "status": "pendente",
+    "ambiente": "API JD MyJohnDeere",
+    "endpoint": "partnerapi.deere.com/platform/organizations",
+    "last_sync": null,
+    "frequencia": "Diário 04:00",
+    "donos": "TI · Hugo Rocha · aguardando contrato JD",
+    "notas": "Habilitará horas trabalhadas por chassi e alertas de manutenção"
+  },
+  {
+    "nome": "GLPI · Service Desk",
+    "tipo": "Suporte",
+    "icone": "🎫",
+    "status": "online",
+    "ambiente": "GLPI 10 · MySQL",
+    "endpoint": "glpi.tracbel.local/apirest.php",
+    "last_sync": "2026-08-25 18:20",
+    "frequencia": "A cada 30 min",
+    "donos": "TI · Hugo Rocha",
+    "notas": "Recebe abertura de chamado de erro do CRM automaticamente"
+  },
+  {
+    "nome": "WhatsApp Business API",
+    "tipo": "Comunicação",
+    "icone": "💬",
+    "status": "degradado",
+    "ambiente": "Meta Cloud API",
+    "endpoint": "graph.facebook.com/v18.0",
+    "last_sync": "2026-08-25 15:40",
+    "frequencia": "Push",
+    "donos": "Marketing + TI",
+    "notas": "Rate limit alcançado 15:40 · 2h de espera para reset"
+  },
+  {
+    "nome": "Vortice Rev/CRM legado",
+    "tipo": "Histórico",
+    "icone": "📦",
+    "status": "somente_leitura",
+    "ambiente": "Base MSSQL congelada",
+    "endpoint": "sqlvortice.tracbel.local",
+    "last_sync": "2025-06-30 (congelado)",
+    "frequencia": "N/A",
+    "donos": "TI · Hugo Rocha",
+    "notas": "Somente-leitura para histórico anterior ao CRM novo"
+  }
+]

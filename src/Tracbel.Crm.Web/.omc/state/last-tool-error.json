@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd src && python - <<'PY'\\nimport io\\np='telas/PerformanceCen.tsx'\\ns=io.open(p,encoding='utf-8').read()\\n\\ns=s.replace(\\\"import { obterResumoDeCobertura } from '../dados/api/relacionament...",
+  "error": "Exit code 2\n/usr/bin/bash: -c: line 160: unexpected EOF while looking for matching `''",
+  "timestamp": "2026-09-06T14:53:00.053Z",
+  "retry_count": 1
+}

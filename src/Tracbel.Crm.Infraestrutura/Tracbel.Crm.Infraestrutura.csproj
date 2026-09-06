@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tracbel.Crm.Dominio\Tracbel.Crm.Dominio.csproj" />
+    <ProjectReference Include="..\Tracbel.Crm.Aplicacao\Tracbel.Crm.Aplicacao.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.10" />
+    <!--
+      SQL Server, banco novo na instancia que ja hospeda o Vortice — decisao registrada em
+      docs/projeto/20-DECISAO-SQL-SERVER.md (substitui a 19-DECISAO-POSTGRESQL.md).
+      Nao ha pacote de convencao de nomes: o nome no banco e o PascalCase do C#, que e o
+      que o docs/projeto/15-GLOSSARIO-E-NOMES.md documenta.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.10" />
+    <!--
+      Ferramenta de design time: 'dotnet ef migrations add' precisa dela no projeto.
+      'compile' entra na lista porque FabricaDeContextoEmTempoDeDesenho implementa
+      IDesignTimeDbContextFactory, que mora neste pacote. PrivateAssets=all continua valendo:
+      a dependencia nao atravessa para quem referencia a Infraestrutura.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>compile; runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

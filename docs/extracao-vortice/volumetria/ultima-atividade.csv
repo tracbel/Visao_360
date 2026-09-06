@@ -1,0 +1,446 @@
+﻿"tabela","linhas","coluna_data","ultima_data","primeira_data","situacao","segundos"
+"IV_Q_ACOMPANHAM_VENDA_IMP","3308","DATA_PREV_FATURAM","3201-02-12","2011-10-31","viva","0,1"
+"IV_Q_OS_ABERTA","771","DATA_ABERTURA_OS","3035-09-03","2024-04-23","viva","0,1"
+"GEP_JOBFILA","25","DtaExecucao","2999-07-30","2026-08-23","viva","0,1"
+"GEP_JOBAGD","25","DtaInicio","2999-07-30","2020-02-07","viva","0,1"
+"IV_Q_GAR_DATA_SERVICO","4888","INICIO_SERVICO","2925-09-26","2020-04-13","viva","0,1"
+"IV_Q_OS_GARANTIA","7786","DATA_ABERTURA_OS","2924-12-19","2002-07-03","viva","0,1"
+"IV_Interacao","720525","DtaAgenda","2314-01-22","2012-09-26","viva","0,1"
+"IV_Q_VENDA_PERDIDA_JDE","296","DATA_DA_VENDA","2104-12-13","2010-01-11","viva","0,1"
+"IV_Q_VENDA_PERDIDA","1511","DATA_DA_VENDA","2104-12-13","2007-01-13","viva","0,1"
+"IV_Q_CHEGADA_IMPLEMENTO","61","DTA_CHEGADA_IMPL","2044-03-28","2001-11-27","viva","0,1"
+"IV_Q_GESTAO_CREDITO","1506","DATA_SINAL","2028-08-28","2003-12-30","viva","0,1"
+"IV_Q_VENDA_EQUIPAMENTO","2715","VENDA_DATA_PEDIDO","2027-10-27","2025-01-06","viva","0,1"
+"IV_Q_DEMONSTRACAO_JD","252","DATA_DEMONSTRACAO","2027-09-20","1958-08-28","viva","0,1"
+"IV_Q_RETORNADO_JD","773","DATA_RETORNO","2027-07-29","2024-06-11","viva","0,1"
+"IV_Q_PEDIDO_KAM","14","DATA_VENCIMENTO_SINA","2026-09-15","2025-10-10","viva","0,1"
+"GE_EMAILAGD","2","DTAINICIO","2026-09-03","2026-09-03","viva","0,1"
+"GEP_JOBFILALOG","14704","DtaExecucao","2026-09-03","2015-02-26","viva","0,1"
+"GE_LOG_PESSOA","961628","DTALOG","2026-09-02","2018-12-24","viva","0,1"
+"IV_ProcDocto","76693","DtaInclusao","2026-09-02","2014-09-12","viva","0,1"
+"IV_Processo","1190768","DtaInclusao","2026-09-02","2012-01-02","viva","0,2"
+"GE_LOG_EXT","622641","DTALOG","2026-09-02","2023-06-06","viva","0,1"
+"GE_LOG_HISTORICO","1048114","DTALOG","2026-09-02","2018-12-24","viva","0,1"
+"GE_ParametroGlobal","239","Dtaalteracao","2026-09-02","2011-12-19","viva","0,1"
+"IV_Questionario","88017","DtaRealizacao","2026-09-02","2012-01-10","viva","0,1"
+"GE_Usuario","1388","DTAINCLUSAO","2026-09-02","2025-02-17","viva","0,1"
+"IV_ProcDado","1532670","DtaUltResultado","2026-09-02","1961-11-24","viva","0,2"
+"GE_UsrParam","17043","Dtaalteracao","2026-09-02","2011-12-19","viva","0,1"
+"IV_ProcFaseMonit","666855","DtaInicio","2026-09-02","1961-11-24","viva","0,1"
+"GE_Log2","4591737","Data","2026-09-02","2011-12-19","viva","0,1"
+"GE_LOG_TRANS","803647","DTALOG","2026-09-02","2023-06-06","viva","0,1"
+"GE_Email","39402","DtaAlteracao","2026-09-02","2014-09-19","viva","0,1"
+"GE_PessoaClasse","1909","Dtaalteracao","2026-09-02","2015-07-03","viva","0,1"
+"GE_Pessoa","119345","DtaInclusao","2026-09-02","2011-12-20","viva","0,1"
+"IV_ProcStatMonit","865629","DtaMonit","2026-09-02","1961-11-24","viva","0,3"
+"IV_ProcPerspMonit","129453","DtaMonit","2026-09-02","2012-01-02","viva","0,1"
+"GE_PessoaLink","33353","DtaGeracao","2026-09-02","2014-08-18","viva","0,1"
+"GE_LOG_CONFIG","110308","DTALOG","2026-09-02","2018-12-26","viva","0,1"
+"GE_PessoaFone","113612","DTAINCLUSAO","2026-09-02","2019-12-10","viva","0,2"
+"IVS_Pes","139065","DtaInclusao","2026-09-02","2015-07-23","viva","0,1"
+"GEP_JobAgdExecLog","1092904","DtaExecucao","2026-09-02","2017-01-16","viva","0,1"
+"GEP_SyncUsrSat","3970706","DtaGeracao","2026-09-02","2025-02-18","viva","0,2"
+"GEP_JobMonitor","2","Inicio","2026-09-02","2025-09-18","viva","0,1"
+"GEP_ImportTry","2631","DtaLimiteTentativa","2026-09-02","2012-05-31","viva","0,1"
+"IV_VENDEDOREMPR","940","DtaAlteracao","2026-09-02","2014-10-02","viva","0,1"
+"EXT_Pessoa","58204","DtaInclusao","2026-09-02","2018-02-02","viva","0,1"
+"DMN_Doc","71488","DtaBase","2026-09-02","2000-01-01","viva","0,1"
+"IV_AcaoCtrl","44","DtaProxExec","2026-09-02","2026-09-02","viva","0,1"
+"IV_Agenda","966941","DtaRealizacao","2026-09-02","2016-04-19","viva","0,1"
+"DMN_DocHst","189651","DtaMovto","2026-09-02","2014-09-22","viva","0,1"
+"DMN_DocPes","76610","DtaInclusao","2026-09-02","2014-09-12","viva","0,1"
+"IV_ClientePropr","246938","DtaInclusao","2026-09-02","2008-11-07","viva","0,1"
+"GEP_UsrSat","71","DtaInicioRec","2026-09-02","2020-11-23","viva","0,1"
+"IV_Ciencia","173996","DtaLeitura","2026-09-02","2012-01-06","viva","0,1"
+"EXT_APROVACAO","2669","DTAGERACAO","2026-09-02","2025-07-02","viva","0,1"
+"IV_USRSTATUS","183","DTAATUALIZACAO","2026-09-02","2025-02-18","viva","0,1"
+"GEP_EMAILSENT","586458","DTAENVIO","2026-09-02","2019-02-05","viva","0,1"
+"IV_Historico","2485762","DTAINCLUSAO","2026-09-02","2023-06-05","viva","0,2"
+"IV_Resultado","4209","DtaInclusao","2026-09-02","2011-11-11","viva","0,1"
+"GEP_Fila","81","DtaExecucao","2026-09-02","2026-09-02","viva","0,1"
+"GEP_Import","743","DtaGeracao","2026-09-02","2025-04-30","viva","0,1"
+"IV_OcrmAgd","16","DtaEnvio","2026-09-02","2025-07-17","viva","0,1"
+"GEP_ImportAprovacao","4875","DtaGeracao","2026-09-02","2025-07-15","viva","0,1"
+"GE_ParamLista","405","DtaAlteracao","2026-09-01","2012-01-02","viva","0,1"
+"IV_Q_VENDA_PERDIDA_FY25","247","VP_DATA_VP","2026-09-01","2025-07-11","viva","0,1"
+"GE_Contato","41282","DTAINCLUSAO","2026-09-01","2023-06-06","viva","0,1"
+"IV_STATUS_DEPTO","477344","ULTCOMPRA","2026-09-01","2012-01-04","viva","0,2"
+"GE_LOG_CONTATO","19925","DTALOG","2026-08-31","2018-12-26","viva","0,1"
+"GE_ContatoPapel","43663","DtaAlteracao","2026-08-31","2011-01-27","viva","0,1"
+"IV_GlobalPar","3403","DtaAlteracao","2026-08-31","2011-11-18","viva","0,1"
+"OUT_Log","1766","DtaIns","2026-08-30","2014-08-12","viva","0,1"
+"GE_UsuarioSenhaMem","2490","DtaTroca","2026-08-28","2013-09-25","viva","0,1"
+"GE_ObjDinamico","196","DtaAlteracao","2026-08-28","2012-12-09","viva","0,1"
+"EXT_CONDPAGTO","22","DTAGERACAO","2026-08-25","2025-09-16","viva","0,1"
+"IV_Selecao","550","DtaAlteracao","2026-08-25","2012-01-03","viva","0,1"
+"IV_Q_LIBERAR_DEMONSTRACAO","65","DATA_IDA","2026-08-24","2026-02-02","viva","0,1"
+"IV_Q_COTA_CONSORCIO","81","CONSORCIO_DATA","2026-08-24","2025-08-05","viva","0,1"
+"IV_Q_VP_SEM_PARTICIPACAO","94","DATA_VP","2026-08-21","2025-05-05","viva","0,1"
+"IVS_CartCid","673","DtaAlteracao","2026-08-20","2013-03-01","viva","0,1"
+"GE_PessoaRelacao","5601","DtaAlteracao","2026-08-20","2012-01-05","viva","0,1"
+"IVS_CartDepto","206","DtaAlteracao","2026-08-19","2012-01-02","viva","0,1"
+"IVS_Carteira","655","DTAINCLUSAO","2026-08-19","2025-02-20","viva","0,1"
+"GE_QVCons","134","UltAtualizacao","2026-08-18","1999-12-31","viva","0,1"
+"IV_Acao","980","DtaInclusao","2026-08-14","2011-11-11","viva","0,1"
+"IV_Q_ACOMP_VENDA_FINANC","2605","DATA_PROPOSTA","2026-08-12","2025-01-09","viva","0,1"
+"IMP_REL_TBA101_PG2","1558","DATA_PEDIDO_HIST_D","2026-07-27","2025-07-21","viva","0,1"
+"EXT_AGUARDENTREGA","52","DTAGERACAO","2026-07-16","2025-09-16","viva","0,1"
+"IV_ConhecLeitura","50","DtaUltAcesso","2026-07-16","2012-01-12","viva","0,1"
+"X_T_IMP_CRM_TITULO","479271","DtaEmissao","2026-07-13","2021-08-02","viva","0,1"
+"IMP_Titulo","892131","DtaEmissao","2026-07-13","2021-08-09","viva","0,1"
+"GE_PessoaVersao","12021","DtaAtualizacao","2026-07-07","2011-12-21","viva","0,1"
+"IV_ResMsgPapel","1338","DtaInclusao","2026-05-27","2012-02-16","fria (>90 dias)","0,1"
+"GE_PolSegCtrl","254","DtaAlteracao","2026-05-21","2013-03-25","fria (>90 dias)","0,1"
+"GE_CtrlE","16","Datu","2026-04-29","2026-04-29","fria (>90 dias)","0,1"
+"GE_CtrlME","36","Datu","2026-04-29","2026-04-29","fria (>90 dias)","0,1"
+"GE_CtrlM","31","Datu","2026-04-29","2026-04-29","fria (>90 dias)","0,1"
+"GE_Mod","32","Datu","2026-04-29","2026-04-29","fria (>90 dias)","0,1"
+"IV_Campanha","179","DtaInclusao","2026-04-27","2012-04-30","fria (>90 dias)","0,1"
+"GEP_ParRecebe","14","DtaAlteracao","2026-04-20","2018-11-21","fria (>90 dias)","0,1"
+"IV_Evento","132","DtaAlteracao","2026-03-20","2012-05-29","fria (>90 dias)","0,1"
+"IVS_DeptoRes","63","DtaAlteracao","2026-03-05","2018-03-19","fria (>90 dias)","0,1"
+"IV_TxtPadrao","212","DtaInclusao","2026-02-18","2012-01-13","fria (>90 dias)","0,2"
+"IV_Q_ABERTURA_OS_REVISAO","10","DATA_ABERTURA","2026-02-10","2024-10-14","fria (>90 dias)","0,1"
+"GE_AtributoFixo","183","DtaAlteracao","2026-02-03","2013-03-24","fria (>90 dias)","0,1"
+"IV_Q_OFERECE_RENOV_SEGURO","975","DATA_VENCTO_PRIMEIRA","2026-01-30","2025-05-16","fria (>90 dias)","0,1"
+"IV_Q_VENDA","2806","DATA_PEDIDO_DE_VENDA","2025-12-20","2023-03-01","fria (>90 dias)","0,1"
+"IV_OPTEMAIL","21","DTAALTERACAO","2025-12-09","2019-06-04","fria (>90 dias)","0,1"
+"GEP_ParEnvia","3","DtaAlteracao","2025-12-02","2021-07-30","fria (>90 dias)","0,1"
+"IV_GlobalParCtrl","48","DtaAlteracao","2025-10-29","2012-01-05","fria (>90 dias)","0,1"
+"IV_Q_APROVACAO_TCSM","27","DATA_RETORNO_TCSM","2025-10-15","2024-12-04","fria (>90 dias)","0,1"
+"IV_OPTFONE","2","DTAALTERACAO","2025-10-01","2019-05-31","fria (>90 dias)","0,1"
+"IV_Q_REV_DATA_SERVICO","74","DATA_INICIO_SERVICO","2025-09-15","2023-01-30","fria (>90 dias)","0,1"
+"GE_PessoaSimilar","124222","DtaGeracao","2025-09-12","2012-10-17","fria (>90 dias)","0,1"
+"IV_Q_DEMO_MAQUINAS","109","DATA_IDEAL","2025-08-12","2021-03-01","PARADA (>1 ano)","0,1"
+"IVS_PES_NELSON","134872","dtaultctto","2025-08-07","2012-03-22","PARADA (>1 ano)","0,1"
+"IV_Q_OS_CORTESIA","78","DATA_ABERTURA_OS","2025-08-04","2024-09-04","PARADA (>1 ano)","0,1"
+"IV_Q_VENDA_PERDIDA_MAQIMP","313","DATA_VENDA_VP","2025-07-31","2024-01-18","PARADA (>1 ano)","0,1"
+"IV_Processo_bkp20250717","1","DtaInclusao","2025-07-17","2025-07-17","PARADA (>1 ano)","0,1"
+"IV_Q_SOLICITACAO_TCAT","1","TCAT_DATA_SINISTRO","2025-06-10","2025-06-10","PARADA (>1 ano)","0,1"
+"EXT_Titulo","577925","DtaEmissao","2025-05-21","2015-01-09","PARADA (>1 ano)","0,1"
+"IV_CbrCobrancaLote","21048","DtaGeracao","2025-05-21","2017-09-22","PARADA (>1 ano)","0,1"
+"IV_CbrCobrancaTitLog","304684","DtaLog","2025-05-21","2017-09-27","PARADA (>1 ano)","0,2"
+"IV_CBRCRITMON","128167","DTAANALISE","2025-05-21","2020-11-16","PARADA (>1 ano)","0,1"
+"IV_CbrCobrancaTit","155204","DtaInclusao","2025-05-21","2017-09-27","PARADA (>1 ano)","0,1"
+"IVS_DEPTOPOT","126","DTAALTERACAO","2025-05-20","2023-06-05","PARADA (>1 ano)","0,1"
+"GE_Usuario_BKP20250520","1302","DTAINCLUSAO","2025-05-19","2025-02-17","PARADA (>1 ano)","0,1"
+"EXT_Produto","78749","Dtaimport","2025-04-14","2017-02-22","PARADA (>1 ano)","0,1"
+"EXT_NFS","390755","DtaEmissaoNF","2025-04-11","2017-01-04","PARADA (>1 ano)","0,1"
+"X_V_IMP_CRM_IMP_NF","815854","X_DATA_INTEGRACAO","2025-04-11","2023-10-03","PARADA (>1 ano)","0,1"
+"IMP_NFS","18378","Dtaemissaonf","2025-04-11","2023-01-02","PARADA (>1 ano)","0,1"
+"IMP_NFSItem","67404","DtaGeracao","2025-04-11","2023-09-18","PARADA (>1 ano)","0,1"
+"X_TOTVS_CRM_FATURAMENTO","809821","DATA_EMISSAO_NF","2025-04-11","2021-08-01","PARADA (>1 ano)","0,1"
+"GE_QVConsHst","69","Dta","2025-04-10","2012-10-15","PARADA (>1 ano)","0,1"
+"IV_Q_REVISAO_450_600H","1","DATA_INICIO_REV_600H","2025-03-01","2025-03-01","PARADA (>1 ano)","0,1"
+"GEP_IMPORT_GUI","52","DtaGeracao","2025-02-25","2025-02-19","PARADA (>1 ano)","0,1"
+"IV_Q_REVISAO_100H","1","DATA_INICIO_REV_100H","2025-02-21","2025-02-21","PARADA (>1 ano)","0,1"
+"GE_CTRLUSR","33","DATU","2025-02-03","2025-02-03","PARADA (>1 ano)","0,1"
+"IV_Q_GESTAO_CREDITO_IMP","807","DATA_SINAL","2025-01-31","2021-12-10","PARADA (>1 ano)","0,1"
+"GE_PolSegParams","1","DtaAlteracao","2025-01-30","2025-01-30","PARADA (>1 ano)","0,1"
+"IV_Q_REVISAO_1100_1150H","1","DATA_INICIO_REV_1100","2025-01-24","2025-01-24","PARADA (>1 ano)","0,1"
+"IV_Q_VENDA_DSI","1","DATA_EXEC_SERVICO","2025-01-21","2025-01-21","PARADA (>1 ano)","0,1"
+"GE_Cidade","10214","DtaAlteracao","2024-12-28","2017-01-22","PARADA (>1 ano)","0,1"
+"GE_PessoaLink_BKPJUN","90857","DtaGeracao","2024-12-28","2011-12-20","PARADA (>1 ano)","0,1"
+"GE_Contato_BKPJUN","28051","DTAINCLUSAO","2024-12-27","2023-06-06","PARADA (>1 ano)","0,1"
+"GE_ContatoPapel_BKPJUN","35413","DtaAlteracao","2024-12-27","2012-02-15","PARADA (>1 ano)","0,1"
+"GE_Contato_ITA","10866","DTAINCLUSAO","2024-12-27","2024-11-14","PARADA (>1 ano)","0,1"
+"GE_PessoaFone_BKPJUN","69894","DTAINCLUSAO","2024-12-27","2019-12-19","PARADA (>1 ano)","0,1"
+"GE_Pessoa_BKPJUN","88142","DtaInclusao","2024-12-27","2011-12-20","PARADA (>1 ano)","0,1"
+"GE_PessoaFone_ITA","42594","DTAINCLUSAO","2024-12-20","2019-12-10","PARADA (>1 ano)","0,1"
+"GE_Pessoa_ITA","28377","DtaInclusao","2024-12-19","2008-11-06","PARADA (>1 ano)","0,1"
+"IV_ClientePropr_ITA","157900","DtaInclusao","2024-12-19","2008-11-07","PARADA (>1 ano)","0,1"
+"GE_ContatoPapel_ITA","5032","DtaAlteracao","2024-12-19","2011-01-27","PARADA (>1 ano)","0,1"
+"GE_PessoaAlerta","237","DtaAlteracao","2024-12-18","2012-01-11","PARADA (>1 ano)","0,1"
+"GEP_Import_bkpjun","502009","DtaGeracao","2024-12-10","2017-02-08","PARADA (>1 ano)","0,1"
+"GE_PessoaRelacao_BKPJUN","5543","DtaAlteracao","2024-12-09","2012-01-05","PARADA (>1 ano)","0,1"
+"IV_CodProcesso","62","DtaInclusao","2024-11-26","2017-09-11","PARADA (>1 ano)","0,1"
+"GE_SyncParam","635","DtaAlteracao","2024-11-26","2024-11-22","PARADA (>1 ano)","0,1"
+"IV_Q_ADM_FINANCEIRO","1884","DATA_PROTOCOLO_NO_BA","2024-11-04","2024-03-15","PARADA (>1 ano)","0,1"
+"GE_PessoaRelacao_ITA","3092","DtaAlteracao","2024-08-27","2012-01-09","PARADA (>1 ano)","0,1"
+"GE_PessoaEnd_ITA","2779","DtaAlteracao","2024-07-29","2009-07-31","PARADA (>1 ano)","0,1"
+"GE_PessoaEnd","6480","DtaAlteracao","2024-07-29","2009-07-31","PARADA (>1 ano)","0,1"
+"GE_CampoPerm","17","DtaAlteracao","2024-07-02","2012-01-12","PARADA (>1 ano)","0,1"
+"IV_Q_ACOMP_VENDA_DIRETAJD","270","DATA_ENTREGA","2024-06-28","2017-01-20","PARADA (>1 ano)","0,1"
+"IMP_OSITEM","399040","DtaGeracao","2024-05-26","2021-08-02","PARADA (>1 ano)","0,2"
+"EXT_VeicProp","12621","DtaAlteracao","2024-05-24","2017-02-04","PARADA (>1 ano)","0,1"
+"EXT_Veic","8020","DtaAlteracao","2024-05-24","2017-02-04","PARADA (>1 ano)","0,1"
+"EXT_VeicKM","17378","DtaAlteracao","2024-05-23","2017-02-04","PARADA (>1 ano)","0,1"
+"IV_Q_INTERESSE_PROJETO_IR","25","DATA_FATURAMENTO","2024-04-30","2019-10-25","PARADA (>1 ano)","0,1"
+"IV_Q_VENDA_PERDIDA_PROD","286","DATA_DA_VENDA","2024-04-24","2021-08-31","PARADA (>1 ano)","0,1"
+"X_TOTVS_BI_FATURAMENTO_MAQUINAS","4612","data_emissao_nf","2024-04-17","2021-08-03","PARADA (>1 ano)","0,1"
+"IV_Q_VENDA_PERDIDA_IMPL","31","DATA_DA_VENDA","2024-04-15","2015-05-04","PARADA (>1 ano)","0,1"
+"X_T_IMP_CRM_VEICULO","7279","DATA_INCLUSAO","2024-03-25","2023-10-31","PARADA (>1 ano)","0,1"
+"IV_Q_ACOMP_VEND_MAQUINAS","1535","DATA_ENTREGA","2024-03-23","2022-01-02","PARADA (>1 ano)","0,1"
+"IV_Q_GESTAO_CREDITO_AMS","175","DATA_SINAL","2024-03-04","2022-03-11","PARADA (>1 ano)","0,1"
+"GE_Alias","1413","DtaAlteracao","2024-02-21","2017-02-02","PARADA (>1 ano)","0,1"
+"IV_Q_VENDA_PERDIDA_SEGURO","13","DATA","2023-12-18","2023-05-22","PARADA (>1 ano)","0,1"
+"IV_OpBloq","4","DtaAlteracao","2023-12-13","2020-09-21","PARADA (>1 ano)","0,1"
+"GE_PessoaLink_ITA","24864","DtaGeracao","2023-11-29","2014-06-26","PARADA (>1 ano)","0,1"
+"IV_ClienteAtrib","2018","DtaAtualizacao","2023-10-18","2012-02-23","PARADA (>1 ano)","0,1"
+"EXT_NFSItem","1300126","DtaImport","2023-10-03","2021-08-02","PARADA (>1 ano)","0,1"
+"X_TOTVS_BI_FATURAMENTO_POS_VENDAS","407100","DATA_EMISSAO_NF","2023-09-29","2021-08-02","PARADA (>1 ano)","0,2"
+"X_V_IMP_CRM_IMP_NF_BKP_18_09_2023","415762","X_DATA_INTEGRACAO","2023-09-15","2023-09-15","PARADA (>1 ano)","0,1"
+"IV_Q_VENDA_AMS","775","DATA_DO_PEDIDO","2023-08-02","2019-08-12","PARADA (>1 ano)","0,1"
+"IV_RESULTADO_3110","2826","DtaInclusao","2023-05-31","2011-11-11","PARADA (>1 ano)","0,1"
+"EXT_TituloMov","1134039","DtaMov","2023-05-18","1996-01-01","PARADA (>1 ano)","0,1"
+"EXT_Titulo_bkp_11_04","108061","DtaEmissao","2023-04-10","2012-05-01","PARADA (>1 ano)","0,1"
+"X_T_IMP_CRM_TITULO_bkp_11_04","121381","DtaEmissao","2023-04-10","2021-08-02","PARADA (>1 ano)","0,2"
+"IMP_Titulo_bkp_11_04","2168","DtaEmissao","2023-04-10","2021-08-02","PARADA (>1 ano)","0,1"
+"IV_Q_VENDA_PERDIDA_IMPLEM","125","DTA_DA_VENDA","2023-04-03","2013-12-20","PARADA (>1 ano)","0,1"
+"IV_CBRTITULOHST","173530","DATA","2023-03-22","2019-05-31","PARADA (>1 ano)","0,1"
+"EXT_Titulo_BKP_22_03_2023_BAIXADOS","16705","DtaEmissao","2023-03-22","2021-08-02","PARADA (>1 ano)","0,1"
+"EXT_Titulo_BKP_22_03_2023","4635","DtaEmissao","2023-02-17","2015-11-03","PARADA (>1 ano)","0,1"
+"GE_PessoaEnd_BKPJUN","3739","DtaAlteracao","2023-01-20","2012-01-11","PARADA (>1 ano)","0,1"
+"GE_PessoaLink_bkpago22","92068","DtaGeracao","2022-09-09","2011-12-20","PARADA (>1 ano)","0,1"
+"EXT_Pessoa_bkpago22","27280","DtaInclusao","2022-08-11","2018-02-02","PARADA (>1 ano)","0,1"
+"IV_Q_ACOMPANH_VENDA_JDE","6343","DATA_COMBINADA_CLIEN","2022-08-01","2015-02-07","PARADA (>1 ano)","0,1"
+"IV_Q_INCENTIVO","2079","DATA_ENVIO_XML","2022-05-03","2015-01-19","PARADA (>1 ano)","0,1"
+"GE_PessoaLinkbkp","58741","DtaGeracao","2021-08-02","2011-12-20","PARADA (>1 ano)","0,1"
+"IV_ProcRef","61975","DtaGeracao","2021-07-29","2017-01-23","PARADA (>1 ano)","0,1"
+"IV_SMSLog","27430","DtaLog","2021-07-29","2019-05-31","PARADA (>1 ano)","0,1"
+"IV_SMS","26749","DtaEnvio","2021-07-29","2019-06-01","PARADA (>1 ano)","0,1"
+"GE_Cidade_BKPJUN","9966","DtaAlteracao","2021-07-27","2017-01-22","PARADA (>1 ano)","0,1"
+"IV_Q_ACOMPAN_COMPRA_JDE","153","FDD2","2020-04-02","2015-01-26","PARADA (>1 ano)","0,1"
+"GE_PessoaMural","145313","DtaAlteracao","2019-12-19","2012-01-09","PARADA (>1 ano)","0,1"
+"IV_Q_ACOMP_VENDA_MANITOU","21","DATA_SINAL","2019-03-18","2017-12-21","PARADA (>1 ano)","0,1"
+"IV_Q_ACOMP_VENDA_USADO","256","DATA_SINAL","2018-12-05","2017-01-04","PARADA (>1 ano)","0,1"
+"IV_Q_ACOMP_VENDA_LOCACAO","15","DATA_INICIO_DA_LOCAC","2018-10-01","2017-12-01","PARADA (>1 ano)","0,1"
+"IV_Q_LOCACAO_COMISSAO","15","DATA_INICIO_LOCACAO","2018-10-01","2017-12-01","PARADA (>1 ano)","0,1"
+"IV_Q_VENDA_PERDIDA_MANITO","6","DT_VENDA","2018-04-20","2017-11-16","PARADA (>1 ano)","0,1"
+"IV_DoctoApl","6","DtaInclusao","2017-09-11","2012-05-29","PARADA (>1 ano)","0,1"
+"IV_Q_ACOMP_VENDA_DIRETA","125","DATA_MARCADO_ENTREGU","2017-06-05","2011-12-09","PARADA (>1 ano)","0,1"
+"IVS_UsrMeta","1","DtaAlteracao","2017-02-24","2017-02-24","PARADA (>1 ano)","0,1"
+"IV_DoctoAplUso","3","DtaInclusao","2017-01-25","2012-05-29","PARADA (>1 ano)","0,1"
+"GE_Cidade_CRM","729","DtaAlteracao","2016-12-09","2011-12-21","PARADA (>1 ano)","0,1"
+"OUT_Pessoa","1918","DtaInclusao","2016-12-05","2011-12-20","PARADA (>1 ano)","0,1"
+"IV_Conhecimento","9","Dtainclusao","2016-08-11","2012-01-10","PARADA (>1 ano)","0,2"
+"IVS_Pes_RAO_Pneus_02_03","18261","DtaInclusao","2016-06-13","2016-05-12","PARADA (>1 ano)","0,1"
+"IV_Q_ACOMPANHA_COMPRA_IMP","26","FDD2","2016-05-31","2015-02-27","PARADA (>1 ano)","0,1"
+"IVS_TGLCLIJUR","5438","DTIMPORT","2015-07-01","2015-07-01","PARADA (>1 ano)","0,1"
+"IVS_TGLCLICLIENT","16654","DTIMPORT","2015-07-01","2015-07-01","PARADA (>1 ano)","0,1"
+"IVS_TGLCLIFIS","11232","DTIMPORT","2015-07-01","2015-07-01","PARADA (>1 ano)","0,1"
+"IV_Q_PREVISAO_RECEBIMENTO","4","DATA_DA_PREVISAO_DE_","2013-04-05","2012-10-31","PARADA (>1 ano)","0,4"
+"IV_Q_RECEBIMENTO_FINANC","4","PREV_RECBTO","2013-04-05","2012-10-31","PARADA (>1 ano)","0,1"
+"GE_IMPORTA_CART","22","DtaNascFund","2012-10-31","1966-08-05","PARADA (>1 ano)","0,1"
+"GE_Consulta","2","Dtinclusao","2012-06-18","2012-06-18","PARADA (>1 ano)","0,1"
+"IV_ClientePropr_BKPJUN","1000","DtaInclusao","2012-03-23","2012-01-13","PARADA (>1 ano)","0,1"
+"nfsaida$","62619","DTEMISSAO","2011-12-14","2010-05-14","PARADA (>1 ano)","0,1"
+"IV_Propriedade","52","DtaInclusao","2009-07-22","2006-06-21","PARADA (>1 ano)","0,1"
+"IV_Propriedade_ITA","32","DtaInclusao","2009-07-22","2006-06-21","PARADA (>1 ano)","0,1"
+"IV_Propriedade_BKPJUN","21","DtaInclusao","2007-08-10","2007-08-10","PARADA (>1 ano)","0,1"
+"OUT_Contato","147","DtaNascimento","1976-03-24","1952-09-07","PARADA (>1 ano)","0,1"
+"IV_Q_VENDA_PERDIDA_TESTE","0","","","","VAZIA",
+"GE_CONSHST","0","","","","VAZIA",
+"GE_CFinConj","0","","","","VAZIA",
+"IV_Q_VENDER_RENOVACAO_SEG","362","DATA_VENCTO_PRIMEIRA","","","ok","0,1"
+"IV_Q_VENDA_MAQUINA_FY25","0","","","","VAZIA",
+"GE_CONTATOAPP","0","","","","VAZIA",
+"GE_CFinFis","0","","","","VAZIA",
+"GE_CFinDocto","0","","","","VAZIA",
+"GE_ContatoEmail","0","","","","VAZIA",
+"IV_Q_PEDIDO_SAM","48","DATA_VENCIMENTO_SINA","","","ok","0,1"
+"GE_FcadRBanc","0","","","","VAZIA",
+"IV_Q_PEDIDO_GC","0","","","","VAZIA",
+"GE_FCadF","0","","","","VAZIA",
+"GE_FCadInstCred","0","","","","VAZIA",
+"IV_Q_RECEB_FINAN_IMPLEM","0","","","","VAZIA",
+"GE_FONEINVALIDO","0","","","","VAZIA",
+"GE_IntCtrl","0","","","","VAZIA",
+"IV_Q_GESTAO_PRODUTO_IMPL","813","DATA_ESPERADA_PARA_E","","","ok","0,1"
+"GE_FcadRCom","0","","","","VAZIA",
+"GE_FCadRPes","0","","","","VAZIA",
+"GE_FERIADO","0","","","","VAZIA",
+"GE_EMAILINVALIDO","0","","","","VAZIA",
+"IV_Q_ROMANEIO_DEV_PECA","1","DATA_DEVOLUCAO","","","ok","0,1"
+"IV_Q_REVISAO_FIM_GARANTIA","0","","","","VAZIA",
+"GE_CTRLMU","0","","","","VAZIA",
+"IV_Q_VENDA_DIRETA","0","","","","VAZIA",
+"GE_DiaNaoUtil","0","","","","VAZIA",
+"IV_Q_REVISAO_1500H","0","","","","VAZIA",
+"GE_Empresa","18","DtaAlteracao","","","ok","0,1"
+"GE_FCadConj","0","","","","VAZIA",
+"IV_Q_REVISAO_800H","0","","","","VAZIA",
+"GE_EmailSpam","0","","","","VAZIA",
+"IV_Q_GESTAO_PRODUTO___AMS","177","DATA_ESPERADA_PARA_E","","","ok","0,1"
+"GE_CampoExig","0","","","","VAZIA",
+"EXT_PESSOACONTATO","0","","","","VAZIA",
+"EXT_PESSOAFONE","0","","","","VAZIA",
+"IVS_CanalVenda","0","","","","VAZIA",
+"IVS_Depto","29","DTAINCLUSAO","","","ok","0,1"
+"EXT_OSSolic","0","","","","VAZIA",
+"IVS_Negocio","0","","","","VAZIA",
+"EXT_Pedido","0","","","","VAZIA",
+"IVM_MatPessoa","0","","","","VAZIA",
+"IVM_Material","0","","","","VAZIA",
+"IVF_TabIndice","0","","","","VAZIA",
+"IVM_ProcMat","0","","","","VAZIA",
+"IVP_TabPreco","0","","","","VAZIA",
+"IVP_PedCritica","0","","","","VAZIA",
+"IVM_ProcMatItem","0","","","","VAZIA",
+"EXT_OSITEM","182238","DTAIMPORT","","","ok","0,1"
+"EXT_EMAIL","0","","","","VAZIA",
+"EXT_FormaPgto","0","","","","VAZIA",
+"EXT_NFSCmpl","0","","","","VAZIA",
+"DMN_DocVrs","0","","","","VAZIA",
+"CBR_CLIENTECONTA","0","","","","VAZIA",
+"DMN_DocProj","0","","","","VAZIA",
+"DMN_DocProp","0","","","","VAZIA",
+"JDE_QUOTE","0","","","","VAZIA",
+"JDE_PURCHASE","0","","","","VAZIA",
+"IVS_Regional","0","","","","VAZIA",
+"LOG_INTEGRACAO_FATURAMENTO_TOTVS","0","","","","VAZIA",
+"VBI_CONTAPAI","243","DTAALTERACAO","","","ok","0,1"
+"VBI_CONTA","1004","DTAALTERACAO","","","ok","0,1"
+"EXT_OS","8099","Dtaabertura","","","ok","0,1"
+"IVF_TabEmpr","0","","","","VAZIA",
+"IV_TC_PESSOA","0","","","","VAZIA",
+"IV_TAGCAD","0","","","","VAZIA",
+"EXT_VeicAgd","0","","","","VAZIA",
+"IV_TEMPLATEPROJ","0","","","","VAZIA",
+"IV_URADISPARO","0","","","","VAZIA",
+"IV_Unidade","0","","","","VAZIA",
+"IV_TxtPadConta","0","","","","VAZIA",
+"EXT_VeicAvalia","0","","","","VAZIA",
+"GE_Aplicacao","184","DTALIMITEUSO","","","ok","0,1"
+"IV_RecUso","0","","","","VAZIA",
+"IV_ResultadoReq","0","","","","VAZIA",
+"EXT_VEICAGDERP","0","","","","VAZIA",
+"IV_SegPerfil","0","","","","VAZIA",
+"IV_ResultadoWeb","0","","","","VAZIA",
+"IV_URARELATORIO","0","","","","VAZIA",
+"IVF_Proposta","0","","","","VAZIA",
+"IVF_Plano","0","","","","VAZIA",
+"IVF_AgregCC","0","","","","VAZIA",
+"IVF_PropostaHst","0","","","","VAZIA",
+"IVF_TabelaFiltro","0","","","","VAZIA",
+"IVF_Tabela","0","","","","VAZIA",
+"IVF_PropostaObs","0","","","","VAZIA",
+"IV_WHATSAPP","0","","","","VAZIA",
+"IV_VENDEDOR","351","DTAALTERACAO","","","ok","0,1"
+"IV_USRPUSH","0","","","","VAZIA",
+"IVC_ATENDENTE","0","","","","VAZIA",
+"IVC_RAMAL","0","","","","VAZIA",
+"IVC_CHAMADALOG","0","","","","VAZIA",
+"IVC_ATENDENTELOG","0","","","","VAZIA",
+"GE_LgTb","11861777","DtaLog","","","PULADA POR VOLUME",
+"IMP_OSSOLIC","0","","","","VAZIA",
+"IV_CbrCobrancaMon","0","","","","VAZIA",
+"IMP_Pedido","0","","","","VAZIA",
+"IMP_OS","287868","Dtaabertura","","","ok","0,1"
+"IV_CFinDocAceito","0","","","","VAZIA",
+"IV_CbrTitulo","0","","","","VAZIA",
+"IMP_NFSCMPL","0","","","","VAZIA",
+"IV_CBRCOBRANCAHST","0","","","","VAZIA",
+"IV_CARTPESSOA","0","","","","VAZIA",
+"IV_CARTPESORIGEM","0","","","","VAZIA",
+"IV_CartMarca","0","","","","VAZIA",
+"IV_CartProduto","0","","","","VAZIA",
+"IV_CbrCobranca","64449","Dta1Cob","","","ok","0,1"
+"IV_CartTitular","0","","","","VAZIA",
+"IV_CartProposta","0","","","","VAZIA",
+"GEP_ProcControle","0","","","","VAZIA",
+"GEP_Processo","8","ExeDta","","","ok","0,1"
+"IV_CobrTit","0","","","","VAZIA",
+"IV_CustoMidia","0","","","","VAZIA",
+"GEP_PABX","0","","","","VAZIA",
+"IV_EMAILESTATISTICA","0","","","","VAZIA",
+"IV_eMail","0","","","","VAZIA",
+"IV_CobrCritMon","0","","","","VAZIA",
+"IMP_Evento","0","","","","VAZIA",
+"IV_ClasseRes","40","DtaAlteracao","","","ok","0,1"
+"IMP_FORMAPGTO","0","","","","VAZIA",
+"IMP_EMAIL","0","","","","VAZIA",
+"IV_CobrCritDef","0","","","","VAZIA",
+"IV_CobrCrit","0","","","","VAZIA",
+"GEP_ProcImport","0","","","","VAZIA",
+"IV_AgdRec","0","","","","VAZIA",
+"IV_AGDPLANTRG","0","","","","VAZIA",
+"IV_AgdLink","4534","CtrlDta1","","","ok","0,1"
+"IV_AgdUsr","0","","","","VAZIA",
+"IV_AGENDAITEM","0","","","","VAZIA",
+"IV_Agenda_bkp20250717","1","DtaRealizacao","","","ok","0,1"
+"IMP_PESSOACONTATO","0","","","","VAZIA",
+"IV_AcaoRem","266","DtaAlteracao","","","ok","0,1"
+"IMP_VEICULO_INTEGRADO","0","","","","VAZIA",
+"IMP_VEICULO","0","","","","VAZIA",
+"IMP_REL_TBA101","302","DATA_PEDIDO_HIST_D","","","ok","0,1"
+"IMP_PRODUTO","0","","","","VAZIA",
+"IV_AcaoMon","0","","","","VAZIA",
+"IMP_PESSOAFONE","0","","","","VAZIA",
+"IV_AcaoAuto","5958","HORAAGENDA","","","ok","0,1"
+"IV_CAMPSELECAO","0","","","","VAZIA",
+"IV_CampPessoa","0","","","","VAZIA",
+"IV_CampPesMsg","0","","","","VAZIA",
+"IV_CampVoucher","0","","","","VAZIA",
+"IV_CartLoteImp","0","","","","VAZIA",
+"IV_CartCred","0","","","","VAZIA",
+"IV_CartContratante","0","","","","VAZIA",
+"IMP_PESSOA","0","","","","VAZIA",
+"IV_Ativ","0","","","","VAZIA",
+"IV_AtdBloq","0","","","","VAZIA",
+"IV_AgendaLog","11143876","DtaLog","","","PULADA POR VOLUME",
+"IV_AtivAgenda","0","","","","VAZIA",
+"IV_BonusCC","0","","","","VAZIA",
+"IV_BaseInformacao","0","","","","VAZIA",
+"IV_ATIVPADRAO","0","","","","VAZIA",
+"IV_FichaNegVeic","0","","","","VAZIA",
+"GE_PessoaEndAlt","0","","","","VAZIA",
+"GE_PessoaFis","5314","DtaEmissaoRG","","","ok","0,1"
+"IV_PUSH","0","","","","VAZIA",
+"IV_Q_ACOMPANHAMENTO_VENDA","1715","DATA_PEDIDO_DE_VENDA","","","ok","0,1"
+"IV_Q_AVAL_COLH_CANA_USADA","1","VALIDADE_DA_AVALIACA","","","ok","0,1"
+"GE_PessoaDestino","0","","","","VAZIA",
+"GE_PessoaEmail","0","","","","VAZIA",
+"IV_ProjPessoa","0","","","","VAZIA",
+"IV_Produto","1","DtaInclusao","","","ok","0,1"
+"IV_ProcTpRel","0","","","","VAZIA",
+"IV_PROCTAG","0","","","","VAZIA",
+"IV_ProjColec","0","","","","VAZIA",
+"IV_Projeto","0","","","","VAZIA",
+"IV_ProjEquipe","0","","","","VAZIA",
+"IV_ProjDocto","0","","","","VAZIA",
+"GE_Pessoa_BKP28052025","0","","","","VAZIA",
+"GE_PessoaAlt","0","","","","VAZIA",
+"IV_Q_DEMO_EQUIP_JD","0","","","","VAZIA",
+"IV_Q_FORA_SERVICO_PMP","0","","","","VAZIA",
+"GE_LOG_CARTCRED","0","","","","VAZIA",
+"GE_LOG_PROCESSO","12714111","DTALOG","","","PULADA POR VOLUME",
+"GE_LogAtividade","0","","","","VAZIA",
+"GE_PESSOAATIVAUSR","0","","","","VAZIA",
+"IV_Q_AVALIA_COLHEIT_USADA","1","DATA_DE_VALIDADE_DA_","","","ok","0,1"
+"IV_Q_AVAL_USADO_ENTRADA","200","ANO_DO_USADO","","","ok","0,1"
+"IV_Q_AVAL_TRATORES_USADOS","0","","","","VAZIA",
+"IV_Q_CANHOTO_DIGITAL","0","","","","VAZIA",
+"IV_Q_CONDICOES_DE_VENDAS","0","","","","VAZIA",
+"IV_Q_COMISSAO_VD_LOCACAO","0","","","","VAZIA",
+"GE_PessoaDel","0","","","","VAZIA",
+"IV_ObjVenda","0","","","","VAZIA",
+"IV_LEADFACEITEM","0","","","","VAZIA",
+"IV_LEADFACEBOOK","0","","","","VAZIA",
+"GEL_CEP","0","","","","VAZIA",
+"GE_UsrCtrl","0","","","","VAZIA",
+"IV_Operador","941","HoraInicial","","","ok","0,1"
+"GE_USUARIOCMPL","0","","","","VAZIA",
+"GEL_CepAlerta","0","","","","VAZIA",
+"IV_FoneCtrlHst","0","","","","VAZIA",
+"IV_FoneCtrl2","0","","","","VAZIA",
+"IV_FoneCtrl","0","","","","VAZIA",
+"GEP_ImportErro","0","","","","VAZIA",
+"IV_HISTORICOTAG","0","","","","VAZIA",
+"GEL_Cidade","0","","","","VAZIA",
+"GEP_EMailSend","0","","","","VAZIA",
+"GE_PESSOAREDESOCIAL","0","","","","VAZIA",
+"GE_PROCESSOWEB","0","","","","VAZIA",
+"GE_Regiao","0","","","","VAZIA",
+"IV_ProcLink","602150","DTAALTERACAO","","","ok","0,2"
+"IV_ProcRelacao","0","","","","VAZIA",
+"IV_ProcProjeto","0","","","","VAZIA",
+"GE_PessoaPasw","0","","","","VAZIA",
+"GE_Rota","0","","","","VAZIA",
+"IV_Pessoa","0","","","","VAZIA",
+"IV_OS","0","","","","VAZIA",
+"GE_UsrAcSp","0","","","","VAZIA",
+"IV_PessoaStat","0","","","","VAZIA",
+"GE_URACENARIO","0","","","","VAZIA",
+"IV_ProcAtiv","0","","","","VAZIA",
+"IV_PlanoAtiv","0","","","","VAZIA",

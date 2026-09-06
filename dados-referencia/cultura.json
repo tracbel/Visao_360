@@ -1,0 +1,28 @@
+{
+  "catalogo": "cultura",
+  "descricao": "Cultura agrícola predominante na propriedade do cliente",
+  "origem": "ÚNICA fonte é a ficha do cliente-referência 84391 do protótipo (prototipo/dados-seed/cliente-84391.json) — não há tabela de domínio no Vórtice (doc 17 §6.1: \"não existe — texto livre\"). Lista quase certamente incompleta para a base real de clientes — ver PENDENTES.md.",
+  "itens": [
+    {
+      "codigo": "SOJA",
+      "descricao": "Soja",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Extraído de cliente-84391.json (segmentacao.culturas e enderecos_adicionais[].cultura, combinações como \"Soja + Milho safrinha\")."
+    },
+    {
+      "codigo": "MILHO_SAFRINHA",
+      "descricao": "Milho safrinha",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Extraído de cliente-84391.json (segmentacao.culturas e enderecos_adicionais[].cultura, combinações como \"Soja + Milho safrinha\")."
+    },
+    {
+      "codigo": "ALGODAO",
+      "descricao": "Algodão",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Extraído de cliente-84391.json (segmentacao.culturas e enderecos_adicionais[].cultura, combinações como \"Soja + Milho safrinha\")."
+    }
+  ]
+}

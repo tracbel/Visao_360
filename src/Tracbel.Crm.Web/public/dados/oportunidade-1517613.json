@@ -1,0 +1,351 @@
+{
+  "id": 1517613,
+  "numero": "OP-2026-08471",
+  "titulo": "Renovação Frota Cana · 2× Trator 8R 250",
+  "cliente": {
+    "id": 84391,
+    "razao": "Agroindustrial Salvador Arena Ltda",
+    "cnpj": "12.345.678/0001-90",
+    "classe": "A",
+    "cidade": "Lucas do Rio Verde/MT"
+  },
+  "cen": {
+    "nome": "José Rufino",
+    "regional": "MT Norte",
+    "unidade": "Tracbel Lucas do Rio Verde"
+  },
+  "linha": "Tratores",
+  "origem": "Cliente cadastrado SAP",
+  "criada_em": "2026-07-28",
+  "atualizada_em": "2026-08-22T10:15",
+  "previsao_fechamento": "2026-10-15",
+  "probabilidade": 60,
+  "fase_atual": "negocio_fechado",
+  "macro_status": "aberto",
+  "valor_total": 3200000,
+  "desconto_total": 285000,
+  "valor_lista": 3485000,
+  "itens": [
+    {
+      "id": 1,
+      "codigo": "8R250-2026",
+      "descricao": "Trator John Deere 8R 250 · Cabine CommandView III · e23 · 4×4 MFWD",
+      "qtd": 2,
+      "valor_unitario_lista": 1720000,
+      "valor_unitario": 1580000,
+      "desconto_pct": 8.14,
+      "aprovacao_desconto": "aprovado",
+      "aprovador": "Marcos Vinicius Alves · Gerente Regional MT",
+      "aprovado_em": "2026-08-18T14:30",
+      "alcada_limite_pct": 10,
+      "total": 3160000
+    },
+    {
+      "id": 2,
+      "codigo": "SVC-ENT-4H",
+      "descricao": "Serviço · Entrega técnica + treinamento operador (4h por equipamento)",
+      "qtd": 2,
+      "valor_unitario_lista": 4500,
+      "valor_unitario": 3500,
+      "desconto_pct": 22.22,
+      "aprovacao_desconto": "aprovado",
+      "aprovador": "Marcos Vinicius Alves · Gerente Regional MT",
+      "aprovado_em": "2026-08-18T14:30",
+      "alcada_limite_pct": 15,
+      "total": 7000
+    },
+    {
+      "id": 3,
+      "codigo": "PGD-EST-5A",
+      "descricao": "Garantia estendida PowerGard · 5 anos ou 8.000h (por equipamento)",
+      "qtd": 2,
+      "valor_unitario_lista": 18000,
+      "valor_unitario": 16500,
+      "desconto_pct": 8.33,
+      "aprovacao_desconto": "dentro_alcada",
+      "alcada_limite_pct": 10,
+      "total": 33000
+    }
+  ],
+  "timeline_fases": [
+    {
+      "key": "projeto",
+      "label": "Projeto",
+      "inicio": "2026-07-28",
+      "fim": "2026-07-30",
+      "dias": 2,
+      "status": "concluida"
+    },
+    {
+      "key": "orcamento",
+      "label": "Orçamento",
+      "inicio": "2026-07-30",
+      "fim": "2026-08-05",
+      "dias": 6,
+      "status": "concluida"
+    },
+    {
+      "key": "proposta",
+      "label": "Proposta",
+      "inicio": "2026-08-05",
+      "fim": "2026-08-18",
+      "dias": 13,
+      "status": "concluida"
+    },
+    {
+      "key": "negocio_fechado",
+      "label": "Negócio Fechado",
+      "inicio": "2026-08-18",
+      "fim": null,
+      "dias": 7,
+      "status": "atual",
+      "bloqueio": "Aguardando aprovação de valor de proposta"
+    },
+    {
+      "key": "pedido_alocado",
+      "label": "Pedido Alocado",
+      "inicio": null,
+      "fim": null,
+      "status": "futura",
+      "aprovacao": "Aprovação Comercial/Pedido"
+    },
+    {
+      "key": "processo_liberado",
+      "label": "Processo Liberado",
+      "inicio": null,
+      "fim": null,
+      "status": "futura",
+      "aprovacao": "Aprovação Doc. Faturamento"
+    },
+    {
+      "key": "faturamento_liberado",
+      "label": "Faturamento Liberado",
+      "inicio": null,
+      "fim": null,
+      "status": "futura",
+      "aprovacao": "Aprovação Financeiro"
+    },
+    {
+      "key": "faturado",
+      "label": "Faturado",
+      "inicio": null,
+      "fim": null,
+      "status": "futura"
+    }
+  ],
+  "aprovacoes": [
+    {
+      "id": "AP-2026-04521",
+      "tipo": "Aprovação de Desconto (item)",
+      "escopo": "Item de linha #1 · Trator 8R 250 · Desconto 8.14%",
+      "solicitante": "José Rufino",
+      "solicitado_em": "2026-08-15T09:22",
+      "alcada_regra": "Descontos ≤ 5% aprovação automática · 5% a 10% Gerente Regional · > 10% Diretor Comercial",
+      "aprovador_atual": "Marcos Vinicius Alves · Gerente Regional MT",
+      "status": "aprovada",
+      "decidido_em": "2026-08-18T14:30",
+      "comentario": "Aprovado. Cliente Classe A, histórico zero atraso, volume 2 unidades justifica."
+    },
+    {
+      "id": "AP-2026-04522",
+      "tipo": "Aprovação de Condição de Pagamento",
+      "escopo": "Proposta · Financiamento BNDES Finame 7 anos + entrada 20%",
+      "solicitante": "José Rufino",
+      "solicitado_em": "2026-08-16T11:05",
+      "alcada_regra": "Prazo > 60 meses ou entrada < 25%: Diretor Financeiro",
+      "aprovador_atual": "Carla Menezes · Diretora Financeira",
+      "status": "aprovada",
+      "decidido_em": "2026-08-19T10:12",
+      "comentario": "Aprovado com condicionante: cliente deve manter limite disponível ≥ R$ 1.5M até assinatura."
+    },
+    {
+      "id": "AP-2026-04523",
+      "tipo": "Aprovação de Valor de Proposta",
+      "escopo": "Proposta consolidada · R$ 3.200.000 · Desconto total 8.2%",
+      "solicitante": "José Rufino",
+      "solicitado_em": "2026-08-22T08:40",
+      "alcada_regra": "Propostas ≥ R$ 3M: Diretor Comercial",
+      "aprovador_atual": "Ricardo Meneghini · Diretor Comercial",
+      "status": "pendente",
+      "sla_horas": 48,
+      "sla_decorridas": 55,
+      "comentario": null
+    },
+    {
+      "id": "AP-2026-04524",
+      "tipo": "Aprovação Comercial/Pedido",
+      "escopo": "Emissão do pedido após negócio fechado",
+      "status": "nao_iniciada",
+      "alcada_regra": "Gerente Regional após anexo de proposta assinada + calculadora",
+      "previsto_em_fase": "pedido_alocado"
+    },
+    {
+      "id": "AP-2026-04525",
+      "tipo": "Aprovação Doc. Faturamento",
+      "escopo": "Validação de AF, comprovante de depósito e contrato bancário",
+      "status": "nao_iniciada",
+      "alcada_regra": "Coordenador de Faturamento",
+      "previsto_em_fase": "processo_liberado"
+    },
+    {
+      "id": "AP-2026-04526",
+      "tipo": "Aprovação Financeiro",
+      "escopo": "Liberação final para emissão de NF-e",
+      "status": "nao_iniciada",
+      "alcada_regra": "Diretor Financeiro",
+      "previsto_em_fase": "faturamento_liberado"
+    }
+  ],
+  "documentacao": {
+    "proposta": [
+      {
+        "nome": "Proposta comercial assinada",
+        "obrigatorio": true,
+        "status": "aguardando_cliente",
+        "quem": "José Rufino",
+        "envio_em": "2026-08-22",
+        "prazo": "2026-08-30"
+      },
+      {
+        "nome": "Ordem de Compra do cliente",
+        "obrigatorio": false,
+        "status": "nao_aplicavel"
+      },
+      {
+        "nome": "Calculadora de precificação completa",
+        "obrigatorio": true,
+        "status": "anexado",
+        "anexo": "CALC-2026-08471.xlsx",
+        "anexado_em": "2026-08-18",
+        "anexado_por": "José Rufino"
+      },
+      {
+        "nome": "SPE (Solicitação de Precificação Especial)",
+        "obrigatorio": false,
+        "status": "nao_aplicavel"
+      },
+      {
+        "nome": "Ficha cadastral atualizada do cliente",
+        "obrigatorio": true,
+        "status": "anexado",
+        "anexo": "FC-84391-2026.pdf",
+        "anexado_em": "2026-08-05",
+        "anexado_por": "Marina Costa · Admin"
+      }
+    ],
+    "faturamento": [
+      {
+        "nome": "AF (Autorização de Faturamento)",
+        "obrigatorio": true,
+        "status": "nao_iniciado"
+      },
+      {
+        "nome": "Comprovante de depósito em conta",
+        "obrigatorio": true,
+        "status": "nao_iniciado"
+      },
+      {
+        "nome": "Contrato assinado do banco (BNDES/CDCI)",
+        "obrigatorio": true,
+        "status": "nao_iniciado"
+      },
+      {
+        "nome": "Cópia dos boletos (se CDCI)",
+        "obrigatorio": false,
+        "status": "nao_aplicavel"
+      }
+    ]
+  },
+  "historico": [
+    {
+      "data": "2026-08-22T10:15",
+      "autor": "José Rufino · CEN",
+      "tipo": "aprovacao",
+      "acao": "Enviou \"Aprovação de Valor de Proposta\" para Ricardo Meneghini",
+      "descricao": "Proposta consolidada R$ 3.200.000 · desconto 8.2%."
+    },
+    {
+      "data": "2026-08-22T08:40",
+      "autor": "Sistema",
+      "tipo": "fase",
+      "acao": "Fase alterada: Proposta → Negócio Fechado",
+      "descricao": "Cliente confirmou intenção via e-mail (Marina Costa). CEN acionou avanço manual."
+    },
+    {
+      "data": "2026-08-19T10:12",
+      "autor": "Carla Menezes · Diretora Financeira",
+      "tipo": "aprovacao",
+      "acao": "Aprovou \"Aprovação de Condição de Pagamento\"",
+      "descricao": "Aprovado com condicionante de manter limite disponível."
+    },
+    {
+      "data": "2026-08-18T14:30",
+      "autor": "Marcos Vinicius Alves · Gerente Regional MT",
+      "tipo": "aprovacao",
+      "acao": "Aprovou \"Aprovação de Desconto (item)\"",
+      "descricao": "Item #1 · 8R 250 · desconto 8.14% aprovado."
+    },
+    {
+      "data": "2026-08-16T11:05",
+      "autor": "José Rufino · CEN",
+      "tipo": "aprovacao",
+      "acao": "Enviou \"Aprovação de Condição de Pagamento\" para Carla Menezes",
+      "descricao": "BNDES Finame 7 anos + entrada 20%."
+    },
+    {
+      "data": "2026-08-15T09:22",
+      "autor": "José Rufino · CEN",
+      "tipo": "aprovacao",
+      "acao": "Enviou \"Aprovação de Desconto (item)\" para Marcos Vinicius",
+      "descricao": "Item de linha excedeu a alçada automática."
+    },
+    {
+      "data": "2026-08-05T15:20",
+      "autor": "José Rufino · CEN",
+      "tipo": "fase",
+      "acao": "Fase alterada: Orçamento → Proposta",
+      "descricao": "Proposta comercial gerada no Protheus (PROP-2026-08471)."
+    },
+    {
+      "data": "2026-07-30T09:00",
+      "autor": "José Rufino · CEN",
+      "tipo": "fase",
+      "acao": "Fase alterada: Projeto → Orçamento",
+      "descricao": "Especificação técnica assinada pelo cliente."
+    },
+    {
+      "data": "2026-07-28T14:00",
+      "autor": "José Rufino · CEN",
+      "tipo": "criacao",
+      "acao": "Oportunidade criada",
+      "descricao": "Origem: visita técnica presencial · Necessidade: renovação de 2× 7250R por 2× 8R 250."
+    }
+  ],
+  "acessos": [
+    {
+      "papel": "CEN (dono)",
+      "pessoa": "José Rufino",
+      "permissao": "Editar até fase Negócio Fechado · Somente anexar após"
+    },
+    {
+      "papel": "Admin Comercial",
+      "pessoa": "Marina Costa",
+      "permissao": "Editar documentação em qualquer fase"
+    },
+    {
+      "papel": "Gerente Regional",
+      "pessoa": "Marcos Vinicius Alves",
+      "permissao": "Aprovar itens · Editar valores em exceção"
+    },
+    {
+      "papel": "Diretor Comercial",
+      "pessoa": "Ricardo Meneghini",
+      "permissao": "Aprovar propostas ≥ R$ 3M · Vetar oportunidade"
+    },
+    {
+      "papel": "Diretor Financeiro",
+      "pessoa": "Carla Menezes",
+      "permissao": "Aprovar condição de pagamento · Liberação final"
+    }
+  ]
+}

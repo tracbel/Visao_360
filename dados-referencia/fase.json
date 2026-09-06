@@ -1,0 +1,49 @@
+{
+  "catalogo": "fase",
+  "descricao": "Etapa do funil de oportunidade — coluna do kanban de Pipeline de Vendas",
+  "origem": "prototipo/dados-seed/pipeline-fases.json (6 itens) — é o que a tela de Pipeline (kanban) realmente usa. NÃO foi usado IV_ProcFase do Vórtice (273 linhas, todas por CodProcesso) por ter granularidade muito mais fina e não corresponder 1:1 às 6 colunas do kanban aprovado — ver PENDENTES.md para a reconciliação pendente.",
+  "itens": [
+    {
+      "codigo": "QUALIFICACAO",
+      "descricao": "Qualificação",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Descoberta e fit inicial (protótipo, pipeline-fases.json). Coluna do kanban de Pipeline de Vendas. O Vórtice tem granularidade bem mais fina para o processo real de venda de equipamento (IV_ProcFase, CodProcesso=50 \"Venda Equipamento Tracbel Agro\": 17 fases, de \"Qualificação\" a \"Finalizado\") e a ficha de oportunidade do protótipo usa uma timeline pós-fechamento de 8 etapas própria (oportunidade-1517613.json.timeline_fases) — as três granularidades não foram reconciliadas nesta rodada. Ver PENDENTES.md."
+    },
+    {
+      "codigo": "DIAGNOSTICO",
+      "descricao": "Diagnóstico",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Levantamento técnico e financeiro (protótipo, pipeline-fases.json). Coluna do kanban de Pipeline de Vendas. O Vórtice tem granularidade bem mais fina para o processo real de venda de equipamento (IV_ProcFase, CodProcesso=50 \"Venda Equipamento Tracbel Agro\": 17 fases, de \"Qualificação\" a \"Finalizado\") e a ficha de oportunidade do protótipo usa uma timeline pós-fechamento de 8 etapas própria (oportunidade-1517613.json.timeline_fases) — as três granularidades não foram reconciliadas nesta rodada. Ver PENDENTES.md."
+    },
+    {
+      "codigo": "PROPOSTA",
+      "descricao": "Proposta",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Preparo, envio e apresentação (protótipo, pipeline-fases.json). Coluna do kanban de Pipeline de Vendas. O Vórtice tem granularidade bem mais fina para o processo real de venda de equipamento (IV_ProcFase, CodProcesso=50 \"Venda Equipamento Tracbel Agro\": 17 fases, de \"Qualificação\" a \"Finalizado\") e a ficha de oportunidade do protótipo usa uma timeline pós-fechamento de 8 etapas própria (oportunidade-1517613.json.timeline_fases) — as três granularidades não foram reconciliadas nesta rodada. Ver PENDENTES.md."
+    },
+    {
+      "codigo": "NEGOCIACAO",
+      "descricao": "Negociação",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "Contraprop., desconto e condições (protótipo, pipeline-fases.json). Coluna do kanban de Pipeline de Vendas. O Vórtice tem granularidade bem mais fina para o processo real de venda de equipamento (IV_ProcFase, CodProcesso=50 \"Venda Equipamento Tracbel Agro\": 17 fases, de \"Qualificação\" a \"Finalizado\") e a ficha de oportunidade do protótipo usa uma timeline pós-fechamento de 8 etapas própria (oportunidade-1517613.json.timeline_fases) — as três granularidades não foram reconciliadas nesta rodada. Ver PENDENTES.md."
+    },
+    {
+      "codigo": "FECHAMENTO",
+      "descricao": "Fechamento",
+      "ordem": 5,
+      "ativo": true,
+      "observacao": "Aprovações finais e formalização (protótipo, pipeline-fases.json). Coluna do kanban de Pipeline de Vendas. O Vórtice tem granularidade bem mais fina para o processo real de venda de equipamento (IV_ProcFase, CodProcesso=50 \"Venda Equipamento Tracbel Agro\": 17 fases, de \"Qualificação\" a \"Finalizado\") e a ficha de oportunidade do protótipo usa uma timeline pós-fechamento de 8 etapas própria (oportunidade-1517613.json.timeline_fases) — as três granularidades não foram reconciliadas nesta rodada. Ver PENDENTES.md."
+    },
+    {
+      "codigo": "GANHO_PERDIDO",
+      "descricao": "Ganho / Perdido",
+      "ordem": 6,
+      "ativo": true,
+      "observacao": "Concluídas no período (protótipo, pipeline-fases.json). Coluna do kanban de Pipeline de Vendas. O Vórtice tem granularidade bem mais fina para o processo real de venda de equipamento (IV_ProcFase, CodProcesso=50 \"Venda Equipamento Tracbel Agro\": 17 fases, de \"Qualificação\" a \"Finalizado\") e a ficha de oportunidade do protótipo usa uma timeline pós-fechamento de 8 etapas própria (oportunidade-1517613.json.timeline_fases) — as três granularidades não foram reconciliadas nesta rodada. Ver PENDENTES.md."
+    }
+  ]
+}

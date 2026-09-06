@@ -1,0 +1,336 @@
+using System.Globalization;
+using Tracbel.Crm.Aplicacao.Comum;
+using Tracbel.Crm.Dominio.Comum;
+using Tracbel.Crm.Dominio.Frota;
+using Tracbel.Crm.Dominio.Metadado;
+using Tracbel.Crm.Dominio.Portas;
+
+namespace Tracbel.Crm.Aplicacao.Equipamentos;
+
+/// <summary>Os campos de equipamento já conferidos e resolvidos contra os catálogos.</summary>
+internal sealed record DadosDeEquipamentoConferidos(
+    ModeloParaSelecao Modelo,
+    long? ClienteId,
+    Guid? ClienteChave,
+    string? ClienteNome,
+    SituacaoDoEquipamento Situacao,
+    OrigemDoEquipamento Origem,
+    short? AnoFabricacao,
+    short? AnoModelo,
+    string? NumeroSerie,
+    string? Placa,
+    string? LocalizacaoDescrita);
+
+/// <summary>
+/// A conferência de entrada de equipamento, escrita uma vez para a criação e a alteração.
+///
+/// O MODELO E O DONO SÃO RESOLVIDOS AQUI, contra o catálogo e contra o cadastro de clientes —
+/// não são aceitos como número vindo do JSON. É a regra 3.1 do documento 16 aplicada aos dois:
+/// modelo é catálogo, e cliente é registro cujo alcance depende de quem está pedindo.
+/// </summary>
+internal static class ConferenciaDeEquipamento
+{
+    public static async Task<DadosDeEquipamentoConferidos?> ConferirAsync(
+        ColetorDeErros erros,
+        IRepositorioCatalogos catalogos,
+        IRepositorioClientes clientes,
+        string? modeloCodigo,
+        string? clienteChave,
+        string? situacao,
+        string? origem,
+        string? anoFabricacao,
+        string? anoModelo,
+        string? numeroSerie,
+        string? placa,
+        string? localizacaoDescrita,
+        CancellationToken ct)
+    {
+        var codigo = erros.Obrigatorio("modeloCodigo", modeloCodigo, "o modelo da máquina");
+
+        ModeloParaSelecao? modelo = null;
+        if (!string.IsNullOrWhiteSpace(codigo))
+        {
+            modelo = await catalogos.ObterModeloAsync(codigo, ct);
+            if (modelo is null)
+                erros.Registrar(
+                    "modeloCodigo",
+                    "Modelo fora do catálogo de frota. " +
+                    "Consulte /api/v1/catalogos/MODELO_EQUIPAMENTO para ver as opções.",
+                    modeloCodigo);
+        }
+
+        var situacaoEscolhida = erros.ItemDeDominioOuPadrao(
+            "situacao", situacao, SituacaoDoEquipamento.Ativo);
+        var origemEscolhida = erros.ItemDeDominioOuPadrao("origem", origem, OrigemDoEquipamento.Crm);
+
+        long? clienteId = null;
+        Guid? chaveDoDono = null;
+        string? nomeDoDono = null;
+
+        if (!string.IsNullOrWhiteSpace(clienteChave))
+        {
+            if (!Guid.TryParse(clienteChave.Trim(), out var chave))
+            {
+                erros.Registrar("clienteChave", "A chave do cliente precisa ser um GUID.", clienteChave);
+            }
+            else
+            {
+                var dono = await clientes.ObterAsync(chave, incluirInativos: false, ct);
+                if (dono is null)
+                    erros.Registrar(
+                        "clienteChave",
+                        "Não há cliente ativo com esta chave ao seu alcance.",
+                        clienteChave);
+                else
+                {
+                    clienteId = dono.Cliente.Id;
+                    chaveDoDono = dono.Cliente.ChavePublica;
+                    nomeDoDono = dono.Cliente.NomeRazao;
+                }
+            }
+        }
+
+        var fabricacao = LerAno(erros, "anoFabricacao", anoFabricacao);
+        var doModelo = LerAno(erros, "anoModelo", anoModelo);
+
+        if (erros.TemErro) return null;
+
+        return new DadosDeEquipamentoConferidos(
+            modelo!,
+            clienteId,
+            chaveDoDono,
+            nomeDoDono,
+            situacaoEscolhida,
+            origemEscolhida,
+            fabricacao,
+            doModelo,
+            numeroSerie,
+            placa,
+            localizacaoDescrita);
+    }
+
+    /// <summary>
+    /// Lê um ano que chegou como texto.
+    ///
+    /// A FAIXA É CONFERIDA PELA ENTIDADE, não aqui: aqui só se decide se aquilo É um número. A
+    /// divisão importa — "2O16" com a letra O é erro de digitação e merece uma frase sobre
+    /// formato; 1850 é um ano possível de escrever e a recusa dele é regra de negócio.
+    /// </summary>
+    private static short? LerAno(ColetorDeErros erros, string campo, string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor)) return null;
+
+        if (short.TryParse(valor.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var ano))
+            return ano;
+
+        erros.Registrar(campo, "O ano precisa ser um número de quatro dígitos.", valor);
+        return null;
+    }
+
+    /// <summary>
+    /// A recusa de chassi repetido, com a máquina que já o tem.
+    ///
+    /// [V] O cadastro vivo de equipamento do legado não valida formato de chassi: ele é texto
+    /// livre lá, o que impede usar a coluna como chave natural para casar venda, garantia e
+    /// ordem de serviço da mesma máquina. Aqui o chassi é tipo de valor E é único.
+    /// </summary>
+    public static async Task<ErroDeCampo?> ProcurarChassiRepetidoAsync(
+        IRepositorioEquipamentos repositorio, Chassi chassi, Guid? exceto, CancellationToken ct)
+    {
+        var dona = await repositorio.ObterPorChassiAsync(chassi, exceto, ct);
+
+        return dona is null
+            ? null
+            : new ErroDeCampo(
+                "chassi",
+                "Este chassi já está cadastrado nesta filial. " +
+                "Se for a mesma máquina, edite o cadastro existente em vez de criar outro.",
+                chassi.Numero);
+    }
+}
+
+/// <summary>Cadastra uma máquina no nosso banco.</summary>
+public sealed class CriarEquipamento(
+    IRepositorioEquipamentos repositorio,
+    IRepositorioClientes clientes,
+    IRepositorioCatalogos catalogos,
+    IUnidadeDeTrabalho unidade,
+    IProvedorContextoAcesso acesso)
+{
+    /// <summary>Executa o cadastro.</summary>
+    /// <param name="entrada">O que veio na requisição.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<EquipamentoDetalhe>> ExecutarAsync(
+        NovoEquipamento entrada, CancellationToken ct)
+    {
+        var erros = new ColetorDeErros();
+
+        Chassi chassi = default;
+        var chassiInformado = erros.Obrigatorio("chassi", entrada.Chassi, "o chassi da máquina");
+        if (!string.IsNullOrWhiteSpace(chassiInformado) && !Chassi.TentarCriar(chassiInformado, out chassi))
+            erros.Registrar(
+                "chassi",
+                "O chassi precisa ter 17 caracteres, só letras e números, sem I, O nem Q.",
+                entrada.Chassi);
+
+        var dados = await ConferenciaDeEquipamento.ConferirAsync(
+            erros, catalogos, clientes,
+            entrada.ModeloCodigo, entrada.ClienteChave, entrada.Situacao, entrada.Origem,
+            entrada.AnoFabricacao, entrada.AnoModelo, entrada.NumeroSerie, entrada.Placa,
+            entrada.LocalizacaoDescrita, ct);
+
+        if (dados is null || erros.TemErro)
+            return erros.Recusar<EquipamentoDetalhe>("O cadastro do equipamento tem campos a corrigir.");
+
+        var repetido = await ConferenciaDeEquipamento.ProcurarChassiRepetidoAsync(
+            repositorio, chassi, exceto: null, ct);
+
+        if (repetido is not null)
+            return Resultado<EquipamentoDetalhe>.Conflito(
+                "Já existe máquina com este chassi.", [repetido]);
+
+        var contexto = acesso.Atual;
+
+        Equipamento equipamento;
+        try
+        {
+            equipamento = Equipamento.Criar(
+                empresaId: contexto.EmpresaId,
+                modeloId: dados.Modelo.Id,
+                chassi: chassi,
+                origem: dados.Origem,
+                criadoPorId: contexto.UsuarioId,
+                clienteId: dados.ClienteId,
+                situacao: dados.Situacao,
+                anoFabricacao: dados.AnoFabricacao,
+                anoModelo: dados.AnoModelo,
+                numeroSerie: dados.NumeroSerie,
+                placa: dados.Placa,
+                localizacaoDescrita: dados.LocalizacaoDescrita);
+        }
+        catch (RegraDeNegocioViolada erro)
+        {
+            return Resultado<EquipamentoDetalhe>.Conflito(erro.Message);
+        }
+
+        await repositorio.AdicionarAsync(equipamento, ct);
+
+        var gravou = await unidade.SalvarAsync(ct);
+        return gravou.EhSucesso
+            ? Resultado<EquipamentoDetalhe>.Ok(EquipamentoDetalhe.De(
+                new EquipamentoComContexto(equipamento, dados.ClienteChave, dados.ClienteNome, dados.Modelo)))
+            : Resultado<EquipamentoDetalhe>.Conflito(gravou.Erro!);
+    }
+}
+
+/// <summary>Altera o cadastro de uma máquina.</summary>
+public sealed class AlterarEquipamento(
+    IRepositorioEquipamentos repositorio,
+    IRepositorioClientes clientes,
+    IRepositorioCatalogos catalogos,
+    IUnidadeDeTrabalho unidade,
+    IProvedorContextoAcesso acesso)
+{
+    /// <summary>Executa a alteração.</summary>
+    /// <param name="chave">O GUID público da máquina.</param>
+    /// <param name="entrada">O que veio na requisição.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<EquipamentoDetalhe>> ExecutarAsync(
+        Guid chave, AlteracaoDeEquipamento entrada, CancellationToken ct)
+    {
+        var leitura = await repositorio.ObterAsync(chave, incluirInativos: false, ct);
+
+        if (leitura is null)
+            return Resultado<EquipamentoDetalhe>.NaoEncontrado(
+                $"Não há equipamento ativo {chave} ao seu alcance.");
+
+        var equipamento = leitura.Equipamento;
+        var erros = new ColetorDeErros();
+        var versao = erros.CarimboDeVersao("versao", entrada.Versao);
+
+        var dados = await ConferenciaDeEquipamento.ConferirAsync(
+            erros, catalogos, clientes,
+            entrada.ModeloCodigo ?? leitura.Modelo?.Codigo, entrada.ClienteChave,
+            entrada.Situacao ?? equipamento.Situacao.ToString(), equipamento.Origem.ToString(),
+            entrada.AnoFabricacao, entrada.AnoModelo, entrada.NumeroSerie, entrada.Placa,
+            entrada.LocalizacaoDescrita, ct);
+
+        if (dados is null || erros.TemErro)
+            return erros.Recusar<EquipamentoDetalhe>("A alteração do equipamento tem campos a corrigir.");
+
+        if (!equipamento.VersaoConfere(versao))
+            return Resultado<EquipamentoDetalhe>.Concorrencia(
+                "Esta máquina foi alterada por outra pessoa depois que você abriu a tela. " +
+                "Recarregue o registro e refaça a alteração.");
+
+        try
+        {
+            equipamento.Alterar(
+                modeloId: dados.Modelo.Id,
+                usuarioId: acesso.Atual.UsuarioId,
+                clienteId: dados.ClienteId,
+                situacao: dados.Situacao,
+                anoFabricacao: dados.AnoFabricacao,
+                anoModelo: dados.AnoModelo,
+                numeroSerie: dados.NumeroSerie,
+                placa: dados.Placa,
+                localizacaoDescrita: dados.LocalizacaoDescrita);
+        }
+        catch (RegraDeNegocioViolada erro)
+        {
+            return Resultado<EquipamentoDetalhe>.Conflito(erro.Message);
+        }
+
+        var gravou = await unidade.SalvarAsync(ct);
+        return gravou.EhSucesso
+            ? Resultado<EquipamentoDetalhe>.Ok(EquipamentoDetalhe.De(
+                new EquipamentoComContexto(equipamento, dados.ClienteChave, dados.ClienteNome, dados.Modelo)))
+            : Resultado<EquipamentoDetalhe>.Concorrencia(gravou.Erro!);
+    }
+}
+
+/// <summary>Baixa uma máquina — exclusão lógica. A linha e o histórico de horímetro ficam.</summary>
+public sealed class InativarEquipamento(
+    IRepositorioEquipamentos repositorio,
+    IUnidadeDeTrabalho unidade,
+    IProvedorContextoAcesso acesso)
+{
+    /// <summary>Executa a baixa.</summary>
+    /// <param name="chave">O GUID público da máquina.</param>
+    /// <param name="entrada">A versão conhecida.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<EquipamentoDetalhe>> ExecutarAsync(
+        Guid chave, BaixaDeEquipamento entrada, CancellationToken ct)
+    {
+        var leitura = await repositorio.ObterAsync(chave, incluirInativos: true, ct);
+
+        if (leitura is null)
+            return Resultado<EquipamentoDetalhe>.NaoEncontrado($"Não há equipamento {chave} ao seu alcance.");
+
+        var equipamento = leitura.Equipamento;
+        var erros = new ColetorDeErros();
+        var versao = erros.CarimboDeVersao("versao", entrada.Versao);
+
+        if (erros.TemErro)
+            return erros.Recusar<EquipamentoDetalhe>("A baixa do equipamento tem campos a corrigir.");
+
+        if (!equipamento.VersaoConfere(versao))
+            return Resultado<EquipamentoDetalhe>.Concorrencia(
+                "Esta máquina foi alterada por outra pessoa depois que você abriu a tela. " +
+                "Recarregue o registro antes de baixar.");
+
+        try
+        {
+            equipamento.Inativar(acesso.Atual.UsuarioId);
+        }
+        catch (RegraDeNegocioViolada erro)
+        {
+            return Resultado<EquipamentoDetalhe>.Conflito(erro.Message);
+        }
+
+        var gravou = await unidade.SalvarAsync(ct);
+        return gravou.EhSucesso
+            ? Resultado<EquipamentoDetalhe>.Ok(EquipamentoDetalhe.De(leitura))
+            : Resultado<EquipamentoDetalhe>.Concorrencia(gravou.Erro!);
+    }
+}

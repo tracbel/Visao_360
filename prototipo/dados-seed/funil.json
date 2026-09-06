@@ -1,0 +1,171 @@
+{
+  "stages": [
+    {
+      "key": "orcamento",
+      "label": "Orçamento",
+      "qty": 68,
+      "value": 71400000,
+      "opps": 42,
+      "color": "#3B82F6"
+    },
+    {
+      "key": "proposta",
+      "label": "Proposta",
+      "qty": 156,
+      "value": 148200000,
+      "opps": 89,
+      "color": "#0EA5E9"
+    },
+    {
+      "key": "negociacao",
+      "label": "Negociação",
+      "qty": 137,
+      "value": 130400000,
+      "opps": 71,
+      "color": "#06B6D4"
+    },
+    {
+      "key": "fechado",
+      "label": "Negócio Fechado",
+      "qty": 72,
+      "value": 62760681,
+      "opps": 39,
+      "color": "#14B8A6"
+    },
+    {
+      "key": "pedido",
+      "label": "Pedido Alocado",
+      "qty": 70,
+      "value": 22800000,
+      "opps": 27,
+      "color": "#FFDE00"
+    },
+    {
+      "key": "liberado",
+      "label": "Faturamento Liberado",
+      "qty": 16,
+      "value": 5200000,
+      "opps": 6,
+      "color": "#F59E0B"
+    },
+    {
+      "key": "faturada",
+      "label": "Faturada",
+      "qty": 7,
+      "value": 1800000,
+      "opps": 7,
+      "color": "#DC2626"
+    }
+  ],
+  "totals": {
+    "registros": 464,
+    "valor": 442560681.2,
+    "quantidade": 526,
+    "propostas": 382,
+    "pedidosAlocados": 97,
+    "pedidos": 0,
+    "faturamento": 7
+  },
+  "detalhamento": [
+    {
+      "proprietario": "João Ribeiro",
+      "fase": "Proposta",
+      "linha": "Tratores",
+      "oportunidade": "Renovação Frota Fazenda São Marcos",
+      "conta": "Agropecuária São Marcos Ltda",
+      "modelo": "6135J",
+      "valor": 1450000,
+      "qtd": 2
+    },
+    {
+      "proprietario": "Marcelo Silva",
+      "fase": "Negociação",
+      "linha": "Colheitadeiras",
+      "oportunidade": "Safra 26/27 - 3 Colheitadeiras",
+      "conta": "Fazenda Boa Vista S.A.",
+      "modelo": "S780",
+      "valor": 8400000,
+      "qtd": 3
+    },
+    {
+      "proprietario": "Renata Costa",
+      "fase": "Orçamento",
+      "linha": "Pulverizadores",
+      "oportunidade": "Substituição Pulverizador Autopropelido",
+      "conta": "Rio Verde Agro",
+      "modelo": "4630",
+      "valor": 2100000,
+      "qtd": 1
+    },
+    {
+      "proprietario": "João Ribeiro",
+      "fase": "Negócio Fechado",
+      "linha": "Tratores",
+      "oportunidade": "Aquisição Trator Cana",
+      "conta": "Usina Nova Aliança",
+      "modelo": "8R 250",
+      "valor": 1890000,
+      "qtd": 1
+    },
+    {
+      "proprietario": "Pedro Almeida",
+      "fase": "Proposta",
+      "linha": "Colheitadeiras",
+      "oportunidade": "Colheita Milho Safra 26",
+      "conta": "Grupo Terra Nova Agronegócios",
+      "modelo": "S770",
+      "valor": 5400000,
+      "qtd": 2
+    },
+    {
+      "proprietario": "Marcelo Silva",
+      "fase": "Pedido Alocado",
+      "linha": "Tratores",
+      "oportunidade": "Trator Reserva Técnica",
+      "conta": "Fazenda Campo Belo",
+      "modelo": "6110J",
+      "valor": 780000,
+      "qtd": 1
+    },
+    {
+      "proprietario": "Renata Costa",
+      "fase": "Negociação",
+      "linha": "Plantadeiras",
+      "oportunidade": "Plantadeira 24 Linhas",
+      "conta": "Agropec. Três Rios",
+      "modelo": "DB44",
+      "valor": 2650000,
+      "qtd": 1
+    },
+    {
+      "proprietario": "Pedro Almeida",
+      "fase": "Proposta",
+      "linha": "Tratores",
+      "oportunidade": "Frota Cana 5 unidades",
+      "conta": "Usina Santa Clara",
+      "modelo": "8R 340",
+      "valor": 12200000,
+      "qtd": 5
+    },
+    {
+      "proprietario": "João Ribeiro",
+      "fase": "Faturada",
+      "linha": "Tratores",
+      "oportunidade": "Trator 6110J Fazenda Cerrado",
+      "conta": "Fazenda Cerrado Grande",
+      "modelo": "6110J",
+      "valor": 745000,
+      "qtd": 1
+    },
+    {
+      "proprietario": "Marcelo Silva",
+      "fase": "Faturamento Liberado",
+      "linha": "Colheitadeiras",
+      "oportunidade": "Colheitadeira S780 - Entrega Julho",
+      "conta": "Agropec. Ponta Grossa",
+      "modelo": "S780",
+      "valor": 3100000,
+      "qtd": 1
+    }
+  ]
+}

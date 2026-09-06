@@ -1,0 +1,16 @@
+{
+  "name": "tracbel-crm-ferramentas-prototipo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ferramentas de apoio ao porte do protótipo: captura da baseline visual e comparação de telas.",
+  "scripts": {
+    "capturar": "node capturar-referencia.mjs",
+    "comparar": "node comparar-telas.mjs"
+  },
+  "devDependencies": {
+    "pixelmatch": "^7.2.0",
+    "playwright": "1.62.1",
+    "pngjs": "^7.0.0"
+  }
+}

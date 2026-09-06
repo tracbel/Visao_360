@@ -1,0 +1,274 @@
+Tabelas analisadas: 694 (de 767; ignoradas as com menos de 3 colunas)
+
+==============================================================================
+1. GRUPOS COM CONJUNTO DE COLUNAS IDENTICO: 34 grupos, 90 tabelas
+==============================================================================
+
+  [10 colunas] GE_LOG_PROCESSO (12,678,640) | GE_LgTb (11,861,777) | GE_LOG_HISTORICO (1,015,045) | GE_LOG_PESSOA (943,712) | GE_LOG_TRANS (782,089) | GE_LOG_EXT (622,075) | GE_LOG_CONFIG (108,492) | GE_LOG_CONTATO (19,785) | GE_LOG_CARTCRED (0)
+
+  [22 colunas] IV_Processo (1,174,932) | IV_Processo_bkp20250717 (1)
+
+  [40 colunas] IV_Agenda (931,989) | IV_Agenda_bkp20250717 (1)
+
+  [42 colunas] IMP_Titulo (823,952) | IMP_Titulo_bkp_11_04 (2,168)
+
+  [6 colunas] X_V_IMP_CRM_IMP_NF (815,854) | X_V_IMP_CRM_IMP_NF_BKP_18_09_2023 (415,762)
+
+  [37 colunas] EXT_Titulo (577,925) | EXT_Titulo_bkp_11_04 (108,061) | EXT_Titulo_BKP_22_03_2023_BAIXADOS (16,705) | EXT_Titulo_BKP_22_03_2023 (4,635)
+
+  [15 colunas] GEP_Import_bkpjun (502,009) | GEP_ImportAprovacao (4,284) | GEP_Import (344) | GEP_IMPORT_GUI (52)
+
+  [41 colunas] X_T_IMP_CRM_TITULO (462,391) | X_T_IMP_CRM_TITULO_bkp_11_04 (121,381)
+
+  [51 colunas] IV_ClientePropr (246,684) | IV_ClientePropr_ITA (157,900) | IV_ClientePropr_BKPJUN (1,000)
+
+  [76 colunas] GE_Pessoa (118,463) | GE_Pessoa_BKP28052025 (0)
+
+  [19 colunas] GE_PessoaFone (112,659) | GE_PessoaFone_BKPJUN (69,894) | GE_PessoaFone_ITA (42,594)
+
+  [5 colunas] GE_PessoaLink_bkpago22 (92,068) | GE_PessoaLink_BKPJUN (90,857) | GE_PessoaLinkbkp (58,741) | GE_PessoaLink (32,831) | GE_PessoaLink_ITA (24,864)
+
+  [76 colunas] GE_Pessoa_BKPJUN (88,142) | GE_Pessoa_ITA (28,377)
+
+  [5 colunas] GE_ContatoPapel (43,489) | GE_ContatoPapel_BKPJUN (35,413) | GE_ContatoPapel_ITA (5,032)
+
+  [41 colunas] GE_Contato (41,164) | GE_Contato_BKPJUN (28,051) | GE_Contato_ITA (10,866)
+
+  [5 colunas] GE_UsuarioPerm (38,601) | GE_UsuarioPerm_BKPJUN (31,120)
+
+  [19 colunas] GE_Cidade (10,214) | GE_Cidade_BKPJUN (9,966)
+
+  [5 colunas] IV_Q_OS_GARANTIA (7,786) | IV_Q_OS_CORTESIA (78)
+
+  [5 colunas] IV_PropriLista_ITA (7,520) | IV_PropriLista (7,375)
+
+  [26 colunas] GE_PessoaEnd (6,480) | GE_PessoaEnd_BKPJUN (3,739) | GE_PessoaEnd_ITA (2,779)
+
+  [9 colunas] GE_PessoaRelacao (5,595) | GE_PessoaRelacao_BKPJUN (5,543) | GE_PessoaRelacao_ITA (3,092)
+
+  [3 colunas] EXT_APROVACAO (2,224) | EXT_AGUARDENTREGA (50) | EXT_CONDPAGTO (21)
+
+  [3 colunas] GE_Membro_BKP20250520 (1,915) | GE_Membro (1,584)
+
+  [35 colunas] GE_Usuario (1,379) | GE_Usuario_BKP20250520 (1,302)
+
+  [6 colunas] IVS_PES_MAQ_PECAS (1,365) | IVS_PES_PNEUS (1,313)
+
+  [16 colunas] IV_Q_OFERECE_RENOV_SEGURO (846) | IV_Q_VENDER_RENOVACAO_SEG (153)
+
+  [51 colunas] IV_Q_GESTAO_CREDITO_IMP (807) | IV_Q_GESTAO_CREDITO_AMS (175)
+
+  [8 colunas] IV_Q_APRESENTACAO (211) | IV_Q_APRESENTACAO_JDE (123)
+
+  [70 colunas] IV_Propriedade (52) | IV_Propriedade_ITA (32) | IV_Propriedade_BKPJUN (21)
+
+  [25 colunas] IV_Q_DEMONSTRACAO_TRATOR (32) | IV_Q_DEMO_IMPLEMENTO (0)
+
+  [4 colunas] IV_Q_VENDAPERDIDA_SEGURO (12) | IV_Q_VP_RENOVACAO_SEGURO (0)
+
+  [13 colunas] IV_Q_COMISSAO_VD_LOCACAO (0) | IV_TC_PESSOA (0)
+
+  [6 colunas] IV_FoneCtrl2 (0) | IV_FoneCtrl (0)
+
+  [4 colunas] DMN_DocProj (0) | IV_ProjDocto (0)
+
+==============================================================================
+2. PARES QUASE IDENTICOS (Jaccard >= 0.75)
+==============================================================================
+180 pares
+
+agrupados em 51 conjuntos:
+
+  * 10 tabelas (9 com dados) — 10 colunas aprox.
+      GE_LOG_PROCESSO                              12,678,640
+      GE_LgTb                                      11,861,777
+      IV_AgendaLog                                 11,049,475
+      GE_LOG_HISTORICO                              1,015,045
+      GE_LOG_PESSOA                                   943,712
+      GE_LOG_TRANS                                    782,089
+      GE_LOG_EXT                                      622,075
+      GE_LOG_CONFIG                                   108,492
+      GE_LOG_CONTATO                                   19,785
+      GE_LOG_CARTCRED                                       0
+  * 2 tabelas (2 com dados) — 22 colunas aprox.
+      IV_Processo                                   1,174,932
+      IV_Processo_bkp20250717                               1
+  * 2 tabelas (2 com dados) — 40 colunas aprox.
+      IV_Agenda                                       931,989
+      IV_Agenda_bkp20250717                                 1
+  * 8 tabelas (8 com dados) — 42 colunas aprox.
+      IMP_Titulo                                      823,952
+      EXT_Titulo                                      577,925
+      X_T_IMP_CRM_TITULO                              462,391
+      X_T_IMP_CRM_TITULO_bkp_11_04                    121,381
+      EXT_Titulo_bkp_11_04                            108,061
+      EXT_Titulo_BKP_22_03_2023_BAIXADOS               16,705
+      EXT_Titulo_BKP_22_03_2023                         4,635
+      IMP_Titulo_bkp_11_04                              2,168
+  * 2 tabelas (2 com dados) — 6 colunas aprox.
+      X_V_IMP_CRM_IMP_NF                              815,854
+      X_V_IMP_CRM_IMP_NF_BKP_18_09_2023               415,762
+  * 2 tabelas (1 com dados) — 20 colunas aprox.
+      GEP_EMAILSENT                                   571,866
+      GEP_EMailSend                                         0
+  * 4 tabelas (4 com dados) — 15 colunas aprox.
+      GEP_Import_bkpjun                               502,009
+      GEP_ImportAprovacao                               4,284
+      GEP_Import                                          344
+      GEP_IMPORT_GUI                                       52
+  * 3 tabelas (3 com dados) — 51 colunas aprox.
+      IV_ClientePropr                                 246,684
+      IV_ClientePropr_ITA                             157,900
+      IV_ClientePropr_BKPJUN                            1,000
+  * 2 tabelas (2 com dados) — 30 colunas aprox.
+      IVS_Pes                                         138,584
+      IVS_Pes_RAO_Pneus_02_03                          18,261
+  * 2 tabelas (1 com dados) — 17 colunas aprox.
+      IV_CBRCRITMON                                   128,167
+      IV_CobrCritMon                                        0
+  * 7 tabelas (4 com dados) — 76 colunas aprox.
+      GE_Pessoa                                       118,463
+      GE_Pessoa_BKPJUN                                 88,142
+      GE_Pessoa_ITA                                    28,377
+      OUT_Pessoa                                        1,918
+      GE_PessoaAlt                                          0
+      GE_Pessoa_BKP28052025                                 0
+      GE_PessoaDel                                          0
+  * 3 tabelas (3 com dados) — 19 colunas aprox.
+      GE_PessoaFone                                   112,659
+      GE_PessoaFone_BKPJUN                             69,894
+      GE_PessoaFone_ITA                                42,594
+  * 5 tabelas (5 com dados) — 5 colunas aprox.
+      GE_PessoaLink_bkpago22                           92,068
+      GE_PessoaLink_BKPJUN                             90,857
+      GE_PessoaLinkbkp                                 58,741
+      GE_PessoaLink                                    32,831
+      GE_PessoaLink_ITA                                24,864
+  * 2 tabelas (1 com dados) — 27 colunas aprox.
+      EXT_Produto                                      78,749
+      IMP_PRODUTO                                           0
+  * 3 tabelas (2 com dados) — 77 colunas aprox.
+      EXT_Pessoa                                       57,682
+      EXT_Pessoa_bkpago22                              27,280
+      IMP_PESSOA                                            0
+  * 3 tabelas (3 com dados) — 5 colunas aprox.
+      GE_ContatoPapel                                  43,489
+      GE_ContatoPapel_BKPJUN                           35,413
+      GE_ContatoPapel_ITA                               5,032
+  * 3 tabelas (3 com dados) — 41 colunas aprox.
+      GE_Contato                                       41,164
+      GE_Contato_BKPJUN                                28,051
+      GE_Contato_ITA                                   10,866
+  * 2 tabelas (2 com dados) — 5 colunas aprox.
+      GE_UsuarioPerm                                   38,601
+      GE_UsuarioPerm_BKPJUN                            31,120
+  * 3 tabelas (3 com dados) — 19 colunas aprox.
+      GE_Cidade                                        10,214
+      GE_Cidade_BKPJUN                                  9,966
+      GE_Cidade_CRM                                       729
+  * 2 tabelas (2 com dados) — 5 colunas aprox.
+      IV_Q_OS_GARANTIA                                  7,786
+      IV_Q_OS_CORTESIA                                     78
+  * 2 tabelas (2 com dados) — 5 colunas aprox.
+      IV_PropriLista_ITA                                7,520
+      IV_PropriLista                                    7,375
+  * 3 tabelas (3 com dados) — 26 colunas aprox.
+      GE_PessoaEnd                                      6,480
+      GE_PessoaEnd_BKPJUN                               3,739
+      GE_PessoaEnd_ITA                                  2,779
+  * 4 tabelas (4 com dados) — 9 colunas aprox.
+      GE_PessoaRelacao                                  5,595
+      GE_PessoaRelacao_BKPJUN                           5,543
+      GE_PessoaRelacao_ITA                              3,092
+      OUT_PessoaRelacao                                     9
+  * 3 tabelas (3 com dados) — 3 colunas aprox.
+      EXT_APROVACAO                                     2,224
+      EXT_AGUARDENTREGA                                    50
+      EXT_CONDPAGTO                                        21
+  * 2 tabelas (2 com dados) — 3 colunas aprox.
+      GE_Membro_BKP20250520                             1,915
+      GE_Membro                                         1,584
+  * 3 tabelas (3 com dados) — 54 colunas aprox.
+      IV_Q_GESTAO_CREDITO                               1,506
+      IV_Q_GESTAO_CREDITO_IMP                             807
+      IV_Q_GESTAO_CREDITO_AMS                             175
+  * 2 tabelas (2 com dados) — 35 colunas aprox.
+      GE_Usuario                                        1,379
+      GE_Usuario_BKP20250520                            1,302
+  * 2 tabelas (2 com dados) — 6 colunas aprox.
+      IVS_PES_MAQ_PECAS                                 1,365
+      IVS_PES_PNEUS                                     1,313
+  * 2 tabelas (2 com dados) — 8 colunas aprox.
+      IV_ResVinc                                          959
+      IV_ProcVinc                                         190
+  * 2 tabelas (2 com dados) — 16 colunas aprox.
+      IV_Q_OFERECE_RENOV_SEGURO                           846
+      IV_Q_VENDER_RENOVACAO_SEG                           153
+  * 3 tabelas (3 com dados) — 6 colunas aprox.
+      IV_Q_QUALIDADE_PECAS                                642
+      IV_Q_QUALIDADE_SERVICOS                             345
+      IV_Q_QUALIDADE_VENDAMAQ                             141
+  * 2 tabelas (2 com dados) — 32 colunas aprox.
+      IV_Q_AFERICAO_VENDA_MQ_IM                           604
+      IV_Q_AFE_VENDA_MQ_IM_USAD                             1
+  * 2 tabelas (2 com dados) — 29 colunas aprox.
+      IMP_REL_TBA101                                      318
+      IMP_REL_TBA101_PG2                                  208
+  * 2 tabelas (2 com dados) — 11 colunas aprox.
+      IV_Q_VENDA_PERDIDA_JDE                              296
+      IV_Q_VENDA_PERDIDA_IMPL                              31
+  * 2 tabelas (2 com dados) — 44 colunas aprox.
+      IV_Q_ACOMP_VENDA_USADO                              256
+      IV_Q_ACOMP_VENDA_MANITOU                             21
+  * 2 tabelas (2 com dados) — 8 colunas aprox.
+      IV_Q_APRESENTACAO                                   211
+      IV_Q_APRESENTACAO_JDE                               123
+  * 2 tabelas (2 com dados) — 17 colunas aprox.
+      IV_Q_ACOMPAN_COMPRA_JDE                             153
+      IV_Q_ACOMPANHA_COMPRA_IMP                            26
+  * 2 tabelas (2 com dados) — 9 colunas aprox.
+      IV_Q_COMPETIDORES_NA_NEG                            104
+      IV_Q_COMPETIDORES_NA_NEGO                           101
+  * 3 tabelas (3 com dados) — 70 colunas aprox.
+      IV_Propriedade                                       52
+      IV_Propriedade_ITA                                   32
+      IV_Propriedade_BKPJUN                                21
+  * 3 tabelas (2 com dados) — 26 colunas aprox.
+      IV_Q_DEMO_TRATOR                                     43
+      IV_Q_DEMONSTRACAO_TRATOR                             32
+      IV_Q_DEMO_IMPLEMENTO                                  0
+  * 2 tabelas (2 com dados) — 7 colunas aprox.
+      IV_OPTEMAIL                                          21
+      IV_OPTFONE                                            2
+  * 3 tabelas (1 com dados) — 13 colunas aprox.
+      IV_Q_LOCACAO_COMISSAO                                15
+      IV_Q_COMISSAO_VD_LOCACAO                              0
+      IV_TC_PESSOA                                          0
+  * 3 tabelas (2 com dados) — 4 colunas aprox.
+      IV_Q_VENDAPERDIDA_SEGURO                             12
+      IV_Q_CANCELAMENTO_SEGURO                              4
+      IV_Q_VP_RENOVACAO_SEGURO                              0
+  * 2 tabelas (0 com dados) — 49 colunas aprox.
+      IMP_VEICULO                                           0
+      IMP_VEICULO_INTEGRADO                                 0
+  * 2 tabelas (0 com dados) — 4 colunas aprox.
+      DMN_DocProj                                           0
+      IV_ProjDocto                                          0
+  * 2 tabelas (0 com dados) — 6 colunas aprox.
+      IV_FoneCtrl2                                          0
+      IV_FoneCtrl                                           0
+  * 2 tabelas (0 com dados) — 15 colunas aprox.
+      IV_PUSH                                               0
+      IV_USRPUSH                                            0
+  * 2 tabelas (0 com dados) — 13 colunas aprox.
+      IMP_EMAIL                                             0
+      EXT_EMAIL                                             0
+  * 2 tabelas (0 com dados) — 27 colunas aprox.
+      IMP_PESSOACONTATO                                     0
+      EXT_PESSOACONTATO                                     0
+  * 2 tabelas (0 com dados) — 20 colunas aprox.
+      EXT_PESSOAFONE                                        0
+      IMP_PESSOAFONE                                        0
+  * 2 tabelas (0 com dados) — 57 colunas aprox.
+      EXT_Pedido                                            0
+      IMP_Pedido                                            0

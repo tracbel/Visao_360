@@ -1,0 +1,305 @@
+{
+  "fat_pv": {
+    "fytd_pecas": 480000,
+    "fytd_servicos": 210000,
+    "fytd_total": 690000,
+    "ytd_2026_pecas": 312000,
+    "ytd_2026_servicos": 148000,
+    "ytd_2026_total": 460000,
+    "ano_2025_total": 780000,
+    "ano_2024_total": 620000,
+    "ticket_medio_pecas": 8450,
+    "mix_canal": {
+      "balcao": 42,
+      "oficina_interna": 33,
+      "campo_tecnico": 25
+    }
+  },
+  "fat_12m": [
+    {
+      "mes": "set/25",
+      "pecas": 42,
+      "servicos": 18
+    },
+    {
+      "mes": "out/25",
+      "pecas": 51,
+      "servicos": 22
+    },
+    {
+      "mes": "nov/25",
+      "pecas": 38,
+      "servicos": 14
+    },
+    {
+      "mes": "dez/25",
+      "pecas": 29,
+      "servicos": 8
+    },
+    {
+      "mes": "jan/26",
+      "pecas": 33,
+      "servicos": 12
+    },
+    {
+      "mes": "fev/26",
+      "pecas": 45,
+      "servicos": 19
+    },
+    {
+      "mes": "mar/26",
+      "pecas": 58,
+      "servicos": 26
+    },
+    {
+      "mes": "abr/26",
+      "pecas": 62,
+      "servicos": 28
+    },
+    {
+      "mes": "mai/26",
+      "pecas": 39,
+      "servicos": 17
+    },
+    {
+      "mes": "jun/26",
+      "pecas": 41,
+      "servicos": 20
+    },
+    {
+      "mes": "jul/26",
+      "pecas": 34,
+      "servicos": 15
+    },
+    {
+      "mes": "ago/26",
+      "pecas": 28,
+      "servicos": 11
+    }
+  ],
+  "os_abertas": [
+    {
+      "id": "OS-2026-04871",
+      "chassi": "1HDB44PXVMR345678",
+      "modelo": "Plantadeira DB44",
+      "tipo": "Corretiva",
+      "abertura": "2026-08-19",
+      "previsao": "2026-08-29",
+      "status": "Aguardando peça",
+      "status_cor": "amber",
+      "valor": 42800,
+      "tecnico": "Marcos Pereira",
+      "diagnostico": "Ruído em caixa de transmissão + folga em cardan. Peças 3 dias em trânsito.",
+      "dias_aberta": 8,
+      "sla_dias": 10
+    },
+    {
+      "id": "OS-2026-04903",
+      "chassi": "1H0S770PXMR456789",
+      "modelo": "Colheitadeira S770",
+      "tipo": "Preventiva",
+      "abertura": "2026-08-22",
+      "previsao": "2026-08-30",
+      "status": "Em execução",
+      "status_cor": "green",
+      "valor": 18450,
+      "tecnico": "Anderson Lima",
+      "diagnostico": "Revisão pré-safra 500h — troca de filtros, correias, calibração da mesa.",
+      "dias_aberta": 5,
+      "sla_dias": 7
+    },
+    {
+      "id": "OS-2026-04812",
+      "chassi": "1H4630PVXMR567890",
+      "modelo": "Pulverizador 4630",
+      "tipo": "Corretiva",
+      "abertura": "2026-08-11",
+      "previsao": "2026-08-21",
+      "status": "Atrasada",
+      "status_cor": "red",
+      "valor": 28900,
+      "tecnico": "Marcos Pereira",
+      "diagnostico": "Vazamento no sistema hidráulico + falha eletrônica na barra. Peça importada em atraso na aduana.",
+      "dias_aberta": 16,
+      "sla_dias": 10
+    },
+    {
+      "id": "OS-2026-04945",
+      "chassi": "1RW7250PVMR123456",
+      "modelo": "Trator 7250R",
+      "tipo": "Garantia",
+      "abertura": "2026-08-25",
+      "previsao": "2026-09-01",
+      "status": "Aguardando aprovação JD",
+      "status_cor": "blue",
+      "valor": 0,
+      "tecnico": "Anderson Lima",
+      "diagnostico": "Erro DTC 522.16 no motor. Sensor de pressão de rail. Sob análise JD Reman.",
+      "dias_aberta": 2,
+      "sla_dias": 5
+    }
+  ],
+  "pmp_pendentes": [
+    {
+      "id": "PMP-2026-4471",
+      "codigo_jd": "DFF-25-042",
+      "titulo": "Atualização de software ECU — Colheitadeiras S780",
+      "criticidade": "Alta",
+      "criticidade_cor": "amber",
+      "chassi_afetado": [
+        "1H0S780PXMR234567",
+        "1H0S780PXMR234568"
+      ],
+      "modelo": "Colheitadeira S780",
+      "qtd_equipamentos": 2,
+      "publicacao": "2026-07-15",
+      "prazo": "2026-09-30",
+      "dias_restantes": 34,
+      "cobertura": "Cortesia (sem custo)",
+      "duracao_estimada": "2h por máquina",
+      "descricao": "Boletim DFF-25-042: nova calibração do sistema HydraFlex melhora eficiência de trilha em 4-6%. Requer conexão JDLink + presença de técnico.",
+      "status": "Não agendada",
+      "status_cor": "amber"
+    },
+    {
+      "id": "PMP-2026-4520",
+      "codigo_jd": "DFF-26-011",
+      "titulo": "Substituição preventiva — Filtro de particulados DPF",
+      "criticidade": "Crítica",
+      "criticidade_cor": "red",
+      "chassi_afetado": [
+        "1RW7250PVMR123457"
+      ],
+      "modelo": "Trator 7250R",
+      "qtd_equipamentos": 1,
+      "publicacao": "2026-08-05",
+      "prazo": "2026-09-05",
+      "dias_restantes": 9,
+      "cobertura": "Cortesia (sem custo)",
+      "duracao_estimada": "4h",
+      "descricao": "Recall JD DFF-26-011: filtro DPF de lote afetado pode causar entupimento em regime severo. Substituição obrigatória para manter garantia.",
+      "status": "Agendada",
+      "status_cor": "green",
+      "agenda": "2026-08-30"
+    },
+    {
+      "id": "PMP-2026-4388",
+      "codigo_jd": "PIP-25-098",
+      "titulo": "Programa Fidelidade Peças Genuínas — check-up cortesia",
+      "criticidade": "Baixa",
+      "criticidade_cor": "info",
+      "chassi_afetado": [
+        "1RW7250PVMR123456",
+        "1RW7250PVMR123457",
+        "1H0S780PXMR234567",
+        "1H0S780PXMR234568",
+        "1HDB44PXVMR345678",
+        "1H0S770PXMR456789",
+        "1H4630PVXMR567890"
+      ],
+      "modelo": "Todos",
+      "qtd_equipamentos": 7,
+      "publicacao": "2026-06-01",
+      "prazo": "2026-12-31",
+      "dias_restantes": 126,
+      "cobertura": "Cortesia (sem custo)",
+      "duracao_estimada": "1h por máquina",
+      "descricao": "Programa JD 2026: cliente elegível a check-up gratuito da frota. Oportunidade comercial de identificar necessidades de peças/revisão antes da safra.",
+      "status": "Não agendada",
+      "status_cor": "gray"
+    }
+  ],
+  "alertas_criticos": [
+    {
+      "id": "ALT-01",
+      "tipo": "telemetria",
+      "cor": "red",
+      "titulo": "DTC 522.16 recorrente — Trator 7250R (chassi ...123456)",
+      "detalhe": "3 ocorrências em 15 dias. OS-2026-04945 aberta em análise pela JD Reman. Cliente sem histórico prévio de falhas eletrônicas.",
+      "origem": "JDLink",
+      "criado_em": "2026-08-25T09:14",
+      "acao_cta": "Ver OS",
+      "acao_link": "#/pos-vendas/os/04945"
+    },
+    {
+      "id": "ALT-02",
+      "tipo": "garantia",
+      "cor": "amber",
+      "titulo": "Trator 7250R (chassi ...123456) — garantia vence em 267 dias",
+      "detalhe": "Elegível para extensão JDCP Premium por 24 meses. Cliente Classe A · zero inadimplência. Oportunidade estimada R$ 42.000.",
+      "origem": "Motor de regras",
+      "criado_em": "2026-08-20T00:00",
+      "acao_cta": "Gerar orçamento JDCP",
+      "acao_link": "#"
+    },
+    {
+      "id": "ALT-03",
+      "tipo": "PMP",
+      "cor": "red",
+      "titulo": "PMP DFF-26-011 obrigatória — prazo em 9 dias",
+      "detalhe": "Trator 7250R (chassi ...123457) precisa da substituição de DPF. Já agendado 30/08. Confirmação com Carlos Eduardo (Gerente de Frota) pendente.",
+      "origem": "John Deere · Boletim técnico",
+      "criado_em": "2026-08-05T00:00",
+      "acao_cta": "Confirmar agendamento",
+      "acao_link": "#"
+    },
+    {
+      "id": "ALT-04",
+      "tipo": "ciclo_pv",
+      "cor": "amber",
+      "titulo": "Sem visita pós-venda há 41 dias",
+      "detalhe": "Última visita técnica em 01/08 (Ricardo Moretti). SLA da Tracbel para Classe A: 30 dias. Convém agendar visita antes da safra iniciar (setembro).",
+      "origem": "Tracbel · SLA relacionamento",
+      "criado_em": "2026-08-27T08:45",
+      "acao_cta": "Agendar visita",
+      "acao_link": "#"
+    }
+  ],
+  "contratos_jdcp": [
+    {
+      "chassi": "1H0S780PXMR234567",
+      "modelo": "Colheitadeira S780",
+      "plano": "JDCP Premium",
+      "inicio": "2024-03-15",
+      "fim": "2027-03-15",
+      "horas_cobertas": "3000h",
+      "valor_anual": 38500
+    },
+    {
+      "chassi": "1H0S780PXMR234568",
+      "modelo": "Colheitadeira S780",
+      "plano": "JDCP Premium",
+      "inicio": "2024-03-15",
+      "fim": "2027-03-15",
+      "horas_cobertas": "3000h",
+      "valor_anual": 38500
+    }
+  ],
+  "frota_sem_jdcp": [
+    {
+      "chassi": "1RW7250PVMR123456",
+      "modelo": "Trator 7250R",
+      "ano": 2023,
+      "potencial": 42000
+    },
+    {
+      "chassi": "1RW7250PVMR123457",
+      "modelo": "Trator 7250R",
+      "ano": 2023,
+      "potencial": 42000
+    }
+  ],
+  "nps": {
+    "score": 72,
+    "respostas": 14,
+    "detratores": 1,
+    "neutros": 2,
+    "promotores": 11,
+    "comentario_recente": {
+      "data": "2026-08-01",
+      "autor": "Salvador Arena Jr.",
+      "nota": 10,
+      "texto": "Atendimento do Ricardo é excelente. Peças chegaram no prazo prometido. Só melhorar a comunicação de status."
+    }
+  }
+}

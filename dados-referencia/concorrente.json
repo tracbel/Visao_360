@@ -1,0 +1,21 @@
+{
+  "catalogo": "concorrente",
+  "descricao": "Fabricante concorrente citado em venda perdida ou visita de competidores",
+  "origem": "RECONSTRUÍDA — extraída do texto de config-motivos-perda.json (2 nomes de marca embutidos na descrição do motivo). Doc 17 §6.1 confirma: \"não existe\" como catálogo no protótipo nem no Vórtice (aparece como texto livre em IV_Q_COMPETIDORES_NA_NEG, tabela de formulário não exportada). Lista quase certamente incompleta (mercado brasileiro de máquinas agrícolas tem também AGCO/Massey Ferguson/Valtra, CNH, Stara, Jacto etc.) — ver PENDENTES.md.",
+  "itens": [
+    {
+      "codigo": "CASE_IH",
+      "descricao": "Case IH",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Extraído do texto do motivo de perda #4 \"Concorrente Case IH\" (config-motivos-perda.json) — não de um campo de catálogo dedicado."
+    },
+    {
+      "codigo": "NEW_HOLLAND",
+      "descricao": "New Holland",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Extraído do texto do motivo de perda #5 \"Concorrente New Holland\" (config-motivos-perda.json) — não de um campo de catálogo dedicado."
+    }
+  ]
+}

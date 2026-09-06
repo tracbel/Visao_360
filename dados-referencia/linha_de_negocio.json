@@ -1,0 +1,49 @@
+{
+  "catalogo": "linha_de_negocio",
+  "descricao": "A frente de produto/negócio da Tracbel (o que está sendo vendido)",
+  "origem": "prototipo/dados-seed/linha-icon.json + catalogo-modelos.json (6 itens, cascata da Nova Oportunidade) + mix-linhas.json (uso na Visão 360, com divergência de grafia/contagem — ver PENDENTES.md). Doc 17 §8.1/§15 §3.3 aponta IVS_Depto (29 linhas) do Vórtice como substituída, mas o conteúdo real de IVS_Depto é outra coisa (departamento de venda por produto+função) — ver PENDENTES.md.",
+  "itens": [
+    {
+      "codigo": "TRATORES",
+      "descricao": "Tratores",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Ícone 🚜 (protótipo, linha-icon.json). Alimenta a cascata Linha→Modelo do formulário Nova Oportunidade (catalogo-modelos.json)."
+    },
+    {
+      "codigo": "COLHEITADEIRAS",
+      "descricao": "Colheitadeiras",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Ícone 🌾 (protótipo, linha-icon.json). Alimenta a cascata Linha→Modelo do formulário Nova Oportunidade (catalogo-modelos.json)."
+    },
+    {
+      "codigo": "PULVERIZADORES",
+      "descricao": "Pulverizadores",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Ícone 💧 (protótipo, linha-icon.json). Alimenta a cascata Linha→Modelo do formulário Nova Oportunidade (catalogo-modelos.json)."
+    },
+    {
+      "codigo": "PLANTADEIRAS",
+      "descricao": "Plantadeiras",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "Ícone 🌱 (protótipo, linha-icon.json). Alimenta a cascata Linha→Modelo do formulário Nova Oportunidade (catalogo-modelos.json)."
+    },
+    {
+      "codigo": "IMPLEMENTOS",
+      "descricao": "Implementos",
+      "ordem": 5,
+      "ativo": true,
+      "observacao": "Ícone ⚙️ (protótipo, linha-icon.json). Alimenta a cascata Linha→Modelo do formulário Nova Oportunidade (catalogo-modelos.json). Ausente do gráfico de mix por linha (mix-linhas.json tem só 5 linhas) — ver PENDENTES.md."
+    },
+    {
+      "codigo": "PECAS_SERVICOS",
+      "descricao": "Peças & Serviços",
+      "ordem": 6,
+      "ativo": true,
+      "observacao": "Ícone 🔧 (protótipo, linha-icon.json). Alimenta a cascata Linha→Modelo do formulário Nova Oportunidade (catalogo-modelos.json). No gráfico de mix por linha (mix-linhas.json) aparece grafado \"Peças e Serviços\" e sem \"Implementos\" como linha separada (só 5 linhas ali, não 6) — ver PENDENTES.md."
+    }
+  ]
+}

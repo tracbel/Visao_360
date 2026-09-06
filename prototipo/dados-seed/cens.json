@@ -1,0 +1,50 @@
+{
+  "joao": {
+    "nome": "João Ribeiro",
+    "sigla": "JR",
+    "regional": "MT Norte",
+    "cor": "#367C2B"
+  },
+  "rufino": {
+    "nome": "José Rufino",
+    "sigla": "JR",
+    "regional": "MT Norte",
+    "cor": "#4A7BA8"
+  },
+  "ana": {
+    "nome": "Ana Paula",
+    "sigla": "AP",
+    "regional": "MT Norte",
+    "cor": "#B87333"
+  },
+  "ricardo": {
+    "nome": "Ricardo Alves",
+    "sigla": "RA",
+    "regional": "MT Norte",
+    "cor": "#7A5EA5"
+  },
+  "fernanda": {
+    "nome": "Fernanda Melo",
+    "sigla": "FM",
+    "regional": "MT Norte",
+    "cor": "#C74B4B"
+  },
+  "marcelo": {
+    "nome": "Marcelo Silva",
+    "sigla": "MS",
+    "regional": "MT Sul",
+    "cor": "#2F6C8E"
+  },
+  "renata": {
+    "nome": "Renata Costa",
+    "sigla": "RC",
+    "regional": "GO",
+    "cor": "#5A8F3E"
+  },
+  "pedro": {
+    "nome": "Pedro Almeida",
+    "sigla": "PA",
+    "regional": "BA",
+    "cor": "#8A6A2E"
+  }
+}

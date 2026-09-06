@@ -1,0 +1,119 @@
+/* ==============================================================
+   Objeto ..........: dbo.PR_VTC_INTPROPRIEDADE
+   Tipo ............: SQL_STORED_PROCEDURE
+   Criado em .......: 2025-10-31 15:47:38
+   Modificado em ...: 2025-10-31 15:47:38
+   Linhas ..........: 106
+   Escreve em tabela: SIM (INSERT, DELETE)
+   Alvos de escrita : IV_CLIENTEPROPR
+   Tabelas referidas: EXT_VEICREF, IV_CLIENTEPROPR
+   Outras refs .....: PRC_GET_SEQUENCIA_TABELA
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+create PROCEDURE PR_VTC_INTPROPRIEDADE @SEQPESSOA NUMERIC(10), @SEQPROPRIEDADE NUMERIC(4), @REFERENCIA VARCHAR(30), @IDENTIFICADOR VARCHAR(30), @FAMILIA VARCHAR(40), 
+											   @MODELO VARCHAR(40), @ANOFABRICACAO VARCHAR(40), @DTAALTERACAO DATETIME, @USUALTERACAO VARCHAR(20)
+AS
+/*			Rotina diaria para atualizar veiculo de integracao
+abr/2025 - Amaury
+REFERENCIA = MARCA
+IDENTIFICADOR = CHASSI
+*/
+-------------------------------
+----- inicio da execução da rotina
+Declare 
+	@vnSeqModelo numeric(10),
+	@ATIVO char(1),
+	@SEQPROPPESSOA NUMERIC(10)
+
+    DECLARE @SQL NVARCHAR(MAX) = N'';
+    DECLARE @CAMPOS NVARCHAR(MAX) = '';
+    DECLARE @VALORES NVARCHAR(MAX) = '';
+    DECLARE @CampoOrigem NVARCHAR(250), @CampoDest NVARCHAR(250), @NomeVariavel NVARCHAR(250);
+
+    DECLARE CURCAMPO CURSOR FOR
+        SELECT SEQPROPRIEDADE, CAMPOORIGEM, CAMPODEST
+        FROM EXT_VEICREF
+        WHERE SEQPROPRIEDADE = @SEQPROPRIEDADE;
+
+	DECLARE CUREXC CURSOR FOR
+		SELECT SEQPROPPESSOA
+		FROM IV_CLIENTEPROPR
+		WHERE IDENTIFICADOR = @IDENTIFICADOR;
+---		  AND SEQPROPRIEDADE = @SEQPROPRIEDADE;
+
+BEGIN
+    OPEN CURCAMPO;
+    FETCH NEXT FROM CURCAMPO INTO @SEQPROPRIEDADE, @CampoOrigem, @CampoDest;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SET @NomeVariavel = REPLACE(@CampoOrigem, '@', '');
+
+        SET @CAMPOS  += QUOTENAME(@CampoDest) + ', ';
+
+        SET @VALORES += '@' + @NomeVariavel + ', ';
+
+    FETCH NEXT FROM CURCAMPO INTO @SEQPROPRIEDADE, @CampoOrigem, @CampoDest;
+    END
+
+    CLOSE CURCAMPO;
+    DEALLOCATE CURCAMPO;
+
+	if len(@CAMPOS)>0
+	begin
+		---- excluir propriedades 
+		OPEN CUREXC;
+		FETCH NEXT FROM CUREXC INTO @SEQPROPPESSOA;
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+			DELETE FROM IV_CLIENTEPROPR WHERE SEQPROPPESSOA = @SEQPROPPESSOA
+		FETCH NEXT FROM CUREXC INTO @SEQPROPPESSOA;
+		END
+		CLOSE CUREXC;
+		DEALLOCATE CUREXC;
+
+		-- Remove última vírgula
+		SET @CAMPOS  = LEFT(@CAMPOS, LEN(@CAMPOS) - 1);
+		SET @VALORES = LEFT(@VALORES, LEN(@VALORES) - 1);
+		SET @ATIVO = 'S'
+
+		DECLARE	@SEQPROPR numeric(10)
+	--- pega sequencia
+		EXEC dbo.PRC_GET_SEQUENCIA_TABELA
+			 @sNomeTabela = 'IV_CLIENTEPROPR',
+			 @vnSeqNovo = @SEQPROPR OUTPUT,
+			 @sTabelaOrigem = 'IV_CLIENTEPROPR',
+			 @sCampoOrigem = 'SEQPROPPESSOA'
+
+	   -- Monta comando INSERT dinâmico
+		SET @SQL = N'INSERT INTO IV_CLIENTEPROPR (' + @CAMPOS + ') VALUES (' + @VALORES + ')';
+
+		-- Executa o SQL dinâmico com os parâmetros da linha atual
+		DECLARE @params NVARCHAR(MAX) = N'
+			@SEQPESSOA INT,
+			@SEQPROPRIEDADE INT,
+			@REFERENCIA VARCHAR(20),
+			@IDENTIFICADOR VARCHAR(30),
+			@FAMILIA VARCHAR(50),
+			@MODELO VARCHAR(50),
+			@ANOFABRICACAO INT,
+			@DTAALTERACAO DATETIME,
+			@USUALTERACAO VARCHAR(30),
+			@ATIVO CHAR(1),
+			@SEQPROPR NUMERIC(10)';
+
+		EXEC sp_executesql @SQL, @params,
+			@SEQPESSOA = @SEQPESSOA,
+			@SEQPROPRIEDADE = @SEQPROPRIEDADE,
+			@REFERENCIA = @REFERENCIA,
+			@IDENTIFICADOR = @IDENTIFICADOR,
+			@FAMILIA = @FAMILIA,
+			@MODELO = @MODELO,
+			@ANOFABRICACAO = @ANOFABRICACAO,
+			@DTAALTERACAO = @DTAALTERACAO,
+			@USUALTERACAO = @USUALTERACAO,
+			@ATIVO = @ATIVO,
+			@SEQPROPR = @SEQPROPR;
+	end
+END	

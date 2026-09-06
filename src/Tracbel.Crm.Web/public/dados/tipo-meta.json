@@ -1,0 +1,26 @@
+{
+  "monitorar": {
+    "label": "Monitoramento",
+    "icon": "eye",
+    "color": "#0284C7",
+    "bg": "#E0F2FE"
+  },
+  "visitar": {
+    "label": "Visita",
+    "icon": "nav",
+    "color": "#16A34A",
+    "bg": "#DCFCE7"
+  },
+  "ligar": {
+    "label": "Ligação",
+    "icon": "phone",
+    "color": "#7C3AED",
+    "bg": "#EDE9FE"
+  },
+  "proposta": {
+    "label": "Proposta",
+    "icon": "file",
+    "color": "#EA580C",
+    "bg": "#FFEDD5"
+  }
+}

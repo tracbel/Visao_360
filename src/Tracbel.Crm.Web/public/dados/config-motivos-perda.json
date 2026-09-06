@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "motivo": "Preço acima do concorrente",
+    "ativo": true,
+    "usos_90d": 27
+  },
+  {
+    "id": 2,
+    "motivo": "Prazo de entrega longo",
+    "ativo": true,
+    "usos_90d": 12
+  },
+  {
+    "id": 3,
+    "motivo": "Cliente adiou para safra seguinte",
+    "ativo": true,
+    "usos_90d": 34
+  },
+  {
+    "id": 4,
+    "motivo": "Concorrente Case IH",
+    "ativo": true,
+    "usos_90d": 18
+  },
+  {
+    "id": 5,
+    "motivo": "Concorrente New Holland",
+    "ativo": true,
+    "usos_90d": 9
+  },
+  {
+    "id": 6,
+    "motivo": "Cliente não obteve financiamento",
+    "ativo": true,
+    "usos_90d": 21
+  },
+  {
+    "id": 7,
+    "motivo": "Especificação técnica não atendida",
+    "ativo": true,
+    "usos_90d": 4
+  },
+  {
+    "id": 8,
+    "motivo": "Outro",
+    "ativo": true,
+    "usos_90d": 8
+  }
+]

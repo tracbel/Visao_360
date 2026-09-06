@@ -1,0 +1,4 @@
+﻿"Seqconsulta","Variavel","Descricao","Instrucao","Padrao","Minimo","Maximo","Geralista","Tipoin","Retorno"
+"2","DT1","Data Inicial:","","PDMA","","","","N","L"
+"2","DT2","Data Final:","","UDMA","","","","N","L"
+"2","LS4","Imprimir gráfico por questão ?","","UDMA","","","SIM,NÃO","N","L"

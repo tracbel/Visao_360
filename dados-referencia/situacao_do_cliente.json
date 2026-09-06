@@ -1,0 +1,42 @@
+{
+  "catalogo": "situacao_do_cliente",
+  "descricao": "Em que estágio do ciclo comercial o cliente está — domínio fechado de comercial.Cliente.Situacao",
+  "origem": "docs/projeto/17-MODELO-UNIFICADO.md §3 Regra 1 (decisão) + GE_Pessoa.Status do Vórtice (docs/extracao-vortice/dominios/00-INDICE.md item 1: P=76.048 · A=39.624 · vazio=2.126 · S=1.416 · F=54 · O=25 · I=5). O protótipo só demonstra \"Ativo\" (cliente-84391.json) — os demais estágios não têm exemplo na UI aprovada.",
+  "itens": [
+    {
+      "codigo": "SUSPECT",
+      "descricao": "Suspeito (contato ainda não qualificado)",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Estágio novo do modelo unificado, anterior ao Prospect qualificado; sem código isolado equivalente no Vórtice."
+    },
+    {
+      "codigo": "PROSPECT",
+      "descricao": "Prospect (em qualificação, ainda sem nota fiscal)",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Equivale a GE_Pessoa.Status = 'P' no Vórtice: 76.048 linhas, 63,8% da base — a MAIORIA dos registros de pessoa."
+    },
+    {
+      "codigo": "CLIENTE",
+      "descricao": "Cliente (ativo, já comprou)",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Equivale a GE_Pessoa.Status = 'A' no Vórtice: 39.624 linhas, 33,2% da base."
+    },
+    {
+      "codigo": "CLIENTE_INATIVO",
+      "descricao": "Cliente inativo (já comprou, sem atividade comercial recente)",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "Sem código isolado no Vórtice hoje — possivelmente misturado em 'A', ou nos residuais 'S'/'F'/'O'/'I' (juntos 1,27% da base) e nas 2.126 linhas em branco. Ver PENDENTES.md."
+    },
+    {
+      "codigo": "ENCERRADA",
+      "descricao": "Relação encerrada (não é mais cliente, não deve ser prospectado)",
+      "ordem": 5,
+      "ativo": true,
+      "observacao": "Sem código isolado confirmado no Vórtice; candidatos residuais 'F' (54 linhas) e 'O' (25 linhas) — não confirmado. Ver PENDENTES.md."
+    }
+  ]
+}

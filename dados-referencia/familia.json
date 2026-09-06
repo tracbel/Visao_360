@@ -1,0 +1,6 @@
+{
+  "catalogo": "familia",
+  "descricao": "Agrupamento intermediário de modelos dentro de uma linha de negócio (ex.: uma série de tratores)",
+  "origem": "SEM FONTE. Doc 17 §8.5 cita EXT_VeicFam (68 linhas no Vórtice) como substituída por frota.Familia, mas essa tabela não está entre os 116 catálogos exportados em docs/extracao-vortice/catalogos-bpm/. O protótipo (catalogo-modelos.json) não tem nível de família entre linha e modelo. Ver PENDENTES.md.",
+  "itens": []
+}

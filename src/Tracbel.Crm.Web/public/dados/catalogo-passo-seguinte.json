@@ -1,0 +1,47 @@
+{
+  "catalogo": "passo_seguinte",
+  "descricao": "A próxima tarefa que nasce quando o andamento é gravado",
+  "origem": "PROVISÓRIO, mesma situação do catálogo `resultado`. As cinco descrições são exatamente as opções que o protótipo de referência já mostrava no campo 'Próximo passo' do drawer de andamento (prototipo/referencia/assets/app.js, `openTarefaDrawer()` linha 1499). O `codigo` segue 16-HIGIENIZACAO-DE-DADOS §3 e `dias` traduz o intervalo em dias corridos. No Vórtice isto é `IV_AcaoAuto`, consultada na mesma transação do andamento (16-vortice-ponta-a-ponta §5.1, passo 4) — e cujo motor perde três quartos das tarefas que promete criar (§5.6). No modelo unificado vira a regra de geração automática de `processo.Tarefa`.",
+  "itens": [
+    {
+      "codigo": "ENCERRAR",
+      "descricao": "Nenhuma ação — encerrar",
+      "ordem": 1,
+      "ativo": true,
+      "dias": null,
+      "observacao": "Não gera tarefa nenhuma. É o único item que fecha o ciclo."
+    },
+    {
+      "codigo": "REAGENDAR_30",
+      "descricao": "Reagendar contato para +30 dias",
+      "ordem": 2,
+      "ativo": true,
+      "dias": 30,
+      "observacao": ""
+    },
+    {
+      "codigo": "REAGENDAR_60",
+      "descricao": "Reagendar contato para +60 dias",
+      "ordem": 3,
+      "ativo": true,
+      "dias": 60,
+      "observacao": ""
+    },
+    {
+      "codigo": "CRIAR_OPORTUNIDADE",
+      "descricao": "Criar oportunidade no funil",
+      "ordem": 4,
+      "ativo": true,
+      "dias": null,
+      "observacao": "Leva à tela Nova Oportunidade. Enquanto não há API, o andamento só registra a intenção."
+    },
+    {
+      "codigo": "ESCALAR_GERENTE",
+      "descricao": "Escalar para gerente comercial",
+      "ordem": 5,
+      "ativo": true,
+      "dias": null,
+      "observacao": "No Vórtice isto enfileira e-mail via IV_ResMsgPapel (§5.1, passo 5)."
+    }
+  ]
+}

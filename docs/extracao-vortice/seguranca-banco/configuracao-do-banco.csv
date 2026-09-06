@@ -1,0 +1,3 @@
+﻿"name","collation_name","recovery_model_desc","is_trustworthy_on","is_db_chaining_on","is_auto_close_on","is_auto_shrink_on","is_read_committed_snapshot_on","snapshot_isolation_state_desc","page_verify_option_desc","compatibility_level","user_access_desc","state_desc","is_encrypted","is_broker_enabled","log_reuse_wait_desc"
+"CRM","SQL_Latin1_General_CP1_CI_AS","FULL","False","False","False","True","False","OFF","CHECKSUM","100","MULTI_USER","ONLINE","False","False","NOTHING"
+"CRM_HOMO","SQL_Latin1_General_CP1_CI_AS","SIMPLE","False","False","False","True","False","OFF","CHECKSUM","100","MULTI_USER","ONLINE","False","False","NOTHING"

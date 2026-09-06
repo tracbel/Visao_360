@@ -1,0 +1,3 @@
+[ECS-ST-TSPLUS:Install] varrendo \\10.150.5.172\c$\Vortice\Install ...
+[ECS-ST-TSPLUS:Install] 8 arquivos.
+OK -> c:\projetos\tracbel-crm\docs\extracao-vortice\binarios\inventario-ts172-Install.csv (8 linhas, 00:49)

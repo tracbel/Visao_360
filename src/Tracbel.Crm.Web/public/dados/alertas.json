@@ -1,0 +1,62 @@
+{
+  "cen": [
+    {
+      "tipo": "critico",
+      "titulo": "4 clientes Classe A sem visita há 90+ dias",
+      "detalhe": "Salvador Arena, Boa Vista, SLC Bocaiúva, Três Marias",
+      "acao": "Ver Cobertura"
+    },
+    {
+      "tipo": "aviso",
+      "titulo": "Meta do mês em 82% · faltam 8 dias úteis",
+      "detalhe": "R$ 780k em pipeline de fase Negociação",
+      "acao": "Ver Pipeline"
+    },
+    {
+      "tipo": "info",
+      "titulo": "Nova oportunidade criada em ago/26",
+      "detalhe": "OP-2026-08471 · Salvador Arena · R$ 3.2M",
+      "acao": "Ver oportunidade"
+    }
+  ],
+  "gerente": [
+    {
+      "tipo": "critico",
+      "titulo": "Fernanda Melo abaixo de 70% da meta há 3 meses",
+      "detalhe": "Ticket médio caindo · convocar 1:1",
+      "acao": "Ver Performance"
+    },
+    {
+      "tipo": "aviso",
+      "titulo": "Conhecimento de mercado MT Norte em 61%",
+      "detalhe": "186 máquinas emplacadas na região sem registro nosso",
+      "acao": "Ver detalhe"
+    },
+    {
+      "tipo": "info",
+      "titulo": "Regional bateu 108% da meta em jul/26",
+      "detalhe": "Melhor mês em 8 meses · reconhecer time",
+      "acao": "Ver relatório"
+    }
+  ],
+  "diretor": [
+    {
+      "tipo": "critico",
+      "titulo": "BA e MT Sul abaixo do FY plano",
+      "detalhe": "BA em 78% do FYTD · MT Sul em 84%",
+      "acao": "Ver por filial"
+    },
+    {
+      "tipo": "aviso",
+      "titulo": "Concorrente ganhou 78 negócios em 12m",
+      "detalhe": "\"Preferência por concorrente\" é 2ª causa · rever posicionamento",
+      "acao": "Ver perdidas"
+    },
+    {
+      "tipo": "info",
+      "titulo": "Mix de Peças e Serviços cresceu 3pp YoY",
+      "detalhe": "Melhor margem · manter foco",
+      "acao": "Ver mix"
+    }
+  ]
+}

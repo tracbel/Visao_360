@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      A LARGURA DE VERDADE, e não 1.280 fixos.
+
+      Aqui estava `width=1280`, herdado do protótipo, que é uma maquete de
+      desktop. O efeito num celular era este: o navegador desenhava a página
+      como se a tela tivesse 1.280 pixels e depois encolhia tudo — nenhuma regra
+      `@media` de largura estreita chegava a valer, e o CEN em campo lia uma
+      tabela de sete colunas reduzida a um terço do tamanho. As telas nunca
+      souberam ser estreitas porque nunca lhes foi contado que a tela era
+      estreita.
+
+      Em 1.280px de largura o resultado é idêntico ao de antes, então a
+      comparação com as capturas de referência continua valendo.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CRM Tracbel Agro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

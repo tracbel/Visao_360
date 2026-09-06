@@ -1,0 +1,86 @@
+{
+  "Tratores": [
+    {
+      "modelo": "5075E",
+      "valor_ref": 320000
+    },
+    {
+      "modelo": "5090E",
+      "valor_ref": 380000
+    },
+    {
+      "modelo": "6110J",
+      "valor_ref": 745000
+    },
+    {
+      "modelo": "6135J",
+      "valor_ref": 890000
+    },
+    {
+      "modelo": "7230J",
+      "valor_ref": 1150000
+    },
+    {
+      "modelo": "8R 250",
+      "valor_ref": 1890000
+    },
+    {
+      "modelo": "8R 340",
+      "valor_ref": 2440000
+    }
+  ],
+  "Colheitadeiras": [
+    {
+      "modelo": "S770",
+      "valor_ref": 2700000
+    },
+    {
+      "modelo": "S780",
+      "valor_ref": 3100000
+    },
+    {
+      "modelo": "S680 seminova",
+      "valor_ref": 2200000
+    }
+  ],
+  "Pulverizadores": [
+    {
+      "modelo": "4630",
+      "valor_ref": 2100000
+    },
+    {
+      "modelo": "4730",
+      "valor_ref": 2400000
+    }
+  ],
+  "Plantadeiras": [
+    {
+      "modelo": "DB40",
+      "valor_ref": 1800000
+    },
+    {
+      "modelo": "DB44",
+      "valor_ref": 2650000
+    },
+    {
+      "modelo": "DB50",
+      "valor_ref": 2900000
+    }
+  ],
+  "Implementos": [
+    {
+      "modelo": "2730",
+      "valor_ref": 420000
+    },
+    {
+      "modelo": "Arado 4 discos",
+      "valor_ref": 180000
+    }
+  ],
+  "Peças & Serviços": [
+    {
+      "modelo": "Contrato anual",
+      "valor_ref": 520000
+    }
+  ]
+}

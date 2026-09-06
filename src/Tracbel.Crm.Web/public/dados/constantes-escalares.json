@@ -1,0 +1,26 @@
+{
+  "NOVAS_STORAGE_KEY": {
+    "valor": "crm-tracbel:oportunidades-novas:v1",
+    "app_js_linha": 66
+  },
+  "CONTADOR_STORAGE_KEY": {
+    "valor": "crm-tracbel:contador-op:v1",
+    "app_js_linha": 67
+  },
+  "AGENDA_HOJE": {
+    "valor": "2026-08-25T12:00:00.000Z",
+    "app_js_linha": 1123
+  },
+  "HOJE_CARTEIRA": {
+    "valor": "2026-08-25T03:00:00.000Z",
+    "app_js_linha": 3373
+  },
+  "FAT_MULT_MT_NORTE": {
+    "valor": 0.32,
+    "app_js_linha": 7229
+  },
+  "FAT_MULT_CEN_JOAO": {
+    "valor": 0.11,
+    "app_js_linha": 7230
+  }
+}

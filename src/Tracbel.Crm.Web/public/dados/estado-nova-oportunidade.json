@@ -1,0 +1,16 @@
+{
+  "cliente_id": null,
+  "cliente_nome": "",
+  "cliente_classe": "B",
+  "cliente_cidade": "",
+  "cliente_novo": false,
+  "linha": "",
+  "modelo": "",
+  "quantidade": 1,
+  "valor_unitario": 0,
+  "fase_inicial": "qualificacao",
+  "previsao_fechamento": "",
+  "probabilidade": 15,
+  "titulo": "",
+  "observacao": ""
+}

@@ -1,0 +1,26 @@
+{
+  "MT Norte": {
+    "total_mercado": 480,
+    "vendemos": 156,
+    "indicamos_perdida": 138,
+    "sem_conhecimento": 186
+  },
+  "MT Sul": {
+    "total_mercado": 320,
+    "vendemos": 98,
+    "indicamos_perdida": 78,
+    "sem_conhecimento": 144
+  },
+  "GO": {
+    "total_mercado": 410,
+    "vendemos": 142,
+    "indicamos_perdida": 95,
+    "sem_conhecimento": 173
+  },
+  "BA": {
+    "total_mercado": 260,
+    "vendemos": 76,
+    "indicamos_perdida": 52,
+    "sem_conhecimento": 132
+  }
+}

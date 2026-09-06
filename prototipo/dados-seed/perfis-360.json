@@ -1,0 +1,26 @@
+{
+  "cen": {
+    "id": "cen",
+    "nome": "João Ribeiro",
+    "cargo": "CEN · MT Norte · Lucas do Rio Verde",
+    "avatar": "JR",
+    "cor": "#367C2B",
+    "escopo_label": "Minha carteira"
+  },
+  "gerente": {
+    "id": "gerente",
+    "nome": "Roberto Silveira",
+    "cargo": "Gerente Regional · MT Norte",
+    "avatar": "RS",
+    "cor": "#1B5E20",
+    "escopo_label": "Regional MT Norte"
+  },
+  "diretor": {
+    "id": "diretor",
+    "nome": "Cláudia Nunes",
+    "cargo": "Diretora Comercial · Tracbel Agro",
+    "avatar": "CN",
+    "cor": "#7C3AED",
+    "escopo_label": "Nacional · 4 filiais"
+  }
+}

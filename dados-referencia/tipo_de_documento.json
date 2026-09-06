@@ -1,0 +1,756 @@
+{
+  "catalogo": "tipo_de_documento",
+  "descricao": "Tipo de arquivo anexável a um processo, cliente ou equipamento (aba Documentação)",
+  "origem": "docs/extracao-vortice/catalogos-bpm/DMN_DocTp.csv (108 linhas no legado, DocTp Manager do Vórtice) — catálogo real e ativo, sem equivalente no protótipo.",
+  "itens": [
+    {
+      "codigo": "EXPERIE_CLIENTE",
+      "descricao": "Inquérito de Experiência do Cliente",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 2."
+    },
+    {
+      "codigo": "FINANCEIRO",
+      "descricao": "Documentos Financeiro",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 3."
+    },
+    {
+      "codigo": "OUTROS",
+      "descricao": "Documentos Diversos",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 4."
+    },
+    {
+      "codigo": "NF",
+      "descricao": "NF",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 5."
+    },
+    {
+      "codigo": "NF_VEN_DIRETA",
+      "descricao": "NF Venda Direta",
+      "ordem": 5,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 7."
+    },
+    {
+      "codigo": "PEDIDO_VENDA",
+      "descricao": "Pedido Venda",
+      "ordem": 6,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 8."
+    },
+    {
+      "codigo": "NF_DE_REFATURAM",
+      "descricao": "Nota Fiscal Refaturamento",
+      "ordem": 7,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 9."
+    },
+    {
+      "codigo": "SERASA",
+      "descricao": "Consulta de Serasa",
+      "ordem": 8,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 10."
+    },
+    {
+      "codigo": "IBM",
+      "descricao": "Inspeção Básica de Máquina",
+      "ordem": 9,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 11."
+    },
+    {
+      "codigo": "CONTR_LOCACAO",
+      "descricao": "Contrato de Locação",
+      "ordem": 10,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 12."
+    },
+    {
+      "codigo": "AUTOR_AGREGA",
+      "descricao": "Autorização de agrega e desagrega especial",
+      "ordem": 11,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 13."
+    },
+    {
+      "codigo": "AVALIACAO_USADO",
+      "descricao": "Avaliação Equipamento/Implemento Usado",
+      "ordem": 12,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 14."
+    },
+    {
+      "codigo": "AUTOR_FATURA",
+      "descricao": "Autorizacao de Faturamento",
+      "ordem": 13,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 15."
+    },
+    {
+      "codigo": "DECLARACAO",
+      "descricao": "Declaracao de Onus",
+      "ordem": 14,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 16."
+    },
+    {
+      "codigo": "NOTA_FISCAL",
+      "descricao": "Nota de Venda",
+      "ordem": 15,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 17."
+    },
+    {
+      "codigo": "VALIDADO_AVALIA",
+      "descricao": "Validação de Avaliação e Fotos",
+      "ordem": 16,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 18."
+    },
+    {
+      "codigo": "AUTORIZACAO",
+      "descricao": "Autorizacao entregar novo sem retirar usado",
+      "ordem": 17,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 19."
+    },
+    {
+      "codigo": "NF_SERVICO_AMS",
+      "descricao": "Nota Fiscal Faturamento Serviço AMS",
+      "ordem": 18,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 20."
+    },
+    {
+      "codigo": "AVALI_LOGISTICA",
+      "descricao": "Avaliação retirada logistica",
+      "ordem": 19,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 21."
+    },
+    {
+      "codigo": "AVALI_OFICINA",
+      "descricao": "Avaliação Receber Maquina Oficina",
+      "ordem": 20,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 22."
+    },
+    {
+      "codigo": "NF_USADO_CLIENT",
+      "descricao": "Nota Fiscal Usado Cliente",
+      "ordem": 21,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 23."
+    },
+    {
+      "codigo": "FOR_USADOS",
+      "descricao": "Formulario Venda Usado",
+      "ordem": 22,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 24."
+    },
+    {
+      "codigo": "DECL_ONUS_IMP",
+      "descricao": "Declaração de Onus IMP",
+      "ordem": 23,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 25."
+    },
+    {
+      "codigo": "CALCULO_COMISSA",
+      "descricao": "Calculo de comissão venda direta",
+      "ordem": 24,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 26."
+    },
+    {
+      "codigo": "CONF_EQUIP",
+      "descricao": "Configuração do Equiipamento",
+      "ordem": 25,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 27."
+    },
+    {
+      "codigo": "ORCA_PECAS",
+      "descricao": "Orcamento de Peças",
+      "ordem": 26,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 28."
+    },
+    {
+      "codigo": "PEDIDO_JD_QUOTE",
+      "descricao": "Pedido JD Quote (Assinado)",
+      "ordem": 27,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 29."
+    },
+    {
+      "codigo": "AUTO_COMPRA_IMP",
+      "descricao": "Autorização de Compra Implemento",
+      "ordem": 28,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 30."
+    },
+    {
+      "codigo": "NF_JD",
+      "descricao": "Nota Fiscal Venda Direta JD",
+      "ordem": 29,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 31."
+    },
+    {
+      "codigo": "NF_COLORADO",
+      "descricao": "Nota Fiscal Venda Direta Colorado",
+      "ordem": 30,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 32."
+    },
+    {
+      "codigo": "NF_DEV_REFATURA",
+      "descricao": "Nota Fiscal Devolução Refaturamento",
+      "ordem": 31,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 33."
+    },
+    {
+      "codigo": "LIBER_PREP_MAQ",
+      "descricao": "Liberação para preparação maquina",
+      "ordem": 32,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 34."
+    },
+    {
+      "codigo": "PLANILHA_PRECO",
+      "descricao": "Planilha Formação de Preço",
+      "ordem": 33,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 35."
+    },
+    {
+      "codigo": "COMISSAO_IMP",
+      "descricao": "Comissão de Implementos",
+      "ordem": 34,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 36."
+    },
+    {
+      "codigo": "COMISSAO_AMS",
+      "descricao": "Comissão AMS",
+      "ordem": 35,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 37."
+    },
+    {
+      "codigo": "TERMO_DE_CESSAO",
+      "descricao": "Termo de Cessão Equipamento",
+      "ordem": 36,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 38."
+    },
+    {
+      "codigo": "PLANILHA_AMS",
+      "descricao": "Planilha Formação de Preço AMS",
+      "ordem": 37,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 39."
+    },
+    {
+      "codigo": "NF_ORIGEM_USADO",
+      "descricao": "Nota Fiscal de Origem - Usado",
+      "ordem": 38,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 40."
+    },
+    {
+      "codigo": "DEC_PERDA_NF_US",
+      "descricao": "Declaração de Perda NF Usado",
+      "ordem": 39,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 41."
+    },
+    {
+      "codigo": "PLANILHA_IMP",
+      "descricao": "Planilha Formação de Preço Implemento",
+      "ordem": 40,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 42."
+    },
+    {
+      "codigo": "ORC_AGREGA",
+      "descricao": "Orçamento Agrega",
+      "ordem": 41,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 43."
+    },
+    {
+      "codigo": "APOLICE_SEGURO",
+      "descricao": "Apolice de seguro",
+      "ordem": 42,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 44."
+    },
+    {
+      "codigo": "CHECKLIST_EMB",
+      "descricao": "Check List Embarque",
+      "ordem": 43,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 45."
+    },
+    {
+      "codigo": "CHECKLIST_DESEM",
+      "descricao": "Check List Desembarque",
+      "ordem": 44,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 46."
+    },
+    {
+      "codigo": "REMESSA",
+      "descricao": "Remessa Análise Fluído",
+      "ordem": 45,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 47."
+    },
+    {
+      "codigo": "RELATORIO_PECAS",
+      "descricao": "RELATÓRIO PEÇAS BALCÃO",
+      "ordem": 46,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 48."
+    },
+    {
+      "codigo": "PLANILHA_CORTES",
+      "descricao": "PLANILHA DE CORTESIA",
+      "ordem": 47,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 49."
+    },
+    {
+      "codigo": "PERFORMANCE",
+      "descricao": "Relatório de Performance",
+      "ordem": 48,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 50."
+    },
+    {
+      "codigo": "PERCEPCAO",
+      "descricao": "Relatório de Percepção",
+      "ordem": 49,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 51."
+    },
+    {
+      "codigo": "NF_DEMONSTRACAO",
+      "descricao": "NF Demonstração",
+      "ordem": 50,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 52."
+    },
+    {
+      "codigo": "NF_RETORNO_DEMO",
+      "descricao": "NF Retorno Demonstração",
+      "ordem": 51,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 53."
+    },
+    {
+      "codigo": "LAYOUT",
+      "descricao": "Layout - Projeto Irrigação",
+      "ordem": 52,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 54."
+    },
+    {
+      "codigo": "PROPOSTA",
+      "descricao": "Proposta - Projeto Irrigação",
+      "ordem": 53,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 55."
+    },
+    {
+      "codigo": "DCP",
+      "descricao": "DCP",
+      "ordem": 54,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 56."
+    },
+    {
+      "codigo": "NF_MAQ_IMPLEMEN",
+      "descricao": "NF MAQ/IMPLEMENTO",
+      "ordem": 55,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 57."
+    },
+    {
+      "codigo": "CONTRATO",
+      "descricao": "CONTRATO",
+      "ordem": 56,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 58, 59. Duplicata exata no legado (mesmo DocTp e Descr) — unificada num único item."
+    },
+    {
+      "codigo": "VENDA_CONTRATO",
+      "descricao": "VENDA CONTRATO",
+      "ordem": 57,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 60."
+    },
+    {
+      "codigo": "AUT_FATURAMENT",
+      "descricao": "AUTORIZAÇÃO FATURAMENTO - 61",
+      "ordem": 58,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 61."
+    },
+    {
+      "codigo": "DC_NAO_AUT_PMP",
+      "descricao": "DOC NÃO AUTORIZADO PMP",
+      "ordem": 59,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 62."
+    },
+    {
+      "codigo": "FOTO_PMP",
+      "descricao": "FOTO PMP",
+      "ordem": 60,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 63."
+    },
+    {
+      "codigo": "DOC_LOCAL_DESC",
+      "descricao": "DOC LOCALIZAÇÃO DESCONHECIDA PMP",
+      "ordem": 61,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 64."
+    },
+    {
+      "codigo": "CHECK_LIST_PRE",
+      "descricao": "CHECK LIST_PRÉ_ENTREGA",
+      "ordem": 62,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 65."
+    },
+    {
+      "codigo": "CORR_CHECK_LIST",
+      "descricao": "CORREÇÃO_CHECK_LIST_PRÉ_ENTREGA",
+      "ordem": 63,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 66."
+    },
+    {
+      "codigo": "ORC_PECA_PRE",
+      "descricao": "ORÇAMENTO PEÇAS PRÉ ENTREGA",
+      "ordem": 64,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 67."
+    },
+    {
+      "codigo": "RGA",
+      "descricao": "RGA",
+      "ordem": 65,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 68."
+    },
+    {
+      "codigo": "TCAT_CTRE",
+      "descricao": "TCAT_CTRE",
+      "ordem": 66,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 69."
+    },
+    {
+      "codigo": "TCAT_CNH_MOT",
+      "descricao": "TCAT_CNH_MOT",
+      "ordem": 67,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 70."
+    },
+    {
+      "codigo": "TCAT_CAVALO",
+      "descricao": "TCAT_CAVALO",
+      "ordem": 68,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 71."
+    },
+    {
+      "codigo": "TCAT_CARRETA",
+      "descricao": "TCAT_CARRETA",
+      "ordem": 69,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 72."
+    },
+    {
+      "codigo": "TCAT_NF_EQUIP",
+      "descricao": "TCAT_NF_EQUIP",
+      "ordem": 70,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 73."
+    },
+    {
+      "codigo": "TCAT_CHECK_LIST",
+      "descricao": "TCAT_CHECK-LIST",
+      "ordem": 71,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 74."
+    },
+    {
+      "codigo": "TCAT_FOT_AVARIA",
+      "descricao": "TCAT_FOT_AVARIA",
+      "ordem": 72,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 75."
+    },
+    {
+      "codigo": "TCAT_ORC_REPARO",
+      "descricao": "TCAT_ORÇ_REPARO",
+      "ordem": 73,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 76."
+    },
+    {
+      "codigo": "FAT_EXTERN_DSI",
+      "descricao": "FATURAMENTO EXTERNO DSI",
+      "ordem": 74,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 77."
+    },
+    {
+      "codigo": "COMP_PAGTO_DSI",
+      "descricao": "COMPROVANTE PAGAMENTO DSI",
+      "ordem": 75,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 78."
+    },
+    {
+      "codigo": "NF_ASSINADA",
+      "descricao": "NF ASSINADA",
+      "ordem": 76,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 79."
+    },
+    {
+      "codigo": "PLAN_MANUT_ASSI",
+      "descricao": "Plano Manutenção Ass. - PLAN MANUT ASSI - 80",
+      "ordem": 77,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 80."
+    },
+    {
+      "codigo": "DC_ENTG_TEC_ASS",
+      "descricao": "Doc Entrega Téc Assinado - DC ENTG TEC ASS - 81",
+      "ordem": 78,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 81."
+    },
+    {
+      "codigo": "ORCAMENTO",
+      "descricao": "ORÇAMENTO",
+      "ordem": 79,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 82."
+    },
+    {
+      "codigo": "NF_VENDA_PECA",
+      "descricao": "NF VENDA PEÇA",
+      "ordem": 80,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 83."
+    },
+    {
+      "codigo": "PEDIDO_COMP_DSI",
+      "descricao": "PEDIDO COMPRA DSI",
+      "ordem": 81,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 84."
+    },
+    {
+      "codigo": "DOC_GARANTIA",
+      "descricao": "Documento de Garantia",
+      "ordem": 82,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 85."
+    },
+    {
+      "codigo": "CAPA_OS_FATURAD",
+      "descricao": "CAPA OS FATURADA",
+      "ordem": 83,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 86."
+    },
+    {
+      "codigo": "AUT_FAT_FY25",
+      "descricao": "AUTORIZAÇÃO DE FATURAMENTO FY25",
+      "ordem": 84,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 87."
+    },
+    {
+      "codigo": "VENCIMENTO_SEG",
+      "descricao": "VENCIMENTO SEGURO",
+      "ordem": 85,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 88."
+    },
+    {
+      "codigo": "AVALIACAO_SMNV",
+      "descricao": "AVALIAÇÃO SEMINOVOS",
+      "ordem": 86,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 89."
+    },
+    {
+      "codigo": "PLAN_CUSTO_SMNV",
+      "descricao": "PLANILHA DE CUSTO SEMINOVOS",
+      "ordem": 87,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 90."
+    },
+    {
+      "codigo": "DECL_ONUS_SMNV",
+      "descricao": "DECLARAÇÃO DE ÔNUS SEMINOVOS",
+      "ordem": 88,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 91."
+    },
+    {
+      "codigo": "CERT_ONUS_SMNV",
+      "descricao": "CERTIDÃO NEGATIVA DE ÔNUS SEMINOVOS",
+      "ordem": 89,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 92."
+    },
+    {
+      "codigo": "NFO_DPNF_SMNV",
+      "descricao": "NF ORIGEM/DECLARAÇÃO PERDA NF SEMINOVOS",
+      "ordem": 90,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 93."
+    },
+    {
+      "codigo": "PED_COMPRA_VD",
+      "descricao": "PEDIDO DE COMPRA VENDA DIRETA",
+      "ordem": 91,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 94."
+    },
+    {
+      "codigo": "PLAN_VENDA_VD",
+      "descricao": "PLANILHA DE VENDA DIRETA",
+      "ordem": 92,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 95."
+    },
+    {
+      "codigo": "JD_QUOTE",
+      "descricao": "JD_QUOTE",
+      "ordem": 93,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 96."
+    },
+    {
+      "codigo": "OPERATION_CENTE",
+      "descricao": "Operation Center",
+      "ordem": 94,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 97."
+    },
+    {
+      "codigo": "AGRONOMY_ANALYZ",
+      "descricao": "Agronomy Analyzer",
+      "ordem": 95,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 98."
+    },
+    {
+      "codigo": "VENDA_DIRETA",
+      "descricao": "CONTRATO VENDA DIRETA",
+      "ordem": 96,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 99."
+    },
+    {
+      "codigo": "COMP_DE_PAGTO",
+      "descricao": "Comprovante de Pagamento",
+      "ordem": 97,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 100."
+    },
+    {
+      "codigo": "EMAIL_APROV_CRE",
+      "descricao": "E-mail de Aprovação Crédito",
+      "ordem": 98,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 101."
+    },
+    {
+      "codigo": "PLANILHA_CUSTO",
+      "descricao": "PLANILHA CUSTO GRANDES CONTAS",
+      "ordem": 99,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 102."
+    },
+    {
+      "codigo": "PEDIDO_GC",
+      "descricao": "PLANILHA PEDIDO GRANDES CONTAS",
+      "ordem": 100,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 103."
+    },
+    {
+      "codigo": "CSC_CHASSI",
+      "descricao": "Comprovante da Procedência",
+      "ordem": 101,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 104."
+    },
+    {
+      "codigo": "ATIVACAO_LICENC",
+      "descricao": "Ativação Licença",
+      "ordem": 102,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 105."
+    },
+    {
+      "codigo": "LICENCA_ATIVADA",
+      "descricao": "Licença Ativada",
+      "ordem": 103,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 106."
+    },
+    {
+      "codigo": "COMUNICADO_ATIV",
+      "descricao": "Comunicado Ativação",
+      "ordem": 104,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 107."
+    },
+    {
+      "codigo": "FORM_ENTREGA",
+      "descricao": "FORM ENTREGA",
+      "ordem": 105,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 108."
+    },
+    {
+      "codigo": "FOTO_DEMO_PDF",
+      "descricao": "FOTO_DEMO_PDF",
+      "ordem": 106,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 109."
+    },
+    {
+      "codigo": "AUTO_SEMI_NOVOS",
+      "descricao": "Autorização departamento Semi Novos",
+      "ordem": 107,
+      "ativo": true,
+      "observacao": "SeqDocTp legado: 110."
+    }
+  ]
+}

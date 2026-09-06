@@ -1,0 +1,59 @@
+/* ==============================================================
+   Objeto ..........: dbo.IV$S_CARTEIRA
+   Tipo ............: VIEW
+   Criado em .......: 2025-08-13 10:31:24
+   Modificado em ...: 2025-08-13 10:31:24
+   Linhas ..........: 49
+   Escreve em tabela: nao
+   Tabelas referidas: GE_PESSOA, GE_USUARIO, IVS_CARTEIRA, IVS_DEPTO, IVS_DEPTOPOT, IVS_PES
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+
+ CREATE VIEW [dbo].[IV$S_CARTEIRA] 
+(
+    SEQPESSOA,
+    NOMERAZAO,
+    FISICAJURIDICA,
+    CIDADE,
+    UF,
+    BAIRRO,
+    ATIVIDADE,
+    INCL_CLIENTE,
+    CARTEIRA,
+    CART_DESCRICAO,
+    POTENCIAL,
+    CODUSUARIO,
+    DEPTO_DESCRICAO,
+    DEPTO,
+	USRRESP
+) 
+AS
+SELECT 
+    PCR.SEQPESSOA,
+    PES.NOMERAZAO,
+    PES.FISICAJURIDICA,
+    PES.CIDADE,
+    PES.UF,
+    PES.BAIRRO,
+    PES.ATIVIDADE,
+    CONVERT(CHAR, PES.DTAINCLUSAO, 103) AS INCL_CLIENTE,
+    CRT.CARTEIRA,
+    CRT.DESCRICAO AS CART_DESCRICAO,
+    DPTPOT.POTENCIAL,
+    US.CODUSUARIO,
+    DPT.DESCRICAO AS DEPTO_DESCRICAO,
+    DPT.DEPTO,
+	US.CodUsuario AS USRRESP
+FROM IVS_PES PCR
+JOIN IVS_DEPTO DPT 
+    ON DPT.SEQDEPTO = PCR.SEQDEPTO
+LEFT JOIN IVS_DEPTOPOT DPTPOT
+    ON DPTPOT.SEQDEPTO = DPT.SEQDEPTO
+    AND DPTPOT.SEQPOTENCIALDP = PCR.SEQPOTENCIALDP
+JOIN GE_PESSOA PES 
+    ON PES.SEQPESSOA = PCR.SEQPESSOA
+JOIN IVS_CARTEIRA CRT
+    ON CRT.SEQCARTEIRA = PCR.SEQCARTEIRA
+JOIN GE_USUARIO US 
+    ON US.SEQUSUARIO = CRT.SEQUSRRESP;

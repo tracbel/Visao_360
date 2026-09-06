@@ -1,0 +1,56 @@
+/* ==============================================================
+   Objeto ..........: dbo.bi_oportunidade_produto
+   Tipo ............: VIEW
+   Criado em .......: 2015-10-13 18:32:34
+   Modificado em ...: 2023-02-22 11:08:15
+   Linhas ..........: 45
+   Escreve em tabela: nao
+   Tabelas referidas: IV_AGENDA, IV_GLOBALPAR, IV_GLOBALPARCTRL, IV_PROCDADO, IV_PROCESSO, IV_PROCPRODUTO
+   Outras refs .....: IV_Q$ACOMP_VEND_MAQUINAS, IV_Q$ACOMPANH_VENDA_JDE, IV_Q$GESTAO_CREDITO
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+CREATE view [dbo].[bi_oportunidade_produto] as
+SELECT PRPP.PROCESSO,
+       GR.PARAMETRO AS PROD_TIPO,
+       PRD.CAMPO1 AS PROD_MARCA,
+       PRD.LITERAL1 AS PROD_MODELO,
+       PRPP.QTDE AS PROD_QTDE,
+       PRPP.VALOR AS PROD_VALOR,
+       'Não' AS PROD_VENDIDO
+  FROM IV_PROCPRODUTO PRPP
+  JOIN IV_GLOBALPAR PRD ON PRD.SEQPAR = PRPP.SEQPRODUTO
+  JOIN IV_GLOBALPARCTRL GR ON GR.SEQGLBPAR = PRD.SEQGLBPAR
+ WHERE PROCESSO IN (SELECT PDD.PROCESSO
+                      FROM IV_PROCDADO PDD
+                      JOIN IV_PROCESSO PRC ON PRC.PROCESSO = PDD.PROCESSO
+                     WHERE PDD.CODPROCESSO IN (7, 9400, 37, 31)
+                       AND PRC.FASEORDEM < 18
+                       AND PRC.REALIZADO = 0)
+   AND EXISTS (SELECT 1 FROM IV_AGENDA WHERE REALIZADA = 'N' AND PROCESSO = PRPP.PROCESSO)
+UNION
+SELECT ACV.processo,
+       ACV.TIPO_EQUIP1 AS VDA_TIPO_MAQUINA,
+       ACV.MARCA_1 AS VDA_MARCA,
+       ACV.MODEL_EQUIP1 AS VDA_MODELO,
+       1 as PRPP_QTDE,
+       ACV.VLR_TOTAL1 AS VDA_VALOR,
+       'Sim' AS PROD_VENDIDO
+  FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+ --WHERE PROCESSO IN (SELECT PDD.PROCESSO
+ --                     FROM IV_PROCDADO PDD
+ --                     JOIN IV_PROCESSO PRC ON PRC.PROCESSO = PDD.PROCESSO
+ --                    WHERE PDD.CODPROCESSO IN (7, 9400)
+ --                      AND PRC.FASEORDEM >= 20
+ --                      AND PRC.FASEORDEM <= 50
+ --                      AND PRC.REALIZADO = 0)
+UNION
+SELECT ACV.PROCESSO, 
+       ACV.TIPO_EQUIPAMENTO AS VDA_TIPO_MAQUINA,
+	   ACV.MARCA AS VDA_MARCA,
+	   ACV.MODELO_EQUIPAMENTO  AS VDA_MODELO,
+	   1 as PRPP_QTDE, 
+	   GC.VALOR_TOTAL  AS VDA_VALOR,
+	   CASE WHEN ISNULL(NOTA_FISCAL,0)<>0 THEN 'Sim' END AS PROD_VENDIDO
+FROM IV_Q$ACOMP_VEND_MAQUINAS ACV
+LEFT JOIN IV_Q$GESTAO_CREDITO GC ON GC.PROCESSO = ACV.PROCESSO AND GC.FORMULARIO_NUMERO = ACV.FORMULARIO_NUMERO

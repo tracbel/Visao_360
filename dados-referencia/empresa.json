@@ -1,0 +1,197 @@
+{
+  "catalogo": "empresa",
+  "descricao": "Filial/empresa da Tracbel — seletor de contexto multiempresa",
+  "origem": "Lista oficial das 13 filiais em operação, informada pelo Ricardo em 04/09/2026, conciliada com docs/extracao-vortice/catalogos-bpm/GE_Empresa.csv (18 linhas). O código oficial segue o padrão 0101NN, em que NN é o NroEmpresa do Vórtice — a correspondência é direta nas 13. Todas as filiais estão em São Paulo: nenhuma em MT, GO ou BA, ao contrário da geografia usada pelo protótipo (ver PENDENTES.md).",
+  "itens": [
+    {
+      "codigo": "010101",
+      "descricao": "Tracbel Agro — Ribeirão Preto",
+      "ordem": 1,
+      "ativo": true,
+      "sigla_legado": "CRPO",
+      "nro_empresa_legado": 1,
+      "cidade": "Ribeirão Preto",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010101 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 1 do Vórtice."
+    },
+    {
+      "codigo": "010102",
+      "descricao": "Tracbel Agro — Araraquara",
+      "ordem": 2,
+      "ativo": true,
+      "sigla_legado": "CARQ",
+      "nro_empresa_legado": 2,
+      "cidade": "Araraquara",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010102 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 2 do Vórtice."
+    },
+    {
+      "codigo": "010103",
+      "descricao": "Tracbel Agro — Barretos",
+      "ordem": 3,
+      "ativo": true,
+      "sigla_legado": "CBAR",
+      "nro_empresa_legado": 3,
+      "cidade": "Barretos",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010103 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 3 do Vórtice."
+    },
+    {
+      "codigo": "010107",
+      "descricao": "Tracbel Agro — Orlândia",
+      "ordem": 4,
+      "ativo": true,
+      "sigla_legado": "CORL",
+      "nro_empresa_legado": 7,
+      "cidade": "Orlândia",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010107 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 7 do Vórtice."
+    },
+    {
+      "codigo": "010109",
+      "descricao": "Tracbel Agro — Bebedouro",
+      "ordem": 5,
+      "ativo": true,
+      "sigla_legado": "CBEB",
+      "nro_empresa_legado": 9,
+      "cidade": "Bebedouro",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010109 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 9 do Vórtice."
+    },
+    {
+      "codigo": "010111",
+      "descricao": "Tracbel Agro — Franca",
+      "ordem": 6,
+      "ativo": true,
+      "sigla_legado": "CFRA",
+      "nro_empresa_legado": 11,
+      "cidade": "Franca",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010111 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 11 do Vórtice."
+    },
+    {
+      "codigo": "010112",
+      "descricao": "Tracbel Agro — Itápolis",
+      "ordem": 7,
+      "ativo": true,
+      "sigla_legado": "CITA",
+      "nro_empresa_legado": 12,
+      "cidade": "Itápolis",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010112 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 12 do Vórtice."
+    },
+    {
+      "codigo": "010113",
+      "descricao": "Tracbel Agro — São José do Rio Preto",
+      "ordem": 8,
+      "ativo": true,
+      "sigla_legado": "SJRP",
+      "nro_empresa_legado": 13,
+      "cidade": "São José do Rio Preto",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010113 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 13 do Vórtice."
+    },
+    {
+      "codigo": "010114",
+      "descricao": "Tracbel Agro — Catanduva",
+      "ordem": 9,
+      "ativo": true,
+      "sigla_legado": "CTDV",
+      "nro_empresa_legado": 14,
+      "cidade": "Catanduva",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010114 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 14 do Vórtice."
+    },
+    {
+      "codigo": "010115",
+      "descricao": "Tracbel Agro — Jales",
+      "ordem": 10,
+      "ativo": true,
+      "sigla_legado": "JALE",
+      "nro_empresa_legado": 15,
+      "cidade": "Jales",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010115 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 15 do Vórtice."
+    },
+    {
+      "codigo": "010116",
+      "descricao": "Tracbel Agro — Votuporanga",
+      "ordem": 11,
+      "ativo": true,
+      "sigla_legado": "VOTU",
+      "nro_empresa_legado": 16,
+      "cidade": "Votuporanga",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010116 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 16 do Vórtice."
+    },
+    {
+      "codigo": "010117",
+      "descricao": "Tracbel Agro — Tupã",
+      "ordem": 12,
+      "ativo": true,
+      "sigla_legado": "TUPA",
+      "nro_empresa_legado": 17,
+      "cidade": "Tupã",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010117 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 17 do Vórtice."
+    },
+    {
+      "codigo": "010118",
+      "descricao": "Tracbel Agro — Marília",
+      "ordem": 13,
+      "ativo": true,
+      "sigla_legado": "MARL",
+      "nro_empresa_legado": 18,
+      "cidade": "Marília",
+      "uf": "SP",
+      "observacao": "Filial em operação. Código 010118 confirmado pelo Ricardo em 04/09/2026; os dois últimos dígitos são o NroEmpresa 18 do Vórtice."
+    },
+    {
+      "codigo": "010104",
+      "descricao": "Tracbel Agro — Guaíra",
+      "ordem": 14,
+      "ativo": false,
+      "sigla_legado": "CGUA",
+      "nro_empresa_legado": 4,
+      "cidade": "Guaíra",
+      "uf": "SP",
+      "observacao": "🔴 A CONFIRMAR: o Vórtice ainda marca esta filial como ativa (GE_Empresa), mas ela não consta da lista oficial de 04/09/2026. Antes de migrar, decidir se fechou, foi incorporada por outra, ou se o cadastro do legado está desatualizado. O código aqui é inferido pelo padrão 0101NN e precisa ser confirmado."
+    },
+    {
+      "codigo": "010105",
+      "descricao": "Tracbel Agro — Ituverava",
+      "ordem": 15,
+      "ativo": false,
+      "sigla_legado": "CITU",
+      "nro_empresa_legado": 5,
+      "cidade": "Ituverava",
+      "uf": "SP",
+      "observacao": "🔴 A CONFIRMAR: o Vórtice ainda marca esta filial como ativa (GE_Empresa), mas ela não consta da lista oficial de 04/09/2026. Antes de migrar, decidir se fechou, foi incorporada por outra, ou se o cadastro do legado está desatualizado. O código aqui é inferido pelo padrão 0101NN e precisa ser confirmado."
+    },
+    {
+      "codigo": "010110",
+      "descricao": "Tracbel Agro — Monte Alto",
+      "ordem": 16,
+      "ativo": false,
+      "sigla_legado": "CMAL",
+      "nro_empresa_legado": 10,
+      "cidade": "Monte Alto",
+      "uf": "SP",
+      "observacao": "🔴 A CONFIRMAR: o Vórtice ainda marca esta filial como ativa (GE_Empresa), mas ela não consta da lista oficial de 04/09/2026. Antes de migrar, decidir se fechou, foi incorporada por outra, ou se o cadastro do legado está desatualizado. O código aqui é inferido pelo padrão 0101NN e precisa ser confirmado."
+    },
+    {
+      "codigo": "CFRA_COLORADO_6",
+      "descricao": "Colorado Desativado",
+      "ordem": 17,
+      "ativo": false,
+      "observacao": "Histórica, já inativa no legado. Mantida só para a migração reconhecer o dado antigo."
+    },
+    {
+      "codigo": "CEQU",
+      "descricao": "Colorado Equipamentos",
+      "ordem": 18,
+      "ativo": false,
+      "observacao": "Histórica, já inativa no legado. Mantida só para a migração reconhecer o dado antigo."
+    }
+  ]
+}

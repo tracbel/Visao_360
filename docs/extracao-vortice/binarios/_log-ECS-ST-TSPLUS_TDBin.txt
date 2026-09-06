@@ -1,0 +1,4 @@
+[ECS-ST-TSPLUS:TDBin] varrendo \\10.150.5.172\c$\Vortice\TDBin ...
+  ... 200 arquivos (12:05)
+[ECS-ST-TSPLUS:TDBin] 200 arquivos.
+OK -> c:\projetos\tracbel-crm\docs\extracao-vortice\binarios\inventario-ts172-TDBin.csv (200 linhas, 12:05)

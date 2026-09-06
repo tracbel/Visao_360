@@ -1,0 +1,12 @@
+/* ==============================================================
+   Objeto ..........: dbo.IV_Q$APRESENTACAO
+   Tipo ............: VIEW
+   Criado em .......: 2014-12-19 13:06:05
+   Modificado em ...: 2016-03-22 19:20:05
+   Linhas ..........: 1
+   Escreve em tabela: nao
+   Tabelas referidas: GE_PESSOA, IV_FORMULARIO, IV_Q_APRESENTACAO, IV_QUESTIONARIO
+   Fonte: banco CRM (Vortice CRM / Tracbel) - extracao somente leitura
+   ============================================================== */
+
+CREATE VIEW dbo.IV_Q$APRESENTACAO ( SeqPessoa, Pessoa, SeqQuestionario, SeqFormulario, Formulario,  DtaRealizacao, UsuInclusao, DtaAlteracao, UsuAlteracao,  Observacao,  SeqHistorico, Resultado, Processo, Departamento, LinkDocto, LinkNro, LinkSerie , TABELA_PADRAO, Q002_EVENT, Q002_FOLDE, Q002_NO_EQUIPAMENT, Q002_VISITA_REF2, QUAL_O_EVENTO, QUAL_O_CLIENTE)     AS SELECT PES.SEQPESSOA, PES.NOMERAZAO, QST.SEQQUESTIONARIO, FRM.SEQFORMULARIO, FRM.DESCRICAO,  QST.DTAREALIZACAO, QST.USUINCLUSAO, QST.DTAALTERACAO, QST.USUALTERACAO, QST.OBS,  QST.SEQHISTORICO, QST.RESULTADO, QST.PROCESSO, QST.DEPARTAMENTO,  QST.LINKDOCTO, QST.LINKNRO, QST.LINKSERIE , TABF.TABELA_PADRAO, TABF.Q002_EVENT, TABF.Q002_FOLDE, TABF.Q002_NO_EQUIPAMENT, TABF.Q002_VISITA_REF2, TABF.QUAL_O_EVENTO, TABF.QUAL_O_CLIENTE    FROM  IV_Q_APRESENTACAO TABF  	JOIN IV_QUESTIONARIO QST ON QST.SEQQUESTIONARIO =  TABF.SEQQUESTIONARIO  	JOIN IV_FORMULARIO FRM ON   FRM.SEQFORMULARIO = QST.SEQFORMULARIO  	JOIN GE_PESSOA PES ON PES.SEQPESSOA = QST.SEQPESSOA 

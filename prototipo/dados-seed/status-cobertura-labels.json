@@ -1,0 +1,27 @@
+{
+  "em_dia": {
+    "label": "Em dia",
+    "cor": "#367C2B",
+    "bg": "rgba(54,124,43,.10)"
+  },
+  "aviso": {
+    "label": "Aviso",
+    "cor": "#B45309",
+    "bg": "rgba(180,83,9,.10)"
+  },
+  "atraso": {
+    "label": "Atraso",
+    "cor": "#DC2626",
+    "bg": "rgba(220,38,38,.10)"
+  },
+  "critico": {
+    "label": "Crítico",
+    "cor": "#7F1D1D",
+    "bg": "rgba(127,29,29,.15)"
+  },
+  "nunca": {
+    "label": "Nunca contatado",
+    "cor": "#6B7280",
+    "bg": "rgba(107,114,128,.10)"
+  }
+}

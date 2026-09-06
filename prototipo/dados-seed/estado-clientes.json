@@ -1,0 +1,17 @@
+{
+  "persona": "cen",
+  "cen": "joao",
+  "regional": "MT Norte",
+  "filtros": {
+    "classe": "todas",
+    "cidade": "todas",
+    "status": "todos",
+    "segmento": "todos",
+    "porte": "todos"
+  },
+  "busca": "",
+  "ordem": {
+    "campo": "fat_12m",
+    "dir": "desc"
+  }
+}

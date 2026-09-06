@@ -1,0 +1,63 @@
+{
+  "catalogo": "motivo_de_perda",
+  "descricao": "Por que uma oportunidade foi perdida — preenchido ao marcar um processo como perdido",
+  "origem": "prototipo/dados-seed/config-motivos-perda.json (8 itens, tela Configurações › Taxonomias) + vendas-perdidas-motivos.json (uso na Visão 360). No Vórtice, IV_Motivo (45 linhas) NÃO é este catálogo — ver origem_de_lead.json e PENDENTES.md.",
+  "itens": [
+    {
+      "codigo": "PRECO_ACIMA",
+      "descricao": "Preço acima do concorrente",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "Uso nos últimos 90 dias medido no protótipo: 27 (config-motivos-perda.json)."
+    },
+    {
+      "codigo": "PRAZO_ENTREGA",
+      "descricao": "Prazo de entrega longo",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "Uso nos últimos 90 dias medido no protótipo: 12 (config-motivos-perda.json)."
+    },
+    {
+      "codigo": "ADIOU_SAFRA",
+      "descricao": "Cliente adiou para safra seguinte",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "Uso nos últimos 90 dias medido no protótipo: 34 (config-motivos-perda.json)."
+    },
+    {
+      "codigo": "CONCORRENTE_CASE_IH",
+      "descricao": "Concorrente Case IH",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "Uso nos últimos 90 dias medido no protótipo: 18 (config-motivos-perda.json). Cita concorrente nominalmente no próprio texto — ver concorrente.json."
+    },
+    {
+      "codigo": "CONCORRENTE_NEW_HOLLAND",
+      "descricao": "Concorrente New Holland",
+      "ordem": 5,
+      "ativo": true,
+      "observacao": "Uso nos últimos 90 dias medido no protótipo: 9 (config-motivos-perda.json). Cita concorrente nominalmente no próprio texto — ver concorrente.json."
+    },
+    {
+      "codigo": "FINANCIAMENTO_NEGADO",
+      "descricao": "Cliente não obteve financiamento",
+      "ordem": 6,
+      "ativo": true,
+      "observacao": "Uso nos últimos 90 dias medido no protótipo: 21 (config-motivos-perda.json)."
+    },
+    {
+      "codigo": "ESPECIFICACAO_NAO_ATENDIDA",
+      "descricao": "Especificação técnica não atendida",
+      "ordem": 7,
+      "ativo": true,
+      "observacao": "Uso nos últimos 90 dias medido no protótipo: 4 (config-motivos-perda.json)."
+    },
+    {
+      "codigo": "OUTRO",
+      "descricao": "Outro",
+      "ordem": 8,
+      "ativo": true,
+      "observacao": "Uso nos últimos 90 dias medido no protótipo: 8 (config-motivos-perda.json). Item \"Outro\" exige observação obrigatória (doc 16 §3.1, regra 4) — se passar de 15% dos usos no trimestre, falta item no catálogo."
+    }
+  ]
+}

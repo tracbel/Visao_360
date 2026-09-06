@@ -1,0 +1,67 @@
+{
+  "catalogo": "resultado",
+  "descricao": "O desfecho registrado ao concluir uma tarefa da Agenda — move a fase do processo e determina a próxima tarefa",
+  "origem": "PROVISÓRIO. `dados-referencia/resultado.json` está vazio de propósito: o Vórtice tem IV_Resultado com 4.209 linhas específicas por Ação, sem lista plana reaproveitável, e a decisão de qual é o vocabulário universal de desfecho está aberta com o Gestor Regional / Admin Comercial (dados-referencia/PENDENTES.md §1, prioridade 3). As seis descrições abaixo NÃO foram inventadas: são exatamente as seis opções que o protótipo de referência já mostrava no campo Resultado do drawer de andamento da Agenda (prototipo/referencia/assets/app.js, `openTarefaDrawer()` linha 1499). O que esta frente acrescentou foi (a) o `codigo` estável, seguindo a regra de 16-HIGIENIZACAO-DE-DADOS §3 (maiúsculo, sem acento, sem espaço), e (b) os campos `efeito`/`fase_seguinte`/`passo_seguinte_padrao`, que traduzem a semântica medida em 16-vortice-ponta-a-ponta §5.5: o resultado move o processo por COALESCE(FaseSeguinte, Fase) e, quando os dois estão vazios, é neutro — só fecha a tarefa. Quando o catálogo real for decidido, este arquivo é substituído pela carga de `processo.Resultado` e nada muda na tela.",
+  "itens": [
+    {
+      "codigo": "CONTATO_SEM_INTERESSE",
+      "descricao": "Cliente contactado — sem interesse imediato",
+      "ordem": 1,
+      "ativo": true,
+      "efeito": "neutro",
+      "fase_seguinte": null,
+      "passo_seguinte_padrao": "REAGENDAR_60",
+      "observacao": "Equivale ao 'Contato Em Andamento' do Vórtice (resultado 3225, 18.754 lançamentos em 2026, §5.4): fecha a tarefa sem mover o processo."
+    },
+    {
+      "codigo": "CONTATO_GEROU_OPORTUNIDADE",
+      "descricao": "Cliente contactado — gerou oportunidade",
+      "ordem": 2,
+      "ativo": true,
+      "efeito": "move_fase",
+      "fase_seguinte": "QUALIFICACAO",
+      "passo_seguinte_padrao": "CRIAR_OPORTUNIDADE",
+      "observacao": "Equivale ao 'Com Interesse em Compra' (resultado 1611). É o único resultado desta lista que abre processo novo."
+    },
+    {
+      "codigo": "CONTATO_REAGENDAR",
+      "descricao": "Cliente contactado — reagendar visita",
+      "ordem": 3,
+      "ativo": true,
+      "efeito": "neutro",
+      "fase_seguinte": null,
+      "passo_seguinte_padrao": "REAGENDAR_30",
+      "observacao": "Equivale ao 'Ajustado' (resultado 3665, 5.500 lançamentos)."
+    },
+    {
+      "codigo": "SEM_CONTATO",
+      "descricao": "Não conseguiu contato — tentar novamente",
+      "ordem": 4,
+      "ativo": true,
+      "efeito": "neutro",
+      "fase_seguinte": null,
+      "passo_seguinte_padrao": "REAGENDAR_30",
+      "observacao": "Equivale ao 'Contato Sem Sucesso' (resultado 3224)."
+    },
+    {
+      "codigo": "CLIENTE_AUSENTE",
+      "descricao": "Cliente ausente / viagem",
+      "ordem": 5,
+      "ativo": true,
+      "efeito": "neutro",
+      "fase_seguinte": null,
+      "passo_seguinte_padrao": "REAGENDAR_30",
+      "observacao": "Sem equivalente direto medido no Vórtice; o protótipo separa do 'sem sucesso' porque a causa é conhecida."
+    },
+    {
+      "codigo": "PERDEU_INTERESSE",
+      "descricao": "Cliente perdeu interesse na linha",
+      "ordem": 6,
+      "ativo": true,
+      "efeito": "encerra_processo",
+      "fase_seguinte": "GANHO_PERDIDO",
+      "passo_seguinte_padrao": "ENCERRAR",
+      "observacao": "Equivale ao 'Sem Interesse em Compra' (resultado 1607, 5.428 lançamentos). Único resultado desta lista que finaliza o processo — no CRM novo deve pedir motivo de perda (catálogo motivo_de_perda)."
+    }
+  ]
+}

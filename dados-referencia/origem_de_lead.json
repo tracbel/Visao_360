@@ -1,0 +1,322 @@
+{
+  "catalogo": "origem_de_lead",
+  "descricao": "Canal/origem por onde o lead chegou até a Tracbel",
+  "origem": "docs/extracao-vortice/catalogos-bpm/IV_Motivo.csv (45 linhas). ACHADO: esta tabela chama-se \"IV_Motivo\" no Vórtice e o doc 17 §6.1 a cita como fonte de \"Motivo de perda\" — mas o CONTEÚDO real é canal de origem de lead/contato (Facebook, Google Ads, Indicação, Site, WhatsApp, John Deere Conecta etc.), não motivo de perda de venda. motivo_de_perda.json foi populado com config-motivos-perda.json (semântica correta); esta tabela foi realocada para origem_de_lead. Ver PENDENTES.md.",
+  "itens": [
+    {
+      "codigo": "AGROFY",
+      "descricao": "Agrofy",
+      "ordem": 1,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 32."
+    },
+    {
+      "codigo": "ANUNCIOS",
+      "descricao": "Anuncios",
+      "ordem": 2,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 7."
+    },
+    {
+      "codigo": "BI_CNAE",
+      "descricao": "BI CNAE",
+      "ordem": 3,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 46."
+    },
+    {
+      "codigo": "CALL_NOW",
+      "descricao": "MF Rural",
+      "ordem": 4,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 44. Nota: Motivo/Descrição parecem trocados entre este item e o par 'Call Now'/'MF Rural' (SeqMotivo 44/45) no legado — confirmar com o negócio."
+    },
+    {
+      "codigo": "COLORADO_CONECTA",
+      "descricao": "Colorado Conecta",
+      "ordem": 5,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 23."
+    },
+    {
+      "codigo": "CONVITE",
+      "descricao": "Convite",
+      "ordem": 6,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 1."
+    },
+    {
+      "codigo": "EEMOVEL",
+      "descricao": "EEmovel",
+      "ordem": 7,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 40."
+    },
+    {
+      "codigo": "EMAIL_MKT",
+      "descricao": "Email Mkt",
+      "ordem": 8,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 9."
+    },
+    {
+      "codigo": "EVENTOS",
+      "descricao": "Eventos",
+      "ordem": 9,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 4."
+    },
+    {
+      "codigo": "EXTERNO",
+      "descricao": "Externo",
+      "ordem": 10,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 3."
+    },
+    {
+      "codigo": "FACEBOOK",
+      "descricao": "Facebook",
+      "ordem": 11,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 13."
+    },
+    {
+      "codigo": "FACEBOOK_ANUNCIO",
+      "descricao": "Facebook Anúncio",
+      "ordem": 12,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 27."
+    },
+    {
+      "codigo": "GOOGLE_ANUNCIO",
+      "descricao": "Google anúncio",
+      "ordem": 13,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 29."
+    },
+    {
+      "codigo": "HOTSITE",
+      "descricao": "Hotsite",
+      "ordem": 14,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 28."
+    },
+    {
+      "codigo": "INDICACAO",
+      "descricao": "Indicacao",
+      "ordem": 15,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 5."
+    },
+    {
+      "codigo": "INSTAGRAM",
+      "descricao": "Instagram",
+      "ordem": 16,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 12."
+    },
+    {
+      "codigo": "INSTAGRAM_ANUNCIO",
+      "descricao": "Instagram Anúncio",
+      "ordem": 17,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 25."
+    },
+    {
+      "codigo": "INSTAGRAM_ORGANICO",
+      "descricao": "Instagram Orgânico",
+      "ordem": 18,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 26."
+    },
+    {
+      "codigo": "JA_CONHECE",
+      "descricao": "Ja Conhece",
+      "ordem": 19,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 2."
+    },
+    {
+      "codigo": "JD_CONECTA",
+      "descricao": "John Deere Conecta",
+      "ordem": 20,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 21."
+    },
+    {
+      "codigo": "JOHN_DEERE",
+      "descricao": "John Deere",
+      "ordem": 21,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 35."
+    },
+    {
+      "codigo": "LANDING_PAGE",
+      "descricao": "Landing Page",
+      "ordem": 22,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 15."
+    },
+    {
+      "codigo": "LINKED_IN_ORGANICO",
+      "descricao": "Linked in Orgânico",
+      "ordem": 23,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 24."
+    },
+    {
+      "codigo": "META",
+      "descricao": "Meta",
+      "ordem": 24,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 47."
+    },
+    {
+      "codigo": "MF_RURAL",
+      "descricao": "Call Now",
+      "ordem": 25,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 45. Nota: Motivo/Descrição parecem trocados entre este item e o par 'Call Now'/'MF Rural' (SeqMotivo 44/45) no legado — confirmar com o negócio."
+    },
+    {
+      "codigo": "OLX",
+      "descricao": "OLX",
+      "ordem": 26,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 20."
+    },
+    {
+      "codigo": "PESQ_SATSFYD",
+      "descricao": "Pesq Satsfyd",
+      "ordem": 27,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 6."
+    },
+    {
+      "codigo": "POPAGRO",
+      "descricao": "PopAgro",
+      "ordem": 28,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 42."
+    },
+    {
+      "codigo": "PROSPECCAO_ATIVA",
+      "descricao": "Prospecção Ativa",
+      "ordem": 29,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 39."
+    },
+    {
+      "codigo": "RADIO",
+      "descricao": "Rádio",
+      "ordem": 30,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 18."
+    },
+    {
+      "codigo": "RANDON",
+      "descricao": "Randon",
+      "ordem": 31,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 34."
+    },
+    {
+      "codigo": "RD_TALLOS",
+      "descricao": "RD Tallos",
+      "ordem": 32,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 41."
+    },
+    {
+      "codigo": "SAC",
+      "descricao": "SAC",
+      "ordem": 33,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 33."
+    },
+    {
+      "codigo": "SHOW_ROOM",
+      "descricao": "Show Room",
+      "ordem": 34,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 43."
+    },
+    {
+      "codigo": "SITE",
+      "descricao": "Site",
+      "ordem": 35,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 14."
+    },
+    {
+      "codigo": "SITE_ARREMAQ",
+      "descricao": "Site Arremaq",
+      "ordem": 36,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 36."
+    },
+    {
+      "codigo": "SITE_PARCEIROS",
+      "descricao": "Site Parceiros",
+      "ordem": 37,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 22."
+    },
+    {
+      "codigo": "SITE_TR_E_CA",
+      "descricao": "Site TR e CA",
+      "ordem": 38,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 38."
+    },
+    {
+      "codigo": "SMS",
+      "descricao": "SMS",
+      "ordem": 39,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 10."
+    },
+    {
+      "codigo": "TV",
+      "descricao": "TV",
+      "ordem": 40,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 19."
+    },
+    {
+      "codigo": "VISITA",
+      "descricao": "Visita",
+      "ordem": 41,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 8."
+    },
+    {
+      "codigo": "WHATS_APP",
+      "descricao": "Whats App",
+      "ordem": 42,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 16."
+    },
+    {
+      "codigo": "WHATS_APP_PROSPECCAO",
+      "descricao": "Whats App Prospecção",
+      "ordem": 43,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 31."
+    },
+    {
+      "codigo": "YOUTUBE",
+      "descricao": "Youtube",
+      "ordem": 44,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 17."
+    },
+    {
+      "codigo": "YOUTUBE_ORGANICO",
+      "descricao": "Youtube Orgânico",
+      "ordem": 45,
+      "ativo": true,
+      "observacao": "SeqMotivo legado: 30."
+    }
+  ]
+}

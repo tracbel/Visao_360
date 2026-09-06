@@ -1,0 +1,1644 @@
+﻿"SeqCons","Var","Ord","Descricao","Padrao","DepAnt","Instrucao","InstrSql","Lista","SQLCmd","Externa","TpDado","Tudo","LimLow","CorLow","LimHig","CorHig"
+"5","DT1","1","Data inicial..:","Ontem (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"5","DT2","3","Data final..:","Ontem (fd)","0","","","","","0","","0","","","",""
+"5","LS1","4","Empresa..:","","0","","SELECT NOMEREDUZIDO
+FROM GE_EMPRESA
+WHERE EMUSO = 1
+ORDER BY NOMEREDUZIDO
+
+","","","0","","1","0,00","0","0,00","0"
+"5","LS2","5","Campanha..:","","0","","SELECT CAMPANHA 
+FROM IV_CAMPANHA
+WHERE EMUSO = 1
+ORDER BY CAMPANHA
+
+","","","0","","1","0,00","0","0,00","0"
+"5","SN1","6","Listar Detalhe ?","0","0","","","","","0","","0","0,00","0","0,00","0"
+"6","DT1","2","Data inicial..:","Início deste mês","0","","","","","0","","0","","","",""
+"6","DT2","3","até..:","Hoje (fd)","0","","","","","0","","0","","","",""
+"6","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"6","LS2","6","Visão","","0","","","Diária;Semanal;Mensal","","0","","0","","","",""
+"6","LS3","10","Perfil dos clientes..:","","0","","SELECT LISTA
+FROM IV_ATRIBLISTA
+WHERE ATRIBUTO = 'PERFIL CLIENTE SERVIÇOS'
+ORDER BY LISTA","FATURAMENTO ABAIXO DE 30 MIL","","0","","1","","","",""
+"6","LS4","8","Tipo de avaliação..:","","0","","","Serviço;Máquina;Peça","","0","","1","","","",""
+"6","SN1","4","Concluídas ?","1","0","","","","","0","","0","","","",""
+"6","SN2","5","Produtivos ?","0","0","","","","","0","","0","","","",""
+"6","SN3","9","Detalhar ?","0","0","","","","","0","","0","","","",""
+"7","DT1","4","Data inicial..:","Início deste mês","0","","","","","0","","0","","","",""
+"7","DT2","5","final..:","Hoje (fd)","0","","","","","0","","0","","","",""
+"7","LS2","2","Grupo ou usuário..:","","0","","SELECT CODUSUARIO 
+FROM GE_USUARIO 
+ORDER BY TIPOUSUARIO , CODUSUARIO 
+","","","0","","0","","","",""
+"7","NR1","9","Dias para considerar atraso:","0","0","","","","","0","","0","","","",""
+"7","OPT1","6","Qual ação.:","1","0","","SELECT ACA.DESCRICAO, ACA.ACAO
+FROM IV_ACAO ACA
+WHERE ACA.EMUSO = 'S'
+ORDER BY ACA.DESCRICAO","","","0","","1","","","",""
+"7","SN1","7","Detalhar ?","1","0","","","","","0","","0","","","",""
+"7","SN2","8","Incluir Ação no resumo do vendedor","0","0","","","","","0","","0","","","",""
+"7","SN3","3","Listar todas agendas abertas ?","0","0","Escolhendo essa opção, será descartado o período, e todas as agendas abertas serão impressas.","","","","0","","0","","","",""
+"8","DT1","2","Data inicial..:","Início deste mês","0","","","","","0","","0","","","",""
+"8","DT2","3","final..:","Hoje (fd)","0","","","","","0","","0","","","",""
+"8","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"8","LS2","4","Produtivo..:","","0","","SELECT DISTINCT PRODUTIVO
+FROM EXT_OSITEM
+ORDER BY PRODUTIVO
+","","","0","","1","","","",""
+"9","DT1","2","Data inicial..:","Início deste mês","0","","","","","0","","0","","","",""
+"9","DT2","3","até..:","Hoje (fd)","0","","","","","0","","0","","","",""
+"9","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"9","LS2","4","Vendedor..:","","0","","SELECT DISTINCT VENDEDOR
+FROM EXT_NFS
+ORDER BY VENDEDOR","","","0","","1","","","",""
+"10","DT1","2","Data inicial..:","Início deste mês","0","","","","","0","","0","","","",""
+"10","DT2","3","até..:","Hoje (fd)","0","","","","","0","","0","","","",""
+"10","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"10","LS2","4","Vendedor..:","","0","","SELECT DISTINCT VENDEDOR
+FROM EXT_NFS
+ORDER BY VENDEDOR
+","","","0","","1","","","",""
+"11","DT1","2","Data inicial..:","Início deste mês","0","","","","","0","","0","","","",""
+"11","DT2","3","até..:","Hoje (fd)","0","","","","","0","","0","","","",""
+"11","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"11","LS2","4","Tipo de aferiçao..:","Serviços","0","","","Peças;Serviços;Máquinas","","0","","0","","","",""
+"11","LS3","5","Resultado Questionário..:","","0","","","Satisfeito;Insatisfeito;Indiferente","","0","","1","","","",""
+"12","DT1","2","Primeiro Período, de:","Início do mês anterior","0","","","","","0","","0","","","",""
+"12","DT2","5","até..:","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"12","DT3","4","Segundo Período..:","Início deste mês","0","","","","","0","","0","","","",""
+"12","DT4","3","até..:","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"12","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"12","LS2","6","Vendedor..:","","0","","SELECT DISTINCT VENDEDOR
+FROM EXT_NFS
+ORDER BY VENDEDOR","","","0","","1","","","",""
+"13","DT1","2","Primeiro período..:","Início do mês anterior","0","","","","","0","","0","","","",""
+"13","DT2","5","até..:","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"13","DT3","4","Segundo período..:","Início deste mês","0","","","","","0","","0","","","",""
+"13","DT4","3","até..:","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"13","LS1","1","Empresa,,:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"13","LS2","6","Produtivo..:","","0","","SELECT DISTINCT PRODUTIVO
+FROM EXT_OSITEM
+ORDER BY PRODUTIVO","","","0","","1","","","",""
+"14","DT1","2","Primeiro Período..:","Início do mês anterior","0","","","","","0","","0","","","",""
+"14","DT2","5","até..:","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"14","DT3","4","Segundo Período..:","Início deste mês","0","","","","","0","","0","","","",""
+"14","DT4","3","até..:","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"14","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"14","LS2","6","Vendedor..:","","0","","SELECT DISTINCT VENDEDOR
+FROM EXT_NFS
+ORDER BY VENDEDOR","","","0","","1","","","",""
+"16","DT1","2","Primeiro período..:","Início do mês anterior (id)","0","","","","","0","","0","","","",""
+"16","DT2","3","até..:","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"16","DT3","4","Segundo período..:","Início deste mês (id)","0","","","","","0","","0","","","",""
+"16","DT4","5","até..:","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"16","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO
+","","","0","","1","","","",""
+"16","LS2","6","Produtivo..:","","0","","SELECT DISTINCT PRODUTIVO
+FROM EXT_OSITEM
+ORDER BY PRODUTIVO","","","0","","1","","","",""
+"16","LS3","7","Satisfação..:","","0","","","Satisfeito;Insatisfeito;Indiferente","","0","","1","","","",""
+"17","DT1","2","Primeiro período..:","Início do mês anterior (id)","0","","","","","0","","0","","","",""
+"17","DT2","3","até..:","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"17","DT3","4","Segundo período..:","Início deste mês (id)","0","","","","","0","","0","","","",""
+"17","DT4","5","até..:","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"17","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO
+","","","0","","1","","","",""
+"17","LS2","6","Produtivo..:","","0","","SELECT DISTINCT VENDEDOR
+FROM EXT_NFS
+ORDER BY VENDEDOR","","","0","","1","","","",""
+"17","LS3","7","Satisfação..:","","0","","","Satisfeito;Insatisfeito;Indiferente","","0","","1","","","",""
+"19","DT1","2","Período inicial..:","Início do mês anterior (id)","0","","","","","0","","0","","","",""
+"19","DT2","3","até..:","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"19","DT3","4","Segundo período..:","Início deste mês (id)","0","","","","","0","","0","","","",""
+"19","DT4","5","até..:","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"19","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"19","LS2","6","Produtivo..:","","0","","SELECT DISTINCT VENDEDOR
+FROM EXT_NFS
+ORDER BY VENDEDOR","","","0","","1","","","",""
+"19","LS3","7","Satisfação..:","","0","","","Satisfeito;Insatisfeito;Indiferente","","0","","1","","","",""
+"29","DT1","2","Data inicial..:","Início deste mês","0","","","","","0","","0","","","",""
+"29","DT2","3","até..:","Hoje (fd)","0","","","","","0","","0","","","",""
+"29","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"30","DT1","2","Data inicial..:","Início deste mês","0","","","","","0","","0","","","",""
+"30","DT2","3","até..:","Hoje (fd)","0","","","","","0","","0","","","",""
+"30","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","1","","","",""
+"31","DT1","2","Data inicial..:","Início deste mês","0","","","","","0","","0","","","",""
+"31","DT2","3","até..:","Hoje (fd)","0","","","","","0","","0","","","",""
+"31","LS1","1","Empresa..:","","0","","select","","","0","","1","","","",""
+"37","DT1","11","Faturamento previsto entre","Início do ano anterior  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"37","DT2","13","e","Final deste ano  (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"37","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"37","LS3","8","Família de produtos","","0","","SELECT DISTINCT ACV.TIPO_EQUIP1
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"37","LS4","5","CEN","","0","","SELECT DISTINCT EQP.CodEquipe
+FROM IV_EQUIPE EQP
+ORDER BY 1
+","","","0","","1","0,00","0","0,00","0"
+"37","OPT1","9","Banco","1","0","","SELECT LITERAL1 , SEQPAR
+FROM IV_GLOBALPAR
+WHERE SEQGLBPAR = 9415
+ORDER BY LITERAL1
+
+","","","0","","1","0,00","0","0,00","0"
+"37","SELX1","10","Status do processo","#NUM=0#LARG=0","0","","SELECT PST.STATUS, PST.STATUS
+FROM IV_PROCST PST
+WHERE PST.CODPROCESSO = 7
+ORDER BY STATUSORDEM
+","","","0","","0","","","",""
+"43","DT1","1","Registro de insatisfação entre:","Início do ano anterior (id)","0","","","","","0","","0","","","",""
+"43","DT2","2","e:","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"43","SN1","3","Imprimir detalhes:","0","0","","","","","0","","0","","","",""
+"44","DT1","4","Data inicial..?","Início do mês anterior","0","","","","","0","","0","","","",""
+"44","DT2","5","até..:","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"44","LS1","6","Detalhar ?","","0","","","Sim;Não","","0","","0","","","",""
+"44","LS2","7","Grupo..:","","0","","SELECT CODUSUARIO
+FROM GE_USUARIO
+WHERE TIPOUSUARIO = 'G'
+AND CODUSUARIO LIKE 'vend%'
+ORDER BY CODUSUARIO","","","0","","1","","","",""
+"44","LS3","9","Tipo da análise:","","0","","","Frota;Origem da receita","","0","","0","","","",""
+"44","OPT1","8","Usuário,,:","1","1","","SELECT DISTINCT USU.CODUSUARIO , USU.SEQUSUARIO
+FROM GE_USUARIO USU, GE_MEMBRO MEM
+WHERE MEM.USUARIO = USU.SEQUSUARIO 
+AND USU.TIPOUSUARIO = 'U'
+AND ( :TUDO2 = 0 AND MEM.GRUPO IN
+(SELECT SEQUSUARIO FROM GE_USUARIO WHERE CODUSUARIO = :LS2 )
+OR ( :TUDO2 = 1 ) )
+AND USU.NIVEL > 0
+ORDER BY USU.CODUSUARIO","","","0","","1","","","",""
+"46","OPT1","1","Carteira:","1","0","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE DPT.DEPTO = 'MAQ-NOVOS'
+ORDER BY 1
+","","","0","","0","0,00","0","0,00","0"
+"51","DT1","2","Inclusão da pesquisa entre:","Início deste mês","0","","","","","0","","0","0,00","0","0,00","0"
+"51","DT2","3","e:","Hoje  (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"51","LS1","1","Empresa..:","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO
+
+","","","0","","1","0,00","0","0,00","0"
+"57","DT1","3","Com agendas entre:","Hoje (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"57","DT2","4","e:","Final da semana que vem (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"57","LS1","1","Localizar cliente em:","","0","","","Agenda do Atendente;Carteira do Atendente","","0","","0","0,00","0","0,00","0"
+"57","LS2","2","Atendente:","","0","","SELECT DISTINCT US.CODUSUARIO
+FROM IVS_CARTEIRA CRT
+JOIN GE_USUARIO US ON US.SEQUSUARIO = CRT.SEQUSRRESP
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"59","DT1","6","Data Inicial (visita/contato):","Início deste mês   (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"59","DT2","7","Data Final (visita/contato):","Final deste mês  (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"59","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"59","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"59","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE DPT.SEQDEPTO = 2
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"59","SELX1","4","Status das pessoas","#NUM=0#LARG=0","0","","SELECT 'Ativo', 'A' FROM DUAL
+UNION
+SELECT 'Prospect', 'P' FROM DUAL
+UNION
+SELECT 'Inativo', 'I' FROM DUAL
+UNION
+SELECT 'Falecido', 'F' FROM DUAL
+UNION
+SELECT 'Suspect', 'F' FROM DUAL
+UNION
+SELECT 'Outros', 'O' FROM DUAL","","","0","","0","","","",""
+"59","SN1","8","Listar cada cliente","1","0","","","","","0","","0","0,00","0","0,00","0"
+"59","SN2","9","Listar clientes do potencial Z","0","0","","","","","0","","0","0,00","0","0,00","0"
+"60","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"60","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"60","LS3","4","Status:","","0","","","Ativo;Prospect;Inativo;Falecido;Outros","","0","","1","","","",""
+"60","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE DPT.DEPTO = :LS1
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"60","SN1","5","Listar cada cliente","1","0","","","","","0","","0","0,00","0","0,00","0"
+"60","SN2","6","Listar clientes do potencial Z","0","0","","","","","0","","0","0,00","0","0,00","0"
+"61","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"61","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"61","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE DPT.DEPTO = :LS1
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"61","SN1","4","Listar cada cliente","1","0","","","","","0","","0","0,00","0","0,00","0"
+"61","SN2","5","Listar clientes do potencial Z","0","0","","","","","0","","0","0,00","0","0,00","0"
+"63","LS1","2","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"63","LS2","3","Carteira","","0","","SELECT CRT.CARTEIRA + ' - ' + USR.NOMEREDUZIDO 
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE DPT.DEPTO = 'MAQ-NOVOS'
+ORDER BY 1
+
+
+","","","0","","1","0,00","0","0,00","0"
+"63","OPT1","5","Origens a listar","0","0","","SELECT DISTINCT REFERENCIA #vksSql_ConcatHifen CAMPO1, CAMPO1
+FROM IV_CLIENTEPROPR CPR
+WHERE CPR.SEQPROPRIEDADE = 9400
+ AND CAMPO1 IS NOT NULL
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"63","SN1","6","Listar tipo das receitas detalhado","0","0","","","","","0","","0","0,00","0","0,00","0"
+"63","SN2","7","Imprimir resumo por cidade x Ha/Qtde","0","0","","","","","0","","0","0,00","0","0,00","0"
+"64","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"64","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"64","LS3","4","Status a listar:","","0","","","Ativos;Prospects","","0","","1","0,00","0","0,00","0"
+"64","NR1","5","Qtde mínima de papéis para qualificação:","3","0","","","","","0","","0","0,00","0","0,00","0"
+"64","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE DPT.DEPTO = :LS1
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"64","SN1","6","Listar cada cliente","1","0","","","","","0","","0","0,00","0","0,00","0"
+"64","SN2","7","Listar clientes do potencial Z","0","0","","","","","0","","0","0,00","0","0,00","0"
+"64","SN3","8","Imprimir gráfico por carteira","0","0","","","","","0","","0","0,00","0","0,00","0"
+"65","DT1","3","Data de inclusão do serviço entre:","Início deste mês  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"65","DT2","4","e:","Final deste mês (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"65","LS1","1","Empresa:","","0","","SELECT NOMEREDUZIDO
+FROM GE_EMPRESA
+ WHERE EMUSO = 1
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"65","SN1","5","Imprime gráfico:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"66","DT1","3","Solicitação do agendamento entre:","Início do mês anterior  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"66","DT2","4","e:","Final do mês que vem (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"66","OPT1","2","Empresa(s):","1","0","","SELECT NOMEREDUZIDO #vksSql_ConcatHifen NROEMPRESA, NROEMPRESA
+FROM GE_EMPRESA
+ WHERE EMUSO = 1
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"66","SN1","5","Imprimir detalhes","1","0","","","","","0","","0","0,00","0","0,00","0"
+"67","DT1","5","Solicitação da garantia gerada entre:","Início do mês anterior (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"67","DT2","6","e:","Final do mês que vem (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"67","LS2","4","Situação da garantia:","","0","","","Deferida;Indeferida;Parcial","","0","","1","0,00","0","0,00","0"
+"67","OPT1","1","Empresa(s):","1","0","","SELECT NOMEREDUZIDO #vksSql_ConcatHifen NROEMPRESA, NROEMPRESA
+FROM GE_EMPRESA
+ WHERE EMUSO = 1
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"67","SN1","7","Imprimir detalhes:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"68","DT1","2","Data de inclusão do serviço entre:","Início deste mês (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"68","DT2","3","e:","Final deste mês (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"68","LS1","1","Empresa:","","0","","SELECT NOMEREDUZIDO
+ FROM GE_EMPRESA
+WHERE EMUSO = 1
+ORDER BY NOMEREDUZIDO
+
+","","","0","","1","0,00","0","0,00","0"
+"68","SN1","5","Imprimir detalhes de cada processo:","1","0","","","","","0","","0","0,00","0","0,00","0"
+"68","SN2","4","Apenas processos encerrados:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"69","DT1","4","Solicitação do agendamento entre:","Início do mês anterior  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"69","DT2","5","e:","Final do mês que vem (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"69","LS1","3","Resultado","","0","","SELECT DISTINCT DESCRICAO
+ FROM IV_RESULTADO
+WHERE EMUSO = 'S'
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"69","OPT1","2","Empresa(s):","1","0","","SELECT NOMEREDUZIDO #vksSql_ConcatHifen NROEMPRESA, NROEMPRESA
+FROM GE_EMPRESA
+ WHERE EMUSO = 1
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"69","SN1","6","Lista detalhes:","1","0","","","","","0","","0","0,00","0","0,00","0"
+"70","DT1","10","Data Inicial","Início deste mês (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"70","DT2","11","Data Final","Hoje (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"70","OPT1","12","Carteira","1","0","","SELECT CAR.CARTEIRA, CAR.SEQCARTEIRA
+FROM IVS_CARTDEPTO CDEP
+INNER JOIN IVS_CARTEIRA CAR ON CAR.SEQCARTEIRA = CDEP.SEQCARTEIRA
+WHERE CDEP.SEQDEPTO = 2
+ORDER BY CAR.CARTEIRA
+
+","","","0","","1","0,00","0","0,00","0"
+"70","SN1","13","Imprime detalhes dos clientes?","1","0","","","","","0","","0","0,00","0","0,00","0"
+"70","SN2","14","Mostra clientes sem contato?","0","0","","","","","0","","0","0,00","0","0,00","0"
+"71","DT1","5","Faturamento previsto entre:","Início do ano anterior (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"71","DT2","6","e:","Final deste ano (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"71","LS1","3","Família de produtos","","0","","SELECT DISTINCT ACV.TIPO_EQUIP1
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+ORDER BY 1
+","","","0","","1","0,00","0","0,00","0"
+"71","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"71","NR1","7","Dias alertar andamento parados","15","0","Andamentos há mais desta qtde de dias, irá alertar com um indicador.","","","","0","","0","0,00","0","0,00","0"
+"71","OPT1","4","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO = 2
+ AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"71","SN2","9","Resumo por modelo, data e prob.crédito","0","0","","","","","0","","0","0,00","0","0,00","0"
+"71","SN3","10","Resumo por modelo e data","1","0","","","","","0","","0","0,00","0","0,00","0"
+"72","DT1","4","Processos incluídos entre:","Início do mês anterior (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"72","DT2","5","e:","Final do mês anterior (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"72","LS1","1","Empresa:","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"72","LS2","3","Status:","","0","","SELECT PST.STATUS
+FROM IV_PROCST PST
+WHERE PST.CODPROCESSO = 9401
+ORDER BY PST.STATUSORDEM
+
+","","","0","","1","0,00","0","0,00","0"
+"72","OPT1","2","Carteira:","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO = 2
+ AND ( EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1)
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"72","SN1","6","Imprimir detalhes:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"73","DT1","3","Data da perda/desistência entre:","Início deste ano  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"73","DT2","4","e:","Final deste ano (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"73","LS1","1","Empresa:","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"73","LS2","5","Resultado:","","0","","","VENDA PERDIDA;DESISTIU DA COMPRA","","0","","1","","","",""
+"73","OPT1","2","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.DEPTO = 'MAQ-NOVOS'
+AND ( EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1)
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"73","SN1","6","Listar detalhe da venda perdida:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"74","DT1","1","Data de inclusão da oportunidade entre:","Início do mês anterior (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"74","DT2","2","e:","Final do mês anterior (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"74","SN1","3","Imprimir detalhes de cada processo:","1","0","","","","","0","","0","0,00","0","0,00","0"
+"75","DT1","4","Processos incluídos entre:","Início do mês anterior (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"75","DT2","5","e:","Final do mês anterior (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"75","LS1","1","Empresa:","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"75","LS2","3","Família de produtos:","","0","","SELECT DISTINCT TIPO_DE_MAQUINA
+FROM IV_Q$DEMONSTRACAO_TRATOR
+UNION
+SELECT 'Plantadeira' FROM DUAL
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"75","OPT1","2","Carteira:","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO = 2
+ AND ( EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1)
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"75","SN1","6","Imprimir detalhes da demonstração:","1","0","","","","","0","","0","0,00","0","0,00","0"
+"76","DT1","9","Data Inclusão de","Início deste ano  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"76","DT2","10","a","Final deste ano  (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"76","LS1","1","Empresa","","0","","SELECT NOMEREDUZIDO FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO
+","","","0","","1","0,00","0","0,00","0"
+"76","LS2","7","Família de produtos","","0","","SELECT DISTINCT ACV.TIPO_EQUIP1
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+ORDER BY 1
+","","","0","","1","0,00","0","0,00","0"
+"76","OPT1","2","Carteiras:","0","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.DEPTO = 'MAQ-NOVOS'
+AND ( EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"76","SN1","8","Lista detalhe do ùltimo histórico:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"77","DT1","10","Faturamento previsto entre","Início do ano anterior  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"77","DT2","11","e","Final deste ano  (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"77","LS1","4","Status","","0","","SELECT PST.STATUS
+FROM IV_PROCST PST
+WHERE PST.CODPROCESSO = 7
+ORDER BY PST.STATUSORDEM
+
+","","","0","","1","0,00","0","0,00","0"
+"77","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"77","LS3","8","Família de produtos","","0","","SELECT DISTINCT ACV.TIPO_DE_MAQUINA
+FROM IV_Q$ACOMPANHAMENTO_VENDA ACV
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"77","LS4","5","CEN","","0","","SELECT DISTINCT VENDEDOR
+FROM IV_HISTORICO
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"77","OPT1","9","Banco","1","0","","SELECT LITERAL1 , SEQPAR
+FROM IV_GLOBALPAR
+WHERE SEQGLBPAR = 9415
+ORDER BY LITERAL1
+
+","","","0","","1","0,00","0","0,00","0"
+"77","SN2","13","Lista processos faturados?","1","0","","","","","0","","0","0,00","0","0,00","0"
+"78","LS1","2","Vendedor:","","0","","SELECT DISTINCT USU.CODUSUARIO
+FROM IVS_CARTEIRA CAR, GE_USUARIO USU
+WHERE CAR.SeqUsrResp = USU.SeqUsuario
+ORDER BY CODUSUARIO
+
+","","","0","","1","0,00","0","0,00","0"
+"78","LS2","3","Departamento:","","0","","SELECT DEPTO
+FROM IVS_DEPTO
+ORDER BY DEPTO
+
+","","","0","","1","0,00","0","0,00","0"
+"78","LS3","4","Cidade:","","0","","SELECT DISTINCT CID.CIDADE
+ FROM GE_CIDADE CID
+ JOIN IVS_CARTCID CCID ON CCID.SEQCIDADE = CID.SEQCIDADE
+ORDER BY CID.CIDADE
+
+","","","0","","1","0,00","0","0,00","0"
+"78","LS4","6","Ordenar por:","Carteira","0","","","Carteira;Cidade;Cliente","","0","","0","0,00","0","0,00","0"
+"78","OPT1","5","Status:","0","0","","","Ativo~A;Inativo~I;Outro~O;Prospect~P","","0","","1","0,00","0","0,00","0"
+"78","SN1","7","Listar apenas pessoas não associadas:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"79","LT1","1","Nro Chassi:","%","0","","","","","0","","0","","","",""
+"79","LT2","2","Processo:","0","0","","","","","0","","0","","","",""
+"81","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"81","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"81","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1 OR DPT.SEQDEPTO = 1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"81","SN1","4","Listar cada cliente","1","0","","","","","0","","0","0,00","0","0,00","0"
+"81","SN2","5","Listar clientes do potencial Z","0","0","","","","","0","","0","0,00","0","0,00","0"
+"81","SN3","6","Apenas oportunidades em aberto:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"83","DT1","2","Período entre:","Início do mês anterior (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"83","DT2","3","e:","Final do mês anterior (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"83","LS1","4","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"83","SELX1","5","Carteiras","#NUM=1#LARG=0","0","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO = 2
+AND ( EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"84","DT1","3","Período entre:","Início do mês anterior (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"84","DT2","4","e:","Final do mês anterior (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"84","LS1","1","Empresa:","","0","","SELECT NOMEREDUZIDO 
+ FROM GE_EMPRESA 
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"84","SELX1","2","Carteira:","#NUM=1#LARG=0","0","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO = 2
+AND ( EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1)
+ORDER BY 1","","","0","","1","","","",""
+"85","DT1","1","Data Inicial","Início deste mês (id)","0","","","","","0","","0","","","",""
+"85","DT2","2","Data Final","Hoje (fd)","0","","","","","0","","0","","","",""
+"86","DT1","4","Preenchimento do formulário entre:","01/01/2012 00:00 (id)","0","","","","","0","","0","","","",""
+"86","DT2","5","e:","Hoje (fd)","0","","","","","0","","0","","","",""
+"86","LS1","3","Tipo de análise:","","0","","","ABERTO;FATURADO;TODOS","","0","","0","","","",""
+"86","LT1","1","Nro Chassi:","%","0","","","","","0","","0","0,00","0","0,00","0"
+"86","LT2","2","Processo:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"87","DT1","4","Pedidos realizados entre:","Início do mês anterior  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"87","DT2","6","e:","Final do mês anterior (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"87","DT3","7","Data da Entrega Técnica entre:","Início do mês anterior  (id)","0","","","","","0","","0","","","",""
+"87","DT4","8","e:","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"87","LS1","1","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+","","","0","","1","0,00","0","0,00","0"
+"87","LS2","3","Tipo de análise","","0","","","ABERTO;FINALIZADO;TODOS","","0","","0","0,00","0","0,00","0"
+"87","SELX1","2","Carteira","#NUM=1#LARG=0","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE 1 = 1
+ AND DPT.DEPTO = 'MAQ-NOVOS'
+ AND (EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1 )
+ORDER BY 1
+","","","0","","1","0,00","0","0,00","0"
+"88","DT1","6","Data (visita/contato) entre:","Início deste mês    (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"88","DT2","7","e:","Final deste mês   (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"88","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"88","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"88","OPT1","4","Status das pessoas","0","0","","SELECT 'Ativo', 'A' FROM DUAL
+UNION
+SELECT 'Prospect', 'P' FROM DUAL
+UNION
+SELECT 'Inativo', 'I' FROM DUAL
+UNION
+SELECT 'Falecido', 'F' FROM DUAL
+UNION
+SELECT 'Suspect', 'F' FROM DUAL
+UNION
+SELECT 'Outros', 'O' FROM DUAL
+","","","0","","0","0,00","0","0,00","0"
+"88","SELX1","3","Carteiras","#NUM=1#LARG=0","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE 1 = 1
+ AND DPT.DEPTO = :LS1
+ AND (EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1 )
+ORDER BY 1","","","0","","1","0,00","0","0,00","0"
+"89","DT1","6","Data (visita/contato) entre:","Início deste mês (id)","0","","","","","0","","0","","","",""
+"89","DT2","7","e:","Final deste mês  (fd)","0","","","","","0","","0","","","",""
+"89","DT3","8","Clientes conhecidos a partir de:","Início deste ano  (fd)","0","","","","","0","","0","","","",""
+"89","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"89","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"89","OPT1","5","Status","0","0","","SELECT 'Ativo', 'A' FROM DUAL
+UNION
+SELECT 'Prospect', 'P' FROM DUAL
+UNION
+SELECT 'Inativo', 'I' FROM DUAL
+UNION
+SELECT 'Falecido', 'F' FROM DUAL
+UNION
+SELECT 'Suspect', 'F' FROM DUAL
+UNION
+SELECT 'Outros', 'O' FROM DUAL
+","","","0","","0","0,00","0","0,00","0"
+"89","SELX1","3","Carteiras","#NUM=1#LARG=0","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE 1 = 1
+ AND DPT.DEPTO = :LS1
+ AND (EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1 )
+ORDER BY 1","","","0","","0","","","",""
+"90","DT1","2","Período entre:","Início do mês anterior (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"90","DT2","3","e:","Final do mês anterior (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"90","LS1","4","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"90","SELX1","5","Carteiras","#NUM=1#LARG=0","0","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO = 2
+AND ( EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"91","DT1","3","Período entre:","Início do mês anterior (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"91","DT2","4","e:","Final do mês anterior (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"91","LS1","1","Empresa:","","0","","SELECT NOMEREDUZIDO 
+ FROM GE_EMPRESA 
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"91","SELX1","2","Carteira:","#NUM=1#LARG=0","0","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO = 2
+AND ( EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1)
+ORDER BY 1
+","","","0","","1","0,00","0","0,00","0"
+"94","DT1","11","Faturamento previsto entre","Início do ano anterior  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"94","DT2","13","e","Final deste ano  (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"94","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"94","LS3","8","Família de produtos","","0","","SELECT DISTINCT ACV.TIP_IMPLEMENTO
+FROM IV_Q$ACOMPANHAM_VENDA_IMP ACV
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"94","LS4","5","CEN","","0","","SELECT DISTINCT EQP.CodEquipe
+FROM IV_EQUIPE EQP
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"94","OPT1","9","Banco","1","0","","SELECT LITERAL1 , SEQPAR
+FROM IV_GLOBALPAR
+WHERE SEQGLBPAR = 9415
+ORDER BY LITERAL1
+
+","","","0","","1","0,00","0","0,00","0"
+"94","SELX1","10","Status do processo","#NUM=0#LARG=0","0","","SELECT PST.STATUS, PST.STATUS
+FROM IV_PROCST PST
+WHERE PST.CODPROCESSO = 8
+ORDER BY STATUSORDEM
+
+","","","0","","0","0,00","0","0,00","0"
+"95","DT1","4","Data de Inicio","01/03/2017 (id)","0","","","","","0","","0","","","",""
+"95","DT2","5","e:","Hoje (fd)","0","","","","","0","","0","","","",""
+"95","LS1","3","Tipo de análise","","0","","","ABERTO;FATURADO;TODOS","","0","","0","","","",""
+"95","LT1","1","Nro Chassi:","%","0","","","","","0","","0","0,00","0","0,00","0"
+"95","LT2","2","Processo:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"97","LS1","1","Status..:","","0","","","Ativo;Falecido;Outros;Prospect;Suspect;Inativo","","0","","1","","","",""
+"97","LS2","2","Cidade..:","","0","","SELECT DISTINCT CIDADE FROM GE_CIDADE
+ORDER BY CIDADE","","","0","","1","","","",""
+"97","LS3","3","Propriedade..:","","0","","SELECT PROPRIEDADE
+FROM IV_PROPRIEDADE
+ORDER BY PROPRIEDADE","","","0","","1","","","",""
+"97","LS4","6","Resultados..:","","0","","SELECT DISTINCT RES.DESCRICAO
+FROM IV_RESULTADO RES
+WHERE RES.EMUSO = 'S'
+ORDER BY RES.DESCRICAO","","","0","","1","","","",""
+"97","OPT1","5","Potencial..:","0","0","","","A;B;C;D;Z","","0","","1","","","",""
+"97","SELX1","4","Carteira..:","#NUM=1#LARG=0","0","","SELECT CARTEIRA, SEQCARTEIRA
+FROM IVS_CARTEIRA
+ORDER BY CARTEIRA","","","0","","1","","","",""
+"98","NR1","1","Nro Cotação","","0","","","","","0","","0","","","",""
+"99","DT1","4","Pedidos realizados entre:","Início do mês anterior  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"99","DT2","6","e:","Final do mês anterior (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"99","DT3","7","Data da Entrega Técnica entre:","Início do mês anterior  (id)","0","","","","","0","","0","","","",""
+"99","DT4","8","e:","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"99","LS1","1","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+","","","0","","1","0,00","0","0,00","0"
+"99","LS2","3","Tipo de análise","","0","","","ABERTO;FINALIZADO;TODOS","","0","","0","0,00","0","0,00","0"
+"99","SELX1","2","Carteira","#NUM=1#LARG=0","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE 1 = 1
+ AND DPT.DEPTO = 'MAQ-NOVOS'
+ AND (EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1 )
+ORDER BY 1
+","","","0","","1","0,00","0","0,00","0"
+"100","DT1","4","Preenchimento do formulário(ACV) entre:","Início deste mês (id)","0","","","","","0","","0","","","",""
+"100","DT2","5","e:","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"100","LS1","3","Tipo de análise:","","0","","","PAGO;EM ABERTO;TODOS","","0","","0","","","",""
+"100","LT1","1","Nro Chassi:","%","0","","","","","0","","0","","","",""
+"100","LT2","2","Processo:","0","0","","","","","0","","0","","","",""
+"101","DT1","4","Pedidos realizados entre:","Início do mês anterior  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"101","DT2","6","e:","Final do mês anterior (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"101","LS1","1","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"101","LS2","3","Tipo de análise","","0","","","ABERTO;PAGO;TODOS","","0","","0","0,00","0","0,00","0"
+"101","SELX1","2","Carteira","#NUM=1#LARG=0","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE 1 = 1
+ AND DPT.DEPTO = 'MAQ-NOVOS'
+ AND (EMP.NOMEREDUZIDO = :LS1 OR :TUDO1 = 1 )
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"104","LT1","1","Informar o código interno do Título","","0","Por favor....","","","","0","","0","","","",""
+"105","DT1","3","Data Inicio","01/01/2018 ","0","","","","","0","","0","","","",""
+"105","DT2","4","E:","Hoje","0","","","","","0","","0","","","",""
+"105","LS1","2","Tipo de análise","","0","","","ABERTO;FATURADO;TODOS","","0","","0","","","",""
+"105","LT1","1","Processo:","%","0","","","","","0","","0","","","",""
+"106","DT1","4","Data de inicio","01/01/2019  (id)","0","","","","","0","","0","","","",""
+"106","DT2","5","e:","Hoje   (fd)","0","","","","","0","","0","","","",""
+"106","LS1","3","Tipo de Analise","","0","","","ABERTO;FATURADO;TODOS","","0","","0","","","",""
+"106","LS2","6","Departamento:","","0","","","Logistica;Oficina","","0","","0","","","",""
+"106","LT1","1","Nro Chassi/Serie","%","0","","","","","0","","0","","","",""
+"106","LT2","2","Processo","0","0","","","","","0","","0","","","",""
+"107","DT1","3","Data Inicial","Início da semana (id)","0","","","","","0","","0","","","",""
+"107","DT2","4","Data Final","Final da semana (fd)","0","","","","","0","","0","","","",""
+"107","LS1","2","Tipo de Analise","","0","","","PAGO;EM ABERTO;TODOS","","0","","0","","","",""
+"107","LT1","1","Processo","0","0","","","","","0","","0","","","",""
+"108","DT1","3","Data Inicial","Início deste mês (id)","0","","","","","0","","0","","","",""
+"108","DT2","4","Data Final","Hoje (fd)","0","","","","","0","","0","","","",""
+"108","LS1","2","Tipo de Analise","","0","","","PAGO;EM ABERTO;TODOS","","0","","0","","","",""
+"108","LT1","1","Processo","0","0","","","","","0","","0","","","",""
+"109","DT1","3","Data Inicial","Início da semana (id)","0","","","","","0","","0","","","",""
+"109","DT2","4","Data Final","Final da semana (fd)","0","","","","","0","","0","","","",""
+"109","LT1","1","Processo","0","0","","","","","0","","0","","","",""
+"110","DT1","2","Data Realização","Início deste ano (id)","0","","","","","0","","0","","","",""
+"110","DT2","3","Data Final","Final da semana (fd)","0","","","","","0","","0","","","",""
+"110","LT1","1","Processo:","0","0","","","","","0","","0","","","",""
+"111","DT1","5","Data Inicial","Início deste ano (id)","0","","","","","0","","0","","","",""
+"111","DT2","6","Data Final","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"111","LT1","4","Processo:","0","0","","","","","0","","0","","","",""
+"112","DT1","2","Inicio","Início do mês anterior","0","","","","","0","","0","","","",""
+"112","DT2","3","FIM","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"112","LT1","1","Processo","0","0","","","","","0","","0","","","",""
+"113","DT1","5","Inicio","Início da semana","0","","","","","0","","0","","","",""
+"113","DT2","6","Final","Final da semana (fd)","0","","","","","0","","0","","","",""
+"113","LT1","4","Processo","0","0","","","","","0","","0","","","",""
+"114","DT1","8","Inicio","Início da semana (id)","0","","","","","0","","0","","","",""
+"114","DT2","9","Fim","Final da semana (fd)","0","","","","","0","","0","","","",""
+"114","LT1","7","Processo","0","0","","","","","0","","0","","","",""
+"115","DT1","6","Inicio","Início da semana (id)","0","","","","","0","","0","","","",""
+"115","DT2","7","Final","Final da semana (fd)","0","","","","","0","","0","","","",""
+"115","LT1","5","Processo","0","0","","","","","0","","0","","","",""
+"116","OPT1","7","Carteira","1","0","Informe a Carteira","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE DPT.DEPTO = 'MAQ-PEÇAS'
+ORDER BY 1","","","0","","0","","","",""
+"117","OPT1","1","Carteira","1","0","Carteira","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE DPT.DEPTO = 'MAQ-PEÇAS'
+ORDER BY 1","","","0","","0","","","",""
+"118","DT1","1","Inicio","Início deste mês (id)","0","Informar Data","","","","0","","0","","","",""
+"118","DT2","2","Fim"," (fd)","0","Data final","","","","0","","0","","","",""
+"120","DT1","1","Data Inicio","Início deste mês (id)","0","","","","","0","","0","","","",""
+"120","DT2","2","Data Fim","Final deste mês (id)","0","","","","","0","","0","","","",""
+"121","DT1","1","Inicio","Início deste mês (id)","0","","","","","0","","0","","","",""
+"121","DT2","2","Final","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"122","DT1","2","Data Inicio","Início do mês anterior (id)","0","","","","","0","","0","","","",""
+"122","DT2","3","Data Fim","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"122","LT1","1","Processo","0","0","","","","","0","","0","","","",""
+"123","DT1","9","Inicio","Início do mês anterior (id)","0","","","","","0","","0","","","",""
+"123","DT2","10","Fim","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"123","LT1","8","Processo","0","0","","","","","0","","0","","","",""
+"124","DT1","4","Inicio","Início do mês anterior (id)","0","","","","","0","","0","","","",""
+"124","DT2","5","Fim","Final da semana (fd)","0","","","","","0","","0","","","",""
+"124","LS1","3","Tipo de Analise","","0","","","Faturado","","0","","0","","","",""
+"124","LT2","2","Processo:","%","0","","","","","0","","0","","","",""
+"125","DT1","2","Inicio","Início da semana (id)","0","","","","","0","","0","","","",""
+"125","DT2","3","Final","Final deste mês (fd)","0","","","","","0","","0","","","",""
+"125","LT1","1","Processo","%","0","","","","","0","","0","","","",""
+"126","DT1","3","Data Realização"," (id)","0","","","","","0","","0","","","",""
+"126","LT1","1","Nro Chassi:","%","0","","","","","0","","0","","","",""
+"126","LT2","2","Processo","0","0","","","","","0","","0","","","",""
+"127","DT1","4","Pedido realizados entre:","Início do mês anterior (id)","0","","","","","0","","0","","","",""
+"127","DT2","5","e:","Final do mês anterior (fd)","0","","","","","0","","0","","","",""
+"127","DT3","6","Data da Entrega Tecnica entre:","Início do mês anterior (id)","0","","","","","0","","0","","","",""
+"127","DT4","7","e:","Final do mês anterior (id)","0","","","","","0","","0","","","",""
+"127","LS1","1","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+","","","0","","1","","","",""
+"127","LS2","3","Tipo de Analise","","0","","","Aberto;Finalizados;Todos","","0","","0","","","",""
+"127","SELX1","2","Carteira","#NUM=0#LARG=0","0","","","","","0","","1","","","",""
+"128","DT1","4","Preenchimento do Formulário entre:","Início da semana passada (id)","0","","","","","0","","0","","","",""
+"128","DT2","5","e:","Hoje (fd)","0","","","","","0","","0","","","",""
+"128","LS1","3","Tipo de Analise","","0","","","ABERTO;FATURADO;TODOS","","0","","0","","","",""
+"128","LT1","1","Nro Chassi:","%","0","Numero Chassi","","","","0","","0","","","",""
+"128","LT2","2","Processo","0","0","Processo","","","","0","","0","","","",""
+"129","DT1","4","Inicio"," (id)","0","","","","","0","","0","","","",""
+"129","DT2","5","Fim"," (fd)","0","","","","","0","","0","","","",""
+"129","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+","","","0","","1","","","",""
+"129","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1","","","0","","1","","","",""
+"129","SELX1","3","Carteira","#NUM=1#LARG=0","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+WHERE 1 = 1
+ AND DPT.DEPTO = :LS1
+ AND (EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1 )
+ORDER BY 1","","","0","","1","","","",""
+"130","DT1","4","Preenchimento do Formulário entre:","Início da semana passada","0","","","","","0","","0","","","",""
+"130","DT2","5","e:","Hoje","0","","","","","0","","0","","","",""
+"130","LS1","3","Tipo de Analise","","0","","","ABERTO;FATURADO;TODOS","","0","","0","","","",""
+"130","LT1","1","Nro Chassi:","%","0","","","","","0","","0","","","",""
+"130","LT2","2","Processo","0","0","","","","","0","","0","","","",""
+"131","DT1","4","Preenchimento do Formulário entre:","Início da semana passada","0","","","","","0","","0","","","",""
+"131","DT2","5","e:","Hoje","0","","","","","0","","0","","","",""
+"131","LS1","3","Tipo de Analise","","0","","","ABERTO;FATURADO;TODOS","","0","","0","","","",""
+"131","LT1","1","Chassi","%","0","","","","","0","","0","","","",""
+"131","LT2","2","Processo","0","0","","","","","0","","0","","","",""
+"132","DT1","4","Preenchimento do Formulário entre:","Início da semana passada (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"132","DT2","5","e:","Hoje (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"132","LS1","3","Tipo de Analise","","0","","","ABERTO;FATURADO;TODOS","","0","","0","0,00","0","0,00","0"
+"132","LT1","1","Nro Chassi:","%","0","Numero Chassi","","","","0","","0","0,00","0","0,00","0"
+"132","LT2","2","Processo","0","0","Processo","","","","0","","0","0,00","0","0,00","0"
+"133","DT1","2","Preenchimento do Formulario Entr","Início do mês anterior (id)","0","","","","","0","","0","","","",""
+"133","DT2","3","E:","Hoje (fd)","0","","","","","0","","0","","","",""
+"136","DT1","11","Preenchimento do Formlario entre:","Início da semana passada","0","","","","","0","","0","","","",""
+"136","DT2","12","e","Hoje (fd)","0","","","","","0","","0","","","",""
+"136","LT1","9","Nro Chassi:","%","0","","","","","0","","0","","","",""
+"136","LT2","10","Processo","0","0","","","","","0","","0","","","",""
+"138","DT1","6","Preenchimento do formulário entre:","Início deste ano","0","","","","","0","","0","","","",""
+"138","DT2","7","e:","Hoje","0","","","","","0","","0","","","",""
+"139","DT1","15","Preenchimento do Formulário entre:","Início da semana passada","0","","","","","0","","0","","","",""
+"139","DT2","16","e","Hoje","0","","","","","0","","0","","","",""
+"139","LT1","13","Nro Chassi:","%","0","","","","","0","","0","","","",""
+"139","LT2","14","Processo","0","0","","","","","0","","0","","","",""
+"140","DT1","6","Preenchimento do Formulário entre:","Início da semana passada","0","","","","","0","","0","","","",""
+"140","DT2","7","e:","Hoje","0","","","","","0","","0","","","",""
+"142","DT1","5","Faturamento previsto entre:","Início do ano anterior (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"142","DT2","6","e:","Final deste ano (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"142","LS1","3","Família de produtos","","0","","SELECT DISTINCT ACV.TIPO_EQUIP1
+FROM IV_Q$ACOMPANH_VENDA_JDE ACV
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"142","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"142","NR1","7","Dias alertar andamento parados","15","0","Andamentos há mais desta qtde de dias, irá alertar com um indicador.","","","","0","","0","0,00","0","0,00","0"
+"142","OPT1","4","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO = 2
+ AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"142","SN1","9","Somente processos em aberto","0","0","","","","","0","","0","","","",""
+"142","SN2","10","Listar pedidos faturados","0","0","","","","","0","","0","0,00","0","0,00","0"
+"142","SN3","11","Resumo por modelo e data","1","0","","","","","0","","0","0,00","0","0,00","0"
+"144","DT1","6","Data do pedido entre:","Início do ano anterior  (id)","0","","","","","0","","0","0,00","0","0,00","0"
+"144","DT2","7","e:","Final deste ano (fd)","0","","","","","0","","0","0,00","0","0,00","0"
+"144","LS1","4","Família de Produtos","","0","","SELECT DISTINCT VND.TIPO_DO_EQUIPAMENTO
+FROM IV_Q$VENDA VND
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"144","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"144","LS3","5","Modelo do Equipamento","","1","","SELECT DISTINCT VND.MODELO_DO_EQUIPAMENT
+FROM IV_Q$VENDA VND
+WHERE VND.TIPO_DO_EQUIPAMENTO = :LS1
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"144","NR1","8","Dias alertar andamento parados","15","0","Andamentos há mais desta qtde de dias, irá alertar com um indicador.","","","","0","","0","0,00","0","0,00","0"
+"144","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO IN ( 2, 10 ,25 )
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"144","SN1","10","Listar pedidos faturados","1","0","","","","","0","","0","0,00","0","0,00","0"
+"144","SN3","12","Resumo por modelo e data","1","0","","","","","0","","0","0,00","0","0,00","0"
+"144","SN4","9","Somente processos em aberto:","0","0","","","","","0","","0","0,00","0","0,00","0"
+"145","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+
+FROM IVS_DEPTO DPTO
+
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1","","","0","","0","","","",""
+"145","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1","","","0","","1","","","",""
+"145","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1 OR DPT.SEQDEPTO = 1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1","","","0","","0","","","",""
+"145","SN1","4","Listar Cada Cliente","1","0","","","","","0","","0","","","",""
+"145","SN2","5","Listar Cliente com Potencial Z","0","0","","","","","0","","0","","","",""
+"145","SN3","6","Apenas Oportunidades em Aberto","0","0","","","","","0","","0","","","",""
+"146","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1","","","0","","0","","","",""
+"146","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1","","","0","","1","","","",""
+"146","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1 OR DPT.SEQDEPTO = 1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1","","","0","","0","","","",""
+"146","SN1","4","Listar cada cliente","1","0","
+","","","","0","","0","","","",""
+"146","SN2","5","Listar Clientes com Potencial Z","0","0","","","","","0","","0","","","",""
+"146","SN3","6","Apenas Oportunidades Em Aberto","0","0","","","","","0","","0","","","",""
+"147","DT1","5","Processos incluídos entre:","Início do ano anterior (id)","0","","","","","0","","0","","","",""
+"147","DT2","6","e:","Final deste ano (fd)","0","","","","","0","","0","","","",""
+"147","LS1","2","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+AND DPTO.SEQDEPTO IN (25)
+ORDER BY 1","","","0","","0","","","",""
+"147","LS2","3","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NROEMPRESA NOT IN('6' , '891')
+ORDER BY 1","","","0","","1","","","",""
+"147","LS3","1","Tipo de Processo:","","0","","select descricao, codprocesso
+from iv_codprocesso
+where codprocesso in (41)","","","0","","0","","","",""
+"147","OPT1","4","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1","","","0","","0","","","",""
+"147","SN1","7","Listar cada cliente","1","0","","","","","0","","0","","","",""
+"147","SN2","8","Listar clientes do potencial Z","0","0","","","","","0","","0","","","",""
+"148","LS1","1","Filial:","","0","","select nomereduzido 
+from ge_empresa
+
+order by nomereduzido","","","0","","1","","","",""
+"148","LS2","2","Tipo de resultado:","","0","","select res.descricao from iv_procresultado pres
+join iv_resultado res
+on res.resultado = pres.resultado
+where pres.codprocesso=45
+and res.acao is null
+order by 1","","","0","","1","","","",""
+"149","DT1","3","Data Inicial:","Início do mês anterior","0","","","","","0","","0","","","",""
+"149","DT2","4","Data Final:","Hoje (fd)","0","","","","","0","","0","","","",""
+"149","LS1","5","Filial:","","0","","select nomereduzido from ge_empresa
+order by nomereduzido
+","","","0","","1","","","",""
+"149","LS2","6","Tipo de Resultado:","","0","","select res.descricao from iv_procresultado pres
+join iv_resultado res
+on res.resultado = pres.resultado
+ where pres.codprocesso=45
+ and res.acao is null
+ order by 1
+","","","0","","1","","","",""
+"149","LS3","7","Cnpj do Cliente:","","0","","select case when pes.fisicajuridica='J' then lpad(pes.nrocgccpf,12,0)||lpad(pes.digcgccpf,2,0) else lpad(pes.nrocgccpf,9,0)||lpad(pes.digcgccpf,2,0) end as cnpj_cpf from ge_pessoa pes
+where exists(select 1 from iv_historico h join iv_resultado r on r.resultado=h.resultado where h.seqpessoa=pes.seqpessoa and h.resultado in(select resultado from iv_procresultado where codprocesso=45 ))
+and nrocgccpf is not null
+order by 1
+","","","0","","1","","","",""
+"149","LS4","8","Usuario Abertura:","","0","","select distinct codusuario from iv_historico where resultado in( select res.resultado from iv_procresultado pres
+join iv_resultado res
+on res.resultado = pres.resultado
+ where pres.codprocesso=45
+ and res.acao is null)
+order by 1
+","","","0","","1","","","",""
+"150","DT1","9","Data Inicial:","Início do mês anterior","0","","","","","0","","0","","","",""
+"150","DT2","10","Data Final:","Hoje (fd)","0","","","","","0","","0","","","",""
+"150","LS1","11","Filial:","","0","","select nomereduzido from ge_empresa
+order by nomereduzido","","","0","","1","","","",""
+"150","LS2","12","Tipo de Resultado:","","0","","select res.descricao from iv_procresultado pres
+join iv_resultado res
+on res.resultado = pres.resultado
+ where pres.codprocesso=45
+ and res.acao is null
+ order by 1","","","0","","1","","","",""
+"150","LS3","13","Cnpj do Cliente:","","0","","select case when pes.fisicajuridica='J' then lpad(pes.nrocgccpf,12,0)||lpad(pes.digcgccpf,2,0) else lpad(pes.nrocgccpf,9,0)||lpad(pes.digcgccpf,2,0) end as cnpj_cpf from ge_pessoa pes
+where exists(select 1 from iv_historico h join iv_resultado r on r.resultado=h.resultado where h.seqpessoa=pes.seqpessoa and h.resultado in(select resultado from iv_procresultado where codprocesso=45 ))
+and nrocgccpf is not null
+order by 1","","","0","","1","","","",""
+"150","LS4","14","Usuario Abertura:","","0","","select distinct codusuario from iv_historico where resultado in( select res.resultado from iv_procresultado pres
+join iv_resultado res
+on res.resultado = pres.resultado
+ where pres.codprocesso=45
+ and res.acao is null)
+order by 1","","","0","","1","","","",""
+"151","DT1","5","Data do pedido entre:","Início do ano anterior  (id)","0","","","","","0","","0","","","",""
+"151","DT2","6","e:","Final deste ano (fd)","0","","","","","0","","0","","","",""
+"151","LS1","3","Familia de Produtoss","","0","","SELECT DISTINCT VND.TIPO_DO_EQUIPAMENTO
+FROM IV_Q$VENDA VND
+ORDER BY 1","","","0","","1","","","",""
+"151","LS2","1","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1","","","0","","1","","","",""
+"151","LS3","4","Modelo do Equipamento","","1","","SELECT DISTINCT VND.MODELO_DO_EQUIPAMENT
+FROM IV_Q$VENDA VND
+WHERE VND.TIPO_DO_EQUIPAMENTO = :LS1
+ORDER BY 1
+
+","","","0","","1","","","",""
+"151","NR1","7","Dias alertar andamento parados","15","0","Andamentos há mais desta qtde de dias, irá alertar com um indicador.","","","","0","","0","","","",""
+"151","OPT1","2","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO IN ( 2, 10, 25 )
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1","","","0","","0","","","",""
+"151","SN1","9","Listar pedidos faturados","1","0","","","","","0","","0","","","",""
+"151","SN3","11","Resumo por modelo e data","1","0","","","","","0","","0","","","",""
+"151","SN4","8","Somente processos em aberto:","0","0","","","","","0","","0","","","",""
+"152","DT1","1","Data inicial:","Início do ano anterior (id)","0","","","","","0","","0","","","",""
+"152","DT2","2","Data final:","Final deste ano (fd)","0","","","","","0","","0","","","",""
+"152","OPT1","3","Carteira:","1","0","","SELECT CAR.CARTEIRA + '-' + USU.CODUSUARIO , CAR.SEQCARTEIRA
+FROM IVS_CARTDEPTO CDEP
+INNER JOIN IVS_CARTEIRA CAR ON CAR.SEQCARTEIRA = CDEP.SEQCARTEIRA
+JOIN GE_USUARIO USU ON USU.SEQUSUARIO = CAR.SEQUSRRESP
+WHERE CDEP.SEQDEPTO = 3
+ORDER BY CAR.CARTEIRA","","","0","","1","","","",""
+"152","SN1","4","Imprimir detalhes:","1","0","","","","","0","","0","","","",""
+"153","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"153","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"153","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1 OR DPT.SEQDEPTO = 1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+","","","0","","1","0,00","0","0,00","0"
+"153","SN1","4","Listar cada cliente","1","0","","","","","0","","0","0,00","0","0,00","0"
+"153","SN2","5","Listar clientes do potencial Z","1","0","","","","","0","","0","0,00","0","0,00","0"
+"154","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE DPTO.SEQDEPTO = 2
+ORDER BY 1
+","","","0","","0","","","",""
+"154","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NOMEREDUZIDO NOT IN ('FRANCA', 'COL EQUIPAM')
+ORDER BY 1
+","","","0","","1","","","",""
+"154","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1 OR DPT.SEQDEPTO = 1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+","","","0","","1","","","",""
+"155","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+ORDER BY 1
+
+","","","0","","0","0,00","0","0,00","0"
+"155","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"155","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+
+","","","0","","1","0,00","0","0,00","0"
+"155","SN1","4","Listar cada cliente","1","0","","","","","0","","0","0,00","0","0,00","0"
+"155","SN2","5","Listar clientes do potencial Z","0","0","","","","","0","","0","0,00","0","0,00","0"
+"157","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE DPTO.SEQDEPTO = 3
+ORDER BY 1","","","0","","0","","","",""
+"157","LS2","2","Empresas","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NOMEREDUZIDO NOT IN ('FRANCA', 'COL EQUIPAM')
+ORDER BY 1","","","0","","1","","","",""
+"157","OPT1","3","Carteiras","1","1","","SELECT CART.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CART.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CART ON CART.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CART.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CART.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1","","","0","","1","","","",""
+"158","DT1","5","Processos incluídos entre:","Início do ano anterior (id)","0","","","","","0","","0","","","",""
+"158","DT2","6","e:","Final deste ano (fd)","0","","","","","0","","0","","","",""
+"158","LS1","2","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+AND DPTO.SEQDEPTO IN (2)
+ORDER BY 1","","","0","","0","","","",""
+"158","LS2","3","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NROEMPRESA NOT IN('6' , '891')
+ORDER BY 1","","","0","","1","","","",""
+"158","LS3","1","Tipo de Processo:","","0","","select descricao, codprocesso
+from iv_codprocesso
+where codprocesso in (50)","","","0","","0","","","",""
+"158","OPT1","4","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1","","","0","","0","","","",""
+"158","SN1","7","Listar cada cliente","1","0","","","","","0","","0","","","",""
+"159","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE DPTO.SEQDEPTO = 28
+ORDER BY 1
+","","","0","","0","","","",""
+"159","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NOMEREDUZIDO NOT IN ('FRANCA', 'COL EQUIPAM')
+ORDER BY 1","","","0","","1","","","",""
+"159","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1","","","0","","1","","","",""
+"160","DT1","1","Data de referencia..:","Início deste mês","0","","","","","0","","0","","","",""
+"160","DT2","2","até..:","Hoje (fd)","0","","","","","0","","0","","","",""
+"160","LS1","3","Empresa..:","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NOMEREDUZIDO NOT IN ('FRANCA', 'COL EQUIPAM')
+ORDER BY 1","","","0","","1","","","",""
+"160","LS2","4","CEN:","","1","","SELECT DISTINCT HST.VENDEDOR
+FROM IV_HISTORICO HST
+INNER JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = HST.NROEMPRESA
+WHERE HST.VENDEDOR IS NOT NULL
+ AND HST.RESULTADO IN (2549, 2550)
+ AND EMP.NROEMPRESA = CASE :TUDO1 WHEN '1' THEN HST.NROEMPRESA 
+ ELSE (SELECT NROEMPRESA FROM GE_EMPRESA WHERE NOMEREDUZIDO = :LS1) END
+ORDER BY HST.VENDEDOR","","","0","","1","","","",""
+"160","LS3","5","Resultado..:","","0","","","VENDA PERDIDA;VENDA PERDIDA SEM PARTICIPAÇÃO;DESISTIU DA COMPRA","","0","","1","","","",""
+"162","DT1","2","DATA PEDIDO REALIZADO:","Início deste mês","0","","","","","0","","0","","","",""
+"162","DT2","3","ATÉ:","Hoje","0","","","","","0","","0","","","",""
+"162","LS1","5","Processo:","","1","","SELECT XA.NOMERAZAO + ' (' + CAST(XA.PROCESSO AS VARCHAR) + ' )' AS NOMEPROCESSO
+FROM (
+SELECT DISTINCT PES.NOMERAZAO, HIS.PROCESSO
+FROM IV_HISTORICO HIS 
+JOIN GE_PESSOA PES ON PES.SeqPessoa = HIS.SeqPessoa 
+JOIN IV_Q$VENDA QQ ON QQ.PROCESSO = HIS.PROCESSO
+JOIN GE_FIGURA FF ON FF.CODIGO = QQ.SEQQUESTIONARIO
+WHERE HIS.Resultado = 2548 
+ AND HIS.DtaRealizacao >= :DT1
+ AND HIS.DtaRealizacao <= :DT2 
+ AND HIS.NROEMPRESA = (SELECT NROEMPRESA FROM GE_EMPRESA WHERE NOMEREDUZIDO = :LS2)
+ AND HIS.VENDEDOR = :LS3
+) XA
+ORDER BY XA.NOMERAZAO, XA.PROCESSO DESC
+","","","0","","1","","","",""
+"162","LS2","1","Empresa:","","0","","SELECT NOMEREDUZIDO, NROEMPRESA
+FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","0","","","",""
+"162","LS3","4","CEN:","","1","","SELECT DISTINCT VENDEDOR
+FROM IV_HISTORICO HIS
+JOIN IV_Q$VENDA QQ ON QQ.PROCESSO = HIS.PROCESSO
+JOIN GE_FIGURA FF ON FF.CODIGO = QQ.SEQQUESTIONARIO
+WHERE HIS.Resultado = 2548
+ AND HIS.VENDEDOR IS NOT NULL AND HIS.VENDEDOR<>''
+ AND HIS.DtaRealizacao >= :DT1
+ AND HIS.DtaRealizacao <= :DT2 
+ AND HIS.NROEMPRESA = (SELECT NROEMPRESA FROM GE_EMPRESA WHERE NOMEREDUZIDO = :LS2)
+ORDER BY HIS.VENDEDOR
+","","","0","","0","","","",""
+"163","DT1","5","Data do pedido entre:","Início do ano anterior (id)","0","","","","","0","","0","","","",""
+"163","DT2","6","e:","Final deste ano (fd)","0","","","","","0","","0","","","",""
+"163","LS1","3","Família de Produtos","","0","","SELECT DISTINCT VND.TIPO_DO_EQUIPAMENTO
+FROM IV_Q$VENDA_EQUIPAMENTO VND
+ORDER BY 1","","","0","","1","","","",""
+"163","LS2","1","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NROEMPRESA NOT IN('6' , '891')
+ORDER BY 1","","","0","","1","","","",""
+"163","LS3","4","Modelo do Equipamento","","1","","SELECT DISTINCT VND.MODELO_DO_EQUIPAMENT
+FROM IV_Q$VENDA_EQUIPAMENTO VND
+WHERE VND.VENDA_TIPO_EQUIPAMEN = :LS1
+ORDER BY 1","","","0","","1","","","",""
+"163","NR1","7","Dias alertar andamento parados","15","0","Andamentos há mais desta qtde de dias, irá alertar com um indicador.","","","","0","","0","","","",""
+"163","OPT1","2","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO IN ( 2, 10 ,25 )
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+","","","0","","0","","","",""
+"163","SN1","9","Listar pedidos faturados","1","0","","","","","0","","0","","","",""
+"163","SN2","10","Resumo por modelo e data","1","0","","","","","0","","0","","","",""
+"163","SN3","8","Somente processos em aberto:","0","0","","","","","0","","0","","","",""
+"164","DT1","5","Processos incluídos entre:","Início do ano anterior (id)","0","","","","","0","","0","","","",""
+"164","DT2","6","e:","Final deste ano (fd)","0","","","","","0","","0","","","",""
+"164","LS1","2","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE EXISTS ( SELECT PES.SEQDEPTO FROM IVS_PES PES WHERE PES.SEQDEPTO = DPTO.SEQDEPTO )
+AND DPTO.SEQDEPTO IN (2)
+ORDER BY 1","","","0","","0","","","",""
+"164","LS2","3","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NROEMPRESA NOT IN('6' , '891')
+ORDER BY 1","","","0","","1","","","",""
+"164","LS3","1","Tipo de Processo:","","0","","select descricao, codprocesso
+from iv_codprocesso
+where codprocesso in (50)","","","0","","0","","","",""
+"164","OPT1","4","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1","","","0","","0","","","",""
+"164","SN1","7","Listar cada cliente","1","0","","","","","0","","0","","","",""
+"165","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE DPTO.SEQDEPTO = 3
+ORDER BY 1","","","0","","0","","","",""
+"165","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NOMEREDUZIDO NOT IN ('FRANCA', 'COL EQUIPAM')
+ORDER BY 1
+","","","0","","1","","","",""
+"165","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1 OR DPT.SEQDEPTO = 3)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+","","","0","","1","","","",""
+"166","LS1","1","Departamento","","0","","SELECT DPTO.DEPTO
+FROM IVS_DEPTO DPTO
+WHERE DPTO.SEQDEPTO = 5
+ORDER BY 1","","","0","","0","","","",""
+"166","LS2","2","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NOMEREDUZIDO NOT IN ('FRANCA', 'COL EQUIPAM')
+ORDER BY 1
+","","","0","","1","","","",""
+"166","OPT1","3","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE (DPT.DEPTO = :LS1 OR DPT.SEQDEPTO = 5)
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+","","","0","","1","","","",""
+"167","DT1","2","DATA PEDIDO REALIZADO:","Início deste mês","0","","","","","0","","0","","","",""
+"167","DT2","3","ATÉ:","Hoje","0","","","","","0","","0","","","",""
+"167","LS1","5","Processo:","","1","","SELECT XA.NOMERAZAO + ' (' + CAST(XA.PROCESSO AS VARCHAR) + ' )' AS NOMEPROCESSO
+FROM (
+SELECT DISTINCT PES.NOMERAZAO, HIS.PROCESSO
+FROM IV_HISTORICO HIS 
+JOIN GE_PESSOA PES ON PES.SeqPessoa = HIS.SeqPessoa 
+JOIN IV_Q$VENDA_EQUIPAMENTO QQ ON QQ.PROCESSO = HIS.PROCESSO
+JOIN GE_FIGURA FF ON FF.CODIGO = QQ.SEQQUESTIONARIO
+WHERE HIS.Resultado = 3231
+ AND HIS.DtaRealizacao >= :DT1
+ AND HIS.DtaRealizacao <= :DT2 
+ AND HIS.NROEMPRESA = (SELECT NROEMPRESA FROM GE_EMPRESA WHERE NOMEREDUZIDO = :LS2)
+ AND HIS.VENDEDOR = :LS3
+) XA
+ORDER BY XA.NOMERAZAO, XA.PROCESSO DESC
+","","","0","","1","","","",""
+"167","LS2","1","Empresa:","","0","","SELECT NOMEREDUZIDO, NROEMPRESA
+FROM GE_EMPRESA
+ORDER BY NOMEREDUZIDO","","","0","","0","","","",""
+"167","LS3","4","CEN:","","1","","SELECT DISTINCT VENDEDOR
+FROM IV_HISTORICO HIS
+JOIN IV_Q$VENDA_EQUIPAMENTO QQ ON QQ.PROCESSO = HIS.PROCESSO
+JOIN GE_FIGURA FF ON FF.CODIGO = QQ.SEQQUESTIONARIO
+WHERE HIS.Resultado = 3231
+ AND HIS.VENDEDOR IS NOT NULL AND HIS.VENDEDOR<>''
+ AND HIS.DtaRealizacao >= :DT1
+ AND HIS.DtaRealizacao <= :DT2 
+ AND HIS.NROEMPRESA = (SELECT NROEMPRESA FROM GE_EMPRESA WHERE NOMEREDUZIDO = :LS2)
+ORDER BY HIS.VENDEDOR
+","","","0","","0","","","",""
+"168","DT1","5","Data do pedido entre:","Início do ano anterior (id)","0","","","","","0","","0","","","",""
+"168","DT2","6","e:","Final deste ano (fd)","0","","","","","0","","0","","","",""
+"168","LS1","3","Família de Produtos","","0","","SELECT DISTINCT vnd.VENDA_TIPO_EQUIPAMEN
+FROM IV_Q$VENDA_EQUIPAMENTO VND
+ORDER BY 1","","","0","","1","","","",""
+"168","LS2","1","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NROEMPRESA NOT IN('6' , '891')
+ORDER BY 1","","","0","","1","","","",""
+"168","LS3","4","Modelo do Equipamento","","1","","SELECT DISTINCT VND.VENDA_MODELO_EQUIPAM
+FROM IV_Q$VENDA_EQUIPAMENTO VND
+WHERE VND.VENDA_TIPO_EQUIPAMEN = :LS1
+ORDER BY 1","","","0","","1","","","",""
+"168","NR1","7","Dias alertar andamento parados","15","0","Andamentos há mais desta qtde de dias, irá alertar com um indicador.","","","","0","","0","","","",""
+"168","OPT1","2","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO IN ( 2, 10 ,25 )
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+","","","0","","0","","","",""
+"168","SN1","9","Listar pedidos faturados","1","0","","","","","0","","0","","","",""
+"168","SN2","10","Resumo por modelo e data","1","0","","","","","0","","0","","","",""
+"168","SN3","8","Somente processos em aberto:","0","0","","","","","0","","0","","","",""
+"169","LS1","3","Cidade..:","","0","","SELECT DISTINCT PP.CIDADE
+ FROM GE_PESSOA PP, IVS_PES CP
+ WHERE CP.SEQPESSOA = PP.SEQPESSOA
+ AND CP.SEQCARTEIRA IN ( #SELX1_ListChave ) 
+ ORDER BY PP.CIDADE","","","0","","1","","","",""
+"169","LS2","1","Tipo relatório:","","0","","","Resumo;Analítico","","0","","0","","","",""
+"169","SELX1","2","Carteira..:","#NUM=1#LARG=0","0","","SELECT CARTEIRA, SEQCARTEIRA
+ FROM IVS_CARTEIRA
+ ORDER BY CARTEIRA","","","0","","0","","","",""
+"170","DT1","5","Data do pedido entre:","Início do ano anterior (id)","0","","","","","0","","0","","","",""
+"170","DT2","6","e:","Final deste ano (fd)","0","","","","","0","","0","","","",""
+"170","LS1","3","Família de Produtos","","0","","SELECT DISTINCT vnd.VENDA_TIPO_EQUIPAMEN
+FROM IV_Q$VENDA_EQUIPAMENTO VND
+ORDER BY 1","","","0","","1","","","",""
+"170","LS2","1","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NROEMPRESA NOT IN('6' , '891')
+ORDER BY 1","","","0","","1","","","",""
+"170","LS3","4","Modelo do Equipamento","","1","","SELECT DISTINCT VND.VENDA_MODELO_EQUIPAM
+FROM IV_Q$VENDA_EQUIPAMENTO VND
+WHERE VND.VENDA_TIPO_EQUIPAMEN = :LS1
+ORDER BY 1","","","0","","1","","","",""
+"170","NR1","7","Dias alertar andamento parados","15","0","Andamentos há mais desta qtde de dias, irá alertar com um indicador.","","","","0","","0","","","",""
+"170","OPT1","2","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO IN ( 2, 10 ,25 )
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+","","","0","","0","","","",""
+"170","SN1","9","Listar pedidos faturados","1","0","","","","","0","","0","","","",""
+"170","SN2","10","Resumo por modelo e data","1","0","","","","","0","","0","","","",""
+"170","SN3","8","Somente processos em aberto:","0","0","","","","","0","","0","","","",""
+"171","DT1","5","Data do pedido entre:","Início do ano anterior (id)","0","","","","","0","","0","","","",""
+"171","DT2","6","e:","Final deste ano (fd)","0","","","","","0","","0","","","",""
+"171","LS1","3","Família de Produtos","","0","","SELECT DISTINCT vnd.VENDA_TIPO_EQUIPAMEN
+FROM IV_Q$VENDA_EQUIPAMENTO VND
+ORDER BY 1","","","0","","1","","","",""
+"171","LS2","1","Empresa","","0","","SELECT EMP.NOMEREDUZIDO
+FROM GE_EMPRESA EMP
+WHERE EXISTS ( SELECT 1 FROM IVS_CARTEIRA CRT WHERE CRT.NROEMPRESA = EMP.NROEMPRESA)
+AND EMP.NROEMPRESA NOT IN('6' , '891')
+ORDER BY 1","","","0","","1","","","",""
+"171","LS3","4","Modelo do Equipamento","","1","","SELECT DISTINCT VND.VENDA_MODELO_EQUIPAM
+FROM IV_Q$VENDA_EQUIPAMENTO VND
+WHERE VND.VENDA_TIPO_EQUIPAMEN = :LS1
+ORDER BY 1","","","0","","1","","","",""
+"171","NR1","7","Dias alertar andamento parados","15","0","Andamentos há mais desta qtde de dias, irá alertar com um indicador.","","","","0","","0","","","",""
+"171","OPT1","2","Carteiras","1","1","","SELECT CRT.CARTEIRA #vksSql_ConcatHifen USR.NOMEREDUZIDO, CRT.SEQCARTEIRA
+FROM IVS_DEPTO DPT
+ JOIN IVS_CARTDEPTO CDP ON CDP.SEQDEPTO = DPT.SEQDEPTO
+ JOIN IVS_CARTEIRA CRT ON CRT.SEQCARTEIRA = CDP.SEQCARTEIRA
+ JOIN GE_USUARIO USR ON USR.SEQUSUARIO = CRT.SEQUSRRESP
+ JOIN GE_EMPRESA EMP ON EMP.NROEMPRESA = CRT.NROEMPRESA
+WHERE DPT.SEQDEPTO IN ( 2, 10 ,25 )
+AND ( EMP.NOMEREDUZIDO = :LS2 OR :TUDO2 = 1)
+ORDER BY 1
+","","","0","","0","","","",""
+"171","SN1","9","Listar pedidos faturados","1","0","","","","","0","","0","","","",""
+"171","SN2","10","Resumo por modelo e data","1","0","","","","","0","","0","","","",""
+"171","SN3","8","Somente processos em aberto:","0","0","","","","","0","","0","","","",""
