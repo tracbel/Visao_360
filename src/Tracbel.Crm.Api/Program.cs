@@ -189,6 +189,22 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// A API SERVE O FRONT, quando ele estiver publicado ao lado dela em `wwwroot`.
+//
+// POR QUE UM SERVIÇO SÓ, E NÃO IIS NA FRENTE. Separar front e API em duas portas obrigaria a
+// três coisas que não existem hoje e que só criam superfície de erro: CORS na API (que ela não
+// publica de propósito), um segundo certificado, e o módulo de proxy do IIS (que não está
+// instalado no servidor de aplicação). Servindo da mesma origem, `/api` resolve sozinho — é
+// exatamente o que o `vite.config.ts` já faz em desenvolvimento, e a tela não muda de
+// comportamento entre os dois ambientes.
+//
+// Em desenvolvimento não há `wwwroot`, e o bloco inteiro fica fora do caminho.
+if (Directory.Exists(Path.Combine(app.Environment.ContentRootPath, "wwwroot")))
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
+
 // ORDEM IMPORTA: o contexto de acesso precisa estar definido antes de qualquer endpoint
 // resolver o CrmDbContext, porque o filtro global é pré-computado no construtor dele.
 app.UseMiddleware<MeioDeCampoDeContextoDeAcesso>();
@@ -216,6 +232,19 @@ app.MapearCobertura();
 app.MapearCoberturaTerritorial();
 app.MapearMunicipios();
 app.MapearRelatorios();
+
+// O ÚLTIMO RECURSO DEVOLVE O `index.html`, e é o que faz a navegação da tela funcionar.
+//
+// O front é uma aplicação de página única: `/cobertura` e `/clientes/123` existem no roteador do
+// navegador, não no disco. Sem este desvio, recarregar a página numa rota interna devolveria 404 —
+// o defeito clássico de SPA publicada, que só aparece quando alguém aperta F5 fora da home.
+//
+// Vem DEPOIS de todos os endpoints: `/api/...` que não existir continua devolvendo 404, e não uma
+// página HTML disfarçada de resposta de API.
+if (Directory.Exists(Path.Combine(app.Environment.ContentRootPath, "wwwroot")))
+{
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();
 

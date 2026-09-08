@@ -34,3 +34,12 @@ Thumbs.db
 # execucao e nao dizem nada a quem clonar o repositorio amanha.
 .omc/
 **/.omc/
+
+# Pacote de publicacao e DADO DE PRODUCAO — NUNCA versionar.
+#
+# `publicacao/` e saida de build (123 MB) e, pior, carrega `_banco/*.bak`: o backup do banco
+# INTEIRO, com todo cliente, CNPJ, faturamento e carteira da Tracbel. Um `git add .` distraido
+# publicaria a base comercial da empresa num repositorio remoto, de onde ela nao sai mais.
+publicacao/
+*.bak
+*.trn

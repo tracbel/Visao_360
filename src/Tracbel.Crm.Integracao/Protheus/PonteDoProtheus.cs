@@ -58,6 +58,16 @@ public sealed partial class PonteDoProtheus(IHttpClientFactory fabrica, IOptions
     /// <summary>O nome do cliente HTTP registrado no contêiner.</summary>
     public const string NomeDoCliente = "Protheus";
 
+    /// <summary>
+    /// O código da empresa no Protheus, que antecede a filial no <c>tenantId</c>.
+    ///
+    /// <para>É <c>01</c> em todas as dezesseis filiais da Agro — medido em 08/09/2026: os códigos
+    /// vão de <c>010101</c> a <c>010118</c>, e os dois primeiros dígitos são a empresa. Constante,
+    /// e não parâmetro, porque não há segunda empresa neste ambiente; no dia em que houver, ela
+    /// sobe para <c>OpcoesDoProtheus</c> e o compilador aponta cada lugar que precisa decidir.</para>
+    /// </summary>
+    private const string EmpresaDoProtheus = "01";
+
     private const string NaoConfigurada =
         "A ponte do Protheus não está configurada. Ela exige as variáveis de ambiente " +
         "Protheus__Base, Protheus__Usuario e Protheus__Senha — que nunca moram em arquivo " +
@@ -79,9 +89,22 @@ public sealed partial class PonteDoProtheus(IHttpClientFactory fabrica, IOptions
     /// <param name="campos">Os campos, separados por vírgula. Obrigatório; <c>*</c> não vale.</param>
     /// <param name="onde">O filtro, na sintaxe do Protheus. Ex.: <c>D2_EMISSAO >= '20260101'</c>.</param>
     /// <param name="pagina">A página, a partir de 1.</param>
+    /// <param name="filial">
+    /// A filial do Protheus (ex.: <c>010107</c>), ou nulo para tabela compartilhada.
+    ///
+    /// <para><b>Isto não é um refinamento — é o que separa ler a empresa de ler um pedaço dela.</b>
+    /// Medido em 08/09/2026: sem este cabeçalho o AppServer responde pela filial <i>padrão do nó</i>,
+    /// e esse padrão MUDA. Numa manhã ele devolvia 010101 (Ribeirão Preto, 324.957 itens de nota) e
+    /// à tarde 010116 (Votuporanga, 64.854) — mesma consulta, mesma credencial, resposta de outra
+    /// empresa. Foi assim que este projeto concluiu, por meses, que a Agro faturava toda por uma
+    /// filial só: nunca era a tabela, era a conexão.</para>
+    ///
+    /// <para>Não há erro quando ele falta. A leitura simplesmente devolve outra filial, com números
+    /// plausíveis, e ninguém percebe.</para>
+    /// </param>
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<PaginaDoProtheus>> LerPaginaAsync(
-        string tabela, string campos, string? onde, int pagina, CancellationToken ct)
+        string tabela, string campos, string? onde, int pagina, string? filial, CancellationToken ct)
     {
         var config = opcoes.Value;
         if (!config.EstaConfigurada) return Resultado<PaginaDoProtheus>.Indisponivel(NaoConfigurada);
@@ -106,6 +129,11 @@ public sealed partial class PonteDoProtheus(IHttpClientFactory fabrica, IOptions
 
                 using var pedido = new HttpRequestMessage(HttpMethod.Get, caminho);
                 pedido.Headers.Authorization = new("Bearer", token.Valor);
+
+                // `01` é o código da empresa; a filial vem depois da vírgula. Uma filial que a
+                // credencial não alcança devolve 403 — o que é bom: é um erro, e não um silêncio.
+                if (!string.IsNullOrWhiteSpace(filial))
+                    pedido.Headers.Add("tenantId", $"{EmpresaDoProtheus},{filial}");
 
                 using var resposta = await cliente.SendAsync(pedido, ct);
 
@@ -159,12 +187,14 @@ public sealed partial class PonteDoProtheus(IHttpClientFactory fabrica, IOptions
     /// <param name="campos">Os campos, separados por vírgula.</param>
     /// <param name="onde">O filtro, ou nulo.</param>
     /// <param name="aoAvancar">Chamado a cada página, com o acumulado e o total. Para relatar.</param>
+    /// <param name="filial">A filial do Protheus, ou nulo para tabela compartilhada.</param>
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<IReadOnlyList<Dictionary<string, JsonElement>>>> LerTudoAsync(
         string tabela,
         string campos,
         string? onde,
         Action<int, int>? aoAvancar,
+        string? filial,
         CancellationToken ct)
     {
         var todas = new List<Dictionary<string, JsonElement>>();
@@ -172,7 +202,7 @@ public sealed partial class PonteDoProtheus(IHttpClientFactory fabrica, IOptions
 
         while (true)
         {
-            var lote = await LerPaginaAsync(tabela, campos, onde, pagina, ct);
+            var lote = await LerPaginaAsync(tabela, campos, onde, pagina, filial, ct);
             if (!lote.EhSucesso)
                 return Resultado<IReadOnlyList<Dictionary<string, JsonElement>>>.Indisponivel(lote.Erro!);
 

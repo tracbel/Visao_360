@@ -262,32 +262,13 @@ internal sealed partial class CargaDeProcessoDoVortice(
         // mesma semana. Morreu a integração, não o faturamento.
         //
         // A janela olha três anos para trás a partir de HOJE, porque agora o dado alcança hoje.
-        relatar("Lendo o faturamento direto do Protheus — três anos, para a curva ABC ter base…");
-        var desde = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-AnosDeFaturamento));
-        var faturamento = await faturamentoDoProtheus.LerAsync(desde, relatar, ct);
+        //
+        // A etapa está num método próprio porque ela é a ÚNICA que não depende do Vórtice: lê o
+        // Protheus e o nosso banco, e mais nada. Isolada, dá para reexecutar só ela — ver
+        // `--somente-faturamento`.
+        var faturamento = await CarregarFaturamentoAsync(sistemaId, ct);
         if (!faturamento.EhSucesso)
             return Resultado<ResumoDoRelacionamento>.Indisponivel(faturamento.Erro!);
-
-        if (faturamento.Valor.ClientesSemCadastro > 0)
-            Decidir(
-                "Códigos de cliente na nota fiscal sem correspondência no cadastro do Protheus",
-                faturamento.Valor.ClientesSemCadastro);
-
-        if (faturamento.Valor.ItensSemData > 0)
-            Decidir("Itens de nota descartados por não ter data de emissão legível",
-                faturamento.Valor.ItensSemData);
-
-        var (faturamentoGravado, _) = await GravarFaturamentoAsync(
-            sistemaId, faturamento.Valor.Faturamento, ct);
-
-        relatar(
-            $"  {faturamentoGravado} mês(es) de faturamento gravado(s) · nota mais recente: " +
-            $"{faturamento.Valor.EmissaoMaisRecente:dd/MM/yyyy}.");
-
-        var curva = await ApurarCurvaAbcAsync(ct);
-        relatar(
-            "  curva ABC: " +
-            string.Join(" · ", curva.OrderBy(p => p.Key).Select(p => $"{p.Key} {p.Value}")));
 
         // -----------------------------------------------------------------------------------------
         // 11. O que só se sabe DEPOIS: o duplo ponteiro e a data do último contato.
@@ -340,8 +321,9 @@ internal sealed partial class CargaDeProcessoDoVortice(
             VinculosComUltimoContato: carteirasComContato,
             VendasPerdidasLidas: vendasPerdidas.Valor.LinhasLidas,
             VendasPerdidasGravadas: vendasPerdidasGravadas,
-            MesesDeFaturamentoGravados: faturamentoGravado,
-            ClientesPorClasse: curva.ToDictionary(p => p.Key.ToString(), p => p.Value, StringComparer.Ordinal),
+            MesesDeFaturamentoGravados: faturamento.Valor.Gravados,
+            ClientesPorClasse: faturamento.Valor.Curva
+                .ToDictionary(p => p.Key.ToString(), p => p.Value, StringComparer.Ordinal),
             Recusadas: _recusas.Count,
             Saneamento: _saneamento.ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal),
             RecusasPorMotivo: _recusas

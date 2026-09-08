@@ -451,6 +451,13 @@ public sealed class FaturamentoDoClienteConfiguracao : IEntityTypeConfiguration<
         b.Property(f => f.Notas).IsRequired();
         b.Property(f => f.Itens).IsRequired();
 
+        // A QUEBRA DO MÊS. Zero por padrão, e não nulo: o mês carregado antes de a quebra existir
+        // tem valor e não tem detalhe, e nulo obrigaria toda soma a tratar isso. Zero soma.
+        b.Property(f => f.ValorEmMaquina).HasPrecision(18, 2).IsRequired().HasDefaultValue(0m);
+        b.Property(f => f.ValorEmPeca).HasPrecision(18, 2).IsRequired().HasDefaultValue(0m);
+        b.Property(f => f.ValorEmServico).HasPrecision(18, 2).IsRequired().HasDefaultValue(0m);
+        b.Property(f => f.ValorEmOutros).HasPrecision(18, 2).IsRequired().HasDefaultValue(0m);
+
         b.Property(f => f.CriadoEm).HasPrecision(3).IsRequired();
         b.Property(f => f.AlteradoEm).HasPrecision(3);
         b.Property(f => f.ExcluidoEm).HasPrecision(3);
@@ -473,6 +480,78 @@ public sealed class FaturamentoDoClienteConfiguracao : IEntityTypeConfiguration<
 
         b.ToTable(x => x.HasCheckConstraint(
             "CK_FaturamentoDoCliente_Competencia", "DAY([Competencia]) = 1"));
+
+        // A QUEBRA TEM DE FECHAR COM O TOTAL. É o banco garantindo o que o comentário do domínio
+        // promete: máquina + peça + serviço + outros = valor líquido. A tolerância de um centavo é
+        // arredondamento de soma, não margem para erro de classificação.
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_FaturamentoDoCliente_QuebraFecha",
+            "ABS([ValorEmMaquina] + [ValorEmPeca] + [ValorEmServico] + [ValorEmOutros] " +
+            "- [ValorLiquido]) <= 0.01 " +
+            "OR ([ValorEmMaquina] = 0 AND [ValorEmPeca] = 0 " +
+            "AND [ValorEmServico] = 0 AND [ValorEmOutros] = 0)"));
+
+        b.Ignore(f => f.Eventos);
+    }
+}
+
+/// <summary>Mapeamento de <see cref="FaturamentoSemCliente"/> — schema <c>comercial</c>.</summary>
+public sealed class FaturamentoSemClienteConfiguracao : IEntityTypeConfiguration<FaturamentoSemCliente>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<FaturamentoSemCliente> b)
+    {
+        b.ToTable("FaturamentoSemCliente", "comercial");
+        b.HasKey(f => f.Id);
+        b.Property(f => f.Id).ValueGeneratedOnAdd();
+
+        b.Property(f => f.ChavePublica).IsRequired().HasDefaultValueSql("NEWID()");
+        b.HasIndex(f => f.ChavePublica).IsUnique().HasDatabaseName("UX_FaturamentoSemCliente_ChavePublica");
+
+        b.Property(f => f.Competencia).IsRequired();
+
+        // SÓ DÍGITOS, TAMANHO FIXO NÃO. CPF tem 11 e CNPJ tem 14, e a nota sem documento entra
+        // como cadeia vazia — que é um fato da origem, não um erro a esconder.
+        b.Property(f => f.Documento).HasMaxLength(14).IsUnicode(false).IsRequired();
+        b.Property(f => f.Nome).HasMaxLength(120).IsRequired();
+
+        b.Property(f => f.Natureza).HasConversion<string>().HasMaxLength(24).IsRequired();
+
+        b.Property(f => f.ValorLiquido).HasPrecision(18, 2).IsRequired();
+        b.Property(f => f.ValorEmMaquina).HasPrecision(18, 2).IsRequired().HasDefaultValue(0m);
+        b.Property(f => f.ValorEmPeca).HasPrecision(18, 2).IsRequired().HasDefaultValue(0m);
+        b.Property(f => f.ValorEmServico).HasPrecision(18, 2).IsRequired().HasDefaultValue(0m);
+        b.Property(f => f.ValorEmOutros).HasPrecision(18, 2).IsRequired().HasDefaultValue(0m);
+        b.Property(f => f.Notas).IsRequired();
+        b.Property(f => f.Itens).IsRequired();
+
+        b.Property(f => f.CriadoEm).HasPrecision(3).IsRequired();
+        b.Property(f => f.AlteradoEm).HasPrecision(3);
+        b.Property(f => f.ExcluidoEm).HasPrecision(3);
+
+        // A CHAVE NATURAL É A MESMA IDEIA DA OUTRA TABELA, trocando cliente por documento: é ela
+        // que faz a carga ser reexecutável sem duplicar.
+        b.HasIndex(f => new { f.Documento, f.EmpresaId, f.Competencia })
+            .IsUnique()
+            .HasDatabaseName("UX_FaturamentoSemCliente_Documento_Empresa_Competencia");
+
+        // A pergunta da Visão 360 é "quanto, por natureza, no período".
+        b.HasIndex(f => new { f.Natureza, f.Competencia }).HasFilter("[ExcluidoEm] IS NULL");
+
+        b.HasOne<Empresa>().WithMany().HasForeignKey(f => f.EmpresaId).OnDelete(DeleteBehavior.Restrict);
+
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_FaturamentoSemCliente_Valor", "[ValorLiquido] >= 0"));
+
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_FaturamentoSemCliente_Competencia", "DAY([Competencia]) = 1"));
+
+        // A natureza é seleção, e o banco é quem garante. Sem esta restrição, "seleção" seria só
+        // uma promessa do código — e a próxima carga escreveria o que quisesse.
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_FaturamentoSemCliente_Natureza",
+            "[Natureza] IN ('Indefinida','ClienteNaoCadastrado','Fabrica','EmpresaDoGrupo'," +
+            "'OutraRevenda','SemDocumento')"));
 
         b.Ignore(f => f.Eventos);
     }

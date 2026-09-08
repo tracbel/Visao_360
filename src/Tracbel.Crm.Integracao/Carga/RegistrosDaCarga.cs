@@ -320,6 +320,15 @@ public sealed record VendaPerdidaParaCarga(
 /// <param name="ValorLiquido">O total líquido do mês.</param>
 /// <param name="Notas">Notas fiscais distintas.</param>
 /// <param name="Itens">Itens de nota.</param>
+/// <param name="NomeNaOrigem">
+/// O nome que o ERP tem para essa contraparte.
+///
+/// <para>Vem junto porque quem NÃO casa com o cadastro do CRM também precisa ser gravado, e um
+/// CNPJ sem nome não é acionável: ninguém procura "07791111001001" na lista de clientes.</para>
+/// </param>
+/// <param name="Quebra">
+/// Quanto do mês foi máquina, peça, serviço e outros — do <c>D2_GRUPO</c> da própria nota.
+/// </param>
 public sealed record FaturamentoParaCarga(
     string ChaveDeOrigem,
     string DocumentoDoCliente,
@@ -328,4 +337,6 @@ public sealed record FaturamentoParaCarga(
     DateOnly Competencia,
     decimal ValorLiquido,
     int Notas,
-    int Itens);
+    int Itens,
+    string NomeNaOrigem,
+    QuebraDoFaturamento Quebra);

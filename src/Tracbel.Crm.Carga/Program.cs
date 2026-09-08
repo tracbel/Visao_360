@@ -52,6 +52,16 @@ var somenteMedir = args.Contains("--somente-medir", StringComparer.Ordinal);
 var somenteCadastro = args.Contains("--somente-cadastro", StringComparer.Ordinal);
 var somenteRelacionamento = args.Contains("--somente-relacionamento", StringComparer.Ordinal);
 
+// --somente-faturamento — A ETAPA QUE NAO PRECISA DO VORTICE.
+//
+// O faturamento vem da SD2 do Protheus e o cliente vem do nosso proprio cadastro: o sistema de
+// origem nao entra em lugar nenhum dessa etapa. Reler o Vortice inteiro para atualizar o
+// faturamento custa horas e nao muda nada do que o Vortice traz — e o faturamento e justamente o
+// dado que muda TODO DIA, porque ha nota emitida hoje.
+//
+// E o que permite atualizar o numero da diretoria sem uma janela de migracao.
+var somenteFaturamento = args.Contains("--somente-faturamento", StringComparer.Ordinal);
+
 var configuracao = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json", optional: true)
@@ -70,11 +80,15 @@ if (string.IsNullOrWhiteSpace(conexaoDoCrm))
 
 var conexaoDoLegado = configuracao["Vortice:Conexao"];
 
-if (string.IsNullOrWhiteSpace(conexaoDoLegado))
+// A EXIGÊNCIA CAI NO MODO SÓ-FATURAMENTO, e só nele: essa etapa não abre conexão com o legado.
+// A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
+// tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
+if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
-        "mora em arquivo do repositório. Sem ela a carga não roda — e nada foi gravado.");
+        "mora em arquivo do repositório. Sem ela a carga não roda — e nada foi gravado. " +
+        "Para atualizar só o faturamento, que não usa o legado, use --somente-faturamento.");
     return 2;
 }
 
@@ -139,6 +153,35 @@ var faturamentoDoProtheus = new LeitorDeFaturamentoDoProtheus(
     new PonteDoProtheus(
         provedorDeHttp.GetRequiredService<IHttpClientFactory>(),
         Options.Create(opcoesDoProtheus)));
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só o faturamento. Sai antes de medir o recorte, que é uma consulta ao legado.
+// -------------------------------------------------------------------------------------------------
+
+if (somenteFaturamento)
+{
+    Console.WriteLine("Atualizando SOMENTE o faturamento (Protheus). O sistema legado não é lido.");
+    Console.WriteLine();
+
+    var soFaturamento = new CargaDeProcessoDoVortice(
+        AbrirContexto, leitor, faturamentoDoProtheus, deParaDeFiliais, usuarioId, Console.WriteLine);
+
+    var resultadoDoFaturamento = await soFaturamento.ExecutarSomenteFaturamentoAsync(
+        CancellationToken.None);
+
+    if (!resultadoDoFaturamento.EhSucesso)
+    {
+        Console.Error.WriteLine(resultadoDoFaturamento.Erro);
+        return 3;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("Decisões da carga:");
+    foreach (var (decisao, quantas) in resultadoDoFaturamento.Valor.Decisoes.OrderBy(p => p.Key))
+        Console.WriteLine($"  {quantas,8}  {decisao}");
+
+    return 0;
+}
 
 var recorte = new RecorteDaCarga(ano, deParaDeFiliais.Keys.Order().ToList(), limite);
 

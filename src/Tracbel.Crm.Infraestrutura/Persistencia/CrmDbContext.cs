@@ -320,6 +320,14 @@ public class CrmDbContext : DbContext
     /// </summary>
     public DbSet<FaturamentoDoCliente> FaturamentoDosClientes => Set<FaturamentoDoCliente>();
 
+    /// <summary>
+    /// O faturamento que não achou cliente no CRM — o denominador que faltava.
+    ///
+    /// <para>Sem esta, a tela mostrava R$ 620 milhões como se fosse tudo o que a empresa vende, e
+    /// os R$ 213 milhões que não casaram cadastro sumiam num contador da carga.</para>
+    /// </summary>
+    public DbSet<FaturamentoSemCliente> FaturamentoSemClientes => Set<FaturamentoSemCliente>();
+
     // ---- frota ----
 
     /// <summary>Marcas de máquina.</summary>

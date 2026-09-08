@@ -6,21 +6,22 @@ namespace Tracbel.Crm.Dominio.Comercial;
 /// O faturamento de um cliente numa filial, mês a mês.
 ///
 /// ---------------------------------------------------------------------------------------------
-/// DE ONDE VEM, E ATÉ QUANDO. <c>X_TOTVS_CRM_FATURAMENTO</c>, a tabela que o Vórtice recebe do
-/// Protheus — 809.821 itens de nota com cliente, filial, valor e margem. Ela <b>para em
-/// 11/04/2025</b>, a mesma data em que <c>EXT_NFS</c> parou: a integração inteira com o ERP
-/// morreu naquele dia e ninguém percebeu por 17 meses. Não existe faturamento posterior em lugar
-/// nenhum do banco — foi procurado.
+/// DE ONDE VEM. Da <c>SD2</c> do Protheus — o item da nota fiscal de saída, na origem. Não da
+/// <c>X_TOTVS_CRM_FATURAMENTO</c>, que é a cópia que o Vórtice recebia e que <b>parou em
+/// 11/04/2025</b> sem ninguém perceber por dezessete meses. O faturamento nunca parou; o que
+/// parou foi a integração. Lendo o ERP direto, há nota da mesma semana.
 ///
-/// <para><b>Trazer mesmo assim tem valor, desde que a data seja dita.</b> Três anos de venda real
-/// respondem quem é cliente grande, quem parou de comprar e quanto cada carteira vale — perguntas
-/// que não têm resposta melhor em lugar nenhum. O que não se pode é apresentar isso como
-/// faturamento do mês corrente, e por isso toda tela que usa este dado escreve o período.</para>
+/// <para><b>O grão é cliente × filial × mês.</b> Item a item seriam 225 mil linhas para responder
+/// perguntas que o mês responde igual — e a família da origem mistura categoria com modelo
+/// ("TRATORES" e "TRATOR JOHN DEERE 7230J" na mesma coluna), então agrupar por ela daria um mix
+/// errado.</para>
 ///
-/// <para><b>O grão é cliente × filial × mês.</b> Não guarda item nem família: a família da origem
-/// mistura categoria com modelo — "TRATORES" e "TRATOR JOHN DEERE 7230J" na mesma coluna —, e
-/// somar por ela produziria um gráfico de mix errado. Isso é uma limpeza própria, e ela não
-/// precisa bloquear a classe do cliente.</para>
+/// <para><b>Mas a quebra máquina × peça × serviço fica, e ela é confiável.</b> Vem do
+/// <c>D2_GRUPO</c>, que viaja na própria linha da nota e aponta para o catálogo <c>SBM</c>:
+/// <c>VEIC</c> é máquina, a faixa <c>1001..10xx</c> é peça, <c>SRV</c> e mão de obra são serviço.
+/// É classificação do ERP, não texto digitado. Sem ela não há como responder a pergunta que mais
+/// vale dinheiro no pós-venda: <b>quem comprou máquina e nunca voltou</b>. Medido em três anos,
+/// 668 clientes levaram R$ 449 milhões em máquina e não compraram uma peça sequer.</para>
 /// </summary>
 public sealed class FaturamentoDoCliente : EntidadeBase
 {
@@ -38,6 +39,25 @@ public sealed class FaturamentoDoCliente : EntidadeBase
     /// <summary>O valor líquido faturado no mês, já sem desconto.</summary>
     public decimal ValorLiquido { get; private set; }
 
+    /// <summary>Quanto do mês foi máquina — grupo <c>VEIC</c> na linha da nota.</summary>
+    public decimal ValorEmMaquina { get; private set; }
+
+    /// <summary>Quanto do mês foi peça — a faixa de grupos <c>1001..10xx</c>.</summary>
+    public decimal ValorEmPeca { get; private set; }
+
+    /// <summary>Quanto do mês foi serviço — <c>SRV</c> e mão de obra.</summary>
+    public decimal ValorEmServico { get; private set; }
+
+    /// <summary>
+    /// O que a nota classificou num grupo que ainda não sabemos ler.
+    ///
+    /// <para>Existe para que a soma das quatro parcelas seja sempre igual a
+    /// <see cref="ValorLiquido"/>. Sem ela, um grupo novo no ERP sumiria da quebra e o gráfico de
+    /// mix fecharia com menos do que o total — errando em silêncio, que é o defeito que este
+    /// projeto mais persegue.</para>
+    /// </summary>
+    public decimal ValorEmOutros { get; private set; }
+
     /// <summary>Quantas notas fiscais distintas.</summary>
     public int Notas { get; private set; }
 
@@ -51,13 +71,15 @@ public sealed class FaturamentoDoCliente : EntidadeBase
     /// <param name="valorLiquido">Valor líquido do mês.</param>
     /// <param name="notas">Notas distintas.</param>
     /// <param name="itens">Itens de nota.</param>
+    /// <param name="quebra">Quanto do valor foi máquina, peça, serviço e outros.</param>
     public static FaturamentoDoCliente Criar(
         int empresaId,
         long clienteId,
         DateOnly competencia,
         decimal valorLiquido,
         int notas,
-        int itens) => new()
+        int itens,
+        QuebraDoFaturamento quebra) => new()
         {
             EmpresaId = empresaId,
             ClienteId = clienteId,
@@ -66,7 +88,11 @@ public sealed class FaturamentoDoCliente : EntidadeBase
             Competencia = new DateOnly(competencia.Year, competencia.Month, 1),
             ValorLiquido = valorLiquido,
             Notas = notas,
-            Itens = itens
+            Itens = itens,
+            ValorEmMaquina = quebra.Maquina,
+            ValorEmPeca = quebra.Peca,
+            ValorEmServico = quebra.Servico,
+            ValorEmOutros = quebra.Outros
         };
 
     /// <summary>
@@ -79,10 +105,36 @@ public sealed class FaturamentoDoCliente : EntidadeBase
     /// <param name="valorLiquido">O total do mês, reapurado.</param>
     /// <param name="notas">As notas do mês.</param>
     /// <param name="itens">Os itens do mês.</param>
-    public void Reapurar(decimal valorLiquido, int notas, int itens)
+    /// <param name="quebra">A quebra reapurada do mês.</param>
+    public void Reapurar(decimal valorLiquido, int notas, int itens, QuebraDoFaturamento quebra)
     {
         ValorLiquido = valorLiquido;
         Notas = notas;
         Itens = itens;
+        ValorEmMaquina = quebra.Maquina;
+        ValorEmPeca = quebra.Peca;
+        ValorEmServico = quebra.Servico;
+        ValorEmOutros = quebra.Outros;
     }
+}
+
+/// <summary>
+/// Como o valor de um mês se divide entre máquina, peça, serviço e o que não soubemos classificar.
+///
+/// <para>As quatro parcelas andam juntas porque só fazem sentido somadas: soltas, é fácil gravar
+/// três e esquecer a quarta, e a diferença só aparece como um buraco no gráfico de mix meses
+/// depois. Como um argumento só, ou vêm todas ou não compila.</para>
+/// </summary>
+/// <param name="Maquina">Grupo <c>VEIC</c>.</param>
+/// <param name="Peca">Faixa <c>1001..10xx</c>.</param>
+/// <param name="Servico"><c>SRV</c> e mão de obra.</param>
+/// <param name="Outros">Grupo que ainda não sabemos ler.</param>
+public readonly record struct QuebraDoFaturamento(
+    decimal Maquina,
+    decimal Peca,
+    decimal Servico,
+    decimal Outros)
+{
+    /// <summary>Uma quebra zerada, para o mês que ainda não foi apurado.</summary>
+    public static QuebraDoFaturamento Nenhuma => new(0m, 0m, 0m, 0m);
 }
