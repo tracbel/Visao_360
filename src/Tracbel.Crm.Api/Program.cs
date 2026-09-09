@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Api.Comum;
+using Tracbel.Crm.Api.Seguranca;
 using Tracbel.Crm.Api.Endpoints;
 using Tracbel.Crm.Aplicacao.Catalogos;
 using Tracbel.Crm.Aplicacao.Clientes;
@@ -15,7 +18,45 @@ using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 using Tracbel.Crm.Integracao.Vortice;
 
-var builder = WebApplication.CreateBuilder(args);
+// A RAIZ DE CONTEÚDO É A PASTA DO EXECUTÁVEL, E ISSO PRECISA SER DITO AQUI.
+//
+// `CreateBuilder` calcula o caminho do `wwwroot` A PARTIR da raiz de conteúdo, e faz isso AGORA.
+// Como serviço do Windows, a pasta de trabalho do processo é `C:\Windows\System32` — então, sem
+// esta linha, a raiz vira `System32` e o front é procurado em `C:\Windows\System32\wwwroot`.
+//
+// `UseWindowsService()` mais abaixo também ajusta a raiz, mas TARDE DEMAIS: o caminho do `wwwroot`
+// já foi resolvido e não é recalculado. Medido no servidor: a página inicial devolvia o erro 422
+// da API em vez do portal, porque o arquivo estático nunca era encontrado e a requisição seguia
+// para os endpoints.
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+});
+
+// RODAR COMO SERVIÇO DO WINDOWS.
+//
+// Sem esta linha a aplicação sobe, atende a porta, e mesmo assim MORRE. O Gerenciador de Serviços
+// espera que o processo avise que terminou de iniciar; um programa de console comum nunca avisa,
+// então o serviço fica em "Start Pending" e o Windows o encerra quando o prazo de partida vence.
+// Medido no servidor: o portal respondeu na porta 5443 por alguns minutos e depois sumiu, com o
+// serviço parado — sem erro nenhum no log da aplicação, porque a aplicação não falhou.
+//
+// `UseWindowsService` também aponta a raiz de conteúdo para a pasta do executável. Isso importa
+// aqui: sem ela a raiz é a pasta de trabalho do serviço (`C:\Windows\System32`), e o `wwwroot`
+// com o front não seria encontrado.
+//
+// Fora do Windows, ou rodando pelo `dotnet run`, o método não faz nada — o desenvolvimento não
+// muda de comportamento.
+builder.Host.UseWindowsService();
+
+// A AUTENTICAÇÃO SÓ LIGA QUANDO HÁ COMO LIGÁ-LA.
+//
+// O registro do aplicativo no Entra depende do DNS definitivo (o endereço de retorno tem de estar
+// cadastrado lá), e uma implantação não pode ficar refém de um cadastro que ainda não foi feito.
+// Configurado, o login passa a valer; não configurado, a API segue no modo de cabeçalho — com o
+// aviso alto que já existe mais abaixo.
+var entraLigado = builder.Services.AdicionarEntraId(builder.Configuration);
 
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
@@ -188,6 +229,30 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+if (entraLigado)
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    app.Logger.LogInformation(
+        "Autenticação pelo Entra ID ATIVA. Grupo exigido: {Grupo}.",
+        builder.Configuration["Entra:GrupoPermitido"] ?? "(nenhum — qualquer conta do locatário entra)");
+
+    // SAIR TAMBÉM PRECISA EXISTIR. Sem esta rota, "sair" seria fechar o navegador — e numa máquina
+    // compartilhada de filial isso não é sair.
+    app.MapGet("/auth/sair", async (HttpContext http) =>
+    {
+        await http.SignOutAsync(EntraId.EsquemaDeCookie);
+        await http.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
+    });
+}
+else
+{
+    app.Logger.LogWarning(
+        "Autenticação pelo Entra ID DESLIGADA: faltam Entra__TenantId, Entra__ClientId ou " +
+        "Entra__ClientSecret. Qualquer um que alcance esta porta vê tudo.");
+}
 
 // A API SERVE O FRONT, quando ele estiver publicado ao lado dela em `wwwroot`.
 //

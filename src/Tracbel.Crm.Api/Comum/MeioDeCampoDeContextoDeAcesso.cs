@@ -32,6 +32,21 @@ public sealed class MeioDeCampoDeContextoDeAcesso(
     /// <summary>Os caminhos que não exigem identidade.</summary>
     private static readonly string[] CaminhosLivres = ["/saude", "/openapi", "/scalar", "/swagger"];
 
+    /// <summary>
+    /// O prefixo que EXIGE identidade.
+    ///
+    /// <para><b>Identidade é exigência da API, não do portal.</b> Um arquivo estático — o
+    /// <c>index.html</c>, o pacote de JavaScript, a folha de estilo — não lê banco, não tem
+    /// fronteira de filial e não precisa saber quem está pedindo. Quem precisa é o endpoint que o
+    /// navegador chama depois, e esse vive sob <c>/api</c>.</para>
+    ///
+    /// <para>Sem esta distinção, o portal publicado não abre: a página inicial devolve <c>422</c>
+    /// pedindo cabeçalho, e recarregar numa rota interna como <c>/cobertura</c> devolve o mesmo —
+    /// porque a rota da página única não é arquivo em disco e chegaria aqui antes do desvio para o
+    /// <c>index.html</c>. Foi o que aconteceu na primeira publicação.</para>
+    /// </summary>
+    private const string PrefixoDaApi = "/api";
+
     /// <summary>Executa o meio de campo.</summary>
     /// <param name="http">A requisição em curso.</param>
     /// <param name="portador">Onde o contexto desta requisição é guardado.</param>
@@ -43,7 +58,10 @@ public sealed class MeioDeCampoDeContextoDeAcesso(
     {
         var caminho = http.Request.Path.Value ?? string.Empty;
 
-        if (CaminhosLivres.Any(livre => caminho.StartsWith(livre, StringComparison.OrdinalIgnoreCase)))
+        var ehApi = caminho.StartsWith(PrefixoDaApi, StringComparison.OrdinalIgnoreCase);
+        var ehLivre = CaminhosLivres.Any(livre => caminho.StartsWith(livre, StringComparison.OrdinalIgnoreCase));
+
+        if (!ehApi || ehLivre)
         {
             await proximo(http);
             return;
