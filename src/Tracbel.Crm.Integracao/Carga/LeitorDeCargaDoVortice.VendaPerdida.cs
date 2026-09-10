@@ -131,7 +131,7 @@ public sealed partial class LeitorDeCargaDoVortice
                 "precoDoConcorrente", Numero(leitor, "PrecoDoConcorrente"), correcoes),
             PrecoOfertado: SaneamentoDeVendaPerdida.Preco(
                 "precoOfertado", Numero(leitor, "PrecoOfertado"), correcoes),
-            ParticipamosDaNegociacao: SaneamentoDeVendaPerdida.SimNaoOuNada(Texto(leitor, "Participamos")),
+            Participacao: SaneamentoDeVendaPerdida.SimNaoOuNada(Texto(leitor, "Participamos")),
             RegistradaPor: SaneamentoDaCarga.Texto(
                 "registradaPor", Texto(leitor, "UsuInclusao"), 60, correcoes, rejeicoes),
             Correcoes: correcoes,

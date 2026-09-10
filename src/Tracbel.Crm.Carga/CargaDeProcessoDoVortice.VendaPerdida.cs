@@ -113,7 +113,7 @@ internal sealed partial class CargaDeProcessoDoVortice
                     quantidade: venda.Quantidade,
                     precoDoConcorrente: venda.PrecoDoConcorrente,
                     precoOfertado: venda.PrecoOfertado,
-                    participamosDaNegociacao: venda.ParticipamosDaNegociacao,
+                    participacao: venda.Participacao,
                     registradaPor: venda.RegistradaPor);
 
                 contexto.VendasPerdidas.Add(entidade);

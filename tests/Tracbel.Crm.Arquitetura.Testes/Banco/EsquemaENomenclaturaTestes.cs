@@ -109,12 +109,23 @@ public sealed partial class EsquemaENomenclaturaTestes
     }
 
     [Fact]
-    public void Os_dez_schemas_do_modelo_unificado_existem_e_somam_sessenta_e_cinco_tabelas()
+    public void Os_dez_schemas_do_modelo_unificado_existem_e_somam_sessenta_e_oito_tabelas()
     {
-        // O documento 17, seção 8.12, fixou a conta em 63 tabelas em 10 schemas. Hoje são 65:
-        // as duas de organizacao que o documento 26 acrescentou — Municipio e CarteiraMunicipio,
-        // o agrupamento territorial que existe de verdade no sistema de origem. Este teste é o
-        // que impede o modelo de crescer sem decisão registrada — o "portão" da seção 10.2.
+        // O documento 17, seção 8.12, fixou a conta em 63 tabelas em 10 schemas. Hoje são 68, e
+        // cada acréscimo tem decisão registrada:
+        //
+        //   +2 organizacao.Municipio e organizacao.CarteiraMunicipio — documento 26, seção 5.
+        //   +1 processo.VendaPerdida — o motivo da perda mora no motor de questionário do sistema
+        //      de origem, não no processo; sem tabela própria a resposta continuaria ilegível.
+        //   +1 comercial.FaturamentoDoCliente — o faturamento por cliente, filial e mês, base da
+        //      curva ABC.
+        //   +1 comercial.FaturamentoSemCliente — documento 31: o faturamento que NÃO acha cliente
+        //      no CRM. R$ 798,6 milhões que antes eram descartados em silêncio; sem esta tabela a
+        //      tela mostra o numerador e esconde o denominador.
+        //
+        // Este teste é o que impede o modelo de crescer sem decisão registrada — o "portão" da
+        // seção 10.2. Ele falhou de propósito quando as três últimas entraram, e é assim que se
+        // descobre que alguém acrescentou tabela sem escrever por quê.
         var porSchema = ModeloBanco.Modelo.GetEntityTypes()
             .GroupBy(t => t.GetSchema() ?? "(sem schema)")
             .ToDictionary(g => g.Key, g => g.Count());
@@ -123,8 +134,8 @@ public sealed partial class EsquemaENomenclaturaTestes
         {
             ["organizacao"] = 8,
             ["seguranca"] = 8,
-            ["comercial"] = 9,
-            ["processo"] = 13,
+            ["comercial"] = 11,
+            ["processo"] = 14,
             ["frota"] = 5,
             ["documento"] = 2,
             ["auditoria"] = 3,
@@ -134,12 +145,12 @@ public sealed partial class EsquemaENomenclaturaTestes
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 65 tabelas em 10 schemas — as 63 do documento 17, seção 8.12, mais " +
-            "organizacao.Municipio e organizacao.CarteiraMunicipio, decididas no documento 26, " +
-            "seção 5. Mudar este número exige a decisão registrada da seção 10.2 (o portão de " +
-            "tabela nova), e a atualização do documento 14, seção 2.1, na MESMA mudança");
+            "a conta é 68 tabelas em 10 schemas — as 63 do documento 17, seção 8.12, mais as " +
+            "cinco listadas no comentário acima, cada uma com decisão registrada. Mudar este " +
+            "número exige a decisão da seção 10.2 (o portão de tabela nova) e a atualização do " +
+            "documento 14, seção 2.1, na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(65);
+        porSchema.Values.Sum().Should().Be(68);
     }
 
     [Fact]

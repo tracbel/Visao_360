@@ -543,6 +543,14 @@ public sealed class VendaPerdidaConfiguracao : IEntityTypeConfiguration<VendaPer
         b.Property(v => v.PrecoDoConcorrente).HasPrecision(18, 2);
         b.Property(v => v.PrecoOfertado).HasPrecision(18, 2);
 
+        // GRAVADO COMO TEXTO, e com a restrição no banco. Este campo já foi um `bit` anulável, e
+        // o `NULL` guardava a terceira resposta sem nome — quem abrisse a tabela precisava saber
+        // de cabeça que ali "não informado" e "não participamos" eram coisas diferentes. O nome
+        // vai junto com o dado, e o banco recusa qualquer valor fora dos três.
+        b.Property(v => v.Participacao)
+            .HasConversion<string>().HasMaxLength(16).IsUnicode(false).IsRequired()
+            .HasDefaultValue(ParticipacaoNaNegociacao.NaoInformado);
+
         b.Property(v => v.CriadoEm).HasPrecision(3).IsRequired();
         b.Property(v => v.AlteradoEm).HasPrecision(3);
         b.Property(v => v.ExcluidoEm).HasPrecision(3);
@@ -580,6 +588,10 @@ public sealed class VendaPerdidaConfiguracao : IEntityTypeConfiguration<VendaPer
             "([PrecoOfertado] IS NULL OR [PrecoOfertado] > 0)"));
 
         b.ToTable(x => x.HasCheckConstraint("CK_VendaPerdida_Quantidade", "[Quantidade] >= 1"));
+
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_VendaPerdida_Participacao",
+            "[Participacao] IN ('NaoInformado','Sim','Nao')"));
 
         b.Ignore(v => v.Eventos);
     }

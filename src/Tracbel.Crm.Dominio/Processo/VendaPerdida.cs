@@ -99,11 +99,14 @@ public sealed class VendaPerdida : EntidadeBase
     /// <summary>
     /// Se a Tracbel chegou a participar da negociação.
     ///
-    /// Nulo é a terceira resposta e ela é frequente: o formulário atual não faz essa pergunta, e
-    /// o anterior a deixava em branco. Falso diria "ficamos de fora", que é afirmação diferente
-    /// de "não se sabe".
+    /// <para><b>São três respostas, e não duas.</b> "Não se sabe" é frequente — o formulário atual
+    /// não faz essa pergunta e o anterior a deixava em branco —, e é afirmação diferente de
+    /// "ficamos de fora". Este campo já foi <c>bool?</c>, e o nulo carregava a terceira resposta
+    /// sem nome: quem lesse a coluna precisava saber, de cabeça, que <c>NULL</c> ali significava
+    /// "não informado" e não "erro de carga". Com o valor nomeado, a soma por participação fecha
+    /// sozinha e ninguém precisa adivinhar.</para>
     /// </summary>
-    public bool? ParticipamosDaNegociacao { get; private set; }
+    public ParticipacaoNaNegociacao Participacao { get; private set; }
 
     /// <summary>Quem preencheu, como a origem identifica. Só para rastrear.</summary>
     public string? RegistradaPor { get; private set; }
@@ -124,7 +127,7 @@ public sealed class VendaPerdida : EntidadeBase
         int quantidade = 1,
         decimal? precoDoConcorrente = null,
         decimal? precoOfertado = null,
-        bool? participamosDaNegociacao = null,
+        ParticipacaoNaNegociacao participacao = ParticipacaoNaNegociacao.NaoInformado,
         string? registradaPor = null) => new()
         {
             EmpresaId = empresaId,
@@ -141,7 +144,27 @@ public sealed class VendaPerdida : EntidadeBase
             Quantidade = quantidade < 1 ? 1 : quantidade,
             PrecoDoConcorrente = precoDoConcorrente,
             PrecoOfertado = precoOfertado,
-            ParticipamosDaNegociacao = participamosDaNegociacao,
+            Participacao = participacao,
             RegistradaPor = registradaPor
         };
+}
+
+/// <summary>
+/// Se a Tracbel participou da negociação que foi perdida.
+///
+/// <para>É seleção, e não booleano anulável: a diferença entre "ficamos de fora" e "ninguém
+/// registrou" muda a leitura da derrota. A primeira é uma perda de cobertura — o concorrente
+/// chegou e nós nem soubemos. A segunda é uma falha de preenchimento. Tratar as duas como o mesmo
+/// <c>NULL</c> apagaria justamente o que a diretoria precisa distinguir.</para>
+/// </summary>
+public enum ParticipacaoNaNegociacao
+{
+    /// <summary>Ninguém registrou. É a maioria, e não é o mesmo que "não participamos".</summary>
+    NaoInformado = 0,
+
+    /// <summary>Disputamos e perdemos.</summary>
+    Sim = 1,
+
+    /// <summary>Não fomos chamados — perda de cobertura, não de proposta.</summary>
+    Nao = 2
 }

@@ -1,3 +1,4 @@
+using Tracbel.Crm.Dominio.Processo;
 using System.Globalization;
 using Tracbel.Crm.Integracao.Saneamento;
 
@@ -107,14 +108,18 @@ public static class SaneamentoDeVendaPerdida
     /// O "Sim"/"Não" do formulário, com o branco preservado como desconhecido.
     /// </summary>
     /// <param name="bruto">O que veio da origem.</param>
-    public static bool? SimNaoOuNada(string? bruto)
+    public static ParticipacaoNaNegociacao SimNaoOuNada(string? bruto)
     {
         var texto = bruto?.Trim();
-        if (string.IsNullOrEmpty(texto)) return null;
+        if (string.IsNullOrEmpty(texto)) return ParticipacaoNaNegociacao.NaoInformado;
 
         // "S", "Sim", "SIM" — e nada além disso conta como sim.
-        if (texto.StartsWith('S') || texto.StartsWith('s')) return true;
-        if (texto.StartsWith('N') || texto.StartsWith('n')) return false;
-        return null;
+        if (texto.StartsWith('S') || texto.StartsWith('s')) return ParticipacaoNaNegociacao.Sim;
+        if (texto.StartsWith('N') || texto.StartsWith('n')) return ParticipacaoNaNegociacao.Nao;
+
+        // O que não for reconhecido vira NaoInformado, e nunca "Nao": inventar uma negativa a
+        // partir de lixo de digitação afirmaria que ficamos de fora de uma disputa que talvez
+        // tenhamos disputado.
+        return ParticipacaoNaNegociacao.NaoInformado;
     }
 }

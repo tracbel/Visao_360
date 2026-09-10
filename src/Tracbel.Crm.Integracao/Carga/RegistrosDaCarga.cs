@@ -1,3 +1,4 @@
+using Tracbel.Crm.Dominio.Processo;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Integracao.Saneamento;
@@ -274,7 +275,7 @@ public sealed record LoteDaCarga<T>(
 /// <param name="Quantidade">Quantas máquinas.</param>
 /// <param name="PrecoDoConcorrente">O preço do concorrente, quando é preço.</param>
 /// <param name="PrecoOfertado">O preço ofertado, quando é preço.</param>
-/// <param name="ParticipamosDaNegociacao">Se a Tracbel participou. Nulo é "não se sabe".</param>
+/// <param name="Participacao">Se a Tracbel participou — sim, não, ou não informado.</param>
 /// <param name="RegistradaPor">Quem preencheu, como a origem identifica.</param>
 /// <param name="Correcoes">O que foi corrigido na entrada.</param>
 /// <param name="Rejeicoes">Os campos recusados, com o registro aceito assim mesmo.</param>
@@ -294,7 +295,7 @@ public sealed record VendaPerdidaParaCarga(
     int Quantidade,
     decimal? PrecoDoConcorrente,
     decimal? PrecoOfertado,
-    bool? ParticipamosDaNegociacao,
+    ParticipacaoNaNegociacao Participacao,
     string? RegistradaPor,
     IReadOnlyList<CorrecaoAplicada> Correcoes,
     IReadOnlyList<CampoRejeitado> Rejeicoes);

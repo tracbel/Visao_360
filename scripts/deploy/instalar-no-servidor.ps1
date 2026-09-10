@@ -42,6 +42,14 @@ param(
     [int]    $PortaApi    = 5443,
     [string] $NomeServico = 'TracbelCrmApi',
     [string] $Colacao     = 'Latin1_General_CI_AI',
+
+    # O NOME PELO QUAL A APLICACAO E CONHECIDA.
+    #
+    # O certificado da Tracbel e curinga de *.tracbel.com.br: ele fecha o cadeado quando o endereco
+    # e um NOME desse dominio, e avisa quando e um IP - o navegador compara o endereco digitado com
+    # o nome do certificado, e 10.150.4.249 nao esta la. Este mesmo nome e o que vai no endereco de
+    # retorno do Entra ID; mudar depois obriga a alterar o registro do aplicativo.
+    [string] $NomeDns     = '360-TracbelAgro.tracbel.com.br',
     [int]    $TetoDeMemoriaMB = 1400,
 
     # RESTAURAR POR CIMA E DESTRUTIVO, ENTAO NAO E O PADRAO.
@@ -474,7 +482,7 @@ if (Test-Path $pfx) {
     $senhaPfx = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
     $cert = New-SelfSignedCertificate `
         -Subject 'CN=tracbel-crm' `
-        -DnsName 'tracbel-crm', 'localhost', $env:COMPUTERNAME, '10.150.4.249' `
+        -DnsName '360-TracbelAgro.tracbel.com.br', 'tracbel-crm', 'localhost', $env:COMPUTERNAME, '10.150.4.249' `
         -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 `
         -NotAfter (Get-Date).AddYears(3) `
         -CertStoreLocation 'Cert:\LocalMachine\My' -KeyExportPolicy Exportable
@@ -643,7 +651,9 @@ try {
 
 Write-Host ''
 Write-Host '=================================================================' -ForegroundColor Green
-Write-Host " CRM no ar em:  https://10.150.4.249:$PortaApi" -ForegroundColor Green
+Write-Host " CRM no ar em:  https://$NomeDns`:$PortaApi" -ForegroundColor Green
+Write-Host "                (por IP: https://10.150.4.249:$PortaApi - o navegador avisa,"
+Write-Host "                 porque o certificado cobre o NOME, nao o endereco)"
 Write-Host '=================================================================' -ForegroundColor Green
 Write-Host ''
 Write-Host ' O que ficou PENDENTE, e nao e pouco:' -ForegroundColor Yellow
