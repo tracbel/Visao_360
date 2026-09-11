@@ -446,13 +446,63 @@ $valor  = Sql "SELECT CAST(SUM(ValorLiquido)/1000000 AS decimal(12,1)) FROM [Tra
 Ok "conferencia: $linhas meses de faturamento, R$ $valor milhoes"
 
 # -------------------------------------------------------------------------------------------------
+# 2b. Migracoes do banco.
+# -------------------------------------------------------------------------------------------------
+Passo '2b. Migracoes do banco'
+
+# O BANCO PRECISA ESTAR NA MESMA VERSAO DA APLICACAO. O backup restaurado e uma foto do dia em que foi
+# tirado; toda migracao posterior (coluna nova, tabela nova) fica faltando, e a aplicacao nova NAO
+# falha na subida - falha na primeira consulta que tocar a coluna, com "Invalid column name", no meio
+# de uma tela. O script e idempotente: cada migracao confere o historico antes de rodar, entao
+# reexecutar o instalador nao repete nada.
+$scriptMigracoes = Join-Path $Raiz 'publicacao\_migracoes\migracoes.sql'
+if (-not (Test-Path $scriptMigracoes)) { throw "Nao achei o script de migracoes em $scriptMigracoes." }
+
+$conexaoDoCrm = 'Server=localhost;Database=TracbelCrm;Integrated Security=True;TrustServerCertificate=True'
+
+function ContarMigracoes {
+    $c = New-Object System.Data.SqlClient.SqlConnection $conexaoDoCrm
+    $c.Open()
+    try {
+        $cmd = $c.CreateCommand()
+        $cmd.CommandText = 'SELECT COUNT(*) FROM metadado.__EFMigrationsHistory'
+        return [int]$cmd.ExecuteScalar()
+    } finally { $c.Close() }
+}
+
+$antes = ContarMigracoes
+
+# O SCRIPT VEM SEPARADO POR GO, que e comando do SSMS e do sqlcmd, e nao do SQL Server: mandado inteiro
+# pelo cliente, ele falha logo no primeiro GO. Cada lote vai numa execucao propria.
+$lotes = [regex]::Split((Get-Content $scriptMigracoes -Raw -Encoding UTF8), '(?im)^\s*GO\s*$') |
+    Where-Object { $_.Trim() }
+
+$conexao = New-Object System.Data.SqlClient.SqlConnection $conexaoDoCrm
+$conexao.Open()
+try {
+    foreach ($lote in $lotes) {
+        $cmd = $conexao.CreateCommand()
+        $cmd.CommandTimeout = 1800
+        $cmd.CommandText = $lote
+        [void]$cmd.ExecuteNonQuery()
+    }
+} finally { $conexao.Close() }
+
+$depois = ContarMigracoes
+if ($depois -gt $antes) {
+    Ok ("{0} migracao(oes) aplicada(s) - o banco esta na versao da aplicacao" -f ($depois - $antes))
+} else {
+    Ok 'nenhuma migracao pendente - o banco ja estava na versao da aplicacao'
+}
+
+# -------------------------------------------------------------------------------------------------
 # 3. A aplicacao.
 # -------------------------------------------------------------------------------------------------
 Passo '3. Instalando a aplicacao'
 
 # O servico ja foi parado e removido no passo 0, antes da checagem de porta.
 New-Item -ItemType Directory -Force -Path $Destino | Out-Null
-& robocopy (Join-Path $Raiz 'publicacao') $Destino /E /XD '_banco' /NFL /NDL /NJH /NJS /NP /R:2 /W:5 | Out-Null
+& robocopy (Join-Path $Raiz 'publicacao') $Destino /E /XD '_banco' '_migracoes' /NFL /NDL /NJH /NJS /NP /R:2 /W:5 | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "A copia dos arquivos falhou (robocopy $LASTEXITCODE)." }
 Ok "arquivos em $Destino"
 
