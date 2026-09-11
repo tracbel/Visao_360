@@ -50,6 +50,16 @@ param(
     # o nome do certificado, e 10.150.4.249 nao esta la. Este mesmo nome e o que vai no endereco de
     # retorno do Entra ID; mudar depois obriga a alterar o registro do aplicativo.
     [string] $NomeDns     = '360-TracbelAgro.tracbel.com.br',
+
+    # LOGIN PELO MICROSOFT ENTRA ID. Sem locatario, aplicativo e segredo, o login fica DESLIGADO e a
+    # API volta ao cabecalho provisorio - que nao autentica ninguem. O SEGREDO NAO E PARAMETRO: ele
+    # e pedido na tela, para nao ficar gravado no historico do PowerShell.
+    [string] $EntraTenantId = '',
+    [string] $EntraClientId = '',
+
+    # O Object ID do grupo de seguranca que pode entrar. Vazio deixa entrar qualquer conta do
+    # locatario Tracbel - o script avisa quando for o caso.
+    [string] $EntraGrupoPermitido = '',
     [int]    $TetoDeMemoriaMB = 1400,
 
     # RESTAURAR POR CIMA E DESTRUTIVO, ENTAO NAO E O PADRAO.
@@ -503,10 +513,32 @@ $arquivoConfig = Join-Path $Destino 'appsettings.Production.json'
 
 # SEM SENHA, O CAMPO NAO ENTRA. Escrever `"Password": ""` faz o Kestrel tentar abrir o arquivo
 # COM uma senha vazia, que e diferente de abrir SEM senha - e a falha vira "servico parado".
+# O LOGIN PELO ENTRA ID SOBREVIVE A REINSTALACAO. Este arquivo e regravado a cada execucao; sem
+# reler a secao Entra que ja existe, atualizar a aplicacao desligaria o login em silencio - e a
+# porta voltaria a aceitar qualquer cabecalho, sem ninguem perceber.
+$entraAnterior = $null
+if (Test-Path $arquivoConfig) {
+    try { $entraAnterior = (Get-Content $arquivoConfig -Raw | ConvertFrom-Json).Entra } catch { $entraAnterior = $null }
+}
+
+$tenant  = if ($EntraTenantId) { $EntraTenantId } elseif ($entraAnterior) { $entraAnterior.TenantId } else { '' }
+$cliente = if ($EntraClientId) { $EntraClientId } elseif ($entraAnterior) { $entraAnterior.ClientId } else { '' }
+$grupo   = if ($EntraGrupoPermitido) { $EntraGrupoPermitido } elseif ($entraAnterior) { $entraAnterior.GrupoPermitido } else { '' }
+
+# Aplicativo NOVO nao herda o segredo do anterior: segredo de outro registro so produziria erro no
+# meio do login, depois de a pessoa ja ter digitado a senha na tela da Microsoft.
+$segredo = if ($entraAnterior -and -not $EntraClientId) { $entraAnterior.ClientSecret } else { '' }
+
+if ($tenant -and $cliente -and -not $segredo) {
+    $lido = Read-Host '   Segredo do aplicativo no Entra ID (client secret, nao aparece na tela)' -AsSecureString
+    $segredo = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+        [Runtime.InteropServices.Marshal]::SecureStringToBSTR($lido))
+}
+
 $certificado = @{ Path = $pfx }
 if (-not [string]::IsNullOrEmpty($senhaPfx)) { $certificado['Password'] = $senhaPfx }
 
-@{
+$config = @{
     ConnectionStrings = @{
         Crm = "Server=localhost;Database=TracbelCrm;User Id=TracbelCrm;Password=$senhaApp;TrustServerCertificate=True"
     }
@@ -518,7 +550,24 @@ if (-not [string]::IsNullOrEmpty($senhaPfx)) { $certificado['Password'] = $senha
             }
         }
     }
-} | ConvertTo-Json -Depth 8 | Set-Content -Path $arquivoConfig -Encoding UTF8
+}
+
+if ($tenant -and $cliente -and $segredo) {
+    $config['Entra'] = @{
+        TenantId       = $tenant
+        ClientId       = $cliente
+        ClientSecret   = $segredo
+        GrupoPermitido = $grupo
+    }
+    Ok ("login pelo Entra ID LIGADO - grupo exigido: {0}" -f $(if ($grupo) { $grupo } else { 'nenhum' }))
+    if (-not $grupo) { Aviso 'sem -EntraGrupoPermitido, QUALQUER conta do locatario Tracbel consegue entrar' }
+    Aviso "o endereco de retorno cadastrado no Entra precisa ser https://$NomeDns`:$PortaApi/auth/callback"
+    Aviso 'acessar pelo IP quebra o login: a Microsoft recusa endereco de retorno que nao foi cadastrado'
+} else {
+    Aviso 'login pelo Entra ID DESLIGADO (faltam -EntraTenantId e -EntraClientId): a API aceita o cabecalho provisorio'
+}
+
+$config | ConvertTo-Json -Depth 8 | Set-Content -Path $arquivoConfig -Encoding UTF8
 
 # A senha do banco esta neste arquivo: so administrador e o proprio servico leem.
 $acl = Get-Acl $arquivoConfig

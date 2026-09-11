@@ -28,6 +28,7 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useContextoDeAcesso } from '../dados/api/contexto';
+import { useSessao } from '../dados/api/sessao';
 import { acharRota } from '../rotas';
 import { SeletorDeFilial } from './cadastro/SeletorDeFilial';
 import {
@@ -81,6 +82,7 @@ export function Layout() {
   const rota = acharRota(pathname);
   const navegar = useNavigate();
   const { contexto } = useContextoDeAcesso();
+  const { sessao } = useSessao();
 
   const [termoBusca, setTermoBusca] = useState('');
   const campoBusca = useRef<HTMLInputElement>(null);
@@ -161,15 +163,36 @@ export function Layout() {
           cabeçalho HTTP não autentica ninguém (dívida D-1 do documento 23).
         */}
         <div className="sidebar-footer">
-          <div className="user-chip">
-            <div className="avatar">{iniciais(contexto.usuario)}</div>
-            <div className="user-info">
-              <span className="user-name">{contexto.usuario.split('@')[0]}</span>
-              <span className="user-role" title="Contexto de acesso provisório: os dois cabeçalhos que a API recebe. Não autentica ninguém.">
-                filial {contexto.empresa} · acesso provisório
-              </span>
+          {sessao.estado === 'autenticado' ? (
+            <div className="user-chip">
+              <div className="avatar">{iniciais(sessao.nomePrincipal)}</div>
+              <div className="user-info">
+                <span className="user-name" title={sessao.email}>
+                  {sessao.nome}
+                </span>
+                <span className="user-role">
+                  filial {contexto.empresa} ·{' '}
+                  {/* ÂNCORA COMUM, e não navegação do roteador: sair precisa
+                      passar pelo servidor, que derruba o cookie E a sessão na
+                      Microsoft. Só limpar o estado da tela deixaria a próxima
+                      pessoa da máquina entrar direto nesta conta. */}
+                  <a className="user-sair" href="/auth/sair">
+                    Sair
+                  </a>
+                </span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="user-chip">
+              <div className="avatar">{iniciais(contexto.usuario)}</div>
+              <div className="user-info">
+                <span className="user-name">{contexto.usuario.split('@')[0]}</span>
+                <span className="user-role" title="Contexto de acesso provisório: os dois cabeçalhos que a API recebe. Não autentica ninguém.">
+                  filial {contexto.empresa} · acesso provisório
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 

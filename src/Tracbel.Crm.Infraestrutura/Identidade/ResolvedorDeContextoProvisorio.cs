@@ -44,20 +44,6 @@ public sealed class ResolvedorDeContextoProvisorio(
     ILogger<ResolvedorDeContextoProvisorio> log)
 {
     /// <summary>
-    /// As permissões que esta ponte concede, e a profundidade de cada uma.
-    ///
-    /// É a lista mínima para cadastrar cliente e equipamento e ler catálogo — nada além.
-    /// Quando o Entra ID entrar, esta lista some: as profundidades passam a vir dos conjuntos de
-    /// permissão do usuário, que é onde elas moram no desenho (documento 05, seção 4).
-    /// </summary>
-    private static readonly string[] PermissoesConcedidas =
-    [
-        "Cliente.Ler", "Cliente.Criar", "Cliente.Editar", "Cliente.Excluir",
-        "Equipamento.Ler", "Equipamento.Criar", "Equipamento.Editar", "Equipamento.Excluir",
-        "Catalogo.Ler", "Lead.Ler"
-    ];
-
-    /// <summary>
     /// Resolve quem está agindo, a partir do que veio nos cabeçalhos.
     ///
     /// A CONSULTA DE IDENTIDADE RODA SOB CONTEXTO DE SISTEMA, e isso não é um furo: é a única
@@ -117,39 +103,10 @@ public sealed class ResolvedorDeContextoProvisorio(
                     "Não há usuário ativo com este nome principal em seguranca.Usuario.",
                     upn)]);
 
-        var empresa = await banco.Empresas
-            .Where(e => e.Codigo == filial && e.EstaAtiva)
-            .Select(e => new { e.Id, e.Nome, e.Caminho })
-            .FirstOrDefaultAsync(ct);
-
-        if (empresa is null)
-            return Resultado<ContextoAcesso>.FalhaDeValidacao(
-                "A API não reconhece esta filial.",
-                [new ErroDeCampo(
-                    config.CabecalhoDeEmpresa,
-                    "Não há filial ativa com este código. Consulte /api/v1/catalogos/EMPRESA.",
-                    filial)]);
-
-        // AS FILIAIS QUE ELE ALCANÇA = a escolhida MAIS as abaixo dela, pelo caminho
-        // materializado. É o mesmo "esta empresa e todas abaixo" que a Profundidade.EmpresaEAbaixo
-        // significa, resolvido com um LIKE em vez de consulta recursiva (documento 04).
-        var visiveis = await banco.Empresas
-            .Where(e => e.EstaAtiva && (e.Id == empresa.Id || e.Caminho.StartsWith(empresa.Caminho + empresa.Id + "/")))
-            .Select(e => e.Id)
-            .ToListAsync(ct);
-
-        if (!visiveis.Contains(empresa.Id)) visiveis.Add(empresa.Id);
-
-        return Resultado<ContextoAcesso>.Ok(new ContextoAcesso(
-            usuarioId: usuario.Id,
-            nomeExibicao: usuario.NomeExibicao,
-            empresaId: empresa.Id,
-            empresasVisiveis: visiveis.ToHashSet(),
-            subordinadosIds: new HashSet<long>(),
-            equipesIds: new HashSet<long>(),
-            profundidades: PermissoesConcedidas.ToDictionary(
-                p => p, _ => Profundidade.EmpresaEAbaixo, StringComparer.Ordinal),
-            ehServicoDeSistema: false));
+        // O ESCOPO É O MESMO do login pelo Entra ID, montado no mesmo lugar — ver EscopoDeAcesso.
+        return await EscopoDeAcesso.MontarAsync(
+            banco, usuario.Id, usuario.NomeExibicao, filial, empresaDeCasaId: 0,
+            config.CabecalhoDeEmpresa, ct);
     }
 
     private static string? Escolher(string? informado, string? padrao, bool permitePadrao, out bool usouPadrao)

@@ -1,0 +1,300 @@
+/*
+ * A tela de login.
+ *
+ * ARQUIVO PRÓPRIO, e não bloco no `design-system.css`: aquele é cópia fiel do
+ * `app.css` do protótipo e mede pixel contra as capturas de referência. A tela de
+ * login não existia no protótipo — acrescentá-la lá mexeria na régua das outras.
+ *
+ * Só os tokens são reaproveitados (`--jd-*`, `--font-sans`, `--radius-*`,
+ * `--shadow-*`), para a porta de entrada falar a mesma língua visual do resto.
+ */
+
+.login {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background: var(--bg-app);
+}
+
+/* ---- a metade da marca ---------------------------------------------------- */
+
+.login-marca {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 64px;
+  color: #fff;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(255, 222, 0, 0.14) 0%, transparent 55%),
+    linear-gradient(155deg, var(--jd-green-darker) 0%, var(--jd-green-dark) 58%, var(--jd-green) 100%);
+}
+
+/* A grade discreta lembra lavoura vista do alto — e some no escuro, sem disputar
+   com o texto. */
+.login-marca-grade {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  /* O prefixo vai junto: sem ele, Edge e Chrome anteriores à 120 ignoram a
+     máscara e a grade aparece dura até as bordas. */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 40%, #000 70%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 40%, #000 70%, transparent 100%);
+  pointer-events: none;
+}
+
+.login-marca-conteudo {
+  position: relative;
+  max-width: 480px;
+}
+
+.login-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+
+.login-logo .brand-logo {
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
+}
+
+.login-slogan {
+  margin: 48px 0 12px;
+  font-size: 56px;
+  line-height: 1;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.login-slogan strong {
+  font-weight: 700;
+  color: var(--jd-yellow);
+}
+
+.login-tagline {
+  margin: 0 0 40px;
+  max-width: 380px;
+  font-size: 17px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.login-pontos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.login-pontos li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.login-ponto-marcador {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--jd-yellow);
+  box-shadow: 0 0 0 4px rgba(255, 222, 0, 0.16);
+}
+
+/* ---- a metade do formulário ----------------------------------------------- */
+
+.login-painel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+}
+
+.login-cartao {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* O logotipo repete aqui só no celular, quando a metade da marca some. */
+.login-logo-compacto {
+  display: none;
+  margin-bottom: 32px;
+  color: var(--jd-green-darker);
+}
+
+.login-titulo {
+  margin: 0 0 8px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--n-950, #0f1613);
+}
+
+.login-subtitulo {
+  margin: 0 0 28px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--n-600, #5b6560);
+}
+
+/* A área do aviso reserva altura mínima: sem ela, o botão pula de lugar quando a
+   frase aparece, e o clique já mirado cai no vazio. */
+.login-aviso-area {
+  min-height: 4px;
+}
+
+.login-aviso {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  line-height: 1.45;
+  border: 1px solid transparent;
+}
+
+.login-aviso-erro {
+  color: #8a1c1c;
+  background: #fdecec;
+  border-color: #f5c2c2;
+}
+
+.login-aviso-alerta {
+  color: #7a4d00;
+  background: #fff6db;
+  border-color: #f3dc94;
+}
+
+.login-aviso-sucesso {
+  color: var(--jd-green-darker);
+  background: #eaf4e8;
+  border-color: #c3dfbd;
+}
+
+.login-botao-microsoft {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 20px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--jd-green);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+}
+
+.login-botao-microsoft svg {
+  padding: 3px;
+  background: #fff;
+  border-radius: 3px;
+  box-sizing: content-box;
+}
+
+.login-botao-microsoft:hover:not(:disabled) {
+  background: var(--jd-green-dark);
+  box-shadow: var(--shadow-lg);
+}
+
+.login-botao-microsoft:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.login-botao-microsoft:focus-visible {
+  outline: 3px solid var(--jd-yellow);
+  outline-offset: 2px;
+}
+
+.login-botao-microsoft:disabled {
+  cursor: progress;
+  opacity: 0.8;
+}
+
+.login-ajuda {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--n-600, #5b6560);
+}
+
+.login-rodape {
+  margin: 40px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--n-100, #eef1ef);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--n-500, #7c8580);
+}
+
+/* ---- telas estreitas ------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .login {
+    grid-template-columns: 1fr;
+  }
+
+  .login-marca {
+    display: none;
+  }
+
+  .login-logo-compacto {
+    display: inline-flex;
+  }
+}
+
+/* ---- a espera enquanto o servidor responde -------------------------------- */
+
+.login-carregando {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  background: var(--bg-app);
+}
+
+.login-carregando .brand-logo {
+  width: 44px;
+  height: 44px;
+  animation: login-pulso 1.2s ease-in-out infinite;
+}
+
+@keyframes login-pulso {
+  0%, 100% { opacity: 0.45; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-carregando .brand-logo { animation: none; }
+}
+
+/* ---- o "Sair" do rodapé do menu ------------------------------------------- */
+
+/* Mora aqui, e não no design-system, pela mesma razão do resto do arquivo: o
+   rodapé com sessão não existia no protótipo. */
+.user-sair {
+  color: var(--jd-yellow);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.user-sair:hover,
+.user-sair:focus-visible {
+  text-decoration: underline;
+}

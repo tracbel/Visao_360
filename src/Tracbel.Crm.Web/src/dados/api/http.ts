@@ -112,6 +112,15 @@ type Opcoes = {
 };
 
 /**
+ * O aviso de que a sessão acabou.
+ *
+ * Um evento do navegador, e não uma dependência: quem chama a API não precisa
+ * conhecer a tela de login, e a tela de login não precisa conhecer cada chamada.
+ * `sessao.tsx` escuta; este arquivo só grita.
+ */
+export const EVENTO_SESSAO_EXPIRADA = 'tracbel:sessao-expirada';
+
+/**
  * Faz a requisição e devolve o corpo já tipado, ou lança {@link ErroDaApi}.
  *
  * @param caminho Caminho a partir da raiz. Ex.: `/v1/clientes`.
@@ -133,9 +142,15 @@ export async function pedir<T>(caminho: string, contexto: ContextoDeAcesso, opco
     resposta = await fetch(`${RAIZ}${caminho}${sufixo}`, {
       method: metodo,
       signal: sinal,
+      // O COOKIE DE SESSÃO VIAJA SOZINHO: mesma origem, e `same-origin` é o
+      // padrão do `fetch`. Declarado para ninguém trocar por `omit` sem ver.
+      credentials: 'same-origin',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
+        // COM O LOGIN PELO ENTRA ID LIGADO, a API IGNORA este cabeçalho: quem a
+        // pessoa é sai do token. Ele continua saindo porque, desligado o login,
+        // é a ponte provisória — e mandar sempre é mais simples que decidir aqui.
         'X-Tracbel-Usuario': contexto.usuario,
         'X-Tracbel-Empresa': contexto.empresa,
       },
@@ -148,6 +163,8 @@ export async function pedir<T>(caminho: string, contexto: ContextoDeAcesso, opco
     if (causa instanceof DOMException && causa.name === 'AbortError') throw causa;
     throw new ErroDeRede(causa);
   }
+
+  if (resposta.status === 401) window.dispatchEvent(new Event(EVENTO_SESSAO_EXPIRADA));
 
   if (resposta.status === 204) return undefined as T;
 

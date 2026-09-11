@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
+using Tracbel.Crm.Api.Seguranca;
 using Tracbel.Crm.Dominio.Comum;
+using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Identidade;
 
 namespace Tracbel.Crm.Api.Comum;
@@ -15,15 +17,17 @@ namespace Tracbel.Crm.Api.Comum;
 /// antes — e o <c>ContextoAcessoDaRequisicao</c> lança se alguém o ler antes da hora, em vez de
 /// devolver um contexto vazio em silêncio.</para>
 ///
-/// <para><b>O que fica de fora, de propósito:</b> as rotas de saúde e a documentação OpenAPI.
-/// Elas não leem dado de negócio, e exigir identidade nelas transformaria a prova de vida da
-/// aplicação num teste de configuração de cabeçalho.</para>
+/// ---------------------------------------------------------------------------------------------
+/// OS DOIS MODOS, e a regra que separa um do outro.
 ///
-/// <para><b>DÍVIDA NOMEADA:</b> isto NÃO autentica ninguém — quem informa a identidade é um
-/// cabeçalho, e cabeçalho qualquer um escreve. É a ponte descrita em
-/// <see cref="ResolvedorDeContextoProvisorio"/>, e ela vive até a fase 0 do documento 13 entrar.
-/// Quando o Entra ID chegar, este arquivo passa a ler as reivindicações do token validado e o
-/// resto da API não muda uma linha.</para>
+/// <para><b>Com o Entra ID ligado, o cabeçalho de usuário deixa de valer.</b> Não é detalhe: se ele
+/// continuasse aceito, a tela de login seria decoração — qualquer um contornaria o login mandando
+/// <c>X-Tracbel-Usuario</c> na mão. Ligado o Entra, quem não tem sessão recebe 401, ponto. O
+/// cabeçalho de FILIAL continua valendo, porque ele não diz quem a pessoa é: diz onde ela está
+/// olhando.</para>
+///
+/// <para><b>Com o Entra ID desligado</b>, vale a ponte provisória de cabeçalho, com os avisos que
+/// já existiam. É o modo de desenvolvimento e o de qualquer instalação sem registro de aplicativo.</para>
 /// </summary>
 public sealed class MeioDeCampoDeContextoDeAcesso(
     RequestDelegate proximo,
@@ -38,23 +42,23 @@ public sealed class MeioDeCampoDeContextoDeAcesso(
     /// <para><b>Identidade é exigência da API, não do portal.</b> Um arquivo estático — o
     /// <c>index.html</c>, o pacote de JavaScript, a folha de estilo — não lê banco, não tem
     /// fronteira de filial e não precisa saber quem está pedindo. Quem precisa é o endpoint que o
-    /// navegador chama depois, e esse vive sob <c>/api</c>.</para>
-    ///
-    /// <para>Sem esta distinção, o portal publicado não abre: a página inicial devolve <c>422</c>
-    /// pedindo cabeçalho, e recarregar numa rota interna como <c>/cobertura</c> devolve o mesmo —
-    /// porque a rota da página única não é arquivo em disco e chegaria aqui antes do desvio para o
-    /// <c>index.html</c>. Foi o que aconteceu na primeira publicação.</para>
+    /// navegador chama depois, e esse vive sob <c>/api</c>. É também o que deixa a tela de login
+    /// abrir para quem ainda não entrou.</para>
     /// </summary>
     private const string PrefixoDaApi = "/api";
 
     /// <summary>Executa o meio de campo.</summary>
     /// <param name="http">A requisição em curso.</param>
     /// <param name="portador">Onde o contexto desta requisição é guardado.</param>
-    /// <param name="resolvedor">Quem descobre o contexto a partir dos cabeçalhos.</param>
+    /// <param name="estado">Se o login pelo Entra ID está ligado.</param>
+    /// <param name="provisorio">Quem resolve pelo cabeçalho, quando o Entra está desligado.</param>
+    /// <param name="entra">Quem resolve pelo token, quando o Entra está ligado.</param>
     public async Task InvokeAsync(
         HttpContext http,
         ContextoAcessoDaRequisicao portador,
-        ResolvedorDeContextoProvisorio resolvedor)
+        EstadoDaAutenticacao estado,
+        ResolvedorDeContextoProvisorio provisorio,
+        ResolvedorDeContextoDoEntraId entra)
     {
         var caminho = http.Request.Path.Value ?? string.Empty;
 
@@ -68,11 +72,39 @@ public sealed class MeioDeCampoDeContextoDeAcesso(
         }
 
         var config = opcoes.Value;
+        var filial = http.Request.Headers[config.CabecalhoDeEmpresa].FirstOrDefault();
 
-        var resultado = await resolvedor.ResolverAsync(
-            http.Request.Headers[config.CabecalhoDeUsuario].FirstOrDefault(),
-            http.Request.Headers[config.CabecalhoDeEmpresa].FirstOrDefault(),
-            http.RequestAborted);
+        Resultado<ContextoAcesso> resultado;
+
+        if (estado.EntraLigado)
+        {
+            var identidade = RotasDeAutenticacao.LerIdentidade(http.User);
+
+            if (identidade is null)
+            {
+                await RespostaDeErro.NaoAutenticado().ExecuteAsync(http);
+                return;
+            }
+
+            resultado = await entra.ResolverAsync(identidade, filial, http.RequestAborted);
+
+            // "SEM CADASTRO" É 403, E NÃO 422. A pessoa provou quem é; o que falta é o CRM
+            // conhecê-la. Já filial inválida é entrada ruim, e segue o 422 de sempre.
+            if (!resultado.EhSucesso && resultado.Tipo == TipoDeFalha.NaoEncontrado)
+            {
+                await RespostaDeErro.SemAcesso(
+                    resultado.Erro!,
+                    "O login na Microsoft deu certo; o que falta é o cadastro no CRM.").ExecuteAsync(http);
+                return;
+            }
+        }
+        else
+        {
+            resultado = await provisorio.ResolverAsync(
+                http.Request.Headers[config.CabecalhoDeUsuario].FirstOrDefault(),
+                filial,
+                http.RequestAborted);
+        }
 
         if (!resultado.EhSucesso)
         {

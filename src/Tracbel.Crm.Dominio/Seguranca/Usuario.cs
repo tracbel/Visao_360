@@ -171,6 +171,73 @@ public sealed class Usuario : EntidadeBase
         MarcarAlteracao(usuarioId);
     }
 
+    /// <summary>
+    /// O sufixo do nome principal que a carga inventou para quem não tinha e-mail.
+    ///
+    /// <para>O cadastro de usuário do Vórtice não guarda e-mail de ninguém, e a coluna daqui é
+    /// obrigatória — então a carga gerou <c>login@sem-email.vortice.invalid</c>, num domínio que a
+    /// RFC 2606 garante que não existe. <b>Esse sufixo é também o sinal de "ainda não entrou pelo
+    /// Entra ID"</b>: o primeiro login troca o nome principal pelo real, e o sufixo some.</para>
+    /// </summary>
+    public const string SufixoSemEmail = "@sem-email.vortice.invalid";
+
+    /// <summary>Se esta conta ainda carrega o nome principal inventado pela carga.</summary>
+    public bool AindaNaoEntrouPeloEntraId =>
+        NomePrincipal.EndsWith(SufixoSemEmail, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Liga a conta ao Microsoft Entra ID, no primeiro login.
+    ///
+    /// <para><b>Por que o vínculo é gravado, e não refeito a cada acesso:</b> o casamento do
+    /// primeiro login é por nome — a parte antes do <c>@</c>, que é o único dado que o Vórtice e o
+    /// Entra têm em comum. Nome muda (casamento, correção de grafia) e nome se repete. O
+    /// identificador de objeto do Entra não muda nunca. Casar por nome UMA vez e passar a casar
+    /// pelo identificador é o que impede que a troca de sobrenome de alguém, daqui a um ano,
+    /// entregue a carteira dela a outra pessoa.</para>
+    ///
+    /// <para>O nome principal e o e-mail passam a ser os reais, e o <c>.invalid</c> some — é assim
+    /// que a base se corrige sozinha, conta a conta, sem carga nenhuma.</para>
+    /// </summary>
+    /// <param name="identidadeExterna">O identificador de objeto (<c>oid</c>) do Entra ID.</param>
+    /// <param name="nomePrincipal">O nome principal real (<c>preferred_username</c>).</param>
+    /// <param name="email">O e-mail corporativo real.</param>
+    /// <param name="agoraUtc">O instante do login.</param>
+    public void VincularAoEntraId(Guid identidadeExterna, string nomePrincipal, Email email, DateTime agoraUtc)
+    {
+        if (identidadeExterna == Guid.Empty)
+            throw new RegraDeNegocioViolada("O Entra ID não devolveu o identificador de objeto da conta.");
+
+        if (string.IsNullOrWhiteSpace(nomePrincipal))
+            throw new RegraDeNegocioViolada("O Entra ID não devolveu o nome principal da conta.");
+
+        IdentidadeExterna = identidadeExterna;
+        NomePrincipal = nomePrincipal.Trim();
+        Email = email;
+        UltimoLoginEm = agoraUtc;
+
+        // Quem altera é a própria pessoa: o vínculo acontece no login dela, e a trilha de
+        // auditoria precisa dizer isso — e não "sistema".
+        MarcarAlteracao(Id);
+    }
+
+    /// <summary>
+    /// Registra um acesso, sem gravar a cada requisição.
+    ///
+    /// <para>A identidade é resolvida em TODA chamada à API — a Visão 360 dispara dezenas por tela.
+    /// Gravar o último acesso em cada uma transformaria leitura em escrita e poria o cadastro de
+    /// usuário em disputa de bloqueio. Uma hora de resolução basta para a pergunta que este campo
+    /// responde: "essa pessoa ainda usa o sistema?".</para>
+    /// </summary>
+    /// <param name="agoraUtc">O instante do acesso.</param>
+    /// <returns>Verdadeiro quando houve mudança a gravar.</returns>
+    public bool RegistrarAcesso(DateTime agoraUtc)
+    {
+        if (UltimoLoginEm is { } ultimo && agoraUtc - ultimo < TimeSpan.FromHours(1)) return false;
+
+        UltimoLoginEm = agoraUtc;
+        return true;
+    }
+
     /// <summary>Desativa o usuário sem apagar nada.</summary>
     public void Desativar(long usuarioId)
     {

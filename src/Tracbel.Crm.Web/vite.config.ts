@@ -23,6 +23,13 @@ export default defineConfig({
         target: 'http://localhost:5145',
         changeOrigin: true,
       },
+      // A SESSÃO MORA FORA DE `/api`, e precisa do mesmo desvio. `/auth/eu` é o
+      // que a tela pergunta antes de decidir entre o login e a aplicação; sem
+      // este redirecionamento ele cairia no próprio Vite e voltaria o index.html.
+      '/auth': {
+        target: 'http://localhost:5145',
+        changeOrigin: true,
+      },
     },
   },
 })

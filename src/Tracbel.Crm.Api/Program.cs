@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Api.Comum;
 using Tracbel.Crm.Api.Seguranca;
@@ -141,6 +139,12 @@ builder.Services.AddScoped<IProvedorContextoAcesso>(sp =>
     sp.GetRequiredService<ContextoAcessoDaRequisicao>());
 builder.Services.AddScoped<ResolvedorDeContextoProvisorio>();
 
+// OS DOIS RESOLVEDORES FICAM REGISTRADOS, e quem escolhe é o estado. O do Entra é necessário mesmo
+// com o login desligado, porque a rota /auth/eu o recebe por injeção — e responde "provisório" sem
+// chegar a usá-lo.
+builder.Services.AddScoped<ResolvedorDeContextoDoEntraId>();
+builder.Services.AddSingleton(new EstadoDaAutenticacao(entraLigado));
+
 // O diário da via de escape da fronteira de multiempresa (documento 21, achado A-1). Sem ele
 // registrado, CrmDbContext.AbrirAlcanceEntreEmpresas se RECUSA a abrir: quem ignora a
 // fronteira precisa dizer que está ignorando, e isso precisa aparecer no log.
@@ -239,13 +243,6 @@ if (entraLigado)
         "Autenticação pelo Entra ID ATIVA. Grupo exigido: {Grupo}.",
         builder.Configuration["Entra:GrupoPermitido"] ?? "(nenhum — qualquer conta do locatário entra)");
 
-    // SAIR TAMBÉM PRECISA EXISTIR. Sem esta rota, "sair" seria fechar o navegador — e numa máquina
-    // compartilhada de filial isso não é sair.
-    app.MapGet("/auth/sair", async (HttpContext http) =>
-    {
-        await http.SignOutAsync(EntraId.EsquemaDeCookie);
-        await http.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
-    });
 }
 else
 {
@@ -253,6 +250,10 @@ else
         "Autenticação pelo Entra ID DESLIGADA: faltam Entra__TenantId, Entra__ClientId ou " +
         "Entra__ClientSecret. Qualquer um que alcance esta porta vê tudo.");
 }
+
+// AS ROTAS DE SESSÃO EXISTEM NOS DOIS MODOS. Com o login desligado, /auth/eu responde "provisório" —
+// e é essa resposta que faz a tela pular o login, em vez de mostrá-lo sem ter como entrar.
+app.MapearAutenticacao(entraLigado);
 
 // A API SERVE O FRONT, quando ele estiver publicado ao lado dela em `wwwroot`.
 //

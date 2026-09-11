@@ -69,6 +69,39 @@ public static class RespostaDeErro
     }
 
     /// <summary>
+    /// <b>401</b> — ninguém entrou, ou a sessão expirou.
+    ///
+    /// <para>Não passa por <see cref="Resultado{T}"/> porque não é resultado de caso de uso: é a
+    /// porta, antes de qualquer caso de uso existir. Mas sai no MESMO formato de toda recusa, para
+    /// o front ter um tratamento de erro só — e é esse <c>type</c> que ele usa para voltar à tela de
+    /// login em vez de mostrar um aviso no meio da tela.</para>
+    /// </summary>
+    public static IResult NaoAutenticado() => Results.Problem(new ProblemDetails
+    {
+        Type = PrefixoDeTipo + "nao-autenticado",
+        Title = "É preciso entrar com a conta Microsoft.",
+        Status = StatusCodes.Status401Unauthorized,
+        Detail = "A sessão não existe ou expirou. Entre de novo pela tela de login."
+    });
+
+    /// <summary>
+    /// <b>403</b> — a pessoa provou quem é, e mesmo assim não entra.
+    ///
+    /// <para>É diferente do 401, e a tela precisa saber a diferença: no 401 a ação é "entrar"; aqui
+    /// entrar de novo não resolve nada, porque o problema é o cadastro dela no CRM. Mandar de volta
+    /// ao login seria um laço — a pessoa entra, é recusada, volta, entra.</para>
+    /// </summary>
+    /// <param name="titulo">O que houve.</param>
+    /// <param name="detalhe">O que fazer a respeito.</param>
+    public static IResult SemAcesso(string titulo, string detalhe) => Results.Problem(new ProblemDetails
+    {
+        Type = PrefixoDeTipo + "sem-acesso",
+        Title = titulo,
+        Status = StatusCodes.Status403Forbidden,
+        Detail = detalhe
+    });
+
+    /// <summary>
     /// A tabela de tradução, escrita uma vez.
     ///
     /// <list type="bullet">

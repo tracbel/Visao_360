@@ -100,6 +100,12 @@ public static class EntraId
                 options.SignedOutCallbackPath = "/auth/saida";
                 options.SignInScheme = EsquemaDeCookie;
 
+                // OS NOMES DAS REIVINDICAÇÕES FICAM CRUS. Com o mapeamento ligado, `oid` vira
+                // `http://schemas.microsoft.com/identity/claims/objectidentifier` e `email` vira
+                // um URI de esquema SOAP — e quem lê o principal precisaria saber disso de cabeça.
+                // Desligado, o nome no código é o mesmo que aparece no token.
+                options.MapInboundClaims = false;
+
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -112,6 +118,24 @@ public static class EntraId
 
                 options.Events = new OpenIdConnectEvents
                 {
+                    // A RECUSA VOLTA PARA A TELA DE LOGIN, COM A FRASE. Sem este tratamento, a conta
+                    // fora do grupo — ou quem cancela na tela da Microsoft — cairia numa página de
+                    // exceção do servidor, sem dizer o que fazer. A frase é a mais interna da
+                    // cadeia: o handler embrulha a nossa em "An error was encountered while handling
+                    // the remote login", que não ajuda ninguém.
+                    OnRemoteFailure = contexto =>
+                    {
+                        var erro = contexto.Failure;
+                        while (erro?.InnerException is not null) erro = erro.InnerException;
+
+                        var mensagem = erro?.Message ?? "Não foi possível entrar com a conta Microsoft.";
+                        if (mensagem.Length > 300) mensagem = mensagem[..300];
+
+                        contexto.Response.Redirect("/#/login?erro=" + Uri.EscapeDataString(mensagem));
+                        contexto.HandleResponse();
+                        return Task.CompletedTask;
+                    },
+
                     OnTokenValidated = contexto =>
                     {
                         if (string.IsNullOrWhiteSpace(grupoPermitido)) return Task.CompletedTask;
