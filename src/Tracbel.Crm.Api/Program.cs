@@ -218,6 +218,39 @@ builder.Services.AddScoped<VerificarPonteDoLegado>();
 
 var app = builder.Build();
 
+// AS MIGRAÇÕES RODAM NA SUBIDA, EM PRODUÇÃO.
+//
+// Esta decisão já foi a contrária, e mudou por uma razão de operação. Com o esquema aplicado por
+// fora, toda atualização exigia alguém entrar no servidor e rodar o instalador — e o banco de lá é
+// restaurado de backup, que é uma foto do dia em que foi tirado: migração nova fica faltando, e a
+// aplicação só quebra na primeira consulta que tocar a coluna nova. Migrando na subida, atualizar
+// vira copiar e reiniciar, do mesmo jeito que o user-onboarding faz neste mesmo servidor
+// (scripts/deploy/publicar.ps1).
+//
+// SÓ EM PRODUÇÃO. Em desenvolvimento o esquema é do `dotnet ef`, e nos testes o banco é SQLite
+// criado na hora — migração de SQL Server não roda lá.
+//
+// FALHA NA MIGRAÇÃO DERRUBA A SUBIDA, de propósito. Uma aplicação no ar com esquema pela metade
+// responderia errado em silêncio; um serviço que não sobe aparece no deploy na hora.
+if (app.Environment.IsProduction())
+{
+    await using var escopoDaMigracao = app.Services.CreateAsyncScope();
+    var opcoesDaMigracao = escopoDaMigracao.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+
+    // Contexto de SISTEMA: na subida não existe requisição, logo não existe contexto de acesso.
+    await using var bancoDaMigracao = new CrmDbContext(opcoesDaMigracao, ProvedorDeContextoDeSistema.Instancia);
+
+    var pendentes = (await bancoDaMigracao.Database.GetPendingMigrationsAsync()).ToList();
+    if (pendentes.Count > 0)
+    {
+        app.Logger.LogWarning(
+            "MIGRAÇÃO NA SUBIDA: aplicando {Quantidade} migração(ões): {Lista}.",
+            pendentes.Count, string.Join(", ", pendentes));
+        await bancoDaMigracao.Database.MigrateAsync();
+        app.Logger.LogWarning("MIGRAÇÃO NA SUBIDA: concluída.");
+    }
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -276,8 +309,14 @@ if (Directory.Exists(Path.Combine(app.Environment.ContentRootPath, "wwwroot")))
 app.UseMiddleware<MeioDeCampoDeContextoDeAcesso>();
 
 // Prova de vida que também confirma que o banco responde — é o que o script de subida checa.
-app.MapGet("/saude/banco", async (CrmDbContext contexto, CancellationToken ct) =>
+app.MapGet("/saude/banco", async (DbContextOptions<CrmDbContext> opcoesDoBanco, CancellationToken ct) =>
 {
+    // O BANCO NASCE AQUI, SOB CONTEXTO DE SISTEMA, e não por injeção. O CrmDbContext injetado lê o
+    // contexto de acesso no construtor — e /saude fica FORA do meio de campo de propósito, então esse
+    // contexto nunca é definido e a leitura lança. Era por isso que esta rota devolvia 500 com corpo
+    // vazio no servidor: a prova de vida morria antes de perguntar qualquer coisa ao banco.
+    await using var contexto = new CrmDbContext(opcoesDoBanco, ProvedorDeContextoDeSistema.Instancia);
+
     var conecta = await contexto.Database.CanConnectAsync(ct);
     var pendentes = await contexto.Database.GetPendingMigrationsAsync(ct);
     return Results.Ok(new

@@ -575,6 +575,18 @@ $tenant  = if ($EntraTenantId) { $EntraTenantId } elseif ($entraAnterior) { $ent
 $cliente = if ($EntraClientId) { $EntraClientId } elseif ($entraAnterior) { $entraAnterior.ClientId } else { '' }
 $grupo   = if ($EntraGrupoPermitido) { $EntraGrupoPermitido } elseif ($entraAnterior) { $entraAnterior.GrupoPermitido } else { '' }
 
+# OS TRES IDENTIFICADORES SAO CONFERIDOS ANTES DE GRAVAR. Em 10/09/2026 o -EntraClientId chegou com o
+# primeiro digito faltando - 35 caracteres em vez de 36 -, o script aceitou, e a Microsoft respondeu
+# AADSTS700016 ("aplicativo nao encontrado") so na hora de alguem tentar entrar. Um caractere perdido
+# ao colar e o erro mais provavel deste passo, e o mais barato de pegar aqui.
+$formatoGuid = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+foreach ($par in @(@('-EntraTenantId', $tenant), @('-EntraClientId', $cliente), @('-EntraGrupoPermitido', $grupo))) {
+    if ($par[1] -and ($par[1] -notmatch $formatoGuid)) {
+        throw ("{0} nao e um GUID valido: tem {1} caracteres, e o formato tem 36 (8-4-4-4-12). " +
+               "Confira se a copia nao perdeu um caractere." -f $par[0], $par[1].Length)
+    }
+}
+
 # Aplicativo NOVO nao herda o segredo do anterior: segredo de outro registro so produziria erro no
 # meio do login, depois de a pessoa ja ter digitado a senha na tela da Microsoft.
 $segredo = if ($entraAnterior -and -not $EntraClientId) { $entraAnterior.ClientSecret } else { '' }
