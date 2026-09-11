@@ -27,13 +27,21 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
 
             // NULO VIRA "NaoInformado", E NÃO "Nao". Era exatamente essa confusão que motivou a
             // mudança: quem não respondeu não afirmou que ficamos de fora.
+            //
+            // O UPDATE VAI DENTRO DE EXEC, e isso não é estilo. O SQL Server compila o lote INTEIRO
+            // antes de executar a primeira linha, e no script idempotente o ALTER que cria a coluna e
+            // este UPDATE caem no mesmo lote: na compilação a coluna ainda não existe, e o lote todo é
+            // recusado com "Invalid column name 'Participacao'". Foi o que aconteceu na instalação do
+            // servidor em 10/09/2026 — e não aconteceu aqui, porque aqui a coluna já existia. EXEC
+            // adia a compilação para a hora da execução, quando o ALTER já rodou. O próprio EF faz o
+            // mesmo com a restrição de verificação logo abaixo.
             migrationBuilder.Sql(@"
-                UPDATE processo.VendaPerdida
-                SET Participacao = CASE
-                        WHEN ParticipamosDaNegociacao = 1 THEN 'Sim'
-                        WHEN ParticipamosDaNegociacao = 0 THEN 'Nao'
-                        ELSE 'NaoInformado'
-                    END;");
+                EXEC(N'UPDATE processo.VendaPerdida
+                       SET Participacao = CASE
+                               WHEN ParticipamosDaNegociacao = 1 THEN ''Sim''
+                               WHEN ParticipamosDaNegociacao = 0 THEN ''Nao''
+                               ELSE ''NaoInformado''
+                           END;');");
 
             migrationBuilder.DropColumn(
                 name: "ParticipamosDaNegociacao",
@@ -65,13 +73,14 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                 type: "bit",
                 nullable: true);
 
+            // EXEC pela mesma razão da subida: a coluna recém-criada não existe na compilação do lote.
             migrationBuilder.Sql(@"
-                UPDATE processo.VendaPerdida
-                SET ParticipamosDaNegociacao = CASE
-                        WHEN Participacao = 'Sim' THEN 1
-                        WHEN Participacao = 'Nao' THEN 0
-                        ELSE NULL
-                    END;");
+                EXEC(N'UPDATE processo.VendaPerdida
+                       SET ParticipamosDaNegociacao = CASE
+                               WHEN Participacao = ''Sim'' THEN 1
+                               WHEN Participacao = ''Nao'' THEN 0
+                               ELSE NULL
+                           END;');");
 
             migrationBuilder.DropColumn(
                 name: "Participacao",
