@@ -198,7 +198,7 @@ R-14 = O-20, R-15 = O-35, R-18 = O-30.
 | O-45 | Planilhas-modelo e decisões priorizadas para a coleta | **Validado** | documento 34 | Encaminhar ao gerente |
 | O-46 | Conferir o texto das 47 capturas de tela do histórico, que a varredura não lê | **Pendente técnico** | documento 33, §1.2 | Leitura das imagens; não muda a recomendação do documento 33 |
 | O-47 | Importar as planilhas devolvidas | **Pendente técnico** | documento 34, §5 | Depois que o gerente validar o formato |
-| O-48 | Publicação no servidor | **Bloqueado** — a execução do `publicar.ps1` a partir da sessão de trabalho não foi permitida | §11.8 | Rodar o script nesta estação, ou autorizar a execução |
+| O-48 | Publicação no servidor | **Validado** — publicado em 13/09/2026, migração aplicada, arquivos conferidos por hash | §11.8 | Carga do território no banco do servidor; consentimento do Entra ID (P-19) |
 | O-49 | Teste automatizado da carga do Vórtice mantendo a correção (`GravarEnderecosAsync`, `GravarMunicipiosAsync`) | **Pendente técnico** | §4.6.1 — provado em rodada real; a conferência das grafias tem teste próprio | Teste com banco em memória e leitor falso do Vórtice |
 
 ---
@@ -1232,9 +1232,9 @@ troca de filial pelo cabeçalho (D-11) continua valendo.
 
 | Etapa | Situação |
 |---|---|
-| Commit | **feito**, local, na `main`: 1 commit à frente de `origin/main`, com 75 arquivos (código, testes, documentos 24 e 32 a 34, scripts e `.gitignore`); nenhum arquivo de `dados-locais/`, planilha, captura ou CSV |
+| Commit | **feito**, local, na `main`: `e0419b8` — a versão publicada —, com 75 arquivos; este registro da publicação vai num segundo commit, só de documentação. Os dois estão à frente de `origin/main` (código, testes, documentos 24 e 32 a 34, scripts e `.gitignore`); nenhum arquivo de `dados-locais/`, planilha, captura ou CSV |
 | Inventário depois do commit, antes do push | 16 commits. Nenhuma credencial, documento de cliente real, CPF de terceiro ou nome de usuário real **novo**. Os aumentos são os documentos fictícios de dígito válido que entraram no lugar dos reais (documento 24, dois comentários de código e o teste do saneamento) e e-mails fictícios de domínio corporativo num teste. O único login que casou com usuário do CRM, num teste da API, é o da conta de desenvolvimento semeada por `scripts/banco/seed/02-usuarios-de-desenvolvimento.sql` — não é de pessoa —, e mesmo assim foi trocado por texto fictício |
 | Push | **não feito**. O GitHub responde "Repository not found" para `tracbel/Visao_360` com a conta ativa nesta estação. Falta ativar a conta que tem acesso — e decidir a P-21 antes de publicar o faturamento por filial |
-| Publicação no servidor | **não feita**. A execução do `publicar.ps1` a partir da sessão de trabalho não foi permitida pela política de permissões. Conferido antes, só com leitura: compartilhamento alcançável, serviço `RUNNING`, banco conectado, 0 migração pendente, versão publicada em 11/09/2026 |
+| Publicação no servidor | **feita** pelo Ricardo nesta estação, com o `publicar.ps1` (a sessão de trabalho não teve permissão para rodá-lo). Conferido depois, só com leitura: serviço `RUNNING`; `/saude/banco` com o banco conectado e **0 migração pendente** — a migração `20260913155645` foi aplicada na subida; `Tracbel.Crm.Api.dll` e `Tracbel.Crm.Infraestrutura.dll` do servidor iguais, por hash, ao pacote gerado às 22:44; a rota do território responde 401 sem login |
 | Como publicar | nesta estação, com a VPN: `.\scripts\deploy\publicar.ps1`. Ele roda os testes, gera o pacote, para o serviço, copia, sobe — e a API aplica a migração deste commit ao subir — e só diz "pronto" depois da saúde pelo nome DNS e da conferência por hash |
 | Depois de publicar | a tela do território fica sem ADR, responsáveis e área plantada até a carga do território rodar contra o banco do servidor (`--somente-territorio`); e ninguém entra pelo login corporativo até o consentimento do administrador do Entra ID (P-19) |
