@@ -109,9 +109,9 @@ public sealed partial class EsquemaENomenclaturaTestes
     }
 
     [Fact]
-    public void Os_dez_schemas_do_modelo_unificado_existem_e_somam_sessenta_e_oito_tabelas()
+    public void Os_dez_schemas_do_modelo_unificado_existem_e_somam_setenta_e_duas_tabelas()
     {
-        // O documento 17, seção 8.12, fixou a conta em 63 tabelas em 10 schemas. Hoje são 68, e
+        // O documento 17, seção 8.12, fixou a conta em 63 tabelas em 10 schemas. Hoje são 72, e
         // cada acréscimo tem decisão registrada:
         //
         //   +2 organizacao.Municipio e organizacao.CarteiraMunicipio — documento 26, seção 5.
@@ -122,6 +122,10 @@ public sealed partial class EsquemaENomenclaturaTestes
         //   +1 comercial.FaturamentoSemCliente — documento 31: o faturamento que NÃO acha cliente
         //      no CRM. R$ 798,6 milhões que antes eram descartados em silêncio; sem esta tabela a
         //      tela mostra o numerador e esconde o denominador.
+        //   +4 organizacao.MunicipioDaAreaDeAtuacao, ResponsavelPeloMunicipio,
+        //      AreaPlantadaNoMunicipio e RegraDePotencial — documento 32, seção 7, com as sete
+        //      perguntas respondidas: a ADR e os responsáveis têm fonte e ciclo de vida próprios, a
+        //      área plantada é do IBGE, e a regra de potencial precisa ser apontada e confirmada.
         //
         // Este teste é o que impede o modelo de crescer sem decisão registrada — o "portão" da
         // seção 10.2. Ele falhou de propósito quando as três últimas entraram, e é assim que se
@@ -132,7 +136,7 @@ public sealed partial class EsquemaENomenclaturaTestes
 
         var esperado = new Dictionary<string, int>
         {
-            ["organizacao"] = 8,
+            ["organizacao"] = 12,
             ["seguranca"] = 8,
             ["comercial"] = 11,
             ["processo"] = 14,
@@ -145,12 +149,12 @@ public sealed partial class EsquemaENomenclaturaTestes
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 68 tabelas em 10 schemas — as 63 do documento 17, seção 8.12, mais as " +
-            "cinco listadas no comentário acima, cada uma com decisão registrada. Mudar este " +
+            "a conta é 72 tabelas em 10 schemas — as 63 do documento 17, seção 8.12, mais as " +
+            "nove listadas no comentário acima, cada uma com decisão registrada. Mudar este " +
             "número exige a decisão da seção 10.2 (o portão de tabela nova) e a atualização do " +
             "documento 14, seção 2.1, na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(68);
+        porSchema.Values.Sum().Should().Be(72);
     }
 
     [Fact]

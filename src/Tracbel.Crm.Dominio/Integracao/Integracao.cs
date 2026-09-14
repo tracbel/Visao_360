@@ -87,6 +87,25 @@ public sealed class ChaveExterna
     /// </summary>
     /// <param name="quandoUtc">O instante da conciliação.</param>
     public void MarcarSincronismo(DateTime quandoUtc) => SincronizadoEm = quandoUtc;
+
+    /// <summary>
+    /// Faz a chave de origem apontar para outro registro do CRM da MESMA entidade.
+    ///
+    /// <para>Existe para a consolidação de catálogo em que duas linhas do CRM são o mesmo registro
+    /// real (documento 32, seção 4.6): sem mover a chave, a próxima recarga da origem devolveria o
+    /// que foi corrigido para a linha antiga. Quem chama registra o valor anterior em
+    /// <c>auditoria.AlteracaoDeCampo</c>.</para>
+    /// </summary>
+    /// <param name="registroId">O registro que passa a representar a chave.</param>
+    /// <param name="quandoUtc">O instante da conciliação.</param>
+    public void ReapontarPara(long registroId, DateTime quandoUtc)
+    {
+        if (registroId <= 0)
+            throw new RegraDeNegocioViolada("Chave de origem não aponta para registro sem identificador.");
+
+        RegistroId = registroId;
+        SincronizadoEm = quandoUtc;
+    }
 }
 
 /// <summary>

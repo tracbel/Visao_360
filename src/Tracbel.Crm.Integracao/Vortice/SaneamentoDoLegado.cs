@@ -24,8 +24,8 @@ public static class SaneamentoDoLegado
     ///
     /// <para><b>O que esta função faz:</b> devolve os zeros ao lugar. A base é preenchida à
     /// esquerda até 12 dígitos (jurídica) ou 9 (física), o verificador até 2, e as duas partes
-    /// são coladas. Um CNPJ lido como <c>83441750001</c> + <c>28</c> volta a ser
-    /// <c>08344175000128</c>.</para>
+    /// são coladas. Um CNPJ lido como <c>19335660001</c> + <c>39</c> volta a ser
+    /// <c>01933566000139</c> (documento fictício).</para>
     ///
     /// <para><b>O que ela NÃO faz, de propósito:</b> não adivinha. Se o número recomposto não
     /// passa no dígito verificador do <see cref="CpfCnpj"/>, o documento sai marcado como não

@@ -33,9 +33,11 @@ namespace Tracbel.Crm.Infraestrutura.Identidade;
 ///   recusada — a API não "assume alguém";</item>
 ///   <item>toda requisição que cai no valor padrão sai no log como aviso, com o texto
 ///   <c>PROVISÓRIO</c>, e a subida da API loga o mesmo aviso uma vez;</item>
-///   <item>as profundidades concedidas param em <see cref="Profundidade.EmpresaEAbaixo"/>, e a
-///   permissão que abre a fronteira entre filiais NÃO é concedida. Nem por engano esta ponte
-///   entrega alcance de organização.</item>
+///   <item>por conta própria, a ponte concede só a lista mínima, em
+///   <see cref="Profundidade.EmpresaEAbaixo"/>. A permissão que abre a fronteira entre filiais só
+///   chega por concessão EXPLÍCITA gravada em <c>seguranca.UsuarioConjuntoPermissao</c>, e a ponte só
+///   a honra em Desenvolvimento (<see cref="OpcoesDeContextoProvisorio.HonrarConcessoesExplicitas"/>).
+///   Fora dele, alcance de organização exige identidade provada pelo Entra ID.</item>
 /// </list>
 /// </remarks>
 public sealed class ResolvedorDeContextoProvisorio(
@@ -106,7 +108,7 @@ public sealed class ResolvedorDeContextoProvisorio(
         // O ESCOPO É O MESMO do login pelo Entra ID, montado no mesmo lugar — ver EscopoDeAcesso.
         return await EscopoDeAcesso.MontarAsync(
             banco, usuario.Id, usuario.NomeExibicao, filial, empresaDeCasaId: 0,
-            config.CabecalhoDeEmpresa, ct);
+            config.CabecalhoDeEmpresa, config.HonrarConcessoesExplicitas, ct);
     }
 
     private static string? Escolher(string? informado, string? padrao, bool permitePadrao, out bool usouPadrao)

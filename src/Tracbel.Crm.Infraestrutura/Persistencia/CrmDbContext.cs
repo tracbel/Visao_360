@@ -214,6 +214,18 @@ public class CrmDbContext : DbContext
     /// <summary>Os municípios que cada carteira atende.</summary>
     public DbSet<CarteiraMunicipio> CarteiraMunicipios => Set<CarteiraMunicipio>();
 
+    /// <summary>Os municípios da área de atuação, e se cada um pertence à ADR (documento 32).</summary>
+    public DbSet<MunicipioDaAreaDeAtuacao> MunicipiosDaAreaDeAtuacao => Set<MunicipioDaAreaDeAtuacao>();
+
+    /// <summary>Quem cada planilha do comercial diz que responde por cada município.</summary>
+    public DbSet<ResponsavelPeloMunicipio> ResponsaveisPelosMunicipios => Set<ResponsavelPeloMunicipio>();
+
+    /// <summary>A área plantada por produto e município, da Produção Agrícola Municipal do IBGE.</summary>
+    public DbSet<AreaPlantadaNoMunicipio> AreasPlantadasNosMunicipios => Set<AreaPlantadaNoMunicipio>();
+
+    /// <summary>As regras de potencial por área — hoje, um exemplo a confirmar.</summary>
+    public DbSet<RegraDePotencial> RegrasDePotencial => Set<RegraDePotencial>();
+
     // ---- seguranca ----
 
     /// <summary>Usuários.</summary>

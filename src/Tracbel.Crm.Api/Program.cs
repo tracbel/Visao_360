@@ -132,7 +132,14 @@ builder.Services.Configure<OpcoesDeContextoProvisorio>(
     builder.Configuration.GetSection(OpcoesDeContextoProvisorio.Secao));
 
 builder.Services.PostConfigure<OpcoesDeContextoProvisorio>(opcoes =>
-    opcoes.PermitirPadrao = builder.Environment.IsDevelopment());
+{
+    opcoes.PermitirPadrao = builder.Environment.IsDevelopment();
+
+    // A CONCESSÃO EXPLÍCITA PELA PONTE, SÓ EM DESENVOLVIMENTO — é o que deixa validar um perfil de
+    // teste com a visão da empresa num banco isolado sem abrir esse alcance a quem só escreve um
+    // cabeçalho em homologação ou produção (ver OpcoesDeContextoProvisorio).
+    opcoes.HonrarConcessoesExplicitas = builder.Environment.IsDevelopment();
+});
 
 builder.Services.AddScoped<ContextoAcessoDaRequisicao>();
 builder.Services.AddScoped<IProvedorContextoAcesso>(sp =>
@@ -167,6 +174,7 @@ builder.Services.AddScoped<IRepositorioTarefas, RepositorioDeTarefas>();
 builder.Services.AddScoped<IRepositorioInteracoes, RepositorioDeInteracoes>();
 builder.Services.AddScoped<IRepositorioCarteiras, RepositorioDeCarteiras>();
 builder.Services.AddScoped<IRepositorioTerritorio, RepositorioDeTerritorio>();
+builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais, RepositorioDeIndicadoresTerritoriais>();
 builder.Services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalho>();
 
 // -------------------------------------------------------------------------------------------
@@ -211,6 +219,7 @@ builder.Services.AddScoped<ObterResumoDeCobertura>();
 builder.Services.AddScoped<ListarMunicipios>();
 builder.Services.AddScoped<ObterCoberturaPorFilial>();
 builder.Services.AddScoped<ListarTerritorioPorCarteira>();
+builder.Services.AddScoped<ObterIndicadoresTerritoriais>();
 
 builder.Services.AddScoped<BuscarClientesNoLegado>();
 builder.Services.AddScoped<ListarParqueNoLegado>();
@@ -336,6 +345,7 @@ app.MapearInteracoes();
 app.MapearCobertura();
 app.MapearCoberturaTerritorial();
 app.MapearMunicipios();
+app.MapearIndicadoresTerritoriais();
 app.MapearRelatorios();
 
 // O ÚLTIMO RECURSO DEVOLVE O `index.html`, e é o que faz a navegação da tela funcionar.

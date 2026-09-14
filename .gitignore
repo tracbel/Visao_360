@@ -43,3 +43,18 @@ Thumbs.db
 publicacao/
 *.bak
 *.trn
+
+# Planilhas do comercial e relatorios gerados a partir delas — DADO DA EMPRESA, NUNCA versionar.
+#
+# `Area de Atuacao.xlsx` e `CEN e Gestor por Municipio.xlsx` trazem nome de funcionario por
+# municipio; `Tabelas Exemplo.xlsx` traz razao social e CNPJ de cliente. A carga le as planilhas
+# de onde estiverem, e o que ela produz de detalhe nominal (conciliacao, rascunho com numero real)
+# vai para `dados-locais/`. O documento 32 guarda a metodologia e as contagens, sem nome de pessoa.
+*.xlsx
+*.xls
+*.csv.local
+dados-locais/
+
+# Pasta que o PowerShell cria na raiz quando um objeto vira nome de caminho por engano
+# (ex.: "@{conectado=True; ...}") — já aconteceu em 13/09/2026 e pode carregar resposta da API.
+@{*}/

@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <!-- Configuracao por arquivo + variavel de ambiente, e log de console. So isso. -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.10" />
@@ -26,8 +27,7 @@
       sistema legado NAO esta neste arquivo nem em nenhum outro do repositorio — vem de
       Vortice__Conexao, variavel de ambiente.
     -->
-    <Content Include="..\Tracbel.Crm.Api\appsettings.json" Link="appsettings.json"
-             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\Tracbel.Crm.Api\appsettings.json" Link="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,6 +42,11 @@
     -->
     <ProjectReference Include="..\Tracbel.Crm.Infraestrutura\Tracbel.Crm.Infraestrutura.csproj" />
     <ProjectReference Include="..\Tracbel.Crm.Integracao\Tracbel.Crm.Integracao.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- A conferencia das grafias cortadas e testada com banco em memoria (documento 32, secao 4.6.1). -->
+    <InternalsVisibleTo Include="Tracbel.Crm.Aplicacao.Testes" />
   </ItemGroup>
 
 </Project>

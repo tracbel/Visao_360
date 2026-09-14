@@ -1,15 +1,18 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Net;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Tracbel.Crm.Carga;
+using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao.Carga;
 using Microsoft.Extensions.DependencyInjection;
+using Tracbel.Crm.Integracao.Ibge;
 using Tracbel.Crm.Integracao.Protheus;
 using Tracbel.Crm.Integracao.Vortice;
 
@@ -62,6 +65,16 @@ var somenteRelacionamento = args.Contains("--somente-relacionamento", StringComp
 // E o que permite atualizar o numero da diretoria sem uma janela de migracao.
 var somenteFaturamento = args.Contains("--somente-faturamento", StringComparer.Ordinal);
 
+// --somente-territorio — O MUNICIPIO OFICIAL, A ADR, OS RESPONSAVEIS E A AREA PLANTADA (documento 32).
+//
+// Tambem nao le o Vortice nem o Protheus: le as duas planilhas do comercial e as APIs publicas do
+// IBGE. As planilhas trazem nome de funcionario e ficam FORA do repositorio; o caminho vem na linha
+// de comando:
+//
+//   --somente-territorio --area-de-atuacao "<pasta>\Area de Atuacao.xlsx"
+//                        --cen-e-gestor    "<pasta>\CEN e Gestor por Municipio.xlsx"
+var somenteTerritorio = args.Contains("--somente-territorio", StringComparer.Ordinal);
+
 var configuracao = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json", optional: true)
@@ -83,7 +96,7 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A EXIGÊNCIA CAI NO MODO SÓ-FATURAMENTO, e só nele: essa etapa não abre conexão com o legado.
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
-if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento)
+if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -125,6 +138,67 @@ var leitor = new LeitorDeCargaDoVortice(
     Options.Create(new OpcoesDoVortice { Conexao = conexaoDoLegado, TempoLimiteSegundos = 15 }),
     fabricaDeLog.CreateLogger<LeitorDeCargaDoVortice>());
 
+// O IBGE RESPONDE EM GZIP mesmo sem o pedido; sem a descompressão o JSON chega ilegível. O cliente é
+// um só para as duas cargas que o usam: a do território e a conferência das grafias cortadas que a
+// carga do cadastro faz ao fim (documento 32, seção 4.6).
+using var clienteDoIbge = new HttpClient(
+    new HttpClientHandler { AutomaticDecompression = DecompressionMethods.All })
+{
+    Timeout = TimeSpan.FromMinutes(5)
+};
+
+var ibge = new LeitorDoIbge(clienteDoIbge);
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só o território. Sai antes da exigência do Protheus, que esta etapa não usa.
+// -------------------------------------------------------------------------------------------------
+
+if (somenteTerritorio)
+{
+    var caminhoDaAreaDeAtuacao = LerTexto(args, "--area-de-atuacao");
+    var caminhoDoCenEGestor = LerTexto(args, "--cen-e-gestor");
+
+    if (caminhoDaAreaDeAtuacao is null || caminhoDoCenEGestor is null)
+    {
+        Console.Error.WriteLine(
+            "A carga do território precisa das duas planilhas: --area-de-atuacao \"<arquivo>\" e " +
+            "--cen-e-gestor \"<arquivo>\". Nada foi gravado.");
+        return 2;
+    }
+
+    var cargaDoTerritorio = new CargaDeTerritorio(
+        AbrirContexto, ibge, usuarioId, empresaDeCasaId, Console.WriteLine);
+
+    try
+    {
+        var contagens = await cargaDoTerritorio.ExecutarAsync(
+            caminhoDaAreaDeAtuacao, caminhoDoCenEGestor, CancellationToken.None);
+
+        foreach (var etapa in contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,9}  {rotulo}");
+        }
+
+        return 0;
+    }
+    catch (Exception falha) when (falha is FileNotFoundException or InvalidDataException
+                                      or HttpRequestException or TaskCanceledException
+                                      or DbUpdateException or RegraDeNegocioViolada)
+    {
+        Console.Error.WriteLine();
+        Console.Error.WriteLine("A CARGA DO TERRITÓRIO PAROU, e a etapa em curso foi desfeita: " + falha.Message);
+
+        // A CAUSA DE VERDADE mora na exceção mais interna: "erro ao salvar as alterações" não diz
+        // qual restrição recusou nem por quê.
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
 // A PONTE DO PROTHEUS. Ela lê o faturamento da ORIGEM, e não da cópia no Vórtice que parou em
 // 11/04/2025. As credenciais vêm de Protheus__Base, Protheus__Usuario e Protheus__Senha — nunca
 // de arquivo versionado, porque a senha viaja na query string do endpoint de token.
@@ -135,7 +209,9 @@ var opcoesDoProtheus = new OpcoesDoProtheus
     Senha = configuracao["Protheus:Senha"]
 };
 
-if (!opcoesDoProtheus.EstaConfigurada)
+// O CADASTRO NÃO LÊ O PROTHEUS. Exigir a credencial dele para rodar só o cadastro impediria justamente
+// a recarga que confere os endereços (documento 32, seção 4.6) numa estação sem o Protheus configurado.
+if (!opcoesDoProtheus.EstaConfigurada && !somenteCadastro)
 {
     Console.Error.WriteLine(
         "A carga do faturamento exige as variáveis Protheus__Base, Protheus__Usuario e " +
@@ -272,7 +348,8 @@ ResumoDaCarga? resumoDoCadastro = null;
 if (!somenteRelacionamento)
 {
     var carga = new CargaDoVortice(
-        AbrirContexto, leitor, deParaDeFiliais, usuarioId, Console.WriteLine);
+        AbrirContexto, leitor, deParaDeFiliais, usuarioId, Console.WriteLine,
+        new ConsolidacaoDeGrafiasCortadas(AbrirContexto, ibge.LerMalhaMunicipalAsync, usuarioId));
 
     var resultado = await carga.ExecutarAsync(recorte, CancellationToken.None);
 
@@ -365,6 +442,13 @@ if (resumoDoCadastro is { } comMunicipio)
     Console.WriteLine($"  {comMunicipio.EnderecosComMunicipioPeloNome,9}  endereco(s) ligados por nome mais UF");
     Console.WriteLine($"  {comMunicipio.EnderecosSemMunicipio,9}  endereco(s) SEM municipio do catalogo — " +
                       "ficaram com o texto do legado");
+    Console.WriteLine($"  {comMunicipio.MunicipiosReconhecidosPelaChave,9}  municipio(s) renomeados pelo IBGE e " +
+                      "reencontrados pela chave de origem (nao recriados)");
+    Console.WriteLine($"  {comMunicipio.CorrecoesDeGrafiaMantidas,9}  endereco(s) com a correcao de grafia cortada mantida");
+    Console.WriteLine($"  {comMunicipio.GrafiasCortadasReapontadas,9}  endereco(s) reapontados da grafia cortada " +
+                      "para o municipio oficial nesta rodada");
+    Console.WriteLine($"  {comMunicipio.GrafiasCortadasPendentes,9}  endereco(s) em grafia cortada pendentes de conferencia" +
+                      (comMunicipio.ContornoOficialDisponivel ? string.Empty : " (contorno oficial do IBGE indisponivel)"));
 }
 
 if (resumoDoRelacionamento is { } comTerritorio)
@@ -427,6 +511,15 @@ static int? LerInteiro(string[] argumentos, string nome)
            && int.TryParse(argumentos[indice + 1], NumberStyles.Integer, CultureInfo.InvariantCulture,
                out var valor)
         ? valor
+        : null;
+}
+
+static string? LerTexto(string[] argumentos, string nome)
+{
+    var indice = Array.IndexOf(argumentos, nome);
+
+    return indice >= 0 && indice + 1 < argumentos.Length && !string.IsNullOrWhiteSpace(argumentos[indice + 1])
+        ? argumentos[indice + 1]
         : null;
 }
 

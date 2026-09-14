@@ -24,10 +24,10 @@ namespace Tracbel.Crm.Integracao.Testes.Vortice;
 public sealed class SaneamentoDoLegadoTestes(ITestOutputHelper saida)
 {
     /// <summary>
-    /// O caso real medido no banco do legado: uma pessoa jurídica cujo CNPJ perdeu o zero.
+    /// O caso medido no banco do legado, com documento fictício do mesmo formato: uma pessoa jurídica cujo CNPJ perdeu o zero.
     ///
-    /// A base foi lida como <c>83441750001</c> — onze dígitos, quando a raiz+filial tem doze — e
-    /// o verificador como <c>28</c>. O documento verdadeiro é <c>08.344.175/0001-28</c>, e a
+    /// A base foi lida como <c>19335660001</c> — onze dígitos, quando a raiz+filial tem doze — e
+    /// o verificador como <c>39</c>. O documento verdadeiro é <c>01.933.566/0001-39</c>, e a
     /// diferença é exatamente o zero que a coluna numérica comeu.
     /// </summary>
     [Fact]
@@ -36,12 +36,12 @@ public sealed class SaneamentoDoLegadoTestes(ITestOutputHelper saida)
         var ajustes = new List<AjusteNaLeitura>();
 
         var (documento, confere) = SaneamentoDoLegado.RecomporDocumento(
-            baseNumerica: 83441750001m,
-            verificador: 28m,
+            baseNumerica: 19335660001m,
+            verificador: 39m,
             ehPessoaFisica: false,
             ajustes);
 
-        documento.Should().Be("08344175000128");
+        documento.Should().Be("01933566000139");
         confere.Should().BeTrue("o documento recomposto passa no dígito verificador");
 
         // A CORREÇÃO NÃO ACONTECE EM SILÊNCIO — princípio 1.4 do documento 16. O ajuste sai junto
@@ -49,8 +49,8 @@ public sealed class SaneamentoDoLegadoTestes(ITestOutputHelper saida)
         // exatamente o que está gravado lá.
         ajustes.Should().ContainSingle();
         ajustes[0].Campo.Should().Be("documento");
-        ajustes[0].ValorNoLegado.Should().Be("8344175000128");
-        ajustes[0].ValorEntregue.Should().Be("08344175000128");
+        ajustes[0].ValorNoLegado.Should().Be("1933566000139");
+        ajustes[0].ValorEntregue.Should().Be("01933566000139");
         ajustes[0].Motivo.Should().Contain("zero");
 
         saida.WriteLine($"{ajustes[0].ValorNoLegado} → {ajustes[0].ValorEntregue}");
@@ -60,13 +60,13 @@ public sealed class SaneamentoDoLegadoTestes(ITestOutputHelper saida)
     [Fact]
     public void Recompoe_o_verificador_de_um_digito_so()
     {
-        // Caso real medido: base de 12 dígitos e verificador gravado como o número 0 — que são
+        // Caso medido no legado (documento fictício): base de 12 dígitos e verificador gravado como o número 0 — que são
         // DOIS zeros no documento, e não um.
         var ajustes = new List<AjusteNaLeitura>();
 
-        var (documento, _) = SaneamentoDoLegado.RecomporDocumento(115574820001m, 0m, false, ajustes);
+        var (documento, _) = SaneamentoDoLegado.RecomporDocumento(178098240001m, 0m, false, ajustes);
 
-        documento.Should().Be("11557482000100");
+        documento.Should().Be("17809824000100");
         documento!.Length.Should().Be(14);
         ajustes.Should().NotBeEmpty();
     }
@@ -74,13 +74,13 @@ public sealed class SaneamentoDoLegadoTestes(ITestOutputHelper saida)
     [Fact]
     public void Recompoe_o_CPF_com_a_base_de_nove_digitos()
     {
-        // Pessoa física medida no legado: base 44856318 (oito dígitos, faltando um zero) e
-        // verificador 50.
+        // Pessoa física como a medida no legado (CPF fictício): base 16612919 (oito dígitos, faltando um zero) e
+        // verificador 45.
         var ajustes = new List<AjusteNaLeitura>();
 
-        var (documento, confere) = SaneamentoDoLegado.RecomporDocumento(44856318m, 50m, true, ajustes);
+        var (documento, confere) = SaneamentoDoLegado.RecomporDocumento(16612919m, 45m, true, ajustes);
 
-        documento.Should().Be("04485631850");
+        documento.Should().Be("01661291945");
         documento!.Length.Should().Be(11);
         confere.Should().BeTrue();
 

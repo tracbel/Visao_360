@@ -26,6 +26,7 @@ import { CoberturaRegional } from './telas/CoberturaRegional';
 import { Configuracoes } from './telas/Configuracoes';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
 import { Funil } from './telas/Funil';
+import { IndicadoresGeograficos } from './telas/IndicadoresGeograficos';
 import { Inicio } from './telas/Inicio';
 import { NovaOportunidade } from './telas/NovaOportunidade';
 import { OportunidadeFicha } from './telas/OportunidadeFicha';
@@ -187,6 +188,15 @@ export const ROTAS: Rota[] = [
     titulo: 'Cobertura por Filial e Carteira',
     trilha: ['Relatórios', 'Cobertura por Filial e Carteira'],
     Componente: CoberturaRegional,
+    usaApi: true,
+  },
+  {
+    // Os três mapas da ADR — documento 32. Lê a API e a malha do IBGE em
+    // `public/geo`; nenhum número é do protótipo.
+    caminho: '/relatorios/territorio',
+    titulo: 'Indicadores Geográficos da ADR',
+    trilha: ['Relatórios', 'Indicadores Geográficos'],
+    Componente: IndicadoresGeograficos,
     usaApi: true,
   },
   {

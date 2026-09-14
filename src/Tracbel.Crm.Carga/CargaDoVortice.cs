@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Frota;
@@ -36,7 +37,8 @@ internal sealed class CargaDoVortice(
     LeitorDeCargaDoVortice leitor,
     IReadOnlyDictionary<int, int> deParaDeFiliais,
     long usuarioResponsavelId,
-    Action<string> relatar)
+    Action<string> relatar,
+    ConsolidacaoDeGrafiasCortadas consolidacaoDeGrafias)
 {
     private const int TamanhoDoBloco = 500;
 
@@ -115,6 +117,15 @@ internal sealed class CargaDoVortice(
         var chavesDeCliente = await GravarClientesAsync(sistemaId, clientes.Valor.Aceitos, ct);
         var enderecos = await GravarEnderecosAsync(
             sistemaId, clientes.Valor.Aceitos, chavesDeCliente, catalogoDeMunicipios, ct);
+
+        // AS GRAFIAS CORTADAS SE CONFEREM NA MESMA EXECUÇÃO (documento 32, seção 4.6). A gravação
+        // acima já não desfez a correção cuja evidência não mudou; esta conferência cuida do endereço
+        // novo ou alterado. Ninguém precisa lembrar de rodar a carga do território depois desta.
+        relatar("Conferindo os endereços em grafia cortada do catálogo (documento 32, seção 4.6)…");
+        var grafias = await consolidacaoDeGrafias.ExecutarAsync(ct);
+        relatar($"  {grafias.Reapontados} reapontado(s) para o município oficial · " +
+                $"{grafias.Pendentes} pendente(s) de conferência, com o motivo na fila de revisão" +
+                (grafias.ContornoDisponivel ? "." : " · contorno oficial do IBGE indisponível nesta rodada."));
         var gravadosDeContato = await GravarContatosAsync(
             sistemaId, papelId, contatos.Valor.Aceitos, chavesDeCliente, ct);
         var gravadosDeEquipamento = await GravarEquipamentosAsync(
@@ -132,7 +143,7 @@ internal sealed class CargaDoVortice(
 
         return Resultado<ResumoDaCarga>.Ok(new ResumoDaCarga(
             MunicipiosLidos: municipios.Valor.LinhasLidas,
-            MunicipiosGravados: catalogoDeMunicipios.PorNomeEUf.Count,
+            MunicipiosGravados: catalogoDeMunicipios.PorNomeEUf.Values.Distinct().Count(),
             MunicipiosDuplicadosNaOrigem: catalogoDeMunicipios.DuplicadosNaOrigem,
             ClientesLidos: clientes.Valor.LinhasLidas,
             ClientesGravados: chavesDeCliente.Count,
@@ -140,6 +151,11 @@ internal sealed class CargaDoVortice(
             EnderecosComMunicipioPeloPonteiro: enderecos.PeloPonteiro,
             EnderecosComMunicipioPeloNome: enderecos.PeloNome,
             EnderecosSemMunicipio: enderecos.SemMunicipio,
+            MunicipiosReconhecidosPelaChave: catalogoDeMunicipios.ReconhecidosPelaChave,
+            CorrecoesDeGrafiaMantidas: enderecos.CorrecoesDeGrafiaMantidas,
+            GrafiasCortadasReapontadas: grafias.Reapontados,
+            GrafiasCortadasPendentes: grafias.Pendentes,
+            ContornoOficialDisponivel: grafias.ContornoDisponivel,
             ContatosLidos: contatos.Valor.LinhasLidas,
             ContatosGravados: gravadosDeContato,
             EquipamentosLidos: equipamentos.Valor.LinhasLidas,
@@ -302,6 +318,7 @@ internal sealed class CargaDoVortice(
         var novos = new List<(string Chave, Municipio Entidade)>();
         var chavesDeGrupo = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         var duplicados = 0;
+        var reconhecidosPelaChave = 0;
 
         foreach (var municipio in municipios)
         {
@@ -325,6 +342,18 @@ internal sealed class CargaDoVortice(
             }
 
             if (porNomeEUf.ContainsKey(identidade)) continue;
+
+            // A LINHA QUE A ORIGEM JÁ CONHECE PELA CHAVE NÃO É RECRIADA. O reconhecimento do IBGE
+            // renomeia a linha do catálogo ("SANTA CRUZ DA ESPERA" vira "Santa Cruz da Esperança"), e a
+            // busca por nome deixa de achá-la; sem esta guarda, a recarga criaria de novo a linha com o
+            // nome cortado, sem código, e o catálogo ganharia uma duplicata por município renomeado. A
+            // chave de origem é a identidade do próprio registro — não é casamento por semelhança.
+            if (porChave.TryGetValue(municipio.ChaveDeOrigem, out var conhecidoPelaChave))
+            {
+                porNomeEUf[identidade] = (int)conhecidoPelaChave;
+                reconhecidosPelaChave++;
+                continue;
+            }
 
             var novo = Municipio.Criar(municipio.Nome, municipio.Uf);
             contexto.Municipios.Add(novo);
@@ -353,13 +382,19 @@ internal sealed class CargaDoVortice(
         await contexto.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
 
-        relatar($"  municípios: {porNomeEUf.Count} no catálogo, {novos.Count} novos nesta rodada, " +
-                $"{duplicados} chave(s) de origem apontando para município que já existia.");
+        var oficialDaGrafiaCortada = await ConsolidacaoDeGrafiasCortadas.OficialDeCadaGrafiaAsync(contexto, ct);
+
+        relatar($"  municípios: {porNomeEUf.Values.Distinct().Count()} no catálogo, {novos.Count} novos nesta rodada, " +
+                $"{duplicados} chave(s) de origem apontando para município que já existia, " +
+                $"{reconhecidosPelaChave} reencontrado(s) pela chave depois de renomeado(s) pelo IBGE, " +
+                $"{oficialDaGrafiaCortada.Count} grafia(s) cortada(s) com município oficial.");
 
         return new CatalogoDeMunicipios(
             porChave.ToDictionary(p => p.Key, p => (int)p.Value, StringComparer.Ordinal),
             porNomeEUf,
-            duplicados);
+            duplicados,
+            reconhecidosPelaChave,
+            oficialDaGrafiaCortada);
     }
 
     /// <summary>
@@ -436,6 +471,8 @@ internal sealed class CargaDoVortice(
         var peloPonteiro = 0;
         var peloNome = 0;
         var semMunicipio = 0;
+        var correcoesMantidas = 0;
+        var correcoesDesfeitas = 0;
 
         foreach (var bloco in comEndereco.Chunk(TamanhoDoBloco))
         {
@@ -471,8 +508,36 @@ internal sealed class CargaDoVortice(
 
                     if (entidade is { EstaExcluido: false })
                     {
+                        // A CORREÇÃO DE GRAFIA CORTADA NÃO SE DESFAZ NA RECARGA quando a evidência que a
+                        // sustentou é a mesma: a origem ainda aponta para a linha cortada, e o endereço já
+                        // está no município oficial dela, com a mesma UF e a mesma coordenada. Qualquer
+                        // diferença grava o que a origem diz, e a conferência ao fim da carga reexamina.
+                        var municipioGravado = municipio;
+
+                        if (municipioId is { } daOrigem
+                            && catalogo.OficialDaGrafiaCortada.TryGetValue(daOrigem, out var oficial))
+                        {
+                            if (entidade.CorrecaoDeGrafiaCortadaSeMantem(oficial, dado.Uf, dado.Latitude, dado.Longitude))
+                            {
+                                municipioGravado = MunicipioDoEndereco.Selecionado(oficial);
+                                correcoesMantidas++;
+                            }
+                            else if (entidade.MunicipioId == oficial)
+                            {
+                                // A CORREÇÃO QUE SE DESFAZ TAMBÉM VAI PARA A TRILHA. A origem mudou a UF ou a
+                                // coordenada, e o endereço volta para a linha que ela aponta; sem este registro
+                                // a trilha mostraria duas correções seguidas e nenhuma volta entre elas.
+                                contexto.AlteracoesDeCampo.Add(AlteracaoDeCampo.Registrar(
+                                    entidade.EmpresaId, nameof(Endereco), entidade.Id, nameof(Endereco.MunicipioId),
+                                    $"{oficial} (município oficial da grafia cortada)",
+                                    $"{daOrigem} (grafia cortada: a origem mudou a UF ou a coordenada)",
+                                    usuarioResponsavelId));
+                                correcoesDesfeitas++;
+                            }
+                        }
+
                         entidade.Alterar(
-                            TipoDeEndereco.Fiscal, dado.Logradouro, municipio, dado.Uf,
+                            TipoDeEndereco.Fiscal, dado.Logradouro, municipioGravado, dado.Uf,
                             usuarioResponsavelId, dado.Numero, dado.Complemento, dado.Bairro,
                             dado.Cep, identificacao: null, dado.Latitude, dado.Longitude);
 
@@ -506,9 +571,11 @@ internal sealed class CargaDoVortice(
         }
 
         relatar($"  município do endereço: {peloPonteiro} pelo ponteiro da origem, {peloNome} " +
-                $"pelo nome mais UF, {semMunicipio} sem casar (ficaram com o texto do legado).");
+                $"pelo nome mais UF, {semMunicipio} sem casar (ficaram com o texto do legado), " +
+                $"{correcoesMantidas} com a correção de grafia cortada mantida, {correcoesDesfeitas} com a " +
+                "correção desfeita porque a origem mudou (com trilha).");
 
-        return new ResultadoDeEnderecos(gravados, peloPonteiro, peloNome, semMunicipio);
+        return new ResultadoDeEnderecos(gravados, peloPonteiro, peloNome, semMunicipio, correcoesMantidas);
     }
 
     /// <summary>Como o município do endereço foi encontrado — ou não foi.</summary>
@@ -1055,17 +1122,28 @@ internal sealed class CargaDoVortice(
 /// Quantas chaves de origem caíram num município que já existia — a medida da duplicação do
 /// catálogo do sistema antigo.
 /// </param>
+/// <param name="ReconhecidosPelaChave">
+/// Municípios que o reconhecimento do IBGE renomeou e que a carga reencontrou pela chave de origem, em
+/// vez de recriar a linha com o nome cortado.
+/// </param>
+/// <param name="OficialDaGrafiaCortada">
+/// Para cada linha cortada do catálogo, a linha do município oficial (documento 32, seção 4.6).
+/// </param>
 internal sealed record CatalogoDeMunicipios(
     IReadOnlyDictionary<string, int> PorChaveDeOrigem,
     IReadOnlyDictionary<string, int> PorNomeEUf,
-    int DuplicadosNaOrigem);
+    int DuplicadosNaOrigem,
+    int ReconhecidosPelaChave,
+    IReadOnlyDictionary<int, int> OficialDaGrafiaCortada);
 
 /// <summary>O que a gravação de endereços fez, separando como o município foi resolvido.</summary>
 /// <param name="Gravados">Endereços criados ou reconciliados.</param>
 /// <param name="PeloPonteiro">Quantos acharam o município pelo ponteiro da origem.</param>
 /// <param name="PeloNome">Quantos acharam o município pelo nome mais UF.</param>
 /// <param name="SemMunicipio">Quantos não acharam e ficaram com o texto do legado.</param>
-internal sealed record ResultadoDeEnderecos(int Gravados, int PeloPonteiro, int PeloNome, int SemMunicipio);
+/// <param name="CorrecoesDeGrafiaMantidas">Quantos mantiveram a correção de grafia cortada.</param>
+internal sealed record ResultadoDeEnderecos(
+    int Gravados, int PeloPonteiro, int PeloNome, int SemMunicipio, int CorrecoesDeGrafiaMantidas);
 
 /// <summary>Quantas vezes um campo foi corrigido e quantas foi recusado, com um exemplo de cada.</summary>
 internal sealed class ContagemDeSaneamento
@@ -1093,6 +1171,11 @@ internal sealed class ContagemDeSaneamento
 /// <param name="EnderecosComMunicipioPeloPonteiro">Endereços ligados ao município pelo ponteiro da origem.</param>
 /// <param name="EnderecosComMunicipioPeloNome">Endereços ligados ao município por nome mais UF.</param>
 /// <param name="EnderecosSemMunicipio">Endereços que ficaram com o texto do legado — o resíduo a zerar.</param>
+/// <param name="MunicipiosReconhecidosPelaChave">Municípios renomeados pelo IBGE e reencontrados pela chave.</param>
+/// <param name="CorrecoesDeGrafiaMantidas">Endereços que mantiveram a correção de grafia cortada.</param>
+/// <param name="GrafiasCortadasReapontadas">Endereços corrigidos nesta rodada para o município oficial.</param>
+/// <param name="GrafiasCortadasPendentes">Endereços em grafia cortada que ficaram para conferência.</param>
+/// <param name="ContornoOficialDisponivel">Se a malha oficial do IBGE foi lida na conferência.</param>
 /// <param name="ContatosLidos">Linhas de contato lidas na origem.</param>
 /// <param name="ContatosGravados">Contatos criados ou reconciliados.</param>
 /// <param name="EquipamentosLidos">Linhas de parque lidas na origem.</param>
@@ -1111,6 +1194,11 @@ internal sealed record ResumoDaCarga(
     int EnderecosComMunicipioPeloPonteiro,
     int EnderecosComMunicipioPeloNome,
     int EnderecosSemMunicipio,
+    int MunicipiosReconhecidosPelaChave,
+    int CorrecoesDeGrafiaMantidas,
+    int GrafiasCortadasReapontadas,
+    int GrafiasCortadasPendentes,
+    bool ContornoOficialDisponivel,
     int ContatosLidos,
     int ContatosGravados,
     int EquipamentosLidos,

@@ -40,7 +40,7 @@ public sealed class MigracaoNoContainerTestes
     private const string NomeDoBancoDeTeste = "TracbelCrmMigracaoTeste";
 
     [FatoSeHouverSqlServer]
-    public void A_migracao_inicial_cria_os_dez_schemas_e_as_sessenta_e_oito_tabelas()
+    public void A_migracao_inicial_cria_os_dez_schemas_e_as_setenta_e_duas_tabelas()
     {
         using var contexto = CriarContexto();
 
@@ -51,7 +51,7 @@ public sealed class MigracaoNoContainerTestes
 
         porSchema.Should().BeEquivalentTo(new Dictionary<string, int>
         {
-            ["organizacao"] = 8,
+            ["organizacao"] = 12,
             ["seguranca"] = 8,
             ["comercial"] = 11,
             ["processo"] = 14,
@@ -61,12 +61,13 @@ public sealed class MigracaoNoContainerTestes
             ["integracao"] = 6,
             ["metadado"] = 8,
             ["relatorio"] = 3
-        }, "é a conta do documento 14, seção 2.1 — 68 tabelas em 10 schemas, no banco de " +
+        }, "é a conta do documento 14, seção 2.1 — 72 tabelas em 10 schemas, no banco de " +
            "verdade: as 63 do documento 17, mais as duas de município do documento 26, mais " +
            "processo.VendaPerdida, comercial.FaturamentoDoCliente e " +
-           "comercial.FaturamentoSemCliente (documento 31)");
+           "comercial.FaturamentoSemCliente (documento 31), mais as quatro do território " +
+           "(documento 32)");
 
-        porSchema.Values.Sum().Should().Be(68);
+        porSchema.Values.Sum().Should().Be(72);
     }
 
     [FatoSeHouverSqlServer]

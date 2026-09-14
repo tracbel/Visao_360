@@ -76,10 +76,10 @@ verificam **agora**:
 
 | Schema | O que guarda | Tabelas |
 |---|---|---|
-| `organizacao` | empresa, linha de negócio, carteira, hierarquia comercial, meta, praça | 6 |
+| `organizacao` | empresa, linha de negócio, carteira, hierarquia comercial, meta, praça, município e carteira × município (doc 26), área de atuação, responsável pelo município, área plantada e regra de potencial (doc 32) | 12 |
 | `seguranca` | usuário, equipe, permissão, compartilhamento | 8 |
-| `comercial` | cliente, contato, canal, endereço, carteira, lead, consentimento, alerta | 9 — schema **padrão** do contexto |
-| `processo` | oportunidade e demais processos, fase, tarefa, interação, regra | 13 |
+| `comercial` | cliente, contato, canal, endereço, carteira, lead, consentimento, alerta, faturamento do cliente e faturamento sem cliente (doc 31) | 11 — schema **padrão** do contexto |
+| `processo` | oportunidade e demais processos, fase, tarefa, interação, regra, venda perdida | 14 |
 | `frota` | equipamento do cliente, marca, modelo, família, horímetro | 5 |
 | `documento` | arquivo anexado e seus vínculos | 2 |
 | `auditoria` | quem viu e quem alterou o quê | 3 |
@@ -87,9 +87,9 @@ verificam **agora**:
 | `metadado` | catálogo, campo personalizado, formulário — extensão sem release; ver seção 12 | 8 |
 | `relatorio` | fontes curadas de relatório | 3 |
 
-**Total: 63 tabelas em 10 schemas** — a conta do [17-MODELO-UNIFICADO](17-MODELO-UNIFICADO.md),
-seção 8.12, verificada por
-`EsquemaENomenclaturaTestes.Os_dez_schemas_do_modelo_unificado_existem_e_somam_sessenta_e_tres_tabelas`
+**Total: 72 tabelas em 10 schemas** — as 63 do [17-MODELO-UNIFICADO](17-MODELO-UNIFICADO.md),
+seção 8.12, mais as nove com decisão registrada nos documentos 26, 31 e 32, verificada por
+`EsquemaENomenclaturaTestes.Os_dez_schemas_do_modelo_unificado_existem_e_somam_setenta_e_duas_tabelas`
 contra o modelo, e por `MigracaoNoContainerTestes` contra o banco de verdade.
 
 ### 2.2 Como criar um schema novo
@@ -500,7 +500,7 @@ que falam com um banco de verdade.
 | Teste | Regra | Seção |
 |---|---|---|
 | `Toda_entidade_esta_num_schema_da_lista_fechada_e_nenhuma_esta_em_dbo` | schema fechado, nada em `dbo` | 2 |
-| `Os_dez_schemas_do_modelo_unificado_existem_e_somam_sessenta_e_tres_tabelas` | o portão de 63 tabelas em 10 schemas (doc 17, seção 10.2) | 2.1 |
+| `Os_dez_schemas_do_modelo_unificado_existem_e_somam_setenta_e_duas_tabelas` | o portão de 72 tabelas em 10 schemas (doc 17, seção 10.2) | 2.1 |
 | `O_schema_padrao_do_contexto_esta_na_lista_fechada` | `HasDefaultSchema` também na lista | 2 |
 | `Toda_tabela_tem_chave_primaria` | PK obrigatória | 3, 13 |
 | `A_chave_primaria_e_a_coluna_Id_salvo_nas_tabelas_particionadas_por_data` | PK sempre `Id`; a exceção são as 4 particionadas, onde o SQL Server exige a coluna de particionamento na chave | 3, 10 |

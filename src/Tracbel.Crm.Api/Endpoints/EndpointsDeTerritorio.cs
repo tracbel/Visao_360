@@ -44,6 +44,36 @@ public static class EndpointsDeTerritorio
         return app;
     }
 
+    /// <summary>Registra a rota dos indicadores geográficos (documento 32).</summary>
+    /// <param name="app">O construtor de rotas.</param>
+    public static IEndpointRouteBuilder MapearIndicadoresTerritoriais(this IEndpointRouteBuilder app)
+    {
+        var grupo = app.MapGroup("/api/v1/territorio")
+            .WithTags("Território e indicadores geográficos (banco do CRM)");
+
+        grupo.MapGet("/indicadores", async (
+                ObterIndicadoresTerritoriais caso,
+                CancellationToken ct,
+                string? competenciaInicial = null,
+                string? competenciaFinal = null,
+                string? regiao = null,
+                string? lojaCodigo = null,
+                string? visao = null,
+                string? filialDaVenda = null,
+                string? filialDoCliente = null) =>
+            (await caso.ExecutarAsync(
+                competenciaInicial, competenciaFinal, regiao, lojaCodigo, visao, filialDaVenda, filialDoCliente, ct)).Responder())
+            .WithName("ObterIndicadoresTerritoriais")
+            .WithSummary("Cobertura de visita, vendas e potencial por área, município a município.")
+            .WithDescription(
+                "Um item por município de SP da área de atuação ou com cliente, identificado pelo código " +
+                "IBGE — o mesmo da malha do mapa. O que não tem polígono (cliente sem município, " +
+                "município sem código IBGE, outra UF) vem somado em foraDoMapa, para o total fechar. " +
+                "Período em competências aaaa-mm, inclusive; padrão = 12 meses fechados.");
+
+        return app;
+    }
+
     /// <summary>Registra as rotas de cobertura territorial.</summary>
     /// <param name="app">O construtor de rotas.</param>
     public static IEndpointRouteBuilder MapearCoberturaTerritorial(this IEndpointRouteBuilder app)
