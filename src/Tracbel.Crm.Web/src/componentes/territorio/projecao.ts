@@ -38,14 +38,28 @@ function poligonosDe(geometria: Geometria): Anel[][] {
   return geometria.type === 'Polygon' ? [geometria.coordinates] : geometria.coordinates;
 }
 
-/** Enquadra a coleção numa largura dada; a altura sai da proporção real. */
-export function enquadrar(colecao: ColecaoMunicipal, largura: number, margem = 8): Enquadramento {
+/**
+ * Enquadra a coleção numa largura dada; a altura sai da proporção real.
+ *
+ * Com `incluir`, o quadro é a caixa só dos municípios escolhidos — os outros continuam desenhados, e o
+ * que passa da borda é cortado pelo próprio SVG. É o que deixa a ADR ocupar o mapa inteiro sem perder
+ * o contexto dos vizinhos. Se nenhum município passar no critério, vale o estado inteiro.
+ */
+export function enquadrar(
+  colecao: ColecaoMunicipal,
+  largura: number,
+  margem = 8,
+  incluir?: (codigo: number) => boolean,
+): Enquadramento {
   let oeste = Infinity;
   let leste = -Infinity;
   let sul = Infinity;
   let norte = -Infinity;
 
-  for (const feicao of colecao.features) {
+  const escolhidas = incluir ? colecao.features.filter((f) => incluir(Number(f.properties.codarea))) : [];
+  const feicoes = escolhidas.length > 0 ? escolhidas : colecao.features;
+
+  for (const feicao of feicoes) {
     for (const poligono of poligonosDe(feicao.geometry)) {
       for (const anel of poligono) {
         for (const [lon, lat] of anel) {

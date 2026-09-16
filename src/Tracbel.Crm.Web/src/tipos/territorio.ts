@@ -66,6 +66,16 @@ export type IndicadoresDoMunicipio = {
   cobertura: CoberturaTerritorial;
   vendas: VendasTerritoriais;
   potencial: PotencialTerritorial[];
+  /** Os responsáveis das carteiras com vínculo aqui — a terceira fonte, ao lado das duas planilhas. */
+  responsaveisPelasCarteiras: ResponsavelPelaCarteira[];
+};
+
+/** O responsável cadastrado de uma carteira comercial com clientes do município. */
+export type ResponsavelPelaCarteira = {
+  nome: string;
+  natureza: string;
+  vinculos: number;
+  carteiras: number;
 };
 
 export type ComparacaoDoCen = 'UmaFonteSo' | 'MesmoNome' | 'ProvavelMesmaPessoa' | 'NomesDiferentes';

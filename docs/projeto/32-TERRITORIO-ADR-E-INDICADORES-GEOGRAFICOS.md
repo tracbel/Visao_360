@@ -1,6 +1,17 @@
 # Território, ADR e indicadores geográficos — cadastros, conciliação e o painel de mapas
 
-> **Documento 32** · Versão 1.2 · 13/09/2026 — entrega parcial: a recarga do Vórtice deixa de
+> **Documento 32** · Versão 1.5 · 14/09/2026 — a taxonomia de produto que faltava (§3.5) chegou pelo ART:
+> classificação de produto com porte nos filtros de equipamento, as vendas de máquina no banco local e a
+> gestão "Grandes Contas" preservada por venda, sem virar SAM/KAM (§3.4). Detalhe no **documento 35, §10**;
+> pendências P-31 a P-39.
+> Versão 1.4 · 14/09/2026 — os três mapas lado a lado no quadro da ADR, cobertura
+> vermelho→verde, período explícito, potencial por recorte, responsáveis das carteiras e os cinco
+> cartões da Visão 360 com fonte e regra: tudo no **documento 36** (§11.10); P-2 e P-4 com as medidas
+> novas; pendências P-26 a P-30.
+> Versão 1.3 · 14/09/2026 — a tela do território vazia no servidor: causa medida,
+> correção ensaiada numa cópia idêntica do banco, execução no servidor pendente, ART e fontes (§11.9 e
+> documento 35).
+> Versão 1.2 · 13/09/2026 — entrega parcial: a recarga do Vórtice deixa de
 > desfazer as grafias corrigidas (§4.6.1); a visão da empresa foi validada na aplicação com perfis de
 > teste (§8.5.5); os valores estão conciliados numa tabela só (§8.6); a matriz separa implementação
 > de validação comercial (§2, §8.7); e os materiais de coleta estão no documento 34.
@@ -67,6 +78,11 @@
     aprovação (documento 33).
 11. **Coleta:** 11 planilhas-modelo e 17 decisões priorizadas para o gerente, pré-preenchidas com o
     que o CRM e o Vórtice já têm (documento 34).
+12. **A tela vazia no servidor (14/09/2026):** o território nunca tinha sido carregado no banco do
+    servidor — 0 municípios com código IBGE, 0 ADR. A carga, ensaiada numa cópia idêntica desse banco,
+    trouxe os 203 municípios, bateu ao centavo com a conciliação e não grava nada na segunda rodada. A
+    execução no servidor ficou com você (`scripts/deploy/carregar-territorio-no-servidor.ps1`), e a tela
+    passou a dizer "território não carregado" em vez de mostrar zero (§11.9, documento 35).
 
 ---
 
@@ -159,8 +175,8 @@ R-14 = O-20, R-15 = O-35, R-18 = O-30.
 | O-16 | Mapa B — vendas por município | **Provisório** — valor conferido ao centavo (§8.6); o período e o abatimento de devolução dependem de decisão | §8.2, §8.5, §8.6 | P-4, P-5 |
 | O-17 | Mapa C — potencial por cultura × área | **Provisório** — selo "Estimativa · regra a confirmar" | §8.3, §8.7 | Confirmar a regra do café e dar as das outras culturas (P-8; planilha 08) |
 | O-18 | Valores de pós-venda | **Provisório** — peça + serviço, sem dupla contagem; selo "Composição provisória" | §8.4, §8.7, §11.3 | O que a diretoria considera pós-venda (planilha 11) |
-| O-19 | Filtro SAM, KAM e Varejo | **Bloqueado** | §3.4 | Definição e lista de clientes classificados (P-6; planilha 03) |
-| O-20 | Filtros tipo de produto e modelo | **Bloqueado** | §3.5 | Taxonomia de produto e autorização para trazer o item da nota (P-7; planilha 07) |
+| O-19 | Filtro SAM, KAM e Varejo | **Bloqueado** | §3.4 | Definição e lista de clientes classificados (P-6; planilha 03). O ART tem `gestao` Varejo / Grandes Contas **por venda** — insumo para a decisão, não classificação de cliente (documento 35, §7.7) |
+| O-20 | Filtros tipo de produto e modelo | **Bloqueado** | §3.5 | Taxonomia de produto e autorização para trazer o item da nota (P-7; planilha 07). O ART traz `linha` (14) e `produto` (126) por chassi vendido — fonte candidata para a taxonomia (documento 35, §7.7) |
 | O-21 | Filtros município, ADR, período, visão, filial, CEN, gestor e cultura | **Validado** para município, região e loja da ADR, período, visão, filial que vendeu e filial do cliente; **Bloqueado** para CEN e gestor; cultura segue O-17 | §8.5.5, §8.6, §11.4 | P-1 |
 | O-22 | Potencial de **clientes** | **Bloqueado** | `Endereco.Hectares` e `CulturaId` vazios em 100% (§3.1) | Propriedades e culturas por cliente (P-11; planilha 05) |
 | O-23 | Potencial de **não clientes** | **Bloqueado** | não existe cadastro de propriedade de não cliente | Base de propriedades rurais (ART ou CAR/SICAR; planilha 05) |
@@ -200,6 +216,11 @@ R-14 = O-20, R-15 = O-35, R-18 = O-30.
 | O-47 | Importar as planilhas devolvidas | **Pendente técnico** | documento 34, §5 | Depois que o gerente validar o formato |
 | O-48 | Publicação no servidor | **Validado** — publicado em 13/09/2026, migração aplicada, arquivos conferidos por hash | §11.8 | Carga do território no banco do servidor; consentimento do Entra ID (P-19) |
 | O-49 | Teste automatizado da carga do Vórtice mantendo a correção (`GravarEnderecosAsync`, `GravarMunicipiosAsync`) | **Pendente técnico** | §4.6.1 — provado em rodada real; a conferência das grafias tem teste próprio | Teste com banco em memória e leitor falso do Vórtice |
+| O-50 | Dados reais visíveis na tela do servidor | **Validado no banco** — a carga do território rodou no servidor em 14/09/2026 12:49: 5.571 municípios com código IBGE, 203 da ADR e 45.582 linhas de área plantada (medido); a conferência visual com login no servidor é sua | documento 35, §2, §3 e §5 | Abrir a tela no servidor e conferir |
+| O-51 | Diferenciar ausência de registro, falta de permissão e falha de carregamento | **Validado** localmente — aviso de território não carregado, 403 e 401 com mensagem própria; não publicado | documento 35, §4 | Publicar quando liberado |
+| O-52 | Conectar ao banco do ART e inspecionar o esquema | **Validado** — conecta, autentica e lê (14/09/2026); o usuário só enxerga a view de vendas `bi_art_veiculos` (4.144 vendas, 72 colunas) | documento 35, §7.4 a §7.6 | Leitura das tabelas de propriedade, área, cultura e horímetro (P-11) |
+| O-53 | Parar de levar dados da estação para o servidor | **Pendente técnico** — cargas já podem gravar direto no servidor (script do território); falta instalar e agendar a carga no próprio servidor | documento 35, §6 | Decisão e acesso de administrador no servidor (P-24) |
+| O-54 | Fonte que sustenta cada informação | **Validado** para CRM, Protheus, Vórtice, IBGE e planilhas; **Bloqueado** para o ART | documento 35, §8 | P-11; credencial do Protheus na sessão para refazer a comparação (P-25) |
 
 ---
 
@@ -262,6 +283,10 @@ A sigla aparece em quatro lugares do Vórtice, nenhum deles uma classificação 
 "KAM" na tabela VV1 do Protheus é **código de marca**, não classificação. **Conclusão:** o filtro
 precisa de uma definição do negócio e de uma lista — ver §5, grupo 4.
 
+**Versão 1.5:** o ART traz `gestao` (Varejo 3.235, Grandes Contas 909 vendas) **por venda**. O valor ficou
+em `frota.VendaDeMaquina.GestaoNaOrigem`, como veio, e não classifica o cliente nem vira SAM/KAM: um
+cliente pode ter compras nas duas gestões. A regra comercial é a pendência P-31 (documento 35, §10.10).
+
 ### 3.5 Tipo de produto e modelo nas vendas
 
 O faturamento carregado tem o grão cliente × filial × mês. O produto existe na nota (SD2) mas não
@@ -269,6 +294,13 @@ foi trazido, e o catálogo de modelos não separa trator grande, médio e compac
 tem "Trator", "Colhedora de Cana", "Pulverizador", "Implemento". A planilha de equipamento traz
 `Linha Produtos` ("TRATORES COMPACTOS", "TRATORES MÉDIOS") — é a taxonomia que falta, mas ela vem
 de uma fonte que não alcançamos.
+
+**Versão 1.5 — a taxonomia existe.** `frota.LinhaDeProduto` guarda a classificação com porte (trator
+pequeno, médio e grande, colhedora de cana, colheitadeira, plantadeira, pulverizador, plataforma de corte
+e implementos), apontando para a família compatível. As 14 linhas do ART entram por tabela explícita, e a
+lista de equipamentos filtra por classificação, porte e "com venda" no banco. No banco local, 2.106
+máquinas com venda do ART: 823 tratores pequenos, 227 médios, 527 grandes (documento 35, §10.7). O filtro
+por porte no **mapa B** ainda não existe: o faturamento continua no grão cliente × filial × mês.
 
 ### 3.6 Perfis CEN, gerente e diretor
 
@@ -991,16 +1023,16 @@ grafias altera `Endereco.MunicipioId`; o valor anterior dos dois fica em `Altera
 | # | Pendência | Impacto | Quem resolve |
 |---|---|---|---|
 | P-1 | Qual planilha de CEN vale e desde quando (C-1 a C-3) | o detalhe mostra as duas fontes; filtro por CEN e gestor desligado | gerente comercial |
-| P-2 | O que conta como **visita**; periodicidade (30/60/90/120 da maquete ou a declarada); elegibilidade | o mapa A usa a regra declarada no CRM | gerente comercial |
+| P-2 | O que conta como **visita**; periodicidade (30/60/90/120 da maquete ou a declarada); elegibilidade | o mapa A e o cartão de cobertura usam a regra declarada no CRM. Medido em 14/09/2026: **0 de 179** tipos de atividade marcados como visita (`ContaParaCobertura`), e 30.488 das 122.002 interações são registro do sistema — com elas, 39.441 vínculos comerciais têm contato; só com contato Ativo ou Receptivo, 24.318 (documento 36, §3.4) | gerente comercial |
 | P-3 | Unidade da pendência: cliente ou vínculo | o mapa A usa vínculo | gerente comercial |
-| P-4 | Período das vendas: FYTD (com qual início de ano fiscal?) ou 12 meses | o mapa B usa 12 meses fechados, com filtro de período | diretoria |
+| P-4 | Período das vendas: FYTD (com qual início de ano fiscal?) ou 12 meses | o mapa B usa 12 meses fechados e oferece "ano civil até o último mês fechado"; os cartões usam ano civil; FYTD não é oferecido (documento 36) | diretoria |
 | P-5 | Devolução e cancelamento nas vendas | o mapa B não abate | fiscal/controladoria |
 | P-6 | Definição e lista de SAM/KAM/Varejo | filtro desligado | comercial |
 | P-7 | Taxonomia de produto e porte; trazer o item da nota | filtros de produto e modelo desligados | comercial + TI |
 | P-8 | Regra do café (horizonte, arredondamento, vigência), regras das demais culturas, preço | o mapa C só em máquinas teóricas, só café | comercial |
 | P-9 | Ciclo de troca e concorrência | sem potencial ajustado | comercial |
 | P-10 | Perfis e hierarquia (CEN, gerente, diretor), e **quem recebe `Empresa.AlcanceEntreFiliais`** | nenhum usuário real tem a visão da empresa; ela foi validada só com perfis de teste (§8.5.5) | TI + diretoria (documento 34, decisão 4) |
-| P-11 | Acesso ao ART (10.235.0.59:3306 sem resposta) | propriedade, cultura e parque bloqueados | infraestrutura |
+| P-11 | ART: **a conexão funciona** (14/09/2026), mas o usuário só lê a view de vendas `bi_art_veiculos`. Falta o dono do ART dizer onde estão propriedade, área, cultura e horímetro e conceder leitura; e confirmar a rota do servidor 10.150.4.249 até 10.100.5.134:3306 para a sincronização agendada (documento 35, §7.8) | propriedade, cultura, área e horímetro seguem bloqueados; parque vendido, linha e produto já têm fonte | dono do ART + infraestrutura |
 | P-12 | **Aprovar** a reescrita do histórico do GitHub — procedimento pronto e não executado (documento 33; recomendação: opção C+) | dado de cliente e de funcionário publicado | Ricardo (aprovação escrita) |
 | P-13 | O repositório deveria morar em `E:\CraftOps\` pela regra do ambiente | nenhum na execução | Ricardo |
 | P-14 | Guaíra, Ituverava e Monte Alto operam? (C-4) | 11 municípios da ADR com loja inativa no CRM | diretoria |
@@ -1008,9 +1040,19 @@ grafias altera `Endereco.MunicipioId`; o valor anterior dos dois fica em `Altera
 | P-16 | A quem pertence o cliente que compra em mais de uma filial (1.706 clientes; R$ 321,6 mi com filial de cadastro diferente da que vendeu) | na visão da filial esse valor fica à parte | diretoria + comercial |
 | P-17 | Cadastrar as contrapartes sem cliente no CRM (R$ 230,7 mi de contraparte sem cadastro em 12 meses nas 13 filiais ativas, linha B1 do §8.6) | o valor fica fora dos municípios | comercial (cadastro) |
 | P-18 | Dado pessoal e identificadores no histórico do GitHub: login de funcionário em 80 arquivos, nome em 70, e-mail corporativo em 24, 19 CPFs de terceiros (documento 33, §1) | exposição de dado pessoal | Ricardo + encarregado de dados |
-| P-19 | Consentimento do administrador do Entra ID para o aplicativo "Tracbel Agro - CRM": o login corporativo mostra "Aprovação necessária" | ninguém entra na aplicação publicada pelo login corporativo | administrador do Entra ID |
+| P-19 | Consentimento do administrador do Entra ID para o aplicativo "Tracbel Agro - CRM": o login corporativo mostra "Aprovação necessária" | **resolvida**: 4 pessoas já entraram pelo Entra ID no servidor (medido em 14/09/2026) | administrador do Entra ID |
 | P-20 | **Quais filiais cada usuário pode escolher.** Hoje, qualquer filial ativa pelo cabeçalho (D-11). Implementação pronta para fazer assim que decidido: filial de casa e as concedidas explicitamente; as demais, 403 | com login ativo, qualquer pessoa vê clientes e vendas de qualquer filial | TI + diretoria (junto com a decisão 4 do documento 34) |
 | P-21 | Este documento traz faturamento por filial ao centavo e contagem de clientes. Pode ir para o GitHub, ou a tabela fica em `dados-locais/` e o documento guarda só o método e o script? | dado comercial da empresa no repositório | Ricardo, antes do push |
+| P-22 | Carga do território no banco do servidor — **resolvida**: rodada em 14/09/2026 12:49; o banco do servidor tem 203 municípios da ADR (medido) | — | Ricardo |
+| P-23 | Publicar o aviso de território não carregado e as mensagens de permissão | no servidor, a tela ainda mostra zero quando o território falta | Ricardo (publicação) |
+| P-24 | Onde e quando as cargas rodam no servidor, e a rotina de cópia de segurança (destino, retenção, modo de recuperação `FULL` sem backup de log) | dados chegam ao servidor só quando alguém roda a carga; banco oficial sem backup rotineiro | Ricardo + administrador do servidor |
+| P-25 | Completar o documento dos clientes pela SA1 do Protheus (387 CNPJs que faturam existem no CRM só por nome). **A credencial existe** no `.env` da raiz e foi testada: lê a `SA1010`; o usuário é `db_owner`, e a integração só lê | correção de cadastro CRM × Protheus ainda não implementada | TI (implementação) |
+| P-26 | Cadastrar as metas de faturamento: `organizacao.Meta` tem 0 linhas e nenhuma meta preenchida foi recebida (a planilha-modelo `04-metas.xlsx` do documento 34 só tem exemplos fictícios; `IVS_UsrMeta` do Vórtice tem 1 linha) | o cartão "Meta e realizado" mostra só o realizado | comercial/diretoria |
+| P-27 | Regra de sanitização de cliente: 4 documentos em 8 cadastros de filiais diferentes e 7.391 clientes em carteira sem CPF/CNPJ | nada foi fundido nem completado (documento 36, §3.3) | comercial (cadastro) + TI |
+| P-28 | Classe de cliente cadastrado em outra filial, na visão por filial: 501 vínculos medidos pela cadência D | diferença de 38 vínculos no prazo no consolidado (documento 36, §3.4) | TI + diretoria (com P-10/P-20) |
+| P-29 | Fonte de mercado (emplacamento) e venda perdida por município | sem participação de mercado; perda sem município | comercial + TI |
+| P-30 | Publicar os cartões e os mapas novos (documento 36) | o servidor mostra a versão anterior | Ricardo (publicação) |
+| P-31 a P-39 | Integração do ART: regra de Grandes Contas × SAM/KAM, 91 produtos sem correspondência, 851 compradores ausentes, filiais inativas com vendas, 47 divergências de dono, chassi curto, famílias faltantes, acesso a propriedade/área/cultura/horímetro e a tela de revisão com ação | detalhadas no documento 35, §10.10 | comercial, cadastro, responsável pelo ART, TI |
 
 **Resolvidas nesta revisão:** a correção das grafias cortadas (antiga P-15, autorizada em 13/09/2026)
 e a escolha entre venda por filial ou por empresa (antiga P-16: as duas visões existem, §8.5).
@@ -1238,3 +1280,31 @@ troca de filial pelo cabeçalho (D-11) continua valendo.
 | Publicação no servidor | **feita** pelo Ricardo nesta estação, com o `publicar.ps1` (a sessão de trabalho não teve permissão para rodá-lo). Conferido depois, só com leitura: serviço `RUNNING`; `/saude/banco` com o banco conectado e **0 migração pendente** — a migração `20260913155645` foi aplicada na subida; `Tracbel.Crm.Api.dll` e `Tracbel.Crm.Infraestrutura.dll` do servidor iguais, por hash, ao pacote gerado às 22:44; a rota do território responde 401 sem login |
 | Como publicar | nesta estação, com a VPN: `.\scripts\deploy\publicar.ps1`. Ele roda os testes, gera o pacote, para o serviço, copia, sobe — e a API aplica a migração deste commit ao subir — e só diz "pronto" depois da saúde pelo nome DNS e da conferência por hash |
 | Depois de publicar | a tela do território fica sem ADR, responsáveis e área plantada até a carga do território rodar contra o banco do servidor (`--somente-territorio`); e ninguém entra pelo login corporativo até o consentimento do administrador do Entra ID (P-19) |
+
+### 11.9 A tela vazia no servidor (14/09/2026)
+
+Tudo no **documento 35**. Em resumo, com evidência medida:
+
+| Etapa | Resultado |
+|---|---|
+| Causa | banco do servidor com 0 municípios com código IBGE, 0 ADR, 0 responsáveis e 0 área plantada; a carga do território tinha rodado só nesta estação. API 200, sem erro de conexão nem de permissão |
+| Reprodução | cópia `COPY_ONLY` do banco do servidor restaurada num SQL Server 2025 local; a tela ficou igual à do servidor (645 polígonos, 0 na ADR, "0 municípios · R$ 0") |
+| Correção ensaiada | carga do território na cópia: 5.458 municípios reconhecidos, 113 criados, 192 endereços corrigidos, 203 da ADR, 203 + 406 responsáveis, 45.582 linhas de área plantada; tela com os três mapas preenchidos |
+| Conferência | total da filial 010101 R$ 217.106.275,76 na API e no SQL de conciliação; Ribeirão Preto igual ao validado no §11.3; segunda carga grava zero |
+| Tela | aviso de território não carregado, 403 e 401 com mensagem própria; teste de API novo; 72 testes da API passando; `tsc -b` e `oxlint` sem erro |
+| Servidor | carga **não executada** pela sessão (política de permissões); script pronto e ensaiado (P-22). Cópia de segurança do banco do servidor feita e conferida antes |
+| ART | sem rota interna, sem credencial no ambiente, sessão do Fluig expirada (P-11) — corrigido na versão 1.2 do documento 35: a credencial existe e a conexão funciona |
+| Commit e publicação | não feitos — restrição mantida |
+
+### 11.10 Os mapas e os cartões pelas referências (14/09/2026)
+
+Tudo no **documento 36**. Em resumo, com evidência medida na cópia do banco do servidor:
+
+| Etapa | Resultado |
+|---|---|
+| Mapas | quadro da ADR comum aos três (645 polígonos, 203 com contorno); cobertura vermelho→verde com pendência e quantidade; foco compartilhado; período "12 meses fechados" ou "ano civil"; potencial Região total / Clientes / Não clientes; responsáveis das carteiras na ficha |
+| Conferência dos mapas | filial 010101: 2.566 elegíveis e 1.688 no prazo; vendas R$ 77.060.969,36; ano civil R$ 45.346.860,86; Norte 83, Noroeste 120; potencial 9.932 em 99.322 ha — tela = API = SQL |
+| Cartões | rota `/relatorios/indicadores-executivos`, por partição; faturamento R$ 10.652.619,09 (com a nota sem cliente); 21.001 clientes únicos; cobertura 14.503 de 21.774; 165 vendas perdidas; meta sem cadastro — API = SQL |
+| Estados | carregando, sem permissão, falha parcial, sem dado e mapas sem permissão, simulados no navegador |
+| Testes | 484 .NET passando (10 novos; 1 teste de data fixa corrigido); `tsc -b` e `oxlint` sem erro |
+| Commit e publicação | não feitos — restrição mantida |

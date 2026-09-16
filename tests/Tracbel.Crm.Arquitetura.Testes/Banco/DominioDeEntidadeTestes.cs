@@ -88,10 +88,11 @@ public sealed class DominioDeEntidadeTestes
             }
         }
 
-        encontradas.Should().Be(10,
-            "são dez as colunas que nomeiam entidade — nove 'Entidade' mais " +
-            "relatorio.Fonte.EntidadeRaiz (documento 21, achado I-3). Se este número mudou, a " +
-            "coluna nova precisa entrar na conta, não passar despercebida");
+        encontradas.Should().Be(2,
+            "são DUAS as colunas que nomeiam entidade depois da fase 1 (documento 41): " +
+            "auditoria.AlteracaoDeCampo.Entidade e integracao.ChaveExterna.Entidade. Eram dez — " +
+            "as outras oito estavam em tabelas vazias que saíram (documento 21, achado I-3). Se " +
+            "este número mudou, a coluna nova precisa entrar na conta, não passar despercebida");
 
         problemas.Should().BeEmpty(
             "toda coluna que nomeia uma entidade tem restrição de verificação com a lista " +
@@ -105,11 +106,8 @@ public sealed class DominioDeEntidadeTestes
     public void Toda_coluna_que_nomeia_campo_exige_identificador_do_padrao_de_nomenclatura()
     {
         // `Campo` NÃO ganha lista fechada, e o motivo está escrito em
-        // CrmDbContext.FecharDominioDoPonteiroPolimorfico: o conjunto válido seriam as 745
-        // colunas do modelo (o que faria qualquer coluna nova em qualquer tabela exigir
-        // migração aqui) e ele não é uniforme — relatorio.FonteCampo.Campo nomeia coluna de
-        // VISÃO e metadado.CampoPersonalizado.Campo nomeia a coluna que a migração de campo
-        // personalizado ainda vai criar.
+        // CrmDbContext.FecharDominioDoPonteiroPolimorfico: o conjunto válido seria toda coluna do
+        // modelo, o que faria qualquer coluna nova em qualquer tabela exigir migração aqui.
         //
         // O que dá para exigir sem mentir é a FORMA: identificador PascalCase ASCII, o padrão
         // da seção 3 do documento 14. Barra 'nome_cliente', 'Nome do cliente' e ' Nome'.
@@ -142,10 +140,11 @@ public sealed class DominioDeEntidadeTestes
             }
         }
 
-        encontradas.Should().Be(4,
-            "são quatro as colunas chamadas 'Campo': auditoria.CampoAuditado, " +
-            "auditoria.AlteracaoDeCampo, metadado.CampoPersonalizado e relatorio.FonteCampo " +
-            "(documento 21, achado I-3)");
+        encontradas.Should().Be(1,
+            "sobrou UMA coluna chamada 'Campo' depois da fase 1 (documento 41): " +
+            "auditoria.AlteracaoDeCampo. As outras três — auditoria.CampoAuditado, " +
+            "metadado.CampoPersonalizado e relatorio.FonteCampo — estavam em tabelas vazias que " +
+            "saíram (documento 21, achado I-3)");
 
         problemas.Should().BeEmpty(
             "coluna que nomeia campo aceita identificador do padrão de nomenclatura, e nada " +

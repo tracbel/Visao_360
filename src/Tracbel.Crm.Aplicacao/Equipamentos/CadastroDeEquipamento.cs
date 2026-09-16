@@ -9,7 +9,7 @@ namespace Tracbel.Crm.Aplicacao.Equipamentos;
 
 /// <summary>Os campos de equipamento já conferidos e resolvidos contra os catálogos.</summary>
 internal sealed record DadosDeEquipamentoConferidos(
-    ModeloParaSelecao Modelo,
+    ModeloParaSelecao? Modelo,
     long? ClienteId,
     Guid? ClienteChave,
     string? ClienteNome,
@@ -19,14 +19,16 @@ internal sealed record DadosDeEquipamentoConferidos(
     short? AnoModelo,
     string? NumeroSerie,
     string? Placa,
-    string? LocalizacaoDescrita);
+    string? LocalizacaoDescrita,
+    LinhaDeProdutoParaSelecao? LinhaDeProduto);
 
 /// <summary>
 /// A conferência de entrada de equipamento, escrita uma vez para a criação e a alteração.
 ///
-/// O MODELO E O DONO SÃO RESOLVIDOS AQUI, contra o catálogo e contra o cadastro de clientes —
-/// não são aceitos como número vindo do JSON. É a regra 3.1 do documento 16 aplicada aos dois:
-/// modelo é catálogo, e cliente é registro cujo alcance depende de quem está pedindo.
+/// O MODELO, A CLASSIFICAÇÃO E O DONO SÃO RESOLVIDOS AQUI, contra o catálogo e contra o cadastro
+/// de clientes — não são aceitos como número vindo do JSON. É a regra 3.1 do documento 16 aplicada
+/// aos três: modelo e classificação são catálogo, e cliente é registro cujo alcance depende de quem
+/// está pedindo.
 /// </summary>
 internal static class ConferenciaDeEquipamento
 {
@@ -43,9 +45,15 @@ internal static class ConferenciaDeEquipamento
         string? numeroSerie,
         string? placa,
         string? localizacaoDescrita,
+        string? linhaDeProdutoCodigo,
+        bool modeloObrigatorio,
         CancellationToken ct)
     {
-        var codigo = erros.Obrigatorio("modeloCodigo", modeloCodigo, "o modelo da máquina");
+        // O MODELO SÓ É OPCIONAL na máquina que chegou por venda do ART sem correspondência segura de
+        // produto: é o que evita que alguém precise inventar um modelo para confirmar o dono.
+        var codigo = modeloObrigatorio
+            ? erros.Obrigatorio("modeloCodigo", modeloCodigo, "o modelo da máquina")
+            : modeloCodigo?.Trim();
 
         ModeloParaSelecao? modelo = null;
         if (!string.IsNullOrWhiteSpace(codigo))
@@ -57,6 +65,17 @@ internal static class ConferenciaDeEquipamento
                     "Modelo fora do catálogo de frota. " +
                     "Consulte /api/v1/catalogos/MODELO_EQUIPAMENTO para ver as opções.",
                     modeloCodigo);
+        }
+
+        LinhaDeProdutoParaSelecao? linhaDeProduto = null;
+        if (!string.IsNullOrWhiteSpace(linhaDeProdutoCodigo))
+        {
+            linhaDeProduto = await catalogos.ObterLinhaDeProdutoAsync(linhaDeProdutoCodigo.Trim(), ct);
+            if (linhaDeProduto is null)
+                erros.Registrar(
+                    "linhaDeProdutoCodigo",
+                    "Classificação fora do catálogo. Consulte /api/v1/catalogos/LINHA_DE_PRODUTO para ver as opções.",
+                    linhaDeProdutoCodigo);
         }
 
         var situacaoEscolhida = erros.ItemDeDominioOuPadrao(
@@ -96,7 +115,7 @@ internal static class ConferenciaDeEquipamento
         if (erros.TemErro) return null;
 
         return new DadosDeEquipamentoConferidos(
-            modelo!,
+            modelo,
             clienteId,
             chaveDoDono,
             nomeDoDono,
@@ -106,8 +125,13 @@ internal static class ConferenciaDeEquipamento
             doModelo,
             numeroSerie,
             placa,
-            localizacaoDescrita);
+            localizacaoDescrita,
+            linhaDeProduto);
     }
+
+    /// <summary>A classificação como a leitura a devolve.</summary>
+    public static ClassificacaoDaMaquina? Classificacao(LinhaDeProdutoParaSelecao? linha) =>
+        linha is null ? null : new ClassificacaoDaMaquina(linha.Codigo, linha.Nome, linha.Porte);
 
     /// <summary>
     /// Lê um ano que chegou como texto.
@@ -177,7 +201,7 @@ public sealed class CriarEquipamento(
             erros, catalogos, clientes,
             entrada.ModeloCodigo, entrada.ClienteChave, entrada.Situacao, entrada.Origem,
             entrada.AnoFabricacao, entrada.AnoModelo, entrada.NumeroSerie, entrada.Placa,
-            entrada.LocalizacaoDescrita, ct);
+            entrada.LocalizacaoDescrita, entrada.LinhaDeProdutoCodigo, modeloObrigatorio: true, ct);
 
         if (dados is null || erros.TemErro)
             return erros.Recusar<EquipamentoDetalhe>("O cadastro do equipamento tem campos a corrigir.");
@@ -196,7 +220,7 @@ public sealed class CriarEquipamento(
         {
             equipamento = Equipamento.Criar(
                 empresaId: contexto.EmpresaId,
-                modeloId: dados.Modelo.Id,
+                modeloId: dados.Modelo!.Id,
                 chassi: chassi,
                 origem: dados.Origem,
                 criadoPorId: contexto.UsuarioId,
@@ -207,6 +231,9 @@ public sealed class CriarEquipamento(
                 numeroSerie: dados.NumeroSerie,
                 placa: dados.Placa,
                 localizacaoDescrita: dados.LocalizacaoDescrita);
+
+            if (dados.LinhaDeProduto is { } classificacao)
+                equipamento.ClassificarSeAusente(classificacao.Id, contexto.UsuarioId);
         }
         catch (RegraDeNegocioViolada erro)
         {
@@ -218,7 +245,9 @@ public sealed class CriarEquipamento(
         var gravou = await unidade.SalvarAsync(ct);
         return gravou.EhSucesso
             ? Resultado<EquipamentoDetalhe>.Ok(EquipamentoDetalhe.De(
-                new EquipamentoComContexto(equipamento, dados.ClienteChave, dados.ClienteNome, dados.Modelo)))
+                new EquipamentoComContexto(
+                    equipamento, dados.ClienteChave, dados.ClienteNome, dados.Modelo,
+                    ConferenciaDeEquipamento.Classificacao(dados.LinhaDeProduto))))
             : Resultado<EquipamentoDetalhe>.Conflito(gravou.Erro!);
     }
 }
@@ -248,12 +277,20 @@ public sealed class AlterarEquipamento(
         var erros = new ColetorDeErros();
         var versao = erros.CarimboDeVersao("versao", entrada.Versao);
 
+        // A CLASSIFICAÇÃO AUSENTE NO CORPO MANTÉM A ATUAL; texto vazio retira. É a diferença entre
+        // "não mexi neste campo" e "tirei a classificação", que o PUT precisa distinguir.
+        var classificacaoPedida = entrada.LinhaDeProdutoCodigo is null
+            ? leitura.Classificacao?.Codigo
+            : entrada.LinhaDeProdutoCodigo;
+
+        var modeloObrigatorio = !(equipamento.Origem == OrigemDoEquipamento.Art && equipamento.ModeloId is null);
+
         var dados = await ConferenciaDeEquipamento.ConferirAsync(
             erros, catalogos, clientes,
             entrada.ModeloCodigo ?? leitura.Modelo?.Codigo, entrada.ClienteChave,
             entrada.Situacao ?? equipamento.Situacao.ToString(), equipamento.Origem.ToString(),
             entrada.AnoFabricacao, entrada.AnoModelo, entrada.NumeroSerie, entrada.Placa,
-            entrada.LocalizacaoDescrita, ct);
+            entrada.LocalizacaoDescrita, classificacaoPedida, modeloObrigatorio, ct);
 
         if (dados is null || erros.TemErro)
             return erros.Recusar<EquipamentoDetalhe>("A alteração do equipamento tem campos a corrigir.");
@@ -266,7 +303,7 @@ public sealed class AlterarEquipamento(
         try
         {
             equipamento.Alterar(
-                modeloId: dados.Modelo.Id,
+                modeloId: dados.Modelo?.Id,
                 usuarioId: acesso.Atual.UsuarioId,
                 clienteId: dados.ClienteId,
                 situacao: dados.Situacao,
@@ -275,6 +312,8 @@ public sealed class AlterarEquipamento(
                 numeroSerie: dados.NumeroSerie,
                 placa: dados.Placa,
                 localizacaoDescrita: dados.LocalizacaoDescrita);
+
+            equipamento.Classificar(dados.LinhaDeProduto?.Id, acesso.Atual.UsuarioId);
         }
         catch (RegraDeNegocioViolada erro)
         {
@@ -284,7 +323,9 @@ public sealed class AlterarEquipamento(
         var gravou = await unidade.SalvarAsync(ct);
         return gravou.EhSucesso
             ? Resultado<EquipamentoDetalhe>.Ok(EquipamentoDetalhe.De(
-                new EquipamentoComContexto(equipamento, dados.ClienteChave, dados.ClienteNome, dados.Modelo)))
+                new EquipamentoComContexto(
+                    equipamento, dados.ClienteChave, dados.ClienteNome, dados.Modelo,
+                    ConferenciaDeEquipamento.Classificacao(dados.LinhaDeProduto), leitura.UltimaVenda)))
             : Resultado<EquipamentoDetalhe>.Concorrencia(gravou.Erro!);
     }
 }

@@ -7,14 +7,23 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Tracbel.Crm.Carga;
+using Tracbel.Crm.Carga.Sincronizacao;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao.Carga;
 using Microsoft.Extensions.DependencyInjection;
+using Tracbel.Crm.Integracao.Art;
 using Tracbel.Crm.Integracao.Ibge;
 using Tracbel.Crm.Integracao.Protheus;
 using Tracbel.Crm.Integracao.Vortice;
+
+// --servico-art — O SERVIÇO DO WINDOWS TracbelCrmSincronizacaoArt (documento 35, seção 11).
+//
+// Vem antes de tudo, inclusive da codificação do console: como serviço não há console, e o ciclo, a
+// configuração e o log são outros (Sincronizacao/ServicoDeSincronizacaoDoArt.cs).
+if (args.Contains("--servico-art", StringComparer.Ordinal))
+    return await HospedagemDaSincronizacao.RodarAsync(args);
 
 Console.OutputEncoding = Encoding.UTF8;
 
@@ -75,6 +84,50 @@ var somenteFaturamento = args.Contains("--somente-faturamento", StringComparer.O
 //                        --cen-e-gestor    "<pasta>\CEN e Gestor por Municipio.xlsx"
 var somenteTerritorio = args.Contains("--somente-territorio", StringComparer.Ordinal);
 
+// --somente-art [--simular] — AS VENDAS DE MÁQUINA DO ART (documento 35, seção 10).
+//
+// Lê a view do ART (MySQL, sessão somente leitura) e confere dono e cadastro no banco do Protheus
+// (só SELECT). Não lê o Vórtice. Com --simular, a carga inteira roda numa transação DESFEITA no fim:
+// os números saem, e o banco não muda.
+var somenteArt = args.Contains("--somente-art", StringComparer.Ordinal);
+var simular = args.Contains("--simular", StringComparer.Ordinal);
+
+// =================================================================================================
+// O VÓRTICE ESTÁ CONGELADO — LEGADO / SOMENTE REFERÊNCIA (decisão D-12, documento 41).
+//
+// A partir da fase 1 da reestruturação, a leitura do sistema de origem NÃO volta ao fluxo
+// operacional. O código não foi removido de propósito: ele é a documentação executável de como o
+// dado do Vórtice foi interpretado, e a fase 8 é que decide o destino dele. Mas ele deixa de ser
+// uma opção de rotina, e quem quiser rodá-lo precisa dizer isso em voz alta na linha de comando.
+//
+// O QUE CONTINUA LIVRE, porque nada disso lê o Vórtice:
+//   --somente-faturamento   o faturamento do Protheus, que muda todo dia e é o número da diretoria;
+//   --somente-territorio    as planilhas do comercial e o IBGE;
+//   --somente-art           as vendas de máquina do ART;
+//   --somente-medir         só conta linhas, não grava nada.
+//
+// O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
+const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
+
+var leOVortice = !somenteFaturamento && !somenteTerritorio && !somenteArt && !somenteMedir;
+
+if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
+{
+    Console.Error.WriteLine(
+        "A carga do Vórtice está CONGELADA: LEGADO / SOMENTE REFERÊNCIA (decisão D-12, " +
+        "documento 41). Ela não é fonte de dado novo, e rodá-la por engano recolocaria o " +
+        "sistema de origem no fluxo operacional. Nada foi lido e nada foi gravado.");
+    Console.Error.WriteLine();
+    Console.Error.WriteLine(
+        "  O que continua valendo sem declaração nenhuma: --somente-faturamento (Protheus), " +
+        "--somente-territorio (planilhas e IBGE), --somente-art e --somente-medir.");
+    Console.Error.WriteLine();
+    Console.Error.WriteLine(
+        $"  Se a leitura do legado for MESMO o que se quer, acrescente {DeclaracaoDeUsoDoLegado} " +
+        "— e registre por quê.");
+    return 2;
+}
+
 var configuracao = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json", optional: true)
@@ -96,7 +149,7 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A EXIGÊNCIA CAI NO MODO SÓ-FATURAMENTO, e só nele: essa etapa não abre conexão com o legado.
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
-if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio)
+if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somenteArt)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -121,7 +174,7 @@ var diario = new DiarioDeAlcanceEntreEmpresasEmLog(
 // -------------------------------------------------------------------------------------------------
 
 var (deParaDeFiliais, usuarioId, empresaDeCasaId, erro) =
-    await PrepararAsync(opcoesDoBanco, diario);
+    await PreparacaoDaCarga.PrepararAsync(opcoesDoBanco, diario);
 
 if (erro is not null)
 {
@@ -193,6 +246,79 @@ if (somenteTerritorio)
 
         // A CAUSA DE VERDADE mora na exceção mais interna: "erro ao salvar as alterações" não diz
         // qual restrição recusou nem por quê.
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só o ART. Sai antes da exigência da API REST do Protheus, que esta etapa não usa.
+// -------------------------------------------------------------------------------------------------
+
+if (somenteArt)
+{
+    var opcoesDoArt = new OpcoesDoArt();
+    configuracao.GetSection(OpcoesDoArt.Secao).Bind(opcoesDoArt);
+
+    var opcoesDoBancoDoProtheus = new OpcoesDoBancoDoProtheus();
+    configuracao.GetSection("ProtheusBanco").Bind(opcoesDoBancoDoProtheus);
+
+    if (!opcoesDoArt.EstaConfigurada)
+    {
+        Console.Error.WriteLine(
+            "A carga do ART exige Art__Servidor, Art__Banco, Art__Usuario, Art__Senha e Art__Visao — use " +
+            "scripts/integracao/rodar-carga-do-art.ps1, que as carrega sem imprimir. Nada foi gravado.");
+        return 2;
+    }
+
+    Console.WriteLine(simular
+        ? "Carga do ART — SIMULAÇÃO: tudo roda numa transação desfeita no fim."
+        : "Carga do ART — gravando.");
+    Console.WriteLine();
+
+    // A MESMA TRAVA E O MESMO REGISTRO DO SERVIÇO (documento 35, seção 11): se o serviço estiver no meio
+    // de um ciclo, a carga manual é recusada em vez de gravar em paralelo, e a carga real fica registrada
+    // em integracao.ExecucaoDeSincronizacao. Uma tentativa só — há alguém olhando o terminal.
+    var executorDoArt = new ExecutorDaSincronizacaoDoArt(
+        conexaoDoCrm, AbrirContexto, opcoesDoArt, opcoesDoBancoDoProtheus, usuarioId,
+        tentativas: 1, esperaBase: TimeSpan.Zero, Console.WriteLine,
+        fabricaDeLog.CreateLogger<ExecutorDaSincronizacaoDoArt>());
+
+    try
+    {
+        var desfecho = await executorDoArt.ExecutarAsync(simular, CancellationToken.None);
+        if (desfecho.Relatorio is not { } relatorio)
+        {
+            Console.Error.WriteLine("A CARGA DO ART PAROU: " + desfecho.Mensagem);
+            return 3;
+        }
+
+        foreach (var etapa in relatorio.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,7}  {rotulo}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("- Unidades do ART → filiais do CRM -");
+        foreach (var (unidade, filial, situacao, ocorrencias, criterio) in relatorio.Unidades)
+            Console.WriteLine($"  {unidade,-24} {ocorrencias,5} vendas → {filial,-18} {situacao,-22} {criterio}");
+
+        if (relatorio.Observacoes.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("- Observações -");
+            foreach (var observacao in relatorio.Observacoes) Console.WriteLine("  " + observacao);
+        }
+
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A CARGA DO ART PAROU, e a transação foi desfeita: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;
@@ -308,9 +434,9 @@ if (recomecar)
     foreach (var comando in new[]
              {
                  "UPDATE processo.Tarefa SET InteracaoConclusaoId = NULL, InteracaoOrigemId = NULL",
-                 "DELETE FROM processo.InteracaoParticipante",
-                 "DELETE FROM processo.PassagemDeFase",
-                 "DELETE FROM processo.ItemDeProposta",
+                 // processo.InteracaoParticipante, processo.PassagemDeFase e processo.ItemDeProposta
+                 // saíram do banco na fase 1 (documento 41): nunca tiveram linha e não havia carga
+                 // que as preenchesse, então não há o que limpar antes de recomeçar.
                  "DELETE FROM processo.Interacao",
                  "DELETE FROM processo.Tarefa",
                  "DELETE FROM processo.Processo",
@@ -526,54 +652,7 @@ static string? LerTexto(string[] argumentos, string nome)
 static string CodigoDoCrm(int codigoNoLegado) =>
     "0101" + codigoNoLegado.ToString("00", CultureInfo.InvariantCulture);
 
-// Monta o DE-PARA DE FILIAIS a partir do banco, nao de um arquivo.
-//
-// O codigo oficial da filial e 0101NN, e NN e o numero da filial no sistema de origem — a
-// correspondencia esta registrada em dados-referencia/empresa.json e ja foi semeada em
-// organizacao.Empresa. Ler daqui garante que a carga e a API concordem sobre quais filiais
-// existem: se uma filial for desativada amanha, a carga para de trazer cliente para ela sem
-// ninguem precisar lembrar de mexer aqui.
-static async Task<(Dictionary<int, int> DePara, long UsuarioId, int EmpresaId, string? Erro)>
-    PrepararAsync(DbContextOptions<CrmDbContext> opcoes, DiarioDeAlcanceEntreEmpresasEmLog diario)
-{
-    var provisorio = new ContextoDeCargaDeSistema(0, 0, new HashSet<int>());
-    await using var contexto = new CrmDbContext(opcoes, provisorio, diario);
-
-    var empresas = await contexto.Empresas.AsNoTracking()
-        .Where(e => e.EstaAtiva)
-        .Select(e => new { e.Id, e.Codigo })
-        .ToListAsync();
-
-    var dePara = new Dictionary<int, int>();
-
-    foreach (var empresa in empresas)
-    {
-        if (empresa.Codigo.Length != 6
-            || !empresa.Codigo.StartsWith("0101", StringComparison.Ordinal)
-            || !int.TryParse(empresa.Codigo.AsSpan(4), NumberStyles.Integer,
-                CultureInfo.InvariantCulture, out var numero))
-            continue;
-
-        dePara[numero] = empresa.Id;
-    }
-
-    if (dePara.Count == 0)
-        return ([], 0, 0,
-            "Nenhuma filial ativa no padrão 0101NN foi encontrada em organizacao.Empresa. Rode o " +
-            "seed de dados de referência antes da carga: ./scripts/banco/rodar-seed.ps1");
-
-    var usuario = await contexto.Usuarios.AsNoTracking()
-        .Where(u => u.EstaAtivo)
-        .OrderBy(u => u.Id)
-        .FirstOrDefaultAsync();
-
-    return usuario is null
-        ? ([], 0, 0,
-            "Nenhum usuário ativo em seguranca.Usuario. Todo registro criado precisa de um " +
-            "responsável, e a coluna é chave estrangeira: rode o seed de usuários de " +
-            "desenvolvimento antes da carga.")
-        : (dePara, usuario.Id, usuario.EmpresaId, null);
-}
+// O de-para de filiais e quem responde pelos registros: PreparacaoDaCarga.cs, que o serviço também usa.
 
 // Junta os dois relatorios de saneamento num laco so, para o mesmo formato valer para as duas
 // etapas - e para acrescentar uma terceira, um dia, nao exigir copiar o bloco de impressao.

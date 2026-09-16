@@ -19,6 +19,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AvisoDoFormulario, CampoSelecao, CampoSomenteLeitura, CampoTexto } from '../../componentes/cadastro/CamposDeFormulario';
 import { DialogoConfirmacao } from '../../componentes/cadastro/DialogoConfirmacao';
 import { BlocoCarregando, BlocoErro } from '../../componentes/cadastro/EstadosDeTela';
+import { MaquinasCompradasDoCliente } from '../../componentes/cadastro/MaquinasCompradasDoCliente';
 import { AvisoDeProcedencia, SeloProcedencia } from '../../componentes/cadastro/SeloProcedencia';
 import { descricaoDe, itensDe, useCatalogos } from '../../dados/api/catalogos';
 import { alterarCliente, criarCliente, inativarCliente, obterCliente } from '../../dados/api/clientes';
@@ -482,6 +483,8 @@ export function ClienteCadastro() {
           </div>
         )}
       </form>
+
+      {!ehNovo && cliente && <MaquinasCompradasDoCliente contexto={contexto} chaveDoCliente={cliente.chave} />}
 
       {!ehNovo && cliente && (
         <div className="card cad-cartao">

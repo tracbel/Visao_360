@@ -91,9 +91,6 @@ public sealed class Cliente : EntidadeBase
     /// <summary>Quem responde pelo cliente. Âncora da segurança por registro.</summary>
     public long ProprietarioId { get; private set; }
 
-    /// <summary>Equipe dona, quando o cliente é de time e não de pessoa.</summary>
-    public long? ProprietarioEquipeId { get; private set; }
-
     /// <summary>A matriz do grupo econômico. Nulo é não pertencer a grupo.</summary>
     public long? ClienteMatrizId { get; private set; }
 

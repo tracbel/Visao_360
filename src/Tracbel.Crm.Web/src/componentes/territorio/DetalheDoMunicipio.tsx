@@ -104,6 +104,39 @@ export function DetalheDoMunicipio({
           )}
         </section>
 
+        <section className="terr-detalhe-responsaveis">
+          <h3 className="terr-detalhe-titulo">Responsáveis pelas carteiras, pelos vínculos deste município</h3>
+          {municipio.responsaveisPelasCarteiras.length === 0 ? (
+            <p className="cad-nada">Nenhum vínculo em carteira comercial com cliente deste município, ao seu alcance.</p>
+          ) : (
+            <table className="cad-tabela terr-tabela-compacta">
+              <caption className="cad-so-leitor">Responsáveis das carteiras com vínculo neste município</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Responsável no CRM</th>
+                  <th scope="col">Natureza</th>
+                  <th scope="col">Vínculos aqui</th>
+                  <th scope="col">Carteiras</th>
+                </tr>
+              </thead>
+              <tbody>
+                {municipio.responsaveisPelasCarteiras.map((r) => (
+                  <tr key={`${r.nome}-${r.natureza}`}>
+                    <td>{r.nome}</td>
+                    <td>{r.natureza === 'Departamento' ? 'área' : r.natureza === 'Pessoa' ? 'pessoa' : r.natureza}</td>
+                    <td className="cad-mono">{nº(r.vinculos)}</td>
+                    <td className="cad-mono">{nº(r.carteiras)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="cad-sub">
+            Cadastro da carteira no CRM: quem tem hoje os clientes com endereço aqui. É uma terceira fonte, ao lado das
+            planilhas — nenhuma substitui a outra.
+          </p>
+        </section>
+
         <section>
           <h3 className="terr-detalhe-titulo">Cobertura de visita <span className="terr-selo terr-selo-RegraComercialProvisoria">Regra provisória</span></h3>
           {cobertura.vinculosComCadencia === 0 ? (

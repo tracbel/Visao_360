@@ -51,9 +51,6 @@ public sealed class Interacao
     /// <summary>O contato com quem se falou.</summary>
     public long? ContatoId { get; private set; }
 
-    /// <summary>O lead, quando o contato foi antes da qualificação.</summary>
-    public long? LeadId { get; private set; }
-
     /// <summary>A tarefa que este contato concluiu.</summary>
     public long? TarefaId { get; private set; }
 
@@ -108,7 +105,6 @@ public sealed class Interacao
     /// <param name="registradoPorId">Quem registrou.</param>
     /// <param name="clienteId">O cliente.</param>
     /// <param name="processoId">O processo, quando o contato pertence a um.</param>
-    /// <param name="leadId">O lead, quando o contato foi antes da qualificação.</param>
     /// <param name="contatoId">O contato com quem se falou.</param>
     /// <param name="tarefaId">A tarefa que este contato concluiu.</param>
     /// <param name="resultadoId">Desfecho registrado.</param>
@@ -126,7 +122,6 @@ public sealed class Interacao
         long registradoPorId,
         long? clienteId = null,
         long? processoId = null,
-        long? leadId = null,
         long? contatoId = null,
         long? tarefaId = null,
         int? resultadoId = null,
@@ -136,9 +131,9 @@ public sealed class Interacao
         decimal? latitude = null,
         decimal? longitude = null)
     {
-        if (clienteId is null && processoId is null && leadId is null && contatoId is null)
+        if (clienteId is null && processoId is null && contatoId is null)
             throw new RegraDeNegocioViolada(
-                "Interação precisa se ligar a alguma coisa: cliente, processo ou lead. Nunca solta.");
+                "Interação precisa se ligar a alguma coisa: cliente, processo ou contato. Nunca solta.");
 
         return new Interacao
         {
@@ -151,7 +146,6 @@ public sealed class Interacao
             RegistradoPorId = registradoPorId,
             ClienteId = clienteId,
             ProcessoId = processoId,
-            LeadId = leadId,
             ContatoId = contatoId,
             TarefaId = tarefaId,
             ResultadoId = resultadoId,
@@ -168,66 +162,11 @@ public sealed class Interacao
     }
 }
 
-/// <summary>Como a pessoa participou da interação.</summary>
-public enum PapelNaInteracao
-{
-    /// <summary>Quem registrou ou conduziu.</summary>
-    Autor = 0,
-
-    /// <summary>Destinatário principal.</summary>
-    Destinatario = 1,
-
-    /// <summary>Em cópia.</summary>
-    Copia = 2,
-
-    /// <summary>Esteve presente.</summary>
-    Participante = 3
-}
-
-/// <summary>
-/// Quem participou da reunião.
-///
-/// Uma visita tem três pessoas do cliente; o Vórtice guarda uma. [DYN] É o participante de
-/// atividade do Dataverse: resolve N para N tipado e polimórfico de uma vez.
-/// </summary>
-public sealed class InteracaoParticipante
-{
-    private InteracaoParticipante() { }
-
-    /// <summary>Identificador interno.</summary>
-    public long Id { get; private set; }
-
-    /// <summary>A interação.</summary>
-    public long InteracaoId { get; private set; }
-
-    /// <summary>Como a pessoa participou.</summary>
-    public PapelNaInteracao Papel { get; private set; }
-
-    /// <summary>Usuário participante, quando é gente de casa.</summary>
-    public long? UsuarioId { get; private set; }
-
-    /// <summary>Contato participante, quando é gente do cliente.</summary>
-    public long? ContatoId { get; private set; }
-
-    /// <summary>Nome do participante externo que não está no cadastro.</summary>
-    public string? NomeExterno { get; private set; }
-
-    /// <summary>Registra um participante.</summary>
-    public static InteracaoParticipante Criar(
-        long interacaoId, PapelNaInteracao papel, long? usuarioId = null, long? contatoId = null,
-        string? nomeExterno = null)
-    {
-        if (usuarioId is null && contatoId is null && string.IsNullOrWhiteSpace(nomeExterno))
-            throw new RegraDeNegocioViolada(
-                "Participante precisa ser um usuário, um contato ou pelo menos um nome externo.");
-
-        return new InteracaoParticipante
-        {
-            InteracaoId = interacaoId,
-            Papel = papel,
-            UsuarioId = usuarioId,
-            ContatoId = contatoId,
-            NomeExterno = nomeExterno
-        };
-    }
-}
+// O QUE SAIU DAQUI NA FASE 1 (documento 41): `InteracaoParticipante` e o enum `PapelNaInteracao`
+// — quem mais esteve na reunião. Uma visita tem três pessoas do cliente e o Vórtice guarda uma;
+// a tabela existia para resolver isso, mas nasceu com o modelo inicial, nunca recebeu uma linha e
+// não havia tela nem carga que a preenchesse. O participante que o sistema de fato registra hoje é
+// o `ContatoId` da própria interação, um só.
+//
+// A ideia não foi descartada: quando a tela de visita passar a perguntar quem participou, a tabela
+// volta pelo desenho do documento 40, com o código que a alimenta escrito junto.

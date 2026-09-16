@@ -22,6 +22,17 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.10" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      O cliente de MySQL, para ler a view de vendas de maquina do ART (documento 35, secao 10).
+
+      POR QUE ESTE E NAO O CONECTOR DA ORACLE: MySqlConnector e MIT, assincrono de verdade e sem
+      dependencia nativa. A leitura e uma consulta so, com sessao declarada READ ONLY — o mesmo
+      principio do Vortice: ADO.NET puro, traducao na fronteira, nenhum modelo do sistema de fora.
+    -->
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

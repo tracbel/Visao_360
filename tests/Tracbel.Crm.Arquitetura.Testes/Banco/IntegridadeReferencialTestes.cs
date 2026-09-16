@@ -24,13 +24,13 @@ public sealed class IntegridadeReferencialTestes
         // ConjuntoDePermissao. Apagar o conjunto apaga os itens dele, do mesmo jeito que
         // apagar um Pedido apagaria os ItensPedido.
         [("ConjuntoDePermissaoItem", "FK_ConjuntoDePermissaoItem_ConjuntoDePermissao_ConjuntoPermissaoId")] =
-            "coleção owned do agregado ConjuntoDePermissao — linha órfã aqui não existe de propósito",
+            "coleção owned do agregado ConjuntoDePermissao — linha órfã aqui não existe de propósito"
 
-        // Documento 04, seção 10, e é a correção direta do achado do mobile: o vínculo sem
-        // documento é exatamente o registro órfão que trava o sincronismo do aplicativo de
-        // campo — [V] 5.302 deles no Vórtice, 6,9% do total.
-        [("Vinculo", "FK_Vinculo_Documento_DocumentoId")] =
-            "o vínculo só existe enquanto o documento existe — [V] 5.302 vínculos órfãos travam o mobile"
+        // A SEGUNDA justificativa saiu na fase 1 (documento 41): era
+        // FK_Vinculo_Documento_DocumentoId, do documento 04, seção 10 — o vínculo sem documento é o
+        // registro órfão que trava o sincronismo do aplicativo de campo ([V] 5.302 deles no
+        // Vórtice, 6,9% do total). As duas tabelas, documento.Documento e documento.Vinculo, nunca
+        // receberam uma linha e saíram; a regra volta com elas, quando houver anexo de verdade.
     };
 
     [Fact]

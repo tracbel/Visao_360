@@ -430,6 +430,50 @@ WHEN MATCHED AND destino.Nome <> origem.Nome THEN UPDATE SET Nome = origem.Nome
 WHEN NOT MATCHED BY TARGET
     THEN INSERT (FamiliaId, Codigo, Nome, EstaAtivo) VALUES (origem.FamiliaId, origem.Codigo, origem.Nome, 1);
 
+-- ---------------------------------------------------------------------------------------------
+--  frota.LinhaDeProduto — a CLASSIFICACAO COMERCIAL da maquina (documento 35, secao 10).
+--
+--  E a categoria com que o comercial filtra o parque: trator pequeno, medio e grande, colhedora
+--  de cana, pulverizador. Nao e a familia do catalogo: "trator" e UMA familia e tres classificacoes.
+--  Por isso a classificacao aponta para a familia compativel, quando ela existe, em vez de
+--  substitui-la.
+--
+--  A FAMILIA E RESOLVIDA PELO CODIGO DA MARCA E DA FAMILIA, e fica NULA quando a familia ainda nao
+--  existe no banco (ela nasce da carga do legado). A carga do ART aponta a familia depois, e so
+--  quando o apontamento esta vazio. Colheitadeira, plantadeira e plataforma de corte ficam sem
+--  familia de proposito: o catalogo nao tem familia equivalente confirmada.
+--
+--  O de-para das 14 linhas do ART para estes codigos e explicito e esta em
+--  src/Tracbel.Crm.Integracao/Art/ClassificacaoDoArt.cs — nunca por semelhanca de nome.
+-- ---------------------------------------------------------------------------------------------
+MERGE frota.LinhaDeProduto AS destino
+USING (
+    SELECT v.Codigo, v.Nome, v.Porte,
+           (SELECT TOP 1 fa.Id FROM frota.Familia fa JOIN frota.Marca ma ON ma.Id = fa.MarcaId
+            WHERE ma.Codigo = v.Marca AND fa.Codigo = v.Familia) AS FamiliaId
+    FROM (VALUES
+        ('TRATOR_PEQUENO',           N'Trator pequeno',              'Pequeno',     'JOHN_DEERE', 'TRATOR'),
+        ('TRATOR_MEDIO',             N'Trator médio',                'Medio',       'JOHN_DEERE', 'TRATOR'),
+        ('TRATOR_GRANDE',            N'Trator grande',               'Grande',      'JOHN_DEERE', 'TRATOR'),
+        ('COLHEDORA_DE_CANA',        N'Colhedora de cana',           'NaoSeAplica', 'JOHN_DEERE', 'COLHEDORA_DE_CANA'),
+        ('COLHEITADEIRA',            N'Colheitadeira de grãos',      'NaoSeAplica', NULL,         NULL),
+        ('PLANTADEIRA',              N'Plantadeira',                 'NaoSeAplica', NULL,         NULL),
+        ('PULVERIZADOR',             N'Pulverizador',                'NaoSeAplica', 'JOHN_DEERE', 'PULVERIZADOR'),
+        ('PLATAFORMA_DE_CORTE',      N'Plataforma de corte',         'NaoSeAplica', NULL,         NULL),
+        ('IMPLEMENTO_JOHN_DEERE',    N'Implemento John Deere',       'NaoSeAplica', 'JOHN_DEERE', 'IMPLEMENTO'),
+        ('IMPLEMENTO_OUTRAS_MARCAS', N'Implemento de outras marcas', 'NaoSeAplica', 'OUTRAS',     'IMPLEMENTO')
+    ) AS v (Codigo, Nome, Porte, Marca, Familia)
+) AS origem
+ON destino.Codigo = origem.Codigo
+WHEN MATCHED AND (destino.Nome <> origem.Nome OR destino.Porte <> origem.Porte
+                  OR (destino.FamiliaId IS NULL AND origem.FamiliaId IS NOT NULL))
+    -- A familia ja apontada nao e trocada: pode ter sido corrigida por uma pessoa.
+    THEN UPDATE SET Nome = origem.Nome, Porte = origem.Porte,
+                    FamiliaId = COALESCE(destino.FamiliaId, origem.FamiliaId)
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT (Codigo, Nome, FamiliaId, Porte, EstaAtiva)
+         VALUES (origem.Codigo, origem.Nome, origem.FamiliaId, origem.Porte, 1);
+
 COMMIT TRANSACTION;
 
 PRINT 'Semente de referencia aplicada.';
@@ -438,4 +482,5 @@ SELECT 'organizacao.Empresa' AS Tabela, COUNT(*) AS Linhas, SUM(CAST(EstaAtiva A
 UNION ALL SELECT 'metadado.CatalogoItem', COUNT(*), SUM(CAST(EstaAtivo AS int)) FROM metadado.CatalogoItem
 UNION ALL SELECT 'frota.Marca', COUNT(*), SUM(CAST(EstaAtiva AS int)) FROM frota.Marca
 UNION ALL SELECT 'frota.Familia', COUNT(*), SUM(CAST(EstaAtiva AS int)) FROM frota.Familia
-UNION ALL SELECT 'frota.Modelo', COUNT(*), SUM(CAST(EstaAtivo AS int)) FROM frota.Modelo;
+UNION ALL SELECT 'frota.Modelo', COUNT(*), SUM(CAST(EstaAtivo AS int)) FROM frota.Modelo
+UNION ALL SELECT 'frota.LinhaDeProduto', COUNT(*), SUM(CAST(EstaAtiva AS int)) FROM frota.LinhaDeProduto;

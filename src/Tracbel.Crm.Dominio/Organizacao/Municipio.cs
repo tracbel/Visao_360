@@ -21,7 +21,7 @@ namespace Tracbel.Crm.Dominio.Organizacao;
 /// <see cref="CarteiraMunicipio"/>.</para>
 ///
 /// <para><b>Também não herda <c>EntidadeBase</c>.</b> Pelo mesmo motivo de
-/// <see cref="LinhaDeNegocio"/> e de <see cref="Praca"/>: é dado de referência, não registro
+/// <see cref="LinhaDeNegocio"/>: é dado de referência, não registro
 /// transacional. Ninguém "cria um município" no CRM — a lista existe antes do primeiro cliente e
 /// muda por decreto federal, não por operação comercial. O bloco de auditoria de oito colunas
 /// (documento 14, seção 5.1) existe para responder "quem mexeu neste registro de negócio", e a

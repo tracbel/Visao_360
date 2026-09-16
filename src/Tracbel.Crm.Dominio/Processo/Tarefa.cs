@@ -78,9 +78,6 @@ public sealed class Tarefa : EntidadeBase
     /// <summary>Quem tem que fazer.</summary>
     public long ResponsavelId { get; private set; }
 
-    /// <summary>Equipe responsável, quando a tarefa é de time.</summary>
-    public long? ResponsavelEquipeId { get; private set; }
-
     /// <summary>Como a atribuição foi decidida.</summary>
     public OrigemDaAtribuicao OrigemAtribuicao { get; private set; } = OrigemDaAtribuicao.Manual;
 
@@ -110,9 +107,6 @@ public sealed class Tarefa : EntidadeBase
     /// o duplo ponteiro que o Vórtice acertou.
     /// </summary>
     public long? InteracaoConclusaoId { get; private set; }
-
-    /// <summary>Qual regra gerou esta tarefa. Nulo é tarefa criada à mão.</summary>
-    public int? CriadaPorRegraId { get; private set; }
 
     /// <summary>Qual interação disparou a regra que gerou esta tarefa.</summary>
     public long? InteracaoOrigemId { get; private set; }

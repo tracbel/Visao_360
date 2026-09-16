@@ -5,6 +5,9 @@
   conduzida pelo responsavel de TI. O mesmo servidor ja hospeda o projeto user-onboarding, cujo
   deploy usa este mesmo mecanismo (ver user-onboarding\deploy.ps1).
 
+  CORRECAO de 14/09/2026 (diagnosticar-servidor.ps1): a VM E membro do dominio tracbel.com.br; o
+  texto abaixo foi escrito supondo o contrario, e o mecanismo continua o mesmo.
+
   POR QUE TAREFA AGENDADA, E NAO WinRM. O servidor NAO esta no dominio: WinRM por IP exigiria
   TrustedHosts nesta estacao mais credencial explicita, ou seja, guardar a senha de um
   administrador local em arquivo. O agendador aceita a credencial de dominio que o operador ja

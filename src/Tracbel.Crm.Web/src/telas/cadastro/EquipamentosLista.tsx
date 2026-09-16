@@ -6,6 +6,11 @@
  * também é um `renderPlaceholder()`. Agora ela lista `frota.Equipamento` da
  * filial do contexto, no mesmo padrão da lista de Clientes.
  *
+ * A CLASSIFICAÇÃO DE PRODUTO E O PORTE são filtros de banco (documento 35,
+ * seção 10): trator pequeno, médio e grande, colhedora, pulverizador. A coluna
+ * "Última venda" mostra o COMPRADOR NA VENDA, com a data — ele não é o dono, que
+ * continua na coluna Cliente e só muda por confirmação de uma pessoa.
+ *
  * DUAS COISAS QUE A API AINDA NÃO FAZ, e que a tela declara em vez de esconder:
  *
  * 1. **Busca por pedaço de chassi não funciona.** O `termo` compara o chassi por
@@ -29,12 +34,14 @@ import { CONSULTA_INICIAL, listarEquipamentos } from '../../dados/api/equipament
 import { useRecurso } from '../../dados/api/useRecurso';
 import {
   CATALOGO,
+  SEM_CLASSIFICACAO,
   type ConsultaDeEquipamentos,
   type EquipamentoResumo,
   type OrdemDeEquipamento,
   type PaginaDe,
 } from '../../tipos/api';
 import { formatarDataHora } from './formato';
+import '../../estilos/frota-comercial.css';
 
 /** O teto de linhas por página da API. Pedir mais é recusado, e com razão. */
 const TETO_DA_API = 200;
@@ -44,17 +51,27 @@ const ESPERA_DA_BUSCA_MS = 350;
 const COLUNAS: { rotulo: string; ordem?: OrdemDeEquipamento }[] = [
   { rotulo: 'Chassi', ordem: 'Chassi' },
   { rotulo: 'Modelo' },
+  { rotulo: 'Classificação' },
   { rotulo: 'Ano', ordem: 'AnoModelo' },
   { rotulo: 'Situação', ordem: 'Situacao' },
   { rotulo: 'Origem' },
-  { rotulo: 'Cliente' },
+  { rotulo: 'Cliente (dono)' },
+  { rotulo: 'Última venda' },
   { rotulo: 'Cadastrado em', ordem: 'CriadoEm' },
 ];
+
+const ROTULO_DO_PORTE: Record<string, string> = { Pequeno: 'pequeno', Medio: 'médio', Grande: 'grande', NaoSeAplica: '' };
 
 /** O filtro de frota, que a API não conhece e a tela aplica. */
 type FiltroDeFrota = { marca: string; familia: string; modelo: string };
 
 const FROTA_VAZIA: FiltroDeFrota = { marca: '', familia: '', modelo: '' };
+
+function dataCurta(valor: string | null): string {
+  if (!valor) return '—';
+  const [ano, mes, dia] = valor.slice(0, 10).split('-');
+  return `${dia}/${mes}/${ano}`;
+}
 
 export function EquipamentosLista() {
   const { contexto } = useContextoDeAcesso();
@@ -105,11 +122,16 @@ export function EquipamentosLista() {
 
   const situacoes = itensDe(catalogos, CATALOGO.situacaoEquipamento);
   const origens = itensDe(catalogos, CATALOGO.origemEquipamento);
+  const classificacoes = itensDe(catalogos, CATALOGO.linhaDeProduto);
+  const portes = itensDe(catalogos, CATALOGO.porteDeMaquina);
 
   const temFiltro =
     consulta.termo !== '' ||
     consulta.situacao !== '' ||
     consulta.origem !== '' ||
+    consulta.linhaDeProduto !== '' ||
+    consulta.porte !== '' ||
+    consulta.somenteComVenda ||
     consulta.incluirInativos ||
     filtrandoFrota;
 
@@ -190,6 +212,34 @@ export function EquipamentosLista() {
             onChange={(e) => setTermoDigitado(e.target.value)}
           />
         </div>
+
+        <label className="cad-filtro">
+          Classificação
+          <select
+            value={consulta.linhaDeProduto}
+            onChange={(e) => setConsulta((c) => ({ ...c, linhaDeProduto: e.target.value, pagina: 1 }))}
+          >
+            <option value="">Todas</option>
+            {classificacoes.map((l) => (
+              <option key={l.codigo} value={l.codigo}>
+                {l.descricao}
+              </option>
+            ))}
+            <option value={SEM_CLASSIFICACAO}>Sem classificação</option>
+          </select>
+        </label>
+
+        <label className="cad-filtro">
+          Porte
+          <select value={consulta.porte} onChange={(e) => setConsulta((c) => ({ ...c, porte: e.target.value, pagina: 1 }))}>
+            <option value="">Todos</option>
+            {portes.map((p) => (
+              <option key={p.codigo} value={p.codigo}>
+                {p.descricao}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <label className="cad-filtro">
           Marca
@@ -278,6 +328,15 @@ export function EquipamentosLista() {
         <label className="cad-filtro cad-filtro-caixa">
           <input
             type="checkbox"
+            checked={consulta.somenteComVenda}
+            onChange={(e) => setConsulta((c) => ({ ...c, somenteComVenda: e.target.checked, pagina: 1 }))}
+          />
+          Só com venda registrada
+        </label>
+
+        <label className="cad-filtro cad-filtro-caixa">
+          <input
+            type="checkbox"
             checked={consulta.incluirInativos}
             onChange={(e) => setConsulta((c) => ({ ...c, incluirInativos: e.target.checked, pagina: 1 }))}
           />
@@ -296,8 +355,8 @@ export function EquipamentosLista() {
           <strong>O filtro de marca, família e modelo é aplicado na tela.</strong>
           <p>
             Esta filial tem {leitura.dados?.total} equipamentos e a API entrega no máximo {TETO_DA_API} por
-            leitura — o filtro cobre só essas {TETO_DA_API} primeiras linhas. Estreite a busca ou a situação
-            para caber. A consulta por modelo ainda não existe na API (documento 23, seção 2.2).
+            leitura — o filtro cobre só essas {TETO_DA_API} primeiras linhas. Estreite a busca, a classificação ou a
+            situação para caber. A consulta por modelo ainda não existe na API (documento 23, seção 2.2).
           </p>
         </div>
       )}
@@ -394,19 +453,52 @@ export function EquipamentosLista() {
                             )}
                           </div>
                         </td>
+                        <td>
+                          {maquina.classificacaoNome ?? <span className="cad-vazio">sem classificação</span>}
+                          {maquina.porte && ROTULO_DO_PORTE[maquina.porte] && (
+                            <div className="cad-sub">porte {ROTULO_DO_PORTE[maquina.porte]}</div>
+                          )}
+                        </td>
                         <td className="cad-mono">{maquina.anoModelo ?? <span className="cad-vazio">—</span>}</td>
                         <td>
                           <span className={`cad-selo cad-selo-${maquina.situacao.toLowerCase()}`}>
-                            {maquina.situacao}
+                            {maquina.situacao === 'ProprietarioNaoConfirmado' ? 'dono não confirmado' : maquina.situacao}
                           </span>
                           {maquina.estaInativo && <span className="cad-selo cad-selo-inativo">baixado</span>}
                         </td>
-                        <td>{maquina.origem}</td>
+                        <td>
+                          {maquina.origem === 'Art' ? <span className="cad-selo cad-selo-art">ART</span> : maquina.origem}
+                        </td>
                         <td>
                           {maquina.clienteChave ? (
                             <Link to={`/clientes/${maquina.clienteChave}`}>{maquina.clienteNome}</Link>
                           ) : (
-                            <span className="cad-vazio">sem dono</span>
+                            <span className="cad-vazio">
+                              {maquina.situacao === 'ProprietarioNaoConfirmado' ? 'dono não confirmado' : 'sem dono'}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {maquina.vendas > 0 ? (
+                            <>
+                              <span className="cad-mono">{dataCurta(maquina.ultimaVendaEm)}</span>{' '}
+                              <span className="cad-selo cad-selo-comprador">comprador na venda</span>
+                              <div>
+                                {maquina.compradorNaUltimaVendaChave ? (
+                                  <Link to={`/clientes/${maquina.compradorNaUltimaVendaChave}`}>
+                                    {maquina.compradorNaUltimaVendaNome}
+                                  </Link>
+                                ) : (
+                                  <span className="cad-vazio">comprador de outra filial</span>
+                                )}
+                              </div>
+                              <div className="cad-sub">
+                                {maquina.sistemaDaVenda} · {maquina.produtoNaOrigem}
+                                {maquina.vendas > 1 ? ` · ${maquina.vendas} vendas` : ''}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="cad-vazio">—</span>
                           )}
                         </td>
                         <td className="cad-mono">{formatarDataHora(maquina.criadoEm)}</td>

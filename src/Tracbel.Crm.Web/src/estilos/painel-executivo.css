@@ -1,0 +1,118 @@
+/* Os cinco cartões da Visão 360 (documento 36). Só tokens do design system. */
+
+.v360-periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.v360-periodo label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.v360-periodo select {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font: inherit;
+  color: var(--text-primary);
+}
+
+.v360-periodo-alerta {
+  color: var(--danger, #b91c1c);
+  font-weight: 600;
+}
+
+/* A SEGUNDA LINHA DO RODAPÉ: a composição do número. Mais escura que o subtexto, porque é ela que
+   diz o que o número é — e ocupa a linha inteira em vez de brigar com ele. */
+.v360-kpi-detalhe {
+  display: block;
+  width: 100%;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.v360-kpi-row .v360-kpi-sub {
+  line-height: 1.35;
+}
+
+.v360-composicao {
+  margin: -4px 0 16px;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.v360-composicao summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.v360-composicao-regras {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 12px;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.v360-composicao-tabela {
+  overflow-x: auto;
+}
+
+.v360-composicao-tabela th,
+.v360-composicao-tabela td {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.v360-composicao-tabela td.num {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.v360-composicao-tabela tr.total td {
+  font-weight: 700;
+  background: var(--bg-hover);
+}
+
+.v360-concorrentes {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.v360-concorrentes li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.v360-concorrentes li span:last-child {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.v360-nota {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}

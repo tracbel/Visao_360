@@ -44,6 +44,13 @@ import type {
   ResumoDeCobertura,
   VendasPerdidas,
 } from '../../tipos/relacionamento';
+import type {
+  CarteiraDaFilial,
+  CoberturaDaFilial,
+  FaturamentoDaCompetencia,
+  MercadoDaFilial,
+  PainelExecutivoDaFilial,
+} from '../../tipos/painelExecutivo';
 import { ler, type ContextoDeAcesso } from './http';
 
 /** Uma filial em operação, como o catálogo `EMPRESA` a declara. */
@@ -286,6 +293,177 @@ export async function obterConsolidado(
       lidoEm: new Date().toISOString(),
     },
     procedencia: null,
+  };
+}
+
+/* ------------------------------------------------------------------------ */
+/* Os cinco cartões (documento 36)                                           */
+/* ------------------------------------------------------------------------ */
+
+/** Os indicadores executivos de UMA filial — ou a falha dela, que nunca vira zero. */
+export type ExecutivoDaFilial = {
+  filial: Filial;
+  painel: PainelExecutivoDaFilial | null;
+  erro: Error | null;
+};
+
+/** Os cinco cartões somados entre as filiais que responderam. */
+export type ExecutivoConsolidado = {
+  ano: number;
+  filiais: ExecutivoDaFilial[];
+  respondidas: number;
+  /** A competência mais recente entre as filiais; as que estão em outro mês ficam fora da soma, nomeadas. */
+  faturamentoDoMes:
+    | (FaturamentoDaCompetencia & { filiaisNoMes: number; filiaisEmOutroMes: string[] })
+    | null;
+  realizadoDoAno: {
+    primeiraCompetencia: string | null;
+    ultimaCompetencia: string | null;
+    comCliente: number;
+    semCliente: number;
+    total: number;
+    /** Nulo quando nenhuma filial tem meta. */
+    alvo: number | null;
+    filiaisComMeta: number;
+    /** O realizado só das filiais com meta — o único que se compara com o alvo. */
+    realizadoDasFiliaisComMeta: number;
+    metasDetalhadas: number;
+    metasQueCruzamOAno: number;
+  };
+  /** Sem `clientesNasCarteirasDaFilial`: essa contagem não se soma. */
+  carteira: Omit<CarteiraDaFilial, 'clientesNasCarteirasDaFilial'>;
+  cobertura: CoberturaDaFilial;
+  mercado: MercadoDaFilial;
+};
+
+/**
+ * Os cinco cartões, lidos filial a filial pela mesma ponte do consolidado (P-8).
+ *
+ * É UMA LEITURA SEPARADA do consolidado, e não mais uma dentro de `lerFilial`: trocar o ano do
+ * cartão de meta não pode refazer as 65 leituras do painel inteiro. E a falha dela não derruba a
+ * filial nos outros gráficos.
+ */
+export async function obterExecutivoConsolidado(
+  contexto: ContextoDeAcesso,
+  ano: number,
+  sinal?: AbortSignal,
+): Promise<{ dados: ExecutivoConsolidado; procedencia: null }> {
+  const filiais = await listarFiliais(contexto, sinal);
+  const linhas = await comLimite(filiais, 4, async (filial): Promise<ExecutivoDaFilial> => {
+    try {
+      const resposta = await ler<PainelExecutivoDaFilial>(
+        '/v1/relatorios/indicadores-executivos',
+        { ...contexto, empresa: filial.codigo },
+        { sinal, parametros: { ano } },
+      );
+      return { filial, painel: resposta.dados, erro: null };
+    } catch (causa) {
+      if (causa instanceof DOMException && causa.name === 'AbortError') throw causa;
+      return { filial, painel: null, erro: causa instanceof Error ? causa : new Error(String(causa)) };
+    }
+  });
+
+  return { dados: somarExecutivo(ano, linhas), procedencia: null };
+}
+
+const somar = <T,>(lista: T[], valor: (x: T) => number) => lista.reduce((s, x) => s + valor(x), 0);
+const textos = (lista: (string | null | undefined)[]) => lista.filter((t): t is string => !!t).sort();
+
+/**
+ * Soma os cinco cartões. CADA NÚMERO É DE UMA PARTIÇÃO QUE NÃO SE SOBREPÕE ENTRE FILIAIS:
+ * faturamento pela filial que emitiu, vínculo pela filial da carteira, cliente único pela filial
+ * de cadastro, meta e venda perdida pela filial dona. Percentual nunca se soma — ele é refeito
+ * aqui a partir do numerador e do denominador somados.
+ */
+export function somarExecutivo(ano: number, filiais: ExecutivoDaFilial[]): ExecutivoConsolidado {
+  const vivas = filiais.filter((f) => f.painel !== null).map((f) => ({ filial: f.filial, i: f.painel!.indicadores }));
+
+  // O MÊS DO CARTÃO É UM SÓ. Somar setembro de uma filial com agosto de outra daria um número de mês
+  // nenhum; a filial cuja carga está em outro mês fica fora da soma e aparece nomeada.
+  const competencia = textos(vivas.map((v) => v.i.faturamentoDoMes?.competencia)).at(-1) ?? null;
+  const noMes = vivas.map((v) => v.i.faturamentoDoMes).filter((m): m is FaturamentoDaCompetencia => m?.competencia === competencia);
+
+  const faturamentoDoMes =
+    competencia === null
+      ? null
+      : {
+          competencia,
+          comCliente: somar(noMes, (m) => m.comCliente),
+          contraparteSemCadastro: somar(noMes, (m) => m.contraparteSemCadastro),
+          repasseDeFabrica: somar(noMes, (m) => m.repasseDeFabrica),
+          empresaDoGrupo: somar(noMes, (m) => m.empresaDoGrupo),
+          outraRevenda: somar(noMes, (m) => m.outraRevenda),
+          maquina: somar(noMes, (m) => m.maquina),
+          peca: somar(noMes, (m) => m.peca),
+          servico: somar(noMes, (m) => m.servico),
+          outros: somar(noMes, (m) => m.outros),
+          notas: somar(noMes, (m) => m.notas),
+          carregadoEm: textos(noMes.map((m) => m.carregadoEm)).at(-1) ?? null,
+          semCliente: somar(noMes, (m) => m.semCliente),
+          total: somar(noMes, (m) => m.total),
+          filiaisNoMes: noMes.length,
+          filiaisEmOutroMes: vivas
+            .filter((v) => v.i.faturamentoDoMes !== null && v.i.faturamentoDoMes.competencia !== competencia)
+            .map((v) => v.filial.nome),
+        };
+
+  const anos = vivas.map((v) => v.i.ano);
+  const comMeta = anos.filter((a) => a.alvoDaFilial !== null);
+  const carteiras = vivas.map((v) => v.i.carteira);
+  const coberturas = vivas.map((v) => v.i.cobertura);
+  const mercados = vivas.map((v) => v.i.mercado);
+
+  return {
+    ano,
+    filiais,
+    respondidas: vivas.length,
+    faturamentoDoMes,
+    realizadoDoAno: {
+      primeiraCompetencia: textos(anos.map((a) => a.primeiraCompetencia))[0] ?? null,
+      ultimaCompetencia: textos(anos.map((a) => a.ultimaCompetencia)).at(-1) ?? null,
+      comCliente: somar(anos, (a) => a.comCliente),
+      semCliente: somar(anos, (a) => a.semCliente),
+      total: somar(anos, (a) => a.total),
+      alvo: comMeta.length === 0 ? null : somar(comMeta, (a) => a.alvoDaFilial ?? 0),
+      filiaisComMeta: comMeta.length,
+      realizadoDasFiliaisComMeta: somar(comMeta, (a) => a.total),
+      metasDetalhadas: somar(anos, (a) => a.metasDetalhadas),
+      metasQueCruzamOAno: somar(anos, (a) => a.metasQueCruzamOAno),
+    },
+    carteira: {
+      clientesCadastradosComVinculo: somar(carteiras, (c) => c.clientesCadastradosComVinculo),
+      clientes: somar(carteiras, (c) => c.clientes),
+      prospects: somar(carteiras, (c) => c.prospects),
+      suspects: somar(carteiras, (c) => c.suspects),
+      outrasSituacoes: somar(carteiras, (c) => c.outrasSituacoes),
+      semDocumento: somar(carteiras, (c) => c.semDocumento),
+      vinculos: somar(carteiras, (c) => c.vinculos),
+      vinculosComerciais: somar(carteiras, (c) => c.vinculosComerciais),
+      carteiras: somar(carteiras, (c) => c.carteiras),
+      carteirasComerciais: somar(carteiras, (c) => c.carteirasComerciais),
+    },
+    cobertura: {
+      vinculosComerciais: somar(coberturas, (c) => c.vinculosComerciais),
+      elegiveis: somar(coberturas, (c) => c.elegiveis),
+      cobertos: somar(coberturas, (c) => c.cobertos),
+      foraDaCadencia: somar(coberturas, (c) => c.foraDaCadencia),
+      nuncaContatados: somar(coberturas, (c) => c.nuncaContatados),
+      semCadencia: somar(coberturas, (c) => c.semCadencia),
+      contatoMaisRecente: textos(coberturas.map((c) => c.contatoMaisRecente)).at(-1) ?? null,
+      // O catálogo de tipos de atividade é da empresa: o mesmo número em toda filial, e não se soma.
+      tiposDeAtividade: coberturas[0]?.tiposDeAtividade ?? 0,
+      tiposMarcadosComoVisita: coberturas[0]?.tiposMarcadosComoVisita ?? 0,
+      pendentes: somar(coberturas, (c) => c.pendentes),
+    },
+    mercado: {
+      vendasPerdidasRegistradas: somar(mercados, (m) => m.vendasPerdidasRegistradas),
+      comConcorrente: somar(mercados, (m) => m.comConcorrente),
+      comModeloDoConcorrente: somar(mercados, (m) => m.comModeloDoConcorrente),
+      comOsDoisPrecos: somar(mercados, (m) => m.comOsDoisPrecos),
+      unidades: somar(mercados, (m) => m.unidades),
+      primeiraEm: textos(mercados.map((m) => m.primeiraEm))[0] ?? null,
+      ultimaEm: textos(mercados.map((m) => m.ultimaEm)).at(-1) ?? null,
+    },
   };
 }
 

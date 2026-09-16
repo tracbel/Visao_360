@@ -15,6 +15,7 @@ namespace Tracbel.Crm.Aplicacao.Equipamentos;
 public sealed class ListarEquipamentos(
     IRepositorioEquipamentos repositorio,
     IRepositorioClientes clientes,
+    IRepositorioCatalogos catalogos,
     IRelogio relogio)
 {
     /// <summary>Executa a listagem.</summary>
@@ -22,11 +23,14 @@ public sealed class ListarEquipamentos(
     /// <param name="tamanho">Linhas por página.</param>
     /// <param name="termo">Busca por chassi, número de série ou placa.</param>
     /// <param name="situacao">Filtro por situação. Domínio fechado.</param>
-    /// <param name="origem">Filtro por Protheus ou Crm. Domínio fechado.</param>
+    /// <param name="origem">Filtro por Protheus, Crm ou Art. Domínio fechado.</param>
     /// <param name="clienteChave">Filtro pelo dono — é o que a Visão 360 usa.</param>
     /// <param name="ordenarPor">Coluna de ordenação. Domínio fechado.</param>
     /// <param name="descendente">Ordem decrescente.</param>
     /// <param name="incluirInativos">Trazer também as máquinas baixadas.</param>
+    /// <param name="linhaDeProduto">Código da classificação, ou SEM_CLASSIFICACAO.</param>
+    /// <param name="porte">Pequeno, Medio, Grande ou NaoSeAplica.</param>
+    /// <param name="somenteComVenda">Só as máquinas com venda registrada.</param>
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<ComProcedencia<PaginaDe<EquipamentoResumo>>>> ExecutarAsync(
         int? pagina,
@@ -38,6 +42,9 @@ public sealed class ListarEquipamentos(
         string? ordenarPor,
         bool descendente,
         bool incluirInativos,
+        string? linhaDeProduto,
+        string? porte,
+        bool somenteComVenda,
         CancellationToken ct)
     {
         var erros = new ColetorDeErros();
@@ -55,7 +62,25 @@ public sealed class ListarEquipamentos(
             ? null
             : erros.ItemDeDominio<OrigemDoEquipamento>("origem", origem);
 
+        var porteEscolhido = porte is null
+            ? null
+            : erros.ItemDeDominio<PorteDeMaquina>("porte", porte);
+
         var ordem = erros.ItemDeDominioOuPadrao("ordenarPor", ordenarPor, OrdemDeEquipamento.Chassi);
+
+        // A CLASSIFICAÇÃO É CATÁLOGO: código fora dele é recusado, e não devolve lista vazia — lista
+        // vazia diria "não há máquina" quando o que houve foi um código errado.
+        string? classificacao = null;
+        if (!string.IsNullOrWhiteSpace(linhaDeProduto))
+        {
+            classificacao = linhaDeProduto.Trim().ToUpperInvariant();
+            if (classificacao != ConsultaDeEquipamentos.SemClassificacao
+                && await catalogos.ObterLinhaDeProdutoAsync(classificacao, ct) is null)
+                erros.Registrar(
+                    "linhaDeProduto",
+                    "Classificação fora do catálogo. Consulte /api/v1/catalogos/LINHA_DE_PRODUTO.",
+                    linhaDeProduto);
+        }
 
         // O filtro por dono chega como CHAVE PÚBLICA e é traduzido aqui — de propósito. Traduzir
         // pelo repositório significa que um cliente fora do alcance de quem consulta não resolve,
@@ -83,7 +108,10 @@ public sealed class ListarEquipamentos(
                 ClienteId: clienteId,
                 Ordem: ordem,
                 Descendente: descendente,
-                IncluirInativos: incluirInativos),
+                IncluirInativos: incluirInativos,
+                LinhaDeProdutoCodigo: classificacao,
+                Porte: porteEscolhido,
+                SomenteComVenda: somenteComVenda),
             ct);
 
         var resumo = new PaginaDe<EquipamentoResumo>(
@@ -112,5 +140,53 @@ public sealed class ObterEquipamento(IRepositorioEquipamentos repositorio, IRelo
         return Resultado<ComProcedencia<EquipamentoDetalhe>>.Ok(
             ComProcedencia<EquipamentoDetalhe>.DoNossoBanco(
                 EquipamentoDetalhe.De(leitura), "frota.Equipamento", relogio));
+    }
+}
+
+/// <summary>
+/// AS MÁQUINAS QUE O CLIENTE COMPROU — pelo vínculo "comprador na venda", com a data da venda. Uma
+/// compra não faz do cliente o dono atual: o campo <c>EhDonoAtual</c> diz quando ele também é.
+/// </summary>
+public sealed class ListarMaquinasCompradasPeloCliente(IRepositorioHistoricoComercial repositorio, IRelogio relogio)
+{
+    /// <summary>Executa a consulta.</summary>
+    /// <param name="chave">O GUID público do cliente.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<ComProcedencia<IReadOnlyList<MaquinaCompradaPeloCliente>>>> ExecutarAsync(
+        Guid chave, CancellationToken ct)
+    {
+        var maquinas = await repositorio.ListarMaquinasCompradasAsync(chave, ct);
+
+        return maquinas is null
+            ? Resultado<ComProcedencia<IReadOnlyList<MaquinaCompradaPeloCliente>>>.NaoEncontrado(
+                $"Não há cliente {chave} ao seu alcance.")
+            : Resultado<ComProcedencia<IReadOnlyList<MaquinaCompradaPeloCliente>>>.Ok(
+                ComProcedencia<IReadOnlyList<MaquinaCompradaPeloCliente>>.DoNossoBanco(
+                    maquinas, "frota.VinculoDeClienteComEquipamento", relogio));
+    }
+}
+
+/// <summary>
+/// O HISTÓRICO COMERCIAL de uma máquina: cada venda, o comprador NELA, a natureza do vínculo, a
+/// filial, as datas e a trilha da origem (documento 35, seção 10).
+///
+/// <para>O comprador de uma venda não é apresentado como dono: a ficha mostra o dono em "Cliente
+/// proprietário", e o comprador aqui, com a data da venda.</para>
+/// </summary>
+public sealed class ListarVendasDoEquipamento(IRepositorioHistoricoComercial repositorio, IRelogio relogio)
+{
+    /// <summary>Executa a consulta.</summary>
+    /// <param name="chave">O GUID público da máquina.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<ComProcedencia<IReadOnlyList<VendaDaMaquinaComContexto>>>> ExecutarAsync(
+        Guid chave, CancellationToken ct)
+    {
+        var vendas = await repositorio.ListarVendasAsync(chave, ct);
+
+        return vendas is null
+            ? Resultado<ComProcedencia<IReadOnlyList<VendaDaMaquinaComContexto>>>.NaoEncontrado(
+                $"Não há equipamento {chave} ao seu alcance.")
+            : Resultado<ComProcedencia<IReadOnlyList<VendaDaMaquinaComContexto>>>.Ok(
+                ComProcedencia<IReadOnlyList<VendaDaMaquinaComContexto>>.DoNossoBanco(vendas, "frota.VendaDeMaquina", relogio));
     }
 }

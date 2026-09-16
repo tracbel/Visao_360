@@ -40,7 +40,7 @@ public sealed class MigracaoNoContainerTestes
     private const string NomeDoBancoDeTeste = "TracbelCrmMigracaoTeste";
 
     [FatoSeHouverSqlServer]
-    public void A_migracao_inicial_cria_os_dez_schemas_e_as_setenta_e_duas_tabelas()
+    public void A_cadeia_de_migracoes_cria_os_oito_schemas_e_as_quarenta_e_nove_tabelas()
     {
         using var contexto = CriarContexto();
 
@@ -51,23 +51,21 @@ public sealed class MigracaoNoContainerTestes
 
         porSchema.Should().BeEquivalentTo(new Dictionary<string, int>
         {
-            ["organizacao"] = 12,
-            ["seguranca"] = 8,
-            ["comercial"] = 11,
-            ["processo"] = 14,
-            ["frota"] = 5,
-            ["documento"] = 2,
-            ["auditoria"] = 3,
-            ["integracao"] = 6,
-            ["metadado"] = 8,
-            ["relatorio"] = 3
-        }, "é a conta do documento 14, seção 2.1 — 72 tabelas em 10 schemas, no banco de " +
-           "verdade: as 63 do documento 17, mais as duas de município do documento 26, mais " +
-           "processo.VendaPerdida, comercial.FaturamentoDoCliente e " +
-           "comercial.FaturamentoSemCliente (documento 31), mais as quatro do território " +
-           "(documento 32)");
+            ["organizacao"] = 9,
+            ["seguranca"] = 4,
+            ["comercial"] = 8,
+            ["processo"] = 9,
+            ["frota"] = 7,
+            ["auditoria"] = 1,
+            ["integracao"] = 9,
+            ["metadado"] = 2
+        }, "é a conta do documento 14, seção 2.1, depois da fase 1 do documento 41 — 49 tabelas " +
+           "de modelo em 8 schemas, no banco de verdade. A migração inicial criava 80 em 10; a " +
+           "fase 1 removeu as 31 que nunca receberam uma linha e esvaziou por completo os " +
+           "schemas 'documento' e 'relatorio'. A cadeia inteira roda aqui, do zero: é o que prova " +
+           "que a remoção também funciona em banco que nasce agora, e não só no que já existia");
 
-        porSchema.Values.Sum().Should().Be(72);
+        porSchema.Values.Sum().Should().Be(49);
     }
 
     [FatoSeHouverSqlServer]
@@ -93,7 +91,7 @@ public sealed class MigracaoNoContainerTestes
     }
 
     [FatoSeHouverSqlServer]
-    public void As_quatro_tabelas_de_log_e_auditoria_estao_particionadas_por_data()
+    public void A_tabela_de_auditoria_esta_particionada_por_data()
     {
         using var contexto = CriarContexto();
         contexto.Database.EnsureDeleted();
@@ -113,13 +111,13 @@ public sealed class MigracaoNoContainerTestes
 
         particionadas.Should().BeEquivalentTo(new[]
         {
-            "auditoria.AlteracaoDeCampo",
-            "auditoria.EventoDeAcesso",
-            "integracao.Recepcao",
-            "processo.RegraExecucao"
-        }, "são as quatro tabelas de log e de área de pouso, particionadas por mês. [V] é a " +
+            "auditoria.AlteracaoDeCampo"
+        }, "é a tabela de log que o sistema de fato escreve, particionada por mês. [V] é a " +
            "lição das 22 tabelas de log do Vórtice, com 43,7 milhões de linhas e nenhuma " +
-           "política de retenção, e das 76 de staging permanente");
+           "política de retenção, e das 76 de staging permanente. As outras três — " +
+           "auditoria.EventoDeAcesso, integracao.Recepcao e processo.RegraExecucao — saíram " +
+           "vazias na fase 1 (documento 41), e a fase 1 também derruba a função e o esquema de " +
+           "partição de cada uma: partição órfã sobrevive ao DROP TABLE");
 
         foreach (var tabela in particionadas)
         {

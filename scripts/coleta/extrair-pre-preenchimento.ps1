@@ -1,4 +1,4 @@
-<#
+﻿<#
   Exporta o que o CRM (e a extração do Vórtice) JÁ TEM para pré-preencher as planilhas de coleta
   (documento 34). Só leitura.
 

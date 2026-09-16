@@ -46,9 +46,6 @@ public sealed class Carteira : EntidadeBase
     /// <summary>Linha de negócio da carteira.</summary>
     public int LinhaDeNegocioId { get; private set; }
 
-    /// <summary>Praça de mercado da carteira, quando aplicável.</summary>
-    public int? PracaId { get; private set; }
-
     /// <summary>Código estável. Ex.: <c>MAQ_13SJRP_01</c>.</summary>
     public string Codigo { get; private set; } = default!;
 
@@ -63,9 +60,6 @@ public sealed class Carteira : EntidadeBase
 
     /// <summary>Supervisor da carteira, quando existe.</summary>
     public long? SupervisorId { get; private set; }
-
-    /// <summary>Equipe dona da carteira, quando a carteira é de time e não de pessoa.</summary>
-    public long? EquipeId { get; private set; }
 
     /// <summary>Desligar sem apagar.</summary>
     public bool EstaAtiva { get; private set; } = true;

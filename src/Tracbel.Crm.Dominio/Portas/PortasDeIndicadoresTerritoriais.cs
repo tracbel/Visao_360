@@ -107,6 +107,20 @@ public sealed record VendasTerritoriais(
 /// <param name="MaquinasTeoricas">Área dividida pelos hectares por máquina; nulo quando a área é nula.</param>
 public sealed record PotencialTerritorial(int ProdutoCodigoIbge, decimal? AreaPlantadaHectares, decimal? MaquinasTeoricas);
 
+/// <summary>
+/// Quem responde pelos vínculos de um município NA CARTEIRA — o responsável cadastrado de cada carteira
+/// comercial que tem cliente com endereço ali, ao alcance da consulta.
+///
+/// <para><b>É a terceira fonte de responsável, e não substitui as outras duas.</b> As planilhas dizem
+/// quem deveria atender o município; a carteira diz quem hoje tem os clientes dele no CRM. As três
+/// ficam lado a lado, sem fusão.</para>
+/// </summary>
+/// <param name="Nome">O nome de exibição do usuário no CRM.</param>
+/// <param name="Natureza">Pessoa, departamento, sistema… — a carteira de área aparece como área.</param>
+/// <param name="Vinculos">Vínculos em carteira comercial deste responsável com clientes do município.</param>
+/// <param name="Carteiras">Em quantas carteiras dele esses vínculos estão.</param>
+public sealed record ResponsavelPelaCarteira(string Nome, string Natureza, int Vinculos, int Carteiras);
+
 /// <summary>Os três indicadores de um município, com o território e os responsáveis.</summary>
 /// <param name="CodigoIbge">O código IBGE — é por ele que o mapa encontra o polígono.</param>
 /// <param name="Nome">O nome oficial.</param>
@@ -125,6 +139,7 @@ public sealed record PotencialTerritorial(int ProdutoCodigoIbge, decimal? AreaPl
 /// <param name="Cobertura">A cobertura de visita.</param>
 /// <param name="Vendas">As vendas no período.</param>
 /// <param name="Potencial">O potencial teórico, uma linha por regra ativa.</param>
+/// <param name="ResponsaveisPelasCarteiras">Os responsáveis das carteiras com vínculo aqui, dos com mais vínculos para os com menos.</param>
 public sealed record IndicadoresDoMunicipio(
     int CodigoIbge,
     string Nome,
@@ -139,7 +154,8 @@ public sealed record IndicadoresDoMunicipio(
     string ComparacaoDoCen,
     CoberturaTerritorial Cobertura,
     VendasTerritoriais Vendas,
-    IReadOnlyList<PotencialTerritorial> Potencial);
+    IReadOnlyList<PotencialTerritorial> Potencial,
+    IReadOnlyList<ResponsavelPelaCarteira> ResponsaveisPelasCarteiras);
 
 /// <summary>
 /// O que não tem lugar no mapa, somado à parte — é o que faz o total da tela fechar com o banco.

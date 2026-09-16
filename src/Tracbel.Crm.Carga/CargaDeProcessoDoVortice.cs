@@ -17,6 +17,18 @@ using Tracbel.Crm.Integracao.Saneamento;
 namespace Tracbel.Crm.Carga;
 
 /// <summary>
+/// <b>LEGADO / SOMENTE REFERÊNCIA — CONGELADO NA FASE 1 (decisão D-12, documento 41)</b>, com UMA
+/// exceção que precisa ficar escrita: o <b>faturamento do Protheus</b> mora numa parte desta mesma
+/// classe (<c>CargaDeProcessoDoVortice.Faturamento.cs</c>) e continua operacional até a FASE 8.
+///
+/// <para>Por isso o congelamento é em DUAS ETAPAS. Agora, na fase 1, ele é operacional: o
+/// <c>Program</c> recusa qualquer modo que leia o Vórtice sem uma declaração explícita, e
+/// <c>--somente-faturamento</c> — que não abre conexão com o legado — segue livre. Na fase 8, com o
+/// faturamento morando em código próprio, o que sobrar do Vórtice sai do build.</para>
+///
+/// <para>Enquanto isso, NADA aqui pode deixar de compilar: quebrar este arquivo quebra a nota
+/// fiscal do Protheus, que é o número que a diretoria lê todo dia.</para>
+///
 /// A CARGA DO RELACIONAMENTO — usuário, carteira, processo, tarefa e interação.
 ///
 /// <para>É a segunda metade do ensaio da migração. A primeira (<see cref="CargaDoVortice"/>)
@@ -1427,7 +1439,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
                 var nova = Interacao.Registrar(
                     empresaId, tipoId, interacao.Assunto,
                     DataHoraUtc.Criar(interacao.OcorridaEm), interacao.Natureza, autorId,
-                    clienteId, processoId, leadId: null, contatoId: null, tarefaId, resultadoId,
+                    clienteId, processoId, contatoId: null, tarefaId, resultadoId,
                     interacao.ResultadoComplemento, interacao.Detalhe, interacao.DuracaoMinutos,
                     interacao.Latitude, interacao.Longitude);
 

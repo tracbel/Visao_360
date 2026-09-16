@@ -16,6 +16,19 @@ using Tracbel.Crm.Integracao.Saneamento;
 namespace Tracbel.Crm.Carga;
 
 /// <summary>
+/// <b>LEGADO / SOMENTE REFERÊNCIA — CONGELADO NA FASE 1 (decisão D-12, documento 41).</b>
+///
+/// <para>Este arquivo NÃO é fonte de dado novo. Ele fica porque é a documentação executável de como
+/// o dado do Vórtice foi lido, saneado e interpretado — cada regra aqui responde por um achado do
+/// sistema de origem, e jogar isso fora seria jogar fora a única explicação que existe para o
+/// formato do que já está gravado. O que se perdeu foi o direito de rodá-lo por rotina: o
+/// <c>Program</c> recusa qualquer modo que leia o Vórtice sem uma declaração explícita na linha de
+/// comando. O destino definitivo do código é decidido na FASE 8.</para>
+///
+/// <para>O que continua operacional e não passa por aqui: o faturamento do Protheus
+/// (<c>--somente-faturamento</c>), o território (<c>--somente-territorio</c>) e o ART
+/// (<c>--somente-art</c>).</para>
+///
 /// A CARGA — lê o recorte do sistema legado pela quarentena e grava no cadastro do CRM.
 ///
 /// <para><b>Idempotente por construção.</b> Nada aqui usa "já rodei?" como pergunta: cada

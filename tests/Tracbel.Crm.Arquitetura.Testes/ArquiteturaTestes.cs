@@ -1,6 +1,5 @@
 using FluentAssertions;
 using NetArchTest.Rules;
-using Tracbel.Crm.Dominio.Crm;
 using Xunit;
 
 namespace Tracbel.Crm.Arquitetura.Testes;
@@ -15,7 +14,8 @@ namespace Tracbel.Crm.Arquitetura.Testes;
 [Trait("Categoria", "Arquitetura")]
 public class ArquiteturaTestes
 {
-    private static readonly System.Reflection.Assembly Dominio = typeof(Lead).Assembly;
+    private static readonly System.Reflection.Assembly Dominio =
+        typeof(Tracbel.Crm.Dominio.Comercial.Cliente).Assembly;
 
     [Fact]
     public void Dominio_nao_depende_de_infraestrutura_nem_de_banco()
@@ -121,7 +121,10 @@ public class ArquiteturaTestes
             .That().ImplementInterface(typeof(Dominio.Comum.IEventoDominio))
             .GetTypes();
 
-        eventos.Should().NotBeEmpty("o domínio precisa ter eventos — são o ponto de extensão");
+        // NÃO EXIGE QUE EXISTA EVENTO. Os únicos eventos de domínio escritos até aqui eram os do
+        // `Lead`, que saiu na fase 1 (documento 41) junto com a tabela vazia — e o teste que
+        // exigisse "pelo menos um" estaria exigindo que alguém invente um fato para satisfazê-lo.
+        // O que esta regra protege é a FORMA do evento, e ela vale para zero, um ou trinta.
 
         var mutaveis =
             (from tipo in eventos

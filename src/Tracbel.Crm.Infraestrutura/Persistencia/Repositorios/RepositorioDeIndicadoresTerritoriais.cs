@@ -187,17 +187,21 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
         // -----------------------------------------------------------------------------------------
         // Cobertura: vínculo em carteira comercial, contra a cadência da linha de negócio.
         // -----------------------------------------------------------------------------------------
-        var cadencias = await contexto.Carteiras.AsNoTracking()
+        var carteirasComerciais = await contexto.Carteiras.AsNoTracking()
             .Where(c => c.ExcluidoEm == null && c.Natureza == NaturezaDaCarteira.Comercial)
             .Select(c => new
             {
                 c.Id,
+                c.ResponsavelId,
                 Cadencia = contexto.LinhasDeNegocio
                     .Where(l => l.Id == c.LinhaDeNegocioId)
                     .Select(l => new { l.DiasCicloClasseA, l.DiasCicloClasseB, l.DiasCicloClasseC, l.DiasCicloClasseD })
                     .FirstOrDefault()
             })
-            .ToDictionaryAsync(c => c.Id, c => c.Cadencia, ct);
+            .ToListAsync(ct);
+
+        var cadencias = carteirasComerciais.ToDictionary(c => c.Id, c => c.Cadencia);
+        var responsavelDaCarteira = carteirasComerciais.ToDictionary(c => c.Id, c => c.ResponsavelId);
 
         var idsDeCarteira = cadencias.Keys.ToList();
 
@@ -205,6 +209,14 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             .Where(v => v.DesvinculadoEm == null && idsDeCarteira.Contains(v.CarteiraId))
             .Select(v => new { v.CarteiraId, v.ClienteId, v.UltimaInteracaoEm })
             .ToListAsync(ct);
+
+        // OS RESPONSÁVEIS REAIS SÃO OS DAS CARTEIRAS, e não nomes digitados na tela: o nome sai do cadastro
+        // de usuário, pelo mesmo filtro de alcance de todo o resto.
+        var idsDeResponsavel = responsavelDaCarteira.Values.Distinct().ToList();
+        var responsaveisDasCarteiras = await contexto.Usuarios.AsNoTracking()
+            .Where(u => idsDeResponsavel.Contains(u.Id))
+            .Select(u => new { u.Id, u.NomeExibicao, u.Natureza })
+            .ToDictionaryAsync(u => u.Id, ct);
 
         foreach (var vinculo in vinculos)
         {
@@ -224,6 +236,12 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             };
 
             acumulador.Vinculos++;
+
+            var responsavel = responsavelDaCarteira[vinculo.CarteiraId];
+            acumulador.VinculosPorResponsavel[responsavel] = acumulador.VinculosPorResponsavel.GetValueOrDefault(responsavel) + 1;
+            if (!acumulador.CarteirasPorResponsavel.TryGetValue(responsavel, out var carteirasDoResponsavel))
+                acumulador.CarteirasPorResponsavel[responsavel] = carteirasDoResponsavel = [];
+            carteirasDoResponsavel.Add(vinculo.CarteiraId);
 
             if (dias is null) acumulador.SemCadencia++;
             else if (vinculo.UltimaInteracaoEm is null) acumulador.NuncaContatados++;
@@ -326,6 +344,15 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             .GroupBy(m => m.CodigoIbge!.Value)
             .ToDictionary(g => g.Key, g => g.First().Nome);
 
+        List<ResponsavelPelaCarteira> ResponsaveisDe(Acumulador acumulador) =>
+        [
+            .. acumulador.VinculosPorResponsavel
+                .OrderByDescending(r => r.Value).ThenBy(r => r.Key)
+                .Select(r => responsaveisDasCarteiras.TryGetValue(r.Key, out var usuario)
+                    ? new ResponsavelPelaCarteira(usuario.NomeExibicao, usuario.Natureza.ToString(), r.Value, acumulador.CarteirasPorResponsavel[r.Key].Count)
+                    : new ResponsavelPelaCarteira("Responsável fora do alcance desta consulta", "NaoIdentificado", r.Value, acumulador.CarteirasPorResponsavel[r.Key].Count))
+        ];
+
         var itens = new List<IndicadoresDoMunicipio>();
 
         foreach (var codigo in area.Keys.Concat(acumuladores.Keys.Where(k => k > 0)).Distinct().Order())
@@ -377,7 +404,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                         return new PotencialTerritorial(
                             regra.ProdutoCodigoIbge, hectares, maquinas is { } m ? decimal.Round(m, 1) : null);
                     })
-                ]));
+                ],
+                ResponsaveisDe(acumulador)));
         }
 
         var foraDoMapa = GruposForaDoMapa
@@ -427,6 +455,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
         public decimal Peca;
         public decimal Servico;
         public decimal Outros;
+        public readonly Dictionary<long, int> VinculosPorResponsavel = [];
+        public readonly Dictionary<long, HashSet<long>> CarteirasPorResponsavel = [];
 
         public CoberturaTerritorial Cobertura() => new(
             Clientes, Vinculos, Cobertos + ForaDaCadencia + NuncaContatados, Cobertos, ForaDaCadencia, NuncaContatados, SemCadencia);

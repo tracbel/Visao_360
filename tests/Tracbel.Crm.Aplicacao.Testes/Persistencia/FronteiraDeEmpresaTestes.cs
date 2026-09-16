@@ -16,10 +16,10 @@ namespace Tracbel.Crm.Aplicacao.Testes.Persistencia;
 /// Prova que a FRONTEIRA DE EMPRESA filtra de verdade — contra um banco de verdade, e numa
 /// entidade que NUNCA teve filtro até a correção do achado A-1 do documento 21.
 ///
-/// <c>FiltroSegurancaTestes</c> prova a profundidade sobre o <c>Lead</c>, a única entidade que
-/// tinha filtro. Este arquivo prova a outra metade: que o dado de outra filial existe no banco,
-/// que uma consulta sem <c>WHERE</c> nenhum NÃO o devolve, e que a única forma de alcançá-lo é
-/// declarando que se está ignorando a fronteira.
+/// <see cref="FiltroSegurancaTestes"/> prova que a fronteira chega ao SQL de toda entidade que
+/// tem <c>EmpresaId</c>. Este arquivo prova a outra metade: que o dado de outra filial existe no
+/// banco, que uma consulta sem <c>WHERE</c> nenhum NÃO o devolve, e que a única forma de alcançá-lo
+/// é declarando que se está ignorando a fronteira.
 ///
 /// SQLite em memória de propósito, e não provedor falso: a consulta é traduzida para SQL real.
 /// Filtro que não traduz é filtro que não existe.

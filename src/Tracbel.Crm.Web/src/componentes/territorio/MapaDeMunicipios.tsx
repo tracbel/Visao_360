@@ -8,7 +8,8 @@
  *
  * A seleção é por clique no polígono; pelo teclado, a mesma seleção se faz na
  * tabela de municípios abaixo dos mapas — 645 polígonos focáveis seriam 645
- * paradas de Tab.
+ * paradas de Tab. O FOCO (cursor sobre o polígono) é compartilhado pelos três
+ * mapas: o mesmo município ganha contorno tracejado nos três, para comparar.
  */
 
 import { COR_BORDA_ADR, COR_FORA_DA_ADR, ID_HACHURA_SEM_DADO, type Faixa } from './escalas';
@@ -32,11 +33,26 @@ type Props = {
   adr: ReadonlySet<number>;
   selecionado: number | null;
   aoSelecionar: (codigo: number) => void;
+  /** O município sob o cursor, em qualquer um dos mapas. */
+  emFoco?: number | null;
+  aoPassar?: (codigo: number | null) => void;
 };
 
-export function MapaDeMunicipios({ id, titulo, enquadramento, poligonos, estadoDe, adr, selecionado, aoSelecionar }: Props) {
+export function MapaDeMunicipios({
+  id,
+  titulo,
+  enquadramento,
+  poligonos,
+  estadoDe,
+  adr,
+  selecionado,
+  aoSelecionar,
+  emFoco = null,
+  aoPassar,
+}: Props) {
   const hachura = `${ID_HACHURA_SEM_DADO}-${id}`;
   const escolhido = selecionado === null ? null : poligonos.find((p) => p.codigo === selecionado);
+  const focado = emFoco === null || emFoco === selecionado ? null : poligonos.find((p) => p.codigo === emFoco);
 
   return (
     <svg
@@ -44,6 +60,7 @@ export function MapaDeMunicipios({ id, titulo, enquadramento, poligonos, estadoD
       viewBox={`0 0 ${enquadramento.largura.toFixed(0)} ${enquadramento.altura.toFixed(0)}`}
       role="img"
       aria-label={titulo}
+      onMouseLeave={() => aoPassar?.(null)}
     >
       <defs>
         <pattern id={hachura} width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -70,6 +87,7 @@ export function MapaDeMunicipios({ id, titulo, enquadramento, poligonos, estadoD
                 strokeWidth={daAdr ? 0.7 : 0.35}
                 className="terr-poligono"
                 onClick={() => aoSelecionar(p.codigo)}
+                onMouseEnter={() => aoPassar?.(p.codigo)}
               >
                 <title>{`${p.nome} — ${estado.detalhe}`}</title>
               </path>
@@ -77,6 +95,9 @@ export function MapaDeMunicipios({ id, titulo, enquadramento, poligonos, estadoD
           }),
       )}
 
+      {focado && (
+        <path d={focado.caminho} fill="none" stroke="#111827" strokeWidth={1.4} strokeDasharray="3 2" pointerEvents="none" />
+      )}
       {escolhido && (
         <path d={escolhido.caminho} fill="none" stroke="#111827" strokeWidth={2} pointerEvents="none" />
       )}
@@ -84,7 +105,7 @@ export function MapaDeMunicipios({ id, titulo, enquadramento, poligonos, estadoD
   );
 }
 
-/** A legenda: as faixas da escala, e os dois estados que não são valor. */
+/** A legenda: a unidade, as faixas da escala, e os estados que não são valor. */
 export function LegendaDoMapa({ faixas, unidade }: { faixas: Faixa[]; unidade: string }) {
   return (
     <div className="terr-legenda" aria-label={`Legenda — ${unidade}`}>
@@ -102,6 +123,10 @@ export function LegendaDoMapa({ faixas, unidade }: { faixas: Faixa[]; unidade: s
       <span className="terr-legenda-item">
         <span className="terr-amostra" style={{ background: COR_FORA_DA_ADR, borderColor: '#D1D5DB' }} />
         fora da ADR
+      </span>
+      <span className="terr-legenda-item">
+        <span className="terr-amostra" style={{ background: 'transparent', borderColor: COR_BORDA_ADR, borderWidth: 2 }} />
+        contorno: município da ADR
       </span>
     </div>
   );

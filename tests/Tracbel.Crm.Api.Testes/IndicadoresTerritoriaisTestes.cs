@@ -342,6 +342,21 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
     }
 
     [Fact]
+    public async Task Sem_municipio_da_adr_na_consulta_a_resposta_declara_a_lacuna_em_vez_de_mostrar_zero()
+    {
+        // O MESMO QUE O SERVIDOR MOSTROU EM 14/09/2026 (documento 32, seção 11.9): a consulta responde, mas nenhum
+        // município da ADR entra nela. A resposta tem de dizer isso — é o que a tela usa para mostrar "território
+        // não carregado" (sem filtro) em vez de "0 municípios" e "R$ 0".
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo + "&regiao=Noroeste"));
+
+        dados.GetProperty("indicadores").GetProperty("municipios").EnumerateArray()
+            .Count(m => m.GetProperty("pertenceAAdr").GetBoolean()).Should().Be(0, "a semente só tem município da ADR na região Norte");
+        dados.GetProperty("metricasSemDado").EnumerateArray()
+            .Select(m => m.GetProperty("metrica").GetString()).Should().Contain("areaDeAtuacao");
+    }
+
+    [Fact]
     public async Task Filtrar_pela_filial_do_cliente_tira_a_nota_sem_cliente_que_nao_tem_cadastro()
     {
         await SemearAsync();
@@ -426,6 +441,20 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         dados.GetProperty("indicadores").GetProperty("visao").GetString().Should().Be("Filial");
         Municipio(dados, RibeiraoPreto).GetProperty("vendas").GetProperty("valorLiquido").GetDecimal()
             .Should().Be(1000m, "poder abrir o alcance não é estar com ele aberto");
+    }
+
+    [Fact]
+    public async Task O_municipio_traz_os_responsaveis_reais_das_carteiras_pelos_vinculos()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var responsaveis = Municipio(dados, RibeiraoPreto).GetProperty("responsaveisPelasCarteiras");
+        responsaveis.GetArrayLength().Should().Be(1);
+        responsaveis[0].GetProperty("nome").GetString().Should().Be("cen.ribeiraopreto", "é o nome de exibição do responsável cadastrado das duas carteiras");
+        responsaveis[0].GetProperty("vinculos").GetInt32().Should().Be(3, "dois vínculos na carteira de máquinas e um na de peças");
+        responsaveis[0].GetProperty("carteiras").GetInt32().Should().Be(2);
+        Municipio(dados, RibeiraoPreto).GetProperty("responsaveis").GetArrayLength().Should().Be(2, "as planilhas continuam ao lado, sem fusão");
     }
 
     [Theory]

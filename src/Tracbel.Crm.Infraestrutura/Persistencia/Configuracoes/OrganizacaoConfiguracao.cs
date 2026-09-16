@@ -84,43 +84,6 @@ public sealed class LinhaDeNegocioConfiguracao : IEntityTypeConfiguration<LinhaD
     }
 }
 
-/// <summary>Mapeamento de <see cref="Praca"/>.</summary>
-public sealed class PracaConfiguracao : IEntityTypeConfiguration<Praca>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<Praca> b)
-    {
-        b.ToTable("Praca", "organizacao");
-        b.HasKey(p => p.Id);
-        b.Property(p => p.Id).ValueGeneratedOnAdd();
-
-        b.Property(p => p.Codigo).HasMaxLength(20).IsUnicode(false).IsRequired();
-        b.Property(p => p.Nome).HasMaxLength(120).IsUnicode(true).IsRequired();
-        b.Property(p => p.Uf).HasMaxLength(2).IsUnicode(false).IsFixedLength();
-        b.Property(p => p.AnoReferencia).IsRequired();
-        b.Property(p => p.EstaAtiva).IsRequired();
-
-        b.Property(p => p.PotencialEstimado)
-            .HasConversion(d => d!.Value.Valor, v => Dinheiro.Criar(v))
-            .HasPrecision(18, 2);
-
-        b.HasIndex(p => new { p.Codigo, p.LinhaDeNegocioId, p.AnoReferencia })
-            .IsUnique()
-            .HasDatabaseName("UX_Praca_Codigo_Linha_Ano");
-
-        b.HasOne<LinhaDeNegocio>()
-            .WithMany()
-            .HasForeignKey(p => p.LinhaDeNegocioId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        b.HasIndex(p => p.LinhaDeNegocioId);
-
-        // Duas letras maiúsculas, e só. [V] a UF do Vórtice é texto livre.
-        b.ToTable(t => t.HasCheckConstraint("CK_Praca_Uf", "[Uf] IS NULL OR [Uf] COLLATE Latin1_General_BIN2 LIKE '[A-Z][A-Z]'"));
-        b.ToTable(t => t.HasCheckConstraint("CK_Praca_AnoReferencia", "[AnoReferencia] BETWEEN 2000 AND 2100"));
-    }
-}
-
 /// <summary>
 /// Mapeamento de <see cref="Municipio"/> — o catálogo nacional que fecha o campo de município.
 ///
@@ -410,40 +373,6 @@ public sealed class RegraDePotencialConfiguracao : IEntityTypeConfiguration<Regr
     }
 }
 
-/// <summary>Mapeamento de <see cref="HierarquiaComercial"/>.</summary>
-public sealed class HierarquiaComercialConfiguracao : IEntityTypeConfiguration<HierarquiaComercial>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<HierarquiaComercial> b)
-    {
-        b.ToTable("HierarquiaComercial", "organizacao");
-        b.HasKey(h => h.Id);
-        b.Property(h => h.Id).ValueGeneratedOnAdd();
-
-        b.Property(h => h.Profundidade).IsRequired();
-
-        b.HasIndex(h => new { h.AncestralId, h.DescendenteId })
-            .IsUnique()
-            .HasDatabaseName("UX_HierarquiaComercial_Ancestral_Descendente");
-
-        // A consulta quente é a inversa: "quem está acima de mim", para resolver a
-        // profundidade de permissão sem varrer.
-        b.HasIndex(h => new { h.DescendenteId, h.Profundidade });
-
-        b.HasOne<Dominio.Seguranca.Usuario>()
-            .WithMany()
-            .HasForeignKey(h => h.AncestralId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        b.HasOne<Dominio.Seguranca.Usuario>()
-            .WithMany()
-            .HasForeignKey(h => h.DescendenteId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        b.ToTable(t => t.HasCheckConstraint("CK_HierarquiaComercial_Profundidade", "[Profundidade] >= 0"));
-    }
-}
-
 /// <summary>Mapeamento de <see cref="Carteira"/>.</summary>
 public sealed class CarteiraConfiguracao : IEntityTypeConfiguration<Carteira>
 {
@@ -484,63 +413,13 @@ public sealed class CarteiraConfiguracao : IEntityTypeConfiguration<Carteira>
         b.HasIndex(c => c.ResponsavelId).HasFilter("[EstaAtiva] = 1 AND [ExcluidoEm] IS NULL");
         b.HasIndex(c => new { c.EmpresaId, c.LinhaDeNegocioId }).HasFilter("[ExcluidoEm] IS NULL");
         b.HasIndex(c => c.SupervisorId);
-        b.HasIndex(c => c.EquipeId);
-        b.HasIndex(c => c.PracaId);
-
         b.HasOne<Empresa>().WithMany().HasForeignKey(c => c.EmpresaId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<LinhaDeNegocio>().WithMany().HasForeignKey(c => c.LinhaDeNegocioId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Praca>().WithMany().HasForeignKey(c => c.PracaId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Dominio.Seguranca.Usuario>().WithMany().HasForeignKey(c => c.ResponsavelId)
             .OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Dominio.Seguranca.Usuario>().WithMany().HasForeignKey(c => c.SupervisorId)
             .OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Dominio.Seguranca.Equipe>().WithMany().HasForeignKey(c => c.EquipeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         b.Ignore(c => c.Eventos);
     }
 }
 
-/// <summary>Mapeamento de <see cref="Meta"/>.</summary>
-public sealed class MetaConfiguracao : IEntityTypeConfiguration<Meta>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<Meta> b)
-    {
-        b.ToTable("Meta", "organizacao");
-        b.HasKey(m => m.Id);
-        b.Property(m => m.Id).ValueGeneratedOnAdd();
-
-        b.Property(m => m.ChavePublica).IsRequired().HasDefaultValueSql("NEWID()");
-        b.HasIndex(m => m.ChavePublica).IsUnique().HasDatabaseName("UX_Meta_ChavePublica");
-
-        b.Property(m => m.Tipo).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
-        b.Property(m => m.Alvo).HasPrecision(18, 2).IsRequired();
-        b.Property(m => m.Observacao).HasMaxLength(400).IsUnicode(true);
-        b.Property(m => m.EstaAtiva).IsRequired();
-
-        b.Property(m => m.CriadoEm).HasPrecision(3).IsRequired();
-        b.Property(m => m.AlteradoEm).HasPrecision(3);
-        b.Property(m => m.ExcluidoEm).HasPrecision(3);
-
-        b.HasIndex(m => new { m.EmpresaId, m.Tipo, m.PeriodoInicio }).HasFilter("[ExcluidoEm] IS NULL");
-        b.HasIndex(m => m.CarteiraId);
-        b.HasIndex(m => m.UsuarioId);
-        b.HasIndex(m => m.LinhaDeNegocioId);
-
-        b.HasOne<Empresa>().WithMany().HasForeignKey(m => m.EmpresaId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<LinhaDeNegocio>().WithMany().HasForeignKey(m => m.LinhaDeNegocioId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Carteira>().WithMany().HasForeignKey(m => m.CarteiraId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Dominio.Seguranca.Usuario>().WithMany().HasForeignKey(m => m.UsuarioId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        b.ToTable(t => t.HasCheckConstraint(
-            "CK_Meta_Tipo",
-            "[Tipo] IN ('Faturamento','Cobertura','Frequencia','Volume')"));
-
-        b.ToTable(t => t.HasCheckConstraint("CK_Meta_Periodo", "[PeriodoFim] >= [PeriodoInicio]"));
-        b.ToTable(t => t.HasCheckConstraint("CK_Meta_Alvo", "[Alvo] >= 0"));
-
-        b.Ignore(m => m.Eventos);
-    }
-}

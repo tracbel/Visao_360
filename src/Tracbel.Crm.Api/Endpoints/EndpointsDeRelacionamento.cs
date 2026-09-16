@@ -165,6 +165,17 @@ public static class EndpointsDeRelacionamento
                 "O faturamento lido da SD2 do Protheus: série dos últimos doze meses e os cinco " +
                 "maiores clientes, com a competência mais recente sempre junto do número.");
 
+        grupo.MapGet("/indicadores-executivos", async (
+                ObterIndicadoresExecutivos caso, CancellationToken ct, int? ano = null) =>
+                (await caso.ExecutarAsync(ano, ct)).Responder())
+            .WithName("ObterIndicadoresExecutivos")
+            .WithSummary("Os cinco indicadores da Visão 360 para a filial do cabeçalho.")
+            .WithDescription(
+                "Faturamento da competência mais recente com a nota sem cliente separada por natureza; realizado do " +
+                "ano civil `ano` (padrão: o corrente) ao lado da meta de faturamento da filial; clientes únicos pela " +
+                "filial de cadastro e vínculos pela filial da carteira; cobertura pela cadência declarada; vendas " +
+                "perdidas registradas. Todo número se soma entre filiais, exceto clientesNasCarteirasDaFilial.");
+
         grupo.MapGet("/cen", async (
                 ObterPainelDoCen caso, CancellationToken ct, Guid? responsavel = null) =>
                 (await caso.ExecutarAsync(responsavel, ct)).Responder())

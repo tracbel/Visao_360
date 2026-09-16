@@ -86,7 +86,7 @@
   margin-top: 16px;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1100px) {
   .terr-grade-mapas {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -99,10 +99,36 @@
   padding: 14px 16px;
 }
 
+/* A LINHA DE NÚMEROS DE CADA MAPA: o total que a cor distribui, logo abaixo do título. */
 .terr-mapa-resumo {
+  margin: 0;
   font-size: 13px;
   font-weight: 600;
   color: var(--jd-green-dark);
+}
+
+/* O município sob o cursor. Altura mínima de duas linhas: sem ela, o mapa pula a cada troca de foco. */
+.terr-mapa-foco {
+  min-height: 2.6em;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.terr-periodo {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.terr-alternador button:disabled {
+  cursor: not-allowed;
+  color: var(--text-tertiary);
+  background: var(--bg-hover);
 }
 
 .terr-svg {

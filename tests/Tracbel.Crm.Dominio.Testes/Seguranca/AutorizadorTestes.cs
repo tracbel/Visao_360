@@ -284,7 +284,10 @@ public class ConjuntoPermissaoTestes
     public void Concessao_temporaria_expira()
     {
         // Cobertura de férias que não vira privilégio permanente.
-        var agora = new DateTime(2026, 8, 30, 12, 0, 0, DateTimeKind.Utc);
+        //
+        // O "AGORA" É O RELÓGIO, e não uma data escrita: Conceder recusa expiração no passado contra
+        // DateTime.UtcNow, e com 30/08/2026 fixo o teste passou a falhar em 14/09/2026 às 12h UTC.
+        var agora = DateTime.UtcNow;
 
         var vigente = UsuarioConjuntoPermissao.Conceder(1, 1, 99, agora.AddDays(15));
         var permanente = UsuarioConjuntoPermissao.Conceder(1, 2, 99);

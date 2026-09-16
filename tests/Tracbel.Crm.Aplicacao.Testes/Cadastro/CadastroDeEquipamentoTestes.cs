@@ -178,11 +178,11 @@ public sealed class CadastroDeEquipamentoTestes(ITestOutputHelper saida) : IDisp
         var conferencia = _banco.CasosDeEquipamento();
 
         var padrao = await conferencia.Listar.ExecutarAsync(
-            null, null, null, null, null, null, null, false, false, Ct);
+            null, null, null, null, null, null, null, false, false, null, null, false, Ct);
         padrao.Valor.Dados.Total.Should().Be(0);
 
         var completa = await conferencia.Listar.ExecutarAsync(
-            null, null, null, null, null, null, null, false, true, Ct);
+            null, null, null, null, null, null, null, false, true, null, null, false, Ct);
         completa.Valor.Dados.Total.Should().Be(1, "baixar não apaga: a linha e o histórico ficam");
 
         conferencia.Contexto.Dispose();

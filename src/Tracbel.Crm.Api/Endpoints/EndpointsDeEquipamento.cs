@@ -25,17 +25,38 @@ public static class EndpointsDeEquipamento
                 Guid? clienteChave = null,
                 string? ordenarPor = null,
                 bool descendente = false,
-                bool incluirInativos = false) =>
+                bool incluirInativos = false,
+                string? linhaDeProduto = null,
+                string? porte = null,
+                bool somenteComVenda = false) =>
             (await caso.ExecutarAsync(
                 pagina, tamanho, termo, situacao, origem, clienteChave,
-                ordenarPor, descendente, incluirInativos, ct)).Responder())
+                ordenarPor, descendente, incluirInativos, linhaDeProduto, porte, somenteComVenda, ct)).Responder())
             .WithName("ListarEquipamentos")
-            .WithSummary("Lista máquinas do banco do CRM. Filtre por clienteChave para o parque de um cliente.");
+            .WithSummary(
+                "Lista máquinas do banco do CRM. Filtre por clienteChave para o parque de um cliente, por " +
+                "linhaDeProduto e porte para a segmentação, e por somenteComVenda para as máquinas vendidas.");
 
         grupo.MapGet("/{chave:guid}", async (Guid chave, ObterEquipamento caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(chave, ct)).Responder())
             .WithName("ObterEquipamento")
             .WithSummary("Traz a ficha de uma máquina pela chave pública.");
+
+        grupo.MapGet("/{chave:guid}/vendas", async (Guid chave, ListarVendasDoEquipamento caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(chave, ct)).Responder())
+            .WithName("ListarVendasDoEquipamento")
+            .WithSummary(
+                "O histórico comercial da máquina: cada venda, o comprador NELA (não o dono atual), a filial, " +
+                "as datas e a trilha da origem.");
+
+        // AS MÁQUINAS COMPRADAS PELO CLIENTE moram na ficha do cliente, e a rota fica sob /clientes; o caso
+        // de uso é de frota, por isso o registro está aqui.
+        app.MapGet("/api/v1/clientes/{chave:guid}/maquinas-compradas", async (
+                Guid chave, ListarMaquinasCompradasPeloCliente caso, CancellationToken ct) =>
+            (await caso.ExecutarAsync(chave, ct)).Responder())
+            .WithTags("Clientes (banco do CRM)")
+            .WithName("ListarMaquinasCompradasPeloCliente")
+            .WithSummary("As máquinas que o cliente comprou (vínculo 'comprador na venda'), com a data da venda.");
 
         grupo.MapPost("/", async (NovoEquipamento corpo, CriarEquipamento caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(corpo, ct))

@@ -1,0 +1,25 @@
+/*
+ * Os selos das vendas de máquina nas telas de equipamento e de cliente
+ * (documento 35, seções 10 e 11): dono não confirmado, comprador na venda,
+ * origem ART e pendência.
+ */
+
+.cad-selo-proprietarionaoconfirmado {
+  background: #fff4e0;
+  color: #8a5300;
+}
+
+.cad-selo-comprador {
+  background: #e8f1ff;
+  color: #1d4f91;
+}
+
+.cad-selo-art {
+  background: #eaf5ea;
+  color: #2b6a2b;
+}
+
+.cad-selo-pendente {
+  background: #fdecec;
+  color: #9b2c2c;
+}

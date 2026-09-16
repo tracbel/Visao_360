@@ -98,7 +98,8 @@ public sealed class EquipamentoConfiguracao : IEntityTypeConfiguration<Equipamen
         b.Property(e => e.NumeroSerie).HasMaxLength(40).IsUnicode(false);
         b.Property(e => e.Placa).HasMaxLength(10).IsUnicode(false);
         b.Property(e => e.LocalizacaoDescrita).HasMaxLength(200).IsUnicode(true);
-        b.Property(e => e.Situacao).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
+        // 30, e não 20: "ProprietarioNaoConfirmado" tem 25 caracteres (documento 35, seção 10).
+        b.Property(e => e.Situacao).HasConversion<string>().HasMaxLength(30).IsUnicode(false).IsRequired();
         b.Property(e => e.Origem).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
         b.Property(e => e.HorimetroAtual).HasPrecision(12, 2);
         b.Property(e => e.HorimetroAtualizadoEm).HasPrecision(3);
@@ -115,6 +116,7 @@ public sealed class EquipamentoConfiguracao : IEntityTypeConfiguration<Equipamen
         // A frota do cliente, que é o que a Visão 360 mostra — inclusive a do concorrente.
         b.HasIndex(e => new { e.ClienteId, e.Origem }).HasFilter("[ExcluidoEm] IS NULL");
         b.HasIndex(e => e.ModeloId);
+        b.HasIndex(e => e.LinhaDeProdutoId);
         b.HasIndex(e => e.EquipamentoPaiId);
         b.HasIndex(e => e.EquipamentoSubstitutoId);
         b.HasIndex(e => e.EnderecoId);
@@ -123,14 +125,19 @@ public sealed class EquipamentoConfiguracao : IEntityTypeConfiguration<Equipamen
         b.HasOne<Empresa>().WithMany().HasForeignKey(e => e.EmpresaId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Cliente>().WithMany().HasForeignKey(e => e.ClienteId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Modelo>().WithMany().HasForeignKey(e => e.ModeloId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<LinhaDeProduto>().WithMany().HasForeignKey(e => e.LinhaDeProdutoId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Endereco>().WithMany().HasForeignKey(e => e.EnderecoId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Equipamento>().WithMany().HasForeignKey(e => e.EquipamentoPaiId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Equipamento>().WithMany().HasForeignKey(e => e.EquipamentoSubstitutoId)
             .OnDelete(DeleteBehavior.Restrict);
 
         b.ToTable(x => x.HasCheckConstraint(
-            "CK_Equipamento_Situacao", "[Situacao] IN ('Estoque','Ativo','Vendido','Baixado')"));
-        b.ToTable(x => x.HasCheckConstraint("CK_Equipamento_Origem", "[Origem] IN ('Protheus','Crm')"));
+            "CK_Equipamento_Situacao", "[Situacao] IN ('Estoque','Ativo','Vendido','Baixado','ProprietarioNaoConfirmado')"));
+        b.ToTable(x => x.HasCheckConstraint("CK_Equipamento_Origem", "[Origem] IN ('Protheus','Crm','Art')"));
+
+        // O modelo só falta na máquina que veio de integração com o produto pendente de revisão.
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_Equipamento_ModeloPendente", "[ModeloId] IS NOT NULL OR [Origem] = 'Art'"));
         b.ToTable(x => x.HasCheckConstraint(
             "CK_Equipamento_Horimetro", "[HorimetroAtual] IS NULL OR [HorimetroAtual] >= 0"));
         b.ToTable(x => x.HasCheckConstraint(
@@ -148,35 +155,3 @@ public sealed class EquipamentoConfiguracao : IEntityTypeConfiguration<Equipamen
     }
 }
 
-/// <summary>Mapeamento de <see cref="LeituraDeHorimetro"/>.</summary>
-public sealed class LeituraDeHorimetroConfiguracao : IEntityTypeConfiguration<LeituraDeHorimetro>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<LeituraDeHorimetro> b)
-    {
-        b.ToTable("LeituraDeHorimetro", "frota");
-        b.HasKey(l => l.Id);
-        b.Property(l => l.Id).ValueGeneratedOnAdd();
-
-        b.Property(l => l.Horas).HasPrecision(12, 2).IsRequired();
-        b.Property(l => l.Fonte).HasMaxLength(40).IsUnicode(false).IsRequired();
-        b.Property(l => l.LidaEm).HasPrecision(3).IsRequired();
-        b.Property(l => l.CriadoEm).HasPrecision(3).IsRequired();
-
-        // A série histórica do equipamento, do mais recente para o mais antigo.
-        b.HasIndex(l => new { l.EquipamentoId, l.LidaEm }).IsDescending(false, true);
-
-        // Uma leitura por equipamento e instante: a mesma leitura importada duas vezes não
-        // vira dois pontos no gráfico.
-        b.HasIndex(l => new { l.EquipamentoId, l.LidaEm })
-            .IsUnique()
-            .HasDatabaseName("UX_LeituraDeHorimetro_Equipamento_Instante");
-
-        b.HasIndex(l => l.RegistradoPorId);
-
-        b.HasOne<Equipamento>().WithMany().HasForeignKey(l => l.EquipamentoId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Usuario>().WithMany().HasForeignKey(l => l.RegistradoPorId).OnDelete(DeleteBehavior.Restrict);
-
-        b.ToTable(x => x.HasCheckConstraint("CK_LeituraDeHorimetro_Horas", "[Horas] >= 0"));
-    }
-}

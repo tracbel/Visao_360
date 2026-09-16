@@ -12,13 +12,14 @@
  * - **Chassi e origem só existem no cadastro.** Na alteração eles aparecem como
  *   somente leitura, com a razão escrita ao lado: o chassi é a identidade da
  *   máquina e a chave de deduplicação; a origem diz QUEM afirma que a máquina
- *   existe — o ERP ou o CEN. Chassi errado se corrige inativando o registro e
- *   cadastrando o certo, para o histórico não mudar de dono em silêncio.
+ *   existe — o ERP, o CEN ou uma venda do ART.
  * - **Marca, família e modelo são três seleções encadeadas** montadas do
  *   catálogo `MODELO_EQUIPAMENTO`, cuja descrição a API compõe como
  *   `Marca · Família · Modelo`. O que vai para a API é só o código do modelo.
- * - **O dono é escolhido por busca**, nunca digitado, e é obrigatório quando a
- *   situação é Ativo ou Vendido — regra que quem recusa é a API.
+ * - **A classificação de produto** (trator pequeno, médio, grande…) é outro
+ *   catálogo, e é opcional (documento 35, seção 10).
+ * - **O dono é escolhido por busca**, nunca digitado. O COMPRADOR de uma venda
+ *   não é o dono: ele aparece no histórico comercial, com a data da venda.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -39,17 +40,26 @@ import {
   alterarEquipamento,
   criarEquipamento,
   inativarEquipamento,
+  listarVendasDoEquipamento,
   obterEquipamento,
 } from '../../dados/api/equipamentos';
 import { ErroDaApi } from '../../dados/api/http';
 import { useRecurso } from '../../dados/api/useRecurso';
-import { CATALOGO, type EquipamentoDetalhe, type ItemDeSelecao, type NovoEquipamento } from '../../tipos/api';
+import {
+  CATALOGO,
+  type EquipamentoDetalhe,
+  type ItemDeSelecao,
+  type NovoEquipamento,
+  type VendaDaMaquina,
+} from '../../tipos/api';
 import { formatarDataHora, formatarNumero } from './formato';
+import '../../estilos/frota-comercial.css';
 
 /** Os campos que ESTA tela mostra. O que a API recusar fora disto vai para o topo. */
 const CAMPOS_DA_TELA = [
   'chassi',
   'modeloCodigo',
+  'linhaDeProdutoCodigo',
   'clienteChave',
   'situacao',
   'origem',
@@ -71,6 +81,7 @@ const FORMULARIO_VAZIO: NovoEquipamento = {
   numeroSerie: '',
   placa: '',
   localizacaoDescrita: '',
+  linhaDeProdutoCodigo: '',
 };
 
 function doDetalhe(maquina: EquipamentoDetalhe): NovoEquipamento {
@@ -85,7 +96,14 @@ function doDetalhe(maquina: EquipamentoDetalhe): NovoEquipamento {
     numeroSerie: maquina.numeroSerie ?? '',
     placa: maquina.placa ?? '',
     localizacaoDescrita: maquina.localizacaoDescrita ?? '',
+    linhaDeProdutoCodigo: maquina.classificacaoCodigo ?? '',
   };
+}
+
+function dataCurta(valor: string | null): string {
+  if (!valor) return '—';
+  const [ano, mes, dia] = valor.slice(0, 10).split('-');
+  return `${dia}/${mes}/${ano}`;
 }
 
 type Modo = 'novo' | 'ficha' | 'editando';
@@ -132,6 +150,11 @@ export function EquipamentoCadastro() {
 
   const leitura = useRecurso<EquipamentoDetalhe | null>(
     (sinal) => (ehNovo ? Promise.resolve({ dados: null, procedencia: null }) : obterEquipamento(contexto, chave, sinal)),
+    [contexto.empresa, contexto.usuario, chave ?? 'novo'],
+  );
+
+  const historico = useRecurso<VendaDaMaquina[]>(
+    (sinal) => (ehNovo ? Promise.resolve({ dados: [], procedencia: null }) : listarVendasDoEquipamento(contexto, chave, sinal)),
     [contexto.empresa, contexto.usuario, chave ?? 'novo'],
   );
 
@@ -325,6 +348,10 @@ export function EquipamentoCadastro() {
 
   const modeloEscolhido = formulario.modeloCodigo ? porCodigo.get(formulario.modeloCodigo) : undefined;
 
+  // A máquina do ART sem correspondência segura de produto pode continuar sem modelo — ninguém precisa
+  // escolher um modelo parecido para confirmar o dono ou classificar.
+  const modeloPendenteDoArt = maquina?.origem === 'Art' && !maquina.modeloCodigo;
+
   if (!ehNovo && !maquina && !leitura.erro) {
     return (
       <div className="card cad-cartao">
@@ -368,7 +395,9 @@ export function EquipamentoCadastro() {
               <>
                 {[maquina?.marca, maquina?.familia, maquina?.modeloNome].filter(Boolean).join(' · ') ||
                   'sem modelo'}
+                {maquina?.classificacaoNome ? ` · ${maquina.classificacaoNome}` : ''}
                 {maquina?.estaInativo ? ' · baixado' : ''}
+                {maquina?.origem === 'Art' && <span className="cad-selo cad-selo-art">ART</span>}
               </>
             )}
           </p>
@@ -396,6 +425,15 @@ export function EquipamentoCadastro() {
           <p>
             Sem eles não há lista de modelos para escolher, e o cadastro fica sem o campo mais
             importante. {erroDeCatalogo.message}
+          </p>
+        </AvisoDoFormulario>
+      )}
+      {maquina?.situacao === 'ProprietarioNaoConfirmado' && (
+        <AvisoDoFormulario titulo="Dono atual não confirmado" tom="atencao">
+          <p>
+            Esta máquina chegou por uma venda do ART. O comprador daquela venda está no histórico comercial abaixo, com a
+            data — mas quem comprou não prova quem tem a máquina hoje. Para confirmar o dono, edite a ficha, escolha o
+            cliente proprietário e a situação Ativo.
           </p>
         </AvisoDoFormulario>
       )}
@@ -493,11 +531,25 @@ export function EquipamentoCadastro() {
               }))}
               erro={errosDeCampo.modeloCodigo}
               desabilitado={!editando}
+              vazio={modeloPendenteDoArt ? 'Sem modelo — produto do ART pendente de revisão' : undefined}
               ajuda={
                 modeloEscolhido
                   ? `${modeloEscolhido.marca} · ${modeloEscolhido.familia} · ${modeloEscolhido.modelo}`
-                  : 'Marca e família filtram a lista; escolher o modelo preenche as duas de volta.'
+                  : modeloPendenteDoArt
+                    ? `O produto do ART (“${maquina?.produtoNaOrigem ?? '—'}”) não tem correspondência segura no catálogo. Ele fica preservado na venda; escolha o modelo só se tiver certeza.`
+                    : 'Marca e família filtram a lista; escolher o modelo preenche as duas de volta.'
               }
+            />
+
+            <CampoSelecao
+              rotulo="Classificação de produto"
+              valor={formulario.linhaDeProdutoCodigo}
+              aoMudar={(v) => mudar('linhaDeProdutoCodigo', v)}
+              itens={itensDe(catalogos, CATALOGO.linhaDeProduto)}
+              erro={errosDeCampo.linhaDeProdutoCodigo}
+              desabilitado={!editando}
+              vazio="Sem classificação"
+              ajuda="Trator pequeno, médio, grande, colhedora… É o filtro de segmentação da lista. Opcional."
             />
 
             <SeletorDeCliente
@@ -511,7 +563,7 @@ export function EquipamentoCadastro() {
               }}
               erro={errosDeCampo.clienteChave}
               desabilitado={!editando}
-              ajuda="Obrigatório quando a situação é Ativo ou Vendido. Busca por nome, ou pelo documento inteiro."
+              ajuda="O dono atual. Obrigatório quando a situação é Ativo ou Vendido. O comprador de uma venda do ART não é preenchido aqui automaticamente."
             />
 
             <CampoSelecao
@@ -598,6 +650,126 @@ export function EquipamentoCadastro() {
         )}
       </form>
 
+      {!ehNovo && maquina && maquina.divergenciasAbertas.length > 0 && (
+        <div className="card cad-cartao">
+          <div className="card-header">
+            <div className="card-title">Divergências abertas</div>
+            <div className="card-subtitle">
+              Onde ART, CRM e Protheus não concordam sobre esta máquina — nada é trocado automaticamente: a correção é
+              decisão de quem revisa o cadastro
+            </div>
+          </div>
+          <div className="cad-tabela-wrap">
+            <table className="cad-tabela">
+              <thead>
+                <tr>
+                  <th scope="col">Detectada em</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">O que é</th>
+                </tr>
+              </thead>
+              <tbody>
+                {maquina.divergenciasAbertas.map((divergencia) => (
+                  <tr key={`${divergencia.tipo}-${divergencia.detectadaEm}`}>
+                    <td className="cad-mono">{formatarDataHora(divergencia.detectadaEm)}</td>
+                    <td>
+                      <span className="cad-selo cad-selo-pendente">
+                        {divergencia.tipo.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()}
+                      </span>
+                    </td>
+                    <td>{divergencia.descricao}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {!ehNovo && maquina && (
+        <div className="card cad-cartao">
+          <div className="card-header cad-cartao-cabecalho">
+            <div>
+              <div className="card-title">Histórico comercial</div>
+              <div className="card-subtitle">
+                Cada venda com o comprador NELA, a filial e as datas — o comprador de uma venda não é o dono atual
+              </div>
+            </div>
+            <SeloProcedencia procedencia={historico.procedencia} />
+          </div>
+          {historico.carregando && <BlocoCarregando oQue="o histórico comercial" />}
+          {historico.erro && <BlocoErro erro={historico.erro} aoTentarDeNovo={historico.recarregar} />}
+          {historico.dados && historico.dados.length === 0 && (
+            <div className="card-body">
+              <p className="cad-nota">Nenhuma venda registrada para este chassi.</p>
+            </div>
+          )}
+          {historico.dados && historico.dados.length > 0 && (
+            <div className="cad-tabela-wrap">
+              <table className="cad-tabela">
+                <thead>
+                  <tr>
+                    <th scope="col">Venda</th>
+                    <th scope="col">Comprador na venda</th>
+                    <th scope="col">Produto e linha no ART</th>
+                    <th scope="col">Filial</th>
+                    <th scope="col">Gestão da venda</th>
+                    <th scope="col">Faturada · entregue</th>
+                    <th scope="col">Origem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historico.dados.map((venda) => (
+                    <tr key={venda.chave}>
+                      <td className="cad-mono">{dataCurta(venda.vendidaEm)}</td>
+                      <td>
+                        {venda.compradorChave ? (
+                          <Link to={`/clientes/${venda.compradorChave}`}>{venda.compradorNome}</Link>
+                        ) : (
+                          <span className="cad-vazio">comprador fora do seu alcance</span>
+                        )}
+                        <div className="cad-sub">
+                          <span className="cad-selo cad-selo-comprador">
+                            {venda.natureza === 'CompradorNaVenda' ? 'comprador na venda' : (venda.natureza ?? 'sem vínculo')}
+                          </span>
+                          {venda.vinculoEncerradoEm && ` encerrado em ${formatarDataHora(venda.vinculoEncerradoEm)}: ${venda.motivoDoEncerramento}`}
+                        </div>
+                      </td>
+                      <td>
+                        {venda.produtoNaOrigem}
+                        <div className="cad-sub">{venda.linhaNaOrigem}</div>
+                      </td>
+                      <td className="cad-mono">
+                        {venda.filialCodigo}
+                        {venda.filialDoFaturamentoCodigo && venda.filialDoFaturamentoCodigo !== venda.filialCodigo && (
+                          <div className="cad-sub">faturou {venda.filialDoFaturamentoCodigo}</div>
+                        )}
+                      </td>
+                      <td>{venda.gestaoNaOrigem ?? '—'}</td>
+                      <td className="cad-mono">
+                        {dataCurta(venda.faturadaEm)}
+                        <div className="cad-sub">{dataCurta(venda.entregueEm)}</div>
+                      </td>
+                      <td>
+                        {venda.sistemaCodigo} · <span className="cad-mono">{venda.chaveOrigem}</span>
+                        <div className="cad-sub">importada {formatarDataHora(venda.importadaEm)}</div>
+                        {venda.transformacoes && <div className="cad-sub">{venda.transformacoes}</div>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div className="card-body">
+            <p className="cad-nota">
+              “Gestão” (Varejo ou Grandes Contas) é atributo da venda, como o ART escreve — não é classificação do cliente nem
+              equivale a SAM ou KAM.
+            </p>
+          </div>
+        </div>
+      )}
+
       {!ehNovo && maquina && (
         <div className="card cad-cartao">
           <div className="card-header">
@@ -626,7 +798,7 @@ export function EquipamentoCadastro() {
               <CampoSomenteLeitura
                 rotulo="Horímetro atual"
                 valor={maquina.horimetroAtual === null ? '—' : `${formatarNumero(maquina.horimetroAtual, 1)} h`}
-                ajuda="Vem do histórico de horímetro; não se digita nesta tela."
+                ajuda="Vem do histórico de horímetro; não se digita nesta tela. O horímetro do ART ainda não está acessível (documento 37)."
               />
               <CampoSomenteLeitura rotulo="Cadastrado em" valor={formatarDataHora(maquina.criadoEm)} />
               <CampoSomenteLeitura rotulo="Última alteração" valor={formatarDataHora(maquina.alteradoEm)} />

@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 using FluentAssertions;
 using NetArchTest.Rules;
 using Tracbel.Crm.Dominio.Comum;
-using Tracbel.Crm.Dominio.Crm;
 using Xunit;
 
 namespace Tracbel.Crm.Arquitetura.Testes;
@@ -25,7 +24,7 @@ namespace Tracbel.Crm.Arquitetura.Testes;
 [Trait("Categoria", "Solid")]
 public class SolidTestes
 {
-    private static readonly Assembly Dominio = typeof(Lead).Assembly;
+    private static readonly Assembly Dominio = typeof(Tracbel.Crm.Dominio.Comercial.Cliente).Assembly;
     private static readonly Assembly Integracao = typeof(Integracao.Saneamento.SanitizadorLeadExterno).Assembly;
 
     // =========================================================================================

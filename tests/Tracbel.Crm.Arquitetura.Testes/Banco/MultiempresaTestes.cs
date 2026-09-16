@@ -24,26 +24,24 @@ namespace Tracbel.Crm.Arquitetura.Testes.Banco;
 public sealed class MultiempresaTestes
 {
     /// <summary>
-    /// As exceções ACORDADAS — as mesmas duas registradas no documento 21, seção "Correções
-    /// aplicadas", com a justificativa de cada uma.
+    /// As exceções ACORDADAS — registradas no documento 21, seção "Correções aplicadas", com a
+    /// justificativa de cada uma.
     ///
     /// A lista está aqui, e não só no <c>CrmDbContext</c>, DE PROPÓSITO: sem esta cópia, quem
     /// quisesse silenciar o teste bastaria acrescentar a entidade nova em
     /// <c>FronteiraDeEmpresaJustificada</c> e o build voltaria a passar. Com ela, criar uma
     /// exceção exige mexer em dois arquivos e escrever o motivo no documento — que é
     /// exatamente o custo que uma exceção de segurança deve ter.
+    ///
+    /// <para>ERAM DUAS até a fase 1 (documento 41): a segunda era
+    /// <c>CompartilhamentoDeRegistro</c>, cuja tabela nunca recebeu uma linha e saiu. Exceção de
+    /// segurança que some é exceção a menos, e por isso este número só encolhe sem decisão.</para>
     /// </summary>
     private static readonly string[] ExcecoesAcordadas =
     [
-        "Usuario",
-        "CompartilhamentoDeRegistro"
+        "Usuario"
     ];
 
-    /// <summary>
-    /// A entidade cujo filtro é PRÓPRIO e mais restritivo: o do <c>Lead</c> soma a fronteira de
-    /// empresa à profundidade da permissão (documento 05, seção 5). Ela não é exceção — tem
-    /// filtro, e o filtro cita <c>EmpresaId</c>, que é o que este arquivo exige de todas.
-    /// </summary>
     private const string ColunaDeEmpresa = CrmDbContext.ColunaDeEmpresa;
 
     private static IEnumerable<Microsoft.EntityFrameworkCore.Metadata.IEntityType> ComColunaDeEmpresa() =>

@@ -80,16 +80,16 @@ verificam **agora**:
 | `seguranca` | usuário, equipe, permissão, compartilhamento | 8 |
 | `comercial` | cliente, contato, canal, endereço, carteira, lead, consentimento, alerta, faturamento do cliente e faturamento sem cliente (doc 31) | 11 — schema **padrão** do contexto |
 | `processo` | oportunidade e demais processos, fase, tarefa, interação, regra, venda perdida | 14 |
-| `frota` | equipamento do cliente, marca, modelo, família, horímetro | 5 |
+| `frota` | equipamento do cliente, marca, modelo, família, horímetro, linha de produto, venda de máquina e vínculo de cliente com máquina (doc 35, seção 10) | 8 |
 | `documento` | arquivo anexado e seus vínculos | 2 |
 | `auditoria` | quem viu e quem alterou o quê | 3 |
-| `integracao` | fronteira com o ERP e com o Vórtice | 6 |
+| `integracao` | fronteira com o ERP, o Vórtice e o ART: correspondência da origem, registro de origem, comprador pendente e divergência (doc 35, seção 10); execução de sincronização, uma linha por ciclo do serviço do Windows (doc 35, seção 11) | 11 |
 | `metadado` | catálogo, campo personalizado, formulário — extensão sem release; ver seção 12 | 8 |
 | `relatorio` | fontes curadas de relatório | 3 |
 
-**Total: 72 tabelas em 10 schemas** — as 63 do [17-MODELO-UNIFICADO](17-MODELO-UNIFICADO.md),
-seção 8.12, mais as nove com decisão registrada nos documentos 26, 31 e 32, verificada por
-`EsquemaENomenclaturaTestes.Os_dez_schemas_do_modelo_unificado_existem_e_somam_setenta_e_duas_tabelas`
+**Total: 80 tabelas em 10 schemas** — as 63 do [17-MODELO-UNIFICADO](17-MODELO-UNIFICADO.md),
+seção 8.12, mais as dezessete com decisão registrada nos documentos 26, 31, 32 e 35, verificada por
+`EsquemaENomenclaturaTestes.Os_dez_schemas_do_modelo_unificado_existem_e_somam_oitenta_tabelas`
 contra o modelo, e por `MigracaoNoContainerTestes` contra o banco de verdade.
 
 ### 2.2 Como criar um schema novo

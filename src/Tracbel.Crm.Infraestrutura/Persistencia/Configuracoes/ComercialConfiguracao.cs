@@ -72,11 +72,8 @@ public sealed class ClienteConfiguracao : IEntityTypeConfiguration<Cliente>
         b.HasIndex(c => new { c.EmpresaId, c.Situacao }).HasFilter("[ExcluidoEm] IS NULL");
         b.HasIndex(c => c.NomeRazao).HasFilter("[ExcluidoEm] IS NULL");
         b.HasIndex(c => c.ClienteMatrizId);
-        b.HasIndex(c => c.ProprietarioEquipeId);
-
         b.HasOne<Empresa>().WithMany().HasForeignKey(c => c.EmpresaId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Usuario>().WithMany().HasForeignKey(c => c.ProprietarioId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Equipe>().WithMany().HasForeignKey(c => c.ProprietarioEquipeId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Cliente>().WithMany().HasForeignKey(c => c.ClienteMatrizId).OnDelete(DeleteBehavior.Restrict);
         // Origem e motivo de inativação vêm de catálogo, e de UM catálogo — chave estrangeira
         // COMPOSTA contra AK_CatalogoItem_CatalogoId. Antes eram de coluna única, e por isso
@@ -311,52 +308,6 @@ public sealed class EnderecoConfiguracao : IEntityTypeConfiguration<Endereco>
     }
 }
 
-/// <summary>Mapeamento de <see cref="ConsentimentoComunicacao"/>.</summary>
-public sealed class ConsentimentoComunicacaoConfiguracao : IEntityTypeConfiguration<ConsentimentoComunicacao>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<ConsentimentoComunicacao> b)
-    {
-        b.ToTable("ConsentimentoComunicacao", "comercial");
-        b.HasKey(c => c.Id);
-        b.Property(c => c.Id).ValueGeneratedOnAdd();
-
-        b.Property(c => c.Canal).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
-        b.Property(c => c.Finalidade).HasConversion<string>().HasMaxLength(40).IsUnicode(false).IsRequired();
-        b.Property(c => c.Concedido).IsRequired();
-        b.Property(c => c.OrigemEvidencia).HasMaxLength(60).IsUnicode(false).IsRequired();
-        b.Property(c => c.ReferenciaEvidencia).HasMaxLength(400).IsUnicode(true);
-        b.Property(c => c.EnderecoIp).HasMaxLength(45).IsUnicode(false);
-        b.Property(c => c.CriadoEm).HasPrecision(3).IsRequired();
-
-        // O tipo de valor garante que a data da decisão está em UTC — sem isso, "quando o
-        // titular autorizou" depende do fuso de quem gravou.
-        b.Property(c => c.DecididaEm)
-            .HasConversion(d => d.Valor, v => DataHoraUtc.Criar(v))
-            .HasPrecision(3).IsRequired();
-
-        // A consulta quente: "posso mandar e-mail de marketing para este contato?" — a
-        // resposta é a linha mais recente do trio.
-        b.HasIndex(c => new { c.ContatoId, c.Canal, c.Finalidade, c.DecididaEm });
-        b.HasIndex(c => new { c.ClienteId, c.Canal, c.Finalidade, c.DecididaEm });
-        b.HasIndex(c => c.EmpresaId);
-
-        b.HasOne<Empresa>().WithMany().HasForeignKey(c => c.EmpresaId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Cliente>().WithMany().HasForeignKey(c => c.ClienteId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Contato>().WithMany().HasForeignKey(c => c.ContatoId).OnDelete(DeleteBehavior.Restrict);
-
-        b.ToTable(t => t.HasCheckConstraint(
-            "CK_ConsentimentoComunicacao_Canal",
-            "[Canal] IN ('Email','Sms','WhatsApp','Telefone','Correspondencia')"));
-        b.ToTable(t => t.HasCheckConstraint(
-            "CK_ConsentimentoComunicacao_Finalidade",
-            "[Finalidade] IN ('Marketing','Transacional','Pesquisa','Cobranca')"));
-        b.ToTable(t => t.HasCheckConstraint(
-            "CK_ConsentimentoComunicacao_UmTitular",
-            "([ClienteId] IS NOT NULL AND [ContatoId] IS NULL) OR ([ClienteId] IS NULL AND [ContatoId] IS NOT NULL)"));
-    }
-}
-
 /// <summary>Mapeamento de <see cref="ClienteCarteira"/>.</summary>
 public sealed class ClienteCarteiraConfiguracao : IEntityTypeConfiguration<ClienteCarteira>
 {
@@ -393,43 +344,6 @@ public sealed class ClienteCarteiraConfiguracao : IEntityTypeConfiguration<Clien
         b.ToTable(t => t.HasCheckConstraint("CK_ClienteCarteira_Classe", "[Classe] IN ('A','B','C','D')"));
         b.ToTable(t => t.HasCheckConstraint(
             "CK_ClienteCarteira_Ciclo", "[DiasCicloContato] IS NULL OR [DiasCicloContato] > 0"));
-    }
-}
-
-/// <summary>Mapeamento de <see cref="Alerta"/>.</summary>
-public sealed class AlertaConfiguracao : IEntityTypeConfiguration<Alerta>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<Alerta> b)
-    {
-        b.ToTable("Alerta", "comercial");
-        b.HasKey(a => a.Id);
-        b.Property(a => a.Id).ValueGeneratedOnAdd();
-
-        b.Property(a => a.ChavePublica).IsRequired().HasDefaultValueSql("NEWID()");
-        b.HasIndex(a => a.ChavePublica).IsUnique().HasDatabaseName("UX_Alerta_ChavePublica");
-
-        b.Property(a => a.Severidade).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
-        b.Property(a => a.Titulo).HasMaxLength(200).IsUnicode(true).IsRequired();
-        b.Property(a => a.Detalhe).HasMaxLength(2000).IsUnicode(true);
-        b.Property(a => a.EstaAtivo).IsRequired();
-
-        b.Property(a => a.CriadoEm).HasPrecision(3).IsRequired();
-        b.Property(a => a.AlteradoEm).HasPrecision(3);
-        b.Property(a => a.ExcluidoEm).HasPrecision(3);
-
-        b.HasIndex(a => a.ClienteId).HasFilter("[EstaAtivo] = 1 AND [ExcluidoEm] IS NULL");
-        b.HasIndex(a => a.EmpresaId);
-
-        b.HasOne<Empresa>().WithMany().HasForeignKey(a => a.EmpresaId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Cliente>().WithMany().HasForeignKey(a => a.ClienteId).OnDelete(DeleteBehavior.Restrict);
-
-        b.ToTable(t => t.HasCheckConstraint(
-            "CK_Alerta_Severidade", "[Severidade] IN ('Informativo','Atencao','Critico')"));
-        b.ToTable(t => t.HasCheckConstraint(
-            "CK_Alerta_Vigencia", "[VigenteAte] IS NULL OR [VigenteAte] >= [VigenteDe]"));
-
-        b.Ignore(a => a.Eventos);
     }
 }
 

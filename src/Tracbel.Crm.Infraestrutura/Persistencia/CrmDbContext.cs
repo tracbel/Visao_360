@@ -3,17 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
-using Tracbel.Crm.Dominio.Crm;
-using Tracbel.Crm.Dominio.Documento;
 using Tracbel.Crm.Dominio.Frota;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Metadado;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Dominio.Processo;
-using Tracbel.Crm.Dominio.Relatorio;
 using Tracbel.Crm.Dominio.Seguranca;
-using Tracbel.Crm.Dominio.Workflow;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia;
 
@@ -95,29 +91,25 @@ public class CrmDbContext : DbContext
                 "EmpresaId aqui é a filial DE CASA do usuário — o dado que define o escopo, não " +
                 "a linha protegida por ele. O ContextoAcesso é montado lendo esta tabela, antes " +
                 "de existir escopo; filtrá-la tornaria o login e a hierarquia entre filiais " +
-                "impossíveis. O que limita a exposição do usuário é a camada 5, de campo sensível.",
+                "impossíveis. O que limita a exposição do usuário é a camada 5, de campo sensível."
 
-            // A camada 4 do documento 05 é ADITIVA e existe justamente para atravessar a
-            // fronteira: é o que deixa o gerente ver uma oportunidade de outra filial sem
-            // trocar o dono dela. O EmpresaId da linha é a filial DO REGISTRO COMPARTILHADO —
-            // por definição a outra. Filtrar por ela apagaria o compartilhamento entre filiais
-            // do mapa e faria o endpoint "por que eu vejo isto" (seção 6) mentir.
-            // A fronteira devida aqui é o BENEFICIÁRIO (UsuarioId/EquipeId), e ela entra junto
-            // com a camada 4 — registrado no documento 21, seção de correções aplicadas.
-            [nameof(CompartilhamentoDeRegistro)] =
-                "é a camada 4 do documento 05, aditiva e desenhada para ATRAVESSAR a fronteira: " +
-                "o EmpresaId da linha é a filial do registro compartilhado, quase sempre a outra. " +
-                "Filtrar por empresa tornaria o compartilhamento entre filiais invisível para " +
-                "quem o recebeu. A fronteira devida é o beneficiário (UsuarioId/EquipeId)."
+            // A SEGUNDA EXCEÇÃO ERA `CompartilhamentoDeRegistro`, a camada 4 do documento 05 —
+            // aditiva e desenhada para ATRAVESSAR a fronteira. A tabela saiu na fase 1 da
+            // reestruturação (documento 41) por nunca ter tido uma linha; quando o
+            // compartilhamento pontual voltar, a exceção volta com ele, escrita aqui.
         };
 
     /// <summary>
-    /// A entidade que tem filtro PRÓPRIO, mais restritivo que a fronteira de empresa, e por
-    /// isso não recebe o filtro genérico: o dela já contém a fronteira, somada à profundidade
+    /// As entidades que têm filtro PRÓPRIO, mais restritivo que a fronteira de empresa, e por
+    /// isso não recebem o filtro genérico: o delas já contém a fronteira, somada à profundidade
     /// da permissão (documento 05, seção 5).
+    ///
+    /// <para>Está vazia desde a fase 1 da reestruturação (documento 41): a única entidade com
+    /// filtro próprio era <c>Lead</c>, e a tabela saiu. O mecanismo continua — quem voltar a
+    /// precisar escreve o filtro em <c>OnModelCreating</c> e nomeia a entidade aqui.</para>
     /// </summary>
     private static readonly IReadOnlySet<string> FiltroProprio =
-        new HashSet<string>(StringComparer.Ordinal) { nameof(Lead) };
+        new HashSet<string>(StringComparer.Ordinal);
 
     private readonly IProvedorContextoAcesso _provedorAcesso;
     private readonly IDiarioDeAlcanceEntreEmpresas? _diario;
@@ -137,12 +129,6 @@ public class CrmDbContext : DbContext
     private readonly bool _ehSistema;
     private readonly IReadOnlySet<int> _empresasVisiveis;
     private readonly IReadOnlySet<long> _subordinadosIds;
-
-    private readonly bool _leadVeTudo;
-    private readonly bool _leadVeEmpresaEAbaixo;
-    private readonly bool _leadVeEmpresa;
-    private readonly bool _leadVeEquipe;
-    private readonly bool _leadVeProprios;
 
     // ---------------------------------------------------------------------
     // A ÚNICA coisa aqui que NÃO é pré-computada: a via de escape.
@@ -179,13 +165,6 @@ public class CrmDbContext : DbContext
         _ehSistema = acesso.EhServicoDeSistema;
         _empresasVisiveis = acesso.EmpresasVisiveis;
         _subordinadosIds = acesso.SubordinadosIds;
-
-        var lead = acesso.ProfundidadeDe("Lead.Ler");
-        _leadVeTudo = lead >= Profundidade.Organizacao;
-        _leadVeEmpresaEAbaixo = lead >= Profundidade.EmpresaEAbaixo;
-        _leadVeEmpresa = lead >= Profundidade.Empresa;
-        _leadVeEquipe = lead >= Profundidade.Equipe;
-        _leadVeProprios = lead >= Profundidade.Proprios;
     }
 
     // ---- organizacao ----
@@ -198,15 +177,6 @@ public class CrmDbContext : DbContext
 
     /// <summary>Carteiras.</summary>
     public DbSet<Carteira> Carteiras => Set<Carteira>();
-
-    /// <summary>A hierarquia comercial materializada.</summary>
-    public DbSet<HierarquiaComercial> HierarquiaComercial => Set<HierarquiaComercial>();
-
-    /// <summary>Metas de faturamento, cobertura e frequência.</summary>
-    public DbSet<Meta> Metas => Set<Meta>();
-
-    /// <summary>Praças de mercado.</summary>
-    public DbSet<Praca> Pracas => Set<Praca>();
 
     /// <summary>Municípios — o catálogo nacional que fecha o campo de município.</summary>
     public DbSet<Municipio> Municipios => Set<Municipio>();
@@ -231,23 +201,11 @@ public class CrmDbContext : DbContext
     /// <summary>Usuários.</summary>
     public DbSet<Usuario> Usuarios => Set<Usuario>();
 
-    /// <summary>Equipes.</summary>
-    public DbSet<Equipe> Equipes => Set<Equipe>();
-
-    /// <summary>Composição das equipes.</summary>
-    public DbSet<EquipeMembro> EquipeMembros => Set<EquipeMembro>();
-
-    /// <summary>Catálogo de permissões.</summary>
-    public DbSet<Permissao> Permissoes => Set<Permissao>();
-
     /// <summary>Conjuntos de permissão.</summary>
     public DbSet<ConjuntoPermissao> ConjuntosPermissao => Set<ConjuntoPermissao>();
 
     /// <summary>Concessões de conjunto a usuário.</summary>
     public DbSet<UsuarioConjuntoPermissao> ConcessoesPermissao => Set<UsuarioConjuntoPermissao>();
-
-    /// <summary>Compartilhamentos pontuais de registro.</summary>
-    public DbSet<CompartilhamentoDeRegistro> CompartilhamentosDeRegistro => Set<CompartilhamentoDeRegistro>();
 
     // ---- comercial ----
 
@@ -266,17 +224,8 @@ public class CrmDbContext : DbContext
     /// <summary>Endereços e fazendas.</summary>
     public DbSet<Endereco> Enderecos => Set<Endereco>();
 
-    /// <summary>Consentimentos de comunicação.</summary>
-    public DbSet<ConsentimentoComunicacao> Consentimentos => Set<ConsentimentoComunicacao>();
-
     /// <summary>Carteirização de clientes.</summary>
     public DbSet<ClienteCarteira> ClienteCarteiras => Set<ClienteCarteira>();
-
-    /// <summary>Leads.</summary>
-    public DbSet<Lead> Leads => Set<Lead>();
-
-    /// <summary>Alertas fixados no cliente.</summary>
-    public DbSet<Alerta> Alertas => Set<Alerta>();
 
     // ---- processo ----
 
@@ -295,29 +244,14 @@ public class CrmDbContext : DbContext
     /// <summary>Processos.</summary>
     public DbSet<Dominio.Processo.Processo> Processos => Set<Dominio.Processo.Processo>();
 
-    /// <summary>Passagens de fase.</summary>
-    public DbSet<PassagemDeFase> PassagensDeFase => Set<PassagemDeFase>();
-
     /// <summary>Tarefas.</summary>
     public DbSet<Tarefa> Tarefas => Set<Tarefa>();
 
     /// <summary>Interações.</summary>
     public DbSet<Interacao> Interacoes => Set<Interacao>();
 
-    /// <summary>Participantes de interação.</summary>
-    public DbSet<InteracaoParticipante> InteracaoParticipantes => Set<InteracaoParticipante>();
-
-    /// <summary>Regras de automação.</summary>
-    public DbSet<Regra> Regras => Set<Regra>();
-
-    /// <summary>O log de execução de regra — a tabela que torna o silêncio impossível.</summary>
-    public DbSet<ExecucaoRegra> ExecucoesRegra => Set<ExecucaoRegra>();
-
     /// <summary>Motivos de perda.</summary>
     public DbSet<MotivoDePerda> MotivosDePerda => Set<MotivoDePerda>();
-
-    /// <summary>Itens de proposta.</summary>
-    public DbSet<ItemDeProposta> ItensDeProposta => Set<ItemDeProposta>();
 
     /// <summary>
     /// Vendas perdidas para a concorrência — para quem, com que máquina e por quanto.
@@ -354,27 +288,21 @@ public class CrmDbContext : DbContext
     /// <summary>Máquinas dos clientes.</summary>
     public DbSet<Equipamento> Equipamentos => Set<Equipamento>();
 
-    /// <summary>Leituras de horímetro.</summary>
-    public DbSet<LeituraDeHorimetro> LeiturasDeHorimetro => Set<LeituraDeHorimetro>();
+    /// <summary>A classificação de produto do CRM — trator pequeno, colhedora de cana… (documento 35, seção 10).</summary>
+    public DbSet<LinhaDeProduto> LinhasDeProduto => Set<LinhaDeProduto>();
+
+    /// <summary>As vendas de máquina lidas da origem, sem valor financeiro.</summary>
+    public DbSet<VendaDeMaquina> VendasDeMaquina => Set<VendaDeMaquina>();
+
+    /// <summary>A ligação entre cliente e máquina, com natureza, origem e data.</summary>
+    public DbSet<VinculoDeClienteComEquipamento> VinculosComEquipamento => Set<VinculoDeClienteComEquipamento>();
 
     // ---- documento ----
 
-    /// <summary>Arquivos anexados.</summary>
-    public DbSet<Dominio.Documento.Documento> Documentos => Set<Dominio.Documento.Documento>();
-
-    /// <summary>Vínculos de documento.</summary>
-    public DbSet<Vinculo> VinculosDeDocumento => Set<Vinculo>();
-
     // ---- auditoria ----
-
-    /// <summary>Campos auditados.</summary>
-    public DbSet<CampoAuditado> CamposAuditados => Set<CampoAuditado>();
 
     /// <summary>Alterações de campo.</summary>
     public DbSet<AlteracaoDeCampo> AlteracoesDeCampo => Set<AlteracaoDeCampo>();
-
-    /// <summary>Eventos de acesso.</summary>
-    public DbSet<EventoDeAcesso> EventosDeAcesso => Set<EventoDeAcesso>();
 
     // ---- integracao ----
 
@@ -387,22 +315,25 @@ public class CrmDbContext : DbContext
     /// <summary>Pontos de sincronismo por fluxo.</summary>
     public DbSet<PontoDeSincronismo> PontosDeSincronismo => Set<PontoDeSincronismo>();
 
-    /// <summary>Área de pouso efêmera da integração.</summary>
-    public DbSet<Recepcao> Recepcoes => Set<Recepcao>();
-
-    /// <summary>Fila de saída.</summary>
-    public DbSet<MensagemDeSaida> MensagensDeSaida => Set<MensagemDeSaida>();
-
     /// <summary>Fila de descarte.</summary>
     public DbSet<MensagemDescartada> MensagensDescartadas => Set<MensagemDescartada>();
 
+    /// <summary>O de-para explícito de linha, produto e unidade da origem para o catálogo do CRM.</summary>
+    public DbSet<CorrespondenciaDaOrigem> CorrespondenciasDaOrigem => Set<CorrespondenciaDaOrigem>();
+
+    /// <summary>A trilha de cada registro lido da origem.</summary>
+    public DbSet<RegistroDeOrigem> RegistrosDeOrigem => Set<RegistroDeOrigem>();
+
+    /// <summary>A fila de compradores ausentes do CRM — nenhum é criado automaticamente.</summary>
+    public DbSet<CompradorPendente> CompradoresPendentes => Set<CompradorPendente>();
+
+    /// <summary>As divergências entre fontes, registradas para revisão.</summary>
+    public DbSet<DivergenciaDeIntegracao> DivergenciasDeIntegracao => Set<DivergenciaDeIntegracao>();
+
+    /// <summary>Cada execução do serviço de sincronização, com resultado e contagens.</summary>
+    public DbSet<ExecucaoDeSincronizacao> ExecucoesDeSincronizacao => Set<ExecucaoDeSincronizacao>();
+
     // ---- metadado ----
-
-    /// <summary>Campos personalizados declarados.</summary>
-    public DbSet<CampoPersonalizado> CamposPersonalizados => Set<CampoPersonalizado>();
-
-    /// <summary>Tratadores de evento declarados.</summary>
-    public DbSet<TratadorDeEvento> TratadoresDeEvento => Set<TratadorDeEvento>();
 
     /// <summary>Catálogos.</summary>
     public DbSet<Catalogo> Catalogos => Set<Catalogo>();
@@ -410,28 +341,7 @@ public class CrmDbContext : DbContext
     /// <summary>Itens de catálogo.</summary>
     public DbSet<CatalogoItem> CatalogoItens => Set<CatalogoItem>();
 
-    /// <summary>Definições de formulário.</summary>
-    public DbSet<Formulario> Formularios => Set<Formulario>();
-
-    /// <summary>Perguntas de formulário.</summary>
-    public DbSet<Pergunta> Perguntas => Set<Pergunta>();
-
-    /// <summary>Preenchimentos de formulário.</summary>
-    public DbSet<Preenchimento> Preenchimentos => Set<Preenchimento>();
-
-    /// <summary>Respostas de formulário.</summary>
-    public DbSet<Resposta> Respostas => Set<Resposta>();
-
     // ---- relatorio ----
-
-    /// <summary>Fontes curadas de relatório.</summary>
-    public DbSet<Fonte> FontesDeRelatorio => Set<Fonte>();
-
-    /// <summary>Campos das fontes de relatório.</summary>
-    public DbSet<FonteCampo> CamposDeFonte => Set<FonteCampo>();
-
-    /// <summary>Relatórios salvos pelo usuário.</summary>
-    public DbSet<Dominio.Relatorio.Relatorio> Relatorios => Set<Dominio.Relatorio.Relatorio>();
 
     /// <summary>Expõe o provedor para os repositórios que precisam do contexto completo.</summary>
     public ContextoAcesso Acesso => _provedorAcesso.Atual;
@@ -477,15 +387,10 @@ public class CrmDbContext : DbContext
 
         AplicarFronteiraDeEmpresa(modelo);
 
-        modelo.Entity<Lead>().HasQueryFilter(l =>
-            l.ExcluidoEm == null
-            && (_ehSistema
-                || _leadVeTudo
-                || ((_leadVeEmpresaEAbaixo || _leadVeEmpresa) && _alcanceEntreEmpresas)
-                || (_leadVeEmpresaEAbaixo && _empresasVisiveis.Contains(l.EmpresaId))
-                || (_leadVeEmpresa && l.EmpresaId == _empresaId)
-                || (_leadVeEquipe && _subordinadosIds.Contains(l.ProprietarioId))
-                || (_leadVeProprios && l.ProprietarioId == _usuarioId)));
+        // NENHUMA ENTIDADE TEM FILTRO PRÓPRIO NESTA FASE. O único era o de `Lead`, removido na
+        // fase 1 da reestruturação (documento 41) junto com a tabela. O mecanismo continua de pé:
+        // quem voltar a precisar de um filtro mais restritivo que a fronteira de empresa escreve
+        // aqui e nomeia a entidade em `FiltroProprio`.
 
         ConfigurarConcorrenciaOtimista(modelo, Database.IsSqlServer());
 

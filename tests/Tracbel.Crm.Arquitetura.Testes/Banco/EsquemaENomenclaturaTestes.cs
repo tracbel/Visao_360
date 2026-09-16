@@ -32,37 +32,39 @@ public sealed partial class EsquemaENomenclaturaTestes
     /// </summary>
     private static readonly HashSet<string> SchemasPermitidos =
     [
-        "organizacao", // empresa, linha de negócio, carteira, hierarquia comercial, meta, praça,
-                       // município e o município que cada carteira atende
-        "seguranca",   // usuário, equipe, permissão, compartilhamento
-        "comercial",   // cliente, contato, canal, endereço, carteira, lead, consentimento, alerta
-        "processo",    // oportunidade e demais processos, fase, tarefa, interação, regra
-        "auditoria",   // quem viu e quem alterou o quê
-        "integracao",  // fronteira com o ERP e com o Vórtice
-        "frota",       // equipamento do cliente, marca, modelo, família, horímetro
-        "documento",   // arquivo anexado e seus vínculos
-        "metadado",    // catálogo, campo personalizado, formulário — extensão sem release
-        "relatorio"    // fontes curadas de relatório
+        "organizacao", // empresa, linha de negócio, carteira, município e área de atuação
+        "seguranca",   // usuário, conjunto de permissão e as concessões
+        "comercial",   // cliente, contato, canal, endereço, carteira e faturamento
+        "processo",    // oportunidade e demais processos, fase, tarefa, interação
+        "auditoria",   // quem alterou o quê
+        "integracao",  // fronteira com o ERP, com o Vórtice e com o ART
+        "frota",       // equipamento do cliente, marca, modelo, família, venda e vínculo
+        "metadado"     // catálogo — extensão sem release
     ];
 
+    // 'documento' e 'relatorio' SAÍRAM DA LISTA na fase 1 (documento 41): as cinco tabelas que
+    // moravam neles nunca receberam uma linha, e os dois schemas ficaram vazios. Sair da lista é o
+    // que faz a volta deles exigir decisão registrada, como qualquer schema novo.
+
     /// <summary>
-    /// As quatro tabelas PARTICIONADAS POR DATA, com a coluna que particiona cada uma.
+    /// A tabela PARTICIONADA POR DATA, com a coluna que a particiona.
     ///
-    /// São a única exceção à regra de chave primária de coluna única, e não por gosto: o
+    /// É a única exceção à regra de chave primária de coluna única, e não por gosto: o
     /// SQL Server EXIGE que a coluna de particionamento faça parte da chave de todo índice
     /// ÚNICO da tabela particionada — a chave primária inclusive. A chave continua começando
     /// por <c>Id</c>; o que se acrescenta é a data.
     ///
-    /// [V] Particionar estas quatro é a lição das 22 tabelas de log do Vórtice (43,7 milhões
-    /// de linhas, 42% do banco, sem política de retenção) e das 76 tabelas de staging
-    /// permanentes (19,4 milhões de linhas que nunca saem de lá).
+    /// [V] Particioná-la é a lição das 22 tabelas de log do Vórtice (43,7 milhões de linhas,
+    /// 42% do banco, sem política de retenção) e das 76 tabelas de staging permanentes
+    /// (19,4 milhões de linhas que nunca saem de lá).
+    ///
+    /// ERAM QUATRO até a fase 1 (documento 41). <c>auditoria.EventoDeAcesso</c>,
+    /// <c>processo.RegraExecucao</c> e <c>integracao.Recepcao</c> saíram vazias, e com elas as
+    /// respectivas funções e esquemas de partição.
     /// </summary>
     private static readonly Dictionary<string, string> TabelasParticionadasPorData = new()
     {
-        ["AlteracaoDeCampo"] = "AlteradoEm",
-        ["EventoDeAcesso"] = "OcorreuEm",
-        ["RegraExecucao"] = "ExecutadoEm",
-        ["Recepcao"] = "RecebidaEm"
+        ["AlteracaoDeCampo"] = "AlteradoEm"
     };
 
     // PascalCase: só letras ASCII e dígitos, começando por maiúscula, SEM underscore. Este
@@ -103,16 +105,19 @@ public sealed partial class EsquemaENomenclaturaTestes
         comSchemaInvalido.Should().BeEmpty(
             "toda entidade precisa estar num schema da lista fechada do documento 14, seção 2 " +
             "(organizacao, seguranca, comercial, processo, auditoria, integracao, frota, " +
-            "documento, metadado, relatorio) — nunca em 'dbo'. " +
+            "metadado) — nunca em 'dbo'. " +
             "Encontrado fora do padrão: {0}",
             string.Join(", ", comSchemaInvalido.Select(x => $"{x.Tipo} -> '{x.Schema}'")));
     }
 
     [Fact]
-    public void Os_dez_schemas_do_modelo_unificado_existem_e_somam_setenta_e_duas_tabelas()
+    public void Os_oito_schemas_do_modelo_unificado_existem_e_somam_quarenta_e_nove_tabelas()
     {
-        // O documento 17, seção 8.12, fixou a conta em 63 tabelas em 10 schemas. Hoje são 72, e
-        // cada acréscimo tem decisão registrada:
+        // O documento 17, seção 8.12, fixou a conta em 63 tabelas em 10 schemas. Ela subiu para 80
+        // — cada acréscimo com decisão registrada, listados abaixo — e a FASE 1 do documento 41 a
+        // trouxe para 49 em 8 schemas, removendo as 31 tabelas que nasceram com o modelo inicial e
+        // nunca receberam uma linha. O portão vale nos dois sentidos: a lista abaixo continua sendo
+        // a memória de por que cada tabela existe.
         //
         //   +2 organizacao.Municipio e organizacao.CarteiraMunicipio — documento 26, seção 5.
         //   +1 processo.VendaPerdida — o motivo da perda mora no motor de questionário do sistema
@@ -126,6 +131,18 @@ public sealed partial class EsquemaENomenclaturaTestes
         //      AreaPlantadaNoMunicipio e RegraDePotencial — documento 32, seção 7, com as sete
         //      perguntas respondidas: a ADR e os responsáveis têm fonte e ciclo de vida próprios, a
         //      área plantada é do IBGE, e a regra de potencial precisa ser apontada e confirmada.
+        //   +3 frota.LinhaDeProduto, VendaDeMaquina e VinculoDeClienteComEquipamento — documento 35,
+        //      seção 10: a classificação comercial cruza categoria e porte (não é família), a venda é
+        //      evento com data e comprador (uma máquina revendida tem duas), e o comprador de uma venda
+        //      não é o dono atual — a ligação precisa de natureza, origem e data.
+        //   +4 integracao.CorrespondenciaDaOrigem, RegistroDeOrigem, CompradorPendente e
+        //      DivergenciaDeIntegracao — documento 35, seção 10: o de-para explícito que preserva o
+        //      valor da origem, a trilha que torna a recarga repetível, a fila de compradores que não
+        //      são criados automaticamente e as divergências entre ART, CRM e Protheus.
+        //   +1 integracao.ExecucaoDeSincronizacao — documento 35, seção 11: cada ciclo do serviço do
+        //      Windows (início, fim, máquina, resultado, tentativas, contagens e motivo). O ponto de
+        //      sincronismo guarda só a última rodada; sem o histórico, a falha de ontem à noite some
+        //      quando a rodada de hoje dá certo.
         //
         // Este teste é o que impede o modelo de crescer sem decisão registrada — o "portão" da
         // seção 10.2. Ele falhou de propósito quando as três últimas entraram, e é assim que se
@@ -136,25 +153,24 @@ public sealed partial class EsquemaENomenclaturaTestes
 
         var esperado = new Dictionary<string, int>
         {
-            ["organizacao"] = 12,
-            ["seguranca"] = 8,
-            ["comercial"] = 11,
-            ["processo"] = 14,
-            ["frota"] = 5,
-            ["documento"] = 2,
-            ["auditoria"] = 3,
-            ["integracao"] = 6,
-            ["metadado"] = 8,
-            ["relatorio"] = 3
+            ["organizacao"] = 9,
+            ["seguranca"] = 4,
+            ["comercial"] = 8,
+            ["processo"] = 9,
+            ["frota"] = 7,
+            ["auditoria"] = 1,
+            ["integracao"] = 9,
+            ["metadado"] = 2
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 72 tabelas em 10 schemas — as 63 do documento 17, seção 8.12, mais as " +
-            "nove listadas no comentário acima, cada uma com decisão registrada. Mudar este " +
-            "número exige a decisão da seção 10.2 (o portão de tabela nova) e a atualização do " +
-            "documento 14, seção 2.1, na MESMA mudança");
+            "a conta é 49 tabelas de modelo em 8 schemas depois da fase 1 (documento 41) — eram " +
+            "80 em 10, e saíram as 31 que nunca receberam uma linha, esvaziando por completo os " +
+            "schemas 'documento' e 'relatorio'. O portão continua o mesmo nos dois sentidos: " +
+            "mudar este número exige a decisão da seção 10.2 e a atualização do documento 14, " +
+            "seção 2.1, na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(72);
+        porSchema.Values.Sum().Should().Be(49);
     }
 
     [Fact]

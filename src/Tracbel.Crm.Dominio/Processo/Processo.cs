@@ -101,9 +101,6 @@ public sealed class Processo : EntidadeBase
     /// <summary>Quem responde pelo processo.</summary>
     public long ProprietarioId { get; private set; }
 
-    /// <summary>Equipe dona, quando o processo é de time.</summary>
-    public long? ProprietarioEquipeId { get; private set; }
-
     /// <summary>Abre um processo.</summary>
     /// <param name="numero">Número legível, sequencial por empresa.</param>
     /// <param name="empresaId">Filial dona.</param>
@@ -229,126 +226,13 @@ public sealed class Processo : EntidadeBase
     }
 }
 
-/// <summary>
-/// O caminho percorrido, com o tempo passado em cada fase.
-///
-/// [DYN] É a ideia mais valiosa do fluxo de processo do Dataverse: a barra de fases tem
-/// tabela de instância própria e grava o caminho, não só o ponto atual.
-///
-/// [V] No Vórtice, fase e situação são duas colunas soltas no processo. Quando um desfecho
-/// gravou fase finalizada e situação cancelada, não havia como saber de onde o processo veio
-/// nem como voltar — e não existe desfazer.
-/// </summary>
-public sealed class PassagemDeFase
-{
-    private PassagemDeFase() { }
-
-    /// <summary>Identificador interno.</summary>
-    public long Id { get; private set; }
-
-    /// <summary>O processo.</summary>
-    public long ProcessoId { get; private set; }
-
-    /// <summary>A fase em que o processo entrou.</summary>
-    public int FaseId { get; private set; }
-
-    /// <summary>Sequência de entrada. Reentrar numa fase gera nova linha com ordem maior.</summary>
-    public int Ordem { get; private set; }
-
-    /// <summary>Quando entrou (UTC).</summary>
-    public DateTime EntrouEm { get; private set; }
-
-    /// <summary>Quando saiu (UTC). Nulo é a fase atual.</summary>
-    public DateTime? SaiuEm { get; private set; }
-
-    /// <summary>Duração em horas úteis, calculada na saída. Alimenta o prazo por fase.</summary>
-    public decimal? HorasUteis { get; private set; }
-
-    /// <summary>Interação que provocou a entrada nesta fase.</summary>
-    public long? InteracaoOrigemId { get; private set; }
-
-    /// <summary>Regra que provocou a entrada nesta fase.</summary>
-    public int? RegraOrigemId { get; private set; }
-
-    /// <summary>Quem colocou o processo nesta fase.</summary>
-    public long EntrouPorId { get; private set; }
-
-    /// <summary>Registra a entrada numa fase.</summary>
-    public static PassagemDeFase Entrar(long processoId, int faseId, int ordem, long entrouPorId) => new()
-    {
-        ProcessoId = processoId,
-        FaseId = faseId,
-        Ordem = ordem,
-        EntrouEm = DateTime.UtcNow,
-        EntrouPorId = entrouPorId
-    };
-}
-
-/// <summary>
-/// O que está sendo vendido dentro do processo.
-///
-/// Sem ela não existe valor de oportunidade auditável: o valor do cabeçalho vira um número
-/// digitado que ninguém consegue explicar.
-/// </summary>
-public sealed class ItemDeProposta : EntidadeBase
-{
-    private ItemDeProposta() { }
-
-    /// <summary>Filial dona do registro.</summary>
-    public int EmpresaId { get; private set; }
-
-    /// <summary>O processo a que o item pertence.</summary>
-    public long ProcessoId { get; private set; }
-
-    /// <summary>Posição do item na proposta.</summary>
-    public short Ordem { get; private set; }
-
-    /// <summary>Modelo de equipamento, quando o item é máquina de catálogo.</summary>
-    public int? ModeloId { get; private set; }
-
-    /// <summary>Equipamento específico, quando o item é uma máquina já identificada.</summary>
-    public long? EquipamentoId { get; private set; }
-
-    /// <summary>Descrição do item, para o que não está no catálogo de máquinas.</summary>
-    public string Descricao { get; private set; } = default!;
-
-    /// <summary>Quantidade.</summary>
-    public decimal Quantidade { get; private set; } = 1m;
-
-    /// <summary>Preço unitário de tabela.</summary>
-    public Dinheiro? PrecoUnitario { get; private set; }
-
-    /// <summary>Percentual de desconto aplicado.</summary>
-    public decimal? DescontoPercentual { get; private set; }
-
-    /// <summary>Valor total do item, já com desconto.</summary>
-    public Dinheiro ValorTotal { get; private set; }
-
-    /// <summary>Item do catálogo CONDICAO_PAGAMENTO.</summary>
-    public int? CondicaoPagamentoId { get; private set; }
-
-    /// <summary>Cria um item de proposta.</summary>
-    public static ItemDeProposta Criar(
-        int empresaId,
-        long processoId,
-        short ordem,
-        string descricao,
-        decimal quantidade,
-        Dinheiro valorTotal,
-        long criadoPorId)
-    {
-        if (quantidade <= 0)
-            throw new RegraDeNegocioViolada("Item de proposta com quantidade zero ou negativa não existe.");
-
-        return new ItemDeProposta
-        {
-            EmpresaId = empresaId,
-            ProcessoId = processoId,
-            Ordem = ordem,
-            Descricao = descricao,
-            Quantidade = quantidade,
-            ValorTotal = valorTotal,
-            CriadoPorId = criadoPorId
-        };
-    }
-}
+// O QUE SAIU DAQUI NA FASE 1 (documento 41): `PassagemDeFase` — o caminho percorrido, com o
+// tempo em cada fase — e `ItemDeProposta` — o que está sendo vendido dentro do processo. As duas
+// tabelas nasceram com o modelo inicial, nunca receberam uma linha e não tinham tela, carga nem
+// consulta que as alimentasse; a fase do processo continua sendo a coluna `FaseId` aqui em cima, e
+// o valor da oportunidade, o `ValorEstimado`/`ValorFinal` do cabeçalho.
+//
+// Nenhuma das duas foi descartada como ideia: a passagem de fase é o registro de trajetória que o
+// funil vai precisar para responder prazo por fase, e o item de proposta é o que torna o valor
+// auditável. Quando houver a tela que preenche, elas voltam pelo desenho do documento 40 — com o
+// código escrito junto, e não anos antes.

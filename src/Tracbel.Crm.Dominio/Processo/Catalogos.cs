@@ -161,9 +161,6 @@ public sealed class TipoTarefa
     /// <summary>Se a conclusão conta para o indicador de cobertura de carteira.</summary>
     public bool ContaParaCobertura { get; private set; }
 
-    /// <summary>Formulário que a conclusão exige preencher, quando há.</summary>
-    public int? FormularioId { get; private set; }
-
     /// <summary>Cor de exibição na agenda, em hexadecimal.</summary>
     public string? Cor { get; private set; }
 

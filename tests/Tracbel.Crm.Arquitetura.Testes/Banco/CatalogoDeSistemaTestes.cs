@@ -33,16 +33,14 @@ public sealed class CatalogoDeSistemaTestes
     /// existe, tem nome e tem motivo escrito. Se alguém acrescentar uma coluna de papel e
     /// tentar escapar por aqui, a justificativa fica no diff, para ser discutida no PR.
     /// </summary>
-    private static readonly Dictionary<(string Tabela, string Coluna), string> ReferenciaGenericaJustificada = new()
-    {
-        [("Resposta", "CatalogoItemId")] =
-            "a resposta de formulário aponta para o item de QUALQUER catálogo: qual catálogo " +
-            "vale é decidido por Pergunta.CatalogoId, linha a linha, e o banco já exige esse " +
-            "vínculo em CK_Pergunta_Catalogo. Não existe constante para persistir aqui; " +
-            "torná-la composta obrigaria a copiar o catálogo da pergunta para dentro de " +
-            "metadado.Resposta, que é justamente a denormalização que a regra 4 do documento " +
-            "17 proíbe"
-    };
+    /// <remarks>
+    /// ESTÁ VAZIA desde a fase 1 (documento 41). A única entrada era
+    /// <c>metadado.Resposta.CatalogoItemId</c> — a resposta de formulário apontava para o item de
+    /// QUALQUER catálogo, porque qual catálogo vale era decidido por <c>Pergunta.CatalogoId</c>,
+    /// linha a linha. As duas tabelas nunca receberam uma linha e saíram, e a justificativa saiu
+    /// com elas: hoje TODA referência a item de catálogo no modelo é composta, sem exceção.
+    /// </remarks>
+    private static readonly Dictionary<(string Tabela, string Coluna), string> ReferenciaGenericaJustificada = new();
 
     [Fact]
     public void Toda_coluna_que_aponta_para_item_de_catalogo_usa_chave_estrangeira_composta()

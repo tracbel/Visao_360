@@ -27,6 +27,20 @@ export const COR_FORA_DA_ADR = '#EEF1EC';
 export const COR_BORDA_ADR = '#1B5E20';
 export const ID_HACHURA_SEM_DADO = 'territorio-hachura-sem-dado';
 
+/**
+ * Cobertura em percentual — a parte dos vínculos elegíveis com contato no prazo da cadência.
+ *
+ * VERMELHO É POUCO COBERTO, VERDE É COBERTO: a escala divergente da referência. É o complemento da
+ * pendência na mesma base (elegíveis), e por isso as duas nunca aparecem ao mesmo tempo no mapa.
+ */
+export const FAIXAS_COBERTURA_PERCENTUAL: Faixa[] = [
+  { ate: 25, cor: '#B91C1C', rotulo: 'até 25%' },
+  { ate: 50, cor: '#F97316', rotulo: '25 a 50%' },
+  { ate: 75, cor: '#FACC15', rotulo: '50 a 75%' },
+  { ate: 90, cor: '#84CC16', rotulo: '75 a 90%' },
+  { ate: Infinity, cor: '#15803D', rotulo: 'acima de 90%' },
+];
+
 /** Pendência de visita em percentual: branco-avermelhado a vermelho escuro. */
 export const FAIXAS_PENDENCIA_PERCENTUAL: Faixa[] = [
   { ate: 0, cor: '#FFF5F5', rotulo: '0%' },

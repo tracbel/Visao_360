@@ -16,6 +16,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.10" />
+    <!-- O modo servico do Windows (argumento servico-art): hospedagem, parada pelo SCM e Log de Aplicativo. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="9.0.10" />
   </ItemGroup>
 
   <ItemGroup>

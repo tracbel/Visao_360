@@ -74,7 +74,9 @@ const SECOES: { titulo: string; itens: ItemNav[] }[] = [
   },
   {
     titulo: 'Sistema',
-    itens: [{ caminho: '/config', rotulo: 'Configurações', Icone: IconeConfiguracoes }],
+    itens: [
+      { caminho: '/config', rotulo: 'Configurações', Icone: IconeConfiguracoes },
+    ],
   },
 ];
 
