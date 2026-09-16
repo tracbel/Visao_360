@@ -109,6 +109,23 @@ public sealed class ConsolidacaoDeGrafiasCortadasTestes : IDisposable
 
             (await db.AlteracoesDeCampo.CountAsync()).Should().Be(2, "cada correção deixa o antes e o depois");
 
+            // A TRILHA É A AUTOMÁTICA (documento 41, fase 2): a carga não a escreve mais à mão — declara
+            // a origem, e o SaveChanges grava o antes e o depois do campo auditado, com o sistema certo.
+            var ibge = await db.Sistemas.Where(s => s.Codigo == "IBGE").Select(s => s.Id).SingleAsync();
+            var trilha = await db.AlteracoesDeCampo.ToListAsync();
+            trilha.Should().AllSatisfy(linha =>
+            {
+                linha.Entidade.Should().Be(nameof(Endereco));
+                linha.Campo.Should().Be(nameof(Endereco.MunicipioId));
+                linha.ValorAnterior.Should().Be(_grafiaId.ToString());
+                linha.ValorNovo.Should().Be(_oficialId.ToString());
+                linha.Origem.Should().Be(Dominio.Auditoria.OrigemDaOperacao.Integracao);
+                linha.SistemaId.Should().Be(ibge, "a conferência é uma integração do IBGE");
+                linha.Operacao.Should().Be(Dominio.Auditoria.OperacaoAuditada.Alteracao);
+                linha.AlteradoPorId.Should().Be(Usuario);
+                linha.CorrelacaoId.Should().NotBeNull();
+            });
+
             var motivos = await db.MensagensDescartadas.Where(m => m.Fluxo == ConsolidacaoDeGrafiasCortadas.Fluxo).Select(m => m.Erro).ToListAsync();
             motivos.Should().HaveCount(2);
             motivos.Should().Contain(m => m.Contains(CodigoDoVizinho.ToString()), "o motivo diz onde a coordenada cai");

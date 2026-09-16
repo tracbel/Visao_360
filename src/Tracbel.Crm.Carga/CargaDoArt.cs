@@ -115,6 +115,11 @@ internal sealed class CargaDoArt(
         var sistemaId = await CargaDeTerritorio.SistemaAsync(
             banco, LeitorDoArt.CodigoDoSistema, "ART — vendas de máquina", "MySQL, view somente leitura", ct);
 
+        // A TRILHA É AUTOMÁTICA (documento 41, fase 2): o que a leitura do ART muda num equipamento ou
+        // numa venda que já existia vai para auditoria.AlteracaoDeCampo no SaveChanges, como integração
+        // do ART. O que nasce agora não entra — o rastro dele é integracao.RegistroDeOrigem.
+        banco.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistemaId);
+
         var linhasDeProduto = await banco.LinhasDeProduto.AsNoTracking().ToDictionaryAsync(l => l.Codigo, StringComparer.Ordinal, ct);
         if (linhasDeProduto.Count == 0)
             return Resultado<RelatorioDaCargaDoArt>.Indisponivel(
@@ -300,24 +305,12 @@ internal sealed class CargaDoArt(
 
             // SÓ PREENCHE O QUE ESTÁ VAZIO — o modelo e a classificação existentes podem ter sido corrigidos.
             if (modeloId is { } modelo && equipamento.DefinirModeloSeAusente(modelo, usuarioId))
-            {
                 modelosApontados++;
-                if (equipamento.Id > 0)
-                    banco.AlteracoesDeCampo.Add(AlteracaoDeCampo.Registrar(
-                        equipamento.EmpresaId, nameof(Equipamento), equipamento.Id, nameof(Equipamento.ModeloId),
-                        null, modelo.ToString(CultureInfo.InvariantCulture), usuarioId));
-            }
 
             if (linhaDeProdutoId is { } recusada && equipamento.LinhaDeProdutoId is null && !Compativel(equipamento.ModeloId, recusada))
                 classificacaoRecusada.Add(chassi.Numero);
             else if (linhaDeProdutoId is { } classificacao && equipamento.ClassificarSeAusente(classificacao, usuarioId))
-            {
                 classificacoesApontadas++;
-                if (equipamento.Id > 0)
-                    banco.AlteracoesDeCampo.Add(AlteracaoDeCampo.Registrar(
-                        equipamento.EmpresaId, nameof(Equipamento), equipamento.Id, nameof(Equipamento.LinhaDeProdutoId),
-                        null, classificacao.ToString(CultureInfo.InvariantCulture), usuarioId));
-            }
         }
 
         await banco.SaveChangesAsync(ct);
@@ -384,13 +377,9 @@ internal sealed class CargaDoArt(
                 continue;
             }
 
+            // Cada campo mudado vai para a trilha no SaveChanges; aqui só se conta.
             vendasAtualizadas++;
-            foreach (var (campo, anterior, novo) in mudancas)
-            {
-                camposAuditados++;
-                banco.AlteracoesDeCampo.Add(AlteracaoDeCampo.Registrar(
-                    venda.EmpresaId, nameof(VendaDeMaquina), venda.Id, campo, Limitar(anterior, 400), Limitar(novo, 400), usuarioId));
-            }
+            camposAuditados += mudancas.Count;
         }
 
         void EncerrarVinculo(long vendaId, string motivo)

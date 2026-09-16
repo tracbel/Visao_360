@@ -56,7 +56,7 @@ internal sealed partial class CargaDeProcessoDoVortice
 
         foreach (var bloco in vendas.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novas = new List<(string Chave, VendaPerdida Entidade)>();
@@ -158,7 +158,7 @@ internal sealed partial class CargaDeProcessoDoVortice
     private async Task<Dictionary<string, int>> GarantirMotivosDePerdaAsync(
         IReadOnlyList<VendaPerdidaParaCarga> vendas, CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var existentes = await contexto.MotivosDePerda
             .ToDictionaryAsync(m => m.Codigo, m => m, StringComparer.Ordinal, ct);
@@ -209,7 +209,7 @@ internal sealed partial class CargaDeProcessoDoVortice
     private async Task<Dictionary<string, int>> GarantirItensDeCatalogoAsync(
         int catalogoId, IEnumerable<string?> textos, CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var existentes = await contexto.CatalogoItens
             .Where(i => i.CatalogoId == catalogoId)

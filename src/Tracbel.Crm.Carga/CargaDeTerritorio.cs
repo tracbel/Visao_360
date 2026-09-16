@@ -35,13 +35,11 @@ namespace Tracbel.Crm.Carga;
 /// <param name="abrirContexto">Abre um contexto de banco com alcance de sistema.</param>
 /// <param name="ibge">A leitura das APIs públicas do IBGE.</param>
 /// <param name="usuarioId">Quem roda a carga.</param>
-/// <param name="empresaDeCasaId">A filial de casa de quem roda — vai para a trilha de auditoria.</param>
 /// <param name="relatar">Onde a carga escreve o andamento.</param>
 internal sealed class CargaDeTerritorio(
     Func<CrmDbContext> abrirContexto,
     LeitorDoIbge ibge,
     long usuarioId,
-    int empresaDeCasaId,
     Action<string> relatar)
 {
     private const int CodigoDeSaoPaulo = 35;
@@ -124,6 +122,12 @@ internal sealed class CargaDeTerritorio(
         var sistemaId = await SistemaAsync(
             contexto, "IBGE", "IBGE — localidades e SIDRA", "REST público, somente leitura", ct);
 
+        // A TRILHA É AUTOMÁTICA (documento 41, fase 2): o código e a grafia reconhecidos vão para
+        // auditoria.AlteracaoDeCampo no SaveChanges, como integração do IBGE. A regra que a carga
+        // aplicava à mão — só entra o que o banco reconhece como mudança, comparando sem caixa nem
+        // acento — agora é a da própria trilha.
+        contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistemaId);
+
         var catalogo = await contexto.Municipios.AsNoTracking()
             .Select(m => new MunicipioDoCatalogo(m.Id, m.Nome, m.Uf, m.CodigoIbge))
             .ToListAsync(ct);
@@ -157,23 +161,12 @@ internal sealed class CargaDeTerritorio(
                 continue;
             }
 
-            var nomeAnterior = municipio.Nome;
             if (!municipio.ReconhecerNoIbge(reconhecimento.Oficial.Codigo, reconhecimento.Oficial.Nome)) continue;
 
+            // O código e a grafia vão para a trilha no SaveChanges. A grafia em caixa alta sem acento
+            // que o banco não reconhece como mudança não entra, e continua recuperável pela chave de
+            // origem do Vórtice em integracao.ChaveExterna.
             reconhecidos++;
-            contexto.AlteracoesDeCampo.Add(AlteracaoDeCampo.Registrar(
-                empresaDeCasaId, nameof(Municipio), municipio.Id, nameof(Municipio.CodigoIbge),
-                null, reconhecimento.Oficial.Codigo.ToString(CultureInfo.InvariantCulture), usuarioId));
-
-            // SÓ A MUDANÇA QUE O BANCO RECONHECE COMO MUDANÇA VAI PARA A TRILHA. CK_AlteracaoDeCampo_Mudou
-            // compara o antes e o depois sob a colação Latin1_General_CI_AI, para a qual
-            // "RIBEIRAO PRETO" e "Ribeirão Preto" são o mesmo texto — e recusaria a linha. O que muda
-            // de verdade (nome cortado, apóstrofo) fica registrado; a grafia em caixa alta sem acento
-            // continua recuperável pela chave de origem do Vórtice em integracao.ChaveExterna.
-            if (SaneamentoDeTerritorio.ChaveDaColacao(nomeAnterior) != SaneamentoDeTerritorio.ChaveDaColacao(municipio.Nome))
-                contexto.AlteracoesDeCampo.Add(AlteracaoDeCampo.Registrar(
-                    empresaDeCasaId, nameof(Municipio), municipio.Id, nameof(Municipio.Nome),
-                    nomeAnterior, municipio.Nome, usuarioId));
         }
 
         var criados = 0;
@@ -233,6 +226,7 @@ internal sealed class CargaDeTerritorio(
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var sistemaId = await SistemaAsync(contexto, "PLANILHA", "Planilhas do comercial", "Arquivo xlsx lido pela carga", ct);
+        contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Importacao, sistemaId);
         var lojas = await LojasAsync(contexto, ct);
 
         // A LINHA MAIS RECENTE DE CADA MUNICÍPIO, vigente ou não: um município que saiu e voltou
@@ -355,6 +349,7 @@ internal sealed class CargaDeTerritorio(
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var sistemaId = await SistemaAsync(contexto, "PLANILHA", "Planilhas do comercial", "Arquivo xlsx lido pela carga", ct);
+        contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Importacao, sistemaId);
 
         var recusas = new List<(object Conteudo, string Motivo)>();
         var afirmacoes = new List<Afirmacao>();
@@ -498,6 +493,7 @@ internal sealed class CargaDeTerritorio(
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var sistemaId = await SistemaAsync(contexto, "IBGE", "IBGE — localidades e SIDRA", "REST público, somente leitura", ct);
+        contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistemaId);
 
         var anos = linhas.Select(l => l.Ano).Distinct().ToList();
         var existentes = (await contexto.AreasPlantadasNosMunicipios.Where(a => anos.Contains(a.Ano)).ToListAsync(ct))

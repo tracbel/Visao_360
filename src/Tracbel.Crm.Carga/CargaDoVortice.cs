@@ -55,6 +55,20 @@ internal sealed class CargaDoVortice(
 {
     private const int TamanhoDoBloco = 500;
 
+    /// <summary>O sistema do legado, conhecido depois de garantido — a origem das gravações na trilha.</summary>
+    private int? _sistemaDoLegado;
+
+    /// <summary>
+    /// Abre um contexto que grava na trilha como integração do Vórtice (documento 41, fase 2), assim
+    /// que o sistema for conhecido. Antes disso a origem é a do contexto de acesso: sistema.
+    /// </summary>
+    private CrmDbContext AbrirContextoDaCarga()
+    {
+        var contexto = abrirContexto();
+        if (_sistemaDoLegado is { } sistema) contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistema);
+        return contexto;
+    }
+
     private const string FluxoDeMunicipio = "VORTICE.CARGA.MUNICIPIO";
     private const string FluxoDeCliente = "VORTICE.CARGA.CLIENTE";
     private const string FluxoDeEndereco = "VORTICE.CARGA.ENDERECO";
@@ -81,6 +95,7 @@ internal sealed class CargaDoVortice(
     public async Task<Resultado<ResumoDaCarga>> ExecutarAsync(RecorteDaCarga recorte, CancellationToken ct)
     {
         var sistemaId = await GarantirSistemaAsync(ct);
+        _sistemaDoLegado = sistemaId;
         var papelId = await GarantirPapelAsync(ct);
 
         // -----------------------------------------------------------------------------------------
@@ -190,7 +205,7 @@ internal sealed class CargaDoVortice(
     private async Task<Dictionary<string, long>> GravarClientesAsync(
         int sistemaId, IReadOnlyList<ClienteParaCarga> clientes, CancellationToken ct)
     {
-        await using var leitura = abrirContexto();
+        await using var leitura = AbrirContextoDaCarga();
 
         var mapa = await MapaDeChavesAsync(leitura, sistemaId, nameof(Cliente), ct);
 
@@ -211,7 +226,7 @@ internal sealed class CargaDoVortice(
 
         foreach (var bloco in clientes.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, Cliente Entidade)>();
@@ -317,7 +332,7 @@ internal sealed class CargaDoVortice(
     private async Task<CatalogoDeMunicipios> GravarMunicipiosAsync(
         int sistemaId, IReadOnlyList<MunicipioParaCarga> municipios, CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var porChave = await MapaDeChavesAsync(contexto, sistemaId, nameof(Municipio), ct);
@@ -477,7 +492,7 @@ internal sealed class CargaDoVortice(
     {
         var comEndereco = clientes.Where(c => c.Endereco is not null).ToList();
 
-        await using var leitura = abrirContexto();
+        await using var leitura = AbrirContextoDaCarga();
         var mapa = await MapaDeChavesAsync(leitura, sistemaId, nameof(Endereco), ct);
 
         var gravados = 0;
@@ -489,7 +504,7 @@ internal sealed class CargaDoVortice(
 
         foreach (var bloco in comEndereco.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, Endereco Entidade)>();
@@ -537,14 +552,9 @@ internal sealed class CargaDoVortice(
                             }
                             else if (entidade.MunicipioId == oficial)
                             {
-                                // A CORREÇÃO QUE SE DESFAZ TAMBÉM VAI PARA A TRILHA. A origem mudou a UF ou a
-                                // coordenada, e o endereço volta para a linha que ela aponta; sem este registro
-                                // a trilha mostraria duas correções seguidas e nenhuma volta entre elas.
-                                contexto.AlteracoesDeCampo.Add(AlteracaoDeCampo.Registrar(
-                                    entidade.EmpresaId, nameof(Endereco), entidade.Id, nameof(Endereco.MunicipioId),
-                                    $"{oficial} (município oficial da grafia cortada)",
-                                    $"{daOrigem} (grafia cortada: a origem mudou a UF ou a coordenada)",
-                                    usuarioResponsavelId));
+                                // A CORREÇÃO QUE SE DESFAZ TAMBÉM VAI PARA A TRILHA — agora pelo SaveChanges
+                                // (documento 41, fase 2): a origem mudou a UF ou a coordenada, o endereço volta
+                                // para a linha que ela aponta, e a mudança de MunicipioId é auditada.
                                 correcoesDesfeitas++;
                             }
                         }
@@ -636,7 +646,7 @@ internal sealed class CargaDoVortice(
         IReadOnlyDictionary<string, long> chavesDeCliente,
         CancellationToken ct)
     {
-        await using var leitura = abrirContexto();
+        await using var leitura = AbrirContextoDaCarga();
 
         var mapa = await MapaDeChavesAsync(leitura, sistemaId, nameof(Contato), ct);
 
@@ -658,7 +668,7 @@ internal sealed class CargaDoVortice(
 
         foreach (var bloco in contatos.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, long ClienteId, Contato Entidade)>();
@@ -755,7 +765,7 @@ internal sealed class CargaDoVortice(
     {
         var catalogo = new CatalogoDeFrotaDaCarga();
 
-        await using (var contextoDoCatalogo = abrirContexto())
+        await using (var contextoDoCatalogo = AbrirContextoDaCarga())
         {
             await catalogo.CarregarAsync(contextoDoCatalogo, ct);
 
@@ -773,7 +783,7 @@ internal sealed class CargaDoVortice(
                 $"{catalogo.FamiliasCriadas} família(s) e {catalogo.ModelosCriados} modelo(s) " +
                 "nasceram do dado real.");
 
-        await using var leitura = abrirContexto();
+        await using var leitura = AbrirContextoDaCarga();
 
         var mapa = await MapaDeChavesAsync(leitura, sistemaId, nameof(Equipamento), ct);
 
@@ -790,7 +800,7 @@ internal sealed class CargaDoVortice(
 
         foreach (var bloco in equipamentos.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, Equipamento Entidade)>();
@@ -888,7 +898,7 @@ internal sealed class CargaDoVortice(
 
     private async Task GravarRecusasAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         // A FILA DE DESCARTE É O RETRATO DA ÚLTIMA RODADA. As linhas ainda não tratadas do fluxo
         // saem antes das novas entrarem, senão rodar de novo empilharia a mesma recusa duas
@@ -925,7 +935,7 @@ internal sealed class CargaDoVortice(
     private async Task MarcarSincronismoAsync<T>(
         int sistemaId, string fluxo, LoteDaCarga<T> lote, int gravados, CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var ponto = await contexto.PontosDeSincronismo.FirstOrDefaultAsync(p => p.Fluxo == fluxo, ct);
 
@@ -1023,7 +1033,7 @@ internal sealed class CargaDoVortice(
 
     private async Task<int> GarantirSistemaAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var sistema = await contexto.Sistemas
             .FirstOrDefaultAsync(s => s.Codigo == LeitorDeCargaDoVortice.CodigoDoSistema, ct);
@@ -1043,7 +1053,7 @@ internal sealed class CargaDoVortice(
 
     private async Task<int> GarantirPapelAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var item = await contexto.CatalogoItens.FirstOrDefaultAsync(
             i => i.CatalogoId == CatalogosDeSistema.PapelDeContato && i.Codigo == PapelNaoInformado, ct);

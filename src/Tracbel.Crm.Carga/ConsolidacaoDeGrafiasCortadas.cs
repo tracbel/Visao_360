@@ -93,6 +93,10 @@ internal sealed class ConsolidacaoDeGrafiasCortadas(
         var sistemaId = await CargaDeTerritorio.SistemaAsync(
             contexto, "IBGE", "IBGE — localidades e SIDRA", "REST público, somente leitura", ct);
 
+        // A TRILHA É AUTOMÁTICA (documento 41, fase 2): cada reapontamento de município vai para
+        // auditoria.AlteracaoDeCampo no SaveChanges, com a origem declarada aqui.
+        contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistemaId);
+
         var recusas = new List<(object Conteudo, string Motivo)>();
         int lidos = 0, reapontados = 0, pendentes = 0;
 
@@ -123,12 +127,6 @@ internal sealed class ConsolidacaoDeGrafiasCortadas(
                     }, motivo));
                     continue;
                 }
-
-                contexto.AlteracoesDeCampo.Add(AlteracaoDeCampo.Registrar(
-                    endereco.EmpresaId, nameof(Endereco), endereco.Id, nameof(Endereco.MunicipioId),
-                    $"{variante.MunicipioId} ({variante.Nome})",
-                    $"{oficialId} ({variante.Oficial.Nome}, IBGE {variante.Oficial.Codigo})",
-                    usuarioId));
 
                 endereco.ReapontarMunicipioDoCatalogo(oficialId, usuarioId);
                 reapontados++;

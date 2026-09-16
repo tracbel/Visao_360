@@ -10,15 +10,20 @@ namespace Tracbel.Crm.Dominio.Auditoria;
 // O alcance entre filiais continua registrado — em log de aplicação, por
 // `DiarioDeAlcanceEntreEmpresasEmLog`, e não por tabela.
 //
-// A auditoria é o assunto da FASE 2 do documento 41: é lá que se decide qual é a adesão e onde o
-// evento de acesso é gravado, com o código que grava escrito junto.
+// A FASE 2 DO DOCUMENTO 41 decidiu a adesão: ela mora em código, em `PoliticaDeAuditoria`, e a
+// trilha é gravada por um único ponto — o `SaveChanges` do `CrmDbContext` — na mesma transação
+// do dado. O evento de acesso continua pendente.
 
 /// <summary>
-/// Quem mudou o quê, de quanto para quanto.
+/// Quem mudou o quê, de quanto para quanto — e de onde veio a mudança.
 ///
 /// Fato imutável, particionado por data e com retenção declarada na própria migração que a
 /// cria. Substitui as 22 tabelas de log clonadas por assunto do Vórtice, que somam 43,7
 /// milhões de linhas e nunca foram expurgadas.
+///
+/// <para><b>Ninguém grava esta linha à mão.</b> Desde a fase 2 ela nasce do <c>SaveChanges</c>, a
+/// partir de <see cref="PoliticaDeAuditoria"/> e do contexto de acesso. A fábrica
+/// <see cref="Registrar"/> continua existindo para o teste e para a leitura do modelo.</para>
 /// </summary>
 public sealed class AlteracaoDeCampo
 {
@@ -51,8 +56,17 @@ public sealed class AlteracaoDeCampo
     /// <summary>Quem mudou. Sempre identificador, nunca texto.</summary>
     public long AlteradoPorId { get; private set; }
 
-    /// <summary>Correlaciona com a requisição que causou a mudança.</summary>
+    /// <summary>Correlaciona com a requisição — ou a execução de carga — que causou a mudança.</summary>
     public Guid? CorrelacaoId { get; private set; }
+
+    /// <summary>De onde veio a gravação: pessoa, integração, importação, sistema ou rotina.</summary>
+    public OrigemDaOperacao Origem { get; private set; } = OrigemDaOperacao.Usuario;
+
+    /// <summary>O sistema externo, quando a origem é integração ou importação de um sistema conhecido.</summary>
+    public int? SistemaId { get; private set; }
+
+    /// <summary>O que aconteceu com o registro: inclusão, alteração ou exclusão.</summary>
+    public OperacaoAuditada Operacao { get; private set; } = OperacaoAuditada.Alteracao;
 
     /// <summary>Registra uma alteração de campo.</summary>
     public static AlteracaoDeCampo Registrar(
@@ -62,7 +76,11 @@ public sealed class AlteracaoDeCampo
         string campo,
         string? valorAnterior,
         string? valorNovo,
-        long alteradoPorId) => new()
+        long alteradoPorId,
+        OrigemDaOperacao origem,
+        OperacaoAuditada operacao,
+        int? sistemaId = null,
+        Guid? correlacaoId = null) => new()
     {
         EmpresaId = empresaId,
         Entidade = entidade,
@@ -70,7 +88,11 @@ public sealed class AlteracaoDeCampo
         Campo = campo,
         ValorAnterior = valorAnterior,
         ValorNovo = valorNovo,
-        AlteradoPorId = alteradoPorId
+        AlteradoPorId = alteradoPorId,
+        Origem = origem,
+        Operacao = operacao,
+        SistemaId = sistemaId,
+        CorrelacaoId = correlacaoId
     };
 }
 

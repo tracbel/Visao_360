@@ -141,6 +141,18 @@ public class CrmDbContext : DbContext
     // ---------------------------------------------------------------------
     private bool _alcanceEntreEmpresas;
 
+    // ---------------------------------------------------------------------
+    // DE ONDE VÊM AS GRAVAÇÕES DESTE CONTEXTO (documento 41, fase 2).
+    //
+    // Nascem do contexto de acesso — pessoa na API, sistema na carga — e podem ser DECLARADAS por
+    // quem grava, com DeclararOrigemDasGravacoes. A carga precisa disso: o processo é um só, mas a
+    // leitura do IBGE, a das planilhas e a do ART são origens diferentes, e cada uma só descobre o
+    // identificador do seu sistema depois de abrir o contexto.
+    // ---------------------------------------------------------------------
+    private readonly Guid _correlacaoId;
+    private OrigemDaOperacao _origem;
+    private int? _sistemaId;
+
     /// <summary>Cria o contexto com o escopo de acesso da requisição.</summary>
     /// <param name="opcoes">Opções do provedor.</param>
     /// <param name="provedorAcesso">Quem está agindo nesta requisição.</param>
@@ -165,6 +177,25 @@ public class CrmDbContext : DbContext
         _ehSistema = acesso.EhServicoDeSistema;
         _empresasVisiveis = acesso.EmpresasVisiveis;
         _subordinadosIds = acesso.SubordinadosIds;
+        _origem = acesso.Origem;
+        _sistemaId = acesso.SistemaId;
+        _correlacaoId = acesso.CorrelacaoId;
+    }
+
+    /// <summary>
+    /// Declara de onde vêm as gravações feitas por este contexto a partir de agora.
+    ///
+    /// <para>Serve à carga e à integração: o contexto de acesso delas é de sistema, mas a trilha
+    /// precisa dizer QUAL leitura mudou o dado — integração do IBGE, importação das planilhas,
+    /// integração do ART. Uma pessoa na API não chama isto: a origem dela já é
+    /// <see cref="OrigemDaOperacao.Usuario"/>.</para>
+    /// </summary>
+    /// <param name="origem">A origem das gravações.</param>
+    /// <param name="sistemaId">O sistema externo, quando há um.</param>
+    public void DeclararOrigemDasGravacoes(OrigemDaOperacao origem, int? sistemaId)
+    {
+        _origem = origem;
+        _sistemaId = sistemaId;
     }
 
     // ---- organizacao ----
@@ -707,24 +738,87 @@ public class CrmDbContext : DbContext
     }
 
     /// <summary>
-    /// Salva as alterações e o carimbo de auditoria.
+    /// Salva as alterações, o carimbo de autoria e a trilha de auditoria — na mesma transação.
     ///
     /// [V] A integração do Vórtice não tem transação — o <c>BEGIN TRANSACTION</c> está
     /// literalmente comentado nas procedures. O resultado medido: 783.242 títulos
     /// (R$ 5,18 bi) presos em staging desde maio de 2025. Aqui, ou grava tudo, ou não grava nada.
+    ///
+    /// <para><b>A TRILHA (documento 41, fase 2).</b> Sem campo auditado na gravação, nada muda: é o
+    /// <c>SaveChanges</c> de sempre, sem transação a mais. Com campo auditado, há dois caminhos:</para>
+    /// <list type="bullet">
+    ///   <item>quem chamou já abriu transação (a carga abre uma por bloco): salva, grava a trilha
+    ///   dentro dela e deixa o commit para quem abriu;</item>
+    ///   <item>ninguém abriu (a API): abre uma, dentro da estratégia de execução — que na API tem
+    ///   retentativa em falha transitória —, salva sem aceitar as mudanças, grava a trilha, faz o
+    ///   commit e só então aceita. Se a transação cair no meio, a retentativa repete o bloco inteiro
+    ///   com o rastreador intacto. É o padrão que o EF Core documenta para transação com
+    ///   retentativa.</item>
+    /// </list>
     /// </summary>
-    public override Task<int> SaveChangesAsync(CancellationToken ct = default)
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken ct = default)
     {
         CarimbarAuditoria();
-        return base.SaveChangesAsync(ct);
+
+        var pendencias = TrilhaDeAuditoria.Capturar(ChangeTracker, _origem);
+        if (pendencias.Count == 0)
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
+
+        int gravados;
+        if (Database.CurrentTransaction is not null)
+        {
+            gravados = await base.SaveChangesAsync(acceptAllChangesOnSuccess: false, ct);
+            await TrilhaDeAuditoria.GravarAsync(this, pendencias, TrilhaAtual(), ct);
+        }
+        else
+        {
+            gravados = await Database.CreateExecutionStrategy().ExecuteAsync(async token =>
+            {
+                await using var transacao = await Database.BeginTransactionAsync(token);
+                var n = await base.SaveChangesAsync(acceptAllChangesOnSuccess: false, token);
+                await TrilhaDeAuditoria.GravarAsync(this, pendencias, TrilhaAtual(), token);
+                await transacao.CommitAsync(token);
+                return n;
+            }, ct);
+        }
+
+        if (acceptAllChangesOnSuccess) ChangeTracker.AcceptAllChanges();
+        return gravados;
     }
 
-    /// <inheritdoc />
-    public override int SaveChanges()
+    /// <inheritdoc cref="SaveChangesAsync(bool, CancellationToken)" />
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         CarimbarAuditoria();
-        return base.SaveChanges();
+
+        var pendencias = TrilhaDeAuditoria.Capturar(ChangeTracker, _origem);
+        if (pendencias.Count == 0)
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+
+        int gravados;
+        if (Database.CurrentTransaction is not null)
+        {
+            gravados = base.SaveChanges(acceptAllChangesOnSuccess: false);
+            TrilhaDeAuditoria.Gravar(this, pendencias, TrilhaAtual());
+        }
+        else
+        {
+            gravados = Database.CreateExecutionStrategy().Execute(() =>
+            {
+                using var transacao = Database.BeginTransaction();
+                var n = base.SaveChanges(acceptAllChangesOnSuccess: false);
+                TrilhaDeAuditoria.Gravar(this, pendencias, TrilhaAtual());
+                transacao.Commit();
+                return n;
+            });
+        }
+
+        if (acceptAllChangesOnSuccess) ChangeTracker.AcceptAllChanges();
+        return gravados;
     }
+
+    private TrilhaDeAuditoria.TrilhaDoContexto TrilhaAtual() =>
+        new(_origem, _sistemaId, _correlacaoId, _usuarioId, _empresaId);
 
     private void CarimbarAuditoria()
     {

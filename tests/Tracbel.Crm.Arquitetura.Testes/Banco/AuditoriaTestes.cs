@@ -121,6 +121,54 @@ public sealed class AuditoriaTestes
     }
 
     [Fact]
+    public void A_politica_de_auditoria_so_nomeia_entidade_e_campo_que_existem_no_modelo()
+    {
+        // Documento 41, fase 2. A política mora em código e é lida no SaveChanges: um campo renomeado
+        // na entidade e esquecido na política faria TODA gravação daquela entidade falhar em produção.
+        // Este teste troca a falha em produção por uma falha no build.
+        var problemas = new List<string>();
+
+        foreach (var entidade in Dominio.Auditoria.PoliticaDeAuditoria.Entidades)
+        {
+            var tipo = ModeloBanco.Modelo.GetEntityTypes().SingleOrDefault(t => t.ClrType.Name == entidade);
+            if (tipo is null)
+            {
+                problemas.Add($"{entidade} (entidade fora do modelo)");
+                continue;
+            }
+
+            if (tipo.FindProperty("Id") is null) problemas.Add($"{entidade} (sem Id para a trilha apontar)");
+
+            foreach (var campo in Dominio.Auditoria.PoliticaDeAuditoria.CamposDe(entidade))
+                if (tipo.FindProperty(campo) is null)
+                    problemas.Add($"{entidade}.{campo}");
+        }
+
+        problemas.Should().BeEmpty(
+            "PoliticaDeAuditoria só pode nomear o que o modelo mapeia (documento 41, fase 2). Fora do modelo: {0}",
+            string.Join(", ", problemas));
+    }
+
+    [Fact]
+    public void A_politica_de_auditoria_nao_audita_carimbo_nem_concorrencia()
+    {
+        // Carimbo muda em toda gravação e não é decisão de ninguém: auditá-lo é o recarimbo que fez do
+        // log do Vórtice 42% do banco.
+        string[] carimbos =
+        [
+            nameof(EntidadeBase.CriadoEm), nameof(EntidadeBase.CriadoPorId), nameof(EntidadeBase.AlteradoEm),
+            nameof(EntidadeBase.AlteradoPorId), nameof(EntidadeBase.Versao), nameof(EntidadeBase.ChavePublica)
+        ];
+
+        var auditados = Dominio.Auditoria.PoliticaDeAuditoria.Entidades
+            .SelectMany(e => Dominio.Auditoria.PoliticaDeAuditoria.CamposDe(e).Select(c => $"{e}.{c}"))
+            .Where(nome => carimbos.Any(c => nome.EndsWith("." + c, StringComparison.Ordinal)))
+            .ToList();
+
+        auditados.Should().BeEmpty("carimbo e concorrência não entram na trilha. Encontrado: {0}", string.Join(", ", auditados));
+    }
+
+    [Fact]
     public void Toda_tabela_transacional_declara_a_coluna_de_multiempresa()
     {
         // Documento 14, seção 5.2 — era [Recomendação, sem teste hoje]. Passa a ser testada:

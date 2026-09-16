@@ -220,7 +220,7 @@ if (somenteTerritorio)
     }
 
     var cargaDoTerritorio = new CargaDeTerritorio(
-        AbrirContexto, ibge, usuarioId, empresaDeCasaId, Console.WriteLine);
+        AbrirContexto, ibge, usuarioId, Console.WriteLine);
 
     try
     {
