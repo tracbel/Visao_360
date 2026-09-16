@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Gera docs/banco/DICIONARIO.md, docs/banco/ERD.md, docs/banco/catalogo.csv e
     docs/banco/esquema.json a partir do modelo do EF Core — sem precisar de um banco rodando.

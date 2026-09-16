@@ -2,39 +2,14 @@ using Tracbel.Crm.Dominio.Comum;
 
 namespace Tracbel.Crm.Dominio.Seguranca;
 
-/// <summary>
-/// Uma permissão nomeada: entidade + verbo. Ex.: <c>Lead.Qualificar</c>.
-///
-/// O catálogo é fechado e versionado no seed — permissão não nasce em runtime.
-/// </summary>
-public sealed class Permissao
-{
-    private Permissao() { }
-
-    /// <summary>Identificador interno.</summary>
-    public int Id { get; private set; }
-
-    /// <summary>Código no formato <c>Entidade.Verbo</c>. É o que o código consulta.</summary>
-    public string Codigo { get; private set; } = default!;
-
-    /// <summary>A entidade protegida. Ex.: <c>Lead</c>.</summary>
-    public string Entidade { get; private set; } = default!;
-
-    /// <summary>O verbo. Ver <see cref="Verbos"/>.</summary>
-    public string Verbo { get; private set; } = default!;
-
-    /// <summary>Explicação em português, exibida na tela de administração.</summary>
-    public string Descricao { get; private set; } = default!;
-
-    /// <summary>Cria uma permissão do catálogo.</summary>
-    public static Permissao Criar(string entidade, string verbo, string descricao) => new()
-    {
-        Entidade = entidade,
-        Verbo = verbo,
-        Codigo = $"{entidade}.{verbo}",
-        Descricao = descricao
-    };
-}
+// O QUE SAIU DAQUI NA FASE 1 (documento 41): a tabela `seguranca.Permissao` — o catálogo de
+// permissões nomeadas (entidade + verbo). Ela nunca recebeu uma linha: o catálogo que o sistema de
+// fato usa é a lista fechada de `EscopoDeAcesso.PermissoesConcedidas`, em código, conferida em
+// tempo de compilação. Uma tabela vazia ao lado dela só criava a dúvida sobre qual das duas manda.
+//
+// O CÓDIGO da permissão continua sendo texto (`ItemConjuntoPermissao.CodigoPermissao` logo abaixo),
+// exatamente como antes — nada no fluxo de autorização lia a tabela. Quando existir a tela de
+// administração que edita o catálogo, ele volta pelo desenho do documento 40, na fase de identidade.
 
 /// <summary>
 /// Um conjunto de permissões — a CAMADA 2.

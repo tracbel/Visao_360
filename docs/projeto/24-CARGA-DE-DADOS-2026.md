@@ -100,19 +100,19 @@ Cana, Pulverizador, Implemento, Plataforma Adicional, Agricultura Precisão e Tu
 **15.994 correções de campo**, cada uma registrada com valor de origem, valor entregue e motivo —
 o princípio 1.4 do [documento 16](16-HIGIENIZACAO-DE-DADOS.md). Nada foi corrigido em silêncio.
 
-| Campo | Corrigidos | Exemplo real (origem → entregue) |
+| Campo | Corrigidos | Exemplo (origem → entregue; nome, contato e documento trocados por fictícios do mesmo formato) |
 |---|---:|---|
-| **documento** | **10.062** | `325887000126` → `03258870001206` |
-| nome (do contato) | 1.388 | `NO-WASHINGTON ` → `NO-WASHINGTON` |
-| telefone | 1.296 | `1692723406` → `16992723406` |
-| nomeRazao | 619 | `PEDRO  CAVALARI` → `PEDRO CAVALARI` |
+| **documento** | **10.062** | `1933566000139` → `01933566000139` (documento fictício, mesmo formato) |
+| nome (do contato) | 1.388 | `FULANO-EXEMPLO ` → `FULANO-EXEMPLO` |
+| telefone | 1.296 | `1655550000` → `16955550000` |
+| nomeRazao | 619 | `FULANO  DE TAL` → `FULANO DE TAL` |
 | logradouro | 518 | `R ALAGOAS,  ` → `R ALAGOAS,` |
 | situacao | 461 | `S` → `Suspect` |
-| nomeFantasia | 424 | `FAZ. SAO  VICENTE` → `FAZ. SAO VICENTE` |
-| inscricaoEstadual | 367 | `274296706 ` → `274296706` |
+| nomeFantasia | 424 | `FAZ. EXEMPLO  VELHA` → `FAZ. EXEMPLO VELHA` |
+| inscricaoEstadual | 367 | `123456789 ` → `123456789` |
 | municipio | 275 | `SANTA RITA DO  PASSA` → `SANTA RITA DO PASSA` |
 | bairro | 259 | `ZONA  RURAL` → `ZONA RURAL` |
-| email | 203 | `W.FURLANETTI@HOTMAIL.COM` → `w.furlanetti@hotmail.com` |
+| email | 203 | `FULANO.EXEMPLO@EXEMPLO.COM` → `fulano.exemplo@exemplo.com` |
 | localizacao | 63 | quebra de linha colapsada em espaço |
 | complemento | 46 | espaço duplo colapsado |
 | numero | 10 | `149, ` → `149,` |
@@ -125,8 +125,8 @@ documento em **duas colunas numéricas** (`NroCGCCPF` + `DigCGCCPF`) e número n
 esquerda. A carga devolve os zeros ao lugar, **confere o dígito verificador** e só então aceita.
 
 É o achado da [qualidade-dados-legado](../extracao-vortice/qualidade-dados-legado.md) deixando de
-ser estatística e virando dado utilizável: `A.W.B.AGROPECUARIA LTDA` está no CRM como
-`00.880.779/0002-68`, com os dois zeros da frente que a coluna numérica do Vórtice tinha comido.
+ser estatística e virando dado utilizável: `AGROPECUARIA EXEMPLO LTDA` (fictício) está no CRM como
+`01.933.566/0001-39` (fictício, mesmo formato), com o zero da frente que a coluna numérica do Vórtice tinha comido.
 
 **A reconstituição não é chute, e a prova é que ela pode falhar.** Quando o número remontado não
 passa no dígito verificador, o cliente é **recusado** — 190 vezes nesta carga (seção 4).
@@ -166,14 +166,14 @@ GROUP BY Fluxo, Erro ORDER BY 3 DESC;
 | Linhas | Regra que recusou | Exemplo real |
 |---:|---|---|
 | **11.419** | Equipamento — máquina sem chassi na origem | coluna `Identificador` vazia |
-| **3.367** | Equipamento — chassi fora do padrão VIN de 17 posições | `Nivaldo`, `Trator`, `DIVERSOS`, `1PO5425XAAT020373` |
+| **3.367** | Equipamento — chassi fora do padrão VIN de 17 posições | um primeiro nome de pessoa, `Trator`, `DIVERSOS`, `1PO5425XAAT020373` |
 | 464 | Equipamento — chassi repetido | `1BM7225JCDH002401` em duas linhas do parque |
 | 356 | Contato — cliente dono fora da carga | contato de pessoa recusada ou fora do recorte |
-| **190** | Cliente — documento não reconstituível | `F` + base `81526350003` + dígito `88` |
+| **190** | Cliente — documento não reconstituível | `F` + base `12345678901` + dígito `99` (fictício, mesmo formato) |
 | 82 | Cliente — tipo de pessoa fora de `F`/`J` | 78 com a coluna **nula**, 4 com o valor `0` |
 | 15 | Contato — CPF repetido na filial | entrou **sem** documento, não foi descartado |
 | 9 | Equipamento — cliente dono fora da carga | máquina de pessoa recusada |
-| 4 | Cliente — documento repetido na mesma filial | `08.496.300/0001-15` em dois cadastros |
+| 4 | Cliente — documento repetido na mesma filial | `12.345.678/0001-00` (fictício, com dígito inválido de propósito) em dois cadastros |
 
 ### Os 190 documentos recusados são um achado, não um erro da carga
 
@@ -353,11 +353,11 @@ Nenhum destes foi consertado nesta etapa.
 |---|---|---|---|
 | 1 | Máquinas **`Baixado`** aparecem com "Mostrar baixados" **desmarcado** | `/equipamentos` | 🔴 **Defeito de tela.** O filtro olha a exclusão lógica (`ExcluidoEm`); a coluna mostra a **situação**. A carga traz 490 máquinas `Baixado` sem excluí-las logicamente (o parque histórico é informação), e as duas ideias divergem na cara do usuário. São 326 das 2.142 de Ribeirão Preto. |
 | 2 | O seletor **Modelo** virou uma lista plana de **253 itens** | `/equipamentos` | 🟡 Consequência direta do catálogo crescer do dado real. Sem agrupar por marca ou família, o campo fica impraticável — e na migração completa serão milhares. |
-| 3 | Segunda linha do cliente repete o nome **cortado em 20 caracteres** | `/clientes` | 🟡 **Não é a tela: é o dado.** `AGROPECUARIA CANA DOCE LTDA` / `AGROPECUARIA CANA DO`. 3.694 clientes carregados têm nome fantasia com exatamente 20 caracteres, e 1.399 têm fantasia idêntica ao nome. Lê-se como defeito de renderização. Ver seção 8. |
-| 4 | Nomes que são **um documento** ou **`**INATIVO**`** | `/clientes` | 🟡 Dado real: `97.553.463/0001-12` e `14974004758` como razão social. O CRM não tem regra que recuse (documento 16, seção 2.1, prevê "só dígito, sem letra" — este passa porque tem pontuação). |
+| 3 | Segunda linha do cliente repete o nome **cortado em 20 caracteres** | `/clientes` | 🟡 **Não é a tela: é o dado.** `AGROPECUARIA EXEMPLO DOCE LTDA` / `AGROPECUARIA EXEMPLO` (fictício, mesmo corte). 3.694 clientes carregados têm nome fantasia com exatamente 20 caracteres, e 1.399 têm fantasia idêntica ao nome. Lê-se como defeito de renderização. Ver seção 8. |
+| 4 | Nomes que são **um documento** ou **`**INATIVO**`** | `/clientes` | 🟡 Dado real: `12.345.678/0001-00` e `12345678900` como razão social (fictícios, com dígito inválido de propósito). O CRM não tem regra que recuse (documento 16, seção 2.1, prevê "só dígito, sem letra" — este passa porque tem pontuação). |
 | 5 | Coluna DOCUMENTO com **—** em 8.419 clientes | `/clientes` | 🟢 Correto e legível. É o vazio honesto da seção 5. |
-| 6 | Nome longo do cliente **quebra em duas linhas** e a linha da tabela cresce | `/equipamentos` | 🟢 Não quebra o layout. `KASSIO ALESSANDRO VIEIRA DOMINGUOS E OUT` (40 caracteres, truncado na origem). |
-| 7 | Paginação, busca e documento formatado | ambas | 🟢 **Funcionam.** `1–25 de 2142 equipamentos · Página 1 de 86`; busca por `agropecuaria` devolve 70 de 10.793; busca por chassi completo devolve 1 de 1; CPF sai `481.641.516-53` e CNPJ `00.880.779/0002-68`. |
+| 6 | Nome longo do cliente **quebra em duas linhas** e a linha da tabela cresce | `/equipamentos` | 🟢 Não quebra o layout. `FULANO DE TAL EXEMPLO DA SILVA E OUTROS` (fictício; o nome real tem 40 caracteres, truncado na origem). |
+| 7 | Paginação, busca e documento formatado | ambas | 🟢 **Funcionam.** `1–25 de 2142 equipamentos · Página 1 de 86`; busca por `agropecuaria` devolve 70 de 10.793; busca por chassi completo devolve 1 de 1; CPF sai `123.456.789-00` e CNPJ `12.345.678/0001-00` (fictícios, com dígito inválido de propósito). |
 | 8 | `GET /saude/banco` responde **500** | API | 🔴 **Pré-existente, não relacionado ao dado.** O endpoint resolve o `CrmDbContext` antes do meio de campo de contexto rodar, e o `ContextoAcessoDaRequisicao` lança — como foi desenhado para lançar. É a ordem no `Program.cs`. Os demais endpoints respondem 200. |
 
 ---

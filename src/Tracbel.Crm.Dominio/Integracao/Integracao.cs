@@ -87,6 +87,25 @@ public sealed class ChaveExterna
     /// </summary>
     /// <param name="quandoUtc">O instante da conciliação.</param>
     public void MarcarSincronismo(DateTime quandoUtc) => SincronizadoEm = quandoUtc;
+
+    /// <summary>
+    /// Faz a chave de origem apontar para outro registro do CRM da MESMA entidade.
+    ///
+    /// <para>Existe para a consolidação de catálogo em que duas linhas do CRM são o mesmo registro
+    /// real (documento 32, seção 4.6): sem mover a chave, a próxima recarga da origem devolveria o
+    /// que foi corrigido para a linha antiga. Quem chama registra o valor anterior em
+    /// <c>auditoria.AlteracaoDeCampo</c>.</para>
+    /// </summary>
+    /// <param name="registroId">O registro que passa a representar a chave.</param>
+    /// <param name="quandoUtc">O instante da conciliação.</param>
+    public void ReapontarPara(long registroId, DateTime quandoUtc)
+    {
+        if (registroId <= 0)
+            throw new RegraDeNegocioViolada("Chave de origem não aponta para registro sem identificador.");
+
+        RegistroId = registroId;
+        SincronizadoEm = quandoUtc;
+    }
 }
 
 /// <summary>
@@ -170,146 +189,15 @@ public sealed class PontoDeSincronismo
     }
 }
 
-/// <summary>Em que ponto do processamento a linha recebida está.</summary>
-public enum SituacaoDaRecepcao
-{
-    /// <summary>Chegou e ainda não foi processada.</summary>
-    Recebida = 0,
-
-    /// <summary>Foi processada com sucesso.</summary>
-    Processada = 1,
-
-    /// <summary>Falhou no processamento.</summary>
-    Falhou = 2,
-
-    /// <summary>Foi ignorada por regra, sem erro.</summary>
-    Ignorada = 3
-}
-
-/// <summary>
-/// A área de pouso EFÊMERA da integração.
-///
-/// [V] O Vórtice tem 77 tabelas de staging permanentes, com 19,4 milhões de linhas que nunca
-/// saem de lá — entre elas 783.242 títulos, R$ 5,18 bilhões, presos desde maio de 2025.
-/// Aqui existe uma tabela só, particionada por data e com data de expurgo em cada linha: o
-/// que entrou e foi processado sai, por desenho.
-/// </summary>
-public sealed class Recepcao
-{
-    private Recepcao() { }
-
-    /// <summary>Identificador interno.</summary>
-    public long Id { get; private set; }
-
-    /// <summary>O sistema que enviou.</summary>
-    public int SistemaId { get; private set; }
-
-    /// <summary>Nome da entidade recebida.</summary>
-    public string Entidade { get; private set; } = default!;
-
-    /// <summary>O identificador que o sistema externo usa.</summary>
-    public string ChaveOrigem { get; private set; } = default!;
-
-    /// <summary>O conteúdo como chegou, íntegro. Guardado como JSON binário.</summary>
-    public string Conteudo { get; private set; } = default!;
-
-    /// <summary>Em que ponto do processamento está.</summary>
-    public SituacaoDaRecepcao Situacao { get; private set; } = SituacaoDaRecepcao.Recebida;
-
-    /// <summary>O erro, quando falhou.</summary>
-    public string? Erro { get; private set; }
-
-    /// <summary>Quando chegou (UTC). É a coluna de particionamento.</summary>
-    public DateTime RecebidaEm { get; private set; } = DateTime.UtcNow;
-
-    /// <summary>Quando foi processada (UTC).</summary>
-    public DateTime? ProcessadaEm { get; private set; }
-
-    /// <summary>A partir de quando a linha pode ser apagada. Sem isto, staging vira acervo.</summary>
-    public DateTime ExpurgarApos { get; private set; }
-
-    /// <summary>Recebe uma linha do sistema externo.</summary>
-    public static Recepcao Receber(
-        int sistemaId, string entidade, string chaveOrigem, string conteudo, int diasParaExpurgo = 30) => new()
-    {
-        SistemaId = sistemaId,
-        Entidade = entidade,
-        ChaveOrigem = chaveOrigem,
-        Conteudo = conteudo,
-        ExpurgarApos = DateTime.UtcNow.AddDays(diasParaExpurgo)
-    };
-}
-
-/// <summary>Em que ponto da entrega a mensagem está.</summary>
-public enum SituacaoDaMensagem
-{
-    /// <summary>Ainda não entregue.</summary>
-    Pendente = 0,
-
-    /// <summary>Entregue com sucesso.</summary>
-    Entregue = 1,
-
-    /// <summary>Falhou e será tentada de novo.</summary>
-    Falhou = 2,
-
-    /// <summary>Falhou o número máximo de vezes e foi para a fila de descarte.</summary>
-    DescartadaAposLimite = 3
-}
-
-/// <summary>
-/// A fila de saída, gravada na MESMA transação do dado.
-///
-/// É o que garante que nunca existe dado sem evento nem evento sem dado. [V] A integração do
-/// Vórtice não tem transação: o comando de início de transação está literalmente comentado
-/// nas procedures.
-/// </summary>
-public sealed class MensagemDeSaida
-{
-    private MensagemDeSaida() { }
-
-    /// <summary>Identificador interno.</summary>
-    public long Id { get; private set; }
-
-    /// <summary>Sistema de destino.</summary>
-    public int SistemaId { get; private set; }
-
-    /// <summary>Tipo da mensagem.</summary>
-    public string Tipo { get; private set; } = default!;
-
-    /// <summary>O conteúdo, como JSON binário.</summary>
-    public string Conteudo { get; private set; } = default!;
-
-    /// <summary>Correlaciona com a operação que gerou a mensagem.</summary>
-    public Guid CorrelacaoId { get; private set; }
-
-    /// <summary>Em que ponto da entrega está.</summary>
-    public SituacaoDaMensagem Situacao { get; private set; } = SituacaoDaMensagem.Pendente;
-
-    /// <summary>Quantas vezes já se tentou entregar.</summary>
-    public short Tentativas { get; private set; }
-
-    /// <summary>Quando tentar de novo (UTC).</summary>
-    public DateTime? ProximaTentativaEm { get; private set; }
-
-    /// <summary>O erro da última tentativa.</summary>
-    public string? UltimoErro { get; private set; }
-
-    /// <summary>Quando a mensagem foi enfileirada (UTC).</summary>
-    public DateTime CriadoEm { get; private set; } = DateTime.UtcNow;
-
-    /// <summary>Quando foi entregue (UTC).</summary>
-    public DateTime? EntregueEm { get; private set; }
-
-    /// <summary>Enfileira uma mensagem de saída.</summary>
-    public static MensagemDeSaida Enfileirar(int sistemaId, string tipo, string conteudo, Guid correlacaoId) => new()
-    {
-        SistemaId = sistemaId,
-        Tipo = tipo,
-        Conteudo = conteudo,
-        CorrelacaoId = correlacaoId,
-        ProximaTentativaEm = DateTime.UtcNow
-    };
-}
+// O QUE SAIU DAQUI NA FASE 1 (documento 41): `Recepcao` — a área de pouso efêmera da integração,
+// com o enum `SituacaoDaRecepcao` — e `MensagemDeSaida`, a fila de saída, com `SituacaoDaMensagem`.
+// As duas nasceram com o modelo inicial e nunca receberam uma linha: a carga do Vórtice lê a origem
+// e grava direto no CRM, sem pousar em staging, e não há hoje nenhum sistema para o qual o CRM
+// publique mensagem. O que a integração de fato usa continua aqui: `Sistema`, `ChaveExterna`,
+// `PontoDeSincronismo` e `MensagemDescartada`.
+//
+// Nenhuma das duas foi descartada como ideia — a caixa de saída transacional é o desenho certo para
+// publicar evento sem perder dado, e volta pelo documento 40 quando existir o primeiro destino real.
 
 /// <summary>
 /// O que foi rejeitado, e por quê — a fila de descarte.
@@ -324,9 +212,6 @@ public sealed class MensagemDescartada
 
     /// <summary>Identificador interno.</summary>
     public long Id { get; private set; }
-
-    /// <summary>A mensagem de saída que falhou, quando a origem é a fila de saída.</summary>
-    public long? MensagemDeSaidaId { get; private set; }
 
     /// <summary>Nome do fluxo que produziu a mensagem.</summary>
     public string Fluxo { get; private set; } = default!;

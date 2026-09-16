@@ -85,7 +85,10 @@ export function Visao360() {
           <div className="v360-header-left">
             <h1 className="v360-title">Visão 360</h1>
             <div className="v360-subtitle">
-              Dashboard executivo · <strong>Consolidado das treze filiais</strong> · FY 2026
+              Dashboard executivo · <strong>Consolidado das filiais em operação</strong> ·{' '}
+              <Link to="/relatorios/territorio" className="v360-link">
+                Indicadores geográficos da ADR →
+              </Link>
             </div>
           </div>
           <SeletorDePerfil perfil={perfil} aoTrocar={setPerfil} />

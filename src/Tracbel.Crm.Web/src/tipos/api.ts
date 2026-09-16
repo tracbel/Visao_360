@@ -107,6 +107,8 @@ export const CATALOGO = {
   situacaoEquipamento: 'SITUACAO_EQUIPAMENTO',
   origemEquipamento: 'ORIGEM_EQUIPAMENTO',
   modeloEquipamento: 'MODELO_EQUIPAMENTO',
+  linhaDeProduto: 'LINHA_DE_PRODUTO',
+  porteDeMaquina: 'PORTE_DE_MAQUINA',
   empresa: 'EMPRESA',
 } as const;
 
@@ -196,6 +198,21 @@ export type EquipamentoResumo = {
   criadoEm: string;
   alteradoEm: string | null;
   estaInativo: boolean;
+  /** A classificação de produto (documento 35, seção 10). Ex.: `TRATOR_MEDIO`. */
+  classificacaoCodigo: string | null;
+  classificacaoNome: string | null;
+  /** `Pequeno`, `Medio`, `Grande` ou `NaoSeAplica`. */
+  porte: string | null;
+  /** Quantas vendas a máquina tem registradas (ART). */
+  vendas: number;
+  ultimaVendaEm: string | null;
+  /** O comprador NA venda mais recente — nunca apresentado como dono atual. */
+  compradorNaUltimaVendaChave: string | null;
+  compradorNaUltimaVendaNome: string | null;
+  /** `CompradorNaVenda` quando há venda. */
+  naturezaDoVinculo: string | null;
+  produtoNaOrigem: string | null;
+  sistemaDaVenda: string | null;
 };
 
 /** A máquina como a ficha a mostra, com o carimbo de concorrência. */
@@ -208,6 +225,54 @@ export type EquipamentoDetalhe = EquipamentoResumo & {
   localizacaoDescrita: string | null;
   empresaId: number;
   versao: string | null;
+  /** As divergências abertas entre ART, CRM e Protheus sobre esta máquina. */
+  divergenciasAbertas: DivergenciaDaMaquina[];
+};
+
+/** Uma divergência aberta sobre a máquina — documento 35, seção 10. */
+export type DivergenciaDaMaquina = {
+  tipo: string;
+  descricao: string;
+  detectadaEm: string;
+};
+
+/** Uma máquina que o cliente comprou numa venda registrada (vínculo "comprador na venda"). */
+export type MaquinaCompradaPeloCliente = {
+  equipamentoChave: string;
+  chassi: string;
+  modeloNome: string | null;
+  classificacaoNome: string | null;
+  produtoNaOrigem: string | null;
+  vendidaEm: string | null;
+  natureza: string;
+  filialCodigo: string;
+  sistemaCodigo: string;
+  /** Se o cliente também é o dono atual registrado. Comprar não faz dono. */
+  ehDonoAtual: boolean;
+};
+
+/** Uma execução do serviço de sincronização — documento 35, seção 11. */
+export type ExecucaoDeSincronizacao = {
+  maquina: string;
+  iniciadaEm: string;
+  terminadaEm: string | null;
+  resultado: 'EmAndamento' | 'Sucesso' | 'Falha' | 'Ignorada' | string;
+  tentativas: number;
+  registrosLidos: number;
+  incluidos: number;
+  atualizados: number;
+  pendentes: number;
+  mensagem: string | null;
+};
+
+/** Um fluxo de sincronização com a última execução, o último sucesso e as recentes. */
+export type SituacaoDaSincronizacao = {
+  sistemaCodigo: string;
+  fluxo: string;
+  ultimaExecucaoEm: string | null;
+  ultimoResultado: string | null;
+  ultimoSucessoEm: string | null;
+  execucoes: ExecucaoDeSincronizacao[];
 };
 
 /** O corpo do POST de equipamento. */
@@ -222,6 +287,8 @@ export type NovoEquipamento = {
   numeroSerie: string;
   placa: string;
   localizacaoDescrita: string;
+  /** Do catálogo `LINHA_DE_PRODUTO`. No PUT, texto vazio retira a classificação. */
+  linhaDeProdutoCodigo: string;
 };
 
 /**
@@ -250,8 +317,56 @@ export type ConsultaDeEquipamentos = {
   ordenarPor: OrdemDeEquipamento;
   descendente: boolean;
   incluirInativos: boolean;
+  /** Código da classificação, ou `SEM_CLASSIFICACAO`. Filtro de banco. */
+  linhaDeProduto: string;
+  /** `Pequeno`, `Medio`, `Grande` ou `NaoSeAplica`. Filtro de banco. */
+  porte: string;
+  /** Só as máquinas com venda registrada. */
+  somenteComVenda: boolean;
 };
 
 /** Domínio FECHADO de ordenação de equipamento. */
 export const ORDENS_DE_EQUIPAMENTO = ['Chassi', 'CriadoEm', 'Situacao', 'AnoModelo'] as const;
 export type OrdemDeEquipamento = (typeof ORDENS_DE_EQUIPAMENTO)[number];
+
+/** O valor do filtro de classificação que traz as máquinas sem classificação. */
+export const SEM_CLASSIFICACAO = 'SEM_CLASSIFICACAO';
+
+/**
+ * Uma venda da máquina — o histórico comercial (documento 35, seção 10).
+ *
+ * O COMPRADOR É O DA VENDA, naquela data. Ele não é o dono atual: o dono está em
+ * `EquipamentoDetalhe.clienteChave`, e só uma pessoa o confirma.
+ */
+export type VendaDaMaquina = {
+  chave: string;
+  sistemaCodigo: string;
+  chaveOrigem: string;
+  vendidaEm: string | null;
+  faturadaEm: string | null;
+  entregueEm: string | null;
+  registradaNaOrigemEm: string | null;
+  filialCodigo: string;
+  filialNome: string;
+  filialDoFaturamentoCodigo: string | null;
+  compradorChave: string | null;
+  compradorNome: string | null;
+  natureza: string | null;
+  vinculoReferenciaEm: string | null;
+  vinculoEncerradoEm: string | null;
+  motivoDoEncerramento: string | null;
+  linhaNaOrigem: string;
+  produtoNaOrigem: string;
+  /** Varejo ou Grandes Contas — atributo DA VENDA, não do cliente. */
+  gestaoNaOrigem: string | null;
+  situacaoNaOrigem: string | null;
+  numeroDoPedido: string | null;
+  numeroDaNotaFiscal: string | null;
+  vendaDireta: boolean;
+  repasseDireto: boolean;
+  unidadeNaOrigem: string | null;
+  unidadeDoFaturamentoNaOrigem: string | null;
+  transformacoes: string | null;
+  importadaEm: string;
+  atualizadaPelaOrigemEm: string | null;
+};

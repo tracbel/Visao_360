@@ -1,3 +1,5 @@
+using Tracbel.Crm.Dominio.Auditoria;
+
 namespace Tracbel.Crm.Dominio.Seguranca;
 
 /// <summary>
@@ -25,6 +27,15 @@ public sealed class ContextoAcesso
     /// <param name="equipesIds">Equipes de que participa.</param>
     /// <param name="profundidades">Permissão → profundidade, já consolidada dos conjuntos.</param>
     /// <param name="ehServicoDeSistema">Job ou integração rodando sem usuário humano.</param>
+    /// <param name="origem">
+    /// De onde vêm as gravações feitas sob este contexto. Quando omitida: <see cref="OrigemDaOperacao.Sistema"/>
+    /// para serviço de sistema e <see cref="OrigemDaOperacao.Usuario"/> para pessoa.
+    /// </param>
+    /// <param name="sistemaId">O sistema externo, quando a origem é integração ou importação.</param>
+    /// <param name="correlacaoId">
+    /// O que liga as linhas da trilha à requisição ou à execução que as causou. Quando omitido, nasce
+    /// um novo — e como o contexto é montado uma vez por requisição, é um por requisição.
+    /// </param>
     public ContextoAcesso(
         long usuarioId,
         string nomeExibicao,
@@ -33,7 +44,10 @@ public sealed class ContextoAcesso
         IReadOnlySet<long> subordinadosIds,
         IReadOnlySet<long> equipesIds,
         IReadOnlyDictionary<string, Profundidade> profundidades,
-        bool ehServicoDeSistema = false)
+        bool ehServicoDeSistema = false,
+        OrigemDaOperacao? origem = null,
+        int? sistemaId = null,
+        Guid? correlacaoId = null)
     {
         UsuarioId = usuarioId;
         NomeExibicao = nomeExibicao;
@@ -42,8 +56,23 @@ public sealed class ContextoAcesso
         SubordinadosIds = subordinadosIds;
         EquipesIds = equipesIds;
         EhServicoDeSistema = ehServicoDeSistema;
+        Origem = origem ?? (ehServicoDeSistema ? OrigemDaOperacao.Sistema : OrigemDaOperacao.Usuario);
+        SistemaId = sistemaId;
+        CorrelacaoId = correlacaoId ?? Guid.NewGuid();
         _profundidades = new Dictionary<string, Profundidade>(profundidades, StringComparer.Ordinal);
     }
+
+    /// <summary>
+    /// De onde vêm as gravações feitas sob este contexto — o que vai para
+    /// <c>auditoria.AlteracaoDeCampo.Origem</c>.
+    /// </summary>
+    public OrigemDaOperacao Origem { get; }
+
+    /// <summary>O sistema externo das gravações, quando há um.</summary>
+    public int? SistemaId { get; }
+
+    /// <summary>Identifica a requisição ou a execução; vai para <c>auditoria.AlteracaoDeCampo.CorrelacaoId</c>.</summary>
+    public Guid CorrelacaoId { get; }
 
     /// <summary>Quem está agindo.</summary>
     public long UsuarioId { get; }
@@ -64,9 +93,8 @@ public sealed class ContextoAcesso
     public IReadOnlySet<long> EquipesIds { get; }
 
     /// <summary>
-    /// Job ou integração. Enxerga tudo, mas **deixa rastro em <c>aud.EventoAcesso</c>** —
-    /// e o uso de <c>IgnoreQueryFilters</c> continua restrito a <c>Infraestrutura/Sistema/</c>,
-    /// verificado por teste de arquitetura.
+    /// Job ou integração. Enxerga tudo, e o que grava entra na trilha com a <see cref="Origem"/>
+    /// declarada — nunca como se fosse uma pessoa.
     /// </summary>
     public bool EhServicoDeSistema { get; }
 

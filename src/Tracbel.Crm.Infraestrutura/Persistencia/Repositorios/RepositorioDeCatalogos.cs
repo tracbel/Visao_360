@@ -25,16 +25,22 @@ public sealed class RepositorioDeCatalogos(CrmDbContext contexto) : IRepositorio
     /// <summary>O código do catálogo sintético que lista os modelos de máquina.</summary>
     public const string CodigoDeModelo = "MODELO_EQUIPAMENTO";
 
+    /// <summary>O código do catálogo sintético que lista as classificações de produto.</summary>
+    public const string CodigoDeLinhaDeProduto = "LINHA_DE_PRODUTO";
+
     /// <inheritdoc />
     public async Task<IReadOnlyList<CatalogoParaSelecao>> ListarAsync(string? codigo, CancellationToken ct)
     {
         var resultado = new List<CatalogoParaSelecao>();
 
-        if (codigo is null || (codigo != CodigoDeEmpresa && codigo != CodigoDeModelo))
+        if (codigo is null || (codigo != CodigoDeEmpresa && codigo != CodigoDeModelo && codigo != CodigoDeLinhaDeProduto))
             resultado.AddRange(await LerDeMetadadoAsync(codigo, ct));
 
         if (codigo is null || codigo == CodigoDeModelo)
             resultado.Add(await LerModelosAsync(ct));
+
+        if (codigo is null || codigo == CodigoDeLinhaDeProduto)
+            resultado.Add(await LerLinhasDeProdutoAsync(ct));
 
         if (codigo is null || codigo == CodigoDeEmpresa)
             resultado.Add(await LerFiliaisAsync(ct));
@@ -69,6 +75,31 @@ public sealed class RepositorioDeCatalogos(CrmDbContext contexto) : IRepositorio
          where m.Codigo == codigo && m.EstaAtivo
          select new ModeloParaSelecao(m.Id, m.Codigo, m.Nome, f.Nome, ma.Nome, ma.EhRepresentada))
         .FirstOrDefaultAsync(ct);
+
+    /// <inheritdoc />
+    public Task<LinhaDeProdutoParaSelecao?> ObterLinhaDeProdutoAsync(string codigo, CancellationToken ct) =>
+        contexto.LinhasDeProduto.AsNoTracking()
+            .Where(l => l.Codigo == codigo && l.EstaAtiva)
+            .Select(l => new LinhaDeProdutoParaSelecao(l.Id, l.Codigo, l.Nome, l.Porte))
+            .FirstOrDefaultAsync(ct);
+
+    private async Task<CatalogoParaSelecao> LerLinhasDeProdutoAsync(CancellationToken ct)
+    {
+        var linhas = await contexto.LinhasDeProduto.AsNoTracking()
+            .Where(l => l.EstaAtiva)
+            .OrderBy(l => l.Nome)
+            .Select(l => new { l.Codigo, l.Nome, l.Porte })
+            .ToListAsync(ct);
+
+        return new CatalogoParaSelecao(
+            CodigoDeLinhaDeProduto,
+            "Classificação de produto",
+            "A categoria comercial da máquina — trator pequeno, médio e grande, colhedora de cana, " +
+            "pulverizador. Aponta para a família compatível do catálogo, sem substituí-la. O de-para " +
+            "das linhas do ART é explícito (documento 35, seção 10).",
+            PermiteItemNovo: false,
+            [.. linhas.Select((l, ordem) => new ItemParaSelecao(l.Codigo, l.Nome, (short)(ordem + 1), false))]);
+    }
 
     private async Task<List<CatalogoParaSelecao>> LerDeMetadadoAsync(string? codigo, CancellationToken ct)
     {

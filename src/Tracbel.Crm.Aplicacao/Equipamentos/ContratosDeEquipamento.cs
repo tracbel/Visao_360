@@ -10,14 +10,24 @@ namespace Tracbel.Crm.Aplicacao.Equipamentos;
 /// <param name="ModeloNome">Nome do modelo. Ex.: 7250R.</param>
 /// <param name="Marca">Marca do modelo.</param>
 /// <param name="MarcaRepresentada">Falso quando é máquina de concorrente — o que a Cobertura usa.</param>
-/// <param name="Situacao">Estoque, Ativo, Vendido ou Baixado.</param>
-/// <param name="Origem">Protheus (ativo faturado) ou Crm (declarado pelo CEN).</param>
+/// <param name="Situacao">Estoque, Ativo, Vendido, Baixado ou ProprietarioNaoConfirmado.</param>
+/// <param name="Origem">Protheus (ativo faturado), Crm (declarado pelo CEN) ou Art (venda registrada no ART).</param>
 /// <param name="AnoModelo">Ano do modelo.</param>
 /// <param name="ClienteChave">O GUID do dono, quando a máquina tem dono.</param>
 /// <param name="ClienteNome">A razão social do dono.</param>
 /// <param name="CriadoEm">Quando o cadastro nasceu (UTC).</param>
 /// <param name="AlteradoEm">Última alteração (UTC).</param>
 /// <param name="EstaInativo">Se a máquina foi baixada.</param>
+/// <param name="ClassificacaoCodigo">A classificação de produto. Ex.: TRATOR_MEDIO.</param>
+/// <param name="ClassificacaoNome">O nome da classificação. Ex.: Trator médio.</param>
+/// <param name="Porte">O porte da classificação.</param>
+/// <param name="Vendas">Quantas vendas a máquina tem registradas.</param>
+/// <param name="UltimaVendaEm">A data da venda mais recente.</param>
+/// <param name="CompradorNaUltimaVendaChave">O comprador NA venda mais recente — não é o dono atual.</param>
+/// <param name="CompradorNaUltimaVendaNome">O nome desse comprador.</param>
+/// <param name="NaturezaDoVinculo">A natureza do vínculo do comprador: CompradorNaVenda.</param>
+/// <param name="ProdutoNaOrigem">O produto como a origem da venda escreve.</param>
+/// <param name="SistemaDaVenda">O sistema de onde a venda veio.</param>
 public sealed record EquipamentoResumo(
     Guid Chave,
     string Chassi,
@@ -32,7 +42,17 @@ public sealed record EquipamentoResumo(
     string? ClienteNome,
     DateTime CriadoEm,
     DateTime? AlteradoEm,
-    bool EstaInativo)
+    bool EstaInativo,
+    string? ClassificacaoCodigo,
+    string? ClassificacaoNome,
+    string? Porte,
+    int Vendas,
+    DateOnly? UltimaVendaEm,
+    Guid? CompradorNaUltimaVendaChave,
+    string? CompradorNaUltimaVendaNome,
+    string? NaturezaDoVinculo,
+    string? ProdutoNaOrigem,
+    string? SistemaDaVenda)
 {
     /// <summary>Traduz a leitura para o que a listagem mostra.</summary>
     public static EquipamentoResumo De(EquipamentoComContexto leitura)
@@ -52,7 +72,17 @@ public sealed record EquipamentoResumo(
             leitura.ClienteNome,
             e.CriadoEm,
             e.AlteradoEm,
-            e.EstaExcluido);
+            e.EstaExcluido,
+            leitura.Classificacao?.Codigo,
+            leitura.Classificacao?.Nome,
+            leitura.Classificacao?.Porte.ToString(),
+            leitura.UltimaVenda?.Vendas ?? 0,
+            leitura.UltimaVenda?.VendidaEm,
+            leitura.UltimaVenda?.CompradorChave,
+            leitura.UltimaVenda?.CompradorNome,
+            leitura.UltimaVenda is null ? null : nameof(NaturezaDoVinculoComEquipamento.CompradorNaVenda),
+            leitura.UltimaVenda?.ProdutoNaOrigem,
+            leitura.UltimaVenda?.SistemaCodigo);
     }
 }
 
@@ -79,6 +109,17 @@ public sealed record EquipamentoResumo(
 /// <param name="AlteradoEm">Última alteração (UTC).</param>
 /// <param name="EstaInativo">Se foi baixada.</param>
 /// <param name="Versao">O carimbo de concorrência, em base64. Devolva-o no PUT.</param>
+/// <param name="ClassificacaoCodigo">A classificação de produto.</param>
+/// <param name="ClassificacaoNome">O nome da classificação.</param>
+/// <param name="Porte">O porte.</param>
+/// <param name="Vendas">Quantas vendas a máquina tem.</param>
+/// <param name="UltimaVendaEm">A data da venda mais recente.</param>
+/// <param name="CompradorNaUltimaVendaChave">O comprador na venda mais recente.</param>
+/// <param name="CompradorNaUltimaVendaNome">O nome dele.</param>
+/// <param name="NaturezaDoVinculo">CompradorNaVenda, quando há venda.</param>
+/// <param name="ProdutoNaOrigem">O produto como a origem escreve.</param>
+/// <param name="SistemaDaVenda">O sistema de origem da venda.</param>
+/// <param name="DivergenciasAbertas">As divergências abertas entre ART, CRM e Protheus sobre esta máquina.</param>
 public sealed record EquipamentoDetalhe(
     Guid Chave,
     string Chassi,
@@ -101,7 +142,18 @@ public sealed record EquipamentoDetalhe(
     DateTime CriadoEm,
     DateTime? AlteradoEm,
     bool EstaInativo,
-    string? Versao)
+    string? Versao,
+    string? ClassificacaoCodigo,
+    string? ClassificacaoNome,
+    string? Porte,
+    int Vendas,
+    DateOnly? UltimaVendaEm,
+    Guid? CompradorNaUltimaVendaChave,
+    string? CompradorNaUltimaVendaNome,
+    string? NaturezaDoVinculo,
+    string? ProdutoNaOrigem,
+    string? SistemaDaVenda,
+    IReadOnlyList<DivergenciaDaMaquina> DivergenciasAbertas)
 {
     /// <summary>Traduz a leitura para a ficha.</summary>
     public static EquipamentoDetalhe De(EquipamentoComContexto leitura)
@@ -129,7 +181,18 @@ public sealed record EquipamentoDetalhe(
             e.CriadoEm,
             e.AlteradoEm,
             e.EstaExcluido,
-            e.Versao is null ? null : Convert.ToBase64String(e.Versao));
+            e.Versao is null ? null : Convert.ToBase64String(e.Versao),
+            leitura.Classificacao?.Codigo,
+            leitura.Classificacao?.Nome,
+            leitura.Classificacao?.Porte.ToString(),
+            leitura.UltimaVenda?.Vendas ?? 0,
+            leitura.UltimaVenda?.VendidaEm,
+            leitura.UltimaVenda?.CompradorChave,
+            leitura.UltimaVenda?.CompradorNome,
+            leitura.UltimaVenda is null ? null : nameof(NaturezaDoVinculoComEquipamento.CompradorNaVenda),
+            leitura.UltimaVenda?.ProdutoNaOrigem,
+            leitura.UltimaVenda?.SistemaCodigo,
+            leitura.Divergencias ?? []);
     }
 }
 
@@ -147,6 +210,7 @@ public sealed record EquipamentoDetalhe(
 /// <param name="NumeroSerie">Número de série.</param>
 /// <param name="Placa">Placa.</param>
 /// <param name="LocalizacaoDescrita">Onde a máquina opera, na descrição do CEN.</param>
+/// <param name="LinhaDeProdutoCodigo">A classificação de produto, do catálogo LINHA_DE_PRODUTO. Opcional.</param>
 public sealed record NovoEquipamento(
     string? Chassi = null,
     string? ModeloCodigo = null,
@@ -157,7 +221,8 @@ public sealed record NovoEquipamento(
     string? AnoModelo = null,
     string? NumeroSerie = null,
     string? Placa = null,
-    string? LocalizacaoDescrita = null);
+    string? LocalizacaoDescrita = null,
+    string? LinhaDeProdutoCodigo = null);
 
 /// <summary>
 /// O que o <c>PUT</c> de equipamento aceita.
@@ -175,6 +240,9 @@ public sealed record NovoEquipamento(
 /// <param name="Placa">Placa.</param>
 /// <param name="LocalizacaoDescrita">Onde a máquina opera.</param>
 /// <param name="Versao">O carimbo de concorrência lido no GET, em base64.</param>
+/// <param name="LinhaDeProdutoCodigo">
+/// A classificação de produto. Ausente mantém a atual; texto vazio retira a classificação.
+/// </param>
 public sealed record AlteracaoDeEquipamento(
     string? ModeloCodigo = null,
     string? ClienteChave = null,
@@ -184,7 +252,8 @@ public sealed record AlteracaoDeEquipamento(
     string? NumeroSerie = null,
     string? Placa = null,
     string? LocalizacaoDescrita = null,
-    string? Versao = null);
+    string? Versao = null,
+    string? LinhaDeProdutoCodigo = null);
 
 /// <summary>O que o <c>DELETE</c> de equipamento aceita.</summary>
 /// <param name="Versao">O carimbo de concorrência lido no GET, em base64.</param>

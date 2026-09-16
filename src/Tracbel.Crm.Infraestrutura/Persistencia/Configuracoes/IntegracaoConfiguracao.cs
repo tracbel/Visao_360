@@ -93,100 +93,6 @@ public sealed class PontoDeSincronismoConfiguracao : IEntityTypeConfiguration<Po
     }
 }
 
-/// <summary>
-/// Mapeamento de <see cref="Recepcao"/>.
-///
-/// PARTICIONADA POR MÊS na migração inicial, e expurgada pela própria coluna de expurgo.
-/// [V] as 77 tabelas de staging permanentes do Vórtice guardam 19,4 milhões de linhas que
-/// nunca saem de lá.
-/// </summary>
-public sealed class RecepcaoConfiguracao : IEntityTypeConfiguration<Recepcao>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<Recepcao> b)
-    {
-        b.ToTable("Recepcao", "integracao");
-        b.HasKey(r => new { r.Id, r.RecebidaEm });
-        b.Property(r => r.Id).ValueGeneratedOnAdd();
-
-        b.Property(r => r.Entidade).HasMaxLength(40).IsUnicode(false).IsRequired();
-        b.Property(r => r.ChaveOrigem).HasMaxLength(200).IsUnicode(false).IsRequired();
-
-        // JSON: o conteúdo chega íntegro. Guardar como texto solto seria repetir o Vórtice,
-        // onde o campo não mapeado some. No SQL Server, JSON é nvarchar(max) com
-        // CHECK (ISJSON(...) = 1) — o banco recusa documento malformado, e OPENJSON/JSON_VALUE
-        // consultam por dentro quando preciso.
-        b.Property(r => r.Conteudo).HasColumnType("nvarchar(max)").IsRequired();
-
-        b.Property(r => r.Situacao).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
-        b.Property(r => r.Erro).HasMaxLength(4000).IsUnicode(true);
-        b.Property(r => r.RecebidaEm).HasPrecision(3).IsRequired();
-        b.Property(r => r.ProcessadaEm).HasPrecision(3);
-        b.Property(r => r.ExpurgarApos).HasPrecision(3).IsRequired();
-
-        // A fila de trabalho: o que chegou e ainda não foi processado.
-        b.HasIndex(r => new { r.Entidade, r.RecebidaEm }).HasFilter("[Situacao] = 'Recebida'");
-        b.HasIndex(r => new { r.SistemaId, r.ChaveOrigem });
-        b.HasIndex(r => r.ExpurgarApos);
-
-        b.HasOne<Sistema>().WithMany().HasForeignKey(r => r.SistemaId).OnDelete(DeleteBehavior.Restrict);
-
-        b.ToTable(x => x.HasCheckConstraint(
-            "CK_Recepcao_Situacao", "[Situacao] IN ('Recebida','Processada','Falhou','Ignorada')"));
-
-        // Falhou? Então diz por quê. Processou? Então tem data.
-        b.ToTable(x => x.HasCheckConstraint(
-            "CK_Recepcao_Desfecho",
-            "([Situacao] <> 'Falhou' OR [Erro] IS NOT NULL) " +
-            "AND ([Situacao] <> 'Processada' OR [ProcessadaEm] IS NOT NULL)"));
-
-        // Staging sem data de expurgo é staging permanente — exatamente o que não pode voltar
-        // a acontecer.
-        b.ToTable(x => x.HasCheckConstraint("CK_Recepcao_Expurgo", "[ExpurgarApos] > [RecebidaEm]"));
-
-        // O documento recebido precisa ser JSON de verdade. No PostgreSQL o proprio tipo
-        // jsonb recusava a entrada malformada; no SQL Server quem recusa e este CHECK.
-        b.ToTable(x => x.HasCheckConstraint("CK_Recepcao_ConteudoJson", "ISJSON([Conteudo]) = 1"));
-    }
-}
-
-/// <summary>Mapeamento de <see cref="MensagemDeSaida"/> — a fila de saída transacional.</summary>
-public sealed class MensagemDeSaidaConfiguracao : IEntityTypeConfiguration<MensagemDeSaida>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<MensagemDeSaida> b)
-    {
-        b.ToTable("MensagemDeSaida", "integracao");
-        b.HasKey(m => m.Id);
-        b.Property(m => m.Id).ValueGeneratedOnAdd();
-
-        b.Property(m => m.Tipo).HasMaxLength(60).IsUnicode(false).IsRequired();
-        b.Property(m => m.Conteudo).HasColumnType("nvarchar(max)").IsRequired();
-        b.ToTable(x => x.HasCheckConstraint("CK_MensagemDeSaida_ConteudoJson", "ISJSON([Conteudo]) = 1"));
-        b.Property(m => m.CorrelacaoId).IsRequired();
-        b.Property(m => m.Situacao).HasConversion<string>().HasMaxLength(30).IsUnicode(false).IsRequired();
-        b.Property(m => m.Tentativas).IsRequired();
-        b.Property(m => m.UltimoErro).HasMaxLength(2000).IsUnicode(true);
-        b.Property(m => m.ProximaTentativaEm).HasPrecision(3);
-        b.Property(m => m.CriadoEm).HasPrecision(3).IsRequired();
-        b.Property(m => m.EntregueEm).HasPrecision(3);
-
-        // A fila: só o que está pendente entra no índice.
-        b.HasIndex(m => m.ProximaTentativaEm).HasFilter("[Situacao] = 'Pendente'");
-        b.HasIndex(m => m.CorrelacaoId);
-        b.HasIndex(m => m.SistemaId);
-
-        b.HasOne<Sistema>().WithMany().HasForeignKey(m => m.SistemaId).OnDelete(DeleteBehavior.Restrict);
-
-        b.ToTable(x => x.HasCheckConstraint(
-            "CK_MensagemDeSaida_Situacao",
-            "[Situacao] IN ('Pendente','Entregue','Falhou','DescartadaAposLimite')"));
-        b.ToTable(x => x.HasCheckConstraint("CK_MensagemDeSaida_Tentativas", "[Tentativas] >= 0"));
-        b.ToTable(x => x.HasCheckConstraint(
-            "CK_MensagemDeSaida_Entrega", "[Situacao] <> 'Entregue' OR [EntregueEm] IS NOT NULL"));
-    }
-}
-
 /// <summary>Mapeamento de <see cref="MensagemDescartada"/> — a fila de descarte.</summary>
 public sealed class MensagemDescartadaConfiguracao : IEntityTypeConfiguration<MensagemDescartada>
 {
@@ -208,11 +114,8 @@ public sealed class MensagemDescartadaConfiguracao : IEntityTypeConfiguration<Me
 
         // A fila que alguém precisa olhar: o que foi descartado e ainda não foi tratado.
         b.HasIndex(m => new { m.Fluxo, m.DescartadaEm }).HasFilter("[TratadaEm] IS NULL");
-        b.HasIndex(m => m.MensagemDeSaidaId);
         b.HasIndex(m => m.TratadaPorId);
 
-        b.HasOne<MensagemDeSaida>().WithMany().HasForeignKey(m => m.MensagemDeSaidaId)
-            .OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Usuario>().WithMany().HasForeignKey(m => m.TratadaPorId).OnDelete(DeleteBehavior.Restrict);
 
         b.ToTable(x => x.HasCheckConstraint("CK_MensagemDescartada_Tentativas", "[Tentativas] >= 0"));

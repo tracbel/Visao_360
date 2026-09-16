@@ -59,7 +59,16 @@ public enum TipoDeFalha
     Concorrencia = 4,
 
     /// <summary>Um sistema de fora não respondeu. Não é culpa de quem chamou.</summary>
-    DependenciaIndisponivel = 5
+    DependenciaIndisponivel = 5,
+
+    /// <summary>
+    /// Quem pediu é conhecido, o pedido é válido, e o perfil dele não alcança o que pediu.
+    ///
+    /// <para>Não é <see cref="NaoEncontrado"/>: aqui não há registro a esconder — é uma visão
+    /// inteira (por exemplo, a empresa consolidada) que o perfil não abre, e dizer isso é o que
+    /// deixa a tela explicar o botão desligado.</para>
+    /// </summary>
+    SemPermissao = 6
 }
 
 /// <summary>
@@ -143,6 +152,10 @@ public readonly struct Resultado<T>
     /// <summary>Um sistema de fora não respondeu. O resto da aplicação segue de pé.</summary>
     public static Resultado<T> Indisponivel(string erro) =>
         new(false, default, erro, TipoDeFalha.DependenciaIndisponivel, null);
+
+    /// <summary>O perfil de quem pediu não alcança o que foi pedido.</summary>
+    public static Resultado<T> SemPermissao(string erro) =>
+        new(false, default, erro, TipoDeFalha.SemPermissao, null);
 }
 
 /// <summary>

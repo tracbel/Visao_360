@@ -1,6 +1,6 @@
 # Segurança e permissões — CRM Tracbel
 
-> **Documento 05 de 07** · Versão 1.0 · 30/08/2026
+> **Documento 05 de 07** · Versão 1.1 · 16/09/2026 (§11A: segredos medidos, issue #1) · 1.0 em 30/08/2026
 > Modelo derivado de `[DYN]` matriz privilégio × profundidade e `[SF]` permission sets + sharing,
 > cortado ao tamanho de 130 usuários. `[V]` = defeito medido no Vórtice.
 
@@ -355,6 +355,124 @@ expurgadas. Auditoria que ninguém consegue ler não é auditoria: é custo de d
 | Dependências | Dependabot + `dotnet list package --vulnerable` no CI |
 | Transporte | TLS 1.2+ obrigatório, inclusive na LAN |
 | Backup | diário com **teste de restauração mensal**. `[V]` o terminal server do Vórtice está **sem backup** — a tarefa de System State está desabilitada |
+
+---
+
+## 11A. Segredos hoje — medido em 16/09/2026
+
+> Issue #1 `[001]` do backlog mestre (doc 46A). A linha "Segredos" do §11 diz **para onde vamos**
+> (Key Vault ou DPAPI). Esta seção diz **onde estamos**, com o comando que qualquer um repete.
+> Nenhum valor aparece aqui — só nomes.
+
+### Onde cada segredo mora
+
+| Arquivo | No Git | Guarda | Nomes em |
+|---|---|---|---|
+| `.env` na raiz | não (`.gitignore`) | integrações: Protheus (REST e banco), ART, Entra ID, API Gestão de Negócios | `.env.exemplo` na raiz |
+| `infra/.env` | não (`.gitignore`) | banco local do contêiner (`DB_*`) | `infra/.env.exemplo` |
+
+No servidor, a aplicação lê as mesmas credenciais como variável de ambiente no formato de seção do
+.NET (`Protheus__Senha`, `Entra__…`), nunca de `appsettings.json`. O que `publicar.ps1` ainda não
+repassa — `TOTVS_API_*` — é a #18.
+
+`git check-ignore` confirma que `.env`, `.env.*` (menos os `.env.exemplo`), `*.bak`, `publicacao/`
+e `dados-locais/` continuam fora do Git.
+
+### A chave da API Gestão de Negócios
+
+- **Antes:** `API_TOKEN` — nome genérico, sem nenhum uso no código.
+- **Agora:** `GESTAO_NEGOCIOS_API_URL` e `GESTAO_NEGOCIOS_API_TOKEN` no `.env` da raiz; no servidor,
+  `GestaoDeNegocios__Base` e `GestaoDeNegocios__Chave`.
+- **Ninguém usa a chave ainda.** O cliente HTTP é a #13, e só se escreve depois do contrato (#12) e
+  da chave de cliente (#50). Até lá a chave fica guardada, sem chamada.
+
+### A varredura
+
+```powershell
+./scripts/seguranca/varrer-segredos.ps1 -Relatorio dados-locais/varredura-segredos-AAAAMMDD.md
+```
+
+Lê os arquivos rastreados, os novos ainda não ignorados e **todo o histórico** (`git log --all -p`).
+Procura **por padrão, nunca por valor**:
+
+| Padrão | O que pega |
+|---|---|
+| `cadeia-de-conexao` | `Password=` e `Pwd=` com valor |
+| `atribuicao-entre-aspas` | senha, password, secret, api key, token recebendo texto entre aspas |
+| `variavel-de-ambiente` | `NOME_COM_SENHA/PASSWORD/SECRET/TOKEN/_KEY=valor` |
+| `chave-privada` | bloco `BEGIN … PRIVATE KEY` |
+| `token-do-github`, `jwt`, `segredo-de-aplicativo-entra`, `chave-aws` | formatos conhecidos |
+
+Cada achado sai numa de três classes, e o valor sai sempre como `«oculto:N»` (N = tamanho):
+
+- **REFERENCIA** — não é segredo: nome de variável, `***`/`REDIGIDO`, a própria definição de um padrão,
+  ou texto curto demais para ser credencial.
+- **TESTE** — valor inventado dentro de `tests/`, que existe para provar o mascaramento.
+- **SUSPEITO** — o resto. **Um único suspeito faz o script sair com código 1.**
+
+**Resultado de 16/09/2026** (HEAD `cb05b7c` + árvore de trabalho):
+
+| Arquivos lidos | Commits | Achados | REFERENCIA | TESTE | SUSPEITO |
+|---|---|---|---|---|---|
+| 1460 | 18 | 82 | 76 | 6 | **0** |
+
+**Prova de que o script detecta:** um arquivo temporário com oito segredos inventados, um por padrão,
+deu oito SUSPEITO e código 1. O arquivo foi apagado em seguida.
+
+**Limites:**
+
+- É **por padrão**. Um segredo colado sem nome reconhecível ao lado passa.
+- **Não lê arquivo ignorado** (`.env`, `.env.bak-*`), de propósito: quem roda a varredura não precisa
+  ver valor nenhum.
+
+### A mensagem de erro não carrega credencial
+
+`Sigilo.Mascarar` (`Tracbel.Crm.Integracao/Sigilo.cs`) troca por `***` cada valor secreto informado
+e todo trecho `Password=` ou `Pwd=` de cadeia de conexão. Antes ficava dentro da sincronização do ART; agora é compartilhado.
+
+| Integração | O que sai na mensagem | Teste |
+|---|---|---|
+| ART | passa por `Sigilo.Mascarar` | `SincronizacaoDoArtTestes` (2) |
+| Protheus REST | passa por `Sigilo.Mascarar` com usuário e senha, na autenticação e na leitura de página | `SigiloDaPonteDoProtheusTestes` (3) |
+| Vórtice | texto genérico; o detalhe fica no log do servidor | sem teste de mascaramento; congelado (#20) |
+| API Gestão de Negócios | não há cliente | nasce com a #13; teste na #41 |
+
+Os testes do Protheus forçam o pior caso: uma exceção de rede que cita usuário, senha e
+`password=` na URL. **Com o mascaramento desligado, dois dos três falham**: o teste foi rodado assim e o
+código voltou. O terceiro impede que a senha volte para a URL do pedido de token.
+
+### Pedido de rotação da chave da API Gestão de Negócios
+
+**Situação:** redigido em 16/09/2026. **Quem envia:** o responsável pelo projeto, à equipe dona da
+API (Inteligência de Mercado). **Envio:** data, canal e protocolo a preencher quando sair.
+
+> **Assunto:** Rotação preventiva da chave da API Gestão de Negócios usada pelo CRM Tracbel (Visão 360)
+>
+> Pedimos a emissão de uma chave nova para o CRM Tracbel (Visão 360) e a revogação da chave atual.
+>
+> **Por quê:** a chave atual ficou guardada num arquivo local de configuração, com um nome genérico, antes
+> de haver regra para ela. Uma varredura no repositório, incluindo todo o histórico, não achou a chave em
+> arquivo versionado. A rotação é preventiva e acontece antes do primeiro uso.
+>
+> **O que pedimos:**
+>
+> 1. Uma chave nova, identificada como "CRM Tracbel — Visão 360", só com leitura.
+> 2. Entrega por canal seguro, nunca em texto aberto por e-mail ou chat.
+> 3. A data de revogação da chave atual.
+> 4. A validade da chave nova e como se pede a próxima rotação.
+> 5. Se as chamadas ficam registradas do lado da API, e por quanto tempo.
+>
+> O CRM ainda não chama a API. A chave nova fica guardada como variável de ambiente, fora do código e do
+> Git, até o contrato de uso ser combinado.
+
+### O que fica pendente
+
+- **A Carga imprime a mensagem crua da exceção** no console de quem a roda. Risco baixo: só quem opera vê,
+  na própria estação.
+- **`.env.bak-20260909-174719` na raiz local.** Está fora do Git, mas pelo nome é uma cópia antiga do
+  `.env`. Apagar depois da rotação.
+- **Protheus em HTTP puro** (doc 28) e **`publicar.ps1` sem `TOTVS_API_*`** (#18).
+- **Key Vault ou DPAPI** (§11) continua sendo o alvo. Hoje, o segredo fica em variável de ambiente.
 
 ---
 

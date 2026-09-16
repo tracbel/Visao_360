@@ -1,0 +1,304 @@
+/* Indicadores geográficos da ADR (documento 32). Só tokens do design system. */
+
+/* O cartão do design system não tem espaçamento interno sem cabeçalho; estes têm conteúdo solto. */
+.terr-cartao {
+  padding: 14px 16px;
+}
+
+.terr-alcance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.terr-alcance strong {
+  color: var(--text-primary);
+}
+
+.terr-filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px 16px;
+  align-items: start;
+}
+
+.terr-filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.terr-filtro input,
+.terr-filtro select {
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font: inherit;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.terr-filtro select:disabled {
+  background: var(--bg-hover);
+  color: var(--text-tertiary);
+}
+
+.terr-filtro-motivo {
+  font-weight: 400;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.terr-alternador {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.terr-alternador button {
+  border: 0;
+  background: var(--bg-surface);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.terr-alternador button[aria-pressed='true'] {
+  background: var(--jd-green);
+  color: var(--text-inverse);
+}
+
+.terr-grade-mapas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (max-width: 1100px) {
+  .terr-grade-mapas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.terr-mapa {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+/* A LINHA DE NÚMEROS DE CADA MAPA: o total que a cor distribui, logo abaixo do título. */
+.terr-mapa-resumo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jd-green-dark);
+}
+
+/* O município sob o cursor. Altura mínima de duas linhas: sem ela, o mapa pula a cada troca de foco. */
+.terr-mapa-foco {
+  min-height: 2.6em;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.terr-periodo {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.terr-alternador button:disabled {
+  cursor: not-allowed;
+  color: var(--text-tertiary);
+  background: var(--bg-hover);
+}
+
+.terr-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: var(--bg-surface);
+}
+
+.terr-poligono {
+  cursor: pointer;
+}
+
+.terr-poligono:hover {
+  filter: brightness(0.92);
+}
+
+.terr-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.terr-legenda-unidade {
+  width: 100%;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.terr-legenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.terr-amostra {
+  width: 16px;
+  height: 10px;
+  border: 1px solid rgba(15, 22, 19, 0.12);
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.terr-amostra-hachura {
+  background: repeating-linear-gradient(45deg, #f3f4f6 0 2px, #9ca3af 2px 3.5px);
+}
+
+.terr-aviso {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  background: var(--warning-bg);
+  color: #7c2d12;
+}
+
+.terr-aviso-alerta {
+  background: var(--danger-bg);
+  color: #7f1d1d;
+}
+
+.terr-detalhe {
+  margin-top: 16px;
+}
+
+.terr-detalhe-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px 24px;
+  padding: 0 16px 16px;
+}
+
+/* A TABELA DE RESPONSÁVEIS OCUPA A LINHA INTEIRA. Numa coluna de 260 px ela
+   vazava por cima da cobertura e das vendas — visto na captura de 13/09/2026. */
+.terr-detalhe-responsaveis {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.terr-detalhe-grade > section {
+  min-width: 0;
+}
+
+.terr-detalhe-titulo {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.terr-numeros {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.terr-numeros dt {
+  color: var(--text-secondary);
+}
+
+.terr-numeros dd {
+  margin: 0;
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.terr-tabela-compacta td,
+.terr-tabela-compacta th {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.terr-tabela-municipios {
+  max-height: 520px;
+  overflow: auto;
+}
+
+.terr-tabela-municipios td.cad-mono {
+  white-space: nowrap;
+}
+
+.terr-tabela-municipios tr[aria-current='true'] td {
+  background: var(--info-bg);
+}
+
+.terr-linha-total td {
+  font-weight: 700;
+  background: var(--bg-hover);
+}
+
+/* O SELO DE COMO LER UM INDICADOR (documento 32, seção 2): regra provisória e estimativa nunca
+   aparecem com a mesma cara de um número medido. */
+.terr-selo {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.terr-selo-RegraComercialProvisoria,
+.terr-selo-FonteAConfirmar {
+  background: var(--warning-bg);
+  color: #7c2d12;
+}
+
+.terr-selo-Estimativa {
+  background: var(--info-bg);
+  color: var(--text-primary);
+}
+
+.terr-classificacoes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.terr-classificacao .terr-selo {
+  margin-left: 0;
+  margin-right: 4px;
+}

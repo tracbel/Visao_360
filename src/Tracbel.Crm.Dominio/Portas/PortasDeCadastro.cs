@@ -80,6 +80,11 @@ public sealed record ConsultaDeClientes(
 /// <param name="Ordem">Coluna de ordenação.</param>
 /// <param name="Descendente">Ordem decrescente.</param>
 /// <param name="IncluirInativos">Traz também os baixados. Padrão é não trazer.</param>
+/// <param name="LinhaDeProdutoCodigo">
+/// Filtro pela classificação de produto; <see cref="SemClassificacao"/> traz as máquinas sem nenhuma.
+/// </param>
+/// <param name="Porte">Filtro pelo porte da classificação — trator pequeno, médio, grande.</param>
+/// <param name="SomenteComVenda">Só as máquinas com venda registrada (ART).</param>
 public sealed record ConsultaDeEquipamentos(
     Paginacao Paginacao,
     string? Termo = null,
@@ -89,7 +94,44 @@ public sealed record ConsultaDeEquipamentos(
     int? ModeloId = null,
     OrdemDeEquipamento Ordem = OrdemDeEquipamento.Chassi,
     bool Descendente = false,
-    bool IncluirInativos = false);
+    bool IncluirInativos = false,
+    string? LinhaDeProdutoCodigo = null,
+    PorteDeMaquina? Porte = null,
+    bool SomenteComVenda = false)
+{
+    /// <summary>O valor do filtro de classificação que traz as máquinas ainda sem classificação.</summary>
+    public const string SemClassificacao = "SEM_CLASSIFICACAO";
+}
+
+/// <summary>A classificação de produto de uma máquina, como a tela a mostra.</summary>
+/// <param name="Codigo">O código estável. Ex.: TRATOR_MEDIO.</param>
+/// <param name="Nome">O nome. Ex.: Trator médio.</param>
+/// <param name="Porte">O porte.</param>
+public sealed record ClassificacaoDaMaquina(string Codigo, string Nome, PorteDeMaquina Porte);
+
+/// <summary>Uma classificação de produto do catálogo, com o identificador para gravar.</summary>
+/// <param name="Id">O identificador interno.</param>
+/// <param name="Codigo">O código estável.</param>
+/// <param name="Nome">O nome.</param>
+/// <param name="Porte">O porte.</param>
+public sealed record LinhaDeProdutoParaSelecao(int Id, string Codigo, string Nome, PorteDeMaquina Porte);
+
+/// <summary>
+/// A venda mais recente de uma máquina e quem foi o COMPRADOR NELA — que não é, por isso, o dono atual.
+/// </summary>
+/// <param name="Vendas">Quantas vendas a máquina tem.</param>
+/// <param name="VendidaEm">A data da venda mais recente.</param>
+/// <param name="CompradorChave">O GUID do comprador, quando ele está ao alcance de quem consulta.</param>
+/// <param name="CompradorNome">O nome do comprador.</param>
+/// <param name="ProdutoNaOrigem">O produto como a origem escreve.</param>
+/// <param name="SistemaCodigo">O sistema de onde a venda veio.</param>
+public sealed record UltimaVendaDaMaquina(
+    int Vendas,
+    DateOnly? VendidaEm,
+    Guid? CompradorChave,
+    string? CompradorNome,
+    string? ProdutoNaOrigem,
+    string? SistemaCodigo);
 
 /// <summary>
 /// Um cliente junto do que a tela precisa mostrar ao lado dele: os CÓDIGOS dos itens de catálogo
@@ -114,19 +156,30 @@ public sealed record ClienteComContexto(Cliente Cliente, string? OrigemCodigo, s
 /// <param name="ClienteChave">O GUID público do dono, ou nulo quando a máquina está em estoque.</param>
 /// <param name="ClienteNome">A razão social do dono, para a listagem não precisar de outra chamada.</param>
 /// <param name="Modelo">O modelo resolvido, ou nulo se o catálogo perdeu a linha.</param>
+/// <param name="Classificacao">A classificação de produto, quando a máquina tem uma.</param>
+/// <param name="UltimaVenda">A venda mais recente e o comprador nela, quando a máquina tem venda.</param>
+/// <param name="Divergencias">As divergências abertas da máquina — só na ficha, não na listagem.</param>
 public sealed record EquipamentoComContexto(
     Equipamento Equipamento,
     Guid? ClienteChave,
     string? ClienteNome,
-    ModeloParaSelecao? Modelo);
+    ModeloParaSelecao? Modelo,
+    ClassificacaoDaMaquina? Classificacao = null,
+    UltimaVendaDaMaquina? UltimaVenda = null,
+    IReadOnlyList<DivergenciaDaMaquina>? Divergencias = null);
+
+/// <summary>Uma divergência aberta entre ART, CRM e Protheus sobre esta máquina.</summary>
+/// <param name="Tipo">O tipo. Ex.: CompradorDiferenteDoProprietarioNoCrm.</param>
+/// <param name="Descricao">O que é.</param>
+/// <param name="DetectadaEm">Quando foi detectada (UTC).</param>
+public sealed record DivergenciaDaMaquina(string Tipo, string Descricao, DateTime DetectadaEm);
 
 /// <summary>
 /// O acesso ao cadastro de clientes.
 ///
 /// O QUE ESTA PORTA NÃO FAZ: decidir regra. Ela filtra o que o índice resolve e devolve
-/// entidades; quem decide é o caso de uso e a própria entidade. É a mesma divisão escrita em
-/// <see cref="IRepositorioRegras.ObterPorGatilhoAsync"/> — e é ela que impede o repositório de
-/// virar o lugar onde a lógica se esconde ([V] o defeito das 70 procedures que escrevem em
+/// entidades; quem decide é o caso de uso e a própria entidade. É essa divisão que impede o
+/// repositório de virar o lugar onde a lógica se esconde ([V] o defeito das 70 procedures que escrevem em
 /// tabela no legado).
 /// </summary>
 public interface IRepositorioClientes
@@ -211,6 +264,9 @@ public interface IRepositorioCatalogos
 
     /// <summary>O modelo de máquina pelo código estável, ou nulo se não existe.</summary>
     Task<ModeloParaSelecao?> ObterModeloAsync(string codigo, CancellationToken ct);
+
+    /// <summary>A classificação de produto pelo código estável, ou nula se não existe ou está inativa.</summary>
+    Task<LinhaDeProdutoParaSelecao?> ObterLinhaDeProdutoAsync(string codigo, CancellationToken ct);
 }
 
 /// <summary>

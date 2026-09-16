@@ -53,22 +53,16 @@ public sealed class TiposDeColunaTestes
     /// entrada aqui é uma decisão consciente, revisada em PR — não um esquecimento de
     /// <c>HasMaxLength</c>.
     ///
-    /// São exatamente as oito colunas de JSON do modelo. SETE guardam o documento inteiro e
-    /// nunca são consultadas por dentro; só <c>metadado.Resposta.ValorEstruturado</c> pode vir
-    /// a exigir consulta interna (escolha múltipla, matriz), e é para ela que
-    /// <c>OPENJSON</c> — ou um índice sobre coluna computada de <c>JSON_VALUE</c> — seria o
-    /// próximo passo. Registrado como observação no documento 20, seção 5.
+    /// ERAM OITO até a fase 1 (documento 41); sobrou UMA. As outras sete estavam em tabelas que
+    /// nunca receberam uma linha e saíram: <c>CampoPersonalizado.Validacao</c>,
+    /// <c>Recepcao.Conteudo</c>, <c>MensagemDeSaida.Conteudo</c>, <c>Relatorio.Definicao</c>,
+    /// <c>Lead.PayloadOriginal</c>, <c>Regra.EfeitoParametros</c> e
+    /// <c>Resposta.ValorEstruturado</c> — esta última era a única que podia vir a exigir consulta
+    /// por dentro do JSON, observação registrada no documento 20, seção 5, e que volta com ela.
     /// </summary>
     private static readonly HashSet<(string Tabela, string Coluna)> TextoIlimitadoJustificado =
     [
-        ("CampoPersonalizado", "Validacao"),       // regras de validação, variam por tipo de campo
-        ("Recepcao", "Conteudo"),                  // a linha crua recebida da integração
-        ("MensagemDeSaida", "Conteudo"),           // a mensagem da fila de saída
-        ("MensagemDescartada", "Conteudo"),        // a mensagem que a fila desistiu de entregar
-        ("Relatorio", "Definicao"),                // colunas, filtros e ordenação do relatório salvo
-        ("Lead", "PayloadOriginal"),               // o payload cru do RD Station, guardado sempre
-        ("Regra", "EfeitoParametros"),             // parâmetros do efeito, a forma varia por efeito
-        ("Resposta", "ValorEstruturado")           // resposta que não cabe em coluna escalar
+        ("MensagemDescartada", "Conteudo")         // a mensagem que a fila desistiu de entregar
     ];
 
     /// <summary>
@@ -335,10 +329,11 @@ public sealed class TiposDeColunaTestes
         // [V] IV_Agenda.Realizada é char(1) e aceita NULL — um "sim/não" que na prática tem
         // TRÊS estados, e o terceiro (NULL) nunca foi uma decisão de negócio.
         //
-        // A exceção documentada é metadado.Resposta.ValorBooleano: ali o nulo NÃO é um
-        // terceiro estado do sim/não, é "esta resposta não é do tipo booleano" — e a restrição
-        // CK_Resposta_UmValor garante que exatamente uma das colunas de valor está preenchida.
-        var justificadas = new HashSet<(string, string)> { ("Resposta", "ValorBooleano") };
+        // NÃO HÁ MAIS EXCEÇÃO. A única era metadado.Resposta.ValorBooleano, onde o nulo não era um
+        // terceiro estado do sim/não e sim "esta resposta não é do tipo booleano"; a tabela nunca
+        // recebeu uma linha e saiu na fase 1 (documento 41). A lista fica, vazia, porque é aqui que
+        // a próxima exceção precisará ser escrita — com o motivo, e não em silêncio.
+        var justificadas = new HashSet<(string, string)>();
 
         var boolAnulavel = ModeloBanco.Modelo.GetEntityTypes()
             .SelectMany(t => t.GetProperties(), (t, p) => (Tabela: t.GetTableName()!, Coluna: p.GetColumnName(), p.ClrType))

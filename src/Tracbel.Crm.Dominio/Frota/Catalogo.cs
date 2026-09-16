@@ -67,6 +67,75 @@ public sealed class Familia
     };
 }
 
+/// <summary>O porte da máquina, como a classificação comercial o declara.</summary>
+public enum PorteDeMaquina
+{
+    /// <summary>A categoria não se divide por porte (implemento, colhedora, pulverizador…).</summary>
+    NaoSeAplica = 0,
+
+    /// <summary>Pequeno.</summary>
+    Pequeno = 1,
+
+    /// <summary>Médio.</summary>
+    Medio = 2,
+
+    /// <summary>Grande.</summary>
+    Grande = 3
+}
+
+/// <summary>
+/// A CLASSIFICAÇÃO DE PRODUTO do CRM — trator pequeno, médio e grande, colhedora de cana,
+/// pulverizador, plantadeira… (documento 35, seção 10).
+///
+/// <para><b>Não é família nem linha de negócio.</b> A família do catálogo (Trator, Implemento) é o
+/// nível intermediário entre marca e modelo; a linha de negócio (Venda de Máquinas, Peças) organiza a
+/// carteira. A classificação comercial cruza categoria e porte, que é o que os filtros do painel pedem
+/// — e ela aponta para a família compatível quando existe uma, para reaproveitar o catálogo em vez de
+/// criar outro.</para>
+///
+/// <para><b>Catálogo pequeno e de código</b>: as categorias nascem de uma tabela explícita da carga,
+/// com o critério escrito, e nunca de texto livre digitado.</para>
+/// </summary>
+public sealed class LinhaDeProduto
+{
+    private LinhaDeProduto() { }
+
+    /// <summary>Identificador interno.</summary>
+    public int Id { get; private set; }
+
+    /// <summary>Código estável. Ex.: TRATOR_PEQUENO.</summary>
+    public string Codigo { get; private set; } = default!;
+
+    /// <summary>Nome legível. Ex.: Trator pequeno.</summary>
+    public string Nome { get; private set; } = default!;
+
+    /// <summary>A família compatível do catálogo de frota, quando existe. Nula é categoria sem família equivalente.</summary>
+    public int? FamiliaId { get; private set; }
+
+    /// <summary>O porte, quando a categoria se divide por porte.</summary>
+    public PorteDeMaquina Porte { get; private set; }
+
+    /// <summary>Desligar sem apagar.</summary>
+    public bool EstaAtiva { get; private set; } = true;
+
+    /// <summary>Cria uma classificação.</summary>
+    /// <param name="codigo">Código estável.</param>
+    /// <param name="nome">Nome legível.</param>
+    /// <param name="familiaId">A família compatível, quando existe.</param>
+    /// <param name="porte">O porte.</param>
+    public static LinhaDeProduto Criar(string codigo, string nome, int? familiaId, PorteDeMaquina porte)
+    {
+        if (string.IsNullOrWhiteSpace(codigo) || string.IsNullOrWhiteSpace(nome))
+            throw new Comum.RegraDeNegocioViolada("Classificação de produto precisa de código e nome.");
+
+        return new LinhaDeProduto { Codigo = codigo.Trim(), Nome = nome.Trim(), FamiliaId = familiaId, Porte = porte };
+    }
+
+    /// <summary>Aponta a família compatível, quando ela passa a existir no catálogo.</summary>
+    /// <param name="familiaId">A família.</param>
+    public void ApontarFamilia(int? familiaId) => FamiliaId = familiaId;
+}
+
 /// <summary>
 /// O modelo da máquina, com potência.
 ///

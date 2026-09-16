@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Frota;
+using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Metadado;
 using Tracbel.Crm.Dominio.Portas;
 
@@ -27,17 +28,33 @@ public sealed class RepositorioDeEquipamentos(CrmDbContext contexto) : IReposito
             .ToListAsync(ct);
 
         return new PaginaDe<EquipamentoComContexto>(
-            itens, consulta.Paginacao.Pagina, consulta.Paginacao.Tamanho, total);
+            await ComplementarAsync(itens, ct), consulta.Paginacao.Pagina, consulta.Paginacao.Tamanho, total);
     }
 
     /// <inheritdoc />
-    public Task<EquipamentoComContexto?> ObterAsync(
+    public async Task<EquipamentoComContexto?> ObterAsync(
         Guid chavePublica, bool incluirInativos, CancellationToken ct)
     {
         var linhas = contexto.Equipamentos.Where(e => e.ChavePublica == chavePublica);
         if (!incluirInativos) linhas = linhas.Where(e => e.ExcluidoEm == null);
 
-        return linhas.Select(ComDonoEModelo()).FirstOrDefaultAsync(ct);
+        var leitura = await linhas.Select(ComDonoEModelo()).FirstOrDefaultAsync(ct);
+        if (leitura is null) return null;
+
+        var completa = (await ComplementarAsync([leitura], ct))[0];
+
+        // A FICHA MOSTRA A DIVERGÊNCIA ABERTA desta máquina — é onde quem revisa o dono vai olhar. A
+        // divergência passa pelo filtro de filial como qualquer outra linha.
+        var divergencias = await contexto.DivergenciasDeIntegracao.AsNoTracking()
+            .Where(d => d.EquipamentoId == completa.Equipamento.Id && d.Situacao == SituacaoDaDivergencia.Aberta)
+            .OrderByDescending(d => d.DetectadaEm)
+            .Select(d => new { d.Tipo, d.Descricao, d.DetectadaEm })
+            .ToListAsync(ct);
+
+        return completa with
+        {
+            Divergencias = [.. divergencias.Select(d => new DivergenciaDaMaquina(d.Tipo.ToString(), d.Descricao, d.DetectadaEm))]
+        };
     }
 
     /// <inheritdoc />
@@ -84,9 +101,77 @@ public sealed class RepositorioDeEquipamentos(CrmDbContext contexto) : IReposito
                         .SelectMany(f => contexto.Marcas.Where(ma => ma.Id == f.MarcaId)
                             .Select(ma => ma.EhRepresentada))
                         .FirstOrDefault()))
-                .FirstOrDefault());
+                .FirstOrDefault(),
+            null,
+            null,
+            null);
 
-    private static IQueryable<Equipamento> Filtrar(
+    /// <summary>
+    /// A classificação e a venda mais recente das máquinas DA PÁGINA, em três consultas pelo conjunto
+    /// de identificadores — e não em subconsultas correlacionadas por linha.
+    ///
+    /// <para><b>Por que separado:</b> medido em 14/09/2026 no banco local, a projeção com oito
+    /// subconsultas correlacionadas por máquina levava 5,5 a 7 s para 200 linhas (a leitura que a tela
+    /// faz com o filtro de frota ligado). Achado da revisão independente.</para>
+    ///
+    /// <para>A venda e o comprador continuam passando pelo filtro global: venda de outra filial não
+    /// conta, e comprador fora do alcance vem sem chave nem nome.</para>
+    /// </summary>
+    private async Task<List<EquipamentoComContexto>> ComplementarAsync(List<EquipamentoComContexto> itens, CancellationToken ct)
+    {
+        if (itens.Count == 0) return itens;
+
+        var idsDasMaquinas = itens.Select(i => i.Equipamento.Id).ToList();
+        var idsDasClassificacoes = itens.Select(i => i.Equipamento.LinhaDeProdutoId).OfType<int>().Distinct().ToList();
+
+        var classificacoes = idsDasClassificacoes.Count == 0
+            ? []
+            : await contexto.LinhasDeProduto.AsNoTracking()
+                .Where(l => idsDasClassificacoes.Contains(l.Id))
+                .ToDictionaryAsync(l => l.Id, l => new ClassificacaoDaMaquina(l.Codigo, l.Nome, l.Porte), ct);
+
+        var vendas = await contexto.VendasDeMaquina.AsNoTracking()
+            .Where(v => idsDasMaquinas.Contains(v.EquipamentoId))
+            .Select(v => new { v.Id, v.EquipamentoId, v.VendidaEm, v.CompradorId, v.ProdutoNaOrigem, v.SistemaId })
+            .ToListAsync(ct);
+
+        var idsDosCompradores = vendas.Select(v => v.CompradorId).Distinct().ToList();
+        var compradores = idsDosCompradores.Count == 0
+            ? []
+            : await contexto.Clientes.AsNoTracking()
+                .Where(c => idsDosCompradores.Contains(c.Id))
+                .ToDictionaryAsync(c => c.Id, c => (c.ChavePublica, c.NomeRazao), ct);
+
+        var sistemas = vendas.Count == 0
+            ? []
+            : await contexto.Sistemas.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.Codigo, ct);
+
+        var vendasPorMaquina = vendas.GroupBy(v => v.EquipamentoId).ToDictionary(g => g.Key, g => g.ToList());
+
+        return [.. itens.Select(item =>
+        {
+            var classificacao = item.Equipamento.LinhaDeProdutoId is { } linha ? classificacoes.GetValueOrDefault(linha) : null;
+
+            UltimaVendaDaMaquina? ultima = null;
+            if (vendasPorMaquina.TryGetValue(item.Equipamento.Id, out var daMaquina))
+            {
+                var maisRecente = daMaquina.OrderByDescending(v => v.VendidaEm).ThenByDescending(v => v.Id).First();
+                var achouComprador = compradores.TryGetValue(maisRecente.CompradorId, out var comprador);
+
+                ultima = new UltimaVendaDaMaquina(
+                    daMaquina.Count,
+                    maisRecente.VendidaEm,
+                    achouComprador ? comprador.ChavePublica : null,
+                    achouComprador ? comprador.NomeRazao : null,
+                    maisRecente.ProdutoNaOrigem,
+                    sistemas.GetValueOrDefault(maisRecente.SistemaId));
+            }
+
+            return item with { Classificacao = classificacao, UltimaVenda = ultima };
+        })];
+    }
+
+    private IQueryable<Equipamento> Filtrar(
         IQueryable<Equipamento> linhas, ConsultaDeEquipamentos consulta)
     {
         if (!consulta.IncluirInativos) linhas = linhas.Where(e => e.ExcluidoEm == null);
@@ -95,6 +180,19 @@ public sealed class RepositorioDeEquipamentos(CrmDbContext contexto) : IReposito
         if (consulta.Origem is { } origem) linhas = linhas.Where(e => e.Origem == origem);
         if (consulta.ClienteId is { } dono) linhas = linhas.Where(e => e.ClienteId == dono);
         if (consulta.ModeloId is { } modelo) linhas = linhas.Where(e => e.ModeloId == modelo);
+
+        // A CLASSIFICAÇÃO E O PORTE são filtros de banco, e não de tela: o parque de uma filial passa
+        // de mil máquinas, e filtrar sobre a página lida faria a contagem mentir.
+        if (consulta.LinhaDeProdutoCodigo == ConsultaDeEquipamentos.SemClassificacao)
+            linhas = linhas.Where(e => e.LinhaDeProdutoId == null);
+        else if (consulta.LinhaDeProdutoCodigo is { } codigo)
+            linhas = linhas.Where(e => contexto.LinhasDeProduto.Any(l => l.Id == e.LinhaDeProdutoId && l.Codigo == codigo));
+
+        if (consulta.Porte is { } porte)
+            linhas = linhas.Where(e => contexto.LinhasDeProduto.Any(l => l.Id == e.LinhaDeProdutoId && l.Porte == porte));
+
+        if (consulta.SomenteComVenda)
+            linhas = linhas.Where(e => contexto.VendasDeMaquina.Any(v => v.EquipamentoId == e.Id));
 
         if (!string.IsNullOrWhiteSpace(consulta.Termo))
         {

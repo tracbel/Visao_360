@@ -15,7 +15,17 @@ public enum SituacaoDoEquipamento
     Vendido = 2,
 
     /// <summary>Baixada, fora de operação.</summary>
-    Baixado = 3
+    Baixado = 3,
+
+    /// <summary>
+    /// Vendida pela Tracbel, e o dono atual não foi confirmado.
+    ///
+    /// <para>É a situação da máquina que chega por uma venda histórica (documento 35, seção 10): o
+    /// comprador daquela venda está no vínculo com a data e a origem, mas quem comprou em 2024 não
+    /// prova quem tem a máquina hoje. Por isso ela não tem <see cref="Equipamento.ClienteId"/> até
+    /// alguém confirmar.</para>
+    /// </summary>
+    ProprietarioNaoConfirmado = 4
 }
 
 /// <summary>Quem afirma que esta máquina existe.</summary>
@@ -25,7 +35,10 @@ public enum OrigemDoEquipamento
     Protheus = 0,
 
     /// <summary>Foi declarada pelo CEN no CRM — inclusive a máquina do concorrente.</summary>
-    Crm = 1
+    Crm = 1,
+
+    /// <summary>Veio de uma venda de máquina registrada no ART, o sistema comercial de vendas.</summary>
+    Art = 2
 }
 
 /// <summary>
@@ -45,8 +58,15 @@ public sealed class Equipamento : EntidadeBase
     /// <summary>O dono atual. Nulo é máquina em estoque.</summary>
     public long? ClienteId { get; private set; }
 
-    /// <summary>O modelo de catálogo.</summary>
-    public int ModeloId { get; private set; }
+    /// <summary>
+    /// O modelo de catálogo. Nulo só na máquina que veio de integração com o produto ainda sem
+    /// correspondência segura no catálogo — o produto da origem fica na venda, e a correspondência
+    /// fica pendente de revisão, em vez de a máquina ganhar um modelo por semelhança de nome.
+    /// </summary>
+    public int? ModeloId { get; private set; }
+
+    /// <summary>A classificação de produto do CRM (trator pequeno, colhedora de cana…).</summary>
+    public int? LinhaDeProdutoId { get; private set; }
 
     /// <summary>O chassi. É a identidade de verdade da máquina agrícola.</summary>
     public Chassi Chassi { get; private set; }
@@ -129,6 +149,78 @@ public sealed class Equipamento : EntidadeBase
     }
 
     /// <summary>
+    /// Registra a máquina que chegou por uma VENDA da origem — sem dono atual.
+    ///
+    /// <para>O comprador da venda não vira <see cref="ClienteId"/>: ele entra no vínculo de comprador,
+    /// com a data e a origem. O modelo só entra quando a correspondência do produto é segura.</para>
+    /// </summary>
+    /// <param name="empresaId">A filial da venda.</param>
+    /// <param name="chassi">O chassi, já validado.</param>
+    /// <param name="origem">Quem afirma que a máquina existe.</param>
+    /// <param name="criadoPorId">Quem roda a integração.</param>
+    /// <param name="modeloId">O modelo, quando a correspondência do produto é segura.</param>
+    /// <param name="linhaDeProdutoId">A classificação de produto, quando existe.</param>
+    public static Equipamento RegistrarPelaIntegracao(
+        int empresaId,
+        Chassi chassi,
+        OrigemDoEquipamento origem,
+        long criadoPorId,
+        int? modeloId = null,
+        int? linhaDeProdutoId = null) => new()
+    {
+        EmpresaId = empresaId,
+        Chassi = chassi,
+        Origem = origem,
+        CriadoPorId = criadoPorId,
+        ModeloId = modeloId,
+        LinhaDeProdutoId = linhaDeProdutoId,
+        Situacao = SituacaoDoEquipamento.ProprietarioNaoConfirmado
+    };
+
+    /// <summary>
+    /// Aponta o modelo quando a máquina ainda não tem nenhum. Modelo já definido — pela carga ou por
+    /// uma pessoa — não é trocado: é a correção que a recarga precisa preservar.
+    /// </summary>
+    /// <param name="modeloId">O modelo da correspondência segura.</param>
+    /// <param name="usuarioId">Quem aponta.</param>
+    /// <returns>Verdadeiro quando o modelo foi apontado agora.</returns>
+    public bool DefinirModeloSeAusente(int modeloId, long usuarioId)
+    {
+        if (ModeloId is not null || EstaExcluido) return false;
+        ModeloId = modeloId;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>
+    /// Classifica a máquina quando ela ainda não tem classificação. A classificação existente não é
+    /// trocada pela carga.
+    /// </summary>
+    /// <param name="linhaDeProdutoId">A classificação.</param>
+    /// <param name="usuarioId">Quem classifica.</param>
+    /// <returns>Verdadeiro quando a classificação foi apontada agora.</returns>
+    public bool ClassificarSeAusente(int linhaDeProdutoId, long usuarioId)
+    {
+        if (LinhaDeProdutoId is not null || EstaExcluido) return false;
+        LinhaDeProdutoId = linhaDeProdutoId;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>Classifica — ou tira a classificação — por decisão de quem edita o cadastro.</summary>
+    /// <param name="linhaDeProdutoId">A classificação, ou nula.</param>
+    /// <param name="usuarioId">Quem classifica.</param>
+    public void Classificar(int? linhaDeProdutoId, long usuarioId)
+    {
+        if (EstaExcluido)
+            throw new RegraDeNegocioViolada("Equipamento baixado não aceita alteração.");
+
+        if (LinhaDeProdutoId == linhaDeProdutoId) return;
+        LinhaDeProdutoId = linhaDeProdutoId;
+        MarcarAlteracao(usuarioId);
+    }
+
+    /// <summary>
     /// Altera o cadastro da máquina.
     ///
     /// A ORIGEM NÃO ENTRA, e é a decisão que mais importa aqui: quem afirma que a máquina
@@ -141,7 +233,7 @@ public sealed class Equipamento : EntidadeBase
     /// cadastrando o certo, para que o histórico não mude de dono em silêncio.
     /// </summary>
     public void Alterar(
-        int modeloId,
+        int? modeloId,
         long usuarioId,
         long? clienteId = null,
         SituacaoDoEquipamento situacao = SituacaoDoEquipamento.Ativo,
@@ -153,6 +245,12 @@ public sealed class Equipamento : EntidadeBase
     {
         if (EstaExcluido)
             throw new RegraDeNegocioViolada("Equipamento baixado não aceita alteração.");
+
+        // O MODELO SÓ FICA VAZIO na máquina que veio de integração sem correspondência segura — e,
+        // uma vez escolhido, não volta a ficar vazio por edição.
+        if (modeloId is null && (Origem != OrigemDoEquipamento.Art || ModeloId is not null))
+            throw new RegraDeNegocioViolada(
+                "Informe o modelo do catálogo: só a máquina vinda do ART ainda sem modelo pode ficar sem ele.");
 
         ConferirAnos(anoFabricacao, anoModelo);
         ConferirPosse(situacao, clienteId);
@@ -194,6 +292,10 @@ public sealed class Equipamento : EntidadeBase
             throw new RegraDeNegocioViolada(
                 "Máquina em estoque não tem dono. Informe a situação Ativo ou Vendido para vinculá-la a um cliente.");
 
+        if (situacao == SituacaoDoEquipamento.ProprietarioNaoConfirmado && clienteId is not null)
+            throw new RegraDeNegocioViolada(
+                "Com o dono informado, a situação é Ativo ou Vendido: 'proprietário não confirmado' é a máquina sem dono confirmado.");
+
         if (situacao is SituacaoDoEquipamento.Ativo or SituacaoDoEquipamento.Vendido && clienteId is null)
             throw new RegraDeNegocioViolada(
                 "Máquina em operação precisa de cliente. Informe o cliente ou use a situação Estoque.");
@@ -215,49 +317,10 @@ public sealed class Equipamento : EntidadeBase
     }
 }
 
-/// <summary>
-/// Horas de operação da máquina ao longo do tempo.
-///
-/// A Ficha do Equipamento aprovada mostra a série histórica, não só o número atual. É série
-/// temporal com cardinalidade maior que um e volume próprio, logo é tabela.
-/// </summary>
-public sealed class LeituraDeHorimetro
-{
-    private LeituraDeHorimetro() { }
-
-    /// <summary>Identificador interno.</summary>
-    public long Id { get; private set; }
-
-    /// <summary>A máquina.</summary>
-    public long EquipamentoId { get; private set; }
-
-    /// <summary>Quando a leitura foi feita (UTC).</summary>
-    public DateTime LidaEm { get; private set; }
-
-    /// <summary>Horas de operação acumuladas.</summary>
-    public decimal Horas { get; private set; }
-
-    /// <summary>De onde veio a leitura: ordem de serviço, telemetria, informação do cliente.</summary>
-    public string Fonte { get; private set; } = default!;
-
-    /// <summary>Quem registrou. Nulo quando veio de telemetria.</summary>
-    public long? RegistradoPorId { get; private set; }
-
-    /// <summary>Quando a linha foi gravada (UTC).</summary>
-    public DateTime CriadoEm { get; private set; } = DateTime.UtcNow;
-
-    /// <summary>Registra uma leitura.</summary>
-    public static LeituraDeHorimetro Registrar(long equipamentoId, DateTime lidaEmUtc, decimal horas, string fonte)
-    {
-        if (horas < 0)
-            throw new RegraDeNegocioViolada("Horímetro não anda para trás: leitura negativa não existe.");
-
-        return new LeituraDeHorimetro
-        {
-            EquipamentoId = equipamentoId,
-            LidaEm = lidaEmUtc,
-            Horas = horas,
-            Fonte = fonte
-        };
-    }
-}
+// O QUE SAIU DAQUI NA FASE 1 (documento 41): `LeituraDeHorimetro`, a série histórica de horas de
+// operação da máquina. A tabela nasceu com o modelo inicial e nunca recebeu uma linha: nem a carga
+// do Vórtice nem a do ART trazem horímetro, e a Ficha do Equipamento mostra hoje o número atual que
+// está no próprio equipamento.
+//
+// A série histórica continua no desenho do documento 40, na fase de equipamentos e rastro: ela volta
+// quando existir a origem que a alimenta — ordem de serviço ou telemetria.

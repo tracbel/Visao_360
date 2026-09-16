@@ -92,7 +92,7 @@ public class TelefoneTestes
 public class EmailTestes
 {
     [Theory]
-    [InlineData("Ricardo.Moretti@Tracbel.com.br", "ricardo.moretti@tracbel.com.br")]
+    [InlineData("Pessoa.Exemplo@Tracbel.com.br", "pessoa.exemplo@tracbel.com.br")]
     [InlineData("  contato@fazenda.agr.br  ", "contato@fazenda.agr.br")]
     // E-mail inteiro em caixa alta — comum em planilha de importação digitada com Caps Lock.
     [InlineData("JOAO.SILVA@TRACBEL.COM.BR", "joao.silva@tracbel.com.br")]

@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using Tracbel.Crm.Dominio.Comum;
 
@@ -53,7 +52,7 @@ namespace Tracbel.Crm.Integracao.Protheus;
 /// </summary>
 /// <param name="fabrica">De onde sai o <c>HttpClient</c>.</param>
 /// <param name="opcoes">A configuração da ponte.</param>
-public sealed partial class PonteDoProtheus(IHttpClientFactory fabrica, IOptions<OpcoesDoProtheus> opcoes)
+public sealed class PonteDoProtheus(IHttpClientFactory fabrica, IOptions<OpcoesDoProtheus> opcoes)
 {
     /// <summary>O nome do cliente HTTP registrado no contêiner.</summary>
     public const string NomeDoCliente = "Protheus";
@@ -288,16 +287,16 @@ public sealed partial class PonteDoProtheus(IHttpClientFactory fabrica, IOptions
     }
 
     /// <summary>
-    /// Tira a senha de qualquer texto antes de ele virar log ou tela.
+    /// Tira usuário e senha de qualquer texto antes de ele virar log ou tela.
     ///
-    /// <para>Não é excesso de zelo: a senha vai na URL, então toda exceção de rede que cite o
-    /// endereço carrega a credencial junto. Sem este filtro, a primeira falha de conexão publica
-    /// a senha do ERP no log da aplicação.</para>
+    /// <para>A credencial vai no corpo do pedido de token, e não na URL — mas uma exceção de rede
+    /// pode citar o que quiser, e a documentação do fornecedor ensina a pôr a senha na query string.
+    /// Por isso a mensagem passa pelo <see cref="Sigilo"/> comum a todas as integrações: troca os
+    /// valores configurados onde quer que apareçam e qualquer <c>password=</c> que tenha escapado
+    /// (issue [001] do backlog mestre).</para>
     /// </summary>
-    private static string Ocultar(string texto) => SenhaNaUrl().Replace(texto, "password=***");
-
-    [GeneratedRegex(@"password=[^&\s""]*", RegexOptions.IgnoreCase)]
-    private static partial Regex SenhaNaUrl();
+    private string Ocultar(string texto) =>
+        Sigilo.Mascarar(texto, [opcoes.Value.Usuario, opcoes.Value.Senha]);
 
     private static bool EhIntermitente(HttpStatusCode codigo) =>
         codigo is HttpStatusCode.PreconditionRequired

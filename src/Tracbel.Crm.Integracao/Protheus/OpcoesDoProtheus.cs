@@ -8,10 +8,10 @@ namespace Tracbel.Crm.Integracao.Protheus;
 /// padrão em lugar nenhum do repositório. Sem elas, a ponte responde "não configurada" e o resto
 /// da aplicação continua de pé.</para>
 ///
-/// <para><b>A senha viaja na QUERY STRING.</b> Não é escolha nossa: é assim que o endpoint de
-/// token do Protheus funciona. A consequência é que qualquer mensagem de erro que cite a URL
-/// expõe a credencial em log e em tela — e por isso <c>PonteDoProtheus</c> passa toda mensagem
-/// por um filtro antes de deixá-la sair.</para>
+/// <para><b>A senha vai no CORPO do pedido de token, e não na URL.</b> A documentação do
+/// fornecedor ensina a pô-la na query string; o endpoint aceita o corpo em form-urlencoded, e é
+/// assim que <c>PonteDoProtheus</c> envia desde 06/09/2026. Mesmo assim, toda mensagem de erro
+/// passa por <see cref="Sigilo"/> antes de sair: uma exceção de rede pode citar o que quiser.</para>
 ///
 /// <para><b>É HTTP puro, e isso é um problema conhecido.</b> O AppServer de produção não expõe
 /// TLS na porta 5891. Enquanto for assim, a senha trafega em claro dentro da rede da Tracbel.

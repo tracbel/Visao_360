@@ -284,6 +284,83 @@ public sealed class Endereco : EntidadeBase
     }
 
     /// <summary>
+    /// Troca SÓ o município do catálogo — a correção da carga quando a linha antiga do catálogo é
+    /// uma grafia cortada de um município oficial (documento 32, seção 4.6).
+    ///
+    /// <para><b>Método próprio, e não <see cref="Alterar"/></b>: aquele reescreve logradouro, CEP e
+    /// coordenada com o que chegar; esta correção não pode tocar em nada além do ponteiro. E ela só
+    /// vale de catálogo para catálogo — endereço com o texto do legado não é "corrigido" por
+    /// aqui, porque texto não prova a qual município o endereço pertence.</para>
+    ///
+    /// <para>Quem chama registra o valor anterior em <c>auditoria.AlteracaoDeCampo</c>.</para>
+    /// </summary>
+    /// <param name="municipioId">O município oficial.</param>
+    /// <param name="usuarioId">Quem corrigiu.</param>
+    /// <returns>Se algo mudou.</returns>
+    public bool ReapontarMunicipioDoCatalogo(int municipioId, long usuarioId)
+    {
+        if (EstaExcluido)
+            throw new RegraDeNegocioViolada("Endereço excluído não aceita correção de município.");
+
+        if (MunicipioId is null)
+            throw new RegraDeNegocioViolada(
+                "Endereço sem município do catálogo não se corrige por reapontamento: o texto do legado não prova o município.");
+
+        if (municipioId <= 0)
+            throw new RegraDeNegocioViolada("Município de destino precisa de um identificador válido.");
+
+        if (MunicipioId == municipioId) return false;
+
+        MunicipioId = municipioId;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>
+    /// Uma unidade na sétima casa decimal — a menor diferença que o banco guarda na coordenada
+    /// (<c>HasPrecision(10, 7)</c>), cerca de 1 cm.
+    /// </summary>
+    private const decimal UnidadeDaSetimaCasa = 0.0000001m;
+
+    /// <summary>
+    /// A CORREÇÃO DE GRAFIA CORTADA CONTINUA VALENDO diante de uma nova leitura da origem?
+    ///
+    /// <para>A recarga do sistema de origem traz de novo, para este endereço, a linha cortada do
+    /// catálogo — é o ponteiro de cidade que a origem guarda. A correção feita antes (documento 32,
+    /// seção 4.6) só se mantém se a evidência que a sustentou não mudou: o endereço já está no
+    /// município oficial daquela grafia, e a UF e a coordenada que chegam são as que estão gravadas.
+    /// Qualquer diferença devolve o endereço à grafia da origem, e a conferência o examina de novo —
+    /// nunca uma correção herdada sobre evidência nova.</para>
+    /// </summary>
+    /// <param name="oficialDaGrafiaDaOrigem">O município oficial da grafia cortada que a origem traz.</param>
+    /// <param name="ufDaOrigem">A UF que a origem traz.</param>
+    /// <param name="latitudeDaOrigem">A latitude que a origem traz.</param>
+    /// <param name="longitudeDaOrigem">A longitude que a origem traz.</param>
+    public bool CorrecaoDeGrafiaCortadaSeMantem(
+        int oficialDaGrafiaDaOrigem, string ufDaOrigem, decimal? latitudeDaOrigem, decimal? longitudeDaOrigem)
+    {
+        if (EstaExcluido || MunicipioId != oficialDaGrafiaDaOrigem) return false;
+
+        if (!string.Equals(Uf, ufDaOrigem.Trim(), StringComparison.OrdinalIgnoreCase)) return false;
+
+        // A COORDENADA É COMPARADA COMO O BANCO A GUARDA: sete casas, e o par inteiro ou nenhum. A origem
+        // traz mais casas, e o valor gravado pode ter sido arredondado ou truncado na sétima — igualdade
+        // exata (ou arredondar do lado de cá por outra regra de desempate) "mudaria" a coordenada a cada
+        // recarga, e a correção seria desfeita e refeita sem motivo. Foi o que a primeira validação do
+        // ciclo mediu em 6 endereços (documento 32, seção 4.6). Menos de uma unidade na sétima casa é a
+        // mesma coordenada.
+        var temPar = latitudeDaOrigem is not null && longitudeDaOrigem is not null;
+
+        return MesmaCoordenada(temPar ? latitudeDaOrigem : null, Latitude)
+               && MesmaCoordenada(temPar ? longitudeDaOrigem : null, Longitude);
+
+        static bool MesmaCoordenada(decimal? daOrigem, decimal? gravada) =>
+            daOrigem is null || gravada is null
+                ? daOrigem is null && gravada is null
+                : Math.Abs(daOrigem.Value - gravada.Value) < UnidadeDaSetimaCasa;
+    }
+
+    /// <summary>
     /// Os campos opcionais, num lugar só — inclusive a regra do PAR de coordenada.
     ///
     /// Latitude sem longitude não localiza nada, e a restrição <c>CK_Endereco_Coordenada</c>

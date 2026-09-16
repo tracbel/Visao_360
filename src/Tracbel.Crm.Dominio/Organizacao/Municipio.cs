@@ -1,3 +1,5 @@
+using Tracbel.Crm.Dominio.Comum;
+
 namespace Tracbel.Crm.Dominio.Organizacao;
 
 /// <summary>
@@ -19,7 +21,7 @@ namespace Tracbel.Crm.Dominio.Organizacao;
 /// <see cref="CarteiraMunicipio"/>.</para>
 ///
 /// <para><b>Também não herda <c>EntidadeBase</c>.</b> Pelo mesmo motivo de
-/// <see cref="LinhaDeNegocio"/> e de <see cref="Praca"/>: é dado de referência, não registro
+/// <see cref="LinhaDeNegocio"/>: é dado de referência, não registro
 /// transacional. Ninguém "cria um município" no CRM — a lista existe antes do primeiro cliente e
 /// muda por decreto federal, não por operação comercial. O bloco de auditoria de oito colunas
 /// (documento 14, seção 5.1) existe para responder "quem mexeu neste registro de negócio", e a
@@ -74,9 +76,41 @@ public sealed class Municipio
         CodigoIbge = codigoIbge
     };
 
-    /// <summary>Passa a conhecer o código do IBGE, na rodada em que ele chegar.</summary>
+    /// <summary>
+    /// Reconhece o município no cadastro oficial do IBGE: recebe o código e passa a usar o NOME
+    /// OFICIAL.
+    ///
+    /// <para><b>O nome muda porque o da origem está errado de três jeitos medidos</b> (documento
+    /// 26, seção 4.5): cortado em 20 caracteres (<c>SANTA CRUZ DA ESPERA</c>), sem acento e em
+    /// caixa alta, e com o apóstrofo trocado por espaço. A carga que chama este método grava o nome
+    /// anterior em <c>auditoria.AlteracaoDeCampo</c> — o valor da origem continua recuperável.</para>
+    ///
+    /// <para><b>Um código já reconhecido não troca.</b> Se a mesma linha casar com outro código
+    /// numa rodada futura, é defeito de casamento, e defeito tem de parar a carga — trocar em
+    /// silêncio mudaria o município de todos os endereços que apontam para esta linha.</para>
+    /// </summary>
     /// <param name="codigoIbge">O código de sete dígitos.</param>
-    public void RegistrarCodigoIbge(int codigoIbge) => CodigoIbge = codigoIbge;
+    /// <param name="nomeOficial">O nome como o IBGE o publica.</param>
+    /// <returns>Se algo mudou.</returns>
+    public bool ReconhecerNoIbge(int codigoIbge, string nomeOficial)
+    {
+        if (codigoIbge is < 1000000 or > 5999999)
+            throw new RegraDeNegocioViolada($"Código do IBGE tem sete dígitos, de 1000000 a 5999999: {codigoIbge}.");
+
+        if (string.IsNullOrWhiteSpace(nomeOficial))
+            throw new RegraDeNegocioViolada("O IBGE não publica município sem nome.");
+
+        if (CodigoIbge is { } atual && atual != codigoIbge)
+            throw new RegraDeNegocioViolada(
+                $"O município {Id} já foi reconhecido como {atual} no IBGE e agora casou com {codigoIbge}. " +
+                "Isso é defeito de casamento, e não troca de código.");
+
+        var mudou = CodigoIbge != codigoIbge || !string.Equals(Nome, nomeOficial.Trim(), StringComparison.Ordinal);
+
+        CodigoIbge = codigoIbge;
+        Nome = nomeOficial.Trim();
+        return mudou;
+    }
 }
 
 /// <summary>

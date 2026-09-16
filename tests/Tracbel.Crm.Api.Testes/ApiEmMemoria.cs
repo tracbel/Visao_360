@@ -71,6 +71,13 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
             servicos.RemoveAll(typeof(IDbContextOptionsConfiguration<CrmDbContext>));
 
             _conexao.Open();
+
+            // A COLAÇÃO BINÁRIA QUE OS CHECKs CITAM. As restrições de domínio fechado comparam com
+            // COLLATE Latin1_General_BIN2 (UF, nome de entidade, identificador de campo); o SQLite
+            // não conhece essa colação e recusaria o INSERT. Registrada como comparação ordinal,
+            // ela faz no teste o que faz no SQL Server: diferencia caixa e acento.
+            _conexao.CreateCollation("Latin1_General_BIN2", (a, b) => string.CompareOrdinal(a, b));
+
             servicos.AddDbContext<CrmDbContext>(opcoes => opcoes.UseSqlite(_conexao));
         });
     }

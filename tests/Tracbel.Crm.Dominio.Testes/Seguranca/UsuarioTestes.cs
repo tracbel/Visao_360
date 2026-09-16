@@ -10,11 +10,11 @@ namespace Tracbel.Crm.Dominio.Testes.Seguranca;
 /// </summary>
 public sealed class UsuarioTestes
 {
-    private static Usuario DaCarga(string login = "abner.costa") => Usuario.Criar(
+    private static Usuario DaCarga(string login = "pessoa.ficticia") => Usuario.Criar(
         identidadeExterna: Guid.NewGuid(),
         nomePrincipal: login + Usuario.SufixoSemEmail,
-        nomeCompleto: "ABNER COSTA",
-        nomeExibicao: "Abner Costa",
+        nomeCompleto: "PESSOA FICTICIA",
+        nomeExibicao: "Pessoa Ficticia",
         email: Email.Criar(login + Usuario.SufixoSemEmail),
         empresaId: 1,
         criadoPorId: 1);
@@ -33,21 +33,21 @@ public sealed class UsuarioTestes
         var agora = new DateTime(2026, 9, 10, 14, 0, 0, DateTimeKind.Utc);
 
         usuario.VincularAoEntraId(
-            oid, "  abner.costa@tracbel.com.br ", Email.Criar("Abner.Costa@tracbel.com.br"), agora);
+            oid, "  pessoa.ficticia@tracbel.com.br ", Email.Criar("Pessoa.Ficticia@tracbel.com.br"), agora);
 
         usuario.IdentidadeExterna.Should().Be(oid);
-        usuario.NomePrincipal.Should().Be("abner.costa@tracbel.com.br", "o espaço nas pontas não é parte do nome");
-        usuario.Email.Endereco.Should().Be("abner.costa@tracbel.com.br");
+        usuario.NomePrincipal.Should().Be("pessoa.ficticia@tracbel.com.br", "o espaço nas pontas não é parte do nome");
+        usuario.Email.Endereco.Should().Be("pessoa.ficticia@tracbel.com.br");
         usuario.UltimoLoginEm.Should().Be(agora);
         usuario.AindaNaoEntrouPeloEntraId.Should().BeFalse(
-            "é o sumiço do sufixo inventado que impede um segundo 'abner.costa' de herdar esta conta");
+            "é o sumiço do sufixo inventado que impede um segundo 'pessoa.ficticia' de herdar esta conta");
     }
 
     [Fact]
     public void Vincular_recusa_identificador_vazio()
     {
         var vincular = () => DaCarga().VincularAoEntraId(
-            Guid.Empty, "abner.costa@tracbel.com.br", Email.Criar("abner.costa@tracbel.com.br"), DateTime.UtcNow);
+            Guid.Empty, "pessoa.ficticia@tracbel.com.br", Email.Criar("pessoa.ficticia@tracbel.com.br"), DateTime.UtcNow);
 
         vincular.Should().Throw<RegraDeNegocioViolada>();
     }

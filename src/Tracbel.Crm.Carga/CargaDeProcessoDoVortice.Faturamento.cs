@@ -105,6 +105,7 @@ internal sealed partial class CargaDeProcessoDoVortice
     public async Task<Resultado<ResumoDoFaturamento>> ExecutarSomenteFaturamentoAsync(CancellationToken ct)
     {
         var sistemaId = await GarantirSistemaAsync(ct);
+        _sistemaDoLegado = sistemaId;
         var gravado = await CarregarFaturamentoAsync(sistemaId, ct);
 
         if (!gravado.EhSucesso) return Resultado<ResumoDoFaturamento>.Indisponivel(gravado.Erro!);
@@ -149,7 +150,7 @@ internal sealed partial class CargaDeProcessoDoVortice
 
         foreach (var bloco in faturamento.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             // A CHAVE NATURAL É (cliente, filial, competência), e é ela que torna a carga
@@ -242,7 +243,7 @@ internal sealed partial class CargaDeProcessoDoVortice
     /// <param name="ct">Cancelamento.</param>
     private async Task<Dictionary<ClasseDeCliente, int>> ApurarCurvaAbcAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         var agora = DateTime.UtcNow;
 
         var porCliente = await contexto.FaturamentoDosClientes
@@ -294,7 +295,7 @@ internal sealed partial class CargaDeProcessoDoVortice
 
         foreach (var bloco in classePorCliente.Chunk(TamanhoDoBloco))
         {
-            await using var contextoDoBloco = abrirContexto();
+            await using var contextoDoBloco = AbrirContextoDaCarga();
             var ids = bloco.Select(p => p.Key).ToList();
             var clientes = await contextoDoBloco.Clientes.Where(c => ids.Contains(c.Id)).ToListAsync(ct);
 
@@ -318,7 +319,7 @@ internal sealed partial class CargaDeProcessoDoVortice
 
         foreach (var bloco in semFaturamento.Chunk(TamanhoDoBloco))
         {
-            await using var contextoDoBloco = abrirContexto();
+            await using var contextoDoBloco = AbrirContextoDaCarga();
             var ids = bloco.ToList();
             var clientes = await contextoDoBloco.Clientes.Where(c => ids.Contains(c.Id)).ToListAsync(ct);
 
@@ -433,7 +434,7 @@ internal sealed partial class CargaDeProcessoDoVortice
     /// <param name="ct">Cancelamento.</param>
     private async Task<IReadOnlyList<string>> FiliaisDoProtheusAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var codigos = await contexto.Empresas.AsNoTracking()
             .Select(e => e.Codigo)
@@ -450,7 +451,7 @@ internal sealed partial class CargaDeProcessoDoVortice
     /// <summary>O identificador de cada filial em operação, pelo código de seis dígitos.</summary>
     private async Task<Dictionary<string, int>> MapaDeEmpresasPorCodigoAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         return await contexto.Empresas.AsNoTracking()
             .ToDictionaryAsync(e => e.Codigo, e => e.Id, StringComparer.Ordinal, ct);
@@ -459,7 +460,7 @@ internal sealed partial class CargaDeProcessoDoVortice
     /// <summary>O identificador de cada cliente carregado, pelo documento sem máscara.</summary>
     private async Task<Dictionary<string, long>> MapaDeClientesPorDocumentoAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var comDocumento = await contexto.Clientes.AsNoTracking()
             .Where(c => c.ExcluidoEm == null && c.Documento != null)

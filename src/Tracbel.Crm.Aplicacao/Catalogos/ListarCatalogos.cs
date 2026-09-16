@@ -83,7 +83,11 @@ public sealed class ListarCatalogos(IRepositorioCatalogos repositorio, IRelogio 
 
         yield return DeEnum<OrigemDoEquipamento>(
             "ORIGEM_EQUIPAMENTO", "Origem do equipamento",
-            "Quem afirma que a máquina existe: o ERP (Protheus) ou o CEN, pelo CRM.");
+            "Quem afirma que a máquina existe: o ERP (Protheus), o CEN pelo CRM, ou uma venda do ART.");
+
+        yield return DeEnum<PorteDeMaquina>(
+            "PORTE_DE_MAQUINA", "Porte da máquina",
+            "O porte da classificação de produto — pequeno, médio, grande, ou não se aplica.");
     }
 
     private static CatalogoParaSelecao DeEnum<T>(string codigo, string nome, string descricao)

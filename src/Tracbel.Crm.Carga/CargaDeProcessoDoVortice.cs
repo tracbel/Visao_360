@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Integracao;
@@ -17,6 +18,18 @@ using Tracbel.Crm.Integracao.Saneamento;
 namespace Tracbel.Crm.Carga;
 
 /// <summary>
+/// <b>LEGADO / SOMENTE REFERÊNCIA — CONGELADO NA FASE 1 (decisão D-12, documento 41)</b>, com UMA
+/// exceção que precisa ficar escrita: o <b>faturamento do Protheus</b> mora numa parte desta mesma
+/// classe (<c>CargaDeProcessoDoVortice.Faturamento.cs</c>) e continua operacional até a FASE 8.
+///
+/// <para>Por isso o congelamento é em DUAS ETAPAS. Agora, na fase 1, ele é operacional: o
+/// <c>Program</c> recusa qualquer modo que leia o Vórtice sem uma declaração explícita, e
+/// <c>--somente-faturamento</c> — que não abre conexão com o legado — segue livre. Na fase 8, com o
+/// faturamento morando em código próprio, o que sobrar do Vórtice sai do build.</para>
+///
+/// <para>Enquanto isso, NADA aqui pode deixar de compilar: quebrar este arquivo quebra a nota
+/// fiscal do Protheus, que é o número que a diretoria lê todo dia.</para>
+///
 /// A CARGA DO RELACIONAMENTO — usuário, carteira, processo, tarefa e interação.
 ///
 /// <para>É a segunda metade do ensaio da migração. A primeira (<see cref="CargaDoVortice"/>)
@@ -42,6 +55,20 @@ internal sealed partial class CargaDeProcessoDoVortice(
     Action<string> relatar)
 {
     private const int TamanhoDoBloco = 500;
+
+    /// <summary>O sistema do legado, conhecido depois de garantido — a origem das gravações na trilha.</summary>
+    private int? _sistemaDoLegado;
+
+    /// <summary>
+    /// Abre um contexto que grava na trilha como integração do Vórtice (documento 41, fase 2), assim
+    /// que o sistema for conhecido. Antes disso a origem é a do contexto de acesso: sistema.
+    /// </summary>
+    private CrmDbContext AbrirContextoDaCarga()
+    {
+        var contexto = abrirContexto();
+        if (_sistemaDoLegado is { } sistema) contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistema);
+        return contexto;
+    }
 
     private const string FluxoDeUsuario = "VORTICE.CARGA.USUARIO";
     private const string FluxoDeCarteira = "VORTICE.CARGA.CARTEIRA";
@@ -85,6 +112,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
         RecorteDaCarga recorte, CancellationToken ct)
     {
         var sistemaId = await GarantirSistemaAsync(ct);
+        _sistemaDoLegado = sistemaId;
 
         // -----------------------------------------------------------------------------------------
         // 1. Usuário — sem ele nada tem dono.
@@ -345,7 +373,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
         var mapa = await MapaDeChavesAsync(sistemaId, nameof(Usuario), ct);
         var porLogin = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
 
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var principaisUsados = (await contexto.Usuarios.AsNoTracking()
@@ -449,7 +477,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     {
         var mapa = await MapaDeChavesAsync(sistemaId, nameof(LinhaDeNegocio), ct);
 
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var codigosUsados = (await contexto.LinhasDeNegocio.AsNoTracking()
@@ -518,7 +546,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
         var nomeDaLinha = await NomeDasLinhasDeNegocioAsync(ct);
         var nomeDoUsuario = await NomeDosUsuariosAsync(ct);
 
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var codigosUsados = (await contexto.Carteiras.AsNoTracking()
@@ -624,7 +652,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     {
         var porChaveDeMunicipio = await MapaDeChavesAsync(sistemaId, nameof(Municipio), ct);
 
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var existentes = (await contexto.CarteiraMunicipios.ToListAsync(ct))
@@ -707,7 +735,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     {
         var mapa = await MapaDeChavesAsync(sistemaId, nameof(ClienteCarteira), ct);
 
-        await using var leitura = abrirContexto();
+        await using var leitura = AbrirContextoDaCarga();
 
         // O ÍNDICE ÚNICO É (cliente, carteira) VIGENTE, e a chave da origem é
         // (pessoa, departamento, carteira) — três colunas contra duas. Duas linhas da origem
@@ -725,7 +753,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
 
         foreach (var bloco in vinculos.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, ClienteCarteira Entidade)>();
@@ -805,7 +833,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     {
         var mapa = await MapaDeChavesAsync(sistemaId, nameof(TipoProcesso), ct);
 
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var codigosUsados = (await contexto.TiposDeProcesso.AsNoTracking()
@@ -846,7 +874,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
         IReadOnlyDictionary<string, int> porChaveDeTipoDeProcesso,
         CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var existentes = (await contexto.Fases.AsNoTracking()
@@ -887,7 +915,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     {
         var mapa = await MapaDeChavesAsync(sistemaId, nameof(TipoTarefa), ct);
 
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var codigosUsados = (await contexto.TiposDeTarefa.AsNoTracking()
@@ -945,7 +973,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     {
         var mapa = await MapaDeChavesAsync(sistemaId, nameof(Dominio.Processo.Resultado), ct);
 
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var existentes = (await contexto.Resultados.AsNoTracking()
@@ -1020,7 +1048,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
 
         foreach (var bloco in processos.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, Dominio.Processo.Processo Entidade)>();
@@ -1203,7 +1231,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
 
         foreach (var bloco in tarefas.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, Tarefa Entidade)>();
@@ -1358,7 +1386,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
 
         foreach (var bloco in interacoes.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novas = new List<(string Chave, Interacao Entidade)>();
@@ -1427,7 +1455,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
                 var nova = Interacao.Registrar(
                     empresaId, tipoId, interacao.Assunto,
                     DataHoraUtc.Criar(interacao.OcorridaEm), interacao.Natureza, autorId,
-                    clienteId, processoId, leadId: null, contatoId: null, tarefaId, resultadoId,
+                    clienteId, processoId, contatoId: null, tarefaId, resultadoId,
                     interacao.ResultadoComplemento, interacao.Detalhe, interacao.DuracaoMinutos,
                     interacao.Latitude, interacao.Longitude);
 
@@ -1478,7 +1506,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     private async Task<(int TarefasLigadas, int VinculosComContato)> ReconciliarDerivadosAsync(
         CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var tarefas = await contexto.Database.ExecuteSqlRawAsync(
             """
@@ -1515,7 +1543,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
 
     private async Task<int> GarantirLinhaDeNegocioPadraoAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var existente = await contexto.LinhasDeNegocio.FirstOrDefaultAsync(l => l.Codigo == "NAO_INFORMADA", ct);
         if (existente is not null) return existente.Id;
@@ -1529,7 +1557,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
 
     private async Task<int> GarantirTipoDeTarefaPadraoAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var existente = await contexto.TiposDeTarefa
             .FirstOrDefaultAsync(t => t.Codigo == TipoDeTarefaNaoInformada, ct);
@@ -1548,7 +1576,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
 
     private async Task<int> GarantirMotivoDePerdaAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var existente = await contexto.MotivosDePerda
             .FirstOrDefaultAsync(m => m.Codigo == MotivoDePerdaNaoInformado, ct);
@@ -1566,7 +1594,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
 
     private async Task<int> GarantirSistemaAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var sistema = await contexto.Sistemas
             .FirstOrDefaultAsync(s => s.Codigo == LeitorDeCargaDoVortice.CodigoDoSistema, ct);
@@ -1607,7 +1635,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     /// <summary>O nome de cada linha de negócio já gravada, por identificador.</summary>
     private async Task<Dictionary<int, string>> NomeDasLinhasDeNegocioAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         return await contexto.LinhasDeNegocio.AsNoTracking()
             .ToDictionaryAsync(l => l.Id, l => l.Nome, ct);
     }
@@ -1615,7 +1643,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     /// <summary>O nome de exibição de cada usuário já gravado, por identificador.</summary>
     private async Task<Dictionary<long, string>> NomeDosUsuariosAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         return await contexto.Usuarios.AsNoTracking()
             .ToDictionaryAsync(u => u.Id, u => u.NomeExibicao, ct);
     }
@@ -1623,7 +1651,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     private async Task<Dictionary<string, long>> MapaDeChavesAsync(
         int sistemaId, string entidade, CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         return await contexto.ChavesExternas.AsNoTracking()
             .Where(c => c.SistemaId == sistemaId && c.Entidade == entidade)
@@ -1632,7 +1660,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
 
     private async Task<Dictionary<long, int>> MapaDeEmpresaPorClienteAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         return await contexto.Clientes.AsNoTracking().ToDictionaryAsync(c => c.Id, c => c.EmpresaId, ct);
     }
 
@@ -1650,7 +1678,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
 
     private async Task GravarRecusasAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         await contexto.Database.ExecuteSqlRawAsync(
             "DELETE FROM integracao.MensagemDescartada WHERE Fluxo LIKE 'VORTICE.CARGA.%' " +
@@ -1684,7 +1712,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     private async Task MarcarSincronismoAsync<T>(
         int sistemaId, string fluxo, LoteDaCarga<T> lote, int gravados, CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var ponto = await contexto.PontosDeSincronismo.FirstOrDefaultAsync(p => p.Fluxo == fluxo, ct);
 

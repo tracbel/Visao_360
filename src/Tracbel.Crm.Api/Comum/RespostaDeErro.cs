@@ -139,6 +139,12 @@ public static class RespostaDeErro
             StatusCodes.Status503ServiceUnavailable, "dependencia-indisponivel",
             "Um sistema externo não respondeu. O restante da API continua funcionando."),
 
+        // 403, com o mesmo `type` do meio de campo de acesso: a pessoa é conhecida e o perfil dela
+        // não abre esta visão. A tela usa isso para explicar a opção desligada.
+        TipoDeFalha.SemPermissao => (
+            StatusCodes.Status403Forbidden, "sem-acesso",
+            "O seu perfil não alcança o que foi pedido."),
+
         // Não há como chegar aqui: Nenhuma só existe em resultado de sucesso, e sucesso não
         // passa por esta função. Mas um 500 mudo seria pior do que um 500 que se explica.
         _ => (

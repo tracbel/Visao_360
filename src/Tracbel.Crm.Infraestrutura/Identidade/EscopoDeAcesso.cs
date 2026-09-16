@@ -30,12 +30,13 @@ public sealed record IdentidadeDoEntra(Guid IdentidadeExterna, string NomePrinci
 internal static class EscopoDeAcesso
 {
     /// <summary>
-    /// As permissões concedidas, e a profundidade de cada uma.
+    /// As permissões que todo usuário recebe, e a profundidade de cada uma.
     ///
-    /// <para>É a lista mínima para cadastrar cliente e equipamento e ler catálogo — nada além. O
-    /// login pelo Entra ID resolve QUEM é a pessoa; ele ainda não resolve O QUE ela pode, e não
-    /// finge que resolve: as profundidades continuam as da ponte provisória até os conjuntos de
-    /// permissão existirem (documento 05, seção 4). Isso vale como dívida nomeada.</para>
+    /// <para>É a lista mínima para cadastrar cliente e equipamento e ler catálogo — nada além. O que
+    /// passa disso só chega por CONCESSÃO EXPLÍCITA: um conjunto de permissões ativo, concedido ao
+    /// usuário em <c>seguranca.UsuarioConjuntoPermissao</c> e ainda não vencido (documento 05, seção
+    /// 4). É assim que a visão da empresa (<c>Empresa.AlcanceEntreFiliais</c> em Organização) chega a
+    /// um perfil — e quem recebe esse acesso é decisão do negócio, não desta classe.</para>
     /// </summary>
     public static readonly string[] PermissoesConcedidas =
     [
@@ -53,6 +54,10 @@ internal static class EscopoDeAcesso
     /// <param name="codigoDaFilial">A filial escolhida, pelo código. Nulo usa a filial de casa.</param>
     /// <param name="empresaDeCasaId">A filial de casa do usuário, para quando nenhuma foi escolhida.</param>
     /// <param name="campoDaFilial">O nome do campo que carregou a filial, para a mensagem de erro.</param>
+    /// <param name="honrarConcessoesExplicitas">
+    /// Se as concessões de <c>seguranca.UsuarioConjuntoPermissao</c> valem. Com identidade provada (Entra ID),
+    /// sempre; pela ponte provisória, só em Desenvolvimento — cabeçalho não autentica ninguém.
+    /// </param>
     /// <param name="ct">Cancelamento.</param>
     public static async Task<Resultado<ContextoAcesso>> MontarAsync(
         CrmDbContext banco,
@@ -61,6 +66,7 @@ internal static class EscopoDeAcesso
         string? codigoDaFilial,
         int empresaDeCasaId,
         string campoDaFilial,
+        bool honrarConcessoesExplicitas,
         CancellationToken ct)
     {
         var consulta = banco.Empresas.Where(e => e.EstaAtiva);
@@ -91,6 +97,30 @@ internal static class EscopoDeAcesso
 
         if (!visiveis.Contains(empresa.Id)) visiveis.Add(empresa.Id);
 
+        var profundidades = PermissoesConcedidas.ToDictionary(
+            p => p, _ => Profundidade.EmpresaEAbaixo, StringComparer.Ordinal);
+
+        if (honrarConcessoesExplicitas)
+        {
+            // A CONCESSÃO EXPLÍCITA SOMA, e vence a maior profundidade — a regra aditiva dos conjuntos
+            // de permissão (ContextoAcesso.ProfundidadeDe). Conjunto desativado e concessão vencida não
+            // entram: privilégio temporário não vira permanente por esquecimento.
+            var agora = DateTime.UtcNow;
+            var concessoes = await (
+                    from concessao in banco.ConcessoesPermissao.AsNoTracking()
+                    join conjunto in banco.ConjuntosPermissao.AsNoTracking() on concessao.ConjuntoPermissaoId equals conjunto.Id
+                    join item in banco.Set<ItemConjuntoPermissao>().AsNoTracking() on conjunto.Id equals item.ConjuntoPermissaoId
+                    where concessao.UsuarioId == usuarioId
+                          && conjunto.EstaAtivo
+                          && (concessao.ExpiraEm == null || concessao.ExpiraEm > agora)
+                    select new { item.CodigoPermissao, item.Profundidade })
+                .ToListAsync(ct);
+
+            foreach (var concessao in concessoes)
+                if (!profundidades.TryGetValue(concessao.CodigoPermissao, out var atual) || concessao.Profundidade > atual)
+                    profundidades[concessao.CodigoPermissao] = concessao.Profundidade;
+        }
+
         return Resultado<ContextoAcesso>.Ok(new ContextoAcesso(
             usuarioId: usuarioId,
             nomeExibicao: nomeExibicao,
@@ -98,8 +128,7 @@ internal static class EscopoDeAcesso
             empresasVisiveis: visiveis.ToHashSet(),
             subordinadosIds: new HashSet<long>(),
             equipesIds: new HashSet<long>(),
-            profundidades: PermissoesConcedidas.ToDictionary(
-                p => p, _ => Profundidade.EmpresaEAbaixo, StringComparer.Ordinal),
+            profundidades: profundidades,
             ehServicoDeSistema: false));
     }
 }

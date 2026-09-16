@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Tracbel.Crm.Aplicacao\Tracbel.Crm.Aplicacao.csproj" />
     <ProjectReference Include="..\..\src\Tracbel.Crm.Infraestrutura\Tracbel.Crm.Infraestrutura.csproj" />
+    <ProjectReference Include="..\..\src\Tracbel.Crm.Carga\Tracbel.Crm.Carga.csproj" />
   </ItemGroup>
 
 </Project>

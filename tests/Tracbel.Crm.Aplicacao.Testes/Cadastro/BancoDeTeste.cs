@@ -109,7 +109,7 @@ public sealed class BancoDeTeste : IDisposable
             new CriarEquipamento(equipamentos, clientes, catalogos, unidade, _acesso),
             new AlterarEquipamento(equipamentos, clientes, catalogos, unidade, _acesso),
             new InativarEquipamento(equipamentos, unidade, _acesso),
-            new ListarEquipamentos(equipamentos, clientes, Relogio),
+            new ListarEquipamentos(equipamentos, clientes, catalogos, Relogio),
             contexto);
     }
 

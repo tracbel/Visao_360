@@ -69,11 +69,14 @@ const SECOES: { titulo: string; itens: ItemNav[] }[] = [
       { caminho: '/relatorios/funil', rotulo: 'Funil de Vendas', Icone: IconeFunil },
       { caminho: '/relatorios/performance', rotulo: 'Performance de CEN', Icone: IconePerformance },
       { caminho: '/relatorios/cobertura', rotulo: 'Cobertura por Filial', Icone: IconeCoberturaRegional },
+      { caminho: '/relatorios/territorio', rotulo: 'Indicadores Geográficos', Icone: IconeCoberturaRegional },
     ],
   },
   {
     titulo: 'Sistema',
-    itens: [{ caminho: '/config', rotulo: 'Configurações', Icone: IconeConfiguracoes }],
+    itens: [
+      { caminho: '/config', rotulo: 'Configurações', Icone: IconeConfiguracoes },
+    ],
   },
 ];
 

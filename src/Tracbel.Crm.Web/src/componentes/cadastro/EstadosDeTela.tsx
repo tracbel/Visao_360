@@ -101,6 +101,20 @@ function explicar(erro: Error): { titulo: string; texto: string } {
           'a quem não pode ver que o registro existe.',
       };
     }
+    // FALTA DE PERMISSÃO NÃO É FALHA. O dado existe e a API recusou mostrar a este perfil — tentar de novo
+    // não muda nada; quem resolve é a concessão de acesso.
+    if (erro.status === 403) {
+      return {
+        titulo: 'Sem permissão para esta consulta',
+        texto: [erro.message, erro.detalhe].filter(Boolean).join(' — '),
+      };
+    }
+    if (erro.status === 401) {
+      return {
+        titulo: 'A sessão expirou',
+        texto: 'Entre de novo com a conta Microsoft para continuar. Nenhum dado foi alterado.',
+      };
+    }
     if (erro.status === 503) {
       return {
         titulo: 'Uma dependência externa não respondeu',

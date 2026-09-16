@@ -18,8 +18,8 @@ namespace Tracbel.Crm.Infraestrutura.Identidade;
 /// ---------------------------------------------------------------------------------------------
 /// O CASAMENTO DA CONTA, e por que ele tem três passos.
 ///
-/// <para>O Entra entrega o identificador de objeto e <c>ricardo.moretti@tracbel.com.br</c>. O banco
-/// tem, para quase todo mundo, <c>ricardo.moretti@sem-email.vortice.invalid</c> — o Vórtice não
+/// <para>O Entra entrega o identificador de objeto e <c>fulano.exemplo@tracbel.com.br</c>. O banco
+/// tem, para quase todo mundo, <c>fulano.exemplo@sem-email.vortice.invalid</c> — o Vórtice não
 /// guardava e-mail, e a carga inventou um endereço num domínio que não pode existir. O único dado em
 /// comum é a parte antes do <c>@</c>.</para>
 ///
@@ -108,9 +108,10 @@ public sealed class ResolvedorDeContextoDoEntraId(
             if (usuario.RegistrarAcesso(agora)) await banco.SaveChangesAsync(ct);
         }
 
+        // IDENTIDADE PROVADA PELO TOKEN: a concessão explícita vale sempre neste caminho.
         return await EscopoDeAcesso.MontarAsync(
             banco, usuario.Id, usuario.NomeExibicao, empresaInformada, usuario.EmpresaId,
-            opcoes.Value.CabecalhoDeEmpresa, ct);
+            opcoes.Value.CabecalhoDeEmpresa, honrarConcessoesExplicitas: true, ct);
     }
 
     /// <summary>

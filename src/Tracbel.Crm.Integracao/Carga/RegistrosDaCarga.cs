@@ -325,7 +325,7 @@ public sealed record VendaPerdidaParaCarga(
 /// O nome que o ERP tem para essa contraparte.
 ///
 /// <para>Vem junto porque quem NÃO casa com o cadastro do CRM também precisa ser gravado, e um
-/// CNPJ sem nome não é acionável: ninguém procura "07791111001001" na lista de clientes.</para>
+/// CNPJ sem nome não é acionável: ninguém procura "12345678000195" na lista de clientes.</para>
 /// </param>
 /// <param name="Quebra">
 /// Quanto do mês foi máquina, peça, serviço e outros — do <c>D2_GRUPO</c> da própria nota.

@@ -6,27 +6,31 @@
  * `v360-kpi-row`, `v360-grid-row2/3/4`, `v360-card`. Nada de estrutura nova —
  * o que muda em relação ao protótipo é **de onde vem o número**, nunca a forma.
  *
- * O que tem dado real hoje (banco `TracbelCrm`, carga de 2026):
- *   clientes na carteira · cobertura por tempo sem contato · ranking de CEN ·
- *   mix por linha de negócio · vendas perdidas por motivo · alertas.
+ * OS CINCO CARTÕES (documento 36) vêm de `/relatorios/indicadores-executivos`,
+ * lido filial a filial e somado por partição — cada número tem fonte, regra,
+ * período e alcance escritos no próprio cartão, e a composição filial a filial
+ * abre logo abaixo deles:
+ *   A. faturamento da competência mais recente, com e sem cliente no CRM;
+ *   B. realizado do ano civil ao lado da meta cadastrada — nunca previsão;
+ *   C. clientes únicos (filial de cadastro) e vínculos (filial da carteira);
+ *   D. cobertura pela cadência declarada da linha — a regra do mapa;
+ *   E. vendas perdidas registradas — sem percentual de mercado.
  *
- * O que NÃO tem, e por quê:
- *   faturamento, previsão e conhecimento de mercado dependem do Protheus, cuja
- *   integração está parada desde 11/04/2025 (documento 18). O cartão **fica na
- *   tela**, no mesmo lugar e no mesmo tamanho, dizendo que não há dado — some
- *   o número, não o cartão. Mostrar valor velho com cara de atual é o defeito
- *   do legado que este projeto existe para corrigir.
+ * Quando falta dado, o cartão **fica na tela**, no mesmo lugar e no mesmo
+ * tamanho, dizendo o que falta — some o número, não o cartão.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   censConsolidados,
   mixDeLinhas,
   obterConsolidado,
+  obterExecutivoConsolidado,
   perdasConsolidadas,
   somarConsolidado,
   faturamentoConsolidado,
   vendasPerdidasConsolidadas,
+  type ExecutivoConsolidado,
 } from '../../dados/api/consolidado';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { useRecurso } from '../../dados/api/useRecurso';
@@ -35,6 +39,7 @@ import { GraficoBarrasHorizontais } from '../GraficoBarrasHorizontais';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { GraficoDonutCentro } from '../GraficoDonutCentro';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
+import '../../estilos/painel-executivo.css';
 
 /**
  * O valor em milhões, como a diretoria fala dele.
@@ -62,7 +67,24 @@ function mesCurto(competencia: string): string {
   return `${MESES[Number(mes) - 1]}/${ano.slice(2)}`;
 }
 
+/** `2026-09-08T18:46:07Z` vira `08/09 15:46`, no fuso de quem lê. */
+function diaEHora(instante: string | null): string {
+  if (!instante) return 'data não informada';
+  const utc = /Z|[+-]\d\d:\d\d$/.test(instante) ? instante : `${instante}Z`;
+  return new Date(utc).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+/** `2026-03-10` vira `10/03/2026`. */
+function data(dia: string | null): string {
+  if (!dia) return '—';
+  const [a, m, d] = dia.slice(0, 10).split('-');
+  return `${d}/${m}/${a}`;
+}
+
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+/** O primeiro ano do seletor: antes disso não há faturamento carregado. É o mesmo limite da API. */
+const PRIMEIRO_ANO = 2020;
 
 /**
  * A cor da classe na curva ABC.
@@ -84,11 +106,11 @@ function corDaClasse(classe: string | null): string {
   }
 }
 
-/** As cores das faixas de cobertura, iguais às da legenda do protótipo. */
-const COR_EM_DIA = '#367C2B';
-const COR_AVISO = '#B45309';
-const COR_ATRASO = '#DC2626';
-const COR_NUNCA = '#9CA3AF';
+/** As cores dos estados da cobertura pela cadência — as mesmas do mapa: verde coberto, vermelho pendente. */
+const COR_COBERTO = '#367C2B';
+const COR_FORA_DA_CADENCIA = '#DC2626';
+const COR_NUNCA = '#7F1D1D';
+const COR_SEM_CADENCIA = '#D1D5DB';
 
 /** As cores do mix por linha, na paleta John Deere do protótipo. */
 const CORES_MIX = [
@@ -165,10 +187,15 @@ function iniciais(nome: string): string {
 const TOP = 5;
 
 const nº = (v: number) => v.toLocaleString('pt-BR');
+const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
 export function PainelExecutivo() {
   const { contexto } = useContextoDeAcesso();
+  const anoCorrente = new Date().getFullYear();
+  const [ano, setAno] = useState(anoCorrente);
+
   const consolidado = useRecurso((sinal) => obterConsolidado(contexto, sinal), [contexto.usuario]);
+  const executivo = useRecurso((sinal) => obterExecutivoConsolidado(contexto, ano, sinal), [contexto.usuario, ano]);
 
   const dados = consolidado.dados;
   const total = useMemo(() => somarConsolidado(dados), [dados]);
@@ -178,21 +205,22 @@ export function PainelExecutivo() {
   const vendasPerdidas = useMemo(() => vendasPerdidasConsolidadas(dados), [dados]);
   const faturamento = useMemo(() => faturamentoConsolidado(dados), [dados]);
 
-  /* Cobertura por tempo sem contato — as cinco faixas da legenda original. */
-  const emDia = total.em30;
-  const aviso = Math.max(0, total.em90 - total.em30);
-  const atraso = Math.max(0, total.clientes - total.em90 - total.nunca);
-  const nunca = total.nunca;
-  const coberturaPct = total.clientes > 0 ? Math.round((emDia / total.clientes) * 100) : 0;
+  const ex = executivo.dados;
+  const cobertura = ex?.cobertura ?? null;
+  const coberturaPct = cobertura && cobertura.elegiveis > 0 ? (100 * cobertura.cobertos) / cobertura.elegiveis : null;
 
+  /* A rosca de cobertura mostra os estados da CADÊNCIA — os mesmos do mapa —, e não faixas de dias. */
   const fatiasDaCobertura = useMemo(
-    () => [
-      { valor: emDia, cor: COR_EM_DIA },
-      { valor: aviso, cor: COR_AVISO },
-      { valor: atraso, cor: COR_ATRASO },
-      { valor: nunca, cor: COR_NUNCA },
-    ],
-    [emDia, aviso, atraso, nunca],
+    () =>
+      cobertura
+        ? [
+            { valor: cobertura.cobertos, cor: COR_COBERTO },
+            { valor: cobertura.foraDaCadencia, cor: COR_FORA_DA_CADENCIA },
+            { valor: cobertura.nuncaContatados, cor: COR_NUNCA },
+            { valor: cobertura.semCadencia, cor: COR_SEM_CADENCIA },
+          ]
+        : [],
+    [cobertura],
   );
 
   const topCens = useMemo(() => cens.slice(0, TOP), [cens]);
@@ -235,7 +263,9 @@ export function PainelExecutivo() {
   );
   const totalPerdido = perdas.reduce((s, m) => s + m.quantidade, 0);
 
-  if (consolidado.carregando) return <BlocoCarregando oQue="o consolidado das treze filiais" />;
+  if (consolidado.carregando) return <BlocoCarregando oQue="o consolidado das filiais" />;
+
+  const anos = Array.from({ length: anoCorrente - PRIMEIRO_ANO + 1 }, (_, i) => anoCorrente - i);
 
   return (
     <div className="v360-container">
@@ -243,62 +273,53 @@ export function PainelExecutivo() {
         <BlocoErro erro={consolidado.erro} aoTentarDeNovo={consolidado.recarregar} />
       )}
 
-      {/* ROW 1: os cinco indicadores ------------------------------------- */}
-      <div className="v360-kpi-row">
-        {/* O KPI QUE ESTAVA VAZIO POR UMA PREMISSA FALSA.
-            Ele dizia "integração parada em 11/04/2025" — e isso era verdade da CÓPIA que o
-            Vórtice recebe, não da origem. Lendo a SD2 do Protheus direto, há nota da mesma
-            semana. O subtexto diz de que mês é o número, e avisa quando o mês ainda corre:
-            dia 6 de setembro tem seis dias de faturamento, e compará-lo com agosto cheio
-            erraria por 90%. */}
-        {faturamento.competenciaMaisRecente ? (
-          <CartaoIndicador
-            titulo={faturamento.ultimoMesEstaAberto ? 'Faturamento em curso' : 'Faturamento do mês'}
-            valor={emMilhoes(faturamento.valorDoUltimoMes)}
-            subtexto={
-              faturamento.ultimoMesEstaAberto
-                ? `${mesPorExtenso(faturamento.competenciaMaisRecente)} até hoje · mês em curso`
-                : `${mesPorExtenso(faturamento.competenciaMaisRecente)} · mês fechado`
-            }
-            cor="#367C2B"
-            icone="trending-up"
-          />
-        ) : (
-          <CartaoSemDado
-            titulo="Faturamento do mês"
-            cor="#367C2B"
-            motivo="Nenhum faturamento carregado"
-            icone="trending-up"
-          />
+      {/* O PERÍODO DOS CARTÕES, ESCRITO. O ano segue a escolha — não fica preso a 2026 —, e é civil
+          porque o calendário fiscal não foi confirmado (documento 32, P-4). */}
+      <div className="v360-periodo" role="group" aria-label="Período dos indicadores">
+        <label>
+          Ano de referência
+          <select value={ano} onChange={(e) => setAno(Number(e.target.value))}>
+            {anos.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+        </label>
+        <span>ano civil (jan–dez) · calendário fiscal não confirmado, por isso não há FY · o faturamento do mês é a competência mais recente carregada</span>
+        {ex && (
+          <span className={ex.respondidas < ex.filiais.length ? 'v360-periodo-alerta' : undefined}>
+            {ex.respondidas} de {ex.filiais.length} filiais em operação responderam
+          </span>
         )}
-        <CartaoSemDado
-          titulo="Previsão FY 2026"
-          cor="#1B5E20"
-          motivo="Depende do faturamento"
-          icone="target"
-        />
-        <CartaoIndicador
-          titulo="Clientes na carteira"
-          valor={nº(total.clientes)}
-          subtexto={`${nº(total.carteiras)} carteiras · ${total.filiais} filiais`}
-          cor="#0EA5E9"
-          icone="users"
-        />
-        <CartaoIndicador
-          titulo="Cobertura ativa"
-          valor={`${coberturaPct}%`}
-          subtexto={`${nº(emDia)} de ${nº(total.clientes)} com contato em 30 dias`}
-          cor="#7C3AED"
-          icone="shield"
-        />
-        <CartaoSemDado
-          titulo="Conhecimento de mercado"
-          cor="#B45309"
-          motivo="Emplacamento não integrado"
-          icone="eye"
-          destaque
-        />
       </div>
+
+      {executivo.erro && <BlocoErro erro={executivo.erro} aoTentarDeNovo={executivo.recarregar} />}
+      {ex && ex.respondidas === 0 && ex.filiais.length > 0 && (
+        <BlocoErro
+          erro={ex.filiais.find((f) => f.erro)?.erro ?? new Error('Nenhuma filial respondeu.')}
+          aoTentarDeNovo={executivo.recarregar}
+        />
+      )}
+
+      {/* ROW 1: os cinco indicadores ------------------------------------- */}
+      {executivo.carregando ? (
+        <BlocoCarregando oQue="os cinco indicadores das filiais" />
+      ) : (
+        <CincoIndicadores
+          ex={ex && ex.respondidas > 0 ? ex : null}
+          ano={ano}
+          // A CONTAGEM DE CONCORRENTES VEM DE OUTRA LEITURA (o consolidado). Ela só aparece quando as duas
+          // leituras estão completas — senão o cartão juntaria um total de dez filiais com um de treze.
+          concorrentes={
+            ex && dados && ex.respondidas === ex.filiais.length && dados.falhas === 0
+              ? vendasPerdidas.porConcorrente.length
+              : null
+          }
+        />
+      )}
+
+      {ex && ex.respondidas > 0 && <ComposicaoDosIndicadores ex={ex} />}
 
       {/* ROW 2: conhecimento · status da cobertura · faturamento --------- */}
       <div className="v360-grid-row2">
@@ -306,13 +327,32 @@ export function PainelExecutivo() {
           <div className="v360-card-header">
             <div>
               <div className="v360-card-title">Conhecimento de mercado</div>
-              <div className="v360-card-sub">Máquinas emplacadas com registro nosso</div>
+              <div className="v360-card-sub">Para quem perdemos, pelo formulário de venda perdida</div>
             </div>
           </div>
-          <SemDado
-            oQue="o emplacamento"
-            porque="Depende do John Deere Connect cruzado com o Protheus. Nenhum dos dois está integrado."
-          />
+          {vendasPerdidas.porConcorrente.length > 0 ? (
+            <>
+              <ul className="v360-concorrentes">
+                {vendasPerdidas.porConcorrente.slice(0, TOP).map((c) => (
+                  <li key={c.codigo}>
+                    <span>{c.nome}</span>
+                    <span>
+                      {nº(c.quantidade)} perda(s) · {nº(c.maquinas)} máq.
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="v360-nota">
+                {nº(vendasPerdidas.registradas)} formulários de {nº(vendasPerdidas.processosPerdidos)} processos perdidos.
+                Participação de mercado e emplacamento: <strong>sem dado</strong> — nenhuma fonte de mercado está integrada.
+              </p>
+            </>
+          ) : (
+            <SemDado
+              oQue="o mercado"
+              porque="Nenhuma venda perdida com concorrente registrada, e não há emplacamento integrado."
+            />
+          )}
         </div>
 
         <div className="v360-card v360-card-md">
@@ -320,31 +360,37 @@ export function PainelExecutivo() {
             <div>
               <div className="v360-card-title">Status da cobertura</div>
               <div className="v360-card-sub">
-                Distribuição de {nº(total.clientes)} clientes por status
+                {cobertura
+                  ? `${nº(cobertura.vinculosComerciais)} vínculos em carteira comercial, pela cadência da linha`
+                  : 'pela cadência declarada da linha de negócio'}
               </div>
             </div>
-            <Link to="/cobertura" className="v360-link">
-              Ver detalhes →
+            <Link to="/relatorios/territorio" className="v360-link">
+              Ver no mapa →
             </Link>
           </div>
-          <div className="v360-donut-wrap">
-            <GraficoDonutCentro
-              segmentos={fatiasDaCobertura}
-              /* 160 e não os 200 do protótipo: a legenda real traz números de
-                 cinco dígitos ("15.560"), e não "8". O donut cede a diferença. */
-              largura={160}
-              altura={160}
-              cutout="70%"
-              bordaBranca
-              centro={{ linha1: `${coberturaPct}%`, linha2: 'ativa' }}
-            />
-            <div className="v360-donut-legenda">
-              <ItemDeLegenda cor={COR_EM_DIA} rotulo="Em dia" valor={emDia} />
-              <ItemDeLegenda cor={COR_AVISO} rotulo="Aviso" valor={aviso} />
-              <ItemDeLegenda cor={COR_ATRASO} rotulo="Atraso" valor={atraso} />
-              <ItemDeLegenda cor={COR_NUNCA} rotulo="Nunca" valor={nunca} />
+          {cobertura ? (
+            <div className="v360-donut-wrap">
+              <GraficoDonutCentro
+                segmentos={fatiasDaCobertura}
+                /* 160 e não os 200 do protótipo: a legenda real traz números de
+                   cinco dígitos ("15.560"), e não "8". O donut cede a diferença. */
+                largura={160}
+                altura={160}
+                cutout="70%"
+                bordaBranca
+                centro={{ linha1: coberturaPct === null ? '—' : porcento(coberturaPct), linha2: 'no prazo' }}
+              />
+              <div className="v360-donut-legenda">
+                <ItemDeLegenda cor={COR_COBERTO} rotulo="No prazo da cadência" valor={cobertura.cobertos} />
+                <ItemDeLegenda cor={COR_FORA_DA_CADENCIA} rotulo="Fora da cadência" valor={cobertura.foraDaCadencia} />
+                <ItemDeLegenda cor={COR_NUNCA} rotulo="Nunca contatados" valor={cobertura.nuncaContatados} />
+                <ItemDeLegenda cor={COR_SEM_CADENCIA} rotulo="Linha sem cadência (fora do %)" valor={cobertura.semCadencia} />
+              </div>
             </div>
-          </div>
+          ) : (
+            <SemDado oQue="a cobertura" porque="A leitura dos indicadores das filiais não respondeu." />
+          )}
         </div>
 
         <div className="v360-card v360-card-lg">
@@ -353,7 +399,7 @@ export function PainelExecutivo() {
               <div className="v360-card-title">Faturamento — 12 meses</div>
               <div className="v360-card-sub">
                 {faturamento.serie.length > 0
-                  ? `${mesPorExtenso(faturamento.serie[0].competencia)} a ${mesPorExtenso(faturamento.competenciaMaisRecente!)} · nota fiscal de saída`
+                  ? `${mesPorExtenso(faturamento.serie[0].competencia)} a ${mesPorExtenso(faturamento.competenciaMaisRecente!)} · notas com cliente no CRM`
                   : 'nota fiscal de saída, lida do Protheus'}
               </div>
             </div>
@@ -438,7 +484,7 @@ export function PainelExecutivo() {
           <div className="v360-card-header">
             <div>
               <div className="v360-card-title">Top CENs</div>
-              <div className="v360-card-sub">Ranking por clientes em carteira</div>
+              <div className="v360-card-sub">Ranking por vínculos em carteira comercial</div>
             </div>
           </div>
           <div className="v360-topbar-list">
@@ -455,7 +501,7 @@ export function PainelExecutivo() {
                   <div className="v360-topbar-nome">{c.nome}</div>
                   <div className="v360-topbar-meta">
                     {nº(c.carteiras)} {c.carteiras === 1 ? 'carteira' : 'carteiras'} ·{' '}
-                    {nº(c.em30)} em dia
+                    {nº(c.em30)} com contato em 30 dias
                   </div>
                 </div>
                 <div className="v360-topbar-valor-wrap">
@@ -479,7 +525,7 @@ export function PainelExecutivo() {
           <div className="v360-card-header">
             <div>
               <div className="v360-card-title">Mix por linha</div>
-              <div className="v360-card-sub">Participação de cada linha na carteira</div>
+              <div className="v360-card-sub">Participação de cada linha nos vínculos</div>
             </div>
           </div>
           <div className="v360-mix-wrap">
@@ -545,13 +591,15 @@ export function PainelExecutivo() {
             </div>
           </div>
           <div className="v360-alertas-list">
-            <Alerta
-              tipo="critico"
-              titulo={`${nº(nunca)} clientes nunca contatados`}
-              detalhe={`De ${nº(total.clientes)} na carteira das ${total.filiais} filiais`}
-              acao="Ver cobertura"
-              para="/cobertura"
-            />
+            {cobertura && (
+              <Alerta
+                tipo="critico"
+                titulo={`${nº(cobertura.nuncaContatados)} vínculos elegíveis nunca contatados`}
+                detalhe={`De ${nº(cobertura.elegiveis)} vínculos em linha com cadência declarada`}
+                acao="Ver cobertura"
+                para="/cobertura"
+              />
+            )}
             <Alerta
               tipo="aviso"
               titulo={`${nº(total.atrasadas)} tarefas atrasadas`}
@@ -575,21 +623,237 @@ export function PainelExecutivo() {
 
 /* ------------------------------------------------------------------------ */
 
+/** Os cinco cartões, cada um com fonte, período e alcance no rodapé — e o motivo quando falta dado. */
+function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado | null; ano: number; concorrentes: number | null }) {
+  if (!ex) {
+    const motivo = 'a leitura dos indicadores das filiais não respondeu';
+    return (
+      <div className="v360-kpi-row">
+        <CartaoSemDado titulo="Faturamento do mês" cor="#367C2B" motivo={motivo} icone="trending-up" />
+        <CartaoSemDado titulo={`Meta e realizado · ${ano}`} cor="#1B5E20" motivo={motivo} icone="target" />
+        <CartaoSemDado titulo="Clientes na carteira" cor="#0EA5E9" motivo={motivo} icone="users" />
+        <CartaoSemDado titulo="Cobertura pela cadência" cor="#7C3AED" motivo={motivo} icone="shield" />
+        <CartaoSemDado titulo="Conhecimento de mercado" cor="#B45309" motivo={motivo} icone="eye" destaque />
+      </div>
+    );
+  }
+
+  const mes = ex.faturamentoDoMes;
+  const hoje = new Date();
+  const mesCorrente = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  const mesEmCurso = mes !== null && mes.competencia.slice(0, 7) === mesCorrente;
+  const alcance = `${ex.respondidas} filiais`;
+
+  const doAno = ex.realizadoDoAno;
+  const cobertura = ex.cobertura;
+  const coberturaPct = cobertura.elegiveis > 0 ? (100 * cobertura.cobertos) / cobertura.elegiveis : null;
+  const mercado = ex.mercado;
+  const carteira = ex.carteira;
+
+  return (
+    <div className="v360-kpi-row">
+      {/* A. FATURAMENTO — nota de saída do Protheus, com e sem cliente no CRM. O ART não entra: ele
+          registra venda de máquina, não nota, e somar os dois contaria a mesma máquina duas vezes. */}
+      {mes ? (
+        <CartaoIndicador
+          titulo={mesEmCurso ? 'Faturamento em curso' : 'Faturamento do mês'}
+          valor={emMilhoes(mes.total)}
+          subtexto={
+            mesEmCurso
+              ? `${mesPorExtenso(mes.competencia)} até a carga de ${diaEHora(mes.carregadoEm)} · ${alcance}`
+              : `${mesPorExtenso(mes.competencia)} · última competência carregada · ${alcance}`
+          }
+          detalhe={`NF de saída (Protheus): com cliente ${emMilhoes(mes.comCliente)} + sem cliente no CRM ${emMilhoes(mes.semCliente)} · devolução não abatida${
+            mes.filiaisEmOutroMes.length > 0 ? ` · fora da soma, em outro mês: ${mes.filiaisEmOutroMes.join(', ')}` : ''
+          }`}
+          dica={`Sem cliente no CRM: contraparte sem cadastro ${emMilhoes(mes.contraparteSemCadastro)}, fábrica ${emMilhoes(mes.repasseDeFabrica)}, empresa do grupo ${emMilhoes(mes.empresaDoGrupo)}, outra revenda ${emMilhoes(mes.outraRevenda)}. Por grupo de item: máquina ${emMilhoes(mes.maquina)}, peça ${emMilhoes(mes.peca)}, serviço ${emMilhoes(mes.servico)}, outros ${emMilhoes(mes.outros)}. ${nº(mes.notas)} notas.`}
+          cor="#367C2B"
+          icone="trending-up"
+        />
+      ) : (
+        <CartaoSemDado titulo="Faturamento do mês" cor="#367C2B" motivo="nenhuma nota carregada nas filiais que responderam" icone="trending-up" />
+      )}
+
+      {/* B. META E REALIZADO — o realizado é medido; a meta é a cadastrada; previsão não existe. */}
+      <CartaoIndicador
+        titulo={`Meta e realizado · ${ano}`}
+        valor={doAno.ultimaCompetencia ? emMilhoes(doAno.total) : '—'}
+        subtexto={
+          doAno.ultimaCompetencia && doAno.primeiraCompetencia
+            ? `realizado ${mesCurto(doAno.primeiraCompetencia)} a ${mesPorExtenso(doAno.ultimaCompetencia)}${
+                mesEmCurso && mes && doAno.ultimaCompetencia === mes.competencia ? ' (em curso)' : ''
+              } · ano civil`
+            : `sem faturamento carregado em ${ano}`
+        }
+        detalhe={
+          doAno.alvo === null
+            ? 'meta: nenhuma cadastrada · previsão: sem modelo aprovado'
+            : `meta ${emMilhoes(doAno.alvo)} em ${doAno.filiaisComMeta} filial(is) · ${porcento((100 * doAno.realizadoDasFiliaisComMeta) / doAno.alvo)} realizado nelas · previsão: sem modelo`
+        }
+        dica="Realizado: soma das notas de saída do ano civil, com e sem cliente no CRM. Meta: organizacao.Meta de faturamento, nível filial, com período dentro do ano. Previsão: não calculada — extrapolar a média dos meses não é previsão."
+        cor="#1B5E20"
+        icone="target"
+      />
+
+      {/* C. CLIENTES — únicos pela filial de cadastro; vínculos pela filial da carteira. */}
+      <CartaoIndicador
+        titulo="Clientes na carteira"
+        valor={nº(carteira.clientesCadastradosComVinculo)}
+        subtexto={`clientes únicos com vínculo ativo · ${nº(carteira.vinculosComerciais)} vínculos em ${nº(carteira.carteirasComerciais)} carteiras comerciais`}
+        detalhe={`${nº(carteira.clientes)} clientes · ${nº(carteira.prospects)} prospects · ${nº(carteira.suspects)} suspects · ${nº(carteira.semDocumento)} sem CPF/CNPJ`}
+        dica="Cada cliente é contado uma vez, na filial em que está cadastrado, se tiver vínculo ativo em qualquer carteira. Um cliente em três carteiras é um cliente e três vínculos."
+        cor="#0EA5E9"
+        icone="users"
+      />
+
+      {/* D. COBERTURA — cadência declarada da linha, a mesma regra do mapa. Contato não é visita. */}
+      <CartaoIndicador
+        titulo="Cobertura pela cadência"
+        valor={coberturaPct === null ? '—' : porcento(coberturaPct)}
+        subtexto={`${nº(cobertura.cobertos)} de ${nº(cobertura.elegiveis)} vínculos elegíveis com contato no prazo da linha`}
+        detalhe={`${nº(cobertura.pendentes)} pendentes (${nº(cobertura.foraDaCadencia)} fora do prazo + ${nº(cobertura.nuncaContatados)} nunca) · ${nº(cobertura.semCadencia)} em linha sem cadência, fora do % · contato registrado, não visita`}
+        dica={`Elegível: vínculo em carteira comercial de linha com cadência declarada (máquinas 180/180/180/360 dias por classe A/B/C/D; prospecção 120/120/120/180; peças e AMS 360). Contato: a última interação registrada de qualquer tipo — nenhum dos ${nº(cobertura.tiposDeAtividade)} tipos de atividade está marcado como visita.`}
+        cor="#7C3AED"
+        icone="shield"
+      />
+
+      {/* E. MERCADO — o que o CRM registra. Sem emplacamento, não há participação. */}
+      <CartaoIndicador
+        titulo="Conhecimento de mercado"
+        valor={nº(mercado.vendasPerdidasRegistradas)}
+        subtexto={`vendas perdidas registradas · ${nº(mercado.comConcorrente)} com concorrente${concorrentes === null ? '' : ` · ${nº(concorrentes)} concorrentes`}`}
+        detalhe={`${mercado.primeiraEm ? `${data(mercado.primeiraEm)} a ${data(mercado.ultimaEm)}` : 'sem registro'} · participação de mercado: sem dado (emplacamento não integrado)`}
+        dica={`${nº(mercado.comModeloDoConcorrente)} com modelo do concorrente, ${nº(mercado.comOsDoisPrecos)} com os dois preços, ${nº(mercado.unidades)} máquinas. As vendas de máquina do ART não estão no banco do CRM e, sozinhas, não dizem o tamanho do mercado.`}
+        cor="#B45309"
+        icone="eye"
+        destaque
+      />
+    </div>
+  );
+}
+
+/**
+ * A COMPOSIÇÃO DOS CINCO NÚMEROS, filial a filial — o que o pedido chama de "consultar os registros
+ * que compõem". Cada coluna é somável; a linha de total é a do cartão.
+ */
+function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
+  const mes = ex.faturamentoDoMes;
+
+  return (
+    <details className="v360-composicao">
+      <summary>Composição dos cinco indicadores — filial a filial, com fonte e regra</summary>
+      <ul className="v360-composicao-regras">
+        <li>
+          <strong>Faturamento</strong>: Protheus SD2 (nota de saída de venda) → <code>comercial.FaturamentoDoCliente</code> e{' '}
+          <code>comercial.FaturamentoSemCliente</code> → valor líquido da competência mais recente, com cliente e sem cliente
+          por natureza → soma das filiais. Devolução e cancelamento não são abatidos (P-5). O ART não é somado.
+        </li>
+        <li>
+          <strong>Meta e realizado</strong>: as mesmas tabelas no ano civil {ex.ano}; meta de <code>organizacao.Meta</code> (tipo
+          faturamento, nível filial, período dentro do ano). Sem previsão.
+        </li>
+        <li>
+          <strong>Clientes</strong>: <code>comercial.Cliente</code> × <code>comercial.ClienteCarteira</code> → cliente com
+          vínculo ativo, na filial de cadastro. Vínculos e carteiras, pela filial da carteira.
+        </li>
+        <li>
+          <strong>Cobertura</strong>: <code>ClienteCarteira.UltimaInteracaoEm</code> contra a cadência de{' '}
+          <code>organizacao.LinhaDeNegocio</code> pela classe ABC do cliente (sem classe = D) → cobertos ÷ elegíveis. Mesma regra
+          do mapa de cobertura.
+        </li>
+        <li>
+          <strong>Mercado</strong>: <code>processo.VendaPerdida</code> (formulário do CEN). Sem emplacamento, não há participação.
+        </li>
+      </ul>
+      <div className="cad-tabela-wrap v360-composicao-tabela">
+        <table className="cad-tabela">
+          <caption className="cad-so-leitor">Composição dos indicadores por filial</caption>
+          <thead>
+            <tr>
+              <th scope="col">Filial</th>
+              <th scope="col">Mês · com cliente</th>
+              <th scope="col">Mês · sem cliente</th>
+              <th scope="col">Realizado {ex.ano}</th>
+              <th scope="col">Meta {ex.ano}</th>
+              <th scope="col">Clientes únicos</th>
+              <th scope="col">Vínculos comerciais</th>
+              <th scope="col">Elegíveis</th>
+              <th scope="col">No prazo</th>
+              <th scope="col">Pendentes</th>
+              <th scope="col">Vendas perdidas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ex.filiais.map(({ filial, painel, erro }) => {
+              if (!painel) {
+                return (
+                  <tr key={filial.codigo}>
+                    <td>{filial.nome}</td>
+                    <td colSpan={10}>não respondeu — {erro?.message ?? 'motivo não informado'}</td>
+                  </tr>
+                );
+              }
+              const i = painel.indicadores;
+              const doMes = i.faturamentoDoMes && mes && i.faturamentoDoMes.competencia === mes.competencia ? i.faturamentoDoMes : null;
+              return (
+                <tr key={filial.codigo}>
+                  <td>{filial.nome}</td>
+                  <td className="num">{doMes ? emMilhoes(doMes.comCliente) : i.faturamentoDoMes ? `em ${mesPorExtenso(i.faturamentoDoMes.competencia)}` : '—'}</td>
+                  <td className="num">{doMes ? emMilhoes(doMes.semCliente) : '—'}</td>
+                  <td className="num">{emMilhoes(i.ano.total)}</td>
+                  <td className="num">{i.ano.alvoDaFilial === null ? 'sem meta' : emMilhoes(i.ano.alvoDaFilial)}</td>
+                  <td className="num">{nº(i.carteira.clientesCadastradosComVinculo)}</td>
+                  <td className="num">{nº(i.carteira.vinculosComerciais)}</td>
+                  <td className="num">{nº(i.cobertura.elegiveis)}</td>
+                  <td className="num">{nº(i.cobertura.cobertos)}</td>
+                  <td className="num">{nº(i.cobertura.pendentes)}</td>
+                  <td className="num">{nº(i.mercado.vendasPerdidasRegistradas)}</td>
+                </tr>
+              );
+            })}
+            <tr className="total">
+              <td>Total ({ex.respondidas} filiais)</td>
+              <td className="num">{mes ? emMilhoes(mes.comCliente) : '—'}</td>
+              <td className="num">{mes ? emMilhoes(mes.semCliente) : '—'}</td>
+              <td className="num">{emMilhoes(ex.realizadoDoAno.total)}</td>
+              <td className="num">{ex.realizadoDoAno.alvo === null ? 'sem meta' : emMilhoes(ex.realizadoDoAno.alvo)}</td>
+              <td className="num">{nº(ex.carteira.clientesCadastradosComVinculo)}</td>
+              <td className="num">{nº(ex.carteira.vinculosComerciais)}</td>
+              <td className="num">{nº(ex.cobertura.elegiveis)}</td>
+              <td className="num">{nº(ex.cobertura.cobertos)}</td>
+              <td className="num">{nº(ex.cobertura.pendentes)}</td>
+              <td className="num">{nº(ex.mercado.vendasPerdidasRegistradas)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
+
 function CartaoIndicador({
   titulo,
   valor,
   subtexto,
+  detalhe,
+  dica,
   cor,
   icone,
+  destaque = false,
 }: {
   titulo: string;
   valor: string;
   subtexto: string;
+  /** A segunda linha: a composição do número. */
+  detalhe?: string;
+  /** O texto completo da regra, para quem passar o cursor. */
+  dica?: string;
   cor: string;
   icone: NomeDeIcone;
+  destaque?: boolean;
 }) {
   return (
-    <div className="v360-kpi-card">
+    <div className={destaque ? 'v360-kpi-card v360-kpi-highlight' : 'v360-kpi-card'} title={dica}>
       <div className="v360-kpi-header">
         <div className="v360-kpi-icone" style={{ background: `${cor}20`, color: cor }}>
           <IconeDoIndicador nome={icone} />
@@ -599,6 +863,7 @@ function CartaoIndicador({
       <div className="v360-kpi-valor">{valor}</div>
       <div className="v360-kpi-rodape">
         <span className="v360-kpi-sub">{subtexto}</span>
+        {detalhe && <span className="v360-kpi-detalhe">{detalhe}</span>}
       </div>
     </div>
   );

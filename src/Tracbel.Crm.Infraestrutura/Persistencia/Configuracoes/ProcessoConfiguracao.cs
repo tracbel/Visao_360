@@ -83,11 +83,7 @@ public sealed class TipoTarefaConfiguracao : IEntityTypeConfiguration<TipoTarefa
 
         b.HasIndex(t => t.Codigo).IsUnique().HasDatabaseName("UX_TipoTarefa_Codigo");
         b.HasIndex(t => t.TipoProcessoId);
-        b.HasIndex(t => t.FormularioId);
-
         b.HasOne<TipoProcesso>().WithMany().HasForeignKey(t => t.TipoProcessoId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Formulario>().WithMany().HasForeignKey(t => t.FormularioId).OnDelete(DeleteBehavior.Restrict);
-
         b.ToTable(x => x.HasCheckConstraint(
             "CK_TipoTarefa_Categoria",
             "[Categoria] IN ('Visita','Ligacao','WhatsApp','Email','Remota','Interna')"));
@@ -198,8 +194,6 @@ public sealed class ProcessoConfiguracao : IEntityTypeConfiguration<Dominio.Proc
         b.HasIndex(p => p.CarteiraId);
         b.HasIndex(p => p.FaseId);
         b.HasIndex(p => p.MotivoDePerdaId);
-        b.HasIndex(p => p.ProprietarioEquipeId);
-
         b.HasOne<Empresa>().WithMany().HasForeignKey(p => p.EmpresaId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<TipoProcesso>().WithMany().HasForeignKey(p => p.TipoProcessoId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Cliente>().WithMany().HasForeignKey(p => p.ClienteId).OnDelete(DeleteBehavior.Restrict);
@@ -211,8 +205,6 @@ public sealed class ProcessoConfiguracao : IEntityTypeConfiguration<Dominio.Proc
             nameof(Dominio.Processo.Processo.ConcorrenteId), "CatalogoDoConcorrenteId",
             CatalogosDeSistema.Concorrente);
         b.HasOne<Usuario>().WithMany().HasForeignKey(p => p.ProprietarioId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Equipe>().WithMany().HasForeignKey(p => p.ProprietarioEquipeId).OnDelete(DeleteBehavior.Restrict);
-
         b.ToTable(x => x.HasCheckConstraint(
             "CK_Processo_Situacao", "[Situacao] IN ('Aberto','Suspenso','Ganho','Perdido','Cancelado')"));
 
@@ -233,46 +225,6 @@ public sealed class ProcessoConfiguracao : IEntityTypeConfiguration<Dominio.Proc
             "([ValorEstimado] IS NULL OR [ValorEstimado] >= 0) AND ([ValorFinal] IS NULL OR [ValorFinal] >= 0)"));
 
         b.Ignore(p => p.Eventos);
-    }
-}
-
-/// <summary>Mapeamento de <see cref="PassagemDeFase"/>.</summary>
-public sealed class PassagemDeFaseConfiguracao : IEntityTypeConfiguration<PassagemDeFase>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<PassagemDeFase> b)
-    {
-        b.ToTable("PassagemDeFase", "processo");
-        b.HasKey(p => p.Id);
-        b.Property(p => p.Id).ValueGeneratedOnAdd();
-
-        b.Property(p => p.Ordem).IsRequired();
-        b.Property(p => p.EntrouEm).HasPrecision(3).IsRequired();
-        b.Property(p => p.SaiuEm).HasPrecision(3);
-        b.Property(p => p.HorasUteis).HasPrecision(10, 2);
-
-        b.HasIndex(p => new { p.ProcessoId, p.Ordem })
-            .IsUnique()
-            .HasDatabaseName("UX_PassagemDeFase_Processo_Ordem");
-
-        // "Em que fase o processo está agora": índice parcial sobre a única linha aberta.
-        b.HasIndex(p => p.ProcessoId).HasFilter("[SaiuEm] IS NULL");
-        b.HasIndex(p => p.FaseId);
-        b.HasIndex(p => p.InteracaoOrigemId);
-        b.HasIndex(p => p.RegraOrigemId);
-        b.HasIndex(p => p.EntrouPorId);
-
-        b.HasOne<Dominio.Processo.Processo>().WithMany().HasForeignKey(p => p.ProcessoId)
-            .OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Fase>().WithMany().HasForeignKey(p => p.FaseId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Interacao>().WithMany().HasForeignKey(p => p.InteracaoOrigemId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Dominio.Workflow.Regra>().WithMany().HasForeignKey(p => p.RegraOrigemId)
-            .OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Usuario>().WithMany().HasForeignKey(p => p.EntrouPorId).OnDelete(DeleteBehavior.Restrict);
-
-        b.ToTable(x => x.HasCheckConstraint(
-            "CK_PassagemDeFase_Periodo", "[SaiuEm] IS NULL OR [SaiuEm] >= [EntrouEm]"));
-        b.ToTable(x => x.HasCheckConstraint("CK_PassagemDeFase_Ordem", "[Ordem] >= 1"));
     }
 }
 
@@ -312,11 +264,9 @@ public sealed class TarefaConfiguracao : IEntityTypeConfiguration<Tarefa>
         b.HasIndex(t => t.TipoTarefaId);
         b.HasIndex(t => t.ContatoId);
         b.HasIndex(t => t.ResultadoId);
-        b.HasIndex(t => t.ResponsavelEquipeId);
         b.HasIndex(t => t.ConcluidaPorId);
         b.HasIndex(t => t.InteracaoConclusaoId);
         b.HasIndex(t => t.InteracaoOrigemId);
-        b.HasIndex(t => t.CriadaPorRegraId);
         b.HasIndex(t => t.EmpresaId);
 
         b.HasOne<Empresa>().WithMany().HasForeignKey(t => t.EmpresaId).OnDelete(DeleteBehavior.Restrict);
@@ -329,15 +279,10 @@ public sealed class TarefaConfiguracao : IEntityTypeConfiguration<Tarefa>
         b.HasOne<Interacao>().WithMany().HasForeignKey(t => t.InteracaoConclusaoId)
             .OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Interacao>().WithMany().HasForeignKey(t => t.InteracaoOrigemId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Dominio.Workflow.Regra>().WithMany().HasForeignKey(t => t.CriadaPorRegraId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         // [V] IV_Agenda.Vendedor guarda o LOGIN, não o identificador. Aqui é chave
         // estrangeira, sempre.
         b.HasOne<Usuario>().WithMany().HasForeignKey(t => t.ResponsavelId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Usuario>().WithMany().HasForeignKey(t => t.ConcluidaPorId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Equipe>().WithMany().HasForeignKey(t => t.ResponsavelEquipeId).OnDelete(DeleteBehavior.Restrict);
-
         b.ToTable(x => x.HasCheckConstraint(
             "CK_Tarefa_Situacao",
             "[Situacao] IN ('Pendente','EmAndamento','Concluida','Cancelada','Reatribuida')"));
@@ -392,7 +337,6 @@ public sealed class InteracaoConfiguracao : IEntityTypeConfiguration<Interacao>
 
         b.HasIndex(i => new { i.ProcessoId, i.OcorridaEm }).IsDescending(false, true);
         b.HasIndex(i => i.ContatoId);
-        b.HasIndex(i => i.LeadId);
         b.HasIndex(i => i.TarefaId);
         b.HasIndex(i => i.TipoTarefaId);
         b.HasIndex(i => i.ResultadoId);
@@ -405,7 +349,6 @@ public sealed class InteracaoConfiguracao : IEntityTypeConfiguration<Interacao>
             .OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Cliente>().WithMany().HasForeignKey(i => i.ClienteId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Contato>().WithMany().HasForeignKey(i => i.ContatoId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Dominio.Crm.Lead>().WithMany().HasForeignKey(i => i.LeadId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Tarefa>().WithMany().HasForeignKey(i => i.TarefaId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Resultado>().WithMany().HasForeignKey(i => i.ResultadoId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Usuario>().WithMany().HasForeignKey(i => i.RegistradoPorId).OnDelete(DeleteBehavior.Restrict);
@@ -416,7 +359,7 @@ public sealed class InteracaoConfiguracao : IEntityTypeConfiguration<Interacao>
         // Toda interação se liga a alguma coisa. Nunca solta.
         b.ToTable(x => x.HasCheckConstraint(
             "CK_Interacao_TemVinculo",
-            "[ProcessoId] IS NOT NULL OR [ClienteId] IS NOT NULL OR [ContatoId] IS NOT NULL OR [LeadId] IS NOT NULL"));
+            "[ProcessoId] IS NOT NULL OR [ClienteId] IS NOT NULL OR [ContatoId] IS NOT NULL"));
 
         b.ToTable(x => x.HasCheckConstraint(
             "CK_Interacao_Duracao", "[DuracaoMinutos] IS NULL OR [DuracaoMinutos] >= 0"));
@@ -427,97 +370,6 @@ public sealed class InteracaoConfiguracao : IEntityTypeConfiguration<Interacao>
             "OR ([Latitude] BETWEEN -90 AND 90 AND [Longitude] BETWEEN -180 AND 180)"));
 
         b.Ignore(i => i.Localizacao);
-    }
-}
-
-/// <summary>Mapeamento de <see cref="InteracaoParticipante"/>.</summary>
-public sealed class InteracaoParticipanteConfiguracao : IEntityTypeConfiguration<InteracaoParticipante>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<InteracaoParticipante> b)
-    {
-        b.ToTable("InteracaoParticipante", "processo");
-        b.HasKey(p => p.Id);
-        b.Property(p => p.Id).ValueGeneratedOnAdd();
-
-        b.Property(p => p.Papel).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
-        b.Property(p => p.NomeExterno).HasMaxLength(200).IsUnicode(true);
-
-        b.HasIndex(p => p.InteracaoId);
-        b.HasIndex(p => p.UsuarioId);
-        b.HasIndex(p => p.ContatoId);
-
-        b.HasOne<Interacao>().WithMany().HasForeignKey(p => p.InteracaoId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Usuario>().WithMany().HasForeignKey(p => p.UsuarioId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Contato>().WithMany().HasForeignKey(p => p.ContatoId).OnDelete(DeleteBehavior.Restrict);
-
-        b.ToTable(x => x.HasCheckConstraint(
-            "CK_InteracaoParticipante_Papel", "[Papel] IN ('Autor','Destinatario','Copia','Participante')"));
-
-        // Participante precisa ser alguém: usuário, contato ou ao menos um nome escrito.
-        b.ToTable(x => x.HasCheckConstraint(
-            "CK_InteracaoParticipante_Identificado",
-            "[UsuarioId] IS NOT NULL OR [ContatoId] IS NOT NULL OR [NomeExterno] IS NOT NULL"));
-    }
-}
-
-/// <summary>Mapeamento de <see cref="ItemDeProposta"/>.</summary>
-public sealed class ItemDePropostaConfiguracao : IEntityTypeConfiguration<ItemDeProposta>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<ItemDeProposta> b)
-    {
-        b.ToTable("ItemDeProposta", "processo");
-        b.HasKey(i => i.Id);
-        b.Property(i => i.Id).ValueGeneratedOnAdd();
-
-        b.Property(i => i.ChavePublica).IsRequired().HasDefaultValueSql("NEWID()");
-        b.HasIndex(i => i.ChavePublica).IsUnique().HasDatabaseName("UX_ItemDeProposta_ChavePublica");
-
-        b.Property(i => i.Descricao).HasMaxLength(400).IsUnicode(true).IsRequired();
-        b.Property(i => i.Ordem).IsRequired();
-        b.Property(i => i.Quantidade).HasPrecision(12, 3).IsRequired();
-        b.Property(i => i.DescontoPercentual).HasPrecision(5, 2);
-
-        b.Property(i => i.PrecoUnitario)
-            .HasConversion(d => d!.Value.Valor, v => Dinheiro.Criar(v))
-            .HasPrecision(18, 2);
-
-        b.Property(i => i.ValorTotal)
-            .HasConversion(d => d.Valor, v => Dinheiro.Criar(v))
-            .HasPrecision(18, 2).IsRequired();
-
-        b.Property(i => i.CriadoEm).HasPrecision(3).IsRequired();
-        b.Property(i => i.AlteradoEm).HasPrecision(3);
-        b.Property(i => i.ExcluidoEm).HasPrecision(3);
-
-        b.HasIndex(i => new { i.ProcessoId, i.Ordem })
-            .IsUnique()
-            .HasFilter("[ExcluidoEm] IS NULL")
-            .HasDatabaseName("UX_ItemDeProposta_Processo_Ordem");
-
-        b.HasIndex(i => i.ModeloId);
-        b.HasIndex(i => i.EquipamentoId);
-        b.HasIndex(i => i.EmpresaId);
-
-        b.HasOne<Empresa>().WithMany().HasForeignKey(i => i.EmpresaId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Dominio.Processo.Processo>().WithMany().HasForeignKey(i => i.ProcessoId)
-            .OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Dominio.Frota.Modelo>().WithMany().HasForeignKey(i => i.ModeloId)
-            .OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<Dominio.Frota.Equipamento>().WithMany().HasForeignKey(i => i.EquipamentoId)
-            .OnDelete(DeleteBehavior.Restrict);
-        b.LigarAoCatalogoDeSistema(
-            nameof(ItemDeProposta.CondicaoPagamentoId), "CatalogoDaCondicaoPagamentoId",
-            CatalogosDeSistema.CondicaoDePagamento);
-
-        b.ToTable(x => x.HasCheckConstraint("CK_ItemDeProposta_Quantidade", "[Quantidade] > 0"));
-        b.ToTable(x => x.HasCheckConstraint("CK_ItemDeProposta_ValorTotal", "[ValorTotal] >= 0"));
-        b.ToTable(x => x.HasCheckConstraint(
-            "CK_ItemDeProposta_Desconto",
-            "[DescontoPercentual] IS NULL OR [DescontoPercentual] BETWEEN 0 AND 100"));
-
-        b.Ignore(i => i.Eventos);
     }
 }
 

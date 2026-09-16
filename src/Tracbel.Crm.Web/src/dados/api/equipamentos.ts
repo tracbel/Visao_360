@@ -1,5 +1,5 @@
 /**
- * As cinco operações de equipamento contra o nosso banco (documento 23, seção 2.2).
+ * As operações de equipamento contra o nosso banco (documento 23, seção 2.2).
  *
  * O QUE A API AINDA NÃO FILTRA, e a tela precisa saber: `termo` compara o CHASSI
  * POR VALOR INTEIRO — 17 caracteres válidos — e número de série e placa por
@@ -10,8 +10,8 @@
  * não existe.
  *
  * A API TAMBÉM NÃO FILTRA POR MODELO. O filtro de marca, família e modelo é
- * aplicado na tela, sobre as linhas lidas, e a tela declara isso quando o total
- * passa do que ela leu.
+ * aplicado na tela, sobre as linhas lidas. A CLASSIFICAÇÃO E O PORTE, esses sim,
+ * são filtros de banco (documento 35, seção 10).
  */
 
 import type {
@@ -21,8 +21,10 @@ import type {
   ConsultaDeEquipamentos,
   EquipamentoDetalhe,
   EquipamentoResumo,
+  MaquinaCompradaPeloCliente,
   NovoEquipamento,
   PaginaDe,
+  VendaDaMaquina,
 } from '../../tipos/api';
 import { ler, pedir, type ContextoDeAcesso } from './http';
 
@@ -37,6 +39,9 @@ export const CONSULTA_INICIAL: ConsultaDeEquipamentos = {
   ordenarPor: 'Chassi',
   descendente: false,
   incluirInativos: false,
+  linhaDeProduto: '',
+  porte: '',
+  somenteComVenda: false,
 };
 
 /** Lista equipamentos da filial do contexto. */
@@ -57,6 +62,9 @@ export function listarEquipamentos(
       ordenarPor: consulta.ordenarPor,
       descendente: consulta.descendente,
       incluirInativos: consulta.incluirInativos,
+      linhaDeProduto: consulta.linhaDeProduto,
+      porte: consulta.porte,
+      somenteComVenda: consulta.somenteComVenda,
     },
   });
 }
@@ -68,6 +76,27 @@ export function obterEquipamento(
   sinal?: AbortSignal,
 ): Promise<ComProcedencia<EquipamentoDetalhe>> {
   return ler<EquipamentoDetalhe>(`/v1/equipamentos/${chave}`, contexto, { sinal });
+}
+
+/** O histórico comercial da máquina: as vendas, da mais recente para a mais antiga. */
+export function listarVendasDoEquipamento(
+  contexto: ContextoDeAcesso,
+  chave: string,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<VendaDaMaquina[]>> {
+  return ler<VendaDaMaquina[]>(`/v1/equipamentos/${chave}/vendas`, contexto, { sinal });
+}
+
+/**
+ * As máquinas que o cliente comprou, pelo vínculo "comprador na venda" — da venda
+ * mais recente para a mais antiga. Comprar não faz do cliente o dono atual.
+ */
+export function listarMaquinasCompradasPeloCliente(
+  contexto: ContextoDeAcesso,
+  chaveDoCliente: string,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<MaquinaCompradaPeloCliente[]>> {
+  return ler<MaquinaCompradaPeloCliente[]>(`/v1/clientes/${chaveDoCliente}/maquinas-compradas`, contexto, { sinal });
 }
 
 /** Cadastra uma máquina — inclusive a do concorrente, que é o que a Cobertura usa. */

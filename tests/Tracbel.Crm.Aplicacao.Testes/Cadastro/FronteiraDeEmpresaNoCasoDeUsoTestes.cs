@@ -133,7 +133,7 @@ public sealed class FronteiraDeEmpresaNoCasoDeUsoTestes(ITestOutputHelper saida)
 
         var outra = _banco.CasosDeEquipamento();
         var lista = await outra.Listar.ExecutarAsync(
-            null, null, null, null, null, null, null, false, true, Ct);
+            null, null, null, null, null, null, null, false, true, null, null, false, Ct);
 
         lista.EhSucesso.Should().BeTrue(lista.Erro);
         lista.Valor.Dados.Total.Should().Be(0, "a fronteira vale para toda entidade com EmpresaId");

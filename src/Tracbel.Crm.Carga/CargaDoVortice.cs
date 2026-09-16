@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Frota;
@@ -15,6 +16,19 @@ using Tracbel.Crm.Integracao.Saneamento;
 namespace Tracbel.Crm.Carga;
 
 /// <summary>
+/// <b>LEGADO / SOMENTE REFERÊNCIA — CONGELADO NA FASE 1 (decisão D-12, documento 41).</b>
+///
+/// <para>Este arquivo NÃO é fonte de dado novo. Ele fica porque é a documentação executável de como
+/// o dado do Vórtice foi lido, saneado e interpretado — cada regra aqui responde por um achado do
+/// sistema de origem, e jogar isso fora seria jogar fora a única explicação que existe para o
+/// formato do que já está gravado. O que se perdeu foi o direito de rodá-lo por rotina: o
+/// <c>Program</c> recusa qualquer modo que leia o Vórtice sem uma declaração explícita na linha de
+/// comando. O destino definitivo do código é decidido na FASE 8.</para>
+///
+/// <para>O que continua operacional e não passa por aqui: o faturamento do Protheus
+/// (<c>--somente-faturamento</c>), o território (<c>--somente-territorio</c>) e o ART
+/// (<c>--somente-art</c>).</para>
+///
 /// A CARGA — lê o recorte do sistema legado pela quarentena e grava no cadastro do CRM.
 ///
 /// <para><b>Idempotente por construção.</b> Nada aqui usa "já rodei?" como pergunta: cada
@@ -36,9 +50,24 @@ internal sealed class CargaDoVortice(
     LeitorDeCargaDoVortice leitor,
     IReadOnlyDictionary<int, int> deParaDeFiliais,
     long usuarioResponsavelId,
-    Action<string> relatar)
+    Action<string> relatar,
+    ConsolidacaoDeGrafiasCortadas consolidacaoDeGrafias)
 {
     private const int TamanhoDoBloco = 500;
+
+    /// <summary>O sistema do legado, conhecido depois de garantido — a origem das gravações na trilha.</summary>
+    private int? _sistemaDoLegado;
+
+    /// <summary>
+    /// Abre um contexto que grava na trilha como integração do Vórtice (documento 41, fase 2), assim
+    /// que o sistema for conhecido. Antes disso a origem é a do contexto de acesso: sistema.
+    /// </summary>
+    private CrmDbContext AbrirContextoDaCarga()
+    {
+        var contexto = abrirContexto();
+        if (_sistemaDoLegado is { } sistema) contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistema);
+        return contexto;
+    }
 
     private const string FluxoDeMunicipio = "VORTICE.CARGA.MUNICIPIO";
     private const string FluxoDeCliente = "VORTICE.CARGA.CLIENTE";
@@ -66,6 +95,7 @@ internal sealed class CargaDoVortice(
     public async Task<Resultado<ResumoDaCarga>> ExecutarAsync(RecorteDaCarga recorte, CancellationToken ct)
     {
         var sistemaId = await GarantirSistemaAsync(ct);
+        _sistemaDoLegado = sistemaId;
         var papelId = await GarantirPapelAsync(ct);
 
         // -----------------------------------------------------------------------------------------
@@ -115,6 +145,15 @@ internal sealed class CargaDoVortice(
         var chavesDeCliente = await GravarClientesAsync(sistemaId, clientes.Valor.Aceitos, ct);
         var enderecos = await GravarEnderecosAsync(
             sistemaId, clientes.Valor.Aceitos, chavesDeCliente, catalogoDeMunicipios, ct);
+
+        // AS GRAFIAS CORTADAS SE CONFEREM NA MESMA EXECUÇÃO (documento 32, seção 4.6). A gravação
+        // acima já não desfez a correção cuja evidência não mudou; esta conferência cuida do endereço
+        // novo ou alterado. Ninguém precisa lembrar de rodar a carga do território depois desta.
+        relatar("Conferindo os endereços em grafia cortada do catálogo (documento 32, seção 4.6)…");
+        var grafias = await consolidacaoDeGrafias.ExecutarAsync(ct);
+        relatar($"  {grafias.Reapontados} reapontado(s) para o município oficial · " +
+                $"{grafias.Pendentes} pendente(s) de conferência, com o motivo na fila de revisão" +
+                (grafias.ContornoDisponivel ? "." : " · contorno oficial do IBGE indisponível nesta rodada."));
         var gravadosDeContato = await GravarContatosAsync(
             sistemaId, papelId, contatos.Valor.Aceitos, chavesDeCliente, ct);
         var gravadosDeEquipamento = await GravarEquipamentosAsync(
@@ -132,7 +171,7 @@ internal sealed class CargaDoVortice(
 
         return Resultado<ResumoDaCarga>.Ok(new ResumoDaCarga(
             MunicipiosLidos: municipios.Valor.LinhasLidas,
-            MunicipiosGravados: catalogoDeMunicipios.PorNomeEUf.Count,
+            MunicipiosGravados: catalogoDeMunicipios.PorNomeEUf.Values.Distinct().Count(),
             MunicipiosDuplicadosNaOrigem: catalogoDeMunicipios.DuplicadosNaOrigem,
             ClientesLidos: clientes.Valor.LinhasLidas,
             ClientesGravados: chavesDeCliente.Count,
@@ -140,6 +179,11 @@ internal sealed class CargaDoVortice(
             EnderecosComMunicipioPeloPonteiro: enderecos.PeloPonteiro,
             EnderecosComMunicipioPeloNome: enderecos.PeloNome,
             EnderecosSemMunicipio: enderecos.SemMunicipio,
+            MunicipiosReconhecidosPelaChave: catalogoDeMunicipios.ReconhecidosPelaChave,
+            CorrecoesDeGrafiaMantidas: enderecos.CorrecoesDeGrafiaMantidas,
+            GrafiasCortadasReapontadas: grafias.Reapontados,
+            GrafiasCortadasPendentes: grafias.Pendentes,
+            ContornoOficialDisponivel: grafias.ContornoDisponivel,
             ContatosLidos: contatos.Valor.LinhasLidas,
             ContatosGravados: gravadosDeContato,
             EquipamentosLidos: equipamentos.Valor.LinhasLidas,
@@ -161,7 +205,7 @@ internal sealed class CargaDoVortice(
     private async Task<Dictionary<string, long>> GravarClientesAsync(
         int sistemaId, IReadOnlyList<ClienteParaCarga> clientes, CancellationToken ct)
     {
-        await using var leitura = abrirContexto();
+        await using var leitura = AbrirContextoDaCarga();
 
         var mapa = await MapaDeChavesAsync(leitura, sistemaId, nameof(Cliente), ct);
 
@@ -182,7 +226,7 @@ internal sealed class CargaDoVortice(
 
         foreach (var bloco in clientes.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, Cliente Entidade)>();
@@ -288,7 +332,7 @@ internal sealed class CargaDoVortice(
     private async Task<CatalogoDeMunicipios> GravarMunicipiosAsync(
         int sistemaId, IReadOnlyList<MunicipioParaCarga> municipios, CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
         var porChave = await MapaDeChavesAsync(contexto, sistemaId, nameof(Municipio), ct);
@@ -302,6 +346,7 @@ internal sealed class CargaDoVortice(
         var novos = new List<(string Chave, Municipio Entidade)>();
         var chavesDeGrupo = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         var duplicados = 0;
+        var reconhecidosPelaChave = 0;
 
         foreach (var municipio in municipios)
         {
@@ -325,6 +370,18 @@ internal sealed class CargaDoVortice(
             }
 
             if (porNomeEUf.ContainsKey(identidade)) continue;
+
+            // A LINHA QUE A ORIGEM JÁ CONHECE PELA CHAVE NÃO É RECRIADA. O reconhecimento do IBGE
+            // renomeia a linha do catálogo ("SANTA CRUZ DA ESPERA" vira "Santa Cruz da Esperança"), e a
+            // busca por nome deixa de achá-la; sem esta guarda, a recarga criaria de novo a linha com o
+            // nome cortado, sem código, e o catálogo ganharia uma duplicata por município renomeado. A
+            // chave de origem é a identidade do próprio registro — não é casamento por semelhança.
+            if (porChave.TryGetValue(municipio.ChaveDeOrigem, out var conhecidoPelaChave))
+            {
+                porNomeEUf[identidade] = (int)conhecidoPelaChave;
+                reconhecidosPelaChave++;
+                continue;
+            }
 
             var novo = Municipio.Criar(municipio.Nome, municipio.Uf);
             contexto.Municipios.Add(novo);
@@ -353,13 +410,19 @@ internal sealed class CargaDoVortice(
         await contexto.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
 
-        relatar($"  municípios: {porNomeEUf.Count} no catálogo, {novos.Count} novos nesta rodada, " +
-                $"{duplicados} chave(s) de origem apontando para município que já existia.");
+        var oficialDaGrafiaCortada = await ConsolidacaoDeGrafiasCortadas.OficialDeCadaGrafiaAsync(contexto, ct);
+
+        relatar($"  municípios: {porNomeEUf.Values.Distinct().Count()} no catálogo, {novos.Count} novos nesta rodada, " +
+                $"{duplicados} chave(s) de origem apontando para município que já existia, " +
+                $"{reconhecidosPelaChave} reencontrado(s) pela chave depois de renomeado(s) pelo IBGE, " +
+                $"{oficialDaGrafiaCortada.Count} grafia(s) cortada(s) com município oficial.");
 
         return new CatalogoDeMunicipios(
             porChave.ToDictionary(p => p.Key, p => (int)p.Value, StringComparer.Ordinal),
             porNomeEUf,
-            duplicados);
+            duplicados,
+            reconhecidosPelaChave,
+            oficialDaGrafiaCortada);
     }
 
     /// <summary>
@@ -429,17 +492,19 @@ internal sealed class CargaDoVortice(
     {
         var comEndereco = clientes.Where(c => c.Endereco is not null).ToList();
 
-        await using var leitura = abrirContexto();
+        await using var leitura = AbrirContextoDaCarga();
         var mapa = await MapaDeChavesAsync(leitura, sistemaId, nameof(Endereco), ct);
 
         var gravados = 0;
         var peloPonteiro = 0;
         var peloNome = 0;
         var semMunicipio = 0;
+        var correcoesMantidas = 0;
+        var correcoesDesfeitas = 0;
 
         foreach (var bloco in comEndereco.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, Endereco Entidade)>();
@@ -471,8 +536,31 @@ internal sealed class CargaDoVortice(
 
                     if (entidade is { EstaExcluido: false })
                     {
+                        // A CORREÇÃO DE GRAFIA CORTADA NÃO SE DESFAZ NA RECARGA quando a evidência que a
+                        // sustentou é a mesma: a origem ainda aponta para a linha cortada, e o endereço já
+                        // está no município oficial dela, com a mesma UF e a mesma coordenada. Qualquer
+                        // diferença grava o que a origem diz, e a conferência ao fim da carga reexamina.
+                        var municipioGravado = municipio;
+
+                        if (municipioId is { } daOrigem
+                            && catalogo.OficialDaGrafiaCortada.TryGetValue(daOrigem, out var oficial))
+                        {
+                            if (entidade.CorrecaoDeGrafiaCortadaSeMantem(oficial, dado.Uf, dado.Latitude, dado.Longitude))
+                            {
+                                municipioGravado = MunicipioDoEndereco.Selecionado(oficial);
+                                correcoesMantidas++;
+                            }
+                            else if (entidade.MunicipioId == oficial)
+                            {
+                                // A CORREÇÃO QUE SE DESFAZ TAMBÉM VAI PARA A TRILHA — agora pelo SaveChanges
+                                // (documento 41, fase 2): a origem mudou a UF ou a coordenada, o endereço volta
+                                // para a linha que ela aponta, e a mudança de MunicipioId é auditada.
+                                correcoesDesfeitas++;
+                            }
+                        }
+
                         entidade.Alterar(
-                            TipoDeEndereco.Fiscal, dado.Logradouro, municipio, dado.Uf,
+                            TipoDeEndereco.Fiscal, dado.Logradouro, municipioGravado, dado.Uf,
                             usuarioResponsavelId, dado.Numero, dado.Complemento, dado.Bairro,
                             dado.Cep, identificacao: null, dado.Latitude, dado.Longitude);
 
@@ -506,9 +594,11 @@ internal sealed class CargaDoVortice(
         }
 
         relatar($"  município do endereço: {peloPonteiro} pelo ponteiro da origem, {peloNome} " +
-                $"pelo nome mais UF, {semMunicipio} sem casar (ficaram com o texto do legado).");
+                $"pelo nome mais UF, {semMunicipio} sem casar (ficaram com o texto do legado), " +
+                $"{correcoesMantidas} com a correção de grafia cortada mantida, {correcoesDesfeitas} com a " +
+                "correção desfeita porque a origem mudou (com trilha).");
 
-        return new ResultadoDeEnderecos(gravados, peloPonteiro, peloNome, semMunicipio);
+        return new ResultadoDeEnderecos(gravados, peloPonteiro, peloNome, semMunicipio, correcoesMantidas);
     }
 
     /// <summary>Como o município do endereço foi encontrado — ou não foi.</summary>
@@ -556,7 +646,7 @@ internal sealed class CargaDoVortice(
         IReadOnlyDictionary<string, long> chavesDeCliente,
         CancellationToken ct)
     {
-        await using var leitura = abrirContexto();
+        await using var leitura = AbrirContextoDaCarga();
 
         var mapa = await MapaDeChavesAsync(leitura, sistemaId, nameof(Contato), ct);
 
@@ -578,7 +668,7 @@ internal sealed class CargaDoVortice(
 
         foreach (var bloco in contatos.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, long ClienteId, Contato Entidade)>();
@@ -675,7 +765,7 @@ internal sealed class CargaDoVortice(
     {
         var catalogo = new CatalogoDeFrotaDaCarga();
 
-        await using (var contextoDoCatalogo = abrirContexto())
+        await using (var contextoDoCatalogo = AbrirContextoDaCarga())
         {
             await catalogo.CarregarAsync(contextoDoCatalogo, ct);
 
@@ -693,7 +783,7 @@ internal sealed class CargaDoVortice(
                 $"{catalogo.FamiliasCriadas} família(s) e {catalogo.ModelosCriados} modelo(s) " +
                 "nasceram do dado real.");
 
-        await using var leitura = abrirContexto();
+        await using var leitura = AbrirContextoDaCarga();
 
         var mapa = await MapaDeChavesAsync(leitura, sistemaId, nameof(Equipamento), ct);
 
@@ -710,7 +800,7 @@ internal sealed class CargaDoVortice(
 
         foreach (var bloco in equipamentos.Chunk(TamanhoDoBloco))
         {
-            await using var contexto = abrirContexto();
+            await using var contexto = AbrirContextoDaCarga();
             await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
             var novos = new List<(string Chave, Equipamento Entidade)>();
@@ -808,7 +898,7 @@ internal sealed class CargaDoVortice(
 
     private async Task GravarRecusasAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         // A FILA DE DESCARTE É O RETRATO DA ÚLTIMA RODADA. As linhas ainda não tratadas do fluxo
         // saem antes das novas entrarem, senão rodar de novo empilharia a mesma recusa duas
@@ -845,7 +935,7 @@ internal sealed class CargaDoVortice(
     private async Task MarcarSincronismoAsync<T>(
         int sistemaId, string fluxo, LoteDaCarga<T> lote, int gravados, CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var ponto = await contexto.PontosDeSincronismo.FirstOrDefaultAsync(p => p.Fluxo == fluxo, ct);
 
@@ -943,7 +1033,7 @@ internal sealed class CargaDoVortice(
 
     private async Task<int> GarantirSistemaAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var sistema = await contexto.Sistemas
             .FirstOrDefaultAsync(s => s.Codigo == LeitorDeCargaDoVortice.CodigoDoSistema, ct);
@@ -963,7 +1053,7 @@ internal sealed class CargaDoVortice(
 
     private async Task<int> GarantirPapelAsync(CancellationToken ct)
     {
-        await using var contexto = abrirContexto();
+        await using var contexto = AbrirContextoDaCarga();
 
         var item = await contexto.CatalogoItens.FirstOrDefaultAsync(
             i => i.CatalogoId == CatalogosDeSistema.PapelDeContato && i.Codigo == PapelNaoInformado, ct);
@@ -1055,17 +1145,28 @@ internal sealed class CargaDoVortice(
 /// Quantas chaves de origem caíram num município que já existia — a medida da duplicação do
 /// catálogo do sistema antigo.
 /// </param>
+/// <param name="ReconhecidosPelaChave">
+/// Municípios que o reconhecimento do IBGE renomeou e que a carga reencontrou pela chave de origem, em
+/// vez de recriar a linha com o nome cortado.
+/// </param>
+/// <param name="OficialDaGrafiaCortada">
+/// Para cada linha cortada do catálogo, a linha do município oficial (documento 32, seção 4.6).
+/// </param>
 internal sealed record CatalogoDeMunicipios(
     IReadOnlyDictionary<string, int> PorChaveDeOrigem,
     IReadOnlyDictionary<string, int> PorNomeEUf,
-    int DuplicadosNaOrigem);
+    int DuplicadosNaOrigem,
+    int ReconhecidosPelaChave,
+    IReadOnlyDictionary<int, int> OficialDaGrafiaCortada);
 
 /// <summary>O que a gravação de endereços fez, separando como o município foi resolvido.</summary>
 /// <param name="Gravados">Endereços criados ou reconciliados.</param>
 /// <param name="PeloPonteiro">Quantos acharam o município pelo ponteiro da origem.</param>
 /// <param name="PeloNome">Quantos acharam o município pelo nome mais UF.</param>
 /// <param name="SemMunicipio">Quantos não acharam e ficaram com o texto do legado.</param>
-internal sealed record ResultadoDeEnderecos(int Gravados, int PeloPonteiro, int PeloNome, int SemMunicipio);
+/// <param name="CorrecoesDeGrafiaMantidas">Quantos mantiveram a correção de grafia cortada.</param>
+internal sealed record ResultadoDeEnderecos(
+    int Gravados, int PeloPonteiro, int PeloNome, int SemMunicipio, int CorrecoesDeGrafiaMantidas);
 
 /// <summary>Quantas vezes um campo foi corrigido e quantas foi recusado, com um exemplo de cada.</summary>
 internal sealed class ContagemDeSaneamento
@@ -1093,6 +1194,11 @@ internal sealed class ContagemDeSaneamento
 /// <param name="EnderecosComMunicipioPeloPonteiro">Endereços ligados ao município pelo ponteiro da origem.</param>
 /// <param name="EnderecosComMunicipioPeloNome">Endereços ligados ao município por nome mais UF.</param>
 /// <param name="EnderecosSemMunicipio">Endereços que ficaram com o texto do legado — o resíduo a zerar.</param>
+/// <param name="MunicipiosReconhecidosPelaChave">Municípios renomeados pelo IBGE e reencontrados pela chave.</param>
+/// <param name="CorrecoesDeGrafiaMantidas">Endereços que mantiveram a correção de grafia cortada.</param>
+/// <param name="GrafiasCortadasReapontadas">Endereços corrigidos nesta rodada para o município oficial.</param>
+/// <param name="GrafiasCortadasPendentes">Endereços em grafia cortada que ficaram para conferência.</param>
+/// <param name="ContornoOficialDisponivel">Se a malha oficial do IBGE foi lida na conferência.</param>
 /// <param name="ContatosLidos">Linhas de contato lidas na origem.</param>
 /// <param name="ContatosGravados">Contatos criados ou reconciliados.</param>
 /// <param name="EquipamentosLidos">Linhas de parque lidas na origem.</param>
@@ -1111,6 +1217,11 @@ internal sealed record ResumoDaCarga(
     int EnderecosComMunicipioPeloPonteiro,
     int EnderecosComMunicipioPeloNome,
     int EnderecosSemMunicipio,
+    int MunicipiosReconhecidosPelaChave,
+    int CorrecoesDeGrafiaMantidas,
+    int GrafiasCortadasReapontadas,
+    int GrafiasCortadasPendentes,
+    bool ContornoOficialDisponivel,
     int ContatosLidos,
     int ContatosGravados,
     int EquipamentosLidos,
