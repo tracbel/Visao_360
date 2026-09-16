@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Tracbel.Crm.Carga.Sincronizacao;
+using Tracbel.Crm.Integracao;
 using Xunit;
 
 namespace Tracbel.Crm.Aplicacao.Testes.Carga;

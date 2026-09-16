@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.EventLog;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
+using Tracbel.Crm.Integracao;
 using Tracbel.Crm.Integracao.Art;
 
 namespace Tracbel.Crm.Carga.Sincronizacao;

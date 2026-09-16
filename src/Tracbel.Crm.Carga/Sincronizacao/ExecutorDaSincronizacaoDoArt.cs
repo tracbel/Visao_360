@@ -1,11 +1,11 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Infraestrutura.Persistencia;
+using Tracbel.Crm.Integracao;
 using Tracbel.Crm.Integracao.Art;
 
 namespace Tracbel.Crm.Carga.Sincronizacao;
@@ -56,32 +56,6 @@ internal sealed record DesfechoDaSincronizacao(
     int Tentativas,
     RelatorioDaCargaDoArt? Relatorio,
     string Mensagem);
-
-/// <summary>O que tira credencial de uma mensagem antes de ela ir para log ou banco.</summary>
-internal static partial class Sigilo
-{
-    /// <summary>
-    /// Troca por <c>***</c> cada segredo conhecido (usuário e senha das conexões) e qualquer trecho
-    /// <c>Password=</c> ou <c>Pwd=</c> que uma exceção tenha copiado de uma cadeia de conexão.
-    /// </summary>
-    /// <param name="texto">A mensagem.</param>
-    /// <param name="segredos">Os valores que não podem aparecer.</param>
-    public static string Mascarar(string? texto, IEnumerable<string?> segredos)
-    {
-        if (string.IsNullOrEmpty(texto)) return string.Empty;
-
-        foreach (var segredo in segredos
-                     .Where(s => !string.IsNullOrWhiteSpace(s) && s.Length >= 3)
-                     .Distinct(StringComparer.Ordinal)
-                     .OrderByDescending(s => s!.Length))
-            texto = texto.Replace(segredo!, "***", StringComparison.OrdinalIgnoreCase);
-
-        return TrechoDeSenha().Replace(texto, "$1=***");
-    }
-
-    [GeneratedRegex(@"(?i)\b(password|pwd)\s*=\s*[^;'""\s]*")]
-    private static partial Regex TrechoDeSenha();
-}
 
 /// <summary>
 /// UM CICLO DA SINCRONIZAÇÃO DO ART: trava, registro da execução, carga com novas tentativas e

@@ -327,7 +327,8 @@ if (somenteArt)
 
 // A PONTE DO PROTHEUS. Ela lê o faturamento da ORIGEM, e não da cópia no Vórtice que parou em
 // 11/04/2025. As credenciais vêm de Protheus__Base, Protheus__Usuario e Protheus__Senha — nunca
-// de arquivo versionado, porque a senha viaja na query string do endpoint de token.
+// de arquivo versionado. Na estação, os valores ficam no .env da raiz (TOTVS_API_*, ver
+// .env.exemplo); o publicar.ps1 ainda não os repassa ao servidor (issue [018a]).
 var opcoesDoProtheus = new OpcoesDoProtheus
 {
     Base = configuracao["Protheus:Base"],
