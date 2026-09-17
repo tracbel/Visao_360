@@ -7,7 +7,7 @@
 > e o comercial, transcritas por Ricardo em 17/09/2026; os documentos 32, 46 e 46A; o código.
 > **O que fica de fora de propósito:** nome de CEN e número interno da Tracbel (entregas, captura por
 > município). Os dados do IBGE, da CONAB, do CEPEA e do SICOR são públicos e aparecem quando ajudam.
-> **Issues:** #63 a #80 — tabela na §8.
+> **Issues:** #63 a #80 e #83 — tabela na §8.
 
 ---
 
@@ -31,6 +31,8 @@
 8. **Mudança de prioridade registrada:** o doc 46 dizia "neste momento não implementar visão de negócio
    (potencial, KPIs, mapas)". Em 17/09/2026 Ricardo priorizou o potencial logo depois do CI (#56). As
    telas para usuários reais continuam dependendo das permissões aplicadas (#46).
+9. **Conferindo as fontes oficiais (§2.1), apareceu um defeito que já está em produção:** a "área plantada"
+   do CRM é a **área colhida** — o leitor do IBGE pede a variável 216, e a plantada é a 8331 (#83).
 
 ---
 
@@ -98,6 +100,24 @@ As anotações da conversa, na ordem em que aparecem, viraram 21 requisitos. A c
   municípios (doc 32 §4.3);
 - nos arquivos do SICOR, o código de município é **do Banco Central**, não do IBGE; a junção por nome
   falhou em 13 municípios.
+
+### 2.1 As fontes oficiais, conferidas (17/09/2026)
+
+Ricardo enviou os endereços das fontes usadas na conversa. Cada uma foi conferida pelos metadados ou pela
+página, sem baixar dado de ninguém.
+
+| Fonte | Endereço | O que tem (medido) | Acesso | Issue |
+|---|---|---|---|---|
+| IBGE — PAM, tabela 5457 | `sidra.ibge.gov.br/tabela/5457` | variáveis **8331 área plantada ou destinada à colheita**, **216 área colhida**, 214 quantidade produzida (t), 112 rendimento médio (kg/ha), 215 valor da produção; classificação 782 (produto); níveis Brasil, UF e município; anual, **1974–2025** | API `apisidra.ibge.gov.br` e metadados em `servicodados.ibge.gov.br/api/v3/agregados/5457/metadados`. **O site e a API responderam 403 a esta estação em 17/09/2026** (os metadados responderam); a rotina precisa ser testada a partir do servidor | #64, #83 |
+| IBGE — Censo Agropecuário 2017 | `sidra.ibge.gov.br/pesquisa/censo-agropecuario/censo-agropecuario-2017/resultados-definitivos` | tabela **6871**: variáveis 1918 (estabelecimentos com tratores) e 1862 (tratores), classificação 12605 (total, menos de 100 cv, 100 cv e mais); tabela **6780**: variável 183 (estabelecimentos), classificação 220 (grupos de área total, 20 categorias); só 2017; município | API e metadados do IBGE | #65 |
+| IBGE — PPM, tabela 3939 | (pecuária; a conversa lista "Nº Gado" junto do Censo) | variável 105 (efetivo), classificação 79, **Bovino = 2670**; anual, **1974–2024** — mais recente que o Censo, por isso a planilha a usa | API e metadados do IBGE | #65 |
+| CONAB — custos de produção | `gov.br/conab/…/planilhas-de-custos-de-producao` | índice com 45 produtos agrícolas com série histórica, **entre eles soja, milho, amendoim, laranja, café arábica e cana**, em .xls ou .xlsx; os locais de SP ficam dentro dos arquivos | download manual; formato muda com os anos | #67 |
+| CEPEA — preços | `cepea.org.br` | indicadores de preço das culturas | **o site bloqueou a leitura automática (403)**: lista de indicadores e termos de uso a conferir à mão | #66 |
+| Socicana — preço do kg de ATR | `socicana.com.br/calculadora-de-atr/preco-do-kg/` | preço **mensal e acumulado** do kg de ATR por safra, de 2015/16 a 2026/27; agosto de 2026 = **R$ 0,8692** (mensal), **o mesmo valor da planilha** — a série de cana do protótipo vem daqui | página HTML, sem arquivo para baixar | #66 |
+| Banco Central — SICOR | `olinda.bcb.gov.br/olinda/servico/SICOR/versao/v2/aplicacao` | serviço OData com 17 recursos, entre eles **`InvestMunicipioProduto`** (o da planilha), `CusteioMunicipioProduto`, `InvestRegiaoUFProduto`, `ProgramaSubprograma`, `FonteRecursos` e `CusteioInvestimentoComercialIndustrialSemFiltros` | API pública (OData), sem credencial | #68 |
+
+**Achado ao conferir a tabela 5457:** o leitor do IBGE do CRM pede a variável **216 (área colhida)** e a
+grava como área plantada. A área que o CRM mostra hoje — e que o mapa C usa — é área colhida (#83).
 
 ---
 
@@ -228,11 +248,11 @@ estabelecimentos em 2017, 56% com menos de 20 ha; 62.308 tratores em 2017, 74% c
 |---|---|---|
 | `MunicipioDaAreaDeAtuacao` | **os mesmos 203 municípios**, conciliados com o IBGE (203/203) | doc 32 §4 |
 | `ResponsavelPeloMunicipio` | CEN e gestor por município, duas fontes preservadas, 82 municípios divergentes | doc 32 §4.3; #48 |
-| `AreaPlantadaNoMunicipio` | área plantada da PAM por município, produto e ano; zero × não disponível; 45.582 linhas no servidor | doc 32 §8.3 |
+| `AreaPlantadaNoMunicipio` | área da PAM por município, produto e ano; zero × não disponível; 45.582 linhas no servidor — **mas é a área colhida (variável 216), não a plantada (8331)** | doc 32 §8.3; #83 |
 | `RegraDePotencial` | hectares por máquina e modelo de referência; **1 regra: café, 3036N, 10 ha, "a confirmar"**; sem escritor | doc 32 §8.3; doc 46 |
 | Mapa C | máquinas teóricas = área ÷ hectares por máquina, só para a regra ativa | doc 32 §8.3 |
 | Cartão "Conhecimento de mercado" | vendas perdidas registradas; "participação de mercado: sem dado" | painel executivo |
-| Leitor do IBGE | catálogo de municípios e área plantada; roda só na estação | doc 46 §4.7 |
+| Leitor do IBGE | catálogo de municípios e área (`LeitorDoIbge.cs:48`, variável 216); roda só na estação | doc 46 §4.7; #83 |
 
 **O que falta:** valor e quantidade da produção; Censo; preços; custos; SICOR; parâmetros de renovação e
 ciclo; motor; área e cultura por cliente (vazias em 100%); rotina no servidor. **Pendências do doc 32 que
@@ -253,11 +273,11 @@ Cada decisão tem opções, a recomendação e o que ela bloqueia. **Nenhuma foi
 | D-P04 | Percepção do gestor | por município, −5% a +5% (conversa); por cultura, −2 a +2 com peso 0,4, até ±40% (planilha) | **por município, ±5%**, com autor, data e justificativa; quem informa: gestor comercial | #71, #74 |
 | D-P05 | Pesos, limites e cenários | a = 0,4, b = 0,5, d = 0,4, limites 0,4–1,5 (planilha); cenários só anotados | manter os pesos da planilha como ponto de partida; cenário moderado = fator calculado; conservador e otimista = sensibilidades no limite inferior e superior de faixas decididas | #74 |
 | D-P06 | Termo de troca | 5080EN a R$ 300 mil fixo (planilha); 3036N no café (CRM); "base de venda" e "ART preço de trator" (conversa) | máquina de referência por cultura; preço histórico mensal (mediana das notas); unidade por cultura: saca de 60 kg (café, soja, milho, amendoim), tonelada de ATR (cana), caixa de 40,8 kg (laranja) | #70, #73 |
-| D-P07 | Rentabilidade | custo total CONAB (planilha usa o total por ha); CONAB em SP só tem café (Franca) e cana (Piracicaba, Penápolis) | custo operacional para a margem de caixa e total para a de longo prazo; referência fora de SP ou outra fonte para as culturas sem série, registrada | #67, #73 |
+| D-P07 | Rentabilidade | custo total CONAB (planilha usa o total por ha); na pasta, a CONAB de SP só tem café (Franca) e cana (Piracicaba, Penápolis) — mas a CONAB publica série histórica também de soja, milho, amendoim e laranja (§2.1), com os locais a conferir dentro dos arquivos | custo operacional para a margem de caixa e total para a de longo prazo; referência fora de SP ou outra fonte para as culturas sem série, registrada | #67, #73 |
 | D-P08 | Vendas para captura e share | entregas John Deere por ano fiscal (planilha); faturamento do Protheus (#18/#19); pedidos da API GN (#12) | uma fonte oficial por período; município do cliente; ano fiscal da John Deere e ano civil lado a lado | #69 |
 | D-P09 | "O contrato foi da Tracbel?" | o SICOR não identifica cliente nem revenda | aceitar como **aproximação** a comparação, por município e mês, dos contratos do SICOR com os pedidos da Tracbel financiados (instituição e linha de crédito na API GN) — nunca contrato a contrato | #69, #73 |
 | D-P10 | Anos de referência | área 2025 preliminar × quantidade e valor 2024 × Censo 2017 | usar o último ano completo de cada fonte, mostrar o ano em cada número e nunca misturar anos numa razão sem aviso | #64, #72 |
-| D-P11 | Preços de soja, milho e amendoim; forma de obter o CEPEA | não há série na pasta; o CEPEA tem termos de uso | definir a fonte por cultura; conferir a licença antes de automatizar; até lá, envio mensal pelo administrador | #66 |
+| D-P11 | Preços de soja, milho e amendoim; forma de obter o CEPEA e a Socicana | não há série de soja, milho e amendoim na pasta; o CEPEA tem termos de uso e bloqueou a leitura automática; **a cana já tem fonte: Socicana** (preço do kg de ATR, mensal, em página HTML) | definir a fonte de soja, milho e amendoim; conferir a licença do CEPEA e da Socicana antes de automatizar; até lá, envio mensal pelo administrador | #66 |
 | D-P12 | Valor do potencial em R$ | não existe preço por máquina no modelo | preço de referência por categoria × demanda, com fonte e data | #70, #72 |
 | D-P13 | Propriedades por tamanho × clientes | o Censo é agregado; área por cliente vazia no CRM; ART sem acesso | primeiro a distribuição regional (Censo); cruzamento só com área por cliente de fonte decidida (cadastro pelo CEN, ART, CAR/SICAR) | #65, #79 |
 | D-P14 | Base de municípios e CEN da visão do CEN | 203 da ADR confirmados; três fontes de CEN; concessão JD ≠ loja | ADR do CRM como base única; CEN pela decisão da #48; concessão JD como recorte adicional, se a diretoria quiser | #78 |
@@ -353,6 +373,7 @@ umas das outras; vendas e preço de máquina (#69, #70) esperam o faturamento no
 | POT-15 | #78 | Visão do CEN | M13 | P1 |
 | POT-16 | #79 | Potencial por cliente com a mesma regra do município | M13 | P2 |
 | POT-17 | #80 | Segmentação de clientes e plano de ação | M13 | P2 |
+| — | #83 | [BUG] A área plantada do CRM é a área colhida: o leitor do IBGE pede a variável 216 | M11 | P1 |
 
 Milestones: **M11 — Potencial: dados e parâmetros**, **M12 — Potencial: motor e Visão Diretoria**,
 **M13 — Potencial: Visão CEN e clientes**. Label: `market-potential`.
