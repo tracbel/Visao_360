@@ -101,6 +101,22 @@ dotnet test --filter Categoria=Workflow              # motor de regras
 dotnet test --filter Categoria=Arquitetura           # a estrutura não foi violada
 ```
 
+### No CI
+
+Todo PR para a `main` roda o workflow **CI** (`.github/workflows/ci.yml`), com três checagens:
+`backend` (build com aviso como erro, migration pendente e os testes contra um SQL Server 2022 de
+verdade), `frontend` (lint e build) e `seguranca` (varredura de segredos em arquivos e histórico).
+**Teste pulado quebra o CI** — o resumo da execução mostra a tabela por projeto e o motivo de cada pulado.
+
+Para conferir os mesmos resultados na sua máquina, sem SQL Server:
+
+```powershell
+dotnet test --logger trx --results-directory TestResults
+./scripts/ci/conferir-testes.ps1 -Pasta TestResults -PermitirPulados
+```
+
+Desenho e decisões: `docs/projeto/47-CI-CD.md`.
+
 **Portão de qualidade da fase 1** (documento 06): cobertura de domínio ≥ 90%, **cobertura de regra
 = 100%** (cada regra testada disparando *e não disparando*), matriz de autorização completa,
 e cinco usuários reais completando três tarefas sem ajuda.
