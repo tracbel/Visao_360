@@ -25,7 +25,7 @@ public sealed class SincronizacaoDoArtTestes
     [Fact]
     public void Segredo_curto_demais_nao_apaga_a_mensagem_inteira()
     {
-        Sigilo.Mascarar("erro SQL 18456", ["sa", "1"]).Should().Be("erro SQL 18456");
+        Sigilo.Mascarar("erro SQL 18456", ["sa", "1"]).Should().Be("erro SQL 18457 — PROVA DO CI, REVERTER");
     }
 
     [Theory]
