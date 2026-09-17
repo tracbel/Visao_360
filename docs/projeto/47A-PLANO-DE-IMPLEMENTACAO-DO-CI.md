@@ -640,8 +640,13 @@ Em `ci.yml`, no job `seguranca`, logo antes do passo "Varredura de segredos", ac
 
 ```yaml
       - name: PROVA TEMPORÁRIA — arquivo com segredo inventado gerado na execução
-        run: printf 'se%s: "%s"\n' 'nha' "Prova$(openssl rand -hex 8)" > prova-segredo-inventado.txt
+        run: |
+          printf 'se%s: "%s"\n' 'nha' "Prova$(openssl rand -hex 8)" > prova-segredo-inventado.txt
 ```
+
+**Em bloco literal (`run: |`), obrigatoriamente.** A primeira versão deste plano punha o comando num valor YAML
+simples, e o `: ` dentro dele quebra o arquivo ("mapping values are not allowed here"): o GitHub registrou a
+execução 35242253846 sem nenhum job. Validar o YAML antes do push.
 
 - [ ] **Passo 3: commit e push**
 
@@ -725,6 +730,34 @@ as checagens depois deste merge).
 
 ---
 
-## Resultado
+## Resultado (17/09/2026)
 
-*(preenchido ao fim da tarefa 5)*
+Todas as execuções em `https://github.com/tracbel/Visao_360/actions/runs/<id>`, no PR #82.
+
+| Execução | Commit | Resultado | backend | seguranca | frontend | O que mostrou |
+|---|---|---|---|---|---|---|
+| 35240187111 | `85bd5b0` | vermelha | 183 s ✗ | 86 s ✓ | 25 s ✓ | o SQL Server do CI funcionou (os 9 testes de banco rodaram); **1 teste falhou só no Linux** |
+| 35240816369, tentativa 1 | `d6df530` | **verde** | 187 s | 67 s | 29 s | 514 executados, 514 aprovados, 0 pulados; SQL Server respondendo em 2 s |
+| 35240816369, tentativa 2 | `d6df530` | **verde** | 183 s | 80 s | 23 s | |
+| 35240816369, tentativa 3 | `d6df530` | **verde** | 190 s | 79 s | 25 s | três verdes seguidas |
+| 35242253846 | `d251dce` | não rodou | — | — | — | arquivo de workflow inválido — **erro deste plano** (ver abaixo) |
+| 35242539860 | `d886928` | **vermelha — a prova** | 180 s ✗ | 82 s ✗ | 24 s ✓ | `backend`: 1 falha em `SincronizacaoDoArtTestes.Segredo_curto_demais_nao_apaga_a_mensagem_inteira`; `seguranca`: 1 SUSPEITO em `prova-segredo-inventado.txt:1` (`senha=«oculto:21»`) |
+| 35242984773 | `c73baa1` | **verde** | 181 s | 81 s | 23 s | reversão da prova: 514/514/0/0; varredura com 109 achados e **0 SUSPEITO** — o histórico ficou limpo |
+
+**Tempo.** Cada PR espera cerca de **3 min 10 s** (o `backend`; os três jobs correm em paralelo), abaixo da
+estimativa de 5 min do doc 47. Somando os três jobs, uma execução gasta cerca de **4,8 minutos de runner**:
+a cota de 3.000 minutos por mês do plano Team cobre por volta de 600 execuções.
+
+**O que o Linux revelou (1 defeito, no teste).** `SolidTestes.As_referencias_de_projeto_apontam_sempre_para_dentro`
+lia `..\Projeto\Projeto.csproj` com `Path.GetFileNameWithoutExtension`, que no Linux não separa na barra
+invertida: toda referência de projeto virou "extra" (o FluentAssertions só mostrou a primeira). Corrigido em
+`d6df530`, trocando `\` por `/` antes de extrair o nome — funciona nos dois sistemas.
+
+**O que este plano errou (1 vez).** O passo 2 da tarefa 4 punha o gerador do segredo num valor YAML simples,
+com `: ` dentro: "mapping values are not allowed here", linha 148, coluna 26. O GitHub registrou a execução
+35242253846 sem jobs. Diagnóstico confirmado com PyYAML num ambiente isolado; corrigido em `d886928` com bloco
+literal, e o passo 2 deste plano foi corrigido.
+
+**Desvios do plano.** O próprio plano entrou como primeiro commit da branch (`cb000fe`), e não na tarefa 5; a
+mensagem final do conferidor com `-PermitirPulados` passou a dizer quantos testes foram pulados, em vez de
+"todos executados"; o tempo medido vai para o doc 47 dentro do PR #81, onde o documento mora.
