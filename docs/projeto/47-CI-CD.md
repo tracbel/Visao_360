@@ -73,13 +73,27 @@ Server. No CI, isso esconderia exatamente o que ele existe para provar.
 **Por que a senha nasce na execução.** O SQL Server do CI é descartável: a senha é gerada, mascarada no
 log e some com o contêiner. Nenhum segredo é cadastrado no GitHub para o CI.
 
-**Arquivos novos:** `.github/workflows/ci.yml`, `global.json`, `.config/dotnet-tools.json`, `.nvmrc`.
+**Arquivos novos:** `.github/workflows/ci.yml`, `global.json`, `.config/dotnet-tools.json`,
+`src/Tracbel.Crm.Web/.nvmrc` e `scripts/ci/conferir-testes.ps1` (o conferidor que barra teste pulado).
 
-**Estimativa (não medida):** cerca de 5 minutos por PR, dentro da cota de 3.000 minutos por mês do plano
-Team. O tempo real entra aqui quando a #56 fechar.
+**Tempo medido (17/09/2026, PR #82):** `backend` de 180 s a 190 s, `seguranca` de 67 s a 86 s, `frontend` de
+23 s a 29 s. Como os jobs correm em paralelo, **cada PR espera cerca de 3 min 10 s**, abaixo da estimativa de
+5 min. Uma execução gasta cerca de 4,8 minutos de runner somando os três jobs: a cota de 3.000 minutos por mês
+do plano Team cobre por volta de 600 execuções.
 
-**Prova de que o CI barra** (aceite da #56, no espírito da prova por mutação da #1): um commit com teste
-quebrado e um arquivo com segredo inventado precisam deixar o CI vermelho; os dois são revertidos em seguida.
+**Prova de que o CI barra** (aceite da #56, no espírito da prova por mutação da #1), feita em 17/09/2026:
+
+- a execução 35242539860 ficou **vermelha pelos dois motivos certos** — `backend` com 1 teste quebrado de
+  propósito (`SincronizacaoDoArtTestes.Segredo_curto_demais_nao_apaga_a_mensagem_inteira`) e `seguranca` com
+  1 SUSPEITO num arquivo com segredo inventado;
+- o segredo foi **gerado na execução**, e não commitado: commitado, ele ficaria no histórico e a varredura o
+  acusaria para sempre, e removê-lo exigiria force push;
+- depois da reversão, a execução 35242984773 voltou ao verde, com 514/514/0 e **0 SUSPEITO** no histórico.
+
+**O que o Linux revelou:** um teste de arquitetura lia `..\Projeto\Projeto.csproj` com
+`Path.GetFileNameWithoutExtension`, que no Linux não separa na barra invertida. Corrigido no próprio teste.
+Detalhes e links de todas as execuções: [`47A-PLANO-DE-IMPLEMENTACAO-DO-CI.md`](47A-PLANO-DE-IMPLEMENTACAO-DO-CI.md),
+seção "Resultado".
 
 ---
 
@@ -199,7 +213,8 @@ faturamento do Protheus no servidor (#18).
 
 1. ~~#57 na `main`~~ — feito em 16/09/2026 (traz o script de varredura que o job `seguranca` usa).
 2. **#56** numa branch `ci/056-workflow`: primeira execução, correção das diferenças do Linux (caixa de
-   nomes, caminhos, fim de linha) até ficar verde; provas de bloqueio; merge pelo Ricardo.
+   nomes, caminhos, fim de linha) até ficar verde; provas de bloqueio; merge pelo Ricardo. — **Feito em
+   17/09/2026 no PR #82** (três verdes seguidas e as duas provas); falta o merge.
 3. **#58** com a `main` já verde: ruleset, configurações e templates.
 4. PRs abertos são atualizados com a `main` para rodar o CI antes do merge.
 5. **#59**: Dependabot e bloqueio por vulnerabilidade.
