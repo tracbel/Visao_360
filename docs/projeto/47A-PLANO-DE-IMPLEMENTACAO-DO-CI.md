@@ -271,7 +271,11 @@ if ($puladoTotal -gt 0 -and -not $PermitirPulados) {
     exit 1
 }
 
-Write-Host "OK: $total testes, todos executados e aprovados."
+if ($puladoTotal -gt 0) {
+    Write-Host "OK com pulados permitidos: $passouTotal aprovados e $puladoTotal pulados, de $total."
+} else {
+    Write-Host "OK: $total testes, todos executados e aprovados."
+}
 exit 0
 ```
 
