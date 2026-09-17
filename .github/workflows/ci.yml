@@ -144,10 +144,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: PROVA TEMPORÁRIA — arquivo com segredo inventado gerado na execução
-        run: |
-          printf 'se%s: "%s"\n' 'nha' "Prova$(openssl rand -hex 8)" > prova-segredo-inventado.txt
-
       - name: Varredura de segredos (arquivos e histórico)
         shell: pwsh
         run: |
