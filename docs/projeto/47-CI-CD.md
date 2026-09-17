@@ -190,15 +190,36 @@ ferramenta recusar a escrita, o mesmo conteúdo se aplica pela tela.
 
 ---
 
-## 6. Publicação (CD) — o que falta decidir
+## 6. Publicação (CD)
 
-O CI não publica nada. Três issues cuidam da publicação, nesta ordem:
+O CI não publica nada. Duas issues cuidam da publicação, depois da decisão já tomada:
 
 | Issue | O que resolve | Bloqueio |
 |---|---|---|
-| #60 | **Onde o CRM roda:** (A) Windows Server com serviços Windows e runner Windows na rede; (B) VM Linux com Docker Compose, SQL Server fora do contêiner, imagem construída no CI; (C) B em homologação primeiro | infraestrutura: existe VM Linux, e quem a opera? |
-| #61 | Runner **dentro da rede**, só para publicação, com ambiente `producao` e aprovação obrigatória do Ricardo | #60 e autorização da infraestrutura |
-| #62 | Publicação pelo pipeline: mesmo artefato do CI, backup com evidência, migration, saúde, reversão automática do código | #60, #61; #51 antes da primeira migration destrutiva |
+| ~~#60~~ | **Onde o CRM roda — DECIDIDO em 17/09/2026: continua no Windows Server** (§6.1) | — |
+| #61 | Runner **Windows** dentro da rede, só para publicação, com ambiente `producao` e aprovação obrigatória do Ricardo | autorização da infraestrutura |
+| #62 | Publicação pelo pipeline: mesmo artefato do CI, backup com evidência, migration, saúde, reversão automática do código | #61; #51 antes da primeira migration destrutiva |
+
+### 6.1 A decisão de 17/09/2026 e o que a sustentou
+
+Ricardo indicou uma máquina Linux com Docker (`ecs-st-agro-sistemas-linux`, 10.150.4.227) e autorizou o
+acesso. O inventário e os testes de rede, todos medidos naquele dia, levaram a **manter a aplicação no
+Windows Server por enquanto**:
+
+| Fato medido | Consequência |
+|---|---|
+| Da máquina Linux, **o Protheus não responde** (banco 1433 e REST 5891 fechados) | as cargas do faturamento e do cadastro (#18) não rodariam a partir dela |
+| Da máquina Linux, **o SQL Server do Windows responde** (10.150.4.249:1433) | o caminho continua aberto no futuro, com o banco onde está |
+| A máquina Linux tem **3,4 GB livres, sem swap**, e divide espaço com um projeto que usa 2,4 GB | sem folga para produção; o estouro cairia no vizinho |
+| **O servidor Windows não roda WSL 2 nem contêiner Linux** — VM OpenStack sem VMX (doc 35 §12.2) | "usar o Linux do Windows" não existe como opção no servidor; o WSL fica como ferramenta da estação |
+| Da máquina Linux, o SICOR, os metadados do IBGE e o login da Microsoft respondem | ela é candidata futura para as cargas de dados de mercado (#64 a #68) |
+
+**Consequências práticas:** o runner da #61 é **Windows**; a publicação da #62 continua pelo `publicar.ps1`,
+que já gera pacote **self-contained** e por isso não exige runtime no servidor — nem depois da migração para
+o .NET 10 (#84). O acesso por chave preparado na máquina Linux fica válido para quando ela for usada.
+
+**O que faria a decisão ser revista:** liberação do Protheus para o host Linux (ou aceitar as cargas no
+Windows), máquina Linux com folga de memória e atualização do registro do aplicativo no Entra ID.
 
 **O que o documento 12 já decidiu e continua valendo:** a tag é o SHA do commit; produção recebe o mesmo
 artefato que passou antes; aprovação manual só para produção; a verificação depois da publicação faz parte
