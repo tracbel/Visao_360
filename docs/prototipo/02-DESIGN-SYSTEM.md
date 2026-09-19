@@ -430,6 +430,19 @@ teclado (topbar e Config › Atalhos).
 oportunidade e ao limpar sessão) e `.config-toast` (canto inferior direito, `translateY`, variante
 `.toast-warn`).
 
+### 6.16 Dica (tooltip) — **não existe no protótipo**
+
+Nenhuma classe de tooltip no `app.css`: onde o protótipo explica um número, ele usa o `title=` do
+navegador. O CRM herdou o hábito — **27 `title=` em 15 arquivos** em 19/09/2026 — e o `title` não
+aparece para quem navega por teclado nem para quem usa toque, some sozinho e corta texto longo.
+
+Por isso a dica é o **primeiro componente do CRM sem correspondente no protótipo**:
+`src/componentes/InfoTooltip.tsx`, com as classes `.dica`, `.dica-gatilho` e `.dica-balao` no
+`design-system.css` (issue 031). Ela abre por ponteiro, foco e toque, fecha com `Esc` e liga o balão
+ao gatilho por `aria-describedby`. Os `title=` existentes continuam onde estão; trocá-los é trabalho
+das issues de UX que mexem em cada tela (027, 028, 029), porque cada troca muda o desenho de uma tela
+que é comparada com o protótipo.
+
 ---
 
 ## 7. Dependências externas (exatas, de `index.html`)

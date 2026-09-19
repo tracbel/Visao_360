@@ -9116,3 +9116,64 @@ tr.funil-nova {
   color: var(--text-tertiary);
 }
 .v360-perdidas-nota strong { color: var(--text-secondary); font-weight: 600; }
+
+/* ===== DICA (InfoTooltip) =====
+   A explicação de um número, acessível por ponteiro, teclado e toque. O balão
+   nasce dentro do fluxo do texto, por isso a raiz é `inline-flex`: uma dica ao
+   lado de um rótulo não pode empurrar a linha. */
+.dica {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+.dica-gatilho {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  line-height: 0;
+}
+.dica-gatilho:hover { color: var(--text-secondary); background: var(--bg-hover); }
+
+/* O CONTORNO DO FOCO FICA VISÍVEL: a dica existe justamente para quem chega nela
+   pelo teclado, e um foco invisível a esconderia de novo. */
+.dica-gatilho:focus-visible {
+  outline: 2px solid var(--jd-green);
+  outline-offset: 2px;
+  color: var(--jd-green);
+}
+.dica-balao {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--n-900);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-lg);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+
+  /* Acima do diálogo (z-index 10000): a dica pode nascer dentro de um. */
+  z-index: 10001;
+
+  /* O balão não recebe ponteiro: ele cobre o que está embaixo, e um clique nele
+     não pode virar clique na tela de trás nem tirar o ponteiro do gatilho. */
+  pointer-events: none;
+}
+.dica-balao-abaixo { top: calc(100% + 6px); }
+.dica-balao-acima { bottom: calc(100% + 6px); }
+
+/* No celular o balão de 260px caberia fora da tela quando o gatilho está na
+   borda; aqui ele encosta na margem em vez de sair. */
+@media (max-width: 640px) {
+  .dica-balao { max-width: min(260px, calc(100vw - 32px)); }
+}
