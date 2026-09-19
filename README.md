@@ -101,6 +101,16 @@ dotnet test --filter Categoria=Workflow              # motor de regras
 dotnet test --filter Categoria=Arquitetura           # a estrutura não foi violada
 ```
 
+A tela tem os seus, em `src/Tracbel.Crm.Web` (vitest + testing-library, arquivos `*.teste.tsx`):
+
+```bash
+npm run test           # roda uma vez e sai (a forma que serve para o CI)
+npm run test:observar  # fica observando os arquivos enquanto você mexe
+```
+
+O job `frontend` do CI ainda roda só `lint` e `build` (ele nasceu quando não havia teste de tela);
+o passo `npm run test` entra quando o CI (#56) e este script estiverem os dois na `main`.
+
 **Portão de qualidade da fase 1** (documento 06): cobertura de domínio ≥ 90%, **cobertura de regra
 = 100%** (cada regra testada disparando *e não disparando*), matriz de autorização completa,
 e cinco usuários reais completando três tarefas sem ajuda.

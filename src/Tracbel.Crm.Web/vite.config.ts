@@ -1,9 +1,22 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+// `vitest/config` é o mesmo `defineConfig` do Vite, com o bloco `test` tipado.
+import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+
+  // OS TESTES DE COMPONENTE (issue 031). O arquivo termina em `.teste.tsx`, como
+  // os testes do backend terminam em `Testes.cs`: o nome diz em português o que
+  // é. `globals: false` mantém `describe`/`it`/`expect` importados no arquivo —
+  // nada aparece por mágica —, e por isso a limpeza da testing-library é
+  // registrada à mão em `src/testes/configuracao.ts`.
+  test: {
+    environment: 'jsdom',
+    globals: false,
+    include: ['src/**/*.teste.{ts,tsx}'],
+    setupFiles: ['./src/testes/configuracao.ts'],
+  },
   server: {
     // A porta que `scripts/prototipo/comparar-telas.mjs` procura por padrão.
     // Declarada aqui para `npm run dev` e a comparação visual não dependerem de
