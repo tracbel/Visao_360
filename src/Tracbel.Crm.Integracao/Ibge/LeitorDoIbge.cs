@@ -40,12 +40,23 @@ public sealed class LeitorDoIbge(HttpClient http)
     public const short TabelaDaAreaPlantada = 5457;
 
     /// <summary>
-    /// A área plantada (variável 216) de todos os produtos (classificação 782), no último ano
-    /// publicado, para todos os municípios de uma UF.
+    /// "Área plantada ou destinada à colheita", na tabela 5457.
+    ///
+    /// <para><b>Não troque por 216.</b> A 216 é a "Área colhida", e foi o que o leitor pediu até
+    /// 19/09/2026 (issue 83): em cultura perene a colhida fica abaixo da plantada enquanto o cafezal ou o
+    /// pomar novo não produz, e o potencial por área saía subestimado justamente onde há plantio novo.
+    /// A área colhida tem uso próprio (produtividade), e entra pela #64 como outra coluna.</para>
+    /// </summary>
+    public const short VariavelDaAreaPlantada = 8331;
+
+    /// <summary>
+    /// A área plantada (variável <see cref="VariavelDaAreaPlantada"/>) de todos os produtos
+    /// (classificação 782), no último ano publicado, para todos os municípios de uma UF.
     /// </summary>
     /// <param name="codigoDaUf">O código IBGE da UF. São Paulo é 35.</param>
     public static string EnderecoDaAreaPlantada(int codigoDaUf) =>
-        $"https://apisidra.ibge.gov.br/values/t/{TabelaDaAreaPlantada}/n6/in%20n3%20{codigoDaUf}/v/216/p/last%201/c782/allxt?formato=json";
+        $"https://apisidra.ibge.gov.br/values/t/{TabelaDaAreaPlantada}/n6/in%20n3%20{codigoDaUf}" +
+        $"/v/{VariavelDaAreaPlantada}/p/last%201/c782/allxt?formato=json";
 
     /// <summary>A malha municipal de uma UF, em GeoJSON, na qualidade intermediária do IBGE.</summary>
     /// <param name="codigoDaUf">O código IBGE da UF.</param>
