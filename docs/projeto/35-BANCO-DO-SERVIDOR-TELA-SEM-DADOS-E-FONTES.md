@@ -198,11 +198,17 @@ O script:
 Geográficos passa a mostrar os mapas **sem precisar republicar**. Reexecutar não grava nada. Para voltar
 atrás, restaure a cópia do passo 2.
 
-### 5.1 A produção agrícola do IBGE já não precisa de você (20/09/2026, #64)
+### 5.1 As fontes públicas já não precisam de você (20/09/2026, #64 e #65)
 
-A quarta etapa — a PAM — saiu deste roteiro. Ela não usa planilha nenhuma, muda uma vez por ano e
-agora roda **no próprio servidor**, na tarefa anual `TracbelCrmPam`, que o
-`scripts/deploy/agendar-pam-no-servidor.ps1` instala uma vez. Detalhe no documento 32, §8.3.3.
+A quarta etapa — a PAM — saiu deste roteiro, e a estrutura agropecuária nasceu já fora dele. Nenhuma
+das duas usa planilha, as duas mudam uma vez por ano e as duas rodam **no próprio servidor**, na
+tarefa anual `TracbelCrmFontesPublicas`, que o
+`scripts/deploy/agendar-fontes-publicas-no-servidor.ps1` instala uma vez. Detalhe no documento 32,
+§8.3.3.
+
+**Ficou medido que o servidor alcança a internet:** a primeira rodada leu 163.965 linhas do SIDRA de
+dentro dele, sem proxy nem configuração especial. Isso vale para as próximas fontes externas do
+documento 48 (#66, #67, #68).
 
 O script acima continua sendo o caminho das **três primeiras** etapas, que dependem das duas
 planilhas do comercial — e continuam saindo da estação enquanto as planilhas chegarem por e-mail.

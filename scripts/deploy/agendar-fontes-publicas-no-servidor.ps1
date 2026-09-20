@@ -1,39 +1,55 @@
 <#
-  agendar-pam-no-servidor.ps1 - leva a carga da PAM para o servidor e deixa uma ROTINA ANUAL agendada
-  la, para que o CRM atualize a producao agricola do IBGE sozinho (issue 64; regra R-5 do doc 46).
+  agendar-fontes-publicas-no-servidor.ps1 - leva a carga das FONTES PUBLICAS para o servidor e deixa
+  uma ROTINA ANUAL agendada la, para que o CRM se atualize sozinho (issues 64 e 65; regra R-5 do
+  doc 46).
 
       Set-Location C:\projetos\tracbel-crm
-      powershell -ExecutionPolicy Bypass -File .\scripts\deploy\agendar-pam-no-servidor.ps1
+      powershell -ExecutionPolicy Bypass -File .\scripts\deploy\agendar-fontes-publicas-no-servidor.ps1
 
   =================================================================================================
-  POR QUE ESTA ROTINA EXISTE, E POR QUE SO ELA
+  O QUE A ROTINA ATUALIZA
 
-  A carga do territorio tem quatro etapas. TRES delas dependem de duas planilhas do comercial, que
-  trazem nome de funcionario por municipio e ficam fora do repositorio: elas mudam quando o comercial
-  as reenvia, e a carga delas continua saindo da estacao (carregar-territorio-no-servidor.ps1).
+    --somente-pam         a Producao Agricola Municipal: area plantada, colhida, quantidade e valor,
+                          por cultura e municipio, em tres anos (issue 64);
+    --somente-estrutura   o que ja existe para mecanizar (issue 65): tratores por potencia e
+                          estabelecimentos por tamanho (Censo Agropecuario), rebanho bovino (PPM),
+                          area territorial (Censo Demografico) e as usinas de etanol (ANP).
 
-  A QUARTA - a Producao Agricola Municipal do IBGE - nao usa planilha nenhuma, muda UMA VEZ POR ANO e
-  vem de uma API publica. E a unica que o servidor consegue rodar sozinho, e e exatamente o que a
-  regra R-5 pede: o servidor busca os dados, ninguem precisa lembrar de rodar nada.
+  UMA TAREFA SO PARA AS DUAS. Elas saem na mesma epoca do ano, vem das mesmas agencias publicas e
+  falham pelos mesmos motivos; duas tarefas seriam dois lugares para olhar quando algo der errado.
+
+  =================================================================================================
+  POR QUE SO ESTAS, E NAO O TERRITORIO INTEIRO
+
+  A carga do territorio tem quatro etapas, e TRES dependem de duas planilhas do comercial, que trazem
+  nome de funcionario por municipio e ficam fora do repositorio: elas mudam quando o comercial as
+  reenvia, e a carga delas continua saindo da estacao (carregar-territorio-no-servidor.ps1).
+
+  As fontes desta rotina nao usam planilha nenhuma: sao APIs e arquivos publicos, e o servidor alcanca
+  todos - MEDIDO em 20/09/2026, quando a primeira rodada leu 163.965 linhas do SIDRA de dentro dele.
+  E exatamente o que a regra R-5 pede: o servidor busca os dados, ninguem precisa lembrar de rodar
+  nada.
 
   Levar as planilhas ate o servidor so para atualizar o IBGE seria levar dado pessoal onde ele nao
-  precisa estar. Por isso o modo `--somente-pam`.
+  precisa estar.
 
   =================================================================================================
   O QUE ELE FAZ, NA ORDEM
     0. confere que o banco do servidor responde e que o CRM ja tem o catalogo de municipios do IBGE
-       (a PAM se pendura nele; sem catalogo, nao ha onde gravar);
+       (as duas cargas se penduram nele; sem catalogo, nao ha onde gravar);
     1. publica a carga (self-contained, como a API) em C:\aplicacoes\tracbel-crm-carga no servidor;
-    2. grava o `rodar-pam.ps1` - a conexao LOCAL integrada, a chamada e o log -, so para o SYSTEM;
-    3. registra a tarefa agendada anual `TracbelCrmPam`, que chama esse script;
+    2. grava o `rodar-fontes-publicas.ps1` - a conexao LOCAL integrada, as chamadas e o log -, so
+       para o SYSTEM;
+    3. registra a tarefa agendada anual `TracbelCrmFontesPublicas`, que chama esse script, e remove a
+       `TracbelCrmPam` que a versao anterior deste script instalava;
     4. RODA a tarefa uma vez, espera e mostra o retrato do banco depois.
 
-  A TRAVA NAO E DESTE SCRIPT: ela e do proprio programa (sp_getapplock no banco, pelo tempo da
-  transacao). E por isso que a rotina anual e uma carga manual da estacao nunca escrevem ao mesmo
-  tempo, mesmo sendo maquinas diferentes.
+  A TRAVA NAO E DESTE SCRIPT: ela e do proprio programa (sp_getapplock no banco, uma por fluxo, tomada
+  ANTES da leitura). E por isso que a rotina anual e uma carga manual da estacao nunca escrevem ao
+  mesmo tempo, mesmo sendo maquinas diferentes.
 
-  Reexecutar e seguro: a publicacao substitui os arquivos, a tarefa e recriada e a carga e
-  idempotente - a segunda rodada nao grava nada.
+  Reexecutar e seguro: a publicacao substitui os arquivos, a tarefa e recriada e as cargas sao
+  idempotentes - a segunda rodada nao grava nada.
 #>
 
 [CmdletBinding()]
@@ -41,7 +57,10 @@ param(
     [string] $Servidor   = '10.150.4.249',
     [string] $Banco      = 'TracbelCrm',
     [string] $Destino    = 'C:\aplicacoes\tracbel-crm-carga',
-    [string] $NomeTarefa = 'TracbelCrmPam',
+    [string] $NomeTarefa = 'TracbelCrmFontesPublicas',
+
+    # A tarefa que a versao anterior deste script instalava, e que agora e substituida.
+    [string] $TarefaAntiga = 'TracbelCrmPam',
 
     # QUANDO A PAM SAI. O IBGE divulga a Producao Agricola Municipal no segundo semestre; 1 de outubro
     # pega a divulgacao do ano com folga, e a carga traz tres anos - entao uma rodada perdida se
@@ -74,16 +93,21 @@ function Escalar([string] $sql, [int] $timeout = 60) {
 
 function Retrato([string] $rotulo) {
     $medidas = [ordered]@{
-        'linhas de producao agricola' = 'SELECT COUNT(*) FROM organizacao.ProducaoAgricolaNoMunicipio'
-        'linhas do total do estado'   = 'SELECT COUNT(*) FROM organizacao.ProducaoAgricolaNoEstado'
-        'anos distintos'              = 'SELECT COUNT(DISTINCT Ano) FROM organizacao.ProducaoAgricolaNoMunicipio'
+        'producao agricola (municipio)' = 'SELECT COUNT(*) FROM organizacao.ProducaoAgricolaNoMunicipio'
+        'producao agricola (estado)'    = 'SELECT COUNT(*) FROM organizacao.ProducaoAgricolaNoEstado'
+        'anos distintos da PAM'         = 'SELECT COUNT(DISTINCT Ano) FROM organizacao.ProducaoAgricolaNoMunicipio'
+        'frota de tratores'             = 'SELECT COUNT(*) FROM organizacao.FrotaDeTratoresNoMunicipio'
+        'estabelecimentos por area'     = 'SELECT COUNT(*) FROM organizacao.EstabelecimentosPorAreaNoMunicipio'
+        'rebanho'                       = 'SELECT COUNT(*) FROM organizacao.RebanhoNoMunicipio'
+        'area territorial'              = 'SELECT COUNT(*) FROM organizacao.AreaTerritorialDoMunicipio'
+        'usinas de etanol'              = 'SELECT COUNT(*) FROM organizacao.UsinaDeEtanol'
     }
     Write-Host "   $rotulo"
     $resultado = @{}
     foreach ($k in $medidas.Keys) {
         $valor = [int](Escalar $medidas[$k])
         $resultado[$k] = $valor
-        Write-Host ("     {0,-30} {1,8:N0}" -f $k, $valor)
+        Write-Host ("     {0,-32} {1,8:N0}" -f $k, $valor)
     }
     return $resultado
 }
@@ -149,33 +173,44 @@ Passo "2. O script da rotina, com a conexao do banco"
 # guarda de PAM.
 $conexaoLocal = "Server=localhost,1433;Database=$Banco;Integrated Security=True;TrustServerCertificate=True"
 
+# AS DUAS CARGAS RODAM MESMO QUE A PRIMEIRA FALHE, e o codigo de saida e o PIOR das duas. Parar na
+# primeira faria uma indisponibilidade do SIDRA levar junto a leitura da ANP, que nao tem nada a ver.
+# O log guarda as duas, uma embaixo da outra, e a tarefa so diz "0" quando as duas deram certo.
 $rotina = @"
-# rodar-pam.ps1 - gerado por agendar-pam-no-servidor.ps1. Nao edite aqui: edite o script de origem.
+# rodar-fontes-publicas.ps1 - gerado por agendar-fontes-publicas-no-servidor.ps1.
+# Nao edite aqui: edite o script de origem, no repositorio.
 `$ErrorActionPreference = 'Continue'
 `$env:ConnectionStrings__Crm = '$conexaoLocal'
 `$pasta = '$Destino\logs'
 New-Item -ItemType Directory -Force -Path `$pasta | Out-Null
-`$log = Join-Path `$pasta ('pam-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.log')
-& '$Destino\Tracbel.Crm.Carga.exe' --somente-pam *>&1 | Tee-Object -FilePath `$log
-`$codigo = `$LASTEXITCODE
-Add-Content `$log ('codigo de saida: ' + `$codigo)
-Get-ChildItem `$pasta -Filter 'pam-*.log' | Where-Object { `$_.LastWriteTime -lt (Get-Date).AddYears(-3) } | Remove-Item -Force
-exit `$codigo
+`$log = Join-Path `$pasta ('fontes-publicas-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.log')
+`$pior = 0
+foreach (`$modo in '--somente-pam', '--somente-estrutura') {
+    Add-Content `$log ''
+    Add-Content `$log ('=== ' + `$modo + ' em ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))
+    & '$Destino\Tracbel.Crm.Carga.exe' `$modo *>&1 | Tee-Object -FilePath `$log -Append
+    `$codigo = `$LASTEXITCODE
+    Add-Content `$log ('codigo de saida de ' + `$modo + ': ' + `$codigo)
+    if (`$codigo -gt `$pior) { `$pior = `$codigo }
+}
+Add-Content `$log ('codigo de saida: ' + `$pior)
+Get-ChildItem `$pasta -Filter '*.log' | Where-Object { `$_.LastWriteTime -lt (Get-Date).AddYears(-3) } | Remove-Item -Force
+exit `$pior
 "@
 # ASCII PURO, pelo mesmo motivo do _remoto.ps1: o PowerShell 5.1 do servidor le .ps1 como ANSI.
-Set-Content -Path (Join-Path $destinoPorSmb 'rodar-pam.ps1') -Value $rotina -Encoding ASCII
+Set-Content -Path (Join-Path $destinoPorSmb 'rodar-fontes-publicas.ps1') -Value $rotina -Encoding ASCII
 
 # OS GRUPOS VAO POR SID, E NAO POR NOME. Num Windows em portugues, 'SYSTEM' se chama 'SISTEMA' e
 # 'Administrators' se chama 'Administradores': o icacls com o nome em ingles falha, e falha DEPOIS de
 # ter tirado a heranca - deixando o arquivo sem dono nenhum. O SID e o mesmo em qualquer idioma.
-$saida = Invoke-NoServidor -Nome 'crm-pam-permissao' -Script @"
-`$a = '$Destino\rodar-pam.ps1'
+$saida = Invoke-NoServidor -Nome 'crm-fontes-permissao' -Script @"
+`$a = '$Destino\rodar-fontes-publicas.ps1'
 icacls `$a /inheritance:r /grant '*S-1-5-18:(RX)' '*S-1-5-32-544:(RX)'
 Write-Output ('codigo do icacls: ' + `$LASTEXITCODE)
 "@
 Write-Host $saida
 if ($saida -notmatch 'codigo do icacls: 0') {
-    throw "Nao consegui restringir o acesso a $Destino\rodar-pam.ps1. A saida esta acima."
+    throw "Nao consegui restringir o acesso a $Destino\rodar-fontes-publicas.ps1. A saida esta acima."
 }
 Ok 'rotina gravada, com acesso so para o SYSTEM e os administradores'
 
@@ -195,15 +230,30 @@ Passo "3. Tarefa anual $NomeTarefa"
 # option 'sc' is missing": a continuacao nao sobreviveu a viagem pelo _remoto.ps1, e so a primeira
 # linha rodou. Com uma lista, o PowerShell entrega cada item como um argumento e cuida das aspas
 # sozinho - nao ha nivel de aspas para contar.
-$saida = Invoke-NoServidor -Nome 'crm-pam-tarefa' -TimeoutSegundos 300 -Script @"
+$saida = Invoke-NoServidor -Nome 'crm-fontes-tarefa' -TimeoutSegundos 300 -Script @"
 New-Item -ItemType Directory -Force -Path '$Destino\logs' | Out-Null
 `$argumentos = @(
     '/Create', '/TN', '$NomeTarefa',
-    '/TR', 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Destino\rodar-pam.ps1',
+    '/TR', 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Destino\rodar-fontes-publicas.ps1',
     '/SC', 'MONTHLY', '/M', '$Mes', '/D', '$DiaDoMes',
     '/ST', '$Hora', '/RU', 'SYSTEM', '/RL', 'HIGHEST', '/F')
 & schtasks.exe @argumentos
 Write-Output ('codigo do schtasks: ' + `$LASTEXITCODE)
+
+# A TAREFA ANTIGA SAI DEPOIS QUE A NOVA ENTRA, e so entao: deixar as duas agendadas faria a PAM
+# carregar duas vezes na mesma madrugada - a trava recusaria a segunda, e o log diria "falhou" sem
+# que nada estivesse errado.
+if (`$LASTEXITCODE -eq 0 -and '$TarefaAntiga' -ne '') {
+    & schtasks.exe /Query /TN '$TarefaAntiga' *> `$null
+    if (`$LASTEXITCODE -eq 0) {
+        & schtasks.exe /Delete /TN '$TarefaAntiga' /F
+        Write-Output ('tarefa antiga $TarefaAntiga removida: ' + `$LASTEXITCODE)
+        Remove-Item '$Destino\rodar-pam.ps1' -Force -ErrorAction SilentlyContinue
+    } else {
+        Write-Output 'tarefa antiga $TarefaAntiga nao existia'
+    }
+}
+
 & schtasks.exe /Query /TN '$NomeTarefa' /FO LIST /V
 "@
 Write-Host $saida
@@ -220,8 +270,9 @@ if ($NaoRodarAgora) {
     return
 }
 
-# UMA HORA DE ESPERA: sao 3 anos x 9 lotes x 2 recortes de consulta ao SIDRA, com ~5 MB cada.
-$saida = Invoke-NoServidor -Nome 'crm-pam-primeira' -TimeoutSegundos 3600 -Script @"
+# UMA HORA DE ESPERA: a PAM sao 3 anos x 9 lotes x 2 recortes de consulta ao SIDRA, com ~5 MB cada;
+# a estrutura sao mais quatro consultas ao SIDRA e um ZIP da ANP, que juntos levam menos de um minuto.
+$saida = Invoke-NoServidor -Nome 'crm-fontes-primeira' -TimeoutSegundos 3600 -Script @"
 schtasks /Run /TN '$NomeTarefa' | Out-Null
 `$limite = (Get-Date).AddMinutes(55)
 while ((Get-Date) -lt `$limite) {
@@ -229,15 +280,24 @@ while ((Get-Date) -lt `$limite) {
     `$linha = schtasks /Query /TN '$NomeTarefa' /FO LIST | Select-String 'Status:|Estado:'
     if (`$linha -and (`$linha -join ' ') -notmatch 'Running|Em execu') { break }
 }
-`$log = Get-ChildItem '$Destino\logs\pam-*.log' | Sort-Object LastWriteTime | Select-Object -Last 1
-Write-Output ('log: ' + `$log.FullName)
-Get-Content `$log.FullName -Tail 20
+`$log = Get-ChildItem '$Destino\logs\fontes-publicas-*.log' | Sort-Object LastWriteTime | Select-Object -Last 1
+if (`$log) {
+    Write-Output ('log: ' + `$log.FullName)
+    Get-Content `$log.FullName -Tail 40
+} else {
+    Write-Output 'NENHUM LOG FOI ESCRITO: a tarefa pode nao ter chegado a rodar.'
+}
 "@
 Write-Host $saida
 
-$depois = Retrato 'estado da producao agricola no servidor, depois:'
-if ($depois['linhas de producao agricola'] -eq 0) {
-    throw "A tarefa rodou e a tabela continua vazia. O log do servidor esta acima."
+$depois = Retrato 'estado das fontes publicas no servidor, depois:'
+
+# CADA FONTE E CONFERIDA SEPARADAMENTE. Olhar só uma deixaria passar o caso em que a PAM carregou e a
+# ANP nao — que e exatamente o que a segunda carga acrescenta de risco.
+$vazias = $depois.Keys | Where-Object { $_ -notlike 'anos*' -and $depois[$_] -eq 0 }
+if ($vazias) {
+    throw "A tarefa rodou e estas tabelas continuam vazias: $($vazias -join ', '). O log do servidor esta acima."
 }
-Ok 'o servidor atualiza a producao agricola do IBGE sozinho, uma vez por ano'
+
+Ok 'o servidor atualiza a PAM e a estrutura agropecuaria sozinho, uma vez por ano'
 Write-Host ''

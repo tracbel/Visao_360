@@ -1,7 +1,10 @@
 # 48 — Potencial de mercado: o que a pasta 360 contém, o modelo e o plano por fases
 
-> **Data:** 17/09/2026 · **Status:** fases e issues criadas; **nenhuma regra decidida** — as 14 decisões
-> da §5 estão na #63.
+> **Data:** 17/09/2026 · atualizado em **20/09/2026** com as issues **#64** (PAM completa, no servidor)
+> e **#65** (Censo, rebanho, área territorial e usinas), a **errata do ano** da §3.8 e a escolha da
+> fonte das usinas (§2.3).
+> **Status:** as duas primeiras fontes da fase P1 estão no banco; **nenhuma regra decidida** — as 14
+> decisões da §5 continuam na #63.
 > **Fontes deste documento:** a pasta `360/` na raiz do repositório (fora do Git), lida por inteiro — 14
 > arquivos, 272 abas, 6 CSVs, com as fórmulas célula a célula; as anotações da conversa com a diretoria
 > e o comercial, transcritas por Ricardo em 17/09/2026; os documentos 32, 46 e 46A; o código.
@@ -121,6 +124,34 @@ página, sem baixar dado de ninguém.
 
 **Achado ao conferir a tabela 5457:** o leitor do IBGE do CRM pede a variável **216 (área colhida)** e a
 grava como área plantada. A área que o CRM mostra hoje — e que o mapa C usa — é área colhida (#83).
+
+### 2.3 As usinas: por que a ANP e não o MAPA [medido em 20/09/2026, #65]
+
+A pasta do comercial trazia uma lista de **68 linhas** de municípios com usina, sem fonte nem data, com
+grafia sem acento e repetição. Ela precisava virar dado com procedência. Foram avaliadas duas fontes
+oficiais:
+
+| | MAPA — SAPCana | **ANP — dados abertos** |
+|---|---|---|
+| O que é | cadastro obrigatório de produtores, cooperativas e comercializadoras de **cana** | autorização de todo produtor de **etanol** do país |
+| Cobre usina só de açúcar | **sim** | não |
+| Acesso | `sistemasweb4.agricultura.gov.br/sapcana/downloadBaseCompletaInstituicao.action` — **exige CAPTCHA** | `gov.br/.../pb-da-etanol.zip`, **download direto** |
+| Atualização | diária | mensal; a versão lida era de 18/08/2026, com dados até 07/2026 |
+| São Paulo | — | **145 usinas em 120 municípios** |
+| Traz | cadastro | razão social, CNPJ, município e **capacidade de produção (m³/dia)** de anidro e hidratado |
+
+**A decisão é a ANP, e o motivo é o CAPTCHA.** Ele é o controle de acesso que o MAPA escolheu para
+esse download; contorná-lo violaria os termos do sistema, e isso não se faz por conveniência de
+carga. A ANP publica o equivalente sem barreira nenhuma, com procedência e — de quebra — com o
+**porte** de cada usina, que a lista de 68 linhas não tinha.
+
+**O que a escolha custa, dito em voz alta:** usina que produz **só açúcar**, sem etanol, não é
+autorizada pela ANP e não aparece. Na prática quase toda usina paulista é mista, mas **a ausência de
+um município na tabela não prova que não há usina lá** — prova que não há usina de etanol. A tela diz
+isso, como o resto da Visão 360 faz com dado que não fecha.
+
+Na ADR, a carga encontrou **64 usinas**; a planilha listava 68 municípios, com repetição e incluindo
+as exclusivamente açucareiras. A maior é a São Martinho, em Pradópolis, com 4.240 m³/dia.
 
 ---
 
@@ -266,6 +297,11 @@ estabelecimentos em 2017, 56% com menos de 20 ha; 62.308 tratores em 2017, 74% c
 | `ResponsavelPeloMunicipio` | CEN e gestor por município, duas fontes preservadas, 82 municípios divergentes | doc 32 §4.3; #48 |
 | `ProducaoAgricolaNoMunicipio` | **as quatro medidas da PAM** por município, produto e ano — área plantada (8331), colhida (216), quantidade (214) e valor (215, mil R$); zero × não disponível preservados; três anos da série | doc 32 §8.3.1; #83, #95, #64 |
 | `ProducaoAgricolaNoEstado` | a linha que o IBGE publica para a UF inteira — o denominador da comparação com SP, que **não** é a soma dos municípios | doc 32 §8.3.1; #64 |
+| `FrotaDeTratoresNoMunicipio` | tratores e estabelecimentos com trator, por faixa de potência (Censo Agropecuário 2017); sigilo "X" preservado como nulo | #65 |
+| `EstabelecimentosPorAreaNoMunicipio` | estabelecimentos por grupo de área total — as **18 faixas originais** do IBGE, mais "produtor sem área" e o total | #65 |
+| `RebanhoNoMunicipio` | efetivo do rebanho bovino, **anual** (PPM); a tabela comporta os outros nove tipos | #65 |
+| `AreaTerritorialDoMunicipio` | área em km² com os três decimais do IBGE, com o ano da apuração | #65 |
+| `UsinaDeEtanol` | as usinas autorizadas pela ANP, com CNPJ, município e **capacidade de produção** (m³/dia) | #65 |
 | `RegraDePotencial` | hectares por máquina e modelo de referência; **1 regra: café, 3036N, 10 ha, "a confirmar"**; sem escritor | doc 32 §8.3; doc 46 |
 | Mapa C | máquinas teóricas = área ÷ hectares por máquina, só para a regra ativa | doc 32 §8.3 |
 | Cartão "Conhecimento de mercado" | vendas perdidas registradas; "participação de mercado: sem dado" | painel executivo |

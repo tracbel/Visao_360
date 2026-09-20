@@ -13,6 +13,7 @@ using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao.Carga;
 using Microsoft.Extensions.DependencyInjection;
+using Tracbel.Crm.Integracao.Anp;
 using Tracbel.Crm.Integracao.Art;
 using Tracbel.Crm.Integracao.Ibge;
 using Tracbel.Crm.Integracao.Protheus;
@@ -100,6 +101,16 @@ var somenteTerritorio = args.Contains("--somente-territorio", StringComparer.Ord
 // escrevam ao mesmo tempo.
 var somentePam = args.Contains("--somente-pam", StringComparer.Ordinal);
 
+// --somente-estrutura — O QUE JA EXISTE NO TERRITORIO PARA MECANIZAR (issue 65).
+//
+// Cinco fontes publicas, de quatro pesquisas e duas agencias: tratores por potencia e
+// estabelecimentos por tamanho (Censo Agropecuario), rebanho bovino (Pesquisa da Pecuaria Municipal),
+// area territorial (Censo Demografico) e as usinas de etanol autorizadas (dados abertos da ANP).
+//
+// A PAM diz quanto se PLANTA; esta carga diz o que ha instalado. Nenhuma das cinco usa planilha, e
+// todas podem rodar no servidor.
+var somenteEstrutura = args.Contains("--somente-estrutura", StringComparer.Ordinal);
+
 // --somente-art [--simular] — AS VENDAS DE MÁQUINA DO ART (documento 35, seção 10).
 //
 // Lê a view do ART (MySQL, sessão somente leitura) e confere dono e cadastro no banco do Protheus
@@ -120,13 +131,14 @@ var simular = args.Contains("--simular", StringComparer.Ordinal);
 //   --somente-faturamento   o faturamento do Protheus, que muda todo dia e é o número da diretoria;
 //   --somente-territorio    as planilhas do comercial e o IBGE;
 //   --somente-pam           só a produção agrícola do IBGE — a rotina anual do servidor;
+//   --somente-estrutura     o Censo, o rebanho, a área territorial e as usinas da ANP;
 //   --somente-art           as vendas de máquina do ART;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
 
-var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteArt && !somenteMedir;
+var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somenteArt && !somenteMedir;
 
 if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
 {
@@ -167,7 +179,7 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A EXIGÊNCIA CAI NO MODO SÓ-FATURAMENTO, e só nele: essa etapa não abre conexão com o legado.
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
-if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteArt)
+if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somenteArt)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -224,7 +236,7 @@ var ibge = new LeitorDoIbge(clienteDoIbge);
 // Atalho — só o território. Sai antes da exigência do Protheus, que esta etapa não usa.
 // -------------------------------------------------------------------------------------------------
 
-if (somenteTerritorio || somentePam)
+if (somenteTerritorio || somentePam || somenteEstrutura)
 {
     var caminhoDaAreaDeAtuacao = LerTexto(args, "--area-de-atuacao");
     var caminhoDoCenEGestor = LerTexto(args, "--cen-e-gestor");
@@ -236,21 +248,34 @@ if (somenteTerritorio || somentePam)
             "--cen-e-gestor \"<arquivo>\". Nada foi gravado.");
         Console.Error.WriteLine(
             "  Para atualizar SÓ a produção agrícola do IBGE, que não usa planilha nenhuma, " +
-            "use --somente-pam.");
+            "use --somente-pam; para o Censo, o rebanho, a área e as usinas, --somente-estrutura.");
         return 2;
     }
 
     var cargaDoTerritorio = new CargaDeTerritorio(
         AbrirContexto, ibge, usuarioId, Console.WriteLine);
 
-    var oQueRodou = somenteTerritorio ? "A CARGA DO TERRITÓRIO" : "A CARGA DA PRODUÇÃO AGRÍCOLA";
+    // A ANP PUBLICA UM ZIP, e não JSON comprimido no caminho: o mesmo cliente do IBGE serve, e a
+    // descompressão automática dele não atrapalha — ela cuida do Content-Encoding, não do conteúdo.
+    var cargaDaEstrutura = new CargaDaEstruturaAgropecuaria(
+        AbrirContexto,
+        new LeitorDaEstruturaAgropecuaria(clienteDoIbge),
+        new LeitorDaAnp(clienteDoIbge),
+        usuarioId,
+        Console.WriteLine);
+
+    var oQueRodou = somenteTerritorio ? "A CARGA DO TERRITÓRIO"
+        : somentePam ? "A CARGA DA PRODUÇÃO AGRÍCOLA"
+        : "A CARGA DA ESTRUTURA AGROPECUÁRIA";
 
     try
     {
         var contagens = somenteTerritorio
             ? await cargaDoTerritorio.ExecutarAsync(
                 caminhoDaAreaDeAtuacao!, caminhoDoCenEGestor!, CancellationToken.None)
-            : await cargaDoTerritorio.ExecutarSoAProducaoAgricolaAsync(CancellationToken.None);
+            : somentePam
+                ? await cargaDoTerritorio.ExecutarSoAProducaoAgricolaAsync(CancellationToken.None)
+                : await cargaDaEstrutura.ExecutarAsync(CancellationToken.None);
 
         foreach (var etapa in contagens.GroupBy(c => c.Etapa))
         {

@@ -111,7 +111,7 @@ public sealed partial class EsquemaENomenclaturaTestes
     }
 
     [Fact]
-    public void Os_oito_schemas_do_modelo_unificado_existem_e_somam_cinquenta_tabelas()
+    public void Os_oito_schemas_do_modelo_unificado_existem_e_somam_cinquenta_e_cinco_tabelas()
     {
         // O documento 17, seção 8.12, fixou a conta em 63 tabelas em 10 schemas. Ela subiu para 80
         // — cada acréscimo com decisão registrada, listados abaixo — e a FASE 1 do documento 41 a
@@ -135,6 +135,16 @@ public sealed partial class EsquemaENomenclaturaTestes
         //      NÃO é a soma dos municípios (o valor municipal sigiloso entra nele sem aparecer
         //      embaixo). Sem a linha do estado, a tela não tem denominador para dizer que fatia da
         //      cultura do estado está na área de atuação — e o número da soma mentiria para baixo.
+        //   +5 organizacao.FrotaDeTratoresNoMunicipio, EstabelecimentosPorAreaNoMunicipio,
+        //      RebanhoNoMunicipio, AreaTerritorialDoMunicipio e UsinaDeEtanol — issue 65. A PAM diz
+        //      quanto se PLANTA; nenhuma delas diz o que já existe para mecanizar isso. São cinco
+        //      tabelas e não uma porque são cinco granularidades diferentes, e juntá-las faria a
+        //      coluna do ano significar coisas distintas na mesma linha: o Censo Agropecuário é de
+        //      2017 e só sai de novo em 2028; a Pesquisa da Pecuária Municipal é ANUAL; a área
+        //      territorial é do Censo de 2022; e a usina vem da ANP, tem CNPJ e mês de autorização,
+        //      não código de categoria do IBGE. A frota e os estabelecimentos por faixa vêm do mesmo
+        //      Censo, mas contam coisas diferentes (tratores × propriedades) em classificações
+        //      diferentes (potência × grupo de área).
         //   +3 frota.LinhaDeProduto, VendaDeMaquina e VinculoDeClienteComEquipamento — documento 35,
         //      seção 10: a classificação comercial cruza categoria e porte (não é família), a venda é
         //      evento com data e comprador (uma máquina revendida tem duas), e o comprador de uma venda
@@ -157,7 +167,7 @@ public sealed partial class EsquemaENomenclaturaTestes
 
         var esperado = new Dictionary<string, int>
         {
-            ["organizacao"] = 10,
+            ["organizacao"] = 15,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 9,
@@ -168,13 +178,14 @@ public sealed partial class EsquemaENomenclaturaTestes
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 50 tabelas de modelo em 8 schemas: a fase 1 (documento 41) trouxe 80 em 10 " +
+            "a conta é 55 tabelas de modelo em 8 schemas: a fase 1 (documento 41) trouxe 80 em 10 " +
             "para 49, tirando as 31 que nunca receberam uma linha e esvaziando por completo os " +
-            "schemas 'documento' e 'relatorio'; a issue 64 acrescentou o total do estado. O portão " +
-            "continua o mesmo nos dois sentidos: mudar este número exige a decisão da seção 10.2 e " +
-            "a atualização do documento 14, seção 2.1, na MESMA mudança");
+            "schemas 'documento' e 'relatorio'; a issue 64 acrescentou o total do estado e a 65, as " +
+            "cinco da estrutura agropecuária. O portão continua o mesmo nos dois sentidos: mudar " +
+            "este número exige a decisão da seção 10.2 e a atualização do documento 14, seção 2.1, " +
+            "na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(50);
+        porSchema.Values.Sum().Should().Be(55);
     }
 
     [Fact]
