@@ -176,6 +176,11 @@ $conexaoLocal = "Server=localhost,1433;Database=$Banco;Integrated Security=True;
 # AS DUAS CARGAS RODAM MESMO QUE A PRIMEIRA FALHE, e o codigo de saida e o PIOR das duas. Parar na
 # primeira faria uma indisponibilidade do SIDRA levar junto a leitura da ANP, que nao tem nada a ver.
 # O log guarda as duas, uma embaixo da outra, e a tarefa so diz "0" quando as duas deram certo.
+#
+# UMA CODIFICACAO SO NO LOG, E UTF-8. A primeira versao misturava `Tee-Object -FilePath` (que no
+# PowerShell 5.1 grava UTF-16) com `Add-Content` (que grava ANSI) NO MESMO ARQUIVO: o resultado, lido
+# em 20/09/2026, era ilegivel — "l i n h a s   m a n t i d a s". O log so serve se puder ser lido no
+# dia em que algo der errado, e foi exatamente o que aconteceu.
 $rotina = @"
 # rodar-fontes-publicas.ps1 - gerado por agendar-fontes-publicas-no-servidor.ps1.
 # Nao edite aqui: edite o script de origem, no repositorio.
@@ -184,16 +189,19 @@ $rotina = @"
 `$pasta = '$Destino\logs'
 New-Item -ItemType Directory -Force -Path `$pasta | Out-Null
 `$log = Join-Path `$pasta ('fontes-publicas-' + (Get-Date -Format 'yyyyMMdd-HHmm') + '.log')
+
+function Anotar(`$texto) { Out-File -FilePath `$log -Append -Encoding utf8 -InputObject `$texto }
+
 `$pior = 0
 foreach (`$modo in '--somente-pam', '--somente-estrutura') {
-    Add-Content `$log ''
-    Add-Content `$log ('=== ' + `$modo + ' em ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))
-    & '$Destino\Tracbel.Crm.Carga.exe' `$modo *>&1 | Tee-Object -FilePath `$log -Append
+    Anotar ''
+    Anotar ('=== ' + `$modo + ' em ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))
+    & '$Destino\Tracbel.Crm.Carga.exe' `$modo *>&1 | ForEach-Object { Anotar `$_ }
     `$codigo = `$LASTEXITCODE
-    Add-Content `$log ('codigo de saida de ' + `$modo + ': ' + `$codigo)
+    Anotar ('codigo de saida de ' + `$modo + ': ' + `$codigo)
     if (`$codigo -gt `$pior) { `$pior = `$codigo }
 }
-Add-Content `$log ('codigo de saida: ' + `$pior)
+Anotar ('codigo de saida: ' + `$pior)
 Get-ChildItem `$pasta -Filter '*.log' | Where-Object { `$_.LastWriteTime -lt (Get-Date).AddYears(-3) } | Remove-Item -Force
 exit `$pior
 "@

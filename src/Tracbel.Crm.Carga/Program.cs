@@ -232,6 +232,19 @@ using var clienteDoIbge = new HttpClient(
 
 var ibge = new LeitorDoIbge(clienteDoIbge);
 
+// A ANP TEM CLIENTE PRÓPRIO, SEM DESCOMPRESSÃO — e isso não é detalhe de estilo.
+//
+// O que ela entrega é um ZIP: um arquivo JÁ COMPRIMIDO, que não ganha nada com compressão de
+// transporte. E pedi-la custou caro: com `DecompressionMethods.All`, que inclui brotli, o download
+// falhava NO SERVIDOR com "The SSL connection could not be established — Received an unexpected EOF
+// or 0 bytes from the transport stream". Na estação funcionava, e por isso a issue 65 passou nos
+// testes e quebrou só lá.
+//
+// MEDIDO em 20/09/2026, de dentro do servidor, no mesmo endereço: HttpClient simples baixou os
+// 946 KB; com GZip+Deflate, também; com `All`, caiu. O `www.gov.br` fecha a conexão diante do
+// `Accept-Encoding` com brotli.
+using var clienteDaAnp = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+
 // -------------------------------------------------------------------------------------------------
 // Atalho — só o território. Sai antes da exigência do Protheus, que esta etapa não usa.
 // -------------------------------------------------------------------------------------------------
@@ -255,12 +268,10 @@ if (somenteTerritorio || somentePam || somenteEstrutura)
     var cargaDoTerritorio = new CargaDeTerritorio(
         AbrirContexto, ibge, usuarioId, Console.WriteLine);
 
-    // A ANP PUBLICA UM ZIP, e não JSON comprimido no caminho: o mesmo cliente do IBGE serve, e a
-    // descompressão automática dele não atrapalha — ela cuida do Content-Encoding, não do conteúdo.
     var cargaDaEstrutura = new CargaDaEstruturaAgropecuaria(
         AbrirContexto,
         new LeitorDaEstruturaAgropecuaria(clienteDoIbge),
-        new LeitorDaAnp(clienteDoIbge),
+        new LeitorDaAnp(clienteDaAnp),
         usuarioId,
         Console.WriteLine);
 

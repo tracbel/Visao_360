@@ -216,7 +216,7 @@ Fica fora: code scanning pago (GitHub Advanced Security) e varredura de imagem (
 
 | Issue | O que resolve | Estado |
 |---|---|---|
-| ~~#60~~ | **Onde o CRM roda — DECIDIDO em 17/09/2026: continua no Windows Server** (§6.5) | fechada |
+| ~~#60~~ | **Onde o CRM roda — DECIDIDO em 17/09/2026: continua no Windows Server** (§6.6) | fechada |
 | #61 | Runner **Windows** dentro da rede, com ambiente `producao` e aprovação obrigatória | **deixou de ser bloqueador** — ver §6.2 |
 | #62 | Publicação automática: mesmo artefato do CI, backup, migração, saúde, reversão | **implementada em 20/09/2026** (§6.2) |
 
@@ -291,7 +291,33 @@ BOM como ANSI: um travessão em UTF-8 vira dois caracteres e o parser quebra num
 nada de errado — "Token '{' inesperado". O arquivo passava no PowerShell 7 da estação. Agora o CI
 confere isso a cada PR.
 
-### 6.5 A decisão de 17/09/2026 e o que a sustentou
+### 6.5 O que a estação não pega — três defeitos de 20/09/2026
+
+A publicação da estrutura agropecuária e a primeira execução do job `pacote` acharam, no mesmo dia,
+três defeitos da mesma família: **o que funciona na estação não é o que roda em produção**.
+
+| O que quebrou | Onde só aparecia | A causa |
+|---|---|---|
+| a carga das **usinas** não gravou nada no servidor | só lá | o leitor da ANP usava o `HttpClient` do IBGE, que pede compressão **brotli**; o `www.gov.br` fecha a conexão TLS diante dela |
+| o **log** da carga estava ilegível | só lá | `Tee-Object` grava UTF-16 no PowerShell 5.1 e `Add-Content` grava ANSI — no mesmo arquivo |
+| o job **`pacote`** falhou na primeira execução real | só no runner | `--no-build` no `migrations list`, num runner que nunca compilou em Debug |
+
+**O da ANP é o mais instrutivo.** Medido de dentro do servidor, no mesmo endereço:
+
+| Cliente | Resultado |
+|---|---|
+| `HttpClient` simples | OK, 946 KB |
+| com GZip + Deflate | OK, 946 KB |
+| com `DecompressionMethods.All` (com brotli) | **falha de TLS** |
+
+A ANP entrega um **ZIP** — arquivo já comprimido. Pedir compressão de transporte para ele não ganhava
+nada e custou a carga inteira. A regra que fica: **cliente HTTP compartilhado carrega as opções de
+quem o criou**; uma integração nova ganha o seu, com as opções que ela precisa e nenhuma a mais.
+
+**E o do log é o que quase impediu achar os outros.** Um log só serve se puder ser lido no dia em que
+algo der errado — que foi exatamente este dia.
+
+### 6.6 A decisão de 17/09/2026 e o que a sustentou
 
 Ricardo indicou uma máquina Linux com Docker (`ecs-st-agro-sistemas-linux`, 10.150.4.227) e autorizou o
 acesso. O inventário e os testes de rede, todos medidos naquele dia, levaram a **manter a aplicação no
