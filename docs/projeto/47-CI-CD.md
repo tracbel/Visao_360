@@ -182,13 +182,33 @@ ferramenta recusar a escrita, o mesmo conteúdo se aplica pela tela.
 
 ---
 
-## 5. Dependências e vulnerabilidades — proposta (#59)
+## 5. Dependências e vulnerabilidades — **aplicada em 20/09/2026** (#59)
 
-- `.github/dependabot.yml` semanal para NuGet, npm e GitHub Actions, agrupando atualizações menores.
-- Zerar ou justificar as vulnerabilidades altas e críticas existentes; depois disso o job `seguranca`
-  passa a **bloquear** alta e crítica.
-- Exceção só com prazo e dono, registrados na issue.
-- Fica fora: code scanning pago (GitHub Advanced Security) e varredura de imagem (entra com a #60, se Docker).
+### 5.1 O que ficou valendo
+
+| Peça | Onde | O que faz |
+|---|---|---|
+| Dependabot | `.github/dependabot.yml` | PR **semanal** (segunda, 08:00, fuso de São Paulo) para NuGet, npm e GitHub Actions, com correção e versão menor **agrupadas num PR por ecossistema**. Versão **maior é ignorada** de propósito: subir de major é migração, com nota de versão para ler e analisador novo virando erro — nasce como issue, não como PR automático (foi o que a #84 mostrou) |
+| Auditoria no `restore` | `Directory.Build.props` | `NuGetAudit` com `NuGetAuditMode=all` (**inclui transitivo**) e `NuGetAuditLevel=low` (relata tudo). Alta e crítica (NU1903/NU1904) viram **erro** pela regra "aviso é erro"; baixa e moderada (NU1901/NU1902) ficam como aviso, por `WarningsNotAsErrors` |
+| Tabela e bloqueio no CI | `scripts/ci/conferir-vulneraveis.ps1`, job `seguranca` | lê o JSON do `dotnet list package --vulnerable --include-transitive`, imprime a tabela no resumo (projeto, pacote, versão, origem, severidade, se barra) e **sai com erro** em alta ou crítica sem exceção |
+| npm | job `seguranca` | relatório completo no resumo e `npm audit --audit-level=high` como bloqueio |
+| Exceção | `scripts/ci/vulneraveis-aceitas.json` | **hoje vazia**. Cada entrada precisa de `aviso`, `motivo`, `dono` e `ate` — exceção **vencida volta a bloquear sozinha** |
+
+**O corte é alta e crítica, e não tudo.** Barrar moderada travaria o repositório em achados que muitas
+vezes não têm correção publicada, e o time aprenderia a ignorar o bloqueio — que é o pior resultado
+possível. O que não barra continua aparecendo na tabela.
+
+### 5.2 O que foi medido em 20/09/2026
+
+| Medida | Resultado |
+|---|---|
+| `dotnet list package --vulnerable --include-transitive` | **0** em 11 projetos |
+| `npm audit --package-lock-only` | **0 vulnerabilidades** |
+| Lista de exceções | **vazia** |
+| Bloqueio de alta, provado | `System.Net.Http` 4.3.0 acrescentado de propósito: o **`restore` falhou** com `NU1903` (GHSA-7jgj-8wvc-jh57) antes mesmo do script — revertido |
+| Detecção transitiva, provada | `Microsoft.AspNetCore.Authentication.JwtBearer` 6.0.0 arrastou `System.IdentityModel.Tokens.Jwt` 6.10.0 e `Microsoft.IdentityModel.JsonWebTokens` 6.10.0, **moderadas** (GHSA-59j7-ghrg-fj52): apareceram na tabela como "não (só relatório)" e o `restore` seguiu com código 0 — exatamente a política — revertido |
+
+Fica fora: code scanning pago (GitHub Advanced Security) e varredura de imagem (entra com a #60, se Docker).
 
 ---
 

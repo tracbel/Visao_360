@@ -1,0 +1,78 @@
+# Atualização de dependência por PR — issue #59, desenho em docs/projeto/47-CI-CD.md §5.
+#
+# TODO PR DO DEPENDABOT PASSA PELO MESMO CI dos nossos: build com aviso como erro, os testes contra
+# um SQL Server de verdade, lint e build da tela, e a varredura de segredos. É isso que permite
+# aceitar atualização sem ler cada diff — o que quebra, quebra no CI, antes da `main`.
+#
+# Semanal, e não diário: um lote por semana cabe numa revisão; um lote por dia vira ruído e ninguém
+# lê. Segunda de manhã, no fuso de São Paulo.
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------------------------
+  # .NET — a solução inteira (o Dependabot segue o .sln e acha os 11 projetos).
+  # ---------------------------------------------------------------------------------------------
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels: ["ci-cd", "security"]
+    groups:
+      # Um PR só para correção e versão menor: são as que quase nunca quebram, e separá-las em
+      # dezenas de PRs faria o lote virar trabalho manual.
+      dotnet-menores:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # VERSÃO MAIOR NÃO VEM POR ROBÔ. Subir de major é migração: tem nota de versão para ler,
+      # analisador novo que vira erro e mudança de comportamento — foi exatamente o que a #84
+      # mostrou ao ir do .NET 9 para o 10. Isso nasce como issue, não como PR automático.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------------------------------------
+  # A tela.
+  # ---------------------------------------------------------------------------------------------
+  - package-ecosystem: npm
+    directory: "/src/Tracbel.Crm.Web"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels: ["ci-cd", "security"]
+    groups:
+      npm-menores:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------------------------------------
+  # As ações do próprio CI. Ação desatualizada é superfície de ataque: ela roda com o token do
+  # repositório.
+  # ---------------------------------------------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(deps)"
+    labels: ["ci-cd", "security"]
+    groups:
+      acoes:
+        patterns: ["*"]

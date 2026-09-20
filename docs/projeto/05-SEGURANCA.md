@@ -352,7 +352,7 @@ expurgadas. Auditoria que ninguém consegue ler não é auditoria: é custo de d
 | Upload | valida magic bytes (não a extensão), limite de tamanho, antivírus, storage fora da webroot |
 | Rate limit | por usuário e por IP, em toda a API |
 | Cabeçalhos | HSTS, CSP, X-Content-Type-Options, sem `Server` |
-| Dependências | Dependabot + `dotnet list package --vulnerable` no CI |
+| Dependências | **ligado em 20/09/2026** (#59): Dependabot semanal (NuGet, npm, Actions), auditoria no `restore` com transitivo incluído, e alta ou crítica **barrando** o CI — exceção só com prazo e dono em `scripts/ci/vulneraveis-aceitas.json`. Detalhe no documento 47 §5 |
 | Transporte | TLS 1.2+ obrigatório, inclusive na LAN |
 | Backup | diário com **teste de restauração mensal**. `[V]` o terminal server do Vórtice está **sem backup** — a tarefa de System State está desabilitada |
 
