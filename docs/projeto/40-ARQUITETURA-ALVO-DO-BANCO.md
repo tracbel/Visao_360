@@ -1118,6 +1118,20 @@ Seção 11.1: leitura → saneamento → tradução → `DeclararEquipamento` (m
 
 ## 15. Impactos
 
+> **Errata de numeração — 20/09/2026 (contradição C-7 do documento 46A, issue #44).** As fases deste
+> documento (**F0–F9**) foram renumeradas pelo documento 41, que é o mais recente e é o que o backlog
+> inteiro usa: **1 a 10**. Onde os dois falam da mesma coisa com números diferentes, **vale o 41**.
+>
+> | Aqui (doc 40) | No doc 41 e no backlog | O que muda |
+> |---|---|---|
+> | F0 · Aprovação | — | não é fase numerada lá: é o aceite do modelo e das decisões |
+> | F1 … F7 | 1 … 7 | só o nome |
+> | **F8** · Faturamento **e** território | **8** (faturamento) **+ 9** (território) | o 41 separou em duas, porque a parte de território depende da decisão D-4 e a de faturamento não |
+> | **F9** · **Reativação** do ART | **10** · **ART por adaptador, sem reativar** | mudou o conteúdo, não só o número: o serviço **segue desligado**, e a reativação virou autorização à parte |
+>
+> Nada abaixo foi reescrito — a tabela e o diagrama continuam como estavam, para não perder o
+> histórico da decisão. É esta errata que os liga à numeração de hoje.
+
 O projeto não usa *controllers* nem *services* com esses nomes: as rotas são *minimal APIs*
 (`Tracbel.Crm.Api/Endpoints`), os serviços são casos de uso (`Tracbel.Crm.Aplicacao`) e os DTOs são os
 contratos (`Contratos*.cs`). A tabela usa os nomes do projeto.
@@ -1161,6 +1175,10 @@ documento 14 (padrão de banco) recebe a nova contagem; as 12 telas são conferi
 ---
 
 ## 17. Ordem de implementação
+
+> **A numeração F0–F9 deste diagrama está superada pela do documento 41 (1 a 10).** A correspondência
+> está na errata da §15 — e ela não é só de número: a F8 virou duas fases e a F9 deixou de ser
+> "reativar o ART".
 
 A sugestão do pedido (fontes da verdade → permissões → cliente → atividades → venda → faturamento →
 ART) foi ajustada às dependências reais: **limpar primeiro**, porque não custa e reduz o que as outras

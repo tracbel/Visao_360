@@ -61,12 +61,12 @@ Ordenadas por impacto no plano.
 | **C-3** | Doc 46 §4.2: `TOTVS_API_*` chegam a `Protheus__*` "a confirmar" | **Não chegam.** O `publicar.ps1` repassa `ART_DB_*`/`ART_VIEW` (→ `Art__*`) e `TOTVS_DB_*` (conferência de dono no VV1), mas **nenhuma** chave do Protheus REST. A carga recusa rodar faturamento sem `Protheus__Base/Usuario/Senha` | [M] `scripts/deploy/publicar.ps1:270-307` (sem `TOTVS_API`/`Protheus__`); `Carga/Program.cs:331-348` | #018 ganha uma tarefa operacional: o faturamento **não roda no servidor hoje**, nem manualmente pelo publicador. Pergunta Q-R6 (seção 3) |
 | **C-4** | Doc 46 §4.2: o acoplamento é `Program.cs:354/368` | Além disso, `--somente-faturamento` **recebe o leitor do Vórtice** e **garante o registro do sistema `VORTICE`** antes de gravar faturamento. Desde a fase 2, esses contextos declaram origem `Integracao/VORTICE` (não geram trilha, porque faturamento não está na política) | [M] `Carga/Program.cs:368-369`; `Carga/CargaDeProcessoDoVortice.Faturamento.cs:107-109` | #018 precisa trocar o sistema de referência para `PROTHEUS` e tirar o leitor do Vórtice do caminho |
 | **C-5** | Doc 46 §3.4 e #002: "38 rotas (34 + 3 + 1)"; "reconciliar com as 39 do doc 41" | **39 rotas: 35 de negócio + 3 de autenticação + 1 de saúde.** A tabela do próprio doc 46 lista 35 de negócio; o erro é de soma. O doc 41 estava certo | [M] 39 chamadas `Map*` (`Program.cs:331`, `EndpointsDe*.cs`, `RotasDeAutenticacao.cs:90,112,120`). `/clientes/{chave}/maquinas-compradas` é mapeada em `EndpointsDeEquipamento.cs:54` | #003 parte de 39; a divergência está resolvida |
-| **C-6** | Doc 46 §3.4 e doc 41 §3.4: testes que fixam contagem em `EsquemaENomenclaturaTestes.cs:112` e `MigracaoNoContainerTestes.cs:64` | Renomeados na fase 1: **`:114`** (`Os_oito_schemas_…_quarenta_e_nove_tabelas`) e **`:43`** (`A_cadeia_de_migracoes_cria_os_oito_schemas_…`) | [M] | atualizar doc 41 §3.4 na #043 |
-| **C-7** | Doc 40 §15/§17: fases **F0–F9** (F8 = faturamento **e** território; F9 = **reativar** o ART) | Doc 41 (mais recente) e doc 46 usam **1–10** (8 = faturamento; 9 = território; **10 = ART por adaptador, sem reativar**) | [M] `40-…md:1175-1204`; `41-…md:178-219` | errata no doc 40 dentro da #021; todo o backlog usa a numeração do doc 41 |
+| **C-6** | Doc 46 §3.4 e doc 41 §3.4: testes que fixam contagem em `EsquemaENomenclaturaTestes.cs:112` e `MigracaoNoContainerTestes.cs:64` | Renomeados na fase 1: **`:114`** (`Os_oito_schemas_…_quarenta_e_nove_tabelas`) e **`:43`** (`A_cadeia_de_migracoes_cria_os_oito_schemas_…`) | [M] | ✅ **errata aplicada em 20/09/2026** (#44): doc 41 §3.4 com as linhas certas, reconferidas no código |
+| **C-7** | Doc 40 §15/§17: fases **F0–F9** (F8 = faturamento **e** território; F9 = **reativar** o ART) | Doc 41 (mais recente) e doc 46 usam **1–10** (8 = faturamento; 9 = território; **10 = ART por adaptador, sem reativar**) | [M] `40-…md:1175-1204`; `41-…md:178-219` | ✅ **errata aplicada em 20/09/2026** (#44): o doc 40 §15 ganhou a tabela de correspondência e a §17 o aviso. O texto antigo ficou como estava, para não perder o histórico — e a errata deixa claro que **F8 virou duas fases** e que **F9 mudou de conteúdo**, não só de número. Todo o backlog usa a numeração do doc 41 |
 | **C-8** | Doc 40 §13 (desenho da auditoria) | A implementação da fase 2 difere em quatro pontos. Implementado: trilha no `SaveChanges` (e não interceptador); `Inclusao` (e não `Criacao`); uma linha **por campo** na inclusão, **só quando a origem é pessoa**; política menor (Cliente, Equipamento, Endereço.MunicipioId, Município, VendaDeMaquina). O doc 40 lista também Contato, Carteira, Oportunidade, Tarefa, Usuário, Perfil e configuração | [M] `Infraestrutura/Persistencia/TrilhaDeAuditoria.cs`; `Dominio/Auditoria/PoliticaDeAuditoria.cs`; doc 45 §5 | a política **cresce por fase**: cada fase de domínio (3–7) acrescenta as entidades dela à política e ao teste de arquitetura. Tarefa em #045, #044, #052, #051, #016 |
 | **C-9** | Doc 45 §6.1, opção A recomendada: "medir o p95 no servidor"; doc 46 R-3 e #039: commit da fase 2 depende da decisão | **Impasse:** medir no servidor exige levar código e migração da fase 2 até lá (R-3, #050), e o doc 46 condiciona o commit a essa medida | [I] leitura cruzada dos docs 45 e 46 | proposta na #039: **separar commit de publicação** (Q-P1) |
-| **C-10** | Doc 46 §8 lista `open-questions.md` como fonte das perguntas | O arquivo é de **02/09**, fala em Algar, Azure, containers e VMs Linux. Está superado pelo doc 35 §12 (VM OpenStack, SQL nativo, sem Docker) | [M] `docs/projeto/open-questions.md:8-43` | não usar como fonte de pergunta atual; propor marcação de superado (#043) |
-| **C-11** | Doc 32 D-11 = "filial vem do cabeçalho sem conferência"; docs 40/41/46 D-11 = "semente estrutural" | **Colisão de identificador:** a #045 cita "D-11/P-20" ambiguamente | [M] `32-…md:269`; `40-…md:1224` | usar **P-20** para a filial por cabeçalho e **D-11** só para a semente |
+| **C-10** | Doc 46 §8 lista `open-questions.md` como fonte das perguntas | O arquivo é de **02/09**, fala em Algar, Azure, containers e VMs Linux. Está superado pelo doc 35 §12 (VM OpenStack, SQL nativo, sem Docker) | [M] `docs/projeto/open-questions.md:8-43` | ✅ **marcado em 20/09/2026** (#44): o arquivo abre com o aviso de que as perguntas de infraestrutura estão superadas, com a tabela do que os fatos responderam (doc 35 §12, #60, #84) e o ponteiro para onde vivem as perguntas de hoje — 46A §3 e #63. As linhas ficaram: apagá-las esconderia por que o doc 12 recomendou contêiner antes de o servidor ser conhecido |
+| **C-11** | Doc 32 D-11 = "filial vem do cabeçalho sem conferência"; docs 40/41/46 D-11 = "semente estrutural" | **Colisão de identificador:** a #045 cita "D-11/P-20" ambiguamente | [M] `32-…md:269`; `40-…md:1224` | ✅ **resolvida em 20/09/2026** (#44): **P-20** é a filial por cabeçalho, **D-11** é só a semente. O doc 36 passou a citar P-20, e o doc 32 avisa na própria linha do defeito que, fora dele, a referência é P-20 — a numeração interna do doc 32 (D-1 a D-12) não foi mexida, porque renumerar quebraria oito referências para consertar uma ambiguidade de fora |
 | **C-12** | Doc 46 §4.1: OpenAPI "sem garantia de uso" | 35 de 39 rotas têm `WithSummary` e `WithName`; **0 `Produces`**; 14 `WithTags` (por grupo) | [M] contagem em `src/Tracbel.Crm.Api` | #004 tem linha de base mensurável |
 | **C-13** | Doc 46 §4.1: `X-Tracbel-*` em `Program.cs:277-283` | Em `Program.cs:284` | [M] | cosmético |
 | **C-14** | Doc 46 §4: "o `.env` fica na raiz" | Há **dois**: raiz (as 19 chaves listadas no doc 46, conferidas) e `infra/.env` (chaves do banco local: `DB_*`, `TZ`, `ADMINER_PORTA`) | [M] só nomes | a #001 cobre os dois |
@@ -1120,35 +1120,54 @@ flowchart LR
 
 Linhas tracejadas: dependência só se a API GN alimentar o 360 (Q-P7).
 
-### 5.2 Issue × fase do doc 41
+### 5.2 Issue × fase do doc 41 — **a sequência única** (revisada em 20/09/2026, #44)
 
-| Fase | Issues |
+> **Os números aqui são os do GitHub**, que é como todo mundo cita issue no dia a dia. O número entre
+> colchetes no título de cada issue (`[043]`) é o **número do plano**, que este documento usava antes —
+> os dois **não coincidem**, porque a `[018]` virou duas issues (`[018a]` e `[018b]`) e empurrou o
+> resto em um. Da `[019]` em diante, **GitHub = plano + 1**.
+>
+> ✅ = fechada. **Nenhuma issue ficou de fora**: as 82 abertas e fechadas estão aqui, cada uma com a
+> sua fase ou marcada "fora das fases" — é o que a #44 pede. A única que aparece em mais de uma linha
+> é a **#36** (validações e constraints), e é de propósito: ela cresce a cada fase que mexe no modelo.
+
+| Fase do doc 41 | Issues |
 |---|---|
-| 1 (executada) | — (publicação na #050) |
-| 2 | #039, #002, #050 |
-| 3 | #045, #003, #004 (depois) |
-| 4 | #044, #024 (depois) |
-| 5 | #052, #046, #011, #035 |
-| 6 | #051 |
-| 7 | #016, #017, #015, #035 |
-| 8 | #018b, #019, #035 |
-| 9 | #053, #047 |
-| 10 | #054, #048 |
-| Fora das fases | #001, #005, #006, #007, #008, #009, #010, #012, #013, #014, #018a, #020, #021, #022, #023, #025–#034, #036–#038, #040–#043, #049, #055 |
+| **1** · Remoção de estruturas sem uso (executada no banco local) | — (a publicação é a #51) |
+| **2** · Auditoria automática | #40 (fechar a fase), #2 (snapshot), #51 (levar ao servidor) |
+| **3** · Identidade e permissões | **#46**, #4 (OpenAPI, depois dela), ✅ #3 (a matriz que ela usa) |
+| **4** · Configuração do CRM e seed | #45, #25 (dataset, depois) |
+| **5** · Cliente, contato, endereço, carteira | #53, #47 (D-13), #11, #36 |
+| **6** · Tarefa, interação e agenda | #52 |
+| **7** · Equipamentos, vendas e rastro | #16, #17, #15, #36 |
+| **8** · Faturamento | #19, #20, #36 |
+| **9** · Território | #54, #48 (D-4) |
+| **10** · ART por adaptador | #55, #49 |
+| **Fora das fases — infraestrutura e entrega** | ✅ #56 (CI), ✅ #58 (regra da `main`), ✅ #59 (dependências), ✅ #60 (onde roda — decidido), #61 (runner), #62 (publicação), ✅ #84 (.NET 10) |
+| **Fora das fases — API e dado** | ✅ #1, #5, #6, #7, #8, #9, #10, #12, #13, #14, #18, #21, #22, #23, #24, #26, #34, #35, #37, #38, #39, #41, #42, #50 |
+| **Fora das fases — 360 e interface** | #27, #28, #29, #31, #33, #43, ✅ #30, ✅ #32 |
+| **Fora das fases — correção** | ✅ #83 (área plantada = colhida) |
+| **Fora das fases — transversal** | ✅ #44 (esta reconciliação) |
+| **Fases próprias, no documento 48** | #63 a #80 — o potencial de mercado tem as **suas** fases (**P0 a P6**, doc 48 §7) e as milestones M11–M13. Elas **não** entram na numeração do doc 41, e é de propósito: dependem de decisão comercial (#63) e de fonte externa, não do alvo do banco |
 
 ### 5.3 Caminho crítico até o 360 v2
 
 ```text
-Q-P1 + Q-T1 → #039 (F2) → Q-P2/Q-P3/Q-T2 → #045 (F3) → Q-P4 → #044 (F4)
-            → Q-C1/Q-C2 → #046 → #052 (F5) → { #051 (F6) ∥ #016 (F7) } → #026 → #027 → #028
+Q-P1 + Q-T1 → #40 (fase 2) → Q-P2/Q-P3/Q-T2 → #46 (fase 3) → Q-P4 → #45 (fase 4)
+            → Q-C1/Q-C2 → #47 → #53 (fase 5) → { #52 (fase 6) ∥ #16 (fase 7) } → #27 → #28 → #29
 ```
 
-- **O gargalo é a D-13 (#046).** Ela não depende de código e pode ser pedida **hoje**, em paralelo às
+- **O gargalo é a D-13 (#47).** Ela não depende de código e pode ser pedida **hoje**, em paralelo às
   fases 2–4. Se chegar depois da fase 4 terminar, a fase 5 espera.
-- **O segundo gargalo é a fase 3 (#045).** É a de maior risco (trancar acesso), e C-1 aumenta o escopo.
-- **Pode andar sem esperar o caminho crítico:** #001, #003, #007–#012, #017, #020, #021, #029, #031,
-  #043, #055; e a 9a (linhagem de planilha).
-- **Paralelismo seguro:** as fases 6 e 7 depois da 5; o épico 4 (API GN) até a decisão, sem código.
+- **O segundo gargalo é a fase 3 (#46).** É a de maior risco (trancar acesso), e C-1 aumenta o escopo:
+  ✅ a #3 mediu e confirmou — **0 das 39 rotas exige permissão**, e o motor existe sem ser chamado.
+- **Pode andar sem esperar o caminho crítico:** #7 a #12, #17, #21, #22, #31, #43, #61; e a 9a
+  (linhagem de planilha). Já andaram assim: ✅ #1, ✅ #3, ✅ #30, ✅ #32, ✅ #56, ✅ #58, ✅ #59,
+  ✅ #83, ✅ #84.
+- **Paralelismo seguro:** as fases 6 e 7 depois da 5; o épico 4 (API GN) até a decisão, sem código; e o
+  potencial de mercado (#63–#80) numa raia própria, que só cruza esta no banco.
+- **O que trava mais de uma frente ao mesmo tempo:** o **banco fora do ar nesta estação** (impede #64 e
+  qualquer migração) e a **publicação no servidor** (impede #51, #64 e a recarga do território do #83).
 
 ---
 

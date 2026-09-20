@@ -108,7 +108,7 @@ imagens foi usado como dado.
 | Banco | `TracbelCrmServidor` no contêiner local `tracbel-crm-ensaio` (SQL Server 2025, porta 14334) — **cópia `COPY_ONLY` do banco do servidor** feita em 14/09/2026 (documento 35, §3). Não é o banco do servidor: nenhuma leitura nem gravação foi feita lá nesta rodada |
 | Faturamento | a carga do Protheus gravou a competência mais recente (09/2026) em 08/09/2026 18:46 UTC |
 | Front | Vite local, `http://localhost:5199` |
-| Identidade | a ponte provisória por cabeçalho (usuário de desenvolvimento, filial 010101); ela não autentica (dívidas D-1 e D-11) |
+| Identidade | a ponte provisória por cabeçalho (usuário de desenvolvimento, filial 010101); ela não autentica (dívida D-1 do doc 23 e **P-20** — o defeito D-11 do documento 32, que fora dele se cita por P-20 para não colidir com a decisão D-11 da semente) |
 | ART | leitura só de agregados, pela credencial do `.env` da raiz (documento 35, §7); nenhum valor financeiro registrado aqui |
 | Protheus | não consultado nesta rodada: o faturamento vem do banco do projeto, carregado da SD2 |
 
@@ -337,8 +337,8 @@ resposta da API (`scripts/prototipo/capturar-estados-visao360.mjs`) — nada foi
 
 **Perfis.** A visão da empresa inteira, com e sem a permissão `Empresa.AlcanceEntreFiliais`, continua
 coberta pelos testes de API com perfis fictícios (documento 32, §8.5.5). Nenhuma permissão foi concedida
-a usuário real. Com a ponte por cabeçalho, a filial escolhida não é conferida contra o usuário (D-11,
-P-20): o consolidado das filiais depende dela até o Entra ID (P-8).
+a usuário real. Com a ponte por cabeçalho, a filial escolhida não é conferida contra o usuário
+(**P-20**): o consolidado das filiais depende dela até o Entra ID (P-8).
 
 ---
 
@@ -393,7 +393,7 @@ controles, o foco, as duas regiões e o ano civil) e `capturar-estados-visao360.
 | P-28 | Classe de cliente de outra filial na visão por filial | 501 vínculos medidos como D (diferença de 38 no prazo no consolidado) | TI + diretoria (junto com P-10/P-20) |
 | P-29 | Fonte de mercado (emplacamento) e venda perdida por município | sem participação; perda sem município | comercial + TI |
 | P-11 | Trazer o ART para o banco do projeto (sincronização agendada, leituras adicionais) | venda de máquina por chassi e comprador fora do CRM | dono do ART + infraestrutura |
-| P-8 / D-11 / P-20 | O consolidado lê filial a filial pelo cabeçalho, que não é conferido contra o usuário | a leitura depende da ponte provisória | TI + diretoria |
+| P-8 / **P-20** | O consolidado lê filial a filial pelo cabeçalho, que não é conferido contra o usuário | a leitura depende da ponte provisória | TI + diretoria |
 | P-30 | Publicar os cartões e os mapas novos | o servidor mostra a versão anterior | Ricardo (publicação) |
 | P-21 | Este documento e o 32 trazem faturamento e contagem da empresa | decidir antes do push | Ricardo |
 

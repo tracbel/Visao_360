@@ -128,7 +128,7 @@ Hoje: **355 métodos de teste, 535 casos executados**.
 
 | Categoria | O que acontece a cada fase |
 |---|---|
-| **Testes de modelo** (`Arquitetura.Testes/Banco`) | são os que quebram primeiro de propósito: contagem de tabelas (`EsquemaENomenclaturaTestes.cs:112`, `MigracaoNoContainerTestes.cs:64`), domínio de entidade, tipos de coluna, integridade referencial, catálogo de sistema. **Atualizar no mesmo commit da fase** |
+| **Testes de modelo** (`Arquitetura.Testes/Banco`) | são os que quebram primeiro de propósito: contagem de tabelas (`EsquemaENomenclaturaTestes.cs:114` e `MigracaoNoContainerTestes.cs:43` — as linhas mudaram com a fase 1; errata C-6 aplicada em 20/09/2026, #43), domínio de entidade, tipos de coluna, integridade referencial, catálogo de sistema. **Atualizar no mesmo commit da fase** |
 | **Testes de domínio** | os de entidades removidas saem com elas (`LeadTestes`, `MotorWorkflowTestes`); os de entidades alteradas ganham casos novos (ex.: concluir tarefa gera interação) |
 | **Testes de aplicação e API** | acompanham contratos e rotas renomeadas; cada rota nova nasce com teste de permissão |
 | **Testes novos por fase** | estão na ficha de cada fase |
@@ -217,6 +217,33 @@ flowchart TB
 | 10 | ART por adaptador | 7 (e 9 para território) | 42 | 0 | autorização de reativação |
 
 **Fases 6 e 7 podem correr em paralelo** depois da fase 5. **A fase 10 não reativa o serviço.**
+
+### 4.0 A sequência única, com as issues (20/09/2026)
+
+> Registrada aqui pela **#44**, que reconciliou o backlog com estas dez fases. **Esta numeração é a
+> que vale**: a do documento 40 (F0–F9) está superada, e a errata da §15 de lá faz a correspondência.
+> Os números são os do **GitHub**; o mapa completo, issue por issue, está no **documento 46A §5.2**.
+
+| Fase | Issues | Situação em 20/09/2026 |
+|:-:|---|---|
+| 1 | — (a publicação é a #51) | executada no banco local e no de ensaio; **o servidor não recebeu** |
+| 2 | #40, #2, #51 | código pronto na branch; falta a decisão do critério de p95 (Q-P1) e a publicação |
+| 3 | **#46**, #4 | **não começou.** A #3 já mediu o terreno: **0 das 39 rotas exige permissão** |
+| 4 | #45, #25 | não começou; depende da 3 |
+| 5 | #53, #47, #11, #36 | não começou; **travada pela D-13 (#47)**, que é decisão comercial |
+| 6 | #52 | não começou |
+| 7 | #16, #17, #15, #36 | não começou |
+| 8 | #19, #20, #36 | não começou; o faturamento **não roda no servidor** (falta credencial, #18) |
+| 9 | #54, #48 | não começou; a parte 9b depende da D-4 (#48) |
+| 10 | #55, #49 | não começou; o serviço do ART **segue desligado**, e assim continua |
+
+**O que anda fora desta fila**, porque não depende dela: a entrega contínua (✅ #56, ✅ #58, ✅ #59,
+#61, #62), o potencial de mercado (#63–#80, com fases próprias no documento 48 §7), a interface
+(✅ #30, ✅ #32, #27–#33, #43) e as correções pontuais (✅ #83, ✅ #84).
+
+**Os dois travões de hoje não são técnicos de fase:** o **banco não responde da estação** (segura
+qualquer migração e a #64) e a **publicação no servidor** (segura a #51, a recarga do território da
+#83 e o faturamento da #18).
 
 ### 4.1 Por que esta ordem
 
