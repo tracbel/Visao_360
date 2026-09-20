@@ -837,7 +837,7 @@ nenhuma e conta com o catálogo de municípios já reconhecido.
 | | |
 |---|---|
 | Instalação | `scripts/deploy/agendar-pam-no-servidor.ps1` — publica a carga em `C:\aplicacoes\tracbel-crm-carga`, grava a conexão **integrada** (nenhuma senha em arquivo) e registra a tarefa |
-| Tarefa | `TracbelCrmPam`, **1º de outubro às 03:00**, todo ano, como SYSTEM |
+| Tarefa | `TracbelCrmPam`, **1º de outubro às 03:00**, todo ano, como SYSTEM — escrita como `/SC MONTHLY /M OCT /D 1`, porque **não existe `/SC YEARLY`** no `schtasks` |
 | Registro | `integracao.PontoDeSincronismo`, fluxo `IBGE.PRODUCAO_AGRICOLA`, com lidos, gravados e recusados; e um arquivo de log por rodada no servidor, guardado por três anos |
 | Trava | `sp_getapplock` no próprio banco, tomada **antes** da leitura do SIDRA |
 
