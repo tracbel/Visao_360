@@ -3,12 +3,30 @@
 Tudo o que ainda não tem resposta e que bloqueia ou condiciona uma decisão. Uma linha por item,
 com o motivo pelo qual importa. Marcar `[x]` quando fechar, sem apagar a linha.
 
+> ## ⚠️ As perguntas de infraestrutura deste arquivo estão SUPERADAS
+>
+> **Marcado em 20/09/2026** (contradição C-10 do documento 46A, issue #44). Este arquivo é de
+> **02/09/2026** e as seções de infraestrutura abaixo — containers, Algar, Azure, VM Linux — foram
+> respondidas **pelos fatos**, não por decisão de mesa:
+>
+> | O que o arquivo pergunta | O que foi medido depois |
+> |---|---|
+> | Algar opera VM Linux? Docker no contrato? Azure? | o CRM roda numa **VM OpenStack com Windows Server**, com **SQL Server nativo** e **sem Docker** — documento 35 §12 |
+> | Container Linux no servidor | **impossível ali**: a VM não tem VMX, o WSL 2 não sobe (evento 41, "Hypervisor launch failed") — documento 35 §12.2 |
+> | Onde hospedar | **decidido em 17/09/2026 (#60): continua no Windows Server**, com o porquê medido no documento 47 §6.1 |
+> | Como o runtime chega ao servidor | publicação **self-contained**; o servidor não recebe runtime novo — documento 47 e issue #84 |
+>
+> **Não use este arquivo como fonte de pergunta aberta de infraestrutura.** As perguntas vivas de
+> hoje estão no documento **46A §3**, e as de mercado na issue **#63**. O que está abaixo fica como
+> registro do que se perguntava em 02/09 — apagar esconderia por que o documento 12 recomendou
+> container antes de o servidor ser conhecido.
+
 ---
 
 ## Decisão de containers (doc 12) — 02/09/2026
 
-Enquanto estas estiverem abertas, a decisão do [doc 12](12-DECISAO-CONTAINERS.md) permanece
-**recomendada, não travada**.
+**[SUPERADA — ver o aviso no topo.]** Enquanto estas estiverem abertas, a decisão do
+[doc 12](12-DECISAO-CONTAINERS.md) permanece **recomendada, não travada**.
 
 ### Operação
 
