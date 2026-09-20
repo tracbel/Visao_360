@@ -6,15 +6,16 @@
   -->
   <PropertyGroup>
     <!--
-      ALVO DE PRODUÇÃO: net10.0 (LTS, suporte até nov/2028).
+      ALVO: net10.0 — LTS, com suporte até 14/11/2028 (issue 084, migrado em 19/09/2026).
 
-      Hoje o esqueleto está em net9.0 porque é o único SDK instalado na máquina de
-      desenvolvimento. NÃO subir para produção assim: o .NET 9 é STS e saiu de suporte
-      em 12/05/2026, e o .NET 8 sai em 10/11/2026.
+      O esqueleto nasceu em net9.0 porque era o único SDK da estação. O .NET 9 é STS e sai
+      de suporte em 10/11/2026; o 8, na mesma data. A troca foi uma linha, como estava
+      previsto — e o que custou foram as versões dos pacotes, todas em 10.0.12.
 
-      Para migrar: instale o SDK do .NET 10 e troque a linha abaixo. Só ela.
+      A publicação é self-contained (`scripts/deploy/publicar.ps1`), então o servidor NÃO
+      precisa ganhar runtime novo: o pacote leva o dele.
     -->
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
 
     <LangVersion>latest</LangVersion>
 

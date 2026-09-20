@@ -1,7 +1,10 @@
 # Arquitetura de software — CRM Tracbel
 
-> **Documento 03 de 07** · Versão 1.0 · 30/08/2026
-> Stack: **.NET 8 · C# 12 · EF Core 8 · SQL Server 2019 · React 18 + TypeScript**
+> **Documento 03 de 07** · Versão 1.1 · 19/09/2026 — a pilha medida substitui a planejada (issue #84).
+> Versão 1.0 · 30/08/2026.
+> Stack **hoje, no código**: **.NET 10 (LTS) · C# 14 (`LangVersion latest`) · EF Core 10 · SQL Server ·
+> React 19 + TypeScript 6 + Vite 8**. O texto abaixo foi escrito quando o alvo era .NET 8 e EF Core 8;
+> onde ele cita a versão, vale esta linha.
 > Este documento é o material de referência do time. Se um dev novo ler só um arquivo do projeto,
 > que seja este.
 
@@ -1047,6 +1050,8 @@ public void Vocabulario_do_Vortice_fica_confinado_na_camada_de_integracao()
 
 | Item | Escolha | Por quê |
 |---|---|---|
+| Alvo do .NET | **net10.0** (LTS, suporte até 14/11/2028), declarado só no `Directory.Build.props`; SDK fixado em 10.0.401 pelo `global.json` | o .NET 8 e o 9 saem de suporte em 10/11/2026 (issue #84) |
+| Runtime no servidor | **nenhum a instalar**: `publicar.ps1` gera pacote *self-contained* (`-r win-x64 --self-contained true`) | o servidor só tem os runtimes 6 e 8, e a publicação leva o dela — 131,8 MB no .NET 10, contra 123,0 MB no 9 |
 | Hospedagem da API | ASP.NET Core no **IIS** (in-process) | é o que o TI da Tracbel opera hoje |
 | Banco | **SQL Server 2019**, database `TRACBEL_CRM` | licença já existe; EF Core é maduro |
 | Arquivos | Azure Blob ou file share dedicado | `[V]` o Doc Manager usa FTP com config no perfil do LocalSystem — inmanutenível |

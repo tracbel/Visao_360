@@ -13,7 +13,9 @@
 1. **Até 17/09/2026 não havia CI.** Os 514 testes só rodavam na estação de quem programa, e a `main`
    aceitava push direto.
 2. **O CI roda em Linux**, nos runners hospedados pelo GitHub, mesmo com o servidor em Windows: o CI
-   verifica o **código**, e o .NET 9 e o React são os mesmos nos dois sistemas.
+   verifica o **código**, e o .NET e o React são os mesmos nos dois sistemas. (O alvo era .NET 9 no
+   desenho; desde 19/09/2026 é **.NET 10**, pela issue #84 — o CI pega a versão do `global.json`, e a
+   migração foi uma linha lá.)
 3. **Cada PR roda três jobs em paralelo:** backend (com SQL Server de verdade em contêiner), frontend e
    segurança. **Nenhum teste pode ser pulado.**
 4. **A `main` só muda por PR com o CI verde.** Não se exige aprovação formal, porque os PRs saem da conta
@@ -33,7 +35,7 @@
 | Automação | sem `.github/`, sem workflow, sem webhook, sem runner no repositório |
 | Testes | 514 casos em 5 projetos; 9 pulam sem SQL Server (`FatoSeHouverSqlServer`, conexão por `ConnectionStrings__Crm`); cerca de 18 s na estação |
 | Frontend | `npm run build` (`tsc -b && vite build`), `npm run lint` (oxlint), `package-lock.json` presente; Vite 8 e TypeScript 6 |
-| Ferramentas fixadas | nenhuma: sem `global.json`, sem `.nvmrc`, `dotnet-ef` 9.0.10 só global |
+| Ferramentas fixadas | nenhuma: sem `global.json`, sem `.nvmrc`, `dotnet-ef` 9.0.10 só global (hoje: `global.json` em 10.0.401 e `dotnet-ef` 10.0.12, pela #84) |
 | Dependência de Windows no código | `UseWindowsService()` na API e log de eventos do serviço do ART — os dois já protegidos por plataforma; testes montam caminhos com `Path.Combine` |
 | Varredura de segredos | `scripts/seguranca/varrer-segredos.ps1` na `main` desde o #57 |
 | Publicação | `scripts/deploy/publicar.ps1`, rodado da estação; backup `COPY_ONLY`; a API aplica as migrations ao subir |

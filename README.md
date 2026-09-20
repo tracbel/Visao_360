@@ -11,10 +11,11 @@ CRM próprio da Tracbel, construído para substituir gradualmente o Vórtice.
 ```bash
 git clone <repo> && cd tracbel-crm
 dotnet restore
-dotnet test        # 63 testes devem passar
+dotnet test        # 509 testes passam; 9 pulam sem SQL Server
 ```
 
-Requisitos: **SDK do .NET** (ver seção "Versão do .NET" abaixo) e SQL Server 2019+ para as fases seguintes.
+Requisitos: **SDK do .NET 10** (o `global.json` fixa a versão) e SQL Server 2019+ — sem ele, os 9
+testes que precisam de banco são pulados e o resto roda.
 
 ---
 
@@ -46,17 +47,22 @@ falha o build se isso for violado.
 
 ## Versão do .NET
 
-O `Directory.Build.props` está em **`net9.0`** hoje, porque é o único SDK instalado na máquina
-de desenvolvimento — não porque seja a escolha certa.
+A solução está em **`net10.0`** desde 19/09/2026 (issue #84). O alvo é declarado **num lugar só**,
+o `Directory.Build.props`; o SDK é fixado pelo `global.json` (10.0.401) e o `dotnet-ef` pelo
+`.config/dotnet-tools.json` (10.0.12).
 
 | Versão | Tipo | Fim do suporte |
 |---|---|---|
 | .NET 8 | LTS | 10/11/2026 |
-| .NET 9 | STS | 12/05/2026 — **já venceu** |
-| **.NET 10** | **LTS** | **nov/2028** ← o alvo |
+| .NET 9 | STS | 10/11/2026 |
+| **.NET 10** | **LTS** | **14/11/2028** ← onde estamos |
 
-**Antes de qualquer coisa ir para produção:** instale o SDK do .NET 10 e troque a linha
-`<TargetFramework>` no `Directory.Build.props`. É uma linha só — foi desenhado assim de propósito.
+> A tabela anterior dizia que o .NET 9 tinha vencido em **12/05/2026**. Estava errado: a data é a
+> mesma do .NET 8, 10/11/2026 (fonte: `releases-index.json` oficial, lido em 17/09/2026).
+
+**O servidor não precisa de runtime novo:** `scripts/deploy/publicar.ps1` publica *self-contained*
+(`-r win-x64 --self-contained true`), e o pacote leva o dele. No .NET 10 ele tem 131,8 MB, contra
+123,0 MB no .NET 9 — 7% a mais.
 
 ---
 

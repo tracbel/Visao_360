@@ -92,6 +92,11 @@ versionada, voltar para a versão anterior é uma linha e leva segundos. Ressalv
 **3. Dependência declarada.** O runtime do .NET, a versão do nginx, as bibliotecas nativas — tudo
 fica no `Dockerfile`, versionado no Git, revisado em PR. Ninguém "instala o runtime no servidor".
 
+> **Nota de 19/09/2026 (issue #84).** Sem contêiner, essa propriedade foi obtida de outro jeito: a
+> publicação é **self-contained** (`-r win-x64 --self-contained true`), e o pacote leva o próprio
+> runtime. Foi o que permitiu migrar do .NET 9 para o **.NET 10 (LTS)** sem tocar no servidor, que
+> segue com os runtimes 6 e 8 instalados. O custo é tamanho: 131,8 MB contra 123,0 MB no .NET 9.
+
 **4. Ambiente de desenvolvimento reproduzível.** Um `docker compose up` levanta API, frontend, SQL
 Server de teste e coletor de telemetria. Para um time de três, em que as pessoas B e C começam na
 semana 1 (doc 07), isso são dias economizados logo no início.

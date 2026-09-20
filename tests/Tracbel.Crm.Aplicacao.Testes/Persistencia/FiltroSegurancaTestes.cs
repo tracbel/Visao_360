@@ -101,11 +101,14 @@ public sealed class FiltroSegurancaTestes : IDisposable
                         && m.IsGenericMethodDefinition
                         && m.GetParameters().Length == 0);
 
+        // `GetDeclaredQueryFilters()` e não `GetQueryFilter()`: o EF Core 10 aposentou o segundo
+        // (CS0618) porque agora uma entidade pode ter mais de um filtro global, cada um com nome.
+        // Aqui a pergunta continua a mesma — "esta entidade tem filtro?" —, e a lista vazia responde.
         var comEmpresa = db.Model.GetEntityTypes()
             .Where(t => !t.IsOwned()
                         && t.FindPrimaryKey() is not null
                         && t.FindProperty("EmpresaId") is not null
-                        && t.GetQueryFilter() is not null)
+                        && t.GetDeclaredQueryFilters().Count > 0)
             .ToList();
 
         comEmpresa.Should().NotBeEmpty("o modelo não pode ficar sem nenhuma entidade multiempresa");

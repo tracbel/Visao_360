@@ -21,8 +21,8 @@ arquivo é só o "como rodar".
 |---|---|
 | Docker Desktop | 29.1.2 |
 | Docker Compose | v2.40.3 |
-| SDK do .NET | 9.0.306 (`dotnet --version`) |
-| `dotnet-ef` | 9.0.10 (`dotnet tool install --global dotnet-ef`) |
+| SDK do .NET | 10.0.401, fixado no `global.json` (`dotnet --version`) |
+| `dotnet-ef` | 10.0.12, fixado no `.config/dotnet-tools.json` (`dotnet tool restore`) |
 
 Não precisa instalar SQL Server na máquina — ele roda em container, só para desenvolvimento (a
 decisão e o porquê de produção ser diferente estão em

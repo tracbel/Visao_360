@@ -101,6 +101,7 @@ e [`../extracao-vortice/binarios/INVENTARIO-BINARIOS.md`](../extracao-vortice/bi
 Único ponto cego restante: jobs do SQL Server Agent (depende do DBA) e a captura de SQL do cliente Gupta
 ([procedimento](../extracao-vortice/binarios/PROPOSTA-ABRIR-CAIXA-PRETA.md)).
 
-**Correção importante:** o alvo do .NET mudou de 8 para **10 (LTS)** — o .NET 8 sai de suporte
-em 10/11/2026 e o 9 já saiu em 12/05/2026. O `Directory.Build.props` está em `net9.0` porque é o
-único SDK instalado na máquina de desenvolvimento; a troca é uma linha.
+**Versão do .NET:** a solução está em **.NET 10 (LTS)** desde 19/09/2026 (issue #84), com suporte até
+**14/11/2028**. O .NET 8 e o .NET 9 saem de suporte na mesma data, **10/11/2026** — a data de
+12/05/2026 que este README trazia para o .NET 9 estava errada. A publicação é *self-contained*, então
+o servidor não precisou ganhar runtime novo.
