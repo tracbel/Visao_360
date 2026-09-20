@@ -230,6 +230,23 @@ public class CrmDbContext : DbContext
     /// <summary>As mesmas quatro medidas no total da UF — que não é a soma dos municípios.</summary>
     public DbSet<ProducaoAgricolaNoEstado> ProducoesAgricolasNosEstados => Set<ProducaoAgricolaNoEstado>();
 
+    /// <summary>Tratores e estabelecimentos com trator, por faixa de potência (Censo Agropecuário).</summary>
+    public DbSet<FrotaDeTratoresNoMunicipio> FrotasDeTratoresNosMunicipios => Set<FrotaDeTratoresNoMunicipio>();
+
+    /// <summary>Estabelecimentos agropecuários por grupo de área total (Censo Agropecuário).</summary>
+    public DbSet<EstabelecimentosPorAreaNoMunicipio> EstabelecimentosPorAreaNosMunicipios =>
+        Set<EstabelecimentosPorAreaNoMunicipio>();
+
+    /// <summary>O efetivo dos rebanhos, ano a ano (Pesquisa da Pecuária Municipal).</summary>
+    public DbSet<RebanhoNoMunicipio> RebanhosNosMunicipios => Set<RebanhoNoMunicipio>();
+
+    /// <summary>A área territorial de cada município, em km², com o ano da apuração.</summary>
+    public DbSet<AreaTerritorialDoMunicipio> AreasTerritoriaisDosMunicipios =>
+        Set<AreaTerritorialDoMunicipio>();
+
+    /// <summary>As usinas de etanol autorizadas pela ANP, por município.</summary>
+    public DbSet<UsinaDeEtanol> UsinasDeEtanol => Set<UsinaDeEtanol>();
+
     /// <summary>As regras de potencial por área — hoje, um exemplo a confirmar.</summary>
     public DbSet<RegraDePotencial> RegrasDePotencial => Set<RegraDePotencial>();
 
