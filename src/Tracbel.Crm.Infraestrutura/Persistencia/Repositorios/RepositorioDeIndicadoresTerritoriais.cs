@@ -318,13 +318,13 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             .ToListAsync(ct);
 
         var produtos = regras.Select(r => r.ProdutoCodigoIbge).Distinct().ToList();
-        var ano = await contexto.AreasPlantadasNosMunicipios.AsNoTracking().MaxAsync(a => (short?)a.Ano, ct);
+        var ano = await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking().MaxAsync(a => (short?)a.Ano, ct);
         var areaPlantada = new Dictionary<(int Codigo, int Produto), decimal?>();
 
         if (ano is not null && produtos.Count > 0)
         {
             var linhas = await (
-                    from linha in contexto.AreasPlantadasNosMunicipios.AsNoTracking()
+                    from linha in contexto.ProducoesAgricolasNosMunicipios.AsNoTracking()
                     join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
                     where linha.Ano == ano && produtos.Contains(linha.ProdutoCodigoIbge) && municipio.CodigoIbge != null
                     select new { Codigo = municipio.CodigoIbge!.Value, linha.ProdutoCodigoIbge, linha.AreaPlantadaHectares })

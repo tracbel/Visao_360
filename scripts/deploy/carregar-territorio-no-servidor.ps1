@@ -85,7 +85,8 @@ function Retrato([string] $rotulo) {
         'municipios com codigo IBGE'  = 'SELECT COUNT(*) FROM organizacao.Municipio WHERE CodigoIbge IS NOT NULL'
         'municipios da ADR'           = 'SELECT COUNT(*) FROM organizacao.MunicipioDaAreaDeAtuacao WHERE PertenceAAdr = 1 AND EncerradoEm IS NULL'
         'responsaveis vigentes'       = 'SELECT COUNT(*) FROM organizacao.ResponsavelPeloMunicipio WHERE EncerradoEm IS NULL'
-        'linhas de area plantada'     = 'SELECT COUNT(*) FROM organizacao.AreaPlantadaNoMunicipio'
+        'linhas de producao agricola' = 'SELECT COUNT(*) FROM organizacao.ProducaoAgricolaNoMunicipio'
+        'linhas do total do estado'   = 'SELECT COUNT(*) FROM organizacao.ProducaoAgricolaNoEstado'
         'enderecos corrigidos (trilha)' = "SELECT COUNT(*) FROM auditoria.AlteracaoDeCampo WHERE Entidade = 'Endereco' AND Campo = 'MunicipioId' AND ValorNovo LIKE '%IBGE%'"
     }
     Write-Host "   $rotulo"

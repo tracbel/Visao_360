@@ -285,18 +285,19 @@ public sealed class ResponsavelPeloMunicipioConfiguracao : IEntityTypeConfigurat
 }
 
 /// <summary>
-/// Mapeamento de <see cref="AreaPlantadaNoMunicipio"/> — a área plantada da PAM/IBGE.
+/// Mapeamento de <see cref="ProducaoAgricolaNoMunicipio"/> — as quatro medidas da PAM/IBGE.
 ///
-/// <para>A área é <c>decimal(14,2)</c>: a maior área de um produto num município paulista é de
-/// dezenas de milhares de hectares, e o IBGE publica em hectares inteiros. Anulável porque
-/// "não disponível" não é zero (ver a entidade).</para>
+/// <para>Área é <c>decimal(14,2)</c>: a maior área de um produto num município paulista é de dezenas
+/// de milhares de hectares, e o IBGE publica em hectares inteiros. Quantidade e valor vão a
+/// <c>decimal(18,2)</c>: o valor é em MIL reais e, num município de cana, passa da casa do milhão.
+/// Todas anuláveis, porque "não disponível" não é zero (ver a entidade).</para>
 /// </summary>
-public sealed class AreaPlantadaNoMunicipioConfiguracao : IEntityTypeConfiguration<AreaPlantadaNoMunicipio>
+public sealed class ProducaoAgricolaNoMunicipioConfiguracao : IEntityTypeConfiguration<ProducaoAgricolaNoMunicipio>
 {
     /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<AreaPlantadaNoMunicipio> b)
+    public void Configure(EntityTypeBuilder<ProducaoAgricolaNoMunicipio> b)
     {
-        b.ToTable("AreaPlantadaNoMunicipio", "organizacao");
+        b.ToTable("ProducaoAgricolaNoMunicipio", "organizacao");
         b.HasKey(a => a.Id);
         b.Property(a => a.Id).ValueGeneratedOnAdd();
 
@@ -304,12 +305,15 @@ public sealed class AreaPlantadaNoMunicipioConfiguracao : IEntityTypeConfigurati
         b.Property(a => a.ProdutoCodigoIbge).IsRequired();
         b.Property(a => a.ProdutoNome).HasMaxLength(120).IsUnicode(true).IsRequired();
         b.Property(a => a.AreaPlantadaHectares).HasPrecision(14, 2);
+        b.Property(a => a.AreaColhidaHectares).HasPrecision(14, 2);
+        b.Property(a => a.QuantidadeProduzidaToneladas).HasPrecision(18, 2);
+        b.Property(a => a.ValorDaProducaoMilReais).HasPrecision(18, 2);
         b.Property(a => a.ImportadoEm).HasPrecision(3).IsRequired();
         b.Property(a => a.ImportadoPorId).IsRequired();
 
         b.HasIndex(a => new { a.MunicipioId, a.Ano, a.ProdutoCodigoIbge })
             .IsUnique()
-            .HasDatabaseName("UX_AreaPlantadaNoMunicipio_Municipio_Ano_Produto");
+            .HasDatabaseName("UX_ProducaoAgricolaNoMunicipio_Municipio_Ano_Produto");
 
         // A consulta do mapa: "a área deste produto, neste ano, em todos os municípios".
         b.HasIndex(a => new { a.ProdutoCodigoIbge, a.Ano });
@@ -318,10 +322,58 @@ public sealed class AreaPlantadaNoMunicipioConfiguracao : IEntityTypeConfigurati
         b.HasOne<Municipio>().WithMany().HasForeignKey(a => a.MunicipioId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Dominio.Seguranca.Usuario>().WithMany().HasForeignKey(a => a.ImportadoPorId).OnDelete(DeleteBehavior.Restrict);
 
-        b.ToTable(t => t.HasCheckConstraint("CK_AreaPlantadaNoMunicipio_Ano", "[Ano] BETWEEN 1974 AND 2100"));
-        b.ToTable(t => t.HasCheckConstraint("CK_AreaPlantadaNoMunicipio_Produto", "[ProdutoCodigoIbge] > 0"));
+        b.ToTable(t => t.HasCheckConstraint("CK_ProducaoAgricolaNoMunicipio_Ano", "[Ano] BETWEEN 1974 AND 2100"));
+        b.ToTable(t => t.HasCheckConstraint("CK_ProducaoAgricolaNoMunicipio_Produto", "[ProdutoCodigoIbge] > 0"));
         b.ToTable(t => t.HasCheckConstraint(
-            "CK_AreaPlantadaNoMunicipio_Area", "[AreaPlantadaHectares] IS NULL OR [AreaPlantadaHectares] >= 0"));
+            "CK_ProducaoAgricolaNoMunicipio_Medidas",
+            "([AreaPlantadaHectares] IS NULL OR [AreaPlantadaHectares] >= 0) " +
+            "AND ([AreaColhidaHectares] IS NULL OR [AreaColhidaHectares] >= 0) " +
+            "AND ([QuantidadeProduzidaToneladas] IS NULL OR [QuantidadeProduzidaToneladas] >= 0) " +
+            "AND ([ValorDaProducaoMilReais] IS NULL OR [ValorDaProducaoMilReais] >= 0)"));
+    }
+}
+
+/// <summary>
+/// Mapeamento de <see cref="ProducaoAgricolaNoEstado"/> — a linha da UF inteira, que o IBGE publica
+/// e que <b>não</b> é a soma dos municípios (ver a entidade).
+/// </summary>
+public sealed class ProducaoAgricolaNoEstadoConfiguracao : IEntityTypeConfiguration<ProducaoAgricolaNoEstado>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ProducaoAgricolaNoEstado> b)
+    {
+        b.ToTable("ProducaoAgricolaNoEstado", "organizacao");
+        b.HasKey(a => a.Id);
+        b.Property(a => a.Id).ValueGeneratedOnAdd();
+
+        b.Property(a => a.EstadoCodigoIbge).IsRequired();
+        b.Property(a => a.Ano).IsRequired();
+        b.Property(a => a.ProdutoCodigoIbge).IsRequired();
+        b.Property(a => a.ProdutoNome).HasMaxLength(120).IsUnicode(true).IsRequired();
+        b.Property(a => a.AreaPlantadaHectares).HasPrecision(16, 2);
+        b.Property(a => a.AreaColhidaHectares).HasPrecision(16, 2);
+        b.Property(a => a.QuantidadeProduzidaToneladas).HasPrecision(20, 2);
+        b.Property(a => a.ValorDaProducaoMilReais).HasPrecision(20, 2);
+        b.Property(a => a.ImportadoEm).HasPrecision(3).IsRequired();
+        b.Property(a => a.ImportadoPorId).IsRequired();
+
+        b.HasIndex(a => new { a.EstadoCodigoIbge, a.Ano, a.ProdutoCodigoIbge })
+            .IsUnique()
+            .HasDatabaseName("UX_ProducaoAgricolaNoEstado_Estado_Ano_Produto");
+
+        b.HasIndex(a => a.ImportadoPorId);
+
+        b.HasOne<Dominio.Seguranca.Usuario>().WithMany().HasForeignKey(a => a.ImportadoPorId).OnDelete(DeleteBehavior.Restrict);
+
+        b.ToTable(t => t.HasCheckConstraint("CK_ProducaoAgricolaNoEstado_Ano", "[Ano] BETWEEN 1974 AND 2100"));
+        b.ToTable(t => t.HasCheckConstraint("CK_ProducaoAgricolaNoEstado_Estado", "[EstadoCodigoIbge] BETWEEN 11 AND 53"));
+        b.ToTable(t => t.HasCheckConstraint("CK_ProducaoAgricolaNoEstado_Produto", "[ProdutoCodigoIbge] > 0"));
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_ProducaoAgricolaNoEstado_Medidas",
+            "([AreaPlantadaHectares] IS NULL OR [AreaPlantadaHectares] >= 0) " +
+            "AND ([AreaColhidaHectares] IS NULL OR [AreaColhidaHectares] >= 0) " +
+            "AND ([QuantidadeProduzidaToneladas] IS NULL OR [QuantidadeProduzidaToneladas] >= 0) " +
+            "AND ([ValorDaProducaoMilReais] IS NULL OR [ValorDaProducaoMilReais] >= 0)"));
     }
 }
 

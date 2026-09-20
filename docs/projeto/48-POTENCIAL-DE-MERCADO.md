@@ -229,11 +229,24 @@ LR12 → R12 = 0,51; LR6 → R6 = 0,75; LR3 → R3 = 1,18; LR1 → R1 = 1,00 (ca
 
 ### 3.8 Relevância da região dentro de SP
 
-| Indicador | Região (203) | SP | % |
+| Indicador, como a planilha o rotula | Região (203) | SP | % |
 |---|---:|---:|---:|
 | Área plantada 2024 (ha) | 3.715.896 | 9.216.795 | 40,3% |
 | Área plantada 2025 (ha, preliminar) | 3.706.356 | 9.155.949 | 40,5% |
 | Valor da produção 2024 (mil R$) | 50.465.781 | 118.021.202 | 42,8% |
+
+> **ERRATA — o ano das duas primeiras linhas está adiantado [medido em 20/09/2026, issue 64].** A carga
+> do CRM passou a trazer as quatro medidas da PAM e reproduziu estes números contra o SIDRA, produto a
+> produto, com "Café (em grão) Total" no lugar de Arábica + Canephora. Três dos quatro bateram **ao
+> dígito — mas não no ano que a planilha diz**: a "área plantada 2024" é a da PAM de **2023**
+> (3.715.896 ha na região, ao hectare) e a "2025 preliminar" é a de **2024** (3.706.356 e 9.155.949,
+> também ao hectare). Só a linha do valor está com o ano certo: os R$ 50.465.781 mil e os
+> R$ 118.021.202 mil são mesmo de 2024, ao milhar. O total de SP da primeira linha ainda tem uma
+> **transposição de dígitos**: o SIDRA dá 9.217.**695** ha, e a planilha traz 9.216.**795** (900 ha).
+>
+> Os percentuais não mudam de forma relevante (40,3% vira 40,3%; 40,5% segue 40,5%), mas **a decisão
+> D-P10 muda**: escolher "o ano da planilha" e escolher "2024" não são a mesma coisa. Por isso a carga
+> guarda **três anos** da PAM (documento 32, §8.3.2).
 
 Produtividade da região ÷ SP: café 1,03; cana 1,03; amendoim 0,98; soja 1,08; milho 0,98; laranja 0,95.
 
@@ -248,11 +261,12 @@ estabelecimentos em 2017, 56% com menos de 20 ha; 62.308 tratores em 2017, 74% c
 |---|---|---|
 | `MunicipioDaAreaDeAtuacao` | **os mesmos 203 municípios**, conciliados com o IBGE (203/203) | doc 32 §4 |
 | `ResponsavelPeloMunicipio` | CEN e gestor por município, duas fontes preservadas, 82 municípios divergentes | doc 32 §4.3; #48 |
-| `AreaPlantadaNoMunicipio` | área da PAM por município, produto e ano; zero × não disponível; 45.582 linhas no servidor — **mas é a área colhida (variável 216), não a plantada (8331)** | doc 32 §8.3; #83 |
+| `ProducaoAgricolaNoMunicipio` | **as quatro medidas da PAM** por município, produto e ano — área plantada (8331), colhida (216), quantidade (214) e valor (215, mil R$); zero × não disponível preservados; três anos da série | doc 32 §8.3.1; #83, #95, #64 |
+| `ProducaoAgricolaNoEstado` | a linha que o IBGE publica para a UF inteira — o denominador da comparação com SP, que **não** é a soma dos municípios | doc 32 §8.3.1; #64 |
 | `RegraDePotencial` | hectares por máquina e modelo de referência; **1 regra: café, 3036N, 10 ha, "a confirmar"**; sem escritor | doc 32 §8.3; doc 46 |
 | Mapa C | máquinas teóricas = área ÷ hectares por máquina, só para a regra ativa | doc 32 §8.3 |
 | Cartão "Conhecimento de mercado" | vendas perdidas registradas; "participação de mercado: sem dado" | painel executivo |
-| Leitor do IBGE | catálogo de municípios e área (`LeitorDoIbge.cs:48`, variável 216); roda só na estação | doc 46 §4.7; #83 |
+| Leitor do IBGE | catálogo de municípios e a PAM em lotes de 10 produtos (`LeitorDoIbge.cs`); roda na carga, que o servidor pode agendar | doc 46 §4.7; #83, #95 |
 
 **O que falta:** valor e quantidade da produção; Censo; preços; custos; SICOR; parâmetros de renovação e
 ciclo; motor; área e cultura por cliente (vazias em 100%); rotina no servidor. **Pendências do doc 32 que

@@ -76,21 +76,28 @@ verificam **agora**:
 
 | Schema | O que guarda | Tabelas |
 |---|---|---|
-| `organizacao` | empresa, linha de negócio, carteira, hierarquia comercial, meta, praça, município e carteira × município (doc 26), área de atuação, responsável pelo município, área plantada e regra de potencial (doc 32) | 12 |
-| `seguranca` | usuário, equipe, permissão, compartilhamento | 8 |
-| `comercial` | cliente, contato, canal, endereço, carteira, lead, consentimento, alerta, faturamento do cliente e faturamento sem cliente (doc 31) | 11 — schema **padrão** do contexto |
-| `processo` | oportunidade e demais processos, fase, tarefa, interação, regra, venda perdida | 14 |
-| `frota` | equipamento do cliente, marca, modelo, família, horímetro, linha de produto, venda de máquina e vínculo de cliente com máquina (doc 35, seção 10) | 8 |
-| `documento` | arquivo anexado e seus vínculos | 2 |
-| `auditoria` | quem viu e quem alterou o quê | 3 |
-| `integracao` | fronteira com o ERP, o Vórtice e o ART: correspondência da origem, registro de origem, comprador pendente e divergência (doc 35, seção 10); execução de sincronização, uma linha por ciclo do serviço do Windows (doc 35, seção 11) | 11 |
-| `metadado` | catálogo, campo personalizado, formulário — extensão sem release; ver seção 12 | 8 |
-| `relatorio` | fontes curadas de relatório | 3 |
+| `organizacao` | empresa, linha de negócio, carteira, município e carteira × município (doc 26), área de atuação, responsável pelo município, produção agrícola no município e no estado e regra de potencial (doc 32; issue 64) | 10 |
+| `seguranca` | usuário, permissão e a ligação entre os dois | 4 |
+| `comercial` | cliente, contato, canal, endereço, carteira, faturamento do cliente e faturamento sem cliente (doc 31) | 8 — schema **padrão** do contexto |
+| `processo` | processo, fase, tarefa, interação, tipo, resultado, motivo e venda perdida | 9 |
+| `frota` | equipamento do cliente, marca, modelo, família, linha de produto, venda de máquina e vínculo de cliente com máquina (doc 35, seção 10) | 7 |
+| `auditoria` | quem alterou o quê — particionada por mês | 1 |
+| `integracao` | fronteira com o ERP, o Vórtice e o ART: correspondência da origem, registro de origem, comprador pendente e divergência (doc 35, seção 10); execução de sincronização, uma linha por ciclo do serviço do Windows (doc 35, seção 11) | 9 |
+| `metadado` | catálogo e item de catálogo — extensão sem release; ver seção 12 | 2 |
 
-**Total: 80 tabelas em 10 schemas** — as 63 do [17-MODELO-UNIFICADO](17-MODELO-UNIFICADO.md),
-seção 8.12, mais as dezessete com decisão registrada nos documentos 26, 31, 32 e 35, verificada por
-`EsquemaENomenclaturaTestes.Os_dez_schemas_do_modelo_unificado_existem_e_somam_oitenta_tabelas`
-contra o modelo, e por `MigracaoNoContainerTestes` contra o banco de verdade.
+**Total: 50 tabelas em 8 schemas.** A conta começou em 63 no
+[17-MODELO-UNIFICADO](17-MODELO-UNIFICADO.md), seção 8.12, subiu para 80 em 10 schemas com as
+dezessete decisões registradas nos documentos 26, 31, 32 e 35, e a **fase 1** do
+[41-PLANO-EXECUTIVO](41-PLANO-EXECUTIVO-DA-REESTRUTURACAO.md) a trouxe para 49 em 8, removendo as 31
+tabelas que nunca receberam uma linha e esvaziando por completo os schemas `documento` e `relatorio`
+— que por isso saíram da lista. A quinquagésima é `organizacao.ProducaoAgricolaNoEstado` (issue 64):
+o IBGE publica o total da UF, e ele não é a soma dos municípios.
+
+A conta é verificada por
+`EsquemaENomenclaturaTestes.Os_oito_schemas_do_modelo_unificado_existem_e_somam_cinquenta_tabelas`
+contra o modelo, e por
+`MigracaoNoContainerTestes.A_cadeia_de_migracoes_cria_os_oito_schemas_e_as_cinquenta_tabelas` contra
+o banco de verdade. **Os dois testes e esta tabela mudam na MESMA PR** — é o portão da seção 10.2.
 
 ### 2.2 Como criar um schema novo
 

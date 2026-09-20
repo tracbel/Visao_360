@@ -1146,7 +1146,7 @@ Linhas tracejadas: dependência só se a API GN alimentar o 360 (Q-P7).
 | **Fora das fases — infraestrutura e entrega** | ✅ #56 (CI), ✅ #58 (regra da `main`), ✅ #59 (dependências), ✅ #60 (onde roda — decidido), #61 (runner), #62 (publicação), ✅ #84 (.NET 10) |
 | **Fora das fases — API e dado** | ✅ #1, #5, #6, #7, #8, #9, #10, #12, #13, #14, #18, #21, #22, #23, #24, #26, #34, #35, #37, #38, #39, #41, #42, #50 |
 | **Fora das fases — 360 e interface** | #27, #28, #29, #31, #33, #43, ✅ #30, ✅ #32 |
-| **Fora das fases — correção** | ✅ #83 (área plantada = colhida) |
+| **Fora das fases — correção** | ✅ #83 (área plantada = colhida), ✅ #95 (o SIDRA passou a recusar a consulta inteira), ✅ #98 (a semente da regra de potencial, apagada como dado) |
 | **Fora das fases — transversal** | ✅ #44 (esta reconciliação) |
 | **Fases próprias, no documento 48** | #63 a #80 — o potencial de mercado tem as **suas** fases (**P0 a P6**, doc 48 §7) e as milestones M11–M13. Elas **não** entram na numeração do doc 41, e é de propósito: dependem de decisão comercial (#63) e de fonte externa, não do alvo do banco |
 
@@ -1166,8 +1166,9 @@ Q-P1 + Q-T1 → #40 (fase 2) → Q-P2/Q-P3/Q-T2 → #46 (fase 3) → Q-P4 → #4
   ✅ #83, ✅ #84.
 - **Paralelismo seguro:** as fases 6 e 7 depois da 5; o épico 4 (API GN) até a decisão, sem código; e o
   potencial de mercado (#63–#80) numa raia própria, que só cruza esta no banco.
-- **O que trava mais de uma frente ao mesmo tempo:** o **banco fora do ar nesta estação** (impede #64 e
-  qualquer migração) e a **publicação no servidor** (impede #51, #64 e a recarga do território do #83).
+- **O que travava mais de uma frente ao mesmo tempo, e já não trava:** o banco desta estação voltou
+  (migrações e carga rodando) e a publicação no servidor foi feita em 20/09/2026. Com isso ✅ #51, ✅ #83,
+  ✅ #95, ✅ #98 e ✅ #64 saíram. O que resta travando é a **D-13** e as decisões do #63.
 
 ---
 

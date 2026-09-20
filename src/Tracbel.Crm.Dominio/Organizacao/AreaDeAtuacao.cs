@@ -420,26 +420,61 @@ public enum ComparacaoDoCen
 }
 
 /// <summary>
-/// A ÁREA PLANTADA DE UM PRODUTO NUM MUNICÍPIO, num ano — da Produção Agrícola Municipal do IBGE.
+/// AS QUATRO MEDIDAS DA PRODUÇÃO AGRÍCOLA de um produto, num recorte, num ano — como a PAM do IBGE
+/// as publica (tabela SIDRA 5457).
+///
+/// <para><b>Elas andam juntas de propósito.</b> Área plantada sozinha responde "quanto se plantou";
+/// com a colhida, responde também "quanto sobreviveu"; com a quantidade, "quanto rendeu"; com o
+/// valor, "quanto isso vale". Separá-las em quatro tabelas faria a carga escrever o mesmo município,
+/// ano e produto quatro vezes.</para>
+///
+/// <para><b>Zero e "não disponível" são coisas diferentes, e as duas ficam.</b> O IBGE escreve
+/// <c>-</c> para zero absoluto e <c>...</c> (ou <c>X</c>, sigilo) para dado não disponível. O
+/// primeiro vira <c>0</c> e o segundo vira nulo — somar um "não disponível" como zero diria que o
+/// município não planta o que só não foi divulgado.</para>
+/// </summary>
+/// <param name="AreaPlantadaHectares">Variável 8331 — "área plantada ou destinada à colheita".</param>
+/// <param name="AreaColhidaHectares">Variável 216 — o que de fato se colheu.</param>
+/// <param name="QuantidadeProduzidaToneladas">Variável 214. A unidade do IBGE varia por produto (tonelada, mil frutos, mil cachos): o rótulo do produto é quem diz qual.</param>
+/// <param name="ValorDaProducaoMilReais">Variável 215, em MIL reais — é como o IBGE publica.</param>
+public readonly record struct MedidasDaProducaoAgricola(
+    decimal? AreaPlantadaHectares,
+    decimal? AreaColhidaHectares,
+    decimal? QuantidadeProduzidaToneladas,
+    decimal? ValorDaProducaoMilReais)
+{
+    /// <summary>Recusa medida negativa, que não existe em nenhuma das quatro.</summary>
+    /// <exception cref="RegraDeNegocioViolada">Quando alguma medida é negativa.</exception>
+    public void Conferir()
+    {
+        if (AreaPlantadaHectares < 0 || AreaColhidaHectares < 0
+            || QuantidadeProduzidaToneladas < 0 || ValorDaProducaoMilReais < 0)
+            throw new RegraDeNegocioViolada("Medida negativa não existe na Produção Agrícola Municipal.");
+    }
+}
+
+/// <summary>
+/// A PRODUÇÃO AGRÍCOLA DE UM PRODUTO NUM MUNICÍPIO, num ano — da Produção Agrícola Municipal do IBGE.
 ///
 /// <para><b>Por que existe.</b> O potencial por cultura precisa de área plantada, e nenhuma fonte
 /// interna alcançável a tem: <c>comercial.Endereco.Hectares</c> e <c>CulturaId</c> estão vazios em
 /// 100% das 19.641 linhas, e a base de propriedades do ART não responde desta rede (documento 31,
-/// seção 2). A PAM é a fonte oficial e pública da área por município — é o que sustenta o
-/// "potencial total da região", e só ele. Ela <b>não</b> separa cliente de não cliente.</para>
+/// seção 2). A PAM é a fonte oficial e pública — é o que sustenta o "potencial total da região", e só
+/// ele. Ela <b>não</b> separa cliente de não cliente.</para>
 ///
-/// <para><b>Zero e "não disponível" são coisas diferentes, e as duas ficam.</b> O IBGE escreve
-/// <c>-</c> para zero absoluto e <c>...</c> (ou <c>X</c>, sigilo) para dado não disponível. Aqui o
-/// primeiro vira <c>0</c> e o segundo vira nulo — somar um "não disponível" como zero diria que o
-/// município não planta o que só não foi divulgado.</para>
+/// <para><b>Chamava-se <c>AreaPlantadaNoMunicipio</c> até 20/09/2026</b> (issue 64), quando passou a
+/// guardar as quatro medidas da PAM. O nome antigo descrevia uma coluna, não a tabela.</para>
 ///
-/// <para><b>O produto é o código da classificação oficial do IBGE</b> (tabela SIDRA 5457,
-/// classificação 782), e o nome é o rótulo oficial dele — o mesmo papel do código IBGE do
-/// município. Não é texto digitado.</para>
+/// <para><b>O produto é o código da classificação oficial do IBGE</b> (classificação 782), e o nome é
+/// o rótulo oficial dele — o mesmo papel do código IBGE do município. Não é texto digitado.</para>
+///
+/// <para><b>Cuidado ao somar:</b> a classificação tem produto que CONTÉM outro — "Café (em grão)
+/// Total" é a soma de Arábica e Canephora, e os três vêm na mesma resposta. Somar tudo conta café
+/// duas vezes. Quem soma escolhe um recorte; o dado bruto fica como o IBGE publica.</para>
 /// </summary>
-public sealed class AreaPlantadaNoMunicipio
+public sealed class ProducaoAgricolaNoMunicipio
 {
-    private AreaPlantadaNoMunicipio() { }
+    private ProducaoAgricolaNoMunicipio() { }
 
     /// <summary>Identificador interno.</summary>
     public long Id { get; private set; }
@@ -456,8 +491,17 @@ public sealed class AreaPlantadaNoMunicipio
     /// <summary>O rótulo oficial do produto.</summary>
     public string ProdutoNome { get; private set; } = default!;
 
-    /// <summary>Hectares plantados. Nulo é "não disponível" no IBGE; zero é zero.</summary>
+    /// <summary>Hectares plantados (variável 8331). Nulo é "não disponível" no IBGE; zero é zero.</summary>
     public decimal? AreaPlantadaHectares { get; private set; }
+
+    /// <summary>Hectares colhidos (variável 216).</summary>
+    public decimal? AreaColhidaHectares { get; private set; }
+
+    /// <summary>Quantidade produzida (variável 214), na unidade que o IBGE usa para o produto.</summary>
+    public decimal? QuantidadeProduzidaToneladas { get; private set; }
+
+    /// <summary>Valor da produção (variável 215), em MIL reais, como o IBGE publica.</summary>
+    public decimal? ValorDaProducaoMilReais { get; private set; }
 
     /// <summary>Quando a carga gravou ou conferiu a linha (UTC).</summary>
     public DateTime ImportadoEm { get; private set; }
@@ -468,20 +512,20 @@ public sealed class AreaPlantadaNoMunicipio
     /// </summary>
     public long ImportadoPorId { get; private set; }
 
-    /// <summary>Registra a área de um produto.</summary>
+    /// <summary>Registra a produção de um produto num município.</summary>
     /// <param name="municipioId">O município.</param>
     /// <param name="ano">O ano da pesquisa.</param>
     /// <param name="produtoCodigoIbge">O código do produto.</param>
     /// <param name="produtoNome">O rótulo oficial do produto.</param>
-    /// <param name="areaPlantadaHectares">A área; nulo quando o IBGE não divulga.</param>
+    /// <param name="medidas">As quatro medidas; cada uma nula quando o IBGE não divulga.</param>
     /// <param name="importadoPorId">Quem rodou a carga.</param>
     /// <param name="agoraUtc">O instante da carga.</param>
-    public static AreaPlantadaNoMunicipio Registrar(
+    public static ProducaoAgricolaNoMunicipio Registrar(
         int municipioId,
         short ano,
         int produtoCodigoIbge,
         string produtoNome,
-        decimal? areaPlantadaHectares,
+        MedidasDaProducaoAgricola medidas,
         long importadoPorId,
         DateTime agoraUtc)
     {
@@ -491,39 +535,161 @@ public sealed class AreaPlantadaNoMunicipio
         if (produtoCodigoIbge <= 0)
             throw new RegraDeNegocioViolada("Produto sem código do IBGE não é produto da classificação oficial.");
 
-        var registro = new AreaPlantadaNoMunicipio
+        var registro = new ProducaoAgricolaNoMunicipio
         {
             MunicipioId = municipioId,
             Ano = ano,
             ProdutoCodigoIbge = produtoCodigoIbge
         };
 
-        registro.Reapurar(produtoNome, areaPlantadaHectares, importadoPorId, agoraUtc);
+        registro.Reapurar(produtoNome, medidas, importadoPorId, agoraUtc);
         return registro;
     }
 
     /// <summary>
-    /// Substitui a área pelo valor de uma nova leitura. Devolve se algo mudou.
+    /// Substitui as medidas pelos valores de uma nova leitura. Devolve se algo mudou.
     ///
     /// <para>SUBSTITUI, e não soma: o IBGE revisa a série, e a leitura nova é a verdade do ano.</para>
     /// </summary>
     /// <param name="produtoNome">O rótulo oficial do produto.</param>
-    /// <param name="areaPlantadaHectares">A área; nulo quando o IBGE não divulga.</param>
+    /// <param name="medidas">As quatro medidas da nova leitura.</param>
     /// <param name="importadoPorId">Quem rodou esta leitura.</param>
     /// <param name="agoraUtc">O instante da carga.</param>
-    public bool Reapurar(string produtoNome, decimal? areaPlantadaHectares, long importadoPorId, DateTime agoraUtc)
+    public bool Reapurar(
+        string produtoNome, MedidasDaProducaoAgricola medidas, long importadoPorId, DateTime agoraUtc)
     {
         if (string.IsNullOrWhiteSpace(produtoNome))
             throw new RegraDeNegocioViolada("Produto sem nome oficial não se mostra na tela.");
 
-        if (areaPlantadaHectares < 0)
-            throw new RegraDeNegocioViolada("Área plantada negativa não existe.");
+        medidas.Conferir();
 
         var mudou = !string.Equals(ProdutoNome, produtoNome.Trim(), StringComparison.Ordinal)
-                    || AreaPlantadaHectares != areaPlantadaHectares;
+                    || AreaPlantadaHectares != medidas.AreaPlantadaHectares
+                    || AreaColhidaHectares != medidas.AreaColhidaHectares
+                    || QuantidadeProduzidaToneladas != medidas.QuantidadeProduzidaToneladas
+                    || ValorDaProducaoMilReais != medidas.ValorDaProducaoMilReais;
 
         ProdutoNome = produtoNome.Trim();
-        AreaPlantadaHectares = areaPlantadaHectares;
+        AreaPlantadaHectares = medidas.AreaPlantadaHectares;
+        AreaColhidaHectares = medidas.AreaColhidaHectares;
+        QuantidadeProduzidaToneladas = medidas.QuantidadeProduzidaToneladas;
+        ValorDaProducaoMilReais = medidas.ValorDaProducaoMilReais;
+        ImportadoEm = agoraUtc;
+        ImportadoPorId = importadoPorId;
+        return mudou;
+    }
+}
+
+/// <summary>
+/// AS MESMAS QUATRO MEDIDAS, NO TOTAL DO ESTADO — a linha que o IBGE publica para a UF inteira.
+///
+/// <para><b>Por que não somar os municípios.</b> O total da UF do IBGE <b>não é</b> a soma dos
+/// municípios: onde o valor municipal é sigiloso ("X") ou não disponível, ele entra no total do
+/// estado e não aparece embaixo. Guardar a linha oficial dá o denominador honesto da comparação
+/// "a região contra São Paulo", que é o pedido do comercial.</para>
+///
+/// <para><b>Não tem <c>MunicipioId</c>, e é de propósito:</b> estado não é município. O código é o da
+/// UF no IBGE (São Paulo é 35), do mesmo naipe do <c>ProdutoCodigoIbge</c> — identificador oficial,
+/// não chave estrangeira nossa.</para>
+/// </summary>
+public sealed class ProducaoAgricolaNoEstado
+{
+    private ProducaoAgricolaNoEstado() { }
+
+    /// <summary>Identificador interno.</summary>
+    public long Id { get; private set; }
+
+    /// <summary>O código da UF no IBGE. São Paulo é 35.</summary>
+    public int EstadoCodigoIbge { get; private set; }
+
+    /// <summary>O ano da pesquisa.</summary>
+    public short Ano { get; private set; }
+
+    /// <summary>O código do produto na classificação 782 do IBGE.</summary>
+    public int ProdutoCodigoIbge { get; private set; }
+
+    /// <summary>O rótulo oficial do produto.</summary>
+    public string ProdutoNome { get; private set; } = default!;
+
+    /// <summary>Hectares plantados (variável 8331).</summary>
+    public decimal? AreaPlantadaHectares { get; private set; }
+
+    /// <summary>Hectares colhidos (variável 216).</summary>
+    public decimal? AreaColhidaHectares { get; private set; }
+
+    /// <summary>Quantidade produzida (variável 214).</summary>
+    public decimal? QuantidadeProduzidaToneladas { get; private set; }
+
+    /// <summary>Valor da produção (variável 215), em mil reais.</summary>
+    public decimal? ValorDaProducaoMilReais { get; private set; }
+
+    /// <summary>Quando a carga gravou ou conferiu a linha (UTC).</summary>
+    public DateTime ImportadoEm { get; private set; }
+
+    /// <summary>Quem rodou a carga.</summary>
+    public long ImportadoPorId { get; private set; }
+
+    /// <summary>Registra a produção de um produto num estado.</summary>
+    /// <param name="estadoCodigoIbge">O código da UF.</param>
+    /// <param name="ano">O ano da pesquisa.</param>
+    /// <param name="produtoCodigoIbge">O código do produto.</param>
+    /// <param name="produtoNome">O rótulo oficial do produto.</param>
+    /// <param name="medidas">As quatro medidas.</param>
+    /// <param name="importadoPorId">Quem rodou a carga.</param>
+    /// <param name="agoraUtc">O instante da carga.</param>
+    public static ProducaoAgricolaNoEstado Registrar(
+        int estadoCodigoIbge,
+        short ano,
+        int produtoCodigoIbge,
+        string produtoNome,
+        MedidasDaProducaoAgricola medidas,
+        long importadoPorId,
+        DateTime agoraUtc)
+    {
+        if (estadoCodigoIbge is < 11 or > 53)
+            throw new RegraDeNegocioViolada($"O código de UF do IBGE vai de 11 a 53; {estadoCodigoIbge} não é um.");
+
+        if (ano is < 1974 or > 2100)
+            throw new RegraDeNegocioViolada($"A Produção Agrícola Municipal começa em 1974; ano {ano} não existe nela.");
+
+        if (produtoCodigoIbge <= 0)
+            throw new RegraDeNegocioViolada("Produto sem código do IBGE não é produto da classificação oficial.");
+
+        var registro = new ProducaoAgricolaNoEstado
+        {
+            EstadoCodigoIbge = estadoCodigoIbge,
+            Ano = ano,
+            ProdutoCodigoIbge = produtoCodigoIbge
+        };
+
+        registro.Reapurar(produtoNome, medidas, importadoPorId, agoraUtc);
+        return registro;
+    }
+
+    /// <summary>Substitui as medidas pelos valores de uma nova leitura. Devolve se algo mudou.</summary>
+    /// <param name="produtoNome">O rótulo oficial do produto.</param>
+    /// <param name="medidas">As quatro medidas da nova leitura.</param>
+    /// <param name="importadoPorId">Quem rodou esta leitura.</param>
+    /// <param name="agoraUtc">O instante da carga.</param>
+    public bool Reapurar(
+        string produtoNome, MedidasDaProducaoAgricola medidas, long importadoPorId, DateTime agoraUtc)
+    {
+        if (string.IsNullOrWhiteSpace(produtoNome))
+            throw new RegraDeNegocioViolada("Produto sem nome oficial não se mostra na tela.");
+
+        medidas.Conferir();
+
+        var mudou = !string.Equals(ProdutoNome, produtoNome.Trim(), StringComparison.Ordinal)
+                    || AreaPlantadaHectares != medidas.AreaPlantadaHectares
+                    || AreaColhidaHectares != medidas.AreaColhidaHectares
+                    || QuantidadeProduzidaToneladas != medidas.QuantidadeProduzidaToneladas
+                    || ValorDaProducaoMilReais != medidas.ValorDaProducaoMilReais;
+
+        ProdutoNome = produtoNome.Trim();
+        AreaPlantadaHectares = medidas.AreaPlantadaHectares;
+        AreaColhidaHectares = medidas.AreaColhidaHectares;
+        QuantidadeProduzidaToneladas = medidas.QuantidadeProduzidaToneladas;
+        ValorDaProducaoMilReais = medidas.ValorDaProducaoMilReais;
         ImportadoEm = agoraUtc;
         ImportadoPorId = importadoPorId;
         return mudou;

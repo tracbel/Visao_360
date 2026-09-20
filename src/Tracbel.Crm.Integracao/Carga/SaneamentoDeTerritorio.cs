@@ -297,24 +297,27 @@ public static partial class SaneamentoDeTerritorio
         string.IsNullOrWhiteSpace(celula) || celula.Trim() == "-";
 
     /// <summary>
-    /// A área plantada como o SIDRA a escreve.
+    /// Uma medida da PAM como o SIDRA a escreve — vale para área, quantidade e valor.
     ///
     /// <para><c>-</c> é zero absoluto no IBGE, e vira zero. <c>...</c>, <c>..</c> e <c>X</c> são "não
-    /// disponível", "não se aplica" e "sigilo", e viram nulo — nunca zero. Qualquer outro símbolo
-    /// para a carga: formato desconhecido não se adivinha.</para>
+    /// disponível", "não se aplica" e "sigilo", e viram nulo — nunca zero. <b>Nulo na entrada</b>
+    /// significa outra coisa: a variável não veio na resposta; também vira nulo. Qualquer outro
+    /// símbolo para a carga: formato desconhecido não se adivinha.</para>
     /// </summary>
     /// <param name="valor">O campo <c>V</c> da resposta do SIDRA.</param>
-    public static decimal? AreaDoSidra(string valor)
+    public static decimal? MedidaDoSidra(string? valor)
     {
+        if (valor is null) return null;
+
         var texto = valor.Trim();
 
         if (texto == "-") return 0m;
         if (texto is "..." or ".." or "X") return null;
 
-        if (decimal.TryParse(texto, NumberStyles.Number, CultureInfo.InvariantCulture, out var area) && area >= 0)
-            return area;
+        if (decimal.TryParse(texto, NumberStyles.Number, CultureInfo.InvariantCulture, out var medida) && medida >= 0)
+            return medida;
 
-        throw new FormatException($"Valor de área do SIDRA fora do formato conhecido: \"{valor}\".");
+        throw new FormatException($"Valor do SIDRA fora do formato conhecido: \"{valor}\".");
     }
 
     private static Dictionary<(string Uf, string Chave), List<MunicipioDoIbge>> Agrupar(

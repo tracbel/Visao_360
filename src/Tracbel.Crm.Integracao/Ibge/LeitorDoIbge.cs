@@ -4,13 +4,34 @@ using Tracbel.Crm.Integracao.Carga;
 
 namespace Tracbel.Crm.Integracao.Ibge;
 
-/// <summary>Uma linha da Produção Agrícola Municipal, como o SIDRA a devolve.</summary>
-/// <param name="CodigoDoMunicipio">O código IBGE do município.</param>
+/// <summary>
+/// UM PRODUTO, NUM RECORTE, NUM ANO — com as quatro medidas que a PAM publica, ainda como texto.
+///
+/// <para><b>Os valores chegam crus, com os símbolos do IBGE</b> (<c>-</c> para zero, <c>...</c> e
+/// <c>X</c> para não disponível). Quem converte é o saneamento da carga: o leitor não decide o que é
+/// zero e o que é ausência.</para>
+///
+/// <para><b>Uma linha por (recorte, ano, produto)</b>, e não uma por variável: o SIDRA devolve uma
+/// linha por variável, e o leitor as junta. É assim que a carga grava uma linha só, em vez de quatro
+/// que repetem município, ano e produto.</para>
+/// </summary>
+/// <param name="CodigoDoRecorte">O código IBGE do município (nível 6) ou da UF (nível 3).</param>
 /// <param name="Ano">O ano da pesquisa.</param>
 /// <param name="ProdutoCodigo">O código do produto na classificação 782.</param>
 /// <param name="ProdutoNome">O rótulo oficial do produto.</param>
-/// <param name="ValorBruto">O campo <c>V</c>, com os símbolos do IBGE.</param>
-public sealed record LinhaDaAreaPlantada(int CodigoDoMunicipio, short Ano, int ProdutoCodigo, string ProdutoNome, string ValorBruto);
+/// <param name="AreaPlantadaBruta">Variável 8331, como o SIDRA escreveu.</param>
+/// <param name="AreaColhidaBruta">Variável 216.</param>
+/// <param name="QuantidadeProduzidaBruta">Variável 214.</param>
+/// <param name="ValorDaProducaoBruto">Variável 215, em mil reais.</param>
+public sealed record LinhaDaProducaoAgricola(
+    int CodigoDoRecorte,
+    short Ano,
+    int ProdutoCodigo,
+    string ProdutoNome,
+    string? AreaPlantadaBruta,
+    string? AreaColhidaBruta,
+    string? QuantidadeProduzidaBruta,
+    string? ValorDaProducaoBruto);
 
 /// <summary>
 /// A LEITURA DAS APIS PÚBLICAS DO IBGE — o cadastro oficial de municípios e a área plantada.
@@ -36,8 +57,8 @@ public sealed class LeitorDoIbge(HttpClient http)
     public const string EnderecoDosMunicipios =
         "https://servicodados.ibge.gov.br/api/v1/localidades/municipios?view=nivelado";
 
-    /// <summary>A tabela do SIDRA com a área plantada por produto (PAM).</summary>
-    public const short TabelaDaAreaPlantada = 5457;
+    /// <summary>A tabela do SIDRA da Produção Agrícola Municipal, por produto.</summary>
+    public const short TabelaDaProducaoAgricola = 5457;
 
     /// <summary>
     /// "Área plantada ou destinada à colheita", na tabela 5457.
@@ -62,29 +83,63 @@ public sealed class LeitorDoIbge(HttpClient http)
     public const string EnderecoDosMetadadosDaPam =
         "https://servicodados.ibge.gov.br/api/v3/agregados/5457/metadados";
 
-    /// <summary>
-    /// Quantos produtos cabem numa consulta ao SIDRA.
-    ///
-    /// <para><b>O limite é de TAMANHO da resposta, e ele morde de verdade</b> (issue 95). Em
-    /// 20/09/2026 a consulta de um produto para os 645 municípios de São Paulo devolveu ~645 linhas;
-    /// com 10 produtos, 6.421 linhas e HTTP 200; com os 85 produtos da classificação — ~55 mil
-    /// valores — o SIDRA passou a responder <b>400 Bad Request</b>. A mesma URL funcionava em
-    /// 14/09/2026 e trouxe 45.582 linhas, então o teto mudou de lado de lá, não daqui.</para>
-    ///
-    /// <para>Vinte deixa cada consulta em torno de 13 mil linhas, com folga para o dia em que o IBGE
-    /// publicar mais município ou mais produto.</para>
-    /// </summary>
-    public const int ProdutosPorConsulta = 20;
+    /// <summary>"Área colhida" — o que de fato se colheu, contra o que se plantou.</summary>
+    public const short VariavelDaAreaColhida = 216;
+
+    /// <summary>"Quantidade produzida", na unidade que o IBGE usa para cada produto.</summary>
+    public const short VariavelDaQuantidadeProduzida = 214;
+
+    /// <summary>"Valor da produção", em MIL reais.</summary>
+    public const short VariavelDoValorDaProducao = 215;
 
     /// <summary>
-    /// A área plantada (variável <see cref="VariavelDaAreaPlantada"/>) de um LOTE de produtos, no
-    /// último ano publicado, para todos os municípios de uma UF.
+    /// As quatro variáveis da PAM que o CRM guarda, na ordem em que a URL as pede.
+    ///
+    /// <para>A 112 (rendimento médio) fica de fora de propósito: ela é quantidade ÷ área colhida, e
+    /// guardar um número derivado ao lado das duas parcelas é criar uma terceira fonte para a mesma
+    /// verdade — a que diverge primeiro.</para>
+    /// </summary>
+    public static readonly short[] VariaveisDaProducao =
+        [VariavelDaAreaPlantada, VariavelDaAreaColhida, VariavelDaQuantidadeProduzida, VariavelDoValorDaProducao];
+
+    /// <summary>
+    /// Quantos produtos cabem numa consulta ao SIDRA, com as quatro variáveis.
+    ///
+    /// <para><b>O limite é de TAMANHO da resposta, e ele morde de verdade</b> (issue 95). Medido em
+    /// 20/09/2026, para os 645 municípios de São Paulo: 1 variável × 10 produtos devolveu 6.421
+    /// linhas e HTTP 200; 1 variável × 85 produtos (~55 mil valores) devolveu <b>400</b>;
+    /// <b>4 variáveis × 10 produtos devolveu 25.681 linhas e 5,3 MB, com HTTP 200</b>; e 4 × 20
+    /// (~51,6 mil) devolveu <b>400</b>. O teto está perto de 50 mil valores por consulta.</para>
+    ///
+    /// <para>Dez deixa cada consulta em ~26 mil linhas, com metade do teto de folga — inclusive para
+    /// o dia em que o IBGE publicar mais município ou mais produto.</para>
+    /// </summary>
+    public const int ProdutosPorConsulta = 10;
+
+    /// <summary>
+    /// As quatro medidas de um LOTE de produtos, num ano, para todos os municípios de uma UF.
     /// </summary>
     /// <param name="codigoDaUf">O código IBGE da UF. São Paulo é 35.</param>
     /// <param name="produtos">Os códigos dos produtos na classificação 782.</param>
-    public static string EnderecoDaAreaPlantada(int codigoDaUf, IEnumerable<int> produtos) =>
-        $"https://apisidra.ibge.gov.br/values/t/{TabelaDaAreaPlantada}/n6/in%20n3%20{codigoDaUf}" +
-        $"/v/{VariavelDaAreaPlantada}/p/last%201/c{ClassificacaoDeProduto}/" +
+    /// <param name="ano">O ano da pesquisa.</param>
+    public static string EnderecoDaProducaoNosMunicipios(int codigoDaUf, IEnumerable<int> produtos, short ano) =>
+        EnderecoDaProducao($"n6/in%20n3%20{codigoDaUf}", produtos, ano);
+
+    /// <summary>
+    /// As quatro medidas de um LOTE de produtos, num ano, no TOTAL da UF.
+    ///
+    /// <para>É a linha que o IBGE publica para o estado inteiro — e que não é a soma dos municípios,
+    /// porque o valor municipal sigiloso entra nela sem aparecer embaixo.</para>
+    /// </summary>
+    /// <param name="codigoDaUf">O código IBGE da UF.</param>
+    /// <param name="produtos">Os códigos dos produtos.</param>
+    /// <param name="ano">O ano da pesquisa.</param>
+    public static string EnderecoDaProducaoNoEstado(int codigoDaUf, IEnumerable<int> produtos, short ano) =>
+        EnderecoDaProducao($"n3/{codigoDaUf}", produtos, ano);
+
+    private static string EnderecoDaProducao(string nivel, IEnumerable<int> produtos, short ano) =>
+        $"https://apisidra.ibge.gov.br/values/t/{TabelaDaProducaoAgricola}/{nivel}" +
+        $"/v/{string.Join(',', VariaveisDaProducao)}/p/{ano}/c{ClassificacaoDeProduto}/" +
         string.Join(',', produtos) +
         "?formato=json";
 
@@ -152,33 +207,96 @@ public sealed class LeitorDoIbge(HttpClient http)
     }
 
     /// <summary>
-    /// Lê a área plantada de uma UF, EM LOTES DE PRODUTO.
+    /// O último ano publicado da PAM, pelos metadados (<c>periodicidade.fim</c>).
     ///
-    /// <para><b>Por que em lotes:</b> pedir os 85 produtos de uma vez passou a devolver 400 no SIDRA
-    /// (issue 95) — são ~55 mil valores. Ver <see cref="ProdutosPorConsulta"/>.</para>
+    /// <para><b>Por que não <c>p/last 1</c>:</b> a carga pede ano por ano para poder trazer a série
+    /// curta, e "o último" precisa ser um número antes da primeira consulta. Perguntar aos metadados
+    /// custa uma requisição e não depende de adivinhar.</para>
+    /// </summary>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<short> LerUltimoAnoDaPamAsync(CancellationToken ct)
+    {
+        await using var corpo = await http.GetStreamAsync(EnderecoDosMetadadosDaPam, ct);
+        using var documento = await JsonDocument.ParseAsync(corpo, cancellationToken: ct);
+
+        return documento.RootElement.GetProperty("periodicidade").GetProperty("fim").GetInt16();
+    }
+
+    /// <summary>
+    /// A produção agrícola dos MUNICÍPIOS de uma UF, num ano, com as quatro medidas.
     ///
-    /// <para>Cada resposta traz o próprio cabeçalho na primeira posição, e cada um fica de fora.</para>
+    /// <para><b>Em lotes de produto:</b> pedir todos de uma vez devolve 400 no SIDRA (issue 95). Ver
+    /// <see cref="ProdutosPorConsulta"/>.</para>
     /// </summary>
     /// <param name="codigoDaUf">O código IBGE da UF.</param>
+    /// <param name="ano">O ano da pesquisa.</param>
     /// <param name="ct">Cancelamento.</param>
-    public async Task<IReadOnlyList<LinhaDaAreaPlantada>> LerAreaPlantadaAsync(int codigoDaUf, CancellationToken ct)
+    public Task<IReadOnlyList<LinhaDaProducaoAgricola>> LerProducaoNosMunicipiosAsync(
+        int codigoDaUf, short ano, CancellationToken ct) =>
+        LerProducaoAsync(lote => EnderecoDaProducaoNosMunicipios(codigoDaUf, lote, ano), ct);
+
+    /// <summary>
+    /// A produção agrícola no TOTAL da UF, num ano, com as quatro medidas.
+    ///
+    /// <para>Uma linha por produto, e não 645: cabe numa consulta só por lote, sem chegar perto do
+    /// teto de tamanho.</para>
+    /// </summary>
+    /// <param name="codigoDaUf">O código IBGE da UF.</param>
+    /// <param name="ano">O ano da pesquisa.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public Task<IReadOnlyList<LinhaDaProducaoAgricola>> LerProducaoNoEstadoAsync(
+        int codigoDaUf, short ano, CancellationToken ct) =>
+        LerProducaoAsync(lote => EnderecoDaProducaoNoEstado(codigoDaUf, lote, ano), ct);
+
+    /// <summary>
+    /// O laço comum das duas leituras: lote a lote, junta as QUATRO LINHAS que o SIDRA devolve para
+    /// cada (recorte, ano, produto) — uma por variável — numa linha só.
+    ///
+    /// <para><b>A variável vem em <c>D2C</c></b>, e é por ela que cada valor encontra o seu lugar.
+    /// Variável que o IBGE não devolveu fica nula, e nulo aqui significa "o SIDRA não trouxe" — é
+    /// diferente do <c>...</c>, que é "existe e não foi divulgado" e chega como texto.</para>
+    /// </summary>
+    private async Task<IReadOnlyList<LinhaDaProducaoAgricola>> LerProducaoAsync(
+        Func<int[], string> endereco, CancellationToken ct)
     {
         var produtos = await LerProdutosDaPamAsync(ct);
-        var linhas = new List<LinhaDaAreaPlantada>();
+        var porChave = new Dictionary<(int Recorte, short Ano, int Produto), string?[]>();
+        var nomes = new Dictionary<int, string>();
+        var ordem = new List<(int Recorte, short Ano, int Produto)>();
 
         foreach (var lote in produtos.Chunk(ProdutosPorConsulta))
         {
-            await using var corpo = await http.GetStreamAsync(EnderecoDaAreaPlantada(codigoDaUf, lote), ct);
+            await using var corpo = await http.GetStreamAsync(endereco(lote), ct);
             using var documento = await JsonDocument.ParseAsync(corpo, cancellationToken: ct);
 
-            linhas.AddRange(documento.RootElement.EnumerateArray().Skip(1).Select(l => new LinhaDaAreaPlantada(
-                int.Parse(l.GetProperty("D1C").GetString()!, CultureInfo.InvariantCulture),
-                short.Parse(l.GetProperty("D3C").GetString()!, CultureInfo.InvariantCulture),
-                int.Parse(l.GetProperty("D4C").GetString()!, CultureInfo.InvariantCulture),
-                l.GetProperty("D4N").GetString()!,
-                l.GetProperty("V").GetString()!)));
+            foreach (var l in documento.RootElement.EnumerateArray().Skip(1))
+            {
+                var recorte = int.Parse(l.GetProperty("D1C").GetString()!, CultureInfo.InvariantCulture);
+                var variavel = short.Parse(l.GetProperty("D2C").GetString()!, CultureInfo.InvariantCulture);
+                var ano = short.Parse(l.GetProperty("D3C").GetString()!, CultureInfo.InvariantCulture);
+                var produto = int.Parse(l.GetProperty("D4C").GetString()!, CultureInfo.InvariantCulture);
+
+                var posicao = Array.IndexOf(VariaveisDaProducao, variavel);
+                if (posicao < 0) continue;
+
+                var chave = (recorte, ano, produto);
+                if (!porChave.TryGetValue(chave, out var valores))
+                {
+                    valores = new string?[VariaveisDaProducao.Length];
+                    porChave[chave] = valores;
+                    ordem.Add(chave);
+                }
+
+                valores[posicao] = l.GetProperty("V").GetString();
+                nomes[produto] = l.GetProperty("D4N").GetString()!;
+            }
         }
 
-        return linhas;
+        return
+        [
+            .. ordem.Select(c => new LinhaDaProducaoAgricola(
+                c.Recorte, c.Ano, c.Produto, nomes[c.Produto],
+                porChave[c][0], porChave[c][1], porChave[c][2], porChave[c][3]))
+        ];
     }
 }

@@ -205,27 +205,36 @@ public sealed class SaneamentoDeTerritorioTestes
         SaneamentoDeTerritorio.CelulaVazia(celula).Should().Be(vazia);
 
     // =============================================================================================
-    // Área plantada do SIDRA
+    // As medidas do SIDRA (área plantada, colhida, quantidade e valor)
     // =============================================================================================
 
     [Theory]
     [InlineData("-", 0)]
     [InlineData("37104", 37104)]
     [InlineData("12.5", 12.5)]
+    [InlineData("1200000", 1200000)]
     public void Zero_do_ibge_vira_zero_e_numero_vira_numero(string valor, decimal esperado) =>
-        SaneamentoDeTerritorio.AreaDoSidra(valor).Should().Be(esperado);
+        SaneamentoDeTerritorio.MedidaDoSidra(valor).Should().Be(esperado);
 
     [Theory]
     [InlineData("...")]
     [InlineData("..")]
     [InlineData("X")]
     public void Dado_nao_disponivel_ou_sigiloso_vira_nulo_e_nunca_zero(string valor) =>
-        SaneamentoDeTerritorio.AreaDoSidra(valor).Should().BeNull();
+        SaneamentoDeTerritorio.MedidaDoSidra(valor).Should().BeNull();
+
+    [Fact]
+    public void Variavel_que_nao_veio_na_resposta_tambem_e_nula()
+    {
+        // NULO NA ENTRADA É OUTRA COISA: não é o "..." do IBGE (existe e não foi divulgado), é o
+        // SIDRA não ter trazido a variável naquele lote. As duas viram nulo, e nenhuma vira zero.
+        SaneamentoDeTerritorio.MedidaDoSidra(null).Should().BeNull();
+    }
 
     [Fact]
     public void Simbolo_desconhecido_para_a_carga_em_vez_de_ser_adivinhado()
     {
-        var ler = () => SaneamentoDeTerritorio.AreaDoSidra("n/d");
+        var ler = () => SaneamentoDeTerritorio.MedidaDoSidra("n/d");
         ler.Should().Throw<FormatException>();
     }
 }

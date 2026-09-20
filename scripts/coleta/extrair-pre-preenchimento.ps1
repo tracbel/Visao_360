@@ -71,9 +71,9 @@ Gravar (Consultar "SELECT Codigo, Nome, DiasCicloClasseA, DiasCicloClasseB, Dias
 
 Gravar (Consultar @"
 SELECT TOP 15 a.ProdutoCodigoIbge, a.ProdutoNome, CAST(SUM(a.AreaPlantadaHectares) AS decimal(14, 0)) AS HectaresNaAdr
-FROM organizacao.AreaPlantadaNoMunicipio a
+FROM organizacao.ProducaoAgricolaNoMunicipio a
 JOIN organizacao.MunicipioDaAreaDeAtuacao d ON d.MunicipioId = a.MunicipioId AND d.PertenceAAdr = 1 AND d.EncerradoEm IS NULL
-WHERE a.Ano = (SELECT MAX(Ano) FROM organizacao.AreaPlantadaNoMunicipio)
+WHERE a.Ano = (SELECT MAX(Ano) FROM organizacao.ProducaoAgricolaNoMunicipio)
 GROUP BY a.ProdutoCodigoIbge, a.ProdutoNome
 ORDER BY SUM(a.AreaPlantadaHectares) DESC
 "@) 'culturas-na-adr.csv'

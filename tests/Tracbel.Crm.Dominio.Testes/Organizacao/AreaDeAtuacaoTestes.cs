@@ -123,35 +123,77 @@ public sealed class AreaDeAtuacaoTestes
     }
 
     // =============================================================================================
-    // Área plantada e regra de potencial
+    // Produção agrícola (PAM) e regra de potencial
     // =============================================================================================
 
+    /// <summary>As quatro medidas de um produto que existe e foi todo divulgado.</summary>
+    private static MedidasDaProducaoAgricola Medidas(
+        decimal? plantada = 70m, decimal? colhida = 68m, decimal? quantidade = 200m, decimal? valor = 1500m) =>
+        new(plantada, colhida, quantidade, valor);
+
     [Fact]
-    public void Area_nao_disponivel_e_nula_e_diferente_de_zero()
+    public void Medida_nao_disponivel_e_nula_e_diferente_de_zero()
     {
-        var naoDisponivel = AreaPlantadaNoMunicipio.Registrar(1, 2024, 40139, "Café (em grão) Total", null, 1, Agora);
-        var zero = AreaPlantadaNoMunicipio.Registrar(2, 2024, 40139, "Café (em grão) Total", 0m, 1, Agora);
+        var naoDisponivel = ProducaoAgricolaNoMunicipio.Registrar(
+            1, 2024, 40139, "Café (em grão) Total", Medidas(plantada: null), 1, Agora);
+        var zero = ProducaoAgricolaNoMunicipio.Registrar(
+            2, 2024, 40139, "Café (em grão) Total", Medidas(plantada: 0m), 1, Agora);
 
         naoDisponivel.AreaPlantadaHectares.Should().BeNull();
         zero.AreaPlantadaHectares.Should().Be(0m);
     }
 
     [Fact]
-    public void Reapurar_substitui_e_diz_se_mudou()
+    public void As_quatro_medidas_ficam_na_mesma_linha()
     {
-        var area = AreaPlantadaNoMunicipio.Registrar(1, 2024, 40139, "Café (em grão) Total", 70m, 1, Agora);
+        var producao = ProducaoAgricolaNoMunicipio.Registrar(
+            1, 2025, 40106, "Cana-de-açúcar", new(71500m, 71000m, 5_720_000m, 1_200_000m), 1, Agora);
 
-        area.Reapurar("Café (em grão) Total", 70m, 1, Agora).Should().BeFalse();
-        area.Reapurar("Café (em grão) Total", 90m, 2, Agora).Should().BeTrue();
-        area.ImportadoPorId.Should().Be(2, "quem conferiu por último passa a responder pelo carimbo");
-        area.AreaPlantadaHectares.Should().Be(90m);
+        producao.AreaPlantadaHectares.Should().Be(71500m);
+        producao.AreaColhidaHectares.Should().Be(71000m, "plantada e colhida são medidas diferentes (issue 83)");
+        producao.QuantidadeProduzidaToneladas.Should().Be(5_720_000m);
+        producao.ValorDaProducaoMilReais.Should().Be(1_200_000m, "o IBGE publica o valor em MIL reais");
     }
 
     [Fact]
-    public void Area_negativa_nao_existe()
+    public void Reapurar_substitui_e_diz_se_mudou()
     {
-        var registrar = () => AreaPlantadaNoMunicipio.Registrar(1, 2024, 40139, "Café", -1m, 1, Agora);
+        var producao = ProducaoAgricolaNoMunicipio.Registrar(
+            1, 2024, 40139, "Café (em grão) Total", Medidas(), 1, Agora);
+
+        producao.Reapurar("Café (em grão) Total", Medidas(), 1, Agora).Should().BeFalse();
+        producao.Reapurar("Café (em grão) Total", Medidas(plantada: 90m), 2, Agora).Should().BeTrue();
+        producao.ImportadoPorId.Should().Be(2, "quem conferiu por último passa a responder pelo carimbo");
+        producao.AreaPlantadaHectares.Should().Be(90m);
+
+        producao.Reapurar("Café (em grão) Total", Medidas(plantada: 90m, valor: 1600m), 2, Agora)
+            .Should().BeTrue("mudar só o valor da produção também é mudança");
+    }
+
+    [Fact]
+    public void Medida_negativa_nao_existe()
+    {
+        var registrar = () => ProducaoAgricolaNoMunicipio.Registrar(
+            1, 2024, 40139, "Café", Medidas(plantada: -1m), 1, Agora);
         registrar.Should().Throw<RegraDeNegocioViolada>();
+
+        var comValorNegativo = () => ProducaoAgricolaNoMunicipio.Registrar(
+            1, 2024, 40139, "Café", Medidas(valor: -1m), 1, Agora);
+        comValorNegativo.Should().Throw<RegraDeNegocioViolada>();
+    }
+
+    [Fact]
+    public void O_total_do_estado_exige_uma_uf_que_existe()
+    {
+        var saoPaulo = ProducaoAgricolaNoEstado.Registrar(
+            35, 2025, 40106, "Cana-de-açúcar", Medidas(plantada: 5_430_681m), 1, Agora);
+
+        saoPaulo.EstadoCodigoIbge.Should().Be(35);
+        saoPaulo.AreaPlantadaHectares.Should().Be(5_430_681m);
+
+        var inventada = () => ProducaoAgricolaNoEstado.Registrar(
+            99, 2025, 40106, "Cana-de-açúcar", Medidas(), 1, Agora);
+        inventada.Should().Throw<RegraDeNegocioViolada>("o código de UF do IBGE vai de 11 a 53");
     }
 
     [Fact]
