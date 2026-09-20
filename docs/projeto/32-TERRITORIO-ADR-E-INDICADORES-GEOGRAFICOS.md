@@ -1,6 +1,10 @@
 # Território, ADR e indicadores geográficos — cadastros, conciliação e o painel de mapas
 
-> **Documento 32** · Versão 1.5 · 14/09/2026 — a taxonomia de produto que faltava (§3.5) chegou pelo ART:
+> **Documento 32** · Versão 1.6 · 19/09/2026 — **a "área plantada" do mapa C era a área colhida**: o
+> leitor pedia a variável 216 do SIDRA em vez da 8331. Corrigido no código com teste que prende a
+> variável (§3.3 D-12 e §8.3); os dados já carregados no servidor continuam sendo área colhida até a
+> recarga autorizada.
+> Versão 1.5 · 14/09/2026 — a taxonomia de produto que faltava (§3.5) chegou pelo ART:
 > classificação de produto com porte nos filtros de equipamento, as vendas de máquina no banco local e a
 > gestão "Grandes Contas" preservada por venda, sem virar SAM/KAM (§3.4). Detalhe no **documento 35, §10**;
 > pendências P-31 a P-39.
@@ -267,6 +271,7 @@ R-14 = O-20, R-15 = O-35, R-18 = O-30.
 | D-9 | Nota sem cliente no CRM fora do total dos mapas — achado na revisão | R$ 320,6 mi de 12 meses sumiam da conta | corrigido, §8.5.4 |
 | D-10 | A recarga do Vórtice devolvia 78 endereços corrigidos para a grafia cortada | a correção dependia de alguém rodar a carga do território depois | corrigido, §4.6.1 |
 | D-11 | **A filial vem do cabeçalho e não é conferida contra o usuário** — anterior a esta entrega, achado na 3ª revisão. Com o Entra ID ligado ou desligado, qualquer usuário autenticado escolhe qualquer filial ativa | vê clientes, vendas e cobertura de outra filial; somando as 13, reconstrói quase toda a visão da empresa sem `Empresa.AlcanceEntreFiliais` | **não corrigido**: restringir exige decidir quais filiais cada pessoa atende (P-20) |
+| D-12 | **A "área plantada" era a área colhida** — o leitor do IBGE pedia a variável 216 ("Área colhida") da tabela 5457 e chamava o resultado de área plantada; a variável certa é a **8331** ("Área plantada ou destinada à colheita") | o mapa C e a métrica `potencialDosNaoClientes` saem **subestimados** onde há plantio novo: em cultura perene (café, laranja) a área colhida fica abaixo da plantada enquanto o cafezal ou o pomar não produz | **código corrigido** em 19/09/2026 (issue 83) com teste que prende a variável, §8.3; **as 45.582 linhas carregadas no servidor em 14/09/2026 continuam sendo área colhida** até a recarga do território, que depende de publicação autorizada |
 
 ### 3.4 SAM, KAM e Varejo: não existe classificação por cliente [medido]
 
@@ -738,13 +743,40 @@ coluna: nasce da migração, com a origem escrita.
 
 | | |
 |---|---|
-| Base | área plantada da PAM/IBGE (tabela SIDRA 5457), último ano publicado |
+| Base | área plantada da PAM/IBGE — tabela SIDRA **5457**, variável **8331** ("Área plantada ou destinada à colheita"), último ano publicado |
 | Regra | cada `RegraDePotencial` ativa: `máquinas teóricas = área do produto ÷ hectares por máquina` |
 | Hoje | 1 regra: café (em grão) total, 3036N, 10 ha — **a confirmar** |
 | O que é | necessidade teórica de frota da **região inteira**, não venda anual e não valor em reais |
 | O que não é | potencial de cliente, de não cliente, ajustado por ciclo de troca, parque ou concorrência |
 | Zero × sem dado | IBGE "-" = 0; "..." e "X" = não disponível (hachurado) |
 | Limite | uma cultura só; cana (a maior área da ADR) sem regra |
+
+**A variável, e por que ela é citada aqui (D-12, corrigido em 19/09/2026).** Até a issue 83 o leitor
+pedia a variável **216**, que é a **área colhida**, e gravava o resultado como área plantada. As duas
+só coincidem em lavoura temporária bem-sucedida: em cultura perene a colhida fica abaixo da plantada
+enquanto o cafezal ou o pomar novo não produz, e uma frustração de safra derruba a colhida sem mudar o
+que foi plantado. O efeito é um mapa C **subestimado justamente onde há plantio novo**. O código já pede
+a 8331, com teste que prende a variável (`LeitorDoIbgeTestes`); **os dados que estão no servidor desde
+14/09/2026 ainda são área colhida** — passam a ser área plantada quando a carga do território rodar de
+novo, o que depende de publicação autorizada.
+
+**O tamanho do erro [medido em 19/09/2026]** — lido ao vivo do SIDRA (tabela 5457, PAM **2025**, que é
+o último ano publicado hoje; em 17/09/2026 a API recusou esta estação, e em 19/09 respondeu):
+
+| Recorte | Área plantada | Área colhida | Diferença |
+|---|---:|---:|---:|
+| São Paulo, 58 produtos (fora os agregados "Total") | 9.210.103 ha | 9.188.169 ha | 21.934 ha · **0,24%** |
+| Cana-de-açúcar, SP | 5.430.681 ha | 5.415.896 ha | 0,27% |
+| Café (em grão) total, SP | 195.640 ha | 193.599 ha | **1,04%** |
+| Laranja, SP | 348.223 ha | 347.958 ha | 0,08% |
+
+**No estado a diferença é pequena; no município, que é o recorte do mapa, não é.** Dos 470 municípios
+paulistas com cana, **8 perdem 5% ou mais** de área ao usar a colhida — Clementina cai de 10.500 para
+6.300 ha (40%) e Braúna de 8.500 para 5.100 ha (40%). No café, 4 dos 145 municípios: São Sebastião da
+Grama cai de 5.200 para 4.200 ha (19,2%) e Arandu de 1.000 para 800 ha (20%). Laranja: Araras, de 700
+para 450 ha (35,7%). Borracha: Junqueirópolis, de 808 para 570 ha (29,5%). É exatamente nessas cidades
+que o mapa C mostrava menos máquinas teóricas do que a área comporta. A recarga também avança o ano da
+PAM (o servidor carregou quando o último ano publicado era outro).
 
 **Para que serve a área plantada do IBGE, e para que não serve.** A PAM é a área plantada **por
 município**, estimada pelo IBGE. Ela serve para uma estimativa **regional**: quanto de café existe
