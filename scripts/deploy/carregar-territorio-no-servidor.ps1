@@ -51,10 +51,13 @@ $raiz = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if (-not (Test-Path (Join-Path $raiz 'src\Tracbel.Crm.Carga\Tracbel.Crm.Carga.csproj'))) {
     throw "Nao achei o codigo da carga em $raiz. Rode este script na estacao de desenvolvimento, dentro do repositorio tracbel-crm - nao no servidor."
 }
+# A VERSAO EXIGIDA E A DO global.json, e nao um numero escrito aqui: foi assim que esta checagem
+# ficou presa no 9 depois da migracao para o .NET 10 (issue 084) e so apareceu ao rodar a carga.
+$sdkExigido = ((Get-Content (Join-Path $raiz 'global.json') -Raw | ConvertFrom-Json).sdk.version -split '\.')[0]
 $sdks = @()
 if (Get-Command dotnet -ErrorAction SilentlyContinue) { $sdks = @(& dotnet --list-sdks) }
-if (-not ($sdks | Where-Object { $_ -match '^9\.' })) {
-    throw 'Esta maquina nao tem o SDK do .NET 9. Rode este script na estacao de desenvolvimento - nao no servidor.'
+if (-not ($sdks | Where-Object { $_ -match "^$sdkExigido\." })) {
+    throw "Esta maquina nao tem o SDK do .NET $sdkExigido (o que o global.json fixa). Rode este script na estacao de desenvolvimento - nao no servidor."
 }
 
 # AS PLANILHAS SAO PROCURADAS NA RAIZ DO REPOSITORIO quando o caminho nao vem. O nome de uma delas tem

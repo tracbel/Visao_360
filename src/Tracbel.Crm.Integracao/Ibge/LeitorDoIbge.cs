@@ -49,14 +49,44 @@ public sealed class LeitorDoIbge(HttpClient http)
     /// </summary>
     public const short VariavelDaAreaPlantada = 8331;
 
+    /// <summary>A classificação do SIDRA que lista os produtos da PAM.</summary>
+    public const short ClassificacaoDeProduto = 782;
+
     /// <summary>
-    /// A área plantada (variável <see cref="VariavelDaAreaPlantada"/>) de todos os produtos
-    /// (classificação 782), no último ano publicado, para todos os municípios de uma UF.
+    /// Os metadados da tabela 5457 — é deles que sai a lista de produtos.
+    ///
+    /// <para><b>Por que não uma lista fixa no código:</b> o IBGE acrescenta e renomeia produto, e uma
+    /// lista escrita aqui envelheceria em silêncio, exatamente como a cópia de municípios que o
+    /// comentário da classe já recusa.</para>
+    /// </summary>
+    public const string EnderecoDosMetadadosDaPam =
+        "https://servicodados.ibge.gov.br/api/v3/agregados/5457/metadados";
+
+    /// <summary>
+    /// Quantos produtos cabem numa consulta ao SIDRA.
+    ///
+    /// <para><b>O limite é de TAMANHO da resposta, e ele morde de verdade</b> (issue 95). Em
+    /// 20/09/2026 a consulta de um produto para os 645 municípios de São Paulo devolveu ~645 linhas;
+    /// com 10 produtos, 6.421 linhas e HTTP 200; com os 85 produtos da classificação — ~55 mil
+    /// valores — o SIDRA passou a responder <b>400 Bad Request</b>. A mesma URL funcionava em
+    /// 14/09/2026 e trouxe 45.582 linhas, então o teto mudou de lado de lá, não daqui.</para>
+    ///
+    /// <para>Vinte deixa cada consulta em torno de 13 mil linhas, com folga para o dia em que o IBGE
+    /// publicar mais município ou mais produto.</para>
+    /// </summary>
+    public const int ProdutosPorConsulta = 20;
+
+    /// <summary>
+    /// A área plantada (variável <see cref="VariavelDaAreaPlantada"/>) de um LOTE de produtos, no
+    /// último ano publicado, para todos os municípios de uma UF.
     /// </summary>
     /// <param name="codigoDaUf">O código IBGE da UF. São Paulo é 35.</param>
-    public static string EnderecoDaAreaPlantada(int codigoDaUf) =>
+    /// <param name="produtos">Os códigos dos produtos na classificação 782.</param>
+    public static string EnderecoDaAreaPlantada(int codigoDaUf, IEnumerable<int> produtos) =>
         $"https://apisidra.ibge.gov.br/values/t/{TabelaDaAreaPlantada}/n6/in%20n3%20{codigoDaUf}" +
-        $"/v/{VariavelDaAreaPlantada}/p/last%201/c782/allxt?formato=json";
+        $"/v/{VariavelDaAreaPlantada}/p/last%201/c{ClassificacaoDeProduto}/" +
+        string.Join(',', produtos) +
+        "?formato=json";
 
     /// <summary>A malha municipal de uma UF, em GeoJSON, na qualidade intermediária do IBGE.</summary>
     /// <param name="codigoDaUf">O código IBGE da UF.</param>
@@ -99,24 +129,56 @@ public sealed class LeitorDoIbge(HttpClient http)
     }
 
     /// <summary>
-    /// Lê a área plantada de uma UF. A primeira linha da resposta do SIDRA é o cabeçalho, e fica
-    /// de fora.
+    /// Os produtos da classificação 782, pelos metadados da tabela.
+    ///
+    /// <para><b>O "Total" fica de fora.</b> A categoria 0 é a soma dos demais; trazê-la junto
+    /// dobraria a área de cada município na hora de somar.</para>
+    /// </summary>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<IReadOnlyList<int>> LerProdutosDaPamAsync(CancellationToken ct)
+    {
+        await using var corpo = await http.GetStreamAsync(EnderecoDosMetadadosDaPam, ct);
+        using var documento = await JsonDocument.ParseAsync(corpo, cancellationToken: ct);
+
+        var classificacao = documento.RootElement.GetProperty("classificacoes").EnumerateArray()
+            .First(c => c.GetProperty("id").GetInt32() == ClassificacaoDeProduto);
+
+        return
+        [
+            .. classificacao.GetProperty("categorias").EnumerateArray()
+                .Select(c => c.GetProperty("id").GetInt32())
+                .Where(id => id != 0)
+        ];
+    }
+
+    /// <summary>
+    /// Lê a área plantada de uma UF, EM LOTES DE PRODUTO.
+    ///
+    /// <para><b>Por que em lotes:</b> pedir os 85 produtos de uma vez passou a devolver 400 no SIDRA
+    /// (issue 95) — são ~55 mil valores. Ver <see cref="ProdutosPorConsulta"/>.</para>
+    ///
+    /// <para>Cada resposta traz o próprio cabeçalho na primeira posição, e cada um fica de fora.</para>
     /// </summary>
     /// <param name="codigoDaUf">O código IBGE da UF.</param>
     /// <param name="ct">Cancelamento.</param>
     public async Task<IReadOnlyList<LinhaDaAreaPlantada>> LerAreaPlantadaAsync(int codigoDaUf, CancellationToken ct)
     {
-        await using var corpo = await http.GetStreamAsync(EnderecoDaAreaPlantada(codigoDaUf), ct);
-        using var documento = await JsonDocument.ParseAsync(corpo, cancellationToken: ct);
+        var produtos = await LerProdutosDaPamAsync(ct);
+        var linhas = new List<LinhaDaAreaPlantada>();
 
-        return
-        [
-            .. documento.RootElement.EnumerateArray().Skip(1).Select(l => new LinhaDaAreaPlantada(
+        foreach (var lote in produtos.Chunk(ProdutosPorConsulta))
+        {
+            await using var corpo = await http.GetStreamAsync(EnderecoDaAreaPlantada(codigoDaUf, lote), ct);
+            using var documento = await JsonDocument.ParseAsync(corpo, cancellationToken: ct);
+
+            linhas.AddRange(documento.RootElement.EnumerateArray().Skip(1).Select(l => new LinhaDaAreaPlantada(
                 int.Parse(l.GetProperty("D1C").GetString()!, CultureInfo.InvariantCulture),
                 short.Parse(l.GetProperty("D3C").GetString()!, CultureInfo.InvariantCulture),
                 int.Parse(l.GetProperty("D4C").GetString()!, CultureInfo.InvariantCulture),
                 l.GetProperty("D4N").GetString()!,
-                l.GetProperty("V").GetString()!))
-        ];
+                l.GetProperty("V").GetString()!)));
+        }
+
+        return linhas;
     }
 }
