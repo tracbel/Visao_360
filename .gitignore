@@ -55,6 +55,14 @@ publicacao/
 *.csv.local
 dados-locais/
 
+# Pasta de trabalho do potencial de mercado — DADO DA EMPRESA, NUNCA versionar.
+#
+# `360/` traz o protótipo com as entregas John Deere da Tracbel por município e uma coluna de CEN
+# por município, além de zips com CSV do SICOR e séries do CEPEA e da CONAB. As planilhas já caíam
+# no `*.xlsx`/`*.xls` acima; os zips não. O documento 48 guarda o inventário e a metodologia,
+# sem nome de pessoa e sem número interno.
+360/
+
 # Pasta que o PowerShell cria na raiz quando um objeto vira nome de caminho por engano
 # (ex.: "@{conectado=True; ...}") — já aconteceu em 13/09/2026 e pode carregar resposta da API.
 @{*}/

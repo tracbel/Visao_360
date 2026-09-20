@@ -429,11 +429,15 @@ public class SolidTestes
     // =========================================================================================
 
     /// <summary>Nomes dos projetos referenciados por um <c>.csproj</c>.</summary>
+    // Os .csproj escrevem "..\Projeto\Projeto.csproj", com barra invertida. O MSBuild aceita as duas
+    // barras em qualquer sistema, mas Path.GetFileNameWithoutExtension no Linux não reconhece "\" como
+    // separador e devolveria o caminho inteiro — o CI em Linux acusou toda referência como "extra"
+    // (issue #56). Trocar para "/" antes funciona nos dois sistemas.
     private static string[] ReferenciasDeProjeto(string caminhoDoCsproj) =>
         Regex.Matches(
                 File.ReadAllText(caminhoDoCsproj),
                 @"<ProjectReference\s+Include\s*=\s*""(?<caminho>[^""]+)""")
-            .Select(m => Path.GetFileNameWithoutExtension(m.Groups["caminho"].Value))
+            .Select(m => Path.GetFileNameWithoutExtension(m.Groups["caminho"].Value.Replace('\\', '/')))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
