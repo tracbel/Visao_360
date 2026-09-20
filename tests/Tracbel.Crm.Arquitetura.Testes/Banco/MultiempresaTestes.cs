@@ -66,9 +66,13 @@ public sealed class MultiempresaTestes
             var nome = tipo.ClrType.Name;
             if (CrmDbContext.FronteiraDeEmpresaJustificada.ContainsKey(nome)) continue;
 
-            var filtro = tipo.GetQueryFilter();
+            // `GetDeclaredQueryFilters()` e não `GetQueryFilter()`: o EF Core 10 aposentou o segundo
+            // porque uma entidade passou a poder ter MAIS DE UM filtro global, cada um com nome. A
+            // pergunta deste teste não muda — "existe filtro, e ele cita a coluna de empresa?" —,
+            // só passa a valer para o conjunto.
+            var filtros = tipo.GetDeclaredQueryFilters();
 
-            if (filtro is null)
+            if (filtros.Count == 0)
             {
                 semFiltro.Add(nome);
                 continue;
@@ -77,7 +81,8 @@ public sealed class MultiempresaTestes
             // Ter filtro não basta: ele precisa filtrar POR EMPRESA. Um filtro que só
             // escondesse o excluído logicamente passaria pela checagem de existência e
             // deixaria a fronteira aberta do mesmo jeito.
-            if (!filtro.Body.ToString().Contains(ColunaDeEmpresa, StringComparison.Ordinal))
+            if (!filtros.Any(f => f.Expression is { } e
+                                  && e.Body.ToString().Contains(ColunaDeEmpresa, StringComparison.Ordinal)))
                 comFiltroQueNaoCitaAColuna.Add(nome);
         }
 
@@ -103,8 +108,9 @@ public sealed class MultiempresaTestes
         // pior do que não ter escape nenhum, porque parece que funcionou.
         var semEscape = ComColunaDeEmpresa()
             .Where(t => !CrmDbContext.FronteiraDeEmpresaJustificada.ContainsKey(t.ClrType.Name))
-            .Where(t => t.GetQueryFilter() is { } f
-                        && !f.Body.ToString().Contains("_alcanceEntreEmpresas", StringComparison.Ordinal))
+            .Where(t => t.GetDeclaredQueryFilters() is { Count: > 0 } filtros
+                        && !filtros.Any(f => f.Expression is { } e
+                                             && e.Body.ToString().Contains("_alcanceEntreEmpresas", StringComparison.Ordinal)))
             .Select(t => t.ClrType.Name)
             .ToList();
 

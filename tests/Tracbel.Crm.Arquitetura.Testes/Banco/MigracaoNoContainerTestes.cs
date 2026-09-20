@@ -191,9 +191,11 @@ public sealed class MigracaoNoContainerTestes
         // [V] O Vórtice tem ZERO restrições de verificação em 767 tabelas, e é por isso que
         // FINALIZADO (18.416 linhas) convive com FINALIZADA (11.563) e 437.694 processos estão
         // com o status em branco. Este teste prova que, aqui, o banco recusa — não a tela.
-        var gravar = () => contexto.Database.ExecuteSqlRaw(
-            InserirNoCatalogoDeCultura("SOJA", "Soja", 1) +
-            InserirNoCatalogoDeCultura("SOJA2", "SOJA", 2));
+        var gravar = () =>
+        {
+            InserirNoCatalogoDeCultura(contexto, "SOJA", "Soja", 1);
+            InserirNoCatalogoDeCultura(contexto, "SOJA2", "SOJA", 2);
+        };
 
         // 'Soja' e 'SOJA' são o MESMO rótulo sob a colação sem caixa: o índice único do
         // catálogo recusa o segundo. É a garantia estrutural que mata a classe de defeito
@@ -222,9 +224,11 @@ public sealed class MigracaoNoContainerTestes
         // Até a auditoria do documento 21 (achado I-2) essa propriedade não era exercitada em
         // lugar nenhum do conjunto de testes: o teste de caixa passaria igual sob a colação
         // errada. Este aqui não passa.
-        var gravar = () => contexto.Database.ExecuteSqlRaw(
-            InserirNoCatalogoDeCultura("SOJA", "Soja", 1) +
-            InserirNoCatalogoDeCultura("SOJA_ACENTO", "Sója", 2));
+        var gravar = () =>
+        {
+            InserirNoCatalogoDeCultura(contexto, "SOJA", "Soja", 1);
+            InserirNoCatalogoDeCultura(contexto, "SOJA_ACENTO", "Sója", 2);
+        };
 
         gravar.Should().Throw<SqlException>()
             .Which.Number.Should().BeOneOf([2601, 2627],
@@ -236,14 +240,17 @@ public sealed class MigracaoNoContainerTestes
 
     /// <summary>
     /// Um <c>INSERT</c> no catálogo de sistema <c>CULTURA</c>, que a migração já semeou.
-    /// A descrição vai como literal <c>nvarchar</c> (<c>N'...'</c>) porque é onde o acento
-    /// deste teste mora — sem o <c>N</c>, o servidor converteria para a página de código e o
-    /// teste mediria outra coisa.
+    ///
+    /// <para><b>SQL parametrizado</b> (<c>ExecuteSql</c>, e não <c>ExecuteSqlRaw</c> com texto
+    /// montado): o analisador EF1003, que chegou com o EF Core 10, recusa concatenação em SQL cru —
+    /// e com razão. O parâmetro também resolve melhor o que este teste mede: o cliente manda texto
+    /// como <c>nvarchar</c>, então o acento de "Sója" chega intacto sem depender do prefixo
+    /// <c>N'...'</c> no literal.</para>
     /// </summary>
-    private static string InserirNoCatalogoDeCultura(string codigo, string descricao, int ordem) => $@"
-        INSERT INTO metadado.CatalogoItem (CatalogoId, Codigo, Descricao, Ordem, ExigeObservacao, EstaAtivo)
-        VALUES ({CatalogosDeSistema.Cultura}, '{codigo}', N'{descricao}', {ordem}, 0, 1);
-";
+    private static int InserirNoCatalogoDeCultura(CrmDbContext contexto, string codigo, string descricao, int ordem) =>
+        contexto.Database.ExecuteSql(
+            $@"INSERT INTO metadado.CatalogoItem (CatalogoId, Codigo, Descricao, Ordem, ExigeObservacao, EstaAtivo)
+               VALUES ({CatalogosDeSistema.Cultura}, {codigo}, {descricao}, {ordem}, 0, 1);");
 
     [FatoSeHouverSqlServer]
     public void A_concorrencia_otimista_recusa_a_segunda_gravacao_em_cima_da_primeira()
