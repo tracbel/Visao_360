@@ -31,6 +31,23 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
+    <!--
+      AUDITORIA DE PACOTE NO RESTORE (issue 059).
+
+      `all` inclui a dependência TRANSITIVA, que é onde a vulnerabilidade costuma morar: quem chega
+      pelo pacote que o seu pacote arrasta não aparece em nenhum .csproj. `low` faz o NuGet RELATAR
+      tudo; quem decide o que barra é a linha seguinte.
+
+      Alto e crítico (NU1903, NU1904) viram erro pela regra geral "warning é erro" acima. Baixo e
+      moderado (NU1901, NU1902) ficam como aviso de propósito: barrar tudo travaria o repositório em
+      achados que muitas vezes não têm correção publicada, e o time aprenderia a ignorar o bloqueio —
+      que é o pior resultado possível. Eles aparecem na tabela do job `seguranca`.
+    -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902</WarningsNotAsErrors>
+
     <!-- Documentação XML obrigatória no código público (só nos projetos de src). -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 

@@ -168,24 +168,22 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      # Vulnerabilidades: só relatório até a #59. Os dois passos nunca derrubam o job.
+      # Vulnerabilidades: desde a #59 elas BARRAM, em alta e crítica. Baixa e moderada continuam
+      # aparecendo no resumo sem derrubar o job.
       - name: Instalar o .NET do global.json
         if: always()
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
-      - name: Pacotes .NET vulneráveis (relatório)
+      # O `dotnet restore` já falha sozinho em alta e crítica (NuGetAudit + "aviso é erro", no
+      # Directory.Build.props), e isso derruba o job `backend` primeiro. Este passo existe para
+      # dizer QUAL pacote, em tabela legível, e para barrar também quem passe pelo restore —
+      # dependência que só o modo transitivo vê, ou projeto fora da solução.
+      - name: Pacotes .NET vulneráveis
         if: always()
-        continue-on-error: true
-        run: |
-          dotnet restore Tracbel.Crm.sln
-          {
-            echo "## Pacotes .NET vulneráveis (relatório — bloqueio só depois da #59)"
-            echo '```text'
-            dotnet list Tracbel.Crm.sln package --vulnerable --include-transitive
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+        shell: pwsh
+        run: ./scripts/ci/conferir-vulneraveis.ps1 -Solucao Tracbel.Crm.sln
 
       - name: Instalar o Node do .nvmrc
         if: always()
@@ -193,14 +191,16 @@ jobs:
         with:
           node-version-file: src/Tracbel.Crm.Web/.nvmrc
 
-      - name: Pacotes npm vulneráveis (relatório)
+      # `--audit-level=high` já devolve código diferente de zero quando acha alta ou crítica: é o
+      # bloqueio. O relatório completo (inclusive moderada) vai para o resumo antes dele.
+      - name: Pacotes npm vulneráveis
         if: always()
-        continue-on-error: true
         working-directory: src/Tracbel.Crm.Web
         run: |
           {
-            echo "## Pacotes npm vulneráveis (relatório — bloqueio só depois da #59)"
+            echo "## Pacotes npm vulneráveis"
             echo '```text'
-            npm audit --package-lock-only --audit-level=high || true
+            npm audit --package-lock-only || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          npm audit --package-lock-only --audit-level=high
