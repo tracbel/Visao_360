@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Metadado;
+using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Persistencia;
@@ -66,6 +67,48 @@ public sealed class MigracaoNoContainerTestes
            "que a remoção também funciona em banco que nasce agora, e não só no que já existia");
 
         porSchema.Values.Sum().Should().Be(49);
+    }
+
+    [FatoSeHouverSqlServer]
+    public void A_regra_de_potencial_existe_depois_das_migracoes_e_repor_duas_vezes_nao_duplica()
+    {
+        // POR QUE ESTE TESTE EXISTE (issue 98). A regra é semente: nasce por `HasData` e a migração
+        // de 13/09/2026 a inseriu. A sanitização de 15/09 a apagou junto com a configuração herdada
+        // do Vórtice — e, como a migração já estava aplicada, o `HasData` não repõe nada. O servidor
+        // ficou com 54.570 linhas de área plantada e nenhuma regra: o mapa C não calculava.
+        //
+        // A migração `ReporSementeDaRegraDePotencial` repõe com `IF NOT EXISTS`. Rodá-la de novo num
+        // banco que já tem a linha não pode duplicar — é o que a segunda metade do teste prova.
+        using var contexto = CriarContexto();
+
+        contexto.Database.EnsureDeleted();
+        contexto.Database.Migrate();
+
+        var regras = contexto.RegrasDePotencial.Where(r => r.EstaAtiva).ToList();
+
+        regras.Should().HaveCount(1,
+            "sem regra ativa, o mapa C da Visão 360 mostra 'sem regra de potencial' e não calcula nada");
+        regras[0].ProdutoCodigoIbge.Should().Be(40139, "é o café (em grão) total da classificação 782");
+        regras[0].HectaresPorMaquina.Should().Be(10m);
+        regras[0].ModeloDeReferencia.Should().Be("3036N");
+        regras[0].Situacao.Should().Be(SituacaoDaRegraDePotencial.AConfirmar,
+            "a regra veio de uma frase do gerente comercial e ninguém a confirmou — a tela diz isso");
+
+        // A mesma migração, de novo, num banco que já tem a linha.
+        contexto.Database.ExecuteSql(
+            $"""
+             IF NOT EXISTS (SELECT 1 FROM organizacao.RegraDePotencial WHERE Id = 1)
+             BEGIN
+                 SET IDENTITY_INSERT organizacao.RegraDePotencial ON;
+                 INSERT INTO organizacao.RegraDePotencial
+                     (Id, ProdutoCodigoIbge, ProdutoNome, HectaresPorMaquina, ModeloDeReferencia,
+                      Situacao, Origem, InformadaEm, EstaAtiva)
+                 VALUES (1, 40139, N'Café (em grão) Total', 10.00, N'3036N', 'AConfirmar', N'reexecução', '2026-09-13', 1);
+                 SET IDENTITY_INSERT organizacao.RegraDePotencial OFF;
+             END
+             """);
+
+        contexto.RegrasDePotencial.Count().Should().Be(1, "repor duas vezes não duplica");
     }
 
     [FatoSeHouverSqlServer]

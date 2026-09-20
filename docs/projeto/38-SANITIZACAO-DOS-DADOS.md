@@ -222,3 +222,29 @@ de autorização explícita.
 | Municípios | 5.571 com código do IBGE; área de atuação, responsáveis e área plantada precisam ser recarregados quando o território for revisto |
 | Cópias de ensaio antigas | `TracbelCrmServidor`, `TracbelCrmServidorVazio` e `TracbelCrmEnsaioArt` continuam no contêiner de ensaio com os dados antigos, intocadas |
 | Dados de desenvolvimento | nenhum dado fictício foi criado; o conjunto pequeno e controlado fica para a próxima etapa |
+
+---
+
+## 11. O que esta limpeza ensinou — semente de sistema não é dado (20/09/2026)
+
+**Uma das tabelas apagadas não devia ter sido:** `organizacao.RegraDePotencial` entrou na lista como
+classe B, "configuração do território" (`sanitizar-dados-2026-09-15.sql:121`), junto com a
+configuração herdada do Vórtice. Só que ela **não veio do Vórtice**: é **semente do sistema**, criada
+por `HasData` na configuração do EF Core e inserida pela migração de 13/09/2026, a partir da frase do
+gerente comercial ("1 trator 3036N a cada 10 hectares de café").
+
+**O efeito só apareceu cinco dias depois**, quando o Ricardo abriu a tela de Indicadores Geográficos
+no servidor: o mapa de potencial dizia *"sem regra de potencial ativa"* e não calculava nada, mesmo
+com 54.570 linhas de área plantada recém-carregadas. E não se conserta sozinho: como a migração que
+semeia já está aplicada, o `HasData` **não repõe** — banco novo nasce com a regra, banco existente
+fica sem.
+
+**A regra que fica, para a próxima limpeza:**
+
+> Antes de apagar uma tabela, pergunte **de onde a linha veio**. Se ela nasce de `HasData` ou de
+> `InsertData` numa migração, ela é **estrutura** — apagá-la deixa o banco diferente do modelo, e o
+> EF Core não avisa. Se veio de carga, planilha ou sistema de origem, é **dado** e pode ir.
+
+**Como foi consertado:** a migração `ReporSementeDaRegraDePotencial` (issue #98) repõe a linha com
+`IF NOT EXISTS`, o que a torna idempotente — repõe onde falta, não duplica onde já está — e um teste
+de contêiner passou a exigir a regra ativa depois da cadeia inteira de migrações.
