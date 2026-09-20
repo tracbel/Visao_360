@@ -117,6 +117,25 @@ dotnet test --logger trx --results-directory TestResults
 
 Desenho e decisões: `docs/projeto/47-CI-CD.md`.
 
+---
+
+## Como contribuir
+
+A `main` não aceita push direto: ela só muda por **pull request com as três checagens verdes**
+(regra "main protegida", `.github/rulesets/`).
+
+1. **Branch** `tipo/ID-descricao-curta`, com o número da issue: `fix/083-area-plantada`,
+   `feat/032-info-tooltip`, `ci/058-regras-da-main`. Tipos: `feat`, `fix`, `docs`, `ci`,
+   `refactor`, `test`, `chore`.
+2. **Commits** em Conventional Commits, **em português**, explicando o *porquê* — a mensagem é
+   documentação: `fix(ibge): a área plantada volta a ser a área plantada (variável 8331)`.
+3. **PR** com o título no mesmo formato e o corpo pelo template, que já vem preenchido com as
+   perguntas certas (banco, riscos, rollback, segredos). **`Closes #N` fecha a issue no merge.**
+4. **Espere o CI.** Sem `backend`, `frontend` e `seguranca` verdes, não há botão de merge.
+5. **Comente na issue** o que foi feito, com número, e o que ficou pendente — nunca só omita.
+6. **Merge por squash** (o padrão): o título do PR vira a linha do commit e o corpo vira o corpo.
+   Merge commit fica para o PR cujos commits separados importam. A branch é apagada depois.
+
 **Portão de qualidade da fase 1** (documento 06): cobertura de domínio ≥ 90%, **cobertura de regra
 = 100%** (cada regra testada disparando *e não disparando*), matriz de autorização completa,
 e cinco usuários reais completando três tarefas sem ajuda.
