@@ -303,7 +303,9 @@ estabelecimentos em 2017, 56% com menos de 20 ha; 62.308 tratores em 2017, 74% c
 | `AreaTerritorialDoMunicipio` | área em km² com os três decimais do IBGE, com o ano da apuração | #65 |
 | `UsinaDeEtanol` | as usinas autorizadas pela ANP, com CNPJ, município e **capacidade de produção** (m³/dia) | #65 |
 | `RegraDePotencial` | hectares por máquina e modelo de referência; **1 regra: café, 3036N, 10 ha, "a confirmar"**; sem escritor | doc 32 §8.3; doc 46 |
-| Mapa C | máquinas teóricas = área ÷ hectares por máquina, só para a regra ativa | doc 32 §8.3 |
+| Mapa C | máquinas teóricas = área ÷ hectares por máquina, só para a regra ativa; **com alternador para área plantada e valor da produção da lavoura inteira** | doc 32 §8.3, §8.4; #103 |
+| Mapa D — estrutura agropecuária | tratores, densidade por mil km², propriedades, rebanho e usinas, com o ano de cada fonte | doc 32 §8.4; #103 |
+| Painel "O mercado da região" | parque, propriedades, valor da lavoura, usinas e rebanho, **com a fatia de São Paulo** | doc 32 §8.4; #103 |
 | Cartão "Conhecimento de mercado" | vendas perdidas registradas; "participação de mercado: sem dado" | painel executivo |
 | Leitor do IBGE | catálogo de municípios e a PAM em lotes de 10 produtos (`LeitorDoIbge.cs`); roda na carga, que o servidor pode agendar | doc 46 §4.7; #83, #95 |
 

@@ -222,6 +222,41 @@
   color: var(--text-primary);
 }
 
+/* Subtítulo de um bloco dentro do detalhe — as faixas de tamanho, as usinas. */
+.terr-detalhe-subtitulo {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/*
+ * O cabeçalho da seção de mercado, entre os dois painéis de indicadores.
+ *
+ * Ela existe porque os dois painéis medem coisas de naturezas diferentes: o de
+ * cima é a operação da Tracbel (cobertura, vendas), e o de baixo é o território
+ * como o IBGE e a ANP o descrevem. Sem a separação, "62 mil tratores" pareceria
+ * frota da Tracbel.
+ */
+.terr-secao-mercado {
+  margin: 22px 0 10px;
+}
+
+.terr-secao-titulo {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.terr-secao-subtitulo {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  max-width: 76ch;
+}
+
 .terr-numeros {
   display: grid;
   grid-template-columns: 1fr auto;

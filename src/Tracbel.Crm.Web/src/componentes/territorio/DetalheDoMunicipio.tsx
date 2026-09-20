@@ -1,14 +1,20 @@
 /**
- * O detalhe de um município: território, responsáveis por fonte, e os três
- * indicadores com a composição de cada um.
+ * O detalhe de um município: território, responsáveis por fonte, os indicadores
+ * com a composição de cada um, a lavoura inteira e o que já existe para
+ * mecanizar.
  *
  * AS DUAS PLANILHAS APARECEM LADO A LADO. Quando elas nomeiam CENs diferentes,
  * o aviso diz que há divergência e não escolhe: a atualidade de nenhuma das
  * duas está confirmada (documento 32, seção 4.3).
+ *
+ * CADA MEDIDA DIZ A FONTE E O ANO, porque os anos diferem muito: o Censo
+ * Agropecuário é de 2017, o rebanho é anual e a PAM tem três anos carregados.
+ * E "sigilo do IBGE" nunca vira zero — é ausência de divulgação, não medida.
  */
 
+import { Fragment } from 'react';
 import type { IndicadoresDoMunicipio, RegraDePotencialAplicada, ResponsavelDeclarado } from '../../tipos/territorio';
-import { reaisCompactos } from './escalas';
+import { reaisCompactos, reaisDaProducao } from './escalas';
 
 const FONTE: Record<ResponsavelDeclarado['fonte'], string> = {
   PlanilhaAreaDeAtuacao: 'Área de Atuação',
@@ -32,7 +38,7 @@ export function DetalheDoMunicipio({
   regras: RegraDePotencialAplicada[];
   aoFechar: () => void;
 }) {
-  const { cobertura, vendas } = municipio;
+  const { cobertura, vendas, estrutura } = municipio;
 
   return (
     <div className="card cad-cartao terr-detalhe" aria-live="polite">
@@ -194,8 +200,12 @@ export function DetalheDoMunicipio({
             const regra = regras.find((r) => r.produtoCodigoIbge === p.produtoCodigoIbge);
             return (
               <dl className="terr-numeros" key={p.produtoCodigoIbge}>
-                <dt>Área de {regra?.produtoNome ?? p.produtoCodigoIbge}</dt>
+                <dt>Área plantada de {regra?.produtoNome ?? p.produtoCodigoIbge}</dt>
                 <dd>{p.areaPlantadaHectares === null ? 'não disponível' : `${nº(p.areaPlantadaHectares)} ha`}</dd>
+                <dt>Área colhida da mesma cultura</dt>
+                <dd>{p.areaColhidaHectares === null ? 'não disponível' : `${nº(p.areaColhidaHectares)} ha`}</dd>
+                <dt>Valor da produção dela</dt>
+                <dd>{p.valorDaProducaoMilReais === null ? 'não disponível' : reaisDaProducao(p.valorDaProducaoMilReais)}</dd>
                 <dt>{regra ? `${regra.modeloDeReferencia} teóricos (1 a cada ${regra.hectaresPorMaquina} ha)` : 'Máquinas teóricas'}</dt>
                 <dd>
                   <strong>{p.maquinasTeoricas === null ? '—' : nº(p.maquinasTeoricas)}</strong>
@@ -203,7 +213,114 @@ export function DetalheDoMunicipio({
               </dl>
             );
           })}
-          <p className="cad-sub">Estimativa: área do município inteiro (IBGE), clientes e não clientes juntos, por uma regra a confirmar.</p>
+          <p className="cad-sub">
+            Estimativa: área do município inteiro (IBGE), clientes e não clientes juntos, por uma regra a confirmar.
+            Plantada e colhida são medidas diferentes — em cultura perene nova, a colhida fica abaixo.
+          </p>
+        </section>
+
+        {municipio.producao && (
+          <section>
+            <h3 className="terr-detalhe-titulo">A lavoura inteira ({municipio.producao.ano})</h3>
+            <dl className="terr-numeros">
+              <dt>Área plantada, todas as culturas</dt>
+              <dd>
+                {municipio.producao.areaPlantadaHectares === null
+                  ? 'não disponível'
+                  : `${nº(Math.round(municipio.producao.areaPlantadaHectares))} ha`}
+              </dd>
+              <dt>Área colhida</dt>
+              <dd>
+                {municipio.producao.areaColhidaHectares === null
+                  ? 'não disponível'
+                  : `${nº(Math.round(municipio.producao.areaColhidaHectares))} ha`}
+              </dd>
+              <dt>Valor da produção</dt>
+              <dd>
+                <strong>
+                  {municipio.producao.valorDaProducaoMilReais === null
+                    ? 'não disponível'
+                    : reaisDaProducao(municipio.producao.valorDaProducaoMilReais)}
+                </strong>
+              </dd>
+              <dt>Culturas com área divulgada</dt>
+              <dd>{nº(municipio.producao.culturasComArea)}</dd>
+            </dl>
+            <p className="cad-sub">
+              Produção Agrícola Municipal (IBGE). O valor é o que o município <strong>colhe</strong>, não o que a Tracbel
+              vende. A quantidade produzida não é somada entre culturas: o IBGE usa tonelada, mil frutos e mil cachos
+              conforme o produto.
+            </p>
+          </section>
+        )}
+
+        <section>
+          <h3 className="terr-detalhe-titulo">O que já existe para mecanizar</h3>
+          <dl className="terr-numeros">
+            <dt>Tratores{estrutura.anoDoCenso ? ` (Censo ${estrutura.anoDoCenso})` : ''}</dt>
+            <dd>
+              <strong>{estrutura.tratores === null ? 'sigilo do IBGE' : nº(estrutura.tratores)}</strong>
+            </dd>
+            <dt>Menos de 100 cv</dt>
+            <dd>{estrutura.tratoresAbaixoDe100Cv === null ? 'sigilo do IBGE' : nº(estrutura.tratoresAbaixoDe100Cv)}</dd>
+            <dt>De 100 cv e mais</dt>
+            <dd>{estrutura.tratoresDe100CvEMais === null ? 'sigilo do IBGE' : nº(estrutura.tratoresDe100CvEMais)}</dd>
+            <dt>Propriedades com trator</dt>
+            <dd>
+              {estrutura.estabelecimentosComTrator === null ? 'sigilo do IBGE' : nº(estrutura.estabelecimentosComTrator)}
+              {estrutura.estabelecimentos !== null && estrutura.estabelecimentosComTrator !== null
+                ? ` de ${nº(estrutura.estabelecimentos)}`
+                : ''}
+            </dd>
+            <dt>Área do município</dt>
+            <dd>
+              {estrutura.areaKm2 === null
+                ? 'não disponível'
+                : `${estrutura.areaKm2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} km²`}
+              {estrutura.tratoresPorMilKm2 !== null
+                ? ` · ${estrutura.tratoresPorMilKm2.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} tratores/mil km²`
+                : ''}
+            </dd>
+            <dt>Rebanho bovino{estrutura.anoDoRebanho ? ` (${estrutura.anoDoRebanho})` : ''}</dt>
+            <dd>{estrutura.bovinos === null ? 'não disponível' : `${nº(estrutura.bovinos)} cabeças`}</dd>
+          </dl>
+
+          {estrutura.faixasDeArea.length > 0 && (
+            <>
+              <h4 className="terr-detalhe-subtitulo">Propriedades por tamanho</h4>
+              <dl className="terr-numeros">
+                {estrutura.faixasDeArea.map((f) => (
+                  <Fragment key={f.ordem}>
+                    <dt>{f.rotulo}</dt>
+                    <dd>{f.estabelecimentos === null ? 'sigilo do IBGE' : nº(f.estabelecimentos)}</dd>
+                  </Fragment>
+                ))}
+              </dl>
+            </>
+          )}
+
+          <h4 className="terr-detalhe-subtitulo">Usinas de etanol</h4>
+          {estrutura.usinas.length === 0 ? (
+            <p className="cad-sub">
+              Nenhuma usina de etanol autorizada pela ANP aqui. Isso <strong>não</strong> prova que não há usina: a ANP
+              não enxerga quem produz só açúcar.
+            </p>
+          ) : (
+            <dl className="terr-numeros">
+              {estrutura.usinas.map((u) => (
+                <Fragment key={u.razaoSocial}>
+                  <dt>{u.razaoSocial}</dt>
+                  <dd>{u.capacidadeM3Dia === null ? 'capacidade não informada' : `${nº(u.capacidadeM3Dia)} m³/dia`}</dd>
+                </Fragment>
+              ))}
+            </dl>
+          )}
+
+          <p className="cad-sub">
+            O Censo Agropecuário é de {estrutura.anoDoCenso ?? '2017'} e o próximo sai em 2028 — o parque tem essa idade.
+            "Sigilo do IBGE" não é zero: ele oculta o número quando poucos estabelecimentos o compõem. As duas faixas de
+            potência não somam o total, porque o "Total" do IBGE é uma categoria ao lado delas.
+          </p>
         </section>
       </div>
     </div>
