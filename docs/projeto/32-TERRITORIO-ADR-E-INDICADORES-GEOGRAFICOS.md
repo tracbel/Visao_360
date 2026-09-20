@@ -1,6 +1,10 @@
 # Território, ADR e indicadores geográficos — cadastros, conciliação e o painel de mapas
 
-> **Documento 32** · Versão 1.8 · 20/09/2026 — **a PAM inteira, e um erro de ano na planilha do
+> **Documento 32** · Versão 1.9 · 20/09/2026 — **o quarto mapa**: a estrutura agropecuária (tratores,
+> propriedades, rebanho, densidade e usinas) e o painel "O mercado da região" chegaram à tela; o mapa
+> C ganhou alternador entre máquinas teóricas, área plantada e valor da produção (issues 65 e 103).
+> Detalhe em §8.4.
+> Versão 1.8 · 20/09/2026 — **a PAM inteira, e um erro de ano na planilha do
 > comercial**: a tabela passou a guardar as quatro medidas (área plantada, colhida, quantidade e
 > valor) e ganhou ao lado a linha do total do estado; ao conferir contra o protótipo, as colunas de
 > ÁREA dele mostraram-se rotuladas com um ano a mais, e a de valor, certa (issue 64). Detalhe em §8.3.1
@@ -846,6 +850,43 @@ estação — duas máquinas, um banco só; um arquivo numa delas não enxerga a
 vez de enfileirar**: medido em 20/09/2026, com a trava tomada por outra sessão, a carga parou em
 **4 segundos**, sem ler o IBGE e sem gravar nada. Enfileirar faria a segunda rodada esperar quatro
 minutos para depois refazer o que a primeira acabou de fazer.
+
+### 8.4 O quarto mapa — a estrutura agropecuária (issue 103)
+
+Os mapas A, B e C respondem sobre a **operação da Tracbel** (cobertura, vendas) e sobre a **lavoura**.
+Nenhum deles dizia o que já existe instalado no território. O mapa D preenche isso, com alternador
+entre cinco recortes:
+
+| Recorte | O que pinta | Fonte e ano |
+|---|---|---|
+| Tratores | o parque existente | Censo Agropecuário, **2017** |
+| Tratores / mil km² | a **densidade** — sem ela, o mapa de tratores é quase um mapa de tamanho do município | Censo ÷ área territorial |
+| Propriedades | estabelecimentos agropecuários | Censo Agropecuário, 2017 |
+| Rebanho bovino | cabeças | Pesquisa da Pecuária Municipal, **anual** |
+| Usinas de etanol | capacidade autorizada, em m³/dia | ANP, mensal |
+
+**O mapa C ganhou alternador junto:** máquinas teóricas (a cultura da regra), área plantada e valor
+da produção (a **lavoura inteira**, todas as culturas). São bases diferentes, e o rodapé do mapa diz
+isso ao trocar.
+
+**Três avisos que o dado obriga, e que a tela dá:**
+
+1. o Censo é de 2017 e o próximo sai em **2028** — o parque tem essa idade, e o rebanho ao lado dele
+   é de outro ano;
+2. **hachurado é sigilo do IBGE, não zero.** Em São Paulo, 79 linhas de tratores vêm ocultas porque
+   poucos estabelecimentos as compõem. E as faixas de potência **não somam o total**: o "Total" do
+   IBGE é uma categoria ao lado delas, e nem sempre é a soma — quando o sigilo esconde uma parte, o
+   total continua publicado;
+3. a ANP só enxerga usina de **etanol**: município sem usina na lista fica hachurado, porque a
+   ausência ali não prova ausência de usina.
+
+**O painel "O mercado da região"** fica entre os indicadores da operação e os mapas, e compara a
+região com São Paulo. O denominador é o **total publicado** pelo IBGE (`ProducaoAgricolaNoEstado`), e
+não a soma dos municípios — o valor municipal sigiloso entra nele sem aparecer embaixo.
+
+**A quantidade produzida não tem total, de propósito.** O IBGE publica cada produto na unidade dele
+— tonelada para grãos, **mil frutos** para laranja, **mil cachos** para banana. Somar isso daria um
+número sem unidade; ela aparece por produto, nunca agregada.
 
 **O tamanho do erro [medido em 19/09/2026]** — lido ao vivo do SIDRA (tabela 5457, PAM **2025**, que é
 o último ano publicado hoje; em 17/09/2026 a API recusou esta estação, e em 19/09 respondeu):

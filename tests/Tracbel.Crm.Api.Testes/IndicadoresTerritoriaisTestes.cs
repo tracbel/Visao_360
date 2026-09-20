@@ -85,13 +85,52 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
                 "CEN.EXEMPLO", SituacaoDoResponsavel.UsuarioIdentificado, 100, "43402", "CEN e Gestor por Municipio.xlsx", 2, 100, agora));
 
         // Ribeirão tem área, Serrana não foi divulgada e Jardinópolis é zero: os três casos que o
-        // indicador precisa distinguir. As demais medidas da PAM não entram no cálculo desta rota.
+        // indicador precisa distinguir.
         MedidasDaProducaoAgricola SoAreaPlantada(decimal? hectares) => new(hectares, null, null, null);
 
         db.ProducoesAgricolasNosMunicipios.AddRange(
-            ProducaoAgricolaNoMunicipio.Registrar(ribeirao.Id, 2024, 40139, "Café (em grão) Total", SoAreaPlantada(70m), 100, agora),
+            // O CAFÉ EM TRÊS LINHAS, como o IBGE o publica: o "Total" e os dois detalhados. A soma da
+            // lavoura tem de manter o total e descartar os outros dois — senão o café conta duas vezes.
+            ProducaoAgricolaNoMunicipio.Registrar(ribeirao.Id, 2024, 40139, "Café (em grão) Total", new(70m, 60m, 200m, 900m), 100, agora),
+            ProducaoAgricolaNoMunicipio.Registrar(ribeirao.Id, 2024, 40140, "Café (em grão) Arábica", new(50m, 40m, 150m, 700m), 100, agora),
+            ProducaoAgricolaNoMunicipio.Registrar(ribeirao.Id, 2024, 40141, "Café (em grão) Canephora", new(20m, 20m, 50m, 200m), 100, agora),
+            ProducaoAgricolaNoMunicipio.Registrar(ribeirao.Id, 2024, 40106, "Cana-de-açúcar", new(1_000m, 990m, 80_000m, 5_100m), 100, agora),
             ProducaoAgricolaNoMunicipio.Registrar(serrana.Id, 2024, 40139, "Café (em grão) Total", SoAreaPlantada(null), 100, agora),
             ProducaoAgricolaNoMunicipio.Registrar(jardinopolis.Id, 2024, 40139, "Café (em grão) Total", SoAreaPlantada(0m), 100, agora));
+
+        // O TOTAL DO ESTADO, que não é a soma dos municípios — é o denominador da comparação.
+        db.ProducoesAgricolasNosEstados.AddRange(
+            ProducaoAgricolaNoEstado.Registrar(35, 2024, 40139, "Café (em grão) Total", new(700m, 600m, 2_000m, 9_000m), 100, agora),
+            ProducaoAgricolaNoEstado.Registrar(35, 2024, 40106, "Cana-de-açúcar", new(9_300m, 9_200m, 800_000m, 51_000m), 100, agora));
+
+        // A ESTRUTURA. Ribeirão tem tudo; Serrana tem o total de tratores mas as faixas sob sigilo —
+        // é o caso que prova que nulo não vira zero.
+        db.FrotasDeTratoresNosMunicipios.AddRange(
+            FrotaDeTratoresNoMunicipio.Registrar(ribeirao.Id, 2017, 113521, "Total", 172, 450, 100, agora),
+            FrotaDeTratoresNoMunicipio.Registrar(ribeirao.Id, 2017, 113522, "Menos de 100 cv", 169, 300, 100, agora),
+            FrotaDeTratoresNoMunicipio.Registrar(ribeirao.Id, 2017, 113523, "De 100 cv e mais", 60, 150, 100, agora),
+            FrotaDeTratoresNoMunicipio.Registrar(serrana.Id, 2017, 113521, "Total", 20, 35, 100, agora),
+            FrotaDeTratoresNoMunicipio.Registrar(serrana.Id, 2017, 113522, "Menos de 100 cv", null, null, 100, agora));
+
+        db.EstabelecimentosPorAreaNosMunicipios.AddRange(
+            EstabelecimentosPorAreaNoMunicipio.Registrar(ribeirao.Id, 2017, 110085, "Total", 655, 100, agora),
+            EstabelecimentosPorAreaNoMunicipio.Registrar(ribeirao.Id, 2017, 111553, "De 20 a menos de 50 ha", 13, 100, agora),
+            // As DUAS categorias que a faixa "mais de 2.500 ha" do comercial soma.
+            EstabelecimentosPorAreaNoMunicipio.Registrar(ribeirao.Id, 2017, 41139, "De 2.500 a menos de 10.000 ha", 4, 100, agora),
+            EstabelecimentosPorAreaNoMunicipio.Registrar(ribeirao.Id, 2017, 40645, "De 10.000 ha e mais", 1, 100, agora),
+            EstabelecimentosPorAreaNoMunicipio.Registrar(serrana.Id, 2017, 110085, "Total", 90, 100, agora));
+
+        // O REBANHO É DE OUTRO ANO — 2024 contra 2017 do Censo. A tela precisa dizer qual é qual.
+        db.RebanhosNosMunicipios.Add(
+            RebanhoNoMunicipio.Registrar(ribeirao.Id, 2024, 2670, "Bovino", 3_000, 100, agora));
+
+        db.AreasTerritoriaisDosMunicipios.AddRange(
+            AreaTerritorialDoMunicipio.Registrar(ribeirao.Id, 2022, 650.916m, 100, agora),
+            AreaTerritorialDoMunicipio.Registrar(serrana.Id, 2022, 125.000m, 100, agora));
+
+        // Ribeirão tem usina; Jardinópolis não — e "não ter" é hachurado, não zero.
+        db.UsinasDeEtanol.Add(UsinaDeEtanol.Registrar(
+            "12345678000199", "USINA DE TESTE S/A", ribeirao.Id, new DateOnly(2026, 7, 1), 700, 1_300, 100, agora));
 
         var carteiraComCadencia = Carteira.Criar(1, comCadencia.Id, "MAQ_TESTE_01", "Máquinas RP", 100, 100);
         var carteiraSemCadencia = Carteira.Criar(1, semCadencia.Id, "PECAS_TESTE_01", "Peças RP", 100, 100);
@@ -252,6 +291,134 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
             "70 ha de café a 1 máquina a cada 10 ha");
         Municipio(dados, Serrana).GetProperty("potencial")[0].GetProperty("maquinasTeoricas").ValueKind.Should().Be(JsonValueKind.Null);
         Municipio(dados, Jardinopolis).GetProperty("potencial")[0].GetProperty("maquinasTeoricas").GetDecimal().Should().Be(0m);
+    }
+
+    // =============================================================================================
+    // O que a carga de #64 e #65 trouxe, e que a tela precisa mostrar (issue 103)
+    // =============================================================================================
+
+    [Fact]
+    public async Task O_potencial_leva_a_area_colhida_e_o_valor_da_MESMA_cultura()
+    {
+        // A tela alterna entre máquinas teóricas, área e valor. As três precisam vir da mesma linha
+        // da PAM, senão o balão mostraria a área do café ao lado do valor da lavoura inteira.
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var cafe = Municipio(dados, RibeiraoPreto).GetProperty("potencial")[0];
+
+        cafe.GetProperty("areaPlantadaHectares").GetDecimal().Should().Be(70m);
+        cafe.GetProperty("areaColhidaHectares").GetDecimal().Should().Be(60m,
+            "plantada e colhida são medidas diferentes — em cultura perene nova a colhida fica abaixo");
+        cafe.GetProperty("valorDaProducaoMilReais").GetDecimal().Should().Be(900m);
+    }
+
+    [Fact]
+    public async Task A_lavoura_do_municipio_soma_as_culturas_e_conta_o_cafe_UMA_vez()
+    {
+        // O DEFEITO QUE ESTE TESTE IMPEDE: a classificação 782 traz "Café Total" ao lado de Arábica e
+        // Canephora. Somar os três contaria o café duas vezes — 70 + 50 + 20 em vez de 70.
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var producao = Municipio(dados, RibeiraoPreto).GetProperty("producao");
+
+        producao.GetProperty("areaPlantadaHectares").GetDecimal().Should().Be(1_070m,
+            "1.000 ha de cana + 70 de café Total; Arábica e Canephora ficam de fora da soma");
+        producao.GetProperty("areaColhidaHectares").GetDecimal().Should().Be(1_050m);
+        producao.GetProperty("valorDaProducaoMilReais").GetDecimal().Should().Be(6_000m, "5.100 de cana + 900 de café");
+        producao.GetProperty("culturasComArea").GetInt32().Should().Be(2, "cana e café Total");
+        producao.GetProperty("ano").GetInt32().Should().Be(2024);
+
+        producao.TryGetProperty("quantidadeProduzida", out _).Should().BeFalse(
+            "quantidade não tem total: o IBGE usa tonelada, mil frutos e mil cachos conforme o produto");
+    }
+
+    [Fact]
+    public async Task A_estrutura_traz_o_parque_as_propriedades_o_rebanho_a_area_e_as_usinas()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var e = Municipio(dados, RibeiraoPreto).GetProperty("estrutura");
+
+        e.GetProperty("anoDoCenso").GetInt32().Should().Be(2017, "o Censo Agropecuário só sai de novo em 2028");
+        e.GetProperty("tratores").GetInt32().Should().Be(450);
+        e.GetProperty("tratoresAbaixoDe100Cv").GetInt32().Should().Be(300);
+        e.GetProperty("tratoresDe100CvEMais").GetInt32().Should().Be(150);
+        e.GetProperty("estabelecimentosComTrator").GetInt32().Should().Be(172);
+        e.GetProperty("estabelecimentos").GetInt32().Should().Be(655);
+
+        e.GetProperty("anoDoRebanho").GetInt32().Should().Be(2024,
+            "a Pesquisa da Pecuária Municipal é ANUAL, e o ano dela não é o do Censo");
+        e.GetProperty("bovinos").GetInt32().Should().Be(3_000);
+
+        e.GetProperty("areaKm2").GetDecimal().Should().Be(650.916m, "os três decimais que o IBGE publica");
+        e.GetProperty("tratoresPorMilKm2").GetDecimal().Should().Be(691.3m, "450 tratores em 650,916 km²");
+
+        var usinas = e.GetProperty("usinas");
+        usinas.GetArrayLength().Should().Be(1);
+        usinas[0].GetProperty("razaoSocial").GetString().Should().Be("USINA DE TESTE S/A");
+        usinas[0].GetProperty("capacidadeM3Dia").GetInt32().Should().Be(2_000, "700 de anidro + 1.300 de hidratado");
+        e.GetProperty("capacidadeDeEtanolM3Dia").GetInt32().Should().Be(2_000);
+    }
+
+    [Fact]
+    public async Task Sigilo_do_ibge_chega_nulo_e_nao_zero()
+    {
+        // Serrana tem o TOTAL de tratores divulgado e a faixa "menos de 100 cv" sob sigilo. Gravar o
+        // sigilo como zero diria que a cidade não tem trator pequeno — quando só não foi divulgado.
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var e = Municipio(dados, Serrana).GetProperty("estrutura");
+
+        e.GetProperty("tratores").GetInt32().Should().Be(35);
+        e.GetProperty("tratoresAbaixoDe100Cv").ValueKind.Should().Be(JsonValueKind.Null, "sigilo não é zero");
+        e.GetProperty("tratoresDe100CvEMais").ValueKind.Should().Be(JsonValueKind.Null, "a faixa nem veio");
+        e.GetProperty("bovinos").ValueKind.Should().Be(JsonValueKind.Null, "Serrana não tem linha de rebanho");
+        e.GetProperty("usinas").GetArrayLength().Should().Be(0, "sem usina não é capacidade zero");
+    }
+
+    [Fact]
+    public async Task A_faixa_de_mais_de_2500_ha_soma_as_DUAS_categorias_do_ibge()
+    {
+        // A planilha do comercial pára em "mais de 2.500 ha"; o IBGE divide isso em duas categorias.
+        // Quem reagrupa soma — e as 18 originais continuam no banco para qualquer outro corte.
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var faixas = Municipio(dados, RibeiraoPreto).GetProperty("estrutura").GetProperty("faixasDeArea");
+
+        faixas.GetArrayLength().Should().Be(9, "as nove faixas do vocabulário do comercial");
+
+        var grandes = faixas.EnumerateArray().Single(f => f.GetProperty("rotulo").GetString() == "Mais de 2.500 ha");
+        grandes.GetProperty("estabelecimentos").GetInt32().Should().Be(5, "4 de 2.500–10.000 mais 1 de 10.000+");
+
+        var vinteACinquenta = faixas.EnumerateArray().Single(f => f.GetProperty("rotulo").GetString() == "De 20 a 50 ha");
+        vinteACinquenta.GetProperty("estabelecimentos").GetInt32().Should().Be(13);
+
+        var semNenhuma = faixas.EnumerateArray().Single(f => f.GetProperty("rotulo").GetString() == "De 50 a 100 ha");
+        semNenhuma.GetProperty("estabelecimentos").ValueKind.Should().Be(JsonValueKind.Null,
+            "faixa sem nenhuma categoria divulgada é nula, não zero");
+    }
+
+    [Fact]
+    public async Task O_total_do_estado_vem_do_publicado_e_nao_da_soma_dos_municipios()
+    {
+        // É o denominador de "que fatia de São Paulo a região é". O valor municipal sigiloso entra no
+        // total do estado sem aparecer embaixo, então os dois números não coincidem — e é o publicado
+        // que a diretoria encontra em qualquer outra fonte.
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var estado = dados.GetProperty("indicadores").GetProperty("estado");
+
+        estado.GetProperty("ano").GetInt32().Should().Be(2024);
+        estado.GetProperty("areaPlantadaHectares").GetDecimal().Should().Be(10_000m, "9.300 de cana + 700 de café Total");
+        estado.GetProperty("valorDaProducaoMilReais").GetDecimal().Should().Be(60_000m);
+        estado.GetProperty("tratores").GetInt32().Should().Be(485, "450 de Ribeirão + 35 de Serrana");
+        estado.GetProperty("estabelecimentos").GetInt32().Should().Be(745, "655 + 90");
     }
 
     [Fact]

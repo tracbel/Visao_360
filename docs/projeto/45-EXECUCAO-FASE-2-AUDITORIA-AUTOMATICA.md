@@ -216,10 +216,19 @@ Gravação sem campo auditado continua exatamente como antes, sem transação a 
 Nada é engolido. Sem filial ou sem autor para a trilha, a exceção sobe com a mensagem dizendo o
 que falta, a transação é desfeita e o dado não é gravado — provado por teste.
 
-### 5.3 Retenção (D-10) não foi decidida
+### 5.3 Retenção (D-10) — **decidida em 20/09/2026: 18 meses**
 
-Continua a declarada na migração inicial: 18 meses disponíveis. A decisão é de Ricardo com o
-jurídico, e não foi tomada nesta fase.
+Ricardo confirmou o prazo que a migração inicial já declarava: **18 meses** de trilha disponível.
+Nada muda no que está gravado; o que a decisão fecha é o descarte do que passar disso.
+
+**Por que 18 meses, e não mais.** [V] O Vórtice guarda tudo desde sempre, e o log ocupa 42% do banco
+— 43,7 milhões de linhas sem política nenhuma. A trilha daqui responde "quem mudou o dono deste
+cliente?", uma pergunta que se faz sobre o passado recente; disputa de mais de um ano e meio se
+resolve por documento, não por log de CRM.
+
+**O que falta para aplicar** (fica na #40): escrever o prazo na `MS_Description` da partição e no
+documento 14, e o descarte por partição — que é barato justamente porque a tabela é particionada por
+mês (`TRUNCATE` de partição, sem `DELETE` linha a linha).
 
 ---
 
@@ -231,7 +240,7 @@ jurídico, e não foi tomada nesta fase.
 | uma execução de carga gera linhas com `Origem = Integracao` e o `SistemaId` certo | ✅ teste da consolidação (IBGE) e da origem declarada. **Nenhuma carga real foi executada**: IBGE e planilhas exigem rede e arquivos do comercial, o ART segue desabilitado e o Vórtice está congelado |
 | campo fora da política não gera linha | ✅ |
 | **p95 do `POST /api/v1/clientes` não piora mais que 10%** | ❌ **não atendido** — ver abaixo |
-| retenção (D-10) registrada na migração e no documento 14 | ⏸ **pendente** — a decisão D-10 não existe ainda |
+| retenção (D-10) registrada na migração e no documento 14 | ⏸ **decidida em 20/09/2026 — 18 meses** (§5.3); falta escrevê-la na `MS_Description` e no doc 14, na #40 |
 
 ### 6.1 O desempenho, medido
 
@@ -274,10 +283,12 @@ teste.
 
 1. **Decisão sobre o critério de desempenho** (§6.1).
 2. ~~**Commit.**~~ Feito em 16/09/2026 ("sim você fará o commit de cada fase"), com a mensagem
-   `feat(db): trilha de auditoria automática com origem da operação`. **Sem push.** O commit não
-   decide o desempenho nem publica: essas continuam sendo os itens 1 e 4.
-3. **D-10** — retenção da auditoria, com o jurídico.
-4. **Servidor.** A migration não foi aplicada ao banco central. Lá já existe trilha da carga do ART:
-   o caminho de preenchimento das linhas antigas foi ensaiado (§4.1).
+   `feat(db): trilha de auditoria automática com origem da operação`. Enviado ao remoto desde então.
+3. ~~**D-10** — retenção da auditoria.~~ **Decidida em 20/09/2026: 18 meses** (§5.3). Falta aplicá-la
+   à `MS_Description` da partição e ao documento 14 — é o que resta da #40.
+4. ~~**Servidor.**~~ **Feito em 20/09/2026:** a migração `AuditoriaComOrigemDaOperacao` foi aplicada
+   ao banco central, junto com a fase 1, com cópia de segurança conferida
+   (`TracbelCrm-antes-da-publicacao-20260920-124658.bak`). O que continua pendente lá é a **medida de
+   p95** e a conferência das 12 telas, ambas travadas pelo 401 do Entra ID — é o que resta da #51.
 5. **Evento de acesso (LGPD)** continua fora — a tabela saiu na fase 1 e a ficha da fase 2 não o
    incluía.

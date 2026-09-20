@@ -48,6 +48,83 @@ export type PotencialTerritorial = {
   produtoCodigoIbge: number;
   areaPlantadaHectares: number | null;
   maquinasTeoricas: number | null;
+  /** A área colhida do mesmo produto e ano — abaixo da plantada em cultura perene nova. */
+  areaColhidaHectares: number | null;
+  /** O valor da produção do mesmo produto e ano, em MIL reais. */
+  valorDaProducaoMilReais: number | null;
+};
+
+/**
+ * A lavoura inteira de um município, somando as culturas da PAM.
+ *
+ * A quantidade produzida NÃO tem total, e é de propósito: o IBGE publica cada
+ * produto na unidade dele (tonelada, mil frutos, mil cachos), e somar isso daria
+ * um número sem unidade. O café entra uma vez só — o "Total" fica, Arábica e
+ * Canephora saem da soma.
+ */
+export type ProducaoAgricolaDoMunicipio = {
+  ano: number;
+  areaPlantadaHectares: number | null;
+  areaColhidaHectares: number | null;
+  /** Em MIL reais, como o IBGE publica. */
+  valorDaProducaoMilReais: number | null;
+  culturasComArea: number;
+};
+
+/** Uma usina de etanol autorizada pela ANP. */
+export type UsinaDoMunicipio = {
+  razaoSocial: string;
+  /** Anidro + hidratado; nulo quando a ANP não informou nenhum dos dois. */
+  capacidadeM3Dia: number | null;
+};
+
+/** Os estabelecimentos numa faixa de tamanho, no vocabulário do comercial. */
+export type FaixaDeArea = {
+  ordem: number;
+  rotulo: string;
+  /** Nulo quando todas as faixas do IBGE que a compõem vieram sob sigilo. */
+  estabelecimentos: number | null;
+};
+
+/**
+ * O que já existe num município para mecanizar.
+ *
+ * Cada medida traz o ANO dela, porque as idades diferem muito: o Censo
+ * Agropecuário é de 2017 e só sai de novo em 2028; a Pesquisa da Pecuária
+ * Municipal é anual.
+ *
+ * Nulo é sigilo do IBGE, nunca zero. E somar as três faixas de potência conta o
+ * parque duas vezes: o "Total" é uma categoria ao lado das outras duas.
+ */
+export type EstruturaDoMunicipio = {
+  anoDoCenso: number | null;
+  tratores: number | null;
+  tratoresAbaixoDe100Cv: number | null;
+  tratoresDe100CvEMais: number | null;
+  estabelecimentosComTrator: number | null;
+  estabelecimentos: number | null;
+  faixasDeArea: FaixaDeArea[];
+  anoDoRebanho: number | null;
+  bovinos: number | null;
+  areaKm2: number | null;
+  usinas: UsinaDoMunicipio[];
+  /** Densidade do parque — sem ela, o mapa de tratores é quase um mapa de tamanho do município. */
+  tratoresPorMilKm2: number | null;
+  capacidadeDeEtanolM3Dia: number | null;
+};
+
+/**
+ * Os totais de São Paulo como o IBGE os publica — o denominador da comparação.
+ *
+ * Não é a soma dos municípios: o valor municipal sigiloso entra no total do
+ * estado sem aparecer embaixo.
+ */
+export type TotaisDoEstado = {
+  ano: number;
+  areaPlantadaHectares: number | null;
+  valorDaProducaoMilReais: number | null;
+  tratores: number | null;
+  estabelecimentos: number | null;
 };
 
 export type IndicadoresDoMunicipio = {
@@ -68,6 +145,9 @@ export type IndicadoresDoMunicipio = {
   potencial: PotencialTerritorial[];
   /** Os responsáveis das carteiras com vínculo aqui — a terceira fonte, ao lado das duas planilhas. */
   responsaveisPelasCarteiras: ResponsavelPelaCarteira[];
+  /** A lavoura inteira; nulo quando a PAM não foi carregada. */
+  producao: ProducaoAgricolaDoMunicipio | null;
+  estrutura: EstruturaDoMunicipio;
 };
 
 /** O responsável cadastrado de uma carteira comercial com clientes do município. */
@@ -117,6 +197,8 @@ export type IndicadoresTerritoriais = {
   enderecosComArea: number;
   /** A visão aplicada. */
   visao: VisaoTerritorial;
+  /** Os totais de São Paulo publicados pelo IBGE; nulo quando não carregados. */
+  estado: TotaisDoEstado | null;
 };
 
 /** Filial do cabeçalho, ou empresa inteira (só para quem tem a permissão). */

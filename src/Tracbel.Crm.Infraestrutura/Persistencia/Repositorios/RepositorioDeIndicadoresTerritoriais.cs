@@ -40,6 +40,67 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
     /// <summary>Grupo de quem ficou fora do recorte pedido — não é somado em lugar nenhum.</summary>
     private const int ForaDoFiltro = int.MinValue;
 
+    // =============================================================================================
+    // Os códigos do IBGE que esta consulta cita, com nome (issue 65)
+    // =============================================================================================
+
+    private const int CodigoDeSaoPaulo = 35;
+
+    /// <summary>"Bovino", na classificação 79 da Pesquisa da Pecuária Municipal.</summary>
+    private const int Bovino = 2670;
+
+    /// <summary>"Total", na classificação 12605 (potência dos tratores).</summary>
+    private const int PotenciaTotal = 113521;
+
+    /// <summary>"Menos de 100 cv".</summary>
+    private const int PotenciaAbaixoDe100Cv = 113522;
+
+    /// <summary>"De 100 cv e mais".</summary>
+    private const int PotenciaDe100CvEMais = 113523;
+
+    /// <summary>"Total", na classificação 220 (grupos de área total).</summary>
+    private const int GrupoDeAreaTotal = 110085;
+
+    /// <summary>
+    /// OS PRODUTOS QUE CONTARIAM DUAS VEZES numa soma de culturas.
+    ///
+    /// <para>A classificação 782 traz "Café (em grão) Total" (40139) ao lado de "Arábica" (40140) e
+    /// "Canephora" (40141), e os três vêm na mesma resposta do SIDRA. A soma mantém o total e
+    /// descarta os dois detalhados — é o mesmo critério da planilha do comercial, e é o que faz o
+    /// número da tela bater com o do IBGE.</para>
+    /// </summary>
+    private static readonly int[] ProdutosQueDuplicamNaSoma = [40140, 40141];
+
+    /// <summary>
+    /// AS FAIXAS DE TAMANHO NO VOCABULÁRIO DO COMERCIAL, e as categorias do IBGE que compõem cada uma.
+    ///
+    /// <para>O IBGE publica 18 faixas, e a planilha do comercial as agrupa em nove. As 18 ficam no
+    /// banco; este mapa é a leitura, e mudá-lo não pede recarga.</para>
+    ///
+    /// <para><b>A última faixa junta DUAS categorias do IBGE</b> — "de 2.500 a menos de 10.000 ha"
+    /// (41139) e "de 10.000 ha e mais" (40645) —, porque a planilha pára em "mais de 2.500".</para>
+    /// </summary>
+    private static readonly (string Rotulo, int[] Grupos)[] FaixasDoComercial =
+    [
+        ("Menos de 20 ha", [111543, 111544, 111545, 111546, 111547, 111548, 111549, 111550, 111551, 111552]),
+        ("De 20 a 50 ha", [111553]),
+        ("De 50 a 100 ha", [111554]),
+        ("De 100 a 200 ha", [111555]),
+        ("De 200 a 500 ha", [111556]),
+        ("De 500 a 1.000 ha", [111557]),
+        ("De 1.000 a 2.500 ha", [111558]),
+        ("Mais de 2.500 ha", [41139, 40645]),
+        ("Produtor sem área", [111560])
+    ];
+
+    /// <summary>O município que não tem nenhuma das cinco fontes carregadas.</summary>
+    private static readonly EstruturaDoMunicipio EstruturaVazia =
+        new(null, null, null, null, null, null, [], null, null, null, []);
+
+    /// <summary>As medidas de UMA cultura num município — o que o mapa C mostra no balão.</summary>
+    private readonly record struct MedidasDaCultura(
+        decimal? AreaPlantadaHectares, decimal? AreaColhidaHectares, decimal? ValorDaProducaoMilReais);
+
     private static readonly (int Grupo, string Codigo, string Descricao)[] GruposForaDoMapa =
     [
         (SemMunicipio, "SemMunicipio",
@@ -319,7 +380,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
 
         var produtos = regras.Select(r => r.ProdutoCodigoIbge).Distinct().ToList();
         var ano = await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking().MaxAsync(a => (short?)a.Ano, ct);
-        var areaPlantada = new Dictionary<(int Codigo, int Produto), decimal?>();
+        var daRegra = new Dictionary<(int Codigo, int Produto), MedidasDaCultura>();
 
         if (ano is not null && produtos.Count > 0)
         {
@@ -327,12 +388,59 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                     from linha in contexto.ProducoesAgricolasNosMunicipios.AsNoTracking()
                     join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
                     where linha.Ano == ano && produtos.Contains(linha.ProdutoCodigoIbge) && municipio.CodigoIbge != null
-                    select new { Codigo = municipio.CodigoIbge!.Value, linha.ProdutoCodigoIbge, linha.AreaPlantadaHectares })
+                    select new
+                    {
+                        Codigo = municipio.CodigoIbge!.Value,
+                        linha.ProdutoCodigoIbge,
+                        linha.AreaPlantadaHectares,
+                        linha.AreaColhidaHectares,
+                        linha.ValorDaProducaoMilReais
+                    })
                 .ToListAsync(ct);
 
             foreach (var linha in linhas)
-                areaPlantada[(linha.Codigo, linha.ProdutoCodigoIbge)] = linha.AreaPlantadaHectares;
+                daRegra[(linha.Codigo, linha.ProdutoCodigoIbge)] = new MedidasDaCultura(
+                    linha.AreaPlantadaHectares, linha.AreaColhidaHectares, linha.ValorDaProducaoMilReais);
         }
+
+        // -----------------------------------------------------------------------------------------
+        // A lavoura inteira: a soma de TODAS as culturas do município, no mesmo ano.
+        //
+        // O CAFÉ ENTRA UMA VEZ SÓ. A classificação 782 traz "Café (em grão) Total" ao lado de Arábica
+        // e Canephora, e os três na mesma resposta; somar os três contaria o café duas vezes. Ficam
+        // de fora os dois detalhados, e fica o total — o mesmo critério da planilha do comercial.
+        //
+        // A QUANTIDADE PRODUZIDA NÃO É SOMADA, de propósito: o IBGE publica cada produto na unidade
+        // dele (tonelada, mil frutos, mil cachos), e um total disso não teria unidade nenhuma.
+        // -----------------------------------------------------------------------------------------
+        var producao = new Dictionary<int, ProducaoAgricolaDoMunicipio>();
+
+        if (ano is not null)
+        {
+            var somas = await (
+                    from linha in contexto.ProducoesAgricolasNosMunicipios.AsNoTracking()
+                    join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
+                    where linha.Ano == ano
+                          && municipio.CodigoIbge != null
+                          && !ProdutosQueDuplicamNaSoma.Contains(linha.ProdutoCodigoIbge)
+                    group linha by municipio.CodigoIbge!.Value into porMunicipio
+                    select new
+                    {
+                        Codigo = porMunicipio.Key,
+                        Plantada = porMunicipio.Sum(l => l.AreaPlantadaHectares),
+                        Colhida = porMunicipio.Sum(l => l.AreaColhidaHectares),
+                        Valor = porMunicipio.Sum(l => l.ValorDaProducaoMilReais),
+                        Culturas = porMunicipio.Count(l => l.AreaPlantadaHectares > 0)
+                    })
+                .ToListAsync(ct);
+
+            foreach (var soma in somas)
+                producao[soma.Codigo] = new ProducaoAgricolaDoMunicipio(
+                    ano.Value, soma.Plantada, soma.Colhida, soma.Valor, soma.Culturas);
+        }
+
+        var estrutura = await LerEstruturaAsync(ct);
+        var totaisDoEstado = await LerTotaisDoEstadoAsync(ano, ct);
 
         // -----------------------------------------------------------------------------------------
         // A montagem: os municípios de SP da área de atuação ou com dado, depois dos filtros.
@@ -399,13 +507,19 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                 [
                     .. regras.Select(regra =>
                     {
-                        var hectares = areaPlantada.TryGetValue((codigo, regra.ProdutoCodigoIbge), out var valor) ? valor : null;
-                        var maquinas = regra.MaquinasTeoricas(hectares);
+                        var medidas = daRegra.GetValueOrDefault((codigo, regra.ProdutoCodigoIbge));
+                        var maquinas = regra.MaquinasTeoricas(medidas.AreaPlantadaHectares);
                         return new PotencialTerritorial(
-                            regra.ProdutoCodigoIbge, hectares, maquinas is { } m ? decimal.Round(m, 1) : null);
+                            regra.ProdutoCodigoIbge,
+                            medidas.AreaPlantadaHectares,
+                            maquinas is { } m ? decimal.Round(m, 1) : null,
+                            medidas.AreaColhidaHectares,
+                            medidas.ValorDaProducaoMilReais);
                     })
                 ],
-                ResponsaveisDe(acumulador)));
+                ResponsaveisDe(acumulador),
+                producao.GetValueOrDefault(codigo),
+                estrutura.GetValueOrDefault(codigo) ?? EstruturaVazia));
         }
 
         var foraDoMapa = GruposForaDoMapa
@@ -428,7 +542,182 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             foraDoMapa,
             await contexto.Enderecos.AsNoTracking().CountAsync(e => e.ExcluidoEm == null, ct),
             await contexto.Enderecos.AsNoTracking().CountAsync(e => e.ExcluidoEm == null && e.Hectares != null && e.CulturaId != null, ct),
-            consulta.Visao.ToString());
+            consulta.Visao.ToString(),
+            totaisDoEstado);
+    }
+
+    /// <summary>
+    /// O QUE JÁ EXISTE EM CADA MUNICÍPIO — parque, propriedades, rebanho, área e usinas (issue 65).
+    ///
+    /// <para><b>Cada fonte traz o ANO mais recente dela, e os anos não coincidem:</b> o Censo
+    /// Agropecuário é de 2017 e a Pesquisa da Pecuária Municipal é anual. Usar um ano só para as duas
+    /// esvaziaria a mais recente ou envelheceria a outra — por isso cada bloco descobre o seu.</para>
+    ///
+    /// <para>Tudo vem indexado pelo <b>código IBGE</b>, que é a chave que o mapa usa; município sem
+    /// código não entra, porque não tem polígono para colorir.</para>
+    /// </summary>
+    private async Task<Dictionary<int, EstruturaDoMunicipio>> LerEstruturaAsync(CancellationToken ct)
+    {
+        var anoDoCenso = await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking().MaxAsync(f => (short?)f.Ano, ct);
+        var anoDoRebanho = await contexto.RebanhosNosMunicipios.AsNoTracking().MaxAsync(r => (short?)r.Ano, ct);
+        var anoDaArea = await contexto.AreasTerritoriaisDosMunicipios.AsNoTracking().MaxAsync(a => (short?)a.Ano, ct);
+
+        var frota = anoDoCenso is null
+            ? []
+            : await (from linha in contexto.FrotasDeTratoresNosMunicipios.AsNoTracking()
+                     join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
+                     where linha.Ano == anoDoCenso && municipio.CodigoIbge != null
+                     select new
+                     {
+                         Codigo = municipio.CodigoIbge!.Value,
+                         linha.PotenciaCodigoIbge,
+                         linha.Tratores,
+                         linha.EstabelecimentosComTrator
+                     }).ToListAsync(ct);
+
+        var faixas = anoDoCenso is null
+            ? []
+            : await (from linha in contexto.EstabelecimentosPorAreaNosMunicipios.AsNoTracking()
+                     join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
+                     where linha.Ano == anoDoCenso && municipio.CodigoIbge != null
+                     select new { Codigo = municipio.CodigoIbge!.Value, linha.GrupoDeAreaCodigoIbge, linha.Estabelecimentos })
+                .ToListAsync(ct);
+
+        var rebanho = anoDoRebanho is null
+            ? []
+            : await (from linha in contexto.RebanhosNosMunicipios.AsNoTracking()
+                     join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
+                     where linha.Ano == anoDoRebanho && linha.RebanhoCodigoIbge == Bovino && municipio.CodigoIbge != null
+                     select new { Codigo = municipio.CodigoIbge!.Value, linha.Cabecas }).ToListAsync(ct);
+
+        var areas = anoDaArea is null
+            ? []
+            : await (from linha in contexto.AreasTerritoriaisDosMunicipios.AsNoTracking()
+                     join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
+                     where linha.Ano == anoDaArea && municipio.CodigoIbge != null
+                     select new { Codigo = municipio.CodigoIbge!.Value, linha.AreaKm2 }).ToListAsync(ct);
+
+        var usinas = await (from usina in contexto.UsinasDeEtanol.AsNoTracking()
+                            join municipio in contexto.Municipios.AsNoTracking() on usina.MunicipioId equals municipio.Id
+                            where municipio.CodigoIbge != null
+                            orderby usina.RazaoSocial
+                            select new
+                            {
+                                Codigo = municipio.CodigoIbge!.Value,
+                                usina.RazaoSocial,
+                                usina.CapacidadeDeAnidroM3Dia,
+                                usina.CapacidadeDeHidratadoM3Dia
+                            }).ToListAsync(ct);
+
+        var porCodigo = frota.Select(f => f.Codigo)
+            .Concat(faixas.Select(f => f.Codigo))
+            .Concat(rebanho.Select(r => r.Codigo))
+            .Concat(areas.Select(a => a.Codigo))
+            .Concat(usinas.Select(u => u.Codigo))
+            .Distinct();
+
+        var frotaPorCodigo = frota.ToLookup(f => f.Codigo);
+        var faixasPorCodigo = faixas.ToLookup(f => f.Codigo);
+        var rebanhoPorCodigo = rebanho.ToDictionary(r => r.Codigo, r => r.Cabecas);
+        var areaPorCodigo = areas.ToDictionary(a => a.Codigo, a => a.AreaKm2);
+        var usinasPorCodigo = usinas.ToLookup(u => u.Codigo);
+
+        var resultado = new Dictionary<int, EstruturaDoMunicipio>();
+
+        foreach (var codigo in porCodigo)
+        {
+            var linhasDaFrota = frotaPorCodigo[codigo].ToDictionary(f => f.PotenciaCodigoIbge);
+            var porGrupo = faixasPorCodigo[codigo].ToDictionary(f => f.GrupoDeAreaCodigoIbge, f => f.Estabelecimentos);
+
+            resultado[codigo] = new EstruturaDoMunicipio(
+                anoDoCenso,
+                linhasDaFrota.GetValueOrDefault(PotenciaTotal)?.Tratores,
+                linhasDaFrota.GetValueOrDefault(PotenciaAbaixoDe100Cv)?.Tratores,
+                linhasDaFrota.GetValueOrDefault(PotenciaDe100CvEMais)?.Tratores,
+                linhasDaFrota.GetValueOrDefault(PotenciaTotal)?.EstabelecimentosComTrator,
+                porGrupo.GetValueOrDefault(GrupoDeAreaTotal),
+                Reagrupar(porGrupo),
+                anoDoRebanho,
+                rebanhoPorCodigo.GetValueOrDefault(codigo),
+                areaPorCodigo.GetValueOrDefault(codigo),
+                [
+                    .. usinasPorCodigo[codigo].Select(u => new UsinaDoMunicipio(
+                        u.RazaoSocial,
+                        u.CapacidadeDeAnidroM3Dia is null && u.CapacidadeDeHidratadoM3Dia is null
+                            ? null
+                            : (u.CapacidadeDeAnidroM3Dia ?? 0) + (u.CapacidadeDeHidratadoM3Dia ?? 0)))
+                ]);
+        }
+
+        return resultado;
+    }
+
+    /// <summary>
+    /// As 18 faixas do IBGE nas que o comercial usa.
+    ///
+    /// <para><b>A conta é feita aqui, e não na carga</b>, porque o reagrupamento é uma escolha de
+    /// leitura: o banco guarda as faixas originais, e mudar este mapa não pede recarga nenhuma.</para>
+    ///
+    /// <para><b>Nulo quando TODAS as faixas de origem vieram sob sigilo</b> — e não zero. Somar
+    /// sigiloso como zero diria que não há propriedade daquele tamanho ali.</para>
+    /// </summary>
+    private static List<FaixaDeArea> Reagrupar(IReadOnlyDictionary<int, int?> porGrupo)
+    {
+        var faixas = new List<FaixaDeArea>(FaixasDoComercial.Length);
+
+        for (var i = 0; i < FaixasDoComercial.Length; i++)
+        {
+            var (rotulo, grupos) = FaixasDoComercial[i];
+            var presentes = grupos.Select(g => porGrupo.GetValueOrDefault(g)).Where(v => v is not null).ToList();
+
+            faixas.Add(new FaixaDeArea(
+                i + 1, rotulo, presentes.Count == 0 ? null : presentes.Sum(v => v!.Value)));
+        }
+
+        return faixas;
+    }
+
+    /// <summary>
+    /// Os totais de São Paulo — o denominador de "que fatia da cultura do estado está na região".
+    ///
+    /// <para><b>A lavoura vem do TOTAL PUBLICADO pelo IBGE</b> (<c>ProducaoAgricolaNoEstado</c>), que
+    /// não é a soma dos municípios: o valor municipal sigiloso entra nele sem aparecer embaixo. O
+    /// parque e as propriedades ainda não têm linha de estado carregada, e por isso são somados dos
+    /// municípios — o que os deixa ligeiramente abaixo do publicado onde há sigilo.</para>
+    /// </summary>
+    private async Task<TotaisDoEstado?> LerTotaisDoEstadoAsync(short? ano, CancellationToken ct)
+    {
+        if (ano is null) return null;
+
+        var lavoura = await contexto.ProducoesAgricolasNosEstados.AsNoTracking()
+            .Where(p => p.Ano == ano
+                        && p.EstadoCodigoIbge == CodigoDeSaoPaulo
+                        && !ProdutosQueDuplicamNaSoma.Contains(p.ProdutoCodigoIbge))
+            .GroupBy(p => p.EstadoCodigoIbge)
+            .Select(g => new
+            {
+                Plantada = g.Sum(p => p.AreaPlantadaHectares),
+                Valor = g.Sum(p => p.ValorDaProducaoMilReais)
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (lavoura is null) return null;
+
+        var anoDoCenso = await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking().MaxAsync(f => (short?)f.Ano, ct);
+
+        var tratores = anoDoCenso is null
+            ? null
+            : await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking()
+                .Where(f => f.Ano == anoDoCenso && f.PotenciaCodigoIbge == PotenciaTotal)
+                .SumAsync(f => (int?)f.Tratores, ct);
+
+        var estabelecimentos = anoDoCenso is null
+            ? null
+            : await contexto.EstabelecimentosPorAreaNosMunicipios.AsNoTracking()
+                .Where(e => e.Ano == anoDoCenso && e.GrupoDeAreaCodigoIbge == GrupoDeAreaTotal)
+                .SumAsync(e => (int?)e.Estabelecimentos, ct);
+
+        return new TotaisDoEstado(ano.Value, lavoura.Plantada, lavoura.Valor, tratores, estabelecimentos);
     }
 
     /// <summary>O grupo fora do mapa de cada natureza de contraparte sem cliente no CRM.</summary>

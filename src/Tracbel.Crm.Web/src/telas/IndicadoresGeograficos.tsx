@@ -25,13 +25,21 @@ import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
 import { DetalheDoMunicipio } from '../componentes/territorio/DetalheDoMunicipio';
 import {
+  FAIXAS_AREA_PLANTADA,
   FAIXAS_COBERTURA_PERCENTUAL,
+  FAIXAS_DENSIDADE_DE_TRATORES,
+  FAIXAS_ESTABELECIMENTOS,
   FAIXAS_PENDENCIA_PERCENTUAL,
   FAIXAS_PENDENCIA_QUANTIDADE,
   FAIXAS_POTENCIAL,
+  FAIXAS_REBANHO,
+  FAIXAS_TRATORES,
+  FAIXAS_USINAS,
+  FAIXAS_VALOR_DA_PRODUCAO,
   FAIXAS_VENDAS,
   faixaDe,
   reaisCompactos,
+  reaisDaProducao,
 } from '../componentes/territorio/escalas';
 import {
   LegendaDoMapa,
@@ -51,6 +59,12 @@ const LARGURA_DO_DESENHO = 520;
 
 type ModoDeCobertura = 'cobertura' | 'pendencia' | 'quantidade';
 type RecorteDeVendas = 'valorLiquido' | 'maquina' | 'posVenda';
+
+/** O que o mapa D pinta. Cada recorte vem de uma pesquisa diferente, com ano próprio. */
+type RecorteDaEstrutura = 'tratores' | 'densidade' | 'estabelecimentos' | 'rebanho' | 'usinas';
+
+/** O que o mapa C pinta: a regra, ou a lavoura que a sustenta. */
+type RecorteDoPotencial = 'maquinas' | 'areaPlantada' | 'valorDaProducao';
 
 const ROTULO_DE_COBERTURA: Record<ModoDeCobertura, string> = {
   cobertura: '% no prazo',
@@ -74,6 +88,48 @@ const ROTULO_DE_VENDAS: Record<RecorteDeVendas, string> = {
   valorLiquido: 'Total líquido',
   maquina: 'Máquina',
   posVenda: 'Pós-venda',
+};
+
+const ROTULO_DA_ESTRUTURA: Record<RecorteDaEstrutura, string> = {
+  tratores: 'Tratores',
+  densidade: 'Tratores / mil km²',
+  estabelecimentos: 'Propriedades',
+  rebanho: 'Rebanho bovino',
+  usinas: 'Usinas de etanol',
+};
+
+const FAIXAS_DA_ESTRUTURA = {
+  tratores: FAIXAS_TRATORES,
+  densidade: FAIXAS_DENSIDADE_DE_TRATORES,
+  estabelecimentos: FAIXAS_ESTABELECIMENTOS,
+  rebanho: FAIXAS_REBANHO,
+  usinas: FAIXAS_USINAS,
+} as const;
+
+const UNIDADE_DA_ESTRUTURA: Record<RecorteDaEstrutura, string> = {
+  tratores: 'tratores existentes (Censo Agropecuário) — hachurado é sigilo do IBGE, não zero',
+  densidade: 'tratores por mil km² — a densidade, que compara município grande com pequeno',
+  estabelecimentos: 'estabelecimentos agropecuários (Censo Agropecuário)',
+  rebanho: 'cabeças de bovino (Pesquisa da Pecuária Municipal)',
+  usinas: 'capacidade autorizada de etanol, em m³/dia (ANP) — hachurado é município sem usina de etanol',
+};
+
+const ROTULO_DO_POTENCIAL: Record<RecorteDoPotencial, string> = {
+  maquinas: 'Máquinas teóricas',
+  areaPlantada: 'Área plantada',
+  valorDaProducao: 'Valor da produção',
+};
+
+const FAIXAS_DO_POTENCIAL = {
+  maquinas: FAIXAS_POTENCIAL,
+  areaPlantada: FAIXAS_AREA_PLANTADA,
+  valorDaProducao: FAIXAS_VALOR_DA_PRODUCAO,
+} as const;
+
+const UNIDADE_DO_POTENCIAL: Record<RecorteDoPotencial, string> = {
+  maquinas: 'máquinas teóricas na região (necessidade de frota, não venda nem valor)',
+  areaPlantada: 'hectares plantados de TODAS as culturas do município (IBGE/PAM)',
+  valorDaProducao: 'valor da produção agrícola do município — o que ele COLHE, não o que a Tracbel vende',
 };
 
 const nº = (v: number) => v.toLocaleString('pt-BR');
@@ -112,6 +168,8 @@ export function IndicadoresGeograficos() {
   });
   const [modoDeCobertura, setModoDeCobertura] = useState<ModoDeCobertura>('cobertura');
   const [recorteDeVendas, setRecorteDeVendas] = useState<RecorteDeVendas>('valorLiquido');
+  const [recorteDaEstrutura, setRecorteDaEstrutura] = useState<RecorteDaEstrutura>('tratores');
+  const [recorteDoPotencial, setRecorteDoPotencial] = useState<RecorteDoPotencial>('maquinas');
   const [selecionado, setSelecionado] = useState<number | null>(null);
   const [emFoco, setEmFoco] = useState<number | null>(null);
   const [lojasConhecidas, setLojasConhecidas] = useState<Map<string, string>>(() => new Map());
@@ -210,10 +268,53 @@ export function IndicadoresGeograficos() {
       municipiosComArea: comArea.length,
       cenDiferente: daAdr.filter((m) => m.comparacaoDoCen === 'NomesDiferentes').length,
       cenGrafiaDiferente: daAdr.filter((m) => m.comparacaoDoCen === 'ProvavelMesmaPessoa').length,
+
+      // A SOMA IGNORA O SIGILO em vez de contá-lo como zero: o total é "o que o IBGE divulgou",
+      // e o número de municípios que entraram fica ao lado para que isso seja visível.
+      tratores: soma((m) => m.estrutura.tratores ?? 0),
+      municipiosComTratores: daAdr.filter((m) => m.estrutura.tratores !== null).length,
+      estabelecimentos: soma((m) => m.estrutura.estabelecimentos ?? 0),
+      bovinos: soma((m) => m.estrutura.bovinos ?? 0),
+      areaKm2: soma((m) => m.estrutura.areaKm2 ?? 0),
+      usinas: soma((m) => m.estrutura.usinas.length),
+      municipiosComUsina: daAdr.filter((m) => m.estrutura.usinas.length > 0).length,
+      capacidadeDeEtanol: soma((m) => m.estrutura.capacidadeDeEtanolM3Dia ?? 0),
+      lavouraHectares: soma((m) => m.producao?.areaPlantadaHectares ?? 0),
+      lavouraValor: soma((m) => m.producao?.valorDaProducaoMilReais ?? 0),
     };
   }, [daAdr]);
 
+  /**
+   * A fatia da região dentro de São Paulo.
+   *
+   * O DENOMINADOR É O TOTAL PUBLICADO pelo IBGE, e não a soma dos 645 municípios: o valor municipal
+   * sigiloso entra no total do estado sem aparecer embaixo, e é o número publicado que a diretoria
+   * encontra em qualquer outra fonte.
+   */
+  const fatiaNoEstado = useMemo(() => {
+    const estado = indicadores?.estado;
+    if (!estado) return null;
+    const parte = (regiao: number, total: number | null) =>
+      total && total > 0 ? (100 * regiao) / total : null;
+    return {
+      ano: estado.ano,
+      area: parte(totais.lavouraHectares, estado.areaPlantadaHectares),
+      valor: parte(totais.lavouraValor, estado.valorDaProducaoMilReais),
+      tratores: parte(totais.tratores, estado.tratores),
+      estabelecimentos: parte(totais.estabelecimentos, estado.estabelecimentos),
+    };
+  }, [indicadores, totais]);
+
   const coberturaDaAdr = totais.elegiveis > 0 ? (100 * totais.cobertos) / totais.elegiveis : null;
+
+  /** Os anos das fontes da estrutura — eles diferem, e a tela precisa dizer qual é qual. */
+  const estruturaDaAdr = useMemo(
+    () => ({
+      anoDoCenso: daAdr.find((m) => m.estrutura.anoDoCenso !== null)?.estrutura.anoDoCenso ?? null,
+      anoDoRebanho: daAdr.find((m) => m.estrutura.anoDoRebanho !== null)?.estrutura.anoDoRebanho ?? null,
+    }),
+    [daAdr],
+  );
 
   function estadoDaCobertura(codigo: number): EstadoNoMapa {
     const m = porCodigo.get(codigo);
@@ -245,13 +346,94 @@ export function IndicadoresGeograficos() {
   function estadoDoPotencial(codigo: number): EstadoNoMapa {
     const m = porCodigo.get(codigo);
     if (!m?.pertenceAAdr) return { tipo: 'fora', detalhe: m ? 'fora da ADR' : 'fora da área de atuação ou do filtro' };
+
+    // A CULTURA DA REGRA E A LAVOURA INTEIRA SÃO COISAS DIFERENTES: o recorte "máquinas teóricas"
+    // olha só o produto da regra (café), e os outros dois olham TODAS as culturas do município.
+    // Misturá-los faria a área do café aparecer ao lado do valor da lavoura inteira como se fossem
+    // a mesma base.
     const potencial = m.potencial[0];
-    if (!potencial || potencial.maquinasTeoricas === null)
-      return { tipo: 'semDado', detalhe: 'área plantada não disponível' };
+    const producao = m.producao;
+
+    const valor =
+      recorteDoPotencial === 'maquinas'
+        ? (potencial?.maquinasTeoricas ?? null)
+        : recorteDoPotencial === 'areaPlantada'
+          ? (producao?.areaPlantadaHectares ?? null)
+          : (producao?.valorDaProducaoMilReais ?? null);
+
+    if (valor === null)
+      return {
+        tipo: 'semDado',
+        detalhe:
+          recorteDoPotencial === 'maquinas'
+            ? 'área plantada da cultura da regra não disponível'
+            : 'produção agrícola não carregada para este município',
+      };
+
+    const daRegra =
+      potencial?.maquinasTeoricas !== null && potencial !== undefined
+        ? `${nº(potencial.areaPlantadaHectares ?? 0)} ha de ${regra?.produtoNome ?? 'cultura da regra'} · ${nº(potencial.maquinasTeoricas ?? 0)} ${regra?.modeloDeReferencia ?? 'máquinas'} teóricos`
+        : 'sem área da cultura da regra';
+
+    const daLavoura = producao
+      ? `lavoura ${nº(Math.round(producao.areaPlantadaHectares ?? 0))} ha em ${nº(producao.culturasComArea)} culturas · ${reaisDaProducao(producao.valorDaProducaoMilReais ?? 0)} (${producao.ano})`
+      : 'lavoura não carregada';
+
     return {
       tipo: 'valor',
-      cor: faixaDe(FAIXAS_POTENCIAL, potencial.maquinasTeoricas).cor,
-      detalhe: `${nº(potencial.areaPlantadaHectares ?? 0)} ha · ${nº(potencial.maquinasTeoricas)} ${regra?.modeloDeReferencia ?? 'máquinas'} teóricos`,
+      cor: faixaDe(FAIXAS_DO_POTENCIAL[recorteDoPotencial], valor).cor,
+      detalhe: `${daRegra} · ${daLavoura}`,
+    };
+  }
+
+  /**
+   * O mapa da estrutura agropecuária.
+   *
+   * SEM USINA NÃO É CAPACIDADE ZERO. Município fora da lista da ANP fica hachurado, porque a
+   * ausência ali só prova que não há usina de ETANOL — usina que só faz açúcar não é autorizada
+   * pela ANP e não aparece. Já a usina parada, com capacidade zerada, é um valor e entra na escala.
+   */
+  function estadoDaEstrutura(codigo: number): EstadoNoMapa {
+    const m = porCodigo.get(codigo);
+    if (!m?.pertenceAAdr) return { tipo: 'fora', detalhe: m ? 'fora da ADR' : 'fora da área de atuação ou do filtro' };
+
+    const e = m.estrutura;
+    const valor =
+      recorteDaEstrutura === 'tratores'
+        ? e.tratores
+        : recorteDaEstrutura === 'densidade'
+          ? e.tratoresPorMilKm2
+          : recorteDaEstrutura === 'estabelecimentos'
+            ? e.estabelecimentos
+            : recorteDaEstrutura === 'rebanho'
+              ? e.bovinos
+              : e.usinas.length === 0
+                ? null
+                : (e.capacidadeDeEtanolM3Dia ?? 0);
+
+    if (valor === null)
+      return {
+        tipo: 'semDado',
+        detalhe:
+          recorteDaEstrutura === 'usinas'
+            ? 'sem usina de etanol autorizada aqui (a ANP não enxerga usina só de açúcar)'
+            : 'sigilo do IBGE ou fonte não carregada — não é zero',
+      };
+
+    const parque =
+      e.tratores === null
+        ? 'tratores sob sigilo'
+        : `${nº(e.tratores)} tratores${e.tratoresAbaixoDe100Cv !== null ? ` (${nº(e.tratoresAbaixoDe100Cv)} < 100 cv)` : ''}`;
+
+    const usinas =
+      e.usinas.length === 0
+        ? 'sem usina'
+        : `${nº(e.usinas.length)} usina${e.usinas.length > 1 ? 's' : ''}${e.capacidadeDeEtanolM3Dia !== null ? ` · ${nº(e.capacidadeDeEtanolM3Dia)} m³/d` : ''}`;
+
+    return {
+      tipo: 'valor',
+      cor: faixaDe(FAIXAS_DA_ESTRUTURA[recorteDaEstrutura], valor).cor,
+      detalhe: `${parque}${e.anoDoCenso ? ` (${e.anoDoCenso})` : ''} · ${e.estabelecimentos !== null ? `${nº(e.estabelecimentos)} propriedades` : 'propriedades sob sigilo'} · ${e.bovinos !== null ? `${nº(e.bovinos)} bovinos${e.anoDoRebanho ? ` (${e.anoDoRebanho})` : ''}` : 'sem rebanho'} · ${usinas}`,
     };
   }
 
@@ -314,6 +496,41 @@ export function IndicadoresGeograficos() {
       tom: totais.cenDiferente > 0 ? 'atencao' : undefined,
       deOnde: `mais ${nº(totais.cenGrafiaDiferente)} com grafia diferente (provável mesma pessoa, não confirmado) · as duas fontes seguem preservadas`,
       semDado: territorioNaoCarregado ? semTerritorio : '—',
+    },
+  ];
+
+  // O QUE A REGIÃO TEM, E QUE FATIA DE SÃO PAULO ELA É. Sem o denominador do estado, "62 mil
+  // tratores" é um número solto; com ele, é a posição da Tracbel Agro no mercado paulista.
+  const kpisDoMercado: Indicador[] = [
+    {
+      rotulo: 'Parque de tratores',
+      valor: comTerritorio ? nº(totais.tratores) : null,
+      deOnde: `Censo Agropecuário${estruturaDaAdr.anoDoCenso ? ` ${estruturaDaAdr.anoDoCenso}` : ''} · ${nº(totais.municipiosComTratores)} municípios divulgados${fatiaNoEstado?.tratores !== null && fatiaNoEstado !== null ? ` · ${porcento(fatiaNoEstado.tratores)} de São Paulo` : ''}`,
+      semDado: territorioNaoCarregado ? semTerritorio : 'Censo não carregado',
+    },
+    {
+      rotulo: 'Propriedades',
+      valor: comTerritorio ? nº(totais.estabelecimentos) : null,
+      deOnde: `estabelecimentos agropecuários${fatiaNoEstado?.estabelecimentos != null ? ` · ${porcento(fatiaNoEstado.estabelecimentos)} de São Paulo` : ''}`,
+      semDado: territorioNaoCarregado ? semTerritorio : 'Censo não carregado',
+    },
+    {
+      rotulo: 'Valor da lavoura',
+      valor: comTerritorio && totais.lavouraValor > 0 ? reaisDaProducao(totais.lavouraValor) : null,
+      deOnde: `o que a região COLHE, não o que a Tracbel vende · PAM${fatiaNoEstado ? ` ${fatiaNoEstado.ano}` : ''}${fatiaNoEstado?.valor != null ? ` · ${porcento(fatiaNoEstado.valor)} de São Paulo` : ''}`,
+      semDado: territorioNaoCarregado ? semTerritorio : 'produção agrícola não carregada',
+    },
+    {
+      rotulo: 'Usinas de etanol',
+      valor: comTerritorio ? nº(totais.usinas) : null,
+      deOnde: `em ${nº(totais.municipiosComUsina)} municípios · ${nº(totais.capacidadeDeEtanol)} m³/dia autorizados (ANP) · não inclui usina só de açúcar`,
+      semDado: territorioNaoCarregado ? semTerritorio : 'ANP não carregada',
+    },
+    {
+      rotulo: 'Rebanho bovino',
+      valor: comTerritorio && totais.bovinos > 0 ? nº(totais.bovinos) : null,
+      deOnde: `cabeças · Pesquisa da Pecuária Municipal${estruturaDaAdr.anoDoRebanho ? ` ${estruturaDaAdr.anoDoRebanho}` : ''}, anual`,
+      semDado: territorioNaoCarregado ? semTerritorio : 'rebanho não carregado',
     },
   ];
 
@@ -513,6 +730,16 @@ export function IndicadoresGeograficos() {
 
       <PainelDeIndicadores indicadores={kpis} carregando={painel.carregando} />
 
+      <div className="terr-secao-mercado">
+        <h2 className="terr-secao-titulo">O mercado da região</h2>
+        <p className="terr-secao-subtitulo">
+          O que existe no território, por fonte pública — e que fatia de São Paulo isso representa. O denominador é o
+          total <strong>publicado</strong> pelo IBGE, que não é a soma dos municípios: o valor municipal sigiloso entra
+          nele sem aparecer embaixo.
+        </p>
+      </div>
+      <PainelDeIndicadores indicadores={kpisDoMercado} carregando={painel.carregando} />
+
       {(painel.carregando || !desenho) && !painel.erro && !erroDaMalha && <BlocoCarregando oQue="os mapas da ADR" />}
 
       {indicadores && desenho && !territorioNaoCarregado && (
@@ -613,20 +840,17 @@ export function IndicadoresGeograficos() {
                 ? `${nº(Math.round(totais.maquinasTeoricas))} ${regra.modeloDeReferencia} teóricos · ${nº(Math.round(totais.hectares))} ha em ${nº(totais.municipiosComArea)} municípios com área divulgada`
                 : 'sem área plantada ou regra para calcular'}
             </p>
-            <div className="terr-alternador" role="group" aria-label="Recorte do potencial">
-              <button type="button" aria-pressed="true">
-                Região total
-              </button>
-              <button
-                type="button"
-                disabled
-                title={`Sem área por cliente: ${nº(indicadores.enderecosComArea)} de ${nº(indicadores.enderecos)} endereços têm área e cultura.`}
-              >
-                Clientes
-              </button>
-              <button type="button" disabled title="Não há cadastro de propriedade de não cliente.">
-                Não clientes
-              </button>
+            <div className="terr-alternador" role="group" aria-label="O que o mapa mostra">
+              {(Object.keys(ROTULO_DO_POTENCIAL) as RecorteDoPotencial[]).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  aria-pressed={recorteDoPotencial === r}
+                  onClick={() => setRecorteDoPotencial(r)}
+                >
+                  {ROTULO_DO_POTENCIAL[r]}
+                </button>
+              ))}
             </div>
             <MapaDeMunicipios
               id="potencial"
@@ -641,12 +865,70 @@ export function IndicadoresGeograficos() {
               aoPassar={setEmFoco}
             />
             <p className="terr-mapa-foco" aria-live="polite">{textoDoFoco(estadoDoPotencial)}</p>
-            <LegendaDoMapa faixas={FAIXAS_POTENCIAL} unidade="máquinas teóricas na região (necessidade de frota, não venda nem valor)" />
+            <LegendaDoMapa faixas={FAIXAS_DO_POTENCIAL[recorteDoPotencial]} unidade={UNIDADE_DO_POTENCIAL[recorteDoPotencial]} />
             <p className="terr-aviso terr-aviso-alerta">
-              Regra a confirmar. É a área do município inteiro — clientes e não clientes juntos, sem separar: somar "clientes"
-              e "não clientes" a ela contaria a mesma área duas vezes. Clientes: {nº(indicadores.enderecosComArea)} de{' '}
-              {nº(indicadores.enderecos)} endereços com área e cultura. Não considera ciclo de troca, parque instalado,
-              concorrência nem outras culturas.
+              {recorteDoPotencial === 'maquinas' ? (
+                <>
+                  Regra a confirmar. É a área do município inteiro — clientes e não clientes juntos, sem separar: somar
+                  "clientes" e "não clientes" a ela contaria a mesma área duas vezes. Clientes:{' '}
+                  {nº(indicadores.enderecosComArea)} de {nº(indicadores.enderecos)} endereços com área e cultura. Não
+                  considera ciclo de troca, parque instalado, concorrência nem outras culturas.
+                </>
+              ) : (
+                <>
+                  Agora o mapa mostra a <strong>lavoura inteira</strong> do município, e não só a cultura da regra — são
+                  bases diferentes. O valor da produção é o que o município <strong>colhe</strong>, publicado pelo IBGE em
+                  mil reais; não é venda da Tracbel nem preço de máquina. O café entra uma vez só (o "Total" do IBGE, sem
+                  somar Arábica e Canephora de novo).
+                </>
+              )}
+            </p>
+          </div>
+
+          <div className="card cad-cartao terr-mapa">
+            <div className="card-title">Estrutura agropecuária — o que já existe para mecanizar</div>
+            <div className="card-subtitle">
+              Censo Agropecuário{estruturaDaAdr.anoDoCenso ? ` ${estruturaDaAdr.anoDoCenso}` : ''} (tratores e
+              propriedades) · Pesquisa da Pecuária Municipal
+              {estruturaDaAdr.anoDoRebanho ? ` ${estruturaDaAdr.anoDoRebanho}` : ''} (rebanho) · ANP (usinas)
+            </div>
+            <p className="terr-mapa-resumo">
+              {nº(totais.tratores)} tratores em {nº(totais.municipiosComTratores)} municípios ·{' '}
+              {nº(totais.estabelecimentos)} propriedades · {nº(totais.bovinos)} bovinos ·{' '}
+              {nº(totais.usinas)} usinas em {nº(totais.municipiosComUsina)} municípios
+            </p>
+            <div className="terr-alternador" role="group" aria-label="Recorte da estrutura">
+              {(Object.keys(ROTULO_DA_ESTRUTURA) as RecorteDaEstrutura[]).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  aria-pressed={recorteDaEstrutura === r}
+                  onClick={() => setRecorteDaEstrutura(r)}
+                >
+                  {ROTULO_DA_ESTRUTURA[r]}
+                </button>
+              ))}
+            </div>
+            <MapaDeMunicipios
+              id="estrutura"
+              titulo="Mapa da estrutura agropecuária por município"
+              enquadramento={desenho.enquadramento}
+              poligonos={desenho.poligonos}
+              estadoDe={estadoDaEstrutura}
+              adr={adr}
+              selecionado={selecionado}
+              aoSelecionar={setSelecionado}
+              emFoco={emFoco}
+              aoPassar={setEmFoco}
+            />
+            <p className="terr-mapa-foco" aria-live="polite">{textoDoFoco(estadoDaEstrutura)}</p>
+            <LegendaDoMapa faixas={FAIXAS_DA_ESTRUTURA[recorteDaEstrutura]} unidade={UNIDADE_DA_ESTRUTURA[recorteDaEstrutura]} />
+            <p className="terr-aviso">
+              <strong>O Censo Agropecuário é de {estruturaDaAdr.anoDoCenso ?? '2017'}</strong> e o próximo sai em 2028: o
+              parque tem essa idade. O rebanho é anual e está em {estruturaDaAdr.anoDoRebanho ?? '—'}. Hachurado é{' '}
+              <strong>sigilo do IBGE</strong>, que não é zero — ele oculta o número quando poucos estabelecimentos o
+              compõem. As faixas de potência não se somam ao total: o "Total" do IBGE é uma categoria ao lado delas. A ANP
+              só enxerga usina de <strong>etanol</strong>: ausência aqui não prova ausência de usina.
             </p>
           </div>
         </div>
