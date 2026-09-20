@@ -1,0 +1,200 @@
+# CI do CRM Tracbel — issue #56, desenho em docs/projeto/47-CI-CD.md §3.
+#
+# Três jobs em paralelo, em Linux. O nome de cada job (backend, frontend, seguranca) é o nome da
+# checagem que a regra da main exige (#58): renomear aqui quebra a regra.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Push novo no mesmo PR cancela a execução anterior; na main, cada push roda até o fim.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Instalar o .NET do global.json
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Cache dos pacotes NuGet
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restaurar
+        run: dotnet restore Tracbel.Crm.sln
+
+      - name: Compilar (aviso é erro)
+        run: dotnet build Tracbel.Crm.sln -c Release --no-restore -warnaserror
+
+      - name: Modelo e migrations batem
+        run: |
+          dotnet tool restore
+          dotnet tool run dotnet-ef migrations has-pending-model-changes \
+            --project src/Tracbel.Crm.Infraestrutura/Tracbel.Crm.Infraestrutura.csproj \
+            --startup-project src/Tracbel.Crm.Api/Tracbel.Crm.Api.csproj \
+            --configuration Release --no-build
+
+      # O SQL Server do CI é descartável: a senha é gerada aqui, mascarada no log e some com o
+      # contêiner. Nenhum segredo fica cadastrado no GitHub.
+      - name: Subir SQL Server 2022 descartável
+        run: |
+          senha="Ci-$(openssl rand -hex 16)-Aa1"
+          echo "::add-mask::$senha"
+          echo "SENHA_SQL_CI=$senha" >> "$GITHUB_ENV"
+          docker run --detach --name sql-ci --publish 1433:1433 \
+            --env ACCEPT_EULA=Y \
+            --env MSSQL_PID=Developer \
+            --env MSSQL_COLLATION=Latin1_General_CI_AI \
+            --env "MSSQL_SA_PASSWORD=$senha" \
+            mcr.microsoft.com/mssql/server:2022-latest
+          for tentativa in $(seq 1 60); do
+            if docker exec sql-ci /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$senha" -C -b -Q "SELECT 1" > /dev/null 2>&1; then
+              echo "SQL Server respondendo depois de $((tentativa * 2)) s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "SQL Server não respondeu em 120 s"
+          docker logs sql-ci | tail -n 50
+          exit 1
+
+      - name: Testes
+        run: |
+          export ConnectionStrings__Crm="Server=localhost,1433;Database=master;User Id=sa;Password=${SENHA_SQL_CI};TrustServerCertificate=True"
+          dotnet test Tracbel.Crm.sln -c Release --no-build --logger trx --results-directory TestResults
+
+      - name: Conferir resultados (nenhum teste pulado)
+        if: always()
+        shell: pwsh
+        run: ./scripts/ci/conferir-testes.ps1 -Pasta TestResults
+
+      - name: Anexar resultados dos testes
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: resultados-dos-testes
+          path: TestResults/*.trx
+          if-no-files-found: warn
+          retention-days: 14
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/Tracbel.Crm.Web
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Instalar o Node do .nvmrc
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: src/Tracbel.Crm.Web/.nvmrc
+          cache: npm
+          cache-dependency-path: src/Tracbel.Crm.Web/package-lock.json
+
+      - name: Instalar dependências pelo lockfile
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  seguranca:
+    name: seguranca
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Histórico completo: a varredura lê toda linha acrescentada em qualquer commit.
+      - name: Baixar o código com todo o histórico
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Varredura de segredos (arquivos e histórico)
+        shell: pwsh
+        run: |
+          ./scripts/seguranca/varrer-segredos.ps1 -Relatorio varredura-de-segredos.md
+          $codigo = $LASTEXITCODE
+          $resumo = Get-Content varredura-de-segredos.md | Where-Object { $_ -match '^(HEAD|Achados):' }
+          @('## Varredura de segredos', '') + $resumo | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          exit $codigo
+
+      - name: Anexar o relatório da varredura
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: varredura-de-segredos
+          path: varredura-de-segredos.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      # Vulnerabilidades: só relatório até a #59. Os dois passos nunca derrubam o job.
+      - name: Instalar o .NET do global.json
+        if: always()
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Pacotes .NET vulneráveis (relatório)
+        if: always()
+        continue-on-error: true
+        run: |
+          dotnet restore Tracbel.Crm.sln
+          {
+            echo "## Pacotes .NET vulneráveis (relatório — bloqueio só depois da #59)"
+            echo '```text'
+            dotnet list Tracbel.Crm.sln package --vulnerable --include-transitive
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Instalar o Node do .nvmrc
+        if: always()
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: src/Tracbel.Crm.Web/.nvmrc
+
+      - name: Pacotes npm vulneráveis (relatório)
+        if: always()
+        continue-on-error: true
+        working-directory: src/Tracbel.Crm.Web
+        run: |
+          {
+            echo "## Pacotes npm vulneráveis (relatório — bloqueio só depois da #59)"
+            echo '```text'
+            npm audit --package-lock-only --audit-level=high || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
