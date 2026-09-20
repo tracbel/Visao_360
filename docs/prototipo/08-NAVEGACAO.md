@@ -1,6 +1,9 @@
 # A navegação — qual tela abrir para quê
 
-> **Documento 08** · Versão 1.0 · 05/09/2026
+> **Documento 08** · Versão 1.1 · 19/09/2026 — a Agenda saiu do menu e continua sendo tela (§3.1,
+> issue 029). A §3, que em 05/09 registrou "nada sai do menu", fica como estava e ganha o adendo: ela
+> descreve aquela rodada, não uma regra permanente.
+> Versão 1.0 · 05/09/2026
 > Responde à primeira das três queixas: ***"telas demais mostrando a mesma coisa — o cliente aparece
 > na Visão 360, em Clientes, na Cobertura e na Ficha, cada uma com um recorte, e não fica claro qual
 > abrir para quê."***
@@ -78,6 +81,25 @@ desarma metade da queixa:
 
 **O que sai do menu nesta rodada: nada.** Tirar um item do menu de dez para resolver uma confusão de
 quatro telas trocaria uma queixa por outra — "sumiu a tela que eu usava".
+
+### 3.1 A Agenda saiu do menu em 19/09/2026 — e continua sendo tela
+
+A frase acima valia para **aquela** rodada, cujo assunto eram as quatro telas de cliente. A Agenda
+não é uma delas, e o pedido veio depois (issue 029): **o menu deixa de oferecer a Agenda do CEN, e a
+tela continua inteira**.
+
+| | |
+|---|---|
+| O que saiu | o item `Agenda do CEN` da seção Comercial do menu lateral |
+| O que ficou | a rota `/agenda`, a tela, a escrita de tarefa e os dados |
+| Como se chega | pela URL e pelos links que já levavam lá: Visão 360, painel executivo, Ficha do Cliente, aba de pós-vendas e o cartão do Mapa do protótipo |
+| Por quê | o dia do CEN começa na **Cobertura de Carteira**, que é onde a prioridade é calculada; a Agenda é o andamento de uma tarefa já escolhida. Duas portas permanentes para o mesmo começo de dia é o caminho de volta para "telas demais" (§5.2) |
+| O que **não** mudou | tarefa continua alimentando o Meu dia, a Visão 360, a ficha de oportunidade e o consolidado; a §1 continua valendo — "concluir uma tarefa" e "agendar uma visita" seguem sendo na Agenda |
+| Conferido por teste | `src/componentes/Layout.teste.tsx`: o menu não oferece a Agenda, `/agenda` continua abrindo, e todo item do menu aponta para uma rota declarada |
+
+Fica **pendente**, porque é decisão de quem usa e não de quem programa: a proposta da §5.4 (renomear
+a seção "Executivo") e o destino de longo prazo dos links "Ver agenda" espalhados pelas telas — hoje
+eles continuam funcionando, que é o comportamento que ninguém perde.
 
 ---
 

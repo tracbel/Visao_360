@@ -101,11 +101,19 @@ dotnet test --filter Categoria=Workflow              # motor de regras
 dotnet test --filter Categoria=Arquitetura           # a estrutura não foi violada
 ```
 
+A tela tem os seus, em `src/Tracbel.Crm.Web` (vitest + testing-library, arquivos `*.teste.tsx`):
+
+```bash
+npm run test           # roda uma vez e sai — é o que o CI roda
+npm run test:observar  # fica observando os arquivos enquanto você mexe
+```
+
 ### No CI
 
 Todo PR para a `main` roda o workflow **CI** (`.github/workflows/ci.yml`), com três checagens:
 `backend` (build com aviso como erro, migration pendente e os testes contra um SQL Server 2022 de
-verdade), `frontend` (lint e build) e `seguranca` (varredura de segredos em arquivos e histórico).
+verdade), `frontend` (lint, build e os testes de tela) e `seguranca` (varredura de segredos em
+arquivos e histórico).
 **Teste pulado quebra o CI** — o resumo da execução mostra a tabela por projeto e o motivo de cada pulado.
 
 Para conferir os mesmos resultados na sua máquina, sem SQL Server:

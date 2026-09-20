@@ -25,60 +25,17 @@
  * é pior que alerta nenhum. Ficam registrados no documento 06.
  */
 
-import { useEffect, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { useSessao } from '../dados/api/sessao';
 import { acharRota } from '../rotas';
 import { SeletorDeFilial } from './cadastro/SeletorDeFilial';
-import {
-  IconeAgenda,
-  IconeBusca,
-  IconeClientes,
-  IconeCobertura,
-  IconeCoberturaRegional,
-  IconeConfiguracoes,
-  IconeEquipamentos,
-  IconeFunil,
-  IconePerformance,
-  IconePipeline,
-  IconeVisao360,
-  LogoTracbel,
-} from './Icones';
-
-type ItemNav = { caminho: string; rotulo: string; Icone: ComponentType<{ tamanho?: number }> };
-
-const SECOES: { titulo: string; itens: ItemNav[] }[] = [
-  {
-    titulo: 'Executivo',
-    itens: [{ caminho: '/', rotulo: 'Visão 360', Icone: IconeVisao360 }],
-  },
-  {
-    titulo: 'Comercial',
-    itens: [
-      { caminho: '/agenda', rotulo: 'Agenda do CEN', Icone: IconeAgenda },
-      { caminho: '/cobertura', rotulo: 'Cobertura de Carteira', Icone: IconeCobertura },
-      { caminho: '/pipeline', rotulo: 'Pipeline de Vendas', Icone: IconePipeline },
-      { caminho: '/clientes', rotulo: 'Clientes', Icone: IconeClientes },
-      { caminho: '/equipamentos', rotulo: 'Equipamentos', Icone: IconeEquipamentos },
-    ],
-  },
-  {
-    titulo: 'Relatórios',
-    itens: [
-      { caminho: '/relatorios/funil', rotulo: 'Funil de Vendas', Icone: IconeFunil },
-      { caminho: '/relatorios/performance', rotulo: 'Performance de CEN', Icone: IconePerformance },
-      { caminho: '/relatorios/cobertura', rotulo: 'Cobertura por Filial', Icone: IconeCoberturaRegional },
-      { caminho: '/relatorios/territorio', rotulo: 'Indicadores Geográficos', Icone: IconeCoberturaRegional },
-    ],
-  },
-  {
-    titulo: 'Sistema',
-    itens: [
-      { caminho: '/config', rotulo: 'Configurações', Icone: IconeConfiguracoes },
-    ],
-  },
-];
+import { IconeBusca, LogoTracbel } from './Icones';
+// O menu mora em `navegacao.ts`, que é dado: o teste o lê sem montar a
+// aplicação inteira. A Agenda saiu dele em 19/09/2026 (issue 029) e continua
+// sendo tela — a explicação está lá.
+import { SECOES } from './navegacao';
 
 export function Layout() {
   const { pathname } = useLocation();

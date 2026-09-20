@@ -129,6 +129,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Os testes de tela (issue #31): vitest + testing-library em jsdom, sem navegador e sem rede.
+      # É `npm run test`, e não `vitest` puro: o segundo ficaria observando os arquivos e travaria
+      # o job até o tempo limite.
+      - name: Testes de tela
+        run: npm run test
+
       - name: Build
         run: npm run build
 
