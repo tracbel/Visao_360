@@ -1,9 +1,13 @@
 # Território, ADR e indicadores geográficos — cadastros, conciliação e o painel de mapas
 
-> **Documento 32** · Versão 1.6 · 19/09/2026 — **a "área plantada" do mapa C era a área colhida**: o
+> **Documento 32** · Versão 1.7 · 20/09/2026 — **o servidor tem área plantada de verdade pela primeira
+> vez**: 54.570 linhas do ano 2025, pela variável 8331. No caminho, dois fatos que este documento
+> afirmava errado: o servidor estava com **0 linha** (a sanitização de 15/09 levou as 45.582) e a
+> leitura de todos os produtos de uma vez passou a ser recusada pelo SIDRA, agora em lotes de 20
+> (issues 83, 95 e a publicação da 51). Detalhe em §3.3 (D-12) e §8.3.
+> Versão 1.6 · 19/09/2026 — **a "área plantada" do mapa C era a área colhida**: o
 > leitor pedia a variável 216 do SIDRA em vez da 8331. Corrigido no código com teste que prende a
-> variável (§3.3 D-12 e §8.3); os dados já carregados no servidor continuam sendo área colhida até a
-> recarga autorizada.
+> variável (§3.3 D-12 e §8.3).
 > Versão 1.5 · 14/09/2026 — a taxonomia de produto que faltava (§3.5) chegou pelo ART:
 > classificação de produto com porte nos filtros de equipamento, as vendas de máquina no banco local e a
 > gestão "Grandes Contas" preservada por venda, sem virar SAM/KAM (§3.4). Detalhe no **documento 35, §10**;
@@ -271,7 +275,7 @@ R-14 = O-20, R-15 = O-35, R-18 = O-30.
 | D-9 | Nota sem cliente no CRM fora do total dos mapas — achado na revisão | R$ 320,6 mi de 12 meses sumiam da conta | corrigido, §8.5.4 |
 | D-10 | A recarga do Vórtice devolvia 78 endereços corrigidos para a grafia cortada | a correção dependia de alguém rodar a carga do território depois | corrigido, §4.6.1 |
 | D-11 | **A filial vem do cabeçalho e não é conferida contra o usuário** — anterior a esta entrega, achado na 3ª revisão. Com o Entra ID ligado ou desligado, qualquer usuário autenticado escolhe qualquer filial ativa | vê clientes, vendas e cobertura de outra filial; somando as 13, reconstrói quase toda a visão da empresa sem `Empresa.AlcanceEntreFiliais` | **não corrigido**: restringir exige decidir quais filiais cada pessoa atende (P-20) |
-| D-12 | **A "área plantada" era a área colhida** — o leitor do IBGE pedia a variável 216 ("Área colhida") da tabela 5457 e chamava o resultado de área plantada; a variável certa é a **8331** ("Área plantada ou destinada à colheita") | o mapa C e a métrica `potencialDosNaoClientes` saem **subestimados** onde há plantio novo: em cultura perene (café, laranja) a área colhida fica abaixo da plantada enquanto o cafezal ou o pomar não produz | **código corrigido** em 19/09/2026 (issue 83) com teste que prende a variável, §8.3; **as 45.582 linhas carregadas no servidor em 14/09/2026 continuam sendo área colhida** até a recarga do território, que depende de publicação autorizada |
+| D-12 | **A "área plantada" era a área colhida** — o leitor do IBGE pedia a variável 216 ("Área colhida") da tabela 5457 e chamava o resultado de área plantada; a variável certa é a **8331** ("Área plantada ou destinada à colheita") | o mapa C e a métrica `potencialDosNaoClientes` saíam **subestimados** onde há plantio novo: em cultura perene (café, laranja) a área colhida fica abaixo da plantada enquanto o cafezal ou o pomar não produz | ✅ **fechado em 20/09/2026.** Código corrigido em 19/09 (issue 83) com teste que prende a variável; servidor recarregado em 20/09 com **54.570 linhas do ano 2025** pela 8331. Duas correções de rota no caminho: o servidor estava com **0 linha** (a sanitização de 15/09 as levou, e este documento afirmava 45.582) e o SIDRA passou a recusar a consulta de todos os produtos, resolvida com lotes de 20 (issue 95). Detalhe em §8.3 |
 
 ### 3.4 SAM, KAM e Varejo: não existe classificação por cliente [medido]
 
@@ -756,9 +760,24 @@ pedia a variável **216**, que é a **área colhida**, e gravava o resultado com
 só coincidem em lavoura temporária bem-sucedida: em cultura perene a colhida fica abaixo da plantada
 enquanto o cafezal ou o pomar novo não produz, e uma frustração de safra derruba a colhida sem mudar o
 que foi plantado. O efeito é um mapa C **subestimado justamente onde há plantio novo**. O código já pede
-a 8331, com teste que prende a variável (`LeitorDoIbgeTestes`); **os dados que estão no servidor desde
-14/09/2026 ainda são área colhida** — passam a ser área plantada quando a carga do território rodar de
-novo, o que depende de publicação autorizada.
+a 8331, com teste que prende a variável (`LeitorDoIbgeTestes`).
+
+**Corrigido no servidor em 20/09/2026 [medido].** Duas coisas que este documento afirmava e não eram
+verdade, descobertas ao publicar:
+
+1. **O servidor não tinha as 45.582 linhas.** Ele estava com **zero** — a sanitização de 15/09/2026
+   (documento 38) levou junto a área plantada, a ADR e os responsáveis, e nem aquele documento nem
+   este registraram a perda. O que havia ali de 14/09 já não existia.
+2. **A leitura de todos os produtos de uma vez parou de funcionar.** O SIDRA passou a recusar a
+   consulta com `400 Bad Request` (são ~55 mil valores); com 10 produtos ela responde. Não é efeito
+   da troca de variável — a URL antiga, com a 216, falha igual. O leitor passou a **pedir em lotes de
+   20 produtos**, com a lista vinda dos metadados da tabela (issue 95).
+
+Depois disso, a carga rodou contra o banco do servidor e gravou **54.570 linhas de área plantada do
+ano 2025**, com 9.967 "não disponível" preservados como nulo e 37.455 zeros. A soma dá **9.405.743
+ha**, que é a soma do SIDRA (9.210.103) **mais o "Café (em grão) Total"** — a contagem tripla do café
+(Total, Arábica e Canephora) continua no dado bruto, e quem somar precisa escolher um dos três (é o
+que a #64 trata). A ADR voltou aos 203 municípios e os responsáveis, a 609.
 
 **O tamanho do erro [medido em 19/09/2026]** — lido ao vivo do SIDRA (tabela 5457, PAM **2025**, que é
 o último ano publicado hoje; em 17/09/2026 a API recusou esta estação, e em 19/09 respondeu):
