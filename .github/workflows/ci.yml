@@ -204,3 +204,105 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           npm audit --package-lock-only --audit-level=high
+
+  # =================================================================================================
+  # O PACOTE DE PUBLICACAO — so na main, so depois dos tres verdes (issue 62).
+  #
+  # POR QUE ELE EXISTE. Ate 20/09/2026 a publicacao saia da estacao de quem estava programando:
+  # `publicar.ps1` compilava ali e copiava para o servidor. Isso significava que o que ia para
+  # producao NAO era exatamente o que o CI aprovou — era uma compilacao nova, na maquina de alguem,
+  # com o que estivesse no disco. Aqui o pacote nasce do commit que passou, e e ele que viaja.
+  #
+  # POR QUE O SERVIDOR PUXA, E O GITHUB NAO EMPURRA. Os runners do GitHub ficam na nuvem e nao
+  # alcancam o 10.150.4.249 da rede da Tracbel; empurrar exigiria instalar um runner dentro da rede
+  # (issue 61, decisao de infraestrutura). MEDIDO em 20/09/2026: o servidor alcanca api.github.com,
+  # github.com e codeload.github.com direto, sem proxy. Entao ele baixa este artefato sozinho — e
+  # a rede continua fechada para entrada.
+  # =================================================================================================
+  pacote:
+    name: pacote
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [backend, frontend, seguranca]
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Instalar o .NET do global.json
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Instalar o Node do .nvmrc
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: src/Tracbel.Crm.Web/.nvmrc
+
+      - name: Instalar dependências do front pelo lockfile
+        working-directory: src/Tracbel.Crm.Web
+        run: npm ci
+
+      - name: Construir o front
+        working-directory: src/Tracbel.Crm.Web
+        run: npm run build
+
+      # SELF-CONTAINED, win-x64: o servidor tem .NET 6 e 8, e a solucao esta no 10. Levar o runtime
+      # dentro do pacote evita instalar runtime novo numa maquina que ja hospeda outra aplicacao.
+      - name: Publicar a API
+        run: |
+          dotnet publish src/Tracbel.Crm.Api/Tracbel.Crm.Api.csproj \
+            -c Release -r win-x64 --self-contained true -o pacote/api
+
+      - name: Publicar a carga
+        run: |
+          dotnet publish src/Tracbel.Crm.Carga/Tracbel.Crm.Carga.csproj \
+            -c Release -r win-x64 --self-contained true -o pacote/carga
+
+      - name: Levar o front para dentro do pacote da API
+        run: cp -r src/Tracbel.Crm.Web/dist/. pacote/api/wwwroot/
+
+      # O MANIFESTO E O QUE O AGENTE DO SERVIDOR LE ANTES DE PUBLICAR. Ele diz o commit, as migracoes
+      # que o pacote carrega e — o que mais importa — SE ALGUMA DELAS E DESTRUTIVA.
+      #
+      # A analise acontece AQUI, e nao no servidor, porque aqui existe o codigo-fonte: o script SQL
+      # idempotente do EF mostra cada comando que a subida vai rodar. No servidor so chega um sim ou
+      # nao, que ele nao precisa saber interpretar.
+      # O PowerShell 5.1 do servidor lê .ps1 sem BOM como ANSI, e um travessão quebra o parser numa
+      # linha que não tem nada de errado. Sem esta checagem, isso só apareceria no servidor — depois
+      # de agendado, a cada cinco minutos, em silêncio.
+      - name: Os scripts do servidor abrem no PowerShell 5.1
+        shell: pwsh
+        run: ./scripts/ci/conferir-scripts-do-servidor.ps1
+
+      - name: Manifesto do pacote (e a busca por migração destrutiva)
+        shell: pwsh
+        run: ./scripts/ci/gerar-manifesto-do-pacote.ps1 -Destino pacote/manifesto.json
+
+      - name: Anexar o pacote
+        uses: actions/upload-artifact@v7
+        with:
+          name: pacote-de-publicacao
+          path: pacote/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Resumo
+        shell: pwsh
+        run: |
+          $m = Get-Content pacote/manifesto.json -Raw | ConvertFrom-Json
+          $linhas = @(
+            '## Pacote de publicação',
+            '',
+            "- commit: ``$($m.commit)``",
+            "- migrações no pacote: $($m.migracoes.Count)",
+            "- **destrutiva: $(if ($m.temMigracaoDestrutiva) { 'SIM — a publicação vai PARAR e pedir autorização' } else { 'não' })**"
+          )
+          if ($m.operacoesDestrutivas.Count -gt 0) {
+            $linhas += ''
+            $linhas += '### O que foi encontrado'
+            $linhas += $m.operacoesDestrutivas | ForEach-Object { "- $_" }
+          }
+          $linhas | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
