@@ -41,7 +41,7 @@ public sealed class MigracaoNoContainerTestes
     private const string NomeDoBancoDeTeste = "TracbelCrmMigracaoTeste";
 
     [FatoSeHouverSqlServer]
-    public void A_cadeia_de_migracoes_cria_os_oito_schemas_e_as_quarenta_e_nove_tabelas()
+    public void A_cadeia_de_migracoes_cria_os_oito_schemas_e_as_cinquenta_tabelas()
     {
         using var contexto = CriarContexto();
 
@@ -52,7 +52,7 @@ public sealed class MigracaoNoContainerTestes
 
         porSchema.Should().BeEquivalentTo(new Dictionary<string, int>
         {
-            ["organizacao"] = 9,
+            ["organizacao"] = 10,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 9,
@@ -60,13 +60,14 @@ public sealed class MigracaoNoContainerTestes
             ["auditoria"] = 1,
             ["integracao"] = 9,
             ["metadado"] = 2
-        }, "é a conta do documento 14, seção 2.1, depois da fase 1 do documento 41 — 49 tabelas " +
-           "de modelo em 8 schemas, no banco de verdade. A migração inicial criava 80 em 10; a " +
-           "fase 1 removeu as 31 que nunca receberam uma linha e esvaziou por completo os " +
-           "schemas 'documento' e 'relatorio'. A cadeia inteira roda aqui, do zero: é o que prova " +
-           "que a remoção também funciona em banco que nasce agora, e não só no que já existia");
+        }, "é a conta do documento 14, seção 2.1 — 50 tabelas de modelo em 8 schemas, no banco de " +
+           "verdade. A migração inicial criava 80 em 10; a fase 1 do documento 41 removeu as 31 " +
+           "que nunca receberam uma linha e esvaziou por completo os schemas 'documento' e " +
+           "'relatorio'; a issue 64 acrescentou o total do estado. A cadeia inteira roda aqui, do " +
+           "zero: é o que prova que a remoção — e o RENAME da tabela da PAM, que preserva a área " +
+           "plantada já carregada — também funcionam em banco que nasce agora");
 
-        porSchema.Values.Sum().Should().Be(49);
+        porSchema.Values.Sum().Should().Be(50);
     }
 
     [FatoSeHouverSqlServer]

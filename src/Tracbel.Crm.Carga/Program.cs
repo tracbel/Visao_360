@@ -84,6 +84,22 @@ var somenteFaturamento = args.Contains("--somente-faturamento", StringComparer.O
 //                        --cen-e-gestor    "<pasta>\CEN e Gestor por Municipio.xlsx"
 var somenteTerritorio = args.Contains("--somente-territorio", StringComparer.Ordinal);
 
+// --somente-pam — SO A PRODUCAO AGRICOLA MUNICIPAL DO IBGE (issue 64).
+//
+// E a ETAPA 4 do territorio, sozinha: as quatro medidas da tabela SIDRA 5457 (area plantada,
+// colhida, quantidade e valor), por municipio de SP e no total do estado, nos ultimos tres anos
+// publicados.
+//
+// POR QUE SEPARADO DO --somente-territorio: a PAM muda uma vez por ano e nao precisa de planilha
+// nenhuma. E a unica etapa do territorio que o SERVIDOR consegue rodar sozinho (regra R-5 do doc 46),
+// porque as outras tres dependem das duas planilhas do comercial, que trazem nome de funcionario e
+// nao devem viajar ate la so para atualizar o IBGE.
+//
+// Ele conta com o catalogo de municipios ja reconhecido, que o --somente-territorio faz e nao muda
+// de ano para ano. Uma TRAVA no proprio banco impede que a rotina agendada e uma carga manual
+// escrevam ao mesmo tempo.
+var somentePam = args.Contains("--somente-pam", StringComparer.Ordinal);
+
 // --somente-art [--simular] — AS VENDAS DE MÁQUINA DO ART (documento 35, seção 10).
 //
 // Lê a view do ART (MySQL, sessão somente leitura) e confere dono e cadastro no banco do Protheus
@@ -103,13 +119,14 @@ var simular = args.Contains("--simular", StringComparer.Ordinal);
 // O QUE CONTINUA LIVRE, porque nada disso lê o Vórtice:
 //   --somente-faturamento   o faturamento do Protheus, que muda todo dia e é o número da diretoria;
 //   --somente-territorio    as planilhas do comercial e o IBGE;
+//   --somente-pam           só a produção agrícola do IBGE — a rotina anual do servidor;
 //   --somente-art           as vendas de máquina do ART;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
 
-var leOVortice = !somenteFaturamento && !somenteTerritorio && !somenteArt && !somenteMedir;
+var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteArt && !somenteMedir;
 
 if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
 {
@@ -120,7 +137,8 @@ if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal
     Console.Error.WriteLine();
     Console.Error.WriteLine(
         "  O que continua valendo sem declaração nenhuma: --somente-faturamento (Protheus), " +
-        "--somente-territorio (planilhas e IBGE), --somente-art e --somente-medir.");
+        "--somente-territorio (planilhas e IBGE), --somente-pam (só o IBGE), --somente-art e " +
+        "--somente-medir.");
     Console.Error.WriteLine();
     Console.Error.WriteLine(
         $"  Se a leitura do legado for MESMO o que se quer, acrescente {DeclaracaoDeUsoDoLegado} " +
@@ -149,7 +167,7 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A EXIGÊNCIA CAI NO MODO SÓ-FATURAMENTO, e só nele: essa etapa não abre conexão com o legado.
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
-if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somenteArt)
+if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteArt)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -206,26 +224,33 @@ var ibge = new LeitorDoIbge(clienteDoIbge);
 // Atalho — só o território. Sai antes da exigência do Protheus, que esta etapa não usa.
 // -------------------------------------------------------------------------------------------------
 
-if (somenteTerritorio)
+if (somenteTerritorio || somentePam)
 {
     var caminhoDaAreaDeAtuacao = LerTexto(args, "--area-de-atuacao");
     var caminhoDoCenEGestor = LerTexto(args, "--cen-e-gestor");
 
-    if (caminhoDaAreaDeAtuacao is null || caminhoDoCenEGestor is null)
+    if (somenteTerritorio && (caminhoDaAreaDeAtuacao is null || caminhoDoCenEGestor is null))
     {
         Console.Error.WriteLine(
             "A carga do território precisa das duas planilhas: --area-de-atuacao \"<arquivo>\" e " +
             "--cen-e-gestor \"<arquivo>\". Nada foi gravado.");
+        Console.Error.WriteLine(
+            "  Para atualizar SÓ a produção agrícola do IBGE, que não usa planilha nenhuma, " +
+            "use --somente-pam.");
         return 2;
     }
 
     var cargaDoTerritorio = new CargaDeTerritorio(
         AbrirContexto, ibge, usuarioId, Console.WriteLine);
 
+    var oQueRodou = somenteTerritorio ? "A CARGA DO TERRITÓRIO" : "A CARGA DA PRODUÇÃO AGRÍCOLA";
+
     try
     {
-        var contagens = await cargaDoTerritorio.ExecutarAsync(
-            caminhoDaAreaDeAtuacao, caminhoDoCenEGestor, CancellationToken.None);
+        var contagens = somenteTerritorio
+            ? await cargaDoTerritorio.ExecutarAsync(
+                caminhoDaAreaDeAtuacao!, caminhoDoCenEGestor!, CancellationToken.None)
+            : await cargaDoTerritorio.ExecutarSoAProducaoAgricolaAsync(CancellationToken.None);
 
         foreach (var etapa in contagens.GroupBy(c => c.Etapa))
         {
@@ -239,10 +264,11 @@ if (somenteTerritorio)
     }
     catch (Exception falha) when (falha is FileNotFoundException or InvalidDataException
                                       or HttpRequestException or TaskCanceledException
-                                      or DbUpdateException or RegraDeNegocioViolada)
+                                      or DbUpdateException or RegraDeNegocioViolada
+                                      or InvalidOperationException)
     {
         Console.Error.WriteLine();
-        Console.Error.WriteLine("A CARGA DO TERRITÓRIO PAROU, e a etapa em curso foi desfeita: " + falha.Message);
+        Console.Error.WriteLine($"{oQueRodou} PAROU, e a etapa em curso foi desfeita: " + falha.Message);
 
         // A CAUSA DE VERDADE mora na exceção mais interna: "erro ao salvar as alterações" não diz
         // qual restrição recusou nem por quê.

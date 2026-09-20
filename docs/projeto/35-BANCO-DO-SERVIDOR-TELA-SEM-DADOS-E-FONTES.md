@@ -198,6 +198,15 @@ O script:
 Geográficos passa a mostrar os mapas **sem precisar republicar**. Reexecutar não grava nada. Para voltar
 atrás, restaure a cópia do passo 2.
 
+### 5.1 A produção agrícola do IBGE já não precisa de você (20/09/2026, #64)
+
+A quarta etapa — a PAM — saiu deste roteiro. Ela não usa planilha nenhuma, muda uma vez por ano e
+agora roda **no próprio servidor**, na tarefa anual `TracbelCrmPam`, que o
+`scripts/deploy/agendar-pam-no-servidor.ps1` instala uma vez. Detalhe no documento 32, §8.3.3.
+
+O script acima continua sendo o caminho das **três primeiras** etapas, que dependem das duas
+planilhas do comercial — e continuam saindo da estação enquanto as planilhas chegarem por e-mail.
+
 **O caminho está certo.** O repositório nesta estação é `C:\projetos\tracbel-crm` (o projeto não usa as
 unidades E: nem F:). O script encontra a raiz do repositório pela pasta onde ele mesmo está.
 

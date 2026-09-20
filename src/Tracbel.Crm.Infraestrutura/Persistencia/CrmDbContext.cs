@@ -221,8 +221,14 @@ public class CrmDbContext : DbContext
     /// <summary>Quem cada planilha do comercial diz que responde por cada município.</summary>
     public DbSet<ResponsavelPeloMunicipio> ResponsaveisPelosMunicipios => Set<ResponsavelPeloMunicipio>();
 
-    /// <summary>A área plantada por produto e município, da Produção Agrícola Municipal do IBGE.</summary>
-    public DbSet<AreaPlantadaNoMunicipio> AreasPlantadasNosMunicipios => Set<AreaPlantadaNoMunicipio>();
+    /// <summary>
+    /// As quatro medidas da Produção Agrícola Municipal do IBGE, por produto e município: área
+    /// plantada, área colhida, quantidade produzida e valor da produção.
+    /// </summary>
+    public DbSet<ProducaoAgricolaNoMunicipio> ProducoesAgricolasNosMunicipios => Set<ProducaoAgricolaNoMunicipio>();
+
+    /// <summary>As mesmas quatro medidas no total da UF — que não é a soma dos municípios.</summary>
+    public DbSet<ProducaoAgricolaNoEstado> ProducoesAgricolasNosEstados => Set<ProducaoAgricolaNoEstado>();
 
     /// <summary>As regras de potencial por área — hoje, um exemplo a confirmar.</summary>
     public DbSet<RegraDePotencial> RegrasDePotencial => Set<RegraDePotencial>();

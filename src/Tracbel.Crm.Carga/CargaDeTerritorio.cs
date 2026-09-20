@@ -1,5 +1,7 @@
+using System.Data;
 using System.Globalization;
 using System.Text.Json;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comercial;
@@ -45,7 +47,31 @@ internal sealed class CargaDeTerritorio(
     private const int CodigoDeSaoPaulo = 35;
 
     private const string FluxoDoCatalogo = "IBGE.MUNICIPIO";
-    private const string FluxoDaAreaPlantada = "IBGE.AREA_PLANTADA";
+
+    /// <summary>
+    /// O fluxo da PAM. Mudou de <c>IBGE.AREA_PLANTADA</c> para <c>IBGE.PRODUCAO_AGRICOLA</c> em
+    /// 20/09/2026 (issue 64), quando a carga passou a trazer as quatro medidas — o nome antigo
+    /// descrevia uma coluna. O ponto de sincronismo antigo fica no banco, com a história dele.
+    /// </summary>
+    private const string FluxoDaProducaoAgricola = "IBGE.PRODUCAO_AGRICOLA";
+
+    /// <summary>
+    /// Quantos anos da PAM a carga traz, contando do último publicado para trás.
+    ///
+    /// <para><b>Por que mais de um.</b> O ano de referência ainda é decisão de negócio (D-P10, issue
+    /// 63), e a planilha do comercial mistura anos. Guardar a série curta deixa a decisão em aberto
+    /// sem nova carga.</para>
+    ///
+    /// <para><b>Por que TRÊS, e não dois [medido em 20/09/2026].</b> A conferência da issue 64 contra
+    /// o protótipo só fecha com três. Os números que o documento 48, §3.8, rotula como "área plantada
+    /// 2024" são, na verdade, os da PAM de **2023** — a ADR bate ao hectare (3.715.896) — e os
+    /// rotulados "2025 preliminar" são os de **2024** (3.706.356 na ADR, 9.155.949 em SP, também ao
+    /// hectare). Só a coluna de VALOR está com o ano certo: os R$ 50.465.781 mil da ADR e os
+    /// R$ 118.021.202 mil de SP são mesmo de 2024, ao milhar. Ou seja, as colunas de área da planilha
+    /// estão um ano adiantadas. Com dois anos a conferência ficaria dependendo de uma consulta
+    /// avulsa; com três, quem duvidar confere no banco.</para>
+    /// </summary>
+    private const int AnosDaProducaoAgricola = 3;
     private const string FluxoDaAreaDeAtuacao = "PLANILHA.AREA_DE_ATUACAO";
     private const string FluxoDoCenEGestor = "PLANILHA.CEN_E_GESTOR";
 
@@ -61,6 +87,35 @@ internal sealed class CargaDeTerritorio(
 
     /// <summary>Uma afirmação de responsável lida de uma planilha.</summary>
     private sealed record Afirmacao(int MunicipioId, PapelNoMunicipio Papel, string Nome, string? Chave, int Linha);
+
+    /// <summary>
+    /// SÓ A PRODUÇÃO AGRÍCOLA — a etapa 4, sozinha, sem as planilhas do comercial.
+    ///
+    /// <para><b>Por que existe separada</b> (issue 64). A PAM muda uma vez por ano, e é a única etapa
+    /// que o servidor consegue rodar sozinho: as outras três dependem de duas planilhas que trazem
+    /// nome de funcionário por município e ficam fora do repositório. Fazer a rotina anual carregar
+    /// essas planilhas até o servidor para atualizar o IBGE seria levar dado pessoal onde ele não
+    /// precisa estar.</para>
+    ///
+    /// <para>Ela conta com o catálogo de municípios já reconhecido — que é o que a
+    /// <see cref="ExecutarAsync"/> faz e não muda de ano para ano. Município do IBGE que ainda não
+    /// tenha linha no catálogo aparece como recusa, com o código, em vez de sumir.</para>
+    /// </summary>
+    /// <param name="ct">Cancelamento.</param>
+    /// <returns>As contagens da etapa.</returns>
+    public async Task<IReadOnlyList<(string Etapa, string Rotulo, int Valor)>> ExecutarSoAProducaoAgricolaAsync(
+        CancellationToken ct)
+    {
+        var municipioPorCodigo = await MunicipiosPorCodigoAsync(ct);
+
+        if (municipioPorCodigo.Count == 0)
+            throw new InvalidOperationException(
+                "Nenhum município tem código do IBGE neste banco. A produção agrícola não tem onde " +
+                "ser gravada: rode a carga do território inteira (--somente-territorio) uma vez antes.");
+
+        await LerEGravarProducaoAgricolaAsync(municipioPorCodigo, ct);
+        return _contagens;
+    }
 
     /// <summary>Executa as quatro etapas.</summary>
     /// <param name="caminhoDaAreaDeAtuacao">O caminho de <c>Area de Atuação.xlsx</c>.</param>
@@ -101,11 +156,38 @@ internal sealed class CargaDeTerritorio(
         relatar($"Lendo {cenEGestor.NomeDoArquivo}…");
         await CarregarCenEGestorAsync(cenEGestor, oficiaisDeSaoPaulo, municipioPorCodigo, usuarios, ct);
 
-        relatar("Lendo a área plantada da PAM (SIDRA 5457) dos municípios de São Paulo…");
-        var areaPlantada = await ibge.LerAreaPlantadaAsync(CodigoDeSaoPaulo, ct);
-        await CarregarAreaPlantadaAsync(areaPlantada, municipioPorCodigo, ct);
+        await LerEGravarProducaoAgricolaAsync(municipioPorCodigo, ct);
 
         return _contagens;
+    }
+
+    /// <summary>
+    /// A PAM, ANO A ANO. Cada ano é uma rodada de consultas ao SIDRA (o teto de tamanho não deixa
+    /// pedir tudo de uma vez, issue 95), e o município e o total do estado vêm na mesma passada — é o
+    /// total do estado que dá o denominador da comparação "a região contra São Paulo".
+    /// </summary>
+    private async Task LerEGravarProducaoAgricolaAsync(
+        IReadOnlyDictionary<int, int> municipioPorCodigo, CancellationToken ct)
+    {
+        // A TRAVA VEM ANTES DA LEITURA, e não antes da gravação. Ler os três anos no SIDRA leva
+        // minutos; descobrir só no fim que outra rodada está em curso desperdiçaria a leitura inteira
+        // e diria "parou" a quem já esperou. Aqui a segunda rodada para em um segundo.
+        await using var trava = await TravaDeFluxo.TomarAsync(abrirContexto(), FluxoDaProducaoAgricola, ct);
+
+        var ultimoAno = await ibge.LerUltimoAnoDaPamAsync(ct);
+        var nosMunicipios = new List<LinhaDaProducaoAgricola>();
+        var noEstado = new List<LinhaDaProducaoAgricola>();
+
+        for (var ano = ultimoAno; ano > ultimoAno - AnosDaProducaoAgricola; ano--)
+        {
+            relatar($"Lendo a produção agrícola da PAM (SIDRA 5457) de {ano}, nos municípios de São Paulo…");
+            nosMunicipios.AddRange(await ibge.LerProducaoNosMunicipiosAsync(CodigoDeSaoPaulo, ano, ct));
+
+            relatar($"Lendo a produção agrícola de {ano} no total do estado de São Paulo…");
+            noEstado.AddRange(await ibge.LerProducaoNoEstadoAsync(CodigoDeSaoPaulo, ano, ct));
+        }
+
+        await CarregarProducaoAgricolaAsync(nosMunicipios, noEstado, municipioPorCodigo, ct);
     }
 
     // =============================================================================================
@@ -480,13 +562,16 @@ internal sealed class CargaDeTerritorio(
     }
 
     // =============================================================================================
-    // 4. A área plantada
+    // 4. A produção agrícola (PAM): as quatro medidas, no município e no estado
     // =============================================================================================
 
-    private async Task CarregarAreaPlantadaAsync(
-        IReadOnlyList<LinhaDaAreaPlantada> linhas, IReadOnlyDictionary<int, int> municipioPorCodigo, CancellationToken ct)
+    private async Task CarregarProducaoAgricolaAsync(
+        IReadOnlyList<LinhaDaProducaoAgricola> nosMunicipios,
+        IReadOnlyList<LinhaDaProducaoAgricola> noEstado,
+        IReadOnlyDictionary<int, int> municipioPorCodigo,
+        CancellationToken ct)
     {
-        const string etapa = "Área plantada (PAM/IBGE)";
+        const string etapa = "Produção agrícola (PAM/IBGE)";
         var agora = DateTime.UtcNow;
 
         await using var contexto = abrirContexto();
@@ -495,26 +580,29 @@ internal sealed class CargaDeTerritorio(
         var sistemaId = await SistemaAsync(contexto, "IBGE", "IBGE — localidades e SIDRA", "REST público, somente leitura", ct);
         contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistemaId);
 
-        var anos = linhas.Select(l => l.Ano).Distinct().ToList();
-        var existentes = (await contexto.AreasPlantadasNosMunicipios.Where(a => anos.Contains(a.Ano)).ToListAsync(ct))
+        var anos = nosMunicipios.Select(l => l.Ano).Concat(noEstado.Select(l => l.Ano)).Distinct().ToList();
+        var existentes = (await contexto.ProducoesAgricolasNosMunicipios.Where(a => anos.Contains(a.Ano)).ToListAsync(ct))
             .ToDictionary(a => (a.MunicipioId, a.Ano, a.ProdutoCodigoIbge));
+        var existentesNoEstado = (await contexto.ProducoesAgricolasNosEstados.Where(a => anos.Contains(a.Ano)).ToListAsync(ct))
+            .ToDictionary(a => (a.EstadoCodigoIbge, a.Ano, a.ProdutoCodigoIbge));
 
         var recusas = new List<(object Conteudo, string Motivo)>();
-        var novas = new List<AreaPlantadaNoMunicipio>();
+        var novas = new List<ProducaoAgricolaNoMunicipio>();
+        var novasNoEstado = new List<ProducaoAgricolaNoEstado>();
         int alteradas = 0, mantidas = 0, naoDisponiveis = 0, zeros = 0;
 
-        foreach (var linha in linhas)
+        foreach (var linha in nosMunicipios)
         {
-            if (!municipioPorCodigo.TryGetValue(linha.CodigoDoMunicipio, out var municipioId))
+            if (!municipioPorCodigo.TryGetValue(linha.CodigoDoRecorte, out var municipioId))
             {
-                recusas.Add((linha, $"O município {linha.CodigoDoMunicipio} não está reconhecido no catálogo."));
+                recusas.Add((linha, $"O município {linha.CodigoDoRecorte} não está reconhecido no catálogo."));
                 continue;
             }
 
-            decimal? area;
+            MedidasDaProducaoAgricola medidas;
             try
             {
-                area = SaneamentoDeTerritorio.AreaDoSidra(linha.ValorBruto);
+                medidas = Medir(linha);
             }
             catch (FormatException formato)
             {
@@ -522,42 +610,145 @@ internal sealed class CargaDeTerritorio(
                 continue;
             }
 
-            if (area is null) naoDisponiveis++;
-            else if (area == 0) zeros++;
+            // As contagens seguem a ÁREA PLANTADA, que é a medida que o mapa C usa: é ela que
+            // precisa ter zero e "não disponível" separados, e é dela que se fala no relatório.
+            if (medidas.AreaPlantadaHectares is null) naoDisponiveis++;
+            else if (medidas.AreaPlantadaHectares == 0) zeros++;
 
             if (existentes.TryGetValue((municipioId, linha.Ano, linha.ProdutoCodigo), out var existente))
             {
-                if (existente.Reapurar(linha.ProdutoNome, area, usuarioId, agora)) alteradas++;
+                if (existente.Reapurar(linha.ProdutoNome, medidas, usuarioId, agora)) alteradas++;
                 else mantidas++;
             }
             else
             {
-                novas.Add(AreaPlantadaNoMunicipio.Registrar(municipioId, linha.Ano, linha.ProdutoCodigo, linha.ProdutoNome, area, usuarioId, agora));
+                novas.Add(ProducaoAgricolaNoMunicipio.Registrar(
+                    municipioId, linha.Ano, linha.ProdutoCodigo, linha.ProdutoNome, medidas, usuarioId, agora));
             }
         }
 
-        contexto.AreasPlantadasNosMunicipios.AddRange(novas);
-        await SubstituirRecusasAsync(contexto, FluxoDaAreaPlantada, recusas, ct);
+        foreach (var linha in noEstado)
+        {
+            MedidasDaProducaoAgricola medidas;
+            try
+            {
+                medidas = Medir(linha);
+            }
+            catch (FormatException formato)
+            {
+                recusas.Add((linha, formato.Message));
+                continue;
+            }
+
+            if (existentesNoEstado.TryGetValue((linha.CodigoDoRecorte, linha.Ano, linha.ProdutoCodigo), out var existente))
+            {
+                if (existente.Reapurar(linha.ProdutoNome, medidas, usuarioId, agora)) alteradas++;
+                else mantidas++;
+            }
+            else
+            {
+                novasNoEstado.Add(ProducaoAgricolaNoEstado.Registrar(
+                    linha.CodigoDoRecorte, linha.Ano, linha.ProdutoCodigo, linha.ProdutoNome, medidas, usuarioId, agora));
+            }
+        }
+
+        contexto.ProducoesAgricolasNosMunicipios.AddRange(novas);
+        contexto.ProducoesAgricolasNosEstados.AddRange(novasNoEstado);
+        await SubstituirRecusasAsync(contexto, FluxoDaProducaoAgricola, recusas, ct);
         await contexto.SaveChangesAsync(ct);
 
-        var ultimoAno = anos.Count == 0 ? "sem linhas" : $"ano {anos.Max()}";
-        await RegistrarRodadaAsync(contexto, sistemaId, FluxoDaAreaPlantada, linhas.Count, novas.Count + alteradas, recusas.Count, ct, ultimoAno);
+        var periodo = anos.Count == 0 ? "sem linhas" : $"anos {string.Join(", ", anos.Order())}";
+        await RegistrarRodadaAsync(
+            contexto, sistemaId, FluxoDaProducaoAgricola,
+            nosMunicipios.Count + noEstado.Count, novas.Count + novasNoEstado.Count + alteradas, recusas.Count, ct, periodo);
         await transacao.CommitAsync(ct);
 
-        Contar(etapa, $"linhas lidas ({ultimoAno})", linhas.Count);
-        Contar(etapa, "linhas novas", novas.Count);
+        Contar(etapa, $"linhas lidas nos municípios ({periodo})", nosMunicipios.Count);
+        Contar(etapa, "linhas lidas no total do estado", noEstado.Count);
+        Contar(etapa, "linhas novas (município)", novas.Count);
+        Contar(etapa, "linhas novas (estado)", novasNoEstado.Count);
         Contar(etapa, "linhas reapuradas", alteradas);
         Contar(etapa, "linhas mantidas sem mudança", mantidas);
-        Contar(etapa, "valores zero (\"-\" no IBGE)", zeros);
-        Contar(etapa, "valores não disponíveis (\"...\" ou \"X\" no IBGE)", naoDisponiveis);
+        Contar(etapa, "área plantada zero (\"-\" no IBGE)", zeros);
+        Contar(etapa, "área plantada não disponível (\"...\" ou \"X\")", naoDisponiveis);
         Contar(etapa, "linhas recusadas", recusas.Count);
     }
+
+    /// <summary>As quatro medidas de uma linha, cada uma pelo saneamento que separa zero de ausência.</summary>
+    private static MedidasDaProducaoAgricola Medir(LinhaDaProducaoAgricola linha) => new(
+        SaneamentoDeTerritorio.MedidaDoSidra(linha.AreaPlantadaBruta),
+        SaneamentoDeTerritorio.MedidaDoSidra(linha.AreaColhidaBruta),
+        SaneamentoDeTerritorio.MedidaDoSidra(linha.QuantidadeProduzidaBruta),
+        SaneamentoDeTerritorio.MedidaDoSidra(linha.ValorDaProducaoBruto));
 
     // =============================================================================================
     // Apoio
     // =============================================================================================
 
     private void Contar(string etapa, string rotulo, int valor) => _contagens.Add((etapa, rotulo, valor));
+
+    /// <summary>
+    /// A TRAVA DE UM FLUXO DE CARGA, no próprio banco, pelo tempo de uma conexão.
+    ///
+    /// <para><b>Por que no banco e não num arquivo.</b> A rotina anual roda no servidor e a carga
+    /// manual roda na estação — duas máquinas diferentes, um banco só. Um arquivo de trava numa
+    /// máquina não enxerga a outra. O <c>sp_getapplock</c> é do SQL Server, morre junto com a conexão
+    /// (inclusive se o processo cair) e não deixa trava órfã para alguém limpar depois.</para>
+    ///
+    /// <para><b>Ela não faz fila: recusa.</b> Com espera zero, a segunda rodada para na hora e diz o
+    /// que está acontecendo, em vez de ficar pendurada e depois refazer o que a primeira acabou de
+    /// fazer.</para>
+    ///
+    /// <para><b>Dona da conexão.</b> A trava é de sessão, não de transação: ela precisa sobreviver às
+    /// transações de escrita, que abrem e fecham dentro dela. Por isso esta classe fica com o
+    /// contexto e o descarta no fim — e é por isso que ela é um <c>IAsyncDisposable</c> e não um
+    /// método.</para>
+    /// </summary>
+    private sealed class TravaDeFluxo(CrmDbContext contexto) : IAsyncDisposable
+    {
+        /// <summary>Toma a trava do fluxo, ou recusa dizendo quem está com ela.</summary>
+        /// <param name="contexto">Um contexto SÓ para a trava; ela passa a ser dona dele.</param>
+        /// <param name="fluxo">O nome do fluxo, que é o nome da trava.</param>
+        /// <param name="ct">Cancelamento.</param>
+        /// <exception cref="InvalidOperationException">Quando outra rodada do mesmo fluxo está em curso.</exception>
+        public static async Task<TravaDeFluxo> TomarAsync(CrmDbContext contexto, string fluxo, CancellationToken ct)
+        {
+            var trava = new TravaDeFluxo(contexto);
+
+            try
+            {
+                // A CONEXÃO FICA ABERTA DE PROPÓSITO: é ela que segura a trava. Fechada, o SQL Server
+                // a libera na hora.
+                await contexto.Database.OpenConnectionAsync(ct);
+
+                var resultado = new SqlParameter("@resultado", SqlDbType.Int) { Direction = ParameterDirection.Output };
+
+                await contexto.Database.ExecuteSqlRawAsync(
+                    "EXEC @resultado = sp_getapplock @Resource = {0}, @LockMode = 'Exclusive', " +
+                    "@LockOwner = 'Session', @LockTimeout = 0",
+                    [$"carga:{fluxo}", resultado],
+                    ct);
+
+                // O sp_getapplock devolve 0 (travou na hora) ou 1 (travou depois de esperar).
+                // Negativo é recusa: -1 esgotou o tempo, -3 vítima de impasse, -999 erro de parâmetro.
+                if (resultado.Value is int codigo && codigo < 0)
+                    throw new InvalidOperationException(
+                        $"Outra carga do fluxo {fluxo} já está rodando neste banco (sp_getapplock devolveu " +
+                        $"{codigo}). Esta parou sem ler o IBGE e sem gravar nada — espere a primeira " +
+                        "terminar e rode de novo.");
+
+                return trava;
+            }
+            catch
+            {
+                await trava.DisposeAsync();
+                throw;
+            }
+        }
+
+        /// <summary>Solta a trava fechando a conexão que a segura.</summary>
+        public async ValueTask DisposeAsync() => await contexto.DisposeAsync();
+    }
 
     private static bool TentarRegiao(string? celula, out RegiaoDaAreaDeAtuacao regiao)
     {

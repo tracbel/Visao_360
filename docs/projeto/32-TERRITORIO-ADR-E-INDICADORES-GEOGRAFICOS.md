@@ -1,6 +1,11 @@
 # Território, ADR e indicadores geográficos — cadastros, conciliação e o painel de mapas
 
-> **Documento 32** · Versão 1.7 · 20/09/2026 — **o servidor tem área plantada de verdade pela primeira
+> **Documento 32** · Versão 1.8 · 20/09/2026 — **a PAM inteira, e um erro de ano na planilha do
+> comercial**: a tabela passou a guardar as quatro medidas (área plantada, colhida, quantidade e
+> valor) e ganhou ao lado a linha do total do estado; ao conferir contra o protótipo, as colunas de
+> ÁREA dele mostraram-se rotuladas com um ano a mais, e a de valor, certa (issue 64). Detalhe em §8.3.1
+> e §8.3.2.
+> Versão 1.7 · 20/09/2026 — **o servidor tem área plantada de verdade pela primeira
 > vez**: 54.570 linhas do ano 2025, pela variável 8331. No caminho, dois fatos que este documento
 > afirmava errado: o servidor estava com **0 linha** (a sanitização de 15/09 levou as 45.582) e a
 > leitura de todos os produtos de uma vez passou a ser recusada pelo SIDRA, agora em lotes de 20
@@ -747,7 +752,7 @@ coluna: nasce da migração, com a origem escrita.
 
 | | |
 |---|---|
-| Base | área plantada da PAM/IBGE — tabela SIDRA **5457**, variável **8331** ("Área plantada ou destinada à colheita"), último ano publicado |
+| Base | área plantada da PAM/IBGE — tabela SIDRA **5457**, variável **8331** ("Área plantada ou destinada à colheita"), último ano publicado. Desde a issue 64 a carga traz junto a **216** (área colhida), a **214** (quantidade produzida) e a **215** (valor da produção, em MIL reais) — o mapa C usa a 8331; as outras três servem à comparação com a planilha do comercial e ao painel de potencial (documento 48) |
 | Regra | cada `RegraDePotencial` ativa: `máquinas teóricas = área do produto ÷ hectares por máquina` |
 | Hoje | 1 regra: café (em grão) total, 3036N, 10 ha — **a confirmar** |
 | O que é | necessidade teórica de frota da **região inteira**, não venda anual e não valor em reais |
@@ -778,6 +783,69 @@ ano 2025**, com 9.967 "não disponível" preservados como nulo e 37.455 zeros. A
 ha**, que é a soma do SIDRA (9.210.103) **mais o "Café (em grão) Total"** — a contagem tripla do café
 (Total, Arábica e Canephora) continua no dado bruto, e quem somar precisa escolher um dos três (é o
 que a #64 trata). A ADR voltou aos 203 municípios e os responsáveis, a 609.
+
+#### 8.3.1 As quatro medidas e o total do estado (issue 64, 20/09/2026)
+
+A tabela deixou de guardar uma coluna e passou a guardar as quatro medidas que a PAM publica, na
+mesma linha de (município, ano, produto): **8331** área plantada, **216** área colhida, **214**
+quantidade produzida e **215** valor da produção em mil reais. A tabela mudou de nome junto —
+`AreaPlantadaNoMunicipio` virou `organizacao.ProducaoAgricolaNoMunicipio`, por migração que
+**renomeia**, sem recriar, para não apagar as linhas já carregadas.
+
+A **112 (rendimento médio) fica de fora de propósito:** ela é quantidade ÷ área colhida. Guardar um
+número derivado ao lado das duas parcelas cria uma terceira fonte para a mesma verdade — a que diverge
+primeiro, e sempre em silêncio.
+
+Ao lado dela nasceu `organizacao.ProducaoAgricolaNoEstado`, com a linha que o IBGE publica para a UF
+inteira. **Ela não é a soma dos municípios**, e a diferença é medível: em 2024, o valor da produção de
+São Paulo publicado pelo estado é R$ 118.021.046 mil, e a soma dos 645 municípios dá R$ 118.021.202
+mil — R$ 156 mil de diferença, que é o valor municipal sigiloso entrando no total do estado sem
+aparecer embaixo. Sem a linha do estado não há denominador honesto para "que fatia da cultura de SP
+está na área de atuação".
+
+**O lote caiu de 20 para 10 produtos.** O teto do SIDRA é de tamanho de resposta, não de número de
+produtos: com uma variável, 20 produtos cabiam; com quatro, não. Medido em 20/09/2026, para os 645
+municípios de SP: 4 variáveis × 10 produtos devolveu 25.681 linhas e 5,3 MB, com HTTP 200; 4 × 20
+devolveu **400**. Dez deixa metade do teto de folga.
+
+#### 8.3.2 O ano das colunas da planilha do comercial está adiantado [medido em 20/09/2026]
+
+Ao conferir os totais do protótipo contra o SIDRA, três dos quatro números bateram ao dígito — mas
+**não no ano que a planilha diz**:
+
+| O que o documento 48, §3.8, chama de… | é, na verdade, a PAM de… | ADR (203) | São Paulo |
+|---|---|---:|---:|
+| Área plantada **2024** | **2023** | 3.715.896 ha ✔ | 9.217.695 ha (o doc traz 9.216.**795**) |
+| Área plantada **2025** (preliminar) | **2024** | 3.706.356 ha ✔ | 9.155.949 ha ✔ |
+| Valor da produção **2024** | **2024** ✔ | R$ 50.465.781 mil ✔ | R$ 118.021.202 mil ✔ |
+
+Ou seja: **as colunas de área estão rotuladas com um ano a mais; a de valor está certa.** E o total de
+São Paulo do documento tem uma transposição de dígitos (9.216.795 no lugar de 9.217.695, 900 ha).
+
+Isso não é defeito da carga — é o rótulo da fonte. Mas muda o que a decisão **D-P10** (ano de
+referência, issue 63) está escolhendo, e por isso a carga passou a trazer **três anos** da PAM: quem
+duvidar confere no banco, sem consulta avulsa.
+
+#### 8.3.3 A rotina anual, no servidor
+
+A PAM é a **única** etapa do território que o servidor consegue rodar sozinho — que é o que a regra
+R-5 do documento 46 pede. As outras três dependem das duas planilhas do comercial, que trazem nome de
+funcionário por município; levá-las até o servidor só para atualizar o IBGE seria levar dado pessoal
+onde ele não precisa estar. Por isso a carga ganhou o modo **`--somente-pam`**, que não usa planilha
+nenhuma e conta com o catálogo de municípios já reconhecido.
+
+| | |
+|---|---|
+| Instalação | `scripts/deploy/agendar-pam-no-servidor.ps1` — publica a carga em `C:\aplicacoes\tracbel-crm-carga`, grava a conexão **integrada** (nenhuma senha em arquivo) e registra a tarefa |
+| Tarefa | `TracbelCrmPam`, **1º de outubro às 03:00**, todo ano, como SYSTEM |
+| Registro | `integracao.PontoDeSincronismo`, fluxo `IBGE.PRODUCAO_AGRICOLA`, com lidos, gravados e recusados; e um arquivo de log por rodada no servidor, guardado por três anos |
+| Trava | `sp_getapplock` no próprio banco, tomada **antes** da leitura do SIDRA |
+
+**Por que a trava é do banco, e não um arquivo.** A rotina roda no servidor e a carga manual roda na
+estação — duas máquinas, um banco só; um arquivo numa delas não enxerga a outra. E ela **recusa em
+vez de enfileirar**: medido em 20/09/2026, com a trava tomada por outra sessão, a carga parou em
+**4 segundos**, sem ler o IBGE e sem gravar nada. Enfileirar faria a segunda rodada esperar quatro
+minutos para depois refazer o que a primeira acabou de fazer.
 
 **O tamanho do erro [medido em 19/09/2026]** — lido ao vivo do SIDRA (tabela 5457, PAM **2025**, que é
 o último ano publicado hoje; em 17/09/2026 a API recusou esta estação, e em 19/09 respondeu):

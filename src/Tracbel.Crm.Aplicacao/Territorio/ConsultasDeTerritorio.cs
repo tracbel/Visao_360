@@ -260,7 +260,7 @@ public sealed class ObterIndicadoresTerritoriais(
                     Lacunas(indicadores, contextoDeAcesso.PodeAlcancarTodasAsEmpresas, final >= mesCorrente),
                     contextoDeAcesso.PodeAlcancarTodasAsEmpresas,
                     Classificar(indicadores)),
-                "organizacao.MunicipioDaAreaDeAtuacao · comercial.ClienteCarteira · comercial.FaturamentoDoCliente · organizacao.AreaPlantadaNoMunicipio",
+                "organizacao.MunicipioDaAreaDeAtuacao · comercial.ClienteCarteira · comercial.FaturamentoDoCliente · organizacao.ProducaoAgricolaNoMunicipio",
                 relogio));
     }
 

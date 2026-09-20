@@ -84,10 +84,14 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
             ResponsavelPeloMunicipio.Registrar(ribeirao.Id, PapelNoMunicipio.Cen, FonteDoResponsavel.PlanilhaCenEGestorPorMunicipio,
                 "CEN.EXEMPLO", SituacaoDoResponsavel.UsuarioIdentificado, 100, "43402", "CEN e Gestor por Municipio.xlsx", 2, 100, agora));
 
-        db.AreasPlantadasNosMunicipios.AddRange(
-            AreaPlantadaNoMunicipio.Registrar(ribeirao.Id, 2024, 40139, "Café (em grão) Total", 70m, 100, agora),
-            AreaPlantadaNoMunicipio.Registrar(serrana.Id, 2024, 40139, "Café (em grão) Total", null, 100, agora),
-            AreaPlantadaNoMunicipio.Registrar(jardinopolis.Id, 2024, 40139, "Café (em grão) Total", 0m, 100, agora));
+        // Ribeirão tem área, Serrana não foi divulgada e Jardinópolis é zero: os três casos que o
+        // indicador precisa distinguir. As demais medidas da PAM não entram no cálculo desta rota.
+        MedidasDaProducaoAgricola SoAreaPlantada(decimal? hectares) => new(hectares, null, null, null);
+
+        db.ProducoesAgricolasNosMunicipios.AddRange(
+            ProducaoAgricolaNoMunicipio.Registrar(ribeirao.Id, 2024, 40139, "Café (em grão) Total", SoAreaPlantada(70m), 100, agora),
+            ProducaoAgricolaNoMunicipio.Registrar(serrana.Id, 2024, 40139, "Café (em grão) Total", SoAreaPlantada(null), 100, agora),
+            ProducaoAgricolaNoMunicipio.Registrar(jardinopolis.Id, 2024, 40139, "Café (em grão) Total", SoAreaPlantada(0m), 100, agora));
 
         var carteiraComCadencia = Carteira.Criar(1, comCadencia.Id, "MAQ_TESTE_01", "Máquinas RP", 100, 100);
         var carteiraSemCadencia = Carteira.Criar(1, semCadencia.Id, "PECAS_TESTE_01", "Peças RP", 100, 100);
