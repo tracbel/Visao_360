@@ -826,6 +826,27 @@ Isso não é defeito da carga — é o rótulo da fonte. Mas muda o que a decis�
 referência, issue 63) está escolhendo, e por isso a carga passou a trazer **três anos** da PAM: quem
 duvidar confere no banco, sem consulta avulsa.
 
+#### 8.3.3 A rotina anual, no servidor
+
+A PAM é a **única** etapa do território que o servidor consegue rodar sozinho — que é o que a regra
+R-5 do documento 46 pede. As outras três dependem das duas planilhas do comercial, que trazem nome de
+funcionário por município; levá-las até o servidor só para atualizar o IBGE seria levar dado pessoal
+onde ele não precisa estar. Por isso a carga ganhou o modo **`--somente-pam`**, que não usa planilha
+nenhuma e conta com o catálogo de municípios já reconhecido.
+
+| | |
+|---|---|
+| Instalação | `scripts/deploy/agendar-pam-no-servidor.ps1` — publica a carga em `C:\aplicacoes\tracbel-crm-carga`, grava a conexão **integrada** (nenhuma senha em arquivo) e registra a tarefa |
+| Tarefa | `TracbelCrmPam`, **1º de outubro às 03:00**, todo ano, como SYSTEM |
+| Registro | `integracao.PontoDeSincronismo`, fluxo `IBGE.PRODUCAO_AGRICOLA`, com lidos, gravados e recusados; e um arquivo de log por rodada no servidor, guardado por três anos |
+| Trava | `sp_getapplock` no próprio banco, tomada **antes** da leitura do SIDRA |
+
+**Por que a trava é do banco, e não um arquivo.** A rotina roda no servidor e a carga manual roda na
+estação — duas máquinas, um banco só; um arquivo numa delas não enxerga a outra. E ela **recusa em
+vez de enfileirar**: medido em 20/09/2026, com a trava tomada por outra sessão, a carga parou em
+**4 segundos**, sem ler o IBGE e sem gravar nada. Enfileirar faria a segunda rodada esperar quatro
+minutos para depois refazer o que a primeira acabou de fazer.
+
 **O tamanho do erro [medido em 19/09/2026]** — lido ao vivo do SIDRA (tabela 5457, PAM **2025**, que é
 o último ano publicado hoje; em 17/09/2026 a API recusou esta estação, e em 19/09 respondeu):
 

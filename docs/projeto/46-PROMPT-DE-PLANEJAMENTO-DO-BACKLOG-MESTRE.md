@@ -120,7 +120,7 @@ e nunca a **Sistema externo → tabela específica → tela específica**.
 | R-2 | **Commit, push, publicação, mudança no servidor e reescrita de histórico** exigem autorização explícita, a cada vez | doc 41 §1 ("nenhum commit sem autorização"), §3.5; doc 33 |
 | R-3 | **O servidor não recebeu as fases 1 e 2.** Levá-las é autorização à parte, com backup `COPY_ONLY`, conferência de vazio **no servidor** e de consumidores externos | doc 44 §6.6 e §8 item 2 (restauração, vazio, `up`, contagens); doc 41 §6 R3 (consumidores externos); doc 45 §7 |
 | R-4 | **Publicar é migrar.** Em Production, a API aplica toda migração pendente ao subir e não sobe se a migração falhar. Nenhuma publicação a partir de `cb05b7c` é neutra: ela executa a fase 1 (32 `DROP`) e, se estiver no build, a fase 2 | `src/Tracbel.Crm.Api/Program.cs:254-270`; `scripts/deploy/publicar.ps1:23-28` |
-| R-5 | **A integração roda no servidor** (serviço do Windows ou rotina da aplicação). Nunca um script de estação gravando no banco central | doc 35 §6.2, §11. Exceção histórica a eliminar: `scripts/deploy/carregar-territorio-no-servidor.ps1` |
+| R-5 | **A integração roda no servidor** (serviço do Windows ou rotina da aplicação). Nunca um script de estação gravando no banco central | doc 35 §6.2, §11. **20/09/2026 (#64):** a parte da PAM saiu da exceção — `--somente-pam` roda no servidor, na tarefa anual `TracbelCrmPam` (doc 32 §8.3.3). Continua de exceção o que depende das duas planilhas do comercial, em `scripts/deploy/carregar-territorio-no-servidor.ps1` |
 | R-6 | **A VM do servidor não usa Docker.** Não propor contêiner nela | doc 35 §12.8; `instalar-no-servidor.ps1:13-18` |
 | R-7 | **Vórtice congelado (D-12):** não remover, não usar, não recolocar no fluxo. A carga só roda com `--legado-somente-referencia-eu-sei-o-que-estou-fazendo` | doc 41 §1, §1.1; `src/Tracbel.Crm.Carga/Program.cs:110-126` |
 | R-8 | **Nenhuma dependência nova do Vórtice**, nem indireta. Isso inclui os quatro painéis da API Gestão de Negócios que leem o CRM legado e qualquer uso de `seq_pessoa`, `dna` ou `processo` do legado | D-12; seção 5 |
@@ -581,7 +581,7 @@ Toda integração sai de **um** executável, com modos de linha de comando [M `P
 |---|---|
 | **Fornece** | municípios (código oficial e nome), área plantada (SIDRA tabela 5457, variável 216, classificação 782, último ano) e malha municipal v3 (polígonos) |
 | **Acesso** | REST público sem credencial; `HttpClient` com descompressão e timeout de 5 min (`Carga/Program.cs:197-201`); `Integracao/Ibge/{LeitorDoIbge,PoligonoMunicipal}.cs` |
-| **Grava** | `Municipio`, `AreaPlantadaNoMunicipio`, `Endereco.MunicipioId` (grafias cortadas), `MensagemDescartada`, `PontoDeSincronismo` (fluxos `IBGE.MUNICIPIO`, `IBGE.AREA_PLANTADA`, `IBGE.GRAFIA_CORTADA`); sistema IBGE, origem `Integracao` |
+| **Grava** | `Municipio`, `ProducaoAgricolaNoMunicipio`, `ProducaoAgricolaNoEstado`, `Endereco.MunicipioId` (grafias cortadas), `MensagemDescartada`, `PontoDeSincronismo` (fluxos `IBGE.MUNICIPIO`, `IBGE.PRODUCAO_AGRICOLA`, `IBGE.GRAFIA_CORTADA`); sistema IBGE, origem `Integracao` |
 | **Estado** | roda só na estação (`--somente-territorio`). `ConsolidacaoDeGrafiasCortadas` só acha variantes entre municípios **sem** código IBGE; a sanitização manteve só os 5.571 com código, então ela não tem o que fazer [I] |
 | **Testes** | `PoligonoMunicipal`, `ConsolidacaoDeGrafiasCortadas`; `LeitorDoIbge` sem teste |
 

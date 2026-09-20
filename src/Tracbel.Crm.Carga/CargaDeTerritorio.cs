@@ -1,5 +1,7 @@
+using System.Data;
 using System.Globalization;
 using System.Text.Json;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comercial;
@@ -86,6 +88,35 @@ internal sealed class CargaDeTerritorio(
     /// <summary>Uma afirmação de responsável lida de uma planilha.</summary>
     private sealed record Afirmacao(int MunicipioId, PapelNoMunicipio Papel, string Nome, string? Chave, int Linha);
 
+    /// <summary>
+    /// SÓ A PRODUÇÃO AGRÍCOLA — a etapa 4, sozinha, sem as planilhas do comercial.
+    ///
+    /// <para><b>Por que existe separada</b> (issue 64). A PAM muda uma vez por ano, e é a única etapa
+    /// que o servidor consegue rodar sozinho: as outras três dependem de duas planilhas que trazem
+    /// nome de funcionário por município e ficam fora do repositório. Fazer a rotina anual carregar
+    /// essas planilhas até o servidor para atualizar o IBGE seria levar dado pessoal onde ele não
+    /// precisa estar.</para>
+    ///
+    /// <para>Ela conta com o catálogo de municípios já reconhecido — que é o que a
+    /// <see cref="ExecutarAsync"/> faz e não muda de ano para ano. Município do IBGE que ainda não
+    /// tenha linha no catálogo aparece como recusa, com o código, em vez de sumir.</para>
+    /// </summary>
+    /// <param name="ct">Cancelamento.</param>
+    /// <returns>As contagens da etapa.</returns>
+    public async Task<IReadOnlyList<(string Etapa, string Rotulo, int Valor)>> ExecutarSoAProducaoAgricolaAsync(
+        CancellationToken ct)
+    {
+        var municipioPorCodigo = await MunicipiosPorCodigoAsync(ct);
+
+        if (municipioPorCodigo.Count == 0)
+            throw new InvalidOperationException(
+                "Nenhum município tem código do IBGE neste banco. A produção agrícola não tem onde " +
+                "ser gravada: rode a carga do território inteira (--somente-territorio) uma vez antes.");
+
+        await LerEGravarProducaoAgricolaAsync(municipioPorCodigo, ct);
+        return _contagens;
+    }
+
     /// <summary>Executa as quatro etapas.</summary>
     /// <param name="caminhoDaAreaDeAtuacao">O caminho de <c>Area de Atuação.xlsx</c>.</param>
     /// <param name="caminhoDoCenEGestor">O caminho de <c>CEN e Gestor por Municipio.xlsx</c>.</param>
@@ -125,9 +156,24 @@ internal sealed class CargaDeTerritorio(
         relatar($"Lendo {cenEGestor.NomeDoArquivo}…");
         await CarregarCenEGestorAsync(cenEGestor, oficiaisDeSaoPaulo, municipioPorCodigo, usuarios, ct);
 
-        // A PAM, ANO A ANO. Cada ano é uma rodada de consultas ao SIDRA (o teto de tamanho não deixa
-        // pedir tudo de uma vez, issue 95), e o município e o total do estado vêm na mesma passada —
-        // é o total do estado que dá o denominador da comparação "a região contra São Paulo".
+        await LerEGravarProducaoAgricolaAsync(municipioPorCodigo, ct);
+
+        return _contagens;
+    }
+
+    /// <summary>
+    /// A PAM, ANO A ANO. Cada ano é uma rodada de consultas ao SIDRA (o teto de tamanho não deixa
+    /// pedir tudo de uma vez, issue 95), e o município e o total do estado vêm na mesma passada — é o
+    /// total do estado que dá o denominador da comparação "a região contra São Paulo".
+    /// </summary>
+    private async Task LerEGravarProducaoAgricolaAsync(
+        IReadOnlyDictionary<int, int> municipioPorCodigo, CancellationToken ct)
+    {
+        // A TRAVA VEM ANTES DA LEITURA, e não antes da gravação. Ler os três anos no SIDRA leva
+        // minutos; descobrir só no fim que outra rodada está em curso desperdiçaria a leitura inteira
+        // e diria "parou" a quem já esperou. Aqui a segunda rodada para em um segundo.
+        await using var trava = await TravaDeFluxo.TomarAsync(abrirContexto(), FluxoDaProducaoAgricola, ct);
+
         var ultimoAno = await ibge.LerUltimoAnoDaPamAsync(ct);
         var nosMunicipios = new List<LinhaDaProducaoAgricola>();
         var noEstado = new List<LinhaDaProducaoAgricola>();
@@ -142,8 +188,6 @@ internal sealed class CargaDeTerritorio(
         }
 
         await CarregarProducaoAgricolaAsync(nosMunicipios, noEstado, municipioPorCodigo, ct);
-
-        return _contagens;
     }
 
     // =============================================================================================
@@ -642,6 +686,69 @@ internal sealed class CargaDeTerritorio(
     // =============================================================================================
 
     private void Contar(string etapa, string rotulo, int valor) => _contagens.Add((etapa, rotulo, valor));
+
+    /// <summary>
+    /// A TRAVA DE UM FLUXO DE CARGA, no próprio banco, pelo tempo de uma conexão.
+    ///
+    /// <para><b>Por que no banco e não num arquivo.</b> A rotina anual roda no servidor e a carga
+    /// manual roda na estação — duas máquinas diferentes, um banco só. Um arquivo de trava numa
+    /// máquina não enxerga a outra. O <c>sp_getapplock</c> é do SQL Server, morre junto com a conexão
+    /// (inclusive se o processo cair) e não deixa trava órfã para alguém limpar depois.</para>
+    ///
+    /// <para><b>Ela não faz fila: recusa.</b> Com espera zero, a segunda rodada para na hora e diz o
+    /// que está acontecendo, em vez de ficar pendurada e depois refazer o que a primeira acabou de
+    /// fazer.</para>
+    ///
+    /// <para><b>Dona da conexão.</b> A trava é de sessão, não de transação: ela precisa sobreviver às
+    /// transações de escrita, que abrem e fecham dentro dela. Por isso esta classe fica com o
+    /// contexto e o descarta no fim — e é por isso que ela é um <c>IAsyncDisposable</c> e não um
+    /// método.</para>
+    /// </summary>
+    private sealed class TravaDeFluxo(CrmDbContext contexto) : IAsyncDisposable
+    {
+        /// <summary>Toma a trava do fluxo, ou recusa dizendo quem está com ela.</summary>
+        /// <param name="contexto">Um contexto SÓ para a trava; ela passa a ser dona dele.</param>
+        /// <param name="fluxo">O nome do fluxo, que é o nome da trava.</param>
+        /// <param name="ct">Cancelamento.</param>
+        /// <exception cref="InvalidOperationException">Quando outra rodada do mesmo fluxo está em curso.</exception>
+        public static async Task<TravaDeFluxo> TomarAsync(CrmDbContext contexto, string fluxo, CancellationToken ct)
+        {
+            var trava = new TravaDeFluxo(contexto);
+
+            try
+            {
+                // A CONEXÃO FICA ABERTA DE PROPÓSITO: é ela que segura a trava. Fechada, o SQL Server
+                // a libera na hora.
+                await contexto.Database.OpenConnectionAsync(ct);
+
+                var resultado = new SqlParameter("@resultado", SqlDbType.Int) { Direction = ParameterDirection.Output };
+
+                await contexto.Database.ExecuteSqlRawAsync(
+                    "EXEC @resultado = sp_getapplock @Resource = {0}, @LockMode = 'Exclusive', " +
+                    "@LockOwner = 'Session', @LockTimeout = 0",
+                    [$"carga:{fluxo}", resultado],
+                    ct);
+
+                // O sp_getapplock devolve 0 (travou na hora) ou 1 (travou depois de esperar).
+                // Negativo é recusa: -1 esgotou o tempo, -3 vítima de impasse, -999 erro de parâmetro.
+                if (resultado.Value is int codigo && codigo < 0)
+                    throw new InvalidOperationException(
+                        $"Outra carga do fluxo {fluxo} já está rodando neste banco (sp_getapplock devolveu " +
+                        $"{codigo}). Esta parou sem ler o IBGE e sem gravar nada — espere a primeira " +
+                        "terminar e rode de novo.");
+
+                return trava;
+            }
+            catch
+            {
+                await trava.DisposeAsync();
+                throw;
+            }
+        }
+
+        /// <summary>Solta a trava fechando a conexão que a segura.</summary>
+        public async ValueTask DisposeAsync() => await contexto.DisposeAsync();
+    }
 
     private static bool TentarRegiao(string? celula, out RegiaoDaAreaDeAtuacao regiao)
     {

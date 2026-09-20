@@ -18,11 +18,14 @@
    em três cenários. **Primeiro as visões Diretoria e Administrador; depois a visão do CEN.**
 2. **Já existe um protótipo em Excel** que faz a maior parte disso: potencial estrutural por cultura e
    município, ajuste de ciclo com pesos e limites, relevância da região dentro de SP e captura da Tracbel.
-3. **A região tem 40,3% da área plantada de SP e 42,8% do valor da produção** (IBGE, 2024).
+3. **A região tem 40,3% da área plantada de SP e 42,8% do valor da produção.** O valor é de 2024; a
+   área, apesar do rótulo da planilha, é de **2023** — ver a errata da §3.8.
 4. **Com os parâmetros da planilha, ainda não confirmados**, a região comporta 30.317 máquinas e renova
    3.457 por ano; o ajuste de ciclo derruba a demanda para 2.727 por ano (−21%).
-5. **O CRM já tem a base:** os 203 municípios da ADR, a área plantada do IBGE (45.582 linhas no servidor
-   desde 14/09/2026) e uma regra de potencial (café, 1 trator a cada 10 ha, a confirmar).
+5. **O CRM já tem a base:** os 203 municípios da ADR, **as quatro medidas da PAM** (área plantada,
+   colhida, quantidade e valor) por município e no total do estado, em três anos, atualizadas pelo
+   próprio servidor uma vez por ano (#64), e uma regra de potencial (café, 1 trator a cada 10 ha, a
+   confirmar).
 6. **Há 14 decisões antes de programar o motor.** As mais urgentes: **café a cada 10 ha (CRM) ou 20 ha
    (planilha)**; o índice de crédito aplicado na planilha **não é o que a nota dela descreve**; a percepção
    do gestor vale **±5% (conversa) ou até ±40% (planilha)**.
@@ -290,7 +293,7 @@ Cada decisão tem opções, a recomendação e o que ela bloqueia. **Nenhuma foi
 | D-P07 | Rentabilidade | custo total CONAB (planilha usa o total por ha); na pasta, a CONAB de SP só tem café (Franca) e cana (Piracicaba, Penápolis) — mas a CONAB publica série histórica também de soja, milho, amendoim e laranja (§2.1), com os locais a conferir dentro dos arquivos | custo operacional para a margem de caixa e total para a de longo prazo; referência fora de SP ou outra fonte para as culturas sem série, registrada | #67, #73 |
 | D-P08 | Vendas para captura e share | entregas John Deere por ano fiscal (planilha); faturamento do Protheus (#18/#19); pedidos da API GN (#12) | uma fonte oficial por período; município do cliente; ano fiscal da John Deere e ano civil lado a lado | #69 |
 | D-P09 | "O contrato foi da Tracbel?" | o SICOR não identifica cliente nem revenda | aceitar como **aproximação** a comparação, por município e mês, dos contratos do SICOR com os pedidos da Tracbel financiados (instituição e linha de crédito na API GN) — nunca contrato a contrato | #69, #73 |
-| D-P10 | Anos de referência | área 2025 preliminar × quantidade e valor 2024 × Censo 2017 | usar o último ano completo de cada fonte, mostrar o ano em cada número e nunca misturar anos numa razão sem aviso | #64, #72 |
+| D-P10 | Anos de referência | **[M 20/09] o rótulo da planilha está adiantado na área:** o que ela chama de área 2025 preliminar é a PAM de 2024, e a "2024" é a de 2023; o valor 2024 é mesmo de 2024 (errata da §3.8). Mais o Censo 2017 | usar o último ano completo de cada fonte, mostrar o ano em cada número e nunca misturar anos numa razão sem aviso. O banco já guarda **três anos** da PAM, então a escolha não pede nova carga | #64, #72 |
 | D-P11 | Preços de soja, milho e amendoim; forma de obter o CEPEA e a Socicana | não há série de soja, milho e amendoim na pasta; o CEPEA tem termos de uso e bloqueou a leitura automática; **a cana já tem fonte: Socicana** (preço do kg de ATR, mensal, em página HTML) | definir a fonte de soja, milho e amendoim; conferir a licença do CEPEA e da Socicana antes de automatizar; até lá, envio mensal pelo administrador | #66 |
 | D-P12 | Valor do potencial em R$ | não existe preço por máquina no modelo | preço de referência por categoria × demanda, com fonte e data | #70, #72 |
 | D-P13 | Propriedades por tamanho × clientes | o Censo é agregado; área por cliente vazia no CRM; ART sem acesso | primeiro a distribuição regional (Censo); cruzamento só com área por cliente de fonte decidida (cadastro pelo CEN, ART, CAR/SICAR) | #65, #79 |
