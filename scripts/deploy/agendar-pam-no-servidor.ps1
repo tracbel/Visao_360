@@ -91,6 +91,14 @@ function Retrato([string] $rotulo) {
 # -------------------------------------------------------------------------------------------------
 Passo '0. Banco do servidor e catalogo de municipios'
 # -------------------------------------------------------------------------------------------------
+# PASTA SEM ESPACO. O /TR do schtasks guarda uma LINHA DE COMANDO, e a linha de comando de la chama
+# `powershell -File <caminho>`: um espaco no caminho exigiria mais um nivel de aspas dentro de uma
+# string que ja atravessou tres. Recusar aqui e melhor do que descobrir em outubro do ano que vem que
+# a tarefa nunca rodou.
+if ($Destino -match '\s') {
+    throw "A pasta de destino nao pode ter espaco: '$Destino'. Passe outra em -Destino."
+}
+
 $comIbge = [int](Escalar 'SELECT COUNT(*) FROM organizacao.Municipio WHERE CodigoIbge IS NOT NULL')
 if ($comIbge -eq 0) {
     throw "O banco de $Servidor nao tem nenhum municipio com codigo do IBGE. A PAM se pendura no catalogo: rode antes a carga do territorio inteira (carregar-territorio-no-servidor.ps1). Nada foi instalado."
@@ -175,13 +183,28 @@ Ok 'rotina gravada, com acesso so para o SYSTEM e os administradores'
 Passo "3. Tarefa anual $NomeTarefa"
 # -------------------------------------------------------------------------------------------------
 
+# NAO EXISTE /SC YEARLY NO SCHTASKS. Os tipos sao MINUTE, HOURLY, DAILY, WEEKLY, MONTHLY, ONCE e os
+# ON*. "Uma vez por ano" se escreve como MENSAL RESTRITO A UM MES: /SC MONTHLY /M OCT /D 1.
+#
+# A alternativa aparentemente equivalente - /SC MONTHLY /MO 12 /SD 01/10/2026, "de 12 em 12 meses a
+# partir desta data" - foi MEDIDA em 20/09/2026 e agenda para DEZEMBRO: o /SD e lido noutra ordem de
+# dia e mes. Nao use.
+#
+# E OS ARGUMENTOS VAO NUMA LISTA, e nao numa linha de comando escrita a mao. A primeira versao usava
+# continuacao de linha com crase e aspas escapadas dentro do /TR, e falhou no servidor com "Mandatory
+# option 'sc' is missing": a continuacao nao sobreviveu a viagem pelo _remoto.ps1, e so a primeira
+# linha rodou. Com uma lista, o PowerShell entrega cada item como um argumento e cuida das aspas
+# sozinho - nao ha nivel de aspas para contar.
 $saida = Invoke-NoServidor -Nome 'crm-pam-tarefa' -TimeoutSegundos 300 -Script @"
 New-Item -ItemType Directory -Force -Path '$Destino\logs' | Out-Null
-schtasks /Create /TN '$NomeTarefa' ``
-    /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \`"$Destino\rodar-pam.ps1\`"" ``
-    /SC YEARLY /MO 1 /M $Mes /D $DiaDoMes /ST $Hora /RU SYSTEM /RL HIGHEST /F
+`$argumentos = @(
+    '/Create', '/TN', '$NomeTarefa',
+    '/TR', 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Destino\rodar-pam.ps1',
+    '/SC', 'MONTHLY', '/M', '$Mes', '/D', '$DiaDoMes',
+    '/ST', '$Hora', '/RU', 'SYSTEM', '/RL', 'HIGHEST', '/F')
+& schtasks.exe @argumentos
 Write-Output ('codigo do schtasks: ' + `$LASTEXITCODE)
-schtasks /Query /TN '$NomeTarefa' /FO LIST
+& schtasks.exe /Query /TN '$NomeTarefa' /FO LIST /V
 "@
 Write-Host $saida
 if ($saida -notmatch 'codigo do schtasks: 0') {
