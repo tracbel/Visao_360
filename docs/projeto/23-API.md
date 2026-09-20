@@ -41,7 +41,15 @@ eliminar. `[V]` É a resposta direta aos 17 meses de faturamento parado passando
 
 ## 2. As rotas
 
-Todas exigem os dois cabeçalhos de contexto de acesso da seção 4.
+Todas exigem os dois cabeçalhos de contexto de acesso da seção 4 — **exceto** `/saude/banco`
+(seção 2.7) e as três rotas de sessão (`/auth/eu`, `/auth/entrar`, `/auth/sair`), que ficam fora do
+meio de campo que lê os cabeçalhos.
+
+> **São 39 rotas, e esta seção descreve 28 delas.** O inventário completo — rota por rota, com
+> arquivo e linha, caso de uso, tabelas, permissão (hoje: **nenhuma**, nas 39), teste, tela e a fase
+> que altera cada uma — está no **[documento 23A](23A-MATRIZ-DAS-ROTAS.md)** (issue #3, levantado em
+> 19/09/2026). Lá também estão as onze rotas que faltam aqui e as duas divergências de conteúdo
+> encontradas nesta seção. Trazer tudo isso para cá é a #4.
 
 ### 2.1 Cliente — `/api/v1/clientes`
 

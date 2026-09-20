@@ -104,12 +104,26 @@ dotnet test --filter Categoria=Arquitetura           # a estrutura não foi viol
 A tela tem os seus, em `src/Tracbel.Crm.Web` (vitest + testing-library, arquivos `*.teste.tsx`):
 
 ```bash
-npm run test           # roda uma vez e sai (a forma que serve para o CI)
+npm run test           # roda uma vez e sai — é o que o CI roda
 npm run test:observar  # fica observando os arquivos enquanto você mexe
 ```
 
-O job `frontend` do CI ainda roda só `lint` e `build` (ele nasceu quando não havia teste de tela);
-o passo `npm run test` entra quando o CI (#56) e este script estiverem os dois na `main`.
+### No CI
+
+Todo PR para a `main` roda o workflow **CI** (`.github/workflows/ci.yml`), com três checagens:
+`backend` (build com aviso como erro, migration pendente e os testes contra um SQL Server 2022 de
+verdade), `frontend` (lint, build e os testes de tela) e `seguranca` (varredura de segredos em
+arquivos e histórico).
+**Teste pulado quebra o CI** — o resumo da execução mostra a tabela por projeto e o motivo de cada pulado.
+
+Para conferir os mesmos resultados na sua máquina, sem SQL Server:
+
+```powershell
+dotnet test --logger trx --results-directory TestResults
+./scripts/ci/conferir-testes.ps1 -Pasta TestResults -PermitirPulados
+```
+
+Desenho e decisões: `docs/projeto/47-CI-CD.md`.
 
 **Portão de qualidade da fase 1** (documento 06): cobertura de domínio ≥ 90%, **cobertura de regra
 = 100%** (cada regra testada disparando *e não disparando*), matriz de autorização completa,
