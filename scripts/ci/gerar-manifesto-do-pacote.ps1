@@ -98,7 +98,7 @@ try {
     & dotnet tool restore | Out-Null
 
     # A LISTA DE MIGRACOES, na ordem em que o EF as aplica.
-    $saida = & dotnet tool run dotnet-ef migrations list --project $projeto --startup-project $inicial --no-build --prefix-output
+    $saida = & dotnet tool run dotnet-ef migrations list --project $projeto --startup-project $inicial --prefix-output
     if ($LASTEXITCODE -ne 0) { throw "Nao consegui listar as migracoes (codigo $LASTEXITCODE)." }
 
     # O `--prefix-output` marca cada linha de dado com "data:"; o resto e log do proprio EF.
