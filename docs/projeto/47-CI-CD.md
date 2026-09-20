@@ -214,15 +214,84 @@ Fica fora: code scanning pago (GitHub Advanced Security) e varredura de imagem (
 
 ## 6. Publicação (CD)
 
-O CI não publica nada. Duas issues cuidam da publicação, depois da decisão já tomada:
-
-| Issue | O que resolve | Bloqueio |
+| Issue | O que resolve | Estado |
 |---|---|---|
-| ~~#60~~ | **Onde o CRM roda — DECIDIDO em 17/09/2026: continua no Windows Server** (§6.1) | — |
-| #61 | Runner **Windows** dentro da rede, só para publicação, com ambiente `producao` e aprovação obrigatória do Ricardo | autorização da infraestrutura |
-| #62 | Publicação pelo pipeline: mesmo artefato do CI, backup com evidência, migration, saúde, reversão automática do código | #61; #51 antes da primeira migration destrutiva |
+| ~~#60~~ | **Onde o CRM roda — DECIDIDO em 17/09/2026: continua no Windows Server** (§6.5) | fechada |
+| #61 | Runner **Windows** dentro da rede, com ambiente `producao` e aprovação obrigatória | **deixou de ser bloqueador** — ver §6.2 |
+| #62 | Publicação automática: mesmo artefato do CI, backup, migração, saúde, reversão | **implementada em 20/09/2026** (§6.2) |
 
-### 6.1 A decisão de 17/09/2026 e o que a sustentou
+### 6.2 O servidor PUXA, e o GitHub não empurra (20/09/2026)
+
+O desenho original era o comum: um runner dentro da rede, para o qual o GitHub **empurra** a
+publicação. Ele exige instalar na rede um agente que executa código vindo de fora — decisão de
+infraestrutura, com risco próprio, e que levaria tempo.
+
+**O fato que mudou o desenho, medido em 20/09/2026 de dentro do servidor:**
+
+| Endereço | Resposta |
+|---|---|
+| `api.github.com` | HTTP 200 |
+| `github.com` | HTTP 200 |
+| `codeload.github.com` | HTTP 200 |
+| proxy configurado | nenhum — saída direta |
+
+Se o servidor alcança o GitHub, ele não precisa ser alcançado: **ele pergunta**. É saída, não
+entrada; a rede continua fechada e ninguém precisa abrir nada. Foi o mesmo fato que a carga da PAM já
+tinha provado ao ler 163.965 linhas do SIDRA de dentro dele.
+
+**Como funciona**
+
+1. O CI, ao fechar verde na `main`, monta o **pacote de publicação** (API self-contained + front +
+   carga) e um **manifesto** — job `pacote` do `ci.yml`.
+2. A tarefa `TracbelCrmPublicacao`, a cada 5 minutos no servidor, pergunta à API do GitHub qual foi a
+   última execução do CI na `main` que terminou em sucesso.
+3. Igual ao que está publicado? Vai embora. Diferente? Baixa **o artefato que o CI aprovou** — e não
+   uma compilação nova feita na máquina de alguém, que era o que o `publicar.ps1` fazia.
+4. Backup `COPY_ONLY` → para os serviços → troca os arquivos (preservando `appsettings.Production.json`
+   e `ssl`, que são do servidor) → sobe a API, que aplica as migrações → **prova de vida**.
+5. Se a prova de vida falhar, **volta sozinho** à versão anterior e sobe de novo.
+
+### 6.3 Aditiva sobe sozinha, destrutiva para e avisa
+
+"Publicar é migrar" (regra R-4 do doc 46). Criar tabela e criar coluna não tiram nada de ninguém, e
+são a esmagadora maioria — dessas, ninguém precisa ser avisado. **Apagar** tabela ou coluna não se
+desfaz com `git revert`: desfaz-se restaurando backup, e isso passa por gente.
+
+Quem separa uma da outra é o CI, no manifesto, **migração por migração**. A primeira versão analisava
+o script idempotente, que traz a cadeia inteira — e por isso dizia "destrutiva: SIM" para sempre, por
+causa da fase 1, que apagou 31 tabelas e nunca sai do histórico. Um portão que dispara sempre é o
+jeito mais rápido de ensinar alguém a aprovar sem ler.
+
+Medido em 20/09/2026, nas 17 migrações: **15 aditivas e 2 destrutivas** — a fase 1 (41 operações) e
+uma mudança de tipo em que o EF recriou a coluna sozinho, que **não aparece como "Drop" no arquivo
+`.cs`**. É por isso que a análise lê o SQL gerado, e não o código da migração.
+
+Quando para, o agente já deixou a cópia de segurança feita, registra no log de eventos do Windows e
+espera. Autorizar é `autorizar-publicacao.ps1 -Commit <sha>`, que mostra **o que exatamente vai ser
+apagado** antes de perguntar, e vale para aquele commit só.
+
+### 6.4 Os scripts
+
+| Onde roda | Script | O que faz |
+|---|---|---|
+| CI | `scripts/ci/gerar-manifesto-do-pacote.ps1` | o commit, as migrações e quais delas apagam alguma coisa |
+| CI | `scripts/ci/conferir-scripts-do-servidor.ps1` | os `.ps1` do servidor abrem no PowerShell 5.1 (ver abaixo) |
+| Estação, uma vez | `scripts/deploy/instalar-agente-de-publicacao.ps1` | pede o token, confere contra o GitHub, instala e agenda |
+| Servidor, a cada 5 min | `scripts/deploy/agente-de-publicacao.ps1` | decide se há o que publicar |
+| Servidor | `scripts/deploy/publicar-pacote.ps1` | troca a versão, com prova de vida e volta atrás |
+| Estação | `scripts/deploy/verificar-publicacao.ps1` | em que versão o servidor está e o que ele espera |
+| Estação | `scripts/deploy/autorizar-publicacao.ps1` | libera uma publicação destrutiva |
+
+**O token** é fine-grained, só deste repositório, só leitura de `Contents` e `Actions`. Ele é pedido
+na tela, conferido contra o GitHub **antes** de qualquer instalação, e gravado no servidor com
+herança removida — só SYSTEM e administradores leem. Não entra no repositório nem em log nenhum.
+
+**A armadilha do PowerShell 5.1, que custou uma rodada.** O servidor tem o 5.1, e ele lê `.ps1` sem
+BOM como ANSI: um travessão em UTF-8 vira dois caracteres e o parser quebra numa linha que não tem
+nada de errado — "Token '{' inesperado". O arquivo passava no PowerShell 7 da estação. Agora o CI
+confere isso a cada PR.
+
+### 6.5 A decisão de 17/09/2026 e o que a sustentou
 
 Ricardo indicou uma máquina Linux com Docker (`ecs-st-agro-sistemas-linux`, 10.150.4.227) e autorizou o
 acesso. O inventário e os testes de rede, todos medidos naquele dia, levaram a **manter a aplicação no
