@@ -92,10 +92,16 @@ export function GraficoLinhaMensal({
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (item: TooltipItem<'line'>) =>
-            item.dataIndex === ultimo && ultimoParcial
+          // O chart.js 4.5 passou a tipar o ponto como `number | null`, e está certo: ponto sem
+          // dado existe no eixo e não tem valor. Formatá-lo viraria "R$ 0,00", que é outra coisa —
+          // zero é uma medida, ausência não.
+          label: (item: TooltipItem<'line'>) => {
+            if (item.parsed.y === null) return 'sem dado';
+
+            return item.dataIndex === ultimo && ultimoParcial
               ? `${formatar(item.parsed.y)} — mês em curso`
-              : formatar(item.parsed.y),
+              : formatar(item.parsed.y);
+          },
         },
       },
     },

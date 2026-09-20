@@ -72,7 +72,9 @@ export function GraficoTendencia({
             },
             tooltip: {
               callbacks: {
-                label: (ctx: TooltipItem<'line'>) => `${ctx.dataset.label}: ${fmtBRLcompact(ctx.parsed.y)}`,
+                // `parsed.y` é `number | null` desde o chart.js 4.5: mês sem dado não é R$ 0,00.
+                label: (ctx: TooltipItem<'line'>) =>
+                  `${ctx.dataset.label}: ${ctx.parsed.y === null ? 'sem dado' : fmtBRLcompact(ctx.parsed.y)}`,
               },
             },
           },
