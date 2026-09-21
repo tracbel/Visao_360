@@ -66,11 +66,14 @@ public sealed class Usuario : EntidadeBase
     /// <summary>Empresa de casa do usuário: define o escopo padrão dele.</summary>
     public int EmpresaId { get; private set; }
 
-    /// <summary>Gestor direto. Sustenta a segurança por hierarquia.</summary>
+    /// <summary>
+    /// Gestor direto — a ÚNICA hierarquia de pessoas (documento 40). A profundidade <c>Equipe</c> alcança os
+    /// subordinados calculados a partir daqui, na montagem do contexto de acesso.
+    ///
+    /// <para>O antigo <c>Papel</c>, texto livre que não autorizava nada, saiu na fase 3: o que a pessoa pode
+    /// fazer vem dos perfis concedidos a ela, e só deles.</para>
+    /// </summary>
     public long? GestorId { get; private set; }
-
-    /// <summary>Papel principal, para leitura rápida na tela. A permissão real vem do conjunto.</summary>
-    public string? Papel { get; private set; }
 
     /// <summary>
     /// Desativar nunca apaga. [V] desativar um usuário no Vórtice destrói as permissões

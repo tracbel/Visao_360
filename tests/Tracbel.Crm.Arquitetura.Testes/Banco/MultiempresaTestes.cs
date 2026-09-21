@@ -36,10 +36,15 @@ public sealed class MultiempresaTestes
     /// <para>ERAM DUAS até a fase 1 (documento 41): a segunda era
     /// <c>CompartilhamentoDeRegistro</c>, cuja tabela nunca recebeu uma linha e saiu. Exceção de
     /// segurança que some é exceção a menos, e por isso este número só encolhe sem decisão.</para>
+    ///
+    /// <para>VOLTARAM A SER DUAS na fase 3 (P-20, 21/09/2026): <c>UsuarioPerfil</c>, cuja <c>EmpresaId</c>
+    /// é a filial EM QUE o perfil concedido vale — o dado que define quais filiais a pessoa pode escolher,
+    /// e que por isso não pode ser filtrado pela fronteira que ele mesmo define. Motivo no documento 05.</para>
     /// </summary>
     private static readonly string[] ExcecoesAcordadas =
     [
-        "Usuario"
+        "Usuario",
+        "UsuarioPerfil"
     ];
 
     private const string ColunaDeEmpresa = CrmDbContext.ColunaDeEmpresa;

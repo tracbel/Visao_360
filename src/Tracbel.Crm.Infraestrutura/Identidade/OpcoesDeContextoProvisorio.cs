@@ -34,7 +34,7 @@ public sealed class OpcoesDeContextoProvisorio
     public bool PermitirPadrao { get; set; }
 
     /// <summary>
-    /// Se a ponte provisória honra as concessões explícitas de <c>seguranca.UsuarioConjuntoPermissao</c>.
+    /// Se a ponte provisória honra as concessões explícitas de <c>seguranca.UsuarioPerfil</c>.
     ///
     /// <para>Cabeçalho não autentica ninguém: honrar uma concessão de alcance de organização para quem
     /// só ESCREVEU o nome de um usuário autorizado entregaria a empresa inteira a qualquer um. Por isso

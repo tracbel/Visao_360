@@ -94,7 +94,7 @@ public sealed class ResolvedorDeContextoProvisorio(
 
         var usuario = await banco.Usuarios
             .Where(u => u.NomePrincipal == upn && u.EstaAtivo && u.ExcluidoEm == null)
-            .Select(u => new { u.Id, u.NomeExibicao })
+            .Select(u => new { u.Id, u.NomeExibicao, u.EmpresaId })
             .FirstOrDefaultAsync(ct);
 
         if (usuario is null)
@@ -107,7 +107,7 @@ public sealed class ResolvedorDeContextoProvisorio(
 
         // O ESCOPO É O MESMO do login pelo Entra ID, montado no mesmo lugar — ver EscopoDeAcesso.
         return await EscopoDeAcesso.MontarAsync(
-            banco, usuario.Id, usuario.NomeExibicao, filial, empresaDeCasaId: 0,
+            banco, usuario.Id, usuario.NomeExibicao, filial, usuario.EmpresaId,
             config.CabecalhoDeEmpresa, config.HonrarConcessoesExplicitas, ct);
     }
 

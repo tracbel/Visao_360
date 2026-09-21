@@ -190,14 +190,14 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
 
         // A CONCESSÃO EXPLÍCITA, nos quatro jeitos que importam: em Organização (abre a empresa), a
         // mesma permissão só até a filial, uma concessão vencida e um conjunto desativado.
-        var visaoDaEmpresa = ConjuntoPermissao.Criar("TESTE_VISAO_EMPRESA", "Teste — visão da empresa")
+        var visaoDaEmpresa = Perfil.Criar("TESTE_VISAO_EMPRESA", "Teste — visão da empresa")
             .Conceder(ContextoAcesso.PermissaoDeAlcanceEntreEmpresas, Profundidade.Organizacao);
-        var alcanceCurto = ConjuntoPermissao.Criar("TESTE_ALCANCE_CURTO", "Teste — alcance só da filial")
+        var alcanceCurto = Perfil.Criar("TESTE_ALCANCE_CURTO", "Teste — alcance só da filial")
             .Conceder(ContextoAcesso.PermissaoDeAlcanceEntreEmpresas, Profundidade.EmpresaEAbaixo);
-        var desativado = ConjuntoPermissao.Criar("TESTE_CONJUNTO_DESATIVADO", "Teste — conjunto desativado")
+        var desativado = Perfil.Criar("TESTE_CONJUNTO_DESATIVADO", "Teste — conjunto desativado")
             .Conceder(ContextoAcesso.PermissaoDeAlcanceEntreEmpresas, Profundidade.Organizacao);
         desativado.Desativar();
-        db.ConjuntosPermissao.AddRange(visaoDaEmpresa, alcanceCurto, desativado);
+        db.Perfis.AddRange(visaoDaEmpresa, alcanceCurto, desativado);
 
         foreach (var (id, upn) in new[]
                  {
@@ -212,12 +212,13 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
 
         await db.SaveChangesAsync();
 
-        var vencida = UsuarioConjuntoPermissao.Conceder(302, visaoDaEmpresa.Id, 100, DateTime.UtcNow.AddDays(1));
-        db.ConcessoesPermissao.AddRange(
-            UsuarioConjuntoPermissao.Conceder(300, visaoDaEmpresa.Id, 100),
-            UsuarioConjuntoPermissao.Conceder(301, alcanceCurto.Id, 100),
+        var instante = DateTime.UtcNow;
+        var vencida = UsuarioPerfil.Conceder(302, visaoDaEmpresa.Id, "teste — concessão vencida", 100, instante, expiraEm: instante.AddDays(1));
+        db.UsuariosPerfis.AddRange(
+            UsuarioPerfil.Conceder(300, visaoDaEmpresa.Id, "teste — visão da empresa", 100, instante),
+            UsuarioPerfil.Conceder(301, alcanceCurto.Id, "teste — alcance curto", 100, instante),
             vencida,
-            UsuarioConjuntoPermissao.Conceder(303, desativado.Id, 100));
+            UsuarioPerfil.Conceder(303, desativado.Id, "teste — perfil desativado", 100, instante));
         db.Entry(vencida).Property(c => c.ExpiraEm).CurrentValue = DateTime.UtcNow.AddDays(-1);
 
         await db.SaveChangesAsync();

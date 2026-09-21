@@ -1,0 +1,200 @@
+namespace Tracbel.Crm.Dominio.Seguranca;
+
+/// <summary>
+/// O CATÁLOGO DE PERMISSÕES — em código, versionado com as rotas que as exigem (decisão D-3,
+/// 21/09/2026).
+///
+/// <para><b>Por que em código, e não numa tabela.</b> Uma permissão só existe porque alguma rota ou
+/// caso de uso a confere; ela nasce no mesmo commit que o código que a usa, e o compilador pega o nome
+/// errado. Uma tabela <c>Permissao</c> ao lado seria uma segunda lista, livre para divergir — foi o que
+/// aconteceu com a antiga, que nunca teve uma linha (documento 41, fase 1). Os <b>perfis</b>, que
+/// agrupam permissões, continuam em tabela e são editáveis.</para>
+///
+/// <para><b>Uma permissão é entidade + verbo</b> (<c>Cliente.Editar</c>). O que um perfil concede é a
+/// permissão e a <see cref="Profundidade"/> em que ela vale.</para>
+/// </summary>
+public static class Permissoes
+{
+    /// <summary>Ler clientes.</summary>
+    public const string ClienteLer = "Cliente.Ler";
+
+    /// <summary>Cadastrar cliente.</summary>
+    public const string ClienteCriar = "Cliente.Criar";
+
+    /// <summary>Alterar cliente.</summary>
+    public const string ClienteEditar = "Cliente.Editar";
+
+    /// <summary>Excluir (inativar) cliente.</summary>
+    public const string ClienteExcluir = "Cliente.Excluir";
+
+    /// <summary>Ler o parque de máquinas.</summary>
+    public const string EquipamentoLer = "Equipamento.Ler";
+
+    /// <summary>Cadastrar equipamento.</summary>
+    public const string EquipamentoCriar = "Equipamento.Criar";
+
+    /// <summary>Alterar equipamento.</summary>
+    public const string EquipamentoEditar = "Equipamento.Editar";
+
+    /// <summary>Dar baixa em equipamento.</summary>
+    public const string EquipamentoExcluir = "Equipamento.Excluir";
+
+    /// <summary>Ler catálogos (listas de seleção) e o catálogo de municípios.</summary>
+    public const string CatalogoLer = "Catalogo.Ler";
+
+    /// <summary>Ler processos (oportunidades).</summary>
+    public const string ProcessoLer = "Processo.Ler";
+
+    /// <summary>Ler tarefas e a agenda.</summary>
+    public const string TarefaLer = "Tarefa.Ler";
+
+    /// <summary>Ler interações.</summary>
+    public const string InteracaoLer = "Interacao.Ler";
+
+    /// <summary>Ler a cobertura de carteira.</summary>
+    public const string CoberturaLer = "Cobertura.Ler";
+
+    /// <summary>Ler os relatórios comerciais: funil, perdas, vendas perdidas e painel do CEN.</summary>
+    public const string RelatorioLer = "Relatorio.Ler";
+
+    /// <summary>Ler o faturamento e os indicadores executivos.</summary>
+    public const string FaturamentoLer = "Faturamento.Ler";
+
+    /// <summary>Ler os indicadores geográficos e as fontes públicas (preços, custos, crédito).</summary>
+    public const string TerritorioLer = "Territorio.Ler";
+
+    /// <summary>Ler a situação das integrações.</summary>
+    public const string IntegracaoLer = "Integracao.Ler";
+
+    /// <summary>Ler a ponte do sistema legado (congelado).</summary>
+    public const string LegadoLer = "Legado.Ler";
+
+    /// <summary>Abrir, com motivo registrado, o alcance entre filiais. Ver <see cref="ContextoAcesso.PermissaoDeAlcanceEntreEmpresas"/>.</summary>
+    public const string EmpresaAlcanceEntreFiliais = ContextoAcesso.PermissaoDeAlcanceEntreEmpresas;
+
+    /// <summary>Administrar perfis: criar, editar, ativar e desativar.</summary>
+    public const string PerfilAdministrar = "Perfil.Administrar";
+
+    /// <summary>Administrar usuários e as concessões de perfil.</summary>
+    public const string UsuarioAdministrar = "Usuario.Administrar";
+
+    /// <summary>
+    /// Todas as permissões que existem, com o que cada uma deixa fazer. É a lista que o perfil aceita:
+    /// conceder um código fora dela é recusado.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Catalogo = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [ClienteLer] = "Ler clientes",
+        [ClienteCriar] = "Cadastrar cliente",
+        [ClienteEditar] = "Alterar cliente",
+        [ClienteExcluir] = "Excluir cliente",
+        [EquipamentoLer] = "Ler o parque de máquinas",
+        [EquipamentoCriar] = "Cadastrar equipamento",
+        [EquipamentoEditar] = "Alterar equipamento",
+        [EquipamentoExcluir] = "Dar baixa em equipamento",
+        [CatalogoLer] = "Ler catálogos e municípios",
+        [ProcessoLer] = "Ler processos",
+        [TarefaLer] = "Ler tarefas e a agenda",
+        [InteracaoLer] = "Ler interações",
+        [CoberturaLer] = "Ler a cobertura de carteira",
+        [RelatorioLer] = "Ler os relatórios comerciais",
+        [FaturamentoLer] = "Ler o faturamento e os indicadores executivos",
+        [TerritorioLer] = "Ler os indicadores geográficos e as fontes públicas",
+        [IntegracaoLer] = "Ler a situação das integrações",
+        [LegadoLer] = "Ler a ponte do sistema legado",
+        [EmpresaAlcanceEntreFiliais] = "Abrir o alcance entre filiais, com motivo registrado",
+        [PerfilAdministrar] = "Administrar perfis",
+        [UsuarioAdministrar] = "Administrar usuários e concessões"
+    };
+
+    /// <summary>A permissão existe no catálogo?</summary>
+    /// <param name="codigo">O código.</param>
+    public static bool Existe(string codigo) => Catalogo.ContainsKey(codigo);
+}
+
+/// <summary>
+/// OS PERFIS QUE O SISTEMA SEMEIA — o ponto de partida, editável depois pelo administrador.
+///
+/// <para><b>O perfil padrão (Q-P2, 21/09/2026) é o mínimo, sem excluir.</b> Até a fase 3, uma lista fixa
+/// em código dava a TODO usuário criar, editar e <b>excluir</b> cliente e equipamento, sem ninguém ter
+/// decidido isso. Agora todo usuário recebe ler, criar e editar cliente e equipamento e ler as telas;
+/// excluir e a visão entre filiais são perfis próprios, concedidos a quem precisar, com registro.</para>
+///
+/// <para><b>Profundidade <see cref="Profundidade.EmpresaEAbaixo"/></b>: a filial escolhida e as que estão
+/// abaixo dela — o mesmo alcance de antes.</para>
+/// </summary>
+public static class PerfisDeSistema
+{
+    /// <summary>O código do perfil que todo usuário recebe.</summary>
+    public const string Padrao = "PADRAO";
+
+    /// <summary>O código do perfil que acrescenta excluir cliente e equipamento.</summary>
+    public const string ExclusaoDeCadastro = "EXCLUSAO_DE_CADASTRO";
+
+    /// <summary>O código do perfil que permite abrir o alcance entre filiais.</summary>
+    public const string VisaoEntreFiliais = "VISAO_ENTRE_FILIAIS";
+
+    /// <summary>O código do perfil de administração.</summary>
+    public const string Administrador = "ADMINISTRADOR";
+
+    /// <summary>Um perfil semeado.</summary>
+    /// <param name="Id">O identificador fixo da semente.</param>
+    /// <param name="Codigo">O código estável.</param>
+    /// <param name="Nome">O nome legível.</param>
+    /// <param name="Descricao">Para que serve.</param>
+    /// <param name="EhPadrao">Se é o perfil que todo usuário recebe.</param>
+    /// <param name="Permissoes">As permissões e a profundidade de cada uma.</param>
+    public sealed record Semente(
+        int Id, string Codigo, string Nome, string Descricao, bool EhPadrao,
+        IReadOnlyList<(string Codigo, Profundidade Profundidade)> Permissoes);
+
+    private static readonly string[] LeituraDasTelas =
+    [
+        Seguranca.Permissoes.ClienteLer, Seguranca.Permissoes.EquipamentoLer, Seguranca.Permissoes.CatalogoLer,
+        Seguranca.Permissoes.ProcessoLer, Seguranca.Permissoes.TarefaLer, Seguranca.Permissoes.InteracaoLer,
+        Seguranca.Permissoes.CoberturaLer, Seguranca.Permissoes.RelatorioLer, Seguranca.Permissoes.FaturamentoLer,
+        Seguranca.Permissoes.TerritorioLer, Seguranca.Permissoes.IntegracaoLer, Seguranca.Permissoes.LegadoLer
+    ];
+
+    /// <summary>Os perfis semeados, na ordem dos identificadores.</summary>
+    public static readonly IReadOnlyList<Semente> Todos =
+    [
+        new(1, Padrao, "Padrão",
+            "O que todo usuário recebe: ler as telas e cadastrar e alterar cliente e equipamento. Sem excluir e sem visão entre filiais.",
+            EhPadrao: true,
+            [
+                .. LeituraDasTelas.Select(p => (p, Profundidade.EmpresaEAbaixo)),
+                (Seguranca.Permissoes.ClienteCriar, Profundidade.EmpresaEAbaixo),
+                (Seguranca.Permissoes.ClienteEditar, Profundidade.EmpresaEAbaixo),
+                (Seguranca.Permissoes.EquipamentoCriar, Profundidade.EmpresaEAbaixo),
+                (Seguranca.Permissoes.EquipamentoEditar, Profundidade.EmpresaEAbaixo)
+            ]),
+
+        new(2, ExclusaoDeCadastro, "Exclusão de cadastro",
+            "Acrescenta excluir cliente e dar baixa em equipamento.",
+            EhPadrao: false,
+            [
+                (Seguranca.Permissoes.ClienteExcluir, Profundidade.EmpresaEAbaixo),
+                (Seguranca.Permissoes.EquipamentoExcluir, Profundidade.EmpresaEAbaixo)
+            ]),
+
+        new(3, VisaoEntreFiliais, "Visão entre filiais",
+            "Permite abrir, com motivo registrado, o alcance entre filiais (visão da empresa).",
+            EhPadrao: false,
+            [(Seguranca.Permissoes.EmpresaAlcanceEntreFiliais, Profundidade.Organizacao)]),
+
+        new(4, Administrador, "Administrador",
+            "Tudo o que o padrão dá, mais excluir, a visão entre filiais e a administração de perfis e usuários.",
+            EhPadrao: false,
+            [
+                .. Seguranca.Permissoes.Catalogo.Keys
+                    .Where(p => p is not Seguranca.Permissoes.EmpresaAlcanceEntreFiliais
+                        and not Seguranca.Permissoes.PerfilAdministrar
+                        and not Seguranca.Permissoes.UsuarioAdministrar)
+                    .Select(p => (p, Profundidade.EmpresaEAbaixo)),
+                (Seguranca.Permissoes.EmpresaAlcanceEntreFiliais, Profundidade.Organizacao),
+                (Seguranca.Permissoes.PerfilAdministrar, Profundidade.Organizacao),
+                (Seguranca.Permissoes.UsuarioAdministrar, Profundidade.Organizacao)
+            ])
+    ];
+}

@@ -42,14 +42,14 @@ public sealed class ConcessaoExplicitaNaPonteProvisoriaTestes : IDisposable
 
         var usuario = Usuario.Criar(
             Guid.NewGuid(), Autorizado, Autorizado, "perfil.autorizado", Email.Criar(Autorizado), empresa.Id, criadoPorId: 1);
-        var conjunto = ConjuntoPermissao.Criar("TESTE_VISAO_EMPRESA", "Teste — visão da empresa")
+        var conjunto = Perfil.Criar("TESTE_VISAO_EMPRESA", "Teste — visão da empresa")
             .Conceder(ContextoAcesso.PermissaoDeAlcanceEntreEmpresas, Profundidade.Organizacao);
 
         db.Usuarios.Add(usuario);
-        db.ConjuntosPermissao.Add(conjunto);
+        db.Perfis.Add(conjunto);
         db.SaveChanges();
 
-        db.ConcessoesPermissao.Add(UsuarioConjuntoPermissao.Conceder(usuario.Id, conjunto.Id, usuario.Id));
+        db.UsuariosPerfis.Add(UsuarioPerfil.Conceder(usuario.Id, conjunto.Id, "teste da ponte provisória", usuario.Id, DateTime.UtcNow));
         db.SaveChanges();
     }
 
