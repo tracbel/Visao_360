@@ -53,12 +53,14 @@ public sealed class MeioDeCampoDeContextoDeAcesso(
     /// <param name="estado">Se o login pelo Entra ID está ligado.</param>
     /// <param name="provisorio">Quem resolve pelo cabeçalho, quando o Entra está desligado.</param>
     /// <param name="entra">Quem resolve pelo token, quando o Entra está ligado.</param>
+    /// <param name="log">Onde fica o registro de quem olhou todas as filiais.</param>
     public async Task InvokeAsync(
         HttpContext http,
         ContextoAcessoDaRequisicao portador,
         EstadoDaAutenticacao estado,
         ResolvedorDeContextoProvisorio provisorio,
-        ResolvedorDeContextoDoEntraId entra)
+        ResolvedorDeContextoDoEntraId entra,
+        ILogger<MeioDeCampoDeContextoDeAcesso> log)
     {
         var caminho = http.Request.Path.Value ?? string.Empty;
 
@@ -131,8 +133,18 @@ public sealed class MeioDeCampoDeContextoDeAcesso(
         // Quem está agindo vai para o log de TODA requisição. É o que permite responder "quem
         // alterou este cliente?" sem depender de o usuário lembrar. [V] no legado, acesso direto
         // ao banco não deixa rastro nenhum.
-        http.Response.Headers["X-Tracbel-Contexto"] =
-            $"{resultado.Valor.NomeExibicao}; filial {resultado.Valor.EmpresaId}";
+        var contexto = resultado.Valor;
+        http.Response.Headers["X-Tracbel-Contexto"] = contexto.VeTodasAsFiliais
+            ? $"{contexto.NomeExibicao}; filial {ContextoAcesso.CodigoDeTodasAsFiliais}"
+            : $"{contexto.NomeExibicao}; filial {contexto.EmpresaId}";
+
+        // "TODAS AS FILIAIS" DERRUBA A FRONTEIRA DE FILIAL, e por isso sai no log a cada requisição, com a
+        // rota: é o registro de quem olhou o quê fora da própria filial. Information, e não o Warning do
+        // diário da via de escape — aqui a pessoa escolheu na tela, e uma página abre várias rotas.
+        if (contexto.VeTodasAsFiliais)
+            log.LogInformation(
+                "TODAS AS FILIAIS: {Usuario} (id {UsuarioId}, filial de casa {EmpresaId}) {Metodo} {Caminho}",
+                contexto.NomeExibicao, contexto.UsuarioId, contexto.EmpresaId, http.Request.Method, caminho);
 
         await proximo(http);
     }

@@ -28,9 +28,16 @@ public sealed class ObterEscopoDeAcesso(IProvedorContextoAcesso provedor, IRepos
                 p.Value.ToString()))
             .ToList();
 
+        // EM "TODAS AS FILIAIS" a filial do contexto é a de casa só porque ele precisa de uma; a tela tem
+        // de mostrar o que a pessoa escolheu.
+        if (acesso.VeTodasAsFiliais)
+            atual = new FilialDoEscopo(ContextoAcesso.CodigoDeTodasAsFiliais, "Todas as filiais", EhCasa: false);
+
         return Resultado<ComProcedencia<EscopoDoUsuario>>.Ok(
             ComProcedencia<EscopoDoUsuario>.DoNossoBanco(
-                new EscopoDoUsuario(acesso.NomeExibicao, atual, filialPedidaRecusada, filiais, permissoes),
+                new EscopoDoUsuario(
+                    acesso.NomeExibicao, atual, filialPedidaRecusada, filiais, permissoes,
+                    PodeVerTodasAsFiliais: acesso.PodeAlcancarTodasAsEmpresas),
                 "seguranca.Perfil + seguranca.UsuarioPerfil + organizacao.Empresa",
                 relogio));
     }

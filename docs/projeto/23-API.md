@@ -290,12 +290,30 @@ precisa poder cadastrar um cliente em Uberaba.
 
 | Rota | O que devolve |
 |---|---|
-| `GET /api/v1/acesso/escopo` | a filial atual, as filiais que o usuário pode escolher (a de casa e as com perfil concedido — P-20) e as permissões na filial atual, com a profundidade |
+| `GET /api/v1/acesso/escopo` | a filial atual, as filiais que o usuário pode escolher (a de casa e as com perfil concedido — P-20), as permissões na filial atual, com a profundidade, e `podeVerTodasAsFiliais` |
 
 **Toda rota declara a permissão que exige** (documento 05, §4). Sem ela, **403** com `type` terminando
 em `sem-acesso` e o `detail` dizendo qual permissão falta. **Filial fora das permitidas** também é
 403, com `erros[0].campo = "X-Tracbel-Empresa"` — e a rota de escopo, só ela, responde pela filial de
 casa nesse caso, com `filialPedidaRecusada` preenchido, para a tela voltar sozinha.
+
+#### 2.8.1 "Todas as filiais" — `X-Tracbel-Empresa: TODAS` (21/09/2026)
+
+Decisão: *"o perfil admin tem todas as filiais e todos os recursos"*. As 16 filiais são **todas raiz**
+(nenhuma está abaixo de outra), então não existe filial escolhida cuja profundidade `EmpresaEAbaixo`
+cubra as outras. Por isso, duas mudanças:
+
+| | O que muda |
+|---|---|
+| perfil **Administrador** | todas as permissões do catálogo em profundidade **`Organizacao`** (migração `AdministradorEmTodaAOrganizacao`, só `UPDATE` na semente) |
+| cabeçalho `X-Tracbel-Empresa: TODAS` | põe **todas** as filiais no alcance, inclusive as inativas; só para quem tem `Empresa.AlcanceEntreFiliais` em `Organizacao` (Administrador ou Visão entre filiais). Para os outros, 403 com `erros[0].campo = "X-Tracbel-Empresa"`, e a rota de escopo volta para a filial de casa |
+| o que fica registrado | cada requisição feita em `TODAS` sai no log (`Information`) com usuário, filial de casa, método e rota; o cabeçalho de resposta `X-Tracbel-Contexto` diz `filial TODAS` |
+| cadastro novo | **recusado** (409) em `TODAS`: o registro nasceria numa filial que ninguém escolheu. A tela desliga o botão "Novo" |
+| edição | vale; o CPF/CNPJ repetido é conferido **na filial do cliente** (o índice é por filial), e a máquina só liga a cliente da filial dela |
+| perfil concedido numa filial só | não vale em `TODAS` — valer em todas seria um alcance que ninguém concedeu |
+
+**Poder ver tudo não é estar vendo tudo**: numa filial escolhida, o administrador continua vendo só
+ela. "Todas as filiais" é escolha no seletor, nunca o padrão.
 
 ### 2.9 Parâmetros do potencial — `/api/v1/admin/parametros-do-potencial` (issue 71, 21/09/2026)
 

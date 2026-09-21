@@ -11,6 +11,13 @@
 import type { ComProcedencia } from '../../tipos/api';
 import { ler, type ContextoDeAcesso } from './http';
 
+/**
+ * O código que pede TODAS AS FILIAIS no lugar de uma — o mesmo de
+ * `ContextoAcesso.CodigoDeTodasAsFiliais` no servidor. Só quem administra o CRM
+ * (visão entre filiais em profundidade Organização) consegue escolher.
+ */
+export const TODAS_AS_FILIAIS = 'TODAS';
+
 /** Uma filial do escopo. */
 export type FilialDoEscopo = { codigo: string; nome: string; ehCasa: boolean };
 
@@ -24,6 +31,8 @@ export type EscopoDoUsuario = {
   filialPedidaRecusada: string | null;
   filiaisPermitidas: FilialDoEscopo[];
   permissoes: PermissaoDoEscopo[];
+  /** Se o seletor oferece "Todas as filiais" (`TODAS_AS_FILIAIS`). */
+  podeVerTodasAsFiliais: boolean;
 };
 
 /** Lê o escopo efetivo. */

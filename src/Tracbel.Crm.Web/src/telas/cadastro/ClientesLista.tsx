@@ -18,6 +18,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BarraDePaginacao } from '../../componentes/cadastro/BarraDePaginacao';
+import { BotaoDeNovoCadastro } from '../../componentes/cadastro/BotaoDeNovoCadastro';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../../componentes/cadastro/EstadosDeTela';
 import { AvisoDeProcedencia, SeloProcedencia } from '../../componentes/cadastro/SeloProcedencia';
 import { itensDe, useCatalogos } from '../../dados/api/catalogos';
@@ -113,13 +114,7 @@ export function ClientesLista() {
           </p>
         </div>
         <div className="page-actions">
-          <Link to="/clientes/novo" className="btn btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Novo cliente
-          </Link>
+          <BotaoDeNovoCadastro para="/clientes/novo" rotulo="Novo cliente" />
         </div>
       </div>
 

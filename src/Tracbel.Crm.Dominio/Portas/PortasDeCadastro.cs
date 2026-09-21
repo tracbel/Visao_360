@@ -208,9 +208,13 @@ public interface IRepositorioClientes
     /// de violação de índice que ninguém entende.
     /// </summary>
     /// <param name="documento">O CPF ou CNPJ já validado.</param>
+    /// <param name="empresaId">
+    /// A filial onde procurar — a do cliente. O índice é por filial, e o alcance do contexto pode ter
+    /// várias (em "Todas as filiais", todas): sem este filtro, o documento de outra filial pareceria repetido.
+    /// </param>
     /// <param name="exceto">A chave do próprio cliente, numa alteração. Nulo numa criação.</param>
     /// <param name="ct">Cancelamento.</param>
-    Task<Cliente?> ObterPorDocumentoAsync(CpfCnpj documento, Guid? exceto, CancellationToken ct);
+    Task<Cliente?> ObterPorDocumentoAsync(CpfCnpj documento, int empresaId, Guid? exceto, CancellationToken ct);
 }
 
 /// <summary>O acesso ao cadastro de máquinas. Mesma divisão de trabalho de <see cref="IRepositorioClientes"/>.</summary>

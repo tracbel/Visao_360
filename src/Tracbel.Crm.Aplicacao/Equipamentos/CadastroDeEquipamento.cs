@@ -14,6 +14,7 @@ internal sealed record DadosDeEquipamentoConferidos(
     long? ClienteId,
     Guid? ClienteChave,
     string? ClienteNome,
+    int? ClienteEmpresaId,
     SituacaoDoEquipamento Situacao,
     OrigemDoEquipamento Origem,
     short? AnoFabricacao,
@@ -86,6 +87,7 @@ internal static class ConferenciaDeEquipamento
         long? clienteId = null;
         Guid? chaveDoDono = null;
         string? nomeDoDono = null;
+        int? empresaDoDono = null;
 
         if (!string.IsNullOrWhiteSpace(clienteChave))
         {
@@ -106,6 +108,7 @@ internal static class ConferenciaDeEquipamento
                     clienteId = dono.Cliente.Id;
                     chaveDoDono = dono.Cliente.ChavePublica;
                     nomeDoDono = dono.Cliente.NomeRazao;
+                    empresaDoDono = dono.Cliente.EmpresaId;
                 }
             }
         }
@@ -120,6 +123,7 @@ internal static class ConferenciaDeEquipamento
             clienteId,
             chaveDoDono,
             nomeDoDono,
+            empresaDoDono,
             situacaoEscolhida,
             origemEscolhida,
             fabricacao,
@@ -193,6 +197,10 @@ public sealed class CriarEquipamento(
         if (!acesso.Atual.Tem(Permissoes.EquipamentoCriar))
             return Resultado<EquipamentoDetalhe>.SemPermissao(
                 $"Falta a permissão '{Permissoes.EquipamentoCriar}' ({Permissoes.Catalogo[Permissoes.EquipamentoCriar]}).");
+
+        // EM "TODAS AS FILIAIS" A MÁQUINA NÃO TERIA FILIAL ESCOLHIDA — mesma regra do cadastro de cliente.
+        if (acesso.Atual.VeTodasAsFiliais)
+            return Resultado<EquipamentoDetalhe>.Conflito(ContextoAcesso.MensagemDeCadastroEmTodasAsFiliais);
 
         var erros = new ColetorDeErros();
 
@@ -307,6 +315,18 @@ public sealed class AlterarEquipamento(
 
         if (dados is null || erros.TemErro)
             return erros.Recusar<EquipamentoDetalhe>("A alteração do equipamento tem campos a corrigir.");
+
+        // EM "TODAS AS FILIAIS" O CLIENTE DE OUTRA FILIAL TAMBÉM ESTÁ AO ALCANCE. Numa filial só, o filtro
+        // global já impedia ligar a máquina a ele — as 16 filiais são raiz, então o que se enxerga é a
+        // filial da máquina. A regra fica escrita para não mudar só porque o alcance cresceu.
+        if (acesso.Atual.VeTodasAsFiliais && dados.ClienteEmpresaId is { } filialDoCliente && filialDoCliente != equipamento.EmpresaId)
+        {
+            erros.Registrar(
+                "clienteChave",
+                "Este cliente é de outra filial. Em \"Todas as filiais\", a máquina só pode ser ligada a um cliente da filial dela.",
+                entrada.ClienteChave);
+            return erros.Recusar<EquipamentoDetalhe>("A alteração do equipamento tem campos a corrigir.");
+        }
 
         if (!equipamento.VersaoConfere(versao))
             return Resultado<EquipamentoDetalhe>.Concorrencia(

@@ -113,11 +113,11 @@ internal static class ConferenciaDeCliente
     /// violação de índice que ninguém consegue interpretar.
     /// </summary>
     public static async Task<ErroDeCampo?> ProcurarDocumentoRepetidoAsync(
-        IRepositorioClientes repositorio, CpfCnpj? documento, Guid? exceto, CancellationToken ct)
+        IRepositorioClientes repositorio, CpfCnpj? documento, int empresaId, Guid? exceto, CancellationToken ct)
     {
         if (documento is not { } doc) return null;
 
-        var dono = await repositorio.ObterPorDocumentoAsync(doc, exceto, ct);
+        var dono = await repositorio.ObterPorDocumentoAsync(doc, empresaId, exceto, ct);
 
         return dono is null
             ? null
@@ -147,6 +147,11 @@ public sealed class CriarCliente(
             return Resultado<ClienteDetalhe>.SemPermissao(
                 $"Falta a permissão '{Permissoes.ClienteCriar}' ({Permissoes.Catalogo[Permissoes.ClienteCriar]}).");
 
+        // EM "TODAS AS FILIAIS" O CLIENTE NÃO TERIA FILIAL ESCOLHIDA: a do contexto é a de casa só porque
+        // ele precisa de uma. Recusar é melhor do que cadastrar numa filial que ninguém escolheu.
+        if (acesso.Atual.VeTodasAsFiliais)
+            return Resultado<ClienteDetalhe>.Conflito(ContextoAcesso.MensagemDeCadastroEmTodasAsFiliais);
+
         var erros = new ColetorDeErros();
 
         var dados = await ConferenciaDeCliente.ConferirAsync(
@@ -159,7 +164,7 @@ public sealed class CriarCliente(
             return erros.Recusar<ClienteDetalhe>("O cadastro do cliente tem campos a corrigir.");
 
         var repetido = await ConferenciaDeCliente.ProcurarDocumentoRepetidoAsync(
-            repositorio, dados.Documento, exceto: null, ct);
+            repositorio, dados.Documento, acesso.Atual.EmpresaId, exceto: null, ct);
 
         if (repetido is not null)
             return Resultado<ClienteDetalhe>.Conflito(
@@ -246,8 +251,10 @@ public sealed class AlterarCliente(
                 "Este cliente foi alterado por outra pessoa depois que você abriu a tela. " +
                 "Recarregue o registro e refaça a alteração — assim nada do trabalho dela é perdido.");
 
+        // NA FILIAL DO CLIENTE, e não na do contexto: em "Todas as filiais" o contexto alcança todas, e o
+        // documento só é único dentro da filial (UX_Cliente_Empresa_Documento).
         var repetido = await ConferenciaDeCliente.ProcurarDocumentoRepetidoAsync(
-            repositorio, dados.Documento, exceto: chave, ct);
+            repositorio, dados.Documento, cliente.EmpresaId, exceto: chave, ct);
 
         if (repetido is not null)
             return Resultado<ClienteDetalhe>.Conflito(
