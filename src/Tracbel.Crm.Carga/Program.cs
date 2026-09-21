@@ -15,8 +15,11 @@ using Tracbel.Crm.Integracao.Carga;
 using Microsoft.Extensions.DependencyInjection;
 using Tracbel.Crm.Integracao.Anp;
 using Tracbel.Crm.Integracao.Art;
+using Tracbel.Crm.Integracao.BancoCentral;
+using Tracbel.Crm.Integracao.Conab;
 using Tracbel.Crm.Integracao.Ibge;
 using Tracbel.Crm.Integracao.Protheus;
+using Tracbel.Crm.Integracao.Socicana;
 using Tracbel.Crm.Integracao.Vortice;
 
 // --servico-art — O SERVIÇO DO WINDOWS TracbelCrmSincronizacaoArt (documento 35, seção 11).
@@ -111,6 +114,13 @@ var somentePam = args.Contains("--somente-pam", StringComparer.Ordinal);
 // todas podem rodar no servidor.
 var somenteEstrutura = args.Contains("--somente-estrutura", StringComparer.Ordinal);
 
+// --somente-precos — A BASE DE PRECOS QUE SO CRESCE (issue 66).
+//
+// Tres fontes abertas: o preco recebido pelo produtor em SP (CONAB), o preco do kg de ATR da cana
+// (Socicana) e o dolar PTAX mensal (Banco Central). Nenhuma usa planilha, nenhuma precisa do catalogo
+// de municipios, e todas rodam no servidor. E a rotina MENSAL — as outras cargas publicas sao anuais.
+var somentePrecos = args.Contains("--somente-precos", StringComparer.Ordinal);
+
 // --somente-art [--simular] — AS VENDAS DE MÁQUINA DO ART (documento 35, seção 10).
 //
 // Lê a view do ART (MySQL, sessão somente leitura) e confere dono e cadastro no banco do Protheus
@@ -132,13 +142,15 @@ var simular = args.Contains("--simular", StringComparer.Ordinal);
 //   --somente-territorio    as planilhas do comercial e o IBGE;
 //   --somente-pam           só a produção agrícola do IBGE — a rotina anual do servidor;
 //   --somente-estrutura     o Censo, o rebanho, a área territorial e as usinas da ANP;
+//   --somente-precos        os preços da CONAB e da Socicana e o dólar PTAX — a rotina mensal;
 //   --somente-art           as vendas de máquina do ART;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
 
-var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somenteArt && !somenteMedir;
+var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somentePrecos
+                 && !somenteArt && !somenteMedir;
 
 if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
 {
@@ -149,7 +161,7 @@ if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal
     Console.Error.WriteLine();
     Console.Error.WriteLine(
         "  O que continua valendo sem declaração nenhuma: --somente-faturamento (Protheus), " +
-        "--somente-territorio (planilhas e IBGE), --somente-pam (só o IBGE), --somente-art e " +
+        "--somente-territorio (planilhas e IBGE), --somente-pam (só o IBGE), --somente-estrutura e --somente-precos (fontes públicas), --somente-art e " +
         "--somente-medir.");
     Console.Error.WriteLine();
     Console.Error.WriteLine(
@@ -179,7 +191,8 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A EXIGÊNCIA CAI NO MODO SÓ-FATURAMENTO, e só nele: essa etapa não abre conexão com o legado.
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
-if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somenteArt)
+if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura
+    && !somentePrecos && !somenteArt)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -249,7 +262,7 @@ using var clienteDaAnp = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
 // Atalho — só o território. Sai antes da exigência do Protheus, que esta etapa não usa.
 // -------------------------------------------------------------------------------------------------
 
-if (somenteTerritorio || somentePam || somenteEstrutura)
+if (somenteTerritorio || somentePam || somenteEstrutura || somentePrecos)
 {
     var caminhoDaAreaDeAtuacao = LerTexto(args, "--area-de-atuacao");
     var caminhoDoCenEGestor = LerTexto(args, "--cen-e-gestor");
@@ -275,8 +288,20 @@ if (somenteTerritorio || somentePam || somenteEstrutura)
         usuarioId,
         Console.WriteLine);
 
+    // OS PRECOS USAM O CLIENTE SEM DESCOMPRESSAO, o mesmo da ANP: a CONAB tambem fica atras de um
+    // dominio do governo, e o defeito do brotli no `www.gov.br` (ver acima) nao precisa ser
+    // redescoberto no servidor.
+    var cargaDePrecos = new CargaDePrecos(
+        AbrirContexto,
+        new LeitorDaConab(clienteDaAnp),
+        new LeitorDaSocicana(clienteDaAnp),
+        new LeitorDoPtax(clienteDaAnp),
+        usuarioId,
+        Console.WriteLine);
+
     var oQueRodou = somenteTerritorio ? "A CARGA DO TERRITÓRIO"
         : somentePam ? "A CARGA DA PRODUÇÃO AGRÍCOLA"
+        : somentePrecos ? "A CARGA DOS PREÇOS DE MERCADO"
         : "A CARGA DA ESTRUTURA AGROPECUÁRIA";
 
     try
@@ -286,7 +311,9 @@ if (somenteTerritorio || somentePam || somenteEstrutura)
                 caminhoDaAreaDeAtuacao!, caminhoDoCenEGestor!, CancellationToken.None)
             : somentePam
                 ? await cargaDoTerritorio.ExecutarSoAProducaoAgricolaAsync(CancellationToken.None)
-                : await cargaDaEstrutura.ExecutarAsync(CancellationToken.None);
+                : somentePrecos
+                    ? await cargaDePrecos.ExecutarAsync(CancellationToken.None)
+                    : await cargaDaEstrutura.ExecutarAsync(CancellationToken.None);
 
         foreach (var etapa in contagens.GroupBy(c => c.Etapa))
         {

@@ -247,6 +247,12 @@ public class CrmDbContext : DbContext
     /// <summary>As usinas de etanol autorizadas pela ANP, por município.</summary>
     public DbSet<UsinaDeEtanol> UsinasDeEtanol => Set<UsinaDeEtanol>();
 
+    /// <summary>O preço dos produtos agrícolas, mês a mês, em reais (CONAB e Socicana).</summary>
+    public DbSet<CotacaoDeProduto> CotacoesDeProdutos => Set<CotacaoDeProduto>();
+
+    /// <summary>O dólar PTAX de cada mês, para converter os preços.</summary>
+    public DbSet<CotacaoDoDolar> CotacoesDoDolar => Set<CotacaoDoDolar>();
+
     /// <summary>As regras de potencial por área — hoje, um exemplo a confirmar.</summary>
     public DbSet<RegraDePotencial> RegrasDePotencial => Set<RegraDePotencial>();
 

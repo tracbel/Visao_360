@@ -337,3 +337,64 @@
   margin-left: 0;
   margin-right: 4px;
 }
+
+/* ---- Preços das culturas (issue 66) ---- */
+
+.terr-grade-precos {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 16px;
+  margin-top: 8px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .terr-grade-precos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.terr-precos-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.terr-precos-acoes {
+  display: inline-flex;
+  gap: 12px;
+  font-weight: normal;
+}
+
+.terr-filtro-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.terr-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* A tabela padrao pede 860 px; neste cartao de meia largura ela vazava para baixo do grafico. */
+.terr-tabela-precos {
+  min-width: 0;
+}
+
+.terr-tabela-precos th,
+.terr-tabela-precos td {
+  padding: 8px 10px;
+}
+
+.terr-tabela-precos tbody tr:hover {
+  background: var(--info-bg);
+}
+
+.terr-linha-ativa,
+.terr-tabela-precos tbody tr.terr-linha-ativa:hover {
+  background: var(--success-bg);
+  box-shadow: inset 3px 0 0 var(--jd-green);
+}

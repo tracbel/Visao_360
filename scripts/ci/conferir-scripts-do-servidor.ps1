@@ -18,8 +18,9 @@
   A REGRA: script que vai para o servidor tem BOM UTF-8, ou so ASCII. Este script confere os dois
   caminhos e falha dizendo qual arquivo e qual linha.
 
-  Fica de fora o que e GERADO no momento da instalacao (`rodar-fontes-publicas.ps1`), que ja nasce
-  em ASCII por construcao, e o que roda so na estacao, onde o PowerShell e o 7.
+  Fica de fora o que e GERADO no servidor (`rodar-fontes-publicas.ps1`, `rodar-precos.ps1`, escritos pelo
+  `registrar-rotinas.ps1`), que ja nasce em ASCII por construcao, e o que roda so na estacao, onde o
+  PowerShell e o 7.
 #>
 
 [CmdletBinding()]
@@ -32,7 +33,8 @@ $ErrorActionPreference = 'Stop'
 # OS QUE VIAJAM PARA O SERVIDOR. Acrescentar um script aqui e parte de manda-lo para la.
 $doServidor = @(
     'scripts/deploy/agente-de-publicacao.ps1',
-    'scripts/deploy/publicar-pacote.ps1'
+    'scripts/deploy/publicar-pacote.ps1',
+    'scripts/deploy/registrar-rotinas.ps1'
 )
 
 $problemas = [System.Collections.Generic.List[string]]::new()

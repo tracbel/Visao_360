@@ -50,6 +50,11 @@ public static class PoliticaDeAuditoria
         // Município: o reconhecimento no IBGE muda o código e, às vezes, a grafia do nome.
         ["Municipio"] = ["CodigoIbge", "Nome"],
 
+        // Preço de mercado e dólar: o valor. A série "só cresce" (issue 66), e a fonte que revisa um
+        // mês já gravado muda um número que alimenta o potencial — a trilha guarda o anterior.
+        ["CotacaoDeProduto"] = ["ValorEmReais"],
+        ["CotacaoDoDolar"] = ["ReaisPorDolar"],
+
         // Venda de máquina: o retrato que a origem pode reescrever a cada leitura
         // (VendaDeMaquina.AtualizarDaOrigem), campo por campo.
         ["VendaDeMaquina"] =

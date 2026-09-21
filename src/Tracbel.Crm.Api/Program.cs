@@ -176,6 +176,7 @@ builder.Services.AddScoped<IRepositorioInteracoes, RepositorioDeInteracoes>();
 builder.Services.AddScoped<IRepositorioCarteiras, RepositorioDeCarteiras>();
 builder.Services.AddScoped<IRepositorioTerritorio, RepositorioDeTerritorio>();
 builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais, RepositorioDeIndicadoresTerritoriais>();
+builder.Services.AddScoped<IRepositorioDePrecosDeMercado, RepositorioDePrecosDeMercado>();
 builder.Services.AddScoped<IRepositorioIndicadoresExecutivos, RepositorioDeIndicadoresExecutivos>();
 builder.Services.AddScoped<IRepositorioHistoricoComercial, RepositorioDeHistoricoComercial>();
 builder.Services.AddScoped<IRepositorioSincronizacoes, RepositorioDeSincronizacoes>();
@@ -229,6 +230,7 @@ builder.Services.AddScoped<ListarMunicipios>();
 builder.Services.AddScoped<ObterCoberturaPorFilial>();
 builder.Services.AddScoped<ListarTerritorioPorCarteira>();
 builder.Services.AddScoped<ObterIndicadoresTerritoriais>();
+builder.Services.AddScoped<ObterPrecosDeMercado>();
 builder.Services.AddScoped<ObterIndicadoresExecutivos>();
 
 builder.Services.AddScoped<BuscarClientesNoLegado>();

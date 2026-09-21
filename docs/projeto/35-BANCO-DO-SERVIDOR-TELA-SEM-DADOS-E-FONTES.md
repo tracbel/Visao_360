@@ -210,6 +210,10 @@ tarefa anual `TracbelCrmFontesPublicas`, que o
 dentro dele, sem proxy nem configuração especial. Isso vale para as próximas fontes externas do
 documento 48 (#66, #67, #68).
 
+**21/09/2026 (#66):** os preços das culturas entraram com rotina própria, **mensal** —
+`TracbelCrmPrecos`, todo dia 20, instalada pelo mesmo script. CONAB, Socicana e dólar PTAX, todos
+abertos.
+
 O script acima continua sendo o caminho das **três primeiras** etapas, que dependem das duas
 planilhas do comercial — e continuam saindo da estação enquanto as planilhas chegarem por e-mail.
 

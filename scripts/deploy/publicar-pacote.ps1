@@ -18,6 +18,7 @@
        derrubaria a aplicacao sem nenhum erro de compilacao para avisar.
     5. SOBE a API — e e ela que aplica as migracoes.
     6. PROVA DE VIDA. Se falhar, VOLTA a versao guardada e sobe de novo.
+    7. ROTINAS: recria as tarefas agendadas das fontes publicas com o registrar-rotinas.ps1 do pacote.
 
   A volta atras cobre o CODIGO. Migracao destrutiva nao volta assim — volta restaurando a copia do
   passo 1 —, e por isso o agente nem chega aqui quando ha uma sem autorizacao.
@@ -153,6 +154,37 @@ if (EstaViva) {
     Diga "a aplicacao respondeu: $commitCurto no ar"
     Servico 'subir' $cfg.servicoDaSincronizacao
     Remove-Item $anterior -Recurse -Force -ErrorAction SilentlyContinue
+
+    # ---------------------------------------------------------------------------------------------
+    Diga "7. rotinas das fontes publicas"
+    # ---------------------------------------------------------------------------------------------
+    # AS ROTINAS AGENDADAS VEM NO PACOTE e sao recriadas a cada publicacao (registrar-rotinas.ps1).
+    # Assim a rotina de uma fonte nova - a dos precos, na issue 66 - chega ao servidor junto com o
+    # codigo que a usa, sem ninguem rodar script nenhum. E os scripts delas moram FORA da pasta da
+    # carga, que o passo 4 apaga: foi o defeito achado em 21/09/2026, antes de o agente existir.
+    #
+    # FALHAR AQUI NAO DERRUBA A PUBLICACAO: a aplicacao ja esta no ar e provou que responde. O erro
+    # vai para o registro, que e onde a publicacao inteira se conta.
+    $registrar = Join-Path $Pacote 'rotinas\registrar-rotinas.ps1'
+    if (Test-Path $registrar) {
+        $saidaDasRotinas = & $registrar -DestinoDaCarga $cfg.destinoDaCarga -Conexao $cfg.conexaoDoBanco 2>&1 | Out-String
+        if ($saidaDasRotinas -match 'codigo das rotinas: 0') {
+            Diga 'rotinas das fontes publicas registradas (anual e mensal)'
+
+            # A PRIMEIRA CARGA NAO ESPERA O CALENDARIO. Registrar a tarefa nao a roda: com a tabela
+            # de precos vazia e o dia 20 ja passado, a tela ficaria um mes sem preco no servidor. O
+            # disparo e assincrono - a publicacao nao espera a carga terminar.
+            if ([int](Escalar 'SELECT COUNT(*) FROM organizacao.CotacaoDeProduto') -eq 0) {
+                & schtasks.exe /Run /TN 'TracbelCrmPrecos' | Out-Null
+                Diga 'tabela de precos vazia: a rotina TracbelCrmPrecos foi disparada agora'
+            }
+        } else {
+            Diga "as rotinas das fontes publicas NAO foram registradas: $($saidaDasRotinas.Trim())" 'erro'
+        }
+    } else {
+        Diga 'o pacote nao traz rotinas\registrar-rotinas.ps1; as rotinas ficam como estavam' 'aviso'
+    }
+
     exit 0
 }
 
