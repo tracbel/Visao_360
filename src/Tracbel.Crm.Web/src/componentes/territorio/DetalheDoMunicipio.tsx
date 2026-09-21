@@ -1,11 +1,9 @@
 /**
- * O detalhe de um município: território, responsáveis por fonte, os indicadores
- * com a composição de cada um, a lavoura inteira e o que já existe para
- * mecanizar.
+ * O detalhe de um município: território, quem o atende, os indicadores com a
+ * composição de cada um, a lavoura inteira e o que já existe para mecanizar.
  *
- * AS DUAS PLANILHAS APARECEM LADO A LADO. Quando elas nomeiam CENs diferentes,
- * o aviso diz que há divergência e não escolhe: a atualidade de nenhuma das
- * duas está confirmada (documento 32, seção 4.3).
+ * QUEM ATENDE É O DA CARTEIRA DO CRM, e só ele (issue 107): planilha é requisito,
+ * não fonte — a tela não mostra o que uma planilha afirma nem compara planilhas.
  *
  * CADA MEDIDA DIZ A FONTE E O ANO, porque os anos diferem muito: o Censo
  * Agropecuário é de 2017, o rebanho é anual e a PAM tem três anos carregados.
@@ -13,19 +11,8 @@
  */
 
 import { Fragment } from 'react';
-import type { IndicadoresDoMunicipio, RegraDePotencialAplicada, ResponsavelDeclarado } from '../../tipos/territorio';
+import type { IndicadoresDoMunicipio, RegraDePotencialAplicada } from '../../tipos/territorio';
 import { reaisCompactos, reaisDaProducao } from './escalas';
-
-const FONTE: Record<ResponsavelDeclarado['fonte'], string> = {
-  PlanilhaAreaDeAtuacao: 'Área de Atuação',
-  PlanilhaCenEGestorPorMunicipio: 'CEN e Gestor por Município',
-};
-
-const SITUACAO: Record<ResponsavelDeclarado['situacao'], string> = {
-  UsuarioIdentificado: 'usuário do CRM',
-  VagaAContratar: 'vaga a contratar',
-  NaoIdentificado: 'sem usuário no CRM',
-};
 
 const nº = (v: number) => v.toLocaleString('pt-BR');
 
@@ -50,7 +37,7 @@ export function DetalheDoMunicipio({
             {municipio.pertenceAAdr
               ? `ADR · região ${municipio.regiao}`
               : municipio.listadoNaAreaDeAtuacao
-                ? 'na planilha de área de atuação, fora da ADR'
+                ? 'na área de atuação, fora da ADR'
                 : 'fora da área de atuação'}
             {municipio.lojaNome && ` · loja ${municipio.lojaNome.replace(/^.*—\s*/, '')}`}
             {municipio.lojaAtivaNoCrm === false && (
@@ -65,53 +52,7 @@ export function DetalheDoMunicipio({
 
       <div className="terr-detalhe-grade">
         <section className="terr-detalhe-responsaveis">
-          <h3 className="terr-detalhe-titulo">Responsáveis, por fonte</h3>
-          {municipio.comparacaoDoCen === 'NomesDiferentes' && (
-            <p className="terr-aviso terr-aviso-alerta">
-              As duas planilhas nomeiam CENs diferentes. As duas fontes ficam; nenhuma foi escolhida.
-            </p>
-          )}
-          {municipio.comparacaoDoCen === 'ProvavelMesmaPessoa' && (
-            <p className="terr-aviso">
-              As duas planilhas escrevem o CEN de jeitos diferentes — provavelmente a mesma pessoa, sem confirmação. As
-              duas fontes ficam.
-            </p>
-          )}
-          {municipio.responsaveis.length === 0 ? (
-            <p className="cad-nada">Nenhuma planilha declara responsável.</p>
-          ) : (
-            <table className="cad-tabela terr-tabela-compacta">
-              <caption className="cad-so-leitor">Responsáveis declarados</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Papel</th>
-                  <th scope="col">Fonte</th>
-                  <th scope="col">Como a fonte escreve</th>
-                  <th scope="col">No CRM</th>
-                </tr>
-              </thead>
-              <tbody>
-                {municipio.responsaveis.map((r) => (
-                  <tr key={`${r.papel}-${r.fonte}`}>
-                    <td>{r.papel === 'Cen' ? 'CEN' : 'Gestor'}</td>
-                    <td>{FONTE[r.fonte]}</td>
-                    <td className="cad-mono">{r.nomeNaOrigem}</td>
-                    <td>{r.usuarioNome ?? <span className="cad-sub">{SITUACAO[r.situacao]}</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {municipio.responsaveis.length > 0 && (
-            <p className="cad-sub">
-              Vigência não declarada pelas planilhas; lidas em{' '}
-              {new Date(municipio.responsaveis[0].importadoEm).toLocaleDateString('pt-BR')}.
-            </p>
-          )}
-        </section>
-
-        <section className="terr-detalhe-responsaveis">
-          <h3 className="terr-detalhe-titulo">Responsáveis pelas carteiras, pelos vínculos deste município</h3>
+          <h3 className="terr-detalhe-titulo">Quem atende este município</h3>
           {municipio.responsaveisPelasCarteiras.length === 0 ? (
             <p className="cad-nada">Nenhum vínculo em carteira comercial com cliente deste município, ao seu alcance.</p>
           ) : (
@@ -138,8 +79,7 @@ export function DetalheDoMunicipio({
             </table>
           )}
           <p className="cad-sub">
-            Cadastro da carteira no CRM: quem tem hoje os clientes com endereço aqui. É uma terceira fonte, ao lado das
-            planilhas — nenhuma substitui a outra.
+            Da carteira no CRM: quem tem hoje os clientes com endereço aqui.
           </p>
         </section>
 

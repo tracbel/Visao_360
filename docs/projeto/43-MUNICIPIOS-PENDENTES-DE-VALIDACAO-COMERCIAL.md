@@ -95,7 +95,7 @@ Todos os municípios com divergência são de **São Paulo**.
 
 | Onde | Impacto hoje |
 |---|---|
-| **Indicadores Geográficos** | mostra as duas afirmações lado a lado e marca a divergência — é o comportamento correto e continua |
+| **Indicadores Geográficos** | **desde 21/09/2026 (issue 107) não mostra nem compara as planilhas**: quem atende o município é o responsável da carteira do CRM. As afirmações continuam gravadas para a conciliação (documento 32, §4.3) |
 | **Cobertura por Filial e Carteira** | **não usa** estas planilhas: usa `CarteiraMunicipio` (o que veio do Vórtice). Não quebra |
 | **Atribuição de trabalho** | 6.988 clientes estão em municípios cujo CEN não é confiável em nenhuma das duas fontes |
 | **Modelo alvo** | a fonte canônica de "quem atende o município" passa a ser `CarteiraMunicipio` → `Carteira.ResponsavelId` (documento 40, seção 6.4). A conciliação precisa acontecer antes de `ResponsavelPeloMunicipio` sair |

@@ -395,6 +395,15 @@ pessoa, não confirmado)", e o detalhe mostra as duas fontes com o selo "Duas fo
 confirmar". A comparação é rótulo, não fusão: as duas afirmações continuam gravadas até existir
 definição oficial (P-1).
 
+> **SUBSTITUÍDO EM 21/09/2026 (issue 107) — a tela não mostra nem compara planilha.** Decisão do Ricardo:
+> *"tire tudo que referencie planilha, comparação de planilha — as planilhas são para você saber o que eu quero
+> que a aplicação tenha"*. Saíram o cartão "CEN diferente entre as planilhas", a seção "Responsáveis, por fonte"
+> do detalhe e os campos `responsaveis`, `cenDivergenteEntreFontes` e `comparacaoDoCen` da API (com
+> `ResponsavelPeloMunicipio.CompararCen`). Quem atende o município, na tela, é **só** o responsável das carteiras
+> do CRM com vínculo nele (`responsaveisPelasCarteiras`); a classificação do indicador passou a "Da carteira ·
+> responsável a cadastrar". As afirmações das planilhas **continuam gravadas** em `ResponsavelPeloMunicipio`,
+> para a conciliação da #107 — só deixaram de sair do servidor.
+
 **Identificação no cadastro de usuários**, por igualdade exata do nome normalizado com o login, o
 nome de exibição ou o nome completo (sem aproximação):
 

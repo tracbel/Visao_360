@@ -423,26 +423,25 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
     }
 
     [Fact]
-    public async Task As_duas_planilhas_divergindo_sobre_o_cen_ficam_as_duas_e_marcadas()
+    public async Task A_api_nao_expoe_o_que_as_planilhas_afirmam_sobre_o_cen()
     {
+        // PLANILHA É REQUISITO, NÃO FONTE (issue 107). As afirmações das planilhas continuam no banco, para a
+        // conciliação, mas a tela mostra quem atende pela carteira do CRM — e a API não as devolve mais.
         await SemearAsync();
         var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
 
         var ribeirao = Municipio(dados, RibeiraoPreto);
-        ribeirao.GetProperty("responsaveis").GetArrayLength().Should().Be(2);
-        ribeirao.GetProperty("cenDivergenteEntreFontes").GetBoolean().Should().BeTrue();
+        ribeirao.TryGetProperty("responsaveis", out _).Should().BeFalse();
+        ribeirao.TryGetProperty("cenDivergenteEntreFontes", out _).Should().BeFalse();
+        ribeirao.TryGetProperty("comparacaoDoCen", out _).Should().BeFalse();
+        ribeirao.GetProperty("responsaveisPelasCarteiras").GetArrayLength().Should().Be(1);
     }
 
     [Fact]
-    public async Task O_cen_e_comparado_sem_fusao_e_cada_indicador_diz_como_ler()
+    public async Task Cada_indicador_diz_como_ler()
     {
         await SemearAsync();
         var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
-
-        Municipio(dados, RibeiraoPreto).GetProperty("comparacaoDoCen").GetString()
-            .Should().Be("NomesDiferentes", "vaga a contratar numa planilha e um nome na outra");
-        Municipio(dados, RibeiraoPreto).GetProperty("responsaveis").GetArrayLength().Should().Be(2, "as duas fontes ficam");
-        Municipio(dados, Serrana).GetProperty("comparacaoDoCen").GetString().Should().Be("UmaFonteSo");
 
         var classificacoes = dados.GetProperty("classificacoes").EnumerateArray()
             .ToDictionary(c => c.GetProperty("indicador").GetString()!, c => c.GetProperty("situacao").GetString());
@@ -626,7 +625,6 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         responsaveis[0].GetProperty("nome").GetString().Should().Be("cen.ribeiraopreto", "é o nome de exibição do responsável cadastrado das duas carteiras");
         responsaveis[0].GetProperty("vinculos").GetInt32().Should().Be(3, "dois vínculos na carteira de máquinas e um na de peças");
         responsaveis[0].GetProperty("carteiras").GetInt32().Should().Be(2);
-        Municipio(dados, RibeiraoPreto).GetProperty("responsaveis").GetArrayLength().Should().Be(2, "as planilhas continuam ao lado, sem fusão");
     }
 
     [Theory]

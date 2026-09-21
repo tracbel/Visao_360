@@ -270,8 +270,6 @@ export function IndicadoresGeograficos() {
       maquinasTeoricas: comArea.reduce((s, m) => s + (m.potencial[0].maquinasTeoricas ?? 0), 0),
       hectares: comArea.reduce((s, m) => s + (m.potencial[0].areaPlantadaHectares ?? 0), 0),
       municipiosComArea: comArea.length,
-      cenDiferente: daAdr.filter((m) => m.comparacaoDoCen === 'NomesDiferentes').length,
-      cenGrafiaDiferente: daAdr.filter((m) => m.comparacaoDoCen === 'ProvavelMesmaPessoa').length,
 
       // A SOMA IGNORA O SIGILO em vez de contá-lo como zero: o total é "o que o IBGE divulgou",
       // e o número de municípios que entraram fica ao lado para que isso seja visível.
@@ -494,13 +492,6 @@ export function IndicadoresGeograficos() {
       deOnde: regra ? `1 a cada ${regra.hectaresPorMaquina} ha de ${regra.produtoNome} · estimativa regional, regra a confirmar` : '',
       semDado: territorioNaoCarregado ? semTerritorio : 'sem regra de potencial',
     },
-    {
-      rotulo: 'CEN diferente entre as planilhas',
-      valor: comTerritorio ? totais.cenDiferente : null,
-      tom: totais.cenDiferente > 0 ? 'atencao' : undefined,
-      deOnde: `mais ${nº(totais.cenGrafiaDiferente)} com grafia diferente (provável mesma pessoa, não confirmado) · as duas fontes seguem preservadas`,
-      semDado: territorioNaoCarregado ? semTerritorio : '—',
-    },
   ];
 
   // O QUE A REGIÃO TEM, E QUE FATIA DE SÃO PAULO ELA É. Sem o denominador do estado, "62 mil
@@ -569,7 +560,7 @@ export function IndicadoresGeograficos() {
               ? 'disponível para o seu perfil.'
               : 'exige a permissão de alcance entre filiais; o seu perfil não a tem, e a distribuição oficial dos acessos está pendente (documento 32, P-10).'}
           </span>
-          <span>A ADR, os responsáveis das planilhas e a área plantada são da empresa inteira e aparecem para todos.</span>
+          <span>A ADR e a área plantada são da empresa inteira e aparecem para todos.</span>
         </div>
       </div>
 
@@ -682,7 +673,7 @@ export function IndicadoresGeograficos() {
           <FiltroSemDado
             rotulo="CEN / gestor"
             opcoes="—"
-            motivo="planilhas divergem e a vigência não foi confirmada; o responsável da carteira está na ficha do município"
+            motivo="a carteira do CRM ainda não diz quem atende cada município (issue 107); o que ela já tem está na ficha do município"
           />
         </div>
         {indicadores && (
@@ -976,8 +967,6 @@ export function IndicadoresGeograficos() {
                       <button type="button" className="cad-th-ordenar" onClick={() => setSelecionado(m.codigoIbge)}>
                         {m.nome}
                       </button>
-                      {m.comparacaoDoCen === 'NomesDiferentes' && <div className="cad-sub cad-atencao">CEN diferente nas planilhas</div>}
-                      {m.comparacaoDoCen === 'ProvavelMesmaPessoa' && <div className="cad-sub">CEN com grafia diferente</div>}
                     </td>
                     <td>
                       {m.regiao}
@@ -1016,7 +1005,7 @@ export function IndicadoresGeograficos() {
                 {semFiltro && !territorioNaoCarregado && (
                   <LinhaDeGrupo
                     rotulo="São Paulo fora da ADR"
-                    descricao="municípios com cliente que a planilha não marca como ADR"
+                    descricao="municípios com cliente fora da ADR"
                     itens={municipios.filter((m) => !m.pertenceAAdr)}
                   />
                 )}
