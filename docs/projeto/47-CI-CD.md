@@ -420,6 +420,23 @@ o stderr de executável. Os here-strings ficam de fora, porque são os scripts d
 outro processo com `'Continue'`. Contra a versão da `main`, a regra acusa exatamente a linha do
 `schtasks /Query`. No 5.1, o `try` do passo 7 segura um registrar que quebra do mesmo jeito.
 
+**A terceira rodada, depois do merge do #121 (16:55).** O `66b9d2f` subiu, a prova de vida passou, o
+registrar terminou bem (as rotinas já tinham rodado às 12:45, com código 0, disparadas à mão), e a
+publicação **ainda** foi contada como falha: *"A pasta não pode ter espaço: 'rotinas das fontes publicas
+registradas (anual e mensal)'"*. O PowerShell não diferencia maiúscula de minúscula no nome da variável: no
+passo 7, `$registrar = <caminho do registrar-rotinas.ps1>` sobrescrevia o parâmetro `$Registrar`, a função
+de registro do agente, e o `Diga` seguinte chamava o **registrar** com a frase no lugar da pasta. O defeito
+existia desde que o passo 7 foi escrito. Só apareceu quando o registrar terminou bem pela primeira vez.
+
+A variável passou a se chamar `$scriptDasRotinas`, e o `ScriptsDoServidorTestes` ganhou a regra: script do
+servidor não reatribui parâmetro, com qualquer caixa. No 5.1, a versão da `main` quebra com a mesma frase do
+servidor, e a corrigida termina e registra.
+
+**No mesmo dia, o job `pacote` recebeu 403 ao anexar o artefato** (merge do #123). O plano da organização
+é o Team, com 2 GB de artefatos para ela inteira, e este repositório guardava 1,03 GB: dez pacotes de
+104 MB, com 30 dias de retenção. O pacote passou a valer **5 dias**. O agente o baixa minutos depois do
+merge, e a volta atrás usa a cópia guardada no servidor, não um pacote antigo.
+
 **Fica para depois:** o certificado vence em **12/10/2026**, e o agente atualizar os próprios scripts a
 partir do pacote do CI, em vez de depender do `-SoAtualizarOsScripts`.
 

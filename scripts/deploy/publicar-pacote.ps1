@@ -184,12 +184,17 @@ if (EstaViva) {
     #
     # FALHAR AQUI NAO DERRUBA A PUBLICACAO: a aplicacao ja esta no ar e provou que responde. O erro
     # vai para o registro, que e onde a publicacao inteira se conta.
-    $registrar = Join-Path $Pacote 'rotinas\registrar-rotinas.ps1'
-    if (Test-Path $registrar) {
+    #
+    # O NOME NAO E $registrar. O PowerShell nao diferencia maiuscula de minuscula: `$registrar = <caminho>`
+    # sobrescrevia o parametro $Registrar, a funcao de registro do agente, e o Diga seguinte chamava o
+    # registrar-rotinas.ps1 com a frase no lugar da pasta (21/09/2026, publicacao de 66b9d2f). O teste
+    # ScriptsDoServidorTestes barra reatribuir parametro.
+    $scriptDasRotinas = Join-Path $Pacote 'rotinas\registrar-rotinas.ps1'
+    if (Test-Path $scriptDasRotinas) {
         # O try E O QUE CUMPRE O "NAO DERRUBA" ACIMA. Sem ele, um erro do registrar-rotinas.ps1 subia ate o
         # agente, e uma publicacao que ja estava no ar e respondendo foi contada como falha (21/09/2026).
         try {
-            $saidaDasRotinas = & $registrar -DestinoDaCarga $cfg.destinoDaCarga -Conexao $cfg.conexaoDoBanco 2>&1 | Out-String
+            $saidaDasRotinas = & $scriptDasRotinas -DestinoDaCarga $cfg.destinoDaCarga -Conexao $cfg.conexaoDoBanco 2>&1 | Out-String
         } catch {
             $saidaDasRotinas = "parou num erro: $($_.Exception.Message)"
         }

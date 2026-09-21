@@ -81,6 +81,36 @@ public class ScriptsDoServidorTestes
             "vira exceção; consulte por cmdlet (Get-ScheduledTask, Get-Service) ou baixe a preferência só ali");
     }
 
+    /// <summary>
+    /// O POWERSHELL NÃO DIFERENCIA MAIÚSCULA DE MINÚSCULA NO NOME DA VARIÁVEL. No passo 7 do
+    /// <c>publicar-pacote.ps1</c>, <c>$registrar = &lt;caminho do script&gt;</c> sobrescreveu o parâmetro
+    /// <c>$Registrar</c> — a função de registro do agente —, e a mensagem seguinte chamou o
+    /// <c>registrar-rotinas.ps1</c> com a frase no lugar da pasta (21/09/2026). Reatribuir parâmetro, com
+    /// qualquer caixa, não passa.
+    /// </summary>
+    [Fact]
+    public void Os_scripts_do_servidor_nao_reatribuem_parametro()
+    {
+        var violacoes = new List<string>();
+
+        foreach (var nome in RodamNoServidor)
+        {
+            var codigo = SemHereStrings(SemComentarios(Ler(nome)));
+            var (parametros, corpo) = SepararParametros(codigo);
+            parametros.Should().NotBeEmpty($"{nome} declara parâmetros, e o teste precisa enxergá-los");
+
+            var atribuicoes = Regex.Matches(corpo, @"(?im)^\s*\$(\w+)\s*=(?!=)|\bforeach\s*\(\s*\$(\w+)\s+in\b");
+            violacoes.AddRange(
+                from Match a in atribuicoes
+                let variavel = a.Groups[1].Success ? a.Groups[1].Value : a.Groups[2].Value
+                where parametros.Contains(variavel)
+                select $"{nome}: ${variavel} reatribui o parâmetro de mesmo nome");
+        }
+
+        violacoes.Should().BeEmpty(
+            "no PowerShell $registrar e $Registrar são a mesma variável; dê outro nome à variável local");
+    }
+
     [Fact]
     public void A_prova_de_vida_confere_os_campos_que_a_API_devolve()
     {
@@ -109,6 +139,31 @@ public class ScriptsDoServidorTestes
     {
         var semBlocos = Regex.Replace(codigo, @"(?s)<#.*?#>", "");
         return Regex.Replace(semBlocos, @"(?m)(^|\s)#.*$", "$1");
+    }
+
+    /// <summary>
+    /// Os nomes do bloco <c>param( ... )</c> do script (sem diferenciar caixa) e o código que vem depois
+    /// dele. Os parênteses são contados, porque atributo como <c>[Parameter(Mandatory = $true)]</c> tem os seus.
+    /// </summary>
+    private static (HashSet<string> Parametros, string Corpo) SepararParametros(string codigo)
+    {
+        var inicio = Regex.Match(codigo, @"(?i)\bparam\s*\(");
+        if (!inicio.Success) return ([], codigo);
+
+        var profundidade = 1;
+        var i = inicio.Index + inicio.Length;
+        for (; i < codigo.Length && profundidade > 0; i++)
+        {
+            if (codigo[i] == '(') profundidade++;
+            else if (codigo[i] == ')') profundidade--;
+        }
+
+        var bloco = codigo[(inicio.Index + inicio.Length)..(i - 1)];
+        var nomes = Regex.Matches(bloco, @"(?m)^\s*(?:\[[^\]]*(?:\([^)]*\))?[^\]]*\]\s*)*\$(\w+)")
+            .Select(m => m.Groups[1].Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return (nomes, codigo[i..]);
     }
 
     /// <summary>Tira os here-strings (<c>@" ... "@</c> e <c>@' ... '@</c>): o texto deles roda em outro processo.</summary>
