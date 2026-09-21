@@ -45,6 +45,12 @@ export type Rota = {
   Componente: ComponentType;
   /** Lê e grava pela nossa API. Ganha o seletor de filial no cabeçalho. */
   usaApi?: boolean;
+  /**
+   * Tela de análise: ocupa a largura inteira da janela, sem o teto de 1.400 px do `.content`.
+   * O teto serve a formulário e lista, em que campo esticado atrapalha; num painel de mapas,
+   * gráficos e tabelas ele deixava meia tela vazia num monitor largo (21/09/2026).
+   */
+  larga?: boolean;
 };
 
 export const ROTAS: Rota[] = [
@@ -198,6 +204,7 @@ export const ROTAS: Rota[] = [
     trilha: ['Relatórios', 'Indicadores Geográficos'],
     Componente: IndicadoresGeograficos,
     usaApi: true,
+    larga: true,
   },
   {
     caminho: '/config',

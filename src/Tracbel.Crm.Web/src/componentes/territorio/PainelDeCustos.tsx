@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
 import { SeloProcedencia } from '../cadastro/SeloProcedencia';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
+import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { obterCustosDeProducao } from '../../dados/api/territorio';
 import { useRecurso } from '../../dados/api/useRecurso';
@@ -211,13 +212,17 @@ export function PainelDeCustos() {
                     ` · ${selecionada.safras.length - pontos.length} sem custo total (a CONAB parou no operacional) ficam fora do gráfico`}
                 </div>
                 {pontos.length > 1 ? (
-                  <GraficoLinhaMensal
-                    rotulos={pontos.map((p) => p.rotulo)}
-                    valores={pontos.map((p) => p.valor)}
-                    largura={460}
-                    altura={240}
-                    formatar={reais}
-                  />
+                  <MolduraDeGrafico altura={240}>
+                    {(l, a) => (
+                      <GraficoLinhaMensal
+                        rotulos={pontos.map((p) => p.rotulo)}
+                        valores={pontos.map((p) => p.valor)}
+                        largura={l}
+                        altura={a}
+                        formatar={reais}
+                      />
+                    )}
+                  </MolduraDeGrafico>
                 ) : (
                   <p className="cad-sub">A série tem menos de duas safras com custo total — não há linha para desenhar.</p>
                 )}
