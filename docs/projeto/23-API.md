@@ -303,6 +303,7 @@ casa nesse caso, com `filialPedidaRecusada` preenchido, para a tela voltar sozin
 |---|---|---|
 | `GET /` `?em=aaaa-mm-dd` | `ParametroDoPotencial.Ler` | os parâmetros que valem na data (padrão: hoje) — gerais, regra de cada cultura e percepção por município — e `pendencias`, em frase, com o que está em aberto |
 | `GET /historico` | `ParametroDoPotencial.Ler` | todas as vigências, inclusive revogadas e futuras, com autor, data e justificativa |
+| `GET /opcoes` | `ParametroDoPotencial.Ler` | as listas de escolha dos formulários: os produtos da PAM (com a área plantada na ADR, os mais plantados primeiro) e os municípios da ADR (issue 77) |
 | `POST /geral` | `ParametroDoPotencial.Administrar` | vigência nova dos parâmetros gerais — o conjunto inteiro |
 | `POST /culturas` | `ParametroDoPotencial.Administrar` | vigência nova da regra de uma cultura (produto da PAM, hectares por máquina, anos de renovação, modelo) |
 | `POST /percepcoes` | `PercepcaoDoGestor.Informar` | vigência nova da percepção do gestor sobre um município, dentro do limite dos gerais vigentes na data |
@@ -317,6 +318,22 @@ vigência começa **hoje ou depois** (422 no campo `vigenteDesde` para data pass
 pé na mesma data dão 409. Números aceitam vírgula ou ponto decimal; datas, `aaaa-mm-dd`.
 
 **Toda inclusão e toda revogação entram na trilha** (`auditoria.AlteracaoDeCampo`), com o autor.
+
+### 2.10 Fontes públicas — `GET /api/v1/integracoes/fontes-publicas` (issue 77, 21/09/2026)
+
+Permissão `Integracao.Ler`. Uma linha por fluxo da carga das fontes públicas (IBGE, ANP, CONAB, Socicana, Banco
+Central), na ordem do catálogo `FontesPublicas.Todas`:
+
+| Campo | De onde vem |
+|---|---|
+| `ultimaAtualizacaoEm`, `registrosLidos`, `registrosGravados`, `recusados` | a última rodada bem-sucedida, gravada pela carga em `integracao.PontoDeSincronismo` |
+| `recusasPendentes`, `exemplosDeRecusa` | `integracao.MensagemDescartada` do fluxo, ainda não tratadas |
+| `linhas`, `periodoInicial`, `periodoFinal` | a tabela da fonte (ano, safra ou mês `aaaa-mm`) |
+| `municipiosCobertos` | municípios da ADR com dado; nulo quando a fonte não é por município |
+| `ultimaExecucaoPrevistaEm`, `proximaExecucaoEm` | o calendário das rotinas — o mesmo do `registrar-rotinas.ps1`, conferido por teste |
+| `situacao`, `motivo` | `SemDado` (tabela vazia), `Atrasada` (a execução agendada passou, com 6 horas de margem, e o fluxo não foi atualizado depois) ou `EmDia` |
+
+**Rodada que falha não grava nada**, e por isso a fonte aparece atrasada, e não "em dia com erro".
 ## 3. O formato de erro
 
 Toda recusa é `application/problem+json`. O status vem da **natureza** da falha, declarada pelo
