@@ -446,7 +446,7 @@ Vórtice, **ganha o usuário no banco no primeiro login, aguardando liberação*
 |---|---|
 | a conta | `Usuario.CriarNoPrimeiroLogin`: identificador, nome principal, e-mail e nome vêm do token; natureza Pessoa; autor 0 (sistema) |
 | a espera | `seguranca.Usuario.AguardandoLiberacaoDesde` preenchida. O login é recusado com 403 e a frase "Seu acesso ao CRM foi registrado e está aguardando liberação" |
-| a filial | provisória: a raiz de menor identificador. Não dá acesso a nada, porque a conta não entra; só existe porque a coluna é obrigatória |
+| a filial | provisória: a raiz ativa de menor identificador. Não dá acesso a nada, porque a conta não entra; só existe porque a coluna é obrigatória |
 | a liberação | `Usuario.Liberar(filial, administrador)`: o administrador escolhe a filial de casa, e a pessoa passa a entrar com o perfil Padrão. A tela é a da #113 |
 | sem o grupo configurado | nada é criado, e a resposta continua "sem cadastro". Senão, qualquer conta do locatário encheria a lista do administrador |
 

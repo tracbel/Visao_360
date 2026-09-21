@@ -146,10 +146,11 @@ public sealed class ResolvedorDeContextoDoEntraId(
     private async Task<Resultado<ContextoAcesso>> CriarAguardandoLiberacaoAsync(
         CrmDbContext banco, IdentidadeDoEntra identidade, DateTime agora, CancellationToken ct)
     {
-        // A FILIAL PROVISÓRIA É A RAIZ DA HIERARQUIA, e não dá acesso a nada: a conta não entra enquanto
-        // espera. Ela só existe porque a filial de casa é obrigatória.
+        // A FILIAL PROVISÓRIA É A RAIZ ATIVA de menor identificador, e não dá acesso a nada: a conta não
+        // entra enquanto espera. Ela só existe porque a filial de casa é obrigatória. Ativa, porque as
+        // dezesseis filiais são todas raiz e algumas estão desativadas.
         var raiz = await banco.Empresas
-            .Where(e => e.EmpresaPaiId == null)
+            .Where(e => e.EmpresaPaiId == null && e.EstaAtiva)
             .OrderBy(e => e.Id)
             .Select(e => (int?)e.Id)
             .FirstOrDefaultAsync(ct);
