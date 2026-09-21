@@ -294,7 +294,10 @@ jobs:
           name: pacote-de-publicacao
           path: pacote/
           if-no-files-found: error
-          retention-days: 30
+          # CINCO DIAS BASTAM: o agente baixa o pacote minutos depois do merge, e a volta atras usa a
+          # copia guardada NO SERVIDOR, nao um pacote antigo. Com 30 dias eram dez pacotes de 104 MB
+          # guardados, e o upload passou a receber 403 (21/09/2026, cota de artefatos da organizacao).
+          retention-days: 5
 
       - name: Resumo
         shell: pwsh
