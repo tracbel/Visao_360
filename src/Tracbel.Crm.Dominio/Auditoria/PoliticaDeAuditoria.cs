@@ -55,6 +55,10 @@ public static class PoliticaDeAuditoria
         ["CotacaoDeProduto"] = ["ValorEmReais"],
         ["CotacaoDoDolar"] = ["ReaisPorDolar"],
 
+        // Custo de produção: as camadas que a rentabilidade usa. A CONAB revisa série antiga, e o
+        // número que muda mexe na margem da issue 73 — a trilha guarda o anterior.
+        ["CustoDeProducao"] = ["CustoOperacionalHa", "CustoTotalHa", "CustoOperacionalUnidade", "CustoTotalUnidade"],
+
         // Venda de máquina: o retrato que a origem pode reescrever a cada leitura
         // (VendaDeMaquina.AtualizarDaOrigem), campo por campo.
         ["VendaDeMaquina"] =

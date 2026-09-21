@@ -117,7 +117,7 @@ página, sem baixar dado de ninguém.
 | IBGE — PAM, tabela 5457 | `sidra.ibge.gov.br/tabela/5457` | variáveis **8331 área plantada ou destinada à colheita**, **216 área colhida**, 214 quantidade produzida (t), 112 rendimento médio (kg/ha), 215 valor da produção; classificação 782 (produto); níveis Brasil, UF e município; anual, **1974–2025** | API `apisidra.ibge.gov.br` e metadados em `servicodados.ibge.gov.br/api/v3/agregados/5457/metadados`. **O site e a API responderam 403 a esta estação em 17/09/2026** (os metadados responderam); a rotina precisa ser testada a partir do servidor | #64, #83 |
 | IBGE — Censo Agropecuário 2017 | `sidra.ibge.gov.br/pesquisa/censo-agropecuario/censo-agropecuario-2017/resultados-definitivos` | tabela **6871**: variáveis 1918 (estabelecimentos com tratores) e 1862 (tratores), classificação 12605 (total, menos de 100 cv, 100 cv e mais); tabela **6780**: variável 183 (estabelecimentos), classificação 220 (grupos de área total, 20 categorias); só 2017; município | API e metadados do IBGE | #65 |
 | IBGE — PPM, tabela 3939 | (pecuária; a conversa lista "Nº Gado" junto do Censo) | variável 105 (efetivo), classificação 79, **Bovino = 2670**; anual, **1974–2024** — mais recente que o Censo, por isso a planilha a usa | API e metadados do IBGE | #65 |
-| CONAB — custos de produção | `gov.br/conab/…/planilhas-de-custos-de-producao` | índice com 45 produtos agrícolas com série histórica, **entre eles soja, milho, amendoim, laranja, café arábica e cana**, em .xls ou .xlsx; os locais de SP ficam dentro dos arquivos | download manual; formato muda com os anos | #67 |
+| CONAB — custos de produção | `gov.br/conab/…/planilhas-de-custos-de-producao` | índice com 45 produtos agrícolas com série histórica, **entre eles soja, milho, amendoim, laranja, café arábica e cana**, em .xls ou .xlsx; os locais de SP ficam dentro dos arquivos | **[M 21/09] download direto**, sem cadastro; o nome do arquivo muda todo ano, e o leitor acha o link pelo nome da cultura; formato muda com os anos (§2.5) | #67 |
 | CEPEA — preços | `cepea.org.br` | indicadores de preço das culturas | **o site bloqueou a leitura automática (403)**: lista de indicadores e termos de uso a conferir à mão | #66 |
 | CONAB — preços agropecuários | `portaldeinformacoes.conab.gov.br/downloads/arquivos/PrecosMensalUF.txt` | **[M 21/09]** preço **recebido pelo produtor**, mensal, por UF (e por município, com código IBGE), em R$/kg: em SP, 34 produtos — café arábica, soja, milho, amendoim, laranja indústria, cana, boi, leite, sorgo, algodão, trigo, feijão e outros; **só os últimos 12 meses** (09/2025–08/2026) | arquivo aberto, sem cadastro, Latin-1 com `;` | #66 |
 | Socicana — preço do kg de ATR | `socicana.com.br/calculadora-de-atr/preco-do-kg/` | preço **mensal e acumulado** do kg de ATR por safra, de 2015/16 a 2026/27; agosto de 2026 = **R$ 0,8692** (mensal), **o mesmo valor da planilha** — a série de cana do protótipo vem daqui | página HTML, sem arquivo para baixar | #66 |
@@ -192,6 +192,43 @@ série, em R$ ou US$, **na unidade do mercado** — saca de 60 kg, caixa de 40,8
 variação contra o mesmo mês do ano anterior quando a série já tem, quantos meses ela tem no CRM, e o
 gráfico da série escolhida. Soja a **R$ 129,60 a saca**, café a **R$ 1.894,20**, laranja a
 **R$ 27,74 a caixa** (08/2026; café, 02/2026).
+### 2.5 Os custos de produção: as séries históricas da CONAB [medido em 21/09/2026, #67]
+
+A CONAB publica o custo de duas formas, e só uma serve para São Paulo:
+
+| | `CustoProducao.txt` (dados abertos) | **Séries históricas em `.xls`** |
+|---|---|---|
+| Cobertura | nacional, mensal desde 2018 | por cultura, desde 1997–2011 conforme a série |
+| São Paulo | café de Franca **só até 10/2024**, feijão, trigo; **nenhuma cana** | cana (Piracicaba e Penápolis), café (Franca, 2003–2025), laranja (7 locais), amendoim (6 séries), soja e milho 2ª safra (Assis) |
+| Acesso | arquivo aberto | **download direto**, sem cadastro |
+
+**A decisão são as séries em `.xls`**, lidas **só nas abas de SP** (166 abas em 21/09/2026). Três cuidados:
+
+- **O nome do arquivo muda todo ano** (`…-2008-a-2025.xls`): o leitor acha o link na página pelo **nome
+  da cultura**. O milho é uma pasta com dois arquivos (1ª e 2ª safra), que viram culturas separadas.
+- **O layout muda com os anos** — caixa dos rótulos, produtividade num texto ou em célula ao lado, mês
+  por extenso ou como data do Excel, cabeçalho partido. A aba é lida **por rótulo**, nunca por
+  posição.
+- **21 abas param no custo operacional** (laranja antiga e cana de Penápolis 2013 e 2016): renda de
+  fatores e custo total ficam **nulos**, não zero.
+
+**Aceite contra a planilha do comercial** — ela usa o **custo total por hectare**:
+
+| | Planilha | CRM |
+|---|---:|---:|
+| Café, Franca 2025 | R$ 29.279,94 | **R$ 29.279,94** |
+| Cana, Piracicaba 2025 | R$ 13.903,20 | **R$ 13.903,20** |
+| Cana, Piracicaba 2023 e 2024 (linha 1 da aba) | R$ 13.565,66 · R$ 13.040,39 | **iguais** |
+
+**O que falta, dito em voz alta:** **não há série de milho 1ª safra em SP**; a soja de SP para em
+2021 e o milho 2ª safra em 2023 (Assis). Qual local é "a referência de SP" de cada cultura — a
+planilha usa Franca e Piracicaba — é parâmetro do administrador (#71). Operacional ou total na
+rentabilidade continua sendo a D-P07.
+
+**Carga** (`--somente-custos`, na rotina mensal `TracbelCrmPrecos`): 166 abas na primeira rodada,
+zero na segunda; os 166 locais casaram com um município do catálogo. **Na tela**, abaixo dos preços:
+por cultura, a última safra de cada local (operacional e total, por hectare e por unidade) e o
+gráfico do custo total ao longo das safras.
 ---
 
 ## 3. O protótipo, fórmula por fórmula

@@ -32,3 +32,30 @@ export type PrecosDeMercado = {
   primeiroMesDoDolar: string | null;
   ultimoMesDoDolar: string | null;
 };
+
+/** O custo de uma aba da série histórica da CONAB (issue 67). Nulo é "a CONAB parou no operacional". */
+export type CustoNaSafra = {
+  aba: string;
+  safra: number;
+  mesDoRelatorio: number | null;
+  produtividade: number | null;
+  unidadeDaProdutividade: string | null;
+  custoVariavelHa: number;
+  custoFixoHa: number;
+  custoOperacionalHa: number;
+  rendaDeFatoresHa: number | null;
+  custoTotalHa: number | null;
+  custoOperacionalUnidade: number;
+  custoTotalUnidade: number | null;
+};
+
+/** A série de custo de uma cultura num local de referência da CONAB. */
+export type SerieDeCusto = {
+  cultura: string;
+  local: string;
+  variante: string | null;
+  codigoIbge: number | null;
+  unidadeComercial: string;
+  /** Da safra mais antiga à mais recente. */
+  safras: CustoNaSafra[];
+};

@@ -253,6 +253,9 @@ public class CrmDbContext : DbContext
     /// <summary>O dólar PTAX de cada mês, para converter os preços.</summary>
     public DbSet<CotacaoDoDolar> CotacoesDoDolar => Set<CotacaoDoDolar>();
 
+    /// <summary>O custo de produção por cultura, local de referência e safra (CONAB).</summary>
+    public DbSet<CustoDeProducao> CustosDeProducao => Set<CustoDeProducao>();
+
     /// <summary>As regras de potencial por área — hoje, um exemplo a confirmar.</summary>
     public DbSet<RegraDePotencial> RegrasDePotencial => Set<RegraDePotencial>();
 
