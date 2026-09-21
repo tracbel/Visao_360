@@ -115,7 +115,7 @@ public sealed class MeioDeCampoDeContextoDeAcesso(
             http.Items[Endpoints.EndpointsDeAcesso.ChaveDaFilialRecusada] = filial;
             resultado = estado.EntraLigado
                 ? await entra.ResolverAsync(RotasDeAutenticacao.LerIdentidade(http.User)!, null, http.RequestAborted)
-                : await provisorio.ResolverAsync(http.Request.Headers[config.CabecalhoDeUsuario].FirstOrDefault(), null, http.RequestAborted);
+                : await provisorio.ResolverAsync(http.Request.Headers[config.CabecalhoDeUsuario].FirstOrDefault(), null, http.RequestAborted, naFilialDeCasa: true);
         }
 
         if (!resultado.EhSucesso)
