@@ -23,12 +23,17 @@ public interface IRepositorioDeEscopo
 /// <param name="FilialPedidaRecusada">A filial que veio no cabeçalho e não é permitida; nulo quando não houve recusa.</param>
 /// <param name="FiliaisPermitidas">As filiais que ele pode escolher.</param>
 /// <param name="Permissoes">O que ele pode fazer na filial atual.</param>
+/// <param name="PodeVerTodasAsFiliais">
+/// Se ele pode escolher <see cref="ContextoAcesso.CodigoDeTodasAsFiliais"/> — a opção "Todas as filiais" do
+/// seletor. Quando está nela, <paramref name="FilialAtual"/> vem com esse código.
+/// </param>
 public sealed record EscopoDoUsuario(
     string Usuario,
     FilialDoEscopo FilialAtual,
     string? FilialPedidaRecusada,
     IReadOnlyList<FilialDoEscopo> FiliaisPermitidas,
-    IReadOnlyList<PermissaoDoEscopo> Permissoes);
+    IReadOnlyList<PermissaoDoEscopo> Permissoes,
+    bool PodeVerTodasAsFiliais);
 
 /// <summary>Uma filial do escopo.</summary>
 /// <param name="Codigo">O código (<c>010101</c>).</param>

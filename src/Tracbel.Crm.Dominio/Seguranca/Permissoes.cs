@@ -136,7 +136,8 @@ public static class Permissoes
 /// excluir e a visão entre filiais são perfis próprios, concedidos a quem precisar, com registro.</para>
 ///
 /// <para><b>Profundidade <see cref="Profundidade.EmpresaEAbaixo"/></b>: a filial escolhida e as que estão
-/// abaixo dela — o mesmo alcance de antes.</para>
+/// abaixo dela — o mesmo alcance de antes. O administrador é a exceção: tudo em
+/// <see cref="Profundidade.Organizacao"/>.</para>
 /// </summary>
 public static class PerfisDeSistema
 {
@@ -218,8 +219,12 @@ public static class PerfisDeSistema
             EhPadrao: false,
             [(Seguranca.Permissoes.EmpresaAlcanceEntreFiliais, Profundidade.Organizacao)]),
 
+        // TODAS AS PERMISSÕES, EM TODA A ORGANIZAÇÃO (decisão de 21/09/2026: "o perfil admin tem todas as
+        // filiais e todos os recursos"). Até então a maioria valia em EmpresaEAbaixo — com as 16 filiais
+        // todas raiz, isso era "só a filial escolhida". A ordem não muda: só a profundidade, e a migração
+        // atualiza as linhas que já existem em vez de apagar e recriar.
         new(4, Administrador, "Administrador",
-            "Tudo o que o padrão dá, mais excluir, a visão entre filiais, a administração de perfis e usuários e os parâmetros do potencial.",
+            "Todas as permissões, em todas as filiais: tudo o que o padrão dá, mais excluir, a visão de todas as filiais, a administração de perfis e usuários e os parâmetros do potencial.",
             EhPadrao: false,
             [
                 .. Seguranca.Permissoes.Catalogo.Keys
@@ -227,13 +232,13 @@ public static class PerfisDeSistema
                         and not Seguranca.Permissoes.PerfilAdministrar
                         and not Seguranca.Permissoes.UsuarioAdministrar
                         && !AcrescentadasDepoisDaSemente.Contains(p))
-                    .Select(p => (p, Profundidade.EmpresaEAbaixo)),
+                    .Select(p => (p, Profundidade.Organizacao)),
                 (Seguranca.Permissoes.EmpresaAlcanceEntreFiliais, Profundidade.Organizacao),
                 (Seguranca.Permissoes.PerfilAdministrar, Profundidade.Organizacao),
                 (Seguranca.Permissoes.UsuarioAdministrar, Profundidade.Organizacao),
 
                 // Depois da primeira semente — no fim, para não renumerar.
-                (Seguranca.Permissoes.ParametroDoPotencialLer, Profundidade.EmpresaEAbaixo),
+                (Seguranca.Permissoes.ParametroDoPotencialLer, Profundidade.Organizacao),
                 (Seguranca.Permissoes.ParametroDoPotencialAdministrar, Profundidade.Organizacao),
                 (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao)
             ]),

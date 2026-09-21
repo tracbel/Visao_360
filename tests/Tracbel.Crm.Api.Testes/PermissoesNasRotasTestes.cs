@@ -227,6 +227,122 @@ public sealed class PermissoesNasRotasTestes(ApiEmMemoria api, ITestOutputHelper
         dados.GetProperty("filialPedidaRecusada").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
+    // =============================================================================================
+    // "Todas as filiais" (21/09/2026: "o perfil admin tem todas as filiais e todos os recursos")
+    // =============================================================================================
+
+    [Fact]
+    public async Task Todas_as_filiais_e_403_para_quem_nao_administra()
+    {
+        var resposta = await api.ClienteComo(ApiEmMemoria.UsuarioDeRibeirao, ContextoAcesso.CodigoDeTodasAsFiliais).GetAsync("/api/v1/clientes");
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.Forbidden, "o perfil padrão não tem a visão entre filiais");
+        var corpo = await CorpoAsync(resposta);
+        corpo.GetProperty("erros")[0].GetProperty("campo").GetString().Should().Be("X-Tracbel-Empresa");
+    }
+
+    [Fact]
+    public async Task O_administrador_em_todas_as_filiais_ve_os_clientes_das_duas()
+    {
+        await using var app = new ApiEmMemoria();
+        await app.InitializeAsync();
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.Administrador);
+
+        await CriarClienteAsync(app.ClienteDeRibeirao(), "Fazenda Todas Ribeirão");
+        await CriarClienteAsync(app.ClienteDeBarretos(), "Fazenda Todas Barretos");
+
+        var todas = app.ClienteComo(ApiEmMemoria.UsuarioDeRibeirao, ContextoAcesso.CodigoDeTodasAsFiliais);
+        var resposta = await todas.GetAsync("/api/v1/clientes?termo=Fazenda Todas");
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+        var nomes = (await CorpoAsync(resposta)).GetProperty("dados").GetProperty("itens").EnumerateArray()
+            .Select(c => c.GetProperty("nomeRazao").GetString()).ToList();
+        nomes.Should().BeEquivalentTo(["Fazenda Todas Ribeirão", "Fazenda Todas Barretos"]);
+        resposta.Headers.GetValues("X-Tracbel-Contexto").Single().Should().EndWith($"filial {ContextoAcesso.CodigoDeTodasAsFiliais}");
+
+        // Numa filial só, o administrador continua vendo só ela: poder ver tudo não é estar vendo tudo.
+        var soRibeirao = await app.ClienteDeRibeirao().GetAsync("/api/v1/clientes?termo=Fazenda Todas");
+        (await CorpoAsync(soRibeirao)).GetProperty("dados").GetProperty("itens").EnumerateArray()
+            .Select(c => c.GetProperty("nomeRazao").GetString()).Should().BeEquivalentTo(["Fazenda Todas Ribeirão"]);
+    }
+
+    [Fact]
+    public async Task Em_todas_as_filiais_o_cadastro_novo_e_recusado_com_o_motivo()
+    {
+        await using var app = new ApiEmMemoria();
+        await app.InitializeAsync();
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.Administrador);
+
+        var todas = app.ClienteComo(ApiEmMemoria.UsuarioDeRibeirao, ContextoAcesso.CodigoDeTodasAsFiliais);
+        var resposta = await todas.PostAsJsonAsync("/api/v1/clientes", new { nomeRazao = "Fazenda Sem Filial", tipoDePessoa = "Juridica" }, Json);
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.Conflict, "o cliente novo nasceria numa filial que ninguém escolheu");
+        (await CorpoAsync(resposta)).GetProperty("title").GetString().Should().Be(ContextoAcesso.MensagemDeCadastroEmTodasAsFiliais);
+    }
+
+    [Fact]
+    public async Task Em_todas_as_filiais_o_documento_so_e_repetido_dentro_da_filial_do_cliente()
+    {
+        await using var app = new ApiEmMemoria();
+        await app.InitializeAsync();
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.Administrador);
+
+        const string cnpj = "11.222.333/0001-81";
+        await CriarClienteAsync(app.ClienteDeBarretos(), "Fazenda Com CNPJ em Barretos", cnpj);
+        var deRibeirao = await CriarClienteAsync(app.ClienteDeRibeirao(), "Fazenda Sem CNPJ em Ribeirão");
+
+        // O índice é UX_Cliente_Empresa_Documento: o mesmo CNPJ em outra filial não é repetição. Em "Todas as
+        // filiais" o contexto alcança Barretos também, e a conferência não pode olhar para lá.
+        var todas = app.ClienteComo(ApiEmMemoria.UsuarioDeRibeirao, ContextoAcesso.CodigoDeTodasAsFiliais);
+        var resposta = await todas.PutAsJsonAsync($"/api/v1/clientes/{deRibeirao}", new
+        {
+            nomeRazao = "Fazenda Sem CNPJ em Ribeirão",
+            tipoDePessoa = "Juridica",
+            documento = cnpj
+        }, Json);
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task O_escopo_oferece_todas_as_filiais_so_a_quem_pode_e_diz_quando_esta_nela()
+    {
+        var comum = (await CorpoAsync(await api.ClienteDeRibeirao().GetAsync("/api/v1/acesso/escopo"))).GetProperty("dados");
+        comum.GetProperty("podeVerTodasAsFiliais").GetBoolean().Should().BeFalse();
+
+        await using var app = new ApiEmMemoria();
+        await app.InitializeAsync();
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.Administrador);
+
+        var todas = app.ClienteComo(ApiEmMemoria.UsuarioDeRibeirao, ContextoAcesso.CodigoDeTodasAsFiliais);
+        var dados = (await CorpoAsync(await todas.GetAsync("/api/v1/acesso/escopo"))).GetProperty("dados");
+
+        dados.GetProperty("podeVerTodasAsFiliais").GetBoolean().Should().BeTrue();
+        dados.GetProperty("filialAtual").GetProperty("codigo").GetString().Should().Be(ContextoAcesso.CodigoDeTodasAsFiliais);
+        dados.GetProperty("filialPedidaRecusada").ValueKind.Should().Be(JsonValueKind.Null);
+        dados.GetProperty("permissoes").EnumerateArray()
+            .Should().OnlyContain(p => p.GetProperty("profundidade").GetString() == nameof(Profundidade.Organizacao),
+                "o administrador tem todas as permissões em toda a organização");
+    }
+
+    [Fact]
+    public async Task Quem_nao_pode_e_pede_todas_as_filiais_volta_para_a_de_casa_no_escopo()
+    {
+        var resposta = await api.ClienteComo(ApiEmMemoria.UsuarioDeRibeirao, ContextoAcesso.CodigoDeTodasAsFiliais).GetAsync("/api/v1/acesso/escopo");
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+        var dados = (await CorpoAsync(resposta)).GetProperty("dados");
+        dados.GetProperty("filialPedidaRecusada").GetString().Should().Be(ContextoAcesso.CodigoDeTodasAsFiliais);
+        dados.GetProperty("filialAtual").GetProperty("codigo").GetString().Should().Be(ApiEmMemoria.FilialDeRibeirao);
+    }
+
+    private static async Task<Guid> CriarClienteAsync(HttpClient http, string nome, string? documento = null)
+    {
+        var resposta = await http.PostAsJsonAsync("/api/v1/clientes", new { nomeRazao = nome, tipoDePessoa = "Juridica", documento }, Json);
+        resposta.StatusCode.Should().Be(HttpStatusCode.Created, await resposta.Content.ReadAsStringAsync());
+        return (await CorpoAsync(resposta)).GetProperty("chave").GetGuid();
+    }
+
     private async Task<Guid> CriarClienteEmRibeiraoAsync(string nome)
     {
         var resposta = await api.ClienteDeRibeirao().PostAsJsonAsync("/api/v1/clientes", new { nomeRazao = nome, tipoDePessoa = "Juridica" }, Json);

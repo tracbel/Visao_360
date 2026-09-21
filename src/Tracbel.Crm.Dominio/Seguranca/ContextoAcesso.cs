@@ -36,6 +36,11 @@ public sealed class ContextoAcesso
     /// O que liga as linhas da trilha à requisição ou à execução que as causou. Quando omitido, nasce
     /// um novo — e como o contexto é montado uma vez por requisição, é um por requisição.
     /// </param>
+    /// <param name="todasAsFiliais">
+    /// Se a pessoa escolheu <see cref="CodigoDeTodasAsFiliais"/> no seletor — e só quem
+    /// <see cref="PodeAlcancarTodasAsEmpresas"/> consegue. <paramref name="empresasVisiveis"/> já vem com
+    /// todas as filiais; isto diz à tela e ao cadastro que não há UMA filial escolhida.
+    /// </param>
     public ContextoAcesso(
         long usuarioId,
         string nomeExibicao,
@@ -47,7 +52,8 @@ public sealed class ContextoAcesso
         bool ehServicoDeSistema = false,
         OrigemDaOperacao? origem = null,
         int? sistemaId = null,
-        Guid? correlacaoId = null)
+        Guid? correlacaoId = null,
+        bool todasAsFiliais = false)
     {
         UsuarioId = usuarioId;
         NomeExibicao = nomeExibicao;
@@ -56,6 +62,7 @@ public sealed class ContextoAcesso
         SubordinadosIds = subordinadosIds;
         EquipesIds = equipesIds;
         EhServicoDeSistema = ehServicoDeSistema;
+        VeTodasAsFiliais = todasAsFiliais;
         Origem = origem ?? (ehServicoDeSistema ? OrigemDaOperacao.Sistema : OrigemDaOperacao.Usuario);
         SistemaId = sistemaId;
         CorrelacaoId = correlacaoId ?? Guid.NewGuid();
@@ -116,11 +123,41 @@ public sealed class ContextoAcesso
     /// integração), que já enxerga tudo por <see cref="EhServicoDeSistema"/>.
     ///
     /// PODER ABRIR NÃO É ESTAR ABERTO: enquanto ninguém chamar
-    /// <c>AbrirAlcanceEntreEmpresas</c>, o administrador continua vendo só as filiais dele.
-    /// A fronteira só cai quando alguém declara, por escrito, que está derrubando.
+    /// <c>AbrirAlcanceEntreEmpresas</c> nem escolher <see cref="CodigoDeTodasAsFiliais"/> no seletor, o
+    /// administrador continua vendo só a filial escolhida. A fronteira só cai quando alguém declara que
+    /// está derrubando — por escrito no código, ou pela escolha na tela, que sai no log a cada requisição.
     /// </summary>
     public bool PodeAlcancarTodasAsEmpresas =>
         ProfundidadeDe(PermissaoDeAlcanceEntreEmpresas) >= Profundidade.Organizacao;
+
+    /// <summary>
+    /// O código que, no lugar do código de uma filial, pede TODAS AS FILIAIS de uma vez (decisão de
+    /// 21/09/2026: "o perfil admin tem todas as filiais e todos os recursos").
+    ///
+    /// <para><b>Por que uma escolha, e não o padrão do administrador.</b> As 16 filiais da Tracbel são
+    /// todas raiz — nenhuma está abaixo de outra —, então não existe uma filial "de cima" cuja
+    /// profundidade <see cref="Profundidade.EmpresaEAbaixo"/> cubra as outras. E ver tudo sempre, sem
+    /// escolher, faria o administrador cadastrar sem saber em que filial: por isso é ele quem escolhe,
+    /// no seletor, e só quem <see cref="PodeAlcancarTodasAsEmpresas"/>.</para>
+    ///
+    /// <para>Nenhum código de filial tem letra (<c>010101</c>), então este nunca colide com um.</para>
+    /// </summary>
+    public const string CodigoDeTodasAsFiliais = "TODAS";
+
+    /// <summary>
+    /// A pessoa está olhando TODAS as filiais (<see cref="CodigoDeTodasAsFiliais"/>)?
+    ///
+    /// <para>Quando sim, <see cref="EmpresasVisiveis"/> tem todas, e <see cref="EmpresaId"/> continua sendo
+    /// a filial de casa só porque o contexto precisa de uma — o cadastro de cliente e de equipamento
+    /// RECUSA gravar registro novo neste modo, em vez de mandar para a filial de casa sem ninguém ter
+    /// escolhido (<see cref="MensagemDeCadastroEmTodasAsFiliais"/>).</para>
+    /// </summary>
+    public bool VeTodasAsFiliais { get; }
+
+    /// <summary>A recusa de cadastro novo quando a pessoa está em <see cref="CodigoDeTodasAsFiliais"/>.</summary>
+    public const string MensagemDeCadastroEmTodasAsFiliais =
+        "Em \"Todas as filiais\" não dá para cadastrar: o registro novo precisa nascer numa filial. " +
+        "Escolha no seletor a filial em que ele vai ficar e cadastre de novo.";
 
     /// <summary>
     /// Todas as permissões deste contexto e a profundidade de cada uma — o que a rota de escopo efetivo

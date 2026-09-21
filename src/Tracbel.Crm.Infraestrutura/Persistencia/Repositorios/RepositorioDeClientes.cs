@@ -54,12 +54,12 @@ public sealed class RepositorioDeClientes(CrmDbContext contexto) : IRepositorioC
         await contexto.Clientes.AddAsync(cliente, ct);
 
     /// <inheritdoc />
-    public Task<Cliente?> ObterPorDocumentoAsync(CpfCnpj documento, Guid? exceto, CancellationToken ct)
+    public Task<Cliente?> ObterPorDocumentoAsync(CpfCnpj documento, int empresaId, Guid? exceto, CancellationToken ct)
     {
         // A conversão de CpfCnpj para coluna já está declarada no mapeamento; comparar pelo tipo
         // de valor é o que faz a consulta usar UX_Cliente_Empresa_Documento.
         var linhas = contexto.Clientes
-            .Where(c => c.ExcluidoEm == null && c.Documento == documento);
+            .Where(c => c.ExcluidoEm == null && c.EmpresaId == empresaId && c.Documento == documento);
 
         if (exceto is { } chave) linhas = linhas.Where(c => c.ChavePublica != chave);
 

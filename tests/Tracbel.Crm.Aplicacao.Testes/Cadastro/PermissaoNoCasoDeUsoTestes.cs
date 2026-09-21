@@ -67,4 +67,27 @@ public sealed class PermissaoNoCasoDeUsoTestes
         baixar.Tipo.Should().Be(TipoDeFalha.SemPermissao);
         baixar.Erro.Should().Contain(Permissoes.EquipamentoExcluir);
     }
+
+    [Fact]
+    public async Task Em_todas_as_filiais_o_cadastro_novo_e_recusado_antes_de_tocar_o_banco()
+    {
+        // O administrador tem a permissão de criar; o que falta é uma filial escolhida para o registro nascer.
+        var acesso = new Provedor(new ContextoAcesso(
+            usuarioId: 1,
+            nomeExibicao: "administrador",
+            empresaId: 1,
+            empresasVisiveis: new HashSet<int> { 1, 2 },
+            subordinadosIds: new HashSet<long>(),
+            equipesIds: new HashSet<long>(),
+            profundidades: Permissoes.Catalogo.Keys.ToDictionary(p => p, _ => Profundidade.Organizacao),
+            todasAsFiliais: true));
+
+        var cliente = await new CriarCliente(null!, null!, null!, acesso).ExecutarAsync(null!, CancellationToken.None);
+        var equipamento = await new CriarEquipamento(null!, null!, null!, null!, acesso).ExecutarAsync(null!, CancellationToken.None);
+
+        foreach (var resultado in new[] { cliente.Tipo, equipamento.Tipo })
+            resultado.Should().Be(TipoDeFalha.Conflito);
+        cliente.Erro.Should().Be(ContextoAcesso.MensagemDeCadastroEmTodasAsFiliais);
+        equipamento.Erro.Should().Be(ContextoAcesso.MensagemDeCadastroEmTodasAsFiliais);
+    }
 }

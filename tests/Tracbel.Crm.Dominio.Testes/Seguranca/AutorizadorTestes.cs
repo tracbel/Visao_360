@@ -325,6 +325,27 @@ public class PerfilTestes
     }
 
     [Fact]
+    public void O_administrador_semeado_tem_todas_as_permissoes_do_catalogo_em_toda_a_organizacao()
+    {
+        // 21/09/2026: "o perfil admin tem todas as filiais e todos os recursos". Uma permissão nova no catálogo
+        // que não entrar na semente do administrador quebra este teste — e é para quebrar.
+        var administrador = PerfisDeSistema.Todos.Single(p => p.Codigo == PerfisDeSistema.Administrador);
+
+        administrador.Permissoes.Select(p => p.Codigo).Should().BeEquivalentTo(Permissoes.Catalogo.Keys);
+        administrador.Permissoes.Should().OnlyContain(p => p.Profundidade == Profundidade.Organizacao);
+    }
+
+    [Fact]
+    public void Todas_as_filiais_e_um_codigo_que_nao_colide_com_filial_e_nao_e_o_padrao()
+    {
+        ContextoAcesso.CodigoDeTodasAsFiliais.Should().NotMatchRegex("^[0-9]+$", "os códigos de filial são só dígitos (010101)");
+
+        var contexto = new ContextoAcesso(1, "x", 1, new HashSet<int> { 1 }, new HashSet<long>(), new HashSet<long>(),
+            new Dictionary<string, Profundidade>());
+        contexto.VeTodasAsFiliais.Should().BeFalse("olhar todas as filiais é escolha, nunca o padrão");
+    }
+
+    [Fact]
     public void Todo_perfil_semeado_usa_so_permissoes_do_catalogo()
     {
         foreach (var perfil in PerfisDeSistema.Todos)

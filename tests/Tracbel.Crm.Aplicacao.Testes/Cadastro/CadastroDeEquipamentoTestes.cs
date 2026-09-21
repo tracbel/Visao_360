@@ -220,6 +220,61 @@ public sealed class CadastroDeEquipamentoTestes(ITestOutputHelper saida) : IDisp
         contexto.Dispose();
     }
 
+    // =============================================================================================
+    // "Todas as filiais" (21/09/2026)
+    // =============================================================================================
+
+    [Fact]
+    public async Task Em_todas_as_filiais_a_maquina_nova_e_recusada_porque_nao_tem_filial_escolhida()
+    {
+        var cliente = await ClienteAsync();
+        _banco.AgirEmTodasAsFiliais(BancoDeTeste.UsuarioDeRibeirao, BancoDeTeste.RibeiraoPreto);
+        var casos = _banco.CasosDeEquipamento();
+
+        var resultado = await casos.Criar.ExecutarAsync(
+            new NovoEquipamento(Chassi: "1JD8R340ABC777777", ModeloCodigo: BancoDeTeste.ModeloSemeado, ClienteChave: cliente.ToString()),
+            Ct);
+
+        resultado.Tipo.Should().Be(TipoDeFalha.Conflito);
+        resultado.Erro.Should().Be(Dominio.Seguranca.ContextoAcesso.MensagemDeCadastroEmTodasAsFiliais);
+
+        casos.Contexto.Dispose();
+    }
+
+    [Fact]
+    public async Task Em_todas_as_filiais_a_maquina_so_liga_a_cliente_da_filial_dela()
+    {
+        // A máquina e um cliente em Ribeirão; outro cliente em Barretos.
+        var deRibeirao = await ClienteAsync();
+        var criacao = _banco.CasosDeEquipamento();
+        var maquina = await criacao.Criar.ExecutarAsync(
+            new NovoEquipamento(Chassi: "1JD8R340ABC888888", ModeloCodigo: BancoDeTeste.ModeloSemeado, ClienteChave: deRibeirao.ToString()),
+            Ct);
+        criacao.Contexto.Dispose();
+        maquina.EhSucesso.Should().BeTrue(maquina.Erro);
+
+        _banco.AgirComo(BancoDeTeste.UsuarioDeBarretos, BancoDeTeste.Barretos);
+        var deBarretos = await ClienteAsync();
+
+        _banco.AgirEmTodasAsFiliais(BancoDeTeste.UsuarioDeRibeirao, BancoDeTeste.RibeiraoPreto);
+
+        // Numa filial só, o filtro global já escondia o cliente de Barretos. Em "Todas as filiais" ele está
+        // ao alcance, e a regra precisa estar escrita.
+        var casos = _banco.CasosDeEquipamento();
+        var paraBarretos = await casos.Alterar.ExecutarAsync(maquina.Valor.Chave, new AlteracaoDeEquipamento(ClienteChave: deBarretos.ToString()), Ct);
+        casos.Contexto.Dispose();
+
+        paraBarretos.EhSucesso.Should().BeFalse();
+        paraBarretos.Erros.Should().ContainSingle(e => e.Campo == "clienteChave").Which.Mensagem.Should().Contain("outra filial");
+
+        // O cliente da mesma filial continua valendo.
+        var outra = _banco.CasosDeEquipamento();
+        var mesmoLugar = await outra.Alterar.ExecutarAsync(maquina.Valor.Chave, new AlteracaoDeEquipamento(ClienteChave: deRibeirao.ToString(), AnoModelo: "2025"), Ct);
+        outra.Contexto.Dispose();
+
+        mesmoLugar.EhSucesso.Should().BeTrue(mesmoLugar.Erro);
+    }
+
     [Fact]
     public async Task Catalogo_que_nao_existe_devolve_nao_encontrado_e_diz_onde_ver_a_lista()
     {
