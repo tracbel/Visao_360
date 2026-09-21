@@ -23,7 +23,10 @@
   removida e acesso so para o SYSTEM e os administradores.
 
   QUANDO O TOKEN VENCER, o agente para de publicar e o `verificar-publicacao.ps1` mostra o erro.
-  Rode este script de novo para trocar.
+  Rode este script de novo, com -SoAtualizarOToken, para trocar.
+
+  QUANDO OS SCRIPTS DO AGENTE MUDAREM (uma correcao nele ou no publicar-pacote.ps1), rode com
+  -SoAtualizarOsScripts: copia os dois, religa a tarefa e a dispara, sem pedir o token.
 
   =================================================================================================
   O QUE ELE INSTALA
@@ -56,7 +59,8 @@ param(
     [int]    $PortaApi = 5443,
     [int]    $IntervaloEmMinutos = 5,
     [string] $NomeTarefa = 'TracbelCrmPublicacao',
-    [switch] $SoAtualizarOToken
+    [switch] $SoAtualizarOToken,
+    [switch] $SoAtualizarOsScripts
 )
 
 $ErrorActionPreference = 'Stop'
@@ -70,6 +74,32 @@ if ($PastaDoAgente -match '\s' -or $DestinoDaApi -match '\s') {
 }
 
 $porSmb = "\\$Servidor\$($PastaDoAgente -replace ':', '$')"
+
+# -------------------------------------------------------------------------------------------------
+# SO OS SCRIPTS: a correcao de um defeito do agente chega ao servidor sem pedir o token de novo. O
+# fine-grained token so aparece uma vez no GitHub, e refaze-lo passa por aprovacao (21/09/2026).
+# -------------------------------------------------------------------------------------------------
+if ($SoAtualizarOsScripts) {
+    Passo 'Atualizar os scripts do agente'
+    if (-not (Test-Path (Join-Path $porSmb 'configuracao.json'))) {
+        throw "O agente nao esta instalado em $Servidor ($PastaDoAgente sem configuracao.json). Rode este script sem -SoAtualizarOsScripts."
+    }
+    Copy-Item (Join-Path $PSScriptRoot 'agente-de-publicacao.ps1') $porSmb -Force
+    Copy-Item (Join-Path $PSScriptRoot 'publicar-pacote.ps1') $porSmb -Force
+    Ok "agente-de-publicacao.ps1 e publicar-pacote.ps1 copiados para $PastaDoAgente"
+
+    # RELIGA E RODA NA HORA: a tarefa pode ter sido desligada enquanto o defeito era corrigido, e a
+    # rodada seguinte ja acha os scripts novos - o commit que tinha falhado e tentado de novo sozinho.
+    $saida = Invoke-NoServidor -Nome 'crm-agente-scripts' -TimeoutSegundos 120 -Script @"
+& schtasks.exe /Change /TN '$NomeTarefa' /ENABLE
+Write-Output ('religar a tarefa: ' + `$LASTEXITCODE)
+& schtasks.exe /Run /TN '$NomeTarefa'
+Write-Output ('disparo da tarefa: ' + `$LASTEXITCODE)
+"@
+    Write-Host $saida
+    Ok 'acompanhe com:  .\scripts\deploy\verificar-publicacao.ps1 -Log'
+    return
+}
 
 # -------------------------------------------------------------------------------------------------
 Passo '0. O token'
