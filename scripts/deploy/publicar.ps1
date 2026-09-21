@@ -28,7 +28,9 @@
     7. sobe a API - e a PROPRIA API aplica as migracoes do banco ao subir (Program.cs);
     8. confere a prova de vida pelo nome DNS, com o certificado de verdade;
     9. sobe a sincronizacao, DEPOIS das migracoes;
-   10. confere por hash, arquivo a arquivo, que o servidor ficou identico aos pacotes.
+   10. confere por hash, arquivo a arquivo, que o servidor ficou identico aos pacotes;
+   11. atualiza a carga das rotinas das fontes publicas, registra as rotinas e dispara na hora a que
+       tiver tabela vazia (registrar-rotinas.ps1) - o mesmo que o agente faz no passo 7 dele.
 
   O deploy so diz "pronto" quando os passos 8 e 10 passam. Data de arquivo copiado nao prova conteudo.
 
@@ -56,6 +58,7 @@ param(
     [string] $Destino  = 'C$\aplicacoes\tracbel-crm',
     [string] $ServicoDeSincronizacao = 'TracbelCrmSincronizacaoArt',
     [string] $DestinoDaSincronizacao = 'C$\aplicacoes\tracbel-crm-sincronizacao',
+    [string] $DestinoDaCarga = 'C$\aplicacoes\tracbel-crm-carga',
     [int]    $IntervaloMinutos = 60,
     [switch] $PularTestes,
     [switch] $ReconfigurarSincronizacao
@@ -72,6 +75,8 @@ $remoto     = "\\$Servidor\$Destino"
 $remotoSinc = "\\$Servidor\$DestinoDaSincronizacao"
 $localApi   = 'C:\' + $Destino.Substring(3)
 $localSinc  = 'C:\' + $DestinoDaSincronizacao.Substring(3)
+$remotoCarga = "\\$Servidor\$DestinoDaCarga"
+$localCarga  = 'C:\' + $DestinoDaCarga.Substring(3)
 
 . (Join-Path $PSScriptRoot '_remoto.ps1')
 
@@ -396,7 +401,52 @@ Passo '10. Conferencia por hash'
 Ok ("API: {0} arquivos identicos ao pacote" -f (Conferir-Hash $pacote $remoto))
 Ok ("sincronizacao: {0} arquivos identicos ao pacote" -f (Conferir-Hash $pacoteSinc $remotoSinc))
 
+# -------------------------------------------------------------------------------------------------
+Passo '11. Rotinas das fontes publicas'
+# -------------------------------------------------------------------------------------------------
+# O CAMINHO MANUAL FAZ O QUE O AGENTE FAZ (publicar-pacote.ps1, passo 7). Ate 21/09/2026 este script
+# publicava a API e a sincronizacao e parava ali: a carga das rotinas ficava na versao anterior, e a
+# primeira carga de uma fonte nova esperava o calendario. MEDIDO nesse dia: a rotina mensal, registrada
+# as 11:41, nunca tinha rodado, e a proxima execucao era 20/10 - os paineis de preco, custo e credito
+# ficariam um mes vazios no servidor.
+#
+# A CARGA DAS ROTINAS E O MESMO EXECUTAVEL DA SINCRONIZACAO, em outra pasta: a sincronizacao e servico
+# do Windows; as rotinas sao tarefas agendadas, e o registrar-rotinas.ps1 dispara na hora a que tiver
+# tabela vazia.
+#
+# FALHAR AQUI NAO DERRUBA A PUBLICACAO: a API ja esta no ar e provou que responde. O aviso diz o que fazer.
+$rotinasOk = $true
+New-Item -ItemType Directory -Force -Path $remotoCarga | Out-Null
+& robocopy $pacoteSinc $remotoCarga /E /XF appsettings.Production.json /XD logs /NFL /NDL /NJH /NJS /NP /R:3 /W:5 /MT:8 | Out-Null
+if ($LASTEXITCODE -ge 8) {
+    $rotinasOk = $false
+    Aviso ("a carga das rotinas NAO foi atualizada (robocopy {0}) - uma rotina pode estar rodando e prendendo o " +
+           "executavel. A API esta no ar. Rode de novo com -PularTestes quando ela terminar." -f $LASTEXITCODE)
+} else {
+    Ok "carga das rotinas atualizada em $localCarga"
+
+    New-Item -ItemType Directory -Force -Path $Global:RaizPorSmb | Out-Null
+    Copy-Item (Join-Path $PSScriptRoot 'registrar-rotinas.ps1') (Join-Path $Global:RaizPorSmb 'registrar-rotinas.ps1') -Force
+
+    # A CONEXAO E A PADRAO DO registrar-rotinas.ps1: local e integrada - as tarefas rodam como SYSTEM, que no
+    # dominio e a conta da maquina, e o banco esta nela. Nenhuma senha passa por aqui.
+    $saidaDasRotinas = Invoke-NoServidor -Nome 'crm-rotinas' -TimeoutSegundos 300 -Script @"
+& '$Global:RaizRemota\registrar-rotinas.ps1' -DestinoDaCarga '$localCarga'
+"@
+    if ($saidaDasRotinas -match 'codigo das rotinas: 0') {
+        Ok 'rotinas registradas: anual (PAM e estrutura) e mensal (precos, custos e credito)'
+        foreach ($linha in ($saidaDasRotinas -split "`r?`n" | Where-Object { $_ -match '^primeira carga' })) { Ok $linha.Trim() }
+    } else {
+        $rotinasOk = $false
+        Aviso ("as rotinas NAO foram registradas. A API esta no ar. Saida do servidor: " + $saidaDasRotinas.Trim())
+    }
+}
+
 Write-Host ''
-Write-Host "Pronto: https://$NomeDns`:$Porta" -ForegroundColor Green
+if ($rotinasOk) {
+    Write-Host "Pronto: https://$NomeDns`:$Porta" -ForegroundColor Green
+} else {
+    Write-Host "Pronto, COM AVISO no passo 11: https://$NomeDns`:$Porta esta no ar, mas as rotinas das fontes publicas pedem atencao." -ForegroundColor Yellow
+}
 Write-Host 'Para conferir a sincronizacao no banco central: .\scripts\deploy\verificar-sincronizacao.ps1' -ForegroundColor Green
 Write-Host ''

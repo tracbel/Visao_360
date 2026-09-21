@@ -214,6 +214,7 @@ $saida = Invoke-NoServidor -Nome 'crm-rotinas' -TimeoutSegundos 300 -Script @"
 `$p.DiaMensal        = $DiaDaRotinaMensal
 `$p.HoraMensal       = '$HoraMensal'
 `$p.TarefaAntiga     = '$TarefaAntiga'
+`$p.NaoDispararPrimeiraCarga = `$true
 & '$Global:RaizRemota\registrar-rotinas.ps1' @p
 & schtasks.exe /Query /TN '$NomeTarefa' /FO LIST
 & schtasks.exe /Query /TN '$NomeTarefaMensal' /FO LIST

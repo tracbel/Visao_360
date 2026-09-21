@@ -32,6 +32,12 @@
   instalado. Fora da pasta da carga, nenhuma troca de versao os alcanca.
 
   =================================================================================================
+  A PRIMEIRA CARGA NAO ESPERA O CALENDARIO. Registrar uma tarefa nao a roda. Por isso, ao fim, cada
+  rotina e conferida pelas SUAS tabelas, e disparada na hora se alguma estiver vazia - venha a chamada do
+  agente, do agendamento pela estacao ou do publicar.ps1. MEDIDO em 21/09/2026: as rotinas foram
+  registradas as 11:41, a mensal nunca tinha rodado e a proxima execucao era 20/10 - a tela ficaria um
+  mes sem preco no servidor.
+
   IDEMPOTENTE: os scripts sao reescritos e as tarefas recriadas com /F. Rodar duas vezes da o mesmo
   resultado. A ultima linha da saida e "codigo das rotinas: N", e N = 0 e sucesso.
 
@@ -60,7 +66,10 @@ param(
     [string] $HoraMensal       = '04:00',
 
     # A tarefa que a primeira versao do agendamento instalava, e que foi substituida.
-    [string] $TarefaAntiga     = 'TracbelCrmPam'
+    [string] $TarefaAntiga     = 'TracbelCrmPam',
+
+    # Para quem vai rodar as tarefas ele mesmo e esperar por elas (agendar-fontes-publicas-no-servidor.ps1).
+    [switch] $NaoDispararPrimeiraCarga
 )
 
 $ErrorActionPreference = 'Stop'
@@ -163,6 +172,52 @@ if ($pior -eq 0 -and $TarefaAntiga) {
 # restos: as tarefas agora apontam para a pasta das rotinas.
 foreach ($resto in 'rodar-fontes-publicas.ps1', 'rodar-pam.ps1', 'rodar-precos.ps1') {
     Remove-Item (Join-Path $DestinoDaCarga $resto) -Force -ErrorAction SilentlyContinue
+}
+
+# -------------------------------------------------------------------------------------------------
+# A primeira carga
+# -------------------------------------------------------------------------------------------------
+# CADA ROTINA PELAS SUAS TABELAS: a mensal pelos precos, custos e credito; a anual pela PAM e pela
+# estrutura. Basta uma vazia para disparar - foi o caso das usinas em 20/09/2026, que ficaram vazias
+# enquanto o resto da estrutura carregou.
+#
+# AS DUAS PODEM RODAR JUNTAS: a trava da carga e por fluxo (TravaDeFluxo), e as duas rotinas nao dividem
+# fluxo nenhum. O disparo e assincrono - quem registrou nao espera a carga terminar.
+#
+# NAO MUDA O CODIGO DAS ROTINAS: elas estao registradas e rodam no calendario de qualquer jeito. Tabela
+# que ainda nao existe (migracao nao aplicada) cai no catch e sai como aviso.
+if ($pior -eq 0 -and -not $NaoDispararPrimeiraCarga) {
+    $primeiras = @(
+        @{ Tarefa = $NomeTarefaMensal
+           Tabelas = @('CotacaoDeProduto', 'CotacaoDoDolar', 'CustoDeProducao', 'CreditoRuralDeInvestimento') },
+        @{ Tarefa = $NomeTarefaAnual
+           Tabelas = @('ProducaoAgricolaNoMunicipio', 'FrotaDeTratoresNoMunicipio', 'EstabelecimentosPorAreaNoMunicipio',
+                       'RebanhoNoMunicipio', 'AreaTerritorialDoMunicipio', 'UsinaDeEtanol') }
+    )
+
+    try {
+        $banco = New-Object System.Data.SqlClient.SqlConnection $Conexao
+        $banco.Open()
+        try {
+            foreach ($rotina in $primeiras) {
+                $vazias = @()
+                foreach ($tabela in $rotina.Tabelas) {
+                    $consulta = $banco.CreateCommand()
+                    $consulta.CommandText = "SELECT CASE WHEN EXISTS (SELECT 1 FROM organizacao.[$tabela]) THEN 1 ELSE 0 END"
+                    if ([int]$consulta.ExecuteScalar() -eq 0) { $vazias += $tabela }
+                }
+
+                if ($vazias.Count -gt 0) {
+                    & schtasks.exe /Run /TN $rotina.Tarefa | Out-Null
+                    Write-Output ("primeira carga disparada: {0} (vazias: {1})" -f $rotina.Tarefa, ($vazias -join ', '))
+                } else {
+                    Write-Output ("primeira carga: {0} ja tem dado, segue o calendario" -f $rotina.Tarefa)
+                }
+            }
+        } finally { $banco.Dispose() }
+    } catch {
+        Write-Output ("primeira carga nao conferida: " + $_.Exception.Message)
+    }
 }
 
 Write-Output "codigo das rotinas: $pior"

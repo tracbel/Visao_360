@@ -171,12 +171,10 @@ if (EstaViva) {
         if ($saidaDasRotinas -match 'codigo das rotinas: 0') {
             Diga 'rotinas das fontes publicas registradas (anual e mensal)'
 
-            # A PRIMEIRA CARGA NAO ESPERA O CALENDARIO. Registrar a tarefa nao a roda: com uma das tabelas
-            # de precos vazia e o dia 20 ja passado, a tela ficaria um mes sem preco no servidor. O
-            # disparo e assincrono - a publicacao nao espera a carga terminar.
-            if ([int](Escalar 'SELECT (SELECT COUNT(*) FROM organizacao.CotacaoDeProduto) * (SELECT COUNT(*) FROM organizacao.CustoDeProducao) * (SELECT COUNT(*) FROM organizacao.CreditoRuralDeInvestimento)') -eq 0) {
-                & schtasks.exe /Run /TN 'TracbelCrmPrecos' | Out-Null
-                Diga 'precos, custos ou credito ainda vazios: a rotina TracbelCrmPrecos foi disparada agora'
+            # A PRIMEIRA CARGA E DO registrar-rotinas.ps1: ele confere as tabelas de cada rotina e dispara a
+            # que tiver alguma vazia - o mesmo em todo caminho de publicacao (21/09/2026). Aqui so se conta.
+            foreach ($linha in ($saidaDasRotinas -split "`r?`n" | Where-Object { $_ -match '^primeira carga' })) {
+                Diga $linha.Trim()
             }
         } else {
             Diga "as rotinas das fontes publicas NAO foram registradas: $($saidaDasRotinas.Trim())" 'erro'
