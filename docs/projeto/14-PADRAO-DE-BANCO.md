@@ -76,7 +76,7 @@ verificam **agora**:
 
 | Schema | O que guarda | Tabelas |
 |---|---|---|
-| `organizacao` | empresa, linha de negócio, carteira, município e carteira × município (doc 26), área de atuação, responsável pelo município, produção agrícola no município e no estado e regra de potencial (doc 32; issue 64); a estrutura agropecuária — frota de tratores, estabelecimentos por área, rebanho, área territorial e usinas de etanol (issue 65); os preços de mercado — cotação mensal por produto e dólar PTAX (issue 66); o custo de produção por cultura, local e safra (issue 67) | 18 |
+| `organizacao` | empresa, linha de negócio, carteira, município e carteira × município (doc 26), área de atuação, responsável pelo município, produção agrícola no município e no estado e regra de potencial (doc 32; issue 64); a estrutura agropecuária — frota de tratores, estabelecimentos por área, rebanho, área territorial e usinas de etanol (issue 65); os preços de mercado — cotação mensal por produto e dólar PTAX (issue 66); o custo de produção por cultura, local e safra (issue 67); o crédito rural de investimento do SICOR e as tabelas auxiliares dele (issue 68) | 20 |
 | `seguranca` | usuário, permissão e a ligação entre os dois | 4 |
 | `comercial` | cliente, contato, canal, endereço, carteira, faturamento do cliente e faturamento sem cliente (doc 31) | 8 — schema **padrão** do contexto |
 | `processo` | processo, fase, tarefa, interação, tipo, resultado, motivo e venda perdida | 9 |
@@ -85,7 +85,7 @@ verificam **agora**:
 | `integracao` | fronteira com o ERP, o Vórtice e o ART: correspondência da origem, registro de origem, comprador pendente e divergência (doc 35, seção 10); execução de sincronização, uma linha por ciclo do serviço do Windows (doc 35, seção 11) | 9 |
 | `metadado` | catálogo e item de catálogo — extensão sem release; ver seção 12 | 2 |
 
-**Total: 58 tabelas em 8 schemas.** A conta começou em 63 no
+**Total: 60 tabelas em 8 schemas.** A conta começou em 63 no
 [17-MODELO-UNIFICADO](17-MODELO-UNIFICADO.md), seção 8.12, subiu para 80 em 10 schemas com as
 dezessete decisões registradas nos documentos 26, 31, 32 e 35, e a **fase 1** do
 [41-PLANO-EXECUTIVO](41-PLANO-EXECUTIVO-DA-REESTRUTURACAO.md) a trouxe para 49 em 8, removendo as 31
@@ -95,7 +95,7 @@ o IBGE publica o total da UF, e ele não é a soma dos municípios. As cinco seg
 agropecuária** (issue 65) — frota de tratores, estabelecimentos por área, rebanho, área territorial e
 usinas de etanol: a PAM diz quanto se *planta*, e nenhuma delas dizia o que já existe para mecanizar
 isso. São cinco e não uma porque são cinco granularidades, de quatro pesquisas e duas agências, e
-juntá-las faria a coluna do ano significar coisas diferentes na mesma linha. As duas últimas são os **preços de mercado** (issue 66): o preço de cada produto agrícola por mês, em reais e na unidade da fonte (CONAB e Socicana), e o dólar PTAX do mês. São duas e não uma porque o dólar é um só para todos os produtos; o preço em dólar é calculado na leitura, e gravá-lo seria uma segunda verdade para o mesmo número. A quinquagésima oitava é o **custo de produção** da CONAB (issue 67): uma linha por aba da série histórica — cultura, local de referência e safra —, com as cinco camadas da metodologia por hectare e por unidade.
+juntá-las faria a coluna do ano significar coisas diferentes na mesma linha. As duas últimas são os **preços de mercado** (issue 66): o preço de cada produto agrícola por mês, em reais e na unidade da fonte (CONAB e Socicana), e o dólar PTAX do mês. São duas e não uma porque o dólar é um só para todos os produtos; o preço em dólar é calculado na leitura, e gravá-lo seria uma segunda verdade para o mesmo número. A quinquagésima oitava é o **custo de produção** da CONAB (issue 67): uma linha por aba da série histórica — cultura, local de referência e safra —, com as cinco camadas da metodologia por hectare e por unidade. As duas últimas são o **crédito rural de investimento** do SICOR (issue 68) — uma linha por município, mês e combinação de produto, programa, fonte e modalidade, como o Banco Central publica — e as **tabelas auxiliares** dele (programa, subprograma, fonte e produto), numa tabela só porque as quatro têm a mesma forma.
 
 A conta é verificada por
 `EsquemaENomenclaturaTestes.Os_oito_schemas_do_modelo_unificado_existem_e_somam_cinquenta_e_cinco_tabelas`

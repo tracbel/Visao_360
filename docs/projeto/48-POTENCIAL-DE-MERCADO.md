@@ -122,7 +122,7 @@ página, sem baixar dado de ninguém.
 | CONAB — preços agropecuários | `portaldeinformacoes.conab.gov.br/downloads/arquivos/PrecosMensalUF.txt` | **[M 21/09]** preço **recebido pelo produtor**, mensal, por UF (e por município, com código IBGE), em R$/kg: em SP, 34 produtos — café arábica, soja, milho, amendoim, laranja indústria, cana, boi, leite, sorgo, algodão, trigo, feijão e outros; **só os últimos 12 meses** (09/2025–08/2026) | arquivo aberto, sem cadastro, Latin-1 com `;` | #66 |
 | Socicana — preço do kg de ATR | `socicana.com.br/calculadora-de-atr/preco-do-kg/` | preço **mensal e acumulado** do kg de ATR por safra, de 2015/16 a 2026/27; agosto de 2026 = **R$ 0,8692** (mensal), **o mesmo valor da planilha** — a série de cana do protótipo vem daqui | página HTML, sem arquivo para baixar | #66 |
 | Banco Central — PTAX | `api.bcb.gov.br/dados/serie/bcdata.sgs.3698` | **[M 21/09]** dólar de venda, média mensal, desde 01/2015 (140 meses) | API pública (SGS), sem credencial | #66 |
-| Banco Central — SICOR | `olinda.bcb.gov.br/olinda/servico/SICOR/versao/v2/aplicacao` | serviço OData com 17 recursos, entre eles **`InvestMunicipioProduto`** (o da planilha), `CusteioMunicipioProduto`, `InvestRegiaoUFProduto`, `ProgramaSubprograma`, `FonteRecursos` e `CusteioInvestimentoComercialIndustrialSemFiltros` | API pública (OData), sem credencial | #68 |
+| Banco Central — SICOR | `olinda.bcb.gov.br/olinda/servico/SICOR/versao/v2/aplicacao` | serviço OData com 17 recursos, entre eles **`InvestMunicipioProduto`** (o da planilha), `CusteioMunicipioProduto`, `InvestRegiaoUFProduto`, `ProgramaSubprograma`, `FonteRecursos` e `CusteioInvestimentoComercialIndustrialSemFiltros` | API pública (OData), sem credencial; **[M 21/09]** devolve tudo numa resposta e ignora `groupby`; códigos do Banco Central (SP = 27) — §2.6 | #68 |
 
 **Achado ao conferir a tabela 5457:** o leitor do IBGE do CRM pede a variável **216 (área colhida)** e a
 grava como área plantada. A área que o CRM mostra hoje — e que o mapa C usa — é área colhida (#83).
@@ -229,6 +229,50 @@ rentabilidade continua sendo a D-P07.
 zero na segunda; os 166 locais casaram com um município do catálogo. **Na tela**, abaixo dos preços:
 por cultura, a última safra de cada local (operacional e total, por hectare e por unidade) e o
 gráfico do custo total ao longo das safras.
+### 2.6 O crédito rural: SICOR do Banco Central [medido em 21/09/2026, #68]
+
+O recurso `InvestMunicipioProduto` do serviço OData do SICOR, **São Paulo inteiro, todos os produtos,
+desde 2013**: **204.435 linhas**, em 637 municípios. Mais as tabelas auxiliares do Banco Central
+(`bcb.gov.br/htms/sicor/`): programa (40), subprograma (86), fonte de recurso (37) e produto (529).
+
+**Cinco coisas que o formato esconde:**
+
+- **Uma linha não é um contrato.** O recurso publica a **soma** dos contratos de cada combinação de
+  produto, programa, subprograma, fonte, seguro, atividade e modalidade, por município e mês — sem número
+  de contrato e sem quantidade. A contagem de contratos de verdade (`QtdInvestimento`) só existe nos
+  recursos nacionais, sem município. A "linha" é a contagem possível por município, e é a que a planilha
+  e o texto-base usam ("quantidade de linhas de contratos").
+- **Os códigos são do Banco Central.** SP é o estado **27** (no IBGE, 35), e o município tem código
+  próprio. O de-para para o IBGE é pelo **nome sem acento, caixa e apóstrofo**: os **637 municípios casam
+  todos**. A planilha errou 13 porque comparava o nome cru. Os outros 8 municípios de SP nunca tiveram
+  crédito de investimento desde 2013.
+- **O serviço devolve tudo de uma vez** — as 204 mil linhas numa resposta só — e **ignora**
+  `=groupby`. A carga pede um ano por vez.
+- **O Banco Central acrescenta registros atrasados** aos meses recentes: a carga relê sempre o ano
+  corrente e o anterior.
+- **O Banco Central também reclassifica.** Casando linha a linha os arquivos da pasta com o CRM: em
+  2025, 4.130 das 4.138 linhas estão idênticas, 1 mudou de valor e **7 mudaram de combinação** — as 7 com
+  o mesmo município, mês, produto e valor, só a fonte de recurso trocada (430 → 303). Em 2026, 5.360 das
+  5.409 idênticas, 10 com valor diferente e 39 reclassificadas. Por isso **o ano relido espelha a fonte**:
+  a linha que saiu é apagada, ou a mesma operação seria contada duas vezes.
+
+**Aceite contra a pasta**:
+
+| | Pasta | CRM (21/09/2026) |
+|---|---:|---:|
+| 2025, máquinas (trator · máquinas e implementos · colheitadeiras) | 2.239 · 1.602 · 297 linhas | 2.242 · 1.603 · 297 |
+| 2025, máquinas, valor | R$ 1.482.701.465,57 | R$ 1.483.494.705,57 |
+| 2026 até julho, todos os produtos | 5.409 linhas, R$ 2.031.031.489,26 | 5.454 linhas, R$ 2.058.214.363,65 |
+
+A diferença é inteira de **registro posterior e reclassificação**, conferida linha a linha acima — não de
+leitura. Um aceite de "contagens iguais" contra um arquivo baixado meses antes não é atingível com a
+fonte viva, e seria errado forçá-lo.
+
+**Carga** (`--somente-credito`, na rotina mensal `TracbelCrmPrecos`): primeira rodada, 204.435 linhas
+em 204 s; segunda, relê 2025 e 2026 (16.729 linhas) em 7 s, sem gravar nada. **Na tela**, abaixo dos
+custos: linhas, valor e ticket de máquinas nos últimos 12 meses contra os 12 anteriores; os municípios
+(com "só a ADR"); o valor anual desde 2013; e os produtos. O **índice ponderado (70% linhas, 30% valor) e
+as faixas** são da #73.
 ---
 
 ## 3. O protótipo, fórmula por fórmula

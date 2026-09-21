@@ -91,6 +91,16 @@ public static class EndpointsDeTerritorio
                 "operacional e o total por unidade comercial. Custo total e renda de fatores vêm nulos quando " +
                 "a CONAB parou no custo operacional — não é zero.");
 
+        grupo.MapGet("/credito", async (ObterCreditoRural caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ObterCreditoRural")
+            .WithSummary("Crédito rural de investimento em SP, do SICOR (issue 68).")
+            .WithDescription(
+                "Por ano (máquinas e todos os produtos), por produto e por município (máquinas: trator, " +
+                "máquinas e implementos e colheitadeiras), com os últimos 12 meses e os 12 anteriores, contados " +
+                "do último mês com dado. Linha é a linha do SICOR — a soma dos contratos de uma combinação —, " +
+                "não um contrato. O SICOR não identifica cliente nem revenda.");
+
         return app;
     }
 

@@ -59,3 +59,34 @@ export type SerieDeCusto = {
   /** Da safra mais antiga à mais recente. */
   safras: CustoNaSafra[];
 };
+
+/** Duas janelas de 12 meses do SICOR: a última e a anterior (issue 68). */
+export type JanelasDeCredito = {
+  linhas: number;
+  valor: number;
+  linhasAnteriores: number;
+  valorAnterior: number;
+};
+
+export type CreditoNoAno = {
+  ano: number;
+  linhasDeMaquinas: number;
+  valorDeMaquinas: number;
+  linhasTotais: number;
+  valorTotal: number;
+  /** O último mês com dado no ano — no ano corrente, o ano ainda não fechou. */
+  ultimoMes: number;
+};
+
+export type CreditoPorProduto = { codigo: number; nome: string; ehMaquina: boolean; janelas: JanelasDeCredito };
+
+export type CreditoDeMaquinasNoMunicipio = { codigoIbge: number; nome: string; pertenceAAdr: boolean; janelas: JanelasDeCredito };
+
+/** O crédito rural de investimento de SP, do SICOR (issue 68). */
+export type PainelDeCreditoRural = {
+  /** `aaaa-mm-01`; nulo quando nada foi carregado. */
+  ultimoMes: string | null;
+  porAno: CreditoNoAno[];
+  porProduto: CreditoPorProduto[];
+  porMunicipio: CreditoDeMaquinasNoMunicipio[];
+};

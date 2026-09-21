@@ -167,7 +167,7 @@ public sealed partial class EsquemaENomenclaturaTestes
 
         var esperado = new Dictionary<string, int>
         {
-            ["organizacao"] = 18,
+            ["organizacao"] = 20,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 9,
@@ -178,14 +178,14 @@ public sealed partial class EsquemaENomenclaturaTestes
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 58 tabelas de modelo em 8 schemas: a fase 1 (documento 41) trouxe 80 em 10 " +
+            "a conta é 60 tabelas de modelo em 8 schemas: a fase 1 (documento 41) trouxe 80 em 10 " +
             "para 49, tirando as 31 que nunca receberam uma linha e esvaziando por completo os " +
             "schemas 'documento' e 'relatorio'; a issue 64 acrescentou o total do estado, a 65 as " +
-            "cinco da estrutura agropecuária a 66 as duas dos preços de mercado e a 67 a dos custos de produção. O portão continua o mesmo nos dois sentidos: mudar " +
+            "cinco da estrutura agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção e a 68 as duas do crédito rural do SICOR. O portão continua o mesmo nos dois sentidos: mudar " +
             "este número exige a decisão da seção 10.2 e a atualização do documento 14, seção 2.1, " +
             "na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(58);
+        porSchema.Values.Sum().Should().Be(60);
     }
 
     [Fact]

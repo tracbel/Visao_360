@@ -25,6 +25,7 @@ import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Ind
 import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
 import { DetalheDoMunicipio } from '../componentes/territorio/DetalheDoMunicipio';
+import { PainelDeCredito } from '../componentes/territorio/PainelDeCredito';
 import { PainelDeCustos } from '../componentes/territorio/PainelDeCustos';
 import { PainelDePrecos } from '../componentes/territorio/PainelDePrecos';
 import {
@@ -1045,6 +1046,7 @@ export function IndicadoresGeograficos() {
 
       <PainelDePrecos />
       <PainelDeCustos />
+      <PainelDeCredito />
     </>
   );
 }

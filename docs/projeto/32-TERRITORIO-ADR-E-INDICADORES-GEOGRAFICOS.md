@@ -842,7 +842,7 @@ nenhuma e conta com o catálogo de municípios já reconhecido.
 |---|---|
 | Instalação | `scripts/deploy/agendar-fontes-publicas-no-servidor.ps1` — publica a carga em `C:\aplicacoes\tracbel-crm-carga`, grava a conexão **integrada** (nenhuma senha em arquivo) e registra a tarefa |
 | Tarefa | `TracbelCrmFontesPublicas`, **1º de outubro às 03:00**, todo ano, como SYSTEM — escrita como `/SC MONTHLY /M OCT /D 1`, porque **não existe `/SC YEARLY`** no `schtasks`. Ela roda `--somente-pam` e `--somente-estrutura` em sequência, e o código de saída é o pior dos dois: uma indisponibilidade do SIDRA não pode levar junto a leitura da ANP |
-| Tarefa mensal | `TracbelCrmPrecos`, **todo dia 20 às 04:00**, como SYSTEM (issue 66) — `/SC MONTHLY /D 20`, sem `/M`. Roda `--somente-precos` (CONAB, Socicana e dólar PTAX) e `--somente-custos` (custos de produção da CONAB, issue 67). É mensal porque a CONAB só publica os últimos 12 meses — um ano sem rodar perderia meses para sempre (documento 48, §2.4) |
+| Tarefa mensal | `TracbelCrmPrecos`, **todo dia 20 às 04:00**, como SYSTEM (issue 66) — `/SC MONTHLY /D 20`, sem `/M`. Roda `--somente-precos` (CONAB, Socicana e dólar PTAX) `--somente-custos` (custos de produção da CONAB, issue 67) e `--somente-credito` (crédito rural do SICOR, issue 68). É mensal porque a CONAB só publica os últimos 12 meses — um ano sem rodar perderia meses para sempre (documento 48, §2.4) |
 | Registro | `integracao.PontoDeSincronismo`, fluxo `IBGE.PRODUCAO_AGRICOLA`, com lidos, gravados e recusados; e um arquivo de log por rodada no servidor, guardado por três anos |
 | Trava | `sp_getapplock` no próprio banco, tomada **antes** da leitura do SIDRA |
 

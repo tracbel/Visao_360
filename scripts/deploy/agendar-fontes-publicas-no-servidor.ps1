@@ -20,7 +20,8 @@
     --somente-precos      o preco recebido pelo produtor em SP (CONAB), o preco do kg de ATR da cana
                           (Socicana) e o dolar PTAX mensal (Banco Central) (issue 66);
     --somente-custos      o custo de producao das culturas em SP, das series historicas da CONAB
-                          (issue 67).
+                          (issue 67);
+    --somente-credito     o credito rural de investimento do SICOR, por municipio e mes (issue 68).
 
   POR QUE DUAS TAREFAS, E NAO UMA. As fontes anuais saem uma vez por ano e as de preco todo mes: uma
   tarefa mensal para tudo releria o SIDRA doze vezes por ano para achar a mesma PAM; uma anual para
@@ -127,6 +128,7 @@ function Retrato([string] $rotulo) {
         'cotacoes de produtos'          = 'SELECT COUNT(*) FROM organizacao.CotacaoDeProduto'
         'meses de dolar PTAX'           = 'SELECT COUNT(*) FROM organizacao.CotacaoDoDolar'
         'custos de producao'            = 'SELECT COUNT(*) FROM organizacao.CustoDeProducao'
+        'credito rural (SICOR)'         = 'SELECT COUNT(*) FROM organizacao.CreditoRuralDeInvestimento'
     }
     Write-Host "   $rotulo"
     $resultado = @{}
@@ -157,9 +159,9 @@ Ok "banco responde; $comIbge municipios com codigo do IBGE"
 
 # AS TABELAS DE PRECO SO EXISTEM DEPOIS DA MIGRACAO DA ISSUE 66, que a publicacao automatica aplica.
 # Sem elas o retrato quebraria com "nome de objeto invalido" - e a mensagem certa e outra.
-$temPrecos = [int](Escalar "SELECT COUNT(*) FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id WHERE s.name = 'organizacao' AND t.name IN ('CotacaoDeProduto', 'CustoDeProducao')")
-if ($temPrecos -lt 2) {
-    throw "O banco de $Servidor ainda nao tem as tabelas de precos e custos: as migracoes PrecosDeMercado e CustosDeProducao (issues 66 e 67) nao foram aplicadas. Espere a publicacao automatica da main levar a versao nova e rode de novo. Nada foi instalado."
+$temPrecos = [int](Escalar "SELECT COUNT(*) FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id WHERE s.name = 'organizacao' AND t.name IN ('CotacaoDeProduto', 'CustoDeProducao', 'CreditoRuralDeInvestimento')")
+if ($temPrecos -lt 3) {
+    throw "O banco de $Servidor ainda nao tem as tabelas de precos e custos: as migracoes PrecosDeMercado, CustosDeProducao e CreditoRuralDoSicor (issues 66 a 68) nao foram aplicadas. Espere a publicacao automatica da main levar a versao nova e rode de novo. Nada foi instalado."
 }
 
 Retrato 'estado das fontes publicas no servidor, antes:' | Out-Null

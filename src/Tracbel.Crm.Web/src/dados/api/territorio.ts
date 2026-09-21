@@ -8,7 +8,7 @@
  */
 
 import type { ComProcedencia } from '../../tipos/api';
-import type { PrecosDeMercado, SerieDeCusto } from '../../tipos/mercado';
+import type { PainelDeCreditoRural, PrecosDeMercado, SerieDeCusto } from '../../tipos/mercado';
 import type { FiltrosTerritoriais, PainelTerritorial } from '../../tipos/territorio';
 import type { ColecaoMunicipal } from '../../componentes/territorio/projecao';
 import { ler, type ContextoDeAcesso } from './http';
@@ -50,6 +50,14 @@ export function obterCustosDeProducao(
   sinal?: AbortSignal,
 ): Promise<ComProcedencia<SerieDeCusto[]>> {
   return ler<SerieDeCusto[]>('/v1/territorio/custos', contexto, { sinal });
+}
+
+/** O crédito rural de investimento de SP, do SICOR (issue 68). */
+export function obterCreditoRural(
+  contexto: ContextoDeAcesso,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<PainelDeCreditoRural>> {
+  return ler<PainelDeCreditoRural>('/v1/territorio/credito', contexto, { sinal });
 }
 
 /** A malha municipal de São Paulo (IBGE, qualidade mínima). */
