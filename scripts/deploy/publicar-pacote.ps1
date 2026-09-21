@@ -174,9 +174,9 @@ if (EstaViva) {
             # A PRIMEIRA CARGA NAO ESPERA O CALENDARIO. Registrar a tarefa nao a roda: com uma das tabelas
             # de precos vazia e o dia 20 ja passado, a tela ficaria um mes sem preco no servidor. O
             # disparo e assincrono - a publicacao nao espera a carga terminar.
-            if ([int](Escalar 'SELECT (SELECT COUNT(*) FROM organizacao.CotacaoDeProduto) * (SELECT COUNT(*) FROM organizacao.CustoDeProducao)') -eq 0) {
+            if ([int](Escalar 'SELECT (SELECT COUNT(*) FROM organizacao.CotacaoDeProduto) * (SELECT COUNT(*) FROM organizacao.CustoDeProducao) * (SELECT COUNT(*) FROM organizacao.CreditoRuralDeInvestimento)') -eq 0) {
                 & schtasks.exe /Run /TN 'TracbelCrmPrecos' | Out-Null
-                Diga 'precos ou custos ainda vazios: a rotina TracbelCrmPrecos foi disparada agora'
+                Diga 'precos, custos ou credito ainda vazios: a rotina TracbelCrmPrecos foi disparada agora'
             }
         } else {
             Diga "as rotinas das fontes publicas NAO foram registradas: $($saidaDasRotinas.Trim())" 'erro'

@@ -256,6 +256,12 @@ public class CrmDbContext : DbContext
     /// <summary>O custo de produção por cultura, local de referência e safra (CONAB).</summary>
     public DbSet<CustoDeProducao> CustosDeProducao => Set<CustoDeProducao>();
 
+    /// <summary>O crédito rural de investimento por município e mês (SICOR, Banco Central).</summary>
+    public DbSet<CreditoRuralDeInvestimento> CreditosRuraisDeInvestimento => Set<CreditoRuralDeInvestimento>();
+
+    /// <summary>As tabelas auxiliares do SICOR: programa, subprograma, fonte e produto.</summary>
+    public DbSet<ItemDoSicor> ItensDoSicor => Set<ItemDoSicor>();
+
     /// <summary>As regras de potencial por área — hoje, um exemplo a confirmar.</summary>
     public DbSet<RegraDePotencial> RegrasDePotencial => Set<RegraDePotencial>();
 

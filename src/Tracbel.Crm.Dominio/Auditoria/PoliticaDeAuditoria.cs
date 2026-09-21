@@ -59,6 +59,10 @@ public static class PoliticaDeAuditoria
         // número que muda mexe na margem da issue 73 — a trilha guarda o anterior.
         ["CustoDeProducao"] = ["CustoOperacionalHa", "CustoTotalHa", "CustoOperacionalUnidade", "CustoTotalUnidade"],
 
+        // Crédito rural: o valor. O Banco Central acrescenta contrato registrado com atraso aos meses
+        // recentes, e o índice de crédito da issue 73 muda com isso — a trilha guarda o anterior.
+        ["CreditoRuralDeInvestimento"] = ["Valor"],
+
         // Venda de máquina: o retrato que a origem pode reescrever a cada leitura
         // (VendaDeMaquina.AtualizarDaOrigem), campo por campo.
         ["VendaDeMaquina"] =

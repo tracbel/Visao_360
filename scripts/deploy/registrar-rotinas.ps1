@@ -10,7 +10,7 @@
   AS ROTINAS
 
     TracbelCrmFontesPublicas  ANUAL, 1 de outubro, 03:00  --somente-pam e --somente-estrutura
-    TracbelCrmPrecos          MENSAL, dia 20, 04:00       --somente-precos e --somente-custos
+    TracbelCrmPrecos          MENSAL, dia 20, 04:00       --somente-precos, --somente-custos e --somente-credito
 
   Por que duas, por que o dia 20 e por que outubro: ver o cabecalho de
   agendar-fontes-publicas-no-servidor.ps1.
@@ -113,7 +113,7 @@ $anual  = Join-Path $PastaDasRotinas 'rodar-fontes-publicas.ps1'
 $mensal = Join-Path $PastaDasRotinas 'rodar-precos.ps1'
 
 Set-Content -Path $anual  -Encoding ASCII -Value (Rotina 'rodar-fontes-publicas.ps1' 'fontes-publicas' @('--somente-pam', '--somente-estrutura'))
-Set-Content -Path $mensal -Encoding ASCII -Value (Rotina 'rodar-precos.ps1' 'precos' @('--somente-precos', '--somente-custos'))
+Set-Content -Path $mensal -Encoding ASCII -Value (Rotina 'rodar-precos.ps1' 'precos' @('--somente-precos', '--somente-custos', '--somente-credito'))
 
 $pior = 0
 

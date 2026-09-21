@@ -416,3 +416,17 @@
 .terr-num .cad-sub {
   white-space: normal;
 }
+
+/* ---- Credito rural (issue 68) ---- */
+
+.terr-variacao {
+  font-variant-numeric: tabular-nums;
+}
+
+.terr-variacao-alta {
+  color: var(--success);
+}
+
+.terr-variacao-baixa {
+  color: var(--danger);
+}
