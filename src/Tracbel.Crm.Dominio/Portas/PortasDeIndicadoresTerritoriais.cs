@@ -41,16 +41,6 @@ public sealed record ConsultaDeIndicadoresTerritoriais(
     int? FilialDaVendaId = null,
     int? FilialDoClienteId = null);
 
-/// <summary>Uma afirmação de responsável, como a tela a mostra — com a fonte, sempre.</summary>
-/// <param name="Papel">CEN ou gestor.</param>
-/// <param name="Fonte">A planilha que fez a afirmação.</param>
-/// <param name="NomeNaOrigem">O nome como a planilha escreveu.</param>
-/// <param name="Situacao">O que a carga conseguiu afirmar sobre o nome.</param>
-/// <param name="UsuarioNome">O nome do usuário do CRM, quando identificado.</param>
-/// <param name="ImportadoEm">Quando a afirmação foi lida (UTC). As planilhas não declaram vigência.</param>
-public sealed record ResponsavelDeclarado(
-    string Papel, string Fonte, string NomeNaOrigem, string Situacao, string? UsuarioNome, DateTime ImportadoEm);
-
 /// <summary>
 /// A cobertura de visita de um recorte territorial, contada por VÍNCULO cliente × carteira comercial
 /// (documento 27, seção 4; documento 32, seção 8.1).
@@ -233,9 +223,8 @@ public sealed record TotaisDoEstado(
 /// Quem responde pelos vínculos de um município NA CARTEIRA — o responsável cadastrado de cada carteira
 /// comercial que tem cliente com endereço ali, ao alcance da consulta.
 ///
-/// <para><b>É a terceira fonte de responsável, e não substitui as outras duas.</b> As planilhas dizem
-/// quem deveria atender o município; a carteira diz quem hoje tem os clientes dele no CRM. As três
-/// ficam lado a lado, sem fusão.</para>
+/// <para><b>É a única fonte de responsável que a tela mostra</b> (issue 107): planilha é requisito, não
+/// fonte. A carteira diz quem hoje tem os clientes do município no CRM.</para>
 /// </summary>
 /// <param name="Nome">O nome de exibição do usuário no CRM.</param>
 /// <param name="Natureza">Pessoa, departamento, sistema… — a carteira de área aparece como área.</param>
@@ -246,18 +235,12 @@ public sealed record ResponsavelPelaCarteira(string Nome, string Natureza, int V
 /// <summary>Os três indicadores de um município, com o território e os responsáveis.</summary>
 /// <param name="CodigoIbge">O código IBGE — é por ele que o mapa encontra o polígono.</param>
 /// <param name="Nome">O nome oficial.</param>
-/// <param name="PertenceAAdr">Se a planilha de área de atuação o marca como ADR.</param>
-/// <param name="ListadoNaAreaDeAtuacao">Se ele está na planilha, dentro ou fora da ADR.</param>
+/// <param name="PertenceAAdr">Se o município é da ADR.</param>
+/// <param name="ListadoNaAreaDeAtuacao">Se ele está na área de atuação, dentro ou fora da ADR.</param>
 /// <param name="Regiao">A região da ADR.</param>
 /// <param name="LojaCodigo">O código da loja responsável.</param>
 /// <param name="LojaNome">O nome da loja responsável.</param>
 /// <param name="LojaAtivaNoCrm">Se a filial está ativa no CRM; nulo quando não há loja.</param>
-/// <param name="Responsaveis">O que cada planilha diz sobre CEN e gestor.</param>
-/// <param name="CenDivergenteEntreFontes">Se as duas planilhas nomeiam o CEN de jeitos diferentes (grafia ou pessoa).</param>
-/// <param name="ComparacaoDoCen">
-/// Como as duas planilhas nomeiam o CEN: uma fonte só, mesmo nome, provável mesma pessoa ou nomes
-/// diferentes. É rótulo: as duas afirmações continuam em <see cref="Responsaveis"/>.
-/// </param>
 /// <param name="Cobertura">A cobertura de visita.</param>
 /// <param name="Vendas">As vendas no período.</param>
 /// <param name="Potencial">O potencial teórico, uma linha por regra ativa.</param>
@@ -273,9 +256,6 @@ public sealed record IndicadoresDoMunicipio(
     string? LojaCodigo,
     string? LojaNome,
     bool? LojaAtivaNoCrm,
-    IReadOnlyList<ResponsavelDeclarado> Responsaveis,
-    bool CenDivergenteEntreFontes,
-    string ComparacaoDoCen,
     CoberturaTerritorial Cobertura,
     VendasTerritoriais Vendas,
     IReadOnlyList<PotencialTerritorial> Potencial,

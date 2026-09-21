@@ -355,36 +355,6 @@ public sealed class ResponsavelPeloMunicipio
     }
 
     /// <summary>
-    /// COMO AS DUAS PLANILHAS NOMEIAM O CEN de um município — um rótulo para a tela, e só isso.
-    ///
-    /// <para><b>Não funde nada e não escolhe fonte.</b> "Provável mesma pessoa" diz que os dois textos
-    /// diferem na grafia (mesmo primeiro nome, ou um contido no outro); decidir que é a mesma pessoa, e
-    /// qual planilha vale, é do comercial (documento 32, seção 4.3). As duas afirmações continuam
-    /// gravadas, cada uma com a sua fonte.</para>
-    /// </summary>
-    /// <param name="nomeNumaFonte">O nome numa planilha.</param>
-    /// <param name="usuarioNumaFonte">O usuário identificado nela, quando houver.</param>
-    /// <param name="nomeNaOutra">O nome na outra planilha.</param>
-    /// <param name="usuarioNaOutra">O usuário identificado na outra, quando houver.</param>
-    public static ComparacaoDoCen CompararCen(
-        string nomeNumaFonte, long? usuarioNumaFonte, string nomeNaOutra, long? usuarioNaOutra)
-    {
-        if (usuarioNumaFonte is not null && usuarioNumaFonte == usuarioNaOutra) return ComparacaoDoCen.MesmoNome;
-
-        var numa = ChaveDoNome(nomeNumaFonte);
-        var outra = ChaveDoNome(nomeNaOutra);
-
-        if (numa == outra) return ComparacaoDoCen.MesmoNome;
-
-        return numa.Length > 0 && outra.Length > 0
-               && (numa.Split(' ')[0] == outra.Split(' ')[0]
-                   || numa.Contains(outra, StringComparison.Ordinal)
-                   || outra.Contains(numa, StringComparison.Ordinal))
-            ? ComparacaoDoCen.ProvavelMesmaPessoa
-            : ComparacaoDoCen.NomesDiferentes;
-    }
-
-    /// <summary>
     /// Se uma nova leitura faz a MESMA afirmação — mesmo nome, mesma situação, mesmo usuário.
     ///
     /// <para>Mudar a linha da planilha não é mudar a afirmação: reordenar o arquivo não pode
@@ -401,22 +371,6 @@ public sealed class ResponsavelPeloMunicipio
     /// <summary>Encerra a afirmação sem apagar a linha.</summary>
     /// <param name="agoraUtc">O instante do encerramento.</param>
     public void Encerrar(DateTime agoraUtc) => EncerradoEm ??= agoraUtc;
-}
-
-/// <summary>Como as duas planilhas nomeiam o CEN de um município (documento 32, seção 4.3).</summary>
-public enum ComparacaoDoCen
-{
-    /// <summary>Só uma planilha (ou nenhuma) declara CEN: não há o que comparar.</summary>
-    UmaFonteSo = 0,
-
-    /// <summary>O mesmo nome, ou o mesmo usuário do CRM identificado nas duas.</summary>
-    MesmoNome = 1,
-
-    /// <summary>Mesmo primeiro nome, ou um nome contido no outro — provável mesma pessoa, NÃO confirmado.</summary>
-    ProvavelMesmaPessoa = 2,
-
-    /// <summary>Nomes diferentes, inclusive vaga "a contratar" numa e nome na outra.</summary>
-    NomesDiferentes = 3
 }
 
 /// <summary>

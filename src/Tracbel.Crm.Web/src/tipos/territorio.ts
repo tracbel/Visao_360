@@ -8,16 +8,6 @@ import type { MetricaSemDado } from './relacionamento';
 
 export type RegiaoDaAdr = 'Norte' | 'Noroeste';
 
-/** O que uma planilha afirma sobre quem responde pelo município. */
-export type ResponsavelDeclarado = {
-  papel: 'Cen' | 'Gestor';
-  fonte: 'PlanilhaAreaDeAtuacao' | 'PlanilhaCenEGestorPorMunicipio';
-  nomeNaOrigem: string;
-  situacao: 'UsuarioIdentificado' | 'VagaAContratar' | 'NaoIdentificado';
-  usuarioNome: string | null;
-  importadoEm: string;
-};
-
 /** Cobertura por VÍNCULO cliente × carteira comercial. */
 export type CoberturaTerritorial = {
   clientes: number;
@@ -136,14 +126,10 @@ export type IndicadoresDoMunicipio = {
   lojaCodigo: string | null;
   lojaNome: string | null;
   lojaAtivaNoCrm: boolean | null;
-  responsaveis: ResponsavelDeclarado[];
-  cenDivergenteEntreFontes: boolean;
-  /** Como as duas planilhas nomeiam o CEN — só um rótulo: as duas fontes continuam em `responsaveis`. */
-  comparacaoDoCen: ComparacaoDoCen;
   cobertura: CoberturaTerritorial;
   vendas: VendasTerritoriais;
   potencial: PotencialTerritorial[];
-  /** Os responsáveis das carteiras com vínculo aqui — a terceira fonte, ao lado das duas planilhas. */
+  /** Quem atende o município: os responsáveis das carteiras do CRM com vínculo aqui (issue 107). */
   responsaveisPelasCarteiras: ResponsavelPelaCarteira[];
   /** A lavoura inteira; nulo quando a PAM não foi carregada. */
   producao: ProducaoAgricolaDoMunicipio | null;
@@ -157,8 +143,6 @@ export type ResponsavelPelaCarteira = {
   vinculos: number;
   carteiras: number;
 };
-
-export type ComparacaoDoCen = 'UmaFonteSo' | 'MesmoNome' | 'ProvavelMesmaPessoa' | 'NomesDiferentes';
 
 /** Como ler um indicador: medido, regra comercial provisória, estimativa ou fonte a confirmar. */
 export type ClassificacaoDeIndicador = {
