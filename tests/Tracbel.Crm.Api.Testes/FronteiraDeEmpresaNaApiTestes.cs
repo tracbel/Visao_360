@@ -1,3 +1,4 @@
+using Tracbel.Crm.Dominio.Seguranca;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -90,6 +91,10 @@ public sealed class FronteiraDeEmpresaNaApiTestes(ApiEmMemoria api, ITestOutputH
         // Se a fronteira valesse só para a leitura, bastaria um PUT com a chave certa para
         // alterar o cadastro de outra filial sem nunca conseguir lê-lo.
         var chave = await CriarEmRibeiraoAsync("Fazenda que Barretos não altera Ltda");
+
+        // BARRETOS RECEBE O PERFIL DE EXCLUSÃO para que o teste prove a FRONTEIRA (404), e não a falta de
+        // permissão (403), que a fase 3 passou a conferir antes: sem o perfil, o DELETE pararia no 403.
+        await api.ConcederPerfilAsync(200, PerfisDeSistema.ExclusaoDeCadastro);
         var http = api.ClienteDeBarretos();
 
         var alteracao = await http.PutAsJsonAsync($"/api/v1/clientes/{chave}", new

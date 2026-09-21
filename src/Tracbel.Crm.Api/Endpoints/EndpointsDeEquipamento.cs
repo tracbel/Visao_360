@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Tracbel.Crm.Api.Comum;
 using Tracbel.Crm.Aplicacao.Equipamentos;
+using Tracbel.Crm.Dominio.Seguranca;
 
 namespace Tracbel.Crm.Api.Endpoints;
 
@@ -33,6 +34,7 @@ public static class EndpointsDeEquipamento
                 pagina, tamanho, termo, situacao, origem, clienteChave,
                 ordenarPor, descendente, incluirInativos, linhaDeProduto, porte, somenteComVenda, ct)).Responder())
             .WithName("ListarEquipamentos")
+            .ExigePermissao(Permissoes.EquipamentoLer)
             .WithSummary(
                 "Lista máquinas do banco do CRM. Filtre por clienteChave para o parque de um cliente, por " +
                 "linhaDeProduto e porte para a segmentação, e por somenteComVenda para as máquinas vendidas.");
@@ -40,11 +42,13 @@ public static class EndpointsDeEquipamento
         grupo.MapGet("/{chave:guid}", async (Guid chave, ObterEquipamento caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(chave, ct)).Responder())
             .WithName("ObterEquipamento")
+            .ExigePermissao(Permissoes.EquipamentoLer)
             .WithSummary("Traz a ficha de uma máquina pela chave pública.");
 
         grupo.MapGet("/{chave:guid}/vendas", async (Guid chave, ListarVendasDoEquipamento caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(chave, ct)).Responder())
             .WithName("ListarVendasDoEquipamento")
+            .ExigePermissao(Permissoes.EquipamentoLer)
             .WithSummary(
                 "O histórico comercial da máquina: cada venda, o comprador NELA (não o dono atual), a filial, " +
                 "as datas e a trilha da origem.");
@@ -56,18 +60,21 @@ public static class EndpointsDeEquipamento
             (await caso.ExecutarAsync(chave, ct)).Responder())
             .WithTags("Clientes (banco do CRM)")
             .WithName("ListarMaquinasCompradasPeloCliente")
+            .ExigePermissao(Permissoes.EquipamentoLer)
             .WithSummary("As máquinas que o cliente comprou (vínculo 'comprador na venda'), com a data da venda.");
 
         grupo.MapPost("/", async (NovoEquipamento corpo, CriarEquipamento caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(corpo, ct))
                 .Responder(criado => Results.Created($"/api/v1/equipamentos/{criado.Chave}", criado)))
             .WithName("CriarEquipamento")
+            .ExigePermissao(Permissoes.EquipamentoCriar)
             .WithSummary("Cadastra uma máquina — inclusive a do concorrente, que é o que a Cobertura usa.");
 
         grupo.MapPut("/{chave:guid}", async (
                 Guid chave, AlteracaoDeEquipamento corpo, AlterarEquipamento caso, CancellationToken ct) =>
             (await caso.ExecutarAsync(chave, corpo, ct)).Responder())
             .WithName("AlterarEquipamento")
+            .ExigePermissao(Permissoes.EquipamentoEditar)
             .WithSummary("Altera uma máquina. Chassi e origem não mudam por edição — veja Equipamento.Alterar.");
 
         // [FromBody] obrigatório: o ASP.NET Core não infere corpo em DELETE. Ver a nota em
@@ -76,6 +83,7 @@ public static class EndpointsDeEquipamento
                 Guid chave, [FromBody] BaixaDeEquipamento corpo, InativarEquipamento caso, CancellationToken ct) =>
             (await caso.ExecutarAsync(chave, corpo, ct)).Responder())
             .WithName("InativarEquipamento")
+            .ExigePermissao(Permissoes.EquipamentoExcluir)
             .WithSummary("Baixa uma máquina — exclusão lógica. A linha e o histórico de horímetro ficam.");
 
         return app;

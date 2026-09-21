@@ -133,6 +133,42 @@ floco de neve, e ninguém consegue auditar.
 **Concessão temporária:** `UsuarioConjuntoPermissao.ExpiraEm` cobre férias e substituição sem que alguém
 esqueça de remover depois — que é como privilégio vira permanente.
 
+### Aplicado na fase 3 — 21/09/2026 (issue 46)
+
+O modelo acima era desenho; a fase 3 do documento 41 o pôs para valer. **Até ela, nenhuma rota conferia
+permissão** (achado C-1), e uma lista fixa em código dava a todo usuário criar, editar **e excluir**
+cliente e equipamento, sem ninguém ter decidido.
+
+| Decisão (21/09/2026) | Como ficou |
+|---|---|
+| **D-3** — catálogo | **em código**: `Permissoes` (21 permissões hoje). A permissão nasce com a rota que a exige; o perfil recusa código fora do catálogo. Os perfis ficam em tabela, editáveis. |
+| **D-9** — nomes | `ConjuntoPermissao` → **`Perfil`**, item → **`PerfilPermissao`**, concessão → **`UsuarioPerfil`** (matriz 41B). |
+| **Q-P2** — perfil padrão | **o mínimo, sem excluir**: ler as telas e criar e alterar cliente e equipamento, em `EmpresaEAbaixo`. Excluir (`EXCLUSAO_DE_CADASTRO`) e a visão entre filiais (`VISAO_ENTRE_FILIAIS`) são perfis próprios. Há também `ADMINISTRADOR`. Os quatro são semeados de `PerfisDeSistema`. |
+| **P-20** — filiais | a pessoa escolhe **a filial de casa e aquelas em que tem um perfil concedido** (`UsuarioPerfil.EmpresaId`); qualquer outra, **403** com o campo `X-Tracbel-Empresa`. Quem tem a visão entre filiais em Organização escolhe qualquer uma. |
+| **D-8** — "próprios" | **inclui a carteira vigente** do CEN. Decidido e registrado; **ainda sem efeito**, porque hoje nenhuma consulta filtra por dono — o perfil padrão é por filial — e as carteiras estão sem responsável (#107). Entra com o primeiro filtro por dono. |
+
+**Toda rota declara o que exige** — `.ExigePermissao(Permissoes.X)`, ou `.SemPermissaoExigida("motivo")`
+nas abertas (sessão, prova de vida, o arquivo da tela e a rota de escopo). Um teste de arquitetura
+recusa rota sem nenhuma das duas. Os casos de uso de escrita de cliente e equipamento conferem a
+permissão de novo, porque podem ser chamados por outro caminho um dia.
+
+**A hierarquia é `Usuario.GestorId`**, e os subordinados são calculados na montagem do contexto, em
+qualquer nível — a profundidade `Equipe` deixou de ser letra morta. Um ciclo por erro de cadastro não
+trava a montagem.
+
+**A rota de escopo efetivo** (`GET /api/v1/acesso/escopo`) responde "onde eu posso olhar e o que eu
+posso fazer aqui" — a mitigação que o documento 41 pede para a fase de risco mais alto. Quando a filial
+pedida é recusada, ela, e só ela, responde pela filial de casa, e a tela volta sozinha.
+
+**A segunda exceção da fronteira de filial** voltou a existir: `UsuarioPerfil`. A `EmpresaId` dela é a
+filial **em que** o perfil vale — o dado que define quais filiais a pessoa pode escolher, e que por isso
+não pode ser filtrado pela fronteira que ele mesmo define; o contexto é montado lendo essa tabela, antes
+de existir escopo. É o mesmo motivo da exceção de `Usuario`.
+
+**Conceder e revogar aparece na trilha** (achado C-8): `Usuario`, `UsuarioPerfil`, `Perfil` e
+`PerfilPermissao` entraram na política de auditoria. A concessão exige **justificativa** e registra
+quem concedeu. **Concessão a pessoa real em produção não entra em migração** (R-16): é operação
+registrada, com autorização explícita.
 ---
 
 ## 5. Camada 3 — profundidade (o coração do modelo)

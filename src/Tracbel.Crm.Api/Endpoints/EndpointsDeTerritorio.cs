@@ -1,5 +1,6 @@
 using Tracbel.Crm.Api.Comum;
 using Tracbel.Crm.Aplicacao.Territorio;
+using Tracbel.Crm.Dominio.Seguranca;
 
 namespace Tracbel.Crm.Api.Endpoints;
 
@@ -34,6 +35,7 @@ public static class EndpointsDeTerritorio
                 int? tamanho = null) =>
             (await caso.ExecutarAsync(pagina, tamanho, termo, uf, ct)).Responder())
             .WithName("ListarMunicipios")
+            .ExigePermissao(Permissoes.CatalogoLer)
             .WithSummary("Busca município por começo do nome, opcionalmente dentro de uma UF.")
             .WithDescription(
                 "Alimenta o campo de município do endereço. A busca é por PREFIXO — 'ribeir' " +
@@ -64,6 +66,7 @@ public static class EndpointsDeTerritorio
             (await caso.ExecutarAsync(
                 competenciaInicial, competenciaFinal, regiao, lojaCodigo, visao, filialDaVenda, filialDoCliente, ct)).Responder())
             .WithName("ObterIndicadoresTerritoriais")
+            .ExigePermissao(Permissoes.TerritorioLer)
             .WithSummary("Cobertura de visita, vendas e potencial por área, município a município.")
             .WithDescription(
                 "Um item por município de SP da área de atuação ou com cliente, identificado pelo código " +
@@ -74,6 +77,7 @@ public static class EndpointsDeTerritorio
         grupo.MapGet("/precos", async (ObterPrecosDeMercado caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterPrecosDeMercado")
+            .ExigePermissao(Permissoes.TerritorioLer)
             .WithSummary("Preços das culturas em SP, mês a mês, em reais e em dólares (issue 66).")
             .WithDescription(
                 "Uma série por produto, fonte e nível: preço recebido pelo produtor (CONAB), preço do kg " +
@@ -84,6 +88,7 @@ public static class EndpointsDeTerritorio
         grupo.MapGet("/custos", async (ObterCustosDeProducao caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterCustosDeProducao")
+            .ExigePermissao(Permissoes.TerritorioLer)
             .WithSummary("Custo de produção das culturas em SP, por local de referência e safra (issue 67).")
             .WithDescription(
                 "Uma série por cultura, local da CONAB e sistema de cultivo, com uma linha por aba da série " +
@@ -94,6 +99,7 @@ public static class EndpointsDeTerritorio
         grupo.MapGet("/credito", async (ObterCreditoRural caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterCreditoRural")
+            .ExigePermissao(Permissoes.TerritorioLer)
             .WithSummary("Crédito rural de investimento em SP, do SICOR (issue 68).")
             .WithDescription(
                 "Por ano (máquinas e todos os produtos), por produto e por município (máquinas: trator, " +
@@ -114,6 +120,7 @@ public static class EndpointsDeTerritorio
         grupo.MapGet("/filiais", async (ObterCoberturaPorFilial caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterCoberturaPorFilial")
+            .ExigePermissao(Permissoes.CoberturaLer)
             .WithSummary("A cobertura agrupada por filial: carteiras, municípios atendidos e estados.")
             .WithDescription(
                 "É o primeiro nível do agrupamento REAL, que substitui a regional do protótipo. " +
@@ -126,6 +133,7 @@ public static class EndpointsDeTerritorio
                 string? empresaCodigo = null) =>
             (await caso.ExecutarAsync(empresaCodigo, ct)).Responder())
             .WithName("ListarTerritorioPorCarteira")
+            .ExigePermissao(Permissoes.CoberturaLer)
             .WithSummary("O território de cada carteira: a filial dona e as cidades atendidas.")
             .WithDescription(
                 "Segundo nível do mesmo agrupamento. A carteira sem cidade cadastrada aparece " +

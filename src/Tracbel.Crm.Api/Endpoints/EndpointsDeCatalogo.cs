@@ -1,5 +1,6 @@
 using Tracbel.Crm.Api.Comum;
 using Tracbel.Crm.Aplicacao.Catalogos;
+using Tracbel.Crm.Dominio.Seguranca;
 
 namespace Tracbel.Crm.Api.Endpoints;
 
@@ -23,12 +24,14 @@ public static class EndpointsDeCatalogo
         grupo.MapGet("/", async (ListarCatalogos caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(null, ct)).Responder())
             .WithName("ListarCatalogos")
+            .ExigePermissao(Permissoes.CatalogoLer)
             .WithSummary("Todas as listas de seleção: catálogos de banco, modelos, filiais e domínios fechados.");
 
         grupo.MapGet("/{codigo}", async (string codigo, ListarCatalogos caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(codigo, ct))
                 .Responder(lista => Results.Ok(lista with { Dados = lista.Dados })))
             .WithName("ObterCatalogo")
+            .ExigePermissao(Permissoes.CatalogoLer)
             .WithSummary("Um catálogo pelo código. Ex.: ORIGEM_LEAD, MOTIVO_INATIVACAO, EMPRESA.");
 
         return app;

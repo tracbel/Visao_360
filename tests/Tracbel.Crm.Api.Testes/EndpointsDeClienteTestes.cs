@@ -1,3 +1,4 @@
+using Tracbel.Crm.Dominio.Seguranca;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -81,6 +82,8 @@ public sealed class EndpointsDeClienteTestes(ApiEmMemoria api, ITestOutputHelper
     [Fact]
     public async Task O_ciclo_completo_criar_obter_alterar_e_inativar_funciona_por_HTTP()
     {
+        // INATIVAR EXIGE O PERFIL DE EXCLUSÃO desde a fase 3: o padrão é o mínimo, sem excluir (Q-P2).
+        await api.ConcederPerfilAsync(100, PerfisDeSistema.ExclusaoDeCadastro);
         var http = api.ClienteDeRibeirao();
 
         var criacao = await http.PostAsJsonAsync(

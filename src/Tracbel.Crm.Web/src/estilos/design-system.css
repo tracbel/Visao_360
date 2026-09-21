@@ -9177,3 +9177,11 @@ tr.funil-nova {
 @media (max-width: 640px) {
   .dica-balao { max-width: min(260px, calc(100vw - 32px)); }
 }
+
+/* P-20 (fase 3): a filial guardada que deixou de ser permitida volta para a de casa, com aviso. */
+.cad-filial-aviso {
+  font-size: 11px;
+  color: var(--warning);
+  margin-left: 6px;
+  white-space: nowrap;
+}

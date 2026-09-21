@@ -70,7 +70,51 @@ public sealed class ConcessaoExplicitaNaPonteProvisoriaTestes : IDisposable
         contexto.EhSucesso.Should().BeTrue(contexto.Erro ?? string.Empty);
         contexto.Valor!.PodeAlcancarTodasAsEmpresas.Should().Be(abreAEmpresa,
             "fora de Desenvolvimento a ponte não honra concessão: cabeçalho não autentica ninguém");
-        contexto.Valor.ProfundidadeDe("Cliente.Ler").Should().Be(Profundidade.EmpresaEAbaixo,
-            "a lista mínima continua a mesma nos dois casos");
+        contexto.Valor.ProfundidadeDe(Permissoes.ClienteLer).Should().Be(Profundidade.EmpresaEAbaixo,
+            "o perfil padrão vale nos dois casos");
+        contexto.Valor.Tem(Permissoes.ClienteExcluir).Should().BeFalse("o perfil padrão é o mínimo, sem excluir (Q-P2)");
+    }
+
+    [Fact]
+    public async Task Os_subordinados_saem_do_GestorId_em_qualquer_nivel_e_um_ciclo_nao_trava()
+    {
+        // A PROFUNDIDADE EQUIPE deixava de valer porque o contexto nascia com a lista de subordinados vazia.
+        // Agora ela sai de Usuario.GestorId, a única hierarquia do modelo (documento 40).
+        long gestorId, diretoId, indiretoId, desligadoId;
+        await using (var db = new CrmDbContext(_opcoes, ProvedorDeContextoDeSistema.Instancia))
+        {
+            var empresaId = (await db.Empresas.FirstAsync()).Id;
+            Usuario Novo(string upn) => Usuario.Criar(Guid.NewGuid(), upn, upn, upn.Split('@')[0], Email.Criar(upn), empresaId, criadoPorId: 1);
+
+            var gestor = Novo("gestor@exemplo.com");
+            var direto = Novo("direto@exemplo.com");
+            var indireto = Novo("indireto@exemplo.com");
+            var desligado = Novo("desligado@exemplo.com");
+            db.Usuarios.AddRange(gestor, direto, indireto, desligado);
+            await db.SaveChangesAsync();
+
+            db.Entry(direto).Property(u => u.GestorId).CurrentValue = gestor.Id;
+            db.Entry(indireto).Property(u => u.GestorId).CurrentValue = direto.Id;
+            db.Entry(desligado).Property(u => u.GestorId).CurrentValue = gestor.Id;
+            desligado.Desativar(1);
+
+            // UM CICLO POR ERRO DE CADASTRO: o gestor responde ao indireto. A montagem não pode entrar em laço.
+            db.Entry(gestor).Property(u => u.GestorId).CurrentValue = indireto.Id;
+            await db.SaveChangesAsync();
+
+            (gestorId, diretoId, indiretoId, desligadoId) = (gestor.Id, direto.Id, indireto.Id, desligado.Id);
+        }
+
+        var resolvedor = new ResolvedorDeContextoProvisorio(
+            _opcoes,
+            Options.Create(new OpcoesDeContextoProvisorio { HonrarConcessoesExplicitas = true }),
+            NullLogger<ResolvedorDeContextoProvisorio>.Instance);
+
+        var contexto = await resolvedor.ResolverAsync("gestor@exemplo.com", "010101", CancellationToken.None);
+
+        contexto.EhSucesso.Should().BeTrue(contexto.Erro ?? string.Empty);
+        contexto.Valor!.SubordinadosIds.Should().BeEquivalentTo([diretoId, indiretoId],
+            "direto e indireto respondem a ele; o desligado não conta; e ele mesmo não é subordinado de si, apesar do ciclo");
+        contexto.Valor.SubordinadosIds.Should().NotContain([gestorId, desligadoId]);
     }
 }

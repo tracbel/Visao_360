@@ -286,6 +286,16 @@ precisa poder cadastrar um cliente em Uberaba.
 
 ---
 
+### 2.8 Acesso — `/api/v1/acesso/escopo` (fase 3, 21/09/2026)
+
+| Rota | O que devolve |
+|---|---|
+| `GET /api/v1/acesso/escopo` | a filial atual, as filiais que o usuário pode escolher (a de casa e as com perfil concedido — P-20) e as permissões na filial atual, com a profundidade |
+
+**Toda rota declara a permissão que exige** (documento 05, §4). Sem ela, **403** com `type` terminando
+em `sem-acesso` e o `detail` dizendo qual permissão falta. **Filial fora das permitidas** também é
+403, com `erros[0].campo = "X-Tracbel-Empresa"` — e a rota de escopo, só ela, responde pela filial de
+casa nesse caso, com `filialPedidaRecusada` preenchido, para a tela voltar sozinha.
 ## 3. O formato de erro
 
 Toda recusa é `application/problem+json`. O status vem da **natureza** da falha, declarada pelo

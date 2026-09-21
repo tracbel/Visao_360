@@ -82,7 +82,8 @@ public static class RotasDeAutenticacao
     /// <param name="entraLigado">Se o login pelo Entra ID está ligado.</param>
     public static void MapearAutenticacao(this WebApplication app, bool entraLigado)
     {
-        var sessao = app.MapGroup("/auth");
+        var sessao = app.MapGroup("/auth")
+            .SemPermissaoExigida("entrar, sair e saber quem está entrando: é o que acontece ANTES de haver contexto de acesso");
 
         // QUEM ESTÁ DENTRO — e se o CRM conhece essa pessoa. A pergunta ao cadastro é feita AQUI,
         // e não na primeira chamada de dado: descobrir "sem cadastro" já com a Visão 360 aberta

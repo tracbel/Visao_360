@@ -1,5 +1,6 @@
 using Tracbel.Crm.Api.Comum;
 using Tracbel.Crm.Aplicacao.Legado;
+using Tracbel.Crm.Dominio.Seguranca;
 
 namespace Tracbel.Crm.Api.Endpoints;
 
@@ -35,17 +36,20 @@ public static class EndpointsDoLegado
                 int? limite = null) =>
             (await caso.ExecutarAsync(termo, limite, ct)).Responder())
             .WithName("BuscarClientesNoLegado")
+            .ExigePermissao(Permissoes.LegadoLer)
             .WithSummary("Busca clientes no Vórtice por nome, nome fantasia ou documento. Somente leitura.");
 
         grupo.MapGet("/clientes/{identificador:long}/parque", async (
                 long identificador, ListarParqueNoLegado caso, CancellationToken ct) =>
             (await caso.ExecutarAsync(identificador, ct)).Responder())
             .WithName("ListarParqueNoLegado")
+            .ExigePermissao(Permissoes.LegadoLer)
             .WithSummary("O parque de máquinas do cliente no Vórtice — a lista que o CEN mantém e que é atualizada hoje.");
 
         grupo.MapGet("/saude", async (VerificarPonteDoLegado caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("VerificarPonteDoLegado")
+            .ExigePermissao(Permissoes.LegadoLer)
             .WithSummary("Diz se a ponte responde, e quais objetos do legado estão vivos e quais estão parados.");
 
         return app;
