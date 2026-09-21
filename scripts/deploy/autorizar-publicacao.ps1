@@ -1,13 +1,15 @@
 <#
   autorizar-publicacao.ps1 - libera uma publicacao que PAROU por ter migracao destrutiva (issue 62).
 
-      .\scripts\deploy\autorizar-publicacao.ps1 -Commit a39fa53ba4d7e1846493a6bacfab1c5839f54f89
+      .\scripts\deploy\autorizar-publicacao.ps1 -Commit a39fa53
+
+  O commit pode ser o curto; o script o resolve pelo Git local.
 
   =================================================================================================
   QUANDO ISTO E NECESSARIO
 
   Quase nunca. A decisao de 20/09/2026 e que migracao ADITIVA (criar tabela, criar coluna) sobe
-  sozinha — que e a esmagadora maioria. Este script existe para o outro caso: quando a subida vai
+  sozinha - que e a esmagadora maioria. Este script existe para o outro caso: quando a subida vai
   APAGAR tabela ou coluna.
 
   "Publicar e migrar" (regra R-4 do doc 46). Uma migracao destrutiva nao se desfaz com `git revert`:
@@ -33,14 +35,33 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '_remoto.ps1')
 
+# O COMMIT CURTO VALE. Exigir os 40 caracteres so fazia a pessoa errar na primeira tentativa (medido em
+# 21/09/2026: o primeiro uso real parou aqui). O Git local resolve o curto para o inteiro; se ele for
+# ambiguo ou nao existir, o Git recusa e nada acontece.
 if ($Commit -notmatch '^[0-9a-f]{40}$') {
-    throw "Passe o commit inteiro, com 40 caracteres. Veja qual e com .\scripts\deploy\verificar-publicacao.ps1"
+    $inteiro = & git -C (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) rev-parse --verify --quiet "$Commit^{commit}" 2>$null
+    if ($LASTEXITCODE -ne 0 -or $inteiro -notmatch '^[0-9a-f]{40}$') {
+        throw "Nao reconheco o commit '$Commit' neste repositorio. Rode 'git pull' e confira com .\scripts\deploy\verificar-publicacao.ps1"
+    }
+    Write-Host "   commit $Commit = $inteiro"
+    $Commit = $inteiro
 }
 
 # -------------------------------------------------------------------------------------------------
 Write-Host ''
 Write-Host '== O que esta esperando' -ForegroundColor Cyan
 # -------------------------------------------------------------------------------------------------
+# O AGENTE PRECISA EXISTIR. Sem ele nao ha publicacao automatica nenhuma, e portanto nada esperando
+# autorizacao - a mensagem generica "nao esta esperando" escondia isso (primeiro uso real, 21/09/2026).
+$pastaPorSmb = "\\$Servidor\$($PastaDoAgente -replace ':', '$')"
+if (-not (Test-Path $pastaPorSmb)) {
+    Write-Host "   O agente de publicacao NAO esta instalado em $Servidor ($PastaDoAgente nao existe)." -ForegroundColor Yellow
+    Write-Host '   Sem ele, nada e publicado sozinho - e nada fica esperando autorizacao. Instale uma vez:'
+    Write-Host '      .\scripts\deploy\instalar-agente-de-publicacao.ps1'
+    Write-Host '   Em ate 5 minutos ele encontra a main; se houver migracao destrutiva, para e espera por este script.'
+    return
+}
+
 $estado = Invoke-NoServidor -Nome 'crm-ler-estado' -TimeoutSegundos 120 -Script @"
 `$e = Join-Path '$PastaDoAgente' 'estado.json'
 if (Test-Path `$e) { Get-Content `$e -Raw } else { '{}' }
@@ -67,7 +88,7 @@ Write-Host '   O QUE VAI SER APAGADO:' -ForegroundColor Yellow
 foreach ($linha in ($e.detalhe -split '\|')) { Write-Host "      $($linha.Trim())" -ForegroundColor Yellow }
 Write-Host ''
 Write-Host '   O agente faz uma copia de seguranca COPY_ONLY antes de aplicar. Voltar atras de uma'
-Write-Host '   migracao destrutiva e RESTAURAR essa copia — nao e reverter o commit.'
+Write-Host '   migracao destrutiva e RESTAURAR essa copia - nao e reverter o commit.'
 Write-Host ''
 
 $resposta = Read-Host '   Autorizar esta publicacao? (digite AUTORIZO)'
@@ -86,7 +107,7 @@ $quem = "$env:USERDOMAIN\$env:USERNAME"
 $quando = (Get-Date).ToString('o')
 
 # A autorizacao e um ARQUIVO com o nome do commit: o agente procura exatamente por ele. Um pacote
-# novo tem outro commit, e para de novo — a autorizacao nao vira um interruptor permanente.
+# novo tem outro commit, e para de novo - a autorizacao nao vira um interruptor permanente.
 $saida = Invoke-NoServidor -Nome 'crm-autorizar' -TimeoutSegundos 120 -Script @"
 `$arquivo = Join-Path '$PastaDoAgente' 'autorizado-$Commit.txt'
 Set-Content -LiteralPath `$arquivo -Encoding ASCII -Value @'
