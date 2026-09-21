@@ -341,6 +341,33 @@ A correção resolve também o passo manual que sobrava:
 
 Falhar no passo 7 **não derruba a publicação**: a aplicação já provou que responde. O erro vai para o
 registro de eventos, onde a publicação inteira se conta.
+
+#### 6.5.2 A primeira carga em todo caminho — achado em 21/09/2026, no servidor
+
+**O que foi medido.** A publicação daquele dia foi pelo `publicar.ps1`, porque o agente ainda não estava
+instalado. A API e a tela subiram com os painéis de preço, custo e crédito. Mas a tarefa
+`TracbelCrmPrecos`, registrada às 11:41, **nunca tinha rodado** ("última execução: 30/11/1999"), e a
+próxima era **20/10**: os painéis ficariam um mês vazios no servidor. O gatilho da primeira carga só
+existia no passo 7 do agente, e o `publicar.ps1` nem atualizava a pasta da carga das rotinas.
+
+A anual (`TracbelCrmFontesPublicas`) tinha rodado em 20/09 e terminado com **código 3**: a etapa das
+usinas caiu no defeito do brotli contra o `www.gov.br` ("SSL connection could not be established…
+unexpected EOF"), corrigido no mesmo dia (#108). Nada a disparava de novo antes de outubro.
+
+**A correção:**
+
+- o gatilho saiu do agente e foi para o **`registrar-rotinas.ps1`**, que roda no servidor em todo caminho:
+  cada rotina é conferida pelas **suas** tabelas — a mensal por `CotacaoDeProduto`, `CotacaoDoDolar`,
+  `CustoDeProducao` e `CreditoRuralDeInvestimento`; a anual pela PAM e pelas cinco da estrutura — e é
+  disparada na hora se **alguma** estiver vazia. As duas podem rodar juntas: a trava da carga é por fluxo;
+- o **`publicar.ps1`** ganhou o passo 11: atualiza a pasta da carga das rotinas com o mesmo executável da
+  sincronização e roda o `registrar-rotinas.ps1` no servidor — o caminho manual passa a fazer o que o
+  agente faz;
+- o `agendar-fontes-publicas-no-servidor.ps1` passa `-NaoDispararPrimeiraCarga`, porque ele mesmo roda as
+  duas e espera por elas.
+
+Conferido no PowerShell 5.1 contra três bancos: com as tabelas vazias (dispara as duas), sem as tabelas
+(avisa e não quebra) e com dado (segue o calendário).
 ### 6.6 A decisão de 17/09/2026 e o que a sustentou
 
 Ricardo indicou uma máquina Linux com Docker (`ecs-st-agro-sistemas-linux`, 10.150.4.227) e autorizou o
