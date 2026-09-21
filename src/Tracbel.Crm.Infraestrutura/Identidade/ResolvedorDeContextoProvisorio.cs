@@ -103,7 +103,8 @@ public sealed class ResolvedorDeContextoProvisorio(
         await using var banco = new CrmDbContext(opcoesDoBanco, ProvedorDeContextoDeSistema.Instancia);
 
         var usuario = await banco.Usuarios
-            .Where(u => u.NomePrincipal == upn && u.EstaAtivo && u.ExcluidoEm == null)
+            // Quem aguarda liberação (criado no primeiro login pelo Entra) não entra por aqui também.
+            .Where(u => u.NomePrincipal == upn && u.EstaAtivo && u.AguardandoLiberacaoDesde == null && u.ExcluidoEm == null)
             .Select(u => new { u.Id, u.NomeExibicao, u.EmpresaId })
             .FirstOrDefaultAsync(ct);
 

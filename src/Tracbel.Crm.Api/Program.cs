@@ -153,6 +153,13 @@ builder.Services.AddScoped<ResolvedorDeContextoProvisorio>();
 builder.Services.AddScoped<ResolvedorDeContextoDoEntraId>();
 builder.Services.AddSingleton(new EstadoDaAutenticacao(entraLigado));
 
+// O GRUPO DO ENTRA É O PORTÃO (decisão de 21/09/2026): quem passa por ele e não tem cadastro ganha o
+// usuário, aguardando liberação. Sem grupo configurado, qualquer conta do locatário passaria — então
+// nada é criado, e vale o "sem cadastro" de antes (ver OpcoesDoPrimeiroLogin).
+builder.Services.Configure<OpcoesDoPrimeiroLogin>(opcoes =>
+    opcoes.CriarUsuarioAguardandoLiberacao =
+        entraLigado && !string.IsNullOrWhiteSpace(builder.Configuration["Entra:GrupoPermitido"]));
+
 // O diário da via de escape da fronteira de multiempresa (documento 21, achado A-1). Sem ele
 // registrado, CrmDbContext.AbrirAlcanceEntreEmpresas se RECUSA a abrir: quem ignora a
 // fronteira precisa dizer que está ignorando, e isso precisa aparecer no log.
