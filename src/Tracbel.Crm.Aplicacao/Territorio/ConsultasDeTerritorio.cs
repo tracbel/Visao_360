@@ -383,8 +383,11 @@ public sealed class ObterIndicadoresTerritoriais(
             new("potencial", "Estimativa", regraAConfirmar ? "Estimativa · regra a confirmar" : "Estimativa",
                 "Área plantada do município (IBGE) dividida pelos hectares por máquina da regra. É necessidade teórica da região, " +
                 "não área de cliente nem potencial comercial validado (documento 32, P-8)."),
-            new("cenDoMunicipio", "FonteAConfirmar", "Duas fontes · vigência a confirmar",
-                "As duas planilhas de CEN ficam lado a lado, sem fusão, até o comercial dizer qual vale e desde quando (documento 32, P-1).")
+            // PLANILHA É REQUISITO, NÃO FONTE (issue 107): quem atende o município é o que a carteira do CRM diz —
+            // e ela ainda não tem responsável cadastrado. A tela não mostra nem compara o que as planilhas afirmam.
+            new("cenDoMunicipio", "FonteAConfirmar", "Da carteira · responsável a cadastrar",
+                "Quem atende o município é o responsável da carteira do CRM com clientes nele. Enquanto as carteiras não tiverem " +
+                "responsável cadastrado, o CEN do município fica sem dado (issue 107).")
         ];
     }
 
