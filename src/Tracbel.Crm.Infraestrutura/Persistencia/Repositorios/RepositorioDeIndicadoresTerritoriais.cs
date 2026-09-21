@@ -371,12 +371,17 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
         }
 
         // -----------------------------------------------------------------------------------------
-        // Potencial: a área plantada do último ano, para os produtos das regras ativas.
+        // Potencial: a área plantada do último ano, para os produtos das regras vigentes HOJE (issue 71:
+        // a regra tem vigência, e a de hoje é a que o mapa aplica — uma vigência futura ainda não vale).
         // -----------------------------------------------------------------------------------------
-        var regras = await contexto.RegrasDePotencial.AsNoTracking()
-            .Where(r => r.EstaAtiva)
-            .OrderBy(r => r.Id)
-            .ToListAsync(ct);
+        var hoje = ParametroComVigencia.HojeNoBrasil(agoraUtc);
+        var regras = (await contexto.RegrasDePotencial.AsNoTracking()
+                .Where(r => r.RevogadoEm == null && r.VigenteDesde <= hoje)
+                .ToListAsync(ct))
+            .GroupBy(r => r.ProdutoCodigoIbge)
+            .Select(g => ParametroComVigencia.VigenteEm(g, hoje)!)
+            .OrderBy(r => r.ProdutoCodigoIbge)
+            .ToList();
 
         var produtos = regras.Select(r => r.ProdutoCodigoIbge).Distinct().ToList();
         var ano = await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking().MaxAsync(a => (short?)a.Ano, ct);
@@ -536,7 +541,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             ano,
             [
                 .. regras.Select(r => new RegraDePotencialAplicada(
-                    r.ProdutoCodigoIbge, r.ProdutoNome, r.HectaresPorMaquina, r.ModeloDeReferencia, r.Situacao.ToString(), r.Origem))
+                    r.ProdutoCodigoIbge, r.ProdutoNome, r.HectaresPorMaquina, r.ModeloDeReferencia, r.Situacao.ToString(),
+                    r.Justificativa, r.VigenteDesde, r.AnosDeRenovacao))
             ],
             itens,
             foraDoMapa,

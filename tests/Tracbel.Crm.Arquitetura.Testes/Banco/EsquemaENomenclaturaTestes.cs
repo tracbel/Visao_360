@@ -145,6 +145,11 @@ public sealed partial class EsquemaENomenclaturaTestes
         //      não código de categoria do IBGE. A frota e os estabelecimentos por faixa vêm do mesmo
         //      Censo, mas contam coisas diferentes (tratores × propriedades) em classificações
         //      diferentes (potência × grupo de área).
+        //   +2 organizacao.ParametroDoPotencial e PercepcaoDoGestor — issue 71: os parâmetros do
+        //      potencial passam a ter vigência, autor e justificativa. São duas tabelas, e não colunas na
+        //      RegraDePotencial, porque são três granularidades: a regra é por cultura, os gerais valem
+        //      para o modelo inteiro (e se leem juntos — as faixas só fazem sentido em ordem) e a
+        //      percepção é por município, informada pelo gestor e não pelo administrador.
         //   +3 frota.LinhaDeProduto, VendaDeMaquina e VinculoDeClienteComEquipamento — documento 35,
         //      seção 10: a classificação comercial cruza categoria e porte (não é família), a venda é
         //      evento com data e comprador (uma máquina revendida tem duas), e o comprador de uma venda
@@ -167,7 +172,7 @@ public sealed partial class EsquemaENomenclaturaTestes
 
         var esperado = new Dictionary<string, int>
         {
-            ["organizacao"] = 20,
+            ["organizacao"] = 22,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 9,
@@ -178,14 +183,14 @@ public sealed partial class EsquemaENomenclaturaTestes
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 60 tabelas de modelo em 8 schemas: a fase 1 (documento 41) trouxe 80 em 10 " +
+            "a conta é 62 tabelas de modelo em 8 schemas: a fase 1 (documento 41) trouxe 80 em 10 " +
             "para 49, tirando as 31 que nunca receberam uma linha e esvaziando por completo os " +
             "schemas 'documento' e 'relatorio'; a issue 64 acrescentou o total do estado, a 65 as " +
-            "cinco da estrutura agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção e a 68 as duas do crédito rural do SICOR. O portão continua o mesmo nos dois sentidos: mudar " +
+            "cinco da estrutura agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção a 68 as duas do crédito rural do SICOR e a 71 as duas dos parâmetros do potencial com vigência (os gerais e a percepção do gestor). O portão continua o mesmo nos dois sentidos: mudar " +
             "este número exige a decisão da seção 10.2 e a atualização do documento 14, seção 2.1, " +
             "na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(60);
+        porSchema.Values.Sum().Should().Be(62);
     }
 
     [Fact]

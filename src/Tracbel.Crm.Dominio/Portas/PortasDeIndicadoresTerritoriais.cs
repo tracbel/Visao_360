@@ -292,15 +292,24 @@ public sealed record IndicadoresDoMunicipio(
 /// <param name="Vendas">As vendas do grupo.</param>
 public sealed record IndicadoresForaDoMapa(string Grupo, string Descricao, CoberturaTerritorial Cobertura, VendasTerritoriais Vendas);
 
-/// <summary>Uma regra de potencial, como a tela a cita junto do mapa.</summary>
+/// <summary>A regra de potencial vigente hoje, como a tela a cita junto do mapa.</summary>
 /// <param name="ProdutoCodigoIbge">O produto.</param>
 /// <param name="ProdutoNome">O rótulo do produto.</param>
 /// <param name="HectaresPorMaquina">Hectares por máquina de referência.</param>
 /// <param name="ModeloDeReferencia">O modelo de referência.</param>
 /// <param name="Situacao">A confirmar ou confirmada.</param>
-/// <param name="Origem">Quem informou e onde.</param>
+/// <param name="Justificativa">Por que estes valores — a decisão ou a fonte.</param>
+/// <param name="VigenteDesde">Desde quando a regra vale.</param>
+/// <param name="AnosDeRenovacao">Anos de renovação, quando informado.</param>
 public sealed record RegraDePotencialAplicada(
-    int ProdutoCodigoIbge, string ProdutoNome, decimal HectaresPorMaquina, string ModeloDeReferencia, string Situacao, string Origem);
+    int ProdutoCodigoIbge,
+    string ProdutoNome,
+    decimal HectaresPorMaquina,
+    string ModeloDeReferencia,
+    string Situacao,
+    string Justificativa,
+    DateOnly VigenteDesde,
+    decimal? AnosDeRenovacao);
 
 /// <summary>O painel geográfico inteiro.</summary>
 /// <param name="CompetenciaInicial">O primeiro mês das vendas.</param>

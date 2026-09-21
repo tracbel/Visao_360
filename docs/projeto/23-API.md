@@ -296,6 +296,27 @@ precisa poder cadastrar um cliente em Uberaba.
 em `sem-acesso` e o `detail` dizendo qual permissão falta. **Filial fora das permitidas** também é
 403, com `erros[0].campo = "X-Tracbel-Empresa"` — e a rota de escopo, só ela, responde pela filial de
 casa nesse caso, com `filialPedidaRecusada` preenchido, para a tela voltar sozinha.
+
+### 2.9 Parâmetros do potencial — `/api/v1/admin/parametros-do-potencial` (issue 71, 21/09/2026)
+
+| Rota | Permissão | O que faz |
+|---|---|---|
+| `GET /` `?em=aaaa-mm-dd` | `ParametroDoPotencial.Ler` | os parâmetros que valem na data (padrão: hoje) — gerais, regra de cada cultura e percepção por município — e `pendencias`, em frase, com o que está em aberto |
+| `GET /historico` | `ParametroDoPotencial.Ler` | todas as vigências, inclusive revogadas e futuras, com autor, data e justificativa |
+| `POST /geral` | `ParametroDoPotencial.Administrar` | vigência nova dos parâmetros gerais — o conjunto inteiro |
+| `POST /culturas` | `ParametroDoPotencial.Administrar` | vigência nova da regra de uma cultura (produto da PAM, hectares por máquina, anos de renovação, modelo) |
+| `POST /percepcoes` | `PercepcaoDoGestor.Informar` | vigência nova da percepção do gestor sobre um município, dentro do limite dos gerais vigentes na data |
+| `POST /geral/{vigenteDesde}/revogacao` | `ParametroDoPotencial.Administrar` | revoga a vigência dos gerais que começa na data |
+| `POST /culturas/{produtoCodigoIbge}/{vigenteDesde}/revogacao` | `ParametroDoPotencial.Administrar` | revoga a vigência da regra do produto que começa na data |
+| `POST /percepcoes/{municipioCodigoIbge}/{vigenteDesde}/revogacao` | `PercepcaoDoGestor.Informar` | revoga a vigência da percepção do município que começa na data |
+
+**Não há PUT nem DELETE.** Mudar um parâmetro é registrar uma vigência nova, e a anterior continua valendo
+para as datas em que valia — é o que faz o cálculo de uma data passada usar o parâmetro daquela data. A
+vigência começa **hoje ou depois** (422 no campo `vigenteDesde` para data passada); só se revoga o que
+**ainda não passou de hoje** (409 para o resto, dizendo para registrar uma vigência nova). Duas vigências de
+pé na mesma data dão 409. Números aceitam vírgula ou ponto decimal; datas, `aaaa-mm-dd`.
+
+**Toda inclusão e toda revogação entram na trilha** (`auditoria.AlteracaoDeCampo`), com o autor.
 ## 3. O formato de erro
 
 Toda recusa é `application/problem+json`. O status vem da **natureza** da falha, declarada pelo

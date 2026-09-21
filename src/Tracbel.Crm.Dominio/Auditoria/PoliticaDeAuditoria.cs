@@ -72,6 +72,23 @@ public static class PoliticaDeAuditoria
         // recentes, e o índice de crédito da issue 73 muda com isso — a trilha guarda o anterior.
         ["CreditoRuralDeInvestimento"] = ["Valor"],
 
+        // PARÂMETROS DO POTENCIAL (issue 71): "parâmetro alterado gera trilha com o autor". A vigência nasce
+        // pela mão de uma pessoa — a inclusão entra na trilha inteira — e depois só muda para ser revogada.
+        // Parâmetro errado muda o potencial inteiro; a pergunta "quem pôs 20 ha no café, e quando?" tem resposta.
+        ["RegraDePotencial"] =
+        [
+            "ProdutoCodigoIbge", "HectaresPorMaquina", "AnosDeRenovacao", "ModeloDeReferencia", "Situacao",
+            "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"
+        ],
+        ["ParametroDoPotencial"] =
+        [
+            "MesesDaJanela", "PesoDosContratosNoCredito", "LimiteDeRetracao", "LimiteDeAquecimento",
+            "LimiteDeSuperaquecimento", "NomeDaFaixaIntermediaria", "LimiteDaPercepcao", "PesoDoIndicadorDePreco",
+            "PesoDoIndicadorDeCredito", "PesoDoIndicadorComercial", "FatorMinimo", "FatorMaximo",
+            "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"
+        ],
+        ["PercepcaoDoGestor"] = ["MunicipioId", "Percentual", "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"],
+
         // Venda de máquina: o retrato que a origem pode reescrever a cada leitura
         // (VendaDeMaquina.AtualizarDaOrigem), campo por campo.
         ["VendaDeMaquina"] =

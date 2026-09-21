@@ -377,54 +377,6 @@ public sealed class ProducaoAgricolaNoEstadoConfiguracao : IEntityTypeConfigurat
     }
 }
 
-/// <summary>
-/// Mapeamento de <see cref="RegraDePotencial"/>, com a única regra informada até hoje.
-///
-/// <para><b>A regra nasce na migração, e não na carga</b>: ela não vem de sistema nenhum, veio de
-/// uma frase do gerente comercial. Deixá-la no código versionado mostra quem a informou, quando, e
-/// que ela ainda está a confirmar — e mudá-la exige uma migração revisada, não um clique.</para>
-/// </summary>
-public sealed class RegraDePotencialConfiguracao : IEntityTypeConfiguration<RegraDePotencial>
-{
-    /// <inheritdoc />
-    public void Configure(EntityTypeBuilder<RegraDePotencial> b)
-    {
-        b.ToTable("RegraDePotencial", "organizacao");
-        b.HasKey(r => r.Id);
-        b.Property(r => r.Id).ValueGeneratedOnAdd();
-
-        b.Property(r => r.ProdutoCodigoIbge).IsRequired();
-        b.Property(r => r.ProdutoNome).HasMaxLength(120).IsUnicode(true).IsRequired();
-        b.Property(r => r.HectaresPorMaquina).HasPrecision(10, 2).IsRequired();
-        b.Property(r => r.ModeloDeReferencia).HasMaxLength(60).IsUnicode(true).IsRequired();
-        b.Property(r => r.Situacao).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
-        b.Property(r => r.Origem).HasMaxLength(400).IsUnicode(true).IsRequired();
-        b.Property(r => r.InformadaEm).IsRequired();
-        b.Property(r => r.EstaAtiva).IsRequired();
-
-        b.HasIndex(r => r.ProdutoCodigoIbge).HasFilter("[EstaAtiva] = 1");
-
-        b.ToTable(t => t.HasCheckConstraint("CK_RegraDePotencial_Situacao", "[Situacao] IN ('AConfirmar','Confirmada')"));
-        b.ToTable(t => t.HasCheckConstraint("CK_RegraDePotencial_HectaresPorMaquina", "[HectaresPorMaquina] > 0"));
-        b.ToTable(t => t.HasCheckConstraint("CK_RegraDePotencial_Produto", "[ProdutoCodigoIbge] > 0"));
-
-        b.HasData(new
-        {
-            Id = 1,
-            ProdutoCodigoIbge = 40139,
-            ProdutoNome = "Café (em grão) Total",
-            HectaresPorMaquina = 10m,
-            ModeloDeReferencia = "3036N",
-            Situacao = SituacaoDaRegraDePotencial.AConfirmar,
-            Origem = "Exemplo do gerente comercial no pedido de 13/09/2026: \"na cultura de café, existe " +
-                     "potencial de 1 trator 3036N a cada 10 hectares\". Não confirmados: aplicabilidade, " +
-                     "vigência, horizonte e arredondamento.",
-            InformadaEm = new DateOnly(2026, 9, 13),
-            EstaAtiva = true
-        });
-    }
-}
-
 /// <summary>Mapeamento de <see cref="Carteira"/>.</summary>
 public sealed class CarteiraConfiguracao : IEntityTypeConfiguration<Carteira>
 {

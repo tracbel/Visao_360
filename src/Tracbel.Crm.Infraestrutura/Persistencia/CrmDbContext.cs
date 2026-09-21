@@ -273,8 +273,14 @@ public class CrmDbContext : DbContext
     /// <summary>As tabelas auxiliares do SICOR: programa, subprograma, fonte e produto.</summary>
     public DbSet<ItemDoSicor> ItensDoSicor => Set<ItemDoSicor>();
 
-    /// <summary>As regras de potencial por área — hoje, um exemplo a confirmar.</summary>
+    /// <summary>A regra de potencial de cada cultura, com vigência (issue 71).</summary>
     public DbSet<RegraDePotencial> RegrasDePotencial => Set<RegraDePotencial>();
+
+    /// <summary>Os parâmetros gerais do modelo de potencial, com vigência (issue 71).</summary>
+    public DbSet<ParametroDoPotencial> ParametrosDoPotencial => Set<ParametroDoPotencial>();
+
+    /// <summary>A percepção do gestor comercial por município, com vigência (issue 71).</summary>
+    public DbSet<PercepcaoDoGestor> PercepcoesDoGestor => Set<PercepcaoDoGestor>();
 
     // ---- seguranca ----
 

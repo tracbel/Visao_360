@@ -105,9 +105,11 @@ public sealed class PermissoesNasRotasTestes(ApiEmMemoria api, ITestOutputHelper
         foreach (var rota in Rotas(vazia).Where(r => r.Metadata.GetMetadata<PermissaoExigida>() is not null))
         {
             var metodo = rota.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods.First();
+            // O VALOR PRECISA CASAR COM A RESTRIÇÃO DA ROTA, senão o roteador devolve 404 antes de o portão de
+            // permissão ser alcançado — e o teste mediria o roteador, não a permissão.
             var caminho = Regex.Replace(rota.RoutePattern.RawText!, @"\{(?<nome>[^}:]+)(?<tipo>:[^}]+)?\}", m =>
                 m.Groups["tipo"].Value.Contains("guid") ? Guid.NewGuid().ToString()
-                : m.Groups["tipo"].Value.Contains("long") ? "1" : "X");
+                : m.Groups["tipo"].Value.Contains("long") || m.Groups["tipo"].Value.Contains("int") ? "1" : "X");
 
             using var pedido = new HttpRequestMessage(new HttpMethod(metodo), caminho);
             if (metodo is "POST" or "PUT" or "DELETE")

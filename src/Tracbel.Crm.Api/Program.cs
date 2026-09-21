@@ -179,6 +179,9 @@ builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais, RepositorioDeInd
 builder.Services.AddScoped<IRepositorioDePrecosDeMercado, RepositorioDePrecosDeMercado>();
 builder.Services.AddScoped<IRepositorioDeCustosDeProducao, RepositorioDeCustosDeProducao>();
 builder.Services.AddScoped<IRepositorioDeCreditoRural, RepositorioDeCreditoRural>();
+builder.Services.AddScoped<IRepositorioDeParametrosDoPotencial, RepositorioDeParametrosDoPotencial>();
+builder.Services.AddScoped<IRepositorioDeReferenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
+builder.Services.AddScoped<IRepositorioDeVigenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeEscopo, RepositorioDeEscopo>();
 builder.Services.AddScoped<IRepositorioIndicadoresExecutivos, RepositorioDeIndicadoresExecutivos>();
 builder.Services.AddScoped<IRepositorioHistoricoComercial, RepositorioDeHistoricoComercial>();
@@ -236,6 +239,14 @@ builder.Services.AddScoped<ObterIndicadoresTerritoriais>();
 builder.Services.AddScoped<ObterPrecosDeMercado>();
 builder.Services.AddScoped<ObterCustosDeProducao>();
 builder.Services.AddScoped<ObterCreditoRural>();
+
+// Os parâmetros do potencial, com vigência (issue 71).
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.ObterParametrosDoPotencial>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.ListarHistoricoDosParametrosDoPotencial>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.InformarParametroDoPotencial>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.InformarRegraDePotencial>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.InformarPercepcaoDoGestor>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.RevogarParametroDoPotencial>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ObterEscopoDeAcesso>();
 builder.Services.AddScoped<ObterIndicadoresExecutivos>();
 
@@ -370,6 +381,7 @@ app.MapearCobertura();
 app.MapearCoberturaTerritorial();
 app.MapearMunicipios();
 app.MapearIndicadoresTerritoriais();
+app.MapearParametrosDoPotencial();
 app.MapearRelatorios();
 
 // O ÚLTIMO RECURSO DEVOLVE O `index.html`, e é o que faz a navegação da tela funcionar.

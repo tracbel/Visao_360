@@ -422,15 +422,56 @@ estabelecimentos em 2017, 56% com menos de 20 ha; 62.308 tratores em 2017, 74% c
 | `RebanhoNoMunicipio` | efetivo do rebanho bovino, **anual** (PPM); a tabela comporta os outros nove tipos | #65 |
 | `AreaTerritorialDoMunicipio` | área em km² com os três decimais do IBGE, com o ano da apuração | #65 |
 | `UsinaDeEtanol` | as usinas autorizadas pela ANP, com CNPJ, município e **capacidade de produção** (m³/dia) | #65 |
-| `RegraDePotencial` | hectares por máquina e modelo de referência; **1 regra: café, 3036N, 10 ha, "a confirmar"**; sem escritor | doc 32 §8.3; doc 46 |
+| `RegraDePotencial` | hectares por máquina, **anos de renovação** e modelo de referência, **com vigência, autor e justificativa**; semente: café, 3036N, 10 ha, "a confirmar", desde 13/09/2026; escrita pelo administrador | doc 32 §8.3; **#71 (§4.1)** |
+| `ParametroDoPotencial` | os parâmetros gerais com vigência: janela, composição do crédito, faixas, limite da percepção, pesos e limites do fator | **#71 (§4.1)** |
+| `PercepcaoDoGestor` | o ajuste do gestor por município, com vigência, autor e justificativa | **#71 (§4.1)** |
 | Mapa C | máquinas teóricas = área ÷ hectares por máquina, só para a regra ativa; **com alternador para área plantada e valor da produção da lavoura inteira** | doc 32 §8.3, §8.4; #103 |
 | Mapa D — estrutura agropecuária | tratores, densidade por mil km², propriedades, rebanho e usinas, com o ano de cada fonte | doc 32 §8.4; #103 |
 | Painel "O mercado da região" | parque, propriedades, valor da lavoura, usinas e rebanho, **com a fatia de São Paulo** | doc 32 §8.4; #103 |
 | Cartão "Conhecimento de mercado" | vendas perdidas registradas; "participação de mercado: sem dado" | painel executivo |
 | Leitor do IBGE | catálogo de municípios e a PAM em lotes de 10 produtos (`LeitorDoIbge.cs`); roda na carga, que o servidor pode agendar | doc 46 §4.7; #83, #95 |
 
-**O que falta:** valor e quantidade da produção; Censo; preços; custos; SICOR; parâmetros de renovação e
-ciclo; motor; área e cultura por cliente (vazias em 100%); rotina no servidor. **Pendências do doc 32 que
+### 4.1 Os parâmetros do administrador, com vigência [21/09/2026, #71]
+
+**Nada do modelo é constante de código.** Todo parâmetro é uma **vigência**: começa numa data, tem autor e
+justificativa, e continua gravado quando outro o substitui. O cálculo de uma data usa o que valia naquela
+data — a regra é `ParametroComVigencia.VigenteEm`, e o motor (#72 a #74) vai perguntar exatamente isso.
+
+| Tabela | Chave | O que guarda | Quem altera |
+|---|---|---|---|
+| `RegraDePotencial` | produto da PAM + data | hectares por máquina, anos de renovação (pode faltar), modelo, a confirmar/confirmada | `ParametroDoPotencial.Administrar` |
+| `ParametroDoPotencial` | data | meses da janela; peso dos contratos no crédito (o valor pesa o resto); limites de retração, aquecimento e superaquecimento; nome da faixa do meio; limite da percepção; pesos dos três indicadores; fator mínimo e máximo | `ParametroDoPotencial.Administrar` |
+| `PercepcaoDoGestor` | município + data | o ajuste em pontos percentuais, dentro do limite dos gerais vigentes na data de início | `PercepcaoDoGestor.Informar` (perfil **Gestor comercial**) |
+
+**As regras:**
+
+- a vigência começa **hoje ou depois** (hoje é o dia de São Paulo); o passado não se reescreve;
+- só se **revoga** o que ainda não passou de hoje, com motivo; o resto se corrige com uma vigência nova;
+- uma vigência de pé por chave e data (índice único filtrado pelas não revogadas);
+- toda inclusão e toda revogação entram na **trilha de auditoria**, com o autor;
+- **403** para quem não tem a permissão — o perfil padrão lê os parâmetros e não os altera.
+
+**A semente é o que foi decidido, e só isso.** A regra do café continua a de 13/09/2026 (as colunas
+`Origem` e `InformadaEm` foram **renomeadas** para `Justificativa` e `VigenteDesde`, preservando a linha).
+Os parâmetros gerais nascem com o texto de 21/09/2026: **12 contra 12**, **70% contratos e 30% valor**,
+**< 1,00 retraído, > 1,20 aquecido, > 1,40 superaquecido** e **percepção de −5% a +5%**. Nascem **vazios**, e
+a rota de leitura os lista em `pendencias`: os pesos dos três indicadores e os limites do fator (D-P05), o
+nome da faixa entre 1,00 e 1,20 (D-P02) e os anos de renovação do café (D-P01).
+
+**O limite de cada faixa pertence à de baixo:** 1,20 ainda não é aquecido, porque o texto diz "> 1,2".
+
+**Rotas:** `/api/v1/admin/parametros-do-potencial` (documento 23, §2.9). A tela é a #77.
+
+**O que ficou para depois, de propósito:**
+
+- a percepção é conferida contra o limite **da data de início**; se um limite menor entrar depois, quem aplica
+  o limite da data do cálculo é o motor (#74);
+- o gestor informa a percepção de qualquer município; restringir aos municípios dele depende de qual planilha
+  de CEN e gestor vale (#48, D-P14);
+- categoria de máquina (D-P01) não entrou: a decisão não foi tomada, e acrescentá-la depois é migração aditiva.
+
+**O que falta:** motor; área e cultura por cliente (vazias em 100%); vendas da Tracbel (#69) e preço de
+máquina (#70); os valores em aberto da §4.1. **Pendências do doc 32 que
 este plano resolve:** P-8 (regras de potencial por cultura), P-9 (ciclo de troca), P-11 (propriedades e
 culturas por cliente). P-1 (CEN vigente) e P-10 (perfis) continuam nas issues #48 e #46.
 
@@ -515,7 +556,7 @@ flowchart LR
 |---|---|---|---|---|
 | **P0 — Decisões** | regras fixadas antes do código | #63 | D-P01 a D-P05 e D-P10 decididas | diretoria e comercial |
 | **P1 — Dados de mercado** | todas as fontes no servidor, conferidas contra a pasta 360 | #64, #65, #66, #67, #68, #69, #70 | cada fonte com rotina, idempotência e conferência | #63 (parcial); #18, #19, #12 para vendas e preço |
-| **P2 — Parâmetros** | administrador edita tudo, com vigência e trilha | #71 | parâmetro com vigência e 403 sem permissão | #63; #46; #40 |
+| **P2 — Parâmetros** | administrador edita tudo, com vigência e trilha — **feito em 21/09/2026 (§4.1)** | #71 | parâmetro com vigência e 403 sem permissão | #63; #46; #40 |
 | **P3 — Motor** | estrutural, indicadores, fator e cenários | #72, #73, #74 | testes de ouro contra a planilha | P1; P2 |
 | **P4 — Diretoria e Administrador** | API e as duas telas | #75, #76, #77 | tela = API = consulta independente; conferência com a diretoria | P3; #46 |
 | **P5 — CEN** | visão do CEN pelos seus municípios | #78 | CEN só vê os próprios municípios | P4; #48 |

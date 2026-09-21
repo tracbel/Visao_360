@@ -181,7 +181,10 @@ export type RegraDePotencialAplicada = {
   hectaresPorMaquina: number;
   modeloDeReferencia: string;
   situacao: 'AConfirmar' | 'Confirmada';
-  origem: string;
+  justificativa: string;
+  /** aaaa-mm-dd — desde quando a regra vale (issue 71). */
+  vigenteDesde: string;
+  anosDeRenovacao: number | null;
 };
 
 export type IndicadoresTerritoriais = {
