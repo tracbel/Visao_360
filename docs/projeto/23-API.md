@@ -436,6 +436,24 @@ do token validado em vez dos cabeçalhos, e o registro no `Program.cs` troca de 
 **Nada além disso muda:** o filtro global, as profundidades, a via de escape e todos os casos de
 uso já consomem do `ContextoAcesso`, que é o objeto definitivo.
 
+#### 4.2.1 Quem entra pela primeira vez (21/09/2026)
+
+**Decisão do Ricardo:** o grupo do Entra ID (`Entra:GrupoPermitido`) é o portão. Quem passa por ele e
+não casa com nenhum cadastro, seja pelo identificador, pelo nome exato ou pelo prefixo da carga do
+Vórtice, **ganha o usuário no banco no primeiro login, aguardando liberação**:
+
+| O quê | Como |
+|---|---|
+| a conta | `Usuario.CriarNoPrimeiroLogin`: identificador, nome principal, e-mail e nome vêm do token; natureza Pessoa; autor 0 (sistema) |
+| a espera | `seguranca.Usuario.AguardandoLiberacaoDesde` preenchida. O login é recusado com 403 e a frase "Seu acesso ao CRM foi registrado e está aguardando liberação" |
+| a filial | provisória: a raiz de menor identificador. Não dá acesso a nada, porque a conta não entra; só existe porque a coluna é obrigatória |
+| a liberação | `Usuario.Liberar(filial, administrador)`: o administrador escolhe a filial de casa, e a pessoa passa a entrar com o perfil Padrão. A tela é a da #113 |
+| sem o grupo configurado | nada é criado, e a resposta continua "sem cadastro". Senão, qualquer conta do locatário encheria a lista do administrador |
+
+O casamento continua **nunca adivinhando**. Uma caixa de departamento da carga continua recusada, e
+nenhuma conta nova nasce por cima dela. Duas chamadas simultâneas do mesmo primeiro login (a tela abre
+várias) criam **uma** conta: a segunda bate no índice único e recebe a mesma resposta.
+
 ### 4.3 A fronteira de multiempresa, provada
 
 A filial **não vem do corpo da requisição** — vem do contexto. Aceitar `EmpresaId` no JSON abriria

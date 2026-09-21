@@ -41,6 +41,7 @@ public sealed class UsuarioConfiguracao : IEntityTypeConfiguration<Usuario>
 
         b.Property(u => u.DesativadoEm).HasPrecision(3);
         b.Property(u => u.UltimoLoginEm).HasPrecision(3);
+        b.Property(u => u.AguardandoLiberacaoDesde).HasPrecision(3);
         b.Property(u => u.CriadoEm).HasPrecision(3).IsRequired();
         b.Property(u => u.AlteradoEm).HasPrecision(3);
         b.Property(u => u.ExcluidoEm).HasPrecision(3);

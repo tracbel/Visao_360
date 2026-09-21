@@ -96,6 +96,18 @@ public sealed class Usuario : EntidadeBase
     /// <summary>Último acesso bem-sucedido (UTC).</summary>
     public DateTime? UltimoLoginEm { get; private set; }
 
+    /// <summary>
+    /// Desde quando a conta espera o administrador liberá-la (UTC). Nula: liberada.
+    ///
+    /// <para><b>A decisão de 21/09/2026:</b> o grupo do Entra ID é o portão. Quem passa por ele e ainda não
+    /// tem cadastro ganha o usuário no primeiro login, mas NÃO enxerga dado nenhum até o administrador
+    /// escolher a filial e liberar. Nenhum número aparece para quem ninguém olhou.</para>
+    /// </summary>
+    public DateTime? AguardandoLiberacaoDesde { get; private set; }
+
+    /// <summary>Se a conta foi criada no primeiro login e ainda não foi liberada.</summary>
+    public bool AguardaLiberacao => AguardandoLiberacaoDesde is not null;
+
     /// <summary>Cria um usuário a partir da identidade do Entra ID.</summary>
     /// <param name="identidadeExterna">O identificador de objeto do Entra ID.</param>
     /// <param name="nomePrincipal">Nome principal de usuário.</param>
@@ -140,6 +152,70 @@ public sealed class Usuario : EntidadeBase
             Natureza = natureza,
             CriadoPorId = criadoPorId
         };
+    }
+
+    /// <summary>
+    /// Cria, no primeiro login, a conta de quem passou pelo grupo do Entra ID e não tinha cadastro. Ela
+    /// nasce AGUARDANDO LIBERAÇÃO: o login é recusado até o administrador escolher a filial e liberar.
+    ///
+    /// <para><b>A filial provisória não dá acesso a nada</b> — a conta não entra enquanto espera. Ela só
+    /// existe porque a filial de casa é obrigatória; quem decide a de verdade é o administrador, em
+    /// <see cref="Liberar"/>.</para>
+    ///
+    /// <para>O autor é o sistema (identificador 0): a pessoa ainda não tem identificador na hora do
+    /// cadastro, e o que a criou foi o login dela, não alguém da TI.</para>
+    /// </summary>
+    /// <param name="identidadeExterna">O identificador de objeto (<c>oid</c>) do Entra ID.</param>
+    /// <param name="nomePrincipal">O nome principal (<c>preferred_username</c>).</param>
+    /// <param name="nome">O nome da pessoa no Entra (<c>name</c>), quando vier.</param>
+    /// <param name="email">O e-mail corporativo.</param>
+    /// <param name="filialProvisoriaId">A filial obrigatória enquanto a conta espera.</param>
+    /// <param name="agoraUtc">O instante do login.</param>
+    public static Usuario CriarNoPrimeiroLogin(
+        Guid identidadeExterna, string nomePrincipal, string? nome, Email email, int filialProvisoriaId, DateTime agoraUtc)
+    {
+        if (identidadeExterna == Guid.Empty)
+            throw new RegraDeNegocioViolada("O Entra ID não devolveu o identificador de objeto da conta.");
+
+        if (string.IsNullOrWhiteSpace(nomePrincipal))
+            throw new RegraDeNegocioViolada("O Entra ID não devolveu o nome principal da conta.");
+
+        var principal = nomePrincipal.Trim();
+        var completo = string.IsNullOrWhiteSpace(nome) ? principal.Split('@')[0] : nome.Trim();
+
+        return new Usuario
+        {
+            IdentidadeExterna = identidadeExterna,
+            NomePrincipal = principal,
+            NomeCompleto = Cortar(completo, 200),
+            NomeExibicao = Cortar(completo, 80),
+            Email = email,
+            EmpresaId = filialProvisoriaId,
+            UltimoLoginEm = agoraUtc,
+            AguardandoLiberacaoDesde = agoraUtc,
+            Natureza = NaturezaDoUsuario.Pessoa,
+            CriadoPorId = 0
+        };
+
+        static string Cortar(string texto, int limite) => texto.Length <= limite ? texto : texto[..limite];
+    }
+
+    /// <summary>
+    /// O administrador libera a conta que esperava: escolhe a filial de casa, e a pessoa passa a entrar.
+    /// </summary>
+    /// <param name="filialId">A filial de casa escolhida.</param>
+    /// <param name="usuarioId">O administrador que liberou.</param>
+    public void Liberar(int filialId, long usuarioId)
+    {
+        if (!AguardaLiberacao)
+            throw new RegraDeNegocioViolada("Esta conta não está aguardando liberação.");
+
+        if (usuarioId == Id)
+            throw new RegraDeNegocioViolada("Ninguém libera a própria conta.");
+
+        EmpresaId = filialId;
+        AguardandoLiberacaoDesde = null;
+        MarcarAlteracao(usuarioId);
     }
 
     /// <summary>Atualiza o espelho do cadastro de origem, sem tocar na identidade.</summary>

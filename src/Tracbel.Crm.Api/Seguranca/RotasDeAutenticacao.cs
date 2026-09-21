@@ -105,7 +105,7 @@ public static class RotasDeAutenticacao
                     identidade.Email ?? identidade.NomePrincipal))
                 : RespostaDeErro.SemAcesso(
                     contexto.Erro!,
-                    "O login na Microsoft deu certo; o que falta é o cadastro no CRM. Entrar de novo não resolve.");
+                    "O login na Microsoft deu certo; o que falta é o CRM liberar a conta. Entrar de novo antes disso não resolve.");
         });
 
         if (!entraLigado) return;

@@ -94,7 +94,7 @@ public sealed class MeioDeCampoDeContextoDeAcesso(
             {
                 await RespostaDeErro.SemAcesso(
                     resultado.Erro!,
-                    "O login na Microsoft deu certo; o que falta é o cadastro no CRM.").ExecuteAsync(http);
+                    "O login na Microsoft deu certo; o que falta é o CRM liberar a conta.").ExecuteAsync(http);
                 return;
             }
         }
