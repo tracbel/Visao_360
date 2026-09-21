@@ -1,0 +1,84 @@
+using Tracbel.Crm.Api.Comum;
+using Tracbel.Crm.Aplicacao.Potencial;
+using Tracbel.Crm.Dominio.Seguranca;
+
+namespace Tracbel.Crm.Api.Endpoints;
+
+/// <summary>
+/// OS PARÂMETROS DO POTENCIAL DE MERCADO — lidos por data e alterados por vigência (issue 71).
+///
+/// <para><b>Não existe PUT nem DELETE.</b> Mudar um parâmetro é registrar uma vigência nova (POST), e a
+/// antiga continua valendo para as datas em que valia; o erro se desfaz revogando a vigência que ainda não
+/// passou de hoje. É o que deixa o cálculo de uma data passada reproduzível.</para>
+///
+/// <para>A tela do administrador é a issue 77; estas rotas são o que ela vai usar.</para>
+/// </summary>
+public static class EndpointsDeParametrosDoPotencial
+{
+    private const string Base = "/api/v1/admin/parametros-do-potencial";
+
+    /// <summary>Registra as rotas.</summary>
+    /// <param name="app">O construtor de rotas.</param>
+    public static IEndpointRouteBuilder MapearParametrosDoPotencial(this IEndpointRouteBuilder app)
+    {
+        var grupo = app.MapGroup(Base)
+            .WithTags("Parâmetros do potencial de mercado (banco do CRM)");
+
+        grupo.MapGet("/", async (ObterParametrosDoPotencial caso, CancellationToken ct, string? em = null) =>
+                (await caso.ExecutarAsync(em, ct)).Responder())
+            .WithName("ObterParametrosDoPotencial")
+            .ExigePermissao(Permissoes.ParametroDoPotencialLer)
+            .WithSummary("Os parâmetros do potencial que valem numa data (padrão: hoje), com o que falta decidir.")
+            .WithDescription(
+                "Os gerais (janela, crédito, faixas, pesos, fator, limite da percepção), a regra de cada cultura e a " +
+                "percepção do gestor por município. Uma data passada devolve o que valia naquela data. 'pendencias' diz, " +
+                "em frase, o que está em aberto — o motor não usa valor padrão para isso.");
+
+        grupo.MapGet("/historico", async (ListarHistoricoDosParametrosDoPotencial caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ListarHistoricoDosParametrosDoPotencial")
+            .ExigePermissao(Permissoes.ParametroDoPotencialLer)
+            .WithSummary("Todas as vigências já registradas, inclusive as revogadas e as futuras, com autor e justificativa.");
+
+        grupo.MapPost("/geral", async (NovoParametroDoPotencial corpo, InformarParametroDoPotencial caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(corpo, ct)).Responder(criado => Results.Created($"{Base}/historico", criado)))
+            .WithName("InformarParametroDoPotencial")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("Registra uma vigência nova dos parâmetros gerais — o conjunto inteiro, a partir de hoje ou depois.");
+
+        grupo.MapPost("/culturas", async (NovaRegraDePotencial corpo, InformarRegraDePotencial caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(corpo, ct)).Responder(criado => Results.Created($"{Base}/historico", criado)))
+            .WithName("InformarRegraDePotencial")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("Registra uma vigência nova da regra de uma cultura: hectares por máquina, anos de renovação e modelo.");
+
+        grupo.MapPost("/percepcoes", async (NovaPercepcaoDoGestor corpo, InformarPercepcaoDoGestor caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(corpo, ct)).Responder(criado => Results.Created($"{Base}/historico", criado)))
+            .WithName("InformarPercepcaoDoGestor")
+            .ExigePermissao(Permissoes.PercepcaoDoGestorInformar)
+            .WithSummary("Registra a percepção do gestor sobre um município, dentro do limite dos parâmetros gerais.");
+
+        grupo.MapPost("/geral/{vigenteDesde}/revogacao", async (
+                string vigenteDesde, RevogacaoDeVigencia corpo, RevogarParametroDoPotencial caso, CancellationToken ct) =>
+            (await caso.RevogarGeralAsync(vigenteDesde, corpo, ct)).Responder())
+            .WithName("RevogarParametroGeralDoPotencial")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("Revoga a vigência dos parâmetros gerais que começa na data (aaaa-mm-dd) — só se ainda não passou de hoje.");
+
+        grupo.MapPost("/culturas/{produtoCodigoIbge:int}/{vigenteDesde}/revogacao", async (
+                int produtoCodigoIbge, string vigenteDesde, RevogacaoDeVigencia corpo, RevogarParametroDoPotencial caso, CancellationToken ct) =>
+            (await caso.RevogarRegraAsync(produtoCodigoIbge, vigenteDesde, corpo, ct)).Responder())
+            .WithName("RevogarRegraDePotencial")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("Revoga a vigência da regra de um produto que começa na data — só se ainda não passou de hoje.");
+
+        grupo.MapPost("/percepcoes/{municipioCodigoIbge:int}/{vigenteDesde}/revogacao", async (
+                int municipioCodigoIbge, string vigenteDesde, RevogacaoDeVigencia corpo, RevogarParametroDoPotencial caso, CancellationToken ct) =>
+            (await caso.RevogarPercepcaoAsync(municipioCodigoIbge, vigenteDesde, corpo, ct)).Responder())
+            .WithName("RevogarPercepcaoDoGestor")
+            .ExigePermissao(Permissoes.PercepcaoDoGestorInformar)
+            .WithSummary("Revoga a vigência da percepção de um município que começa na data — só se ainda não passou de hoje.");
+
+        return app;
+    }
+}

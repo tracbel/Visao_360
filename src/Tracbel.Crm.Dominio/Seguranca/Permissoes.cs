@@ -78,6 +78,18 @@ public static class Permissoes
     /// <summary>Administrar usuários e as concessões de perfil.</summary>
     public const string UsuarioAdministrar = "Usuario.Administrar";
 
+    /// <summary>Ler os parâmetros do potencial de mercado e o histórico das vigências (issue 71).</summary>
+    public const string ParametroDoPotencialLer = "ParametroDoPotencial.Ler";
+
+    /// <summary>
+    /// Registrar e revogar vigências da regra por cultura e dos parâmetros gerais do potencial (issue 71).
+    /// Parâmetro errado muda o potencial inteiro — por isso é permissão de administrador.
+    /// </summary>
+    public const string ParametroDoPotencialAdministrar = "ParametroDoPotencial.Administrar";
+
+    /// <summary>Informar e revogar a percepção do gestor comercial por município (issue 71, D-P04).</summary>
+    public const string PercepcaoDoGestorInformar = "PercepcaoDoGestor.Informar";
+
     /// <summary>
     /// Todas as permissões que existem, com o que cada uma deixa fazer. É a lista que o perfil aceita:
     /// conceder um código fora dela é recusado.
@@ -104,7 +116,10 @@ public static class Permissoes
         [LegadoLer] = "Ler a ponte do sistema legado",
         [EmpresaAlcanceEntreFiliais] = "Abrir o alcance entre filiais, com motivo registrado",
         [PerfilAdministrar] = "Administrar perfis",
-        [UsuarioAdministrar] = "Administrar usuários e concessões"
+        [UsuarioAdministrar] = "Administrar usuários e concessões",
+        [ParametroDoPotencialLer] = "Ler os parâmetros do potencial de mercado",
+        [ParametroDoPotencialAdministrar] = "Alterar os parâmetros do potencial de mercado, com vigência",
+        [PercepcaoDoGestorInformar] = "Informar a percepção do gestor por município"
     };
 
     /// <summary>A permissão existe no catálogo?</summary>
@@ -137,6 +152,9 @@ public static class PerfisDeSistema
     /// <summary>O código do perfil de administração.</summary>
     public const string Administrador = "ADMINISTRADOR";
 
+    /// <summary>O código do perfil do gestor comercial, que informa a percepção por município (issue 71).</summary>
+    public const string GestorComercial = "GESTOR_COMERCIAL";
+
     /// <summary>Um perfil semeado.</summary>
     /// <param name="Id">O identificador fixo da semente.</param>
     /// <param name="Codigo">O código estável.</param>
@@ -156,6 +174,19 @@ public static class PerfisDeSistema
         Seguranca.Permissoes.TerritorioLer, Seguranca.Permissoes.IntegracaoLer, Seguranca.Permissoes.LegadoLer
     ];
 
+    /// <summary>
+    /// AS PERMISSÕES QUE NASCERAM DEPOIS DA PRIMEIRA SEMENTE (fase 3, 21/09/2026). Entram sempre no FIM da
+    /// lista de cada perfil: o identificador semeado de <c>PerfilPermissao</c> é 100 × perfil + ordem, e uma
+    /// permissão inserida no meio renumeraria as seguintes — a migração reescreveria linhas que já existem no
+    /// banco, em vez de só acrescentar.
+    /// </summary>
+    private static readonly string[] AcrescentadasDepoisDaSemente =
+    [
+        Seguranca.Permissoes.ParametroDoPotencialLer,
+        Seguranca.Permissoes.ParametroDoPotencialAdministrar,
+        Seguranca.Permissoes.PercepcaoDoGestorInformar
+    ];
+
     /// <summary>Os perfis semeados, na ordem dos identificadores.</summary>
     public static readonly IReadOnlyList<Semente> Todos =
     [
@@ -167,7 +198,11 @@ public static class PerfisDeSistema
                 (Seguranca.Permissoes.ClienteCriar, Profundidade.EmpresaEAbaixo),
                 (Seguranca.Permissoes.ClienteEditar, Profundidade.EmpresaEAbaixo),
                 (Seguranca.Permissoes.EquipamentoCriar, Profundidade.EmpresaEAbaixo),
-                (Seguranca.Permissoes.EquipamentoEditar, Profundidade.EmpresaEAbaixo)
+                (Seguranca.Permissoes.EquipamentoEditar, Profundidade.EmpresaEAbaixo),
+
+                // Issue 71: todo número do potencial sai com o parâmetro que o gerou, e quem vê o número pode
+                // ver o parâmetro. Alterar é do administrador.
+                (Seguranca.Permissoes.ParametroDoPotencialLer, Profundidade.EmpresaEAbaixo)
             ]),
 
         new(2, ExclusaoDeCadastro, "Exclusão de cadastro",
@@ -184,17 +219,28 @@ public static class PerfisDeSistema
             [(Seguranca.Permissoes.EmpresaAlcanceEntreFiliais, Profundidade.Organizacao)]),
 
         new(4, Administrador, "Administrador",
-            "Tudo o que o padrão dá, mais excluir, a visão entre filiais e a administração de perfis e usuários.",
+            "Tudo o que o padrão dá, mais excluir, a visão entre filiais, a administração de perfis e usuários e os parâmetros do potencial.",
             EhPadrao: false,
             [
                 .. Seguranca.Permissoes.Catalogo.Keys
                     .Where(p => p is not Seguranca.Permissoes.EmpresaAlcanceEntreFiliais
                         and not Seguranca.Permissoes.PerfilAdministrar
-                        and not Seguranca.Permissoes.UsuarioAdministrar)
+                        and not Seguranca.Permissoes.UsuarioAdministrar
+                        && !AcrescentadasDepoisDaSemente.Contains(p))
                     .Select(p => (p, Profundidade.EmpresaEAbaixo)),
                 (Seguranca.Permissoes.EmpresaAlcanceEntreFiliais, Profundidade.Organizacao),
                 (Seguranca.Permissoes.PerfilAdministrar, Profundidade.Organizacao),
-                (Seguranca.Permissoes.UsuarioAdministrar, Profundidade.Organizacao)
-            ])
+                (Seguranca.Permissoes.UsuarioAdministrar, Profundidade.Organizacao),
+
+                // Depois da primeira semente — no fim, para não renumerar.
+                (Seguranca.Permissoes.ParametroDoPotencialLer, Profundidade.EmpresaEAbaixo),
+                (Seguranca.Permissoes.ParametroDoPotencialAdministrar, Profundidade.Organizacao),
+                (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao)
+            ]),
+
+        new(5, GestorComercial, "Gestor comercial",
+            "Acrescenta informar a percepção do gestor sobre cada município, dentro do limite dos parâmetros gerais (issue 71, D-P04). Concedido a quem responde pelo território.",
+            EhPadrao: false,
+            [(Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao)])
     ];
 }

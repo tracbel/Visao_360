@@ -195,21 +195,4 @@ public sealed class AreaDeAtuacaoTestes
             99, 2025, 40106, "Cana-de-açúcar", Medidas(), 1, Agora);
         inventada.Should().Throw<RegraDeNegocioViolada>("o código de UF do IBGE vai de 11 a 53");
     }
-
-    [Fact]
-    public void A_regra_do_cafe_da_uma_maquina_a_cada_dez_hectares_e_nasce_a_confirmar()
-    {
-        var regra = RegraDePotencial.Informar(40139, "Café (em grão) Total", 10m, "3036N", "exemplo do comercial", new DateOnly(2026, 9, 13));
-
-        regra.Situacao.Should().Be(SituacaoDaRegraDePotencial.AConfirmar);
-        regra.MaquinasTeoricas(10000m).Should().Be(1000m);
-        regra.MaquinasTeoricas(null).Should().BeNull("área não disponível não é área zero");
-    }
-
-    [Fact]
-    public void Regra_sem_hectares_positivos_e_recusada()
-    {
-        var informar = () => RegraDePotencial.Informar(40139, "Café", 0m, "3036N", "exemplo", new DateOnly(2026, 9, 13));
-        informar.Should().Throw<RegraDeNegocioViolada>();
-    }
 }

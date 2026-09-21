@@ -52,7 +52,7 @@ public sealed class MigracaoNoContainerTestes
 
         porSchema.Should().BeEquivalentTo(new Dictionary<string, int>
         {
-            ["organizacao"] = 20,
+            ["organizacao"] = 22,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 9,
@@ -60,15 +60,15 @@ public sealed class MigracaoNoContainerTestes
             ["auditoria"] = 1,
             ["integracao"] = 9,
             ["metadado"] = 2
-        }, "é a conta do documento 14, seção 2.1 — 60 tabelas de modelo em 8 schemas, no banco de " +
+        }, "é a conta do documento 14, seção 2.1 — 62 tabelas de modelo em 8 schemas, no banco de " +
            "verdade. A migração inicial criava 80 em 10; a fase 1 do documento 41 removeu as 31 " +
            "que nunca receberam uma linha e esvaziou por completo os schemas 'documento' e " +
            "'relatorio'; a issue 64 acrescentou o total do estado, a 65 as cinco da estrutura " +
-           "agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção e a 68 as duas do crédito rural do SICOR. A cadeia inteira roda aqui, do zero: é o que prova que a remoção — e o " +
+           "agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção a 68 as duas do crédito rural do SICOR e a 71 as duas dos parâmetros do potencial com vigência (os gerais e a percepção do gestor). A cadeia inteira roda aqui, do zero: é o que prova que a remoção — e o " +
            "RENAME da tabela da PAM, que preserva a área plantada já carregada — também funcionam " +
            "em banco que nasce agora");
 
-        porSchema.Values.Sum().Should().Be(60);
+        porSchema.Values.Sum().Should().Be(62);
     }
 
     [FatoSeHouverSqlServer]
@@ -86,17 +86,29 @@ public sealed class MigracaoNoContainerTestes
         contexto.Database.EnsureDeleted();
         contexto.Database.Migrate();
 
-        var regras = contexto.RegrasDePotencial.Where(r => r.EstaAtiva).ToList();
+        var regras = contexto.RegrasDePotencial.Where(r => r.RevogadoEm == null).ToList();
 
         regras.Should().HaveCount(1,
-            "sem regra ativa, o mapa C da Visão 360 mostra 'sem regra de potencial' e não calcula nada");
+            "sem regra vigente, o mapa C da Visão 360 mostra 'sem regra de potencial' e não calcula nada");
         regras[0].ProdutoCodigoIbge.Should().Be(40139, "é o café (em grão) total da classificação 782");
         regras[0].HectaresPorMaquina.Should().Be(10m);
         regras[0].ModeloDeReferencia.Should().Be("3036N");
         regras[0].Situacao.Should().Be(SituacaoDaRegraDePotencial.AConfirmar,
             "a regra veio de uma frase do gerente comercial e ninguém a confirmou — a tela diz isso");
 
-        // A mesma migração, de novo, num banco que já tem a linha.
+        // ISSUE 71: a mesma linha virou a primeira vigência — a data de 13/09 preservada pelo RENAME de
+        // InformadaEm, o texto de origem pelo RENAME de Origem, e sem autor, porque veio da migração.
+        regras[0].VigenteDesde.Should().Be(new DateOnly(2026, 9, 13));
+        regras[0].Justificativa.Should().StartWith("Exemplo do gerente comercial");
+        regras[0].InformadoPorId.Should().BeNull();
+
+        var geral = contexto.ParametrosDoPotencial.Single();
+        geral.MesesDaJanela.Should().Be(12, "é o '12 contra 12' do texto de 21/09");
+        geral.PesoDosContratosNoCredito.Should().Be(0.700m);
+        geral.LimiteDaPercepcao.Should().Be(5.00m);
+        geral.PesoDoIndicadorDePreco.Should().BeNull("os pesos estão em aberto (D-P05)");
+
+        // A mesma reposição, de novo, num banco que já tem a linha — agora com as colunas da vigência.
         contexto.Database.ExecuteSql(
             $"""
              IF NOT EXISTS (SELECT 1 FROM organizacao.RegraDePotencial WHERE Id = 1)
@@ -104,8 +116,8 @@ public sealed class MigracaoNoContainerTestes
                  SET IDENTITY_INSERT organizacao.RegraDePotencial ON;
                  INSERT INTO organizacao.RegraDePotencial
                      (Id, ProdutoCodigoIbge, ProdutoNome, HectaresPorMaquina, ModeloDeReferencia,
-                      Situacao, Origem, InformadaEm, EstaAtiva)
-                 VALUES (1, 40139, N'Café (em grão) Total', 10.00, N'3036N', 'AConfirmar', N'reexecução', '2026-09-13', 1);
+                      Situacao, Justificativa, VigenteDesde, InformadoEm)
+                 VALUES (1, 40139, N'Café (em grão) Total', 10.00, N'3036N', 'AConfirmar', N'reexecução', '2026-09-13', '2026-09-13');
                  SET IDENTITY_INSERT organizacao.RegraDePotencial OFF;
              END
              """);
