@@ -72,18 +72,37 @@ function Servico([string] $acao, [string] $nome) {
     }
 }
 
-<# A prova de vida: a API responde, e responde que o banco esta conectado. #>
+<#
+  A prova de vida: a API responde, alcanca o banco e nao deixou migracao para tras. E o contrato de
+  /saude/banco - { conectado, migracoesPendentes } - o mesmo que o publicar.ps1 confere.
+
+  PELO NOME DNS, COM O CERTIFICADO VALIDADO, como no publicar.ps1: o certificado e publico e cobre o
+  nome, e conferir sem valida-lo pularia justamente a parte que o usuario usa.
+
+  ESTE SCRIPT RODA NO powershell.exe 5.1 da tarefa agendada, e nao no PowerShell 7. Foi o defeito da
+  primeira publicacao pelo agente (21/09/2026): o `-SkipCertificateCheck`, que so existe no 7, quebrava
+  toda tentativa na hora, o catch engolia o erro, e a API - que estava no ar - foi dada como morta duas
+  vezes seguidas. O teste ScriptsDoServidorTestes barra o que so existe no 7.
+#>
 function EstaViva() {
+    $ultimaTentativa = 'nenhuma resposta'
     for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 5
         try {
-            $r = Invoke-RestMethod -Uri $cfg.provaDeVida -TimeoutSec 20 -SkipCertificateCheck
-            if ($r.banco -eq 'conectado' -or $r.status -eq 'ok' -or $r.saudavel -eq $true) { return $true }
-            Diga "prova de vida respondeu, mas sem confirmar o banco: $($r | ConvertTo-Json -Compress)" 'aviso'
+            $r = Invoke-RestMethod -Uri $cfg.provaDeVida -TimeoutSec 20
+            # O @(... | Where-Object) e porque no 5.1 @($null) tem um elemento: a lista vazia do JSON e a
+            # propriedade ausente precisam dar zero os dois.
+            $pendentes = @($r.migracoesPendentes | Where-Object { $_ })
+            if ($r.conectado -eq $true -and $pendentes.Count -eq 0) { return $true }
+            $ultimaTentativa = "respondeu $($r | ConvertTo-Json -Compress)"
         } catch {
             # Os primeiros segundos sao normais: a API esta aplicando migracoes.
+            $ultimaTentativa = $_.Exception.Message
         }
     }
+
+    # O MOTIVO VAI PARA O REGISTRO. A prova de vida que falhava calada foi o que escondeu o defeito acima.
+    Diga "a prova de vida nao passou em 150 s; a ultima tentativa: $ultimaTentativa" 'erro'
     return $false
 }
 
@@ -167,7 +186,13 @@ if (EstaViva) {
     # vai para o registro, que e onde a publicacao inteira se conta.
     $registrar = Join-Path $Pacote 'rotinas\registrar-rotinas.ps1'
     if (Test-Path $registrar) {
-        $saidaDasRotinas = & $registrar -DestinoDaCarga $cfg.destinoDaCarga -Conexao $cfg.conexaoDoBanco 2>&1 | Out-String
+        # O try E O QUE CUMPRE O "NAO DERRUBA" ACIMA. Sem ele, um erro do registrar-rotinas.ps1 subia ate o
+        # agente, e uma publicacao que ja estava no ar e respondendo foi contada como falha (21/09/2026).
+        try {
+            $saidaDasRotinas = & $registrar -DestinoDaCarga $cfg.destinoDaCarga -Conexao $cfg.conexaoDoBanco 2>&1 | Out-String
+        } catch {
+            $saidaDasRotinas = "parou num erro: $($_.Exception.Message)"
+        }
         if ($saidaDasRotinas -match 'codigo das rotinas: 0') {
             Diga 'rotinas das fontes publicas registradas (anual e mensal)'
 

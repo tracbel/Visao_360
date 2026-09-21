@@ -45,6 +45,22 @@ if (`$e.situacao -eq 'aguardandoAutorizacao') {
     Write-Output ('   .\scripts\deploy\autorizar-publicacao.ps1 -Commit ' + `$e.commitAguardando)
 }
 
+# A FALHA MOSTRA O LOG DELA, e nao o da ultima rodada: depois de falhar, o agente passa a acordar e ir
+# embora a cada cinco minutos, e o log mais novo so diria isso.
+if (`$e.situacao -eq 'falhou') {
+    Write-Output ''
+    Write-Output '=== A ULTIMA PUBLICACAO FALHOU ==='
+    Write-Output ('commit ............... ' + `$e.commitQueFalhou)
+    Write-Output 'O agente nao tenta este commit de novo sozinho: so com commit novo, com os scripts'
+    Write-Output 'corrigidos (instalar-agente-de-publicacao.ps1 -SoAtualizarOsScripts), ou a pedido:'
+    Write-Output ('   .\scripts\deploy\autorizar-publicacao.ps1 -Commit ' + `$e.commitQueFalhou)
+    if (`$e.ultimoLog -and (Test-Path `$e.ultimoLog)) {
+        Write-Output ''
+        Write-Output ('--- ' + `$e.ultimoLog + ' (fim)')
+        Get-Content `$e.ultimoLog -Tail 15
+    }
+}
+
 Write-Output ''
 Write-Output '=== tarefa agendada ==='
 & schtasks.exe /Query /TN 'TracbelCrmPublicacao' /FO LIST /V 2>&1 |

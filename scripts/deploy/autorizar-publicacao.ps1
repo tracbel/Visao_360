@@ -22,6 +22,14 @@
   SQL que a subida vai rodar. Autorizar sem ver isso seria o mesmo que nao ter portao nenhum.
 
   A autorizacao vale para UM commit: um pacote novo, com outra migracao destrutiva, para de novo.
+
+  =================================================================================================
+  E QUANDO A PUBLICACAO FALHOU
+
+  O agente nao tenta de novo sozinho o commit que falhou com os mesmos scripts (21/09/2026). Este
+  script, com o mesmo -Commit, pede UMA nova tentativa - depois de alguem ter visto o motivo no
+  `verificar-publicacao.ps1`. Se o defeito era dos scripts do agente, o caminho e outro: atualiza-los
+  com `instalar-agente-de-publicacao.ps1 -SoAtualizarOsScripts`, e a nova tentativa sai sozinha.
 #>
 
 [CmdletBinding()]
@@ -70,6 +78,51 @@ if (Test-Path `$e) { Get-Content `$e -Raw } else { '{}' }
 # O transcript do _remoto.ps1 embrulha a saida; o JSON e a parte entre as chaves.
 $json = [regex]::Match($estado, '(?s)\{.*\}').Value
 $e = if ($json) { $json | ConvertFrom-Json } else { $null }
+
+# UMA PUBLICACAO QUE FALHOU TAMBEM PASSA POR AQUI. O agente nao tenta o mesmo commit de novo sozinho
+# (21/09/2026: sem isso, ele refazia copia de seguranca, troca e volta atras a cada cinco minutos), e
+# pedir outra tentativa e decisao de gente - como autorizar uma migracao destrutiva.
+if ($e -and $e.situacao -eq 'falhou') {
+    if ($e.commitQueFalhou -and $e.commitQueFalhou -ne $Commit) {
+        throw "A publicacao que falhou foi a do commit $($e.commitQueFalhou), e nao $Commit. Nada foi feito."
+    }
+    Write-Host "   commit ............ $Commit"
+    Write-Host "   falhou ............ $($e.detalhe)"
+    Write-Host ''
+    Write-Host '   Veja o motivo antes de pedir de novo:  .\scripts\deploy\verificar-publicacao.ps1'
+    Write-Host '   Se o defeito era dos scripts do agente, atualize-os - a nova tentativa entao e automatica:'
+    Write-Host '      .\scripts\deploy\instalar-agente-de-publicacao.ps1 -SoAtualizarOsScripts'
+    Write-Host ''
+
+    $resposta = Read-Host '   Tentar publicar este commit de novo? (digite TENTAR)'
+    if ($resposta -ne 'TENTAR') {
+        Write-Host '   Nada foi feito.' -ForegroundColor Yellow
+        return
+    }
+    if (-not $Motivo) { $Motivo = Read-Host '   Por que (uma linha, fica no registro)' }
+
+    $quem = "$env:USERDOMAIN\$env:USERNAME"
+    $quando = (Get-Date).ToString('o')
+
+    $saida = Invoke-NoServidor -Nome 'crm-tentar-de-novo' -TimeoutSegundos 120 -Script @"
+`$arquivo = Join-Path '$PastaDoAgente' 'tentar-de-novo-$Commit.txt'
+Set-Content -LiteralPath `$arquivo -Encoding ASCII -Value @'
+pedido por: $quem
+em: $quando
+motivo: $Motivo
+'@
+Write-Output ('gravado: ' + `$arquivo)
+schtasks /Run /TN 'TracbelCrmPublicacao'
+Write-Output ('disparo da tarefa: ' + `$LASTEXITCODE)
+"@
+
+    Write-Host $saida
+    Write-Host ''
+    Write-Host '   Pedido. Acompanhe com:' -ForegroundColor Green
+    Write-Host '      .\scripts\deploy\verificar-publicacao.ps1 -Log'
+    Write-Host ''
+    return
+}
 
 if (-not $e -or $e.situacao -ne 'aguardandoAutorizacao') {
     Write-Host "   O agente nao esta esperando autorizacao nenhuma (situacao: $($e.situacao))." -ForegroundColor Yellow
