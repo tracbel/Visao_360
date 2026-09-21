@@ -81,6 +81,16 @@ public static class EndpointsDeTerritorio
                 "comercial (saca de 60 kg, caixa de 40,8 kg, arroba). O dólar é o PTAX médio do mesmo mês; " +
                 "mês sem PTAX vem sem dólar. A base só cresce: mês que saiu da janela da fonte continua aqui.");
 
+        grupo.MapGet("/custos", async (ObterCustosDeProducao caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ObterCustosDeProducao")
+            .WithSummary("Custo de produção das culturas em SP, por local de referência e safra (issue 67).")
+            .WithDescription(
+                "Uma série por cultura, local da CONAB e sistema de cultivo, com uma linha por aba da série " +
+                "histórica: custo variável, fixo, operacional, renda de fatores e total por hectare, e o " +
+                "operacional e o total por unidade comercial. Custo total e renda de fatores vêm nulos quando " +
+                "a CONAB parou no custo operacional — não é zero.");
+
         return app;
     }
 

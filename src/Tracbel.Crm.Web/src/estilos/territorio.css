@@ -398,3 +398,21 @@
   background: var(--success-bg);
   box-shadow: inset 3px 0 0 var(--jd-green);
 }
+
+/* ---- Custos de produção (issue 67) ---- */
+
+.terr-abas-cultura {
+  flex-wrap: wrap;
+  margin: 4px 0 8px;
+}
+
+/* A tabela de custos tem mais colunas que o grafico precisa de largura: ela ganha mais espaco. */
+.terr-grade-custos {
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+}
+
+/* O VALOR NAO QUEBRA, A UNIDADE SIM: "R$ 769,13 / saca de 60 kg" em uma linha empurrava a coluna do
+   total para fora do cartao. */
+.terr-num .cad-sub {
+  white-space: normal;
+}

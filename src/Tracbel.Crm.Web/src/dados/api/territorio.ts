@@ -8,7 +8,7 @@
  */
 
 import type { ComProcedencia } from '../../tipos/api';
-import type { PrecosDeMercado } from '../../tipos/mercado';
+import type { PrecosDeMercado, SerieDeCusto } from '../../tipos/mercado';
 import type { FiltrosTerritoriais, PainelTerritorial } from '../../tipos/territorio';
 import type { ColecaoMunicipal } from '../../componentes/territorio/projecao';
 import { ler, type ContextoDeAcesso } from './http';
@@ -42,6 +42,14 @@ export function obterPrecosDeMercado(
   sinal?: AbortSignal,
 ): Promise<ComProcedencia<PrecosDeMercado>> {
   return ler<PrecosDeMercado>('/v1/territorio/precos', contexto, { sinal });
+}
+
+/** O custo de produção das culturas em SP, das séries da CONAB (issue 67). */
+export function obterCustosDeProducao(
+  contexto: ContextoDeAcesso,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<SerieDeCusto[]>> {
+  return ler<SerieDeCusto[]>('/v1/territorio/custos', contexto, { sinal });
 }
 
 /** A malha municipal de São Paulo (IBGE, qualidade mínima). */

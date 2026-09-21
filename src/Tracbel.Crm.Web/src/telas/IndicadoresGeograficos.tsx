@@ -25,6 +25,7 @@ import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Ind
 import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
 import { DetalheDoMunicipio } from '../componentes/territorio/DetalheDoMunicipio';
+import { PainelDeCustos } from '../componentes/territorio/PainelDeCustos';
 import { PainelDePrecos } from '../componentes/territorio/PainelDePrecos';
 import {
   FAIXAS_AREA_PLANTADA,
@@ -1043,6 +1044,7 @@ export function IndicadoresGeograficos() {
       )}
 
       <PainelDePrecos />
+      <PainelDeCustos />
     </>
   );
 }

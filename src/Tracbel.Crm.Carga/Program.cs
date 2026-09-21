@@ -121,6 +121,13 @@ var somenteEstrutura = args.Contains("--somente-estrutura", StringComparer.Ordin
 // de municipios, e todas rodam no servidor. E a rotina MENSAL — as outras cargas publicas sao anuais.
 var somentePrecos = args.Contains("--somente-precos", StringComparer.Ordinal);
 
+// --somente-custos — O CUSTO DE PRODUCAO DAS CULTURAS EM SP (issue 67).
+//
+// As series historicas da CONAB, em .xls, uma por cultura: cafe arabica, cana, soja, milho, amendoim
+// e laranja. So as abas de locais de Sao Paulo. Roda na rotina mensal junto com os precos: a CONAB
+// revisa as planilhas ao longo do ano.
+var somenteCustos = args.Contains("--somente-custos", StringComparer.Ordinal);
+
 // --somente-art [--simular] — AS VENDAS DE MÁQUINA DO ART (documento 35, seção 10).
 //
 // Lê a view do ART (MySQL, sessão somente leitura) e confere dono e cadastro no banco do Protheus
@@ -143,13 +150,14 @@ var simular = args.Contains("--simular", StringComparer.Ordinal);
 //   --somente-pam           só a produção agrícola do IBGE — a rotina anual do servidor;
 //   --somente-estrutura     o Censo, o rebanho, a área territorial e as usinas da ANP;
 //   --somente-precos        os preços da CONAB e da Socicana e o dólar PTAX — a rotina mensal;
+//   --somente-custos        o custo de produção das culturas em SP, das séries da CONAB;
 //   --somente-art           as vendas de máquina do ART;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
 
-var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somentePrecos
+var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somentePrecos && !somenteCustos
                  && !somenteArt && !somenteMedir;
 
 if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
@@ -161,7 +169,7 @@ if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal
     Console.Error.WriteLine();
     Console.Error.WriteLine(
         "  O que continua valendo sem declaração nenhuma: --somente-faturamento (Protheus), " +
-        "--somente-territorio (planilhas e IBGE), --somente-pam (só o IBGE), --somente-estrutura e --somente-precos (fontes públicas), --somente-art e " +
+        "--somente-territorio (planilhas e IBGE), --somente-pam (só o IBGE), --somente-estrutura, --somente-precos e --somente-custos (fontes públicas), --somente-art e " +
         "--somente-medir.");
     Console.Error.WriteLine();
     Console.Error.WriteLine(
@@ -192,7 +200,7 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
 if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura
-    && !somentePrecos && !somenteArt)
+    && !somentePrecos && !somenteCustos && !somenteArt)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -262,7 +270,7 @@ using var clienteDaAnp = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
 // Atalho — só o território. Sai antes da exigência do Protheus, que esta etapa não usa.
 // -------------------------------------------------------------------------------------------------
 
-if (somenteTerritorio || somentePam || somenteEstrutura || somentePrecos)
+if (somenteTerritorio || somentePam || somenteEstrutura || somentePrecos || somenteCustos)
 {
     var caminhoDaAreaDeAtuacao = LerTexto(args, "--area-de-atuacao");
     var caminhoDoCenEGestor = LerTexto(args, "--cen-e-gestor");
@@ -302,6 +310,7 @@ if (somenteTerritorio || somentePam || somenteEstrutura || somentePrecos)
     var oQueRodou = somenteTerritorio ? "A CARGA DO TERRITÓRIO"
         : somentePam ? "A CARGA DA PRODUÇÃO AGRÍCOLA"
         : somentePrecos ? "A CARGA DOS PREÇOS DE MERCADO"
+        : somenteCustos ? "A CARGA DOS CUSTOS DE PRODUÇÃO"
         : "A CARGA DA ESTRUTURA AGROPECUÁRIA";
 
     try
@@ -313,7 +322,9 @@ if (somenteTerritorio || somentePam || somenteEstrutura || somentePrecos)
                 ? await cargaDoTerritorio.ExecutarSoAProducaoAgricolaAsync(CancellationToken.None)
                 : somentePrecos
                     ? await cargaDePrecos.ExecutarAsync(CancellationToken.None)
-                    : await cargaDaEstrutura.ExecutarAsync(CancellationToken.None);
+                    : somenteCustos
+                        ? await new CargaDeCustosDeProducao(AbrirContexto, new LeitorDeCustosDaConab(clienteDaAnp), usuarioId, Console.WriteLine).ExecutarAsync(CancellationToken.None)
+                        : await cargaDaEstrutura.ExecutarAsync(CancellationToken.None);
 
         foreach (var etapa in contagens.GroupBy(c => c.Etapa))
         {
