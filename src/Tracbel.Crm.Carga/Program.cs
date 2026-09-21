@@ -31,6 +31,12 @@ if (args.Contains("--servico-art", StringComparer.Ordinal))
 
 Console.OutputEncoding = Encoding.UTF8;
 
+// --conceder-administrador-inicial — O PRIMEIRO ADMINISTRADOR (AdministradorInicial.cs). Não é carga
+// nem lê fonte nenhuma: é o passo de instalação que dá a alguém o perfil que a tela de administração
+// exige. Sai antes de tudo o que é da carga, inclusive da trava do Vórtice.
+if (args.Contains(AdministradorInicial.Opcao, StringComparer.Ordinal))
+    return await AdministradorInicial.RodarAsync(args);
+
 // =================================================================================================
 // A CARGA DE DADOS DO SISTEMA LEGADO — projeto de console, e não endpoint da API.
 //

@@ -135,6 +135,29 @@ public sealed class UsuarioTestes
     }
 
     [Fact]
+    public void Na_instalacao_a_conta_se_libera_e_a_trilha_diz_que_foi_ela()
+    {
+        // O primeiro administrador (--conceder-administrador-inicial): não existe ninguém para liberá-lo.
+        var usuario = DoPrimeiroLogin();
+
+        usuario.LiberarNaInstalacao(7);
+
+        usuario.AguardaLiberacao.Should().BeFalse();
+        usuario.EmpresaId.Should().Be(7);
+        usuario.AlteradoPorId.Should().Be(usuario.Id);
+    }
+
+    [Fact]
+    public void Na_instalacao_so_libera_quem_espera_e_com_filial()
+    {
+        var semFilial = () => DoPrimeiroLogin().LiberarNaInstalacao(0);
+        var jaLiberada = () => DaCarga().LiberarNaInstalacao(7);
+
+        semFilial.Should().Throw<RegraDeNegocioViolada>().WithMessage("*filial*");
+        jaLiberada.Should().Throw<RegraDeNegocioViolada>();
+    }
+
+    [Fact]
     public void Conta_da_carga_nao_aguarda_liberacao()
     {
         DaCarga().AguardaLiberacao.Should().BeFalse("quem veio do Vórtice já era usuário; só a conta nova do primeiro login espera");

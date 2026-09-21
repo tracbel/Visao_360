@@ -218,6 +218,28 @@ public sealed class Usuario : EntidadeBase
         MarcarAlteracao(usuarioId);
     }
 
+    /// <summary>
+    /// A ÚNICA LIBERAÇÃO SEM OUTRA PESSOA: a do primeiro administrador, pelo comando de instalação da carga
+    /// (<c>--conceder-administrador-inicial</c>), quando ainda não existe administrador nenhum para liberar a
+    /// conta pela tela. Fora dele vale <see cref="Liberar"/>, em que ninguém libera a si mesmo.
+    ///
+    /// <para>Fica registrada como feita pela própria conta, porque é o que aconteceu: quem roda o comando é
+    /// a pessoa que vai administrar, e a justificativa da concessão diz por autorização de quem.</para>
+    /// </summary>
+    /// <param name="filialId">A filial de casa.</param>
+    public void LiberarNaInstalacao(int filialId)
+    {
+        if (!AguardaLiberacao)
+            throw new RegraDeNegocioViolada("Esta conta não está aguardando liberação.");
+
+        if (filialId <= 0)
+            throw new RegraDeNegocioViolada("A liberação precisa de uma filial de casa.");
+
+        EmpresaId = filialId;
+        AguardandoLiberacaoDesde = null;
+        MarcarAlteracao(Id);
+    }
+
     /// <summary>Atualiza o espelho do cadastro de origem, sem tocar na identidade.</summary>
     /// <param name="nomeCompleto">Nome completo.</param>
     /// <param name="nomeExibicao">Nome curto.</param>
