@@ -156,26 +156,6 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                 })
             .ToDictionaryAsync(a => a.Codigo, ct);
 
-        var responsaveis = (await (
-                from afirmacao in contexto.ResponsaveisPelosMunicipios.AsNoTracking().Where(r => r.EncerradoEm == null)
-                join municipio in contexto.Municipios.AsNoTracking() on afirmacao.MunicipioId equals municipio.Id
-                join usuario in contexto.Usuarios.AsNoTracking() on afirmacao.UsuarioId equals (long?)usuario.Id into usuarios
-                from usuario in usuarios.DefaultIfEmpty()
-                where municipio.CodigoIbge != null
-                select new
-                {
-                    Codigo = municipio.CodigoIbge!.Value,
-                    afirmacao.Papel,
-                    afirmacao.Fonte,
-                    afirmacao.NomeNaOrigem,
-                    afirmacao.Situacao,
-                    afirmacao.UsuarioId,
-                    UsuarioNome = usuario == null ? null : usuario.NomeExibicao,
-                    afirmacao.ImportadoEm
-                })
-            .ToListAsync(ct))
-            .ToLookup(r => r.Codigo);
-
         var municipios = await contexto.Municipios.AsNoTracking()
             .Select(m => new { m.Id, m.CodigoIbge, m.Uf, m.Nome })
             .ToDictionaryAsync(m => m.Id, ct);
@@ -479,17 +459,6 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                 continue;
 
             var acumulador = acumuladores.GetValueOrDefault(codigo) ?? new Acumulador();
-            var afirmacoes = responsaveis[codigo].ToList();
-            var cens = afirmacoes.Where(a => a.Papel == PapelNoMunicipio.Cen).ToList();
-
-            // AS DUAS FONTES FICAM, E A COMPARAÇÃO É SÓ UM RÓTULO. "Provável mesma pessoa" não funde
-            // nada: diz que os nomes diferem na grafia, e quem decide é o comercial (documento 32,
-            // seção 4.3). Divergente é qualquer diferença — de grafia ou de pessoa.
-            var comparacao = cens.Select(c => c.Fonte).Distinct().Count() == 2
-                ? ResponsavelPeloMunicipio.CompararCen(cens[0].NomeNaOrigem, cens[0].UsuarioId, cens[1].NomeNaOrigem, cens[1].UsuarioId)
-                : ComparacaoDoCen.UmaFonteSo;
-            var divergente = comparacao is ComparacaoDoCen.ProvavelMesmaPessoa or ComparacaoDoCen.NomesDiferentes;
-
             itens.Add(new IndicadoresDoMunicipio(
                 codigo,
                 linhaDaArea?.Nome ?? nomeOficial.GetValueOrDefault(codigo, codigo.ToString(System.Globalization.CultureInfo.InvariantCulture)),
@@ -499,14 +468,6 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                 linhaDaArea?.LojaCodigo,
                 linhaDaArea?.LojaNome,
                 linhaDaArea?.LojaAtiva,
-                [
-                    .. afirmacoes
-                        .OrderBy(a => a.Papel).ThenBy(a => a.Fonte)
-                        .Select(a => new ResponsavelDeclarado(
-                            a.Papel.ToString(), a.Fonte.ToString(), a.NomeNaOrigem, a.Situacao.ToString(), a.UsuarioNome, a.ImportadoEm))
-                ],
-                divergente,
-                comparacao.ToString(),
                 acumulador.Cobertura(),
                 acumulador.Vendas(),
                 [

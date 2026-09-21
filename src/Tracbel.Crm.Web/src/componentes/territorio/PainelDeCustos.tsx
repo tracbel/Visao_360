@@ -79,8 +79,8 @@ export function PainelDeCustos() {
     .sort((a, b) => ultima(b).safra - ultima(a).safra || a.local.localeCompare(b.local));
   const selecionada = daCultura.find((s) => chave(s) === escolhida) ?? daCultura[0] ?? null;
 
-  // O GRÁFICO USA O CUSTO TOTAL, que é o que a planilha do comercial usa; na aba que parou no
-  // operacional, o ponto fica de fora — misturar as duas camadas na mesma linha faria a série "cair".
+  // O GRÁFICO USA O CUSTO TOTAL, o da rentabilidade de longo prazo; na aba que parou no operacional,
+  // o ponto fica de fora — misturar as duas camadas na mesma linha faria a série "cair".
   const pontos = (selecionada?.safras ?? [])
     .filter((c) => c.custoTotalHa !== null)
     .map((c) => ({ rotulo: rotuloDaSafra(c, selecionada!), valor: c.custoTotalHa! }));
@@ -91,9 +91,8 @@ export function PainelDeCustos() {
         <h2 className="terr-secao-titulo">Custo de produção — referências da CONAB em São Paulo</h2>
         <p className="terr-secao-subtitulo">
           As séries históricas da CONAB, por cultura e local de referência: custo <strong>operacional</strong> (variável +
-          fixo) e <strong>total</strong> (operacional + remuneração do capital e da terra), por hectare e por unidade. A
-          planilha do comercial usa o custo total por hectare. A margem — preço menos custo — vem com os indicadores de
-          mercado.
+          fixo) e <strong>total</strong> (operacional + remuneração do capital e da terra), por hectare e por unidade. O
+          gráfico mostra o custo total por hectare. A margem — preço menos custo — vem com os indicadores de mercado.
         </p>
       </div>
 
