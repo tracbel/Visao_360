@@ -16,9 +16,11 @@ const MENUS: Record<AbaConfig, ItemMenu[]> = {
     { id: 'metas', icon: '🎯', label: 'Metas e SLA' },
     { id: 'aprovacoes', icon: '✅', label: 'Políticas de aprovação' },
     { id: 'taxonomias', icon: '🏷️', label: 'Taxonomias' },
+    { id: 'potencial', icon: '📈', label: 'Potencial de mercado' },
   ],
   ti: [
     { id: 'integracoes', icon: '🔌', label: 'Integrações' },
+    { id: 'fontes', icon: '🌎', label: 'Fontes públicas' },
     { id: 'usuarios', icon: '👥', label: 'Usuários' },
     { id: 'permissoes', icon: '🛡️', label: 'Permissões e roles' },
     { id: 'auditoria', icon: '📋', label: 'Auditoria e logs' },
