@@ -1,0 +1,46 @@
+/*
+ * Configurações › Potencial de mercado e › Fontes públicas (issue 77).
+ * Só o que as classes do design system não cobrem: a tabela que cabe no cartão, o destaque da fonte
+ * atrasada e a lista dos parâmetros.
+ */
+
+/* A COLUNA DE CONTEÚDO DAS CONFIGURAÇÕES ENCOLHE. Item de grade/flex não fica menor que o conteúdo sem isto, e
+   uma tabela larga empurrava a página inteira para além da janela; com isto, quem rola é só a tabela. */
+.config-content { min-width: 0; }
+.pot-col-fonte { min-width: 230px; }
+
+/* A tabela do cadastro pede 860px; dentro do cartão de configurações ela rolaria sem precisar. */
+.cad-tabela.pot-tabela { min-width: 0; }
+.cad-tabela.pot-tabela td { vertical-align: top; }
+
+.pot-cabecalho { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.pot-cabecalho .form-field { margin: 0; min-width: 180px; }
+
+.pot-pendencias { margin: 12px 0 0; padding-left: 18px; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+
+.pot-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px 24px; margin: 0; }
+.pot-lista dt { font-size: 12px; color: var(--text-tertiary); margin-bottom: 2px; }
+.pot-lista dd { margin: 0; font-weight: 600; color: var(--text-primary); }
+.pot-em-aberto { font-weight: 400; font-style: italic; color: var(--n-400); }
+
+/* A trilha: os valores e a justificativa são as colunas que se leem; o resto é curto. */
+.pot-col-valores { min-width: 220px; }
+.pot-col-justificativa { min-width: 280px; }
+.pot-recorte { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
+.pot-vigencia { font-size: 12px; color: var(--text-secondary); margin-top: 14px; line-height: 1.5; }
+.pot-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+.pot-formulario { border-top: 1px solid var(--n-200); margin-top: 18px; padding-top: 18px; }
+.pot-formulario-titulo { font-weight: 600; margin-bottom: 12px; }
+.pot-acoes { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+.pot-botao-linha { margin-top: 14px; }
+
+/* A FONTE QUE PEDE ATENÇÃO SALTA AOS OLHOS (aceite da issue 77: "fonte atrasada fica em destaque"). */
+.pot-fonte-atrasada { background: #FEF2F2; box-shadow: inset 4px 0 0 #EF4444; }
+.pot-fonte-semdado { background: #FFFBEB; box-shadow: inset 4px 0 0 #F59E0B; }
+.pot-motivo { font-size: 12px; color: var(--text-secondary); margin-top: 6px; max-width: 280px; line-height: 1.4; }
+
+.pot-resumo { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 14px; font-size: 13px; color: var(--text-secondary); }
+.pot-resumo strong { color: var(--text-primary); }
+.pot-resumo .pot-alerta { color: #B91C1C; }
