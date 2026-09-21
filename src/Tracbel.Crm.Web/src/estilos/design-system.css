@@ -197,6 +197,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 .search {
   display: flex;
@@ -207,10 +208,15 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   border-radius: var(--radius);
   padding: 6px 10px;
   width: 340px;
+  /* ENCOLHE QUANDO FALTA ESPAÇO: com o seletor de filial ao lado, os 340 px fixos passavam 3 px da
+     janela em 1.024 px, e toda tela ganhava rolagem lateral (21/09/2026). Onde cabe, fica igual. */
+  min-width: 0;
+  flex-shrink: 1;
   color: var(--text-tertiary);
 }
 .search input {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -249,6 +255,11 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   padding: 24px 32px 48px;
   max-width: 1400px;
   width: 100%;
+}
+/* As telas de análise (`larga` em rotas.tsx) usam a janela inteira: num monitor de 2.400 px, o teto
+   acima deixava 750 px vazios à direita dos mapas e gráficos (21/09/2026). */
+.content.conteudo-largo {
+  max-width: none;
 }
 
 /* ===== PAGE HEADER ===== */
@@ -8044,9 +8055,12 @@ tr.funil-nova {
   background: var(--n-50);
   font-size: 11px;
   color: var(--text-tertiary);
+  /* NUNCA MAIS LARGO QUE O CARTÃO: numa tela de 390 px, "organizacao.CotacaoDeProduto + ..." em
+     fonte mono, sem onde quebrar, dava 105 px de rolagem lateral à página inteira (21/09/2026). */
+  max-width: 100%;
 }
 .cad-procedencia-sistema { font-weight: 700; color: var(--text-secondary); }
-.cad-procedencia-objeto { font-family: var(--font-mono); font-size: 10.5px; }
+.cad-procedencia-objeto { font-family: var(--font-mono); font-size: 10.5px; min-width: 0; overflow-wrap: anywhere; }
 .cad-procedencia-velha {
   background: var(--warning-bg);
   border-color: #FDBA74;

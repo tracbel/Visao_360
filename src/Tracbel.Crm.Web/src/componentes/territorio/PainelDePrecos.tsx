@@ -20,6 +20,7 @@ import { useMemo, useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
 import { SeloProcedencia } from '../cadastro/SeloProcedencia';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
+import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { obterPrecosDeMercado } from '../../dados/api/territorio';
 import { useRecurso } from '../../dados/api/useRecurso';
@@ -238,13 +239,19 @@ export function PainelDePrecos() {
                   ` · a fonte publica por ${selecionada.unidade}; convertido × ${selecionada.fatorComercial.toLocaleString('pt-BR')}`}
               </div>
               {grafico.valores.length > 0 ? (
-                <GraficoLinhaMensal
-                  rotulos={grafico.rotulos}
-                  valores={grafico.valores}
-                  largura={560}
-                  altura={240}
-                  formatar={(v) => formatarMoeda(v, moeda, casasDe(Math.max(...grafico.valores)))}
-                />
+                // A LARGURA VEM DO CARTÃO, e não de uma constante: os 560 px fixos passavam da borda abaixo
+                // de 1.280 px e sobravam no meio do cartão numa tela larga (medido em 21/09/2026).
+                <MolduraDeGrafico altura={240}>
+                  {(l, a) => (
+                    <GraficoLinhaMensal
+                      rotulos={grafico.rotulos}
+                      valores={grafico.valores}
+                      largura={l}
+                      altura={a}
+                      formatar={(v) => formatarMoeda(v, moeda, casasDe(Math.max(...grafico.valores)))}
+                    />
+                  )}
+                </MolduraDeGrafico>
               ) : (
                 <p className="cad-sub">Nenhum mês desta série tem dólar PTAX ainda.</p>
               )}

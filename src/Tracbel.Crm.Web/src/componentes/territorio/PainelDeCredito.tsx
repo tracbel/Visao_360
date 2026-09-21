@@ -21,6 +21,7 @@ import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTel
 import { PainelDeIndicadores, type Indicador } from '../cadastro/Indicadores';
 import { SeloProcedencia } from '../cadastro/SeloProcedencia';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
+import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { obterCreditoRural } from '../../dados/api/territorio';
 import { useRecurso } from '../../dados/api/useRecurso';
@@ -199,14 +200,18 @@ export function PainelDeCredito() {
                 aparece tracejado
               </div>
               {anos.length > 1 && (
-                <GraficoLinhaMensal
-                  rotulos={anos.map((a) => String(a.ano))}
-                  valores={anos.map((a) => a.valorDeMaquinas)}
-                  largura={460}
-                  altura={240}
-                  formatar={reaisCurtos}
-                  ultimoParcial={(anos.at(-1)?.ultimoMes ?? 12) < 12}
-                />
+                <MolduraDeGrafico altura={240}>
+                  {(l, a) => (
+                    <GraficoLinhaMensal
+                      rotulos={anos.map((ano) => String(ano.ano))}
+                      valores={anos.map((ano) => ano.valorDeMaquinas)}
+                      largura={l}
+                      altura={a}
+                      formatar={reaisCurtos}
+                      ultimoParcial={(anos.at(-1)?.ultimoMes ?? 12) < 12}
+                    />
+                  )}
+                </MolduraDeGrafico>
               )}
               <SeloProcedencia procedencia={credito.procedencia} />
             </div>
