@@ -454,6 +454,25 @@ O casamento continua **nunca adivinhando**. Uma caixa de departamento da carga c
 nenhuma conta nova nasce por cima dela. Duas chamadas simultâneas do mesmo primeiro login (a tela abre
 várias) criam **uma** conta: a segunda bate no índice único e recebe a mesma resposta.
 
+#### 4.2.2 O primeiro administrador (21/09/2026)
+
+A tela de administração exige quem já administra, e no banco novo não há ninguém. O primeiro sai de um
+passo de instalação, e não de um `INSERT` à mão:
+
+```
+.\scripts\deploy\conceder-administrador-inicial.ps1 -NomePrincipal <e-mail da conta Microsoft>
+```
+
+| O quê | Como |
+|---|---|
+| onde roda | no servidor, como SYSTEM, com a conexão integrada das rotinas: `Tracbel.Crm.Carga.exe --conceder-administrador-inicial <conta> --justificativa "..." [--filial <código>] [--simular]` |
+| a ordem | primeiro `--simular` (transação desfeita no fim), a saída na tela, a confirmação `CONCEDER`, e só então para valer |
+| a concessão | `UsuarioPerfil.Conceder` do perfil Administrador, sem filial e sem expiração, com a justificativa prefixada por "Primeiro administrador, pelo comando de instalação:" |
+| em nome de quem | da própria conta, com origem `Usuario`. Assim a inclusão entra na trilha, já que inclusão com origem `Sistema` não entra (`PoliticaDeAuditoria.RegistraInclusao`) |
+| uma vez só | recusa se já existe administrador **ativo** (conta ativa, liberada e com concessão vigente). Para a mesma conta, responde "já é administrador" e não grava nada |
+| conta que ainda espera | precisa de `--filial`, e é liberada nela (`Usuario.LiberarNaInstalacao`, a única liberação sem outra pessoa). Sem `--filial`, a recusa lista as filiais ativas |
+| conta que não existe | recusa: a pessoa entra uma vez no CRM (o primeiro login cria a conta) e roda de novo |
+
 ### 4.3 A fronteira de multiempresa, provada
 
 A filial **não vem do corpo da requisição** — vem do contexto. Aceitar `EmpresaId` no JSON abriria
