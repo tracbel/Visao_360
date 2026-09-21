@@ -71,6 +71,16 @@ public static class EndpointsDeTerritorio
                 "município sem código IBGE, outra UF) vem somado em foraDoMapa, para o total fechar. " +
                 "Período em competências aaaa-mm, inclusive; padrão = 12 meses fechados.");
 
+        grupo.MapGet("/precos", async (ObterPrecosDeMercado caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ObterPrecosDeMercado")
+            .WithSummary("Preços das culturas em SP, mês a mês, em reais e em dólares (issue 66).")
+            .WithDescription(
+                "Uma série por produto, fonte e nível: preço recebido pelo produtor (CONAB), preço do kg " +
+                "de ATR da cana (Socicana). O valor vem na unidade da fonte e o fator para a unidade " +
+                "comercial (saca de 60 kg, caixa de 40,8 kg, arroba). O dólar é o PTAX médio do mesmo mês; " +
+                "mês sem PTAX vem sem dólar. A base só cresce: mês que saiu da janela da fonte continua aqui.");
+
         return app;
     }
 

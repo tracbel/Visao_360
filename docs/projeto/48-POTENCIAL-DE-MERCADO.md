@@ -119,7 +119,9 @@ página, sem baixar dado de ninguém.
 | IBGE — PPM, tabela 3939 | (pecuária; a conversa lista "Nº Gado" junto do Censo) | variável 105 (efetivo), classificação 79, **Bovino = 2670**; anual, **1974–2024** — mais recente que o Censo, por isso a planilha a usa | API e metadados do IBGE | #65 |
 | CONAB — custos de produção | `gov.br/conab/…/planilhas-de-custos-de-producao` | índice com 45 produtos agrícolas com série histórica, **entre eles soja, milho, amendoim, laranja, café arábica e cana**, em .xls ou .xlsx; os locais de SP ficam dentro dos arquivos | download manual; formato muda com os anos | #67 |
 | CEPEA — preços | `cepea.org.br` | indicadores de preço das culturas | **o site bloqueou a leitura automática (403)**: lista de indicadores e termos de uso a conferir à mão | #66 |
+| CONAB — preços agropecuários | `portaldeinformacoes.conab.gov.br/downloads/arquivos/PrecosMensalUF.txt` | **[M 21/09]** preço **recebido pelo produtor**, mensal, por UF (e por município, com código IBGE), em R$/kg: em SP, 34 produtos — café arábica, soja, milho, amendoim, laranja indústria, cana, boi, leite, sorgo, algodão, trigo, feijão e outros; **só os últimos 12 meses** (09/2025–08/2026) | arquivo aberto, sem cadastro, Latin-1 com `;` | #66 |
 | Socicana — preço do kg de ATR | `socicana.com.br/calculadora-de-atr/preco-do-kg/` | preço **mensal e acumulado** do kg de ATR por safra, de 2015/16 a 2026/27; agosto de 2026 = **R$ 0,8692** (mensal), **o mesmo valor da planilha** — a série de cana do protótipo vem daqui | página HTML, sem arquivo para baixar | #66 |
+| Banco Central — PTAX | `api.bcb.gov.br/dados/serie/bcdata.sgs.3698` | **[M 21/09]** dólar de venda, média mensal, desde 01/2015 (140 meses) | API pública (SGS), sem credencial | #66 |
 | Banco Central — SICOR | `olinda.bcb.gov.br/olinda/servico/SICOR/versao/v2/aplicacao` | serviço OData com 17 recursos, entre eles **`InvestMunicipioProduto`** (o da planilha), `CusteioMunicipioProduto`, `InvestRegiaoUFProduto`, `ProgramaSubprograma`, `FonteRecursos` e `CusteioInvestimentoComercialIndustrialSemFiltros` | API pública (OData), sem credencial | #68 |
 
 **Achado ao conferir a tabela 5457:** o leitor do IBGE do CRM pede a variável **216 (área colhida)** e a
@@ -153,6 +155,43 @@ isso, como o resto da Visão 360 faz com dado que não fecha.
 Na ADR, a carga encontrou **64 usinas**; a planilha listava 68 municípios, com repetição e incluindo
 as exclusivamente açucareiras. A maior é a São Martinho, em Pradópolis, com 4.240 m³/dia.
 
+### 2.4 Os preços: CONAB, Socicana e PTAX [medido em 21/09/2026, #66]
+
+O texto-base cita o **CEPEA** como fonte de preço. O CEPEA tem termos de uso e bloqueou a leitura
+automática em 17/09/2026; pela mesma regra das usinas (§2.3), barreira não se contorna — procura-se o
+equivalente oficial aberto. Ele existe:
+
+| | CEPEA | **CONAB — preços agropecuários** | **Socicana** | **Banco Central — PTAX** |
+|---|---|---|---|---|
+| O que é | indicador de preço por praça | preço **recebido pelo produtor**, por UF e município | preço do kg de ATR (Consecana) | dólar de venda, média mensal |
+| Culturas em SP | café, laranja e outras | **34 produtos**, entre eles café, soja, milho, amendoim, laranja, cana, boi e leite | cana | — |
+| Histórico | longo | **só os últimos 12 meses** | **12 safras** (2015/16 a 2026/27) | desde 01/2015 |
+| Acesso | termos de uso; leitura automática bloqueada | arquivo aberto | página pública; `robots.txt` livre | API aberta |
+
+**A decisão é CONAB + Socicana + PTAX, e o CEPEA fica de fora até a licença.** O que isso custa, dito
+em voz alta:
+
+- **A série da CONAB começa com 12 meses** e cresce um por vez: o arquivo é uma janela móvel, e o CRM
+  **nunca apaga** o mês que sai dela — é o "não varia, só vamos acrescentando" do texto-base. O índice
+  de momento **12 ÷ 12** (D-P02) só fica disponível quando houver 24 meses, em **09/2027**, salvo
+  histórico de outra fonte.
+- **Preço recebido pelo produtor não é o indicador CEPEA.** O CEPEA publica preço em praça de
+  referência (café em Santos, por exemplo); a CONAB, o que o produtor paulista recebeu. Para o momento
+  de preço, a rentabilidade e o termo de troca, o do produtor é o que interessa — mas os números não
+  são os mesmos da planilha, e **não se misturam na mesma série**.
+- **Café em SP tem buracos na CONAB:** só 6 dos 12 meses (09/2025 a 02/2026) no arquivo lido.
+
+**Carga** (`--somente-precos`, rotina mensal `TracbelCrmPrecos` do servidor, todo dia 20): 331
+cotações da CONAB, 274 da Socicana (mensal e acumulado da safra, 137 meses) e 140 meses de PTAX na
+primeira rodada; zero gravações na segunda. O valor revisado pela fonte é atualizado e **o anterior
+fica na trilha de auditoria**. **Conferência:** o kg de ATR de agosto de 2026 = R$ 0,8692, o mesmo da
+planilha.
+
+**Na tela** (Indicadores Geográficos, seção "Preços das culturas — São Paulo"): o último mês de cada
+série, em R$ ou US$, **na unidade do mercado** — saca de 60 kg, caixa de 40,8 kg, arroba —, a
+variação contra o mesmo mês do ano anterior quando a série já tem, quantos meses ela tem no CRM, e o
+gráfico da série escolhida. Soja a **R$ 129,60 a saca**, café a **R$ 1.894,20**, laranja a
+**R$ 27,74 a caixa** (08/2026; café, 02/2026).
 ---
 
 ## 3. O protótipo, fórmula por fórmula
@@ -332,7 +371,7 @@ Cada decisão tem opções, a recomendação e o que ela bloqueia. **Nenhuma foi
 | D-P08 | Vendas para captura e share | entregas John Deere por ano fiscal (planilha); faturamento do Protheus (#18/#19); pedidos da API GN (#12) | uma fonte oficial por período; município do cliente; ano fiscal da John Deere e ano civil lado a lado | #69 |
 | D-P09 | "O contrato foi da Tracbel?" | o SICOR não identifica cliente nem revenda | aceitar como **aproximação** a comparação, por município e mês, dos contratos do SICOR com os pedidos da Tracbel financiados (instituição e linha de crédito na API GN) — nunca contrato a contrato | #69, #73 |
 | D-P10 | Anos de referência | **[M 20/09] o rótulo da planilha está adiantado na área:** o que ela chama de área 2025 preliminar é a PAM de 2024, e a "2024" é a de 2023; o valor 2024 é mesmo de 2024 (errata da §3.8). Mais o Censo 2017 | usar o último ano completo de cada fonte, mostrar o ano em cada número e nunca misturar anos numa razão sem aviso. O banco já guarda **três anos** da PAM, então a escolha não pede nova carga | #64, #72 |
-| D-P11 | Preços de soja, milho e amendoim; forma de obter o CEPEA e a Socicana | não há série de soja, milho e amendoim na pasta; o CEPEA tem termos de uso e bloqueou a leitura automática; **a cana já tem fonte: Socicana** (preço do kg de ATR, mensal, em página HTML) | definir a fonte de soja, milho e amendoim; conferir a licença do CEPEA e da Socicana antes de automatizar; até lá, envio mensal pelo administrador | #66 |
+| D-P11 | Preços de soja, milho e amendoim; forma de obter o CEPEA e a Socicana | não há série de soja, milho e amendoim na pasta; o CEPEA tem termos de uso e bloqueou a leitura automática; **a cana já tem fonte: Socicana** (preço do kg de ATR, mensal, em página HTML) | **[M 21/09] resolvido para soja, milho e amendoim — e para tudo o mais:** a CONAB publica o preço recebido pelo produtor em SP como dado aberto (§2.4). A Socicana é página pública e o `robots.txt` não restringe nada. **Aberto só o CEPEA:** licença a conferir; até lá, fora da coleta automática | #66 |
 | D-P12 | Valor do potencial em R$ | não existe preço por máquina no modelo | preço de referência por categoria × demanda, com fonte e data | #70, #72 |
 | D-P13 | Propriedades por tamanho × clientes | o Censo é agregado; área por cliente vazia no CRM; ART sem acesso | primeiro a distribuição regional (Censo); cruzamento só com área por cliente de fonte decidida (cadastro pelo CEN, ART, CAR/SICAR) | #65, #79 |
 | D-P14 | Base de municípios e CEN da visão do CEN | 203 da ADR confirmados; três fontes de CEN; concessão JD ≠ loja | ADR do CRM como base única; CEN pela decisão da #48; concessão JD como recorte adicional, se a diretoria quiser | #78 |

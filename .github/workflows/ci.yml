@@ -264,6 +264,13 @@ jobs:
       - name: Levar o front para dentro do pacote da API
         run: cp -r src/Tracbel.Crm.Web/dist/. pacote/api/wwwroot/
 
+      # AS ROTINAS AGENDADAS VIAJAM NO PACOTE: o publicar-pacote.ps1 roda este script no servidor a cada
+      # publicacao, e a rotina de uma fonte nova chega junto com o codigo que a usa (issue 66).
+      - name: Levar as rotinas agendadas para dentro do pacote
+        run: |
+          mkdir -p pacote/rotinas
+          cp scripts/deploy/registrar-rotinas.ps1 pacote/rotinas/
+
       # O MANIFESTO E O QUE O AGENTE DO SERVIDOR LE ANTES DE PUBLICAR. Ele diz o commit, as migracoes
       # que o pacote carrega e — o que mais importa — SE ALGUMA DELAS E DESTRUTIVA.
       #

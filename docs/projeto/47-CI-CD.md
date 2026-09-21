@@ -250,6 +250,7 @@ tinha provado ao ler 163.965 linhas do SIDRA de dentro dele.
 4. Backup `COPY_ONLY` → para os serviços → troca os arquivos (preservando `appsettings.Production.json`
    e `ssl`, que são do servidor) → sobe a API, que aplica as migrações → **prova de vida**.
 5. Se a prova de vida falhar, **volta sozinho** à versão anterior e sobe de novo.
+6. Com a aplicação no ar, **recria as rotinas agendadas** das fontes públicas com o `registrar-rotinas.ps1` que veio no pacote (issue 66) — ver §6.5.1.
 
 ### 6.3 Aditiva sobe sozinha, destrutiva para e avisa
 
@@ -279,6 +280,7 @@ apagado** antes de perguntar, e vale para aquele commit só.
 | Estação, uma vez | `scripts/deploy/instalar-agente-de-publicacao.ps1` | pede o token, confere contra o GitHub, instala e agenda |
 | Servidor, a cada 5 min | `scripts/deploy/agente-de-publicacao.ps1` | decide se há o que publicar |
 | Servidor | `scripts/deploy/publicar-pacote.ps1` | troca a versão, com prova de vida e volta atrás |
+| Servidor, a cada publicação | `scripts/deploy/registrar-rotinas.ps1` (viaja no pacote) | recria as rotinas `TracbelCrmFontesPublicas` (anual) e `TracbelCrmPrecos` (mensal) |
 | Estação | `scripts/deploy/verificar-publicacao.ps1` | em que versão o servidor está e o que ele espera |
 | Estação | `scripts/deploy/autorizar-publicacao.ps1` | libera uma publicação destrutiva |
 
@@ -317,6 +319,28 @@ quem o criou**; uma integração nova ganha o seu, com as opções que ela preci
 **E o do log é o que quase impediu achar os outros.** Um log só serve se puder ser lido no dia em que
 algo der errado — que foi exatamente este dia.
 
+### 6.5.1 O que a publicação apagaria — achado em 21/09/2026, antes de acontecer
+
+O passo 4 do `publicar-pacote.ps1` **esvazia a pasta de destino** antes de copiar a versão nova, e
+só preserva `appsettings.Production.json` e `ssl`. Na pasta da carga moravam também o script da
+rotina anual (`rodar-fontes-publicas.ps1`) e os **logs** dela. A primeira publicação automática os
+teria apagado, e a tarefa `TracbelCrmFontesPublicas` falharia **em silêncio, em outubro** — não
+aconteceu porque o agente ainda não estava instalado quando a issue 66 achou o problema.
+
+A correção resolve também o passo manual que sobrava:
+
+- as rotinas passam a morar **numa pasta própria**, `C:\aplicacoes\tracbel-crm-rotinas`, que nenhuma
+  troca de versão alcança;
+- quem as cria é o `registrar-rotinas.ps1`, que **viaja dentro do pacote** do CI e roda no passo 7
+  de toda publicação. A rotina de uma fonte nova (os preços, na #66; os custos da CONAB e o SICOR,
+  depois) chega ao servidor **junto com o código que a usa**, sem ninguém rodar script nenhum;
+- o `agendar-fontes-publicas-no-servidor.ps1` da estação roda **o mesmo arquivo** — uma definição
+  só das rotinas — e só é preciso antes de o agente estar instalado.
+- registrar a tarefa não a **roda**: com a tabela de preços vazia, o passo 7 **dispara** a rotina
+  mensal na hora, em vez de deixar a tela um mês sem preço esperando o dia 20.
+
+Falhar no passo 7 **não derruba a publicação**: a aplicação já provou que responde. O erro vai para o
+registro de eventos, onde a publicação inteira se conta.
 ### 6.6 A decisão de 17/09/2026 e o que a sustentou
 
 Ricardo indicou uma máquina Linux com Docker (`ecs-st-agro-sistemas-linux`, 10.150.4.227) e autorizou o

@@ -11,7 +11,8 @@
  * - não mostra potencial de cliente nem de não cliente — não há área por
  *   propriedade; o potencial é o do município inteiro, por uma regra ainda a
  *   confirmar;
- * - não mostra valor em reais no potencial — não há preço confirmado;
+ * - não mostra valor em reais no potencial — não há preço de máquina confirmado;
+ *   o preço das CULTURAS está no painel do fim (issue 66);
  * - não oferece FYTD — o calendário fiscal não foi confirmado.
  *
  * OS NÚMEROS DA MAQUETE NÃO ESTÃO AQUI. Ela era ilustrativa; nenhum valor desta
@@ -24,6 +25,7 @@ import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Ind
 import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
 import { DetalheDoMunicipio } from '../componentes/territorio/DetalheDoMunicipio';
+import { PainelDePrecos } from '../componentes/territorio/PainelDePrecos';
 import {
   FAIXAS_AREA_PLANTADA,
   FAIXAS_COBERTURA_PERCENTUAL,
@@ -1039,6 +1041,8 @@ export function IndicadoresGeograficos() {
           </div>
         </div>
       )}
+
+      <PainelDePrecos />
     </>
   );
 }

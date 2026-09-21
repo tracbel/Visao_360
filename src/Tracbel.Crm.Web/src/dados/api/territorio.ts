@@ -8,6 +8,7 @@
  */
 
 import type { ComProcedencia } from '../../tipos/api';
+import type { PrecosDeMercado } from '../../tipos/mercado';
 import type { FiltrosTerritoriais, PainelTerritorial } from '../../tipos/territorio';
 import type { ColecaoMunicipal } from '../../componentes/territorio/projecao';
 import { ler, type ContextoDeAcesso } from './http';
@@ -30,6 +31,17 @@ export function obterIndicadoresTerritoriais(
       filialDoCliente: filtros.filialDoCliente,
     },
   });
+}
+
+/**
+ * Os preços das culturas em SP, mês a mês (issue 66). Não depende de filial:
+ * preço de mercado é o mesmo para todas.
+ */
+export function obterPrecosDeMercado(
+  contexto: ContextoDeAcesso,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<PrecosDeMercado>> {
+  return ler<PrecosDeMercado>('/v1/territorio/precos', contexto, { sinal });
 }
 
 /** A malha municipal de São Paulo (IBGE, qualidade mínima). */
