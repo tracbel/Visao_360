@@ -15,11 +15,16 @@
  * rota de escopo responde pela filial de casa e diz qual foi recusada, e este
  * seletor troca — em vez de deixar toda tela presa num 403.
  *
+ * "TODAS AS FILIAIS" É DE QUEM ADMINISTRA O CRM (21/09/2026): as 16 filiais são
+ * todas raiz, então nenhuma filial escolhida cobre as outras. A opção só aparece
+ * quando a rota de escopo diz que a pessoa pode, e a API registra no log cada
+ * requisição feita nela. Cadastro novo não nasce aí: a API pede uma filial.
+ *
  * SÓ APARECE NAS TELAS LIGADAS À API (`rotas.tsx`, campo `usaApi`).
  */
 
 import { useEffect, useState } from 'react';
-import { obterEscopo } from '../../dados/api/acesso';
+import { obterEscopo, TODAS_AS_FILIAIS } from '../../dados/api/acesso';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { useRecurso } from '../../dados/api/useRecurso';
 
@@ -53,13 +58,15 @@ export function SeletorDeFilial() {
   }
 
   const filiais = dados?.filiaisPermitidas ?? [];
+  const podeVerTodas = dados?.podeVerTodasAsFiliais ?? false;
+  const nomeDaRecusada = recusada === TODAS_AS_FILIAIS ? 'Todas as filiais' : `a filial ${recusada}`;
 
   return (
-    <label className="cad-filial" title={recusada ? `A filial ${recusada} não está entre as suas; voltamos para a de casa.` : undefined}>
+    <label className="cad-filial" title={recusada ? `${nomeDaRecusada} não está entre as suas escolhas; voltamos para a de casa.` : undefined}>
       <span className="cad-filial-rotulo">Filial</span>
       <select
         value={contexto.empresa}
-        disabled={escopo.carregando || filiais.length <= 1}
+        disabled={escopo.carregando || (filiais.length <= 1 && !podeVerTodas)}
         onChange={(e) => {
           setRecusada(null);
           trocarEmpresa(e.target.value);
@@ -67,6 +74,7 @@ export function SeletorDeFilial() {
         aria-label="Filial do contexto de acesso"
       >
         {escopo.carregando && <option value={contexto.empresa}>Carregando…</option>}
+        {podeVerTodas && <option value={TODAS_AS_FILIAIS}>Todas as filiais</option>}
         {filiais.map((filial) => (
           <option key={filial.codigo} value={filial.codigo}>
             {filial.nome}
@@ -75,7 +83,7 @@ export function SeletorDeFilial() {
           </option>
         ))}
       </select>
-      {recusada && <span className="cad-filial-aviso">a filial {recusada} não está entre as suas</span>}
+      {recusada && <span className="cad-filial-aviso">{nomeDaRecusada} não está entre as suas escolhas</span>}
     </label>
   );
 }

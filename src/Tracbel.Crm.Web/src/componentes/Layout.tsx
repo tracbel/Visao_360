@@ -27,6 +27,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { TODAS_AS_FILIAIS } from '../dados/api/acesso';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { useSessao } from '../dados/api/sessao';
 import { acharRota } from '../rotas';
@@ -131,7 +132,7 @@ export function Layout() {
                   {sessao.nome}
                 </span>
                 <span className="user-role">
-                  filial {contexto.empresa} ·{' '}
+                  {contexto.empresa === TODAS_AS_FILIAIS ? 'todas as filiais' : `filial ${contexto.empresa}`} ·{' '}
                   {/* ÂNCORA COMUM, e não navegação do roteador: sair precisa
                       passar pelo servidor, que derruba o cookie E a sessão na
                       Microsoft. Só limpar o estado da tela deixaria a próxima

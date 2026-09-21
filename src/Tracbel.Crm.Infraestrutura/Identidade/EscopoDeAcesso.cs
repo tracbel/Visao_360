@@ -34,7 +34,8 @@ public sealed record IdentidadeDoEntra(Guid IdentidadeExterna, string NomePrinci
 ///
 /// <para><b>Quais filiais ela pode escolher</b> (P-20, 21/09/2026): a de casa e aquelas em que tem um
 /// perfil concedido; qualquer outra, 403. Até a fase 3, qualquer filial ativa passava pelo cabeçalho.
-/// Quem tem a visão entre filiais em profundidade Organização escolhe qualquer uma.</para>
+/// Quem tem a visão entre filiais em profundidade Organização escolhe qualquer uma — e também
+/// <see cref="ContextoAcesso.CodigoDeTodasAsFiliais"/>, que põe todas as filiais no alcance de uma vez.</para>
 /// </summary>
 internal static class EscopoDeAcesso
 {
@@ -64,10 +65,15 @@ internal static class EscopoDeAcesso
     {
         var agora = DateTime.UtcNow;
 
+        // TODAS AS FILIAIS não é uma filial: é o código que o seletor manda quando o administrador pede
+        // todas de uma vez. O contexto ainda precisa de UMA filial, e ela é a de casa — o cadastro recusa
+        // registro novo neste modo, então ela nunca decide onde algo nasce.
+        var todasAsFiliais = string.Equals(codigoDaFilial?.Trim(), ContextoAcesso.CodigoDeTodasAsFiliais, StringComparison.OrdinalIgnoreCase);
+
         // ---- 1. A filial pedida existe? -------------------------------------------------------
         var consulta = banco.Empresas.Where(e => e.EstaAtiva);
 
-        var empresa = string.IsNullOrWhiteSpace(codigoDaFilial)
+        var empresa = string.IsNullOrWhiteSpace(codigoDaFilial) || todasAsFiliais
             ? await consulta.Where(e => e.Id == empresaDeCasaId)
                 .Select(e => new { e.Id, e.Caminho, e.Codigo })
                 .FirstOrDefaultAsync(ct)
@@ -117,6 +123,34 @@ internal static class EscopoDeAcesso
         // ---- 3. P-20: ele pode escolher esta filial? ------------------------------------------
         var filiaisConcedidas = concessoes.Where(c => c.EmpresaId != null).Select(c => c.EmpresaId!.Value).ToHashSet();
         var podeEscolherQualquer = profundidades.GetValueOrDefault(Permissoes.EmpresaAlcanceEntreFiliais) >= Profundidade.Organizacao;
+
+        if (todasAsFiliais)
+        {
+            if (!podeEscolherQualquer)
+                return Resultado<ContextoAcesso>.SemPermissao(
+                    "\"Todas as filiais\" é a visão de quem administra o CRM.",
+                    [new ErroDeCampo(
+                        campoDaFilial,
+                        $"Olhar todas as filiais de uma vez exige a permissão {Permissoes.EmpresaAlcanceEntreFiliais} " +
+                        "em profundidade Organização (perfil Administrador ou Visão entre filiais). Escolha uma das suas filiais.",
+                        ContextoAcesso.CodigoDeTodasAsFiliais)]);
+
+            // TODAS, INCLUSIVE AS INATIVAS: "todas as filiais" é o que diz, e o dado de uma filial fechada
+            // (Guaíra, Ituverava, Monte Alto) continua no banco. O perfil concedido só numa filial NÃO
+            // entra aqui — valer em todas seria dar a ele um alcance que ninguém concedeu.
+            var todas = await banco.Empresas.Select(e => e.Id).ToListAsync(ct);
+
+            return Resultado<ContextoAcesso>.Ok(new ContextoAcesso(
+                usuarioId: usuarioId,
+                nomeExibicao: nomeExibicao,
+                empresaId: empresa.Id,
+                empresasVisiveis: todas.ToHashSet(),
+                subordinadosIds: await SubordinadosAsync(banco, usuarioId, ct),
+                equipesIds: new HashSet<long>(),
+                profundidades: profundidades,
+                ehServicoDeSistema: false,
+                todasAsFiliais: true));
+        }
 
         if (empresa.Id != empresaDeCasaId && !filiaisConcedidas.Contains(empresa.Id) && !podeEscolherQualquer)
             return Resultado<ContextoAcesso>.SemPermissao(

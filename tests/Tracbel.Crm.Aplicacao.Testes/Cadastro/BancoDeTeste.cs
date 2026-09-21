@@ -73,6 +73,24 @@ public sealed class BancoDeTeste : IDisposable
     /// <param name="empresaId">Em qual filial.</param>
     public void AgirComo(long usuarioId, int empresaId) => _acesso.Definir(ContextoDe(usuarioId, empresaId));
 
+    /// <summary>
+    /// Age em "Todas as filiais" — o que o escopo monta para o administrador que escolhe
+    /// <see cref="ContextoAcesso.CodigoDeTodasAsFiliais"/>: as duas filiais no alcance, e a de casa só porque
+    /// o contexto precisa de uma.
+    /// </summary>
+    /// <param name="usuarioId">Quem passa a agir.</param>
+    /// <param name="empresaDeCasa">A filial de casa dele.</param>
+    public void AgirEmTodasAsFiliais(long usuarioId, int empresaDeCasa) =>
+        _acesso.Definir(new ContextoAcesso(
+            usuarioId,
+            nomeExibicao: $"usuário {usuarioId}",
+            empresaId: empresaDeCasa,
+            empresasVisiveis: new HashSet<int> { RibeiraoPreto, Barretos },
+            subordinadosIds: new HashSet<long>(),
+            equipesIds: new HashSet<long>(),
+            profundidades: Permissoes.Catalogo.Keys.ToDictionary(p => p, _ => Profundidade.Organizacao),
+            todasAsFiliais: true));
+
     /// <summary>Um contexto de persistência novo, já com o escopo de acesso atual.</summary>
     public CrmDbContext NovoContexto() =>
         new(new DbContextOptionsBuilder<CrmDbContext>().UseSqlite(_conexao).Options, _acesso);
