@@ -160,9 +160,13 @@ foreach ($argumentos in $tarefas) {
 
 # A TAREFA ANTIGA SAI DEPOIS QUE AS NOVAS ENTRAM, e so entao: deixar as duas faria a PAM carregar duas
 # vezes na mesma madrugada, e a trava recusaria a segunda com um "falhou" que nao e falha.
+#
+# PELO Get-ScheduledTask, E NAO PELO schtasks /Query. No PowerShell 5.1, com $ErrorActionPreference =
+# 'Stop', o stderr de um executavel vira EXCECAO quando redirecionado - mesmo mandado para $null. Com a
+# tarefa antiga ja apagada, o "ERRO: O sistema nao pode encontrar o arquivo especificado" do schtasks
+# derrubou o passo 7 da primeira publicacao pelo agente (21/09/2026), antes da primeira carga.
 if ($pior -eq 0 -and $TarefaAntiga) {
-    & schtasks.exe /Query /TN $TarefaAntiga *> $null
-    if ($LASTEXITCODE -eq 0) {
+    if (Get-ScheduledTask -TaskName $TarefaAntiga -ErrorAction SilentlyContinue) {
         & schtasks.exe /Delete /TN $TarefaAntiga /F | Out-Null
         Write-Output "tarefa antiga $TarefaAntiga removida"
     }

@@ -28,7 +28,9 @@
        esperando autorizacao. Nao publica;
     6. se todas forem aditivas: copia de seguranca -> para os servicos -> troca os arquivos -> sobe a
        API (que aplica as migracoes) -> confere a prova de vida;
-    7. se a prova de vida falhar, VOLTA a versao anterior e sobe de novo.
+    7. se a prova de vida falhar, VOLTA a versao anterior e sobe de novo;
+    8. e o commit que falhou NAO e tentado de novo sozinho com os mesmos scripts: so com commit novo,
+       com os scripts corrigidos, ou a pedido (`autorizar-publicacao.ps1 -Commit <sha>`).
 
   =================================================================================================
   A DECISAO DE 20/09/2026: ADITIVA SOBE SOZINHA, DESTRUTIVA PARA E AVISA
@@ -75,6 +77,17 @@ $pastaDeLogs = Join-Path $pastaDoAgente 'logs'
 New-Item -ItemType Directory -Force -Path $pastaDeLogs | Out-Null
 $log = Join-Path $pastaDeLogs ('publicacao-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.log')
 
+# UM ARQUIVO POR RODADA, A CADA CINCO MINUTOS, sao 288 por dia. Guardam-se 30 dias.
+Get-ChildItem $pastaDeLogs -Filter 'publicacao-*.log' |
+    Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } |
+    Remove-Item -Force -ErrorAction SilentlyContinue
+
+# A IMPRESSAO DOS SCRIPTS INSTALADOS. Ela muda quando alguem instala uma correcao, e e o que libera a
+# nova tentativa de um commit que ja falhou (veja "JA FALHOU", abaixo).
+$scriptsDoAgente = (@('agente-de-publicacao.ps1', 'publicar-pacote.ps1') | ForEach-Object {
+        (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $PSScriptRoot $_)).Hash.Substring(0, 12)
+    }) -join '+'
+
 function Registrar([string] $texto, [string] $nivel = 'info') {
     $linha = '{0:yyyy-MM-dd HH:mm:ss}  {1,-5}  {2}' -f (Get-Date), $nivel, $texto
     Write-Host $linha
@@ -96,6 +109,8 @@ function GravarEstado([hashtable] $novo) {
         detalhe                = $novo.detalhe
         commitAguardando       = if ($novo.ContainsKey('commitAguardando')) { $novo.commitAguardando } else { $null }
         migracoesDestrutivas   = if ($novo.ContainsKey('migracoesDestrutivas')) { $novo.migracoesDestrutivas } else { @() }
+        commitQueFalhou        = if ($novo.ContainsKey('commitQueFalhou')) { $novo.commitQueFalhou } else { $null }
+        scriptsDaFalha         = if ($novo.ContainsKey('scriptsDaFalha')) { $novo.scriptsDaFalha } else { $null }
         ultimaVerificacaoEm    = (Get-Date).ToUniversalTime().ToString('o')
         ultimoLog              = $log
     }
@@ -153,6 +168,22 @@ if ($estadoAtual -and $estadoAtual.versaoPublicada -eq $commit) {
     Registrar 'o servidor ja esta nesta versao; nada a fazer'
     GravarEstado @{ situacao = 'emDia'; detalhe = "servidor em $commitCurto" } | Out-Null
     return
+}
+
+# JA FALHOU, COM ESTES MESMOS SCRIPTS? Sem isso, o agente repetiria a cada cinco minutos a copia de
+# seguranca, a troca de arquivos e a volta atras de um pacote que nao subiu - foi o que a primeira
+# publicacao pelo agente fez em 21/09/2026. Ele tenta de novo SOZINHO quando chega um commit novo ou
+# quando os scripts mudam (a correcao instalada); A MAO, pelo autorizar-publicacao.ps1, que deixa o
+# arquivo tentar-de-novo-<commit>.txt.
+if ($estadoAtual -and $estadoAtual.situacao -eq 'falhou' -and
+    $estadoAtual.commitQueFalhou -eq $commit -and $estadoAtual.scriptsDaFalha -eq $scriptsDoAgente) {
+    $tentarDeNovo = Join-Path $pastaDoAgente "tentar-de-novo-$commit.txt"
+    if (-not (Test-Path $tentarDeNovo)) {
+        Registrar "$commitCurto ja falhou com estes scripts; nao tento de novo sozinho (o motivo esta em $($estadoAtual.ultimoLog))" 'aviso'
+        return
+    }
+    Registrar "nova tentativa de $commitCurto pedida: $((Get-Content $tentarDeNovo -Raw) -replace '\r?\n', ' | ')"
+    Remove-Item $tentarDeNovo -Force
 }
 
 # JA FOI RECUSADO ANTES? Sem isso, o agente refaria a copia de seguranca a cada cinco minutos
@@ -270,17 +301,30 @@ if ($Simular) {
 
 GravarEstado @{ situacao = 'publicando'; detalhe = "$commitCurto" } | Out-Null
 
-& (Join-Path $PSScriptRoot 'publicar-pacote.ps1') `
-    -Pacote $pacote `
-    -Configuracao $cfg `
-    -Commit $commit `
-    -Registrar ${function:Registrar}
+# UM ERRO NO MEIO TAMBEM E FALHA. Sem o catch, o agente morria com o estado em "publicando", e a rodada
+# seguinte - que so conhece "falhou" - recomecaria do zero, copia de seguranca e tudo.
+try {
+    & (Join-Path $PSScriptRoot 'publicar-pacote.ps1') `
+        -Pacote $pacote `
+        -Configuracao $cfg `
+        -Commit $commit `
+        -Registrar ${function:Registrar}
+    $codigo = $LASTEXITCODE
+} catch {
+    Registrar "a publicacao parou num erro: $($_.Exception.Message)" 'erro'
+    $codigo = 9
+}
 
-if ($LASTEXITCODE -ne 0) {
-    Registrar "a publicacao de $commitCurto falhou (codigo $LASTEXITCODE)" 'erro'
-    GravarEstado @{ situacao = 'falhou'; detalhe = "codigo $LASTEXITCODE; veja $log" } | Out-Null
-    Avisar "A publicacao do commit $commitCurto FALHOU. O log esta em $log." 'Error' 3000
-    exit $LASTEXITCODE
+if ($codigo -ne 0) {
+    Registrar "a publicacao de $commitCurto falhou (codigo $codigo)" 'erro'
+    GravarEstado @{
+        situacao        = 'falhou'
+        detalhe         = "codigo $codigo; veja $log"
+        commitQueFalhou = $commit
+        scriptsDaFalha  = $scriptsDoAgente
+    } | Out-Null
+    Avisar "A publicacao do commit $commitCurto FALHOU. O log esta em $log. O agente nao tenta este commit de novo sozinho." 'Error' 3000
+    exit $codigo
 }
 
 GravarEstado @{

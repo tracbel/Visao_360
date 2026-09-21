@@ -277,12 +277,12 @@ apagado** antes de perguntar, e vale para aquele commit só.
 |---|---|---|
 | CI | `scripts/ci/gerar-manifesto-do-pacote.ps1` | o commit, as migrações e quais delas apagam alguma coisa |
 | CI | `scripts/ci/conferir-scripts-do-servidor.ps1` | os `.ps1` do servidor abrem no PowerShell 5.1 (ver abaixo) |
-| Estação, uma vez | `scripts/deploy/instalar-agente-de-publicacao.ps1` | pede o token, confere contra o GitHub, instala e agenda |
+| Estação, uma vez | `scripts/deploy/instalar-agente-de-publicacao.ps1` | pede o token, confere contra o GitHub, instala e agenda; `-SoAtualizarOsScripts` leva uma correção do agente sem pedir o token |
 | Servidor, a cada 5 min | `scripts/deploy/agente-de-publicacao.ps1` | decide se há o que publicar |
 | Servidor | `scripts/deploy/publicar-pacote.ps1` | troca a versão, com prova de vida e volta atrás |
 | Servidor, a cada publicação | `scripts/deploy/registrar-rotinas.ps1` (viaja no pacote) | recria as rotinas `TracbelCrmFontesPublicas` (anual) e `TracbelCrmPrecos` (mensal) |
 | Estação | `scripts/deploy/verificar-publicacao.ps1` | em que versão o servidor está e o que ele espera |
-| Estação | `scripts/deploy/autorizar-publicacao.ps1` | libera uma publicação destrutiva |
+| Estação | `scripts/deploy/autorizar-publicacao.ps1` | libera uma publicação destrutiva, ou pede nova tentativa de uma que falhou |
 
 **O token** é fine-grained, só deste repositório, só leitura de `Contents` e `Actions`. Ele é pedido
 na tela, conferido contra o GitHub **antes** de qualquer instalação, e gravado no servidor com
@@ -368,6 +368,61 @@ unexpected EOF"), corrigido no mesmo dia (#108). Nada a disparava de novo antes 
 
 Conferido no PowerShell 5.1 contra três bancos: com as tabelas vazias (dispara as duas), sem as tabelas
 (avisa e não quebra) e com dado (segue o calendário).
+
+#### 6.5.3 A primeira publicação pelo agente — 21/09/2026, no servidor
+
+**O que foi medido.** O agente foi instalado às 15:10, a simulação achou o `2325345` com 0 migrações
+pendentes, e às 15:15 ele publicou de verdade: cópia de segurança, versão guardada, troca, API no ar —
+e a **prova de vida falhou**. Ele voltou a versão anterior, a prova falhou de novo, e o registro disse
+"nem a versão anterior subiu. O CRM está FORA DO AR". **Não estava:** da estação, a mesma rota respondia
+`{"conectado":true,"migracoesPendentes":[]}` durante todo o tempo.
+
+| O que quebrou | A causa |
+|---|---|
+| toda tentativa da prova de vida, na hora | `-SkipCertificateCheck` só existe no PowerShell 7; a tarefa roda no `powershell.exe` 5.1. As 30 tentativas levaram 150 s — só as esperas de 5 s |
+| o erro não aparecia em lugar nenhum | o `catch` da prova de vida engolia a exceção |
+| mesmo no 7 não passaria | o script procurava `banco = 'conectado'`; a API devolve `conectado: true` |
+| o ciclo se repetia a cada 5 minutos | depois de falhar, a rodada seguinte recomeçava do zero: cópia, troca e volta, de novo |
+
+**A correção:**
+
+- a prova de vida valida o certificado pelo nome, como o `publicar.ps1` já fazia — ele é público
+  (Sectigo) e o servidor confia nele — e confere `conectado` e `migracoesPendentes`. Quando falha,
+  **registra o motivo** da última tentativa;
+- o agente **não tenta de novo sozinho** o commit que falhou com os mesmos scripts. Tenta quando chega
+  commit novo, quando os scripts mudam (a correção instalada) ou a pedido, pelo
+  `autorizar-publicacao.ps1 -Commit <sha>`. Um erro no meio da troca também conta como falha, em vez de
+  deixar o estado em "publicando";
+- `instalar-agente-de-publicacao.ps1 -SoAtualizarOsScripts` leva a correção ao servidor **sem pedir o
+  token** — o fine-grained só aparece uma vez no GitHub, e refazê-lo passa por aprovação;
+- o `verificar-publicacao.ps1` mostra o log **da falha**, e não o da última rodada;
+- os logs do agente passam a durar 30 dias (são 288 arquivos por dia);
+- o teste `ScriptsDoServidorTestes` barra o que só existe no PowerShell 7 nos scripts do servidor e
+  amarra a prova de vida aos campos que `/saude/banco` devolve. Os dois falham contra a versão antiga.
+
+Conferido no PowerShell 5.1: a prova antiga dá `False` em 72 ms contra a API no ar; a nova dá `True`, e
+com a porta errada dá `False` com o motivo no registro. A trava, em seis casos, com o `GravarEstado` e o
+bloco do próprio script.
+
+**A segunda rodada, com os scripts corrigidos (15:53).** A prova de vida passou e o `b8da4bb` ficou no
+ar. Mas o passo 7 parou em *"ERRO: O sistema não pode encontrar o arquivo especificado"*, e a publicação foi
+contada como falha (código 9). A trava nova funcionou em produção: às 15:55 o agente registrou que o
+commit "já falhou com estes scripts" e não repetiu.
+
+| O que quebrou | A causa |
+|---|---|
+| o `registrar-rotinas.ps1` parou antes da primeira carga | `schtasks /Query /TN TracbelCrmPam *> $null`. A tarefa antiga já tinha sido apagada às 11:41, e no 5.1, com `$ErrorActionPreference = 'Stop'`, o stderr redirecionado de um executável **vira exceção, mesmo mandado para `$null`** |
+| a publicação no ar foi contada como falha | o passo 7 dizia "falhar aqui não derruba a publicação", mas nada segurava o erro |
+
+A correção: a tarefa antiga é procurada pelo `Get-ScheduledTask`, e o passo 7 tem o `try` que cumpre o
+que o comentário prometia. O `ScriptsDoServidorTestes` ganhou a regra: script do servidor não redireciona
+o stderr de executável. Os here-strings ficam de fora, porque são os scripts das rotinas, que rodam em
+outro processo com `'Continue'`. Contra a versão da `main`, a regra acusa exatamente a linha do
+`schtasks /Query`. No 5.1, o `try` do passo 7 segura um registrar que quebra do mesmo jeito.
+
+**Fica para depois:** o certificado vence em **12/10/2026**, e o agente atualizar os próprios scripts a
+partir do pacote do CI, em vez de depender do `-SoAtualizarOsScripts`.
+
 ### 6.6 A decisão de 17/09/2026 e o que a sustentou
 
 Ricardo indicou uma máquina Linux com Docker (`ecs-st-agro-sistemas-linux`, 10.150.4.227) e autorizou o
