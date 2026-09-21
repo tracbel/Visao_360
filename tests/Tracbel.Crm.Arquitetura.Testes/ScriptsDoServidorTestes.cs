@@ -57,6 +57,30 @@ public class ScriptsDoServidorTestes
             "estes scripts rodam no powershell.exe 5.1 da tarefa agendada do servidor, e não no PowerShell 7");
     }
 
+    /// <summary>
+    /// NO 5.1, COM <c>$ErrorActionPreference = 'Stop'</c>, O STDERR REDIRECIONADO DE UM EXECUTÁVEL VIRA
+    /// EXCEÇÃO — mesmo mandado para <c>$null</c>. Foi o segundo defeito da primeira publicação pelo agente:
+    /// <c>schtasks /Query ... *&gt; $null</c>, com a tarefa procurada já apagada, derrubou o passo 7 antes da
+    /// primeira carga. Os here-strings ficam de fora: são os scripts das rotinas, que rodam em outro processo,
+    /// com <c>'Continue'</c>.
+    /// </summary>
+    [Fact]
+    public void Os_scripts_do_servidor_nao_redirecionam_o_stderr_de_executavel()
+    {
+        const string executavel = @"(?i)(\b(schtasks|icacls|robocopy|sqlcmd|netsh|dotnet)\b|\.exe\b)";
+        const string stderrRedirecionado = @"(\s2>|\s\*>)";
+
+        var violacoes =
+            (from nome in RodamNoServidor
+             from linha in SemHereStrings(SemComentarios(Ler(nome))).Split('\n')
+             where Regex.IsMatch(linha, executavel + @"[^\r\n]*" + stderrRedirecionado)
+             select $"{nome}: {linha.Trim()}").ToList();
+
+        violacoes.Should().BeEmpty(
+            "no powershell.exe 5.1, com $ErrorActionPreference = 'Stop', o stderr redirecionado de um executável " +
+            "vira exceção; consulte por cmdlet (Get-ScheduledTask, Get-Service) ou baixe a preferência só ali");
+    }
+
     [Fact]
     public void A_prova_de_vida_confere_os_campos_que_a_API_devolve()
     {
@@ -86,4 +110,8 @@ public class ScriptsDoServidorTestes
         var semBlocos = Regex.Replace(codigo, @"(?s)<#.*?#>", "");
         return Regex.Replace(semBlocos, @"(?m)(^|\s)#.*$", "$1");
     }
+
+    /// <summary>Tira os here-strings (<c>@" ... "@</c> e <c>@' ... '@</c>): o texto deles roda em outro processo.</summary>
+    private static string SemHereStrings(string codigo) =>
+        Regex.Replace(codigo, @"(?ms)@[""']\s*$.*?^[""']@", "");
 }

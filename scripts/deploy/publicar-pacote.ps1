@@ -186,7 +186,13 @@ if (EstaViva) {
     # vai para o registro, que e onde a publicacao inteira se conta.
     $registrar = Join-Path $Pacote 'rotinas\registrar-rotinas.ps1'
     if (Test-Path $registrar) {
-        $saidaDasRotinas = & $registrar -DestinoDaCarga $cfg.destinoDaCarga -Conexao $cfg.conexaoDoBanco 2>&1 | Out-String
+        # O try E O QUE CUMPRE O "NAO DERRUBA" ACIMA. Sem ele, um erro do registrar-rotinas.ps1 subia ate o
+        # agente, e uma publicacao que ja estava no ar e respondendo foi contada como falha (21/09/2026).
+        try {
+            $saidaDasRotinas = & $registrar -DestinoDaCarga $cfg.destinoDaCarga -Conexao $cfg.conexaoDoBanco 2>&1 | Out-String
+        } catch {
+            $saidaDasRotinas = "parou num erro: $($_.Exception.Message)"
+        }
         if ($saidaDasRotinas -match 'codigo das rotinas: 0') {
             Diga 'rotinas das fontes publicas registradas (anual e mensal)'
 

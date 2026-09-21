@@ -404,6 +404,22 @@ Conferido no PowerShell 5.1: a prova antiga dá `False` em 72 ms contra a API no
 com a porta errada dá `False` com o motivo no registro. A trava, em seis casos, com o `GravarEstado` e o
 bloco do próprio script.
 
+**A segunda rodada, com os scripts corrigidos (15:53).** A prova de vida passou e o `b8da4bb` ficou no
+ar. Mas o passo 7 parou em *"ERRO: O sistema não pode encontrar o arquivo especificado"*, e a publicação foi
+contada como falha (código 9). A trava nova funcionou em produção: às 15:55 o agente registrou que o
+commit "já falhou com estes scripts" e não repetiu.
+
+| O que quebrou | A causa |
+|---|---|
+| o `registrar-rotinas.ps1` parou antes da primeira carga | `schtasks /Query /TN TracbelCrmPam *> $null`. A tarefa antiga já tinha sido apagada às 11:41, e no 5.1, com `$ErrorActionPreference = 'Stop'`, o stderr redirecionado de um executável **vira exceção, mesmo mandado para `$null`** |
+| a publicação no ar foi contada como falha | o passo 7 dizia "falhar aqui não derruba a publicação", mas nada segurava o erro |
+
+A correção: a tarefa antiga é procurada pelo `Get-ScheduledTask`, e o passo 7 tem o `try` que cumpre o
+que o comentário prometia. O `ScriptsDoServidorTestes` ganhou a regra: script do servidor não redireciona
+o stderr de executável. Os here-strings ficam de fora, porque são os scripts das rotinas, que rodam em
+outro processo com `'Continue'`. Contra a versão da `main`, a regra acusa exatamente a linha do
+`schtasks /Query`. No 5.1, o `try` do passo 7 segura um registrar que quebra do mesmo jeito.
+
 **Fica para depois:** o certificado vence em **12/10/2026**, e o agente atualizar os próprios scripts a
 partir do pacote do CI, em vez de depender do `-SoAtualizarOsScripts`.
 
