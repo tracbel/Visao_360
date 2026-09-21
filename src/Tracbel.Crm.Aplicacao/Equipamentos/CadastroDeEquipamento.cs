@@ -4,6 +4,7 @@ using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Frota;
 using Tracbel.Crm.Dominio.Metadado;
 using Tracbel.Crm.Dominio.Portas;
+using Tracbel.Crm.Dominio.Seguranca;
 
 namespace Tracbel.Crm.Aplicacao.Equipamentos;
 
@@ -187,6 +188,12 @@ public sealed class CriarEquipamento(
     public async Task<Resultado<EquipamentoDetalhe>> ExecutarAsync(
         NovoEquipamento entrada, CancellationToken ct)
     {
+        // A PERMISSÃO É CONFERIDA TAMBÉM AQUI, e não só na rota (fase 3 do documento 41): o caso de uso
+        // pode ser chamado por outro caminho um dia, e a regra tem de ir junto com ele.
+        if (!acesso.Atual.Tem(Permissoes.EquipamentoCriar))
+            return Resultado<EquipamentoDetalhe>.SemPermissao(
+                $"Falta a permissão '{Permissoes.EquipamentoCriar}' ({Permissoes.Catalogo[Permissoes.EquipamentoCriar]}).");
+
         var erros = new ColetorDeErros();
 
         Chassi chassi = default;
@@ -267,6 +274,12 @@ public sealed class AlterarEquipamento(
     public async Task<Resultado<EquipamentoDetalhe>> ExecutarAsync(
         Guid chave, AlteracaoDeEquipamento entrada, CancellationToken ct)
     {
+        // A PERMISSÃO É CONFERIDA TAMBÉM AQUI, e não só na rota (fase 3 do documento 41): o caso de uso
+        // pode ser chamado por outro caminho um dia, e a regra tem de ir junto com ele.
+        if (!acesso.Atual.Tem(Permissoes.EquipamentoEditar))
+            return Resultado<EquipamentoDetalhe>.SemPermissao(
+                $"Falta a permissão '{Permissoes.EquipamentoEditar}' ({Permissoes.Catalogo[Permissoes.EquipamentoEditar]}).");
+
         var leitura = await repositorio.ObterAsync(chave, incluirInativos: false, ct);
 
         if (leitura is null)
@@ -343,6 +356,12 @@ public sealed class InativarEquipamento(
     public async Task<Resultado<EquipamentoDetalhe>> ExecutarAsync(
         Guid chave, BaixaDeEquipamento entrada, CancellationToken ct)
     {
+        // A PERMISSÃO É CONFERIDA TAMBÉM AQUI, e não só na rota (fase 3 do documento 41): o caso de uso
+        // pode ser chamado por outro caminho um dia, e a regra tem de ir junto com ele.
+        if (!acesso.Atual.Tem(Permissoes.EquipamentoExcluir))
+            return Resultado<EquipamentoDetalhe>.SemPermissao(
+                $"Falta a permissão '{Permissoes.EquipamentoExcluir}' ({Permissoes.Catalogo[Permissoes.EquipamentoExcluir]}).");
+
         var leitura = await repositorio.ObterAsync(chave, incluirInativos: true, ct);
 
         if (leitura is null)

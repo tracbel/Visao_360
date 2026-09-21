@@ -63,11 +63,11 @@ sai do build junto com a extração.
 | **D-13 / classe** | a classe do cliente é do **cliente** (cenário A), da **carteira/linha** (B) ou **calculada por contexto** (C)? E qual a janela de apuração? | comercial | **fase 5** — ver [documento 42](42-DECISAO-CLASSE-E-CADENCIA.md) |
 | **cadência** | quem declara a cadência das 10 linhas de negócio que não têm (35 das 142 carteiras)? | comercial | fase 5 (a tela de cobertura fica sem resposta para essas carteiras) |
 | **D-4 / território** | qual fonte vale, município a município; as 19 vagas "a contratar"; a vigência | comercial | **fase 9** (a parte de conciliação) |
-| **D-3** | catálogo de permissões em código (proposto) ou tabela `Permissao` semeada a partir do código | Ricardo / TI | fase 3 |
+| **D-3** | ✅ **decidida em 21/09/2026: em código** (`Permissoes`) | Ricardo | fase 3 |
 | **D-5** | contato pertence a um cliente só, com canais em colunas | Ricardo / comercial | fase 5 |
 | **D-6** | significado de "gestão na origem", "venda direta" e "repasse direto": viram conceito do CRM ou ficam só no rastro | comercial | fase 7 |
 | **D-7** | `VendaPerdida` como único registro de perda, obrigatório ao encerrar como perdida | comercial | fase 6 |
-| **D-8** | "próprios" inclui os clientes da carteira vigente do CEN | Ricardo / comercial | fase 3 |
+| **D-8** | ✅ **decidida em 21/09/2026: inclui** a carteira vigente — sem efeito até existir filtro por dono e carteira com responsável (#107) | Ricardo | fase 3 |
 | **D-9 (matriz)** | aprovar a [matriz de nomenclatura](41B-MATRIZ-DE-NOMENCLATURA.md) | Ricardo | fases 3 a 9 |
 | **D-10** | retenção da auditoria, em meses | Ricardo / jurídico | fase 2 |
 | **D-11** | semente só estrutural + "modelo inicial" comercial aplicado por ação do administrador | Ricardo | fase 4 |
@@ -416,6 +416,23 @@ fixa, o comportamento de acesso é equivalente nos dois lados.
 - [ ] subordinados calculados por `GestorId` (profundidade `Equipe` deixa de ser letra morta);
 - [ ] nenhuma concessão a usuário real feita sem autorização registrada;
 - [ ] 50 tabelas.
+
+**Executada em 21/09/2026 (issue 46)**, com as decisões Q-P2, P-20, D-3, D-8 e D-9 respondidas no mesmo dia
+(registro na issue 46 e no documento 05, §4). O que ficou diferente da ficha:
+
+- **60 tabelas**, e não 50: as fontes públicas das issues 64 a 68 entraram antes. A fase 3 não muda a
+  contagem;
+- **`UsuarioPerfil.EmpresaId`** (novo, opcional): a filial em que a concessão vale — é como a P-20 foi
+  resolvida sem tabela nova. Por isso `UsuarioPerfil` entrou nas exceções da fronteira de filial;
+- **a migração faz drop + create** das três tabelas, e não `RenameTable`: medido no servidor em
+  21/09/2026, as três tinham zero linhas e os 2 usuários, `Papel` nulo. É destrutiva para o manifesto do
+  CD, que pede autorização — sem perder nada;
+- **Justificativa obrigatória** na concessão.
+
+**O que NÃO entrou nesta entrega, e continua pendente:** as rotas e os casos de uso de **administração**
+de perfis, concessões e usuários (`/api/v1/admin/*`) e as telas Configurações › Usuários e Permissões;
+e a renomeação das 17 portas para `IRepositorioDe*` (matriz 41B). Até a administração existir, conceder
+perfil é operação registrada feita por quem tem acesso ao banco, com a justificativa gravada.
 
 ---
 

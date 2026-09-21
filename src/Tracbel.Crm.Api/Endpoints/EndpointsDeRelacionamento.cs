@@ -1,5 +1,6 @@
 using Tracbel.Crm.Api.Comum;
 using Tracbel.Crm.Aplicacao.Relacionamento;
+using Tracbel.Crm.Dominio.Seguranca;
 
 namespace Tracbel.Crm.Api.Endpoints;
 
@@ -40,11 +41,13 @@ public static class EndpointsDeRelacionamento
                 pagina, tamanho, termo, situacao, clienteChave, faseCodigo, tipoProcessoCodigo,
                 ordenarPor, descendente, incluirEncerrados, ct)).Responder())
             .WithName("ListarProcessos")
+            .ExigePermissao(Permissoes.ProcessoLer)
             .WithSummary("Lista processos e oportunidades, com fase, valor e tempo de fase.");
 
         grupo.MapGet("/{chave:guid}", async (Guid chave, ObterProcesso caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(chave, ct)).Responder())
             .WithName("ObterProcesso")
+            .ExigePermissao(Permissoes.ProcessoLer)
             .WithSummary("Traz a ficha de um processo pela chave pública.");
 
         return app;
@@ -74,6 +77,7 @@ public static class EndpointsDeRelacionamento
                 pagina, tamanho, minhas, situacao, clienteChave, de, ate, somenteAtrasadas,
                 ordenarPor, descendente, ct)).Responder())
             .WithName("ListarTarefas")
+            .ExigePermissao(Permissoes.TarefaLer)
             .WithSummary("Lista tarefas da agenda, com prazo e atraso calculados.");
 
         return app;
@@ -97,6 +101,7 @@ public static class EndpointsDeRelacionamento
                 DateOnly? ate = null) =>
             (await caso.ExecutarAsync(pagina, tamanho, clienteChave, natureza, de, ate, ct)).Responder())
             .WithName("ListarInteracoes")
+            .ExigePermissao(Permissoes.InteracaoLer)
             .WithSummary("Lista a linha do tempo de contatos, filtrada por cliente.");
 
         return app;
@@ -123,6 +128,7 @@ public static class EndpointsDeRelacionamento
                 pagina, tamanho, classe, diasSemContato, somenteSemContato,
                 ordenarPor, descendente, ct)).Responder())
             .WithName("ListarCobertura")
+            .ExigePermissao(Permissoes.CoberturaLer)
             .WithSummary("A carteira cliente a cliente, com a data do último contato e o atraso de ciclo.");
 
         return app;
@@ -144,16 +150,19 @@ public static class EndpointsDeRelacionamento
         grupo.MapGet("/funil", async (ObterFunil caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterFunil")
+            .ExigePermissao(Permissoes.RelatorioLer)
             .WithSummary("O funil por fase: quantos processos e quanto valor, com a cobertura do valor.");
 
         grupo.MapGet("/perdas", async (ObterPerdas caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterPerdas")
+            .ExigePermissao(Permissoes.RelatorioLer)
             .WithSummary("As perdas por motivo.");
 
         grupo.MapGet("/vendas-perdidas", async (ObterVendasPerdidas caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterVendasPerdidas")
+            .ExigePermissao(Permissoes.RelatorioLer)
             .WithSummary(
                 "As vendas perdidas registradas no formulário: por motivo, para qual concorrente " +
                 "e a que distância de preço.");
@@ -161,6 +170,7 @@ public static class EndpointsDeRelacionamento
         grupo.MapGet("/faturamento", async (ObterFaturamento caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterFaturamento")
+            .ExigePermissao(Permissoes.FaturamentoLer)
             .WithSummary(
                 "O faturamento lido da SD2 do Protheus: série dos últimos doze meses e os cinco " +
                 "maiores clientes, com a competência mais recente sempre junto do número.");
@@ -169,6 +179,7 @@ public static class EndpointsDeRelacionamento
                 ObterIndicadoresExecutivos caso, CancellationToken ct, int? ano = null) =>
                 (await caso.ExecutarAsync(ano, ct)).Responder())
             .WithName("ObterIndicadoresExecutivos")
+            .ExigePermissao(Permissoes.FaturamentoLer)
             .WithSummary("Os cinco indicadores da Visão 360 para a filial do cabeçalho.")
             .WithDescription(
                 "Faturamento da competência mais recente com a nota sem cliente separada por natureza; realizado do " +
@@ -180,6 +191,7 @@ public static class EndpointsDeRelacionamento
                 ObterPainelDoCen caso, CancellationToken ct, Guid? responsavel = null) =>
                 (await caso.ExecutarAsync(responsavel, ct)).Responder())
             .WithName("ObterPainelDoCen")
+            .ExigePermissao(Permissoes.RelatorioLer)
             .WithSummary(
                 "O painel de um CEN: cobertura por classe A/B/C/D contra a cadência declarada, " +
                 "processos ganhos e perdidos, e o faturamento da carteira. Sem `responsavel`, " +
@@ -188,11 +200,13 @@ public static class EndpointsDeRelacionamento
         grupo.MapGet("/agenda", async (ObterPainelDaAgenda caso, CancellationToken ct, bool minhas = false) =>
                 (await caso.ExecutarAsync(minhas, ct)).Responder())
             .WithName("ObterPainelDaAgenda")
+            .ExigePermissao(Permissoes.TarefaLer)
             .WithSummary("O painel do CEN: pendentes, atrasadas, hoje, próximos sete dias.");
 
         grupo.MapGet("/cobertura", async (ObterResumoDeCobertura caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterResumoDeCobertura")
+            .ExigePermissao(Permissoes.CoberturaLer)
             .WithSummary("A cobertura por carteira: clientes, contatados em 30 e 90 dias, nunca contatados.");
 
         return app;

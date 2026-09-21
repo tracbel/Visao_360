@@ -1,5 +1,6 @@
 using Tracbel.Crm.Api.Comum;
 using Tracbel.Crm.Aplicacao.Integracoes;
+using Tracbel.Crm.Dominio.Seguranca;
 
 namespace Tracbel.Crm.Api.Endpoints;
 
@@ -20,6 +21,7 @@ public static class EndpointsDeSincronizacao
             (await caso.ExecutarAsync(execucoes, ct)).Responder())
             .WithTags("Integrações (administração)")
             .WithName("ListarSincronizacoes")
+            .ExigePermissao(Permissoes.IntegracaoLer)
             .WithSummary("Cada fluxo de sincronização com a última execução, o último sucesso e as execuções recentes.");
 
         return app;

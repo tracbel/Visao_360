@@ -91,7 +91,18 @@ public class CrmDbContext : DbContext
                 "EmpresaId aqui é a filial DE CASA do usuário — o dado que define o escopo, não " +
                 "a linha protegida por ele. O ContextoAcesso é montado lendo esta tabela, antes " +
                 "de existir escopo; filtrá-la tornaria o login e a hierarquia entre filiais " +
-                "impossíveis. O que limita a exposição do usuário é a camada 5, de campo sensível."
+                "impossíveis. O que limita a exposição do usuário é a camada 5, de campo sensível.",
+
+            // O EmpresaId DA CONCESSÃO NÃO É A FILIAL DONA DA LINHA — é a filial EM QUE o perfil vale
+            // (P-20, fase 3). É ele que DEFINE quais filiais a pessoa pode escolher; filtrá-lo pela
+            // fronteira que ele mesmo define seria circular, pela mesma razão do Usuario: o
+            // ContextoAcesso é montado lendo esta tabela, antes de existir escopo. E é anulável —
+            // concessão sem filial vale em toda filial que a pessoa possa escolher.
+            [nameof(UsuarioPerfil)] =
+                "EmpresaId aqui é a filial EM QUE o perfil concedido vale — o dado que define quais " +
+                "filiais a pessoa pode escolher, não a linha protegida por ele. O ContextoAcesso é " +
+                "montado lendo esta tabela, antes de existir escopo; filtrá-la seria circular. " +
+                "Quem lê e grava concessões é a administração de perfis, com Usuario.Administrar."
 
             // A SEGUNDA EXCEÇÃO ERA `CompartilhamentoDeRegistro`, a camada 4 do documento 05 —
             // aditiva e desenhada para ATRAVESSAR a fronteira. A tabela saiu na fase 1 da
@@ -270,11 +281,14 @@ public class CrmDbContext : DbContext
     /// <summary>Usuários.</summary>
     public DbSet<Usuario> Usuarios => Set<Usuario>();
 
-    /// <summary>Conjuntos de permissão.</summary>
-    public DbSet<ConjuntoPermissao> ConjuntosPermissao => Set<ConjuntoPermissao>();
+    /// <summary>Os perfis de acesso (eram conjuntos de permissão até a fase 3).</summary>
+    public DbSet<Perfil> Perfis => Set<Perfil>();
 
-    /// <summary>Concessões de conjunto a usuário.</summary>
-    public DbSet<UsuarioConjuntoPermissao> ConcessoesPermissao => Set<UsuarioConjuntoPermissao>();
+    /// <summary>As permissões de cada perfil.</summary>
+    public DbSet<PerfilPermissao> PerfisPermissoes => Set<PerfilPermissao>();
+
+    /// <summary>As concessões de perfil a usuário, com filial e expiração opcionais.</summary>
+    public DbSet<UsuarioPerfil> UsuariosPerfis => Set<UsuarioPerfil>();
 
     // ---- comercial ----
 

@@ -240,32 +240,31 @@ public class AutorizadorTestes
 }
 
 /// <summary>
-/// Testes do modelo de permissão em si: composição de conjuntos e a regra aditiva.
+/// O modelo de perfis (fase 3): composição, regra aditiva, catálogo em código e concessão.
 /// </summary>
 [Trait("Categoria", "Autorizacao")]
-public class ConjuntoPermissaoTestes
+public class PerfilTestes
 {
     [Fact]
-    public void Conjuntos_sao_aditivos_e_vence_a_maior_profundidade()
+    public void Perfis_sao_aditivos_e_vence_a_maior_profundidade()
     {
-        // [SF] "Most permissive wins" dos permission sets. Um gerente recebe
-        // CEN + GERENTE_VENDAS e fica com o alcance maior das duas.
-        var conjunto = ConjuntoPermissao.Criar("CEN", "Consultor de vendas")
-            .Conceder("Processo.Ler", Profundidade.Proprios)
-            .Conceder("Processo.Ler", Profundidade.Equipe);
+        // [SF] "Most permissive wins" dos permission sets.
+        var perfil = Perfil.Criar("CEN", "Consultor de vendas")
+            .Conceder(Permissoes.ProcessoLer, Profundidade.Proprios)
+            .Conceder(Permissoes.ProcessoLer, Profundidade.Equipe);
 
-        conjunto.Itens.Should().ContainSingle();
-        conjunto.Itens.Single().Profundidade.Should().Be(Profundidade.Equipe);
+        perfil.Permissoes.Should().ContainSingle();
+        perfil.Permissoes.Single().Profundidade.Should().Be(Profundidade.Equipe);
     }
 
     [Fact]
     public void Conceder_com_profundidade_maior_amplia_conceder_com_menor_nao_reduz()
     {
-        var conjunto = ConjuntoPermissao.Criar("X", "X")
-            .Conceder("Processo.Ler", Profundidade.Empresa)
-            .Conceder("Processo.Ler", Profundidade.Proprios);
+        var perfil = Perfil.Criar("X", "X")
+            .Conceder(Permissoes.ProcessoLer, Profundidade.Empresa)
+            .Conceder(Permissoes.ProcessoLer, Profundidade.Proprios);
 
-        conjunto.Itens.Single().Profundidade.Should().Be(Profundidade.Empresa,
+        perfil.Permissoes.Single().Profundidade.Should().Be(Profundidade.Empresa,
             "o modelo é aditivo — conceder de novo nunca reduz");
     }
 
@@ -273,24 +272,28 @@ public class ConjuntoPermissaoTestes
     public void Nao_existe_conceder_com_profundidade_Nenhum()
     {
         // Não há regra de negação, de propósito. Para negar, não conceda.
-        var acao = () => ConjuntoPermissao.Criar("X", "X")
-            .Conceder("Processo.Ler", Profundidade.Nenhum);
+        var acao = () => Perfil.Criar("X", "X").Conceder(Permissoes.ProcessoLer, Profundidade.Nenhum);
 
-        acao.Should().Throw<Dominio.Comum.RegraDeNegocioViolada>()
-            .WithMessage("*não tem regra de negação*");
+        acao.Should().Throw<Dominio.Comum.RegraDeNegocioViolada>().WithMessage("*não tem regra de negação*");
+    }
+
+    [Fact]
+    public void So_se_concede_permissao_que_existe_no_catalogo()
+    {
+        // D-3: o catálogo é o código. Um nome digitado errado viraria permissão que nenhuma rota confere.
+        var acao = () => Perfil.Criar("X", "X").Conceder("Cliente.Apagar", Profundidade.Empresa);
+
+        acao.Should().Throw<Dominio.Comum.RegraDeNegocioViolada>().WithMessage("*não existe no catálogo*");
     }
 
     [Fact]
     public void Concessao_temporaria_expira()
     {
         // Cobertura de férias que não vira privilégio permanente.
-        //
-        // O "AGORA" É O RELÓGIO, e não uma data escrita: Conceder recusa expiração no passado contra
-        // DateTime.UtcNow, e com 30/08/2026 fixo o teste passou a falhar em 14/09/2026 às 12h UTC.
         var agora = DateTime.UtcNow;
 
-        var vigente = UsuarioConjuntoPermissao.Conceder(1, 1, 99, agora.AddDays(15));
-        var permanente = UsuarioConjuntoPermissao.Conceder(1, 2, 99);
+        var vigente = UsuarioPerfil.Conceder(1, 1, "férias do titular", 99, agora, expiraEm: agora.AddDays(15));
+        var permanente = UsuarioPerfil.Conceder(1, 2, "gerente da filial", 99, agora);
 
         vigente.EstaVigente(agora).Should().BeTrue();
         vigente.EstaVigente(agora.AddDays(20)).Should().BeFalse();
@@ -298,10 +301,33 @@ public class ConjuntoPermissaoTestes
     }
 
     [Fact]
-    public void Concessao_nao_aceita_expiracao_no_passado()
+    public void Concessao_nao_aceita_expiracao_no_passado_nem_falta_de_justificativa()
     {
-        var acao = () => UsuarioConjuntoPermissao.Conceder(1, 1, 99, DateTime.UtcNow.AddDays(-1));
+        var agora = DateTime.UtcNow;
 
-        acao.Should().Throw<Dominio.Comum.RegraDeNegocioViolada>();
+        var noPassado = () => UsuarioPerfil.Conceder(1, 1, "x", 99, agora, expiraEm: agora.AddDays(-1));
+        var semMotivo = () => UsuarioPerfil.Conceder(1, 1, " ", 99, agora);
+
+        noPassado.Should().Throw<Dominio.Comum.RegraDeNegocioViolada>();
+        semMotivo.Should().Throw<Dominio.Comum.RegraDeNegocioViolada>().WithMessage("*justificativa*");
+    }
+
+    [Fact]
+    public void O_perfil_padrao_semeado_nao_exclui_nem_abre_a_visao_entre_filiais()
+    {
+        // Q-P2 (21/09/2026): o mínimo, sem excluir. Até a fase 3, todos podiam excluir sem ninguém ter decidido.
+        var padrao = PerfisDeSistema.Todos.Single(p => p.EhPadrao);
+        var codigos = padrao.Permissoes.Select(p => p.Codigo).ToList();
+
+        codigos.Should().Contain([Permissoes.ClienteLer, Permissoes.ClienteCriar, Permissoes.ClienteEditar, Permissoes.EquipamentoEditar]);
+        codigos.Should().NotContain([Permissoes.ClienteExcluir, Permissoes.EquipamentoExcluir, Permissoes.EmpresaAlcanceEntreFiliais]);
+        codigos.Should().NotContain("Lead.Ler", "a entidade Lead saiu na fase 1, e a permissão residual com ela");
+    }
+
+    [Fact]
+    public void Todo_perfil_semeado_usa_so_permissoes_do_catalogo()
+    {
+        foreach (var perfil in PerfisDeSistema.Todos)
+            perfil.Permissoes.Should().OnlyContain(p => Permissoes.Existe(p.Codigo), $"o perfil {perfil.Codigo} é semeado do código");
     }
 }

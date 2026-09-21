@@ -20,11 +20,11 @@ public sealed class IntegridadeReferencialTestes
     /// </summary>
     private static readonly Dictionary<(string TabelaDependente, string NomeFk), string> CascadeJustificado = new()
     {
-        // O item não é entidade independente: é a coleção OWNED do agregado
-        // ConjuntoDePermissao. Apagar o conjunto apaga os itens dele, do mesmo jeito que
+        // A permissão do perfil não é entidade independente: é a coleção OWNED do agregado Perfil (era
+        // ConjuntoDePermissao até a fase 3). Apagar o perfil apaga as permissões dele, do mesmo jeito que
         // apagar um Pedido apagaria os ItensPedido.
-        [("ConjuntoDePermissaoItem", "FK_ConjuntoDePermissaoItem_ConjuntoDePermissao_ConjuntoPermissaoId")] =
-            "coleção owned do agregado ConjuntoDePermissao — linha órfã aqui não existe de propósito"
+        [("PerfilPermissao", "FK_PerfilPermissao_Perfil_PerfilId")] =
+            "coleção owned do agregado Perfil — linha órfã aqui não existe de propósito"
 
         // A SEGUNDA justificativa saiu na fase 1 (documento 41): era
         // FK_Vinculo_Documento_DocumentoId, do documento 04, seção 10 — o vínculo sem documento é o

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Tracbel.Crm.Api.Comum;
 using Tracbel.Crm.Aplicacao.Clientes;
+using Tracbel.Crm.Dominio.Seguranca;
 
 namespace Tracbel.Crm.Api.Endpoints;
 
@@ -35,23 +36,27 @@ public static class EndpointsDeCliente
                 pagina, tamanho, termo, situacao, tipoDePessoa,
                 ordenarPor, descendente, incluirInativos, ct)).Responder())
             .WithName("ListarClientes")
+            .ExigePermissao(Permissoes.ClienteLer)
             .WithSummary("Lista clientes do banco do CRM, com paginação, filtro e ordenação.");
 
         grupo.MapGet("/{chave:guid}", async (Guid chave, ObterCliente caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(chave, ct)).Responder())
             .WithName("ObterCliente")
+            .ExigePermissao(Permissoes.ClienteLer)
             .WithSummary("Traz a ficha de um cliente pela chave pública.");
 
         grupo.MapPost("/", async (NovoCliente corpo, CriarCliente caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(corpo, ct))
                 .Responder(criado => Results.Created($"/api/v1/clientes/{criado.Chave}", criado)))
             .WithName("CriarCliente")
+            .ExigePermissao(Permissoes.ClienteCriar)
             .WithSummary("Cadastra um cliente na filial do contexto de acesso.");
 
         grupo.MapPut("/{chave:guid}", async (
                 Guid chave, AlteracaoDeCliente corpo, AlterarCliente caso, CancellationToken ct) =>
             (await caso.ExecutarAsync(chave, corpo, ct)).Responder())
             .WithName("AlterarCliente")
+            .ExigePermissao(Permissoes.ClienteEditar)
             .WithSummary("Altera um cliente. Devolva a versão lida no GET para a conferência de concorrência.");
 
         // DELETE COM CORPO, e de propósito: o motivo da inativação é obrigatório e vem de
@@ -66,6 +71,7 @@ public static class EndpointsDeCliente
                 Guid chave, [FromBody] InativacaoDeCliente corpo, InativarCliente caso, CancellationToken ct) =>
             (await caso.ExecutarAsync(chave, corpo, ct)).Responder())
             .WithName("InativarCliente")
+            .ExigePermissao(Permissoes.ClienteExcluir)
             .WithSummary("Inativa um cliente — exclusão lógica, com motivo de catálogo. Nada é apagado.");
 
         return app;

@@ -106,6 +106,18 @@ public sealed class MeioDeCampoDeContextoDeAcesso(
                 http.RequestAborted);
         }
 
+        // A ROTA DE ESCOPO NÃO FICA PRESA NA FILIAL RECUSADA (P-20): ela é a que diz quais filiais são
+        // permitidas, e a tela precisa dela justamente quando a filial guardada deixou de ser. Só ela é
+        // remontada pela filial de casa; qualquer outra rota recebe o 403.
+        if (!resultado.EhSucesso && resultado.Tipo == TipoDeFalha.SemPermissao && !string.IsNullOrWhiteSpace(filial)
+            && caminho.Equals(Endpoints.EndpointsDeAcesso.CaminhoDoEscopo, StringComparison.OrdinalIgnoreCase))
+        {
+            http.Items[Endpoints.EndpointsDeAcesso.ChaveDaFilialRecusada] = filial;
+            resultado = estado.EntraLigado
+                ? await entra.ResolverAsync(RotasDeAutenticacao.LerIdentidade(http.User)!, null, http.RequestAborted)
+                : await provisorio.ResolverAsync(http.Request.Headers[config.CabecalhoDeUsuario].FirstOrDefault(), null, http.RequestAborted, naFilialDeCasa: true);
+        }
+
         if (!resultado.EhSucesso)
         {
             // A recusa sai no MESMO formato de erro de todo o resto da API. Um formato próprio

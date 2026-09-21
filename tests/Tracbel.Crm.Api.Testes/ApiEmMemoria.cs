@@ -115,6 +115,28 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
         return http;
     }
 
+    /// <summary>
+    /// Concede um perfil a um usuário dos testes — como a administração faria, com justificativa.
+    ///
+    /// <para>Existe desde a fase 3 (Q-P2): o perfil padrão não exclui, e o teste que exercita a exclusão
+    /// precisa dizer que o usuário dele recebeu o perfil de exclusão, em vez de a regra ser afrouxada.</para>
+    /// </summary>
+    /// <param name="usuarioId">O usuário (100 é Ribeirão, 200 é Barretos).</param>
+    /// <param name="codigoDoPerfil">O código do perfil, de <see cref="PerfisDeSistema"/>.</param>
+    /// <param name="empresaId">A filial em que vale, ou nulo para qualquer uma.</param>
+    public async Task ConcederPerfilAsync(long usuarioId, string codigoDoPerfil, int? empresaId = null)
+    {
+        using var escopo = Services.CreateScope();
+        var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+        await using var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia);
+
+        var perfil = await db.Perfis.SingleAsync(p => p.Codigo == codigoDoPerfil);
+        if (await db.UsuariosPerfis.AnyAsync(c => c.UsuarioId == usuarioId && c.PerfilId == perfil.Id && c.EmpresaId == empresaId)) return;
+
+        db.UsuariosPerfis.Add(UsuarioPerfil.Conceder(usuarioId, perfil.Id, $"teste — {codigoDoPerfil}", usuarioId, DateTime.UtcNow, empresaId));
+        await db.SaveChangesAsync();
+    }
+
     /// <summary>O cliente HTTP do CEN de Ribeirão Preto — o contexto padrão dos testes.</summary>
     public HttpClient ClienteDeRibeirao() => ClienteComo(UsuarioDeRibeirao, FilialDeRibeirao);
 

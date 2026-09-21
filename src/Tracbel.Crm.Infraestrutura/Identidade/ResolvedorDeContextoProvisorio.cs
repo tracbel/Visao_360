@@ -57,13 +57,23 @@ public sealed class ResolvedorDeContextoProvisorio(
     /// <param name="usuarioInformado">O nome principal (UPN) que veio no cabeçalho.</param>
     /// <param name="empresaInformada">O código da filial que veio no cabeçalho. Ex.: 010101.</param>
     /// <param name="ct">Cancelamento.</param>
+    /// <param name="naFilialDeCasa">
+    /// Monta o contexto na filial DE CASA do usuário, ignorando a filial informada e a padrão da configuração.
+    /// É o que a rota de escopo usa quando a filial pedida foi recusada (P-20): a volta não pode depender do
+    /// `appsettings.Development.json`, que não existe fora da máquina de quem desenvolve — foi o que o CI
+    /// mostrou em 21/09/2026, com um 422 no lugar do 200.
+    /// </param>
     public async Task<Resultado<ContextoAcesso>> ResolverAsync(
-        string? usuarioInformado, string? empresaInformada, CancellationToken ct)
+        string? usuarioInformado, string? empresaInformada, CancellationToken ct, bool naFilialDeCasa = false)
     {
         var config = opcoes.Value;
 
         var upn = Escolher(usuarioInformado, config.UsuarioPadrao, config.PermitirPadrao, out var usouPadraoDeUsuario);
-        var filial = Escolher(empresaInformada, config.EmpresaPadrao, config.PermitirPadrao, out var usouPadraoDeEmpresa);
+        var usouPadraoDeEmpresaInformado = false;
+        var filial = naFilialDeCasa
+            ? null
+            : Escolher(empresaInformada, config.EmpresaPadrao, config.PermitirPadrao, out usouPadraoDeEmpresaInformado);
+        var usouPadraoDeEmpresa = !naFilialDeCasa && usouPadraoDeEmpresaInformado;
 
         var erros = new List<ErroDeCampo>();
 
@@ -73,7 +83,7 @@ public sealed class ResolvedorDeContextoProvisorio(
                 "Informe o nome principal do usuário neste cabeçalho. " +
                 "Enquanto a autenticação pelo Entra ID não entra, é assim que a API sabe quem está agindo."));
 
-        if (string.IsNullOrWhiteSpace(filial))
+        if (string.IsNullOrWhiteSpace(filial) && !naFilialDeCasa)
             erros.Add(new ErroDeCampo(
                 config.CabecalhoDeEmpresa,
                 "Informe o código da filial neste cabeçalho. Ex.: 010101. " +
@@ -94,7 +104,7 @@ public sealed class ResolvedorDeContextoProvisorio(
 
         var usuario = await banco.Usuarios
             .Where(u => u.NomePrincipal == upn && u.EstaAtivo && u.ExcluidoEm == null)
-            .Select(u => new { u.Id, u.NomeExibicao })
+            .Select(u => new { u.Id, u.NomeExibicao, u.EmpresaId })
             .FirstOrDefaultAsync(ct);
 
         if (usuario is null)
@@ -107,7 +117,7 @@ public sealed class ResolvedorDeContextoProvisorio(
 
         // O ESCOPO É O MESMO do login pelo Entra ID, montado no mesmo lugar — ver EscopoDeAcesso.
         return await EscopoDeAcesso.MontarAsync(
-            banco, usuario.Id, usuario.NomeExibicao, filial, empresaDeCasaId: 0,
+            banco, usuario.Id, usuario.NomeExibicao, filial, usuario.EmpresaId,
             config.CabecalhoDeEmpresa, config.HonrarConcessoesExplicitas, ct);
     }
 

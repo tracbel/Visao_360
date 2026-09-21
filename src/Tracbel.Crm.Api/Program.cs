@@ -179,6 +179,7 @@ builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais, RepositorioDeInd
 builder.Services.AddScoped<IRepositorioDePrecosDeMercado, RepositorioDePrecosDeMercado>();
 builder.Services.AddScoped<IRepositorioDeCustosDeProducao, RepositorioDeCustosDeProducao>();
 builder.Services.AddScoped<IRepositorioDeCreditoRural, RepositorioDeCreditoRural>();
+builder.Services.AddScoped<IRepositorioDeEscopo, RepositorioDeEscopo>();
 builder.Services.AddScoped<IRepositorioIndicadoresExecutivos, RepositorioDeIndicadoresExecutivos>();
 builder.Services.AddScoped<IRepositorioHistoricoComercial, RepositorioDeHistoricoComercial>();
 builder.Services.AddScoped<IRepositorioSincronizacoes, RepositorioDeSincronizacoes>();
@@ -235,6 +236,7 @@ builder.Services.AddScoped<ObterIndicadoresTerritoriais>();
 builder.Services.AddScoped<ObterPrecosDeMercado>();
 builder.Services.AddScoped<ObterCustosDeProducao>();
 builder.Services.AddScoped<ObterCreditoRural>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ObterEscopoDeAcesso>();
 builder.Services.AddScoped<ObterIndicadoresExecutivos>();
 
 builder.Services.AddScoped<BuscarClientesNoLegado>();
@@ -278,7 +280,7 @@ if (app.Environment.IsProduction())
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().SemPermissaoExigida("o contrato da API, só em Desenvolvimento");
 
     // O aviso de que a identidade é provisória sai UMA VEZ na subida, além de sair por
     // requisição quando o valor padrão é usado. É barato e é o que impede alguém encontrar esta
@@ -333,6 +335,10 @@ if (Directory.Exists(Path.Combine(app.Environment.ContentRootPath, "wwwroot")))
 // resolver o CrmDbContext, porque o filtro global é pré-computado no construtor dele.
 app.UseMiddleware<MeioDeCampoDeContextoDeAcesso>();
 
+// A PERMISSÃO QUE CADA ROTA DECLARA é conferida aqui, contra o contexto que o meio de campo acima montou
+// (fase 3 do documento 41). A rota sem declaração nenhuma é barrada pelo teste de arquitetura, não aqui.
+app.UseMiddleware<MeioDeCampoDePermissao>();
+
 // Prova de vida que também confirma que o banco responde — é o que o script de subida checa.
 app.MapGet("/saude/banco", async (DbContextOptions<CrmDbContext> opcoesDoBanco, CancellationToken ct) =>
 {
@@ -349,8 +355,9 @@ app.MapGet("/saude/banco", async (DbContextOptions<CrmDbContext> opcoesDoBanco, 
         Conectado = conecta,
         MigracoesPendentes = pendentes.ToArray()
     });
-});
+}).SemPermissaoExigida("prova de vida do banco: não lê dado de ninguém e é o que o script de subida confere");
 
+app.MapearAcesso();
 app.MapearClientes();
 app.MapearEquipamentos();
 app.MapearSincronizacoes();
@@ -375,7 +382,7 @@ app.MapearRelatorios();
 // página HTML disfarçada de resposta de API.
 if (Directory.Exists(Path.Combine(app.Environment.ContentRootPath, "wwwroot")))
 {
-    app.MapFallbackToFile("index.html");
+    app.MapFallbackToFile("index.html").SemPermissaoExigida("o arquivo da tela: não lê banco nem tem fronteira de filial");
 }
 
 app.Run();

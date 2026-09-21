@@ -156,6 +156,13 @@ public readonly struct Resultado<T>
     /// <summary>O perfil de quem pediu não alcança o que foi pedido.</summary>
     public static Resultado<T> SemPermissao(string erro) =>
         new(false, default, erro, TipoDeFalha.SemPermissao, null);
+
+    /// <summary>
+    /// Sem permissão, dizendo qual entrada causou a recusa — a filial escolhida, por exemplo. A tela usa o
+    /// campo para voltar sozinha à filial de casa, em vez de ficar presa num 403 a cada chamada.
+    /// </summary>
+    public static Resultado<T> SemPermissao(string erro, IReadOnlyList<ErroDeCampo> erros) =>
+        new(false, default, erro, TipoDeFalha.SemPermissao, erros);
 }
 
 /// <summary>

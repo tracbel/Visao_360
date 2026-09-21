@@ -123,6 +123,12 @@ public sealed class ContextoAcesso
         ProfundidadeDe(PermissaoDeAlcanceEntreEmpresas) >= Profundidade.Organizacao;
 
     /// <summary>
+    /// Todas as permissões deste contexto e a profundidade de cada uma — o que a rota de escopo efetivo
+    /// mostra ("o que eu posso fazer aqui?"). O serviço de sistema não tem lista: ele alcança tudo.
+    /// </summary>
+    public IReadOnlyDictionary<string, Profundidade> Profundidades => _profundidades;
+
+    /// <summary>
     /// Até onde este usuário alcança numa permissão.
     ///
     /// A consolidação é ADITIVA: se ele tem a mesma permissão por dois conjuntos, com

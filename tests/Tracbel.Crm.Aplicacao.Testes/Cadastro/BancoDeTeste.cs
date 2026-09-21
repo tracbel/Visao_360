@@ -130,11 +130,14 @@ public sealed class BancoDeTeste : IDisposable
             empresasVisiveis: new HashSet<int> { empresaId },
             subordinadosIds: new HashSet<long>(),
             equipesIds: new HashSet<long>(),
-            profundidades: new Dictionary<string, Profundidade>
-            {
-                ["Cliente.Ler"] = Profundidade.EmpresaEAbaixo,
-                ["Equipamento.Ler"] = Profundidade.EmpresaEAbaixo
-            },
+            // O OPERADOR DE CADASTRO: os testes daqui exercitam criar, alterar e inativar, e desde a fase 3 o
+            // caso de uso confere a permissão de cada uma. A recusa sem ela é provada em PermissaoNoCasoDeUsoTestes.
+            profundidades: new[]
+                {
+                    Permissoes.ClienteLer, Permissoes.ClienteCriar, Permissoes.ClienteEditar, Permissoes.ClienteExcluir,
+                    Permissoes.EquipamentoLer, Permissoes.EquipamentoCriar, Permissoes.EquipamentoEditar, Permissoes.EquipamentoExcluir
+                }
+                .ToDictionary(p => p, _ => Profundidade.EmpresaEAbaixo),
             ehServicoDeSistema: ehSistema);
 
     private static void Semear(CrmDbContext db)

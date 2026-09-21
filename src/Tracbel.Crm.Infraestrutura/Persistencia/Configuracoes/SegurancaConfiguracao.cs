@@ -22,7 +22,6 @@ public sealed class UsuarioConfiguracao : IEntityTypeConfiguration<Usuario>
         b.Property(u => u.NomePrincipal).HasMaxLength(200).IsUnicode(true).IsRequired();
         b.Property(u => u.NomeCompleto).HasMaxLength(200).IsUnicode(true).IsRequired();
         b.Property(u => u.NomeExibicao).HasMaxLength(80).IsUnicode(true).IsRequired();
-        b.Property(u => u.Papel).HasMaxLength(40).IsUnicode(false);
         b.Property(u => u.EstaAtivo).IsRequired();
 
         // Texto, e não número, pela mesma razão da carteira: a tabela tem de ser legível sem o
