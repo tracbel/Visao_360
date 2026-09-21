@@ -34,6 +34,12 @@ public static class EndpointsDeParametrosDoPotencial
                 "percepção do gestor por município. Uma data passada devolve o que valia naquela data. 'pendencias' diz, " +
                 "em frase, o que está em aberto — o motor não usa valor padrão para isso.");
 
+        grupo.MapGet("/opcoes", async (ListarOpcoesDosParametros caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ListarOpcoesDosParametros")
+            .ExigePermissao(Permissoes.ParametroDoPotencialLer)
+            .WithSummary("As listas de escolha dos formulários: os produtos da PAM (com a área na ADR) e os municípios da ADR (issue 77).");
+
         grupo.MapGet("/historico", async (ListarHistoricoDosParametrosDoPotencial caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ListarHistoricoDosParametrosDoPotencial")

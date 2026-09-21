@@ -46,6 +46,8 @@ import { ConfigToast, type ConfigToastEstado } from '../componentes/config/Confi
 import { ConfigSecaoAprovacoes } from '../componentes/config/ConfigSecaoAprovacoes';
 import { ConfigSecaoAtalhos } from '../componentes/config/ConfigSecaoAtalhos';
 import { ConfigSecaoAuditoria } from '../componentes/config/ConfigSecaoAuditoria';
+import { ConfigSecaoFontes } from '../componentes/config/ConfigSecaoFontes';
+import { ConfigSecaoPotencial } from '../componentes/config/ConfigSecaoPotencial';
 import { ConfigSecaoIntegracoes } from '../componentes/config/ConfigSecaoIntegracoes';
 import { ConfigSecaoMetas } from '../componentes/config/ConfigSecaoMetas';
 import { ConfigSecaoNotificacoes } from '../componentes/config/ConfigSecaoNotificacoes';
@@ -273,6 +275,12 @@ export function Configuracoes() {
         ) : (
           <BlocoCarregando oQue="as taxonomias" />
         );
+      // AS DUAS SEÇÕES DO POTENCIAL LEEM A API (issue 77), não um JSON do protótipo: cada uma tem os seus
+      // estados de carregando e de erro, e não entra no rascunho do rodapé — ela grava vigência por vigência.
+      case 'potencial':
+        return <ConfigSecaoPotencial />;
+      case 'fontes':
+        return <ConfigSecaoFontes />;
       case 'integracoes':
         return integracoes ? (
           <ConfigSecaoIntegracoes integracoes={integracoes} />

@@ -24,6 +24,17 @@ public static class EndpointsDeSincronizacao
             .ExigePermissao(Permissoes.IntegracaoLer)
             .WithSummary("Cada fluxo de sincronização com a última execução, o último sucesso e as execuções recentes.");
 
+        app.MapGet("/api/v1/integracoes/fontes-publicas", async (ObterFontesPublicas caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithTags("Integrações (administração)")
+            .WithName("ObterFontesPublicas")
+            .ExigePermissao(Permissoes.IntegracaoLer)
+            .WithSummary("O painel de fontes públicas do potencial: última atualização, período, cobertura, recusas e próxima execução (issue 77).")
+            .WithDescription(
+                "Uma linha por fluxo da carga (IBGE, ANP, CONAB, Socicana, Banco Central). A última atualização é a rodada que a " +
+                "carga gravou em integracao.PontoDeSincronismo — rodada que falha não grava nada. A fonte fica Atrasada quando a " +
+                "execução agendada passou (com 6 horas de margem) e ela não foi atualizada depois; SemDado quando a tabela está vazia.");
+
         return app;
     }
 }

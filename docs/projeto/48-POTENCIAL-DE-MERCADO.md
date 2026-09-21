@@ -460,7 +460,22 @@ nome da faixa entre 1,00 e 1,20 (D-P02) e os anos de renovação do café (D-P01
 
 **O limite de cada faixa pertence à de baixo:** 1,20 ainda não é aquecido, porque o texto diz "> 1,2".
 
-**Rotas:** `/api/v1/admin/parametros-do-potencial` (documento 23, §2.9). A tela é a #77.
+**Rotas:** `/api/v1/admin/parametros-do-potencial` (documento 23, §2.9).
+
+**A tela [21/09/2026, #77]** mora em Configurações, com o visual das outras seções:
+
+- **Comercial › Potencial de mercado:** o que vale numa data escolhida (padrão: hoje), com **o que falta decidir**
+  em frase; os parâmetros gerais, a regra de cada cultura e a percepção por município, cada um com o botão de
+  registrar vigência nova — só para quem tem a permissão; o formulário dos gerais já vem preenchido com o que vale
+  hoje, e o da regra oferece os produtos da PAM pela área plantada na ADR; e **a trilha**: toda vigência, com quem
+  registrou, quando e por quê, e quem revogou — com o botão de revogar só onde a API aceita.
+- **TI e Integrações › Fontes públicas:** uma linha por fonte — última atualização (a rodada que a carga gravou),
+  período, linhas, municípios da ADR cobertos, recusas e próxima execução —, com **a fonte atrasada ou sem dado em
+  destaque** e a frase que diz por quê (documento 23, §2.10).
+
+**O envio manual de arquivo ficou de fora**, porque hoje não há fonte que precise dele: todas são lidas pelo servidor.
+A única que precisaria, o CEPEA, espera a decisão sobre a licença (D-P11). Quando ela vier, o envio entra com a
+validação do arquivo no servidor.
 
 **O que ficou para depois, de propósito:**
 
@@ -558,7 +573,7 @@ flowchart LR
 | **P1 — Dados de mercado** | todas as fontes no servidor, conferidas contra a pasta 360 | #64, #65, #66, #67, #68, #69, #70 | cada fonte com rotina, idempotência e conferência | #63 (parcial); #18, #19, #12 para vendas e preço |
 | **P2 — Parâmetros** | administrador edita tudo, com vigência e trilha — **feito em 21/09/2026 (§4.1)** | #71 | parâmetro com vigência e 403 sem permissão | #63; #46; #40 |
 | **P3 — Motor** | estrutural, indicadores, fator e cenários | #72, #73, #74 | testes de ouro contra a planilha | P1; P2 |
-| **P4 — Diretoria e Administrador** | API e as duas telas | #75, #76, #77 | tela = API = consulta independente; conferência com a diretoria | P3; #46 |
+| **P4 — Diretoria e Administrador** | API e as duas telas — **a do Administrador feita em 21/09/2026 (§4.1)** | #75, #76, #77 | tela = API = consulta independente; conferência com a diretoria | P3; #46 |
 | **P5 — CEN** | visão do CEN pelos seus municípios | #78 | CEN só vê os próprios municípios | P4; #48 |
 | **P6 — Clientes** | potencial por cliente e segmentação | #79, #80 | cobertura de área por cliente medida; plano aprovado | P3; #53; #55; #47 |
 

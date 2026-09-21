@@ -78,7 +78,8 @@ export function CampoTexto({
   valor: string;
   aoMudar: (valor: string) => void;
   exemplo?: string;
-  tipo?: 'text' | 'number';
+  /** `date` envia `aaaa-mm-dd`, o formato que a API lê nas datas de vigência. */
+  tipo?: 'text' | 'number' | 'date';
 }) {
   const id = useId();
   return (
@@ -96,6 +97,34 @@ export function CampoTexto({
         // obrigatoriedade para o leitor de tela é isto. `required` nativo não
         // entra: ele bloquearia o envio no navegador, e quem recusa campo a
         // campo — com a frase certa — é a API.
+        aria-required={comum.obrigatorio || undefined}
+        aria-invalid={comum.erro ? true : undefined}
+        aria-describedby={comum.erro ? `${id}-erro` : comum.ajuda ? `${id}-ajuda` : undefined}
+        onChange={(e) => aoMudar(e.target.value)}
+      />
+    </Moldura>
+  );
+}
+
+/**
+ * Texto de mais de uma linha — a justificativa de um parâmetro, o motivo de uma revogação. Mesma moldura,
+ * mesmo erro de campo.
+ */
+export function CampoTextoLongo({
+  valor,
+  aoMudar,
+  exemplo,
+  ...comum
+}: Comum & { valor: string; aoMudar: (valor: string) => void; exemplo?: string }) {
+  const id = useId();
+  return (
+    <Moldura id={id} {...comum}>
+      <textarea
+        id={id}
+        value={valor}
+        rows={3}
+        placeholder={comum.desabilitado ? undefined : exemplo}
+        disabled={comum.desabilitado}
         aria-required={comum.obrigatorio || undefined}
         aria-invalid={comum.erro ? true : undefined}
         aria-describedby={comum.erro ? `${id}-erro` : comum.ajuda ? `${id}-ajuda` : undefined}

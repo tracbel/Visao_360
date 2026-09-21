@@ -13,7 +13,9 @@ export type SecaoConfig =
   | 'metas'
   | 'aprovacoes'
   | 'taxonomias'
+  | 'potencial'
   | 'integracoes'
+  | 'fontes'
   | 'usuarios'
   | 'permissoes'
   | 'auditoria';
