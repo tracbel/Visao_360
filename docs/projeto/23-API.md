@@ -445,6 +445,45 @@ mostra a filial escolhida, e "Todas as filiais" mostra todas. O que não tem fil
 concessão sem filial) fica na filial de casa de quem alterou; a liberação de conta fica na filial em que a conta
 foi liberada.
 
+### 2.14 Integrações configuráveis — `/api/v1/admin/integracoes` (issue 136, 22/09/2026)
+
+| Rota | Permissão | O que faz |
+|---|---|---|
+| `GET /api/v1/admin/integracoes` | `Integracao.Ler` | as conexões (endereço, origem da credencial, última verificação — **nunca a senha**) e as rotinas (agenda, ligada, próxima e última execução, pendência) |
+| `GET …/conexoes/{codigo}/verificacoes` | `Integracao.Ler` | os últimos 20 testes, com quem testou (ou o orquestrador) |
+| `GET …/rotinas/{codigo}/execucoes` | `Integracao.Ler` | as últimas 20 execuções, com motivo, quem pediu e o resultado |
+| `PUT …/conexoes/{codigo}` `{ endereco, porta, banco, objeto, usuario, nomeDoCabecalho, nome, descricao, statusEsperado, minutosEntreVerificacoes }` | `Integracao.Administrar` | configura; nome, status e monitoramento só na API monitorada |
+| `PUT …/conexoes/{codigo}/segredo` `{ segredo }` | `Integracao.Administrar` | grava a senha, protegida; a resposta não a traz |
+| `POST …/conexoes/{codigo}/segredo/remocao` | `Integracao.Administrar` | retira a credencial da tela; volta a valer a variável de ambiente, se houver |
+| `POST …/conexoes/{codigo}/teste` | `Integracao.Administrar` | testa **no servidor, só leitura**, e grava no histórico |
+| `POST …/conexoes` `{ codigo, nome, descricao, endereco, nomeDoCabecalho, statusEsperado, minutosEntreVerificacoes }` | `Integracao.Administrar` | cadastra uma API para ser monitorada (201) |
+| `POST …/conexoes/{codigo}/desativacao` e `…/reativacao` | `Integracao.Administrar` | tira e devolve a API monitorada do monitoramento (as do sistema, 409) |
+| `PUT …/rotinas/{codigo}` `{ cadencia, mes, dia, hora, intervaloMinutos, ligada }` | `Integracao.Administrar` | troca a agenda e liga ou desliga |
+| `POST …/rotinas/{codigo}/execucao` | `Integracao.Administrar` | "Rodar agora": põe na fila do orquestrador, que começa em até cinco minutos |
+
+`Integracao.Administrar` entrou no **fim** da semente do Administrador (linha 427). A migration
+`IntegracoesConfiguraveis` cria `integracao.Conexao`, `VerificacaoDeConexao`, `Rotina` e `ExecucaoDeRotina` (doc 14,
+§2.1: 66 tabelas) e semeia as 12 conexões e as 4 rotinas do catálogo (`ConexoesDoSistema`, `RotinasDoSistema`).
+
+**A senha entra e não sai.** Ela chega numa rota própria, é protegida na hora (`IProtetorDeSegredos`: DPAPI da
+máquina no Windows) e gravada em `varbinary`. Nenhuma resposta a traz; a trilha registra só `SegredoAlteradoEm`, com
+o autor; as mensagens de teste passam pelo `Sigilo`. Uma cópia do banco levada para outra máquina chega sem as
+senhas — a tela pede para digitar de novo.
+
+**De onde vem a credencial** (`origemDaCredencial`): `Tela` quando a conexão tem endereço, usuário e senha gravados
+pela tela; senão `Ambiente` quando as variáveis de sempre estão definidas no servidor; senão `Nenhuma`. A carga, o
+orquestrador, o serviço do ART e a ponte do Vórtice sobrepõem a credencial da tela às variáveis, com os mesmos nomes.
+
+**O botão "Testar", só leitura:** no Protheus, o token e uma linha da SA1 pelo `genericQuery` (GET); nos bancos,
+`SELECT 1` em sessão declarada somente leitura (no ART, `SELECT 1 FROM <visão> LIMIT 1`); nas fontes públicas e nas
+APIs monitoradas, um GET que lê só o cabeçalho da resposta, sem seguir redirecionamento (na fonte pública, 2xx e 3xx
+contam como no ar; na monitorada, só o status cadastrado). Sem credencial, nada é consultado.
+
+**Regras:** o endereço de uma fonte pública não se edita (o leitor é escrito para aquele formato); servidor, banco e
+visão só com letras, números e poucos sinais (entram em cadeia de conexão e em consulta); dia da agenda até 28;
+intervalo de 15 a 1.440 minutos; mudar a agenda ou religar vale daqui para a frente; rotina com conexão exigida sem
+credencial não liga nem roda (409).
+
 ## 3. O formato de erro
 
 Toda recusa é `application/problem+json`. O status vem da **natureza** da falha, declarada pelo

@@ -1,69 +1,10 @@
+using Tracbel.Crm.Dominio.Integracao;
+
 namespace Tracbel.Crm.Dominio.Organizacao;
 
-/// <summary>Com que frequência a rotina de uma fonte roda no servidor.</summary>
-public enum CadenciaDaRotina
-{
-    /// <summary>Uma vez por ano, num mês e dia fixos.</summary>
-    Anual = 0,
-
-    /// <summary>Todo mês, num dia fixo.</summary>
-    Mensal = 1
-}
-
-/// <summary>
-/// UMA ROTINA AGENDADA DO SERVIDOR — a tarefa do Windows que roda a carga das fontes públicas (issue 77).
-///
-/// <para><b>O calendário mora em dois lugares, e um teste os mantém iguais.</b> Quem agenda de verdade é o
-/// <c>scripts/deploy/registrar-rotinas.ps1</c>; aqui ele é repetido para o painel dizer quando cada fonte
-/// devia ter rodado e quando roda de novo. <c>RotinasDasFontesTestes</c> lê o script e compara — mudar um sem
-/// o outro quebra o build, e não o painel em silêncio.</para>
-///
-/// <para><b>O horário é o de São Paulo</b>, que é o do servidor: UTC−3 o ano inteiro, sem horário de verão
-/// desde 2019 (a mesma conta de <see cref="ParametroComVigencia.HojeNoBrasil"/>).</para>
-/// </summary>
-/// <param name="Tarefa">O nome da tarefa agendada.</param>
-/// <param name="Cadencia">Anual ou mensal.</param>
-/// <param name="Mes">O mês, na anual; nulo na mensal.</param>
-/// <param name="Dia">O dia do mês.</param>
-/// <param name="Hora">A hora, no horário de São Paulo.</param>
-public sealed record RotinaDaFonte(string Tarefa, CadenciaDaRotina Cadencia, int? Mes, int Dia, TimeOnly Hora)
-{
-    private static readonly TimeSpan FusoDeSaoPaulo = TimeSpan.FromHours(-3);
-
-    /// <summary>
-    /// A MARGEM ENTRE A HORA AGENDADA E A COBRANÇA. A rotina começa às 3h ou às 4h e leva de segundos a uma hora
-    /// (a PAM). Sem margem, a fonte apareceria atrasada durante a própria execução.
-    /// </summary>
-    public static readonly TimeSpan Margem = TimeSpan.FromHours(6);
-
-    /// <summary>A execução agendada mais recente até o instante (UTC).</summary>
-    /// <param name="agoraUtc">O instante, em UTC.</param>
-    public DateTime UltimaPrevistaAte(DateTime agoraUtc)
-    {
-        var local = agoraUtc + FusoDeSaoPaulo;
-        var candidata = Agendada(local.Year, local.Month);
-        if (candidata > local) candidata = Cadencia == CadenciaDaRotina.Mensal
-            ? Agendada(local.AddMonths(-1).Year, local.AddMonths(-1).Month)
-            : Agendada(local.Year - 1, local.Month);
-        return DateTime.SpecifyKind(candidata - FusoDeSaoPaulo, DateTimeKind.Utc);
-    }
-
-    /// <summary>A próxima execução agendada depois do instante (UTC).</summary>
-    /// <param name="agoraUtc">O instante, em UTC.</param>
-    public DateTime ProximaDepoisDe(DateTime agoraUtc)
-    {
-        var local = agoraUtc + FusoDeSaoPaulo;
-        var candidata = Agendada(local.Year, local.Month);
-        if (candidata <= local) candidata = Cadencia == CadenciaDaRotina.Mensal
-            ? Agendada(local.AddMonths(1).Year, local.AddMonths(1).Month)
-            : Agendada(local.Year + 1, local.Month);
-        return DateTime.SpecifyKind(candidata - FusoDeSaoPaulo, DateTimeKind.Utc);
-    }
-
-    // Na anual o mês de referência é ignorado: vale o mês da rotina.
-    private DateTime Agendada(int ano, int mesDeReferencia) =>
-        new DateOnly(ano, Mes ?? mesDeReferencia, Dia).ToDateTime(Hora);
-}
+// O CALENDÁRIO DAS FONTES SAIU DAQUI (issue 136, 22/09/2026). Até então ele morava em RotinaDaFonte, repetido
+// do scripts/deploy/registrar-rotinas.ps1 e amarrado a ele por um teste. Agora a agenda é da rotina, no banco
+// (integracao.Rotina), editável pela tela; aqui fica só QUAL rotina carrega cada fonte.
 
 /// <summary>A situação de uma fonte no painel do administrador.</summary>
 public enum SituacaoDaFonte
@@ -87,39 +28,53 @@ public enum SituacaoDaFonte
 /// <param name="Orgao">Quem publica.</param>
 /// <param name="OQueTraz">O dado, em uma frase.</param>
 /// <param name="Tabela">A tabela do CRM que o fluxo grava.</param>
-/// <param name="Rotina">A rotina agendada que o roda.</param>
+/// <param name="Rotina">O código da rotina que o carrega (<see cref="RotinasDoSistema"/>).</param>
 /// <param name="EhMunicipal">Se o dado é por município — e então a cobertura da ADR faz sentido.</param>
 public sealed record FontePublica(
-    string Fluxo, string Nome, string Orgao, string OQueTraz, string Tabela, RotinaDaFonte Rotina, bool EhMunicipal)
+    string Fluxo, string Nome, string Orgao, string OQueTraz, string Tabela, string Rotina, bool EhMunicipal)
 {
+    /// <summary>
+    /// A MARGEM ENTRE A HORA AGENDADA E A COBRANÇA. A rotina começa às 3h ou às 4h e leva de segundos a uma hora
+    /// (a PAM). Sem margem, a fonte apareceria atrasada durante a própria execução.
+    /// </summary>
+    public static readonly TimeSpan Margem = TimeSpan.FromHours(6);
+
     /// <summary>
     /// A situação da fonte num instante, com a frase que a explica.
     ///
     /// <para><b>Sem dado vem primeiro:</b> tabela vazia é o caso mais grave e o mais comum logo depois de uma
     /// publicação — foi o dos preços no servidor em 21/09/2026.</para>
+    ///
+    /// <para><b>Rotina desligada não é "atrasada por falha"</b>: a frase diz que ela está desligada e onde religar.</para>
     /// </summary>
     /// <param name="ultimaAtualizacaoEm">A última rodada bem-sucedida do fluxo; nula quando nunca rodou.</param>
     /// <param name="linhas">Quantas linhas a tabela tem.</param>
     /// <param name="agoraUtc">O instante, em UTC.</param>
-    public (SituacaoDaFonte Situacao, string Motivo) SituacaoEm(DateTime? ultimaAtualizacaoEm, int linhas, DateTime agoraUtc)
+    /// <param name="agenda">A agenda da rotina, lida do banco.</param>
+    /// <param name="nomeDaRotina">O nome da rotina, para a frase.</param>
+    /// <param name="ligada">Se a rotina está ligada.</param>
+    public (SituacaoDaFonte Situacao, string Motivo) SituacaoEm(
+        DateTime? ultimaAtualizacaoEm, int linhas, DateTime agoraUtc, AgendaDaRotina agenda, string nomeDaRotina, bool ligada)
     {
         if (linhas == 0)
             return (SituacaoDaFonte.SemDado,
-                ultimaAtualizacaoEm is null
-                    ? $"A tabela está vazia e o fluxo nunca rodou neste banco. A rotina {Rotina.Tarefa} carrega na próxima execução — ou dispare-a agora."
-                    : $"A tabela está vazia, embora o fluxo tenha rodado. Veja as recusas e o log da rotina {Rotina.Tarefa}.");
+                !ligada
+                    ? $"A tabela está vazia e a rotina \"{nomeDaRotina}\" está desligada. Religue-a em Configurações › Integrações, ou peça \"Rodar agora\"."
+                    : ultimaAtualizacaoEm is null
+                        ? $"A tabela está vazia e o fluxo nunca rodou neste banco. A rotina \"{nomeDaRotina}\" carrega na próxima volta do orquestrador — ou peça \"Rodar agora\"."
+                        : $"A tabela está vazia, embora o fluxo tenha rodado. Veja as recusas e o histórico da rotina \"{nomeDaRotina}\".");
 
-        var devia = Rotina.UltimaPrevistaAte(agoraUtc - RotinaDaFonte.Margem);
+        var devia = agenda.UltimaPrevistaAte(agoraUtc - Margem);
 
         if (ultimaAtualizacaoEm is null || ultimaAtualizacaoEm < devia)
-            return (SituacaoDaFonte.Atrasada,
-                $"A rotina {Rotina.Tarefa} devia ter rodado em {devia.AddHours(-3):dd/MM/yyyy} e o fluxo não foi atualizado depois disso. " +
-                "Uma rodada que falha não grava nada: veja o log da rotina no servidor.");
+            return (SituacaoDaFonte.Atrasada, !ligada
+                ? $"A rotina \"{nomeDaRotina}\" está desligada, e o fluxo não foi atualizado desde a execução que a agenda previa para {devia.AddHours(-3):dd/MM/yyyy}."
+                : $"A rotina \"{nomeDaRotina}\" devia ter rodado em {devia.AddHours(-3):dd/MM/yyyy} e o fluxo não foi atualizado depois disso. " +
+                  "Uma rodada que falha não grava nada: veja o histórico da rotina em Configurações › Integrações.");
 
         return (SituacaoDaFonte.EmDia, "Atualizada depois da última execução agendada.");
     }
 }
-
 /// <summary>
 /// AS FONTES PÚBLICAS DO POTENCIAL — o catálogo que o painel do administrador percorre (issue 77).
 ///
@@ -128,11 +83,8 @@ public sealed record FontePublica(
 /// </summary>
 public static class FontesPublicas
 {
-    /// <summary>A rotina anual: a PAM e a estrutura agropecuária, em 1 de outubro às 3h.</summary>
-    public static readonly RotinaDaFonte Anual = new("TracbelCrmFontesPublicas", CadenciaDaRotina.Anual, 10, 1, new TimeOnly(3, 0));
-
-    /// <summary>A rotina mensal: preços, dólar, custos e crédito, no dia 20 às 4h.</summary>
-    public static readonly RotinaDaFonte Mensal = new("TracbelCrmPrecos", CadenciaDaRotina.Mensal, null, 20, new TimeOnly(4, 0));
+    private const string Anual = RotinasDoSistema.FontesAnuais;
+    private const string Mensal = RotinasDoSistema.PrecosMensais;
 
     /// <summary>As fontes, na ordem em que o painel as mostra.</summary>
     public static readonly IReadOnlyList<FontePublica> Todas =

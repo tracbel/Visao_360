@@ -37,6 +37,11 @@ Console.OutputEncoding = Encoding.UTF8;
 if (args.Contains(AdministradorInicial.Opcao, StringComparer.Ordinal))
     return await AdministradorInicial.RodarAsync(args);
 
+// --orquestrar — O ORQUESTRADOR (issue 136, Orquestrador.cs): a tarefa do Windows que, a cada cinco minutos, roda as
+// rotinas vencidas pela agenda do banco e testa as APIs monitoradas. Não é carga: roda as cargas como processos filhos.
+if (args.Contains(Orquestrador.Opcao, StringComparer.Ordinal))
+    return await Orquestrador.RodarAsync(args);
+
 // =================================================================================================
 // A CARGA DE DADOS DO SISTEMA LEGADO — projeto de console, e não endpoint da API.
 //
@@ -207,6 +212,12 @@ if (string.IsNullOrWhiteSpace(conexaoDoCrm))
         "de uma pasta com o appsettings.json ao lado.");
     return 2;
 }
+
+// A CREDENCIAL DA TELA (issue 136) vai por cima das variáveis de ambiente, com os mesmos nomes: nenhum caminho da carga
+// muda, e sem credencial na tela tudo segue como antes. O aviso diz qual conexão não abriu — nunca o valor.
+var (credenciaisDaTela, avisosDasCredenciais) = await CredenciaisDaTela.LerAsync(conexaoDoCrm, configuracao, CancellationToken.None);
+foreach (var aviso in avisosDasCredenciais) Console.Error.WriteLine("Credencial da tela não usada — " + aviso);
+if (credenciaisDaTela.Count > 0) configuracao = CredenciaisDaTela.Sobrepor(configuracao, credenciaisDaTela);
 
 var conexaoDoLegado = configuracao["Vortice:Conexao"];
 
@@ -379,7 +390,7 @@ if (somenteArt)
     configuracao.GetSection(OpcoesDoArt.Secao).Bind(opcoesDoArt);
 
     var opcoesDoBancoDoProtheus = new OpcoesDoBancoDoProtheus();
-    configuracao.GetSection("ProtheusBanco").Bind(opcoesDoBancoDoProtheus);
+    configuracao.GetSection(OpcoesDoBancoDoProtheus.Secao).Bind(opcoesDoBancoDoProtheus);
 
     if (!opcoesDoArt.EstaConfigurada)
     {

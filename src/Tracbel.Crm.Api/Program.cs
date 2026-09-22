@@ -15,6 +15,10 @@ using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
+using Microsoft.Extensions.Options;
+using Tracbel.Crm.Infraestrutura.Seguranca;
+using Tracbel.Crm.Integracao.Conexoes;
+using Tracbel.Crm.Integracao.Protheus;
 using Tracbel.Crm.Integracao.Vortice;
 
 // A RAIZ DE CONTEÚDO É A PASTA DO EXECUTÁVEL, E ISSO PRECISA SER DITO AQUI.
@@ -198,6 +202,10 @@ builder.Services.AddScoped<IRepositorioDeConcessoes>(s => s.GetRequiredService<R
 builder.Services.AddScoped<IRepositorioDeReferenciasDeAcesso>(s => s.GetRequiredService<RepositorioDeAdministracaoDeUsuarios>());
 builder.Services.AddScoped<IRepositorioDePerfisDaAdministracao, RepositorioDePerfisDaAdministracao>();
 builder.Services.AddScoped<IRepositorioDaTrilhaDeAuditoria, RepositorioDaTrilhaDeAuditoria>();
+builder.Services.AddScoped<RepositorioDeIntegracoes>();
+builder.Services.AddScoped<IRepositorioDeConexoes>(s => s.GetRequiredService<RepositorioDeIntegracoes>());
+builder.Services.AddScoped<IRepositorioDeRotinas>(s => s.GetRequiredService<RepositorioDeIntegracoes>());
+builder.Services.AddScoped<IConsultaDoHistoricoDeIntegracoes>(s => s.GetRequiredService<RepositorioDeIntegracoes>());
 builder.Services.AddScoped<IRepositorioIndicadoresExecutivos, RepositorioDeIndicadoresExecutivos>();
 builder.Services.AddScoped<IRepositorioHistoricoComercial, RepositorioDeHistoricoComercial>();
 builder.Services.AddScoped<IRepositorioSincronizacoes, RepositorioDeSincronizacoes>();
@@ -211,7 +219,22 @@ builder.Services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalho>();
 // continua funcionando — que é o requisito: uma dependência de VPN não pode derrubar o cadastro.
 // -------------------------------------------------------------------------------------------
 builder.Services.Configure<OpcoesDoVortice>(builder.Configuration.GetSection(OpcoesDoVortice.Secao));
-builder.Services.AddScoped<IPonteDeLeituraDoVortice, PonteDeLeituraDoVortice>();
+// A CREDENCIAL DA TELA (issue 136) entra por pós-configuração, lida a cada requisição: trocar a senha em Configurações
+// vale na próxima busca, sem reiniciar. Sem ela, fica a variável de ambiente, como antes.
+builder.Services.AddScoped<IPostConfigureOptions<OpcoesDoVortice>, CredencialDoVorticePelaTela>();
+builder.Services.AddScoped<IPonteDeLeituraDoVortice>(s => new PonteDeLeituraDoVortice(
+    Options.Create(s.GetRequiredService<IOptionsSnapshot<OpcoesDoVortice>>().Value),
+    s.GetRequiredService<IRelogio>(),
+    s.GetRequiredService<ILogger<PonteDeLeituraDoVortice>>()));
+
+// AS INTEGRAÇÕES CONFIGURÁVEIS (issue 136): a credencial protegida, o resolvedor (tela, depois ambiente) e o botão
+// "Testar", com um cliente HTTP que não segue redirecionamento nem descomprime - o teste lê só o cabeçalho.
+builder.Services.AddSingleton<IProtetorDeSegredos, ProtetorDeSegredos>();
+builder.Services.AddScoped<IResolvedorDeConexoes, ResolvedorDeConexoes>();
+builder.Services.AddScoped<ITestadorDeConexoes, TestadorDeConexoes>();
+builder.Services.AddHttpClient(TestadorDeConexoes.NomeDoCliente)
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, AutomaticDecompression = System.Net.DecompressionMethods.None });
+builder.Services.AddHttpClient(PonteDoProtheus.NomeDoCliente);
 
 // Os casos de uso. Um por operação, resolvidos por injeção.
 builder.Services.AddScoped<ListarClientes>();
@@ -282,6 +305,13 @@ builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.AdministrarPerfil>();
 // A trilha de auditoria na tela (issue 135).
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Auditoria.ConsultarTrilhaDeAuditoria>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Auditoria.ListarEntidadesAuditadas>();
+
+// As integrações configuráveis (issue 136).
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Integracoes.MontadorDoPainelDeIntegracoes>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Integracoes.ListarIntegracoes>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Integracoes.ListarHistoricoDeIntegracoes>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Integracoes.AdministrarConexoes>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Integracoes.AdministrarRotinas>();
 builder.Services.AddScoped<ObterIndicadoresExecutivos>();
 
 builder.Services.AddScoped<BuscarClientesNoLegado>();
@@ -419,6 +449,7 @@ app.MapearParametrosDoPotencial();
 app.MapearAdministracaoDeUsuarios();
 app.MapearAdministracaoDePerfis();
 app.MapearAuditoria();
+app.MapearAdministracaoDeIntegracoes();
 app.MapearRelatorios();
 
 // O ÚLTIMO RECURSO DEVOLVE O `index.html`, e é o que faz a navegação da tela funcionar.

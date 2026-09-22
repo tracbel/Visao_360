@@ -133,13 +133,19 @@ export type FontePublicaResumo = {
   orgao: string;
   oQueTraz: string;
   tabela: string;
+  /** O nome da rotina que carrega a fonte (issue 136: a agenda é do banco, editável em Integrações). */
   rotina: string;
-  cadencia: 'Anual' | 'Mensal';
+  rotinaCodigo: string;
+  rotinaLigada: boolean;
+  /** A agenda em português, como o servidor a descreve. */
+  agenda: string;
+  cadencia: 'Anual' | 'Mensal' | 'Diaria' | 'Intervalo';
   situacao: SituacaoDaFonte;
   motivo: string;
   ultimaAtualizacaoEm: string | null;
   ultimaExecucaoPrevistaEm: string;
-  proximaExecucaoEm: string;
+  /** Nula com a rotina desligada. */
+  proximaExecucaoEm: string | null;
   linhas: number;
   periodoInicial: string | null;
   periodoFinal: string | null;

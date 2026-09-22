@@ -29,7 +29,7 @@
     8. confere a prova de vida pelo nome DNS, com o certificado de verdade;
     9. sobe a sincronizacao, DEPOIS das migracoes;
    10. confere por hash, arquivo a arquivo, que o servidor ficou identico aos pacotes;
-   11. atualiza a carga das rotinas das fontes publicas, registra as rotinas e dispara na hora a que
+   11. atualiza a carga das rotinas e registra o orquestrador (registrar-rotinas.ps1), que roda na primeira volta a que
        tiver tabela vazia (registrar-rotinas.ps1) - o mesmo que o agente faz no passo 7 dele.
 
   O deploy so diz "pronto" quando os passos 8 e 10 passam. Data de arquivo copiado nao prova conteudo.

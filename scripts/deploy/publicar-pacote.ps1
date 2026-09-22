@@ -18,7 +18,7 @@
        derrubaria a aplicacao sem nenhum erro de compilacao para avisar.
     5. SOBE a API — e e ela que aplica as migracoes.
     6. PROVA DE VIDA. Se falhar, VOLTA a versao guardada e sobe de novo.
-    7. ROTINAS: recria as tarefas agendadas das fontes publicas com o registrar-rotinas.ps1 do pacote.
+    7. ROTINAS: registra o orquestrador das rotinas com o registrar-rotinas.ps1 do pacote (a agenda e do banco).
 
   A volta atras cobre o CODIGO. Migracao destrutiva nao volta assim — volta restaurando a copia do
   passo 1 —, e por isso o agente nem chega aqui quando ha uma sem autorizacao.
@@ -199,7 +199,7 @@ if (EstaViva) {
             $saidaDasRotinas = "parou num erro: $($_.Exception.Message)"
         }
         if ($saidaDasRotinas -match 'codigo das rotinas: 0') {
-            Diga 'rotinas das fontes publicas registradas (anual e mensal)'
+            Diga 'orquestrador das rotinas registrado (a agenda de cada rotina e do banco)'
 
             # A PRIMEIRA CARGA E DO registrar-rotinas.ps1: ele confere as tabelas de cada rotina e dispara a
             # que tiver alguma vazia - o mesmo em todo caminho de publicacao (21/09/2026). Aqui so se conta.

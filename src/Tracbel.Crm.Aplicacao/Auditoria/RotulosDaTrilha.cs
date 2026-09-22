@@ -31,7 +31,9 @@ public static class RotulosDaTrilha
         ["RegraDePotencial"] = "Regra do potencial por cultura",
         ["ParametroDoPotencial"] = "Parâmetros gerais do potencial",
         ["PercepcaoDoGestor"] = "Percepção do gestor",
-        ["VendaDeMaquina"] = "Venda de máquina"
+        ["VendaDeMaquina"] = "Venda de máquina",
+        ["Conexao"] = "Conexão de integração",
+        ["Rotina"] = "Rotina do servidor"
     };
 
     // Os campos que se repetem em várias entidades, com o mesmo sentido.
@@ -108,6 +110,17 @@ public static class RotulosDaTrilha
             ["VendaDireta"] = "Venda direta", ["RepasseDireto"] = "Repasse direto", ["Quantidade"] = "Quantidade",
             ["LinhaNaOrigem"] = "Linha na origem", ["ProdutoNaOrigem"] = "Produto na origem", ["UnidadeNaOrigem"] = "Unidade na origem",
             ["UnidadeDoFaturamentoNaOrigem"] = "Unidade do faturamento na origem"
+        },
+        ["Conexao"] = new(StringComparer.Ordinal)
+        {
+            ["Endereco"] = "Endereço", ["Porta"] = "Porta", ["Banco"] = "Banco", ["Objeto"] = "Visão lida", ["Usuario"] = "Usuário",
+            ["NomeDoCabecalho"] = "Cabeçalho do segredo", ["StatusEsperado"] = "Status esperado", ["MinutosEntreVerificacoes"] = "Minutos entre verificações", ["EstaAtiva"] = "Monitorada",
+            ["SegredoAlteradoEm"] = "Credencial trocada em"
+        },
+        ["Rotina"] = new(StringComparer.Ordinal)
+        {
+            ["Cadencia"] = "Cadência", ["Mes"] = "Mês", ["Dia"] = "Dia", ["Hora"] = "Hora", ["IntervaloMinutos"] = "Intervalo (minutos)",
+            ["EstaLigada"] = "Ligada"
         }
     };
 

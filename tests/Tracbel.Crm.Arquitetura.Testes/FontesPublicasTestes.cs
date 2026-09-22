@@ -1,59 +1,44 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
 using FluentAssertions;
+using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Organizacao;
 using Xunit;
 
 namespace Tracbel.Crm.Arquitetura.Testes;
 
 /// <summary>
-/// O CATÁLOGO DAS FONTES PÚBLICAS CONTRA O QUE RODA DE VERDADE (issue 77).
+/// OS CATÁLOGOS DAS FONTES, DAS ROTINAS E DAS CONEXÕES CONTRA O QUE RODA DE VERDADE (issues 77 e 136).
 ///
-/// <para>O painel do administrador diz quando cada fonte devia ter rodado e quando roda de novo, e lê a última
-/// rodada pelo nome do fluxo. As duas informações têm dono em outro lugar: o calendário é do
-/// <c>scripts/deploy/registrar-rotinas.ps1</c>, e o nome do fluxo é da carga. Se divergirem, o painel mente em
-/// silêncio — uma fonte "atrasada" que rodou, ou "sem registro" porque o nome mudou. Estes testes trocam o
-/// silêncio por uma falha no build.</para>
+/// <para>O painel lê a última rodada pelo nome do fluxo; o orquestrador roda cada rotina pelos modos da carga; o botão
+/// "Testar" consulta o endereço de cada fonte. As três informações têm dono em outro lugar — a carga, o
+/// <c>registrar-rotinas.ps1</c> e os leitores de <c>Tracbel.Crm.Integracao</c>. Se divergirem, a tela mente em
+/// silêncio. Estes testes trocam o silêncio por uma falha no build.</para>
 /// </summary>
 public sealed class FontesPublicasTestes
 {
     private static string Raiz => ArquiteturaTestes.LocalizarRaizDoRepositorio();
 
-    private static readonly Dictionary<string, int> Meses = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["JAN"] = 1, ["FEB"] = 2, ["MAR"] = 3, ["APR"] = 4, ["MAY"] = 5, ["JUN"] = 6,
-        ["JUL"] = 7, ["AUG"] = 8, ["SEP"] = 9, ["OCT"] = 10, ["NOV"] = 11, ["DEC"] = 12
-    };
-
-    private static string Padrao(string script, string parametro)
-    {
-        var achado = Regex.Match(script, $@"\${parametro}\s*=\s*'?(?<valor>[^'\r\n,]+)'?");
-        achado.Success.Should().BeTrue($"o registrar-rotinas.ps1 declara ${parametro} com valor padrão");
-        return achado.Groups["valor"].Value.Trim();
-    }
+    private static string CodigoDe(string projeto) => string.Join('\n', Directory
+        .EnumerateFiles(Path.Combine(Raiz, "src", projeto), "*.cs", SearchOption.AllDirectories)
+        .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+        .Select(File.ReadAllText));
 
     [Fact]
-    public void O_calendario_do_painel_e_o_mesmo_do_registrar_rotinas()
+    public void O_servidor_agenda_so_o_orquestrador_e_apaga_as_tarefas_antigas()
     {
         var script = File.ReadAllText(Path.Combine(Raiz, "scripts", "deploy", "registrar-rotinas.ps1"));
 
-        FontesPublicas.Anual.Tarefa.Should().Be(Padrao(script, "NomeTarefaAnual"));
-        FontesPublicas.Anual.Mes.Should().Be(Meses[Padrao(script, "MesAnual")]);
-        FontesPublicas.Anual.Dia.Should().Be(int.Parse(Padrao(script, "DiaAnual"), CultureInfo.InvariantCulture));
-        FontesPublicas.Anual.Hora.Should().Be(TimeOnly.ParseExact(Padrao(script, "HoraAnual"), "HH:mm", CultureInfo.InvariantCulture));
-
-        FontesPublicas.Mensal.Tarefa.Should().Be(Padrao(script, "NomeTarefaMensal"));
-        FontesPublicas.Mensal.Dia.Should().Be(int.Parse(Padrao(script, "DiaMensal"), CultureInfo.InvariantCulture));
-        FontesPublicas.Mensal.Hora.Should().Be(TimeOnly.ParseExact(Padrao(script, "HoraMensal"), "HH:mm", CultureInfo.InvariantCulture));
+        script.Should().Contain("'TracbelCrmOrquestrador'").And.Contain("'/SC', 'MINUTE'").And.Contain("--orquestrar",
+            "a agenda é do banco: a tarefa do Windows só acorda o orquestrador");
+        script.Should().Contain("'TracbelCrmFontesPublicas', 'TracbelCrmPrecos', 'TracbelCrmPam'",
+            "deixar as tarefas antigas faria a mesma carga rodar duas vezes");
+        Regex.IsMatch(script, @"'/SC',\s*'MONTHLY'").Should().BeFalse("não há mais calendário escrito no script");
     }
 
     [Fact]
     public void Cada_fonte_do_painel_e_um_fluxo_que_a_carga_grava()
     {
-        var codigoDaCarga = string.Join('\n', Directory
-            .EnumerateFiles(Path.Combine(Raiz, "src", "Tracbel.Crm.Carga"), "*.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .Select(File.ReadAllText));
+        var codigoDaCarga = CodigoDe("Tracbel.Crm.Carga");
 
         var ausentes = FontesPublicas.Todas.Where(f => !codigoDaCarga.Contains($"\"{f.Fluxo}\"", StringComparison.Ordinal)).ToList();
 
@@ -62,9 +47,48 @@ public sealed class FontesPublicasTestes
     }
 
     [Fact]
-    public void Cada_rotina_do_catalogo_e_uma_das_duas_que_o_servidor_agenda()
+    public void Cada_fonte_e_carregada_por_uma_rotina_do_catalogo()
     {
-        FontesPublicas.Todas.Select(f => f.Rotina).Distinct().Should().BeEquivalentTo([FontesPublicas.Anual, FontesPublicas.Mensal]);
+        FontesPublicas.Todas.Select(f => f.Rotina).Distinct()
+            .Should().BeEquivalentTo([RotinasDoSistema.FontesAnuais, RotinasDoSistema.PrecosMensais]);
         FontesPublicas.Todas.Select(f => f.Fluxo).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
+    public void Cada_modo_que_uma_rotina_roda_existe_na_carga()
+    {
+        var programa = File.ReadAllText(Path.Combine(Raiz, "src", "Tracbel.Crm.Carga", "Program.cs"));
+
+        var ausentes = RotinasDoSistema.Todas.SelectMany(r => r.Modos)
+            .Where(modo => !programa.Contains($"\"{modo}\"", StringComparison.Ordinal)).ToList();
+
+        ausentes.Should().BeEmpty("o orquestrador roda a carga com esses modos na linha de comando");
+    }
+
+    [Fact]
+    public void Cada_endereco_de_fonte_publica_e_o_que_o_leitor_dela_consulta()
+    {
+        // OS LEITORES MONTAM ALGUNS ENDEREÇOS COM {TABELA} E {SERIE}: cada trecho entre chaves vale qualquer segmento.
+        var literais = Regex.Matches(CodigoDe("Tracbel.Crm.Integracao"), "\"(https://[^\"]+)\"")
+            .Select(m => m.Groups[1].Value)
+            .Select(l => new Regex("^" + Regex.Replace(Regex.Escape(l), @"\\\{[^}]*}", "[^/?&]+") + "$"))
+            .ToList();
+
+        var semLeitor = ConexoesDoSistema.Todas
+            .Where(c => c.Tipo == TipoDeConexao.FontePublica)
+            .Where(c => !literais.Any(l => l.IsMatch(c.Endereco!)))
+            .Select(c => $"{c.Codigo}: {c.Endereco}")
+            .ToList();
+
+        semLeitor.Should().BeEmpty("o botão \"Testar\" precisa consultar o mesmo endereço que a carga lê");
+    }
+
+    [Fact]
+    public void Cada_rotina_usa_conexoes_do_catalogo()
+    {
+        var codigos = ConexoesDoSistema.Todas.Select(c => c.Codigo).ToHashSet();
+
+        RotinasDoSistema.Todas.SelectMany(r => r.Conexoes.Append(r.ConexaoExigida ?? r.Conexoes[0]))
+            .Where(c => !codigos.Contains(c)).Should().BeEmpty();
     }
 }

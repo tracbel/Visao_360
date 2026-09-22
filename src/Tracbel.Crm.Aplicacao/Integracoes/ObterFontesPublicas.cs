@@ -11,13 +11,16 @@ namespace Tracbel.Crm.Aplicacao.Integracoes;
 /// <param name="Orgao">Quem publica.</param>
 /// <param name="OQueTraz">O dado, em uma frase.</param>
 /// <param name="Tabela">A tabela do CRM.</param>
-/// <param name="Rotina">A tarefa agendada que a roda.</param>
-/// <param name="Cadencia">Anual ou Mensal.</param>
+/// <param name="Rotina">O nome da rotina que a carrega.</param>
+/// <param name="RotinaCodigo">O código da rotina (<c>PRECOS_MENSAIS</c>).</param>
+/// <param name="RotinaLigada">Se a rotina está ligada.</param>
+/// <param name="Agenda">A agenda da rotina, em português.</param>
+/// <param name="Cadencia">Anual, Mensal, Diaria ou Intervalo.</param>
 /// <param name="Situacao">EmDia, Atrasada ou SemDado.</param>
 /// <param name="Motivo">A frase que explica a situação.</param>
 /// <param name="UltimaAtualizacaoEm">A última rodada bem-sucedida (UTC).</param>
 /// <param name="UltimaExecucaoPrevistaEm">Quando a rotina devia ter rodado pela última vez (UTC).</param>
-/// <param name="ProximaExecucaoEm">A próxima execução agendada (UTC).</param>
+/// <param name="ProximaExecucaoEm">A próxima execução agendada (UTC); nula com a rotina desligada.</param>
 /// <param name="Linhas">Linhas da fonte no banco.</param>
 /// <param name="PeriodoInicial">O primeiro período com dado.</param>
 /// <param name="PeriodoFinal">O último período com dado.</param>
@@ -34,12 +37,15 @@ public sealed record FontePublicaResumo(
     string OQueTraz,
     string Tabela,
     string Rotina,
+    string RotinaCodigo,
+    bool RotinaLigada,
+    string Agenda,
     string Cadencia,
     string Situacao,
     string Motivo,
     DateTime? UltimaAtualizacaoEm,
     DateTime UltimaExecucaoPrevistaEm,
-    DateTime ProximaExecucaoEm,
+    DateTime? ProximaExecucaoEm,
     int Linhas,
     string? PeriodoInicial,
     string? PeriodoFinal,
@@ -65,7 +71,7 @@ public sealed record PainelDeFontesPublicas(int MunicipiosDaAdr, int Atrasadas, 
 /// rodada que a própria carga gravou no banco.</para>
 /// </summary>
 public sealed class ObterFontesPublicas(
-    IRepositorioDeFontesPublicas repositorio, IRepositorioDeOpcoesDosParametros opcoes, IRelogio relogio)
+    IRepositorioDeFontesPublicas repositorio, IRepositorioDeOpcoesDosParametros opcoes, IRepositorioDeRotinas rotinas, IRelogio relogio)
 {
     /// <summary>Lê o painel.</summary>
     /// <param name="ct">Cancelamento.</param>
@@ -75,17 +81,21 @@ public sealed class ObterFontesPublicas(
         var catalogo = FontesPublicas.Todas;
         var estados = (await repositorio.LerAsync(catalogo, ct)).ToDictionary(e => e.Fluxo, StringComparer.Ordinal);
 
+        // A AGENDA É A DO BANCO (issue 136): a mesma que o orquestrador segue e que a tela de Integrações edita.
+        var agendas = (await rotinas.ListarAsync(ct)).ToDictionary(r => r.Codigo, StringComparer.Ordinal);
+
         var fontes = catalogo.Select(fonte =>
         {
             var estado = estados[fonte.Fluxo];
-            var (situacao, motivo) = fonte.SituacaoEm(estado.UltimaAtualizacaoEm, estado.Linhas, agora);
+            var rotina = agendas[fonte.Rotina];
+            var (situacao, motivo) = fonte.SituacaoEm(estado.UltimaAtualizacaoEm, estado.Linhas, agora, rotina.Agenda, rotina.Nome, rotina.EstaLigada);
 
             return new FontePublicaResumo(
-                fonte.Fluxo, fonte.Nome, fonte.Orgao, fonte.OQueTraz, fonte.Tabela, fonte.Rotina.Tarefa,
-                fonte.Rotina.Cadencia.ToString(), situacao.ToString(), motivo,
+                fonte.Fluxo, fonte.Nome, fonte.Orgao, fonte.OQueTraz, fonte.Tabela, rotina.Nome, rotina.Codigo, rotina.EstaLigada,
+                rotina.Agenda.Descrever(), rotina.Cadencia.ToString(), situacao.ToString(), motivo,
                 estado.UltimaAtualizacaoEm,
-                fonte.Rotina.UltimaPrevistaAte(agora),
-                fonte.Rotina.ProximaDepoisDe(agora),
+                rotina.Agenda.UltimaPrevistaAte(agora),
+                rotina.ProximaExecucao(agora),
                 estado.Linhas, estado.PeriodoInicial, estado.PeriodoFinal, estado.MunicipiosCobertos,
                 estado.RegistrosLidos, estado.RegistrosGravados, estado.Recusados, estado.RecusasPendentes,
                 estado.ExemplosDeRecusa);
@@ -99,6 +109,6 @@ public sealed class ObterFontesPublicas(
 
         return Resultado<ComProcedencia<PainelDeFontesPublicas>>.Ok(
             ComProcedencia<PainelDeFontesPublicas>.DoNossoBanco(
-                painel, "integracao.PontoDeSincronismo · integracao.MensagemDescartada · as tabelas de cada fonte", relogio));
+                painel, "integracao.PontoDeSincronismo · integracao.Rotina · integracao.MensagemDescartada · as tabelas de cada fonte", relogio));
     }
 }

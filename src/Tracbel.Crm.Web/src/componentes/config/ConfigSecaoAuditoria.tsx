@@ -88,6 +88,16 @@ function acao(evento: EventoDaAuditoria): string {
       if (evento.operacao === 'Inclusao') return 'Deu a permissão';
       if (evento.operacao === 'Exclusao') return 'Tirou a permissão';
       return 'Mudou onde vale a permissão';
+    case 'Conexao':
+      if (evento.operacao === 'Inclusao') return 'Cadastrou a API';
+      if (campo('SegredoAlteradoEm')) return 'Trocou a credencial de';
+      return 'Configurou a conexão';
+    case 'Rotina': {
+      const ligada = campo('EstaLigada');
+      if (ligada?.depois === 'sim') return 'Ligou a rotina';
+      if (ligada?.depois === 'não') return 'Desligou a rotina';
+      return 'Mudou a agenda de';
+    }
   }
   return `${VERBO[evento.operacao]} ${evento.entidadeRotulo.toLowerCase()}`;
 }

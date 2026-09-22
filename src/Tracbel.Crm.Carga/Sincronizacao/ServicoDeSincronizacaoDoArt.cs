@@ -147,7 +147,7 @@ internal sealed class ServicoDeSincronizacaoDoArt(
                 var crm = new SqlConnectionStringBuilder(conexao);
                 var motivo = Sigilo.Mascarar(
                     $"{falha.GetType().Name}: {falha.GetBaseException().Message}",
-                    [art.Usuario, art.Senha, configuracao["ProtheusBanco:Usuario"], configuracao["ProtheusBanco:Senha"], crm.UserID, crm.Password]);
+                    [art.Usuario, art.Senha, configuracao[$"{OpcoesDoBancoDoProtheus.Secao}:Usuario"], configuracao[$"{OpcoesDoBancoDoProtheus.Secao}:Senha"], crm.UserID, crm.Password]);
 
                 _logger.LogError("O ciclo da sincronização do ART não conseguiu começar: {Motivo}. Nova tentativa em {Minutos} min.",
                     motivo, (int)Math.Min(intervalo.TotalMinutes, EsperaQuandoNemComecou.TotalMinutes));
@@ -172,10 +172,24 @@ internal sealed class ServicoDeSincronizacaoDoArt(
 
         var contexto = new ContextoDeCargaDeSistema(usuarioId, empresaId, dePara.Values.ToHashSet());
 
+        // O ORQUESTRADOR MANDA NO ART QUANDO A ROTINA DELE ESTÁ LIGADA (issue 136): duas sincronizações do mesmo fluxo
+        // em horários diferentes seriam dois donos da mesma agenda. A trava já impede as duas ao mesmo tempo; isto
+        // impede as duas no mesmo dia.
+        await using (var banco = new CrmDbContext(opcoesDoBanco, contexto, diario))
+        {
+            if (await banco.Rotinas.AsNoTracking().AnyAsync(r => r.Codigo == Dominio.Integracao.RotinasDoSistema.ArtVendas && r.EstaLigada, parada))
+                return new DesfechoDaSincronizacao(ResultadoDaExecucao.Ignorada, 0, null,
+                    "A rotina ART_VENDAS está ligada no orquestrador (Configurações › Integrações): é ele que sincroniza o ART. O serviço não roda em paralelo.");
+        }
+
+        // A credencial da tela vai por cima da do arquivo, a cada ciclo: trocar a senha na tela vale no ciclo seguinte.
+        var (credenciais, _) = await CredenciaisDaTela.LerAsync(conexao, configuracao, parada);
+        var efetiva = credenciais.Count > 0 ? CredenciaisDaTela.Sobrepor(configuracao, credenciais) : configuracao;
+
         var art = new OpcoesDoArt();
-        configuracao.GetSection(OpcoesDoArt.Secao).Bind(art);
+        efetiva.GetSection(OpcoesDoArt.Secao).Bind(art);
         var protheus = new OpcoesDoBancoDoProtheus();
-        configuracao.GetSection("ProtheusBanco").Bind(protheus);
+        efetiva.GetSection(OpcoesDoBancoDoProtheus.Secao).Bind(protheus);
 
         var executor = new ExecutorDaSincronizacaoDoArt(
             conexao,

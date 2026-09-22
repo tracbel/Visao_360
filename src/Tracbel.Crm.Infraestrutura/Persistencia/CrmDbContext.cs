@@ -407,6 +407,18 @@ public class CrmDbContext : DbContext
     /// <summary>Fila de descarte.</summary>
     public DbSet<MensagemDescartada> MensagensDescartadas => Set<MensagemDescartada>();
 
+    /// <summary>As conexões configuráveis pela tela, com a credencial protegida (issue 136).</summary>
+    public DbSet<Conexao> Conexoes => Set<Conexao>();
+
+    /// <summary>O histórico do botão "Testar".</summary>
+    public DbSet<VerificacaoDeConexao> VerificacoesDeConexao => Set<VerificacaoDeConexao>();
+
+    /// <summary>As rotinas do servidor e a agenda de cada uma.</summary>
+    public DbSet<Rotina> Rotinas => Set<Rotina>();
+
+    /// <summary>O histórico do orquestrador.</summary>
+    public DbSet<ExecucaoDeRotina> ExecucoesDeRotina => Set<ExecucaoDeRotina>();
+
     /// <summary>O de-para explícito de linha, produto e unidade da origem para o catálogo do CRM.</summary>
     public DbSet<CorrespondenciaDaOrigem> CorrespondenciasDaOrigem => Set<CorrespondenciaDaOrigem>();
 
