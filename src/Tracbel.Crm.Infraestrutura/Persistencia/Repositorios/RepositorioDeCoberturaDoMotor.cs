@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Mercado;
+using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
@@ -76,6 +77,7 @@ public sealed class RepositorioDeCoberturaDoMotor(CrmDbContext contexto) : IRepo
                 p.MunicipioId,
                 p.AreaPlantadaHectares,
                 p.AreaColhidaHectares,
+                p.QuantidadeProduzida,
                 p.ValorDaProducaoMilReais
             })
             .ToListAsync(ct);
@@ -107,6 +109,8 @@ public sealed class RepositorioDeCoberturaDoMotor(CrmDbContext contexto) : IRepo
                 var divulgada = Municipios(p.Linhas, l => l.AreaPlantadaHectares is not null, l => l.MunicipioId);
                 var plantam = Municipios(p.Linhas, l => l.AreaPlantadaHectares > 0, l => l.MunicipioId);
                 var colhida = Municipios(p.Linhas, l => l.AreaColhidaHectares is not null, l => l.MunicipioId);
+                var quantidade = Municipios(p.Linhas, l => l.QuantidadeProduzida is not null, l => l.MunicipioId);
+                var unidade = UnidadesDaPam.DaQuantidade(p.Codigo, ano.Value).Nome;
                 var valor = Municipios(p.Linhas, l => l.ValorDaProducaoMilReais is not null, l => l.MunicipioId);
                 var (inicio, fim) = anos.GetValueOrDefault(p.Codigo, (ano.Value, ano.Value));
 
@@ -119,7 +123,7 @@ public sealed class RepositorioDeCoberturaDoMotor(CrmDbContext contexto) : IRepo
                     ParaQue,
                     Ano(inicio),
                     Ano(fim),
-                    $"planta-se em {plantam} · área colhida divulgada em {colhida} e valor em {valor} · " +
+                    $"planta-se em {plantam} · área colhida divulgada em {colhida}, quantidade em {quantidade} ({unidade}) e valor em {valor} · " +
                     $"{p.Area.ToString("N0", PtBr)} ha plantados na ADR em {ano}");
             })
             .ToList();

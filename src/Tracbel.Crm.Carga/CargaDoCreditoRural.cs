@@ -180,8 +180,18 @@ internal sealed class CargaDoCreditoRural(
             var vistas = new HashSet<CreditoRuralDeInvestimento.Chave>();
             var novasDoAno = new List<CreditoRuralDeInvestimento>();
 
+            // O QUE A FONTE TROUXE, recusado ou não (issue 153). Uma linha recusada — município que não casou, valor
+            // que não vale — continua existindo no Banco Central; se já estava no banco, fica como estava. Antes ela
+            // caía em "saiu da fonte" e era apagada: um município com grafia nova perderia os anos relidos inteiros.
+            var naFonte = new HashSet<CreditoRuralDeInvestimento.Chave>();
+
             foreach (var l in linhas)
             {
+                var chave = new CreditoRuralDeInvestimento.Chave(
+                    l.CodigoMunicipioBcb, l.Ano, l.Mes, l.CodigoProduto, l.CodigoPrograma,
+                    l.CodigoSubprograma, l.CodigoFonte, l.CodigoSeguro, l.Atividade, l.CodigoModalidade);
+                naFonte.Add(chave);
+
                 if (!municipioPorNome.TryGetValue(SaneamentoDeTerritorio.ChaveSemApostrofo(l.Municipio), out var municipioId))
                 {
                     recusasPorMunicipio[l.CodigoMunicipioBcb] = (l.Municipio,
@@ -190,10 +200,6 @@ internal sealed class CargaDoCreditoRural(
                 }
 
                 municipiosCasados.Add(l.CodigoMunicipioBcb);
-
-                var chave = new CreditoRuralDeInvestimento.Chave(
-                    l.CodigoMunicipioBcb, l.Ano, l.Mes, l.CodigoProduto, l.CodigoPrograma,
-                    l.CodigoSubprograma, l.CodigoFonte, l.CodigoSeguro, l.Atividade, l.CodigoModalidade);
 
                 if (!vistas.Add(chave))
                 {
@@ -220,10 +226,10 @@ internal sealed class CargaDoCreditoRural(
                 }
             }
 
-            // O ANO RELIDO ESPELHA A FONTE: o que saiu dela naquele ano sai daqui (ver o resumo da classe).
-            // Só se a leitura trouxe alguma coisa — uma resposta vazia por falha do serviço não pode apagar
-            // um ano inteiro.
-            var sairam = linhas.Count == 0 ? [] : existentes.Values.Where(e => !vistas.Contains(e.ChaveNatural)).ToList();
+            // O ANO RELIDO ESPELHA A FONTE: o que saiu dela naquele ano sai daqui (ver o resumo da classe), e a trilha
+            // guarda a linha inteira — valor e chave (issue 153). Só se a leitura trouxe alguma coisa — uma resposta
+            // vazia por falha do serviço não pode apagar um ano inteiro —, e só o que a fonte de fato não trouxe.
+            var sairam = linhas.Count == 0 ? [] : existentes.Values.Where(e => !naFonte.Contains(e.ChaveNatural)).ToList();
             contexto.CreditosRuraisDeInvestimento.RemoveRange(sairam);
             apagadas += sairam.Count;
 

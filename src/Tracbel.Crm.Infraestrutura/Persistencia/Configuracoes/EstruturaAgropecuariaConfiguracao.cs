@@ -188,9 +188,13 @@ public sealed class UsinaDeEtanolConfiguracao : IEntityTypeConfiguration<UsinaDe
         b.Property(u => u.ImportadoEm).HasPrecision(3).IsRequired();
         b.Property(u => u.ImportadoPorId).IsRequired();
 
+        // A usina que sai da lista da ANP fica encerrada, não apagada (issue 153).
+        b.Property(u => u.EncerradaEm).HasPrecision(3);
+
         // A capacidade total é calculada em memória: guardá-la seria uma terceira fonte para a mesma
         // verdade, e o modelo já recusou isso no rendimento médio da PAM.
         b.Ignore(u => u.CapacidadeTotalM3Dia);
+        b.Ignore(u => u.EstaVigente);
 
         b.HasIndex(u => u.Cnpj).IsUnique().HasDatabaseName("UX_UsinaDeEtanol_Cnpj");
 

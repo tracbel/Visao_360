@@ -28,6 +28,13 @@ public static class RotulosDaTrilha
         ["CotacaoDoDolar"] = "Cotação do dólar",
         ["CustoDeProducao"] = "Custo de produção",
         ["CreditoRuralDeInvestimento"] = "Crédito rural",
+        ["ProducaoAgricolaNoMunicipio"] = "Produção agrícola no município (PAM)",
+        ["ProducaoAgricolaNoEstado"] = "Produção agrícola no estado (PAM)",
+        ["FrotaDeTratoresNoMunicipio"] = "Tratores no município (Censo)",
+        ["EstabelecimentosPorAreaNoMunicipio"] = "Propriedades por tamanho (Censo)",
+        ["RebanhoNoMunicipio"] = "Rebanho no município (PPM)",
+        ["AreaTerritorialDoMunicipio"] = "Área territorial do município",
+        ["UsinaDeEtanol"] = "Usina de etanol (ANP)",
         ["RegraDePotencial"] = "Regra do potencial por cultura",
         ["ParametroDoPotencial"] = "Parâmetros gerais do potencial",
         ["PercepcaoDoGestor"] = "Percepção do gestor",
@@ -86,7 +93,38 @@ public static class RotulosDaTrilha
             ["CustoOperacionalHa"] = "Custo operacional por hectare", ["CustoTotalHa"] = "Custo total por hectare",
             ["CustoOperacionalUnidade"] = "Custo operacional por unidade", ["CustoTotalUnidade"] = "Custo total por unidade"
         },
-        ["CreditoRuralDeInvestimento"] = new(StringComparer.Ordinal) { ["Valor"] = "Valor (R$)" },
+        ["CreditoRuralDeInvestimento"] = new(StringComparer.Ordinal)
+        {
+            ["Valor"] = "Valor (R$)", ["Area"] = "Área financiada (ha)", ["MunicipioId"] = "Município",
+            ["CodigoMunicipioBcb"] = "Município no Banco Central", ["Ano"] = "Ano", ["Mes"] = "Mês", ["CodigoProduto"] = "Produto",
+            ["CodigoPrograma"] = "Programa", ["CodigoSubprograma"] = "Subprograma", ["CodigoFonte"] = "Fonte de recurso",
+            ["CodigoSeguro"] = "Seguro", ["Atividade"] = "Atividade", ["CodigoModalidade"] = "Modalidade"
+        },
+        ["ProducaoAgricolaNoMunicipio"] = new(StringComparer.Ordinal)
+        {
+            ["ProdutoNome"] = "Produto", ["AreaPlantadaHectares"] = "Área plantada (ha)", ["AreaColhidaHectares"] = "Área colhida (ha)",
+            ["QuantidadeProduzida"] = "Quantidade produzida", ["ValorDaProducaoMilReais"] = "Valor da produção (mil R$)"
+        },
+        ["ProducaoAgricolaNoEstado"] = new(StringComparer.Ordinal)
+        {
+            ["ProdutoNome"] = "Produto", ["AreaPlantadaHectares"] = "Área plantada (ha)", ["AreaColhidaHectares"] = "Área colhida (ha)",
+            ["QuantidadeProduzida"] = "Quantidade produzida", ["ValorDaProducaoMilReais"] = "Valor da produção (mil R$)"
+        },
+        ["FrotaDeTratoresNoMunicipio"] = new(StringComparer.Ordinal)
+        {
+            ["PotenciaNome"] = "Faixa de potência", ["Tratores"] = "Tratores", ["EstabelecimentosComTrator"] = "Estabelecimentos com trator"
+        },
+        ["EstabelecimentosPorAreaNoMunicipio"] = new(StringComparer.Ordinal)
+        {
+            ["GrupoDeAreaNome"] = "Grupo de área", ["Estabelecimentos"] = "Estabelecimentos"
+        },
+        ["RebanhoNoMunicipio"] = new(StringComparer.Ordinal) { ["RebanhoNome"] = "Rebanho", ["Cabecas"] = "Cabeças" },
+        ["AreaTerritorialDoMunicipio"] = new(StringComparer.Ordinal) { ["AreaKm2"] = "Área (km²)" },
+        ["UsinaDeEtanol"] = new(StringComparer.Ordinal)
+        {
+            ["RazaoSocial"] = "Razão social", ["MunicipioId"] = "Município", ["CapacidadeDeAnidroM3Dia"] = "Capacidade de anidro (m³/dia)",
+            ["CapacidadeDeHidratadoM3Dia"] = "Capacidade de hidratado (m³/dia)", ["EncerradaEm"] = "Saiu da lista da ANP em"
+        },
         ["RegraDePotencial"] = new(StringComparer.Ordinal)
         {
             ["ProdutoCodigoIbge"] = "Cultura (código IBGE)", ["HectaresPorMaquina"] = "Hectares por máquina",
@@ -139,6 +177,8 @@ public static class RotulosDaTrilha
         [("Equipamento", "ClienteId")] = TipoDeReferencia.Cliente,
         [("Endereco", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("PercepcaoDoGestor", "MunicipioId")] = TipoDeReferencia.Municipio,
+        [("CreditoRuralDeInvestimento", "MunicipioId")] = TipoDeReferencia.Municipio,
+        [("UsinaDeEtanol", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("VendaDeMaquina", "EmpresaId")] = TipoDeReferencia.Empresa,
         [("VendaDeMaquina", "EmpresaDoFaturamentoId")] = TipoDeReferencia.Empresa
     };

@@ -38,7 +38,8 @@ declarado pelo Ricardo ou pela conversa com a diretoria; **[P]** proposta desta 
 5. **"Nunca apagar histórico" ainda não vale para tudo** [M]. Preço, custo e crédito guardam o valor anterior
    na trilha; **PAM, Censo, PPM e usinas não** — a revisão do IBGE sobrescreve sem rastro, e a usina que sai
    da lista da ANP é **apagada**. O SICOR apaga a linha reclassificada e a trilha guarda só o valor, sem a
-   combinação que a identificava.
+   combinação que a identificava. *(Resolvido na issue 153: trilha nas tabelas do IBGE e da ANP, usina encerrada,
+   linha do SICOR com a chave inteira na trilha.)*
 6. **Três fontes casam município por nome** [M] — SICOR, ANP e custos da CONAB —, embora o pedido proíba nome
    como chave quando existe código. O SICOR grava o código do Banco Central e refaz o casamento por nome a
    cada carga.

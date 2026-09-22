@@ -430,6 +430,10 @@ internal sealed class CargaDaEstruturaAgropecuaria(
 
         var existentes = (await contexto.UsinasDeEtanol.ToListAsync(ct)).ToDictionary(u => u.Cnpj);
 
+        // O QUE ESTÁ NA LISTA DA ANP, recusado ou não. Uma usina cuja linha foi recusada (município ambíguo, mês fora
+        // do formato) continua autorizada — só não pôde ser gravada desta vez —, e não pode ser encerrada por isso.
+        var naLista = lidas.Select(l => UsinaDeEtanol.ApenasDigitos(l.Cnpj)).Where(c => c.Length == 14).ToHashSet(StringComparer.Ordinal);
+
         var recusas = new List<(object Conteudo, string Motivo)>();
         var novas = new List<UsinaDeEtanol>();
         var vistas = new HashSet<string>(StringComparer.Ordinal);
@@ -485,12 +489,11 @@ internal sealed class CargaDaEstruturaAgropecuaria(
             }
         }
 
-        // USINA QUE SAIU DA LISTA DA ANP É APAGADA, e não encerrada. Ao contrário do responsável por um
-        // município — que é uma AFIRMAÇÃO com história, e por isso se encerra —, esta tabela é um
-        // espelho do cadastro de hoje: uma usina que perdeu a autorização não é um fato histórico do
-        // CRM, é uma linha que deixou de ser verdade. O histórico, se alguém o quiser, está na ANP.
-        var saíram = existentes.Values.Where(u => !vistas.Contains(u.Cnpj)).ToList();
-        contexto.UsinasDeEtanol.RemoveRange(saíram);
+        // USINA QUE SAIU DA LISTA DA ANP FICA ENCERRADA, e não apagada (issue 153). Até 22/09/2026 ela era apagada,
+        // com o argumento de que o histórico estava na ANP — mas a ANP publica só o cadastro de hoje, e a usina que o
+        // CRM mostrou em agosto sumia sem rastro. Encerrada, ela sai da contagem vigente e continua consultável. A
+        // regra — lista vazia não encerra nada; linha recusada não é usina que saiu — é do domínio.
+        var saíram = UsinaDeEtanol.EncerrarAsQueSairam(existentes.Values, naLista, usuarioId, agora);
 
         contexto.UsinasDeEtanol.AddRange(novas);
         await CargaDeTerritorio.SubstituirRecusasAsync(contexto, FluxoDasUsinas, recusas, ct);
@@ -498,14 +501,14 @@ internal sealed class CargaDaEstruturaAgropecuaria(
 
         var mesLido = lidas.Count == 0 ? "sem linhas" : $"mês {lidas[0].MesDeReferencia}";
         await CargaDeTerritorio.RegistrarRodadaAsync(
-            contexto, sistemaId, FluxoDasUsinas, lidas.Count, novas.Count + alteradas, recusas.Count, ct, mesLido);
+            contexto, sistemaId, FluxoDasUsinas, lidas.Count, novas.Count + alteradas + saíram.Count, recusas.Count, ct, mesLido);
         await transacao.CommitAsync(ct);
 
         Contar(etapa, $"usinas lidas ({mesLido})", lidas.Count);
         Contar(etapa, "usinas novas", novas.Count);
         Contar(etapa, "usinas atualizadas", alteradas);
         Contar(etapa, "usinas mantidas sem mudança", mantidas);
-        Contar(etapa, "usinas que saíram da lista da ANP (apagadas)", saíram.Count);
+        Contar(etapa, "usinas que saíram da lista da ANP (encerradas, não apagadas)", saíram.Count);
         Contar(etapa, "municípios distintos com usina", municipiosComUsina.Count);
         Contar(etapa, "linhas recusadas", recusas.Count);
     }

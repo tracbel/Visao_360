@@ -61,6 +61,19 @@ public sealed class UsinaDeEtanol
     public long ImportadoPorId { get; private set; }
 
     /// <summary>
+    /// QUANDO A USINA SAIU DA LISTA DA ANP (UTC). Nulo é usina vigente.
+    ///
+    /// <para><b>Sair da lista não apaga a linha</b> (issue 153). Até 22/09/2026 a usina que perdia a autorização era
+    /// apagada, com o argumento de que o histórico estava na ANP — mas a ANP publica só o cadastro de hoje, e uma usina
+    /// que o CRM mostrou em agosto sumia sem rastro em setembro. Agora ela fica encerrada: some da contagem de usinas
+    /// vigentes e continua consultável, com a data em que saiu. Se voltar à lista, reabre.</para>
+    /// </summary>
+    public DateTime? EncerradaEm { get; private set; }
+
+    /// <summary>Se a usina está na lista mais recente da ANP.</summary>
+    public bool EstaVigente => EncerradaEm is null;
+
+    /// <summary>
     /// A capacidade total autorizada, somando anidro e hidratado.
     ///
     /// <para>Nulo só quando as duas são nulas: uma usina que informou uma e não a outra tem
@@ -134,7 +147,8 @@ public sealed class UsinaDeEtanol
                     || MunicipioId != municipioId
                     || MesDeReferencia != mesDeReferencia
                     || CapacidadeDeAnidroM3Dia != capacidadeDeAnidroM3Dia
-                    || CapacidadeDeHidratadoM3Dia != capacidadeDeHidratadoM3Dia;
+                    || CapacidadeDeHidratadoM3Dia != capacidadeDeHidratadoM3Dia
+                    || EncerradaEm is not null;
 
         RazaoSocial = razaoSocial.Trim();
         MunicipioId = municipioId;
@@ -144,8 +158,46 @@ public sealed class UsinaDeEtanol
         ImportadoEm = agoraUtc;
         ImportadoPorId = importadoPorId;
 
+        // A USINA QUE VOLTA À LISTA REABRE — a trilha guarda quando ela tinha saído.
+        EncerradaEm = null;
+
         return mudou;
     }
+
+    /// <summary>
+    /// A usina saiu da lista da ANP: fica encerrada, sem apagar a linha. Devolve se mudou — encerrar de novo o que já
+    /// está encerrado não muda nada, nem a data.
+    /// </summary>
+    /// <param name="importadoPorId">Quem rodou a carga.</param>
+    /// <param name="agoraUtc">O instante da carga.</param>
+    public bool Encerrar(long importadoPorId, DateTime agoraUtc)
+    {
+        if (EncerradaEm is not null) return false;
+
+        EncerradaEm = agoraUtc;
+        ImportadoEm = agoraUtc;
+        ImportadoPorId = importadoPorId;
+        return true;
+    }
+
+    /// <summary>
+    /// ENCERRA AS USINAS QUE SAÍRAM DA LISTA DA ANP e devolve as que mudaram.
+    ///
+    /// <para><b>"Na lista" é o CNPJ que veio no arquivo, recusado ou não.</b> Uma linha recusada (município ambíguo,
+    /// mês fora do formato) continua sendo uma usina autorizada — só não pôde ser gravada desta vez.</para>
+    ///
+    /// <para><b>Lista vazia não encerra nada.</b> A ANP não fica sem nenhuma usina em São Paulo de um mês para o outro;
+    /// lista vazia é arquivo que não veio inteiro, e encerrar todas por isso seria inventar um fato.</para>
+    /// </summary>
+    /// <param name="existentes">As usinas do banco.</param>
+    /// <param name="cnpjsNaLista">Os CNPJs, só dígitos, que a leitura trouxe.</param>
+    /// <param name="importadoPorId">Quem rodou a carga.</param>
+    /// <param name="agoraUtc">O instante da carga.</param>
+    public static IReadOnlyList<UsinaDeEtanol> EncerrarAsQueSairam(
+        IEnumerable<UsinaDeEtanol> existentes, IReadOnlySet<string> cnpjsNaLista, long importadoPorId, DateTime agoraUtc) =>
+        cnpjsNaLista.Count == 0
+            ? []
+            : [.. existentes.Where(u => !cnpjsNaLista.Contains(u.Cnpj)).Where(u => u.Encerrar(importadoPorId, agoraUtc))];
 
     /// <summary>Só dígitos — a ANP publica o CNPJ sem pontuação, mas isso pode mudar.</summary>
     /// <param name="texto">O CNPJ como veio.</param>
