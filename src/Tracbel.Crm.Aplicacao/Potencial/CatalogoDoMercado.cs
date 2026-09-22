@@ -1,5 +1,6 @@
 using Tracbel.Crm.Aplicacao.Comum;
 using Tracbel.Crm.Dominio.Comum;
+using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Dominio.Seguranca;
@@ -16,6 +17,8 @@ namespace Tracbel.Crm.Aplicacao.Potencial;
 /// <param name="ProdutoDoPreco">O identificador na fonte de preço; anda junto com a fonte.</param>
 /// <param name="SerieDeCusto">O rótulo da série de custo da CONAB.</param>
 /// <param name="EstaAtiva">Se aparece nas telas; ausente mantém como está.</param>
+/// <param name="LocalDeReferenciaDoCusto">O local da CONAB que é a referência de SP (D-P07); vazio é "não decidido".</param>
+/// <param name="CamadaDeCustoDaMargem">Operacional ou Total; anda junto com o local.</param>
 public sealed record NovaCultura(
     string? Codigo = null,
     string? Nome = null,
@@ -25,7 +28,9 @@ public sealed record NovaCultura(
     string? FonteDoPreco = null,
     string? ProdutoDoPreco = null,
     string? SerieDeCusto = null,
-    bool? EstaAtiva = null);
+    bool? EstaAtiva = null,
+    string? LocalDeReferenciaDoCusto = null,
+    string? CamadaDeCustoDaMargem = null);
 
 /// <summary>
 /// O CATÁLOGO DE MERCADO NA TELA (issue 165) — leitura para quem tem <c>ParametroDoPotencial.Ler</c>.
@@ -122,6 +127,16 @@ public sealed class CadastrarCultura(
                 entrada.FonteDoPreco, entrada.ProdutoDoPreco, entrada.SerieDeCusto);
 
             if (entrada.EstaAtiva is { } ativa) cultura.DefinirAtiva(ativa);
+
+            // A REFERÊNCIA DO CUSTO (D-P07, issue 159): é aqui que a decisão entra, quando sair. Local
+            // vazio com camada vazia mantém "não decidido", que é como a cultura nasce.
+            var camada = string.IsNullOrWhiteSpace(entrada.CamadaDeCustoDaMargem)
+                ? (CamadaDoCusto?)null
+                : erros.ItemDeDominio<CamadaDoCusto>("camadaDeCustoDaMargem", entrada.CamadaDeCustoDaMargem);
+
+            if (erros.TemErro) return erros.Recusar<CulturaNoCatalogo>("A cultura tem campos a corrigir.");
+
+            cultura.DefinirReferenciaDoCusto(entrada.LocalDeReferenciaDoCusto, camada);
         }
         catch (RegraDeNegocioViolada erro)
         {

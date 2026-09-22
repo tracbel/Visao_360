@@ -97,6 +97,24 @@ public sealed class Cultura
     /// <summary>Se a cultura aparece nas telas. Desligar não apaga: o histórico continua explicando o passado.</summary>
     public bool EstaAtiva { get; private set; }
 
+    /// <summary>
+    /// O LOCAL DA CONAB QUE É A REFERÊNCIA DE SÃO PAULO para esta cultura (D-P07, issue 159).
+    ///
+    /// <para><b>Em aberto.</b> A CONAB publica o custo em vários locais — o café em Franca, a cana em
+    /// Piracicaba e em Penápolis —, e a margem muda com a escolha. Ninguém decidiu qual é "a referência",
+    /// e por isso o campo nasce nulo: a margem sai <b>vazia com o motivo</b>, em vez de escolher um local
+    /// por conta própria.</para>
+    /// </summary>
+    public string? LocalDeReferenciaDoCusto { get; private set; }
+
+    /// <summary>
+    /// A CAMADA DE CUSTO QUE A MARGEM USA (D-P07, issue 159); nula enquanto ninguém decide.
+    ///
+    /// <para>Operacional responde "a safra se paga?"; total responde "o negócio remunera o patrimônio?".
+    /// São perguntas diferentes, e o número muda muito entre elas — por isso não há padrão.</para>
+    /// </summary>
+    public Mercado.CamadaDoCusto? CamadaDeCustoDaMargem { get; private set; }
+
     /// <summary>Registra uma cultura no catálogo.</summary>
     /// <param name="codigo">O código estável.</param>
     /// <param name="nome">O nome de exibição.</param>
@@ -181,6 +199,31 @@ public sealed class Cultura
     {
         if (EstaAtiva == ativa) return false;
         EstaAtiva = ativa;
+        return true;
+    }
+
+    /// <summary>
+    /// Define a referência do custo desta cultura — o local da CONAB e a camada (D-P07, issue 159).
+    ///
+    /// <para><b>Os dois andam juntos.</b> Um local sem camada não diz qual número comparar, e uma camada
+    /// sem local não diz de onde tirá-lo. Os dois nulos significam "ninguém decidiu ainda", e é assim que
+    /// a cultura nasce.</para>
+    /// </summary>
+    /// <param name="local">O local de referência da CONAB, ou nulo.</param>
+    /// <param name="camada">A camada de custo, ou nula.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando vem um sem o outro.</exception>
+    public bool DefinirReferenciaDoCusto(string? local, Mercado.CamadaDoCusto? camada)
+    {
+        var limpo = Limpar(local);
+
+        if ((limpo is null) != (camada is null))
+            throw new RegraDeNegocioViolada(
+                "O local de referência e a camada de custo andam juntos: informe os dois, ou nenhum dos dois.");
+
+        if (LocalDeReferenciaDoCusto == limpo && CamadaDeCustoDaMargem == camada) return false;
+
+        LocalDeReferenciaDoCusto = limpo;
+        CamadaDeCustoDaMargem = camada;
         return true;
     }
 
@@ -368,6 +411,101 @@ public sealed class ProdutoDoSicorNaCategoria
             Descricao = descricao.Trim()
         };
     }
+}
+
+/// <summary>
+/// UM GRUPO DE CULTURAS QUE COMPARTILHAM A MESMA TERRA E A MESMA MÁQUINA (issue 160, D-IM-01).
+///
+/// <para><b>Por que existe.</b> O milho safrinha é plantado depois da soja, no mesmo talhão, e boa parte
+/// do amendoim entra em reforma de canavial. Somar as áreas conta terra que não existe, e o parque
+/// teórico sai inflado justamente onde a rotação é mais comum.</para>
+///
+/// <para><b>O grupo é por CATEGORIA DE MÁQUINA.</b> Soja e milho dividem a plantadeira e o trator, e não
+/// a colheitadeira — que é outra máquina em cada cultura. Um grupo único por cultura misturaria as duas
+/// coisas.</para>
+///
+/// <para><b>Nasce vazio, de propósito.</b> Quais culturas compartilham é a decisão D-IM-01, e ela não
+/// saiu. Sem grupo configurado, cada cultura soma a área dela — exatamente como era antes desta issue.</para>
+/// </summary>
+public sealed class GrupoDeCompartilhamento
+{
+    private GrupoDeCompartilhamento() { }
+
+    /// <summary>Identificador interno.</summary>
+    public int Id { get; private set; }
+
+    /// <summary>O código estável do grupo.</summary>
+    public string Codigo { get; private set; } = default!;
+
+    /// <summary>O nome que a tela mostra ("Soja e milho safrinha").</summary>
+    public string Nome { get; private set; } = default!;
+
+    /// <summary>A categoria de máquina a que o compartilhamento se aplica.</summary>
+    public int CategoriaDeMaquinaId { get; private set; }
+
+    /// <summary>Se o grupo vale. Desligado, as culturas dele voltam a somar separadas.</summary>
+    public bool EstaAtivo { get; private set; }
+
+    /// <summary>Registra um grupo.</summary>
+    /// <param name="codigo">O código estável.</param>
+    /// <param name="nome">O nome de exibição.</param>
+    /// <param name="categoriaDeMaquinaId">A categoria a que ele se aplica.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando falta código ou nome.</exception>
+    public static GrupoDeCompartilhamento Registrar(string codigo, string nome, int categoriaDeMaquinaId)
+    {
+        if (string.IsNullOrWhiteSpace(codigo))
+            throw new RegraDeNegocioViolada("O grupo de compartilhamento precisa de um código estável.");
+
+        if (string.IsNullOrWhiteSpace(nome))
+            throw new RegraDeNegocioViolada("O grupo de compartilhamento precisa de um nome para a tela.");
+
+        return new GrupoDeCompartilhamento
+        {
+            Codigo = codigo.Trim().ToUpperInvariant(),
+            Nome = nome.Trim(),
+            CategoriaDeMaquinaId = categoriaDeMaquinaId,
+            EstaAtivo = true
+        };
+    }
+
+    /// <summary>Liga ou desliga o grupo. Devolve se mudou.</summary>
+    /// <param name="ativo">Se passa a valer.</param>
+    public bool DefinirAtivo(bool ativo)
+    {
+        if (EstaAtivo == ativo) return false;
+        EstaAtivo = ativo;
+        return true;
+    }
+}
+
+/// <summary>
+/// UMA CULTURA DENTRO DE UM GRUPO DE COMPARTILHAMENTO (issue 160).
+///
+/// <para><b>Uma cultura entra em um grupo por categoria</b> — o índice único é sobre o par grupo ×
+/// cultura, e a regra de "uma cultura num grupo só por categoria" é conferida na gravação, porque
+/// depende da categoria do grupo.</para>
+/// </summary>
+public sealed class CulturaNoGrupoDeCompartilhamento
+{
+    private CulturaNoGrupoDeCompartilhamento() { }
+
+    /// <summary>Identificador interno.</summary>
+    public int Id { get; private set; }
+
+    /// <summary>O grupo.</summary>
+    public int GrupoDeCompartilhamentoId { get; private set; }
+
+    /// <summary>A cultura.</summary>
+    public int CulturaId { get; private set; }
+
+    /// <summary>Põe uma cultura num grupo.</summary>
+    /// <param name="grupoId">O grupo.</param>
+    /// <param name="culturaId">A cultura.</param>
+    public static CulturaNoGrupoDeCompartilhamento Ligar(int grupoId, int culturaId) => new()
+    {
+        GrupoDeCompartilhamentoId = grupoId,
+        CulturaId = culturaId
+    };
 }
 
 /// <summary>

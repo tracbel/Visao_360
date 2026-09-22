@@ -286,6 +286,16 @@ public class CrmDbContext : DbContext
     /// <summary>Os produtos do SICOR que cada categoria de máquina agrupa.</summary>
     public DbSet<ProdutoDoSicorNaCategoria> ProdutosDoSicorNasCategorias => Set<ProdutoDoSicorNaCategoria>();
 
+    /// <summary>
+    /// Os grupos de culturas que dividem a mesma terra e a mesma máquina (issue 160). Nascem vazios:
+    /// sem grupo, cada cultura soma a área dela.
+    /// </summary>
+    public DbSet<GrupoDeCompartilhamento> GruposDeCompartilhamento => Set<GrupoDeCompartilhamento>();
+
+    /// <summary>As culturas de cada grupo de compartilhamento.</summary>
+    public DbSet<CulturaNoGrupoDeCompartilhamento> CulturasNosGruposDeCompartilhamento =>
+        Set<CulturaNoGrupoDeCompartilhamento>();
+
     /// <summary>As usinas de etanol autorizadas pela ANP, por município.</summary>
     public DbSet<UsinaDeEtanol> UsinasDeEtanol => Set<UsinaDeEtanol>();
 

@@ -115,10 +115,17 @@ public static class PoliticaDeAuditoria
         // vínculo errado leva o preço de uma cultura para outra — e a pergunta "quem ligou o café ao produto
         // 11195 da CONAB?" precisa de resposta. O código não entra: ele é a identidade, e mudá-lo é outra cultura.
         ["Cultura"] =
-            ["Nome", "Segmento", "UnidadeComercial", "QuilosPorUnidade", "FonteDoPreco", "ProdutoDoPreco", "SerieDeCusto", "EstaAtiva"],
+            ["Nome", "Segmento", "UnidadeComercial", "QuilosPorUnidade", "FonteDoPreco", "ProdutoDoPreco", "SerieDeCusto", "EstaAtiva",
+             "LocalDeReferenciaDoCusto", "CamadaDeCustoDaMargem"],
         ["ProdutoDaPamNaCultura"] = ["CulturaId", "ProdutoCodigoIbge", "EntraNaSomaDaLavoura"],
         ["CategoriaDeMaquina"] = ["Nome", "Ordem", "EstaAtiva"],
         ["ProdutoDoSicorNaCategoria"] = ["CategoriaDeMaquinaId", "CodigoProduto"],
+
+        // A REFERÊNCIA DO CUSTO (issue 159) muda a margem de uma cultura inteira, e o GRUPO DE
+        // COMPARTILHAMENTO (issue 160) muda o parque teórico da região: pôr soja e milho no mesmo grupo
+        // derruba o número, e a pergunta "quem juntou os dois, e quando?" precisa de resposta.
+        ["GrupoDeCompartilhamento"] = ["Nome", "CategoriaDeMaquinaId", "EstaAtivo"],
+        ["CulturaNoGrupoDeCompartilhamento"] = ["GrupoDeCompartilhamentoId", "CulturaId"],
 
         // PARÂMETROS DO POTENCIAL (issue 71): "parâmetro alterado gera trilha com o autor". A vigência nasce
         // pela mão de uma pessoa — a inclusão entra na trilha inteira — e depois só muda para ser revogada.

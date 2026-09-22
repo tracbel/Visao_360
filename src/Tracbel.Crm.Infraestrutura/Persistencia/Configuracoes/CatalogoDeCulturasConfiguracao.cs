@@ -30,6 +30,11 @@ public sealed class CulturaConfiguracao : IEntityTypeConfiguration<Cultura>
         b.Property(c => c.SerieDeCusto).HasMaxLength(Cultura.TamanhoDoTexto).IsUnicode(true);
         b.Property(c => c.EstaAtiva).IsRequired();
 
+        // A REFERÊNCIA DO CUSTO (D-P07, issue 159), em aberto: nasce nula, e a margem sai vazia com o
+        // motivo em vez de escolher um local da CONAB por conta própria.
+        b.Property(c => c.LocalDeReferenciaDoCusto).HasMaxLength(Cultura.TamanhoDoTexto).IsUnicode(true);
+        b.Property(c => c.CamadaDeCustoDaMargem).HasConversion<string>().HasMaxLength(20).IsUnicode(false);
+
         b.HasIndex(c => c.Codigo).IsUnique().HasDatabaseName("UX_Cultura_Codigo");
 
         // O DOMÍNIO FECHADO NO BANCO (documento 14, seções 4 e 6), e não só no compilador.
@@ -38,6 +43,15 @@ public sealed class CulturaConfiguracao : IEntityTypeConfiguration<Cultura>
             "[Segmento] IN ('Graos','Cana','Citros','Cafe','Fruticultura','Olericultura','Algodao','Borracha','Outros')"));
 
         b.ToTable(t => t.HasCheckConstraint("CK_Cultura_QuilosPorUnidade", "[QuilosPorUnidade] > 0"));
+
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_Cultura_CamadaDeCusto", "[CamadaDeCustoDaMargem] IS NULL OR [CamadaDeCustoDaMargem] IN ('Operacional','Total')"));
+
+        // LOCAL E CAMADA ANDAM JUNTOS: a mesma regra do domínio, dita também no banco.
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_Cultura_ReferenciaDoCusto",
+            "([LocalDeReferenciaDoCusto] IS NULL AND [CamadaDeCustoDaMargem] IS NULL) " +
+            "OR ([LocalDeReferenciaDoCusto] IS NOT NULL AND [CamadaDeCustoDaMargem] IS NOT NULL)"));
 
         // FONTE E PRODUTO ANDAM JUNTOS: a mesma regra do domínio, dita também aqui.
         b.ToTable(t => t.HasCheckConstraint(
@@ -176,5 +190,59 @@ public sealed class ProdutoDoSicorNaCategoriaConfiguracao : IEntityTypeConfigura
                 });
 
         b.HasData(linhas);
+    }
+}
+
+/// <summary>
+/// Mapeamento de <see cref="GrupoDeCompartilhamento"/> e de
+/// <see cref="CulturaNoGrupoDeCompartilhamento"/> — as culturas que dividem a mesma terra e a mesma
+/// máquina (issue 160, D-IM-01).
+///
+/// <para><b>As duas tabelas nascem VAZIAS.</b> Quais culturas compartilham é decisão que não saiu; sem
+/// grupo configurado, cada cultura soma a área dela — exatamente como era antes.</para>
+/// </summary>
+public sealed class GrupoDeCompartilhamentoConfiguracao : IEntityTypeConfiguration<GrupoDeCompartilhamento>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<GrupoDeCompartilhamento> b)
+    {
+        b.ToTable("GrupoDeCompartilhamento", "organizacao");
+        b.HasKey(g => g.Id);
+        b.Property(g => g.Id).ValueGeneratedOnAdd();
+
+        b.Property(g => g.Codigo).HasMaxLength(40).IsUnicode(false).IsRequired();
+        b.Property(g => g.Nome).HasMaxLength(Cultura.TamanhoDoTexto).IsUnicode(true).IsRequired();
+        b.Property(g => g.CategoriaDeMaquinaId).IsRequired();
+        b.Property(g => g.EstaAtivo).IsRequired();
+
+        b.HasIndex(g => g.Codigo).IsUnique().HasDatabaseName("UX_GrupoDeCompartilhamento_Codigo");
+        b.HasIndex(g => g.CategoriaDeMaquinaId);
+
+        b.HasOne<CategoriaDeMaquina>().WithMany().HasForeignKey(g => g.CategoriaDeMaquinaId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+/// <summary>Mapeamento de <see cref="CulturaNoGrupoDeCompartilhamento"/> — a cultura dentro do grupo.</summary>
+public sealed class CulturaNoGrupoDeCompartilhamentoConfiguracao : IEntityTypeConfiguration<CulturaNoGrupoDeCompartilhamento>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<CulturaNoGrupoDeCompartilhamento> b)
+    {
+        b.ToTable("CulturaNoGrupoDeCompartilhamento", "organizacao");
+        b.HasKey(c => c.Id);
+        b.Property(c => c.Id).ValueGeneratedOnAdd();
+
+        b.Property(c => c.GrupoDeCompartilhamentoId).IsRequired();
+        b.Property(c => c.CulturaId).IsRequired();
+
+        // A MESMA CULTURA DUAS VEZES NO MESMO GRUPO seria a área contada duas vezes dentro do grupo.
+        b.HasIndex(c => new { c.GrupoDeCompartilhamentoId, c.CulturaId })
+            .IsUnique()
+            .HasDatabaseName("UX_CulturaNoGrupoDeCompartilhamento_Grupo_Cultura");
+
+        b.HasIndex(c => c.CulturaId);
+
+        b.HasOne<GrupoDeCompartilhamento>().WithMany().HasForeignKey(c => c.GrupoDeCompartilhamentoId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Cultura>().WithMany().HasForeignKey(c => c.CulturaId).OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -52,6 +52,8 @@ public sealed record CatalogoDoMercado(
 /// <param name="ProdutoDoPreco">O identificador do produto na fonte de preço.</param>
 /// <param name="SerieDeCusto">O rótulo da série de custo da CONAB, quando existe.</param>
 /// <param name="EstaAtiva">Se aparece nas telas.</param>
+/// <param name="LocalDeReferenciaDoCusto">O local da CONAB que é a referência de SP (D-P07); nulo enquanto ninguém decide.</param>
+/// <param name="CamadaDeCustoDaMargem">Operacional ou Total; nula junto com o local.</param>
 /// <param name="Produtos">Os produtos da PAM que a compõem.</param>
 public sealed record CulturaNoCatalogo(
     string Codigo,
@@ -63,6 +65,8 @@ public sealed record CulturaNoCatalogo(
     string? ProdutoDoPreco,
     string? SerieDeCusto,
     bool EstaAtiva,
+    string? LocalDeReferenciaDoCusto,
+    string? CamadaDeCustoDaMargem,
     IReadOnlyList<ProdutoDaPamNoCatalogo> Produtos);
 
 /// <summary>Um produto da PAM dentro de uma cultura.</summary>

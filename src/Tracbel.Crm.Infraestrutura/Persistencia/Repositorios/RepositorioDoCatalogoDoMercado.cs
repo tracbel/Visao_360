@@ -63,6 +63,8 @@ public sealed class RepositorioDoCatalogoDoMercado(CrmDbContext contexto) : IRep
         c.ProdutoDoPreco,
         c.SerieDeCusto,
         c.EstaAtiva,
+        c.LocalDeReferenciaDoCusto,
+        c.CamadaDeCustoDaMargem?.ToString(),
         [
             .. produtos[c.Id]
                 .OrderByDescending(p => p.EntraNaSomaDaLavoura)
