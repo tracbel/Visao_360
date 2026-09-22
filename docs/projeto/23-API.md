@@ -389,8 +389,8 @@ A mesma concessão vigente não se repete (409); a vencida é marcada como subst
 | `PUT /api/v1/admin/perfis/{codigo}` `{ nome, descricao?, permissoes }` | `Perfil.Administrar` | troca nome, descrição e o **conjunto inteiro** de permissões: o que não veio sai, o que mudou de profundidade muda, o que é novo entra |
 | `POST …/{codigo}/desativacao` e `…/reativacao` | `Perfil.Administrar` | desativa e reativa, sem apagar nada. Desativado, **deixa de valer para quem o tem** (as concessões ficam, e voltam a valer na reativação) e sai do formulário de concessão |
 
-**Os perfis do sistema são fixos** (Padrão, Exclusão de cadastro, Gerência, Diretoria, Administrador): vêm da
-semente do código e qualquer alteração pela API é 409, com a mensagem "Duplique-o e ajuste a cópia". Para ter
+**Os sete perfis do sistema são fixos** (Padrão, Exclusão de cadastro, Visão entre filiais, Administrador,
+Gestor comercial, Gerência e Diretoria — `PerfisDeSistema.Todos`): vêm da semente do código e qualquer alteração pela API é 409, com a mensagem "Duplique-o e ajuste a cópia". Para ter
 uma variação, a tela duplica o perfil e cria um próprio com as mesmas permissões.
 
 **Regras conferidas no caso de uso:**
