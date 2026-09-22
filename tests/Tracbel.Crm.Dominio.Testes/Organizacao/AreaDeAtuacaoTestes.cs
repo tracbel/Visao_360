@@ -151,7 +151,7 @@ public sealed class AreaDeAtuacaoTestes
 
         producao.AreaPlantadaHectares.Should().Be(71500m);
         producao.AreaColhidaHectares.Should().Be(71000m, "plantada e colhida são medidas diferentes (issue 83)");
-        producao.QuantidadeProduzidaToneladas.Should().Be(5_720_000m);
+        producao.QuantidadeProduzida.Should().Be(5_720_000m);
         producao.ValorDaProducaoMilReais.Should().Be(1_200_000m, "o IBGE publica o valor em MIL reais");
     }
 

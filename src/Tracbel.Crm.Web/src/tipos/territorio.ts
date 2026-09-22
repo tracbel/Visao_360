@@ -42,13 +42,35 @@ export type PotencialTerritorial = {
   areaColhidaHectares: number | null;
   /** O valor da produção do mesmo produto e ano, em MIL reais. */
   valorDaProducaoMilReais: number | null;
+  /** O ano da PAM desta cultura — cada cultura no seu (issue 152); nulo sem área divulgada. */
+  ano: number | null;
+  /** Na `unidadeDaQuantidade`: tonelada quase sempre, mil frutos no abacaxi e no coco. */
+  quantidadeProduzida: number | null;
+  unidadeDaQuantidade: string | null;
+  /** Quantidade sobre área COLHIDA, calculada no servidor; nula sem colheita. */
+  produtividade: number | null;
+  unidadeDaProdutividade: string | null;
+};
+
+/** Uma cultura de regra no total de São Paulo, no mesmo ano da cultura no potencial — a comparação da ficha. */
+export type CulturaNoEstado = {
+  produtoCodigoIbge: number;
+  produtoNome: string;
+  ano: number;
+  areaPlantadaHectares: number | null;
+  areaColhidaHectares: number | null;
+  quantidadeProduzida: number | null;
+  unidadeDaQuantidade: string;
+  valorDaProducaoMilReais: number | null;
+  produtividade: number | null;
+  unidadeDaProdutividade: string;
 };
 
 /**
  * A lavoura inteira de um município, somando as culturas da PAM.
  *
  * A quantidade produzida NÃO tem total, e é de propósito: o IBGE publica cada
- * produto na unidade dele (tonelada, mil frutos, mil cachos), e somar isso daria
+ * produto na unidade dele (tonelada, e mil frutos no abacaxi e no coco), e somar isso daria
  * um número sem unidade. O café entra uma vez só — o "Total" fica, Arábica e
  * Canephora saem da soma.
  */
@@ -110,11 +132,14 @@ export type EstruturaDoMunicipio = {
  * estado sem aparecer embaixo.
  */
 export type TotaisDoEstado = {
+  /** O ano da PAM — o da área e do valor, e só deles. */
   ano: number;
   areaPlantadaHectares: number | null;
   valorDaProducaoMilReais: number | null;
   tratores: number | null;
   estabelecimentos: number | null;
+  /** O ano do Censo dos tratores e dos estabelecimentos (issue 152). */
+  anoDoCenso: number | null;
 };
 
 export type IndicadoresDoMunicipio = {
@@ -186,6 +211,8 @@ export type IndicadoresTerritoriais = {
   visao: VisaoTerritorial;
   /** Os totais de São Paulo publicados pelo IBGE; nulo quando não carregados. */
   estado: TotaisDoEstado | null;
+  /** As culturas das regras no total de SP, cada uma no ano dela. */
+  culturasNoEstado: CulturaNoEstado[];
 };
 
 /** Filial do cabeçalho, ou empresa inteira (só para quem tem a permissão). */

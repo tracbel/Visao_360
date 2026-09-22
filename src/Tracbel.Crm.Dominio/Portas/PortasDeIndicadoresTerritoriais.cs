@@ -91,25 +91,67 @@ public sealed record VendasTerritoriais(
     public decimal PosVenda => Peca + Servico;
 }
 
-/// <summary>O potencial teórico de um produto num município, por uma regra.</summary>
+/// <summary>
+/// O potencial teórico de um produto num município, por uma regra — com a PAM do produto que o sustenta.
+///
+/// <para><b>Cada cultura tem o seu ano</b> (issue 152): o último em que a área plantada DELA foi divulgada. Um ano
+/// único para todas as culturas — o maior da tabela — misturaria anos em silêncio no dia em que a PAM nova
+/// entrasse incompleta.</para>
+/// </summary>
 /// <param name="ProdutoCodigoIbge">O produto da regra.</param>
 /// <param name="AreaPlantadaHectares">A área plantada; nulo quando o IBGE não divulga ou não foi carregada.</param>
 /// <param name="MaquinasTeoricas">Área dividida pelos hectares por máquina; nulo quando a área é nula.</param>
 /// <param name="AreaColhidaHectares">A área colhida do mesmo produto e ano — abaixo da plantada em cultura perene nova ou em frustração de safra.</param>
 /// <param name="ValorDaProducaoMilReais">O valor da produção do mesmo produto e ano, em MIL reais.</param>
+/// <param name="Ano">O ano da PAM das quatro medidas; nulo quando a cultura não tem área divulgada em ano nenhum.</param>
+/// <param name="QuantidadeProduzida">A quantidade produzida, na <paramref name="UnidadeDaQuantidade"/>.</param>
+/// <param name="UnidadeDaQuantidade">"toneladas", "mil frutos" ou "mil cachos" (<see cref="UnidadesDaPam"/>).</param>
+/// <param name="Produtividade">Quantidade sobre área colhida, no mesmo ano; nula sem colheita.</param>
+/// <param name="UnidadeDaProdutividade">"t/ha", "mil frutos/ha" ou "mil cachos/ha".</param>
 public sealed record PotencialTerritorial(
     int ProdutoCodigoIbge,
     decimal? AreaPlantadaHectares,
     decimal? MaquinasTeoricas,
     decimal? AreaColhidaHectares,
-    decimal? ValorDaProducaoMilReais);
+    decimal? ValorDaProducaoMilReais,
+    short? Ano,
+    decimal? QuantidadeProduzida,
+    string? UnidadeDaQuantidade,
+    decimal? Produtividade,
+    string? UnidadeDaProdutividade);
+
+/// <summary>
+/// UMA CULTURA DE REGRA NO TOTAL DE SÃO PAULO, como o IBGE publica — o termo de comparação da mesma cultura no
+/// município (issue 152). O ano é o mesmo da cultura no potencial, para a comparação não misturar anos.
+/// </summary>
+/// <param name="ProdutoCodigoIbge">O produto.</param>
+/// <param name="ProdutoNome">O rótulo oficial.</param>
+/// <param name="Ano">O ano da PAM.</param>
+/// <param name="AreaPlantadaHectares">A área plantada no estado.</param>
+/// <param name="AreaColhidaHectares">A área colhida no estado.</param>
+/// <param name="QuantidadeProduzida">A quantidade produzida no estado, na unidade do produto.</param>
+/// <param name="UnidadeDaQuantidade">A unidade da quantidade.</param>
+/// <param name="ValorDaProducaoMilReais">O valor da produção no estado, em MIL reais.</param>
+/// <param name="Produtividade">Quantidade sobre área colhida — o rendimento médio do IBGE, na unidade por hectare.</param>
+/// <param name="UnidadeDaProdutividade">A unidade da produtividade.</param>
+public sealed record CulturaNoEstado(
+    int ProdutoCodigoIbge,
+    string ProdutoNome,
+    short Ano,
+    decimal? AreaPlantadaHectares,
+    decimal? AreaColhidaHectares,
+    decimal? QuantidadeProduzida,
+    string UnidadeDaQuantidade,
+    decimal? ValorDaProducaoMilReais,
+    decimal? Produtividade,
+    string UnidadeDaProdutividade);
 
 /// <summary>
 /// A LAVOURA INTEIRA DE UM MUNICÍPIO num ano — a soma de todas as culturas da PAM.
 ///
 /// <para><b>A quantidade produzida NÃO tem total, e é de propósito.</b> O IBGE publica cada produto
-/// na unidade dele: tonelada para grãos, <b>mil frutos</b> para laranja e coco, <b>mil cachos</b>
-/// para banana. Somar isso daria um número com unidade nenhuma. A quantidade aparece por produto, ao
+/// na unidade dele: tonelada em quase tudo, mas <b>mil frutos</b> no abacaxi e no coco-da-baía (e, até 2000, nas frutas, com <b>mil cachos</b>
+/// para a banana — <see cref="UnidadesDaPam"/>). Somar isso daria um número com unidade nenhuma. A quantidade aparece por produto, ao
 /// lado do rótulo que diz a unidade — nunca agregada.</para>
 ///
 /// <para><b>O café entra uma vez só.</b> A classificação do IBGE traz "Café (em grão) Total" ao lado
@@ -207,17 +249,22 @@ public sealed record FaixaDeArea(int Ordem, string Rotulo, int? Estabelecimentos
 /// R$ 118.021.202 mil. A tela compara a região com o total publicado, que é o número que a diretoria
 /// encontra em qualquer outra fonte.</para>
 /// </summary>
-/// <param name="Ano">O ano da PAM.</param>
+/// <param name="Ano">O ano da PAM — o da área plantada e do valor, e só deles.</param>
 /// <param name="AreaPlantadaHectares">A área plantada de São Paulo.</param>
 /// <param name="ValorDaProducaoMilReais">O valor da produção de São Paulo, em MIL reais.</param>
 /// <param name="Tratores">O parque de tratores do estado, do Censo Agropecuário.</param>
 /// <param name="Estabelecimentos">Os estabelecimentos agropecuários do estado.</param>
+/// <param name="AnoDoCenso">
+/// O ano do Censo dos tratores e dos estabelecimentos (issue 152). Antes eles vinham sem ano, ao lado do da PAM —
+/// e o leitor tomava 2017 por 2024.
+/// </param>
 public sealed record TotaisDoEstado(
     short Ano,
     decimal? AreaPlantadaHectares,
     decimal? ValorDaProducaoMilReais,
     int? Tratores,
-    int? Estabelecimentos);
+    int? Estabelecimentos,
+    short? AnoDoCenso);
 
 /// <summary>
 /// Quem responde pelos vínculos de um município NA CARTEIRA — o responsável cadastrado de cada carteira
@@ -304,6 +351,7 @@ public sealed record RegraDePotencialAplicada(
 /// <param name="EnderecosComArea">Deles, quantos têm área e cultura.</param>
 /// <param name="Visao">A visão aplicada — filial ou empresa.</param>
 /// <param name="Estado">Os totais de São Paulo publicados pelo IBGE; nulo quando não carregados.</param>
+/// <param name="CulturasNoEstado">As culturas das regras no total de São Paulo, no ano de cada uma — a comparação da ficha.</param>
 public sealed record IndicadoresTerritoriais(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -316,7 +364,8 @@ public sealed record IndicadoresTerritoriais(
     int Enderecos,
     int EnderecosComArea,
     string Visao,
-    TotaisDoEstado? Estado);
+    TotaisDoEstado? Estado,
+    IReadOnlyList<CulturaNoEstado> CulturasNoEstado);
 
 /// <summary>
 /// O acesso aos INDICADORES TERRITORIAIS — a leitura que alimenta os três mapas.

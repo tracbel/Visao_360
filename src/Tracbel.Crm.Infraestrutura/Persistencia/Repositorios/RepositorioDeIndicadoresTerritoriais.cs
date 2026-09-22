@@ -99,7 +99,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
 
     /// <summary>As medidas de UMA cultura num município — o que o mapa C mostra no balão.</summary>
     private readonly record struct MedidasDaCultura(
-        decimal? AreaPlantadaHectares, decimal? AreaColhidaHectares, decimal? ValorDaProducaoMilReais);
+        decimal? AreaPlantadaHectares, decimal? AreaColhidaHectares, decimal? QuantidadeProduzida, decimal? ValorDaProducaoMilReais);
 
     private static readonly (int Grupo, string Codigo, string Descricao)[] GruposForaDoMapa =
     [
@@ -367,26 +367,43 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
         var ano = await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking().MaxAsync(a => (short?)a.Ano, ct);
         var daRegra = new Dictionary<(int Codigo, int Produto), MedidasDaCultura>();
 
-        if (ano is not null && produtos.Count > 0)
+        // CADA CULTURA NO SEU ANO (issue 152): o último em que a área plantada DELA foi divulgada. O maior ano da
+        // tabela inteira — o que valia até aqui — misturaria anos em silêncio no dia em que a PAM nova entrasse
+        // incompleta: a cultura que ainda não chegou apareceria "sem dado", e não com o ano anterior dela.
+        var anoDaCultura = produtos.Count == 0
+            ? new Dictionary<int, short>()
+            : (await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking()
+                    .Where(p => produtos.Contains(p.ProdutoCodigoIbge) && p.AreaPlantadaHectares != null)
+                    .GroupBy(p => p.ProdutoCodigoIbge)
+                    .Select(g => new { Produto = g.Key, Ano = g.Max(p => p.Ano) })
+                    .ToListAsync(ct))
+                .ToDictionary(c => c.Produto, c => c.Ano);
+
+        if (anoDaCultura.Count > 0)
         {
+            var anosDasCulturas = anoDaCultura.Values.Distinct().ToList();
             var linhas = await (
                     from linha in contexto.ProducoesAgricolasNosMunicipios.AsNoTracking()
                     join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
-                    where linha.Ano == ano && produtos.Contains(linha.ProdutoCodigoIbge) && municipio.CodigoIbge != null
+                    where anosDasCulturas.Contains(linha.Ano) && produtos.Contains(linha.ProdutoCodigoIbge) && municipio.CodigoIbge != null
                     select new
                     {
                         Codigo = municipio.CodigoIbge!.Value,
                         linha.ProdutoCodigoIbge,
+                        linha.Ano,
                         linha.AreaPlantadaHectares,
                         linha.AreaColhidaHectares,
+                        linha.QuantidadeProduzida,
                         linha.ValorDaProducaoMilReais
                     })
                 .ToListAsync(ct);
 
-            foreach (var linha in linhas)
+            foreach (var linha in linhas.Where(l => anoDaCultura.GetValueOrDefault(l.ProdutoCodigoIbge) == l.Ano))
                 daRegra[(linha.Codigo, linha.ProdutoCodigoIbge)] = new MedidasDaCultura(
-                    linha.AreaPlantadaHectares, linha.AreaColhidaHectares, linha.ValorDaProducaoMilReais);
+                    linha.AreaPlantadaHectares, linha.AreaColhidaHectares, linha.QuantidadeProduzida, linha.ValorDaProducaoMilReais);
         }
+
+        var culturasNoEstado = await LerCulturasNoEstadoAsync(anoDaCultura, ct);
 
         // -----------------------------------------------------------------------------------------
         // A lavoura inteira: a soma de TODAS as culturas do município, no mesmo ano.
@@ -396,7 +413,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
         // de fora os dois detalhados, e fica o total — o mesmo critério da planilha do comercial.
         //
         // A QUANTIDADE PRODUZIDA NÃO É SOMADA, de propósito: o IBGE publica cada produto na unidade
-        // dele (tonelada, mil frutos, mil cachos), e um total disso não teria unidade nenhuma.
+        // dele (tonelada, e mil frutos no abacaxi e no coco — UnidadesDaPam), e um total disso não teria unidade nenhuma.
         // -----------------------------------------------------------------------------------------
         var producao = new Dictionary<int, ProducaoAgricolaDoMunicipio>();
 
@@ -475,12 +492,19 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                     {
                         var medidas = daRegra.GetValueOrDefault((codigo, regra.ProdutoCodigoIbge));
                         var maquinas = regra.MaquinasTeoricas(medidas.AreaPlantadaHectares);
+                        short? anoDela = anoDaCultura.TryGetValue(regra.ProdutoCodigoIbge, out var a) ? a : null;
+                        var unidade = anoDela is { } doAno ? UnidadesDaPam.DaQuantidade(regra.ProdutoCodigoIbge, doAno) : null;
                         return new PotencialTerritorial(
                             regra.ProdutoCodigoIbge,
                             medidas.AreaPlantadaHectares,
                             maquinas is { } m ? decimal.Round(m, 1) : null,
                             medidas.AreaColhidaHectares,
-                            medidas.ValorDaProducaoMilReais);
+                            medidas.ValorDaProducaoMilReais,
+                            anoDela,
+                            medidas.QuantidadeProduzida,
+                            unidade?.Nome,
+                            UnidadesDaPam.Produtividade(medidas.QuantidadeProduzida, medidas.AreaColhidaHectares),
+                            unidade?.DaProdutividade);
                     })
                 ],
                 ResponsaveisDe(acumulador),
@@ -510,7 +534,39 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             await contexto.Enderecos.AsNoTracking().CountAsync(e => e.ExcluidoEm == null, ct),
             await contexto.Enderecos.AsNoTracking().CountAsync(e => e.ExcluidoEm == null && e.Hectares != null && e.CulturaId != null, ct),
             consulta.Visao.ToString(),
-            totaisDoEstado);
+            totaisDoEstado,
+            culturasNoEstado);
+    }
+
+    /// <summary>
+    /// AS CULTURAS DAS REGRAS NO TOTAL DE SÃO PAULO, cada uma no ano dela — o termo de comparação da ficha do
+    /// município ("produtividade aqui × em SP"). A linha é a publicada pelo IBGE, não a soma dos municípios.
+    /// </summary>
+    private async Task<List<CulturaNoEstado>> LerCulturasNoEstadoAsync(IReadOnlyDictionary<int, short> anoDaCultura, CancellationToken ct)
+    {
+        if (anoDaCultura.Count == 0) return [];
+
+        var produtos = anoDaCultura.Keys.ToList();
+        var anos = anoDaCultura.Values.Distinct().ToList();
+
+        var linhas = await contexto.ProducoesAgricolasNosEstados.AsNoTracking()
+            .Where(p => p.EstadoCodigoIbge == CodigoDeSaoPaulo && produtos.Contains(p.ProdutoCodigoIbge) && anos.Contains(p.Ano))
+            .ToListAsync(ct);
+
+        return
+        [
+            .. linhas
+                .Where(l => anoDaCultura[l.ProdutoCodigoIbge] == l.Ano)
+                .OrderBy(l => l.ProdutoCodigoIbge)
+                .Select(l =>
+                {
+                    var unidade = UnidadesDaPam.DaQuantidade(l.ProdutoCodigoIbge, l.Ano);
+                    return new CulturaNoEstado(
+                        l.ProdutoCodigoIbge, l.ProdutoNome, l.Ano, l.AreaPlantadaHectares, l.AreaColhidaHectares,
+                        l.QuantidadeProduzida, unidade.Nome, l.ValorDaProducaoMilReais,
+                        UnidadesDaPam.Produtividade(l.QuantidadeProduzida, l.AreaColhidaHectares), unidade.DaProdutividade);
+                })
+        ];
     }
 
     /// <summary>
@@ -684,7 +740,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                 .Where(e => e.Ano == anoDoCenso && e.GrupoDeAreaCodigoIbge == GrupoDeAreaTotal)
                 .SumAsync(e => (int?)e.Estabelecimentos, ct);
 
-        return new TotaisDoEstado(ano.Value, lavoura.Plantada, lavoura.Valor, tratores, estabelecimentos);
+        return new TotaisDoEstado(ano.Value, lavoura.Plantada, lavoura.Valor, tratores, estabelecimentos, anoDoCenso);
     }
 
     /// <summary>O grupo fora do mapa de cada natureza de contraparte sem cliente no CRM.</summary>

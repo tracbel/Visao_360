@@ -809,6 +809,23 @@ A **112 (rendimento médio) fica de fora de propósito:** ela é quantidade ÷ �
 número derivado ao lado das duas parcelas cria uma terceira fonte para a mesma verdade — a que diverge
 primeiro, e sempre em silêncio.
 
+**Competência, unidade e produtividade [issue 152, 22/09/2026]:**
+
+- **A produtividade é calculada no servidor**, quantidade ÷ área **colhida** do mesmo ano (`UnidadesDaPam.Produtividade`),
+  e bate com a 112 ao quilo: café em SP, 2024, 335.310 t ÷ 190.255 ha = 1,762 t/ha; a 112 publica 1.762 kg/ha
+  (o mesmo para cana, soja, milho e laranja — teste de ouro em `UnidadesDaPamTestes`).
+- **A unidade da quantidade é regra de domínio, não campo lido.** O SIDRA devolve "Toneladas" no campo de unidade
+  para os 85 produtos, em 2024 e em 2000 — é a unidade da variável. As exceções estão nas notas da tabela 5457:
+  abacaxi e coco-da-baía em **mil frutos** em todos os anos (nota 6); as frutas da nota 2 em mil frutos até 2000
+  (a banana em mil cachos). A coluna `QuantidadeProduzidaToneladas` virou `QuantidadeProduzida` (`sp_rename`, sem
+  perda), porque o nome afirmava uma unidade que não vale para todos.
+- **Cada cultura no seu ano.** O potencial usa, para cada cultura de regra, o último ano em que a área plantada DELA
+  foi divulgada, e devolve esse ano. Antes era o maior ano da tabela para tudo: no dia em que a PAM nova entrasse
+  incompleta, a cultura ainda sem o ano novo apareceria "sem dado". A lavoura inteira continua somando um ano só —
+  o mais recente — e o mapa mostra o ano da cultura quando ele difere do da lavoura.
+- **O total de SP diz o ano do Censo** (`anoDoCenso`) ao lado do da PAM; e a cultura da regra vem também no total do
+  estado, no mesmo ano (`culturasNoEstado`), para a ficha comparar a produtividade do município com a de SP.
+
 Ao lado dela nasceu `organizacao.ProducaoAgricolaNoEstado`, com a linha que o IBGE publica para a UF
 inteira. **Ela não é a soma dos municípios**, e a diferença é medível: em 2024, o valor da produção de
 São Paulo publicado pelo estado é R$ 118.021.046 mil, e a soma dos 645 municípios dá R$ 118.021.202
@@ -895,7 +912,7 @@ região com São Paulo. O denominador é o **total publicado** pelo IBGE (`Produ
 não a soma dos municípios — o valor municipal sigiloso entra nele sem aparecer embaixo.
 
 **A quantidade produzida não tem total, de propósito.** O IBGE publica cada produto na unidade dele
-— tonelada para grãos, **mil frutos** para laranja, **mil cachos** para banana. Somar isso daria um
+— tonelada em quase tudo, mas **mil frutos** no abacaxi e no coco-da-baía (nota 6 da tabela 5457; até 2000, também nas frutas e em **mil cachos** na banana — nota 2). Somar isso daria um
 número sem unidade; ela aparece por produto, nunca agregada.
 
 **O tamanho do erro [medido em 19/09/2026]** — lido ao vivo do SIDRA (tabela 5457, PAM **2025**, que é

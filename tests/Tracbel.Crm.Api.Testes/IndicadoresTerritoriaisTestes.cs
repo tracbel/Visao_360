@@ -332,7 +332,7 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         producao.GetProperty("ano").GetInt32().Should().Be(2024);
 
         producao.TryGetProperty("quantidadeProduzida", out _).Should().BeFalse(
-            "quantidade não tem total: o IBGE usa tonelada, mil frutos e mil cachos conforme o produto");
+            "quantidade não tem total: o IBGE usa tonelada, e mil frutos no abacaxi e no coco");
     }
 
     [Fact]

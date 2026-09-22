@@ -11,18 +11,27 @@
  */
 
 import { Fragment } from 'react';
-import type { IndicadoresDoMunicipio, RegraDePotencialAplicada } from '../../tipos/territorio';
+import type { CulturaNoEstado, IndicadoresDoMunicipio, RegraDePotencialAplicada } from '../../tipos/territorio';
 import { reaisCompactos, reaisDaProducao } from './escalas';
 
 const nº = (v: number) => v.toLocaleString('pt-BR');
 
+/** A produtividade na unidade que o servidor mandou — sem unidade, não se mostra número. */
+function produtividade(valor: number | null, unidade: string | null): string {
+  if (valor === null || unidade === null) return 'não disponível';
+  return `${valor.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ${unidade}`;
+}
+
 export function DetalheDoMunicipio({
   municipio,
   regras,
+  culturasNoEstado,
   aoFechar,
 }: {
   municipio: IndicadoresDoMunicipio;
   regras: RegraDePotencialAplicada[];
+  /** A mesma cultura no total de SP e no mesmo ano — a comparação da produtividade. */
+  culturasNoEstado: CulturaNoEstado[];
   aoFechar: () => void;
 }) {
   const { cobertura, vendas, estrutura } = municipio;
@@ -138,12 +147,29 @@ export function DetalheDoMunicipio({
           <h3 className="terr-detalhe-titulo">Potencial teórico por área</h3>
           {municipio.potencial.map((p) => {
             const regra = regras.find((r) => r.produtoCodigoIbge === p.produtoCodigoIbge);
+            const noEstado = culturasNoEstado.find((c) => c.produtoCodigoIbge === p.produtoCodigoIbge) ?? null;
             return (
               <dl className="terr-numeros" key={p.produtoCodigoIbge}>
-                <dt>Área plantada de {regra?.produtoNome ?? p.produtoCodigoIbge}</dt>
+                <dt>
+                  Área plantada de {regra?.produtoNome ?? p.produtoCodigoIbge}
+                  {p.ano !== null && ` (${p.ano})`}
+                </dt>
                 <dd>{p.areaPlantadaHectares === null ? 'não disponível' : `${nº(p.areaPlantadaHectares)} ha`}</dd>
                 <dt>Área colhida da mesma cultura</dt>
                 <dd>{p.areaColhidaHectares === null ? 'não disponível' : `${nº(p.areaColhidaHectares)} ha`}</dd>
+                <dt>Quantidade produzida</dt>
+                <dd>
+                  {p.quantidadeProduzida === null || p.unidadeDaQuantidade === null
+                    ? 'não disponível'
+                    : `${nº(p.quantidadeProduzida)} ${p.unidadeDaQuantidade}`}
+                </dd>
+                <dt>Produtividade</dt>
+                <dd>
+                  {produtividade(p.produtividade, p.unidadeDaProdutividade)}
+                  {noEstado?.produtividade != null && (
+                    <span className="cad-sub"> · SP {produtividade(noEstado.produtividade, noEstado.unidadeDaProdutividade)}</span>
+                  )}
+                </dd>
                 <dt>Valor da produção dela</dt>
                 <dd>{p.valorDaProducaoMilReais === null ? 'não disponível' : reaisDaProducao(p.valorDaProducaoMilReais)}</dd>
                 <dt>{regra ? `${regra.modeloDeReferencia} teóricos (1 a cada ${regra.hectaresPorMaquina} ha)` : 'Máquinas teóricas'}</dt>
@@ -155,7 +181,7 @@ export function DetalheDoMunicipio({
           })}
           <p className="cad-sub">
             Estimativa: área do município inteiro (IBGE), clientes e não clientes juntos, por uma regra a confirmar.
-            Plantada e colhida são medidas diferentes — em cultura perene nova, a colhida fica abaixo.
+            Produtividade é a quantidade sobre a área colhida, no mesmo ano — como o IBGE calcula.
           </p>
         </section>
 
@@ -188,7 +214,7 @@ export function DetalheDoMunicipio({
             </dl>
             <p className="cad-sub">
               Produção Agrícola Municipal (IBGE). O valor é o que o município <strong>colhe</strong>, não o que a Tracbel
-              vende. A quantidade produzida não é somada entre culturas: o IBGE usa tonelada, mil frutos e mil cachos
+              vende. A quantidade produzida não é somada entre culturas: o IBGE usa tonelada, e mil frutos no abacaxi e no coco
               conforme o produto.
             </p>
           </section>

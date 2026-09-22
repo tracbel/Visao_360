@@ -132,7 +132,7 @@ As 11 issues existentes da parte B receberam o comentário "Atualização de esc
   IBGE; colhida zero ou nula → nula. Conversão para unidade comercial só quando a unidade do IBGE for massa.
   O ano de referência de cada medida é o último com dado **para aquela medida e cultura**; se diferir do das
   outras medidas mostradas juntas, o número leva o aviso.
-- **Fontes:** SIDRA 5457 (campo `MN` — unidade de medida — de cada valor).
+- **Fontes:** SIDRA 5457 e as notas da tabela. **[M 22/09]** o campo `MN` do SIDRA diz "Toneladas" para os 85 produtos (é a unidade da variável): a unidade de cada produto sai das notas 2 e 6 da tabela, como regra de domínio (`UnidadesDaPam`), e não de coluna gravada.
 - **Tabelas/APIs:** `ProducaoAgricolaNoMunicipio` e `ProducaoAgricolaNoEstado` (coluna de unidade; renomear
   a quantidade **sem perda**, por `sp_rename`); contratos de `/territorio/indicadores` e das rotas novas com
   `competencia` por medida.
@@ -145,7 +145,7 @@ As 11 issues existentes da parte B receberam o comentário "Atualização de esc
   (rendimento médio, kg/ha) ao quilo; a unidade de cada produto aparece junto da quantidade; nenhuma rota
   devolve medida sem competência.
 - **Testes:** domínio (colhida zero, unidade mil frutos, ano faltando); leitor com resposta gravada do SIDRA
-  contendo `MN`; migration no contêiner (a coluna renomeada preserva os valores).
+  e teste de ouro da produtividade contra a variável 112; migration no contêiner (a coluna renomeada preserva os valores).
 
 ### IM-04 — Nunca apagar histórico nas fontes de mercado (#153)
 
