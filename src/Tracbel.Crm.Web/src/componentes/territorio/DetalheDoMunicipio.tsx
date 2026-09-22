@@ -179,9 +179,43 @@ export function DetalheDoMunicipio({
               </dl>
             );
           })}
+          {municipio.potencialEstrutural && (
+            <dl className="terr-numeros">
+              <dt>Parque teórico do município</dt>
+              <dd>
+                <strong>
+                  {municipio.potencialEstrutural.parqueDeMaquinas === null
+                    ? '—'
+                    : nº(municipio.potencialEstrutural.parqueDeMaquinas)}
+                </strong>
+                {municipio.potencialEstrutural.areaUtilHectares !== null && (
+                  <span className="cad-sub">
+                    {' '}
+                    · {nº(Math.round(municipio.potencialEstrutural.areaUtilHectares))} ha úteis, já sem a terra
+                    contada duas vezes
+                  </span>
+                )}
+              </dd>
+              <dt>Demanda anual</dt>
+              <dd>
+                {municipio.potencialEstrutural.demandaAnualDeMaquinas === null ? (
+                  <span className="cad-sub">
+                    {municipio.potencialEstrutural.motivoSemDemanda === 'SemCicloDeRenovacao'
+                      ? 'a regra não informou de quantos em quantos anos a máquina é trocada'
+                      : 'sem parque, não há o que renovar'}
+                  </span>
+                ) : (
+                  <strong>{nº(municipio.potencialEstrutural.demandaAnualDeMaquinas)}</strong>
+                )}
+              </dd>
+            </dl>
+          )}
           <p className="cad-sub">
-            Estimativa: área do município inteiro (IBGE), clientes e não clientes juntos, por uma regra a confirmar.
-            Produtividade é a quantidade sobre a área colhida, no mesmo ano — como o IBGE calcula.
+            {municipio.potencialEstrutural?.estimativa
+              ? 'Estimativa: a regra de hectares por máquina ainda não foi confirmada pelo comercial. '
+              : ''}
+            É a área do município inteiro (IBGE), clientes e não clientes juntos. Produtividade é a quantidade sobre a
+            área colhida, no mesmo ano — como o IBGE calcula.
           </p>
         </section>
 

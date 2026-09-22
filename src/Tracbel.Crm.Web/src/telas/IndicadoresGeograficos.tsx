@@ -60,6 +60,8 @@ import type {
   FiltrosTerritoriais,
   IndicadoresDoMunicipio,
   MedidaDoEstado,
+  MotivoSemPotencial,
+  PotencialDoRecorteNoMapa,
 } from '../tipos/territorio';
 import '../estilos/territorio.css';
 
@@ -139,6 +141,20 @@ const UNIDADE_DO_POTENCIAL: Record<RecorteDoPotencial, string> = {
   maquinas: 'máquinas teóricas na região (necessidade de frota, não venda nem valor)',
   areaPlantada: 'hectares plantados de TODAS as culturas do município (IBGE/PAM)',
   valorDaProducao: 'valor da produção agrícola do município — o que ele COLHE, não o que a Tracbel vende',
+};
+
+/**
+ * Por que o parque não saiu, em português (issue 72).
+ *
+ * O motor devolve o motivo, e não um traço mudo: "sem área" é sigilo do IBGE e
+ * "sem regra" é parâmetro que ninguém decidiu — quem lê o mapa precisa saber
+ * qual dos dois está olhando.
+ */
+const MOTIVO_SEM_PARQUE: Record<MotivoSemPotencial, string> = {
+  Nenhum: '—',
+  SemArea: 'área plantada não divulgada aqui (sigilo do IBGE)',
+  SemRegra: 'há área plantada, mas nenhuma cultura daqui tem regra de hectares por máquina',
+  SemCicloDeRenovacao: 'falta o ciclo de renovação',
 };
 
 const nº = (v: number) => v.toLocaleString('pt-BR');
@@ -235,6 +251,15 @@ export function IndicadoresGeograficos() {
   const adr = useMemo(() => new Set(municipios.filter((m) => m.pertenceAAdr).map((m) => m.codigoIbge)), [municipios]);
   const regra = indicadores?.regras[0] ?? null;
 
+  /**
+   * O potencial do RECORTE CONSULTADO, pelo motor (issue 72).
+   *
+   * Ele cobre os municípios que a consulta deixou passar — com filtro de região ou de loja, é a região
+   * ou a loja; sem filtro, é o mapa inteiro, ADR e fora dela. Os cartões do topo continuam sendo da
+   * ADR, e por isso o painel do recorte diz quantos municípios entraram nele.
+   */
+  const recorte = indicadores?.potencialDoRecorte ?? null;
+
   const desenho = useMemo(() => {
     if (!malha) return null;
     // O QUADRO É A ADR INTEIRA, o mesmo nos três mapas. Os vizinhos continuam desenhados e o SVG corta o
@@ -259,8 +284,10 @@ export function IndicadoresGeograficos() {
 
   const totais = useMemo(() => {
     const soma = (f: (m: IndicadoresDoMunicipio) => number) => daAdr.reduce((s, m) => s + f(m), 0);
-    // PRIMEIRO EXISTE, DEPOIS TEM VALOR: sem regra ativa a lista vem vazia, e sem área o valor vem nulo.
-    const comArea = daAdr.filter((m) => m.potencial.length > 0 && m.potencial[0].maquinasTeoricas !== null);
+    // O NÚMERO VEM DO MOTOR (issue 72), e não mais de uma divisão feita aqui sobre a primeira regra:
+    // `potencialEstrutural` já soma todas as culturas com regra, desconta a terra compartilhada entre
+    // elas e soma as categorias de máquina sem somar a terra delas duas vezes.
+    const comArea = daAdr.filter((m) => m.potencialEstrutural?.parqueDeMaquinas != null);
     return {
       elegiveis: soma((m) => m.cobertura.vinculosComCadencia),
       cobertos: soma((m) => m.cobertura.cobertos),
@@ -272,9 +299,12 @@ export function IndicadoresGeograficos() {
       maquina: soma((m) => m.vendas.maquina),
       posVenda: soma((m) => m.vendas.posVenda),
       clientesQueCompraram: soma((m) => m.vendas.clientesQueCompraram),
-      maquinasTeoricas: comArea.reduce((s, m) => s + (m.potencial[0].maquinasTeoricas ?? 0), 0),
-      hectares: comArea.reduce((s, m) => s + (m.potencial[0].areaPlantadaHectares ?? 0), 0),
+      maquinasTeoricas: comArea.reduce((s, m) => s + (m.potencialEstrutural?.parqueDeMaquinas ?? 0), 0),
+      hectares: comArea.reduce((s, m) => s + (m.potencialEstrutural?.areaUtilHectares ?? 0), 0),
       municipiosComArea: comArea.length,
+      // O SELO DE ESTIMATIVA É DO DADO, e não uma frase fixa: ele acende quando alguma regra que
+      // dimensionou máquina aqui ainda não foi confirmada pelo comercial (D-P01).
+      potencialEstimado: comArea.some((m) => m.potencialEstrutural?.estimativa === true),
 
       // A SOMA IGNORA O SIGILO em vez de contá-lo como zero: o total é "o que o IBGE divulgou",
       // e o número de municípios que entraram fica ao lado para que isso seja visível.
@@ -368,16 +398,17 @@ export function IndicadoresGeograficos() {
     const m = porCodigo.get(codigo);
     if (!m?.pertenceAAdr) return { tipo: 'fora', detalhe: m ? 'fora da ADR' : 'fora da área de atuação ou do filtro' };
 
-    // A CULTURA DA REGRA E A LAVOURA INTEIRA SÃO COISAS DIFERENTES: o recorte "máquinas teóricas"
-    // olha só o produto da regra (café), e os outros dois olham TODAS as culturas do município.
+    // AS CULTURAS COM REGRA E A LAVOURA INTEIRA SÃO COISAS DIFERENTES: o recorte "máquinas teóricas"
+    // olha só o que tem regra de potencial, e os outros dois olham TODAS as culturas do município.
     // Misturá-los faria a área do café aparecer ao lado do valor da lavoura inteira como se fossem
     // a mesma base.
     const potencial = m.potencial[0];
+    const motor = m.potencialEstrutural;
     const producao = m.producao;
 
     const valor =
       recorteDoPotencial === 'maquinas'
-        ? (potencial?.maquinasTeoricas ?? null)
+        ? (motor?.parqueDeMaquinas ?? null)
         : recorteDoPotencial === 'areaPlantada'
           ? (producao?.areaPlantadaHectares ?? null)
           : (producao?.valorDaProducaoMilReais ?? null);
@@ -387,7 +418,7 @@ export function IndicadoresGeograficos() {
         tipo: 'semDado',
         detalhe:
           recorteDoPotencial === 'maquinas'
-            ? 'área plantada da cultura da regra não disponível'
+            ? MOTIVO_SEM_PARQUE[motor?.motivoSemParque ?? 'SemRegra']
             : 'produção agrícola não carregada para este município',
       };
 
@@ -395,10 +426,9 @@ export function IndicadoresGeograficos() {
     // linha, e o leitor precisa saber que não são do mesmo ano.
     const anoDaCultura =
       potencial?.ano != null && potencial.ano !== producao?.ano ? ` (${potencial.ano})` : '';
-    const daRegra =
-      potencial?.maquinasTeoricas !== null && potencial !== undefined
-        ? `${nº(potencial.areaPlantadaHectares ?? 0)} ha de ${regra?.produtoNome ?? 'cultura da regra'}${anoDaCultura} · ${nº(potencial.maquinasTeoricas ?? 0)} ${regra?.modeloDeReferencia ?? 'máquinas'} teóricos`
-        : 'sem área da cultura da regra';
+    const daRegra = motor
+      ? `${nº(Math.round(motor.areaUtilHectares ?? 0))} ha úteis${anoDaCultura} · ${nº(motor.parqueDeMaquinas ?? 0)} máquinas teóricas${motor.demandaAnualDeMaquinas != null ? ` · ${nº(motor.demandaAnualDeMaquinas)} por ano` : ''}${motor.estimativa ? ' · estimativa' : ''}`
+      : 'sem regra de potencial vigente';
 
     const daLavoura = producao
       ? `lavoura ${nº(Math.round(producao.areaPlantadaHectares ?? 0))} ha em ${nº(producao.culturasComArea)} culturas · ${reaisDaProducao(producao.valorDaProducaoMilReais ?? 0)} (${producao.ano})`
@@ -510,9 +540,11 @@ export function IndicadoresGeograficos() {
       semDado: territorioNaoCarregado ? `${reaisCompactos(vendasForaDoMapa)} no período, todos fora do mapa` : '—',
     },
     {
-      rotulo: regra ? `${regra.modeloDeReferencia} teóricos` : 'Potencial teórico',
-      valor: comTerritorio && regra ? nº(Math.round(totais.maquinasTeoricas)) : null,
-      deOnde: regra ? `1 a cada ${regra.hectaresPorMaquina} ha de ${regra.produtoNome} · estimativa regional, regra a confirmar` : '',
+      rotulo: 'Parque teórico de máquinas',
+      valor: comTerritorio && totais.municipiosComArea > 0 ? nº(Math.round(totais.maquinasTeoricas)) : null,
+      deOnde: `${nº(Math.round(totais.hectares))} ha úteis em ${nº(totais.municipiosComArea)} municípios${
+        recorte?.demandaAnualDeMaquinas != null ? ` · ${nº(Math.round(recorte.demandaAnualDeMaquinas))} por ano` : ''
+      }${totais.potencialEstimado ? ' · estimativa, regra a confirmar' : ''}`,
       semDado: territorioNaoCarregado ? semTerritorio : 'sem regra de potencial',
     },
   ];
@@ -854,10 +886,11 @@ export function IndicadoresGeograficos() {
                 : 'Sem regra de potencial ativa'}
             </div>
             <p className="terr-mapa-resumo">
-              {regra && totais.municipiosComArea > 0
-                ? `${nº(Math.round(totais.maquinasTeoricas))} ${regra.modeloDeReferencia} teóricos · ${nº(Math.round(totais.hectares))} ha em ${nº(totais.municipiosComArea)} municípios com área divulgada`
+              {totais.municipiosComArea > 0
+                ? `${nº(Math.round(totais.maquinasTeoricas))} máquinas teóricas · ${nº(Math.round(totais.hectares))} ha úteis em ${nº(totais.municipiosComArea)} municípios com área divulgada`
                 : 'sem área plantada ou regra para calcular'}
             </p>
+            {recorte && <PainelDoPotencialDoRecorte recorte={recorte} comFiltro={!semFiltro} />}
             <div className="terr-alternador" role="group" aria-label="O que o mapa mostra">
               {(Object.keys(ROTULO_DO_POTENCIAL) as RecorteDoPotencial[]).map((r) => (
                 <button
@@ -985,7 +1018,7 @@ export function IndicadoresGeograficos() {
                   <th scope="col">Pendentes</th>
                   <th scope="col">Vendas</th>
                   <th scope="col">Pós-venda <span className="cad-sub">(provisório)</span></th>
-                  <th scope="col">{regra ? `${regra.modeloDeReferencia} teóricos` : 'Potencial'}</th>
+                  <th scope="col">Máquinas teóricas</th>
                 </tr>
               </thead>
               <tbody>
@@ -1010,7 +1043,9 @@ export function IndicadoresGeograficos() {
                     </td>
                     <td className="cad-mono">{reaisCompactos(m.vendas.valorLiquido)}</td>
                     <td className="cad-mono">{reaisCompactos(m.vendas.posVenda)}</td>
-                    <td className="cad-mono">{m.potencial[0]?.maquinasTeoricas === null || !m.potencial[0] ? '—' : nº(m.potencial[0].maquinasTeoricas)}</td>
+                    <td className="cad-mono" title={m.potencialEstrutural ? MOTIVO_SEM_PARQUE[m.potencialEstrutural.motivoSemParque] : undefined}>
+                      {m.potencialEstrutural?.parqueDeMaquinas == null ? '—' : nº(m.potencialEstrutural.parqueDeMaquinas)}
+                    </td>
                   </tr>
                 ))}
                 {territorioNaoCarregado ? (
@@ -1092,6 +1127,120 @@ function FiltroSemDado({ rotulo, opcoes, motivo }: { rotulo: string; opcoes: str
 }
 
 /** Uma linha que soma um grupo de municípios. */
+/**
+ * O POTENCIAL DO RECORTE CONSULTADO, pelo motor (issue 72).
+ *
+ * Ele responde três perguntas que o número sozinho não responde: **de que máquina** estamos falando
+ * (as categorias), **de qual cultura** vem o parque (as parcelas, com quem divide a terra), e **que
+ * fatia de São Paulo** está aqui.
+ *
+ * A demanda anual sai VAZIA COM O MOTIVO quando falta o ciclo de renovação de alguma cultura: somar só
+ * as que têm daria um total menor que o real, com cara de completo.
+ */
+function PainelDoPotencialDoRecorte({
+  recorte,
+  comFiltro,
+}: {
+  recorte: PotencialDoRecorteNoMapa;
+  comFiltro: boolean;
+}) {
+  const relevancia = recorte.relevanciaNoEstado;
+
+  return (
+    <div className="terr-recorte">
+      <p className="terr-recorte-titulo">
+        No recorte consultado{comFiltro ? ' (com filtro)' : ''} — {nº(recorte.municipiosComParque)} municípios com parque
+      </p>
+
+      <ul className="terr-recorte-linhas">
+        <li>
+          <strong>{recorte.parqueDeMaquinas == null ? '—' : nº(Math.round(recorte.parqueDeMaquinas))}</strong> máquinas de
+          parque{' '}
+          {recorte.demandaAnualDeMaquinas == null ? (
+            <span className="cad-sub">· demanda anual: {MOTIVO_SEM_PARQUE[recorte.motivoSemDemanda]}</span>
+          ) : (
+            <span className="cad-sub">· {nº(Math.round(recorte.demandaAnualDeMaquinas))} por ano</span>
+          )}
+        </li>
+
+        {recorte.porCategoria.map((c) => (
+          <li key={c.categoriaCodigo}>
+            {c.categoriaNome}: <strong>{c.parqueDeMaquinas == null ? '—' : nº(Math.round(c.parqueDeMaquinas))}</strong>
+            {c.demandaAnualDeMaquinas != null && (
+              <span className="cad-sub"> · {nº(Math.round(c.demandaAnualDeMaquinas))} por ano</span>
+            )}
+          </li>
+        ))}
+
+        {recorte.porCultura.map((p) => (
+          <li key={p.culturaCodigo}>
+            {p.cultura}: {p.parque == null ? '—' : nº(Math.round(p.parque))} máquinas em{' '}
+            {nº(Math.round(p.areaUtilHectares ?? 0))} ha
+            {p.compartilhada.length > 0 && (
+              <span className="cad-sub"> · área compartilhada com {p.compartilhada.join(', ')}</span>
+            )}
+          </li>
+        ))}
+
+        {relevancia && (
+          <li>
+            Fatia de São Paulo:{' '}
+            {relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(relevancia.fatiaDaAreaPlantada)} da área plantada ·{' '}
+            {relevancia.fatiaDoValor == null ? '—' : porcento(relevancia.fatiaDoValor)} do valor da produção
+          </li>
+        )}
+      </ul>
+
+      {recorte.frase && <p className="terr-aviso">{recorte.frase}.</p>}
+
+      {recorte.relevanciaPorCultura.length > 0 && (
+        <table className="cad-tabela terr-recorte-tabela">
+          <caption className="cad-sub">Relevância por cultura, contra o total publicado de São Paulo</caption>
+          <thead>
+            <tr>
+              <th scope="col">Cultura</th>
+              <th scope="col">Ano</th>
+              <th scope="col">Área plantada</th>
+              <th scope="col">Quantidade</th>
+              <th scope="col">Valor</th>
+              <th scope="col">Produtividade × SP</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recorte.relevanciaPorCultura.map((c) => (
+              <tr key={c.produtoCodigoIbge}>
+                <td>{c.produtoNome}</td>
+                <td className="cad-mono">{c.ano}</td>
+                <td className="cad-mono">
+                  {c.relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(c.relevancia.fatiaDaAreaPlantada)}
+                </td>
+                <td className="cad-mono">
+                  {c.relevancia.fatiaDaQuantidade == null ? '—' : porcento(c.relevancia.fatiaDaQuantidade)}
+                </td>
+                <td className="cad-mono">
+                  {c.relevancia.fatiaDoValor == null ? '—' : porcento(c.relevancia.fatiaDoValor)}
+                </td>
+                <td
+                  className="cad-mono"
+                  title={
+                    c.relevancia.produtividadeDoRecorte == null
+                      ? undefined
+                      : `${nº(Math.round(c.relevancia.produtividadeDoRecorte))} aqui contra ${nº(Math.round(c.relevancia.produtividadeNoEstado ?? 0))} em SP (${c.unidadeDaProdutividade})`
+                  }
+                >
+                  {c.relevancia.razaoDeProdutividade == null
+                    ? '—'
+                    : `${c.relevancia.razaoDeProdutividade.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}×`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 function LinhaDeGrupo({ rotulo, descricao, itens }: { rotulo: string; descricao: string; itens: IndicadoresDoMunicipio[] }) {
   const soma = (f: (m: IndicadoresDoMunicipio) => number) => itens.reduce((s, m) => s + f(m), 0);
   return (

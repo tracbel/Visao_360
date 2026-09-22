@@ -878,6 +878,51 @@ vez de enfileirar**: medido em 20/09/2026, com a trava tomada por outra sessão,
 **4 segundos**, sem ler o IBGE e sem gravar nada. Enfileirar faria a segunda rodada esperar quatro
 minutos para depois refazer o que a primeira acabou de fazer.
 
+#### 8.3.4 O mapa C passou a pedir o número ao motor [issue 72, 22/09/2026]
+
+Até aqui o mapa C fazia a conta **dentro do repositório**: `regra.MaquinasTeoricas(área plantada)`,
+uma regra de cada vez, e o total da tela era uma soma feita no front sobre a **primeira** regra
+(`potencial[0]`). Isso tinha três consequências:
+
+1. **Regra nova não aparecia no total.** Com duas regras ativas, o cabeçalho continuaria somando só a
+   primeira — silenciosamente.
+2. **A terra podia ser contada duas vezes.** O compartilhamento entre culturas (issue 160) existia no
+   domínio e não chegava ao mapa.
+3. **A calculadora (issue 161) teria fórmula própria**, e as duas divergiriam no dia em que uma
+   mudasse.
+
+Agora existe `Dominio/Mercado/MotorDoPotencial.cs` — **domínio puro, sem banco** —, e o mapa C, o
+total da tela e a calculadora chamam **a mesma função**.
+
+| | |
+|---|---|
+| Parque | `área útil ÷ hectares por máquina`, por cultura do **catálogo** (issue 165), não por produto da PAM |
+| Área útil | já sem a terra contada duas vezes: dentro de um grupo de compartilhamento, é a **maior** área, com os parâmetros da dominante |
+| Demanda anual | `parque ÷ ciclo de renovação` da dominante; **vazia com o motivo** enquanto o ciclo não for informado (D-P01) |
+| Município | soma das **categorias de máquina** (`Sobrepor`): as máquinas somam, a terra não — o trator e a colheitadeira passam no mesmo talhão |
+| Recorte (loja, região, SP) | soma dos **municípios** (`Somar`): o compartilhamento acontece no chão, e some-se a coluna da tabela para chegar no total do cabeçalho |
+| Selo de estimativa | acende quando a regra que **dimensionou** o número está "a confirmar"; a regra de uma cultura que não entrou na conta não acende nada |
+| Relevância | fatia do recorte em SP (área plantada, área colhida e valor) e, **por cultura**, também quantidade e a razão de produtividade — a aba "Relevância vs SP" do protótipo |
+
+**Zero não é ausência.** Área plantada **0** é o IBGE dizendo "não se planta café aqui", e a resposta é
+zero máquina; **nulo** é sigilo, e aí o motor devolve vazio com o motivo (`SemArea`, `SemRegra`,
+`SemCicloDeRenovacao`). Isso já valia no mapa C desde antes, e o motor foi corrigido para preservá-lo.
+
+**A regra encontra a cultura mesmo sem `CulturaId`.** A coluna nasceu na issue 165 e a rota de cadastro
+do Administrador ainda não a preenche; o motor deriva a cultura **do produto, pelo de-para do
+catálogo**, para que uma regra registrada hoje não fique invisível ao mapa. Produto fora do catálogo
+vale por si, com a área do próprio produto — nada é descartado em silêncio. Falta ainda o campo de
+**categoria de máquina** na rota (D-IM-06): regra sem categoria cai num grupo "Sem categoria
+declarada", que aparece na tela em vez de sumir.
+
+**O que o aceite da issue não pôde conferir.** Ele pede que "com os parâmetros da planilha, o motor
+reproduza o protótipo município a município". **Esses parâmetros não estão no CRM** — quantos hectares
+por máquina e qual o ciclo de cada cultura é a decisão D-P01, e a única regra registrada é o exemplo do
+gerente comercial (café, 3036N, 10 ha, a confirmar). O que está provado é que **a conta do motor é a do
+protótipo**: sem grupo de compartilhamento configurado — e nenhum está —, o motor devolve exatamente
+`área ÷ hectares por máquina`, somando as culturas. Quando os parâmetros entrarem, o aceite se confere
+trocando os números dos testes de ouro.
+
 ### 8.4 O quarto mapa — a estrutura agropecuária (issue 103)
 
 Os mapas A, B e C respondem sobre a **operação da Tracbel** (cobertura, vendas) e sobre a **lavoura**.

@@ -1,3 +1,4 @@
+using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Organizacao;
 
 namespace Tracbel.Crm.Dominio.Portas;
@@ -252,6 +253,11 @@ public sealed record FaixaDeArea(int Ordem, string Rotulo, int? Estabelecimentos
 /// <param name="Ano">O ano da PAM — o da área plantada e do valor, e só deles.</param>
 /// <param name="AreaPlantadaHectares">A área plantada de São Paulo.</param>
 /// <param name="ValorDaProducaoMilReais">O valor da produção de São Paulo, em MIL reais.</param>
+/// <param name="AreaColhidaHectares">
+/// A área colhida de São Paulo (issue 72) — o denominador da fatia de área colhida do recorte. A quantidade
+/// produzida não tem total, e é de propósito: cada produto vem na unidade dele, e somar tonelada com mil
+/// frutos daria um número sem unidade nenhuma.
+/// </param>
 /// <param name="Tratores">O parque de tratores do estado, do Censo Agropecuário.</param>
 /// <param name="Estabelecimentos">Os estabelecimentos agropecuários do estado.</param>
 /// <param name="AnoDoCenso">
@@ -268,7 +274,8 @@ public sealed record TotaisDoEstado(
     MedidaDoEstado Estabelecimentos,
     short? AnoDoCenso,
     MedidaDoEstado Rebanho,
-    short? AnoDoRebanho);
+    short? AnoDoRebanho,
+    decimal? AreaColhidaHectares = null);
 
 /// <summary>
 /// UMA MEDIDA DO ESTADO NAS DUAS LEITURAS: a que o IBGE publica e a soma dos municípios (issue 155).
@@ -312,6 +319,7 @@ public sealed record ResponsavelPelaCarteira(string Nome, string Natureza, int V
 /// <param name="ResponsaveisPelasCarteiras">Os responsáveis das carteiras com vínculo aqui, dos com mais vínculos para os com menos.</param>
 /// <param name="Producao">A lavoura inteira do município, somando as culturas; nulo quando a PAM não foi carregada.</param>
 /// <param name="Estrutura">O parque, as propriedades, o rebanho e as usinas.</param>
+/// <param name="PotencialEstrutural">O parque e a demanda do município pelo motor (issue 72), somando as categorias de máquina.</param>
 public sealed record IndicadoresDoMunicipio(
     int CodigoIbge,
     string Nome,
@@ -326,7 +334,118 @@ public sealed record IndicadoresDoMunicipio(
     IReadOnlyList<PotencialTerritorial> Potencial,
     IReadOnlyList<ResponsavelPelaCarteira> ResponsaveisPelasCarteiras,
     ProducaoAgricolaDoMunicipio? Producao,
-    EstruturaDoMunicipio Estrutura);
+    EstruturaDoMunicipio Estrutura,
+    PotencialEstruturalDoMunicipio? PotencialEstrutural = null);
+
+/// <summary>
+/// O POTENCIAL ESTRUTURAL DE UM MUNICÍPIO, pelo motor (issue 72) — o que o mapa C colore.
+///
+/// <para><b>É a soma das categorias de máquina</b>: o mesmo hectare pede um trator a cada tantos
+/// hectares e uma colheitadeira a cada outros tantos, e as duas contam. O detalhe por categoria e por
+/// cultura fica no recorte, e não em cada uma das centenas de linhas do mapa.</para>
+///
+/// <para><b>A área útil já vem sem a terra contada duas vezes</b> (issue 160): dentro do município, as
+/// culturas que dividem o talhão entram uma vez só.</para>
+/// </summary>
+/// <param name="ParqueDeMaquinas">As máquinas que a área do município comporta; nulo com motivo.</param>
+/// <param name="DemandaAnualDeMaquinas">Quantas por ano o parque pede; nula com motivo.</param>
+/// <param name="AreaUtilHectares">A área que entrou na conta.</param>
+/// <param name="Estimativa">Se alguma regra usada aqui ainda não foi confirmada pelo comercial (D-P01).</param>
+/// <param name="MotivoSemParque">Por que o parque não saiu, como TEXTO; <c>Nenhum</c> quando saiu.</param>
+/// <param name="MotivoSemDemanda">Por que a demanda anual não saiu, como TEXTO.</param>
+public sealed record PotencialEstruturalDoMunicipio(
+    decimal? ParqueDeMaquinas,
+    decimal? DemandaAnualDeMaquinas,
+    decimal? AreaUtilHectares,
+    bool Estimativa,
+    string MotivoSemParque,
+    string MotivoSemDemanda);
+
+/// <summary>
+/// O POTENCIAL DE UM RECORTE NUMA CATEGORIA DE MÁQUINA — o detalhe de "30.000 tratores e 900
+/// colheitadeiras", que um total só não conta.
+/// </summary>
+/// <param name="CategoriaCodigo">O código da categoria no catálogo (issue 165).</param>
+/// <param name="CategoriaNome">O nome de exibição.</param>
+/// <param name="ParqueDeMaquinas">O parque desta categoria no recorte.</param>
+/// <param name="DemandaAnualDeMaquinas">A demanda anual desta categoria.</param>
+/// <param name="AreaUtilHectares">A área que entrou na conta desta categoria.</param>
+/// <param name="Estimativa">Se alguma regra desta categoria ainda não foi confirmada.</param>
+/// <param name="MotivoSemParque">Por que o parque não saiu, como texto.</param>
+/// <param name="MotivoSemDemanda">Por que a demanda não saiu, como texto.</param>
+/// <param name="Frase">O que a tela mostra ao lado do número, ou no lugar dele.</param>
+/// <param name="PorCultura">Uma linha por cultura dominante, com quem divide a terra com ela.</param>
+public sealed record PotencialPorCategoria(
+    string CategoriaCodigo,
+    string CategoriaNome,
+    decimal? ParqueDeMaquinas,
+    decimal? DemandaAnualDeMaquinas,
+    decimal? AreaUtilHectares,
+    bool Estimativa,
+    string MotivoSemParque,
+    string MotivoSemDemanda,
+    string Frase,
+    IReadOnlyList<ParcelaDoParque> PorCultura);
+
+/// <summary>
+/// A RELEVÂNCIA DE UMA CULTURA DO RECORTE DENTRO DE SÃO PAULO — a aba "Relevância vs SP" do protótipo.
+///
+/// <para><b>Os dois lados vêm do mesmo produto e do mesmo ano</b>: a fatia compara o que é comparável, e a
+/// produtividade daqui contra a do estado só faz sentido na mesma unidade.</para>
+/// </summary>
+/// <param name="ProdutoCodigoIbge">O produto da classificação 782.</param>
+/// <param name="ProdutoNome">O rótulo oficial.</param>
+/// <param name="Ano">O ano da PAM desta cultura.</param>
+/// <param name="UnidadeDaQuantidade">A unidade em que o IBGE publica a quantidade.</param>
+/// <param name="UnidadeDaProdutividade">A unidade da produtividade.</param>
+/// <param name="Aqui">As medidas do recorte.</param>
+/// <param name="EmSaoPaulo">As medidas publicadas para o estado.</param>
+/// <param name="Relevancia">As fatias e a razão de produtividade.</param>
+public sealed record RelevanciaDaCultura(
+    int ProdutoCodigoIbge,
+    string ProdutoNome,
+    short Ano,
+    string UnidadeDaQuantidade,
+    string UnidadeDaProdutividade,
+    MedidasDaLavoura Aqui,
+    MedidasDaLavoura EmSaoPaulo,
+    RelevanciaNoEstado Relevancia);
+
+/// <summary>
+/// O POTENCIAL DO RECORTE CONSULTADO — município, loja, região da ADR ou tudo o que a consulta deixou
+/// passar (issue 72).
+///
+/// <para><b>É a soma dos municípios da consulta</b>, e não o motor rodado sobre as áreas somadas: o
+/// compartilhamento de terra acontece dentro do município. Some a coluna da tabela e dá este número.</para>
+///
+/// <para><b>A fatia da quantidade não tem total</b>, de propósito — ela aparece por cultura, em
+/// <see cref="RelevanciaPorCultura"/>, onde a unidade é a mesma dos dois lados.</para>
+/// </summary>
+/// <param name="ParqueDeMaquinas">O parque do recorte, somando as categorias.</param>
+/// <param name="DemandaAnualDeMaquinas">A demanda anual do recorte.</param>
+/// <param name="AreaUtilHectares">A área que entrou na conta.</param>
+/// <param name="Estimativa">Se alguma regra usada ainda não foi confirmada (D-P01).</param>
+/// <param name="MotivoSemParque">Por que o parque não saiu, como texto.</param>
+/// <param name="MotivoSemDemanda">Por que a demanda não saiu, como texto.</param>
+/// <param name="Frase">O que a tela mostra ao lado do número — o selo de estimativa e o que falta.</param>
+/// <param name="MunicipiosComParque">Quantos municípios do recorte entraram na soma.</param>
+/// <param name="PorCultura">O parque do recorte por cultura dominante.</param>
+/// <param name="PorCategoria">O parque do recorte por categoria de máquina.</param>
+/// <param name="RelevanciaNoEstado">A fatia do recorte em São Paulo — área plantada, área colhida e valor.</param>
+/// <param name="RelevanciaPorCultura">A fatia e a produtividade de cada cultura contra o estado.</param>
+public sealed record PotencialDoRecorteNoMapa(
+    decimal? ParqueDeMaquinas,
+    decimal? DemandaAnualDeMaquinas,
+    decimal? AreaUtilHectares,
+    bool Estimativa,
+    string MotivoSemParque,
+    string MotivoSemDemanda,
+    string Frase,
+    int MunicipiosComParque,
+    IReadOnlyList<ParcelaDoParque> PorCultura,
+    IReadOnlyList<PotencialPorCategoria> PorCategoria,
+    RelevanciaNoEstado? RelevanciaNoEstado,
+    IReadOnlyList<RelevanciaDaCultura> RelevanciaPorCultura);
 
 /// <summary>
 /// O que não tem lugar no mapa, somado à parte — é o que faz o total da tela fechar com o banco.
@@ -370,6 +489,7 @@ public sealed record RegraDePotencialAplicada(
 /// <param name="Visao">A visão aplicada — filial ou empresa.</param>
 /// <param name="Estado">Os totais de São Paulo publicados pelo IBGE; nulo quando não carregados.</param>
 /// <param name="CulturasNoEstado">As culturas das regras no total de São Paulo, no ano de cada uma — a comparação da ficha.</param>
+/// <param name="PotencialDoRecorte">O parque, a demanda e a relevância do recorte consultado, pelo motor (issue 72).</param>
 public sealed record IndicadoresTerritoriais(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -383,7 +503,8 @@ public sealed record IndicadoresTerritoriais(
     int EnderecosComArea,
     string Visao,
     TotaisDoEstado? Estado,
-    IReadOnlyList<CulturaNoEstado> CulturasNoEstado);
+    IReadOnlyList<CulturaNoEstado> CulturasNoEstado,
+    PotencialDoRecorteNoMapa? PotencialDoRecorte = null);
 
 /// <summary>
 /// O acesso aos INDICADORES TERRITORIAIS — a leitura que alimenta os três mapas.

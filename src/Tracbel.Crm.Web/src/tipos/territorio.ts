@@ -143,6 +143,8 @@ export type TotaisDoEstado = {
   ano: number;
   areaPlantadaHectares: number | null;
   valorDaProducaoMilReais: number | null;
+  /** A área colhida do estado (issue 72) — o denominador da fatia de área colhida. */
+  areaColhidaHectares: number | null;
   tratores: MedidaDoEstado;
   estabelecimentos: MedidaDoEstado;
   /** O ano do Censo dos tratores e dos estabelecimentos (issue 152). */
@@ -170,6 +172,112 @@ export type IndicadoresDoMunicipio = {
   /** A lavoura inteira; nulo quando a PAM não foi carregada. */
   producao: ProducaoAgricolaDoMunicipio | null;
   estrutura: EstruturaDoMunicipio;
+  /** O parque e a demanda pelo motor (issue 72); nulo quando não há regra vigente nenhuma. */
+  potencialEstrutural: PotencialEstruturalDoMunicipio | null;
+};
+
+/** Por que o parque ou a demanda não saiu — o enum do domínio, em texto. */
+export type MotivoSemPotencial = 'Nenhum' | 'SemArea' | 'SemRegra' | 'SemCicloDeRenovacao';
+
+/**
+ * O potencial estrutural de um município, pelo motor (issue 72).
+ *
+ * É a soma das categorias de máquina — o mesmo hectare pede um trator e uma
+ * colheitadeira —, e a área útil já vem sem a terra contada duas vezes.
+ */
+export type PotencialEstruturalDoMunicipio = {
+  parqueDeMaquinas: number | null;
+  demandaAnualDeMaquinas: number | null;
+  areaUtilHectares: number | null;
+  /** Alguma regra usada aqui ainda não foi confirmada pelo comercial (D-P01). */
+  estimativa: boolean;
+  motivoSemParque: MotivoSemPotencial;
+  motivoSemDemanda: MotivoSemPotencial;
+};
+
+/** Uma parcela do parque: um grupo que divide a terra, ou uma cultura sozinha. */
+export type ParcelaDoParque = {
+  culturaCodigo: string;
+  cultura: string;
+  /** As outras culturas da parcela, que não somam área de novo (issue 160). */
+  compartilhada: string[];
+  areaUtilHectares: number | null;
+  parque: number | null;
+  demandaAnual: number | null;
+  motivo: MotivoSemPotencial;
+};
+
+/** O parque de uma categoria de máquina no recorte — "30.000 tratores e 900 colheitadeiras". */
+export type PotencialPorCategoria = {
+  categoriaCodigo: string;
+  categoriaNome: string;
+  parqueDeMaquinas: number | null;
+  demandaAnualDeMaquinas: number | null;
+  areaUtilHectares: number | null;
+  estimativa: boolean;
+  motivoSemParque: MotivoSemPotencial;
+  motivoSemDemanda: MotivoSemPotencial;
+  frase: string;
+  porCultura: ParcelaDoParque[];
+};
+
+/** As medidas da lavoura de um recorte — os dois lados da comparação com São Paulo. */
+export type MedidasDaLavoura = {
+  areaPlantadaHectares: number | null;
+  areaColhidaHectares: number | null;
+  quantidadeProduzida: number | null;
+  valorDaProducaoMilReais: number | null;
+};
+
+/**
+ * A relevância de um recorte dentro de São Paulo.
+ *
+ * As fatias vêm em percentual; a razão de produtividade é adimensional — 1,10 é
+ * "a terra daqui rende 10% acima da média do estado".
+ */
+export type RelevanciaNoEstado = {
+  fatiaDaAreaPlantada: number | null;
+  fatiaDaAreaColhida: number | null;
+  fatiaDaQuantidade: number | null;
+  fatiaDoValor: number | null;
+  produtividadeDoRecorte: number | null;
+  produtividadeNoEstado: number | null;
+  razaoDeProdutividade: number | null;
+};
+
+/** A relevância de UMA cultura contra o estado — a aba "Relevância vs SP" do protótipo. */
+export type RelevanciaDaCultura = {
+  produtoCodigoIbge: number;
+  produtoNome: string;
+  ano: number;
+  unidadeDaQuantidade: string;
+  unidadeDaProdutividade: string;
+  aqui: MedidasDaLavoura;
+  emSaoPaulo: MedidasDaLavoura;
+  relevancia: RelevanciaNoEstado;
+};
+
+/**
+ * O potencial do recorte consultado — município, loja, região da ADR ou tudo.
+ *
+ * É a SOMA DOS MUNICÍPIOS, e não o motor rodado sobre as áreas somadas: o
+ * compartilhamento de terra acontece dentro do município. Some a coluna da
+ * tabela e dá este número.
+ */
+export type PotencialDoRecorteNoMapa = {
+  parqueDeMaquinas: number | null;
+  demandaAnualDeMaquinas: number | null;
+  areaUtilHectares: number | null;
+  estimativa: boolean;
+  motivoSemParque: MotivoSemPotencial;
+  motivoSemDemanda: MotivoSemPotencial;
+  /** O selo de estimativa e o que falta, prontos para a tela — vazio quando não há o que ressalvar. */
+  frase: string;
+  municipiosComParque: number;
+  porCultura: ParcelaDoParque[];
+  porCategoria: PotencialPorCategoria[];
+  relevanciaNoEstado: RelevanciaNoEstado | null;
+  relevanciaPorCultura: RelevanciaDaCultura[];
 };
 
 /** O responsável cadastrado de uma carteira comercial com clientes do município. */
@@ -224,6 +332,8 @@ export type IndicadoresTerritoriais = {
   estado: TotaisDoEstado | null;
   /** As culturas das regras no total de SP, cada uma no ano dela. */
   culturasNoEstado: CulturaNoEstado[];
+  /** O parque, a demanda e a relevância do recorte consultado (issue 72); nulo sem regra vigente. */
+  potencialDoRecorte: PotencialDoRecorteNoMapa | null;
 };
 
 /** Filial do cabeçalho, ou empresa inteira (só para quem tem a permissão). */
