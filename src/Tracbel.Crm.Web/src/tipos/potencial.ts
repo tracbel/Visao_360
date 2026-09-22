@@ -42,6 +42,8 @@ export type ParametrosGeraisDetalhe = {
   pesoDoIndicadorComercial: number | null;
   fatorMinimo: number | null;
   fatorMaximo: number | null;
+  /** Meses recentes do SICOR fora da janela; nulo é "não decidida" (D-IM-03, issue 157). */
+  mesesDeCarenciaDoSicor: number | null;
   vigencia: VigenciaDoParametro;
 };
 
@@ -101,6 +103,7 @@ export type NovoParametroDoPotencial = {
   pesoDoIndicadorComercial: string;
   fatorMinimo: string;
   fatorMaximo: string;
+  mesesDeCarenciaDoSicor: string;
   justificativa: string;
 };
 

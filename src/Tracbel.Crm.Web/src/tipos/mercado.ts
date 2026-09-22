@@ -82,11 +82,42 @@ export type CreditoPorProduto = { codigo: number; nome: string; ehMaquina: boole
 
 export type CreditoDeMaquinasNoMunicipio = { codigoIbge: number; nome: string; pertenceAAdr: boolean; janelas: JanelasDeCredito };
 
+/**
+ * A janela de comparação, vinda pronta do servidor (issue 157).
+ *
+ * Ela NÃO termina no último mês com dado: o Banco Central acrescenta contrato
+ * registrado com atraso nos meses recentes, e comparar 12 meses cheios com 12
+ * que ainda estão enchendo mostraria o crédito caindo sem ter caído.
+ */
+export type JanelaDoCredito = {
+  /** `aaaa-mm-01` — o mês mais recente que o SICOR trouxe. */
+  ultimoMesComDado: string;
+  /** Quantos meses recentes ficaram de fora; zero quando a carência não foi decidida. */
+  mesesDeCarencia: number;
+  /** Se o parâmetro vigente traz um valor de carência (D-IM-03). */
+  carenciaDecidida: boolean;
+  inicio: string;
+  /** O mês de corte da janela recente, já descontada a carência. */
+  fim: string;
+  inicioAnterior: string;
+  fimAnterior: string;
+  mesesPorJanela: number;
+};
+
+/** O crédito de máquinas de um recorte — a Região e São Paulo, somados no servidor. */
+export type CreditoNoRecorte = { recorte: string; municipios: number; janelas: JanelasDeCredito };
+
 /** O crédito rural de investimento de SP, do SICOR (issue 68). */
 export type PainelDeCreditoRural = {
   /** `aaaa-mm-01`; nulo quando nada foi carregado. */
   ultimoMes: string | null;
+  /** O intervalo exato das duas janelas; nulo sem dado. */
+  janela: JanelaDoCredito | null;
   porAno: CreditoNoAno[];
   porProduto: CreditoPorProduto[];
   porMunicipio: CreditoDeMaquinasNoMunicipio[];
+  /** A Região (ADR) somada; nulo sem dado. */
+  regiao: CreditoNoRecorte | null;
+  /** São Paulo inteiro — o denominador da comparação. */
+  saoPaulo: CreditoNoRecorte | null;
 };
