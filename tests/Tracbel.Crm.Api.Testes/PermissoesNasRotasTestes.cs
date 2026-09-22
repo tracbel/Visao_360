@@ -336,6 +336,61 @@ public sealed class PermissoesNasRotasTestes(ApiEmMemoria api, ITestOutputHelper
         dados.GetProperty("filialAtual").GetProperty("codigo").GetString().Should().Be(ApiEmMemoria.FilialDeRibeirao);
     }
 
+    // =============================================================================================
+    // Configurações por permissão (issue 134): os perfis no escopo e quem vê as integrações
+    // =============================================================================================
+
+    [Fact]
+    public async Task O_escopo_lista_os_perfis_da_pessoa_com_a_filial_e_a_validade()
+    {
+        await using var app = new ApiEmMemoria();
+        await app.InitializeAsync();
+
+        var soPadrao = (await CorpoAsync(await app.ClienteDeRibeirao().GetAsync("/api/v1/acesso/escopo"))).GetProperty("dados");
+        soPadrao.GetProperty("perfis").EnumerateArray().Select(p => p.GetProperty("codigo").GetString())
+            .Should().Equal(PerfisDeSistema.Padrao);
+
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.Gerencia);
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.ExclusaoDeCadastro, empresaId: 2);
+
+        var perfis = (await CorpoAsync(await app.ClienteDeRibeirao().GetAsync("/api/v1/acesso/escopo")))
+            .GetProperty("dados").GetProperty("perfis").EnumerateArray().ToList();
+
+        perfis.Select(p => p.GetProperty("codigo").GetString()).Should().Equal(
+            [PerfisDeSistema.Padrao, PerfisDeSistema.ExclusaoDeCadastro, PerfisDeSistema.Gerencia],
+            "o padrão primeiro, depois os concedidos pelo nome");
+
+        var padrao = perfis[0];
+        padrao.GetProperty("ehPadrao").GetBoolean().Should().BeTrue();
+        padrao.GetProperty("filialCodigo").ValueKind.Should().Be(JsonValueKind.Null);
+
+        var gerencia = perfis.Single(p => p.GetProperty("codigo").GetString() == PerfisDeSistema.Gerencia);
+        gerencia.GetProperty("nome").GetString().Should().Be("Gerência");
+        gerencia.GetProperty("filialCodigo").ValueKind.Should().Be(JsonValueKind.Null, "concedido sem filial: vale em qualquer uma");
+        gerencia.GetProperty("expiraEm").ValueKind.Should().Be(JsonValueKind.Null);
+
+        var soEmBarretos = perfis.Single(p => p.GetProperty("codigo").GetString() == PerfisDeSistema.ExclusaoDeCadastro);
+        soEmBarretos.GetProperty("filialCodigo").GetString().Should().Be(ApiEmMemoria.FilialDeBarretos);
+        soEmBarretos.GetProperty("filialNome").GetString().Should().Contain("Barretos");
+    }
+
+    [Theory]
+    [InlineData("/api/v1/integracoes/sincronizacoes")]
+    [InlineData("/api/v1/integracoes/fontes-publicas")]
+    public async Task A_situacao_das_integracoes_e_da_gerencia_para_cima_e_nao_do_usuario_comum(string rota)
+    {
+        await using var app = new ApiEmMemoria();
+        await app.InitializeAsync();
+
+        var comum = await app.ClienteDeRibeirao().GetAsync(rota);
+        comum.StatusCode.Should().Be(HttpStatusCode.Forbidden, "o perfil padrão não vê mais a situação das integrações");
+        (await CorpoAsync(comum)).GetProperty("detail").GetString().Should().Contain(Permissoes.IntegracaoLer);
+
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.Gerencia);
+
+        (await app.ClienteDeRibeirao().GetAsync(rota)).StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     private static async Task<Guid> CriarClienteAsync(HttpClient http, string nome, string? documento = null)
     {
         var resposta = await http.PostAsJsonAsync("/api/v1/clientes", new { nomeRazao = nome, tipoDePessoa = "Juridica", documento }, Json);

@@ -84,14 +84,15 @@ public sealed class PerfilPermissaoConfiguracao : IEntityTypeConfiguration<Perfi
 
         // AS PERMISSÕES DOS PERFIS SEMEADOS, com identificadores fixos: 100 × perfil + ordem. A faixa
         // separa os perfis e deixa espaço para acrescentar permissão a um perfil de sistema numa
-        // migração futura sem renumerar os outros.
-        b.HasData(PerfisDeSistema.Todos.SelectMany(p => p.Permissoes.Select((permissao, i) => new
+        // migração futura sem renumerar os outros. A conta mora em PerfisDeSistema.LinhasDaSemente, que
+        // também sabe pular o lugar de uma permissão retirada.
+        b.HasData(PerfisDeSistema.LinhasDaSemente().Select(linha => new
         {
-            Id = p.Id * 100 + i + 1,
-            PerfilId = p.Id,
-            CodigoPermissao = permissao.Codigo,
-            permissao.Profundidade
-        })));
+            linha.Id,
+            linha.PerfilId,
+            CodigoPermissao = linha.Codigo,
+            linha.Profundidade
+        }));
     }
 }
 

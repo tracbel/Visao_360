@@ -9,11 +9,12 @@ import { obterEscopo } from './acesso';
 import { useContextoDeAcesso } from './contexto';
 import { useRecurso } from './useRecurso';
 
-/** Os códigos que as telas do potencial conferem — os mesmos de `Permissoes` no servidor. */
+/** Os códigos que as telas conferem — os mesmos de `Permissoes` no servidor. */
 export const PERMISSAO = {
   parametroDoPotencialLer: 'ParametroDoPotencial.Ler',
   parametroDoPotencialAdministrar: 'ParametroDoPotencial.Administrar',
   percepcaoDoGestorInformar: 'PercepcaoDoGestor.Informar',
+  integracaoLer: 'Integracao.Ler',
 } as const;
 
 export type PermissoesDoUsuario = {

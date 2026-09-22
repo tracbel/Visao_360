@@ -24,6 +24,18 @@ export type FilialDoEscopo = { codigo: string; nome: string; ehCasa: boolean };
 /** Uma permissão do escopo, com até onde alcança. */
 export type PermissaoDoEscopo = { codigo: string; descricao: string; profundidade: string };
 
+/** Um perfil da pessoa: o padrão ou uma concessão, com a filial em que vale e a validade (issue 134). */
+export type PerfilDoEscopo = {
+  codigo: string;
+  nome: string;
+  ehPadrao: boolean;
+  /** Nulo: vale em qualquer filial que a pessoa possa escolher. */
+  filialCodigo: string | null;
+  filialNome: string | null;
+  /** UTC; nulo é permanente. */
+  expiraEm: string | null;
+};
+
 export type EscopoDoUsuario = {
   usuario: string;
   filialAtual: FilialDoEscopo;
@@ -33,6 +45,8 @@ export type EscopoDoUsuario = {
   permissoes: PermissaoDoEscopo[];
   /** Se o seletor oferece "Todas as filiais" (`TODAS_AS_FILIAIS`). */
   podeVerTodasAsFiliais: boolean;
+  /** O padrão primeiro, depois os concedidos e vigentes. */
+  perfis: PerfilDoEscopo[];
 };
 
 /** Lê o escopo efetivo. */

@@ -8,6 +8,7 @@ using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Frota;
 using Tracbel.Crm.Dominio.Integracao;
+using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Xunit;
@@ -258,6 +259,9 @@ public sealed class IntegracaoDoArtTestes(ApiEmMemoria api) : IClassFixture<ApiE
     public async Task A_administracao_mostra_a_ultima_execucao_o_ultimo_sucesso_e_a_falha_com_o_motivo()
     {
         await SemearAsync();
+
+        // A SITUAÇÃO DAS INTEGRAÇÕES É DA GERÊNCIA PARA CIMA (issue 134): o perfil padrão não a vê mais.
+        await api.ConcederPerfilAsync(100, PerfisDeSistema.Gerencia);
         var http = api.ClienteDeRibeirao();
 
         var fluxos = await DadosAsync(await http.GetAsync("/api/v1/integracoes/sincronizacoes"));

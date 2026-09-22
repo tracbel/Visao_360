@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Organizacao;
+using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Xunit;
@@ -76,6 +77,9 @@ public sealed class FontesPublicasNaApiTestes(ApiEmMemoria api) : IClassFixture<
     public async Task O_painel_mostra_cada_fonte_com_a_situacao_e_so_conta_a_cobertura_da_ADR()
     {
         await SemearAsync();
+
+        // A SITUAÇÃO DAS FONTES É DA GERÊNCIA PARA CIMA (issue 134): o perfil padrão não a vê mais.
+        await api.ConcederPerfilAsync(100, PerfisDeSistema.Gerencia);
 
         var resposta = await api.ClienteDeRibeirao().GetAsync("/api/v1/integracoes/fontes-publicas");
         var corpo = await resposta.Content.ReadAsStringAsync();

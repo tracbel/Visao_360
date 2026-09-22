@@ -4129,10 +4129,13 @@ td.mono { font-family: var(--font-mono); font-size: 12px; color: var(--text-seco
 
 .config-body {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 240px minmax(0, 1fr);
   gap: 20px;
   align-items: flex-start;
 }
+
+/* Aba com uma seção só (issue 134): sem o menu lateral, o conteúdo usa a largura toda. */
+.config-body.config-body-sem-menu { grid-template-columns: minmax(0, 1fr); }
 
 .config-sidebar {
   background: white;
@@ -4182,6 +4185,23 @@ td.mono { font-family: var(--font-mono); font-size: 12px; color: var(--text-seco
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+}
+
+/* CONFIGURAÇÕES NO CELULAR (issue 134, 22/09/2026). O protótipo só tinha a versão de mesa: a 390 px o menu
+   lateral de 240 px espremia o conteúdo e cortava os cartões à direita. */
+.config-list-row > * { min-width: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 900px) {
+  .config-body { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .config-sidebar { position: static; display: flex; gap: 4px; overflow-x: auto; padding: 6px; }
+  .config-sidebar .config-menu-item { width: auto; flex: 0 0 auto; white-space: nowrap; }
+}
+
+@media (max-width: 640px) {
+  .config-header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+  .config-abas { overflow-x: auto; }
+  .config-aba { flex: 0 0 auto; white-space: nowrap; padding: 10px 12px; }
 }
 
 /* Card */
@@ -4332,6 +4352,12 @@ td.mono { font-family: var(--font-mono); font-size: 12px; color: var(--text-seco
 }
 
 .config-list-row:last-child { border-bottom: none; }
+
+/* No celular a linha empilha: rótulo em cima, valor embaixo, à esquerda. Fica DEPOIS da regra da linha, que
+   centraliza — antes dela, perderia (issue 134). */
+@media (max-width: 640px) {
+  .config-list-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
 
 .clr-title {
   font-size: 13px;
@@ -8331,16 +8357,6 @@ tr.funil-nova {
   color: var(--text-tertiary);
   font-size: 12.5px;
   line-height: 1.6;
-}
-.config-aviso-sem-storage {
-  margin-bottom: 16px;
-  padding: 11px 14px;
-  background: var(--warning-bg);
-  border: 1px solid #FDE68A;
-  border-radius: var(--radius);
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: #92400E;
 }
 
 /* --- A nota que diz que a ficha é de leitura -------------------------------

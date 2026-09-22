@@ -156,16 +156,48 @@ public static class PerfisDeSistema
     /// <summary>O código do perfil do gestor comercial, que informa a percepção por município (issue 71).</summary>
     public const string GestorComercial = "GESTOR_COMERCIAL";
 
+    /// <summary>O código do perfil da gerência (issue 134).</summary>
+    public const string Gerencia = "GERENCIA";
+
+    /// <summary>O código do perfil da diretoria (issue 134).</summary>
+    public const string Diretoria = "DIRETORIA";
+
     /// <summary>Um perfil semeado.</summary>
     /// <param name="Id">O identificador fixo da semente.</param>
     /// <param name="Codigo">O código estável.</param>
     /// <param name="Nome">O nome legível.</param>
     /// <param name="Descricao">Para que serve.</param>
     /// <param name="EhPadrao">Se é o perfil que todo usuário recebe.</param>
-    /// <param name="Permissoes">As permissões e a profundidade de cada uma.</param>
+    /// <param name="Permissoes">
+    /// As permissões e a profundidade de cada uma, NA ORDEM QUE DÁ O IDENTIFICADOR da linha semeada. Uma
+    /// permissão retirada fica na lista com <see cref="Profundidade.Nenhum"/>: o lugar é dela para sempre, e
+    /// as seguintes não mudam de identificador (ver <see cref="LinhasDaSemente"/>).
+    /// </param>
     public sealed record Semente(
         int Id, string Codigo, string Nome, string Descricao, bool EhPadrao,
-        IReadOnlyList<(string Codigo, Profundidade Profundidade)> Permissoes);
+        IReadOnlyList<(string Codigo, Profundidade Profundidade)> Permissoes)
+    {
+        /// <summary>O que o perfil concede de fato — sem os lugares das permissões retiradas.</summary>
+        public IEnumerable<(string Codigo, Profundidade Profundidade)> Concedidas =>
+            Permissoes.Where(p => p.Profundidade != Profundidade.Nenhum);
+    }
+
+    /// <summary>Uma linha de <c>seguranca.PerfilPermissao</c> semeada.</summary>
+    /// <param name="Id">100 × perfil + a posição na lista (a partir de 1).</param>
+    /// <param name="PerfilId">O perfil.</param>
+    /// <param name="Codigo">A permissão.</param>
+    /// <param name="Profundidade">Até onde ela vale.</param>
+    public sealed record LinhaDaSemente(int Id, int PerfilId, string Codigo, Profundidade Profundidade);
+
+    /// <summary>
+    /// AS LINHAS QUE A MIGRAÇÃO GRAVA, com o identificador fixo: 100 × perfil + posição. O lugar de uma
+    /// permissão retirada conta na posição e não vira linha — é assim que tirar uma permissão do meio da
+    /// lista apaga só a linha dela, em vez de renumerar e regravar as seguintes.
+    /// </summary>
+    public static IEnumerable<LinhaDaSemente> LinhasDaSemente() =>
+        Todos.SelectMany(perfil => perfil.Permissoes
+            .Select((permissao, posicao) => new LinhaDaSemente(perfil.Id * 100 + posicao + 1, perfil.Id, permissao.Codigo, permissao.Profundidade))
+            .Where(linha => linha.Profundidade != Profundidade.Nenhum));
 
     private static readonly string[] LeituraDasTelas =
     [
@@ -195,7 +227,10 @@ public static class PerfisDeSistema
             "O que todo usuário recebe: ler as telas e cadastrar e alterar cliente e equipamento. Sem excluir e sem visão entre filiais.",
             EhPadrao: true,
             [
-                .. LeituraDasTelas.Select(p => (p, Profundidade.EmpresaEAbaixo)),
+                // A SITUAÇÃO DAS INTEGRAÇÕES SAIU DO PADRÃO (issue 134, 22/09/2026): só a Configuração a mostra,
+                // e o usuário comum não vê a Configuração além da própria conta. O lugar fica, com Nenhum, para
+                // os identificadores das linhas seguintes não mudarem.
+                .. LeituraDasTelas.Select(p => (p, p == Seguranca.Permissoes.IntegracaoLer ? Profundidade.Nenhum : Profundidade.EmpresaEAbaixo)),
                 (Seguranca.Permissoes.ClienteCriar, Profundidade.EmpresaEAbaixo),
                 (Seguranca.Permissoes.ClienteEditar, Profundidade.EmpresaEAbaixo),
                 (Seguranca.Permissoes.EquipamentoCriar, Profundidade.EmpresaEAbaixo),
@@ -246,6 +281,26 @@ public static class PerfisDeSistema
         new(5, GestorComercial, "Gestor comercial",
             "Acrescenta informar a percepção do gestor sobre cada município, dentro do limite dos parâmetros gerais (issue 71, D-P04). Concedido a quem responde pelo território.",
             EhPadrao: false,
-            [(Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao)])
+            [(Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao)]),
+
+        // GERÊNCIA E DIRETORIA (issue 134, 22/09/2026): a matriz aprovada pelo Ricardo, ponto de partida que o
+        // administrador ajusta pela tela. As permissões que as partes seguintes criarem (ver usuários,
+        // ler auditoria, editar taxonomias) entram no FIM de cada lista, para não renumerar.
+        new(6, Gerencia, "Gerência",
+            "Acrescenta informar a percepção do gestor por município e ver a situação das integrações e das fontes públicas.",
+            EhPadrao: false,
+            [
+                (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao),
+                (Seguranca.Permissoes.IntegracaoLer, Profundidade.EmpresaEAbaixo)
+            ]),
+
+        new(7, Diretoria, "Diretoria",
+            "O que a gerência tem, mais a visão de todas as filiais de uma vez.",
+            EhPadrao: false,
+            [
+                (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao),
+                (Seguranca.Permissoes.IntegracaoLer, Profundidade.EmpresaEAbaixo),
+                (Seguranca.Permissoes.EmpresaAlcanceEntreFiliais, Profundidade.Organizacao)
+            ])
     ];
 }
