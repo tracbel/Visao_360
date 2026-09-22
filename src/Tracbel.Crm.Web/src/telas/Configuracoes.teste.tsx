@@ -76,7 +76,7 @@ describe('Configurações', () => {
     expect(screen.queryByText(/Hugo Rocha/)).not.toBeInTheDocument();
 
     expect(screen.getAllByText('Pessoa Exemplo').length).toBeGreaterThan(0);
-    expect(screen.getByText('pessoa.exemplo@exemplo.invalid')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('pessoa.exemplo@exemplo.invalid')).toBeInTheDocument();
     expect(screen.getByText('Ler clientes')).toBeInTheDocument();
     expect(screen.getByText('a filial escolhida e as que estão abaixo dela')).toBeInTheDocument();
     expect(screen.getByText('todo usuário recebe')).toBeInTheDocument();

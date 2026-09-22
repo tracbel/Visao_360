@@ -23,7 +23,7 @@ import { useContextoDeAcesso } from '../../../dados/api/contexto';
 import { useRecurso } from '../../../dados/api/useRecurso';
 import { formatarData, formatarDataHora } from '../../../telas/cadastro/formato';
 import { BlocoCarregando, BlocoErro } from '../../cadastro/EstadosDeTela';
-import { CardConfig } from '../ConfigPartes';
+import { CampoDeLeitura, CardConfig } from '../ConfigPartes';
 import { useEnvio } from '../potencial/useEnvio';
 
 type Props = {
@@ -136,29 +136,20 @@ export function PainelDoUsuario({ chave, podeAdministrar, filiais, aoMudar }: Pr
 
   return (
     <CardConfig titulo={usuario.nome}>
-      <div className="config-list">
-        <div className="config-list-row">
-          <div className="clr-desc">E-mail</div>
-          <div className="clr-title">{usuario.nomePrincipal}</div>
-        </div>
-        <div className="config-list-row">
-          <div className="clr-desc">{aguarda ? 'Filial provisória' : 'Filial de casa'}</div>
-          <div className="clr-title">{usuario.filialNome}</div>
-        </div>
-        <div className="config-list-row">
-          <div className="clr-desc">Situação</div>
-          <div className="clr-title">
-            {aguarda
-              ? `aguardando liberação desde ${formatarDataHora(usuario.aguardandoLiberacaoDesde)}`
-              : usuario.estaAtivo
-                ? 'ativa'
-                : 'desativada'}
-          </div>
-        </div>
-        <div className="config-list-row">
-          <div className="clr-desc">Último acesso</div>
-          <div className="clr-title">{usuario.ultimoLoginEm ? formatarDataHora(usuario.ultimoLoginEm) : 'nunca entrou'}</div>
-        </div>
+      <div className="conta-campos">
+        <CampoDeLeitura id="adm-email" rotulo="E-mail" valor={usuario.nomePrincipal} dica="O login da Microsoft" />
+        <CampoDeLeitura
+          id="adm-filial-casa"
+          rotulo={aguarda ? 'Filial provisória' : 'Filial de casa'}
+          valor={usuario.filialNome}
+          dica={aguarda ? 'Só até a liberação: não dá acesso a nada' : undefined}
+        />
+        <CampoDeLeitura
+          id="adm-situacao"
+          rotulo="Situação"
+          valor={aguarda ? `aguardando liberação desde ${formatarDataHora(usuario.aguardandoLiberacaoDesde)}` : usuario.estaAtivo ? 'ativa' : 'desativada'}
+        />
+        <CampoDeLeitura id="adm-acesso" rotulo="Último acesso" valor={usuario.ultimoLoginEm ? formatarDataHora(usuario.ultimoLoginEm) : 'nunca entrou'} />
       </div>
 
       <Aviso aviso={envio.aviso} />

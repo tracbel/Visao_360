@@ -18,3 +18,17 @@ export function CardConfig({ titulo, children }: { titulo: string; children: Rea
     </div>
   );
 }
+
+/**
+ * Um dado só de leitura, no desenho do protótipo: rótulo em cima, valor numa caixa e uma dica embaixo. Fica numa
+ * grade `.conta-campos`, que se ajusta à largura — em vez de linhas com o rótulo numa ponta e o valor na outra.
+ */
+export function CampoDeLeitura({ id, rotulo, valor, dica }: { id: string; rotulo: string; valor: string; dica?: string }) {
+  return (
+    <div className="form-field conta-campo">
+      <label htmlFor={id}>{rotulo}</label>
+      <input id={id} value={valor} title={valor} readOnly />
+      {dica && <span className="conta-dica">{dica}</span>}
+    </div>
+  );
+}
