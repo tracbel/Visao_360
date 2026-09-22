@@ -98,6 +98,12 @@ public static class PoliticaDeAuditoria
         ["UsinaDeEtanol"] =
             ["RazaoSocial", "MunicipioId", "CapacidadeDeAnidroM3Dia", "CapacidadeDeHidratadoM3Dia", "EncerradaEm"],
 
+        // O DE-PARA DE MUNICÍPIO (issue 154): para onde a chave de uma fonte aponta. Um par errado leva a produção,
+        // o crédito ou o custo de um município inteiro para o vizinho — e a pergunta "quem apontou o código 3549300
+        // do SICOR para São José do Rio Preto, e quando?" precisa de resposta. A chave e a fonte não entram: são a
+        // identidade do par, e mudar uma delas é outro par.
+        ["CorrespondenciaDeMunicipio"] = ["MunicipioId", "Forma", "TextoNaFonte"],
+
         // PARÂMETROS DO POTENCIAL (issue 71): "parâmetro alterado gera trilha com o autor". A vigência nasce
         // pela mão de uma pessoa — a inclusão entra na trilha inteira — e depois só muda para ser revogada.
         // Parâmetro errado muda o potencial inteiro; a pergunta "quem pôs 20 ha no café, e quando?" tem resposta.

@@ -255,6 +255,9 @@ public class CrmDbContext : DbContext
     public DbSet<AreaTerritorialDoMunicipio> AreasTerritoriaisDosMunicipios =>
         Set<AreaTerritorialDoMunicipio>();
 
+    /// <summary>O de-para entre o que cada fonte chama de município e o município do catálogo (issue 154).</summary>
+    public DbSet<CorrespondenciaDeMunicipio> CorrespondenciasDeMunicipios => Set<CorrespondenciaDeMunicipio>();
+
     /// <summary>As usinas de etanol autorizadas pela ANP, por município.</summary>
     public DbSet<UsinaDeEtanol> UsinasDeEtanol => Set<UsinaDeEtanol>();
 

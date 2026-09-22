@@ -61,16 +61,10 @@ internal sealed class CargaDeCustosDeProducao(
             contexto, "CONAB", "CONAB — preços agropecuários e custos de produção", "Arquivo público, somente leitura", ct);
         contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistemaId);
 
-        // O LOCAL DA CONAB VIRA MUNICÍPIO QUANDO O NOME CASA SEM AMBIGUIDADE, pela mesma chave de
-        // colação das outras cargas. Quando não casa, o custo entra sem município: ele vale pelo local
-        // de referência, não pelo mapa.
-        var municipioPorNome = (await contexto.Municipios.AsNoTracking()
-                .Where(m => m.Uf == "SP" && m.CodigoIbge != null)
-                .Select(m => new { m.Id, m.Nome })
-                .ToListAsync(ct))
-            .GroupBy(m => SaneamentoDeTerritorio.ChaveSemApostrofo(m.Nome))
-            .Where(g => g.Count() == 1)
-            .ToDictionary(g => g.Key, g => g.Single().Id, StringComparer.Ordinal);
+        // O LOCAL DA CONAB VIRA MUNICÍPIO QUANDO O NOME CASA SEM AMBIGUIDADE — e o par fica gravado (issue 154),
+        // para a rodada seguinte não casar por nome de novo. Quando não casa, o custo entra sem município: ele
+        // vale pelo local de referência, não pelo mapa.
+        var dePara = await CorrespondenciaDeMunicipios.AbrirAsync(contexto, Fluxo, "SP", usuarioId, ct);
 
         var existentes = (await contexto.CustosDeProducao.ToListAsync(ct)).ToDictionary(c => (c.Cultura, c.Aba));
 
@@ -87,7 +81,7 @@ internal sealed class CargaDeCustosDeProducao(
                 continue;
             }
 
-            int? municipioId = municipioPorNome.TryGetValue(SaneamentoDeTerritorio.ChaveSemApostrofo(l.Local), out var id) ? id : null;
+            int? municipioId = dePara.Resolver(l.Local, l.Local, agora, out var id) ? id : null;
             if (municipioId is null) semMunicipio++;
             if (l.CustoTotalHa is null) semTotal++;
 
@@ -118,6 +112,7 @@ internal sealed class CargaDeCustosDeProducao(
         }
 
         contexto.CustosDeProducao.AddRange(novas);
+        dePara.Gravar(contexto);
         await CargaDeTerritorio.SubstituirRecusasAsync(contexto, Fluxo, recusas, ct);
         await contexto.SaveChangesAsync(ct);
 
@@ -133,6 +128,8 @@ internal sealed class CargaDeCustosDeProducao(
         Contar("abas mantidas sem mudança", mantidas);
         Contar("abas sem custo total (a CONAB parou no operacional)", semTotal);
         Contar("abas cujo local não casou com um município do catálogo", semMunicipio);
+        Contar("abas resolvidas pelo de-para já gravado", dePara.CasadosPelaCorrespondencia);
+        Contar("correspondências novas gravadas (casadas por nome)", dePara.CasadosPorNome);
         Contar("abas recusadas", recusas.Count);
 
         return _contagens;

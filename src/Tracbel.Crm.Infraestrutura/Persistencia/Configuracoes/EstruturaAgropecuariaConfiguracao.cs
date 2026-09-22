@@ -162,6 +162,49 @@ public sealed class AreaTerritorialDoMunicipioConfiguracao : IEntityTypeConfigur
 }
 
 /// <summary>
+/// Mapeamento de <see cref="CorrespondenciaDeMunicipio"/> — o de-para entre a chave de cada fonte e o município
+/// do catálogo (issue 154). Fica em <c>organizacao</c>, junto do município e das fontes que a usam.
+/// </summary>
+public sealed class CorrespondenciaDeMunicipioConfiguracao : IEntityTypeConfiguration<CorrespondenciaDeMunicipio>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<CorrespondenciaDeMunicipio> b)
+    {
+        b.ToTable("CorrespondenciaDeMunicipio", "organizacao");
+        b.HasKey(c => c.Id);
+        b.Property(c => c.Id).ValueGeneratedOnAdd();
+
+        b.Property(c => c.Fonte).HasMaxLength(40).IsUnicode(false).IsRequired();
+
+        // A CHAVE ESCAPA DA COLAÇÃO SEM CAIXA NEM ACENTO: ela já vem normalizada, e "SAO PAULO" e "São Paulo"
+        // precisam ser chaves diferentes se a fonte publicar as duas — o par é conferido, não adivinhado.
+        b.Property(c => c.ChaveNaFonte).HasMaxLength(CorrespondenciaDeMunicipio.TamanhoDoTexto).IsUnicode(true).IsRequired()
+            .UseCollation("Latin1_General_BIN2");
+
+        b.Property(c => c.TextoNaFonte).HasMaxLength(CorrespondenciaDeMunicipio.TamanhoDoTexto).IsUnicode(true).IsRequired();
+        b.Property(c => c.MunicipioId).IsRequired();
+        b.Property(c => c.Forma).HasConversion<string>().HasMaxLength(30).IsUnicode(false).IsRequired();
+        b.Property(c => c.CasadaEm).HasPrecision(3).IsRequired();
+        b.Property(c => c.CasadaPorId).IsRequired();
+
+        b.HasIndex(c => new { c.Fonte, c.ChaveNaFonte })
+            .IsUnique()
+            .HasDatabaseName("UX_CorrespondenciaDeMunicipio_Fonte_Chave");
+
+        b.HasIndex(c => c.MunicipioId);
+        b.HasIndex(c => c.CasadaPorId);
+
+        b.HasOne<Municipio>().WithMany().HasForeignKey(c => c.MunicipioId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Dominio.Seguranca.Usuario>().WithMany().HasForeignKey(c => c.CasadaPorId).OnDelete(DeleteBehavior.Restrict);
+
+        // O DOMÍNIO FECHADO NO BANCO, e não só no compilador (documento 14, seções 4 e 6): a forma diz de onde
+        // veio a confiança do par, e ninguém corrige um par à mão gravando uma forma que o CRM não conhece.
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_CorrespondenciaDeMunicipio_Forma", "[Forma] IN ('NomeUnicoNaUf','CodigoDoIbgeNaFonte','Manual')"));
+    }
+}
+
+/// <summary>
 /// Mapeamento de <see cref="UsinaDeEtanol"/> — as usinas autorizadas pela ANP.
 ///
 /// <para>A chave natural é o <b>CNPJ do estabelecimento</b>, e o índice único é sobre ele: a ANP
