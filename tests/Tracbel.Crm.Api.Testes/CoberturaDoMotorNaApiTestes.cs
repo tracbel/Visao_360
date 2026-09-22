@@ -140,7 +140,8 @@ public sealed class CoberturaDoMotorNaApiTestes(ApiEmMemoria api) : IClassFixtur
 
         var soja = Item(pam, "PAM.40124");
         soja.GetProperty("situacao").GetString().Should().Be("Completa", "zero em Franca é medida, não falta de dado");
-        soja.GetProperty("detalhe").GetString().Should().Contain("planta-se em 1");
+        soja.GetProperty("detalhe").GetString().Should().Contain("planta-se em 1")
+            .And.Contain("quantidade em 2 (toneladas)", "a quantidade volta com a unidade da PAM (issue 152)");
     }
 
     [Fact]
