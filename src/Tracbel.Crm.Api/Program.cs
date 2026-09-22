@@ -195,6 +195,7 @@ builder.Services.AddScoped<IRepositorioDeReferenciasDoPotencial, RepositorioDePa
 builder.Services.AddScoped<IRepositorioDeVigenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeFontesPublicas, RepositorioDeFontesPublicas>();
 builder.Services.AddScoped<IRepositorioDeOpcoesDosParametros, RepositorioDeFontesPublicas>();
+builder.Services.AddScoped<IRepositorioDeCoberturaDoMotor, RepositorioDeCoberturaDoMotor>();
 builder.Services.AddScoped<IRepositorioDeEscopo, RepositorioDeEscopo>();
 builder.Services.AddScoped<RepositorioDeAdministracaoDeUsuarios>();
 builder.Services.AddScoped<IRepositorioDeUsuariosDaAdministracao>(s => s.GetRequiredService<RepositorioDeAdministracaoDeUsuarios>());
@@ -288,6 +289,7 @@ builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.RevogarParametroDoPot
 
 // O painel de fontes públicas e as opções dos formulários de parâmetros (issue 77).
 builder.Services.AddScoped<ObterFontesPublicas>();
+builder.Services.AddScoped<ObterCoberturaDoMotor>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.ListarOpcoesDosParametros>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ObterEscopoDeAcesso>();
 

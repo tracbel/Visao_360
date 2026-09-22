@@ -44,3 +44,10 @@
 .pot-resumo { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 14px; font-size: 13px; color: var(--text-secondary); }
 .pot-resumo strong { color: var(--text-primary); }
 .pot-resumo .pot-alerta { color: #B91C1C; }
+
+/* A COBERTURA DOS DADOS DO MOTOR (issue 150): um bloco por fonte, o incompleto em destaque como a fonte atrasada. */
+.pot-cobertura-bloco { margin-top: 18px; }
+.pot-cobertura-bloco:first-of-type { margin-top: 0; }
+.pot-cobertura-cabecalho { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-bottom: 8px; }
+.pot-cobertura-cabecalho .pot-sub { margin-top: 0; }
+.pot-cobertura-cabecalho .pot-alerta { font-size: 12px; font-weight: 600; color: #B91C1C; }

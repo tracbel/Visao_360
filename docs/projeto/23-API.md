@@ -353,6 +353,30 @@ Central), na ordem do catálogo `FontesPublicas.Todas`:
 
 **Rodada que falha não grava nada**, e por isso a fonte aparece atrasada, e não "em dia com erro".
 
+#### 2.10.1 Cobertura dos dados do motor — `GET /api/v1/integracoes/cobertura-do-motor` (issue 150, 22/09/2026)
+
+Permissão `Integracao.Ler`, como a rota de cima. É a primeira entrega da Inteligência de Mercado (documento 49): **o que
+cada fonte cobre, medido pelo servidor a cada leitura**, para que o motor não seja programado sobre dado que não
+existe. Aparece em Configurações › Administração › Fontes públicas, no cartão "Cobertura dos dados do motor".
+
+**Só contagem.** Nenhum valor em reais, nome de cliente ou de CEN sai daqui — o teste de API confere isso no corpo.
+
+| Bloco (`grupos[].codigo`) | O que cada item conta | Unidade |
+|---|---|---|
+| `PAM` | por cultura plantada na ADR no último ano da PAM (da maior área para a menor): municípios com área plantada **divulgada** — zero é medida; nulo é sigilo | municípios da ADR |
+| `PRECOS` | por série da CONAB e da Socicana: meses com cotação entre o primeiro e o último — o buraco aparece, e o detalhe lembra que o momento 12 ÷ 12 pede 24 meses completos | meses |
+| `CUSTOS` | por cultura: abas da série de SP que chegam ao custo total | abas da série |
+| `CREDITO` | os meses publicados do SICOR; e os municípios da ADR com linha de máquina nas **duas** janelas de 12 meses (a base do índice de crédito) | meses · municípios da ADR |
+| `VENDAS_DE_MAQUINA`, `EQUIPAMENTOS`, `VENDAS_PERDIDAS`, `ENDERECOS` | o preenchimento do dado interno: município do comprador com código IBGE, modelo, data; ano de fabricação; modelo e preço ofertados; área e cultura do endereço | vendas · equipamentos · vendas perdidas · endereços |
+
+Cada item traz `total`, `cobertos`, `percentual` (nulo sem total), `situacao` (`Completa` = 100%, `Vazia` = zero ou
+nenhum registro, `Parcial` = o resto — **sem limite inventado**), `motivo` (a frase pronta: "190 de 203 municípios da ADR
+com o dado — faltam 13 para o potencial estrutural desta cultura"), `paraQue`, período e `detalhe`. **A tela não
+calcula nada**: situação, percentual e frase vêm do servidor.
+
+**O dado interno passa pela fronteira de filial**, como toda consulta: `filiaisNoAlcance` e `todasAsFiliais` dizem em
+quantas filiais ele foi contado. O dado público é o mesmo para todos.
+
 ### 2.11 Administração de usuários — `/api/v1/admin/usuarios` (issue 113, 22/09/2026)
 
 | Rota | Permissão | O que faz |

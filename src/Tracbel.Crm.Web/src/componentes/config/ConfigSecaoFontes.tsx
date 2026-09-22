@@ -10,11 +10,12 @@
  */
 
 import { useContextoDeAcesso } from '../../dados/api/contexto';
-import { obterFontesPublicas } from '../../dados/api/potencial';
+import { obterCoberturaDoMotor, obterFontesPublicas } from '../../dados/api/potencial';
 import { useRecurso } from '../../dados/api/useRecurso';
 import { formatarData, formatarDataHora, formatarNumero } from '../../telas/cadastro/formato';
 import type { FontePublicaResumo, PainelDeFontesPublicas, SituacaoDaFonte } from '../../tipos/potencial';
 import { BlocoCarregando, BlocoErro } from '../cadastro/EstadosDeTela';
+import { PainelDeCobertura } from './CoberturaDoMotor';
 import { CardConfig } from './ConfigPartes';
 import '../../estilos/potencial.css';
 
@@ -133,17 +134,29 @@ export function TabelaDeFontes({ painel }: { painel: PainelDeFontesPublicas }) {
 export function ConfigSecaoFontes() {
   const { contexto } = useContextoDeAcesso();
   const leitura = useRecurso((sinal) => obterFontesPublicas(contexto, sinal), [contexto.empresa, contexto.usuario]);
+  const cobertura = useRecurso((sinal) => obterCoberturaDoMotor(contexto, sinal), [contexto.empresa, contexto.usuario]);
 
   return (
-    <CardConfig titulo="Fontes públicas do potencial">
-      {leitura.carregando && <BlocoCarregando oQue="as fontes públicas" />}
-      {leitura.erro && <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />}
-      {leitura.dados && <TabelaDeFontes painel={leitura.dados} />}
-      <div className="config-hint" style={{ marginTop: 16 }}>
-        As fontes são lidas pelo próprio servidor, em duas rotinas — as fontes anuais e os preços, custos e crédito —, com a agenda que se muda em
-        Configurações › Administração › Integrações. A rotina que nunca rodou e encontra tabela vazia roda na primeira volta do orquestrador. Nenhuma fonte depende hoje de envio manual
-        de arquivo; o CEPEA, que dependeria, aguarda a decisão sobre a licença (D-P11).
-      </div>
-    </CardConfig>
+    <>
+      <CardConfig titulo="Fontes públicas do potencial">
+        {leitura.carregando && <BlocoCarregando oQue="as fontes públicas" />}
+        {leitura.erro && <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />}
+        {leitura.dados && <TabelaDeFontes painel={leitura.dados} />}
+        <div className="config-hint" style={{ marginTop: 16 }}>
+          As fontes são lidas pelo próprio servidor, em duas rotinas — as fontes anuais e os preços, custos e crédito —, com a agenda que se muda em
+          Configurações › Administração › Integrações. A rotina que nunca rodou e encontra tabela vazia roda na primeira volta do orquestrador. Nenhuma fonte depende hoje de envio manual
+          de arquivo; o CEPEA, que dependeria, aguarda a decisão sobre a licença (D-P11).
+        </div>
+      </CardConfig>
+
+      <CardConfig titulo="Cobertura dos dados do motor">
+        {cobertura.carregando && <BlocoCarregando oQue="a cobertura dos dados do motor" />}
+        {cobertura.erro && <BlocoErro erro={cobertura.erro} aoTentarDeNovo={cobertura.recarregar} />}
+        {cobertura.dados && <PainelDeCobertura painel={cobertura.dados} />}
+        <div className="config-hint" style={{ marginTop: 16 }}>
+          Medida pelo servidor a cada abertura desta tela. Só contagem: nenhum valor em reais nem nome de cliente.
+        </div>
+      </CardConfig>
+    </>
   );
 }
