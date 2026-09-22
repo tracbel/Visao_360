@@ -151,7 +151,8 @@ public static class RotulosDaTrilha
             ["LimiteDeSuperaquecimento"] = "Limite de superaquecimento", ["NomeDaFaixaIntermediaria"] = "Nome da faixa intermediária",
             ["LimiteDaPercepcao"] = "Limite da percepção", ["PesoDoIndicadorDePreco"] = "Peso do indicador de preço",
             ["PesoDoIndicadorDeCredito"] = "Peso do indicador de crédito", ["PesoDoIndicadorComercial"] = "Peso do indicador comercial",
-            ["FatorMinimo"] = "Fator mínimo", ["FatorMaximo"] = "Fator máximo"
+            ["FatorMinimo"] = "Fator mínimo", ["FatorMaximo"] = "Fator máximo",
+            ["MesesDeCarenciaDoSicor"] = "Carência do SICOR (meses)"
         },
         ["PercepcaoDoGestor"] = new(StringComparer.Ordinal) { ["MunicipioId"] = "Município", ["Percentual"] = "Percentual" },
         ["VendaDeMaquina"] = new(StringComparer.Ordinal)

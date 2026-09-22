@@ -214,4 +214,51 @@ public sealed class ParametrosDoPotencialTestes
         administrador.IndexOf(Permissoes.AuditoriaLer).Should().Be(25, "a da issue 135 entrou depois dela, no fim");
         administrador[^1].Should().Be(Permissoes.IntegracaoAdministrar, "a da issue 136 entrou depois, no fim");
     }
+    // =============================================================================================
+    // A carência do SICOR (D-IM-03, issue 157)
+    // =============================================================================================
+
+    [Fact]
+    public void A_carencia_nasce_em_aberto_e_nao_como_zero_decidido()
+    {
+        // "EM ABERTO" E "ZERO" SÃO COISAS DIFERENTES: nulo é ninguém mediu quanto o atraso do Banco
+        // Central ocupa; zero seria uma decisão de não descartar mês nenhum. A tela mostra os dois de
+        // formas diferentes, e por isso o domínio não pode confundi-los.
+        var parametro = ParametroDoPotencial.Informar(ValoresDoTexto(), Hoje, "texto-base", 1, Agora);
+
+        parametro.MesesDeCarenciaDoSicor.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_carencia_decidida_fica_gravada_na_vigencia()
+    {
+        var comCarencia = ValoresDoTexto() with { MesesDeCarenciaDoSicor = 2 };
+
+        ParametroDoPotencial.Informar(comCarencia, Hoje, "dois meses de atraso medidos", 1, Agora)
+            .MesesDeCarenciaDoSicor.Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData((short)12)]
+    [InlineData((short)13)]
+    [InlineData((short)-1)]
+    public void A_carencia_nao_pode_comer_a_janela_inteira(short carencia)
+    {
+        // Descartar 12 meses de uma janela de 12 deixaria os dois lados vazios, e a comparação sem
+        // nada para comparar — um painel de zeros que pareceria queda total do crédito.
+        var valores = ValoresDoTexto() with { MesesDeCarenciaDoSicor = carencia };
+
+        FluentActions.Invoking(() => ParametroDoPotencial.Informar(valores, Hoje, "carência impossível", 1, Agora))
+            .Should().Throw<RegraDeNegocioViolada>();
+    }
+
+    [Fact]
+    public void Os_produtos_de_maquina_do_sicor_moram_no_dominio()
+    {
+        // Eram uma constante dentro do repositório de leitura (issue 157). "O que conta como máquina"
+        // é decisão de negócio, e a issue 165 vai trocá-la pelo vínculo com a categoria no catálogo —
+        // um lugar só para mudar, em vez de três que podem divergir.
+        ParametroDoPotencial.ProdutosDeMaquinaNoSicor.Should().Equal(
+            [7080, 4860, 2700], "trator, máquinas e implementos, colheitadeiras");
+    }
 }

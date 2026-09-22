@@ -71,6 +71,7 @@ describe('montarHistorico', () => {
     pesoDoIndicadorComercial: null,
     fatorMinimo: null,
     fatorMaximo: null,
+    mesesDeCarenciaDoSicor: null,
   };
 
   const historico: HistoricoDosParametrosDoPotencial = {

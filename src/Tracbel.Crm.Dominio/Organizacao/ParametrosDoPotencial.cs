@@ -300,6 +300,33 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
     /// <summary>O maior fator de ciclo aceito. Em aberto (D-P05).</summary>
     public decimal? FatorMaximo { get; private set; }
 
+    /// <summary>
+    /// QUANTOS MESES RECENTES DO SICOR FICAM DE FORA DA JANELA — a carência (D-IM-03, issue 157).
+    ///
+    /// <para><b>Por que existe.</b> O Banco Central continua acrescentando contrato registrado com
+    /// atraso nos meses mais recentes. Terminar a janela no último mês com dado compara 12 meses
+    /// cheios com 12 meses que ainda estão enchendo, e o crédito aparece caindo sem ter caído.</para>
+    ///
+    /// <para><b>Em aberto.</b> Quantos meses o atraso ocupa é medição que ninguém fez ainda. Até
+    /// alguém decidir, fica nulo — e a tela diz "carência não decidida" e usa zero, em vez de
+    /// descartar meses por um palpite.</para>
+    /// </summary>
+    public short? MesesDeCarenciaDoSicor { get; private set; }
+
+    /// <summary>
+    /// OS PRODUTOS DO SICOR QUE SÃO MÁQUINA — trator (7080), máquinas e implementos (4860) e
+    /// colheitadeiras (2700).
+    ///
+    /// <para><b>Uma lista só, e no domínio</b> (issue 157). Ela morava na infraestrutura, dentro do
+    /// repositório de leitura: "o que conta como máquina" é decisão de negócio, e decisão de negócio
+    /// não se lê num detalhe de persistência.</para>
+    ///
+    /// <para><b>É provisória, de propósito.</b> A issue 165 põe as categorias de máquina no
+    /// Administrador, e aí o vínculo produto × categoria vem do catálogo, com autor e vigência. Até
+    /// lá, uma constante que se acha pelo nome — e não três lugares que podem divergir.</para>
+    /// </summary>
+    public static readonly int[] ProdutosDeMaquinaNoSicor = [7080, 4860, 2700];
+
     /// <summary>Os valores de uma vigência dos parâmetros gerais.</summary>
     /// <param name="MesesDaJanela">Meses de cada lado do índice.</param>
     /// <param name="PesoDosContratosNoCredito">Peso da quantidade de contratos, de 0 a 1.</param>
@@ -313,6 +340,7 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
     /// <param name="PesoDoIndicadorComercial">Peso do indicador comercial, quando decidido.</param>
     /// <param name="FatorMinimo">O menor fator, quando decidido.</param>
     /// <param name="FatorMaximo">O maior fator, quando decidido.</param>
+    /// <param name="MesesDeCarenciaDoSicor">Meses recentes do SICOR fora da janela, quando decidido.</param>
     public sealed record Valores(
         short MesesDaJanela,
         decimal PesoDosContratosNoCredito,
@@ -325,7 +353,8 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
         decimal? PesoDoIndicadorDeCredito,
         decimal? PesoDoIndicadorComercial,
         decimal? FatorMinimo,
-        decimal? FatorMaximo);
+        decimal? FatorMaximo,
+        short? MesesDeCarenciaDoSicor = null);
 
     /// <summary>Registra uma vigência dos parâmetros gerais.</summary>
     /// <param name="valores">O conjunto inteiro.</param>
@@ -352,7 +381,8 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
             PesoDoIndicadorDeCredito = valores.PesoDoIndicadorDeCredito,
             PesoDoIndicadorComercial = valores.PesoDoIndicadorComercial,
             FatorMinimo = valores.FatorMinimo,
-            FatorMaximo = valores.FatorMaximo
+            FatorMaximo = valores.FatorMaximo,
+            MesesDeCarenciaDoSicor = valores.MesesDeCarenciaDoSicor
         };
 
         parametro.Informar(vigenteDesde, justificativa, informadoPorId, agoraUtc);
@@ -399,6 +429,12 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
         if (v.FatorMinimo is { } minimo && v.FatorMaximo is { } maximo && !(minimo > 0 && minimo < 1 && maximo > 1 && maximo <= 10))
             throw new RegraDeNegocioViolada(
                 "O fator mínimo fica entre 0 e 1 e o máximo acima de 1, até 10: com tudo neutro o fator é 1, e o limite não pode excluí-lo.");
+
+        // A CARÊNCIA NÃO PODE COMER A JANELA INTEIRA: descartar 12 meses de uma janela de 12 deixaria
+        // os dois lados vazios, e a comparação sem nada para comparar.
+        if (v.MesesDeCarenciaDoSicor is { } carencia && (carencia < 0 || carencia >= v.MesesDaJanela))
+            throw new RegraDeNegocioViolada(
+                $"A carência do SICOR vai de zero a {v.MesesDaJanela - 1} meses — menos que a janela, senão não sobra mês para comparar.");
     }
 }
 

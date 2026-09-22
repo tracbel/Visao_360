@@ -127,10 +127,16 @@ public sealed class InformarParametroDoPotencial(
         var pesoComercial = LeituraDeParametro.Numero(erros, "pesoDoIndicadorComercial", entrada.PesoDoIndicadorComercial, false, "o peso do indicador comercial");
         var fatorMinimo = LeituraDeParametro.Numero(erros, "fatorMinimo", entrada.FatorMinimo, false, "o fator mínimo");
         var fatorMaximo = LeituraDeParametro.Numero(erros, "fatorMaximo", entrada.FatorMaximo, false, "o fator máximo");
+        var carencia = LeituraDeParametro.Numero(erros, "mesesDeCarenciaDoSicor", entrada.MesesDeCarenciaDoSicor, false, "a carência do SICOR");
         var justificativa = erros.Obrigatorio("justificativa", entrada.Justificativa, "a justificativa — a decisão ou a fonte destes valores");
 
         if (meses is { } m && (m != decimal.Truncate(m) || m is < 1 or > 60))
             erros.Registrar("mesesDaJanela", "A janela é um número inteiro de meses, de 1 a 60.", entrada.MesesDaJanela);
+
+        // A CARÊNCIA É CONTADA EM MESES INTEIROS e tem de caber na janela — senão os dois lados da
+        // comparação ficam vazios. A regra está no domínio; aqui ela vira recusa com campo.
+        if (carencia is { } c && (c != decimal.Truncate(c) || c < 0 || (meses is { } j && c >= j)))
+            erros.Registrar("mesesDeCarenciaDoSicor", "A carência é um número inteiro de meses, de zero até um a menos que a janela.", entrada.MesesDeCarenciaDoSicor);
 
         if (erros.TemErro)
             return erros.Recusar<ParametrosGeraisDetalhe>("Os parâmetros gerais têm campos a corrigir.");
@@ -144,7 +150,8 @@ public sealed class InformarParametroDoPotencial(
             parametro = ParametroDoPotencial.Informar(
                 new ParametroDoPotencial.Valores(
                     (short)meses!.Value, contratos!.Value, retracao!.Value, aquecimento!.Value, superaquecimento!.Value,
-                    entrada.NomeDaFaixaIntermediaria, percepcao!.Value, pesoPreco, pesoCredito, pesoComercial, fatorMinimo, fatorMaximo),
+                    entrada.NomeDaFaixaIntermediaria, percepcao!.Value, pesoPreco, pesoCredito, pesoComercial, fatorMinimo, fatorMaximo,
+                    carencia is null ? null : (short)carencia.Value),
                 vigenteDesde.Value, justificativa, acesso.Atual.UsuarioId, agora);
         }
         catch (RegraDeNegocioViolada erro)

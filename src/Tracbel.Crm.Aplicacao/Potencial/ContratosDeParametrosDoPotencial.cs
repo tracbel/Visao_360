@@ -79,6 +79,7 @@ public sealed record RegraDePotencialDetalhe(
 /// <param name="PesoDoIndicadorComercial">Peso do indicador 3, quando decidido.</param>
 /// <param name="FatorMinimo">O menor fator de ciclo, quando decidido.</param>
 /// <param name="FatorMaximo">O maior fator de ciclo, quando decidido.</param>
+/// <param name="MesesDeCarenciaDoSicor">Meses recentes do SICOR fora da janela; nulo é "não decidida" (D-IM-03).</param>
 /// <param name="Vigencia">Desde quando, por quê e por quem.</param>
 public sealed record ParametrosGeraisDetalhe(
     short MesesDaJanela,
@@ -94,6 +95,7 @@ public sealed record ParametrosGeraisDetalhe(
     decimal? PesoDoIndicadorComercial,
     decimal? FatorMinimo,
     decimal? FatorMaximo,
+    short? MesesDeCarenciaDoSicor,
     VigenciaDoParametro Vigencia)
 {
     /// <summary>Monta o detalhe.</summary>
@@ -103,7 +105,7 @@ public sealed record ParametrosGeraisDetalhe(
         p.MesesDaJanela, p.PesoDosContratosNoCredito, 1 - p.PesoDosContratosNoCredito,
         p.LimiteDeRetracao, p.LimiteDeAquecimento, p.LimiteDeSuperaquecimento, p.NomeDaFaixaIntermediaria,
         p.LimiteDaPercepcao, p.PesoDoIndicadorDePreco, p.PesoDoIndicadorDeCredito, p.PesoDoIndicadorComercial,
-        p.FatorMinimo, p.FatorMaximo, VigenciaDoParametro.De(p, nomes));
+        p.FatorMinimo, p.FatorMaximo, p.MesesDeCarenciaDoSicor, VigenciaDoParametro.De(p, nomes));
 }
 
 /// <summary>A percepção do gestor sobre um município, numa vigência.</summary>
@@ -163,6 +165,7 @@ public sealed record HistoricoDosParametrosDoPotencial(
 /// <param name="PesoDoIndicadorComercial">Opcional.</param>
 /// <param name="FatorMinimo">Opcional, junto com o máximo.</param>
 /// <param name="FatorMaximo">Opcional, junto com o mínimo.</param>
+/// <param name="MesesDeCarenciaDoSicor">Meses recentes do SICOR fora da janela; vazio é "não decidida" (D-IM-03).</param>
 /// <param name="Justificativa">Por que estes valores.</param>
 public sealed record NovoParametroDoPotencial(
     string? VigenteDesde = null,
@@ -178,6 +181,7 @@ public sealed record NovoParametroDoPotencial(
     string? PesoDoIndicadorComercial = null,
     string? FatorMinimo = null,
     string? FatorMaximo = null,
+    string? MesesDeCarenciaDoSicor = null,
     string? Justificativa = null);
 
 /// <summary>Uma vigência nova da regra de uma cultura.</summary>
