@@ -91,4 +91,43 @@ public sealed class FontesPublicasTestes
         RotinasDoSistema.Todas.SelectMany(r => r.Conexoes.Append(r.ConexaoExigida ?? r.Conexoes[0]))
             .Where(c => !codigos.Contains(c)).Should().BeEmpty();
     }
+    /// <summary>
+    /// O FRONT NÃO TEM LISTA FIXA DE CULTURA (issue 165).
+    ///
+    /// <para>Até aqui o painel de preços tinha <c>['CAFE', 'SOJA', 'MILHO'…]</c> e o de custos tinha a mesma
+    /// lista escrita de outro jeito: cultura nova exigia publicação, e as duas podiam divergir. Agora as
+    /// telas pedem o catálogo. Este teste impede a lista de voltar.</para>
+    ///
+    /// <para><b>Boi e leite continuam permitidos</b>: não são cultura de lavoura, são produtos de preço que
+    /// o texto-base cita e que o catálogo não guarda.</para>
+    /// </summary>
+    [Fact]
+    public void O_front_nao_tem_lista_fixa_de_cultura()
+    {
+        var telas = Directory
+            .EnumerateFiles(Path.Combine(Raiz, "src", "Tracbel.Crm.Web", "src"), "*.tsx", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(Path.Combine(Raiz, "src", "Tracbel.Crm.Web", "src"), "*.ts", SearchOption.AllDirectories))
+            .Where(f => !f.EndsWith(".teste.ts", StringComparison.Ordinal) && !f.EndsWith(".teste.tsx", StringComparison.Ordinal));
+
+        // Uma lista fixa é um vetor de texto com DUAS ou mais culturas do catálogo seguidas — é isso que
+        // caracteriza a lista, e não a palavra "café" aparecer numa frase ou num comentário.
+        var culturas = string.Join("|", CatalogoSemeado.Culturas.Select(c => c.Nome.ToUpperInvariant())
+            .Concat(["CAFE", "CANA DE AÇÚCAR", "CANA DE ACUCAR", "CAFÉ ARÁBICA"]));
+        var padrao = new Regex($@"'({culturas})'\s*,\s*'({culturas})'", RegexOptions.IgnoreCase);
+
+        // OS COMENTÁRIOS SAEM ANTES. O comentário que explica por que a lista saiu daqui cita a lista —
+        // e um teste que falha por causa da própria explicação ensina a não explicar.
+        var comLista = telas
+            .Where(f => padrao.IsMatch(SemComentarios(File.ReadAllText(f))))
+            .Select(Path.GetFileName)
+            .ToList();
+
+        comLista.Should().BeEmpty(
+            "cultura vem do catálogo (issue 165): uma lista escrita na tela faz cultura nova exigir publicação, " +
+            "e faz duas telas discordarem sobre quais são as culturas");
+    }
+
+    /// <summary>Tira comentários de bloco e de linha, para o teste olhar o código e não a explicação dele.</summary>
+    private static string SemComentarios(string codigo) =>
+        Regex.Replace(Regex.Replace(codigo, @"/\*.*?\*/", "", RegexOptions.Singleline), @"//[^\n]*", "");
 }

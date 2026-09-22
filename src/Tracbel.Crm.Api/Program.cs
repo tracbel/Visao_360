@@ -190,6 +190,7 @@ builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais, RepositorioDeInd
 builder.Services.AddScoped<IRepositorioDePrecosDeMercado, RepositorioDePrecosDeMercado>();
 builder.Services.AddScoped<IRepositorioDeCustosDeProducao, RepositorioDeCustosDeProducao>();
 builder.Services.AddScoped<IRepositorioDeCreditoRural, RepositorioDeCreditoRural>();
+builder.Services.AddScoped<IRepositorioDoCatalogoDoMercado, RepositorioDoCatalogoDoMercado>();
 builder.Services.AddScoped<IRepositorioDeParametrosDoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeReferenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeVigenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
@@ -278,6 +279,8 @@ builder.Services.AddScoped<ObterIndicadoresTerritoriais>();
 builder.Services.AddScoped<ObterPrecosDeMercado>();
 builder.Services.AddScoped<ObterCustosDeProducao>();
 builder.Services.AddScoped<ObterCreditoRural>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.ObterCatalogoDoMercado>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.CadastrarCultura>();
 
 // Os parâmetros do potencial, com vigência (issue 71).
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.ObterParametrosDoPotencial>();

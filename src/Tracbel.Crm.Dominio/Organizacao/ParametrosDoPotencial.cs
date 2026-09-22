@@ -160,6 +160,24 @@ public sealed class RegraDePotencial : ParametroComVigencia
     /// <summary>O produto, pelo código da classificação 782 do IBGE.</summary>
     public int ProdutoCodigoIbge { get; private set; }
 
+    /// <summary>
+    /// A CULTURA DO CATÁLOGO a que esta regra pertence (issue 165); nula nas vigências anteriores a ele.
+    ///
+    /// <para><b>Por que anulável, e por que o produto continua aqui.</b> A regra nasceu por produto da PAM,
+    /// e a vigência do café de 13/09/2026 tem de continuar valendo exatamente como valia — o passado não se
+    /// reescreve. A migração liga a linha existente à cultura semeada; de agora em diante, a regra nova vem
+    /// com cultura e categoria.</para>
+    /// </summary>
+    public int? CulturaId { get; private set; }
+
+    /// <summary>
+    /// A CATEGORIA DE MÁQUINA a que esta regra se refere (D-IM-06); nula nas vigências anteriores.
+    ///
+    /// <para>Sem ela, "máquinas teóricas" não dizia de quê: a mesma lavoura pede um trator a cada tantos
+    /// hectares e uma colheitadeira a cada outros tantos.</para>
+    /// </summary>
+    public int? CategoriaDeMaquinaId { get; private set; }
+
     /// <summary>O rótulo oficial do produto.</summary>
     public string ProdutoNome { get; private set; } = default!;
 
@@ -191,6 +209,8 @@ public sealed class RegraDePotencial : ParametroComVigencia
     /// <param name="justificativa">Por que estes valores.</param>
     /// <param name="informadoPorId">Quem registra.</param>
     /// <param name="agoraUtc">O instante do registro.</param>
+    /// <param name="culturaId">A cultura do catálogo (issue 165); nula nas vigências anteriores a ele.</param>
+    /// <param name="categoriaDeMaquinaId">A categoria de máquina; nula nas vigências anteriores.</param>
     public static RegraDePotencial Informar(
         int produtoCodigoIbge,
         string produtoNome,
@@ -201,7 +221,9 @@ public sealed class RegraDePotencial : ParametroComVigencia
         DateOnly vigenteDesde,
         string justificativa,
         long informadoPorId,
-        DateTime agoraUtc)
+        DateTime agoraUtc,
+        int? culturaId = null,
+        int? categoriaDeMaquinaId = null)
     {
         if (produtoCodigoIbge <= 0 || string.IsNullOrWhiteSpace(produtoNome))
             throw new RegraDeNegocioViolada("A regra precisa de um produto da classificação do IBGE, com o rótulo oficial.");
@@ -225,7 +247,9 @@ public sealed class RegraDePotencial : ParametroComVigencia
             HectaresPorMaquina = hectaresPorMaquina,
             AnosDeRenovacao = anosDeRenovacao,
             ModeloDeReferencia = modeloDeReferencia.Trim(),
-            Situacao = situacao
+            Situacao = situacao,
+            CulturaId = culturaId,
+            CategoriaDeMaquinaId = categoriaDeMaquinaId
         };
 
         regra.Informar(vigenteDesde, justificativa, informadoPorId, agoraUtc);

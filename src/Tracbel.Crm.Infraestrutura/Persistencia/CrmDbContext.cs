@@ -271,6 +271,21 @@ public class CrmDbContext : DbContext
     /// <summary>O de-para entre o que cada fonte chama de município e o município do catálogo (issue 154).</summary>
     public DbSet<CorrespondenciaDeMunicipio> CorrespondenciasDeMunicipios => Set<CorrespondenciaDeMunicipio>();
 
+    /// <summary>
+    /// O catálogo de culturas (issue 165) — o que liga o vocabulário das cinco fontes e faz cultura nova
+    /// entrar pela tela, sem publicação.
+    /// </summary>
+    public DbSet<Cultura> Culturas => Set<Cultura>();
+
+    /// <summary>Os produtos da classificação 782 que compõem cada cultura.</summary>
+    public DbSet<ProdutoDaPamNaCultura> ProdutosDaPamNasCulturas => Set<ProdutoDaPamNaCultura>();
+
+    /// <summary>As categorias de máquina do potencial (D-IM-06).</summary>
+    public DbSet<CategoriaDeMaquina> CategoriasDeMaquina => Set<CategoriaDeMaquina>();
+
+    /// <summary>Os produtos do SICOR que cada categoria de máquina agrupa.</summary>
+    public DbSet<ProdutoDoSicorNaCategoria> ProdutosDoSicorNasCategorias => Set<ProdutoDoSicorNaCategoria>();
+
     /// <summary>As usinas de etanol autorizadas pela ANP, por município.</summary>
     public DbSet<UsinaDeEtanol> UsinasDeEtanol => Set<UsinaDeEtanol>();
 

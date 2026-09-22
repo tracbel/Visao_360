@@ -111,11 +111,21 @@ public static class PoliticaDeAuditoria
         // identidade do par, e mudar uma delas é outro par.
         ["CorrespondenciaDeMunicipio"] = ["MunicipioId", "Forma", "TextoNaFonte"],
 
+        // O CATÁLOGO DE CULTURAS (issue 165): o que cada cultura é e de onde vêm o preço e o custo dela. Um
+        // vínculo errado leva o preço de uma cultura para outra — e a pergunta "quem ligou o café ao produto
+        // 11195 da CONAB?" precisa de resposta. O código não entra: ele é a identidade, e mudá-lo é outra cultura.
+        ["Cultura"] =
+            ["Nome", "Segmento", "UnidadeComercial", "QuilosPorUnidade", "FonteDoPreco", "ProdutoDoPreco", "SerieDeCusto", "EstaAtiva"],
+        ["ProdutoDaPamNaCultura"] = ["CulturaId", "ProdutoCodigoIbge", "EntraNaSomaDaLavoura"],
+        ["CategoriaDeMaquina"] = ["Nome", "Ordem", "EstaAtiva"],
+        ["ProdutoDoSicorNaCategoria"] = ["CategoriaDeMaquinaId", "CodigoProduto"],
+
         // PARÂMETROS DO POTENCIAL (issue 71): "parâmetro alterado gera trilha com o autor". A vigência nasce
         // pela mão de uma pessoa — a inclusão entra na trilha inteira — e depois só muda para ser revogada.
         // Parâmetro errado muda o potencial inteiro; a pergunta "quem pôs 20 ha no café, e quando?" tem resposta.
         ["RegraDePotencial"] =
         [
+            "CulturaId", "CategoriaDeMaquinaId",
             "ProdutoCodigoIbge", "HectaresPorMaquina", "AnosDeRenovacao", "ModeloDeReferencia", "Situacao",
             "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"
         ],
