@@ -9,9 +9,9 @@ import { abasVisiveis, secoesVisiveis } from './secoes';
 
 // O que o perfil Padrão dá hoje: ler as telas (sem as integrações) e ler os parâmetros do potencial.
 const PADRAO = ['Cliente.Ler', 'Cliente.Criar', 'Cliente.Editar', 'Territorio.Ler', PERMISSAO.parametroDoPotencialLer];
-const GERENCIA = [...PADRAO, PERMISSAO.percepcaoDoGestorInformar, PERMISSAO.integracaoLer];
+const GERENCIA = [...PADRAO, PERMISSAO.percepcaoDoGestorInformar, PERMISSAO.integracaoLer, PERMISSAO.usuarioLer];
 const DIRETORIA = [...GERENCIA, 'Empresa.AlcanceEntreFiliais'];
-const ADMINISTRADOR = [...DIRETORIA, PERMISSAO.parametroDoPotencialAdministrar, 'Usuario.Administrar', 'Perfil.Administrar'];
+const ADMINISTRADOR = [...DIRETORIA, PERMISSAO.parametroDoPotencialAdministrar, PERMISSAO.usuarioAdministrar, 'Perfil.Administrar'];
 
 function quemTem(codigos: string[]) {
   const conjunto = new Set(codigos);
@@ -33,9 +33,9 @@ describe('seções de Configurações por permissão', () => {
     ['a gerência', GERENCIA],
     ['a diretoria', DIRETORIA],
     ['o administrador', ADMINISTRADOR],
-  ])('%s vê o potencial, as integrações e as fontes, nas três abas', (_, codigos) => {
+  ])('%s vê o potencial, os usuários, as integrações e as fontes, nas três abas', (_, codigos) => {
     const tem = quemTem(codigos);
-    expect(secoesVisiveis(tem).map((s) => s.id)).toEqual(['conta', 'potencial', 'integracoes', 'fontes']);
+    expect(secoesVisiveis(tem).map((s) => s.id)).toEqual(['conta', 'potencial', 'usuarios', 'integracoes', 'fontes']);
     expect(abasVisiveis(tem).map((a) => a.rotulo)).toEqual(['Minha conta', 'Comercial', 'Administração']);
   });
 

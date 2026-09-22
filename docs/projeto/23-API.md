@@ -352,6 +352,33 @@ Central), na ordem do catálogo `FontesPublicas.Todas`:
 | `situacao`, `motivo` | `SemDado` (tabela vazia), `Atrasada` (a execução agendada passou, com 6 horas de margem, e o fluxo não foi atualizado depois) ou `EmDia` |
 
 **Rodada que falha não grava nada**, e por isso a fonte aparece atrasada, e não "em dia com erro".
+
+### 2.11 Administração de usuários — `/api/v1/admin/usuarios` (issue 113, 22/09/2026)
+
+| Rota | Permissão | O que faz |
+|---|---|---|
+| `GET /api/v1/admin/usuarios?situacao=&termo=&pagina=&tamanho=` | `Usuario.Ler` | `Ativa` (padrão), `AguardandoLiberacao` ou `Desativada`, com busca e paginação. A fila de liberação exige `Usuario.Administrar` |
+| `GET /api/v1/admin/usuarios/{chave}` | `Usuario.Ler` | a conta e **todas** as concessões, inclusive revogadas e vencidas, com autor, justificativa e motivo |
+| `POST …/{chave}/liberacao` `{ filialCodigo }` | `Usuario.Administrar` | libera a conta que nasceu no primeiro login |
+| `POST …/{chave}/concessoes` `{ perfilCodigo, filialCodigo?, validaAte?, justificativa }` | `Usuario.Administrar` | concede; `validaAte` é o último dia em que vale |
+| `POST …/{chave}/concessoes/{id}/revogacao` `{ motivo }` | `Usuario.Administrar` | revoga; a linha fica, com `RevogadaEm`, `RevogadaPorId` e `MotivoDaRevogacao` |
+| `POST …/{chave}/desativacao` e `…/reativacao` | `Usuario.Administrar` | desativa e reativa, sem apagar nada |
+| `GET /api/v1/admin/perfis` | `Usuario.Administrar` | os perfis ativos, o que cada um dá e `podeConceder` |
+
+**Alcance:** `Usuario.Ler` em `Organizacao` vê todos; em `EmpresaEAbaixo`, só os usuários com filial de casa no
+alcance (a Gerência). Fora do alcance é 404.
+
+**Três regras que não cedem**, conferidas no caso de uso:
+
+1. **Ninguém age sobre a própria conta** (409).
+2. **Ninguém dá ou tira um acesso maior do que o próprio** (403). Conceder e revogar um perfil, desativar e
+   reativar quem tem perfis exigem as permissões desses perfis, na mesma profundidade ou maior
+   (`RegraDeConcessao`).
+3. **Justificativa ou motivo obrigatório**, e tudo entra na trilha com o autor (origem `Usuario`).
+
+A mesma concessão vigente não se repete (409); a vencida é marcada como substituída. O índice único de
+`UsuarioPerfil` passou a ignorar as revogadas (`[EmpresaId] IS NOT NULL AND [RevogadaEm] IS NULL`).
+
 ## 3. O formato de erro
 
 Toda recusa é `application/problem+json`. O status vem da **natureza** da falha, declarada pelo

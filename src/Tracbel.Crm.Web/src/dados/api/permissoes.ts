@@ -15,6 +15,8 @@ export const PERMISSAO = {
   parametroDoPotencialAdministrar: 'ParametroDoPotencial.Administrar',
   percepcaoDoGestorInformar: 'PercepcaoDoGestor.Informar',
   integracaoLer: 'Integracao.Ler',
+  usuarioLer: 'Usuario.Ler',
+  usuarioAdministrar: 'Usuario.Administrar',
 } as const;
 
 export type PermissoesDoUsuario = {

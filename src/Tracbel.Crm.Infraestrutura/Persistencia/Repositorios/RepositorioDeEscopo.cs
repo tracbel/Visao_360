@@ -35,7 +35,7 @@ public sealed class RepositorioDeEscopo(CrmDbContext contexto) : IRepositorioDeE
                     where concessao.UsuarioId == acesso.UsuarioId
                           && concessao.EmpresaId != null
                           && perfil.EstaAtivo
-                          && (concessao.ExpiraEm == null || concessao.ExpiraEm > agora)
+                          && concessao.RevogadaEm == null && (concessao.ExpiraEm == null || concessao.ExpiraEm > agora)
                     select concessao.EmpresaId!.Value)
                 .Distinct()
                 .ToListAsync(ct);
@@ -77,7 +77,7 @@ public sealed class RepositorioDeEscopo(CrmDbContext contexto) : IRepositorioDeE
                 where concessao.UsuarioId == acesso.UsuarioId
                       && perfil.EstaAtivo
                       && !perfil.EhPadrao
-                      && (concessao.ExpiraEm == null || concessao.ExpiraEm > agora)
+                      && concessao.RevogadaEm == null && (concessao.ExpiraEm == null || concessao.ExpiraEm > agora)
                 select new PerfilDoEscopo(
                     perfil.Codigo, perfil.Nome, false,
                     filial == null ? null : filial.Codigo,

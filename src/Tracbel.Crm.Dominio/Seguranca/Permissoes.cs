@@ -78,6 +78,13 @@ public static class Permissoes
     /// <summary>Administrar usuários e as concessões de perfil.</summary>
     public const string UsuarioAdministrar = "Usuario.Administrar";
 
+    /// <summary>
+    /// Ver os usuários, os perfis concedidos e o histórico das concessões, sem agir (issue 113). Na profundidade
+    /// <see cref="Profundidade.EmpresaEAbaixo"/>, só os da filial escolhida; em <see cref="Profundidade.Organizacao"/>,
+    /// todos.
+    /// </summary>
+    public const string UsuarioLer = "Usuario.Ler";
+
     /// <summary>Ler os parâmetros do potencial de mercado e o histórico das vigências (issue 71).</summary>
     public const string ParametroDoPotencialLer = "ParametroDoPotencial.Ler";
 
@@ -117,6 +124,7 @@ public static class Permissoes
         [EmpresaAlcanceEntreFiliais] = "Abrir o alcance entre filiais, com motivo registrado",
         [PerfilAdministrar] = "Administrar perfis",
         [UsuarioAdministrar] = "Administrar usuários e concessões",
+        [UsuarioLer] = "Ver os usuários e os perfis deles",
         [ParametroDoPotencialLer] = "Ler os parâmetros do potencial de mercado",
         [ParametroDoPotencialAdministrar] = "Alterar os parâmetros do potencial de mercado, com vigência",
         [PercepcaoDoGestorInformar] = "Informar a percepção do gestor por município"
@@ -217,7 +225,8 @@ public static class PerfisDeSistema
     [
         Seguranca.Permissoes.ParametroDoPotencialLer,
         Seguranca.Permissoes.ParametroDoPotencialAdministrar,
-        Seguranca.Permissoes.PercepcaoDoGestorInformar
+        Seguranca.Permissoes.PercepcaoDoGestorInformar,
+        Seguranca.Permissoes.UsuarioLer
     ];
 
     /// <summary>Os perfis semeados, na ordem dos identificadores.</summary>
@@ -275,7 +284,8 @@ public static class PerfisDeSistema
                 // Depois da primeira semente — no fim, para não renumerar.
                 (Seguranca.Permissoes.ParametroDoPotencialLer, Profundidade.Organizacao),
                 (Seguranca.Permissoes.ParametroDoPotencialAdministrar, Profundidade.Organizacao),
-                (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao)
+                (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao),
+                (Seguranca.Permissoes.UsuarioLer, Profundidade.Organizacao)
             ]),
 
         new(5, GestorComercial, "Gestor comercial",
@@ -291,7 +301,10 @@ public static class PerfisDeSistema
             EhPadrao: false,
             [
                 (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao),
-                (Seguranca.Permissoes.IntegracaoLer, Profundidade.EmpresaEAbaixo)
+                (Seguranca.Permissoes.IntegracaoLer, Profundidade.EmpresaEAbaixo),
+
+                // Issue 113: vê os usuários da filial, sem agir.
+                (Seguranca.Permissoes.UsuarioLer, Profundidade.EmpresaEAbaixo)
             ]),
 
         new(7, Diretoria, "Diretoria",
@@ -300,7 +313,10 @@ public static class PerfisDeSistema
             [
                 (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao),
                 (Seguranca.Permissoes.IntegracaoLer, Profundidade.EmpresaEAbaixo),
-                (Seguranca.Permissoes.EmpresaAlcanceEntreFiliais, Profundidade.Organizacao)
+                (Seguranca.Permissoes.EmpresaAlcanceEntreFiliais, Profundidade.Organizacao),
+
+                // Issue 113: vê todos os usuários, sem agir.
+                (Seguranca.Permissoes.UsuarioLer, Profundidade.Organizacao)
             ])
     ];
 }

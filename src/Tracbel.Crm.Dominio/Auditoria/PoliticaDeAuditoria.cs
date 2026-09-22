@@ -54,8 +54,8 @@ public static class PoliticaDeAuditoria
         // concedeu ou revogou um perfil, quem mexeu no que um perfil concede. É a pergunta "por que fulano
         // passou a ver isto?", e ela precisa de resposta com autor e data. A revogação é exclusão da linha
         // de UsuarioPerfil — e a trilha grava a exclusão com os valores anteriores.
-        ["Usuario"] = ["EmpresaId", "GestorId", "EstaAtivo", "Natureza"],
-        ["UsuarioPerfil"] = ["UsuarioId", "PerfilId", "EmpresaId", "ExpiraEm", "Justificativa"],
+        ["Usuario"] = ["EmpresaId", "GestorId", "EstaAtivo", "Natureza", "AguardandoLiberacaoDesde"],
+        ["UsuarioPerfil"] = ["UsuarioId", "PerfilId", "EmpresaId", "ExpiraEm", "Justificativa", "RevogadaEm", "MotivoDaRevogacao"],
         ["Perfil"] = ["Codigo", "Nome", "EstaAtivo", "EhPadrao"],
         ["PerfilPermissao"] = ["PerfilId", "CodigoPermissao", "Profundidade"],
 

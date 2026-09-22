@@ -190,6 +190,13 @@ registrada, com autorização explícita.
   devolve também os perfis da pessoa, que "Minha conta" mostra.
 - A matriz aprovada, com as partes que ainda vão entrar (usuários, auditoria, taxonomias), está na issue
   134.
+
+**A administração de usuários (issue 113, 22/09/2026)** saiu da mão de quem tem acesso ao banco e foi
+para a tela (Configurações › Administração › Usuários), com três regras: ninguém age sobre a própria
+conta; ninguém dá ou tira um acesso maior do que o próprio (`RegraDeConcessao`); justificativa ou motivo
+sempre. **Revogar não apaga**: a concessão fica marcada com quem, quando e por quê, e continua respondendo
+"quem tinha este acesso em março?". `Usuario.Ler` (ver) é da Gerência (a filial), da Diretoria e do
+Administrador; `Usuario.Administrar` (agir), só do Administrador. As rotas estão no documento 23, §2.11.
 ---
 
 ## 5. Camada 3 — profundidade (o coração do modelo)

@@ -347,4 +347,17 @@ public sealed class Usuario : EntidadeBase
         DesativadoEm = DateTime.UtcNow;
         MarcarAlteracao(usuarioId);
     }
+
+    /// <summary>
+    /// Reativa a conta desativada (issue 113). Os perfis concedidos voltam a valer, se ainda estiverem vigentes —
+    /// desativar não mexeu neles.
+    /// </summary>
+    /// <param name="usuarioId">Quem reativou.</param>
+    public void Reativar(long usuarioId)
+    {
+        if (EstaAtivo) return;
+        EstaAtivo = true;
+        DesativadoEm = null;
+        MarcarAlteracao(usuarioId);
+    }
 }
