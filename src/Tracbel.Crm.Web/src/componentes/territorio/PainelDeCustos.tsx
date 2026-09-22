@@ -3,8 +3,12 @@
  *
  * É a outra metade da rentabilidade que o texto-base pede ("se o cara está
  * rentabilizando X e o custo de produção é tanto"); a primeira é o painel de
- * preços logo acima. A MARGEM, que junta os dois, é da issue 73 e não aparece
- * aqui — o custo é mostrado, não interpretado.
+ * preços logo acima.
+ *
+ * A MARGEM ENTROU AQUI NA ISSUE 159, no cartão do topo: ela junta a
+ * produtividade da PAM, o preço da CONAB e o custo desta tela, e cada parcela
+ * carrega a competência dela. Enquanto a cultura não tiver local de referência
+ * e camada de custo escolhidos (D-P07), a margem sai VAZIA COM O MOTIVO.
  *
  * O LOCAL É O DA CONAB: é onde ela levantou o custo (Franca para o café,
  * Piracicaba e Penápolis para a cana), não um município da carteira.
@@ -20,7 +24,7 @@ import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { obterCatalogoDoMercado } from '../../dados/api/potencial';
-import { obterCustosDeProducao } from '../../dados/api/territorio';
+import { obterCustosDeProducao, obterRentabilidadeDasCulturas } from '../../dados/api/territorio';
 import { useRecurso } from '../../dados/api/useRecurso';
 import type { CustoNaSafra, SerieDeCusto } from '../../tipos/mercado';
 import type { CulturaNoCatalogo } from '../../tipos/potencial';
@@ -64,6 +68,82 @@ function rotuloDaSafra(c: CustoNaSafra, s: SerieDeCusto): string {
 function ordemDaCultura(cultura: string, doCatalogo: string[]): number {
   const i = doCatalogo.findIndex((c) => cultura.startsWith(c));
   return i < 0 ? doCatalogo.length : i;
+}
+
+/**
+ * A MARGEM POR HECTARE DE CADA CULTURA (issue 159).
+ *
+ * As três competências ficam no `title` de cada linha: o ano da PAM que deu a
+ * produtividade, quantos meses de preço entraram na média e a safra do custo.
+ * Elas costumam ser diferentes, e um número que não diz de quando é não pode
+ * ser conferido.
+ *
+ * MARGEM AUSENTE NÃO É ZERO: enquanto a cultura não tiver local de referência e
+ * camada de custo escolhidos (D-P07), a linha mostra a FRASE do motivo, e não um
+ * traço mudo nem um número escolhido por conta própria.
+ */
+function TabelaDaMargem() {
+  const { contexto } = useContextoDeAcesso();
+  const rentabilidade = useRecurso(
+    (sinal) => obterRentabilidadeDasCulturas(contexto, sinal),
+    [contexto.empresa, contexto.usuario],
+  );
+
+  const linhas = rentabilidade.dados ?? [];
+  if (linhas.length === 0) return null;
+
+  return (
+    <div className="card cad-cartao terr-cartao">
+      <div className="card-title">Margem por hectare — receita menos custo, em São Paulo</div>
+      <div className="cad-sub">
+        Receita = produtividade da PAM × preço médio do ano (CONAB). O custo é o da referência escolhida para cada
+        cultura. Passe o cursor na linha para ver de quando é cada parcela.
+      </div>
+      <div className="cad-tabela-wrap">
+        <table className="cad-tabela terr-tabela-precos">
+          <thead>
+            <tr>
+              <th>Cultura</th>
+              <th className="terr-num">Receita / ha</th>
+              <th className="terr-num">Custo / ha</th>
+              <th className="terr-num">Margem / ha</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((r) => (
+              <tr
+                key={r.culturaCodigo}
+                title={
+                  r.margemPorHectare === null
+                    ? r.fraseDoMotivo
+                    : `produtividade: PAM ${r.anoDaProdutividade} · preço: média de ${r.mesesDePrecoNaMedia} ${
+                        r.mesesDePrecoNaMedia === 1 ? 'mês' : 'meses'
+                      } de ${r.anoDaProdutividade} · custo: ${r.localDoCusto}, safra ${r.safraDoCusto}, camada ${r.camadaDoCusto?.toLowerCase()}`
+                }
+              >
+                <td>
+                  {comoSeEscreve(r.culturaNome)}
+                  {r.localDoCusto && <div className="cad-sub">{r.localDoCusto}</div>}
+                </td>
+                <td className="terr-num cad-mono">{r.receitaPorHectare === null ? '—' : reais(r.receitaPorHectare)}</td>
+                <td className="terr-num cad-mono">{r.custoPorHectare === null ? '—' : reais(r.custoPorHectare)}</td>
+                <td className="terr-num">
+                  {r.margemPorHectare === null ? (
+                    <span className="cad-sub">{r.fraseDoMotivo}</span>
+                  ) : (
+                    <span className={`cad-mono ${r.margemPorHectare >= 0 ? 'terr-variacao-alta' : 'terr-variacao-baixa'}`}>
+                      {reais(r.margemPorHectare)}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SeloProcedencia procedencia={rentabilidade.procedencia} />
+    </div>
+  );
 }
 
 export function PainelDeCustos() {
@@ -110,8 +190,16 @@ export function PainelDeCustos() {
         <p className="terr-secao-subtitulo">
           As séries históricas da CONAB, por cultura e local de referência: custo <strong>operacional</strong> (variável +
           fixo) e <strong>total</strong> (operacional + remuneração do capital e da terra), por hectare e por unidade. O
-          gráfico mostra o custo total por hectare. A margem — preço menos custo — vem com os indicadores de mercado.
+          gráfico mostra o custo total por hectare.
         </p>
+      </div>
+
+      {/* A MARGEM (issue 159): preço e custo estavam nesta tela, separados — quem quisesse saber se a
+          lavoura paga a conta tinha de subtrair de cabeça, sem saber que a produtividade de um lado e o
+          custo do outro podiam ser de anos diferentes. Cada número traz a competência dele. */}
+      <TabelaDaMargem />
+
+      <div className="terr-secao-mercado">
       </div>
 
       {custos.carregando && <BlocoCarregando oQue="os custos de produção" />}

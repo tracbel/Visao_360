@@ -121,3 +121,34 @@ export type PainelDeCreditoRural = {
   /** São Paulo inteiro — o denominador da comparação. */
   saoPaulo: CreditoNoRecorte | null;
 };
+
+/**
+ * A rentabilidade de uma cultura (issue 159): receita, custo e margem por hectare.
+ *
+ * Cada número vem com a competência dele — o ano da PAM, quantos meses de preço
+ * entraram na média e a safra do custo —, porque elas costumam ser diferentes e
+ * um número que não diz de quando é não pode ser conferido.
+ */
+export type RentabilidadeDaCultura = {
+  culturaCodigo: string;
+  culturaNome: string;
+  unidadeComercial: string;
+  anoDaProdutividade: number | null;
+  /** Quilos por hectare colhido; nula quando a PAM não permite calcular. */
+  produtividadeKgPorHa: number | null;
+  precoMedioPorKg: number | null;
+  mesesDePrecoNaMedia: number;
+  receitaPorHectare: number | null;
+  localDoCusto: string | null;
+  /** `Operacional` ou `Total`; nula enquanto ninguém decide (D-P07). */
+  camadaDoCusto: string | null;
+  safraDoCusto: number | null;
+  custoPorHectare: number | null;
+  margemPorHectare: number | null;
+  areaColhidaHectares: number | null;
+  margemTotal: number | null;
+  /** `Nenhum` quando a margem saiu. */
+  motivo: string;
+  /** A frase que a tela mostra no lugar do número. */
+  fraseDoMotivo: string;
+};

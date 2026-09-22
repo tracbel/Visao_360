@@ -8,7 +8,7 @@
  */
 
 import type { ComProcedencia } from '../../tipos/api';
-import type { PainelDeCreditoRural, PrecosDeMercado, SerieDeCusto } from '../../tipos/mercado';
+import type { PainelDeCreditoRural, PrecosDeMercado, RentabilidadeDaCultura, SerieDeCusto } from '../../tipos/mercado';
 import type { FiltrosTerritoriais, PainelTerritorial } from '../../tipos/territorio';
 import type { ColecaoMunicipal } from '../../componentes/territorio/projecao';
 import { ler, type ContextoDeAcesso } from './http';
@@ -42,6 +42,20 @@ export function obterPrecosDeMercado(
   sinal?: AbortSignal,
 ): Promise<ComProcedencia<PrecosDeMercado>> {
   return ler<PrecosDeMercado>('/v1/territorio/precos', contexto, { sinal });
+}
+
+/**
+ * A rentabilidade por cultura (issue 159): receita, custo e margem por hectare.
+ *
+ * A margem vem VAZIA COM O MOTIVO enquanto a cultura não tiver local de
+ * referência e camada de custo escolhidos (D-P07) — nunca com um local
+ * escolhido por conta própria.
+ */
+export function obterRentabilidadeDasCulturas(
+  contexto: ContextoDeAcesso,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<RentabilidadeDaCultura[]>> {
+  return ler<RentabilidadeDaCultura[]>('/v1/territorio/rentabilidade', contexto, { sinal });
 }
 
 /** O custo de produção das culturas em SP, das séries da CONAB (issue 67). */
