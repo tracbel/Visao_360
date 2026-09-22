@@ -9,6 +9,14 @@ public interface IRepositorioDeEscopo
     /// <param name="contexto">O contexto de acesso da requisição.</param>
     /// <param name="ct">Cancelamento.</param>
     Task<(FilialDoEscopo Atual, IReadOnlyList<FilialDoEscopo> Permitidas)> FiliaisAsync(ContextoAcesso contexto, CancellationToken ct);
+
+    /// <summary>
+    /// Os perfis da pessoa: o padrão, que todo usuário recebe, e os concedidos a ela, ativos e vigentes — o que
+    /// a Configuração mostra em "Minha conta" (issue 134).
+    /// </summary>
+    /// <param name="contexto">O contexto de acesso da requisição.</param>
+    /// <param name="ct">Cancelamento.</param>
+    Task<IReadOnlyList<PerfilDoEscopo>> PerfisAsync(ContextoAcesso contexto, CancellationToken ct);
 }
 
 /// <summary>
@@ -27,13 +35,25 @@ public interface IRepositorioDeEscopo
 /// Se ele pode escolher <see cref="ContextoAcesso.CodigoDeTodasAsFiliais"/> — a opção "Todas as filiais" do
 /// seletor. Quando está nela, <paramref name="FilialAtual"/> vem com esse código.
 /// </param>
+/// <param name="Perfis">Os perfis dele: o padrão primeiro, depois os concedidos e vigentes, pelo nome.</param>
 public sealed record EscopoDoUsuario(
     string Usuario,
     FilialDoEscopo FilialAtual,
     string? FilialPedidaRecusada,
     IReadOnlyList<FilialDoEscopo> FiliaisPermitidas,
     IReadOnlyList<PermissaoDoEscopo> Permissoes,
-    bool PodeVerTodasAsFiliais);
+    bool PodeVerTodasAsFiliais,
+    IReadOnlyList<PerfilDoEscopo> Perfis);
+
+/// <summary>Um perfil da pessoa, como a Configuração o mostra.</summary>
+/// <param name="Codigo">O código estável (<c>GERENCIA</c>).</param>
+/// <param name="Nome">O nome legível.</param>
+/// <param name="EhPadrao">Se é o perfil que todo usuário recebe (e não uma concessão).</param>
+/// <param name="FilialCodigo">A filial em que a concessão vale; nulo vale em qualquer uma que ele possa escolher.</param>
+/// <param name="FilialNome">O nome dessa filial.</param>
+/// <param name="ExpiraEm">Quando a concessão expira (UTC); nulo é permanente.</param>
+public sealed record PerfilDoEscopo(
+    string Codigo, string Nome, bool EhPadrao, string? FilialCodigo, string? FilialNome, DateTime? ExpiraEm);
 
 /// <summary>Uma filial do escopo.</summary>
 /// <param name="Codigo">O código (<c>010101</c>).</param>

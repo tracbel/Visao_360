@@ -1,52 +1,32 @@
 /**
  * Menu lateral das Configurações — porte de `renderConfigMenu`
- * (prototipo/referencia/assets/app.js linha 5305). Os itens variam por aba.
+ * (prototipo/referencia/assets/app.js linha 5305).
+ *
+ * 22/09/2026 (issue 134): os itens vêm de `secoes.ts`, já filtrados pela
+ * permissão de quem está usando. O menu não decide nada sozinho.
  */
-import type { AbaConfig, SecaoConfig } from '../../tipos/configuracoes';
-
-type ItemMenu = { id: SecaoConfig; icon: string; label: string };
-
-const MENUS: Record<AbaConfig, ItemMenu[]> = {
-  preferencias: [
-    { id: 'perfil', icon: '👤', label: 'Perfil e conta' },
-    { id: 'notificacoes', icon: '🔔', label: 'Notificações' },
-    { id: 'atalhos', icon: '⌨️', label: 'Atalhos e produtividade' },
-  ],
-  comercial: [
-    { id: 'metas', icon: '🎯', label: 'Metas e SLA' },
-    { id: 'aprovacoes', icon: '✅', label: 'Políticas de aprovação' },
-    { id: 'taxonomias', icon: '🏷️', label: 'Taxonomias' },
-    { id: 'potencial', icon: '📈', label: 'Potencial de mercado' },
-  ],
-  ti: [
-    { id: 'integracoes', icon: '🔌', label: 'Integrações' },
-    { id: 'fontes', icon: '🌎', label: 'Fontes públicas' },
-    { id: 'usuarios', icon: '👥', label: 'Usuários' },
-    { id: 'permissoes', icon: '🛡️', label: 'Permissões e roles' },
-    { id: 'auditoria', icon: '📋', label: 'Auditoria e logs' },
-  ],
-};
+import type { DefinicaoDeSecao, SecaoConfig } from './secoes';
 
 export function MenuLateralConfig({
-  aba,
+  secoes,
   secaoAtiva,
   onSelecionar,
 }: {
-  aba: AbaConfig;
+  secoes: DefinicaoDeSecao[];
   secaoAtiva: SecaoConfig;
   onSelecionar: (secao: SecaoConfig) => void;
 }) {
   return (
     <>
-      {MENUS[aba].map((item) => (
+      {secoes.map((item) => (
         <button
           key={item.id}
           type="button"
           className={`config-menu-item ${secaoAtiva === item.id ? 'active' : ''}`}
           onClick={() => onSelecionar(item.id)}
         >
-          <span className="cmi-icon">{item.icon}</span>
-          <span>{item.label}</span>
+          <span className="cmi-icon">{item.icone}</span>
+          <span>{item.rotulo}</span>
         </button>
       ))}
     </>

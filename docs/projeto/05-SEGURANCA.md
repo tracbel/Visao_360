@@ -169,6 +169,27 @@ de existir escopo. É o mesmo motivo da exceção de `Usuario`.
 `PerfilPermissao` entraram na política de auditoria. A concessão exige **justificativa** e registra
 quem concedeu. **Concessão a pessoa real em produção não entra em migração** (R-16): é operação
 registrada, com autorização explícita.
+
+### Perfis e Configurações — 21 e 22/09/2026 (issues 130 e 134)
+
+| Perfil | O que acrescenta ao Padrão |
+|---|---|
+| `PADRAO` | ler as telas, criar e alterar cliente e equipamento, ler os parâmetros do potencial. **Desde a #134, sem `Integracao.Ler`** |
+| `GERENCIA` (#134) | informar a percepção do gestor; ver a situação das integrações e das fontes públicas |
+| `DIRETORIA` (#134) | o mesmo da Gerência, mais `Empresa.AlcanceEntreFiliais` em Organização ("Todas as filiais") |
+| `GESTOR_COMERCIAL` | informar a percepção do gestor |
+| `EXCLUSAO_DE_CADASTRO` | excluir cliente e dar baixa em equipamento |
+| `VISAO_ENTRE_FILIAIS` | "Todas as filiais" |
+| `ADMINISTRADOR` (#130) | **todo o catálogo, em Organização** |
+
+- **A semente não renumera.** O identificador de cada linha é 100 × perfil + a posição na lista. Uma
+  permissão retirada fica na lista com profundidade `Nenhum`: o lugar é dela, e a migração só apaga
+  aquela linha (`PerfisDeSistema.LinhasDaSemente`). Permissão nova entra no **fim** da lista.
+- **A página de Configurações mostra cada seção pela permissão**, lida da rota de escopo, e nunca pelo
+  nome do perfil (`componentes/config/secoes.ts`). Aba sem seção visível não aparece. A rota de escopo
+  devolve também os perfis da pessoa, que "Minha conta" mostra.
+- A matriz aprovada, com as partes que ainda vão entrar (usuários, auditoria, taxonomias), está na issue
+  134.
 ---
 
 ## 5. Camada 3 — profundidade (o coração do modelo)

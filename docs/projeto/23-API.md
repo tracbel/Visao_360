@@ -290,7 +290,7 @@ precisa poder cadastrar um cliente em Uberaba.
 
 | Rota | O que devolve |
 |---|---|
-| `GET /api/v1/acesso/escopo` | a filial atual, as filiais que o usuário pode escolher (a de casa e as com perfil concedido — P-20), as permissões na filial atual, com a profundidade, e `podeVerTodasAsFiliais` |
+| `GET /api/v1/acesso/escopo` | a filial atual, as filiais que o usuário pode escolher (a de casa e as com perfil concedido — P-20), as permissões na filial atual, com a profundidade, `podeVerTodasAsFiliais` e `perfis` (o padrão e os concedidos e vigentes, com `filialCodigo`, `filialNome` e `expiraEm` — issue 134) |
 
 **Toda rota declara a permissão que exige** (documento 05, §4). Sem ela, **403** com `type` terminando
 em `sem-acesso` e o `detail` dizendo qual permissão falta. **Filial fora das permitidas** também é
@@ -339,7 +339,7 @@ pé na mesma data dão 409. Números aceitam vírgula ou ponto decimal; datas, `
 
 ### 2.10 Fontes públicas — `GET /api/v1/integracoes/fontes-publicas` (issue 77, 21/09/2026)
 
-Permissão `Integracao.Ler`. Uma linha por fluxo da carga das fontes públicas (IBGE, ANP, CONAB, Socicana, Banco
+Permissão `Integracao.Ler` — desde a issue 134, da Gerência, da Diretoria e do Administrador; o perfil Padrão não a tem, e o mesmo vale para `/api/v1/integracoes/sincronizacoes`. Uma linha por fluxo da carga das fontes públicas (IBGE, ANP, CONAB, Socicana, Banco
 Central), na ordem do catálogo `FontesPublicas.Todas`:
 
 | Campo | De onde vem |

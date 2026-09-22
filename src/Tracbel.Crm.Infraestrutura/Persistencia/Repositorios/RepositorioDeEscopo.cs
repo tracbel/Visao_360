@@ -56,4 +56,35 @@ public sealed class RepositorioDeEscopo(CrmDbContext contexto) : IRepositorioDeE
 
         return (atual, permitidas);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<PerfilDoEscopo>> PerfisAsync(ContextoAcesso acesso, CancellationToken ct)
+    {
+        var agora = DateTime.UtcNow;
+
+        var padrao = await contexto.Perfis.AsNoTracking()
+            .Where(p => p.EhPadrao && p.EstaAtivo)
+            .Select(p => new PerfilDoEscopo(p.Codigo, p.Nome, true, null, null, null))
+            .ToListAsync(ct);
+
+        // AS MESMAS CONCESSÕES QUE O ESCOPO HONRA: perfil ativo, concessão vigente. Uma que expirou não
+        // aparece, porque não dá mais nada.
+        var concedidos = await (
+                from concessao in contexto.UsuariosPerfis.AsNoTracking()
+                join perfil in contexto.Perfis.AsNoTracking() on concessao.PerfilId equals perfil.Id
+                join empresa in contexto.Empresas.AsNoTracking() on concessao.EmpresaId equals (int?)empresa.Id into filiais
+                from filial in filiais.DefaultIfEmpty()
+                where concessao.UsuarioId == acesso.UsuarioId
+                      && perfil.EstaAtivo
+                      && !perfil.EhPadrao
+                      && (concessao.ExpiraEm == null || concessao.ExpiraEm > agora)
+                select new PerfilDoEscopo(
+                    perfil.Codigo, perfil.Nome, false,
+                    filial == null ? null : filial.Codigo,
+                    filial == null ? null : filial.Nome,
+                    concessao.ExpiraEm))
+            .ToListAsync(ct);
+
+        return [.. padrao, .. concedidos.OrderBy(p => p.Nome, StringComparer.CurrentCulture).ThenBy(p => p.FilialCodigo, StringComparer.Ordinal)];
+    }
 }

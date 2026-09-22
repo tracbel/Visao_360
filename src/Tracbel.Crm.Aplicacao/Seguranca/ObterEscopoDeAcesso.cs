@@ -18,6 +18,7 @@ public sealed class ObterEscopoDeAcesso(IProvedorContextoAcesso provedor, IRepos
     {
         var acesso = provedor.Atual;
         var (atual, filiais) = await repositorio.FiliaisAsync(acesso, ct);
+        var perfis = await repositorio.PerfisAsync(acesso, ct);
 
         var permissoes = acesso.Profundidades
             .Where(p => p.Value > Profundidade.Nenhum)
@@ -37,7 +38,8 @@ public sealed class ObterEscopoDeAcesso(IProvedorContextoAcesso provedor, IRepos
             ComProcedencia<EscopoDoUsuario>.DoNossoBanco(
                 new EscopoDoUsuario(
                     acesso.NomeExibicao, atual, filialPedidaRecusada, filiais, permissoes,
-                    PodeVerTodasAsFiliais: acesso.PodeAlcancarTodasAsEmpresas),
+                    PodeVerTodasAsFiliais: acesso.PodeAlcancarTodasAsEmpresas,
+                    Perfis: perfis),
                 "seguranca.Perfil + seguranca.UsuarioPerfil + organizacao.Empresa",
                 relogio));
     }

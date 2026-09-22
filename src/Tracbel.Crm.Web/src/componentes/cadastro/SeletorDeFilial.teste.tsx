@@ -43,6 +43,7 @@ function escopo(podeVerTodasAsFiliais: boolean): EscopoDoUsuario {
     ],
     permissoes: [],
     podeVerTodasAsFiliais,
+    perfis: [],
   };
 }
 
