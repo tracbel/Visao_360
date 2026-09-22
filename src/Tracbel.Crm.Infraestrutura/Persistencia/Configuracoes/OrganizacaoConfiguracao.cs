@@ -306,7 +306,7 @@ public sealed class ProducaoAgricolaNoMunicipioConfiguracao : IEntityTypeConfigu
         b.Property(a => a.ProdutoNome).HasMaxLength(120).IsUnicode(true).IsRequired();
         b.Property(a => a.AreaPlantadaHectares).HasPrecision(14, 2);
         b.Property(a => a.AreaColhidaHectares).HasPrecision(14, 2);
-        b.Property(a => a.QuantidadeProduzidaToneladas).HasPrecision(18, 2);
+        b.Property(a => a.QuantidadeProduzida).HasPrecision(18, 2);
         b.Property(a => a.ValorDaProducaoMilReais).HasPrecision(18, 2);
         b.Property(a => a.ImportadoEm).HasPrecision(3).IsRequired();
         b.Property(a => a.ImportadoPorId).IsRequired();
@@ -328,7 +328,7 @@ public sealed class ProducaoAgricolaNoMunicipioConfiguracao : IEntityTypeConfigu
             "CK_ProducaoAgricolaNoMunicipio_Medidas",
             "([AreaPlantadaHectares] IS NULL OR [AreaPlantadaHectares] >= 0) " +
             "AND ([AreaColhidaHectares] IS NULL OR [AreaColhidaHectares] >= 0) " +
-            "AND ([QuantidadeProduzidaToneladas] IS NULL OR [QuantidadeProduzidaToneladas] >= 0) " +
+            "AND ([QuantidadeProduzida] IS NULL OR [QuantidadeProduzida] >= 0) " +
             "AND ([ValorDaProducaoMilReais] IS NULL OR [ValorDaProducaoMilReais] >= 0)"));
     }
 }
@@ -352,7 +352,7 @@ public sealed class ProducaoAgricolaNoEstadoConfiguracao : IEntityTypeConfigurat
         b.Property(a => a.ProdutoNome).HasMaxLength(120).IsUnicode(true).IsRequired();
         b.Property(a => a.AreaPlantadaHectares).HasPrecision(16, 2);
         b.Property(a => a.AreaColhidaHectares).HasPrecision(16, 2);
-        b.Property(a => a.QuantidadeProduzidaToneladas).HasPrecision(20, 2);
+        b.Property(a => a.QuantidadeProduzida).HasPrecision(20, 2);
         b.Property(a => a.ValorDaProducaoMilReais).HasPrecision(20, 2);
         b.Property(a => a.ImportadoEm).HasPrecision(3).IsRequired();
         b.Property(a => a.ImportadoPorId).IsRequired();
@@ -372,7 +372,7 @@ public sealed class ProducaoAgricolaNoEstadoConfiguracao : IEntityTypeConfigurat
             "CK_ProducaoAgricolaNoEstado_Medidas",
             "([AreaPlantadaHectares] IS NULL OR [AreaPlantadaHectares] >= 0) " +
             "AND ([AreaColhidaHectares] IS NULL OR [AreaColhidaHectares] >= 0) " +
-            "AND ([QuantidadeProduzidaToneladas] IS NULL OR [QuantidadeProduzidaToneladas] >= 0) " +
+            "AND ([QuantidadeProduzida] IS NULL OR [QuantidadeProduzida] >= 0) " +
             "AND ([ValorDaProducaoMilReais] IS NULL OR [ValorDaProducaoMilReais] >= 0)"));
     }
 }

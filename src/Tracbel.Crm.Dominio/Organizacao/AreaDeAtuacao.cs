@@ -389,12 +389,16 @@ public sealed class ResponsavelPeloMunicipio
 /// </summary>
 /// <param name="AreaPlantadaHectares">Variável 8331 — "área plantada ou destinada à colheita".</param>
 /// <param name="AreaColhidaHectares">Variável 216 — o que de fato se colheu.</param>
-/// <param name="QuantidadeProduzidaToneladas">Variável 214. A unidade do IBGE varia por produto (tonelada, mil frutos, mil cachos): o rótulo do produto é quem diz qual.</param>
+/// <param name="QuantidadeProduzida">
+/// Variável 214, na unidade que o IBGE usa para o produto naquele ano — tonelada quase sempre, mas mil frutos
+/// no abacaxi e no coco-da-baía, e nas frutas antes de 2001 (<see cref="UnidadesDaPam"/>). Chamava-se
+/// <c>QuantidadeProduzidaToneladas</c> até 22/09/2026 (issue 152): o nome afirmava uma unidade que não vale para todos.
+/// </param>
 /// <param name="ValorDaProducaoMilReais">Variável 215, em MIL reais — é como o IBGE publica.</param>
 public readonly record struct MedidasDaProducaoAgricola(
     decimal? AreaPlantadaHectares,
     decimal? AreaColhidaHectares,
-    decimal? QuantidadeProduzidaToneladas,
+    decimal? QuantidadeProduzida,
     decimal? ValorDaProducaoMilReais)
 {
     /// <summary>Recusa medida negativa, que não existe em nenhuma das quatro.</summary>
@@ -402,7 +406,7 @@ public readonly record struct MedidasDaProducaoAgricola(
     public void Conferir()
     {
         if (AreaPlantadaHectares < 0 || AreaColhidaHectares < 0
-            || QuantidadeProduzidaToneladas < 0 || ValorDaProducaoMilReais < 0)
+            || QuantidadeProduzida < 0 || ValorDaProducaoMilReais < 0)
             throw new RegraDeNegocioViolada("Medida negativa não existe na Produção Agrícola Municipal.");
     }
 }
@@ -452,7 +456,7 @@ public sealed class ProducaoAgricolaNoMunicipio
     public decimal? AreaColhidaHectares { get; private set; }
 
     /// <summary>Quantidade produzida (variável 214), na unidade que o IBGE usa para o produto.</summary>
-    public decimal? QuantidadeProduzidaToneladas { get; private set; }
+    public decimal? QuantidadeProduzida { get; private set; }
 
     /// <summary>Valor da produção (variável 215), em MIL reais, como o IBGE publica.</summary>
     public decimal? ValorDaProducaoMilReais { get; private set; }
@@ -520,13 +524,13 @@ public sealed class ProducaoAgricolaNoMunicipio
         var mudou = !string.Equals(ProdutoNome, produtoNome.Trim(), StringComparison.Ordinal)
                     || AreaPlantadaHectares != medidas.AreaPlantadaHectares
                     || AreaColhidaHectares != medidas.AreaColhidaHectares
-                    || QuantidadeProduzidaToneladas != medidas.QuantidadeProduzidaToneladas
+                    || QuantidadeProduzida != medidas.QuantidadeProduzida
                     || ValorDaProducaoMilReais != medidas.ValorDaProducaoMilReais;
 
         ProdutoNome = produtoNome.Trim();
         AreaPlantadaHectares = medidas.AreaPlantadaHectares;
         AreaColhidaHectares = medidas.AreaColhidaHectares;
-        QuantidadeProduzidaToneladas = medidas.QuantidadeProduzidaToneladas;
+        QuantidadeProduzida = medidas.QuantidadeProduzida;
         ValorDaProducaoMilReais = medidas.ValorDaProducaoMilReais;
         ImportadoEm = agoraUtc;
         ImportadoPorId = importadoPorId;
@@ -572,7 +576,7 @@ public sealed class ProducaoAgricolaNoEstado
     public decimal? AreaColhidaHectares { get; private set; }
 
     /// <summary>Quantidade produzida (variável 214).</summary>
-    public decimal? QuantidadeProduzidaToneladas { get; private set; }
+    public decimal? QuantidadeProduzida { get; private set; }
 
     /// <summary>Valor da produção (variável 215), em mil reais.</summary>
     public decimal? ValorDaProducaoMilReais { get; private set; }
@@ -636,13 +640,13 @@ public sealed class ProducaoAgricolaNoEstado
         var mudou = !string.Equals(ProdutoNome, produtoNome.Trim(), StringComparison.Ordinal)
                     || AreaPlantadaHectares != medidas.AreaPlantadaHectares
                     || AreaColhidaHectares != medidas.AreaColhidaHectares
-                    || QuantidadeProduzidaToneladas != medidas.QuantidadeProduzidaToneladas
+                    || QuantidadeProduzida != medidas.QuantidadeProduzida
                     || ValorDaProducaoMilReais != medidas.ValorDaProducaoMilReais;
 
         ProdutoNome = produtoNome.Trim();
         AreaPlantadaHectares = medidas.AreaPlantadaHectares;
         AreaColhidaHectares = medidas.AreaColhidaHectares;
-        QuantidadeProduzidaToneladas = medidas.QuantidadeProduzidaToneladas;
+        QuantidadeProduzida = medidas.QuantidadeProduzida;
         ValorDaProducaoMilReais = medidas.ValorDaProducaoMilReais;
         ImportadoEm = agoraUtc;
         ImportadoPorId = importadoPorId;

@@ -372,9 +372,13 @@ export function IndicadoresGeograficos() {
             : 'produção agrícola não carregada para este município',
       };
 
+    // O ANO DA CULTURA SÓ APARECE QUANDO DIFERE DO DA LAVOURA ao lado (issue 152): os dois números estão na mesma
+    // linha, e o leitor precisa saber que não são do mesmo ano.
+    const anoDaCultura =
+      potencial?.ano != null && potencial.ano !== producao?.ano ? ` (${potencial.ano})` : '';
     const daRegra =
       potencial?.maquinasTeoricas !== null && potencial !== undefined
-        ? `${nº(potencial.areaPlantadaHectares ?? 0)} ha de ${regra?.produtoNome ?? 'cultura da regra'} · ${nº(potencial.maquinasTeoricas ?? 0)} ${regra?.modeloDeReferencia ?? 'máquinas'} teóricos`
+        ? `${nº(potencial.areaPlantadaHectares ?? 0)} ha de ${regra?.produtoNome ?? 'cultura da regra'}${anoDaCultura} · ${nº(potencial.maquinasTeoricas ?? 0)} ${regra?.modeloDeReferencia ?? 'máquinas'} teóricos`
         : 'sem área da cultura da regra';
 
     const daLavoura = producao
@@ -930,7 +934,12 @@ export function IndicadoresGeograficos() {
       )}
 
       {escolhido && indicadores && (
-        <DetalheDoMunicipio municipio={escolhido} regras={indicadores.regras} aoFechar={() => setSelecionado(null)} />
+        <DetalheDoMunicipio
+          municipio={escolhido}
+          regras={indicadores.regras}
+          culturasNoEstado={indicadores.culturasNoEstado}
+          aoFechar={() => setSelecionado(null)}
+        />
       )}
 
       <MetricasSemDado metricas={painel.dados?.metricasSemDado} titulo="O que estes mapas não dizem" />
