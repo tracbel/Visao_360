@@ -653,3 +653,113 @@ public sealed class ProducaoAgricolaNoEstado
         return mudou;
     }
 }
+
+/// <summary>
+/// O MILHO DE UM MUNICÍPIO, SAFRA A SAFRA — tabela SIDRA 839, classificação 81 (issue 156).
+///
+/// <para><b>Por que existe: a mesma terra conta duas vezes.</b> Na PAM (5457) o milho é um produto
+/// só. No Centro-Sul, porém, a segunda safra é semeada DEPOIS da soja, no mesmo talhão: somar a área
+/// de soja com a de milho conta a terra do milho safrinha duas vezes, e o potencial de máquina sai
+/// inflado. Só a 839 separa 1ª de 2ª safra por município.</para>
+///
+/// <para><b>Por que não cabe na tabela da PAM.</b> Os códigos daqui são da classificação <b>81</b>
+/// ("Produto das lavouras temporárias"), e não da 782: gravá-los na coluna documentada como 782
+/// misturaria duas classificações na mesma chave. Além disso a 839 traz o "Total" ao lado das duas
+/// safras, e ele já existe na 5457 — a soma das duas safras confere com ele, e é essa conferência
+/// que a carga registra.</para>
+///
+/// <para><b>Ela não tem valor da produção.</b> A 839 publica área plantada (variável 109), área
+/// colhida, quantidade e rendimento médio; o valor sai só na 5457, para o milho inteiro.</para>
+/// </summary>
+public sealed class ProducaoDeMilhoPorSafraNoMunicipio
+{
+    private ProducaoDeMilhoPorSafraNoMunicipio() { }
+
+    /// <summary>Identificador interno.</summary>
+    public long Id { get; private set; }
+
+    /// <summary>O município.</summary>
+    public int MunicipioId { get; private set; }
+
+    /// <summary>O ano da pesquisa.</summary>
+    public short Ano { get; private set; }
+
+    /// <summary>A categoria da classificação 81: 114253 é a 1ª safra, 114254 a 2ª.</summary>
+    public int SafraCodigoIbge { get; private set; }
+
+    /// <summary>O rótulo oficial da safra, como o IBGE escreve.</summary>
+    public string SafraNome { get; private set; } = default!;
+
+    /// <summary>Hectares plantados (variável 109 nesta tabela, não a 8331 da PAM).</summary>
+    public decimal? AreaPlantadaHectares { get; private set; }
+
+    /// <summary>Hectares colhidos (variável 216).</summary>
+    public decimal? AreaColhidaHectares { get; private set; }
+
+    /// <summary>Quantidade produzida (variável 214), em toneladas.</summary>
+    public decimal? QuantidadeProduzida { get; private set; }
+
+    /// <summary>Quando a carga gravou ou conferiu a linha (UTC).</summary>
+    public DateTime ImportadoEm { get; private set; }
+
+    /// <summary>Quem rodou a carga.</summary>
+    public long ImportadoPorId { get; private set; }
+
+    /// <summary>Registra o milho de uma safra num município e ano.</summary>
+    /// <param name="municipioId">O município.</param>
+    /// <param name="ano">O ano da pesquisa.</param>
+    /// <param name="safraCodigoIbge">A categoria da classificação 81.</param>
+    /// <param name="safraNome">O rótulo oficial da safra.</param>
+    /// <param name="medidas">As medidas; o valor da produção não existe nesta tabela e é ignorado.</param>
+    /// <param name="importadoPorId">Quem rodou a carga.</param>
+    /// <param name="agoraUtc">O instante da carga.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando o ano, a safra ou as medidas não valem.</exception>
+    public static ProducaoDeMilhoPorSafraNoMunicipio Registrar(
+        int municipioId, short ano, int safraCodigoIbge, string safraNome,
+        MedidasDaProducaoAgricola medidas, long importadoPorId, DateTime agoraUtc)
+    {
+        if (ano is < 1974 or > 2100)
+            throw new RegraDeNegocioViolada($"A Produção Agrícola Municipal começa em 1974; ano {ano} não existe nela.");
+
+        if (safraCodigoIbge <= 0)
+            throw new RegraDeNegocioViolada("Safra sem código do IBGE não é safra da classificação oficial.");
+
+        var registro = new ProducaoDeMilhoPorSafraNoMunicipio
+        {
+            MunicipioId = municipioId,
+            Ano = ano,
+            SafraCodigoIbge = safraCodigoIbge
+        };
+
+        registro.Reapurar(safraNome, medidas, importadoPorId, agoraUtc);
+        return registro;
+    }
+
+    /// <summary>Substitui as medidas pelos valores de uma nova leitura. Devolve se algo mudou.</summary>
+    /// <param name="safraNome">O rótulo oficial da safra.</param>
+    /// <param name="medidas">As medidas da nova leitura.</param>
+    /// <param name="importadoPorId">Quem rodou esta leitura.</param>
+    /// <param name="agoraUtc">O instante da carga.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando o rótulo falta ou as medidas não valem.</exception>
+    public bool Reapurar(
+        string safraNome, MedidasDaProducaoAgricola medidas, long importadoPorId, DateTime agoraUtc)
+    {
+        if (string.IsNullOrWhiteSpace(safraNome))
+            throw new RegraDeNegocioViolada("A safra precisa do rótulo oficial dela.");
+
+        medidas.Conferir();
+
+        var mudou = !string.Equals(SafraNome, safraNome.Trim(), StringComparison.Ordinal)
+                    || AreaPlantadaHectares != medidas.AreaPlantadaHectares
+                    || AreaColhidaHectares != medidas.AreaColhidaHectares
+                    || QuantidadeProduzida != medidas.QuantidadeProduzida;
+
+        SafraNome = safraNome.Trim();
+        AreaPlantadaHectares = medidas.AreaPlantadaHectares;
+        AreaColhidaHectares = medidas.AreaColhidaHectares;
+        QuantidadeProduzida = medidas.QuantidadeProduzida;
+        ImportadoEm = agoraUtc;
+        ImportadoPorId = importadoPorId;
+        return mudou;
+    }
+}

@@ -58,13 +58,14 @@ function Historico({ codigo }: { codigo: string }) {
 
 function EditorDeAgenda({ rotina: r, aoSalvar, aoCancelar }: { rotina: RotinaNaTela; aoSalvar: () => void; aoCancelar: () => void }) {
   const { contexto } = useContextoDeAcesso();
-  const envio = useEnvio(['cadencia', 'mes', 'dia', 'hora', 'intervaloMinutos']);
+  const envio = useEnvio(['cadencia', 'mes', 'dia', 'hora', 'intervaloMinutos', 'anoInicialDoHistorico']);
   const [cadencia, setCadencia] = useState<CadenciaDaRotina>(r.cadencia);
   const [mes, setMes] = useState(r.mes ?? 1);
   const [dia, setDia] = useState(r.dia?.toString() ?? '1');
   const [hora, setHora] = useState(r.hora ?? '03:00');
   const [minutos, setMinutos] = useState(r.intervaloMinutos?.toString() ?? '60');
   const [ligada, setLigada] = useState(r.estaLigada);
+  const [anoInicial, setAnoInicial] = useState(r.anoInicialDoHistorico?.toString() ?? '');
   const id = (campo: string) => `rotina-${r.codigo}-${campo}`;
 
   async function salvar() {
@@ -76,6 +77,8 @@ function EditorDeAgenda({ rotina: r, aoSalvar, aoCancelar }: { rotina: RotinaNaT
         hora: cadencia === 'Intervalo' ? null : hora,
         intervaloMinutos: cadencia === 'Intervalo' ? Number(minutos) : null,
         ligada,
+        // CAMPO VAZIO É "SEM SÉRIE LONGA", e não zero: a carga volta à janela curta dos anos recentes.
+        anoInicialDoHistorico: r.aceitaAnoInicialDoHistorico && anoInicial !== '' ? Number(anoInicial) : null,
       }),
     );
     if (salva) aoSalvar();
@@ -132,6 +135,19 @@ function EditorDeAgenda({ rotina: r, aoSalvar, aoCancelar }: { rotina: RotinaNaT
             {envio.erros.intervaloMinutos && <div className="form-erro">{envio.erros.intervaloMinutos}</div>}
           </div>
         )}
+        {r.aceitaAnoInicialDoHistorico && (
+          <div className="form-field">
+            <label htmlFor={id('anoInicial')}>Buscar desde o ano</label>
+            <input
+              id={id('anoInicial')}
+              inputMode="numeric"
+              placeholder="2010"
+              value={anoInicial}
+              onChange={(e) => setAnoInicial(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            />
+            {envio.erros.anoInicialDoHistorico && <div className="form-erro">{envio.erros.anoInicialDoHistorico}</div>}
+          </div>
+        )}
         <div className="form-field">
           <label htmlFor={id('ligada')}>Situação</label>
           <label className="int-ligada">
@@ -139,6 +155,12 @@ function EditorDeAgenda({ rotina: r, aoSalvar, aoCancelar }: { rotina: RotinaNaT
           </label>
         </div>
       </div>
+      {r.aceitaAnoInicialDoHistorico && (
+        <p className="config-hint">
+          A produção agrícola tem série desde 1974. A rotina busca só os anos que faltam, mais os três mais recentes, que o
+          IBGE ainda revisa — mudar o ano aqui não a faz baixar tudo de novo.
+        </p>
+      )}
       <p className="config-hint">A nova agenda vale daqui para a frente: a execução que ficou para trás da agenda antiga não é cobrada.</p>
       <div className="adm-acoes">
         <button type="button" className="btn btn-secondary" onClick={aoCancelar}>

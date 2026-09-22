@@ -143,6 +143,123 @@ public sealed class LeitorDoIbge(HttpClient http)
         string.Join(',', produtos) +
         "?formato=json";
 
+    // =============================================================================================
+    // O milho por safra — tabela 839 (issue 156)
+    // =============================================================================================
+
+    /// <summary>
+    /// "Área plantada, área colhida, quantidade produzida e rendimento médio de milho, 1ª e 2ª safras".
+    ///
+    /// <para><b>Conferida nos metadados em 22/09/2026</b>, como a issue manda: a 839 tem nível
+    /// municipal (N6), vai de 2003 a 2025 e traz a classificação 81 com "Total", "1ª safra" e
+    /// "2ª safra". Serve.</para>
+    /// </summary>
+    public const short TabelaDoMilhoPorSafra = 839;
+
+    /// <summary>A classificação "Produto das lavouras temporárias", onde moram as duas safras.</summary>
+    public const short ClassificacaoDaSafra = 81;
+
+    /// <summary>"Milho (em grão) - 1ª safra".</summary>
+    public const int MilhoPrimeiraSafra = 114253;
+
+    /// <summary>"Milho (em grão) - 2ª safra".</summary>
+    public const int MilhoSegundaSafra = 114254;
+
+    /// <summary>As duas safras que a carga traz — o "Total" (31693) fica de fora, porque já é o milho da 5457.</summary>
+    public static readonly int[] SafrasDoMilho = [MilhoPrimeiraSafra, MilhoSegundaSafra];
+
+    /// <summary>
+    /// "Área plantada" NESTA tabela é a variável <b>109</b>, e não a 8331 da PAM.
+    ///
+    /// <para>Pedir a 8331 aqui devolve resposta vazia — não erro —, e a área do safrinha sumiria em
+    /// silêncio, que é exatamente o defeito que esta issue existe para impedir.</para>
+    /// </summary>
+    public const short VariavelDaAreaPlantadaNoMilho = 109;
+
+    /// <summary>As três medidas da 839 que o CRM guarda; a 112 (rendimento) é derivada e fica de fora.</summary>
+    public static readonly short[] VariaveisDoMilhoPorSafra =
+        [VariavelDaAreaPlantadaNoMilho, VariavelDaAreaColhida, VariavelDaQuantidadeProduzida];
+
+    /// <summary>O endereço do milho por safra, nos municípios de uma UF, num ano.</summary>
+    /// <param name="codigoDaUf">O código IBGE da UF.</param>
+    /// <param name="ano">O ano da pesquisa.</param>
+    public static string EnderecoDoMilhoPorSafra(int codigoDaUf, short ano) =>
+        $"https://apisidra.ibge.gov.br/values/t/{TabelaDoMilhoPorSafra}/n6/in%20n3%20{codigoDaUf}" +
+        $"/v/{string.Join(',', VariaveisDoMilhoPorSafra)}/p/{ano}" +
+        $"/c{ClassificacaoDaSafra}/{string.Join(',', SafrasDoMilho)}?formato=json";
+
+    /// <summary>Os metadados da 839, para saber até quando ela publica.</summary>
+    public const string EnderecoDosMetadadosDoMilhoPorSafra =
+        "https://servicodados.ibge.gov.br/api/v3/agregados/839/metadados";
+
+    /// <summary>
+    /// O período que a 839 publica, pelos metadados — ela começa em 2003, e a PAM em 1974.
+    ///
+    /// <para>Sem isso, uma série pedida desde 2000 faria a carga bater na 839 três vezes para
+    /// receber resposta vazia, e "vazio" é ambíguo demais para se confiar nele (issue 153).</para>
+    /// </summary>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<(short Inicio, short Fim)> LerPeriodoDoMilhoPorSafraAsync(CancellationToken ct)
+    {
+        await using var corpo = await http.GetStreamAsync(EnderecoDosMetadadosDoMilhoPorSafra, ct);
+        using var documento = await JsonDocument.ParseAsync(corpo, cancellationToken: ct);
+
+        var periodicidade = documento.RootElement.GetProperty("periodicidade");
+        return (periodicidade.GetProperty("inicio").GetInt16(), periodicidade.GetProperty("fim").GetInt16());
+    }
+
+    /// <summary>
+    /// O milho de 1ª e 2ª safra dos municípios de uma UF, num ano.
+    ///
+    /// <para><b>Sem lote:</b> são duas categorias e três variáveis, contra as 85 da PAM — cabe numa
+    /// consulta só.</para>
+    ///
+    /// <para>As linhas voltam no mesmo formato da PAM, com o valor da produção sempre nulo: esta
+    /// tabela não publica valor, e ele existe só para o milho inteiro, na 5457.</para>
+    /// </summary>
+    /// <param name="codigoDaUf">O código IBGE da UF.</param>
+    /// <param name="ano">O ano da pesquisa.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<IReadOnlyList<LinhaDaProducaoAgricola>> LerMilhoPorSafraAsync(
+        int codigoDaUf, short ano, CancellationToken ct)
+    {
+        var porChave = new Dictionary<(int Recorte, short Ano, int Safra), string?[]>();
+        var nomes = new Dictionary<int, string>();
+        var ordem = new List<(int Recorte, short Ano, int Safra)>();
+
+        await using var corpo = await http.GetStreamAsync(EnderecoDoMilhoPorSafra(codigoDaUf, ano), ct);
+        using var documento = await JsonDocument.ParseAsync(corpo, cancellationToken: ct);
+
+        foreach (var l in documento.RootElement.EnumerateArray().Skip(1))
+        {
+            var variavel = short.Parse(l.GetProperty("D2C").GetString()!, CultureInfo.InvariantCulture);
+            var posicao = Array.IndexOf(VariaveisDoMilhoPorSafra, variavel);
+            if (posicao < 0) continue;
+
+            var chave = (
+                int.Parse(l.GetProperty("D1C").GetString()!, CultureInfo.InvariantCulture),
+                short.Parse(l.GetProperty("D3C").GetString()!, CultureInfo.InvariantCulture),
+                int.Parse(l.GetProperty("D4C").GetString()!, CultureInfo.InvariantCulture));
+
+            if (!porChave.TryGetValue(chave, out var valores))
+            {
+                valores = new string?[VariaveisDoMilhoPorSafra.Length];
+                porChave[chave] = valores;
+                ordem.Add(chave);
+            }
+
+            valores[posicao] = l.GetProperty("V").GetString();
+            nomes[chave.Item3] = l.GetProperty("D4N").GetString()!;
+        }
+
+        return
+        [
+            .. ordem.Select(c => new LinhaDaProducaoAgricola(
+                c.Recorte, c.Ano, c.Safra, nomes[c.Safra],
+                porChave[c][0], porChave[c][1], porChave[c][2], ValorDaProducaoBruto: null))
+        ];
+    }
+
     /// <summary>A malha municipal de uma UF, em GeoJSON, na qualidade intermediária do IBGE.</summary>
     /// <param name="codigoDaUf">O código IBGE da UF.</param>
     public static string EnderecoDaMalhaMunicipal(int codigoDaUf) =>

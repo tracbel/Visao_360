@@ -241,6 +241,13 @@ public class CrmDbContext : DbContext
     /// <summary>As mesmas quatro medidas no total da UF — que não é a soma dos municípios.</summary>
     public DbSet<ProducaoAgricolaNoEstado> ProducoesAgricolasNosEstados => Set<ProducaoAgricolaNoEstado>();
 
+    /// <summary>
+    /// O milho separado em 1ª e 2ª safra (issue 156) — o que a PAM não separa, e sem o que a soma de
+    /// soja com milho conta a terra do safrinha duas vezes.
+    /// </summary>
+    public DbSet<ProducaoDeMilhoPorSafraNoMunicipio> ProducoesDeMilhoPorSafra =>
+        Set<ProducaoDeMilhoPorSafraNoMunicipio>();
+
     /// <summary>Tratores e estabelecimentos com trator, por faixa de potência (Censo Agropecuário).</summary>
     public DbSet<FrotaDeTratoresNoMunicipio> FrotasDeTratoresNosMunicipios => Set<FrotaDeTratoresNoMunicipio>();
 

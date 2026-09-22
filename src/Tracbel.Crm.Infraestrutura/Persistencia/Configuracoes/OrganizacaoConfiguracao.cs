@@ -334,6 +334,51 @@ public sealed class ProducaoAgricolaNoMunicipioConfiguracao : IEntityTypeConfigu
 }
 
 /// <summary>
+/// Mapeamento de <see cref="ProducaoDeMilhoPorSafraNoMunicipio"/> — o milho separado em 1ª e 2ª safra
+/// (issue 156), que a PAM não separa e sem o qual a soma de soja com milho conta a mesma terra duas vezes.
+/// </summary>
+public sealed class ProducaoDeMilhoPorSafraNoMunicipioConfiguracao
+    : IEntityTypeConfiguration<ProducaoDeMilhoPorSafraNoMunicipio>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ProducaoDeMilhoPorSafraNoMunicipio> b)
+    {
+        b.ToTable("ProducaoDeMilhoPorSafraNoMunicipio", "organizacao");
+        b.HasKey(p => p.Id);
+        b.Property(p => p.Id).ValueGeneratedOnAdd();
+
+        b.Property(p => p.MunicipioId).IsRequired();
+        b.Property(p => p.Ano).IsRequired();
+        b.Property(p => p.SafraCodigoIbge).IsRequired();
+        b.Property(p => p.SafraNome).HasMaxLength(120).IsUnicode(true).IsRequired();
+        b.Property(p => p.AreaPlantadaHectares).HasPrecision(14, 2);
+        b.Property(p => p.AreaColhidaHectares).HasPrecision(14, 2);
+        b.Property(p => p.QuantidadeProduzida).HasPrecision(18, 2);
+        b.Property(p => p.ImportadoEm).HasPrecision(3).IsRequired();
+        b.Property(p => p.ImportadoPorId).IsRequired();
+
+        b.HasIndex(p => new { p.MunicipioId, p.Ano, p.SafraCodigoIbge })
+            .IsUnique()
+            .HasDatabaseName("UX_ProducaoDeMilhoPorSafraNoMunicipio_Municipio_Ano_Safra");
+
+        // A consulta do compartilhamento de máquina: "a área da 2ª safra, neste ano, em todo o mapa".
+        b.HasIndex(p => new { p.SafraCodigoIbge, p.Ano });
+        b.HasIndex(p => p.ImportadoPorId);
+
+        b.HasOne<Municipio>().WithMany().HasForeignKey(p => p.MunicipioId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Dominio.Seguranca.Usuario>().WithMany().HasForeignKey(p => p.ImportadoPorId).OnDelete(DeleteBehavior.Restrict);
+
+        b.ToTable(t => t.HasCheckConstraint("CK_ProducaoDeMilhoPorSafraNoMunicipio_Ano", "[Ano] BETWEEN 1974 AND 2100"));
+        b.ToTable(t => t.HasCheckConstraint("CK_ProducaoDeMilhoPorSafraNoMunicipio_Safra", "[SafraCodigoIbge] > 0"));
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_ProducaoDeMilhoPorSafraNoMunicipio_Medidas",
+            "([AreaPlantadaHectares] IS NULL OR [AreaPlantadaHectares] >= 0) " +
+            "AND ([AreaColhidaHectares] IS NULL OR [AreaColhidaHectares] >= 0) " +
+            "AND ([QuantidadeProduzida] IS NULL OR [QuantidadeProduzida] >= 0)"));
+    }
+}
+
+/// <summary>
 /// Mapeamento de <see cref="ProducaoAgricolaNoEstado"/> — a linha da UF inteira, que o IBGE publica
 /// e que <b>não</b> é a soma dos municípios (ver a entidade).
 /// </summary>

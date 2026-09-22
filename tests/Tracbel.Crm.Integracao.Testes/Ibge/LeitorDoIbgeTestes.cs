@@ -243,4 +243,67 @@ public sealed class LeitorDoIbgeTestes
         linhas.Single().CodigoDoRecorte.Should().Be(35, "no nível 3 o recorte é a UF, não o município");
         Uri.UnescapeDataString(pedidos[^1].ToString()).Should().Contain("/n3/35/");
     }
+    // =============================================================================================
+    // O milho por safra — tabela 839 (issue 156)
+    // =============================================================================================
+
+    /// <summary>Os metadados da 839: ela começa em 2003, e não em 1974 como a PAM.</summary>
+    private const string MetadadosDoMilho = """
+        {
+          "id": 839,
+          "periodicidade": { "frequencia": "anual", "inicio": 2003, "fim": 2025 },
+          "variaveis": [ { "id": 109, "nome": "Área plantada" } ],
+          "classificacoes": [ { "id": 81, "nome": "Produto das lavouras temporárias", "categorias": [] } ]
+        }
+        """;
+
+    [Fact]
+    public void O_endereco_do_milho_por_safra_pede_a_variavel_109_e_as_duas_safras()
+    {
+        // O DEFEITO QUE ESTE TESTE IMPEDE: nesta tabela "Área plantada" é a variável 109, e não a
+        // 8331 da PAM. Pedir a 8331 aqui devolve resposta VAZIA, não erro — e a área do safrinha
+        // sumiria em silêncio, que é o contrário do que a issue 156 existe para garantir.
+        var endereco = Uri.UnescapeDataString(LeitorDoIbge.EnderecoDoMilhoPorSafra(SaoPaulo, 2024));
+
+        endereco.Should().Contain("/t/839/");
+        endereco.Should().Contain("/n6/in n3 35/", "o milho por safra é por município");
+        endereco.Should().Contain("/v/109,216,214/", "área plantada nesta tabela é a 109");
+        endereco.Should().NotContain("8331");
+        endereco.Should().Contain("/c81/114253,114254", "1ª e 2ª safra; o Total fica de fora, porque já é o milho da 5457");
+    }
+
+    [Fact]
+    public async Task O_milho_por_safra_junta_as_tres_variaveis_e_nao_traz_valor_da_producao()
+    {
+        var resposta = RespostaCom(
+            Linha(3501608, 109, 114253, "Milho (em grão) - 1ª safra", "1000"),
+            Linha(3501608, 216, 114253, "Milho (em grão) - 1ª safra", "980"),
+            Linha(3501608, 214, 114253, "Milho (em grão) - 1ª safra", "6000"),
+            Linha(3501608, 109, 114254, "Milho (em grão) - 2ª safra", "4000"),
+            Linha(3501608, 216, 114254, "Milho (em grão) - 2ª safra", "3900"),
+            Linha(3501608, 214, 114254, "Milho (em grão) - 2ª safra", "23000"));
+
+        var linhas = await Leitor(MetadadosDoMilho, resposta).LerMilhoPorSafraAsync(SaoPaulo, Ano, CancellationToken.None);
+
+        linhas.Should().HaveCount(2, "seis linhas do SIDRA, três variáveis, duas safras");
+
+        var segunda = linhas.Single(l => l.ProdutoCodigo == 114254);
+        segunda.ProdutoNome.Should().Be("Milho (em grão) - 2ª safra");
+        segunda.AreaPlantadaBruta.Should().Be("4000");
+        segunda.AreaColhidaBruta.Should().Be("3900");
+        segunda.QuantidadeProduzidaBruta.Should().Be("23000");
+        segunda.ValorDaProducaoBruto.Should().BeNull("a 839 não publica valor da produção");
+    }
+
+    [Fact]
+    public async Task O_periodo_da_839_vem_dos_metadados_porque_ela_comeca_depois_da_pam()
+    {
+        // A PAM tem série desde 1974 e a 839 desde 2003. Sem perguntar, uma série pedida desde 2000
+        // bateria na 839 três vezes para receber resposta vazia — e vazio é ambíguo demais.
+        var (inicio, fim) = await Leitor(MetadadosDoMilho, RespostaCom())
+            .LerPeriodoDoMilhoPorSafraAsync(CancellationToken.None);
+
+        inicio.Should().Be(2003);
+        fim.Should().Be(2025);
+    }
 }

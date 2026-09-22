@@ -580,6 +580,19 @@ public sealed class Rotina
     /// <summary>Se roda pela agenda. Desligada, só roda se alguém pedir.</summary>
     public bool EstaLigada { get; private set; }
 
+    /// <summary>
+    /// O PRIMEIRO ANO QUE A ROTINA BUSCA na fonte que tem série histórica (issue 156); nulo nas que
+    /// não têm.
+    ///
+    /// <para>Ele é parâmetro, e não constante no código, porque "desde quando" é uma escolha de
+    /// negócio: mudar de 2010 para 2005 é uma edição na tela, não uma publicação.</para>
+    ///
+    /// <para><b>Ele não manda a rotina reler tudo.</b> A carga busca só os anos que faltam, mais a
+    /// janela recente que o IBGE ainda revisa — baixar quinze anos a cada rodada levaria horas para
+    /// regravar o que já está igual.</para>
+    /// </summary>
+    public short? AnoInicialDoHistorico { get; private set; }
+
     /// <summary>Desde quando a agenda atual vale (UTC): o que ficou para trás dela não é cobrado.</summary>
     public DateTime AgendaVigenteDesde { get; private set; }
 
@@ -615,8 +628,29 @@ public sealed class Rotina
         Hora = item.AgendaPadrao.Hora,
         IntervaloMinutos = item.AgendaPadrao.IntervaloMinutos,
         EstaLigada = item.LigadaPorPadrao,
-        AgendaVigenteDesde = vigenteDesdeUtc
+        AgendaVigenteDesde = vigenteDesdeUtc,
+        AnoInicialDoHistorico = item.AnoInicialPadraoDoHistorico
     };
+
+    /// <summary>
+    /// Troca o primeiro ano da série histórica. Devolve se mudou.
+    /// </summary>
+    /// <param name="ano">O primeiro ano a buscar, ou nulo para voltar à janela curta da carga.</param>
+    /// <param name="agoraUtc">O instante da edição, para recusar ano que ainda não aconteceu.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando o ano está fora do que as pesquisas do IBGE publicam.</exception>
+    public bool DefinirAnoInicialDoHistorico(short? ano, DateTime agoraUtc)
+    {
+        // 1974 É O PRIMEIRO ANO DA PAM. Pedir antes disso não traz nada e faria a carga percorrer
+        // décadas vazias a cada rodada; pedir um ano futuro não traz nada nunca.
+        if (ano is not null && (ano < 1974 || ano > agoraUtc.Year))
+            throw new RegraDeNegocioViolada(
+                $"O primeiro ano da série vai de 1974 — o início da Produção Agrícola Municipal — até {agoraUtc.Year}.");
+
+        if (AnoInicialDoHistorico == ano) return false;
+
+        AnoInicialDoHistorico = ano;
+        return true;
+    }
 
     /// <summary>Troca a agenda. O que ficou para trás da agenda antiga não é cobrado.</summary>
     public void Reagendar(AgendaDaRotina agenda, DateTime agoraUtc)
@@ -833,9 +867,14 @@ public static class ConexoesDoSistema
 /// <param name="LigadaPorPadrao">Se nasce ligada.</param>
 /// <param name="Conexoes">As conexões que ela usa.</param>
 /// <param name="ConexaoExigida">A conexão sem a qual ela não roda — precisa de credencial.</param>
+/// <param name="AnoInicialPadraoDoHistorico">
+/// O primeiro ano que a rotina busca quando a fonte tem série histórica, ou nulo quando não tem (issue 156). É o
+/// valor que a migração semeia; quem administra muda pela tela, sem publicação nova.
+/// </param>
 public sealed record RotinaDoSistema(
     string Codigo, string Nome, string Descricao, IReadOnlyList<string> Modos, AgendaDaRotina AgendaPadrao,
-    bool LigadaPorPadrao, IReadOnlyList<string> Conexoes, string? ConexaoExigida);
+    bool LigadaPorPadrao, IReadOnlyList<string> Conexoes, string? ConexaoExigida,
+    short? AnoInicialPadraoDoHistorico = null);
 
 /// <summary>
 /// AS ROTINAS DO SERVIDOR. As duas das fontes públicas nascem ligadas, com o calendário que as tarefas do Windows
@@ -846,6 +885,14 @@ public static class RotinasDoSistema
 {
     /// <summary>A PAM e a estrutura agropecuária.</summary>
     public const string FontesAnuais = "FONTES_ANUAIS";
+
+    /// <summary>
+    /// O primeiro ano da série da PAM que a migração semeia (issue 156).
+    ///
+    /// <para>A pesquisa tem série desde 1974; 2010 é o ponto proposto pela issue — quinze safras, que
+    /// cobrem dois ciclos de renovação de máquina. Quem administra muda pela tela.</para>
+    /// </summary>
+    public const short AnoInicialPadraoDaPam = 2010;
 
     /// <summary>Preços, custos e crédito.</summary>
     public const string PrecosMensais = "PRECOS_MENSAIS";
@@ -865,10 +912,13 @@ public static class RotinasDoSistema
     /// <summary>As rotinas, na ordem da tela.</summary>
     public static readonly IReadOnlyList<RotinaDoSistema> Todas =
     [
+        // A PAM TEM SÉRIE DESDE 1974, e o pedido quer histórico. 2010 é a proposta da issue 156 — e é
+        // parâmetro justamente porque é uma escolha, não uma verdade: puxar de 2005 é mudar o número
+        // na tela, não publicar versão nova.
         new(FontesAnuais, "Fontes públicas anuais",
             "A produção agrícola do IBGE (PAM), o Censo Agropecuário, o rebanho, a área territorial e as usinas da ANP.",
             ["--somente-pam", "--somente-estrutura"], AgendaDaRotina.AnualEm(10, 1, new TimeOnly(3, 0)), true,
-            ["IBGE_SIDRA", "IBGE_LOCALIDADES", "ANP"], null),
+            ["IBGE_SIDRA", "IBGE_LOCALIDADES", "ANP"], null, AnoInicialPadraoDaPam),
         new(PrecosMensais, "Preços, custos e crédito",
             "O preço recebido (CONAB), o ATR (Socicana), o dólar PTAX, o custo de produção (CONAB) e o crédito rural (SICOR).",
             ["--somente-precos", "--somente-custos", "--somente-credito"], AgendaDaRotina.MensalEm(20, new TimeOnly(4, 0)), true,

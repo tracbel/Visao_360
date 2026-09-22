@@ -29,6 +29,7 @@ public static class RotulosDaTrilha
         ["CustoDeProducao"] = "Custo de produção",
         ["CreditoRuralDeInvestimento"] = "Crédito rural",
         ["ProducaoAgricolaNoMunicipio"] = "Produção agrícola no município (PAM)",
+    ["ProducaoDeMilhoPorSafraNoMunicipio"] = "Milho por safra no município (SIDRA 839)",
         ["ProducaoAgricolaNoEstado"] = "Produção agrícola no estado (PAM)",
         ["FrotaDeTratoresNoMunicipio"] = "Tratores no município (Censo)",
         ["EstabelecimentosPorAreaNoMunicipio"] = "Propriedades por tamanho (Censo)",
@@ -111,6 +112,11 @@ public static class RotulosDaTrilha
         {
             ["ProdutoNome"] = "Produto", ["AreaPlantadaHectares"] = "Área plantada (ha)", ["AreaColhidaHectares"] = "Área colhida (ha)",
             ["QuantidadeProduzida"] = "Quantidade produzida", ["ValorDaProducaoMilReais"] = "Valor da produção (mil R$)"
+        },
+        ["ProducaoDeMilhoPorSafraNoMunicipio"] = new(StringComparer.Ordinal)
+        {
+            ["SafraNome"] = "Safra", ["AreaPlantadaHectares"] = "Área plantada (ha)", ["AreaColhidaHectares"] = "Área colhida (ha)",
+            ["QuantidadeProduzida"] = "Quantidade produzida"
         },
         ["FrotaDeTratoresNoMunicipio"] = new(StringComparer.Ordinal)
         {

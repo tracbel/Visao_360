@@ -57,6 +57,7 @@ const FATURAMENTO: RotinaNaTela = {
   proximaExecucaoEm: null, naFila: false, execucaoPedidaEm: null, execucaoPedidaPor: null, ultimaExecucaoIniciadaEm: null,
   ultimaExecucaoTerminadaEm: null, ultimoResultado: null, ultimaMensagem: null, conexoes: ['PROTHEUS'],
   pendencia: 'Falta a credencial de Protheus — API REST: configure-a acima. Sem ela, a rotina não roda.',
+  anoInicialDoHistorico: null, aceitaAnoInicialDoHistorico: false,
 };
 
 const PRECOS: RotinaNaTela = {

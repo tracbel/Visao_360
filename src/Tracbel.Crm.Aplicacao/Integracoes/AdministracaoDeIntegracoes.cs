@@ -20,7 +20,8 @@ public sealed record RotinaNaTela(
     string Codigo, string Nome, string Descricao, IReadOnlyList<string> Cargas, string Cadencia, int? Mes, int? Dia, string? Hora,
     int? IntervaloMinutos, string Agenda, bool EstaLigada, DateTime? ProximaExecucaoEm, bool NaFila, DateTime? ExecucaoPedidaEm,
     string? ExecucaoPedidaPor, DateTime? UltimaExecucaoIniciadaEm, DateTime? UltimaExecucaoTerminadaEm, string? UltimoResultado,
-    string? UltimaMensagem, IReadOnlyList<string> Conexoes, string? Pendencia);
+    string? UltimaMensagem, IReadOnlyList<string> Conexoes, string? Pendencia,
+    short? AnoInicialDoHistorico, bool AceitaAnoInicialDoHistorico);
 
 /// <summary>O painel de Integrações.</summary>
 /// <param name="Conexoes">As conexões: as do sistema, depois as cadastradas pela tela.</param>
@@ -44,7 +45,7 @@ public sealed record NovaConexaoMonitorada(
 public sealed record SegredoDaConexao(string? Segredo);
 
 /// <summary>O corpo da agenda de uma rotina.</summary>
-public sealed record AgendaNaTela(string? Cadencia, int? Mes, int? Dia, string? Hora, int? IntervaloMinutos, bool? Ligada);
+public sealed record AgendaNaTela(string? Cadencia, int? Mes, int? Dia, string? Hora, int? IntervaloMinutos, bool? Ligada, short? AnoInicialDoHistorico);
 
 /// <summary>
 /// MONTA O QUE A TELA MOSTRA — a mesma conta para a lista e para a resposta de cada ação, para a tela nunca ver
@@ -106,7 +107,8 @@ public sealed class MontadorDoPainelDeIntegracoes(
             r.ProximaExecucao(agora), r.ExecucaoPedidaEm is not null, r.ExecucaoPedidaEm,
             r.ExecucaoPedidaPorId is { } id ? nomes.GetValueOrDefault(id, $"usuário {id}") : null,
             r.UltimaExecucaoIniciadaEm, r.UltimaExecucaoTerminadaEm, r.UltimoResultado?.ToString(), r.UltimaMensagem,
-            catalogo?.Conexoes ?? [], pendencia);
+            catalogo?.Conexoes ?? [], pendencia,
+            r.AnoInicialDoHistorico, catalogo?.AnoInicialPadraoDoHistorico is not null);
     }
 }
 
@@ -366,6 +368,22 @@ public sealed class AdministrarRotinas(
         var agenda = new AgendaDaRotina(cadencia, entrada.Mes, entrada.Dia, hora, entrada.IntervaloMinutos);
         if (!erros.TemErro)
             foreach (var (campo, mensagem) in agenda.Problemas()) erros.Registrar(campo, mensagem);
+
+        // O PRIMEIRO ANO DA SÉRIE (issue 156) só existe nas rotinas que o catálogo diz ter série
+        // histórica: aceitá-lo nas outras gravaria um parâmetro que carga nenhuma lê.
+        var aceitaSerie = RotinasDoSistema.Obter(rotina.Codigo)?.AnoInicialPadraoDoHistorico is not null;
+        if (!aceitaSerie && entrada.AnoInicialDoHistorico is not null)
+            erros.Registrar("anoInicialDoHistorico", "Esta rotina não busca série histórica.", entrada.AnoInicialDoHistorico?.ToString(CultureInfo.InvariantCulture));
+
+        // A FAIXA É CONFERIDA AQUI para virar recusa com campo, e não um erro de servidor: a regra
+        // continua no domínio, que é a última linha de defesa de quem grava por outro caminho.
+        var anoDeHoje = relogio.Agora.Year;
+        if (aceitaSerie && entrada.AnoInicialDoHistorico is { } pedido && (pedido < 1974 || pedido > anoDeHoje))
+            erros.Registrar(
+                "anoInicialDoHistorico",
+                $"O primeiro ano da série vai de 1974 — o início da Produção Agrícola Municipal — até {anoDeHoje}.",
+                pedido.ToString(CultureInfo.InvariantCulture));
+
         if (erros.TemErro) return erros.Recusar<RotinaNaTela>("A agenda tem campos a corrigir.");
 
         var agora = relogio.Agora;
@@ -373,6 +391,7 @@ public sealed class AdministrarRotinas(
             return Resultado<RotinaNaTela>.Conflito(falta);
 
         rotina.Reagendar(agenda, agora);
+        if (aceitaSerie) rotina.DefinirAnoInicialDoHistorico(entrada.AnoInicialDoHistorico, agora);
         if (entrada.Ligada == true) rotina.Ligar(agora);
         else if (entrada.Ligada == false) rotina.Desligar();
 
