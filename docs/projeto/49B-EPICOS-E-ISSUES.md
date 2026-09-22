@@ -451,7 +451,7 @@ As 11 issues existentes da parte B receberam o comentário "Atualização de esc
 - **Objetivo:** todo número diz de onde veio — "Fonte: IBGE/SIDRA — PAM — Tabela 5457 — Safra 2024 — última
   atualização 01/10/2026" — e os parágrafos fixos dos cartões viram esse tooltip.
 - **Contexto [M]:** a procedência é um selo por painel (`SeloProcedencia`), e a da rota de indicadores lista 4
-  tabelas quando a resposta usa 10 (I-18); cada cartão tem um parágrafo fixo de aviso (sigilo, ANP, Censo de 2017).
+  tabelas quando a apuração lê 19 (I-18); cada cartão tem um parágrafo fixo de aviso (sigilo, ANP, Censo de 2017).
 - **Regra de negócio:** a API devolve `procedencia` por indicador: fonte, pesquisa/tabela, variável,
   competência, última atualização (a rodada da carga) e ressalva. O front não escreve fonte à mão.
 - **Fontes:** painel de fontes públicas (última rodada de cada fluxo).

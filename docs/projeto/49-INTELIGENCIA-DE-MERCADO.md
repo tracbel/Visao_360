@@ -141,7 +141,7 @@ de componente [M]. De cima para baixo:
 | `GET /api/v1/territorio/precos` | `Territorio.Ler` | séries mensais por produto/fonte/nível, R$ e US$, unidade comercial |
 | `GET /api/v1/territorio/custos` | `Territorio.Ler` | séries de custo por cultura/local/variante e safra |
 | `GET /api/v1/territorio/credito` | `Territorio.Ler` | SICOR por ano, produto e município (máquinas), janelas 12 × 12 |
-| `GET/POST /api/v1/admin/parametros-do-potencial` | leitura: padrão; escrita: `ParametroDoPotencial.Administrar` / `PercepcaoDoGestor.Informar` | vigentes numa data, histórico, opções, registrar e revogar |
+| `GET/POST /api/v1/admin/parametros-do-potencial` | leitura: `ParametroDoPotencial.Ler`; escrita: `ParametroDoPotencial.Administrar` / `PercepcaoDoGestor.Informar` | vigentes numa data, histórico, opções, registrar e revogar |
 | `GET /api/v1/integracoes/fontes-publicas` | `Integracao.Ler` | situação de cada fonte, rotina, agenda, recusas |
 
 **Nenhuma rota recebe a data do cálculo** [M]: o potencial usa sempre a regra vigente **hoje**. A vigência
@@ -161,7 +161,7 @@ Todas em `organizacao`, exceto onde indicado [M]:
 | `RebanhoNoMunicipio` | município × tipo × ano | IBGE 3939 | sem trilha | código IBGE |
 | `AreaTerritorialDoMunicipio` | município × ano | IBGE 4714 | sem trilha | código IBGE |
 | `UsinaDeEtanol` | usina (CNPJ) | ANP | **apagada quando sai da lista** | **nome** |
-| `CotacaoDeProduto` | fonte × produto × nível × mês | CONAB, Socicana | trilha do valor | município só quando a CONAB traz |
+| `CotacaoDeProduto` | fonte × produto × nível × mês | CONAB, Socicana | trilha do valor | praça da fonte (SP); sem município |
 | `CotacaoDoDolar` | mês | BCB SGS 3698 | trilha | — |
 | `CustoDeProducao` | cultura × local × variante × safra × relatório | CONAB séries | trilha | **nome do local** |
 | `CreditoRuralDeInvestimento` | município × mês × combinação | BCB SICOR | trilha do valor; **reclassificada é apagada** | código BCB + **nome** |
@@ -278,7 +278,7 @@ reais"; a decisão é sua (sugestão: uma issue própria, fora deste lote).
 | I-15 | **Receita mensal da cana com um ATR só**: os 24 meses usam o ATR da safra 2025/26 | meses de 2024/25 com o ATR errado | ATR da safra de cada mês |
 | I-16 | **Sacas por tonelada**: 16,67 numa coluna e 16,6667 na outra, na mesma aba | diferença pequena, mas dois números para a mesma conversão | fator único por unidade comercial (catálogo) |
 | I-17 | **Margem total = margem/ha × área plantada** | conta receita em área que não colhe | multiplicar pela área **colhida** |
-| I-18 | **Procedência incompleta**: a rota diz ler 4 tabelas; a resposta usa 10 | o selo de procedência engana | procedência por indicador (IM-18) |
+| I-18 | **Procedência incompleta**: a rota diz ler 4 tabelas; a apuração lê 19 (ficam de fora do selo, entre outras, as 5 da estrutura agropecuária, o total do estado e a regra de potencial) | o selo de procedência engana | procedência por indicador (IM-18) |
 | I-19 | **Área de laranja**: soma dos municípios 128.327 ha × total publicado 128.172 ha (Δ 155 ha) | soma ≠ total publicado | a região é soma dos municípios; SP é o publicado; a diferença é dita |
 | I-20 | **Hierarquia sem cliente**: a área por cliente está vazia em 100% dos endereços | o último nível da hierarquia não tem número | E13 com fonte decidida (D-P13) |
 
