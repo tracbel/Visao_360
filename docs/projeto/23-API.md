@@ -409,6 +409,42 @@ reposiciona o contador de `seguranca.Perfil` para depois de 999 e o de `seguranc
 de 99.999 — o espaço abaixo fica para a semente (`100 × perfil + posição`), que cresce sem colidir com o que foi
 criado pela tela. Ela só age quando o contador está abaixo; rodar de novo não muda nada.
 
+### 2.13 Trilha de auditoria — `/api/v1/admin/auditoria` (issue 135, 22/09/2026)
+
+| Rota | Permissão | O que faz |
+|---|---|---|
+| `GET /api/v1/admin/auditoria?de=&ate=&entidade=&registro=&autor=&origem=&operacao=&pagina=&tamanho=` | `Auditoria.Ler` | os eventos da trilha, do mais recente para trás, paginados **por evento** |
+| `GET /api/v1/admin/auditoria/entidades` | `Auditoria.Ler` | as entidades que a trilha registra, com o nome de cada uma, para o filtro |
+
+`Auditoria.Ler` entrou no **fim** da semente do Administrador (posição 26, linha 426) e da Diretoria (posição 5,
+linha 705), em `Organizacao` — migration `AuditoriaLerNaDiretoriaENoAdministrador`, só `INSERT` e o `UPDATE` da
+descrição da Diretoria.
+
+**Um evento é uma gravação num registro.** As linhas de `auditoria.AlteracaoDeCampo` gravadas no mesmo
+`SaveChanges`, para o mesmo registro, pelo mesmo autor, têm o mesmo instante e viram um evento só, com os campos
+que mudaram. A página conta eventos (`DISTINCT` da chave), para uma alteração não ficar cortada entre páginas.
+
+**O que a rota devolve já é legível:**
+
+- `entidadeRotulo` e o `rotulo` de cada campo vêm de `RotulosDaTrilha`, que anda junto com
+  `PoliticaDeAuditoria` — o teste `RotulosDaTrilhaTestes` recusa campo auditado sem nome;
+- identificador que aponta para usuário, filial, perfil, município ou cliente vira o nome ("Gerência", "010103 ·
+  Tracbel Agro — Barretos"); o que não se acha fica "nº 123";
+- `registro` descreve o registro ("Gerência para Maria Souza", "Cliente.Ler em Diretoria regional"); o que já foi
+  apagado se descreve pelo que a própria exclusão gravou;
+- `true`/`false` vira "sim"/"não", a profundidade vem por extenso e a permissão com a descrição do catálogo. Data
+  continua em ISO: quem mostra é a tela, no fuso de quem vê.
+
+**Filtros.** `de` e `ate` são dias de São Paulo (aaaa-mm-dd, inclusos); sem eles, os últimos 30 dias; no máximo
+um ano. `entidade` é o nome do tipo (a caixa não importa) e aceita só o que a política registra; `registro` é o
+identificador interno (o histórico de um registro); `autor` é trecho do nome ou do e-mail; `origem` e `operacao`
+são os nomes dos enums. Filtro inválido volta como erro de validação no campo (§3).
+
+**Fronteira.** A trilha tem `EmpresaId` e recebe o filtro global de filial, como todo dado com filial: a rota
+mostra a filial escolhida, e "Todas as filiais" mostra todas. O que não tem filial (perfil, permissão de perfil,
+concessão sem filial) fica na filial de casa de quem alterou; a liberação de conta fica na filial em que a conta
+foi liberada.
+
 ## 3. O formato de erro
 
 Toda recusa é `application/problem+json`. O status vem da **natureza** da falha, declarada pelo

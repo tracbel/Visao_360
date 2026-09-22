@@ -206,6 +206,12 @@ que dê mais do que o próprio acesso. Desativar não apaga: o perfil deixa de v
 formulário de concessão; reativado, as concessões voltam a valer. Tirar uma permissão do perfil tira de todos
 que o têm, na hora. As rotas
 estão no documento 23, §2.12.
+
+**A trilha na tela (issue 135, 22/09/2026).** `Auditoria.Ler` (Diretoria e Administrador) abre Configurações ›
+Administração › Auditoria: quem mudou o quê, quando, de quanto para quanto — com nomes no lugar de identificadores
+e, em cada evento, o histórico daquele registro. É só leitura: a trilha continua nascendo do `SaveChanges`, na
+mesma transação do dado, e nenhuma rota a grava ou apaga. A leitura respeita a fronteira de filial. As rotas estão
+no documento 23, §2.13.
 ---
 
 ## 5. Camada 3 — profundidade (o coração do modelo)
