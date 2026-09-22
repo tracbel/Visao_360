@@ -76,7 +76,6 @@ public sealed class RepositorioDeCoberturaDoMotor(CrmDbContext contexto) : IRepo
                 p.MunicipioId,
                 p.AreaPlantadaHectares,
                 p.AreaColhidaHectares,
-                p.QuantidadeProduzidaToneladas,
                 p.ValorDaProducaoMilReais
             })
             .ToListAsync(ct);
@@ -108,7 +107,6 @@ public sealed class RepositorioDeCoberturaDoMotor(CrmDbContext contexto) : IRepo
                 var divulgada = Municipios(p.Linhas, l => l.AreaPlantadaHectares is not null, l => l.MunicipioId);
                 var plantam = Municipios(p.Linhas, l => l.AreaPlantadaHectares > 0, l => l.MunicipioId);
                 var colhida = Municipios(p.Linhas, l => l.AreaColhidaHectares is not null, l => l.MunicipioId);
-                var quantidade = Municipios(p.Linhas, l => l.QuantidadeProduzidaToneladas is not null, l => l.MunicipioId);
                 var valor = Municipios(p.Linhas, l => l.ValorDaProducaoMilReais is not null, l => l.MunicipioId);
                 var (inicio, fim) = anos.GetValueOrDefault(p.Codigo, (ano.Value, ano.Value));
 
@@ -121,7 +119,7 @@ public sealed class RepositorioDeCoberturaDoMotor(CrmDbContext contexto) : IRepo
                     ParaQue,
                     Ano(inicio),
                     Ano(fim),
-                    $"planta-se em {plantam} · área colhida divulgada em {colhida}, quantidade em {quantidade} e valor em {valor} · " +
+                    $"planta-se em {plantam} · área colhida divulgada em {colhida} e valor em {valor} · " +
                     $"{p.Area.ToString("N0", PtBr)} ha plantados na ADR em {ano}");
             })
             .ToList();
