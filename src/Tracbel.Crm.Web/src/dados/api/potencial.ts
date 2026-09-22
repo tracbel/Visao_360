@@ -12,6 +12,7 @@ import type {
   NovaRegraDePotencial,
   NovoParametroDoPotencial,
   OpcoesDosParametros,
+  PainelDeCoberturaDoMotor,
   PainelDeFontesPublicas,
   ParametrosDoPotencialVigentes,
   ParametrosGeraisDetalhe,
@@ -74,4 +75,9 @@ export function revogarVigencia(contexto: ContextoDeAcesso, alvo: AlvoDaRevogaca
 /** O painel de fontes públicas. */
 export function obterFontesPublicas(contexto: ContextoDeAcesso, sinal?: AbortSignal) {
   return ler<PainelDeFontesPublicas>('/v1/integracoes/fontes-publicas', contexto, { sinal });
+}
+
+/** A cobertura dos dados que o motor de mercado vai usar (issue 150). */
+export function obterCoberturaDoMotor(contexto: ContextoDeAcesso, sinal?: AbortSignal) {
+  return ler<PainelDeCoberturaDoMotor>('/v1/integracoes/cobertura-do-motor', contexto, { sinal });
 }
