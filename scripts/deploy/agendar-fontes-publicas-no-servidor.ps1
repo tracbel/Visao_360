@@ -1,7 +1,8 @@
 <#
   agendar-fontes-publicas-no-servidor.ps1 - leva a carga das FONTES PUBLICAS para o servidor e deixa
-  DUAS ROTINAS agendadas la, para que o CRM se atualize sozinho (issues 64, 65 e 66; regra R-5 do
-  doc 46).
+  o ORQUESTRADOR agendado la, para que o CRM se atualize sozinho (issues 64, 65, 66 e 136; regra R-5
+  do doc 46). Desde a issue 136 a agenda de cada rotina e do banco (Configuracoes > Integracoes); os
+  nomes TracbelCrmFontesPublicas e TracbelCrmPrecos abaixo sao o historico de antes dela.
 
       Set-Location C:\projetos\tracbel-crm
       powershell -ExecutionPolicy Bypass -File .\scripts\deploy\agendar-fontes-publicas-no-servidor.ps1
@@ -186,14 +187,17 @@ Remove-Item $pacote -Recurse -Force
 Ok "carga publicada em $Destino"
 
 # -------------------------------------------------------------------------------------------------
-Passo "2 e 3. As rotinas e as tarefas agendadas (registrar-rotinas.ps1)"
+Passo "2 e 3. O orquestrador das rotinas (registrar-rotinas.ps1)"
 # -------------------------------------------------------------------------------------------------
-# A DEFINICAO DAS ROTINAS MORA NUM LUGAR SO: scripts/deploy/registrar-rotinas.ps1. Este script o leva
-# ao servidor e o roda; a publicacao automatica roda o MESMO arquivo, que viaja dentro do pacote do
-# CI, a cada deploy. Duas copias da mesma logica divergiriam na primeira fonte nova.
+# A DEFINICAO DA TAREFA MORA NUM LUGAR SO: scripts/deploy/registrar-rotinas.ps1. Este script o leva ao
+# servidor e o roda; a publicacao automatica roda o MESMO arquivo, que viaja dentro do pacote do CI.
 #
-# A CONEXAO E INTEGRADA: as tarefas rodam como SYSTEM, que no dominio e a conta da MAQUINA, e o banco
-# esta na mesma maquina. Nenhuma senha em arquivo, nenhum segredo neste repositorio.
+# DESDE A ISSUE 136 A AGENDA E DO BANCO (integracao.Rotina), editavel em Configuracoes > Integracoes, e o
+# servidor tem uma tarefa so, TracbelCrmOrquestrador, a cada cinco minutos. As tarefas antigas
+# (TracbelCrmFontesPublicas, TracbelCrmPrecos, TracbelCrmPam) sao apagadas pelo proprio registrar-rotinas.
+#
+# A CONEXAO E INTEGRADA: a tarefa roda como SYSTEM, que no dominio e a conta da MAQUINA, e o banco esta
+# na mesma maquina. Nenhuma senha em arquivo, nenhum segredo neste repositorio.
 $conexaoLocal = "Server=localhost,1433;Database=$Banco;Integrated Security=True;TrustServerCertificate=True"
 
 New-Item -ItemType Directory -Force -Path $Global:RaizPorSmb | Out-Null
@@ -206,25 +210,14 @@ $saida = Invoke-NoServidor -Nome 'crm-rotinas' -TimeoutSegundos 300 -Script @"
 `$p.DestinoDaCarga   = '$Destino'
 `$p.PastaDasRotinas  = '$PastaDasRotinas'
 `$p.Conexao          = '$conexaoLocal'
-`$p.NomeTarefaAnual  = '$NomeTarefa'
-`$p.MesAnual         = '$Mes'
-`$p.DiaAnual         = $DiaDoMes
-`$p.HoraAnual        = '$Hora'
-`$p.NomeTarefaMensal = '$NomeTarefaMensal'
-`$p.DiaMensal        = $DiaDaRotinaMensal
-`$p.HoraMensal       = '$HoraMensal'
-`$p.TarefaAntiga     = '$TarefaAntiga'
-`$p.NaoDispararPrimeiraCarga = `$true
 & '$Global:RaizRemota\registrar-rotinas.ps1' @p
-& schtasks.exe /Query /TN '$NomeTarefa' /FO LIST
-& schtasks.exe /Query /TN '$NomeTarefaMensal' /FO LIST
 "@
 Write-Host $saida
 if ($saida -notmatch 'codigo das rotinas: 0') {
-    throw "Nao consegui registrar as rotinas no servidor. A saida esta acima."
+    throw "Nao consegui registrar o orquestrador no servidor. A saida esta acima."
 }
-Ok "tarefa $NomeTarefa registrada para $DiaDoMes/$Mes as $Hora, todo ano, como SYSTEM"
-Ok "tarefa $NomeTarefaMensal registrada para todo dia $DiaDaRotinaMensal as $HoraMensal, como SYSTEM"
+Ok "tarefa TracbelCrmOrquestrador registrada: a cada 5 minutos, como SYSTEM; a agenda de cada rotina e do banco"
+
 # -------------------------------------------------------------------------------------------------
 Passo '4. Rodar uma vez e conferir'
 # -------------------------------------------------------------------------------------------------
@@ -233,28 +226,27 @@ if ($NaoRodarAgora) {
     return
 }
 
-# UMA HORA DE ESPERA: a PAM sao 3 anos x 9 lotes x 2 recortes de consulta ao SIDRA, com ~5 MB cada;
-# a estrutura sao mais quatro consultas ao SIDRA e um ZIP da ANP, que juntos levam menos de um minuto.
-# Os precos sao tres arquivos pequenos e levam segundos - por isso rodam primeiro.
-foreach ($par in @(@($NomeTarefaMensal, 'precos'), @($NomeTarefa, 'fontes-publicas'))) {
-    $tarefa, $prefixo = $par
-    $saida = Invoke-NoServidor -Nome "crm-fontes-primeira-$prefixo" -TimeoutSegundos 3600 -Script @"
-schtasks /Run /TN '$tarefa' | Out-Null
-`$limite = (Get-Date).AddMinutes(55)
-while ((Get-Date) -lt `$limite) {
-    Start-Sleep -Seconds 15
-    `$linha = schtasks /Query /TN '$tarefa' /FO LIST | Select-String 'Status:|Estado:'
-    if (`$linha -and (`$linha -join ' ') -notmatch 'Running|Em execu') { break }
+# "RODAR AGORA" E O MESMO PEDIDO QUE A TELA FAZ: marca a rotina no banco, e o orquestrador comeca na proxima
+# volta. A tabela so existe depois da migracao da issue 136 - antes dela, o pedido nao tem onde ficar.
+$temRotinas = [int](Escalar "SELECT COUNT(*) FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id WHERE s.name = 'integracao' AND t.name = 'Rotina'")
+if ($temRotinas -eq 0) {
+    throw "O banco de $Servidor ainda nao tem integracao.Rotina: a migracao da issue 136 nao foi aplicada. Espere a publicacao automatica e rode de novo."
 }
-`$log = Get-ChildItem '$PastaDasRotinas\logs\$prefixo-*.log' | Sort-Object LastWriteTime | Select-Object -Last 1
-if (`$log) {
-    Write-Output ('log: ' + `$log.FullName)
-    Get-Content `$log.FullName -Tail 40
-} else {
-    Write-Output 'NENHUM LOG FOI ESCRITO: a tarefa $tarefa pode nao ter chegado a rodar.'
-}
-"@
-    Write-Host $saida
+
+$pedidoEm = [datetime](Escalar "UPDATE integracao.Rotina SET ExecucaoPedidaEm = SYSUTCDATETIME() WHERE Codigo IN ('PRECOS_MENSAIS', 'FONTES_ANUAIS') AND ExecucaoPedidaEm IS NULL; SELECT SYSUTCDATETIME()")
+Ok "pedido de execucao das duas rotinas na fila do orquestrador (UTC $($pedidoEm.ToString('yyyy-MM-dd HH:mm:ss')))"
+
+# UMA HORA DE ESPERA: a PAM sao 3 anos x 9 lotes x 2 recortes de consulta ao SIDRA, com ~5 MB cada; os
+# precos levam segundos. O orquestrador acorda a cada cinco minutos.
+$limite = (Get-Date).AddMinutes(65)
+do {
+    Start-Sleep -Seconds 30
+    $pendentes = [int](Escalar "SELECT COUNT(*) FROM integracao.Rotina WHERE Codigo IN ('PRECOS_MENSAIS', 'FONTES_ANUAIS') AND (ExecucaoPedidaEm IS NOT NULL OR UltimaExecucaoTerminadaEm IS NULL OR UltimaExecucaoIniciadaEm < '$($pedidoEm.ToString('yyyy-MM-ddTHH:mm:ss.fff'))')")
+} while ($pendentes -gt 0 -and (Get-Date) -lt $limite)
+
+foreach ($codigo in 'PRECOS_MENSAIS', 'FONTES_ANUAIS') {
+    $resumo = Escalar "SELECT CONCAT(ISNULL(UltimoResultado, 'nunca'), ' - ', ISNULL(UltimaMensagem, '')) FROM integracao.Rotina WHERE Codigo = '$codigo'"
+    Write-Host "   $codigo`: $resumo"
 }
 
 $depois = Retrato 'estado das fontes publicas no servidor, depois:'
@@ -263,8 +255,8 @@ $depois = Retrato 'estado das fontes publicas no servidor, depois:'
 # ANP nao - que e exatamente o que cada carga nova acrescenta de risco.
 $vazias = $depois.Keys | Where-Object { $_ -notlike 'anos*' -and $depois[$_] -eq 0 }
 if ($vazias) {
-    throw "As tarefas rodaram e estas tabelas continuam vazias: $($vazias -join ', '). O log do servidor esta acima."
+    throw "As rotinas rodaram e estas tabelas continuam vazias: $($vazias -join ', '). O historico esta em Configuracoes > Integracoes e os logs em $PastaDasRotinas\logs."
 }
 
-Ok 'o servidor atualiza a PAM e a estrutura uma vez por ano, e os precos todo mes, sozinho'
+Ok 'o servidor atualiza as fontes publicas sozinho, pela agenda de Configuracoes > Integracoes'
 Write-Host ''

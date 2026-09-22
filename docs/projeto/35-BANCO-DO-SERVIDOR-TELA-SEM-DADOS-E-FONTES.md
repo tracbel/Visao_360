@@ -890,6 +890,42 @@ um comprador. A mesma camada foi conferida por HTTP nos testes da API e na API l
 
 ---
 
+
+### 11.10 O orquestrador e a agenda no banco (issue 136, 22/09/2026)
+
+A partir da issue 136, **nada do que roda sozinho no servidor tem agenda escrita em tarefa do Windows ou em arquivo**.
+A agenda mora em `integracao.Rotina`, editável em Configurações › Administração › Integrações, e o servidor tem
+uma tarefa só:
+
+| Tarefa | Quando | O que faz |
+|---|---|---|
+| `TracbelCrmOrquestrador` | a cada 5 minutos, como SYSTEM | `Tracbel.Crm.Carga.exe --orquestrar`: roda as rotinas vencidas (agenda, "Rodar agora" ou primeira carga com tabela vazia), grava `integracao.ExecucaoDeRotina` e testa as APIs monitoradas |
+
+As tarefas `TracbelCrmFontesPublicas` e `TracbelCrmPrecos` são **apagadas** pelo `registrar-rotinas.ps1` quando o
+orquestrador entra (deixar as três faria a mesma carga rodar duas vezes). As rotinas semeadas:
+
+| Rotina | Cargas | Agenda padrão | Nasce |
+|---|---|---|---|
+| `FONTES_ANUAIS` | `--somente-pam --somente-estrutura` | 1º de outubro, 03:00 | ligada |
+| `PRECOS_MENSAIS` | `--somente-precos --somente-custos --somente-credito` | dia 20, 04:00 | ligada |
+| `FATURAMENTO_PROTHEUS` | `--somente-faturamento` | todo dia, 05:00 | **desligada** |
+| `ART_VENDAS` | `--somente-art` | a cada hora | **desligada** |
+
+O faturamento e o ART nascem desligados: ligá-los é trazer dado novo para produção, e isso é decisão de quem
+administra. Nenhum dos dois liga sem a credencial da conexão que exige (Protheus e ART).
+
+**O orquestrador roda de uma cópia da carga** (`C:\aplicacoes\tracbel-crm-rotinas\carga`), atualizada pelo script da
+rotina quando a pasta publicada parou de mudar há dois minutos. A publicação apaga a pasta da carga antes de copiar
+a nova; rodando dali a cada cinco minutos, o executável estaria aberto justamente na hora da troca.
+
+**O serviço `TracbelCrmSincronizacaoArt` continua existindo e desabilitado** desde a sanitização de 15/09. Se ele for
+religado e a rotina `ART_VENDAS` estiver ligada no orquestrador, ele não sincroniza (registra "ignorada") — um dono
+só para a agenda do ART.
+
+**A credencial das conexões** (Protheus, banco do Protheus, ART, Vórtice) pode ser gravada pela tela, protegida pela
+proteção de dados do Windows para a máquina (DPAPI), e a carga, o orquestrador, o serviço e a API a sobrepõem às
+variáveis de ambiente com os mesmos nomes (`Protheus__Senha`, `Art__Servidor`, `Vortice__Conexao`…). Sem credencial
+na tela, as variáveis continuam valendo como antes. Rotas e regras no documento 23, §2.14.
 ## 12. O ambiente real da VM do servidor [medido]
 
 Levantamento de 14/09/2026, 18:25 no horário do servidor, feito com `scripts/deploy/diagnosticar-servidor.ps1`.

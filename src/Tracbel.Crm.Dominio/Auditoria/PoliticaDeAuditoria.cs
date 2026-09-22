@@ -89,6 +89,17 @@ public static class PoliticaDeAuditoria
         ],
         ["PercepcaoDoGestor"] = ["MunicipioId", "Percentual", "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"],
 
+        // INTEGRAÇÕES (issue 136): quem mudou o endereço, o usuário, o monitoramento ou a agenda — e QUANDO a
+        // credencial foi trocada. A senha protegida NÃO entra: a trilha guarda o antes e o depois em texto, e a
+        // senha não pode estar em texto em lugar nenhum. O resultado dos testes e das execuções também não: é
+        // rotina, e tem histórico próprio.
+        ["Conexao"] =
+        [
+            "Endereco", "Porta", "Banco", "Objeto", "Usuario", "NomeDoCabecalho", "StatusEsperado", "MinutosEntreVerificacoes",
+            "EstaAtiva", "SegredoAlteradoEm"
+        ],
+        ["Rotina"] = ["Cadencia", "Mes", "Dia", "Hora", "IntervaloMinutos", "EstaLigada"],
+
         // Venda de máquina: o retrato que a origem pode reescrever a cada leitura
         // (VendaDeMaquina.AtualizarDaOrigem), campo por campo.
         ["VendaDeMaquina"] =

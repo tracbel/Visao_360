@@ -8387,6 +8387,32 @@ tr.funil-nova {
 }
 .perfil-sem { color: #94A3B8; }
 
+/* ADMINISTRAÇÃO › INTEGRAÇÕES (issue 136) — "Sistemas conectados" do protótipo, com dado real e mexível */
+.int-intro { margin: 0 0 12px; }
+.int-desativada { opacity: 0.72; }
+.int-falta { color: #B91C1C; }
+.int-fila { background: #DBEAFE; color: #1D4ED8; }
+.int-resumo { margin-top: 6px; font-size: 12px; overflow-wrap: anywhere; }
+.int-resultado { margin-top: 8px; padding: 8px 10px; border-radius: 6px; font-size: 12.5px; overflow-wrap: anywhere; }
+.int-ok { background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; }
+.int-erro { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+.int-historico { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.int-historico li { display: grid; grid-template-columns: auto auto 1fr; gap: 4px 10px; align-items: center; padding: 6px 8px; background: #fff; border: 1px solid #F1F5F9; border-radius: 6px; }
+.int-historico li > span:last-child { grid-column: 1 / -1; color: #334155; overflow-wrap: anywhere; }
+.int-editor { margin-top: 12px; padding: 12px; background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; }
+.int-nova { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.int-ligada { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+.int-rodape { margin-top: 16px; }
+.int-meta > div { overflow-wrap: anywhere; min-width: 0; }
+.int-acoes .btn-config-inline { white-space: nowrap; }
+@container (max-width: 639px) {
+  .integracao-item { grid-template-columns: 40px 1fr; }
+  .int-icon { width: 40px; height: 40px; font-size: 22px; }
+  .int-acoes { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
+  .int-meta { grid-template-columns: 1fr; }
+  .int-header { flex-wrap: wrap; }
+}
+
 /* ADMINISTRAÇÃO › AUDITORIA (issue 135) — "Eventos recentes" do protótipo, com a trilha real */
 .aud-fronteira { margin: 0 0 12px; }
 .aud-filtros { flex-wrap: wrap; }
