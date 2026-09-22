@@ -55,9 +55,10 @@ ou acesso.
 | 3.6 | Médias 3, 6, 12 meses, 3 e 5 anos | derivado | — | — | mensal | janela | média dos meses da janela; **faltou mês, indisponível** | — | ⛔ (#73) |
 | 3.7 | Atual ÷ média | derivado | — | — | mensal | janela | `p(t) ÷ média` | — | ⛔ |
 | 3.8 | Variação em 12 meses | derivado | — | — | mensal | t e t−12 | `p(t) ÷ p(t−12) − 1` | tela ("em 1 ano") | ✅ |
-| 3.9 | Momento de preço 12 ÷ 12 | derivado | — | — | mensal | t−23..t | `média(t−11..t) ÷ média(t−23..t−12)`; exige 24 meses completos | — | ⛔ CONAB: 09/2027 sem histórico de outra fonte (IM-09) |
+| 3.9 | Momento de preço 12 ÷ 12 | derivado | — | — | mensal | t−23..t | `média(t−11..t) ÷ média(t−23..t−12)`; exige 24 meses completos | — | ⛔ **09/2027** — nenhuma fonte aberta tem série mensal longa de preço recebido em SP (investigado em 49D) |
 | 3.10 | Faixa de mercado | parâmetro | `ParametroDoPotencial` | limites 1,00 / 1,20 / 1,40 | por vigência | data do cálculo | < retração: retraído; ≤ aquecimento: (nome a decidir); ≤ superaquecimento: aquecido; acima: superaquecido | `ParametroDoPotencial.FaixaDe` | ✅ regra; ⛔ uso |
-| 3.11 | Preço CEPEA | CEPEA | indicadores | — | diária/mensal | — | — | — | 🔒 licença (D-P11, #117) |
+| 3.11 | Preço CEPEA | CEPEA | indicadores | — | diária/mensal | — | — | — | 🔒 **licença CC BY-NC 4.0** — o uso comercial exige contrato (D-P11, #117; medido em 49D) |
+| 3.12 | **Preço implícito da PAM** | IBGE/PAM | SIDRA 5457 | `215 ÷ 214` | **anual** | ano da PAM | `ValorDaProducaoMilReais × 1000 ÷ QuantidadeProduzida`; é o preço médio recebido pelo produtor, ponderado pela colheita — **não se emenda** à série mensal da CONAB | `ProducaoAgricolaNoMunicipio` (desde 2010, IM-07) | 🟡 carregado, leitura derivada a fazer (49D §4) |
 
 ## 4. Custo e rentabilidade
 

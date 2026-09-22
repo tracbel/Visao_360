@@ -10,7 +10,8 @@
 > política de auditoria; a pasta `360/` (o protótipo — 16 abas com fórmulas — e a planilha do SICOR);
 > os documentos 14, 32, 36 e 48.
 > **Anexos:** [49A — Matriz indicador → fonte](49A-MATRIZ-INDICADOR-FONTE.md) ·
-> [49B — Épicos e issues](49B-EPICOS-E-ISSUES.md).
+> [49B — Épicos e issues](49B-EPICOS-E-ISSUES.md) ·
+> [49D — Histórico longo de preço](49D-HISTORICO-DE-PRECOS.md) (issue #158).
 > **O que fica de fora de propósito:** nome de CEN, venda da Tracbel por município e qualquer dado de
 > cliente. Os números públicos (IBGE, CONAB, SICOR) aparecem quando ajudam.
 
