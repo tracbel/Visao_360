@@ -85,6 +85,19 @@ public static class EndpointsDeTerritorio
                 "comercial (saca de 60 kg, caixa de 40,8 kg, arroba). O dólar é o PTAX médio do mesmo mês; " +
                 "mês sem PTAX vem sem dólar. A base só cresce: mês que saiu da janela da fonte continua aqui.");
 
+        // A RENTABILIDADE (issue 159): o que junta preço, custo e produtividade, que até aqui viviam em
+        // três cartões separados da tela.
+        grupo.MapGet("/rentabilidade", async (ObterRentabilidadeDasCulturas caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ObterRentabilidadeDasCulturas")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("Receita, custo e margem por hectare de cada cultura do catálogo (issue 159).")
+            .WithDescription(
+                "Cada número vem com a competência dele: o ano da PAM que deu a produtividade, quantos meses de " +
+                "preço entraram na média e a safra do custo. A margem sai VAZIA COM O MOTIVO enquanto a cultura " +
+                "não tiver local de referência e camada de custo escolhidos (D-P07) — nunca com um local " +
+                "escolhido por conta própria.");
+
         grupo.MapGet("/custos", async (ObterCustosDeProducao caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterCustosDeProducao")

@@ -40,6 +40,8 @@ public static class RotulosDaTrilha
     ["ProdutoDaPamNaCultura"] = "Produto da PAM na cultura",
     ["CategoriaDeMaquina"] = "Categoria de máquina",
     ["ProdutoDoSicorNaCategoria"] = "Produto do SICOR na categoria",
+    ["GrupoDeCompartilhamento"] = "Grupo de compartilhamento de máquina",
+    ["CulturaNoGrupoDeCompartilhamento"] = "Cultura no grupo de compartilhamento",
         ["UsinaDeEtanol"] = "Usina de etanol (ANP)",
         ["CorrespondenciaDeMunicipio"] = "Município da fonte (de-para)",
         ["RegraDePotencial"] = "Regra do potencial por cultura",
@@ -137,7 +139,8 @@ public static class RotulosDaTrilha
     {
         ["Nome"] = "Nome", ["Segmento"] = "Segmento", ["UnidadeComercial"] = "Unidade comercial",
         ["QuilosPorUnidade"] = "Quilos por unidade", ["FonteDoPreco"] = "Fonte do preço",
-        ["ProdutoDoPreco"] = "Produto na fonte de preço", ["SerieDeCusto"] = "Série de custo", ["EstaAtiva"] = "Ativa"
+        ["ProdutoDoPreco"] = "Produto na fonte de preço", ["SerieDeCusto"] = "Série de custo", ["EstaAtiva"] = "Ativa",
+        ["LocalDeReferenciaDoCusto"] = "Local de referência do custo", ["CamadaDeCustoDaMargem"] = "Camada de custo da margem"
     },
     ["ProdutoDaPamNaCultura"] = new(StringComparer.Ordinal)
     {
@@ -148,6 +151,14 @@ public static class RotulosDaTrilha
     {
         ["CategoriaDeMaquinaId"] = "Categoria de máquina", ["CodigoProduto"] = "Produto do SICOR"
     },
+        ["GrupoDeCompartilhamento"] = new(StringComparer.Ordinal)
+        {
+            ["Nome"] = "Nome", ["CategoriaDeMaquinaId"] = "Categoria de máquina", ["EstaAtivo"] = "Ativo"
+        },
+        ["CulturaNoGrupoDeCompartilhamento"] = new(StringComparer.Ordinal)
+        {
+            ["GrupoDeCompartilhamentoId"] = "Grupo de compartilhamento", ["CulturaId"] = "Cultura"
+        },
         ["UsinaDeEtanol"] = new(StringComparer.Ordinal)
         {
             ["RazaoSocial"] = "Razão social", ["MunicipioId"] = "Município", ["CapacidadeDeAnidroM3Dia"] = "Capacidade de anidro (m³/dia)",

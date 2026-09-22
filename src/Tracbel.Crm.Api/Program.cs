@@ -191,6 +191,7 @@ builder.Services.AddScoped<IRepositorioDePrecosDeMercado, RepositorioDePrecosDeM
 builder.Services.AddScoped<IRepositorioDeCustosDeProducao, RepositorioDeCustosDeProducao>();
 builder.Services.AddScoped<IRepositorioDeCreditoRural, RepositorioDeCreditoRural>();
 builder.Services.AddScoped<IRepositorioDoCatalogoDoMercado, RepositorioDoCatalogoDoMercado>();
+builder.Services.AddScoped<IRepositorioDeRentabilidade, RepositorioDeRentabilidade>();
 builder.Services.AddScoped<IRepositorioDeParametrosDoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeReferenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeVigenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
@@ -279,6 +280,7 @@ builder.Services.AddScoped<ObterIndicadoresTerritoriais>();
 builder.Services.AddScoped<ObterPrecosDeMercado>();
 builder.Services.AddScoped<ObterCustosDeProducao>();
 builder.Services.AddScoped<ObterCreditoRural>();
+builder.Services.AddScoped<ObterRentabilidadeDasCulturas>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.ObterCatalogoDoMercado>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.CadastrarCultura>();
 
