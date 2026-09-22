@@ -197,6 +197,7 @@ builder.Services.AddScoped<IRepositorioDeUsuariosDaAdministracao>(s => s.GetRequ
 builder.Services.AddScoped<IRepositorioDeConcessoes>(s => s.GetRequiredService<RepositorioDeAdministracaoDeUsuarios>());
 builder.Services.AddScoped<IRepositorioDeReferenciasDeAcesso>(s => s.GetRequiredService<RepositorioDeAdministracaoDeUsuarios>());
 builder.Services.AddScoped<IRepositorioDePerfisDaAdministracao, RepositorioDePerfisDaAdministracao>();
+builder.Services.AddScoped<IRepositorioDaTrilhaDeAuditoria, RepositorioDaTrilhaDeAuditoria>();
 builder.Services.AddScoped<IRepositorioIndicadoresExecutivos, RepositorioDeIndicadoresExecutivos>();
 builder.Services.AddScoped<IRepositorioHistoricoComercial, RepositorioDeHistoricoComercial>();
 builder.Services.AddScoped<IRepositorioSincronizacoes, RepositorioDeSincronizacoes>();
@@ -277,6 +278,10 @@ builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.AdministrarUsuario>()
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ListarPerfisDaAdministracao>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ListarCatalogoDePermissoes>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.AdministrarPerfil>();
+
+// A trilha de auditoria na tela (issue 135).
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Auditoria.ConsultarTrilhaDeAuditoria>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Auditoria.ListarEntidadesAuditadas>();
 builder.Services.AddScoped<ObterIndicadoresExecutivos>();
 
 builder.Services.AddScoped<BuscarClientesNoLegado>();
@@ -413,6 +418,7 @@ app.MapearIndicadoresTerritoriais();
 app.MapearParametrosDoPotencial();
 app.MapearAdministracaoDeUsuarios();
 app.MapearAdministracaoDePerfis();
+app.MapearAuditoria();
 app.MapearRelatorios();
 
 // O ÚLTIMO RECURSO DEVOLVE O `index.html`, e é o que faz a navegação da tela funcionar.

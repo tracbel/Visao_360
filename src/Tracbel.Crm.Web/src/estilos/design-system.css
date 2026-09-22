@@ -8387,6 +8387,56 @@ tr.funil-nova {
 }
 .perfil-sem { color: #94A3B8; }
 
+/* ADMINISTRAÇÃO › AUDITORIA (issue 135) — "Eventos recentes" do protótipo, com a trilha real */
+.aud-fronteira { margin: 0 0 12px; }
+.aud-filtros { flex-wrap: wrap; }
+.aud-filtros select,
+.aud-filtros input {
+  padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius);
+  font-size: 13px; font-family: inherit; background: var(--bg-surface); min-width: 0;
+}
+.aud-filtros input[type="search"] { flex: 1 1 220px; max-width: 320px; }
+.aud-registro {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 12px;
+  padding: 8px 12px; border-radius: var(--radius); background: #F0FDF4; font-size: 13px; color: #1E293B;
+}
+.aud-tabela .adm-link { text-align: left; }
+.aud-origem { margin-top: 4px; background: #E2E8F0; color: #475569; }
+.aud-tabela td.aud-col-quando { white-space: nowrap; }
+.aud-tabela .aud-detalhe > td { background: #F8FAFC; padding: 12px 14px; }
+.aud-campos { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.aud-tabela .aud-campos th,
+.aud-tabela .aud-campos td {
+  text-align: left; padding: 6px 8px; border-bottom: 1px solid #E5E7EB; vertical-align: top;
+  overflow-wrap: anywhere; background: transparent;
+}
+.aud-tabela .aud-campos thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748B; font-weight: 600; }
+.aud-tabela .aud-campos tbody th { font-size: 12.5px; text-transform: none; letter-spacing: normal; font-weight: 600; color: #334155; width: 28%; }
+.aud-antes { color: #9F1239; }
+.aud-depois { color: #166534; }
+.aud-rodape { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.aud-nota { margin-top: 14px; }
+
+/* NO CELULAR, CADA EVENTO VIRA UM CARTÃO: o que aconteceu primeiro, depois quem e quando; o antes e o depois
+   empilhados, cada um com o nome. Nada rola de lado. */
+@container (max-width: 559px) {
+  .aud-filtros select, .aud-filtros input, .aud-filtros input[type="search"] { flex: 1 1 100%; max-width: none; }
+  .aud-tabela, .aud-tabela > tbody, .aud-tabela > tbody > tr, .aud-tabela > tbody > tr > td { display: block; width: 100%; }
+  .aud-tabela > thead { display: none; }
+  .aud-tabela > tbody > tr.adm-linha { display: flex; flex-direction: column; gap: 2px; padding: 10px 0; border-bottom: 1px solid #E5E7EB; }
+  .aud-tabela > tbody > tr > td { border-bottom: 0; padding: 2px 12px; }
+  .aud-tabela .aud-col-oque { order: 1; }
+  .aud-tabela .aud-col-quem { order: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: #475569; }
+  .aud-tabela .aud-col-quando { order: 3; }
+  .aud-tabela .aud-col-filial { order: 4; }
+  .aud-tabela .aud-detalhe > td { padding: 10px 12px; }
+  .aud-campos, .aud-campos tbody, .aud-campos tr, .aud-tabela .aud-campos th, .aud-tabela .aud-campos td { display: block; width: auto; }
+  .aud-campos thead { display: none; }
+  .aud-campos tr { padding: 8px 0; border-bottom: 1px solid #E5E7EB; }
+  .aud-tabela .aud-campos th, .aud-tabela .aud-campos td { border-bottom: 0; padding: 1px 0; }
+  .aud-tabela .aud-campos td::before { content: attr(data-rotulo) ': '; color: #64748B; font-size: 11px; }
+}
+
 /* ADMINISTRAÇÃO › USUÁRIOS (issue 113) */
 .adm-barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .adm-situacoes { display: flex; flex-wrap: wrap; gap: 6px; }
