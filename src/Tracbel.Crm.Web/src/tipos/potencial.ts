@@ -163,3 +163,46 @@ export type PainelDeFontesPublicas = {
   semDado: number;
   fontes: FontePublicaResumo[];
 };
+
+// ------------------------------------------------------------------------------------------------
+// Cobertura dos dados do motor (issue 150) — `/api/v1/integracoes/cobertura-do-motor`
+// ------------------------------------------------------------------------------------------------
+
+export type SituacaoDaCobertura = 'Completa' | 'Parcial' | 'Vazia';
+
+/** Uma medida de cobertura. Só contagem: nenhum valor em reais, nenhum nome de cliente. */
+export type ItemDaCoberturaDoMotor = {
+  codigo: string;
+  nome: string;
+  /** O que se conta, no plural: "municípios da ADR", "meses", "vendas". */
+  unidade: string;
+  total: number;
+  cobertos: number;
+  /** Calculado no servidor; nulo quando não há total. */
+  percentual: number | null;
+  situacao: SituacaoDaCobertura;
+  /** A frase pronta, do servidor: o que falta e para quê. */
+  motivo: string;
+  paraQue: string;
+  periodoInicial: string | null;
+  periodoFinal: string | null;
+  detalhe: string | null;
+};
+
+export type BlocoDaCoberturaDoMotor = {
+  codigo: string;
+  nome: string;
+  fonte: string;
+  /** Dado da Tracbel, contado dentro da fronteira de filial de quem lê. */
+  ehInterno: boolean;
+  incompletos: number;
+  itens: ItemDaCoberturaDoMotor[];
+};
+
+export type PainelDeCoberturaDoMotor = {
+  municipiosDaAdr: number;
+  filiaisNoAlcance: number;
+  todasAsFiliais: boolean;
+  incompletos: number;
+  grupos: BlocoDaCoberturaDoMotor[];
+};
