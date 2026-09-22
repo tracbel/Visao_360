@@ -3,7 +3,7 @@
  * escolhida; quem só vê (a gerência) não tem a fila nem as ações.
  */
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UsuarioDetalhado, UsuarioNaAdministracao } from '../../dados/api/administracao';
 import { ProvedorDeContextoDeAcesso } from '../../dados/api/contexto';
@@ -57,7 +57,7 @@ function abrir(podeAdministrar: boolean) {
 
 describe('ConfigSecaoUsuarios', () => {
   afterEach(() => {
-    Object.values(api).forEach((f) => f.mockReset());
+    Object.values(api).forEach((f) => f.mockClear());
     guardado.clear();
   });
 
@@ -82,9 +82,10 @@ describe('ConfigSecaoUsuarios', () => {
     fireEvent.change(screen.getByLabelText('Filial de casa'), { target: { value: '010103' } });
     fireEvent.click(screen.getByRole('button', { name: 'Liberar' }));
 
-    expect(await screen.findByText('Barretos', { selector: '.clr-title' })).toBeInTheDocument();
+    // A LIBERAÇÃO TERMINOU quando o bloco some; aí o campo "Filial de casa" é o da conta, e não a escolha.
+    await waitFor(() => expect(screen.queryByText('Liberar a conta')).not.toBeInTheDocument());
     expect(api.liberarUsuario).toHaveBeenCalledWith(expect.anything(), 'a1', '010103');
-    expect(screen.queryByText('Liberar a conta')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Filial de casa')).toHaveValue('Barretos');
   });
 
   it('quem só vê não tem a fila de liberação nem as ações', async () => {

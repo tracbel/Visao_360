@@ -211,6 +211,9 @@ export const ROTAS: Rota[] = [
     titulo: 'Configurações',
     trilha: ['Sistema', 'Configurações'],
     Componente: Configuracoes,
+    // A LARGURA INTEIRA (22/09/2026): com o menu lateral e as tabelas de usuários, o teto de 1400 px deixava
+    // uma faixa vazia à direita em tela larga ou com o navegador em zoom reduzido.
+    larga: true,
   },
 ];
 
