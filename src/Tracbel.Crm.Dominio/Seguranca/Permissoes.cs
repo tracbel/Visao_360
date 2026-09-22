@@ -98,6 +98,12 @@ public static class Permissoes
     public const string PercepcaoDoGestorInformar = "PercepcaoDoGestor.Informar";
 
     /// <summary>
+    /// Ler a trilha de auditoria — quem mudou o quê, quando, de quanto para quanto (issue 135). Dentro da fronteira de
+    /// filial, como todo dado com filial: para ver todas, a pessoa escolhe "Todas as filiais" no seletor.
+    /// </summary>
+    public const string AuditoriaLer = "Auditoria.Ler";
+
+    /// <summary>
     /// Todas as permissões que existem, com o que cada uma deixa fazer. É a lista que o perfil aceita:
     /// conceder um código fora dela é recusado.
     /// </summary>
@@ -127,7 +133,8 @@ public static class Permissoes
         [UsuarioLer] = "Ver os usuários e os perfis deles",
         [ParametroDoPotencialLer] = "Ler os parâmetros do potencial de mercado",
         [ParametroDoPotencialAdministrar] = "Alterar os parâmetros do potencial de mercado, com vigência",
-        [PercepcaoDoGestorInformar] = "Informar a percepção do gestor por município"
+        [PercepcaoDoGestorInformar] = "Informar a percepção do gestor por município",
+        [AuditoriaLer] = "Ler a trilha de auditoria: quem mudou o quê, e quando"
     };
 
     /// <summary>A permissão existe no catálogo?</summary>
@@ -226,7 +233,8 @@ public static class PerfisDeSistema
         Seguranca.Permissoes.ParametroDoPotencialLer,
         Seguranca.Permissoes.ParametroDoPotencialAdministrar,
         Seguranca.Permissoes.PercepcaoDoGestorInformar,
-        Seguranca.Permissoes.UsuarioLer
+        Seguranca.Permissoes.UsuarioLer,
+        Seguranca.Permissoes.AuditoriaLer
     ];
 
     /// <summary>
@@ -292,7 +300,8 @@ public static class PerfisDeSistema
                 (Seguranca.Permissoes.ParametroDoPotencialLer, Profundidade.Organizacao),
                 (Seguranca.Permissoes.ParametroDoPotencialAdministrar, Profundidade.Organizacao),
                 (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao),
-                (Seguranca.Permissoes.UsuarioLer, Profundidade.Organizacao)
+                (Seguranca.Permissoes.UsuarioLer, Profundidade.Organizacao),
+                (Seguranca.Permissoes.AuditoriaLer, Profundidade.Organizacao)
             ]),
 
         new(5, GestorComercial, "Gestor comercial",
@@ -315,7 +324,7 @@ public static class PerfisDeSistema
             ]),
 
         new(7, Diretoria, "Diretoria",
-            "O que a gerência tem, mais a visão de todas as filiais de uma vez.",
+            "O que a gerência tem, mais a visão de todas as filiais de uma vez e a trilha de auditoria.",
             EhPadrao: false,
             [
                 (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao),
@@ -323,7 +332,10 @@ public static class PerfisDeSistema
                 (Seguranca.Permissoes.EmpresaAlcanceEntreFiliais, Profundidade.Organizacao),
 
                 // Issue 113: vê todos os usuários, sem agir.
-                (Seguranca.Permissoes.UsuarioLer, Profundidade.Organizacao)
+                (Seguranca.Permissoes.UsuarioLer, Profundidade.Organizacao),
+
+                // Issue 135: lê a trilha de auditoria.
+                (Seguranca.Permissoes.AuditoriaLer, Profundidade.Organizacao)
             ])
     ];
 }

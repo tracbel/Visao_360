@@ -22,6 +22,7 @@
  */
 import { useState } from 'react';
 import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTela';
+import { ConfigSecaoAuditoria } from '../componentes/config/ConfigSecaoAuditoria';
 import { ConfigSecaoConta } from '../componentes/config/ConfigSecaoConta';
 import { ConfigSecaoFontes } from '../componentes/config/ConfigSecaoFontes';
 import { ConfigSecaoIntegracoes } from '../componentes/config/ConfigSecaoIntegracoes';
@@ -86,6 +87,8 @@ export function Configuracoes() {
         return <ConfigSecaoUsuarios podeAdministrar={tem(PERMISSAO.usuarioAdministrar)} filiais={escopo.filiaisPermitidas} />;
       case 'perfis':
         return <ConfigSecaoPerfis />;
+      case 'auditoria':
+        return <ConfigSecaoAuditoria filialAtual={escopo.filialAtual} podeVerTodasAsFiliais={escopo.podeVerTodasAsFiliais} />;
       default:
         return <ConfigSecaoConta escopo={escopo} sessao={sessao} />;
     }

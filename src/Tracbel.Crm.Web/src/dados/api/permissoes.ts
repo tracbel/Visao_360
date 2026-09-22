@@ -18,6 +18,7 @@ export const PERMISSAO = {
   usuarioLer: 'Usuario.Ler',
   usuarioAdministrar: 'Usuario.Administrar',
   perfilAdministrar: 'Perfil.Administrar',
+  auditoriaLer: 'Auditoria.Ler',
 } as const;
 
 export type PermissoesDoUsuario = {

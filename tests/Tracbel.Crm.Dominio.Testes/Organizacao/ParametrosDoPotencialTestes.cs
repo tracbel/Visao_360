@@ -210,6 +210,7 @@ public sealed class ParametrosDoPotencialTestes
             [Permissoes.ParametroDoPotencialLer, Permissoes.ParametroDoPotencialAdministrar, Permissoes.PercepcaoDoGestorInformar],
             "as três da issue 71 continuam nas posições 22 a 24");
         administrador.IndexOf(Permissoes.UsuarioAdministrar).Should().Be(20, "a 21ª permissão do administrador desde a fase 3");
-        administrador[^1].Should().Be(Permissoes.UsuarioLer, "a da issue 113 entrou depois, no fim");
+        administrador.IndexOf(Permissoes.UsuarioLer).Should().Be(24, "a da issue 113 entrou depois, no fim");
+        administrador[^1].Should().Be(Permissoes.AuditoriaLer, "a da issue 135 entrou depois dela, no fim");
     }
 }

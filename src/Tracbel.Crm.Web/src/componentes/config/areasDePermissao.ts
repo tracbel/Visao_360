@@ -33,6 +33,7 @@ const AREAS: [prefixo: string, nome: string][] = [
   ['Usuario', 'Usuários'],
   ['Perfil', 'Perfis'],
   ['Integracao', 'Integrações'],
+  ['Auditoria', 'Auditoria'],
   ['Legado', 'Sistema legado'],
 ];
 

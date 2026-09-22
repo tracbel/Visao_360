@@ -11,15 +11,15 @@
  * A ABA SEM NENHUMA SEÇÃO VISÍVEL NÃO APARECE. Os cadeados do protótipo saíram:
  * mostravam a aba a todos e não conferiam nada.
  *
- * O QUE AS PARTES SEGUINTES ACRESCENTAM AQUI: Auditoria (#135) e Taxonomias
- * (#45), cada uma com a permissão que a rota dela exigir.
+ * O QUE AS PARTES SEGUINTES ACRESCENTAM AQUI: Taxonomias (#45), com a
+ * permissão que a rota dela exigir. A Auditoria (#135) já entrou.
  */
 
 import { PERMISSAO } from '../../dados/api/permissoes';
 
 export type AbaConfig = 'conta' | 'comercial' | 'administracao';
 
-export type SecaoConfig = 'conta' | 'potencial' | 'usuarios' | 'perfis' | 'fontes' | 'integracoes';
+export type SecaoConfig = 'conta' | 'potencial' | 'usuarios' | 'perfis' | 'auditoria' | 'fontes' | 'integracoes';
 
 export type DefinicaoDeSecao = {
   id: SecaoConfig;
@@ -61,6 +61,9 @@ export const SECOES: DefinicaoDeSecao[] = [
 
   // Issue 113 (2b): os perfis próprios e a matriz de permissões — só o Administrador.
   { id: 'perfis', aba: 'administracao', icone: '🛡️', rotulo: 'Perfis', visivel: (tem) => tem(PERMISSAO.perfilAdministrar) },
+
+  // Issue 135: a trilha de auditoria — Diretoria e Administrador.
+  { id: 'auditoria', aba: 'administracao', icone: '📋', rotulo: 'Auditoria', visivel: (tem) => tem(PERMISSAO.auditoriaLer) },
 
   { id: 'integracoes', aba: 'administracao', icone: '🔌', rotulo: 'Integrações', visivel: (tem) => tem(PERMISSAO.integracaoLer) },
   { id: 'fontes', aba: 'administracao', icone: '🌎', rotulo: 'Fontes públicas', visivel: (tem) => tem(PERMISSAO.integracaoLer) },
