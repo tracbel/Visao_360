@@ -95,6 +95,54 @@ public sealed class Perfil
         return this;
     }
 
+    /// <summary>Troca o nome e a descrição (issue 113).</summary>
+    /// <param name="nome">O nome legível.</param>
+    /// <param name="descricao">Para que serve.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando o nome falta.</exception>
+    public void Renomear(string nome, string? descricao)
+    {
+        if (string.IsNullOrWhiteSpace(nome)) throw new RegraDeNegocioViolada("O perfil precisa de nome.");
+        Nome = nome.Trim();
+        Descricao = string.IsNullOrWhiteSpace(descricao) ? null : descricao.Trim();
+    }
+
+    /// <summary>
+    /// DEFINE O CONJUNTO INTEIRO de permissões (issue 113) — o que o editor da tela manda. O que não está na lista
+    /// sai; o que está entra ou muda de profundidade, para mais ou para menos.
+    ///
+    /// <para>Diferente de <see cref="Conceder"/>, que só soma: aqui a tela diz o estado final, e reduzir a
+    /// profundidade é parte do trabalho de quem administra.</para>
+    /// </summary>
+    /// <param name="permissoes">O conjunto final, cada permissão do catálogo com a profundidade.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando uma permissão não existe, repete, ou vem com Nenhum.</exception>
+    public void DefinirPermissoes(IReadOnlyCollection<(string Codigo, Profundidade Profundidade)> permissoes)
+    {
+        var repetidas = permissoes.GroupBy(p => p.Codigo, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        if (repetidas.Count > 0)
+            throw new RegraDeNegocioViolada($"A permissão aparece mais de uma vez: {string.Join(", ", repetidas)}.");
+
+        foreach (var (codigo, profundidade) in permissoes)
+        {
+            if (!Seguranca.Permissoes.Existe(codigo))
+                throw new RegraDeNegocioViolada($"A permissão '{codigo}' não existe no catálogo.");
+            if (profundidade == Profundidade.Nenhum)
+                throw new RegraDeNegocioViolada($"'{codigo}' com profundidade Nenhum: para não dar a permissão, deixe-a fora da lista.");
+        }
+
+        var finais = permissoes.ToDictionary(p => p.Codigo, p => p.Profundidade, StringComparer.Ordinal);
+        _permissoes.RemoveAll(i => !finais.ContainsKey(i.CodigoPermissao));
+
+        foreach (var (codigo, profundidade) in finais)
+        {
+            var existente = _permissoes.FirstOrDefault(i => i.CodigoPermissao == codigo);
+            if (existente is null) _permissoes.Add(PerfilPermissao.Criar(codigo, profundidade));
+            else existente.DefinirProfundidade(profundidade);
+        }
+    }
+
+    /// <summary>Religa o perfil desligado; quem tem a concessão volta a ter as permissões dele.</summary>
+    public void Reativar() => EstaAtivo = true;
+
     /// <summary>Desliga o perfil sem apagá-lo. O perfil padrão não se desliga: todo mundo perderia o acesso.</summary>
     /// <exception cref="RegraDeNegocioViolada">Quando é o perfil padrão.</exception>
     public void Desativar()
@@ -132,6 +180,11 @@ public sealed class PerfilPermissao
     };
 
     internal void AmpliarPara(Profundidade nova) => Profundidade = nova;
+
+    internal void DefinirProfundidade(Profundidade nova)
+    {
+        if (Profundidade != nova) Profundidade = nova;
+    }
 }
 
 /// <summary>

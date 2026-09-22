@@ -8371,6 +8371,22 @@ tr.funil-nova {
 .conta-alcance-geral { margin: 0 0 12px; font-size: 12.5px; color: #475569; }
 .conta-permissoes { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: #334155; line-height: 1.7; }
 
+/* ADMINISTRAÇÃO › PERFIS (issue 113, parte 2b) */
+.perfil-explicacao { margin: 0; flex: 1 1 320px; }
+.perfil-cartao { text-align: left; background: var(--bg-surface); font: inherit; cursor: pointer; }
+.perfil-cartao:hover { border-color: var(--jd-green); }
+.perfil-cartao-ativo { border-color: var(--jd-green); box-shadow: 0 0 0 2px rgba(54, 124, 43, 0.15); }
+.perfil-dados { margin-bottom: 16px; }
+.config-hint + .conta-alcance-geral { margin-top: 12px; }
+.perfil-matriz { margin-top: 4px; }
+.perfil-permissoes { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.perfil-permissoes li { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #334155; }
+.perfil-permissoes select {
+  padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius);
+  font-size: 12px; font-family: inherit; background: var(--bg-surface); min-width: 0;
+}
+.perfil-sem { color: #94A3B8; }
+
 /* ADMINISTRAÇÃO › USUÁRIOS (issue 113) */
 .adm-barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .adm-situacoes { display: flex; flex-wrap: wrap; gap: 6px; }

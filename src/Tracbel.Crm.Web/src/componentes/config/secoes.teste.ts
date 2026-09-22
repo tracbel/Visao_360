@@ -32,11 +32,15 @@ describe('seções de Configurações por permissão', () => {
   it.each([
     ['a gerência', GERENCIA],
     ['a diretoria', DIRETORIA],
-    ['o administrador', ADMINISTRADOR],
   ])('%s vê o potencial, os usuários, as integrações e as fontes, nas três abas', (_, codigos) => {
     const tem = quemTem(codigos);
     expect(secoesVisiveis(tem).map((s) => s.id)).toEqual(['conta', 'potencial', 'usuarios', 'integracoes', 'fontes']);
     expect(abasVisiveis(tem).map((a) => a.rotulo)).toEqual(['Minha conta', 'Comercial', 'Administração']);
+  });
+
+  it('o administrador vê também os perfis', () => {
+    const tem = quemTem(ADMINISTRADOR);
+    expect(secoesVisiveis(tem).map((s) => s.id)).toEqual(['conta', 'potencial', 'usuarios', 'perfis', 'integracoes', 'fontes']);
   });
 
   it('quem só pode alterar os parâmetros vê a aba Comercial e não a Administração', () => {
