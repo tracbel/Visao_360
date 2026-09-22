@@ -54,6 +54,17 @@ function ticket(j: JanelasDeCredito): number | null {
   return j.linhas > 0 ? j.valor / j.linhas : null;
 }
 
+/** "jan/24" a partir de um `aaaa-mm-01` do servidor. */
+function mes(data: string): string {
+  const [ano, m] = data.split('-').map(Number);
+  return `${MESES[m - 1]}/${String(ano).slice(2)}`;
+}
+
+/** A fatia da Região dentro de São Paulo; nula quando o estado não tem valor na janela. */
+function fatia(parte: number, total: number): string {
+  return total > 0 ? `${((100 * parte) / total).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : '—';
+}
+
 function somar(janelas: JanelasDeCredito[]): JanelasDeCredito {
   return janelas.reduce(
     (s, j) => ({
@@ -98,20 +109,21 @@ export function PainelDeCredito() {
   const [soAdr, setSoAdr] = useState(true);
 
   const dados = credito.dados;
-  const ultimoMes = dados?.ultimoMes ?? null;
-  const [anoFim, mesFim] = ultimoMes ? ultimoMes.split('-').map(Number) : [0, 0];
-  const inicio = new Date(anoFim, mesFim - 12, 1);
-  const janelaTexto = ultimoMes
-    ? `${MESES[inicio.getMonth()]}/${String(inicio.getFullYear()).slice(2)} a ${MESES[mesFim - 1]}/${String(anoFim).slice(2)}`
-    : '';
+  const janela = dados?.janela ?? null;
+
+  // O ÚLTIMO MÊS DO GRÁFICO POR ANO continua sendo o que a fonte tem; a janela de comparação é outra
+  // coisa e vem pronta do servidor (issue 157), com a carência já descontada.
+  const mesFim = dados?.ultimoMes ? Number(dados.ultimoMes.split('-')[1]) : 0;
+  const janelaTexto = janela ? `${mes(janela.inicio)} a ${mes(janela.fim)}` : '';
+  const janelaAnteriorTexto = janela ? `${mes(janela.inicioAnterior)} a ${mes(janela.fimAnterior)}` : '';
 
   const maquinas = somar((dados?.porProduto ?? []).filter((p) => p.ehMaquina).map((p) => p.janelas));
-  const indicadores: Indicador[] = dados?.ultimoMes
+  const indicadores: Indicador[] = janela
     ? [
         {
           rotulo: `Linhas de máquinas — ${janelaTexto}`,
           valor: `${maquinas.linhas.toLocaleString('pt-BR')} (${textoDaVariacao(variacao(maquinas.linhas, maquinas.linhasAnteriores))})`,
-          deOnde: 'SICOR · trator, máquinas e implementos, colheitadeiras · contra os 12 meses anteriores',
+          deOnde: `SICOR · trator, máquinas e implementos, colheitadeiras · contra ${janelaAnteriorTexto}`,
         },
         {
           rotulo: 'Valor financiado em máquinas',
@@ -158,9 +170,66 @@ export function PainelDeCredito() {
         </div>
       )}
 
-      {dados?.ultimoMes && (
+      {dados?.ultimoMes && janela && (
         <>
           <PainelDeIndicadores indicadores={indicadores} />
+
+          {/* A JANELA, DITA POR EXTENSO. Sem isso, "os últimos 12 meses" é uma frase — e quem confere
+              na mão não sabe que meses entraram nem por que o mês mais recente ficou de fora. */}
+          <div className="card cad-cartao terr-cartao">
+            <div className="card-title">A janela desta comparação</div>
+            <div className="cad-sub">
+              <strong>{janelaTexto}</strong> contra <strong>{janelaAnteriorTexto}</strong> · {janela.mesesPorJanela} meses de cada
+              lado · o SICOR tem dado até {mes(janela.ultimoMesComDado)}
+              {janela.carenciaDecidida
+                ? janela.mesesDeCarencia > 0
+                  ? ` · os ${janela.mesesDeCarencia} ${janela.mesesDeCarencia === 1 ? 'mês mais recente ficou' : 'meses mais recentes ficaram'} de fora, porque o Banco Central ainda acrescenta contrato registrado com atraso`
+                  : ' · a carência está decidida como zero: nenhum mês fica de fora'
+                : ' · carência não decidida: nenhum mês foi descartado, e por isso o mês mais recente pode aparecer abaixo do que será'}
+            </div>
+          </div>
+
+          {/* REGIÃO × SÃO PAULO. Sem o estado ao lado, o número da Região é solto: ele pode ser um
+              terço de São Paulo ou um vigésimo, e a diferença é o tamanho do mercado que falta. */}
+          {dados.regiao && dados.saoPaulo && (
+            <div className="card cad-cartao terr-cartao">
+              <div className="card-title">Máquinas: a Região dentro de São Paulo — {janelaTexto}</div>
+              <div className="cad-tabela-wrap">
+                <table className="cad-tabela terr-tabela-precos">
+                  <thead>
+                    <tr>
+                      <th>Recorte</th>
+                      <th className="terr-num">Linhas</th>
+                      <th className="terr-num">Valor</th>
+                      <th className="terr-num" title="Valor ÷ linhas">
+                        Ticket
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <LinhaDeJanelas
+                      nome={dados.regiao.recorte}
+                      sub={`${dados.regiao.municipios.toLocaleString('pt-BR')} municípios com linha na janela`}
+                      j={dados.regiao.janelas}
+                    />
+                    <LinhaDeJanelas
+                      nome={dados.saoPaulo.recorte}
+                      sub={`${dados.saoPaulo.municipios.toLocaleString('pt-BR')} municípios com linha na janela`}
+                      j={dados.saoPaulo.janelas}
+                    />
+                    <tr>
+                      <td>
+                        <strong>A Região é esta fatia de São Paulo</strong>
+                      </td>
+                      <td className="terr-num cad-mono">{fatia(dados.regiao.janelas.linhas, dados.saoPaulo.janelas.linhas)}</td>
+                      <td className="terr-num cad-mono">{fatia(dados.regiao.janelas.valor, dados.saoPaulo.janelas.valor)}</td>
+                      <td className="terr-num">—</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div className="terr-grade-precos terr-grade-custos">
             <div className="card cad-cartao terr-cartao">

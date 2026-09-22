@@ -171,6 +171,7 @@ export function formularioDosGerais(vigente: ParametrosGeraisDetalhe | null, hoj
     pesoDoIndicadorComercial: campo(vigente?.pesoDoIndicadorComercial),
     fatorMinimo: campo(vigente?.fatorMinimo),
     fatorMaximo: campo(vigente?.fatorMaximo),
+    mesesDeCarenciaDoSicor: campo(vigente?.mesesDeCarenciaDoSicor),
     justificativa: '',
   };
 }

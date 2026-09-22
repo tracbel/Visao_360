@@ -14,7 +14,7 @@ import { formularioDosGerais } from './vigencias';
 const CAMPOS = [
   'vigenteDesde', 'mesesDaJanela', 'pesoDosContratosNoCredito', 'limiteDeRetracao', 'limiteDeAquecimento',
   'limiteDeSuperaquecimento', 'nomeDaFaixaIntermediaria', 'limiteDaPercepcao', 'pesoDoIndicadorDePreco',
-  'pesoDoIndicadorDeCredito', 'pesoDoIndicadorComercial', 'fatorMinimo', 'fatorMaximo', 'justificativa',
+  'pesoDoIndicadorDeCredito', 'pesoDoIndicadorComercial', 'fatorMinimo', 'fatorMaximo', 'mesesDeCarenciaDoSicor', 'justificativa',
 ] as const;
 
 export function FormularioDosGerais({
@@ -84,6 +84,8 @@ export function FormularioDosGerais({
           ajuda="Junto com o máximo: entre 0 e 1." />
         <CampoTexto rotulo="Fator máximo" {...campo('fatorMaximo')}
           ajuda="Acima de 1." />
+        <CampoTexto rotulo="Carência do SICOR (meses)" {...campo('mesesDeCarenciaDoSicor')}
+          ajuda="Em aberto (D-IM-03): quantos meses recentes ficam de fora da janela, porque o Banco Central ainda acrescenta contrato com atraso. Vazio = nenhum mês descartado." />
         <CampoTextoLongo rotulo="Justificativa" obrigatorio largo {...campo('justificativa')}
           exemplo="A decisão ou a fonte destes valores — fica na trilha, com o seu nome." />
       </div>

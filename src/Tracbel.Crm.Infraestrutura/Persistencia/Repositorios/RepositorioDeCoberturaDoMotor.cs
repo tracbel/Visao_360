@@ -269,7 +269,7 @@ public sealed class RepositorioDeCoberturaDoMotor(CrmDbContext contexto) : IRepo
         var inicioDaUltima = ultimo.AddMonths(-11);
         var inicioDaAnterior = ultimo.AddMonths(-23);
         var anoMinimo = (short)inicioDaAnterior.Year;
-        var produtos = RepositorioDeCreditoRural.ProdutosDeMaquina;
+        var produtos = ParametroDoPotencial.ProdutosDeMaquinaNoSicor;
 
         var linhasNaJanela = (await contexto.CreditosRuraisDeInvestimento.AsNoTracking()
                 .Where(c => c.Ano >= anoMinimo && produtos.Contains(c.CodigoProduto) && adr.Contains(c.MunicipioId))

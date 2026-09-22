@@ -141,6 +141,12 @@ public sealed class ParametroDoPotencialConfiguracao : IEntityTypeConfiguration<
             "CK_ParametroDoPotencial_Fator",
             "([FatorMinimo] IS NULL AND [FatorMaximo] IS NULL) OR ([FatorMinimo] > 0 AND [FatorMinimo] < 1 AND [FatorMaximo] > 1)"));
 
+        // A CARÊNCIA NÃO COME A JANELA INTEIRA (issue 157): descartar 12 meses de uma janela de 12
+        // deixaria os dois lados vazios. A mesma regra do domínio, dita também no banco.
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_ParametroDoPotencial_CarenciaDoSicor",
+            "[MesesDeCarenciaDoSicor] IS NULL OR ([MesesDeCarenciaDoSicor] >= 0 AND [MesesDeCarenciaDoSicor] < [MesesDaJanela])"));
+
         b.HasData(new
         {
             Id = 1,
@@ -156,6 +162,10 @@ public sealed class ParametroDoPotencialConfiguracao : IEntityTypeConfiguration<
             PesoDoIndicadorComercial = (decimal?)null,
             FatorMinimo = (decimal?)null,
             FatorMaximo = (decimal?)null,
+
+            // EM ABERTO (D-IM-03): quantos meses o atraso do Banco Central ocupa é medição que
+            // ninguém fez. Nulo é "não decidida" — a janela não descarta mês nenhum, e a tela diz.
+            MesesDeCarenciaDoSicor = (short?)null,
             VigenteDesde = new DateOnly(2026, 9, 21),
             Justificativa = "Texto-base do Ricardo de 21/09/2026 (issue 63): os últimos 12 meses contra os 12 anteriores; " +
                             "crédito com 70% de contratos e 30% de valor; < 1 retraído, > 1,2 aquecido, > 1,4 super aquecido; " +
