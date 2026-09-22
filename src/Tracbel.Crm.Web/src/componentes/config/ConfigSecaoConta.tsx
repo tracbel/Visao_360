@@ -18,62 +18,11 @@
  * usuários (#113); cargo e telefone voltam quando vierem do Entra (#140).
  */
 
-import type { EscopoDoUsuario, PerfilDoEscopo, PermissaoDoEscopo } from '../../dados/api/acesso';
+import type { EscopoDoUsuario, PerfilDoEscopo } from '../../dados/api/acesso';
 import type { Sessao } from '../../dados/api/sessao';
 import { formatarData } from '../../telas/cadastro/formato';
+import { ALCANCE, agruparPorArea } from './areasDePermissao';
 import { CampoDeLeitura, CardConfig } from './ConfigPartes';
-
-/** A profundidade como a pessoa entende — o mesmo texto que o servidor usa nas recusas. */
-const ALCANCE: Record<string, string> = {
-  Organizacao: 'toda a organização',
-  EmpresaEAbaixo: 'a filial escolhida e as que estão abaixo dela',
-  Empresa: 'só a filial escolhida',
-  Equipe: 'você e a sua equipe',
-  Proprios: 'só os seus registros',
-};
-
-/** As áreas, na ordem em que aparecem, pelo começo do código da permissão (`Cliente.Ler` → Clientes). */
-const AREAS: [prefixo: string, nome: string][] = [
-  ['Cliente', 'Clientes'],
-  ['Equipamento', 'Equipamentos'],
-  ['Processo', 'Oportunidades'],
-  ['Tarefa', 'Agenda'],
-  ['Interacao', 'Interações'],
-  ['Cobertura', 'Cobertura de carteira'],
-  ['Relatorio', 'Relatórios'],
-  ['Faturamento', 'Faturamento'],
-  ['Territorio', 'Território'],
-  ['ParametroDoPotencial', 'Potencial de mercado'],
-  ['PercepcaoDoGestor', 'Potencial de mercado'],
-  ['Catalogo', 'Catálogos'],
-  ['Empresa', 'Filiais'],
-  ['Usuario', 'Usuários'],
-  ['Perfil', 'Perfis'],
-  ['Integracao', 'Integrações'],
-  ['Legado', 'Sistema legado'],
-];
-
-/** Dentro de uma área, a ordem natural das ações (`Cliente.Ler` antes de `Cliente.Excluir`), e não a alfabética. */
-const ORDEM_DAS_ACOES = ['Ler', 'Criar', 'Editar', 'Excluir', 'Informar', 'AlcanceEntreFiliais', 'Administrar'];
-
-type Area = { nome: string; permissoes: PermissaoDoEscopo[] };
-
-function agruparPorArea(permissoes: PermissaoDoEscopo[]): Area[] {
-  const areas = new Map<string, PermissaoDoEscopo[]>();
-  for (const permissao of permissoes) {
-    const prefixo = permissao.codigo.split('.')[0];
-    const nome = AREAS.find(([p]) => p === prefixo)?.[1] ?? 'Outras';
-    areas.set(nome, [...(areas.get(nome) ?? []), permissao]);
-  }
-  const posicao = (p: PermissaoDoEscopo) => {
-    const i = ORDEM_DAS_ACOES.indexOf(p.codigo.split('.')[1] ?? '');
-    return i < 0 ? ORDEM_DAS_ACOES.length : i;
-  };
-  const ordem = [...new Set(AREAS.map(([, nome]) => nome)), 'Outras'];
-  return ordem
-    .filter((nome) => areas.has(nome))
-    .map((nome) => ({ nome, permissoes: [...areas.get(nome)!].sort((a, b) => posicao(a) - posicao(b)) }));
-}
 
 function OndeVale({ perfil }: { perfil: PerfilDoEscopo }) {
   if (perfil.ehPadrao) return <>todo usuário recebe</>;
@@ -141,8 +90,8 @@ export function ConfigSecaoConta({ escopo, sessao }: { escopo: EscopoDoUsuario; 
             )}
             <div className="conta-areas">
               {areas.map((area) => {
-                const alcances = new Set(area.permissoes.map((p) => p.profundidade));
-                const alcanceUnico = alcances.size === 1 ? area.permissoes[0].profundidade : null;
+                const alcances = new Set(area.itens.map((p) => p.profundidade));
+                const alcanceUnico = alcances.size === 1 ? area.itens[0].profundidade : null;
                 return (
                   <div className="conta-area" key={area.nome}>
                     <div className="conta-area-topo">
@@ -150,7 +99,7 @@ export function ConfigSecaoConta({ escopo, sessao }: { escopo: EscopoDoUsuario; 
                       {alcanceUnico && !alcanceDeTudo && <span className="conta-alcance">{ALCANCE[alcanceUnico] ?? alcanceUnico}</span>}
                     </div>
                     <ul className="conta-permissoes">
-                      {area.permissoes.map((p) => (
+                      {area.itens.map((p) => (
                         <li key={p.codigo}>
                           {p.descricao}
                           {!alcanceUnico && <span className="conta-alcance"> · {ALCANCE[p.profundidade] ?? p.profundidade}</span>}

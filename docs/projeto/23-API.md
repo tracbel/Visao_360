@@ -379,6 +379,36 @@ alcance (a Gerência). Fora do alcance é 404.
 A mesma concessão vigente não se repete (409); a vencida é marcada como substituída. O índice único de
 `UsuarioPerfil` passou a ignorar as revogadas (`[EmpresaId] IS NOT NULL AND [RevogadaEm] IS NULL`).
 
+### 2.12 Administração de perfis — `/api/v1/admin/perfis` (issue 113, parte 2b, 22/09/2026)
+
+| Rota | Permissão | O que faz |
+|---|---|---|
+| `GET /api/v1/admin/perfis/todos` | `Perfil.Administrar` | todos os perfis, **inclusive os desativados**, com o que cada um dá, se é do sistema e quantas pessoas o têm (concessão vigente de conta ativa e liberada). Os do sistema primeiro, na ordem da semente; os próprios pelo nome |
+| `GET /api/v1/admin/permissoes` | `Perfil.Administrar` | o catálogo de permissões do código, para montar a matriz |
+| `POST /api/v1/admin/perfis` `{ codigo, nome, descricao?, permissoes: [{ codigo, profundidade }] }` | `Perfil.Administrar` | cria um perfil próprio (201). O código vira maiúsculo e segue `^[A-Z][A-Z0-9_]{2,59}$` |
+| `PUT /api/v1/admin/perfis/{codigo}` `{ nome, descricao?, permissoes }` | `Perfil.Administrar` | troca nome, descrição e o **conjunto inteiro** de permissões: o que não veio sai, o que mudou de profundidade muda, o que é novo entra |
+| `POST …/{codigo}/desativacao` e `…/reativacao` | `Perfil.Administrar` | desativa e reativa, sem apagar nada. Desativado, **deixa de valer para quem o tem** (as concessões ficam, e voltam a valer na reativação) e sai do formulário de concessão |
+
+**Os sete perfis do sistema são fixos** (Padrão, Exclusão de cadastro, Visão entre filiais, Administrador,
+Gestor comercial, Gerência e Diretoria — `PerfisDeSistema.Todos`): vêm da semente do código e qualquer alteração pela API é 409, com a mensagem "Duplique-o e ajuste a cópia". Para ter
+uma variação, a tela duplica o perfil e cria um próprio com as mesmas permissões.
+
+**Regras conferidas no caso de uso:**
+
+1. **Ninguém monta um perfil maior do que o próprio acesso** (403): o conjunto novo passa por
+   `RegraDeConcessao`; na edição, o conjunto **atual** também, para que quem tem menos acesso não altere um perfil
+   que dá mais.
+2. **Só permissão do catálogo, sem repetir e sem profundidade `Nenhum`**; o domínio confere de novo
+   (`Perfil.DefinirPermissoes`).
+3. **Código único e fora dos códigos do sistema**, contra perfis ativos e desativados. Formato, código repetido
+   e permissão inválida voltam como erro de validação no campo (§3).
+4. Tudo entra na trilha com o autor (origem `Usuario`).
+
+**Identidade dos perfis próprios.** A migration `IdentidadeDosPerfisProprios` só existe no SQL Server e
+reposiciona o contador de `seguranca.Perfil` para depois de 999 e o de `seguranca.PerfilPermissao` para depois
+de 99.999 — o espaço abaixo fica para a semente (`100 × perfil + posição`), que cresce sem colidir com o que foi
+criado pela tela. Ela só age quando o contador está abaixo; rodar de novo não muda nada.
+
 ## 3. O formato de erro
 
 Toda recusa é `application/problem+json`. O status vem da **natureza** da falha, declarada pelo

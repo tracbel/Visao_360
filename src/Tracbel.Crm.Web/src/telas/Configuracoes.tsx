@@ -25,6 +25,7 @@ import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTel
 import { ConfigSecaoConta } from '../componentes/config/ConfigSecaoConta';
 import { ConfigSecaoFontes } from '../componentes/config/ConfigSecaoFontes';
 import { ConfigSecaoIntegracoes } from '../componentes/config/ConfigSecaoIntegracoes';
+import { ConfigSecaoPerfis } from '../componentes/config/ConfigSecaoPerfis';
 import { ConfigSecaoPotencial } from '../componentes/config/ConfigSecaoPotencial';
 import { ConfigSecaoUsuarios } from '../componentes/config/ConfigSecaoUsuarios';
 import { MenuLateralConfig } from '../componentes/config/MenuLateralConfig';
@@ -83,6 +84,8 @@ export function Configuracoes() {
         return <ConfigSecaoIntegracoes />;
       case 'usuarios':
         return <ConfigSecaoUsuarios podeAdministrar={tem(PERMISSAO.usuarioAdministrar)} filiais={escopo.filiaisPermitidas} />;
+      case 'perfis':
+        return <ConfigSecaoPerfis />;
       default:
         return <ConfigSecaoConta escopo={escopo} sessao={sessao} />;
     }

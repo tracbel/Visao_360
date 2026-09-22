@@ -197,6 +197,15 @@ conta; ninguém dá ou tira um acesso maior do que o próprio (`RegraDeConcessao
 sempre. **Revogar não apaga**: a concessão fica marcada com quem, quando e por quê, e continua respondendo
 "quem tinha este acesso em março?". `Usuario.Ler` (ver) é da Gerência (a filial), da Diretoria e do
 Administrador; `Usuario.Administrar` (agir), só do Administrador. As rotas estão no documento 23, §2.11.
+
+**Perfis próprios (issue 113, parte 2b, 22/09/2026).** Os sete perfis do sistema (`PerfisDeSistema.Todos`)
+continuam **fixos**, vindos da semente do código. Quem tem `Perfil.Administrar` (hoje, só o Administrador) cria perfis próprios na tela
+(Configurações › Administração › Perfis), em geral duplicando um do sistema e ajustando a cópia, e os concede
+na tela de Usuários. A mesma regra anti-escalada vale para montar o perfil: ninguém cria nem edita um perfil
+que dê mais do que o próprio acesso. Desativar não apaga: o perfil deixa de valer para quem o tem e sai do
+formulário de concessão; reativado, as concessões voltam a valer. Tirar uma permissão do perfil tira de todos
+que o têm, na hora. As rotas
+estão no documento 23, §2.12.
 ---
 
 ## 5. Camada 3 — profundidade (o coração do modelo)

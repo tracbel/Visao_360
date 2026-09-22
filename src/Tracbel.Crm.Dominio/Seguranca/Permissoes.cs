@@ -229,6 +229,13 @@ public static class PerfisDeSistema
         Seguranca.Permissoes.UsuarioLer
     ];
 
+    /// <summary>
+    /// O perfil é do sistema — semeado pelo código, e por isso fixo na tela (decisão de 22/09/2026, issue 113)?
+    /// Pelo código, e não pelo identificador: em teste, um perfil próprio pode nascer com identificador baixo.
+    /// </summary>
+    /// <param name="codigo">O código do perfil.</param>
+    public static bool EhDoSistema(string codigo) => Todos.Any(p => string.Equals(p.Codigo, codigo, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>Os perfis semeados, na ordem dos identificadores.</summary>
     public static readonly IReadOnlyList<Semente> Todos =
     [

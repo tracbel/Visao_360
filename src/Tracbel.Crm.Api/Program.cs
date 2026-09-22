@@ -196,6 +196,7 @@ builder.Services.AddScoped<RepositorioDeAdministracaoDeUsuarios>();
 builder.Services.AddScoped<IRepositorioDeUsuariosDaAdministracao>(s => s.GetRequiredService<RepositorioDeAdministracaoDeUsuarios>());
 builder.Services.AddScoped<IRepositorioDeConcessoes>(s => s.GetRequiredService<RepositorioDeAdministracaoDeUsuarios>());
 builder.Services.AddScoped<IRepositorioDeReferenciasDeAcesso>(s => s.GetRequiredService<RepositorioDeAdministracaoDeUsuarios>());
+builder.Services.AddScoped<IRepositorioDePerfisDaAdministracao, RepositorioDePerfisDaAdministracao>();
 builder.Services.AddScoped<IRepositorioIndicadoresExecutivos, RepositorioDeIndicadoresExecutivos>();
 builder.Services.AddScoped<IRepositorioHistoricoComercial, RepositorioDeHistoricoComercial>();
 builder.Services.AddScoped<IRepositorioSincronizacoes, RepositorioDeSincronizacoes>();
@@ -271,6 +272,11 @@ builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ListarUsuariosDaAdmin
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ObterUsuarioDaAdministracao>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ListarPerfisParaConceder>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.AdministrarUsuario>();
+
+// A administração de perfis próprios (issue 113, parte 2b).
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ListarPerfisDaAdministracao>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ListarCatalogoDePermissoes>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.AdministrarPerfil>();
 builder.Services.AddScoped<ObterIndicadoresExecutivos>();
 
 builder.Services.AddScoped<BuscarClientesNoLegado>();
@@ -406,6 +412,7 @@ app.MapearMunicipios();
 app.MapearIndicadoresTerritoriais();
 app.MapearParametrosDoPotencial();
 app.MapearAdministracaoDeUsuarios();
+app.MapearAdministracaoDePerfis();
 app.MapearRelatorios();
 
 // O ÚLTIMO RECURSO DEVOLVE O `index.html`, e é o que faz a navegação da tela funcionar.

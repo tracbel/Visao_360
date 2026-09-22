@@ -17,6 +17,7 @@ export const PERMISSAO = {
   integracaoLer: 'Integracao.Ler',
   usuarioLer: 'Usuario.Ler',
   usuarioAdministrar: 'Usuario.Administrar',
+  perfilAdministrar: 'Perfil.Administrar',
 } as const;
 
 export type PermissoesDoUsuario = {
