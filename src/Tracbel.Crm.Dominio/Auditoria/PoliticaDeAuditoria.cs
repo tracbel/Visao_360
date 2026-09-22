@@ -70,7 +70,33 @@ public static class PoliticaDeAuditoria
 
         // Crédito rural: o valor. O Banco Central acrescenta contrato registrado com atraso aos meses
         // recentes, e o índice de crédito da issue 73 muda com isso — a trilha guarda o anterior.
-        ["CreditoRuralDeInvestimento"] = ["Valor"],
+        //
+        // E A CHAVE INTEIRA (issue 153). O ano relido espelha a fonte: a linha que o Banco Central reclassificou
+        // (a mesma operação com outra fonte de recurso, por exemplo) é apagada, senão seria contada duas vezes. Com só o
+        // valor na trilha, a exclusão dizia "saiu R$ 250 mil" sem dizer de onde. A chave não muda numa alteração —
+        // ela só aparece na trilha quando a linha sai, e aí diz qual linha era.
+        ["CreditoRuralDeInvestimento"] =
+        [
+            "Valor", "Area", "MunicipioId", "CodigoMunicipioBcb", "Ano", "Mes", "CodigoProduto", "CodigoPrograma",
+            "CodigoSubprograma", "CodigoFonte", "CodigoSeguro", "Atividade", "CodigoModalidade"
+        ],
+
+        // AS FONTES DO IBGE (issue 153): a revisão substitui o valor, e a trilha guarda o anterior. O IBGE revisa a PAM
+        // do ano anterior quando publica a nova; sem a trilha, o potencial calculado em agosto mudava em outubro sem
+        // rastro de por quê. A inclusão feita pela carga não entra (ver RegistraInclusao) — só o que ela muda depois.
+        ["ProducaoAgricolaNoMunicipio"] =
+            ["ProdutoNome", "AreaPlantadaHectares", "AreaColhidaHectares", "QuantidadeProduzida", "ValorDaProducaoMilReais"],
+        ["ProducaoAgricolaNoEstado"] =
+            ["ProdutoNome", "AreaPlantadaHectares", "AreaColhidaHectares", "QuantidadeProduzida", "ValorDaProducaoMilReais"],
+        ["FrotaDeTratoresNoMunicipio"] = ["PotenciaNome", "Tratores", "EstabelecimentosComTrator"],
+        ["EstabelecimentosPorAreaNoMunicipio"] = ["GrupoDeAreaNome", "Estabelecimentos"],
+        ["RebanhoNoMunicipio"] = ["RebanhoNome", "Cabecas"],
+        ["AreaTerritorialDoMunicipio"] = ["AreaKm2"],
+
+        // A USINA DA ANP (issue 153): o que a ANP corrige e a saída da lista. O mês de referência fica de fora — ele
+        // anda todo mês em todas as usinas, e a trilha viraria o carimbo do Vórtice.
+        ["UsinaDeEtanol"] =
+            ["RazaoSocial", "MunicipioId", "CapacidadeDeAnidroM3Dia", "CapacidadeDeHidratadoM3Dia", "EncerradaEm"],
 
         // PARÂMETROS DO POTENCIAL (issue 71): "parâmetro alterado gera trilha com o autor". A vigência nasce
         // pela mão de uma pessoa — a inclusão entra na trilha inteira — e depois só muda para ser revogada.

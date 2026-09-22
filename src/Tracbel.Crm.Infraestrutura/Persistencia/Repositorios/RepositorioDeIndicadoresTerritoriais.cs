@@ -620,9 +620,11 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                      where linha.Ano == anoDaArea && municipio.CodigoIbge != null
                      select new { Codigo = municipio.CodigoIbge!.Value, linha.AreaKm2 }).ToListAsync(ct);
 
+        // SÓ AS VIGENTES: a usina que saiu da lista da ANP fica encerrada no banco (issue 153), com a data, mas não é
+        // mais usina autorizada — e não entra no mapa nem na contagem.
         var usinas = await (from usina in contexto.UsinasDeEtanol.AsNoTracking()
                             join municipio in contexto.Municipios.AsNoTracking() on usina.MunicipioId equals municipio.Id
-                            where municipio.CodigoIbge != null
+                            where municipio.CodigoIbge != null && usina.EncerradaEm == null
                             orderby usina.RazaoSocial
                             select new
                             {

@@ -152,6 +152,11 @@ autorizada pela ANP e não aparece. Na prática quase toda usina paulista é mis
 um município na tabela não prova que não há usina lá** — prova que não há usina de etanol. A tela diz
 isso, como o resto da Visão 360 faz com dado que não fecha.
 
+**[22/09/2026, issue 153] Usina que sai da lista da ANP fica encerrada, não apagada.** A ANP publica só o cadastro
+de hoje; apagar a linha fazia a usina que o CRM mostrou num mês sumir sem rastro no seguinte. Encerrada, ela sai da
+contagem e do mapa, continua no banco com a data em que saiu, e reabre se voltar à lista. Leitura vazia não encerra
+nada (arquivo que não veio inteiro), e linha recusada não conta como usina que saiu.
+
 Na ADR, a carga encontrou **64 usinas**; a planilha listava 68 municípios, com repetição e incluindo
 as exclusivamente açucareiras. A maior é a São Martinho, em Pradópolis, com 4.240 m³/dia.
 
@@ -254,7 +259,10 @@ desde 2013**: **204.435 linhas**, em 637 municípios. Mais as tabelas auxiliares
   2025, 4.130 das 4.138 linhas estão idênticas, 1 mudou de valor e **7 mudaram de combinação** — as 7 com
   o mesmo município, mês, produto e valor, só a fonte de recurso trocada (430 → 303). Em 2026, 5.360 das
   5.409 idênticas, 10 com valor diferente e 39 reclassificadas. Por isso **o ano relido espelha a fonte**:
-  a linha que saiu é apagada, ou a mesma operação seria contada duas vezes.
+  a linha que saiu é apagada, ou a mesma operação seria contada duas vezes. **[22/09/2026, issue 153]** A trilha
+  de auditoria guarda a linha apagada inteira — valor, município, mês, produto, programa, subprograma, fonte, seguro,
+  atividade e modalidade —, e só sai o que a fonte de fato não trouxe: linha recusada (município que não casou,
+  valor inválido) fica como estava.
 
 **Aceite contra a pasta**:
 
