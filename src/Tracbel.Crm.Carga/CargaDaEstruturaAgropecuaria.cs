@@ -417,16 +417,10 @@ internal sealed class CargaDaEstruturaAgropecuaria(
             contexto, "ANP", "ANP — dados abertos de biocombustíveis", "Arquivo público, somente leitura", ct);
         contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistemaId);
 
-        // O MUNICÍPIO DA ANP VEM POR NOME, em caixa alta e sem acento — não por código. O de-para é o
-        // mesmo das planilhas do comercial: a chave de colação do saneamento. Nome que aparece em dois
-        // municípios de SP fica de fora, porque ambiguidade não se resolve por ordem.
-        var municipioPorNome = (await contexto.Municipios.AsNoTracking()
-                .Where(m => m.Uf == "SP" && m.CodigoIbge != null)
-                .Select(m => new { m.Id, m.Nome })
-                .ToListAsync(ct))
-            .GroupBy(m => SaneamentoDeTerritorio.ChaveSemApostrofo(m.Nome))
-            .Where(g => g.Count() == 1)
-            .ToDictionary(g => g.Key, g => g.Single().Id, StringComparer.Ordinal);
+        // A ANP NÃO PUBLICA CÓDIGO DE MUNICÍPIO, só o nome em caixa alta e sem acento. O par nome → município é
+        // feito uma vez e gravado (issue 154); da segunda rodada em diante, é o par que responde. Nome que
+        // aparece em dois municípios de SP não casa: ambiguidade não se resolve por ordem.
+        var dePara = await CorrespondenciaDeMunicipios.AbrirAsync(contexto, FluxoDasUsinas, "SP", usuarioId, ct);
 
         var existentes = (await contexto.UsinasDeEtanol.ToListAsync(ct)).ToDictionary(u => u.Cnpj);
 
@@ -442,9 +436,9 @@ internal sealed class CargaDaEstruturaAgropecuaria(
 
         foreach (var linha in lidas)
         {
-            if (!municipioPorNome.TryGetValue(SaneamentoDeTerritorio.ChaveSemApostrofo(linha.Municipio), out var municipioId))
+            if (!dePara.Resolver(linha.Municipio, linha.Municipio, agora, out var municipioId))
             {
-                recusas.Add((linha, $"\"{linha.Municipio}\" não é, sem ambiguidade, um município de SP no catálogo."));
+                recusas.Add((linha, CorrespondenciaDeMunicipios.MotivoSemPar(linha.Municipio)));
                 continue;
             }
 
@@ -496,6 +490,7 @@ internal sealed class CargaDaEstruturaAgropecuaria(
         var saíram = UsinaDeEtanol.EncerrarAsQueSairam(existentes.Values, naLista, usuarioId, agora);
 
         contexto.UsinasDeEtanol.AddRange(novas);
+        dePara.Gravar(contexto);
         await CargaDeTerritorio.SubstituirRecusasAsync(contexto, FluxoDasUsinas, recusas, ct);
         await contexto.SaveChangesAsync(ct);
 
@@ -510,6 +505,8 @@ internal sealed class CargaDaEstruturaAgropecuaria(
         Contar(etapa, "usinas mantidas sem mudança", mantidas);
         Contar(etapa, "usinas que saíram da lista da ANP (encerradas, não apagadas)", saíram.Count);
         Contar(etapa, "municípios distintos com usina", municipiosComUsina.Count);
+        Contar(etapa, "usinas resolvidas pelo de-para já gravado", dePara.CasadosPelaCorrespondencia);
+        Contar(etapa, "correspondências novas gravadas (casadas por nome)", dePara.CasadosPorNome);
         Contar(etapa, "linhas recusadas", recusas.Count);
     }
 

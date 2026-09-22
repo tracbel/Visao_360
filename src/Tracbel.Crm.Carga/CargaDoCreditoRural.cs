@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comum;
@@ -28,9 +29,11 @@ namespace Tracbel.Crm.Carga;
 /// crédito duas vezes. O número de linhas apagadas sai no relatório da carga. Ao contrário da cotação
 /// de preço, que é um fato de um mês, esta linha é um agregado que o próprio Banco Central refaz.</para>
 ///
-/// <para><b>O município vem pelo nome.</b> O código do Banco Central não é o do IBGE; o nome, sem acento,
-/// caixa e apóstrofo, casa os 637 municípios de SP que aparecem no SICOR desde 2013 (medido em
-/// 21/09/2026). Município que não casar vira recusa, com o código e o número de linhas.</para>
+/// <para><b>O município vem do de-para gravado</b> (issue 154). O código do Banco Central não é o do IBGE: na
+/// primeira rodada o nome, sem acento, caixa e apóstrofo, casa os 637 municípios de SP que aparecem no SICOR
+/// desde 2013 (medido em 21/09/2026), e o par vai para <c>organizacao.CorrespondenciaDeMunicipio</c>, pela chave
+/// do Banco Central. Nas rodadas seguintes o par responde, e nenhum nome é comparado de novo. Código sem par
+/// vira recusa, com o nome e o número de linhas.</para>
 /// </summary>
 /// <param name="abrirContexto">Abre um contexto de banco com alcance de sistema.</param>
 /// <param name="sicor">A leitura do SICOR.</param>
@@ -131,22 +134,15 @@ internal sealed class CargaDoCreditoRural(
     {
         await using var trava = await TravaDeFluxo.TomarAsync(abrirContexto(), FluxoDoInvestimento, ct);
 
-        Dictionary<string, int> municipioPorNome;
+        int municipiosDeSaoPaulo;
         HashSet<short> anosNoBanco;
         await using (var leitura = abrirContexto())
         {
-            municipioPorNome = (await leitura.Municipios.AsNoTracking()
-                    .Where(m => m.Uf == "SP" && m.CodigoIbge != null)
-                    .Select(m => new { m.Id, m.Nome })
-                    .ToListAsync(ct))
-                .GroupBy(m => SaneamentoDeTerritorio.ChaveSemApostrofo(m.Nome))
-                .Where(g => g.Count() == 1)
-                .ToDictionary(g => g.Key, g => g.Single().Id, StringComparer.Ordinal);
-
+            municipiosDeSaoPaulo = await leitura.Municipios.AsNoTracking().CountAsync(m => m.Uf == "SP" && m.CodigoIbge != null, ct);
             anosNoBanco = [.. await leitura.CreditosRuraisDeInvestimento.Select(c => c.Ano).Distinct().ToListAsync(ct)];
         }
 
-        if (municipioPorNome.Count == 0)
+        if (municipiosDeSaoPaulo == 0)
             throw new InvalidOperationException(
                 "Nenhum município de SP tem código do IBGE neste banco. O crédito rural não tem onde ser gravado: " +
                 "rode a carga do território (--somente-territorio) antes.");
@@ -160,6 +156,7 @@ internal sealed class CargaDoCreditoRural(
         var recusasPorMunicipio = new Dictionary<int, (string Nome, int Linhas)>();
         var recusasDeValor = new List<(object Conteudo, string Motivo)>();
         int lidas = 0, novas = 0, revisadas = 0, mantidas = 0, apagadas = 0;
+        int pelaCorrespondencia = 0, paresNovos = 0;
         var municipiosCasados = new HashSet<int>();
 
         foreach (var ano in anos)
@@ -174,6 +171,10 @@ internal sealed class CargaDoCreditoRural(
 
             var sistemaId = await SistemaAsync(contexto, ct);
             contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistemaId);
+
+            // O MUNICÍPIO VEM DO DE-PARA GRAVADO (issue 154), pela chave que a fonte tem: o código do Banco
+            // Central, que não é o do IBGE. Só a primeira rodada casa pelo nome — e grava o par.
+            var dePara = await CorrespondenciaDeMunicipios.AbrirAsync(contexto, FluxoDoInvestimento, "SP", usuarioId, ct);
 
             var existentes = (await contexto.CreditosRuraisDeInvestimento.Where(c => c.Ano == ano).ToListAsync(ct))
                 .ToDictionary(c => c.ChaveNatural);
@@ -192,7 +193,7 @@ internal sealed class CargaDoCreditoRural(
                     l.CodigoSubprograma, l.CodigoFonte, l.CodigoSeguro, l.Atividade, l.CodigoModalidade);
                 naFonte.Add(chave);
 
-                if (!municipioPorNome.TryGetValue(SaneamentoDeTerritorio.ChaveSemApostrofo(l.Municipio), out var municipioId))
+                if (!dePara.Resolver(l.CodigoMunicipioBcb.ToString(CultureInfo.InvariantCulture), l.Municipio, agora, out var municipioId))
                 {
                     recusasPorMunicipio[l.CodigoMunicipioBcb] = (l.Municipio,
                         (recusasPorMunicipio.TryGetValue(l.CodigoMunicipioBcb, out var r) ? r.Linhas : 0) + 1);
@@ -236,6 +237,10 @@ internal sealed class CargaDoCreditoRural(
             contexto.CreditosRuraisDeInvestimento.AddRange(novasDoAno);
             novas += novasDoAno.Count;
 
+            dePara.Gravar(contexto);
+            pelaCorrespondencia += dePara.CasadosPelaCorrespondencia;
+            paresNovos += dePara.CasadosPorNome;
+
             await contexto.SaveChangesAsync(ct);
             await transacao.CommitAsync(ct);
         }
@@ -271,6 +276,8 @@ internal sealed class CargaDoCreditoRural(
         Contar("linhas mantidas sem mudança", mantidas);
         Contar("linhas que saíram do SICOR no ano relido (apagadas)", apagadas);
         Contar("municípios do Banco Central casados com o catálogo", municipiosCasados.Count);
+        Contar("linhas resolvidas pelo de-para já gravado", pelaCorrespondencia);
+        Contar("correspondências novas gravadas (casadas por nome)", paresNovos);
         Contar("municípios sem casamento (recusados)", recusasPorMunicipio.Count);
         Contar("linhas recusadas por valor ou repetição", recusasDeValor.Count);
     }

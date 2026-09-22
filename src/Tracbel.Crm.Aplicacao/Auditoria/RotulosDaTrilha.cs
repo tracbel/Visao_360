@@ -35,6 +35,7 @@ public static class RotulosDaTrilha
         ["RebanhoNoMunicipio"] = "Rebanho no município (PPM)",
         ["AreaTerritorialDoMunicipio"] = "Área territorial do município",
         ["UsinaDeEtanol"] = "Usina de etanol (ANP)",
+        ["CorrespondenciaDeMunicipio"] = "Município da fonte (de-para)",
         ["RegraDePotencial"] = "Regra do potencial por cultura",
         ["ParametroDoPotencial"] = "Parâmetros gerais do potencial",
         ["PercepcaoDoGestor"] = "Percepção do gestor",
@@ -125,6 +126,11 @@ public static class RotulosDaTrilha
             ["RazaoSocial"] = "Razão social", ["MunicipioId"] = "Município", ["CapacidadeDeAnidroM3Dia"] = "Capacidade de anidro (m³/dia)",
             ["CapacidadeDeHidratadoM3Dia"] = "Capacidade de hidratado (m³/dia)", ["EncerradaEm"] = "Saiu da lista da ANP em"
         },
+        ["CorrespondenciaDeMunicipio"] = new(StringComparer.Ordinal)
+        {
+            ["MunicipioId"] = "Município do catálogo", ["Forma"] = "Como a correspondência foi feita",
+            ["TextoNaFonte"] = "Nome como a fonte publica"
+        },
         ["RegraDePotencial"] = new(StringComparer.Ordinal)
         {
             ["ProdutoCodigoIbge"] = "Cultura (código IBGE)", ["HectaresPorMaquina"] = "Hectares por máquina",
@@ -179,6 +185,7 @@ public static class RotulosDaTrilha
         [("PercepcaoDoGestor", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("CreditoRuralDeInvestimento", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("UsinaDeEtanol", "MunicipioId")] = TipoDeReferencia.Municipio,
+        [("CorrespondenciaDeMunicipio", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("VendaDeMaquina", "EmpresaId")] = TipoDeReferencia.Empresa,
         [("VendaDeMaquina", "EmpresaDoFaturamentoId")] = TipoDeReferencia.Empresa
     };
