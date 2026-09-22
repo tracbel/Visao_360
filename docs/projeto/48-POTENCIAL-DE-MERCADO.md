@@ -580,13 +580,39 @@ flowchart LR
 | **P0 — Decisões** | regras fixadas antes do código | #63 | D-P01 a D-P05 e D-P10 decididas | diretoria e comercial |
 | **P1 — Dados de mercado** | todas as fontes no servidor, conferidas contra a pasta 360 | #64, #65, #66, #67, #68, #69, #70 | cada fonte com rotina, idempotência e conferência | #63 (parcial); #18, #19, #12 para vendas e preço |
 | **P2 — Parâmetros** | administrador edita tudo, com vigência e trilha — **feito em 21/09/2026 (§4.1)** | #71 | parâmetro com vigência e 403 sem permissão | #63; #46; #40 |
-| **P3 — Motor** | estrutural, indicadores, fator e cenários | #72, #73, #74 | testes de ouro contra a planilha | P1; P2 |
+| **P3 — Motor** | estrutural, indicadores, fator e cenários — **o estrutural feito em 22/09/2026 (§7.1)** | #72, #73, #74 | testes de ouro contra a planilha | P1; P2 |
 | **P4 — Diretoria e Administrador** | API e as duas telas — **a do Administrador feita em 21/09/2026 (§4.1)** | #75, #76, #77 | tela = API = consulta independente; conferência com a diretoria | P3; #46 |
 | **P5 — CEN** | visão do CEN pelos seus municípios | #78 | CEN só vê os próprios municípios | P4; #48 |
 | **P6 — Clientes** | potencial por cliente e segmentação | #79, #80 | cobertura de área por cliente medida; plano aprovado | P3; #53; #55; #47 |
 
 P1 e P2 podem andar em paralelo. Dentro de P1, as fontes públicas (#64, #65, #66, #67, #68) não dependem
 umas das outras; vendas e preço de máquina (#69, #70) esperam o faturamento no servidor.
+
+### 7.1 O motor estrutural [issue 72, 22/09/2026]
+
+`Dominio/Mercado/MotorDoPotencial.cs` — **domínio puro, sem banco**. O mapa C, o total da tela e a
+calculadora (issue 161) chamam a **mesma função**: não há segunda fórmula para divergir.
+
+| O que | Como |
+|---|---|
+| Parque | `área útil ÷ hectares por máquina`, por **cultura do catálogo** (issue 165) |
+| Demanda anual | `parque ÷ ciclo de renovação`; **vazia com o motivo** enquanto D-P01 não sair |
+| Recortes | município → `Sobrepor` as categorias (máquinas somam, terra não); loja, região e SP → `Somar` os municípios (o compartilhamento acontece no chão) |
+| Relevância | fatia do recorte em SP; por cultura, também quantidade e a razão de produtividade contra a média do estado |
+| Calculadora | `Simular` troca a área medida pela digitada e chama a mesma conta — o aceite da issue 161 sai por construção |
+| Selo de estimativa | acende quando a regra que **dimensionou** o número está "a confirmar" |
+
+**O aceite conferido, e o que ficou de fora.** A issue pede que "com os parâmetros da planilha, o motor
+reproduza o protótipo município a município". Esses parâmetros **não estão no CRM**: quantos hectares
+por máquina e qual o ciclo de cada cultura é a decisão **D-P01**, e a única regra registrada é o exemplo
+do gerente comercial. O que está provado por teste de ouro é que **a conta do motor é a do protótipo** —
+sem grupo de compartilhamento configurado, e nenhum está, o resultado é exatamente
+`área ÷ hectares por máquina` somando as culturas. Os números de §3 (30.317 de parque e 3.457 por ano)
+só poderão ser reproduzidos quando alguém registrar os parâmetros que os geraram.
+
+**O que falta para o motor ficar completo:** a rota de cadastro da regra não aceita **categoria de
+máquina** (D-IM-06) — regra sem categoria cai num grupo "Sem categoria declarada", visível na tela —,
+e o fator de ciclo de mercado e os cenários são a issue #74.
 
 ---
 

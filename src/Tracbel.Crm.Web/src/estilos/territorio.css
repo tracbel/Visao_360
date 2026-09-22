@@ -218,6 +218,43 @@
   color: #7f1d1d;
 }
 
+/*
+ * O potencial do recorte consultado (issue 72) — o que o número do topo não conta:
+ * de que máquina, de qual cultura, e que fatia de São Paulo.
+ */
+.terr-recorte {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted, #f8fafc);
+}
+
+.terr-recorte-titulo {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #64748b);
+}
+
+.terr-recorte-linhas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.terr-recorte-tabela {
+  font-size: 12px;
+}
+
 .terr-detalhe {
   margin-top: 16px;
 }

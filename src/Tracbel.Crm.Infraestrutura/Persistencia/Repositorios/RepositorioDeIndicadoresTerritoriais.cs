@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Comercial;
+using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 
@@ -122,6 +123,42 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
     /// <summary>As medidas de UMA cultura num município — o que o mapa C mostra no balão.</summary>
     private readonly record struct MedidasDaCultura(
         decimal? AreaPlantadaHectares, decimal? AreaColhidaHectares, decimal? QuantidadeProduzida, decimal? ValorDaProducaoMilReais);
+
+    /// <summary>O rótulo da categoria de uma regra que não declarou categoria de máquina (D-IM-06 em aberto).</summary>
+    private const string SemCategoriaCodigo = "SEM-CATEGORIA";
+
+    private const string SemCategoriaNome = "Sem categoria declarada";
+
+    /// <summary>
+    /// UMA REGRA COMO O MOTOR A LÊ (issue 72): uma linha por cultura e categoria de máquina, já com os
+    /// produtos da PAM que compõem a área da cultura e com o grupo de compartilhamento.
+    /// </summary>
+    /// <param name="CulturaCodigo">O código da cultura no catálogo, ou <c>PAM-{produto}</c> quando a regra não está no catálogo.</param>
+    /// <param name="CulturaNome">O nome de exibição.</param>
+    /// <param name="CategoriaCodigo">A categoria de máquina, ou <see cref="SemCategoriaCodigo"/>.</param>
+    /// <param name="CategoriaNome">O nome da categoria.</param>
+    /// <param name="HectaresPorMaquina">A regra vigente.</param>
+    /// <param name="AnosDeRenovacao">O ciclo de troca, quando informado.</param>
+    /// <param name="Confirmada">Se o comercial confirmou a regra (D-P01).</param>
+    /// <param name="ProdutosDaPam">Os produtos da classificação 782 cuja área soma esta cultura.</param>
+    /// <param name="GrupoCodigo">O grupo de compartilhamento desta cultura nesta categoria, quando há.</param>
+    private sealed record RegraNoMotor(
+        string CulturaCodigo,
+        string CulturaNome,
+        string CategoriaCodigo,
+        string CategoriaNome,
+        decimal HectaresPorMaquina,
+        decimal? AnosDeRenovacao,
+        bool Confirmada,
+        IReadOnlyList<int> ProdutosDaPam,
+        string? GrupoCodigo);
+
+    /// <summary>O que o motor precisa saber, mais o de-para que devolve o número de cada regra à ficha dela.</summary>
+    /// <param name="Regras">Uma linha por cultura e categoria.</param>
+    /// <param name="PorProdutoDaRegra">Para cada produto com regra vigente, em que categoria e cultura ele caiu.</param>
+    private sealed record CatalogoDoMotor(
+        IReadOnlyList<RegraNoMotor> Regras,
+        IReadOnlyDictionary<int, (string Categoria, string Cultura)> PorProdutoDaRegra);
 
     private static readonly (int Grupo, string Codigo, string Descricao)[] GruposForaDoMapa =
     [
@@ -385,7 +422,14 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             .OrderBy(r => r.ProdutoCodigoIbge)
             .ToList();
 
-        var produtos = regras.Select(r => r.ProdutoCodigoIbge).Distinct().ToList();
+        // O MOTOR (issue 72) lê a regra pela CULTURA do catálogo, e a área de uma cultura é a dos produtos
+        // que entram na soma dela — por isso a leitura da PAM abre para eles, e não só para o produto da regra.
+        var catalogoDoMotor = await LerCatalogoDoMotorAsync(regras, ct);
+
+        var produtos = regras.Select(r => r.ProdutoCodigoIbge)
+            .Concat(catalogoDoMotor.Regras.SelectMany(r => r.ProdutosDaPam))
+            .Distinct().ToList();
+
         var ano = await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking().MaxAsync(a => (short?)a.Ano, ct);
         var daRegra = new Dictionary<(int Codigo, int Produto), MedidasDaCultura>();
 
@@ -485,6 +529,53 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                     : new ResponsavelPelaCarteira("Responsável fora do alcance desta consulta", "NaoIdentificado", r.Value, acumulador.CarteirasPorResponsavel[r.Key].Count))
         ];
 
+        // -----------------------------------------------------------------------------------------
+        // O MOTOR DO POTENCIAL (issue 72). Até aqui o mapa C dividia a área pela regra dentro deste
+        // arquivo; agora ele pede o número ao domínio, que já desconta a terra compartilhada entre
+        // culturas (issue 160), soma as categorias de máquina sem somar a terra delas, e diz por que um
+        // número não saiu em vez de devolver zero.
+        // -----------------------------------------------------------------------------------------
+        var categoriasDoMotor = catalogoDoMotor.Regras
+            .GroupBy(r => (r.CategoriaCodigo, r.CategoriaNome))
+            .OrderBy(g => g.Key.CategoriaCodigo, StringComparer.Ordinal)
+            .ToList();
+
+        // A ÁREA DE UMA CULTURA É A SOMA DOS PRODUTOS DELA, cada um no ano dele. Nenhum produto com área
+        // divulgada devolve NULO, e não zero: sigilo do IBGE não é ausência de lavoura.
+        decimal? AreaDaCultura(int municipio, IReadOnlyList<int> produtosDaCultura)
+        {
+            decimal? soma = null;
+
+            foreach (var produto in produtosDaCultura)
+                if (daRegra.TryGetValue((municipio, produto), out var medida) && medida.AreaPlantadaHectares is { } plantada)
+                    soma = (soma ?? 0m) + plantada;
+
+            return soma;
+        }
+
+        List<(string Codigo, PotencialDoRecorte Resultado)> MotorDoMunicipio(int municipio) =>
+        [
+            .. categoriasDoMotor.Select(categoria => (
+                categoria.Key.CategoriaCodigo,
+                MotorDoPotencial.Potencial(
+                [
+                    .. categoria.Select(r => new CulturaNoRecorte(
+                        r.CulturaCodigo,
+                        r.CulturaNome,
+                        AreaDaCultura(municipio, r.ProdutosDaPam),
+                        r.HectaresPorMaquina,
+                        r.AnosDeRenovacao,
+                        r.Confirmada,
+                        r.GrupoCodigo))
+                ])))
+        ];
+
+        var porCategoriaNoRecorte = categoriasDoMotor.ToDictionary(
+            g => g.Key.CategoriaCodigo, _ => new List<PotencialDoRecorte>(), StringComparer.Ordinal);
+
+        var totaisDosMunicipios = new List<PotencialDoRecorte>();
+        var codigosNoRecorte = new List<int>();
+
         var itens = new List<IndicadoresDoMunicipio>();
 
         foreach (var codigo in area.Keys.Concat(acumuladores.Keys.Where(k => k > 0)).Distinct().Order())
@@ -496,6 +587,19 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                     || (consulta.Regiao is not null && linhaDaArea.Regiao != consulta.Regiao)
                     || (consulta.LojaCodigo is not null && linhaDaArea.LojaCodigo != consulta.LojaCodigo)))
                 continue;
+
+            codigosNoRecorte.Add(codigo);
+
+            var doMotor = MotorDoMunicipio(codigo);
+            var noMunicipio = MotorDoPotencial.Sobrepor([.. doMotor.Select(c => c.Resultado)]);
+            var parcelaDe = doMotor
+                .SelectMany(c => c.Resultado.Parcelas.Select(p => (Chave: (c.Codigo, p.CulturaCodigo), Parcela: p)))
+                .ToDictionary(x => x.Chave, x => x.Parcela);
+
+            foreach (var (categoria, resultado) in doMotor)
+                porCategoriaNoRecorte[categoria].Add(resultado);
+
+            if (categoriasDoMotor.Count > 0) totaisDosMunicipios.Add(noMunicipio);
 
             var acumulador = acumuladores.GetValueOrDefault(codigo) ?? new Acumulador();
             itens.Add(new IndicadoresDoMunicipio(
@@ -513,7 +617,15 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                     .. regras.Select(regra =>
                     {
                         var medidas = daRegra.GetValueOrDefault((codigo, regra.ProdutoCodigoIbge));
-                        var maquinas = regra.MaquinasTeoricas(medidas.AreaPlantadaHectares);
+
+                        // O NÚMERO VEM DO MOTOR, e não mais de uma divisão feita aqui: é a mesma conta do
+                        // total da tela e da calculadora. Sem catálogo que ligue o produto — regra de um
+                        // produto fora dele —, fica a divisão da própria regra, que é o que havia antes.
+                        var maquinas = catalogoDoMotor.PorProdutoDaRegra.TryGetValue(regra.ProdutoCodigoIbge, out var chave)
+                                       && parcelaDe.TryGetValue(chave, out var parcela)
+                            ? parcela.Parque
+                            : regra.MaquinasTeoricas(medidas.AreaPlantadaHectares);
+
                         short? anoDela = anoDaCultura.TryGetValue(regra.ProdutoCodigoIbge, out var a) ? a : null;
                         var unidade = anoDela is { } doAno ? UnidadesDaPam.DaQuantidade(regra.ProdutoCodigoIbge, doAno) : null;
                         return new PotencialTerritorial(
@@ -531,7 +643,16 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                 ],
                 ResponsaveisDe(acumulador),
                 producao.GetValueOrDefault(codigo),
-                estrutura.GetValueOrDefault(codigo) ?? EstruturaVazia));
+                estrutura.GetValueOrDefault(codigo) ?? EstruturaVazia,
+                categoriasDoMotor.Count == 0
+                    ? null
+                    : new PotencialEstruturalDoMunicipio(
+                        noMunicipio.Parque,
+                        noMunicipio.DemandaAnual,
+                        noMunicipio.AreaUtilHectares,
+                        noMunicipio.Estimativa,
+                        noMunicipio.MotivoSemParque,
+                        noMunicipio.MotivoSemDemanda)));
         }
 
         var foraDoMapa = GruposForaDoMapa
@@ -557,7 +678,233 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             await contexto.Enderecos.AsNoTracking().CountAsync(e => e.ExcluidoEm == null && e.Hectares != null && e.CulturaId != null, ct),
             consulta.Visao.ToString(),
             totaisDoEstado,
-            culturasNoEstado);
+            culturasNoEstado,
+            categoriasDoMotor.Count == 0
+                ? null
+                : MontarPotencialDoRecorte(
+                    [.. categoriasDoMotor.Select(g => (g.Key.CategoriaCodigo, g.Key.CategoriaNome))],
+                    porCategoriaNoRecorte,
+                    totaisDosMunicipios,
+                    RelevanciaDoRecorte(codigosNoRecorte, producao, totaisDoEstado),
+                    RelevanciaPorCultura(codigosNoRecorte, daRegra, culturasNoEstado)));
+    }
+
+    /// <summary>
+    /// O POTENCIAL DO RECORTE CONSULTADO (issue 72) — o total do cabeçalho e o detalhe por categoria.
+    ///
+    /// <para><b>O total é a soma dos municípios</b>, e não o motor rodado sobre as áreas somadas: o
+    /// compartilhamento de terra acontece dentro do município. Some a coluna da tabela e dá este número.</para>
+    /// </summary>
+    /// <param name="categorias">As categorias de máquina em jogo, na ordem da tela.</param>
+    /// <param name="porCategoria">O resultado de cada município, por categoria.</param>
+    /// <param name="totaisDosMunicipios">O total de cada município, já com as categorias sobrepostas.</param>
+    /// <param name="relevancia">A fatia do recorte em São Paulo.</param>
+    /// <param name="relevanciaPorCultura">A fatia e a produtividade de cada cultura.</param>
+    private static PotencialDoRecorteNoMapa MontarPotencialDoRecorte(
+        IReadOnlyList<(string Codigo, string Nome)> categorias,
+        IReadOnlyDictionary<string, List<PotencialDoRecorte>> porCategoria,
+        IReadOnlyList<PotencialDoRecorte> totaisDosMunicipios,
+        RelevanciaNoEstado? relevancia,
+        IReadOnlyList<RelevanciaDaCultura> relevanciaPorCultura)
+    {
+        var total = MotorDoPotencial.Somar(totaisDosMunicipios);
+
+        return new PotencialDoRecorteNoMapa(
+            total.Parque,
+            total.DemandaAnual,
+            total.AreaUtilHectares,
+            total.Estimativa,
+            total.MotivoSemParque,
+            total.MotivoSemDemanda,
+            MotorDoPotencial.Frase(total),
+            totaisDosMunicipios.Count(m => m.Parque is not null),
+            total.Parcelas,
+            [
+                .. categorias.Select(categoria =>
+                {
+                    var somado = MotorDoPotencial.Somar(porCategoria[categoria.Codigo]);
+                    return new PotencialPorCategoria(
+                        categoria.Codigo, categoria.Nome, somado.Parque, somado.DemandaAnual, somado.AreaUtilHectares,
+                        somado.Estimativa, somado.MotivoSemParque, somado.MotivoSemDemanda,
+                        MotorDoPotencial.Frase(somado), somado.Parcelas);
+                })
+            ],
+            relevancia,
+            relevanciaPorCultura);
+    }
+
+    /// <summary>
+    /// A FATIA DO RECORTE NA LAVOURA DE SÃO PAULO — área plantada, área colhida e valor da produção.
+    ///
+    /// <para><b>O denominador é o que o IBGE publica para a UF</b> (issue 155), e não a soma dos
+    /// municípios: o município sigiloso entra no total do estado sem aparecer embaixo.</para>
+    ///
+    /// <para><b>A quantidade não entra no total</b>, de propósito: cada produto vem na unidade dele, e
+    /// somar tonelada com mil frutos não daria número nenhum. Ela aparece por cultura.</para>
+    /// </summary>
+    /// <param name="codigos">Os municípios que passaram pelo filtro.</param>
+    /// <param name="producao">A lavoura inteira de cada município.</param>
+    /// <param name="estado">Os totais publicados para São Paulo.</param>
+    private static RelevanciaNoEstado? RelevanciaDoRecorte(
+        IReadOnlyList<int> codigos,
+        IReadOnlyDictionary<int, ProducaoAgricolaDoMunicipio> producao,
+        TotaisDoEstado? estado)
+    {
+        if (estado is null) return null;
+
+        var doRecorte = codigos.Select(producao.GetValueOrDefault).Where(p => p is not null).ToList();
+
+        decimal? Somar(Func<ProducaoAgricolaDoMunicipio, decimal?> campo)
+        {
+            var valores = doRecorte.Select(p => campo(p!)).Where(v => v is not null).ToList();
+            return valores.Count == 0 ? null : valores.Sum(v => v!.Value);
+        }
+
+        return MotorDoPotencial.Relevancia(
+            new MedidasDaLavoura(
+                Somar(p => p.AreaPlantadaHectares), Somar(p => p.AreaColhidaHectares), null, Somar(p => p.ValorDaProducaoMilReais)),
+            new MedidasDaLavoura(
+                estado.AreaPlantadaHectares, estado.AreaColhidaHectares, null, estado.ValorDaProducaoMilReais));
+    }
+
+    /// <summary>
+    /// A RELEVÂNCIA DE CADA CULTURA CONTRA SÃO PAULO — a aba "Relevância vs SP" do protótipo.
+    ///
+    /// <para><b>Aqui a quantidade entra</b>, porque os dois lados são o mesmo produto: a unidade é a
+    /// mesma, e a razão de produtividade diz se a terra daqui rende mais que a média do estado.</para>
+    /// </summary>
+    /// <param name="codigos">Os municípios que passaram pelo filtro.</param>
+    /// <param name="daRegra">As medidas de cada cultura em cada município, no ano de cada uma.</param>
+    /// <param name="culturasNoEstado">As mesmas culturas no total publicado do estado.</param>
+    private static List<RelevanciaDaCultura> RelevanciaPorCultura(
+        IReadOnlyList<int> codigos,
+        IReadOnlyDictionary<(int Codigo, int Produto), MedidasDaCultura> daRegra,
+        IReadOnlyList<CulturaNoEstado> culturasNoEstado)
+    {
+        var lista = new List<RelevanciaDaCultura>();
+
+        foreach (var noEstado in culturasNoEstado)
+        {
+            var medidas = codigos
+                .Select(codigo => daRegra.TryGetValue((codigo, noEstado.ProdutoCodigoIbge), out var m) ? m : (MedidasDaCultura?)null)
+                .Where(m => m is not null)
+                .Select(m => m!.Value)
+                .ToList();
+
+            decimal? Somar(Func<MedidasDaCultura, decimal?> campo)
+            {
+                var valores = medidas.Select(campo).Where(v => v is not null).ToList();
+                return valores.Count == 0 ? null : valores.Sum(v => v!.Value);
+            }
+
+            var aqui = new MedidasDaLavoura(
+                Somar(m => m.AreaPlantadaHectares), Somar(m => m.AreaColhidaHectares),
+                Somar(m => m.QuantidadeProduzida), Somar(m => m.ValorDaProducaoMilReais));
+
+            var emSaoPaulo = new MedidasDaLavoura(
+                noEstado.AreaPlantadaHectares, noEstado.AreaColhidaHectares,
+                noEstado.QuantidadeProduzida, noEstado.ValorDaProducaoMilReais);
+
+            lista.Add(new RelevanciaDaCultura(
+                noEstado.ProdutoCodigoIbge, noEstado.ProdutoNome, noEstado.Ano,
+                noEstado.UnidadeDaQuantidade, noEstado.UnidadeDaProdutividade,
+                aqui, emSaoPaulo, MotorDoPotencial.Relevancia(aqui, emSaoPaulo)));
+        }
+
+        return lista;
+    }
+
+    /// <summary>
+    /// AS REGRAS VIGENTES COMO O MOTOR AS LÊ (issue 72) — o que liga cada regra à cultura do catálogo, à
+    /// categoria de máquina e ao grupo de compartilhamento.
+    ///
+    /// <para><b>A cultura vem da regra, e quando ela não a traz, do catálogo pelo produto.</b> A coluna
+    /// <c>CulturaId</c> nasceu na issue 165 e a rota de cadastro ainda não a preenche: derivar do produto
+    /// pelo de-para do catálogo é o que impede uma regra registrada hoje pelo Administrador de ficar
+    /// invisível para o mapa. Quando nem isso resolve — produto fora do catálogo —, a regra vale por si,
+    /// com a área do produto dela: nada é descartado em silêncio.</para>
+    ///
+    /// <para><b>A área da cultura é a dos produtos que ENTRAM NA SOMA</b>, e não só a do produto da regra:
+    /// o café tem três linhas na classificação 782 ("Total", "Arábica" e "Canephora") e é uma cultura só.
+    /// Sem vínculo marcado, fica o produto da própria regra.</para>
+    ///
+    /// <para><b>Uma linha por cultura e categoria.</b> Duas regras da mesma cultura na mesma categoria
+    /// contariam a área dela duas vezes; vale a vigência mais recente, e o empate fica com o menor código
+    /// de produto — determinístico, e não "o que o banco devolveu primeiro".</para>
+    /// </summary>
+    /// <param name="regras">As regras vigentes hoje, uma por produto.</param>
+    /// <param name="ct">Cancelamento.</param>
+    private async Task<CatalogoDoMotor> LerCatalogoDoMotorAsync(IReadOnlyList<RegraDePotencial> regras, CancellationToken ct)
+    {
+        if (regras.Count == 0) return new CatalogoDoMotor([], new Dictionary<int, (string, string)>());
+
+        var culturas = await contexto.Culturas.AsNoTracking().ToDictionaryAsync(c => c.Id, ct);
+        var vinculos = await contexto.ProdutosDaPamNasCulturas.AsNoTracking().ToListAsync(ct);
+        var categorias = await contexto.CategoriasDeMaquina.AsNoTracking().ToDictionaryAsync(c => c.Id, ct);
+
+        var grupos = await contexto.GruposDeCompartilhamento.AsNoTracking().Where(g => g.EstaAtivo).ToListAsync(ct);
+        var noGrupo = await contexto.CulturasNosGruposDeCompartilhamento.AsNoTracking().ToListAsync(ct);
+
+        var grupoPorId = grupos.ToDictionary(g => g.Id);
+
+        // A MESMA CULTURA EM DOIS GRUPOS DA MESMA CATEGORIA é configuração ambígua — o índice único da
+        // issue 160 é por (grupo, cultura), e não impede isso. Vale o menor código, sempre o mesmo.
+        var grupoDaCultura = noGrupo
+            .Where(v => grupoPorId.ContainsKey(v.GrupoDeCompartilhamentoId))
+            .GroupBy(v => (v.CulturaId, grupoPorId[v.GrupoDeCompartilhamentoId].CategoriaDeMaquinaId))
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(v => grupoPorId[v.GrupoDeCompartilhamentoId].Codigo).Order(StringComparer.Ordinal).First());
+
+        var culturaDoProduto = vinculos.ToLookup(v => v.ProdutoCodigoIbge);
+        var produtosDaCultura = vinculos.Where(v => v.EntraNaSomaDaLavoura).ToLookup(v => v.CulturaId);
+
+        var linhas = new List<(RegraDePotencial Regra, RegraNoMotor Motor)>();
+
+        foreach (var regra in regras)
+        {
+            var culturaId = regra.CulturaId
+                            ?? culturaDoProduto[regra.ProdutoCodigoIbge].Select(v => (int?)v.CulturaId).FirstOrDefault();
+
+            var cultura = culturaId is { } id ? culturas.GetValueOrDefault(id) : null;
+
+            IReadOnlyList<int> produtos = [regra.ProdutoCodigoIbge];
+            if (cultura is not null)
+            {
+                var daCultura = produtosDaCultura[cultura.Id].Select(v => v.ProdutoCodigoIbge).Distinct().Order().ToList();
+                if (daCultura.Count > 0) produtos = daCultura;
+            }
+
+            var categoria = regra.CategoriaDeMaquinaId is { } cat ? categorias.GetValueOrDefault(cat) : null;
+
+            linhas.Add((regra, new RegraNoMotor(
+                cultura?.Codigo ?? $"PAM-{regra.ProdutoCodigoIbge}",
+                cultura?.Nome ?? regra.ProdutoNome,
+                categoria?.Codigo ?? SemCategoriaCodigo,
+                categoria?.Nome ?? SemCategoriaNome,
+                regra.HectaresPorMaquina,
+                regra.AnosDeRenovacao,
+                regra.Situacao == SituacaoDaRegraDePotencial.Confirmada,
+                produtos,
+                cultura is not null && categoria is not null
+                    ? grupoDaCultura.GetValueOrDefault((cultura.Id, categoria.Id))
+                    : null)));
+        }
+
+        var doMotor = linhas
+            .GroupBy(l => (l.Motor.CulturaCodigo, l.Motor.CategoriaCodigo))
+            .Select(g => g.OrderByDescending(l => l.Regra.VigenteDesde).ThenBy(l => l.Regra.ProdutoCodigoIbge).First().Motor)
+            .OrderBy(m => m.CategoriaCodigo, StringComparer.Ordinal)
+            .ThenBy(m => m.CulturaCodigo, StringComparer.Ordinal)
+            .ToList();
+
+        // O DE-PARA VALE PARA TODA REGRA, inclusive a que perdeu o desempate: a ficha do produto continua
+        // mostrando o número da cultura em que ele entrou, e não um traço mudo.
+        var porProduto = linhas.ToDictionary(
+            l => l.Regra.ProdutoCodigoIbge,
+            l => (l.Motor.CategoriaCodigo, l.Motor.CulturaCodigo));
+
+        return new CatalogoDoMotor(doMotor, porProduto);
     }
 
     /// <summary>
@@ -748,6 +1095,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             .Select(g => new
             {
                 Plantada = g.Sum(p => p.AreaPlantadaHectares),
+                Colhida = g.Sum(p => p.AreaColhidaHectares),
                 Valor = g.Sum(p => p.ValorDaProducaoMilReais)
             })
             .FirstOrDefaultAsync(ct);
@@ -782,7 +1130,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
                     .SumAsync(r => (int?)r.Cabecas, ct));
 
         return new TotaisDoEstado(
-            ano.Value, lavoura.Plantada, lavoura.Valor, tratores, estabelecimentos, anoDoCenso, rebanho, anoDoRebanho);
+            ano.Value, lavoura.Plantada, lavoura.Valor, tratores, estabelecimentos, anoDoCenso, rebanho, anoDoRebanho,
+            lavoura.Colhida);
     }
 
     /// <summary>

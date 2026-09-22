@@ -304,6 +304,106 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
     }
 
     // =============================================================================================
+    // O motor do potencial (issue 72) — o mapa C deixou de dividir a área e passou a pedir ao domínio
+    // =============================================================================================
+
+    [Fact]
+    public async Task O_mapa_traz_o_parque_de_cada_municipio_pelo_motor()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var ribeirao = Municipio(dados, RibeiraoPreto).GetProperty("potencialEstrutural");
+        ribeirao.GetProperty("parqueDeMaquinas").GetDecimal().Should().Be(7m, "70 ha de café a 1 máquina a cada 10 ha");
+        ribeirao.GetProperty("areaUtilHectares").GetDecimal().Should().Be(70m,
+            "a área do café é a do produto que entra na soma (40139) — Arábica e Canephora não somam de novo");
+        ribeirao.GetProperty("estimativa").GetBoolean().Should().BeTrue("a regra semeada é o exemplo do gerente, a confirmar");
+        ribeirao.GetProperty("motivoSemDemanda").GetString().Should().Be("SemCicloDeRenovacao");
+        ribeirao.GetProperty("demandaAnualDeMaquinas").ValueKind.Should().Be(JsonValueKind.Null,
+            "a regra do café não informou o ciclo, e o motor não inventa ciclo");
+
+        Municipio(dados, Jardinopolis).GetProperty("potencialEstrutural")
+            .GetProperty("parqueDeMaquinas").GetDecimal().Should().Be(0m, "zero hectare é resposta, e a resposta é zero");
+
+        var serrana = Municipio(dados, Serrana).GetProperty("potencialEstrutural");
+        serrana.GetProperty("parqueDeMaquinas").ValueKind.Should().Be(JsonValueKind.Null);
+        serrana.GetProperty("motivoSemParque").GetString().Should().Be("SemArea");
+    }
+
+    [Fact]
+    public async Task O_total_do_recorte_fecha_com_a_soma_dos_municipios()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var indicadores = dados.GetProperty("indicadores");
+        var recorte = indicadores.GetProperty("potencialDoRecorte");
+
+        var somaDaColuna = indicadores.GetProperty("municipios").EnumerateArray()
+            .Select(m => m.GetProperty("potencialEstrutural").GetProperty("parqueDeMaquinas"))
+            .Where(p => p.ValueKind != JsonValueKind.Null)
+            .Sum(p => p.GetDecimal());
+
+        recorte.GetProperty("parqueDeMaquinas").GetDecimal().Should().Be(somaDaColuna,
+            "quem conferir no papel soma a coluna e chega no número do cabeçalho");
+        recorte.GetProperty("parqueDeMaquinas").GetDecimal().Should().Be(7m);
+        recorte.GetProperty("municipiosComParque").GetInt32().Should().Be(2, "Ribeirão com 7 e Jardinópolis com 0");
+        recorte.GetProperty("frase").GetString().Should().Contain("ainda não foi confirmada pelo comercial");
+        recorte.GetProperty("frase").GetString().Should().Contain("falta o ciclo de renovação de Café");
+    }
+
+    [Fact]
+    public async Task O_recorte_separa_o_parque_por_categoria_de_maquina_e_por_cultura()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var recorte = dados.GetProperty("indicadores").GetProperty("potencialDoRecorte");
+
+        var trator = recorte.GetProperty("porCategoria").EnumerateArray().Single();
+        trator.GetProperty("categoriaCodigo").GetString().Should().Be("TRATOR",
+            "a regra semeada declara a categoria do catálogo — 'máquinas teóricas' precisa dizer de quê");
+        trator.GetProperty("parqueDeMaquinas").GetDecimal().Should().Be(7m);
+
+        var cafe = recorte.GetProperty("porCultura").EnumerateArray().Single();
+        cafe.GetProperty("culturaCodigo").GetString().Should().Be("CAFE");
+        cafe.GetProperty("parque").GetDecimal().Should().Be(7m);
+        cafe.GetProperty("compartilhada").EnumerateArray().Should().BeEmpty("nenhum grupo foi configurado (D-IM-01)");
+    }
+
+    [Fact]
+    public async Task A_relevancia_diz_que_fatia_de_sao_paulo_esta_no_recorte()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var relevancia = dados.GetProperty("indicadores").GetProperty("potencialDoRecorte").GetProperty("relevanciaNoEstado");
+
+        relevancia.GetProperty("fatiaDaAreaPlantada").GetDecimal().Should().Be(10.7m,
+            "1.070 ha aqui sobre os 10.000 publicados para São Paulo");
+        relevancia.GetProperty("fatiaDoValor").GetDecimal().Should().Be(10m, "6.000 sobre 60.000 mil reais");
+        relevancia.GetProperty("fatiaDaQuantidade").ValueKind.Should().Be(JsonValueKind.Null,
+            "a quantidade não tem total: cada produto vem na unidade dele");
+    }
+
+    [Fact]
+    public async Task A_relevancia_por_cultura_compara_a_produtividade_daqui_com_a_do_estado()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var cafe = dados.GetProperty("indicadores").GetProperty("potencialDoRecorte")
+            .GetProperty("relevanciaPorCultura").EnumerateArray()
+            .Single(c => c.GetProperty("produtoCodigoIbge").GetInt32() == 40139);
+
+        cafe.GetProperty("ano").GetInt16().Should().Be(2024);
+        cafe.GetProperty("relevancia").GetProperty("fatiaDaAreaPlantada").GetDecimal().Should().Be(10m, "70 de 700 ha");
+        cafe.GetProperty("relevancia").GetProperty("fatiaDaQuantidade").GetDecimal().Should().Be(10m, "200 de 2.000 t");
+        cafe.GetProperty("relevancia").GetProperty("razaoDeProdutividade").GetDecimal().Should().Be(1m,
+            "200÷60 aqui e 2.000÷600 no estado — a mesma produtividade");
+    }
+
+    // =============================================================================================
     // O que a carga de #64 e #65 trouxe, e que a tela precisa mostrar (issue 103)
     // =============================================================================================
 

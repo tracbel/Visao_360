@@ -6,7 +6,13 @@
 
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { CulturaNoEstado, IndicadoresDoMunicipio, PotencialTerritorial, RegraDePotencialAplicada } from '../../tipos/territorio';
+import type {
+  CulturaNoEstado,
+  IndicadoresDoMunicipio,
+  PotencialEstruturalDoMunicipio,
+  PotencialTerritorial,
+  RegraDePotencialAplicada,
+} from '../../tipos/territorio';
 import { DetalheDoMunicipio } from './DetalheDoMunicipio';
 
 const REGRA: RegraDePotencialAplicada = {
@@ -36,8 +42,19 @@ function potencial(parcial: Partial<PotencialTerritorial> = {}): PotencialTerrit
   };
 }
 
-function municipio(p: PotencialTerritorial): IndicadoresDoMunicipio {
+function municipio(
+  p: PotencialTerritorial,
+  potencialEstrutural: PotencialEstruturalDoMunicipio | null = {
+    parqueDeMaquinas: 7,
+    demandaAnualDeMaquinas: null,
+    areaUtilHectares: 70,
+    estimativa: true,
+    motivoSemParque: 'Nenhum',
+    motivoSemDemanda: 'SemCicloDeRenovacao',
+  },
+): IndicadoresDoMunicipio {
   return {
+    potencialEstrutural,
     codigoIbge: 3543402,
     nome: 'Ribeirão Preto',
     pertenceAAdr: true,
@@ -80,6 +97,22 @@ describe('DetalheDoMunicipio', () => {
     expect(screen.getByText('200 toneladas')).toBeInTheDocument();
     expect(screen.getByText(/3,33 t\/ha/)).toBeInTheDocument();
     expect(screen.getByText(/SP 1,76 t\/ha/)).toBeInTheDocument();
+  });
+
+  it('mostra o parque do motor, e diz por que a demanda anual não saiu', () => {
+    // O MOTOR (issue 72) devolve o parque e o MOTIVO: quem lê precisa saber que falta o ciclo de
+    // renovação, e não ver um traço mudo no lugar da demanda.
+    render(<DetalheDoMunicipio municipio={municipio(potencial())} regras={[REGRA]} culturasNoEstado={[]} aoFechar={() => {}} />);
+
+    expect(screen.getByText(/70 ha úteis/)).toBeInTheDocument();
+    expect(screen.getByText(/de quantos em quantos anos a máquina é trocada/)).toBeInTheDocument();
+    expect(screen.getByText(/ainda não foi confirmada pelo comercial/)).toBeInTheDocument();
+  });
+
+  it('sem regra de potencial vigente, a ficha não inventa parque', () => {
+    render(<DetalheDoMunicipio municipio={municipio(potencial(), null)} regras={[REGRA]} culturasNoEstado={[]} aoFechar={() => {}} />);
+
+    expect(screen.queryByText('Parque teórico do município')).not.toBeInTheDocument();
   });
 
   it('sem unidade ou sem colheita, não mostra número', () => {
