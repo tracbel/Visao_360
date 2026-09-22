@@ -97,7 +97,11 @@ public sealed class FontesPublicasNaApiTestes(ApiEmMemoria api) : IClassFixture<
         pam.GetProperty("municipiosCobertos").GetInt32().Should().Be(1, "Uberaba tem dado, mas não é da ADR");
         pam.GetProperty("recusasPendentes").GetInt32().Should().Be(1);
         pam.GetProperty("exemplosDeRecusa")[0].GetString().Should().Contain("9999999");
-        pam.GetProperty("rotina").GetString().Should().Be("TracbelCrmFontesPublicas");
+        // DESDE A ISSUE 136 a rotina é a do banco, com a agenda editável — não mais a tarefa do Windows.
+        pam.GetProperty("rotina").GetString().Should().Be("Fontes públicas anuais");
+        pam.GetProperty("rotinaCodigo").GetString().Should().Be("FONTES_ANUAIS");
+        pam.GetProperty("rotinaLigada").GetBoolean().Should().BeTrue();
+        pam.GetProperty("agenda").GetString().Should().Be("todo ano em 1º de outubro, às 03:00");
 
         var ptax = Fonte(painel, "BCB.PTAX_MENSAL");
         ptax.GetProperty("situacao").GetString().Should().Be("Atrasada", "a última rodada foi há 60 dias");

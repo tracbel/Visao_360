@@ -3,6 +3,7 @@ using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Frota;
+using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Dominio.Seguranca;
@@ -150,6 +151,14 @@ public sealed class RepositorioDaTrilhaDeAuditoria(CrmDbContext contexto) : IRep
         if (IdsCurtos(nameof(Municipio)) is { Count: > 0 } municipios)
             foreach (var m in await contexto.Municipios.AsNoTracking().Where(m => municipios.Contains(m.Id)).Select(m => new { m.Id, m.Nome, m.Uf }).ToListAsync(ct))
                 resultado[(nameof(Municipio), m.Id)] = $"{m.Nome}/{m.Uf}";
+
+        if (IdsCurtos(nameof(Conexao)) is { Count: > 0 } conexoes)
+            foreach (var c in await contexto.Conexoes.AsNoTracking().Where(c => conexoes.Contains(c.Id)).Select(c => new { c.Id, c.Nome }).ToListAsync(ct))
+                resultado[(nameof(Conexao), c.Id)] = c.Nome;
+
+        if (IdsCurtos(nameof(Rotina)) is { Count: > 0 } rotinas)
+            foreach (var r in await contexto.Rotinas.AsNoTracking().Where(r => rotinas.Contains(r.Id)).Select(r => new { r.Id, r.Nome }).ToListAsync(ct))
+                resultado[(nameof(Rotina), r.Id)] = r.Nome;
 
         return resultado;
     }

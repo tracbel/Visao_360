@@ -11,6 +11,9 @@ namespace Tracbel.Crm.Integracao.Art;
 /// </summary>
 public sealed class OpcoesDoBancoDoProtheus
 {
+    /// <summary>O nome da seção na configuração (<c>ProtheusBanco__Servidor</c>…).</summary>
+    public const string Secao = "ProtheusBanco";
+
     /// <summary>O servidor, com a porta depois da vírgula.</summary>
     public string? Servidor { get; set; }
 

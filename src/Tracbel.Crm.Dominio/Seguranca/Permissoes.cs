@@ -104,6 +104,12 @@ public static class Permissoes
     public const string AuditoriaLer = "Auditoria.Ler";
 
     /// <summary>
+    /// Configurar e testar as integrações (issue 136): endereço e credencial das conexões, agenda e "rodar agora" das
+    /// rotinas, API monitorada nova. A credencial é gravada protegida e nunca volta pela API. Só o Administrador.
+    /// </summary>
+    public const string IntegracaoAdministrar = "Integracao.Administrar";
+
+    /// <summary>
     /// Todas as permissões que existem, com o que cada uma deixa fazer. É a lista que o perfil aceita:
     /// conceder um código fora dela é recusado.
     /// </summary>
@@ -134,7 +140,8 @@ public static class Permissoes
         [ParametroDoPotencialLer] = "Ler os parâmetros do potencial de mercado",
         [ParametroDoPotencialAdministrar] = "Alterar os parâmetros do potencial de mercado, com vigência",
         [PercepcaoDoGestorInformar] = "Informar a percepção do gestor por município",
-        [AuditoriaLer] = "Ler a trilha de auditoria: quem mudou o quê, e quando"
+        [AuditoriaLer] = "Ler a trilha de auditoria: quem mudou o quê, e quando",
+        [IntegracaoAdministrar] = "Configurar e testar as integrações: credenciais, agendas e APIs monitoradas"
     };
 
     /// <summary>A permissão existe no catálogo?</summary>
@@ -234,7 +241,8 @@ public static class PerfisDeSistema
         Seguranca.Permissoes.ParametroDoPotencialAdministrar,
         Seguranca.Permissoes.PercepcaoDoGestorInformar,
         Seguranca.Permissoes.UsuarioLer,
-        Seguranca.Permissoes.AuditoriaLer
+        Seguranca.Permissoes.AuditoriaLer,
+        Seguranca.Permissoes.IntegracaoAdministrar
     ];
 
     /// <summary>
@@ -301,7 +309,8 @@ public static class PerfisDeSistema
                 (Seguranca.Permissoes.ParametroDoPotencialAdministrar, Profundidade.Organizacao),
                 (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao),
                 (Seguranca.Permissoes.UsuarioLer, Profundidade.Organizacao),
-                (Seguranca.Permissoes.AuditoriaLer, Profundidade.Organizacao)
+                (Seguranca.Permissoes.AuditoriaLer, Profundidade.Organizacao),
+                (Seguranca.Permissoes.IntegracaoAdministrar, Profundidade.Organizacao)
             ]),
 
         new(5, GestorComercial, "Gestor comercial",

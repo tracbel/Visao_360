@@ -212,6 +212,15 @@ Administração › Auditoria: quem mudou o quê, quando, de quanto para quanto 
 e, em cada evento, o histórico daquele registro. É só leitura: a trilha continua nascendo do `SaveChanges`, na
 mesma transação do dado, e nenhuma rota a grava ou apaga. A leitura respeita a fronteira de filial. As rotas estão
 no documento 23, §2.13.
+
+**As credenciais das integrações pela tela (issue 136, 22/09/2026).** `Integracao.Administrar` (só o Administrador)
+grava o endereço e a senha de cada conexão em Configurações › Administração › Integrações. A senha é protegida pela
+proteção de dados do Windows **para a máquina** (DPAPI, com entropia própria do CRM) e guardada em `varbinary`:
+abre no servidor que a gravou e em nenhum outro — uma cópia do banco não leva senha legível. Ela entra por uma rota
+só dela, nunca volta em resposta, não entra na trilha (só a data da troca, com o autor) e as mensagens de teste
+passam pelo `Sigilo`. O botão "Testar" roda no servidor e só lê. As variáveis de ambiente continuam valendo como
+reserva. A API monitorada cadastrada pela tela faz GET num endereço escolhido pelo Administrador: é poder de quem
+administra, registrado na trilha, e o GET não segue redirecionamento. Rotas no documento 23, §2.14.
 ---
 
 ## 5. Camada 3 — profundidade (o coração do modelo)

@@ -1,29 +1,30 @@
 /**
- * Aba TI e Integrações › Integrações — porte de `renderSecaoIntegracoes`
+ * Configurações › Administração › Integrações — porte de `renderSecaoIntegracoes`
  * (prototipo/referencia/assets/app.js linha 5671).
  *
  * ---------------------------------------------------------------------------
- * 05/09/2026 — os botões sem destino saíram: "Testar" e "Logs" em cada
- * integração e "+ Conectar novo sistema". O rodapé "Salvar alterações" também
- * saiu: esta seção é só leitura.
- *
  * 14/09/2026 — O CARTÃO "SINCRONIZAÇÕES" LÊ A API (documento 35, seção 11): cada
- * ciclo do serviço do Windows `TracbelCrmSincronizacaoArt`, com resultado,
- * tentativas, contagens e motivo da falha. É aqui que mora a informação técnica
- * da sincronização — e não numa tela exclusiva do ART.
+ * ciclo do serviço do Windows `TracbelCrmSincronizacaoArt`.
  *
- * 22/09/2026 (issue 134) — "SISTEMAS CONECTADOS" SAIU: lia `config-integracoes.json`
- * e descrevia um estado planejado, com endereço e responsável de exemplo. Volta
- * com dado real na issue 136. A seção só aparece para quem tem `Integracao.Ler`
- * (Gerência para cima).
- */
+ * 22/09/2026 (issue 136) — "SISTEMAS CONECTADOS" VOLTA, COM DADO REAL E MEXÍVEL:
+ * cada conexão que o CRM usa (Protheus, ART, Vórtice e as fontes públicas), de
+ * onde vem a credencial, a última verificação e o botão "Testar", que roda no
+ * servidor. O Administrador configura o endereço e a senha (guardada protegida,
+ * nunca mostrada), cadastra API nova para monitorar, e muda a agenda das rotinas
+ * do servidor — que o orquestrador segue. A Gerência e a Diretoria (Integracao.Ler)
+ * veem tudo e não mexem.
+ */import { useState } from 'react';
 import { BlocoCarregando, BlocoErro } from '../cadastro/EstadosDeTela';
+import { obterPainelDeIntegracoes } from '../../dados/api/integracoes';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { listarSincronizacoes } from '../../dados/api/sincronizacoes';
 import { useRecurso } from '../../dados/api/useRecurso';
 import { formatarDataHora } from '../../telas/cadastro/formato';
 import type { SituacaoDaSincronizacao } from '../../tipos/api';
 import { CardConfig } from './ConfigPartes';
+import { CartaoDeConexao } from './integracoes/CartaoDeConexao';
+import { CartaoDeRotina } from './integracoes/CartaoDeRotina';
+import { NovaApiMonitorada } from './integracoes/NovaApiMonitorada';
 
 const RESULTADO: Record<string, { l: string; cor: string }> = {
   Sucesso: { l: 'Sucesso', cor: '#22C55E' },
@@ -125,6 +126,67 @@ function CartaoDeSincronizacoes() {
   );
 }
 
+function SistemasEConexoes() {
+  const { contexto } = useContextoDeAcesso();
+  const leitura = useRecurso((sinal) => obterPainelDeIntegracoes(contexto, sinal), [contexto.empresa, contexto.usuario]);
+  const [novaApi, setNovaApi] = useState(false);
+  const painel = leitura.dados;
+
+  if (leitura.carregando && !painel) return <BlocoCarregando oQue="as integrações" />;
+  if (leitura.erro) return <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />;
+  if (!painel) return null;
+
+  return (
+    <>
+      <CardConfig titulo="Sistemas conectados">
+        <p className="config-hint int-intro">
+          Cada sistema que o CRM lê, de onde vem a credencial e se respondeu no último teste. {painel.podeAdministrar
+            ? '"Testar" roda no próprio servidor, só leitura, e fica no histórico.'
+            : 'Configurar e testar é do Administrador.'}
+        </p>
+        <div className="integracoes-lista">
+          {painel.conexoes.map((c) => (
+            <CartaoDeConexao key={c.codigo} conexao={c} podeAdministrar={painel.podeAdministrar} aoMudar={leitura.recarregar} />
+          ))}
+        </div>
+        {painel.podeAdministrar && !novaApi && (
+          <div className="int-rodape">
+            <button type="button" className="btn-config-primary" onClick={() => setNovaApi(true)}>
+              + Conectar nova API
+            </button>
+          </div>
+        )}
+        {novaApi && (
+          <NovaApiMonitorada
+            aoCriar={() => {
+              setNovaApi(false);
+              leitura.recarregar();
+            }}
+            aoCancelar={() => setNovaApi(false)}
+          />
+        )}
+      </CardConfig>
+
+      <CardConfig titulo="Rotinas do servidor">
+        <p className="config-hint int-intro">
+          O que o servidor roda sozinho. Quem roda é o orquestrador, a cada cinco minutos, seguindo a agenda daqui — sem tarefa do Windows para
+          editar. "Rodar agora" entra na fila e começa em até cinco minutos.
+        </p>
+        <div className="integracoes-lista">
+          {painel.rotinas.map((r) => (
+            <CartaoDeRotina key={r.codigo} rotina={r} podeAdministrar={painel.podeAdministrar} aoMudar={leitura.recarregar} />
+          ))}
+        </div>
+      </CardConfig>
+    </>
+  );
+}
+
 export function ConfigSecaoIntegracoes() {
-  return <CartaoDeSincronizacoes />;
+  return (
+    <>
+      <SistemasEConexoes />
+      <CartaoDeSincronizacoes />
+    </>
+  );
 }

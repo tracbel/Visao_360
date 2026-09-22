@@ -116,9 +116,9 @@ export function TabelaDeFontes({ painel }: { painel: PainelDeFontesPublicas }) {
                       </>
                     )}
                   </td>
-                  <td className="cad-mono" title={`Tarefa agendada ${fonte.rotina}`}>
-                    {formatarData(fonte.proximaExecucaoEm)}
-                    <div className="pot-sub">{fonte.cadencia === 'Mensal' ? 'rotina mensal' : 'rotina anual'}</div>
+                  <td className="cad-mono" title={`Rotina ${fonte.rotina}: ${fonte.agenda}`}>
+                    {fonte.proximaExecucaoEm ? formatarData(fonte.proximaExecucaoEm) : 'desligada'}
+                    <div className="pot-sub">{fonte.agenda}</div>
                   </td>
                 </tr>
               );
@@ -140,8 +140,8 @@ export function ConfigSecaoFontes() {
       {leitura.erro && <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />}
       {leitura.dados && <TabelaDeFontes painel={leitura.dados} />}
       <div className="config-hint" style={{ marginTop: 16 }}>
-        As fontes são lidas pelo próprio servidor, em duas rotinas agendadas: a anual (1º de outubro) e a mensal (dia 20).
-        Uma rotina recém-publicada roda na hora quando encontra tabela vazia. Nenhuma fonte depende hoje de envio manual
+        As fontes são lidas pelo próprio servidor, em duas rotinas — as fontes anuais e os preços, custos e crédito —, com a agenda que se muda em
+        Configurações › Administração › Integrações. A rotina que nunca rodou e encontra tabela vazia roda na primeira volta do orquestrador. Nenhuma fonte depende hoje de envio manual
         de arquivo; o CEPEA, que dependeria, aguarda a decisão sobre a licença (D-P11).
       </div>
     </CardConfig>

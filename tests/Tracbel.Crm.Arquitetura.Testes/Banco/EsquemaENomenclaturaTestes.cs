@@ -162,6 +162,12 @@ public sealed partial class EsquemaENomenclaturaTestes
         //      Windows (início, fim, máquina, resultado, tentativas, contagens e motivo). O ponto de
         //      sincronismo guarda só a última rodada; sem o histórico, a falha de ontem à noite some
         //      quando a rodada de hoje dá certo.
+        //   +4 integracao.Conexao, VerificacaoDeConexao, Rotina e ExecucaoDeRotina — issue 136: o endereço e a
+        //      credencial de cada sistema saem da variável de ambiente para a tela (a senha protegida, nunca em
+        //      texto), o histórico do botão "Testar", a agenda que substitui as tarefas do Windows e o histórico do
+        //      orquestrador. Quatro e não uma porque são dois cadastros (o que se conecta e o que roda) e os dois
+        //      históricos deles, com ciclos de vida diferentes: a conexão muda quando alguém edita; a verificação e a
+        //      execução só crescem.
         //
         // Este teste é o que impede o modelo de crescer sem decisão registrada — o "portão" da
         // seção 10.2. Ele falhou de propósito quando as três últimas entraram, e é assim que se
@@ -178,19 +184,19 @@ public sealed partial class EsquemaENomenclaturaTestes
             ["processo"] = 9,
             ["frota"] = 7,
             ["auditoria"] = 1,
-            ["integracao"] = 9,
+            ["integracao"] = 13,
             ["metadado"] = 2
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 62 tabelas de modelo em 8 schemas: a fase 1 (documento 41) trouxe 80 em 10 " +
+            "a conta é 66 tabelas de modelo em 8 schemas: a fase 1 (documento 41) trouxe 80 em 10 " +
             "para 49, tirando as 31 que nunca receberam uma linha e esvaziando por completo os " +
             "schemas 'documento' e 'relatorio'; a issue 64 acrescentou o total do estado, a 65 as " +
-            "cinco da estrutura agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção a 68 as duas do crédito rural do SICOR e a 71 as duas dos parâmetros do potencial com vigência (os gerais e a percepção do gestor). O portão continua o mesmo nos dois sentidos: mudar " +
+            "cinco da estrutura agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção a 68 as duas do crédito rural do SICOR e a 71 as duas dos parâmetros do potencial com vigência (os gerais e a percepção do gestor) e a 136 as quatro das integrações configuráveis (conexão, verificação, rotina e execução da rotina). O portão continua o mesmo nos dois sentidos: mudar " +
             "este número exige a decisão da seção 10.2 e a atualização do documento 14, seção 2.1, " +
             "na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(62);
+        porSchema.Values.Sum().Should().Be(66);
     }
 
     [Fact]

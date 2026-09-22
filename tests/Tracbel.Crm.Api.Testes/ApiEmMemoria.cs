@@ -79,8 +79,15 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
             _conexao.CreateCollation("Latin1_General_BIN2", (a, b) => string.CompareOrdinal(a, b));
 
             servicos.AddDbContext<CrmDbContext>(opcoes => opcoes.UseSqlite(_conexao));
+
+            // A SEGUNDA SUBSTITUIÇÃO, SÓ QUANDO O TESTE PEDE: o que falaria com a internet (o botão "Testar" das
+            // integrações) responde por um manipulador do próprio teste. O CI não depende de site externo no ar.
+            AjustarServicos?.Invoke(servicos);
         });
     }
+
+    /// <summary>O que o teste troca além do banco — hoje, o cliente HTTP do botão "Testar" (issue 136).</summary>
+    public Action<IServiceCollection>? AjustarServicos { get; init; }
 
     /// <inheritdoc />
     public async Task InitializeAsync()
