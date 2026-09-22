@@ -258,13 +258,31 @@ public sealed record FaixaDeArea(int Ordem, string Rotulo, int? Estabelecimentos
 /// O ano do Censo dos tratores e dos estabelecimentos (issue 152). Antes eles vinham sem ano, ao lado do da PAM —
 /// e o leitor tomava 2017 por 2024.
 /// </param>
+/// <param name="Rebanho">O efetivo bovino do estado, da Pesquisa da Pecuária Municipal.</param>
+/// <param name="AnoDoRebanho">O ano da PPM, que anda sozinho — ela é anual e o Censo é decenal.</param>
 public sealed record TotaisDoEstado(
     short Ano,
     decimal? AreaPlantadaHectares,
     decimal? ValorDaProducaoMilReais,
-    int? Tratores,
-    int? Estabelecimentos,
-    short? AnoDoCenso);
+    MedidaDoEstado Tratores,
+    MedidaDoEstado Estabelecimentos,
+    short? AnoDoCenso,
+    MedidaDoEstado Rebanho,
+    short? AnoDoRebanho);
+
+/// <summary>
+/// UMA MEDIDA DO ESTADO NAS DUAS LEITURAS: a que o IBGE publica e a soma dos municípios (issue 155).
+///
+/// <para><b>As duas, e não só a publicada.</b> A publicada é o denominador honesto — é o número que a
+/// diretoria encontra em qualquer outra fonte. A soma fica ao lado para que a tela possa dizer quanto
+/// o sigilo esconde, em vez de apresentar uma diferença sem explicação a quem conferir na mão.</para>
+///
+/// <para>Publicado nulo é fonte não carregada; nesse caso a tela não tem denominador e não mostra
+/// fatia nenhuma — nunca cai na soma sem avisar.</para>
+/// </summary>
+/// <param name="Publicado">O total publicado pelo IBGE para a UF, ou nulo se a linha não foi carregada.</param>
+/// <param name="SomaDosMunicipios">A soma dos municípios do estado, ou nulo quando a fonte não tem linha nenhuma.</param>
+public sealed record MedidaDoEstado(int? Publicado, int? SomaDosMunicipios);
 
 /// <summary>
 /// Quem responde pelos vínculos de um município NA CARTEIRA — o responsável cadastrado de cada carteira

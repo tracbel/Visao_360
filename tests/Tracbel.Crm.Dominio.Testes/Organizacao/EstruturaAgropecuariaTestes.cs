@@ -210,4 +210,85 @@ public sealed class EstruturaAgropecuariaTestes
         usina.MunicipioId.Should().Be(2);
         usina.ImportadoPorId.Should().Be(2);
     }
+
+    // =============================================================================================
+    // O total publicado do estado (issue 155)
+    // =============================================================================================
+
+    /// <summary>Os tratores de São Paulo no Censo: tabela 6871, variável 1862, categoria "Total".</summary>
+    private static MedidaDoIbgeNoEstado TratoresDeSaoPaulo(decimal? valor = 500m) =>
+        MedidaDoIbgeNoEstado.Registrar(35, 6871, 1862, 2017, 113521, "Total", valor, 1, Agora);
+
+    [Fact]
+    public void A_medida_do_estado_guarda_a_celula_inteira_do_sidra()
+    {
+        // A IDENTIDADE É A DO SIDRA, e é ela que torna o número conferível na origem: sem a tabela e
+        // a variável, "500" seria um número sem procedência dentro do CRM.
+        var medida = TratoresDeSaoPaulo();
+
+        medida.EstadoCodigoIbge.Should().Be(35);
+        medida.TabelaDoSidra.Should().Be(6871);
+        medida.VariavelDoSidra.Should().Be(1862);
+        medida.Ano.Should().Be(2017);
+        medida.CategoriaCodigoIbge.Should().Be(113521);
+        medida.CategoriaNome.Should().Be("Total");
+        medida.Valor.Should().Be(500m);
+    }
+
+    [Fact]
+    public void A_tabela_sem_classificacao_entra_sem_categoria_nenhuma()
+    {
+        // A da área territorial (4714) não tem classificação. Inventar uma categoria "Total" para ela
+        // faria a chave do SIDRA mentir sobre a resposta.
+        var area = MedidaDoIbgeNoEstado.Registrar(35, 4714, 6318, 2022, null, null, 248_219.627m, 1, Agora);
+
+        area.CategoriaCodigoIbge.Should().BeNull();
+        area.CategoriaNome.Should().BeNull();
+        area.Valor.Should().Be(248_219.627m, "os três decimais que o IBGE publica");
+    }
+
+    [Theory]
+    [InlineData(113521, null)]
+    [InlineData(null, "Total")]
+    public void Categoria_pela_metade_e_recusada(int? codigo, string? nome)
+    {
+        // Código sem rótulo não se mostra na tela; rótulo sem código não se compara com nada.
+        var registrar = () => MedidaDoIbgeNoEstado.Registrar(35, 6871, 1862, 2017, codigo, nome, 500m, 1, Agora);
+
+        registrar.Should().Throw<RegraDeNegocioViolada>();
+    }
+
+    [Fact]
+    public void O_sigilo_do_estado_e_nulo_e_valor_negativo_e_recusado()
+    {
+        MedidaDoIbgeNoEstado.Registrar(35, 6871, 1862, 2017, 113521, "Total", null, 1, Agora)
+            .Valor.Should().BeNull("o IBGE também omite no estado, e omissão não é zero");
+
+        var negativo = () => TratoresDeSaoPaulo(-1m);
+        negativo.Should().Throw<RegraDeNegocioViolada>("não existe parque de tratores negativo");
+    }
+
+    [Fact]
+    public void A_uf_e_a_chave_do_sidra_sao_conferidas()
+    {
+        var ufInexistente = () => MedidaDoIbgeNoEstado.Registrar(99, 6871, 1862, 2017, 113521, "Total", 500m, 1, Agora);
+        var semTabela = () => MedidaDoIbgeNoEstado.Registrar(35, 0, 1862, 2017, 113521, "Total", 500m, 1, Agora);
+
+        ufInexistente.Should().Throw<RegraDeNegocioViolada>();
+        semTabela.Should().Throw<RegraDeNegocioViolada>("sem a tabela, o número não é conferível na origem");
+    }
+
+    [Fact]
+    public void Reapurar_o_total_do_estado_diz_se_o_ibge_revisou()
+    {
+        // O IBGE REVISA a linha publicada, e a revisão muda a fatia da região sem que nada tenha
+        // mudado na região. Por isso Valor está na política de auditoria: a trilha guarda o anterior.
+        var medida = TratoresDeSaoPaulo();
+
+        medida.Reapurar("Total", 500m, 2, Agora).Should().BeFalse("mesma leitura não é revisão");
+
+        medida.Reapurar("Total", 512m, 2, Agora).Should().BeTrue();
+        medida.Valor.Should().Be(512m);
+        medida.ImportadoPorId.Should().Be(2);
+    }
 }

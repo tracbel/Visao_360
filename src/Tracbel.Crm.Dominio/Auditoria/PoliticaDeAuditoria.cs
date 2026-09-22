@@ -93,6 +93,11 @@ public static class PoliticaDeAuditoria
         ["RebanhoNoMunicipio"] = ["RebanhoNome", "Cabecas"],
         ["AreaTerritorialDoMunicipio"] = ["AreaKm2"],
 
+        // O TOTAL PUBLICADO DO ESTADO (issue 155) é o denominador de todo "% de São Paulo": quando o
+        // IBGE revisa a linha da UF, a fatia da região muda sem que nada tenha mudado na região. A
+        // trilha guarda o valor anterior, como nas tabelas municipais da issue 153.
+        ["MedidaDoIbgeNoEstado"] = ["Valor", "CategoriaNome"],
+
         // A USINA DA ANP (issue 153): o que a ANP corrige e a saída da lista. O mês de referência fica de fora — ele
         // anda todo mês em todas as usinas, e a trilha viraria o carimbo do Vórtice.
         ["UsinaDeEtanol"] =

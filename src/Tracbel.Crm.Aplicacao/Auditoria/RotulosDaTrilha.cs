@@ -34,6 +34,7 @@ public static class RotulosDaTrilha
         ["EstabelecimentosPorAreaNoMunicipio"] = "Propriedades por tamanho (Censo)",
         ["RebanhoNoMunicipio"] = "Rebanho no município (PPM)",
         ["AreaTerritorialDoMunicipio"] = "Área territorial do município",
+    ["MedidaDoIbgeNoEstado"] = "Total publicado do estado (IBGE)",
         ["UsinaDeEtanol"] = "Usina de etanol (ANP)",
         ["CorrespondenciaDeMunicipio"] = "Município da fonte (de-para)",
         ["RegraDePotencial"] = "Regra do potencial por cultura",
@@ -121,6 +122,7 @@ public static class RotulosDaTrilha
         },
         ["RebanhoNoMunicipio"] = new(StringComparer.Ordinal) { ["RebanhoNome"] = "Rebanho", ["Cabecas"] = "Cabeças" },
         ["AreaTerritorialDoMunicipio"] = new(StringComparer.Ordinal) { ["AreaKm2"] = "Área (km²)" },
+    ["MedidaDoIbgeNoEstado"] = new(StringComparer.Ordinal) { ["Valor"] = "Valor publicado", ["CategoriaNome"] = "Categoria do IBGE" },
         ["UsinaDeEtanol"] = new(StringComparer.Ordinal)
         {
             ["RazaoSocial"] = "Razão social", ["MunicipioId"] = "Município", ["CapacidadeDeAnidroM3Dia"] = "Capacidade de anidro (m³/dia)",

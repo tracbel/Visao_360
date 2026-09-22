@@ -162,6 +162,61 @@ public sealed class AreaTerritorialDoMunicipioConfiguracao : IEntityTypeConfigur
 }
 
 /// <summary>
+/// Mapeamento de <see cref="MedidaDoIbgeNoEstado"/> — o total que o IBGE publica para o estado inteiro
+/// (issue 155), que não é a soma dos municípios.
+///
+/// <para>Não tem chave estrangeira para município, de propósito: o recorte é a UF, e o código dela é
+/// o que o SIDRA devolve. <c>decimal(18,3)</c> comporta desde a área em km² com três decimais até o
+/// efetivo de um rebanho em cabeças.</para>
+/// </summary>
+public sealed class MedidaDoIbgeNoEstadoConfiguracao : IEntityTypeConfiguration<MedidaDoIbgeNoEstado>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<MedidaDoIbgeNoEstado> b)
+    {
+        b.ToTable("MedidaDoIbgeNoEstado", "organizacao");
+        b.HasKey(m => m.Id);
+        b.Property(m => m.Id).ValueGeneratedOnAdd();
+
+        b.Property(m => m.EstadoCodigoIbge).IsRequired();
+        b.Property(m => m.TabelaDoSidra).IsRequired();
+        b.Property(m => m.VariavelDoSidra).IsRequired();
+        b.Property(m => m.Ano).IsRequired();
+        b.Property(m => m.CategoriaNome).HasMaxLength(120).IsUnicode(true);
+        b.Property(m => m.Valor).HasPrecision(18, 3);
+        b.Property(m => m.ImportadoEm).HasPrecision(3).IsRequired();
+        b.Property(m => m.ImportadoPorId).IsRequired();
+
+        // A CHAVE NATURAL DO SIDRA, SEM FILTRO. O EF filtra índice único com coluna anulável por
+        // padrão ("WHERE [CategoriaCodigoIbge] IS NOT NULL"), e isso deixaria a tabela SEM
+        // classificação — a da área territorial — duplicar à vontade, que é justamente a linha que
+        // não pode ter duas versões. Sem filtro, o SQL Server trata dois nulos como iguais e garante
+        // uma linha por (estado, tabela, variável, ano).
+        b.HasIndex(m => new { m.EstadoCodigoIbge, m.TabelaDoSidra, m.VariavelDoSidra, m.Ano, m.CategoriaCodigoIbge })
+            .IsUnique()
+            .HasFilter(null)
+            .HasDatabaseName("UX_MedidaDoIbgeNoEstado_Sidra");
+
+        b.HasIndex(m => m.ImportadoPorId);
+
+        b.HasOne<Dominio.Seguranca.Usuario>().WithMany().HasForeignKey(m => m.ImportadoPorId).OnDelete(DeleteBehavior.Restrict);
+
+        b.ToTable(t => t.HasCheckConstraint("CK_MedidaDoIbgeNoEstado_Ano", "[Ano] BETWEEN 1920 AND 2100"));
+        b.ToTable(t => t.HasCheckConstraint("CK_MedidaDoIbgeNoEstado_Uf", "[EstadoCodigoIbge] BETWEEN 11 AND 53"));
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_MedidaDoIbgeNoEstado_Sidra", "[TabelaDoSidra] > 0 AND [VariavelDoSidra] > 0"));
+
+        // Código e rótulo andam juntos — a mesma regra do domínio, dita também no banco.
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_MedidaDoIbgeNoEstado_Categoria",
+            "([CategoriaCodigoIbge] IS NULL AND [CategoriaNome] IS NULL) " +
+            "OR ([CategoriaCodigoIbge] > 0 AND [CategoriaNome] IS NOT NULL)"));
+
+        b.ToTable(t => t.HasCheckConstraint("CK_MedidaDoIbgeNoEstado_Valor", "[Valor] IS NULL OR [Valor] >= 0"));
+    }
+}
+
+/// <summary>
 /// Mapeamento de <see cref="CorrespondenciaDeMunicipio"/> — o de-para entre a chave de cada fonte e o município
 /// do catálogo (issue 154). Fica em <c>organizacao</c>, junto do município e das fontes que a usam.
 /// </summary>

@@ -103,6 +103,15 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
             ProducaoAgricolaNoEstado.Registrar(35, 2024, 40139, "Café (em grão) Total", new(700m, 600m, 2_000m, 9_000m), 100, agora),
             ProducaoAgricolaNoEstado.Registrar(35, 2024, 40106, "Cana-de-açúcar", new(9_300m, 9_200m, 800_000m, 51_000m), 100, agora));
 
+        // O TOTAL PUBLICADO DO ESTADO nas pesquisas da estrutura (issue 155). Ele é MAIOR que a soma
+        // dos municípios de propósito: é o sigilo, que o IBGE divulga no estado e oculta embaixo.
+        // Tratores: 500 publicados contra 485 somados (450 + 35). Propriedades: 800 contra 745
+        // (655 + 90). Rebanho: 3.500 contra 3.000.
+        db.MedidasDoIbgeNosEstados.AddRange(
+            MedidaDoIbgeNoEstado.Registrar(35, 6871, 1862, 2017, 113521, "Total", 500m, 100, agora),
+            MedidaDoIbgeNoEstado.Registrar(35, 6780, 183, 2017, 110085, "Total", 800m, 100, agora),
+            MedidaDoIbgeNoEstado.Registrar(35, 3939, 105, 2024, 2670, "Bovino", 3_500m, 100, agora));
+
         // A ESTRUTURA. Ribeirão tem tudo; Serrana tem o total de tratores mas as faixas sob sigilo —
         // é o caso que prova que nulo não vira zero.
         db.FrotasDeTratoresNosMunicipios.AddRange(
@@ -418,8 +427,23 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         estado.GetProperty("ano").GetInt32().Should().Be(2024);
         estado.GetProperty("areaPlantadaHectares").GetDecimal().Should().Be(10_000m, "9.300 de cana + 700 de café Total");
         estado.GetProperty("valorDaProducaoMilReais").GetDecimal().Should().Be(60_000m);
-        estado.GetProperty("tratores").GetInt32().Should().Be(485, "450 de Ribeirão + 35 de Serrana");
-        estado.GetProperty("estabelecimentos").GetInt32().Should().Be(745, "655 + 90");
+
+        // ATÉ A ISSUE 155 estes dois eram a SOMA dos municípios — 485 e 745 —, enquanto a lavoura
+        // acima já vinha publicada. Agora os dois números aparecem, e o denominador é o publicado.
+        estado.GetProperty("tratores").GetProperty("publicado").GetInt32().Should().Be(500,
+            "é a linha que o IBGE publica para São Paulo");
+        estado.GetProperty("tratores").GetProperty("somaDosMunicipios").GetInt32().Should().Be(485,
+            "450 de Ribeirão + 35 de Serrana — quinze abaixo do publicado, que é o sigilo");
+
+        estado.GetProperty("estabelecimentos").GetProperty("publicado").GetInt32().Should().Be(800);
+        estado.GetProperty("estabelecimentos").GetProperty("somaDosMunicipios").GetInt32().Should().Be(745, "655 + 90");
+
+        estado.GetProperty("rebanho").GetProperty("publicado").GetInt32().Should().Be(3_500);
+        estado.GetProperty("rebanho").GetProperty("somaDosMunicipios").GetInt32().Should().Be(3_000);
+
+        estado.GetProperty("anoDoCenso").GetInt32().Should().Be(2017);
+        estado.GetProperty("anoDoRebanho").GetInt32().Should().Be(2024,
+            "a PPM é anual e o Censo é decenal: os dois anos não saem debaixo do mesmo rótulo");
     }
 
     [Fact]

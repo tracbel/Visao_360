@@ -255,6 +255,12 @@ public class CrmDbContext : DbContext
     public DbSet<AreaTerritorialDoMunicipio> AreasTerritoriaisDosMunicipios =>
         Set<AreaTerritorialDoMunicipio>();
 
+    /// <summary>
+    /// O total que o IBGE publica para o estado nas quatro pesquisas da estrutura agropecuária
+    /// (issue 155) — o denominador do "% de São Paulo", que não é a soma dos municípios.
+    /// </summary>
+    public DbSet<MedidaDoIbgeNoEstado> MedidasDoIbgeNosEstados => Set<MedidaDoIbgeNoEstado>();
+
     /// <summary>O de-para entre o que cada fonte chama de município e o município do catálogo (issue 154).</summary>
     public DbSet<CorrespondenciaDeMunicipio> CorrespondenciasDeMunicipios => Set<CorrespondenciaDeMunicipio>();
 

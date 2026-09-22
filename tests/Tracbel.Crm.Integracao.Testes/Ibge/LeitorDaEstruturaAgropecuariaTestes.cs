@@ -222,6 +222,57 @@ public sealed class LeitorDaEstruturaAgropecuariaTestes
     }
 
     [Fact]
+    public void O_endereco_do_total_do_estado_pede_o_nivel_3_e_a_MESMA_variavel_do_municipio()
+    {
+        // O DENOMINADOR TEM DE SER A MESMA MEDIDA (issue 155): variável trocada ou classificação a
+        // mais no nível 3 daria um "% de São Paulo" errado, sem erro nenhum na tela.
+        var noEstado = LeitorDaEstruturaAgropecuaria.EnderecoNoEstado(6871, [1918, 1862], 2017, SaoPaulo, 12605);
+
+        noEstado.Should().Contain("/n3/35/", "nível 3 é a UF inteira, e não os municípios dela");
+        noEstado.Should().NotContain("n6", "pedir n6 traria 645 linhas, e a soma delas é justamente o que não serve");
+        noEstado.Should().Contain("/v/1918,1862/");
+        noEstado.Should().Contain("/c12605/all");
+    }
+
+    [Fact]
+    public async Task O_total_do_estado_traz_as_quatro_pesquisas_com_a_chave_do_sidra()
+    {
+        // O leitor responde a mesma lista para as quatro tabelas; aqui o tratador devolve a linha do
+        // estado para todas. O que o teste prende é o formato: tabela, variável, ano e categoria.
+        var resposta = RespostaCom(Linha(SaoPaulo, 1862, 2017, 113521, "Total", "500"));
+
+        var medidas = await Leitor(2017, resposta).LerMedidasNoEstadoAsync(SaoPaulo, CancellationToken.None);
+
+        medidas.Should().HaveCount(4, "uma linha por pesquisa, porque o tratador devolve a mesma resposta às quatro");
+
+        var daFrota = medidas.First(m => m.Tabela == 6871);
+        daFrota.CodigoDaUf.Should().Be(SaoPaulo);
+        daFrota.Variavel.Should().Be(1862);
+        daFrota.Ano.Should().Be(2017);
+        daFrota.CategoriaCodigo.Should().Be(113521);
+        daFrota.CategoriaNome.Should().Be("Total");
+        daFrota.ValorBruto.Should().Be("500");
+
+        medidas.Select(m => m.Tabela).Should().BeEquivalentTo(
+            new short[] { 6871, 6780, 3939, 4714 }, "as quatro pesquisas da estrutura agropecuária");
+    }
+
+    [Fact]
+    public async Task A_tabela_sem_classificacao_chega_ao_estado_sem_categoria()
+    {
+        // A 4714 não tem classificação: a célula vem sem D4C. Deixar isso virar categoria ZERO faria
+        // o banco guardar uma categoria que não existe no IBGE.
+        var resposta = RespostaCom(LinhaSemCategoria(SaoPaulo, 6318, 2022, "248219.627"));
+
+        var medidas = await Leitor(2022, resposta).LerMedidasNoEstadoAsync(SaoPaulo, CancellationToken.None);
+
+        var daArea = medidas.First(m => m.Tabela == 4714);
+        daArea.CategoriaCodigo.Should().BeNull();
+        daArea.CategoriaNome.Should().BeNull();
+        daArea.ValorBruto.Should().Be("248219.627");
+    }
+
+    [Fact]
     public async Task O_cabecalho_da_resposta_nao_vira_dado()
     {
         // A primeira linha repete o NOME de cada campo no lugar do valor. Tratá-la como dado faria
