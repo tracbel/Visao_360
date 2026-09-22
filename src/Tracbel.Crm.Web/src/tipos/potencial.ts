@@ -209,3 +209,38 @@ export type PainelDeCoberturaDoMotor = {
   incompletos: number;
   grupos: BlocoDaCoberturaDoMotor[];
 };
+
+/** Um produto da PAM dentro de uma cultura do catálogo (issue 165). */
+export type ProdutoDaPamNoCatalogo = {
+  codigoIbge: number;
+  nome: string;
+  /** Falso nos detalhados de um total — o café tem "Total", "Arábica" e "Canephora". */
+  entraNaSomaDaLavoura: boolean;
+};
+
+/** Uma cultura do catálogo — o que substitui as listas fixas de cultura no código das telas. */
+export type CulturaNoCatalogo = {
+  codigo: string;
+  nome: string;
+  segmento: string;
+  unidadeComercial: string;
+  /** Quantos quilos tem a unidade — é o que converte o R$/kg da CONAB. */
+  quilosPorUnidade: number;
+  fonteDoPreco: string | null;
+  produtoDoPreco: string | null;
+  serieDeCusto: string | null;
+  estaAtiva: boolean;
+  produtos: ProdutoDaPamNoCatalogo[];
+};
+
+/** Uma categoria de máquina. Lista de produtos do SICOR vazia não é erro. */
+export type CategoriaNoCatalogo = {
+  codigo: string;
+  nome: string;
+  ordem: number;
+  estaAtiva: boolean;
+  produtosDoSicor: number[];
+};
+
+/** O catálogo de mercado: culturas e categorias de máquina (issue 165). */
+export type CatalogoDoMercado = { culturas: CulturaNoCatalogo[]; categorias: CategoriaNoCatalogo[] };

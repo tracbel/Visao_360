@@ -66,6 +66,13 @@ public sealed class RegraDePotencialConfiguracao : IEntityTypeConfiguration<Regr
         b.Property(r => r.ModeloDeReferencia).HasMaxLength(60).IsUnicode(true).IsRequired();
         b.Property(r => r.Situacao).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
 
+        // A LIGAÇÃO COM O CATÁLOGO (issue 165), anulável: a vigência do café de 13/09/2026 nasceu antes
+        // dele, e o passado não se reescreve. A migração liga a linha existente à cultura semeada.
+        b.HasOne<Cultura>().WithMany().HasForeignKey(r => r.CulturaId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<CategoriaDeMaquina>().WithMany().HasForeignKey(r => r.CategoriaDeMaquinaId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(r => r.CulturaId);
+        b.HasIndex(r => r.CategoriaDeMaquinaId);
+
         b.HasIndex(r => new { r.ProdutoCodigoIbge, r.VigenteDesde })
             .IsUnique()
             .HasFilter("[RevogadoEm] IS NULL")
@@ -85,6 +92,8 @@ public sealed class RegraDePotencialConfiguracao : IEntityTypeConfiguration<Regr
             AnosDeRenovacao = (decimal?)null,
             ModeloDeReferencia = "3036N",
             Situacao = SituacaoDaRegraDePotencial.AConfirmar,
+            CulturaId = (int?)1,
+            CategoriaDeMaquinaId = (int?)1,
             VigenteDesde = new DateOnly(2026, 9, 13),
             Justificativa = "Exemplo do gerente comercial no pedido de 13/09/2026: \"na cultura de café, existe " +
                             "potencial de 1 trator 3036N a cada 10 hectares\". Não confirmados: aplicabilidade, " +

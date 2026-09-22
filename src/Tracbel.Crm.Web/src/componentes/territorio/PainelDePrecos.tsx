@@ -22,15 +22,25 @@ import { SeloProcedencia } from '../cadastro/SeloProcedencia';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
+import { obterCatalogoDoMercado } from '../../dados/api/potencial';
 import { obterPrecosDeMercado } from '../../dados/api/territorio';
 import { useRecurso } from '../../dados/api/useRecurso';
 import type { SerieDePreco } from '../../tipos/mercado';
+import type { CulturaNoCatalogo } from '../../tipos/potencial';
 
 /**
- * As culturas do texto-base, na ordem em que ele as cita. Aparecem primeiro;
- * o resto da CONAB fica atrás do "mostrar todos".
+ * AS CULTURAS DO CATÁLOGO, e não uma lista escrita aqui (issue 165).
+ *
+ * Até aqui esta linha era um vetor com 'CAFE', 'SOJA', 'MILHO'… no código da
+ * tela: cultura nova exigia publicação, e a mesma lista estava escrita de outro
+ * jeito no painel de custos. Agora a tela pede o catálogo e ordena por ele — o
+ * que vier primeiro no catálogo aparece primeiro, e o resto da CONAB fica atrás
+ * do "mostrar todos".
+ *
+ * O boi e o leite continuam aqui porque NÃO são cultura: são produtos de preço
+ * que o texto-base cita e que não entram no catálogo de lavoura.
  */
-const PRINCIPAIS = ['CAFE', 'CANA DE AÇÚCAR', 'CANA DE ACUCAR', 'SOJA', 'MILHO', 'AMENDOIM', 'LARANJA', 'BOI', 'LEITE'];
+const SEM_LAVOURA = ['BOI', 'LEITE'];
 
 /** A série do kg de ATR acumulado da safra: útil no gráfico, redundante na tabela principal. */
 const NIVEL_ACUMULADO = 'ACUMULADO DA SAFRA';
@@ -49,9 +59,19 @@ function chave(s: SerieDePreco): string {
   return `${s.fonte}|${s.codigoNaFonte}|${s.nivel}`;
 }
 
-function ordemDePrincipal(s: SerieDePreco): number {
-  const i = PRINCIPAIS.findIndex((p) => s.produto.toUpperCase().startsWith(p));
-  return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+/**
+ * A ordem da série na tabela, pelo CATÁLOGO (issue 165).
+ *
+ * A cultura casa pelo produto que ela declara na fonte de preço (`produtoDoPreco`), que é o
+ * `id_produto` da CONAB — e não pelo nome, que cada fonte escreve de um jeito. Série que não é de
+ * cultura nenhuma, mas é do texto-base (boi, leite), vem logo atrás; o resto fica no "mostrar todos".
+ */
+function ordemDePrincipal(s: SerieDePreco, culturas: CulturaNoCatalogo[]): number {
+  const i = culturas.findIndex((c) => c.produtoDoPreco !== null && c.produtoDoPreco === s.codigoNaFonte);
+  if (i >= 0) return i;
+
+  const j = SEM_LAVOURA.findIndex((p) => s.produto.toUpperCase().startsWith(p));
+  return j < 0 ? Number.MAX_SAFE_INTEGER : culturas.length + j;
 }
 
 /** O valor na unidade comercial, na moeda pedida. */
@@ -97,6 +117,14 @@ export function PainelDePrecos() {
   const { contexto } = useContextoDeAcesso();
   const precos = useRecurso((sinal) => obterPrecosDeMercado(contexto, sinal), [contexto.empresa, contexto.usuario]);
 
+  // O CATÁLOGO DECIDE QUAIS SÃO AS CULTURAS (issue 165). Se ele não vier — permissão ou banco novo —,
+  // a tabela mostra tudo em ordem alfabética, em vez de esconder série por causa de uma lista ausente.
+  const catalogo = useRecurso((sinal) => obterCatalogoDoMercado(contexto, sinal), [contexto.empresa, contexto.usuario]);
+  const culturas = useMemo(
+    () => (catalogo.dados?.culturas ?? []).filter((c: CulturaNoCatalogo) => c.estaAtiva),
+    [catalogo.dados],
+  );
+
   const [todos, setTodos] = useState(false);
   const [moeda, setMoeda] = useState<Moeda>('reais');
   const [escolhida, setEscolhida] = useState<string | null>(null);
@@ -104,13 +132,13 @@ export function PainelDePrecos() {
   const series = useMemo(
     () =>
       [...(precos.dados?.series ?? [])].sort(
-        (a, b) => ordemDePrincipal(a) - ordemDePrincipal(b) || a.produto.localeCompare(b.produto),
+        (a, b) => ordemDePrincipal(a, culturas) - ordemDePrincipal(b, culturas) || a.produto.localeCompare(b.produto),
       ),
-    [precos.dados],
+    [precos.dados, culturas],
   );
 
   const naTabela = series.filter((s) => s.nivel !== NIVEL_ACUMULADO);
-  const principais = naTabela.filter((s) => ordemDePrincipal(s) !== Number.MAX_SAFE_INTEGER);
+  const principais = naTabela.filter((s) => ordemDePrincipal(s, culturas) !== Number.MAX_SAFE_INTEGER);
   const visiveis = todos ? naTabela : principais;
   const selecionada = series.find((s) => chave(s) === escolhida) ?? principais[0] ?? naTabela[0] ?? null;
 

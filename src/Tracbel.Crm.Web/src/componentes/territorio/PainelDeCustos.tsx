@@ -13,18 +13,24 @@
  * param no custo operacional; a tela diz isso em vez de mostrar um traço mudo.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
 import { SeloProcedencia } from '../cadastro/SeloProcedencia';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
+import { obterCatalogoDoMercado } from '../../dados/api/potencial';
 import { obterCustosDeProducao } from '../../dados/api/territorio';
 import { useRecurso } from '../../dados/api/useRecurso';
 import type { CustoNaSafra, SerieDeCusto } from '../../tipos/mercado';
+import type { CulturaNoCatalogo } from '../../tipos/potencial';
 
-/** A ordem do texto-base; o que vier além delas entra no fim. */
-const ORDEM = ['CAFÉ ARÁBICA', 'CANA DE AÇÚCAR', 'SOJA', 'MILHO', 'AMENDOIM', 'LARANJA'];
+/**
+ * A ordem vem do CATÁLOGO (issue 165), pela série de custo que cada cultura declara.
+ *
+ * Até aqui esta linha era um vetor com os seis rótulos escritos no código — e o painel de preços
+ * tinha a mesma lista escrita de outro jeito. O que vier além do catálogo entra no fim.
+ */
 
 function reais(valor: number): string {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
@@ -55,18 +61,29 @@ function rotuloDaSafra(c: CustoNaSafra, s: SerieDeCusto): string {
   return noAno > 1 && c.mesDoRelatorio ? `${String(c.mesDoRelatorio).padStart(2, '0')}/${c.safra}` : String(c.safra);
 }
 
-function ordemDaCultura(cultura: string): number {
-  const i = ORDEM.findIndex((c) => cultura.startsWith(c));
-  return i < 0 ? ORDEM.length : i;
+function ordemDaCultura(cultura: string, doCatalogo: string[]): number {
+  const i = doCatalogo.findIndex((c) => cultura.startsWith(c));
+  return i < 0 ? doCatalogo.length : i;
 }
 
 export function PainelDeCustos() {
   const { contexto } = useContextoDeAcesso();
   const custos = useRecurso((sinal) => obterCustosDeProducao(contexto, sinal), [contexto.empresa, contexto.usuario]);
 
+  // A ORDEM VEM DO CATÁLOGO (issue 165): cada cultura declara o rótulo da série de custo da CONAB.
+  // Catálogo ausente — permissão ou banco novo — cai na ordem alfabética, e não esconde cultura nenhuma.
+  const catalogo = useRecurso((sinal) => obterCatalogoDoMercado(contexto, sinal), [contexto.empresa, contexto.usuario]);
+  const doCatalogo = useMemo(
+    () =>
+      (catalogo.dados?.culturas ?? [])
+        .filter((c: CulturaNoCatalogo) => c.estaAtiva && c.serieDeCusto !== null)
+        .map((c: CulturaNoCatalogo) => c.serieDeCusto as string),
+    [catalogo.dados],
+  );
+
   const series = custos.dados ?? [];
   const culturas = [...new Set(series.map((s) => s.cultura))].sort(
-    (a, b) => ordemDaCultura(a) - ordemDaCultura(b) || a.localeCompare(b),
+    (a, b) => ordemDaCultura(a, doCatalogo) - ordemDaCultura(b, doCatalogo) || a.localeCompare(b),
   );
 
   const [cultura, setCultura] = useState<string | null>(null);

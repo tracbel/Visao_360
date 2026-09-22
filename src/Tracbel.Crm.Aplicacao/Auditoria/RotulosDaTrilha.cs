@@ -36,6 +36,10 @@ public static class RotulosDaTrilha
         ["RebanhoNoMunicipio"] = "Rebanho no município (PPM)",
         ["AreaTerritorialDoMunicipio"] = "Área territorial do município",
     ["MedidaDoIbgeNoEstado"] = "Total publicado do estado (IBGE)",
+    ["Cultura"] = "Cultura do catálogo",
+    ["ProdutoDaPamNaCultura"] = "Produto da PAM na cultura",
+    ["CategoriaDeMaquina"] = "Categoria de máquina",
+    ["ProdutoDoSicorNaCategoria"] = "Produto do SICOR na categoria",
         ["UsinaDeEtanol"] = "Usina de etanol (ANP)",
         ["CorrespondenciaDeMunicipio"] = "Município da fonte (de-para)",
         ["RegraDePotencial"] = "Regra do potencial por cultura",
@@ -129,6 +133,21 @@ public static class RotulosDaTrilha
         ["RebanhoNoMunicipio"] = new(StringComparer.Ordinal) { ["RebanhoNome"] = "Rebanho", ["Cabecas"] = "Cabeças" },
         ["AreaTerritorialDoMunicipio"] = new(StringComparer.Ordinal) { ["AreaKm2"] = "Área (km²)" },
     ["MedidaDoIbgeNoEstado"] = new(StringComparer.Ordinal) { ["Valor"] = "Valor publicado", ["CategoriaNome"] = "Categoria do IBGE" },
+    ["Cultura"] = new(StringComparer.Ordinal)
+    {
+        ["Nome"] = "Nome", ["Segmento"] = "Segmento", ["UnidadeComercial"] = "Unidade comercial",
+        ["QuilosPorUnidade"] = "Quilos por unidade", ["FonteDoPreco"] = "Fonte do preço",
+        ["ProdutoDoPreco"] = "Produto na fonte de preço", ["SerieDeCusto"] = "Série de custo", ["EstaAtiva"] = "Ativa"
+    },
+    ["ProdutoDaPamNaCultura"] = new(StringComparer.Ordinal)
+    {
+        ["CulturaId"] = "Cultura", ["ProdutoCodigoIbge"] = "Produto da PAM", ["EntraNaSomaDaLavoura"] = "Entra na soma da lavoura"
+    },
+    ["CategoriaDeMaquina"] = new(StringComparer.Ordinal) { ["Nome"] = "Nome", ["Ordem"] = "Ordem", ["EstaAtiva"] = "Ativa" },
+    ["ProdutoDoSicorNaCategoria"] = new(StringComparer.Ordinal)
+    {
+        ["CategoriaDeMaquinaId"] = "Categoria de máquina", ["CodigoProduto"] = "Produto do SICOR"
+    },
         ["UsinaDeEtanol"] = new(StringComparer.Ordinal)
         {
             ["RazaoSocial"] = "Razão social", ["MunicipioId"] = "Município", ["CapacidadeDeAnidroM3Dia"] = "Capacidade de anidro (m³/dia)",
@@ -141,6 +160,7 @@ public static class RotulosDaTrilha
         },
         ["RegraDePotencial"] = new(StringComparer.Ordinal)
         {
+            ["CulturaId"] = "Cultura do catálogo", ["CategoriaDeMaquinaId"] = "Categoria de máquina",
             ["ProdutoCodigoIbge"] = "Cultura (código IBGE)", ["HectaresPorMaquina"] = "Hectares por máquina",
             ["AnosDeRenovacao"] = "Anos de renovação", ["ModeloDeReferencia"] = "Modelo de referência"
         },

@@ -40,6 +40,30 @@ public static class EndpointsDeParametrosDoPotencial
             .ExigePermissao(Permissoes.ParametroDoPotencialLer)
             .WithSummary("As listas de escolha dos formulários: os produtos da PAM (com a área na ADR) e os municípios da ADR (issue 77).");
 
+        // O CATÁLOGO DE CULTURAS E CATEGORIAS (issue 165). É esta rota que tira as listas fixas de cultura
+        // do front: a tela pede o catálogo e desenha o que vier.
+        grupo.MapGet("/catalogo", async (ObterCatalogoDoMercado caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ObterCatalogoDoMercado")
+            .ExigePermissao(Permissoes.ParametroDoPotencialLer)
+            .WithSummary("As culturas e as categorias de máquina do catálogo (issue 165).")
+            .WithDescription(
+                "Cada cultura traz o segmento, a unidade comercial e o fator em quilos, a fonte do preço, a série de " +
+                "custo e os produtos da PAM que a compõem — com a marca de quem entra na soma da lavoura. Categoria " +
+                "sem produto do SICOR não é erro: o investimento do Banco Central não separa plantadeira nem pulverizador.");
+
+        grupo.MapPost("/catalogo/culturas", async (NovaCultura corpo, CadastrarCultura caso, CancellationToken ct) =>
+                (await caso.IncluirAsync(corpo, ct)).Responder())
+            .WithName("IncluirCultura")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("Cadastra uma cultura nova — ela passa a aparecer nas telas sem publicação.");
+
+        grupo.MapPut("/catalogo/culturas/{codigo}", async (string codigo, NovaCultura corpo, CadastrarCultura caso, CancellationToken ct) =>
+                (await caso.AlterarAsync(codigo, corpo, ct)).Responder())
+            .WithName("AlterarCultura")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("Altera uma cultura. O código é a identidade e não muda; desligar não apaga o histórico.");
+
         grupo.MapGet("/historico", async (ListarHistoricoDosParametrosDoPotencial caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ListarHistoricoDosParametrosDoPotencial")

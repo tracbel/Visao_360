@@ -7,6 +7,7 @@
  */
 
 import type {
+  CatalogoDoMercado,
   HistoricoDosParametrosDoPotencial,
   NovaPercepcaoDoGestor,
   NovaRegraDePotencial,
@@ -26,6 +27,17 @@ const BASE = '/v1/admin/parametros-do-potencial';
 /** Os parâmetros que valem numa data (`aaaa-mm-dd`); sem data, hoje. */
 export function obterParametrosDoPotencial(contexto: ContextoDeAcesso, em: string | undefined, sinal?: AbortSignal) {
   return ler<ParametrosDoPotencialVigentes>(BASE, contexto, { parametros: { em }, sinal });
+}
+
+/**
+ * O CATÁLOGO DE CULTURAS E CATEGORIAS (issue 165).
+ *
+ * É ele que substitui as listas fixas de cultura que viviam dentro dos painéis
+ * de preço e de custo: a tela pede o catálogo e desenha o que vier, e cultura
+ * nova passa a entrar pelo Administrador, sem publicação.
+ */
+export function obterCatalogoDoMercado(contexto: ContextoDeAcesso, sinal?: AbortSignal) {
+  return ler<CatalogoDoMercado>(`${BASE}/catalogo`, contexto, { sinal });
 }
 
 /** Todas as vigências, com autor e justificativa. */
