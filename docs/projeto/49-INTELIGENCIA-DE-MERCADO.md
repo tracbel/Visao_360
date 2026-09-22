@@ -50,7 +50,8 @@ declarado pelo Ricardo ou pela conversa com a diretoria; **[P]** proposta desta 
 8. **A interface aprovada fica** [P]. "O mercado da região", a linha de indicadores, os quatro cartões de mapa
    lado a lado, as abas dentro dos cartões, o cursor que mostra o município nos quatro mapas e o clique que
    abre a ficha continuam. O que muda está na §10.3, com a justificativa de cada mudança visual.
-9. **Proposta: 19 épicos, 22 issues novas e 11 existentes atualizadas** [P] — §12 e anexo 49B. Metade pode
+9. **Proposta: 19 épicos, 22 issues novas e 11 existentes atualizadas** [P] — §12 e anexo 49B; abertas no
+   GitHub em 22/09/2026: issues **#150 a #171**, épicos **#172 a #190**. Metade pode
    começar já (dados, qualidade, catálogo de culturas, snapshot do motor); o que depende de número decidido
    sai com o valor **vazio e o motivo**, nunca com parâmetro inventado.
 
@@ -536,25 +537,25 @@ e testes — no anexo **[49B](49B-EPICOS-E-ISSUES.md)**. Resumo:
 
 | Épico | Issues (novas em **negrito**) | Pode começar |
 |---|---|---|
-| E01 Data Discovery | **IM-01** medição no servidor · **IM-02** de-para das culturas entre as fontes | já |
-| E02 Data Quality | **IM-03** competência e unidade · **IM-04** nunca apagar histórico · **IM-05** município por código · **IM-06** totais de SP publicados | já |
-| E03 IBGE Integration | **IM-07** série histórica da PAM e milho por safra | já |
-| E04 SICOR Integration | **IM-08** janela fechada, máquina por parâmetro, Região × SP | já (carência: D-IM-03) |
-| E05 Commodity Intelligence | **IM-09** histórico longo de preço (investigação) · #73 (momento e médias) | já |
-| E06 Production Cost Intelligence | **IM-10** custo de referência por cultura e rentabilidade | já |
-| E07 Machine Pricing | #70 | #18 |
-| E08 Structural Potential Engine | #72 · **IM-11** compartilhamento de máquina entre culturas | motor já; números com D-P01 |
-| E09 Market Cycle Engine | #73 | já (valores: #63) |
-| E10 Scenario Engine | #74 · **IM-12** calculadora | depois de #72 |
-| E11 Market Share | #69 · **IM-13** captura, share e oportunidade com confiança | #69 |
-| E12 Geographic Intelligence | **IM-14** hierarquia e recorte por município | já |
-| E13 Customer Potential | #79 | D-P13 |
-| E14 Machine Renewal | **IM-15** idade do parque × ciclo | depois de IM-01 |
-| E15 Commercial Action Plan | #80 | #79, #47 |
-| E16 Administrator | **IM-16** culturas e categorias · **IM-17** parâmetros que faltam | já |
-| E17 Geographic Dashboard | #75 · #76 · **IM-18** tooltip de rastreabilidade · **IM-19** preço, custo e crédito Região × SP · **IM-20** resíduo de maquete | IM-18 e IM-20 já |
-| E18 Performance | **IM-21** rodada do motor e componentes da tela | já |
-| E19 Testing & Validation | **IM-22** ouro, conciliação e regressão visual | junto de cada entrega |
+| E01 Data Discovery (#172) | **IM-01** (#150) medição no servidor · **IM-02** (#151) de-para das culturas entre as fontes | já |
+| E02 Data Quality (#173) | **IM-03** (#152) competência e unidade · **IM-04** (#153) nunca apagar histórico · **IM-05** (#154) município por código · **IM-06** (#155) totais de SP publicados | já |
+| E03 IBGE Integration (#174) | **IM-07** (#156) série histórica da PAM e milho por safra | já |
+| E04 SICOR Integration (#175) | **IM-08** (#157) janela fechada, máquina por parâmetro, Região × SP | já (carência: D-IM-03) |
+| E05 Commodity Intelligence (#176) | **IM-09** (#158) histórico longo de preço (investigação) · #73 (momento e médias) | já |
+| E06 Production Cost Intelligence (#177) | **IM-10** (#159) custo de referência por cultura e rentabilidade | já |
+| E07 Machine Pricing (#178) | #70 | #18 |
+| E08 Structural Potential Engine (#179) | #72 · **IM-11** (#160) compartilhamento de máquina entre culturas | motor já; números com D-P01 |
+| E09 Market Cycle Engine (#180) | #73 | já (valores: #63) |
+| E10 Scenario Engine (#181) | #74 · **IM-12** (#161) calculadora | depois de #72 |
+| E11 Market Share (#182) | #69 · **IM-13** (#162) captura, share e oportunidade com confiança | #69 |
+| E12 Geographic Intelligence (#183) | **IM-14** (#163) hierarquia e recorte por município | já |
+| E13 Customer Potential (#184) | #79 | D-P13 |
+| E14 Machine Renewal (#185) | **IM-15** (#164) idade do parque × ciclo | depois de IM-01 |
+| E15 Commercial Action Plan (#186) | #80 | #79, #47 |
+| E16 Administrator (#187) | **IM-16** (#165) culturas e categorias · **IM-17** (#166) parâmetros que faltam | já |
+| E17 Geographic Dashboard (#188) | #75 · #76 · **IM-18** (#167) tooltip de rastreabilidade · **IM-19** (#168) preço, custo e crédito Região × SP · **IM-20** (#169) resíduo de maquete | IM-18 e IM-20 já |
+| E18 Performance (#189) | **IM-21** (#170) rodada do motor e componentes da tela | já |
+| E19 Testing & Validation (#190) | **IM-22** (#171) ouro, conciliação e regressão visual | junto de cada entrega |
 
 **Ordem proposta:** E01 e E02 primeiro (sem elas o motor calcula sobre dado com ano e unidade soltos); em
 paralelo E16 (catálogo) e E18 (componentes da tela e rodada); depois E08 → E09 → E10 com E19; então E17 e E12

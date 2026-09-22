@@ -7,6 +7,8 @@
 > **Convenções:** `m` município, `c` cultura, `k` categoria de máquina, `a` ano da PAM, `t` mês.
 > "Região" = soma dos municípios da Região Tracbel; "SP" = linha **publicada** do estado, quando a fonte tem.
 
+> Os códigos IM-xx citados na coluna "Situação" são as issues #150 a #171 — o mapa está no anexo 49B.
+
 Situação: ✅ carregado e usado · 🟡 carregado, não usado ou incompleto · ⛔ não existe · 🔒 depende de decisão
 ou acesso.
 

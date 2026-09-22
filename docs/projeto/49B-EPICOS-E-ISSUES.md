@@ -12,9 +12,62 @@
 
 ---
 
+## Onde está cada uma no GitHub (abertas em 22/09/2026)
+
+| Código | Issue | Título |
+|---|---|---|
+| IM-01 | #150 | Cobertura dos dados do motor, medida pelo servidor |
+| IM-02 | #151 | De-para das culturas entre as fontes |
+| IM-03 | #152 | Competência e unidade em cada medida |
+| IM-04 | #153 | Nunca apagar histórico nas fontes de mercado |
+| IM-05 | #154 | Município por código oficial em todas as fontes |
+| IM-06 | #155 | Totais de São Paulo publicados para o Censo e a PPM |
+| IM-07 | #156 | Série histórica da PAM e milho por safra |
+| IM-08 | #157 | SICOR: janela fechada, máquina por parâmetro e Região × SP |
+| IM-09 | #158 | Histórico longo de preço: investigação das fontes |
+| IM-10 | #159 | Custo de referência por cultura e rentabilidade |
+| IM-11 | #160 | Compartilhamento de máquina entre culturas |
+| IM-12 | #161 | Calculadora de máquinas |
+| IM-13 | #162 | Captura, share e oportunidade, com classificação de confiança |
+| IM-14 | #163 | Hierarquia SP → Região → Loja → Município e recorte por município |
+| IM-15 | #164 | Idade do parque do cliente × ciclo de renovação |
+| IM-16 | #165 | Culturas e categorias de máquina no Administrador |
+| IM-17 | #166 | Parâmetros do motor que ainda não existem |
+| IM-18 | #167 | Tooltip de rastreabilidade em todo número |
+| IM-19 | #168 | Preço, custo e crédito comparando Região × SP e reagindo ao recorte |
+| IM-20 | #169 | Retirar o resíduo de maquete do mercado |
+| IM-21 | #170 | Rodada do motor gravada e tela em componentes |
+| IM-22 | #171 | Testes de ouro, conciliação e regressão visual |
+
+| Épico | Issue |
+|---|---|
+| E01 — Data Discovery | #172 |
+| E02 — Data Quality | #173 |
+| E03 — IBGE Integration | #174 |
+| E04 — SICOR Integration | #175 |
+| E05 — Commodity Intelligence | #176 |
+| E06 — Production Cost Intelligence | #177 |
+| E07 — Machine Pricing | #178 |
+| E08 — Structural Potential Engine | #179 |
+| E09 — Market Cycle Engine | #180 |
+| E10 — Scenario Engine | #181 |
+| E11 — Market Share | #182 |
+| E12 — Geographic Intelligence | #183 |
+| E13 — Customer Potential | #184 |
+| E14 — Machine Renewal | #185 |
+| E15 — Commercial Action Plan | #186 |
+| E16 — Administrator | #187 |
+| E17 — Geographic Dashboard | #188 |
+| E18 — Performance | #189 |
+| E19 — Testing & Validation | #190 |
+
+As 11 issues existentes da parte B receberam o comentário "Atualização de escopo — doc 49".
+
+---
+
 ## Parte A — Issues novas
 
-### IM-01 — Cobertura dos dados do motor, medida pelo servidor
+### IM-01 — Cobertura dos dados do motor, medida pelo servidor (#150)
 
 - **Épico:** E01 Data Discovery · **Milestone:** M11 · **Labels:** `market-potential`, `data-quality`, `backend`, `P0`
 - **Objetivo:** saber, com número e sem planilha, o que cada fonte cobre no servidor antes de programar o
@@ -43,7 +96,7 @@
 - **Testes:** API com banco semeado (contagens conferidas à mão); componente do painel com a fonte incompleta
   em destaque; teste de que a resposta não contém nome nem valor monetário por cliente.
 
-### IM-02 — De-para das culturas entre as fontes
+### IM-02 — De-para das culturas entre as fontes (#151)
 
 - **Épico:** E01 Data Discovery · **Milestone:** M11 · **Labels:** `market-potential`, `data-quality`, `documentation`, `P0`
 - **Objetivo:** para cada cultura, o código ou rótulo dela em cada fonte — a semente do catálogo de culturas
@@ -66,7 +119,7 @@
 - **Testes:** um teste de arquitetura que falha se um código do catálogo não existir na semente de teste
   (entra com a IM-16).
 
-### IM-03 — Competência e unidade em cada medida
+### IM-03 — Competência e unidade em cada medida (#152)
 
 - **Épico:** E02 Data Quality · **Milestone:** M11 · **Labels:** `market-potential`, `data-quality`, `database`, `backend`, `P0`
 - **Objetivo:** nenhuma medida sem ano, unidade e moeda; nenhuma razão entre anos diferentes sem aviso;
@@ -94,7 +147,7 @@
 - **Testes:** domínio (colhida zero, unidade mil frutos, ano faltando); leitor com resposta gravada do SIDRA
   contendo `MN`; migration no contêiner (a coluna renomeada preserva os valores).
 
-### IM-04 — Nunca apagar histórico nas fontes de mercado
+### IM-04 — Nunca apagar histórico nas fontes de mercado (#153)
 
 - **Épico:** E02 Data Quality · **Milestone:** M11 · **Labels:** `market-potential`, `data-quality`, `database`, `P0`
 - **Objetivo:** toda revisão de fonte fica rastreável; nada que já foi mostrado some.
@@ -118,7 +171,7 @@
 - **Testes:** carga sobre SQLite com duas leituras (antes/depois); teste de que todo campo auditado tem
   rótulo (o que já existe); migration no contêiner.
 
-### IM-05 — Município por código oficial em todas as fontes
+### IM-05 — Município por código oficial em todas as fontes (#154)
 
 - **Épico:** E02 Data Quality · **Milestone:** M11 · **Labels:** `market-potential`, `data-quality`, `database`, `integration`, `P0`
 - **Objetivo:** nenhuma carga casar município por nome a cada rodada; a correspondência fica gravada,
@@ -143,7 +196,7 @@
   ambíguo simulado vira recusa pendente.
 - **Testes:** carga com município de nome repetido em duas UFs; com grafia nova; com código BCB novo.
 
-### IM-06 — Totais de São Paulo publicados para o Censo e a PPM
+### IM-06 — Totais de São Paulo publicados para o Censo e a PPM (#155)
 
 - **Épico:** E02 Data Quality · **Milestone:** M11 · **Labels:** `market-potential`, `data-quality`, `integration`, `P1`
 - **Objetivo:** todo "% de SP" usa o total **publicado** pelo IBGE, como a lavoura já usa.
@@ -163,7 +216,7 @@
   mostra quanto a soma dos municípios fica abaixo.
 - **Testes:** leitor com resposta gravada do nível n3; API com os dois totais.
 
-### IM-07 — Série histórica da PAM e milho por safra
+### IM-07 — Série histórica da PAM e milho por safra (#156)
 
 - **Épico:** E03 IBGE Integration · **Milestone:** M11 · **Labels:** `market-potential`, `integration`, `database`, `P1`
 - **Objetivo:** série longa de área, quantidade e valor por cultura e município; área de milho 1ª e 2ª safra
@@ -183,7 +236,7 @@
   grava nada; milho 1ª + 2ª safra = milho da 5457 por município (tolerância de arredondamento).
 - **Testes:** leitor com respostas gravadas; carga idempotente sobre SQLite; conferência da soma do milho.
 
-### IM-08 — SICOR: janela fechada, máquina por parâmetro e Região × SP
+### IM-08 — SICOR: janela fechada, máquina por parâmetro e Região × SP (#157)
 
 - **Épico:** E04 SICOR Integration · **Milestone:** M11 · **Labels:** `market-potential`, `backend`, `data-quality`, `P0`
 - **Objetivo:** o 12 × 12 do crédito compara meses completos, a "máquina" é definida pelo negócio e a Região
@@ -205,7 +258,7 @@
   Região e SP aparecem com linhas, valor, ticket e variações.
 - **Testes:** repositório com relógio fixo e meses sintéticos; API com Região × SP.
 
-### IM-09 — Histórico longo de preço: investigação das fontes
+### IM-09 — Histórico longo de preço: investigação das fontes (#158)
 
 - **Épico:** E05 Commodity Intelligence · **Milestone:** M11 · **Labels:** `market-potential`, `integration`, `documentation`, `P1`
 - **Objetivo:** saber se existe série longa, aberta e do mesmo conceito para destravar o momento 12 ÷ 12 e
@@ -224,7 +277,7 @@
   conceito do preço e se casa com a CONAB; recomendação; se houver fonte viável, a issue do leitor aberta.
 - **Testes:** não se aplica.
 
-### IM-10 — Custo de referência por cultura e rentabilidade
+### IM-10 — Custo de referência por cultura e rentabilidade (#159)
 
 - **Épico:** E06 Production Cost Intelligence · **Milestone:** M12 · **Labels:** `market-potential`, `backend`, `P0`
 - **Objetivo:** receita, custo e margem por hectare de cada cultura, com local, sistema, safra, fonte e data
@@ -248,7 +301,7 @@
   da #67) e a margem sai com as três competências no tooltip; cultura sem custo de SP fica sem margem, dito.
 - **Testes:** domínio com números públicos; bordas (custo só operacional, preço faltando no mês, colhida zero).
 
-### IM-11 — Compartilhamento de máquina entre culturas
+### IM-11 — Compartilhamento de máquina entre culturas (#160)
 
 - **Épico:** E08 Structural Potential Engine · **Milestone:** M12 · **Labels:** `market-potential`, `backend`, `decision`, `P0`
 - **Objetivo:** o potencial estrutural não contar duas vezes a mesma terra e a mesma máquina.
@@ -265,7 +318,7 @@
   igual; o tooltip diz "área compartilhada com …".
 - **Testes:** domínio (grupo vazio, grupo com uma cultura sem área, dois grupos).
 
-### IM-12 — Calculadora de máquinas
+### IM-12 — Calculadora de máquinas (#161)
 
 - **Épico:** E10 Scenario Engine · **Milestone:** M12 · **Labels:** `market-potential`, `backend`, `frontend`, `api`, `P1`
 - **Objetivo:** simular "quantas máquinas esta área comporta e quantas por ano", pelo mesmo motor da tela.
@@ -281,7 +334,7 @@
   parâmetro ausente → resultado vazio com o motivo; a calculadora não aparece para quem não tem `Mercado.Ler`.
 - **Testes:** API (igualdade com a rodada); componente (estado sem parâmetro).
 
-### IM-13 — Captura, share e oportunidade, com classificação de confiança
+### IM-13 — Captura, share e oportunidade, com classificação de confiança (#162)
 
 - **Épico:** E11 Market Share · **Milestone:** M12 · **Labels:** `market-potential`, `backend`, `P1`
 - **Objetivo:** mostrar quanto da demanda estimada a Tracbel captura e onde está o espaço não capturado, sem
@@ -303,7 +356,7 @@
   origem; município sem venda em unidades mostra "sem dado", não zero.
 - **Testes:** domínio (anos diferentes recusados, demanda zero, venda maior que demanda).
 
-### IM-14 — Hierarquia SP → Região → Loja → Município e recorte por município
+### IM-14 — Hierarquia SP → Região → Loja → Município e recorte por município (#163)
 
 - **Épico:** E12 Geographic Intelligence · **Milestone:** M12 · **Labels:** `market-potential`, `backend`, `frontend`, `ux`, `P0`
 - **Objetivo:** todo indicador lido em qualquer nível da hierarquia, sempre ao lado da Região e de SP; ao
@@ -324,7 +377,7 @@
   como hoje; recarregar a página mantém a escolha.
 - **Testes:** componente (recorte liga e desliga); API por nível; regressão visual da seção preservada (IM-22).
 
-### IM-15 — Idade do parque do cliente × ciclo de renovação
+### IM-15 — Idade do parque do cliente × ciclo de renovação (#164)
 
 - **Épico:** E14 Machine Renewal · **Milestone:** M13 · **Labels:** `market-potential`, `backend`, `P2`
 - **Objetivo:** saber, por cliente e município, quantas máquinas estão dentro do ciclo, entrando na janela,
@@ -344,7 +397,7 @@
   dado de cliente só com permissão.
 - **Testes:** domínio (bordas exatas de cada faixa, ano futuro recusado).
 
-### IM-16 — Culturas e categorias de máquina no Administrador
+### IM-16 — Culturas e categorias de máquina no Administrador (#165)
 
 - **Épico:** E16 Administrator · **Milestone:** M11 · **Labels:** `market-potential`, `backend`, `frontend`, `database`, `P0`
 - **Objetivo:** cultura nova entra pela tela e aparece em preço, custo, potencial e mapa sem mudar código;
@@ -372,7 +425,7 @@
 - **Testes:** domínio (vigência por cultura × categoria); API (403, trilha); migration no contêiner com a
   linha do café preservada; teste de arquitetura contra lista fixa de cultura no front.
 
-### IM-17 — Parâmetros do motor que ainda não existem
+### IM-17 — Parâmetros do motor que ainda não existem (#166)
 
 - **Épico:** E16 Administrator · **Milestone:** M11 · **Labels:** `market-potential`, `backend`, `frontend`, `database`, `P0`
 - **Objetivo:** todo número do motor que depende de escolha do negócio vira parâmetro com vigência — e o que
@@ -392,7 +445,7 @@
 - **Critérios de aceite:** cada parâmetro novo aparece no formulário, na trilha e nas pendências quando vazio.
 - **Testes:** domínio (validação de faixas); API (pendências); componente do formulário.
 
-### IM-18 — Tooltip de rastreabilidade em todo número
+### IM-18 — Tooltip de rastreabilidade em todo número (#167)
 
 - **Épico:** E17 Geographic Dashboard · **Milestone:** M12 · **Labels:** `market-potential`, `frontend`, `api`, `ux`, `P0`
 - **Objetivo:** todo número diz de onde veio — "Fonte: IBGE/SIDRA — PAM — Tabela 5457 — Safra 2024 — última
@@ -411,7 +464,7 @@
   conteúdo continua no tooltip.
 - **Testes:** componente (conteúdo e acessibilidade); API (todo indicador com procedência completa).
 
-### IM-19 — Preço, custo e crédito comparando Região × SP e reagindo ao recorte
+### IM-19 — Preço, custo e crédito comparando Região × SP e reagindo ao recorte (#168)
 
 - **Épico:** E17 Geographic Dashboard · **Milestone:** M12 · **Labels:** `market-potential`, `frontend`, `P1`
 - **Objetivo:** os três painéis do fim da página falam a mesma língua do resto: Região × SP e o município
@@ -429,7 +482,7 @@
   primeiro as culturas dele; sem série, "sem dado".
 - **Testes:** componente para cada painel com e sem recorte.
 
-### IM-20 — Retirar o resíduo de maquete do mercado
+### IM-20 — Retirar o resíduo de maquete do mercado (#169)
 
 - **Épico:** E17 Geographic Dashboard · **Milestone:** M12 · **Labels:** `market-potential`, `frontend`, `P2`
 - **Objetivo:** nenhum número fictício de mercado no pacote publicado.
@@ -444,7 +497,7 @@
 - **Critérios de aceite:** build e testes verdes; nenhuma referência ao arquivo.
 - **Testes:** teste que falha se um componente de território ou mercado importar o carregador de `public/dados`.
 
-### IM-21 — Rodada do motor gravada e tela em componentes
+### IM-21 — Rodada do motor gravada e tela em componentes (#170)
 
 - **Épico:** E18 Performance · **Milestone:** M12 · **Labels:** `market-potential`, `backend`, `frontend`, `database`, `architecture`, `P0`
 - **Objetivo:** a tela lê o potencial pronto, o número de ontem continua consultável, e a página aguenta
@@ -467,7 +520,7 @@
   as mesmas capturas de antes (IM-22).
 - **Testes:** orquestrador com cargas simuladas; API por data; vitest de cada cartão; regressão visual.
 
-### IM-22 — Testes de ouro, conciliação e regressão visual
+### IM-22 — Testes de ouro, conciliação e regressão visual (#171)
 
 - **Épico:** E19 Testing & Validation · **Milestone:** M12 · **Labels:** `market-potential`, `testing`, `P0`
 - **Objetivo:** o motor provado contra números conhecidos, a tela provada contra a API e o banco, e a
@@ -578,83 +631,83 @@ Entradas novas: potencial do cliente (#79), situação de renovação (IM-15), o
 
 Cada épico vira uma issue com a lista das issues dele.
 
-### E01 — Data Discovery
+### E01 — Data Discovery (#172)
 
 Saber, com número e pelo servidor, o que cada fonte cobre e como cada cultura se chama em cada fonte, antes
 de programar o motor. **Issues:** IM-01, IM-02.
 
-### E02 — Data Quality
+### E02 — Data Quality (#173)
 
 Competência, unidade e moeda em toda medida; nada apagado sem rastro; município por código; total de SP
 publicado. **Issues:** IM-03, IM-04, IM-05, IM-06.
 
-### E03 — IBGE Integration
+### E03 — IBGE Integration (#174)
 
 Série longa da PAM e milho por safra, sem sair do servidor. **Issues:** IM-07.
 
-### E04 — SICOR Integration
+### E04 — SICOR Integration (#175)
 
 Crédito com janela fechada, máquina definida pelo negócio e Região × SP. **Issues:** IM-08.
 
-### E05 — Commodity Intelligence
+### E05 — Commodity Intelligence (#176)
 
 Preço mensal que só cresce, com médias, variação, momento e US$; histórico longo investigado.
 **Issues:** IM-09, #73.
 
-### E06 — Production Cost Intelligence
+### E06 — Production Cost Intelligence (#177)
 
 Custo de referência por cultura e rentabilidade com a competência de cada parte. **Issues:** IM-10.
 
-### E07 — Machine Pricing
+### E07 — Machine Pricing (#178)
 
 Preço de referência por modelo e mês, de fonte interna. **Issues:** #70.
 
-### E08 — Structural Potential Engine
+### E08 — Structural Potential Engine (#179)
 
 Parque e demanda anual por cultura × categoria, sem dupla contagem, em toda a hierarquia.
 **Issues:** #72, IM-11.
 
-### E09 — Market Cycle Engine
+### E09 — Market Cycle Engine (#180)
 
 Momento de preço, poder de compra, crédito e percepção comercial. **Issues:** #73.
 
-### E10 — Scenario Engine
+### E10 — Scenario Engine (#181)
 
 Fator de mercado, demanda ajustada, três cenários e a calculadora. **Issues:** #74, IM-12.
 
-### E11 — Market Share
+### E11 — Market Share (#182)
 
 Vendas em unidades, captura, share do crédito e oportunidade com confiança. **Issues:** #69, IM-13.
 
-### E12 — Geographic Intelligence
+### E12 — Geographic Intelligence (#183)
 
 A hierarquia SP → Região → Loja → Município → Cliente e o recorte por município. **Issues:** IM-14.
 
-### E13 — Customer Potential
+### E13 — Customer Potential (#184)
 
 O potencial do cliente pelo mesmo motor e o cruzamento com o Censo. **Issues:** #79.
 
-### E14 — Machine Renewal
+### E14 — Machine Renewal (#185)
 
 Idade do parque do cliente contra o ciclo da categoria. **Issues:** IM-15.
 
-### E15 — Commercial Action Plan
+### E15 — Commercial Action Plan (#186)
 
 Segmentação e plano de ação a partir do potencial, da renovação e do ciclo. **Issues:** #80.
 
-### E16 — Administrator
+### E16 — Administrator (#187)
 
 Culturas, categorias e todos os parâmetros do motor pela tela, com vigência e trilha.
 **Issues:** IM-16, IM-17.
 
-### E17 — Geographic Dashboard
+### E17 — Geographic Dashboard (#188)
 
 A API do mercado e a tela evoluída preservando o que foi aprovado. **Issues:** #75, #76, IM-18, IM-19, IM-20.
 
-### E18 — Performance
+### E18 — Performance (#189)
 
 Rodada do motor gravada e tela em componentes. **Issues:** IM-21.
 
-### E19 — Testing & Validation
+### E19 — Testing & Validation (#190)
 
 Ouro, conciliação e regressão visual. **Issues:** IM-22.
