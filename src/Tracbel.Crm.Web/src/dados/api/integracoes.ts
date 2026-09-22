@@ -64,6 +64,10 @@ export type RotinaNaTela = {
   ultimaMensagem: string | null;
   conexoes: string[];
   pendencia: string | null;
+  /** O primeiro ano da série histórica, nas rotinas que têm uma (issue 156). */
+  anoInicialDoHistorico: number | null;
+  /** Se esta rotina busca série histórica — só então o campo aparece. */
+  aceitaAnoInicialDoHistorico: boolean;
 };
 
 export type PainelDeIntegracoes = { conexoes: ConexaoNaTela[]; rotinas: RotinaNaTela[]; podeAdministrar: boolean };
@@ -106,7 +110,7 @@ export type NovaApiMonitorada = {
   minutosEntreVerificacoes: number | null;
 };
 
-export type AgendaNaTela = { cadencia: CadenciaDaRotina; mes: number | null; dia: number | null; hora: string | null; intervaloMinutos: number | null; ligada: boolean };
+export type AgendaNaTela = { cadencia: CadenciaDaRotina; mes: number | null; dia: number | null; hora: string | null; intervaloMinutos: number | null; ligada: boolean; anoInicialDoHistorico: number | null };
 
 const conexao = (codigo: string) => `${BASE}/conexoes/${encodeURIComponent(codigo)}`;
 const rotina = (codigo: string) => `${BASE}/rotinas/${encodeURIComponent(codigo)}`;

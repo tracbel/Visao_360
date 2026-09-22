@@ -367,6 +367,140 @@ public sealed class AreaTerritorialDoMunicipio
 }
 
 /// <summary>
+/// UMA MEDIDA QUE O IBGE PUBLICA PARA O ESTADO INTEIRO — a célula do SIDRA no nível 3 (issue 155).
+///
+/// <para><b>Por que existe: o total publicado não é a soma dos municípios.</b> Onde poucos
+/// estabelecimentos respondem, o IBGE divulga o total do estado e oculta a parcela municipal (o
+/// <c>X</c> do sigilo). Somar os 645 municípios devolve um número menor que o oficial, e era isso que
+/// a tela fazia com tratores e propriedades — enquanto a lavoura já comparava com a linha publicada
+/// (<see cref="ProducaoAgricolaNoEstado"/>). Dois métodos na mesma linha de indicadores.</para>
+///
+/// <para><b>Por que UMA tabela para as quatro pesquisas.</b> A chave natural do SIDRA é a mesma em
+/// todas — localidade, tabela, variável, período e categoria —, e é ela que está guardada aqui. Uma
+/// tabela por pesquisa repetiria quatro vezes a mesma estrutura para guardar, no total, algumas
+/// dezenas de linhas: o estado é UMA localidade, não 645.</para>
+///
+/// <para><b>Não substitui as tabelas municipais.</b> Elas continuam sendo a base do mapa e do
+/// recorte por região; esta é só o denominador do "% de São Paulo".</para>
+/// </summary>
+public sealed class MedidaDoIbgeNoEstado
+{
+    private MedidaDoIbgeNoEstado() { }
+
+    /// <summary>Identificador interno.</summary>
+    public long Id { get; private set; }
+
+    /// <summary>O código da UF no IBGE. São Paulo é 35.</summary>
+    public int EstadoCodigoIbge { get; private set; }
+
+    /// <summary>A tabela do SIDRA: 6871 tratores, 6780 estabelecimentos, 3939 rebanho, 4714 área.</summary>
+    public short TabelaDoSidra { get; private set; }
+
+    /// <summary>A variável dentro da tabela — a 6871 tem duas, e cada uma é uma linha daqui.</summary>
+    public short VariavelDoSidra { get; private set; }
+
+    /// <summary>O ano da pesquisa, que difere entre elas: o Censo é 2017 e a PPM é anual.</summary>
+    public short Ano { get; private set; }
+
+    /// <summary>A categoria da classificação pedida, ou nulo na tabela que não tem nenhuma (4714).</summary>
+    public int? CategoriaCodigoIbge { get; private set; }
+
+    /// <summary>O rótulo oficial da categoria; nulo junto com o código.</summary>
+    public string? CategoriaNome { get; private set; }
+
+    /// <summary>O valor publicado. Nulo é sigilo ou não divulgado — nunca zero.</summary>
+    public decimal? Valor { get; private set; }
+
+    /// <summary>Quando a carga gravou ou conferiu a linha (UTC).</summary>
+    public DateTime ImportadoEm { get; private set; }
+
+    /// <summary>Quem rodou a carga.</summary>
+    public long ImportadoPorId { get; private set; }
+
+    /// <summary>Registra a medida publicada de uma UF, tabela, variável, ano e categoria.</summary>
+    /// <param name="estadoCodigoIbge">O código da UF.</param>
+    /// <param name="tabelaDoSidra">A tabela do SIDRA.</param>
+    /// <param name="variavelDoSidra">A variável dentro da tabela.</param>
+    /// <param name="ano">O ano da pesquisa.</param>
+    /// <param name="categoriaCodigoIbge">A categoria, ou nulo quando a tabela não tem classificação.</param>
+    /// <param name="categoriaNome">O rótulo da categoria, ou nulo junto com o código.</param>
+    /// <param name="valor">O valor publicado, ou nulo.</param>
+    /// <param name="importadoPorId">Quem rodou a carga.</param>
+    /// <param name="agoraUtc">O instante da carga.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando a UF, o ano, a chave do SIDRA ou o valor não valem.</exception>
+    public static MedidaDoIbgeNoEstado Registrar(
+        int estadoCodigoIbge, short tabelaDoSidra, short variavelDoSidra, short ano,
+        int? categoriaCodigoIbge, string? categoriaNome, decimal? valor, long importadoPorId, DateTime agoraUtc)
+    {
+        if (estadoCodigoIbge is < 11 or > 53)
+            throw new RegraDeNegocioViolada($"O código de UF do IBGE vai de 11 a 53; {estadoCodigoIbge} não é um.");
+
+        if (tabelaDoSidra <= 0 || variavelDoSidra <= 0)
+            throw new RegraDeNegocioViolada("A medida do IBGE precisa da tabela e da variável do SIDRA de onde veio.");
+
+        MedicaoDoIbge.ConferirAno(ano);
+        ConferirCategoria(categoriaCodigoIbge, categoriaNome);
+        ConferirValor(valor);
+
+        return new MedidaDoIbgeNoEstado
+        {
+            EstadoCodigoIbge = estadoCodigoIbge,
+            TabelaDoSidra = tabelaDoSidra,
+            VariavelDoSidra = variavelDoSidra,
+            Ano = ano,
+            CategoriaCodigoIbge = categoriaCodigoIbge,
+            CategoriaNome = string.IsNullOrWhiteSpace(categoriaNome) ? null : categoriaNome.Trim(),
+            Valor = valor,
+            ImportadoEm = agoraUtc,
+            ImportadoPorId = importadoPorId
+        };
+    }
+
+    /// <summary>Confere a linha contra uma nova leitura e diz se alguma coisa mudou.</summary>
+    /// <param name="categoriaNome">O rótulo da nova leitura.</param>
+    /// <param name="valor">O valor da nova leitura.</param>
+    /// <param name="importadoPorId">Quem rodou a carga.</param>
+    /// <param name="agoraUtc">O instante da carga.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando o valor não vale.</exception>
+    public bool Reapurar(string? categoriaNome, decimal? valor, long importadoPorId, DateTime agoraUtc)
+    {
+        ConferirValor(valor);
+
+        var nome = string.IsNullOrWhiteSpace(categoriaNome) ? null : categoriaNome.Trim();
+        var mudou = CategoriaNome != nome || Valor != valor;
+
+        CategoriaNome = nome;
+        Valor = valor;
+        ImportadoEm = agoraUtc;
+        ImportadoPorId = importadoPorId;
+
+        return mudou;
+    }
+
+    /// <summary>Código e rótulo andam juntos: um sem o outro é leitura pela metade.</summary>
+    private static void ConferirCategoria(int? codigo, string? nome)
+    {
+        if (codigo is null && string.IsNullOrWhiteSpace(nome)) return;
+
+        if (codigo is null || string.IsNullOrWhiteSpace(nome))
+            throw new RegraDeNegocioViolada(
+                "A categoria do IBGE vem com código e rótulo, ou sem os dois quando a tabela não tem classificação.");
+
+        MedicaoDoIbge.ConferirCategoria(codigo.Value, nome);
+    }
+
+    /// <summary>
+    /// Zero vale — um estado pode não ter um rebanho —, negativo não existe em contagem, cabeça nem
+    /// área. Nulo é o sigilo, e continua sendo permitido.
+    /// </summary>
+    private static void ConferirValor(decimal? valor)
+    {
+        if (valor < 0)
+            throw new RegraDeNegocioViolada("A medida publicada pelo IBGE não é negativa.");
+    }
+}
+
+/// <summary>
 /// AS CONFERÊNCIAS QUE AS QUATRO MEDIÇÕES DO IBGE COMPARTILHAM.
 ///
 /// <para>Elas moram juntas porque são a mesma regra dita uma vez: um ano do IBGE, um código de

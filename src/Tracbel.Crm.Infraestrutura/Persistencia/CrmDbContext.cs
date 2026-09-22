@@ -241,6 +241,13 @@ public class CrmDbContext : DbContext
     /// <summary>As mesmas quatro medidas no total da UF — que não é a soma dos municípios.</summary>
     public DbSet<ProducaoAgricolaNoEstado> ProducoesAgricolasNosEstados => Set<ProducaoAgricolaNoEstado>();
 
+    /// <summary>
+    /// O milho separado em 1ª e 2ª safra (issue 156) — o que a PAM não separa, e sem o que a soma de
+    /// soja com milho conta a terra do safrinha duas vezes.
+    /// </summary>
+    public DbSet<ProducaoDeMilhoPorSafraNoMunicipio> ProducoesDeMilhoPorSafra =>
+        Set<ProducaoDeMilhoPorSafraNoMunicipio>();
+
     /// <summary>Tratores e estabelecimentos com trator, por faixa de potência (Censo Agropecuário).</summary>
     public DbSet<FrotaDeTratoresNoMunicipio> FrotasDeTratoresNosMunicipios => Set<FrotaDeTratoresNoMunicipio>();
 
@@ -254,6 +261,12 @@ public class CrmDbContext : DbContext
     /// <summary>A área territorial de cada município, em km², com o ano da apuração.</summary>
     public DbSet<AreaTerritorialDoMunicipio> AreasTerritoriaisDosMunicipios =>
         Set<AreaTerritorialDoMunicipio>();
+
+    /// <summary>
+    /// O total que o IBGE publica para o estado nas quatro pesquisas da estrutura agropecuária
+    /// (issue 155) — o denominador do "% de São Paulo", que não é a soma dos municípios.
+    /// </summary>
+    public DbSet<MedidaDoIbgeNoEstado> MedidasDoIbgeNosEstados => Set<MedidaDoIbgeNoEstado>();
 
     /// <summary>O de-para entre o que cada fonte chama de município e o município do catálogo (issue 154).</summary>
     public DbSet<CorrespondenciaDeMunicipio> CorrespondenciasDeMunicipios => Set<CorrespondenciaDeMunicipio>();

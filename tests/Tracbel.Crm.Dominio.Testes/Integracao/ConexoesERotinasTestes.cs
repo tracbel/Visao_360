@@ -147,4 +147,45 @@ public sealed class ConexoesERotinasTestes
         var protheus = Conexao.DoCatalogo(ConexoesDoSistema.Todas[0]);
         FluentActions.Invoking(protheus.Desativar).Should().Throw<RegraDeNegocioViolada>();
     }
+    // =============================================================================================
+    // O primeiro ano da série histórica (issue 156)
+    // =============================================================================================
+
+    private static Rotina FontesAnuais() =>
+        Rotina.DoCatalogo(RotinasDoSistema.Obter(RotinasDoSistema.FontesAnuais)!, RotinasDoSistema.AgendaSemeadaDesde);
+
+    [Fact]
+    public void A_rotina_das_fontes_anuais_nasce_com_o_primeiro_ano_da_serie()
+    {
+        // A PAM tem série desde 1974; 2010 é a escolha da issue 156, semeada pela migração. As outras
+        // rotinas nascem sem parâmetro nenhum, porque as fontes delas não têm série para buscar.
+        FontesAnuais().AnoInicialDoHistorico.Should().Be(RotinasDoSistema.AnoInicialPadraoDaPam);
+        Precos(RotinasDoSistema.AgendaSemeadaDesde).AnoInicialDoHistorico.Should().BeNull();
+    }
+
+    [Fact]
+    public void Trocar_o_primeiro_ano_diz_se_mudou_e_o_vazio_volta_a_janela_curta()
+    {
+        var rotina = FontesAnuais();
+
+        rotina.DefinirAnoInicialDoHistorico(2010, Utc(2026, 9, 22)).Should().BeFalse("já era 2010");
+        rotina.DefinirAnoInicialDoHistorico(2005, Utc(2026, 9, 22)).Should().BeTrue();
+        rotina.AnoInicialDoHistorico.Should().Be(2005);
+
+        rotina.DefinirAnoInicialDoHistorico(null, Utc(2026, 9, 22)).Should().BeTrue();
+        rotina.AnoInicialDoHistorico.Should().BeNull("sem parâmetro, a carga fica na janela curta dos anos recentes");
+    }
+
+    [Theory]
+    [InlineData((short)1973)]
+    [InlineData((short)2027)]
+    public void O_primeiro_ano_fora_do_que_a_pam_publica_e_recusado(short ano)
+    {
+        // 1974 é o início da PAM: pedir antes disso faria a carga percorrer décadas vazias a cada
+        // rodada. Ano futuro não traz nada nunca.
+        var rotina = FontesAnuais();
+
+        FluentActions.Invoking(() => rotina.DefinirAnoInicialDoHistorico(ano, Utc(2026, 9, 22)))
+            .Should().Throw<RegraDeNegocioViolada>();
+    }
 }

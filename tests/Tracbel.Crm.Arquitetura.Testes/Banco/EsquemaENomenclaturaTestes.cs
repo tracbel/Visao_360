@@ -178,7 +178,7 @@ public sealed partial class EsquemaENomenclaturaTestes
 
         var esperado = new Dictionary<string, int>
         {
-            ["organizacao"] = 23,
+            ["organizacao"] = 25,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 9,
@@ -189,14 +189,14 @@ public sealed partial class EsquemaENomenclaturaTestes
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 67 tabelas de modelo em 8 schemas: a fase 1 (documento 41) trouxe 80 em 10 " +
+            "a conta é 69 tabelas de modelo em 8 schemas: a fase 1 (documento 41) trouxe 80 em 10 " +
             "para 49, tirando as 31 que nunca receberam uma linha e esvaziando por completo os " +
             "schemas 'documento' e 'relatorio'; a issue 64 acrescentou o total do estado, a 65 as " +
-            "cinco da estrutura agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção a 68 as duas do crédito rural do SICOR e a 71 as duas dos parâmetros do potencial com vigência (os gerais e a percepção do gestor) a 136 as quatro das integrações configuráveis (conexão, verificação, rotina e execução da rotina) e a 154 o de-para entre a chave de cada fonte e o município do catálogo. O portão continua o mesmo nos dois sentidos: mudar " +
+            "cinco da estrutura agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção a 68 as duas do crédito rural do SICOR e a 71 as duas dos parâmetros do potencial com vigência (os gerais e a percepção do gestor) a 136 as quatro das integrações configuráveis (conexão, verificação, rotina e execução da rotina) e a 154 o de-para entre a chave de cada fonte e o município do catálogo, e a 155 o total que o IBGE publica para o estado nas quatro pesquisas da estrutura agropecuária, e a 156 o milho separado em 1ª e 2ª safra. O portão continua o mesmo nos dois sentidos: mudar " +
             "este número exige a decisão da seção 10.2 e a atualização do documento 14, seção 2.1, " +
             "na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(67);
+        porSchema.Values.Sum().Should().Be(69);
     }
 
     [Fact]

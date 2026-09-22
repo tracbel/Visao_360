@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 
@@ -11,9 +12,11 @@ using Tracbel.Crm.Infraestrutura.Persistencia;
 namespace Tracbel.Crm.Infraestrutura.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    partial class CrmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922184340_TotaisPublicadosDoEstado")]
+    partial class TotaisPublicadosDoEstado
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -102,7 +105,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         {
                             t.HasCheckConstraint("CK_AlteracaoDeCampo_Campo", "[Campo] COLLATE Latin1_General_BIN2 LIKE '[A-Z]%' AND [Campo] COLLATE Latin1_General_BIN2 NOT LIKE '%[^A-Za-z0-9]%'");
 
-                            t.HasCheckConstraint("CK_AlteracaoDeCampo_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'ChaveExterna', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
+                            t.HasCheckConstraint("CK_AlteracaoDeCampo_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'ChaveExterna', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
 
                             t.HasCheckConstraint("CK_AlteracaoDeCampo_Mudou", "([ValorAnterior] IS NOT NULL OR [ValorNovo] IS NOT NULL) AND ([ValorAnterior] IS NULL OR [ValorNovo] IS NULL OR [ValorAnterior] <> [ValorNovo])");
 
@@ -1551,7 +1554,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
 
                     b.ToTable("ChaveExterna", "integracao", t =>
                         {
-                            t.HasCheckConstraint("CK_ChaveExterna_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'ChaveExterna', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
+                            t.HasCheckConstraint("CK_ChaveExterna_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'ChaveExterna', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
                         });
                 });
 
@@ -2579,9 +2582,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         .HasPrecision(3)
                         .HasColumnType("datetime2(3)");
 
-                    b.Property<short?>("AnoInicialDoHistorico")
-                        .HasColumnType("smallint");
-
                     b.Property<string>("Cadencia")
                         .IsRequired()
                         .HasMaxLength(12)
@@ -2652,8 +2652,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         {
                             t.HasCheckConstraint("CK_Rotina_Agenda", "([Mes] IS NULL OR [Mes] BETWEEN 1 AND 12) AND ([Dia] IS NULL OR [Dia] BETWEEN 1 AND 28) AND ([IntervaloMinutos] IS NULL OR [IntervaloMinutos] BETWEEN 15 AND 1440)");
 
-                            t.HasCheckConstraint("CK_Rotina_AnoInicialDoHistorico", "[AnoInicialDoHistorico] IS NULL OR [AnoInicialDoHistorico] BETWEEN 1974 AND 2100");
-
                             t.HasCheckConstraint("CK_Rotina_Cadencia", "[Cadencia] IN ('Anual','Mensal','Diaria','Intervalo')");
 
                             t.HasCheckConstraint("CK_Rotina_UltimoResultado", "[UltimoResultado] IS NULL OR [UltimoResultado] IN ('EmAndamento','Sucesso','Falha','Ignorada')");
@@ -2664,7 +2662,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         {
                             Id = 1,
                             AgendaVigenteDesde = new DateTime(2026, 9, 22, 12, 0, 0, 0, DateTimeKind.Utc),
-                            AnoInicialDoHistorico = (short)2010,
                             Cadencia = "Anual",
                             Codigo = "FONTES_ANUAIS",
                             Dia = 1,
@@ -4318,68 +4315,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             t.HasCheckConstraint("CK_ProducaoAgricolaNoMunicipio_Medidas", "([AreaPlantadaHectares] IS NULL OR [AreaPlantadaHectares] >= 0) AND ([AreaColhidaHectares] IS NULL OR [AreaColhidaHectares] >= 0) AND ([QuantidadeProduzida] IS NULL OR [QuantidadeProduzida] >= 0) AND ([ValorDaProducaoMilReais] IS NULL OR [ValorDaProducaoMilReais] >= 0)");
 
                             t.HasCheckConstraint("CK_ProducaoAgricolaNoMunicipio_Produto", "[ProdutoCodigoIbge] > 0");
-                        });
-                });
-
-            modelBuilder.Entity("Tracbel.Crm.Dominio.Organizacao.ProducaoDeMilhoPorSafraNoMunicipio", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<short>("Ano")
-                        .HasColumnType("smallint");
-
-                    b.Property<decimal?>("AreaColhidaHectares")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("decimal(14,2)");
-
-                    b.Property<decimal?>("AreaPlantadaHectares")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("decimal(14,2)");
-
-                    b.Property<DateTime>("ImportadoEm")
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)");
-
-                    b.Property<long>("ImportadoPorId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("MunicipioId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("QuantidadeProduzida")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("SafraCodigoIbge")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SafraNome")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ImportadoPorId");
-
-                    b.HasIndex("SafraCodigoIbge", "Ano");
-
-                    b.HasIndex("MunicipioId", "Ano", "SafraCodigoIbge")
-                        .IsUnique()
-                        .HasDatabaseName("UX_ProducaoDeMilhoPorSafraNoMunicipio_Municipio_Ano_Safra");
-
-                    b.ToTable("ProducaoDeMilhoPorSafraNoMunicipio", "organizacao", t =>
-                        {
-                            t.HasCheckConstraint("CK_ProducaoDeMilhoPorSafraNoMunicipio_Ano", "[Ano] BETWEEN 1974 AND 2100");
-
-                            t.HasCheckConstraint("CK_ProducaoDeMilhoPorSafraNoMunicipio_Medidas", "([AreaPlantadaHectares] IS NULL OR [AreaPlantadaHectares] >= 0) AND ([AreaColhidaHectares] IS NULL OR [AreaColhidaHectares] >= 0) AND ([QuantidadeProduzida] IS NULL OR [QuantidadeProduzida] >= 0)");
-
-                            t.HasCheckConstraint("CK_ProducaoDeMilhoPorSafraNoMunicipio_Safra", "[SafraCodigoIbge] > 0");
                         });
                 });
 
@@ -6975,21 +6910,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                 });
 
             modelBuilder.Entity("Tracbel.Crm.Dominio.Organizacao.ProducaoAgricolaNoMunicipio", b =>
-                {
-                    b.HasOne("Tracbel.Crm.Dominio.Seguranca.Usuario", null)
-                        .WithMany()
-                        .HasForeignKey("ImportadoPorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Tracbel.Crm.Dominio.Organizacao.Municipio", null)
-                        .WithMany()
-                        .HasForeignKey("MunicipioId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Tracbel.Crm.Dominio.Organizacao.ProducaoDeMilhoPorSafraNoMunicipio", b =>
                 {
                     b.HasOne("Tracbel.Crm.Dominio.Seguranca.Usuario", null)
                         .WithMany()

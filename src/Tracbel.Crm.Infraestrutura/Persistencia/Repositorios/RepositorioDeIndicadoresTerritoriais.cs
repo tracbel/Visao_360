@@ -61,6 +61,28 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
     /// <summary>"Total", na classificação 220 (grupos de área total).</summary>
     private const int GrupoDeAreaTotal = 110085;
 
+    // As tabelas e variáveis do SIDRA que identificam a linha publicada do estado (issue 155). Elas
+    // estão repetidas do leitor de propósito: a consulta não depende do projeto de integração, e o
+    // banco guarda o número do SIDRA justamente para que a leitura seja conferível na origem.
+
+    /// <summary>Censo Agropecuário, tratores por potência.</summary>
+    private const short TabelaDaFrotaDeTratores = 6871;
+
+    /// <summary>"Número de tratores existentes nos estabelecimentos agropecuários" (6871).</summary>
+    private const short VariavelDeTratores = 1862;
+
+    /// <summary>Censo Agropecuário, estabelecimentos por grupo de área total.</summary>
+    private const short TabelaDeEstabelecimentos = 6780;
+
+    /// <summary>"Número de estabelecimentos agropecuários" (6780).</summary>
+    private const short VariavelDeEstabelecimentos = 183;
+
+    /// <summary>Pesquisa da Pecuária Municipal, efetivo dos rebanhos.</summary>
+    private const short TabelaDoRebanho = 3939;
+
+    /// <summary>"Efetivo dos rebanhos", em cabeças (3939).</summary>
+    private const short VariavelDoEfetivoDoRebanho = 105;
+
     /// <summary>
     /// OS PRODUTOS QUE CONTARIAM DUAS VEZES numa soma de culturas.
     ///
@@ -705,10 +727,14 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
     /// <summary>
     /// Os totais de São Paulo — o denominador de "que fatia da cultura do estado está na região".
     ///
-    /// <para><b>A lavoura vem do TOTAL PUBLICADO pelo IBGE</b> (<c>ProducaoAgricolaNoEstado</c>), que
-    /// não é a soma dos municípios: o valor municipal sigiloso entra nele sem aparecer embaixo. O
-    /// parque e as propriedades ainda não têm linha de estado carregada, e por isso são somados dos
-    /// municípios — o que os deixa ligeiramente abaixo do publicado onde há sigilo.</para>
+    /// <para><b>Todos vêm do TOTAL PUBLICADO pelo IBGE</b> (issue 155): a lavoura de
+    /// <c>ProducaoAgricolaNoEstado</c>, e o parque, as propriedades e o rebanho de
+    /// <c>MedidaDoIbgeNoEstado</c>. O publicado não é a soma dos municípios — o valor municipal
+    /// sigiloso entra nele sem aparecer embaixo —, e até a issue 155 três dos quatro eram somados,
+    /// o que inflava a fatia da região justamente onde há sigilo.</para>
+    ///
+    /// <para><b>A soma dos municípios vai junto</b>, para a tela poder dizer quanto o sigilo esconde
+    /// em vez de deixar uma diferença sem explicação para quem conferir na mão.</para>
     /// </summary>
     private async Task<TotaisDoEstado?> LerTotaisDoEstadoAsync(short? ano, CancellationToken ct)
     {
@@ -729,20 +755,57 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
         if (lavoura is null) return null;
 
         var anoDoCenso = await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking().MaxAsync(f => (short?)f.Ano, ct);
+        var anoDoRebanho = await contexto.RebanhosNosMunicipios.AsNoTracking().MaxAsync(r => (short?)r.Ano, ct);
 
-        var tratores = anoDoCenso is null
-            ? null
-            : await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking()
-                .Where(f => f.Ano == anoDoCenso && f.PotenciaCodigoIbge == PotenciaTotal)
-                .SumAsync(f => (int?)f.Tratores, ct);
+        var tratores = new MedidaDoEstado(
+            await PublicadoAsync(TabelaDaFrotaDeTratores, VariavelDeTratores, PotenciaTotal, anoDoCenso, ct),
+            anoDoCenso is null
+                ? null
+                : await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking()
+                    .Where(f => f.Ano == anoDoCenso && f.PotenciaCodigoIbge == PotenciaTotal)
+                    .SumAsync(f => (int?)f.Tratores, ct));
 
-        var estabelecimentos = anoDoCenso is null
-            ? null
-            : await contexto.EstabelecimentosPorAreaNosMunicipios.AsNoTracking()
-                .Where(e => e.Ano == anoDoCenso && e.GrupoDeAreaCodigoIbge == GrupoDeAreaTotal)
-                .SumAsync(e => (int?)e.Estabelecimentos, ct);
+        var estabelecimentos = new MedidaDoEstado(
+            await PublicadoAsync(TabelaDeEstabelecimentos, VariavelDeEstabelecimentos, GrupoDeAreaTotal, anoDoCenso, ct),
+            anoDoCenso is null
+                ? null
+                : await contexto.EstabelecimentosPorAreaNosMunicipios.AsNoTracking()
+                    .Where(e => e.Ano == anoDoCenso && e.GrupoDeAreaCodigoIbge == GrupoDeAreaTotal)
+                    .SumAsync(e => (int?)e.Estabelecimentos, ct));
 
-        return new TotaisDoEstado(ano.Value, lavoura.Plantada, lavoura.Valor, tratores, estabelecimentos, anoDoCenso);
+        var rebanho = new MedidaDoEstado(
+            await PublicadoAsync(TabelaDoRebanho, VariavelDoEfetivoDoRebanho, Bovino, anoDoRebanho, ct),
+            anoDoRebanho is null
+                ? null
+                : await contexto.RebanhosNosMunicipios.AsNoTracking()
+                    .Where(r => r.Ano == anoDoRebanho && r.RebanhoCodigoIbge == Bovino)
+                    .SumAsync(r => (int?)r.Cabecas, ct));
+
+        return new TotaisDoEstado(
+            ano.Value, lavoura.Plantada, lavoura.Valor, tratores, estabelecimentos, anoDoCenso, rebanho, anoDoRebanho);
+    }
+
+    /// <summary>
+    /// O valor que o IBGE publicou para São Paulo numa célula do SIDRA.
+    ///
+    /// <para>O ano pedido é o que as tabelas municipais têm carregado: o total publicado de um ano que
+    /// não está no mapa não é denominador de nada, e compará-lo com a soma de outro ano diria uma
+    /// diferença que não existe.</para>
+    /// </summary>
+    private async Task<int?> PublicadoAsync(short tabela, short variavel, int categoria, short? ano, CancellationToken ct)
+    {
+        if (ano is null) return null;
+
+        var valor = await contexto.MedidasDoIbgeNosEstados.AsNoTracking()
+            .Where(m => m.EstadoCodigoIbge == CodigoDeSaoPaulo
+                        && m.TabelaDoSidra == tabela
+                        && m.VariavelDoSidra == variavel
+                        && m.CategoriaCodigoIbge == categoria
+                        && m.Ano == ano)
+            .Select(m => m.Valor)
+            .FirstOrDefaultAsync(ct);
+
+        return valor is null ? null : (int)decimal.Round(valor.Value);
     }
 
     /// <summary>O grupo fora do mapa de cada natureza de contraparte sem cliente no CRM.</summary>

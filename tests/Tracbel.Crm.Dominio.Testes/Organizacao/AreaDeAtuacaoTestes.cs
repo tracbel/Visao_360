@@ -195,4 +195,51 @@ public sealed class AreaDeAtuacaoTestes
             99, 2025, 40106, "Cana-de-açúcar", Medidas(), 1, Agora);
         inventada.Should().Throw<RegraDeNegocioViolada>("o código de UF do IBGE vai de 11 a 53");
     }
+    // =============================================================================================
+    // O milho por safra (issue 156)
+    // =============================================================================================
+
+    [Fact]
+    public void O_milho_por_safra_guarda_as_tres_medidas_da_839()
+    {
+        // A 839 NÃO PUBLICA VALOR DA PRODUÇÃO: ele existe só na 5457, para o milho inteiro. A
+        // medida vem no mesmo registro das outras cargas, e o valor é ignorado de propósito.
+        var safrinha = ProducaoDeMilhoPorSafraNoMunicipio.Registrar(
+            1, 2024, 114254, "Milho (em grão) - 2ª safra", Medidas(plantada: 12_000m, colhida: 11_800m, quantidade: 70_000m), 1, Agora);
+
+        safrinha.SafraCodigoIbge.Should().Be(114254);
+        safrinha.SafraNome.Should().Be("Milho (em grão) - 2ª safra");
+        safrinha.AreaPlantadaHectares.Should().Be(12_000m);
+        safrinha.AreaColhidaHectares.Should().Be(11_800m);
+        safrinha.QuantidadeProduzida.Should().Be(70_000m);
+    }
+
+    [Fact]
+    public void O_milho_por_safra_recusa_ano_e_safra_que_nao_existem()
+    {
+        var anoAntesDaPam = () => ProducaoDeMilhoPorSafraNoMunicipio.Registrar(
+            1, 1970, 114253, "Milho (em grão) - 1ª safra", Medidas(), 1, Agora);
+        var semCodigo = () => ProducaoDeMilhoPorSafraNoMunicipio.Registrar(
+            1, 2024, 0, "Milho (em grão) - 1ª safra", Medidas(), 1, Agora);
+        var semRotulo = () => ProducaoDeMilhoPorSafraNoMunicipio.Registrar(
+            1, 2024, 114253, "  ", Medidas(), 1, Agora);
+
+        anoAntesDaPam.Should().Throw<RegraDeNegocioViolada>();
+        semCodigo.Should().Throw<RegraDeNegocioViolada>();
+        semRotulo.Should().Throw<RegraDeNegocioViolada>();
+    }
+
+    [Fact]
+    public void Reapurar_o_milho_por_safra_diz_se_a_leitura_mudou()
+    {
+        var safra = ProducaoDeMilhoPorSafraNoMunicipio.Registrar(
+            1, 2024, 114253, "Milho (em grão) - 1ª safra", Medidas(plantada: 5_000m), 1, Agora);
+
+        safra.Reapurar("Milho (em grão) - 1ª safra", Medidas(plantada: 5_000m), 2, Agora)
+            .Should().BeFalse("o IBGE republicou o mesmo número");
+
+        safra.Reapurar("Milho (em grão) - 1ª safra", Medidas(plantada: 5_100m), 2, Agora).Should().BeTrue();
+        safra.AreaPlantadaHectares.Should().Be(5_100m);
+        safra.ImportadoPorId.Should().Be(2);
+    }
 }

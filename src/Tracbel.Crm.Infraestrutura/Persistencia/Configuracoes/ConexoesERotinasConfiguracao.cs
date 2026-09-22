@@ -120,6 +120,12 @@ public sealed class RotinaConfiguracao : IEntityTypeConfiguration<Rotina>
             "([Mes] IS NULL OR [Mes] BETWEEN 1 AND 12) AND ([Dia] IS NULL OR [Dia] BETWEEN 1 AND 28) " +
             "AND ([IntervaloMinutos] IS NULL OR [IntervaloMinutos] BETWEEN 15 AND 1440)"));
 
+        // O PRIMEIRO ANO DA SÉRIE (issue 156): 1974 é o início da PAM, e o teto é generoso de
+        // propósito — quem editar um ano futuro é barrado no domínio, com a data de hoje na mão.
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_Rotina_AnoInicialDoHistorico",
+            "[AnoInicialDoHistorico] IS NULL OR [AnoInicialDoHistorico] BETWEEN 1974 AND 2100"));
+
         b.HasData(RotinasDoSistema.Todas.Select((r, posicao) => new
         {
             Id = posicao + 1,
@@ -131,7 +137,8 @@ public sealed class RotinaConfiguracao : IEntityTypeConfiguration<Rotina>
             r.AgendaPadrao.Hora,
             r.AgendaPadrao.IntervaloMinutos,
             EstaLigada = r.LigadaPorPadrao,
-            AgendaVigenteDesde = RotinasDoSistema.AgendaSemeadaDesde
+            AgendaVigenteDesde = RotinasDoSistema.AgendaSemeadaDesde,
+            AnoInicialDoHistorico = r.AnoInicialPadraoDoHistorico
         }));
     }
 }

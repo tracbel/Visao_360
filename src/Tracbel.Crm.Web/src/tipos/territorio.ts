@@ -131,15 +131,26 @@ export type EstruturaDoMunicipio = {
  * Não é a soma dos municípios: o valor municipal sigiloso entra no total do
  * estado sem aparecer embaixo.
  */
+export type MedidaDoEstado = {
+  /** O total publicado pelo IBGE para a UF; nulo quando a fonte não foi carregada. */
+  publicado: number | null;
+  /** A soma dos municípios — menor que o publicado onde há sigilo (issue 155). */
+  somaDosMunicipios: number | null;
+};
+
 export type TotaisDoEstado = {
   /** O ano da PAM — o da área e do valor, e só deles. */
   ano: number;
   areaPlantadaHectares: number | null;
   valorDaProducaoMilReais: number | null;
-  tratores: number | null;
-  estabelecimentos: number | null;
+  tratores: MedidaDoEstado;
+  estabelecimentos: MedidaDoEstado;
   /** O ano do Censo dos tratores e dos estabelecimentos (issue 152). */
   anoDoCenso: number | null;
+  /** O efetivo bovino do estado (issue 155). */
+  rebanho: MedidaDoEstado;
+  /** O ano da PPM, que anda sozinho — ela é anual e o Censo é decenal. */
+  anoDoRebanho: number | null;
 };
 
 export type IndicadoresDoMunicipio = {

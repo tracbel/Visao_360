@@ -15,7 +15,7 @@ namespace Tracbel.Crm.Carga;
 ///
 /// <para>A Produção Agrícola Municipal (issue 64) diz quanto se PLANTA. Nenhuma fonte dizia o que há
 /// instalado: quantos tratores, de que porte, em propriedades de que tamanho, com quanto rebanho, em
-/// quantos km², e onde estão as usinas. São cinco fontes públicas, de quatro pesquisas e duas
+/// quantos km², e onde estão as usinas. São seis leituras públicas, de quatro pesquisas e duas
 /// agências:</para>
 ///
 /// <list type="number">
@@ -23,7 +23,9 @@ namespace Tracbel.Crm.Carga;
 ///   <item>estabelecimentos por grupo de área total — Censo Agropecuário (IBGE);</item>
 ///   <item>efetivo do rebanho bovino — Pesquisa da Pecuária Municipal (IBGE), anual;</item>
 ///   <item>área territorial em km² — Censo Demográfico (IBGE);</item>
-///   <item>usinas de etanol autorizadas — dados abertos da ANP.</item>
+///   <item>usinas de etanol autorizadas — dados abertos da ANP;</item>
+///   <item>o TOTAL que o IBGE publica para São Paulo nas quatro pesquisas (issue 155), que não é a
+///   soma dos municípios e é o denominador do "% de São Paulo".</item>
 /// </list>
 ///
 /// <para><b>Cada fonte na sua transação.</b> Uma que falhe desfaz só a si mesma; as anteriores ficam,
@@ -55,10 +57,14 @@ internal sealed class CargaDaEstruturaAgropecuaria(
     private const string FluxoDoRebanho = "IBGE.REBANHO";
     private const string FluxoDaAreaTerritorial = "IBGE.AREA_TERRITORIAL";
     private const string FluxoDasUsinas = "ANP.USINA_DE_ETANOL";
+    private const string FluxoDosTotaisDoEstado = "IBGE.TOTAIS_DO_ESTADO";
+
+    /// <summary>"Total" na classificação 12605 — a faixa que representa o parque inteiro.</summary>
+    private const int PotenciaTotal = 113521;
 
     private readonly List<(string Etapa, string Rotulo, int Valor)> _contagens = [];
 
-    /// <summary>Executa as cinco etapas.</summary>
+    /// <summary>Executa as seis etapas.</summary>
     /// <param name="ct">Cancelamento.</param>
     /// <returns>As contagens de cada etapa, na ordem em que aconteceram.</returns>
     /// <exception cref="InvalidOperationException">Quando o catálogo de municípios está vazio.</exception>
@@ -76,6 +82,10 @@ internal sealed class CargaDaEstruturaAgropecuaria(
         await CarregarRebanhoAsync(municipioPorCodigo, ct);
         await CarregarAreaTerritorialAsync(municipioPorCodigo, ct);
         await CarregarUsinasDeEtanolAsync(ct);
+
+        // POR ÚLTIMO, e de propósito: a comparação com a soma dos municípios só faz sentido depois
+        // que os municípios desta rodada já estão gravados.
+        await CarregarTotaisDoEstadoAsync(ct);
 
         return _contagens;
     }
@@ -508,6 +518,121 @@ internal sealed class CargaDaEstruturaAgropecuaria(
         Contar(etapa, "usinas resolvidas pelo de-para já gravado", dePara.CasadosPelaCorrespondencia);
         Contar(etapa, "correspondências novas gravadas (casadas por nome)", dePara.CasadosPorNome);
         Contar(etapa, "linhas recusadas", recusas.Count);
+    }
+
+    // =============================================================================================
+    // 6. Os totais que o IBGE publica para São Paulo (issue 155)
+    // =============================================================================================
+
+    /// <summary>
+    /// A LINHA DO ESTADO das quatro pesquisas — o denominador do "% de São Paulo".
+    ///
+    /// <para><b>Por que não somar os 645 municípios.</b> Onde poucos estabelecimentos respondem, o
+    /// IBGE oculta a parcela municipal e a inclui no total do estado: a soma fica abaixo do publicado,
+    /// e a fatia da região sai maior do que é. A lavoura já comparava com a linha publicada; tratores
+    /// e propriedades somavam — dois métodos na mesma tela.</para>
+    /// </summary>
+    private async Task CarregarTotaisDoEstadoAsync(CancellationToken ct)
+    {
+        const string etapa = "Totais publicados do estado (IBGE)";
+
+        await using var trava = await TomarTravaAsync(FluxoDosTotaisDoEstado, ct);
+
+        relatar("Lendo o total publicado de São Paulo nas quatro pesquisas do IBGE (nível n3)…");
+        var lidas = await ibge.LerMedidasNoEstadoAsync(CodigoDeSaoPaulo, ct);
+
+        var agora = DateTime.UtcNow;
+        await using var contexto = abrirContexto();
+        await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
+
+        var sistemaId = await SistemaDoIbgeAsync(contexto, ct);
+        contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistemaId);
+
+        var anos = lidas.Select(l => l.Ano).Distinct().ToList();
+        var existentes = (await contexto.MedidasDoIbgeNosEstados
+                .Where(m => m.EstadoCodigoIbge == CodigoDeSaoPaulo && anos.Contains(m.Ano))
+                .ToListAsync(ct))
+            .ToDictionary(m => (m.TabelaDoSidra, m.VariavelDoSidra, m.Ano, m.CategoriaCodigoIbge));
+
+        var recusas = new List<(object Conteudo, string Motivo)>();
+        var novas = new List<MedidaDoIbgeNoEstado>();
+        int alteradas = 0, mantidas = 0, sigilosas = 0;
+
+        foreach (var linha in lidas)
+        {
+            if (linha.CodigoDaUf != CodigoDeSaoPaulo)
+            {
+                recusas.Add((linha, $"A resposta trouxe a UF {linha.CodigoDaUf}, e a carga pediu {CodigoDeSaoPaulo}."));
+                continue;
+            }
+
+            decimal? valor;
+            try
+            {
+                valor = SaneamentoDeTerritorio.MedidaDoSidra(linha.ValorBruto);
+            }
+            catch (FormatException formato)
+            {
+                recusas.Add((linha, formato.Message));
+                continue;
+            }
+
+            if (valor is null) sigilosas++;
+
+            if (existentes.TryGetValue((linha.Tabela, linha.Variavel, linha.Ano, linha.CategoriaCodigo), out var existente))
+            {
+                if (existente.Reapurar(linha.CategoriaNome, valor, usuarioId, agora)) alteradas++;
+                else mantidas++;
+            }
+            else
+            {
+                novas.Add(MedidaDoIbgeNoEstado.Registrar(
+                    linha.CodigoDaUf, linha.Tabela, linha.Variavel, linha.Ano,
+                    linha.CategoriaCodigo, linha.CategoriaNome, valor, usuarioId, agora));
+            }
+        }
+
+        contexto.MedidasDoIbgeNosEstados.AddRange(novas);
+        await CargaDeTerritorio.SubstituirRecusasAsync(contexto, FluxoDosTotaisDoEstado, recusas, ct);
+        await contexto.SaveChangesAsync(ct);
+
+        var periodo = Periodo(anos);
+        await CargaDeTerritorio.RegistrarRodadaAsync(
+            contexto, sistemaId, FluxoDosTotaisDoEstado, lidas.Count, novas.Count + alteradas, recusas.Count, ct, periodo);
+        await transacao.CommitAsync(ct);
+
+        Contar(etapa, $"medidas lidas no total do estado ({periodo})", lidas.Count);
+        Contar(etapa, "linhas novas", novas.Count);
+        Contar(etapa, "linhas reapuradas", alteradas);
+        Contar(etapa, "linhas mantidas sem mudança", mantidas);
+        Contar(etapa, "medidas sob sigilo preservadas como nulo", sigilosas);
+        Contar(etapa, "linhas recusadas", recusas.Count);
+
+        // A PROVA DO QUE A ISSUE 155 AFIRMA, no próprio relatório: o publicado e a soma, lado a lado.
+        // Enquanto os dois forem diferentes, usar a soma como denominador infla a fatia da região.
+        await CompararTratoresComASomaAsync(contexto, etapa, ct);
+    }
+
+    /// <summary>Põe no relatório o parque publicado de São Paulo e a soma dos municípios, para conferência.</summary>
+    private async Task CompararTratoresComASomaAsync(CrmDbContext contexto, string etapa, CancellationToken ct)
+    {
+        var publicado = await contexto.MedidasDoIbgeNosEstados.AsNoTracking()
+            .Where(m => m.EstadoCodigoIbge == CodigoDeSaoPaulo
+                        && m.TabelaDoSidra == LeitorDaEstruturaAgropecuaria.TabelaDaFrotaDeTratores
+                        && m.VariavelDoSidra == LeitorDaEstruturaAgropecuaria.VariavelDeTratores
+                        && m.CategoriaCodigoIbge == PotenciaTotal)
+            .OrderByDescending(m => m.Ano)
+            .Select(m => new { m.Ano, m.Valor })
+            .FirstOrDefaultAsync(ct);
+
+        if (publicado?.Valor is null) return;
+
+        var soma = await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking()
+            .Where(f => f.Ano == publicado.Ano && f.PotenciaCodigoIbge == PotenciaTotal)
+            .SumAsync(f => (int?)f.Tratores, ct) ?? 0;
+
+        Contar(etapa, $"tratores publicados para São Paulo em {publicado.Ano}", (int)publicado.Valor.Value);
+        Contar(etapa, "tratores somados dos municípios (fica abaixo onde há sigilo)", soma);
     }
 
     // =============================================================================================

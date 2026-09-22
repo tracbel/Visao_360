@@ -29,11 +29,13 @@ public static class RotulosDaTrilha
         ["CustoDeProducao"] = "Custo de produção",
         ["CreditoRuralDeInvestimento"] = "Crédito rural",
         ["ProducaoAgricolaNoMunicipio"] = "Produção agrícola no município (PAM)",
+    ["ProducaoDeMilhoPorSafraNoMunicipio"] = "Milho por safra no município (SIDRA 839)",
         ["ProducaoAgricolaNoEstado"] = "Produção agrícola no estado (PAM)",
         ["FrotaDeTratoresNoMunicipio"] = "Tratores no município (Censo)",
         ["EstabelecimentosPorAreaNoMunicipio"] = "Propriedades por tamanho (Censo)",
         ["RebanhoNoMunicipio"] = "Rebanho no município (PPM)",
         ["AreaTerritorialDoMunicipio"] = "Área territorial do município",
+    ["MedidaDoIbgeNoEstado"] = "Total publicado do estado (IBGE)",
         ["UsinaDeEtanol"] = "Usina de etanol (ANP)",
         ["CorrespondenciaDeMunicipio"] = "Município da fonte (de-para)",
         ["RegraDePotencial"] = "Regra do potencial por cultura",
@@ -111,6 +113,11 @@ public static class RotulosDaTrilha
             ["ProdutoNome"] = "Produto", ["AreaPlantadaHectares"] = "Área plantada (ha)", ["AreaColhidaHectares"] = "Área colhida (ha)",
             ["QuantidadeProduzida"] = "Quantidade produzida", ["ValorDaProducaoMilReais"] = "Valor da produção (mil R$)"
         },
+        ["ProducaoDeMilhoPorSafraNoMunicipio"] = new(StringComparer.Ordinal)
+        {
+            ["SafraNome"] = "Safra", ["AreaPlantadaHectares"] = "Área plantada (ha)", ["AreaColhidaHectares"] = "Área colhida (ha)",
+            ["QuantidadeProduzida"] = "Quantidade produzida"
+        },
         ["FrotaDeTratoresNoMunicipio"] = new(StringComparer.Ordinal)
         {
             ["PotenciaNome"] = "Faixa de potência", ["Tratores"] = "Tratores", ["EstabelecimentosComTrator"] = "Estabelecimentos com trator"
@@ -121,6 +128,7 @@ public static class RotulosDaTrilha
         },
         ["RebanhoNoMunicipio"] = new(StringComparer.Ordinal) { ["RebanhoNome"] = "Rebanho", ["Cabecas"] = "Cabeças" },
         ["AreaTerritorialDoMunicipio"] = new(StringComparer.Ordinal) { ["AreaKm2"] = "Área (km²)" },
+    ["MedidaDoIbgeNoEstado"] = new(StringComparer.Ordinal) { ["Valor"] = "Valor publicado", ["CategoriaNome"] = "Categoria do IBGE" },
         ["UsinaDeEtanol"] = new(StringComparer.Ordinal)
         {
             ["RazaoSocial"] = "Razão social", ["MunicipioId"] = "Município", ["CapacidadeDeAnidroM3Dia"] = "Capacidade de anidro (m³/dia)",

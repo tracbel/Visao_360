@@ -55,7 +55,12 @@ import { caminhoSvg, enquadrar, type ColecaoMunicipal } from '../componentes/ter
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { carregarMalhaDeSaoPaulo, obterIndicadoresTerritoriais } from '../dados/api/territorio';
 import { useRecurso } from '../dados/api/useRecurso';
-import type { ClassificacaoDeIndicador, FiltrosTerritoriais, IndicadoresDoMunicipio } from '../tipos/territorio';
+import type {
+  ClassificacaoDeIndicador,
+  FiltrosTerritoriais,
+  IndicadoresDoMunicipio,
+  MedidaDoEstado,
+} from '../tipos/territorio';
 import '../estilos/territorio.css';
 
 /** A largura de referência do desenho; o SVG escala para o cartão. */
@@ -302,10 +307,24 @@ export function IndicadoresGeograficos() {
       ano: estado.ano,
       area: parte(totais.lavouraHectares, estado.areaPlantadaHectares),
       valor: parte(totais.lavouraValor, estado.valorDaProducaoMilReais),
-      tratores: parte(totais.tratores, estado.tratores),
-      estabelecimentos: parte(totais.estabelecimentos, estado.estabelecimentos),
+      tratores: parte(totais.tratores, estado.tratores.publicado),
+      estabelecimentos: parte(totais.estabelecimentos, estado.estabelecimentos.publicado),
+      rebanho: parte(totais.bovinos, estado.rebanho.publicado),
     };
   }, [indicadores, totais]);
+
+  /**
+   * QUANTO O SIGILO ESCONDE, em cada medida do Censo e da PPM (issue 155).
+   *
+   * O denominador é a linha PUBLICADA para São Paulo. A soma dos 645 municípios fica abaixo dela
+   * onde o IBGE ocultou a parcela municipal, e dizer isso no cartão evita que quem confira na mão
+   * encontre uma diferença sem explicação.
+   */
+  function diferencaParaASoma(medida: MedidaDoEstado | undefined): string {
+    if (!medida?.publicado || medida.somaDosMunicipios === null) return '';
+    const abaixo = medida.publicado - medida.somaDosMunicipios;
+    return abaixo > 0 ? ` · a soma dos municípios fica ${nº(abaixo)} abaixo do publicado` : '';
+  }
 
   const coberturaDaAdr = totais.elegiveis > 0 ? (100 * totais.cobertos) / totais.elegiveis : null;
 
@@ -504,13 +523,13 @@ export function IndicadoresGeograficos() {
     {
       rotulo: 'Parque de tratores',
       valor: comTerritorio ? nº(totais.tratores) : null,
-      deOnde: `Censo Agropecuário${estruturaDaAdr.anoDoCenso ? ` ${estruturaDaAdr.anoDoCenso}` : ''} · ${nº(totais.municipiosComTratores)} municípios divulgados${fatiaNoEstado?.tratores !== null && fatiaNoEstado !== null ? ` · ${porcento(fatiaNoEstado.tratores)} de São Paulo` : ''}`,
+      deOnde: `Censo Agropecuário${estruturaDaAdr.anoDoCenso ? ` ${estruturaDaAdr.anoDoCenso}` : ''} · ${nº(totais.municipiosComTratores)} municípios divulgados${fatiaNoEstado?.tratores != null ? ` · ${porcento(fatiaNoEstado.tratores)} do total publicado de São Paulo` : ''}${diferencaParaASoma(indicadores?.estado?.tratores)}`,
       semDado: territorioNaoCarregado ? semTerritorio : 'Censo não carregado',
     },
     {
       rotulo: 'Propriedades',
       valor: comTerritorio ? nº(totais.estabelecimentos) : null,
-      deOnde: `estabelecimentos agropecuários${fatiaNoEstado?.estabelecimentos != null ? ` · ${porcento(fatiaNoEstado.estabelecimentos)} de São Paulo` : ''}`,
+      deOnde: `estabelecimentos agropecuários${fatiaNoEstado?.estabelecimentos != null ? ` · ${porcento(fatiaNoEstado.estabelecimentos)} do total publicado de São Paulo` : ''}${diferencaParaASoma(indicadores?.estado?.estabelecimentos)}`,
       semDado: territorioNaoCarregado ? semTerritorio : 'Censo não carregado',
     },
     {
@@ -528,7 +547,7 @@ export function IndicadoresGeograficos() {
     {
       rotulo: 'Rebanho bovino',
       valor: comTerritorio && totais.bovinos > 0 ? nº(totais.bovinos) : null,
-      deOnde: `cabeças · Pesquisa da Pecuária Municipal${estruturaDaAdr.anoDoRebanho ? ` ${estruturaDaAdr.anoDoRebanho}` : ''}, anual`,
+      deOnde: `cabeças · Pesquisa da Pecuária Municipal${estruturaDaAdr.anoDoRebanho ? ` ${estruturaDaAdr.anoDoRebanho}` : ''}, anual${fatiaNoEstado?.rebanho != null ? ` · ${porcento(fatiaNoEstado.rebanho)} do total publicado de São Paulo` : ''}${diferencaParaASoma(indicadores?.estado?.rebanho)}`,
       semDado: territorioNaoCarregado ? semTerritorio : 'rebanho não carregado',
     },
   ];

@@ -54,6 +54,29 @@ public sealed record MedidaPorCategoria(
 public sealed record LinhaDaAreaTerritorial(int CodigoDoMunicipio, short Ano, string? AreaKm2Bruta);
 
 /// <summary>
+/// UMA MEDIDA PUBLICADA PARA O ESTADO INTEIRO — a célula do SIDRA no nível 3 (issue 155).
+///
+/// <para>É a mesma consulta das quatro pesquisas, trocado o recorte: uma localidade em vez de 645. A
+/// identidade dela é a do próprio SIDRA — tabela, variável, ano e categoria —, e é por isso que as
+/// quatro cabem no mesmo formato.</para>
+/// </summary>
+/// <param name="CodigoDaUf">O código IBGE da UF. São Paulo é 35.</param>
+/// <param name="Tabela">A tabela do SIDRA.</param>
+/// <param name="Variavel">A variável dentro da tabela.</param>
+/// <param name="Ano">O ano da pesquisa.</param>
+/// <param name="CategoriaCodigo">A categoria, ou nulo na tabela sem classificação.</param>
+/// <param name="CategoriaNome">O rótulo oficial da categoria, ou nulo junto com o código.</param>
+/// <param name="ValorBruto">O valor, como o SIDRA escreveu.</param>
+public sealed record MedidaDoEstadoNoSidra(
+    int CodigoDaUf,
+    short Tabela,
+    short Variavel,
+    short Ano,
+    int? CategoriaCodigo,
+    string? CategoriaNome,
+    string? ValorBruto);
+
+/// <summary>
 /// A ESTRUTURA AGROPECUÁRIA DE UM MUNICÍPIO, em quatro fontes públicas do IBGE (issue 64 do
 /// documento 48; issue 65 no GitHub).
 ///
@@ -138,6 +161,21 @@ public sealed class LeitorDaEstruturaAgropecuaria(HttpClient http)
     /// </summary>
     public static readonly int[] RebanhosQueOCrmGuarda = [2670];
 
+    /// <summary>
+    /// AS QUATRO PESQUISAS, do jeito que a URL as pede — a mesma lista que a leitura do estado percorre.
+    ///
+    /// <para>Ela fica aqui, e não espalhada pelos quatro métodos, porque o total do estado precisa
+    /// pedir exatamente o que o município pediu: variável trocada ou classificação a mais no
+    /// denominador daria um "% de São Paulo" errado sem erro nenhum.</para>
+    /// </summary>
+    private static readonly (short Tabela, short[] Variaveis, short? Classificacao, int[]? Categorias)[] Pesquisas =
+    [
+        (TabelaDaFrotaDeTratores, VariaveisDaFrota, ClassificacaoDePotencia, null),
+        (TabelaDeEstabelecimentos, [VariavelDeEstabelecimentos], ClassificacaoDeGrupoDeArea, null),
+        (TabelaDoRebanho, [VariavelDoEfetivoDoRebanho], ClassificacaoDeRebanho, RebanhosQueOCrmGuarda),
+        (TabelaDaAreaTerritorial, [VariavelDaAreaTerritorial], null, null)
+    ];
+
     /// <summary>O endereço dos metadados de uma tabela do SIDRA, para saber o último ano publicado.</summary>
     /// <param name="tabela">O número da tabela.</param>
     public static string EnderecoDosMetadados(short tabela) =>
@@ -158,7 +196,34 @@ public sealed class LeitorDaEstruturaAgropecuaria(HttpClient http)
         short ano,
         int codigoDaUf,
         short? classificacao = null,
-        IEnumerable<int>? categorias = null)
+        IEnumerable<int>? categorias = null) =>
+        Endereco(tabela, $"n6/in%20n3%20{codigoDaUf}", variaveis, ano, classificacao, categorias);
+
+    /// <summary>
+    /// A mesma consulta no TOTAL da UF — a linha que o IBGE publica para o estado inteiro.
+    ///
+    /// <para><b>Ela não é a soma dos municípios</b> (issue 155): onde poucos estabelecimentos
+    /// respondem, o valor municipal sai sob sigilo e entra no total do estado sem aparecer embaixo.
+    /// Somar os 645 devolve um número menor que o oficial.</para>
+    /// </summary>
+    /// <param name="tabela">O número da tabela.</param>
+    /// <param name="variaveis">As variáveis pedidas.</param>
+    /// <param name="ano">O ano.</param>
+    /// <param name="codigoDaUf">O código IBGE da UF.</param>
+    /// <param name="classificacao">A classificação pedida, ou nulo quando a tabela não tem.</param>
+    /// <param name="categorias">As categorias da classificação; vazio pede <c>all</c>.</param>
+    public static string EnderecoNoEstado(
+        short tabela,
+        IEnumerable<short> variaveis,
+        short ano,
+        int codigoDaUf,
+        short? classificacao = null,
+        IEnumerable<int>? categorias = null) =>
+        Endereco(tabela, $"n3/{codigoDaUf}", variaveis, ano, classificacao, categorias);
+
+    private static string Endereco(
+        short tabela, string nivel, IEnumerable<short> variaveis, short ano,
+        short? classificacao, IEnumerable<int>? categorias)
     {
         var recorte = classificacao is null
             ? string.Empty
@@ -166,7 +231,7 @@ public sealed class LeitorDaEstruturaAgropecuaria(HttpClient http)
                 ? "all"
                 : string.Join(',', categorias));
 
-        return $"https://apisidra.ibge.gov.br/values/t/{tabela}/n6/in%20n3%20{codigoDaUf}" +
+        return $"https://apisidra.ibge.gov.br/values/t/{tabela}/{nivel}" +
                $"/v/{string.Join(',', variaveis)}/p/{ano}{recorte}?formato=json";
     }
 
@@ -207,7 +272,7 @@ public sealed class LeitorDaEstruturaAgropecuaria(HttpClient http)
             var posicao = Array.IndexOf(VariaveisDaFrota, celula.Variavel);
             if (posicao < 0) continue;
 
-            var chave = (celula.Municipio, celula.Ano, celula.Categoria);
+            var chave = (celula.Localidade, celula.Ano, celula.Categoria);
             if (!porChave.TryGetValue(chave, out var valores))
             {
                 valores = new string?[VariaveisDaFrota.Length];
@@ -265,16 +330,56 @@ public sealed class LeitorDaEstruturaAgropecuaria(HttpClient http)
 
         var linhas = new List<LinhaDaAreaTerritorial>();
         await foreach (var celula in LerCelulasAsync(endereco, ct))
-            linhas.Add(new LinhaDaAreaTerritorial(celula.Municipio, celula.Ano, celula.Valor));
+            linhas.Add(new LinhaDaAreaTerritorial(celula.Localidade, celula.Ano, celula.Valor));
 
         return linhas;
     }
 
+    /// <summary>
+    /// AS QUATRO PESQUISAS NO TOTAL DO ESTADO, cada uma no ano mais recente dela (issue 155).
+    ///
+    /// <para><b>Quatro consultas de uma linha (ou poucas), não 645.</b> O estado é uma localidade só;
+    /// a resposta inteira das quatro cabe em alguns quilobytes.</para>
+    ///
+    /// <para>O ano sai dos metadados de cada tabela, como nas municipais — o Censo continua em 2017 e
+    /// a PPM anda sozinha.</para>
+    /// </summary>
+    /// <param name="codigoDaUf">O código IBGE da UF.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<IReadOnlyList<MedidaDoEstadoNoSidra>> LerMedidasNoEstadoAsync(
+        int codigoDaUf, CancellationToken ct)
+    {
+        var medidas = new List<MedidaDoEstadoNoSidra>();
+
+        foreach (var (tabela, variaveis, classificacao, categorias) in Pesquisas)
+        {
+            var ano = await LerUltimoAnoAsync(tabela, ct);
+            var endereco = EnderecoNoEstado(tabela, variaveis, ano, codigoDaUf, classificacao, categorias);
+
+            await foreach (var celula in LerCelulasAsync(endereco, ct))
+                medidas.Add(new MedidaDoEstadoNoSidra(
+                    celula.Localidade,
+                    tabela,
+                    celula.Variavel,
+                    celula.Ano,
+                    celula.Categoria == 0 ? null : celula.Categoria,
+                    string.IsNullOrWhiteSpace(celula.CategoriaNome) ? null : celula.CategoriaNome,
+                    celula.Valor));
+        }
+
+        return medidas;
+    }
+
     // =============================================================================================
 
-    /// <summary>Uma célula da resposta do SIDRA, já com os campos que interessam separados.</summary>
+    /// <summary>
+    /// Uma célula da resposta do SIDRA, já com os campos que interessam separados.
+    ///
+    /// <para><c>Localidade</c> é o município no nível 6 e a UF no nível 3 — o campo é o mesmo
+    /// (<c>D1C</c>), e quem chama sabe qual dos dois pediu.</para>
+    /// </summary>
     private readonly record struct CelulaDoSidra(
-        int Municipio, short Ano, short Variavel, int Categoria, string CategoriaNome, string? Valor);
+        int Localidade, short Ano, short Variavel, int Categoria, string CategoriaNome, string? Valor);
 
     /// <summary>O laço das fontes de UMA variável repartida por UMA classificação.</summary>
     private async Task<IReadOnlyList<MedidaPorCategoria>> LerPorCategoriaAsync(
@@ -287,7 +392,7 @@ public sealed class LeitorDaEstruturaAgropecuaria(HttpClient http)
         var linhas = new List<MedidaPorCategoria>();
         await foreach (var celula in LerCelulasAsync(endereco, ct))
             linhas.Add(new MedidaPorCategoria(
-                celula.Municipio, celula.Ano, celula.Categoria, celula.CategoriaNome, celula.Valor));
+                celula.Localidade, celula.Ano, celula.Categoria, celula.CategoriaNome, celula.Valor));
 
         return linhas;
     }
