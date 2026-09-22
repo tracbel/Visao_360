@@ -175,6 +175,24 @@ public sealed class UsuarioPerfil
     /// <summary>Quando expira. Nulo = permanente.</summary>
     public DateTime? ExpiraEm { get; private set; }
 
+    /// <summary>
+    /// Quando foi revogada (UTC); nula enquanto vale (issue 113).
+    ///
+    /// <para><b>Revogar não apaga a linha.</b> Apagar levaria junto quem concedeu, por quê e até quando — e a
+    /// pergunta "quem tinha acesso de administrador em março?" ficaria sem resposta. A linha fica, marcada, e
+    /// deixa de valer.</para>
+    /// </summary>
+    public DateTime? RevogadaEm { get; private set; }
+
+    /// <summary>Quem revogou.</summary>
+    public long? RevogadaPorId { get; private set; }
+
+    /// <summary>Por que foi revogada — obrigatório, como a justificativa da concessão.</summary>
+    public string? MotivoDaRevogacao { get; private set; }
+
+    /// <summary>Se foi revogada.</summary>
+    public bool Revogada => RevogadaEm is not null;
+
     /// <summary>Concede um perfil a um usuário.</summary>
     /// <param name="usuarioId">A quem.</param>
     /// <param name="perfilId">O perfil.</param>
@@ -207,7 +225,50 @@ public sealed class UsuarioPerfil
         };
     }
 
-    /// <summary>Verdadeiro se a concessão vale neste instante.</summary>
+    /// <summary>Verdadeiro se a concessão vale neste instante: não foi revogada e não expirou.</summary>
     /// <param name="agora">O instante (UTC).</param>
-    public bool EstaVigente(DateTime agora) => ExpiraEm is null || ExpiraEm > agora;
+    public bool EstaVigente(DateTime agora) => RevogadaEm is null && (ExpiraEm is null || ExpiraEm > agora);
+
+    /// <summary>Revoga a concessão, com motivo. A linha fica, para o histórico.</summary>
+    /// <param name="porId">Quem revoga.</param>
+    /// <param name="motivo">Por que — e por autorização de quem.</param>
+    /// <param name="agoraUtc">O instante.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando já foi revogada ou falta o motivo.</exception>
+    public void Revogar(long porId, string motivo, DateTime agoraUtc)
+    {
+        if (Revogada)
+            throw new RegraDeNegocioViolada("Esta concessão já foi revogada.");
+
+        if (string.IsNullOrWhiteSpace(motivo))
+            throw new RegraDeNegocioViolada("A revogação precisa de motivo: por que, e por autorização de quem.");
+
+        RevogadaEm = agoraUtc;
+        RevogadaPorId = porId;
+        MotivoDaRevogacao = motivo.Trim();
+    }
+}
+
+/// <summary>
+/// QUEM PODE CONCEDER O QUÊ — a regra que impede a escalada (issue 113).
+///
+/// <para>Conceder um perfil é dar as permissões dele. Quem concede só pode dar o que já tem, na mesma
+/// profundidade ou maior: senão, uma conta com <c>Usuario.Administrar</c> e mais nada concederia a si — ou a
+/// um colega combinado — o perfil Administrador inteiro. E ninguém concede a si mesmo, nem com o que já tem:
+/// toda concessão passa por uma segunda pessoa.</para>
+/// </summary>
+public static class RegraDeConcessao
+{
+    /// <summary>
+    /// As permissões do perfil que quem concede NÃO tem na profundidade exigida. Lista vazia: pode conceder.
+    /// </summary>
+    /// <param name="quemConcede">O contexto de quem concede.</param>
+    /// <param name="permissoesDoPerfil">O que o perfil dá.</param>
+    public static IReadOnlyList<string> FaltasParaConceder(
+        ContextoAcesso quemConcede, IEnumerable<(string Codigo, Profundidade Profundidade)> permissoesDoPerfil) =>
+        permissoesDoPerfil
+            .Where(p => quemConcede.ProfundidadeDe(p.Codigo) < p.Profundidade)
+            .Select(p => p.Codigo)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToList();
 }

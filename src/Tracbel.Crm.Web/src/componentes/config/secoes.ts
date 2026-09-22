@@ -11,16 +11,15 @@
  * A ABA SEM NENHUMA SEÇÃO VISÍVEL NÃO APARECE. Os cadeados do protótipo saíram:
  * mostravam a aba a todos e não conferiam nada.
  *
- * O QUE AS PARTES SEGUINTES ACRESCENTAM AQUI: Usuários e Perfis (#113),
- * Auditoria (#135) e Taxonomias (#45), cada uma com a permissão que a rota dela
- * exigir.
+ * O QUE AS PARTES SEGUINTES ACRESCENTAM AQUI: Perfis (#113, 2b), Auditoria
+ * (#135) e Taxonomias (#45), cada uma com a permissão que a rota dela exigir.
  */
 
 import { PERMISSAO } from '../../dados/api/permissoes';
 
 export type AbaConfig = 'conta' | 'comercial' | 'administracao';
 
-export type SecaoConfig = 'conta' | 'potencial' | 'fontes' | 'integracoes';
+export type SecaoConfig = 'conta' | 'potencial' | 'usuarios' | 'fontes' | 'integracoes';
 
 export type DefinicaoDeSecao = {
   id: SecaoConfig;
@@ -49,6 +48,15 @@ export const SECOES: DefinicaoDeSecao[] = [
     icone: '📈',
     rotulo: 'Potencial de mercado',
     visivel: (tem) => tem(PERMISSAO.parametroDoPotencialAdministrar) || tem(PERMISSAO.percepcaoDoGestorInformar),
+  },
+
+  // Issue 113: ver é Usuario.Ler (a gerência vê a filial, a diretoria todos); agir é Usuario.Administrar.
+  {
+    id: 'usuarios',
+    aba: 'administracao',
+    icone: '👥',
+    rotulo: 'Usuários',
+    visivel: (tem) => tem(PERMISSAO.usuarioLer) || tem(PERMISSAO.usuarioAdministrar),
   },
 
   { id: 'integracoes', aba: 'administracao', icone: '🔌', rotulo: 'Integrações', visivel: (tem) => tem(PERMISSAO.integracaoLer) },

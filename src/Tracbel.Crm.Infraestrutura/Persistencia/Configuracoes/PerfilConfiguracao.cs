@@ -108,11 +108,15 @@ public sealed class UsuarioPerfilConfiguracao : IEntityTypeConfiguration<Usuario
         b.Property(u => u.Justificativa).HasMaxLength(400).IsUnicode(true).IsRequired();
         b.Property(u => u.ConcedidoEm).HasPrecision(3).IsRequired();
         b.Property(u => u.ExpiraEm).HasPrecision(3);
+        b.Property(u => u.RevogadaEm).HasPrecision(3);
+        b.Property(u => u.MotivoDaRevogacao).HasMaxLength(400).IsUnicode(true);
 
-        // O MESMO PERFIL NA MESMA FILIAL, UMA VEZ. Concessão sem filial conta como uma filial a mais
-        // (o SQL Server trata NULL como igual no índice único), então também não se repete.
+        // O MESMO PERFIL NA MESMA FILIAL, UMA VEZ ENTRE AS QUE NÃO FORAM REVOGADAS (issue 113). A revogada fica
+        // para o histórico e não pode impedir uma concessão nova. O índice só cobre concessão COM filial — o
+        // EF filtra a coluna anulável —; a sem filial é conferida pelo caso de uso, que recusa a repetida.
         b.HasIndex(u => new { u.UsuarioId, u.PerfilId, u.EmpresaId })
             .IsUnique()
+            .HasFilter("[EmpresaId] IS NOT NULL AND [RevogadaEm] IS NULL")
             .HasDatabaseName("UX_UsuarioPerfil_Usuario_Perfil_Empresa");
 
         // Restrict, não Cascade: apagar um perfil NUNCA deve arrastar silenciosamente o histórico de
@@ -120,6 +124,7 @@ public sealed class UsuarioPerfilConfiguracao : IEntityTypeConfiguration<Usuario
         b.HasOne<Perfil>().WithMany().HasForeignKey(u => u.PerfilId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Usuario>().WithMany().HasForeignKey(u => u.UsuarioId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Usuario>().WithMany().HasForeignKey(u => u.ConcedidoPorId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Usuario>().WithMany().HasForeignKey(u => u.RevogadaPorId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Empresa>().WithMany().HasForeignKey(u => u.EmpresaId).OnDelete(DeleteBehavior.Restrict);
 
         b.HasIndex(u => u.ConcedidoPorId);

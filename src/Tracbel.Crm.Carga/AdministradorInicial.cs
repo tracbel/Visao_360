@@ -147,7 +147,7 @@ internal static class AdministradorInicial
                 from concessao in leitura.UsuariosPerfis.AsNoTracking()
                 join u in leitura.Usuarios.AsNoTracking() on concessao.UsuarioId equals u.Id
                 where concessao.PerfilId == perfil.Id
-                      && (concessao.ExpiraEm == null || concessao.ExpiraEm > agoraUtc)
+                      && concessao.RevogadaEm == null && (concessao.ExpiraEm == null || concessao.ExpiraEm > agoraUtc)
                       && u.EstaAtivo && u.ExcluidoEm == null && u.AguardandoLiberacaoDesde == null
                 select new { u.Id, u.NomePrincipal })
             .Distinct()

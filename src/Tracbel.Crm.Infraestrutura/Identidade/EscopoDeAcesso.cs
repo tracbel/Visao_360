@@ -109,7 +109,7 @@ internal static class EscopoDeAcesso
                     join perfil in banco.Perfis.AsNoTracking() on concessao.PerfilId equals perfil.Id
                     where concessao.UsuarioId == usuarioId
                           && perfil.EstaAtivo
-                          && (concessao.ExpiraEm == null || concessao.ExpiraEm > agora)
+                          && concessao.RevogadaEm == null && (concessao.ExpiraEm == null || concessao.ExpiraEm > agora)
                     select new { concessao.PerfilId, concessao.EmpresaId })
                 .ToListAsync(ct)
             : [];

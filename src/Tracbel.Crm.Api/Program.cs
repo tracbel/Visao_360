@@ -192,6 +192,10 @@ builder.Services.AddScoped<IRepositorioDeVigenciasDoPotencial, RepositorioDePara
 builder.Services.AddScoped<IRepositorioDeFontesPublicas, RepositorioDeFontesPublicas>();
 builder.Services.AddScoped<IRepositorioDeOpcoesDosParametros, RepositorioDeFontesPublicas>();
 builder.Services.AddScoped<IRepositorioDeEscopo, RepositorioDeEscopo>();
+builder.Services.AddScoped<RepositorioDeAdministracaoDeUsuarios>();
+builder.Services.AddScoped<IRepositorioDeUsuariosDaAdministracao>(s => s.GetRequiredService<RepositorioDeAdministracaoDeUsuarios>());
+builder.Services.AddScoped<IRepositorioDeConcessoes>(s => s.GetRequiredService<RepositorioDeAdministracaoDeUsuarios>());
+builder.Services.AddScoped<IRepositorioDeReferenciasDeAcesso>(s => s.GetRequiredService<RepositorioDeAdministracaoDeUsuarios>());
 builder.Services.AddScoped<IRepositorioIndicadoresExecutivos, RepositorioDeIndicadoresExecutivos>();
 builder.Services.AddScoped<IRepositorioHistoricoComercial, RepositorioDeHistoricoComercial>();
 builder.Services.AddScoped<IRepositorioSincronizacoes, RepositorioDeSincronizacoes>();
@@ -261,6 +265,12 @@ builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.RevogarParametroDoPot
 builder.Services.AddScoped<ObterFontesPublicas>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.ListarOpcoesDosParametros>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ObterEscopoDeAcesso>();
+
+// A administração de usuários e concessões (issue 113).
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ListarUsuariosDaAdministracao>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ObterUsuarioDaAdministracao>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.ListarPerfisParaConceder>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Seguranca.AdministrarUsuario>();
 builder.Services.AddScoped<ObterIndicadoresExecutivos>();
 
 builder.Services.AddScoped<BuscarClientesNoLegado>();
@@ -395,6 +405,7 @@ app.MapearCoberturaTerritorial();
 app.MapearMunicipios();
 app.MapearIndicadoresTerritoriais();
 app.MapearParametrosDoPotencial();
+app.MapearAdministracaoDeUsuarios();
 app.MapearRelatorios();
 
 // O ÚLTIMO RECURSO DEVOLVE O `index.html`, e é o que faz a navegação da tela funcionar.

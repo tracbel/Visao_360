@@ -26,10 +26,12 @@ import { ConfigSecaoConta } from '../componentes/config/ConfigSecaoConta';
 import { ConfigSecaoFontes } from '../componentes/config/ConfigSecaoFontes';
 import { ConfigSecaoIntegracoes } from '../componentes/config/ConfigSecaoIntegracoes';
 import { ConfigSecaoPotencial } from '../componentes/config/ConfigSecaoPotencial';
+import { ConfigSecaoUsuarios } from '../componentes/config/ConfigSecaoUsuarios';
 import { MenuLateralConfig } from '../componentes/config/MenuLateralConfig';
 import { abasVisiveis, secoesVisiveis, type AbaConfig, type SecaoConfig } from '../componentes/config/secoes';
 import { obterEscopo, type EscopoDoUsuario } from '../dados/api/acesso';
 import { useContextoDeAcesso } from '../dados/api/contexto';
+import { PERMISSAO } from '../dados/api/permissoes';
 import { useSessao } from '../dados/api/sessao';
 import { useRecurso } from '../dados/api/useRecurso';
 
@@ -79,6 +81,8 @@ export function Configuracoes() {
         return <ConfigSecaoFontes />;
       case 'integracoes':
         return <ConfigSecaoIntegracoes />;
+      case 'usuarios':
+        return <ConfigSecaoUsuarios podeAdministrar={tem(PERMISSAO.usuarioAdministrar)} filiais={escopo.filiaisPermitidas} />;
       default:
         return <ConfigSecaoConta escopo={escopo} sessao={sessao} />;
     }

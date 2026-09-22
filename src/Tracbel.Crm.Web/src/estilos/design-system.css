@@ -8351,6 +8351,39 @@ tr.funil-nova {
   color: var(--warning);
   font-weight: 600;
 }
+/* ADMINISTRAÇÃO › USUÁRIOS (issue 113) */
+.adm-barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.adm-situacoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.adm-busca {
+  flex: 1 1 240px; max-width: 360px; min-width: 0;
+  padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius);
+  font-size: 13px; font-family: inherit; background: var(--bg-surface);
+}
+.adm-linha { cursor: pointer; }
+.adm-linha-ativa td { background: #F0FDF4; }
+.adm-link {
+  border: none; background: none; padding: 0; font: inherit; font-weight: 600;
+  color: var(--jd-green-dark); cursor: pointer; text-align: left;
+}
+.adm-link:hover { text-decoration: underline; }
+.adm-perfil { margin: 0 4px 4px 0; }
+.adm-bloco { margin-top: 18px; padding-top: 14px; border-top: 1px solid #F1F5F9; }
+.adm-bloco h4 { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: #1E293B; }
+.adm-form-inline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.adm-form-inline select, .adm-form-inline input {
+  flex: 1 1 220px; min-width: 0; padding: 8px 12px; border: 1px solid var(--border-strong);
+  border-radius: var(--radius); font-size: 13px; font-family: inherit; background: var(--bg-surface);
+}
+.adm-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 12px; }
+.adm-aviso { margin-top: 12px; border-left-color: var(--danger); background: var(--danger-bg); color: var(--danger); }
+.adm-concessao-encerrada .clr-title, .adm-concessao-encerrada .clr-desc { opacity: 0.65; }
+
+@media (max-width: 640px) {
+  .adm-busca { max-width: none; }
+  .adm-acoes { justify-content: stretch; }
+  .adm-acoes .btn { flex: 1 1 auto; }
+}
+
 .config-tabela-vazia {
   padding: 28px 16px;
   text-align: center;
