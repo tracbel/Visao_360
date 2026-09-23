@@ -15,6 +15,41 @@ import { CartaoDeMapa, type LigacaoDoMapa } from './CartaoDeMapa';
 import { foraDoRecorte } from './foraDoRecorte';
 import type { EstadoNoMapa } from '../MapaDeMunicipios';
 
+/**
+ * O MAIOR PARÁGRAFO FIXO DA TELA VIROU DICA (fase T2.1, issues 31 e 33).
+ *
+ * Eram oito linhas permanentes sobre regra a confirmar, área do município
+ * inteiro, cliente × não cliente, ciclo de troca, parque instalado, concorrência
+ * e valor da produção — no cartão onde a diretoria quer ver o mapa. Está tudo
+ * aqui, palavra por palavra, a um `ⓘ` de distância.
+ */
+function metodologia(
+  recorte: RecorteDoPotencial,
+  regra: RegraDePotencialAplicada | null,
+  enderecos: number,
+  enderecosComArea: number,
+): string {
+  if (recorte === 'maquinas') {
+    return (
+      'Fonte: IBGE/PAM — área plantada do município — com a regra de potencial do CRM. ' +
+      (regra
+        ? `Método: 1 ${regra.modeloDeReferencia} a cada ${regra.hectaresPorMaquina} ha de ${regra.produtoNome}. `
+        : 'Método: sem regra de potencial vigente. ') +
+      'Regra a confirmar pelo comercial (D-P01, issue 63). ' +
+      'É a área do município INTEIRO — clientes e não clientes juntos, sem separar: somar "clientes" e "não clientes" ' +
+      `a ela contaria a mesma área duas vezes. Clientes: ${nº(enderecosComArea)} de ${nº(enderecos)} endereços com área ` +
+      'e cultura. Ressalva: não considera ciclo de troca, parque instalado, concorrência nem outras culturas.'
+    );
+  }
+
+  return (
+    'Fonte: IBGE/SIDRA — PAM, Produção Agrícola Municipal. ' +
+    'Método: agora o mapa mostra a LAVOURA INTEIRA do município, e não só a cultura da regra — são bases diferentes. ' +
+    'Ressalvas: o valor da produção é o que o município COLHE, publicado em mil reais; não é venda da Tracbel nem ' +
+    'preço de máquina. O café entra uma vez só, pelo "Total" do IBGE, sem somar Arábica e Canephora de novo.'
+  );
+}
+
 /** Potencial teórico — a regra de cultura × área, e a lavoura que a sustenta. */
 export function MapaDoPotencial({
   ligacao,
@@ -40,8 +75,6 @@ export function MapaDoPotencial({
 
     // AS CULTURAS COM REGRA E A LAVOURA INTEIRA SÃO COISAS DIFERENTES: o recorte "máquinas teóricas"
     // olha só o que tem regra de potencial, e os outros dois olham TODAS as culturas do município.
-    // Misturá-los faria a área do café aparecer ao lado do valor da lavoura inteira como se fossem
-    // a mesma base.
     const potencial = m!.potencial[0];
     const motor = m!.potencialEstrutural;
     const producao = m!.producao;
@@ -62,8 +95,7 @@ export function MapaDoPotencial({
             : 'produção agrícola não carregada para este município',
       };
 
-    // O ANO DA CULTURA SÓ APARECE QUANDO DIFERE DO DA LAVOURA ao lado (issue 152): os dois números estão na mesma
-    // linha, e o leitor precisa saber que não são do mesmo ano.
+    // O ANO DA CULTURA SÓ APARECE QUANDO DIFERE DO DA LAVOURA ao lado (issue 152).
     const anoDaCultura = potencial?.ano != null && potencial.ano !== producao?.ano ? ` (${potencial.ano})` : '';
     const daRegra = motor
       ? `${nº(Math.round(motor.areaUtilHectares ?? 0))} ha úteis${anoDaCultura} · ${nº(motor.parqueDeMaquinas ?? 0)} máquinas teóricas${motor.demandaAnualDeMaquinas != null ? ` · ${nº(motor.demandaAnualDeMaquinas)} por ano` : ''}${motor.estimativa ? ' · estimativa' : ''}`
@@ -85,15 +117,13 @@ export function MapaDoPotencial({
       mapa="potencial"
       id="potencial"
       ligacao={ligacao}
-      titulo={<>Potencial teórico — cultura × área <SeloDeClassificacao classificacao={classificacao} /></>}
-      subtitulo={
-        regra
-          ? `1 ${regra.modeloDeReferencia} a cada ${regra.hectaresPorMaquina} ha de ${regra.produtoNome} · área plantada do município (IBGE)`
-          : 'Sem regra de potencial ativa'
-      }
+      titulo={<>Potencial teórico <SeloDeClassificacao classificacao={classificacao} /></>}
+      metodologia={metodologia(recorteDoPotencial, regra, enderecos, enderecosComArea)}
+      // O RESUMO ABSORVEU A REGRA, que era subtítulo: ela é operacional e cabe
+      // numa linha. O resto do subtítulo virou metodologia.
       resumo={
         totais.municipiosComArea > 0
-          ? `${nº(Math.round(totais.maquinasTeoricas))} máquinas teóricas · ${nº(Math.round(totais.hectares))} ha úteis em ${nº(totais.municipiosComArea)} municípios com área divulgada`
+          ? `${regra ? `1 ${regra.modeloDeReferencia} / ${regra.hectaresPorMaquina} ha de ${regra.produtoNome} · ` : ''}${nº(Math.round(totais.maquinasTeoricas))} máquinas em ${nº(totais.municipiosComArea)} municípios${totais.potencialEstimado ? ' · estimativa' : ''}`
           : 'sem área plantada ou regra para calcular'
       }
       alternador={
@@ -109,24 +139,6 @@ export function MapaDoPotencial({
       estadoDe={estadoDoPotencial}
       faixas={FAIXAS_DO_POTENCIAL[recorteDoPotencial]}
       unidade={UNIDADE_DO_POTENCIAL[recorteDoPotencial]}
-      classeDoAviso="terr-aviso terr-aviso-alerta"
-      aviso={
-        recorteDoPotencial === 'maquinas' ? (
-          <>
-            Regra a confirmar. É a área do município inteiro — clientes e não clientes juntos, sem separar: somar
-            "clientes" e "não clientes" a ela contaria a mesma área duas vezes. Clientes: {nº(enderecosComArea)} de{' '}
-            {nº(enderecos)} endereços com área e cultura. Não considera ciclo de troca, parque instalado, concorrência
-            nem outras culturas.
-          </>
-        ) : (
-          <>
-            Agora o mapa mostra a <strong>lavoura inteira</strong> do município, e não só a cultura da regra — são
-            bases diferentes. O valor da produção é o que o município <strong>colhe</strong>, publicado pelo IBGE em
-            mil reais; não é venda da Tracbel nem preço de máquina. O café entra uma vez só (o "Total" do IBGE, sem
-            somar Arábica e Canephora de novo).
-          </>
-        )
-      }
     />
   );
 }

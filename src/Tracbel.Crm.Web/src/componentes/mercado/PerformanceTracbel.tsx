@@ -13,7 +13,7 @@
  */
 
 import { useState } from 'react';
-import { LacunaConhecida } from '../cadastro/SemDado';
+import { MetricaAusente } from '../comum/MetricaAusente';
 import { PainelDeIndicadores, type Indicador } from '../cadastro/Indicadores';
 import { reaisCompactos } from '../territorio/escalas';
 import { nº } from '../territorio/indicadoresDaAdr';
@@ -51,7 +51,12 @@ export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDa
     <section data-bloco="performance-tracbel">
       <TituloDaSecao
         titulo="Performance Tracbel"
-        subtitulo="Quanto do mercado a Tracbel está levando — e quanto sobra. O que sai de vendas é medido; o resto depende das vendas em unidades."
+        subtitulo="Quanto do mercado a Tracbel está levando."
+        metodologia={
+          'O que sai de Vendas é medido — faturamento líquido pelo endereço principal do cliente. Captura e não ' +
+          'capturado dependem das vendas em UNIDADES (issue 69): reais não servem de numerador para uma demanda ' +
+          'medida em máquinas. Enquanto o denominador for demanda estimada, o número se chama captura, e não share.'
+        }
       />
 
       <AbasInternas
@@ -63,8 +68,7 @@ export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDa
             id: 'captura',
             rotulo: 'Captura',
             conteudo: (
-              <LacunaConhecida
-                metrica="Captura Tracbel"
+              <MetricaAusente metrica="Captura Tracbel"
                 motivo="Vendas da Tracbel em unidades dividido pela demanda anual estimada. Precisa da issue 69, que traz as vendas por município em MÁQUINAS: o faturamento em reais que já existe não serve de numerador para uma demanda medida em máquinas. Não é market share — share exigiria o total vendido por todos os fabricantes, que nenhuma fonte aberta publica."
               />
             ),
@@ -74,8 +78,7 @@ export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDa
             id: 'naoCapturado',
             rotulo: 'Não capturado',
             conteudo: (
-              <LacunaConhecida
-                metrica="Potencial não capturado"
+              <MetricaAusente metrica="Potencial não capturado"
                 motivo="A demanda ajustada menos as vendas, nunca abaixo de zero (issue 162). Depende da mesma issue 69 para sair em unidades e da issue 70 para sair em reais."
               />
             ),

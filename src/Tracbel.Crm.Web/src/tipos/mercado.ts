@@ -1,3 +1,4 @@
+import type { ProcedenciaDoIndicador } from './territorio';
 /**
  * A base de preços de mercado (issue 66) — como a rota `/v1/territorio/precos` a entrega.
  *
@@ -25,6 +26,8 @@ export type SerieDePreco = {
   fatorComercial: number;
   /** Do mais antigo ao mais recente. */
   meses: PrecoNoMes[];
+  /** De onde esta série veio e até quando ela vai (issue 167). */
+  procedencia: ProcedenciaDoIndicador | null;
 };
 
 export type PrecosDeMercado = {
@@ -58,6 +61,8 @@ export type SerieDeCusto = {
   unidadeComercial: string;
   /** Da safra mais antiga à mais recente. */
   safras: CustoNaSafra[];
+  /** De onde esta série veio — CONAB, a localidade e a safra (issue 167). */
+  procedencia: ProcedenciaDoIndicador | null;
 };
 
 /** Duas janelas de 12 meses do SICOR: a última e a anterior (issue 68). */
@@ -162,6 +167,8 @@ export type PainelDeCreditoRural = {
   regiao: CreditoNoRecorte | null;
   /** São Paulo inteiro — o denominador da comparação. */
   saoPaulo: CreditoNoRecorte | null;
+  /** De onde o crédito veio — SICOR, a janela e a ressalva do registro com atraso (issue 167). */
+  procedencia: ProcedenciaDoIndicador | null;
 };
 
 /**

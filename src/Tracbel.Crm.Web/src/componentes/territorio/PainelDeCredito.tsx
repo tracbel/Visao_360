@@ -17,6 +17,7 @@
  */
 
 import { InfoTooltip } from '../InfoTooltip';
+import { Procedencia } from '../comum/Procedencia';
 import { useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
 import { PainelDeIndicadores, type Indicador } from '../cadastro/Indicadores';
@@ -164,6 +165,7 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
     <>
       <div className="terr-secao-mercado">
         <h2 className="terr-secao-titulo">Crédito rural de investimento — SICOR (Banco Central)</h2>
+        <Procedencia procedencia={dados?.procedencia} oQue="o crédito rural" />
         <p className="terr-secao-subtitulo">
           Tudo o que foi financiado em São Paulo desde 2013, por município, produto e mês. <strong>Uma linha não é um
           contrato:</strong> o SICOR publica a soma dos contratos de cada combinação de produto, programa e fonte. Ele não

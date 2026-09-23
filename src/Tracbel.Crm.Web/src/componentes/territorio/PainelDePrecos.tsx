@@ -17,6 +17,7 @@
  */
 
 import { InfoTooltip } from '../InfoTooltip';
+import { Procedencia } from '../comum/Procedencia';
 import { ValorAusente } from '../comum/ValorAusente';
 import { useMemo, useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
@@ -24,6 +25,7 @@ import { SeloProcedencia } from '../cadastro/SeloProcedencia';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
+import { comAsCulturasDoMunicipioPrimeiro } from '../mercado/culturasDoMunicipio';
 import { obterCatalogoDoMercado } from '../../dados/api/potencial';
 import { obterPrecosDeMercado } from '../../dados/api/territorio';
 import { useRecurso } from '../../dados/api/useRecurso';
@@ -115,16 +117,22 @@ function variacaoEmUmAno(s: SerieDePreco): number | null {
   return anterior ? ultimo.valorEmReais / anterior.valorEmReais - 1 : null;
 }
 
-export function PainelDePrecos() {
+export function PainelDePrecos({ produtosDoMunicipio = [] }: { produtosDoMunicipio?: readonly number[] } = {}) {
   const { contexto } = useContextoDeAcesso();
   const precos = useRecurso((sinal) => obterPrecosDeMercado(contexto, sinal), [contexto.empresa, contexto.usuario]);
 
   // O CATÁLOGO DECIDE QUAIS SÃO AS CULTURAS (issue 165). Se ele não vier — permissão ou banco novo —,
   // a tabela mostra tudo em ordem alfabética, em vez de esconder série por causa de uma lista ausente.
   const catalogo = useRecurso((sinal) => obterCatalogoDoMercado(contexto, sinal), [contexto.empresa, contexto.usuario]);
+  // AS CULTURAS DO MUNICÍPIO ESCOLHIDO VÊM PRIMEIRO (issue 168). O preço continua
+  // sendo o de São Paulo — muda a ordem, não o número.
   const culturas = useMemo(
-    () => (catalogo.dados?.culturas ?? []).filter((c: CulturaNoCatalogo) => c.estaAtiva),
-    [catalogo.dados],
+    () =>
+      comAsCulturasDoMunicipioPrimeiro(
+        (catalogo.dados?.culturas ?? []).filter((c: CulturaNoCatalogo) => c.estaAtiva),
+        produtosDoMunicipio,
+      ),
+    [catalogo.dados, produtosDoMunicipio],
   );
 
   const [todos, setTodos] = useState(false);
@@ -230,6 +238,9 @@ export function PainelDePrecos() {
                     >
                       <td>
                         {s.produto}
+                        {/* CADA SÉRIE DIZ A PRÓPRIA ORIGEM (issue 167): fonte, código na fonte e o
+                            intervalo que ESTA série tem vêm do contrato, e não de um selo do painel. */}
+                        <Procedencia procedencia={s.procedencia} oQue={`o preço de ${s.produto.toLowerCase()}`} />
                         <div className="cad-sub">
                           {s.classificacao} · {s.fonte}
                         </div>

@@ -37,6 +37,7 @@ public sealed record PrecosDeMercado(
 /// <param name="UnidadeComercial">A unidade de negociação (<c>saca de 60 kg</c>).</param>
 /// <param name="FatorComercial">Quantas unidades da fonte cabem numa unidade comercial.</param>
 /// <param name="Meses">Os meses, do mais antigo ao mais recente.</param>
+/// <param name="Procedencia">De onde esta série veio e até quando ela vai (issue 167).</param>
 public sealed record SerieDePreco(
     string Fonte,
     string CodigoNaFonte,
@@ -46,7 +47,8 @@ public sealed record SerieDePreco(
     string Unidade,
     string UnidadeComercial,
     decimal FatorComercial,
-    IReadOnlyList<PrecoNoMes> Meses);
+    IReadOnlyList<PrecoNoMes> Meses,
+    Tracbel.Crm.Dominio.Mercado.ProcedenciaDoIndicador? Procedencia = null);
 
 /// <summary>O preço de um mês.</summary>
 /// <param name="Mes">O mês (dia 1).</param>

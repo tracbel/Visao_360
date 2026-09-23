@@ -15,13 +15,15 @@ public interface IRepositorioDeCustosDeProducao
 /// <param name="CodigoIbge">O código IBGE do município do local, quando casou com o catálogo.</param>
 /// <param name="UnidadeComercial">A unidade do custo por unidade.</param>
 /// <param name="Safras">As abas, da safra mais antiga à mais recente.</param>
+/// <param name="Procedencia">De onde esta série veio — CONAB, a localidade e a safra (issue 167).</param>
 public sealed record SerieDeCusto(
     string Cultura,
     string Local,
     string? Variante,
     int? CodigoIbge,
     string UnidadeComercial,
-    IReadOnlyList<CustoNaSafra> Safras);
+    IReadOnlyList<CustoNaSafra> Safras,
+    Tracbel.Crm.Dominio.Mercado.ProcedenciaDoIndicador? Procedencia = null);
 
 /// <summary>O custo de uma aba — por hectare e por unidade, nas cinco camadas da CONAB.</summary>
 public sealed record CustoNaSafra(

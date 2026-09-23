@@ -15,7 +15,7 @@
  */
 
 import { useState } from 'react';
-import { LacunaConhecida } from '../cadastro/SemDado';
+import { MetricaAusente } from '../comum/MetricaAusente';
 import { ReferenciaNaoEMunicipal } from '../comum/Comparacao';
 import { PainelDeCredito } from '../territorio/PainelDeCredito';
 import { PainelDeCustos } from '../territorio/PainelDeCustos';
@@ -28,9 +28,12 @@ type SubAba = 'rentabilidade' | 'credito' | 'troca' | 'percepcao';
 export function BlocoDoMomento({
   municipioSelecionado = null,
   nomeDoMunicipio = null,
+  produtosDoMunicipio = [],
 }: {
   municipioSelecionado?: number | null;
   nomeDoMunicipio?: string | null;
+  /** Os produtos da PAM do municipio, por area — priorizam as culturas de preco e custo (issue 168). */
+  produtosDoMunicipio?: readonly number[];
 } = {}) {
   const [subAba, setSubAba] = useState<SubAba>('rentabilidade');
 
@@ -38,7 +41,12 @@ export function BlocoDoMomento({
     <section data-bloco="momento-do-mercado">
       <TituloDaSecao
         titulo="Momento do mercado"
-        subtitulo="O que mudou desde a safra passada — preço, custo, crédito e a leitura do comercial. Anda todo mês, diferente do potencial estrutural, que anda devagar."
+        subtitulo="O que mudou desde a safra passada."
+        metodologia={
+          'Preço, custo, crédito e a leitura do comercial. Este bloco anda todo mês, diferente do potencial ' +
+          'estrutural, que anda devagar — e é por isso que os dois ficam separados: "mercado grande, agora retraído" ' +
+          'é uma decisão diferente de "mercado pequeno e aquecido".'
+        }
       />
 
       <AbasInternas
@@ -54,12 +62,12 @@ export function BlocoDoMomento({
                 {/* A FONTE É ESTADUAL, e a tela diz isso (issue 168): escolher um
                     município não reparte um preço de São Paulo por município. */}
                 <ReferenciaNaoEMunicipal nomeDoMunicipio={nomeDoMunicipio} fonte="São Paulo" />
-                <PainelDePrecos />
+                <PainelDePrecos produtosDoMunicipio={produtosDoMunicipio} />
                 <ReferenciaNaoEMunicipal
                   nomeDoMunicipio={nomeDoMunicipio}
                   fonte="a localidade de referência da CONAB"
                 />
-                <PainelDeCustos />
+                <PainelDeCustos produtosDoMunicipio={produtosDoMunicipio} />
               </>
             ),
           },
@@ -73,8 +81,7 @@ export function BlocoDoMomento({
             id: 'troca',
             rotulo: 'Termo de troca',
             conteudo: (
-              <LacunaConhecida
-                metrica="Termo de troca"
+              <MetricaAusente metrica="Termo de troca"
                 motivo="Quantas sacas o produtor precisa hoje para comprar uma máquina, contra cinco anos atrás. Precisa do preço de máquina por modelo ao longo do tempo (issue 70), que não existe no CRM — e o preço da saca sozinho não responde a pergunta."
               />
             ),
@@ -83,8 +90,7 @@ export function BlocoDoMomento({
             id: 'percepcao',
             rotulo: 'Percepção comercial',
             conteudo: (
-              <LacunaConhecida
-                metrica="Percepção comercial"
+              <MetricaAusente metrica="Percepção comercial"
                 motivo="O parâmetro existe, tem vigência e é informado em Configurações (issue 71), mas esta tela ainda não o lê: ele chega junto dos indicadores do recorte, na fase T3. Mostrar zero aqui seria afirmar neutralidade que ninguém declarou."
               />
             ),

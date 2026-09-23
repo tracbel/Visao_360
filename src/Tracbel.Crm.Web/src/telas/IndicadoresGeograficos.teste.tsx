@@ -262,8 +262,8 @@ const MALHA = {
  * receberem um atributo só para este teste.
  */
 function blocosNaOrdem(): string[] {
-  const nós = document.querySelectorAll<HTMLElement>('[data-bloco], .cad-kpis, .cad-semdado');
-  return [...nós].map((nó) => nó.dataset.bloco ?? (nó.classList.contains('cad-kpis') ? 'kpis' : 'metricas-sem-dado'));
+  const nós = document.querySelectorAll<HTMLElement>('[data-bloco], .cad-kpis');
+  return [...nós].map((nó) => nó.dataset.bloco ?? 'kpis');
 }
 
 const bloco = (nome: string) => document.querySelector<HTMLElement>(`[data-bloco="${nome}"]`);
@@ -358,7 +358,7 @@ describe('Indicadores Geográficos — as duas abas', () => {
       'kpis',
       'visao-geografica',
       'mapas',
-      'metricas-sem-dado',
+      'limitacoes',
       'potencial-estrutural',
       'momento-do-mercado',
       'precos',
@@ -604,6 +604,141 @@ describe('Indicadores Geográficos — procedência por indicador (issue 167)', 
   });
 });
 
+describe('Indicadores Geográficos — densidade da primeira camada (issues 31 e 33)', () => {
+  afterEach(() => {
+    obterIndicadoresTerritoriais.mockReset();
+    carregarMalhaDeSaoPaulo.mockReset();
+    guardado.clear();
+  });
+
+  /** Quanto texto permanente um bloco despeja na tela, sem contar o que está recolhido. */
+  function textoPermanente(no: HTMLElement): string {
+    const copia = no.cloneNode(true) as HTMLElement;
+    // O que está dentro de um `<details>` fechado e o que só existe com a dica
+    // aberta não ocupa a tela — e por isso não conta aqui.
+    copia.querySelectorAll('details, [role="tooltip"]').forEach((d) => d.remove());
+    return (copia.textContent ?? '').replace(/\s+/g, ' ').trim();
+  }
+
+  it('"Como interpretar os indicadores" não é mais um card permanente', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const comoLer = bloco('como-ler')!;
+    expect(comoLer.tagName).toBe('DETAILS');
+    expect(comoLer.classList.contains('card')).toBe(false);
+
+    // Fechado, ele ocupa só o rótulo — e o conteúdo continua lá dentro.
+    expect(comoLer.querySelector('summary')!.textContent).toBe('Como interpretar os indicadores');
+    expect(comoLer.hasAttribute('open')).toBe(false);
+    expect(comoLer.textContent).toContain('regra a confirmar');
+  });
+
+  it('"Limitações dos dados" é recolhível, e o conteúdo de auditoria não se perde', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const limitacoes = bloco('limitacoes')!;
+    expect(limitacoes.tagName).toBe('DETAILS');
+    expect(limitacoes.hasAttribute('open')).toBe(false);
+    expect(limitacoes.querySelector('summary')!.textContent).toBe('Limitações dos dados');
+    expect(limitacoes.textContent).toContain('participacaoDeMercado');
+    expect(limitacoes.textContent).toContain('emplacamento não integrado');
+  });
+
+  it('nenhum dos quatro mapas despeja parágrafo metodológico na tela', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const mapas = [...bloco('mapas')!.querySelectorAll<HTMLElement>('[data-mapa]')];
+    expect(mapas).toHaveLength(4);
+
+    for (const mapa of mapas) {
+      // O parágrafo de aviso sumiu do corpo de todos eles.
+      expect(mapa.querySelector('.terr-aviso')).toBeNull();
+
+      // E a metodologia está a um Tab de distância, não na cara de quem lê.
+      const gatilho = within(mapa).getByRole('button', { name: 'Fonte e método deste mapa' });
+      fireEvent.focus(gatilho);
+      const dica = screen.getByRole('tooltip');
+      expect(dica.textContent!.length).toBeGreaterThan(80);
+      expect(dica.textContent).toMatch(/Fonte:|Fontes:/);
+      fireEvent.blur(gatilho);
+    }
+  });
+
+  it('o mapa de potencial perdeu o texto sobre ciclo, concorrência e cliente × não cliente', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const potencial = document.querySelector<HTMLElement>('[data-mapa="potencial"]')!;
+    const corpo = textoPermanente(potencial);
+
+    for (const sumiu of ['ciclo de troca', 'concorrência', 'não clientes', 'contaria a mesma área duas vezes']) {
+      expect(corpo, `"${sumiu}" ainda ocupa a primeira camada`).not.toContain(sumiu);
+    }
+
+    // Mas o resumo continua dizendo a regra, que é executiva e cabe numa linha.
+    expect(corpo).toContain('3036N');
+    expect(corpo).toContain('estimativa');
+
+    fireEvent.focus(within(potencial).getByRole('button', { name: 'Fonte e método deste mapa' }));
+    const dica = screen.getByRole('tooltip').textContent!;
+    for (const preservado of ['ciclo de troca', 'concorrência', 'não clientes', 'contaria a mesma área duas vezes']) {
+      expect(dica, `"${preservado}" se perdeu`).toContain(preservado);
+    }
+  });
+
+  it('o mapa da estrutura perdeu o parágrafo de Censo, sigilo e ANP — e ele está na dica', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const estrutura = document.querySelector<HTMLElement>('[data-mapa="estrutura"]')!;
+    const corpo = textoPermanente(estrutura);
+
+    for (const sumiu of ['próximo sai em 2028', 'faixas de potência', 'só faz açúcar']) {
+      expect(corpo, `"${sumiu}" ainda ocupa a primeira camada`).not.toContain(sumiu);
+    }
+    expect(corpo).toContain('422 tratores');
+
+    fireEvent.focus(within(estrutura).getByRole('button', { name: 'Fonte e método deste mapa' }));
+    const dica = screen.getByRole('tooltip').textContent!;
+    for (const preservado of ['próximo sai em 2028', 'faixas de potência', 'só faz açúcar', 'SIGILO']) {
+      expect(dica, `"${preservado}" se perdeu`).toContain(preservado);
+    }
+  });
+
+  it('nenhum `title=` cru voltou para a tela', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const comTitle = [...document.querySelectorAll('[title]')].map((n) => n.tagName + ': ' + n.getAttribute('title'));
+    expect(comTitle).toEqual([]);
+  });
+
+  it('os subtítulos das seções são de uma frase — nenhum vira parágrafo', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const subtitulos = [...document.querySelectorAll<HTMLElement>('.terr-secao-subtitulo')];
+    expect(subtitulos.length).toBeGreaterThan(0);
+
+    for (const s of subtitulos) {
+      const texto = (s.textContent ?? '').trim();
+      expect(texto.length, `subtítulo longo: "${texto}"`).toBeLessThanOrEqual(90);
+      // Uma frase: no máximo um ponto final, e ele no fim.
+      expect(texto.split('.').filter(Boolean).length, `mais de uma frase: "${texto}"`).toBe(1);
+    }
+  });
+});
+
 describe('Indicadores Geográficos — ausência de dado é ausência de dado', () => {
   afterEach(() => {
     obterIndicadoresTerritoriais.mockReset();
@@ -620,12 +755,17 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
   function esperarLacuna(metrica: string) {
     const conteudos = [...document.querySelectorAll<HTMLElement>('.terr-subaba-conteudo')];
     const lacuna = conteudos
-      .flatMap((c) => [...c.querySelectorAll<HTMLElement>('.cad-lacuna')])
+      // O CONTRATO MUDOU NA T2.1: onde o espaço é de MÉTRICA, a ausência é
+      // compacta — rótulo, traço e dica —, e não um cartão de texto.
+      .flatMap((c) => [...c.querySelectorAll<HTMLElement>('.cad-metrica-ausente')])
       .find((l) => l.textContent?.includes(metrica));
 
-    expect(lacuna, `nenhuma lacuna para "${metrica}"`).toBeDefined();
+    expect(lacuna, `nenhuma lacuna compacta para "${metrica}"`).toBeDefined();
     expect(within(lacuna!).getByText('sem dado')).toBeInTheDocument();
-    return lacuna!;
+
+    // O motivo NÃO ocupa espaço permanente: ele só existe quando a dica abre.
+    fireEvent.focus(within(lacuna!).getByRole('button'));
+    return screen.getByRole('tooltip');
   }
 
   it('termo de troca e percepção comercial dizem o que falta, sem número', async () => {
@@ -658,13 +798,13 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
     await esperarACarga();
 
     fireEvent.click(screen.getByRole('button', { name: 'Captura' }));
-    expect(esperarLacuna('Captura Tracbel')).toHaveTextContent('Captura Tracbel');
+    esperarLacuna('Captura Tracbel');
 
     // O texto do motivo PODE dizer "não é market share" — é justamente ali que a
     // diferença se explica. O que não pode é um rótulo, uma aba ou um título
     // nomear o número assim.
     const rotulos = document.querySelectorAll<HTMLElement>(
-      '.cad-lacuna-metrica, [role="tab"], .terr-alternador button, h1, h2, h3, .card-title',
+      '.cad-metrica-ausente-rotulo, .cad-kpi-rotulo, [role="tab"], .terr-alternador button, h1, h2, h3, .card-title',
     );
     const comShare = [...rotulos].filter((r) => /share/i.test(r.textContent ?? ''));
     expect(comShare.map((r) => r.textContent)).toEqual([]);

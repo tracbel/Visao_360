@@ -43,11 +43,13 @@ export function MapaDeVendas({
       id="vendas"
       ligacao={ligacao}
       titulo={<>Vendas realizadas <SeloDeClassificacao classificacao={classificacao} /></>}
-      subtitulo={
-        <>
-          Faturamento líquido pelo endereço principal do cliente, de {mes(competenciaInicial)} a{' '}
-          {mes(competenciaFinal)}.
-        </>
+      // Fonte, período e as três ressalvas que moravam no parágrafo do rodapé.
+      metodologia={
+        'Fonte: CRM Tracbel — faturamento, pelo endereço principal do cliente. ' +
+        `Competência: ${mes(competenciaInicial)} a ${mes(competenciaFinal)}. ` +
+        'Método: total = máquina + peça + serviço + outros; pós-venda = peça + serviço, composição provisória. ' +
+        'Ressalvas: valor absoluto favorece cidades grandes; devolução e cancelamento não são abatidos; nota sem ' +
+        'cliente no CRM não tem município e fica na tabela, fora do mapa.'
       }
       resumo={
         <>
@@ -68,13 +70,6 @@ export function MapaDeVendas({
       estadoDe={estadoDasVendas}
       faixas={FAIXAS_VENDAS}
       unidade={`R$ no período — ${ROTULO_DE_VENDAS[recorteDeVendas].toLowerCase()}`}
-      aviso={
-        <>
-          Total = máquina + peça + serviço + outros; pós-venda = peça + serviço, <strong>composição provisória</strong>.
-          Valor absoluto favorece cidades grandes. Devolução e cancelamento não são abatidos. Nota sem cliente no CRM não
-          tem município e fica na tabela, fora do mapa.
-        </>
-      }
     />
   );
 }

@@ -18,6 +18,7 @@
  */
 
 import { InfoTooltip } from '../InfoTooltip';
+import { Procedencia } from '../comum/Procedencia';
 import { ValorAusente } from '../comum/ValorAusente';
 import { useMemo, useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
@@ -25,6 +26,7 @@ import { SeloProcedencia } from '../cadastro/SeloProcedencia';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
+import { comAsCulturasDoMunicipioPrimeiro } from '../mercado/culturasDoMunicipio';
 import { obterCatalogoDoMercado } from '../../dados/api/potencial';
 import { obterCustosDeProducao, obterRentabilidadeDasCulturas } from '../../dados/api/territorio';
 import { useRecurso } from '../../dados/api/useRecurso';
@@ -182,19 +184,22 @@ function TabelaDaMargem() {
   );
 }
 
-export function PainelDeCustos() {
+export function PainelDeCustos({ produtosDoMunicipio = [] }: { produtosDoMunicipio?: readonly number[] } = {}) {
   const { contexto } = useContextoDeAcesso();
   const custos = useRecurso((sinal) => obterCustosDeProducao(contexto, sinal), [contexto.empresa, contexto.usuario]);
 
   // A ORDEM VEM DO CATÁLOGO (issue 165): cada cultura declara o rótulo da série de custo da CONAB.
   // Catálogo ausente — permissão ou banco novo — cai na ordem alfabética, e não esconde cultura nenhuma.
   const catalogo = useRecurso((sinal) => obterCatalogoDoMercado(contexto, sinal), [contexto.empresa, contexto.usuario]);
+  // AS CULTURAS DO MUNICÍPIO ESCOLHIDO VÊM PRIMEIRO (issue 168). O custo continua
+  // sendo o da localidade de referência da CONAB — muda a ordem, não o número.
   const doCatalogo = useMemo(
     () =>
-      (catalogo.dados?.culturas ?? [])
-        .filter((c: CulturaNoCatalogo) => c.estaAtiva && c.serieDeCusto !== null)
-        .map((c: CulturaNoCatalogo) => c.serieDeCusto as string),
-    [catalogo.dados],
+      comAsCulturasDoMunicipioPrimeiro(
+        (catalogo.dados?.culturas ?? []).filter((c: CulturaNoCatalogo) => c.estaAtiva && c.serieDeCusto !== null),
+        produtosDoMunicipio,
+      ).map((c: CulturaNoCatalogo) => c.serieDeCusto as string),
+    [catalogo.dados, produtosDoMunicipio],
   );
 
   const series = custos.dados ?? [];
@@ -304,6 +309,9 @@ export function PainelDeCustos() {
                         >
                           <td>
                             {nomeDoLocal(s)}
+                            {/* CADA SÉRIE DIZ A PRÓPRIA ORIGEM (issue 167): fonte, localidade e
+                                safras vêm do contrato, e não de um selo genérico do painel. */}
+                            <Procedencia procedencia={s.procedencia} oQue={`o custo de ${s.cultura.toLowerCase()}`} />
                             <div className="cad-sub">
                               {u.produtividade !== null
                                 ? `${u.produtividade.toLocaleString('pt-BR')} ${u.unidadeDaProdutividade ?? ''}`

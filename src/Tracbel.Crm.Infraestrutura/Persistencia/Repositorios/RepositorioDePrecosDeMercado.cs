@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Organizacao;
+using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Portas;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
@@ -55,7 +56,19 @@ public sealed class RepositorioDePrecosDeMercado(CrmDbContext contexto) : IRepos
                         c.ValorEmReais,
                         dolar.TryGetValue(c.Mes, out var reaisPorDolar)
                             ? decimal.Round(c.ValorEmReais / reaisPorDolar, 4)
-                            : null))]);
+                            : null))],
+                    // CADA SÉRIE CARREGA A PRÓPRIA ORIGEM (issue 167): a fonte e o código são os da
+                    // linha, e a competência é o intervalo que ESTA série tem — não um texto fixo que
+                    // envelhece quando a carga avança.
+                    new ProcedenciaDoIndicador(
+                        g.Key.Fonte,
+                        $"Preços — {g.Key.Nivel}",
+                        g.Key.CodigoNaFonte,
+                        ultimo.Produto,
+                        $"{g.First().Mes:MM/yyyy} a {ultimo.Mes:MM/yyyy}",
+                        DateTime.UtcNow,
+                        "O preço é publicado para São Paulo; não existe série municipal. O valor em dólares usa o " +
+                        "PTAX do mês, e o mês sem PTAX fica sem valor em dólar — não é zero."));
             })
             .OrderBy(s => s.Produto, StringComparer.Ordinal)
             .ThenBy(s => s.Fonte, StringComparer.Ordinal)

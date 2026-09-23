@@ -50,6 +50,7 @@ export function AbaDeMercado({
   metricasSemDado,
   municipioCodigoIbge,
   nomeDoMunicipio,
+  produtosDoMunicipio,
   mostrarOsMapas,
   ficha,
 }: {
@@ -71,6 +72,8 @@ export function AbaDeMercado({
   municipioCodigoIbge: number | null;
   /** O nome do município escolhido, para os painéis dizerem a granularidade da fonte. */
   nomeDoMunicipio: string | null;
+  /** Os produtos da PAM do municipio escolhido, por area plantada (issue 168). */
+  produtosDoMunicipio: readonly number[];
   /** Se a grade pode ser desenhada — há resposta, há malha e o território está carregado. */
   mostrarOsMapas: boolean;
   /** A ficha do município escolhido, montada uma vez pela casca. */
@@ -84,7 +87,12 @@ export function AbaDeMercado({
       <section data-bloco="visao-geografica">
         <TituloDaSecao
           titulo="Visão geográfica"
-          subtitulo="Os quatro mapas no mesmo enquadramento: o mesmo município está no mesmo lugar nos quatro, e o cursor sobre ele mostra o número dele em todos. Clique para abrir a ficha."
+          subtitulo="Compare os municípios sob quatro perspectivas."
+          metodologia={
+            'Os quatro mapas usam o mesmo enquadramento: o mesmo município fica no mesmo lugar nos quatro, e o ' +
+            'cursor sobre ele mostra o número dele em todos ao mesmo tempo. Clicar abre a ficha do município e ' +
+            'passa a valer para a página inteira.'
+          }
         />
         {carregando && !mostrarOsMapas && <BlocoCarregando oQue="os mapas da ADR" />}
         {mostrarOsMapas && indicadores && ligacao && (
@@ -100,7 +108,9 @@ export function AbaDeMercado({
           />
         )}
         {ficha}
-        <MetricasSemDado metricas={metricasSemDado} titulo="O que estes mapas não dizem" />
+        {/* AUDITORIA É NÍVEL 4 (issue 33): fica na tela, inteira, mas recolhida —
+            ela não pode competir com mercado, potencial e mapas. */}
+        <MetricasSemDado metricas={metricasSemDado} titulo="Limitações dos dados" compacto />
       </section>
 
       <BlocoDePotencial
@@ -110,7 +120,11 @@ export function AbaDeMercado({
         municipioCodigoIbge={municipioCodigoIbge}
       />
 
-      <BlocoDoMomento municipioSelecionado={municipioCodigoIbge} nomeDoMunicipio={nomeDoMunicipio} />
+      <BlocoDoMomento
+        municipioSelecionado={municipioCodigoIbge}
+        nomeDoMunicipio={nomeDoMunicipio}
+        produtosDoMunicipio={produtosDoMunicipio}
+      />
 
       <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} />
     </>

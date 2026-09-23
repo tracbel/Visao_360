@@ -160,7 +160,25 @@ public sealed class RepositorioDeCreditoRural(CrmDbContext contexto) : IReposito
         regiao = regiao with { Indice = Indice(regiao.Janelas) };
         saoPaulo = saoPaulo with { Indice = Indice(saoPaulo.Janelas) };
 
-        return new PainelDeCreditoRural(ultimoMes, janela, porAno, porProduto, porMunicipio, regiao, saoPaulo);
+        // O CRÉDITO CARREGA A PRÓPRIA ORIGEM (issue 167): a janela sai do dado, e a ressalva é a que
+        // muda a leitura — o Banco Central acrescenta contrato registrado com atraso nos meses
+        // recentes, e uma linha do SICOR não é um contrato.
+        var procedencia = new ProcedenciaDoIndicador(
+            "BCB/SICOR",
+            "Crédito rural — operações contratadas",
+            "InvestMunicipioProduto",
+            "Valor contratado e número de linhas",
+            janela is null
+                ? (ultimoMes is { } mes ? $"até {mes:MM/yyyy}" : null)
+                : $"{janela.Inicio:MM/yyyy} a {janela.Fim:MM/yyyy}, contra {janela.InicioAnterior:MM/yyyy} a {janela.FimAnterior:MM/yyyy}",
+            DateTime.UtcNow,
+            "Uma LINHA do SICOR não é um contrato: ela já é a soma dos contratos daquela combinação de município " +
+            "e produto, e não traz quantidade — por isso valor ÷ linhas é o valor médio por linha, e não ticket " +
+            "médio. O Banco Central continua acrescentando contrato registrado com atraso nos meses recentes, " +
+            "então a janela não termina no último mês com dado.");
+
+        return new PainelDeCreditoRural(
+            ultimoMes, janela, porAno, porProduto, porMunicipio, regiao, saoPaulo, procedencia);
     }
 
     /// <summary>O mês (dia 1) de um número "ano × 12 + mês", que é como as janelas são comparadas.</summary>
