@@ -100,28 +100,23 @@ for (const { nome, largura, altura } of LARGURAS) {
 
     test('a dica junto da borda direita não sai da tela', async ({ page }) => {
       // ============================================================================
-      // DEFEITO CONHECIDO E MEDIDO — 23/09/2026, primeira execução desta suíte.
+      // DEFEITO MEDIDO NA T4.5, CORRIGIDO NA T4.6 — e é por isso que este teste
+      // deixou de ser uma falha esperada.
       //
-      // O balão da dica é posicionado só por CSS (`dica-balao-acima/abaixo`), sem
-      // detecção de colisão e sem portal. Junto da borda direita ele VAZA a janela,
-      // e dentro de um cartão com `overflow:hidden` ele é RECORTADO — o texto que
-      // explica o número simplesmente não aparece para quem mais precisa dele.
+      // O balão era posicionado só por CSS, sem detecção de colisão e sem portal.
+      // Junto da borda direita ele vazava a janela — 2016px numa tela de 1920, 803px
+      // numa de 768, 472px numa de 390 — e dentro de um cartão com `overflow:hidden`
+      // chegava a ser RECORTADO: o texto que explica o número desaparecia justamente
+      // para quem tinha ido procurá-lo.
       //
-      // Medido:  1920 → 2016px (96 a mais) · 1280 · 1024 · 768 → 803px · 390 → 472px
-      // Passa em 1440 apenas porque ali a dica mais à direita fica longe da borda.
+      // O conserto foi `@radix-ui/react-tooltip` por dentro do `InfoTooltip`, em modo
+      // CONTROLADO — o Radix cuida de portal, colisão e posição; abrir e fechar
+      // continua nosso, porque o Radix é ponteiro-e-foco por design e o toque é
+      // requisito declarado do componente.
       //
-      // `test.fail()` MARCA O DEFEITO SEM MENTIR: o teste continua afirmando o
-      // comportamento certo, a suíte fica verde enquanto o defeito existe, e no dia
-      // em que alguém o corrigir esta linha FICA VERMELHA sozinha, pedindo para ser
-      // apagada. É o contrário de um `skip`, que esconderia o problema.
-      //
-      // O conserto é a adoção de `@radix-ui/react-tooltip` em modo controlado por
-      // dentro do `InfoTooltip`, sem mudar a API pública — a fase seguinte da T4.5.
-      // Quando ela entrar, esta lista tem de ficar vazia e a marcação, sair.
+      // Se esta afirmação voltar a falhar, foi porque alguém pôs posição de volta no
+      // CSS do balão, ou tirou o portal.
       // ============================================================================
-      const AINDA_VAZA = ['1920x1080', '1280x800', '1024x768', '768x1024', '390x844'];
-      test.fail(AINDA_VAZA.includes(nome), 'a dica não tem detecção de colisão — fase T4.5, Radix Tooltip');
-
       await abrir(page, 'completo');
 
       const dicas = page.locator('.dica-gatilho');

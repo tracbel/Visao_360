@@ -9320,10 +9320,12 @@ tr.funil-nova {
   outline-offset: 2px;
   color: var(--jd-green);
 }
+/* O BALÃO NÃO SE POSICIONA MAIS (fase T4.6). `position`, `left` e `transform`
+   saíram daqui: quem calcula onde ele cabe é o Radix, que o desenha num portal
+   fora do cartão e o vira ou desliza antes de encostar na borda da janela. O que
+   sobra aqui é só aparência. Pôr posição de volta brigaria com o cálculo dele e
+   traria de volta o recorte que a T4.5 mediu. */
 .dica-balao {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
   width: max-content;
   max-width: 260px;
   padding: 8px 10px;
@@ -9344,14 +9346,14 @@ tr.funil-nova {
      não pode virar clique na tela de trás nem tirar o ponteiro do gatilho. */
   pointer-events: none;
 }
-.dica-balao-abaixo { top: calc(100% + 6px); }
-.dica-balao-acima { bottom: calc(100% + 6px); }
+/* `.dica-balao-abaixo` e `.dica-balao-acima` saíram: o lado agora é a prop
+   `side` do Radix, e ele pode INVERTER o lado quando não couber — que é
+   exatamente o que se quer e o que uma classe fixa impedia. */
 
-/* No celular o balão de 260px caberia fora da tela quando o gatilho está na
-   borda; aqui ele encosta na margem em vez de sair. */
-@media (max-width: 640px) {
-  .dica-balao { max-width: min(260px, calc(100vw - 32px)); }
-}
+/* O teto continua valendo em toda largura, e não só no celular: o Radix desliza
+   o balão para dentro da janela, mas um balão mais largo que a tela não teria
+   para onde deslizar. */
+.dica-balao { max-width: min(260px, calc(100vw - 32px)); }
 
 /* P-20 (fase 3): a filial guardada que deixou de ser permitida volta para a de casa, com aviso. */
 .cad-filial-aviso {
