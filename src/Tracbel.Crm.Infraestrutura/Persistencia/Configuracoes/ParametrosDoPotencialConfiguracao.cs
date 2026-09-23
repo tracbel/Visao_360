@@ -221,11 +221,13 @@ public sealed class ParametroDoPotencialConfiguracao : IEntityTypeConfiguration<
             MesesDeCarenciaDoSicor = (short?)null,
             MinimoDeLinhasNoCredito = (int?)null,
             VigenteDesde = new DateOnly(2026, 9, 23),
-            Justificativa = "D-P05 decidida em 23/09/2026 (documento 48, §5.1): pesos MEDIDOS NO PROTÓTIPO, a confirmar — " +
-                            "0,40 no preço e na rentabilidade, 0,50 no crédito, fator entre 0,40 e 1,50. A percepção do " +
-                            "gestor pesa 1,00, e não os 0,40 do protótipo: lá a escala ia de −2 a +2 e dava ±40% de efeito; " +
-                            "a D-P04 trocou para ±5 pontos percentuais, e o peso 1,00 é o que torna esse rótulo literal. " +
-                            "O termo de troca fica fora até a issue 70 trazer o preço de máquina.",
+            // A JUSTIFICATIVA CABE EM ParametroComVigencia.TamanhoDoTexto (400). A primeira versão tinha
+            // 439 e passou nos testes locais — o SQLite não valida tamanho de varchar, o SQL Server sim,
+            // e quem pegou foi o teste de contêiner no CI. O detalhe longo mora no documento 48, §7.4.
+            Justificativa = "D-P05 decidida em 23/09/2026 (documento 48, §5.1): pesos medidos no protótipo, a confirmar — " +
+                            "0,40 no preço e na rentabilidade, 0,50 no crédito, fator entre 0,40 e 1,50. A percepção pesa " +
+                            "1,00, e não os 0,40 do protótipo: a D-P04 trocou a escala de −2 a +2 para ±5 pontos " +
+                            "percentuais, e 1,00 torna esse rótulo literal. O termo de troca fica fora até a issue 70.",
             InformadoPorId = (long?)null,
             InformadoEm = new DateTime(2026, 9, 23, 0, 0, 0, DateTimeKind.Utc),
             RevogadoEm = (DateTime?)null,
