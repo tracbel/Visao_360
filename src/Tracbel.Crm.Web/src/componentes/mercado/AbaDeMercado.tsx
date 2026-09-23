@@ -89,6 +89,7 @@ export function AbaDeMercado({
           porte e o momento logo abaixo — dois números, nunca um. */}
       <KpisExecutivos
         momento={indicadores?.momento ?? null}
+        demandaEstrutural={recorte?.demandaAnualDeMaquinas ?? null}
         demandaDeSaoPaulo={null}
         carregando={carregando}
         procedenciaDaDemanda={indicadores?.momento?.procedencia ?? null}
@@ -139,6 +140,7 @@ export function AbaDeMercado({
         municipioSelecionado={municipioCodigoIbge}
         nomeDoMunicipio={nomeDoMunicipio}
         produtosDoMunicipio={produtosDoMunicipio}
+        momento={indicadores?.momento ?? null}
       />
 
       <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} />

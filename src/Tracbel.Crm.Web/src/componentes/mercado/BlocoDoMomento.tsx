@@ -12,6 +12,11 @@
  * (issue 71): as duas dizem o que falta, no lugar onde o número apareceria. Um
  * número plausível e errado leva a uma decisão; um espaço explicado leva a uma
  * pergunta.
+ *
+ * A COMPOSIÇÃO DO FATOR ABRE O BLOCO (fase T3.1). O resumo executivo mostra o
+ * fator agregado e mais nada; a conta que o produz — cultura por cultura, com as
+ * três parcelas de cada uma — é a primeira aba daqui. É o lugar certo: quem
+ * pergunta "por que 0,88?" já está olhando o momento do mercado.
  */
 
 import { useState } from 'react';
@@ -22,20 +27,25 @@ import { PainelDeCustos } from '../territorio/PainelDeCustos';
 import { PainelDePrecos } from '../territorio/PainelDePrecos';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
 import { AbasInternas } from './AbasInternas';
+import { ComposicaoDoFator } from './ComposicaoDoFator';
+import type { MomentoDoRecorte } from '../../tipos/territorio';
 
-type SubAba = 'rentabilidade' | 'credito' | 'troca' | 'percepcao';
+type SubAba = 'composicao' | 'rentabilidade' | 'credito' | 'troca' | 'percepcao';
 
 export function BlocoDoMomento({
   municipioSelecionado = null,
   nomeDoMunicipio = null,
   produtosDoMunicipio = [],
+  momento = null,
 }: {
   municipioSelecionado?: number | null;
   nomeDoMunicipio?: string | null;
   /** Os produtos da PAM do municipio, por area — priorizam as culturas de preco e custo (issue 168). */
   produtosDoMunicipio?: readonly number[];
+  /** O momento do recorte — a composição por cultura do fator agregado (fase T3.1). */
+  momento?: MomentoDoRecorte | null;
 } = {}) {
-  const [subAba, setSubAba] = useState<SubAba>('rentabilidade');
+  const [subAba, setSubAba] = useState<SubAba>('composicao');
 
   return (
     <section data-bloco="momento-do-mercado">
@@ -54,6 +64,13 @@ export function BlocoDoMomento({
         ativa={subAba}
         aoTrocar={setSubAba}
         abas={[
+          {
+            id: 'composicao',
+            rotulo: 'Composição do fator',
+            // A CONTA DO NÚMERO DO TOPO, aberta: cultura, índice dela, fator dela
+            // e as três parcelas. Some a coluna e confira.
+            conteudo: <ComposicaoDoFator momento={momento} />,
+          },
           {
             id: 'rentabilidade',
             rotulo: 'Rentabilidade',

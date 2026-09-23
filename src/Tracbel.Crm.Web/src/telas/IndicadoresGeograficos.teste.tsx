@@ -207,43 +207,34 @@ function painel(): PainelTerritorial {
         },
         usinas: null,
       },
-      // O MOMENTO DO RECORTE (fase T3): fator, parcelas e porte. A demanda sai
-      // nula — o ciclo de renovação é o D-P01 —, e o porte sai SEM NOME, porque
-      // as bandas da issue 166 ainda não foram decididas.
+      // O MOMENTO DO RECORTE COMO O DADO DE HOJE O PRODUZ (fase T3.1).
+      //
+      // O `potencialDoRecorte` acima não tem demanda nem cultura — o ciclo de
+      // renovação é o D-P01 —, então o fator agregado sai AUSENTE, com o motivo.
+      // Antes da T3.1 esta mesma amostra trazia fator 0,88 com demanda nula, o
+      // que só era possível porque o fator vinha do índice de UMA cultura: a
+      // razão entre as duas somas não existe sem denominador. A amostra com
+      // composição está em `comMomento()`.
       momento: {
-        potencial: {
-          demandaEstrutural: null,
-          fator: {
-            fator: 0.88,
-            parcelaDePreco: -0.08,
-            parcelaDaPercepcao: 0.02,
-            parcelaDeCredito: -0.06,
-            fatorSemLimite: 0.88,
-            cortadoPeloLimite: false,
-            indicadoresUsados: 3,
-            estimativa: true,
-            motivo: 'Nenhum',
-          },
-          demandaAjustada: null,
-          variacaoPercentual: null,
-          cenarios: [],
-          frase: 'estimativa: a regra do café ainda não foi confirmada',
-        },
-        indiceDePreco: 0.8,
-        culturaDoIndiceDePreco: 'Café (Total)',
+        fatorAgregado: null,
+        motivoSemFator: 'SemDemandaEstrutural',
+        demandaEstruturalTotal: null,
+        demandaAjustadaTotal: null,
+        porCultura: [],
+        predominante: null,
         indiceDeCredito: 0.88,
         percepcaoPercentual: 2,
         porte: null,
-        faixaDoMomento: 'Retraído',
-        leitura: 'Mercado retraído.',
+        faixaDoMomento: null,
+        leitura: '',
         procedencia: {
           fonte: 'CRM Tracbel',
-          pesquisa: 'Fator de ciclo de mercado (issue 74)',
+          pesquisa: 'Fator de ciclo de mercado (issue 74), agregado pela demanda',
           tabela: null,
-          variavel: 'Preço e rentabilidade, crédito e percepção comercial',
+          variavel: 'Demanda ajustada total ÷ demanda estrutural total',
           competencia: 'preço até 06/2026',
           ultimaCargaUtc: '2026-09-23T12:00:00Z',
-          ressalva: 'O fator é 1,00 quando nada desvia. Indicador ausente vale desvio ZERO.',
+          ressalva: 'O fator é de CADA CULTURA. Indicador ausente vale desvio ZERO.',
         },
       },
     },
@@ -334,9 +325,86 @@ function abrir(entrada = '/cobertura') {
   );
 }
 
-function responder() {
+/**
+ * A MESMA TELA COM DEMANDA E COMPOSIÇÃO (fase T3.1).
+ *
+ * A ARITMÉTICA FECHA DE PROPÓSITO, e é ela que está sob prova: Café renova 300
+ * máquinas por ano com fator 0,84 (→ 252) e Cana renova 100 com fator 1,00 (→
+ * 100). Σ ajustada 352 ÷ Σ estrutural 400 = **0,88** — o número que aparece no
+ * topo. Some a coluna da tela e dá isso.
+ *
+ * A CANA TEM A MAIOR ÁREA e o CAFÉ manda no fator, porque quem pesa é a demanda.
+ * É exatamente o caso que a regra antiga errava: ela pegaria o índice de preço da
+ * cana (1,30) e o recorte inteiro sairia aquecido.
+ */
+function comMomento(p: PainelTerritorial): PainelTerritorial {
+  const café = {
+    culturaCodigo: 'CAFE',
+    cultura: 'Café (Total)',
+    demandaEstrutural: 300,
+    areaUtilHectares: 4_200,
+    indiceDePreco: 0.8,
+    fator: {
+      fator: 0.84,
+      parcelaDePreco: -0.08,
+      parcelaDaPercepcao: 0.02,
+      parcelaDeCredito: -0.06,
+      fatorSemLimite: 0.84,
+      cortadoPeloLimite: false,
+      indicadoresUsados: 3,
+      estimativa: true,
+      motivo: 'Nenhum',
+    },
+    demandaAjustada: 252,
+  };
+
+  const cana = {
+    culturaCodigo: 'CANA',
+    cultura: 'Cana-de-açúcar',
+    demandaEstrutural: 100,
+    areaUtilHectares: 5_800,
+    indiceDePreco: 1.3,
+    fator: {
+      fator: 1.0,
+      parcelaDePreco: 0.04,
+      parcelaDaPercepcao: 0.02,
+      parcelaDeCredito: -0.06,
+      fatorSemLimite: 1.0,
+      cortadoPeloLimite: false,
+      indicadoresUsados: 3,
+      estimativa: true,
+      motivo: 'Nenhum',
+    },
+    demandaAjustada: 100,
+  };
+
+  return {
+    ...p,
+    indicadores: {
+      ...p.indicadores,
+      potencialDoRecorte: { ...p.indicadores.potencialDoRecorte!, demandaAnualDeMaquinas: 400 },
+      momento: {
+        ...p.indicadores.momento!,
+        fatorAgregado: 0.88,
+        motivoSemFator: 'Nenhum',
+        demandaEstruturalTotal: 400,
+        demandaAjustadaTotal: 352,
+        porCultura: [café, cana],
+        predominante: {
+          cultura: 'Cana-de-açúcar',
+          fatia: 58,
+          criterio: 'maior área útil entre as culturas com regra de potencial',
+        },
+        faixaDoMomento: 'Retraído',
+        leitura: 'Mercado retraído.',
+      },
+    },
+  };
+}
+
+function responder(ajustar: (p: PainelTerritorial) => PainelTerritorial = (p) => p) {
   obterIndicadoresTerritoriais.mockResolvedValue({
-    dados: painel(),
+    dados: ajustar(painel()),
     procedencia: {
       sistema: 'CRM Tracbel',
       objeto: 'territorio.Municipio',
@@ -405,8 +473,9 @@ describe('Indicadores Geográficos — as duas abas', () => {
       'limitacoes',
       'potencial-estrutural',
       'momento-do-mercado',
-      'precos',
-      'custos',
+      // O BLOCO ABRE NA COMPOSIÇÃO (fase T3.1): é a conta do número que a tela
+      // mostra lá em cima. Preços e custos continuam na aba Rentabilidade.
+      'composicao-do-fator',
       'performance-tracbel',
       'kpis',
     ]);
@@ -712,8 +781,27 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     expect(dica).toHaveTextContent(/NÃO quer dizer "pequeno"/);
   });
 
-  it('o momento TEM nome e número — ele já tem faixas decididas', async () => {
+  it('sem demanda estrutural o momento sai AUSENTE com o motivo — e nunca 1,00', async () => {
+    // A amostra padrão é o dado de hoje: potencial sem ciclo de renovação. Sem
+    // denominador não há razão, e "não há base para dizer" não é "está neutro".
     responder();
+    abrir();
+    await esperarACarga();
+
+    const porte = bloco('porte-e-momento')!;
+    expect(porte).toHaveTextContent('Momento:');
+    expect(porte).not.toHaveTextContent('1,00');
+    expect(porte).not.toHaveTextContent('Retraído');
+
+    fireEvent.focus(within(porte).getByRole('button', { name: 'Por que o momento do mercado não aparece' }));
+    const dica = screen.getByRole('tooltip');
+    expect(dica).toHaveTextContent(/ciclo de renovação/);
+    expect(dica).toHaveTextContent(/issue 63/);
+    expect(dica).toHaveTextContent(/diferente de "o mercado está neutro"/);
+  });
+
+  it('o momento TEM nome e número quando há demanda — ele já tem faixas decididas', async () => {
+    responder(comMomento);
     abrir();
     await esperarACarga();
 
@@ -723,36 +811,107 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     expect(porte).toHaveTextContent('Mercado retraído.');
   });
 
-  it('as parcelas são TRÊS, e o custo não é uma quarta seta', async () => {
-    responder();
-    abrir();
-    await esperarACarga();
-
-    const parcelas = [...bloco('porte-e-momento')!.querySelectorAll('.terr-parcela-nome')].map(
-      (n) => n.textContent ?? '',
-    );
-    expect(parcelas).toEqual(['Commodity', 'Crédito', 'Percepção']);
-    expect(parcelas).not.toContain('Custo');
-  });
-
-  it('a direção da seta carrega o significado, e a dica diz onde o custo entra', async () => {
-    responder();
+  it('o resumo executivo NÃO tem as três setas agregadas (fase T3.1)', async () => {
+    // O QUE ESTE TESTE IMPEDE: que alguém volte a desenhar Rentabilidade,
+    // Crédito e Percepção no topo. Elas são calculadas por CULTURA; agregá-las
+    // exigiria decompor o quociente em três pedaços que o domínio não produz.
+    responder(comMomento);
     abrir();
     await esperarACarga();
 
     const porte = bloco('porte-e-momento')!;
-    const setas = [...porte.querySelectorAll('.terr-parcela-seta')].map((n) => n.textContent);
-    // preço −0,08 → baixa; crédito −0,06 → baixa; percepção +0,02 → sobe.
-    expect(setas).toEqual(['↓', '↓', '↑']);
+    expect(porte.querySelectorAll('.terr-parcela-seta')).toHaveLength(0);
+    expect(porte.querySelectorAll('.terr-parcela-nome')).toHaveLength(0);
 
-    fireEvent.focus(within(porte).getByRole('button', { name: 'Como commodity entra no fator' }));
+    // E o ⓘ do topo diz onde a composição está, em vez de a conta sumir.
+    fireEvent.focus(within(porte).getByRole('button', { name: 'Como o momento do mercado é composto' }));
+    const dica = screen.getByRole('tooltip');
+    expect(dica).toHaveTextContent(/Composição do fator/);
+    expect(dica).toHaveTextContent(/POR CULTURA/);
+  });
+
+  it('a composição mostra uma linha por cultura, cada uma com o índice DELA', async () => {
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    const composicao = bloco('composicao-do-fator')!;
+    const linhas = [...composicao.querySelectorAll<HTMLElement>('.terr-composicao-linha')];
+    expect(linhas.map((l) => l.dataset.cultura)).toEqual(['CAFE', 'CANA']);
+
+    // Índices diferentes na mesma tela — o que a regra antiga escondia atrás de um só.
+    expect(linhas[0]).toHaveTextContent('0,80');
+    expect(linhas[0]).toHaveTextContent('0,84');
+    expect(linhas[1]).toHaveTextContent('1,30');
+    // A demanda do café é o que manda no agregado: 300 das 400 máquinas/ano.
+    expect(linhas[0]).toHaveTextContent('300 → 252');
+    expect(linhas[1]).toHaveTextContent('100 → 100');
+  });
+
+  it('as parcelas são TRÊS por cultura, e o custo não é uma quarta seta', async () => {
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    const café = bloco('composicao-do-fator')!.querySelector<HTMLElement>('[data-cultura="CAFE"]')!;
+    const parcelas = [...café.querySelectorAll('.terr-parcela-nome')].map((n) => n.textContent ?? '');
+    expect(parcelas).toEqual(['Commodity', 'Crédito', 'Percepção']);
+    expect(parcelas).not.toContain('Custo');
+  });
+
+  it('a direção da seta carrega o significado, e a dica diz que o índice é DESTA cultura', async () => {
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    const composicao = bloco('composicao-do-fator')!;
+    const café = composicao.querySelector<HTMLElement>('[data-cultura="CAFE"]')!;
+    const cana = composicao.querySelector<HTMLElement>('[data-cultura="CANA"]')!;
+
+    // Café: preço −0,08 → baixa; crédito −0,06 → baixa; percepção +0,02 → sobe.
+    expect([...café.querySelectorAll('.terr-parcela-seta')].map((n) => n.textContent)).toEqual(['↓', '↓', '↑']);
+    // Cana: o preço dela SOBE. Duas culturas, dois sentidos, na mesma tela.
+    expect([...cana.querySelectorAll('.terr-parcela-seta')].map((n) => n.textContent)).toEqual(['↑', '↓', '↑']);
+
+    fireEvent.focus(
+      within(café).getByRole('button', { name: 'Como commodity entra no fator de Café (Total)' }),
+    );
     const dica = screen.getByRole('tooltip');
     expect(dica).toHaveTextContent(/O custo entra AQUI/);
-    expect(dica).toHaveTextContent(/Café \(Total\)/);
+    expect(dica).toHaveTextContent(/o índice é DESTA cultura/);
+  });
+
+  it('o total fecha a conta que o topo mostra: 352 ÷ 400 = 0,88', async () => {
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    const total = bloco('composicao-do-fator')!.querySelector('.terr-composicao-total')!;
+    expect(total).toHaveTextContent('352');
+    expect(total).toHaveTextContent('400');
+    expect(total).toHaveTextContent('0,88');
+    expect(bloco('porte-e-momento')!).toHaveTextContent('0,88');
+  });
+
+  it('a principal cultura é contexto, e a dica diz que a área não entra no cálculo', async () => {
+    // A CANA TEM A MAIOR ÁREA e o fator é 0,88, puxado pelo café: se a área
+    // mandasse, o índice 1,30 da cana deixaria o recorte aquecido.
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    const contexto = bloco('porte-e-momento')!.querySelector<HTMLElement>('[data-contexto="predominante"]')!;
+    expect(contexto).toHaveTextContent('Cana-de-açúcar');
+    expect(contexto).toHaveTextContent('58%');
+
+    fireEvent.focus(within(contexto).getByRole('button', { name: 'Qual é o critério da principal cultura' }));
+    const dica = screen.getByRole('tooltip');
+    expect(dica).toHaveTextContent(/maior área útil entre as culturas com regra de potencial/);
+    expect(dica).toHaveTextContent(/não muda o número acima/);
   });
 
   it('o fator explica a própria origem, com a competência do preço', async () => {
-    responder();
+    responder(comMomento);
     abrir();
     await esperarACarga();
 
