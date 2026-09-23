@@ -16,8 +16,25 @@
  * faz com tamanho e espaço, não com moldura.
  */
 
+import { Beef, Factory, Landmark, Sprout, Tractor } from 'lucide-react';
 import { FaixaDeEstrutura, ItemDaFaixa } from '../dashboard/Dashboard';
 import type { Indicador } from '../cadastro/Indicadores';
+
+/**
+ * O ícone de cada indicador estrutural, pelo rótulo.
+ *
+ * Por rótulo e não por posição: a ordem da faixa vem de `kpisDoMercado`, e
+ * amarrar o ícone ao índice faria o trator virar boi no dia em que alguém
+ * reordenasse a lista. Rótulo desconhecido simplesmente não ganha ícone — é
+ * melhor que ganhar o ícone errado.
+ */
+const ICONES: Record<string, typeof Tractor> = {
+  'Parque de tratores': Tractor,
+  Propriedades: Landmark,
+  'Valor da lavoura': Sprout,
+  'Usinas de etanol': Factory,
+  'Rebanho bovino': Beef,
+};
 
 export function FaixaDoMercado({ indicadores }: { indicadores: Indicador[] }) {
   if (indicadores.length === 0) return null;
@@ -28,6 +45,7 @@ export function FaixaDoMercado({ indicadores }: { indicadores: Indicador[] }) {
         <ItemDaFaixa
           key={i.rotulo}
           rotulo={i.rotulo}
+          icone={ICONES[i.rotulo]}
           valor={i.valor}
           // A COMPARAÇÃO CONTINUA SENDO DE CADA NÚMERO (documento 50, §7), só
           // que na dica dele em vez de numa linha permanente embaixo. Uma dica

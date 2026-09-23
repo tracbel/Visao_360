@@ -465,6 +465,33 @@
 }
 
 /* -----------------------------------------------------------------------------
+   TABELA E FICHA LADO A LADO (fase T4.7)
+
+   A ficha ia para o fim da página: clicar na linha 40 mandava o leitor rolar
+   duzentos pixels para ver o detalhe e perder de vista a linha de onde veio.
+   Comparar dois municípios virava um vai-e-vem.
+
+   SEM MUNICÍPIO ESCOLHIDO A TABELA OCUPA TUDO. Uma coluna vazia esperando clique
+   seria metade da tela reservada para o que talvez não aconteça.
+
+   A ficha GRUDA no topo enquanto a tabela rola: ela é o detalhe da linha
+   escolhida, e some da vista assim que a lista anda alguns nomes.
+   ----------------------------------------------------------------------------- */
+.terr-territorio { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-4); }
+
+.terr-territorio-com-ficha { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; }
+
+@media (max-width: 1200px) {
+  .terr-territorio-com-ficha { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (min-width: 1201px) {
+  .terr-territorio-ficha { position: sticky; top: var(--e-4); }
+}
+
+.terr-territorio-ficha { min-width: 0; }
+
+/* -----------------------------------------------------------------------------
    A TABELA DE MUNICÍPIOS (item 12 da fase T4.6)
 
    Ela ocupava a tela inteira e parecia listagem de banco: cabeçalho que sumia ao

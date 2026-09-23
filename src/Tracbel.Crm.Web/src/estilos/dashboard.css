@@ -86,6 +86,53 @@
   .dash-duas-colunas { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* -----------------------------------------------------------------------------
+   TRÊS COLUNAS NO RODAPÉ (fase T4.7)
+
+   Potencial estrutural, Momento do mercado e Performance Tracbel respondem três
+   perguntas que se olham JUNTAS: o que a área comporta, como o mercado está
+   agora, e quanto a Tracbel leva. Empilhados eles davam mil e duzentos pixels de
+   rolagem para uma leitura só.
+
+   `align-items: start` é o que impede o painel mais curto de esticar até a
+   altura do mais alto — três caixas brancas da mesma altura com conteúdo de
+   alturas diferentes têm vazio dentro, e vazio dentro de caixa parece falta.
+   ----------------------------------------------------------------------------- */
+.dash-tres-colunas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-5);
+  align-items: start;
+}
+
+@media (max-width: 1400px) {
+  .dash-tres-colunas { grid-template-columns: minmax(0, 1fr); gap: var(--e-6); }
+}
+
+/* Dentro de uma coluna estreita, a grade de KPI do painel volta a ser de um por
+   linha: quatro cartões em 500px viram quatro tarjas. */
+.dash-tres-colunas .dash-kpis,
+.dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: minmax(0, 1fr); }
+
+@media (max-width: 1400px) {
+  .dash-tres-colunas .dash-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1100px) {
+  .dash-tres-colunas .dash-kpis,
+  .dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .dash-tres-colunas .dash-kpis,
+  .dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* As duas colunas dos blocos analíticos não cabem dentro de uma coluna de três:
+   ali dentro elas viram uma. */
+.dash-tres-colunas .dash-duas-colunas { grid-template-columns: minmax(0, 1fr); }
+
 /* A coluna da leitura empilha resumo e lista com o mesmo respiro do resto. */
 .dash-coluna {
   display: flex;
@@ -283,6 +330,47 @@
    carrega a hierarquia, e uma barra continua visível em escala de cinza. */
 .dash-kpi-destaque { border-left: 3px solid var(--jd-green); }
 
+/* -----------------------------------------------------------------------------
+   O SELO DO CARTÃO (fase T4.7)
+
+   Um quadrado com o ícone, à esquerda do rótulo. Ele NÃO carrega significado:
+   existe para o olho reconhecer "o de demanda" e "o de captura" de longe, em vez
+   de varrer quatro retângulos iguais. Por isso é `aria-hidden` e por isso a cor
+   fica só nele — valor, rótulo e comparação continuam em preto sobre branco, e
+   a tela inteira segue legível em escala de cinza.
+   ----------------------------------------------------------------------------- */
+.dash-kpi-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+.dash-kpi-selo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  background: var(--n-100);
+  color: var(--text-secondary);
+}
+
+.dash-kpi[data-tom='demanda'] .dash-kpi-selo { background: #E8F3E6; color: var(--jd-green-dark); }
+.dash-kpi[data-tom='mercado'] .dash-kpi-selo { background: var(--info-bg); color: var(--info); }
+.dash-kpi[data-tom='captura'] .dash-kpi-selo { background: var(--warning-bg); color: var(--warning); }
+.dash-kpi[data-tom='oportunidade'] .dash-kpi-selo { background: #EDE9FE; color: #6D28D9; }
+
+/* A UNIDADE AO LADO DO NÚMERO, e menor: junto no mesmo corpo de 30px ela rouba
+   metade do peso do valor. */
+.dash-kpi-unidade {
+  margin-left: var(--e-2);
+  font-size: var(--t-apoio);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
 .dash-kpi-rotulo {
   display: flex;
   align-items: center;
@@ -394,6 +482,15 @@
 }
 
 .dash-faixa-rotulo { color: var(--text-secondary); }
+
+/* O ícone da faixa é discreto de propósito: ele ajuda a achar a linha, não
+   compete com o número. */
+.dash-faixa-icone {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-tertiary);
+  align-self: center;
+}
 
 /* -----------------------------------------------------------------------------
    OS FILTROS

@@ -132,21 +132,33 @@ export function AbaDeMercado({
         <MetricasSemDado metricas={metricasSemDado} titulo="Limitações dos dados" compacto />
       </section>
 
-      <BlocoDePotencial
-        recorte={recorte}
-        semFiltro={semFiltro}
-        contexto={contexto}
-        municipioCodigoIbge={municipioCodigoIbge}
-      />
+      {/* OS TRÊS PAINÉIS DO RODAPÉ FICAM LADO A LADO (fase T4.7).
 
-      <BlocoDoMomento
-        municipioSelecionado={municipioCodigoIbge}
-        nomeDoMunicipio={nomeDoMunicipio}
-        produtosDoMunicipio={produtosDoMunicipio}
-        momento={indicadores?.momento ?? null}
-      />
+          Empilhados, cada um esticado de ponta a ponta, eles faziam mil e
+          duzentos pixels de rolagem para responder três perguntas que se olham
+          juntas: o que a área comporta, como o mercado está agora, e quanto a
+          Tracbel leva. Lado a lado, a leitura é uma só — e é a composição que
+          justifica a largura do container, em vez de deixá-la virar corredor.
 
-      <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} />
+          Abaixo de 1400px eles voltam a empilhar: três colunas de 400px com
+          tabela e gráfico dentro não são três painéis, são três becos. */}
+      <div className="dash-tres-colunas">
+        <BlocoDePotencial
+          recorte={recorte}
+          semFiltro={semFiltro}
+          contexto={contexto}
+          municipioCodigoIbge={municipioCodigoIbge}
+        />
+
+        <BlocoDoMomento
+          municipioSelecionado={municipioCodigoIbge}
+          nomeDoMunicipio={nomeDoMunicipio}
+          produtosDoMunicipio={produtosDoMunicipio}
+          momento={indicadores?.momento ?? null}
+        />
+
+        <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} />
+      </div>
     </>
   );
 }

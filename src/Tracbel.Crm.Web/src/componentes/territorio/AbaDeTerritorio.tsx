@@ -58,20 +58,32 @@ export function AbaDeTerritorio({
       />
       <PainelDeIndicadores indicadores={kpisDaCarteira} carregando={carregando} />
 
-      {indicadores && (
-        <TabelaDeMunicipios
-          municipios={municipios}
-          daAdr={ordenados}
-          foraDoMapa={foraDoMapa}
-          totais={totais}
-          selecionado={selecionado}
-          aoSelecionar={aoSelecionar}
-          territorioNaoCarregado={territorioNaoCarregado}
-          semFiltro={semFiltro}
-        />
-      )}
+      {/* A FICHA FICA AO LADO DA TABELA, e não abaixo (fase T4.7).
 
-      {ficha}
+          Abrir um município mandava a ficha para o fim da página: quem clicava
+          na linha 40 rolava duzentos pixels para ver o detalhe, e perdia de vista
+          a linha de onde tinha vindo. Comparar dois municípios virava um
+          vai-e-vem. Lado a lado, a tabela continua na tela enquanto o detalhe é
+          lido — que é como se compara.
+
+          SEM MUNICÍPIO ESCOLHIDO A TABELA OCUPA TUDO: uma coluna vazia esperando
+          clique seria metade da tela reservada para o que talvez não aconteça. */}
+      <div className={ficha ? 'terr-territorio terr-territorio-com-ficha' : 'terr-territorio'}>
+        {indicadores && (
+          <TabelaDeMunicipios
+            municipios={municipios}
+            daAdr={ordenados}
+            foraDoMapa={foraDoMapa}
+            totais={totais}
+            selecionado={selecionado}
+            aoSelecionar={aoSelecionar}
+            territorioNaoCarregado={territorioNaoCarregado}
+            semFiltro={semFiltro}
+          />
+        )}
+
+        {ficha && <div className="terr-territorio-ficha">{ficha}</div>}
+      </div>
     </>
   );
 }
