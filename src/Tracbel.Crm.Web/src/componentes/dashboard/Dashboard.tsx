@@ -27,7 +27,7 @@
  * mesmos tokens, e as telas de cadastro podem adotá-lo quando forem revistas.
  */
 
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { InfoTooltip } from '../InfoTooltip';
 import { Procedencia } from '../comum/Procedencia';
 import { ValorAusente } from '../comum/ValorAusente';
@@ -144,13 +144,35 @@ export function GradeDeIndicadores({ children, ...resto }: { children: ReactNode
 export function CartaoDeIndicador({
   rotulo,
   valor,
+  unidade,
   contexto,
   oQue,
   motivoSemDado,
   procedencia,
   destaque = false,
+  icone: Icone,
+  tom = 'neutro',
 }: {
   rotulo: string;
+  /**
+   * A unidade, ao lado do número e menor que ele — "máquinas", "R$", "/ha".
+   *
+   * Separada do valor de propósito: junto, ela entra no mesmo corpo de 30px e
+   * rouba metade do peso do número; ao lado e menor, o olho lê o número primeiro
+   * e a unidade depois, que é a ordem em que a pergunta se responde.
+   */
+  unidade?: string;
+  /** O ícone do selo. Vem do `lucide-react`; sem ele o selo não é desenhado. */
+  icone?: ComponentType<{ size?: number | string; strokeWidth?: number | string; 'aria-hidden'?: boolean }>;
+  /**
+   * A cor do selo — e SÓ do selo.
+   *
+   * Ela separa os quatro números de decisão uns dos outros num relance, e não
+   * carrega significado nenhum: o valor, o rótulo e a comparação continuam em
+   * preto sobre branco, e a tela inteira continua legível em escala de cinza.
+   * Cor aqui é endereço, não semáforo.
+   */
+  tom?: 'neutro' | 'demanda' | 'mercado' | 'captura' | 'oportunidade';
   /** O valor pronto para a tela. `null` mostra travessão — nunca zero. */
   valor: ReactNode | null;
   /** A comparação, em uma linha curta: fatia, distância ou de onde veio. */
@@ -174,10 +196,25 @@ export function CartaoDeIndicador({
   const nome = oQue ?? rotulo.toLowerCase();
 
   return (
-    <div className={destaque ? 'dash-kpi dash-kpi-destaque' : 'dash-kpi'} data-kpi={rotulo}>
-      <div className="dash-kpi-rotulo">
-        <span>{rotulo}</span>
-        <Procedencia procedencia={procedencia} oQue={nome} />
+    <div
+      className={destaque ? 'dash-kpi dash-kpi-destaque' : 'dash-kpi'}
+      data-kpi={rotulo}
+      data-tom={tom}
+    >
+      <div className="dash-kpi-cabecalho">
+        {/* O SELO É DECORAÇÃO COM ENDEREÇO: ele não diz nada que o rótulo já não
+            diga, e por isso some do leitor de tela. O que ele faz é dar ao
+            cartão uma marca que o olho reconhece de longe, para "o de demanda"
+            e "o de captura" pararem de ser quatro retângulos iguais. */}
+        {Icone && (
+          <span className="dash-kpi-selo" aria-hidden="true">
+            <Icone size={18} strokeWidth={2} />
+          </span>
+        )}
+        <div className="dash-kpi-rotulo">
+          <span>{rotulo}</span>
+          <Procedencia procedencia={procedencia} oQue={nome} />
+        </div>
       </div>
 
       {/* O TRAÇO E O MOTIVO SÃO O `ValorAusente` DE SEMPRE, e não uma segunda
@@ -193,7 +230,10 @@ export function CartaoDeIndicador({
             <span className="dash-vazio">—</span>
           )
         ) : (
-          valor
+          <>
+            {valor}
+            {unidade && <span className="dash-kpi-unidade">{unidade}</span>}
+          </>
         )}
       </div>
 
@@ -239,8 +279,11 @@ export function ItemDaFaixa({
   comparacao,
   motivoSemDado,
   procedencia,
+  icone: Icone,
 }: {
   rotulo: string;
+  /** O ícone à esquerda do número; sem ele o item começa pelo valor. */
+  icone?: ComponentType<{ size?: number | string; strokeWidth?: number | string }>;
   valor: ReactNode | null;
   /** A fatia da Região Tracbel e de SP — a §7 do documento 50, na dica deste número. */
   comparacao?: string;
@@ -251,6 +294,13 @@ export function ItemDaFaixa({
 
   return (
     <span className="dash-faixa-item" data-faixa={rotulo}>
+      {/* O ícone é `aria-hidden`: o nome do indicador já está escrito ao lado, e
+          repeti-lo no leitor de tela só faria barulho. */}
+      {Icone && (
+        <span className="dash-faixa-icone" aria-hidden="true">
+          <Icone size={15} strokeWidth={2} />
+        </span>
+      )}
       <strong className="dash-faixa-valor">{vazio ? '' : valor}</strong>
       <span className="dash-faixa-rotulo">{rotulo}</span>
 

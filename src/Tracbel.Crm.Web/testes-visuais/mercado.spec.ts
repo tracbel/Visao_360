@@ -155,8 +155,13 @@ for (const { nome, largura, altura } of LARGURAS) {
       );
       const linhas = new Set(topos).size;
 
-      // >= 2100 são quatro colunas; 1100–2099 é 2×2; abaixo disso, um por linha.
-      const esperado = largura >= 2100 ? 1 : largura >= 1100 ? 2 : 4;
+      // >= 2100 são quatro colunas; 851–2099 é 2×2; abaixo disso, um por linha.
+      //
+      // O CORTE DESCEU DE 1100 PARA 850 na T4.8, seguindo o protótipo visual: em
+      // 1024 a página ficava com 5.775px de rolagem, quatro mapas de largura
+      // inteira empilhados. 850 é onde a coluna fica estreita demais para
+      // distinguir município.
+      const esperado = largura >= 2100 ? 1 : largura >= 851 ? 2 : 4;
       expect(linhas, `em ${largura}px esperava ${esperado} linha(s) de mapa, e deu ${linhas}`).toBe(esperado);
     });
 

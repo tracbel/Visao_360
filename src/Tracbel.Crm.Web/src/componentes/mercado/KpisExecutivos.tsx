@@ -23,6 +23,7 @@
  * os fabricantes, que nenhuma fonte aberta publica.
  */
 
+import { BarChart3, Lightbulb, PieChart, Target } from 'lucide-react';
 import { CartaoDeIndicador, GradeDeIndicadores } from '../dashboard/Dashboard';
 import { fatiasEmTexto, montarSomavel } from '../comum/comparacoes';
 import type { MomentoDoRecorte, ProcedenciaDoIndicador } from '../../tipos/territorio';
@@ -88,7 +89,10 @@ export function KpisExecutivos({
       <CartaoDeIndicador
         rotulo="Demanda anual"
         destaque
-        valor={carregando || demandaEstrutural === null ? null : `${nº(Math.round(demandaEstrutural))} máq/ano`}
+        icone={BarChart3}
+        tom="demanda"
+        valor={carregando || demandaEstrutural === null ? null : nº(Math.round(demandaEstrutural))}
+        unidade="máquinas/ano"
         contexto={
           contexto ??
           (variacao != null
@@ -98,9 +102,27 @@ export function KpisExecutivos({
         procedencia={procedenciaDaDemanda}
         motivoSemDado={DEMANDA_SEM_DADO}
       />
-      <CartaoDeIndicador rotulo="Mercado anual" valor={null} motivoSemDado={MERCADO_ANUAL_SEM_DADO} />
-      <CartaoDeIndicador rotulo="Captura Tracbel" valor={null} motivoSemDado={CAPTURA_SEM_DADO} />
-      <CartaoDeIndicador rotulo="Oportunidade" valor={null} motivoSemDado={OPORTUNIDADE_SEM_DADO} />
+      <CartaoDeIndicador
+        rotulo="Mercado anual"
+        icone={PieChart}
+        tom="mercado"
+        valor={null}
+        motivoSemDado={MERCADO_ANUAL_SEM_DADO}
+      />
+      <CartaoDeIndicador
+        rotulo="Captura Tracbel"
+        icone={Target}
+        tom="captura"
+        valor={null}
+        motivoSemDado={CAPTURA_SEM_DADO}
+      />
+      <CartaoDeIndicador
+        rotulo="Oportunidade"
+        icone={Lightbulb}
+        tom="oportunidade"
+        valor={null}
+        motivoSemDado={OPORTUNIDADE_SEM_DADO}
+      />
     </GradeDeIndicadores>
   );
 }

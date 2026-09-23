@@ -11,7 +11,9 @@
  * melhor. Eles mudaram de posição na página; por dentro, nada.
  */
 
+import { Sprout } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { InfoTooltip } from '../InfoTooltip';
 import type { ContextoDeAcesso } from '../../dados/api/http';
 import type {
   ClassificacaoDeIndicador,
@@ -31,7 +33,6 @@ import type { TotaisDaAdr } from '../territorio/totaisDaAdr';
 import { BlocoDePotencial } from './BlocoDePotencial';
 import { FaixaDoMercado } from './FaixaDoMercado';
 import { KpisExecutivos } from './KpisExecutivos';
-import { PorteEMomento } from './PorteEMomento';
 import { BlocoDoMomento } from './BlocoDoMomento';
 import { PerformanceTracbel } from './PerformanceTracbel';
 
@@ -82,6 +83,8 @@ export function AbaDeMercado({
   /** A ficha do município escolhido, montada uma vez pela casca. */
   ficha: ReactNode;
 }) {
+  const predominante = indicadores?.momento?.predominante ?? null;
+
   return (
     <>
       <SecaoDoMercadoDaRegiao />
@@ -95,13 +98,13 @@ export function AbaDeMercado({
         carregando={carregando}
         procedenciaDaDemanda={indicadores?.momento?.procedencia ?? null}
       />
-      <PorteEMomento momento={indicadores?.momento ?? null} />
+      {/* MOMENTO, PORTE E O QUE A REGIÃO TEM, NUMA RÉGUA SÓ (fase T4.8).
 
-      {/* O QUE A REGIÃO TEM continua na tela, agora numa faixa de uma linha
-          (T4.6): são o pano de fundo do mercado, e desenhá-los como cartão do
-          mesmo tamanho dos quatro de cima fazia nove cartões iguais empilhados —
-          uma lista, não uma hierarquia. Nenhum número saiu. */}
-      <FaixaDoMercado indicadores={kpisDoMercado} />
+          Eram dois blocos brancos empilhados — a faixa de porte e momento e a
+          dos cinco indicadores estruturais. São a mesma leitura: como está o
+          mercado, e o que existe nele. Juntos numa régua de sete células, com
+          filete entre elas, o olho corre de uma ponta à outra. */}
+      <FaixaDoMercado indicadores={kpisDoMercado} momento={indicadores?.momento ?? null} />
 
       <section data-bloco="visao-geografica">
         <TituloDaSecao
@@ -111,6 +114,32 @@ export function AbaDeMercado({
             'Os quatro mapas usam o mesmo enquadramento: o mesmo município fica no mesmo lugar nos quatro, e o ' +
             'cursor sobre ele mostra o número dele em todos ao mesmo tempo. Clicar abre a ficha do município e ' +
             'passa a valer para a página inteira.'
+          }
+          // A CULTURA PREDOMINANTE VIRA O SELO DA SEÇÃO (protótipo, §.meta-chip).
+          //
+          // Ela morava na faixa de porte e momento; ao fundir a faixa, o lugar
+          // dela deixou de existir. Aqui ela fica melhor: é a resposta a "o que
+          // se planta aqui?", que é a pergunta de quem está olhando o mapa.
+          //
+          // CONTINUA SENDO CONTEXTO, com o critério dito na dica — ela não entra
+          // no cálculo do momento, e a dica diz isso com todas as letras.
+          acao={
+            predominante && (
+              <span className="dash-selo-secao" data-contexto="predominante">
+                <Sprout size={14} strokeWidth={2} aria-hidden="true" />
+                Principal cultura: <strong>{predominante.cultura}</strong> ·{' '}
+                {predominante.fatia.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}% da área relevante
+                <InfoTooltip
+                  rotulo="Qual é o critério da principal cultura"
+                  texto={
+                    `Critério: ${predominante.criterio}. ` +
+                    'Isto é CONTEXTO — responde "o que se planta aqui?" — e não entra no cálculo do momento: o ' +
+                    'fator de cada cultura pesa pela demanda que ela representa, não pela área. Trocar qual ' +
+                    'cultura tem a maior área muda esta linha e não muda o momento.'
+                  }
+                />
+              </span>
+            )
           }
         />
         {carregando && !mostrarOsMapas && <BlocoCarregando oQue="os mapas da ADR" />}
@@ -132,21 +161,43 @@ export function AbaDeMercado({
         <MetricasSemDado metricas={metricasSemDado} titulo="Limitações dos dados" compacto />
       </section>
 
-      <BlocoDePotencial
-        recorte={recorte}
-        semFiltro={semFiltro}
-        contexto={contexto}
-        municipioCodigoIbge={municipioCodigoIbge}
-      />
+      {/* OS TRÊS PAINÉIS DO RODAPÉ FICAM LADO A LADO (fase T4.7).
 
-      <BlocoDoMomento
-        municipioSelecionado={municipioCodigoIbge}
-        nomeDoMunicipio={nomeDoMunicipio}
-        produtosDoMunicipio={produtosDoMunicipio}
-        momento={indicadores?.momento ?? null}
-      />
+          Empilhados, cada um esticado de ponta a ponta, eles faziam mil e
+          duzentos pixels de rolagem para responder três perguntas que se olham
+          juntas: o que a área comporta, como o mercado está agora, e quanto a
+          Tracbel leva. Lado a lado, a leitura é uma só — e é a composição que
+          justifica a largura do container, em vez de deixá-la virar corredor.
 
-      <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} />
+          Abaixo de 1400px eles voltam a empilhar: três colunas de 400px com
+          tabela e gráfico dentro não são três painéis, são três becos. */}
+      {/* OS TRÊS PAINÉIS DO RODAPÉ, LADO A LADO — como na imagem base.
+
+          O HTML do protótipo põe dois e um (Potencial e Momento juntos,
+          Performance em largura inteira), mas a MAQUETE mostra os três numa
+          linha, e é ela que manda: eles respondem três perguntas que se olham
+          juntas — o que a área comporta, como o mercado está agora, e quanto a
+          Tracbel leva.
+
+          Abaixo de 1400px eles empilham: três colunas de 400px com tabela e
+          gráfico dentro não são três painéis, são três becos. */}
+      <div className="dash-tres-colunas">
+        <BlocoDePotencial
+          recorte={recorte}
+          semFiltro={semFiltro}
+          contexto={contexto}
+          municipioCodigoIbge={municipioCodigoIbge}
+        />
+
+        <BlocoDoMomento
+          municipioSelecionado={municipioCodigoIbge}
+          nomeDoMunicipio={nomeDoMunicipio}
+          produtosDoMunicipio={produtosDoMunicipio}
+          momento={indicadores?.momento ?? null}
+        />
+
+        <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} />
+      </div>
     </>
   );
 }
