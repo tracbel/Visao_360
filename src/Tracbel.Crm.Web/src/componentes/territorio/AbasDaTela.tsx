@@ -10,10 +10,21 @@
  * ativa entra na ordem do Tab, e as setas trocam entre elas.
  */
 
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { useRef } from 'react';
 
-export type Aba<T extends string> = { id: T; rotulo: string };
+export type Aba<T extends string> = {
+  id: T;
+  rotulo: string;
+  /**
+   * O ícone à esquerda do rótulo (maquete, fase T4.9).
+   *
+   * É `aria-hidden` — o nome da aba já está escrito ao lado, e repeti-lo no
+   * leitor de tela só faria barulho. Ele existe para o olho achar a aba de
+   * longe, que é o que a maquete pede.
+   */
+  icone?: ComponentType<{ size?: number | string; strokeWidth?: number | string }>;
+};
 
 export function AbasDaTela<T extends string>({
   abas,
@@ -57,6 +68,7 @@ export function AbasDaTela<T extends string>({
             tabIndex={aba.id === ativa ? 0 : -1}
             onClick={() => aoTrocar(aba.id)}
           >
+            {aba.icone && <aba.icone size={16} strokeWidth={2} aria-hidden="true" />}
             {aba.rotulo}
           </button>
         ))}

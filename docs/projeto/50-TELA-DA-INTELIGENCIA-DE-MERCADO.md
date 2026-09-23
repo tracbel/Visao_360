@@ -411,6 +411,9 @@ quatro KPIs em unidades), depois #70 (converte o mercado para R$).
 | **T4** | A ficha em três camadas. | #76 | T2 |
 | **T4.5** | **O instrumento antes do ajuste**: harness visual `#/dev/mercado-visual` (9 estados, amostra fictícia, sem banco nem VPN) e conferência automática de largura em 6 resoluções com Playwright. É o que torna provável qualquer troca de primitive de UI. | #171, #33 | T4 |
 | **T4.6** | **Fundação visual** (§16): escalas de espaço e tipografia, primitives do painel, container de 1.480px, filtros fora da primeira dobra, hierarquia do topo, redesenho dos quatro painéis e Radix no tooltip e no popover. Nenhum dado novo, nenhuma fórmula alterada. | #33, #31, #171 | T4.5 |
+| **T4.7** | **Revisão humana das capturas**: largura útil em monitor largo, os três painéis do rodapé lado a lado, Crédito e Rentabilidade em três camadas (resumo → ranking → tabela) em vez de abrirem como relatório, ficha ao lado da tabela de Território. | #33, #31 | T4.6 |
+| **T4.8** | **Especificação visual do protótipo** `tracbel_dashboard_completo` migrada para os componentes React: `lucide-react` na tela, cartões com selo, container responsivo 1.380/1.580/1.940, régua de sete células, rodapé em três colunas, mapa e legenda lado a lado. | #33, #171 | T4.7 |
+| **T4.9** | **Fidelidade às maquetes** (§17): cartão de decisão tingido, filtro com selo de ícone e período como campo, cabeçalho com hora da leitura e botão de reler, resumo do mapa como número + metadados, mini-cartões nos painéis do rodapé, busca e exportação na tabela de Território. | #33, #171 | T4.8 |
 | **T5** | Matriz de cenários e `Simular cenário` como ação secundária. | #74, #161 | T3 |
 | **T6** | Performance Tracbel, com **Captura** enquanto o denominador for demanda estimada. | **#162**, #69 | **#69 pronta** |
 
@@ -601,14 +604,67 @@ por posição de coluna — o que sai está inteiro na ficha, a um toque.
 | `@radix-ui/react-popover` | **sim** | foco preso, `Esc`, clique fora, colisão — para "Mais filtros" |
 | `@radix-ui/react-accordion` | **não** | seria downgrade: `<details>` fechado é encontrável por **Ctrl+F**, e o Radix desmonta o conteúdo |
 | `class-variance-authority` | **não** | gera classe utilitária, que é o modelo do Tailwind; aqui o design system é de classes semânticas |
-| `lucide-react` | **adiado** | os ícones do shell estão travados no protótipo até a #171 ser provada |
+| `lucide-react` | **adotado na T4.8** | os ícones **da tela**; os do **shell** seguem travados no protótipo até a #171 ser provada |
 
 ### Como isso se prova
 
 `npm run visual` passou a ter **96 testes**, e 24 deles medem **arranjo**, não só ausência de rolagem
 lateral: quatro KPIs numa linha no desktop e quatro linhas no celular, 2×2 de mapas entre 1100 e 2099, os
 filtros valendo menos de um terço da dobra, "Mais filtros" abrindo com os quatro sem dado dentro,
-Território com 5 ou 8 colunas conforme a largura, e a ficha cabendo na janela com as evidências abertas.
+Território com 2, 5 ou 9 colunas conforme a largura, e a ficha cabendo na janela com as evidências abertas.
 
 **A conferência pegou duas regressões introduzidas nesta própria fase** — o container quebrando o celular
 e a tabela nova empurrando a página em 768 px. Nenhuma das duas teria sido vista sem ela.
+
+---
+
+## 17. Fidelidade às maquetes [D] — T4.9
+
+As três maquetes entregues em 23/09/2026 são **a referência visual**, acima do HTML do pacote
+`tracbel_dashboard_completo` onde os dois discordam (foi assim que o rodapé virou três colunas, e não
+dois mais um). Esta fase percorreu cada uma delas peça por peça.
+
+### O que passou a existir
+
+| Peça | Antes | Agora |
+|---|---|---|
+| Cartão de decisão | branco, cor só no selo | **fundo e borda tingidos**, texto preto sobre tinta acima de 96% de luminância |
+| Filtro | ícone de 14 px colado ao rótulo | **selo quadrado** à esquerda, dentro de uma caixa; a linha inteira é um cartão |
+| Período | três botões num alternador | **um campo**, com o intervalo em vigor escrito: `12 meses (set/2025 a ago/2026)` |
+| Cabeçalho | procedência à direita | **"Dados atualizados em …" + botão de reler**, com a procedência embaixo |
+| Abas da tela | só texto | ícone à esquerda do rótulo |
+| Régua do mercado | valor e nome lado a lado | selo quadrado, **valor sobre nome**, e a frase do momento embaixo da pílula |
+| Resumo do mapa | frase corrida com `·` | **número grande + rótulo** à esquerda, parcelas à direita divididas por filete |
+| Painéis do rodapé | números soltos / cartões do tamanho dos do topo | **mini-cartões** com selo de ícone; "Simular cenário" na linha do alternador |
+| Tabela de Território | só a lista | **busca, exportação, pin por linha e coluna de ação** |
+| Ficha | título e botão "Fechar" | pin, **selo "Selecionado"** e ✕ |
+
+### O que a maquete pede e a tela **não** faz — e por quê [D]
+
+1. **`+8% vs. ano anterior` em quase todo cartão.** A leitura devolve **uma** janela de competência, não
+   duas. O interruptor "Comparar com período anterior" existe na tela, **desligado**, com o motivo na dica —
+   o mesmo padrão dos filtros sem dado. Ligá-lo depende de a leitura passar a devolver a janela anterior.
+2. **Os quatro fatores agregados do bloco Momento** (`Preço das culturas +12%`, `Custo +3%`, `Crédito —`,
+   `Confiança +8%`). É exatamente a decomposição agregada **recusada na T3.1**: ela não existe no domínio, e
+   criar uma fórmula só para desenhar quatro cartões seria um número sem conta. O que fica é a composição
+   **por cultura**, que é a conta de verdade.
+3. **`Captura 18%` e `Oportunidade R$ 2,8 bi`** — #69 (vendas em unidades) e #70 (preço por modelo).
+4. **`Clientes ativos`, `Oportunidades no município`, `vocação agrícola`** — não existem no contrato da API.
+5. **A ficha em cinco abas.** A terceira camada da ficha é `<details>` **de propósito**: fechado, ele
+   continua encontrável por **Ctrl+F**, e aba desmonta o conteúdo. Trocar `<details>` por abas seria o mesmo
+   downgrade que fez o `@radix-ui/react-accordion` ser recusado na T4.6.
+6. **Paginação e a engrenagem de colunas na tabela.** A paginação brigaria com a conferência do documento 32
+   — "a soma das linhas é o total da consulta" —, e a engrenagem é preferência por usuário, não acabamento.
+   A busca, que responde à mesma necessidade, foi feita: ela filtra e **some com as linhas de total**,
+   dizendo quantos de quantos ficaram.
+7. **O shell** (itens do menu, "Ajuda" no rodapé, seletor de filial). A maquete mostra uma navegação
+   diferente da nossa; mexer nela alcança **catorze telas** e derruba a comparação de pixel da #171.
+
+### Duas regressões que a conferência pegou nesta fase
+
+- Os filtros com selo, um por linha no celular, ocupavam **393 px** de uma dobra de 844 — quase metade,
+  que é o defeito que a T4.6 veio consertar. Duas colunas e selo menor fecham em ~230 px.
+- O cabeçalho novo fazia a **página passar 12 px** da janela em 768 px: a linha da hora é `nowrap` e a
+  procedência tem três pedaços. Abaixo de 900 px ele desce para baixo do título.
+
+Nenhuma das duas apareceria sem `npm run visual`.

@@ -14,6 +14,7 @@
  * falta, em vez de mostrar um número derivado às pressas para encher o espaço.
  */
 
+import { SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import type { ContextoDeAcesso } from '../../dados/api/http';
 import type { PotencialDoRecorteNoMapa } from '../../tipos/territorio';
@@ -50,13 +51,6 @@ export function BlocoDePotencial({
           'não o motor rodado sobre as áreas somadas: o compartilhamento de terra entre culturas acontece dentro do ' +
           'município. A demanda anual depende do ciclo de renovação por cultura (D-P01, issue 63).'
         }
-        acao={
-          <div className="terr-alternador" role="group" aria-label="Simulação">
-            <button type="button" aria-pressed={calculadoraAberta} onClick={() => setCalculadoraAberta(!calculadoraAberta)}>
-              {calculadoraAberta ? 'Fechar a simulação' : 'Simular cenário'}
-            </button>
-          </div>
-        }
       />
 
       {calculadoraAberta && (
@@ -71,6 +65,17 @@ export function BlocoDePotencial({
         rotulo="O que o potencial mostra"
         ativa={subAba}
         aoTrocar={setSubAba}
+        // "SIMULAR CENÁRIO" VAI PARA A LINHA DO ALTERNADOR (maquete). Ele estava
+        // à direita do TÍTULO da seção, uma linha acima — e num painel de um
+        // terço da largura o título ficava dividido com um botão.
+        acao={
+          <div className="terr-alternador" role="group" aria-label="Simulação">
+            <button type="button" aria-pressed={calculadoraAberta} onClick={() => setCalculadoraAberta(!calculadoraAberta)}>
+              <SlidersHorizontal size={13} strokeWidth={2} aria-hidden="true" />
+              {calculadoraAberta ? 'Fechar a simulação' : 'Simular cenário'}
+            </button>
+          </div>
+        }
         abas={[
           {
             id: 'parque',

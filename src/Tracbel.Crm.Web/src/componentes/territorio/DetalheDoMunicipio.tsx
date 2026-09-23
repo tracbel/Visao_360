@@ -18,6 +18,7 @@
  * não fonte. E "sigilo do IBGE" nunca vira zero — é ausência de divulgação.
  */
 
+import { MapPin, X } from 'lucide-react';
 import { Fragment } from 'react';
 import type {
   CulturaNoEstado,
@@ -80,7 +81,16 @@ export function DetalheDoMunicipio({
     <div className="card cad-cartao terr-detalhe" aria-live="polite" data-bloco="ficha-do-municipio">
       <div className="card-header cad-cartao-cabecalho">
         <div>
-          <div className="card-title">{municipio.nome}</div>
+          {/* O PIN E O SELO DE "SELECIONADO" (fase T4.9 — maquete). A ficha é
+              um painel ao lado da tabela desde a T4.7, e nada nela dizia que o
+              município que ela mostra é o mesmo que está marcado na lista. */}
+          <div className="card-title">
+            <span className="terr-pin" aria-hidden="true">
+              <MapPin size={15} strokeWidth={2.2} />
+            </span>
+            {municipio.nome}
+            <span className="terr-selo-escolhido">Selecionado</span>
+          </div>
           <div className="card-subtitle">
             IBGE <span className="cad-mono">{municipio.codigoIbge}</span> ·{' '}
             {municipio.pertenceAAdr
@@ -92,8 +102,15 @@ export function DetalheDoMunicipio({
             {municipio.lojaAtivaNoCrm === false && <strong className="cad-atencao"> · filial inativa no CRM</strong>}
           </div>
         </div>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={aoFechar}>
-          Fechar
+        {/* O ✕ DA MAQUETE. O nome acessível continua dizendo o que o clique faz
+            — "Fechar a ficha de Batatais" —, e não o desenho do botão. */}
+        <button
+          type="button"
+          className="terr-fechar-ficha"
+          onClick={aoFechar}
+          aria-label={`Fechar a ficha de ${municipio.nome}`}
+        >
+          <X size={16} strokeWidth={2.4} aria-hidden="true" />
         </button>
       </div>
 
