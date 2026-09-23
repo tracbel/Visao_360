@@ -9,9 +9,14 @@
 
 import type { ComProcedencia } from '../../tipos/api';
 import type { PainelDeCreditoRural, PrecosDeMercado, RentabilidadeDaCultura, SerieDeCusto } from '../../tipos/mercado';
-import type { FiltrosTerritoriais, PainelTerritorial } from '../../tipos/territorio';
+import type {
+  FiltrosTerritoriais,
+  PainelTerritorial,
+  ResultadoDaCalculadora,
+  SimulacaoDeMaquinas,
+} from '../../tipos/territorio';
 import type { ColecaoMunicipal } from '../../componentes/territorio/projecao';
-import { ler, type ContextoDeAcesso } from './http';
+import { ler, pedir, type ContextoDeAcesso } from './http';
 
 /** Os indicadores por município, dentro da fronteira de acesso. */
 export function obterIndicadoresTerritoriais(
@@ -64,6 +69,29 @@ export function obterCustosDeProducao(
   sinal?: AbortSignal,
 ): Promise<ComProcedencia<SerieDeCusto[]>> {
   return ler<SerieDeCusto[]>('/v1/territorio/custos', contexto, { sinal });
+}
+
+/**
+ * A calculadora de máquinas (issue 161): "quantas máquinas esta área comporta,
+ * e quantas por ano".
+ *
+ * É POST porque a entrada é um conjunto de áreas por cultura, não uma chave —
+ * mas NADA É GRAVADO: simulação é pergunta, e uma resposta gravada viraria um
+ * número "oficial" que ninguém decidiu adotar.
+ *
+ * Sem `areas`, ela devolve o número medido do município — o mesmo do mapa,
+ * porque é a mesma função do domínio.
+ */
+export function simularMaquinas(
+  contexto: ContextoDeAcesso,
+  entrada: SimulacaoDeMaquinas,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<ResultadoDaCalculadora>> {
+  return pedir<ComProcedencia<ResultadoDaCalculadora>>('/v1/mercado/calculadora', contexto, {
+    metodo: 'POST',
+    corpo: entrada,
+    sinal,
+  });
 }
 
 /** O crédito rural de investimento de SP, do SICOR (issue 68). */

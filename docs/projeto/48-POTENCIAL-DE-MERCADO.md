@@ -614,6 +614,43 @@ só poderão ser reproduzidos quando alguém registrar os parâmetros que os ger
 máquina** (D-IM-06) — regra sem categoria cai num grupo "Sem categoria declarada", visível na tela —,
 e o fator de ciclo de mercado e os cenários são a issue #74.
 
+### 7.2 A calculadora de máquinas [issue 161, 23/09/2026]
+
+**`POST /api/v1/mercado/calculadora`**, e a tela aberta pelo cartão de potencial.
+
+**Ela não tem fórmula própria, e é o ponto.** O aceite da issue é *"a mesma área de um município
+devolve o mesmo resultado que o motor gravou para ele"* — uma segunda fórmula, por mais fiel que
+nascesse, passaria a divergir no dia em que uma das duas mudasse. `MotorDoPotencial.Simular` troca o
+número da área e chama `Potencial`: **sem área informada, a resposta é literalmente a do mapa**, e há
+teste que compara as **duas rotas** no mesmo cenário.
+
+| Entrada | Sem ela |
+|---|---|
+| `municipioCodigoIbge` | a conta parte do zero e vale só o que for digitado |
+| `areas` | devolve o número **medido** do município — o aceite da issue |
+| `categoriaCodigo` | entram todas as categorias de máquina |
+| `data` | valem as regras de **hoje**; com ela, as que valiam naquele dia (issue 71) |
+
+**Nada é gravado.** Simulação é pergunta; uma resposta gravada viraria um número "oficial" que ninguém
+decidiu adotar.
+
+**Cultura sem regra é recusa com o nome dela** (422), e não uma linha zerada: quem digitou "UVA"
+precisa saber que falta parâmetro e onde cadastrá-lo, não concluir que não há potencial de uva.
+
+**A permissão é `Territorio.Ler`, e não uma nova.** A issue cita `Mercado.Ler` (D-IM-11), que é
+**decisão em aberto**: criar a permissão agora deixaria a calculadora invisível para todo mundo até
+alguém concedê-la perfil a perfil, e conceder por conta própria seria alterar permissão de produção por
+suposição. A calculadora mora na tela de território e lê o mesmo dado dela.
+
+**O que ela ainda não faz:** "demanda ajustada e os três cenários", que a issue também pede. O ajuste
+vem do fator de ciclo (#74), cujos **pesos são a decisão D-P05** e cujas bandas são a **D-IM-05** —
+nenhuma das duas saiu. O campo `sobreOsCenarios` diz isso na tela, em vez de deixar o espaço mudo ou
+inventar um peso.
+
+**De quebra:** o catálogo do motor saiu de dentro do repositório do mapa para
+`IRepositorioDoMotorDoPotencial`. A calculadora precisa exatamente do mesmo, e duas leituras do mesmo
+conceito divergem — o defeito que o motor acabou de eliminar do lado do cálculo.
+
 ---
 
 ## 8. Issues

@@ -24,7 +24,10 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 /// não milhões; um único SQL com todas as junções faria o banco multiplicar cliente por vínculo por
 /// mês de faturamento antes de agrupar.</para>
 /// </summary>
-public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) : IRepositorioIndicadoresTerritoriais
+/// <param name="contexto">O contexto do banco.</param>
+/// <param name="motor">A entrada do motor do potencial — as regras vigentes ligadas ao catálogo (issue 161).</param>
+public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, IRepositorioDoMotorDoPotencial motor)
+    : IRepositorioIndicadoresTerritoriais
 {
     private const string SaoPaulo = "SP";
 
@@ -124,41 +127,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
     private readonly record struct MedidasDaCultura(
         decimal? AreaPlantadaHectares, decimal? AreaColhidaHectares, decimal? QuantidadeProduzida, decimal? ValorDaProducaoMilReais);
 
-    /// <summary>O rótulo da categoria de uma regra que não declarou categoria de máquina (D-IM-06 em aberto).</summary>
-    private const string SemCategoriaCodigo = "SEM-CATEGORIA";
-
-    private const string SemCategoriaNome = "Sem categoria declarada";
-
-    /// <summary>
-    /// UMA REGRA COMO O MOTOR A LÊ (issue 72): uma linha por cultura e categoria de máquina, já com os
-    /// produtos da PAM que compõem a área da cultura e com o grupo de compartilhamento.
-    /// </summary>
-    /// <param name="CulturaCodigo">O código da cultura no catálogo, ou <c>PAM-{produto}</c> quando a regra não está no catálogo.</param>
-    /// <param name="CulturaNome">O nome de exibição.</param>
-    /// <param name="CategoriaCodigo">A categoria de máquina, ou <see cref="SemCategoriaCodigo"/>.</param>
-    /// <param name="CategoriaNome">O nome da categoria.</param>
-    /// <param name="HectaresPorMaquina">A regra vigente.</param>
-    /// <param name="AnosDeRenovacao">O ciclo de troca, quando informado.</param>
-    /// <param name="Confirmada">Se o comercial confirmou a regra (D-P01).</param>
-    /// <param name="ProdutosDaPam">Os produtos da classificação 782 cuja área soma esta cultura.</param>
-    /// <param name="GrupoCodigo">O grupo de compartilhamento desta cultura nesta categoria, quando há.</param>
-    private sealed record RegraNoMotor(
-        string CulturaCodigo,
-        string CulturaNome,
-        string CategoriaCodigo,
-        string CategoriaNome,
-        decimal HectaresPorMaquina,
-        decimal? AnosDeRenovacao,
-        bool Confirmada,
-        IReadOnlyList<int> ProdutosDaPam,
-        string? GrupoCodigo);
-
-    /// <summary>O que o motor precisa saber, mais o de-para que devolve o número de cada regra à ficha dela.</summary>
-    /// <param name="Regras">Uma linha por cultura e categoria.</param>
-    /// <param name="PorProdutoDaRegra">Para cada produto com regra vigente, em que categoria e cultura ele caiu.</param>
-    private sealed record CatalogoDoMotor(
-        IReadOnlyList<RegraNoMotor> Regras,
-        IReadOnlyDictionary<int, (string Categoria, string Cultura)> PorProdutoDaRegra);
+    // O CATÁLOGO DO MOTOR mora em IRepositorioDoMotorDoPotencial desde a issue 161: a calculadora
+    // precisa exatamente do mesmo, e duas leituras do mesmo conceito divergem no dia em que uma mudar.
 
     private static readonly (int Grupo, string Codigo, string Descricao)[] GruposForaDoMapa =
     [
@@ -424,7 +394,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
 
         // O MOTOR (issue 72) lê a regra pela CULTURA do catálogo, e a área de uma cultura é a dos produtos
         // que entram na soma dela — por isso a leitura da PAM abre para eles, e não só para o produto da regra.
-        var catalogoDoMotor = await LerCatalogoDoMotorAsync(regras, ct);
+        var catalogoDoMotor = await motor.LerCatalogoAsync(hoje, ct);
 
         var produtos = regras.Select(r => r.ProdutoCodigoIbge)
             .Concat(catalogoDoMotor.Regras.SelectMany(r => r.ProdutosDaPam))
@@ -593,7 +563,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
             var doMotor = MotorDoMunicipio(codigo);
             var noMunicipio = MotorDoPotencial.Sobrepor([.. doMotor.Select(c => c.Resultado)]);
             var parcelaDe = doMotor
-                .SelectMany(c => c.Resultado.Parcelas.Select(p => (Chave: (c.Codigo, p.CulturaCodigo), Parcela: p)))
+                .SelectMany(c => c.Resultado.Parcelas.Select(p => (Chave: new ChaveNoMotor(c.Codigo, p.CulturaCodigo), Parcela: p)))
                 .ToDictionary(x => x.Chave, x => x.Parcela);
 
             foreach (var (categoria, resultado) in doMotor)
@@ -812,99 +782,6 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto) 
         }
 
         return lista;
-    }
-
-    /// <summary>
-    /// AS REGRAS VIGENTES COMO O MOTOR AS LÊ (issue 72) — o que liga cada regra à cultura do catálogo, à
-    /// categoria de máquina e ao grupo de compartilhamento.
-    ///
-    /// <para><b>A cultura vem da regra, e quando ela não a traz, do catálogo pelo produto.</b> A coluna
-    /// <c>CulturaId</c> nasceu na issue 165 e a rota de cadastro ainda não a preenche: derivar do produto
-    /// pelo de-para do catálogo é o que impede uma regra registrada hoje pelo Administrador de ficar
-    /// invisível para o mapa. Quando nem isso resolve — produto fora do catálogo —, a regra vale por si,
-    /// com a área do produto dela: nada é descartado em silêncio.</para>
-    ///
-    /// <para><b>A área da cultura é a dos produtos que ENTRAM NA SOMA</b>, e não só a do produto da regra:
-    /// o café tem três linhas na classificação 782 ("Total", "Arábica" e "Canephora") e é uma cultura só.
-    /// Sem vínculo marcado, fica o produto da própria regra.</para>
-    ///
-    /// <para><b>Uma linha por cultura e categoria.</b> Duas regras da mesma cultura na mesma categoria
-    /// contariam a área dela duas vezes; vale a vigência mais recente, e o empate fica com o menor código
-    /// de produto — determinístico, e não "o que o banco devolveu primeiro".</para>
-    /// </summary>
-    /// <param name="regras">As regras vigentes hoje, uma por produto.</param>
-    /// <param name="ct">Cancelamento.</param>
-    private async Task<CatalogoDoMotor> LerCatalogoDoMotorAsync(IReadOnlyList<RegraDePotencial> regras, CancellationToken ct)
-    {
-        if (regras.Count == 0) return new CatalogoDoMotor([], new Dictionary<int, (string, string)>());
-
-        var culturas = await contexto.Culturas.AsNoTracking().ToDictionaryAsync(c => c.Id, ct);
-        var vinculos = await contexto.ProdutosDaPamNasCulturas.AsNoTracking().ToListAsync(ct);
-        var categorias = await contexto.CategoriasDeMaquina.AsNoTracking().ToDictionaryAsync(c => c.Id, ct);
-
-        var grupos = await contexto.GruposDeCompartilhamento.AsNoTracking().Where(g => g.EstaAtivo).ToListAsync(ct);
-        var noGrupo = await contexto.CulturasNosGruposDeCompartilhamento.AsNoTracking().ToListAsync(ct);
-
-        var grupoPorId = grupos.ToDictionary(g => g.Id);
-
-        // A MESMA CULTURA EM DOIS GRUPOS DA MESMA CATEGORIA é configuração ambígua — o índice único da
-        // issue 160 é por (grupo, cultura), e não impede isso. Vale o menor código, sempre o mesmo.
-        var grupoDaCultura = noGrupo
-            .Where(v => grupoPorId.ContainsKey(v.GrupoDeCompartilhamentoId))
-            .GroupBy(v => (v.CulturaId, grupoPorId[v.GrupoDeCompartilhamentoId].CategoriaDeMaquinaId))
-            .ToDictionary(
-                g => g.Key,
-                g => g.Select(v => grupoPorId[v.GrupoDeCompartilhamentoId].Codigo).Order(StringComparer.Ordinal).First());
-
-        var culturaDoProduto = vinculos.ToLookup(v => v.ProdutoCodigoIbge);
-        var produtosDaCultura = vinculos.Where(v => v.EntraNaSomaDaLavoura).ToLookup(v => v.CulturaId);
-
-        var linhas = new List<(RegraDePotencial Regra, RegraNoMotor Motor)>();
-
-        foreach (var regra in regras)
-        {
-            var culturaId = regra.CulturaId
-                            ?? culturaDoProduto[regra.ProdutoCodigoIbge].Select(v => (int?)v.CulturaId).FirstOrDefault();
-
-            var cultura = culturaId is { } id ? culturas.GetValueOrDefault(id) : null;
-
-            IReadOnlyList<int> produtos = [regra.ProdutoCodigoIbge];
-            if (cultura is not null)
-            {
-                var daCultura = produtosDaCultura[cultura.Id].Select(v => v.ProdutoCodigoIbge).Distinct().Order().ToList();
-                if (daCultura.Count > 0) produtos = daCultura;
-            }
-
-            var categoria = regra.CategoriaDeMaquinaId is { } cat ? categorias.GetValueOrDefault(cat) : null;
-
-            linhas.Add((regra, new RegraNoMotor(
-                cultura?.Codigo ?? $"PAM-{regra.ProdutoCodigoIbge}",
-                cultura?.Nome ?? regra.ProdutoNome,
-                categoria?.Codigo ?? SemCategoriaCodigo,
-                categoria?.Nome ?? SemCategoriaNome,
-                regra.HectaresPorMaquina,
-                regra.AnosDeRenovacao,
-                regra.Situacao == SituacaoDaRegraDePotencial.Confirmada,
-                produtos,
-                cultura is not null && categoria is not null
-                    ? grupoDaCultura.GetValueOrDefault((cultura.Id, categoria.Id))
-                    : null)));
-        }
-
-        var doMotor = linhas
-            .GroupBy(l => (l.Motor.CulturaCodigo, l.Motor.CategoriaCodigo))
-            .Select(g => g.OrderByDescending(l => l.Regra.VigenteDesde).ThenBy(l => l.Regra.ProdutoCodigoIbge).First().Motor)
-            .OrderBy(m => m.CategoriaCodigo, StringComparer.Ordinal)
-            .ThenBy(m => m.CulturaCodigo, StringComparer.Ordinal)
-            .ToList();
-
-        // O DE-PARA VALE PARA TODA REGRA, inclusive a que perdeu o desempate: a ficha do produto continua
-        // mostrando o número da cultura em que ele entrou, e não um traço mudo.
-        var porProduto = linhas.ToDictionary(
-            l => l.Regra.ProdutoCodigoIbge,
-            l => (l.Motor.CategoriaCodigo, l.Motor.CulturaCodigo));
-
-        return new CatalogoDoMotor(doMotor, porProduto);
     }
 
     /// <summary>

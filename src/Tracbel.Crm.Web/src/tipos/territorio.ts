@@ -336,6 +336,76 @@ export type IndicadoresTerritoriais = {
   potencialDoRecorte: PotencialDoRecorteNoMapa | null;
 };
 
+// ---------------------------------------------------------------------------
+// A calculadora de máquinas (issue 161) — `POST /api/v1/mercado/calculadora`
+// ---------------------------------------------------------------------------
+
+/** Uma área informada na simulação. Texto, como o resto da API: a conversão é do servidor. */
+export type AreaSimulada = { culturaCodigo: string; areaHectares: string };
+
+/**
+ * O que se pergunta à calculadora.
+ *
+ * Tudo é opcional, e cada ausência tem sentido: sem município, a conta parte do
+ * zero; **sem áreas, ela devolve o número medido do município** — que é o
+ * critério de aceite da issue; sem categoria, entram todas; sem data, vale hoje.
+ */
+export type SimulacaoDeMaquinas = {
+  municipioCodigoIbge?: string;
+  categoriaCodigo?: string;
+  data?: string;
+  areas?: AreaSimulada[];
+};
+
+/** Uma cultura que a calculadora oferece — a lista vem do servidor, não do código daqui. */
+export type CulturaNaCalculadora = {
+  codigo: string;
+  nome: string;
+  categoriaCodigo: string;
+  categoriaNome: string;
+  hectaresPorMaquina: number;
+  anosDeRenovacao: number | null;
+  regraConfirmada: boolean;
+  /** A área que o IBGE divulgou no município; nula sem município ou sob sigilo. */
+  areaMedidaHectares: number | null;
+  anoDaArea: number | null;
+  areaInformadaHectares: number | null;
+};
+
+/** O resultado de uma categoria de máquina na simulação. */
+export type CategoriaNaCalculadora = {
+  codigo: string;
+  nome: string;
+  parqueDeMaquinas: number | null;
+  demandaAnualDeMaquinas: number | null;
+  areaUtilHectares: number | null;
+  estimativa: boolean;
+  motivoSemParque: MotivoSemPotencial;
+  motivoSemDemanda: MotivoSemPotencial;
+  frase: string;
+  porCultura: ParcelaDoParque[];
+};
+
+/** O que a calculadora responde. Nada disto é gravado. */
+export type ResultadoDaCalculadora = {
+  /** aaaa-mm-dd — a data cujas vigências valeram. */
+  data: string;
+  municipioCodigoIbge: number | null;
+  municipioNome: string | null;
+  parqueDeMaquinas: number | null;
+  demandaAnualDeMaquinas: number | null;
+  areaUtilHectares: number | null;
+  estimativa: boolean;
+  motivoSemParque: MotivoSemPotencial;
+  motivoSemDemanda: MotivoSemPotencial;
+  frase: string;
+  porCultura: ParcelaDoParque[];
+  porCategoria: CategoriaNaCalculadora[];
+  culturas: CulturaNaCalculadora[];
+  /** Por que o ajuste por cenário de mercado ainda não entra na conta (D-P05). */
+  sobreOsCenarios: string;
+};
+
 /** Filial do cabeçalho, ou empresa inteira (só para quem tem a permissão). */
 export type VisaoTerritorial = 'Filial' | 'Empresa';
 
