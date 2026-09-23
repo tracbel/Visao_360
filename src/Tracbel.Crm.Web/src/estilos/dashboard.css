@@ -13,16 +13,23 @@
 /* -----------------------------------------------------------------------------
    O CONTAINER DA PÁGINA
 
-   1.480px foi escolhido NO HARNESS, e não no chute. Em 1920 os cartões
-   esticavam por quase 1800px: a linha de leitura ficava longa demais e a grade
-   de quatro KPIs virava quatro faixas separadas por vazio. Com esta largura, em
-   1920 sobra margem dos dois lados e a grade tem densidade de painel; em 1440 e
-   abaixo ela ainda ocupa a tela inteira, então nada encolhe onde não sobrava
-   espaço.
+   2.100px, corrigido na T4.7 — MEDIDO NA TELA REAL, num monitor de ~2560px:
+   a T4.6 fixou 1.480 para acabar com o cartão esticado, e acertou o problema
+   pelo lado errado. Com 1.480 num monitor de 2560 sobravam
+   540px de corredor vazio DE CADA LADO. Não era margem, era um vão: o conteúdo
+
+   parecia uma folha A4 no meio do monitor. O que tornava 1800px ruim na T4.6
+   não era a largura — era a COMPOSIÇÃO: uma coluna só,
+   com cada bloco esticado de ponta a ponta. A resposta é usar a largura em duas
+   colunas nos blocos analíticos (ver `.dash-duas-colunas`), e não estreitar a
+   página. Com 2.100 num monitor de 2560 sobram ~230px de cada lado, que é
+   margem; em 1920 a página usa a tela quase inteira. O teto continua existindo,
+   e não é decoração: sem ele, num ultrawide a linha de leitura passaria de
+   qualquer medida sensata. O que se combateu foi o vão, não o limite.
    ----------------------------------------------------------------------------- */
 .dash-pagina {
   width: 100%;
-  max-width: 1480px;
+  max-width: 2100px;
   margin-inline: auto;
   padding-inline: var(--e-5);
   display: flex;
@@ -51,6 +58,130 @@
   display: flex;
   flex-direction: column;
   gap: var(--e-4);
+}
+
+/* -----------------------------------------------------------------------------
+   DUAS COLUNAS NOS BLOCOS ANALÍTICOS (fase T4.7)
+
+   É isto que resolve o corredor vazio — e não estreitar a página. Um bloco
+   analítico tem duas naturezas de conteúdo: a LEITURA (resumo e ranking, que se
+   lê de cima para baixo) e a FORMA (o gráfico, que se lê de lado). Empilhadas,
+   elas fazem uma coluna estreita e comprida no meio de um monitor largo; lado a
+   lado, cada uma fica do tamanho que precisa e a página acaba antes.
+
+   A coluna da esquerda é a mais estreita de propósito: lista e resumo ficam
+   melhores em coluna curta, e o gráfico é quem precisa de largura.
+
+   Abaixo de 1200px volta a ser uma coluna: duas colunas de 400px não são duas
+   colunas, são duas colunas ruins.
+   ----------------------------------------------------------------------------- */
+.dash-duas-colunas {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--e-4);
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .dash-duas-colunas { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* A coluna da leitura empilha resumo e lista com o mesmo respiro do resto. */
+.dash-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+  min-width: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   O RANKING DE BARRAS (fase T4.7)
+
+   É a segunda camada dos painéis analíticos: entre o resumo e a tabela. Uma
+   barra horizontal por linha, com o nome à esquerda e o valor à direita — a
+   forma que responde "qual é maior" sem ler número nenhum, que é o que uma
+   tabela nunca faz.
+
+   A ESCALA SAI DO MAIOR VALOR ABSOLUTO, e não do maior positivo: assim a barra
+   de uma margem negativa tem o mesmo comprimento por real que a de uma positiva,
+   e comparar as duas não engana.
+   ----------------------------------------------------------------------------- */
+.dash-ranking {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+  padding: var(--e-4);
+  margin-top: var(--e-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.dash-ranking-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+
+.dash-ranking-item {
+  display: grid;
+  grid-template-columns: minmax(120px, 2fr) minmax(0, 7fr) minmax(110px, auto);
+  align-items: center;
+  gap: var(--e-3);
+  font-size: var(--t-apoio);
+}
+
+@media (max-width: 700px) {
+  /* No celular a barra some e ficam nome e valor: uma barra de 80px não compara
+     nada, e ainda rouba o espaço do número. */
+  .dash-ranking-item { grid-template-columns: minmax(0, 1fr) auto; }
+  .dash-ranking-barra { display: none; }
+}
+
+.dash-ranking-nome {
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.dash-ranking-barra {
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--n-100);
+  overflow: hidden;
+}
+
+.dash-ranking-preenchimento {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--jd-green);
+}
+
+/* NEGATIVO É HACHURA, E NÃO SÓ COR VERMELHA: quem não distingue as duas cores
+   continua vendo que esta barra é de outra natureza. */
+.dash-ranking-negativa {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--danger) 0,
+    var(--danger) 4px,
+    var(--danger-bg) 4px,
+    var(--danger-bg) 8px
+  );
+}
+
+.dash-ranking-valor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--e-1);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* -----------------------------------------------------------------------------
