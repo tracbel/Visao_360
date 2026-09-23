@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# A CONFERÊNCIA VISUAL (fase T4.5). As capturas NÃO são versionadas: são dezenas
+# de PNG de página inteira que mudariam a cada ajuste de CSS e inchariam o
+# histórico sem nunca serem lidas em diff. O que vale é a afirmação do teste —
+# a página cabe na largura —, e essa está no código. Quem quiser ver a imagem
+# roda `npm run visual` e abre `capturas/`, ou baixa o artefato do CI.
+capturas/
+test-results/
+playwright-report/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

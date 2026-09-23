@@ -14,7 +14,7 @@
  * montar — e nenhuma chamada à API chega a sair.
  */
 
-import { useEffect, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { LogoTracbel } from './componentes/Icones';
 import { Layout } from './componentes/Layout';
@@ -59,7 +59,37 @@ function PortaoDeAutenticacao({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * O HARNESS VISUAL DE DESENVOLVIMENTO (fase T4.5) — `#/dev/mercado-visual`.
+ *
+ * ELE FICA ACIMA DO PORTÃO, e não é uma rota. Duas razões, e as duas importam:
+ *
+ * 1. **Ele não tem o que autenticar.** Só mostra amostra fictícia; exigir sessão
+ *    seria pedir credencial para ver dado inventado — e é exatamente a sessão
+ *    que falta quando não há VPN, que é quando ele mais serve.
+ * 2. **Ele não pode aparecer na navegação.** Fora do `ROTAS`, nenhum menu o
+ *    lista e nenhuma tela chega nele por engano.
+ *
+ * O TERNÁRIO É O QUE TIRA O HARNESS DO PACOTE, e ele não é estilo: com
+ * `lazy(() => import(...))` solto no escopo do módulo, o `import()` continua
+ * ALCANÇÁVEL mesmo com o ramo morto, e o Rollup gera o chunk assim mesmo —
+ * medido em 23/09/2026, 13 kB de amostra fictícia dentro do `dist`. Sob o
+ * ternário, `import.meta.env.DEV` vira `false` no `build`, isto vira `null` e o
+ * `import()` deixa de ser alcançado. `npm run visual:conferir-pacote` confere.
+ */
+const HarnessVisual = import.meta.env.DEV
+  ? lazy(() => import('./dev/HarnessVisual').then((m) => ({ default: m.HarnessVisual })))
+  : null;
+
 export function App() {
+  if (HarnessVisual && window.location.hash.startsWith('#/dev/')) {
+    return (
+      <Suspense fallback={null}>
+        <HarnessVisual />
+      </Suspense>
+    );
+  }
+
   return (
     <ProvedorDeSessao>
       <PortaoDeAutenticacao>
