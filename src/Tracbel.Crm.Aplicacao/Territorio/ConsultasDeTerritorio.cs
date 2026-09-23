@@ -1,8 +1,9 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Tracbel.Crm.Aplicacao.Comum;
 using Tracbel.Crm.Aplicacao.Relacionamento;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Organizacao;
+using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Dominio.Seguranca;
 
@@ -155,8 +156,80 @@ public sealed record PainelTerritorial(
 /// com o motivo, e a tela os mostra desligados.</para>
 /// </summary>
 public sealed class ObterIndicadoresTerritoriais(
-    IRepositorioIndicadoresTerritoriais repositorio, IRelogio relogio, IProvedorContextoAcesso acesso)
+    IRepositorioIndicadoresTerritoriais repositorio,
+    IRelogio relogio,
+    IProvedorContextoAcesso acesso,
+    IRepositorioDeIndicadoresDeMercado indicadoresDeMercado,
+    IRepositorioDeParametrosDoPotencial parametros)
 {
+    /// <summary>
+    /// O MOMENTO DO MERCADO DO RECORTE — o fator de ciclo, suas parcelas e o porte (fase T3).
+    ///
+    /// <para><b>O índice de preço é o da cultura de maior área, e o resultado diz qual.</b> O momento
+    /// de preço é apurado por cultura — o café pode subir enquanto a cana cai — e o fator pede um
+    /// número. Uma média ponderada seria fórmula nova que ninguém decidiu; escolher a cultura que
+    /// domina a área é uma <b>seleção declarada</b>, que a tela mostra.</para>
+    ///
+    /// <para><b>Sem município escolhido não há crédito nem percepção</b>, e o fator sai só com o
+    /// preço: indicador ausente vale desvio zero (issue 74), e não fator indeterminado.</para>
+    /// </summary>
+    private async Task<MomentoDoRecorte?> MomentoDoMercadoAsync(
+        IndicadoresTerritoriais indicadores, DateTime agoraUtc, CancellationToken ct)
+    {
+        if (indicadores.PotencialDoRecorte is not { } recorte) return null;
+
+        var data = DateOnly.FromDateTime(agoraUtc);
+        var vigente = ParametroComVigencia.VigenteEm(await parametros.ListarGeraisAsync(ct), data);
+        var doRecorte = await indicadoresDeMercado.LerAsync(data, null, ct);
+
+        // A CULTURA QUE DOMINA A ÁREA dá o índice de preço do recorte. Sem parcela com área, não há
+        // escolha a declarar — e o fator sai sem preço, que é desvio zero.
+        var dominante = recorte.PorCultura
+            .Where(p => p.AreaUtilHectares is > 0)
+            .OrderByDescending(p => p.AreaUtilHectares)
+            .FirstOrDefault();
+
+        decimal? indiceDePreco = null;
+        string? culturaDoPreco = null;
+        if (dominante is not null && doRecorte.PrecoPorCultura.TryGetValue(dominante.CulturaCodigo, out var momento))
+        {
+            indiceDePreco = momento.Indice;
+            culturaDoPreco = momento.Indice is null ? null : dominante.Cultura;
+        }
+
+        var ajustado = FatorDeCiclo.Ajustar(
+            recorte.DemandaAnualDeMaquinas,
+            indiceDePreco,
+            doRecorte.Credito?.Indice,
+            doRecorte.PercepcaoDoGestor,
+            vigente,
+            recorte.Estimativa);
+
+        var porte = vigente?.PorteDe(recorte.DemandaAnualDeMaquinas);
+        var faixa = LeituraDoMercado.FaixaDoFator(ajustado.Fator.Fator, vigente);
+
+        return new MomentoDoRecorte(
+            ajustado,
+            indiceDePreco,
+            culturaDoPreco,
+            doRecorte.Credito?.Indice,
+            doRecorte.PercepcaoDoGestor,
+            porte,
+            faixa,
+            LeituraDoMercado.Frase(porte, faixa),
+            new ProcedenciaDoIndicador(
+                "CRM Tracbel",
+                "Fator de ciclo de mercado (issue 74)",
+                null,
+                "Preço e rentabilidade, crédito e percepção comercial",
+                doRecorte.UltimoMesDePreco is { } mes ? $"preço até {mes:MM/yyyy}" : null,
+                agoraUtc,
+                "O fator é 1,00 quando nada desvia. Indicador ausente vale desvio ZERO, e não fator " +
+                "indeterminado. O custo entra dentro da parcela de preço e rentabilidade — ele não é uma " +
+                "quarta sensibilidade. O termo de troca ficou de fora (D-P05): precisa do preço de máquina, " +
+                "que é a issue 70."));
+    }
+
     /// <summary>O período mais longo aceito: três anos, a janela da curva ABC (documento 27).</summary>
     private const int MesesNoMaximo = 36;
 
@@ -252,6 +325,11 @@ public sealed class ObterIndicadoresTerritoriais(
                 filialDoClienteId),
             agora,
             ct);
+
+        // O MOMENTO DO MERCADO DO RECORTE (fase T3): o fator de ciclo e as parcelas que o explicam.
+        // Ele é montado aqui, e não no repositório, pelo mesmo motivo da calculadora — o fator é conta
+        // de DOMÍNIO sobre índices e vigências, e não uma leitura de banco.
+        indicadores = indicadores with { Momento = await MomentoDoMercadoAsync(indicadores, agora, ct) };
 
         return Resultado<ComProcedencia<PainelTerritorial>>.Ok(
             ComProcedencia<PainelTerritorial>.DoNossoBanco(

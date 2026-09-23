@@ -503,6 +503,12 @@ public sealed record RegraDePotencialAplicada(
 /// <para><b>A tela não escreve fonte à mão.</b> Escrever "Fonte: IBGE" no front foi o que produziu
 /// os parágrafos cinza embaixo de cada cartão, e eles envelhecem sem ninguém notar.</para>
 /// </param>
+/// <param name="Momento">
+/// O fator de ciclo do recorte e as parcelas que o explicam, ao lado do porte estrutural (fase T3).
+///
+/// <para><b>Porte e momento são dois números</b>, e o porte nasce sem nome até a issue 166 ter
+/// bandas: nomear exige um corte, e um corte sem dono é parâmetro inventado.</para>
+/// </param>
 public sealed record IndicadoresTerritoriais(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -519,7 +525,8 @@ public sealed record IndicadoresTerritoriais(
     IReadOnlyList<CulturaNoEstado> CulturasNoEstado,
     PotencialDoRecorteNoMapa? PotencialDoRecorte = null,
     TotaisDaRegiaoTracbel? RegiaoTracbel = null,
-    ProcedenciasDoTerritorio? Procedencias = null);
+    ProcedenciasDoTerritorio? Procedencias = null,
+    MomentoDoRecorte? Momento = null);
 
 /// <summary>
 /// O acesso aos INDICADORES TERRITORIAIS — a leitura que alimenta os três mapas.

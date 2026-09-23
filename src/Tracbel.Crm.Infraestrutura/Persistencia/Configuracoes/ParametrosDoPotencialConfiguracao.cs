@@ -135,6 +135,19 @@ public sealed class ParametroDoPotencialConfiguracao : IEntityTypeConfiguration<
         b.Property(p => p.FatorMinimo).HasPrecision(5, 3);
         b.Property(p => p.FatorMaximo).HasPrecision(5, 3);
 
+        // AS BANDAS DE PORTE (issue 166) — máquinas por ano, então inteiro com uma casa basta para a
+        // Região inteira (milhares) e para um município (dezenas). Nulas enquanto ninguém decidir.
+        b.Property(p => p.PorteMedioAPartirDe).HasPrecision(12, 1);
+        b.Property(p => p.PorteGrandeAPartirDe).HasPrecision(12, 1);
+
+        // AS DUAS ANDAM JUNTAS, e o banco cobra isso junto com a entidade: um corte sozinho não
+        // classifica nada, e a tela mostraria duas classes para três.
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_ParametroDoPotencial_BandasDePorte",
+            "([PorteMedioAPartirDe] IS NULL AND [PorteGrandeAPartirDe] IS NULL) OR " +
+            "([PorteMedioAPartirDe] IS NOT NULL AND [PorteGrandeAPartirDe] IS NOT NULL " +
+            "AND [PorteMedioAPartirDe] > 0 AND [PorteMedioAPartirDe] < [PorteGrandeAPartirDe])"));
+
         b.HasIndex(p => p.VigenteDesde)
             .IsUnique()
             .HasFilter("[RevogadoEm] IS NULL")

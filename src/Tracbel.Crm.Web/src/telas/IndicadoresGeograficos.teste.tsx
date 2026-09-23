@@ -207,6 +207,45 @@ function painel(): PainelTerritorial {
         },
         usinas: null,
       },
+      // O MOMENTO DO RECORTE (fase T3): fator, parcelas e porte. A demanda sai
+      // nula — o ciclo de renovação é o D-P01 —, e o porte sai SEM NOME, porque
+      // as bandas da issue 166 ainda não foram decididas.
+      momento: {
+        potencial: {
+          demandaEstrutural: null,
+          fator: {
+            fator: 0.88,
+            parcelaDePreco: -0.08,
+            parcelaDaPercepcao: 0.02,
+            parcelaDeCredito: -0.06,
+            fatorSemLimite: 0.88,
+            cortadoPeloLimite: false,
+            indicadoresUsados: 3,
+            estimativa: true,
+            motivo: 'Nenhum',
+          },
+          demandaAjustada: null,
+          variacaoPercentual: null,
+          cenarios: [],
+          frase: 'estimativa: a regra do café ainda não foi confirmada',
+        },
+        indiceDePreco: 0.8,
+        culturaDoIndiceDePreco: 'Café (Total)',
+        indiceDeCredito: 0.88,
+        percepcaoPercentual: 2,
+        porte: null,
+        faixaDoMomento: 'Retraído',
+        leitura: 'Mercado retraído.',
+        procedencia: {
+          fonte: 'CRM Tracbel',
+          pesquisa: 'Fator de ciclo de mercado (issue 74)',
+          tabela: null,
+          variavel: 'Preço e rentabilidade, crédito e percepção comercial',
+          competencia: 'preço até 06/2026',
+          ultimaCargaUtc: '2026-09-23T12:00:00Z',
+          ressalva: 'O fator é 1,00 quando nada desvia. Indicador ausente vale desvio ZERO.',
+        },
+      },
     },
     metricasSemDado: [{ metrica: 'participacaoDeMercado', motivo: 'emplacamento não integrado' }],
     podeVerEmpresaInteira: false,
@@ -355,6 +394,11 @@ describe('Indicadores Geográficos — as duas abas', () => {
       'como-ler',
       'abas',
       'mercado-da-regiao',
+      // Os quatro números de decisão vêm primeiro (fase T3), depois porte ×
+      // momento, e só então a linha preservada — que vira a EVIDÊNCIA do porte.
+      'kpis-executivos',
+      'kpis',
+      'porte-e-momento',
       'kpis',
       'visao-geografica',
       'mapas',
@@ -601,6 +645,124 @@ describe('Indicadores Geográficos — procedência por indicador (issue 167)', 
     const deOnde = tratores.querySelector('.cad-kpi-fonte')!.textContent ?? '';
     expect(deOnde).not.toMatch(/Censo Agropecuário/);
     expect(deOnde).not.toMatch(/IBGE/);
+  });
+});
+
+describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', () => {
+  afterEach(() => {
+    obterIndicadoresTerritoriais.mockReset();
+    carregarMalhaDeSaoPaulo.mockReset();
+    guardado.clear();
+  });
+
+  const executivo = (rotulo: string) =>
+    [...bloco('kpis-executivos')!.querySelectorAll<HTMLElement>('.cad-kpi')].find((c) =>
+      c.querySelector('.cad-kpi-rotulo')?.textContent?.startsWith(rotulo),
+    )!;
+
+  it('os quatro números de decisão estão lá, nesta ordem', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const rotulos = [...bloco('kpis-executivos')!.querySelectorAll('.cad-kpi-rotulo')].map((n) =>
+      (n.textContent ?? '').trim(),
+    );
+    expect(rotulos).toEqual(['Demanda anual', 'Mercado anual', 'Captura Tracbel', 'Oportunidade']);
+  });
+
+  it('os três sem dado dizem o que falta e a issue que destrava — nunca um número', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    expect(executivo('Mercado anual')).toHaveTextContent(/issue 70/);
+    expect(executivo('Captura Tracbel')).toHaveTextContent(/issue 69/);
+    expect(executivo('Oportunidade')).toHaveTextContent(/issue 69/);
+
+    // Nenhum deles inventou número.
+    for (const rotulo of ['Mercado anual', 'Captura Tracbel', 'Oportunidade'])
+      expect(executivo(rotulo).querySelector('.cad-kpi-valor')!.textContent).toMatch(/^—?$/);
+  });
+
+  it('a demanda anual sai vazia apontando a D-P01, e não zero', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const demanda = executivo('Demanda anual');
+    expect(demanda).toHaveTextContent(/ciclo de renovação/);
+    expect(demanda).toHaveTextContent(/issue 63/);
+    expect(demanda.querySelector('.cad-kpi-valor')!.textContent).not.toContain('0 máq');
+  });
+
+  it('o porte nasce SEM NOME, e a dica diz que nulo não é "pequeno"', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const porte = bloco('porte-e-momento')!;
+    expect(porte).toHaveTextContent('Porte:');
+    for (const nome of ['Mercado pequeno', 'Mercado médio', 'Mercado grande'])
+      expect(porte).not.toHaveTextContent(nome);
+
+    fireEvent.focus(within(porte).getByRole('button', { name: 'Por que o nome do porte não aparece' }));
+    const dica = screen.getByRole('tooltip');
+    expect(dica).toHaveTextContent(/issue 166/);
+    expect(dica).toHaveTextContent(/NÃO quer dizer "pequeno"/);
+  });
+
+  it('o momento TEM nome e número — ele já tem faixas decididas', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const porte = bloco('porte-e-momento')!;
+    expect(porte).toHaveTextContent('Retraído');
+    expect(porte).toHaveTextContent('0,88');
+    expect(porte).toHaveTextContent('Mercado retraído.');
+  });
+
+  it('as parcelas são TRÊS, e o custo não é uma quarta seta', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const parcelas = [...bloco('porte-e-momento')!.querySelectorAll('.terr-parcela-nome')].map(
+      (n) => n.textContent ?? '',
+    );
+    expect(parcelas).toEqual(['Commodity', 'Crédito', 'Percepção']);
+    expect(parcelas).not.toContain('Custo');
+  });
+
+  it('a direção da seta carrega o significado, e a dica diz onde o custo entra', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const porte = bloco('porte-e-momento')!;
+    const setas = [...porte.querySelectorAll('.terr-parcela-seta')].map((n) => n.textContent);
+    // preço −0,08 → baixa; crédito −0,06 → baixa; percepção +0,02 → sobe.
+    expect(setas).toEqual(['↓', '↓', '↑']);
+
+    fireEvent.focus(within(porte).getByRole('button', { name: 'Como commodity entra no fator' }));
+    const dica = screen.getByRole('tooltip');
+    expect(dica).toHaveTextContent(/O custo entra AQUI/);
+    expect(dica).toHaveTextContent(/Café \(Total\)/);
+  });
+
+  it('o fator explica a própria origem, com a competência do preço', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    fireEvent.focus(
+      within(bloco('porte-e-momento')!).getByRole('button', { name: 'De onde vem o momento do mercado' }),
+    );
+    const dica = screen.getByRole('tooltip');
+    expect(dica).toHaveTextContent('Fonte: CRM Tracbel');
+    expect(dica).toHaveTextContent('preço até 06/2026');
+    expect(dica).toHaveTextContent(/desvio ZERO/);
   });
 });
 
