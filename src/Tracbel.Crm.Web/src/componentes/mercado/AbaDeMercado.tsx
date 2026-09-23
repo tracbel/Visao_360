@@ -29,6 +29,8 @@ import { SecaoDoMercadoDaRegiao } from '../territorio/SecaoDoMercadoDaRegiao';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
 import type { TotaisDaAdr } from '../territorio/totaisDaAdr';
 import { BlocoDePotencial } from './BlocoDePotencial';
+import { KpisExecutivos } from './KpisExecutivos';
+import { PorteEMomento } from './PorteEMomento';
 import { BlocoDoMomento } from './BlocoDoMomento';
 import { PerformanceTracbel } from './PerformanceTracbel';
 
@@ -82,6 +84,19 @@ export function AbaDeMercado({
   return (
     <>
       <SecaoDoMercadoDaRegiao />
+
+      {/* OS QUATRO NÚMEROS DE DECISÃO vêm primeiro (documento 50, §4.1), e o
+          porte e o momento logo abaixo — dois números, nunca um. */}
+      <KpisExecutivos
+        momento={indicadores?.momento ?? null}
+        demandaDeSaoPaulo={null}
+        carregando={carregando}
+        procedenciaDaDemanda={indicadores?.momento?.procedencia ?? null}
+      />
+      <PorteEMomento momento={indicadores?.momento ?? null} />
+
+      {/* A LINHA PRESERVADA continua abaixo, como evidência do porte: o que o
+          território tem, e que fatia da Região Tracbel e de SP isso é. */}
       <PainelDeIndicadores indicadores={kpisDoMercado} carregando={carregando} />
 
       <section data-bloco="visao-geografica">

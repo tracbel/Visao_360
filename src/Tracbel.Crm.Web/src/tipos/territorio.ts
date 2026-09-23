@@ -71,6 +71,61 @@ export type MedidaDeRazao = {
 };
 
 /**
+ * O FATOR DE CICLO DO RECORTE E AS PARCELAS QUE O EXPLICAM (fase T3).
+ *
+ * As parcelas são TRÊS, e não quatro: preço e rentabilidade, crédito e
+ * percepção comercial (D-P05). O custo entra DENTRO da parcela de preço e
+ * rentabilidade — ele não é uma quarta sensibilidade —, e o termo de troca ficou
+ * de fora porque precisa do preço de máquina (issue 70).
+ */
+export type FatorDoCiclo = {
+  fator: number | null;
+  parcelaDePreco: number | null;
+  parcelaDaPercepcao: number | null;
+  parcelaDeCredito: number | null;
+  fatorSemLimite: number | null;
+  cortadoPeloLimite: boolean;
+  indicadoresUsados: number;
+  estimativa: boolean;
+  motivo: string;
+};
+
+// `CenarioDoPotencial` já existe mais abaixo, vindo da calculadora (issue 161):
+// é o mesmo contrato, e dois nomes para a mesma coisa deixariam a tela com duas
+// verdades sobre o que é um cenário.
+
+export type PotencialAjustado = {
+  demandaEstrutural: number | null;
+  fator: FatorDoCiclo;
+  demandaAjustada: number | null;
+  variacaoPercentual: number | null;
+  cenarios: CenarioDoPotencial[];
+  frase: string;
+};
+
+/**
+ * PORTE E MOMENTO SÃO DOIS NÚMEROS, NUNCA UM (documento 50, §4.2).
+ *
+ * O porte é o tamanho do mercado e muda devagar; o momento é o fator de ciclo e
+ * muda todo mês. O `porte` nasce **nulo** até a issue 166 ter bandas: nomear
+ * exige um corte, e corte sem dono é parâmetro inventado.
+ */
+export type MomentoDoRecorte = {
+  potencial: PotencialAjustado;
+  indiceDePreco: number | null;
+  /** Qual cultura deu o índice de preço — é a de maior área, e a tela diz. */
+  culturaDoIndiceDePreco: string | null;
+  indiceDeCredito: number | null;
+  percepcaoPercentual: number | null;
+  /** Nulo enquanto a issue 166 não tiver bandas — e nulo não é "pequeno". */
+  porte: string | null;
+  faixaDoMomento: string | null;
+  /** "Mercado grande, agora retraído." — vazia quando falta os dois lados. */
+  leitura: string;
+  procedencia: ProcedenciaDoIndicador | null;
+};
+
+/**
  * De onde veio cada indicador da tela de território (issue 167).
  *
  * Um registro tipado, e não um dicionário por texto: a tela não pode errar a
@@ -438,6 +493,8 @@ export type IndicadoresTerritoriais = {
   regiaoTracbel: TotaisDaRegiaoTracbel | null;
   /** De onde veio cada indicador — a tela não escreve fonte à mão (issue 167). */
   procedencias: ProcedenciasDoTerritorio | null;
+  /** O fator de ciclo do recorte, as parcelas e o porte estrutural (fase T3). */
+  momento: MomentoDoRecorte | null;
 };
 
 // ---------------------------------------------------------------------------

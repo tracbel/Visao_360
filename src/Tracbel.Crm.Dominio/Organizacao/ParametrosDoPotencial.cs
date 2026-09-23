@@ -355,6 +355,47 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
     public int? MinimoDeLinhasNoCredito { get; private set; }
 
     /// <summary>
+    /// A PARTIR DE QUANTAS MÁQUINAS POR ANO O MERCADO É "MÉDIO" (issue 166).
+    ///
+    /// <para><b>Por que existe.</b> A diretoria precisa ler "mercado grande, agora retraído" — e para
+    /// isso o porte estrutural precisa de um nome. Nome exige corte.</para>
+    ///
+    /// <para><b>Em aberto, e por isso nulo.</b> Onde ficam os cortes é decisão do negócio, e um corte
+    /// sem dono é parâmetro inventado — o que a R-27 do documento 46 proíbe. Enquanto os dois forem
+    /// nulos, o porte se expressa pelo NÚMERO e pela comparação (<c>3.457 máq/ano · 42,3% de SP</c>),
+    /// sem adjetivo, e o parâmetro aparece em "o que falta decidir".</para>
+    ///
+    /// <para><b>O momento é outra coisa</b> e já tem faixas decididas (<see cref="LimiteDeRetracao"/> e
+    /// as demais): ele pode ser nomeado hoje. Misturar os dois esconderia justamente a leitura que a
+    /// diretoria precisa — "estruturalmente grande, mas agora retraído" é uma decisão diferente de
+    /// "pequeno e aquecido".</para>
+    /// </summary>
+    public decimal? PorteMedioAPartirDe { get; private set; }
+
+    /// <summary>
+    /// A PARTIR DE QUANTAS MÁQUINAS POR ANO O MERCADO É "GRANDE" (issue 166).
+    ///
+    /// <para>Anda junto de <see cref="PorteMedioAPartirDe"/>: um corte sozinho não classifica nada, e a
+    /// entidade recusa os dois pela metade.</para>
+    /// </summary>
+    public decimal? PorteGrandeAPartirDe { get; private set; }
+
+    /// <summary>
+    /// O NOME DO PORTE de uma demanda anual — nulo quando ninguém decidiu os cortes.
+    ///
+    /// <para><b>Nulo não é "pequeno".</b> Sem banda registrada não há classificação, e a tela mostra o
+    /// número sem adjetivo em vez de chamar de pequeno o que ninguém mediu.</para>
+    /// </summary>
+    /// <param name="demandaAnual">A demanda estrutural em máquinas por ano.</param>
+    public string? PorteDe(decimal? demandaAnual)
+    {
+        if (demandaAnual is not { } demanda) return null;
+        if (PorteMedioAPartirDe is not { } medio || PorteGrandeAPartirDe is not { } grande) return null;
+
+        return demanda >= grande ? "Mercado grande" : demanda >= medio ? "Mercado médio" : "Mercado pequeno";
+    }
+
+    /// <summary>
     /// OS PRODUTOS DO SICOR QUE SÃO MÁQUINA — trator (7080), máquinas e implementos (4860) e
     /// colheitadeiras (2700).
     ///
@@ -383,6 +424,8 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
     /// <param name="FatorMaximo">O maior fator, quando decidido.</param>
     /// <param name="MesesDeCarenciaDoSicor">Meses recentes do SICOR fora da janela, quando decidido.</param>
     /// <param name="MinimoDeLinhasNoCredito">Abaixo disto a base do crédito é pequena, quando decidido.</param>
+    /// <param name="PorteMedioAPartirDe">Máquinas por ano a partir das quais o mercado é médio (issue 166).</param>
+    /// <param name="PorteGrandeAPartirDe">Máquinas por ano a partir das quais o mercado é grande (issue 166).</param>
     public sealed record Valores(
         short MesesDaJanela,
         decimal PesoDosContratosNoCredito,
@@ -397,7 +440,9 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
         decimal? FatorMinimo,
         decimal? FatorMaximo,
         short? MesesDeCarenciaDoSicor = null,
-        int? MinimoDeLinhasNoCredito = null);
+        int? MinimoDeLinhasNoCredito = null,
+        decimal? PorteMedioAPartirDe = null,
+        decimal? PorteGrandeAPartirDe = null);
 
     /// <summary>Registra uma vigência dos parâmetros gerais.</summary>
     /// <param name="valores">O conjunto inteiro.</param>
@@ -426,7 +471,9 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
             FatorMinimo = valores.FatorMinimo,
             FatorMaximo = valores.FatorMaximo,
             MesesDeCarenciaDoSicor = valores.MesesDeCarenciaDoSicor,
-            MinimoDeLinhasNoCredito = valores.MinimoDeLinhasNoCredito
+            MinimoDeLinhasNoCredito = valores.MinimoDeLinhasNoCredito,
+            PorteMedioAPartirDe = valores.PorteMedioAPartirDe,
+            PorteGrandeAPartirDe = valores.PorteGrandeAPartirDe
         };
 
         parametro.Informar(vigenteDesde, justificativa, informadoPorId, agoraUtc);
@@ -473,6 +520,17 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
         if (v.FatorMinimo is { } minimo && v.FatorMaximo is { } maximo && !(minimo > 0 && minimo < 1 && maximo > 1 && maximo <= 10))
             throw new RegraDeNegocioViolada(
                 "O fator mínimo fica entre 0 e 1 e o máximo acima de 1, até 10: com tudo neutro o fator é 1, e o limite não pode excluí-lo.");
+
+        // AS BANDAS DE PORTE ANDAM JUNTAS (issue 166): um corte sozinho não classifica nada — com só o
+        // "médio" não se sabe onde começa o "grande", e a tela mostraria duas classes para três.
+        if ((v.PorteMedioAPartirDe is null) != (v.PorteGrandeAPartirDe is null))
+            throw new RegraDeNegocioViolada(
+                "As bandas de porte andam juntas: informe a de mercado médio e a de grande, ou nenhuma das duas.");
+
+        if (v.PorteMedioAPartirDe is { } porteMedio && v.PorteGrandeAPartirDe is { } porteGrande
+            && !(porteMedio > 0 && porteMedio < porteGrande))
+            throw new RegraDeNegocioViolada(
+                "A banda de mercado médio é maior que zero e menor que a de mercado grande.");
 
         // A CARÊNCIA NÃO PODE COMER A JANELA INTEIRA: descartar 12 meses de uma janela de 12 deixaria
         // os dois lados vazios, e a comparação sem nada para comparar.

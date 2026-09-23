@@ -646,3 +646,63 @@
   flex-direction: column;
   gap: 12px;
 }
+
+/* ---------------------------------------------------------------------------
+   PORTE x MOMENTO E AS PARCELAS DO FATOR (documento 50, §4.2 e §4.3; fase T3).
+
+   A DIREÇÃO DA SETA CARREGA O SIGNIFICADO, e não a cor: quem não distingue
+   verde de vermelho lê a seta igual. A cor só reforça.
+   --------------------------------------------------------------------------- */
+
+.terr-porte-momento {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 4px;
+}
+
+.terr-porte-momento-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  align-items: baseline;
+}
+
+.terr-leitura {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.terr-leitura-frase {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.terr-parcelas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  align-items: center;
+}
+
+.terr-parcela {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.terr-parcela-seta {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.terr-parcela-nome {
+  white-space: nowrap;
+}
