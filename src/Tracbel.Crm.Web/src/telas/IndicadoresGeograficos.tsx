@@ -1,10 +1,11 @@
 /**
- * Indicadores Geográficos da ADR — os três mapas do pedido do gerente comercial
+ * Indicadores Geográficos da ADR — os quatro mapas do pedido do gerente comercial
  * (documento 32, seção 8; documento 36), com dado do banco do CRM e do IBGE.
  *
- * OS TRÊS MAPAS LADO A LADO, NO MESMO QUADRO: o enquadramento é a ADR inteira e
- * é o mesmo nos três, então o mesmo município está no mesmo lugar em todos — e
- * o cursor sobre ele mostra o detalhe dele nos três ao mesmo tempo.
+ * ESTA É A CASCA. Ela busca, calcula os totais e compõe os blocos; cada bloco
+ * mora no próprio componente, em `componentes/territorio/` (issue 170, parte A —
+ * fase T0 do documento 50). A ordem dos blocos aqui é a ordem da tela, e é o que
+ * `IndicadoresGeograficos.teste.tsx` prende.
  *
  * O QUE ESTA TELA NÃO FAZ, e diz na própria tela:
  * - não filtra por SAM/KAM/Varejo, tipo de produto nem modelo — não há dado;
@@ -20,165 +21,32 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { BlocoCarregando, BlocoErro, BlocoVazio } from '../componentes/cadastro/EstadosDeTela';
-import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Indicadores';
+import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTela';
+import { PainelDeIndicadores } from '../componentes/cadastro/Indicadores';
 import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
-import { Calculadora } from '../componentes/mercado/Calculadora';
+import { AvisoDeTerritorioSemCarga } from '../componentes/territorio/AvisoDeTerritorioSemCarga';
+import { CartaoDeAlcance } from '../componentes/territorio/CartaoDeAlcance';
+import { ComoLerEstesNumeros } from '../componentes/territorio/ComoLerEstesNumeros';
 import { DetalheDoMunicipio } from '../componentes/territorio/DetalheDoMunicipio';
+import { FiltrosDosIndicadores } from '../componentes/territorio/FiltrosDosIndicadores';
+import { GradeDeMapas } from '../componentes/territorio/GradeDeMapas';
+import { LARGURA_DO_DESENHO } from '../componentes/territorio/indicadoresDaAdr';
+import { kpisDaCarteira, kpisDoMercado, type ContextoDosKpis } from '../componentes/territorio/kpisDosIndicadores';
+import type { LigacaoDoMapa } from '../componentes/territorio/mapas/CartaoDeMapa';
 import { PainelDeCredito } from '../componentes/territorio/PainelDeCredito';
 import { PainelDeCustos } from '../componentes/territorio/PainelDeCustos';
 import { PainelDePrecos } from '../componentes/territorio/PainelDePrecos';
-import {
-  FAIXAS_AREA_PLANTADA,
-  FAIXAS_COBERTURA_PERCENTUAL,
-  FAIXAS_DENSIDADE_DE_TRATORES,
-  FAIXAS_ESTABELECIMENTOS,
-  FAIXAS_PENDENCIA_PERCENTUAL,
-  FAIXAS_PENDENCIA_QUANTIDADE,
-  FAIXAS_POTENCIAL,
-  FAIXAS_REBANHO,
-  FAIXAS_TRATORES,
-  FAIXAS_USINAS,
-  FAIXAS_VALOR_DA_PRODUCAO,
-  FAIXAS_VENDAS,
-  faixaDe,
-  reaisCompactos,
-  reaisDaProducao,
-} from '../componentes/territorio/escalas';
-import {
-  LegendaDoMapa,
-  MapaDeMunicipios,
-  type EstadoNoMapa,
-  type PoligonoProjetado,
-} from '../componentes/territorio/MapaDeMunicipios';
+import { SecaoDoMercadoDaRegiao } from '../componentes/territorio/SecaoDoMercadoDaRegiao';
+import { TabelaDeMunicipios } from '../componentes/territorio/TabelaDeMunicipios';
+import { calcularFatiaNoEstado, calcularTotais } from '../componentes/territorio/totaisDaAdr';
+import type { PoligonoProjetado } from '../componentes/territorio/MapaDeMunicipios';
 import { caminhoSvg, enquadrar, type ColecaoMunicipal } from '../componentes/territorio/projecao';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { carregarMalhaDeSaoPaulo, obterIndicadoresTerritoriais } from '../dados/api/territorio';
 import { useRecurso } from '../dados/api/useRecurso';
-import type {
-  ClassificacaoDeIndicador,
-  FiltrosTerritoriais,
-  IndicadoresDoMunicipio,
-  MedidaDoEstado,
-  MotivoSemPotencial,
-  PotencialDoRecorteNoMapa,
-} from '../tipos/territorio';
+import type { ClassificacaoDeIndicador, FiltrosTerritoriais } from '../tipos/territorio';
 import '../estilos/territorio.css';
-
-/** A largura de referência do desenho; o SVG escala para o cartão. */
-const LARGURA_DO_DESENHO = 520;
-
-type ModoDeCobertura = 'cobertura' | 'pendencia' | 'quantidade';
-type RecorteDeVendas = 'valorLiquido' | 'maquina' | 'posVenda';
-
-/** O que o mapa D pinta. Cada recorte vem de uma pesquisa diferente, com ano próprio. */
-type RecorteDaEstrutura = 'tratores' | 'densidade' | 'estabelecimentos' | 'rebanho' | 'usinas';
-
-/** O que o mapa C pinta: a regra, ou a lavoura que a sustenta. */
-type RecorteDoPotencial = 'maquinas' | 'areaPlantada' | 'valorDaProducao';
-
-const ROTULO_DE_COBERTURA: Record<ModoDeCobertura, string> = {
-  cobertura: '% no prazo',
-  pendencia: '% pendente',
-  quantidade: 'pendentes (qtd.)',
-};
-
-const UNIDADE_DE_COBERTURA: Record<ModoDeCobertura, string> = {
-  cobertura: '% dos vínculos elegíveis com contato no prazo da cadência — verde é mais coberto',
-  pendencia: '% dos vínculos elegíveis fora do prazo ou nunca contatados — vermelho é mais pendente',
-  quantidade: 'vínculos pendentes (fora do prazo + nunca contatados)',
-};
-
-const FAIXAS_DE_COBERTURA = {
-  cobertura: FAIXAS_COBERTURA_PERCENTUAL,
-  pendencia: FAIXAS_PENDENCIA_PERCENTUAL,
-  quantidade: FAIXAS_PENDENCIA_QUANTIDADE,
-} as const;
-
-const ROTULO_DE_VENDAS: Record<RecorteDeVendas, string> = {
-  valorLiquido: 'Total líquido',
-  maquina: 'Máquina',
-  posVenda: 'Pós-venda',
-};
-
-const ROTULO_DA_ESTRUTURA: Record<RecorteDaEstrutura, string> = {
-  tratores: 'Tratores',
-  densidade: 'Tratores / mil km²',
-  estabelecimentos: 'Propriedades',
-  rebanho: 'Rebanho bovino',
-  usinas: 'Usinas de etanol',
-};
-
-const FAIXAS_DA_ESTRUTURA = {
-  tratores: FAIXAS_TRATORES,
-  densidade: FAIXAS_DENSIDADE_DE_TRATORES,
-  estabelecimentos: FAIXAS_ESTABELECIMENTOS,
-  rebanho: FAIXAS_REBANHO,
-  usinas: FAIXAS_USINAS,
-} as const;
-
-const UNIDADE_DA_ESTRUTURA: Record<RecorteDaEstrutura, string> = {
-  tratores: 'tratores existentes (Censo Agropecuário) — hachurado é sigilo do IBGE, não zero',
-  densidade: 'tratores por mil km² — a densidade, que compara município grande com pequeno',
-  estabelecimentos: 'estabelecimentos agropecuários (Censo Agropecuário)',
-  rebanho: 'cabeças de bovino (Pesquisa da Pecuária Municipal)',
-  usinas: 'capacidade autorizada de etanol, em m³/dia (ANP) — hachurado é município sem usina de etanol',
-};
-
-const ROTULO_DO_POTENCIAL: Record<RecorteDoPotencial, string> = {
-  maquinas: 'Máquinas teóricas',
-  areaPlantada: 'Área plantada',
-  valorDaProducao: 'Valor da produção',
-};
-
-const FAIXAS_DO_POTENCIAL = {
-  maquinas: FAIXAS_POTENCIAL,
-  areaPlantada: FAIXAS_AREA_PLANTADA,
-  valorDaProducao: FAIXAS_VALOR_DA_PRODUCAO,
-} as const;
-
-const UNIDADE_DO_POTENCIAL: Record<RecorteDoPotencial, string> = {
-  maquinas: 'máquinas teóricas na região (necessidade de frota, não venda nem valor)',
-  areaPlantada: 'hectares plantados de TODAS as culturas do município (IBGE/PAM)',
-  valorDaProducao: 'valor da produção agrícola do município — o que ele COLHE, não o que a Tracbel vende',
-};
-
-/**
- * Por que o parque não saiu, em português (issue 72).
- *
- * O motor devolve o motivo, e não um traço mudo: "sem área" é sigilo do IBGE e
- * "sem regra" é parâmetro que ninguém decidiu — quem lê o mapa precisa saber
- * qual dos dois está olhando.
- */
-const MOTIVO_SEM_PARQUE: Record<MotivoSemPotencial, string> = {
-  Nenhum: '—',
-  SemArea: 'área plantada não divulgada aqui (sigilo do IBGE)',
-  SemRegra: 'há área plantada, mas nenhuma cultura daqui tem regra de hectares por máquina',
-  SemCicloDeRenovacao: 'falta o ciclo de renovação',
-};
-
-const nº = (v: number) => v.toLocaleString('pt-BR');
-const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
-
-/** `2025-09-01` vira `set/2025`. */
-function mes(competencia: string): string {
-  const [ano, m] = competencia.split('-');
-  return `${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(m) - 1]}/${ano}`;
-}
-
-/**
- * O ano civil até o último mês fechado — o recorte "acumulado do ano" que existe sem calendário fiscal.
- * Em janeiro, o último mês fechado é dezembro: o recorte vira o ano anterior inteiro.
- */
-function anoCivilFechado(hoje = new Date()): Pick<FiltrosTerritoriais, 'competenciaInicial' | 'competenciaFinal'> {
-  const ultimoFechado = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
-  const ano = ultimoFechado.getFullYear();
-  return {
-    competenciaInicial: `${ano}-01`,
-    competenciaFinal: `${ano}-${String(ultimoFechado.getMonth() + 1).padStart(2, '0')}`,
-  };
-}
 
 export function IndicadoresGeograficos() {
   const { contexto } = useContextoDeAcesso();
@@ -192,13 +60,8 @@ export function IndicadoresGeograficos() {
     filialDaVenda: '',
     filialDoCliente: '',
   });
-  const [modoDeCobertura, setModoDeCobertura] = useState<ModoDeCobertura>('cobertura');
-  const [recorteDeVendas, setRecorteDeVendas] = useState<RecorteDeVendas>('valorLiquido');
-  const [recorteDaEstrutura, setRecorteDaEstrutura] = useState<RecorteDaEstrutura>('tratores');
-  const [recorteDoPotencial, setRecorteDoPotencial] = useState<RecorteDoPotencial>('maquinas');
   const [selecionado, setSelecionado] = useState<number | null>(null);
   const [emFoco, setEmFoco] = useState<number | null>(null);
-  const [calculadoraAberta, setCalculadoraAberta] = useState(false);
   const [lojasConhecidas, setLojasConhecidas] = useState<Map<string, string>>(() => new Map());
   const [adrConhecida, setAdrConhecida] = useState<ReadonlySet<number>>(() => new Set());
 
@@ -264,7 +127,7 @@ export function IndicadoresGeograficos() {
 
   const desenho = useMemo(() => {
     if (!malha) return null;
-    // O QUADRO É A ADR INTEIRA, o mesmo nos três mapas. Os vizinhos continuam desenhados e o SVG corta o
+    // O QUADRO É A ADR INTEIRA, o mesmo nos quatro mapas. Os vizinhos continuam desenhados e o SVG corta o
     // que passa da borda: o mapa fica do tamanho da área de atuação, e não do estado.
     const enquadramento = enquadrar(
       malha,
@@ -283,80 +146,8 @@ export function IndicadoresGeograficos() {
   const nomeDoPoligono = useMemo(() => new Map((desenho?.poligonos ?? []).map((p) => [p.codigo, p.nome])), [desenho]);
 
   const daAdr = useMemo(() => municipios.filter((m) => m.pertenceAAdr), [municipios]);
-
-  const totais = useMemo(() => {
-    const soma = (f: (m: IndicadoresDoMunicipio) => number) => daAdr.reduce((s, m) => s + f(m), 0);
-    // O NÚMERO VEM DO MOTOR (issue 72), e não mais de uma divisão feita aqui sobre a primeira regra:
-    // `potencialEstrutural` já soma todas as culturas com regra, desconta a terra compartilhada entre
-    // elas e soma as categorias de máquina sem somar a terra delas duas vezes.
-    const comArea = daAdr.filter((m) => m.potencialEstrutural?.parqueDeMaquinas != null);
-    return {
-      elegiveis: soma((m) => m.cobertura.vinculosComCadencia),
-      cobertos: soma((m) => m.cobertura.cobertos),
-      foraDaCadencia: soma((m) => m.cobertura.foraDaCadencia),
-      nuncaContatados: soma((m) => m.cobertura.nuncaContatados),
-      pendentes: soma((m) => m.cobertura.pendentes),
-      clientes: soma((m) => m.cobertura.clientes),
-      vendas: soma((m) => m.vendas.valorLiquido),
-      maquina: soma((m) => m.vendas.maquina),
-      posVenda: soma((m) => m.vendas.posVenda),
-      clientesQueCompraram: soma((m) => m.vendas.clientesQueCompraram),
-      maquinasTeoricas: comArea.reduce((s, m) => s + (m.potencialEstrutural?.parqueDeMaquinas ?? 0), 0),
-      hectares: comArea.reduce((s, m) => s + (m.potencialEstrutural?.areaUtilHectares ?? 0), 0),
-      municipiosComArea: comArea.length,
-      // O SELO DE ESTIMATIVA É DO DADO, e não uma frase fixa: ele acende quando alguma regra que
-      // dimensionou máquina aqui ainda não foi confirmada pelo comercial (D-P01).
-      potencialEstimado: comArea.some((m) => m.potencialEstrutural?.estimativa === true),
-
-      // A SOMA IGNORA O SIGILO em vez de contá-lo como zero: o total é "o que o IBGE divulgou",
-      // e o número de municípios que entraram fica ao lado para que isso seja visível.
-      tratores: soma((m) => m.estrutura.tratores ?? 0),
-      municipiosComTratores: daAdr.filter((m) => m.estrutura.tratores !== null).length,
-      estabelecimentos: soma((m) => m.estrutura.estabelecimentos ?? 0),
-      bovinos: soma((m) => m.estrutura.bovinos ?? 0),
-      areaKm2: soma((m) => m.estrutura.areaKm2 ?? 0),
-      usinas: soma((m) => m.estrutura.usinas.length),
-      municipiosComUsina: daAdr.filter((m) => m.estrutura.usinas.length > 0).length,
-      capacidadeDeEtanol: soma((m) => m.estrutura.capacidadeDeEtanolM3Dia ?? 0),
-      lavouraHectares: soma((m) => m.producao?.areaPlantadaHectares ?? 0),
-      lavouraValor: soma((m) => m.producao?.valorDaProducaoMilReais ?? 0),
-    };
-  }, [daAdr]);
-
-  /**
-   * A fatia da região dentro de São Paulo.
-   *
-   * O DENOMINADOR É O TOTAL PUBLICADO pelo IBGE, e não a soma dos 645 municípios: o valor municipal
-   * sigiloso entra no total do estado sem aparecer embaixo, e é o número publicado que a diretoria
-   * encontra em qualquer outra fonte.
-   */
-  const fatiaNoEstado = useMemo(() => {
-    const estado = indicadores?.estado;
-    if (!estado) return null;
-    const parte = (regiao: number, total: number | null) =>
-      total && total > 0 ? (100 * regiao) / total : null;
-    return {
-      ano: estado.ano,
-      area: parte(totais.lavouraHectares, estado.areaPlantadaHectares),
-      valor: parte(totais.lavouraValor, estado.valorDaProducaoMilReais),
-      tratores: parte(totais.tratores, estado.tratores.publicado),
-      estabelecimentos: parte(totais.estabelecimentos, estado.estabelecimentos.publicado),
-      rebanho: parte(totais.bovinos, estado.rebanho.publicado),
-    };
-  }, [indicadores, totais]);
-
-  /**
-   * QUANTO O SIGILO ESCONDE, em cada medida do Censo e da PPM (issue 155).
-   *
-   * O denominador é a linha PUBLICADA para São Paulo. A soma dos 645 municípios fica abaixo dela
-   * onde o IBGE ocultou a parcela municipal, e dizer isso no cartão evita que quem confira na mão
-   * encontre uma diferença sem explicação.
-   */
-  function diferencaParaASoma(medida: MedidaDoEstado | undefined): string {
-    if (!medida?.publicado || medida.somaDosMunicipios === null) return '';
-    const abaixo = medida.publicado - medida.somaDosMunicipios;
-    return abaixo > 0 ? ` · a soma dos municípios fica ${nº(abaixo)} abaixo do publicado` : '';
-  }
+  const totais = useMemo(() => calcularTotais(daAdr), [daAdr]);
+  const fatiaNoEstado = useMemo(() => calcularFatiaNoEstado(indicadores?.estado, totais), [indicadores, totais]);
 
   const coberturaDaAdr = totais.elegiveis > 0 ? (100 * totais.cobertos) / totais.elegiveis : null;
 
@@ -369,230 +160,50 @@ export function IndicadoresGeograficos() {
     [daAdr],
   );
 
-  function estadoDaCobertura(codigo: number): EstadoNoMapa {
-    const m = porCodigo.get(codigo);
-    if (!m?.pertenceAAdr) return { tipo: 'fora', detalhe: m ? 'fora da ADR' : 'fora da área de atuação ou do filtro' };
-    const c = m.cobertura;
-    if (c.vinculosComCadencia === 0) return { tipo: 'semDado', detalhe: 'sem vínculo elegível para medir' };
-    const noPrazo = (100 * c.cobertos) / c.vinculosComCadencia;
-    const valor =
-      modoDeCobertura === 'cobertura' ? noPrazo : modoDeCobertura === 'pendencia' ? (c.percentualPendente ?? 0) : c.pendentes;
-    return {
-      tipo: 'valor',
-      cor: faixaDe(FAIXAS_DE_COBERTURA[modoDeCobertura], valor).cor,
-      detalhe: `${nº(c.vinculosComCadencia)} elegíveis · ${nº(c.cobertos)} no prazo (${porcento(noPrazo)}) · ${nº(c.pendentes)} pendentes (${nº(c.foraDaCadencia)} fora do prazo + ${nº(c.nuncaContatados)} nunca)`,
-    };
-  }
-
-  function estadoDasVendas(codigo: number): EstadoNoMapa {
-    const m = porCodigo.get(codigo);
-    if (!m?.pertenceAAdr) return { tipo: 'fora', detalhe: m ? 'fora da ADR' : 'fora da área de atuação ou do filtro' };
-    const valor = m.vendas[recorteDeVendas];
-    if (m.cobertura.clientes === 0 && valor === 0) return { tipo: 'semDado', detalhe: 'nenhum cliente com endereço aqui' };
-    return {
-      tipo: 'valor',
-      cor: faixaDe(FAIXAS_VENDAS, valor).cor,
-      detalhe: `${ROTULO_DE_VENDAS[recorteDeVendas]}: ${reaisCompactos(valor)} · máquina ${reaisCompactos(m.vendas.maquina)} · pós-venda ${reaisCompactos(m.vendas.posVenda)} · ${nº(m.vendas.clientesQueCompraram)} clientes compraram`,
-    };
-  }
-
-  function estadoDoPotencial(codigo: number): EstadoNoMapa {
-    const m = porCodigo.get(codigo);
-    if (!m?.pertenceAAdr) return { tipo: 'fora', detalhe: m ? 'fora da ADR' : 'fora da área de atuação ou do filtro' };
-
-    // AS CULTURAS COM REGRA E A LAVOURA INTEIRA SÃO COISAS DIFERENTES: o recorte "máquinas teóricas"
-    // olha só o que tem regra de potencial, e os outros dois olham TODAS as culturas do município.
-    // Misturá-los faria a área do café aparecer ao lado do valor da lavoura inteira como se fossem
-    // a mesma base.
-    const potencial = m.potencial[0];
-    const motor = m.potencialEstrutural;
-    const producao = m.producao;
-
-    const valor =
-      recorteDoPotencial === 'maquinas'
-        ? (motor?.parqueDeMaquinas ?? null)
-        : recorteDoPotencial === 'areaPlantada'
-          ? (producao?.areaPlantadaHectares ?? null)
-          : (producao?.valorDaProducaoMilReais ?? null);
-
-    if (valor === null)
-      return {
-        tipo: 'semDado',
-        detalhe:
-          recorteDoPotencial === 'maquinas'
-            ? MOTIVO_SEM_PARQUE[motor?.motivoSemParque ?? 'SemRegra']
-            : 'produção agrícola não carregada para este município',
-      };
-
-    // O ANO DA CULTURA SÓ APARECE QUANDO DIFERE DO DA LAVOURA ao lado (issue 152): os dois números estão na mesma
-    // linha, e o leitor precisa saber que não são do mesmo ano.
-    const anoDaCultura =
-      potencial?.ano != null && potencial.ano !== producao?.ano ? ` (${potencial.ano})` : '';
-    const daRegra = motor
-      ? `${nº(Math.round(motor.areaUtilHectares ?? 0))} ha úteis${anoDaCultura} · ${nº(motor.parqueDeMaquinas ?? 0)} máquinas teóricas${motor.demandaAnualDeMaquinas != null ? ` · ${nº(motor.demandaAnualDeMaquinas)} por ano` : ''}${motor.estimativa ? ' · estimativa' : ''}`
-      : 'sem regra de potencial vigente';
-
-    const daLavoura = producao
-      ? `lavoura ${nº(Math.round(producao.areaPlantadaHectares ?? 0))} ha em ${nº(producao.culturasComArea)} culturas · ${reaisDaProducao(producao.valorDaProducaoMilReais ?? 0)} (${producao.ano})`
-      : 'lavoura não carregada';
-
-    return {
-      tipo: 'valor',
-      cor: faixaDe(FAIXAS_DO_POTENCIAL[recorteDoPotencial], valor).cor,
-      detalhe: `${daRegra} · ${daLavoura}`,
-    };
-  }
-
-  /**
-   * O mapa da estrutura agropecuária.
-   *
-   * SEM USINA NÃO É CAPACIDADE ZERO. Município fora da lista da ANP fica hachurado, porque a
-   * ausência ali só prova que não há usina de ETANOL — usina que só faz açúcar não é autorizada
-   * pela ANP e não aparece. Já a usina parada, com capacidade zerada, é um valor e entra na escala.
-   */
-  function estadoDaEstrutura(codigo: number): EstadoNoMapa {
-    const m = porCodigo.get(codigo);
-    if (!m?.pertenceAAdr) return { tipo: 'fora', detalhe: m ? 'fora da ADR' : 'fora da área de atuação ou do filtro' };
-
-    const e = m.estrutura;
-    const valor =
-      recorteDaEstrutura === 'tratores'
-        ? e.tratores
-        : recorteDaEstrutura === 'densidade'
-          ? e.tratoresPorMilKm2
-          : recorteDaEstrutura === 'estabelecimentos'
-            ? e.estabelecimentos
-            : recorteDaEstrutura === 'rebanho'
-              ? e.bovinos
-              : e.usinas.length === 0
-                ? null
-                : (e.capacidadeDeEtanolM3Dia ?? 0);
-
-    if (valor === null)
-      return {
-        tipo: 'semDado',
-        detalhe:
-          recorteDaEstrutura === 'usinas'
-            ? 'sem usina de etanol autorizada aqui (a ANP não enxerga usina só de açúcar)'
-            : 'sigilo do IBGE ou fonte não carregada — não é zero',
-      };
-
-    const parque =
-      e.tratores === null
-        ? 'tratores sob sigilo'
-        : `${nº(e.tratores)} tratores${e.tratoresAbaixoDe100Cv !== null ? ` (${nº(e.tratoresAbaixoDe100Cv)} < 100 cv)` : ''}`;
-
-    const usinas =
-      e.usinas.length === 0
-        ? 'sem usina'
-        : `${nº(e.usinas.length)} usina${e.usinas.length > 1 ? 's' : ''}${e.capacidadeDeEtanolM3Dia !== null ? ` · ${nº(e.capacidadeDeEtanolM3Dia)} m³/d` : ''}`;
-
-    return {
-      tipo: 'valor',
-      cor: faixaDe(FAIXAS_DA_ESTRUTURA[recorteDaEstrutura], valor).cor,
-      detalhe: `${parque}${e.anoDoCenso ? ` (${e.anoDoCenso})` : ''} · ${e.estabelecimentos !== null ? `${nº(e.estabelecimentos)} propriedades` : 'propriedades sob sigilo'} · ${e.bovinos !== null ? `${nº(e.bovinos)} bovinos${e.anoDoRebanho ? ` (${e.anoDoRebanho})` : ''}` : 'sem rebanho'} · ${usinas}`,
-    };
-  }
-
-  /** O detalhe do município sob o cursor, na medida de cada mapa. */
-  function textoDoFoco(estadoDe: (codigo: number) => EstadoNoMapa): string {
-    if (emFoco === null) return 'Passe o cursor sobre um município para ver o número dele nos três mapas; clique para abrir a ficha.';
-    return `${nomeDoPoligono.get(emFoco) ?? emFoco} — ${estadoDe(emFoco).detalhe}`;
-  }
-
   const classificacao = (indicador: ClassificacaoDeIndicador['indicador']) =>
     painel.dados?.classificacoes.find((c) => c.indicador === indicador) ?? null;
 
   // TERRITÓRIO NÃO CARREGADO NÃO É ZERO. A consulta respondeu, sem filtro de região nem de loja, e nenhum
   // município veio marcado como ADR: a carga do território (catálogo IBGE, área de atuação, responsáveis,
-  // área plantada) não rodou neste banco. Mostrar "0 municípios" e "R$ 0" nesse caso faz a falta de carga
-  // parecer resultado — e as vendas continuam no banco, somadas nos grupos fora do mapa.
+  // área plantada) não rodou neste banco.
   const territorioNaoCarregado = indicadores !== null && filtros.regiao === '' && filtros.lojaCodigo === '' && daAdr.length === 0;
   const vendasForaDoMapa = indicadores?.foraDoMapa.reduce((s, g) => s + g.vendas.valorLiquido, 0) ?? 0;
   const semCodigoIbge = indicadores?.foraDoMapa.find((g) => g.grupo === 'MunicipioSemCodigoIbge') ?? null;
   const comTerritorio = indicadores !== null && !territorioNaoCarregado;
-  const semTerritorio = 'território não carregado neste banco';
 
-  const anoCivil = anoCivilFechado();
-  const presetDoPeriodo =
-    filtros.competenciaInicial === '' && filtros.competenciaFinal === ''
-      ? '12meses'
-      : filtros.competenciaInicial === anoCivil.competenciaInicial && filtros.competenciaFinal === anoCivil.competenciaFinal
-        ? 'anoCivil'
-        : 'personalizado';
-
-  const kpis: Indicador[] = [
-    {
-      rotulo: 'Municípios da ADR',
-      valor: comTerritorio ? daAdr.length : null,
-      deOnde: `${nº(totais.clientes)} clientes com endereço neles`,
-      semDado: indicadores ? semTerritorio : 'área de atuação não carregada',
-    },
-    {
-      rotulo: 'Cobertura pela cadência',
-      valor: comTerritorio && coberturaDaAdr !== null ? porcento(coberturaDaAdr) : null,
-      tom: 'atencao',
-      deOnde: `${nº(totais.cobertos)} de ${nº(totais.elegiveis)} vínculos elegíveis no prazo · ${nº(totais.pendentes)} pendentes · regra provisória`,
-      semDado: territorioNaoCarregado ? semTerritorio : 'sem vínculo elegível',
-    },
-    {
-      rotulo: 'Vendas no período',
-      valor: comTerritorio ? reaisCompactos(totais.vendas) : null,
-      deOnde: `máquina ${reaisCompactos(totais.maquina)} · pós-venda ${reaisCompactos(totais.posVenda)} (composição provisória)`,
-      semDado: territorioNaoCarregado ? `${reaisCompactos(vendasForaDoMapa)} no período, todos fora do mapa` : '—',
-    },
-    {
-      rotulo: 'Parque teórico de máquinas',
-      valor: comTerritorio && totais.municipiosComArea > 0 ? nº(Math.round(totais.maquinasTeoricas)) : null,
-      deOnde: `${nº(Math.round(totais.hectares))} ha úteis em ${nº(totais.municipiosComArea)} municípios${
-        recorte?.demandaAnualDeMaquinas != null ? ` · ${nº(Math.round(recorte.demandaAnualDeMaquinas))} por ano` : ''
-      }${totais.potencialEstimado ? ' · estimativa, regra a confirmar' : ''}`,
-      semDado: territorioNaoCarregado ? semTerritorio : 'sem regra de potencial',
-    },
-  ];
-
-  // O QUE A REGIÃO TEM, E QUE FATIA DE SÃO PAULO ELA É. Sem o denominador do estado, "62 mil
-  // tratores" é um número solto; com ele, é a posição da Tracbel Agro no mercado paulista.
-  const kpisDoMercado: Indicador[] = [
-    {
-      rotulo: 'Parque de tratores',
-      valor: comTerritorio ? nº(totais.tratores) : null,
-      deOnde: `Censo Agropecuário${estruturaDaAdr.anoDoCenso ? ` ${estruturaDaAdr.anoDoCenso}` : ''} · ${nº(totais.municipiosComTratores)} municípios divulgados${fatiaNoEstado?.tratores != null ? ` · ${porcento(fatiaNoEstado.tratores)} do total publicado de São Paulo` : ''}${diferencaParaASoma(indicadores?.estado?.tratores)}`,
-      semDado: territorioNaoCarregado ? semTerritorio : 'Censo não carregado',
-    },
-    {
-      rotulo: 'Propriedades',
-      valor: comTerritorio ? nº(totais.estabelecimentos) : null,
-      deOnde: `estabelecimentos agropecuários${fatiaNoEstado?.estabelecimentos != null ? ` · ${porcento(fatiaNoEstado.estabelecimentos)} do total publicado de São Paulo` : ''}${diferencaParaASoma(indicadores?.estado?.estabelecimentos)}`,
-      semDado: territorioNaoCarregado ? semTerritorio : 'Censo não carregado',
-    },
-    {
-      rotulo: 'Valor da lavoura',
-      valor: comTerritorio && totais.lavouraValor > 0 ? reaisDaProducao(totais.lavouraValor) : null,
-      deOnde: `o que a região COLHE, não o que a Tracbel vende · PAM${fatiaNoEstado ? ` ${fatiaNoEstado.ano}` : ''}${fatiaNoEstado?.valor != null ? ` · ${porcento(fatiaNoEstado.valor)} de São Paulo` : ''}`,
-      semDado: territorioNaoCarregado ? semTerritorio : 'produção agrícola não carregada',
-    },
-    {
-      rotulo: 'Usinas de etanol',
-      valor: comTerritorio ? nº(totais.usinas) : null,
-      deOnde: `em ${nº(totais.municipiosComUsina)} municípios · ${nº(totais.capacidadeDeEtanol)} m³/dia autorizados (ANP) · não inclui usina só de açúcar`,
-      semDado: territorioNaoCarregado ? semTerritorio : 'ANP não carregada',
-    },
-    {
-      rotulo: 'Rebanho bovino',
-      valor: comTerritorio && totais.bovinos > 0 ? nº(totais.bovinos) : null,
-      deOnde: `cabeças · Pesquisa da Pecuária Municipal${estruturaDaAdr.anoDoRebanho ? ` ${estruturaDaAdr.anoDoRebanho}` : ''}, anual${fatiaNoEstado?.rebanho != null ? ` · ${porcento(fatiaNoEstado.rebanho)} do total publicado de São Paulo` : ''}${diferencaParaASoma(indicadores?.estado?.rebanho)}`,
-      semDado: territorioNaoCarregado ? semTerritorio : 'rebanho não carregado',
-    },
-  ];
+  const contextoDosKpis: ContextoDosKpis = {
+    indicadores,
+    comTerritorio,
+    territorioNaoCarregado,
+    municipiosDaAdr: daAdr.length,
+    totais,
+    fatiaNoEstado,
+    coberturaDaAdr,
+    recorte,
+    vendasForaDoMapa,
+    anoDoCenso: estruturaDaAdr.anoDoCenso,
+    anoDoRebanho: estruturaDaAdr.anoDoRebanho,
+  };
 
   const escolhido = selecionado === null ? null : porCodigo.get(selecionado) ?? null;
   const ordenados = useMemo(() => [...daAdr].sort((a, b) => b.vendas.valorLiquido - a.vendas.valorLiquido), [daAdr]);
   const semFiltro = filtros.regiao === '' && filtros.lojaCodigo === '';
 
+  const ligacao: LigacaoDoMapa | null = desenho && {
+    enquadramento: desenho.enquadramento,
+    poligonos: desenho.poligonos,
+    adr,
+    porCodigo,
+    nomeDoPoligono,
+    selecionado,
+    aoSelecionar: setSelecionado,
+    emFoco,
+    aoPassar: setEmFoco,
+  };
+
   return (
     <>
-      <div className="page-header">
+      <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Indicadores Geográficos da ADR</h1>
           <p className="page-subtitle">
@@ -603,400 +214,55 @@ export function IndicadoresGeograficos() {
         <SeloProcedencia procedencia={painel.procedencia} />
       </div>
 
-      <div className="card cad-cartao terr-cartao">
-        <div className="terr-alcance">
-          <span>
-            <strong>Visão:</strong>{' '}
-            {filtros.visao === 'Empresa'
-              ? 'empresa inteira — cada venda no município do cliente, qualquer que seja a filial que faturou.'
-              : `filial ${contexto.empresa || 'do login'} e as abaixo dela — os clientes cadastrados nela e as notas que ela emitiu.`}
-          </span>
-          <span>
-            <strong>Empresa inteira:</strong>{' '}
-            {painel.dados?.podeVerEmpresaInteira
-              ? 'disponível para o seu perfil.'
-              : 'exige a permissão de alcance entre filiais; o seu perfil não a tem, e a distribuição oficial dos acessos está pendente (documento 32, P-10).'}
-          </span>
-          <span>A ADR e a área plantada são da empresa inteira e aparecem para todos.</span>
-        </div>
-      </div>
+      <CartaoDeAlcance
+        visao={filtros.visao}
+        empresa={contexto.empresa}
+        podeVerEmpresaInteira={painel.dados?.podeVerEmpresaInteira}
+      />
 
-      <div className="card cad-cartao terr-cartao">
-        <div className="terr-filtros">
-          <div className="terr-periodo" role="group" aria-label="Período das vendas">
-            Período das vendas
-            <div className="terr-alternador">
-              <button
-                type="button"
-                aria-pressed={presetDoPeriodo === '12meses'}
-                onClick={() => setFiltros((f) => ({ ...f, competenciaInicial: '', competenciaFinal: '' }))}
-              >
-                12 meses fechados
-              </button>
-              <button
-                type="button"
-                aria-pressed={presetDoPeriodo === 'anoCivil'}
-                onClick={() => setFiltros((f) => ({ ...f, ...anoCivil }))}
-              >
-                Ano civil até o último mês fechado
-              </button>
-              <button type="button" aria-pressed={presetDoPeriodo === 'personalizado'} disabled={presetDoPeriodo !== 'personalizado'}>
-                Personalizado
-              </button>
-            </div>
-            <span className="terr-filtro-motivo">
-              FYTD não é oferecido: o calendário fiscal não foi confirmado (documento 32, P-4). O mês em curso fica fora do padrão.
-            </span>
-          </div>
-          <label className="terr-filtro">
-            Vendas de
-            <input
-              type="month"
-              value={filtros.competenciaInicial}
-              onChange={(e) => setFiltros((f) => ({ ...f, competenciaInicial: e.target.value }))}
-            />
-          </label>
-          <label className="terr-filtro">
-            até
-            <input
-              type="month"
-              value={filtros.competenciaFinal}
-              onChange={(e) => setFiltros((f) => ({ ...f, competenciaFinal: e.target.value }))}
-            />
-          </label>
-          <label className="terr-filtro">
-            Região da ADR
-            <select
-              value={filtros.regiao}
-              onChange={(e) => setFiltros((f) => ({ ...f, regiao: e.target.value as FiltrosTerritoriais['regiao'] }))}
-            >
-              <option value="">Norte e Noroeste</option>
-              <option value="Norte">Norte</option>
-              <option value="Noroeste">Noroeste</option>
-            </select>
-          </label>
-          <label className="terr-filtro">
-            Loja responsável
-            <select value={filtros.lojaCodigo} onChange={(e) => setFiltros((f) => ({ ...f, lojaCodigo: e.target.value }))}>
-              <option value="">Todas</option>
-              {[...lojasConhecidas.entries()]
-                .sort((a, b) => a[1].localeCompare(b[1]))
-                .map(([codigo, nome]) => (
-                  <option key={codigo} value={codigo}>
-                    {nome}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <label className="terr-filtro">
-            Visão
-            <select
-              value={filtros.visao}
-              onChange={(e) => setFiltros((f) => ({ ...f, visao: e.target.value as FiltrosTerritoriais['visao'] }))}
-            >
-              <option value="Filial">Filial do cabeçalho</option>
-              <option value="Empresa" disabled={painel.dados ? !painel.dados.podeVerEmpresaInteira : false}>
-                Empresa inteira
-              </option>
-            </select>
-            {painel.dados && !painel.dados.podeVerEmpresaInteira && (
-              <span className="terr-filtro-motivo">empresa inteira: seu perfil não tem a permissão</span>
-            )}
-          </label>
-          <FiltroDeFilial
-            rotulo="Filial que vendeu"
-            aplicaA="só às vendas"
-            valor={filtros.filialDaVenda}
-            lojas={lojasConhecidas}
-            aoMudar={(valor) => setFiltros((f) => ({ ...f, filialDaVenda: valor }))}
-          />
-          <FiltroDeFilial
-            rotulo="Filial de cadastro do cliente"
-            aplicaA="à cobertura e às vendas"
-            valor={filtros.filialDoCliente}
-            lojas={lojasConhecidas}
-            aoMudar={(valor) => setFiltros((f) => ({ ...f, filialDoCliente: valor }))}
-          />
-          <label className="terr-filtro">
-            Cultura da regra
-            <select value={regra?.produtoCodigoIbge ?? ''} disabled={!regra}>
-              {regra && <option value={regra.produtoCodigoIbge}>{regra.produtoNome}</option>}
-            </select>
-            <span className="terr-filtro-motivo">só há uma regra informada</span>
-          </label>
-          <FiltroSemDado rotulo="Tipo de cliente" opcoes="SAM · KAM · Varejo" motivo="não há classificação por cliente" />
-          <FiltroSemDado rotulo="Tipo de produto" opcoes="colhedora · trator grande · médio" motivo="vendas sem item da nota" />
-          <FiltroSemDado rotulo="Modelo" opcoes="modelo da máquina" motivo="vendas sem item da nota" />
-          <FiltroSemDado
-            rotulo="CEN / gestor"
-            opcoes="—"
-            motivo="a carteira do CRM ainda não diz quem atende cada município (issue 107); o que ela já tem está na ficha do município"
-          />
-        </div>
-        {indicadores && (
-          <p className="cad-sub">
-            Vendas de <strong>{mes(indicadores.competenciaInicial)}</strong> a{' '}
-            <strong>{mes(indicadores.competenciaFinal)}</strong>
-            {presetDoPeriodo === '12meses' && ' (12 meses fechados)'}
-            {presetDoPeriodo === 'anoCivil' && ' (ano civil até o último mês fechado)'} · cobertura medida em{' '}
-            {new Date(indicadores.referenciaDaCobertura).toLocaleDateString('pt-BR')}, interação mais recente carregada em{' '}
-            {indicadores.interacaoMaisRecente ? new Date(indicadores.interacaoMaisRecente).toLocaleDateString('pt-BR') : '—'}
-            {indicadores.anoDaAreaPlantada && ` · área plantada PAM/IBGE ${indicadores.anoDaAreaPlantada}`}.
-          </p>
-        )}
-      </div>
+      <FiltrosDosIndicadores
+        filtros={filtros}
+        aoMudarFiltros={setFiltros}
+        lojasConhecidas={lojasConhecidas}
+        regra={regra}
+        indicadores={indicadores}
+        respondeu={painel.dados !== null}
+        podeVerEmpresaInteira={painel.dados?.podeVerEmpresaInteira ?? false}
+      />
 
-      {painel.dados && painel.dados.classificacoes.length > 0 && (
-        <div className="card cad-cartao terr-cartao">
-          <div className="terr-classificacoes" aria-label="Como ler estes números">
-            <strong>Como ler estes números</strong>
-            {painel.dados.classificacoes.map((c) => (
-              <span key={c.indicador} className="terr-classificacao">
-                <SeloDeClassificacao classificacao={c} /> {c.motivo}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      {painel.dados && <ComoLerEstesNumeros classificacoes={painel.dados.classificacoes} />}
 
       {painel.erro && <BlocoErro erro={painel.erro} aoTentarDeNovo={painel.recarregar} />}
       {erroDaMalha && <BlocoErro erro={erroDaMalha} />}
 
       {territorioNaoCarregado && indicadores && (
-        <div className="card cad-cartao terr-cartao terr-territorio-sem-carga" role="status">
-          <BlocoVazio
-            titulo="O território ainda não foi carregado neste banco"
-            texto={
-              <>
-                A consulta respondeu, mas nenhum município tem código IBGE nem está marcado como ADR: a carga do território
-                (catálogo IBGE, área de atuação, responsáveis e área plantada) não rodou neste banco.{' '}
-                <strong>Não é falta de permissão nem falha de carregamento</strong>, e não é zero: as vendas do período continuam
-                no banco — {reaisCompactos(vendasForaDoMapa)}, somadas nos grupos fora do mapa
-                {semCodigoIbge && `, dos quais ${reaisCompactos(semCodigoIbge.vendas.valorLiquido)} de clientes cujo município ainda não tem código IBGE`}
-                . Os mapas e os totais da ADR aparecem assim que a carga do território rodar neste banco (documento 32, §4.6.1).
-              </>
-            }
-          />
-        </div>
+        <AvisoDeTerritorioSemCarga
+          vendasForaDoMapa={vendasForaDoMapa}
+          vendasSemCodigoIbge={semCodigoIbge?.vendas.valorLiquido ?? null}
+        />
       )}
 
-      <PainelDeIndicadores indicadores={kpis} carregando={painel.carregando} />
+      <PainelDeIndicadores indicadores={kpisDaCarteira(contextoDosKpis)} carregando={painel.carregando} />
 
-      <div className="terr-secao-mercado">
-        <h2 className="terr-secao-titulo">O mercado da região</h2>
-        <p className="terr-secao-subtitulo">
-          O que existe no território, por fonte pública — e que fatia de São Paulo isso representa. O denominador é o
-          total <strong>publicado</strong> pelo IBGE, que não é a soma dos municípios: o valor municipal sigiloso entra
-          nele sem aparecer embaixo.
-        </p>
-      </div>
-      <PainelDeIndicadores indicadores={kpisDoMercado} carregando={painel.carregando} />
+      <SecaoDoMercadoDaRegiao />
+      <PainelDeIndicadores indicadores={kpisDoMercado(contextoDosKpis)} carregando={painel.carregando} />
 
       {(painel.carregando || !desenho) && !painel.erro && !erroDaMalha && <BlocoCarregando oQue="os mapas da ADR" />}
 
-      {indicadores && desenho && !territorioNaoCarregado && (
-        <div className="terr-grade-mapas">
-          <div className="card cad-cartao terr-mapa">
-            <div className="card-title">
-              Cobertura de carteira <SeloDeClassificacao classificacao={classificacao('coberturaDeVisita')} />
-            </div>
-            <div className="card-subtitle">
-              Último contato registrado de cada vínculo em carteira comercial, contra a cadência declarada da linha.
-            </div>
-            <p className="terr-mapa-resumo">
-              {totais.elegiveis > 0
-                ? `${nº(totais.elegiveis)} elegíveis · ${nº(totais.cobertos)} no prazo (${porcento(coberturaDaAdr ?? 0)}) · ${nº(totais.pendentes)} pendentes`
-                : 'nenhum vínculo elegível no recorte'}
-            </p>
-            <div className="terr-alternador" role="group" aria-label="Cobertura em">
-              {(Object.keys(ROTULO_DE_COBERTURA) as ModoDeCobertura[]).map((modo) => (
-                <button key={modo} type="button" aria-pressed={modoDeCobertura === modo} onClick={() => setModoDeCobertura(modo)}>
-                  {ROTULO_DE_COBERTURA[modo]}
-                </button>
-              ))}
-            </div>
-            <MapaDeMunicipios
-              id="cobertura"
-              titulo="Mapa de cobertura de carteira por município"
-              enquadramento={desenho.enquadramento}
-              poligonos={desenho.poligonos}
-              estadoDe={estadoDaCobertura}
-              adr={adr}
-              selecionado={selecionado}
-              aoSelecionar={setSelecionado}
-              emFoco={emFoco}
-              aoPassar={setEmFoco}
-            />
-            <p className="terr-mapa-foco" aria-live="polite">{textoDoFoco(estadoDaCobertura)}</p>
-            <LegendaDoMapa faixas={FAIXAS_DE_COBERTURA[modoDeCobertura]} unidade={UNIDADE_DE_COBERTURA[modoDeCobertura]} />
-            <p className="terr-aviso">
-              {modoDeCobertura === 'quantidade'
-                ? 'Quantidade favorece cidades grandes; alterne para % para comparar.'
-                : 'Percentual compara municípios de tamanhos diferentes; uma cidade com 3 vínculos muda de faixa com 1 contato.'}{' '}
-              Contato é qualquer interação registrada, inclusive registro gerado pelo sistema: nenhum tipo de atividade está
-              marcado como visita (documento 32, P-2).
-            </p>
-          </div>
-
-          <div className="card cad-cartao terr-mapa">
-            <div className="card-title">
-              Vendas realizadas <SeloDeClassificacao classificacao={classificacao('vendas')} />
-            </div>
-            <div className="card-subtitle">
-              Faturamento líquido pelo endereço principal do cliente, de {mes(indicadores.competenciaInicial)} a{' '}
-              {mes(indicadores.competenciaFinal)}.
-            </div>
-            <p className="terr-mapa-resumo">
-              {reaisCompactos(totais.vendas)} · máquina {reaisCompactos(totais.maquina)} · pós-venda {reaisCompactos(totais.posVenda)} ·{' '}
-              {nº(totais.clientesQueCompraram)} clientes compraram
-            </p>
-            <div className="terr-alternador" role="group" aria-label="Recorte das vendas">
-              {(Object.keys(ROTULO_DE_VENDAS) as RecorteDeVendas[]).map((recorte) => (
-                <button key={recorte} type="button" aria-pressed={recorteDeVendas === recorte} onClick={() => setRecorteDeVendas(recorte)}>
-                  {ROTULO_DE_VENDAS[recorte]}
-                </button>
-              ))}
-            </div>
-            <MapaDeMunicipios
-              id="vendas"
-              titulo="Mapa de vendas por município"
-              enquadramento={desenho.enquadramento}
-              poligonos={desenho.poligonos}
-              estadoDe={estadoDasVendas}
-              adr={adr}
-              selecionado={selecionado}
-              aoSelecionar={setSelecionado}
-              emFoco={emFoco}
-              aoPassar={setEmFoco}
-            />
-            <p className="terr-mapa-foco" aria-live="polite">{textoDoFoco(estadoDasVendas)}</p>
-            <LegendaDoMapa faixas={FAIXAS_VENDAS} unidade={`R$ no período — ${ROTULO_DE_VENDAS[recorteDeVendas].toLowerCase()}`} />
-            <p className="terr-aviso">
-              Total = máquina + peça + serviço + outros; pós-venda = peça + serviço, <strong>composição provisória</strong>.
-              Valor absoluto favorece cidades grandes. Devolução e cancelamento não são abatidos. Nota sem cliente no CRM não
-              tem município e fica na tabela, fora do mapa.
-            </p>
-          </div>
-
-          <div className="card cad-cartao terr-mapa">
-            <div className="card-title">
-              Potencial teórico — cultura × área <SeloDeClassificacao classificacao={classificacao('potencial')} />
-            </div>
-            <div className="card-subtitle">
-              {regra
-                ? `1 ${regra.modeloDeReferencia} a cada ${regra.hectaresPorMaquina} ha de ${regra.produtoNome} · área plantada do município (IBGE)`
-                : 'Sem regra de potencial ativa'}
-            </div>
-            <p className="terr-mapa-resumo">
-              {totais.municipiosComArea > 0
-                ? `${nº(Math.round(totais.maquinasTeoricas))} máquinas teóricas · ${nº(Math.round(totais.hectares))} ha úteis em ${nº(totais.municipiosComArea)} municípios com área divulgada`
-                : 'sem área plantada ou regra para calcular'}
-            </p>
-            {recorte && <PainelDoPotencialDoRecorte recorte={recorte} comFiltro={!semFiltro} />}
-            <div className="terr-alternador" role="group" aria-label="Simulação">
-              <button type="button" aria-pressed={calculadoraAberta} onClick={() => setCalculadoraAberta(!calculadoraAberta)}>
-                {calculadoraAberta ? 'Fechar a calculadora' : 'Calculadora de máquinas'}
-              </button>
-            </div>
-            {calculadoraAberta && (
-              <Calculadora
-                contexto={contexto}
-                municipioCodigoIbge={selecionado}
-                aoFechar={() => setCalculadoraAberta(false)}
-              />
-            )}
-            <div className="terr-alternador" role="group" aria-label="O que o mapa mostra">
-              {(Object.keys(ROTULO_DO_POTENCIAL) as RecorteDoPotencial[]).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  aria-pressed={recorteDoPotencial === r}
-                  onClick={() => setRecorteDoPotencial(r)}
-                >
-                  {ROTULO_DO_POTENCIAL[r]}
-                </button>
-              ))}
-            </div>
-            <MapaDeMunicipios
-              id="potencial"
-              titulo="Mapa de potencial teórico por município"
-              enquadramento={desenho.enquadramento}
-              poligonos={desenho.poligonos}
-              estadoDe={estadoDoPotencial}
-              adr={adr}
-              selecionado={selecionado}
-              aoSelecionar={setSelecionado}
-              emFoco={emFoco}
-              aoPassar={setEmFoco}
-            />
-            <p className="terr-mapa-foco" aria-live="polite">{textoDoFoco(estadoDoPotencial)}</p>
-            <LegendaDoMapa faixas={FAIXAS_DO_POTENCIAL[recorteDoPotencial]} unidade={UNIDADE_DO_POTENCIAL[recorteDoPotencial]} />
-            <p className="terr-aviso terr-aviso-alerta">
-              {recorteDoPotencial === 'maquinas' ? (
-                <>
-                  Regra a confirmar. É a área do município inteiro — clientes e não clientes juntos, sem separar: somar
-                  "clientes" e "não clientes" a ela contaria a mesma área duas vezes. Clientes:{' '}
-                  {nº(indicadores.enderecosComArea)} de {nº(indicadores.enderecos)} endereços com área e cultura. Não
-                  considera ciclo de troca, parque instalado, concorrência nem outras culturas.
-                </>
-              ) : (
-                <>
-                  Agora o mapa mostra a <strong>lavoura inteira</strong> do município, e não só a cultura da regra — são
-                  bases diferentes. O valor da produção é o que o município <strong>colhe</strong>, publicado pelo IBGE em
-                  mil reais; não é venda da Tracbel nem preço de máquina. O café entra uma vez só (o "Total" do IBGE, sem
-                  somar Arábica e Canephora de novo).
-                </>
-              )}
-            </p>
-          </div>
-
-          <div className="card cad-cartao terr-mapa">
-            <div className="card-title">Estrutura agropecuária — o que já existe para mecanizar</div>
-            <div className="card-subtitle">
-              Censo Agropecuário{estruturaDaAdr.anoDoCenso ? ` ${estruturaDaAdr.anoDoCenso}` : ''} (tratores e
-              propriedades) · Pesquisa da Pecuária Municipal
-              {estruturaDaAdr.anoDoRebanho ? ` ${estruturaDaAdr.anoDoRebanho}` : ''} (rebanho) · ANP (usinas)
-            </div>
-            <p className="terr-mapa-resumo">
-              {nº(totais.tratores)} tratores em {nº(totais.municipiosComTratores)} municípios ·{' '}
-              {nº(totais.estabelecimentos)} propriedades · {nº(totais.bovinos)} bovinos ·{' '}
-              {nº(totais.usinas)} usinas em {nº(totais.municipiosComUsina)} municípios
-            </p>
-            <div className="terr-alternador" role="group" aria-label="Recorte da estrutura">
-              {(Object.keys(ROTULO_DA_ESTRUTURA) as RecorteDaEstrutura[]).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  aria-pressed={recorteDaEstrutura === r}
-                  onClick={() => setRecorteDaEstrutura(r)}
-                >
-                  {ROTULO_DA_ESTRUTURA[r]}
-                </button>
-              ))}
-            </div>
-            <MapaDeMunicipios
-              id="estrutura"
-              titulo="Mapa da estrutura agropecuária por município"
-              enquadramento={desenho.enquadramento}
-              poligonos={desenho.poligonos}
-              estadoDe={estadoDaEstrutura}
-              adr={adr}
-              selecionado={selecionado}
-              aoSelecionar={setSelecionado}
-              emFoco={emFoco}
-              aoPassar={setEmFoco}
-            />
-            <p className="terr-mapa-foco" aria-live="polite">{textoDoFoco(estadoDaEstrutura)}</p>
-            <LegendaDoMapa faixas={FAIXAS_DA_ESTRUTURA[recorteDaEstrutura]} unidade={UNIDADE_DA_ESTRUTURA[recorteDaEstrutura]} />
-            <p className="terr-aviso">
-              <strong>O Censo Agropecuário é de {estruturaDaAdr.anoDoCenso ?? '2017'}</strong> e o próximo sai em 2028: o
-              parque tem essa idade. O rebanho é anual e está em {estruturaDaAdr.anoDoRebanho ?? '—'}. Hachurado é{' '}
-              <strong>sigilo do IBGE</strong>, que não é zero — ele oculta o número quando poucos estabelecimentos o
-              compõem. As faixas de potência não se somam ao total: o "Total" do IBGE é uma categoria ao lado delas. A ANP
-              só enxerga usina de <strong>etanol</strong>: ausência aqui não prova ausência de usina.
-            </p>
-          </div>
-        </div>
+      {indicadores && ligacao && !territorioNaoCarregado && (
+        <GradeDeMapas
+          ligacao={ligacao}
+          indicadores={indicadores}
+          totais={totais}
+          coberturaDaAdr={coberturaDaAdr}
+          regra={regra}
+          recorte={recorte}
+          semFiltro={semFiltro}
+          contexto={contexto}
+          anoDoCenso={estruturaDaAdr.anoDoCenso}
+          anoDoRebanho={estruturaDaAdr.anoDoRebanho}
+          classificacaoDe={classificacao}
+        />
       )}
 
       {escolhido && indicadores && (
@@ -1011,330 +277,21 @@ export function IndicadoresGeograficos() {
       <MetricasSemDado metricas={painel.dados?.metricasSemDado} titulo="O que estes mapas não dizem" />
 
       {indicadores && (
-        <div className="card cad-cartao">
-          <div className="card-header cad-cartao-cabecalho">
-            <div>
-              <div className="card-title">Municípios da ADR e o que ficou fora do mapa</div>
-              <div className="card-subtitle">
-                A soma das linhas é o total da consulta. Clique numa linha para abrir o detalhe.
-              </div>
-            </div>
-          </div>
-          <div className="cad-tabela-wrap terr-tabela-municipios">
-            <table className="cad-tabela">
-              <caption className="cad-so-leitor">Indicadores por município</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Município</th>
-                  <th scope="col">Região · loja</th>
-                  <th scope="col">Elegíveis</th>
-                  <th scope="col">No prazo</th>
-                  <th scope="col">Pendentes</th>
-                  <th scope="col">Vendas</th>
-                  <th scope="col">Pós-venda <span className="cad-sub">(provisório)</span></th>
-                  <th scope="col">Máquinas teóricas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ordenados.map((m) => (
-                  <tr key={m.codigoIbge} aria-current={m.codigoIbge === selecionado ? 'true' : undefined}>
-                    <td>
-                      <button type="button" className="cad-th-ordenar" onClick={() => setSelecionado(m.codigoIbge)}>
-                        {m.nome}
-                      </button>
-                    </td>
-                    <td>
-                      {m.regiao}
-                      <div className="cad-sub">{m.lojaNome?.replace(/^.*—\s*/, '') ?? '—'}</div>
-                    </td>
-                    <td className="cad-mono">{nº(m.cobertura.vinculosComCadencia)}</td>
-                    <td className="cad-mono">{nº(m.cobertura.cobertos)}</td>
-                    <td className="cad-mono">
-                      {nº(m.cobertura.pendentes)}
-                      {m.cobertura.percentualPendente !== null && (
-                        <div className="cad-sub">{m.cobertura.percentualPendente.toLocaleString('pt-BR')}%</div>
-                      )}
-                    </td>
-                    <td className="cad-mono">{reaisCompactos(m.vendas.valorLiquido)}</td>
-                    <td className="cad-mono">{reaisCompactos(m.vendas.posVenda)}</td>
-                    <td className="cad-mono" title={m.potencialEstrutural ? MOTIVO_SEM_PARQUE[m.potencialEstrutural.motivoSemParque] : undefined}>
-                      {m.potencialEstrutural?.parqueDeMaquinas == null ? '—' : nº(m.potencialEstrutural.parqueDeMaquinas)}
-                    </td>
-                  </tr>
-                ))}
-                {territorioNaoCarregado ? (
-                  <tr className="terr-linha-total">
-                    <td>Total da ADR</td>
-                    <td colSpan={7}>território não carregado neste banco — as linhas abaixo são o que a consulta encontrou</td>
-                  </tr>
-                ) : (
-                  <tr className="terr-linha-total">
-                    <td>Total da ADR {semFiltro ? '' : '(filtro)'}</td>
-                    <td>{daAdr.length} municípios</td>
-                    <td className="cad-mono">{nº(totais.elegiveis)}</td>
-                    <td className="cad-mono">{nº(totais.cobertos)}</td>
-                    <td className="cad-mono">{nº(totais.pendentes)}</td>
-                    <td className="cad-mono">{reaisCompactos(totais.vendas)}</td>
-                    <td className="cad-mono">{reaisCompactos(totais.posVenda)}</td>
-                    <td className="cad-mono">{nº(Math.round(totais.maquinasTeoricas))}</td>
-                  </tr>
-                )}
-                {semFiltro && !territorioNaoCarregado && (
-                  <LinhaDeGrupo
-                    rotulo="São Paulo fora da ADR"
-                    descricao="municípios com cliente fora da ADR"
-                    itens={municipios.filter((m) => !m.pertenceAAdr)}
-                  />
-                )}
-                {indicadores.foraDoMapa.map((g) => (
-                  <tr key={g.grupo}>
-                    <td>
-                      {g.grupo}
-                      <div className="cad-sub">{g.descricao}</div>
-                    </td>
-                    <td>—</td>
-                    <td className="cad-mono">{nº(g.cobertura.vinculosComCadencia)}</td>
-                    <td className="cad-mono">{nº(g.cobertura.cobertos)}</td>
-                    <td className="cad-mono">{nº(g.cobertura.pendentes)}</td>
-                    <td className="cad-mono">{reaisCompactos(g.vendas.valorLiquido)}</td>
-                    <td className="cad-mono">{reaisCompactos(g.vendas.posVenda)}</td>
-                    <td>—</td>
-                  </tr>
-                ))}
-                {semFiltro && (
-                  <LinhaDeTotal municipios={municipios} foraDoMapa={indicadores.foraDoMapa} />
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TabelaDeMunicipios
+          municipios={municipios}
+          daAdr={ordenados}
+          foraDoMapa={indicadores.foraDoMapa}
+          totais={totais}
+          selecionado={selecionado}
+          aoSelecionar={setSelecionado}
+          territorioNaoCarregado={territorioNaoCarregado}
+          semFiltro={semFiltro}
+        />
       )}
 
       <PainelDePrecos />
       <PainelDeCustos />
       <PainelDeCredito />
     </>
-  );
-}
-
-/** O selo de como ler um indicador — medido, regra provisória, estimativa —, com o motivo no título. */
-function SeloDeClassificacao({ classificacao }: { classificacao: ClassificacaoDeIndicador | null }) {
-  if (!classificacao) return null;
-  return (
-    <span className={`terr-selo terr-selo-${classificacao.situacao}`} title={classificacao.motivo}>
-      {classificacao.selo}
-    </span>
-  );
-}
-
-/** Um filtro pedido que o dado não sustenta: aparece, desligado, dizendo por quê. */
-function FiltroSemDado({ rotulo, opcoes, motivo }: { rotulo: string; opcoes: string; motivo: string }) {
-  return (
-    <label className="terr-filtro">
-      {rotulo}
-      <select disabled title={motivo}>
-        <option>{opcoes}</option>
-      </select>
-      <span className="terr-filtro-motivo">sem dado: {motivo}</span>
-    </label>
-  );
-}
-
-/** Uma linha que soma um grupo de municípios. */
-/**
- * O POTENCIAL DO RECORTE CONSULTADO, pelo motor (issue 72).
- *
- * Ele responde três perguntas que o número sozinho não responde: **de que máquina** estamos falando
- * (as categorias), **de qual cultura** vem o parque (as parcelas, com quem divide a terra), e **que
- * fatia de São Paulo** está aqui.
- *
- * A demanda anual sai VAZIA COM O MOTIVO quando falta o ciclo de renovação de alguma cultura: somar só
- * as que têm daria um total menor que o real, com cara de completo.
- */
-function PainelDoPotencialDoRecorte({
-  recorte,
-  comFiltro,
-}: {
-  recorte: PotencialDoRecorteNoMapa;
-  comFiltro: boolean;
-}) {
-  const relevancia = recorte.relevanciaNoEstado;
-
-  return (
-    <div className="terr-recorte">
-      <p className="terr-recorte-titulo">
-        No recorte consultado{comFiltro ? ' (com filtro)' : ''} — {nº(recorte.municipiosComParque)} municípios com parque
-      </p>
-
-      <ul className="terr-recorte-linhas">
-        <li>
-          <strong>{recorte.parqueDeMaquinas == null ? '—' : nº(Math.round(recorte.parqueDeMaquinas))}</strong> máquinas de
-          parque{' '}
-          {recorte.demandaAnualDeMaquinas == null ? (
-            <span className="cad-sub">· demanda anual: {MOTIVO_SEM_PARQUE[recorte.motivoSemDemanda]}</span>
-          ) : (
-            <span className="cad-sub">· {nº(Math.round(recorte.demandaAnualDeMaquinas))} por ano</span>
-          )}
-        </li>
-
-        {recorte.porCategoria.map((c) => (
-          <li key={c.categoriaCodigo}>
-            {c.categoriaNome}: <strong>{c.parqueDeMaquinas == null ? '—' : nº(Math.round(c.parqueDeMaquinas))}</strong>
-            {c.demandaAnualDeMaquinas != null && (
-              <span className="cad-sub"> · {nº(Math.round(c.demandaAnualDeMaquinas))} por ano</span>
-            )}
-          </li>
-        ))}
-
-        {recorte.porCultura.map((p) => (
-          <li key={p.culturaCodigo}>
-            {p.cultura}: {p.parque == null ? '—' : nº(Math.round(p.parque))} máquinas em{' '}
-            {nº(Math.round(p.areaUtilHectares ?? 0))} ha
-            {p.compartilhada.length > 0 && (
-              <span className="cad-sub"> · área compartilhada com {p.compartilhada.join(', ')}</span>
-            )}
-          </li>
-        ))}
-
-        {relevancia && (
-          <li>
-            Fatia de São Paulo:{' '}
-            {relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(relevancia.fatiaDaAreaPlantada)} da área plantada ·{' '}
-            {relevancia.fatiaDoValor == null ? '—' : porcento(relevancia.fatiaDoValor)} do valor da produção
-          </li>
-        )}
-      </ul>
-
-      {recorte.frase && <p className="terr-aviso">{recorte.frase}.</p>}
-
-      {recorte.relevanciaPorCultura.length > 0 && (
-        <table className="cad-tabela terr-recorte-tabela">
-          <caption className="cad-sub">Relevância por cultura, contra o total publicado de São Paulo</caption>
-          <thead>
-            <tr>
-              <th scope="col">Cultura</th>
-              <th scope="col">Ano</th>
-              <th scope="col">Área plantada</th>
-              <th scope="col">Quantidade</th>
-              <th scope="col">Valor</th>
-              <th scope="col">Produtividade × SP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recorte.relevanciaPorCultura.map((c) => (
-              <tr key={c.produtoCodigoIbge}>
-                <td>{c.produtoNome}</td>
-                <td className="cad-mono">{c.ano}</td>
-                <td className="cad-mono">
-                  {c.relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(c.relevancia.fatiaDaAreaPlantada)}
-                </td>
-                <td className="cad-mono">
-                  {c.relevancia.fatiaDaQuantidade == null ? '—' : porcento(c.relevancia.fatiaDaQuantidade)}
-                </td>
-                <td className="cad-mono">
-                  {c.relevancia.fatiaDoValor == null ? '—' : porcento(c.relevancia.fatiaDoValor)}
-                </td>
-                <td
-                  className="cad-mono"
-                  title={
-                    c.relevancia.produtividadeDoRecorte == null
-                      ? undefined
-                      : `${nº(Math.round(c.relevancia.produtividadeDoRecorte))} aqui contra ${nº(Math.round(c.relevancia.produtividadeNoEstado ?? 0))} em SP (${c.unidadeDaProdutividade})`
-                  }
-                >
-                  {c.relevancia.razaoDeProdutividade == null
-                    ? '—'
-                    : `${c.relevancia.razaoDeProdutividade.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}×`}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-function LinhaDeGrupo({ rotulo, descricao, itens }: { rotulo: string; descricao: string; itens: IndicadoresDoMunicipio[] }) {
-  const soma = (f: (m: IndicadoresDoMunicipio) => number) => itens.reduce((s, m) => s + f(m), 0);
-  return (
-    <tr>
-      <td>
-        {rotulo}
-        <div className="cad-sub">
-          {descricao} ({itens.length})
-        </div>
-      </td>
-      <td>—</td>
-      <td className="cad-mono">{nº(soma((m) => m.cobertura.vinculosComCadencia))}</td>
-      <td className="cad-mono">{nº(soma((m) => m.cobertura.cobertos))}</td>
-      <td className="cad-mono">{nº(soma((m) => m.cobertura.pendentes))}</td>
-      <td className="cad-mono">{reaisCompactos(soma((m) => m.vendas.valorLiquido))}</td>
-      <td className="cad-mono">{reaisCompactos(soma((m) => m.vendas.posVenda))}</td>
-      <td>—</td>
-    </tr>
-  );
-}
-
-/** Uma filial para filtrar — pelas lojas que a ADR já mostrou, com o que o filtro alcança. */
-function FiltroDeFilial({
-  rotulo,
-  aplicaA,
-  valor,
-  lojas,
-  aoMudar,
-}: {
-  rotulo: string;
-  aplicaA: string;
-  valor: string;
-  lojas: Map<string, string>;
-  aoMudar: (valor: string) => void;
-}) {
-  return (
-    <label className="terr-filtro">
-      {rotulo}
-      <select value={valor} onChange={(e) => aoMudar(e.target.value)}>
-        <option value="">Todas ao alcance</option>
-        {[...lojas.entries()]
-          .sort((a, b) => a[1].localeCompare(b[1]))
-          .map(([codigo, nome]) => (
-            <option key={codigo} value={codigo}>
-              {nome}
-            </option>
-          ))}
-      </select>
-      <span className="terr-filtro-motivo">aplica-se {aplicaA}</span>
-    </label>
-  );
-}
-
-/**
- * O total da consulta: municípios do mapa mais o que ficou fora dele. É o número
- * que a conferência SQL do documento 32 compara — se não fechar, algo sumiu ou
- * foi contado duas vezes.
- */
-function LinhaDeTotal({
-  municipios,
-  foraDoMapa,
-}: {
-  municipios: IndicadoresDoMunicipio[];
-  foraDoMapa: { cobertura: { vinculosComCadencia: number; cobertos: number; pendentes: number }; vendas: { valorLiquido: number; posVenda: number } }[];
-}) {
-  const somaMapa = (f: (m: IndicadoresDoMunicipio) => number) => municipios.reduce((s, m) => s + f(m), 0);
-  const somaFora = (f: (g: (typeof foraDoMapa)[number]) => number) => foraDoMapa.reduce((s, g) => s + f(g), 0);
-  return (
-    <tr className="terr-linha-total">
-      <td>
-        Total da consulta
-        <div className="cad-sub">municípios do mapa + tudo o que ficou fora dele</div>
-      </td>
-      <td>—</td>
-      <td className="cad-mono">{nº(somaMapa((m) => m.cobertura.vinculosComCadencia) + somaFora((g) => g.cobertura.vinculosComCadencia))}</td>
-      <td className="cad-mono">{nº(somaMapa((m) => m.cobertura.cobertos) + somaFora((g) => g.cobertura.cobertos))}</td>
-      <td className="cad-mono">{nº(somaMapa((m) => m.cobertura.pendentes) + somaFora((g) => g.cobertura.pendentes))}</td>
-      <td className="cad-mono">{reaisCompactos(somaMapa((m) => m.vendas.valorLiquido) + somaFora((g) => g.vendas.valorLiquido))}</td>
-      <td className="cad-mono">{reaisCompactos(somaMapa((m) => m.vendas.posVenda) + somaFora((g) => g.vendas.posVenda))}</td>
-      <td>—</td>
-    </tr>
   );
 }
