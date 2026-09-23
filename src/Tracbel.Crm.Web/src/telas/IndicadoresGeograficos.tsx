@@ -253,6 +253,9 @@ export function IndicadoresGeograficos() {
         municipio={escolhido}
         regras={indicadores.regras}
         culturasNoEstado={indicadores.culturasNoEstado}
+        regiaoTracbel={indicadores.regiaoTracbel}
+        estado={indicadores.estado}
+        procedencias={indicadores.procedencias}
         aoFechar={() => escolherMunicipio(null)}
       />
     ) : null;
