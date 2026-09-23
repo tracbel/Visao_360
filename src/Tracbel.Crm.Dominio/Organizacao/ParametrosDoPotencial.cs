@@ -338,6 +338,23 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
     public short? MesesDeCarenciaDoSicor { get; private set; }
 
     /// <summary>
+    /// ABAIXO DE QUANTAS LINHAS DO SICOR A BASE É PEQUENA (D-P03, issue 73).
+    ///
+    /// <para><b>Por que existe.</b> Num município com duas linhas na janela anterior e quatro na atual, o
+    /// índice de crédito dá 2,00 — "+100%" — e não significa nada: é a variação de uma amostra pequena,
+    /// não a do mercado. O aceite da issue 73 é "município com poucos contratos não gera índice extremo".</para>
+    ///
+    /// <para><b>E por que ele MARCA, em vez de corrigir.</b> Nenhuma suavização transforma "de 2 para 4"
+    /// em informação: o que falta ali é contexto, não maquiagem. Abaixo deste mínimo o índice sai igual,
+    /// com a marca de base pequena e a contagem ao lado, para quem lê julgar.</para>
+    ///
+    /// <para><b>Em aberto.</b> Qual é o mínimo é medição que ninguém fez. Até alguém decidir, fica nulo —
+    /// nada é marcado, e a contagem de linhas continua visível. Inventar um limiar aqui seria escolher, no
+    /// código, o que conta como "poucas".</para>
+    /// </summary>
+    public int? MinimoDeLinhasNoCredito { get; private set; }
+
+    /// <summary>
     /// OS PRODUTOS DO SICOR QUE SÃO MÁQUINA — trator (7080), máquinas e implementos (4860) e
     /// colheitadeiras (2700).
     ///
@@ -365,6 +382,7 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
     /// <param name="FatorMinimo">O menor fator, quando decidido.</param>
     /// <param name="FatorMaximo">O maior fator, quando decidido.</param>
     /// <param name="MesesDeCarenciaDoSicor">Meses recentes do SICOR fora da janela, quando decidido.</param>
+    /// <param name="MinimoDeLinhasNoCredito">Abaixo disto a base do crédito é pequena, quando decidido.</param>
     public sealed record Valores(
         short MesesDaJanela,
         decimal PesoDosContratosNoCredito,
@@ -378,7 +396,8 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
         decimal? PesoDoIndicadorComercial,
         decimal? FatorMinimo,
         decimal? FatorMaximo,
-        short? MesesDeCarenciaDoSicor = null);
+        short? MesesDeCarenciaDoSicor = null,
+        int? MinimoDeLinhasNoCredito = null);
 
     /// <summary>Registra uma vigência dos parâmetros gerais.</summary>
     /// <param name="valores">O conjunto inteiro.</param>
@@ -406,7 +425,8 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
             PesoDoIndicadorComercial = valores.PesoDoIndicadorComercial,
             FatorMinimo = valores.FatorMinimo,
             FatorMaximo = valores.FatorMaximo,
-            MesesDeCarenciaDoSicor = valores.MesesDeCarenciaDoSicor
+            MesesDeCarenciaDoSicor = valores.MesesDeCarenciaDoSicor,
+            MinimoDeLinhasNoCredito = valores.MinimoDeLinhasNoCredito
         };
 
         parametro.Informar(vigenteDesde, justificativa, informadoPorId, agoraUtc);
@@ -459,6 +479,12 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
         if (v.MesesDeCarenciaDoSicor is { } carencia && (carencia < 0 || carencia >= v.MesesDaJanela))
             throw new RegraDeNegocioViolada(
                 $"A carência do SICOR vai de zero a {v.MesesDaJanela - 1} meses — menos que a janela, senão não sobra mês para comparar.");
+
+        // ZERO NÃO É MÍNIMO: com zero, nenhuma base seria pequena, que é o mesmo que não ter o parâmetro —
+        // e aí o certo é deixá-lo nulo, que diz "não decidido" em vez de "decidido que não marca".
+        if (v.MinimoDeLinhasNoCredito is { } minimoDeLinhas && minimoDeLinhas is < 1 or > 10_000)
+            throw new RegraDeNegocioViolada(
+                "O mínimo de linhas do SICOR vai de 1 a 10.000. Para não marcar base pequena nenhuma, deixe em branco.");
     }
 }
 

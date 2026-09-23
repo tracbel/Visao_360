@@ -529,7 +529,24 @@ aberto. As novas, que esta análise encontrou:
 | D-IM-08 | Schema das tabelas novas | `organizacao`; `mercado` | `mercado` | IM-16, IM-21 |
 | D-IM-09 | Confiança da oportunidade | alta/média/baixa por origem | como na §9.5 | IM-13 |
 | D-IM-10 | Janela e tolerância da renovação | por categoria | ciclo − 2 anos / ciclo + 2 anos como ponto de partida | IM-15 |
-| D-IM-11 | Permissão `Mercado.Ler` | usar `Territorio.Ler`; permissão nova | nova, porque o CEN vai ver mercado só dos municípios dele (#78) | #75 |
+| D-IM-11 | Permissão `Mercado.Ler` | usar `Territorio.Ler`; permissão nova | **ENCERRADA em 23/09/2026** (§11.1): fica `Territorio.Ler`. O que a motivava — o CEN ver só os municípios dele — é **recorte de alcance**, não visibilidade de tela, e continua sendo a #78 | — |
+
+### 11.1 D-IM-11 encerrada [23/09/2026]
+
+**A pergunta não era a que a tabela fazia.** Ela estava escrita como "qual permissão usar", com a
+justificativa *"nova, porque o CEN vai ver mercado só dos municípios dele (#78)"*. Mas "ver só os
+municípios dele" é **recorte de alcance**, e não visibilidade de tela: uma permissão diz *se* a pessoa
+abre a rota, não *quais linhas* ela recebe. Quem resolve isso é a #78, com filtro — e ela não precisa de
+permissão nova para existir.
+
+**E `Mercado.Ler` só para uma rota não restringiria nada.** Preços, custos, crédito, rentabilidade e
+indicadores já rodam em `Territorio.Ler`; criar a permissão para a calculadora faria dela a única
+exceção, com o mesmo dado legível na rota ao lado.
+
+> **Decidido:** fica `Territorio.Ler` nas seis rotas. Restringir a Inteligência de Mercado como bloco
+> continua possível — o mecanismo existe (`AcrescentadasDepoisDaSemente`, em `Permissoes.cs`, que semeia
+> a permissão nova em todos os perfis pela migração) —, mas seria **tirar acesso de quem tem hoje** e
+> vira issue própria, com o sim explícito de quem responde pelo acesso.
 
 ---
 

@@ -34,7 +34,7 @@ public sealed class ObterCreditoRural(
             await parametros.ListarGeraisAsync(ct), ParametroComVigencia.HojeNoBrasil(relogio.Agora));
 
         var painel = await repositorio.LerAsync(
-            vigente?.MesesDaJanela ?? MesesDaJanelaDoTextoBase, vigente?.MesesDeCarenciaDoSicor, ct);
+            vigente?.MesesDaJanela ?? MesesDaJanelaDoTextoBase, vigente?.MesesDeCarenciaDoSicor, vigente, ct);
 
         return Resultado<ComProcedencia<PainelDeCreditoRural>>.Ok(
             ComProcedencia<PainelDeCreditoRural>.DoNossoBanco(
