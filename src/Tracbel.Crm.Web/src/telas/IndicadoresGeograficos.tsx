@@ -27,13 +27,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BlocoErro } from '../componentes/cadastro/EstadosDeTela';
 import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
+import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
 import { AbaDeMercado } from '../componentes/mercado/AbaDeMercado';
 import { produtosDoMunicipio } from '../componentes/mercado/culturasDoMunicipio';
 import { AbasDaTela, type Aba } from '../componentes/territorio/AbasDaTela';
 import { AbaDeTerritorio } from '../componentes/territorio/AbaDeTerritorio';
 import { AvisoDeTerritorioSemCarga } from '../componentes/territorio/AvisoDeTerritorioSemCarga';
 import { CartaoDeAlcance } from '../componentes/territorio/CartaoDeAlcance';
-import { ChipDoMunicipio } from '../componentes/territorio/ChipDoMunicipio';
 import { ComoLerEstesNumeros } from '../componentes/territorio/ComoLerEstesNumeros';
 import { DetalheDoMunicipio } from '../componentes/territorio/DetalheDoMunicipio';
 import { FiltrosDosIndicadores } from '../componentes/territorio/FiltrosDosIndicadores';
@@ -48,6 +48,7 @@ import { carregarMalhaDeSaoPaulo, obterIndicadoresTerritoriais } from '../dados/
 import { useRecurso } from '../dados/api/useRecurso';
 import type { ClassificacaoDeIndicador, FiltrosTerritoriais } from '../tipos/territorio';
 import '../estilos/territorio.css';
+import '../estilos/dashboard.css';
 
 type IdDaAba = 'mercado' | 'territorio';
 
@@ -261,7 +262,11 @@ export function IndicadoresGeograficos() {
     ) : null;
 
   return (
-    <>
+    // O CONTAINER DA PÁGINA (fase T4.6). Sem ele, num monitor de 1920 os cartões
+    // esticavam por quase 1800px: a linha de leitura ficava longa demais e a
+    // grade de quatro KPIs virava quatro faixas separadas por vazio. A largura
+    // está no `dashboard.css` e foi escolhida no harness, não no chute.
+    <PaginaDoPainel>
       <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Indicadores Geográficos da ADR</h1>
@@ -287,11 +292,14 @@ export function IndicadoresGeograficos() {
         indicadores={indicadores}
         respondeu={painel.dados !== null}
         podeVerEmpresaInteira={painel.dados?.podeVerEmpresaInteira ?? false}
+        // O MUNICÍPIO ESCOLHIDO É FILTRO DE RECORTE (T4.6): ele mora na linha
+        // com os outros, e não flutuando entre blocos. Ele vale para as duas
+        // abas, exatamente como sub-região e loja.
+        municipioEscolhido={escolhido?.nome ?? null}
+        aoLimparMunicipio={() => escolherMunicipio(null)}
       />
 
       {painel.dados && <ComoLerEstesNumeros classificacoes={painel.dados.classificacoes} />}
-
-      <ChipDoMunicipio nome={escolhido?.nome ?? null} aoLimpar={() => escolherMunicipio(null)} />
 
       {painel.erro && <BlocoErro erro={painel.erro} aoTentarDeNovo={painel.recarregar} />}
       {erroDaMalha && <BlocoErro erro={erroDaMalha} />}
@@ -344,6 +352,6 @@ export function IndicadoresGeograficos() {
           />
         )}
       </AbasDaTela>
-    </>
+    </PaginaDoPainel>
   );
 }

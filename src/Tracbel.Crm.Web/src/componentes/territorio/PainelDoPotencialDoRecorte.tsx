@@ -1,9 +1,26 @@
 /**
- * O POTENCIAL DO RECORTE CONSULTADO, pelo motor (issue 72).
+ * O POTENCIAL DO RECORTE CONSULTADO, pelo motor (issue 72; redesenhado na T4.6).
  *
  * Ele responde três perguntas que o número sozinho não responde: **de que máquina**
  * estamos falando (as categorias), **de qual cultura** vem o parque (as parcelas, com
  * quem divide a terra), e **que fatia de São Paulo** está aqui.
+ *
+ * O QUE MUDOU NA T4.6 — a ordem da leitura, e nada do conteúdo.
+ *
+ * Isto abria com a frase "No recorte consultado — 30 municípios com parque" e
+ * descia numa lista de oito a quinze linhas de mesmo peso: o parque total, cada
+ * categoria, cada cultura e a fatia de SP, tudo em corpo de texto. A resposta —
+ * *quantas máquinas existem aqui* — estava na terceira linha, do mesmo tamanho da
+ * décima. Era um relatório técnico ocupando o lugar de um painel.
+ *
+ * Agora a primeira camada é **dois números**: o parque e em quantos municípios
+ * ele está. A decomposição inteira continua na tela, num detalhe recolhido — é a
+ * hierarquia da issue 33, e nenhuma linha foi apagada.
+ *
+ * O AVISO DE ESTIMATIVA VIROU SELO. Ele era uma faixa amarela de largura inteira
+ * no fim do painel, e dominava o bloco: a ressalva é importante, mas ela
+ * qualifica o número, não substitui a leitura dele. Agora é um selo ao lado do
+ * número, com o texto inteiro na dica.
  *
  * A demanda anual sai VAZIA COM O MOTIVO quando falta o ciclo de renovação de alguma
  * cultura: somar só as que têm daria um total menor que o real, com cara de completo.
@@ -24,105 +41,142 @@ export function PainelDoPotencialDoRecorte({
   const relevancia = recorte.relevanciaNoEstado;
 
   return (
-    <div className="terr-recorte">
-      <p className="terr-recorte-titulo">
-        No recorte consultado{comFiltro ? ' (com filtro)' : ''} — {nº(recorte.municipiosComParque)} municípios com parque
-      </p>
-
-      <ul className="terr-recorte-linhas">
-        <li>
-          <strong>{recorte.parqueDeMaquinas == null ? '—' : nº(Math.round(recorte.parqueDeMaquinas))}</strong> máquinas de
-          parque{' '}
-          {recorte.demandaAnualDeMaquinas == null ? (
-            <span className="cad-sub">· demanda anual: {MOTIVO_SEM_PARQUE[recorte.motivoSemDemanda]}</span>
-          ) : (
-            <span className="cad-sub">· {nº(Math.round(recorte.demandaAnualDeMaquinas))} por ano</span>
-          )}
-        </li>
-
-        {recorte.porCategoria.map((c) => (
-          <li key={c.categoriaCodigo}>
-            {c.categoriaNome}: <strong>{c.parqueDeMaquinas == null ? '—' : nº(Math.round(c.parqueDeMaquinas))}</strong>
-            {c.demandaAnualDeMaquinas != null && (
-              <span className="cad-sub"> · {nº(Math.round(c.demandaAnualDeMaquinas))} por ano</span>
+    <div className="terr-recorte" data-bloco="potencial-do-recorte">
+      {/* A PRIMEIRA CAMADA SÃO DOIS NÚMEROS. Quantas máquinas, e em quantos
+          municípios — é a resposta da seção, e ela chega antes de qualquer
+          decomposição. */}
+      <div className="dash-numeros">
+        <span className="dash-numero">
+          <strong>{recorte.parqueDeMaquinas == null ? '—' : nº(Math.round(recorte.parqueDeMaquinas))}</strong>
+          <span className="dash-numero-rotulo">
+            máquinas de parque
+            {recorte.frase && (
+              <>
+                {' '}
+                <span className="dash-selo">estimativa</span>
+                <InfoTooltip rotulo="Por que o parque é estimativa" texto={`${recorte.frase}.`} />
+              </>
             )}
-          </li>
-        ))}
+          </span>
+        </span>
 
-        {recorte.porCultura.map((p) => (
-          <li key={p.culturaCodigo}>
-            {p.cultura}: {p.parque == null ? '—' : nº(Math.round(p.parque))} máquinas em{' '}
-            {nº(Math.round(p.areaUtilHectares ?? 0))} ha
-            {p.compartilhada.length > 0 && (
-              <span className="cad-sub"> · área compartilhada com {p.compartilhada.join(', ')}</span>
+        <span className="dash-numero">
+          <strong>{nº(recorte.municipiosComParque)}</strong>
+          <span className="dash-numero-rotulo">
+            municípios com parque{comFiltro ? ', no filtro aplicado' : ''}
+          </span>
+        </span>
+
+        <span className="dash-numero">
+          <strong>
+            {recorte.demandaAnualDeMaquinas == null ? (
+              <ValorAusente
+                motivo={`${MOTIVO_SEM_PARQUE[recorte.motivoSemDemanda]}. A decisão D-P01 (issue 63) fixa cultura, categoria, hectares por máquina e anos de renovação — as quatro juntas.`}
+                oQue="a demanda anual"
+              />
+            ) : (
+              nº(Math.round(recorte.demandaAnualDeMaquinas))
             )}
-          </li>
-        ))}
+          </strong>
+          <span className="dash-numero-rotulo">renovadas por ano</span>
+        </span>
 
         {relevancia && (
-          <li>
-            Fatia de São Paulo:{' '}
-            {relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(relevancia.fatiaDaAreaPlantada)} da área plantada ·{' '}
-            {relevancia.fatiaDoValor == null ? '—' : porcento(relevancia.fatiaDoValor)} do valor da produção
-          </li>
+          <span className="dash-numero">
+            <strong>
+              {relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(relevancia.fatiaDaAreaPlantada)}
+            </strong>
+            <span className="dash-numero-rotulo">
+              da área plantada de SP
+              <InfoTooltip
+                rotulo="A fatia de São Paulo"
+                texto={`${relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(relevancia.fatiaDaAreaPlantada)} da área plantada e ${relevancia.fatiaDoValor == null ? '—' : porcento(relevancia.fatiaDoValor)} do valor da produção do estado. O denominador é o total PUBLICADO pelo IBGE, que não é a soma dos municípios: o valor municipal sob sigilo entra no total do estado sem aparecer embaixo.`}
+              />
+            </span>
+          </span>
         )}
-      </ul>
+      </div>
 
-      {recorte.frase && <p className="terr-aviso">{recorte.frase}.</p>}
+      {/* A DECOMPOSIÇÃO INTEIRA CONTINUA NA TELA, recolhida. `<details>` nativo:
+          o navegador já resolve teclado, leitor de tela e Ctrl+F dentro do bloco
+          fechado — o que uma implementação em React perderia. */}
+      <details className="cad-recolhivel" data-bloco="potencial-detalhe">
+        <summary>De onde vem este parque — por categoria e por cultura</summary>
 
-      {recorte.relevanciaPorCultura.length > 0 && (
-        <table className="cad-tabela terr-recorte-tabela">
-          <caption className="cad-sub">Relevância por cultura, contra o total publicado de São Paulo</caption>
-          <thead>
-            <tr>
-              <th scope="col">Cultura</th>
-              <th scope="col">Ano</th>
-              <th scope="col">Área plantada</th>
-              <th scope="col">Quantidade</th>
-              <th scope="col">Valor</th>
-              <th scope="col">Produtividade × SP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recorte.relevanciaPorCultura.map((c) => (
-              <tr key={c.produtoCodigoIbge}>
-                <td>{c.produtoNome}</td>
-                <td className="cad-mono">{c.ano}</td>
-                <td className="cad-mono">
-                  {c.relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(c.relevancia.fatiaDaAreaPlantada)}
-                </td>
-                <td className="cad-mono">
-                  {c.relevancia.fatiaDaQuantidade == null ? '—' : porcento(c.relevancia.fatiaDaQuantidade)}
-                </td>
-                <td className="cad-mono">
-                  {c.relevancia.fatiaDoValor == null ? '—' : porcento(c.relevancia.fatiaDoValor)}
-                </td>
-                {/* A RAZÃO NÃO LEVA FATIA: produtividade é razão, e o que se
-                    compara é a distância até SP (documento 50, §7). O detalhe
-                    saiu do `title=` e virou dica, alcançável pelo teclado. */}
-                <td className="cad-mono">
-                  {c.relevancia.razaoDeProdutividade == null ? (
-                    <ValorAusente
-                      motivo={`Sem produtividade apurada para ${c.produtoNome} — falta quantidade produzida ou área colhida no ano de referência.`}
-                      oQue={`a produtividade de ${c.produtoNome}`}
-                    />
-                  ) : (
-                    <>
-                      {`${c.relevancia.razaoDeProdutividade.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}×`}
-                      {c.relevancia.produtividadeDoRecorte != null && (
-                        <InfoTooltip
-                          rotulo={`Como a produtividade de ${c.produtoNome} se compara com São Paulo`}
-                          texto={`${nº(Math.round(c.relevancia.produtividadeDoRecorte))} aqui contra ${nº(Math.round(c.relevancia.produtividadeNoEstado ?? 0))} em São Paulo (${c.unidadeDaProdutividade}). É uma razão: o que se compara é a distância até a referência, não uma fatia.`}
-                        />
-                      )}
-                    </>
-                  )}
-                </td>
+        <ul className="terr-recorte-linhas">
+          {recorte.porCategoria.map((c) => (
+            <li key={c.categoriaCodigo}>
+              {c.categoriaNome}: <strong>{c.parqueDeMaquinas == null ? '—' : nº(Math.round(c.parqueDeMaquinas))}</strong>
+              {c.demandaAnualDeMaquinas != null && (
+                <span className="cad-sub"> · {nº(Math.round(c.demandaAnualDeMaquinas))} por ano</span>
+              )}
+            </li>
+          ))}
+
+          {recorte.porCultura.map((p) => (
+            <li key={p.culturaCodigo}>
+              {p.cultura}: {p.parque == null ? '—' : nº(Math.round(p.parque))} máquinas em{' '}
+              {nº(Math.round(p.areaUtilHectares ?? 0))} ha
+              {p.compartilhada.length > 0 && (
+                <span className="cad-sub"> · área compartilhada com {p.compartilhada.join(', ')}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        {recorte.relevanciaPorCultura.length > 0 && (
+          <table className="cad-tabela terr-recorte-tabela">
+            <caption className="cad-sub">Relevância por cultura, contra o total publicado de São Paulo</caption>
+            <thead>
+              <tr>
+                <th scope="col">Cultura</th>
+                <th scope="col">Ano</th>
+                <th scope="col">Área plantada</th>
+                <th scope="col">Quantidade</th>
+                <th scope="col">Valor</th>
+                <th scope="col">Produtividade × SP</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {recorte.relevanciaPorCultura.map((c) => (
+                <tr key={c.produtoCodigoIbge}>
+                  <td>{c.produtoNome}</td>
+                  <td className="cad-mono">{c.ano}</td>
+                  <td className="cad-mono">
+                    {c.relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(c.relevancia.fatiaDaAreaPlantada)}
+                  </td>
+                  <td className="cad-mono">
+                    {c.relevancia.fatiaDaQuantidade == null ? '—' : porcento(c.relevancia.fatiaDaQuantidade)}
+                  </td>
+                  <td className="cad-mono">
+                    {c.relevancia.fatiaDoValor == null ? '—' : porcento(c.relevancia.fatiaDoValor)}
+                  </td>
+                  {/* A RAZÃO NÃO LEVA FATIA: produtividade é razão, e o que se
+                      compara é a distância até SP (documento 50, §7). */}
+                  <td className="cad-mono">
+                    {c.relevancia.razaoDeProdutividade == null ? (
+                      <ValorAusente
+                        motivo={`Sem produtividade apurada para ${c.produtoNome} — falta quantidade produzida ou área colhida no ano de referência.`}
+                        oQue={`a produtividade de ${c.produtoNome}`}
+                      />
+                    ) : (
+                      <>
+                        {`${c.relevancia.razaoDeProdutividade.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}×`}
+                        {c.relevancia.produtividadeDoRecorte != null && (
+                          <InfoTooltip
+                            rotulo={`Como a produtividade de ${c.produtoNome} se compara com São Paulo`}
+                            texto={`${nº(Math.round(c.relevancia.produtividadeDoRecorte))} aqui contra ${nº(Math.round(c.relevancia.produtividadeNoEstado ?? 0))} em São Paulo (${c.unidadeDaProdutividade}). É uma razão: o que se compara é a distância até a referência, não uma fatia.`}
+                          />
+                        )}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </details>
     </div>
   );
 }

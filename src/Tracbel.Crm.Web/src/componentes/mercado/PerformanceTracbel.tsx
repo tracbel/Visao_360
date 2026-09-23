@@ -14,7 +14,8 @@
 
 import { useState } from 'react';
 import { MetricaAusente } from '../comum/MetricaAusente';
-import { PainelDeIndicadores, type Indicador } from '../cadastro/Indicadores';
+import { CartaoDeIndicador, GradeDeIndicadores } from '../dashboard/Dashboard';
+import type { Indicador } from '../cadastro/Indicadores';
 import { reaisCompactos } from '../territorio/escalas';
 import { nº } from '../territorio/indicadoresDaAdr';
 import type { TotaisDaAdr } from '../territorio/totaisDaAdr';
@@ -73,7 +74,31 @@ export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDa
               />
             ),
           },
-          { id: 'vendas', rotulo: 'Vendas', conteudo: <PainelDeIndicadores indicadores={vendas} /> },
+          {
+            id: 'vendas',
+            rotulo: 'Vendas',
+            // A MESMA GRADE DOS NÚMEROS DO TOPO (fase T4.6): três cartões com a
+            // mesma altura, o mesmo padding e o valor no mesmo eixo. Eles ficavam
+            // espalhados com larguras diferentes, e três cartões de venda não
+            // podem parecer coisas de naturezas diferentes.
+            //
+            // A GRADE TEM QUATRO COLUNAS e aqui há três: a quarta fica vazia de
+            // propósito, guardando o lugar de Captura e Não capturado para quando
+            // a issue 69 trouxer as vendas em unidades.
+            conteudo: (
+              <GradeDeIndicadores>
+                {vendas.map((v) => (
+                  <CartaoDeIndicador
+                    key={v.rotulo}
+                    rotulo={v.rotulo}
+                    valor={v.valor}
+                    contexto={v.deOnde}
+                    motivoSemDado={v.semDado}
+                  />
+                ))}
+              </GradeDeIndicadores>
+            ),
+          },
           {
             id: 'naoCapturado',
             rotulo: 'Não capturado',

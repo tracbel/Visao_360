@@ -1,0 +1,269 @@
+/**
+ * OS PRIMITIVES DO PAINEL EXECUTIVO (fase T4.6).
+ *
+ * O PROBLEMA QUE ELES RESOLVEM não é falta de biblioteca: é falta de regra. A
+ * tela funcionava, mas cada cartão escolhia o próprio `padding` no lugar onde
+ * foi escrito, cada título tinha o tamanho que pareceu certo naquele dia, e o
+ * estado vazio estava desenhado de três formas diferentes. Nada errado o
+ * bastante para alguém apontar — e nada intencional o bastante para parecer um
+ * painel de diretoria.
+ *
+ * ELES NÃO SÃO UM SEGUNDO DESIGN SYSTEM. Não há cor, tamanho nem medida escrita
+ * aqui: tudo sai dos tokens do `design-system.css`, inclusive as duas escalas
+ * que a T4.6 acrescentou (espaço `--e-*` e tipografia `--t-*`). O que eles fazem
+ * é **impedir a escolha local** — é para isso que servem.
+ *
+ * O QUE JÁ EXISTIA CONTINUA SENDO USADO, e não foi duplicado:
+ *   `TituloDaSecao`  é o cabeçalho de seção;
+ *   `AbasInternas`   é o alternador dentro de um painel;
+ *   `ValorAusente`   e `MetricaAusente` são a ausência com motivo.
+ * Criar `SectionHeader`, `DashboardTabs` e `EmptyMetric` ao lado deles seria
+ * exatamente o segundo vocabulário que não se quer.
+ *
+ * POR QUE O CARTÃO DE INDICADOR É NOVO, e não o `cad-kpi` de sempre: aquele é
+ * compartilhado com as telas de cadastro (Clientes, Equipamentos, Configurações),
+ * que esta fase não cobre e que o harness visual não consegue conferir. Mudar o
+ * `cad-kpi` mexeria no que não dá para provar. Este nasce ao lado, sobre os
+ * mesmos tokens, e as telas de cadastro podem adotá-lo quando forem revistas.
+ */
+
+import type { ReactNode } from 'react';
+import { InfoTooltip } from '../InfoTooltip';
+import { Procedencia } from '../comum/Procedencia';
+import { ValorAusente } from '../comum/ValorAusente';
+import type { ProcedenciaDoIndicador } from '../../tipos/territorio';
+
+/**
+ * O CONTAINER DA PÁGINA — largura máxima, centralizado, folga lateral que cede.
+ *
+ * Sem ele, num monitor de 1920 os cartões esticavam por quase 1800px: a linha de
+ * leitura ficava longa demais e a grade de quatro KPIs virava quatro faixas
+ * horizontais separadas por vazio. A largura escolhida está no CSS, e foi
+ * conferida no harness antes de ser fixada.
+ */
+export function PaginaDoPainel({ children }: { children: ReactNode }) {
+  return <div className="dash-pagina">{children}</div>;
+}
+
+/**
+ * UMA SEÇÃO — separada por ESPAÇO, e não por borda.
+ *
+ * A tela tinha borda em quase tudo, e borda demais não separa nada: quando todo
+ * bloco tem moldura, nenhuma moldura significa "isto é outra coisa". O espaço da
+ * escala faz esse trabalho sem desenhar mais uma linha.
+ */
+export function SecaoDoPainel({
+  children,
+  bloco,
+  ...resto
+}: {
+  children: ReactNode;
+  /** O `data-bloco`, que os testes de composição usam para achar a seção. */
+  bloco?: string;
+} & React.HTMLAttributes<HTMLElement>) {
+  return (
+    <section className="dash-secao" data-bloco={bloco} {...resto}>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * UM PAINEL — a caixa branca com cabeçalho opcional.
+ *
+ * É o único lugar onde `padding` de cartão é decidido. Um painel dentro de outro
+ * não ganha moldura de novo: `aninhado` tira a borda e a sombra e deixa só o
+ * espaçamento, porque caixa dentro de caixa é o visual de formulário, não de
+ * painel.
+ */
+export function Painel({
+  titulo,
+  acao,
+  metodologia,
+  aninhado = false,
+  children,
+  ...resto
+}: {
+  titulo?: ReactNode;
+  /** Uma ação à direita do título. */
+  acao?: ReactNode;
+  /** Fonte e método — vai para a dica ao lado do título, nunca para a tela. */
+  metodologia?: string;
+  aninhado?: boolean;
+  children: ReactNode;
+} & React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={aninhado ? 'dash-painel dash-painel-aninhado' : 'dash-painel'} {...resto}>
+      {titulo && (
+        <div className="dash-painel-cabecalho">
+          <h3 className="dash-painel-titulo">
+            {titulo}
+            {metodologia && (
+              <InfoTooltip texto={metodologia} rotulo={`Fonte e método de ${String(titulo).toLowerCase()}`} />
+            )}
+          </h3>
+          {acao}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/**
+ * A GRADE DOS NÚMEROS DE DECISÃO — quatro colunas no desktop, uma no celular.
+ *
+ * COLUNAS FIXAS, E NÃO `auto-fit`. A grade antiga era `auto-fit` com largura
+ * mínima, o que dava cinco colunas num monitor largo e três em outro: os quatro
+ * números de decisão mudavam de arranjo conforme o monitor de quem olhava, e
+ * "os quatro do topo" deixava de ser uma coisa reconhecível. Aqui são quatro, e
+ * a quebra é declarada.
+ */
+export function GradeDeIndicadores({ children, ...resto }: { children: ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className="dash-kpis" {...resto}>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * UM NÚMERO DE DECISÃO.
+ *
+ * TODOS TÊM A MESMA ALTURA, o mesmo `padding`, o rótulo no mesmo ponto, o valor
+ * no mesmo eixo e a dica no mesmo canto. Isso não é capricho: quando um cartão é
+ * mais alto que o vizinho porque o texto dele é maior, o olho lê a diferença de
+ * altura como diferença de importância — e aqui os quatro são igualmente
+ * importantes.
+ *
+ * SEM DADO É UM TRAVESSÃO E UM ⓘ, nunca um parágrafo dentro do cartão. O motivo
+ * inteiro — com a issue que o destrava — vai na dica. Um parágrafo ali empurra o
+ * número para baixo, desalinha a linha dos quatro e transforma o painel em
+ * leitura.
+ */
+export function CartaoDeIndicador({
+  rotulo,
+  valor,
+  contexto,
+  oQue,
+  motivoSemDado,
+  procedencia,
+  destaque = false,
+}: {
+  rotulo: string;
+  /** O valor pronto para a tela. `null` mostra travessão — nunca zero. */
+  valor: ReactNode | null;
+  /** A comparação, em uma linha curta: fatia, distância ou de onde veio. */
+  contexto?: ReactNode;
+  /**
+   * Como o leitor de tela chama este número na dica — "a demanda anual".
+   *
+   * O padrão é o rótulo em minúsculas, que serve para a maioria. Existe porque
+   * o artigo muda a frase: "Por que **a** demanda anual não aparece" é o que a
+   * ficha do município já anunciava, e trocar isso mudaria o nome acessível de
+   * um controle que as pessoas já conhecem.
+   */
+  oQue?: string;
+  /** Por que não há valor, com a issue que destrava. Só aparece na dica. */
+  motivoSemDado?: string;
+  procedencia?: ProcedenciaDoIndicador | null;
+  /** O número que a diretoria olha primeiro, quando houver um. */
+  destaque?: boolean;
+}) {
+  const vazio = valor === null || valor === undefined;
+  const nome = oQue ?? rotulo.toLowerCase();
+
+  return (
+    <div className={destaque ? 'dash-kpi dash-kpi-destaque' : 'dash-kpi'} data-kpi={rotulo}>
+      <div className="dash-kpi-rotulo">
+        <span>{rotulo}</span>
+        <Procedencia procedencia={procedencia} oQue={nome} />
+      </div>
+
+      {/* O TRAÇO E O MOTIVO SÃO O `ValorAusente` DE SEMPRE, e não uma segunda
+          forma de dizer a mesma coisa: o rótulo da dica ("Por que … não
+          aparece"), o traço e o `sem dado` do leitor de tela já estão
+          padronizados na tela inteira. Duas frases para a mesma ausência é
+          exatamente a inconsistência que esta fase veio acabar. */}
+      <div className="dash-kpi-valor">
+        {vazio ? (
+          motivoSemDado ? (
+            <ValorAusente motivo={motivoSemDado} oQue={nome} />
+          ) : (
+            <span className="dash-vazio">—</span>
+          )
+        ) : (
+          valor
+        )}
+      </div>
+
+      {/* A LINHA DE CONTEXTO EXISTE SEMPRE, mesmo vazia: é ela que mantém os
+          quatro cartões com a mesma altura sem precisar fixar altura em pixel —
+          o que quebraria assim que alguém escrevesse um rótulo de duas linhas. */}
+      <div className="dash-kpi-contexto">{vazio ? '' : contexto}</div>
+    </div>
+  );
+}
+
+/**
+ * A FAIXA COMPACTA DOS NÚMEROS ESTRUTURAIS.
+ *
+ * Parque de tratores, propriedades, valor da lavoura, usinas e rebanho são
+ * contexto do mercado, não números de decisão — mas estavam desenhados como
+ * cartão, do mesmo tamanho dos quatro do topo, competindo com eles pelo olho.
+ *
+ * NENHUM NÚMERO FOI ELIMINADO: eles continuam inteiros, com a procedência e a
+ * comparação, só que numa faixa de uma linha. É a hierarquia da issue 33 — nível
+ * 1 é dado operacional, e estes são o pano de fundo dele.
+ */
+export function FaixaDeEstrutura({ children, ...resto }: { children: ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className="dash-faixa" {...resto}>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Um item da faixa: o número em destaque, o nome ao lado, e a comparação na dica.
+ *
+ * A COMPARAÇÃO É DE CADA INDICADOR, e não da faixa. A §7 do documento 50 diz que
+ * toda grandeza somável responde "que fatia isto é?" — e essa resposta pertence
+ * ao número, não ao bloco. Uma dica só no fim da faixa, com as cinco fatias
+ * concatenadas, faria o leitor procurar a dele no meio de um parágrafo: é a
+ * mesma informação num lugar em que ela não serve.
+ */
+export function ItemDaFaixa({
+  rotulo,
+  valor,
+  comparacao,
+  motivoSemDado,
+  procedencia,
+}: {
+  rotulo: string;
+  valor: ReactNode | null;
+  /** A fatia da Região Tracbel e de SP — a §7 do documento 50, na dica deste número. */
+  comparacao?: string;
+  motivoSemDado?: string;
+  procedencia?: ProcedenciaDoIndicador | null;
+}) {
+  const vazio = valor === null || valor === undefined;
+
+  return (
+    <span className="dash-faixa-item" data-faixa={rotulo}>
+      <strong className="dash-faixa-valor">{vazio ? '' : valor}</strong>
+      <span className="dash-faixa-rotulo">{rotulo}</span>
+
+      {/* A mesma ausência da tela inteira: traço, `sem dado` para o leitor e a
+          dica "Por que … não aparece". */}
+      {vazio && motivoSemDado ? (
+        <ValorAusente motivo={motivoSemDado} oQue={rotulo.toLowerCase()} />
+      ) : (
+        <>
+          {comparacao && <InfoTooltip rotulo={`Quanto ${rotulo.toLowerCase()} representa`} texto={comparacao} />}
+          <Procedencia procedencia={procedencia} oQue={rotulo.toLowerCase()} />
+        </>
+      )}
+    </span>
+  );
+}

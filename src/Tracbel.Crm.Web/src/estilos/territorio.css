@@ -90,10 +90,41 @@
   margin-top: 16px;
 }
 
-@media (min-width: 2000px) {
+/* 2100px, e não 2000 (fase T4.6): a captura do harness em 1920 mostrou que os
+   quatro lado a lado só respiram acima disso — abaixo, cada mapa fica estreito
+   demais para distinguir município, e o cartão vira um selo colorido. */
+@media (min-width: 2100px) {
   .terr-grade-mapas {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
+
+/* -----------------------------------------------------------------------------
+   OS QUATRO CARTÕES TÊM O MESMO ESQUELETO, E AGORA O MESMO EIXO (fase T4.6).
+
+   Eles já eram o mesmo componente, mas o conteúdo tem alturas diferentes: o
+   resumo do potencial ocupa duas linhas e o da cobertura, uma. O resultado era
+   que o alternador do cartão da esquerda ficava num eixo e o da direita noutro,
+   e os mapas começavam em alturas diferentes — dois mapas lado a lado que não
+   começam na mesma linha são difíceis de comparar, que é justamente o que eles
+   existem para permitir.
+
+   Os pisos abaixo resolvem isso sem fixar altura total: o conteúdo pode crescer,
+   mas nunca encolhe abaixo do eixo comum.
+   ----------------------------------------------------------------------------- */
+.terr-mapa .card-title {
+  min-height: calc(var(--t-cartao) * var(--lh-normal) * 2);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-1);
+}
+
+.terr-mapa-resumo {
+  min-height: calc(var(--t-apoio) * var(--lh-normal) * 2);
+}
+
+.terr-mapa-foco {
+  min-height: calc(var(--t-meta) * var(--lh-normal));
 }
 
 @media (max-width: 1100px) {
@@ -418,13 +449,96 @@
   font-size: 12px;
 }
 
+/* -----------------------------------------------------------------------------
+   A TABELA DE MUNICÍPIOS (item 12 da fase T4.6)
+
+   Ela ocupava a tela inteira e parecia listagem de banco: cabeçalho que sumia ao
+   rolar, todas as colunas com o mesmo peso, números alinhados à esquerda, linhas
+   altas. Uma tabela operacional com 200 linhas precisa de outra coisa —
+   cabeçalho fixo para saber que coluna se está lendo na linha 80, nome forte na
+   primeira coluna, número à direita para comparar de cima a baixo, e linha baixa
+   para caber mais na mesma altura.
+
+   A ROLAGEM É DENTRO DO CARTÃO, e não da página: é o que mantém o resto da tela
+   no lugar enquanto se percorre a lista.
+   ----------------------------------------------------------------------------- */
 .terr-tabela-municipios {
   max-height: 520px;
   overflow: auto;
 }
 
+/* O CABEÇALHO ACOMPANHA A ROLAGEM. Sem isto, na linha 80 ninguém sabe se a
+   terceira coluna é "vendas" ou "cobertura". */
+.terr-tabela-municipios thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-surface);
+  box-shadow: inset 0 -1px 0 var(--border-strong);
+  font-size: var(--t-meta);
+  white-space: nowrap;
+}
+
+/* NÚMERO À DIREITA, com dígitos de largura fixa: é o que permite varrer a coluna
+   e ver qual é maior sem ler cada valor. */
 .terr-tabela-municipios td.cad-mono {
   white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.terr-tabela-municipios th.cad-mono { text-align: right; }
+
+/* A PRIMEIRA COLUNA É A CHAVE DA LINHA: ela é o que se procura, então tem mais
+   peso que o resto. */
+.terr-tabela-municipios tbody tr > *:first-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* LINHA MAIS BAIXA: cabe mais município na mesma altura de cartão, e menos
+   rolagem é menos chance de perder o lugar. */
+.terr-tabela-municipios td,
+.terr-tabela-municipios th {
+  padding: var(--e-2) var(--e-3);
+}
+
+/* O HOVER É DISCRETO — ele diz "esta é a linha sob o cursor", e não disputa com
+   a linha selecionada, que é a que muda a página inteira. */
+.terr-tabela-municipios tbody tr:hover td {
+  background: var(--bg-hover);
+}
+
+/* A REGIÃO E A LOJA SÃO HIERARQUIA, não dado: elas se repetem por dezenas de
+   linhas, e em peso cheio viram ruído em cima do nome do município. */
+.terr-tabela-municipios .terr-coluna-hierarquia {
+  color: var(--text-tertiary);
+  font-size: var(--t-meta);
+}
+
+/* -----------------------------------------------------------------------------
+   NO CELULAR, CINCO COLUNAS EM VEZ DE OITO (item 12 da T4.6)
+
+   Oito colunas comprimidas em 390px não são uma tabela, são um borrão — e
+   rolagem lateral da página está proibida. Saem "Elegíveis", "No prazo" e
+   "Pós-venda"; ficam município, região/loja, pendentes, vendas e máquinas, que
+   são as que respondem "onde vender". O que sai está INTEIRO na ficha do
+   município, a um toque — nada é perdido, só adiado.
+
+   POR POSIÇÃO DE COLUNA, e não por classe em cada célula: as linhas de total, de
+   grupo e de fora do mapa são montadas em três lugares diferentes, e uma classe
+   esquecida em qualquer um deles deixaria o cabeçalho com cinco colunas e o
+   total com oito — a tabela sairia torta sem ninguém notar na revisão.
+   ----------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .terr-tabela-municipios th:nth-child(3),
+  .terr-tabela-municipios th:nth-child(4),
+  .terr-tabela-municipios th:nth-child(7),
+  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(3),
+  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(4),
+  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(7) {
+    display: none;
+  }
 }
 
 /* O nome do município é um botão (abre a ficha), e botão centraliza o texto: quando o nome quebrava em
