@@ -100,14 +100,32 @@ public sealed class FontesPublicasTestes
     ///
     /// <para><b>Boi e leite continuam permitidos</b>: não são cultura de lavoura, são produtos de preço que
     /// o texto-base cita e que o catálogo não guarda.</para>
+    ///
+    /// <para><b>A regra vale para TELA, e não para amostra.</b> Os dois males que ela evita — cultura nova
+    /// exigindo publicação, e duas telas discordando sobre quais são as culturas — pressupõem código que
+    /// vai ao ar. Uma amostra de teste precisa de nome de cultura escrito: é o dado de mentira dela, e não
+    /// tem catálogo de onde puxar. Por isso saem daqui os arquivos de teste e as duas pastas de amostra,
+    /// <c>src/testes/</c> e <c>src/dev/</c> — esta última é o harness visual (fase T4.5), que o
+    /// <c>npm run visual:conferir-pacote</c> prova não chegar ao <c>dist</c>.</para>
     /// </summary>
     [Fact]
     public void O_front_nao_tem_lista_fixa_de_cultura()
     {
+        var raizDoFront = Path.Combine(Raiz, "src", "Tracbel.Crm.Web", "src");
+
+        // As pastas que existem para guardar dado de mentira. Comparadas com separador dos dois lados
+        // para `src/dev` não casar com um `src/devolucoes` que apareça um dia.
+        string[] pastasDeAmostra =
+        [
+            $"{Path.DirectorySeparatorChar}testes{Path.DirectorySeparatorChar}",
+            $"{Path.DirectorySeparatorChar}dev{Path.DirectorySeparatorChar}",
+        ];
+
         var telas = Directory
-            .EnumerateFiles(Path.Combine(Raiz, "src", "Tracbel.Crm.Web", "src"), "*.tsx", SearchOption.AllDirectories)
-            .Concat(Directory.EnumerateFiles(Path.Combine(Raiz, "src", "Tracbel.Crm.Web", "src"), "*.ts", SearchOption.AllDirectories))
-            .Where(f => !f.EndsWith(".teste.ts", StringComparison.Ordinal) && !f.EndsWith(".teste.tsx", StringComparison.Ordinal));
+            .EnumerateFiles(raizDoFront, "*.tsx", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(raizDoFront, "*.ts", SearchOption.AllDirectories))
+            .Where(f => !f.EndsWith(".teste.ts", StringComparison.Ordinal) && !f.EndsWith(".teste.tsx", StringComparison.Ordinal))
+            .Where(f => !pastasDeAmostra.Any(p => f.Contains(p, StringComparison.Ordinal)));
 
         // Uma lista fixa é um vetor de texto com DUAS ou mais culturas do catálogo seguidas — é isso que
         // caracteriza a lista, e não a palavra "café" aparecer numa frase ou num comentário.

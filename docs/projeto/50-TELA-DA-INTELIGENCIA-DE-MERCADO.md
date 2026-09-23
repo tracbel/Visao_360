@@ -409,6 +409,7 @@ quatro KPIs em unidades), depois #70 (converte o mercado para R$).
 | **T3** | Os quatro KPIs, Porte × Momento e as parcelas do fator. Valor inexistente continua inexistente **com motivo**; nunca mock. | #76, #74, #166 | T2; D-P01 para o número sair |
 | **T3.1** | **Agregação do momento** (§4.2.1): o fator do recorte passa a ser `Σ ajustada ÷ Σ estrutural`, a composição por cultura vira aba do bloco e as setas saem do resumo executivo. Corrige a regra da cultura de maior área, que foi recusada. | #74, #76 | T3 |
 | **T4** | A ficha em três camadas. | #76 | T2 |
+| **T4.5** | **O instrumento antes do ajuste**: harness visual `#/dev/mercado-visual` (9 estados, amostra fictícia, sem banco nem VPN) e conferência automática de largura em 6 resoluções com Playwright. É o que torna provável qualquer troca de primitive de UI. | #171, #33 | T4 |
 | **T5** | Matriz de cenários e `Simular cenário` como ação secundária. | #74, #161 | T3 |
 | **T6** | Performance Tracbel, com **Captura** enquanto o denominador for demanda estimada. | **#162**, #69 | **#69 pronta** |
 
@@ -423,8 +424,11 @@ aberta na mesma issue.
 
 ## 14. Como o T0 se prova
 
-Não existe suíte de regressão visual no CI [M] — isso é a **#43** (P2, marco M9), e esta etapa não a
-antecipa. O que existe e será usado:
+> **Atualizado em 23/09/2026 (T4.5).** Quando isto foi escrito não havia conferência visual nenhuma no
+> CI. Agora há — a de **largura**, descrita na §15. Ela **não** fecha a #43: comparação de pixel contra
+> a referência continua fora do CI, e é o que falta ali.
+
+O que existe e será usado:
 
 1. **Regressão estrutural, versionada e no CI** — teste de componente (Vitest + testing-library, no padrão
    `*.teste.tsx` do projeto) que renderiza a tela com a API simulada e afirma **a presença e a ordem** de
@@ -433,3 +437,83 @@ antecipa. O que existe e será usado:
    `capturar-territorio.mjs` é o capturador desta tela. Captura antes × depois, e o resultado é o
    percentual de pixels diferentes. A saída tem número real da empresa e fica em `dados-locais/`, **fora do
    Git**.
+
+---
+
+## 15. O harness visual e a conferência de largura [D] — T4.5
+
+### O problema que ele resolve
+
+Conferir esta tela exigia **banco, VPN e sessão**. É justamente quando a VPN falta — que é quase sempre —
+que ninguém consegue olhar a página inteira, e todo ajuste de layout vira aposta. Pior: o item 2 acima
+(comparação de pixel) depende da API no ar, então a #171 fica parada esperando rede.
+
+### `#/dev/mercado-visual`
+
+Uma rota **só de desenvolvimento**, fora do roteador e **acima do portão de autenticação** — ela não tem o
+que autenticar, porque só mostra amostra fictícia. Nove estados, escolhidos por `?estado=`:
+
+| estado | o que ele prova |
+|---|---|
+| `completo` | a tela cheia, todo bloco com número e comparação |
+| `parcialmenteVazio` | metade sem potencial — vazio com motivo não pode parecer carregando |
+| `municipioSelecionado` | chip do recorte, destaque nos quatro mapas e ficha |
+| `fichaAberta` | as três camadas com os cinco `<details>` expandidos — o estado mais alto da página |
+| `sigiloIbge` | nulo por sigilo na estrutura inteira: traço e ⓘ, nunca zero |
+| `muitasCulturas` | 18 culturas nas tabelas e na composição do fator |
+| `textosLongos` | município, loja e razão social longos — onde a quebra de linha falha |
+| `carregando` | a primeira carga, antes de qualquer número |
+| `erro` | a API recusou: bloco de erro com "tentar de novo" |
+
+**Ele alimenta a tela interceptando `fetch`, e não injetando dependência nela** — assim o caminho
+exercitado é o de produção do começo ao fim (`pedir()`, envelope da procedência, os quatro estados do
+`useRecurso`), e a tela não ganha uma linha por causa do harness. A **malha real de São Paulo passa
+direto**: é geografia pública que a aplicação já publica, e é o que faz os quatro mapas desenharem.
+
+**Nada ali é dado da Tracbel** [D]: os números são inventados, e a barra do topo carimba `AMOSTRA
+FICTÍCIA` em toda captura. Os **códigos e nomes de município são os oficiais do IBGE** — sem eles os mapas
+ficariam vazios e não haveria o que conferir.
+
+**Ele não pode chegar ao servidor de produção.** `npm run visual:conferir-pacote` roda depois do `build` e
+reprova se qualquer marca do harness aparecer no `dist` — que é o que viaja dentro do pacote. A trava
+existe porque a primeira versão do gatilho **falhou nisso em silêncio**: com `lazy(() => import(...))` no
+escopo do módulo, o ramo morria mas o `import()` continuava alcançável, e 13 kB de amostra fictícia
+entravam no pacote sem nenhum aviso.
+
+### A conferência de largura
+
+`npm run visual` (Playwright, Chromium) abre os nove estados em **seis resoluções** — 1920×1080, 1440×900,
+1280×800, 1024×768, 768×1024 e 390×844 — mais a aba Território e a dica junto da borda. A afirmação é uma
+só e é objetiva:
+
+```text
+document.documentElement.scrollWidth <= window.innerWidth
+```
+
+Rolagem lateral numa tela de indicadores **esconde coluna**, e ninguém rola para o lado atrás de um número
+que não sabe que existe. Quando falha, a mensagem nomeia os cinco primeiros elementos que estouram.
+
+**As capturas não são comparadas pixel a pixel aqui** [D], e é decisão: a referência da #171 é o
+protótipo, e adotar como base uma captura do estado atual congelaria o layout de hoje como se fosse o
+alvo. Elas ficam em `capturas/`, fora do Git, e sobem como artefato do CI.
+
+**No CI ela reporta e não bloqueia.** As checagens exigidas pela regra da main (#58) continuam sendo
+`backend`, `frontend` e `seguranca`; `visual` é a quarta e anexa as capturas. Torná-la obrigatória é uma
+linha na regra do repositório, quando se quiser.
+
+### O que ela achou na primeira execução
+
+Os 54 testes de largura passaram: **a página não rola de lado em nenhuma das seis larguras, em nenhum dos
+nove estados**. Território também.
+
+Falhou a dica: **o balão do `InfoTooltip` vaza a janela pela direita** em 1920 (2016 px, 96 a mais), 1280,
+1024, 768 (803 px) e 390 (472 px). Ele é posicionado só por CSS, sem detecção de colisão e sem portal —
+dentro de um cartão com `overflow:hidden` ele chega a ser **recortado**, e o texto que explica o número
+não aparece para quem mais precisa dele. Passa em 1440 só porque ali a dica mais à direita fica longe da
+borda.
+
+O defeito está marcado com `test.fail()` no lugar exato: o teste continua afirmando o comportamento certo,
+a suíte fica verde enquanto o defeito existe, e **fica vermelha sozinha no dia em que alguém o corrigir**,
+pedindo para a marcação sair. O conserto é adotar `@radix-ui/react-tooltip` **em modo controlado** por
+dentro do `InfoTooltip`, sem mudar a API pública — modo controlado porque o Radix abre só no ponteiro e no
+foco, e o clique e o toque são requisito declarado do nosso componente.

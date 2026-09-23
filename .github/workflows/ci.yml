@@ -138,6 +138,84 @@ jobs:
       - name: Build
         run: npm run build
 
+  # =================================================================================================
+  # A CONFERÊNCIA VISUAL — fase T4.5.
+  #
+  # O QUE ELA PROVA: que a tela de Mercado cabe na largura em que é usada, em seis larguras e nove
+  # estados, contra o harness `#/dev/mercado-visual` (amostra fictícia, sem banco e sem rede da
+  # Tracbel). Rolagem lateral numa tela de indicadores esconde coluna, e ninguém rola para o lado
+  # atrás de um número que não sabe que existe.
+  #
+  # ELA NÃO ESTÁ NA REGRA DA MAIN (#58), de propósito: as checagens exigidas continuam sendo backend,
+  # frontend e seguranca. Esta reporta e anexa as capturas; virar obrigatória é decisão do Ricardo,
+  # e é um ajuste de uma linha na regra do repositório.
+  #
+  # O NAVEGADOR VEM DO CACHE, chaveado pela versão do Playwright no lockfile: sem isso seriam 115 MB
+  # baixados a cada PR.
+  # =================================================================================================
+  visual:
+    name: visual
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: src/Tracbel.Crm.Web
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Instalar o Node do .nvmrc
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: src/Tracbel.Crm.Web/.nvmrc
+          cache: npm
+          cache-dependency-path: src/Tracbel.Crm.Web/package-lock.json
+
+      - name: Instalar dependências pelo lockfile
+        run: npm ci
+
+      - name: Descobrir a versão do Playwright
+        id: playwright
+        run: echo "versao=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache do navegador
+        id: cache-navegador
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.versao }}
+
+      - name: Instalar o Chromium
+        if: steps.cache-navegador.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      # Mesmo com o navegador em cache, as bibliotecas de sistema não ficam na imagem.
+      - name: Dependências de sistema do navegador
+        if: steps.cache-navegador.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # O HARNESS NÃO PODE CHEGAR AO SERVIDOR DE PRODUÇÃO. É o `dist` que viaja dentro do pacote e é
+      # servido em https://360-tracbelagro.tracbel.com.br:5443 — amostra fictícia publicada ali seria
+      # número inventado numa tela que a diretoria lê.
+      - name: Construir e conferir que o harness ficou fora do pacote
+        run: |
+          npm run build
+          npm run visual:conferir-pacote
+
+      - name: Conferência visual
+        run: npm run visual
+
+      - name: Anexar as capturas
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: capturas-da-tela
+          path: src/Tracbel.Crm.Web/capturas/
+          if-no-files-found: warn
+          retention-days: 14
+
   seguranca:
     name: seguranca
     runs-on: ubuntu-latest
