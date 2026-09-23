@@ -462,6 +462,11 @@ describe('Indicadores Geográficos — as duas abas', () => {
       'como-ler',
       'abas',
       'mercado-da-regiao',
+      // O CONTROLE DE COMPARAÇÃO COM O PERÍODO ANTERIOR (T4.9 — maquete), à
+      // direita do título e DESLIGADO: a leitura devolve uma janela de
+      // competência, não duas. Ele aparece com o motivo na dica, que é o mesmo
+      // padrão dos filtros sem dado — some-lo faria a tela parecer completa.
+      'comparar-periodo',
       // Os quatro números de decisão vêm primeiro (fase T3), depois porte ×
       // momento, e só então a linha preservada — que vira a EVIDÊNCIA do porte.
       'kpis-executivos',

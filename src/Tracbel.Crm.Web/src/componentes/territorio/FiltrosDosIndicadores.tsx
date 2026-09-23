@@ -26,7 +26,7 @@
  */
 
 import * as Popover from '@radix-ui/react-popover';
-import { CalendarDays, MapPin, Store, SlidersHorizontal, Map } from 'lucide-react';
+import { CalendarDays, Funnel, MapPin, Store, Users } from 'lucide-react';
 import { useMemo, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { InfoTooltip } from '../InfoTooltip';
 import type {
@@ -67,6 +67,10 @@ export function FiltrosDosIndicadores({
         ? 'anoCivil'
         : 'personalizado';
 
+  // O INTERVALO EM VIGOR, escrito no próprio campo (maquete). Ele vem da
+  // resposta, e não de uma conta local: é a competência que o servidor aplicou.
+  const intervalo = indicadores ? `${mes(indicadores.competenciaInicial)} a ${mes(indicadores.competenciaFinal)}` : null;
+
   // QUANTOS SECUNDÁRIOS ESTÃO ATIVOS. Um filtro que muda o número da tela não
   // pode estar fora da vista sem o leitor saber — o contador é o que impede isso.
   const secundariosAtivos = useMemo(
@@ -83,100 +87,128 @@ export function FiltrosDosIndicadores({
   return (
     <div className="dash-filtros" data-bloco="filtros">
       <div className="dash-filtros-linha">
-        {/* PERÍODO — o primeiro, porque todo número da tela é dele. */}
-        <div className="dash-filtro" role="group" aria-label="Período das vendas">
-          <span className="dash-filtro-rotulo">
-            <CalendarDays size={14} strokeWidth={2} aria-hidden="true" />
-            Período
-            <InfoTooltip
-              rotulo="Por que não há FYTD"
-              texto="FYTD não é oferecido: o calendário fiscal não foi confirmado (documento 32, P-4). O mês em curso fica fora do padrão, porque comparar um mês pela metade com meses cheios erra para baixo sem aviso."
-            />
+        {/* PERÍODO — o primeiro, porque todo número da tela é dele.
+
+            ELE VIROU UM CAMPO DE ESCOLHA (fase T4.9 — maquete). Eram três botões
+            num alternador, que numa caixa de filtro de 200px ficavam apertados e
+            não cabia o intervalo escrito. A maquete mostra um campo só, com o
+            intervalo no próprio rótulo: "12 meses (set/2025 a ago/2026)".
+
+            O INTERVALO SÓ APARECE NA OPÇÃO EM VIGOR, e é por isso que ele não
+            está escrito nas duas: o que a API devolve é a competência do recorte
+            APLICADO. Escrever o intervalo do ano civil embaixo de "12 meses"
+            exigiria calcular aqui de novo a janela que o servidor calcula — duas
+            contas para a mesma data é como elas passam a discordar. */}
+        <label className="dash-filtro">
+          <span className="dash-filtro-icone" aria-hidden="true">
+            <CalendarDays size={17} strokeWidth={2} />
           </span>
-          <div className="terr-alternador">
-            <button
-              type="button"
-              aria-pressed={presetDoPeriodo === '12meses'}
-              onClick={() => aoMudarFiltros((f) => ({ ...f, competenciaInicial: '', competenciaFinal: '' }))}
+          <span className="dash-filtro-corpo">
+            <span className="dash-filtro-rotulo">
+              Período
+              <InfoTooltip
+                rotulo="Por que não há FYTD"
+                texto="FYTD não é oferecido: o calendário fiscal não foi confirmado (documento 32, P-4). O mês em curso fica fora do padrão, porque comparar um mês pela metade com meses cheios erra para baixo sem aviso."
+              />
+            </span>
+            <select
+              value={presetDoPeriodo}
+              onChange={(e) => {
+                if (e.target.value === '12meses') aoMudarFiltros((f) => ({ ...f, competenciaInicial: '', competenciaFinal: '' }));
+                else if (e.target.value === 'anoCivil') aoMudarFiltros((f) => ({ ...f, ...anoCivil }));
+              }}
             >
-              12 meses
-            </button>
-            <button
-              type="button"
-              aria-pressed={presetDoPeriodo === 'anoCivil'}
-              onClick={() => aoMudarFiltros((f) => ({ ...f, ...anoCivil }))}
-            >
-              Ano civil
-            </button>
-            <button type="button" aria-pressed={presetDoPeriodo === 'personalizado'} disabled={presetDoPeriodo !== 'personalizado'}>
-              Personalizado
-            </button>
-          </div>
-        </div>
+              <option value="12meses">12 meses{presetDoPeriodo === '12meses' && intervalo ? ` (${intervalo})` : ''}</option>
+              <option value="anoCivil">Ano civil{presetDoPeriodo === 'anoCivil' && intervalo ? ` (${intervalo})` : ''}</option>
+              {/* A opção personalizada só existe quando ela está em vigor: quem a
+                  escolhe é o par de campos de mês em "Mais filtros", e uma opção
+                  que não se pode escolher daqui não fica na lista prometendo. */}
+              {presetDoPeriodo === 'personalizado' && (
+                <option value="personalizado">Personalizado{intervalo ? ` (${intervalo})` : ''}</option>
+              )}
+            </select>
+          </span>
+        </label>
 
         {/* SUB-REGIÃO, E NÃO "REGIÃO" (issue 163): Norte e Noroeste são partes da
             Região Tracbel, que é a ADR inteira. Chamar isto de "região" fazia
             "4,2% da região" ser lido como fatia da ADR quando era fatia do Norte. */}
         <label className="dash-filtro">
-          <span className="dash-filtro-rotulo">
-            <Map size={14} strokeWidth={2} aria-hidden="true" />
-            Sub-região
-            <InfoTooltip
-              rotulo="O que é a sub-região"
-              texto="A hierarquia é São Paulo → Região Tracbel → sub-região → loja → município. Norte e Noroeste são SUB-REGIÕES; a Região Tracbel é a área de atuação inteira, e é ela o denominador das fatias desta tela."
-            />
+          <span className="dash-filtro-icone" aria-hidden="true">
+            <Users size={17} strokeWidth={2} />
           </span>
-          <select
-            value={filtros.regiao}
-            onChange={(e) => aoMudarFiltros((f) => ({ ...f, regiao: e.target.value as FiltrosTerritoriais['regiao'] }))}
-          >
-            <option value="">Região Tracbel inteira</option>
-            <option value="Norte">Norte</option>
-            <option value="Noroeste">Noroeste</option>
-          </select>
+          <span className="dash-filtro-corpo">
+            <span className="dash-filtro-rotulo">
+              Sub-região
+              <InfoTooltip
+                rotulo="O que é a sub-região"
+                texto="A hierarquia é São Paulo → Região Tracbel → sub-região → loja → município. Norte e Noroeste são SUB-REGIÕES; a Região Tracbel é a área de atuação inteira, e é ela o denominador das fatias desta tela."
+              />
+            </span>
+            <select
+              value={filtros.regiao}
+              onChange={(e) => aoMudarFiltros((f) => ({ ...f, regiao: e.target.value as FiltrosTerritoriais['regiao'] }))}
+            >
+              <option value="">Região Tracbel inteira</option>
+              <option value="Norte">Norte</option>
+              <option value="Noroeste">Noroeste</option>
+            </select>
+          </span>
         </label>
 
         <label className="dash-filtro">
-          <span className="dash-filtro-rotulo"><Store size={14} strokeWidth={2} aria-hidden="true" />Loja</span>
-          <select value={filtros.lojaCodigo} onChange={(e) => aoMudarFiltros((f) => ({ ...f, lojaCodigo: e.target.value }))}>
-            <option value="">Todas</option>
-            {[...lojasConhecidas.entries()]
-              .sort((a, b) => a[1].localeCompare(b[1]))
-              .map(([codigo, nome]) => (
-                <option key={codigo} value={codigo}>
-                  {nome}
-                </option>
-              ))}
-          </select>
+          <span className="dash-filtro-icone" aria-hidden="true">
+            <Store size={17} strokeWidth={2} />
+          </span>
+          <span className="dash-filtro-corpo">
+            <span className="dash-filtro-rotulo">Loja</span>
+            <select value={filtros.lojaCodigo} onChange={(e) => aoMudarFiltros((f) => ({ ...f, lojaCodigo: e.target.value }))}>
+              <option value="">Todas</option>
+              {[...lojasConhecidas.entries()]
+                .sort((a, b) => a[1].localeCompare(b[1]))
+                .map(([codigo, nome]) => (
+                  <option key={codigo} value={codigo}>
+                    {nome}
+                  </option>
+                ))}
+            </select>
+          </span>
         </label>
 
         {/* O MUNICÍPIO É FILTRO DE RECORTE e vale para as duas abas: o lugar dele
             é aqui, junto dos outros, e não flutuando entre blocos. */}
         <div className="dash-filtro">
-          <span className="dash-filtro-rotulo"><MapPin size={14} strokeWidth={2} aria-hidden="true" />Município</span>
-          {municipioEscolhido ? (
-            <button
-              type="button"
-              className="dash-municipio"
-              onClick={aoLimparMunicipio}
-              data-bloco="chip-municipio"
-              // O RÓTULO DIZ O QUE O CLIQUE FAZ, e não o que está escrito: quem
-              // usa leitor de tela ouve "Tirar o recorte de Cafelândia", e não
-              // "Cafelândia ×", que não é uma ação.
-              aria-label={`Tirar o recorte de ${municipioEscolhido}`}
-            >
-              {municipioEscolhido}
-              <span aria-hidden="true">×</span>
-            </button>
-          ) : (
-            <span className="dash-filtro-vazio">Toda a região · clique no mapa</span>
-          )}
+          <span className="dash-filtro-icone" aria-hidden="true">
+            <MapPin size={17} strokeWidth={2} />
+          </span>
+          <span className="dash-filtro-corpo">
+            <span className="dash-filtro-rotulo">Município</span>
+            {municipioEscolhido ? (
+              <button
+                type="button"
+                className="dash-municipio"
+                onClick={aoLimparMunicipio}
+                data-bloco="chip-municipio"
+                // O RÓTULO DIZ O QUE O CLIQUE FAZ, e não o que está escrito: quem
+                // usa leitor de tela ouve "Tirar o recorte de Cafelândia", e não
+                // "Cafelândia ×", que não é uma ação.
+                aria-label={`Tirar o recorte de ${municipioEscolhido}`}
+              >
+                {municipioEscolhido}
+                <span aria-hidden="true">×</span>
+              </button>
+            ) : (
+              <span className="dash-filtro-vazio">Todos os municípios</span>
+            )}
+          </span>
         </div>
 
         <Popover.Root>
           <Popover.Trigger asChild>
             <button type="button" className="dash-mais-filtros" data-bloco="mais-filtros">
-              <SlidersHorizontal size={14} strokeWidth={2} aria-hidden="true" />
+              {/* O FUNIL É O ÍCONE DA MAQUETE. O `sliders` que estava aqui é o de
+                  ajuste fino; funil é o de recorte, que é o que este botão faz. */}
+              <Funnel size={15} strokeWidth={2} aria-hidden="true" />
               Mais filtros
               {secundariosAtivos > 0 && <span className="dash-mais-filtros-selo">{secundariosAtivos}</span>}
             </button>

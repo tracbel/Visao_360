@@ -41,10 +41,31 @@ export type LigacaoDoMapa = {
   aoPassar: (codigo: number | null) => void;
 };
 
+/**
+ * O RESUMO DO CARTÃO — um número grande e os metadados dele (fase T4.9).
+ *
+ * Era uma frase corrida com `·` entre as parcelas: "4.812 elegíveis · 1.540 no
+ * prazo (32%) · 3.272 pendentes", tudo no mesmo corpo e na mesma cor. Quatro
+ * cartões assim davam quatro linhas de texto onde a maquete mostra quatro
+ * números. Nenhuma parcela saiu — o que mudou é que UMA delas é a resposta do
+ * cartão e as outras são o contexto dela, à direita e em letra de metadado.
+ */
+export type ResumoDoMapa = {
+  /** O número que responde o cartão. `null` mostra a frase de `semValor`. */
+  valor: ReactNode | null;
+  /** O que ele mede — "municípios com vínculo", "total no período". */
+  rotulo: string;
+  /** As outras parcelas, à direita e divididas por filete. */
+  meta?: readonly { valor: ReactNode; rotulo: ReactNode }[];
+  /** A frase de quando não há número — "sem área plantada ou regra para calcular". */
+  semValor?: string;
+};
+
 export function CartaoDeMapa({
   mapa,
   id,
   titulo,
+  selo,
   metodologia,
   resumo,
   alternador,
@@ -60,13 +81,21 @@ export function CartaoDeMapa({
   id: string;
   titulo: ReactNode;
   /**
+   * O selo de como ler o indicador — "regra provisória", "estimativa".
+   *
+   * Ele fica na PONTA DA LINHA do título (maquete), e não colado no texto: assim
+   * os quatro cartões têm o selo no mesmo lugar, e a ressalva deixa de mudar de
+   * posição conforme o comprimento do nome do mapa.
+   */
+  selo?: ReactNode;
+  /**
    * Fonte, competência, método e ressalvas — tudo o que era parágrafo fixo.
    *
    * Vai para a dica ao lado do título: continua a um toque, a um Tab e a um
    * ponteiro de distância, e não ocupa a tela de quem só quer ver o mapa.
    */
   metodologia: string;
-  resumo: ReactNode;
+  resumo: ResumoDoMapa;
   alternador: ReactNode;
   tituloDoMapa: string;
   estadoDe: (codigo: number) => EstadoNoMapa;
@@ -74,13 +103,43 @@ export function CartaoDeMapa({
   unidade: string;
   ligacao: LigacaoDoMapa;
 }) {
+  const semValor = resumo.valor === null || resumo.valor === undefined;
+
   return (
     <div className="card cad-cartao terr-mapa" data-mapa={mapa}>
-      <div className="card-title">
-        {titulo}
-        <InfoTooltip texto={metodologia} rotulo={`Fonte e método deste mapa`} />
+      <div className="terr-mapa-cabecalho">
+        <div className="card-title">
+          {titulo}
+          <InfoTooltip texto={metodologia} rotulo={`Fonte e método deste mapa`} />
+        </div>
+        {selo}
       </div>
-      <p className="terr-mapa-resumo">{resumo}</p>
+
+      <p className="terr-mapa-resumo">
+        <span className="terr-mapa-principal">
+          {semValor ? (
+            <span className="terr-mapa-unidade">{resumo.semValor ?? 'sem dado no recorte'}</span>
+          ) : (
+            <>
+              <strong className="terr-mapa-numero">{resumo.valor}</strong>
+              <span className="terr-mapa-unidade">{resumo.rotulo}</span>
+            </>
+          )}
+        </span>
+
+        {/* AS OUTRAS PARCELAS CONTINUAM TODAS AQUI, à direita: o que mudou é o
+            peso delas, não a presença. */}
+        {resumo.meta && resumo.meta.length > 0 && (
+          <span className="terr-mapa-meta">
+            {resumo.meta.map((m, i) => (
+              <span className="terr-mapa-meta-item" key={i}>
+                <strong>{m.valor}</strong>
+                {m.rotulo}
+              </span>
+            ))}
+          </span>
+        )}
+      </p>
 
       {/* O MAPA E A LEGENDA FICAM LADO A LADO — como na imagem base.
 

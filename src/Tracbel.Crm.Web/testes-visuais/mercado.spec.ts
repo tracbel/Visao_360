@@ -213,9 +213,14 @@ for (const { nome, largura, altura } of LARGURAS) {
       const { sobra, culpados } = await sobraLateral(page);
       expect(sobra, `Território passa ${sobra}px. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
 
-      // QUANTAS COLUNAS FICAM, por largura: oito no desktop, cinco no tablet,
+      // QUANTAS COLUNAS FICAM, por largura: NOVE no desktop, cinco no tablet,
       // duas no aparelho de mão.
-      const esperadas = largura <= 560 ? 2 : largura <= 768 ? 5 : 8;
+      //
+      // A nona é a COLUNA DE AÇÃO da maquete (T4.9) — o chevron que abre a ficha
+      // na ponta da linha. Ela sai já em 768: 26px de botão numa tela de mão são
+      // 26px roubados das colunas que respondem "onde vender", e o nome do
+      // município continua sendo a porta para a mesma ficha.
+      const esperadas = largura <= 560 ? 2 : largura <= 768 ? 5 : 9;
       const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
       expect(colunas, `em ${largura}px esperava ${esperadas} colunas`).toBe(esperadas);
 

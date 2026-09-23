@@ -1062,3 +1062,233 @@
   font-size: 13px;
   color: var(--text-primary);
 }
+
+/* =============================================================================
+   FIDELIDADE ÀS MAQUETES (fase T4.9)
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   O CARTÃO DE MAPA: título com selo à direita, e o resumo como LINHA
+
+   Na maquete o resumo não é uma frase: é um número grande à esquerda com o nome
+   dele ao lado, e os metadados do recorte à direita, separados por filete. Era
+   um parágrafo verde de duas linhas — o valor que responde o cartão tinha o
+   mesmo corpo do texto que o acompanha.
+   ----------------------------------------------------------------------------- */
+.terr-mapa-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-2);
+}
+
+.terr-mapa-resumo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-4);
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.terr-mapa-principal {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+  min-width: 0;
+}
+
+/* O NÚMERO DO CARTÃO é o segundo maior da página, depois dos quatro do topo. */
+.terr-mapa-numero {
+  font-size: var(--t-kpi);
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.terr-mapa-unidade {
+  font-size: var(--t-apoio);
+  color: var(--text-tertiary);
+}
+
+/* Os metadados do recorte, à direita e divididos por filete — "203 municípios",
+   "1.303 ha de café". Eles são contexto do mapa, não segunda leitura. */
+.terr-mapa-meta {
+  display: inline-flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: var(--e-3);
+  margin-left: auto;
+}
+
+.terr-mapa-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: var(--e-3);
+  border-left: 1px solid var(--border);
+  font-size: var(--t-meta);
+  color: var(--text-tertiary);
+  text-align: left;
+}
+
+.terr-mapa-meta-item > strong {
+  font-size: var(--t-apoio);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 560px) {
+  /* Numa coluna estreita os metadados descem para baixo do número, sem filete —
+     uma borda vertical entre dois itens empilhados não divide nada. */
+  .terr-mapa-meta { margin-left: 0; }
+  .terr-mapa-meta-item { padding-left: 0; border-left: 0; }
+}
+
+/* O ALTERNADOR DO MAPA OCUPA A LARGURA DO CARTÃO (maquete): quatro cartões com
+   alternadores de larguras diferentes, cada um terminando num ponto, faziam a
+   grade parecer desalinhada mesmo com os mapas no lugar. */
+.terr-mapa > .terr-alternador {
+  display: flex;
+  width: 100%;
+  margin-top: auto;
+}
+
+.terr-mapa > .terr-alternador button {
+  flex: 1 1 0;
+  padding: 7px 4px;
+  text-align: center;
+}
+
+/* Com o alternador colado embaixo, o cartão precisa ser uma coluna de altura
+   cheia — senão `margin-top: auto` não tem contra o que empurrar. */
+.terr-mapa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+
+/* -----------------------------------------------------------------------------
+   A BARRA DE FERRAMENTAS DA TABELA DE MUNICÍPIOS (maquete)
+
+   Título e subtítulo à esquerda; busca e ações à direita, na mesma linha.
+   ----------------------------------------------------------------------------- */
+.terr-tabela-barra {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+}
+
+.terr-busca {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  height: 32px;
+  padding: 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-tertiary);
+}
+
+.terr-busca > input {
+  border: 0;
+  outline-offset: 2px;
+  background: transparent;
+  font: inherit;
+  font-size: var(--t-apoio);
+  color: var(--text-primary);
+  width: 160px;
+  max-width: 34vw;
+}
+
+/* A CONTAGEM DIZ O QUE A BUSCA FEZ: "12 de 203" é o que impede alguém de ler uma
+   lista filtrada como se fosse a lista inteira. */
+.terr-tabela-contagem {
+  margin: 0;
+  padding: var(--e-2) 0 0;
+  font-size: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+/* O PIN DA LINHA (maquete): ele marca a linha como município, e vira cheio na
+   linha escolhida. É `aria-hidden` — o nome ao lado já diz o que é. */
+.terr-pin {
+  display: inline-flex;
+  align-items: center;
+  margin-right: var(--e-2);
+  color: var(--text-tertiary);
+  vertical-align: -2px;
+}
+
+.terr-tabela-municipios tr[aria-current='true'] .terr-pin { color: var(--jd-green); }
+
+/* A LINHA ESCOLHIDA GANHA UMA MARCA À ESQUERDA, além do fundo: cor de fundo
+   sozinha desaparece para quem não distingue as duas tintas. */
+.terr-tabela-municipios tr[aria-current='true'] td:first-child {
+  box-shadow: inset 3px 0 0 var(--jd-green);
+}
+
+/* A COLUNA DE AÇÃO (maquete): o chevron que abre a ficha, na ponta da linha. */
+.terr-coluna-acao { width: 1%; text-align: right; }
+
+.terr-abrir-ficha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.terr-abrir-ficha:hover { background: var(--jd-green); border-color: var(--jd-green); color: var(--text-inverse); }
+
+/* Abaixo de 768px a coluna de ação sai: o nome do município já abre a ficha, e
+   uma coluna de 26px numa tela de mão é o que empurra as outras para fora. */
+@media (max-width: 768px) {
+  .terr-tabela-municipios .terr-coluna-acao { display: none; }
+}
+
+/* O CABEÇALHO DA FICHA (fase T4.9 — maquete): pin, nome, selo de "Selecionado"
+   e o ✕ na ponta. Ela é um painel ao lado da tabela desde a T4.7, e nada nela
+   dizia que o município mostrado é o mesmo marcado na lista. */
+.terr-detalhe .card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex-wrap: wrap;
+}
+
+.terr-selo-escolhido {
+  padding: 2px var(--e-2);
+  border-radius: 999px;
+  background: #E6F6E9;
+  color: #237330;
+  font-size: var(--t-meta);
+  font-weight: 700;
+}
+
+.terr-fechar-ficha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.terr-fechar-ficha:hover { background: var(--bg-hover); color: var(--text-primary); }

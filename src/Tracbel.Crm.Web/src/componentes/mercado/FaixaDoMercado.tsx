@@ -105,6 +105,12 @@ export function FaixaDoMercado({
               />
             </span>
           )}
+          {/* A FRASE DO MOMENTO, embaixo da pílula (maquete: "Demanda estável e
+              preços firmes"). Ela vem pronta da API (`leitura`) e já existia na
+              resposta sem ter lugar na tela desde que a faixa virou régua —
+              "Mercado grande, agora retraído" é a leitura que a palavra da
+              pílula sozinha não dá. Vazia quando falta um dos dois lados. */}
+          {momento?.leitura && <p className="dash-faixa-frase">{momento.leitura}</p>}
         </div>
       </div>
 
