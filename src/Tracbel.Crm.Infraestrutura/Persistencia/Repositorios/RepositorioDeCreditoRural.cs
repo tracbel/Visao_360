@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Organizacao;
+using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Portas;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
@@ -23,7 +24,8 @@ public sealed class RepositorioDeCreditoRural(CrmDbContext contexto) : IReposito
     private static readonly int[] ProdutosDeMaquina = ParametroDoPotencial.ProdutosDeMaquinaNoSicor;
 
     /// <inheritdoc />
-    public async Task<PainelDeCreditoRural> LerAsync(short mesesPorJanela, short? mesesDeCarencia, CancellationToken ct)
+    public async Task<PainelDeCreditoRural> LerAsync(
+        short mesesPorJanela, short? mesesDeCarencia, ParametroDoPotencial? vigente, CancellationToken ct)
     {
         var credito = contexto.CreditosRuraisDeInvestimento.AsNoTracking();
 
@@ -123,13 +125,27 @@ public sealed class RepositorioDeCreditoRural(CrmDbContext contexto) : IReposito
                 .ToListAsync(ct))
             .ToHashSet();
 
+        // O ÍNDICE VEM DO DOMÍNIO (issue 73), e não de uma divisão feita aqui: é a mesma conta do recorte
+        // e da tela. O peso e as faixas são parâmetro com vigência; sem vigência, saem as janelas sem
+        // índice — o número é conta, mas "aquecido" é decisão registrada.
+        IndiceDeCredito? Indice(JanelasDeCredito janelas) =>
+            vigente is null
+                ? null
+                : IndicadoresDeMercado.Credito(
+                    janelas, vigente.PesoDosContratosNoCredito, vigente.MinimoDeLinhasNoCredito, vigente);
+
         var porMunicipio = municipios
             .Where(m => catalogo.ContainsKey(m.MunicipioId))
-            .Select(m => new CreditoDeMaquinasNoMunicipio(
-                catalogo[m.MunicipioId].CodigoIbge,
-                catalogo[m.MunicipioId].Nome,
-                daAdr.Contains(m.MunicipioId),
-                new JanelasDeCredito(m.Linhas, m.Valor, m.LinhasAnteriores, m.ValorAnterior)))
+            .Select(m =>
+            {
+                var janelas = new JanelasDeCredito(m.Linhas, m.Valor, m.LinhasAnteriores, m.ValorAnterior);
+                return new CreditoDeMaquinasNoMunicipio(
+                    catalogo[m.MunicipioId].CodigoIbge,
+                    catalogo[m.MunicipioId].Nome,
+                    daAdr.Contains(m.MunicipioId),
+                    janelas,
+                    Indice(janelas));
+            })
             .OrderByDescending(m => m.Janelas.Valor)
             .ToList();
 
@@ -140,6 +156,9 @@ public sealed class RepositorioDeCreditoRural(CrmDbContext contexto) : IReposito
             .Select(m => (m.Linhas, m.Valor, m.LinhasAnteriores, m.ValorAnterior)));
         var saoPaulo = Somar("São Paulo", municipios
             .Select(m => (m.Linhas, m.Valor, m.LinhasAnteriores, m.ValorAnterior)));
+
+        regiao = regiao with { Indice = Indice(regiao.Janelas) };
+        saoPaulo = saoPaulo with { Indice = Indice(saoPaulo.Janelas) };
 
         return new PainelDeCreditoRural(ultimoMes, janela, porAno, porProduto, porMunicipio, regiao, saoPaulo);
     }

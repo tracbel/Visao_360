@@ -127,25 +127,25 @@ public sealed class IndicadoresDeMercadoTestes
     // ---------------------------------------------------------------------------------------------
 
     [Fact]
-    public void O_indice_de_credito_compoe_70_por_cento_de_contratos_e_30_de_valor()
+    public void O_indice_de_credito_compoe_70_por_cento_de_quantidade_e_30_de_valor()
     {
-        // 120 contratos contra 100 = 1,20; R$ 2,2 mi contra R$ 2,0 mi = 1,10.
+        // 120 linhas contra 100 = 1,20; R$ 2,2 mi contra R$ 2,0 mi = 1,10.
         // 0,7 × 1,20 + 0,3 × 1,10 = 1,17.
         var credito = IndicadoresDeMercado.Credito(
-            new JanelasDoCredito(120, 2_200_000m, 100, 2_000_000m), 0.70m, contratosMinimos: null, Parametros());
+            new JanelasDeCredito(120, 2_200_000m, 100, 2_000_000m), 0.70m, linhasMinimas: null, Parametros());
 
-        credito.IndiceDeContratos.Should().Be(1.20m);
+        credito.IndiceDeLinhas.Should().Be(1.20m);
         credito.IndiceDeValor.Should().Be(1.10m);
         credito.Indice.Should().Be(1.17m);
         credito.Faixa.Should().Be("Intermediaria");
     }
 
     [Fact]
-    public void O_peso_dos_contratos_separa_quem_compra_de_quanto_se_gasta()
+    public void O_peso_da_quantidade_separa_quem_toma_credito_de_quanto_se_gasta()
     {
         // O DEFEITO QUE O PESO EVITA: o valor sobe com a inflação e com o preço da máquina, sem nenhum
         // produtor a mais ter financiado. Aqui a quantidade caiu e o valor disparou.
-        var janelas = new JanelasDoCredito(80, 3_000_000m, 100, 2_000_000m);
+        var janelas = new JanelasDeCredito(80, 3_000_000m, 100, 2_000_000m);
 
         var comPeso = IndicadoresDeMercado.Credito(janelas, 0.70m, null, Parametros());
         var soValor = IndicadoresDeMercado.Credito(janelas, 0m, null, Parametros());
@@ -153,45 +153,72 @@ public sealed class IndicadoresDeMercadoTestes
         comPeso.Indice.Should().Be(1.01m, "0,7 × 0,80 + 0,3 × 1,50");
         soValor.Indice.Should().Be(1.50m);
         comPeso.Indice.Should().BeLessThan(soValor.Indice!.Value,
-            "contar pessoas segura o número que o valor sozinho inflaria");
+            "contar a dispersão segura o número que o valor sozinho inflaria");
     }
 
     [Fact]
-    public void Municipio_com_poucos_contratos_sai_marcado_e_nao_corrigido_em_silencio()
+    public void O_valor_medio_por_linha_diz_se_cresceu_por_mais_gente_ou_por_operacao_maior()
     {
-        // O ACEITE DA ISSUE. De 2 contratos para 4 é "+100%", e nenhuma suavização faz esse número virar
-        // informação: o que ele precisa é de contexto. O índice sai, marcado, com a contagem ao lado.
-        var poucos = IndicadoresDeMercado.Credito(
-            new JanelasDoCredito(4, 800_000m, 2, 400_000m), 0.70m, contratosMinimos: 10, Parametros());
+        // Mesma quantidade de linhas, valor 50% maior: não entrou mais gente, entrou operação maior.
+        var credito = IndicadoresDeMercado.Credito(
+            new JanelasDeCredito(100, 3_000_000m, 100, 2_000_000m), 0.70m, null, Parametros());
 
-        poucos.Indice.Should().Be(2m, "o número é o que é — a tela é que o qualifica");
-        poucos.BasePequena.Should().BeTrue();
-        poucos.Contratos.Should().Be(4);
-        IndicadoresDeMercado.Frase(poucos.Motivo, contratos: poucos.Contratos)
-            .Should().Contain("base pequena: 4 contratos");
+        credito.IndiceDeLinhas.Should().Be(1m);
+        credito.ValorMedioPorLinha.Should().Be(30_000m);
+        credito.ValorMedioAnterior.Should().Be(20_000m);
+        credito.IndiceDoValorMedio.Should().Be(1.5m);
+    }
+
+    [Fact]
+    public void Linha_do_SICOR_nao_e_contrato_e_o_contrato_devolve_o_nome_certo()
+    {
+        // O Banco Central NÃO publica quantidade de contrato: cada linha é a soma dos contratos de uma
+        // combinação (LeitorDoSicor). Chamar de contrato faria a tela afirmar um número de produtores que
+        // a fonte não dá — e é por isso que nem o contrato nem a frase falam em "contrato".
+        var credito = IndicadoresDeMercado.Credito(
+            new JanelasDeCredito(4, 800_000m, 2, 400_000m), 0.70m, linhasMinimas: 10, Parametros());
+
+        credito.Linhas.Should().Be(4);
+        IndicadoresDeMercado.Frase(credito.Motivo, linhas: credito.Linhas)
+            .Should().Contain("linhas do SICOR").And.NotContain("contrato");
+    }
+
+    [Fact]
+    public void Municipio_com_poucas_linhas_sai_marcado_e_nao_corrigido_em_silencio()
+    {
+        // O ACEITE DA ISSUE. De 2 linhas para 4 é "+100%", e nenhuma suavização faz esse número virar
+        // informação: o que ele precisa é de contexto. O índice sai, marcado, com a contagem ao lado.
+        var poucas = IndicadoresDeMercado.Credito(
+            new JanelasDeCredito(4, 800_000m, 2, 400_000m), 0.70m, linhasMinimas: 10, Parametros());
+
+        poucas.Indice.Should().Be(2m, "o número é o que é — a tela é que o qualifica");
+        poucas.BasePequena.Should().BeTrue();
+        poucas.Linhas.Should().Be(4);
     }
 
     [Fact]
     public void Sem_minimo_decidido_nada_e_marcado_e_a_contagem_continua_visivel()
     {
         // O mínimo é parâmetro em aberto (D-P03): inventar um limiar aqui seria escolher no código o que
-        // conta como "poucos".
-        var poucos = IndicadoresDeMercado.Credito(
-            new JanelasDoCredito(4, 800_000m, 2, 400_000m), 0.70m, contratosMinimos: null, Parametros());
+        // conta como "poucas".
+        var poucas = IndicadoresDeMercado.Credito(
+            new JanelasDeCredito(4, 800_000m, 2, 400_000m), 0.70m, linhasMinimas: null, Parametros());
 
-        poucos.BasePequena.Should().BeFalse();
-        poucos.Contratos.Should().Be(4, "quem lê continua vendo o tamanho da base e julga");
+        poucas.BasePequena.Should().BeFalse();
+        poucas.Linhas.Should().Be(4, "quem lê continua vendo o tamanho da base e julga");
     }
 
     [Fact]
     public void Municipio_sem_credito_na_janela_anterior_nao_gera_indice()
     {
         var semBase = IndicadoresDeMercado.Credito(
-            new JanelasDoCredito(5, 900_000m, 0, 0m), 0.70m, contratosMinimos: 10, Parametros());
+            new JanelasDeCredito(5, 900_000m, 0, 0m), 0.70m, linhasMinimas: 10, Parametros());
 
         semBase.Indice.Should().BeNull();
         semBase.Motivo.Should().Be("SemBaseDeComparacao");
         semBase.BasePequena.Should().BeTrue("a base pequena continua sendo dita, mesmo sem índice");
+        semBase.ValorMedioPorLinha.Should().Be(180_000m, "o que existe continua visível");
+        semBase.IndiceDoValorMedio.Should().BeNull("sem janela anterior não há variação");
     }
 
     // ---------------------------------------------------------------------------------------------

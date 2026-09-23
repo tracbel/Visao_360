@@ -105,7 +105,7 @@ public sealed class JanelaFechadaDoCreditoTestes : IDisposable
     private async Task<PainelDeCreditoRural> LerAsync(short? carencia)
     {
         await using var db = new CrmDbContext(_opcoes, ProvedorDeContextoDeSistema.Instancia);
-        return await new RepositorioDeCreditoRural(db).LerAsync(12, carencia, CancellationToken.None);
+        return await new RepositorioDeCreditoRural(db).LerAsync(12, carencia, vigente: null, CancellationToken.None);
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public sealed class JanelaFechadaDoCreditoTestes : IDisposable
         db.CreditosRuraisDeInvestimento.RemoveRange(db.CreditosRuraisDeInvestimento);
         await db.SaveChangesAsync();
 
-        var painel = await new RepositorioDeCreditoRural(db).LerAsync(12, 2, CancellationToken.None);
+        var painel = await new RepositorioDeCreditoRural(db).LerAsync(12, 2, vigente: null, CancellationToken.None);
 
         painel.UltimoMes.Should().BeNull();
         painel.Janela.Should().BeNull();

@@ -78,9 +78,46 @@ export type CreditoNoAno = {
   ultimoMes: number;
 };
 
+
+/**
+ * O índice de crédito de um recorte (issue 73): 70% da quantidade de LINHAS do
+ * SICOR e 30% do valor, comparando as duas janelas.
+ *
+ * LINHA NÃO É CONTRATO: o Banco Central não publica quantidade de contrato —
+ * cada linha é a soma dos contratos de uma combinação. Chamar de contrato faria
+ * a tela afirmar um número de produtores que a fonte não dá.
+ */
+export type IndiceDeCredito = {
+  indice: number | null;
+  faixa: FaixaDeMercado | null;
+  indiceDeLinhas: number | null;
+  indiceDeValor: number | null;
+  linhas: number;
+  linhasAnteriores: number;
+  /** Valor ÷ linhas. NÃO é ticket médio por contrato. */
+  valorMedioPorLinha: number | null;
+  valorMedioAnterior: number | null;
+  indiceDoValorMedio: number | null;
+  /** Base pequena demais para o índice ser lido como tendência (D-P03). */
+  basePequena: boolean;
+  motivo: MotivoSemIndicador;
+};
+
+/** Por que um indicador não saiu (issue 73). */
+export type MotivoSemIndicador = 'Nenhum' | 'SerieCurta' | 'SemBaseDeComparacao' | 'SemFonte' | 'SemParametro';
+
+/** A faixa de mercado de um índice (D-P02). */
+export type FaixaDeMercado = 'Retraido' | 'Intermediaria' | 'Aquecido' | 'Superaquecido';
 export type CreditoPorProduto = { codigo: number; nome: string; ehMaquina: boolean; janelas: JanelasDeCredito };
 
-export type CreditoDeMaquinasNoMunicipio = { codigoIbge: number; nome: string; pertenceAAdr: boolean; janelas: JanelasDeCredito };
+export type CreditoDeMaquinasNoMunicipio = {
+  codigoIbge: number;
+  nome: string;
+  pertenceAAdr: boolean;
+  janelas: JanelasDeCredito;
+  /** O índice da issue 73; nulo sem parâmetro vigente. */
+  indice: IndiceDeCredito | null;
+};
 
 /**
  * A janela de comparação, vinda pronta do servidor (issue 157).
@@ -105,7 +142,12 @@ export type JanelaDoCredito = {
 };
 
 /** O crédito de máquinas de um recorte — a Região e São Paulo, somados no servidor. */
-export type CreditoNoRecorte = { recorte: string; municipios: number; janelas: JanelasDeCredito };
+export type CreditoNoRecorte = {
+  recorte: string;
+  municipios: number;
+  janelas: JanelasDeCredito;
+  indice: IndiceDeCredito | null;
+};
 
 /** O crédito rural de investimento de SP, do SICOR (issue 68). */
 export type PainelDeCreditoRural = {
@@ -145,6 +187,12 @@ export type RentabilidadeDaCultura = {
   safraDoCusto: number | null;
   custoPorHectare: number | null;
   margemPorHectare: number | null;
+  /**
+   * A mesma margem na unidade em que o mercado negocia — por saca, caixa ou
+   * tonelada (issue 73). A margem por hectare responde "a terra paga a conta?";
+   * esta responde "cada saca que eu vendo sobra quanto?".
+   */
+  margemPorUnidade: number | null;
   areaColhidaHectares: number | null;
   margemTotal: number | null;
   /** `Nenhum` quando a margem saiu. */

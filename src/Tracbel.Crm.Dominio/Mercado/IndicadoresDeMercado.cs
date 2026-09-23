@@ -44,32 +44,48 @@ public sealed record IndiceDeMomento(
     string Motivo);
 
 /// <summary>
-/// AS DUAS JANELAS DO CRÉDITO — a recente e a anterior, em quantidade de contratos e em valor.
+/// AS DUAS JANELAS DO CRÉDITO — a recente e a anterior, em LINHAS do SICOR e em valor.
+///
+/// <para><b>Linha não é contrato, e o nome é o certo de propósito.</b> O recurso
+/// <c>InvestMunicipioProduto</c> do Banco Central não publica número nem quantidade de contrato: cada
+/// linha é a <b>soma</b> dos contratos de uma combinação de município, mês, produto, programa,
+/// subprograma, fonte, seguro, atividade e modalidade. A planilha do comercial conta linhas e as chama
+/// de "contratos"; o texto-base diz "quantidade de linhas de contratos", que é a leitura certa. Chamar
+/// de contrato faria a tela afirmar um número de produtores que a fonte não dá.</para>
+///
+/// <para>Ela nasceu em <c>Dominio.Portas</c> como formato da leitura (issue 157) e veio para cá na issue
+/// 73, quando passou a ser a <b>entrada de uma conta de negócio</b> — o índice de crédito.</para>
 /// </summary>
-/// <param name="Contratos">Contratos da janela recente.</param>
+/// <param name="Linhas">Linhas do SICOR na janela recente.</param>
 /// <param name="Valor">Valor financiado na janela recente.</param>
-/// <param name="ContratosAnteriores">Contratos da janela anterior.</param>
+/// <param name="LinhasAnteriores">Linhas na janela anterior.</param>
 /// <param name="ValorAnterior">Valor financiado na janela anterior.</param>
-public sealed record JanelasDoCredito(int Contratos, decimal Valor, int ContratosAnteriores, decimal ValorAnterior);
+public sealed record JanelasDeCredito(int Linhas, decimal Valor, int LinhasAnteriores, decimal ValorAnterior);
 
 /// <summary>
 /// O ÍNDICE DE CRÉDITO DE UM RECORTE, com o aviso de base pequena.
 /// </summary>
 /// <param name="Indice">O índice composto; nulo com motivo.</param>
 /// <param name="Faixa">A faixa de mercado, como texto.</param>
-/// <param name="IndiceDeContratos">A parcela da quantidade.</param>
+/// <param name="IndiceDeLinhas">A parcela da quantidade de linhas.</param>
 /// <param name="IndiceDeValor">A parcela do valor.</param>
-/// <param name="Contratos">Os contratos da janela recente — o tamanho da base.</param>
-/// <param name="ContratosAnteriores">Os da janela anterior.</param>
+/// <param name="Linhas">As linhas da janela recente — o tamanho da base.</param>
+/// <param name="LinhasAnteriores">As da janela anterior.</param>
+/// <param name="ValorMedioPorLinha">Valor ÷ linhas na janela recente. NÃO é ticket médio por contrato.</param>
+/// <param name="ValorMedioAnterior">O mesmo na janela anterior.</param>
+/// <param name="IndiceDoValorMedio">Quanto o valor médio por linha variou entre as janelas.</param>
 /// <param name="BasePequena">Se a base é pequena demais para o índice ser lido como tendência.</param>
 /// <param name="Motivo">Por que não saiu, como texto.</param>
 public sealed record IndiceDeCredito(
     decimal? Indice,
     string? Faixa,
-    decimal? IndiceDeContratos,
+    decimal? IndiceDeLinhas,
     decimal? IndiceDeValor,
-    int Contratos,
-    int ContratosAnteriores,
+    int Linhas,
+    int LinhasAnteriores,
+    decimal? ValorMedioPorLinha,
+    decimal? ValorMedioAnterior,
+    decimal? IndiceDoValorMedio,
     bool BasePequena,
     string Motivo);
 
@@ -145,52 +161,69 @@ public static class IndicadoresDeMercado
     }
 
     /// <summary>
-    /// O ÍNDICE DE CRÉDITO: a quantidade de contratos e o valor financiado, compostos pelo peso vigente.
+    /// O ÍNDICE DE CRÉDITO: a quantidade de linhas do SICOR e o valor financiado, compostos pelo peso
+    /// vigente.
     ///
     /// <para><b>Por que dois componentes, e não só o valor.</b> O valor sobe com a inflação e com o preço
-    /// da máquina, sem nenhum produtor a mais ter financiado; a quantidade de contratos conta pessoas. O
-    /// peso decidido (D-P03) é 70% contratos e 30% valor — "quantos estão comprando" pesa mais que
-    /// "quanto está sendo gasto".</para>
+    /// da máquina, sem nenhum produtor a mais ter financiado; a contagem de linhas acompanha a dispersão
+    /// do crédito. O peso decidido (D-P03) é 70% para a quantidade e 30% para o valor — "quantos estão
+    /// tomando crédito" pesa mais que "quanto está sendo gasto".</para>
     ///
-    /// <para><b>Município com poucos contratos não gera índice extremo</b>, que é o aceite da issue. Aqui
+    /// <para><b>Linha não é contrato</b> (ver <see cref="JanelasDeCredito"/>): o Banco Central não publica
+    /// quantidade de contrato, e a contagem aqui é de linhas do SICOR. O texto-base pede exatamente isso —
+    /// "quantidade de linhas de contratos".</para>
+    ///
+    /// <para><b>Município com poucas linhas não gera índice extremo</b>, que é o aceite da issue. Aqui
     /// isso é resolvido <b>dizendo</b>, e não corrigindo em silêncio: abaixo do mínimo, o índice sai com
     /// <see cref="IndiceDeCredito.BasePequena"/> ligado e a tela o mostra como base pequena, com a
-    /// contagem ao lado. De 2 contratos para 4 é "+100%", e nenhuma suavização faz esse número virar
+    /// contagem ao lado. De 2 linhas para 4 é "+100%", e nenhuma suavização faz esse número virar
     /// informação — o que ele precisa é de contexto, não de maquiagem.</para>
     ///
     /// <para><b>O mínimo é parâmetro, e ele ainda não foi decidido</b> (D-P03): sem ele, nada é marcado,
-    /// e a contagem de contratos continua visível para quem lê julgar. Inventar um limiar aqui seria
-    /// escolher, no código, o que conta como "poucos".</para>
+    /// e a contagem continua visível para quem lê julgar. Inventar um limiar aqui seria escolher, no
+    /// código, o que conta como "poucas".</para>
+    ///
+    /// <para><b>O valor médio por linha vai junto, e não se chama ticket médio.</b> Ticket médio diria
+    /// "o financiamento típico foi de R$ X", e isso a fonte não permite afirmar: a linha é uma soma de
+    /// contratos. Ele serve para ver se o valor cresceu por mais gente ou por operação maior.</para>
     /// </summary>
-    /// <param name="janelas">As duas janelas, em contratos e em valor.</param>
-    /// <param name="pesoDosContratos">O peso da quantidade, de 0 a 1; o valor pesa o resto.</param>
-    /// <param name="contratosMinimos">Abaixo disto, a base é pequena; nulo não marca nada.</param>
+    /// <param name="janelas">As duas janelas, em linhas e em valor.</param>
+    /// <param name="pesoDaQuantidade">O peso das linhas, de 0 a 1; o valor pesa o resto.</param>
+    /// <param name="linhasMinimas">Abaixo disto, a base é pequena; nulo não marca nada.</param>
     /// <param name="parametro">Os parâmetros vigentes, que dão as faixas.</param>
     public static IndiceDeCredito Credito(
-        JanelasDoCredito janelas,
-        decimal pesoDosContratos,
-        int? contratosMinimos,
+        JanelasDeCredito janelas,
+        decimal pesoDaQuantidade,
+        int? linhasMinimas,
         ParametroDoPotencial? parametro)
     {
-        var basePequena = contratosMinimos is { } minimo && janelas.Contratos < minimo;
+        var basePequena = linhasMinimas is { } minimo && janelas.Linhas < minimo;
 
-        if (janelas.ContratosAnteriores <= 0 || janelas.ValorAnterior <= 0)
+        decimal? medio = janelas.Linhas > 0 ? janelas.Valor / janelas.Linhas : null;
+        decimal? medioAnterior = janelas.LinhasAnteriores > 0 ? janelas.ValorAnterior / janelas.LinhasAnteriores : null;
+        var doMedio = medio is { } m && medioAnterior is > 0 ? m / medioAnterior.Value : (decimal?)null;
+
+        if (janelas.LinhasAnteriores <= 0 || janelas.ValorAnterior <= 0)
             return new IndiceDeCredito(
-                null, null, null, null, janelas.Contratos, janelas.ContratosAnteriores, basePequena,
+                null, null, null, null, janelas.Linhas, janelas.LinhasAnteriores,
+                medio, medioAnterior, doMedio, basePequena,
                 nameof(MotivoSemIndicador.SemBaseDeComparacao));
 
-        var deContratos = (decimal)janelas.Contratos / janelas.ContratosAnteriores;
+        var deLinhas = (decimal)janelas.Linhas / janelas.LinhasAnteriores;
         var deValor = janelas.Valor / janelas.ValorAnterior;
 
-        var indice = (pesoDosContratos * deContratos) + ((1m - pesoDosContratos) * deValor);
+        var indice = (pesoDaQuantidade * deLinhas) + ((1m - pesoDaQuantidade) * deValor);
 
         return new IndiceDeCredito(
             indice,
             parametro?.FaixaDe(indice).ToString(),
-            deContratos,
+            deLinhas,
             deValor,
-            janelas.Contratos,
-            janelas.ContratosAnteriores,
+            janelas.Linhas,
+            janelas.LinhasAnteriores,
+            medio,
+            medioAnterior,
+            doMedio,
             basePequena,
             nameof(MotivoSemIndicador.Nenhum));
     }
@@ -223,8 +256,8 @@ public static class IndicadoresDeMercado
     /// </summary>
     /// <param name="motivo">O motivo, como o indicador o devolveu.</param>
     /// <param name="mesesFaltando">Quantos meses faltam para fechar as janelas, quando a série é curta.</param>
-    /// <param name="contratos">Os contratos da janela recente, quando a base é pequena.</param>
-    public static string Frase(string motivo, int mesesFaltando = 0, int? contratos = null) =>
+    /// <param name="linhas">As linhas da janela recente, quando a base é pequena.</param>
+    public static string Frase(string motivo, int mesesFaltando = 0, int? linhas = null) =>
         motivo switch
         {
             nameof(MotivoSemIndicador.SerieCurta) when mesesFaltando > 0 =>
@@ -237,8 +270,8 @@ public static class IndicadoresDeMercado
                 "nenhuma fonte publica esta cultura, ou ela não declara onde procurar o preço",
             nameof(MotivoSemIndicador.SemParametro) =>
                 "falta um parâmetro que ainda não foi decidido",
-            _ when contratos is { } quantos =>
-                $"base pequena: {quantos} {(quantos == 1 ? "contrato" : "contratos")} na janela — leia a variação com cuidado",
+            _ when linhas is { } quantas =>
+                $"base pequena: {quantas} {(quantas == 1 ? "linha" : "linhas")} do SICOR na janela — leia a variação com cuidado",
             _ => string.Empty
         };
 }

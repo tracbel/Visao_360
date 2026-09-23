@@ -107,6 +107,7 @@ function TabelaDaMargem() {
               <th className="terr-num">Receita / ha</th>
               <th className="terr-num">Custo / ha</th>
               <th className="terr-num">Margem / ha</th>
+              <th className="terr-num">Margem / unidade</th>
             </tr>
           </thead>
           <tbody>
@@ -133,6 +134,21 @@ function TabelaDaMargem() {
                   ) : (
                     <span className={`cad-mono ${r.margemPorHectare >= 0 ? 'terr-variacao-alta' : 'terr-variacao-baixa'}`}>
                       {reais(r.margemPorHectare)}
+                    </span>
+                  )}
+                </td>
+                {/*
+                  A MARGEM NA UNIDADE EM QUE O PRODUTOR PENSA (issue 73): a de hectare responde "a terra
+                  paga a conta?", esta responde "cada saca que eu vendo sobra quanto?". A unidade vem do
+                  catálogo, e não de uma lista aqui.
+                */}
+                <td className="terr-num">
+                  {r.margemPorUnidade === null ? (
+                    <span className="cad-sub">—</span>
+                  ) : (
+                    <span className={`cad-mono ${r.margemPorUnidade >= 0 ? 'terr-variacao-alta' : 'terr-variacao-baixa'}`}>
+                      {reais(r.margemPorUnidade)}
+                      <div className="cad-sub">por {r.unidadeComercial}</div>
                     </span>
                   )}
                 </td>

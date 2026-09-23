@@ -680,6 +680,62 @@ inventar um peso.
 `IRepositorioDoMotorDoPotencial`. A calculadora precisa exatamente do mesmo, e duas leituras do mesmo
 conceito divergem — o defeito que o motor acabou de eliminar do lado do cálculo.
 
+### 7.3 Os indicadores de mercado [issue 73, 23/09/2026]
+
+`Dominio/Mercado/IndicadoresDeMercado.cs` — domínio puro, conferível sem subir aplicação.
+
+| Indicador | Regra | Decisão |
+|---|---|---|
+| Momento de preço | média dos 12 meses recentes ÷ média dos 12 anteriores, **incluindo o último mês** | D-P02 |
+| Índice de crédito | 70% da quantidade de **linhas** do SICOR + 30% do valor | D-P03 |
+| Margem por unidade | `margem/ha × quilos por unidade ÷ produtividade` | — |
+| Termo de troca | **fora**, até a #70 trazer o preço de máquina | D-P05 (§5.1) |
+
+**Linha do SICOR não é contrato**, e o código já dizia isso desde a #68: o recurso
+`InvestMunicipioProduto` do Banco Central não publica número nem quantidade de contrato — cada linha é a
+**soma** dos contratos de uma combinação de município, mês, produto, programa, subprograma, fonte,
+seguro, atividade e modalidade. A planilha do comercial conta linhas e as chama de "contratos"; o
+texto-base diz "quantidade de linhas de contratos", que é a leitura certa. O índice, o contrato da API e
+a frase da tela falam em **linhas** — chamar de contrato faria a tela afirmar um número de produtores que
+a fonte não dá. Pelo mesmo motivo, `valor ÷ linhas` se chama **valor médio por linha**, e não ticket
+médio.
+
+**Município com poucas linhas é marcado, não suavizado.** De 2 linhas para 4 é "+100%", e nenhuma
+suavização transforma isso em informação: o que falta ali é contexto. O índice sai igual, com a marca de
+base pequena e a contagem ao lado. O limiar é o parâmetro `MinimoDeLinhasNoCredito`, **em aberto**
+(D-P03): nulo não marca nada, e entra pela tela do Administrador quando alguém decidir — sem publicação.
+
+#### 7.3.1 Elasticidade: o método, e por que o estudo não foi rodado
+
+A issue pede o estudo de elasticidade "documentado, **fora do cálculo** até ser validado". Ele continua
+fora do cálculo, e este é o registro do que ele exige.
+
+**A pergunta:** o momento de preço e o termo de troca antecipam a contratação de crédito e a venda? Se
+antecipam, com que defasagem?
+
+**O que ele mediria:** correlação e regressão de defasagem entre cada indicador (mês a mês, por município
+e por cultura) e cada resposta (linhas e valor do SICOR; unidades vendidas), testando defasagens de 0 a
+12 meses.
+
+**Dos quatro pares, um é medível hoje:**
+
+| Par | Situação |
+|---|---|
+| Momento de preço × crédito | **medível** — preço da CONAB (#66) e SICOR (#68) estão carregados |
+| Momento de preço × vendas | falta a venda em unidades (**#69**, dado interno que não existe no CRM) |
+| Termo de troca × crédito | falta o preço de máquina (**#70**) |
+| Termo de troca × vendas | faltam os dois |
+
+**Por que nem o par medível foi rodado aqui:** ele exige leitura do banco carregado, que depende de VPN,
+e o resultado de uma rodada só teria valor com a série inteira — não com o recorte que a estação alcança
+num dia. Rodá-lo é uma tarefa de análise, com data e número, não um efeito colateral desta entrega.
+
+**A armadilha que o estudo precisa evitar, e que a nota da pasta 360 já aponta: endogeneidade.** O
+crédito de trator inclui as máquinas que a própria Tracbel vendeu. Correlacionar um indicador com o
+crédito de trator e concluir que ele "prevê a venda" seria, em parte, correlacionar a venda com ela
+mesma. A nota da pasta exclui o trator do índice por esse motivo; **o CRM hoje o inclui** (D-P03 deixou
+essa escolha em aberto). O estudo tem de rodar nas duas versões e dizer quanto a exclusão muda.
+
 ---
 
 ## 8. Issues

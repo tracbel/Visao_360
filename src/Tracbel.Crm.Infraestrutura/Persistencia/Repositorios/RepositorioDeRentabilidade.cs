@@ -124,6 +124,7 @@ public sealed class RepositorioDeRentabilidade(CrmDbContext contexto) : IReposit
             custo?.Safra,
             custoPorHa,
             margem,
+            IndicadoresDeMercado.MargemPorUnidade(margem, produtividade, cultura.QuilosPorUnidade),
             areaColhida,
             Rentabilidade.MargemTotal(margem, areaColhida),
             motivo.ToString(),

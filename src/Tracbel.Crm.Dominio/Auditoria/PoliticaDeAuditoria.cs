@@ -140,7 +140,7 @@ public static class PoliticaDeAuditoria
         [
             "MesesDaJanela", "PesoDosContratosNoCredito", "LimiteDeRetracao", "LimiteDeAquecimento",
             "LimiteDeSuperaquecimento", "NomeDaFaixaIntermediaria", "LimiteDaPercepcao", "PesoDoIndicadorDePreco",
-            "PesoDoIndicadorDeCredito", "PesoDoIndicadorComercial", "FatorMinimo", "FatorMaximo", "MesesDeCarenciaDoSicor",
+            "PesoDoIndicadorDeCredito", "PesoDoIndicadorComercial", "FatorMinimo", "FatorMaximo", "MesesDeCarenciaDoSicor", "MinimoDeLinhasNoCredito",
             "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"
         ],
         ["PercepcaoDoGestor"] = ["MunicipioId", "Percentual", "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"],

@@ -1,3 +1,6 @@
+using Tracbel.Crm.Dominio.Mercado;
+using Tracbel.Crm.Dominio.Organizacao;
+
 namespace Tracbel.Crm.Dominio.Portas;
 
 /// <summary>A leitura do crédito rural de investimento do SICOR (issue 68).</summary>
@@ -11,8 +14,13 @@ public interface IRepositorioDeCreditoRural
     /// </summary>
     /// <param name="mesesPorJanela">Quantos meses tem cada lado da comparação.</param>
     /// <param name="mesesDeCarencia">Meses recentes a descartar; nulo é "não decidida" e vale zero.</param>
+    /// <param name="vigente">
+    /// Os parâmetros vigentes na data, que dão o peso do índice e as faixas (issue 73). Nulos devolvem as
+    /// janelas sem índice — o número é conta, mas a faixa e o peso são decisão registrada.
+    /// </param>
     /// <param name="ct">Cancelamento.</param>
-    Task<PainelDeCreditoRural> LerAsync(short mesesPorJanela, short? mesesDeCarencia, CancellationToken ct);
+    Task<PainelDeCreditoRural> LerAsync(
+        short mesesPorJanela, short? mesesDeCarencia, ParametroDoPotencial? vigente, CancellationToken ct);
 }
 
 /// <summary>
@@ -80,20 +88,27 @@ public sealed record JanelaDoCredito(
 /// <param name="Recorte">O nome do recorte, como a tela o chama.</param>
 /// <param name="Municipios">Quantos municípios do recorte têm linha de máquina na última janela.</param>
 /// <param name="Janelas">As duas janelas do recorte.</param>
-public sealed record CreditoNoRecorte(string Recorte, int Municipios, JanelasDeCredito Janelas);
+/// <param name="Indice">O índice de crédito do recorte (issue 73); nulo com motivo.</param>
+public sealed record CreditoNoRecorte(
+    string Recorte, int Municipios, JanelasDeCredito Janelas, IndiceDeCredito? Indice = null);
 
 /// <summary>O crédito de um ano.</summary>
 public sealed record CreditoNoAno(short Ano, int LinhasDeMaquinas, decimal ValorDeMaquinas, int LinhasTotais, decimal ValorTotal, byte UltimoMes);
 
-/// <summary>Duas janelas de 12 meses: a última e a anterior.</summary>
-/// <param name="Linhas">Linhas nos últimos 12 meses.</param>
-/// <param name="Valor">Valor nos últimos 12 meses.</param>
-/// <param name="LinhasAnteriores">Linhas nos 12 meses anteriores.</param>
-/// <param name="ValorAnterior">Valor nos 12 meses anteriores.</param>
-public sealed record JanelasDeCredito(int Linhas, decimal Valor, int LinhasAnteriores, decimal ValorAnterior);
+// AS DUAS JANELAS MORAM EM Dominio.Mercado desde a issue 73: elas deixaram de ser só o formato da
+// leitura e passaram a ser a entrada do índice de crédito, que é conta de negócio.
 
 /// <summary>Um produto financiado.</summary>
 public sealed record CreditoPorProduto(int Codigo, string Nome, bool EhMaquina, JanelasDeCredito Janelas);
 
-/// <summary>O crédito de máquinas de um município.</summary>
-public sealed record CreditoDeMaquinasNoMunicipio(int CodigoIbge, string Nome, bool PertenceAAdr, JanelasDeCredito Janelas);
+/// <summary>O crédito de máquinas de um município, com o índice da issue 73.</summary>
+/// <param name="CodigoIbge">O código do município.</param>
+/// <param name="Nome">O nome oficial.</param>
+/// <param name="PertenceAAdr">Se é da ADR.</param>
+/// <param name="Janelas">As duas janelas.</param>
+/// <param name="Indice">
+/// O índice de crédito do município; nulo com motivo. <b>Ele vem marcado quando a base é pequena</b>:
+/// de 2 linhas para 4 é "+100%", e o que esse número precisa é de contexto, não de suavização.
+/// </param>
+public sealed record CreditoDeMaquinasNoMunicipio(
+    int CodigoIbge, string Nome, bool PertenceAAdr, JanelasDeCredito Janelas, IndiceDeCredito? Indice = null);

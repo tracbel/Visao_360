@@ -36,6 +36,10 @@ public interface IRepositorioDeRentabilidade
 /// <param name="SafraDoCusto">A safra da série de custo usada.</param>
 /// <param name="CustoPorHectare">O custo por hectare na camada escolhida.</param>
 /// <param name="MargemPorHectare">Receita menos custo.</param>
+/// <param name="MargemPorUnidade">
+/// A mesma margem na unidade em que o mercado negocia — por saca, caixa ou tonelada (issue 73). A margem
+/// por hectare responde "a terra paga a conta?"; esta responde "cada saca que eu vendo sobra quanto?".
+/// </param>
 /// <param name="AreaColhidaHectares">A área colhida de São Paulo, que multiplica a margem.</param>
 /// <param name="MargemTotal">Margem por hectare × área colhida.</param>
 /// <param name="Motivo">Por que a margem não saiu, como TEXTO; <c>Nenhum</c> quando saiu — a convenção do contrato é enum em texto.</param>
@@ -54,6 +58,7 @@ public sealed record RentabilidadeDaCultura(
     short? SafraDoCusto,
     decimal? CustoPorHectare,
     decimal? MargemPorHectare,
+    decimal? MargemPorUnidade,
     decimal? AreaColhidaHectares,
     decimal? MargemTotal,
     string Motivo,
