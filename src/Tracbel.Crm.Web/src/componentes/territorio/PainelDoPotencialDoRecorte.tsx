@@ -10,6 +10,8 @@
  */
 
 import type { PotencialDoRecorteNoMapa } from '../../tipos/territorio';
+import { ValorAusente } from '../comum/ValorAusente';
+import { InfoTooltip } from '../InfoTooltip';
 import { MOTIVO_SEM_PARQUE, nº, porcento } from './indicadoresDaAdr';
 
 export function PainelDoPotencialDoRecorte({
@@ -95,17 +97,26 @@ export function PainelDoPotencialDoRecorte({
                 <td className="cad-mono">
                   {c.relevancia.fatiaDoValor == null ? '—' : porcento(c.relevancia.fatiaDoValor)}
                 </td>
-                <td
-                  className="cad-mono"
-                  title={
-                    c.relevancia.produtividadeDoRecorte == null
-                      ? undefined
-                      : `${nº(Math.round(c.relevancia.produtividadeDoRecorte))} aqui contra ${nº(Math.round(c.relevancia.produtividadeNoEstado ?? 0))} em SP (${c.unidadeDaProdutividade})`
-                  }
-                >
-                  {c.relevancia.razaoDeProdutividade == null
-                    ? '—'
-                    : `${c.relevancia.razaoDeProdutividade.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}×`}
+                {/* A RAZÃO NÃO LEVA FATIA: produtividade é razão, e o que se
+                    compara é a distância até SP (documento 50, §7). O detalhe
+                    saiu do `title=` e virou dica, alcançável pelo teclado. */}
+                <td className="cad-mono">
+                  {c.relevancia.razaoDeProdutividade == null ? (
+                    <ValorAusente
+                      motivo={`Sem produtividade apurada para ${c.produtoNome} — falta quantidade produzida ou área colhida no ano de referência.`}
+                      oQue={`a produtividade de ${c.produtoNome}`}
+                    />
+                  ) : (
+                    <>
+                      {`${c.relevancia.razaoDeProdutividade.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}×`}
+                      {c.relevancia.produtividadeDoRecorte != null && (
+                        <InfoTooltip
+                          rotulo={`Como a produtividade de ${c.produtoNome} se compara com São Paulo`}
+                          texto={`${nº(Math.round(c.relevancia.produtividadeDoRecorte))} aqui contra ${nº(Math.round(c.relevancia.produtividadeNoEstado ?? 0))} em São Paulo (${c.unidadeDaProdutividade}). É uma razão: o que se compara é a distância até a referência, não uma fatia.`}
+                        />
+                      )}
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

@@ -12,6 +12,7 @@
  * escreveu aparece inteiro, sem a tela reescrever.
  */
 
+import { InfoTooltip } from '../InfoTooltip';
 import type { Procedencia } from '../../tipos/api';
 
 /** Formata o instante da leitura no fuso de quem está olhando. */
@@ -28,14 +29,17 @@ export function SeloProcedencia({ procedencia }: { procedencia: Procedencia | nu
   const maisRecente = procedencia.dadoMaisRecenteEm ? formatarInstante(procedencia.dadoMaisRecenteEm) : null;
   const velho = procedencia.estaDesatualizado;
 
-  const titulo =
-    `${procedencia.sistema} · ${procedencia.objeto}\n` +
+  // O DETALHE SAIU DO `title=` E VIROU DICA (issue 167): o `title` do navegador
+  // não abre pelo teclado nem no toque, e o texto longo — que é o nosso caso,
+  // porque ele diz sistema, objeto, instante e ressalva — vem cortado.
+  const detalhe =
+    `${procedencia.sistema} · ${procedencia.objeto}. ` +
     `Lido em ${lidoEm}` +
-    (maisRecente ? `\nAlteração mais recente na origem: ${maisRecente}` : '') +
-    (procedencia.aviso ? `\n${procedencia.aviso}` : '');
+    (maisRecente ? `. Alteração mais recente na origem: ${maisRecente}` : '') +
+    (procedencia.aviso ? `. ${procedencia.aviso}` : '');
 
   return (
-    <span className={`cad-procedencia${velho ? ' cad-procedencia-velha' : ''}`} title={titulo}>
+    <span className={`cad-procedencia${velho ? ' cad-procedencia-velha' : ''}`}>
       <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
         {velho ? (
           <>
@@ -54,6 +58,7 @@ export function SeloProcedencia({ procedencia }: { procedencia: Procedencia | nu
       <span className="cad-procedencia-objeto">{procedencia.objeto}</span>
       <span className="cad-procedencia-quando">lido em {lidoEm}</span>
       {velho && <span className="cad-procedencia-alerta">dado desatualizado</span>}
+      <InfoTooltip texto={detalhe} rotulo="De onde vem o dado desta tela" />
     </span>
   );
 }

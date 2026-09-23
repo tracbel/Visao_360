@@ -656,7 +656,149 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     porCategoriaNoRecorte,
                     totaisDosMunicipios,
                     RelevanciaDoRecorte(codigosNoRecorte, producao, totaisDoEstado),
-                    RelevanciaPorCultura(codigosNoRecorte, daRegra, culturasNoEstado)));
+                    RelevanciaPorCultura(codigosNoRecorte, daRegra, culturasNoEstado)),
+            await LerTotaisDaRegiaoTracbelAsync(ct),
+            await MontarProcedenciasAsync(agoraUtc, ct));
+    }
+
+    /// <summary>
+    /// DE ONDE VEIO CADA NÚMERO — a procedência por indicador (issue 167).
+    ///
+    /// <para><b>A competência sai do dado, e não de uma constante:</b> o ano é o que está carregado
+    /// nas tabelas municipais neste banco. Um texto fixo no front diria 2017 para sempre, mesmo depois
+    /// do Censo de 2028 entrar.</para>
+    ///
+    /// <para><b>Fonte não carregada devolve nulo</b>, e a tela não mostra carimbo — em vez de carimbar
+    /// uma origem que ninguém leu.</para>
+    /// </summary>
+    private async Task<ProcedenciasDoTerritorio> MontarProcedenciasAsync(DateTime agoraUtc, CancellationToken ct)
+    {
+        var anoDaLavoura = await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking().MaxAsync(a => (short?)a.Ano, ct);
+        var anoDoCenso = await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking().MaxAsync(f => (short?)f.Ano, ct);
+        var anoDoRebanho = await contexto.RebanhosNosMunicipios.AsNoTracking().MaxAsync(r => (short?)r.Ano, ct);
+        var temUsina = await contexto.UsinasDeEtanol.AsNoTracking().AnyAsync(ct);
+
+        return new ProcedenciasDoTerritorio(
+            AreaPlantada: anoDaLavoura is null
+                ? null
+                : new ProcedenciaDoIndicador(
+                    "IBGE/SIDRA", "PAM — Produção Agrícola Municipal", "5457", "Área plantada",
+                    anoDaLavoura.Value.ToString(), agoraUtc,
+                    "O município com produção sigilosa não entra na soma — e ausência não é zero."),
+
+            ValorDaProducao: anoDaLavoura is null
+                ? null
+                : new ProcedenciaDoIndicador(
+                    "IBGE/SIDRA", "PAM — Produção Agrícola Municipal", "5457", "Valor da produção",
+                    anoDaLavoura.Value.ToString(), agoraUtc,
+                    "É o que o município COLHE, em mil reais — não é venda da Tracbel nem preço de máquina. " +
+                    "O café entra uma vez só, pelo Total do IBGE."),
+
+            Tratores: anoDoCenso is null
+                ? null
+                : new ProcedenciaDoIndicador(
+                    "IBGE/SIDRA", "Censo Agropecuário", "6778", "Tratores existentes",
+                    anoDoCenso.Value.ToString(), agoraUtc,
+                    $"O Censo é de {anoDoCenso} e o próximo sai em 2028: o parque tem essa idade. " +
+                    "Valor hachurado é sigilo do IBGE, que não é zero — ele oculta o número quando poucos " +
+                    "estabelecimentos o compõem. As faixas de potência não se somam ao Total: o Total é uma " +
+                    "categoria ao lado delas."),
+
+            Estabelecimentos: anoDoCenso is null
+                ? null
+                : new ProcedenciaDoIndicador(
+                    "IBGE/SIDRA", "Censo Agropecuário", "6779", "Estabelecimentos agropecuários",
+                    anoDoCenso.Value.ToString(), agoraUtc,
+                    "Sigilo do IBGE oculta o número onde poucos estabelecimentos o compõem; ausência não é zero."),
+
+            Rebanho: anoDoRebanho is null
+                ? null
+                : new ProcedenciaDoIndicador(
+                    "IBGE/SIDRA", "PPM — Pesquisa da Pecuária Municipal", "3939", "Efetivo dos rebanhos — bovino",
+                    anoDoRebanho.Value.ToString(), agoraUtc,
+                    "A PPM é anual e anda sozinha: o ano dela não acompanha o do Censo."),
+
+            Usinas: !temUsina
+                ? null
+                : new ProcedenciaDoIndicador(
+                    "ANP", "Autorizações de produção de etanol", null, "Capacidade autorizada (m³/dia)",
+                    null, agoraUtc,
+                    "A ANP só enxerga usina de ETANOL: ausência aqui não prova ausência de usina — " +
+                    "a que só faz açúcar não é autorizada por ela e não aparece."));
+    }
+
+    /// <summary>
+    /// OS TOTAIS DA REGIÃO TRACBEL — a ADR inteira, sem passar pelos filtros da consulta (issue 163).
+    ///
+    /// <para><b>Por que uma leitura própria, e não a soma do que a tela já recebeu:</b> este é o
+    /// denominador de "que fatia da Região Tracbel este município é?". Se ele fosse a soma do recorte
+    /// consultado, escolher a sub-região Norte faria cada município do Norte virar uma fatia maior de
+    /// si mesmo — o mesmo município mostraria dois números diferentes conforme o filtro, e a
+    /// comparação entre duas telas deixaria de valer.</para>
+    ///
+    /// <para><b>Região Tracbel não é "região":</b> <c>RegiaoDaAreaDeAtuacao</c> é Norte ou Noroeste,
+    /// que são sub-regiões. A hierarquia é São Paulo → Região Tracbel → sub-região → loja → município.</para>
+    ///
+    /// <para><b>Sigilo não vira zero aqui também:</b> a soma ignora o município oculto em vez de
+    /// contá-lo como zero, do mesmo jeito que a soma dos municípios em <see cref="TotaisDoEstado"/>.</para>
+    /// </summary>
+    private async Task<TotaisDaRegiaoTracbel?> LerTotaisDaRegiaoTracbelAsync(CancellationToken ct)
+    {
+        var daAdr = contexto.MunicipiosDaAreaDeAtuacao.AsNoTracking()
+            .Where(a => a.EncerradoEm == null && a.PertenceAAdr)
+            .Select(a => a.MunicipioId);
+
+        var municipios = await daAdr.CountAsync(ct);
+        if (municipios == 0) return null;
+
+        var anoDaLavoura = await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking().MaxAsync(a => (short?)a.Ano, ct);
+        var anoDoCenso = await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking().MaxAsync(f => (short?)f.Ano, ct);
+        var anoDoRebanho = await contexto.RebanhosNosMunicipios.AsNoTracking().MaxAsync(r => (short?)r.Ano, ct);
+
+        var lavoura = anoDaLavoura is null
+            ? null
+            : await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking()
+                .Where(p => p.Ano == anoDaLavoura
+                            && daAdr.Contains(p.MunicipioId)
+                            && !ProdutosQueDuplicamNaSoma.Contains(p.ProdutoCodigoIbge))
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Plantada = g.Sum(p => p.AreaPlantadaHectares),
+                    Colhida = g.Sum(p => p.AreaColhidaHectares),
+                    Valor = g.Sum(p => p.ValorDaProducaoMilReais)
+                })
+                .FirstOrDefaultAsync(ct);
+
+        var tratores = anoDoCenso is null
+            ? null
+            : await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking()
+                .Where(f => f.Ano == anoDoCenso && f.PotenciaCodigoIbge == PotenciaTotal && daAdr.Contains(f.MunicipioId))
+                .SumAsync(f => (int?)f.Tratores, ct);
+
+        var estabelecimentos = anoDoCenso is null
+            ? null
+            : await contexto.EstabelecimentosPorAreaNosMunicipios.AsNoTracking()
+                .Where(e => e.Ano == anoDoCenso && e.GrupoDeAreaCodigoIbge == GrupoDeAreaTotal && daAdr.Contains(e.MunicipioId))
+                .SumAsync(e => (int?)e.Estabelecimentos, ct);
+
+        var bovinos = anoDoRebanho is null
+            ? null
+            : await contexto.RebanhosNosMunicipios.AsNoTracking()
+                .Where(r => r.Ano == anoDoRebanho && r.RebanhoCodigoIbge == Bovino && daAdr.Contains(r.MunicipioId))
+                .SumAsync(r => (int?)r.Cabecas, ct);
+
+        return new TotaisDaRegiaoTracbel(
+            anoDaLavoura,
+            lavoura?.Plantada,
+            lavoura?.Colhida,
+            lavoura?.Valor,
+            anoDoCenso,
+            tratores,
+            estabelecimentos,
+            anoDoRebanho,
+            bovinos,
+            municipios);
     }
 
     /// <summary>

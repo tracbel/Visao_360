@@ -106,7 +106,10 @@ describe('a tabela de municípios', () => {
     expect(within(total).getByText('38')).toBeInTheDocument();
   });
 
-  it('município sem parque mostra traço, e o motivo fica no lugar do número', () => {
+  // O CONTRATO MUDOU NA FASE T2: o motivo saía num `title=`, que não abre pelo
+  // teclado nem no toque. Agora é `ValorAusente` — traço no lugar do número e o
+  // motivo numa dica alcançável (issue 167).
+  it('município sem parque mostra traço, e o motivo abre numa dica pelo teclado', () => {
     const semParque = municipioDeTeste({
       codigoIbge: CAFELANDIA,
       nome: 'Cafelândia',
@@ -121,7 +124,10 @@ describe('a tabela de municípios', () => {
     });
     montar({ daAdr: [semParque], municipios: [semParque], totais: calcularTotais([semParque]) });
 
-    const celula = screen.getByTitle('área plantada não divulgada aqui (sigilo do IBGE)');
-    expect(celula).toHaveTextContent('—');
+    const gatilho = screen.getByRole('button', { name: 'Por que o parque de Cafelândia não aparece' });
+    expect(gatilho.closest('td')).toHaveTextContent('—');
+
+    fireEvent.focus(gatilho);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('área plantada não divulgada aqui (sigilo do IBGE)');
   });
 });

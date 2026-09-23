@@ -23,7 +23,8 @@
  * tela é simulado.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { BlocoErro } from '../componentes/cadastro/EstadosDeTela';
 import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
 import { AbaDeMercado } from '../componentes/mercado/AbaDeMercado';
@@ -68,7 +69,35 @@ export function IndicadoresGeograficos() {
     filialDaVenda: '',
     filialDoCliente: '',
   });
-  const [selecionado, setSelecionado] = useState<number | null>(null);
+  // O MUNICÍPIO ESCOLHIDO MORA NA URL (issue 163), e não em `useState`.
+  //
+  // A URL é o que sobrevive ao F5, ao voltar do navegador e ao link colado no
+  // chat — e é a única fonte da verdade aqui: guardar a escolha também em estado
+  // local criaria duas versões dela, que discordam assim que alguém usa o botão
+  // voltar. O roteador é o que a aplicação já usa (`createHashRouter`).
+  const [parametros, definirParametros] = useSearchParams();
+  const pedido = Number(parametros.get('municipio'));
+
+  // CÓDIGO INVÁLIDO NÃO É ERRO NEM DADO INVENTADO: `?municipio=banana` e
+  // `?municipio=999` simplesmente não escolhem ninguém, e a tela abre inteira.
+  const selecionado = Number.isSafeInteger(pedido) && pedido > 0 ? pedido : null;
+
+  const escolherMunicipio = useCallback(
+    (codigo: number | null) =>
+      definirParametros(
+        (atuais) => {
+          const proximos = new URLSearchParams(atuais);
+          if (codigo === null) proximos.delete('municipio');
+          else proximos.set('municipio', String(codigo));
+          return proximos;
+        },
+        // Cada escolha é uma entrada no histórico: é o que faz voltar e avançar
+        // andarem entre municípios, que é como se compara dois deles.
+        { replace: false },
+      ),
+    [definirParametros],
+  );
+
   const [emFoco, setEmFoco] = useState<number | null>(null);
   const [lojasConhecidas, setLojasConhecidas] = useState<Map<string, string>>(() => new Map());
   const [adrConhecida, setAdrConhecida] = useState<ReadonlySet<number>>(() => new Set());
@@ -189,6 +218,8 @@ export function IndicadoresGeograficos() {
     vendasForaDoMapa,
     anoDoCenso: estruturaDaAdr.anoDoCenso,
     anoDoRebanho: estruturaDaAdr.anoDoRebanho,
+    regiaoTracbel: indicadores?.regiaoTracbel ?? null,
+    procedencias: indicadores?.procedencias ?? null,
   };
 
   const escolhido = selecionado === null ? null : porCodigo.get(selecionado) ?? null;
@@ -202,7 +233,7 @@ export function IndicadoresGeograficos() {
     porCodigo,
     nomeDoPoligono,
     selecionado,
-    aoSelecionar: setSelecionado,
+    aoSelecionar: escolherMunicipio,
     emFoco,
     aoPassar: setEmFoco,
   };
@@ -216,7 +247,7 @@ export function IndicadoresGeograficos() {
         municipio={escolhido}
         regras={indicadores.regras}
         culturasNoEstado={indicadores.culturasNoEstado}
-        aoFechar={() => setSelecionado(null)}
+        aoFechar={() => escolherMunicipio(null)}
       />
     ) : null;
 
@@ -251,7 +282,7 @@ export function IndicadoresGeograficos() {
 
       {painel.dados && <ComoLerEstesNumeros classificacoes={painel.dados.classificacoes} />}
 
-      <ChipDoMunicipio nome={escolhido?.nome ?? null} aoLimpar={() => setSelecionado(null)} />
+      <ChipDoMunicipio nome={escolhido?.nome ?? null} aoLimpar={() => escolherMunicipio(null)} />
 
       {painel.erro && <BlocoErro erro={painel.erro} aoTentarDeNovo={painel.recarregar} />}
       {erroDaMalha && <BlocoErro erro={erroDaMalha} />}
@@ -282,6 +313,7 @@ export function IndicadoresGeograficos() {
             classificacaoDe={classificacao}
             metricasSemDado={painel.dados?.metricasSemDado}
             municipioCodigoIbge={selecionado}
+            nomeDoMunicipio={escolhido?.nome ?? null}
             mostrarOsMapas={indicadores !== null && desenho !== null && !territorioNaoCarregado}
             ficha={ficha}
           />
@@ -295,7 +327,7 @@ export function IndicadoresGeograficos() {
             foraDoMapa={indicadores?.foraDoMapa ?? []}
             totais={totais}
             selecionado={selecionado}
-            aoSelecionar={setSelecionado}
+            aoSelecionar={escolherMunicipio}
             territorioNaoCarregado={territorioNaoCarregado}
             semFiltro={semFiltro}
             ficha={ficha}

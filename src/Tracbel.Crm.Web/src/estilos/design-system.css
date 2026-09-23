@@ -9360,3 +9360,44 @@ tr.funil-nova {
   margin-left: 6px;
   white-space: nowrap;
 }
+
+/* ---------------------------------------------------------------------------
+   COMPARAÇÃO E AUSÊNCIA (fase T2 do documento 50, §7 e §8).
+
+   O valor em cima, o contexto embaixo, menor e mais claro: hierarquia se faz com
+   tamanho e espaço. A fatia ou a distância nunca disputa o olho com o número.
+   --------------------------------------------------------------------------- */
+
+.cad-comparacao {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.cad-comparacao-valor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-primary);
+}
+
+.cad-comparacao-unidade {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.cad-comparacao-contexto {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-tertiary);
+}
+
+/* AUSÊNCIA NÃO É ZERO: o traço ocupa o lugar do número e a dica diz o motivo.
+   Sem prosa dentro do valor — ela empurraria a coluna e quebraria o alinhamento. */
+.cad-ausente {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+}

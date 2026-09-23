@@ -18,8 +18,10 @@
  */
 
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProvedorDeContextoDeAcesso } from '../dados/api/contexto';
+import { EspelhoDaUrl } from '../testes/EspelhoDaUrl';
 import { ARARAQUARA, CAFELANDIA, municipioDeTeste } from '../testes/territorio';
 import type { PainelTerritorial } from '../tipos/territorio';
 import { IndicadoresGeograficos } from './IndicadoresGeograficos';
@@ -143,6 +145,68 @@ function painel(): PainelTerritorial {
         },
         relevanciaPorCultura: [],
       },
+      // O DENOMINADOR DA REGIÃO TRACBEL É A ADR INTEIRA, e não o recorte
+      // consultado: 37.226 ha de Cafelândia sobre 886.333 ha da ADR dão 4,2%.
+      regiaoTracbel: {
+        anoDaLavoura: 2024,
+        areaPlantadaHectares: 886_333,
+        areaColhidaHectares: 870_000,
+        valorDaProducaoMilReais: 11_160_000,
+        anoDoCenso: 2017,
+        tratores: 38_364,
+        estabelecimentos: 25_300,
+        anoDoRebanho: 2024,
+        bovinos: 1_240_000,
+        municipios: 203,
+      },
+      procedencias: {
+        areaPlantada: {
+          fonte: 'IBGE/SIDRA',
+          pesquisa: 'PAM — Produção Agrícola Municipal',
+          tabela: '5457',
+          variavel: 'Área plantada',
+          competencia: '2024',
+          ultimaCargaUtc: '2026-09-22T03:00:00Z',
+          ressalva: 'O município com produção sigilosa não entra na soma — e ausência não é zero.',
+        },
+        valorDaProducao: {
+          fonte: 'IBGE/SIDRA',
+          pesquisa: 'PAM — Produção Agrícola Municipal',
+          tabela: '5457',
+          variavel: 'Valor da produção',
+          competencia: '2024',
+          ultimaCargaUtc: '2026-09-22T03:00:00Z',
+          ressalva: 'É o que o município COLHE, em mil reais.',
+        },
+        tratores: {
+          fonte: 'IBGE/SIDRA',
+          pesquisa: 'Censo Agropecuário',
+          tabela: '6778',
+          variavel: 'Tratores existentes',
+          competencia: '2017',
+          ultimaCargaUtc: '2026-09-22T03:00:00Z',
+          ressalva: 'O Censo é de 2017 e o próximo sai em 2028: o parque tem essa idade.',
+        },
+        estabelecimentos: {
+          fonte: 'IBGE/SIDRA',
+          pesquisa: 'Censo Agropecuário',
+          tabela: '6779',
+          variavel: 'Estabelecimentos agropecuários',
+          competencia: '2017',
+          ultimaCargaUtc: '2026-09-22T03:00:00Z',
+          ressalva: null,
+        },
+        rebanho: {
+          fonte: 'IBGE/SIDRA',
+          pesquisa: 'PPM — Pesquisa da Pecuária Municipal',
+          tabela: '3939',
+          variavel: 'Efetivo dos rebanhos — bovino',
+          competencia: '2024',
+          ultimaCargaUtc: '2026-09-22T03:00:00Z',
+          ressalva: 'A PPM é anual e anda sozinha.',
+        },
+        usinas: null,
+      },
     },
     metricasSemDado: [{ metrica: 'participacaoDeMercado', motivo: 'emplacamento não integrado' }],
     podeVerEmpresaInteira: false,
@@ -203,13 +267,31 @@ function blocosNaOrdem(): string[] {
 }
 
 const bloco = (nome: string) => document.querySelector<HTMLElement>(`[data-bloco="${nome}"]`);
+
+/**
+ * O cartão de indicador inteiro, pelo rótulo.
+ *
+ * Escopado porque vários rótulos de KPI ("Usinas de etanol", "Rebanho bovino")
+ * são também opções do alternador do mapa da estrutura.
+ */
+const cartaoDeKpi = (rotulo: string) =>
+  [...document.querySelectorAll<HTMLElement>('.cad-kpi')].find((c) =>
+    c.querySelector('.cad-kpi-rotulo')?.textContent?.startsWith(rotulo),
+  );
 const painelDaAba = () => document.querySelector<HTMLElement>('[role="tabpanel"]')!;
 
-function abrir() {
+
+const urlAtual = () => document.querySelector<HTMLElement>('[data-url]')!.textContent ?? '';
+const voltarNoHistorico = () => fireEvent.click(document.querySelector<HTMLElement>('[data-voltar]')!);
+
+function abrir(entrada = '/cobertura') {
   render(
-    <ProvedorDeContextoDeAcesso>
-      <IndicadoresGeograficos />
-    </ProvedorDeContextoDeAcesso>,
+    <MemoryRouter initialEntries={[entrada]}>
+      <ProvedorDeContextoDeAcesso>
+        <IndicadoresGeograficos />
+        <EspelhoDaUrl />
+      </ProvedorDeContextoDeAcesso>
+    </MemoryRouter>,
   );
 }
 
@@ -332,10 +414,13 @@ describe('Indicadores Geográficos — as duas abas', () => {
     irPara('Mercado');
     expect(bloco('chip-municipio')).toHaveTextContent('Cafelândia');
     expect(screen.getByRole('heading', { name: 'Quem atende este município' })).toBeInTheDocument();
+    // E a URL não muda ao trocar de aba: a aba não é do recorte.
+    expect(urlAtual()).toBe(`?municipio=${CAFELANDIA}`);
 
     // E o × devolve o recorte inteiro.
     fireEvent.click(screen.getByRole('button', { name: 'Tirar o recorte de Cafelândia' }));
     expect(bloco('chip-municipio')).toBeNull();
+    expect(urlAtual()).toBe('');
   });
 
   it('nada se perde ao trocar de aba: o que sai de uma está na outra', async () => {
@@ -356,6 +441,166 @@ describe('Indicadores Geográficos — as duas abas', () => {
     // E cada bloco de conteúdo mora em exatamente uma aba — nenhum sumiu das duas.
     expect([...emMercado].filter((b) => b.startsWith('mapas') || b === 'visao-geografica')).toHaveLength(2);
     expect(emTerritorio.has('tabela-municipios')).toBe(true);
+  });
+});
+
+describe('Indicadores Geográficos — o recorte mora na URL (issue 163)', () => {
+  afterEach(() => {
+    obterIndicadoresTerritoriais.mockReset();
+    carregarMalhaDeSaoPaulo.mockReset();
+    guardado.clear();
+  });
+
+  it('escolher no mapa ou na tabela escreve o mesmo parâmetro na URL', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    expect(urlAtual()).toBe('');
+
+    irPara('Território');
+    fireEvent.click(await screen.findByRole('button', { name: 'Cafelândia' }));
+    expect(urlAtual()).toBe(`?municipio=${CAFELANDIA}`);
+  });
+
+  it('a URL restaura o município: recarregar a página não perde o recorte', async () => {
+    responder();
+    abrir(`/cobertura?municipio=${CAFELANDIA}`);
+    await esperarACarga();
+
+    expect(bloco('chip-municipio')).toHaveTextContent('Cafelândia');
+    expect(await screen.findByRole('heading', { name: 'Quem atende este município' })).toBeInTheDocument();
+  });
+
+  it('código IBGE inválido não dá erro nem inventa município — a tela abre inteira', async () => {
+    responder();
+    abrir('/cobertura?municipio=banana');
+    await esperarACarga();
+
+    expect(bloco('chip-municipio')).toBeNull();
+    expect(bloco('mapas')).not.toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Quem atende este município' })).not.toBeInTheDocument();
+  });
+
+  it('código que não existe no recorte também não inventa ficha', async () => {
+    responder();
+    abrir('/cobertura?municipio=9999999');
+    await esperarACarga();
+
+    expect(bloco('chip-municipio')).toBeNull();
+    expect(bloco('mapas')).not.toBeNull();
+  });
+
+  it('cada escolha é uma entrada no histórico — voltar devolve o recorte anterior', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    irPara('Território');
+    fireEvent.click(await screen.findByRole('button', { name: 'Cafelândia' }));
+    expect(urlAtual()).toBe(`?municipio=${CAFELANDIA}`);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tirar o recorte de Cafelândia' }));
+    expect(urlAtual()).toBe('');
+
+    voltarNoHistorico();
+    expect(urlAtual()).toBe(`?municipio=${CAFELANDIA}`);
+    expect(bloco('chip-municipio')).toHaveTextContent('Cafelândia');
+  });
+});
+
+describe('Indicadores Geográficos — somável × razão (documento 50, §7)', () => {
+  afterEach(() => {
+    obterIndicadoresTerritoriais.mockReset();
+    carregarMalhaDeSaoPaulo.mockReset();
+    guardado.clear();
+  });
+
+  it('grandeza somável mostra as DUAS fatias: Região Tracbel e SP', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    // 422 tratores sobre 38.364 da ADR = 1,1%; sobre 120.000 publicados de SP = 0,4%.
+    const tratores = cartaoDeKpi('Parque de tratores')!;
+    expect(tratores).toHaveTextContent('1,1% da Região Tracbel');
+    expect(tratores).toHaveTextContent('0,4% de SP');
+  });
+
+  it('a fatia diz "Região Tracbel", e nunca só "região" — Norte e Noroeste são sub-regiões', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const contexto = [...document.querySelectorAll<HTMLElement>('.cad-kpi-fonte')].map((n) => n.textContent ?? '');
+    const comFatia = contexto.filter((t) => /% da /.test(t));
+    expect(comFatia.length).toBeGreaterThan(0);
+    for (const texto of comFatia) expect(texto).toMatch(/% da Região Tracbel/);
+  });
+
+  it('sem denominador, a fatia não aparece — e não vira 0%', async () => {
+    const semRegiao = painel();
+    semRegiao.indicadores.regiaoTracbel = null;
+    semRegiao.indicadores.estado = null;
+    obterIndicadoresTerritoriais.mockResolvedValue({ dados: semRegiao, procedencia: null });
+    carregarMalhaDeSaoPaulo.mockResolvedValue(MALHA);
+    abrir();
+    await esperarACarga();
+
+    const tratores = cartaoDeKpi('Parque de tratores')!;
+    expect(tratores).not.toHaveTextContent('0% da Região Tracbel');
+    expect(tratores).not.toHaveTextContent('0% de SP');
+    expect(tratores).not.toHaveTextContent('% da Região Tracbel');
+  });
+});
+
+describe('Indicadores Geográficos — procedência por indicador (issue 167)', () => {
+  afterEach(() => {
+    obterIndicadoresTerritoriais.mockReset();
+    carregarMalhaDeSaoPaulo.mockReset();
+    guardado.clear();
+  });
+
+  it('a procedência completa de um indicador do IBGE abre pelo teclado', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const gatilho = screen.getByRole('button', { name: 'De onde vem parque de tratores' });
+
+    // Pelo TECLADO: o `title=` cru nunca abriu assim.
+    fireEvent.focus(gatilho);
+    const dica = await screen.findByRole('tooltip');
+
+    expect(dica).toHaveTextContent('Fonte: IBGE/SIDRA');
+    expect(dica).toHaveTextContent('Pesquisa: Censo Agropecuário');
+    expect(dica).toHaveTextContent('Tabela: 6778');
+    expect(dica).toHaveTextContent('Variável: Tratores existentes');
+    expect(dica).toHaveTextContent('Competência: 2017');
+    expect(dica).toHaveTextContent('Última carga: 22/09/2026');
+    expect(dica).toHaveTextContent('o próximo sai em 2028');
+  });
+
+  it('fonte não carregada não ganha carimbo inventado', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    // `usinas: null` no contrato — o cartão existe, a dica não. (O mesmo texto
+    // também é um botão do alternador do mapa da estrutura, daí o escopo.)
+    expect(cartaoDeKpi('Usinas de etanol')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'De onde vem usinas de etanol' })).not.toBeInTheDocument();
+  });
+
+  it('a tela não escreve fonte à mão: o texto embaixo do número não repete o carimbo', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const tratores = cartaoDeKpi('Parque de tratores')!;
+    const deOnde = tratores.querySelector('.cad-kpi-fonte')!.textContent ?? '';
+    expect(deOnde).not.toMatch(/Censo Agropecuário/);
+    expect(deOnde).not.toMatch(/IBGE/);
   });
 });
 

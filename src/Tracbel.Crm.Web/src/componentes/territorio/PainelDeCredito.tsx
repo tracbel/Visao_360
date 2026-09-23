@@ -16,6 +16,7 @@
  * registrado com atraso. A tela diz isso ao lado do último mês.
  */
 
+import { InfoTooltip } from '../InfoTooltip';
 import { useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
 import { PainelDeIndicadores, type Indicador } from '../cadastro/Indicadores';
@@ -103,7 +104,16 @@ function LinhaDeJanelas({ nome, sub, j }: { nome: string; sub?: string; j: Janel
   );
 }
 
-export function PainelDeCredito() {
+/**
+ * O CRÉDITO É O ÚNICO DOS TRÊS PAINÉIS COM DADO MUNICIPAL DE VERDADE (issue 168).
+ *
+ * O SICOR publica por município, então aqui o recorte escolhido muda o que se lê:
+ * o município entra ao lado da Região Tracbel e de São Paulo, e sobe para o topo
+ * da lista mesmo quando está fora dos quinze primeiros. Preço e custo não fazem
+ * isto porque a fonte deles é estadual — e a tela não inventa granularidade que a
+ * fonte não tem.
+ */
+export function PainelDeCredito({ municipioSelecionado = null }: { municipioSelecionado?: number | null } = {}) {
   const { contexto } = useContextoDeAcesso();
   const credito = useRecurso((sinal) => obterCreditoRural(contexto, sinal), [contexto.empresa, contexto.usuario]);
   const [soAdr, setSoAdr] = useState(true);
@@ -131,7 +141,7 @@ export function PainelDeCredito() {
           deOnde: 'SICOR · mesmos produtos e janela',
         },
         {
-          rotulo: 'Ticket médio por linha',
+          rotulo: 'Valor médio por linha',
           valor: ticket(maquinas) === null ? null : reaisCurtos(ticket(maquinas)!),
           deOnde: 'valor ÷ linhas · uma linha soma os contratos de uma combinação',
         },
@@ -139,7 +149,15 @@ export function PainelDeCredito() {
     : [];
 
   const anos = dados?.porAno ?? [];
-  const municipios = (dados?.porMunicipio ?? []).filter((m) => !soAdr || m.pertenceAAdr).slice(0, 15);
+  const escolhido = municipioSelecionado === null ? null : (dados?.porMunicipio.find((m) => m.codigoIbge === municipioSelecionado) ?? null);
+
+  // O MUNICÍPIO ESCOLHIDO SOBE PARA O TOPO, mesmo fora dos quinze primeiros e
+  // mesmo com o filtro "só a ADR" ligado: quem escolheu um município quer vê-lo,
+  // e uma lista que o esconde faz o clique no mapa parecer que não fez nada.
+  const primeiros = (dados?.porMunicipio ?? [])
+    .filter((m) => (!soAdr || m.pertenceAAdr) && m.codigoIbge !== escolhido?.codigoIbge)
+    .slice(0, escolhido ? 14 : 15);
+  const municipios = escolhido ? [escolhido, ...primeiros] : primeiros;
   const produtos = (dados?.porProduto ?? []).slice(0, 12);
 
   return (
@@ -201,14 +219,24 @@ export function PainelDeCredito() {
                       <th>Recorte</th>
                       <th className="terr-num">Linhas</th>
                       <th className="terr-num">Valor</th>
-                      <th className="terr-num" title="Valor ÷ linhas">
-                        Ticket
+                      <th className="terr-num">
+                        Valor médio{' '}
+                        <InfoTooltip
+                          rotulo="O que é o valor médio por linha"
+                          texto="Valor contratado dividido pelo número de LINHAS do SICOR. Não é ticket médio: a linha do SICOR não é um contrato — ela já é a soma dos contratos daquela combinação de município e produto, e não traz quantidade."
+                        />
                       </th>
                     </tr>
                   </thead>
                   <tbody>
+                    {/* MUNICÍPIO · REGIÃO TRACBEL · SÃO PAULO, lado a lado (issue 168).
+                        A hierarquia da issue 163 lida de cima para baixo: o crédito é a
+                        única das três fontes deste bloco que desce ao município. */}
+                    {escolhido && (
+                      <LinhaDeJanelas nome={escolhido.nome} sub="município escolhido" j={escolhido.janelas} />
+                    )}
                     <LinhaDeJanelas
-                      nome={dados.regiao.recorte}
+                      nome="Região Tracbel"
                       sub={`${dados.regiao.municipios.toLocaleString('pt-BR')} municípios com linha na janela`}
                       j={dados.regiao.janelas}
                     />
@@ -244,12 +272,20 @@ export function PainelDeCredito() {
                   <thead>
                     <tr>
                       <th>Município</th>
-                      <th className="terr-num" title="Linhas do SICOR nos últimos 12 meses, e a variação sobre os 12 anteriores">
-                        Linhas
+                      <th className="terr-num">
+                        Linhas{' '}
+                        <InfoTooltip
+                          rotulo="O que a coluna Linhas conta"
+                          texto="Linhas do SICOR nos últimos 12 meses, e a variação sobre os 12 anteriores. Cada linha já é a soma dos contratos daquela combinação — não é um contrato, e não há quantidade."
+                        />
                       </th>
                       <th className="terr-num">Valor</th>
-                      <th className="terr-num" title="Valor ÷ linhas">
-                        Ticket
+                      <th className="terr-num">
+                        Valor médio{' '}
+                        <InfoTooltip
+                          rotulo="O que é o valor médio por linha"
+                          texto="Valor contratado dividido pelo número de LINHAS do SICOR. Não é ticket médio: a linha do SICOR não é um contrato — ela já é a soma dos contratos daquela combinação de município e produto, e não traz quantidade."
+                        />
                       </th>
                     </tr>
                   </thead>
@@ -295,7 +331,7 @@ export function PainelDeCredito() {
                     <th>Produto</th>
                     <th className="terr-num">Linhas</th>
                     <th className="terr-num">Valor</th>
-                    <th className="terr-num">Ticket</th>
+                    <th className="terr-num">Valor médio</th>
                   </tr>
                 </thead>
                 <tbody>

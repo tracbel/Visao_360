@@ -490,6 +490,19 @@ public sealed record RegraDePotencialAplicada(
 /// <param name="Estado">Os totais de São Paulo publicados pelo IBGE; nulo quando não carregados.</param>
 /// <param name="CulturasNoEstado">As culturas das regras no total de São Paulo, no ano de cada uma — a comparação da ficha.</param>
 /// <param name="PotencialDoRecorte">O parque, a demanda e a relevância do recorte consultado, pelo motor (issue 72).</param>
+/// <param name="RegiaoTracbel">
+/// Os totais da ADR inteira — o denominador de "que fatia da Região Tracbel isto é?" (issue 163).
+///
+/// <para><b>Ele não muda quando o filtro muda</b>, de propósito: se fosse a soma do recorte
+/// consultado, escolher a sub-região Norte faria cada município do Norte virar uma fatia maior de
+/// si mesmo, e o mesmo município mostraria dois números conforme o filtro.</para>
+/// </param>
+/// <param name="Procedencias">
+/// De onde veio cada indicador — fonte, pesquisa, tabela, variável e competência (issue 167).
+///
+/// <para><b>A tela não escreve fonte à mão.</b> Escrever "Fonte: IBGE" no front foi o que produziu
+/// os parágrafos cinza embaixo de cada cartão, e eles envelhecem sem ninguém notar.</para>
+/// </param>
 public sealed record IndicadoresTerritoriais(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -504,7 +517,9 @@ public sealed record IndicadoresTerritoriais(
     string Visao,
     TotaisDoEstado? Estado,
     IReadOnlyList<CulturaNoEstado> CulturasNoEstado,
-    PotencialDoRecorteNoMapa? PotencialDoRecorte = null);
+    PotencialDoRecorteNoMapa? PotencialDoRecorte = null,
+    TotaisDaRegiaoTracbel? RegiaoTracbel = null,
+    ProcedenciasDoTerritorio? Procedencias = null);
 
 /// <summary>
 /// O acesso aos INDICADORES TERRITORIAIS — a leitura que alimenta os três mapas.

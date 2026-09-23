@@ -6,7 +6,107 @@
 
 import type { MetricaSemDado } from './relacionamento';
 
+/**
+ * A SUB-REGIÃO da área de atuação — Norte ou Noroeste.
+ *
+ * NÃO É A REGIÃO TRACBEL. A hierarquia é São Paulo → Região Tracbel (a ADR
+ * inteira) → sub-região → loja → município → cliente (issue 163). Chamar isto de
+ * "região" na tela faria a diretoria ler "4,2% da região" como fatia da ADR
+ * quando é fatia do Norte.
+ */
 export type RegiaoDaAdr = 'Norte' | 'Noroeste';
+
+/** De onde veio UM indicador — não o painel inteiro (issue 167). */
+export type ProcedenciaDoIndicador = {
+  /** Quem publica — "IBGE/SIDRA", "BCB/SICOR", "ANP", "CRM Tracbel". */
+  fonte: string;
+  /** A pesquisa ou o conjunto — "PAM — Produção Agrícola Municipal". */
+  pesquisa: string | null;
+  /** A tabela na fonte, quando ela tem uma — "5457" no SIDRA. */
+  tabela: string | null;
+  /** A variável dentro da tabela — "Área plantada". */
+  variavel: string | null;
+  /** O período do dado — "2024", "set/2025 a ago/2026". */
+  competencia: string | null;
+  /** Quando o CRM leu a fonte pela última vez. */
+  ultimaCargaUtc: string | null;
+  /** O que quem lê precisa saber para não se enganar — sigilo, recorte, idade. */
+  ressalva: string | null;
+};
+
+/**
+ * Uma grandeza SOMÁVEL, com os denominadores que a tornam comparável.
+ *
+ * Somar os municípios dá o total do recorte: área, quantidade, valor, parque,
+ * propriedades, rebanho, crédito contratado, demanda e vendas em unidades. Só
+ * para essas a pergunta "que fatia isto é?" tem resposta.
+ */
+export type MedidaSomavel = {
+  valor: number | null;
+  totalRegiaoTracbel: number | null;
+  totalSaoPaulo: number | null;
+  /** Já em percentual, calculada no servidor. Nula sem numerador ou sem denominador. */
+  fatiaRegiaoTracbel: number | null;
+  fatiaSaoPaulo: number | null;
+  motivoDaAusencia: string | null;
+  procedencia: ProcedenciaDoIndicador | null;
+};
+
+/**
+ * Uma grandeza do tipo RAZÃO, com as referências contra as quais ela se compara.
+ *
+ * Produtividade, preço, rentabilidade, captura, índices e o fator são razões.
+ * Aqui não há fatia: o que sai são as referências, e a tela mostra a distância
+ * até elas.
+ */
+export type MedidaDeRazao = {
+  valor: number | null;
+  referenciaRegiaoTracbel: number | null;
+  referenciaSaoPaulo: number | null;
+  /** Se a grandeza já é um percentual — então a distância é em pontos percentuais. */
+  ehPercentual: boolean;
+  unidade: string | null;
+  motivoDaAusencia: string | null;
+  procedencia: ProcedenciaDoIndicador | null;
+};
+
+/**
+ * De onde veio cada indicador da tela de território (issue 167).
+ *
+ * Um registro tipado, e não um dicionário por texto: a tela não pode errar a
+ * chave em silêncio e ficar sem carimbo justamente no número que alguém vai
+ * conferir. Campo nulo = fonte não carregada, e aí não há carimbo nenhum.
+ */
+export type ProcedenciasDoTerritorio = {
+  areaPlantada: ProcedenciaDoIndicador | null;
+  valorDaProducao: ProcedenciaDoIndicador | null;
+  tratores: ProcedenciaDoIndicador | null;
+  estabelecimentos: ProcedenciaDoIndicador | null;
+  rebanho: ProcedenciaDoIndicador | null;
+  usinas: ProcedenciaDoIndicador | null;
+};
+
+/**
+ * Os totais da REGIÃO TRACBEL — a ADR inteira, e não a sub-região filtrada.
+ *
+ * É o denominador de "que fatia da Região Tracbel este município é?", e ele NÃO
+ * muda quando o filtro muda: se fosse a soma do recorte consultado, escolher a
+ * sub-região Norte faria cada município do Norte virar uma fatia maior de si
+ * mesmo.
+ */
+export type TotaisDaRegiaoTracbel = {
+  anoDaLavoura: number | null;
+  areaPlantadaHectares: number | null;
+  areaColhidaHectares: number | null;
+  valorDaProducaoMilReais: number | null;
+  anoDoCenso: number | null;
+  tratores: number | null;
+  estabelecimentos: number | null;
+  anoDoRebanho: number | null;
+  bovinos: number | null;
+  /** Quantos municípios compõem a ADR — o que dá sentido às somas acima. */
+  municipios: number;
+};
 
 /** Cobertura por VÍNCULO cliente × carteira comercial. */
 export type CoberturaTerritorial = {
@@ -334,6 +434,10 @@ export type IndicadoresTerritoriais = {
   culturasNoEstado: CulturaNoEstado[];
   /** O parque, a demanda e a relevância do recorte consultado (issue 72); nulo sem regra vigente. */
   potencialDoRecorte: PotencialDoRecorteNoMapa | null;
+  /** Os totais da ADR inteira — o denominador da fatia da Região Tracbel (issue 163). */
+  regiaoTracbel: TotaisDaRegiaoTracbel | null;
+  /** De onde veio cada indicador — a tela não escreve fonte à mão (issue 167). */
+  procedencias: ProcedenciasDoTerritorio | null;
 };
 
 // ---------------------------------------------------------------------------

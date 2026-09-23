@@ -6,6 +6,7 @@
  */
 
 import type { IndicadoresDoMunicipio, IndicadoresForaDoMapa } from '../../tipos/territorio';
+import { ValorAusente } from '../comum/ValorAusente';
 import { reaisCompactos } from './escalas';
 import { MOTIVO_SEM_PARQUE, nº } from './indicadoresDaAdr';
 import type { TotaisDaAdr } from './totaisDaAdr';
@@ -78,8 +79,19 @@ export function TabelaDeMunicipios({
                 </td>
                 <td className="cad-mono">{reaisCompactos(m.vendas.valorLiquido)}</td>
                 <td className="cad-mono">{reaisCompactos(m.vendas.posVenda)}</td>
-                <td className="cad-mono" title={m.potencialEstrutural ? MOTIVO_SEM_PARQUE[m.potencialEstrutural.motivoSemParque] : undefined}>
-                  {m.potencialEstrutural?.parqueDeMaquinas == null ? '—' : nº(m.potencialEstrutural.parqueDeMaquinas)}
+                <td className="cad-mono">
+                  {m.potencialEstrutural?.parqueDeMaquinas == null ? (
+                    <ValorAusente
+                      motivo={
+                        m.potencialEstrutural
+                          ? MOTIVO_SEM_PARQUE[m.potencialEstrutural.motivoSemParque]
+                          : 'nenhuma regra de potencial vigente alcança este município'
+                      }
+                      oQue={`o parque de ${m.nome}`}
+                    />
+                  ) : (
+                    nº(m.potencialEstrutural.parqueDeMaquinas)
+                  )}
                 </td>
               </tr>
             ))}
