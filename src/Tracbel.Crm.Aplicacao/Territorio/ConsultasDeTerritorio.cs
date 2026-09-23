@@ -163,15 +163,22 @@ public sealed class ObterIndicadoresTerritoriais(
     IRepositorioDeParametrosDoPotencial parametros)
 {
     /// <summary>
-    /// O MOMENTO DO MERCADO DO RECORTE — o fator de ciclo, suas parcelas e o porte (fase T3).
+    /// O MOMENTO DO MERCADO DO RECORTE — o fator POR CULTURA e o agregado (fases T3 e T3.1).
     ///
-    /// <para><b>O índice de preço é o da cultura de maior área, e o resultado diz qual.</b> O momento
-    /// de preço é apurado por cultura — o café pode subir enquanto a cana cai — e o fator pede um
-    /// número. Uma média ponderada seria fórmula nova que ninguém decidiu; escolher a cultura que
-    /// domina a área é uma <b>seleção declarada</b>, que a tela mostra.</para>
+    /// <para><b>O fator é de cada cultura</b> (issue 74): a cana pode estar retraída enquanto o café
+    /// está aquecido, porque preço e rentabilidade são de cada uma. Crédito e percepção são do
+    /// recorte e entram iguais em todas.</para>
+    ///
+    /// <para><b>O agregado é a razão entre o que o motor já calcula</b> — demanda ajustada total
+    /// sobre demanda estrutural total. Não é um "índice médio de commodity": nenhuma fórmula nova
+    /// entrou, e cada cultura pesa exatamente pela demanda que representa.</para>
+    ///
+    /// <para><b>A versão anterior usava o índice da cultura de maior área</b>, e foi recusada
+    /// (23/09/2026): era solução técnica sem decisão de negócio, e conflitava com a issue 74. A
+    /// predominante continua, como <b>contexto</b>, com o critério dito.</para>
     ///
     /// <para><b>Sem município escolhido não há crédito nem percepção</b>, e o fator sai só com o
-    /// preço: indicador ausente vale desvio zero (issue 74), e não fator indeterminado.</para>
+    /// preço: indicador ausente vale desvio zero, e não fator indeterminado.</para>
     /// </summary>
     private async Task<MomentoDoRecorte?> MomentoDoMercadoAsync(
         IndicadoresTerritoriais indicadores, DateTime agoraUtc, CancellationToken ct)
@@ -182,36 +189,35 @@ public sealed class ObterIndicadoresTerritoriais(
         var vigente = ParametroComVigencia.VigenteEm(await parametros.ListarGeraisAsync(ct), data);
         var doRecorte = await indicadoresDeMercado.LerAsync(data, null, ct);
 
-        // A CULTURA QUE DOMINA A ÁREA dá o índice de preço do recorte. Sem parcela com área, não há
-        // escolha a declarar — e o fator sai sem preço, que é desvio zero.
-        var dominante = recorte.PorCultura
-            .Where(p => p.AreaUtilHectares is > 0)
-            .OrderByDescending(p => p.AreaUtilHectares)
-            .FirstOrDefault();
+        // UM FATOR POR CULTURA, cada um com o preço dela. O crédito e a percepção são do recorte, e
+        // por isso entram iguais nas três contas — é a estrutura do modelo, não uma simplificação.
+        var porCultura = recorte.PorCultura
+            .Select(p =>
+            {
+                var indice = doRecorte.PrecoPorCultura.TryGetValue(p.CulturaCodigo, out var m) ? m.Indice : null;
 
-        decimal? indiceDePreco = null;
-        string? culturaDoPreco = null;
-        if (dominante is not null && doRecorte.PrecoPorCultura.TryGetValue(dominante.CulturaCodigo, out var momento))
-        {
-            indiceDePreco = momento.Indice;
-            culturaDoPreco = momento.Indice is null ? null : dominante.Cultura;
-        }
+                var ajustado = FatorDeCiclo.Ajustar(
+                    p.DemandaAnual, indice, doRecorte.Credito?.Indice, doRecorte.PercepcaoDoGestor, vigente,
+                    recorte.Estimativa);
 
-        var ajustado = FatorDeCiclo.Ajustar(
-            recorte.DemandaAnualDeMaquinas,
-            indiceDePreco,
-            doRecorte.Credito?.Indice,
-            doRecorte.PercepcaoDoGestor,
-            vigente,
-            recorte.Estimativa);
+                return new MomentoDaCultura(
+                    p.CulturaCodigo, p.Cultura, p.DemandaAnual, p.AreaUtilHectares, indice,
+                    ajustado.Fator, ajustado.DemandaAjustada);
+            })
+            .ToList();
+
+        var (fatorAgregado, estrutural, ajustada, motivo) = MomentoAgregado.Agregar(porCultura);
 
         var porte = vigente?.PorteDe(recorte.DemandaAnualDeMaquinas);
-        var faixa = LeituraDoMercado.FaixaDoFator(ajustado.Fator.Fator, vigente);
+        var faixa = LeituraDoMercado.FaixaDoFator(fatorAgregado, vigente);
 
         return new MomentoDoRecorte(
-            ajustado,
-            indiceDePreco,
-            culturaDoPreco,
+            fatorAgregado,
+            motivo,
+            estrutural,
+            ajustada,
+            porCultura,
+            MomentoAgregado.Predominante(porCultura),
             doRecorte.Credito?.Indice,
             doRecorte.PercepcaoDoGestor,
             porte,
@@ -219,15 +225,16 @@ public sealed class ObterIndicadoresTerritoriais(
             LeituraDoMercado.Frase(porte, faixa),
             new ProcedenciaDoIndicador(
                 "CRM Tracbel",
-                "Fator de ciclo de mercado (issue 74)",
+                "Fator de ciclo de mercado (issue 74), agregado pela demanda",
                 null,
-                "Preço e rentabilidade, crédito e percepção comercial",
+                "Demanda ajustada total ÷ demanda estrutural total",
                 doRecorte.UltimoMesDePreco is { } mes ? $"preço até {mes:MM/yyyy}" : null,
                 agoraUtc,
-                "O fator é 1,00 quando nada desvia. Indicador ausente vale desvio ZERO, e não fator " +
-                "indeterminado. O custo entra dentro da parcela de preço e rentabilidade — ele não é uma " +
-                "quarta sensibilidade. O termo de troca ficou de fora (D-P05): precisa do preço de máquina, " +
-                "que é a issue 70."));
+                "O fator é de CADA CULTURA: preço e rentabilidade são dela, crédito e percepção são do " +
+                "recorte. O número do topo é a razão entre a demanda ajustada somada e a estrutural somada — " +
+                "não é um índice médio de commodity, e cada cultura pesa pela demanda que representa. Com todas " +
+                "neutras, o agregado é 1,00. Indicador ausente vale desvio ZERO. O custo entra dentro da " +
+                "parcela de preço e rentabilidade; o termo de troca ficou de fora (D-P05) e precisa da issue 70."));
     }
 
     /// <summary>O período mais longo aceito: três anos, a janela da curva ABC (documento 27).</summary>

@@ -104,17 +104,53 @@ export type PotencialAjustado = {
 };
 
 /**
+ * O momento de UMA cultura — o fator dela, com a demanda que ela representa.
+ *
+ * O fator é por cultura (issue 74): a cana pode estar retraída enquanto o café
+ * está aquecido. Crédito e percepção são do recorte e entram iguais em todas.
+ */
+export type MomentoDaCultura = {
+  culturaCodigo: string;
+  cultura: string;
+  demandaEstrutural: number | null;
+  areaUtilHectares: number | null;
+  indiceDePreco: number | null;
+  fator: FatorDoCiclo;
+  demandaAjustada: number | null;
+};
+
+/** A cultura que domina a área — CONTEXTO, e não regra de agregação. */
+export type CulturaPredominante = {
+  cultura: string;
+  /** A fatia dela na área útil das culturas com regra, em percentual. */
+  fatia: number;
+  /** O critério, dito por extenso — a tela não deduz qual foi. */
+  criterio: string;
+};
+
+/**
  * PORTE E MOMENTO SÃO DOIS NÚMEROS, NUNCA UM (documento 50, §4.2).
  *
  * O porte é o tamanho do mercado e muda devagar; o momento é o fator de ciclo e
  * muda todo mês. O `porte` nasce **nulo** até a issue 166 ter bandas: nomear
  * exige um corte, e corte sem dono é parâmetro inventado.
+ *
+ * O FATOR AGREGADO NÃO É UM ÍNDICE MÉDIO DE COMMODITY (fase T3.1). Ele é
+ * `Σ demandaAjustada ÷ Σ demandaEstrutural` — a razão entre dois números que o
+ * motor já calcula. Cada cultura pesa pela demanda que representa, e nenhuma
+ * fórmula nova entrou.
  */
 export type MomentoDoRecorte = {
-  potencial: PotencialAjustado;
-  indiceDePreco: number | null;
-  /** Qual cultura deu o índice de preço — é a de maior área, e a tela diz. */
-  culturaDoIndiceDePreco: string | null;
+  /** Demanda ajustada total ÷ estrutural total; nulo com motivo. */
+  fatorAgregado: number | null;
+  /** `Nenhum`, `SemDemandaEstrutural` ou `SemFatorPorCultura`. */
+  motivoSemFator: string;
+  demandaEstruturalTotal: number | null;
+  demandaAjustadaTotal: number | null;
+  /** A composição do agregado — o fator de cada cultura, com as parcelas. */
+  porCultura: MomentoDaCultura[];
+  /** Contexto: o que se planta aqui. Não decide o fator. */
+  predominante: CulturaPredominante | null;
   indiceDeCredito: number | null;
   percepcaoPercentual: number | null;
   /** Nulo enquanto a issue 166 não tiver bandas — e nulo não é "pequeno". */

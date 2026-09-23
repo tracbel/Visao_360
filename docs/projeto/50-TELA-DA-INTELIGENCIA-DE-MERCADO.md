@@ -52,7 +52,7 @@ Nenhum rótulo, tooltip, título de aba ou campo de contrato usa a palavra *shar
 | 2 | Quanto ele demanda por ano? | KPI *Demanda anual* · bloco Potencial | **depende de D-P01** |
 | 3 | Qual a relevância deste município ante a região e SP? | selo de comparação em cada indicador (§7) | **parcial** — a fatia de SP existe (#72); a **fatia da Região** ainda não é exposta por município |
 | 4 | O mercado está melhor ou pior que antes? | faixa + índice em *Momento do mercado* | **sim** (#73) |
-| 5 | Por quê? | as quatro setas do fator, com tooltip de fórmula e fonte | **sim** (#74) |
+| 5 | Por quê? | as **três** parcelas do fator **por cultura**, na aba *Composição do fator*, com tooltip de fórmula e fonte | **sim** (#74) |
 | 6 | Quanto a Tracbel vende? | bloco *Performance Tracbel* | **sim em R$** (faturamento); **não em unidades** (#69) |
 | 7 | Qual é a nossa **captura**? | KPI *Captura Tracbel* · bloco *Performance* | **não** — precisa de #69 |
 | 8 | Quanto ainda não capturamos? | KPI *Oportunidade* | **não** — #69 e, para o R$, #70 |
@@ -94,8 +94,9 @@ a #163 pede, e a escolha vive na URL (`?municipio=<código IBGE>`) para poder se
 │  42,3% de SP        38,1% de SP       3,2 p.p. acima    85% do mercado      │
 │                                       da Região                             │
 │                                                                             │
-│  Demanda 42,3% de SP        Momento: RETRAÍDO  ↓ 0,88                       │
-│  ↓ Commodity   ↓ Crédito   → Custo   ↑ Percepção            ⓘ               │
+│  Porte: 3.457 máq/ano · 42,3% de SP     Momento: 0,88 · Retraído    ⓘ       │
+│  Mercado retraído.                                                          │
+│  Principal cultura: Cana-de-açúcar · 58% da área relevante  ⓘ               │
 ├─ VISÃO GEOGRÁFICA ──────────────────────────────────────────────────────────┤
 │  ┌─────────────────────────┬─────────────────────────┐                      │
 │  │ Cobertura de carteira   │ Vendas realizadas       │                      │
@@ -105,7 +106,8 @@ a #163 pede, e a escolha vive na URL (`?municipio=<código IBGE>`) para poder se
 ├─ POTENCIAL ESTRUTURAL ──────────────────────────── [Simular cenário] ───────┤
 │  [ Parque ] [ Demanda anual ] [ Cenários ]                                  │
 ├─ MOMENTO DO MERCADO ────────────────────────────────────────────────────────┤
-│  [ Rentabilidade ] [ Crédito ] [ Termo de troca ] [ Percepção comercial ]   │
+│  [ Composição do fator ] [ Rentabilidade ] [ Crédito ] [ Termo de troca ]   │
+│  [ Percepção comercial ]                                                    │
 ├─ PERFORMANCE TRACBEL ───────────────────────────────────────────────────────┤
 │  [ Captura ] [ Vendas ] [ Não capturado ]                                   │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -153,14 +155,60 @@ demais; enquanto forem nulas, o rótulo não aparece e o parâmetro consta em `p
 O **momento**, esse já tem faixas decididas (#73/#74) e pode ser nomeado: retraído, normal, aquecido,
 superaquecido.
 
-### 4.3 O "por quê", em quatro setas
+#### 4.2.1 Como o momento do recorte é agregado [D] — corrigido na T3.1, 23/09/2026
+
+O fator é **por cultura** (#74): a cana pode estar retraída enquanto o café está aquecido, porque preço e
+rentabilidade são de cada uma. O recorte, porém, precisa de **um** número no topo. A regra é:
 
 ```
-↓ Commodity   ↓ Crédito   → Custo   ↑ Percepção        ⓘ
+fator agregado = Σ demanda ajustada (cultura) ÷ Σ demanda estrutural (cultura)
+```
+
+Só entram as culturas que têm **os dois** números. Cultura sem demanda estrutural não tem peso a exercer, e
+cultura sem fator não tem ajuste a contribuir — incluí-la como zero puxaria o agregado para baixo afirmando
+uma retração que ninguém mediu. **Total estrutural zero ou nulo devolve ausência com motivo, nunca 1,00**:
+*"não há base para dizer"* é uma afirmação diferente de *"o mercado está neutro"*.
+
+**Nenhuma fórmula nova entra aqui.** Os dois somandos já são calculados pelo motor; a agregação é a razão
+entre eles. Com todas as culturas neutras, as somas se igualam e o agregado dá 1,00; e como cada fator já
+sai dentro dos limites registrados, a média ponderada deles não escapa desses limites.
+
+**O que foi recusado, e por quê.** A primeira implementação da T3 usava o **índice de preço da cultura de
+maior área** como índice do recorte inteiro. Era uma solução técnica sem decisão de negócio que a
+sustentasse: a #63 não define isso, e deixar uma cultura falar pelas outras conflita com a #74, que põe o
+fator na cultura. **Uma média ponderada de índices de preço também foi recusada** — seria outra fórmula
+nova. A regra acima não inventa nada: ela pesa cada cultura pela demanda que ela representa.
+
+**A cultura predominante continua na tela, como contexto** — ela responde *"o que se planta aqui?"*, que é
+uma pergunta legítima — com a **fatia e o critério ditos por extenso** (`maior área útil entre as culturas
+com regra de potencial`). Ela **não** decide o fator de ninguém: trocar qual cultura tem a maior área muda
+essa linha e não muda o número do topo. **Não há volta para a cultura de maior área como fallback**:
+ausência honesta é melhor do que regra provisória com aparência de definitiva.
+
+### 4.3 O "por quê", parcela por parcela — **dentro do bloco, por cultura** [D]
+
+```
+Café (Total)     índice 0,80   fator 0,84   demanda 300 → 252 máq/ano
+  ↓ Commodity ⓘ    ↓ Crédito ⓘ    ↑ Percepção ⓘ
+
+Cana-de-açúcar   índice 1,30   fator 1,00   demanda 100 → 100 máq/ano
+  ↑ Commodity ⓘ    ↓ Crédito ⓘ    ↑ Percepção ⓘ
+  ─────────────────────────────────────────────────────────────────
+  Agregado: 352 ajustada ÷ 400 estrutural = 0,88 máq/ano ⓘ
 ```
 
 Cada seta é uma **parcela do fator** (#74), com `InfoTooltip`: fórmula, fonte, competência e o valor da
-parcela. **Cor nunca é o único sinal** — a direção da seta carrega o significado.
+parcela. **Cor nunca é o único sinal** — a direção da seta carrega o significado. **Commodity é da cultura;
+crédito e percepção são do recorte**, e por isso se repetem iguais em todas as linhas — a tela diz isso, em
+vez de deixar o leitor achar que é falha.
+
+**As setas não aparecem no resumo executivo** [D], e isso é a correção da T3.1: as parcelas são calculadas
+por cultura, e desenhá-las agregadas no topo exigiria decompor o quociente em três pedaços que o domínio não
+produz. O resumo mostra `Momento: 0,88 · Retraído ⓘ`, e o ⓘ aponta para a composição. **Não se cria uma
+fórmula só para manter três setas no alto da página.**
+
+**As parcelas são três, e não quatro** (D-P05): o **custo entra dentro de commodity** — rentabilidade é
+preço menos custo —, e o termo de troca ficou de fora porque precisa do preço de máquina (#70).
 
 ### 4.4 Visão geográfica — os quatro mapas ficam aqui [D]
 
@@ -191,8 +239,13 @@ motivo **numa linha só**, sem repetir a mesma frase quatro vezes.
 
 ### 4.6 Momento do mercado
 
-Abas internas: **Rentabilidade** · **Crédito** · **Termo de troca** · **Percepção comercial**. Uma linha por
-cultura, com índice, faixa e variação. *Termo de troca* nasce com o motivo no lugar do número, até a **#70**.
+Abas internas: **Composição do fator** · **Rentabilidade** · **Crédito** · **Termo de troca** · **Percepção
+comercial**. Uma linha por cultura, com índice, faixa e variação. *Termo de troca* nasce com o motivo no
+lugar do número, até a **#70**.
+
+**A composição abre o bloco** [D] — ela é a conta do número que a página mostra lá em cima (§4.2.1), e é
+aqui que moram as três parcelas de cada cultura (§4.3). Sem cultura com regra, a aba diz que falta o
+**D-P01 (#63)**, o que também explica o vazio do momento no topo.
 
 ### 4.7 Performance Tracbel
 
@@ -221,8 +274,8 @@ dado já aparece resumido lá, aqui ele aparece na forma operacional — a lista
 │   +18% cenário atual 0,9% da região    3,2 p.p. acima 85% do mercado │
 │                      0,2% de SP        da Região                     │
 │                                                                      │
-│   Momento: AQUECIDO ↑ 1,24                                           │
-│   ↑ Commodity   ↑ Crédito   → Custo   ↑ Percepção            ⓘ       │
+│   Momento: 1,24 · Aquecido                                   ⓘ       │
+│   Principal cultura: Cana-de-açúcar · 58% da área relevante   ⓘ       │
 ├──────────────────────────────────────────────────────────────────────┤
 │  LAVOURA                          ESTRUTURA                          │
 │  Área plantada     37.226 ha      Tratores            422            │
@@ -300,7 +353,8 @@ componentes/mercado/PorteEMomento.tsx
 componentes/mercado/VisaoGeografica.tsx   (a grade 2×2, intacta)
 componentes/mercado/BlocoDePotencial.tsx  (Parque · Demanda · Cenários)
 componentes/mercado/MatrizDeCenarios.tsx
-componentes/mercado/BlocoDoMomento.tsx    (Rentabilidade · Crédito · Troca · Percepção)
+componentes/mercado/BlocoDoMomento.tsx    (Composição · Rentabilidade · Crédito · Troca · Percepção)
+componentes/mercado/ComposicaoDoFator.tsx (a conta do fator agregado, cultura por cultura)
 componentes/mercado/PerformanceTracbel.tsx
 componentes/territorio/AbaDeTerritorio.tsx
 componentes/comum/Comparacao.tsx          (a regra da §7, nas duas formas)
@@ -353,6 +407,7 @@ quatro KPIs em unidades), depois #70 (converte o mercado para R$).
 | **T1** | Casca: filtros e chip acima das abas, **Mercado** padrão e **Território** secundário. Grade 2×2 preservada dentro de Mercado. | #76 | **T0 verde** |
 | **T2** | Recorte por município, comparação Região/SP (§7), `Comparacao`, `ValorAusente`, procedência por indicador, `InfoTooltip` no lugar de `title` e da prosa fixa. | **#163**, **#167**, #168, #75 | T1 |
 | **T3** | Os quatro KPIs, Porte × Momento e as parcelas do fator. Valor inexistente continua inexistente **com motivo**; nunca mock. | #76, #74, #166 | T2; D-P01 para o número sair |
+| **T3.1** | **Agregação do momento** (§4.2.1): o fator do recorte passa a ser `Σ ajustada ÷ Σ estrutural`, a composição por cultura vira aba do bloco e as setas saem do resumo executivo. Corrige a regra da cultura de maior área, que foi recusada. | #74, #76 | T3 |
 | **T4** | A ficha em três camadas. | #76 | T2 |
 | **T5** | Matriz de cenários e `Simular cenário` como ação secundária. | #74, #161 | T3 |
 | **T6** | Performance Tracbel, com **Captura** enquanto o denominador for demanda estimada. | **#162**, #69 | **#69 pronta** |

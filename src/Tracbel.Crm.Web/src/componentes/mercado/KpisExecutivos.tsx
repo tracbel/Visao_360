@@ -35,11 +35,20 @@ const OPORTUNIDADE_SEM_DADO =
 
 export function KpisExecutivos({
   momento,
+  demandaEstrutural,
   demandaDeSaoPaulo,
   carregando,
   procedenciaDaDemanda,
 }: {
   momento: MomentoDoRecorte | null;
+  /**
+   * A DEMANDA ANUAL DO RECORTE INTEIRO, pelo motor (issue 72).
+   *
+   * Ela vem do potencial, e NÃO da soma que o fator agregado usa: aquela soma
+   * conta só as culturas que entraram na razão, e mostrá-la aqui encolheria o
+   * mercado em silêncio toda vez que uma cultura ficasse sem preço.
+   */
+  demandaEstrutural: number | null;
   /**
    * A demanda anual de São Paulo, quando houver.
    *
@@ -50,21 +59,23 @@ export function KpisExecutivos({
   carregando: boolean;
   procedenciaDaDemanda: ProcedenciaDoIndicador | null;
 }) {
-  const demanda = momento?.potencial.demandaEstrutural ?? null;
-
   // A DEMANDA É SOMÁVEL: ela compara por FATIA. Sem denominador, o selo some —
   // e não vira 0%, que afirmaria que a região não demanda nada.
-  const comoFatia = montarSomavel(demanda, null, demandaDeSaoPaulo);
+  const comoFatia = montarSomavel(demandaEstrutural, null, demandaDeSaoPaulo);
   const contexto = fatiasEmTexto(comoFatia);
+
+  // O QUE O MOMENTO FAZ COM ELA, direto do fator agregado — nenhum número novo:
+  // fator 0,88 é a mesma coisa que "12% abaixo da estrutural".
+  const variacao = momento?.fatorAgregado == null ? null : (momento.fatorAgregado - 1) * 100;
 
   const indicadores: Indicador[] = [
     {
       rotulo: 'Demanda anual',
-      valor: demanda === null ? null : `${nº(Math.round(demanda))} máq/ano`,
+      valor: demandaEstrutural === null ? null : `${nº(Math.round(demandaEstrutural))} máq/ano`,
       deOnde:
         contexto ??
-        (momento?.potencial.variacaoPercentual != null
-          ? `${momento.potencial.variacaoPercentual > 0 ? '+' : ''}${nº(Math.round(momento.potencial.variacaoPercentual))}% sobre a estrutural`
+        (variacao != null
+          ? `${variacao > 0 ? '+' : ''}${nº(Math.round(variacao))}% com o momento do mercado`
           : 'o que o parque renova por ano'),
       procedencia: procedenciaDaDemanda,
       semDado:
