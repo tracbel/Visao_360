@@ -1,11 +1,15 @@
 /**
- * Indicadores Geográficos da ADR — os quatro mapas do pedido do gerente comercial
- * (documento 32, seção 8; documento 36), com dado do banco do CRM e do IBGE.
+ * Indicadores Geográficos da ADR — a Visão Diretoria (documento 50).
  *
- * ESTA É A CASCA. Ela busca, calcula os totais e compõe os blocos; cada bloco
- * mora no próprio componente, em `componentes/territorio/` (issue 170, parte A —
- * fase T0 do documento 50). A ordem dos blocos aqui é a ordem da tela, e é o que
- * `IndicadoresGeograficos.teste.tsx` prende.
+ * ESTA É A CASCA. Ela busca, calcula os totais e monta duas abas sobre o MESMO
+ * recorte: **Mercado** (padrão) e **Território**. Cada bloco mora no próprio
+ * componente, em `componentes/mercado/` e `componentes/territorio/`.
+ *
+ * OS FILTROS E O MUNICÍPIO ESCOLHIDO FICAM ACIMA DAS ABAS, e é isso que faz as
+ * duas serem leituras do mesmo recorte: escolher um município no mapa e ir para
+ * Território continua falando do mesmo município. Se os filtros vivessem dentro
+ * de uma aba, a outra seria outra página (fase T1; a issue 163 leva a escolha
+ * para a URL e faz os painéis reagirem a ela).
  *
  * O QUE ESTA TELA NÃO FAZ, e diz na própria tela:
  * - não filtra por SAM/KAM/Varejo, tipo de produto nem modelo — não há dado;
@@ -13,7 +17,6 @@
  *   propriedade; o potencial é o do município inteiro, por uma regra ainda a
  *   confirmar;
  * - não mostra valor em reais no potencial — não há preço de máquina confirmado;
- *   o preço das CULTURAS está no painel do fim (issue 66);
  * - não oferece FYTD — o calendário fiscal não foi confirmado.
  *
  * OS NÚMEROS DA MAQUETE NÃO ESTÃO AQUI. Ela era ilustrativa; nenhum valor desta
@@ -21,24 +24,20 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTela';
-import { PainelDeIndicadores } from '../componentes/cadastro/Indicadores';
+import { BlocoErro } from '../componentes/cadastro/EstadosDeTela';
 import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
-import { MetricasSemDado } from '../componentes/cadastro/SemDado';
+import { AbaDeMercado } from '../componentes/mercado/AbaDeMercado';
+import { AbasDaTela, type Aba } from '../componentes/territorio/AbasDaTela';
+import { AbaDeTerritorio } from '../componentes/territorio/AbaDeTerritorio';
 import { AvisoDeTerritorioSemCarga } from '../componentes/territorio/AvisoDeTerritorioSemCarga';
 import { CartaoDeAlcance } from '../componentes/territorio/CartaoDeAlcance';
+import { ChipDoMunicipio } from '../componentes/territorio/ChipDoMunicipio';
 import { ComoLerEstesNumeros } from '../componentes/territorio/ComoLerEstesNumeros';
 import { DetalheDoMunicipio } from '../componentes/territorio/DetalheDoMunicipio';
 import { FiltrosDosIndicadores } from '../componentes/territorio/FiltrosDosIndicadores';
-import { GradeDeMapas } from '../componentes/territorio/GradeDeMapas';
 import { LARGURA_DO_DESENHO } from '../componentes/territorio/indicadoresDaAdr';
 import { kpisDaCarteira, kpisDoMercado, type ContextoDosKpis } from '../componentes/territorio/kpisDosIndicadores';
 import type { LigacaoDoMapa } from '../componentes/territorio/mapas/CartaoDeMapa';
-import { PainelDeCredito } from '../componentes/territorio/PainelDeCredito';
-import { PainelDeCustos } from '../componentes/territorio/PainelDeCustos';
-import { PainelDePrecos } from '../componentes/territorio/PainelDePrecos';
-import { SecaoDoMercadoDaRegiao } from '../componentes/territorio/SecaoDoMercadoDaRegiao';
-import { TabelaDeMunicipios } from '../componentes/territorio/TabelaDeMunicipios';
 import { calcularFatiaNoEstado, calcularTotais } from '../componentes/territorio/totaisDaAdr';
 import type { PoligonoProjetado } from '../componentes/territorio/MapaDeMunicipios';
 import { caminhoSvg, enquadrar, type ColecaoMunicipal } from '../componentes/territorio/projecao';
@@ -48,9 +47,18 @@ import { useRecurso } from '../dados/api/useRecurso';
 import type { ClassificacaoDeIndicador, FiltrosTerritoriais } from '../tipos/territorio';
 import '../estilos/territorio.css';
 
+type IdDaAba = 'mercado' | 'territorio';
+
+/** Mercado é a primeira porque o público desta tela é a diretoria (documento 50, §3). */
+const ABAS: readonly Aba<IdDaAba>[] = [
+  { id: 'mercado', rotulo: 'Mercado' },
+  { id: 'territorio', rotulo: 'Território' },
+];
+
 export function IndicadoresGeograficos() {
   const { contexto } = useContextoDeAcesso();
 
+  const [aba, setAba] = useState<IdDaAba>('mercado');
   const [filtros, setFiltros] = useState<FiltrosTerritoriais>({
     competenciaInicial: '',
     competenciaFinal: '',
@@ -120,8 +128,7 @@ export function IndicadoresGeograficos() {
    * O potencial do RECORTE CONSULTADO, pelo motor (issue 72).
    *
    * Ele cobre os municípios que a consulta deixou passar — com filtro de região ou de loja, é a região
-   * ou a loja; sem filtro, é o mapa inteiro, ADR e fora dela. Os cartões do topo continuam sendo da
-   * ADR, e por isso o painel do recorte diz quantos municípios entraram nele.
+   * ou a loja; sem filtro, é o mapa inteiro, ADR e fora dela.
    */
   const recorte = indicadores?.potencialDoRecorte ?? null;
 
@@ -164,8 +171,7 @@ export function IndicadoresGeograficos() {
     painel.dados?.classificacoes.find((c) => c.indicador === indicador) ?? null;
 
   // TERRITÓRIO NÃO CARREGADO NÃO É ZERO. A consulta respondeu, sem filtro de região nem de loja, e nenhum
-  // município veio marcado como ADR: a carga do território (catálogo IBGE, área de atuação, responsáveis,
-  // área plantada) não rodou neste banco.
+  // município veio marcado como ADR: a carga do território não rodou neste banco.
   const territorioNaoCarregado = indicadores !== null && filtros.regiao === '' && filtros.lojaCodigo === '' && daAdr.length === 0;
   const vendasForaDoMapa = indicadores?.foraDoMapa.reduce((s, g) => s + g.vendas.valorLiquido, 0) ?? 0;
   const semCodigoIbge = indicadores?.foraDoMapa.find((g) => g.grupo === 'MunicipioSemCodigoIbge') ?? null;
@@ -201,6 +207,19 @@ export function IndicadoresGeograficos() {
     aoPassar: setEmFoco,
   };
 
+  // A FICHA É MONTADA UMA VEZ e entregue à aba ativa: ela é o detalhe do
+  // município escolhido, que é do recorte e não da aba. Abrir pelo mapa
+  // (Mercado) ou pela tabela (Território) tem de dar na mesma ficha.
+  const ficha =
+    escolhido && indicadores ? (
+      <DetalheDoMunicipio
+        municipio={escolhido}
+        regras={indicadores.regras}
+        culturasNoEstado={indicadores.culturasNoEstado}
+        aoFechar={() => setSelecionado(null)}
+      />
+    ) : null;
+
   return (
     <>
       <div className="page-header" data-bloco="cabecalho">
@@ -232,6 +251,8 @@ export function IndicadoresGeograficos() {
 
       {painel.dados && <ComoLerEstesNumeros classificacoes={painel.dados.classificacoes} />}
 
+      <ChipDoMunicipio nome={escolhido?.nome ?? null} aoLimpar={() => setSelecionado(null)} />
+
       {painel.erro && <BlocoErro erro={painel.erro} aoTentarDeNovo={painel.recarregar} />}
       {erroDaMalha && <BlocoErro erro={erroDaMalha} />}
 
@@ -242,56 +263,45 @@ export function IndicadoresGeograficos() {
         />
       )}
 
-      <PainelDeIndicadores indicadores={kpisDaCarteira(contextoDosKpis)} carregando={painel.carregando} />
-
-      <SecaoDoMercadoDaRegiao />
-      <PainelDeIndicadores indicadores={kpisDoMercado(contextoDosKpis)} carregando={painel.carregando} />
-
-      {(painel.carregando || !desenho) && !painel.erro && !erroDaMalha && <BlocoCarregando oQue="os mapas da ADR" />}
-
-      {indicadores && ligacao && !territorioNaoCarregado && (
-        <GradeDeMapas
-          ligacao={ligacao}
-          indicadores={indicadores}
-          totais={totais}
-          coberturaDaAdr={coberturaDaAdr}
-          regra={regra}
-          recorte={recorte}
-          semFiltro={semFiltro}
-          contexto={contexto}
-          anoDoCenso={estruturaDaAdr.anoDoCenso}
-          anoDoRebanho={estruturaDaAdr.anoDoRebanho}
-          classificacaoDe={classificacao}
-        />
-      )}
-
-      {escolhido && indicadores && (
-        <DetalheDoMunicipio
-          municipio={escolhido}
-          regras={indicadores.regras}
-          culturasNoEstado={indicadores.culturasNoEstado}
-          aoFechar={() => setSelecionado(null)}
-        />
-      )}
-
-      <MetricasSemDado metricas={painel.dados?.metricasSemDado} titulo="O que estes mapas não dizem" />
-
-      {indicadores && (
-        <TabelaDeMunicipios
-          municipios={municipios}
-          daAdr={ordenados}
-          foraDoMapa={indicadores.foraDoMapa}
-          totais={totais}
-          selecionado={selecionado}
-          aoSelecionar={setSelecionado}
-          territorioNaoCarregado={territorioNaoCarregado}
-          semFiltro={semFiltro}
-        />
-      )}
-
-      <PainelDePrecos />
-      <PainelDeCustos />
-      <PainelDeCredito />
+      <AbasDaTela abas={ABAS} ativa={aba} aoTrocar={setAba} rotulo="Leituras do recorte">
+        {aba === 'mercado' ? (
+          <AbaDeMercado
+            kpisDoMercado={kpisDoMercado(contextoDosKpis)}
+            carregando={painel.carregando}
+            ligacao={ligacao}
+            indicadores={indicadores}
+            totais={totais}
+            comTerritorio={comTerritorio}
+            coberturaDaAdr={coberturaDaAdr}
+            regra={regra}
+            recorte={recorte}
+            semFiltro={semFiltro}
+            contexto={contexto}
+            anoDoCenso={estruturaDaAdr.anoDoCenso}
+            anoDoRebanho={estruturaDaAdr.anoDoRebanho}
+            classificacaoDe={classificacao}
+            metricasSemDado={painel.dados?.metricasSemDado}
+            municipioCodigoIbge={selecionado}
+            mostrarOsMapas={indicadores !== null && desenho !== null && !territorioNaoCarregado}
+            ficha={ficha}
+          />
+        ) : (
+          <AbaDeTerritorio
+            kpisDaCarteira={kpisDaCarteira(contextoDosKpis)}
+            carregando={painel.carregando}
+            indicadores={indicadores !== null}
+            municipios={municipios}
+            ordenados={ordenados}
+            foraDoMapa={indicadores?.foraDoMapa ?? []}
+            totais={totais}
+            selecionado={selecionado}
+            aoSelecionar={setSelecionado}
+            territorioNaoCarregado={territorioNaoCarregado}
+            semFiltro={semFiltro}
+            ficha={ficha}
+          />
+        )}
+      </AbasDaTela>
     </>
   );
 }

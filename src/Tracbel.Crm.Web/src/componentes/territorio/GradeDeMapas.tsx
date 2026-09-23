@@ -7,11 +7,9 @@
  * que o CSS transforma em 2×2, e o que a issue 76 manda preservar.
  */
 
-import type { ContextoDeAcesso } from '../../dados/api/http';
 import type {
   ClassificacaoDeIndicador,
   IndicadoresTerritoriais,
-  PotencialDoRecorteNoMapa,
   RegraDePotencialAplicada,
 } from '../../tipos/territorio';
 import { MapaDaEstrutura } from './mapas/MapaDaEstrutura';
@@ -27,9 +25,6 @@ export function GradeDeMapas({
   totais,
   coberturaDaAdr,
   regra,
-  recorte,
-  semFiltro,
-  contexto,
   anoDoCenso,
   anoDoRebanho,
   classificacaoDe,
@@ -39,9 +34,6 @@ export function GradeDeMapas({
   totais: TotaisDaAdr;
   coberturaDaAdr: number | null;
   regra: RegraDePotencialAplicada | null;
-  recorte: PotencialDoRecorteNoMapa | null;
-  semFiltro: boolean;
-  contexto: ContextoDeAcesso;
   anoDoCenso: number | null;
   anoDoRebanho: number | null;
   classificacaoDe: (indicador: ClassificacaoDeIndicador['indicador']) => ClassificacaoDeIndicador | null;
@@ -65,9 +57,6 @@ export function GradeDeMapas({
         ligacao={ligacao}
         totais={totais}
         regra={regra}
-        recorte={recorte}
-        semFiltro={semFiltro}
-        contexto={contexto}
         enderecos={indicadores.enderecos}
         enderecosComArea={indicadores.enderecosComArea}
         classificacao={classificacaoDe('potencial')}
