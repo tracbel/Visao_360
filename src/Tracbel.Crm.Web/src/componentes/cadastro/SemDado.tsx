@@ -36,11 +36,40 @@ import type { MetricaSemDado } from '../../tipos/relacionamento';
 export function MetricasSemDado({
   metricas,
   titulo = 'O que estes números não dizem',
+  compacto = false,
 }: {
   metricas: MetricaSemDado[] | undefined;
   titulo?: string;
+  /**
+   * Recolhe o bloco num detalhe de uma linha (fase T2.1, issues 31 e 33).
+   *
+   * Na Visão Diretoria esta informação é auditoria — nível 4 da hierarquia —, e
+   * um bloco de largura inteira aqui compete com mercado, potencial e mapas. O
+   * padrão continua aberto para as telas que já dependiam dele.
+   */
+  compacto?: boolean;
 }) {
   if (!metricas || metricas.length === 0) return null;
+
+  if (compacto) {
+    return (
+      <details className="cad-recolhivel cad-semdado-compacto" data-bloco="limitacoes">
+        <summary>{titulo}</summary>
+        <ul className="cad-semdado-lista">
+          {metricas.map((m) => (
+            <li key={m.metrica}>
+              <code className="cad-semdado-nome">{m.metrica}</code>
+              <span className="cad-semdado-motivo">{m.motivo}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="cad-semdado-rodape">
+          Medido pela API na mesma consulta que produziu os números acima. Quando o dado melhorar, este texto muda
+          sozinho.
+        </p>
+      </details>
+    );
+  }
 
   return (
     <div className="cad-semdado" role="note">

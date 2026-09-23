@@ -28,6 +28,7 @@ import { useSearchParams } from 'react-router-dom';
 import { BlocoErro } from '../componentes/cadastro/EstadosDeTela';
 import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
 import { AbaDeMercado } from '../componentes/mercado/AbaDeMercado';
+import { produtosDoMunicipio } from '../componentes/mercado/culturasDoMunicipio';
 import { AbasDaTela, type Aba } from '../componentes/territorio/AbasDaTela';
 import { AbaDeTerritorio } from '../componentes/territorio/AbaDeTerritorio';
 import { AvisoDeTerritorioSemCarga } from '../componentes/territorio/AvisoDeTerritorioSemCarga';
@@ -224,6 +225,11 @@ export function IndicadoresGeograficos() {
 
   const escolhido = selecionado === null ? null : porCodigo.get(selecionado) ?? null;
   const ordenados = useMemo(() => [...daAdr].sort((a, b) => b.vendas.valorLiquido - a.vendas.valorLiquido), [daAdr]);
+
+  // AS CULTURAS DO MUNICÍPIO ESCOLHIDO, por área plantada (issue 168). Elas não
+  // mudam o preço nem o custo — que são de São Paulo e da localidade da CONAB —,
+  // mudam quais culturas aparecem primeiro nos dois painéis.
+  const produtosPriorizados = useMemo(() => produtosDoMunicipio(escolhido), [escolhido]);
   const semFiltro = filtros.regiao === '' && filtros.lojaCodigo === '';
 
   const ligacao: LigacaoDoMapa | null = desenho && {
@@ -314,6 +320,7 @@ export function IndicadoresGeograficos() {
             metricasSemDado={painel.dados?.metricasSemDado}
             municipioCodigoIbge={selecionado}
             nomeDoMunicipio={escolhido?.nome ?? null}
+            produtosDoMunicipio={produtosPriorizados}
             mostrarOsMapas={indicadores !== null && desenho !== null && !territorioNaoCarregado}
             ficha={ficha}
           />

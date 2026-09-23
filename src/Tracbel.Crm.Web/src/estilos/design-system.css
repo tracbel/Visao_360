@@ -9401,3 +9401,78 @@ tr.funil-nova {
   gap: 4px;
   color: var(--text-tertiary);
 }
+
+/* ---------------------------------------------------------------------------
+   DETALHE RECOLHÍVEL — nível 3 e 4 da hierarquia da issue 33 (fase T2.1).
+
+   Documentação, auditoria e metodologia continuam na tela e continuam inteiras,
+   mas em UMA LINHA até alguém querer lê-las. `<details>` é do próprio HTML:
+   abre pelo teclado e pelo leitor de tela sem código nosso.
+   --------------------------------------------------------------------------- */
+
+.cad-recolhivel {
+  display: inline-block;
+  max-width: 100%;
+  margin: 4px 0 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.cad-recolhivel > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.cad-recolhivel > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* O "i" redondo, desenhado em CSS: o mesmo sinal do InfoTooltip, para a pessoa
+   aprender uma convenção só. */
+.cad-recolhivel > summary::before {
+  content: 'i';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cad-recolhivel > summary:hover {
+  color: var(--jd-green);
+  border-color: var(--jd-green);
+}
+
+.cad-recolhivel[open] > summary {
+  margin-bottom: 8px;
+  color: var(--jd-green);
+  border-color: var(--jd-green);
+}
+
+/* O RÓTULO E O TRAÇO NA MESMA LINHA: onde caberia um número, cabe a ausência
+   dele — e não um cartão de texto (fase T2.1). */
+.cad-metrica-ausente {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.cad-metrica-ausente-rotulo {
+  color: var(--text-secondary);
+}

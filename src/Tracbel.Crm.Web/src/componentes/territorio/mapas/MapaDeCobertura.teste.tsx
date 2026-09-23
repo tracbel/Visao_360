@@ -84,17 +84,33 @@ describe('o cartão do mapa de cobertura', () => {
     expect(screen.getByText(/vínculos pendentes \(fora do prazo \+ nunca contatados\)/)).toBeInTheDocument();
   });
 
-  it('o aviso muda com a medida: quantidade favorece cidade grande', () => {
+  // O CONTRATO MUDOU NA T2.1: o aviso era um parágrafo permanente embaixo do
+  // mapa. Agora é a dica do título — mesmo texto, sem ocupar a primeira camada.
+  it('a metodologia não ocupa a tela, e muda com a medida escolhida', () => {
     montar();
-    expect(screen.getByText(/Percentual compara municípios de tamanhos diferentes/)).toBeInTheDocument();
+
+    // Nada disso está no corpo do cartão.
+    expect(screen.queryByText(/Percentual compara municípios de tamanhos diferentes/)).not.toBeInTheDocument();
+    expect(document.querySelector('.terr-mapa .terr-aviso')).toBeNull();
+
+    const gatilho = screen.getByRole('button', { name: 'Fonte e método deste mapa' });
+    fireEvent.focus(gatilho);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/Percentual compara municípios de tamanhos diferentes/);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/nenhum tipo de atividade está marcado como visita/);
+    fireEvent.blur(gatilho);
 
     fireEvent.click(screen.getByRole('button', { name: 'pendentes (qtd.)' }));
-    expect(screen.getByText(/Quantidade favorece cidades grandes/)).toBeInTheDocument();
+    fireEvent.focus(screen.getByRole('button', { name: 'Fonte e método deste mapa' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/Quantidade favorece cidades grandes/);
   });
 
-  it('sem cursor, a linha convida a passar por cima', () => {
+  // O CONTRATO MUDOU NA T2.1: a linha dizia permanentemente "Passe o cursor…
+  // nos três mapas" — instrução fixa em quatro cartões, e ainda errada: são
+  // QUATRO mapas. Ela agora só fala quando há cursor.
+  it('sem cursor, a linha fica calada — nada de instrução permanente', () => {
     montar();
-    expect(linhaDoCursor()).toMatch(/Passe o cursor sobre um município/);
+    expect(linhaDoCursor()).toBe('');
+    expect(document.body.textContent).not.toMatch(/três mapas/);
   });
 
   it('com o município em foco, a linha do cursor traz o detalhe dele', () => {

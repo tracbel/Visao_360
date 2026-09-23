@@ -1,10 +1,15 @@
 /**
- * A casca comum dos quatro cartões de mapa (issue 170, parte A).
+ * A casca comum dos quatro cartões de mapa (issue 170 parte A; densidade na #31).
  *
- * OS QUATRO TÊM O MESMO ESQUELETO — título, subtítulo, resumo, alternador, mapa,
- * linha do cursor, legenda e aviso —, e antes ele estava escrito quatro vezes.
- * Aqui ele está uma vez só, e cada mapa traz o que é dele. O desenho não muda:
- * as classes e a ordem dos elementos são as mesmas de antes.
+ * OS QUATRO TÊM O MESMO ESQUELETO — título, resumo, alternador, mapa, linha do
+ * cursor e legenda —, e antes ele estava escrito quatro vezes. Aqui ele está uma
+ * vez só, e cada mapa traz o que é dele.
+ *
+ * O AVISO PERMANENTE SAIU DAQUI (fase T2.1). Cada cartão terminava num parágrafo
+ * de quatro a oito linhas explicando Censo, sigilo, ANP e regra provisória — e
+ * quatro deles empilhados eram mais texto do que mapa. A hierarquia da issue 33
+ * diz o que fazer: nível 1 é dado operacional, nível 2 é dica. Toda essa
+ * metodologia virou o `ⓘ` ao lado do título, **sem perder uma palavra**.
  *
  * O ENQUADRAMENTO É COMPARTILHADO: os quatro recebem a mesma `ligacao`, e é por
  * isso que o mesmo município fica no mesmo lugar nos quatro e o cursor sobre ele
@@ -13,6 +18,7 @@
 
 import type { ComponentProps, ReactNode } from 'react';
 import type { IndicadoresDoMunicipio } from '../../../tipos/territorio';
+import { InfoTooltip } from '../../InfoTooltip';
 import {
   LegendaDoMapa,
   MapaDeMunicipios,
@@ -39,15 +45,13 @@ export function CartaoDeMapa({
   mapa,
   id,
   titulo,
-  subtitulo,
+  metodologia,
   resumo,
   alternador,
   tituloDoMapa,
   estadoDe,
   faixas,
   unidade,
-  aviso,
-  classeDoAviso = 'terr-aviso',
   ligacao,
 }: {
   /** O nome do mapa para o teste de estrutura; nenhuma regra de CSS o usa. */
@@ -55,21 +59,27 @@ export function CartaoDeMapa({
   /** Separa os padrões de hachura dos SVGs. */
   id: string;
   titulo: ReactNode;
-  subtitulo: ReactNode;
+  /**
+   * Fonte, competência, método e ressalvas — tudo o que era parágrafo fixo.
+   *
+   * Vai para a dica ao lado do título: continua a um toque, a um Tab e a um
+   * ponteiro de distância, e não ocupa a tela de quem só quer ver o mapa.
+   */
+  metodologia: string;
   resumo: ReactNode;
   alternador: ReactNode;
   tituloDoMapa: string;
   estadoDe: (codigo: number) => EstadoNoMapa;
   faixas: ComponentProps<typeof LegendaDoMapa>['faixas'];
   unidade: string;
-  aviso: ReactNode;
-  classeDoAviso?: string;
   ligacao: LigacaoDoMapa;
 }) {
   return (
     <div className="card cad-cartao terr-mapa" data-mapa={mapa}>
-      <div className="card-title">{titulo}</div>
-      <div className="card-subtitle">{subtitulo}</div>
+      <div className="card-title">
+        {titulo}
+        <InfoTooltip texto={metodologia} rotulo={`Fonte e método deste mapa`} />
+      </div>
       <p className="terr-mapa-resumo">{resumo}</p>
       {alternador}
       <MapaDeMunicipios
@@ -84,16 +94,18 @@ export function CartaoDeMapa({
         emFoco={ligacao.emFoco}
         aoPassar={ligacao.aoPassar}
       />
+      {/* A LINHA DO CURSOR SÓ FALA QUANDO HÁ CURSOR (fase T2.1). Ela dizia
+          permanentemente "Passe o cursor sobre um município para ver o número
+          dele nos três mapas; clique para abrir a ficha" — instrução fixa, em
+          quatro cartões, e ainda por cima errada: os mapas são QUATRO. */}
       <p className="terr-mapa-foco" aria-live="polite">{textoDoFoco(ligacao, estadoDe)}</p>
       <LegendaDoMapa faixas={faixas} unidade={unidade} />
-      <p className={classeDoAviso}>{aviso}</p>
     </div>
   );
 }
 
 /** O detalhe do município sob o cursor, na medida de cada mapa. */
 function textoDoFoco(ligacao: LigacaoDoMapa, estadoDe: (codigo: number) => EstadoNoMapa): string {
-  if (ligacao.emFoco === null)
-    return 'Passe o cursor sobre um município para ver o número dele nos três mapas; clique para abrir a ficha.';
+  if (ligacao.emFoco === null) return '';
   return `${ligacao.nomeDoPoligono.get(ligacao.emFoco) ?? ligacao.emFoco} — ${estadoDe(ligacao.emFoco).detalhe}`;
 }

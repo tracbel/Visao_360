@@ -15,6 +15,28 @@ import { CartaoDeMapa, type LigacaoDoMapa } from './CartaoDeMapa';
 import { foraDoRecorte } from './foraDoRecorte';
 import type { EstadoNoMapa } from '../MapaDeMunicipios';
 
+/**
+ * A METODOLOGIA SAIU DO CORPO E VIROU DICA (fase T2.1, issues 31 e 33).
+ *
+ * Nada se perdeu: o que era subtítulo mais um parágrafo de quatro linhas embaixo
+ * do mapa está inteiro aqui, e continua alcançável pelo ponteiro, pelo teclado e
+ * pelo toque.
+ */
+function metodologia(modo: ModoDeCobertura): string {
+  const escala =
+    modo === 'quantidade'
+      ? 'Quantidade favorece cidades grandes; alterne para % para comparar.'
+      : 'Percentual compara municípios de tamanhos diferentes; uma cidade com 3 vínculos muda de faixa com 1 contato.';
+
+  return (
+    'Fonte: CRM Tracbel — carteira comercial e interações. ' +
+    'Método: último contato registrado de cada vínculo em carteira, contra a cadência declarada da linha. ' +
+    `${escala} ` +
+    'Ressalva: contato é qualquer interação registrada, inclusive registro gerado pelo sistema — nenhum tipo de ' +
+    'atividade está marcado como visita (documento 32, P-2), então isto ainda não mede visita.'
+  );
+}
+
 /** Último contato de cada vínculo contra a cadência declarada da linha. */
 export function MapaDeCobertura({
   ligacao,
@@ -51,7 +73,7 @@ export function MapaDeCobertura({
       id="cobertura"
       ligacao={ligacao}
       titulo={<>Cobertura de carteira <SeloDeClassificacao classificacao={classificacao} /></>}
-      subtitulo="Último contato registrado de cada vínculo em carteira comercial, contra a cadência declarada da linha."
+      metodologia={metodologia(modoDeCobertura)}
       resumo={
         totais.elegiveis > 0
           ? `${nº(totais.elegiveis)} elegíveis · ${nº(totais.cobertos)} no prazo (${porcento(coberturaDaAdr ?? 0)}) · ${nº(totais.pendentes)} pendentes`
@@ -70,15 +92,6 @@ export function MapaDeCobertura({
       estadoDe={estadoDaCobertura}
       faixas={FAIXAS_DE_COBERTURA[modoDeCobertura]}
       unidade={UNIDADE_DE_COBERTURA[modoDeCobertura]}
-      aviso={
-        <>
-          {modoDeCobertura === 'quantidade'
-            ? 'Quantidade favorece cidades grandes; alterne para % para comparar.'
-            : 'Percentual compara municípios de tamanhos diferentes; uma cidade com 3 vínculos muda de faixa com 1 contato.'}{' '}
-          Contato é qualquer interação registrada, inclusive registro gerado pelo sistema: nenhum tipo de atividade está
-          marcado como visita (documento 32, P-2).
-        </>
-      }
     />
   );
 }

@@ -17,7 +17,7 @@
 import { useState } from 'react';
 import type { ContextoDeAcesso } from '../../dados/api/http';
 import type { PotencialDoRecorteNoMapa } from '../../tipos/territorio';
-import { LacunaConhecida } from '../cadastro/SemDado';
+import { MetricaAusente } from '../comum/MetricaAusente';
 import { MOTIVO_SEM_PARQUE, nº } from '../territorio/indicadoresDaAdr';
 import { PainelDoPotencialDoRecorte } from '../territorio/PainelDoPotencialDoRecorte';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
@@ -44,7 +44,12 @@ export function BlocoDePotencial({
     <section data-bloco="potencial-estrutural">
       <TituloDaSecao
         titulo="Potencial estrutural"
-        subtitulo="O que a área comporta, antes do momento do mercado — parque instalado, renovação por ano e os cenários."
+        subtitulo="O que a área comporta, antes do momento do mercado."
+        metodologia={
+          'Parque instalado, renovação por ano e os três cenários. O parque é a soma dos municípios do recorte, e ' +
+          'não o motor rodado sobre as áreas somadas: o compartilhamento de terra entre culturas acontece dentro do ' +
+          'município. A demanda anual depende do ciclo de renovação por cultura (D-P01, issue 63).'
+        }
         acao={
           <div className="terr-alternador" role="group" aria-label="Simulação">
             <button type="button" aria-pressed={calculadoraAberta} onClick={() => setCalculadoraAberta(!calculadoraAberta)}>
@@ -73,8 +78,7 @@ export function BlocoDePotencial({
             conteudo: recorte ? (
               <PainelDoPotencialDoRecorte recorte={recorte} comFiltro={!semFiltro} />
             ) : (
-              <LacunaConhecida
-                metrica="Parque de máquinas"
+              <MetricaAusente metrica="Parque de máquinas"
                 motivo="Nenhuma regra de potencial está vigente para o recorte consultado, então não há quantos hectares pedem uma máquina — e sem isso não há parque a somar."
               />
             ),
@@ -89,8 +93,7 @@ export function BlocoDePotencial({
                   consultado — o parque dividido pelo ciclo de renovação de cada cultura.
                 </p>
               ) : (
-                <LacunaConhecida
-                  metrica="Demanda anual"
+                <MetricaAusente metrica="Demanda anual"
                   motivo={`${
                     recorte ? MOTIVO_SEM_PARQUE[recorte.motivoSemDemanda] : 'não há regra de potencial vigente'
                   }. A decisão D-P01 (issue 63) fixa cultura, categoria, hectares por máquina e anos de renovação — as quatro juntas; sem elas, somar só as culturas que têm ciclo daria um total menor que o real, com cara de completo.`}
@@ -101,8 +104,7 @@ export function BlocoDePotencial({
             id: 'cenarios',
             rotulo: 'Cenários',
             conteudo: (
-              <LacunaConhecida
-                metrica="Cenários do potencial"
+              <MetricaAusente metrica="Cenários do potencial"
                 motivo="O fator de ciclo e os três cenários existem no motor (issue 74) e já aparecem na calculadora, mas ainda não são calculados para o recorte desta tela. A matriz conservador / moderado / otimista entra na fase T5."
               />
             ),

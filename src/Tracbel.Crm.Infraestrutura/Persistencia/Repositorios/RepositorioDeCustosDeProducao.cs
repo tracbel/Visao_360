@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Portas;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
@@ -32,7 +33,18 @@ public sealed class RepositorioDeCustosDeProducao(CrmDbContext contexto) : IRepo
                     .Select(l => new CustoNaSafra(
                         l.Aba, l.Safra, l.MesDoRelatorio, l.Produtividade, l.UnidadeDaProdutividade,
                         l.CustoVariavelHa, l.CustoFixoHa, l.CustoOperacionalHa, l.RendaDeFatoresHa, l.CustoTotalHa,
-                        l.CustoOperacionalUnidade, l.CustoTotalUnidade))]))
+                        l.CustoOperacionalUnidade, l.CustoTotalUnidade))],
+                // CADA SÉRIE CARREGA A PRÓPRIA ORIGEM (issue 167). A localidade e a safra saem do dado,
+                // e a ressalva diz o que quem lê precisa saber: o custo é DA LOCALIDADE da CONAB.
+                new ProcedenciaDoIndicador(
+                    "CONAB",
+                    "Custos de produção — série histórica",
+                    g.Key.Variante is null ? g.Key.Local : $"{g.Key.Local} — {g.Key.Variante}",
+                    g.Key.Cultura,
+                    $"safras {g.Min(l => l.Safra)} a {g.Max(l => l.Safra)}",
+                    DateTime.UtcNow,
+                    "O custo é o da localidade de referência da CONAB, e não do município escolhido — não existe " +
+                    "série municipal. Abas antigas param no custo operacional: o custo total ausente ali não é zero.")))
             .OrderBy(s => s.Cultura, StringComparer.Ordinal)
             .ThenBy(s => s.Local, StringComparer.Ordinal)
             .ThenBy(s => s.Variante, StringComparer.Ordinal)];

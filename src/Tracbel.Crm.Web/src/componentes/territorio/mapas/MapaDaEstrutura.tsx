@@ -13,12 +13,29 @@ import { foraDoRecorte } from './foraDoRecorte';
 import type { EstadoNoMapa } from '../MapaDeMunicipios';
 
 /**
- * O mapa da estrutura agropecuária.
+ * O PARÁGRAFO DAS TRÊS FONTES VIROU DICA (fase T2.1, issues 31 e 33).
  *
- * SEM USINA NÃO É CAPACIDADE ZERO. Município fora da lista da ANP fica hachurado, porque a
- * ausência ali só prova que não há usina de ETANOL — usina que só faz açúcar não é autorizada
- * pela ANP e não aparece. Já a usina parada, com capacidade zerada, é um valor e entra na escala.
+ * Censo de 2017, próximo Censo, sigilo do IBGE, faixas de potência, PPM anual e
+ * a ANP que só enxerga etanol — seis ressalvas verdadeiras e necessárias, que
+ * ocupavam seis linhas permanentes embaixo do mapa. Continuam inteiras aqui.
+ *
+ * SEM USINA NÃO É CAPACIDADE ZERO: município fora da lista da ANP fica hachurado,
+ * porque a ausência ali só prova que não há usina de ETANOL.
  */
+function metodologia(anoDoCenso: number | null, anoDoRebanho: number | null): string {
+  return (
+    'Fontes: IBGE/SIDRA — Censo Agropecuário (tratores e propriedades) e PPM, Pesquisa da Pecuária Municipal ' +
+    '(rebanho); ANP (usinas de etanol). ' +
+    `Competências: Censo ${anoDoCenso ?? '2017'}, rebanho ${anoDoRebanho ?? '—'}. ` +
+    `Ressalvas: o Censo é de ${anoDoCenso ?? '2017'} e o próximo sai em 2028 — o parque tem essa idade. ` +
+    'Hachurado é SIGILO do IBGE, que não é zero: ele oculta o número quando poucos estabelecimentos o compõem. ' +
+    'As faixas de potência não se somam ao total — o "Total" do IBGE é uma categoria ao lado delas. ' +
+    'A ANP só enxerga usina de ETANOL: ausência aqui não prova ausência de usina, porque a que só faz açúcar não é ' +
+    'autorizada por ela e não aparece.'
+  );
+}
+
+/** O que já existe no território para mecanizar. */
 export function MapaDaEstrutura({
   ligacao,
   totais,
@@ -82,18 +99,12 @@ export function MapaDaEstrutura({
       mapa="estrutura"
       id="estrutura"
       ligacao={ligacao}
-      titulo="Estrutura agropecuária — o que já existe para mecanizar"
-      subtitulo={
-        <>
-          Censo Agropecuário{anoDoCenso ? ` ${anoDoCenso}` : ''} (tratores e propriedades) · Pesquisa da Pecuária
-          Municipal{anoDoRebanho ? ` ${anoDoRebanho}` : ''} (rebanho) · ANP (usinas)
-        </>
-      }
+      titulo="Estrutura agropecuária"
+      metodologia={metodologia(anoDoCenso, anoDoRebanho)}
       resumo={
         <>
-          {nº(totais.tratores)} tratores em {nº(totais.municipiosComTratores)} municípios ·{' '}
-          {nº(totais.estabelecimentos)} propriedades · {nº(totais.bovinos)} bovinos ·{' '}
-          {nº(totais.usinas)} usinas em {nº(totais.municipiosComUsina)} municípios
+          {nº(totais.tratores)} tratores · {nº(totais.estabelecimentos)} propriedades · {nº(totais.bovinos)} bovinos ·{' '}
+          {nº(totais.usinas)} usinas
         </>
       }
       alternador={
@@ -109,15 +120,6 @@ export function MapaDaEstrutura({
       estadoDe={estadoDaEstrutura}
       faixas={FAIXAS_DA_ESTRUTURA[recorteDaEstrutura]}
       unidade={UNIDADE_DA_ESTRUTURA[recorteDaEstrutura]}
-      aviso={
-        <>
-          <strong>O Censo Agropecuário é de {anoDoCenso ?? '2017'}</strong> e o próximo sai em 2028: o parque tem essa
-          idade. O rebanho é anual e está em {anoDoRebanho ?? '—'}. Hachurado é <strong>sigilo do IBGE</strong>, que não
-          é zero — ele oculta o número quando poucos estabelecimentos o compõem. As faixas de potência não se somam ao
-          total: o "Total" do IBGE é uma categoria ao lado delas. A ANP só enxerga usina de <strong>etanol</strong>:
-          ausência aqui não prova ausência de usina.
-        </>
-      }
     />
   );
 }

@@ -40,6 +40,7 @@ public interface IRepositorioDeCreditoRural
 /// <param name="PorMunicipio">Os municípios com crédito de máquinas nas duas janelas.</param>
 /// <param name="Regiao">O crédito de máquinas da Região (a ADR), somado; nulo sem dado.</param>
 /// <param name="SaoPaulo">O mesmo para São Paulo inteiro — o denominador da comparação.</param>
+/// <param name="Procedencia">De onde o crédito veio — SICOR, a janela e a ressalva do registro com atraso (issue 167).</param>
 public sealed record PainelDeCreditoRural(
     DateOnly? UltimoMes,
     JanelaDoCredito? Janela,
@@ -47,7 +48,8 @@ public sealed record PainelDeCreditoRural(
     IReadOnlyList<CreditoPorProduto> PorProduto,
     IReadOnlyList<CreditoDeMaquinasNoMunicipio> PorMunicipio,
     CreditoNoRecorte? Regiao,
-    CreditoNoRecorte? SaoPaulo);
+    CreditoNoRecorte? SaoPaulo,
+    Tracbel.Crm.Dominio.Mercado.ProcedenciaDoIndicador? Procedencia = null);
 
 /// <summary>
 /// A JANELA DE COMPARAÇÃO, DITA POR EXTENSO (issue 157) — para a tela não precisar recalculá-la e
