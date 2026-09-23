@@ -1,3 +1,4 @@
+using System.Globalization;
 using Tracbel.Crm.Dominio.Organizacao;
 
 namespace Tracbel.Crm.Dominio.Mercado;
@@ -94,6 +95,16 @@ public sealed record PotencialAjustado(
 /// </summary>
 public static class FatorDeCiclo
 {
+    /// <summary>
+    /// A CULTURA DAS FRASES É A DO LEITOR, E NÃO A DO SERVIDOR.
+    ///
+    /// <para>Uma frase em português que diz "o fator foi 3.60" está errada, e foi o CI que pegou: o
+    /// runner roda em cultura invariante e a estação em pt-BR, então o mesmo código escrevia números
+    /// diferentes nos dois. Quem lê a frase é o comercial brasileiro — a vírgula não é preferência do
+    /// processo, é parte do texto.</para>
+    /// </summary>
+    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
+
     /// <summary>Os nomes dos três cenários, na ordem em que a tela os mostra.</summary>
     public const string Conservador = "Conservador";
 
@@ -248,7 +259,8 @@ public static class FatorDeCiclo
             partes.Add($"{fator.IndicadoresUsados} de 3 indicadores com dado — os ausentes entram como neutros");
 
         if (fator.CortadoPeloLimite && fator.FatorSemLimite is { } sem && fator.Fator is { } com)
-            partes.Add($"o fator calculado foi {sem:0.00} e o limite o trouxe para {com:0.00}");
+            partes.Add(string.Format(
+                PtBr, "o fator calculado foi {0:0.00} e o limite o trouxe para {1:0.00}", sem, com));
 
         return string.Join("; ", partes);
     }

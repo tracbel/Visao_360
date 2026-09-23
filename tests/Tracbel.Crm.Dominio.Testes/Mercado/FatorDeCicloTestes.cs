@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentAssertions;
 using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Organizacao;
@@ -125,6 +126,29 @@ public sealed class FatorDeCicloTestes
         fator.Fator.Should().Be(1.5m);
         fator.CortadoPeloLimite.Should().BeTrue();
         FatorDeCiclo.Frase(fator).Should().Contain("3,60").And.Contain("1,50");
+    }
+
+    [Fact]
+    public void A_frase_usa_virgula_mesmo_num_servidor_de_outra_cultura()
+    {
+        // O DEFEITO QUE ESTE TESTE IMPEDE, e que o CI pegou antes de mim: a interpolação sem cultura
+        // escreve "3.60" no runner (cultura invariante) e "3,60" na estação (pt-BR) — o mesmo código,
+        // dois textos. Quem lê a frase é o comercial brasileiro, e a vírgula é parte do texto, não
+        // preferência do processo.
+        var anterior = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
+            var fator = FatorDeCiclo.Fator(3m, 3m, 0m, Parametros());
+
+            FatorDeCiclo.Frase(fator).Should().Contain("3,60").And.Contain("1,50")
+                .And.NotContain("3.60");
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = anterior;
+        }
     }
 
     [Fact]
