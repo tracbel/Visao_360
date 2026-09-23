@@ -609,7 +609,7 @@ flowchart LR
 | **P0 — Decisões** | regras fixadas antes do código | #63 | D-P01 a D-P05 e D-P10 decididas | diretoria e comercial |
 | **P1 — Dados de mercado** | todas as fontes no servidor, conferidas contra a pasta 360 | #64, #65, #66, #67, #68, #69, #70 | cada fonte com rotina, idempotência e conferência | #63 (parcial); #18, #19, #12 para vendas e preço |
 | **P2 — Parâmetros** | administrador edita tudo, com vigência e trilha — **feito em 21/09/2026 (§4.1)** | #71 | parâmetro com vigência e 403 sem permissão | #63; #46; #40 |
-| **P3 — Motor** | estrutural, indicadores, fator e cenários — **o estrutural feito em 22/09/2026 (§7.1)** | #72, #73, #74 | testes de ouro contra a planilha | P1; P2 |
+| **P3 — Motor** | estrutural, indicadores, fator e cenários — **completa: #72 em 22/09/2026 (§7.1), #161 (§7.2), #73 (§7.3) e #74 (§7.4) em 23/09** | #72, #73, #74 | testes de ouro contra a planilha | P1; P2 |
 | **P4 — Diretoria e Administrador** | API e as duas telas — **a do Administrador feita em 21/09/2026 (§4.1)** | #75, #76, #77 | tela = API = consulta independente; conferência com a diretoria | P3; #46 |
 | **P5 — CEN** | visão do CEN pelos seus municípios | #78 | CEN só vê os próprios municípios | P4; #48 |
 | **P6 — Clientes** | potencial por cliente e segmentação | #79, #80 | cobertura de área por cliente medida; plano aprovado | P3; #53; #55; #47 |
