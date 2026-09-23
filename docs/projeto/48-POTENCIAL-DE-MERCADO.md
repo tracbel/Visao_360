@@ -510,7 +510,7 @@ Cada decisão tem opções, a recomendação e o que ela bloqueia. **Nenhuma foi
 | D-P02 | Índice de momento de preço | último ÷ média (café); 1 contra 12, 6 contra 6, 12 contra 12 (cana); R12/R6/R3/R1 com janela deslocada (laranja); a faixa entre 1,0 e 1,2 não tem nome e "= 1" exato não acontece | **12 meses ÷ 12 anteriores** como índice oficial (é o que a conversa descreve); os outros como leitura auxiliar; faixas < 1,00 retraído, 1,00–1,20 normal, > 1,20–1,40 aquecido, > 1,40 superaquecido | #73 |
 | D-P03 | Índice de crédito | 70% contratos + 30% valor, 12 ÷ 12 (conversa); ticket médio 2026/2025 (planilha); ano fiscal ÷ mediana de 3 anos com suavização e limite (nota) | a da conversa, com suavização para município com poucos contratos e limite; decidir se trator entra (a nota exclui por endogeneidade com a própria venda) | #73 |
 | D-P04 | Percepção do gestor | por município, −5% a +5% (conversa); por cultura, −2 a +2 com peso 0,4, até ±40% (planilha) | **por município, ±5%**, com autor, data e justificativa; quem informa: gestor comercial | #71, #74 |
-| D-P05 | Pesos, limites e cenários | a = 0,4, b = 0,5, d = 0,4, limites 0,4–1,5 (planilha); cenários só anotados | manter os pesos da planilha como ponto de partida; cenário moderado = fator calculado; conservador e otimista = sensibilidades no limite inferior e superior de faixas decididas | #74 |
+| D-P05 | Pesos, limites e cenários | a = 0,4, b = 0,5, d = 0,4, limites 0,4–1,5 (planilha); cenários só anotados | **DECIDIDA em 23/09/2026** (§5.1): pesos da planilha como **primeira vigência**, com autor, data e a justificativa "medidos no protótipo, a confirmar"; as três sensibilidades são **preço/rentabilidade, crédito e percepção** — o termo de troca fica fora até a #70 | #74 |
 | D-P06 | Termo de troca | 5080EN a R$ 300 mil fixo (planilha); 3036N no café (CRM); "base de venda" e "ART preço de trator" (conversa) | máquina de referência por cultura; preço histórico mensal (mediana das notas); unidade por cultura: saca de 60 kg (café, soja, milho, amendoim), tonelada de ATR (cana), caixa de 40,8 kg (laranja) | #70, #73 |
 | D-P07 | Rentabilidade | custo total CONAB (planilha usa o total por ha); na pasta, a CONAB de SP só tem café (Franca) e cana (Piracicaba, Penápolis) — mas a CONAB publica série histórica também de soja, milho, amendoim e laranja (§2.1), com os locais a conferir dentro dos arquivos | custo operacional para a margem de caixa e total para a de longo prazo; referência fora de SP ou outra fonte para as culturas sem série, registrada | #67, #73 |
 | D-P08 | Vendas para captura e share | entregas John Deere por ano fiscal (planilha); faturamento do Protheus (#18/#19); pedidos da API GN (#12) | uma fonte oficial por período; município do cliente; ano fiscal da John Deere e ano civil lado a lado | #69 |
@@ -520,6 +520,35 @@ Cada decisão tem opções, a recomendação e o que ela bloqueia. **Nenhuma foi
 | D-P12 | Valor do potencial em R$ | não existe preço por máquina no modelo | preço de referência por categoria × demanda, com fonte e data | #70, #72 |
 | D-P13 | Propriedades por tamanho × clientes | o Censo é agregado; área por cliente vazia no CRM; ART sem acesso | primeiro a distribuição regional (Censo); cruzamento só com área por cliente de fonte decidida (cadastro pelo CEN, ART, CAR/SICAR) | #65, #79 |
 | D-P14 | Base de municípios e CEN da visão do CEN | 203 da ADR confirmados; três fontes de CEN; concessão JD ≠ loja | ADR do CRM como base única; CEN pela decisão da #48; concessão JD como recorte adicional, se a diretoria quiser | #78 |
+
+### 5.1 D-P05 decidida [23/09/2026]
+
+Ela travava o fator de ciclo (#74) e, por tabela, os três cenários da calculadora (#161). O que estava
+em aberto era menor do que parecia, e a conversa que a resolveu teve duas partes.
+
+**As três sensibilidades são as do pedido, e não as do protótipo.** O protótipo compõe o fator com
+**termo de troca**, crédito e percepção; o pedido do Ricardo fala em *"sensibilidade e rentabilidade do
+preço da commodity"*, *"contratação de crédito"* e *"sensibilidade comercial que o gerente atribui"*. A
+diferença não é de redação: o termo de troca precisa do **preço de máquina** (#70), que é dado interno e
+**não existe no sistema**; preço e rentabilidade existem desde as issues #66 e #159.
+
+> **Decidido:** o fator combina **preço/rentabilidade**, **crédito** e **percepção**. O termo de troca
+> fica de fora, com o motivo registrado, até a #70 trazer o preço de máquina — e aí entra como quarta
+> sensibilidade, ou substituindo a primeira, em decisão própria.
+
+**Os pesos do protótipo entram como primeira vigência.** `a = 0,4` (preço/rentabilidade), `d = 0,4`
+(percepção), `b = 0,5` (crédito), limites de `0,4` a `1,5` — os valores medidos na planilha, que fazem a
+demanda da região cair de 3.457 para 2.727 por ano (−21%).
+
+> **Decidido:** registrar esses valores como a vigência inicial, com autor, data e a justificativa
+> *"medidos no protótipo, a confirmar"*. Todo número que passar pelo fator carrega o **selo de
+> estimativa** enquanto essa justificativa valer. Trocar depois é uma vigência nova pela tela do
+> Administrador (#71) — **sem publicação**, e sem reescrever o que já foi mostrado.
+
+**Por que não esperar o número "certo".** Um parâmetro com vigência e autor não é um chute disfarçado: é
+uma hipótese datada, que a tela identifica como tal e que qualquer pessoa troca em um formulário. Esperar
+o valor definitivo deixaria o fator inexistente — e um fator inexistente também é uma escolha, só que
+invisível.
 
 ---
 
