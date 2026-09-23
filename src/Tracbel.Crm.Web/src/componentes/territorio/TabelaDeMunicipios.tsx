@@ -49,20 +49,29 @@ export function TabelaDeMunicipios({
             <tr>
               <th scope="col">Município</th>
               <th scope="col" className="terr-coluna-hierarquia">Região · loja</th>
-              {/* AS COLUNAS OPCIONAIS SAEM NO CELULAR (T4.6). Oito colunas
-                  comprimidas em 390px não são uma tabela, são um borrão — e
-                  rolagem lateral da página está proibida. As cinco que ficam
-                  respondem "onde vender"; o resto está inteiro na ficha do
-                  município, a um toque, e a tabela diz isso em vez de sumir com
-                  o dado em silêncio. */}
-              <th scope="col" className="cad-mono">Elegíveis</th>
-              <th scope="col" className="cad-mono">No prazo</th>
-              <th scope="col" className="cad-mono">Pendentes</th>
-              <th scope="col" className="cad-mono">Vendas</th>
-              <th scope="col" className="cad-mono">
+              {/* AS COLUNAS OPCIONAIS SAEM NO CELULAR (T4.6, corrigido na T4.7).
+
+                  Oito colunas comprimidas em 390px não são uma tabela, são um
+                  borrão — e rolagem lateral da página está proibida.
+
+                  A T4.6 tirou três e deixou cinco, e a REVISÃO DAS CAPTURAS
+                  mostrou que cinco também não cabem: em 390px a tabela virava
+                  uma lista de uma coluna, com as outras quatro escondidas atrás
+                  de rolagem horizontal dentro do cartão. O meu próprio teste
+                  passou porque contava `:visible`, que em Playwright quer dizer
+                  "não está `display:none`" — e não "cabe na tela".
+
+                  Abaixo de 560px ficam DUAS: o município e as vendas. É o que
+                  responde "onde vender" num aparelho de mão; o resto está
+                  inteiro na ficha do município, a um toque. */}
+              <th scope="col" className="terr-coluna-numero">Elegíveis</th>
+              <th scope="col" className="terr-coluna-numero">No prazo</th>
+              <th scope="col" className="terr-coluna-numero">Pendentes</th>
+              <th scope="col" className="terr-coluna-numero">Vendas</th>
+              <th scope="col" className="terr-coluna-numero">
                 Pós-venda <span className="cad-sub">(provisório)</span>
               </th>
-              <th scope="col" className="cad-mono">Máquinas teóricas</th>
+              <th scope="col" className="terr-coluna-numero">Máquinas teóricas</th>
             </tr>
           </thead>
           <tbody>

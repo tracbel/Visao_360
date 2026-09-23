@@ -172,11 +172,14 @@ export function HarnessVisual() {
 
   return (
     <div data-harness="mercado-visual" data-estado={estado}>
+      {/* A FAIXA NÃO GRUDA NO TOPO (corrigido na T4.7).
+
+          Ela era `position: sticky`, e numa captura de página inteira isso a
+          desenha no meio da imagem, tapando justamente o pedaço da tela que se
+          foi revisar. O carimbo continua no alto de toda captura — que é o que
+          ele precisa fazer — sem cobrir nada. */}
       <header
         style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 9999,
           background: '#7F1D1D',
           color: '#FFF',
           padding: '8px 16px',

@@ -108,12 +108,30 @@
   gap: var(--e-4);
 }
 
+/* TRÊS MÉTRICAS OCUPAM TRÊS COLUNAS (fase T4.7).
+
+   A grade era sempre de quatro, e a Performance Tracbel — que tem três números
+   reais — ficava com um quarto vazio de um quarto da largura, guardando lugar
+   para Captura e Não capturado. Na captura de 1440 isso lê como cartão que não
+   carregou, e não como espaço reservado. O layout volta a quatro colunas quando
+   a issue 69 trouxer os dois que faltam; até lá, três números fazem três
+   colunas. */
+.dash-kpis[data-colunas='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* A grade de TRÊS desce mais tarde: três cartões de ~320px cabem bem em 1024, e
+   quebrar ali daria 2 + 1, com o terceiro sozinho numa linha — o mesmo desenho
+   desequilibrado que a quarta coluna vazia produzia. */
 @media (max-width: 1100px) {
   .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+@media (max-width: 900px) {
+  .dash-kpis[data-colunas='3'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 560px) {
-  .dash-kpis { grid-template-columns: minmax(0, 1fr); }
+  .dash-kpis,
+  .dash-kpis[data-colunas='3'] { grid-template-columns: minmax(0, 1fr); }
 }
 
 .dash-kpi {
@@ -172,6 +190,25 @@
   font-weight: 500;
 }
 
+/* O TRAÇO TEM O TAMANHO DO NÚMERO QUE ELE SUBSTITUI (fase T4.7).
+
+   Na revisão das capturas de 1440, 1280 e 1024, os três cartões sem dado
+   pareciam CARREGANDO, não "sem dado por decisão": o `—` herdava o tamanho de
+   texto corrido do `ValorAusente` e ficava perdido num cartão dimensionado para
+   um número de 30px. A ausência é uma afirmação da tela — ela precisa do mesmo
+   peso do número, senão parece defeito. */
+.dash-kpi-valor .cad-ausente {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  font-size: var(--t-kpi);
+  line-height: var(--lh-apertada);
+  color: var(--text-tertiary);
+}
+
+/* O ⓘ ao lado do traço volta ao tamanho dele: o gatilho não cresce junto. */
+.dash-kpi-valor .cad-ausente .dica-gatilho { font-size: var(--t-apoio); }
+
 /* -----------------------------------------------------------------------------
    A FAIXA DOS NÚMEROS ESTRUTURAIS
 
@@ -179,15 +216,34 @@
    desenhados como cartão, do mesmo tamanho dos quatro do topo. Nenhum sumiu:
    continuam inteiros, com procedência e comparação, numa linha só.
    ----------------------------------------------------------------------------- */
+/* A QUEBRA É DECLARADA, e não acidental (fase T4.7).
+
+   Com `flex-wrap` os cinco indicadores quebravam onde a soma das larguras
+   mandasse: em 1024 dava 4 + 1, com o rebanho bovino sozinho numa segunda linha
+   — parecia sobra, não grupo. Em grade eles quebram 5 → 3 → 2 em degraus
+   escolhidos, e cada linha fica cheia. */
 .dash-faixa {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, auto));
+  justify-content: start;
   align-items: baseline;
   gap: var(--e-2) var(--e-5);
   padding: var(--e-3) var(--e-4);
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+}
+
+@media (max-width: 1200px) {
+  .dash-faixa { grid-template-columns: repeat(3, minmax(0, auto)); }
+}
+
+@media (max-width: 700px) {
+  .dash-faixa { grid-template-columns: repeat(2, minmax(0, auto)); }
+}
+
+@media (max-width: 420px) {
+  .dash-faixa { grid-template-columns: minmax(0, 1fr); }
 }
 
 .dash-faixa-item {
@@ -521,10 +577,18 @@
 }
 
 /* NÚMERO À DIREITA, com dígitos de largura fixa: é o que deixa a coluna
-   conferível de cima a baixo. */
-.dash-tabela-numero {
+   conferível de cima a baixo.
+
+   A FONTE É A DO TEXTO, e não a monoespaçada (fase T4.7). `tabular-nums` já dá
+   dígito de largura fixa — que é o que faz a coluna alinhar — sem trocar a
+   família. Com monoespaçada, "0,84" e "142 → 119" liam como saída de terminal, e
+   a tabela inteira ganhava cara de debug em vez de comparação entre culturas. */
+.dash-tabela-numero,
+.dash-tabela .cad-mono {
   text-align: right;
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
+  font-size: var(--t-apoio);
   white-space: nowrap;
 }
 
