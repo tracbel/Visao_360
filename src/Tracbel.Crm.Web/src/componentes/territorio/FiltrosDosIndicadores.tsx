@@ -7,6 +7,7 @@
  */
 
 import type { Dispatch, SetStateAction } from 'react';
+import { InfoTooltip } from '../InfoTooltip';
 import type {
   FiltrosTerritoriais,
   IndicadoresTerritoriais,
@@ -84,13 +85,20 @@ export function FiltrosDosIndicadores({
             onChange={(e) => aoMudarFiltros((f) => ({ ...f, competenciaFinal: e.target.value }))}
           />
         </label>
+        {/* SUB-REGIÃO, E NÃO "REGIÃO" (issue 163): Norte e Noroeste são partes da
+            Região Tracbel, que é a ADR inteira. Chamar isto de "região" fazia
+            "4,2% da região" ser lido como fatia da ADR quando era fatia do Norte. */}
         <label className="terr-filtro">
-          Região da ADR
+          Sub-região{' '}
+          <InfoTooltip
+            rotulo="O que é a sub-região"
+            texto="A hierarquia é São Paulo → Região Tracbel → sub-região → loja → município. Norte e Noroeste são SUB-REGIÕES; a Região Tracbel é a área de atuação inteira, e é ela o denominador das fatias desta tela."
+          />
           <select
             value={filtros.regiao}
             onChange={(e) => aoMudarFiltros((f) => ({ ...f, regiao: e.target.value as FiltrosTerritoriais['regiao'] }))}
           >
-            <option value="">Norte e Noroeste</option>
+            <option value="">Região Tracbel inteira</option>
             <option value="Norte">Norte</option>
             <option value="Noroeste">Noroeste</option>
           </select>
@@ -173,7 +181,9 @@ function FiltroSemDado({ rotulo, opcoes, motivo }: { rotulo: string; opcoes: str
   return (
     <label className="terr-filtro">
       {rotulo}
-      <select disabled title={motivo}>
+      {/* Sem `title=`: o motivo já está escrito embaixo, visível para todo mundo
+          e não só para quem para o ponteiro em cima (issue 167). */}
+      <select disabled>
         <option>{opcoes}</option>
       </select>
       <span className="terr-filtro-motivo">sem dado: {motivo}</span>

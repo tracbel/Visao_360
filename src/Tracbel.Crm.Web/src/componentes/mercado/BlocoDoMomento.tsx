@@ -16,6 +16,7 @@
 
 import { useState } from 'react';
 import { LacunaConhecida } from '../cadastro/SemDado';
+import { ReferenciaNaoEMunicipal } from '../comum/Comparacao';
 import { PainelDeCredito } from '../territorio/PainelDeCredito';
 import { PainelDeCustos } from '../territorio/PainelDeCustos';
 import { PainelDePrecos } from '../territorio/PainelDePrecos';
@@ -24,7 +25,13 @@ import { AbasInternas } from './AbasInternas';
 
 type SubAba = 'rentabilidade' | 'credito' | 'troca' | 'percepcao';
 
-export function BlocoDoMomento() {
+export function BlocoDoMomento({
+  municipioSelecionado = null,
+  nomeDoMunicipio = null,
+}: {
+  municipioSelecionado?: number | null;
+  nomeDoMunicipio?: string | null;
+} = {}) {
   const [subAba, setSubAba] = useState<SubAba>('rentabilidade');
 
   return (
@@ -44,12 +51,24 @@ export function BlocoDoMomento() {
             rotulo: 'Rentabilidade',
             conteudo: (
               <>
+                {/* A FONTE É ESTADUAL, e a tela diz isso (issue 168): escolher um
+                    município não reparte um preço de São Paulo por município. */}
+                <ReferenciaNaoEMunicipal nomeDoMunicipio={nomeDoMunicipio} fonte="São Paulo" />
                 <PainelDePrecos />
+                <ReferenciaNaoEMunicipal
+                  nomeDoMunicipio={nomeDoMunicipio}
+                  fonte="a localidade de referência da CONAB"
+                />
                 <PainelDeCustos />
               </>
             ),
           },
-          { id: 'credito', rotulo: 'Crédito', conteudo: <PainelDeCredito /> },
+          {
+            id: 'credito',
+            rotulo: 'Crédito',
+            // O SICOR PUBLICA POR MUNICÍPIO: aqui o recorte muda o que se lê.
+            conteudo: <PainelDeCredito municipioSelecionado={municipioSelecionado} />,
+          },
           {
             id: 'troca',
             rotulo: 'Termo de troca',

@@ -15,6 +15,8 @@
  */
 
 import type { ReactNode } from 'react';
+import { Procedencia } from '../comum/Procedencia';
+import type { ProcedenciaDoIndicador } from '../../tipos/territorio';
 
 /** Um número, o que ele é, e de onde ele saiu. */
 export type Indicador = {
@@ -27,6 +29,11 @@ export type Indicador = {
   tom?: 'neutro' | 'atencao' | 'bom';
   /** Quando o valor é nulo, o que dizer no lugar. */
   semDado?: string;
+  /**
+   * De onde o número veio (issue 167). Quando presente, vira uma dica ao lado do
+   * rótulo — e o cartão deixa de precisar escrever "Fonte: IBGE" no `deOnde`.
+   */
+  procedencia?: ProcedenciaDoIndicador | null;
 };
 
 /** A faixa de cartões. Some inteira quando não há nenhum indicador. */
@@ -44,7 +51,10 @@ export function PainelDeIndicadores({
     <div className="cad-kpis">
       {indicadores.map((i) => (
         <div key={i.rotulo} className={`cad-kpi cad-kpi-${i.tom ?? 'neutro'}`}>
-          <div className="cad-kpi-rotulo">{i.rotulo}</div>
+          <div className="cad-kpi-rotulo">
+            {i.rotulo}
+            <Procedencia procedencia={i.procedencia} oQue={i.rotulo.toLowerCase()} />
+          </div>
           <div className="cad-kpi-valor">
             {carregando ? (
               <span className="cad-kpi-esqueleto" aria-hidden="true" />

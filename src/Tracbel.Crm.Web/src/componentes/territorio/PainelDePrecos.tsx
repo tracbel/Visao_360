@@ -16,6 +16,8 @@
  * cada série já tem, para ninguém ler "12 meses" como "tudo que existe".
  */
 
+import { InfoTooltip } from '../InfoTooltip';
+import { ValorAusente } from '../comum/ValorAusente';
 import { useMemo, useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
 import { SeloProcedencia } from '../cadastro/SeloProcedencia';
@@ -201,11 +203,15 @@ export function PainelDePrecos() {
                   <th>Produto</th>
                   <th>Mês</th>
                   <th className="terr-num">Preço</th>
-                  <th className="terr-num" title="O último mês contra o mesmo mês do ano anterior, em reais, quando a série já tem">
-                    Em 1 ano
+                  <th className="terr-num">
+                    Em 1 ano{' '}
+                    <InfoTooltip
+                      rotulo="O que é a variação em 1 ano"
+                      texto="O último mês contra o mesmo mês do ano anterior, em reais, quando a série já tem os dois pontos."
+                    />
                   </th>
-                  <th className="terr-num" title="Quantos meses esta série já tem no CRM">
-                    Meses
+                  <th className="terr-num">
+                    Meses <InfoTooltip rotulo="O que é a coluna Meses" texto="Quantos meses esta série já tem no CRM." />
                   </th>
                 </tr>
               </thead>
@@ -231,13 +237,20 @@ export function PainelDePrecos() {
                       <td className="cad-mono">{rotuloDoMes(ultimo.mes)}</td>
                       <td className="terr-num">
                         <span className="cad-mono">
-                          {valor === null ? <span title="O mês ainda não tem dólar PTAX">—</span> : formatarMoeda(valor, moeda)}
+                          {valor === null ? (
+                            <ValorAusente motivo="O mês ainda não tem dólar PTAX carregado." oQue="o preço em dólar" />
+                          ) : (
+                            formatarMoeda(valor, moeda)
+                          )}
                         </span>
                         <div className="cad-sub">por {s.unidadeComercial}</div>
                       </td>
                       <td className="cad-mono terr-num">
                         {variacao === null ? (
-                          <span title="A série ainda não tem o mesmo mês do ano anterior">—</span>
+                          <ValorAusente
+                            motivo="A série ainda não tem o mesmo mês do ano anterior — sem os dois pontos não há variação a calcular."
+                            oQue="a variação em 1 ano"
+                          />
                         ) : (
                           `${variacao >= 0 ? '+' : ''}${(variacao * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
                         )}

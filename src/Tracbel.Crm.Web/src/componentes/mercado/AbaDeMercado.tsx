@@ -49,6 +49,7 @@ export function AbaDeMercado({
   classificacaoDe,
   metricasSemDado,
   municipioCodigoIbge,
+  nomeDoMunicipio,
   mostrarOsMapas,
   ficha,
 }: {
@@ -68,6 +69,8 @@ export function AbaDeMercado({
   classificacaoDe: (indicador: ClassificacaoDeIndicador['indicador']) => ClassificacaoDeIndicador | null;
   metricasSemDado: MetricaSemDado[] | undefined;
   municipioCodigoIbge: number | null;
+  /** O nome do município escolhido, para os painéis dizerem a granularidade da fonte. */
+  nomeDoMunicipio: string | null;
   /** Se a grade pode ser desenhada — há resposta, há malha e o território está carregado. */
   mostrarOsMapas: boolean;
   /** A ficha do município escolhido, montada uma vez pela casca. */
@@ -107,7 +110,7 @@ export function AbaDeMercado({
         municipioCodigoIbge={municipioCodigoIbge}
       />
 
-      <BlocoDoMomento />
+      <BlocoDoMomento municipioSelecionado={municipioCodigoIbge} nomeDoMunicipio={nomeDoMunicipio} />
 
       <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} />
     </>

@@ -17,6 +17,8 @@
  * param no custo operacional; a tela diz isso em vez de mostrar um traço mudo.
  */
 
+import { InfoTooltip } from '../InfoTooltip';
+import { ValorAusente } from '../comum/ValorAusente';
 import { useMemo, useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
 import { SeloProcedencia } from '../cadastro/SeloProcedencia';
@@ -112,25 +114,43 @@ function TabelaDaMargem() {
           </thead>
           <tbody>
             {linhas.map((r) => (
-              <tr
-                key={r.culturaCodigo}
-                title={
-                  r.margemPorHectare === null
-                    ? r.fraseDoMotivo
-                    : `produtividade: PAM ${r.anoDaProdutividade} · preço: média de ${r.mesesDePrecoNaMedia} ${
-                        r.mesesDePrecoNaMedia === 1 ? 'mês' : 'meses'
-                      } de ${r.anoDaProdutividade} · custo: ${r.localDoCusto}, safra ${r.safraDoCusto}, camada ${r.camadaDoCusto?.toLowerCase()}`
-                }
-              >
+              <tr key={r.culturaCodigo}>
                 <td>
                   {comoSeEscreve(r.culturaNome)}
+                  {/* A COMPOSIÇÃO SAIU DO `title=` DA LINHA INTEIRA e virou dica no nome da
+                      cultura (issue 167): dica numa linha de tabela não abre pelo teclado, e
+                      quem tabula pelas células nunca soube de que safra era aquele custo.
+                      O LOCAL DA CONAB É ESTADUAL/REGIONAL: o município escolhido diz QUAIS
+                      culturas importam, e não transforma a referência em dado municipal. */}
+                  <InfoTooltip
+                    rotulo={`Como a margem de ${comoSeEscreve(r.culturaNome)} é composta`}
+                    texto={
+                      r.margemPorHectare === null
+                        ? r.fraseDoMotivo
+                        : `Produtividade: PAM ${r.anoDaProdutividade}. Preço: média de ${r.mesesDePrecoNaMedia} ${
+                            r.mesesDePrecoNaMedia === 1 ? 'mês' : 'meses'
+                          } de ${r.anoDaProdutividade}. Custo: CONAB, ${r.localDoCusto}, safra ${r.safraDoCusto}, camada ${r.camadaDoCusto?.toLowerCase()}. O custo é da localidade de referência da CONAB, e não do município escolhido.`
+                    }
+                  />
                   {r.localDoCusto && <div className="cad-sub">{r.localDoCusto}</div>}
                 </td>
-                <td className="terr-num cad-mono">{r.receitaPorHectare === null ? '—' : reais(r.receitaPorHectare)}</td>
-                <td className="terr-num cad-mono">{r.custoPorHectare === null ? '—' : reais(r.custoPorHectare)}</td>
+                <td className="terr-num cad-mono">
+                  {r.receitaPorHectare === null ? (
+                    <ValorAusente motivo={r.fraseDoMotivo} oQue={`a receita por hectare de ${comoSeEscreve(r.culturaNome)}`} />
+                  ) : (
+                    reais(r.receitaPorHectare)
+                  )}
+                </td>
+                <td className="terr-num cad-mono">
+                  {r.custoPorHectare === null ? (
+                    <ValorAusente motivo={r.fraseDoMotivo} oQue={`o custo por hectare de ${comoSeEscreve(r.culturaNome)}`} />
+                  ) : (
+                    reais(r.custoPorHectare)
+                  )}
+                </td>
                 <td className="terr-num">
                   {r.margemPorHectare === null ? (
-                    <span className="cad-sub">{r.fraseDoMotivo}</span>
+                    <ValorAusente motivo={r.fraseDoMotivo} oQue={`a margem de ${comoSeEscreve(r.culturaNome)}`} />
                   ) : (
                     <span className={`cad-mono ${r.margemPorHectare >= 0 ? 'terr-variacao-alta' : 'terr-variacao-baixa'}`}>
                       {reais(r.margemPorHectare)}
@@ -266,8 +286,8 @@ export function PainelDeCustos() {
                       <th>Safra</th>
                       <th className="terr-num">Operacional / ha</th>
                       <th className="terr-num">Total / ha</th>
-                      <th className="terr-num" title="Quantas safras esta série tem">
-                        Safras
+                      <th className="terr-num">
+                        Safras <InfoTooltip rotulo="O que é a coluna Safras" texto="Quantas safras esta série tem no CRM." />
                       </th>
                     </tr>
                   </thead>
@@ -308,8 +328,12 @@ export function PainelDeCustos() {
                                 )}
                               </>
                             ) : (
-                              <span className="cad-sub" title="A CONAB publicou só até o custo operacional nesta aba">
-                                a CONAB parou no operacional
+                              <span className="cad-sub">
+                                a CONAB parou no operacional{' '}
+                                <InfoTooltip
+                                  rotulo="Por que não há custo total"
+                                  texto="A CONAB publicou só até o custo operacional nesta aba da planilha — o total não existe na fonte, e não é zero."
+                                />
                               </span>
                             )}
                           </td>

@@ -53,9 +53,16 @@ const resumo = () => document.querySelector('.terr-mapa-resumo')!.textContent ??
 const linhaDoCursor = () => document.querySelector('.terr-mapa-foco')!.textContent ?? '';
 
 describe('o cartão do mapa de cobertura', () => {
-  it('mostra o selo de como ler o número, com o motivo', () => {
+  // O CONTRATO MUDOU NA FASE T2: o motivo do selo saía num `title=`. Agora o
+  // próprio selo é o gatilho de uma dica, e abre pelo teclado (issue 167).
+  it('mostra o selo de como ler o número, e o motivo abre pelo teclado', () => {
     montar();
-    expect(screen.getByTitle('a cadência ainda não foi confirmada')).toHaveTextContent('Regra provisória');
+
+    const selo = screen.getByRole('button', { name: 'Por que este número está marcado como Regra provisória' });
+    expect(selo).toHaveTextContent('Regra provisória');
+
+    fireEvent.focus(selo);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('a cadência ainda não foi confirmada');
   });
 
   it('o resumo traz elegíveis, no prazo e pendentes', () => {
