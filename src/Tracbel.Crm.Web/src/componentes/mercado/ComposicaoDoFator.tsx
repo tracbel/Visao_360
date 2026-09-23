@@ -1,28 +1,32 @@
 /**
- * A COMPOSIÇÃO DO FATOR, CULTURA POR CULTURA (fase T3.1).
+ * A COMPOSIÇÃO DO FATOR, CULTURA POR CULTURA (T3.1; redesenhada na T4.6).
  *
  * O número do topo da tela é UM, mas ele não nasce de um índice de mercado: ele é
  * a razão entre dois números que o motor já calcula para cada cultura —
  *
  *     fator agregado = Σ demanda ajustada ÷ Σ demanda estrutural
  *
- * — e é aqui que essa conta fica visível. Cada linha mostra a cultura, o índice
- * de preço DELA, o fator DELA e as três parcelas que o explicam; a última linha
- * mostra as duas somas e o quociente. Quem desconfiar do 0,88 do topo soma a
+ * — e é aqui que essa conta fica visível. Quem desconfiar do 0,88 do topo soma a
  * coluna e confere.
  *
- * AS SETAS MORAM AQUI, E NÃO NO RESUMO EXECUTIVO. As três parcelas — preço e
- * rentabilidade, crédito e percepção — são calculadas por cultura; desenhá-las
- * agregadas lá em cima exigiria decompor o quociente em três pedaços que o
- * domínio não produz. Inventar essa decomposição só para manter três setas no
- * topo seria desenho mandando na matemática.
+ * O QUE MUDOU NA T4.6 — a forma, e nada da conta.
+ *
+ * Isto era uma lista de parágrafos: cada cultura numa linha de texto corrido,
+ * com "índice de preço 0,80  fator 0,84  demanda 142 → 119 máq/ano" e as três
+ * setas embaixo, também em texto. Para comparar o crédito do café com o da cana
+ * o olho tinha de andar na diagonal. Virou **tabela**, que é a forma de
+ * comparar a mesma grandeza entre linhas — e foi para isso que a tabela existe.
+ *
+ * AS COLUNAS SÃO AS DA LEITURA: cultura, momento dela, e as três parcelas em
+ * colunas próprias, cada uma no seu eixo vertical. Quem quiser o detalhe — os
+ * índices, as demandas, o que cada parcela contribuiu — abre a linha.
  *
  * PREÇO É DE CADA CULTURA; CRÉDITO E PERCEPÇÃO SÃO DO RECORTE. Por isso as duas
- * últimas setas se repetem iguais em todas as linhas, e a tela diz isso em vez de
- * deixar o leitor achar que é bug.
+ * últimas colunas se repetem iguais em todas as linhas, e a tela diz isso no
+ * cabeçalho em vez de deixar o leitor achar que é falha.
  *
  * AS PARCELAS SÃO TRÊS, E NÃO QUATRO (D-P05). O custo entra DENTRO da primeira —
- * rentabilidade é preço menos custo —, e uma quarta seta afirmaria uma
+ * rentabilidade é preço menos custo —, e uma quarta coluna afirmaria uma
  * sensibilidade independente que a decisão não criou. O termo de troca ficou de
  * fora porque precisa do preço de máquina (issue 70).
  */
@@ -54,7 +58,7 @@ function seta(parcela: number | null): string {
   return '→';
 }
 
-/** Uma parcela do fator de UMA cultura, com a conta e a origem na dica. */
+/** Uma célula de parcela: a seta, e a conta na dica. */
 function Parcela({
   nome,
   parcela,
@@ -64,15 +68,15 @@ function Parcela({
   nome: string;
   parcela: number | null;
   explicacao: string;
-  /** Para a dica não ficar ambígua quando a tela tem várias culturas abertas. */
   cultura: string;
 }) {
   return (
-    <span className="terr-parcela">
+    <td className="dash-tabela-seta">
       <span className="terr-parcela-seta" aria-hidden="true">
         {seta(parcela)}
       </span>
-      <span className="terr-parcela-nome">{nome}</span>
+      <span className="cad-so-leitor">{nome}</span>
+      <span className="terr-parcela-nome cad-so-leitor">{nome}</span>
       <InfoTooltip
         rotulo={`Como ${nome.toLowerCase()} entra no fator de ${cultura}`}
         texto={
@@ -81,97 +85,75 @@ function Parcela({
             : `${explicacao} Contribuição nesta cultura: ${parcela > 0 ? '+' : ''}${pt(parcela * 100, 1)}% sobre a demanda estrutural dela.`
         }
       />
-    </span>
+    </td>
   );
 }
 
-/** As três parcelas de uma cultura, mais o aviso de corte quando o limite agiu. */
-function ParcelasDaCultura({ cultura, fator }: { cultura: string; fator: FatorDoCiclo }) {
+/** A faixa do fator de uma cultura, em palavra — é o que se lê de longe. */
+function faixaDaCultura(fator: FatorDoCiclo): string {
+  if (fator.fator === null) return '—';
+  if (fator.fator < 1) return 'Retraído';
+  if (fator.fator > 1) return 'Aquecido';
+  return 'Normal';
+}
+
+/** Uma linha da composição. */
+function LinhaDaCultura({ c }: { c: MomentoDaCultura }) {
   return (
-    <div className="terr-parcelas" aria-label={`Por que ${cultura} está neste momento`}>
+    <tr data-cultura={c.culturaCodigo}>
+      <th scope="row" className="dash-tabela-nome">
+        {c.cultura}
+      </th>
+
+      <td className="dash-tabela-faixa">{faixaDaCultura(c.fator)}</td>
+
+      <td className="cad-mono dash-tabela-numero">
+        {c.fator.fator === null ? (
+          <ValorAusente motivo={c.fator.motivo} oQue={`o fator de ${c.cultura}`} />
+        ) : (
+          pt(c.fator.fator)
+        )}
+      </td>
+
       <Parcela
-        nome="Commodity"
-        cultura={cultura}
-        parcela={fator.parcelaDePreco}
-        explicacao={`Preço e rentabilidade de ${cultura} — o índice é DESTA cultura, e não do recorte. O custo entra AQUI: rentabilidade é preço menos custo, e não uma quarta sensibilidade.`}
+        nome="Rentabilidade"
+        cultura={c.cultura}
+        parcela={c.fator.parcelaDePreco}
+        explicacao={`Preço e rentabilidade de ${c.cultura} — o índice é DESTA cultura (${c.indiceDePreco === null ? 'não carregado' : pt(c.indiceDePreco)}), e não do recorte. O custo entra AQUI: rentabilidade é preço menos custo, e não uma quarta sensibilidade.`}
       />
       <Parcela
         nome="Crédito"
-        cultura={cultura}
-        parcela={fator.parcelaDeCredito}
+        cultura={c.cultura}
+        parcela={c.fator.parcelaDeCredito}
         explicacao="Índice de crédito do SICOR — 70% linhas e 30% valor, na janela vigente. É do MUNICÍPIO, não da cultura, e por isso entra igual em todas. Ele MULTIPLICA o resto, porque é a condição de financiar: sem crédito, nem a melhor safra vira máquina."
       />
       <Parcela
         nome="Percepção"
-        cultura={cultura}
-        parcela={fator.parcelaDaPercepcao}
+        cultura={c.cultura}
+        parcela={c.fator.parcelaDaPercepcao}
         explicacao="A leitura do comercial sobre o município, de −5 a +5 pontos percentuais, com autor e vigência (issue 71). É do RECORTE, não da cultura. Ela soma dentro do parêntese do produtor, então o crédito a amplifica."
       />
-      {fator.cortadoPeloLimite && (
-        <span className="terr-parcela">
-          <span className="terr-parcela-nome">no limite</span>
-          <InfoTooltip
-            rotulo={`Por que o fator de ${cultura} foi cortado`}
-            texto={`O fator calculado foi ${pt(fator.fatorSemLimite ?? 0)} e o limite registrado o trouxe para ${pt(fator.fator ?? 0)}. O limite é decisão com vigência, não arredondamento.`}
+
+      <td className="cad-mono dash-tabela-numero">
+        {c.demandaEstrutural === null ? (
+          <ValorAusente
+            motivo={`${c.cultura} não tem ciclo de renovação informado (D-P01, issue 63), então não há demanda estrutural aqui — e uma cultura sem demanda não pesa na agregação, em vez de entrar como zero e puxar o número para baixo.`}
+            oQue={`a demanda de ${c.cultura}`}
           />
-        </span>
-      )}
-    </div>
-  );
-}
-
-/** Uma linha da composição: a cultura, o índice dela, o fator dela e as parcelas. */
-function LinhaDaCultura({ c }: { c: MomentoDaCultura }) {
-  return (
-    <li className="terr-composicao-linha" data-cultura={c.culturaCodigo}>
-      <div className="terr-composicao-cabecalho">
-        <span className="terr-composicao-cultura">{c.cultura}</span>
-
-        <span className="terr-composicao-numero">
-          índice de preço{' '}
-          {c.indiceDePreco === null ? (
-            <ValorAusente
-              motivo={`A série de preço não cobre ${c.cultura}, então o preço não desvia o fator dela. Indicador ausente vale desvio ZERO — não é "cultura em queda".`}
-              oQue={`o índice de preço de ${c.cultura}`}
-            />
-          ) : (
-            <span className="cad-mono">{pt(c.indiceDePreco)}</span>
-          )}
-        </span>
-
-        <span className="terr-composicao-numero">
-          fator{' '}
-          {c.fator.fator === null ? (
-            <ValorAusente motivo={c.fator.motivo} oQue={`o fator de ${c.cultura}`} />
-          ) : (
-            <span className="cad-mono">{pt(c.fator.fator)}</span>
-          )}
-        </span>
-
-        <span className="terr-composicao-numero">
-          demanda{' '}
-          {c.demandaEstrutural === null ? (
-            <ValorAusente
-              motivo={`${c.cultura} não tem ciclo de renovação informado (D-P01, issue 63), então não há demanda estrutural aqui — e uma cultura sem demanda não pesa na agregação, em vez de entrar como zero e puxar o número para baixo.`}
-              oQue={`a demanda de ${c.cultura}`}
-            />
-          ) : (
-            <>
-              <span className="cad-mono">{inteiro(c.demandaEstrutural)}</span>
-              {c.demandaAjustada !== null && (
-                <>
-                  {' → '}
-                  <span className="cad-mono">{inteiro(c.demandaAjustada)}</span>
-                </>
-              )}{' '}
-              máq/ano
-            </>
-          )}
-        </span>
-      </div>
-
-      {c.fator.fator !== null && <ParcelasDaCultura cultura={c.cultura} fator={c.fator} />}
-    </li>
+        ) : (
+          <>
+            {inteiro(c.demandaEstrutural)}
+            {c.demandaAjustada !== null && <> → {inteiro(c.demandaAjustada)}</>}
+          </>
+        )}
+        {c.fator.cortadoPeloLimite && (
+          <InfoTooltip
+            rotulo={`Por que o fator de ${c.cultura} foi cortado`}
+            texto={`O fator calculado foi ${pt(c.fator.fatorSemLimite ?? 0)} e o limite registrado o trouxe para ${pt(c.fator.fator ?? 0)}. O limite é decisão com vigência, não arredondamento.`}
+          />
+        )}
+      </td>
+    </tr>
   );
 }
 
@@ -193,46 +175,90 @@ export function ComposicaoDoFator({ momento }: { momento: MomentoDoRecorte | nul
     );
 
   return (
-    <div data-bloco="composicao-do-fator">
-      <p className="cad-sub">
-        O fator de cada cultura tem o preço <strong>dela</strong>; crédito e percepção são do recorte e entram
-        iguais em todas. O número do topo da página é a razão entre as duas somas abaixo — some a coluna e confira.
-      </p>
-
-      <ul className="terr-composicao">
-        {porCultura.map((c) => (
-          <LinhaDaCultura key={c.culturaCodigo} c={c} />
-        ))}
-      </ul>
-
-      <p className="terr-composicao-total">
-        <strong>Agregado:</strong>{' '}
-        {fatorAgregado === null || demandaEstruturalTotal === null || demandaAjustadaTotal === null ? (
-          <ValorAusente
-            motivo={
-              momento.motivoSemFator === 'SemDemandaEstrutural'
-                ? 'Nenhuma cultura do recorte tem demanda estrutural, então não há denominador para a razão. Enquanto o ciclo de renovação (D-P01, issue 63) não for decidido, o agregado fica ausente: "não há base para dizer" é diferente de "o mercado está neutro".'
-                : 'Há demanda estrutural, mas nenhuma cultura produziu fator — faltam os pesos das sensibilidades (D-P05). Peso é decisão registrada, não conta.'
-            }
-            oQue="o fator agregado"
-          />
-        ) : (
-          <>
-            <span className="cad-mono">{inteiro(demandaAjustadaTotal)}</span> ajustada ÷{' '}
-            <span className="cad-mono">{inteiro(demandaEstruturalTotal)}</span> estrutural ={' '}
-            <span className="cad-mono">{pt(fatorAgregado)}</span> máq/ano
-            <InfoTooltip
-              rotulo="Como o fator agregado é calculado"
-              texto={
-                'Σ demanda ajustada ÷ Σ demanda estrutural, somando só as culturas que têm os dois números. ' +
-                'Cada cultura pesa exatamente pela demanda que representa — a área dela não entra nesta conta. ' +
-                'Nenhuma fórmula nova foi criada: com todas as culturas neutras, as duas somas se igualam e o ' +
-                'agregado dá 1,00. E como cada fator já vem dentro dos limites registrados, a razão não escapa deles.'
-              }
-            />
-          </>
-        )}
-      </p>
+    // A ROLAGEM É DENTRO DO CARTÃO, e nunca da página. Sete colunas com cabeçalho
+    // que não quebra dão 860px, e numa tela de 768 isso empurrava a PÁGINA para o
+    // lado — medido pela conferência visual assim que a tabela entrou. Rolagem
+    // lateral da página esconde coluna sem avisar; dentro do cartão, o leitor vê
+    // a barra e sabe que há mais à direita.
+    <div className="cad-tabela-wrap dash-tabela-rolagem" data-bloco="composicao-do-fator">
+      <table className="cad-tabela dash-tabela">
+        <thead>
+          <tr>
+            <th scope="col">Cultura</th>
+            <th scope="col">Momento</th>
+            <th scope="col">Fator</th>
+            <th scope="col">
+              Rentab.
+              <InfoTooltip
+                rotulo="De quem é a rentabilidade"
+                texto="Preço e rentabilidade são DE CADA CULTURA — por isso esta coluna muda de linha para linha. O custo entra aqui dentro."
+              />
+            </th>
+            <th scope="col">
+              Crédito
+              <InfoTooltip
+                rotulo="Por que o crédito se repete"
+                texto="O índice de crédito é do MUNICÍPIO, não da cultura: ele entra igual em todas as linhas. Não é falha da tela."
+              />
+            </th>
+            <th scope="col">
+              Percep.
+              <InfoTooltip
+                rotulo="Por que a percepção se repete"
+                texto="A percepção do comercial é do RECORTE, não da cultura: ela entra igual em todas as linhas. Não é falha da tela."
+              />
+            </th>
+            <th scope="col">Demanda → ajustada</th>
+          </tr>
+        </thead>
+        <tbody>
+          {porCultura.map((c) => (
+            <LinhaDaCultura key={c.culturaCodigo} c={c} />
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="dash-tabela-total">
+            <th scope="row" colSpan={2}>
+              Agregado
+            </th>
+            <td className="cad-mono dash-tabela-numero">
+              {fatorAgregado === null ? (
+                <ValorAusente
+                  motivo={
+                    momento.motivoSemFator === 'SemDemandaEstrutural'
+                      ? 'Nenhuma cultura do recorte tem demanda estrutural, então não há denominador para a razão. Enquanto o ciclo de renovação (D-P01, issue 63) não for decidido, o agregado fica ausente: "não há base para dizer" é diferente de "o mercado está neutro".'
+                      : 'Há demanda estrutural, mas nenhuma cultura produziu fator — faltam os pesos das sensibilidades (D-P05). Peso é decisão registrada, não conta.'
+                  }
+                  oQue="o fator agregado"
+                />
+              ) : (
+                <>
+                  {pt(fatorAgregado)}
+                  <InfoTooltip
+                    rotulo="Como o fator agregado é calculado"
+                    texto={
+                      'Σ demanda ajustada ÷ Σ demanda estrutural, somando só as culturas que têm os dois números. ' +
+                      'Cada cultura pesa exatamente pela demanda que representa — a área dela não entra nesta conta. ' +
+                      'Nenhuma fórmula nova foi criada: com todas as culturas neutras, as duas somas se igualam e o ' +
+                      'agregado dá 1,00. E como cada fator já vem dentro dos limites registrados, a razão não escapa deles.'
+                    }
+                  />
+                </>
+              )}
+            </td>
+            <td colSpan={3} />
+            <td className="cad-mono dash-tabela-numero">
+              {demandaEstruturalTotal === null || demandaAjustadaTotal === null ? (
+                '—'
+              ) : (
+                <>
+                  {inteiro(demandaEstruturalTotal)} → {inteiro(demandaAjustadaTotal)}
+                </>
+              )}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }

@@ -1,0 +1,647 @@
+/* =============================================================================
+   OS PRIMITIVES DO PAINEL EXECUTIVO (fase T4.6).
+
+   NADA AQUI INVENTA MEDIDA. Toda distância sai da escala `--e-*` e todo tamanho
+   de letra sai da escala `--t-*`, ambas do `design-system.css`. Cor, sombra,
+   raio e fonte são os tokens de sempre — não há paleta nova, e a tela continua
+   legível em escala de cinza, porque a hierarquia é feita de tamanho e espaço.
+
+   Se aparecer um `px` solto num `padding` ou num `font-size` deste arquivo, é
+   regressão: era exatamente a escolha local que esta fase veio acabar.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   O CONTAINER DA PÁGINA
+
+   1.480px foi escolhido NO HARNESS, e não no chute. Em 1920 os cartões
+   esticavam por quase 1800px: a linha de leitura ficava longa demais e a grade
+   de quatro KPIs virava quatro faixas separadas por vazio. Com esta largura, em
+   1920 sobra margem dos dois lados e a grade tem densidade de painel; em 1440 e
+   abaixo ela ainda ocupa a tela inteira, então nada encolhe onde não sobrava
+   espaço.
+   ----------------------------------------------------------------------------- */
+.dash-pagina {
+  width: 100%;
+  max-width: 1480px;
+  margin-inline: auto;
+  padding-inline: var(--e-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-6);
+}
+
+/* `min-width: 0` NOS FILHOS, e não é detalhe: item de flex tem `min-width: auto`,
+   o que significa "não encolha abaixo do meu conteúdo". Os SVG dos mapas têm
+   largura intrínseca, então a coluna inteira parava de encolher e a PÁGINA
+   passava da janela — 124px em 768 e 502px em 390, medidos pela conferência
+   visual assim que o container entrou. Sem isto, o container conserta o monitor
+   grande e quebra o celular. */
+.dash-pagina > * { min-width: 0; }
+
+@media (max-width: 768px) {
+  .dash-pagina {
+    padding-inline: var(--e-4);
+    gap: var(--e-5);
+  }
+}
+
+/* A SEÇÃO É SEPARADA POR ESPAÇO, não por borda: quando todo bloco tem moldura,
+   nenhuma moldura significa "isto é outra coisa". */
+.dash-secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+}
+
+/* -----------------------------------------------------------------------------
+   O PAINEL
+   ----------------------------------------------------------------------------- */
+.dash-painel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--e-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+
+/* CAIXA DENTRO DE CAIXA É VISUAL DE FORMULÁRIO, não de painel: o aninhado perde
+   a moldura e guarda só o espaçamento. */
+.dash-painel-aninhado {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
+.dash-painel-cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-3);
+}
+
+.dash-painel-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  margin: 0;
+  font-size: var(--t-cartao);
+  font-weight: 600;
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* -----------------------------------------------------------------------------
+   OS QUATRO NÚMEROS DE DECISÃO
+
+   QUATRO COLUNAS FIXAS, e não `auto-fit`. A grade antiga dava cinco colunas num
+   monitor largo e três em outro: "os quatro do topo" deixava de ser uma coisa
+   reconhecível, porque o arranjo mudava conforme o monitor de quem olhava.
+   ----------------------------------------------------------------------------- */
+.dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--e-4);
+}
+
+@media (max-width: 1100px) {
+  .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .dash-kpis { grid-template-columns: minmax(0, 1fr); }
+}
+
+.dash-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  padding: var(--e-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+
+  /* AS TRÊS LINHAS SÃO SEMPRE TRÊS, e é isso que iguala a altura sem fixar
+     altura em pixel — que quebraria no primeiro rótulo de duas linhas. */
+  justify-content: flex-start;
+}
+
+/* O destaque é uma barra, e não um fundo colorido: cor não pode ser o que
+   carrega a hierarquia, e uma barra continua visível em escala de cinza. */
+.dash-kpi-destaque { border-left: 3px solid var(--jd-green); }
+
+.dash-kpi-rotulo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-1);
+  min-height: 1.5em;
+  font-size: var(--t-rotulo);
+  font-weight: 600;
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* O NÚMERO É O MAIOR DA PÁGINA, e é o único que é. `tabular-nums` mantém a
+   coluna de dígitos no lugar quando o valor muda de 9 para 10. */
+.dash-kpi-valor {
+  font-size: var(--t-kpi);
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  min-height: calc(var(--t-kpi) * var(--lh-apertada));
+}
+
+/* A LINHA DE CONTEXTO EXISTE MESMO VAZIA: é ela que mantém os quatro cartões na
+   mesma altura. */
+.dash-kpi-contexto {
+  min-height: calc(var(--t-apoio) * var(--lh-normal));
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-tertiary);
+}
+
+.dash-vazio {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+/* -----------------------------------------------------------------------------
+   A FAIXA DOS NÚMEROS ESTRUTURAIS
+
+   Eles são o pano de fundo do mercado, não números de decisão — mas estavam
+   desenhados como cartão, do mesmo tamanho dos quatro do topo. Nenhum sumiu:
+   continuam inteiros, com procedência e comparação, numa linha só.
+   ----------------------------------------------------------------------------- */
+.dash-faixa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-2) var(--e-5);
+  padding: var(--e-3) var(--e-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.dash-faixa-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--e-1);
+  font-size: var(--t-apoio);
+  color: var(--text-tertiary);
+}
+
+.dash-faixa-valor {
+  font-size: var(--t-secao);
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-faixa-rotulo { color: var(--text-secondary); }
+
+/* -----------------------------------------------------------------------------
+   OS FILTROS
+
+   Eram treze campos em duas fileiras, cada um com o motivo escrito embaixo, e
+   ocupavam a primeira dobra inteira. Agora são quatro numa linha, e o resto em
+   "Mais filtros". Sem moldura: eles são controle, não conteúdo — uma caixa
+   branca em volta dava a eles o mesmo peso de um painel de números.
+   ----------------------------------------------------------------------------- */
+.dash-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+
+.dash-filtros-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e-3) var(--e-4);
+}
+
+.dash-filtro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-1);
+  min-width: 0;
+}
+
+.dash-filtro-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  font-size: var(--t-rotulo);
+  font-weight: 600;
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+.dash-filtro select,
+.dash-filtro input {
+  height: 32px;
+  padding: 0 var(--e-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font-size: var(--t-apoio);
+  max-width: 100%;
+}
+
+.dash-filtro-vazio {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  font-size: var(--t-apoio);
+  color: var(--text-tertiary);
+}
+
+/* O MUNICÍPIO ESCOLHIDO é uma marca que se apaga com um clique: ele muda a
+   página inteira, então precisa estar visível e ser fácil de tirar. */
+.dash-municipio {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  height: 32px;
+  padding: 0 var(--e-3);
+  border-radius: var(--radius);
+  background: var(--jd-green);
+  color: var(--text-inverse);
+  font-size: var(--t-apoio);
+  font-weight: 600;
+}
+
+.dash-mais-filtros {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  height: 32px;
+  padding: 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font-size: var(--t-apoio);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.dash-mais-filtros:hover { background: var(--bg-hover); }
+
+/* O SELO DIZ QUANTOS ESTÃO ATIVOS: um filtro que muda o número da tela não pode
+   ficar escondido sem aviso. */
+.dash-mais-filtros-selo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--jd-green);
+  color: var(--text-inverse);
+  font-size: var(--t-meta);
+}
+
+.dash-popover {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: var(--e-3) var(--e-4);
+  max-width: min(520px, calc(100vw - 32px));
+  padding: var(--e-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 10000;
+}
+
+@media (max-width: 560px) {
+  .dash-popover { grid-template-columns: minmax(0, 1fr); }
+}
+
+.dash-popover-titulo {
+  grid-column: 1 / -1;
+  font-size: var(--t-cartao);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.dash-popover-fechar {
+  grid-column: 1 / -1;
+  justify-self: end;
+  padding: var(--e-2) var(--e-3);
+  border-radius: var(--radius);
+  background: var(--bg-hover);
+  font-size: var(--t-apoio);
+  font-weight: 600;
+}
+
+/* A PROCEDÊNCIA DO RECORTE é nível 4 da issue 33: ela fica, em letra de
+   metadado, e não com o peso de um filtro. */
+.dash-filtros-recorte {
+  margin: 0;
+  font-size: var(--t-meta);
+  line-height: var(--lh-normal);
+  color: var(--text-tertiary);
+}
+
+/* O ALCANCE era um cartão com três parágrafos acima de tudo. É contexto do
+   recorte, não indicador: vira uma linha, com o resto na dica. */
+.dash-alcance {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  margin: 0;
+  font-size: var(--t-meta);
+  line-height: var(--lh-normal);
+  color: var(--text-tertiary);
+}
+
+/* -----------------------------------------------------------------------------
+   TIPOGRAFIA DA PÁGINA (item 14)
+
+   Dentro do container do painel, o título da página e o das seções passam a sair
+   da escala. Fora dele nada muda: as telas de cadastro continuam com o que
+   tinham, porque esta fase não as cobre e o harness não as confere.
+   ----------------------------------------------------------------------------- */
+.dash-pagina .page-title {
+  font-size: var(--t-pagina);
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+}
+
+.dash-pagina .page-subtitle {
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-tertiary);
+  max-width: 76ch;
+}
+
+.dash-pagina .page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-4);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* O TÍTULO DE SEÇÃO é o segundo maior da página, e é o que dá o ritmo da
+   varredura vertical. Era do mesmo tamanho do título de um cartão. */
+.dash-pagina .terr-secao-titulo {
+  font-size: var(--t-secao);
+  font-weight: 700;
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+}
+
+.dash-pagina .terr-secao-subtitulo {
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-tertiary);
+}
+
+.dash-pagina .terr-secao-mercado { margin: 0; }
+
+/* -----------------------------------------------------------------------------
+   A PRIMEIRA CAMADA DE UM PAINEL: números grandes, lado a lado
+
+   Era uma lista de oito a quinze linhas de mesmo peso, com a resposta na
+   terceira. Estes são a resposta; a decomposição continua na tela, recolhida.
+   ----------------------------------------------------------------------------- */
+.dash-numeros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-4) var(--e-6);
+}
+
+.dash-numero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-1);
+  min-width: 0;
+}
+
+.dash-numero > strong {
+  font-size: var(--t-kpi);
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-numero-rotulo {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-1);
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-tertiary);
+}
+
+/* O SELO DE ESTIMATIVA era uma faixa amarela de largura inteira no fim do
+   painel, e dominava o bloco. A ressalva qualifica o número — então ela fica
+   junto dele, do tamanho de uma ressalva. */
+.dash-selo {
+  padding: 1px var(--e-2);
+  border-radius: var(--radius-sm);
+  background: var(--warning-bg);
+  color: var(--warning);
+  font-size: var(--t-meta);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* -----------------------------------------------------------------------------
+   A TABELA DE COMPARAÇÃO
+
+   Comparar a mesma grandeza entre linhas é para o que a tabela existe: em
+   parágrafos, o olho anda na diagonal.
+   ----------------------------------------------------------------------------- */
+/* A rolagem mora aqui, e não na página: `max-width: 100%` é o que faz o cartão
+   parar de crescer, e `overflow-x` dá a barra dentro dele. */
+.dash-tabela-rolagem {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.dash-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-apoio);
+}
+
+.dash-tabela th,
+.dash-tabela td {
+  padding: var(--e-2) var(--e-3);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.dash-tabela thead th {
+  font-size: var(--t-meta);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* O NOME DA CULTURA É UM NOME, e não um rótulo de coluna: o `th` de linha herda
+   o maiúsculas do cabeçalho da tabela, e "CANA-DE-AÇÚCAR" grita sem precisar. */
+.dash-tabela-nome {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--t-apoio);
+}
+
+.dash-tabela-faixa {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: var(--t-meta);
+  letter-spacing: 0.02em;
+}
+
+/* NÚMERO À DIREITA, com dígitos de largura fixa: é o que deixa a coluna
+   conferível de cima a baixo. */
+.dash-tabela-numero {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* A SETA FICA NO PRÓPRIO EIXO VERTICAL, uma coluna por parcela — era isso que
+   faltava para comparar o crédito de uma cultura com o de outra. */
+.dash-tabela-seta {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.dash-tabela-seta .terr-parcela-seta { font-size: var(--t-secao); }
+
+.dash-tabela-total th,
+.dash-tabela-total td {
+  border-bottom: 0;
+  border-top: 2px solid var(--border-strong);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* -----------------------------------------------------------------------------
+   PORTE E MOMENTO
+
+   Era uma linha de texto corrido solta entre dois blocos. Vira uma faixa com o
+   nome da faixa em destaque e o número abaixo — dois números, nunca um, e cada
+   um com peso próprio.
+   ----------------------------------------------------------------------------- */
+.dash-momento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--e-4) var(--e-6);
+  padding: var(--e-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.dash-momento-principal,
+.dash-momento-porte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-1);
+  min-width: 0;
+}
+
+.dash-momento-rotulo {
+  font-size: var(--t-rotulo);
+  font-weight: 600;
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* A FAIXA É A PALAVRA QUE SE LÊ DE LONGE: "retraído" responde a pergunta antes
+   do número responder. Sem cor de fundo — a hierarquia é de tamanho e peso, e a
+   tela continua legível em escala de cinza. */
+.dash-momento-faixa {
+  font-size: var(--t-secao);
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.dash-momento-faixa-vazia { text-transform: none; font-weight: 500; }
+
+.dash-momento-numero {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  font-size: var(--t-kpi);
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sem banda registrada (issue 166) o porte não ganha destaque: o lugar dele
+   existe, o peso não — nulo aqui não quer dizer "pequeno". */
+.dash-momento-porte-sem-nome { color: var(--text-tertiary); }
+
+.dash-momento-leitura {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-1);
+  margin-left: auto;
+  text-align: right;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .dash-momento-leitura { margin-left: 0; text-align: left; }
+}
+
+.dash-momento-frase {
+  margin: 0;
+  font-size: var(--t-secao);
+  font-weight: 600;
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+}
+
+.dash-momento-contexto {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--e-1);
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 900px) {
+  .dash-momento-contexto { justify-content: flex-start; }
+}

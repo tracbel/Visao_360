@@ -410,6 +410,7 @@ quatro KPIs em unidades), depois #70 (converte o mercado para R$).
 | **T3.1** | **Agregação do momento** (§4.2.1): o fator do recorte passa a ser `Σ ajustada ÷ Σ estrutural`, a composição por cultura vira aba do bloco e as setas saem do resumo executivo. Corrige a regra da cultura de maior área, que foi recusada. | #74, #76 | T3 |
 | **T4** | A ficha em três camadas. | #76 | T2 |
 | **T4.5** | **O instrumento antes do ajuste**: harness visual `#/dev/mercado-visual` (9 estados, amostra fictícia, sem banco nem VPN) e conferência automática de largura em 6 resoluções com Playwright. É o que torna provável qualquer troca de primitive de UI. | #171, #33 | T4 |
+| **T4.6** | **Fundação visual** (§16): escalas de espaço e tipografia, primitives do painel, container de 1.480px, filtros fora da primeira dobra, hierarquia do topo, redesenho dos quatro painéis e Radix no tooltip e no popover. Nenhum dado novo, nenhuma fórmula alterada. | #33, #31, #171 | T4.5 |
 | **T5** | Matriz de cenários e `Simular cenário` como ação secundária. | #74, #161 | T3 |
 | **T6** | Performance Tracbel, com **Captura** enquanto o denominador for demanda estimada. | **#162**, #69 | **#69 pronta** |
 
@@ -512,8 +513,102 @@ dentro de um cartão com `overflow:hidden` ele chega a ser **recortado**, e o te
 não aparece para quem mais precisa dele. Passa em 1440 só porque ali a dica mais à direita fica longe da
 borda.
 
-O defeito está marcado com `test.fail()` no lugar exato: o teste continua afirmando o comportamento certo,
-a suíte fica verde enquanto o defeito existe, e **fica vermelha sozinha no dia em que alguém o corrigir**,
-pedindo para a marcação sair. O conserto é adotar `@radix-ui/react-tooltip` **em modo controlado** por
-dentro do `InfoTooltip`, sem mudar a API pública — modo controlado porque o Radix abre só no ponteiro e no
-foco, e o clique e o toque são requisito declarado do nosso componente.
+O defeito foi marcado com `test.fail()` no lugar exato — e **corrigido na T4.6**, quando a marcação saiu e
+o teste virou afirmação normal.
+
+---
+
+## 16. Fundação visual [D] — T4.6
+
+### O problema, em uma frase
+
+A tela funcionava e parecia um sistema administrativo. A causa não era falta de biblioteca: era **falta de
+regra**. O design system tinha cor, fonte, sombra e raio, e **nenhuma escala de espaço nem de tipografia**
+— então cada cartão escolhia o próprio `padding` no lugar onde foi escrito, e o estado vazio estava
+desenhado de três formas.
+
+### As duas escalas que faltavam
+
+`--e-1..7` (4, 8, 12, 16, 24, 32, 48) e `--t-pagina / secao / cartao / kpi / rotulo / apoio / meta`. Sete
+valores em cada, de propósito: uma escala com vinte degraus é o mesmo que nenhuma, porque quem escolhe
+volta a escolher por olho. Os nomes dizem o **papel**, não o tamanho.
+
+A regra que elas codificam: **o valor sempre chama mais atenção que a explicação.**
+
+### Os primitives
+
+`PaginaDoPainel` · `SecaoDoPainel` · `Painel` · `GradeDeIndicadores` · `CartaoDeIndicador` ·
+`FaixaDeEstrutura` · `ItemDaFaixa`, em `componentes/dashboard/Dashboard.tsx`. Nenhuma cor, tamanho ou
+medida escrita neles — tudo sai dos tokens. **O que eles fazem é impedir a escolha local.**
+
+**O que já existia não foi duplicado** [D]: `TituloDaSecao` continua sendo o cabeçalho de seção,
+`AbasInternas` o alternador e `ValorAusente` a ausência com motivo. Criar `SectionHeader`,
+`DashboardTabs` e `EmptyMetric` ao lado deles seria o segundo vocabulário que não se quer.
+
+### O container — 1.480 px
+
+Escolhido **no harness**, não no chute: em 1920 os cartões esticavam por quase 1800 px e a grade de quatro
+KPIs virava quatro faixas separadas por vazio; em 1440 e abaixo o container não encolhe nada.
+
+`min-width: 0` nos filhos não é detalhe: item de flex não encolhe abaixo do conteúdo, e os SVG dos mapas
+têm largura intrínseca. Sem isso o container conserta o monitor grande e **quebra o celular**.
+
+### Os filtros saíram da primeira dobra [D]
+
+Eram treze campos em duas fileiras, cada um com o motivo escrito embaixo em linha permanente. Agora:
+**período, sub-região, loja e município** numa linha; o resto em **Mais filtros** (Radix Popover).
+
+**Nada foi removido** — os filtros sem dado continuam lá, desligados, com o motivo na dica (issue 33,
+nível 2). O botão mostra **quantos secundários estão ativos**: um filtro que muda o número da tela não
+pode ficar fora da vista sem aviso.
+
+### A hierarquia do topo
+
+| antes | depois |
+|---|---|
+| grade `auto-fit`: 5 colunas num monitor, 3 em outro | **4 colunas declaradas**, 2×2 em tablet, 1 no celular |
+| motivo do vazio como parágrafo dentro do cartão | traço + ⓘ; o motivo inteiro na dica |
+| 5 indicadores estruturais como cartões do mesmo tamanho | **faixa de uma linha**, com a fatia na dica de cada número |
+| `Porte: — Momento: —` em texto corrido | faixa composta; o porte só ganha destaque quando **tem nome** |
+
+### Os painéis
+
+- **Potencial estrutural**: quatro números grandes na primeira camada; a decomposição inteira num
+  `<details>`. O aviso amarelo de largura inteira virou **selo** ao lado do número.
+- **Momento do mercado**: a composição virou **tabela** — comparar a mesma grandeza entre linhas é para o
+  que a tabela existe; em parágrafos o olho andava na diagonal. Cada parcela tem coluna própria.
+- **Performance Tracbel**: a mesma grade do topo, com a quarta coluna guardando o lugar de Captura e Não
+  capturado.
+- **Ficha do município**: a camada executiva usa o mesmo `CartaoDeIndicador` do topo — comparar o
+  município com a região deixa de exigir tradução visual. A arquitetura em três camadas do T4 **não foi
+  tocada**.
+
+### Mapas e tabela
+
+Quatro colunas só **acima de 2100 px**; entre 1100 e 2099, 2×2; abaixo, um por linha. Pisos de altura no
+título, no resumo e na linha do cursor põem os quatro cartões no mesmo eixo — dois mapas lado a lado que
+não começam na mesma linha são difíceis de comparar, que é o que eles existem para permitir.
+
+A tabela de municípios ganhou cabeçalho fixo na rolagem, primeira coluna forte, número à direita com
+dígito de largura fixa e rolagem **dentro do cartão**. No celular mostra **cinco colunas em vez de oito**,
+por posição de coluna — o que sai está inteiro na ficha, a um toque.
+
+### As bibliotecas adotadas, e as recusadas [D]
+
+| pacote | decisão | por quê |
+|---|---|---|
+| `@radix-ui/react-tooltip` | **sim**, em modo controlado | portal e colisão; abrir/fechar continua nosso, porque o Radix é ponteiro-e-foco por design e o **toque** é requisito deste componente |
+| `@radix-ui/react-popover` | **sim** | foco preso, `Esc`, clique fora, colisão — para "Mais filtros" |
+| `@radix-ui/react-accordion` | **não** | seria downgrade: `<details>` fechado é encontrável por **Ctrl+F**, e o Radix desmonta o conteúdo |
+| `class-variance-authority` | **não** | gera classe utilitária, que é o modelo do Tailwind; aqui o design system é de classes semânticas |
+| `lucide-react` | **adiado** | os ícones do shell estão travados no protótipo até a #171 ser provada |
+
+### Como isso se prova
+
+`npm run visual` passou a ter **96 testes**, e 24 deles medem **arranjo**, não só ausência de rolagem
+lateral: quatro KPIs numa linha no desktop e quatro linhas no celular, 2×2 de mapas entre 1100 e 2099, os
+filtros valendo menos de um terço da dobra, "Mais filtros" abrindo com os quatro sem dado dentro,
+Território com 5 ou 8 colunas conforme a largura, e a ficha cabendo na janela com as evidências abertas.
+
+**A conferência pegou duas regressões introduzidas nesta própria fase** — o container quebrando o celular
+e a tabela nova empurrando a página em 768 px. Nenhuma das duas teria sido vista sem ela.

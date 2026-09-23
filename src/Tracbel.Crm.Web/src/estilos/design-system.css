@@ -58,6 +58,50 @@
   --radius: 6px;
   --radius-lg: 10px;
   --radius-xl: 14px;
+
+  /* =========================================================================
+     ESPAÇAMENTO (fase T4.6) — a escala que faltava.
+
+     POR QUE ELA NÃO EXISTIA E POR QUE ISSO DOÍA: o design system tinha cor,
+     fonte, sombra e raio, mas nenhuma medida de espaço. Cada cartão escolheu o
+     próprio `padding` no lugar onde foi escrito — 10px aqui, 14px ali, 16px
+     acolá —, e o resultado é a sensação de "sistema administrativo": nada
+     desalinhado o bastante para alguém apontar, e nada alinhado o bastante para
+     parecer intencional.
+
+     SÃO SETE VALORES, E DE PROPÓSITO. Uma escala com vinte degraus é a mesma
+     coisa que nenhuma: quem escolhe volta a escolher por olho.
+     ========================================================================= */
+  --e-1: 4px;    /* costura: entre um ícone e a palavra dele */
+  --e-2: 8px;    /* dentro de um par rótulo/valor */
+  --e-3: 12px;   /* entre itens de uma lista densa */
+  --e-4: 16px;   /* padding padrão de cartão; entre cartões de uma grade */
+  --e-5: 24px;   /* entre blocos de um mesmo painel */
+  --e-6: 32px;   /* entre seções */
+  --e-7: 48px;   /* respiro de abertura e de fim de página */
+
+  /* =========================================================================
+     TIPOGRAFIA (fase T4.6) — sete papéis, não sete tamanhos soltos.
+
+     A REGRA QUE ELES CODIFICAM: o valor sempre chama mais atenção que a
+     explicação. Onde um rótulo de 13px estava ao lado de um número de 14px, a
+     tela pedia leitura em vez de dar resposta.
+
+     Cada nome diz o PAPEL, e não o tamanho, porque é o papel que não muda
+     quando o tamanho for ajustado.
+     ========================================================================= */
+  --t-pagina: 22px;   /* o h1 da tela */
+  --t-secao: 16px;    /* o h2 de um bloco */
+  --t-cartao: 13px;   /* o título de um painel dentro do bloco */
+  --t-kpi: 30px;      /* o número de decisão — o maior da página, e sozinho nisso */
+  --t-rotulo: 12px;   /* o nome de um indicador, acima do número */
+  --t-apoio: 12px;    /* a comparação e a frase curta embaixo do valor */
+  --t-meta: 11px;     /* fonte, competência, ressalva — nível 4 da issue 33 */
+
+  /* A altura de linha anda com o papel: número grande não precisa de entrelinha
+     de parágrafo, e texto de apoio precisa de mais do que 1,2. */
+  --lh-apertada: 1.15;
+  --lh-normal: 1.5;
 }
 
 /* ===== RESET ===== */
@@ -9320,10 +9364,12 @@ tr.funil-nova {
   outline-offset: 2px;
   color: var(--jd-green);
 }
+/* O BALÃO NÃO SE POSICIONA MAIS (fase T4.6). `position`, `left` e `transform`
+   saíram daqui: quem calcula onde ele cabe é o Radix, que o desenha num portal
+   fora do cartão e o vira ou desliza antes de encostar na borda da janela. O que
+   sobra aqui é só aparência. Pôr posição de volta brigaria com o cálculo dele e
+   traria de volta o recorte que a T4.5 mediu. */
 .dica-balao {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
   width: max-content;
   max-width: 260px;
   padding: 8px 10px;
@@ -9344,14 +9390,14 @@ tr.funil-nova {
      não pode virar clique na tela de trás nem tirar o ponteiro do gatilho. */
   pointer-events: none;
 }
-.dica-balao-abaixo { top: calc(100% + 6px); }
-.dica-balao-acima { bottom: calc(100% + 6px); }
+/* `.dica-balao-abaixo` e `.dica-balao-acima` saíram: o lado agora é a prop
+   `side` do Radix, e ele pode INVERTER o lado quando não couber — que é
+   exatamente o que se quer e o que uma classe fixa impedia. */
 
-/* No celular o balão de 260px caberia fora da tela quando o gatilho está na
-   borda; aqui ele encosta na margem em vez de sair. */
-@media (max-width: 640px) {
-  .dica-balao { max-width: min(260px, calc(100vw - 32px)); }
-}
+/* O teto continua valendo em toda largura, e não só no celular: o Radix desliza
+   o balão para dentro da janela, mas um balão mais largo que a tela não teria
+   para onde deslizar. */
+.dica-balao { max-width: min(260px, calc(100vw - 32px)); }
 
 /* P-20 (fase 3): a filial guardada que deixou de ser permitida volta para a de casa, com aviso. */
 .cad-filial-aviso {

@@ -52,15 +52,39 @@ async function abrir(pagina: Page, estado: string) {
   await pagina.waitForFunction(() => document.fonts.status === 'loaded');
 }
 
-/** O quanto a página passa da largura da janela. Zero é o único valor aceito. */
+/**
+ * O quanto a página passa da largura da janela. Zero é o único valor aceito.
+ *
+ * A LISTA DE CULPADOS IGNORA DUAS COISAS, e as duas custaram tempo para
+ * descobrir:
+ *
+ * 1. **O que está dentro de um `<svg>`.** Os mapas desenham os municípios
+ *    vizinhos e deixam o SVG recortar o que passa da borda — então todo `path`
+ *    tem caixa geométrica maior que o desenho. Eles apareciam no topo da lista
+ *    em toda falha e não empurram a página um pixel.
+ * 2. **O que está dentro de um contêiner que rola.** Uma tabela larga dentro de
+ *    um `overflow-x: auto` é o CONSERTO, não o defeito.
+ *
+ * Sem esses dois filtros a mensagem apontava para o lugar errado, que é pior que
+ * não apontar para lugar nenhum.
+ */
 async function sobraLateral(pagina: Page) {
   return pagina.evaluate(() => {
     const raiz = document.documentElement;
+
+    const dentroDeAlgoQueRola = (e: HTMLElement) => {
+      for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) {
+        const estilo = getComputedStyle(p);
+        if (estilo.overflowX === 'auto' || estilo.overflowX === 'scroll' || estilo.overflowX === 'hidden') return true;
+      }
+      return false;
+    };
+
     return {
-      sobra: raiz.scrollWidth - window.innerWidth,
-      // Quem está estourando: ajuda a corrigir sem abrir o navegador à mão.
+      sobra: raiz.scrollWidth - raiz.clientWidth,
       culpados: [...document.querySelectorAll<HTMLElement>('body *')]
-        .filter((e) => e.getBoundingClientRect().right > window.innerWidth + 1)
+        .filter((e) => !e.closest('svg') && !dentroDeAlgoQueRola(e))
+        .filter((e) => e.getBoundingClientRect().right > raiz.clientWidth + 1)
         .slice(0, 5)
         .map((e) => `${e.tagName.toLowerCase()}.${e.className || '(sem classe)'}`),
     };
@@ -88,6 +112,93 @@ for (const { nome, largura, altura } of LARGURAS) {
       });
     }
 
+    /**
+     * AS AFIRMAÇÕES DE ARRANJO (item 18 da T4.6).
+     *
+     * "Cabe na largura" é necessário e não é suficiente: uma página pode caber e
+     * ainda estar errada — quatro KPIs empilhados num monitor de 1920, ou
+     * comprimidos em quatro colunas num celular. Estas medem o ARRANJO, que é o
+     * que a fase entregou, e não só a ausência de rolagem lateral.
+     *
+     * Elas leem a posição real na tela (`getBoundingClientRect`), e não a regra
+     * de CSS: o que importa é onde o elemento ficou, não o que a folha de estilo
+     * pretendia.
+     */
+    test('os quatro números de decisão ficam numa linha no desktop e empilham no celular', async ({ page }) => {
+      await abrir(page, 'completo');
+
+      const cartoes = page.locator('[data-bloco="kpis-executivos"] [data-kpi]');
+      await expect(cartoes).toHaveCount(4);
+
+      const topos = await cartoes.evaluateAll((nós) =>
+        nós.map((n) => Math.round(n.getBoundingClientRect().top)),
+      );
+      const linhas = new Set(topos).size;
+
+      if (largura >= 1100) {
+        expect(linhas, `em ${largura}px os quatro KPIs deveriam estar numa linha só, e estão em ${linhas}`).toBe(1);
+      } else if (largura >= 560) {
+        expect(linhas, `em ${largura}px esperava 2×2`).toBe(2);
+      } else {
+        expect(linhas, `em ${largura}px cada KPI deveria ter a própria linha`).toBe(4);
+      }
+    });
+
+    test('os quatro mapas seguem o arranjo declarado para esta largura', async ({ page }) => {
+      await abrir(page, 'completo');
+
+      const cartoes = page.locator('[data-bloco="mapas"] [data-mapa]');
+      await expect(cartoes).toHaveCount(4);
+
+      const topos = await cartoes.evaluateAll((nós) =>
+        nós.map((n) => Math.round(n.getBoundingClientRect().top)),
+      );
+      const linhas = new Set(topos).size;
+
+      // >= 2100 são quatro colunas; 1100–2099 é 2×2; abaixo disso, um por linha.
+      const esperado = largura >= 2100 ? 1 : largura >= 1100 ? 2 : 4;
+      expect(linhas, `em ${largura}px esperava ${esperado} linha(s) de mapa, e deu ${linhas}`).toBe(esperado);
+    });
+
+    test('os filtros secundários não ocupam a primeira dobra', async ({ page }) => {
+      // O DEFEITO QUE ISTO IMPEDE DE VOLTAR: treze filtros em duas fileiras, cada
+      // um com o motivo escrito embaixo, empurravam os números para fora da
+      // primeira tela. Quem abria a página para saber o tamanho do mercado lia
+      // primeiro um parágrafo sobre o que a tela NÃO filtra.
+      await abrir(page, 'completo');
+
+      // O popover está fechado: nenhum filtro secundário na tela, em largura nenhuma.
+      await expect(page.locator('.dash-popover')).toHaveCount(0);
+
+      // E OS FILTROS NÃO PODEM VALER MAIS QUE UM TERÇO DA PRIMEIRA DOBRA. Esta é
+      // a afirmação que mede o pedido, e não "o KPI cabe na primeira dobra": num
+      // celular de 390×844 tudo empilha, e exigir o número acima da dobra ali
+      // seria exigir que o cabeçalho da página sumisse.
+      const filtros = page.locator('[data-bloco="filtros"]');
+      const caixa = await filtros.boundingBox();
+      expect(
+        caixa!.height,
+        `os filtros ocupam ${Math.round(caixa!.height)}px de uma dobra de ${altura}px`,
+      ).toBeLessThan(altura / 3);
+    });
+
+    test('Mais filtros abre, mostra os secundários e é capturado', async ({ page }) => {
+      await abrir(page, 'completo');
+
+      await page.locator('[data-bloco="mais-filtros"]').click();
+      const popover = page.locator('.dash-popover');
+      await expect(popover).toBeVisible();
+
+      // NADA FOI REMOVIDO: os filtros sem dado continuam lá, desligados.
+      for (const rotulo of ['Tipo de cliente', 'Tipo de produto', 'Modelo', 'CEN / gestor'])
+        await expect(popover.getByText(rotulo, { exact: true })).toBeVisible();
+
+      await page.screenshot({ path: `capturas/${nome}/mais-filtros-aberto.png` });
+
+      const { sobra } = await sobraLateral(page);
+      expect(sobra, `o popover de filtros passa ${sobra}px da janela`).toBeLessThanOrEqual(0);
+    });
+
     test('Território cabe na largura e é capturado', async ({ page }) => {
       await abrir(page, 'completo');
       await page.getByRole('tab', { name: 'Território' }).click();
@@ -96,32 +207,50 @@ for (const { nome, largura, altura } of LARGURAS) {
 
       const { sobra, culpados } = await sobraLateral(page);
       expect(sobra, `Território passa ${sobra}px. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
+
+      // A TABELA ROLA DENTRO DO CARTÃO, e não arrasta a página para o lado: no
+      // celular ela mostra cinco colunas em vez de oito, e o que sai está
+      // inteiro na ficha do município.
+      const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
+      expect(colunas, `em ${largura}px esperava ${largura <= 768 ? 5 : 8} colunas visíveis`).toBe(
+        largura <= 768 ? 5 : 8,
+      );
+    });
+
+    test('a ficha do município cabe na largura, com as evidências abertas', async ({ page }) => {
+      await abrir(page, 'fichaAberta');
+
+      const ficha = page.locator('[data-bloco="ficha-do-municipio"]');
+      await expect(ficha).toBeVisible();
+      await ficha.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `capturas/${nome}/ficha.png` });
+
+      const caixa = await ficha.boundingBox();
+      expect(
+        Math.round(caixa!.x + caixa!.width),
+        `a ficha termina em ${Math.round(caixa!.x + caixa!.width)}px, fora da janela de ${largura}px`,
+      ).toBeLessThanOrEqual(largura);
     });
 
     test('a dica junto da borda direita não sai da tela', async ({ page }) => {
       // ============================================================================
-      // DEFEITO CONHECIDO E MEDIDO — 23/09/2026, primeira execução desta suíte.
+      // DEFEITO MEDIDO NA T4.5, CORRIGIDO NA T4.6 — e é por isso que este teste
+      // deixou de ser uma falha esperada.
       //
-      // O balão da dica é posicionado só por CSS (`dica-balao-acima/abaixo`), sem
-      // detecção de colisão e sem portal. Junto da borda direita ele VAZA a janela,
-      // e dentro de um cartão com `overflow:hidden` ele é RECORTADO — o texto que
-      // explica o número simplesmente não aparece para quem mais precisa dele.
+      // O balão era posicionado só por CSS, sem detecção de colisão e sem portal.
+      // Junto da borda direita ele vazava a janela — 2016px numa tela de 1920, 803px
+      // numa de 768, 472px numa de 390 — e dentro de um cartão com `overflow:hidden`
+      // chegava a ser RECORTADO: o texto que explica o número desaparecia justamente
+      // para quem tinha ido procurá-lo.
       //
-      // Medido:  1920 → 2016px (96 a mais) · 1280 · 1024 · 768 → 803px · 390 → 472px
-      // Passa em 1440 apenas porque ali a dica mais à direita fica longe da borda.
+      // O conserto foi `@radix-ui/react-tooltip` por dentro do `InfoTooltip`, em modo
+      // CONTROLADO — o Radix cuida de portal, colisão e posição; abrir e fechar
+      // continua nosso, porque o Radix é ponteiro-e-foco por design e o toque é
+      // requisito declarado do componente.
       //
-      // `test.fail()` MARCA O DEFEITO SEM MENTIR: o teste continua afirmando o
-      // comportamento certo, a suíte fica verde enquanto o defeito existe, e no dia
-      // em que alguém o corrigir esta linha FICA VERMELHA sozinha, pedindo para ser
-      // apagada. É o contrário de um `skip`, que esconderia o problema.
-      //
-      // O conserto é a adoção de `@radix-ui/react-tooltip` em modo controlado por
-      // dentro do `InfoTooltip`, sem mudar a API pública — a fase seguinte da T4.5.
-      // Quando ela entrar, esta lista tem de ficar vazia e a marcação, sair.
+      // Se esta afirmação voltar a falhar, foi porque alguém pôs posição de volta no
+      // CSS do balão, ou tirou o portal.
       // ============================================================================
-      const AINDA_VAZA = ['1920x1080', '1280x800', '1024x768', '768x1024', '390x844'];
-      test.fail(AINDA_VAZA.includes(nome), 'a dica não tem detecção de colisão — fase T4.5, Radix Tooltip');
-
       await abrir(page, 'completo');
 
       const dicas = page.locator('.dica-gatilho');

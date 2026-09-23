@@ -48,13 +48,21 @@ export function TabelaDeMunicipios({
           <thead>
             <tr>
               <th scope="col">Município</th>
-              <th scope="col">Região · loja</th>
-              <th scope="col">Elegíveis</th>
-              <th scope="col">No prazo</th>
-              <th scope="col">Pendentes</th>
-              <th scope="col">Vendas</th>
-              <th scope="col">Pós-venda <span className="cad-sub">(provisório)</span></th>
-              <th scope="col">Máquinas teóricas</th>
+              <th scope="col" className="terr-coluna-hierarquia">Região · loja</th>
+              {/* AS COLUNAS OPCIONAIS SAEM NO CELULAR (T4.6). Oito colunas
+                  comprimidas em 390px não são uma tabela, são um borrão — e
+                  rolagem lateral da página está proibida. As cinco que ficam
+                  respondem "onde vender"; o resto está inteiro na ficha do
+                  município, a um toque, e a tabela diz isso em vez de sumir com
+                  o dado em silêncio. */}
+              <th scope="col" className="cad-mono">Elegíveis</th>
+              <th scope="col" className="cad-mono">No prazo</th>
+              <th scope="col" className="cad-mono">Pendentes</th>
+              <th scope="col" className="cad-mono">Vendas</th>
+              <th scope="col" className="cad-mono">
+                Pós-venda <span className="cad-sub">(provisório)</span>
+              </th>
+              <th scope="col" className="cad-mono">Máquinas teóricas</th>
             </tr>
           </thead>
           <tbody>
@@ -65,7 +73,7 @@ export function TabelaDeMunicipios({
                     {m.nome}
                   </button>
                 </td>
-                <td>
+                <td className="terr-coluna-hierarquia">
                   {m.regiao}
                   <div className="cad-sub">{m.lojaNome?.replace(/^.*—\s*/, '') ?? '—'}</div>
                 </td>

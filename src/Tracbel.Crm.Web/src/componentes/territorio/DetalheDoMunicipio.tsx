@@ -29,8 +29,8 @@ import type {
 } from '../../tipos/territorio';
 import { ComparacaoSomavel } from '../comum/Comparacao';
 import { montarSomavel } from '../comum/comparacoes';
-import { MetricaAusente } from '../comum/MetricaAusente';
 import { ValorAusente } from '../comum/ValorAusente';
+import { CartaoDeIndicador, GradeDeIndicadores } from '../dashboard/Dashboard';
 import { reaisCompactos, reaisDaProducao } from './escalas';
 
 const nº = (v: number) => v.toLocaleString('pt-BR');
@@ -102,37 +102,49 @@ export function DetalheDoMunicipio({
             CAMADA 1 — EXECUTIVA. Os quatro números de decisão, sempre abertos.
             Três deles não têm dado hoje e dizem qual issue os destrava.
             ------------------------------------------------------------------ */}
+        {/* A CAMADA EXECUTIVA USA A MESMA GRADE DO TOPO DA PÁGINA (T4.6).
+
+            A arquitetura em três camadas do T4 não mudou: o que muda é que estes
+            quatro números eram UM `<dl>` seguido de três `MetricaAusente` — quatro
+            desenhos diferentes para quatro coisas iguais, e nenhum deles parecido
+            com os quatro do topo da página, que respondem exatamente as mesmas
+            perguntas para a região inteira. Agora a ficha usa o mesmo `CartaoDeIndicador`:
+            comparar o município com a região deixa de exigir tradução visual. */}
         <section className="terr-detalhe-executiva" data-camada="executiva">
           <h3 className="terr-detalhe-titulo">O que este município decide</h3>
-          <dl className="terr-numeros">
-            <dt>Demanda anual</dt>
-            <dd>
-              {motor?.demandaAnualDeMaquinas == null ? (
-                <ValorAusente
-                  motivo={
-                    motor?.motivoSemDemanda === 'SemCicloDeRenovacao'
-                      ? 'A regra não informou de quantos em quantos anos a máquina é trocada. A decisão D-P01 (issue 63) fixa cultura, categoria, hectares por máquina e anos de renovação — as quatro juntas.'
-                      : 'Sem parque, não há o que renovar.'
-                  }
-                  oQue="a demanda anual"
-                />
-              ) : (
-                <strong>{nº(motor.demandaAnualDeMaquinas)} máq/ano</strong>
-              )}
-            </dd>
-          </dl>
-          <MetricaAusente
-            metrica="Mercado anual"
-            motivo="Demanda anual × preço de referência, agregada por categoria de máquina. Precisa do preço de máquina por modelo (issue 70), que não existe no CRM."
-          />
-          <MetricaAusente
-            metrica="Captura Tracbel"
-            motivo="Vendas em unidades ÷ demanda anual estimada. Precisa da issue 69: o faturamento em reais não serve de numerador para uma demanda medida em máquinas. Não é market share."
-          />
-          <MetricaAusente
-            metrica="Oportunidade"
-            motivo="A demanda ajustada menos as vendas, nunca abaixo de zero (issue 162). Depende da issue 69 e, para sair em reais, da issue 70."
-          />
+
+          <GradeDeIndicadores>
+            <CartaoDeIndicador
+              rotulo="Demanda anual"
+              // COM ARTIGO, porque é assim que esta dica já se chamava aqui — e
+              // mudar o nome acessível de um controle que as pessoas conhecem é
+              // uma regressão silenciosa para quem usa leitor de tela.
+              oQue="a demanda anual"
+              destaque
+              valor={motor?.demandaAnualDeMaquinas == null ? null : `${nº(motor.demandaAnualDeMaquinas)} máq/ano`}
+              contexto="o que o parque daqui renova por ano"
+              motivoSemDado={
+                motor?.motivoSemDemanda === 'SemCicloDeRenovacao'
+                  ? 'A regra não informou de quantos em quantos anos a máquina é trocada. A decisão D-P01 (issue 63) fixa cultura, categoria, hectares por máquina e anos de renovação — as quatro juntas.'
+                  : 'Sem parque, não há o que renovar.'
+              }
+            />
+            <CartaoDeIndicador
+              rotulo="Mercado anual"
+              valor={null}
+              motivoSemDado="Demanda anual × preço de referência, agregada por categoria de máquina. Precisa do preço de máquina por modelo (issue 70), que não existe no CRM."
+            />
+            <CartaoDeIndicador
+              rotulo="Captura Tracbel"
+              valor={null}
+              motivoSemDado="Vendas em unidades ÷ demanda anual estimada. Precisa da issue 69: o faturamento em reais não serve de numerador para uma demanda medida em máquinas. Não é market share."
+            />
+            <CartaoDeIndicador
+              rotulo="Oportunidade"
+              valor={null}
+              motivoSemDado="A demanda ajustada menos as vendas, nunca abaixo de zero (issue 162). Depende da issue 69 e, para sair em reais, da issue 70."
+            />
+          </GradeDeIndicadores>
         </section>
 
         {/* ------------------------------------------------------------------

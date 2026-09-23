@@ -21,7 +21,7 @@ import type {
 } from '../../tipos/territorio';
 import type { MetricaSemDado } from '../../tipos/relacionamento';
 import { BlocoCarregando } from '../cadastro/EstadosDeTela';
-import { PainelDeIndicadores, type Indicador } from '../cadastro/Indicadores';
+import type { Indicador } from '../cadastro/Indicadores';
 import { MetricasSemDado } from '../cadastro/SemDado';
 import { GradeDeMapas } from '../territorio/GradeDeMapas';
 import type { LigacaoDoMapa } from '../territorio/mapas/CartaoDeMapa';
@@ -29,6 +29,7 @@ import { SecaoDoMercadoDaRegiao } from '../territorio/SecaoDoMercadoDaRegiao';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
 import type { TotaisDaAdr } from '../territorio/totaisDaAdr';
 import { BlocoDePotencial } from './BlocoDePotencial';
+import { FaixaDoMercado } from './FaixaDoMercado';
 import { KpisExecutivos } from './KpisExecutivos';
 import { PorteEMomento } from './PorteEMomento';
 import { BlocoDoMomento } from './BlocoDoMomento';
@@ -96,9 +97,11 @@ export function AbaDeMercado({
       />
       <PorteEMomento momento={indicadores?.momento ?? null} />
 
-      {/* A LINHA PRESERVADA continua abaixo, como evidência do porte: o que o
-          território tem, e que fatia da Região Tracbel e de SP isso é. */}
-      <PainelDeIndicadores indicadores={kpisDoMercado} carregando={carregando} />
+      {/* O QUE A REGIÃO TEM continua na tela, agora numa faixa de uma linha
+          (T4.6): são o pano de fundo do mercado, e desenhá-los como cartão do
+          mesmo tamanho dos quatro de cima fazia nove cartões iguais empilhados —
+          uma lista, não uma hierarquia. Nenhum número saiu. */}
+      <FaixaDoMercado indicadores={kpisDoMercado} />
 
       <section data-bloco="visao-geografica">
         <TituloDaSecao

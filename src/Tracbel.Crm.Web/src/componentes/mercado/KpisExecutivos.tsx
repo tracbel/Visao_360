@@ -1,5 +1,5 @@
 /**
- * OS QUATRO NÚMEROS DE DECISÃO (documento 50, §4.1; fase T3).
+ * OS QUATRO NÚMEROS DE DECISÃO (documento 50, §4.1; redesenhados na T4.6).
  *
  *   Demanda anual | Mercado anual | Captura Tracbel | Oportunidade
  *
@@ -7,13 +7,23 @@
  * destrava. Isto não é um espaço reservado: é a resposta certa. Um número
  * plausível e errado leva a uma decisão; um espaço explicado leva a uma pergunta.
  *
+ * O QUE MUDOU NA T4.6 — nada de conteúdo, tudo de peso visual:
+ *
+ * - **O motivo saiu de dentro do cartão.** Ele era um parágrafo embaixo do
+ *   travessão, e empurrava o número para baixo: os quatro cartões ficavam com
+ *   alturas diferentes, e o olho lê diferença de altura como diferença de
+ *   importância. Agora o cartão mostra `—` com um ⓘ, e o motivo inteiro, com a
+ *   issue que o destrava, está na dica.
+ * - **A grade tem quatro colunas declaradas.** Era `auto-fit`, que dava cinco
+ *   colunas num monitor largo e três em outro — "os quatro do topo" deixava de
+ *   ser uma coisa reconhecível.
+ *
  * CAPTURA, E NÃO MARKET SHARE (issue 162): enquanto o denominador for a demanda
  * ESTIMADA pelo motor, o nome é captura. Share exigiria o total vendido por todos
  * os fabricantes, que nenhuma fonte aberta publica.
  */
 
-import type { Indicador } from '../cadastro/Indicadores';
-import { PainelDeIndicadores } from '../cadastro/Indicadores';
+import { CartaoDeIndicador, GradeDeIndicadores } from '../dashboard/Dashboard';
 import { fatiasEmTexto, montarSomavel } from '../comum/comparacoes';
 import type { MomentoDoRecorte, ProcedenciaDoIndicador } from '../../tipos/territorio';
 import { nº } from '../territorio/indicadoresDaAdr';
@@ -32,6 +42,11 @@ const CAPTURA_SEM_DADO =
 const OPORTUNIDADE_SEM_DADO =
   'A demanda ajustada menos as vendas, nunca abaixo de zero (issue 162). Depende da issue 69 para sair em ' +
   'unidades e da issue 70 para sair em reais.';
+
+const DEMANDA_SEM_DADO =
+  'Falta o ciclo de renovação por cultura. A decisão D-P01 (issue 63) fixa cultura, categoria, hectares por ' +
+  'máquina e anos de renovação — as quatro juntas. Sem elas não há demanda anual, e zero aqui afirmaria que a ' +
+  'região não renova máquina nenhuma.';
 
 export function KpisExecutivos({
   momento,
@@ -68,28 +83,24 @@ export function KpisExecutivos({
   // fator 0,88 é a mesma coisa que "12% abaixo da estrutural".
   const variacao = momento?.fatorAgregado == null ? null : (momento.fatorAgregado - 1) * 100;
 
-  const indicadores: Indicador[] = [
-    {
-      rotulo: 'Demanda anual',
-      valor: demandaEstrutural === null ? null : `${nº(Math.round(demandaEstrutural))} máq/ano`,
-      deOnde:
-        contexto ??
-        (variacao != null
-          ? `${variacao > 0 ? '+' : ''}${nº(Math.round(variacao))}% com o momento do mercado`
-          : 'o que o parque renova por ano'),
-      procedencia: procedenciaDaDemanda,
-      semDado:
-        'falta o ciclo de renovação por cultura — a decisão D-P01 (issue 63) fixa cultura, categoria, hectares por ' +
-        'máquina e anos de renovação, as quatro juntas',
-    },
-    { rotulo: 'Mercado anual', valor: null, deOnde: '—', semDado: MERCADO_ANUAL_SEM_DADO },
-    { rotulo: 'Captura Tracbel', valor: null, deOnde: '—', semDado: CAPTURA_SEM_DADO },
-    { rotulo: 'Oportunidade', valor: null, deOnde: '—', semDado: OPORTUNIDADE_SEM_DADO },
-  ];
-
   return (
-    <div data-bloco="kpis-executivos">
-      <PainelDeIndicadores indicadores={indicadores} carregando={carregando} />
-    </div>
+    <GradeDeIndicadores data-bloco="kpis-executivos">
+      <CartaoDeIndicador
+        rotulo="Demanda anual"
+        destaque
+        valor={carregando || demandaEstrutural === null ? null : `${nº(Math.round(demandaEstrutural))} máq/ano`}
+        contexto={
+          contexto ??
+          (variacao != null
+            ? `${variacao > 0 ? '+' : ''}${nº(Math.round(variacao))}% com o momento do mercado`
+            : 'o que o parque renova por ano')
+        }
+        procedencia={procedenciaDaDemanda}
+        motivoSemDado={DEMANDA_SEM_DADO}
+      />
+      <CartaoDeIndicador rotulo="Mercado anual" valor={null} motivoSemDado={MERCADO_ANUAL_SEM_DADO} />
+      <CartaoDeIndicador rotulo="Captura Tracbel" valor={null} motivoSemDado={CAPTURA_SEM_DADO} />
+      <CartaoDeIndicador rotulo="Oportunidade" valor={null} motivoSemDado={OPORTUNIDADE_SEM_DADO} />
+    </GradeDeIndicadores>
   );
 }
