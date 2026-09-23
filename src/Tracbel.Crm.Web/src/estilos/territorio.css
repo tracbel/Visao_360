@@ -418,6 +418,21 @@
   text-align: right;
 }
 
+/* NO CELULAR O PAR VIRA DUAS LINHAS (fase T4.7).
+
+   A coluna do valor era `auto`, que não encolhe: numa ficha de 326px o número, o
+   ⓘ e as duas comparações ("0,9% da Região Tracbel · 0,1% de SP") passavam da
+   borda e ficavam CORTADOS. A revisão da captura de 390 mostrou isso; o teste de
+   largura não, porque o corte acontece dentro da ficha e não empurra a página.
+
+   Rótulo em cima, valor embaixo alinhado à esquerda: mais alto, e legível — que
+   é o que importa quando a alternativa é não conseguir ler o número. */
+@media (max-width: 560px) {
+  .terr-numeros { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .terr-numeros > dt { color: var(--text-secondary); }
+  .terr-numeros > dd { text-align: left; margin-bottom: var(--e-2); }
+}
+
 /* A FICHA EM TRÊS CAMADAS (documento 50, §6): a evidência ocupa a linha inteira,
    embaixo, recolhida — fonte, competência e o operacional de carteira. */
 .terr-detalhe-evidencia {
@@ -480,14 +495,31 @@
 }
 
 /* NÚMERO À DIREITA, com dígitos de largura fixa: é o que permite varrer a coluna
-   e ver qual é maior sem ler cada valor. */
+   e ver qual é maior sem ler cada valor.
+
+   A FONTE É A DO TEXTO (fase T4.7): `tabular-nums` já dá o dígito de largura
+   fixa que alinha a coluna, sem a monoespaçada — que fazia "R$ 4,9 mi" ler como
+   saída de terminal. */
 .terr-tabela-municipios td.cad-mono {
   white-space: nowrap;
   text-align: right;
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
+  font-size: var(--t-apoio);
 }
 
-.terr-tabela-municipios th.cad-mono { text-align: right; }
+/* O CABEÇALHO DE UMA COLUNA DE NÚMERO É UMA PALAVRA, não um número (T4.7): ele
+   alinha à direita para casar com a coluna, e nada mais. Estava com a classe da
+   monoespaçada, e "ELEGÍVEIS" e "MÁQUINAS TEÓRICAS" saíam em fonte de código. */
+.terr-tabela-municipios th.terr-coluna-numero {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* O SUBVALOR SEGUE O ALINHAMENTO DA CÉLULA (T4.7). O "38,9%" embaixo de
+   "Pendentes" ficava à esquerda enquanto o número ia à direita: duas grandezas
+   da mesma célula em eixos diferentes, e a linha inteira parecia quebrada. */
+.terr-tabela-municipios td.cad-mono .cad-sub { text-align: right; }
 
 /* A PRIMEIRA COLUNA É A CHAVE DA LINHA: ela é o que se procura, então tem mais
    peso que o resto. */
@@ -530,7 +562,19 @@
    esquecida em qualquer um deles deixaria o cabeçalho com cinco colunas e o
    total com oito — a tabela sairia torta sem ninguém notar na revisão.
    ----------------------------------------------------------------------------- */
+/* O PISO DE 860px SAI QUANDO AS COLUNAS SAEM (fase T4.7).
+
+   `.cad-tabela` tem `min-width: 860px` — regra global, e certa para as tabelas
+   de cadastro, que têm muitas colunas e preferem rolar a comprimir. Aqui ela
+   anulava a redução: tirar seis colunas não adiantava nada, porque a tabela
+   continuava com 860px de largura mínima e rolava do mesmo jeito. Era isso que
+   fazia a lista de uma coluna em 390px.
+
+   O escopo é só esta tabela: as telas de cadastro não são cobertas por esta fase
+   e o harness não consegue conferi-las. */
 @media (max-width: 768px) {
+  .terr-tabela-municipios .cad-tabela { min-width: 0; }
+
   .terr-tabela-municipios th:nth-child(3),
   .terr-tabela-municipios th:nth-child(4),
   .terr-tabela-municipios th:nth-child(7),
@@ -539,6 +583,29 @@
   .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(7) {
     display: none;
   }
+}
+
+/* NO APARELHO DE MÃO, DUAS COLUNAS (fase T4.7).
+
+   Cinco colunas em 390px não cabiam: a tabela virava uma lista de nomes com as
+   outras quatro atrás de rolagem horizontal DENTRO do cartão — dado presente e
+   invisível, que é pior que dado adiado. Ficam o município e as vendas; o resto
+   está inteiro na ficha, a um toque. Sai também a região/loja, que se repete por
+   dezenas de linhas e não é o que se procura num celular. */
+@media (max-width: 560px) {
+  .terr-tabela-municipios th:nth-child(2),
+  .terr-tabela-municipios th:nth-child(5),
+  .terr-tabela-municipios th:nth-child(8),
+  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(2),
+  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(5),
+  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(8) {
+    display: none;
+  }
+
+  /* O nome ganha o espaço que sobrou, e a linha fica mais baixa: mais município
+     na mesma altura de cartão. */
+  .terr-tabela-municipios td,
+  .terr-tabela-municipios th { padding: var(--e-2); }
 }
 
 /* O nome do município é um botão (abre a ficha), e botão centraliza o texto: quando o nome quebrava em

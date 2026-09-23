@@ -13,16 +13,23 @@
 /* -----------------------------------------------------------------------------
    O CONTAINER DA PÁGINA
 
-   1.480px foi escolhido NO HARNESS, e não no chute. Em 1920 os cartões
-   esticavam por quase 1800px: a linha de leitura ficava longa demais e a grade
-   de quatro KPIs virava quatro faixas separadas por vazio. Com esta largura, em
-   1920 sobra margem dos dois lados e a grade tem densidade de painel; em 1440 e
-   abaixo ela ainda ocupa a tela inteira, então nada encolhe onde não sobrava
-   espaço.
+   2.100px, corrigido na T4.7 — MEDIDO NA TELA REAL, num monitor de ~2560px:
+   a T4.6 fixou 1.480 para acabar com o cartão esticado, e acertou o problema
+   pelo lado errado. Com 1.480 num monitor de 2560 sobravam
+   540px de corredor vazio DE CADA LADO. Não era margem, era um vão: o conteúdo
+
+   parecia uma folha A4 no meio do monitor. O que tornava 1800px ruim na T4.6
+   não era a largura — era a COMPOSIÇÃO: uma coluna só,
+   com cada bloco esticado de ponta a ponta. A resposta é usar a largura em duas
+   colunas nos blocos analíticos (ver `.dash-duas-colunas`), e não estreitar a
+   página. Com 2.100 num monitor de 2560 sobram ~230px de cada lado, que é
+   margem; em 1920 a página usa a tela quase inteira. O teto continua existindo,
+   e não é decoração: sem ele, num ultrawide a linha de leitura passaria de
+   qualquer medida sensata. O que se combateu foi o vão, não o limite.
    ----------------------------------------------------------------------------- */
 .dash-pagina {
   width: 100%;
-  max-width: 1480px;
+  max-width: 2100px;
   margin-inline: auto;
   padding-inline: var(--e-5);
   display: flex;
@@ -51,6 +58,130 @@
   display: flex;
   flex-direction: column;
   gap: var(--e-4);
+}
+
+/* -----------------------------------------------------------------------------
+   DUAS COLUNAS NOS BLOCOS ANALÍTICOS (fase T4.7)
+
+   É isto que resolve o corredor vazio — e não estreitar a página. Um bloco
+   analítico tem duas naturezas de conteúdo: a LEITURA (resumo e ranking, que se
+   lê de cima para baixo) e a FORMA (o gráfico, que se lê de lado). Empilhadas,
+   elas fazem uma coluna estreita e comprida no meio de um monitor largo; lado a
+   lado, cada uma fica do tamanho que precisa e a página acaba antes.
+
+   A coluna da esquerda é a mais estreita de propósito: lista e resumo ficam
+   melhores em coluna curta, e o gráfico é quem precisa de largura.
+
+   Abaixo de 1200px volta a ser uma coluna: duas colunas de 400px não são duas
+   colunas, são duas colunas ruins.
+   ----------------------------------------------------------------------------- */
+.dash-duas-colunas {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--e-4);
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .dash-duas-colunas { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* A coluna da leitura empilha resumo e lista com o mesmo respiro do resto. */
+.dash-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+  min-width: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   O RANKING DE BARRAS (fase T4.7)
+
+   É a segunda camada dos painéis analíticos: entre o resumo e a tabela. Uma
+   barra horizontal por linha, com o nome à esquerda e o valor à direita — a
+   forma que responde "qual é maior" sem ler número nenhum, que é o que uma
+   tabela nunca faz.
+
+   A ESCALA SAI DO MAIOR VALOR ABSOLUTO, e não do maior positivo: assim a barra
+   de uma margem negativa tem o mesmo comprimento por real que a de uma positiva,
+   e comparar as duas não engana.
+   ----------------------------------------------------------------------------- */
+.dash-ranking {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+  padding: var(--e-4);
+  margin-top: var(--e-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.dash-ranking-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+
+.dash-ranking-item {
+  display: grid;
+  grid-template-columns: minmax(120px, 2fr) minmax(0, 7fr) minmax(110px, auto);
+  align-items: center;
+  gap: var(--e-3);
+  font-size: var(--t-apoio);
+}
+
+@media (max-width: 700px) {
+  /* No celular a barra some e ficam nome e valor: uma barra de 80px não compara
+     nada, e ainda rouba o espaço do número. */
+  .dash-ranking-item { grid-template-columns: minmax(0, 1fr) auto; }
+  .dash-ranking-barra { display: none; }
+}
+
+.dash-ranking-nome {
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.dash-ranking-barra {
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--n-100);
+  overflow: hidden;
+}
+
+.dash-ranking-preenchimento {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--jd-green);
+}
+
+/* NEGATIVO É HACHURA, E NÃO SÓ COR VERMELHA: quem não distingue as duas cores
+   continua vendo que esta barra é de outra natureza. */
+.dash-ranking-negativa {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--danger) 0,
+    var(--danger) 4px,
+    var(--danger-bg) 4px,
+    var(--danger-bg) 8px
+  );
+}
+
+.dash-ranking-valor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--e-1);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* -----------------------------------------------------------------------------
@@ -108,12 +239,30 @@
   gap: var(--e-4);
 }
 
+/* TRÊS MÉTRICAS OCUPAM TRÊS COLUNAS (fase T4.7).
+
+   A grade era sempre de quatro, e a Performance Tracbel — que tem três números
+   reais — ficava com um quarto vazio de um quarto da largura, guardando lugar
+   para Captura e Não capturado. Na captura de 1440 isso lê como cartão que não
+   carregou, e não como espaço reservado. O layout volta a quatro colunas quando
+   a issue 69 trouxer os dois que faltam; até lá, três números fazem três
+   colunas. */
+.dash-kpis[data-colunas='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* A grade de TRÊS desce mais tarde: três cartões de ~320px cabem bem em 1024, e
+   quebrar ali daria 2 + 1, com o terceiro sozinho numa linha — o mesmo desenho
+   desequilibrado que a quarta coluna vazia produzia. */
 @media (max-width: 1100px) {
   .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+@media (max-width: 900px) {
+  .dash-kpis[data-colunas='3'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 560px) {
-  .dash-kpis { grid-template-columns: minmax(0, 1fr); }
+  .dash-kpis,
+  .dash-kpis[data-colunas='3'] { grid-template-columns: minmax(0, 1fr); }
 }
 
 .dash-kpi {
@@ -172,6 +321,25 @@
   font-weight: 500;
 }
 
+/* O TRAÇO TEM O TAMANHO DO NÚMERO QUE ELE SUBSTITUI (fase T4.7).
+
+   Na revisão das capturas de 1440, 1280 e 1024, os três cartões sem dado
+   pareciam CARREGANDO, não "sem dado por decisão": o `—` herdava o tamanho de
+   texto corrido do `ValorAusente` e ficava perdido num cartão dimensionado para
+   um número de 30px. A ausência é uma afirmação da tela — ela precisa do mesmo
+   peso do número, senão parece defeito. */
+.dash-kpi-valor .cad-ausente {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  font-size: var(--t-kpi);
+  line-height: var(--lh-apertada);
+  color: var(--text-tertiary);
+}
+
+/* O ⓘ ao lado do traço volta ao tamanho dele: o gatilho não cresce junto. */
+.dash-kpi-valor .cad-ausente .dica-gatilho { font-size: var(--t-apoio); }
+
 /* -----------------------------------------------------------------------------
    A FAIXA DOS NÚMEROS ESTRUTURAIS
 
@@ -179,15 +347,34 @@
    desenhados como cartão, do mesmo tamanho dos quatro do topo. Nenhum sumiu:
    continuam inteiros, com procedência e comparação, numa linha só.
    ----------------------------------------------------------------------------- */
+/* A QUEBRA É DECLARADA, e não acidental (fase T4.7).
+
+   Com `flex-wrap` os cinco indicadores quebravam onde a soma das larguras
+   mandasse: em 1024 dava 4 + 1, com o rebanho bovino sozinho numa segunda linha
+   — parecia sobra, não grupo. Em grade eles quebram 5 → 3 → 2 em degraus
+   escolhidos, e cada linha fica cheia. */
 .dash-faixa {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, auto));
+  justify-content: start;
   align-items: baseline;
   gap: var(--e-2) var(--e-5);
   padding: var(--e-3) var(--e-4);
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+}
+
+@media (max-width: 1200px) {
+  .dash-faixa { grid-template-columns: repeat(3, minmax(0, auto)); }
+}
+
+@media (max-width: 700px) {
+  .dash-faixa { grid-template-columns: repeat(2, minmax(0, auto)); }
+}
+
+@media (max-width: 420px) {
+  .dash-faixa { grid-template-columns: minmax(0, 1fr); }
 }
 
 .dash-faixa-item {
@@ -521,10 +708,18 @@
 }
 
 /* NÚMERO À DIREITA, com dígitos de largura fixa: é o que deixa a coluna
-   conferível de cima a baixo. */
-.dash-tabela-numero {
+   conferível de cima a baixo.
+
+   A FONTE É A DO TEXTO, e não a monoespaçada (fase T4.7). `tabular-nums` já dá
+   dígito de largura fixa — que é o que faz a coluna alinhar — sem trocar a
+   família. Com monoespaçada, "0,84" e "142 → 119" liam como saída de terminal, e
+   a tabela inteira ganhava cara de debug em vez de comparação entre culturas. */
+.dash-tabela-numero,
+.dash-tabela .cad-mono {
   text-align: right;
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
+  font-size: var(--t-apoio);
   white-space: nowrap;
 }
 

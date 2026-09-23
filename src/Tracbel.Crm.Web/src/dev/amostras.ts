@@ -250,18 +250,21 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
       referenciaDaCobertura: '2026-09-23T00:00:00Z',
       interacaoMaisRecente: '2026-09-21T00:00:00Z',
       anoDaAreaPlantada: 2024,
-      regras: [
-        {
-          produtoCodigoIbge: codigoDaCultura(0),
-          produtoNome: 'Cana-de-açúcar',
-          hectaresPorMaquina: 250,
-          modeloDeReferencia: 'Trator de referência (amostra)',
-          situacao: 'AConfirmar',
-          justificativa: 'regra de amostra do harness — não é decisão do comercial',
-          vigenteDesde: '2026-01-01',
-          anosDeRenovacao: 8,
-        },
-      ],
+      // UMA REGRA POR CULTURA, e não só a primeira (corrigido na T4.7): a ficha
+      // do município resolve o NOME da cultura pela regra, e com uma regra só as
+      // demais apareciam na captura como "Área plantada de 900002" — o código
+      // inventado do harness, no lugar onde se lê o nome. Amostra que não dá para
+      // revisar não serve para revisão visual.
+      regras: Array.from({ length: quantasCulturas }, (_, i) => ({
+        produtoCodigoIbge: codigoDaCultura(i),
+        produtoNome: CULTURAS[i],
+        hectaresPorMaquina: 250,
+        modeloDeReferencia: 'Trator de referência (amostra)',
+        situacao: 'AConfirmar' as const,
+        justificativa: 'regra de amostra do harness — não é decisão do comercial',
+        vigenteDesde: '2026-01-01',
+        anosDeRenovacao: 8,
+      })),
       municipios,
       foraDoMapa: [],
       enderecos: 480,

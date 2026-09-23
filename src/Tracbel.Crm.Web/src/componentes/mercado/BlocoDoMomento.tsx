@@ -28,6 +28,7 @@ import { PainelDePrecos } from '../territorio/PainelDePrecos';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
 import { AbasInternas } from './AbasInternas';
 import { ComposicaoDoFator } from './ComposicaoDoFator';
+import { PainelDeRentabilidade } from './PainelDeRentabilidade';
 import type { MomentoDoRecorte } from '../../tipos/territorio';
 
 type SubAba = 'composicao' | 'rentabilidade' | 'credito' | 'troca' | 'percepcao';
@@ -74,17 +75,28 @@ export function BlocoDoMomento({
           {
             id: 'rentabilidade',
             rotulo: 'Rentabilidade',
+            // A RESPOSTA VEM PRIMEIRO (fase T4.7). Esta aba abria com duas
+            // tabelas de dez colunas — preço e custo — e a pergunta que a
+            // diretoria traz ("onde sobra dinheiro por hectare?") tinha de ser
+            // montada cruzando as duas com a cabeça. Agora o painel de margem
+            // abre a aba, e preço e custo ficam abaixo, como a evidência que
+            // eles são. Nenhuma tabela foi removida.
             conteudo: (
               <>
                 {/* A FONTE É ESTADUAL, e a tela diz isso (issue 168): escolher um
                     município não reparte um preço de São Paulo por município. */}
                 <ReferenciaNaoEMunicipal nomeDoMunicipio={nomeDoMunicipio} fonte="São Paulo" />
-                <PainelDePrecos produtosDoMunicipio={produtosDoMunicipio} />
-                <ReferenciaNaoEMunicipal
-                  nomeDoMunicipio={nomeDoMunicipio}
-                  fonte="a localidade de referência da CONAB"
-                />
-                <PainelDeCustos produtosDoMunicipio={produtosDoMunicipio} />
+                <PainelDeRentabilidade produtosDoMunicipio={produtosDoMunicipio} />
+
+                <details className="cad-recolhivel" data-bloco="rentabilidade-fontes">
+                  <summary>As duas séries que compõem a margem — preço e custo</summary>
+                  <PainelDePrecos produtosDoMunicipio={produtosDoMunicipio} />
+                  <ReferenciaNaoEMunicipal
+                    nomeDoMunicipio={nomeDoMunicipio}
+                    fonte="a localidade de referência da CONAB"
+                  />
+                  <PainelDeCustos produtosDoMunicipio={produtosDoMunicipio} />
+                </details>
               </>
             ),
           },

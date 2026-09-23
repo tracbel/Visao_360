@@ -20,7 +20,8 @@ import { InfoTooltip } from '../InfoTooltip';
 import { Procedencia } from '../comum/Procedencia';
 import { useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
-import { PainelDeIndicadores, type Indicador } from '../cadastro/Indicadores';
+import type { Indicador } from '../cadastro/Indicadores';
+import { CartaoDeIndicador, GradeDeIndicadores } from '../dashboard/Dashboard';
 import { SeloProcedencia } from '../cadastro/SeloProcedencia';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
@@ -192,12 +193,28 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
 
       {dados?.ultimoMes && janela && (
         <>
-          <PainelDeIndicadores indicadores={indicadores} />
+          {/* ---------- CAMADA 1: a resposta (fase T4.7) ----------
+              Os três números na mesma grade do topo da página. Eles vinham no
+              `PainelDeIndicadores` do cadastro, com outro desenho — e o painel de
+              crédito abria parecendo uma tela de outra família. */}
+          <GradeDeIndicadores data-colunas="3">
+            {indicadores.map((i, n) => (
+              <CartaoDeIndicador
+                key={i.rotulo}
+                rotulo={i.rotulo}
+                destaque={n === 0}
+                valor={i.valor}
+                contexto={i.deOnde}
+                motivoSemDado={i.semDado}
+              />
+            ))}
+          </GradeDeIndicadores>
 
-          {/* A JANELA, DITA POR EXTENSO. Sem isso, "os últimos 12 meses" é uma frase — e quem confere
-              na mão não sabe que meses entraram nem por que o mês mais recente ficou de fora. */}
-          <div className="card cad-cartao terr-cartao">
-            <div className="card-title">A janela desta comparação</div>
+          {/* A JANELA, DITA POR EXTENSO — e RECOLHIDA (fase T4.7). Sem ela, "os últimos 12 meses" é
+              uma frase e quem confere na mão não sabe que meses entraram; com ela aberta, o painel
+              começava por uma explicação de metodologia em vez de por um número. */}
+          <details className="cad-recolhivel" data-bloco="credito-janela">
+            <summary>A janela desta comparação — {janelaTexto}</summary>
             <div className="cad-sub">
               <strong>{janelaTexto}</strong> contra <strong>{janelaAnteriorTexto}</strong> · {janela.mesesPorJanela} meses de cada
               lado · o SICOR tem dado até {mes(janela.ultimoMesComDado)}
@@ -207,13 +224,14 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
                   : ' · a carência está decidida como zero: nenhum mês fica de fora'
                 : ' · carência não decidida: nenhum mês foi descartado, e por isso o mês mais recente pode aparecer abaixo do que será'}
             </div>
-          </div>
+          </details>
 
           {/* REGIÃO × SÃO PAULO. Sem o estado ao lado, o número da Região é solto: ele pode ser um
-              terço de São Paulo ou um vigésimo, e a diferença é o tamanho do mercado que falta. */}
+              terço de São Paulo ou um vigésimo, e a diferença é o tamanho do mercado que falta.
+              Recolhido na T4.7: é comparação de recorte, e vem depois da leitura. */}
           {dados.regiao && dados.saoPaulo && (
-            <div className="card cad-cartao terr-cartao">
-              <div className="card-title">Máquinas: a Região dentro de São Paulo — {janelaTexto}</div>
+            <details className="cad-recolhivel" data-bloco="credito-regiao-sp">
+              <summary>Máquinas: a Região dentro de São Paulo — {janelaTexto}</summary>
               <div className="cad-tabela-wrap">
                 <table className="cad-tabela terr-tabela-precos">
                   <thead>
@@ -258,46 +276,48 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
                   </tbody>
                 </table>
               </div>
-            </div>
+            </details>
           )}
 
-          <div className="terr-grade-precos terr-grade-custos">
-            <div className="card cad-cartao terr-cartao">
-              <div className="card-title terr-precos-cabecalho">
-                <span>Máquinas por município — {janelaTexto}</span>
+          {/* ---------- CAMADA 2: o visual (fase T4.7) ----------
+              À esquerda o RANKING dos municípios, que responde "onde está o
+              crédito"; à direita a EVOLUÇÃO por ano, que responde "está subindo
+              ou caindo". Eram uma tabela de quinze linhas e um gráfico colados
+              lado a lado sem composição — duas leituras disputando o mesmo
+              espaço. A tabela inteira continua abaixo, recolhida. */}
+          <div className="dash-duas-colunas">
+            <div className="dash-ranking" aria-label="Valor financiado em máquinas, por município">
+              <div className="dash-painel-cabecalho">
+                <h3 className="dash-painel-titulo">Onde está o crédito</h3>
                 <label className="terr-filtro-inline">
                   <input type="checkbox" checked={soAdr} onChange={(e) => setSoAdr(e.target.checked)} /> só a ADR
                 </label>
               </div>
-              <div className="cad-tabela-wrap">
-                <table className="cad-tabela terr-tabela-precos">
-                  <thead>
-                    <tr>
-                      <th>Município</th>
-                      <th className="terr-num">
-                        Linhas{' '}
-                        <InfoTooltip
-                          rotulo="O que a coluna Linhas conta"
-                          texto="Linhas do SICOR nos últimos 12 meses, e a variação sobre os 12 anteriores. Cada linha já é a soma dos contratos daquela combinação — não é um contrato, e não há quantidade."
+
+              <ul className="dash-ranking-lista">
+                {municipios.slice(0, 10).map((m) => {
+                  const maior = Math.max(1, ...municipios.map((x) => x.janelas.valor));
+                  return (
+                    <li key={m.codigoIbge} className="dash-ranking-item" data-municipio={m.codigoIbge}>
+                      <span className="dash-ranking-nome">{m.nome}</span>
+                      <span className="dash-ranking-barra">
+                        <span
+                          className="dash-ranking-preenchimento"
+                          style={{ width: `${Math.max(2, (m.janelas.valor / maior) * 100)}%` }}
+                          aria-hidden="true"
                         />
-                      </th>
-                      <th className="terr-num">Valor</th>
-                      <th className="terr-num">
-                        Valor médio{' '}
+                      </span>
+                      <span className="dash-ranking-valor">
+                        {reaisCurtos(m.janelas.valor)}
                         <InfoTooltip
-                          rotulo="O que é o valor médio por linha"
-                          texto="Valor contratado dividido pelo número de LINHAS do SICOR. Não é ticket médio: a linha do SICOR não é um contrato — ela já é a soma dos contratos daquela combinação de município e produto, e não traz quantidade."
+                          rotulo={`O crédito de ${m.nome}`}
+                          texto={`${m.janelas.linhas.toLocaleString('pt-BR')} linhas do SICOR na janela, contra ${m.janelas.linhasAnteriores.toLocaleString('pt-BR')} nos 12 meses anteriores. Uma linha NÃO é um contrato: ela já é a soma dos contratos daquela combinação de município e produto.`}
                         />
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {municipios.map((m) => (
-                      <LinhaDeJanelas key={m.codigoIbge} nome={m.nome} sub={m.pertenceAAdr ? 'ADR' : undefined} j={m.janelas} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
 
             <div className="card cad-cartao terr-cartao">
@@ -307,7 +327,7 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
                 aparece tracejado
               </div>
               {anos.length > 1 && (
-                <MolduraDeGrafico altura={240}>
+                <MolduraDeGrafico altura={300}>
                   {(l, a) => (
                     <GraficoLinhaMensal
                       rotulos={anos.map((ano) => String(ano.ano))}
@@ -323,6 +343,45 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
               <SeloProcedencia procedencia={credito.procedencia} />
             </div>
           </div>
+
+          {/* ---------- CAMADA 3: a evidência (fase T4.7) ----------
+              A tabela inteira dos municípios, com as três colunas e a variação.
+              Ela era a PRIMEIRA coisa da segunda metade do painel, com quinze
+              linhas ocupando meia tela antes de qualquer leitura. Nenhuma linha
+              foi removida: ela é consulta e auditoria, e é onde a consulta e a
+              auditoria acontecem. */}
+          <details className="cad-recolhivel" data-bloco="credito-municipios">
+            <summary>Máquinas por município — a tabela inteira, com a variação sobre os 12 meses anteriores</summary>
+            <div className="cad-tabela-wrap">
+              <table className="cad-tabela terr-tabela-precos">
+                <thead>
+                  <tr>
+                    <th>Município</th>
+                    <th className="terr-num">
+                      Linhas{' '}
+                      <InfoTooltip
+                        rotulo="O que a coluna Linhas conta"
+                        texto="Linhas do SICOR nos últimos 12 meses, e a variação sobre os 12 anteriores. Cada linha já é a soma dos contratos daquela combinação — não é um contrato, e não há quantidade."
+                      />
+                    </th>
+                    <th className="terr-num">Valor</th>
+                    <th className="terr-num">
+                      Valor médio{' '}
+                      <InfoTooltip
+                        rotulo="O que é o valor médio por linha"
+                        texto="Valor contratado dividido pelo número de LINHAS do SICOR. Não é ticket médio: a linha do SICOR não é um contrato — ela já é a soma dos contratos daquela combinação de município e produto, e não traz quantidade."
+                      />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {municipios.map((m) => (
+                    <LinhaDeJanelas key={m.codigoIbge} nome={m.nome} sub={m.pertenceAAdr ? 'ADR' : undefined} j={m.janelas} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
 
           <div className="card cad-cartao terr-cartao">
             <div className="card-title">Produtos financiados — {janelaTexto}, contra os 12 meses anteriores</div>

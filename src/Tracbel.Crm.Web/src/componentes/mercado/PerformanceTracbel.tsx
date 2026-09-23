@@ -82,11 +82,13 @@ export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDa
             // espalhados com larguras diferentes, e três cartões de venda não
             // podem parecer coisas de naturezas diferentes.
             //
-            // A GRADE TEM QUATRO COLUNAS e aqui há três: a quarta fica vazia de
-            // propósito, guardando o lugar de Captura e Não capturado para quando
-            // a issue 69 trouxer as vendas em unidades.
+            // TRÊS COLUNAS PARA TRÊS NÚMEROS (fase T4.7). A grade de quatro
+            // deixava um quarto vazio guardando lugar para Captura e Não
+            // capturado — e na captura de 1440 isso lê como cartão que não
+            // carregou, não como espaço reservado. Quando a issue 69 trouxer os
+            // dois que faltam, o atributo sai e a grade volta a quatro.
             conteudo: (
-              <GradeDeIndicadores>
+              <GradeDeIndicadores data-colunas="3">
                 {vendas.map((v) => (
                   <CartaoDeIndicador
                     key={v.rotulo}

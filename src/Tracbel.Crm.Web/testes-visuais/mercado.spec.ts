@@ -208,13 +208,32 @@ for (const { nome, largura, altura } of LARGURAS) {
       const { sobra, culpados } = await sobraLateral(page);
       expect(sobra, `Território passa ${sobra}px. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
 
-      // A TABELA ROLA DENTRO DO CARTÃO, e não arrasta a página para o lado: no
-      // celular ela mostra cinco colunas em vez de oito, e o que sai está
-      // inteiro na ficha do município.
+      // QUANTAS COLUNAS FICAM, por largura: oito no desktop, cinco no tablet,
+      // duas no aparelho de mão.
+      const esperadas = largura <= 560 ? 2 : largura <= 768 ? 5 : 8;
       const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
-      expect(colunas, `em ${largura}px esperava ${largura <= 768 ? 5 : 8} colunas visíveis`).toBe(
-        largura <= 768 ? 5 : 8,
-      );
+      expect(colunas, `em ${largura}px esperava ${esperadas} colunas`).toBe(esperadas);
+
+      // ============================================================================
+      // E QUE ELAS CABEM — que é o que o teste anterior NÃO media.
+      //
+      // `:visible` em Playwright quer dizer "não está `display:none`", e não "cabe
+      // na tela". Com cinco colunas em 390px o teste passava enquanto a tabela
+      // virava uma lista de nomes com as outras quatro escondidas atrás da rolagem
+      // horizontal do cartão — dado presente e invisível, que é pior que dado
+      // adiado. Só a revisão humana das capturas pegou isso (T4.7).
+      //
+      // Aqui a afirmação é geométrica: a tabela não é mais larga que o cartão que
+      // a segura. No desktop a rolagem interna é aceitável para oito colunas, e
+      // por isso a exigência vale onde ela engana — no celular.
+      // ============================================================================
+      if (largura <= 560) {
+        const sobra = await page.locator('[data-bloco="tabela-municipios"] .cad-tabela-wrap').evaluate((n) => {
+          const tabela = n.querySelector('table')!;
+          return Math.round(tabela.getBoundingClientRect().width - n.clientWidth);
+        });
+        expect(sobra, `a tabela passa ${sobra}px do cartão em ${largura}px — as colunas escondidas rolam para o lado`).toBeLessThanOrEqual(0);
+      }
     });
 
     test('a ficha do município cabe na largura, com as evidências abertas', async ({ page }) => {
@@ -222,8 +241,11 @@ for (const { nome, largura, altura } of LARGURAS) {
 
       const ficha = page.locator('[data-bloco="ficha-do-municipio"]');
       await expect(ficha).toBeVisible();
-      await ficha.scrollIntoViewIfNeeded();
-      await page.screenshot({ path: `capturas/${nome}/ficha.png` });
+
+      // A CAPTURA É DO ELEMENTO, e não da janela (T4.7): com `page.screenshot`
+      // depois de rolar até ela, a imagem pegava o MEIO da camada de evidência —
+      // a ficha inteira, que é o que se revisa, não aparecia em lugar nenhum.
+      await ficha.screenshot({ path: `capturas/${nome}/ficha.png` });
 
       const caixa = await ficha.boundingBox();
       expect(
