@@ -117,15 +117,31 @@ export function MapaDoPotencial({
       mapa="potencial"
       id="potencial"
       ligacao={ligacao}
-      titulo={<>Potencial teórico <SeloDeClassificacao classificacao={classificacao} /></>}
+      titulo="Potencial teórico"
+      selo={<SeloDeClassificacao classificacao={classificacao} />}
       metodologia={metodologia(recorteDoPotencial, regra, enderecos, enderecosComArea)}
-      // O RESUMO ABSORVEU A REGRA, que era subtítulo: ela é operacional e cabe
-      // numa linha. O resto do subtítulo virou metodologia.
-      resumo={
-        totais.municipiosComArea > 0
-          ? `${regra ? `1 ${regra.modeloDeReferencia} / ${regra.hectaresPorMaquina} ha de ${regra.produtoNome} · ` : ''}${nº(Math.round(totais.maquinasTeoricas))} máquinas em ${nº(totais.municipiosComArea)} municípios${totais.potencialEstimado ? ' · estimativa' : ''}`
-          : 'sem área plantada ou regra para calcular'
-      }
+      // A REGRA CONTINUA NO RESUMO, e agora como metadado à direita — que é onde
+      // a maquete põe "1.303 N / 10 ha de café". Ela é operacional e não é a
+      // resposta do cartão: a resposta é quantas máquinas o recorte comporta.
+      resumo={{
+        valor: totais.municipiosComArea > 0 ? nº(Math.round(totais.maquinasTeoricas)) : null,
+        rotulo: totais.potencialEstimado ? 'máquinas potenciais (estimativa)' : 'máquinas potenciais',
+        semValor: 'sem área plantada ou regra para calcular',
+        meta:
+          totais.municipiosComArea > 0
+            ? [
+                { valor: nº(totais.municipiosComArea), rotulo: 'municípios' },
+                ...(regra
+                  ? [
+                      {
+                        valor: `1 ${regra.modeloDeReferencia}`,
+                        rotulo: `/ ${regra.hectaresPorMaquina} ha de ${regra.produtoNome}`,
+                      },
+                    ]
+                  : []),
+              ]
+            : undefined,
+      }}
       alternador={
         <div className="terr-alternador" role="group" aria-label="O que o mapa mostra">
           {(Object.keys(ROTULO_DO_POTENCIAL) as RecorteDoPotencial[]).map((r) => (

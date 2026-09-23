@@ -23,6 +23,10 @@
  * tela é simulado.
  */
 
+// `Map` do lucide entra COM OUTRO NOME: esta tela usa `new Map(...)` e
+// `Map<string, string>` em quatro pontos, e o import sombrearia o construtor
+// nativo — um erro que o TypeScript aceitaria calado até o primeiro `new`.
+import { ChartSpline, Map as IconeMapa, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BlocoErro } from '../componentes/cadastro/EstadosDeTela';
@@ -54,8 +58,8 @@ type IdDaAba = 'mercado' | 'territorio';
 
 /** Mercado é a primeira porque o público desta tela é a diretoria (documento 50, §3). */
 const ABAS: readonly Aba<IdDaAba>[] = [
-  { id: 'mercado', rotulo: 'Mercado' },
-  { id: 'territorio', rotulo: 'Território' },
+  { id: 'mercado', rotulo: 'Mercado', icone: ChartSpline },
+  { id: 'territorio', rotulo: 'Território', icone: IconeMapa },
 ];
 
 export function IndicadoresGeograficos() {
@@ -270,12 +274,39 @@ export function IndicadoresGeograficos() {
       <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Indicadores Geográficos da ADR</h1>
+          {/* O SUBTÍTULO É A LINHA DA MAQUETE (fase T4.9) — uma frase.
+              Ele tinha três linhas, e a terceira ("nenhum número desta tela é
+              ilustrativo") não se perdeu: a procedência ao lado é exatamente o
+              controle que responde de onde vem o dado, e diz isso por número. */}
           <p className="page-subtitle">
-            Área de atuação da Tracbel Agro em São Paulo, município a município: cobertura de carteira, vendas e potencial
-            por área. Dado do banco do CRM e do IBGE — nenhum número desta tela é ilustrativo.
+            Panorama de mercado, potencial e performance por município da área de atuação da Tracbel Agro.
           </p>
         </div>
-        <SeloProcedencia procedencia={painel.procedencia} />
+
+        {/* QUANDO O DADO FOI LIDO, E O BOTÃO DE RELER (maquete).
+            O ícone de recarga da maquete é decorativo; aqui ele refaz a consulta
+            — um botão de atualizar que não atualiza é a promessa mais fácil de
+            quebrar numa tela de dado. */}
+        <div className="dash-cabecalho-direita">
+          <p className="dash-atualizado">
+            {painel.procedencia
+              ? `Dados atualizados em ${new Date(
+                  painel.procedencia.lidoEmUtc.endsWith('Z') ? painel.procedencia.lidoEmUtc : `${painel.procedencia.lidoEmUtc}Z`,
+                ).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
+              : 'Lendo os indicadores…'}
+            <button
+              type="button"
+              className="dash-recarregar"
+              onClick={painel.recarregar}
+              disabled={painel.carregando}
+              data-carregando={painel.carregando ? 'true' : 'false'}
+              aria-label="Reler os indicadores desta tela"
+            >
+              <RefreshCw size={14} strokeWidth={2} aria-hidden="true" />
+            </button>
+          </p>
+          <SeloProcedencia procedencia={painel.procedencia} />
+        </div>
       </div>
 
       <CartaoDeAlcance

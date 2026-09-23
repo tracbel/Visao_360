@@ -65,11 +65,21 @@ describe('o cartão do mapa de cobertura', () => {
     expect(screen.getByRole('tooltip')).toHaveTextContent('a cadência ainda não foi confirmada');
   });
 
-  it('o resumo traz elegíveis, no prazo e pendentes', () => {
+  it('o resumo traz a cobertura em destaque e as três parcelas ao lado', () => {
     montar();
     // Escopado ao resumo: o mesmo texto aparece no `<title>` de cada polígono do
     // SVG, que é o que o leitor de tela lê ao entrar no mapa.
-    expect(resumo()).toMatch(/18 elegíveis · 11 no prazo/);
+    //
+    // O RESUMO DEIXOU DE SER UMA FRASE CORRIDA (fase T4.9 — maquete): a
+    // cobertura virou o número do cartão e as três parcelas viraram metadados ao
+    // lado dele. NENHUMA SAIU, e é isso que este teste protege — antes ele
+    // afirmava a pontuação da frase, que é o que menos importa aqui.
+    const texto = resumo();
+    expect(texto).toMatch(/61,1%/);
+    expect(texto).toMatch(/dos vínculos elegíveis estão no prazo/);
+    expect(texto).toMatch(/18\s*elegíveis/);
+    expect(texto).toMatch(/11\s*no prazo/);
+    expect(texto).toMatch(/pendentes/);
   });
 
   it('o alternador troca a medida, e a legenda troca junto', () => {

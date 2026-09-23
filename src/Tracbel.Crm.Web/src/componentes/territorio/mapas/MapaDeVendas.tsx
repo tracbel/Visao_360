@@ -42,7 +42,8 @@ export function MapaDeVendas({
       mapa="vendas"
       id="vendas"
       ligacao={ligacao}
-      titulo={<>Vendas realizadas <SeloDeClassificacao classificacao={classificacao} /></>}
+      titulo="Vendas realizadas"
+      selo={<SeloDeClassificacao classificacao={classificacao} />}
       // Fonte, período e as três ressalvas que moravam no parágrafo do rodapé.
       metodologia={
         'Fonte: CRM Tracbel — faturamento, pelo endereço principal do cliente. ' +
@@ -51,11 +52,15 @@ export function MapaDeVendas({
         'Ressalvas: valor absoluto favorece cidades grandes; devolução e cancelamento não são abatidos; nota sem ' +
         'cliente no CRM não tem município e fica na tabela, fora do mapa.'
       }
-      resumo={
-        <>
-          {reaisCompactos(totais.vendas)} · máquina {reaisCompactos(totais.maquina)} · pós-venda {reaisCompactos(totais.posVenda)} ·{' '}
-          {nº(totais.clientesQueCompraram)} clientes compraram
-        </>
+      resumo={{
+        valor: reaisCompactos(totais.vendas),
+        rotulo: 'total no período',
+        meta: [
+          { valor: reaisCompactos(totais.maquina), rotulo: 'máquina' },
+          { valor: reaisCompactos(totais.posVenda), rotulo: 'pós-venda' },
+          { valor: nº(totais.clientesQueCompraram), rotulo: 'clientes compraram' },
+        ],
+      }
       }
       alternador={
         <div className="terr-alternador" role="group" aria-label="Recorte das vendas">

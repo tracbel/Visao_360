@@ -101,12 +101,15 @@ export function MapaDaEstrutura({
       ligacao={ligacao}
       titulo="Estrutura agropecuária"
       metodologia={metodologia(anoDoCenso, anoDoRebanho)}
-      resumo={
-        <>
-          {nº(totais.tratores)} tratores · {nº(totais.estabelecimentos)} propriedades · {nº(totais.bovinos)} bovinos ·{' '}
-          {nº(totais.usinas)} usinas
-        </>
-      }
+      resumo={{
+        valor: nº(totais.tratores),
+        rotulo: 'tratores',
+        meta: [
+          { valor: nº(totais.estabelecimentos), rotulo: 'propriedades' },
+          { valor: nº(totais.bovinos), rotulo: 'bovinos' },
+          { valor: nº(totais.usinas), rotulo: 'usinas' },
+        ],
+      }}
       alternador={
         <div className="terr-alternador" role="group" aria-label="Recorte da estrutura">
           {(Object.keys(ROTULO_DA_ESTRUTURA) as RecorteDaEstrutura[]).map((r) => (

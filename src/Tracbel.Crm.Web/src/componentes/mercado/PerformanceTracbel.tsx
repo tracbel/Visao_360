@@ -12,9 +12,10 @@
  * de numerador para uma demanda medida em máquinas.
  */
 
+import { ShoppingCart, Tractor, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import { MetricaAusente } from '../comum/MetricaAusente';
-import { CartaoDeIndicador, GradeDeIndicadores } from '../dashboard/Dashboard';
+import { GradeDeMiniIndicadores, MiniIndicador } from '../dashboard/Dashboard';
 import type { Indicador } from '../cadastro/Indicadores';
 import { reaisCompactos } from '../territorio/escalas';
 import { nº } from '../territorio/indicadoresDaAdr';
@@ -23,6 +24,17 @@ import { TituloDaSecao } from '../territorio/TituloDaSecao';
 import { AbasInternas } from './AbasInternas';
 
 type SubAba = 'captura' | 'vendas' | 'naoCapturado';
+
+/**
+ * O ícone de cada número, POR RÓTULO e não por posição — mesma regra da régua do
+ * mercado: amarrar o ícone ao índice faria o pós-venda virar trator no dia em
+ * que alguém reordenasse a lista.
+ */
+const ICONES_DA_PERFORMANCE: Record<string, typeof Tractor> = {
+  'Vendas no período': ShoppingCart,
+  Máquina: Tractor,
+  'Pós-venda': Wrench,
+};
 
 export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDaAdr; comTerritorio: boolean }) {
   const [subAba, setSubAba] = useState<SubAba>('vendas');
@@ -87,18 +99,26 @@ export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDa
             // capturado — e na captura de 1440 isso lê como cartão que não
             // carregou, não como espaço reservado. Quando a issue 69 trouxer os
             // dois que faltam, o atributo sai e a grade volta a quatro.
+            // MINI-CARTÕES COM SELO DE ÍCONE (fase T4.9 — maquete). Eles eram os
+            // mesmos `CartaoDeIndicador` dos quatro números de decisão do topo,
+            // e dentro de uma coluna de um terço isso dava três cartões da
+            // altura de um KPI executivo para um detalhe de painel. Na maquete
+            // são cartõezinhos de duas linhas com o ícone à esquerda — que é o
+            // nível de leitura certo para eles.
             conteudo: (
-              <GradeDeIndicadores data-colunas="3">
+              <GradeDeMiniIndicadores data-colunas="3">
                 {vendas.map((v) => (
-                  <CartaoDeIndicador
+                  <MiniIndicador
                     key={v.rotulo}
                     rotulo={v.rotulo}
+                    icone={ICONES_DA_PERFORMANCE[v.rotulo]}
+                    tom="demanda"
                     valor={v.valor}
-                    contexto={v.deOnde}
+                    detalhe={v.deOnde}
                     motivoSemDado={v.semDado}
                   />
                 ))}
-              </GradeDeIndicadores>
+              </GradeDeMiniIndicadores>
             ),
           },
           {

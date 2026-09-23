@@ -26,8 +26,10 @@
  * cultura: somar só as que têm daria um total menor que o real, com cara de completo.
  */
 
+import { Leaf, MapPin, RotateCw, Tractor } from 'lucide-react';
 import type { PotencialDoRecorteNoMapa } from '../../tipos/territorio';
 import { ValorAusente } from '../comum/ValorAusente';
+import { GradeDeMiniIndicadores, MiniIndicador } from '../dashboard/Dashboard';
 import { InfoTooltip } from '../InfoTooltip';
 import { MOTIVO_SEM_PARQUE, nº, porcento } from './indicadoresDaAdr';
 
@@ -45,57 +47,57 @@ export function PainelDoPotencialDoRecorte({
       {/* A PRIMEIRA CAMADA SÃO DOIS NÚMEROS. Quantas máquinas, e em quantos
           municípios — é a resposta da seção, e ela chega antes de qualquer
           decomposição. */}
-      <div className="dash-numeros">
-        <span className="dash-numero">
-          <strong>{recorte.parqueDeMaquinas == null ? '—' : nº(Math.round(recorte.parqueDeMaquinas))}</strong>
-          <span className="dash-numero-rotulo">
-            máquinas de parque
-            {recorte.frase && (
+      {/* OS QUATRO NÚMEROS VIRARAM MINI-CARTÕES (fase T4.9 — maquete): selo de
+          ícone à esquerda, número, rótulo embaixo. Eram quatro números soltos
+          numa linha, sem caixa e sem âncora — e na maquete cada um tem a sua.
+          Nenhum número mudou, e nenhuma dica saiu. */}
+      <GradeDeMiniIndicadores>
+        <MiniIndicador
+          rotulo="máquinas de parque"
+          icone={Tractor}
+          tom="demanda"
+          valor={recorte.parqueDeMaquinas == null ? null : nº(Math.round(recorte.parqueDeMaquinas))}
+          motivoSemDado={MOTIVO_SEM_PARQUE[recorte.motivoSemDemanda]}
+          selo={
+            recorte.frase ? (
               <>
-                {' '}
                 <span className="dash-selo">estimativa</span>
                 <InfoTooltip rotulo="Por que o parque é estimativa" texto={`${recorte.frase}.`} />
               </>
-            )}
-          </span>
-        </span>
+            ) : undefined
+          }
+        />
 
-        <span className="dash-numero">
-          <strong>{nº(recorte.municipiosComParque)}</strong>
-          <span className="dash-numero-rotulo">
-            municípios com parque{comFiltro ? ', no filtro aplicado' : ''}
-          </span>
-        </span>
+        <MiniIndicador
+          rotulo={`municípios com parque${comFiltro ? ', no filtro aplicado' : ''}`}
+          oQue="os municípios com parque"
+          icone={MapPin}
+          valor={nº(recorte.municipiosComParque)}
+        />
 
-        <span className="dash-numero">
-          <strong>
-            {recorte.demandaAnualDeMaquinas == null ? (
-              <ValorAusente
-                motivo={`${MOTIVO_SEM_PARQUE[recorte.motivoSemDemanda]}. A decisão D-P01 (issue 63) fixa cultura, categoria, hectares por máquina e anos de renovação — as quatro juntas.`}
-                oQue="a demanda anual"
-              />
-            ) : (
-              nº(Math.round(recorte.demandaAnualDeMaquinas))
-            )}
-          </strong>
-          <span className="dash-numero-rotulo">renovadas por ano</span>
-        </span>
+        <MiniIndicador
+          rotulo="renovadas por ano"
+          oQue="a demanda anual"
+          icone={RotateCw}
+          valor={recorte.demandaAnualDeMaquinas == null ? null : nº(Math.round(recorte.demandaAnualDeMaquinas))}
+          motivoSemDado={`${MOTIVO_SEM_PARQUE[recorte.motivoSemDemanda]}. A decisão D-P01 (issue 63) fixa cultura, categoria, hectares por máquina e anos de renovação — as quatro juntas.`}
+        />
 
         {relevancia && (
-          <span className="dash-numero">
-            <strong>
-              {relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(relevancia.fatiaDaAreaPlantada)}
-            </strong>
-            <span className="dash-numero-rotulo">
-              da área plantada de SP
+          <MiniIndicador
+            rotulo="da área plantada de SP"
+            oQue="a fatia da área plantada de São Paulo"
+            icone={Leaf}
+            valor={relevancia.fatiaDaAreaPlantada == null ? null : porcento(relevancia.fatiaDaAreaPlantada)}
+            selo={
               <InfoTooltip
                 rotulo="A fatia de São Paulo"
                 texto={`${relevancia.fatiaDaAreaPlantada == null ? '—' : porcento(relevancia.fatiaDaAreaPlantada)} da área plantada e ${relevancia.fatiaDoValor == null ? '—' : porcento(relevancia.fatiaDoValor)} do valor da produção do estado. O denominador é o total PUBLICADO pelo IBGE, que não é a soma dos municípios: o valor municipal sob sigilo entra no total do estado sem aparecer embaixo.`}
               />
-            </span>
-          </span>
+            }
+          />
         )}
-      </div>
+      </GradeDeMiniIndicadores>
 
       {/* A DECOMPOSIÇÃO INTEIRA CONTINUA NA TELA, recolhida. `<details>` nativo:
           o navegador já resolve teclado, leitor de tela e Ctrl+F dentro do bloco

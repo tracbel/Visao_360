@@ -246,6 +246,90 @@ export function CartaoDeIndicador({
 }
 
 /**
+ * A GRADE DE MINI-CARTÕES DE UM PAINEL (fase T4.9 — maquete).
+ *
+ * Nos três painéis do rodapé a maquete mostra o conteúdo em cartõezinhos 2×2:
+ * selo de ícone, número, rótulo e, em alguns, um selo de ressalva. Eles NÃO são
+ * o `CartaoDeIndicador` em tamanho menor — são outro nível de leitura. Os quatro
+ * do topo são a resposta da tela; estes são o detalhe de um painel, e por isso
+ * têm metade do corpo e nenhum destaque.
+ */
+export function GradeDeMiniIndicadores({
+  children,
+  ...resto
+}: { children: ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className="dash-mini-kpis" {...resto}>
+      {children}
+    </div>
+  );
+}
+
+/** Um número de detalhe: selo, valor, unidade e o rótulo embaixo. */
+export function MiniIndicador({
+  rotulo,
+  valor,
+  unidade,
+  icone: Icone,
+  tom = 'neutro',
+  selo,
+  motivoSemDado,
+  procedencia,
+  oQue,
+  detalhe,
+}: {
+  rotulo: ReactNode;
+  valor: ReactNode | null;
+  /** A unidade ao lado do número — "%", "ha", "/ano". */
+  unidade?: string;
+  icone?: ComponentType<{ size?: number | string; strokeWidth?: number | string }>;
+  tom?: 'neutro' | 'demanda' | 'mercado' | 'captura' | 'oportunidade';
+  /** Uma ressalva curta ao lado do rótulo — "estimativa", "regra provisória". */
+  selo?: ReactNode;
+  motivoSemDado?: string;
+  procedencia?: ProcedenciaDoIndicador | null;
+  /** Como o leitor de tela chama este número; o padrão é o rótulo em minúsculas. */
+  oQue?: string;
+  /** Uma frase de apoio embaixo do rótulo. */
+  detalhe?: ReactNode;
+}) {
+  const vazio = valor === null || valor === undefined;
+  const nome = oQue ?? (typeof rotulo === 'string' ? rotulo.toLowerCase() : 'este número');
+
+  return (
+    <div className="dash-mini-kpi" data-tom={tom} data-mini={typeof rotulo === 'string' ? rotulo : undefined}>
+      {Icone && (
+        <span className="dash-mini-selo" aria-hidden="true">
+          <Icone size={15} strokeWidth={2} />
+        </span>
+      )}
+      <div className="dash-mini-corpo">
+        <div className="dash-mini-valor">
+          {vazio ? (
+            motivoSemDado ? (
+              <ValorAusente motivo={motivoSemDado} oQue={nome} />
+            ) : (
+              <span className="dash-vazio">—</span>
+            )
+          ) : (
+            <>
+              {valor}
+              {unidade && <span className="dash-kpi-unidade">{unidade}</span>}
+            </>
+          )}
+        </div>
+        <div className="dash-mini-rotulo">
+          {rotulo}
+          {selo}
+          <Procedencia procedencia={procedencia} oQue={nome} />
+        </div>
+        {detalhe && <div className="dash-mini-rotulo">{detalhe}</div>}
+      </div>
+    </div>
+  );
+}
+
+/**
  * A FAIXA COMPACTA DOS NÚMEROS ESTRUTURAIS.
  *
  * Parque de tratores, propriedades, valor da lavoura, usinas e rebanho são
@@ -301,19 +385,25 @@ export function ItemDaFaixa({
           <Icone size={15} strokeWidth={2} />
         </span>
       )}
-      <strong className="dash-faixa-valor">{vazio ? '' : valor}</strong>
-      <span className="dash-faixa-rotulo">{rotulo}</span>
-
-      {/* A mesma ausência da tela inteira: traço, `sem dado` para o leitor e a
-          dica "Por que … não aparece". */}
-      {vazio && motivoSemDado ? (
-        <ValorAusente motivo={motivoSemDado} oQue={rotulo.toLowerCase()} />
-      ) : (
-        <>
-          {comparacao && <InfoTooltip rotulo={`Quanto ${rotulo.toLowerCase()} representa`} texto={comparacao} />}
-          <Procedencia procedencia={procedencia} oQue={rotulo.toLowerCase()} />
-        </>
-      )}
+      {/* O CORPO EMPILHA VALOR E RÓTULO (maquete), e mantém o ⓘ e a procedência
+          NA LINHA do rótulo: soltos na grade, cada um virava mais uma linha, e
+          as sete células da régua terminavam em alturas diferentes. */}
+      <span className="dash-faixa-corpo">
+        <strong className="dash-faixa-valor">{vazio ? '' : valor}</strong>
+        <span className="dash-faixa-rotulo">
+          {rotulo}
+          {/* A mesma ausência da tela inteira: traço, `sem dado` para o leitor e
+              a dica "Por que … não aparece". */}
+          {vazio && motivoSemDado ? (
+            <ValorAusente motivo={motivoSemDado} oQue={rotulo.toLowerCase()} />
+          ) : (
+            <>
+              {comparacao && <InfoTooltip rotulo={`Quanto ${rotulo.toLowerCase()} representa`} texto={comparacao} />}
+              <Procedencia procedencia={procedencia} oQue={rotulo.toLowerCase()} />
+            </>
+          )}
+        </span>
+      </span>
     </span>
   );
 }

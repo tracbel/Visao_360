@@ -20,22 +20,34 @@ export function AbasInternas<T extends string>({
   ativa,
   aoTrocar,
   rotulo,
+  acao,
 }: {
   abas: readonly AbaInterna<T>[];
   ativa: T;
   aoTrocar: (id: T) => void;
   rotulo: string;
+  /**
+   * Uma ação à direita do alternador, na MESMA LINHA (fase T4.9 — maquete).
+   *
+   * É onde o "Simular cenário" do Potencial estrutural passa a morar. Em cima do
+   * alternador, como estava, ele ganhava uma linha inteira só para si — e num
+   * painel de um terço de largura essa linha custa caro.
+   */
+  acao?: ReactNode;
 }) {
   const escolhida = abas.find((a) => a.id === ativa) ?? abas[0];
 
   return (
     <>
-      <div className="terr-alternador" role="group" aria-label={rotulo}>
-        {abas.map((aba) => (
-          <button key={aba.id} type="button" aria-pressed={aba.id === escolhida.id} onClick={() => aoTrocar(aba.id)}>
-            {aba.rotulo}
-          </button>
-        ))}
+      <div className="dash-painel-controles">
+        <div className="terr-alternador" role="group" aria-label={rotulo}>
+          {abas.map((aba) => (
+            <button key={aba.id} type="button" aria-pressed={aba.id === escolhida.id} onClick={() => aoTrocar(aba.id)}>
+              {aba.rotulo}
+            </button>
+          ))}
+        </div>
+        {acao}
       </div>
       <div className="terr-subaba-conteudo">{escolhida.conteudo}</div>
     </>

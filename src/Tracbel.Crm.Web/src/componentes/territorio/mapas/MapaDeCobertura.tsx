@@ -72,13 +72,26 @@ export function MapaDeCobertura({
       mapa="cobertura"
       id="cobertura"
       ligacao={ligacao}
-      titulo={<>Cobertura de carteira <SeloDeClassificacao classificacao={classificacao} /></>}
+      titulo="Cobertura de carteira"
+      selo={<SeloDeClassificacao classificacao={classificacao} />}
       metodologia={metodologia(modoDeCobertura)}
-      resumo={
-        totais.elegiveis > 0
-          ? `${nº(totais.elegiveis)} elegíveis · ${nº(totais.cobertos)} no prazo (${porcento(coberturaDaAdr ?? 0)}) · ${nº(totais.pendentes)} pendentes`
-          : 'nenhum vínculo elegível no recorte'
-      }
+      // O RÓTULO DIZ O DENOMINADOR. A maquete escreve "municípios com vínculo"
+      // embaixo desta porcentagem, e ela não é isso: é vínculo no prazo sobre
+      // vínculo elegível. Copiar o rótulo da maquete trocaria o denominador do
+      // número na cara de quem lê.
+      resumo={{
+        valor: totais.elegiveis > 0 ? porcento(coberturaDaAdr ?? 0) : null,
+        rotulo: 'dos vínculos elegíveis estão no prazo',
+        semValor: 'nenhum vínculo elegível no recorte',
+        meta:
+          totais.elegiveis > 0
+            ? [
+                { valor: nº(totais.elegiveis), rotulo: 'elegíveis' },
+                { valor: nº(totais.cobertos), rotulo: 'no prazo' },
+                { valor: nº(totais.pendentes), rotulo: 'pendentes' },
+              ]
+            : undefined,
+      }}
       alternador={
         <div className="terr-alternador" role="group" aria-label="Cobertura em">
           {(Object.keys(ROTULO_DE_COBERTURA) as ModoDeCobertura[]).map((modo) => (
