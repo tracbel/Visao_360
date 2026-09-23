@@ -255,6 +255,46 @@
   font-size: 12px;
 }
 
+/* A calculadora de máquinas (issue 161), aberta a partir do cartão de potencial. */
+.terr-calculadora {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.terr-calculadora-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.terr-calculadora-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.terr-calculadora-campo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.terr-calculadora-campo input {
+  width: 9rem;
+  text-align: right;
+}
+
+.terr-calculadora-acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .terr-detalhe {
   margin-top: 16px;
 }

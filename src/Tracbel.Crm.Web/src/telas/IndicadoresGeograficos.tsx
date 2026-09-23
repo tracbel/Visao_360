@@ -24,6 +24,7 @@ import { BlocoCarregando, BlocoErro, BlocoVazio } from '../componentes/cadastro/
 import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Indicadores';
 import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
+import { Calculadora } from '../componentes/mercado/Calculadora';
 import { DetalheDoMunicipio } from '../componentes/territorio/DetalheDoMunicipio';
 import { PainelDeCredito } from '../componentes/territorio/PainelDeCredito';
 import { PainelDeCustos } from '../componentes/territorio/PainelDeCustos';
@@ -197,6 +198,7 @@ export function IndicadoresGeograficos() {
   const [recorteDoPotencial, setRecorteDoPotencial] = useState<RecorteDoPotencial>('maquinas');
   const [selecionado, setSelecionado] = useState<number | null>(null);
   const [emFoco, setEmFoco] = useState<number | null>(null);
+  const [calculadoraAberta, setCalculadoraAberta] = useState(false);
   const [lojasConhecidas, setLojasConhecidas] = useState<Map<string, string>>(() => new Map());
   const [adrConhecida, setAdrConhecida] = useState<ReadonlySet<number>>(() => new Set());
 
@@ -891,6 +893,18 @@ export function IndicadoresGeograficos() {
                 : 'sem área plantada ou regra para calcular'}
             </p>
             {recorte && <PainelDoPotencialDoRecorte recorte={recorte} comFiltro={!semFiltro} />}
+            <div className="terr-alternador" role="group" aria-label="Simulação">
+              <button type="button" aria-pressed={calculadoraAberta} onClick={() => setCalculadoraAberta(!calculadoraAberta)}>
+                {calculadoraAberta ? 'Fechar a calculadora' : 'Calculadora de máquinas'}
+              </button>
+            </div>
+            {calculadoraAberta && (
+              <Calculadora
+                contexto={contexto}
+                municipioCodigoIbge={selecionado}
+                aoFechar={() => setCalculadoraAberta(false)}
+              />
+            )}
             <div className="terr-alternador" role="group" aria-label="O que o mapa mostra">
               {(Object.keys(ROTULO_DO_POTENCIAL) as RecorteDoPotencial[]).map((r) => (
                 <button

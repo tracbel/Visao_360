@@ -134,7 +134,10 @@ public sealed class VisaoDaEmpresaTestes : IDisposable
     {
         _provedor.Atual = contexto;
         await using var db = NovoContexto();
-        return await new RepositorioDeIndicadoresTerritoriais(db).ApurarAsync(consulta, Agora, CancellationToken.None);
+        // O MOTOR DO POTENCIAL É OUTRO REPOSITÓRIO desde a issue 161 — a calculadora precisa do mesmo
+        // catálogo, e duas leituras dele divergiriam. Aqui ele lê o mesmo contexto.
+        return await new RepositorioDeIndicadoresTerritoriais(db, new RepositorioDoMotorDoPotencial(db))
+            .ApurarAsync(consulta, Agora, CancellationToken.None);
     }
 
     private CrmDbContext NovoContexto() =>

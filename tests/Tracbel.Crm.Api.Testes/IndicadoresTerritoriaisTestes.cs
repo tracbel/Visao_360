@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -384,6 +385,31 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         relevancia.GetProperty("fatiaDoValor").GetDecimal().Should().Be(10m, "6.000 sobre 60.000 mil reais");
         relevancia.GetProperty("fatiaDaQuantidade").ValueKind.Should().Be(JsonValueKind.Null,
             "a quantidade não tem total: cada produto vem na unidade dele");
+    }
+
+    [Fact]
+    public async Task A_calculadora_devolve_para_o_municipio_o_mesmo_numero_do_mapa()
+    {
+        // O CRITÉRIO DE ACEITE DA ISSUE 161, conferido entre as DUAS ROTAS, no mesmo cenário: elas saem da
+        // mesma função do domínio, e não de duas fórmulas que alguém manteve parecidas.
+        await SemearAsync();
+
+        var doMapa = Municipio(await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo)), RibeiraoPreto)
+            .GetProperty("potencialEstrutural");
+
+        var daCalculadora = JsonDocument.Parse(await (await api.ClienteDeRibeirao()
+                .PostAsJsonAsync("/api/v1/mercado/calculadora", new { municipioCodigoIbge = RibeiraoPreto.ToString() }))
+                .Content.ReadAsStringAsync())
+            .RootElement.GetProperty("dados");
+
+        daCalculadora.GetProperty("parqueDeMaquinas").GetDecimal()
+            .Should().Be(doMapa.GetProperty("parqueDeMaquinas").GetDecimal());
+        daCalculadora.GetProperty("areaUtilHectares").GetDecimal()
+            .Should().Be(doMapa.GetProperty("areaUtilHectares").GetDecimal());
+        daCalculadora.GetProperty("motivoSemDemanda").GetString()
+            .Should().Be(doMapa.GetProperty("motivoSemDemanda").GetString());
+        daCalculadora.GetProperty("estimativa").GetBoolean()
+            .Should().Be(doMapa.GetProperty("estimativa").GetBoolean());
     }
 
     [Fact]
