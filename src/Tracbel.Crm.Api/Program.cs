@@ -188,6 +188,7 @@ builder.Services.AddScoped<IRepositorioInteracoes, RepositorioDeInteracoes>();
 builder.Services.AddScoped<IRepositorioCarteiras, RepositorioDeCarteiras>();
 builder.Services.AddScoped<IRepositorioTerritorio, RepositorioDeTerritorio>();
 builder.Services.AddScoped<IRepositorioDoMotorDoPotencial, RepositorioDoMotorDoPotencial>();
+builder.Services.AddScoped<IRepositorioDeIndicadoresDeMercado, RepositorioDeIndicadoresDeMercado>();
 builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais, RepositorioDeIndicadoresTerritoriais>();
 builder.Services.AddScoped<IRepositorioDePrecosDeMercado, RepositorioDePrecosDeMercado>();
 builder.Services.AddScoped<IRepositorioDeCustosDeProducao, RepositorioDeCustosDeProducao>();

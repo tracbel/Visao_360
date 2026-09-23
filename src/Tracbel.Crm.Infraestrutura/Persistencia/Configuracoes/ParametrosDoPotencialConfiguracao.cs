@@ -186,6 +186,54 @@ public sealed class ParametroDoPotencialConfiguracao : IEntityTypeConfiguration<
             RevogadoPorId = (long?)null,
             MotivoDaRevogacao = (string?)null
         });
+
+        // =========================================================================================
+        // A SEGUNDA VIGÊNCIA (D-P05 decidida em 23/09/2026, issue 74)
+        //
+        // Ela NÃO altera a de 21/09: o passado não se reescreve, e o cálculo daqueles dias continua
+        // usando o que valia lá — sem pesos, portanto sem fator. A partir de 23/09 valem os pesos.
+        //
+        // OS NÚMEROS SÃO OS MEDIDOS NO PROTÓTIPO, e a justificativa diz isso: enquanto ela valer, todo
+        // número que passa pelo fator carrega o selo de estimativa. Trocar é uma vigência nova pela tela
+        // do Administrador — sem publicação.
+        //
+        // O PESO DA PERCEPÇÃO É 1,0, E NÃO O 0,4 DO PROTÓTIPO. Lá a percepção ia de −2 a +2 e entrava
+        // dividida por 2, o que dava ±40% de efeito; a decisão D-P04 trocou a escala para ±5 pontos
+        // percentuais justamente para tirar aqueles ±40%. Carregar o 0,4 junto com a escala nova daria
+        // ±2% — um vigésimo do que o protótipo pretendia, e menos do que o rótulo "−5% a +5%" promete.
+        // Com 1,0, o rótulo é literal (exato no crédito neutro; o crédito amplifica, ver FatorDeCiclo).
+        // =========================================================================================
+        b.HasData(new
+        {
+            Id = 2,
+            MesesDaJanela = (short)12,
+            PesoDosContratosNoCredito = 0.70m,
+            LimiteDeRetracao = 1.00m,
+            LimiteDeAquecimento = 1.20m,
+            LimiteDeSuperaquecimento = 1.40m,
+            NomeDaFaixaIntermediaria = (string?)null,
+            LimiteDaPercepcao = 5.00m,
+            PesoDoIndicadorDePreco = (decimal?)0.40m,
+            PesoDoIndicadorDeCredito = (decimal?)0.50m,
+            PesoDoIndicadorComercial = (decimal?)1.00m,
+            FatorMinimo = (decimal?)0.40m,
+            FatorMaximo = (decimal?)1.50m,
+            MesesDeCarenciaDoSicor = (short?)null,
+            MinimoDeLinhasNoCredito = (int?)null,
+            VigenteDesde = new DateOnly(2026, 9, 23),
+            // A JUSTIFICATIVA CABE EM ParametroComVigencia.TamanhoDoTexto (400). A primeira versão tinha
+            // 439 e passou nos testes locais — o SQLite não valida tamanho de varchar, o SQL Server sim,
+            // e quem pegou foi o teste de contêiner no CI. O detalhe longo mora no documento 48, §7.4.
+            Justificativa = "D-P05 decidida em 23/09/2026 (documento 48, §5.1): pesos medidos no protótipo, a confirmar — " +
+                            "0,40 no preço e na rentabilidade, 0,50 no crédito, fator entre 0,40 e 1,50. A percepção pesa " +
+                            "1,00, e não os 0,40 do protótipo: a D-P04 trocou a escala de −2 a +2 para ±5 pontos " +
+                            "percentuais, e 1,00 torna esse rótulo literal. O termo de troca fica fora até a issue 70.",
+            InformadoPorId = (long?)null,
+            InformadoEm = new DateTime(2026, 9, 23, 0, 0, 0, DateTimeKind.Utc),
+            RevogadoEm = (DateTime?)null,
+            RevogadoPorId = (long?)null,
+            MotivoDaRevogacao = (string?)null
+        });
     }
 }
 

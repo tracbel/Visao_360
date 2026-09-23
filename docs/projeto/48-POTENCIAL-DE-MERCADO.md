@@ -609,7 +609,7 @@ flowchart LR
 | **P0 — Decisões** | regras fixadas antes do código | #63 | D-P01 a D-P05 e D-P10 decididas | diretoria e comercial |
 | **P1 — Dados de mercado** | todas as fontes no servidor, conferidas contra a pasta 360 | #64, #65, #66, #67, #68, #69, #70 | cada fonte com rotina, idempotência e conferência | #63 (parcial); #18, #19, #12 para vendas e preço |
 | **P2 — Parâmetros** | administrador edita tudo, com vigência e trilha — **feito em 21/09/2026 (§4.1)** | #71 | parâmetro com vigência e 403 sem permissão | #63; #46; #40 |
-| **P3 — Motor** | estrutural, indicadores, fator e cenários — **o estrutural feito em 22/09/2026 (§7.1)** | #72, #73, #74 | testes de ouro contra a planilha | P1; P2 |
+| **P3 — Motor** | estrutural, indicadores, fator e cenários — **completa: #72 em 22/09/2026 (§7.1), #161 (§7.2), #73 (§7.3) e #74 (§7.4) em 23/09** | #72, #73, #74 | testes de ouro contra a planilha | P1; P2 |
 | **P4 — Diretoria e Administrador** | API e as duas telas — **a do Administrador feita em 21/09/2026 (§4.1)** | #75, #76, #77 | tela = API = consulta independente; conferência com a diretoria | P3; #46 |
 | **P5 — CEN** | visão do CEN pelos seus municípios | #78 | CEN só vê os próprios municípios | P4; #48 |
 | **P6 — Clientes** | potencial por cliente e segmentação | #79, #80 | cobertura de área por cliente medida; plano aprovado | P3; #53; #55; #47 |
@@ -735,6 +735,74 @@ crédito de trator inclui as máquinas que a própria Tracbel vendeu. Correlacio
 crédito de trator e concluir que ele "prevê a venda" seria, em parte, correlacionar a venda com ela
 mesma. A nota da pasta exclui o trator do índice por esse motivo; **o CRM hoje o inclui** (D-P03 deixou
 essa escolha em aberto). O estudo tem de rodar nas duas versões e dizer quanto a exclusão muda.
+
+### 7.4 O fator de ciclo e os três cenários [issue 74, 23/09/2026]
+
+`Dominio/Mercado/FatorDeCiclo.cs` — domínio puro. **Demanda ajustada = estrutural × fator.**
+
+```
+fator = limite[(1 + a·z_preço + d·z_percepção) × (1 + b·z_crédito)]
+```
+
+Preço e percepção **somam** dentro do mesmo parêntese porque são a leitura do **produtor** — quanto a
+lavoura rende e o que o gestor vê na rua; o crédito **multiplica** porque é a **condição de financiar**,
+que age sobre o conjunto: sem crédito, nem a melhor safra vira máquina. É a forma do protótipo.
+
+| Peso | Valor | De onde vem |
+|---|---:|---|
+| `a` — preço e rentabilidade | **0,40** | medido no protótipo (lá era o termo de troca) |
+| `b` — crédito | **0,50** | medido no protótipo |
+| `d` — percepção do gestor | **1,00** | **mudou**, e o porquê está abaixo |
+| limites do fator | **0,40 a 1,50** | medidos no protótipo |
+
+**Por que o peso da percepção não é o 0,40 do protótipo.** Lá a percepção ia de **−2 a +2** e entrava como
+`percepção/2`, o que fazia o peso 0,40 valer **±40% de efeito**. A decisão **D-P04** trocou a escala para
+**±5 pontos percentuais** justamente para tirar aqueles ±40%. Carregar o 0,40 junto com a escala nova
+daria **±2%** — um vigésimo do que o protótipo pretendia, e menos do que o próprio rótulo "−5% a +5%"
+promete. Com **1,00**, o rótulo é literal.
+
+**Com uma ressalva que precisa estar dita:** o efeito da percepção é **amplificado pelo crédito**, porque
+ela mora dentro do parêntese que o termo de crédito multiplica. Com crédito neutro, +5% move o fator em
+exatamente 5%; com o crédito 20% acima, move 5,5%. É consequência da forma do protótipo e é defensável —
+o otimismo do gestor vale mais quando há crédito para financiá-lo —, mas quem lê o número precisa saber
+que o "±5%" é exato **só no crédito neutro**.
+
+**Sem índice nenhum, o fator é 1** — o aceite da issue. Indicador ausente vale **desvio zero**, e não
+"fator indeterminado": quem não tem preço carregado deve ver a demanda estrutural, não a demanda sumindo.
+**Sem os pesos**, porém, não há fator: peso é decisão, não conta.
+
+#### 7.4.1 Os três cenários
+
+**Moderado** é o fator calculado. **Conservador** e **otimista** são o mesmo modelo com **cada** índice
+levado à **borda da faixa em que ele já está** — um preço em 1,28 está em "aquecido" (1,20 a 1,40) e um
+crédito em 1,00 está na intermediária (1,00 a 1,20): o conservador lê 1,20 e 1,00, o otimista lê 1,40 e
+1,20. Não é variação inventada; é o intervalo que a própria classificação já usa.
+
+**As bordas abertas ficam onde estão.** A faixa de retração não tem piso e a de superaquecimento não tem
+teto; empurrar o índice para zero ou para o infinito seria inventar um cenário que a classificação não
+descreve. Nesses casos o cenário coincide com o moderado.
+
+**A percepção do gestor não varia entre cenários**, de propósito: ela não é faixa de mercado, é a opinião
+de uma pessoa sobre aquele município. Um cenário que a mexesse estaria simulando **o gestor mudando de
+ideia**, e não o mercado mudando.
+
+**A ordem é garantida por construção** (conservador ≤ moderado ≤ otimista): o conservador é o menor entre
+a borda de baixo e o moderado, e o otimista o maior entre a de cima e o moderado. Não é maquiagem —
+"conservador" quer dizer "o pessimista dos dois", e é essa a definição.
+
+#### 7.4.2 A segunda vigência dos parâmetros
+
+Os pesos entraram como uma **vigência nova**, de 23/09/2026, e **não alterando a de 21/09**: o passado não
+se reescreve, e o cálculo daqueles dias continua sem fator, como era. A justificativa registrada diz
+"pesos medidos no protótipo, a confirmar" — e enquanto ela valer, todo número que passa pelo fator carrega
+o **selo de estimativa**. Trocar qualquer um deles é uma vigência nova pela tela do Administrador, **sem
+publicação**.
+
+**O que o teste de ouro consegue e o que não consegue.** O documento mede, na planilha, que a demanda da
+região cai de **3.457 para 2.727** por ano (−21%), o que é um fator de **0,7888**. O teste prende a
+**aplicação** desse fator — ajustada = estrutural × fator — mas **não reproduz o 0,7888 a partir dos
+índices**, porque o fator da planilha inclui o **termo de troca**, que o CRM não tem (issue #70). Quando a
+#70 entrar, o teste ganha os índices e fecha de ponta a ponta.
 
 ---
 

@@ -545,9 +545,14 @@ public sealed class PercepcaoDoGestor : ParametroComVigencia
         if (municipioId <= 0)
             throw new RegraDeNegocioViolada("A percepção é de um município do catálogo.");
 
+        // A CULTURA DA MENSAGEM É A DO LEITOR, E NÃO A DO SERVIDOR (achado da issue 74): interpolação
+        // sem cultura escreve "2.5%" no runner do CI e "2,5%" na estação, e quem lê é o comercial
+        // brasileiro. A vírgula não é preferência do processo — é parte do texto.
         if (Math.Abs(percentual) > limiteDaPercepcao)
-            throw new RegraDeNegocioViolada(
-                $"A percepção vai de −{limiteDaPercepcao:0.##}% a +{limiteDaPercepcao:0.##}% na data de início; {percentual:0.##}% passa disso.");
+            throw new RegraDeNegocioViolada(string.Format(
+                System.Globalization.CultureInfo.GetCultureInfo("pt-BR"),
+                "A percepção vai de −{0:0.##}% a +{0:0.##}% na data de início; {1:0.##}% passa disso.",
+                limiteDaPercepcao, percentual));
 
         var percepcao = new PercepcaoDoGestor { MunicipioId = municipioId, Percentual = percentual };
         percepcao.Informar(vigenteDesde, justificativa, informadoPorId, agoraUtc);

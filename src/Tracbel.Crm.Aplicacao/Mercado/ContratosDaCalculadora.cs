@@ -94,7 +94,8 @@ public sealed record CategoriaNaCalculadora(
 /// <param name="PorCultura">O parque por cultura dominante.</param>
 /// <param name="PorCategoria">O parque por categoria de máquina.</param>
 /// <param name="Culturas">As culturas que a calculadora oferece, com a área medida de cada uma.</param>
-/// <param name="SobreOsCenarios">Por que o ajuste por cenário de mercado ainda não entra na conta.</param>
+/// <param name="SobreOsCenarios">O que o ajuste por cenário de mercado faz, ou por que ele não saiu.</param>
+/// <param name="Mercado">O momento do mercado e a demanda ajustada por ele (issue 74); nulo sem regra.</param>
 public sealed record ResultadoDaCalculadora(
     DateOnly Data,
     int? MunicipioCodigoIbge,
@@ -109,4 +110,59 @@ public sealed record ResultadoDaCalculadora(
     IReadOnlyList<ParcelaDoParque> PorCultura,
     IReadOnlyList<CategoriaNaCalculadora> PorCategoria,
     IReadOnlyList<CulturaNaCalculadora> Culturas,
-    string SobreOsCenarios);
+    string SobreOsCenarios,
+    MercadoNaCalculadora? Mercado = null);
+
+/// <summary>
+/// O AJUSTE DE UMA CULTURA PELO MOMENTO DO MERCADO (issue 74).
+///
+/// <para><b>O fator é por cultura</b>, porque o momento de preço é: o café pode estar subindo enquanto a
+/// cana cai. O crédito e a percepção são do município, e entram iguais em todas.</para>
+/// </summary>
+/// <param name="CulturaCodigo">O código da cultura.</param>
+/// <param name="Cultura">O nome de exibição.</param>
+/// <param name="IndiceDePreco">O momento de preço dela; nulo com motivo.</param>
+/// <param name="FaixaDoPreco">A faixa de mercado do índice.</param>
+/// <param name="Fator">O fator de ciclo aplicado a esta cultura.</param>
+/// <param name="DemandaAnual">A demanda estrutural da cultura, do motor.</param>
+/// <param name="DemandaAjustada">Demanda × fator; nula quando falta a demanda ou o fator.</param>
+/// <param name="Frase">O que a tela mostra ao lado do número, ou no lugar dele.</param>
+public sealed record AjusteDaCultura(
+    string CulturaCodigo,
+    string Cultura,
+    decimal? IndiceDePreco,
+    string? FaixaDoPreco,
+    decimal? Fator,
+    decimal? DemandaAnual,
+    decimal? DemandaAjustada,
+    string Frase);
+
+/// <summary>
+/// O MOMENTO DO MERCADO NO RECORTE SIMULADO — o que antecipa ou adia a renovação (issue 74).
+///
+/// <para><b>Nada aqui muda com a área digitada</b>: preço, crédito e percepção são do mercado e do
+/// município, não da simulação. O que a área muda é a demanda sobre a qual o fator incide.</para>
+/// </summary>
+/// <param name="Data">A data cujas vigências valeram.</param>
+/// <param name="UltimoMesDePreco">A competência da série de preço (aaaa-mm-01).</param>
+/// <param name="IndiceDeCredito">O índice de crédito do município; nulo sem município ou sem parâmetro.</param>
+/// <param name="FaixaDoCredito">A faixa de mercado do crédito.</param>
+/// <param name="LinhasDoCredito">Quantas linhas do SICOR entraram na janela recente — o tamanho da base.</param>
+/// <param name="BasePequenaNoCredito">Se a base é pequena demais para o índice ser lido como tendência.</param>
+/// <param name="PercepcaoDoGestor">O ajuste do gestor sobre o município, em pontos percentuais.</param>
+/// <param name="PorCultura">O fator e a demanda ajustada de cada cultura.</param>
+/// <param name="DemandaAjustadaTotal">A soma das ajustadas; nula quando alguma cultura não fechou.</param>
+/// <param name="Cenarios">Conservador, moderado e otimista sobre a demanda total.</param>
+/// <param name="Frase">O selo de estimativa e o que falta, prontos para a tela.</param>
+public sealed record MercadoNaCalculadora(
+    DateOnly Data,
+    DateOnly? UltimoMesDePreco,
+    decimal? IndiceDeCredito,
+    string? FaixaDoCredito,
+    int LinhasDoCredito,
+    bool BasePequenaNoCredito,
+    decimal? PercepcaoDoGestor,
+    IReadOnlyList<AjusteDaCultura> PorCultura,
+    decimal? DemandaAjustadaTotal,
+    IReadOnlyList<CenarioDoPotencial> Cenarios,
+    string Frase);

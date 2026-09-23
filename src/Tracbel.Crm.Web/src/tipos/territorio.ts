@@ -402,8 +402,55 @@ export type ResultadoDaCalculadora = {
   porCultura: ParcelaDoParque[];
   porCategoria: CategoriaNaCalculadora[];
   culturas: CulturaNaCalculadora[];
-  /** Por que o ajuste por cenário de mercado ainda não entra na conta (D-P05). */
+  /** O que o ajuste por cenário de mercado faz — a frase que acompanha os três. */
   sobreOsCenarios: string;
+  /** O momento do mercado e a demanda ajustada por ele (issue 74); nulo sem regra vigente. */
+  mercado: MercadoNaCalculadora | null;
+};
+
+/** O ajuste de uma cultura pelo momento do mercado (issue 74). */
+export type AjusteDaCultura = {
+  culturaCodigo: string;
+  cultura: string;
+  indiceDePreco: number | null;
+  faixaDoPreco: string | null;
+  fator: number | null;
+  demandaAnual: number | null;
+  demandaAjustada: number | null;
+  frase: string;
+};
+
+/** Um cenário — conservador, moderado ou otimista. */
+export type CenarioDoPotencial = {
+  nome: string;
+  fator: number | null;
+  demandaAjustada: number | null;
+  variacaoPercentual: number | null;
+};
+
+/**
+ * O momento do mercado no recorte simulado.
+ *
+ * NADA AQUI MUDA COM A ÁREA DIGITADA: preço, crédito e percepção são do mercado
+ * e do município, não da simulação. O que a área muda é a demanda sobre a qual o
+ * fator incide.
+ */
+export type MercadoNaCalculadora = {
+  /** aaaa-mm-dd — a data cujas vigências valeram. */
+  data: string;
+  /** aaaa-mm-01 — a competência da série de preço. */
+  ultimoMesDePreco: string | null;
+  indiceDeCredito: number | null;
+  faixaDoCredito: string | null;
+  /** Linhas do SICOR na janela recente — o tamanho da base. NÃO é contagem de contrato. */
+  linhasDoCredito: number;
+  basePequenaNoCredito: boolean;
+  /** Em pontos percentuais; nula quando ninguém informou (D-P04). */
+  percepcaoDoGestor: number | null;
+  porCultura: AjusteDaCultura[];
+  demandaAjustadaTotal: number | null;
+  cenarios: CenarioDoPotencial[];
+  frase: string;
 };
 
 /** Filial do cabeçalho, ou empresa inteira (só para quem tem a permissão). */

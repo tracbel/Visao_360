@@ -155,8 +155,10 @@ public sealed class CalculadoraDeMaquinasTestes(ApiEmMemoria api) : IClassFixtur
     }
 
     [Fact]
-    public async Task A_resposta_diz_por_que_os_cenarios_nao_entram()
+    public async Task A_resposta_traz_o_momento_do_mercado_e_os_tres_cenarios()
     {
+        // A issue 74 destravou isto: até 23/09/2026 o campo dizia "o ajuste por cenário ainda não entra",
+        // porque os pesos eram decisão em aberto (D-P05). Com eles registrados, o fator existe.
         await SemearAsync();
         var simulado = await DadosAsync(await SimularAsync(new
         {
@@ -164,7 +166,43 @@ public sealed class CalculadoraDeMaquinasTestes(ApiEmMemoria api) : IClassFixtur
         }));
 
         simulado.GetProperty("sobreOsCenarios").GetString()
-            .Should().Contain("D-P05", "a tela precisa dizer que falta decisão, e não deixar o campo mudo");
+            .Should().Contain("termo de troca").And.Contain("percepção do gestor não varia entre cenários");
+
+        var mercado = simulado.GetProperty("mercado");
+        mercado.GetProperty("cenarios").EnumerateArray().Select(c => c.GetProperty("nome").GetString())
+            .Should().Equal(["Conservador", "Moderado", "Otimista"]);
+
+        var cafe = mercado.GetProperty("porCultura").EnumerateArray()
+            .Single(c => c.GetProperty("culturaCodigo").GetString() == "CAFE");
+
+        cafe.GetProperty("fator").GetDecimal().Should().Be(1m,
+            "sem preço nem crédito carregados neste cenário, o fator é neutro — e não indeterminado");
+        cafe.GetProperty("demandaAjustada").ValueKind.Should().Be(JsonValueKind.Null,
+            "a regra do café não tem ciclo de renovação, então não há demanda anual para ajustar");
+        cafe.GetProperty("frase").GetString().Should().Contain("nenhum indicador de mercado tem dado aqui");
+    }
+
+    [Fact]
+    public async Task O_momento_do_mercado_nao_muda_com_a_area_digitada()
+    {
+        // Preço, crédito e percepção são do MERCADO e do município, não da simulação. O que a área muda é
+        // a demanda sobre a qual o fator incide.
+        await SemearAsync();
+
+        async Task<decimal> FatorDoCafeAsync(string area)
+        {
+            var dados = await DadosAsync(await SimularAsync(new
+            {
+                municipioCodigoIbge = RibeiraoPreto.ToString(),
+                areas = new[] { new { culturaCodigo = "CAFE", areaHectares = area } }
+            }));
+
+            return dados.GetProperty("mercado").GetProperty("porCultura").EnumerateArray()
+                .Single(c => c.GetProperty("culturaCodigo").GetString() == "CAFE")
+                .GetProperty("fator").GetDecimal();
+        }
+
+        (await FatorDoCafeAsync("100")).Should().Be(await FatorDoCafeAsync("5000"));
     }
 
     // =============================================================================================

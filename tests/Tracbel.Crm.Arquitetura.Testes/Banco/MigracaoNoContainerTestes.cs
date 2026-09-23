@@ -102,11 +102,31 @@ public sealed class MigracaoNoContainerTestes
         regras[0].Justificativa.Should().StartWith("Exemplo do gerente comercial");
         regras[0].InformadoPorId.Should().BeNull();
 
-        var geral = contexto.ParametrosDoPotencial.Single();
-        geral.MesesDaJanela.Should().Be(12, "é o '12 contra 12' do texto de 21/09");
-        geral.PesoDosContratosNoCredito.Should().Be(0.700m);
-        geral.LimiteDaPercepcao.Should().Be(5.00m);
-        geral.PesoDoIndicadorDePreco.Should().BeNull("os pesos estão em aberto (D-P05)");
+        // DUAS VIGÊNCIAS, E É ASSIM QUE TEM DE SER (issue 74, 23/09/2026). A D-P05 foi decidida e os
+        // pesos entraram numa vigência NOVA — a de 21/09 continua como estava, sem pesos. Este teste
+        // prova que a decisão não reescreveu o passado: o cálculo de um dia de setembro continua sem
+        // fator, como era naquele dia.
+        var vigencias = contexto.ParametrosDoPotencial.OrderBy(p => p.VigenteDesde).ToList();
+
+        vigencias.Should().HaveCount(2);
+
+        var primeira = vigencias[0];
+        primeira.VigenteDesde.Should().Be(new DateOnly(2026, 9, 21));
+        primeira.MesesDaJanela.Should().Be(12, "é o '12 contra 12' do texto de 21/09");
+        primeira.PesoDosContratosNoCredito.Should().Be(0.700m);
+        primeira.LimiteDaPercepcao.Should().Be(5.00m);
+        primeira.PesoDoIndicadorDePreco.Should().BeNull("em 21/09 os pesos ainda estavam em aberto");
+
+        var segunda = vigencias[1];
+        segunda.VigenteDesde.Should().Be(new DateOnly(2026, 9, 23));
+        segunda.PesoDoIndicadorDePreco.Should().Be(0.40m);
+        segunda.PesoDoIndicadorDeCredito.Should().Be(0.50m);
+        segunda.PesoDoIndicadorComercial.Should().Be(1.00m,
+            "a percepção pesa 1,00 para o rótulo '−5% a +5%' da D-P04 ser literal");
+        segunda.FatorMinimo.Should().Be(0.40m);
+        segunda.FatorMaximo.Should().Be(1.50m);
+        segunda.Justificativa.Should().StartWith("D-P05 decidida em 23/09/2026");
+        segunda.InformadoPorId.Should().BeNull("veio da migração, e não de um usuário do CRM");
 
         // A mesma reposição, de novo, num banco que já tem a linha — agora com as colunas da vigência.
         contexto.Database.ExecuteSql(
