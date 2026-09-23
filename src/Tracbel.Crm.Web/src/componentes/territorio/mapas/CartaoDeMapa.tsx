@@ -41,7 +41,6 @@ export function CartaoDeMapa({
   titulo,
   subtitulo,
   resumo,
-  antesDoAlternador,
   alternador,
   tituloDoMapa,
   estadoDe,
@@ -58,8 +57,6 @@ export function CartaoDeMapa({
   titulo: ReactNode;
   subtitulo: ReactNode;
   resumo: ReactNode;
-  /** O que entra entre o resumo e o alternador — só o mapa de potencial usa. */
-  antesDoAlternador?: ReactNode;
   alternador: ReactNode;
   tituloDoMapa: string;
   estadoDe: (codigo: number) => EstadoNoMapa;
@@ -74,7 +71,6 @@ export function CartaoDeMapa({
       <div className="card-title">{titulo}</div>
       <div className="card-subtitle">{subtitulo}</div>
       <p className="terr-mapa-resumo">{resumo}</p>
-      {antesDoAlternador}
       {alternador}
       <MapaDeMunicipios
         id={id}

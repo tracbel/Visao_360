@@ -539,3 +539,110 @@
 .terr-variacao-baixa {
   color: var(--danger);
 }
+
+/* ---------------------------------------------------------------------------
+   AS ABAS DA PÁGINA — Mercado x Território (fase T1 do documento 50).
+
+   Elas ficam ABAIXO dos filtros e do município escolhido, e é isso que faz as
+   duas serem leituras do MESMO recorte: trocar de aba mantém o filtro e o
+   município. A linguagem visual é a mesma das abas de Configurações, para que
+   a diretoria não aprenda dois jeitos de trocar de aba no mesmo sistema.
+   --------------------------------------------------------------------------- */
+
+.terr-abas {
+  display: flex;
+  gap: 4px;
+  padding: 0 4px;
+  margin: 16px 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.terr-aba {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.terr-aba:hover {
+  color: var(--jd-green);
+  background: var(--bg-hover);
+}
+
+.terr-aba[aria-selected='true'] {
+  color: var(--jd-green);
+  border-bottom-color: var(--jd-green);
+}
+
+/* O RECORTE ESCOLHIDO, acima das abas — some quando não há município escolhido,
+   em vez de ficar um espaço reservado dizendo "nenhum". */
+.terr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--jd-green);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.terr-chip-rotulo {
+  color: var(--text-secondary);
+}
+
+.terr-chip-nome {
+  font-weight: 600;
+}
+
+.terr-chip button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.terr-chip button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* O cabeçalho de uma seção: o título à esquerda, a ação secundária à direita.
+   A ação fica AO LADO do título, e não dentro do bloco: ela é secundária ao que
+   a seção mostra — o painel manda, a ferramenta acompanha (documento 50, §4.5). */
+.terr-secao-cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* O conteúdo de uma aba interna, abaixo do alternador dela. */
+.terr-subaba-conteudo {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

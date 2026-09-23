@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import { Calculadora } from '../../mercado/Calculadora';
-import type { ContextoDeAcesso } from '../../../dados/api/http';
-import type {
-  ClassificacaoDeIndicador,
-  PotencialDoRecorteNoMapa,
-  RegraDePotencialAplicada,
-} from '../../../tipos/territorio';
+import type { ClassificacaoDeIndicador, RegraDePotencialAplicada } from '../../../tipos/territorio';
 import { faixaDe, reaisDaProducao } from '../escalas';
 import {
   FAIXAS_DO_POTENCIAL,
@@ -15,7 +9,6 @@ import {
   nº,
   type RecorteDoPotencial,
 } from '../indicadoresDaAdr';
-import { PainelDoPotencialDoRecorte } from '../PainelDoPotencialDoRecorte';
 import { SeloDeClassificacao } from '../SeloDeClassificacao';
 import type { TotaisDaAdr } from '../totaisDaAdr';
 import { CartaoDeMapa, type LigacaoDoMapa } from './CartaoDeMapa';
@@ -27,9 +20,6 @@ export function MapaDoPotencial({
   ligacao,
   totais,
   regra,
-  recorte,
-  semFiltro,
-  contexto,
   enderecos,
   enderecosComArea,
   classificacao,
@@ -37,15 +27,11 @@ export function MapaDoPotencial({
   ligacao: LigacaoDoMapa;
   totais: TotaisDaAdr;
   regra: RegraDePotencialAplicada | null;
-  recorte: PotencialDoRecorteNoMapa | null;
-  semFiltro: boolean;
-  contexto: ContextoDeAcesso;
   enderecos: number;
   enderecosComArea: number;
   classificacao: ClassificacaoDeIndicador | null;
 }) {
   const [recorteDoPotencial, setRecorteDoPotencial] = useState<RecorteDoPotencial>('maquinas');
-  const [calculadoraAberta, setCalculadoraAberta] = useState(false);
 
   function estadoDoPotencial(codigo: number): EstadoNoMapa {
     const m = ligacao.porCodigo.get(codigo);
@@ -109,23 +95,6 @@ export function MapaDoPotencial({
         totais.municipiosComArea > 0
           ? `${nº(Math.round(totais.maquinasTeoricas))} máquinas teóricas · ${nº(Math.round(totais.hectares))} ha úteis em ${nº(totais.municipiosComArea)} municípios com área divulgada`
           : 'sem área plantada ou regra para calcular'
-      }
-      antesDoAlternador={
-        <>
-          {recorte && <PainelDoPotencialDoRecorte recorte={recorte} comFiltro={!semFiltro} />}
-          <div className="terr-alternador" role="group" aria-label="Simulação">
-            <button type="button" aria-pressed={calculadoraAberta} onClick={() => setCalculadoraAberta(!calculadoraAberta)}>
-              {calculadoraAberta ? 'Fechar a calculadora' : 'Calculadora de máquinas'}
-            </button>
-          </div>
-          {calculadoraAberta && (
-            <Calculadora
-              contexto={contexto}
-              municipioCodigoIbge={ligacao.selecionado}
-              aoFechar={() => setCalculadoraAberta(false)}
-            />
-          )}
-        </>
       }
       alternador={
         <div className="terr-alternador" role="group" aria-label="O que o mapa mostra">

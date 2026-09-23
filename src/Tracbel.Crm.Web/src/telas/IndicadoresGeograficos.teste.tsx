@@ -1,16 +1,18 @@
 /**
- * A REDE DA COMPONENTIZAÇÃO (issue 170, parte A — fase T0 do documento 50).
+ * A REDE DA TELA (issue 170 parte A, ampliada na fase T1 do documento 50).
  *
  * Este teste não julga o desenho: ele afirma que a tela continua **montando os
- * mesmos blocos, na mesma ordem**. É o que separa "quebrei o arquivo em
- * componentes" de "mexi na tela sem querer".
+ * mesmos blocos, nos lugares acordados**. No T0 ele provou que a componentização
+ * não mexeu em nada; no T1 o contrato mudou de propósito — a página passou a ter
+ * duas abas — e ele foi **reescrito, não apagado**: o que era uma lista única de
+ * blocos virou a lista de cada aba, mais as afirmações que amarram o recorte
+ * compartilhado entre elas.
  *
  * POR QUE `data-bloco` E NÃO O TEXTO: texto muda de redação a cada issue, e um
  * teste que quebra quando alguém corrige uma vírgula é um teste que as pessoas
- * aprendem a ignorar. O atributo é invisível — nenhuma regra de CSS o usa —, e
- * atravessa a reorganização das fases T1 a T5 continuando a dizer a mesma coisa.
+ * aprendem a ignorar. O atributo é invisível — nenhuma regra de CSS o usa.
  *
- * OS TRÊS PAINÉIS DO FIM E A CALCULADORA ENTRAM COMO DUBLÊ: cada um tem a
+ * OS TRÊS PAINÉIS DO MOMENTO E A CALCULADORA ENTRAM COMO DUBLÊ: cada um tem a
  * própria leitura da API e o próprio teste. Aqui o que está sob prova é a
  * composição da tela, e não o conteúdo deles.
  */
@@ -85,13 +87,13 @@ function painel(): PainelTerritorial {
           cobertura: {
             clientes: 1,
             vinculos: 1,
-            vinculosComCadencia: 1,
-            cobertos: 0,
+            vinculosComCadencia: 2,
+            cobertos: 1,
             foraDaCadencia: 1,
             nuncaContatados: 0,
             semCadencia: 0,
             pendentes: 1,
-            percentualPendente: 100,
+            percentualPendente: 50,
           },
           vendas: {
             clientesQueCompraram: 1,
@@ -200,6 +202,9 @@ function blocosNaOrdem(): string[] {
   return [...nós].map((nó) => nó.dataset.bloco ?? (nó.classList.contains('cad-kpis') ? 'kpis' : 'metricas-sem-dado'));
 }
 
+const bloco = (nome: string) => document.querySelector<HTMLElement>(`[data-bloco="${nome}"]`);
+const painelDaAba = () => document.querySelector<HTMLElement>('[role="tabpanel"]')!;
+
 function abrir() {
   render(
     <ProvedorDeContextoDeAcesso>
@@ -208,91 +213,252 @@ function abrir() {
   );
 }
 
-describe('Indicadores Geográficos — a estrutura da tela', () => {
+function responder() {
+  obterIndicadoresTerritoriais.mockResolvedValue({
+    dados: painel(),
+    procedencia: {
+      sistema: 'CRM Tracbel',
+      objeto: 'territorio.Municipio',
+      lidoEmUtc: '2026-09-23T12:00:00Z',
+      dadoMaisRecenteEm: null,
+    },
+  });
+  carregarMalhaDeSaoPaulo.mockResolvedValue(MALHA);
+}
+
+/** Espera o primeiro conteúdo que depende da resposta da API aparecer. */
+const esperarACarga = () => screen.findByRole('tab', { name: 'Mercado' });
+
+const irPara = (aba: 'Mercado' | 'Território') => fireEvent.click(screen.getByRole('tab', { name: aba }));
+
+describe('Indicadores Geográficos — as duas abas', () => {
   afterEach(() => {
     obterIndicadoresTerritoriais.mockReset();
     carregarMalhaDeSaoPaulo.mockReset();
     guardado.clear();
   });
 
-  function responder() {
-    obterIndicadoresTerritoriais.mockResolvedValue({
-      dados: painel(),
-      procedencia: {
-        sistema: 'CRM Tracbel',
-        objeto: 'territorio.Municipio',
-        lidoEmUtc: '2026-09-23T12:00:00Z',
-        dadoMaisRecenteEm: null,
-      },
-    });
-    carregarMalhaDeSaoPaulo.mockResolvedValue(MALHA);
-  }
-
-  it('monta os blocos na ordem acordada, do cabeçalho aos painéis do fim', async () => {
+  it('Mercado é a aba padrão e Território existe ao lado', async () => {
     responder();
     abrir();
+    await esperarACarga();
 
-    // A tabela é o último bloco que depende da resposta da API; esperá-la
-    // garante que a tela terminou de montar antes da conferência da ordem.
-    expect(await screen.findByText('Municípios da ADR e o que ficou fora do mapa')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Mercado' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Território' })).toHaveAttribute('aria-selected', 'false');
+    expect(painelDaAba().dataset.aba).toBe('mercado');
+  });
+
+  it('os filtros ficam ACIMA das abas — é o que faz as duas serem o mesmo recorte', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const ordem = blocosNaOrdem();
+    expect(ordem.indexOf('filtros')).toBeLessThan(ordem.indexOf('abas'));
+    expect(ordem.indexOf('alcance')).toBeLessThan(ordem.indexOf('abas'));
+
+    // E fora do painel da aba: se estivessem dentro, trocar de aba os trocaria.
+    expect(painelDaAba().contains(bloco('filtros'))).toBe(false);
+  });
+
+  it('a aba Mercado monta os cinco blocos na ordem do documento 50', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
 
     expect(blocosNaOrdem()).toEqual([
       'cabecalho',
       'alcance',
       'filtros',
       'como-ler',
-      'kpis',
+      'abas',
       'mercado-da-regiao',
       'kpis',
+      'visao-geografica',
       'mapas',
       'metricas-sem-dado',
-      'tabela-municipios',
+      'potencial-estrutural',
+      'momento-do-mercado',
       'precos',
       'custos',
-      'credito',
+      'performance-tracbel',
+      'kpis',
     ]);
   });
 
-  it('os quatro mapas ficam juntos, lado a lado, na mesma grade e nesta ordem', async () => {
+  it('os quatro mapas continuam juntos, na mesma grade, dentro de Mercado', async () => {
     responder();
     abrir();
+    await esperarACarga();
 
-    const grade = await screen.findByText('Cobertura de carteira', { exact: false }).then(() => document.querySelector<HTMLElement>('[data-bloco="mapas"]'));
-    expect(grade).not.toBeNull();
+    const grade = bloco('mapas')!;
+    expect(bloco('visao-geografica')!.contains(grade)).toBe(true);
+    expect(painelDaAba().contains(grade)).toBe(true);
 
-    const mapas = [...grade!.querySelectorAll<HTMLElement>('[data-mapa]')].map((m) => m.dataset.mapa);
-    expect(mapas).toEqual(['cobertura', 'vendas', 'potencial', 'estrutura']);
+    const mapas = [...grade.querySelectorAll<HTMLElement>('[data-mapa]')];
+    expect(mapas.map((m) => m.dataset.mapa)).toEqual(['cobertura', 'vendas', 'potencial', 'estrutura']);
 
-    // Os quatro são filhos DIRETOS da grade: é o que o CSS transforma em 2x2, e
-    // o que a issue 76 manda preservar. Aninhar um deles quebraria o desenho sem
-    // quebrar nenhuma outra afirmação.
-    for (const mapa of grade!.querySelectorAll<HTMLElement>('[data-mapa]')) {
-      expect(mapa.parentElement).toBe(grade);
+    // Filhos DIRETOS da grade: é o que o CSS transforma em 2×2. Aninhar um deles
+    // quebraria o desenho sem quebrar nenhuma outra afirmação.
+    for (const mapa of mapas) expect(mapa.parentElement).toBe(grade);
+  });
+
+  it('a tabela operacional está em Território, e não em Mercado', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    expect(bloco('tabela-municipios')).toBeNull();
+
+    irPara('Território');
+    expect(painelDaAba().dataset.aba).toBe('territorio');
+    expect(painelDaAba().contains(bloco('tabela-municipios'))).toBe(true);
+    expect(bloco('mapas')).toBeNull();
+  });
+
+  it('o município escolhido sobrevive à troca de aba', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    irPara('Território');
+    fireEvent.click(await screen.findByRole('button', { name: 'Cafelândia' }));
+
+    const chip = bloco('chip-municipio')!;
+    expect(chip).toHaveTextContent('Cafelândia');
+    // O chip vive ACIMA das abas: é do recorte, não da aba.
+    expect(painelDaAba().contains(chip)).toBe(false);
+
+    irPara('Mercado');
+    expect(bloco('chip-municipio')).toHaveTextContent('Cafelândia');
+    expect(screen.getByRole('heading', { name: 'Quem atende este município' })).toBeInTheDocument();
+
+    // E o × devolve o recorte inteiro.
+    fireEvent.click(screen.getByRole('button', { name: 'Tirar o recorte de Cafelândia' }));
+    expect(bloco('chip-municipio')).toBeNull();
+  });
+
+  it('nada se perde ao trocar de aba: o que sai de uma está na outra', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const emMercado = new Set(blocosNaOrdem());
+    irPara('Território');
+    const emTerritorio = new Set(blocosNaOrdem());
+
+    // Os blocos de fora das abas aparecem nas duas.
+    for (const global of ['cabecalho', 'alcance', 'filtros', 'como-ler', 'abas']) {
+      expect(emMercado.has(global)).toBe(true);
+      expect(emTerritorio.has(global)).toBe(true);
     }
+
+    // E cada bloco de conteúdo mora em exatamente uma aba — nenhum sumiu das duas.
+    expect([...emMercado].filter((b) => b.startsWith('mapas') || b === 'visao-geografica')).toHaveLength(2);
+    expect(emTerritorio.has('tabela-municipios')).toBe(true);
+  });
+});
+
+describe('Indicadores Geográficos — ausência de dado é ausência de dado', () => {
+  afterEach(() => {
+    obterIndicadoresTerritoriais.mockReset();
+    carregarMalhaDeSaoPaulo.mockReset();
+    guardado.clear();
   });
 
-  it('a seção "O mercado da região" continua entre as duas linhas de indicadores', async () => {
+  /**
+   * Uma aba interna que não tem fonte diz o que falta, no lugar do número.
+   *
+   * A busca é escopada ao conteúdo da aba: o rótulo do botão que abre a aba tem
+   * o mesmo texto do nome da métrica, e sem o escopo a busca acharia os dois.
+   */
+  function esperarLacuna(metrica: string) {
+    const conteudos = [...document.querySelectorAll<HTMLElement>('.terr-subaba-conteudo')];
+    const lacuna = conteudos
+      .flatMap((c) => [...c.querySelectorAll<HTMLElement>('.cad-lacuna')])
+      .find((l) => l.textContent?.includes(metrica));
+
+    expect(lacuna, `nenhuma lacuna para "${metrica}"`).toBeDefined();
+    expect(within(lacuna!).getByText('sem dado')).toBeInTheDocument();
+    return lacuna!;
+  }
+
+  it('termo de troca e percepção comercial dizem o que falta, sem número', async () => {
     responder();
     abrir();
+    await esperarACarga();
 
-    await screen.findByText('Municípios da ADR e o que ficou fora do mapa');
+    fireEvent.click(screen.getByRole('button', { name: 'Termo de troca' }));
+    expect(esperarLacuna('Termo de troca')).toHaveTextContent(/issue 70/);
 
-    const secao = document.querySelector<HTMLElement>('[data-bloco="mercado-da-regiao"]');
-    expect(within(secao!).getByRole('heading', { name: 'O mercado da região' })).toBeInTheDocument();
-
-    const ordem = blocosNaOrdem();
-    const posicao = ordem.indexOf('mercado-da-regiao');
-    expect(ordem[posicao - 1]).toBe('kpis');
-    expect(ordem[posicao + 1]).toBe('kpis');
+    fireEvent.click(screen.getByRole('button', { name: 'Percepção comercial' }));
+    expect(esperarLacuna('Percepção comercial')).toHaveTextContent(/issue 71/);
   });
 
-  it('clicar num município da tabela abre a ficha dele', async () => {
+  it('captura e não capturado dizem que dependem das vendas em unidades', async () => {
     responder();
     abrir();
+    await esperarACarga();
 
-    const linha = await screen.findByRole('button', { name: 'Cafelândia' });
-    fireEvent.click(linha);
+    fireEvent.click(screen.getByRole('button', { name: 'Captura' }));
+    expect(esperarLacuna('Captura Tracbel')).toHaveTextContent(/issue 69/);
 
-    expect(await screen.findByRole('heading', { name: 'Quem atende este município' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Não capturado' }));
+    esperarLacuna('Potencial não capturado');
+  });
+
+  it('nenhum RÓTULO da tela usa "share" — o número se chama captura (issue 162)', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Captura' }));
+    expect(esperarLacuna('Captura Tracbel')).toHaveTextContent('Captura Tracbel');
+
+    // O texto do motivo PODE dizer "não é market share" — é justamente ali que a
+    // diferença se explica. O que não pode é um rótulo, uma aba ou um título
+    // nomear o número assim.
+    const rotulos = document.querySelectorAll<HTMLElement>(
+      '.cad-lacuna-metrica, [role="tab"], .terr-alternador button, h1, h2, h3, .card-title',
+    );
+    const comShare = [...rotulos].filter((r) => /share/i.test(r.textContent ?? ''));
+    expect(comShare.map((r) => r.textContent)).toEqual([]);
+  });
+
+  it('a demanda anual sai vazia com o motivo, e os cenários dizem que ainda não existem', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Demanda anual' }));
+    expect(esperarLacuna('Demanda anual')).toHaveTextContent(/falta o ciclo de renovação/);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cenários' }));
+    esperarLacuna('Cenários do potencial');
+  });
+
+  it('o parque, que TEM dado, aparece com o número — a lacuna não engoliu o que existe', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const potencial = bloco('potencial-estrutural')!;
+    expect(potencial).toHaveTextContent('1.240');
+    expect(potencial).toHaveTextContent('municípios com parque');
+    expect(potencial.querySelector('.cad-lacuna')).toBeNull();
+  });
+
+  it('simular cenário é ação secundária do bloco de potencial, e abre a calculadora', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    expect(bloco('calculadora')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Simular cenário' }));
+
+    const calculadora = bloco('calculadora')!;
+    expect(bloco('potencial-estrutural')!.contains(calculadora)).toBe(true);
+    // Ela não mora mais dentro do cartão do mapa de potencial.
+    expect(document.querySelector('[data-mapa="potencial"]')!.contains(calculadora)).toBe(false);
   });
 });
