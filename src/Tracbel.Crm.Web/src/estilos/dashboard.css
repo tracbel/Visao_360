@@ -13,28 +13,43 @@
 /* -----------------------------------------------------------------------------
    O CONTAINER DA PÁGINA
 
-   2.100px, corrigido na T4.7 — MEDIDO NA TELA REAL, num monitor de ~2560px:
-   a T4.6 fixou 1.480 para acabar com o cartão esticado, e acertou o problema
-   pelo lado errado. Com 1.480 num monitor de 2560 sobravam
-   540px de corredor vazio DE CADA LADO. Não era margem, era um vão: o conteúdo
+   A largura passou por três valores, e vale registrar por quê:
 
-   parecia uma folha A4 no meio do monitor. O que tornava 1800px ruim na T4.6
-   não era a largura — era a COMPOSIÇÃO: uma coluna só,
-   com cada bloco esticado de ponta a ponta. A resposta é usar a largura em duas
-   colunas nos blocos analíticos (ver `.dash-duas-colunas`), e não estreitar a
-   página. Com 2.100 num monitor de 2560 sobram ~230px de cada lado, que é
-   margem; em 1920 a página usa a tela quase inteira. O teto continua existindo,
-   e não é decoração: sem ele, num ultrawide a linha de leitura passaria de
-   qualquer medida sensata. O que se combateu foi o vão, não o limite.
+   - A T4.6 fixou 1.480 para acabar com o cartão esticado por 1800px. Medido na
+     tela real, num monitor de ~2560, isso deixava **540px de corredor vazio de
+     cada lado** — não margem, um vão: a página parecia uma folha A4 no meio do
+     monitor.
+   - A T4.7 subiu para 2.100 e resolveu o monitor grande, mas deixava a linha de
+     leitura longa demais em 1.440.
+   - A T4.8 adota a escala do protótipo visual: **1.580 padrão, 1.940 acima de
+     2100px e 1.380 abaixo de 1450px**. Um teto fixo serve bem a UMA tela.
+
+   E a largura sozinha nunca foi a resposta: o que tornava 1800px ruim era a
+   COMPOSIÇÃO — uma coluna só, com cada bloco esticado de ponta a ponta. Os
+   blocos analíticos em duas colunas (`.dash-duas-colunas`) são a outra metade.
    ----------------------------------------------------------------------------- */
 .dash-pagina {
   width: 100%;
-  max-width: 2100px;
+  max-width: 1580px;
   margin-inline: auto;
   padding-inline: var(--e-5);
   display: flex;
   flex-direction: column;
   gap: var(--e-6);
+}
+
+/* A LARGURA É RESPONSIVA, e não um número só (protótipo `dashboard.css`, §.page).
+
+   1.580 é o padrão; num monitor onde os quatro mapas cabem lado a lado ela sobe
+   para 1.940, e num notebook ela desce para 1.380. Um teto fixo serve bem a UMA
+   tela: o de 2.100 que eu tinha resolvia o vão do monitor grande e deixava a
+   linha longa demais no de 1.440. */
+@media (min-width: 2100px) {
+  .dash-pagina { max-width: 1940px; }
+}
+
+@media (max-width: 1450px) {
+  .dash-pagina { max-width: 1380px; }
 }
 
 /* `min-width: 0` NOS FILHOS, e não é detalhe: item de flex tem `min-width: auto`,
@@ -80,6 +95,54 @@
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   gap: var(--e-4);
   align-items: start;
+}
+
+/* O PAR DE PAINÉIS ANALÍTICOS divide meio a meio: nenhum dos dois é o
+   "secundário" do outro. A proporção 5/7 é para leitura × forma, que é o caso do
+   ranking ao lado do gráfico. */
+.dash-analitico { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* -----------------------------------------------------------------------------
+   TRÊS COLUNAS NO RODAPÉ — como na imagem base
+
+   Potencial estrutural, Momento do mercado e Performance Tracbel respondem três
+   perguntas que se olham JUNTAS: o que a área comporta, como o mercado está
+   agora, e quanto a Tracbel leva.
+
+   `align-items: start` impede o painel mais curto de esticar até a altura do
+   mais alto — vazio dentro de caixa parece falta.
+   ----------------------------------------------------------------------------- */
+.dash-tres-colunas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-5);
+  align-items: start;
+}
+
+@media (max-width: 1400px) {
+  .dash-tres-colunas { grid-template-columns: minmax(0, 1fr); gap: var(--e-6); }
+}
+
+/* Dentro de uma coluna de um terço, a grade de KPI do painel vira uma por linha:
+   quatro cartões em 480px viram quatro tarjas. */
+.dash-tres-colunas .dash-kpis,
+.dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: minmax(0, 1fr); }
+
+.dash-tres-colunas .dash-duas-colunas { grid-template-columns: minmax(0, 1fr); }
+
+@media (max-width: 1400px) {
+  .dash-tres-colunas .dash-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1100px) {
+  .dash-tres-colunas .dash-kpis,
+  .dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .dash-tres-colunas .dash-kpis,
+  .dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 1200px) {
@@ -283,6 +346,47 @@
    carrega a hierarquia, e uma barra continua visível em escala de cinza. */
 .dash-kpi-destaque { border-left: 3px solid var(--jd-green); }
 
+/* -----------------------------------------------------------------------------
+   O SELO DO CARTÃO (fase T4.7)
+
+   Um quadrado com o ícone, à esquerda do rótulo. Ele NÃO carrega significado:
+   existe para o olho reconhecer "o de demanda" e "o de captura" de longe, em vez
+   de varrer quatro retângulos iguais. Por isso é `aria-hidden` e por isso a cor
+   fica só nele — valor, rótulo e comparação continuam em preto sobre branco, e
+   a tela inteira segue legível em escala de cinza.
+   ----------------------------------------------------------------------------- */
+.dash-kpi-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+.dash-kpi-selo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  background: var(--n-100);
+  color: var(--text-secondary);
+}
+
+.dash-kpi[data-tom='demanda'] .dash-kpi-selo { background: #E8F3E6; color: var(--jd-green-dark); }
+.dash-kpi[data-tom='mercado'] .dash-kpi-selo { background: var(--info-bg); color: var(--info); }
+.dash-kpi[data-tom='captura'] .dash-kpi-selo { background: var(--warning-bg); color: var(--warning); }
+.dash-kpi[data-tom='oportunidade'] .dash-kpi-selo { background: #EDE9FE; color: #6D28D9; }
+
+/* A UNIDADE AO LADO DO NÚMERO, e menor: junto no mesmo corpo de 30px ela rouba
+   metade do peso do valor. */
+.dash-kpi-unidade {
+  margin-left: var(--e-2);
+  font-size: var(--t-apoio);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
 .dash-kpi-rotulo {
   display: flex;
   align-items: center;
@@ -353,36 +457,60 @@
    mandasse: em 1024 dava 4 + 1, com o rebanho bovino sozinho numa segunda linha
    — parecia sobra, não grupo. Em grade eles quebram 5 → 3 → 2 em degraus
    escolhidos, e cada linha fica cheia. */
+/* A FAIXA É UMA RÉGUA DE CÉLULAS DIVIDIDAS (protótipo `dashboard.css`,
+   §.market-strip), e não itens soltos com espaço entre eles.
+
+   As duas primeiras células são o MOMENTO e o PORTE, com a faixa em pílula; as
+   cinco seguintes são os indicadores estruturais. Elas ficavam em dois blocos
+   separados — e são a mesma leitura: "como está o mercado, e o que existe nele".
+
+   O divisor vertical é o que transforma sete números numa régua em vez de numa
+   lista: o olho corre por ela sem precisar de espaço grande entre os itens. */
 .dash-faixa {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, auto));
-  justify-content: start;
-  align-items: baseline;
-  gap: var(--e-2) var(--e-5);
-  padding: var(--e-3) var(--e-4);
+  grid-template-columns: 1.25fr 1.1fr repeat(5, 0.75fr);
+  align-items: stretch;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
-@media (max-width: 1200px) {
-  .dash-faixa { grid-template-columns: repeat(3, minmax(0, auto)); }
+.dash-faixa > * {
+  padding: var(--e-3) var(--e-4);
+  border-right: 1px solid var(--border);
+  min-width: 0;
 }
 
-@media (max-width: 700px) {
-  .dash-faixa { grid-template-columns: repeat(2, minmax(0, auto)); }
+.dash-faixa > *:last-child { border-right: 0; }
+
+@media (max-width: 1450px) {
+  .dash-faixa { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .dash-faixa > * { border-bottom: 1px solid var(--border); }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 1180px) {
+  .dash-faixa { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 850px) {
+  .dash-faixa { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
   .dash-faixa { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* O VALOR EM CIMA, O NOME EMBAIXO (protótipo, §.mini-stat). Lado a lado, num
+   grid de sete células o rótulo longo ("Parque de tratores") empurrava o número
+   da célula vizinha para fora do eixo. */
 .dash-faixa-item {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--e-1);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: var(--t-apoio);
   color: var(--text-tertiary);
+  align-items: flex-start;
 }
 
 .dash-faixa-valor {
@@ -393,7 +521,67 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* A CÉLULA DO MOMENTO E DO PORTE: ícone à esquerda, nome e pílula à direita. */
+.dash-faixa-leitura {
+  display: flex;
+  gap: var(--e-2);
+  align-items: center;
+}
+
+.dash-faixa-leitura > svg { color: var(--jd-green); flex: none; }
+
+.dash-faixa-leitura strong {
+  display: block;
+  font-size: var(--t-apoio);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* A PÍLULA NOMEIA A FAIXA, e é a leitura que se faz de longe. Fundo suave, texto
+   escuro: contraste de leitura, não de alarme. */
+.dash-pilula {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  margin-top: 4px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: var(--t-meta);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--n-100);
+  color: var(--text-secondary);
+}
+
+.dash-pilula[data-faixa='Aquecido'],
+.dash-pilula[data-faixa='Superaquecido'] { background: #E6F6E9; color: #237330; }
+
+.dash-pilula[data-faixa='Retraído'] { background: var(--warning-bg); color: var(--warning); }
+
+/* O SELO DA SEÇÃO (protótipo, §.meta-chip): um contexto curto à direita do
+   título, em letra de metadado. Ele não é indicador — é a legenda do bloco. */
+.dash-selo-secao {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-1);
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.dash-selo-secao > svg { color: var(--jd-green); flex: none; }
+
 .dash-faixa-rotulo { color: var(--text-secondary); }
+
+/* O ícone da faixa é discreto de propósito: ele ajuda a achar a linha, não
+   compete com o número. */
+.dash-faixa-icone {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-tertiary);
+  align-self: center;
+}
 
 /* -----------------------------------------------------------------------------
    OS FILTROS

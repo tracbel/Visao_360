@@ -465,11 +465,11 @@ describe('Indicadores Geográficos — as duas abas', () => {
       // Os quatro números de decisão vêm primeiro (fase T3), depois porte ×
       // momento, e só então a linha preservada — que vira a EVIDÊNCIA do porte.
       'kpis-executivos',
-      'porte-e-momento',
-      // A FAIXA ESTRUTURAL (T4.6): parque, propriedades, lavoura, usinas e
-      // rebanho eram cinco cartões do tamanho dos quatro de cima. Nenhum número
-      // saiu; eles viraram uma linha, que é o peso de contexto que eles têm.
+      // A RÉGUA DO MERCADO (T4.8): momento, porte e os cinco indicadores
+      // estruturais numa faixa só. Eram dois blocos brancos empilhados, e são a
+      // mesma leitura — como está o mercado, e o que existe nele.
       'faixa-do-mercado',
+      'porte-e-momento',
       'visao-geografica',
       'mapas',
       'limitacoes',
@@ -858,7 +858,9 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     abrir();
     await esperarACarga();
 
-    const porte = bloco('porte-e-momento')!;
+    // O PORTE É A SEGUNDA CÉLULA DA RÉGUA (T4.8): `porte-e-momento` marca só a
+    // primeira, que é o momento. Quem contém as duas é a faixa.
+    const porte = bloco('faixa-do-mercado')!;
     expect(porte).toHaveTextContent('Porte estrutural');
     for (const nome of ['Mercado pequeno', 'Mercado médio', 'Mercado grande'])
       expect(porte).not.toHaveTextContent(nome);
@@ -893,10 +895,10 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     abrir();
     await esperarACarga();
 
-    const porte = bloco('porte-e-momento')!;
-    expect(porte).toHaveTextContent('Retraído');
-    expect(porte).toHaveTextContent('0,88');
-    expect(porte).toHaveTextContent('Mercado retraído.');
+    // A RÉGUA DO MERCADO (T4.8): a faixa e o número saem na pílula, juntos.
+    const faixa = bloco('faixa-do-mercado')!;
+    expect(faixa).toHaveTextContent('Retraído');
+    expect(faixa).toHaveTextContent('0,88');
   });
 
   it('o resumo executivo NÃO tem as três setas agregadas (fase T3.1)', async () => {
@@ -1004,14 +1006,19 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     abrir();
     await esperarACarga();
 
-    const contexto = bloco('porte-e-momento')!.querySelector<HTMLElement>('[data-contexto="predominante"]')!;
+    // A PREDOMINANTE VIROU O SELO DA SEÇÃO DOS MAPAS (T4.8): ela responde "o que
+    // se planta aqui?", que é a pergunta de quem está olhando o mapa.
+    const contexto = document.querySelector<HTMLElement>('[data-contexto="predominante"]')!;
     expect(contexto).toHaveTextContent('Cana-de-açúcar');
     expect(contexto).toHaveTextContent('58%');
 
     fireEvent.focus(within(contexto).getByRole('button', { name: 'Qual é o critério da principal cultura' }));
     const dica = screen.getByRole('tooltip');
     expect(dica).toHaveTextContent(/maior área útil entre as culturas com regra de potencial/);
-    expect(dica).toHaveTextContent(/não muda o número acima/);
+    // "não muda o momento", e não mais "o número acima": o selo saiu de cima do
+    // número e foi para o cabeçalho dos mapas (T4.8). A afirmação é a mesma —
+    // trocar a maior área não mexe no fator.
+    expect(dica).toHaveTextContent(/não muda o momento/);
   });
 
   it('o fator explica a própria origem, com a competência do preço', async () => {

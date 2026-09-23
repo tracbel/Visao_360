@@ -127,10 +127,69 @@
   min-height: calc(var(--t-meta) * var(--lh-normal));
 }
 
-@media (max-width: 1100px) {
+/* UMA COLUNA SÓ NO CELULAR, e não já no notebook (protótipo `dashboard.css`).
+
+   Eu cortava em 1.100, e em 1024 a página ficava com 5.775px de rolagem: quatro
+   mapas de largura inteira, um embaixo do outro. O protótipo mantém 2×2 até
+   850px, que é onde a coluna fica estreita demais para distinguir município. */
+@media (max-width: 850px) {
   .terr-grade-mapas {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* -----------------------------------------------------------------------------
+   A ALTURA DO MAPA É FIXA (protótipo `dashboard.css`, §.map-wrapper)
+
+   É o que faz os quatro cartões terminarem no mesmo lugar. Com altura livre,
+   cada SVG segue a proporção do enquadramento e os quatro acabam em alturas
+   diferentes — as legendas começam em quatro linhas distintas, e comparar os
+   mapas dois a dois exige o olho subir e descer.
+
+   `object-fit: contain` no SVG mantém o desenho inteiro dentro da caixa, sem
+   esticar São Paulo.
+   ----------------------------------------------------------------------------- */
+/* O MAPA À ESQUERDA, A LEGENDA À DIREITA, em coluna. */
+.terr-mapa-corpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--e-3);
+  align-items: start;
+}
+
+/* A legenda vira uma coluna de faixas, com a altura do mapa. */
+.terr-mapa-corpo .terr-legenda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-1);
+  margin: 0;
+  max-width: 120px;
+}
+
+@media (max-width: 560px) {
+  /* Numa coluna de 360px a legenda ao lado espreme o mapa: ela volta para baixo. */
+  .terr-mapa-corpo { grid-template-columns: minmax(0, 1fr); }
+  .terr-mapa-corpo .terr-legenda { flex-direction: row; flex-wrap: wrap; max-width: none; }
+}
+
+.terr-mapa .terr-svg {
+  height: 310px;
+  object-fit: contain;
+  border-radius: var(--radius);
+  background: var(--surface-2, #FBFCFB);
+  border: 1px solid var(--border);
+}
+
+@media (min-width: 2100px) {
+  .terr-mapa .terr-svg { height: 265px; }
+}
+
+@media (max-width: 1180px) {
+  .terr-mapa .terr-svg { height: 270px; }
+}
+
+@media (max-width: 560px) {
+  .terr-mapa .terr-svg { height: 250px; }
 }
 
 .terr-mapa {
@@ -463,6 +522,33 @@
   padding: 4px 8px;
   font-size: 12px;
 }
+
+/* -----------------------------------------------------------------------------
+   TABELA E FICHA LADO A LADO (fase T4.7)
+
+   A ficha ia para o fim da página: clicar na linha 40 mandava o leitor rolar
+   duzentos pixels para ver o detalhe e perder de vista a linha de onde veio.
+   Comparar dois municípios virava um vai-e-vem.
+
+   SEM MUNICÍPIO ESCOLHIDO A TABELA OCUPA TUDO. Uma coluna vazia esperando clique
+   seria metade da tela reservada para o que talvez não aconteça.
+
+   A ficha GRUDA no topo enquanto a tabela rola: ela é o detalhe da linha
+   escolhida, e some da vista assim que a lista anda alguns nomes.
+   ----------------------------------------------------------------------------- */
+.terr-territorio { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-4); }
+
+.terr-territorio-com-ficha { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; }
+
+@media (max-width: 1200px) {
+  .terr-territorio-com-ficha { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (min-width: 1201px) {
+  .terr-territorio-ficha { position: sticky; top: var(--e-4); }
+}
+
+.terr-territorio-ficha { min-width: 0; }
 
 /* -----------------------------------------------------------------------------
    A TABELA DE MUNICÍPIOS (item 12 da fase T4.6)

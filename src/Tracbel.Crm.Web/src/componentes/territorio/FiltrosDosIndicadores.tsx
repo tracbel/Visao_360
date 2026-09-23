@@ -26,6 +26,7 @@
  */
 
 import * as Popover from '@radix-ui/react-popover';
+import { CalendarDays, MapPin, Store, SlidersHorizontal, Map } from 'lucide-react';
 import { useMemo, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { InfoTooltip } from '../InfoTooltip';
 import type {
@@ -85,6 +86,7 @@ export function FiltrosDosIndicadores({
         {/* PERÍODO — o primeiro, porque todo número da tela é dele. */}
         <div className="dash-filtro" role="group" aria-label="Período das vendas">
           <span className="dash-filtro-rotulo">
+            <CalendarDays size={14} strokeWidth={2} aria-hidden="true" />
             Período
             <InfoTooltip
               rotulo="Por que não há FYTD"
@@ -117,6 +119,7 @@ export function FiltrosDosIndicadores({
             "4,2% da região" ser lido como fatia da ADR quando era fatia do Norte. */}
         <label className="dash-filtro">
           <span className="dash-filtro-rotulo">
+            <Map size={14} strokeWidth={2} aria-hidden="true" />
             Sub-região
             <InfoTooltip
               rotulo="O que é a sub-região"
@@ -134,7 +137,7 @@ export function FiltrosDosIndicadores({
         </label>
 
         <label className="dash-filtro">
-          <span className="dash-filtro-rotulo">Loja</span>
+          <span className="dash-filtro-rotulo"><Store size={14} strokeWidth={2} aria-hidden="true" />Loja</span>
           <select value={filtros.lojaCodigo} onChange={(e) => aoMudarFiltros((f) => ({ ...f, lojaCodigo: e.target.value }))}>
             <option value="">Todas</option>
             {[...lojasConhecidas.entries()]
@@ -150,7 +153,7 @@ export function FiltrosDosIndicadores({
         {/* O MUNICÍPIO É FILTRO DE RECORTE e vale para as duas abas: o lugar dele
             é aqui, junto dos outros, e não flutuando entre blocos. */}
         <div className="dash-filtro">
-          <span className="dash-filtro-rotulo">Município</span>
+          <span className="dash-filtro-rotulo"><MapPin size={14} strokeWidth={2} aria-hidden="true" />Município</span>
           {municipioEscolhido ? (
             <button
               type="button"
@@ -173,6 +176,7 @@ export function FiltrosDosIndicadores({
         <Popover.Root>
           <Popover.Trigger asChild>
             <button type="button" className="dash-mais-filtros" data-bloco="mais-filtros">
+              <SlidersHorizontal size={14} strokeWidth={2} aria-hidden="true" />
               Mais filtros
               {secundariosAtivos > 0 && <span className="dash-mais-filtros-selo">{secundariosAtivos}</span>}
             </button>

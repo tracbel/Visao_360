@@ -81,25 +81,40 @@ export function CartaoDeMapa({
         <InfoTooltip texto={metodologia} rotulo={`Fonte e método deste mapa`} />
       </div>
       <p className="terr-mapa-resumo">{resumo}</p>
-      {alternador}
-      <MapaDeMunicipios
-        id={id}
-        titulo={tituloDoMapa}
-        enquadramento={ligacao.enquadramento}
-        poligonos={ligacao.poligonos}
-        estadoDe={estadoDe}
-        adr={ligacao.adr}
-        selecionado={ligacao.selecionado}
-        aoSelecionar={ligacao.aoSelecionar}
-        emFoco={ligacao.emFoco}
-        aoPassar={ligacao.aoPassar}
-      />
+
+      {/* O MAPA E A LEGENDA FICAM LADO A LADO — como na imagem base.
+
+          A legenda embaixo ocupava a largura inteira do cartão e empurrava o
+          alternador para fora da dobra; e as faixas ficavam em duas ou três
+          linhas, cada uma num lugar diferente nos quatro cartões. À direita, em
+          coluna, ela tem a altura do mapa, cabe numa coluna só e começa no mesmo
+          ponto nos quatro. */}
+      <div className="terr-mapa-corpo">
+        <MapaDeMunicipios
+          id={id}
+          titulo={tituloDoMapa}
+          enquadramento={ligacao.enquadramento}
+          poligonos={ligacao.poligonos}
+          estadoDe={estadoDe}
+          adr={ligacao.adr}
+          selecionado={ligacao.selecionado}
+          aoSelecionar={ligacao.aoSelecionar}
+          emFoco={ligacao.emFoco}
+          aoPassar={ligacao.aoPassar}
+        />
+        <LegendaDoMapa faixas={faixas} unidade={unidade} />
+      </div>
+
       {/* A LINHA DO CURSOR SÓ FALA QUANDO HÁ CURSOR (fase T2.1). Ela dizia
           permanentemente "Passe o cursor sobre um município para ver o número
           dele nos três mapas; clique para abrir a ficha" — instrução fixa, em
           quatro cartões, e ainda por cima errada: os mapas são QUATRO. */}
       <p className="terr-mapa-foco" aria-live="polite">{textoDoFoco(ligacao, estadoDe)}</p>
-      <LegendaDoMapa faixas={faixas} unidade={unidade} />
+
+      {/* O ALTERNADOR FECHA O CARTÃO: ele é o controle, e controle vem depois do
+          que ele controla. Em cima, ele era a primeira coisa abaixo do título —
+          e a leitura começava por um botão em vez de por um mapa. */}
+      {alternador}
     </div>
   );
 }
