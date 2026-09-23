@@ -30,6 +30,7 @@ import { ProvedorDeContextoDeAcesso } from '../dados/api/contexto';
 import { IndicadoresGeograficos } from '../telas/IndicadoresGeograficos';
 import type { ColecaoMunicipal } from '../componentes/territorio/projecao';
 import { ESTADOS, painelFicticio, type NomeDoEstado } from './amostras';
+import { creditoFicticio, custosFicticios, precosFicticios, rentabilidadeFicticia } from './amostrasDeMercado';
 import '../estilos/design-system.css';
 
 /** O município fixo dos estados que abrem a ficha — sempre o mesmo, para a captura comparar. */
@@ -58,28 +59,43 @@ function envelope(dados: unknown): Response {
 }
 
 /**
- * OS QUATRO PAINÉIS DE MERCADO RESPONDEM VAZIO, e de propósito.
+ * OS QUATRO PAINÉIS DE MERCADO TÊM AMOSTRA (fase T4.7).
  *
- * Preço, custo, rentabilidade e crédito têm cada um a própria leitura e o próprio
- * teste. Vazio aqui não é lacuna do harness: é um dos estados reais da tela, e é
- * o que deixa visível como ela se comporta quando uma fonte não foi carregada.
- * Enchê-los é passo seguinte, e pede amostra própria de cada série.
+ * A T4.5 os deixou vazios e escreveu que enchê-los era passo seguinte. O passo
+ * chegou pelo pior caminho: pediram a revisão visual de Rentabilidade e Crédito
+ * e não havia como olhar nenhum dos dois — os dois abriam dizendo "a carga não
+ * rodou". Um harness que não mostra o painel não serve para revisar o painel.
+ *
+ * O estado VAZIO continua alcançável pelo `parcialmenteVazio`, que é onde ele
+ * precisa estar: como um dos estados da tela, e não como o único.
  */
-const VAZIOS: Record<string, unknown> = {
-  '/v1/territorio/precos': { series: [], primeiroMesDoDolar: null, ultimoMesDoDolar: null },
-  '/v1/territorio/rentabilidade': [],
-  '/v1/territorio/custos': [],
-  '/v1/territorio/credito': {
-    ultimoMes: null,
-    janela: null,
-    porAno: [],
-    porProduto: [],
-    porMunicipio: [],
-    regiao: null,
-    saoPaulo: null,
-    procedencia: null,
-  },
-};
+function respostasDeMercado(malha: ColecaoMunicipal, estado: NomeDoEstado): Record<string, unknown> {
+  if (estado === 'parcialmenteVazio')
+    return {
+      '/v1/territorio/precos': { series: [], primeiroMesDoDolar: null, ultimoMesDoDolar: null },
+      '/v1/territorio/rentabilidade': [],
+      '/v1/territorio/custos': [],
+      '/v1/territorio/credito': {
+        ultimoMes: null,
+        janela: null,
+        porAno: [],
+        porProduto: [],
+        porMunicipio: [],
+        regiao: null,
+        saoPaulo: null,
+        procedencia: null,
+      },
+    };
+
+  const municipios = malha.features.map((f) => ({ codigo: Number(f.properties.codarea), nome: f.properties.nome }));
+
+  return {
+    '/v1/territorio/precos': precosFicticios(),
+    '/v1/territorio/rentabilidade': rentabilidadeFicticia(),
+    '/v1/territorio/custos': custosFicticios(),
+    '/v1/territorio/credito': creditoFicticio(municipios),
+  };
+}
 
 const fetchDeVerdade = window.fetch.bind(window);
 
@@ -109,7 +125,16 @@ function instalarInterceptador(): void {
 
     const caminho = url.replace(/^.*\/api/, '').split('?')[0];
 
-    if (caminho in VAZIOS) return envelope(VAZIOS[caminho]);
+    // Os painéis de mercado precisam da malha para a lista de municípios do
+    // crédito — ela vem do mesmo arquivo público que os mapas usam.
+    if (caminho.startsWith('/v1/territorio/') && caminho !== '/v1/territorio/indicadores') {
+      const malhaDosPaineis = (await (
+        await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)
+      ).json()) as ColecaoMunicipal;
+
+      const respostas = respostasDeMercado(malhaDosPaineis, estado);
+      if (caminho in respostas) return envelope(respostas[caminho]);
+    }
 
     if (caminho === '/v1/territorio/indicadores') {
       // CARREGANDO É UMA PROMESSA QUE NÃO RESOLVE — é o que a tela vê enquanto a
@@ -172,11 +197,14 @@ export function HarnessVisual() {
 
   return (
     <div data-harness="mercado-visual" data-estado={estado}>
+      {/* A FAIXA NÃO GRUDA NO TOPO (corrigido na T4.7).
+
+          Ela era `position: sticky`, e numa captura de página inteira isso a
+          desenha no meio da imagem, tapando justamente o pedaço da tela que se
+          foi revisar. O carimbo continua no alto de toda captura — que é o que
+          ele precisa fazer — sem cobrir nada. */}
       <header
         style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 9999,
           background: '#7F1D1D',
           color: '#FFF',
           padding: '8px 16px',
