@@ -61,7 +61,8 @@ function resposta(parcial: Partial<ResultadoDaCalculadora> = {}): ResultadoDaCal
         areaInformadaHectares: null,
       },
     ],
-    sobreOsCenarios: 'O ajuste por cenário de mercado ainda não entra nesta conta (D-P05).',
+    sobreOsCenarios: 'O potencial estrutural é o que a área comporta; o ajuste de mercado é o que o momento antecipa.',
+    mercado: null,
     ...parcial,
   };
 }
@@ -141,10 +142,46 @@ describe('Calculadora', () => {
     expect(await screen.findByText(/A cultura UVA não tem regra/)).toBeInTheDocument();
   });
 
-  it('diz que nada é gravado e por que os cenários não entram', async () => {
+  it('diz que nada é gravado e o que o ajuste de mercado faz', async () => {
     render(<Calculadora contexto={CONTEXTO} municipioCodigoIbge={null} aoFechar={() => {}} />);
 
-    expect(await screen.findByText(/D-P05/)).toBeInTheDocument();
+    expect(await screen.findByText(/o ajuste de mercado é o que o momento antecipa/)).toBeInTheDocument();
     expect(screen.getByText(/Nada aqui é gravado/)).toBeInTheDocument();
+  });
+
+  it('mostra o momento do mercado e os três cenários quando o servidor os manda', async () => {
+    simular.mockResolvedValue({
+      dados: resposta({
+        mercado: {
+          data: '2026-09-23',
+          ultimoMesDePreco: '2026-08-01',
+          indiceDeCredito: 1.17,
+          faixaDoCredito: 'Intermediaria',
+          linhasDoCredito: 4,
+          basePequenaNoCredito: true,
+          percepcaoDoGestor: 2,
+          porCultura: [
+            { culturaCodigo: 'CAFE', cultura: 'Café', indiceDePreco: 1.28, faixaDoPreco: 'Aquecido', fator: 1.19, demandaAnual: 100, demandaAjustada: 119, frase: '' },
+          ],
+          demandaAjustadaTotal: 119,
+          cenarios: [
+            { nome: 'Conservador', fator: 1.1, demandaAjustada: 110, variacaoPercentual: 10 },
+            { nome: 'Moderado', fator: 1.19, demandaAjustada: 119, variacaoPercentual: 19 },
+            { nome: 'Otimista', fator: 1.3, demandaAjustada: 130, variacaoPercentual: 30 },
+          ],
+          frase: '',
+        },
+      }),
+      procedencia: null,
+    });
+
+    render(<Calculadora contexto={CONTEXTO} municipioCodigoIbge={3543402} aoFechar={() => {}} />);
+
+    expect(await screen.findByText('O momento do mercado')).toBeInTheDocument();
+    expect(screen.getByText(/base pequena, leia com cuidado/)).toBeInTheDocument();
+    // LINHA NÃO É CONTRATO — a tela precisa dizer "linhas do SICOR".
+    expect(screen.getByText(/4 linhas do SICOR/)).toBeInTheDocument();
+    expect(screen.getByText('Conservador')).toBeInTheDocument();
+    expect(screen.getByText('Otimista')).toBeInTheDocument();
   });
 });

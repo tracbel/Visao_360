@@ -23,6 +23,9 @@ const nº = (v: number) => v.toLocaleString('pt-BR');
 /** Arredonda para mostrar: máquina é coisa inteira, e "7,3 tratores" não existe no pátio. */
 const maquinas = (v: number | null) => (v === null ? '—' : nº(Math.round(v)));
 
+/** Um índice de mercado, em torno de 1: 1,15 é "15% acima da janela anterior". */
+const indice = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export type CalculadoraProps = {
   contexto: ContextoDeAcesso;
   /** O município selecionado no mapa, quando há — a calculadora parte da área medida dele. */
@@ -192,6 +195,80 @@ export function Calculadora({ contexto, municipioCodigoIbge, aoFechar }: Calcula
           )}
 
           {resultado.frase && <p className="terr-aviso">{resultado.frase}.</p>}
+
+          {resultado.mercado && (
+            <>
+              <p className="terr-recorte-titulo">O momento do mercado</p>
+              <ul className="terr-recorte-linhas">
+                <li>
+                  Crédito:{' '}
+                  {resultado.mercado.indiceDeCredito === null ? (
+                    <span className="cad-sub">sem índice — falta município ou parâmetro vigente</span>
+                  ) : (
+                    <>
+                      <strong>{indice(resultado.mercado.indiceDeCredito)}</strong>
+                      {resultado.mercado.faixaDoCredito && (
+                        <span className="cad-sub"> · {resultado.mercado.faixaDoCredito.toLowerCase()}</span>
+                      )}
+                      {/* LINHA NÃO É CONTRATO: o Banco Central não publica quantidade de contrato. */}
+                      <span className="cad-sub">
+                        {' '}
+                        · {nº(resultado.mercado.linhasDoCredito)} linhas do SICOR
+                        {resultado.mercado.basePequenaNoCredito ? ' — base pequena, leia com cuidado' : ''}
+                      </span>
+                    </>
+                  )}
+                </li>
+                {resultado.mercado.percepcaoDoGestor !== null && (
+                  <li>
+                    Percepção do gestor: <strong>{resultado.mercado.percepcaoDoGestor.toLocaleString('pt-BR')}%</strong>
+                  </li>
+                )}
+                {resultado.mercado.porCultura.map((c) => (
+                  <li key={c.culturaCodigo}>
+                    {c.cultura}: fator <strong>{c.fator === null ? '—' : indice(c.fator)}</strong>
+                    {c.indiceDePreco !== null && (
+                      <span className="cad-sub"> · preço {indice(c.indiceDePreco)}</span>
+                    )}
+                    {c.demandaAjustada !== null && (
+                      <span className="cad-sub"> · {maquinas(c.demandaAjustada)} por ano ajustados</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              <table className="cad-tabela terr-recorte-tabela">
+                <caption className="cad-sub">
+                  Cenários — cada índice na borda da faixa em que já está; a percepção do gestor não varia
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Cenário</th>
+                    <th scope="col">Fator</th>
+                    <th scope="col">Demanda por ano</th>
+                    <th scope="col">Variação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resultado.mercado.cenarios.map((c) => (
+                    <tr key={c.nome}>
+                      <td>{c.nome}</td>
+                      <td className="cad-mono">{c.fator === null ? '—' : indice(c.fator)}</td>
+                      <td className="cad-mono">{c.demandaAjustada === null ? '—' : maquinas(c.demandaAjustada)}</td>
+                      <td className="cad-mono">
+                        {c.variacaoPercentual === null
+                          ? '—'
+                          : `${c.variacaoPercentual.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {resultado.mercado.frase && <p className="terr-aviso">{resultado.mercado.frase}.</p>}
+            </>
+          )}
+
           <p className="cad-sub">{resultado.sobreOsCenarios}</p>
           <p className="cad-sub">Nada aqui é gravado: a simulação é uma pergunta, não um registro.</p>
         </>

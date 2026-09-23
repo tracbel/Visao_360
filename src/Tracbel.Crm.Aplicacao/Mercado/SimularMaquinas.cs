@@ -29,24 +29,27 @@ namespace Tracbel.Crm.Aplicacao.Mercado;
 /// <param name="motor">As regras vigentes e a área medida.</param>
 /// <param name="acesso">O contexto de acesso.</param>
 /// <param name="relogio">O relógio.</param>
+/// <param name="indicadores">O momento de mercado do recorte — preço, crédito e percepção (issue 74).</param>
+/// <param name="parametros">As vigências dos parâmetros gerais, que dão os pesos e as faixas.</param>
 public sealed class SimularMaquinas(
     IRepositorioDoMotorDoPotencial motor,
+    IRepositorioDeIndicadoresDeMercado indicadores,
+    IRepositorioDeParametrosDoPotencial parametros,
     IProvedorContextoAcesso acesso,
     IRelogio relogio)
 {
     /// <summary>
-    /// O QUE A CALCULADORA AINDA NÃO FAZ, e por quê.
+    /// O QUE O AJUSTE DE MERCADO FAZ — a frase que a tela mostra ao lado dos três cenários.
     ///
-    /// <para>A issue pede também "demanda ajustada e os três cenários". O ajuste vem do fator de ciclo de
-    /// mercado (issue 74), que pesa preço, crédito e percepção do gestor — e <b>os pesos são a decisão
-    /// D-P05, que não saiu</b>, assim como as bandas dos cenários (D-IM-05). Inventar um peso para
-    /// entregar três números faria a calculadora responder com opinião do programador; a regra desta
-    /// etapa é a mesma do resto: sem parâmetro decidido, o resultado diz o que falta.</para>
+    /// <para>Ela deixou de dizer "ainda não entra" quando a D-P05 saiu (23/09/2026) e o fator de ciclo
+    /// (issue 74) passou a existir. O que continua fora é o <b>termo de troca</b>, que precisa do preço
+    /// de máquina (issue 70).</para>
     /// </summary>
     public const string SobreOsCenarios =
-        "O ajuste por cenário de mercado ainda não entra nesta conta: o fator de ciclo depende dos pesos " +
-        "de preço, crédito e percepção do gestor, que ainda não foram decididos (D-P05), e das bandas dos " +
-        "cenários (D-IM-05). O que está aqui é o potencial estrutural — o que a área comporta.";
+        "O potencial estrutural é o que a área comporta; o ajuste de mercado é o que o momento antecipa ou " +
+        "adia. O fator combina preço e rentabilidade, crédito e a percepção do gestor — o termo de troca " +
+        "fica de fora até haver preço de máquina no CRM. Conservador e otimista levam cada índice à borda " +
+        "da faixa em que ele já está; a percepção do gestor não varia entre cenários.";
 
     /// <summary>Simula o parque e a demanda anual.</summary>
     /// <param name="entrada">O município, a categoria, a data e as áreas informadas.</param>
@@ -200,12 +203,97 @@ public sealed class SimularMaquinas(
             total.Parcelas,
             porCategoria,
             culturas,
-            SobreOsCenarios);
+            SobreOsCenarios,
+            await MercadoAsync(data.Value, medidas?.CodigoIbge, total, ct));
 
         return Resultado<ComProcedencia<ResultadoDaCalculadora>>.Ok(
             ComProcedencia<ResultadoDaCalculadora>.DoNossoBanco(
                 dados,
-                "organizacao.RegraDePotencial · organizacao.Cultura · organizacao.GrupoDeCompartilhamento · organizacao.ProducaoAgricolaNoMunicipio",
+                "organizacao.RegraDePotencial · organizacao.Cultura · organizacao.GrupoDeCompartilhamento · " +
+                "organizacao.ProducaoAgricolaNoMunicipio · organizacao.CotacaoDeProduto · " +
+                "organizacao.CreditoRuralDeInvestimento · organizacao.PercepcaoDoGestor",
                 relogio));
+    }
+
+    /// <summary>
+    /// O MOMENTO DO MERCADO SOBRE A DEMANDA SIMULADA (issue 74).
+    ///
+    /// <para><b>O fator é por cultura</b>, porque o momento de preço é: o café pode estar subindo enquanto
+    /// a cana cai. O crédito e a percepção são do município e entram iguais em todas.</para>
+    ///
+    /// <para><b>Nada aqui muda com a área digitada</b> — preço, crédito e percepção são do mercado, não da
+    /// simulação. O que a área muda é a demanda sobre a qual o fator incide.</para>
+    ///
+    /// <para><b>A demanda ajustada total só sai completa</b>, pela mesma razão que a estrutural: somar só
+    /// as culturas que fecharam daria um número menor que o real, com cara de completo.</para>
+    /// </summary>
+    private async Task<MercadoNaCalculadora?> MercadoAsync(
+        DateOnly data, int? municipioCodigoIbge, PotencialDoRecorte total, CancellationToken ct)
+    {
+        if (total.Parcelas.Count == 0) return null;
+
+        var doRecorte = await indicadores.LerAsync(data, municipioCodigoIbge, ct);
+
+        var vigente = ParametroComVigencia.VigenteEm(await parametros.ListarGeraisAsync(ct), data);
+
+        var porCultura = new List<AjusteDaCultura>();
+
+        foreach (var parcela in total.Parcelas)
+        {
+            var preco = doRecorte.PrecoPorCultura.GetValueOrDefault(parcela.CulturaCodigo);
+
+            var ajustado = FatorDeCiclo.Ajustar(
+                parcela.DemandaAnual,
+                preco?.Indice,
+                doRecorte.Credito?.Indice,
+                doRecorte.PercepcaoDoGestor,
+                vigente,
+                total.Estimativa);
+
+            porCultura.Add(new AjusteDaCultura(
+                parcela.CulturaCodigo,
+                parcela.Cultura,
+                preco?.Indice,
+                preco?.Faixa,
+                ajustado.Fator.Fator,
+                parcela.DemandaAnual,
+                ajustado.DemandaAjustada,
+                FatorDeCiclo.Frase(ajustado.Fator)));
+        }
+
+        var comAjuste = porCultura.Where(c => c.DemandaAjustada is not null).ToList();
+
+        decimal? ajustadaTotal = porCultura.Count > 0 && comAjuste.Count == porCultura.Count
+            ? comAjuste.Sum(c => c.DemandaAjustada!.Value)
+            : null;
+
+        // OS CENÁRIOS SÃO SOBRE O TOTAL, com o índice de preço da cultura de MAIOR demanda — a que
+        // manda no número. Um cenário por cultura multiplicaria a tela por seis sem responder melhor
+        // "o mercado está bom para renovar?".
+        var dominante = total.Parcelas
+            .Where(p => p.DemandaAnual is not null)
+            .MaxBy(p => p.DemandaAnual!.Value)
+            ?? total.Parcelas[0];
+
+        var doTotal = FatorDeCiclo.Ajustar(
+            total.DemandaAnual,
+            doRecorte.PrecoPorCultura.GetValueOrDefault(dominante.CulturaCodigo)?.Indice,
+            doRecorte.Credito?.Indice,
+            doRecorte.PercepcaoDoGestor,
+            vigente,
+            total.Estimativa);
+
+        return new MercadoNaCalculadora(
+            data,
+            doRecorte.UltimoMesDePreco,
+            doRecorte.Credito?.Indice,
+            doRecorte.Credito?.Faixa,
+            doRecorte.Credito?.Linhas ?? 0,
+            doRecorte.Credito?.BasePequena ?? false,
+            doRecorte.PercepcaoDoGestor,
+            porCultura,
+            ajustadaTotal,
+            doTotal.Cenarios,
+            doTotal.Frase);
     }
 }
