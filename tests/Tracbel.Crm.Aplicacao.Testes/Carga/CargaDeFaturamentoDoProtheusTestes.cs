@@ -330,4 +330,18 @@ public sealed class CargaDeFaturamentoDoProtheusTestes : IDisposable
         CargaDeFaturamentoDoProtheus.Imprimir(simulacao, impresso.Add);
         impresso.Should().Contain(l => l.Contains("=== CRM de hoje ===")).And.Contain(l => l.Contains("=== CRM + carga da SA1 ==="));
     }
+
+    [Theory]
+    // A janela de produção (~59 mil meses): uma filial que some da leitura passaria de 20% — recusa.
+    [InlineData(59_000, 15_000, true)]
+    // Nota cancelada e cliente que passou a existir: poucos meses de cada vez — remove.
+    [InlineData(59_000, 300, false)]
+    // No limite exato ainda remove; acima dele, recusa.
+    [InlineData(10_000, 2_000, false)]
+    [InlineData(10_000, 2_001, true)]
+    // Janela pequena (filial nova, teste): a trava não se aplica, uma nota já passaria de 20%.
+    [InlineData(2, 1, false)]
+    [InlineData(999, 999, false)]
+    public void A_leitura_parcial_nao_apaga_em_massa(int linhasNaJanela, int obsoletos, bool recusa) =>
+        CargaDeFaturamentoDoProtheus.RemocaoPassaDaTrava(linhasNaJanela, obsoletos).Should().Be(recusa);
 }

@@ -50,6 +50,23 @@ internal sealed class CargaDeFaturamentoDoProtheus(
     private const int TamanhoDoBloco = 500;
 
     /// <summary>
+    /// A maior fração da janela que uma execução pode remover. Nota cancelada e cliente que passou a
+    /// existir mexem em poucos meses de cada vez; tirar um quinto da janela numa noite é leitura que
+    /// veio pela metade, não o ERP mudando.
+    /// </summary>
+    public const double FracaoMaximaDeRemocao = 0.20;
+
+    /// <summary>
+    /// Abaixo disto a trava não se aplica: numa janela pequena (a primeira semana de uma filial, ou um
+    /// teste) uma única nota cancelada já passa de 20%, e recusar seria falso alarme.
+    /// </summary>
+    public const int JanelaMinimaParaATrava = 1000;
+
+    /// <summary>Se a remoção desta execução deve ser recusada como leitura parcial.</summary>
+    public static bool RemocaoPassaDaTrava(int linhasNaJanela, int obsoletos) =>
+        linhasNaJanela >= JanelaMinimaParaATrava && obsoletos > linhasNaJanela * FracaoMaximaDeRemocao;
+
+    /// <summary>
     /// Quantos meses INTEIROS para trás a leitura e a curva ABC olham — três anos, mais o mês corrente.
     ///
     /// <para>A janela começa no dia 1: começar "hoje menos três anos" fazia o primeiro mês chegar pela
@@ -263,23 +280,40 @@ internal sealed class CargaDeFaturamentoDoProtheus(
     {
         await using var contexto = AbrirContextoDaCarga();
 
-        var obsoletosComCliente = (await contexto.FaturamentoDosClientes.AsNoTracking()
-                .Where(f => f.Competencia >= desde)
-                .Select(f => new { f.Id, f.ClienteId, f.EmpresaId, f.Competencia })
-                .ToListAsync(ct))
+        var naJanelaComCliente = await contexto.FaturamentoDosClientes.AsNoTracking()
+            .Where(f => f.Competencia >= desde)
+            .Select(f => new { f.Id, f.ClienteId, f.EmpresaId, f.Competencia })
+            .ToListAsync(ct);
+        var obsoletosComCliente = naJanelaComCliente
             .Where(f => !comCliente.Contains((f.ClienteId, f.EmpresaId, f.Competencia)))
             .Select(f => f.Id)
             .ToList();
 
-        var obsoletosSemCliente = (await contexto.FaturamentoSemClientes.AsNoTracking()
-                .Where(f => f.Competencia >= desde)
-                .Select(f => new { f.Id, f.Documento, f.EmpresaId, f.Competencia })
-                .ToListAsync(ct))
+        var naJanelaSemCliente = await contexto.FaturamentoSemClientes.AsNoTracking()
+            .Where(f => f.Competencia >= desde)
+            .Select(f => new { f.Id, f.Documento, f.EmpresaId, f.Competencia })
+            .ToListAsync(ct);
+        var obsoletosSemCliente = naJanelaSemCliente
             .Where(f => !semCliente.Contains((f.Documento, f.EmpresaId, f.Competencia)))
             .Select(f => f.Id)
             .ToList();
 
         if (obsoletosComCliente.Count == 0 && obsoletosSemCliente.Count == 0) return 0;
+
+        // A LEITURA PARCIAL NÃO APAGA EM MASSA. A leitura vazia já está barrada lá em cima; esta é a
+        // irmã dela que passa pela porta: uma filial que some da leitura por um problema passageiro, e
+        // a janela dela inteira sairia do banco numa madrugada. Uma exclusão acima da fração máxima
+        // é tratada como defeito de leitura — nada é removido, e a decisão fica no relatório.
+        var naJanela = naJanelaComCliente.Count + naJanelaSemCliente.Count;
+        var obsoletos = obsoletosComCliente.Count + obsoletosSemCliente.Count;
+        if (RemocaoPassaDaTrava(naJanela, obsoletos))
+        {
+            Decidir(
+                $"Remoção RECUSADA: a leitura deixaria de fora {obsoletos} de {naJanela} meses da janela " +
+                $"(acima de {FracaoMaximaDeRemocao:P0}) — tratado como leitura parcial do Protheus; nada foi removido",
+                obsoletos);
+            return 0;
+        }
 
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
         var removidos = 0;
