@@ -128,8 +128,13 @@ internal sealed class CargaDeClientesDoProtheus(
             .Where(e => e.EhPrincipal)
             .ToDictionaryAsync(e => e.ClienteId, ct);
 
-        int incluidos = 0, atualizados = 0, iguais = 0, enderecos = 0, tipoDivergente = 0;
+        int incluidos = 0, atualizados = 0, iguais = 0, enderecos = 0, tipoDivergente = 0, emFilialDesativada = 0;
         var pendentesPorMotivo = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        // AS FILIAIS DESATIVADAS, PARA A SENTINELA ABAIXO. Lidas uma vez; a carga NÃO recusa o cliente
+        // por causa disto — ver a contagem, no fim, para o porquê.
+        var filiaisDesativadas = await contexto.Empresas.AsNoTracking()
+            .Where(e => !e.EstaAtiva).Select(e => e.Id).ToHashSetAsync(ct);
         var novos = new List<(Cliente Cliente, LojaDeClienteNoProtheus Loja, int MunicipioId)>();
 
         foreach (var (documento, loja) in porDocumento)
@@ -152,6 +157,7 @@ internal sealed class CargaDeClientesDoProtheus(
             // para que ela seja vista e corrigida na origem.
             var tipo = cpfCnpj.EhPessoaFisica ? TipoDePessoa.Fisica : TipoDePessoa.Juridica;
             if (cpfCnpj.EhPessoaFisica != loja.PessoaFisica) tipoDivergente++;
+            if (filiaisDesativadas.Contains(empresaId)) emFilialDesativada++;
 
             if (clientesPorDocumento.TryGetValue(documento, out var existente))
             {
@@ -245,6 +251,20 @@ internal sealed class CargaDeClientesDoProtheus(
         Contar(etapaDaGravacao, "clientes já existentes sem alteração", iguais);
         Contar(etapaDaGravacao, "endereços principais incluídos", enderecos);
         Contar(etapaDaGravacao, "A1_PESSOA discorda do documento (valeu o documento)", tipoDivergente);
+
+        // A SENTINELA DA FILIAL DESATIVADA (24/09/2026).
+        //
+        // A carga tira o dono do cliente da ÁREA DE ATUAÇÃO, e a área de atuação não sabe se a filial
+        // ainda existe. Na primeira carga real isso pôs 2.168 clientes — 8% dos 27.336 — sob Guaíra,
+        // Ituverava e Monte Alto, que estavam marcadas como desativadas embora tivessem vendido
+        // máquina no ano fiscal corrente (Monte Alto vendeu no dia anterior). As três foram reativadas
+        // e a contagem foi a zero.
+        //
+        // ELA NÃO RECUSA O CLIENTE, de propósito: perder um cliente que existe por causa de um
+        // indicador administrativo seria pior do que mostrá-lo. O que não pode é acontecer em
+        // silêncio — e era o que acontecia. Se este número voltar a subir, ou a filial foi desativada
+        // sem a área de atuação ser revista, ou ela foi desativada por engano.
+        Contar(etapaDaGravacao, "clientes em filial DESATIVADA (a área de atuação aponta para ela)", emFilialDesativada);
 
         var pendentes = pendentesPorMotivo.Values.Sum();
         Contar(etapaDaGravacao, "documentos pendentes (nenhum cliente criado)", pendentes);
