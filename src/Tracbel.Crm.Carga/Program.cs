@@ -152,6 +152,16 @@ var somenteCredito = args.Contains("--somente-credito", StringComparer.Ordinal);
 // (só SELECT). Não lê o Vórtice. Com --simular, a carga inteira roda numa transação DESFEITA no fim:
 // os números saem, e o banco não muda.
 var somenteArt = args.Contains("--somente-art", StringComparer.Ordinal);
+
+// --somente-clientes-protheus — O CADASTRO DE CLIENTES, DA SA1 (decisão de 24/09/2026).
+//
+// Le a SA1010 do Protheus (so SELECT) e cria cliente e endereco principal. NAO le o Vortice: a
+// carga de cadastro do legado foi aposentada, e a SA1 e a fonte decidida.
+//
+// Ela vem ANTES das vendas na ordem de carga, e isso nao e preferencia: sem cliente, o ART nao
+// consegue casar comprador nenhum e as vendas ficam todas pendentes.
+var somenteClientesDoProtheus = args.Contains("--somente-clientes-protheus", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
 // =================================================================================================
@@ -177,7 +187,7 @@ var simular = args.Contains("--simular", StringComparer.Ordinal);
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
 
 var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somentePrecos && !somenteCustos && !somenteCredito
-                 && !somenteArt && !somenteMedir;
+                 && !somenteArt && !somenteClientesDoProtheus && !somenteMedir;
 
 if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
 {
@@ -225,7 +235,7 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
 if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura
-    && !somentePrecos && !somenteCustos && !somenteCredito && !somenteArt)
+    && !somentePrecos && !somenteCustos && !somenteCredito && !somenteArt && !somenteClientesDoProtheus)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -383,6 +393,49 @@ if (somenteTerritorio || somentePam || somenteEstrutura || somentePrecos || some
 // -------------------------------------------------------------------------------------------------
 // Atalho — só o ART. Sai antes da exigência da API REST do Protheus, que esta etapa não usa.
 // -------------------------------------------------------------------------------------------------
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só o cadastro de clientes, da SA1 do Protheus (decisão de 24/09/2026).
+// -------------------------------------------------------------------------------------------------
+
+if (somenteClientesDoProtheus)
+{
+    var opcoesDoBancoParaClientes = new OpcoesDoBancoDoProtheus();
+    configuracao.GetSection(OpcoesDoBancoDoProtheus.Secao).Bind(opcoesDoBancoParaClientes);
+
+    if (!opcoesDoBancoParaClientes.EstaConfigurada)
+    {
+        Console.Error.WriteLine(
+            "A carga de clientes exige ProtheusBanco__Servidor, __Banco, __Usuario e __Senha. Nada foi gravado.");
+        return 2;
+    }
+
+    Console.WriteLine(simular
+        ? "Carga de clientes (SA1 do Protheus) — SIMULAÇÃO: tudo roda numa transação desfeita no fim."
+        : "Carga de clientes (SA1 do Protheus) — gravando.");
+    Console.WriteLine();
+
+    var cargaDeClientes = new CargaDeClientesDoProtheus(
+        AbrirContexto, new LeitorDeClientesDoProtheus(opcoesDoBancoParaClientes), usuarioId, Console.WriteLine);
+
+    var resultadoDosClientes = await cargaDeClientes.ExecutarAsync(simular, CancellationToken.None);
+    if (!resultadoDosClientes.EhSucesso)
+    {
+        Console.Error.WriteLine("A CARGA DE CLIENTES PAROU: " + resultadoDosClientes.Erro);
+        return 3;
+    }
+
+    foreach (var etapa in resultadoDosClientes.Valor.Contagens.GroupBy(c => c.Etapa))
+    {
+        Console.WriteLine();
+        Console.WriteLine($"- {etapa.Key} -");
+        foreach (var (_, rotulo, valor) in etapa)
+            Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+    }
+
+    Console.WriteLine();
+    return 0;
+}
 
 if (somenteArt)
 {

@@ -1074,13 +1074,134 @@ Dois ciclos, o mesmo resultado:
 > `4183 registros lidos; 0 vendas incluídas; 0 atualizadas pela origem; 4183 pendentes; 0 máquinas incluídas.`
 
 **A leitura funciona; a importação não.** Um registro só é importável com **chassi válido + comprador único
-no CRM + filial** (`CargaDoArt`), e os 4.183 falham em ao menos um desses. A quebra por motivo é gravada em
-`integracao.MedicaoDaSincronizacao`, no banco do servidor — **ainda não lida**, e é o próximo passo.
+no CRM + filial** (`CargaDoArt`). Medido em `integracao.RegistroDeOrigem`, no banco de produção:
 
-A hipótese mais provável, a confirmar contra essa tabela: os **compradores não estão no CRM**, efeito da
-sanitização de 15/09/2026 que esvaziou o cadastro. Se for isso, a ordem de carga é que está invertida — o
-cadastro de clientes precisa vir antes das vendas, e nenhuma linha do ART entra até lá.
+| Motivos da pendência | Registros |
+|---|---|
+| `COMPRADOR_AUSENTE_NO_CRM` | 3.268 |
+| `CHASSI_INCOMPLETO` + `COMPRADOR_AUSENTE_NO_CRM` | 755 |
+| `CHASSI_FORA_DO_PADRAO` + `COMPRADOR_AUSENTE_NO_CRM` | 153 |
+| `CHASSI_MULTIPLO` + `COMPRADOR_AUSENTE_NO_CRM` | 5 |
+| `CHASSI_VAZIO` + `COMPRADOR_AUSENTE_NO_CRM` | 2 |
+
+**É uma causa só: `COMPRADOR_AUSENTE_NO_CRM` está em 100% dos 4.183.** O chassi aparece como problema
+secundário em 915 deles, e mesmo esses barrariam no comprador de qualquer jeito.
+
+#### A causa raiz não é do ART: o CRM de produção está sem cadastro [M]
+
+| Tabela (produção, 24/09/2026) | Linhas |
+|---|---|
+| `organizacao.Municipio` | 5.571 |
+| `organizacao.Empresa` | 18 |
+| **`comercial.Cliente`** | **0** |
+| **`comercial.ClienteCarteira`** | **0** |
+| **`frota.Equipamento`** | **0** |
+| **`frota.VendaDeMaquina`** | **0** |
+| `integracao.RegistroDeOrigem` | 4.183 |
+| `integracao.CompradorPendente` | 1.791 |
+
+O banco tem **dado de referência e nada de dado comercial**. É o efeito da sanitização de 15/09/2026, que
+esvaziou o cadastro e nunca foi seguida de recarga. **A ordem de carga está invertida**: o cadastro de
+clientes precisa vir antes das vendas, e enquanto não vier nenhuma linha do ART entra.
+
+**Os 1.791 compradores pendentes, pelo que o Protheus diz** — a carga já conferiu cada um na `SA1`:
+
+| Situação na SA1 | Compradores | Com endereço e município | Vendas que dependem |
+|---|---|---|---|
+| **Ativo** | **1.729 (96,5%)** | **1.729** | **4.025 (96,2%)** |
+| Ausente | 37 | 0 | 75 |
+| Bloqueado | 25 | 25 | 83 |
+
+**O dado existe para 96,5% deles.** O que falta, em 1.455 casos (81%), é **uma linha só**: *"definir filial
+e carteira responsáveis"* — que é **decisão de negócio, não dado ausente**. Os outros motivos são pequenos:
+239 pedem conferir o nome (ART e Protheus divergem), 52 a inscrição estadual, 37 não têm cadastro na SA1 e
+25 estão bloqueados.
 
 > **Consequência para a #69:** o aceite *"totais por ano iguais aos da fonte"* continua **não conferido**,
-> mas o motivo mudou de "a fonte está desligada" para "a fonte está ligada e a carga não casa comprador".
-> É um problema menor e localizado, e tem número: 4.183.
+> e agora se sabe exatamente por quê — e que **não é problema desta issue**. O numerador da captura está
+> pronto no código e na tela; o que falta é o CRM ter clientes. Destravar 1.455 atribuições de filial e
+> carteira libera 96% das vendas de uma vez.
+
+#### Os totais na fonte, para quando houver contra o que conferir [M]
+
+Lidos direto da view `bi_art_veiculos`, em sessão somente leitura:
+
+| | |
+|---|---|
+| Linhas na view | **4.184** |
+| Chassis distintos | 4.178 |
+| Soma da coluna `qte` | **4.271** |
+
+**A soma de `qte` contaria 87 máquinas a mais que as linhas** — é a confirmação, com número, da regra
+"**uma venda é uma máquina**" adotada na leitura do território.
+
+| Ano | **Civil** (faturamento) | **Fiscal** (nov→out) |
+|---|---|---|
+| 2024 | 1.273 | 1.086 |
+| 2025 | 1.762 | 1.767 |
+| 2026 | 1.120 | **1.302** |
+
+A diferença não é decorativa: o **FY2026 tem 182 vendas a mais** que o ano civil de 2026, porque
+novembro e dezembro de 2025 pertencem a ele. Ler um pelo outro erra quase 16%.
+
+**O que cada critério de data custaria**, medido: **29** linhas sem data de faturamento, **76** sem data de
+entrega, **0** sem data de venda. A D-P08.1 escolheu o faturamento por ser o mesmo evento dos reais — e o
+número mostra que ela também é a mais barata das duas que o documento discutia: a entrega perderia 76.
+
+**A quebra por categoria terá buracos conhecidos**, e eles já estão previstos no contrato da leitura:
+
+| Linha do ART | Vendas | Destino |
+|---|---|---|
+| Colhedora de cana (4 variantes de modelo) | 417 | **linha sem categoria** — julgamento do comercial |
+| Plataforma de corte | 18 | **linha sem categoria** — idem |
+| `USADOS` | 307 | **sem classificação** — não é categoria de produto, é condição da venda |
+| As demais | 3.442 (82%) | com categoria |
+
+#### A carga de clientes da SA1 — e por que "definir filial" não era decisão [D + M, 24/09/2026]
+
+> **Decidido:** a **`SA1010` do Protheus é a fonte canônica do cadastro de clientes**, no lugar da carga
+> do Vórtice, que foi aposentada atrás da bandeira `--legado-somente-referencia-eu-sei-o-que-estou-fazendo`.
+
+**A filial dona não vem da origem.** `A1_FILIAL` vem **vazio** nas 38.752 linhas — no Protheus o cadastro
+de cliente é compartilhado entre filiais. Ela sai de `MunicipioDaAreaDeAtuacao.EmpresaResponsavelId`, pelo
+município do cliente, e **os 203 municípios da ADR têm todos uma**. Era isto que a fila de compradores
+chamava de *"definir filial responsável"*: **não era decisão pendente, era um cruzamento que ninguém tinha
+feito**.
+
+**O de-para do município, medido:** `A1_COD_MUN` tem cinco dígitos e é o código IBGE **sem o prefixo da
+UF**; o inteiro é `prefixo(A1_EST) * 100000 + A1_COD_MUN`. Bate em **99,99%** — 1 falha em 35.030. O
+prefixo sai do próprio catálogo de municípios do CRM, e não de uma segunda lista escrita no código.
+
+**O escopo se define sozinho:** só há filial responsável dentro da área de atuação, então cliente de
+município de fora fica pendente com o motivo. Não é exclusão arbitrária — é a fronteira de acesso do CRM
+dizendo de quem o cadastro é.
+
+**O que a simulação contra a produção real devolveu** (transação desfeita, nada gravado):
+
+| | |
+|---|---|
+| Lojas lidas da SA1 | 38.744 |
+| Documentos distintos | 33.641 (5.103 com mais de uma loja) |
+| **Clientes a criar** | **27.336** |
+| **Endereços principais** | **27.336** |
+| Pendentes por `FORA_DA_AREA_DE_ATUACAO` | 6.298 |
+| Pendentes por `DOCUMENTO_INVALIDO` | 6 |
+| Pendentes por `MUNICIPIO_NAO_RECONHECIDO` | 1 |
+
+**A simulação encontrou dois defeitos de dado que ninguém previu**, e é para isso que ela existe:
+
+1. **A SA1 tem CPF que não passa no dígito verificador** (`55555555555`). Virou pendência com motivo — não
+   uma exceção que derrubaria a carga inteira e impediria os outros 33 mil de entrarem.
+2. **`A1_PESSOA` discorda do documento em 8 casos.** O tipo de pessoa passou a ser derivado **do
+   documento** — 11 dígitos é CPF, 14 é CNPJ, conferido no dígito verificador — em vez do campo digitado.
+   Isso elimina a classe inteira de erro em vez de tratá-la caso a caso, e a discordância vira contagem
+   para ser corrigida na origem.
+
+**A situação do cliente não sai do cadastro.** A SA1 diz que o cliente **existe**, não que ele comprou:
+`Prospect` afirmaria "nunca comprou" e `Cliente` afirmaria "comprou e está ativo". Ele entra como
+`Suspect` — literalmente "ainda não se sabe" — e quem promove é o movimento: o faturamento do Protheus e
+as vendas do ART.
+
+**A ordem de carga passa a ser explícita:** `--somente-clientes-protheus` **antes** de `--somente-art` e de
+`--somente-faturamento`. Não é preferência: sem cliente, o ART não casa comprador nenhum e o faturamento
+não acha dono para a nota.
