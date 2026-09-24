@@ -6,6 +6,7 @@ using Tracbel.Crm.Dominio.Frota;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao.Art;
+using Tracbel.Crm.Integracao.Protheus;
 
 namespace Tracbel.Crm.Carga;
 
@@ -43,17 +44,28 @@ internal sealed record RelatorioDaCargaDoArt(
 /// correspondência revisada, divergência resolvida) não é desfeito.</para>
 ///
 /// <para><b>Simulação:</b> a carga inteira roda numa transação, e na simulação a transação é
-/// desfeita no fim. Os números da simulação são, por construção, os da carga real.</para>
+/// desfeita no fim. Os números da simulação são, por construção, os da carga real. A
+/// <b>projeção</b> (<see cref="ProjetarAsync"/>) é a irmã que não abre transação nenhuma: só a
+/// decisão de cada registro, com a mesma função da carga — é a que roda contra a produção.</para>
+///
+/// <para><b>O Protheus decide três coisas desde 24/09/2026</b> (decisões 1, 2 e 5 do dono):
+/// o número de série curto que o cadastro de veículos tem exatamente vira identidade da máquina; o
+/// comprador ausente do CRM dá lugar ao dono atual da máquina quando ESTE é cliente; e a divergência
+/// entre o dono no Protheus e o comprador do ART só fica registrada quando o ART prevalece — sem
+/// evidência posterior no Protheus, ou com o Protheus apontando a própria Tracbel
+/// (<see cref="RegrasDoParque.Comparar"/>). O VIN com I, O e Q entra pela regra do chassi.</para>
 /// </summary>
 /// <param name="abrirContexto">Abre um contexto de banco com alcance de sistema.</param>
-/// <param name="art">A leitura do ART.</param>
-/// <param name="protheus">A leitura do cadastro do Protheus, quando configurada.</param>
+/// <param name="lerArt">A leitura do ART.</param>
+/// <param name="lerProtheus">A leitura do cadastro do Protheus, quando configurada.</param>
+/// <param name="raizesDoGrupo">As raízes de CNPJ das empresas do grupo.</param>
 /// <param name="usuarioId">Quem roda a carga.</param>
 /// <param name="relatar">Onde a carga escreve o andamento.</param>
 internal sealed class CargaDoArt(
     Func<CrmDbContext> abrirContexto,
-    LeitorDoArt art,
-    LeitorDoCadastroDoProtheus? protheus,
+    Func<CancellationToken, Task<Resultado<IReadOnlyList<RegistroDoArt>>>> lerArt,
+    Func<IReadOnlySet<string>, CancellationToken, Task<Resultado<(ParqueNoProtheus Parque, IReadOnlyDictionary<string, CadastroNoProtheus> Cadastros)>>>? lerProtheus,
+    IReadOnlySet<string> raizesDoGrupo,
     long usuarioId,
     Action<string> relatar)
 {
@@ -74,6 +86,12 @@ internal sealed class CargaDoArt(
     /// <summary>Rótulo: vendas atualizadas pela origem.</summary>
     internal const string RotuloDeVendasAtualizadas = "vendas já importadas e atualizadas pela origem";
 
+    /// <summary>Rótulo: chassis curtos confirmados pelo Protheus.</summary>
+    internal const string RotuloDeSeriesConfirmadas = "chassi curto confirmado no cadastro de veículos do Protheus (vira a identidade da máquina)";
+
+    /// <summary>Rótulo: compradores ausentes resolvidos pelo dono atual no Protheus.</summary>
+    internal const string RotuloDeCompradoresPeloProtheus = "comprador ausente do CRM: a venda entra com o dono atual no Protheus, que é cliente";
+
     /// <summary>As divergências que descrevem um ESTADO — e que, por isso, deixam de ocorrer sozinhas.</summary>
     private static readonly HashSet<TipoDeDivergencia> DivergenciasDeEstado =
     [
@@ -85,28 +103,108 @@ internal sealed class CargaDoArt(
     private readonly List<(string Etapa, string Rotulo, int Valor)> _contagens = [];
     private readonly List<string> _observacoes = [];
 
-    private sealed record Importavel(VendaDoArtSaneada Venda, RegistroDeOrigem Registro, int EmpresaId, int? EmpresaDoFaturamentoId, long CompradorId);
+    private sealed record Importavel(
+        VendaDoArtSaneada Venda, RegistroDeOrigem Registro, int EmpresaId, int? EmpresaDoFaturamentoId, long CompradorId, bool CompradorPeloProtheus);
+
+    /// <summary>
+    /// O que se decidiu sobre um registro do ART — a MESMA decisão na carga e na projeção.
+    /// </summary>
+    /// <param name="Venda">O registro, com a transformação do comprador anotada quando houve.</param>
+    /// <param name="CompradorId">O cliente comprador, quando decidido.</param>
+    /// <param name="CompradorPeloProtheus">Se o comprador é o dono atual no Protheus no lugar do comprador do ART.</param>
+    /// <param name="Motivos">Os motivos de pendência; vazio quando o registro entra.</param>
+    /// <param name="CompradorAusente">Se o comprador do ART não é cliente do CRM e nada o substituiu.</param>
+    internal sealed record DecisaoDoRegistro(
+        VendaDoArtSaneada Venda, long? CompradorId, bool CompradorPeloProtheus, IReadOnlyList<string> Motivos, bool CompradorAusente);
+
+    /// <summary>
+    /// DECIDE UM REGISTRO — função pura, sem banco: a carga e a projeção chamam esta mesma.
+    ///
+    /// <para><b>O comprador ausente do CRM dá lugar ao dono atual no Protheus</b> (decisão 5 de 24/09/2026) quando a
+    /// máquina está no cadastro de veículos com um dono só, esse dono não é empresa do grupo e é cliente do CRM sem
+    /// ambiguidade. O comprador do ART continua no registro e na fila de compradores enquanto houver venda dele
+    /// que não se resolveu assim.</para>
+    /// </summary>
+    /// <param name="s">O registro saneado (e já confirmado pelo Protheus, quando o chassi era curto).</param>
+    /// <param name="empresaId">A filial da unidade vendedora, quando a correspondência é utilizável.</param>
+    /// <param name="clientesPorDocumento">Os clientes do CRM pelo documento.</param>
+    /// <param name="chassisAtivos">Os chassis das máquinas ativas no CRM.</param>
+    /// <param name="chassisBaixados">Os chassis das máquinas baixadas no CRM.</param>
+    /// <param name="parque">O cadastro de veículos do Protheus, quando lido.</param>
+    /// <param name="raizesDoGrupo">As raízes de CNPJ do grupo.</param>
+    internal static DecisaoDoRegistro Decidir(
+        VendaDoArtSaneada s,
+        int? empresaId,
+        IReadOnlyDictionary<string, List<(long Id, int EmpresaId)>> clientesPorDocumento,
+        IReadOnlySet<string> chassisAtivos,
+        IReadOnlySet<string> chassisBaixados,
+        ParqueNoProtheus? parque,
+        IReadOnlySet<string> raizesDoGrupo)
+    {
+        var motivos = new List<string>(s.Motivos);
+        if (empresaId is null) motivos.Add(MotivoDePendenciaDoArt.UnidadeSemFilial);
+
+        long? Unico(List<(long Id, int EmpresaId)> candidatos)
+        {
+            if (candidatos.Count == 1) return candidatos[0].Id;
+
+            // O MESMO DOCUMENTO EM MAIS DE UMA FILIAL: vale o cliente da filial da venda, quando é um só.
+            var naFilial = candidatos.Where(c => c.EmpresaId == empresaId).ToList();
+            return naFilial.Count == 1 ? naFilial[0].Id : null;
+        }
+
+        long? compradorId = null;
+        var peloProtheus = false;
+        var ausente = false;
+        if (s.Documento is { } documento)
+        {
+            if (clientesPorDocumento.TryGetValue(documento.Numero, out var candidatos))
+            {
+                compradorId = Unico(candidatos);
+                if (compradorId is null) motivos.Add(MotivoDePendenciaDoArt.CompradorAmbiguo);
+            }
+            else if (s.Chassi is { } chassi
+                     && parque is not null
+                     && parque.TentarAchar(chassi.Numero, out var noProtheus)
+                     && noProtheus.DocumentoDoDono is { } dono
+                     && !RegrasDoParque.EhDoGrupo(dono, raizesDoGrupo)
+                     && clientesPorDocumento.TryGetValue(dono, out var donos)
+                     && Unico(donos) is { } substituto)
+            {
+                compradorId = substituto;
+                peloProtheus = true;
+                s = s with
+                {
+                    Transformacoes =
+                    [
+                        .. s.Transformacoes,
+                        "comprador: o documento do ART não é cliente do CRM; a venda entrou com o dono atual da máquina no Protheus (VV1), que é"
+                    ]
+                };
+            }
+            else
+            {
+                motivos.Add(MotivoDePendenciaDoArt.CompradorAusente);
+                ausente = true;
+            }
+        }
+
+        if (s.Chassi is { } valido && !chassisAtivos.Contains(valido.Numero) && chassisBaixados.Contains(valido.Numero))
+            motivos.Add(MotivoDePendenciaDoArt.MaquinaBaixada);
+
+        var distintos = motivos.Distinct(StringComparer.Ordinal).ToList();
+        return new DecisaoDoRegistro(s, distintos.Count == 0 ? compradorId : null, peloProtheus, distintos, ausente);
+    }
 
     /// <summary>Executa a carga.</summary>
     /// <param name="simular">Desfaz tudo ao final.</param>
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<RelatorioDaCargaDoArt>> ExecutarAsync(bool simular, CancellationToken ct)
     {
-        relatar("Lendo a view de vendas do ART (sessão somente leitura)…");
-        var lidos = await art.LerVendasAsync(ct);
-        if (!lidos.EhSucesso) return Resultado<RelatorioDaCargaDoArt>.Indisponivel(lidos.Erro!);
+        var lidas = await LerESanearAsync(ct);
+        if (!lidas.EhSucesso) return Resultado<RelatorioDaCargaDoArt>.Indisponivel(lidas.Erro!);
 
-        var vendas = lidos.Valor.Select(SaneamentoDoArt.Sanear).ToList();
-
-        var codigoRepetido = vendas.GroupBy(v => v.Codigo, StringComparer.Ordinal).FirstOrDefault(g => g.Count() > 1);
-        if (codigoRepetido is not null)
-            return Resultado<RelatorioDaCargaDoArt>.Indisponivel(
-                "A view do ART devolveu o mesmo código de venda em mais de uma linha; sem identificador único a " +
-                "recarga duplicaria. Nada foi gravado.");
-
-        ContarLeitura(vendas);
-
-        var (donos, cadastros, protheusLido) = await LerProtheusAsync(vendas, ct);
+        var (vendas, parque, cadastros, protheusLido) = lidas.Valor;
 
         var agora = DateTime.UtcNow;
         await using var banco = abrirContexto();
@@ -185,44 +283,30 @@ internal sealed class CargaDoArt(
         var importaveis = new List<Importavel>();
         var pendentesPorMotivo = new Dictionary<string, int>(StringComparer.Ordinal);
         var semCompradorNoCrm = new List<(VendaDoArtSaneada Venda, int? EmpresaId)>();
+        var resolvidosPeloProtheus = new HashSet<string>(StringComparer.Ordinal);
         var vistos = new HashSet<string>(StringComparer.Ordinal);
-        int registrosNovos = 0, registrosAlterados = 0, registrosIguais = 0, importadasQueFicaramPendentes = 0;
+        var ativos = ativosPorChassi.Keys.ToHashSet(StringComparer.Ordinal);
+        int registrosNovos = 0, registrosAlterados = 0, registrosIguais = 0, importadasQueFicaramPendentes = 0, compradoresPeloProtheus = 0;
 
-        foreach (var s in vendas.OrderByDescending(v => v.VendidaEm).ThenByDescending(v => long.TryParse(v.Codigo, out var n) ? n : 0))
+        foreach (var lida in vendas.OrderByDescending(v => v.VendidaEm).ThenByDescending(v => long.TryParse(v.Codigo, out var n) ? n : 0))
         {
-            vistos.Add(s.Codigo);
-            var motivos = new List<string>(s.Motivos);
+            vistos.Add(lida.Codigo);
 
-            int? empresaId = s.Unidade is { } u && unidadePorTexto.TryGetValue(u, out var cu) && cu.EhUtilizavel ? cu.EmpresaCorrespondenteId : null;
-            if (empresaId is null) motivos.Add(MotivoDePendenciaDoArt.UnidadeSemFilial);
-
-            int? empresaDoFaturamentoId = s.UnidadeDoFaturamento is { } uf && unidadePorTexto.TryGetValue(uf, out var cf) && cf.EhUtilizavel
+            int? empresaId = lida.Unidade is { } u && unidadePorTexto.TryGetValue(u, out var cu) && cu.EhUtilizavel ? cu.EmpresaCorrespondenteId : null;
+            int? empresaDoFaturamentoId = lida.UnidadeDoFaturamento is { } uf && unidadePorTexto.TryGetValue(uf, out var cf) && cf.EhUtilizavel
                 ? cf.EmpresaCorrespondenteId
                 : null;
 
-            long? compradorId = null;
-            if (s.Documento is { } documento)
-            {
-                if (!clientesPorDocumento.TryGetValue(documento.Numero, out var candidatos))
-                {
-                    motivos.Add(MotivoDePendenciaDoArt.CompradorAusente);
-                    semCompradorNoCrm.Add((s, empresaId));
-                }
-                else if (candidatos.Count == 1)
-                {
-                    compradorId = candidatos[0].Id;
-                }
-                else
-                {
-                    // O MESMO DOCUMENTO EM MAIS DE UMA FILIAL: vale o cliente da filial da venda, quando é um só.
-                    var naFilial = candidatos.Where(c => c.EmpresaId == empresaId).ToList();
-                    if (naFilial.Count == 1) compradorId = naFilial[0].Id;
-                    else motivos.Add(MotivoDePendenciaDoArt.CompradorAmbiguo);
-                }
-            }
+            var decisao = Decidir(lida, empresaId, clientesPorDocumento, ativos, baixados, protheusLido ? parque : null, raizesDoGrupo);
+            var s = decisao.Venda;
+            var motivos = decisao.Motivos;
 
-            if (s.Chassi is { } chassiValido && !ativosPorChassi.ContainsKey(chassiValido.Numero) && baixados.Contains(chassiValido.Numero))
-                motivos.Add(MotivoDePendenciaDoArt.MaquinaBaixada);
+            if (decisao.CompradorAusente) semCompradorNoCrm.Add((s, empresaId));
+            if (decisao.CompradorPeloProtheus)
+            {
+                resolvidosPeloProtheus.Add(s.Documento!.Value.Numero);
+                compradoresPeloProtheus++;
+            }
 
             var retrato = new RetratoDoRegistroDeOrigem(
                 s.Hash, s.ChassiNaOrigem, Limitar(s.Linha, 60), Limitar(s.Produto, 60), s.Unidade, s.VendidaEm, s.TransformacoesEmTexto);
@@ -240,18 +324,19 @@ internal sealed class CargaDoArt(
             if (motivos.Count > 0)
             {
                 if (registro.VendaDeMaquinaId is not null) importadasQueFicaramPendentes++;
-                registro.Decidir(DecisaoDaIntegracao.Pendente, string.Join(",", motivos.Distinct(StringComparer.Ordinal)), null);
-                foreach (var motivo in motivos.Distinct(StringComparer.Ordinal))
+                registro.Decidir(DecisaoDaIntegracao.Pendente, string.Join(",", motivos), null);
+                foreach (var motivo in motivos)
                     pendentesPorMotivo[motivo] = pendentesPorMotivo.GetValueOrDefault(motivo) + 1;
                 continue;
             }
 
-            importaveis.Add(new Importavel(s, registro, empresaId!.Value, empresaDoFaturamentoId, compradorId!.Value));
+            importaveis.Add(new Importavel(s, registro, empresaId!.Value, empresaDoFaturamentoId, decisao.CompradorId!.Value, decisao.CompradorPeloProtheus));
         }
 
         Contar(etapaDaDecisao, "registros lidos pela primeira vez", registrosNovos);
         Contar(etapaDaDecisao, "registros já conhecidos com conteúdo alterado na origem", registrosAlterados);
         Contar(etapaDaDecisao, "registros já conhecidos sem alteração", registrosIguais);
+        Contar(etapaDaDecisao, RotuloDeCompradoresPeloProtheus, compradoresPeloProtheus);
         Contar(etapaDaDecisao, "registros importáveis (chassi válido + comprador único no CRM + filial)", importaveis.Count);
         Contar(etapaDaDecisao, RotuloDePendentes, vendas.Count - importaveis.Count);
         foreach (var (motivo, quantidade) in pendentesPorMotivo.OrderByDescending(p => p.Value))
@@ -343,7 +428,7 @@ internal sealed class CargaDoArt(
 
             if (!vendasPorChave.TryGetValue(s.Codigo, out var venda))
             {
-                venda = VendaDeMaquina.Registrar(sistemaId, s.Codigo, equipamento.Id, i.CompradorId, dados, agora, usuarioId);
+                venda = VendaDeMaquina.Registrar(sistemaId, s.Codigo, equipamento.Id, i.CompradorId, dados, agora, usuarioId, i.CompradorPeloProtheus);
                 banco.VendasDeMaquina.Add(venda);
                 vendasPorChave[s.Codigo] = venda;
                 vendasNovas++;
@@ -361,14 +446,23 @@ internal sealed class CargaDoArt(
                 venda.TrocarEquipamento(equipamento.Id, usuarioId);
             }
 
+            // QUEM ESTAVA NO LUGAR DO COMPRADOR ERA O DONO DO PROTHEUS (decisão 5): a troca não é o ART mudando de
+            // ideia — é o comprador verdadeiro que passou a existir no CRM, ou o dono no Protheus que mudou. Sem
+            // divergência; o vínculo anterior é encerrado com o motivo certo.
             if (venda.CompradorId != i.CompradorId)
             {
-                Divergir(TipoDeDivergencia.CompradorAlteradoNaOrigem, s.Codigo, i.EmpresaId, equipamento.Id, venda.Id,
-                    "O ART trocou o comprador de uma venda já importada. O vínculo do comprador anterior foi encerrado.",
-                    Cliente(venda.CompradorId), Cliente(i.CompradorId), null);
-                EncerrarVinculo(venda.Id, "O ART trocou o comprador desta venda.");
-                venda.TrocarComprador(i.CompradorId, usuarioId);
+                if (!venda.CompradorPeloDonoNoProtheus)
+                    Divergir(TipoDeDivergencia.CompradorAlteradoNaOrigem, s.Codigo, i.EmpresaId, equipamento.Id, venda.Id,
+                        "O ART trocou o comprador de uma venda já importada. O vínculo do comprador anterior foi encerrado.",
+                        Cliente(venda.CompradorId), Cliente(i.CompradorId), null);
+
+                EncerrarVinculo(venda.Id,
+                    !venda.CompradorPeloDonoNoProtheus ? "O ART trocou o comprador desta venda."
+                    : i.CompradorPeloProtheus ? "O dono atual da máquina no Protheus mudou; o comprador do ART continua fora do CRM."
+                    : "O comprador do ART passou a existir no CRM e tomou o lugar do dono atual no Protheus.");
             }
+
+            venda.TrocarComprador(i.CompradorId, usuarioId, i.CompradorPeloProtheus);
 
             var mudancas = venda.AtualizarDaOrigem(dados, agora, usuarioId);
             if (mudancas.Count == 0)
@@ -429,7 +523,8 @@ internal sealed class CargaDoArt(
         // 5. Divergências entre ART, CRM e Protheus — pela venda MAIS RECENTE de cada chassi.
         // -----------------------------------------------------------------------------------------
         const string etapaDasDivergencias = "6. Divergências (registradas para revisão, nada sobrescrito)";
-        int noProtheus = 0, donoIgualNoProtheus = 0, donoAmbiguoNoProtheus = 0;
+        int noProtheus = 0, donoAmbiguoNoProtheus = 0, compradorEraODonoNoProtheus = 0;
+        var desfechos = new Dictionary<DesfechoDaComparacaoComOArt, int>();
 
         foreach (var grupo in importaveis.GroupBy(i => i.Venda.Chassi!.Value.Numero, StringComparer.Ordinal))
         {
@@ -442,19 +537,36 @@ internal sealed class CargaDoArt(
                     "O comprador da venda mais recente no ART não é o dono registrado no CRM. O dono não foi alterado.",
                     Cliente(dono), Cliente(venda.CompradorId), null);
 
-            if (!protheusLido || !donos.TryGetValue(grupo.Key, out var donoNoProtheus)) continue;
+            if (!protheusLido) continue;
+            if (parque.Ambiguos.Contains(grupo.Key)) { donoAmbiguoNoProtheus++; continue; }
+            if (!parque.TentarAchar(grupo.Key, out var noProtheusDaMaquina)) continue;
 
             noProtheus++;
-            if (donoNoProtheus.Ambiguo) { donoAmbiguoNoProtheus++; continue; }
-            if (donoNoProtheus.Documento is not { } documentoNoProtheus) continue;
-            if (documentoNoProtheus == maisRecente.Venda.Documento!.Value.Numero) { donoIgualNoProtheus++; continue; }
 
-            var clienteNoProtheus = clientesPorDocumento.TryGetValue(documentoNoProtheus, out var doProtheus) && doProtheus.Count == 1
-                ? Cliente(doProtheus[0].Id)
-                : "documento sem cliente único no CRM";
+            // A VENDA QUE ENTROU COM O DONO DO PROTHEUS no lugar do comprador não tem o que comparar: o comprador
+            // do ART não está no CRM, e quem está na venda é o próprio dono do Protheus.
+            if (maisRecente.CompradorPeloProtheus) { compradorEraODonoNoProtheus++; continue; }
+
+            // A DECISÃO 1 DE 24/09/2026, com a data do FATURAMENTO do ART (D-P08.1).
+            var desfecho = RegrasDoParque.Comparar(
+                noProtheusDaMaquina, maisRecente.Venda.Documento!.Value.Numero,
+                maisRecente.Venda.FaturadaEm ?? maisRecente.Venda.VendidaEm, raizesDoGrupo);
+            desfechos[desfecho] = desfechos.GetValueOrDefault(desfecho) + 1;
+            if (!RegrasDoParque.RegistraDivergencia(desfecho)) continue;
+
+            var documentoNoProtheus = noProtheusDaMaquina.DocumentoDoDono!;
+            var clienteNoProtheus = desfecho == DesfechoDaComparacaoComOArt.ArtPrevalecePorqueOProtheusDizTracbel
+                ? "a própria Tracbel (raiz de CNPJ do grupo)"
+                : clientesPorDocumento.TryGetValue(documentoNoProtheus, out var doProtheus) && doProtheus.Count == 1
+                    ? Cliente(doProtheus[0].Id)
+                    : "documento sem cliente único no CRM";
 
             Divergir(TipoDeDivergencia.ProprietarioNoProtheusDiferenteDoComprador, venda.ChaveOrigem, venda.EmpresaId, equipamento.Id, venda.Id,
-                "O dono do chassi no cadastro de veículos do Protheus (VV1) não é o comprador da venda mais recente no ART.",
+                desfecho == DesfechoDaComparacaoComOArt.ArtPrevalecePorqueOProtheusDizTracbel
+                    ? "O cadastro de veículos do Protheus (VV1) diz que a dona da máquina é a própria Tracbel — a máquina voltou, " +
+                      "ou o cadastro não foi atualizado. Vale o comprador da venda mais recente no ART."
+                    : "O dono atual no cadastro de veículos do Protheus (VV1) não é o comprador da venda mais recente no ART, e o " +
+                      "Protheus não tem nota de venda nem ordem de serviço dele depois dessa venda. Vale o comprador do ART.",
                 equipamento.ClienteId is { } donoNoCrm ? Cliente(donoNoCrm) : null, Cliente(venda.CompradorId), clienteNoProtheus);
         }
 
@@ -474,6 +586,11 @@ internal sealed class CargaDoArt(
         {
             if (!DivergenciasDeEstado.Contains(tipo) || encontradas.Contains((tipo, chave))) continue;
             if (divergencia.Situacao != SituacaoDaDivergencia.Aberta) continue;
+
+            // SEM O PROTHEUS NESTA RODADA, a divergência com ele não foi procurada — não encontrá-la não quer dizer
+            // que ela deixou de existir.
+            if (tipo == TipoDeDivergencia.ProprietarioNoProtheusDiferenteDoComprador && !protheusLido) continue;
+
             divergencia.MarcarQueDeixouDeOcorrer(agora, usuarioId);
             deixaramDeOcorrer++;
         }
@@ -488,8 +605,10 @@ internal sealed class CargaDoArt(
         Contar(etapaDasDivergencias, "registros conhecidos que não vieram nesta leitura (marcados ausentes)", ausentes);
         Contar(etapaDasDivergencias, "Protheus lido nesta rodada (1 = sim)", protheusLido ? 1 : 0);
         Contar(etapaDasDivergencias, "chassis importáveis presentes no VV1 do Protheus", noProtheus);
-        Contar(etapaDasDivergencias, "  com dono igual ao comprador da venda mais recente", donoIgualNoProtheus);
-        Contar(etapaDasDivergencias, "  com dono ambíguo no Protheus (código com lojas de documentos diferentes)", donoAmbiguoNoProtheus);
+        foreach (var desfecho in Enum.GetValues<DesfechoDaComparacaoComOArt>())
+            Contar(etapaDasDivergencias, $"  dono no Protheus × comprador do ART: {desfecho}", desfechos.GetValueOrDefault(desfecho));
+        Contar(etapaDasDivergencias, "  venda que entrou com o dono do Protheus no lugar do comprador (nada a comparar)", compradorEraODonoNoProtheus);
+        Contar(etapaDasDivergencias, "chassis importáveis repetidos no Protheus com donos diferentes (ambíguos, não comparados)", donoAmbiguoNoProtheus);
 
         await banco.SaveChangesAsync(ct);
 
@@ -497,7 +616,7 @@ internal sealed class CargaDoArt(
         // 6. A fila dos compradores ausentes do CRM — nenhum cliente é criado.
         // -----------------------------------------------------------------------------------------
         await AtualizarFilaDeCompradoresAsync(banco, sistemaId, semCompradorNoCrm, clientesPorDocumento.Keys.ToHashSet(StringComparer.Ordinal),
-            cadastros, protheusLido, agora, ct);
+            resolvidosPeloProtheus, cadastros, protheusLido, agora, ct);
 
         await banco.SaveChangesAsync(ct);
 
@@ -540,23 +659,194 @@ internal sealed class CargaDoArt(
             Contar(etapa, $"gestão da venda (preservada como veio): {gestao.Key}", gestao.Count());
     }
 
-    private async Task<(IReadOnlyDictionary<string, DonoNoProtheus>, IReadOnlyDictionary<string, CadastroNoProtheus>, bool)> LerProtheusAsync(
-        List<VendaDoArtSaneada> vendas, CancellationToken ct)
+    /// <summary>
+    /// A LEITURA DE UMA RODADA: o ART saneado, o Protheus e a confirmação dos chassis curtos — o que a carga e a
+    /// projeção têm em comum, antes de qualquer decisão.
+    /// </summary>
+    private async Task<Resultado<(List<VendaDoArtSaneada> Vendas, ParqueNoProtheus Parque, IReadOnlyDictionary<string, CadastroNoProtheus> Cadastros, bool ProtheusLido)>>
+        LerESanearAsync(CancellationToken ct)
     {
-        if (protheus is null)
+        relatar("Lendo a view de vendas do ART (sessão somente leitura)…");
+        var lidos = await lerArt(ct);
+        if (!lidos.EhSucesso)
+            return Resultado<(List<VendaDoArtSaneada>, ParqueNoProtheus, IReadOnlyDictionary<string, CadastroNoProtheus>, bool)>.Indisponivel(lidos.Erro!);
+
+        var vendas = lidos.Valor.Select(SaneamentoDoArt.Sanear).ToList();
+
+        var codigoRepetido = vendas.GroupBy(v => v.Codigo, StringComparer.Ordinal).FirstOrDefault(g => g.Count() > 1);
+        if (codigoRepetido is not null)
+            return Resultado<(List<VendaDoArtSaneada>, ParqueNoProtheus, IReadOnlyDictionary<string, CadastroNoProtheus>, bool)>.Indisponivel(
+                "A view do ART devolveu o mesmo código de venda em mais de uma linha; sem identificador único a " +
+                "recarga duplicaria. Nada foi gravado.");
+
+        var parque = new ParqueNoProtheus([]);
+        IReadOnlyDictionary<string, CadastroNoProtheus> cadastros = new Dictionary<string, CadastroNoProtheus>();
+        var protheusLido = false;
+
+        if (lerProtheus is null)
         {
-            _observacoes.Add("Protheus não configurado: a divergência de dono no VV1 e a completude do cadastro (SA1) não foram conferidas.");
-            return (new Dictionary<string, DonoNoProtheus>(), new Dictionary<string, CadastroNoProtheus>(), false);
+            _observacoes.Add("Protheus não configurado: o dono no cadastro de veículos (VV1), os chassis curtos e a completude do " +
+                             "cadastro (SA1) não foram conferidos.");
+        }
+        else
+        {
+            relatar("Lendo o parque com o dono atual (VV1010) e o cadastro dos compradores (SA1010) no Protheus — somente leitura…");
+            var documentos = vendas.Where(v => v.Documento is not null).Select(v => v.Documento!.Value.Numero).ToHashSet(StringComparer.Ordinal);
+            var lido = await lerProtheus(documentos, ct);
+
+            if (lido.EhSucesso)
+            {
+                (parque, cadastros, protheusLido) = (lido.Valor.Parque, lido.Valor.Cadastros, true);
+                vendas = [.. vendas.Select(v => SaneamentoDoArt.ConfirmarIdentificadorCurto(v, parque))];
+            }
+            else
+            {
+                _observacoes.Add("Protheus não lido nesta rodada: " + lido.Erro);
+            }
         }
 
-        relatar("Lendo o dono dos chassis (VV1010) e o cadastro dos compradores (SA1010) no Protheus — somente leitura…");
-        var documentos = vendas.Where(v => v.Documento is not null).Select(v => v.Documento!.Value.Numero).ToHashSet(StringComparer.Ordinal);
-        var lido = await protheus.LerAsync(documentos, ct);
+        ContarLeitura(vendas);
+        Contar("1. Leitura do ART", RotuloDeSeriesConfirmadas, vendas.Count(v => v.SituacaoDoChassi == SituacaoDoChassiNaOrigem.ConfirmadoPeloProtheus));
+        Contar("1. Leitura do ART", "identificador curto que é COMPONENTE no Protheus (continua pendente)",
+            vendas.Count(v => v.Motivos.Contains(MotivoDePendenciaDoArt.IdentificadorDeComponente)));
 
-        if (lido.EhSucesso) return (lido.Valor.Donos, lido.Valor.Cadastros, true);
+        return Resultado<(List<VendaDoArtSaneada>, ParqueNoProtheus, IReadOnlyDictionary<string, CadastroNoProtheus>, bool)>.Ok(
+            (vendas, parque, cadastros, protheusLido));
+    }
 
-        _observacoes.Add("Protheus não lido nesta rodada: " + lido.Erro);
-        return (new Dictionary<string, DonoNoProtheus>(), new Dictionary<string, CadastroNoProtheus>(), false);
+    /// <summary>
+    /// A PROJEÇÃO — o que o próximo ciclo decidiria, registro a registro, SEM ABRIR TRANSAÇÃO NENHUMA. É a que roda da
+    /// estação contra o banco de produção, que daqui só se lê (<c>--somente-art --projetar</c>).
+    ///
+    /// <para><b>A decisão é a MESMA da carga</b> (<see cref="Decidir"/>). O que a projeção refaz em leitura é só a
+    /// filial da unidade: a correspondência revisada por pessoa vale como está, e a outra é reavaliada pela regra —
+    /// exatamente o que a carga faz ao gravar. O "antes" é o que <c>integracao.RegistroDeOrigem</c> tem hoje.</para>
+    /// </summary>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<RelatorioDaCargaDoArt>> ProjetarAsync(CancellationToken ct)
+    {
+        var lidas = await LerESanearAsync(ct);
+        if (!lidas.EhSucesso) return Resultado<RelatorioDaCargaDoArt>.Indisponivel(lidas.Erro!);
+
+        var (vendas, parque, _, protheusLido) = lidas.Valor;
+
+        await using var banco = abrirContexto();
+
+        var sistemaId = await banco.Sistemas.AsNoTracking()
+            .Where(s => s.Codigo == LeitorDoArt.CodigoDoSistema).Select(s => (int?)s.Id).FirstOrDefaultAsync(ct);
+
+        var filiais = await banco.Empresas.AsNoTracking().Select(e => new FilialDoCrm(e.Id, e.Codigo, e.Nome, e.EstaAtiva)).ToListAsync(ct);
+        var revisadas = sistemaId is null
+            ? []
+            : await banco.CorrespondenciasDaOrigem.AsNoTracking()
+                .Where(c => c.SistemaId == sistemaId && c.Tipo == TipoDeCorrespondencia.Unidade && c.RevisadaEm != null)
+                .ToDictionaryAsync(c => c.CodigoNaOrigem, StringComparer.Ordinal, ct);
+
+        int? Filial(string? texto)
+        {
+            if (texto is null) return null;
+            if (revisadas.TryGetValue(ClassificacaoDoArt.Codificar(texto), out var revisada))
+                return revisada.EhUtilizavel ? revisada.EmpresaCorrespondenteId : null;
+
+            var avaliacao = ClassificacaoDoArt.ClassificarUnidade(texto, filiais);
+            return avaliacao.Situacao == SituacaoDaCorrespondencia.CorrespondenciaExata
+                ? int.Parse(avaliacao.Destino!, CultureInfo.InvariantCulture)
+                : null;
+        }
+
+        var clientesPorDocumento = (await banco.Clientes.AsNoTracking()
+                .Where(c => c.ExcluidoEm == null && c.Documento != null)
+                .Select(c => new { c.Id, c.EmpresaId, c.Documento })
+                .ToListAsync(ct))
+            .GroupBy(c => c.Documento!.Value.Numero, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Select(c => (c.Id, c.EmpresaId)).ToList(), StringComparer.Ordinal);
+
+        var maquinas = await banco.Equipamentos.AsNoTracking().Select(e => new { e.Chassi, e.ExcluidoEm }).ToListAsync(ct);
+        var ativos = maquinas.Where(m => m.ExcluidoEm == null).Select(m => m.Chassi.Numero).ToHashSet(StringComparer.Ordinal);
+        var baixados = maquinas.Where(m => m.ExcluidoEm != null).Select(m => m.Chassi.Numero).ToHashSet(StringComparer.Ordinal);
+
+        var antes = sistemaId is null
+            ? []
+            : await banco.RegistrosDeOrigem.AsNoTracking()
+                .Where(r => r.SistemaId == sistemaId && r.Fluxo == Fluxo)
+                .ToDictionaryAsync(r => r.ChaveOrigem, r => (r.Decisao, r.Motivos), StringComparer.Ordinal, ct);
+
+        const string etapaDoAntes = "2. Hoje no CRM (integracao.RegistroDeOrigem)";
+        var pendentesHoje = antes.Values.Where(r => r.Decisao == DecisaoDaIntegracao.Pendente).ToList();
+        Contar(etapaDoAntes, "registros pendentes hoje", pendentesHoje.Count);
+        foreach (var motivo in pendentesHoje.SelectMany(r => (r.Motivos ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries))
+                     .GroupBy(m => m, StringComparer.Ordinal).OrderByDescending(g => g.Count()))
+            Contar(etapaDoAntes, $"  hoje, por motivo: {motivo.Key}", motivo.Count());
+
+        const string etapaDoDepois = "3. Projeção do próximo ciclo (a mesma decisão da carga)";
+        var pendentesPorMotivo = new Dictionary<string, int>(StringComparer.Ordinal);
+        var liberadosPorRazao = new Dictionary<string, int>(StringComparer.Ordinal);
+        var importaveis = new List<(VendaDoArtSaneada Venda, long CompradorId, bool PeloProtheus)>();
+        var resolvidos = new HashSet<string>(StringComparer.Ordinal);
+        var ausentes = new HashSet<string>(StringComparer.Ordinal);
+        var liberados = 0;
+
+        foreach (var lida in vendas.OrderByDescending(v => v.VendidaEm).ThenByDescending(v => long.TryParse(v.Codigo, out var n) ? n : 0))
+        {
+            var decisao = Decidir(lida, Filial(lida.Unidade), clientesPorDocumento, ativos, baixados, protheusLido ? parque : null, raizesDoGrupo);
+            if (decisao.CompradorPeloProtheus) resolvidos.Add(decisao.Venda.Documento!.Value.Numero);
+            if (decisao.CompradorAusente) ausentes.Add(decisao.Venda.Documento!.Value.Numero);
+
+            if (decisao.Motivos.Count > 0)
+            {
+                foreach (var motivo in decisao.Motivos) pendentesPorMotivo[motivo] = pendentesPorMotivo.GetValueOrDefault(motivo) + 1;
+                continue;
+            }
+
+            importaveis.Add((decisao.Venda, decisao.CompradorId!.Value, decisao.CompradorPeloProtheus));
+
+            // O QUE A REGRA NOVA LIBERA: o registro que hoje está pendente e entraria no próximo ciclo, pelo motivo
+            // que o prendia.
+            if (!antes.TryGetValue(lida.Codigo, out var hoje) || hoje.Decisao != DecisaoDaIntegracao.Pendente) continue;
+            liberados++;
+            var motivosDeHoje = (hoje.Motivos ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
+            foreach (var motivo in motivosDeHoje.Order(StringComparer.Ordinal))
+                liberadosPorRazao[motivo] = liberadosPorRazao.GetValueOrDefault(motivo) + 1;
+        }
+
+        Contar(etapaDoDepois, "registros importáveis", importaveis.Count);
+        Contar(etapaDoDepois, RotuloDePendentes, vendas.Count - importaveis.Count);
+        foreach (var (motivo, quantidade) in pendentesPorMotivo.OrderByDescending(p => p.Value))
+            Contar(etapaDoDepois, $"  pendência por motivo: {motivo}", quantidade);
+        Contar(etapaDoDepois, "registros pendentes hoje que entrariam", liberados);
+        foreach (var (motivo, quantidade) in liberadosPorRazao.OrderByDescending(p => p.Value))
+            Contar(etapaDoDepois, $"  liberados que hoje estão pendentes por: {motivo}", quantidade);
+        Contar(etapaDoDepois, "  delas, com o chassi curto confirmado pelo Protheus",
+            importaveis.Count(i => i.Venda.SituacaoDoChassi == SituacaoDoChassiNaOrigem.ConfirmadoPeloProtheus && antes.GetValueOrDefault(i.Venda.Codigo).Decisao == DecisaoDaIntegracao.Pendente));
+        Contar(etapaDoDepois, "  delas, com o comprador substituído pelo dono atual no Protheus",
+            importaveis.Count(i => i.PeloProtheus && antes.GetValueOrDefault(i.Venda.Codigo).Decisao == DecisaoDaIntegracao.Pendente));
+        Contar(etapaDoDepois, RotuloDeCompradoresPeloProtheus, importaveis.Count(i => i.PeloProtheus));
+        Contar(etapaDoDepois, "máquinas novas no CRM (chassi importável que ainda não existe)",
+            importaveis.Select(i => i.Venda.Chassi!.Value.Numero).Distinct(StringComparer.Ordinal).Count(c => !ativos.Contains(c)));
+        Contar(etapaDoDepois, "compradores que sairiam da fila (resolvidos pelo dono do Protheus)", resolvidos.Count(d => !ausentes.Contains(d)));
+
+        const string etapaDasDivergencias = "4. Dono no Protheus × comprador do ART (decisão 1), pela venda mais recente de cada chassi";
+        var desfechos = new Dictionary<DesfechoDaComparacaoComOArt, int>();
+        foreach (var grupo in importaveis.GroupBy(i => i.Venda.Chassi!.Value.Numero, StringComparer.Ordinal))
+        {
+            var maisRecente = grupo.First();
+            if (!protheusLido || maisRecente.PeloProtheus || !parque.TentarAchar(grupo.Key, out var noProtheus)) continue;
+
+            var desfecho = RegrasDoParque.Comparar(
+                noProtheus, maisRecente.Venda.Documento!.Value.Numero, maisRecente.Venda.FaturadaEm ?? maisRecente.Venda.VendidaEm, raizesDoGrupo);
+            desfechos[desfecho] = desfechos.GetValueOrDefault(desfecho) + 1;
+        }
+
+        foreach (var desfecho in Enum.GetValues<DesfechoDaComparacaoComOArt>())
+            Contar(etapaDasDivergencias, desfecho.ToString(), desfechos.GetValueOrDefault(desfecho));
+        Contar(etapaDasDivergencias, "divergências que ficariam registradas (o ART prevalece)",
+            desfechos.Where(p => RegrasDoParque.RegistraDivergencia(p.Key)).Sum(p => p.Value));
+        Contar(etapaDasDivergencias, "divergências abertas hoje (ProprietarioNoProtheusDiferenteDoComprador)",
+            sistemaId is null ? 0 : await banco.DivergenciasDeIntegracao.AsNoTracking().CountAsync(
+                d => d.SistemaId == sistemaId && d.Tipo == TipoDeDivergencia.ProprietarioNoProtheusDiferenteDoComprador && d.Situacao == SituacaoDaDivergencia.Aberta, ct));
+
+        _observacoes.Add("PROJEÇÃO: só leitura — nenhuma transação foi aberta, e o banco não mudou.");
+        return Resultado<RelatorioDaCargaDoArt>.Ok(new RelatorioDaCargaDoArt(true, _contagens, [], _observacoes));
     }
 
     private async Task<(
@@ -663,6 +953,7 @@ internal sealed class CargaDoArt(
         int sistemaId,
         List<(VendaDoArtSaneada Venda, int? EmpresaId)> semCompradorNoCrm,
         HashSet<string> documentosComCliente,
+        HashSet<string> resolvidosPeloProtheus,
         IReadOnlyDictionary<string, CadastroNoProtheus> cadastros,
         bool protheusLido,
         DateTime agora,
@@ -758,11 +1049,18 @@ internal sealed class CargaDoArt(
             }
         }
 
-        foreach (var pendente in fila.Where(c => c.Situacao == SituacaoDoCompradorPendente.AguardandoCadastro && documentosComCliente.Contains(c.Documento.Numero)))
+        foreach (var pendente in fila.Where(c => c.Situacao != SituacaoDoCompradorPendente.Cadastrado && documentosComCliente.Contains(c.Documento.Numero)))
         {
             pendente.MarcarCadastrado(agora, usuarioId);
             cadastrados++;
         }
+
+        // A FILA ESVAZIA PARA QUEM O DONO DO PROTHEUS RESOLVEU (decisão 5 de 24/09/2026): todas as vendas dele entraram
+        // com o dono atual da máquina, e o cadastro dele deixou de travar venda nenhuma. Quem ainda tem venda presa
+        // continua na fila, reapurado acima.
+        var resolvidos = 0;
+        foreach (var pendente in fila.Where(c => resolvidosPeloProtheus.Contains(c.Documento.Numero) && !documentos.Contains(c.Documento.Numero)))
+            if (pendente.MarcarResolvidoPeloDonoNoProtheus(agora, usuarioId)) resolvidos++;
 
         Contar(etapa, "compradores distintos na fila nesta leitura", comNota + semNota);
         Contar(etapa, "  com nota de saída do Protheus sem cliente no CRM", comNota);
@@ -773,6 +1071,7 @@ internal sealed class CargaDoArt(
         Contar(etapa, "incluídos na fila agora", incluidos);
         Contar(etapa, "já na fila e reapurados", atualizados);
         Contar(etapa, "marcados como cadastrados (o cliente passou a existir no CRM)", cadastrados);
+        Contar(etapa, "saíram da fila: as vendas entraram com o dono atual no Protheus", resolvidos);
         Contar(etapa, "compradores sem filial em nenhuma venda (fora da fila)", semFilial);
     }
 

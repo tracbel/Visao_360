@@ -1229,3 +1229,48 @@ as vendas do ART.
 **A ordem de carga passa a ser explícita:** `--somente-clientes-protheus` **antes** de `--somente-art` e de
 `--somente-faturamento`. Não é preferência: sem cliente, o ART não casa comprador nenhum e o faturamento
 não acha dono para a nota.
+
+#### O ART com o Protheus: o antes e o depois medidos [D + M, 24/09/2026]
+
+> **Decidido pelo dono em 24/09/2026:** (1) quando o dono atual no Protheus diverge do comprador do ART, vale o
+> Protheus **com evidência** — nota de venda ou ordem de serviço dele depois do faturamento do ART, ou a mesma raiz
+> de CNPJ —; sem evidência, ou com o Protheus dizendo que a dona é a Tracbel, vale o ART e fica divergência;
+> (2) o número de série curto entra quando o Protheus o tem exatamente; (4) o VIN com I, O e Q (o `1CQ` da John
+> Deere) entra; (5) o comprador ausente do CRM dá lugar ao dono atual no Protheus quando este é cliente.
+
+O dono do chassi passou a ser o **proprietário atual** da `VV1` (`VV1_PROATU + VV1_LJPATU`, casado com a SA1 por
+código e loja) — a leitura antiga usava o cliente da última venda, vazio em 28.979 das 32.595 máquinas. A mesma
+leitura alimenta o parque de máquinas (documento 29, seção 1.5).
+
+**Projeção do próximo ciclo contra a produção** (`--somente-art --projetar`: só leitura, a mesma decisão da carga,
+nenhuma transação):
+
+| Pendências por motivo | Hoje | Depois |
+|---|---:|---:|
+| `CHASSI_INCOMPLETO` | 755 | 145 |
+| `COMPRADOR_AUSENTE_NO_CRM` | 565 | 400 |
+| `CHASSI_FORA_DO_PADRAO` | 154 | 50 |
+| `IDENTIFICADOR_DE_COMPONENTE_NO_PROTHEUS` (novo) | — | 57 |
+| `CHASSI_MULTIPLO` | 5 | 5 |
+| `CHASSI_VAZIO` | 2 | 2 |
+| **Registros pendentes** (um registro pode ter mais de um motivo) | **1.335** | **632** |
+
+**Entram 703 registros hoje pendentes:** 464 pelo número de série confirmado no Protheus (553 séries confirmadas
+no total; as outras seguem presas por outro motivo), 165 pelo comprador substituído pelo dono atual no Protheus e
+86 pelo VIN com `1CQ`. Viram **703 máquinas novas** no CRM, e **26 compradores** saem da fila por completo — os
+outros continuam nela porque ainda têm venda presa. Os 57 identificadores que o Protheus tem como **componente**
+(agricultura de precisão, motor, capota, kit) não viram máquina: ganharam motivo próprio em vez de "incompleto".
+
+**O que o dado desmentiu, e vale reler antes de mexer nesta regra.** A expectativa registrada antes da medição era a
+contrária: que o Protheus resolveria sobretudo os `CHASSI_FORA_DO_PADRAO` (chassi certo, grafia diferente) e pouco
+dos `CHASSI_INCOMPLETO` (campo truncado na origem). Aconteceu o oposto: dos 703 que entram, **464 são "incompletos"**
+— porque o número curto do ART não estava truncado, era o identificador verdadeiro de implemento e componente, e o
+Protheus confirma que ele existe. Já os "fora do padrão" entram pela regra do `1CQ`, não pela `VV1`.
+
+**A divergência de dono, pela decisão 1**, na venda mais recente de cada chassi importável: 2.953 com o mesmo
+dono, 140 da mesma empresa (raiz de CNPJ), 220 com evidência do dono do Protheus depois da venda, 15 sem
+evidência e 54 com o Protheus dizendo Tracbel. **Ficam registradas 69 divergências** (as duas últimas), no lugar
+das 23 abertas hoje; as divergências antigas que a regra agora explica deixam de ocorrer sozinhas na rodada.
+
+**Nenhuma chave de máquina muda com a regra nova do chassi**: as 2.854 máquinas do CRM se normalizam em si mesmas
+(conferido na simulação do parque) — o VIN aceito antes é aceito igual, e a recarga não duplica máquina.

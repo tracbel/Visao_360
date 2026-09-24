@@ -1,5 +1,9 @@
 # O banco do servidor, a tela sem dados e o caminho dos dados até lá
 
+> **Versão 1.7 · 24/09/2026 — o parque pelo proprietário atual do Protheus:** a rotina `PARQUE_PROTHEUS` lê o
+> cadastro de veículos (`VV1`) com o dono atual e a evidência dele, e o ciclo do ART passa a aceitar o número de
+> série confirmado, o VIN com `1CQ` e o dono do Protheus no lugar do comprador ausente. Em **§13**.
+>
 > **Versão 1.6 · 14/09/2026 — o ambiente real da VM:** levantamento só de leitura, feito no próprio servidor.
 > O servidor é uma VM OpenStack com Windows Server 2022 Datacenter, **membro do domínio**. A VM não expõe as
 > extensões de virtualização, e por isso não roda WSL 2 nem contêiner Linux. Há um Docker Engine do Windows
@@ -1053,3 +1057,101 @@ Pontos encontrados. Todos dependem de decisão de quem administra a VM, e **nenh
 | Docker Engine em execução sem uso | serviço `docker` automático, 62 MB, 0 contêineres | consumo pequeno; parar ou manter cabe ao dono da VM, porque pode ser de outro projeto |
 | Docker Desktop, WSL e Hyper-V instalados sem poder funcionar | evento 41 do hypervisor em todo boot | ruído no log e componentes para atualizar sem uso |
 | A API não reinicia em falha sem queda | `NONCRASH_FAILURES: FALSE` | menor; o serviço de integração já tem essa opção ligada |
+
+---
+
+## 13. O parque pelo proprietário atual do Protheus (24/09/2026) [medido]
+
+### 13.1 O que mudou, e por quê
+
+Até aqui a máquina entrava no CRM por uma venda do ART, e o dono dela ficava "não confirmado" — quem comprou em
+2024 não prova quem tem a máquina hoje. Quem sabe quem tem a máquina hoje é o **cadastro de veículos do Protheus**:
+o `VV1_PROATU + VV1_LJPATU` é o dono que a oficina mantém. As decisões do dono de 24/09/2026:
+
+| # | Decisão | Onde ficou |
+|---|---|---|
+| 1 | Protheus × ART: vale o Protheus com evidência (nota ou ordem de serviço **dele** depois do faturamento do ART, ou a mesma raiz de CNPJ); sem evidência, ou com o Protheus dizendo Tracbel, vale o ART e fica divergência. O comprador do ART fica sempre como histórico | `RegrasDoParque.Comparar`, usado pelo parque e pelo ciclo do ART |
+| 2 | Número de série curto (não VIN) é identidade quando o Protheus o tem exatamente | `Chassi.TentarCriarIdentificadorConfirmado`, `SaneamentoDoArt.ConfirmarIdentificadorCurto` |
+| 3 | Carregar toda máquina do Protheus cujo dono atual é cliente do CRM, com a evidência do dono | `CargaDoParqueDoProtheus`, vínculo `ProprietarioAtual` com `Evidencia` |
+| 4 | VIN de 17 letras e números, inclusive I, O e Q (o `1CQ` da John Deere) | `Chassi.TentarCriar` |
+| 5 | Comprador ausente do CRM dá lugar ao dono atual no Protheus, quando este é cliente | `CargaDoArt.Decidir`; a venda guarda `CompradorPeloDonoNoProtheus` |
+
+**Uma leitura só da VV1** (`LeitorDoParqueDoProtheus`): a conferência do ART deixou de ler `VV1_CLIULV` (o
+cliente da última venda, vazio em 28.979 máquinas) e usa a mesma leitura do parque.
+
+### 13.2 O modelo
+
+- `frota.Equipamento`: a máquina que só o Protheus tem nasce com **origem `Protheus`**, "proprietário não
+  confirmado", sem cliente, com modelo **só por código idêntico** do catálogo e com os anos de `VV1_FABMOD`
+  (`CK_Equipamento_ModeloPendente` passou a aceitar a origem Protheus sem modelo). O chassi pode ser o
+  identificador curto confirmado; a coluna guarda o que foi confirmado, e a leitura o restaura.
+- `frota.VinculoDeClienteComEquipamento`: natureza nova **`ProprietarioAtual`**, com a coluna **`Evidencia`**
+  (`NotaDeVenda`, `OrdemDeServico`, `CadastroAntigo`, `VendaNoArt`) e a data dela em `ReferenciaEm`. Um vigente por
+  máquina (índice único filtrado `UX_VinculoDeClienteComEquipamento_ProprietarioAtual`); quando o dono muda, o
+  anterior é **encerrado**, nunca apagado. O dono atual não aponta venda — o comprador de cada venda continua no
+  vínculo `CompradorNaVenda`.
+- `Equipamento.ClienteId` (o dono **confirmado**) só é preenchido pela sincronia quando o Protheus e o ART
+  concordam; se deixarem de concordar, a máquina volta a "não confirmado". O dono posto por uma pessoa não é tocado.
+- `frota.VendaDeMaquina.CompradorPeloDonoNoProtheus` e `integracao.CompradorPendente.Situacao =
+  ResolvidoPeloDonoNoProtheus`: a venda que entrou com o dono do Protheus, e o comprador que sai da fila sem fingir
+  cadastro.
+- Migração `ParquePeloProprietarioAtual` e a rotina `PARQUE_PROTHEUS` (Id 7, no fim da lista).
+
+### 13.3 A simulação contra a produção (só leitura)
+
+`Tracbel.Crm.Carga.exe --somente-parque-protheus --simular`, da estação, com o CRM em `ApplicationIntent=ReadOnly`
+e nenhuma transação aberta; a produção ainda sem a migração (o plano parte de nenhum dono atual vigente):
+
+| | |
+|---|---:|
+| Linhas da VV1 · sem chassi | 38.622 · 6.025 |
+| Chassis distintos · VIN · identificador curto aceito · ambíguos | 32.582 · 21.538 · 10.752 · 10 |
+| **Máquinas com dono atual cliente do CRM** | **22.285** |
+| evidência: nota de venda · ordem de serviço · só o cadastro · venda no ART | 4.141 · 6.737 · 11.320 · 87 |
+| novas · usadas | 13.308 · 8.970 |
+| John Deere · outras marcas | 20.437 · 1.848 |
+| **Clientes com máquina no parque** | **6.165** |
+| **Máquinas novas no CRM** (4.725 com número de série; 11.742 com modelo do catálogo) | **19.467** |
+| Máquinas do CRM casadas pelo chassi (modelo ou ano vazio preenchido em 2.787) | 2.818 |
+| **Donos confirmados** (Protheus = comprador do ART) | **2.439** |
+| Chaves de máquina do CRM que a regra nova do chassi reescreveria | **0** |
+
+Fora do parque, com o motivo na trilha (`integracao.RegistroDeOrigem`, fluxo `PROTHEUS.PARQUE_VV1`): 4.808
+componentes, 2.541 donos fora do CRM, 1.147 sem dono ou sem documento, 922 com a Tracbel (estoque, pedido,
+remessa…), 593 com a própria Tracbel como dona, 282 identificadores fora do padrão, 8 chassis repetidos com donos
+diferentes.
+
+Nas 2.854 máquinas que já vieram do ART, a decisão 1: 2.439 com o mesmo dono, 135 da mesma empresa, 216 com
+evidência do Protheus depois da venda (36 delas com o dono fora do CRM: ficam sem dono atual), 13 sem evidência e
+43 com o Protheus dizendo Tracbel (nas duas últimas, o dono atual é o comprador do ART), 8 sem o Protheus.
+
+O efeito no ciclo do ART (`--somente-art --projetar`, só leitura) está no documento 48, §5.5: as pendências caem
+de 1.335 para 632.
+
+### 13.4 Como ligar em produção
+
+1. **Publicar** a versão com a migração `ParquePeloProprietarioAtual` — a API aplica a migração ao subir. A rotina
+   nasce **desligada**, e a sincronia se recusa a gravar num banco sem a migração.
+2. **Conferir a conexão** "Protheus — banco (leitura)" em Configurações › Integrações (a mesma do cadastro de
+   clientes e do faturamento): configurada e testada.
+3. **Simular no servidor** — `Tracbel.Crm.Carga.exe --somente-parque-protheus --simular` — e conferir os números
+   com os de §13.3.
+4. **Ligar a rotina** "Parque de máquinas (Protheus)" (diária às 05:30, depois dos clientes às 03:30, das carteiras
+   às 04:30 e do faturamento às 05:00), ou apertar "Rodar agora". A primeira rodada grava ~19,5 mil máquinas e
+   ~22,3 mil vínculos numa transação; as seguintes só gravam o que mudou.
+5. **Raízes do grupo**: o padrão é o do faturamento (`03258870`, `09507371`). Para acrescentar uma raiz, defina
+   `ParqueProtheus__RaizesDoGrupo` no servidor (oito dígitos, separados por vírgula) — vale para o parque e para o
+   ciclo do ART.
+
+### 13.5 O que depende de decisão
+
+- **A raiz `47597271`** tem "TRACBEL" no nome e é dona de 11 máquinas, mas não está na lista do grupo do
+  faturamento: é do grupo? Se for, entra em `ParqueProtheus__RaizesDoGrupo`.
+- **A fábrica (`89674782`, John Deere) é dona de 127 máquinas** no Protheus; hoje ela não é tratada como a Tracbel.
+  Se for cliente do CRM, essas máquinas entram no parque dela.
+- **Outros grupos que parecem componente**: só `AP`, `MOT`, `CAPOTA` e `KIT` ficam fora, como decidido. `ATIV`
+  (ativação), `CAB`/`CABINE`, `ACESSO`, `CARREG` (kit pá carregadeira), `RECEPT` e `PN` (pneus) entram como
+  máquina hoje — pedem um olhar.
+- **A tela**: o dono atual e a evidência estão gravados no vínculo; a Visão 360 ainda lista as máquinas pelo
+  comprador na venda e pelo dono confirmado. Mostrar o parque pelo dono atual, com o filtro de evidência, é o
+  passo seguinte.

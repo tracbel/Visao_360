@@ -75,6 +75,14 @@ public sealed class VendaDeMaquina : EntidadeBase
     /// <summary>O cliente comprador NESTA venda. Não é o dono atual da máquina.</summary>
     public long CompradorId { get; private set; }
 
+    /// <summary>
+    /// Verdadeiro quando o comprador da origem NÃO é cliente do CRM e a venda entrou com o dono atual da máquina no
+    /// Protheus no lugar dele (decisão 5 de 24/09/2026). É o que impede duas conclusões falsas: que o ART trocou o
+    /// comprador, quando o comprador verdadeiro passa a existir no CRM; e que o ART e o Protheus concordam sobre o
+    /// dono, quando quem está no lugar do comprador é o próprio dono do Protheus.
+    /// </summary>
+    public bool CompradorPeloDonoNoProtheus { get; private set; }
+
     /// <summary>O sistema de onde a venda veio.</summary>
     public int SistemaId { get; private set; }
 
@@ -149,6 +157,8 @@ public sealed class VendaDeMaquina : EntidadeBase
     /// <param name="dados">O conteúdo saneado.</param>
     /// <param name="importadaEm">O instante da importação.</param>
     /// <param name="criadoPorId">Quem roda a integração.</param>
+    /// <param name="compradorPeloDonoNoProtheus">Se o comprador é o dono atual no Protheus no lugar do comprador da
+    /// origem, que não é cliente do CRM.</param>
     public static VendaDeMaquina Registrar(
         int sistemaId,
         string chaveOrigem,
@@ -156,7 +166,8 @@ public sealed class VendaDeMaquina : EntidadeBase
         long compradorId,
         DadosDaVendaNaOrigem dados,
         DateTime importadaEm,
-        long criadoPorId)
+        long criadoPorId,
+        bool compradorPeloDonoNoProtheus = false)
     {
         if (string.IsNullOrWhiteSpace(chaveOrigem))
             throw new RegraDeNegocioViolada("Venda de origem sem identificador não é rastreável.");
@@ -167,6 +178,7 @@ public sealed class VendaDeMaquina : EntidadeBase
             ChaveOrigem = chaveOrigem.Trim(),
             EquipamentoId = equipamentoId,
             CompradorId = compradorId,
+            CompradorPeloDonoNoProtheus = compradorPeloDonoNoProtheus,
             ImportadaEm = importadaEm,
             CriadoPorId = criadoPorId
         };
@@ -209,13 +221,18 @@ public sealed class VendaDeMaquina : EntidadeBase
         MarcarAlteracao(usuarioId);
     }
 
-    /// <summary>Aponta a venda para outro comprador, quando a origem corrige o documento.</summary>
+    /// <summary>
+    /// Aponta a venda para outro comprador, quando a origem corrige o documento — ou quando o comprador da origem
+    /// passa a existir no CRM e toma o lugar do dono do Protheus.
+    /// </summary>
     /// <param name="compradorId">O comprador certo.</param>
     /// <param name="usuarioId">Quem roda a integração.</param>
-    public void TrocarComprador(long compradorId, long usuarioId)
+    /// <param name="peloDonoNoProtheus">Se o comprador é o dono atual no Protheus no lugar do da origem.</param>
+    public void TrocarComprador(long compradorId, long usuarioId, bool peloDonoNoProtheus = false)
     {
-        if (CompradorId == compradorId) return;
+        if (CompradorId == compradorId && CompradorPeloDonoNoProtheus == peloDonoNoProtheus) return;
         CompradorId = compradorId;
+        CompradorPeloDonoNoProtheus = peloDonoNoProtheus;
         MarcarAlteracao(usuarioId);
     }
 
@@ -273,7 +290,39 @@ public enum NaturezaDoVinculoComEquipamento
     /// <summary>
     /// O cliente comprou a máquina NUMA venda, naquela data. Não prova que ele é o dono hoje.
     /// </summary>
-    CompradorNaVenda = 0
+    CompradorNaVenda = 0,
+
+    /// <summary>
+    /// O cliente é o DONO ATUAL da máquina, segundo a sincronia do parque (decisão de 24/09/2026): o proprietário
+    /// atual no cadastro de veículos do Protheus, ou o comprador do ART quando ele prevalece. Um só vigente por
+    /// máquina; quando o dono muda, o anterior é encerrado — nunca apagado — e fica como histórico.
+    /// </summary>
+    ProprietarioAtual = 1
+}
+
+/// <summary>
+/// O QUE SUSTENTA O DONO ATUAL — gravado no vínculo, para a tela filtrar e mostrar com que firmeza o CRM afirma quem
+/// tem a máquina (decisão de 24/09/2026).
+/// </summary>
+public enum EvidenciaDoProprietario
+{
+    /// <summary>A nota de venda válida mais recente da máquina no Protheus é para este cliente.</summary>
+    NotaDeVenda = 0,
+
+    /// <summary>Sem nota de venda para ele, mas a ordem de serviço mais recente da oficina é dele.</summary>
+    OrdemDeServico = 1,
+
+    /// <summary>
+    /// Só o cadastro: nem nota de venda nem ordem de serviço apontam para ele — o dono veio de uma carga antiga do
+    /// Protheus e ninguém o confirmou depois.
+    /// </summary>
+    CadastroAntigo = 2,
+
+    /// <summary>
+    /// A venda no ART: o comprador do ART prevaleceu sobre o Protheus (sem evidência posterior, ou com o Protheus
+    /// apontando a própria Tracbel), ou o Protheus não tem a máquina.
+    /// </summary>
+    VendaNoArt = 3
 }
 
 /// <summary>
@@ -283,6 +332,10 @@ public enum NaturezaDoVinculoComEquipamento
 /// afirmação só. Uma máquina revendida teve dois compradores em datas diferentes, e o ART não diz
 /// quem a tem hoje. O vínculo registra cada afirmação com a sua natureza, e a posse continua sendo
 /// decisão de quem confirma.</para>
+///
+/// <para><b>Quem tem a máquina hoje</b> é o vínculo <see cref="NaturezaDoVinculoComEquipamento.ProprietarioAtual"/>,
+/// um só vigente por máquina, com a evidência que o sustenta (decisão de 24/09/2026). Ele não substitui o comprador de
+/// cada venda: os dois convivem, e o comprador fica como histórico.</para>
 /// </summary>
 public sealed class VinculoDeClienteComEquipamento : EntidadeBase
 {
@@ -306,8 +359,13 @@ public sealed class VinculoDeClienteComEquipamento : EntidadeBase
     /// <summary>O sistema de onde a afirmação veio. Nulo é afirmação feita no CRM.</summary>
     public int? SistemaId { get; private set; }
 
-    /// <summary>A data de referência — a data da venda, para o comprador.</summary>
+    /// <summary>
+    /// A data de referência — a data da venda, para o comprador; a data da evidência mais recente, para o dono atual.
+    /// </summary>
     public DateOnly? ReferenciaEm { get; private set; }
+
+    /// <summary>O que sustenta o dono atual. Nulo no vínculo de comprador — lá quem sustenta é a venda.</summary>
+    public EvidenciaDoProprietario? Evidencia { get; private set; }
 
     /// <summary>Quando a ligação deixou de valer (UTC). Nula enquanto vale.</summary>
     public DateTime? EncerradoEm { get; private set; }
@@ -341,6 +399,61 @@ public sealed class VinculoDeClienteComEquipamento : EntidadeBase
         ReferenciaEm = vendidaEm,
         CriadoPorId = criadoPorId
     };
+
+    /// <summary>
+    /// Registra o DONO ATUAL de uma máquina — a afirmação da sincronia do parque, com a evidência e a data dela. Não
+    /// aponta venda: o comprador de cada venda continua no vínculo dele.
+    /// </summary>
+    /// <param name="empresaId">A filial do cliente — a fronteira de acesso.</param>
+    /// <param name="clienteId">O dono atual.</param>
+    /// <param name="equipamentoId">A máquina.</param>
+    /// <param name="sistemaId">O sistema que sustenta a afirmação (o Protheus, ou o ART quando ele prevalece).</param>
+    /// <param name="referenciaEm">A data da evidência mais recente.</param>
+    /// <param name="evidencia">O que sustenta a afirmação.</param>
+    /// <param name="criadoPorId">Quem roda a sincronia.</param>
+    public static VinculoDeClienteComEquipamento RegistrarProprietarioAtual(
+        int empresaId,
+        long clienteId,
+        long equipamentoId,
+        int sistemaId,
+        DateOnly? referenciaEm,
+        EvidenciaDoProprietario evidencia,
+        long criadoPorId) => new()
+    {
+        EmpresaId = empresaId,
+        ClienteId = clienteId,
+        EquipamentoId = equipamentoId,
+        Natureza = NaturezaDoVinculoComEquipamento.ProprietarioAtual,
+        SistemaId = sistemaId,
+        ReferenciaEm = referenciaEm,
+        Evidencia = evidencia,
+        CriadoPorId = criadoPorId
+    };
+
+    /// <summary>
+    /// Acompanha a evidência, a data, o sistema e a filial do dono atual quando a origem os muda — o dono é o
+    /// mesmo. Nada muda quando tudo é igual, e é isso que deixa a trilha limpa numa rodada sem novidade.
+    /// </summary>
+    /// <param name="empresaId">A filial do cliente.</param>
+    /// <param name="sistemaId">O sistema que sustenta a afirmação.</param>
+    /// <param name="referenciaEm">A data da evidência mais recente.</param>
+    /// <param name="evidencia">O que sustenta a afirmação.</param>
+    /// <param name="usuarioId">Quem roda a sincronia.</param>
+    /// <returns>Verdadeiro quando algo mudou.</returns>
+    public bool AcompanharProprietario(int empresaId, int sistemaId, DateOnly? referenciaEm, EvidenciaDoProprietario evidencia, long usuarioId)
+    {
+        if (Natureza != NaturezaDoVinculoComEquipamento.ProprietarioAtual)
+            throw new RegraDeNegocioViolada("Só o vínculo de dono atual acompanha evidência.");
+
+        if (EmpresaId == empresaId && SistemaId == sistemaId && ReferenciaEm == referenciaEm && Evidencia == evidencia) return false;
+
+        EmpresaId = empresaId;
+        SistemaId = sistemaId;
+        ReferenciaEm = referenciaEm;
+        Evidencia = evidencia;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
 
     /// <summary>Acompanha a data e a filial da venda quando a origem as corrige.</summary>
     /// <param name="empresaId">A filial da venda.</param>

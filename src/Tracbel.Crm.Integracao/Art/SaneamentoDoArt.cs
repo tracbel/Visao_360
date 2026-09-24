@@ -2,13 +2,14 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Tracbel.Crm.Dominio.Comum;
+using Tracbel.Crm.Integracao.Protheus;
 
 namespace Tracbel.Crm.Integracao.Art;
 
 /// <summary>Em que estado o chassi chega do ART.</summary>
 public enum SituacaoDoChassiNaOrigem
 {
-    /// <summary>17 caracteres no padrão VIN — o único que entra.</summary>
+    /// <summary>17 letras e números — o VIN, que entra sozinho.</summary>
     Valido = 0,
 
     /// <summary>Campo vazio.</summary>
@@ -17,11 +18,17 @@ public enum SituacaoDoChassiNaOrigem
     /// <summary>Menos de 17 caracteres — número de série curto ou chassi cortado.</summary>
     Incompleto = 2,
 
-    /// <summary>Com I, O, Q, símbolo ou tamanho acima de 17, sem ser uma lista de chassis.</summary>
+    /// <summary>Com símbolo, ou tamanho acima de 17, sem ser uma lista de chassis.</summary>
     ForaDoPadrao = 3,
 
     /// <summary>Dois ou mais chassis válidos no mesmo campo — venda de lote.</summary>
-    Multiplo = 4
+    Multiplo = 4,
+
+    /// <summary>
+    /// Número de série curto que o cadastro de veículos do Protheus tem exatamente — a identidade confirmada
+    /// (decisão 2 de 24/09/2026). Entra como o VIN.
+    /// </summary>
+    ConfirmadoPeloProtheus = 5
 }
 
 /// <summary>Os códigos de pendência que o saneamento e a carga atribuem a um registro do ART.</summary>
@@ -30,8 +37,14 @@ public static class MotivoDePendenciaDoArt
     /// <summary>Chassi vazio.</summary>
     public const string ChassiVazio = "CHASSI_VAZIO";
 
-    /// <summary>Chassi com menos de 17 caracteres.</summary>
+    /// <summary>Chassi com menos de 17 caracteres, sem confirmação no cadastro de veículos do Protheus.</summary>
     public const string ChassiIncompleto = "CHASSI_INCOMPLETO";
+
+    /// <summary>
+    /// O identificador curto está no cadastro de veículos do Protheus, mas como COMPONENTE (agricultura de precisão,
+    /// motor, capota, kit) — não é a máquina, e não vira uma.
+    /// </summary>
+    public const string IdentificadorDeComponente = "IDENTIFICADOR_DE_COMPONENTE_NO_PROTHEUS";
 
     /// <summary>Chassi fora do padrão VIN.</summary>
     public const string ChassiForaDoPadrao = "CHASSI_FORA_DO_PADRAO";
@@ -192,7 +205,9 @@ public static class SaneamentoDoArt
 
     /// <summary>
     /// Classifica o chassi. Só espaço é removido; qualquer outro símbolo deixa o chassi fora do padrão,
-    /// porque adivinhar qual parte é o chassi seria inventar a identidade da máquina.
+    /// porque adivinhar qual parte é o chassi seria inventar a identidade da máquina. Dezessete letras e
+    /// números é VIN — inclusive com I, O e Q, como o prefixo <c>1CQ</c> da John Deere (decisão 4 de
+    /// 24/09/2026).
     /// </summary>
     /// <param name="bruto">O campo como veio.</param>
     public static (SituacaoDoChassiNaOrigem Situacao, Chassi? Chassi) ClassificarChassi(string? bruto)
@@ -216,6 +231,46 @@ public static class SaneamentoDoArt
         return semEspaco.Length < 17
             ? (SituacaoDoChassiNaOrigem.Incompleto, null)
             : (SituacaoDoChassiNaOrigem.ForaDoPadrao, null);
+    }
+
+    /// <summary>
+    /// O NÚMERO DE SÉRIE CURTO CONFIRMADO PELO PROTHEUS (decisão 2 de 24/09/2026).
+    ///
+    /// <para>Chassi com menos de 17 posições pode ser o número de série de um implemento ou de uma máquina antiga — ou
+    /// um chassi cortado. O que separa os dois é o cadastro de veículos do Protheus: quando ele tem EXATAMENTE aquele
+    /// identificador (normalizado do mesmo jeito, uma máquina só, que não é componente), o identificador é a
+    /// identidade da máquina, e o registro deixa de estar pendente por chassi. O antes e o depois medidos estão no
+    /// documento 48, seção 5.5.</para>
+    ///
+    /// <para>O que não confirma continua como estava — pendente, com o motivo. Nada é completado nem adivinhado.</para>
+    /// </summary>
+    /// <param name="venda">O registro saneado.</param>
+    /// <param name="parque">O cadastro de veículos do Protheus.</param>
+    public static VendaDoArtSaneada ConfirmarIdentificadorCurto(VendaDoArtSaneada venda, ParqueNoProtheus parque)
+    {
+        if (venda.SituacaoDoChassi != SituacaoDoChassiNaOrigem.Incompleto) return venda;
+
+        var normalizado = Chassi.Normalizar(venda.ChassiNaOrigem);
+        if (!parque.TentarAchar(normalizado, out var maquina)) return venda;
+
+        var motivos = venda.Motivos.Where(m => m != MotivoDePendenciaDoArt.ChassiIncompleto).ToList();
+
+        if (RegrasDoParque.EhComponente(maquina))
+            return venda with { Motivos = [.. motivos, MotivoDePendenciaDoArt.IdentificadorDeComponente] };
+
+        if (!Chassi.TentarCriarIdentificadorConfirmado(normalizado, out var chassi)) return venda;
+
+        return venda with
+        {
+            SituacaoDoChassi = SituacaoDoChassiNaOrigem.ConfirmadoPeloProtheus,
+            Chassi = chassi,
+            Motivos = motivos,
+            Transformacoes =
+            [
+                .. venda.Transformacoes,
+                $"chassi: número de série de {chassi.Numero.Length} posições confirmado no cadastro de veículos do Protheus (VV1)"
+            ]
+        };
     }
 
     /// <summary>

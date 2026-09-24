@@ -81,6 +81,7 @@ internal sealed class ExecutorDaSincronizacaoDoArt(
     Func<CrmDbContext> abrirContexto,
     OpcoesDoArt art,
     OpcoesDoBancoDoProtheus protheus,
+    IReadOnlySet<string> raizesDoGrupo,
     long usuarioId,
     int tentativas,
     TimeSpan esperaBase,
@@ -139,8 +140,9 @@ internal sealed class ExecutorDaSincronizacaoDoArt(
                 {
                     var carga = new CargaDoArt(
                         abrirContexto,
-                        new LeitorDoArt(Options.Create(art)),
-                        protheus.EstaConfigurada ? new LeitorDoCadastroDoProtheus(protheus) : null,
+                        new LeitorDoArt(Options.Create(art)).LerVendasAsync,
+                        protheus.EstaConfigurada ? new LeitorDoCadastroDoProtheus(protheus).LerAsync : null,
+                        raizesDoGrupo,
                         usuarioId,
                         relatar);
 

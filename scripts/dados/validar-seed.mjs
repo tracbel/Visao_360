@@ -132,12 +132,15 @@ function validarUf(valor) {
   return null;
 }
 
-/** Padrão VIN: 17 caracteres, sem I/O/Q — mesma regra de Tracbel.Crm.Dominio.Comum.Chassi. */
+/**
+ * VIN: 17 letras e números — mesma regra de Tracbel.Crm.Dominio.Comum.Chassi. I, O e Q são aceitos desde
+ * 24/09/2026: a plaqueta da John Deere usa o prefixo 1CQ.
+ */
 function validarChassi(valor) {
   if (typeof valor !== 'string') return 'chassi não é texto';
   const normalizado = valor.replace(/\s/g, '').toUpperCase();
   if (normalizado.length !== 17) return `chassi com ${normalizado.length} caracteres (esperado 17): '${valor}'`;
-  if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(normalizado)) return `chassi com caractere fora do padrão VIN (I, O, Q proibidos): '${valor}'`;
+  if (!/^[A-Z0-9]{17}$/.test(normalizado)) return `chassi com caractere fora de letras e números: '${valor}'`;
   return null;
 }
 

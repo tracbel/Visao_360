@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Integracao.Art;
+using Tracbel.Crm.Integracao.Protheus;
 using Xunit;
 
 namespace Tracbel.Crm.Integracao.Testes.Art;
@@ -30,8 +31,10 @@ public sealed class SaneamentoDoArtTestes
     [InlineData(ChassiValido, SituacaoDoChassiNaOrigem.Valido)]
     [InlineData("1abcd23efgh 456789", SituacaoDoChassiNaOrigem.Valido)]
     [InlineData("1234567", SituacaoDoChassiNaOrigem.Incompleto)]
-    [InlineData("1ABCD23EFGH45678O", SituacaoDoChassiNaOrigem.ForaDoPadrao)]
+    [InlineData("1ABCD23EFGH45678O", SituacaoDoChassiNaOrigem.Valido)]
+    [InlineData("1CQ7250PVMR123456", SituacaoDoChassiNaOrigem.Valido)]
     [InlineData("1ABCD23EFGH456789-", SituacaoDoChassiNaOrigem.ForaDoPadrao)]
+    [InlineData("1ABCD23EFGH45678-", SituacaoDoChassiNaOrigem.ForaDoPadrao)]
     [InlineData(ChassiValido + " / " + OutroChassiValido, SituacaoDoChassiNaOrigem.Multiplo)]
     [InlineData(ChassiValido + OutroChassiValido, SituacaoDoChassiNaOrigem.Multiplo)]
     public void O_chassi_so_entra_completo_e_valido(string? bruto, SituacaoDoChassiNaOrigem esperada)
@@ -41,6 +44,72 @@ public sealed class SaneamentoDoArtTestes
         situacao.Should().Be(esperada);
         (chassi is not null).Should().Be(esperada == SituacaoDoChassiNaOrigem.Valido,
             "só o chassi válido vira identidade de máquina — nenhum pedaço é adivinhado");
+    }
+
+    // =============================================================================================
+    // Chassi curto confirmado pelo Protheus (decisão 2 de 24/09/2026)
+    // =============================================================================================
+
+    [Fact]
+    public void O_chassi_curto_que_o_Protheus_tem_exatamente_vira_a_identidade_da_maquina()
+    {
+        var parque = new ParqueNoProtheus([MaquinaDoProtheus("PY6110J012345")]);
+        var venda = SaneamentoDoArt.Sanear(Registro() with { Chassis = " py6110j 012345 " });
+        venda.Motivos.Should().Contain(MotivoDePendenciaDoArt.ChassiIncompleto);
+
+        var confirmada = SaneamentoDoArt.ConfirmarIdentificadorCurto(venda, parque);
+
+        confirmada.SituacaoDoChassi.Should().Be(SituacaoDoChassiNaOrigem.ConfirmadoPeloProtheus);
+        confirmada.Chassi!.Value.Numero.Should().Be("PY6110J012345");
+        confirmada.Motivos.Should().BeEmpty();
+        confirmada.TransformacoesEmTexto.Should().Contain("confirmado no cadastro de veículos do Protheus");
+        confirmada.Hash.Should().Be(venda.Hash, "a confirmação não é conteúdo da origem: a recarga não vê mudança");
+    }
+
+    [Theory]
+    [InlineData("PY6110J01234")]   // pedaço do identificador: não é o mesmo identificador
+    [InlineData("12345678")]       // o Protheus não tem
+    public void O_chassi_curto_sem_confirmacao_exata_continua_pendente(string noArt)
+    {
+        var parque = new ParqueNoProtheus([MaquinaDoProtheus("PY6110J012345"), MaquinaDoProtheus("99999999")]);
+        var venda = SaneamentoDoArt.Sanear(Registro() with { Chassis = noArt });
+
+        var depois = SaneamentoDoArt.ConfirmarIdentificadorCurto(venda, parque);
+
+        depois.SituacaoDoChassi.Should().Be(SituacaoDoChassiNaOrigem.Incompleto);
+        depois.Chassi.Should().BeNull("nada é completado nem adivinhado");
+        depois.Motivos.Should().Contain(MotivoDePendenciaDoArt.ChassiIncompleto);
+    }
+
+    [Fact]
+    public void O_chassi_curto_repetido_no_Protheus_com_donos_diferentes_nao_confirma()
+    {
+        var parque = new ParqueNoProtheus(
+        [
+            MaquinaDoProtheus("PY6110J012345", dono: "52998224725", chave: "000001"),
+            MaquinaDoProtheus("PY6110J012345", dono: CnpjDeExemplo, chave: "000002")
+        ]);
+
+        SaneamentoDoArt.ConfirmarIdentificadorCurto(SaneamentoDoArt.Sanear(Registro() with { Chassis = "PY6110J012345" }), parque)
+            .SituacaoDoChassi.Should().Be(SituacaoDoChassiNaOrigem.Incompleto);
+    }
+
+    [Fact]
+    public void O_identificador_de_componente_no_Protheus_nao_vira_maquina_e_diz_por_que()
+    {
+        var parque = new ParqueNoProtheus([MaquinaDoProtheus("PCGU12345", grupo: "AP")]);
+
+        var depois = SaneamentoDoArt.ConfirmarIdentificadorCurto(SaneamentoDoArt.Sanear(Registro() with { Chassis = "PCGU12345" }), parque);
+
+        depois.Chassi.Should().BeNull();
+        depois.Motivos.Should().Contain(MotivoDePendenciaDoArt.IdentificadorDeComponente).And.NotContain(MotivoDePendenciaDoArt.ChassiIncompleto);
+    }
+
+    [Fact]
+    public void O_VIN_nao_passa_pela_confirmacao()
+    {
+        var venda = SaneamentoDoArt.Sanear(Registro());
+        SaneamentoDoArt.ConfirmarIdentificadorCurto(venda, new ParqueNoProtheus([])).Should().BeSameAs(venda);
     }
 
     // =============================================================================================
@@ -185,6 +254,10 @@ public sealed class SaneamentoDoArtTestes
         ClassificacaoDoArt.ClassificarUnidade("Ribeirão", filiais).Situacao
             .Should().Be(SituacaoDaCorrespondencia.PendenteDeRevisao, "começo de nome não é nome");
     }
+
+    private static MaquinaNoProtheus MaquinaDoProtheus(string chassi, string? dono = CnpjDeExemplo, string grupo = "TR 6", string chave = "000001") =>
+        new(chave, chassi, Dominio.Comum.Chassi.Normalizar(chassi), "JD", "JOHN DEERE", "6110J", "TRATOR 6110J", grupo, null, true, "1",
+            2021, 2022, dono, null, null, false, null, false);
 
     private static RegistroDoArt Registro() => new(
         Codigo: "1001",

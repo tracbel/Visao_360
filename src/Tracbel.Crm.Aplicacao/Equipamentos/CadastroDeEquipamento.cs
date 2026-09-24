@@ -209,7 +209,7 @@ public sealed class CriarEquipamento(
         if (!string.IsNullOrWhiteSpace(chassiInformado) && !Chassi.TentarCriar(chassiInformado, out chassi))
             erros.Registrar(
                 "chassi",
-                "O chassi precisa ter 17 caracteres, só letras e números, sem I, O nem Q.",
+                "O chassi precisa ter 17 caracteres, só letras e números.",
                 entrada.Chassi);
 
         var dados = await ConferenciaDeEquipamento.ConferirAsync(
