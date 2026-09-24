@@ -20,16 +20,24 @@ public sealed class RepositorioDoCatalogoDoMercado(CrmDbContext contexto) : IRep
         var produtos = await contexto.ProdutosDaPamNasCulturas.AsNoTracking().ToListAsync(ct);
         var categorias = await contexto.CategoriasDeMaquina.AsNoTracking().OrderBy(c => c.Ordem).ToListAsync(ct);
         var doSicor = await contexto.ProdutosDoSicorNasCategorias.AsNoTracking().ToListAsync(ct);
+        // O DE-PARA DA VENDA DE MÁQUINA (issue 69): é por ele que a linha do ART chega à categoria.
+        var linhas = await contexto.LinhasDeProdutoNasCategorias.AsNoTracking().ToListAsync(ct);
 
         var porCultura = produtos.ToLookup(p => p.CulturaId);
         var porCategoria = doSicor.ToLookup(p => p.CategoriaDeMaquinaId);
+        var linhasPorCategoria = linhas.ToLookup(l => l.CategoriaDeMaquinaId);
 
         return new CatalogoDoMercado(
             [.. culturas.Select(c => Montar(c, porCultura))],
             [
                 .. categorias.Select(c => new CategoriaNoCatalogo(
                     c.Codigo, c.Nome, c.Ordem, c.EstaAtiva,
-                    [.. porCategoria[c.Id].Select(p => p.CodigoProduto).Order()]))
+                    [.. porCategoria[c.Id].Select(p => p.CodigoProduto).Order()],
+                    [
+                        .. linhasPorCategoria[c.Id]
+                            .OrderBy(l => l.CodigoDaLinha, StringComparer.Ordinal)
+                            .Select(l => new LinhaDeProdutoNaCategoriaNoCatalogo(l.CodigoDaLinha, l.Descricao))
+                    ]))
             ]);
     }
 
