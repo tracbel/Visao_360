@@ -897,6 +897,9 @@ public static class RotinasDoSistema
     /// <summary>Preços, custos e crédito.</summary>
     public const string PrecosMensais = "PRECOS_MENSAIS";
 
+    /// <summary>O cadastro de clientes, da SA1 do Protheus.</summary>
+    public const string CadastroDeClientes = "CADASTRO_CLIENTES";
+
     /// <summary>O faturamento do Protheus.</summary>
     public const string Faturamento = "FATURAMENTO_PROTHEUS";
 
@@ -923,14 +926,41 @@ public static class RotinasDoSistema
             "O preço recebido (CONAB), o ATR (Socicana), o dólar PTAX, o custo de produção (CONAB) e o crédito rural (SICOR).",
             ["--somente-precos", "--somente-custos", "--somente-credito"], AgendaDaRotina.MensalEm(20, new TimeOnly(4, 0)), true,
             ["CONAB_PRECOS", "SOCICANA", "BCB_PTAX", "CONAB_CUSTOS", "BCB_SICOR"], null),
+        // O FATURAMENTO LÊ O BANCO DO PROTHEUS, e não mais a API REST (24/09/2026): a conexão que ele
+        // exige é a de banco, a mesma da carga de clientes e da conferência do ART. A descrição e as
+        // conexões moram só aqui — não estão na semente —, então a troca não pede migração.
         new(Faturamento, "Faturamento do Protheus",
-            "As notas de saída (SD2) do ano, que alimentam o faturamento, a curva ABC e os indicadores da diretoria.",
+            "As notas de venda (SD2) dos últimos três anos, lidas direto no banco do Protheus, que alimentam o faturamento, a curva ABC e os indicadores da diretoria.",
             ["--somente-faturamento"], AgendaDaRotina.DiariaAs(new TimeOnly(5, 0)), false,
-            [ConexoesDoSistema.Protheus], ConexoesDoSistema.Protheus),
+            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco),
         new(ArtVendas, "Vendas de máquina do ART",
             "As vendas de máquina do ART, conferidas com o dono do chassi no Protheus.",
             ["--somente-art"], AgendaDaRotina.ACada(60), false,
-            [ConexoesDoSistema.Art, ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.Art)
+            [ConexoesDoSistema.Art, ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.Art),
+
+        // ===========================================================================================
+        // O CADASTRO VEM ANTES DE TUDO O QUE TEM DONO — e quem diz isso é a HORA, não a posição.
+        //
+        // ELA ENTRA NO FIM DA LISTA DE PROPÓSITO. `RotinaConfiguracao` semeia com `Id = posição + 1`;
+        // inserir no meio renumeraria FATURAMENTO_PROTHEUS e ART_VENDAS, e a migração passaria a
+        // atualizar a linha errada — com `ExecucaoDeRotina` apontando para elas por chave estrangeira.
+        // Rotina nova entra sempre no fim; a ordem do dia sai da agenda.
+        //
+        // POR QUE 03h30. Medido em 24/09/2026: com o CRM sem cliente, o ART leu 4.183 vendas e
+        // importou ZERO — os 4.183 registros ficaram com `COMPRADOR_AUSENTE_NO_CRM`, 100% deles.
+        // Carregado o cadastro, o ciclo seguinte casou 2.852 sozinho. O faturamento tem o mesmo
+        // destino: sem cliente, a nota não acha dono e cai inteira em `FaturamentoSemCliente`.
+        // 03h30 deixa uma hora e meia até o faturamento das 05h00 — folga para as 38 mil linhas da
+        // SA1 e espaço no meio para a carteira.
+        //
+        // NASCE DESLIGADA, como o faturamento e o ART: ligá-la é trazer dado novo para produção, e
+        // isso é decisão de quem administra, não da migração.
+        // ===========================================================================================
+        new(CadastroDeClientes, "Cadastro de clientes (Protheus)",
+            "O cadastro de clientes da SA1 do Protheus: cliente e endereço principal, pela filial responsável " +
+            "do município. É a primeira carga do dia — sem cliente, o faturamento e o ART não acham dono.",
+            ["--somente-clientes-protheus"], AgendaDaRotina.DiariaAs(new TimeOnly(3, 30)), false,
+            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco)
     ];
 
     /// <summary>A rotina do catálogo pelo código; nula quando não existe.</summary>

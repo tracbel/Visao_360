@@ -12,7 +12,6 @@ using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao.Carga;
-using Microsoft.Extensions.DependencyInjection;
 using Tracbel.Crm.Integracao.Anp;
 using Tracbel.Crm.Integracao.Art;
 using Tracbel.Crm.Integracao.BancoCentral;
@@ -79,14 +78,15 @@ var somenteMedir = args.Contains("--somente-medir", StringComparer.Ordinal);
 var somenteCadastro = args.Contains("--somente-cadastro", StringComparer.Ordinal);
 var somenteRelacionamento = args.Contains("--somente-relacionamento", StringComparer.Ordinal);
 
-// --somente-faturamento — A ETAPA QUE NAO PRECISA DO VORTICE.
+// --somente-faturamento [--simular] — A ETAPA QUE NAO PRECISA DO VORTICE.
 //
-// O faturamento vem da SD2 do Protheus e o cliente vem do nosso proprio cadastro: o sistema de
-// origem nao entra em lugar nenhum dessa etapa. Reler o Vortice inteiro para atualizar o
-// faturamento custa horas e nao muda nada do que o Vortice traz — e o faturamento e justamente o
-// dado que muda TODO DIA, porque ha nota emitida hoje.
+// O faturamento vem da SD2 do Protheus, lida direto no banco (so SELECT), e o cliente vem do nosso
+// proprio cadastro: o sistema de origem nao entra em lugar nenhum dessa etapa. Reler o Vortice
+// inteiro para atualizar o faturamento custa horas e nao muda nada do que o Vortice traz — e o
+// faturamento e justamente o dado que muda TODO DIA, porque ha nota emitida hoje.
 //
-// E o que permite atualizar o numero da diretoria sem uma janela de migracao.
+// E o que permite atualizar o numero da diretoria sem uma janela de migracao. Com --simular, le o
+// CRM e o Protheus e imprime o que gravaria, sem abrir transacao nenhuma.
 var somenteFaturamento = args.Contains("--somente-faturamento", StringComparer.Ordinal);
 
 // --somente-territorio — O MUNICIPIO OFICIAL, A ADR, OS RESPONSAVEIS E A AREA PLANTADA (documento 32).
@@ -152,6 +152,16 @@ var somenteCredito = args.Contains("--somente-credito", StringComparer.Ordinal);
 // (só SELECT). Não lê o Vórtice. Com --simular, a carga inteira roda numa transação DESFEITA no fim:
 // os números saem, e o banco não muda.
 var somenteArt = args.Contains("--somente-art", StringComparer.Ordinal);
+
+// --somente-clientes-protheus — O CADASTRO DE CLIENTES, DA SA1 (decisão de 24/09/2026).
+//
+// Le a SA1010 do Protheus (so SELECT) e cria cliente e endereco principal. NAO le o Vortice: a
+// carga de cadastro do legado foi aposentada, e a SA1 e a fonte decidida.
+//
+// Ela vem ANTES das vendas na ordem de carga, e isso nao e preferencia: sem cliente, o ART nao
+// consegue casar comprador nenhum e as vendas ficam todas pendentes.
+var somenteClientesDoProtheus = args.Contains("--somente-clientes-protheus", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
 // =================================================================================================
@@ -177,7 +187,7 @@ var simular = args.Contains("--simular", StringComparer.Ordinal);
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
 
 var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somentePrecos && !somenteCustos && !somenteCredito
-                 && !somenteArt && !somenteMedir;
+                 && !somenteArt && !somenteClientesDoProtheus && !somenteMedir;
 
 if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
 {
@@ -225,7 +235,7 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
 if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura
-    && !somentePrecos && !somenteCustos && !somenteCredito && !somenteArt)
+    && !somentePrecos && !somenteCustos && !somenteCredito && !somenteArt && !somenteClientesDoProtheus)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -384,6 +394,49 @@ if (somenteTerritorio || somentePam || somenteEstrutura || somentePrecos || some
 // Atalho — só o ART. Sai antes da exigência da API REST do Protheus, que esta etapa não usa.
 // -------------------------------------------------------------------------------------------------
 
+// -------------------------------------------------------------------------------------------------
+// Atalho — só o cadastro de clientes, da SA1 do Protheus (decisão de 24/09/2026).
+// -------------------------------------------------------------------------------------------------
+
+if (somenteClientesDoProtheus)
+{
+    var opcoesDoBancoParaClientes = new OpcoesDoBancoDoProtheus();
+    configuracao.GetSection(OpcoesDoBancoDoProtheus.Secao).Bind(opcoesDoBancoParaClientes);
+
+    if (!opcoesDoBancoParaClientes.EstaConfigurada)
+    {
+        Console.Error.WriteLine(
+            "A carga de clientes exige ProtheusBanco__Servidor, __Banco, __Usuario e __Senha. Nada foi gravado.");
+        return 2;
+    }
+
+    Console.WriteLine(simular
+        ? "Carga de clientes (SA1 do Protheus) — SIMULAÇÃO: tudo roda numa transação desfeita no fim."
+        : "Carga de clientes (SA1 do Protheus) — gravando.");
+    Console.WriteLine();
+
+    var cargaDeClientes = new CargaDeClientesDoProtheus(
+        AbrirContexto, new LeitorDeClientesDoProtheus(opcoesDoBancoParaClientes), usuarioId, Console.WriteLine);
+
+    var resultadoDosClientes = await cargaDeClientes.ExecutarAsync(simular, CancellationToken.None);
+    if (!resultadoDosClientes.EhSucesso)
+    {
+        Console.Error.WriteLine("A CARGA DE CLIENTES PAROU: " + resultadoDosClientes.Erro);
+        return 3;
+    }
+
+    foreach (var etapa in resultadoDosClientes.Valor.Contagens.GroupBy(c => c.Etapa))
+    {
+        Console.WriteLine();
+        Console.WriteLine($"- {etapa.Key} -");
+        foreach (var (_, rotulo, valor) in etapa)
+            Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+    }
+
+    Console.WriteLine();
+    return 0;
+}
+
 if (somenteArt)
 {
     var opcoesDoArt = new OpcoesDoArt();
@@ -453,52 +506,73 @@ if (somenteArt)
     }
 }
 
-// A PONTE DO PROTHEUS. Ela lê o faturamento da ORIGEM, e não da cópia no Vórtice que parou em
-// 11/04/2025. As credenciais vêm de Protheus__Base, Protheus__Usuario e Protheus__Senha — nunca
-// de arquivo versionado. Na estação, os valores ficam no .env da raiz (TOTVS_API_*, ver
-// .env.exemplo); o publicar.ps1 ainda não os repassa ao servidor (issue [018a]).
-var opcoesDoProtheus = new OpcoesDoProtheus
-{
-    Base = configuracao["Protheus:Base"],
-    Usuario = configuracao["Protheus:Usuario"],
-    Senha = configuracao["Protheus:Senha"]
-};
+// O BANCO DO PROTHEUS, PARA O FATURAMENTO. Ele lê a SD2 da ORIGEM, direto no banco e só com SELECT,
+// e não da cópia no Vórtice que parou em 11/04/2025 — nem mais pela API REST (ver
+// LeitorDeFaturamentoDoProtheus). As credenciais são as da carga de clientes e do ART:
+// ProtheusBanco__Servidor, __Banco, __Usuario e __Senha, ou a conexão "Protheus — banco (leitura)" de
+// Configurações > Integrações, que CredenciaisDaTela já sobrepôs acima. Nunca de arquivo versionado.
+var opcoesDoBancoParaFaturamento = new OpcoesDoBancoDoProtheus();
+configuracao.GetSection(OpcoesDoBancoDoProtheus.Secao).Bind(opcoesDoBancoParaFaturamento);
 
 // O CADASTRO NÃO LÊ O PROTHEUS. Exigir a credencial dele para rodar só o cadastro impediria justamente
 // a recarga que confere os endereços (documento 32, seção 4.6) numa estação sem o Protheus configurado.
-if (!opcoesDoProtheus.EstaConfigurada && !somenteCadastro)
+if (!opcoesDoBancoParaFaturamento.EstaConfigurada && !somenteCadastro)
 {
     Console.Error.WriteLine(
-        "A carga do faturamento exige as variáveis Protheus__Base, Protheus__Usuario e " +
-        "Protheus__Senha. Sem elas o faturamento não entra — e sem faturamento a curva ABC não " +
-        "tem base, então a classe A/B/C/D do cliente não é apurada. " +
-        "Ver docs/projeto/28-PROTHEUS-ACESSO-E-TABELAS.md.");
+        "A carga do faturamento exige ProtheusBanco__Servidor, __Banco, __Usuario e __Senha — ou a " +
+        "conexão \"Protheus — banco (leitura)\" configurada em Configurações > Integrações. Sem elas o " +
+        "faturamento não entra — e sem faturamento a curva ABC não tem base, então a classe A/B/C/D do " +
+        "cliente não é apurada. Nada foi gravado.");
     return 2;
 }
 
-var colecao = new ServiceCollection();
-colecao.AddHttpClient(PonteDoProtheus.NomeDoCliente);
-var provedorDeHttp = colecao.BuildServiceProvider();
-
-var faturamentoDoProtheus = new LeitorDeFaturamentoDoProtheus(
-    new PonteDoProtheus(
-        provedorDeHttp.GetRequiredService<IHttpClientFactory>(),
-        Options.Create(opcoesDoProtheus)));
+var faturamentoDoProtheus = new CargaDeFaturamentoDoProtheus(
+    AbrirContexto, new LeitorDeFaturamentoDoProtheus(opcoesDoBancoParaFaturamento), usuarioId, Console.WriteLine);
 
 // -------------------------------------------------------------------------------------------------
 // Atalho — só o faturamento. Sai antes de medir o recorte, que é uma consulta ao legado.
 // -------------------------------------------------------------------------------------------------
 
-if (somenteFaturamento)
+if (somenteFaturamento && simular)
 {
-    Console.WriteLine("Atualizando SOMENTE o faturamento (Protheus). O sistema legado não é lido.");
+    // A SIMULAÇÃO NÃO ABRE TRANSAÇÃO NENHUMA — não é a transação desfeita das outras simulações. Ela
+    // existe para rodar da estação contra o banco de PRODUÇÃO, que daqui só se lê.
+    Console.WriteLine(
+        "Faturamento do Protheus — SIMULAÇÃO: lê o CRM e o Protheus e não grava nada; nenhuma transação é aberta.");
     Console.WriteLine();
 
-    var soFaturamento = new CargaDeProcessoDoVortice(
-        AbrirContexto, leitor, faturamentoDoProtheus, deParaDeFiliais, usuarioId, Console.WriteLine);
+    var simulacao = await faturamentoDoProtheus.SimularAsync(
+        new LeitorDeClientesDoProtheus(opcoesDoBancoParaFaturamento), CancellationToken.None);
 
-    var resultadoDoFaturamento = await soFaturamento.ExecutarSomenteFaturamentoAsync(
-        CancellationToken.None);
+    if (!simulacao.EhSucesso)
+    {
+        Console.Error.WriteLine(simulacao.Erro);
+        return 3;
+    }
+
+    CargaDeFaturamentoDoProtheus.Imprimir(simulacao.Valor, Console.WriteLine);
+    Console.WriteLine();
+    Console.WriteLine("SIMULAÇÃO: nada foi gravado.");
+    return 0;
+}
+
+if (somenteFaturamento)
+{
+    Console.WriteLine("Atualizando SOMENTE o faturamento (banco do Protheus, só leitura). O sistema legado não é lido.");
+    Console.WriteLine();
+
+    Resultado<ResumoDoFaturamento> resultadoDoFaturamento;
+    try
+    {
+        resultadoDoFaturamento = await faturamentoDoProtheus.ExecutarAsync(CancellationToken.None);
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A CARGA DO FATURAMENTO PAROU, e o bloco em curso foi desfeito: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
 
     if (!resultadoDoFaturamento.EhSucesso)
     {
