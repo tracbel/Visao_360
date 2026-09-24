@@ -365,6 +365,7 @@ export function IndicadoresGeograficos() {
             produtosDoMunicipio={produtosPriorizados}
             mostrarOsMapas={indicadores !== null && desenho !== null && !territorioNaoCarregado}
             ficha={ficha}
+            numerosDeDecisao={painel.dados?.numerosDeDecisao ?? null}
           />
         ) : (
           <AbaDeTerritorio
