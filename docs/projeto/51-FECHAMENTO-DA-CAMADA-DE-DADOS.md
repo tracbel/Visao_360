@@ -16,6 +16,8 @@ Marcação: **[M]** medido no código ou no dado; **[D]** declarado; **[P]** pro
 1. **Quatro das dez perguntas não fecham com trabalho de engenharia.** Elas dependem de **dado interno que
    não está no servidor** (#69, #70) e de **decisões que só o comercial e a diretoria tomam** (D-P01, D-P08).
    Nenhuma quantidade de código muda isso.
+   **Errata de 24/09/2026:** a **D-P08 foi decidida** — o ART é a fonte canônica das unidades (doc 48 §5.3).
+   A pergunta 6 continua vermelha, mas **por código**, e não mais por decisão.
 2. **O caminho mais curto até os quatro KPIs executivos não começa por dado — começa por um formulário.**
    O D-P01 é uma **decisão**, e a tela onde ela se registra já existe (Configurações › Comercial › Potencial
    de mercado, #71/#77). O que falta lá é uma coluna: a **categoria de máquina**, que a rota de cadastro
@@ -37,7 +39,7 @@ Registro oficial: `48-POTENCIAL-DE-MERCADO.md` §5, issue **#63**. São **catorz
 |---|---|---|---|---|
 | **D-P01** cultura × categoria/modelo × ha por máquina × anos de renovação | **PENDENTE** | café **10 ha (CRM, 3036N) × 20 ha (planilha)**; as demais culturas só na planilha; laranja perene e cana semiperene; "máquinas em geral" pede categorias além de trator | **Demanda anual** e **Mercado anual** vazios; o parque cobre só o café; cenários sem base; o teste de ouro não pode rodar | comercial, com a diretoria |
 | **D-P06** modelo de referência do termo de troca | **PENDENTE** | 5080EN a R$ 300 mil fixo (planilha); 3036N no café (CRM); "ART preço de trator" (conversa) | aba **Termo de troca** vazia | comercial |
-| **D-P08** fonte oficial das vendas Tracbel | **PENDENTE** | entregas John Deere por ano fiscal (planilha); faturamento do **Protheus** (#18/#19); pedidos da **API GN** (#12) | **Captura**, **Oportunidade** e o bloco **Performance** vazios | diretoria — é decisão de acesso |
+| **D-P08** fonte oficial das vendas Tracbel | **DECIDIDA em 24/09/2026** (doc 48 §5.3) | **o ART é a fonte canônica das unidades**; o Protheus segue como faturamento **em reais**; a API GN depois, só para o financiamento. Sobra uma sub-decisão: **qual das três datas** do ART define o período | destrava **Captura**, **Oportunidade** e **Performance** — falta a leitura de `frota.VendaDeMaquina` pelo território, não mais a decisão | decidida |
 | **D-P09** venda financiada × SICOR | **PENDENTE** | o SICOR **não identifica cliente nem revenda**; a recomendação é aceitar a comparação por município e mês como **aproximação**, nunca contrato a contrato | share do crédito | diretoria |
 | **D-P10** competência dos dados | **PENDENTE** | último ano completo de cada fonte. **[M 20/09]** o rótulo da planilha está adiantado: o que ela chama de área 2025 é a **PAM de 2024**. O banco já guarda **três anos**, então a escolha **não pede nova carga** | o ano escrito em cada número | diretoria |
 | **D-P11** fontes e licenças de preço | **RESOLVIDA, menos o CEPEA** | **[M 21/09]** a CONAB publica o preço recebido em SP como dado aberto; a Socicana é página pública sem restrição no `robots.txt`. **O CEPEA é CC BY-NC 4.0 — a cláusula NC proíbe uso comercial** | só o CEPEA fica fora da coleta | **jurídico** — deixou de ser questão técnica |
@@ -93,7 +95,7 @@ Legenda pedida: **🟩 VERDE** já existe e é confiável · **🟨 AMARELO** ex
 | 3 | **Quanto vale em R$?** (Mercado anual) | 🟥 | interno — nota do Protheus, ART ou tabela John Deere | **#70**; D-P12 | **não existe preço de máquina no modelo** — nenhuma tabela, nenhum parâmetro | decidir a fonte (D-P12) e integrar por **categoria**, com mediana mensal | **KPI Mercado anual** e a Oportunidade em R$ |
 | 4 | **Aquecido ou retraído?** (Momento) | 🟨 | CONAB + Socicana + PTAX + SICOR | #73 ✔, #74 ✔, T3.1 ✔ | **parede de calendário [M]:** o índice é **12 ÷ 12** e a CONAB está no banco **desde 09/2025** → 24 meses só em **09/2027**. Os pesos **já estão semeados** (vigência de 23/09), então o fator sai — o que falta é série | **#198** — o preço implícito da PAM é anual e municipal **desde 2010** | o fator deixa de depender de esperar dois anos |
 | 5 | **Por quê?** (composição do fator) | 🟩 | as três parcelas por cultura | #74 ✔ | nenhum. Ressalva: os pesos são "medidos no protótipo, a confirmar" e carregam **selo de estimativa** | — | aba "Composição do fator", uma linha por cultura |
-| 6 | **Quanto a Tracbel captura?** | 🟥 | interno — Protheus (#18/#19) ou API GN (#12) | **#69**; D-P08; #162 | **vendas em unidades não existem**. O CRM tem faturamento **em R$, sem modelo** | decidir a fonte (D-P08) e carregar un. por município × categoria × mês | **KPI Captura** e a aba Captura da Performance |
+| 6 | **Quanto a Tracbel captura?** | 🟥 | **ART** — `frota.VendaDeMaquina`, **D-P08 decidida em 24/09** (doc 48 §5.3) | **#69**; #162 | não é mais decisão, é **código**: nenhum repositório de território lê `frota.VendaDeMaquina`, e o serviço do ART está desligado para ajuste de dados | ler as unidades por município × categoria — o de-para `LinhaDeProduto → CategoriaDeMaquina` já existe — e escrever **até quando** o ART trouxe dado | **KPI Captura** e a aba Captura da Performance |
 | 7 | **Quanto ainda não captura?** (Oportunidade) | 🟥 | derivado | **#69**, #70, #162 | o mesmo da linha 6, mais o R$ da linha 3 | depois da #69 | **KPI Oportunidade** e a aba "Não capturado" |
 | 8 | **Onde estão os municípios com maior oportunidade?** | 🟨 | mapa de potencial | #72 ✔; #69 | o mapa **já ranqueia por potencial**; "oportunidade" = potencial − vendas, e as vendas em un. faltam | usar potencial como ranking enquanto a #69 não chega, **rotulado como potencial** | o mapa C já responde metade da pergunta hoje |
 | 9 | **Quais culturas explicam?** | 🟩 estrutura · 🟨 oportunidade | PAM + catálogo | #151/#165 ✔, #160 ✔ | a decomposição por cultura existe no parque e no fator; na **oportunidade** depende da #69 | — | "Potencial por cultura" e "Composição do fator" |
@@ -185,7 +187,7 @@ anuláveis desde a #165) e que faltam na rota e no formulário.
 | Etapa | Tipo | O que acende na tela |
 |---|---|---|
 | **#63** (pré-requisito + D-P01) | código pequeno **+ decisão do comercial** | **Demanda anual**; o parque passa a cobrir a região em vez de só o café; o teste de ouro do #171 passa a poder rodar |
-| **#69** (D-P08 + integração) | **decisão da diretoria** + dado interno | **Captura**, **Oportunidade em unidades**, e o bloco **Performance** inteiro |
+| **#69** (D-P08 ✔ decidida em 24/09) | **código** — a fonte é o ART, e o caminho dele até o CRM já existe | **Captura**, **Oportunidade em unidades**, e o bloco **Performance** inteiro |
 | **#70** (D-P12 + integração) | **decisão** + dado interno | **Mercado anual em R$**, Oportunidade em R$, aba **Termo de troca** |
 | **#162** | código | confiança **alta / média / baixa** em toda oportunidade; captura por ano civil, com o fiscal ao lado |
 | **#166** | código + as decisões que faltam | os parâmetros nulos restantes viram registráveis; **o porte ganha nome** |
