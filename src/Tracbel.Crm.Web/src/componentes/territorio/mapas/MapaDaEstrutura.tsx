@@ -1,3 +1,4 @@
+import { Tractor } from 'lucide-react';
 import { useState } from 'react';
 import { faixaDe } from '../escalas';
 import {
@@ -48,6 +49,9 @@ export function MapaDaEstrutura({
   anoDoRebanho: number | null;
 }) {
   const [recorteDaEstrutura, setRecorteDaEstrutura] = useState<RecorteDaEstrutura>('tratores');
+  const daAdr = [...ligacao.porCodigo.values()].filter((m) => m.pertenceAAdr);
+  const temPropriedades = daAdr.some((m) => m.estrutura.estabelecimentos !== null);
+  const temRebanho = daAdr.some((m) => m.estrutura.bovinos !== null);
 
   function estadoDaEstrutura(codigo: number): EstadoNoMapa {
     const m = ligacao.porCodigo.get(codigo);
@@ -100,15 +104,25 @@ export function MapaDaEstrutura({
       id="estrutura"
       ligacao={ligacao}
       titulo="Estrutura agropecuária"
-      metodologia={metodologia(anoDoCenso, anoDoRebanho)}
+      icone={Tractor}
+      // BOVINOS E USINAS SAÍRAM DO RESUMO E ABREM A DICA (maquete): o cartão
+      // mostra tratores e, embaixo, propriedades — os dois do Censo.
+      metodologia={
+        <>
+          <p>
+            {`Também no recorte: ${temRebanho ? `${nº(totais.bovinos)} bovinos` : 'rebanho sem dado (sigilo ou PPM não carregada — não é zero)'} · ` +
+              `${nº(totais.usinas)} usinas de etanol.`}
+          </p>
+          <p>{metodologia(anoDoCenso, anoDoRebanho)}</p>
+        </>
+      }
+      // SIGILO EM TODO O RECORTE NÃO É ZERO: sem nenhum município divulgado, a
+      // soma vazia diria "0 tratores". O resumo diz que o número foi ocultado.
       resumo={{
-        valor: nº(totais.tratores),
+        valor: totais.municipiosComTratores > 0 ? nº(totais.tratores) : null,
         rotulo: 'tratores',
-        meta: [
-          { valor: nº(totais.estabelecimentos), rotulo: 'propriedades' },
-          { valor: nº(totais.bovinos), rotulo: 'bovinos' },
-          { valor: nº(totais.usinas), rotulo: 'usinas' },
-        ],
+        semValor: 'tratores sob sigilo do IBGE em todo o recorte — não é zero',
+        complemento: temPropriedades ? { valor: nº(totais.estabelecimentos), rotulo: 'propriedades' } : null,
       }}
       alternador={
         <div className="terr-alternador" role="group" aria-label="Recorte da estrutura">
@@ -123,6 +137,13 @@ export function MapaDaEstrutura({
       estadoDe={estadoDaEstrutura}
       faixas={FAIXAS_DA_ESTRUTURA[recorteDaEstrutura]}
       unidade={UNIDADE_DA_ESTRUTURA[recorteDaEstrutura]}
+      semDado={{
+        rotulo: 'Sem dado',
+        explicacao:
+          recorteDaEstrutura === 'usinas'
+            ? 'município sem usina de etanol autorizada pela ANP — a que só faz açúcar não aparece nela'
+            : 'SIGILO do IBGE ou fonte não carregada',
+      }}
     />
   );
 }

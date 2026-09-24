@@ -65,33 +65,67 @@ describe('o cartão do mapa de cobertura', () => {
     expect(screen.getByRole('tooltip')).toHaveTextContent('a cadência ainda não foi confirmada');
   });
 
-  it('o resumo traz a cobertura em destaque e as três parcelas ao lado', () => {
+  it('o resumo traz a cobertura em destaque, com o denominador verdadeiro, e as três parcelas na dica', () => {
     montar();
     // Escopado ao resumo: o mesmo texto aparece no `<title>` de cada polígono do
     // SVG, que é o que o leitor de tela lê ao entrar no mapa.
     //
-    // O RESUMO DEIXOU DE SER UMA FRASE CORRIDA (fase T4.9 — maquete): a
-    // cobertura virou o número do cartão e as três parcelas viraram metadados ao
-    // lado dele. NENHUMA SAIU, e é isso que este teste protege — antes ele
-    // afirmava a pontuação da frase, que é o que menos importa aqui.
+    // O RESUMO É O NÚMERO DA MAQUETE (fidelidade às maquetes, 23/09/2026): a
+    // cobertura com o nome dela ao lado — e o nome diz o denominador de verdade,
+    // vínculos elegíveis, e não o "municípios com vínculo" da maquete.
     const texto = resumo();
     expect(texto).toMatch(/61,1%/);
-    expect(texto).toMatch(/dos vínculos elegíveis estão no prazo/);
-    expect(texto).toMatch(/18\s*elegíveis/);
-    expect(texto).toMatch(/11\s*no prazo/);
-    expect(texto).toMatch(/pendentes/);
+    expect(texto).toMatch(/dos vínculos elegíveis no prazo/);
+    expect(texto).not.toMatch(/municípios com vínculo/);
+
+    // AS TRÊS PARCELAS SAÍRAM DO CARTÃO, E NÃO DA TELA: estão na dica do título.
+    // NENHUMA SAIU, e é isso que este teste protege.
+    const gatilho = screen.getByRole('button', { name: 'Fonte e método deste mapa' });
+    fireEvent.focus(gatilho);
+    const dica = screen.getByRole('tooltip').textContent ?? '';
+    expect(dica).toMatch(/18 vínculos elegíveis/);
+    expect(dica).toMatch(/11 no prazo/);
+    expect(dica).toMatch(/7 pendentes/);
+    fireEvent.blur(gatilho);
   });
 
   it('o alternador troca a medida, e a legenda troca junto', () => {
     montar();
 
-    expect(screen.getByText(/verde é mais coberto/)).toBeInTheDocument();
+    // A UNIDADE POR EXTENSO SAIU DA LEGENDA VISÍVEL (maquete) e ficou no nome
+    // acessível dela — e na dica do título. Trocar a medida troca as duas.
+    expect(screen.getByRole('group', { name: /verde é mais coberto/ })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /Legenda/ })).toHaveTextContent('> 90%');
 
     fireEvent.click(screen.getByRole('button', { name: '% pendente' }));
-    expect(screen.getByText(/vermelho é mais pendente/)).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /vermelho é mais pendente/ })).toHaveTextContent('> 75%');
 
-    fireEvent.click(screen.getByRole('button', { name: 'pendentes (qtd.)' }));
-    expect(screen.getByText(/vínculos pendentes \(fora do prazo \+ nunca contatados\)/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Pendentes (qtd.)' }));
+    expect(
+      screen.getByRole('group', { name: /vínculos pendentes \(fora do prazo \+ nunca contatados\)/ }),
+    ).toHaveTextContent('> 150');
+  });
+
+  it('a legenda vai da maior faixa para a menor, e o sem dado continua hachurado — não é zero', () => {
+    montar();
+
+    const legenda = screen.getByRole('group', { name: /Legenda/ });
+    const itens = [...legenda.querySelectorAll('.terr-legenda-item')].map((i) => i.textContent);
+    // OS CORTES SÃO OS DE SEMPRE (25, 50, 75, 90): só a ordem e o texto mudaram.
+    expect(itens).toEqual(['> 90%', '75% – 90%', '50% – 75%', '25% – 50%', '≤ 25%', 'Sem dado']);
+
+    // O SEM DADO NÃO É UMA FAIXA DA ESCALA: a amostra dele é a hachura, a mesma
+    // do mapa, e não uma cor — e a dica do título diz que hachurado não é zero.
+    const semDado = [...legenda.querySelectorAll('.terr-legenda-item')].at(-1)!;
+    expect(semDado.querySelector('.terr-amostra-hachura')).not.toBeNull();
+
+    const gatilho = screen.getByRole('button', { name: 'Fonte e método deste mapa' });
+    fireEvent.focus(gatilho);
+    const dica = screen.getByRole('tooltip').textContent ?? '';
+    expect(dica).toMatch(/hachurado\): município sem vínculo elegível para medir; não é zero/);
+    // "fora da ADR" e o contorno saíram da legenda visível — e estão aqui.
+    expect(dica).toMatch(/fora da ADR/);
+    expect(legenda).not.toHaveTextContent(/fora da ADR/);
   });
 
   // O CONTRATO MUDOU NA T2.1: o aviso era um parágrafo permanente embaixo do
@@ -109,7 +143,7 @@ describe('o cartão do mapa de cobertura', () => {
     expect(screen.getByRole('tooltip')).toHaveTextContent(/nenhum tipo de atividade está marcado como visita/);
     fireEvent.blur(gatilho);
 
-    fireEvent.click(screen.getByRole('button', { name: 'pendentes (qtd.)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pendentes (qtd.)' }));
     fireEvent.focus(screen.getByRole('button', { name: 'Fonte e método deste mapa' }));
     expect(screen.getByRole('tooltip')).toHaveTextContent(/Quantidade favorece cidades grandes/);
   });

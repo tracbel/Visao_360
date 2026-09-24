@@ -1,0 +1,980 @@
+/* =============================================================================
+   A VISÃO GERAL DA ABA MERCADO — O INTERIOR DOS BLOCOS (fidelidade às maquetes,
+   fase 2, 23/09/2026).
+
+   Os quatro números de decisão, a régua do mercado, os quatro cartões de mapa, o
+   Potencial estrutural e a Performance Tracbel, desenhados como a maquete
+   `mercado-visao-geral`. O arranjo da página (quem fica ao lado de quem, e a
+   partir de que largura) é da fase 1, no `dashboard.css`; aqui mora o que fica
+   DENTRO de cada bloco.
+
+   POR QUE UM ARQUIVO À PARTE. As classes antigas destes blocos (`dash-kpi`,
+   `dash-mini-kpi`) são compartilhadas com Rentabilidade, Crédito e a ficha do
+   município, que têm outra maquete; mudar o desenho delas mudaria o daquelas
+   telas. As classes daqui são novas (`mv-`) ou são dos cartões de mapa, que só
+   esta aba usa — e que se mudaram inteiras do `territorio.css` para cá, para o
+   cartão ter uma casa só.
+
+   ESTE ARQUIVO CARREGA ANTES DO `territorio.css` E DO `dashboard.css` (a ordem
+   é a dos imports do módulo da tela). Onde uma regra daqui precisa ganhar de uma
+   de lá, ela ganha por especificidade — `.terr-mapa .terr-svg` contra
+   `.terr-svg` —, nunca por `!important`.
+
+   As medidas seguem as escalas `--e-*` e `--t-*` do `design-system.css`. Os
+   poucos valores fora delas (o número de 28px dos cartões, o de 20px dos mapas,
+   as tintas dos quatro cartões) foram medidos na maquete em 1672px.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   A VARIAÇÃO QUE AINDA NÃO TEM NÚMERO — "— vs. ano anterior ⓘ"
+
+   O traço no lugar do "+8%", o texto da linha, a dica. Sem seta e sem cor: a
+   seta e o verde afirmam uma direção que a leitura não tem (issue 69).
+   ----------------------------------------------------------------------------- */
+.mv-variacao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  min-width: 0;
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.mv-variacao[data-compacta] { font-size: var(--t-meta); }
+
+.mv-variacao-traco {
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+/* -----------------------------------------------------------------------------
+   OS QUATRO NÚMEROS DE DECISÃO
+
+   Cartão tingido de ~100px de altura (maquete em 1672px): o glifo colorido numa
+   coluna à esquerda, e empilhados à direita o nome, o valor de 28px com a
+   unidade pequena ao lado e a linha de variação. A grade (quatro colunas, 2 × 2,
+   uma) é a `dash-kpis` da fase 1 — aqui só o espaço entre os cartões, que na
+   maquete é mais curto que o padrão.
+   ----------------------------------------------------------------------------- */
+.dash-kpis.mv-kpis { gap: var(--e-3); }
+
+.mv-kpi {
+  --mv-tom: var(--jd-green);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--e-4);
+  padding: var(--e-3) var(--e-4);
+  min-width: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* A TINTA É QUASE BRANCA — os quatro fundos ficam acima de 96% de luminância —,
+   então o texto continua preto sobre claro. A cor é endereço, não semáforo. */
+.mv-kpi[data-tom='demanda'] { --mv-tom: #2AA05F; background: #EBF9F0; border-color: #D3EEDD; }
+.mv-kpi[data-tom='mercado'] { --mv-tom: #3B8FF6; background: #F0F7FC; border-color: #D8E7F6; }
+.mv-kpi[data-tom='captura'] { --mv-tom: #F0843A; background: #FEF5EB; border-color: #F6E2CA; }
+.mv-kpi[data-tom='oportunidade'] { --mv-tom: #9A7BF6; background: #F4F2FE; border-color: #E3DDFB; }
+
+/* O GLIFO É GRANDE, COLORIDO E SEM LADRILHO (maquete). O miolo ganha a mesma
+   cor bem clara — o ícone de traço vira o ícone cheio de dois tons da maquete. */
+.mv-kpi-glifo {
+  display: inline-flex;
+  margin-top: 2px;
+  color: var(--mv-tom);
+}
+
+.mv-kpi-glifo svg { fill: color-mix(in srgb, currentColor 22%, transparent); }
+
+/* As barras da demanda são traço puro — sem miolo para pintar —, então é a
+   espessura que as faz virar as colunas cheias da maquete. */
+.mv-kpi[data-tom='demanda'] .mv-kpi-glifo svg { stroke-width: 3.2; }
+
+.mv-kpi-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* O NOME EM CAIXA NORMAL, e não em maiúsculas espaçadas (maquete). */
+.mv-kpi-rotulo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-1);
+  font-size: var(--t-cartao);
+  font-weight: 600;
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+}
+
+/* O NÚMERO É O MAIOR DA PÁGINA, e é o único que é. A unidade fica ao lado e
+   menor — no mesmo corpo ela roubaria metade do peso do valor. */
+.mv-kpi-valor {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: var(--e-2);
+  min-width: 0;
+  font-size: 28px;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.mv-kpi-valor > strong { font-weight: 700; }
+
+.mv-kpi-unidade {
+  font-size: var(--t-apoio);
+  font-weight: 500;
+  line-height: var(--lh-normal);
+  color: var(--text-tertiary);
+}
+
+/* O TRAÇO TEM O CORPO DO NÚMERO QUE ELE SUBSTITUI: com letra de texto corrido,
+   o cartão sem dado parecia estar carregando. */
+.mv-kpi-valor .cad-ausente {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.mv-kpi-valor .cad-ausente .dica-gatilho { font-size: var(--t-apoio); }
+
+.mv-kpi-contexto { min-height: calc(var(--t-apoio) * var(--lh-normal)); }
+
+/* QUATRO CARTÕES NUMA COLUNA DE 900 A 1100px têm ~230px cada: o glifo encolhe e
+   o respiro também, para o traço e a unidade caberem na linha do valor. */
+@container indicadores (min-width: 900px) and (max-width: 1099px) {
+  .mv-kpi { column-gap: var(--e-3); padding-inline: var(--e-3); }
+  .mv-kpi-glifo svg { width: 24px; height: 24px; }
+}
+
+/* -----------------------------------------------------------------------------
+   A RÉGUA DO MERCADO — momento | porte | os cinco números
+
+   Um cartão branco de uma linha a partir de 1100px de conteúdo (maquete: ~62px
+   de altura em 1672). Momento e porte têm filete à direita — curto, sem encostar
+   nas bordas; entre os cinco números não há filete, só espaço.
+
+   ABAIXO DE 1100px as três partes empilham em degraus: momento e porte lado a
+   lado com os cinco embaixo; e numa coluna de celular, tudo em coluna, com os
+   números em três e depois em duas colunas. As quebras são pela largura do
+   conteúdo (`@container indicadores`), como o resto da página.
+   ----------------------------------------------------------------------------- */
+.mv-faixa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.mv-faixa-leitura {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  min-width: 0;
+  padding: 10px var(--e-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.mv-faixa-numeros {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--e-3) var(--e-4);
+  min-width: 0;
+  padding: 10px var(--e-4);
+}
+
+@container indicadores (min-width: 480px) {
+  .mv-faixa-numeros { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@container indicadores (min-width: 640px) {
+  .mv-faixa { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mv-faixa-numeros { grid-column: 1 / -1; }
+
+  /* O FILETE DA MAQUETE É CURTO: não encosta no alto nem no pé do cartão. */
+  .mv-faixa-leitura:first-child::after {
+    content: '';
+    position: absolute;
+    top: var(--e-3);
+    bottom: var(--e-3);
+    right: 0;
+    width: 1px;
+    background: var(--border);
+  }
+}
+
+@container indicadores (min-width: 760px) {
+  .mv-faixa-numeros { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+/* A PROPORÇÃO É A DA MAQUETE, com o porte um pouco mais estreito: lá ele tem
+   pílula e frase ("MÉDIO Estrutura produtiva relevante"), aqui tem o traço até a
+   issue 166 — e os cinco números ganham a sobra, que é o que os deixa numa linha
+   a 1300px de conteúdo. */
+@container indicadores (min-width: 1100px) {
+  .mv-faixa { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.85fr) minmax(0, 3fr); }
+  .mv-faixa-numeros { grid-column: auto; column-gap: var(--e-3); padding-left: var(--e-5); }
+  .mv-faixa-leitura { border-bottom: 0; }
+
+  .mv-faixa-leitura::after {
+    content: '';
+    position: absolute;
+    top: var(--e-3);
+    bottom: var(--e-3);
+    right: 0;
+    width: 1px;
+    background: var(--border);
+  }
+}
+
+/* O glifo da leitura: tendência em verde no momento, barras em grafite no porte. */
+.mv-faixa-glifo {
+  flex: none;
+  color: #2F3D4F;
+}
+
+.mv-faixa-glifo[data-tom='momento'] { color: #1E7D47; }
+
+.mv-faixa-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.mv-faixa-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  font-size: var(--t-cartao);
+  font-weight: 600;
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+}
+
+/* A PÍLULA E A FRASE NA MESMA LINHA (maquete: "NORMAL  Demanda estável e preços
+   firmes."). Numa célula estreita a frase desce, e a pílula não quebra. */
+.mv-faixa-linha {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-3);
+  min-width: 0;
+}
+
+.mv-faixa-frase {
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+.mv-faixa-linha .cad-ausente {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  font-size: var(--t-secao);
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.mv-faixa-linha .cad-ausente .dica-gatilho { font-size: var(--t-apoio); }
+
+/* A PÍLULA NOMEIA A FAIXA: verde no normal, laranja no retraído, azul no
+   aquecido, vermelho no superaquecido. Fundo suave e texto escuro — leitura de
+   longe, não alarme. O nome continua escrito: a cor só reforça. */
+.mv-pilula {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 3px 10px;
+  border-radius: var(--radius);
+  font-size: var(--t-meta);
+  font-weight: 700;
+  line-height: var(--lh-normal);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: #E3F4E8;
+  color: #1F7A3E;
+}
+
+.mv-pilula[data-faixa='Retraído'] { background: var(--warning-bg); color: #C2410C; }
+.mv-pilula[data-faixa='Aquecido'] { background: var(--info-bg); color: #1D4ED8; }
+.mv-pilula[data-faixa='Superaquecido'] { background: var(--danger-bg); color: #B91C1C; }
+.mv-pilula[data-faixa='porte'] { background: #E8ECEF; color: var(--text-secondary); }
+
+/* OS CINCO NÚMEROS: ícone de traço cinza num ladrilho quase branco (na maquete
+   ampliada ele está lá, #F4F5F7), número em cima e nome embaixo, com UMA dica
+   discreta na linha do número — a do nome não tem sobra a 1300px. */
+.mv-faixa-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mv-faixa-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 31px;
+  height: 31px;
+  border-radius: var(--radius);
+  background: #F4F5F7;
+  color: #3A4654;
+}
+
+.mv-faixa-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mv-faixa-valor {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--t-cartao);
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mv-faixa-valor > strong { font-weight: 700; }
+
+.mv-faixa-valor .cad-ausente {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.mv-faixa-rotulo {
+  font-size: var(--t-meta);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+/* A dica da régua é discreta: ela é a procedência, não um convite. */
+.mv-faixa-valor .dica-gatilho { opacity: 0.7; }
+.mv-faixa-valor .dica-gatilho:hover,
+.mv-faixa-valor .dica-gatilho:focus-visible { opacity: 1; }
+
+/* -----------------------------------------------------------------------------
+   O CABEÇALHO DA VISÃO GERAL — "Principal cultura: Café"
+
+   O ícone em grafite e a letra de apoio da maquete; a cultura em negrito. A fatia
+   e o critério estão na dica.
+   ----------------------------------------------------------------------------- */
+.dash-selo-secao.mv-cultura {
+  gap: var(--e-2);
+  font-size: var(--t-apoio);
+  color: var(--text-secondary);
+}
+
+.dash-selo-secao.mv-cultura > svg { color: var(--text-tertiary); }
+.dash-selo-secao.mv-cultura > strong { color: var(--text-primary); }
+
+/* =============================================================================
+   OS QUATRO CARTÕES DE MAPA
+
+   ~350 × 245 px numa coluna de 1490 (maquete). Chegavam a 640: título com piso
+   de duas linhas, resumo com três metadados, legenda de oito linhas com a unidade
+   por extenso e uma linha reservada para o cursor. O que saiu do cartão está na
+   dica do título; o que ficou tem o tamanho da maquete.
+
+   (Estas regras moravam no `territorio.css`, em dois blocos — o de base e o da
+   T4.9 —, e mudaram-se inteiras para cá: o cartão só existe nesta aba, e duas
+   casas para o mesmo cartão eram o que fazia uma regra anular a outra.)
+   ============================================================================= */
+
+/* O CARTÃO É UM CONTÊINER DE MEDIDA: a altura do mapa e o encolhimento da
+   legenda seguem a largura DELE, que vai de ~300px (quatro numa linha) a ~700
+   (um por linha no tablet). */
+.terr-mapa {
+  --mv-tom: var(--jd-green);
+  --mv-tom-fundo: #E3F1E7;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: var(--e-3);
+  container: mapa / inline-size;
+}
+
+.terr-mapa[data-mapa='cobertura'] { --mv-tom: #1F9152; --mv-tom-fundo: #E3F1E7; }
+.terr-mapa[data-mapa='vendas'] { --mv-tom: #2563EB; --mv-tom-fundo: #E4EDFD; }
+.terr-mapa[data-mapa='potencial'] { --mv-tom: #7C3AED; --mv-tom-fundo: #EEE8FE; }
+.terr-mapa[data-mapa='estrutura'] { --mv-tom: #EA6A1B; --mv-tom-fundo: #FDECDD; }
+
+/* ---- A linha do título: ícone colorido, nome, ⓘ e o selo na ponta ---- */
+.terr-mapa-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-width: 0;
+}
+
+.terr-mapa-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--mv-tom-fundo);
+  color: var(--mv-tom);
+}
+
+.terr-mapa .card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  min-width: 0;
+  font-size: var(--t-cartao);
+  font-weight: 600;
+  line-height: var(--lh-normal);
+}
+
+.terr-mapa-selo {
+  display: inline-flex;
+  margin-left: auto;
+  flex: none;
+}
+
+/* O selo é o próprio gatilho da dica do motivo: o botão perde o círculo do ⓘ. */
+.terr-mapa-selo .dica-gatilho {
+  padding: 0;
+  border-radius: var(--radius);
+  line-height: var(--lh-normal);
+}
+
+.terr-mapa .terr-selo {
+  margin: 0;
+  padding: 2px var(--e-2);
+  border-radius: var(--radius);
+  font-size: var(--t-meta);
+  font-weight: 600;
+}
+
+/* "Regra provisória" em rosa, como na maquete. */
+.terr-mapa .terr-selo-RegraComercialProvisoria { background: #FCE9E8; color: #C0392B; }
+
+/* A ESTIMATIVA DO POTENCIAL FICA DISCRETA: a maquete não tem selo neste
+   cartão, e a palavra continua lá — em letra de metadado, sem fundo. */
+.terr-mapa .terr-selo-Estimativa {
+  padding: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---- O resumo: o número que responde o cartão ---- */
+/* NUMA LINHA SÓ, sem quebrar: os metadados do potencial ficam à direita do
+   número em qualquer largura de cartão, e encolhem eles — o número não. */
+.terr-mapa-resumo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-3);
+  min-width: 0;
+  color: var(--text-tertiary);
+}
+
+.terr-mapa-principal {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* COM METADADOS AO LADO, O NÚMERO NÃO ENCOLHE: quem cede espaço é a regra, que
+   ganha reticências (e está inteira na dica). */
+.terr-mapa-resumo:has(.terr-mapa-meta) .terr-mapa-principal { flex: 0 0 auto; }
+
+.terr-mapa-linha {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px var(--e-2);
+  min-width: 0;
+}
+
+.terr-mapa-numero {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.terr-mapa-unidade {
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+.terr-mapa-complemento {
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+.terr-mapa-complemento > strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Os metadados do potencial, à direita e divididos por filete — "203
+   municípios", "1 3036N / 10 ha de café". */
+.terr-mapa-meta {
+  display: flex;
+  flex: 0 1 auto;
+  gap: var(--e-2);
+  min-width: 0;
+}
+
+/* CADA METADADO TEM NO MÁXIMO TRÊS LINHAS — o valor numa, o nome em duas. Um
+   modelo de referência de nome comprido encolhe com reticências em vez de
+   empurrar o mapa para baixo; a regra inteira está na dica do título. */
+.terr-mapa-meta-item {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 116px;
+  padding-left: var(--e-2);
+  border-left: 1px solid var(--border-strong);
+  font-size: var(--t-meta);
+  line-height: 1.3;
+  color: var(--text-tertiary);
+}
+
+/* O primeiro metadado é curto ("203 municípios") e nunca é cortado. */
+.terr-mapa-meta-item:first-child { flex: none; }
+
+.terr-mapa-meta-item > strong {
+  overflow: hidden;
+  font-size: var(--t-apoio);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terr-mapa-meta-rotulo {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* ---- O mapa à esquerda, a legenda à direita ---- */
+.terr-mapa-corpo {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--e-3);
+  min-width: 0;
+}
+
+.terr-mapa-desenho {
+  position: relative;
+  min-width: 0;
+}
+
+/* A ALTURA DO MAPA SEGUE A LARGURA DO CARTÃO — ~130px no cartão de um quarto de
+   linha da maquete, mais no 2 × 2 e no celular, onde o cartão é largo. É fixa
+   para a largura dada: os quatro cartões lado a lado têm o mesmo mapa, e a
+   legenda começa no mesmo ponto nos quatro. Sem moldura nem fundo: o fundo é o
+   próprio estado em volta da ADR, quase branco. */
+.terr-mapa .terr-svg {
+  width: 100%;
+  height: clamp(118px, 36cqw, 230px);
+  background: transparent;
+  border: 0;
+}
+
+/* O MUNICÍPIO SOB O CURSOR FLUTUA NO PÉ DO MAPA, e só quando há cursor. A região
+   continua no documento, vazia, para o leitor de tela anunciar a chegada.
+
+   DUAS LINHAS NO MÁXIMO: no cartão estreito o detalhe inteiro cobria meio mapa.
+   O leitor de tela recebe a frase inteira (o corte é só visual), e o `<title>`
+   do polígono também a mostra. */
+.terr-mapa-foco {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  margin: 0;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  font-size: var(--t-meta);
+  line-height: 1.35;
+  color: var(--text-primary);
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 1px 3px rgb(15 22 19 / 14%);
+  pointer-events: none;
+}
+
+.terr-mapa-foco:empty {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* A LEGENDA DA MAQUETE: uma coluna curta, da maior faixa para a menor, com
+   amostras quadradas. A unidade por extenso está no nome acessível dela e na
+   dica do título. */
+.terr-mapa .terr-legenda {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.terr-legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.terr-amostra {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgb(15 22 19 / 8%);
+  border-radius: 3px;
+}
+
+.terr-amostra-hachura {
+  background: repeating-linear-gradient(45deg, #F3F4F6 0 2px, #B6BDC6 2px 3.2px);
+}
+
+/* ---- O alternador: largura cheia, no pé do cartão ---- */
+.terr-mapa > .terr-alternador {
+  display: flex;
+  width: 100%;
+}
+
+.terr-mapa > .terr-alternador button {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px var(--e-1);
+  font-size: var(--t-meta);
+  line-height: var(--lh-normal);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.terr-mapa > .terr-alternador button + button { border-left: 1px solid var(--border); }
+.terr-mapa > .terr-alternador button[aria-pressed='true'] + button,
+.terr-mapa > .terr-alternador button + button[aria-pressed='true'] { border-left-color: transparent; }
+
+/* NUM CARTÃO ESTREITO (os quatro lado a lado numa coluna de ~1300px) A LETRA
+   APERTA em vez de quebrar em duas linhas: os cinco recortes da estrutura cabem
+   numa linha, e o título com o selo "Regra provisória" também. */
+@container mapa (max-width: 330px) {
+  .terr-mapa > .terr-alternador button {
+    padding-inline: 2px;
+    font-size: 10.5px;
+    letter-spacing: -0.01em;
+  }
+
+  .terr-mapa .card-title { font-size: 12.5px; }
+  .terr-mapa .terr-selo:not(.terr-selo-Estimativa) { padding-inline: 6px; font-size: 10px; }
+}
+
+/* =============================================================================
+   A LINHA FINAL — Potencial estrutural e Performance Tracbel
+   ============================================================================= */
+
+/* O ladrilho de ícone dos dois blocos: quadrado claro, ícone verde (maquete). */
+.mv-icone-ladrilho {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  background: #F1F4F2;
+  color: #2E8B57;
+}
+
+/* "Simular cenário" — um botão com borda, à direita do alternador e separado
+   dele (maquete). */
+.mv-botao-acao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  height: 30px;
+  padding: 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font: inherit;
+  font-size: var(--t-apoio);
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mv-botao-acao:hover { background: var(--bg-hover); }
+.mv-botao-acao[aria-pressed='true'] { border-color: var(--jd-green); color: var(--jd-green-dark); }
+.mv-botao-acao:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; }
+
+/* ---- Potencial estrutural: UM cartão, quatro células com filete ---- */
+.mv-potencial {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  min-width: 0;
+  container: potencial / inline-size;
+}
+
+.mv-potencial-cartao {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: var(--e-4);
+  padding: var(--e-4) 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.mv-potencial-celula {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-3);
+  min-width: 0;
+  padding: 0 var(--e-4);
+}
+
+/* O filete entre as células, curto como o da maquete. Em duas colunas ele fica
+   só entre a da esquerda e a da direita. */
+.mv-potencial-celula:nth-child(even)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 1px;
+  background: var(--border);
+}
+
+@container potencial (min-width: 560px) {
+  .mv-potencial-cartao { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .mv-potencial-celula + .mv-potencial-celula::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 2px;
+    bottom: 2px;
+    width: 1px;
+    background: var(--border);
+  }
+}
+
+/* Os municípios com parque, em grafite: é o único dos quatro que não é da
+   lavoura (maquete). */
+.mv-potencial-celula:nth-child(2) .mv-icone-ladrilho { color: #3A4654; }
+
+.mv-potencial-corpo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mv-potencial-valor {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.mv-potencial-valor .cad-ausente {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-tertiary);
+}
+
+.mv-potencial-valor .cad-ausente .dica-gatilho { font-size: var(--t-meta); }
+
+.mv-potencial-rotulo {
+  font-size: var(--t-meta);
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+/* O selo de estimativa é o gatilho da dica do motivo. */
+.mv-potencial-corpo > .dica { margin-top: var(--e-1); }
+.mv-potencial-corpo > .dica .dica-gatilho { padding: 0; border-radius: var(--radius-sm); line-height: var(--lh-normal); }
+.mv-selo-estimativa { display: inline-block; }
+
+.mv-potencial-frase {
+  margin: 0;
+  font-size: var(--t-apoio);
+  color: var(--text-secondary);
+}
+
+/* "VER COMPOSIÇÃO" — o link discreto que abre a decomposição do parque. Fechado,
+   ele é uma palavra na ponta direita, embaixo do cartão; aberto, o detalhe ocupa
+   a largura do bloco. */
+.mv-composicao {
+  align-self: flex-end;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.mv-composicao[open] { align-self: stretch; }
+
+.mv-composicao > summary {
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--t-meta);
+  font-weight: 600;
+  color: var(--jd-green-dark);
+}
+
+.mv-composicao > summary::-webkit-details-marker { display: none; }
+.mv-composicao > summary:hover { text-decoration: underline; }
+.mv-composicao > summary:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; border-radius: 2px; }
+
+.mv-composicao-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  margin-top: var(--e-2);
+  padding: var(--e-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: var(--t-apoio);
+}
+
+.mv-composicao-corpo > p { margin: 0; }
+
+/* ---- Performance Tracbel: três mini-cartões com borda ---- */
+.mv-vendas {
+  min-width: 0;
+  container: vendas / inline-size;
+}
+
+.mv-vendas-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-2);
+}
+
+@container vendas (min-width: 480px) {
+  .mv-vendas-grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.mv-venda {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--e-3);
+  row-gap: var(--e-2);
+  min-width: 0;
+  padding: var(--e-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.mv-venda-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mv-venda-rotulo {
+  font-size: var(--t-meta);
+  font-weight: 500;
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+.mv-venda-valor {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mv-venda-valor .cad-ausente {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-tertiary);
+}
+
+/* O pé do cartão ocupa a largura toda, embaixo do ícone também (maquete). */
+.mv-venda-pe {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-1);
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+.mv-venda-pe > strong { font-weight: 700; color: var(--text-primary); }
+
+.mv-venda-pe .cad-ausente {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+}

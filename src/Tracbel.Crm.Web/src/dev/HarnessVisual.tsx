@@ -29,8 +29,15 @@ import { MemoryRouter } from 'react-router-dom';
 import { ProvedorDeContextoDeAcesso } from '../dados/api/contexto';
 import { IndicadoresGeograficos } from '../telas/IndicadoresGeograficos';
 import type { ColecaoMunicipal } from '../componentes/territorio/projecao';
-import { ESTADOS, painelFicticio, type NomeDoEstado } from './amostras';
-import { creditoFicticio, custosFicticios, precosFicticios, rentabilidadeFicticia } from './amostrasDeMercado';
+import { ESTADOS, municipiosDaMalha, painelFicticio, type NomeDoEstado } from './amostras';
+import {
+  catalogoFicticio,
+  creditoFicticio,
+  custosFicticios,
+  parametrosFicticios,
+  precosFicticios,
+  rentabilidadeFicticia,
+} from './amostrasDeMercado';
 import '../estilos/design-system.css';
 
 /** O município fixo dos estados que abrem a ficha — sempre o mesmo, para a captura comparar. */
@@ -70,8 +77,20 @@ function envelope(dados: unknown): Response {
  * precisa estar: como um dos estados da tela, e não como o único.
  */
 function respostasDeMercado(malha: ColecaoMunicipal, estado: NomeDoEstado): Record<string, unknown> {
+  // O CATÁLOGO E AS PERCEPÇÕES DO MOMENTO (fidelidade às maquetes, fase 3): o
+  // catálogo liga cultura à PAM e ao preço; as percepções enchem a aba
+  // Percepção comercial. No `parcialmenteVazio` o catálogo continua (é
+  // configuração) e as percepções somem — é o estado sem leitura registrada.
+  const doMomento = {
+    '/v1/admin/parametros-do-potencial/catalogo': catalogoFicticio(),
+    '/v1/admin/parametros-do-potencial': parametrosFicticios(
+      estado === 'parcialmenteVazio' ? [] : municipiosDaMalha(malha, 30),
+    ),
+  };
+
   if (estado === 'parcialmenteVazio')
     return {
+      ...doMomento,
       '/v1/territorio/precos': { series: [], primeiroMesDoDolar: null, ultimoMesDoDolar: null },
       '/v1/territorio/rentabilidade': [],
       '/v1/territorio/custos': [],
@@ -90,6 +109,7 @@ function respostasDeMercado(malha: ColecaoMunicipal, estado: NomeDoEstado): Reco
   const municipios = malha.features.map((f) => ({ codigo: Number(f.properties.codarea), nome: f.properties.nome }));
 
   return {
+    ...doMomento,
     '/v1/territorio/precos': precosFicticios(),
     '/v1/territorio/rentabilidade': rentabilidadeFicticia(),
     '/v1/territorio/custos': custosFicticios(),
@@ -127,7 +147,10 @@ function instalarInterceptador(): void {
 
     // Os painéis de mercado precisam da malha para a lista de municípios do
     // crédito — ela vem do mesmo arquivo público que os mapas usam.
-    if (caminho.startsWith('/v1/territorio/') && caminho !== '/v1/territorio/indicadores') {
+    if (
+      (caminho.startsWith('/v1/territorio/') && caminho !== '/v1/territorio/indicadores') ||
+      caminho.startsWith('/v1/admin/parametros-do-potencial')
+    ) {
       const malhaDosPaineis = (await (
         await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)
       ).json()) as ColecaoMunicipal;

@@ -1,3 +1,4 @@
+import { UserRoundCheck } from 'lucide-react';
 import { useState } from 'react';
 import type { ClassificacaoDeIndicador } from '../../../tipos/territorio';
 import { faixaDe } from '../escalas';
@@ -73,24 +74,30 @@ export function MapaDeCobertura({
       id="cobertura"
       ligacao={ligacao}
       titulo="Cobertura de carteira"
+      icone={UserRoundCheck}
       selo={<SeloDeClassificacao classificacao={classificacao} />}
-      metodologia={metodologia(modoDeCobertura)}
+      // AS TRÊS PARCELAS SAÍRAM DO RESUMO E ABREM A DICA (maquete): elas eram
+      // metadados à direita do número, e a maquete mostra só o número.
+      metodologia={
+        <>
+          {totais.elegiveis > 0 && (
+            <p>
+              {`No recorte: ${nº(totais.elegiveis)} vínculos elegíveis · ${nº(totais.cobertos)} no prazo · ` +
+                `${nº(totais.pendentes)} pendentes (${nº(totais.foraDaCadencia)} fora do prazo + ` +
+                `${nº(totais.nuncaContatados)} nunca contatados).`}
+            </p>
+          )}
+          <p>{metodologia(modoDeCobertura)}</p>
+        </>
+      }
       // O RÓTULO DIZ O DENOMINADOR. A maquete escreve "municípios com vínculo"
       // embaixo desta porcentagem, e ela não é isso: é vínculo no prazo sobre
       // vínculo elegível. Copiar o rótulo da maquete trocaria o denominador do
-      // número na cara de quem lê.
+      // número na cara de quem lê — fica o texto mais curto que diz o verdadeiro.
       resumo={{
         valor: totais.elegiveis > 0 ? porcento(coberturaDaAdr ?? 0) : null,
-        rotulo: 'dos vínculos elegíveis estão no prazo',
+        rotulo: 'dos vínculos elegíveis no prazo',
         semValor: 'nenhum vínculo elegível no recorte',
-        meta:
-          totais.elegiveis > 0
-            ? [
-                { valor: nº(totais.elegiveis), rotulo: 'elegíveis' },
-                { valor: nº(totais.cobertos), rotulo: 'no prazo' },
-                { valor: nº(totais.pendentes), rotulo: 'pendentes' },
-              ]
-            : undefined,
       }}
       alternador={
         <div className="terr-alternador" role="group" aria-label="Cobertura em">
@@ -105,6 +112,7 @@ export function MapaDeCobertura({
       estadoDe={estadoDaCobertura}
       faixas={FAIXAS_DE_COBERTURA[modoDeCobertura]}
       unidade={UNIDADE_DE_COBERTURA[modoDeCobertura]}
+      semDado={{ rotulo: 'Sem dado', explicacao: 'município sem vínculo elegível para medir' }}
     />
   );
 }

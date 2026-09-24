@@ -114,6 +114,25 @@ async function larguraDoConteudo(pagina: Page): Promise<number> {
   });
 }
 
+/**
+ * A LARGURA DA TABELA DE MUNICÍPIOS — a régua das colunas dela (fase 4).
+ *
+ * O cartão da tabela é o contêiner (`container: tabela`), e a consulta mede a
+ * caixa de conteúdo dele; `clientWidth` é essa mesma caixa (o cartão tem borda
+ * e não tem folga lateral).
+ */
+async function larguraDaTabela(pagina: Page): Promise<number> {
+  return pagina.locator('[data-bloco="tabela-municipios"]').evaluate((n) => n.clientWidth);
+}
+
+/** Quanto a tabela passa do cartão que a segura — zero é caber sem rolar de lado. */
+async function sobraDentroDaTabela(pagina: Page): Promise<number> {
+  return pagina.locator('[data-bloco="tabela-municipios"] .cad-tabela-wrap').evaluate((n) => {
+    const tabela = n.querySelector('table')!;
+    return Math.round(tabela.getBoundingClientRect().width - n.clientWidth);
+  });
+}
+
 /** Quantas linhas visuais um conjunto de elementos ocupa, pelo topo de cada um. */
 async function linhasDe(pagina: Page, seletor: string): Promise<number> {
   const topos = await pagina
@@ -198,6 +217,38 @@ for (const { nome, largura, altura } of LARGURAS) {
       expect(linhas, `com ${conteudo}px de conteúdo esperava ${esperado} linha(s) de mapa, e deu ${linhas}`).toBe(esperado);
     });
 
+    test('cada cartão de mapa tem o tamanho da maquete, e o alternador cabe numa linha', async ({ page }) => {
+      // O DEFEITO QUE ISTO IMPEDE DE VOLTAR (fidelidade às maquetes, fase 2): os
+      // cartões de mapa tinham 570 a 640px de altura — título com piso de duas
+      // linhas, legenda de oito linhas com a unidade por extenso, uma linha
+      // reservada para o cursor. A maquete os desenha com ~245px numa coluna de
+      // ~1490. O teto aqui tem folga para o resumo de duas linhas do potencial.
+      await abrir(page, 'completo');
+
+      const conteudo = await larguraDoConteudo(page);
+      const alturas = await page
+        .locator('[data-bloco="mapas"] [data-mapa]')
+        .evaluateAll((nós) => nós.map((n) => Math.round(n.getBoundingClientRect().height)));
+      if (conteudo >= 1100) {
+        for (const altura of alturas)
+          expect(altura, `cartão de mapa com ${altura}px numa coluna de ${conteudo}px`).toBeLessThanOrEqual(280);
+      }
+
+      // O ALTERNADOR NUMA LINHA, SEM BOTÃO CORTADO — inclusive os CINCO recortes
+      // da estrutura (a maquete mostra quatro; tirar as usinas não foi decidido).
+      const alternadores = await page.locator('[data-bloco="mapas"] [data-mapa] > .terr-alternador').evaluateAll((nós) =>
+        nós.map((a) => ({
+          mapa: (a.closest('[data-mapa]') as HTMLElement).dataset.mapa,
+          linhas: new Set([...a.children].map((b) => Math.round(b.getBoundingClientRect().top))).size,
+          cortado: a.scrollWidth > a.clientWidth + 1,
+        })),
+      );
+      for (const a of alternadores) {
+        expect(a.linhas, `o alternador de ${a.mapa} quebrou em ${a.linhas} linhas com ${conteudo}px de conteúdo`).toBe(1);
+        expect(a.cortado, `o alternador de ${a.mapa} corta um botão com ${conteudo}px de conteúdo`).toBe(false);
+      }
+    });
+
     test('a linha final tem Potencial e Performance lado a lado a partir de 1000px de conteúdo', async ({ page }) => {
       // O MOMENTO DO MERCADO SAIU DESTA LINHA e foi para largura inteira, logo
       // abaixo dos quatro números (decisão do usuário de 23/09/2026): num terço
@@ -211,6 +262,39 @@ for (const { nome, largura, altura } of LARGURAS) {
       // E o Momento ocupa a largura inteira da página, em qualquer largura.
       const momento = await page.locator('[data-bloco="momento-do-mercado"]').boundingBox();
       expect(Math.round(momento!.width), 'o Momento do mercado não está em largura inteira').toBe(Math.round(conteudo));
+    });
+
+    test('as cinco abas do Momento cabem na largura, a altura assenta e cada uma é capturada', async ({ page }) => {
+      // A "ROLAGEM INFINITA" DO CRÉDITO (fidelidade às maquetes, fase 3) era um
+      // gráfico que se media pelo pai que se media pelo gráfico. Seis leituras
+      // seguidas da altura da página, depois de abrir cada aba, têm de ser
+      // iguais — e a página não pode passar da janela, nem pelo texto só para o
+      // leitor de tela escapando da rolagem de uma tabela.
+      await abrir(page, 'completo');
+      const bloco = page.locator('[data-bloco="momento-do-mercado"]');
+
+      for (const [aba, arquivo] of [
+        ['Composição do fator', 'composicao'],
+        ['Rentabilidade', 'rentabilidade'],
+        ['Crédito', 'credito'],
+        ['Termo de troca', 'termo-de-troca'],
+        ['Percepção comercial', 'percepcao'],
+      ] as const) {
+        await bloco.getByRole('tab', { name: aba }).click();
+        await expect(bloco.getByRole('tab', { name: aba })).toHaveAttribute('aria-selected', 'true');
+
+        const alturas: number[] = [];
+        for (let i = 0; i < 6; i++) {
+          await page.waitForTimeout(250);
+          alturas.push(await page.evaluate(() => document.documentElement.scrollHeight));
+        }
+        expect(new Set(alturas).size, `a altura da página não assenta na aba ${aba}: ${alturas.join(', ')}`).toBe(1);
+
+        await bloco.screenshot({ path: `capturas/${nome}/momento-${arquivo}.png` });
+
+        const { sobra, culpados } = await sobraLateral(page);
+        expect(sobra, `a aba ${aba} passa ${sobra}px da janela. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
+      }
     });
 
     test('os filtros secundários não ocupam a primeira dobra', async ({ page }) => {
@@ -261,41 +345,67 @@ for (const { nome, largura, altura } of LARGURAS) {
       const { sobra, culpados } = await sobraLateral(page);
       expect(sobra, `Território passa ${sobra}px. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
 
-      // QUANTAS COLUNAS FICAM, por largura: NOVE no desktop, cinco no tablet,
-      // duas no aparelho de mão.
+      // QUANTAS COLUNAS FICAM: NOVE com tabela larga, cinco numa tabela de
+      // tablet, duas no aparelho de mão.
       //
-      // A nona é a COLUNA DE AÇÃO da maquete (T4.9) — o chevron que abre a ficha
-      // na ponta da linha. Ela sai já na tela de mão: 26px de botão ali são
-      // 26px roubados das colunas que respondem "onde vender", e o nome do
-      // município continua sendo a porta para a mesma ficha.
+      // A nona é a COLUNA DE AÇÃO da maquete (T4.9) — o › que abre a ficha na
+      // ponta da linha. Ela sai já na tabela estreita: o nome do município
+      // continua sendo a porta para a mesma ficha.
       //
-      // OS DEGRAUS SÃO PELA LARGURA DO CONTEÚDO (23/09/2026): cinco colunas
-      // abaixo de 760px, duas abaixo de 520px — eram 768 e 560 de janela.
-      const conteudo = await larguraDoConteudo(page);
-      const esperadas = conteudo < 520 ? 2 : conteudo < 760 ? 5 : 9;
+      // OS DEGRAUS SÃO PELA LARGURA DA TABELA (fase 4, 23/09/2026): eram pela da
+      // página, e a página não é a tabela — com a ficha aberta ao lado, em
+      // 1.300px de conteúdo, a tabela tem ~750px. Cinco colunas abaixo de 700px
+      // de tabela, duas abaixo de 480px.
+      const tabela = await larguraDaTabela(page);
+      const esperadas = tabela < 480 ? 2 : tabela < 700 ? 5 : 9;
       const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
-      expect(colunas, `em ${largura}px esperava ${esperadas} colunas`).toBe(esperadas);
+      expect(colunas, `com ${tabela}px de tabela esperava ${esperadas} colunas`).toBe(esperadas);
 
       // ============================================================================
-      // E QUE ELAS CABEM — que é o que o teste anterior NÃO media.
+      // E QUE ELAS CABEM — em TODA largura, desde a fase 4.
       //
       // `:visible` em Playwright quer dizer "não está `display:none`", e não "cabe
       // na tela". Com cinco colunas em 390px o teste passava enquanto a tabela
       // virava uma lista de nomes com as outras quatro escondidas atrás da rolagem
-      // horizontal do cartão — dado presente e invisível, que é pior que dado
-      // adiado. Só a revisão humana das capturas pegou isso (T4.7).
+      // horizontal do cartão — dado presente e invisível (T4.7).
       //
-      // Aqui a afirmação é geométrica: a tabela não é mais larga que o cartão que
-      // a segura. No desktop a rolagem interna é aceitável para oito colunas, e
-      // por isso a exigência vale onde ela engana — no celular.
+      // Até a fase 4 a rolagem interna era aceita no desktop; a maquete e a
+      // decisão 4 do usuário pedem a tabela inteira, sem rolar de lado, também
+      // ao lado da ficha — e é o teste de baixo que mede isso com a ficha aberta.
       // ============================================================================
-      if (largura <= 560) {
-        const sobra = await page.locator('[data-bloco="tabela-municipios"] .cad-tabela-wrap').evaluate((n) => {
-          const tabela = n.querySelector('table')!;
-          return Math.round(tabela.getBoundingClientRect().width - n.clientWidth);
-        });
-        expect(sobra, `a tabela passa ${sobra}px do cartão em ${largura}px — as colunas escondidas rolam para o lado`).toBeLessThanOrEqual(0);
-      }
+      const sobraDaTabela = await sobraDentroDaTabela(page);
+      expect(sobraDaTabela, `a tabela passa ${sobraDaTabela}px do cartão em ${largura}px — as colunas rolam para o lado`).toBeLessThanOrEqual(0);
+    });
+
+    test('com a ficha aberta ao lado, a tabela cabe sem rolar de lado e nenhum número quebra', async ({ page }) => {
+      await abrir(page, 'municipioSelecionado');
+      await page.screenshot({ path: `capturas/${nome}/territorio-ficha.png`, fullPage: true });
+
+      const { sobra, culpados } = await sobraLateral(page);
+      expect(sobra, `Território com ficha passa ${sobra}px. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
+
+      const tabela = await larguraDaTabela(page);
+      const esperadas = tabela < 480 ? 2 : tabela < 700 ? 5 : 9;
+      const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
+      expect(colunas, `com ${tabela}px de tabela esperava ${esperadas} colunas`).toBe(esperadas);
+      expect(await sobraDentroDaTabela(page), 'a tabela rola de lado ao lado da ficha').toBeLessThanOrEqual(0);
+
+      // "SEM NÚMERO QUEBRANDO LETRA POR LETRA": todo valor dos cartões, da tabela
+      // e da ficha cabe na própria caixa, numa linha.
+      const quebrados = await page.evaluate(() =>
+        [
+          ...document.querySelectorAll<HTMLElement>(
+            '.terr-cart-kpi-valor, .terr-ficha-mini-valor, .terr-ficha-oport-valor, .terr-ficha-estrutura-valor, .terr-tabela-municipios td.cad-mono',
+          ),
+        ]
+          .filter((n) => n.offsetParent !== null && n.scrollWidth > n.clientWidth + 1)
+          .map((n) => n.textContent),
+      );
+      expect(quebrados, 'valores que não cabem na caixa').toEqual([]);
+
+      // PAGINAÇÃO, e não rolagem interna: dez linhas, e a faixa diz de quantas.
+      await expect(page.locator('[data-bloco="tabela-municipios"] tbody tr')).toHaveCount(10);
+      await expect(page.locator('[data-bloco="paginacao-municipios"]')).toContainText('de 30 municípios');
     });
 
     test('a ficha do município cabe na largura, com as evidências abertas', async ({ page }) => {

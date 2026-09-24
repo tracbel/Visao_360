@@ -1,18 +1,21 @@
 /**
- * A ficha do município — issue 152, reorganizada em três camadas na fase T4.
+ * A ficha do município — issue 152; três camadas na fase T4; ABAS na fase 4
+ * (fidelidade às maquetes, 23/09/2026).
  *
  * O QUE ESTE TESTE SEMPRE PRENDEU continua preso: a cultura diz o ano dela, a
  * quantidade vem com a unidade que o servidor mandou, a produtividade aparece ao
  * lado da de São Paulo, e sem unidade ou sem colheita não se mostra número.
  *
- * O CONTRATO MUDOU NA T4, e foi ajustado de propósito: o detalhe por cultura
- * saiu da primeira camada e virou EVIDÊNCIA recolhida (documento 50, §6). O
- * conteúdo é o mesmo — e este teste abre o detalhe antes de conferir, que é o
- * que uma pessoa faria.
+ * O CONTRATO MUDOU NA FASE 4, e foi ajustado de propósito: a ficha virou cinco
+ * abas, como na maquete. A camada intermediária e a de evidência foram para as
+ * abas Lavoura e Estrutura; a executiva, para o topo da aba Oportunidades. O
+ * conteúdo é o mesmo — e este teste troca de aba antes de conferir, que é o que
+ * uma pessoa faria. O último bloco compara a lista de medidas de ANTES da fase
+ * 4 com a de agora: nenhuma pode ter sumido.
  */
 
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type {
   CulturaNoEstado,
   IndicadoresDoMunicipio,
@@ -23,6 +26,7 @@ import type {
   TotaisDaRegiaoTracbel,
   TotaisDoEstado,
 } from '../../tipos/territorio';
+import { ProvedorDoPeriodo } from './carteira/periodo';
 import { DetalheDoMunicipio } from './DetalheDoMunicipio';
 
 const REGRA: RegraDePotencialAplicada = {
@@ -143,34 +147,48 @@ const CAFE_EM_SP: CulturaNoEstado = {
   unidadeDaProdutividade: 't/ha',
 };
 
-function abrir(
-  m: IndicadoresDoMunicipio,
-  culturasNoEstado: CulturaNoEstado[] = [],
-  denominadores = true,
-) {
+function abrir(m: IndicadoresDoMunicipio, culturasNoEstado: CulturaNoEstado[] = [], denominadores = true, aoFechar = () => {}) {
   render(
-    <DetalheDoMunicipio
-      municipio={m}
-      regras={[REGRA]}
-      culturasNoEstado={culturasNoEstado}
-      regiaoTracbel={denominadores ? REGIAO : null}
-      estado={denominadores ? SAO_PAULO : null}
-      procedencias={PROCEDENCIAS}
-      aoFechar={() => {}}
-    />,
+    <ProvedorDoPeriodo value={{ meses: 12, rotulo: '12 meses', intervalo: 'out/2025 a set/2026' }}>
+      <DetalheDoMunicipio
+        municipio={m}
+        regras={[REGRA]}
+        culturasNoEstado={culturasNoEstado}
+        regiaoTracbel={denominadores ? REGIAO : null}
+        estado={denominadores ? SAO_PAULO : null}
+        procedencias={PROCEDENCIAS}
+        aoFechar={aoFechar}
+      />
+    </ProvedorDoPeriodo>,
   );
 }
 
-/** Abre o detalhe recolhido — nada se perdeu, mudou de camada. */
+/** Troca de aba como uma pessoa troca: clicando no nome dela. */
+const irPara = (aba: string) => fireEvent.click(screen.getByRole('tab', { name: aba }));
+
+/** O painel da aba ativa — o único visível. */
+const painelAtivo = () => screen.getByRole('tabpanel');
+
+/** Abre o detalhe recolhido — nada se perdeu, mudou de casa. */
 function abrirEvidencia(qual: string): HTMLElement {
   const bloco = document.querySelector<HTMLElement>(`[data-evidencia="${qual}"]`)!;
   fireEvent.click(bloco.querySelector('summary')!);
   return bloco;
 }
 
+/** Abre uma dica pelo teclado, lê e FECHA — o balão vive num portal. */
+function textoDaDica(rotulo: string): string {
+  const gatilho = screen.getByRole('button', { name: rotulo });
+  fireEvent.focus(gatilho);
+  const texto = screen.getByRole('tooltip').textContent ?? '';
+  fireEvent.blur(gatilho);
+  return texto;
+}
+
 describe('DetalheDoMunicipio — o que a ficha sempre disse', () => {
   it('diz o ano da cultura, a quantidade com a unidade e a produtividade ao lado da de SP', () => {
     abrir(municipio(potencial()), [CAFE_EM_SP]);
+    irPara('Lavoura');
     const potencialRecolhido = abrirEvidencia('potencial');
 
     expect(within(potencialRecolhido).getByText(/Área plantada de Café \(em grão\) Total/)).toHaveTextContent('(2024)');
@@ -181,18 +199,20 @@ describe('DetalheDoMunicipio — o que a ficha sempre disse', () => {
 
   it('mostra o parque do motor, e diz por que a demanda anual não saiu', () => {
     abrir(municipio(potencial()));
+    irPara('Lavoura');
     const potencialRecolhido = abrirEvidencia('potencial');
 
     expect(within(potencialRecolhido).getByText(/70 ha úteis/)).toBeInTheDocument();
     expect(within(potencialRecolhido).getByText(/ainda não foi confirmada pelo comercial/)).toBeInTheDocument();
 
-    // O MOTIVO DA DEMANDA subiu para a camada executiva, e abre pelo teclado.
-    fireEvent.focus(screen.getByRole('button', { name: 'Por que a demanda anual não aparece' }));
-    expect(screen.getByRole('tooltip')).toHaveTextContent(/de quantos em quantos anos a máquina é trocada/);
+    // O MOTIVO DA DEMANDA mora no topo da aba Oportunidades, e abre pelo teclado.
+    irPara('Oportunidades');
+    expect(textoDaDica('Por que a demanda anual não aparece')).toMatch(/de quantos em quantos anos a máquina é trocada/);
   });
 
   it('sem regra de potencial vigente, a ficha não inventa parque', () => {
     abrir(municipio(potencial(), null));
+    irPara('Lavoura');
     const potencialRecolhido = abrirEvidencia('potencial');
 
     expect(within(potencialRecolhido).queryByText('Parque teórico do município')).not.toBeInTheDocument();
@@ -200,6 +220,7 @@ describe('DetalheDoMunicipio — o que a ficha sempre disse', () => {
 
   it('sem unidade ou sem colheita, não mostra número', () => {
     abrir(municipio(potencial({ unidadeDaQuantidade: null, unidadeDaProdutividade: null, produtividade: null })));
+    irPara('Lavoura');
     const potencialRecolhido = abrirEvidencia('potencial');
 
     expect(within(potencialRecolhido).queryByText(/toneladas/)).not.toBeInTheDocument();
@@ -208,95 +229,218 @@ describe('DetalheDoMunicipio — o que a ficha sempre disse', () => {
   });
 });
 
-describe('DetalheDoMunicipio — as três camadas (documento 50, §6)', () => {
-  const comLavouraEEstrutura = () =>
-    municipio(potencial(), undefined, {
-      producao: {
-        ano: 2024,
-        areaPlantadaHectares: 37_226,
-        areaColhidaHectares: 36_000,
-        valorDaProducaoMilReais: 468_600,
-        culturasComArea: 9,
-      },
-      estrutura: {
-        anoDoCenso: 2017,
-        tratores: 422,
-        tratoresAbaixoDe100Cv: 300,
-        tratoresDe100CvEMais: null,
-        estabelecimentosComTrator: 150,
-        estabelecimentos: 253,
-        faixasDeArea: [{ ordem: 1, rotulo: 'até 10 ha', estabelecimentos: null }],
-        anoDoRebanho: 2024,
-        bovinos: 12_400,
-        areaKm2: 900,
-        usinas: [],
-        tratoresPorMilKm2: 468,
-        capacidadeDeEtanolM3Dia: null,
-      },
-      responsaveisPelasCarteiras: [{ nome: 'Carteira Norte', natureza: 'Pessoa', vinculos: 12, carteiras: 1 }],
-    });
-
-  it('a camada executiva mostra os quatro números de decisão, sempre aberta', () => {
-    abrir(comLavouraEEstrutura());
-
-    const executiva = document.querySelector<HTMLElement>('[data-camada="executiva"]')!;
-    expect(executiva.closest('details')).toBeNull();
-    for (const rotulo of ['Demanda anual', 'Mercado anual', 'Captura Tracbel', 'Oportunidade'])
-      expect(executiva).toHaveTextContent(rotulo);
+/** Um município com lavoura, estrutura e carteira — a ficha cheia. */
+const comLavouraEEstrutura = () =>
+  municipio(potencial({ areaPlantadaHectares: 23_000 }), undefined, {
+    producao: {
+      ano: 2024,
+      areaPlantadaHectares: 37_226,
+      areaColhidaHectares: 36_000,
+      valorDaProducaoMilReais: 468_600,
+      culturasComArea: 9,
+    },
+    estrutura: {
+      anoDoCenso: 2017,
+      tratores: 422,
+      tratoresAbaixoDe100Cv: 300,
+      tratoresDe100CvEMais: null,
+      estabelecimentosComTrator: 150,
+      estabelecimentos: 253,
+      faixasDeArea: [{ ordem: 1, rotulo: 'até 10 ha', estabelecimentos: null }],
+      anoDoRebanho: 2024,
+      bovinos: 12_400,
+      areaKm2: 900,
+      usinas: [],
+      tratoresPorMilKm2: 468,
+      capacidadeDeEtanolM3Dia: null,
+    },
+    cobertura: { clientes: 12, vinculos: 20, vinculosComCadencia: 18, cobertos: 11, foraDaCadencia: 5, nuncaContatados: 2, semCadencia: 2, pendentes: 7, percentualPendente: 38.9 },
+    vendas: { clientesQueCompraram: 4, valorLiquido: 1_250_000, maquina: 900_000, peca: 200_000, servico: 150_000, outros: 0, posVenda: 350_000 },
+    responsaveisPelasCarteiras: [{ nome: 'Carteira Norte', natureza: 'Pessoa', vinculos: 12, carteiras: 1 }],
   });
 
-  it('a camada intermediária fica aberta e compara com a Região Tracbel e SP', () => {
+describe('DetalheDoMunicipio — o cabeçalho e as abas da maquete', () => {
+  it('o cabeçalho tem o nome, "Selecionado", a sub-região e a loja — o código IBGE mora na dica', () => {
+    const aoFechar = vi.fn();
+    abrir(comLavouraEEstrutura(), [], true, aoFechar);
+
+    const ficha = document.querySelector<HTMLElement>('[data-bloco="ficha-do-municipio"]')!;
+    expect(screen.getByRole('heading', { level: 2, name: 'Ribeirão Preto' })).toBeInTheDocument();
+    expect(ficha).toHaveTextContent('Selecionado');
+    expect(ficha.querySelector('.terr-ficha-local')).toHaveTextContent(/Norte\s*•\s*Loja Ribeirão Preto/);
+    expect(ficha.querySelector('.terr-ficha-local')).not.toHaveTextContent('3543402');
+
+    const dica = textoDaDica('Código IBGE e área de atuação de Ribeirão Preto');
+    expect(dica).toContain('IBGE 3543402');
+    expect(dica).toContain('ADR · sub-região Norte');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar a ficha de Ribeirão Preto' }));
+    expect(aoFechar).toHaveBeenCalled();
+  });
+
+  it('as cinco abas da maquete, e abre na Visão geral', () => {
     abrir(comLavouraEEstrutura());
 
-    const lavoura = document.querySelector<HTMLElement>('[data-camada="lavoura"]')!;
+    const abas = within(screen.getByRole('tablist', { name: 'Leituras de Ribeirão Preto' })).getAllByRole('tab');
+    expect(abas.map((a) => a.textContent)).toEqual(['Visão geral', 'Lavoura', 'Estrutura', 'Oportunidades', 'Histórico']);
+    expect(abas[0]).toHaveAttribute('aria-selected', 'true');
+    expect(painelAtivo()).toHaveAttribute('aria-labelledby', abas[0].id);
+    // Os outros painéis existem — o `aria-controls` aponta para algo —, escondidos;
+    // o conteúdo deles só monta quando a aba abre pela primeira vez.
+    expect(document.querySelectorAll('[role="tabpanel"][hidden]')).toHaveLength(4);
+    expect(document.querySelector('[data-aba-da-ficha="lavoura"]')).toBeEmptyDOMElement();
+    irPara('Lavoura');
+    irPara('Visão geral');
+    expect(document.querySelector('[data-aba-da-ficha="lavoura"]')).not.toBeEmptyDOMElement();
+  });
+
+  it('as abas andam pelo teclado: setas dão a volta, Home e End vão às pontas', () => {
+    abrir(comLavouraEEstrutura());
+    const aba = (nome: string) => screen.getByRole('tab', { name: nome });
+    const teclar = (key: string) => fireEvent.keyDown(document.activeElement!, { key });
+
+    aba('Visão geral').focus();
+    teclar('ArrowRight');
+    expect(aba('Lavoura')).toHaveAttribute('aria-selected', 'true');
+    expect(aba('Lavoura')).toHaveFocus();
+    // SÓ A ABA ATIVA ENTRA NA ORDEM DO TAB.
+    expect(aba('Lavoura')).toHaveAttribute('tabindex', '0');
+    expect(aba('Visão geral')).toHaveAttribute('tabindex', '-1');
+    expect(painelAtivo()).toHaveAttribute('data-aba-da-ficha', 'lavoura');
+
+    teclar('End');
+    expect(aba('Histórico')).toHaveFocus();
+    expect(aba('Histórico')).toHaveAttribute('aria-selected', 'true');
+
+    teclar('ArrowRight');
+    expect(aba('Visão geral')).toHaveFocus();
+
+    teclar('ArrowLeft');
+    expect(aba('Histórico')).toHaveFocus();
+
+    teclar('Home');
+    expect(aba('Visão geral')).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+describe('DetalheDoMunicipio — a Visão geral', () => {
+  it('o resumo executivo tem os quatro números do município, e a variação diz por que não há', () => {
+    abrir(comLavouraEEstrutura());
+    const visao = painelAtivo();
+
+    const mini = (id: string) => visao.querySelector<HTMLElement>(`[data-mini="${id}"]`)!;
+    expect(mini('vendas')).toHaveTextContent('R$ 1,3 mi');
+    expect(mini('posVenda')).toHaveTextContent('R$ 350 mil');
+    expect(mini('maquinas')).toHaveTextContent('7');
+    // "Clientes ativos" da maquete vira "Clientes com endereço" (decisão 2).
+    expect(mini('clientes')).toHaveTextContent('Clientes com endereço');
+    expect(mini('clientes')).toHaveTextContent('12');
+    expect(visao).not.toHaveTextContent('Clientes ativos');
+
+    expect(textoDaDica('Por que a variação de vendas no período não aparece')).toMatch(/issue 69/);
+    // O período é o da página, e o seletor diz qual.
+    expect((screen.getByRole('combobox', { name: 'Período do resumo' }) as HTMLSelectElement).disabled).toBe(true);
+    expect(screen.getByRole('combobox', { name: 'Período do resumo' })).toHaveTextContent('12 meses');
+  });
+
+  it('a lavoura lista as culturas do detalhe e "Outros" até o total da PAM', () => {
+    abrir(comLavouraEEstrutura());
+    const lavoura = document.querySelector<HTMLElement>('[data-bloco-da-ficha="lavoura"]')!;
+
+    const linhas = [...lavoura.querySelectorAll<HTMLElement>('tbody tr')].map((tr) => tr.dataset.cultura);
+    expect(linhas).toEqual(['Café (em grão) Total', 'Outros']);
+    // 23.000 / 37.226 = 62%; os 14.226 ha restantes são 38%.
+    expect(lavoura.querySelector('[data-cultura="Café (em grão) Total"]')).toHaveTextContent(/23\.000\s*62%/);
+    expect(lavoura.querySelector('[data-cultura="Outros"]')).toHaveTextContent(/14\.226\s*38%/);
+
+    const dica = textoDaDica('De onde vem a lavoura do município');
+    expect(dica).toMatch(/só das culturas com regra de potencial/);
+    expect(dica).toMatch(/de 9 com área divulgada/);
+  });
+
+  it('a estrutura agropecuária mostra o que existe e diz o que falta, sem inventar', () => {
+    abrir(comLavouraEEstrutura());
+    const estrutura = document.querySelector<HTMLElement>('[data-bloco-da-ficha="estrutura"]')!;
+
+    expect(estrutura).toHaveTextContent(/253\s*propriedades rurais/);
+    for (const [oQue, issue] of [
+      ['a área total das propriedades', /issue 174/],
+      ['o tamanho médio da propriedade', /issue 174/],
+      ['a vocação agrícola', /issue 166/],
+    ] as const) {
+      expect(textoDaDica(`Por que ${oQue} não aparece`)).toMatch(issue);
+    }
+  });
+
+  it('as oportunidades: potencial e máquinas sem dado com o motivo, cobertura real — e "Ver detalhes" leva à aba', () => {
+    abrir(comLavouraEEstrutura());
+
+    expect(textoDaDica('Por que o potencial incremental não aparece')).toMatch(/issue 70/);
+    expect(textoDaDica('Por que as máquinas potenciais não aparece')).toMatch(/issue 69/);
+    // 11 de 18 vínculos no prazo.
+    expect(document.querySelector('.terr-ficha-oport')).toHaveTextContent(/61,1%\s*cobertura atual/);
+
+    fireEvent.click(screen.getByRole('button', { name: /Ver detalhes/ }));
+    expect(screen.getByRole('tab', { name: 'Oportunidades' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Oportunidades' })).toHaveFocus();
+  });
+});
+
+describe('DetalheDoMunicipio — Lavoura, Estrutura, Oportunidades e Histórico', () => {
+  it('a aba Lavoura compara com a Região Tracbel e SP, aberta', () => {
+    abrir(comLavouraEEstrutura());
+    irPara('Lavoura');
+
+    const lavoura = within(painelAtivo()).getByText(/A lavoura/).closest<HTMLElement>('section')!;
+    expect(lavoura).toHaveAttribute('data-camada', 'lavoura');
     expect(lavoura.closest('details')).toBeNull();
     // 37.226 / 886.333 = 4,2%; / 8.000.000 = 0,5%.
     expect(lavoura).toHaveTextContent('4,2% da Região Tracbel');
     expect(lavoura).toHaveTextContent('0,5% de SP');
+  });
 
-    const estrutura = document.querySelector<HTMLElement>('[data-camada="estrutura"]')!;
+  it('a aba Estrutura compara com a Região Tracbel e SP, e o sigilo é dito como sigilo', () => {
+    abrir(comLavouraEEstrutura());
+    irPara('Estrutura');
+
+    const estrutura = painelAtivo().querySelector<HTMLElement>('[data-camada="estrutura"]')!;
     // 422 / 38.364 = 1,1%; / 120.000 = 0,4%.
     expect(estrutura).toHaveTextContent('1,1% da Região Tracbel');
     expect(estrutura).toHaveTextContent('0,4% de SP');
+
+    const gatilho = within(estrutura).getByRole('button', { name: 'Por que os tratores de 100 cv e mais não aparece' });
+    fireEvent.focus(gatilho);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/Sigilo NÃO é zero/);
+    expect(gatilho.closest('dd')).not.toHaveTextContent('0');
   });
 
-  it('a camada de evidência nasce RECOLHIDA, e nada se perde dentro dela', () => {
+  it('as evidências nascem RECOLHIDAS nas abas delas, e nada se perde dentro delas', () => {
     abrir(comLavouraEEstrutura());
+    // O conteúdo de uma aba monta na primeira visita, e fica.
+    irPara('Lavoura');
+    irPara('Estrutura');
+    irPara('Visão geral');
 
-    const recolhidos = [...document.querySelectorAll<HTMLElement>('[data-evidencia]')];
-    expect(recolhidos.map((d) => d.dataset.evidencia)).toEqual([
-      'potencial',
-      'faixas',
-      'usinas',
-      'carteira',
-      'fontes',
-    ]);
-    for (const d of recolhidos) expect(d.hasAttribute('open')).toBe(false);
+    const naAba = (aba: string) =>
+      [...document.querySelectorAll<HTMLElement>(`[data-aba-da-ficha="${aba}"] [data-evidencia]`)].map((d) => d.dataset.evidencia);
+    expect(naAba('lavoura')).toEqual(['potencial', 'fontes']);
+    expect(naAba('estrutura')).toEqual(['faixas', 'usinas', 'carteira']);
+    for (const d of document.querySelectorAll('[data-evidencia]')) expect(d.hasAttribute('open')).toBe(false);
 
-    // O operacional de carteira continua inteiro — só mudou de camada.
+    // O operacional de carteira continua inteiro — só mudou de casa.
+    irPara('Estrutura');
     const carteira = abrirEvidencia('carteira');
     expect(carteira).toHaveTextContent('Carteira Norte');
     expect(carteira).toHaveTextContent('Cobertura de visita');
-    expect(carteira).toHaveTextContent('Vendas no período');
+    expect(carteira).toHaveTextContent('7 (38,9%)');
     expect(carteira).toHaveTextContent('Pós-venda');
-  });
-
-  it('sigilo do IBGE é dito como sigilo, e nunca como zero', () => {
-    abrir(comLavouraEEstrutura());
-
-    const estrutura = document.querySelector<HTMLElement>('[data-camada="estrutura"]')!;
-    const gatilho = within(estrutura).getByRole('button', { name: 'Por que os tratores de 100 cv e mais não aparece' });
-    fireEvent.focus(gatilho);
-
-    const dica = screen.getByRole('tooltip');
-    expect(dica).toHaveTextContent(/Sigilo NÃO é zero/);
-    expect(gatilho.closest('dd')).not.toHaveTextContent('0');
   });
 
   it('sem denominador, a fatia não aparece — e não vira 0%', () => {
     abrir(comLavouraEEstrutura(), [], false);
+    irPara('Lavoura');
 
-    const lavoura = document.querySelector<HTMLElement>('[data-camada="lavoura"]')!;
+    const lavoura = painelAtivo().querySelector<HTMLElement>('[data-camada="lavoura"]')!;
     expect(lavoura).not.toHaveTextContent('% da Região Tracbel');
     expect(lavoura).not.toHaveTextContent('0% de SP');
     // Mas o número continua lá.
@@ -305,15 +449,123 @@ describe('DetalheDoMunicipio — as três camadas (documento 50, §6)', () => {
 
   it('a medida traz a própria procedência, e ela abre pelo teclado', () => {
     abrir(comLavouraEEstrutura());
+    irPara('Lavoura');
 
-    fireEvent.focus(screen.getByRole('button', { name: 'De onde vem a área plantada' }));
-    const dica = screen.getByRole('tooltip');
-    expect(dica).toHaveTextContent('Fonte: IBGE/SIDRA');
-    expect(dica).toHaveTextContent('Tabela: 5457');
+    const dica = textoDaDica('De onde vem a área plantada');
+    expect(dica).toContain('Fonte: IBGE/SIDRA');
+    expect(dica).toContain('Tabela: 5457');
+  });
+
+  it('a aba Oportunidades abre com os quatro números de decisão, e a lista vazia diz o que falta', () => {
+    abrir(comLavouraEEstrutura());
+    irPara('Oportunidades');
+
+    const decisao = painelAtivo().querySelector<HTMLElement>('[data-camada="decisao"]')!;
+    for (const rotulo of ['Demanda anual', 'Mercado anual', 'Captura Tracbel', 'Oportunidade'])
+      expect(decisao).toHaveTextContent(rotulo);
+
+    const lista = painelAtivo().querySelector<HTMLElement>('[data-bloco-da-ficha="lista-de-oportunidades"]')!;
+    expect(within(lista).getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Oportunidade', 'Confiança', 'Origem']);
+    expect(lista).toHaveTextContent('aguarda vendas por município (#69) e a confiança da #162');
+    for (const nivel of ['Alta', 'Média', 'Baixa']) expect(lista).toHaveTextContent(nivel);
+    expect(textoDaDica('Por que não há oportunidades listadas')).toMatch(/não com exemplos/);
+  });
+
+  it('a aba Histórico diz que a série não existe, e não desenha linha', () => {
+    abrir(comLavouraEEstrutura());
+    irPara('Histórico');
+
+    expect(painelAtivo()).toHaveTextContent('Sem série histórica');
+    expect(painelAtivo().querySelector('canvas')).toBeNull();
+    expect(textoDaDica('Por que o histórico do município está vazio')).toMatch(/série histórica do município ainda não existe/);
   });
 
   it('nenhum `title=` cru na ficha', () => {
     abrir(comLavouraEEstrutura());
     expect([...document.querySelectorAll('[title]')]).toEqual([]);
+  });
+});
+
+/**
+ * NENHUMA MEDIDA DA FICHA SUMIU (decisão 3 do usuário).
+ *
+ * A lista abaixo é a da ficha ANTES da fase 4 — títulos, rótulos das medidas,
+ * cabeçalhos e detalhes recolhidos, tirada da ficha de três camadas montada com
+ * esta mesma amostra (23/09/2026). A ficha em abas tem de ter cada um deles, em
+ * alguma aba.
+ */
+const MEDIDAS_ANTES_DA_FASE_4 = [
+  'O que este município decide',
+  'Demanda anual',
+  'Mercado anual',
+  'Captura Tracbel',
+  'Oportunidade',
+  'A lavoura (2024)',
+  'Área plantada',
+  'Área colhida',
+  'Valor da produção',
+  'Culturas com área divulgada',
+  'O que já existe para mecanizar',
+  'Tratores (2017)',
+  'Menos de 100 cv',
+  'De 100 cv e mais',
+  'Propriedades',
+  'Propriedades com trator',
+  'Rebanho bovino (2024)',
+  'Área do município',
+  'Potencial por cultura',
+  'Área plantada de Café (em grão) Total (2024)',
+  'Área colhida da mesma cultura',
+  'Quantidade produzida',
+  'Produtividade',
+  'Valor da produção dela',
+  '3036N teóricos (1 a cada 10 ha)',
+  'Parque teórico do município',
+  'Propriedades por tamanho',
+  'até 10 ha',
+  'Usinas de etanol',
+  'Usina X',
+  'Quem atende, cobertura e vendas',
+  'Quem atende este município',
+  'Responsável no CRM',
+  'Natureza',
+  'Vínculos aqui',
+  'Carteiras',
+  'Cobertura de visita',
+  'Elegíveis',
+  'Cobertos',
+  'Fora da cadência',
+  'Nunca contatados',
+  'Pendentes',
+  'Vendas no período',
+  'Máquina',
+  'Peça',
+  'Serviço',
+  'Outros',
+  'Total líquido',
+  'Pós-venda',
+  'Fontes e competências',
+];
+
+describe('DetalheDoMunicipio — nada sai (decisão 3)', () => {
+  it('toda medida da ficha de antes continua em alguma aba', () => {
+    const m = comLavouraEEstrutura();
+    m.estrutura.faixasDeArea = [{ ordem: 1, rotulo: 'até 10 ha', estabelecimentos: 5 }];
+    m.estrutura.usinas = [{ razaoSocial: 'Usina X', capacidadeM3Dia: 100 }];
+    abrir(m, [], false);
+    // Uma pessoa passa pelas cinco abas; o conteúdo de cada uma monta na
+    // primeira visita e fica no documento.
+    for (const aba of ['Lavoura', 'Estrutura', 'Oportunidades', 'Histórico', 'Visão geral']) irPara(aba);
+
+    // O MESMO SELETOR da lista de antes — títulos, rótulos, cabeçalhos,
+    // detalhes e os rótulos dos cartões de decisão —, em TODAS as abas.
+    const agora = new Set(
+      [...document.querySelectorAll('[data-bloco="ficha-do-municipio"] :is(dt, th, summary, h3, h4, .dash-kpi-rotulo)')].map((n) =>
+        (n.textContent ?? '').replace(/\s+/g, ' ').trim(),
+      ),
+    );
+
+    const sumiram = MEDIDAS_ANTES_DA_FASE_4.filter((medida) => !agora.has(medida));
+    expect(sumiram).toEqual([]);
   });
 });

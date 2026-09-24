@@ -333,8 +333,15 @@ function textoDaDica(rotulo: string, dentroDe: HTMLElement = document.body): str
   return texto;
 }
 
-/** A ficha do município, que desde 23/09/2026 mora só na aba Território. */
-const fichaNaTela = () => screen.queryByRole('heading', { name: 'Quem atende este município' });
+/**
+ * A ficha do município, que desde 23/09/2026 mora só na aba Território.
+ *
+ * ERA O TÍTULO "Quem atende este município"; desde a fase 4 a ficha é em abas e
+ * esse título mora na aba Estrutura, escondido enquanto a Visão geral está
+ * aberta. A ficha se reconhece pelo bloco dela — e o nome do município é o
+ * título dela.
+ */
+const fichaNaTela = () => document.querySelector<HTMLElement>('[data-bloco="ficha-do-municipio"]');
 
 function abrir(entrada = '/cobertura') {
   render(
@@ -684,7 +691,9 @@ describe('Indicadores Geográficos — o recorte mora na URL (issue 163)', () =>
     abrir(`/cobertura?municipio=${CAFELANDIA}`);
     await esperarACarga();
 
-    expect(await screen.findByRole('heading', { name: 'Quem atende este município' })).toBeInTheDocument();
+    // O NOME DO MUNICÍPIO É O TÍTULO DA FICHA (fase 4, maquete).
+    expect(await screen.findByRole('heading', { level: 2, name: 'Cafelândia' })).toBeInTheDocument();
+    expect(fichaNaTela()).toBeInTheDocument();
     expect(campoDeMunicipio().value).toBe(String(CAFELANDIA));
     // A TELA ABRE ONDE A FICHA MORA (fidelidade às maquetes, 23/09/2026): um
     // endereço com município é o de quem estava olhando uma ficha.
@@ -698,7 +707,7 @@ describe('Indicadores Geográficos — o recorte mora na URL (issue 163)', () =>
 
     expect(campoDeMunicipio().value).toBe('');
     expect(bloco('mapas')).not.toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Quem atende este município' })).not.toBeInTheDocument();
+    expect(fichaNaTela()).not.toBeInTheDocument();
   });
 
   it('código que não existe no recorte também não inventa ficha', async () => {
@@ -732,6 +741,109 @@ describe('Indicadores Geográficos — o recorte mora na URL (issue 163)', () =>
   });
 });
 
+/**
+ * A ABA TERRITÓRIO COMO A MAQUETE `territorio-ficha.png` (fase 4, 23/09/2026).
+ *
+ * O desenho não se prova aqui — ele está nas capturas. O que se prova é o que a
+ * troca de desenho não podia mudar: os mesmos números nos quatro cartões, a
+ * ressalva que era vermelho indo para a dica, o período que não se inventa e a
+ * conferência que saiu das linhas da tabela para a dica do título.
+ */
+describe('Indicadores Geográficos — a aba Território da maquete', () => {
+  afterEach(() => {
+    obterIndicadoresTerritoriais.mockReset();
+    carregarMalhaDeSaoPaulo.mockReset();
+    guardado.clear();
+  });
+
+  const cartao = (id: string) => document.querySelector<HTMLElement>(`[data-kpi-carteira="${id}"]`)!;
+
+  it('os quatro cartões da carteira, na ordem da maquete, com os números do recorte', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+    irPara('Território');
+
+    const ids = [...document.querySelectorAll<HTMLElement>('[data-kpi-carteira]')].map((c) => c.dataset.kpiCarteira);
+    expect(ids).toEqual(['municipios', 'cobertura', 'vendas', 'parque']);
+
+    expect(cartao('municipios')).toHaveTextContent('Municípios da ADR');
+    expect(cartao('municipios')).toHaveTextContent('12 clientes com endereço neles');
+    // 11 de 18 vínculos no prazo = 61,1%; um município com visita.
+    expect(cartao('cobertura')).toHaveTextContent('61,1%');
+    expect(cartao('cobertura')).toHaveTextContent('1 municípios com visita');
+    expect(within(cartao('cobertura')).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '61');
+    expect(cartao('vendas')).toHaveTextContent('R$ 1,3 mi');
+    expect(cartao('vendas')).toHaveTextContent('em 1 municípios');
+    expect(cartao('parque')).toHaveTextContent('1.240');
+    expect(cartao('parque')).toHaveTextContent('estimativa na área de atuação');
+
+    // O PAINEL DO CADASTRO, com o valor vermelho, não está mais aqui.
+    expect(painelDaAba().querySelector('.cad-kpis, .cad-kpi-atencao')).toBeNull();
+  });
+
+  it('o texto longo de cada cartão foi para a dica dele — "regra provisória" inclusive', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+    irPara('Território');
+
+    expect(cartao('cobertura')).not.toHaveTextContent('regra provisória');
+    const dica = textoDaDica('De onde vem cobertura pela cadência', cartao('cobertura'));
+    expect(dica).toContain('11 de 18 vínculos elegíveis no prazo');
+    expect(dica).toContain('regra provisória');
+
+    expect(textoDaDica('De onde vem vendas no período', cartao('vendas'))).toContain('composição provisória');
+    expect(textoDaDica('De onde vem parque teórico de máquinas', cartao('parque'))).toContain('12.400 ha úteis');
+  });
+
+  it('a variação "vs. ano anterior" não inventa número: traço e a issue que destrava', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+    irPara('Território');
+
+    for (const id of ['municipios', 'cobertura', 'vendas', 'parque']) {
+      const pilula = cartao(id).querySelector<HTMLElement>('.terr-cart-variacao')!;
+      expect(pilula).toHaveTextContent('vs. ano anterior');
+      // Nenhum algarismo na pílula: sem período anterior não há "+5%".
+      expect(pilula.textContent).not.toMatch(/\d/);
+    }
+    expect(textoDaDica('Por que a variação de municípios da adr não aparece', cartao('municipios'))).toMatch(/issue 69/);
+  });
+
+  it('o título diz "sua área de atuação" e o controle de comparação vem desligado, com o período em vigor', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+    irPara('Território');
+
+    const secao = bloco('carteira-na-area')!;
+    expect(secao).toHaveTextContent('visão consolidada da sua área de atuação');
+    expect(secao).not.toHaveTextContent(/sua região/);
+
+    expect(within(secao).getByRole('switch', { name: 'Comparar com o período anterior' })).toBeDisabled();
+    const periodo = within(secao).getByRole('combobox', { name: 'Período da carteira' }) as HTMLSelectElement;
+    expect(periodo).toBeDisabled();
+    // set/2025 a ago/2026 são doze meses — escritos como a maquete escreve.
+    expect(periodo).toHaveTextContent('12 meses');
+    expect(textoDaDica('Por que a comparação e o período não mudam aqui', secao)).toContain('set/2025 a ago/2026');
+  });
+
+  it('a conferência da tabela saiu das linhas e está na dica do título, com o total da consulta', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+    irPara('Território');
+
+    const tabela = bloco('tabela-municipios')!;
+    expect(tabela.querySelector('tbody')).not.toHaveTextContent('Total da consulta');
+    const dica = textoDaDica('Os totais da ADR e da consulta', tabela);
+    // 18 (ADR) + 18 (fora da ADR) + 2 (fora do mapa) = 38 elegíveis.
+    expect(dica).toMatch(/Total da consulta.*38 elegíveis/);
+  });
+});
+
 describe('Indicadores Geográficos — somável × razão (documento 50, §7)', () => {
   afterEach(() => {
     obterIndicadoresTerritoriais.mockReset();
@@ -751,7 +863,13 @@ describe('Indicadores Geográficos — somável × razão (documento 50, §7)', 
   const faixaDe = (rotulo: string) => document.querySelector<HTMLElement>(`[data-faixa="${rotulo}"]`)!;
 
   /**
-   * Abre a dica da comparação de um indicador da faixa e devolve o TEXTO dela.
+   * Abre a dica de um indicador da faixa e devolve o TEXTO da parte da
+   * comparação — a fatia.
+   *
+   * UMA DICA POR NÚMERO, COM DUAS PARTES (fidelidade às maquetes, 23/09/2026):
+   * eram duas dicas empilhadas, a da fatia e a da procedência. Viraram uma, com
+   * cada parte no seu parágrafo marcado — e é a parte da fatia que este helper
+   * lê, para que a procedência não passe por fatia em nenhuma afirmação.
    *
    * ELA FECHA A DICA ANTES DE SAIR, e isso não é higiene: o balão do Radix vive
    * num portal e só some quando o gatilho perde o foco. Abrir a segunda sem
@@ -760,13 +878,14 @@ describe('Indicadores Geográficos — somável × razão (documento 50, §7)', 
    * tela e é só o teste esquecendo de fechar a porta.
    */
   function comparacaoDe(rotulo: string): string | null {
+    const nome = rotulo.toLowerCase();
     const gatilho = within(faixaDe(rotulo)).queryByRole('button', {
-      name: `Quanto ${rotulo.toLowerCase()} representa`,
+      name: new RegExp(`^(Quanto ${nome} representa|De onde vem ${nome} e quanto representa)$`),
     });
     if (!gatilho) return null;
 
     fireEvent.focus(gatilho);
-    const texto = screen.getByRole('tooltip').textContent ?? '';
+    const texto = screen.getByRole('tooltip').querySelector('[data-parte="comparacao"]')?.textContent ?? '';
     fireEvent.blur(gatilho);
     return texto;
   }
@@ -826,11 +945,13 @@ describe('Indicadores Geográficos — procedência por indicador (issue 167)', 
     abrir();
     await esperarACarga();
 
-    const gatilho = screen.getByRole('button', { name: 'De onde vem parque de tratores' });
+    // UMA DICA POR NÚMERO (fidelidade às maquetes): a fatia e a procedência
+    // moram no mesmo balão, e o nome dele diz as duas coisas.
+    const gatilho = screen.getByRole('button', { name: 'De onde vem parque de tratores e quanto representa' });
 
     // Pelo TECLADO: o `title=` cru nunca abriu assim.
     fireEvent.focus(gatilho);
-    const dica = await screen.findByRole('tooltip');
+    const dica = (await screen.findByRole('tooltip')).querySelector<HTMLElement>('[data-parte="procedencia"]')!;
 
     expect(dica).toHaveTextContent('Fonte: IBGE/SIDRA');
     expect(dica).toHaveTextContent('Pesquisa: Censo Agropecuário');
@@ -846,9 +967,18 @@ describe('Indicadores Geográficos — procedência por indicador (issue 167)', 
     abrir();
     await esperarACarga();
 
-    // `usinas: null` no contrato — o número existe na faixa, a dica de fonte não.
-    expect(document.querySelector('[data-faixa="Usinas de etanol"]')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'De onde vem usinas de etanol' })).not.toBeInTheDocument();
+    // `usinas: null` no contrato — o número existe na faixa, a fonte não. A
+    // dica dele é só a da fatia, e não traz carimbo nenhum.
+    const usinas = document.querySelector<HTMLElement>('[data-faixa="Usinas de etanol"]')!;
+    expect(usinas).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /De onde vem usinas de etanol/ })).not.toBeInTheDocument();
+
+    const gatilho = within(usinas).getByRole('button', { name: 'Quanto usinas de etanol representa' });
+    fireEvent.focus(gatilho);
+    const dica = screen.getByRole('tooltip');
+    expect(dica.querySelector('[data-parte="procedencia"]')).toBeNull();
+    expect(dica).not.toHaveTextContent(/Fonte:/);
+    fireEvent.blur(gatilho);
   });
 
   it('a tela não escreve fonte à mão: a comparação não repete o carimbo', async () => {
@@ -857,14 +987,21 @@ describe('Indicadores Geográficos — procedência por indicador (issue 167)', 
     await esperarACarga();
 
     // A fonte mora no carimbo de procedência; a comparação diz só a fatia. Os
-    // dois são dicas separadas, e é isso que impede a fonte de ser escrita duas
-    // vezes, à mão numa delas (issue 167).
+    // dois são PARTES SEPARADAS da mesma dica (fidelidade às maquetes — eram
+    // duas dicas), e é isso que impede a fonte de ser escrita duas vezes, à mão
+    // numa delas (issue 167).
     const tratores = document.querySelector<HTMLElement>('[data-faixa="Parque de tratores"]')!;
-    fireEvent.focus(within(tratores).getByRole('button', { name: 'Quanto parque de tratores representa' }));
-    const comparacao = screen.getByRole('tooltip').textContent ?? '';
+    fireEvent.focus(
+      within(tratores).getByRole('button', { name: 'De onde vem parque de tratores e quanto representa' }),
+    );
+    const dica = screen.getByRole('tooltip');
+    const comparacao = dica.querySelector('[data-parte="comparacao"]')?.textContent ?? '';
 
+    expect(comparacao).toMatch(/Região Tracbel/);
     expect(comparacao).not.toMatch(/Censo Agropecuário/);
     expect(comparacao).not.toMatch(/IBGE/);
+    // E a fonte está lá, do contrato, na parte dela.
+    expect(dica.querySelector('[data-parte="procedencia"]')).toHaveTextContent('Pesquisa: Censo Agropecuário');
   });
 });
 
@@ -922,9 +1059,9 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     // NENHUM DELES INVENTOU NÚMERO. O que se afirma é a ausência de dígito, e
     // não o texto exato: o "sem dado" que acompanha o traço é do `ValorAusente`
     // e só existe para o leitor de tela (`cad-so-leitor`) — na tela, o cartão
-    // mostra um travessão e mais nada.
+    // mostra um travessão e, no lugar dela, a unidade da maquete.
     for (const rotulo of ['Mercado anual', 'Captura Tracbel', 'Oportunidade']) {
-      const valor = executivo(rotulo).querySelector('.dash-kpi-valor')!.textContent ?? '';
+      const valor = executivo(rotulo).querySelector('.mv-kpi-valor')!.textContent ?? '';
       expect(valor, `${rotulo} mostrou um número onde não há dado`).not.toMatch(/\d/);
       expect(valor).toContain('—');
     }
@@ -938,10 +1075,10 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     const motivo = motivoDe('Demanda anual');
     expect(motivo).toMatch(/ciclo de renovação/);
     expect(motivo).toMatch(/issue 63/);
-    expect(executivo('Demanda anual').querySelector('.dash-kpi-valor')!.textContent).not.toContain('0 máq');
+    expect(executivo('Demanda anual').querySelector('.mv-kpi-valor')!.textContent).not.toMatch(/\d/);
   });
 
-  it('os quatro cartões têm a mesma estrutura — rótulo, valor e contexto, sempre', async () => {
+  it('os quatro cartões têm a mesma estrutura — rótulo, valor e variação, sempre', async () => {
     // O QUE ISTO IMPEDE: que um cartão volte a ter um parágrafo dentro e fique
     // mais alto que os vizinhos. As três partes existem em todos os quatro,
     // mesmo vazias, e é isso que iguala a altura sem fixar altura em pixel.
@@ -951,10 +1088,37 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
 
     for (const rotulo of ['Demanda anual', 'Mercado anual', 'Captura Tracbel', 'Oportunidade']) {
       const cartao = executivo(rotulo);
-      expect(cartao.querySelector('.dash-kpi-rotulo')).not.toBeNull();
-      expect(cartao.querySelector('.dash-kpi-valor')).not.toBeNull();
-      expect(cartao.querySelector('.dash-kpi-contexto')).not.toBeNull();
+      expect(cartao.querySelector('.mv-kpi-rotulo')).not.toBeNull();
+      expect(cartao.querySelector('.mv-kpi-valor')).not.toBeNull();
+      expect(cartao.querySelector('.mv-kpi-contexto')).not.toBeNull();
     }
+  });
+
+  it('a linha "vs. ano anterior" existe nos quatro, com traço e o motivo — nunca um "+8%" inventado', async () => {
+    // DECISÃO DO USUÁRIO (23/09/2026): o número que a maquete mostra e o
+    // sistema não tem aparece no MESMO LUGAR, com "—" e a dica que diz o que
+    // falta. A leitura devolve uma janela de competência, não duas (issue 69).
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    for (const rotulo of ['Demanda anual', 'Mercado anual', 'Captura Tracbel', 'Oportunidade']) {
+      const linha = executivo(rotulo).querySelector<HTMLElement>('.mv-kpi-contexto')!;
+      expect(linha).toHaveTextContent('vs. ano anterior');
+      expect(linha.textContent, `${rotulo} inventou uma variação`).not.toMatch(/\d/);
+
+      const gatilho = within(linha).getByRole('button', {
+        name: `Por que a variação de ${rotulo.toLowerCase()} não aparece`,
+      });
+      fireEvent.focus(gatilho);
+      expect(screen.getByRole('tooltip')).toHaveTextContent(/issue 69/);
+      fireEvent.blur(gatilho);
+    }
+
+    // E A UNIDADE DA CAPTURA NÃO É "participação no mercado", como na maquete:
+    // é a mesma palavra que "share", e o denominador é a demanda ESTIMADA.
+    expect(executivo('Captura Tracbel')).not.toHaveTextContent(/participação/i);
+    expect(executivo('Captura Tracbel')).toHaveTextContent('da demanda estimada');
   });
 
   it('o porte nasce SEM NOME, e a dica diz que nulo não é "pequeno"', async () => {
@@ -999,10 +1163,18 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     abrir();
     await esperarACarga();
 
-    // A RÉGUA DO MERCADO (T4.8): a faixa e o número saem na pílula, juntos.
-    const faixa = bloco('faixa-do-mercado')!;
-    expect(faixa).toHaveTextContent('Retraído');
-    expect(faixa).toHaveTextContent('0,88');
+    // A PÍLULA DIZ A FAIXA; O NÚMERO ABRE A DICA DO TÍTULO (fidelidade às
+    // maquetes, 23/09/2026). A maquete mostra "NORMAL" sozinho na pílula, e o
+    // que a tela tem e a maquete não mostra vai para a dica ao lado do título —
+    // o fator continua a um Tab, com a faixa escrita junto.
+    const momento = bloco('porte-e-momento')!;
+    expect(momento.querySelector('.mv-pilula')).toHaveTextContent('Retraído');
+    expect(momento.querySelector('.mv-pilula')).not.toHaveTextContent('0,88');
+
+    const gatilho = within(momento).getByRole('button', { name: 'Como o momento do mercado é composto' });
+    fireEvent.focus(gatilho);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Fator agregado 0,88 — Retraído');
+    fireEvent.blur(gatilho);
   });
 
   it('o resumo executivo NÃO tem as três setas agregadas (fase T3.1)', async () => {
@@ -1029,8 +1201,8 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     abrir();
     await esperarACarga();
 
-    // A COMPOSIÇÃO VIROU TABELA NA T4.6: comparar a mesma grandeza entre linhas
-    // é para o que a tabela existe. Em parágrafos, o olho andava na diagonal.
+    // A COMPOSIÇÃO É A TABELA "Detalhamento por cultura" DA MAQUETE (fase 3):
+    // comparar a mesma grandeza entre linhas é para o que a tabela existe.
     const composicao = bloco('composicao-do-fator')!;
     const linhas = [...composicao.querySelectorAll<HTMLElement>('tbody tr')];
     expect(linhas.map((l) => l.dataset.cultura)).toEqual(['CAFE', 'CANA']);
@@ -1038,57 +1210,83 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     // Fatores diferentes na mesma tela — o que a regra antiga escondia atrás de um só.
     expect(linhas[0]).toHaveTextContent('0,84');
     expect(linhas[1]).toHaveTextContent('1,00');
-    // A demanda do café é o que manda no agregado: 300 das 400 máquinas/ano.
-    expect(linhas[0]).toHaveTextContent('300 → 252');
-    expect(linhas[1]).toHaveTextContent('100 → 100');
+    // A demanda do café é o que manda no agregado: 300 das 400 máquinas/ano —
+    // estrutural e ajustada em colunas próprias, como na maquete.
+    const celulas = (tr: HTMLElement) => [...tr.querySelectorAll('td')].map((td) => (td.textContent ?? '').trim());
+    expect(celulas(linhas[0]).slice(5, 7)).toEqual(['300', '252']);
+    expect(celulas(linhas[1]).slice(5, 7)).toEqual(['100', '100']);
 
-    // E o índice de CADA cultura continua dito, agora na dica da parcela dela.
-    fireEvent.focus(
-      within(linhas[0]).getByRole('button', { name: 'Como rentabilidade entra no fator de Café (Total)' }),
-    );
+    // AS BARRAS DA COMPOSIÇÃO têm uma linha por cultura, na mesma ordem.
+    expect([...composicao.querySelectorAll<HTMLElement>('.mom-pilha')].map((l) => l.dataset.cultura)).toEqual([
+      'CAFE',
+      'CANA',
+    ]);
+
+    // E o índice de CADA cultura continua dito, agora no ⋮ da linha dela.
+    fireEvent.focus(within(linhas[0]).getByRole('button', { name: 'Detalhes do fator de Café (Total)' }));
     expect(screen.getByRole('tooltip')).toHaveTextContent('0,80');
   });
 
-  it('as parcelas são TRÊS por cultura, e o custo não é uma quarta coluna', async () => {
-    responder(comMomento);
-    abrir();
-    await esperarACarga();
-
-    const colunas = [...bloco('composicao-do-fator')!.querySelectorAll('thead th')].map((n) =>
-      (n.textContent ?? '').trim(),
-    );
-    expect(colunas).toEqual([
-      'Cultura',
-      'Momento',
-      'Fator',
-      'Rentab.',
-      'Crédito',
-      'Percep.',
-      'Demanda → ajustada',
-    ]);
-    expect(colunas).not.toContain('Custo');
-  });
-
-  it('a direção da seta carrega o significado, e a dica diz que o índice é DESTA cultura', async () => {
+  it('as parcelas são TRÊS por cultura, e o custo não ganha número próprio (D-P05)', async () => {
     responder(comMomento);
     abrir();
     await esperarACarga();
 
     const composicao = bloco('composicao-do-fator')!;
-    const café = composicao.querySelector<HTMLElement>('[data-cultura="CAFE"]')!;
-    const cana = composicao.querySelector<HTMLElement>('[data-cultura="CANA"]')!;
+    const colunas = [...composicao.querySelectorAll('thead th')].map((n) => (n.textContent ?? '').trim());
+    // AS COLUNAS DA MAQUETE (fidelidade às maquetes, fase 3). O custo tem o
+    // lugar dela — decisão 2 do usuário: o layout é o da maquete —, mas não tem
+    // número: ele entra DENTRO da parcela de commodity.
+    expect(colunas).toEqual([
+      'Cultura',
+      'Commodity',
+      'Custo',
+      'Crédito',
+      'Percepção comercial',
+      'Fator final',
+      'Demanda estrutural',
+      'Demanda ajustada',
+      'Var. %',
+      'Detalhes',
+    ]);
+    for (const tr of composicao.querySelectorAll<HTMLElement>('tbody tr'))
+      expect(tr.querySelectorAll('td')[1].textContent, 'o custo ganhou um número').not.toMatch(/\d/);
+
+    // AS BARRAS TÊM TRÊS PARCELAS, e nenhuma é de custo.
+    const parcelas = new Set(
+      [...composicao.querySelectorAll<HTMLElement>('.mom-pilha-trilho [data-parcela]')].map((p) => p.dataset.parcela),
+    );
+    expect([...parcelas].sort()).toEqual(['commodity', 'credito', 'percepcao']);
+
+    // O CARTÃO DO CUSTO tem o traço e diz por quê.
+    const custo = composicao.querySelector<HTMLElement>('[data-cartao="Custo"]')!;
+    expect(custo.querySelector('.mom-cartao-valor')!.textContent).not.toMatch(/\d/);
+    expect(textoDaDica('Por que o custo no fator não aparece', custo)).toMatch(/D-P05/);
+  });
+
+  it('o SINAL carrega o sentido de cada parcela, e a dica diz que o índice é da cultura', async () => {
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    const composicao = bloco('composicao-do-fator')!;
+    const linha = (codigo: string) => composicao.querySelector<HTMLElement>(`tbody tr[data-cultura="${codigo}"]`)!;
+    const parcelas = (tr: HTMLElement) =>
+      [...tr.querySelectorAll('td')].slice(0, 4).map((td) => (td.textContent ?? '').trim());
 
     // Café: preço −0,08 → baixa; crédito −0,06 → baixa; percepção +0,02 → sobe.
-    expect([...café.querySelectorAll('.terr-parcela-seta')].map((n) => n.textContent)).toEqual(['↓', '↓', '↑']);
+    // O SINAL É ESCRITO, e não só a cor: a tela continua legível em escala de cinza.
+    const cafe = parcelas(linha('CAFE'));
+    expect([cafe[0], cafe[2], cafe[3]]).toEqual(['-8,0%', '-6,0%', '+2,0%']);
     // Cana: o preço dela SOBE. Duas culturas, dois sentidos, na mesma tela.
-    expect([...cana.querySelectorAll('.terr-parcela-seta')].map((n) => n.textContent)).toEqual(['↑', '↓', '↑']);
+    expect(parcelas(linha('CANA'))[0]).toBe('+4,0%');
 
-    fireEvent.focus(
-      within(café).getByRole('button', { name: 'Como rentabilidade entra no fator de Café (Total)' }),
-    );
-    const dica = screen.getByRole('tooltip');
-    expect(dica).toHaveTextContent(/O custo entra AQUI/);
-    expect(dica).toHaveTextContent(/o índice é DESTA cultura/);
+    // A VARIAÇÃO DA DEMANDA leva a seta: 300 → 252 é ↓ 16%.
+    expect(linha('CAFE').querySelectorAll('td')[7]).toHaveTextContent('↓ -16%');
+
+    const dica = textoDaDica('De quem é a parcela de commodity', composicao);
+    expect(dica).toMatch(/O custo entra AQUI/);
+    expect(dica).toMatch(/DE CADA CULTURA/);
   });
 
   it('o total fecha a conta que o topo mostra: 352 ÷ 400 = 0,88', async () => {
@@ -1096,11 +1294,18 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     abrir();
     await esperarACarga();
 
-    const total = bloco('composicao-do-fator')!.querySelector('.dash-tabela-total')!;
-    expect(total).toHaveTextContent('352');
-    expect(total).toHaveTextContent('400');
-    expect(total).toHaveTextContent('0,88');
-    expect(bloco('porte-e-momento')!).toHaveTextContent('0,88');
+    // A CONTA DO AGREGADO MORA NA DICA DO DETALHAMENTO (fidelidade às
+    // maquetes, fase 3): a maquete não tem linha de total, e a conta inteira —
+    // Σ ajustada ÷ Σ estrutural — continua a um Tab de distância.
+    const conta = textoDaDica('Como ler detalhamento por cultura', bloco('composicao-do-fator')!);
+    expect(conta).toContain('352 ÷ 400 = 0,88');
+    expect(conta).toMatch(/Σ demanda ajustada ÷ Σ demanda estrutural/);
+    // O TOPO MOSTRA O MESMO 0,88 — na dica do título "Momento do mercado", que é
+    // onde o número mora desde a fidelidade às maquetes (a pílula diz a faixa).
+    const gatilho = within(bloco('porte-e-momento')!).getByRole('button', { name: 'Como o momento do mercado é composto' });
+    fireEvent.focus(gatilho);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Fator agregado 0,88');
+    fireEvent.blur(gatilho);
   });
 
   it('a principal cultura é contexto, e a dica diz que a área não entra no cálculo', async () => {
@@ -1113,11 +1318,15 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     // A PREDOMINANTE VIROU O SELO DA SEÇÃO DOS MAPAS (T4.8): ela responde "o que
     // se planta aqui?", que é a pergunta de quem está olhando o mapa.
     const contexto = document.querySelector<HTMLElement>('[data-contexto="predominante"]')!;
-    expect(contexto).toHaveTextContent('Cana-de-açúcar');
-    expect(contexto).toHaveTextContent('58%');
+    expect(contexto).toHaveTextContent('Principal cultura: Cana-de-açúcar');
+    // A FATIA SAIU DA LINHA (maquete: "Principal cultura: Café") e abre a dica,
+    // junto do critério — e a linha não diz "região" sozinha (issue 163).
+    expect(contexto).not.toHaveTextContent('58%');
+    expect(contexto).not.toHaveTextContent(/região/i);
 
     fireEvent.focus(within(contexto).getByRole('button', { name: 'Qual é o critério da principal cultura' }));
     const dica = screen.getByRole('tooltip');
+    expect(dica).toHaveTextContent('58% da área relevante');
     expect(dica).toHaveTextContent(/maior área útil entre as culturas com regra de potencial/);
     // "não muda o momento", e não mais "o número acima": o selo saiu de cima do
     // número e foi para o cabeçalho dos mapas (T4.8). A afirmação é a mesma —
@@ -1130,8 +1339,10 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     abrir();
     await esperarACarga();
 
+    // UMA DICA SÓ AO LADO DO TÍTULO (maquete): o número, a conta e a fonte do
+    // momento moram nela — eram duas dicas dentro da pílula.
     fireEvent.focus(
-      within(bloco('porte-e-momento')!).getByRole('button', { name: 'De onde vem o momento do mercado' }),
+      within(bloco('porte-e-momento')!).getByRole('button', { name: 'Como o momento do mercado é composto' }),
     );
     const dica = screen.getByRole('tooltip');
     expect(dica).toHaveTextContent('Fonte: CRM Tracbel');
@@ -1327,11 +1538,71 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
     abrir();
     await esperarACarga();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Termo de troca' }));
-    expect(esperarLacuna('Termo de troca')).toHaveTextContent(/issue 70/);
+    // AS DUAS ABAS TÊM O LAYOUT DA MAQUETE (fidelidade às maquetes, fase 3): os
+    // quatro cartões estão lá, e no lugar do número que não existe, o traço e a
+    // issue que o destrava — decisão 1 do usuário.
+    const momento = bloco('momento-do-mercado')!;
+    const valorDe = (rotulo: string) =>
+      momento.querySelector<HTMLElement>(`[data-cartao="${rotulo}"] .mom-cartao-valor`)!;
 
-    fireEvent.click(screen.getByRole('button', { name: 'Percepção comercial' }));
-    expect(esperarLacuna('Percepção comercial')).toHaveTextContent(/issue 71/);
+    fireEvent.click(within(momento).getByRole('tab', { name: 'Termo de troca' }));
+    for (const rotulo of ['Sacas para comprar 1 trator', 'Variação (5 anos)', 'Melhor cultura de troca', 'Tendência atual'])
+      expect(valorDe(rotulo).textContent, rotulo).not.toMatch(/\d/);
+    expect(textoDaDica('Por que as sacas por trator não aparece', momento)).toMatch(/issue 70/);
+
+    fireEvent.click(within(momento).getByRole('tab', { name: 'Percepção comercial' }));
+    expect(valorDe('Tendência dos gestores').textContent).not.toMatch(/\d/);
+    expect(textoDaDica('Por que a tendência dos gestores não aparece', momento)).toMatch(/issue 71/);
+  });
+
+  it('as cinco abas do Momento são abas de verdade, e a Composição abre o bloco', async () => {
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    const momento = bloco('momento-do-mercado')!;
+    const abas = within(momento).getAllByRole('tab');
+    expect(abas.map((a) => a.textContent)).toEqual([
+      'Composição do fator',
+      'Rentabilidade',
+      'Crédito',
+      'Termo de troca',
+      'Percepção comercial',
+    ]);
+    expect(abas[0]).toHaveAttribute('aria-selected', 'true');
+
+    // O alternador SEGMENTADO dos outros blocos continua o de sempre: o
+    // Momento não entrou nele.
+    expect(momento.querySelector('.terr-alternador')).toBeNull();
+  });
+
+  it('o vocabulário decidido vale nas cinco abas: nenhum rótulo diz "contrato" nem "share"', async () => {
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    const momento = bloco('momento-do-mercado')!;
+    for (const nome of ['Composição do fator', 'Rentabilidade', 'Crédito', 'Termo de troca', 'Percepção comercial']) {
+      fireEvent.click(within(momento).getByRole('tab', { name: nome }));
+      const rotulos = [
+        ...momento.querySelectorAll<HTMLElement>(
+          '[role="tab"], .mom-titulo, .mom-cartao-rotulo, .mom-painel-titulo, th, .mom-legenda li, option',
+        ),
+      ].map((n) => n.textContent ?? '');
+      expect(rotulos.filter((r) => /contrat|share|opera[cç][aã]o/i.test(r)), nome).toEqual([]);
+      // "Região" nunca sozinha: ou é Região Tracbel, ou é sub-região.
+      expect(rotulos.filter((r) => /\bregião\b(?! Tracbel)/i.test(r)), nome).toEqual([]);
+    }
+  });
+
+  it('"Simular cenário" do Momento abre a mesma calculadora do Potencial', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const momento = bloco('momento-do-mercado')!;
+    fireEvent.click(within(momento).getByRole('button', { name: 'Simular cenário com o momento do mercado' }));
+    expect(momento.contains(bloco('calculadora'))).toBe(true);
   });
 
   it('captura e não capturado dizem que dependem das vendas em unidades', async () => {
@@ -1393,12 +1664,77 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
     await esperarACarga();
 
     expect(bloco('calculadora')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Simular cenário' }));
+    // ESCOPADO AO BLOCO: o Momento do mercado da maquete também tem um "Simular
+    // cenário" no cabeçalho dele.
+    const simular = within(bloco('potencial-estrutural')!).getByRole('button', { name: 'Simular cenário' });
+    // UM BOTÃO À PARTE, e não um quarto segmento do alternador (maquete).
+    expect(simular.closest('.terr-alternador')).toBeNull();
+    fireEvent.click(simular);
 
     const calculadora = bloco('calculadora')!;
     expect(bloco('potencial-estrutural')!.contains(calculadora)).toBe(true);
     // Ela não mora mais dentro do cartão do mapa de potencial.
     expect(document.querySelector('[data-mapa="potencial"]')!.contains(calculadora)).toBe(false);
+  });
+
+  it('sigilo do IBGE em todo o recorte sai com traço e motivo — nunca "0 tratores"', async () => {
+    // A SOMA IGNORA O MUNICÍPIO SOB SIGILO; quando NENHUM foi divulgado, a soma
+    // vazia dava 0 — e zero afirma que a região não tem trator.
+    responder((p) => ({
+      ...p,
+      indicadores: {
+        ...p.indicadores,
+        municipios: p.indicadores.municipios.map((m) => ({
+          ...m,
+          estrutura: { ...m.estrutura, tratores: null, estabelecimentos: null, tratoresPorMilKm2: null },
+        })),
+      },
+    }));
+    abrir();
+    await esperarACarga();
+
+    for (const rotulo of ['Parque de tratores', 'Propriedades']) {
+      const item = document.querySelector<HTMLElement>(`[data-faixa="${rotulo}"]`)!;
+      expect(item.querySelector('.mv-faixa-valor')!.textContent, `${rotulo} virou zero`).not.toMatch(/\d/);
+      fireEvent.focus(within(item).getByRole('button', { name: `Por que ${rotulo.toLowerCase()} não aparece` }));
+      expect(screen.getByRole('tooltip')).toHaveTextContent(/sigilo do IBGE .* não é zero/);
+      fireEvent.blur(within(item).getByRole('button', { name: `Por que ${rotulo.toLowerCase()} não aparece` }));
+    }
+
+    // O cartão do mapa da estrutura diz o mesmo, e o mapa continua hachurado.
+    const estrutura = document.querySelector<HTMLElement>('[data-mapa="estrutura"]')!;
+    expect(estrutura.querySelector('.terr-mapa-resumo')).toHaveTextContent(/sob sigilo do IBGE .* não é zero/);
+    expect(estrutura.querySelector('.terr-mapa-resumo')!.textContent).not.toMatch(/\b0 tratores/);
+  });
+
+  it('as vendas abrem primeiro, com a variação e as máquinas vendidas no lugar da maquete — com traço', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const performance = bloco('performance-tracbel')!;
+    const abas = [...performance.querySelectorAll<HTMLButtonElement>('.terr-alternador button')];
+    expect(abas.map((b) => b.textContent)).toEqual(['Vendas', 'Captura', 'Não capturado']);
+    expect(abas[0]).toHaveAttribute('aria-pressed', 'true');
+
+    const cartoes = [...performance.querySelectorAll<HTMLElement>('[data-mini]')];
+    expect(cartoes.map((c) => c.dataset.mini)).toEqual(['Vendas no período', 'Máquina', 'Pós-venda']);
+
+    // A VARIAÇÃO DA MAQUETE, SEM NÚMERO: não há ano anterior na leitura.
+    for (const cartao of cartoes) {
+      const variacao = cartao.querySelector<HTMLElement>('.mv-variacao')!;
+      expect(variacao).toHaveTextContent('vs. ano anterior');
+      expect(variacao.textContent).toContain('—');
+      expect(variacao.textContent, `${cartao.dataset.mini} inventou uma variação`).not.toMatch(/\d/);
+    }
+
+    // AS MÁQUINAS VENDIDAS NÃO EXISTEM (issue 69): o traço, e não um número.
+    const maquina = cartoes[1];
+    expect(maquina).toHaveTextContent('máquinas vendidas');
+    fireEvent.focus(
+      within(maquina).getByRole('button', { name: 'Por que o número de máquinas vendidas não aparece' }),
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/issue 69/);
   });
 });
 

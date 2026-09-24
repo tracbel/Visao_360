@@ -103,132 +103,11 @@
   .terr-grade-mapas { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-/* -----------------------------------------------------------------------------
-   OS QUATRO CARTÕES TÊM O MESMO ESQUELETO, E AGORA O MESMO EIXO (fase T4.6).
-
-   Eles já eram o mesmo componente, mas o conteúdo tem alturas diferentes: o
-   resumo do potencial ocupa duas linhas e o da cobertura, uma. O resultado era
-   que o alternador do cartão da esquerda ficava num eixo e o da direita noutro,
-   e os mapas começavam em alturas diferentes — dois mapas lado a lado que não
-   começam na mesma linha são difíceis de comparar, que é justamente o que eles
-   existem para permitir.
-
-   Os pisos abaixo resolvem isso sem fixar altura total: o conteúdo pode crescer,
-   mas nunca encolhe abaixo do eixo comum.
-   ----------------------------------------------------------------------------- */
-.terr-mapa .card-title {
-  min-height: calc(var(--t-cartao) * var(--lh-normal) * 2);
-  display: flex;
-  align-items: flex-start;
-  gap: var(--e-1);
-}
-
-/* O CARTÃO DE MAPA. É uma coluna de altura cheia — o alternador é empurrado
-   para o pé por `margin-top: auto`, e sem a coluna ele não teria contra o que
-   empurrar.
-
-   ELE TAMBÉM É UM CONTÊINER DE MEDIDA (fidelidade às maquetes, 23/09/2026): com
-   os quatro lado a lado, cada cartão tem de 260 a 380px, e a legenda ao lado do
-   mapa — que cabe num cartão de 2 × 2 — espreme o mapa a uma tira. A regra da
-   legenda mede o CARTÃO, e não a página, porque é o cartão que ficou estreito.
-
-   (`.terr-mapa`, `.terr-mapa-resumo` e `.terr-mapa-foco` estavam declarados duas
-   ou três vezes neste arquivo, cada declaração anulando parte da anterior.
-   Ficou uma de cada, com os valores que valiam na tela.) */
-.terr-mapa {
-  display: flex;
-  flex-direction: column;
-  gap: var(--e-2);
-  padding: 14px 16px;
-  container: mapa / inline-size;
-}
-
-/* A LINHA DE NÚMEROS DE CADA MAPA (fase T4.9 — maquete): um número grande à
-   esquerda com o nome dele ao lado, e os metadados do recorte à direita,
-   separados por filete. O piso de duas linhas mantém os quatro alternadores no
-   mesmo eixo quando um resumo quebra e o outro não. */
-.terr-mapa-resumo {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--e-2) var(--e-4);
-  min-height: calc(var(--t-apoio) * var(--lh-normal) * 2);
-  margin: 0;
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--text-tertiary);
-}
-
-/* O município sob o cursor. Altura mínima de duas linhas: sem ela, o mapa pula a cada troca de foco. */
-.terr-mapa-foco {
-  min-height: 2.6em;
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-primary);
-}
-
-/* -----------------------------------------------------------------------------
-   A ALTURA DO MAPA É FIXA (protótipo `dashboard.css`, §.map-wrapper)
-
-   É o que faz os quatro cartões terminarem no mesmo lugar. Com altura livre,
-   cada SVG segue a proporção do enquadramento e os quatro acabam em alturas
-   diferentes — as legendas começam em quatro linhas distintas, e comparar os
-   mapas dois a dois exige o olho subir e descer.
-
-   `object-fit: contain` no SVG mantém o desenho inteiro dentro da caixa, sem
-   esticar São Paulo.
-   ----------------------------------------------------------------------------- */
-/* O MAPA À ESQUERDA, A LEGENDA À DIREITA, em coluna. */
-.terr-mapa-corpo {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--e-3);
-  align-items: start;
-}
-
-/* A legenda vira uma coluna de faixas, com a altura do mapa. */
-.terr-mapa-corpo .terr-legenda {
-  display: flex;
-  flex-direction: column;
-  gap: var(--e-1);
-  margin: 0;
-  max-width: 120px;
-}
-
-/* NUM CARTÃO ESTREITO A LEGENDA AO LADO ESPREME O MAPA: ela volta para baixo.
-
-   Era `@media (max-width: 560px)` — o celular, onde o cartão tem ~360px. Com os
-   quatro mapas lado a lado a partir de 1100px de conteúdo, o cartão tem essa
-   mesma largura num monitor comum, e a regra passou a medir o cartão
-   (fidelidade às maquetes, 23/09/2026). O desenho da legenda da maquete —
-   curta, ao lado — é o redesenho do interior dos mapas, fase seguinte. */
-@container mapa (max-width: 439px) {
-  .terr-mapa-corpo { grid-template-columns: minmax(0, 1fr); }
-  .terr-mapa-corpo .terr-legenda { flex-direction: row; flex-wrap: wrap; max-width: none; }
-}
-
-/* A ALTURA DO MAPA ACOMPANHA O ARRANJO DA GRADE, e é fixa em cada um — é o que
-   faz os quatro cartões terminarem no mesmo lugar. Os degraus eram por janela
-   (2100 / 1180 / 560); agora são os da grade, pela largura do conteúdo:
-   um por linha 250, 2 × 2 270, e os quatro lado a lado 200 — o cartão de um
-   quarto de linha é mais estreito que o de 2 × 2, e o desenho da ADR, que é
-   mais largo que alto, não enche 270px de altura nele. */
-.terr-mapa .terr-svg {
-  height: 250px;
-  object-fit: contain;
-  border-radius: var(--radius);
-  background: var(--surface-2, #FBFCFB);
-  border: 1px solid var(--border);
-}
-
-@container indicadores (min-width: 600px) {
-  .terr-mapa .terr-svg { height: 270px; }
-}
-
-@container indicadores (min-width: 1100px) {
-  .terr-mapa .terr-svg { height: 200px; }
-}
+/* O INTERIOR DOS QUATRO CARTÕES DE MAPA — título, resumo, mapa, legenda e
+   alternador — mudou-se para o `mercado-visao.css` (fidelidade às maquetes,
+   fase 2): o cartão só existe na aba Mercado, e o desenho da maquete pedia
+   reescrevê-lo inteiro. Aqui ficam a grade dos quatro (acima) e o que é da
+   malha em si (`.terr-svg`, `.terr-poligono`). */
 
 .terr-periodo {
   grid-column: span 2;
@@ -277,37 +156,8 @@
   filter: brightness(0.92);
 }
 
-.terr-legenda {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.terr-legenda-unidade {
-  width: 100%;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.terr-legenda-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.terr-amostra {
-  width: 16px;
-  height: 10px;
-  border: 1px solid rgba(15, 22, 19, 0.12);
-  border-radius: 2px;
-  display: inline-block;
-}
-
-.terr-amostra-hachura {
-  background: repeating-linear-gradient(45deg, #f3f4f6 0 2px, #9ca3af 2px 3.5px);
-}
+/* (A legenda dos mapas — `.terr-legenda`, `.terr-amostra` — está no
+   `mercado-visao.css`, junto do cartão que a usa.) */
 
 .terr-aviso {
   margin: 0;
@@ -400,8 +250,11 @@
   gap: 10px;
 }
 
+/* A FICHA COMEÇA NA ALTURA DA TABELA (fase 4): os 16px de cima eram de quando
+   ela ficava embaixo da página, e ao lado da tabela deixavam o topo dela fora
+   do eixo do topo da tabela. */
 .terr-detalhe {
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 /* A FICHA EM DUAS COLUNAS, NUNCA EM CINCO (documento 50, §6; fase T4).
@@ -583,41 +436,106 @@
 }
 
 /* -----------------------------------------------------------------------------
-   A TABELA DE MUNICÍPIOS (item 12 da fase T4.6)
+   A TABELA DE MUNICÍPIOS (item 12 da fase T4.6; maquete na fase 4)
 
-   Ela ocupava a tela inteira e parecia listagem de banco: cabeçalho que sumia ao
-   rolar, todas as colunas com o mesmo peso, números alinhados à esquerda, linhas
-   altas. Uma tabela operacional com 200 linhas precisa de outra coisa —
-   cabeçalho fixo para saber que coluna se está lendo na linha 80, nome forte na
-   primeira coluna, número à direita para comparar de cima a baixo, e linha baixa
-   para caber mais na mesma altura.
+   Ela ocupava a tela inteira e parecia listagem de banco: todas as colunas com
+   o mesmo peso, números alinhados à esquerda, linhas altas. Uma tabela
+   operacional precisa de outra coisa — nome forte na primeira coluna, número à
+   direita para comparar de cima a baixo, e linha baixa.
 
-   A ROLAGEM É DENTRO DO CARTÃO, e não da página: é o que mantém o resto da tela
-   no lugar enquanto se percorre a lista.
+   SEM ROLAGEM INTERNA (fase 4). A tabela rolava dentro de um cartão de 520px,
+   com o cabeçalho grudado — rolagem dentro de rolagem, que prende a roda do
+   mouse e esconde o fim da lista. Agora ela é paginada (dez por página, como
+   na maquete), cresce com a página, e o cabeçalho não precisa mais grudar.
    ----------------------------------------------------------------------------- */
-.terr-tabela-municipios {
-  max-height: 520px;
-  overflow: auto;
+
+/* A TABELA MEDE A SI MESMA (fase 4). As colunas saíam pela largura da PÁGINA, e
+   a página não é a tabela: com a ficha aberta ao lado, em 1.300px de conteúdo,
+   a tabela tem ~750px e a página continuava dizendo "1.300". Agora o cartão é o
+   contêiner, e os degraus abaixo medem o que a tabela de fato tem — com ou sem
+   ficha ao lado. */
+.terr-tabela-cartao {
+  container: tabela / inline-size;
+  margin-bottom: 0;
 }
 
-/* O CABEÇALHO ACOMPANHA A ROLAGEM. Sem isto, na linha 80 ninguém sabe se a
-   terceira coluna é "vendas" ou "cobertura". */
-.terr-tabela-municipios thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--bg-surface);
-  box-shadow: inset 0 -1px 0 var(--border-strong);
-  font-size: var(--t-meta);
-  white-space: nowrap;
+/* O PISO DE 860px NÃO VALE AQUI (fases T4.7 e 4).
+
+   `.cad-tabela` tem `min-width: 860px` — regra global, e certa para as tabelas
+   de cadastro, que preferem rolar a comprimir. Esta tabela tem de caber em
+   ~750px ao lado da ficha sem rolar de lado (decisão 4 do usuário), e é o
+   cabeçalho em duas linhas pequenas e as larguras abaixo que a fazem caber —
+   não um piso. */
+.terr-tabela-municipios .cad-tabela {
+  min-width: 0;
+  font-size: var(--t-apoio);
 }
+
+/* O CABEÇALHO DA MAQUETE: fundo claro, caixa alta pequena, e uma segunda linha
+   em caixa normal para o que qualifica a coluna — "12 meses", "(provisório)",
+   "(teórico)". É o que deixa "Máquinas teóricas" caber na largura do número. */
+.terr-tabela-municipios thead th {
+  padding: var(--e-2) 6px;
+  background: var(--n-50);
+  border-bottom: 1px solid var(--border);
+  font-size: 10.5px;
+  line-height: 1.3;
+  letter-spacing: 0.03em;
+  white-space: normal;
+  vertical-align: middle;
+}
+
+/* O rótulo e a dica ficam juntos, e a dica desce para baixo do rótulo quando a
+   coluna é estreita — em vez de alargar a coluna só para caber o ⓘ. */
+.terr-th {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.terr-coluna-numero .terr-th { justify-content: flex-end; }
+
+/* O BOTÃO DE ORDENAR É O PRÓPRIO RÓTULO: sem moldura, na tipografia do
+   cabeçalho, e com a seta só na coluna ativa — ↕ fixo apenas onde a maquete o
+   desenha (Município e Sub-região · Loja). */
+.terr-ordenar {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* O RÓTULO DE UMA COLUNA DE NÚMERO NÃO QUEBRA — "PÓS-VENDA" partia no hífen em
+   1.300px de conteúdo; o que quebra é a dica e a segunda linha, embaixo. */
+.terr-coluna-numero .terr-ordenar { white-space: nowrap; }
+
+.terr-ordenar:hover { color: var(--jd-green); }
+.terr-ordenar:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; border-radius: 2px; }
+th[aria-sort='ascending'] .terr-ordenar,
+th[aria-sort='descending'] .terr-ordenar { color: var(--text-primary); }
+
+.terr-th-sub {
+  display: block;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-tertiary);
+}
+
+.terr-tabela-municipios thead .dica-gatilho { padding: 1px; }
 
 /* NÚMERO À DIREITA, com dígitos de largura fixa: é o que permite varrer a coluna
-   e ver qual é maior sem ler cada valor.
-
-   A FONTE É A DO TEXTO (fase T4.7): `tabular-nums` já dá o dígito de largura
-   fixa que alinha a coluna, sem a monoespaçada — que fazia "R$ 4,9 mi" ler como
-   saída de terminal. */
+   e ver qual é maior sem ler cada valor. A FONTE É A DO TEXTO (fase T4.7):
+   `tabular-nums` já alinha a coluna, sem a monoespaçada. */
 .terr-tabela-municipios td.cad-mono {
   white-space: nowrap;
   text-align: right;
@@ -626,32 +544,23 @@
   font-size: var(--t-apoio);
 }
 
-/* O CABEÇALHO DE UMA COLUNA DE NÚMERO É UMA PALAVRA, não um número (T4.7): ele
-   alinha à direita para casar com a coluna, e nada mais. Estava com a classe da
-   monoespaçada, e "ELEGÍVEIS" e "MÁQUINAS TEÓRICAS" saíam em fonte de código. */
-.terr-tabela-municipios th.terr-coluna-numero {
-  text-align: right;
-  white-space: nowrap;
+/* O CABEÇALHO DE UMA COLUNA DE NÚMERO alinha à direita para casar com a coluna. */
+.terr-tabela-municipios th.terr-coluna-numero { text-align: right; }
+
+/* LINHA BAIXA, e o conteúdo no meio: com a sub-região e a loja em duas linhas,
+   o nome e os números ficam na altura do centro, como na maquete. (`tbody td`,
+   e não só `td`: a regra global `.cad-tabela tbody td` dá 11px × 14px e alinha
+   no topo, e com um seletor mais fraco ela ganharia.) */
+.terr-tabela-municipios tbody td {
+  padding: 6px;
+  vertical-align: middle;
 }
 
-/* O SUBVALOR SEGUE O ALINHAMENTO DA CÉLULA (T4.7). O "38,9%" embaixo de
-   "Pendentes" ficava à esquerda enquanto o número ia à direita: duas grandezas
-   da mesma célula em eixos diferentes, e a linha inteira parecia quebrada. */
-.terr-tabela-municipios td.cad-mono .cad-sub { text-align: right; }
+.terr-tabela-municipios tbody td:first-child,
+.terr-tabela-municipios thead th:first-child { padding-left: var(--e-4); }
 
-/* A PRIMEIRA COLUNA É A CHAVE DA LINHA: ela é o que se procura, então tem mais
-   peso que o resto. */
-.terr-tabela-municipios tbody tr > *:first-child {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-/* LINHA MAIS BAIXA: cabe mais município na mesma altura de cartão, e menos
-   rolagem é menos chance de perder o lugar. */
-.terr-tabela-municipios td,
-.terr-tabela-municipios th {
-  padding: var(--e-2) var(--e-3);
-}
+.terr-tabela-municipios tbody td:last-child,
+.terr-tabela-municipios thead th:last-child { padding-right: var(--e-4); }
 
 /* O HOVER É DISCRETO — ele diz "esta é a linha sob o cursor", e não disputa com
    a linha selecionada, que é a que muda a página inteira. */
@@ -659,90 +568,86 @@
   background: var(--bg-hover);
 }
 
-/* A REGIÃO E A LOJA SÃO HIERARQUIA, não dado: elas se repetem por dezenas de
-   linhas, e em peso cheio viram ruído em cima do nome do município. */
+/* O NOME DO MUNICÍPIO: pino e nome, em peso de chave da linha. É um botão (abre
+   a ficha), e o texto alinha à esquerda quando quebra em duas linhas. */
+.terr-nome-municipio {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.terr-nome-municipio:hover { color: var(--jd-green); }
+.terr-nome-municipio:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; border-radius: 2px; }
+
+/* A SUB-REGIÃO E A LOJA SÃO HIERARQUIA, não dado: elas se repetem por dezenas
+   de linhas, e em peso cheio viram ruído em cima do nome do município. */
 .terr-tabela-municipios .terr-coluna-hierarquia {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: var(--t-meta);
+  line-height: 1.35;
+}
+
+.terr-loja { color: var(--text-tertiary); }
+
+.terr-tabela-municipios td.terr-tabela-vazia {
+  padding: var(--e-5) var(--e-4);
+  text-align: center;
+  color: var(--text-tertiary);
 }
 
 /* -----------------------------------------------------------------------------
-   NO CELULAR, CINCO COLUNAS EM VEZ DE OITO (item 12 da T4.6)
+   AS COLUNAS SAEM PELA LARGURA DA TABELA (fase 4; antes, pela da página).
 
-   Oito colunas comprimidas em 390px não são uma tabela, são um borrão — e
-   rolagem lateral da página está proibida. Saem "Elegíveis", "No prazo" e
-   "Pós-venda"; ficam município, região/loja, pendentes, vendas e máquinas, que
-   são as que respondem "onde vender". O que sai está INTEIRO na ficha do
-   município, a um toque — nada é perdido, só adiado.
+   Nove colunas cabem a partir de ~700px de TABELA — é o que a ficha aberta
+   deixa em 1.300px de conteúdo. Abaixo disso saem "Elegíveis", "No prazo",
+   "Pós-venda" e a coluna de ação; abaixo de 480px, também a sub-região, os
+   pendentes e as máquinas, e ficam o município e as vendas — o que responde
+   "onde vender" num aparelho de mão. O que sai está INTEIRO na ficha, a um
+   toque.
 
-   POR POSIÇÃO DE COLUNA, e não por classe em cada célula: as linhas de total, de
-   grupo e de fora do mapa são montadas em três lugares diferentes, e uma classe
-   esquecida em qualquer um deles deixaria o cabeçalho com cinco colunas e o
-   total com oito — a tabela sairia torta sem ninguém notar na revisão.
+   POR ATRIBUTO DA COLUNA, e não mais por posição: as linhas de total saíram do
+   corpo, cada célula sabe de que coluna é (`data-coluna`), e a engrenagem pode
+   tirar qualquer coluna sem deslocar as regras das outras.
    ----------------------------------------------------------------------------- */
-/* O PISO DE 860px SAI QUANDO AS COLUNAS SAEM (fase T4.7).
-
-   `.cad-tabela` tem `min-width: 860px` — regra global, e certa para as tabelas
-   de cadastro, que têm muitas colunas e preferem rolar a comprimir. Aqui ela
-   anulava a redução: tirar seis colunas não adiantava nada, porque a tabela
-   continuava com 860px de largura mínima e rolava do mesmo jeito. Era isso que
-   fazia a lista de uma coluna em 390px.
-
-   O escopo é só esta tabela: as telas de cadastro não são cobertas por esta fase
-   e o harness não consegue conferi-las.
-
-   OS DEGRAUS SÃO PELA LARGURA DO CONTEÚDO (fidelidade às maquetes, 23/09/2026):
-   cinco colunas abaixo de 760px, duas abaixo de 520px. Eram 768 e 560 de janela
-   — os mesmos aparelhos, medidos agora pelo que a tabela de fato tem. */
-@container indicadores (max-width: 759px) {
-  .terr-tabela-municipios .cad-tabela { min-width: 0; }
-
-  .terr-tabela-municipios th:nth-child(3),
-  .terr-tabela-municipios th:nth-child(4),
-  .terr-tabela-municipios th:nth-child(7),
-  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(3),
-  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(4),
-  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(7) {
-    display: none;
-  }
-}
-
-/* NO APARELHO DE MÃO, DUAS COLUNAS (fase T4.7).
-
-   Cinco colunas em 390px não cabiam: a tabela virava uma lista de nomes com as
-   outras quatro atrás de rolagem horizontal DENTRO do cartão — dado presente e
-   invisível, que é pior que dado adiado. Ficam o município e as vendas; o resto
-   está inteiro na ficha, a um toque. Sai também a região/loja, que se repete por
-   dezenas de linhas e não é o que se procura num celular. */
-@container indicadores (max-width: 519px) {
-  .terr-tabela-municipios th:nth-child(2),
-  .terr-tabela-municipios th:nth-child(5),
-  .terr-tabela-municipios th:nth-child(8),
-  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(2),
-  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(5),
-  .terr-tabela-municipios tr:not(:has(td[colspan])) > td:nth-child(8) {
+@container tabela (max-width: 699px) {
+  .terr-tabela-municipios [data-coluna='elegiveis'],
+  .terr-tabela-municipios [data-coluna='noPrazo'],
+  .terr-tabela-municipios [data-coluna='posVenda'],
+  .terr-tabela-municipios [data-coluna='acao'] {
     display: none;
   }
 
-  /* O nome ganha o espaço que sobrou, e a linha fica mais baixa: mais município
-     na mesma altura de cartão. */
-  .terr-tabela-municipios td,
-  .terr-tabela-municipios th { padding: var(--e-2); }
+  .terr-tabela-municipios tbody td:nth-last-child(2),
+  .terr-tabela-municipios thead th:nth-last-child(2) { padding-right: var(--e-4); }
 }
 
-/* O nome do município é um botão (abre a ficha), e botão centraliza o texto: quando o nome quebrava em
-   duas linhas, numa tela estreita, ele ia para o meio da célula. */
-.terr-tabela-municipios td button {
-  text-align: left;
+@container tabela (max-width: 479px) {
+  .terr-tabela-municipios [data-coluna='hierarquia'],
+  .terr-tabela-municipios [data-coluna='pendentes'],
+  .terr-tabela-municipios [data-coluna='maquinas'] {
+    display: none;
+  }
+
+  .terr-tabela-municipios tbody td:first-child,
+  .terr-tabela-municipios thead th:first-child { padding-left: var(--e-3); }
 }
 
-.terr-tabela-municipios tr[aria-current='true'] td {
-  background: var(--info-bg);
-}
-
-.terr-linha-total td {
-  font-weight: 700;
-  background: var(--bg-hover);
+/* A LINHA ESCOLHIDA É VERDE (maquete; era azul): tinta clara no fundo e o
+   filete verde à esquerda — cor de fundo sozinha desaparece para quem não
+   distingue as duas tintas. */
+.terr-tabela-municipios tr[aria-current='true'] td,
+.terr-tabela-municipios tr[aria-current='true']:hover td {
+  background: #EEF7EF;
 }
 
 /* O SELO DE COMO LER UM INDICADOR (documento 32, seção 2): regra provisória e estimativa nunca
@@ -1152,117 +1057,36 @@
    FIDELIDADE ÀS MAQUETES (fase T4.9)
    ============================================================================= */
 
-/* -----------------------------------------------------------------------------
-   O CARTÃO DE MAPA: título com selo à direita, e o resumo como LINHA
+/* (O cartão de mapa da T4.9 — título com selo, resumo em linha, metadados e o
+   alternador de largura cheia — está no `mercado-visao.css`, reescrito com o
+   desenho da maquete.) */
 
-   Na maquete o resumo não é uma frase: é um número grande à esquerda com o nome
-   dele ao lado, e os metadados do recorte à direita, separados por filete. Era
-   um parágrafo verde de duas linhas — o valor que responde o cartão tinha o
-   mesmo corpo do texto que o acompanha.
+/* -----------------------------------------------------------------------------
+   O CABEÇALHO DA TABELA DE MUNICÍPIOS (maquete)
+
+   Título e subtítulo à esquerda; busca, exportar e a engrenagem à direita, na
+   mesma linha. Numa tabela estreita a barra desce para baixo do título, inteira.
    ----------------------------------------------------------------------------- */
-.terr-mapa-cabecalho {
+.terr-tabela-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e-3) var(--e-4);
+  padding: var(--e-4);
+}
+
+.terr-tabela-cabecalho-texto { flex: 1 1 280px; min-width: 0; }
+
+.terr-tabela-titulo {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--e-2);
-}
-
-/* (`.terr-mapa-resumo` — a linha de número e metadados — está declarada uma vez
-   só, junto do cartão, lá em cima.) */
-
-.terr-mapa-principal {
-  display: inline-flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--e-2);
-  min-width: 0;
-}
-
-/* O NÚMERO DO CARTÃO é o segundo maior da página, depois dos quatro do topo. */
-.terr-mapa-numero {
-  font-size: var(--t-kpi);
+  gap: var(--e-1);
+  margin: 0;
+  font-size: 15px;
   font-weight: 700;
-  line-height: var(--lh-apertada);
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
 }
 
-.terr-mapa-unidade {
-  font-size: var(--t-apoio);
-  color: var(--text-tertiary);
-}
-
-/* Os metadados do recorte, à direita e divididos por filete — "203 municípios",
-   "1.303 ha de café". Eles são contexto do mapa, não segunda leitura. */
-.terr-mapa-meta {
-  display: inline-flex;
-  align-items: stretch;
-  flex-wrap: wrap;
-  gap: var(--e-3);
-  margin-left: auto;
-}
-
-.terr-mapa-meta-item {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding-left: var(--e-3);
-  border-left: 1px solid var(--border);
-  font-size: var(--t-meta);
-  color: var(--text-tertiary);
-  text-align: left;
-}
-
-.terr-mapa-meta-item > strong {
-  font-size: var(--t-apoio);
-  font-weight: 700;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Com um mapa por linha, numa coluna de celular, os metadados descem para baixo
-   do número, sem filete — uma borda vertical entre dois itens empilhados não
-   divide nada. (Era 560px de janela; é o arranjo de uma coluna, abaixo de 600px
-   de conteúdo.) */
-@container indicadores (max-width: 599px) {
-  .terr-mapa-meta { margin-left: 0; }
-  .terr-mapa-meta-item { padding-left: 0; border-left: 0; }
-}
-
-/* O ALTERNADOR DO MAPA OCUPA A LARGURA DO CARTÃO (maquete): quatro cartões com
-   alternadores de larguras diferentes, cada um terminando num ponto, faziam a
-   grade parecer desalinhada mesmo com os mapas no lugar. */
-.terr-mapa > .terr-alternador {
-  display: flex;
-  width: 100%;
-  margin-top: auto;
-}
-
-.terr-mapa > .terr-alternador button {
-  flex: 1 1 0;
-  padding: 7px 4px;
-  text-align: center;
-}
-
-/* NUM CARTÃO ESTREITO O ALTERNADOR QUEBRA EM DUAS LINHAS em vez de cortar o
-   último botão (fidelidade às maquetes, 23/09/2026): com os quatro mapas lado a
-   lado, os cinco botões da estrutura agropecuária ("Usinas de etanol" por
-   último) não cabem em 260px, e o alternador recorta o que passa
-   (`overflow: hidden`). Fica DEPOIS da regra de cima de propósito: a consulta
-   de contêiner não soma especificidade, e quem vem depois ganha. */
-@container mapa (max-width: 439px) {
-  .terr-mapa > .terr-alternador { flex-wrap: wrap; }
-  .terr-mapa > .terr-alternador button { flex: 1 1 auto; padding: 6px 8px; }
-}
-
-/* (A coluna de altura cheia do cartão, que o `margin-top: auto` acima precisa,
-   está declarada uma vez só, em `.terr-mapa`, lá em cima.) */
-
-/* -----------------------------------------------------------------------------
-   A BARRA DE FERRAMENTAS DA TABELA DE MUNICÍPIOS (maquete)
-
-   Título e subtítulo à esquerda; busca e ações à direita, na mesma linha.
-   ----------------------------------------------------------------------------- */
 .terr-tabela-barra {
   display: flex;
   align-items: center;
@@ -1274,7 +1098,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--e-2);
-  height: 32px;
+  height: 34px;
   padding: 0 var(--e-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
@@ -1289,27 +1113,19 @@
   font: inherit;
   font-size: var(--t-apoio);
   color: var(--text-primary);
-  width: 160px;
+  width: 150px;
   max-width: 34vw;
 }
 
-/* A CONTAGEM DIZ O QUE A BUSCA FEZ: "12 de 203" é o que impede alguém de ler uma
-   lista filtrada como se fosse a lista inteira. */
-.terr-tabela-contagem {
-  margin: 0;
-  padding: var(--e-2) 0 0;
-  font-size: var(--t-meta);
-  color: var(--text-tertiary);
-}
+.terr-exportar { height: 34px; }
 
-/* O PIN DA LINHA (maquete): ele marca a linha como município, e vira cheio na
+/* O PIN DA LINHA (maquete): ele marca a linha como município, e vira verde na
    linha escolhida. É `aria-hidden` — o nome ao lado já diz o que é. */
 .terr-pin {
   display: inline-flex;
+  flex: none;
   align-items: center;
-  margin-right: var(--e-2);
-  color: var(--text-tertiary);
-  vertical-align: -2px;
+  color: var(--text-secondary);
 }
 
 .terr-tabela-municipios tr[aria-current='true'] .terr-pin { color: var(--jd-green); }
@@ -1320,43 +1136,38 @@
   box-shadow: inset 3px 0 0 var(--jd-green);
 }
 
-/* A COLUNA DE AÇÃO (maquete): o chevron que abre a ficha, na ponta da linha. */
-.terr-coluna-acao { width: 1%; text-align: right; }
+/* A COLUNA DE AÇÃO (maquete): o › de contorno que abre a ficha, na ponta da
+   linha. O cabeçalho "Ação" é visível, como na maquete. */
+.terr-tabela-municipios .terr-coluna-acao { width: 1%; text-align: center; }
 
 .terr-abrir-ficha {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--bg-surface);
   color: var(--text-secondary);
   cursor: pointer;
 }
 
-.terr-abrir-ficha:hover { background: var(--jd-green); border-color: var(--jd-green); color: var(--text-inverse); }
+.terr-abrir-ficha:hover { border-color: var(--jd-green); color: var(--jd-green); }
+.terr-abrir-ficha:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; }
 
-/* Abaixo de 760px de conteúdo a coluna de ação sai: o nome do município já abre
-   a ficha, e uma coluna de 26px numa tela de mão é o que empurra as outras para
-   fora. (Era 768px de janela — o mesmo degrau das cinco colunas.) */
-@container indicadores (max-width: 759px) {
-  .terr-tabela-municipios .terr-coluna-acao { display: none; }
+/* O › DA LINHA ESCOLHIDA É VERDE (maquete): contorno e seta na cor da marca. */
+.terr-tabela-municipios tr[aria-current='true'] .terr-abrir-ficha {
+  border-color: var(--jd-green);
+  color: var(--jd-green);
 }
 
-/* O CABEÇALHO DA FICHA (fase T4.9 — maquete): pin, nome, selo de "Selecionado"
-   e o ✕ na ponta. Ela é um painel ao lado da tabela desde a T4.7, e nada nela
-   dizia que o município mostrado é o mesmo marcado na lista. */
-.terr-detalhe .card-title {
+/* O ✕ DA FICHA — o cabeçalho dela está em `territorio-carteira.css`. */
+.terr-selo-escolhido {
   display: inline-flex;
   align-items: center;
-  gap: var(--e-2);
-  flex-wrap: wrap;
-}
-
-.terr-selo-escolhido {
-  padding: 2px var(--e-2);
+  gap: var(--e-1);
+  padding: 3px var(--e-2);
   border-radius: 999px;
   background: #E6F6E9;
   color: #237330;
@@ -1369,8 +1180,8 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-surface);

@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { municipioDeTeste, CAFELANDIA } from '../../testes/territorio';
 import type { CulturaNoCatalogo } from '../../tipos/potencial';
 import type { PotencialTerritorial } from '../../tipos/territorio';
-import { comAsCulturasDoMunicipioPrimeiro, produtosDoMunicipio } from './culturasDoMunicipio';
+import { areaColhidaNoRecorte, comAsCulturasDoMunicipioPrimeiro, produtosDoMunicipio } from './culturasDoMunicipio';
 
 const CAFE = 2502;
 const CANA = 2503;
@@ -104,5 +104,51 @@ describe('o catálogo com as culturas do município primeiro', () => {
     const cafeComTres = cultura('CAFE', [CAFE, 9001, 9002]);
     const ordenado = comAsCulturasDoMunicipioPrimeiro([cultura('CANA', [CANA]), cafeComTres], [9002]);
     expect(ordenado.map((c) => c.codigo)).toEqual(['CAFE', 'CANA']);
+  });
+});
+
+/**
+ * A ÁREA COLHIDA DA REGIÃO TRACBEL (fidelidade às maquetes, fase 3) — o peso da
+ * "Média da Região Tracbel" e o critério da "Cultura destaque".
+ *
+ * A ROTA DE RENTABILIDADE TRAZ A ÁREA DE SÃO PAULO, e é por isso que esta soma
+ * existe: pesar a margem pela área do estado e chamar de "Região Tracbel" seria
+ * o nome errado num número certo.
+ */
+describe('a área colhida de uma cultura na Região Tracbel', () => {
+  function colhida(areas: Array<[number, number | null]>): PotencialTerritorial[] {
+    return comArea(areas.map(([p]) => [p, 1])).map((p, i) => ({ ...p, areaColhidaHectares: areas[i][1] }));
+  }
+
+  const municipios = [
+    municipioDeTeste({ codigoIbge: 1, nome: 'A', potencial: colhida([[CANA, 30_000], [CAFE, 1_000]]) }),
+    municipioDeTeste({ codigoIbge: 2, nome: 'B', potencial: colhida([[CANA, 12_000]]) }),
+    // FORA DA ADR: um vizinho grande não entra na área da Região Tracbel.
+    municipioDeTeste({ codigoIbge: 3, nome: 'C', pertenceAAdr: false, potencial: colhida([[CANA, 900_000]]) }),
+  ];
+
+  it('soma os municípios da ADR, e só eles', () => {
+    expect(areaColhidaNoRecorte(cultura('CANA', [CANA]), municipios)).toBe(42_000);
+  });
+
+  it('sem área divulgada em nenhum município, é ausência — e não zero', () => {
+    expect(areaColhidaNoRecorte(cultura('LARANJA', [LARANJA]), municipios)).toBeNull();
+
+    const soSigilo = [municipioDeTeste({ codigoIbge: 4, nome: 'D', potencial: colhida([[LARANJA, null]]) })];
+    expect(areaColhidaNoRecorte(cultura('LARANJA', [LARANJA]), soSigilo)).toBeNull();
+  });
+
+  it('o café não conta a mesma terra duas vezes: só entram os produtos que somam na lavoura', () => {
+    const cafe: CulturaNoCatalogo = {
+      ...cultura('CAFE', []),
+      produtos: [
+        { codigoIbge: CAFE, nome: 'Café (Total)', entraNaSomaDaLavoura: true },
+        { codigoIbge: 9001, nome: 'Café Arábica', entraNaSomaDaLavoura: false },
+      ],
+    };
+    const comDetalhe = [
+      municipioDeTeste({ codigoIbge: 5, nome: 'E', potencial: colhida([[CAFE, 1_000], [9001, 800]]) }),
+    ];
+    expect(areaColhidaNoRecorte(cafe, comDetalhe)).toBe(1_000);
   });
 });

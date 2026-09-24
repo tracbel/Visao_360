@@ -5,7 +5,12 @@
  * sem montar a página inteira. Nenhuma regra mudou ao sair de lá.
  */
 
-import type { IndicadoresDoMunicipio, MedidaDoEstado, TotaisDoEstado } from '../../tipos/territorio';
+import type {
+  IndicadoresDoMunicipio,
+  IndicadoresForaDoMapa,
+  MedidaDoEstado,
+  TotaisDoEstado,
+} from '../../tipos/territorio';
 import { nº } from './indicadoresDaAdr';
 
 export type TotaisDaAdr = {
@@ -72,6 +77,118 @@ export function calcularTotais(daAdr: IndicadoresDoMunicipio[]): TotaisDaAdr {
     lavouraHectares: soma((m) => m.producao?.areaPlantadaHectares ?? 0),
     lavouraValor: soma((m) => m.producao?.valorDaProducaoMilReais ?? 0),
   };
+}
+
+/** Uma linha da conferência — o que a tabela de municípios somava embaixo das linhas. */
+export type LinhaDaConferencia = {
+  rotulo: string;
+  descricao: string | null;
+  elegiveis: number;
+  cobertos: number;
+  pendentes: number;
+  vendas: number;
+  posVenda: number;
+  /** Só a ADR tem parque teórico somado; os grupos de fora ficam sem, e não com zero. */
+  maquinas: number | null;
+};
+
+export type ConferenciaDaConsulta = {
+  /** Nulo quando o território não foi carregado — a explicação, e não uma linha de zeros. */
+  adr: LinhaDaConferencia | null;
+  /** O que ficou fora da ADR e fora do mapa, grupo a grupo. */
+  parcelas: LinhaDaConferencia[];
+  /** A soma de tudo — só sem filtro, porque com filtro ela seria de outro recorte. */
+  consulta: LinhaDaConferencia | null;
+};
+
+/**
+ * A CONFERÊNCIA DO DOCUMENTO 32, SEM LINHAS NA TABELA (fidelidade às maquetes,
+ * 23/09/2026 — fase 4).
+ *
+ * "Total da ADR", "São Paulo fora da ADR", os grupos fora do mapa e "Total da
+ * consulta" eram linhas no fim da tabela. A tabela ganhou paginação, e uma linha
+ * de total embaixo da página 3 afirmaria que dez municípios somam a ADR; a
+ * maquete também não as tem. As somas saíram do corpo e foram para a dica do
+ * título — e a conta mora aqui, pura, para continuar sendo provada por teste: a
+ * ADR mais o que ficou fora dela mais o que ficou fora do mapa é o total da
+ * consulta. Se não fechar, algo sumiu ou foi contado duas vezes.
+ *
+ * As regras de quando cada linha aparece são as da tabela antiga, sem mudança.
+ */
+export function conferenciaDaConsulta({
+  municipios,
+  daAdr,
+  foraDoMapa,
+  totais,
+  semFiltro,
+  territorioNaoCarregado,
+}: {
+  municipios: IndicadoresDoMunicipio[];
+  daAdr: IndicadoresDoMunicipio[];
+  foraDoMapa: IndicadoresForaDoMapa[];
+  totais: TotaisDaAdr;
+  semFiltro: boolean;
+  territorioNaoCarregado: boolean;
+}): ConferenciaDaConsulta {
+  const somarMunicipios = (rotulo: string, descricao: string | null, itens: IndicadoresDoMunicipio[]): LinhaDaConferencia => {
+    const soma = (f: (m: IndicadoresDoMunicipio) => number) => itens.reduce((s, m) => s + f(m), 0);
+    return {
+      rotulo,
+      descricao,
+      elegiveis: soma((m) => m.cobertura.vinculosComCadencia),
+      cobertos: soma((m) => m.cobertura.cobertos),
+      pendentes: soma((m) => m.cobertura.pendentes),
+      vendas: soma((m) => m.vendas.valorLiquido),
+      posVenda: soma((m) => m.vendas.posVenda),
+      maquinas: null,
+    };
+  };
+
+  const adr: LinhaDaConferencia | null = territorioNaoCarregado
+    ? null
+    : {
+        rotulo: semFiltro ? 'Total da ADR' : 'Total da ADR (filtro)',
+        descricao: `${nº(daAdr.length)} municípios`,
+        elegiveis: totais.elegiveis,
+        cobertos: totais.cobertos,
+        pendentes: totais.pendentes,
+        vendas: totais.vendas,
+        posVenda: totais.posVenda,
+        maquinas: Math.round(totais.maquinasTeoricas),
+      };
+
+  const foraDaAdr = municipios.filter((m) => !m.pertenceAAdr);
+  const parcelas: LinhaDaConferencia[] = [
+    ...(semFiltro && !territorioNaoCarregado
+      ? [somarMunicipios('São Paulo fora da ADR', `municípios com cliente fora da ADR (${nº(foraDaAdr.length)})`, foraDaAdr)]
+      : []),
+    ...foraDoMapa.map((g) => ({
+      rotulo: g.grupo,
+      descricao: g.descricao,
+      elegiveis: g.cobertura.vinculosComCadencia,
+      cobertos: g.cobertura.cobertos,
+      pendentes: g.cobertura.pendentes,
+      vendas: g.vendas.valorLiquido,
+      posVenda: g.vendas.posVenda,
+      maquinas: null,
+    })),
+  ];
+
+  let consulta: LinhaDaConferencia | null = null;
+  if (semFiltro) {
+    const mapa = somarMunicipios('Total da consulta', 'municípios do mapa + tudo o que ficou fora dele', municipios);
+    const fora = (f: (g: IndicadoresForaDoMapa) => number) => foraDoMapa.reduce((s, g) => s + f(g), 0);
+    consulta = {
+      ...mapa,
+      elegiveis: mapa.elegiveis + fora((g) => g.cobertura.vinculosComCadencia),
+      cobertos: mapa.cobertos + fora((g) => g.cobertura.cobertos),
+      pendentes: mapa.pendentes + fora((g) => g.cobertura.pendentes),
+      vendas: mapa.vendas + fora((g) => g.vendas.valorLiquido),
+      posVenda: mapa.posVenda + fora((g) => g.vendas.posVenda),
+    };
+  }
+
+  return { adr, parcelas, consulta };
 }
 
 export type FatiaNoEstado = {

@@ -1,3 +1,4 @@
+import { Sprout } from 'lucide-react';
 import { useState } from 'react';
 import type { ClassificacaoDeIndicador, RegraDePotencialAplicada } from '../../../tipos/territorio';
 import { faixaDe, reaisDaProducao } from '../escalas';
@@ -118,14 +119,35 @@ export function MapaDoPotencial({
       id="potencial"
       ligacao={ligacao}
       titulo="Potencial teórico"
-      selo={<SeloDeClassificacao classificacao={classificacao} />}
-      metodologia={metodologia(recorteDoPotencial, regra, enderecos, enderecosComArea)}
+      icone={Sprout}
+      // O SELO DE ESTIMATIVA FICA, DISCRETO. A maquete não mostra selo neste
+      // cartão; mas o potencial é necessidade TEÓRICA, com regra a confirmar, e a
+      // tela não deixa esse número parecer medido (documento 32, P-8) — há teste
+      // que exige a palavra na primeira camada. Ele fica na ponta do título, em
+      // letra de metadado e sem fundo, com o motivo na dica dele. Sem a
+      // classificação da API, o próprio dado acende o selo (`potencialEstimado`).
+      selo={
+        classificacao ? (
+          <SeloDeClassificacao classificacao={classificacao} />
+        ) : totais.potencialEstimado ? (
+          <span className="terr-selo terr-selo-Estimativa">estimativa</span>
+        ) : null
+      }
+      metodologia={
+        <>
+          {totais.potencialEstimado && (
+            <p>Estimativa: alguma regra que dimensionou máquina aqui ainda não foi confirmada pelo comercial (D-P01).</p>
+          )}
+          <p>{metodologia(recorteDoPotencial, regra, enderecos, enderecosComArea)}</p>
+        </>
+      }
       // A REGRA CONTINUA NO RESUMO, e agora como metadado à direita — que é onde
       // a maquete põe "1.303 N / 10 ha de café". Ela é operacional e não é a
       // resposta do cartão: a resposta é quantas máquinas o recorte comporta.
       resumo={{
         valor: totais.municipiosComArea > 0 ? nº(Math.round(totais.maquinasTeoricas)) : null,
-        rotulo: totais.potencialEstimado ? 'máquinas potenciais (estimativa)' : 'máquinas potenciais',
+        rotulo: 'máquinas potenciais',
+        rotuloEmbaixo: true,
         semValor: 'sem área plantada ou regra para calcular',
         meta:
           totais.municipiosComArea > 0
@@ -155,6 +177,13 @@ export function MapaDoPotencial({
       estadoDe={estadoDoPotencial}
       faixas={FAIXAS_DO_POTENCIAL[recorteDoPotencial]}
       unidade={UNIDADE_DO_POTENCIAL[recorteDoPotencial]}
+      semDado={{
+        rotulo: 'Sem valor',
+        explicacao:
+          recorteDoPotencial === 'maquinas'
+            ? 'área plantada sob sigilo do IBGE, ou nenhuma cultura do município com regra de hectares por máquina'
+            : 'produção agrícola não carregada para o município',
+      }}
     />
   );
 }

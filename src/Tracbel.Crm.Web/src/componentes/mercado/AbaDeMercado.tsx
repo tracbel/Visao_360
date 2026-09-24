@@ -50,6 +50,11 @@ import { FaixaDoMercado } from './FaixaDoMercado';
 import { KpisExecutivos } from './KpisExecutivos';
 import { BlocoDoMomento } from './BlocoDoMomento';
 import { PerformanceTracbel } from './PerformanceTracbel';
+// O INTERIOR DOS BLOCOS DA VISÃO GERAL (fidelidade às maquetes, fase 2): os
+// quatro números, a régua, os quatro mapas, o potencial e a performance. Classes
+// novas num arquivo novo — as antigas do `dashboard.css` são compartilhadas com
+// Rentabilidade, Crédito e a ficha, que têm outra maquete.
+import '../../estilos/mercado-visao.css';
 
 export function AbaDeMercado({
   kpisDoMercado,
@@ -111,28 +116,34 @@ export function AbaDeMercado({
         />
       </SecaoDoMercadoDaRegiao>
 
-      {/* O MOMENTO EM LARGURA INTEIRA (maquete de rentabilidade e crédito). Por
-          dentro ele não mudou nesta fase: abas, cartões e tabelas são os de
-          antes — o redesenho do interior é a fase 3. */}
+      {/* O MOMENTO EM LARGURA INTEIRA, com as cinco abas das maquetes
+          `momento-*.png` (fidelidade às maquetes, fase 3). Os municípios vão
+          junto: a área colhida da Região Tracbel pesa a margem média, e o
+          responsável pela carteira é o único nome que a coluna "Gestor" da
+          percepção pode mostrar. */}
       <BlocoDoMomento
         municipioSelecionado={municipioCodigoIbge}
         nomeDoMunicipio={nomeDoMunicipio}
         produtosDoMunicipio={produtosDoMunicipio}
         momento={indicadores?.momento ?? null}
+        municipios={indicadores?.municipios ?? []}
+        carregando={carregando}
       />
 
       {/* MOMENTO, PORTE E O QUE A REGIÃO TEM, NUMA RÉGUA SÓ (fase T4.8).
 
           Eram dois blocos brancos empilhados — a faixa de porte e momento e a
           dos cinco indicadores estruturais. São a mesma leitura: como está o
-          mercado, e o que existe nele. Juntos numa régua de sete células, com
-          filete entre elas, o olho corre de uma ponta à outra. */}
+          mercado, e o que existe nele. Juntos num cartão de uma linha — momento,
+          porte e os cinco números —, o olho corre de uma ponta à outra. */}
       <FaixaDoMercado indicadores={kpisDoMercado} momento={indicadores?.momento ?? null} />
 
       <section data-bloco="visao-geografica">
         <TituloDaSecao
           titulo="Visão geográfica"
-          subtitulo="Compare os municípios sob quatro perspectivas."
+          // A FRASE DA MAQUETE, sem o "da região": sozinha, a palavra faria a
+          // diretoria ler a sub-região como a área de atuação inteira (issue 163).
+          subtitulo="Compare os municípios sob quatro perspectivas complementares."
           metodologia={
             <>
               <p>
@@ -154,19 +165,29 @@ export function AbaDeMercado({
           //
           // CONTINUA SENDO CONTEXTO, com o critério dito na dica — ela não entra
           // no cálculo do momento, e a dica diz isso com todas as letras.
+          //
+          // A FATIA SAIU DA LINHA E FOI PARA A DICA (maquete): a linha diz só
+          // "Principal cultura: Café"; quanto da área relevante ela ocupa é o
+          // primeiro parágrafo da dica, junto do critério que a escolheu.
           acao={
             predominante && (
-              <span className="dash-selo-secao" data-contexto="predominante">
-                <Sprout size={14} strokeWidth={2} aria-hidden="true" />
-                Principal cultura: <strong>{predominante.cultura}</strong> ·{' '}
-                {predominante.fatia.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}% da área relevante
+              <span className="dash-selo-secao mv-cultura" data-contexto="predominante">
+                <Sprout size={16} strokeWidth={1.8} aria-hidden="true" />
+                Principal cultura: <strong>{predominante.cultura}</strong>
                 <InfoTooltip
                   rotulo="Qual é o critério da principal cultura"
                   texto={
-                    `Critério: ${predominante.criterio}. ` +
-                    'Isto é CONTEXTO — responde "o que se planta aqui?" — e não entra no cálculo do momento: o ' +
-                    'fator de cada cultura pesa pela demanda que ela representa, não pela área. Trocar qual ' +
-                    'cultura tem a maior área muda esta linha e não muda o momento.'
+                    <>
+                      <p>
+                        {`${predominante.fatia.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}% da área relevante.`}
+                      </p>
+                      <p>
+                        {`Critério: ${predominante.criterio}. ` +
+                          'Isto é CONTEXTO — responde "o que se planta aqui?" — e não entra no cálculo do momento: o ' +
+                          'fator de cada cultura pesa pela demanda que ela representa, não pela área. Trocar qual ' +
+                          'cultura tem a maior área muda esta linha e não muda o momento.'}
+                      </p>
+                    </>
                   }
                 />
               </span>

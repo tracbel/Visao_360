@@ -1,43 +1,60 @@
 /**
- * Momento do mercado — Rentabilidade | Crédito | Termo de troca | Percepção
- * comercial (documento 50, §4.6).
+ * Momento do mercado — Composição do fator | Rentabilidade | Crédito | Termo de
+ * troca | Percepção comercial (documento 50, §4.6; na forma das maquetes
+ * `momento-*.png` desde a fidelidade às maquetes, fase 3).
  *
- * OS TRÊS PAINÉIS DO FIM DA PÁGINA MUDARAM DE LUGAR, NÃO DE CONTEÚDO. Preço,
- * custo e crédito estavam empilhados no rodapé, cada um com o mesmo peso visual
- * de tudo o mais; agora são as abas do bloco que responde "o mercado está melhor
- * ou pior que antes".
+ * O BLOCO É UM CARTÃO BRANCO EM LARGURA INTEIRA, logo abaixo dos quatro números
+ * (a fase 1 o pôs no lugar). À esquerda o ícone de tendência, o título e uma
+ * frase; à direita "Simular cenário"; embaixo as cinco abas SUBLINHADAS — e cada
+ * aba segue o mesmo padrão da maquete: quatro cartões de resumo, dois ou três
+ * painéis lado a lado e a tabela de detalhamento.
  *
- * DUAS ABAS NASCEM VAZIAS, E ISSO É A RESPOSTA CERTA. Termo de troca precisa do
- * preço de máquina (issue 70) e percepção precisa que esta tela leia o parâmetro
- * (issue 71): as duas dizem o que falta, no lugar onde o número apareceria. Um
- * número plausível e errado leva a uma decisão; um espaço explicado leva a uma
- * pergunta.
+ * DUAS ABAS TÊM MAIS LUGAR QUE DADO, E ISSO É A RESPOSTA CERTA. Termo de troca
+ * precisa do preço de máquina (issue 70) e a percepção por município ainda não
+ * tem série nem índice de 0 a 100 (issue 71): o layout da maquete fica inteiro,
+ * e no lugar de cada número que não existe, o traço e o motivo (decisão 1 do
+ * usuário). Um número plausível e errado leva a uma decisão; um espaço
+ * explicado leva a uma pergunta.
  *
- * A COMPOSIÇÃO DO FATOR ABRE O BLOCO (fase T3.1). O resumo executivo mostra o
- * fator agregado e mais nada; a conta que o produz — cultura por cultura, com as
- * três parcelas de cada uma — é a primeira aba daqui. É o lugar certo: quem
- * pergunta "por que 0,88?" já está olhando o momento do mercado.
+ * A COMPOSIÇÃO DO FATOR ABRE O BLOCO (fase T3.1): quem pergunta "por que 0,88?"
+ * já está olhando o momento do mercado.
  */
 
+// O REGISTRO DO CHART.JS ANTES DE QUALQUER GRÁFICO DO BLOCO: o crédito e a
+// rentabilidade carregam o `padraoDosGraficos`, que precisa do balão já
+// registrado (ver `registroDoGraficoCombinado`).
+import './momento/registroDoGraficoCombinado';
+import { SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
-import { MetricaAusente } from '../comum/MetricaAusente';
-import { ReferenciaNaoEMunicipal } from '../comum/Comparacao';
+import { useContextoDeAcesso } from '../../dados/api/contexto';
+import type { IndicadoresDoMunicipio, MomentoDoRecorte } from '../../tipos/territorio';
+import { InfoTooltip } from '../InfoTooltip';
 import { PainelDeCredito } from '../territorio/PainelDeCredito';
-import { PainelDeCustos } from '../territorio/PainelDeCustos';
-import { PainelDePrecos } from '../territorio/PainelDePrecos';
-import { TituloDaSecao } from '../territorio/TituloDaSecao';
-import { AbasInternas } from './AbasInternas';
+import { Calculadora } from './Calculadora';
 import { ComposicaoDoFator } from './ComposicaoDoFator';
 import { PainelDeRentabilidade } from './PainelDeRentabilidade';
-import type { MomentoDoRecorte } from '../../tipos/territorio';
+import { AbaPercepcaoComercial } from './momento/AbaPercepcaoComercial';
+import { AbasDoMomento } from './momento/AbasDoMomento';
+import { AbaTermoDeTroca } from './momento/AbaTermoDeTroca';
+import '../../estilos/momento.css';
 
 type SubAba = 'composicao' | 'rentabilidade' | 'credito' | 'troca' | 'percepcao';
+
+const ABAS: readonly { id: SubAba; rotulo: string }[] = [
+  { id: 'composicao', rotulo: 'Composição do fator' },
+  { id: 'rentabilidade', rotulo: 'Rentabilidade' },
+  { id: 'credito', rotulo: 'Crédito' },
+  { id: 'troca', rotulo: 'Termo de troca' },
+  { id: 'percepcao', rotulo: 'Percepção comercial' },
+];
 
 export function BlocoDoMomento({
   municipioSelecionado = null,
   nomeDoMunicipio = null,
   produtosDoMunicipio = [],
   momento = null,
+  municipios = [],
+  carregando = false,
 }: {
   municipioSelecionado?: number | null;
   nomeDoMunicipio?: string | null;
@@ -45,87 +62,83 @@ export function BlocoDoMomento({
   produtosDoMunicipio?: readonly number[];
   /** O momento do recorte — a composição por cultura do fator agregado (fase T3.1). */
   momento?: MomentoDoRecorte | null;
+  /**
+   * Os municípios da leitura — a área colhida da Região Tracbel (peso da margem
+   * média) e o responsável pela carteira de cada um (coluna Gestor da percepção).
+   */
+  municipios?: readonly IndicadoresDoMunicipio[];
+  /** A leitura dos indicadores ainda não voltou. */
+  carregando?: boolean;
 } = {}) {
+  const { contexto } = useContextoDeAcesso();
   const [subAba, setSubAba] = useState<SubAba>('composicao');
+  const [simulando, setSimulando] = useState(false);
 
   return (
-    <section data-bloco="momento-do-mercado">
-      <TituloDaSecao
-        titulo="Momento do mercado"
-        subtitulo="O que mudou desde a safra passada."
-        metodologia={
-          'Preço, custo, crédito e a leitura do comercial. Este bloco anda todo mês, diferente do potencial ' +
-          'estrutural, que anda devagar — e é por isso que os dois ficam separados: "mercado grande, agora retraído" ' +
-          'é uma decisão diferente de "mercado pequeno e aquecido".'
-        }
-      />
+    <section className="mom-bloco" data-bloco="momento-do-mercado">
+      <div className="mom-cabecalho">
+        <div className="mom-cabecalho-titulos">
+          <span className="mom-cabecalho-icone" aria-hidden="true">
+            <TrendingUp size={28} strokeWidth={2.2} />
+          </span>
+          <h2 className="mom-titulo">
+            Momento do mercado
+            <InfoTooltip
+              rotulo="Fonte e método de momento do mercado"
+              texto={
+                'Preço, custo, crédito e a leitura do comercial — o que mudou desde a safra passada. Este bloco ' +
+                'anda todo mês, diferente do potencial estrutural, que anda devagar — e é por isso que os dois ficam ' +
+                'separados: "mercado grande, agora retraído" é uma decisão diferente de "mercado pequeno e aquecido".'
+              }
+            />
+          </h2>
+          {/* "NA SUA ÁREA DE ATUAÇÃO", e não "na sua região" (decisão 2 do
+              usuário): "região" sozinha confunde a Região Tracbel com a
+              sub-região Norte ou Noroeste. */}
+          <p className="mom-subtitulo">
+            Principais fatores que influenciam a rentabilidade, o crédito e o comportamento do mercado na sua área de
+            atuação.
+          </p>
+        </div>
 
-      <AbasInternas
-        rotulo="O que o momento mostra"
-        ativa={subAba}
-        aoTrocar={setSubAba}
-        abas={[
-          {
-            id: 'composicao',
-            rotulo: 'Composição do fator',
-            // A CONTA DO NÚMERO DO TOPO, aberta: cultura, índice dela, fator dela
-            // e as três parcelas. Some a coluna e confira.
-            conteudo: <ComposicaoDoFator momento={momento} />,
-          },
-          {
-            id: 'rentabilidade',
-            rotulo: 'Rentabilidade',
-            // A RESPOSTA VEM PRIMEIRO (fase T4.7). Esta aba abria com duas
-            // tabelas de dez colunas — preço e custo — e a pergunta que a
-            // diretoria traz ("onde sobra dinheiro por hectare?") tinha de ser
-            // montada cruzando as duas com a cabeça. Agora o painel de margem
-            // abre a aba, e preço e custo ficam abaixo, como a evidência que
-            // eles são. Nenhuma tabela foi removida.
-            conteudo: (
-              <>
-                {/* A FONTE É ESTADUAL, e a tela diz isso (issue 168): escolher um
-                    município não reparte um preço de São Paulo por município. */}
-                <ReferenciaNaoEMunicipal nomeDoMunicipio={nomeDoMunicipio} fonte="São Paulo" />
-                <PainelDeRentabilidade produtosDoMunicipio={produtosDoMunicipio} />
+        {/* "SIMULAR CENÁRIO" ABRE A MESMA CALCULADORA do Potencial estrutural.
+            Ela é o único lugar onde os cenários do momento já existem (issue
+            74): a demanda simulada volta ajustada pelo crédito, pela percepção
+            e pelo preço de cada cultura, com os três cenários. */}
+        <button
+          type="button"
+          className="mom-simular"
+          aria-pressed={simulando}
+          aria-label={simulando ? 'Fechar a simulação do momento do mercado' : 'Simular cenário com o momento do mercado'}
+          onClick={() => setSimulando((s) => !s)}
+        >
+          <SlidersHorizontal size={15} strokeWidth={2} aria-hidden="true" />
+          {simulando ? 'Fechar a simulação' : 'Simular cenário'}
+        </button>
+      </div>
 
-                <details className="cad-recolhivel" data-bloco="rentabilidade-fontes">
-                  <summary>As duas séries que compõem a margem — preço e custo</summary>
-                  <PainelDePrecos produtosDoMunicipio={produtosDoMunicipio} />
-                  <ReferenciaNaoEMunicipal
-                    nomeDoMunicipio={nomeDoMunicipio}
-                    fonte="a localidade de referência da CONAB"
-                  />
-                  <PainelDeCustos produtosDoMunicipio={produtosDoMunicipio} />
-                </details>
-              </>
-            ),
-          },
-          {
-            id: 'credito',
-            rotulo: 'Crédito',
-            // O SICOR PUBLICA POR MUNICÍPIO: aqui o recorte muda o que se lê.
-            conteudo: <PainelDeCredito municipioSelecionado={municipioSelecionado} />,
-          },
-          {
-            id: 'troca',
-            rotulo: 'Termo de troca',
-            conteudo: (
-              <MetricaAusente metrica="Termo de troca"
-                motivo="Quantas sacas o produtor precisa hoje para comprar uma máquina, contra cinco anos atrás. Precisa do preço de máquina por modelo ao longo do tempo (issue 70), que não existe no CRM — e o preço da saca sozinho não responde a pergunta."
-              />
-            ),
-          },
-          {
-            id: 'percepcao',
-            rotulo: 'Percepção comercial',
-            conteudo: (
-              <MetricaAusente metrica="Percepção comercial"
-                motivo="O parâmetro existe, tem vigência e é informado em Configurações (issue 71), mas esta tela ainda não o lê: ele chega junto dos indicadores do recorte, na fase T3. Mostrar zero aqui seria afirmar neutralidade que ninguém declarou."
-              />
-            ),
-          },
-        ]}
-      />
+      {simulando && (
+        <Calculadora contexto={contexto} municipioCodigoIbge={municipioSelecionado} aoFechar={() => setSimulando(false)} />
+      )}
+
+      <AbasDoMomento rotulo="O que o momento mostra" abas={ABAS} ativa={subAba} aoTrocar={setSubAba}>
+        {subAba === 'composicao' && <ComposicaoDoFator momento={momento} carregando={carregando} />}
+
+        {subAba === 'rentabilidade' && (
+          <PainelDeRentabilidade
+            produtosDoMunicipio={produtosDoMunicipio}
+            nomeDoMunicipio={nomeDoMunicipio}
+            municipios={municipios}
+          />
+        )}
+
+        {/* O SICOR PUBLICA POR MUNICÍPIO: aqui o recorte muda o que se lê. */}
+        {subAba === 'credito' && <PainelDeCredito municipioSelecionado={municipioSelecionado} />}
+
+        {subAba === 'troca' && <AbaTermoDeTroca produtosDoMunicipio={produtosDoMunicipio} />}
+
+        {subAba === 'percepcao' && <AbaPercepcaoComercial momento={momento} municipios={municipios} />}
+      </AbasDoMomento>
     </section>
   );
 }

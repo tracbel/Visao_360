@@ -60,3 +60,41 @@ export function comAsCulturasDoMunicipioPrimeiro(
 
   return [...doMunicipio, ...resto];
 }
+
+/**
+ * A ÁREA COLHIDA DE UMA CULTURA NA REGIÃO TRACBEL DO RECORTE (fidelidade às
+ * maquetes, 23/09/2026) — a soma da PAM dos municípios da ADR.
+ *
+ * POR QUE NÃO A ÁREA QUE A ROTA DE RENTABILIDADE DEVOLVE: aquela é a área
+ * colhida de SÃO PAULO (é a que multiplica a margem na `margemTotal`), e a
+ * "Média da Região Tracbel" pesada por ela seria a média do estado com o nome
+ * da região. A margem é referência estadual; o PESO é que precisa ser daqui.
+ *
+ * A JUNÇÃO É O CATÁLOGO, como no resto deste arquivo: a cultura declara os
+ * produtos da PAM que a compõem. Só entram os que somam na lavoura — o café tem
+ * "Total", "Arábica" e "Canephora", e somar os três contaria a mesma terra duas
+ * vezes. Se a cultura não marca nenhum, entram todos os dela.
+ *
+ * NULO NÃO É ZERO: sem nenhum município com área divulgada para a cultura, a
+ * resposta é ausência — e ela não pesa na média, em vez de pesar zero.
+ */
+export function areaColhidaNoRecorte(
+  cultura: CulturaNoCatalogo,
+  municipios: readonly IndicadoresDoMunicipio[],
+): number | null {
+  const queSomam = cultura.produtos.filter((p) => p.entraNaSomaDaLavoura);
+  const codigos = new Set((queSomam.length > 0 ? queSomam : cultura.produtos).map((p) => p.codigoIbge));
+
+  let total = 0;
+  let algum = false;
+  for (const m of municipios) {
+    if (!m.pertenceAAdr) continue;
+    for (const p of m.potencial) {
+      if (!codigos.has(p.produtoCodigoIbge) || p.areaColhidaHectares == null) continue;
+      total += p.areaColhidaHectares;
+      algum = true;
+    }
+  }
+
+  return algum ? total : null;
+}

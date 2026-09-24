@@ -12,7 +12,7 @@
  * mapas: o mesmo município ganha contorno tracejado nos três, para comparar.
  */
 
-import { COR_BORDA_ADR, COR_FORA_DA_ADR, ID_HACHURA_SEM_DADO, type Faixa } from './escalas';
+import { COR_BORDA_ADR, COR_BORDA_FORA_DA_ADR, COR_FORA_DA_ADR, ID_HACHURA_SEM_DADO, type Faixa } from './escalas';
 import type { Enquadramento } from './projecao';
 
 export type EstadoNoMapa =
@@ -29,7 +29,7 @@ type Props = {
   enquadramento: Enquadramento;
   poligonos: PoligonoProjetado[];
   estadoDe: (codigo: number) => EstadoNoMapa;
-  /** Os municípios da ADR, que ganham o contorno verde. */
+  /** Os municípios da ADR, desenhados por cima dos vizinhos, com a divisa em tom da própria cor. */
   adr: ReadonlySet<number>;
   selecionado: number | null;
   aoSelecionar: (codigo: number) => void;
@@ -69,8 +69,13 @@ export function MapaDeMunicipios({
         </pattern>
       </defs>
 
-      {/* PRIMEIRO O QUE ESTÁ FORA, DEPOIS A ADR: o contorno verde da ADR precisa
-          ficar por cima da borda cinza do vizinho, senão some na divisa. */}
+      {/* PRIMEIRO O QUE ESTÁ FORA, DEPOIS A ADR: a divisa da ADR precisa ficar
+          por cima da borda clara do vizinho, senão some na fronteira.
+
+          O TRAÇO NÃO ESCALA COM O ENQUADRAMENTO (`non-scaling-stroke`): a ADR
+          enquadrada enche o quadro, e um traço em unidades do desenho engrossaria
+          ou sumiria conforme o tamanho da área. Em pixel de tela ele fica fino
+          como o da maquete em qualquer cartão. */}
       {[false, true].map((daAdr) =>
         poligonos
           .filter((p) => adr.has(p.codigo) === daAdr)
@@ -83,8 +88,9 @@ export function MapaDeMunicipios({
                 key={p.codigo}
                 d={p.caminho}
                 fill={preenchimento}
-                stroke={daAdr ? COR_BORDA_ADR : '#D1D5DB'}
-                strokeWidth={daAdr ? 0.7 : 0.35}
+                stroke={daAdr ? COR_BORDA_ADR : COR_BORDA_FORA_DA_ADR}
+                strokeWidth={daAdr ? 0.6 : 0.5}
+                vectorEffect="non-scaling-stroke"
                 className="terr-poligono"
                 onClick={() => aoSelecionar(p.codigo)}
                 onMouseEnter={() => aoPassar?.(p.codigo)}
@@ -96,21 +102,51 @@ export function MapaDeMunicipios({
       )}
 
       {focado && (
-        <path d={focado.caminho} fill="none" stroke="#111827" strokeWidth={1.4} strokeDasharray="3 2" pointerEvents="none" />
+        <path
+          d={focado.caminho}
+          fill="none"
+          stroke="#111827"
+          strokeWidth={1.4}
+          strokeDasharray="3 2"
+          vectorEffect="non-scaling-stroke"
+          pointerEvents="none"
+        />
       )}
       {escolhido && (
-        <path d={escolhido.caminho} fill="none" stroke="#111827" strokeWidth={2} pointerEvents="none" />
+        <path d={escolhido.caminho} fill="none" stroke="#111827" strokeWidth={2} vectorEffect="non-scaling-stroke" pointerEvents="none" />
       )}
     </svg>
   );
 }
 
-/** A legenda: a unidade, as faixas da escala, e os estados que não são valor. */
-export function LegendaDoMapa({ faixas, unidade }: { faixas: Faixa[]; unidade: string }) {
+/**
+ * A LEGENDA DA MAQUETE: as faixas em coluna, da MAIOR para a menor, e o "sem
+ * dado" por último (fidelidade às maquetes, 23/09/2026).
+ *
+ * O QUE SAIU DA LEGENDA VISÍVEL foi para a dica do título do mapa, inteiro: a
+ * linha longa da unidade, "fora da ADR" e "contorno: município da ADR". A unidade
+ * continua no NOME ACESSÍVEL da legenda — o leitor de tela anuncia "Legenda — %
+ * dos vínculos elegíveis…" ao chegar nela.
+ *
+ * O "SEM DADO" CONTINUA HACHURADO, e não cinza liso como na maquete. A regra
+ * desta tela é que zero, sem dado e fora da ADR têm aparência própria (ver
+ * `escalas.ts`): no mapa o sem dado é hachurado — sigilo do IBGE não é zero —, e
+ * o cinza liso é o fundo de fora da ADR. Uma amostra lisa aqui diria que o fundo
+ * é "sem dado".
+ */
+export function LegendaDoMapa({
+  faixas,
+  unidade,
+  semDado = 'Sem dado',
+}: {
+  faixas: Faixa[];
+  unidade: string;
+  /** O nome do estado sem valor, na palavra do mapa — "Sem cliente", "Sem valor". */
+  semDado?: string;
+}) {
   return (
-    <div className="terr-legenda" aria-label={`Legenda — ${unidade}`}>
-      <span className="terr-legenda-unidade">{unidade}</span>
-      {faixas.map((f) => (
+    <div className="terr-legenda" role="group" aria-label={`Legenda — ${unidade}`}>
+      {[...faixas].reverse().map((f) => (
         <span key={f.rotulo} className="terr-legenda-item">
           <span className="terr-amostra" style={{ background: f.cor }} />
           {f.rotulo}
@@ -118,15 +154,7 @@ export function LegendaDoMapa({ faixas, unidade }: { faixas: Faixa[]; unidade: s
       ))}
       <span className="terr-legenda-item">
         <span className="terr-amostra terr-amostra-hachura" />
-        sem dado
-      </span>
-      <span className="terr-legenda-item">
-        <span className="terr-amostra" style={{ background: COR_FORA_DA_ADR, borderColor: '#D1D5DB' }} />
-        fora da ADR
-      </span>
-      <span className="terr-legenda-item">
-        <span className="terr-amostra" style={{ background: 'transparent', borderColor: COR_BORDA_ADR, borderWidth: 2 }} />
-        contorno: município da ADR
+        {semDado}
       </span>
     </div>
   );

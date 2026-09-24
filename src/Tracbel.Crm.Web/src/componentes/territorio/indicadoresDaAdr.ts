@@ -37,7 +37,7 @@ export type RecorteDoPotencial = 'maquinas' | 'areaPlantada' | 'valorDaProducao'
 export const ROTULO_DE_COBERTURA: Record<ModoDeCobertura, string> = {
   cobertura: '% no prazo',
   pendencia: '% pendente',
-  quantidade: 'pendentes (qtd.)',
+  quantidade: 'Pendentes (qtd.)',
 };
 
 export const UNIDADE_DE_COBERTURA: Record<ModoDeCobertura, string> = {
@@ -58,12 +58,21 @@ export const ROTULO_DE_VENDAS: Record<RecorteDeVendas, string> = {
   posVenda: 'Pós-venda',
 };
 
+/**
+ * OS CINCO RECORTES DA ESTRUTURA NUMA LINHA SÓ (fidelidade às maquetes).
+ *
+ * A maquete mostra quatro — sem usinas —, e tirar as usinas é decisão que não
+ * foi tomada: ficam os cinco, com os nomes curtos da maquete ("Rebanho") para
+ * caberem num cartão de um quarto de linha. O bovino e o etanol, que saíram do
+ * botão, estão no nome do mapa e na dica dele. A densidade mantém a unidade
+ * VERDADEIRA — por mil km², e não por km² como a maquete escreve.
+ */
 export const ROTULO_DA_ESTRUTURA: Record<RecorteDaEstrutura, string> = {
   tratores: 'Tratores',
   densidade: 'Tratores / mil km²',
   estabelecimentos: 'Propriedades',
-  rebanho: 'Rebanho bovino',
-  usinas: 'Usinas de etanol',
+  rebanho: 'Rebanho',
+  usinas: 'Usinas',
 };
 
 export const FAIXAS_DA_ESTRUTURA = {

@@ -8,7 +8,8 @@
 
 import { describe, expect, it } from 'vitest';
 import { CAFELANDIA, ARARAQUARA, municipioDeTeste } from '../../testes/territorio';
-import { calcularFatiaNoEstado, calcularTotais, diferencaParaASoma } from './totaisDaAdr';
+import type { IndicadoresForaDoMapa } from '../../tipos/territorio';
+import { calcularFatiaNoEstado, calcularTotais, conferenciaDaConsulta, diferencaParaASoma } from './totaisDaAdr';
 
 const ESTADO = {
   ano: 2024,
@@ -104,6 +105,87 @@ describe('a fatia em São Paulo', () => {
     const totais = calcularTotais([municipioDeTeste({ codigoIbge: CAFELANDIA, nome: 'Cafelândia' })]);
     const fatia = calcularFatiaNoEstado({ ...ESTADO, tratores: { publicado: 0, somaDosMunicipios: 0 } }, totais);
     expect(fatia!.tratores).toBeNull();
+  });
+});
+
+/**
+ * A CONFERÊNCIA DO DOCUMENTO 32, SEM LINHAS NA TABELA (fase 4).
+ *
+ * As linhas de total saíram do fim da tabela e foram para a dica do título; a
+ * afirmação que elas carregavam — a soma das linhas é o total da consulta —
+ * continua provada, agora sobre o dado.
+ */
+describe('a conferência da consulta', () => {
+  const daAdr = [
+    municipioDeTeste({ codigoIbge: CAFELANDIA, nome: 'Cafelândia' }),
+    municipioDeTeste({ codigoIbge: 3500105, nome: 'Adamantina', vendas: { ...municipioDeTeste({ codigoIbge: 1, nome: 'x' }).vendas, valorLiquido: 750_000, posVenda: 50_000 } }),
+  ];
+  const foraDaAdr = municipioDeTeste({ codigoIbge: ARARAQUARA, nome: 'Araraquara', pertenceAAdr: false });
+  const foraDoMapa: IndicadoresForaDoMapa[] = [
+    {
+      grupo: 'MunicipioSemCodigoIbge',
+      descricao: 'clientes cujo município não tem código IBGE',
+      cobertura: { clientes: 1, vinculos: 1, vinculosComCadencia: 2, cobertos: 1, foraDaCadencia: 1, nuncaContatados: 0, semCadencia: 0, pendentes: 1, percentualPendente: 50 },
+      vendas: { clientesQueCompraram: 1, valorLiquido: 10_000, maquina: 0, peca: 6_000, servico: 4_000, outros: 0, posVenda: 10_000 },
+    },
+  ];
+  const municipios = [...daAdr, foraDaAdr];
+  const totais = calcularTotais(daAdr);
+  const somar = (linhas: { elegiveis: number; cobertos: number; pendentes: number; vendas: number; posVenda: number }[]) => ({
+    elegiveis: linhas.reduce((s, l) => s + l.elegiveis, 0),
+    cobertos: linhas.reduce((s, l) => s + l.cobertos, 0),
+    pendentes: linhas.reduce((s, l) => s + l.pendentes, 0),
+    vendas: linhas.reduce((s, l) => s + l.vendas, 0),
+    posVenda: linhas.reduce((s, l) => s + l.posVenda, 0),
+  });
+
+  it('a soma das linhas da ADR é o Total da ADR', () => {
+    const c = conferenciaDaConsulta({ municipios, daAdr, foraDoMapa, totais, semFiltro: true, territorioNaoCarregado: false });
+    const linhas = somar(
+      daAdr.map((m) => ({
+        elegiveis: m.cobertura.vinculosComCadencia,
+        cobertos: m.cobertura.cobertos,
+        pendentes: m.cobertura.pendentes,
+        vendas: m.vendas.valorLiquido,
+        posVenda: m.vendas.posVenda,
+      })),
+    );
+    expect(c.adr).toMatchObject({ rotulo: 'Total da ADR', ...linhas, maquinas: 2_480 });
+  });
+
+  it('ADR + São Paulo fora da ADR + fora do mapa = Total da consulta', () => {
+    const c = conferenciaDaConsulta({ municipios, daAdr, foraDoMapa, totais, semFiltro: true, territorioNaoCarregado: false });
+
+    expect(c.parcelas.map((p) => p.rotulo)).toEqual(['São Paulo fora da ADR', 'MunicipioSemCodigoIbge']);
+    const soma = somar([c.adr!, ...c.parcelas]);
+    expect(c.consulta).toMatchObject({ rotulo: 'Total da consulta', ...soma });
+    // 18 + 18 (ADR) + 18 (fora da ADR) + 2 (fora do mapa).
+    expect(c.consulta!.elegiveis).toBe(56);
+    // Os grupos de fora não têm parque somado — e não aparecem com zero.
+    expect(c.parcelas.every((p) => p.maquinas === null)).toBe(true);
+  });
+
+  it('com filtro, os grupos de fora da ADR e o total da consulta não entram — seriam de outro recorte', () => {
+    const c = conferenciaDaConsulta({ municipios, daAdr, foraDoMapa, totais, semFiltro: false, territorioNaoCarregado: false });
+
+    expect(c.adr!.rotulo).toBe('Total da ADR (filtro)');
+    expect(c.parcelas.map((p) => p.rotulo)).toEqual(['MunicipioSemCodigoIbge']);
+    expect(c.consulta).toBeNull();
+  });
+
+  it('território não carregado: sem linha da ADR (e não zeros), mas o total da consulta continua', () => {
+    const c = conferenciaDaConsulta({
+      municipios: [foraDaAdr],
+      daAdr: [],
+      foraDoMapa,
+      totais: calcularTotais([]),
+      semFiltro: true,
+      territorioNaoCarregado: true,
+    });
+
+    expect(c.adr).toBeNull();
+    expect(c.parcelas.map((p) => p.rotulo)).toEqual(['MunicipioSemCodigoIbge']);
+    expect(c.consulta!.elegiveis).toBe(20);
   });
 });
 

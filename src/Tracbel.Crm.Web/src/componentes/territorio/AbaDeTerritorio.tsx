@@ -1,13 +1,18 @@
 /**
- * A aba Território — a leitura operacional (documento 50, §5).
+ * A aba Território — a leitura operacional (documento 50, §5), desenhada como a
+ * maquete `territorio-ficha.png` (fidelidade às maquetes, 23/09/2026 — fase 4).
  *
  * ELA NÃO DUPLICA OS CARTÕES EXECUTIVOS DE MERCADO. Onde um dado já aparece
  * resumido lá, aqui ele aparece na forma de trabalho: a linha, o nome, a data.
  *
- * O QUE MUDOU DE ABA: a linha de indicadores da carteira — municípios da ADR,
- * cobertura pela cadência, vendas no período e parque teórico — saiu do topo de
- * Mercado e veio para cá, porque é a leitura de quem trabalha o território, e
- * não a de quem decide sobre o mercado. Ela não perdeu nem ganhou um número.
+ * TRÊS BLOCOS, na ordem da maquete:
+ *   1. "A carteira na área de atuação" — o título com o controle de período à
+ *      direita e os quatro cartões da carteira (municípios da ADR, cobertura
+ *      pela cadência, vendas no período e parque teórico). Eles eram o
+ *      `PainelDeIndicadores` do cadastro; agora são o cartão da maquete, e
+ *      nenhum número foi ganho nem perdido.
+ *   2. A tabela de municípios, paginada e ordenável.
+ *   3. A ficha do município escolhido, ao lado da tabela.
  *
  * O QUE AINDA NÃO ESTÁ AQUI: responsáveis, cadência e carteira por município
  * existem hoje **dentro da ficha** do município, e não como painéis próprios.
@@ -16,12 +21,16 @@
  */
 
 import type { ClassificacaoDeIndicador, IndicadoresDoMunicipio, IndicadoresForaDoMapa } from '../../tipos/territorio';
-import { PainelDeIndicadores, type Indicador } from '../cadastro/Indicadores';
+import { CartoesDaCarteira } from './carteira/CartoesDaCarteira';
+import { ComparacaoDaCarteira } from './carteira/ComparacaoDaCarteira';
+import { ProvedorDoPeriodo } from './carteira/periodo';
 import { ComoLerEstesNumeros } from './ComoLerEstesNumeros';
+import type { CarteiraNaArea } from './kpisDosIndicadores';
 import { TabelaDeMunicipios } from './TabelaDeMunicipios';
 import { TituloDaSecao } from './TituloDaSecao';
 import type { TotaisDaAdr } from './totaisDaAdr';
 import type { ReactNode } from 'react';
+import '../../estilos/territorio-carteira.css';
 
 export function AbaDeTerritorio({
   kpisDaCarteira,
@@ -38,7 +47,8 @@ export function AbaDeTerritorio({
   classificacoes,
   ficha,
 }: {
-  kpisDaCarteira: Indicador[];
+  /** Os quatro cartões e a janela de competência que o servidor aplicou. */
+  kpisDaCarteira: CarteiraNaArea;
   carregando: boolean;
   /** Nulo enquanto a leitura não respondeu — a tabela não aparece antes disso. */
   indicadores: boolean;
@@ -55,18 +65,23 @@ export function AbaDeTerritorio({
   ficha: ReactNode;
 }) {
   return (
-    <>
-      <section data-bloco="carteira-na-area">
+    // O PERÍODO DESCE POR CONTEXTO até a tabela e a ficha: o "12 meses" da
+    // maquete aparece nas três, e a ficha é montada pela casca — ver `periodo.ts`.
+    <ProvedorDoPeriodo value={kpisDaCarteira.periodo}>
+      <section data-bloco="carteira-na-area" className="terr-cart-secao">
         <TituloDaSecao
           titulo="A carteira na área de atuação"
-          subtitulo="Quem está coberto, quanto foi vendido e quanto a área comporta — a leitura de quem trabalha o território."
+          // "SUA ÁREA DE ATUAÇÃO", e não "sua região" como a maquete escreve
+          // (decisão 2): "região" sozinha é o que a issue 163 tirou da tela.
+          subtitulo="Quem está coberto, quanto foi vendido e quanto a área comporta — visão consolidada da sua área de atuação."
           // "COMO INTERPRETAR OS INDICADORES" MORA AQUI TAMBÉM (fidelidade às
           // maquetes, 23/09/2026): era um `<details>` acima das abas, valendo
           // para as duas; a maquete não o tem, e o texto foi para a dica do
           // primeiro título de cada aba.
           metodologia={classificacoes.length > 0 ? <ComoLerEstesNumeros classificacoes={classificacoes} /> : undefined}
+          acao={<ComparacaoDaCarteira periodo={kpisDaCarteira.periodo} />}
         />
-        <PainelDeIndicadores indicadores={kpisDaCarteira} carregando={carregando} />
+        <CartoesDaCarteira cartoes={kpisDaCarteira.cartoes} carregando={carregando} />
       </section>
 
       {/* A FICHA FICA AO LADO DA TABELA, e não abaixo (fase T4.7).
@@ -95,6 +110,6 @@ export function AbaDeTerritorio({
 
         {ficha && <div className="terr-territorio-ficha">{ficha}</div>}
       </div>
-    </>
+    </ProvedorDoPeriodo>
   );
 }

@@ -1,0 +1,1024 @@
+/* =============================================================================
+   A ABA TERRITÓRIO COMO A MAQUETE `territorio-ficha.png` (fidelidade às
+   maquetes, 23/09/2026 — fase 4).
+
+   Os cartões da carteira, a barra da tabela (engrenagem, paginação) e o
+   interior da ficha em abas. O que já era da tabela e da ficha — a grade lado a
+   lado, as colunas, a linha escolhida — continua em `territorio.css`, junto das
+   regras que ele substitui.
+
+   A ORDEM DE CARGA IMPORTA: este arquivo é importado pela `AbaDeTerritorio`, que
+   a casca importa ANTES de `territorio.css` e `dashboard.css`. Uma regra daqui
+   com a mesma especificidade de uma de lá perde. Por isso as classes daqui são
+   todas novas (`terr-cart-*`, `terr-ficha-*`, `terr-paginacao*`), e o que
+   precisava mudar numa classe antiga mudou lá, no lugar dela.
+
+   Cor, raio, sombra e espaço são os tokens do design system; as tintas dos
+   ladrilhos (verde, laranja, azul, lilás) são as da maquete, as mesmas famílias
+   que os cartões de decisão de Mercado já usam.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   "A CARTEIRA NA ÁREA DE ATUAÇÃO" — o título com o controle à direita e os
+   quatro cartões logo embaixo, a ~8px, como na maquete.
+   ----------------------------------------------------------------------------- */
+.terr-cart-secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+
+/* O espaço entre o título e os cartões é o `gap` acima, e só ele: a margem que
+   a página dá ao título de toda seção somaria 24px, e a maquete tem ~12. */
+.dash-pagina .terr-cart-secao > .terr-secao-mercado:first-child { margin-bottom: 0; }
+
+/* OS CARTÕES E A TABELA FICAM A ~16px (maquete); o painel da aba separa os
+   blocos por 24px, que aqui afastavam a tabela dos números que ela detalha. */
+.terr-cart-secao + .terr-territorio { margin-top: calc(-1 * var(--e-2)); }
+
+/* O SUBTÍTULO É UMA LINHA, como na maquete — o teto de 76 caracteres das
+   outras seções o quebrava no meio de "sua área / de atuação". */
+.terr-cart-secao .terr-secao-subtitulo { max-width: none; }
+
+/* O CONTROLE À DIREITA DO TÍTULO fica na altura do título, e desce para baixo
+   dele quando o conteúdo estreita — sem empurrar o título para uma coluna. */
+.terr-cart-comparar {
+  flex-wrap: wrap;
+  row-gap: var(--e-2);
+}
+
+/* -----------------------------------------------------------------------------
+   OS QUATRO CARTÕES — quatro numa linha a partir de 900px de conteúdo, 2 × 2 a
+   partir de 520, um por linha abaixo disso: o mesmo arranjo dos quatro números
+   de decisão de Mercado, pela mesma régua (a largura da página).
+   ----------------------------------------------------------------------------- */
+.terr-cart-kpis {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-3);
+}
+
+@container indicadores (min-width: 520px) {
+  .terr-cart-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container indicadores (min-width: 900px) {
+  .terr-cart-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* O CARTÃO É O CONTÊINER; A GRADE MORA DENTRO DELE — um elemento não consulta
+   a própria largura, e o arranjo aqui depende da largura do cartão. */
+.terr-cart-kpi {
+  position: relative;
+  min-width: 0;
+  padding: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  container: cartao-da-carteira / inline-size;
+}
+
+/* A GEOMETRIA DA MAQUETE (cartão de ~360px, 1.490px de conteúdo): o ladrilho à
+   esquerda, o rótulo e a pílula na primeira linha, o VALOR NA LINHA INTEIRA
+   embaixo da pílula, e o contexto embaixo. O mini-gráfico fica no canto de
+   baixo, fora da grade, para o contexto não perder largura por causa dele. */
+.terr-cart-kpi-grade {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'icone rotulo   variacao'
+    'icone valor    variacao'
+    'icone contexto contexto'
+    '.     barra    barra';
+  column-gap: 10px;
+  align-items: start;
+}
+
+/* NUM CARTÃO ESTREITO (os quatro numa linha em 1.300px de conteúdo, ~315px) o
+   valor ganha a linha inteira, por baixo da pílula: dividindo a linha com ela,
+   "R$ 186,4 mi" não caberia. Um rótulo longo — "Parque teórico de máquinas" —
+   quebra em duas linhas ao lado da pílula, que já tem duas linhas de altura, e
+   o cartão não cresce por isso. (A consulta mede a caixa de CONTEÚDO do
+   cartão, sem os 14px de cada lado: 319px são ~350px de cartão.) */
+@container cartao-da-carteira (max-width: 319px) {
+  .terr-cart-kpi-grade {
+    grid-template-areas:
+      'icone rotulo   variacao'
+      'icone valor    valor'
+      'icone contexto contexto'
+      '.     barra    barra';
+  }
+}
+
+.terr-cart-kpi-icone {
+  grid-area: icone;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-lg);
+}
+
+/* AS QUATRO TINTAS DA MAQUETE: verde (barras), laranja (alvo), azul (moeda) e
+   lilás (trator). A cor é só reforço — o rótulo diz o que o cartão é. */
+.terr-cart-kpi[data-kpi-carteira='municipios'] .terr-cart-kpi-icone { background: #E8F3E6; color: var(--jd-green); }
+.terr-cart-kpi[data-kpi-carteira='cobertura'] .terr-cart-kpi-icone { background: #FFF1E6; color: #EA580C; }
+.terr-cart-kpi[data-kpi-carteira='vendas'] .terr-cart-kpi-icone { background: #E8F0FD; color: #2563EB; }
+.terr-cart-kpi[data-kpi-carteira='parque'] .terr-cart-kpi-icone { background: #F1ECFD; color: #7C3AED; }
+
+.terr-cart-kpi-rotulo {
+  grid-area: rotulo;
+  display: flex;
+  align-items: center;
+  gap: var(--e-1);
+  min-width: 0;
+  margin: 0;
+  padding-top: 2px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.terr-cart-kpi-rotulo .dica-gatilho { padding: 1px; }
+
+/* O NÚMERO NÃO QUEBRA: "R$ 79,4 mi" em duas linhas lê como dois números. O
+   corpo é o da maquete (~26px); num cartão estreito ele encolhe pela largura do
+   próprio cartão, e não pela da janela. */
+.terr-cart-kpi-valor {
+  grid-area: valor;
+  margin: var(--e-1) 0 2px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A folga da direita é o lugar do mini-gráfico, que fica no canto do cartão. */
+.terr-cart-kpi-contexto {
+  grid-area: contexto;
+  align-self: end;
+  min-width: 0;
+  margin: 0;
+  padding-right: 36px;
+  font-size: var(--t-apoio);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.terr-cart-kpi[data-kpi-carteira='cobertura'] .terr-cart-kpi-contexto { padding-right: 0; }
+
+/* A PÍLULA DE VARIAÇÃO, no canto de cima (maquete). Sem período anterior ela é
+   cinza — verde afirmaria alta —, com o "—" e a dica do motivo. */
+.terr-cart-variacao {
+  grid-area: variacao;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 2px 6px 3px;
+  border-radius: var(--radius);
+  background: var(--n-50);
+  border: 1px solid var(--n-100);
+  color: var(--text-tertiary);
+}
+
+/* A LINHA DE VARIAÇÃO DE MERCADO (`VariacaoAusente`), DOBRADA EM DUAS: o traço e
+   a dica em cima, "vs. ano anterior" embaixo — a forma da pílula da maquete. O
+   componente é o mesmo dos cartões de Mercado; muda só o arranjo, aqui. (Este
+   arquivo carrega depois do `mercado-visao.css`, e com a mesma especificidade
+   quem vem depois ganha.) */
+/* `min-content`: a largura de um flex que quebra linha é, por padrão, a da
+   linha inteira sem quebrar — a pílula ficava com a largura de "— vs. ano
+   anterior ⓘ" e espremia o rótulo ao lado. Com `min-content` ela tem a largura
+   do item mais largo, "vs. ano anterior", e o resto quebra por cima. */
+.terr-cart-variacao .mv-variacao {
+  width: min-content;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 2px;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.terr-cart-variacao .mv-variacao-traco { font-size: var(--t-apoio); }
+.terr-cart-variacao .dica-gatilho { padding: 1px; }
+
+.terr-cart-variacao .mv-variacao-texto {
+  order: 2;
+  flex-basis: 100%;
+  font-size: 9.5px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* O LUGAR DO MINI-GRÁFICO: sem série mensal não há barra a desenhar, e barra
+   desenhada sem série seria número inventado. Fica um traço de base discreto,
+   do tamanho do gráfico, para o cartão não mudar de altura quando a série
+   chegar. É `aria-hidden` — a dica da pílula diz por que está vazio. */
+.terr-cart-mini {
+  position: absolute;
+  right: var(--e-4);
+  bottom: 14px;
+  width: 28px;
+  height: 20px;
+  border-bottom: 2px dashed currentColor;
+  opacity: 0.35;
+}
+
+.terr-cart-kpi[data-kpi-carteira='municipios'] .terr-cart-mini { color: var(--jd-green); }
+.terr-cart-kpi[data-kpi-carteira='vendas'] .terr-cart-mini { color: #2563EB; }
+.terr-cart-kpi[data-kpi-carteira='parque'] .terr-cart-mini { color: #7C3AED; }
+
+/* A BARRA DA COBERTURA — o valor real, em verde, como na maquete. */
+.terr-cart-progresso {
+  grid-area: barra;
+  height: 8px;
+  margin-top: var(--e-2);
+  border-radius: 999px;
+  background: var(--n-100);
+  overflow: hidden;
+}
+
+.terr-cart-progresso > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--jd-green-dark);
+}
+
+/* Num cartão de menos de ~260px (os quatro numa linha em 960px de conteúdo) o
+   valor de 26px encosta na borda: ele desce para 22px, e continua numa linha.
+   (A consulta mede a caixa de CONTEÚDO do cartão, sem os 14px de cada lado.) */
+@container cartao-da-carteira (max-width: 229px) {
+  .terr-cart-kpi-valor { font-size: 22px; }
+}
+
+/* -----------------------------------------------------------------------------
+   A ENGRENAGEM DA TABELA E O PAINEL DE COLUNAS
+   ----------------------------------------------------------------------------- */
+.terr-engrenagem {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.terr-engrenagem:hover { background: var(--bg-hover); color: var(--text-primary); }
+.terr-engrenagem:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; }
+
+.terr-engrenagem-selo {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--jd-green);
+  color: var(--text-inverse);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.terr-cart-popover {
+  z-index: 50;
+  width: min(260px, calc(100vw - 32px));
+  padding: var(--e-3) var(--e-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.terr-colunas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.terr-cart-popover-titulo {
+  margin-bottom: var(--e-1);
+  padding: 0;
+  font-size: var(--t-cartao);
+  font-weight: 700;
+}
+
+.terr-coluna-opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  cursor: pointer;
+}
+
+.terr-coluna-opcao input { accent-color: var(--jd-green); width: 15px; height: 15px; }
+
+.terr-cart-popover-nota {
+  margin: var(--e-3) 0 0;
+  font-size: var(--t-meta);
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.terr-cart-popover-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--e-2);
+  margin-top: var(--e-3);
+}
+
+/* -----------------------------------------------------------------------------
+   A PAGINAÇÃO — "Mostrando 1–10 de 203 municípios" à esquerda; o tamanho e os
+   números de página à direita. Em cartão estreito os controles descem para a
+   segunda linha, e os números continuam inteiros.
+   ----------------------------------------------------------------------------- */
+.terr-paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-4);
+  padding: var(--e-3) var(--e-4);
+  border-top: 1px solid var(--border);
+}
+
+.terr-paginacao-faixa {
+  margin: 0;
+  font-size: var(--t-apoio);
+  color: var(--text-tertiary);
+}
+
+.terr-paginacao-controles {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-4);
+}
+
+.terr-paginacao-tamanho {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+
+.terr-paginacao-tamanho > select {
+  height: 30px;
+  padding: 0 28px 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  appearance: none;
+  font: inherit;
+  font-size: var(--t-apoio);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.terr-paginacao-tamanho > svg {
+  position: absolute;
+  right: 9px;
+  pointer-events: none;
+}
+
+.terr-paginacao-paginas {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.terr-pagina {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  font: inherit;
+  font-size: var(--t-apoio);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.terr-pagina:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.terr-pagina:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
+.terr-pagina:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* A PÁGINA ATUAL É O QUADRADO VERDE da maquete. */
+.terr-pagina[aria-current='page'] {
+  border-color: var(--jd-green);
+  background: #EEF7EE;
+  color: var(--jd-green-dark);
+  font-weight: 700;
+}
+
+.terr-pagina-reticencias {
+  min-width: 20px;
+  text-align: center;
+  font-size: var(--t-apoio);
+  color: var(--text-tertiary);
+}
+
+/* -----------------------------------------------------------------------------
+   A FICHA DO MUNICÍPIO — cabeçalho, abas sublinhadas e painéis.
+   ----------------------------------------------------------------------------- */
+.terr-ficha-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-3);
+  padding: var(--e-4) var(--e-4) var(--e-2);
+}
+
+.terr-ficha-identidade { min-width: 0; }
+
+.terr-ficha-titulo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-3);
+}
+
+/* O PIN CHEIO DA MAQUETE: verde, com o furo branco. */
+.terr-ficha-pin {
+  display: inline-flex;
+  color: var(--jd-green);
+}
+
+.terr-ficha-pin svg path { fill: currentColor; }
+.terr-ficha-pin svg circle { fill: var(--bg-surface); stroke: var(--bg-surface); }
+
+.terr-ficha-nome {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.terr-ficha-local {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-1) 6px;
+  margin: var(--e-1) 0 0 34px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.terr-ficha-local > svg { color: var(--text-tertiary); }
+.terr-ficha-ponto { color: var(--text-tertiary); padding: 0 2px; }
+
+/* AS ABAS SUBLINHADAS DA MAQUETE — cinco, dividindo a largura; em ficha
+   estreita demais elas rolam de lado DENTRO da barra, e a página não. */
+.terr-ficha-abas {
+  display: flex;
+  margin: var(--e-2) var(--e-4) 0;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.terr-ficha-aba {
+  flex: 1 0 auto;
+  padding: var(--e-2) var(--e-2) 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.terr-ficha-aba:hover { color: var(--jd-green); }
+.terr-ficha-aba:focus-visible { outline: 2px solid var(--jd-green); outline-offset: -2px; }
+
+.terr-ficha-aba[aria-selected='true'] {
+  color: var(--jd-green);
+  font-weight: 700;
+  border-bottom-color: var(--jd-green);
+}
+
+.terr-ficha-painel {
+  padding: var(--e-4);
+}
+
+.terr-ficha-painel:focus-visible { outline: 2px solid var(--jd-green); outline-offset: -2px; }
+
+/* DENTRO DE UM PAINEL, A GRADE DAS MEDIDAS NÃO TEM FOLGA PRÓPRIA: o painel já dá. */
+.terr-ficha-painel .terr-detalhe-grade { padding: 0; }
+
+/* AS NOTAS DE FONTE LEEM COMO PARÁGRAFO. `.cad-sub` é flex — feita para
+   "rótulo · selo" —, e um parágrafo com `<strong>` no meio virava pedaços
+   empilhados: "o município / colhe / , publicado pelo IBGE…". */
+.terr-ficha-painel p.cad-sub { display: block; line-height: 1.5; }
+
+/* -----------------------------------------------------------------------------
+   VISÃO GERAL
+   ----------------------------------------------------------------------------- */
+.terr-ficha-visao,
+.terr-ficha-oportunidades {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+}
+
+.terr-ficha-bloco-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-3);
+  margin-bottom: var(--e-3);
+}
+
+.terr-ficha-bloco-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-1);
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.terr-ficha-bloco-subtitulo {
+  margin: 2px 0 0;
+  font-size: var(--t-apoio);
+  color: var(--text-secondary);
+}
+
+.terr-ficha-periodo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  flex: none;
+}
+
+.terr-ficha-periodo > select {
+  height: 32px;
+  min-width: 110px;
+  padding: 0 28px 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center / 12px 12px;
+  appearance: none;
+  font: inherit;
+  font-size: var(--t-apoio);
+  color: var(--text-primary);
+}
+
+.terr-ficha-periodo > select:disabled { cursor: not-allowed; opacity: 1; }
+
+/* OS QUATRO CARTÕEZINHOS: numa linha a partir de 500px de ficha (a maquete, a
+   ~540); 2 × 2 abaixo — em ~470px, quatro colunas dariam 90px a "R$ 849 mil". */
+.terr-ficha-minis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-2);
+}
+
+@container ficha (min-width: 500px) {
+  .terr-ficha-minis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.terr-ficha-mini {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-1);
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.terr-ficha-mini-topo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+}
+
+.terr-ficha-mini-icone {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  background: #E8F0FD;
+  color: #2563EB;
+}
+
+.terr-ficha-mini[data-mini='maquinas'] .terr-ficha-mini-icone { background: #E8F3E6; color: var(--jd-green); }
+.terr-ficha-mini[data-mini='clientes'] .terr-ficha-mini-icone { background: #EEF0FD; color: #4F46E5; }
+
+.terr-ficha-mini-rotulo {
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--text-secondary);
+}
+
+.terr-ficha-mini-valor {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.terr-ficha-mini-variacao {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1px 3px;
+  margin: 0;
+  font-size: 9.5px;
+  color: var(--text-tertiary);
+}
+
+/* A linha de variação de Mercado, na letra do cartãozinho da maquete; num
+   cartãozinho de ~110px ela pode quebrar antes da dica, e não vazar dele. */
+.terr-ficha-mini-variacao .mv-variacao {
+  flex-wrap: wrap;
+  gap: 1px 3px;
+  font-size: 9.5px;
+  white-space: normal;
+}
+
+.terr-ficha-mini-variacao .mv-variacao-texto { white-space: nowrap; }
+.terr-ficha-mini-variacao .dica-gatilho { padding: 1px; }
+
+.terr-ficha-mini-variacao > span:last-child { white-space: nowrap; }
+
+/* LAVOURA E ESTRUTURA LADO A LADO, a lavoura mais larga (tem tabela). Abaixo
+   de 440px de ficha, uma embaixo da outra. */
+.terr-ficha-duas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-3);
+}
+
+/* Numa ficha de ~470px (1.300px de conteúdo) a lavoura leva mais da metade: a
+   tabela dela tem três colunas, e com menos que isso "Cana-de-açúcar" partia
+   no hífen e "Participação" invadia a coluna ao lado. A estrutura é lista, e
+   aguenta ser a mais estreita. */
+@container ficha (min-width: 440px) {
+  .terr-ficha-duas { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+}
+
+@container ficha (min-width: 540px) {
+  .terr-ficha-duas { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+}
+
+.terr-ficha-cartao {
+  min-width: 0;
+  padding: var(--e-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.terr-ficha-cartao-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--e-1);
+  margin: 0 0 var(--e-2);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* A ÁREA E A PARTICIPAÇÃO TÊM LARGURA CERTA, e a cultura fica com o resto:
+   com a largura automática, os cabeçalhos "Participação" e "Área (ha)", que não
+   quebram, tomavam a coluna do nome, e "Cana-de-açúcar" partia no hífen numa
+   ficha de ~470px. */
+.terr-ficha-lavoura {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-apoio);
+}
+
+.terr-ficha-lavoura th:nth-child(2),
+.terr-ficha-lavoura td:nth-child(2) { width: 52px; white-space: nowrap; }
+
+.terr-ficha-lavoura th:nth-child(3) { width: 76px; }
+
+/* NA FICHA ESTREITA (~470px, 1.300px de conteúdo) a lavoura aperta a letra e a
+   folga — como a maquete, que desenha esta tabela menor que o resto da ficha.
+   São esses pixels que deixam "Cana-de-açúcar" numa linha só. */
+@container ficha (max-width: 539px) {
+  .terr-ficha-cartao[data-bloco-da-ficha='lavoura'] { padding-inline: 10px; }
+  .terr-ficha-lavoura td { font-size: 11.5px; }
+  .terr-ficha-lavoura th { font-size: 9.5px; letter-spacing: 0; }
+}
+
+.terr-ficha-lavoura th {
+  padding: 6px 5px;
+  background: var(--n-50);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  vertical-align: bottom;
+}
+
+.terr-ficha-unidade { text-transform: none; font-weight: 500; }
+
+.terr-ficha-lavoura td {
+  padding: 5px;
+  border-bottom: 1px solid var(--n-100);
+  color: var(--text-primary);
+}
+
+.terr-ficha-lavoura tr:last-child td { border-bottom: 0; }
+
+.terr-ficha-lavoura .terr-num { font-variant-numeric: tabular-nums; }
+
+.terr-ficha-fatia {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.terr-ficha-fatia-numero {
+  min-width: 30px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.terr-ficha-barra {
+  flex: 1 1 auto;
+  min-width: 24px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--n-100);
+  overflow: hidden;
+}
+
+.terr-ficha-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #5CB85C;
+}
+
+.terr-ficha-barra > span[data-primeira='true'] { background: var(--jd-green); }
+
+.terr-ficha-estrutura {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.terr-ficha-estrutura-item {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+.terr-ficha-estrutura-icone {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  background: var(--n-50);
+  color: var(--text-secondary);
+}
+
+.terr-ficha-estrutura-item:last-child .terr-ficha-estrutura-icone { background: #E8F3E6; color: var(--jd-green); }
+
+.terr-ficha-estrutura-valor {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.terr-ficha-estrutura-rotulo {
+  display: block;
+  font-size: var(--t-meta);
+  line-height: 1.3;
+  color: var(--text-secondary);
+}
+
+.terr-ficha-vazio {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-1) 6px;
+  margin: 0;
+  font-size: var(--t-apoio);
+  color: var(--text-tertiary);
+}
+
+/* O CARTÃO VERDE DAS OPORTUNIDADES (maquete). */
+.terr-ficha-oport {
+  padding: var(--e-3) var(--e-4);
+  border: 1px solid #D7EBD9;
+  border-radius: var(--radius-lg);
+  background: #F0F8F1;
+}
+
+.terr-ficha-oport-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  margin-bottom: var(--e-3);
+}
+
+.terr-ficha-oport-marca { display: inline-flex; color: var(--jd-green); }
+
+.terr-ficha-oport-titulo {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.terr-ficha-ver {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  padding: 5px 10px;
+  border: 1px solid #B9DDBE;
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font: inherit;
+  font-size: var(--t-apoio);
+  font-weight: 700;
+  color: var(--jd-green-dark);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.terr-ficha-ver:hover { border-color: var(--jd-green); }
+.terr-ficha-ver:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; }
+
+.terr-ficha-oport-itens {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-2);
+}
+
+@container ficha (max-width: 380px) {
+  .terr-ficha-oport-itens { grid-template-columns: minmax(0, 1fr); }
+}
+
+.terr-ficha-oport-item {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-width: 0;
+}
+
+.terr-ficha-oport-item + .terr-ficha-oport-item {
+  padding-left: var(--e-2);
+  border-left: 1px solid #D7EBD9;
+}
+
+@container ficha (max-width: 380px) {
+  .terr-ficha-oport-item + .terr-ficha-oport-item { padding-left: 0; border-left: 0; }
+}
+
+.terr-ficha-oport-icone {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: #DDF0E0;
+  color: var(--jd-green);
+}
+
+.terr-ficha-oport-valor {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.terr-ficha-oport-rotulo {
+  display: block;
+  font-size: var(--t-meta);
+  line-height: 1.3;
+  color: var(--text-secondary);
+}
+
+/* -----------------------------------------------------------------------------
+   OPORTUNIDADES E HISTÓRICO — o desenho pronto, vazio com o motivo.
+   ----------------------------------------------------------------------------- */
+.terr-ficha-oport-lista {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-apoio);
+}
+
+.terr-ficha-oport-lista th {
+  padding: 6px var(--e-2);
+  background: var(--n-50);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.terr-ficha-oport-lista td {
+  padding: var(--e-3) var(--e-2);
+  border-bottom: 1px solid var(--n-100);
+}
+
+.terr-ficha-confiancas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: var(--e-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.terr-ficha-confiancas li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-2);
+}
+
+.terr-ficha-confianca {
+  flex: none;
+  min-width: 52px;
+  padding: 1px var(--e-2);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.terr-ficha-confianca[data-nivel='alta'] { background: #E6F6E9; color: #237330; }
+.terr-ficha-confianca[data-nivel='media'] { background: var(--warning-bg); color: #9A3412; }
+.terr-ficha-confianca[data-nivel='baixa'] { background: var(--n-100); color: var(--text-secondary); }
+
+.terr-ficha-sem-serie {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-2);
+  min-height: 160px;
+  margin-top: var(--e-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--n-50);
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
