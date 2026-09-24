@@ -910,9 +910,18 @@ orquestrador entra (deixar as três faria a mesma carga rodar duas vezes). As ro
 | `PRECOS_MENSAIS` | `--somente-precos --somente-custos --somente-credito` | dia 20, 04:00 | ligada |
 | `FATURAMENTO_PROTHEUS` | `--somente-faturamento` | todo dia, 05:00 | **desligada** |
 | `ART_VENDAS` | `--somente-art` | a cada hora | **desligada** |
+| `CARTEIRAS_VORTICE` | `--somente-carteiras-vortice` | todo dia, 04:30 | **desligada** |
 
 O faturamento e o ART nascem desligados: ligá-los é trazer dado novo para produção, e isso é decisão de quem
 administra. Nenhum dos dois liga sem a credencial da conexão que exige (Protheus e ART).
+
+**As carteiras MAQ_NOVOS do Vórtice** (decisão de 24/09/2026) seguem a mesma regra: a rotina nasce desligada e só liga
+com a credencial do Vórtice (conexão `VORTICE`, pela tela ou `Vortice__Conexao`). É sincronia diária — o Vórtice
+continua sendo onde o comercial edita a carteira —, às 04:30: depois dos clientes da SA1, com quem ela casa pelo
+documento, e antes do faturamento. O banco do Protheus (`PROTHEUS_BANCO`) é opcional: com ele, o vínculo que não casa
+diz por quê. Nada é descartado: o vínculo pendente fica em `integracao.RegistroDeOrigem`
+(fluxo `VORTICE.CARTEIRA_MAQ_NOVOS`), com o motivo. Na estação, `--somente-carteiras-vortice --simular` calcula o
+plano só com leitura.
 
 **O orquestrador roda de uma cópia da carga** (`C:\aplicacoes\tracbel-crm-rotinas\carga`), atualizada pelo script da
 rotina quando a pasta publicada parou de mudar há dois minutos. A publicação apaga a pasta da carga antes de copiar

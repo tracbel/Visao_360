@@ -124,6 +124,16 @@ public sealed class ClienteCarteira
         };
     }
 
+    /// <summary>
+    /// Tira o cliente da carteira SEM apagar a linha — a mesma regra do território da carteira.
+    ///
+    /// <para>"Este cliente já foi desta carteira, de tal a tal data" é o que responde por que ele tem o
+    /// histórico que tem. Se ele voltar, entra uma linha nova: o intervalo em que esteve fora continua
+    /// visível, em vez de ser apagado por uma reabertura.</para>
+    /// </summary>
+    /// <param name="quandoUtc">O instante do encerramento.</param>
+    public void Desvincular(DateTime quandoUtc) => DesvinculadoEm ??= quandoUtc;
+
     /// <summary>Carimba a data da última interação. Chamado pela regra de gravação de interação.</summary>
     public void RegistrarInteracao(DateTime ocorridaEmUtc)
     {

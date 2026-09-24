@@ -53,8 +53,11 @@ internal static class PreparacaoDaCarga
                 "Nenhuma filial ativa no padrão 0101NN foi encontrada em organizacao.Empresa. Rode o " +
                 "seed de dados de referência antes da carga: ./scripts/banco/rodar-seed.ps1");
 
+        // A CONTA QUE AGUARDA LIBERAÇÃO NÃO RESPONDE POR NADA: ela ainda não entrou no CRM — nasceu no primeiro login
+        // (issue 128) ou como dona de uma carteira do Vórtice, antes de a pessoa entrar. Sem este filtro, uma conta
+        // que ninguém liberou poderia virar o operador da carga e o proprietário de milhares de clientes.
         var usuario = await contexto.Usuarios.AsNoTracking()
-            .Where(u => u.EstaAtivo)
+            .Where(u => u.EstaAtivo && u.AguardandoLiberacaoDesde == null)
             .OrderBy(u => u.Id)
             .FirstOrDefaultAsync(ct);
 

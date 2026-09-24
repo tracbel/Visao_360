@@ -201,6 +201,58 @@ public sealed class Usuario : EntidadeBase
     }
 
     /// <summary>
+    /// Cria, ANTES do primeiro login, a conta de quem responde por uma carteira na origem e ainda não tem
+    /// cadastro no CRM (decisão de 24/09/2026: as carteiras MAQ_NOVOS vêm do Vórtice, e o dono de cada uma é
+    /// o vendedor de lá). Ela nasce no MESMO estado da conta do primeiro login: AGUARDANDO LIBERAÇÃO, sem
+    /// perfil nenhum — não entra no CRM e não vê dado nenhum até o administrador escolher a filial e liberar.
+    ///
+    /// <para><b>Por que existir antes do login.</b> <c>organizacao.Carteira.ResponsavelId</c> é chave
+    /// estrangeira para esta tabela: sem a conta, a carteira não tem dono, e sem dono não entra. Esperar
+    /// cada vendedor entrar pela primeira vez deixaria 57 carteiras de fora por semanas.</para>
+    ///
+    /// <para><b>Como ela vira a conta da pessoa.</b> O nome principal é o login da origem com o sufixo
+    /// <see cref="SufixoSemEmail"/> — o mesmo da carga antiga. O login do Vórtice é <c>nome.sobrenome</c>,
+    /// que é a parte antes do <c>@</c> do e-mail da Tracbel; o passo 3 do casamento do Entra ID
+    /// (<c>ResolvedorDeContextoDoEntraId</c>) casa exatamente por aí, só em conta que ainda carrega o sufixo
+    /// e só em conta de pessoa. Enquanto a conta espera, o login é recusado com a frase de "aguardando
+    /// liberação"; liberada, o login seguinte grava o identificador do Entra e troca o nome inventado pelo
+    /// real — e a carteira já está lá.</para>
+    ///
+    /// <para><b>A identidade externa é provisória</b> e vem de quem cria: o Entra ID ainda não foi
+    /// consultado, e o vínculo de verdade é gravado no primeiro login liberado.</para>
+    /// </summary>
+    /// <param name="identidadeProvisoria">Identificador estável derivado do login da origem.</param>
+    /// <param name="loginNaOrigem">O login na origem (<c>nome.sobrenome</c>).</param>
+    /// <param name="nomeCompleto">O nome como a origem o grava.</param>
+    /// <param name="natureza">Pessoa, departamento, sistema, fornecedor ou teste.</param>
+    /// <param name="filialProvisoriaId">A filial obrigatória enquanto a conta espera.</param>
+    /// <param name="criadoPorId">Quem roda a integração.</param>
+    /// <param name="agoraUtc">O instante da criação.</param>
+    public static Usuario CriarAguardandoLiberacao(
+        Guid identidadeProvisoria, string loginNaOrigem, string nomeCompleto, NaturezaDoUsuario natureza,
+        int filialProvisoriaId, long criadoPorId, DateTime agoraUtc)
+    {
+        if (string.IsNullOrWhiteSpace(loginNaOrigem) || loginNaOrigem.Contains('@', StringComparison.Ordinal))
+            throw new RegraDeNegocioViolada("A conta que espera o primeiro login precisa do login da origem, sem domínio.");
+
+        var principal = loginNaOrigem.Trim().ToLowerInvariant() + SufixoSemEmail;
+        var nome = string.IsNullOrWhiteSpace(nomeCompleto) ? loginNaOrigem.Trim() : nomeCompleto.Trim();
+
+        return new Usuario
+        {
+            IdentidadeExterna = identidadeProvisoria,
+            NomePrincipal = principal,
+            NomeCompleto = nome.Length <= 200 ? nome : nome[..200],
+            NomeExibicao = nome.Length <= 80 ? nome : nome[..80],
+            Email = Email.Criar(principal),
+            EmpresaId = filialProvisoriaId,
+            AguardandoLiberacaoDesde = agoraUtc,
+            Natureza = natureza,
+            CriadoPorId = criadoPorId
+        };
+    }
+
+    /// <summary>
     /// O administrador libera a conta que esperava: escolhe a filial de casa, e a pessoa passa a entrar.
     /// </summary>
     /// <param name="filialId">A filial de casa escolhida.</param>

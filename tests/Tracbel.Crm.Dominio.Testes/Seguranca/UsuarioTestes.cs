@@ -162,4 +162,46 @@ public sealed class UsuarioTestes
     {
         DaCarga().AguardaLiberacao.Should().BeFalse("quem veio do Vórtice já era usuário; só a conta nova do primeiro login espera");
     }
+
+    // ------------------------------------------------------------------ a conta do dono de carteira do Vórtice
+
+    private static Usuario DonoDeCarteira(string login = "Pessoa.Ficticia") => Usuario.CriarAguardandoLiberacao(
+        Guid.NewGuid(), login, "PESSOA FICTICIA DA SILVA", NaturezaDoUsuario.Pessoa, filialProvisoriaId: 3, criadoPorId: 1, NoLogin);
+
+    [Fact]
+    public void O_dono_de_carteira_nasce_aguardando_liberacao_e_com_o_login_da_origem()
+    {
+        var usuario = DonoDeCarteira();
+
+        usuario.AguardaLiberacao.Should().BeTrue("sem liberação ela não entra nem vê dado nenhum — o mesmo estado da issue 128");
+        usuario.EstaAtivo.Should().BeTrue("esperar liberação não é estar desativada: é o que faz o login dizer 'aguardando liberação'");
+        usuario.UltimoLoginEm.Should().BeNull("a pessoa ainda não entrou");
+        usuario.NomePrincipal.Should().Be("pessoa.ficticia" + Usuario.SufixoSemEmail);
+        usuario.AindaNaoEntrouPeloEntraId.Should().BeTrue(
+            "é o sufixo inventado que deixa o passo 3 do casamento do Entra ID reconhecer o nome.sobrenome desta conta");
+        usuario.EmpresaId.Should().Be(3);
+        usuario.NomeExibicao.Should().Be("PESSOA FICTICIA DA SILVA");
+    }
+
+    [Fact]
+    public void O_dono_de_carteira_e_liberado_como_qualquer_conta_que_espera()
+    {
+        var usuario = DonoDeCarteira();
+
+        usuario.Liberar(filialId: 7, usuarioId: 42);
+
+        usuario.AguardaLiberacao.Should().BeFalse();
+        usuario.AindaNaoEntrouPeloEntraId.Should().BeTrue("o nome real só chega no primeiro login, pelo vínculo com o Entra ID");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("pessoa.ficticia@tracbel.com.br")]
+    public void O_dono_de_carteira_precisa_do_login_sem_dominio(string login)
+    {
+        var criar = () => DonoDeCarteira(login);
+
+        criar.Should().Throw<RegraDeNegocioViolada>();
+    }
 }
