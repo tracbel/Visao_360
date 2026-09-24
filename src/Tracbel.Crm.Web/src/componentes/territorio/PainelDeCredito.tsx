@@ -36,6 +36,7 @@ import type {
   PainelDeCreditoRural,
 } from '../../tipos/mercado';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
+import { ValorAusente } from '../comum/ValorAusente';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import { InfoTooltip } from '../InfoTooltip';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
@@ -183,8 +184,13 @@ function ProdutosFinanciados({ dados }: { dados: PainelDeCreditoRural }) {
   );
 }
 
-function CelulaDaVariacao({ v }: { v: number | null }) {
-  if (v === null) return <td className="mom-num">—</td>;
+function CelulaDaVariacao({ v, oQue }: { v: number | null; oQue: string }) {
+  if (v === null)
+    return (
+      <td className="mom-num">
+        <ValorAusente motivo={SEM_BASE} oQue={oQue} />
+      </td>
+    );
   const tom = tomDoSentido(v);
   return (
     <td className={`mom-num ${tom === 'alta' ? 'mom-alta' : tom === 'baixa' ? 'mom-baixa' : ''}`}>
@@ -206,8 +212,17 @@ function LinhaDoMunicipio({ m, escolhido }: { m: CreditoDeMaquinasNoMunicipio; e
       </th>
       <td className="mom-num">{numero(m.janelas.linhas)}</td>
       <td className="mom-num">{reais(m.janelas.valor)}</td>
-      <td className="mom-num">{medio === null ? '—' : reais(medio)}</td>
-      <CelulaDaVariacao v={variacao(m.janelas.valor, m.janelas.valorAnterior)} />
+      <td className="mom-num">
+        {medio === null ? (
+          <ValorAusente
+            motivo={`${m.nome} não tem linha do SICOR na janela, e sem linha não há o que dividir.`}
+            oQue={`o valor médio de ${m.nome}`}
+          />
+        ) : (
+          reais(medio)
+        )}
+      </td>
+      <CelulaDaVariacao v={variacao(m.janelas.valor, m.janelas.valorAnterior)} oQue={`a variação de ${m.nome}`} />
       <td className="mom-acoes">
         <MenuDaLinha rotulo={`O crédito de ${m.nome}`}>
           <dl>
@@ -290,7 +305,10 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
   );
   const ordenados = ordenarMunicipios(candidatos, ordem);
   const visiveis = todos ? ordenados : ordenados.slice(0, escolhido ? 4 : 5);
-  const daRegiao = dados.porMunicipio.filter((m) => m.pertenceAAdr).length;
+  // O "VER TODOS (N)" CONTA A LISTA QUE VAI ABRIR — o escolhido no topo e os
+  // candidatos —, e não a Região por fora dela: com o escolhido de fora da
+  // Região, eram N na promessa e N + 1 na tabela.
+  const naListaInteira = candidatos.length + (escolhido ? 1 : 0);
 
   // ---------- a evolução: a série ANUAL que existe ----------
   const anos = dados.porAno;
@@ -383,9 +401,11 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
         <PainelDoMomento
           titulo="Evolução do valor financiado"
           dica={
-            'A maquete mostra a série MENSAL da região, dois anos sobrepostos. O SICOR chega a esta tela somado por ANO ' +
-            'e para São Paulo inteiro — máquinas: trator, máquinas e implementos e colheitadeiras. Desenhar meses ' +
-            `seria fingir um detalhe que a leitura não traz. ${anos.at(-1)?.ano ?? ''} vai até ${MESES[mesFim - 1] ?? '—'}, ` +
+            // A DICA FALA COM QUEM LÊ O GRÁFICO: o que a série é e o que ela não
+            // tem — e não o que a maquete desenhava no lugar dela.
+            'O SICOR chega a esta tela somado por ANO e para São Paulo inteiro — máquinas: trator, máquinas e ' +
+            'implementos e colheitadeiras. A série mensal, e a da Região Tracbel, não existem nesta leitura: desenhar ' +
+            `meses seria fingir um detalhe que ela não traz. ${anos.at(-1)?.ano ?? ''} vai até ${MESES[mesFim - 1] ?? '—'}, ` +
             'e por isso o último ponto aparece tracejado.'
           }
           direita={<Legenda itens={[{ nome: 'Máquinas · São Paulo, por ano', cor: '#367C2B' }]} />}
@@ -468,7 +488,19 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
                     </span>
                     <span className="mom-ranking-valor">{criterioDoTop === 'valor' ? reaisCurtos(v) : numero(v)}</span>
                     <span className="mom-ranking-participacao">
-                      {fatia === null ? '—' : `${numero(fatia * 100, 0)}%`}
+                      {/* FATIA REAL NÃO VIRA "0%": abaixo de 1% ela sai "<1%",
+                          como na lavoura da ficha — zero afirmaria que o
+                          município não pegou crédito nenhum. */}
+                      {fatia === null ? (
+                        <ValorAusente
+                          motivo="Sem a soma da Região Tracbel na janela não há total para a fatia."
+                          oQue={`a participação de ${m.nome}`}
+                        />
+                      ) : fatia > 0 && fatia < 0.01 ? (
+                        '<1%'
+                      ) : (
+                        `${numero(fatia * 100, 0)}%`
+                      )}
                       <span className="cad-so-leitor"> da Região Tracbel</span>
                     </span>
                   </li>
@@ -499,8 +531,20 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
                 incluir municípios fora da Região Tracbel
               </label>
             )}
-            <button type="button" className="mom-link" aria-expanded={todos} onClick={() => setTodos((t) => !t)}>
-              {todos ? 'Ver só os 5 primeiros' : `Ver todos (${numero(daRegiao)})`}
+            {/* RECOLHER DESMARCA O "FORA DA REGIÃO" (revisão de 24/09/2026): o
+                controle some junto com a lista inteira, e deixá-lo marcado
+                punha um município de fora nos cinco primeiros sem nada na tela
+                dizendo por quê. */}
+            <button
+              type="button"
+              className="mom-link"
+              aria-expanded={todos}
+              onClick={() => {
+                if (todos) setForaDaRegiao(false);
+                setTodos(!todos);
+              }}
+            >
+              {todos ? 'Ver só os 5 primeiros' : `Ver todos (${numero(naListaInteira)})`}
             </button>
             <Seletor rotulo="Ordenar por" valor={ordem} opcoes={CRITERIOS_DO_CREDITO} aoMudar={setOrdem} />
           </>

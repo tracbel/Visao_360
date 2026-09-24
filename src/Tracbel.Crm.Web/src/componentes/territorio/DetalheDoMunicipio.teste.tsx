@@ -358,6 +358,19 @@ describe('DetalheDoMunicipio — a Visão geral', () => {
     expect(dica).toMatch(/de 9 com área divulgada/);
   });
 
+  it('cultura com regra e área nula é "sem área divulgada (sigilo ou não cultivada)" — e não sigilo afirmado', () => {
+    // O REPOSITÓRIO GERA A LINHA DA REGRA EM TODO MUNICÍPIO (revisão de
+    // 24/09/2026): nula tanto onde o IBGE ocultou quanto onde a cultura não é
+    // plantada. A dica dizia "sob sigilo do IBGE" nos dois casos.
+    const m = comLavouraEEstrutura();
+    m.potencial = [potencial({ areaPlantadaHectares: 23_000 }), potencial({ produtoCodigoIbge: 40140, areaPlantadaHectares: null })];
+    abrir(m);
+
+    const dica = textoDaDica('De onde vem a lavoura do município');
+    expect(dica).toContain('1 cultura(s) sem área divulgada no município (sigilo do IBGE ou não cultivada)');
+    expect(dica).not.toMatch(/sob sigilo/);
+  });
+
   it('a estrutura agropecuária mostra o que existe e diz o que falta, sem inventar', () => {
     abrir(comLavouraEEstrutura());
     const estrutura = document.querySelector<HTMLElement>('[data-bloco-da-ficha="estrutura"]')!;

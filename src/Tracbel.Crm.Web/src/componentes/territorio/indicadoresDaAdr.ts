@@ -133,6 +133,31 @@ export function mes(competencia: string): string {
 }
 
 /**
+ * O NOME DO RECORTE FILTRADO — para o texto que fala dos municípios da leitura.
+ *
+ * "REGIÃO TRACBEL" É A ÁREA DE ATUAÇÃO INTEIRA, e não muda com o filtro (issue
+ * 163; é o que a dica da Sub-região diz). Os municípios da leitura, esses sim,
+ * são só os da sub-região e da loja escolhidas: chamar de "Região Tracbel" a
+ * média ou a contagem feitas sobre eles poria o nome da ADR num número do Norte.
+ * Sem filtro a resposta é nula, e o texto diz "Região Tracbel".
+ *
+ * `da` vai no meio da frase ("Municípios da Sub-região Norte com leitura…");
+ * `daCurto` vai num rótulo de cartão, onde "do recorte (Sub-região Norte · loja
+ * Catanduva)" não cabe — e aí o nome inteiro fica na dica, em `nome`.
+ */
+export type RecorteFiltrado = { nome: string; da: string; daCurto: string };
+
+export function recorteFiltrado(regiao: string, loja: string | null): RecorteFiltrado | null {
+  if (regiao && loja) {
+    const nome = `Sub-região ${regiao} · loja ${loja}`;
+    return { nome, da: `do recorte (${nome})`, daCurto: 'do recorte' };
+  }
+  if (regiao) return { nome: `Sub-região ${regiao}`, da: `da Sub-região ${regiao}`, daCurto: `da Sub-região ${regiao}` };
+  if (loja) return { nome: `loja ${loja}`, da: `da loja ${loja}`, daCurto: `da loja ${loja}` };
+  return null;
+}
+
+/**
  * O ano civil até o último mês fechado — o recorte "acumulado do ano" que existe sem calendário fiscal.
  * Em janeiro, o último mês fechado é dezembro: o recorte vira o ano anterior inteiro.
  */

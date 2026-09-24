@@ -238,11 +238,21 @@ export function TabelaDeMunicipios({
   // página, marcada, e não na página 14. A troca acontece só quando a ESCOLHA
   // muda (ajuste de estado durante a renderização, como o React recomenda para
   // estado derivado de prop), e por isso não briga com quem está folheando.
-  const [selecionadoVisto, setSelecionadoVisto] = useState<number | null>(null);
-  if (selecionado !== selecionadoVisto) {
-    setSelecionadoVisto(selecionado);
-    const posicao = ordenados.findIndex((m) => m.codigoIbge === selecionado);
+  //
+  // OUTRA LISTA VOLTA PARA A PÁGINA 1 (revisão de 24/09/2026): trocar a
+  // sub-região ou a loja troca os municípios, e ficar na página 3 da lista nova
+  // era mostrar dez linhas quaisquer do meio dela. A lista se reconhece pelos
+  // códigos, na ordem — reler os mesmos dados não tira ninguém do lugar. O
+  // salto até o escolhido continua valendo: se ele está na lista nova, a página
+  // é a dele.
+  const assinaturaDaLista = daAdr.map((m) => m.codigoIbge).join(',');
+  const [vistos, setVistos] = useState({ selecionado: null as number | null, lista: assinaturaDaLista });
+  if (selecionado !== vistos.selecionado || assinaturaDaLista !== vistos.lista) {
+    const listaMudou = assinaturaDaLista !== vistos.lista;
+    setVistos({ selecionado, lista: assinaturaDaLista });
+    const posicao = selecionado === null ? -1 : ordenados.findIndex((m) => m.codigoIbge === selecionado);
     if (posicao >= 0) setPagina(Math.floor(posicao / tamanho) + 1);
+    else if (listaMudou) setPagina(1);
   }
 
   const totalDePaginas = Math.max(1, Math.ceil(ordenados.length / tamanho));

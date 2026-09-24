@@ -88,7 +88,12 @@ export type LinhaDaConferencia = {
   pendentes: number;
   vendas: number;
   posVenda: number;
-  /** Só a ADR tem parque teórico somado; os grupos de fora ficam sem, e não com zero. */
+  /**
+   * Só a ADR tem parque teórico somado; os grupos de fora ficam sem, e não com
+   * zero. A ADR também fica sem quando NENHUM município dela tem parque (sem
+   * regra, sem área): a soma vazia saía "0 máquinas teóricas", que afirma um
+   * parque zerado onde o que falta é o número.
+   */
   maquinas: number | null;
 };
 
@@ -154,7 +159,7 @@ export function conferenciaDaConsulta({
         pendentes: totais.pendentes,
         vendas: totais.vendas,
         posVenda: totais.posVenda,
-        maquinas: Math.round(totais.maquinasTeoricas),
+        maquinas: totais.municipiosComArea === 0 ? null : Math.round(totais.maquinasTeoricas),
       };
 
   const foraDaAdr = municipios.filter((m) => !m.pertenceAAdr);

@@ -73,7 +73,10 @@ export function AbasDoMomento<T extends string>({
             className="mom-aba"
             data-aba-do-momento={aba.id}
             aria-selected={aba.id === ativa}
-            aria-controls={idDoPainel(aba.id)}
+            // SÓ A ATIVA APONTA PARA O PAINEL: só o dela existe (cada aba faz a
+            // própria leitura e não monta escondida), e um `aria-controls` para
+            // um id ausente é um controle que não controla nada.
+            aria-controls={aba.id === ativa ? idDoPainel(aba.id) : undefined}
             tabIndex={aba.id === ativa ? 0 : -1}
             onClick={() => aoTrocar(aba.id)}
           >

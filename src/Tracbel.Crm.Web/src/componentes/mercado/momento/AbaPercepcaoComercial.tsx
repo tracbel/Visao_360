@@ -33,6 +33,7 @@ import type { PercepcaoDoGestorDetalhe } from '../../../tipos/potencial';
 import type { IndicadoresDoMunicipio, MomentoDoRecorte } from '../../../tipos/territorio';
 import { BlocoErro } from '../../cadastro/EstadosDeTela';
 import { InfoTooltip } from '../../InfoTooltip';
+import type { RecorteFiltrado } from '../../territorio/indicadoresDaAdr';
 import { distribuicaoDaPercepcao, responsavelPrincipal, sentidoDaLeitura } from './contas';
 import { dataCurta, numero, pontosPercentuais, sentido, tomDoSentido } from './formatos';
 import {
@@ -55,9 +56,12 @@ const AGUARDA_A_COLETA =
 
 const SEM_ANO_ANTERIOR = `Sem a leitura do ano anterior não há variação a calcular. ${AGUARDA_A_COLETA}`;
 
+// A DICA FALA COM QUEM USA A TELA, e não com quem a desenhou: "a maquete
+// mostra" não significa nada para o gerente. O que ele precisa saber é que o
+// índice de 0 a 100 não existe.
 const ESCALA =
-  'A leitura do gestor é registrada em pontos percentuais, de −5 a +5 (D-P04, issue 71). A maquete mostra um ' +
-  'índice de 0 a 100: ele não existe, e a tela não converte uma escala na outra — isso seria inventar a régua.';
+  'A leitura do gestor é registrada em pontos percentuais, de −5 a +5 (D-P04, issue 71). Não existe um índice de ' +
+  '0 a 100 para ela, e a tela não converte uma escala na outra — isso seria inventar a régua.';
 
 const CORES = { positiva: '#2E7D32', neutra: '#E7B416', negativa: '#E53935', semRegistro: '#C4CBC6' } as const;
 
@@ -79,10 +83,18 @@ function BarraDivergente({ percentual, limite }: { percentual: number; limite: n
 export function AbaPercepcaoComercial({
   momento,
   municipios = [],
+  recorte = null,
 }: {
   momento: MomentoDoRecorte | null;
   municipios?: readonly IndicadoresDoMunicipio[];
+  /**
+   * O recorte dos filtros, quando há. Os municípios já vêm filtrados por ele, e
+   * "Municípios da Região Tracbel" sobre uma sub-região seria o nome da área de
+   * atuação inteira num pedaço dela (issue 163).
+   */
+  recorte?: RecorteFiltrado | null;
 }) {
+  const da = recorte?.da ?? 'da Região Tracbel';
   const { contexto } = useContextoDeAcesso();
   const parametros = useRecurso(
     (sinal) => obterParametrosDoPotencial(contexto, undefined, sinal),
@@ -111,7 +123,7 @@ export function AbaPercepcaoComercial({
     ? 'A leitura das percepções registradas não respondeu — ela exige a permissão de leitura dos parâmetros do potencial.'
     : parametros.carregando
       ? 'Lendo as percepções registradas…'
-      : `Nenhum município da Região Tracbel tem percepção registrada (issue 71). ${AGUARDA_A_COLETA}`;
+      : `Nenhum município ${da} tem percepção registrada (issue 71). ${AGUARDA_A_COLETA}`;
   const lido = !parametros.carregando && !parametros.erro;
 
   const gestorDe = (p: PercepcaoDoGestorDetalhe) =>
@@ -164,7 +176,7 @@ export function AbaPercepcaoComercial({
           tom="verde"
           rotulo="Percepção positiva"
           oQue="os municípios com percepção positiva"
-          dica="Municípios da Região Tracbel com leitura registrada ACIMA de zero. É o sinal da leitura, e não uma faixa: não há limite registrado para chamar um município de aquecido."
+          dica={`Municípios ${da} com leitura registrada ACIMA de zero. É o sinal da leitura, e não uma faixa: não há limite registrado para chamar um município de aquecido.`}
           valor={lido ? numero(distribuicao.positiva) : null}
           unidade={distribuicao.positiva === 1 ? 'município' : 'municípios'}
           motivoSemDado={semLeitura}
@@ -175,7 +187,7 @@ export function AbaPercepcaoComercial({
           tom="laranja"
           rotulo="Percepção negativa"
           oQue="os municípios com percepção negativa"
-          dica="Municípios da Região Tracbel com leitura registrada ABAIXO de zero. É o sinal da leitura, e não uma faixa: não há limite registrado para chamar um município de em alerta."
+          dica={`Municípios ${da} com leitura registrada ABAIXO de zero. É o sinal da leitura, e não uma faixa: não há limite registrado para chamar um município de em alerta.`}
           valor={lido ? numero(distribuicao.negativa) : null}
           unidade={distribuicao.negativa === 1 ? 'município' : 'municípios'}
           motivoSemDado={semLeitura}
@@ -197,8 +209,8 @@ export function AbaPercepcaoComercial({
       <LinhaDePaineis variante="percepcao">
         <PainelDoMomento
           titulo="Distribuição da percepção comercial"
-          dica={`Os municípios da Região Tracbel do recorte, pelo sinal da leitura registrada. ${ESCALA}`}
-          subtitulo="Municípios da Região Tracbel por sentido da leitura registrada."
+          dica={`Os municípios ${da}, pelo sinal da leitura registrada. ${ESCALA}`}
+          subtitulo={`Municípios ${recorte?.daCurto ?? 'da Região Tracbel'} por sentido da leitura registrada.`}
         >
           <div className="mom-rosca-e-lista">
             <Rosca
@@ -240,7 +252,7 @@ export function AbaPercepcaoComercial({
 
         <PainelDoMomento
           titulo="Top 5 municípios por percepção comercial"
-          dica={`Os cinco municípios da Região Tracbel de maior leitura registrada. ${ESCALA}`}
+          dica={`Os cinco municípios ${da} de maior leitura registrada. ${ESCALA}`}
           subtitulo="Municípios com a maior leitura registrada."
         >
           {top.length === 0 ? (
@@ -277,8 +289,8 @@ export function AbaPercepcaoComercial({
 
         <PainelDoMomento
           titulo="Evolução da percepção comercial"
-          dica={`A leitura média dos gestores na Região Tracbel, mês a mês. ${AGUARDA_A_COLETA}`}
-          subtitulo="Leitura média dos gestores na Região Tracbel."
+          dica={`A leitura média dos gestores sobre os municípios ${da}, mês a mês. ${AGUARDA_A_COLETA}`}
+          subtitulo={`Leitura média dos gestores ${recorte ? `no recorte (${recorte.nome})` : 'na Região Tracbel'}.`}
           direita={
             <Seletor
               rotulo="Período"
@@ -296,7 +308,7 @@ export function AbaPercepcaoComercial({
       <PainelDoMomento
         titulo="Percepção comercial por município"
         dica={
-          `A leitura registrada de cada município da Região Tracbel, da maior para a menor. ${ESCALA} ` +
+          `A leitura registrada de cada município ${da}, da maior para a menor. ${ESCALA} ` +
           'Gestor é o responsável pela carteira do CRM com mais vínculos no município (issue 107) — nunca um nome ' +
           'escrito para preencher a coluna.'
         }

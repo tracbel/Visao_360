@@ -19,8 +19,14 @@ import { join } from 'node:path';
 
 const DIST = 'dist';
 
-/** Marcas que só existem no harness e nas amostras. Qualquer uma reprova. */
-const MARCAS = ['AMOSTRA FICTÍCIA', 'HarnessVisual', 'mercado-visual', 'painelFicticio'];
+/**
+ * Marcas que só existem no harness e nas amostras. Qualquer uma reprova.
+ *
+ * AS DO HARNESS DO SHELL ENTRARAM JUNTO (fase 5): ele tem o mesmo gatilho em
+ * `App.tsx` e o mesmo risco — um `import()` alcançável levaria o `Layout` de
+ * mentira e a sessão fictícia para o pacote.
+ */
+const MARCAS = ['AMOSTRA FICTÍCIA', 'HarnessVisual', 'mercado-visual', 'painelFicticio', 'shell-visual', 'HarnessDoShell'];
 
 function arquivos(pasta) {
   return readdirSync(pasta).flatMap((nome) => {

@@ -44,6 +44,20 @@ describe('as abas do Momento do mercado', () => {
     expect(ativa).toHaveAttribute('aria-controls', painel.id);
   });
 
+  it('só a aba ativa aponta para um painel — nenhum aria-controls para um id que não existe', () => {
+    // SÓ O PAINEL DA ATIVA MONTA (cada aba faz a própria leitura): as outras
+    // apontavam para ids ausentes, e o leitor de tela anunciava um controle que
+    // não controlava nada (revisão de 24/09/2026).
+    render(<Abas />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Rentabilidade' }));
+
+    for (const aba of screen.getAllByRole('tab')) {
+      const alvo = aba.getAttribute('aria-controls');
+      if (aba.getAttribute('aria-selected') === 'true') expect(document.getElementById(alvo!)).toBe(screen.getByRole('tabpanel'));
+      else expect(alvo, aba.textContent!).toBeNull();
+    }
+  });
+
   it('as setas andam entre as abas (e dão a volta); Home e End vão às pontas', () => {
     render(<Abas />);
     const primeira = screen.getByRole('tab', { name: 'Composição do fator' });

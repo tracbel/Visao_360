@@ -62,6 +62,23 @@ export function comAsCulturasDoMunicipioPrimeiro(
 }
 
 /**
+ * A área colhida de uma cultura no recorte — o número, ou POR QUE ele não sai.
+ *
+ * As três ausências são diferentes e levam a frases diferentes na tela:
+ *
+ * - `semMunicipio` — nenhum município da ADR veio na leitura;
+ * - `foraDaLeitura` — a leitura não traz a área desta cultura (ela não tem
+ *   regra de potencial vigente): a área existe na PAM e não chega aqui;
+ * - `semAreaDivulgada` — a leitura traz a cultura, e nenhum município do
+ *   recorte tem área divulgada (sigilo do IBGE, ou a cultura não é plantada ali).
+ */
+export type AreaNoRecorte =
+  | { situacao: 'comArea'; hectares: number }
+  | { situacao: 'semMunicipio' }
+  | { situacao: 'foraDaLeitura' }
+  | { situacao: 'semAreaDivulgada' };
+
+/**
  * A ÁREA COLHIDA DE UMA CULTURA NA REGIÃO TRACBEL DO RECORTE (fidelidade às
  * maquetes, 23/09/2026) — a soma da PAM dos municípios da ADR.
  *
@@ -75,20 +92,37 @@ export function comAsCulturasDoMunicipioPrimeiro(
  * "Total", "Arábica" e "Canephora", e somar os três contaria a mesma terra duas
  * vezes. Se a cultura não marca nenhum, entram todos os dela.
  *
- * NULO NÃO É ZERO: sem nenhum município com área divulgada para a cultura, a
- * resposta é ausência — e ela não pesa na média, em vez de pesar zero.
+ * O QUE A LEITURA TRAZ (revisão de 24/09/2026): `municipio.potencial[]` tem UMA
+ * LINHA POR REGRA DE POTENCIAL vigente, em todo município — o repositório a
+ * monta pelas regras, e não pelo catálogo. Cultura do catálogo sem regra nunca
+ * tem linha ali, e a falta dela não diz nada sobre a lavoura: diz que a leitura
+ * não a traz. A tela dizia "nenhum município tem área colhida divulgada" dessa
+ * cultura — uma frase falsa sobre uma área que simplesmente não veio. Se só
+ * PARTE dos produtos que somam na cultura tem regra, a soma sairia menor que a
+ * lavoura, sem aviso: isso também é `foraDaLeitura`.
+ *
+ * NULO NÃO É ZERO: com a cultura na leitura e nenhum município com área
+ * divulgada, a resposta é ausência — e ela não pesa na média, em vez de pesar
+ * zero.
  */
 export function areaColhidaNoRecorte(
   cultura: CulturaNoCatalogo,
   municipios: readonly IndicadoresDoMunicipio[],
-): number | null {
+): AreaNoRecorte {
   const queSomam = cultura.produtos.filter((p) => p.entraNaSomaDaLavoura);
   const codigos = new Set((queSomam.length > 0 ? queSomam : cultura.produtos).map((p) => p.codigoIbge));
 
+  const daAdr = municipios.filter((m) => m.pertenceAAdr);
+  if (daAdr.length === 0) return { situacao: 'semMunicipio' };
+
+  // A LINHA DA REGRA EXISTE EM TODO MUNICÍPIO, com área nula onde a PAM não
+  // divulgou: basta ela aparecer em algum para a leitura trazer o produto.
+  const naLeitura = new Set(daAdr.flatMap((m) => m.potencial.map((p) => p.produtoCodigoIbge)));
+  if ([...codigos].some((c) => !naLeitura.has(c))) return { situacao: 'foraDaLeitura' };
+
   let total = 0;
   let algum = false;
-  for (const m of municipios) {
-    if (!m.pertenceAAdr) continue;
+  for (const m of daAdr) {
     for (const p of m.potencial) {
       if (!codigos.has(p.produtoCodigoIbge) || p.areaColhidaHectares == null) continue;
       total += p.areaColhidaHectares;
@@ -96,5 +130,5 @@ export function areaColhidaNoRecorte(
     }
   }
 
-  return algum ? total : null;
+  return algum ? { situacao: 'comArea', hectares: total } : { situacao: 'semAreaDivulgada' };
 }

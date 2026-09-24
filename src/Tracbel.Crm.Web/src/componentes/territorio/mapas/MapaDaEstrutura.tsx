@@ -117,11 +117,16 @@ export function MapaDaEstrutura({
         </>
       }
       // SIGILO EM TODO O RECORTE NÃO É ZERO: sem nenhum município divulgado, a
-      // soma vazia diria "0 tratores". O resumo diz que o número foi ocultado.
+      // soma vazia diria "0 tratores". O resumo diz que o número foi ocultado —
+      // MAS SÓ SE O CENSO FOI LIDO (revisão de 24/09/2026): sem o ano do Censo a
+      // carga não rodou, e "sob sigilo" afirmaria um sigilo que ninguém viu.
       resumo={{
         valor: totais.municipiosComTratores > 0 ? nº(totais.tratores) : null,
         rotulo: 'tratores',
-        semValor: 'tratores sob sigilo do IBGE em todo o recorte — não é zero',
+        semValor:
+          anoDoCenso !== null
+            ? 'tratores sob sigilo do IBGE em todo o recorte — não é zero'
+            : 'Censo Agropecuário não carregado neste banco — não é zero',
         complemento: temPropriedades ? { valor: nº(totais.estabelecimentos), rotulo: 'propriedades' } : null,
       }}
       alternador={

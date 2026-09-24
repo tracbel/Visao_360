@@ -173,6 +173,24 @@ describe('a conferência da consulta', () => {
     expect(c.consulta).toBeNull();
   });
 
+  it('sem nenhum município com parque, a ADR fica SEM máquinas teóricas — e não com "0 máquinas"', () => {
+    // O DEFEITO (revisão de 24/09/2026): a soma vazia saía 0, que afirma um
+    // parque zerado onde o que falta é o número (sem regra, sem área).
+    const semParque = daAdr.map((m) => ({
+      ...m,
+      potencialEstrutural: { ...m.potencialEstrutural!, parqueDeMaquinas: null, motivoSemParque: 'SemRegra' as const },
+    }));
+    const c = conferenciaDaConsulta({
+      municipios: [...semParque, foraDaAdr],
+      daAdr: semParque,
+      foraDoMapa,
+      totais: calcularTotais(semParque),
+      semFiltro: true,
+      territorioNaoCarregado: false,
+    });
+    expect(c.adr!.maquinas).toBeNull();
+  });
+
   it('território não carregado: sem linha da ADR (e não zeros), mas o total da consulta continua', () => {
     const c = conferenciaDaConsulta({
       municipios: [foraDaAdr],

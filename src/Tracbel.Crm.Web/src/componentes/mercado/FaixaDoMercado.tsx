@@ -145,7 +145,15 @@ export function FaixaDoMercado({
   const faixa = momento?.faixaDoMomento ?? null;
 
   return (
-    <div className="mv-faixa" data-bloco="faixa-do-mercado" role="group" aria-label="O momento do mercado e o que a região tem">
+    // "ÁREA DE ATUAÇÃO", e não "região" sozinha (decisão 2 do usuário): o
+    // leitor de tela também lê este nome, e "região" confunde a Região Tracbel
+    // com a sub-região Norte ou Noroeste.
+    <div
+      className="mv-faixa"
+      data-bloco="faixa-do-mercado"
+      role="group"
+      aria-label="O momento do mercado e o que a área de atuação tem"
+    >
       {/* ---- MOMENTO ---- */}
       <div className="mv-faixa-leitura" data-bloco="porte-e-momento">
         <TrendingUp className="mv-faixa-glifo" data-tom="momento" size={26} strokeWidth={2.2} aria-hidden="true" />

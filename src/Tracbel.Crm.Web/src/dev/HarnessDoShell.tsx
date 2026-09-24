@@ -25,7 +25,9 @@
  * pelo mesmo ternário do harness de Mercado.
  *
  * Parâmetros do hash: `rota` (padrão `/relatorios/territorio`), `sessao`
- * (`entra` ou `provisorio`) e `estado` (os do harness de Mercado).
+ * (`entra` ou `provisorio`), `estado` (os do harness de Mercado) e `filial`
+ * (`recusada` faz o escopo dizer que a filial guardada deixou de ser permitida —
+ * o aviso da P-20 na barra do topo, que é o texto mais largo dela).
  */
 
 import { useEffect, useState } from 'react';
@@ -91,7 +93,10 @@ function instalarInterceptadorDoShell(): void {
 
     if (url.includes('/api/v1/acesso/escopo')) {
       return json({
-        dados: ESCOPO_FICTICIO,
+        dados:
+          parametro('filial') === 'recusada'
+            ? { ...ESCOPO_FICTICIO, filialPedidaRecusada: '010199' }
+            : ESCOPO_FICTICIO,
         procedencia: {
           sistema: 'HARNESS DO SHELL — amostra fictícia',
           objeto: 'nenhum: nada aqui veio de banco',

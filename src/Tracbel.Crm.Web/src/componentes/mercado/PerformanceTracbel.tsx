@@ -35,8 +35,8 @@ const SEM_TERRITORIO = 'território não carregado neste banco';
  * CIMA, o valor, a variação contra o ano anterior; e, no pé, uma linha de
  * contexto em largura inteira ("175 clientes compraram").
  *
- * É COMPONENTE DAQUI, e não o `MiniIndicador` compartilhado: aquele põe o nome
- * embaixo do número e não tem pé — é o desenho de outros painéis.
+ * É COMPONENTE DAQUI porque só este painel tem esse desenho — o nome em cima
+ * do número e o pé em largura inteira.
  */
 function CartaoDeVenda({
   rotulo,

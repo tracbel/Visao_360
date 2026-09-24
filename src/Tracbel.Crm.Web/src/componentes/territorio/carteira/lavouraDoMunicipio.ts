@@ -34,8 +34,16 @@ export type LavouraDoMunicipio = {
   culturasComArea: number | null;
   /** Quantas culturas o detalhe traz com área — as listadas mais as que foram para "Outros". */
   culturasDetalhadas: number;
-  /** Culturas com regra cuja área o IBGE suprimiu por sigilo — não entram na conta, e não como zero. */
-  culturasSobSigilo: number;
+  /**
+   * Culturas com regra SEM ÁREA DIVULGADA no município — não entram na conta, e
+   * não como zero.
+   *
+   * NÃO É "SOB SIGILO" (revisão de 24/09/2026): o repositório gera a linha da
+   * regra em TODO município, e ela vem nula tanto onde o IBGE suprimiu o número
+   * quanto onde a cultura simplesmente não é plantada. A leitura não separa os
+   * dois casos, e a tela não afirma o que não sabe.
+   */
+  culturasSemAreaDivulgada: number;
 };
 
 /** O nome da cultura: o da regra, o da mesma cultura em SP, ou o código — nunca um nome inventado. */
@@ -82,6 +90,6 @@ export function lavouraDoMunicipio(
     totalPlantado: temTotal ? total : null,
     culturasComArea: municipio.producao?.culturasComArea ?? null,
     culturasDetalhadas: comArea.length,
-    culturasSobSigilo: municipio.potencial.filter((p) => p.areaPlantadaHectares == null).length,
+    culturasSemAreaDivulgada: municipio.potencial.filter((p) => p.areaPlantadaHectares == null).length,
   };
 }

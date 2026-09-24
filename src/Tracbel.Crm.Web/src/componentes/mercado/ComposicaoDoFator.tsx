@@ -87,8 +87,12 @@ const EXPLICA_PERCEPCAO =
   'RECORTE, não da cultura. Ela soma dentro do parêntese do produtor, então o crédito a amplifica. É uma leitura ' +
   'registrada, e não uma série: não há "variação no período" a calcular para ela.';
 
-/** A pílula da direita do cartão: a variação no período, ou o traço. */
-function Pilula({ fracao, texto }: { fracao: number | null; texto?: string }) {
+/**
+ * A pílula da direita do cartão: a variação no período, ou o traço COM O
+ * MOTIVO — o "—" mudo deixava a pessoa sem saber se faltava dado ou se a
+ * variação era zero (decisão 1 do usuário).
+ */
+function Pilula({ fracao, texto, motivo, oQue }: { fracao: number | null; texto?: string; motivo: string; oQue: string }) {
   return (
     <>
       <span
@@ -96,14 +100,7 @@ function Pilula({ fracao, texto }: { fracao: number | null; texto?: string }) {
         data-sentido={fracao === null ? undefined : tomDoSentido(fracao)}
         data-intervalo={texto ? 'true' : undefined}
       >
-        {texto ?? (fracao === null ? (
-          <>
-            <span aria-hidden="true">—</span>
-            <span className="cad-so-leitor">sem dado</span>
-          </>
-        ) : (
-          percentualComSinal(fracao)
-        ))}
+        {texto ?? (fracao === null ? <ValorAusente motivo={motivo} oQue={oQue} /> : percentualComSinal(fracao))}
       </span>
       <span className="mom-pilula-legenda">variação no período</span>
     </>
@@ -175,6 +172,8 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
                 ? `${percentualComSinal(menor)} a ${percentualComSinal(maior)}`
                 : undefined
             }
+            motivo="Nenhuma cultura do recorte tem índice de preço carregado (CONAB e Socicana, issue 66): não há variação de preço a mostrar."
+            oQue="a variação de preço das culturas"
           />
         }
       />
@@ -187,7 +186,13 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
         valor={null}
         motivoSemDado={EXPLICA_CUSTO}
         apoio="Entra na parcela de commodity (D-P05)"
-        lateral={<Pilula fracao={null} />}
+        lateral={
+          <Pilula
+            fracao={null}
+            motivo="O custo não tem variação própria no fator: ele entra dentro da parcela de commodity (D-P05), e a série de custo da CONAB está na aba Rentabilidade (issue 67)."
+            oQue="a variação do custo"
+          />
+        }
       />
 
       <CartaoDoMomento
@@ -199,7 +204,13 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
         valor={credito === null ? null : <Sentido fracao={credito - 1}>índice {pt(credito)}</Sentido>}
         motivoSemDado="Sem índice de crédito para este recorte: ele precisa de linha do SICOR nas duas janelas e do parâmetro vigente com os pesos (issue 73). Índice ausente vale desvio ZERO no fator."
         apoio="Linhas e valor do SICOR"
-        lateral={<Pilula fracao={credito === null ? null : credito - 1} />}
+        lateral={
+          <Pilula
+            fracao={credito === null ? null : credito - 1}
+            motivo="Sem índice de crédito para este recorte não há variação: ele precisa de linha do SICOR nas duas janelas e do parâmetro vigente com os pesos (issue 73)."
+            oQue="a variação do crédito"
+          />
+        }
       />
 
       <CartaoDoMomento
@@ -211,7 +222,13 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
         valor={percepcao === null ? null : <Sentido fracao={percepcao / 100}>{pontosPercentuais(percepcao)}</Sentido>}
         motivoSemDado="Nenhuma percepção do gestor está registrada para este recorte (issue 71). Ausente vale ZERO no fator — e zero aqui não é neutralidade declarada, é falta de registro."
         apoio="Leitura do gestor, de −5 a +5 p.p."
-        lateral={<Pilula fracao={null} />}
+        lateral={
+          <Pilula
+            fracao={null}
+            motivo="A percepção é uma leitura registrada, com vigência, e não uma série: não há variação no período a calcular para ela (issue 71)."
+            oQue="a variação da percepção"
+          />
+        }
       />
     </FileiraDeCartoes>
   );
@@ -363,10 +380,26 @@ function LinhaDaCultura({ c }: { c: MomentoDaCultura }) {
           numero(c.demandaEstrutural)
         )}
       </td>
-      <td className="mom-num">{c.demandaAjustada === null ? '—' : numero(c.demandaAjustada)}</td>
+      <td className="mom-num">
+        {c.demandaAjustada === null ? (
+          <ValorAusente
+            motivo={
+              c.demandaEstrutural === null
+                ? `A demanda ajustada é a estrutural vezes o fator, e ${c.cultura} não tem demanda estrutural (ciclo de renovação, D-P01, issue 63).`
+                : `A demanda ajustada é a estrutural vezes o fator, e ${c.cultura} ficou sem fator — o motivo está na coluna Fator final.`
+            }
+            oQue={`a demanda ajustada de ${c.cultura}`}
+          />
+        ) : (
+          numero(c.demandaAjustada)
+        )}
+      </td>
       <td className={`mom-num ${variacaoDaDemanda === null ? '' : tomDoSentido(variacaoDaDemanda) === 'baixa' ? 'mom-baixa' : tomDoSentido(variacaoDaDemanda) === 'alta' ? 'mom-alta' : ''}`}>
         {variacaoDaDemanda === null ? (
-          '—'
+          <ValorAusente
+            motivo={`A variação compara a demanda ajustada com a estrutural, e ${c.cultura} não tem as duas — sem base, não há variação a calcular.`}
+            oQue={`a variação da demanda de ${c.cultura}`}
+          />
         ) : (
           <>
             <span aria-hidden="true">{sentido(variacaoDaDemanda)}</span> {percentualComSinal(variacaoDaDemanda)}

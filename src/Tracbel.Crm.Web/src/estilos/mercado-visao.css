@@ -8,10 +8,10 @@
    partir de que largura) é da fase 1, no `dashboard.css`; aqui mora o que fica
    DENTRO de cada bloco.
 
-   POR QUE UM ARQUIVO À PARTE. As classes antigas destes blocos (`dash-kpi`,
-   `dash-mini-kpi`) são compartilhadas com Rentabilidade, Crédito e a ficha do
-   município, que têm outra maquete; mudar o desenho delas mudaria o daquelas
-   telas. As classes daqui são novas (`mv-`) ou são dos cartões de mapa, que só
+   POR QUE UM ARQUIVO À PARTE. A classe antiga destes blocos que ainda existe
+   (`dash-kpi`, do `dashboard.css`) é a dos cartões da aba Oportunidades da ficha
+   do município, que tem outra maquete; mudar o desenho dela mudaria o daquela
+   aba. As classes daqui são novas (`mv-`) ou são dos cartões de mapa, que só
    esta aba usa — e que se mudaram inteiras do `territorio.css` para cá, para o
    cartão ter uma casa só.
 

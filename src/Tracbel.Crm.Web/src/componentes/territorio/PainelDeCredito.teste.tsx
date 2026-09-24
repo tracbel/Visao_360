@@ -69,6 +69,12 @@ function municipios() {
   ];
 }
 
+/**
+ * A REGIÃO TRACBEL E O TRATOR TÊM NÚMEROS DIFERENTES DE PROPÓSITO (revisão de
+ * 24/09/2026): eram iguais, e um cartão que lesse o produto no lugar da Região
+ * passaria no teste. Região: 2.000 linhas, R$ 250 mi (R$ 125 mil por linha);
+ * Trator: 4.000 linhas, R$ 400 mi (R$ 100 mil por linha).
+ */
 function painel(): PainelDeCreditoRural {
   return {
     ultimoMes: '2026-06-01',
@@ -88,7 +94,7 @@ function painel(): PainelDeCreditoRural {
       { codigo: 100, nome: 'Soja', ehMaquina: false, janelas: janelas(9_000, 900_000_000) },
     ],
     porMunicipio: municipios(),
-    regiao: { recorte: 'Região', municipios: 203, janelas: janelas(4_000, 400_000_000), indice: null },
+    regiao: { recorte: 'Região', municipios: 203, janelas: janelas(2_000, 250_000_000), indice: null },
     saoPaulo: { recorte: 'São Paulo', municipios: 645, janelas: janelas(12_000, 1_200_000_000), indice: null },
     procedencia: {
       fonte: 'BCB/SICOR',
@@ -104,8 +110,8 @@ function painel(): PainelDeCreditoRural {
   };
 }
 
-function abrir(municipioSelecionado: number | null = null) {
-  obterCreditoRural.mockResolvedValue({ dados: painel(), procedencia: null });
+function abrir(municipioSelecionado: number | null = null, ajustar: (p: PainelDeCreditoRural) => PainelDeCreditoRural = (p) => p) {
+  obterCreditoRural.mockResolvedValue({ dados: ajustar(painel()), procedencia: null });
   render(
     <ProvedorDeContextoDeAcesso>
       <PainelDeCredito municipioSelecionado={municipioSelecionado} />
@@ -157,11 +163,27 @@ describe('o painel de crédito', () => {
     const rotulos = [...document.querySelectorAll<HTMLElement>('.mom-cartao-rotulo')].map((n) => n.textContent ?? '');
     expect(rotulos).toEqual(['Valor total financiado', 'Linhas do SICOR', 'Valor médio por linha', 'Variação anual']);
 
-    // A Região Tracbel: 400 mi, contra 320 mi nos 12 meses anteriores.
+    // A Região Tracbel: 250 mi, contra 200 mi nos 12 meses anteriores.
     const valor = document.querySelector<HTMLElement>('[data-cartao="Valor total financiado"]')!;
-    expect(valor).toHaveTextContent('R$ 400 mi');
+    expect(valor).toHaveTextContent('R$ 250 mi');
     expect(valor).toHaveTextContent('+25%');
     expect(valor).toHaveTextContent('vs. 12 meses anteriores');
+  });
+
+  it('os cartões leem a REGIÃO TRACBEL — e não o produto Trator de São Paulo', async () => {
+    abrir();
+    await esperarOPainel();
+
+    const cartao = (rotulo: string) =>
+      document.querySelector<HTMLElement>(`[data-cartao="${rotulo}"] .mom-cartao-valor`)!.textContent;
+    expect(cartao('Valor total financiado')).toBe('R$ 250 mi');
+    expect(cartao('Linhas do SICOR')).toBe('2.000');
+    expect(cartao('Valor médio por linha')).toBe('R$ 125 mil');
+    // Os números do trator — 400 mi, 4.000 linhas, 100 mil por linha — não estão em cartão nenhum.
+    const cartoes = document.querySelector<HTMLElement>('.mom-cartoes')!;
+    expect(cartoes).not.toHaveTextContent('R$ 400 mi');
+    expect(cartoes).not.toHaveTextContent('4.000');
+    expect(cartoes).not.toHaveTextContent('R$ 100 mil');
   });
 
   it('LINHA NÃO É CONTRATO: nenhum rótulo diz "contrato", "operação", "ticket" ou "share"', async () => {
@@ -222,8 +244,18 @@ describe('o painel de crédito', () => {
     expect(nomes).toEqual(['Município 1', 'Município 2', 'Município 3', 'Município 4', 'Município 5']);
     expect(top).not.toHaveTextContent('Vizinho de fora');
 
-    // A PARTICIPAÇÃO É A FATIA NA REGIÃO: 5 mi de 400 mi = 1%.
-    expect(top.querySelector('.mom-ranking-participacao')).toHaveTextContent('1%');
+    // A PARTICIPAÇÃO É A FATIA NA REGIÃO: 5 mi de 250 mi = 2%.
+    expect(top.querySelector('.mom-ranking-participacao')).toHaveTextContent('2%');
+  });
+
+  it('fatia real abaixo de 1% sai "<1%", e não "0%" — zero diria que o município não pegou crédito', async () => {
+    // 5 mi de 2 bi = 0,25%: arredondada, virava "0%".
+    abrir(null, (p) => ({ ...p, regiao: { ...p.regiao!, janelas: janelas(2_000, 2_000_000_000) } }));
+    await esperarOPainel();
+
+    const participacoes = [...document.querySelectorAll<HTMLElement>('[data-bloco="credito-top5"] .mom-ranking-participacao')];
+    expect(participacoes[0]).toHaveTextContent('<1%');
+    expect(participacoes.filter((p) => /(^|\D)0%/.test(p.textContent ?? ''))).toEqual([]);
   });
 
   it('"Por linhas do SICOR" reordena o top 5', async () => {
@@ -253,6 +285,84 @@ describe('o painel de crédito', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'incluir municípios fora da Região Tracbel' }));
     expect(nomesDoDetalhamento()[0]).toContain('Vizinho de fora');
+  });
+
+  it('RECOLHER desmarca o "fora da Região": os cinco primeiros voltam a ser só da Região, e o contador bate', async () => {
+    // O DEFEITO (revisão de 24/09/2026): recolher com a caixa marcada escondia
+    // a caixa e deixava o vizinho de fora no topo dos cinco, sem aviso.
+    abrir();
+    await esperarOPainel();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver todos (16)' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'incluir municípios fora da Região Tracbel' }));
+    expect(nomesDoDetalhamento()[0]).toContain('Vizinho de fora');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver só os 5 primeiros' }));
+    expect(nomesDoDetalhamento()).toHaveLength(5);
+    expect(nomesDoDetalhamento().some((n) => n.includes('Vizinho de fora'))).toBe(false);
+
+    // Reabrir começa como da primeira vez: a caixa desmarcada, e a lista do tamanho que o botão prometeu.
+    fireEvent.click(screen.getByRole('button', { name: 'Ver todos (16)' }));
+    expect(screen.getByRole('checkbox', { name: 'incluir municípios fora da Região Tracbel' })).not.toBeChecked();
+    expect(nomesDoDetalhamento()).toHaveLength(16);
+  });
+
+  it('o "Ver todos (N)" conta a lista que vai abrir — inclusive o escolhido de fora da Região', async () => {
+    abrir(VIZINHO);
+    await esperarOPainel();
+
+    // Os 16 da Região e o vizinho escolhido no topo: 17 linhas, e o botão diz 17.
+    fireEvent.click(screen.getByRole('button', { name: 'Ver todos (17)' }));
+    expect(nomesDoDetalhamento()).toHaveLength(17);
+    expect(nomesDoDetalhamento()[0]).toContain('Vizinho de fora');
+  });
+
+  it('cada traço do detalhamento tem o ⓘ com o motivo — valor médio sem linha e variação sem base', async () => {
+    abrir(null, (p) => ({
+      ...p,
+      porMunicipio: [
+        ...p.porMunicipio,
+        {
+          codigoIbge: 3588888,
+          nome: 'Sem linha na janela',
+          pertenceAAdr: true,
+          janelas: { linhas: 0, valor: 0, linhasAnteriores: 0, valorAnterior: 0 },
+          indice: null,
+        },
+      ],
+    }));
+    await esperarOPainel();
+    fireEvent.click(screen.getByRole('button', { name: 'Ver todos (17)' }));
+
+    const linha = [...document.querySelectorAll<HTMLElement>('[data-bloco="credito-municipios"] tbody tr')].find((tr) =>
+      tr.textContent?.includes('Sem linha na janela'),
+    )!;
+    for (const oQue of ['o valor médio de Sem linha na janela', 'a variação de Sem linha na janela']) {
+      const gatilho = within(linha).getByRole('button', { name: `Por que ${oQue} não aparece` });
+      expect(gatilho.closest('td')).toHaveTextContent('—');
+      fireEvent.focus(gatilho);
+      expect(screen.getByRole('tooltip').textContent!.length).toBeGreaterThan(20);
+      fireEvent.blur(gatilho);
+    }
+  });
+
+  it('as dicas e os aria-label não dizem "região" sozinha nem citam a maquete', async () => {
+    abrir(CAFELANDIA);
+    await esperarOPainel();
+
+    const bloco = document.querySelector<HTMLElement>('[data-bloco="credito"]')!;
+    const lidos = [
+      ...[...bloco.querySelectorAll('[aria-label]')].map((n) => n.getAttribute('aria-label') ?? ''),
+      ...[...bloco.querySelectorAll<HTMLButtonElement>('.dica-gatilho')].map((g) => {
+        fireEvent.focus(g);
+        const texto = screen.getByRole('tooltip').textContent ?? '';
+        fireEvent.blur(g);
+        return texto;
+      }),
+    ];
+    expect(lidos.length).toBeGreaterThan(10);
+    expect(lidos.filter((t) => /(?<!sub-)\bregião\b(?! Tracbel)/iu.test(t))).toEqual([]);
+    expect(lidos.filter((t) => /maquete/i.test(t))).toEqual([]);
   });
 
   it('"Ordenar por" muda a ordem do detalhamento', async () => {

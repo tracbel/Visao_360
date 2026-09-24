@@ -14,6 +14,7 @@ import { ProvedorDeContextoDeAcesso } from '../../../dados/api/contexto';
 import { municipioDeTeste } from '../../../testes/territorio';
 import type { PercepcaoDoGestorDetalhe } from '../../../tipos/potencial';
 import type { MomentoDoRecorte } from '../../../tipos/territorio';
+import { recorteFiltrado, type RecorteFiltrado } from '../../territorio/indicadoresDaAdr';
 import { AbaPercepcaoComercial } from './AbaPercepcaoComercial';
 
 const obterParametrosDoPotencial = vi.hoisted(() => vi.fn());
@@ -81,16 +82,25 @@ const LEITURAS = [
 
 const MOMENTO = { percepcaoPercentual: 2 } as MomentoDoRecorte;
 
-function abrir(leituras = LEITURAS) {
+function abrir(leituras = LEITURAS, recorte: RecorteFiltrado | null = null) {
   obterParametrosDoPotencial.mockResolvedValue({
     dados: { em: '2026-09-23', geral: null, culturas: [], percepcoes: leituras, pendencias: [] },
     procedencia: null,
   });
   render(
     <ProvedorDeContextoDeAcesso>
-      <AbaPercepcaoComercial momento={MOMENTO} municipios={MUNICIPIOS} />
+      <AbaPercepcaoComercial momento={MOMENTO} municipios={MUNICIPIOS} recorte={recorte} />
     </ProvedorDeContextoDeAcesso>,
   );
+}
+
+/** Abre uma dica pelo teclado, lê e fecha. */
+function lerDica(rotulo: string): string {
+  const gatilho = screen.getByRole('button', { name: rotulo });
+  fireEvent.focus(gatilho);
+  const texto = screen.getByRole('tooltip').textContent ?? '';
+  fireEvent.blur(gatilho);
+  return texto;
 }
 
 const linhas = () => [...document.querySelectorAll<HTMLElement>('[data-bloco="percepcao-municipios"] tbody tr')];
@@ -176,6 +186,42 @@ describe('a aba Percepção comercial', () => {
     expect(cabecalho).toContain('Responsável pela carteira');
     expect(linhasDoCsv[0]).toEqual(['Borborema', '3', 'Positiva', 'Responsável Cadastrado', '01/08/2026']);
     expect(linhasDoCsv[1][3]).toBe('');
+  });
+
+  it('sem filtro, os municípios são "da Região Tracbel"', async () => {
+    abrir();
+    await screen.findByText('Borborema', { selector: 'th' });
+
+    expect(lerDica('O que é os municípios com percepção positiva')).toMatch(/^Municípios da Região Tracbel com leitura/);
+    expect(screen.getByText('Municípios da Região Tracbel por sentido da leitura registrada.')).toBeInTheDocument();
+  });
+
+  it('COM FILTRO, o texto diz o recorte: os municípios já vêm filtrados, e "Região Tracbel" é a ADR inteira', async () => {
+    abrir(LEITURAS, recorteFiltrado('Norte', null));
+    await screen.findByText('Borborema', { selector: 'th' });
+
+    for (const rotulo of [
+      'O que é os municípios com percepção positiva',
+      'O que é os municípios com percepção negativa',
+      'Como ler distribuição da percepção comercial',
+      'Como ler top 5 municípios por percepção comercial',
+      'Como ler percepção comercial por município',
+    ]) {
+      const dica = lerDica(rotulo);
+      expect(dica, rotulo).toContain('da Sub-região Norte');
+      expect(dica, rotulo).not.toContain('Região Tracbel');
+    }
+    expect(screen.getByText('Municípios da Sub-região Norte por sentido da leitura registrada.')).toBeInTheDocument();
+    expect(screen.getByText('Leitura média dos gestores no recorte (Sub-região Norte).')).toBeInTheDocument();
+  });
+
+  it('a escala é explicada a quem usa a tela — sem "a maquete mostra"', async () => {
+    abrir();
+    await screen.findByText('Borborema', { selector: 'th' });
+
+    const escala = lerDica('Por que não há índice de 0 a 100');
+    expect(escala).toMatch(/Não existe um índice de 0 a 100/);
+    expect(escala).not.toMatch(/maquete/i);
   });
 
   it('sem leitura registrada, a tabela diz isso e o Exportar fica desligado', async () => {

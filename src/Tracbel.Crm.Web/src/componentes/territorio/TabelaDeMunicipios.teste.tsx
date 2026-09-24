@@ -170,6 +170,19 @@ describe('a tabela de municípios — a conferência', () => {
     expect(linhas['Total da ADR (filtro)']).toContain('18 elegíveis');
   });
 
+  it('sem nenhum município com parque, a dica diz o traço e o porquê — e não "0 máquinas teóricas"', () => {
+    const semParque = municipioDeTeste({
+      codigoIbge: CAFELANDIA,
+      nome: 'Cafelândia',
+      potencialEstrutural: { ...DA_ADR.potencialEstrutural!, parqueDeMaquinas: null, motivoSemParque: 'SemRegra' },
+    });
+    montar({ daAdr: [semParque], municipios: [semParque, FORA_DA_ADR], totais: calcularTotais([semParque]) });
+
+    const adr = linhasDaConferencia()['Total da ADR'];
+    expect(adr).not.toMatch(/\b0 máquinas teóricas/);
+    expect(adr).toContain('— máquinas teóricas (nenhum município com parque');
+  });
+
   it('território não carregado troca o total da ADR por uma explicação, e não por zeros', () => {
     montar({ territorioNaoCarregado: true, daAdr: [], totais: calcularTotais([]) });
 
@@ -270,6 +283,42 @@ describe('a tabela de municípios — paginação', () => {
     expect(screen.getByText(/Mostrando 1–1 de 1 municípios encontrados, de 23/)).toBeInTheDocument();
   });
 
+  it('outra sub-região ou loja traz outra lista, e a tabela volta para a primeira página', () => {
+    // O DEFEITO (revisão de 24/09/2026): trocar o filtro deixava a tabela na
+    // página 3 da lista NOVA — dez linhas quaisquer do meio dela.
+    const lista = muitos();
+    const { rerender, props } = montar({ daAdr: lista });
+    fireEvent.click(screen.getByRole('button', { name: 'Página 3' }));
+    expect(screen.getByText('Mostrando 21–23 de 23 municípios')).toBeInTheDocument();
+
+    // A sub-região escolhida deixa 22 dos 23: a página 3 ainda existiria.
+    const doNorte = lista.slice(1);
+    rerender(<TabelaDeMunicipios {...props} daAdr={doNorte} totais={calcularTotais(doNorte)} />);
+    expect(screen.getByText('Mostrando 1–10 de 22 municípios')).toBeInTheDocument();
+  });
+
+  it('reler os MESMOS municípios não tira ninguém da página em que estava', () => {
+    const lista = muitos();
+    const { rerender, props } = montar({ daAdr: lista });
+    fireEvent.click(screen.getByRole('button', { name: 'Página 2' }));
+
+    // Uma leitura nova com o mesmo conteúdo chega como outro array.
+    rerender(<TabelaDeMunicipios {...props} daAdr={[...lista]} />);
+    expect(screen.getByText('Mostrando 11–20 de 23 municípios')).toBeInTheDocument();
+  });
+
+  it('com a lista nova, o salto até o escolhido continua valendo: a página é a dele', () => {
+    const lista = muitos();
+    const { rerender, props } = montar({ daAdr: lista, selecionado: lista[0].codigoIbge });
+    // Adamantina, a de menor venda, está na página 3.
+    expect(screen.getByText('Mostrando 21–23 de 23 municípios')).toBeInTheDocument();
+
+    const semOUltimo = lista.slice(0, -1);
+    rerender(<TabelaDeMunicipios {...props} daAdr={semOUltimo} selecionado={lista[0].codigoIbge} />);
+    expect(screen.getByText('Mostrando 21–22 de 22 municípios')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Adamantina' }).closest('tr')).toHaveAttribute('aria-current', 'true');
+  });
+
   it('o município escolhido fora da tabela aparece nela: a página vai até a linha dele', () => {
     const lista = muitos();
     // A ordem padrão é por venda, do maior para o menor: Adamantina (a menor) é a última.
@@ -368,6 +417,20 @@ describe('a tabela de municípios — colunas escolhidas', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mostrar todas' }));
     expect(colunasNaTela()).toContain('elegiveis');
     expect(colunasNaTela()).toContain('posVenda');
+  });
+
+  it('o menu promete só o que a tela cumpre: Município e Ação sempre, e as outras podem sair na tabela estreita', () => {
+    // O TEXTO DIZIA "Município e Ação ficam sempre" enquanto o CSS tirava a
+    // Ação abaixo de 700px de tabela (revisão de 24/09/2026). A Ação não sai
+    // mais — a suíte visual confere em cada largura —, e o menu avisa que as
+    // outras saem sozinhas quando falta largura.
+    montar();
+    fireEvent.click(screen.getByRole('button', { name: 'Escolher as colunas da tabela' }));
+    expect(screen.getByText(/Município e Ação ficam sempre/)).toHaveTextContent(
+      /Em tabela estreita, algumas das outras colunas saem sozinhas/,
+    );
+    // A Ação não é opção da engrenagem: não há como escondê-la.
+    expect(screen.queryByRole('checkbox', { name: /Ação/ })).toBeNull();
   });
 
   it('um navegador que recusa guardar não quebra a tabela — ela abre com todas as colunas', () => {

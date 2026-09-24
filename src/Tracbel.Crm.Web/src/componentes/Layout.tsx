@@ -330,28 +330,33 @@ function MenuDoUsuario({ nome, email, sigla, filial }: { nome: string; email: st
         botao.current?.focus();
       }}
     >
+      {/* O `aria-controls` SÓ COM O PAINEL NA TELA: fechado ele não existe, e
+          apontar para um id ausente é prometer ao leitor de tela um controle
+          que não controla nada. */}
       <button
         ref={botao}
         type="button"
         className="usuario-botao"
         aria-expanded={aberto}
-        aria-controls="menu-do-usuario"
+        aria-controls={aberto ? 'menu-do-usuario' : undefined}
         onClick={() => setAberto((valor) => !valor)}
       >
         <span className="avatar" aria-hidden="true">
           {sigla}
         </span>
         <span className="user-info">
-          <span className="user-name" title={email}>
-            {nome}
-          </span>
+          <span className="user-name">{nome}</span>
           <span className="user-role">{filial}</span>
         </span>
         <ChevronDown className="usuario-seta" size={16} aria-hidden="true" />
       </button>
 
+      {/* O E-MAIL MORA DENTRO DO MENU, e não num `title=` sobre o nome: o
+          `title` só aparece com o ponteiro parado, e quem usa teclado ou toque
+          nunca o via. Aberto o menu, ele é texto lido na ordem, antes do Sair. */}
       {aberto && (
         <div className="usuario-menu" id="menu-do-usuario">
+          <p className="usuario-menu-email">{email}</p>
           <a className="usuario-menu-item" href="/auth/sair">
             <LogOut size={16} aria-hidden="true" />
             Sair

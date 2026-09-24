@@ -29,6 +29,7 @@ import { useState } from 'react';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import type { IndicadoresDoMunicipio, MomentoDoRecorte } from '../../tipos/territorio';
 import { InfoTooltip } from '../InfoTooltip';
+import type { RecorteFiltrado } from '../territorio/indicadoresDaAdr';
 import { PainelDeCredito } from '../territorio/PainelDeCredito';
 import { Calculadora } from './Calculadora';
 import { ComposicaoDoFator } from './ComposicaoDoFator';
@@ -55,6 +56,7 @@ export function BlocoDoMomento({
   momento = null,
   municipios = [],
   carregando = false,
+  recorte = null,
 }: {
   municipioSelecionado?: number | null;
   nomeDoMunicipio?: string | null;
@@ -69,6 +71,12 @@ export function BlocoDoMomento({
   municipios?: readonly IndicadoresDoMunicipio[];
   /** A leitura dos indicadores ainda não voltou. */
   carregando?: boolean;
+  /**
+   * O recorte dos filtros (sub-região, loja), quando há. Os municípios acima já
+   * vêm filtrados por ele, e o texto que fala deles diz o nome do recorte — e
+   * não "Região Tracbel", que é a área de atuação inteira (issue 163).
+   */
+  recorte?: RecorteFiltrado | null;
 } = {}) {
   const { contexto } = useContextoDeAcesso();
   const [subAba, setSubAba] = useState<SubAba>('composicao');
@@ -129,6 +137,8 @@ export function BlocoDoMomento({
             produtosDoMunicipio={produtosDoMunicipio}
             nomeDoMunicipio={nomeDoMunicipio}
             municipios={municipios}
+            carregando={carregando}
+            recorte={recorte}
           />
         )}
 
@@ -137,7 +147,7 @@ export function BlocoDoMomento({
 
         {subAba === 'troca' && <AbaTermoDeTroca produtosDoMunicipio={produtosDoMunicipio} />}
 
-        {subAba === 'percepcao' && <AbaPercepcaoComercial momento={momento} municipios={municipios} />}
+        {subAba === 'percepcao' && <AbaPercepcaoComercial momento={momento} municipios={municipios} recorte={recorte} />}
       </AbasDoMomento>
     </section>
   );

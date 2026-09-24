@@ -11,8 +11,8 @@
  * O DESENHO É O DA MAQUETE, e não o `CartaoDeIndicador` de antes: cartão tingido,
  * o glifo colorido grande numa coluna à esquerda e, empilhados à direita, o nome
  * com a dica, o valor com a unidade pequena ao lado e a linha "vs. ano anterior".
- * O `CartaoDeIndicador` continua como era — Rentabilidade, Crédito e a ficha do
- * município o usam, e a maquete deles é outra. Por isso o cartão daqui é outro
+ * O `CartaoDeIndicador` continua como era — a aba Oportunidades da ficha do
+ * município o usa, e a maquete dela é outra. Por isso o cartão daqui é outro
  * componente, e não uma variação escondida atrás de uma prop.
  *
  * A AUSÊNCIA TEM O LAYOUT DA PRESENÇA (decisão do usuário de 23/09/2026): onde a
@@ -80,6 +80,7 @@ function CartaoDeDecisao({
   icone: Icone,
   tom,
   valor,
+  carregando = false,
   unidade,
   sobre,
   motivoSemDado,
@@ -89,6 +90,12 @@ function CartaoDeDecisao({
   tom: Tom;
   /** O valor pronto para a tela. `null` mostra o traço com o motivo — nunca zero. */
   valor: string | null;
+  /**
+   * A leitura ainda não voltou. Aí não há ausência a afirmar: o traço com "falta
+   * o ciclo de renovação" antes da resposta é um motivo falso por alguns
+   * segundos. A barra pulsante é a mesma dos cartões da carteira.
+   */
+  carregando?: boolean;
   /** A unidade da maquete, ao lado do número e menor que ele. */
   unidade: string;
   /**
@@ -119,7 +126,16 @@ function CartaoDeDecisao({
         <div className="mv-kpi-valor">
           {/* O TRAÇO OCUPA O LUGAR DO NÚMERO, e a unidade continua no dela: a
               linha tem a forma da maquete, e o motivo inteiro está na dica. */}
-          {valor === null ? <ValorAusente motivo={motivoSemDado} oQue={nome} /> : <strong>{valor}</strong>}
+          {carregando ? (
+            <>
+              <span className="cad-kpi-esqueleto" aria-hidden="true" />
+              <span className="cad-so-leitor">carregando…</span>
+            </>
+          ) : valor === null ? (
+            <ValorAusente motivo={motivoSemDado} oQue={nome} />
+          ) : (
+            <strong>{valor}</strong>
+          )}
           <span className="mv-kpi-unidade">{unidade}</span>
         </div>
 
@@ -166,7 +182,9 @@ export function KpisExecutivos({
   // baixo do cartão; a maquete põe ali a variação contra o ano anterior, então a
   // leitura do momento foi para a dica do nome, inteira.
   const fatorAgregado = momento?.fatorAgregado ?? null;
-  const variacao = fatorAgregado == null ? null : (fatorAgregado - 1) * 100;
+  // ARREDONDADA ANTES DO SINAL, e o `|| 0` tira o "-0": um fator de 0,998 é
+  // −0,2%, que arredonda para zero — e "-0%" leria como queda.
+  const variacao = fatorAgregado == null ? null : Math.round((fatorAgregado - 1) * 100) || 0;
 
   return (
     <div className="dash-kpis mv-kpis" data-bloco="kpis-executivos">
@@ -174,7 +192,8 @@ export function KpisExecutivos({
         rotulo="Demanda anual"
         icone={ChartNoAxesColumnIncreasing}
         tom="demanda"
-        valor={carregando || demandaEstrutural === null ? null : nº(Math.round(demandaEstrutural))}
+        valor={demandaEstrutural === null ? null : nº(Math.round(demandaEstrutural))}
+        carregando={carregando}
         unidade="máquinas"
         motivoSemDado={DEMANDA_SEM_DADO}
         sobre={
@@ -185,7 +204,7 @@ export function KpisExecutivos({
             </p>
             {variacao != null && fatorAgregado != null && (
               <p>
-                {`${variacao > 0 ? '+' : ''}${nº(Math.round(variacao))}% com o momento do mercado`} — o fator
+                {`${variacao > 0 ? '+' : ''}${nº(variacao)}% com o momento do mercado`} — o fator
                 agregado {fator(fatorAgregado)} aplicado a esta demanda.
               </p>
             )}

@@ -7,6 +7,13 @@
  * a "Cultura destaque" é a de maior área, com o critério dito; a tendência sai
  * vazia com o motivo; a tabela está aberta; e os painéis antigos de preço e
  * custo continuam a um clique.
+ *
+ * AS AMOSTRAS TÊM A FORMA REAL DA LEITURA (revisão de 24/09/2026):
+ * `potencial[]` traz UMA LINHA POR REGRA DE POTENCIAL vigente, em TODO
+ * município, com área nula onde a PAM não divulgou; cultura sem regra não tem
+ * linha nenhuma. As amostras de antes davam linha só a quem tinha área, e a
+ * cultura sem regra parecia "sem área divulgada" — a tela passava aqui e
+ * errava com o banco, onde hoje há UMA regra só.
  */
 
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -16,6 +23,7 @@ import { municipioDeTeste } from '../../testes/territorio';
 import type { RentabilidadeDaCultura } from '../../tipos/mercado';
 import type { CulturaNoCatalogo } from '../../tipos/potencial';
 import type { IndicadoresDoMunicipio, PotencialTerritorial } from '../../tipos/territorio';
+import { recorteFiltrado, type RecorteFiltrado } from '../territorio/indicadoresDaAdr';
 import { PainelDeRentabilidade } from './PainelDeRentabilidade';
 
 const obterRentabilidadeDasCulturas = vi.hoisted(() => vi.fn());
@@ -96,31 +104,52 @@ function cultura(codigo: string, nome: string, pam: number): CulturaNoCatalogo {
   };
 }
 
-function colhida(areas: Array<[number, number]>): PotencialTerritorial[] {
-  return areas.map(([produtoCodigoIbge, areaColhidaHectares]) => ({
-    produtoCodigoIbge,
-    areaPlantadaHectares: areaColhidaHectares,
-    maquinasTeoricas: null,
-    areaColhidaHectares,
-    valorDaProducaoMilReais: null,
-    ano: 2024,
-    quantidadeProduzida: null,
-    unidadeDaQuantidade: null,
-    produtividade: null,
-    unidadeDaProdutividade: null,
-  }));
+/** A linha de cada regra no município — nula onde a PAM não divulgou área. */
+function porRegra(regras: readonly number[], areas: Partial<Record<number, number>>): PotencialTerritorial[] {
+  return regras.map((produtoCodigoIbge) => {
+    const area = areas[produtoCodigoIbge] ?? null;
+    return {
+      produtoCodigoIbge,
+      areaPlantadaHectares: area,
+      maquinasTeoricas: null,
+      areaColhidaHectares: area,
+      valorDaProducaoMilReais: null,
+      ano: 2024,
+      quantidadeProduzida: null,
+      unidadeDaQuantidade: null,
+      produtividade: null,
+      unidadeDaProdutividade: null,
+    };
+  });
 }
 
-// NA REGIÃO TRACBEL: cana 90.000 ha, café 10.000 ha, laranja sem área divulgada.
-const MUNICIPIOS: IndicadoresDoMunicipio[] = [
-  municipioDeTeste({ codigoIbge: 1, nome: 'A', potencial: colhida([[PAM_CANA, 60_000], [PAM_CAFE, 10_000]]) }),
-  municipioDeTeste({ codigoIbge: 2, nome: 'B', potencial: colhida([[PAM_CANA, 30_000]]) }),
-  // FORA DA REGIÃO: um vizinho cheio de café não pode virar o destaque daqui.
-  municipioDeTeste({ codigoIbge: 3, nome: 'C', pertenceAAdr: false, potencial: colhida([[PAM_CAFE, 900_000]]) }),
-];
+/**
+ * NA REGIÃO TRACBEL: cana 90.000 ha e café 10.000 ha; a laranja nenhuma área
+ * divulgada. FORA DA REGIÃO: um vizinho cheio de café, que não pode virar o
+ * destaque daqui. Quais culturas vêm na leitura depende das regras.
+ */
+function municipiosCom(regras: readonly number[]): IndicadoresDoMunicipio[] {
+  return [
+    municipioDeTeste({ codigoIbge: 1, nome: 'A', potencial: porRegra(regras, { [PAM_CANA]: 60_000, [PAM_CAFE]: 10_000 }) }),
+    municipioDeTeste({ codigoIbge: 2, nome: 'B', potencial: porRegra(regras, { [PAM_CANA]: 30_000 }) }),
+    municipioDeTeste({ codigoIbge: 3, nome: 'C', pertenceAAdr: false, potencial: porRegra(regras, { [PAM_CAFE]: 900_000 }) }),
+  ];
+}
 
-function abrir({ catalogoFalha = false, nomeDoMunicipio = null as string | null } = {}) {
-  obterRentabilidadeDasCulturas.mockResolvedValue({ dados: LINHAS, procedencia: null });
+/** Todas as culturas com regra — o dia em que a área por cultura chegar. */
+const COM_TODAS_AS_REGRAS = municipiosCom([PAM_CAFE, PAM_CANA, PAM_LARANJA]);
+/** O BANCO DE HOJE: uma regra só, a da cana. Café e laranja não vêm na leitura. */
+const COM_UMA_REGRA = municipiosCom([PAM_CANA]);
+
+function abrir({
+  catalogoFalha = false,
+  nomeDoMunicipio = null as string | null,
+  municipios = COM_TODAS_AS_REGRAS,
+  carregando = false,
+  recorte = null as RecorteFiltrado | null,
+  linhas = LINHAS,
+} = {}) {
+  obterRentabilidadeDasCulturas.mockResolvedValue({ dados: linhas, procedencia: null });
   if (catalogoFalha) obterCatalogoDoMercado.mockRejectedValue(new Error('403'));
   else
     obterCatalogoDoMercado.mockResolvedValue({
@@ -137,7 +166,12 @@ function abrir({ catalogoFalha = false, nomeDoMunicipio = null as string | null 
 
   render(
     <ProvedorDeContextoDeAcesso>
-      <PainelDeRentabilidade municipios={MUNICIPIOS} nomeDoMunicipio={nomeDoMunicipio} />
+      <PainelDeRentabilidade
+        municipios={municipios}
+        nomeDoMunicipio={nomeDoMunicipio}
+        carregando={carregando}
+        recorte={recorte}
+      />
     </ProvedorDeContextoDeAcesso>,
   );
 }
@@ -145,6 +179,7 @@ function abrir({ catalogoFalha = false, nomeDoMunicipio = null as string | null 
 const cartao = (rotulo: string) => document.querySelector<HTMLElement>(`[data-cartao="${rotulo}"]`)!;
 const ranking = () =>
   [...document.querySelectorAll<HTMLElement>('.mom-ranking .mom-ranking-linha')].map((l) => l.dataset.cultura);
+const linhaDaTabela = (codigo: string) => document.querySelector<HTMLElement>(`table.mom-tabela tr[data-cultura="${codigo}"]`)!;
 
 function lerDica(rotulo: string, dentroDe: HTMLElement = document.body): string {
   const gatilho = within(dentroDe).getByRole('button', { name: rotulo });
@@ -155,6 +190,8 @@ function lerDica(rotulo: string, dentroDe: HTMLElement = document.body): string 
 }
 
 const esperar = () => screen.findByText('Melhor margem/ha');
+/** O catálogo chegou: a coluna de área já afirma alguma coisa. */
+const esperarAArea = () => screen.findAllByRole('button', { name: /Por que a área colhida de/ });
 
 describe('a aba Rentabilidade', () => {
   afterEach(() => {
@@ -181,7 +218,10 @@ describe('a aba Rentabilidade', () => {
     const media = cartao('Média da Região Tracbel');
     expect(media).toHaveTextContent('R$ 5.322,00');
     expect(media).toHaveTextContent('margem média ponderada');
-    expect(lerDica('O que é a margem média da Região Tracbel')).toMatch(/2 culturas que têm margem e área/);
+    const dica = lerDica('O que é a margem média da Região Tracbel');
+    expect(dica).toMatch(/2 culturas que têm margem e área/);
+    // A LARANJA TEM REGRA E NENHUMA ÁREA DIVULGADA: ela não pesa, e a dica diz.
+    expect(dica).toMatch(/Laranja não pesa: nenhum município da Região Tracbel tem área divulgada/);
   });
 
   it('a cultura destaque é a de maior área colhida na Região — e o critério está dito', async () => {
@@ -192,6 +232,75 @@ describe('a aba Rentabilidade', () => {
     expect(destaque).toHaveTextContent('Cana-de-açúcar');
     expect(destaque).toHaveTextContent('R$ 2.580,00 / ha');
     expect(lerDica('O que é a cultura destaque')).toMatch(/MAIOR ÁREA COLHIDA/);
+  });
+
+  it('NO BANCO DE HOJE (uma regra só), média e destaque saem com o traço e o motivo verdadeiro', async () => {
+    // O DEFEITO: com a área de uma cultura só, a "média ponderada" era a margem
+    // da cana com o nome de média, e o destaque era sempre a cana.
+    abrir({ municipios: COM_UMA_REGRA });
+    await esperar();
+    await esperarAArea();
+
+    for (const [rotulo, oQue] of [
+      ['Média da Região Tracbel', 'a margem média da Região Tracbel'],
+      ['Cultura destaque', 'a cultura destaque'],
+    ] as const) {
+      const valor = cartao(rotulo).querySelector('.mom-cartao-valor')!;
+      expect(valor.textContent, rotulo).not.toMatch(/\d|Cana/);
+      const motivo = lerDica(`Por que ${oQue} não aparece`);
+      expect(motivo).toMatch(/só traz a área colhida das culturas com regra de potencial/);
+      expect(motivo).toMatch(/falta a de Café \(Total\) e Laranja/);
+      expect(motivo).toMatch(/pedida ao backend/);
+    }
+    expect(lerDica('Por que a margem média da Região Tracbel não aparece')).toMatch(/média ponderada pela área de atuação/);
+
+    // A COLUNA DE ÁREA DIZ A AUSÊNCIA CERTA DE CADA LINHA: a cana tem a área; o
+    // café não tem regra — e não é "nenhum município tem área divulgada".
+    expect(linhaDaTabela('CANA')).toHaveTextContent('90.000');
+    const cafe = lerDica('Por que a área colhida de Café (Total) não aparece', linhaDaTabela('CAFE'));
+    expect(cafe).toMatch(/Café \(Total\) não tem regra vigente/);
+    expect(cafe).not.toMatch(/Nenhum município/);
+  });
+
+  it('cultura COM regra e sem área divulgada: o motivo é sigilo ou lavoura que não existe — e não "a leitura não traz"', async () => {
+    abrir();
+    await esperarAArea();
+
+    const laranja = lerDica('Por que a área colhida de Laranja não aparece', linhaDaTabela('LARANJA'));
+    expect(laranja).toMatch(/Nenhum município da Região Tracbel tem área colhida de Laranja divulgada na PAM/);
+    expect(laranja).toMatch(/sigilo do IBGE, ou a cultura não é plantada ali/);
+    expect(laranja).not.toMatch(/regra/);
+  });
+
+  it('enquanto os municípios não chegam, área, média e destaque dizem "carregando" — e não afirmam ausência', async () => {
+    abrir({ carregando: true });
+    await esperar();
+
+    expect(screen.queryAllByRole('button', { name: /Por que a área colhida de/ })).toEqual([]);
+    expect(linhaDaTabela('CANA')).toHaveTextContent('carregando…');
+    for (const rotulo of ['Média da Região Tracbel', 'Cultura destaque']) {
+      expect(cartao(rotulo)).toHaveTextContent('carregando…');
+      expect(within(cartao(rotulo)).queryByRole('button', { name: /^Por que .* não aparece$/ })).toBeNull();
+    }
+  });
+
+  it('COM FILTRO, o cartão diz o recorte — "Região Tracbel" é a área de atuação inteira', async () => {
+    abrir({ recorte: recorteFiltrado('Norte', null) });
+    await screen.findByText('R$ 5.322,00');
+
+    expect(cartao('Média da Sub-região Norte')).toHaveTextContent('R$ 5.322,00');
+    expect(document.querySelector('[data-cartao="Média da Região Tracbel"]')).toBeNull();
+    const dica = lerDica('O que é a margem média da Sub-região Norte');
+    expect(dica).toMatch(/O recorte dos filtros é Sub-região Norte/);
+    expect(dica).toMatch(/municípios da Sub-região Norte/);
+  });
+
+  it('com sub-região E loja, o rótulo fica curto — "Média do recorte" —, e o nome inteiro vai na dica', async () => {
+    abrir({ recorte: recorteFiltrado('Norte', 'Catanduva') });
+    await screen.findByText('R$ 5.322,00');
+
+    expect(cartao('Média do recorte')).toHaveTextContent('R$ 5.322,00');
+    expect(lerDica('O que é a margem média do recorte')).toMatch(/Sub-região Norte · loja Catanduva/);
   });
 
   it('a tendência sai com o traço e o motivo, e nunca com um número', async () => {
@@ -236,21 +345,48 @@ describe('a aba Rentabilidade', () => {
       'Detalhes',
     ]);
 
-    const cana = tabela.querySelector<HTMLElement>('tr[data-cultura="CANA"]')!;
+    const cana = linhaDaTabela('CANA');
     expect(cana).toHaveTextContent('90.000');
     expect(cana).toHaveTextContent('22%');
     // A laranja não tem área divulgada na Região: traço, e não zero.
-    const laranja = tabela.querySelector<HTMLElement>('tr[data-cultura="LARANJA"]')!;
-    expect(within(laranja).getByRole('button', { name: 'Por que a área colhida de Laranja não aparece' })).toBeInTheDocument();
+    expect(within(linhaDaTabela('LARANJA')).getByRole('button', { name: 'Por que a área colhida de Laranja não aparece' })).toBeInTheDocument();
+  });
+
+  it('cada traço do detalhamento tem o ⓘ com o motivo — inclusive sem a frase do servidor', async () => {
+    const semNada: RentabilidadeDaCultura = {
+      ...linha('MILHO', 'Milho', 0, 0),
+      receitaPorHectare: null,
+      custoPorHectare: null,
+      margemPorHectare: null,
+      produtividadeKgPorHa: null,
+      precoMedioPorKg: null,
+      motivo: 'SemPreco',
+      fraseDoMotivo: '',
+    };
+    abrir({ linhas: [...LINHAS, semNada] });
+    await esperarAArea();
+
+    const milho = linhaDaTabela('MILHO');
+    const celulas = [...milho.querySelectorAll<HTMLElement>('td.mom-num')];
+    const comTraco = celulas.filter((td) => td.textContent?.includes('—'));
+    // Receita, custo, margem, margem %, produtividade, preço e área.
+    expect(comTraco).toHaveLength(7);
+    for (const td of comTraco) {
+      const gatilho = within(td).getByRole('button', { name: /^Por que .* não aparece$/ });
+      fireEvent.focus(gatilho);
+      expect((screen.getByRole('tooltip').textContent ?? '').length, gatilho.getAttribute('aria-label')!).toBeGreaterThan(20);
+      fireEvent.blur(gatilho);
+    }
   });
 
   it('sem o catálogo, área, destaque e média saem com o motivo — nada é estimado', async () => {
     abrir({ catalogoFalha: true });
     await esperar();
-    await screen.findAllByRole('button', { name: /Por que a área colhida de/ });
+    await esperarAArea();
 
     expect(cartao('Média da Região Tracbel').querySelector('.mom-cartao-valor')!.textContent).not.toMatch(/\d/);
     expect(lerDica('Por que a margem média da Região Tracbel não aparece')).toMatch(/catálogo de culturas/);
+    expect(lerDica('Por que a área colhida de Laranja não aparece', linhaDaTabela('LARANJA'))).toMatch(/catálogo de culturas/);
   });
 
   it('a referência estadual (issue 168) está na dica, com o município escolhido', async () => {
@@ -266,21 +402,45 @@ describe('a aba Rentabilidade', () => {
     abrir();
     await esperar();
 
-    const cafe = document.querySelector<HTMLElement>('tr[data-cultura="CAFE"]')!;
-    const dica = lerDica('Como a margem de Café (Total) se compõe', cafe);
+    const dica = lerDica('Como a margem de Café (Total) se compõe', linhaDaTabela('CAFE'));
     expect(dica).toMatch(/PAM 2024/);
     expect(dica).toMatch(/Franca/);
     expect(dica).toMatch(/Área colhida em SP/);
   });
 
-  it('os painéis de preço e custo continuam a um clique, em "Ver séries"', async () => {
+  it('os painéis de preço e custo continuam a um clique, em "Ver séries" — e o aria-controls só aponta para o que existe', async () => {
     abrir();
     await esperar();
 
+    const botao = screen.getByRole('button', { name: 'Ver séries de preço e custo' });
     expect(document.querySelector('[data-bloco="precos"]')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Ver séries de preço e custo' }));
+    // FECHADO, AS SÉRIES NÃO ESTÃO NO DOCUMENTO: nada de `aria-controls` para um id ausente.
+    expect(botao).not.toHaveAttribute('aria-controls');
+
+    fireEvent.click(botao);
     expect(document.querySelector('[data-bloco="precos"]')).not.toBeNull();
     expect(document.querySelector('[data-bloco="custos"]')).not.toBeNull();
+    const controlado = screen.getByRole('button', { name: 'Fechar as séries' }).getAttribute('aria-controls')!;
+    expect(document.getElementById(controlado)).toHaveAttribute('data-bloco', 'rentabilidade-fontes');
+  });
+
+  it('as dicas e os aria-label não dizem "região" sozinha nem citam a maquete', async () => {
+    abrir({ municipios: COM_UMA_REGRA });
+    await esperarAArea();
+
+    const bloco = document.querySelector<HTMLElement>('[data-bloco="rentabilidade"]')!;
+    const lidos = [
+      ...[...bloco.querySelectorAll('[aria-label]')].map((n) => n.getAttribute('aria-label') ?? ''),
+      ...[...bloco.querySelectorAll<HTMLButtonElement>('.dica-gatilho')].map((g) => {
+        fireEvent.focus(g);
+        const texto = screen.getByRole('tooltip').textContent ?? '';
+        fireEvent.blur(g);
+        return texto;
+      }),
+    ];
+    expect(lidos.length).toBeGreaterThan(10);
+    expect(lidos.filter((t) => /(?<!sub-)\bregião\b(?! Tracbel)/iu.test(t))).toEqual([]);
+    expect(lidos.filter((t) => /maquete/i.test(t))).toEqual([]);
   });
 
   it('nenhum `title=` cru', async () => {

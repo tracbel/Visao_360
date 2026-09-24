@@ -48,12 +48,13 @@
   /* A PÁGINA É O CONTÊINER DAS QUEBRAS (fidelidade às maquetes, 23/09/2026).
 
      Toda quebra de arranjo desta tela era `@media` pela largura da JANELA — e o
-     conteúdo não é a janela: é a janela menos 248px de menu lateral e 64px de
-     folga. Num notebook de 1536px (125% de zoom) a coluna de conteúdo tem
-     ~1224px, e as regras achavam que tinham 1536: os três painéis do rodapé
-     ficavam lado a lado em colunas de 400px e o Crédito crescia para baixo o
-     que não tinha de largura — a "rolagem infinita". Os quatro mapas só ficavam
-     lado a lado acima de 2100px de janela, largura que quase ninguém tem.
+     conteúdo não é a janela: é a janela menos o menu lateral (`--largura-menu`,
+     232px desde a fase 5) e 64px de folga. Num notebook de 1536px (125% de
+     zoom) a coluna de conteúdo tem ~1240px, e as regras achavam que tinham 1536:
+     os três painéis do rodapé ficavam lado a lado em colunas de 400px e o
+     Crédito crescia para baixo o que não tinha de largura — a "rolagem
+     infinita". Os quatro mapas só ficavam lado a lado acima de 2100px de
+     janela, largura que quase ninguém tem.
 
      Agora as quebras usam `@container indicadores`, medidas na largura desta
      página. O mesmo arranjo aparece com a mesma largura de conteúdo, com ou sem
@@ -489,139 +490,6 @@
 /* O ⓘ ao lado do traço volta ao tamanho dele: o gatilho não cresce junto. */
 .dash-kpi-valor .cad-ausente .dica-gatilho { font-size: var(--t-apoio); }
 
-/* -----------------------------------------------------------------------------
-   A FAIXA DOS NÚMEROS ESTRUTURAIS
-
-   Eles são o pano de fundo do mercado, não números de decisão — mas estavam
-   desenhados como cartão, do mesmo tamanho dos quatro do topo. Nenhum sumiu:
-   continuam inteiros, com procedência e comparação, numa linha só.
-   ----------------------------------------------------------------------------- */
-/* A QUEBRA É DECLARADA, e não acidental (fase T4.7).
-
-   Com `flex-wrap` os cinco indicadores quebravam onde a soma das larguras
-   mandasse: em 1024 dava 4 + 1, com o rebanho bovino sozinho numa segunda linha
-   — parecia sobra, não grupo. Em grade eles quebram 5 → 3 → 2 em degraus
-   escolhidos, e cada linha fica cheia. */
-/* A FAIXA É UMA RÉGUA DE CÉLULAS DIVIDIDAS (protótipo `dashboard.css`,
-   §.market-strip), e não itens soltos com espaço entre eles.
-
-   As duas primeiras células são o MOMENTO e o PORTE, com a faixa em pílula; as
-   cinco seguintes são os indicadores estruturais. Elas ficavam em dois blocos
-   separados — e são a mesma leitura: "como está o mercado, e o que existe nele".
-
-   O divisor vertical é o que transforma sete números numa régua em vez de numa
-   lista: o olho corre por ela sem precisar de espaço grande entre os itens. */
-/* AS QUEBRAS SÃO PELA LARGURA DO CONTEÚDO (fidelidade às maquetes, 23/09/2026):
-   a régua inteira numa linha a partir de 1100px — é como a maquete a mostra, e
-   numa coluna de 1224px as sete células cabem. Abaixo, os mesmos degraus de
-   antes (4 → 3 → 2 → 1), convertidos de largura de janela para de conteúdo. */
-.dash-faixa {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: stretch;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.dash-faixa > * {
-  padding: var(--e-3) var(--e-4);
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  min-width: 0;
-}
-
-.dash-faixa > *:last-child { border-right: 0; }
-
-@container indicadores (min-width: 480px) {
-  .dash-faixa { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@container indicadores (min-width: 700px) {
-  .dash-faixa { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
-@container indicadores (min-width: 900px) {
-  .dash-faixa { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-
-/* NUMA LINHA SÓ não há linha de baixo para separar: o filete inferior sai. */
-@container indicadores (min-width: 1100px) {
-  .dash-faixa { grid-template-columns: 1.25fr 1.1fr repeat(5, 0.75fr); }
-  .dash-faixa > * { border-bottom: 0; }
-}
-
-/* O VALOR EM CIMA, O NOME EMBAIXO (protótipo, §.mini-stat). Lado a lado, num
-   grid de sete células o rótulo longo ("Parque de tratores") empurrava o número
-   da célula vizinha para fora do eixo.
-
-   O ITEM É DE DUAS COLUNAS: selo quadrado à esquerda, número e nome empilhados
-   à direita — que é o desenho da maquete (fase T4.9).
-
-   O CORPO É UM ENVOLTÓRIO, e não linhas soltas da grade: o ⓘ e a procedência
-   precisam ficar NA LINHA do rótulo. Soltos, cada um ganhava uma terceira e uma
-   quarta linha da grade, e a célula do trator ficava duas vezes mais alta que a
-   do rebanho, que não tem dica.
-
-   (Esta regra estava escrita duas vezes — a segunda, da T4.9, anulava metade da
-   primeira. Ficou uma, com os valores que valiam na tela.) */
-.dash-faixa-item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 2px var(--e-2);
-  align-items: center;
-  font-size: var(--t-apoio);
-  color: var(--text-tertiary);
-}
-
-.dash-faixa-valor {
-  font-size: var(--t-secao);
-  font-weight: 700;
-  line-height: var(--lh-apertada);
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-/* A CÉLULA DO MOMENTO E DO PORTE: ícone à esquerda, nome e pílula à direita. */
-.dash-faixa-leitura {
-  display: flex;
-  gap: var(--e-2);
-  align-items: center;
-}
-
-.dash-faixa-leitura > svg { color: var(--jd-green); flex: none; }
-
-.dash-faixa-leitura strong {
-  display: block;
-  font-size: var(--t-apoio);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-/* A PÍLULA NOMEIA A FAIXA, e é a leitura que se faz de longe. Fundo suave, texto
-   escuro: contraste de leitura, não de alarme. Sai em maiúsculas, como na
-   maquete ("NORMAL", "MÉDIO"). */
-.dash-pilula {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--e-1);
-  margin-top: 4px;
-  padding: 3px 7px;
-  border-radius: 999px;
-  font-size: var(--t-meta);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  background: var(--n-100);
-  color: var(--text-secondary);
-}
-
-.dash-pilula[data-faixa='Aquecido'],
-.dash-pilula[data-faixa='Superaquecido'] { background: #E6F6E9; color: #237330; }
-
-.dash-pilula[data-faixa='Retraído'] { background: var(--warning-bg); color: var(--warning); }
-
 /* O SELO DA SEÇÃO (protótipo, §.meta-chip): um contexto curto à direita do
    título, em letra de metadado. Ele não é indicador — é a legenda do bloco. */
 .dash-selo-secao {
@@ -635,26 +503,6 @@
 }
 
 .dash-selo-secao > svg { color: var(--jd-green); flex: none; }
-
-.dash-faixa-rotulo { color: var(--text-secondary); }
-
-/* O ÍCONE DA FAIXA é um selo quadrado, como o dos filtros: os cinco indicadores
-   estruturais ganham a mesma âncora à esquerda que a maquete mostra (T4.9). Ele
-   ajuda a achar a linha, não compete com o número.
-
-   (Estava escrita duas vezes — a segunda anulava a cor e o alinhamento da
-   primeira. Ficou uma, com os valores que valiam na tela.) */
-.dash-faixa-icone {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: flex-start;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-sm);
-  background: var(--n-100);
-  color: var(--text-secondary);
-}
 
 /* -----------------------------------------------------------------------------
    OS FILTROS
@@ -1411,98 +1259,6 @@
 .dash-interruptor[aria-checked='true']::after { left: auto; right: 2px; }
 
 /* -----------------------------------------------------------------------------
-   A GRADE DE MINI-CARTÕES DOS TRÊS PAINÉIS DO RODAPÉ (maquete)
-
-   Nos três painéis de baixo a maquete mostra cartõezinhos em 2×2: selo de ícone
-   à esquerda, número, rótulo embaixo e, em alguns, um selo de ressalva. Não é o
-   mesmo objeto dos quatro números de decisão do topo — aqueles são a leitura
-   principal e têm o dobro do corpo. Este é o detalhe de um painel.
-   ----------------------------------------------------------------------------- */
-/* A MAQUETE PÕE OS QUATRO NUMA LINHA dentro de um painel de um terço de largura.
-   `auto-fit` com mínimo de 120px entrega exatamente isso onde cabe — quatro
-   colunas numa coluna de ~490px — e cai para duas, e depois uma, onde não cabe.
-   Um `repeat(4, 1fr)` fixo seria fiel na largura da maquete e ilegível em todas
-   as outras: "R$ 186,4 mi" em 70px vira duas linhas quebradas no meio. */
-.dash-mini-kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: var(--e-3);
-}
-
-@media (max-width: 480px) {
-  .dash-mini-kpis { grid-template-columns: minmax(0, 1fr); }
-}
-
-.dash-mini-kpi {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: var(--e-3);
-  padding: var(--e-3);
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.dash-mini-selo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  background: var(--n-100);
-  color: var(--text-secondary);
-}
-
-.dash-mini-kpi[data-tom='demanda'] .dash-mini-selo { background: #E8F3E6; color: var(--jd-green-dark); }
-.dash-mini-kpi[data-tom='mercado'] .dash-mini-selo { background: var(--info-bg); color: var(--info); }
-.dash-mini-kpi[data-tom='captura'] .dash-mini-selo { background: var(--warning-bg); color: var(--warning); }
-.dash-mini-kpi[data-tom='oportunidade'] .dash-mini-selo { background: #EDE9FE; color: #6D28D9; }
-
-.dash-mini-corpo {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.dash-mini-valor {
-  display: inline-flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--e-1);
-  font-size: var(--t-secao);
-  font-weight: 700;
-  line-height: var(--lh-apertada);
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.dash-mini-rotulo {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--e-1);
-  font-size: var(--t-meta);
-  line-height: var(--lh-normal);
-  color: var(--text-tertiary);
-}
-
-/* O traço de um mini-cartão tem o corpo do número que ele substitui, pelo mesmo
-   motivo do cartão grande: ausência com cara de texto corrido parece defeito. */
-.dash-mini-valor .cad-ausente {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--e-1);
-  font-size: var(--t-secao);
-  color: var(--text-tertiary);
-}
-
-.dash-mini-valor .cad-ausente .dica-gatilho { font-size: var(--t-meta); }
-
-/* -----------------------------------------------------------------------------
    O CABEÇALHO DE PAINEL COM ALTERNADOR E AÇÃO NA MESMA LINHA (maquete)
 
    No "Potencial estrutural" a maquete põe as três abas à esquerda e "Simular
@@ -1516,31 +1272,4 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--e-2);
-}
-
-/* A frase do momento fica ao lado da pílula, e não embaixo: é a leitura que
-   explica a palavra ("Demanda estável e preços firmes"). */
-.dash-faixa-frase {
-  margin: 4px 0 0;
-  font-size: var(--t-meta);
-  line-height: var(--lh-normal);
-  color: var(--text-tertiary);
-}
-
-/* (O selo quadrado do ícone da faixa e o item de duas colunas estavam
-   redeclarados aqui; as duas regras foram unidas às primeiras, lá em cima, com
-   os valores que valiam na tela.) */
-.dash-faixa-corpo {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.dash-faixa-rotulo {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--e-1);
-  font-size: var(--t-meta);
 }

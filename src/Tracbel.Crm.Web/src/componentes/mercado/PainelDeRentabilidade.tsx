@@ -16,6 +16,17 @@
  * a margem de cada cultura ponderada pela ÁREA COLHIDA DA REGIÃO — as duas com
  * teste em `momento/contas.teste.ts`.
  *
+ * A MÉDIA E O DESTAQUE ESPERAM A ÁREA DE TODAS AS CULTURAS (revisão de
+ * 24/09/2026). A leitura dos indicadores traz a área só das culturas com regra
+ * de potencial — uma, no banco de hoje. Com a área de uma cultura só, a "média
+ * ponderada" era a margem dela com o nome de média, e a "Cultura destaque" era
+ * sempre ela. Enquanto a área por cultura não vier (pedido ao backend), os dois
+ * cartões saem com o traço e esse motivo; e cada linha da coluna de área diz a
+ * SUA ausência — "a leitura não traz" é diferente de "o IBGE não divulgou".
+ *
+ * COM FILTRO, O NOME É O DO RECORTE: a média é dos municípios da sub-região ou
+ * da loja escolhidas, e "Região Tracbel" é a área de atuação inteira (issue 163).
+ *
  * A MARGEM É REFERÊNCIA ESTADUAL (issue 168): preço e custo são publicados para
  * São Paulo e para a localidade de referência da CONAB. Escolher um município
  * muda QUAIS culturas vêm primeiro, e não o número — e a tela diz isso na dica
@@ -41,9 +52,10 @@ import type { IndicadoresDoMunicipio } from '../../tipos/territorio';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
 import { ValorAusente } from '../comum/ValorAusente';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
+import type { RecorteFiltrado } from '../territorio/indicadoresDaAdr';
 import { PainelDeCustos } from '../territorio/PainelDeCustos';
 import { PainelDePrecos } from '../territorio/PainelDePrecos';
-import { areaColhidaNoRecorte, comAsCulturasDoMunicipioPrimeiro } from './culturasDoMunicipio';
+import { areaColhidaNoRecorte, comAsCulturasDoMunicipioPrimeiro, type AreaNoRecorte } from './culturasDoMunicipio';
 import {
   CRITERIOS_DA_RENTABILIDADE,
   daMaiorArea,
@@ -82,6 +94,63 @@ function referenciaEstadual(nomeDoMunicipio: string | null): string {
 /** Preço por quilo: três casas abaixo de R$ 1 — o kg da cana vale centavos. */
 const precoPorKg = (v: number) => `${reais(v, v < 1 ? 3 : 2)} / kg`;
 
+/** A área de uma linha da rentabilidade: a do catálogo, ou nenhuma, se a cultura não está nele. */
+type AreaDaLinha = AreaNoRecorte | { situacao: 'foraDoCatalogo' };
+
+const SO_COM_REGRA =
+  'A leitura dos indicadores só traz a área colhida das culturas com regra de potencial — uma linha por regra ' +
+  'vigente, em cada município.';
+
+const SEM_CATALOGO =
+  'O catálogo de culturas não respondeu (ele exige a permissão de leitura dos parâmetros do potencial), e é ele ' +
+  'que liga cada cultura à área da PAM dos municípios. Sem ele a tela não sabe a área — e não a estima.';
+
+/** "Café, Laranja e Soja" — e, com muitas, as três primeiras e quantas faltam. */
+function listar(linhas: readonly RentabilidadeDaCultura[]): string {
+  const nomes = linhas.map((l) => l.culturaNome);
+  if (nomes.length > 4) return `${nomes.slice(0, 3).join(', ')} e mais ${nomes.length - 3}`;
+  return nomes.length === 1 ? nomes[0] : `${nomes.slice(0, -1).join(', ')} e ${nomes.at(-1)}`;
+}
+
+/**
+ * ENQUANTO A LEITURA NÃO VOLTOU, NÃO HÁ AUSÊNCIA A AFIRMAR: o traço com "nenhum
+ * município tem área" antes da resposta é uma frase falsa por alguns segundos.
+ * A barra pulsante é a mesma dos cartões da carteira.
+ */
+function Carregando() {
+  return (
+    <>
+      <span className="cad-kpi-esqueleto" aria-hidden="true" />
+      <span className="cad-so-leitor">carregando…</span>
+    </>
+  );
+}
+
+/** Por que a área de UMA cultura não aparece — a frase certa para cada ausência. */
+function motivoDaArea(area: AreaDaLinha, cultura: string, onde: string): string {
+  switch (area.situacao) {
+    case 'foraDoCatalogo':
+      return (
+        `${cultura} não está entre as culturas ativas do catálogo, e é o catálogo que liga a cultura à área da PAM ` +
+        'dos municípios. Sem essa ligação a tela não sabe a área — e não a estima.'
+      );
+    case 'foraDaLeitura':
+      return (
+        `${SO_COM_REGRA} ${cultura} não tem regra vigente, então a área dela não chega a esta tela — o que não quer ` +
+        'dizer que ela não seja plantada. A área por cultura foi pedida ao backend.'
+      );
+    case 'semAreaDivulgada':
+      return (
+        `Nenhum município ${onde} tem área colhida de ${cultura} divulgada na PAM: sigilo do IBGE, ou a cultura não ` +
+        'é plantada ali. Ausência não é zero.'
+      );
+    case 'semMunicipio':
+      return `Nenhum município ${onde} veio na leitura dos indicadores — sem município não há área a somar.`;
+    case 'comArea':
+      return '';
+  }
+}
+
 function formatarCriterio(v: number, criterio: CriterioDaRentabilidade): string {
   return criterio === 'margemPercentual' ? `${numero(v * 100, 0)}%` : reais(v);
 }
@@ -109,11 +178,17 @@ export function PainelDeRentabilidade({
   produtosDoMunicipio = [],
   nomeDoMunicipio = null,
   municipios = [],
+  carregando = false,
+  recorte = null,
 }: {
   produtosDoMunicipio?: readonly number[];
   nomeDoMunicipio?: string | null;
   /** Os municípios da leitura — a área colhida da Região Tracbel, peso da média. */
   municipios?: readonly IndicadoresDoMunicipio[];
+  /** A leitura dos indicadores ainda não voltou: a área é espera, e não ausência. */
+  carregando?: boolean;
+  /** O recorte dos filtros, quando há: a média é dos municípios dele, e não da Região Tracbel inteira. */
+  recorte?: RecorteFiltrado | null;
 } = {}) {
   const { contexto } = useContextoDeAcesso();
   const leitura = useRecurso(
@@ -139,11 +214,11 @@ export function PainelDeRentabilidade({
     [catalogo.dados, produtosDoMunicipio],
   );
 
-  /** A área colhida de cada cultura na Região Tracbel do recorte — ou nula, com o motivo. */
+  /** A área colhida de cada cultura na Região Tracbel do recorte — ou por que ela não sai. */
   const areaDe = useMemo(() => {
-    const mapa = new Map<string, number | null>();
+    const mapa = new Map<string, AreaNoRecorte>();
     for (const c of culturasDoCatalogo) mapa.set(c.codigo, areaColhidaNoRecorte(c, municipios));
-    return (l: RentabilidadeDaCultura) => mapa.get(l.culturaCodigo) ?? null;
+    return (l: RentabilidadeDaCultura): AreaDaLinha => mapa.get(l.culturaCodigo) ?? { situacao: 'foraDoCatalogo' };
   }, [culturasDoCatalogo, municipios]);
 
   const doMunicipio = useMemo(() => {
@@ -165,15 +240,60 @@ export function PainelDeRentabilidade({
       />
     );
 
-  const semArea = catalogo.erro
-    ? 'O catálogo de culturas não respondeu (ele exige a permissão de leitura dos parâmetros do potencial), e é ele que liga cada cultura à área da PAM dos municípios. Sem ele a tela não sabe a área — e não a estima.'
-    : 'Nenhum município da Região Tracbel neste recorte tem área colhida divulgada (PAM) para as culturas com margem.';
+  // ---------- a área do recorte, e o que ela deixa calcular ----------
+  const onde = recorte?.da ?? 'da Região Tracbel';
+  const nomeCurto = recorte?.daCurto ?? 'da Região Tracbel';
+  // SÓ O QUE CHEGOU AFIRMA AUSÊNCIA: sem o catálogo ou sem os municípios, a
+  // área ainda está a caminho.
+  const esperandoArea = carregando || catalogo.carregando;
+  const hectaresDe = (l: RentabilidadeDaCultura) => {
+    const a = areaDe(l);
+    return a.situacao === 'comArea' ? a.hectares : null;
+  };
+  /** As linhas cuja área a leitura não traz — a cultura sem regra, ou fora do catálogo. */
+  const semAreaNaLeitura = (ls: readonly RentabilidadeDaCultura[]) =>
+    ls.filter((l) => ['foraDaLeitura', 'foraDoCatalogo'].includes(areaDe(l).situacao));
+
+  /**
+   * POR QUE A MÉDIA OU O DESTAQUE NÃO SE CALCULAM — nulo quando se calculam.
+   *
+   * A CULTURA QUE A LEITURA NÃO TRAZ IMPEDE A CONTA; a que vem sem área
+   * divulgada, não. A primeira é uma área que existe e não chegou — calcular sem
+   * ela é a "média" de uma cultura só. A segunda é sigilo ou lavoura que não
+   * existe ali: ela fica de fora do peso, e a dica diz quais.
+   */
+  function motivoSemConta(faltam: readonly RentabilidadeDaCultura[], conta: string): string | null {
+    if (catalogo.erro) return SEM_CATALOGO;
+    if (!municipios.some((m) => m.pertenceAAdr))
+      return `Nenhum município ${onde} veio na leitura dos indicadores — sem município não há área para pesar.`;
+    if (faltam.length === 0) return null;
+    return (
+      `${SO_COM_REGRA} ${conta} espera a área de cada cultura, e falta a de ${listar(faltam)}: a área por cultura ` +
+      'foi pedida ao backend. Calcular só com as que vieram daria o número de poucas culturas com o nome do todo.'
+    );
+  }
 
   // ---------- os quatro cartões ----------
   const porMargem = ordenarRentabilidade(linhas, 'margem');
   const melhor = porMargem.find((l) => l.margemPorHectare !== null) ?? null;
-  const destaque = daMaiorArea(linhas, areaDe);
-  const media = margemMediaPonderada(linhas.map((l) => ({ margem: l.margemPorHectare, area: areaDe(l) })));
+
+  const comMargem = linhas.filter((l) => l.margemPorHectare !== null);
+  const motivoDaMedia = motivoSemConta(
+    semAreaNaLeitura(comMargem),
+    `A média ponderada pela área ${recorte ? 'do recorte' : 'de atuação'}`,
+  );
+  const media =
+    motivoDaMedia === null
+      ? margemMediaPonderada(comMargem.map((l) => ({ margem: l.margemPorHectare, area: hectaresDe(l) })))
+      : null;
+  // A CULTURA DESTAQUE OLHA TODAS AS LINHAS, com margem ou sem: a que mais ocupa
+  // a terra pode ser justamente a que ficou sem custo apurado.
+  const motivoDoDestaque = motivoSemConta(semAreaNaLeitura(linhas), 'A cultura de maior área');
+  const destaque = motivoDoDestaque === null ? daMaiorArea(linhas, hectaresDe) : null;
+  const semDivulgacao = comMargem.filter((l) => areaDe(l).situacao === 'semAreaDivulgada');
+  const nenhumaComArea =
+    `Nenhuma cultura tem área colhida divulgada nos municípios ${onde} (PAM): sigilo do IBGE, ou lavoura que não ` +
+    'existe ali. Ausência não é zero.';
 
   // ---------- o ranking ----------
   const ranking = ordenarRentabilidade(linhas, criterio);
@@ -222,14 +342,14 @@ export function PainelDeRentabilidade({
           rotulo="Cultura destaque"
           oQue="a cultura destaque"
           dica={
-            'Critério: a cultura de MAIOR ÁREA COLHIDA nos municípios da Região Tracbel do recorte (PAM do IBGE, ' +
-            'somada pelo catálogo de culturas). "Destaque" aqui é a que mais ocupa a terra, e não a que mais paga — ' +
-            'essa é a Melhor margem/ha, ao lado. A margem embaixo é a dela, referência de São Paulo.'
+            `Critério: a cultura de MAIOR ÁREA COLHIDA nos municípios ${onde} (PAM do IBGE, somada pelo catálogo ` +
+            'de culturas). "Destaque" aqui é a que mais ocupa a terra, e não a que mais paga — essa é a Melhor ' +
+            'margem/ha, ao lado. A margem embaixo é a dela, referência de São Paulo.'
           }
-          valor={destaque?.culturaNome ?? null}
-          motivoSemDado={semArea}
+          valor={esperandoArea ? <Carregando /> : (destaque?.culturaNome ?? null)}
+          motivoSemDado={motivoDoDestaque ?? nenhumaComArea}
           apoio={
-            destaque ? (
+            !esperandoArea && destaque ? (
               destaque.margemPorHectare === null ? (
                 <>margem sem dado</>
               ) : (
@@ -245,23 +365,30 @@ export function PainelDeRentabilidade({
           }
         />
 
+        {/* "MÉDIA DA REGIÃO TRACBEL" SÓ SEM FILTRO: com sub-região ou loja
+            escolhidas, a média é dos municípios delas, e o rótulo diz de quais. */}
         <CartaoDoMomento
           icone={BarChart3}
           tom="roxo"
-          rotulo="Média da Região Tracbel"
-          oQue="a margem média da Região Tracbel"
+          rotulo={`Média ${nomeCurto}`}
+          oQue={`a margem média ${nomeCurto}`}
           dica={
             'Σ (margem/ha × área colhida) ÷ Σ área colhida' +
-            (media.culturas > 0
-              ? `, com as ${media.culturas} culturas que têm margem e área na Região Tracbel (${numero(media.areaTotal)} ha colhidos).`
+            (media && media.culturas > 0
+              ? `, com as ${media.culturas} culturas que têm margem e área nos municípios ${onde} (${numero(media.areaTotal)} ha colhidos).`
               : '.') +
-            ' A margem de cada cultura é a referência estadual; o PESO é a área colhida (PAM) dos municípios da ' +
-            'Região Tracbel no recorte consultado — sub-região e loja escolhidas. Ponderada, e não a média simples: a ' +
-            'cultura de 12 mil hectares não pesa o mesmo que a de 280 mil.'
+            (recorte
+              ? ` O recorte dos filtros é ${recorte.nome}: a média é dos municípios dele, e não da Região Tracbel inteira.`
+              : '') +
+            ' A margem de cada cultura é a referência estadual; o PESO é a área colhida (PAM) dos municípios ' +
+            `${onde}. Ponderada, e não a média simples: a cultura de 12 mil hectares não pesa o mesmo que a de 280 mil.` +
+            (media && semDivulgacao.length > 0
+              ? ` ${listar(semDivulgacao)} não ${semDivulgacao.length === 1 ? 'pesa' : 'pesam'}: nenhum município ${onde} tem área divulgada (sigilo do IBGE, ou lavoura que não existe ali).`
+              : '')
           }
-          valor={media.media === null ? null : reais(media.media)}
-          unidade="/ ha"
-          motivoSemDado={semArea}
+          valor={esperandoArea ? <Carregando /> : media?.media == null ? null : reais(media.media)}
+          unidade={!esperandoArea && media?.media != null ? '/ ha' : undefined}
+          motivoSemDado={motivoDaMedia ?? nenhumaComArea}
           apoio="margem média ponderada"
           acao={
             <BotaoIr
@@ -386,16 +513,19 @@ export function PainelDeRentabilidade({
         titulo="Detalhamento por cultura"
         dica={
           'Receita, custo e margem por hectare vêm prontos da rota de rentabilidade (issue 159); a margem % é margem ' +
-          '÷ receita. A área colhida é a da Região Tracbel no recorte (PAM); a de São Paulo, que a rota usa na margem ' +
+          `÷ receita. A área colhida é a dos municípios ${onde} (PAM); a de São Paulo, que a rota usa na margem ` +
           'total, está no ⋮ de cada linha. ' +
           referenciaEstadual(nomeDoMunicipio)
         }
         direita={
+          // O `aria-controls` SÓ COM AS SÉRIES NA TELA: elas não montam fechadas
+          // (cada painel faz a própria leitura), e apontar para um id que não
+          // existe é o leitor de tela anunciando um controle que não controla nada.
           <button
             type="button"
             className="mom-botao"
             aria-expanded={series}
-            aria-controls={idDasSeries}
+            aria-controls={series ? idDasSeries : undefined}
             onClick={() => setSeries((s) => !s)}
           >
             {series ? 'Fechar as séries' : 'Ver séries de preço e custo'}
@@ -423,6 +553,9 @@ export function PainelDeRentabilidade({
               {naTabela.map((l) => {
                 const pct = margemPercentual(l);
                 const area = areaDe(l);
+                // CADA TRAÇO TEM O PORQUÊ (decisão 1 do usuário): a frase do
+                // servidor quando ela existe, e a da coluna quando não.
+                const porque = (daColuna: string) => l.fraseDoMotivo || daColuna;
                 return (
                   <tr
                     key={l.culturaCodigo}
@@ -432,25 +565,80 @@ export function PainelDeRentabilidade({
                     <th scope="row">
                       <NomeDaCultura nome={l.culturaNome} />
                     </th>
-                    <td className="mom-num">{l.receitaPorHectare === null ? '—' : reais(l.receitaPorHectare)}</td>
-                    <td className="mom-num">{l.custoPorHectare === null ? '—' : reais(l.custoPorHectare)}</td>
+                    <td className="mom-num">
+                      {l.receitaPorHectare === null ? (
+                        <ValorAusente
+                          motivo={porque(
+                            `A receita de ${l.culturaNome} não foi apurada: ela é a produtividade da PAM vezes o preço médio, e falta um dos dois.`,
+                          )}
+                          oQue={`a receita de ${l.culturaNome}`}
+                        />
+                      ) : (
+                        reais(l.receitaPorHectare)
+                      )}
+                    </td>
+                    <td className="mom-num">
+                      {l.custoPorHectare === null ? (
+                        <ValorAusente
+                          motivo={porque(`O custo de produção da CONAB para ${l.culturaNome} não foi carregado (issue 67).`)}
+                          oQue={`o custo de ${l.culturaNome}`}
+                        />
+                      ) : (
+                        reais(l.custoPorHectare)
+                      )}
+                    </td>
                     <td className={`mom-num ${l.margemPorHectare !== null && l.margemPorHectare < 0 ? 'mom-baixa' : ''}`}>
                       {l.margemPorHectare === null ? (
-                        <ValorAusente motivo={l.fraseDoMotivo} oQue={`a margem de ${l.culturaNome}`} />
+                        <ValorAusente
+                          motivo={porque(`A margem de ${l.culturaNome} não foi apurada: falta a receita ou o custo.`)}
+                          oQue={`a margem de ${l.culturaNome}`}
+                        />
                       ) : (
                         reais(l.margemPorHectare)
                       )}
                     </td>
-                    <td className="mom-num mom-roxo">{pct === null ? '—' : `${numero(pct * 100, 0)}%`}</td>
-                    <td className="mom-num">
-                      {l.produtividadeKgPorHa === null ? '—' : `${numero(l.produtividadeKgPorHa)} kg/ha`}
-                    </td>
-                    <td className="mom-num">{l.precoMedioPorKg === null ? '—' : precoPorKg(l.precoMedioPorKg)}</td>
-                    <td className="mom-num">
-                      {area === null ? (
-                        <ValorAusente motivo={semArea} oQue={`a área colhida de ${l.culturaNome}`} />
+                    <td className="mom-num mom-roxo">
+                      {pct === null ? (
+                        <ValorAusente
+                          motivo={porque(
+                            `A margem % de ${l.culturaNome} é a margem dividida pela receita, e sem as duas — ou com receita zero — não há o que dividir.`,
+                          )}
+                          oQue={`a margem % de ${l.culturaNome}`}
+                        />
                       ) : (
-                        numero(area)
+                        `${numero(pct * 100, 0)}%`
+                      )}
+                    </td>
+                    <td className="mom-num">
+                      {l.produtividadeKgPorHa === null ? (
+                        <ValorAusente
+                          motivo={porque(`A PAM não divulgou a produtividade de ${l.culturaNome} em São Paulo.`)}
+                          oQue={`a produtividade de ${l.culturaNome}`}
+                        />
+                      ) : (
+                        `${numero(l.produtividadeKgPorHa)} kg/ha`
+                      )}
+                    </td>
+                    <td className="mom-num">
+                      {l.precoMedioPorKg === null ? (
+                        <ValorAusente
+                          motivo={porque(`Não há preço de ${l.culturaNome} carregado na janela da média (CONAB ou Socicana, issue 66).`)}
+                          oQue={`o preço médio de ${l.culturaNome}`}
+                        />
+                      ) : (
+                        precoPorKg(l.precoMedioPorKg)
+                      )}
+                    </td>
+                    <td className="mom-num">
+                      {esperandoArea ? (
+                        <Carregando />
+                      ) : area.situacao === 'comArea' ? (
+                        numero(area.hectares)
+                      ) : (
+                        <ValorAusente
+                          motivo={catalogo.erro ? SEM_CATALOGO : motivoDaArea(area, l.culturaNome, onde)}
+                          oQue={`a área colhida de ${l.culturaNome}`}
+                        />
                       )}
                     </td>
                     <td className="mom-acoes">

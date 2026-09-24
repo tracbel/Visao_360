@@ -130,6 +130,23 @@ describe('menu do usuário', () => {
     expect(botao).toHaveFocus();
   });
 
+  it('o e-mail mora DENTRO do menu, e não num title= — e o aria-controls só aponta para o painel aberto', () => {
+    // A REVISÃO DE 24/09/2026 ACHOU DOIS DEFEITOS AQUI: o e-mail era um `title`
+    // sobre o nome (o teclado e o toque não o alcançam), e o `aria-controls`
+    // apontava para o painel também fechado, quando ele não existe.
+    montar('/relatorios/territorio');
+
+    const botao = screen.getByRole('button', { name: /Pessoa de Teste/ });
+    expect(document.querySelector('.sidebar [title]')).toBeNull();
+    expect(botao).not.toHaveAttribute('aria-controls');
+    expect(screen.queryByText('pessoa.teste@exemplo.invalid')).not.toBeInTheDocument();
+
+    fireEvent.click(botao);
+    const painel = document.getElementById(botao.getAttribute('aria-controls')!)!;
+    expect(painel).toBeInTheDocument();
+    expect(within(painel).getByText('pessoa.teste@exemplo.invalid')).toBeInTheDocument();
+  });
+
   it('no acesso provisório não há o que sair, e o rodapé diz que é provisório', () => {
     montar('/relatorios/territorio', { estado: 'provisorio' });
 

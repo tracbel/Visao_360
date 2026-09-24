@@ -22,7 +22,7 @@ import {
   valorMedioPorLinha,
   variacao,
 } from './contas';
-import { percentualComSinal, pontosPercentuais, sentido } from './formatos';
+import { numero, percentualComSinal, pontosPercentuais, sentido } from './formatos';
 
 function cultura(
   codigo: string,
@@ -219,6 +219,16 @@ describe('os formatos do Momento', () => {
     expect(percentualComSinal(-0.08)).toBe('-8%');
     expect(percentualComSinal(-0.0004)).toBe('0%');
     expect(pontosPercentuais(2)).toBe('+2 p.p.');
+  });
+
+  it('"-0" é ruído de arredondamento: o que arredonda para zero sai sem sinal (revisão de 24/09/2026)', () => {
+    // A margem % de uma cultura que quase empata (−0,3%) saía "-0%" e lia como prejuízo.
+    expect(numero(-0.3, 0)).toBe('0');
+    expect(numero(-0.004, 2)).toBe('0,00');
+    expect(numero(-1.4, 0)).toBe('-1');
+    expect(pontosPercentuais(-0.04)).toBe('0 p.p.');
+    expect(pontosPercentuais(0.04)).toBe('0 p.p.');
+    expect(pontosPercentuais(-0.5)).toBe('-0,5 p.p.');
   });
 
   it('o sentido segue a régua da composição: perto de zero é →', () => {

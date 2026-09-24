@@ -26,6 +26,15 @@ import { ARARAQUARA, CAFELANDIA, municipioDeTeste } from '../testes/territorio';
 import type { PainelTerritorial } from '../tipos/territorio';
 import { IndicadoresGeograficos } from './IndicadoresGeograficos';
 
+// CADA TESTE DAQUI MONTA A PÁGINA INTEIRA — as duas abas, os quatro mapas
+// projetados, o Momento com as cinco abas e dezenas de dicas do Radix —, e
+// alguns trocam de aba três vezes. Sozinhos levam 1 a 3 s; com a suíte inteira
+// disputando a máquina, "o município escolhido sobrevive à troca de aba" chegou
+// a 7,6 s e estourou os 5 s padrão sem defeito nenhum. 20 s é folga para a
+// carga, e não esconde falha real: uma afirmação errada falha na hora, e uma
+// espera que nunca se cumpre (`findBy…`, `waitFor`) tem o próprio limite de 1 s.
+vi.setConfig({ testTimeout: 20_000 });
+
 const obterIndicadoresTerritoriais = vi.hoisted(() => vi.fn());
 const carregarMalhaDeSaoPaulo = vi.hoisted(() => vi.fn());
 
@@ -334,6 +343,35 @@ function textoDaDica(rotulo: string, dentroDe: HTMLElement = document.body): str
 }
 
 /**
+ * O QUE A PESSOA LÊ NUM BLOCO ALÉM DO CORPO: os `aria-label` (o leitor de tela
+ * os lê) e o conteúdo de cada dica, aberta pelo teclado uma a uma e fechada.
+ */
+function textosLidos(raiz: HTMLElement): string[] {
+  const rotulos = [raiz, ...raiz.querySelectorAll<HTMLElement>('[aria-label]')]
+    .map((n) => n.getAttribute('aria-label'))
+    .filter((t): t is string => !!t);
+  const dicas = [...raiz.querySelectorAll<HTMLButtonElement>('.dica-gatilho')].map((gatilho) => {
+    fireEvent.focus(gatilho);
+    const texto = screen.getByRole('tooltip').textContent ?? '';
+    fireEvent.blur(gatilho);
+    return texto;
+  });
+  return [...rotulos, ...dicas];
+}
+
+/** "Região" sozinha (decisão 2 do usuário): nem "Região Tracbel", nem "sub-região". */
+const REGIAO_SOZINHA = /(?<!sub-)\bregião\b(?! Tracbel)/iu;
+
+/**
+ * O QUE A VARREDURA DE "região" NÃO COBRA — explícito, para não virar brecha:
+ * - "O mercado da região": o nome da seção, preservado pelo documento 49, §10.3;
+ * - "o que a região COLHE": a frase da dica do Valor da lavoura, que já estava
+ *   em `main` antes da fidelidade às maquetes e fica para a revisão dela.
+ */
+const PRESERVADOS = [/O mercado da região/giu, /o que a região COLHE/gu];
+const semOsPreservados = (texto: string) => PRESERVADOS.reduce((t, r) => t.replace(r, ''), texto);
+
+/**
  * A ficha do município, que desde 23/09/2026 mora só na aba Território.
  *
  * ERA O TÍTULO "Quem atende este município"; desde a fase 4 a ficha é em abas e
@@ -464,6 +502,11 @@ describe('Indicadores Geográficos — as duas abas', () => {
     expect(screen.getByRole('tab', { name: 'Mercado' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'Território' })).toHaveAttribute('aria-selected', 'false');
     expect(painelDaAba().dataset.aba).toBe('mercado');
+
+    // SÓ A ABA ATIVA APONTA PARA UM PAINEL: o da outra não está no documento, e
+    // um `aria-controls` para um id ausente é um controle que não controla nada.
+    expect(screen.getByRole('tab', { name: 'Mercado' })).toHaveAttribute('aria-controls', painelDaAba().id);
+    expect(screen.getByRole('tab', { name: 'Território' })).not.toHaveAttribute('aria-controls');
   });
 
   it('os filtros ficam ACIMA das abas — é o que faz as duas serem o mesmo recorte', async () => {
@@ -1595,6 +1638,59 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
     }
   });
 
+  it('"região" sozinha também não aparece no que o leitor de tela e as dicas dizem — no Momento e na régua', async () => {
+    // O RÓTULO VISÍVEL NÃO ERA TUDO (revisão de 24/09/2026): o `aria-label` da
+    // régua dizia "o que a região tem", e a dica da evolução do crédito, "a
+    // série MENSAL da região" — os dois fora do alcance do teste de cima, que
+    // só lia rótulos. Aqui entram os `aria-label` e o texto de CADA dica, aberta
+    // pelo teclado uma a uma. (Crédito e Rentabilidade são dublês nesta tela: as
+    // dicas deles são varridas nos testes próprios.)
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    const momento = bloco('momento-do-mercado')!;
+    const lidos: string[] = [];
+    for (const nome of ['Composição do fator', 'Rentabilidade', 'Crédito', 'Termo de troca', 'Percepção comercial']) {
+      fireEvent.click(within(momento).getByRole('tab', { name: nome }));
+      lidos.push(...textosLidos(momento));
+    }
+    lidos.push(...textosLidos(bloco('faixa-do-mercado')!));
+
+    // A varredura leu de verdade — e não passou vazia.
+    expect(lidos.length).toBeGreaterThan(20);
+    expect(lidos.filter((t) => REGIAO_SOZINHA.test(semOsPreservados(t)))).toEqual([]);
+    // E a dica fala com quem usa a tela: "a maquete mostra" não diz nada ao gerente.
+    expect(lidos.filter((t) => /maquete/i.test(t))).toEqual([]);
+  });
+
+  it('com sub-região no filtro, o Momento diz o nome dela — e não "Região Tracbel", que é a ADR inteira', async () => {
+    responder(comMomento);
+    abrir();
+    await esperarACarga();
+
+    // PELO RÓTULO DO FILTRO, e não pelo nome acessível: o `<label>` tem a dica
+    // (um botão) antes do campo, e o botão é o primeiro elemento rotulável dele.
+    const subRegiao = () =>
+      [...document.querySelectorAll<HTMLLabelElement>('[data-bloco="filtros"] label.dash-filtro')]
+        .find((l) => l.querySelector('.dash-filtro-rotulo')?.textContent?.startsWith('Sub-região'))!
+        .querySelector('select')!;
+    fireEvent.change(subRegiao(), { target: { value: 'Norte' } });
+    await waitFor(() => expect(obterIndicadoresTerritoriais).toHaveBeenCalledTimes(2));
+
+    const momento = bloco('momento-do-mercado')!;
+    fireEvent.click(within(momento).getByRole('tab', { name: 'Percepção comercial' }));
+    const dica = textoDaDica('O que é os municípios com percepção positiva', momento);
+    expect(dica).toContain('Municípios da Sub-região Norte');
+    expect(dica).not.toContain('Região Tracbel');
+    expect(momento).toHaveTextContent('Municípios da Sub-região Norte por sentido da leitura registrada.');
+
+    // E VOLTAR PARA "Região Tracbel inteira" devolve o nome da ADR.
+    fireEvent.change(subRegiao(), { target: { value: '' } });
+    await waitFor(() => expect(obterIndicadoresTerritoriais).toHaveBeenCalledTimes(3));
+    expect(textoDaDica('O que é os municípios com percepção positiva', momento)).toContain('Municípios da Região Tracbel');
+  });
+
   it('"Simular cenário" do Momento abre a mesma calculadora do Potencial', async () => {
     responder();
     abrir();
@@ -1705,6 +1801,37 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
     const estrutura = document.querySelector<HTMLElement>('[data-mapa="estrutura"]')!;
     expect(estrutura.querySelector('.terr-mapa-resumo')).toHaveTextContent(/sob sigilo do IBGE .* não é zero/);
     expect(estrutura.querySelector('.terr-mapa-resumo')!.textContent).not.toMatch(/\b0 tratores/);
+  });
+
+  it('sem o Censo carregado, o motivo diz isso — e não afirma um sigilo que ninguém leu', async () => {
+    // O ANO DO CENSO É O QUE SEPARA OS DOIS CASOS (revisão de 24/09/2026): o
+    // repositório o preenche em todo município quando a carga rodou, inclusive
+    // nos sob sigilo. Sem ele, "o número existe e foi ocultado" era falso.
+    responder((p) => ({
+      ...p,
+      indicadores: {
+        ...p.indicadores,
+        municipios: p.indicadores.municipios.map((m) => ({
+          ...m,
+          estrutura: { ...m.estrutura, anoDoCenso: null, tratores: null, estabelecimentos: null, tratoresPorMilKm2: null },
+        })),
+      },
+    }));
+    abrir();
+    await esperarACarga();
+
+    for (const rotulo of ['Parque de tratores', 'Propriedades']) {
+      const item = document.querySelector<HTMLElement>(`[data-faixa="${rotulo}"]`)!;
+      const gatilho = within(item).getByRole('button', { name: `Por que ${rotulo.toLowerCase()} não aparece` });
+      fireEvent.focus(gatilho);
+      expect(screen.getByRole('tooltip')).toHaveTextContent(/Censo Agropecuário não carregado/);
+      expect(screen.getByRole('tooltip')).not.toHaveTextContent(/sigilo/);
+      fireEvent.blur(gatilho);
+    }
+
+    const resumo = document.querySelector<HTMLElement>('[data-mapa="estrutura"] .terr-mapa-resumo')!;
+    expect(resumo).toHaveTextContent(/Censo Agropecuário não carregado/);
+    expect(resumo).not.toHaveTextContent(/sigilo/);
   });
 
   it('as vendas abrem primeiro, com a variação e as máquinas vendidas no lugar da maquete — com traço', async () => {

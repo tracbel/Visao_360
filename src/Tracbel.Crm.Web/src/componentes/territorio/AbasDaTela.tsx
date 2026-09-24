@@ -75,7 +75,10 @@ export function AbasDaTela<T extends string>({
               role="tab"
               className="terr-aba"
               aria-selected={aba.id === ativa}
-              aria-controls={`painel-${aba.id}`}
+              // SÓ A ATIVA APONTA PARA O PAINEL: o da outra aba não está no
+              // documento, e um `aria-controls` para um id ausente é um
+              // controle que não controla nada.
+              aria-controls={aba.id === ativa ? `painel-${aba.id}` : undefined}
               tabIndex={aba.id === ativa ? 0 : -1}
               onClick={() => aoTrocar(aba.id)}
             >

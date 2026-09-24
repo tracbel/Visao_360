@@ -39,7 +39,7 @@ import { AbaDeTerritorio } from '../componentes/territorio/AbaDeTerritorio';
 import { AvisoDeTerritorioSemCarga } from '../componentes/territorio/AvisoDeTerritorioSemCarga';
 import { DetalheDoMunicipio } from '../componentes/territorio/DetalheDoMunicipio';
 import { FiltrosDosIndicadores } from '../componentes/territorio/FiltrosDosIndicadores';
-import { LARGURA_DO_DESENHO } from '../componentes/territorio/indicadoresDaAdr';
+import { LARGURA_DO_DESENHO, recorteFiltrado } from '../componentes/territorio/indicadoresDaAdr';
 import { kpisDaCarteira, kpisDoMercado, type ContextoDosKpis } from '../componentes/territorio/kpisDosIndicadores';
 import type { LigacaoDoMapa } from '../componentes/territorio/mapas/CartaoDeMapa';
 import { calcularFatiaNoEstado, calcularTotais } from '../componentes/territorio/totaisDaAdr';
@@ -268,6 +268,13 @@ export function IndicadoresGeograficos() {
   // mudam quais culturas aparecem primeiro nos dois painéis.
   const produtosPriorizados = useMemo(() => produtosDoMunicipio(escolhido), [escolhido]);
   const semFiltro = filtros.regiao === '' && filtros.lojaCodigo === '';
+  // O NOME DO RECORTE FILTRADO (revisão de 24/09/2026): o Momento conta e pondera
+  // sobre os municípios desta leitura, que já vêm filtrados — e "Região Tracbel",
+  // na tela, é a área de atuação inteira. A loja sai pelo nome que o filtro mostra.
+  const recorteDosFiltros = recorteFiltrado(
+    filtros.regiao,
+    filtros.lojaCodigo === '' ? null : (lojasConhecidas.get(filtros.lojaCodigo) ?? filtros.lojaCodigo),
+  );
 
   const ligacao: LigacaoDoMapa | null = desenho && {
     enquadramento: desenho.enquadramento,
@@ -415,6 +422,7 @@ export function IndicadoresGeograficos() {
             nomeDoMunicipio={escolhido?.nome ?? null}
             produtosDoMunicipio={produtosPriorizados}
             mostrarOsMapas={indicadores !== null && desenho !== null && !territorioNaoCarregado}
+            recorteDosFiltros={recorteDosFiltros}
           />
         ) : (
           <AbaDeTerritorio

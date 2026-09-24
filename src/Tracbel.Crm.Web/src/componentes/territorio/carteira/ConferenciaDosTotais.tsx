@@ -16,13 +16,22 @@ import { reaisCompactos } from '../escalas';
 import { nº } from '../indicadoresDaAdr';
 import type { ConferenciaDaConsulta, LinhaDaConferencia } from '../totaisDaAdr';
 
-function Linha({ linha }: { linha: LinhaDaConferencia }) {
+/**
+ * Uma linha da conferência. `daAdr` é a linha que TEM parque a somar: sem
+ * nenhum município com parque, ela diz o traço e o porquê — e não "0 máquinas".
+ * Os grupos de fora não têm parque nenhum, e ficam sem a medida.
+ */
+function Linha({ linha, daAdr = false }: { linha: LinhaDaConferencia; daAdr?: boolean }) {
   return (
     <li data-conferencia={linha.rotulo}>
       <strong>{linha.rotulo}</strong>
       {linha.descricao && <> ({linha.descricao})</>}: {nº(linha.elegiveis)} elegíveis · {nº(linha.cobertos)} no prazo ·{' '}
       {nº(linha.pendentes)} pendentes · vendas {reaisCompactos(linha.vendas)} · pós-venda {reaisCompactos(linha.posVenda)}
-      {linha.maquinas !== null && <> · {nº(linha.maquinas)} máquinas teóricas</>}
+      {linha.maquinas !== null ? (
+        <> · {nº(linha.maquinas)} máquinas teóricas</>
+      ) : (
+        daAdr && <> · — máquinas teóricas (nenhum município com parque: sem regra de potencial vigente ou sem área divulgada)</>
+      )}
     </li>
   );
 }
@@ -36,7 +45,7 @@ export function ConferenciaDosTotais({ conferencia }: { conferencia: Conferencia
       </p>
       <ul>
         {conferencia.adr ? (
-          <Linha linha={conferencia.adr} />
+          <Linha linha={conferencia.adr} daAdr />
         ) : (
           <li>
             <strong>Total da ADR</strong>: território não carregado neste banco — as linhas abaixo são o que a consulta

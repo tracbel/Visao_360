@@ -41,6 +41,7 @@ import { BlocoCarregando } from '../cadastro/EstadosDeTela';
 import type { Indicador } from '../cadastro/Indicadores';
 import { MetricasSemDado } from '../cadastro/SemDado';
 import { GradeDeMapas } from '../territorio/GradeDeMapas';
+import type { RecorteFiltrado } from '../territorio/indicadoresDaAdr';
 import type { LigacaoDoMapa } from '../territorio/mapas/CartaoDeMapa';
 import { SecaoDoMercadoDaRegiao } from '../territorio/SecaoDoMercadoDaRegiao';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
@@ -52,8 +53,8 @@ import { BlocoDoMomento } from './BlocoDoMomento';
 import { PerformanceTracbel } from './PerformanceTracbel';
 // O INTERIOR DOS BLOCOS DA VISÃO GERAL (fidelidade às maquetes, fase 2): os
 // quatro números, a régua, os quatro mapas, o potencial e a performance. Classes
-// novas num arquivo novo — as antigas do `dashboard.css` são compartilhadas com
-// Rentabilidade, Crédito e a ficha, que têm outra maquete.
+// novas num arquivo novo — o cartão antigo do `dashboard.css` (`dash-kpi`)
+// continua sendo o da aba Oportunidades da ficha, que tem outra maquete.
 import '../../estilos/mercado-visao.css';
 
 export function AbaDeMercado({
@@ -76,6 +77,7 @@ export function AbaDeMercado({
   nomeDoMunicipio,
   produtosDoMunicipio,
   mostrarOsMapas,
+  recorteDosFiltros = null,
 }: {
   kpisDoMercado: Indicador[];
   carregando: boolean;
@@ -99,6 +101,12 @@ export function AbaDeMercado({
   produtosDoMunicipio: readonly number[];
   /** Se a grade pode ser desenhada — há resposta, há malha e o território está carregado. */
   mostrarOsMapas: boolean;
+  /**
+   * O nome do recorte dos filtros (sub-região, loja), quando há — o Momento o
+   * usa no que conta sobre os municípios. Não é o `recorte` acima, que é o
+   * potencial do recorte consultado.
+   */
+  recorteDosFiltros?: RecorteFiltrado | null;
 }) {
   const predominante = indicadores?.momento?.predominante ?? null;
 
@@ -128,6 +136,7 @@ export function AbaDeMercado({
         momento={indicadores?.momento ?? null}
         municipios={indicadores?.municipios ?? []}
         carregando={carregando}
+        recorte={recorteDosFiltros}
       />
 
       {/* MOMENTO, PORTE E O QUE A REGIÃO TEM, NUMA RÉGUA SÓ (fase T4.8).

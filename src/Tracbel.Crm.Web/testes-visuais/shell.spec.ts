@@ -41,6 +41,54 @@ for (const { nome, largura, altura } of LARGURAS) {
       });
     }
 
+    test('com o aviso da filial recusada (P-20), a barra do topo cabe na largura e na própria altura', async ({ page }) => {
+      // O DEFEITO QUE ISTO IMPEDE DE VOLTAR (revisão de 24/09/2026): a caixa da
+      // filial não encolhia e o aviso não quebrava — com ele, a barra passava
+      // 28px da janela em 1.024 e 175px em 390, e TODA tela ganhava rolagem
+      // lateral no dia em que a filial era trocada sem a pessoa pedir.
+      await page.goto('/#/dev/shell-visual?estado=completo&rota=/relatorios/territorio&filial=recusada');
+      const aviso = page.locator('.topbar .cad-filial-aviso');
+      await expect(aviso).toBeVisible({ timeout: 30_000 });
+      await page.waitForFunction(() => document.fonts.status === 'loaded');
+      await page.screenshot({ path: `capturas/${nome}/shell-filial-recusada.png`, clip: { x: 0, y: 0, width: largura, height: 90 } });
+
+      expect(await sobraLateral(page), `a barra com o aviso passa da janela de ${largura}px`).toBeLessThanOrEqual(0);
+      const barra = (await page.locator('.topbar').boundingBox())!;
+      const caixa = (await page.locator('.topbar .cad-filial').boundingBox())!;
+      expect(Math.round(caixa.x + caixa.width), 'a caixa da filial sai pela direita da janela').toBeLessThanOrEqual(largura);
+      // E NÃO VAZA PARA BAIXO DA BARRA: o aviso desce para uma segunda linha
+      // dentro da caixa, e a caixa continua dentro dos 56px.
+      expect(Math.round(caixa.y), 'a caixa da filial passa do topo da barra').toBeGreaterThanOrEqual(Math.round(barra.y));
+      expect(Math.round(caixa.y + caixa.height), 'a caixa da filial passa da barra por baixo').toBeLessThanOrEqual(
+        Math.round(barra.y + barra.height),
+      );
+    });
+
+    test('clicar no mapa leva à aba Território, e ela para abaixo da barra do topo — não embaixo dela', async ({ page }) => {
+      // O DEFEITO (revisão de 24/09/2026): o clique no mapa rola até a aba com
+      // `scrollIntoView({ block: 'start' })`, e a barra do topo é fixa — sem o
+      // `scroll-margin-top` a aba parava ATRÁS dela, e a pessoa via a página
+      // rolar sem ver a aba que abriu. Só o shell tem a barra; o harness de
+      // Mercado não a desenha, e por isso a prova mora aqui.
+      await abrir(page, '/relatorios/territorio');
+      const mapa = page.locator('[data-mapa="cobertura"]');
+      await expect(mapa).toBeVisible({ timeout: 30_000 });
+      // A ADR é desenhada por último (por cima dos vizinhos): o último polígono é dela.
+      const municipio = mapa.locator('path.terr-poligono').last();
+      await municipio.scrollIntoViewIfNeeded();
+      await municipio.dispatchEvent('click');
+
+      const aba = page.getByRole('tab', { name: 'Território' });
+      await expect(aba).toHaveAttribute('aria-selected', 'true');
+      await expect(aba).toBeFocused();
+      const barra = (await page.locator('.topbar').boundingBox())!;
+      const posicao = (await aba.boundingBox())!;
+      expect(
+        Math.round(posicao.y),
+        `a aba parou em ${Math.round(posicao.y)}px, atrás da barra do topo (que vai até ${Math.round(barra.y + barra.height)}px)`,
+      ).toBeGreaterThanOrEqual(Math.round(barra.y + barra.height));
+    });
+
     test('"Indicadores Geográficos" cabe no item do menu sem cortar', async ({ page }) => {
       await abrir(page, '/relatorios/territorio');
       if (gaveta) await page.getByRole('button', { name: 'Abrir menu' }).click();

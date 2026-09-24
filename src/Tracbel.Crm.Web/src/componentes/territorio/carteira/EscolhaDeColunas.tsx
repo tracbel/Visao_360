@@ -45,8 +45,13 @@ export function EscolhaDeColunas({
               </label>
             ))}
           </fieldset>
+          {/* A PROMESSA É A QUE A TELA CUMPRE: Município e Ação não saem nunca —
+              nem pela engrenagem, nem pela largura. As outras, em tabela
+              estreita (ficha aberta ao lado, tablet, celular), saem sozinhas, e
+              o que sai continua inteiro na ficha do município. */}
           <p className="terr-cart-popover-nota">
-            Município e Ação ficam sempre: um é a chave da linha, o outro abre a ficha. A escolha fica guardada neste
+            Município e Ação ficam sempre: um é a chave da linha, o outro abre a ficha. Em tabela estreita, algumas das
+            outras colunas saem sozinhas — o número delas continua na ficha do município. A escolha fica guardada neste
             navegador.
           </p>
           <div className="terr-cart-popover-acoes">

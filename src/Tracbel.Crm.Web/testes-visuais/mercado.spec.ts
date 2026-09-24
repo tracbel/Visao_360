@@ -345,19 +345,20 @@ for (const { nome, largura, altura } of LARGURAS) {
       const { sobra, culpados } = await sobraLateral(page);
       expect(sobra, `Território passa ${sobra}px. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
 
-      // QUANTAS COLUNAS FICAM: NOVE com tabela larga, cinco numa tabela de
-      // tablet, duas no aparelho de mão.
+      // QUANTAS COLUNAS FICAM: NOVE com tabela larga, seis numa tabela de
+      // tablet, três no aparelho de mão.
       //
       // A nona é a COLUNA DE AÇÃO da maquete (T4.9) — o › que abre a ficha na
-      // ponta da linha. Ela sai já na tabela estreita: o nome do município
-      // continua sendo a porta para a mesma ficha.
+      // ponta da linha. ELA NÃO SAI MAIS (revisão de 24/09/2026): o menu da
+      // engrenagem promete "Município e Ação ficam sempre", e a largura não
+      // pode desmentir a promessa.
       //
       // OS DEGRAUS SÃO PELA LARGURA DA TABELA (fase 4, 23/09/2026): eram pela da
       // página, e a página não é a tabela — com a ficha aberta ao lado, em
-      // 1.300px de conteúdo, a tabela tem ~750px. Cinco colunas abaixo de 700px
-      // de tabela, duas abaixo de 480px.
+      // 1.300px de conteúdo, a tabela tem ~750px. Seis colunas abaixo de 700px
+      // de tabela, três abaixo de 480px.
       const tabela = await larguraDaTabela(page);
-      const esperadas = tabela < 480 ? 2 : tabela < 700 ? 5 : 9;
+      const esperadas = tabela < 480 ? 3 : tabela < 700 ? 6 : 9;
       const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
       expect(colunas, `com ${tabela}px de tabela esperava ${esperadas} colunas`).toBe(esperadas);
 
@@ -385,9 +386,11 @@ for (const { nome, largura, altura } of LARGURAS) {
       expect(sobra, `Território com ficha passa ${sobra}px. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
 
       const tabela = await larguraDaTabela(page);
-      const esperadas = tabela < 480 ? 2 : tabela < 700 ? 5 : 9;
+      const esperadas = tabela < 480 ? 3 : tabela < 700 ? 6 : 9;
       const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
       expect(colunas, `com ${tabela}px de tabela esperava ${esperadas} colunas`).toBe(esperadas);
+      // A AÇÃO FICA EM TODA LARGURA — é o que o menu da engrenagem promete.
+      await expect(page.locator('[data-bloco="tabela-municipios"] thead th[data-coluna="acao"]')).toBeVisible();
       expect(await sobraDentroDaTabela(page), 'a tabela rola de lado ao lado da ficha').toBeLessThanOrEqual(0);
 
       // "SEM NÚMERO QUEBRANDO LETRA POR LETRA": todo valor dos cartões, da tabela

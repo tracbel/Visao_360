@@ -33,9 +33,18 @@ export function reaisCurtos(valor: number): string {
   return reais(valor, 0);
 }
 
+/**
+ * "-0" É RUÍDO DE ARREDONDAMENTO, e não um número negativo: −0,3% escrito com
+ * zero casas sai "-0%" do `toLocaleString`, e a margem % de uma cultura que
+ * quase empata leria como prejuízo. O zero sai sem sinal.
+ */
+function semMenosZero(texto: string): string {
+  return /^-0(,0+)?$/.test(texto) ? texto.slice(1) : texto;
+}
+
 /** Inteiro ou com casas fixas, no padrão brasileiro. */
 export function numero(valor: number, casas = 0): string {
-  return valor.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+  return semMenosZero(valor.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }));
 }
 
 /**
@@ -54,8 +63,9 @@ export function percentualComSinal(fracao: number, casas = 0): string {
 
 /** Pontos percentuais com sinal — a percepção do gestor é "+2 p.p.", e não "+2%". */
 export function pontosPercentuais(valor: number, casas = 1): string {
-  const texto = valor.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: casas });
-  return `${valor > 0 ? '+' : ''}${texto} p.p.`;
+  const texto = semMenosZero(valor.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: casas }));
+  // O "+" SÓ NO QUE NÃO ARREDONDOU PARA ZERO: "+0 p.p." afirmaria uma alta.
+  return `${valor > 0 && texto !== '0' ? '+' : ''}${texto} p.p.`;
 }
 
 /**

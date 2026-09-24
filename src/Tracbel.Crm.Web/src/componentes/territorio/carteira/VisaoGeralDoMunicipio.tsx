@@ -194,8 +194,8 @@ export function VisaoGeralDoMunicipio({
                     {lavoura ? ` (${nº(lavoura.culturasDetalhadas)} aqui)` : ''}
                     {lavoura?.culturasComArea != null ? `, de ${nº(lavoura.culturasComArea)} com área divulgada` : ''}. As
                     demais entram em "Outros", que é o total menos a soma das listadas — nenhuma cultura é estimada.
-                    {lavoura && lavoura.culturasSobSigilo > 0
-                      ? ` ${nº(lavoura.culturasSobSigilo)} cultura(s) com área sob sigilo do IBGE não entram na conta — sigilo não é zero.`
+                    {lavoura && lavoura.culturasSemAreaDivulgada > 0
+                      ? ` ${nº(lavoura.culturasSemAreaDivulgada)} cultura(s) sem área divulgada no município (sigilo do IBGE ou não cultivada) não entram na conta — ausência não é zero.`
                       : ''}
                   </p>
                   <p>A lista completa das culturas com regra, com colheita, produção e produtividade, está na aba Lavoura.</p>

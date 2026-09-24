@@ -48,6 +48,9 @@
   /* A largura do menu: o que cabe "Indicadores Geográficos" em 14 px sem cortar.
      Era 248; a maquete tem 183 com letra menor. */
   --largura-menu: 232px;
+  /* A altura da barra do topo, que é fixa (`sticky`): quem rola a página até um
+     elemento precisa descontá-la, senão o alvo para embaixo dela. */
+  --altura-do-topo: 56px;
   --bg-hover: var(--n-100);
   --border: var(--n-200);
   --border-strong: var(--n-300);
@@ -287,6 +290,18 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   box-shadow: var(--shadow-lg);
   z-index: 5;
 }
+/* O E-MAIL DA CONTA, em cima do Sair: era um `title=` no nome, que o teclado e o
+   toque não alcançavam. Quebra em qualquer ponto — um e-mail longo não pode
+   alargar o menu para fora da barra lateral. */
+.usuario-menu-email {
+  margin: 0;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
 .usuario-menu-item {
   display: flex;
   align-items: center;
@@ -315,7 +330,7 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
    do título da página, e a busca termina na borda direita do conteúdo, como na
    maquete. */
 .topbar {
-  height: 56px;
+  height: var(--altura-do-topo);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -9620,6 +9635,43 @@ tr.funil-nova {
   color: var(--warning);
   margin-left: 6px;
   white-space: nowrap;
+}
+
+/* O AVISO NÃO EMPURRA A BARRA PARA FORA DA TELA (revisão de 24/09/2026).
+   A caixa da filial não encolhe (é a fronteira do que se vê) e o aviso não
+   quebrava: com ele, a barra passava 28px da janela em 1.024 e 175px em 390 —
+   rolagem lateral em toda tela do sistema, justamente no dia em que a filial
+   foi trocada sem a pessoa pedir. Em barra estreita o aviso desce para uma
+   segunda linha DENTRO da caixa, quebra onde precisar, e a caixa cede largura
+   como o resto; em barra larga continua tudo numa linha só.
+
+   GRADE, E NÃO `flex-wrap`: com quebra livre o campo da filial também descia,
+   e a caixa ficava com três linhas, mais alta que a barra. Na grade a primeira
+   linha é sempre ícone · rótulo · campo (o campo encolhe com reticências), e o
+   aviso ocupa a segunda inteira. */
+@container topo (max-width: 1100px) {
+  .topbar .cad-filial:has(.cad-filial-aviso) {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0 8px;
+    flex-shrink: 1;
+    min-width: 0;
+    height: auto;
+    min-height: 36px;
+    padding-block: 1px;
+    white-space: normal;
+  }
+  .topbar .cad-filial:has(.cad-filial-aviso) .cad-filial-campo { grid-column: 3; }
+  /* A LINHA DO CAMPO FICA JUSTA para o aviso caber em duas linhas embaixo dela
+     sem a caixa passar dos 56px da barra. */
+  .topbar .cad-filial:has(.cad-filial-aviso) select { padding-block: 0; line-height: 1.2; }
+  .topbar .cad-filial-aviso {
+    grid-column: 1 / -1;
+    margin-left: 0;
+    white-space: normal;
+    line-height: 1.15;
+  }
 }
 
 /* ---------------------------------------------------------------------------

@@ -162,9 +162,20 @@ export function kpisDoMercado(c: ContextoDosKpis): Indicador[] {
   // sigilo (ele entra como nada, e não como zero); mas quando NENHUM município
   // do recorte foi divulgado, a soma vazia saía "0 tratores" — que afirma que a
   // região não tem trator. Aí o número é ausente, com o motivo.
+  //
+  // SÓ É SIGILO SE O CENSO FOI CARREGADO (revisão de 24/09/2026). Sem o Censo
+  // neste banco, todo município vem nulo também — e dizer "o número existe e foi
+  // ocultado" afirmaria uma leitura que nunca aconteceu. O ano do Censo é o que
+  // separa os dois: o repositório o preenche em todo município quando a carga
+  // rodou, inclusive nos sob sigilo.
   const daAdr = c.indicadores?.municipios.filter((m) => m.pertenceAAdr) ?? [];
   const algumComPropriedades = daAdr.some((m) => m.estrutura.estabelecimentos !== null);
-  const sobSigilo = 'sigilo do IBGE em todos os municípios do recorte — o número existe e foi ocultado, e não é zero';
+  const semCenso =
+    daAdr.length === 0
+      ? 'nenhum município da ADR neste recorte'
+      : c.anoDoCenso !== null
+        ? 'sigilo do IBGE em todos os municípios do recorte — o número existe e foi ocultado, e não é zero'
+        : 'Censo Agropecuário não carregado neste banco — não é zero';
 
   const tratores = montarSomavel(
     c.totais.municipiosComTratores > 0 ? c.totais.tratores : null,
@@ -196,14 +207,14 @@ export function kpisDoMercado(c: ContextoDosKpis): Indicador[] {
         `${nº(c.totais.municipiosComTratores)} municípios divulgados${diferencaParaASoma(c.indicadores?.estado?.tratores)}`,
       ),
       procedencia: p?.tratores,
-      semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : daAdr.length > 0 ? sobSigilo : 'Censo não carregado',
+      semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : semCenso,
     },
     {
       rotulo: 'Propriedades',
       valor: c.comTerritorio && algumComPropriedades ? nº(c.totais.estabelecimentos) : null,
       deOnde: contexto(propriedades, `estabelecimentos agropecuários${diferencaParaASoma(c.indicadores?.estado?.estabelecimentos)}`),
       procedencia: p?.estabelecimentos,
-      semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : daAdr.length > 0 ? sobSigilo : 'Censo não carregado',
+      semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : semCenso,
     },
     {
       rotulo: 'Valor da lavoura',

@@ -177,16 +177,6 @@
  * O potencial do recorte consultado (issue 72) — o que o número do topo não conta:
  * de que máquina, de qual cultura, e que fatia de São Paulo.
  */
-.terr-recorte {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-muted, #f8fafc);
-}
-
 .terr-recorte-titulo {
   margin: 0;
   font-size: 12px;
@@ -609,11 +599,14 @@ th[aria-sort='descending'] .terr-ordenar { color: var(--text-primary); }
    AS COLUNAS SAEM PELA LARGURA DA TABELA (fase 4; antes, pela da página).
 
    Nove colunas cabem a partir de ~700px de TABELA — é o que a ficha aberta
-   deixa em 1.300px de conteúdo. Abaixo disso saem "Elegíveis", "No prazo",
-   "Pós-venda" e a coluna de ação; abaixo de 480px, também a sub-região, os
-   pendentes e as máquinas, e ficam o município e as vendas — o que responde
-   "onde vender" num aparelho de mão. O que sai está INTEIRO na ficha, a um
-   toque.
+   deixa em 1.300px de conteúdo. Abaixo disso saem "Elegíveis", "No prazo" e
+   "Pós-venda"; abaixo de 480px, também a sub-região, os pendentes e as
+   máquinas, e ficam o município, as vendas e a ação — o que responde "onde
+   vender" num aparelho de mão. O que sai está INTEIRO na ficha, a um toque.
+
+   A COLUNA DE AÇÃO NÃO SAI (revisão de 24/09/2026): o menu da engrenagem
+   promete "Município e Ação ficam sempre", e o › é a porta da ficha na ponta
+   da linha. Ela tem ~50px, e cabe em toda largura.
 
    POR ATRIBUTO DA COLUNA, e não mais por posição: as linhas de total saíram do
    corpo, cada célula sabe de que coluna é (`data-coluna`), e a engrenagem pode
@@ -622,13 +615,9 @@ th[aria-sort='descending'] .terr-ordenar { color: var(--text-primary); }
 @container tabela (max-width: 699px) {
   .terr-tabela-municipios [data-coluna='elegiveis'],
   .terr-tabela-municipios [data-coluna='noPrazo'],
-  .terr-tabela-municipios [data-coluna='posVenda'],
-  .terr-tabela-municipios [data-coluna='acao'] {
+  .terr-tabela-municipios [data-coluna='posVenda'] {
     display: none;
   }
-
-  .terr-tabela-municipios tbody td:nth-last-child(2),
-  .terr-tabela-municipios thead th:nth-last-child(2) { padding-right: var(--e-4); }
 }
 
 @container tabela (max-width: 479px) {
@@ -674,19 +663,6 @@ th[aria-sort='descending'] .terr-ordenar { color: var(--text-primary); }
 .terr-selo-Estimativa {
   background: var(--info-bg);
   color: var(--text-primary);
-}
-
-.terr-classificacoes {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.terr-classificacao .terr-selo {
-  margin-left: 0;
-  margin-right: 4px;
 }
 
 /* ---- Preços das culturas (issue 66) ---- */
@@ -851,6 +827,11 @@ th[aria-sort='descending'] .terr-ordenar { color: var(--text-primary); }
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  /* O CLIQUE NO MAPA ROLA ATÉ A ABA DE TERRITÓRIO (`scrollIntoView` com
+     `block: 'start'`), e sem esta folga ela parava EMBAIXO da barra do topo, que
+     é fixa: a pessoa via a página rolar e não via a aba que abriu. A folga é a
+     altura da barra mais um respiro. */
+  scroll-margin-top: calc(var(--altura-do-topo) + var(--e-4));
   /* Mais baixa que antes (12px em cima e embaixo): a maquete tem ~36px de aba. */
   padding: var(--e-2) var(--e-4);
   border: 0;
