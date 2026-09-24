@@ -1156,3 +1156,52 @@ número mostra que ela também é a mais barata das duas que o documento discuti
 | Plataforma de corte | 18 | **linha sem categoria** — idem |
 | `USADOS` | 307 | **sem classificação** — não é categoria de produto, é condição da venda |
 | As demais | 3.442 (82%) | com categoria |
+
+#### A carga de clientes da SA1 — e por que "definir filial" não era decisão [D + M, 24/09/2026]
+
+> **Decidido:** a **`SA1010` do Protheus é a fonte canônica do cadastro de clientes**, no lugar da carga
+> do Vórtice, que foi aposentada atrás da bandeira `--legado-somente-referencia-eu-sei-o-que-estou-fazendo`.
+
+**A filial dona não vem da origem.** `A1_FILIAL` vem **vazio** nas 38.752 linhas — no Protheus o cadastro
+de cliente é compartilhado entre filiais. Ela sai de `MunicipioDaAreaDeAtuacao.EmpresaResponsavelId`, pelo
+município do cliente, e **os 203 municípios da ADR têm todos uma**. Era isto que a fila de compradores
+chamava de *"definir filial responsável"*: **não era decisão pendente, era um cruzamento que ninguém tinha
+feito**.
+
+**O de-para do município, medido:** `A1_COD_MUN` tem cinco dígitos e é o código IBGE **sem o prefixo da
+UF**; o inteiro é `prefixo(A1_EST) * 100000 + A1_COD_MUN`. Bate em **99,99%** — 1 falha em 35.030. O
+prefixo sai do próprio catálogo de municípios do CRM, e não de uma segunda lista escrita no código.
+
+**O escopo se define sozinho:** só há filial responsável dentro da área de atuação, então cliente de
+município de fora fica pendente com o motivo. Não é exclusão arbitrária — é a fronteira de acesso do CRM
+dizendo de quem o cadastro é.
+
+**O que a simulação contra a produção real devolveu** (transação desfeita, nada gravado):
+
+| | |
+|---|---|
+| Lojas lidas da SA1 | 38.744 |
+| Documentos distintos | 33.641 (5.103 com mais de uma loja) |
+| **Clientes a criar** | **27.336** |
+| **Endereços principais** | **27.336** |
+| Pendentes por `FORA_DA_AREA_DE_ATUACAO` | 6.298 |
+| Pendentes por `DOCUMENTO_INVALIDO` | 6 |
+| Pendentes por `MUNICIPIO_NAO_RECONHECIDO` | 1 |
+
+**A simulação encontrou dois defeitos de dado que ninguém previu**, e é para isso que ela existe:
+
+1. **A SA1 tem CPF que não passa no dígito verificador** (`55555555555`). Virou pendência com motivo — não
+   uma exceção que derrubaria a carga inteira e impediria os outros 33 mil de entrarem.
+2. **`A1_PESSOA` discorda do documento em 8 casos.** O tipo de pessoa passou a ser derivado **do
+   documento** — 11 dígitos é CPF, 14 é CNPJ, conferido no dígito verificador — em vez do campo digitado.
+   Isso elimina a classe inteira de erro em vez de tratá-la caso a caso, e a discordância vira contagem
+   para ser corrigida na origem.
+
+**A situação do cliente não sai do cadastro.** A SA1 diz que o cliente **existe**, não que ele comprou:
+`Prospect` afirmaria "nunca comprou" e `Cliente` afirmaria "comprou e está ativo". Ele entra como
+`Suspect` — literalmente "ainda não se sabe" — e quem promove é o movimento: o faturamento do Protheus e
+as vendas do ART.
+
+**A ordem de carga passa a ser explícita:** `--somente-clientes-protheus` **antes** de `--somente-art` e de
+`--somente-faturamento`. Não é preferência: sem cliente, o ART não casa comprador nenhum e o faturamento
+não acha dono para a nota.
