@@ -549,7 +549,7 @@ Cada decisão tem opções, a recomendação e o que ela bloqueia. **Nenhuma foi
 | D-P05 | Pesos, limites e cenários | a = 0,4, b = 0,5, d = 0,4, limites 0,4–1,5 (planilha); cenários só anotados | **DECIDIDA em 23/09/2026** (§5.1): pesos da planilha como **primeira vigência**, com autor, data e a justificativa "medidos no protótipo, a confirmar"; as três sensibilidades são **preço/rentabilidade, crédito e percepção** — o termo de troca fica fora até a #70 | #74 |
 | D-P06 | Termo de troca | 5080EN a R$ 300 mil fixo (planilha); 3036N no café (CRM); "base de venda" e "ART preço de trator" (conversa) | máquina de referência por cultura; preço histórico mensal (mediana das notas); unidade por cultura: saca de 60 kg (café, soja, milho, amendoim), tonelada de ATR (cana), caixa de 40,8 kg (laranja) | #70, #73 |
 | D-P07 | Rentabilidade | custo total CONAB (planilha usa o total por ha); na pasta, a CONAB de SP só tem café (Franca) e cana (Piracicaba, Penápolis) — mas a CONAB publica série histórica também de soja, milho, amendoim e laranja (§2.1), com os locais a conferir dentro dos arquivos | custo operacional para a margem de caixa e total para a de longo prazo; referência fora de SP ou outra fonte para as culturas sem série, registrada | #67, #73 |
-| D-P08 | Vendas para captura e share | entregas John Deere por ano fiscal (planilha); faturamento do Protheus (#18/#19); pedidos da API GN (#12) | uma fonte oficial por período; município do cliente; ano fiscal da John Deere e ano civil lado a lado | #69 |
+| D-P08 | Vendas para captura e share | entregas John Deere por ano fiscal (planilha); faturamento do Protheus (#18/#19); pedidos da API GN (#12) | **[M 24/09] o levantamento está na §5.2: o ART é a única das três que entrega unidades hoje, e o caminho dele até `frota.VendaDeMaquina` já está implementado.** Recomendação: ART como fonte canônica das unidades; API GN depois, só para o financiamento | #69 |
 | D-P09 | "O contrato foi da Tracbel?" | o SICOR não identifica cliente nem revenda | aceitar como **aproximação** a comparação, por município e mês, dos contratos do SICOR com os pedidos da Tracbel financiados (instituição e linha de crédito na API GN) — nunca contrato a contrato | #69, #73 |
 | D-P10 | Anos de referência | **[M 20/09] o rótulo da planilha está adiantado na área:** o que ela chama de área 2025 preliminar é a PAM de 2024, e a "2024" é a de 2023; o valor 2024 é mesmo de 2024 (errata da §3.8). Mais o Censo 2017 | usar o último ano completo de cada fonte, mostrar o ano em cada número e nunca misturar anos numa razão sem aviso. O banco já guarda **três anos** da PAM, então a escolha não pede nova carga | #64, #72 |
 | D-P11 | Preços de soja, milho e amendoim; forma de obter o CEPEA e a Socicana | não há série de soja, milho e amendoim na pasta; o CEPEA tem termos de uso e bloqueou a leitura automática; **a cana já tem fonte: Socicana** (preço do kg de ATR, mensal, em página HTML) | **[M 21/09] resolvido para soja, milho e amendoim — e para tudo o mais:** a CONAB publica o preço recebido pelo produtor em SP como dado aberto (§2.4). A Socicana é página pública e o `robots.txt` não restringe nada. **Aberto só o CEPEA:** licença a conferir; até lá, fora da coleta automática | #66 |
@@ -882,3 +882,51 @@ Milestones: **M11 — Potencial: dados e parâmetros**, **M12 — Potencial: mot
 - **Não automatizar a coleta do CEPEA** antes de conferir a licença (D-P11).
 - **Não afirmar "o contrato foi da Tracbel"** com base no SICOR: ele não identifica revenda (D-P09).
 - **Não abrir as telas para usuários reais** antes das permissões aplicadas (#46).
+
+### 5.2 D-P08 — o que cada fonte entrega, medido [M 24/09/2026]
+
+A decisão travava porque ninguém tinha aberto as três candidatas lado a lado. Abaixo, o que cada uma tem
+**no código de hoje**, e não o que se supõe que ela tenha.
+
+| | **ART** | **Protheus (SD2)** | **API Gestão de Negócios** |
+|---|---|---|---|
+| Quantidade de máquinas | **sim** — coluna `qte` da view | **na origem sim, no CRM não** | não medido (#12 não começou) |
+| Chassi / modelo | **sim** — `chassis` | item da nota, na origem | não medido |
+| Município | pelo CPF/CNPJ → cliente → endereço | pelo cliente | pelo cliente |
+| Categoria de máquina | `linha` e `produto`, **texto livre** | idem | não medido |
+| Datas | **três**: venda, faturamento e **entrega** | faturamento | pedido |
+| Financiamento | **não** | não | **sim** — instituição e linha de crédito |
+| Caminho até o CRM | **completo e implementado** | completo, mas **agregado** | **nenhum** |
+| Estado | serviço desabilitado para ajuste de dados; volta | roda fora do servidor (#18) e passa pelo Vórtice (#19) | contrato não escrito |
+
+**O ART já tem o caminho inteiro** [M]: `LeitorDoArt` lê a view somente leitura → `SaneamentoDoArt` saneia →
+`CargaDoArt` grava `VendaDeMaquina.Registrar(...)` → `--somente-art` e o serviço
+`ExecutorDaSincronizacaoDoArt` o executam. **O código já trata o ART como a fonte das vendas de máquina em
+unidades**; o que falta é a decisão dizer isso por escrito.
+
+**Correção ao que este documento vinha dizendo sobre o Protheus.** A frase "o faturamento carregado é por
+cliente e mês, sem o item da nota" está certa sobre o **carregado** e errada sobre a **origem**:
+`FaturamentoDoCliente` vem da **SD2 — o item da nota fiscal de saída** —, e é o CRM que agrega para
+cliente × filial × mês, por escolha registrada ("item a item seriam 225 mil linhas"). Escolher o Protheus
+para as unidades, portanto, **não é impossível** — é mudar o grão da carga, e isso é decisão de volume, não
+de disponibilidade.
+
+**O que o ART não dá:** o **financiamento**. A view não tem instituição nem linha de crédito, e a
+`VendaDeMaquina` não guarda valor, por decisão registrada. Quem tem isso é a API GN (documento 46 §5), e é
+dela que depende a comparação com o SICOR (D-P09).
+
+**O que falta para as unidades virarem captura**, com o ART escolhido — e nada disto depende da decisão:
+
+1. **O de-para de `linha`/`produto` do ART → `CategoriaDeMaquina`.** Hoje ele não existe; só há o do SICOR
+   (`ProdutoDoSicorNaCategoria`). Sem ele a captura não pode ser lida **por categoria**, que é o acréscimo
+   ao aceite da #69.
+2. **A leitura de `frota.VendaDeMaquina` pelo território** — hoje nenhum repositório de território a lê.
+3. Ligar as unidades em `DecisaoDoMercado.Calcular`, onde elas já entram como `null` com o motivo.
+
+> **Recomendação [P]:** **ART como fonte canônica das vendas em unidades**, porque é a única das três que
+> entrega quantidade, chassi e as três datas, e a única cujo caminho até o CRM já está pronto. O **Protheus
+> continua sendo a fonte do faturamento em reais**, e não das unidades — os dois números convivem e medem
+> coisas diferentes. A **API GN entra depois**, só para o financiamento.
+>
+> Fica registrado o que a escolha custa: o ART **não tem financiamento**, então o share do crédito (D-P09)
+> segue esperando a #12.
