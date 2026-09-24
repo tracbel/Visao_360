@@ -9,14 +9,23 @@
 
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { MomentoDoRecorte } from '../../tipos/territorio';
+import type { MomentoDoRecorte, NumerosDeDecisao } from '../../tipos/territorio';
 import { KpisExecutivos } from './KpisExecutivos';
 
 const momento = (fatorAgregado: number | null) => ({ fatorAgregado, procedencia: null }) as unknown as MomentoDoRecorte;
 
+/** O motivo vem do servidor (issue 69, parte A): a frase aqui é a da API, e a tela só a mostra. */
+const NUMEROS: NumerosDeDecisao = {
+  demandaAnual: { valor: null, motivo: 'SemDemandaAnual', frase: 'Falta o ciclo de renovação (D-P01, issue 63).' },
+  mercadoAnual: { valor: null, motivo: 'SemPrecoDeMaquina', frase: 'Sem preço de máquina.', parcial: false, categoriasSemPreco: [] },
+  capturaPercentual: { valor: null, motivo: 'SemVendasEmUnidades', frase: 'Sem vendas em máquinas.' },
+  oportunidade: { valor: null, motivo: 'SemVendasEmUnidades', frase: 'Sem vendas em máquinas.' },
+};
+
 function abrir({ fator = null as number | null, demanda = 400 as number | null, carregando = false } = {}) {
   render(
     <KpisExecutivos
+      numeros={carregando ? null : NUMEROS}
       momento={momento(fator)}
       demandaEstrutural={demanda}
       demandaDeSaoPaulo={null}

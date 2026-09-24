@@ -460,5 +460,27 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
         motivo: 'o que a diretoria considera pós-venda ainda não foi definido (amostra)',
       },
     ],
+    // A AMOSTRA REPRODUZ O ESTADO DE HOJE: a demanda sai, e os outros três dizem o que falta. O harness
+    // existe para mostrar a tela como ela é, e a tela de hoje tem três travessões no topo.
+    numerosDeDecisao: {
+      demandaAnual: { valor: demandaTotal, motivo: 'Nenhum', frase: '' },
+      mercadoAnual: {
+        valor: null,
+        motivo: 'SemPrecoDeMaquina',
+        frase: 'AMOSTRA FICTÍCIA — não há preço de referência de máquina no CRM (issue 70).',
+        parcial: false,
+        categoriasSemPreco: [],
+      },
+      capturaPercentual: {
+        valor: null,
+        motivo: 'SemVendasEmUnidades',
+        frase: 'AMOSTRA FICTÍCIA — as vendas em máquinas não estão carregadas (issue 69, D-P08).',
+      },
+      oportunidade: {
+        valor: null,
+        motivo: 'SemVendasEmUnidades',
+        frase: 'AMOSTRA FICTÍCIA — as vendas em máquinas não estão carregadas (issue 69, D-P08).',
+      },
+    },
   };
 }

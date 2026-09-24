@@ -135,6 +135,7 @@ export function BlocoDoMomento({
         {subAba === 'rentabilidade' && (
           <PainelDeRentabilidade
             produtosDoMunicipio={produtosDoMunicipio}
+            municipioCodigoIbge={municipioSelecionado}
             nomeDoMunicipio={nomeDoMunicipio}
             municipios={municipios}
             carregando={carregando}

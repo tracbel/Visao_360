@@ -351,7 +351,7 @@ export function EquipamentosLista() {
           <p>
             Esta filial tem {leitura.dados?.total} equipamentos e a API entrega no máximo {TETO_DA_API} por
             leitura — o filtro cobre só essas {TETO_DA_API} primeiras linhas. Estreite a busca, a classificação ou a
-            situação para caber. A consulta por modelo ainda não existe na API (documento 23, seção 2.2).
+            situação para caber. A consulta por modelo ainda não existe na API.
           </p>
         </div>
       )}
@@ -377,7 +377,7 @@ export function EquipamentosLista() {
               temFiltro ? (
                 <>
                   A busca compara o <strong>chassi inteiro</strong> — os 17 caracteres da plaqueta. Pedaço de
-                  chassi ainda não encontra: é a dívida D-2 do documento 23. Número de série e placa são
+                  chassi ainda não encontra: é uma dívida conhecida da busca. Número de série e placa são
                   comparados por trecho.
                 </>
               ) : (

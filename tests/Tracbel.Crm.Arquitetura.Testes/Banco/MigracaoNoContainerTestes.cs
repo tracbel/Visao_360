@@ -52,7 +52,7 @@ public sealed class MigracaoNoContainerTestes
 
         porSchema.Should().BeEquivalentTo(new Dictionary<string, int>
         {
-            ["organizacao"] = 31,
+            ["organizacao"] = 32,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 9,
@@ -60,7 +60,7 @@ public sealed class MigracaoNoContainerTestes
             ["auditoria"] = 1,
             ["integracao"] = 13,
             ["metadado"] = 2
-        }, "é a conta do documento 14, seção 2.1 — 75 tabelas de modelo em 8 schemas, no banco de " +
+        }, "é a conta do documento 14, seção 2.1 — 76 tabelas de modelo em 8 schemas, no banco de " +
            "verdade. A migração inicial criava 80 em 10; a fase 1 do documento 41 removeu as 31 " +
            "que nunca receberam uma linha e esvaziou por completo os schemas 'documento' e " +
            "'relatorio'; a issue 64 acrescentou o total do estado, a 65 as cinco da estrutura " +
@@ -68,7 +68,7 @@ public sealed class MigracaoNoContainerTestes
            "RENAME da tabela da PAM, que preserva a área plantada já carregada — também funcionam " +
            "em banco que nasce agora");
 
-        porSchema.Values.Sum().Should().Be(75);
+        porSchema.Values.Sum().Should().Be(76);
     }
 
     [FatoSeHouverSqlServer]

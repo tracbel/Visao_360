@@ -438,9 +438,9 @@ export function Pipeline() {
           </p>
           <p className="cad-estado-texto">
             <strong>Mudar de fase, fechar e marcar como perdida saíram.</strong> Nenhuma rota de
+            {/* A citação "(dívida D-9 do documento 23)" saiu da tela pelo mesmo motivo das outras. */}
             relacionamento escreve: mudar de fase dispara automação e concluir tarefa gera a
-            próxima, e o motor de regras entra junto com a tela que o exercita (dívida D-9 do
-            documento 23).
+            próxima, e o motor de regras entra junto com a tela que o exercita.
           </p>
         </div>
       </BlocoRecolhivel>

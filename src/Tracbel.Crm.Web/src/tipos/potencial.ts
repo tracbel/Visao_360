@@ -243,6 +243,9 @@ export type CulturaNoCatalogo = {
   produtos: ProdutoDaPamNoCatalogo[];
 };
 
+/** Uma classificação de produto do CRM ligada a uma categoria de máquina (issue 69). */
+export type LinhaDeProdutoNaCategoria = { codigo: string; nome: string };
+
 /** Uma categoria de máquina. Lista de produtos do SICOR vazia não é erro. */
 export type CategoriaNoCatalogo = {
   codigo: string;
@@ -250,6 +253,15 @@ export type CategoriaNoCatalogo = {
   ordem: number;
   estaAtiva: boolean;
   produtosDoSicor: number[];
+  /**
+   * AS CLASSIFICAÇÕES DE PRODUTO DO CRM QUE CAEM NESTA CATEGORIA (issue 69, D-P08).
+   *
+   * É por elas que a venda de máquina do ART chega à categoria:
+   * `ART (linha) → ClassificacaoDoArt → frota.LinhaDeProduto → esta ligação → categoria`.
+   *
+   * Vazia não é erro: "Agricultura de precisão" não tem linha no ART.
+   */
+  linhasDeProduto: LinhaDeProdutoNaCategoria[];
 };
 
 /** O catálogo de mercado: culturas e categorias de máquina (issue 165). */

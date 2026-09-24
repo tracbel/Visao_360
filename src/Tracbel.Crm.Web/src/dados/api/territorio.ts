@@ -8,7 +8,13 @@
  */
 
 import type { ComProcedencia } from '../../tipos/api';
-import type { PainelDeCreditoRural, PrecosDeMercado, RentabilidadeDaCultura, SerieDeCusto } from '../../tipos/mercado';
+import type {
+  PainelDeCreditoRural,
+  PrecoImplicitoDoRecorte,
+  PrecosDeMercado,
+  RentabilidadeDaCultura,
+  SerieDeCusto,
+} from '../../tipos/mercado';
 import type {
   FiltrosTerritoriais,
   PainelTerritorial,
@@ -47,6 +53,22 @@ export function obterPrecosDeMercado(
   sinal?: AbortSignal,
 ): Promise<ComProcedencia<PrecosDeMercado>> {
   return ler<PrecosDeMercado>('/v1/territorio/precos', contexto, { sinal });
+}
+
+/**
+ * O PREÇO RECEBIDO PELO PRODUTOR, DA PAM (issue 198) — anual e por município.
+ *
+ * ROTA SEPARADA DA DE PREÇOS, de propósito: a da CONAB é mensal e por UF, esta é anual e municipal, e as
+ * duas **não se emendam** — comparando 2025 em SP, a distância vai de +1,1% na soja a −28,4% no amendoim.
+ * Separadas na API, elas chegam à tela como duas coisas, que é o que são.
+ */
+export function obterPrecoImplicitoDaPam(
+  contexto: ContextoDeAcesso,
+  municipioCodigoIbge: number | null,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<PrecoImplicitoDoRecorte>> {
+  const recorte = municipioCodigoIbge === null ? '' : `?municipioCodigoIbge=${municipioCodigoIbge}`;
+  return ler<PrecoImplicitoDoRecorte>(`/v1/territorio/preco-implicito${recorte}`, contexto, { sinal });
 }
 
 /**

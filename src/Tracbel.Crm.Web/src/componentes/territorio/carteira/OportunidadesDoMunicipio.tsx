@@ -8,6 +8,14 @@
  * Esta é a aba do "quanto dá para vender aqui", e é a pergunta que eles
  * respondem.
  *
+ * O MOTIVO DE MERCADO ANUAL, CAPTURA E OPORTUNIDADE É A FRASE DO SERVIDOR (issue
+ * 69, parte A), a mesma dos cartões do topo da aba Mercado — e não uma
+ * constante escrita aqui, que era a terceira redação da mesma ausência. Os
+ * números da API são do RECORTE: o que falta para ele falta para o município.
+ * Quando o recorte passar a ter o número, a frase vem vazia e a ficha fica com o
+ * traço sem dica até existir a conta por município — ela não herda o número do
+ * recorte, que seria de outro lugar.
+ *
  * EMBAIXO, A LISTA DE OPORTUNIDADES COM CONFIANÇA E ORIGEM (issue 162), com o
  * desenho pronto e vazia: nenhuma oportunidade existe ainda, porque ela depende
  * das vendas em unidades por município (issue 69) e da classificação de
@@ -15,7 +23,7 @@
  */
 
 import { Inbox } from 'lucide-react';
-import type { IndicadoresDoMunicipio } from '../../../tipos/territorio';
+import type { IndicadoresDoMunicipio, NumerosDeDecisao } from '../../../tipos/territorio';
 import { InfoTooltip } from '../../InfoTooltip';
 import { CartaoDeIndicador, GradeDeIndicadores } from '../../dashboard/Dashboard';
 
@@ -28,7 +36,14 @@ const CONFIANCAS = [
   { nivel: 'baixa', rotulo: 'Baixa', origem: 'crédito de máquina no município sem venda Tracbel correspondente' },
 ] as const;
 
-export function OportunidadesDoMunicipio({ municipio }: { municipio: IndicadoresDoMunicipio }) {
+export function OportunidadesDoMunicipio({
+  municipio,
+  numerosDeDecisao,
+}: {
+  municipio: IndicadoresDoMunicipio;
+  /** Os números de decisão do recorte — daqui só sai a frase de cada ausência. */
+  numerosDeDecisao: NumerosDeDecisao | null;
+}) {
   const motor = municipio.potencialEstrutural;
 
   return (
@@ -56,17 +71,17 @@ export function OportunidadesDoMunicipio({ municipio }: { municipio: Indicadores
           <CartaoDeIndicador
             rotulo="Mercado anual"
             valor={null}
-            motivoSemDado="Demanda anual × preço de referência, agregada por categoria de máquina. Precisa do preço de máquina por modelo (issue 70), que não existe no CRM."
+            motivoSemDado={numerosDeDecisao?.mercadoAnual.frase}
           />
           <CartaoDeIndicador
             rotulo="Captura Tracbel"
             valor={null}
-            motivoSemDado="Vendas em unidades ÷ demanda anual estimada. Precisa da issue 69: o faturamento em reais não serve de numerador para uma demanda medida em máquinas. Não é market share."
+            motivoSemDado={numerosDeDecisao?.capturaPercentual.frase}
           />
           <CartaoDeIndicador
             rotulo="Oportunidade"
             valor={null}
-            motivoSemDado="A demanda ajustada menos as vendas, nunca abaixo de zero (issue 162). Depende da issue 69 e, para sair em reais, da issue 70."
+            motivoSemDado={numerosDeDecisao?.oportunidade.frase}
           />
         </GradeDeIndicadores>
       </section>

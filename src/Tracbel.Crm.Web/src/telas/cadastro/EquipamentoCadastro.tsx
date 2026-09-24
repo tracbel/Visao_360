@@ -798,7 +798,7 @@ export function EquipamentoCadastro() {
               <CampoSomenteLeitura
                 rotulo="Horímetro atual"
                 valor={maquina.horimetroAtual === null ? '—' : `${formatarNumero(maquina.horimetroAtual, 1)} h`}
-                ajuda="Vem do histórico de horímetro; não se digita nesta tela. O horímetro do ART ainda não está acessível (documento 37)."
+                ajuda="Vem do histórico de horímetro; não se digita nesta tela. O horímetro do ART ainda não está acessível."
               />
               <CampoSomenteLeitura rotulo="Cadastrado em" valor={formatarDataHora(maquina.criadoEm)} />
               <CampoSomenteLeitura rotulo="Última alteração" valor={formatarDataHora(maquina.alteradoEm)} />
@@ -822,8 +822,10 @@ export function EquipamentoCadastro() {
             <em>Mostrar baixados</em>.
           </p>
           <p>
+            {/* A citação "do documento 23, seção 2.2" saiu da tela: número de documento interno não
+                diz nada a quem lê, e a referência fica aqui. */}
             O <code>DELETE</code> de equipamento não pede motivo — diferente do de cliente. É o
-            contrato do documento 23, seção 2.2.
+            contrato da API de cadastro.
           </p>
         </DialogoConfirmacao>
       )}

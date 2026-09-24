@@ -19,7 +19,10 @@
  */
 
 import type {
+  MediaPlurianual,
   PainelDeCreditoRural,
+  PrecoImplicitoDoRecorte,
+  PrecoImplicitoNoAno,
   PrecosDeMercado,
   RentabilidadeDaCultura,
   SerieDeCusto,
@@ -78,6 +81,59 @@ export function precosFicticios(): PrecosDeMercado {
       }),
       procedencia: PROCEDENCIA,
     })),
+  };
+}
+
+/**
+ * O PREÇO RECEBIDO PELO PRODUTOR, DA PAM (issue 198) — a segunda série de preço,
+ * anual, que abre ao lado da CONAB em "Ver séries de preço e custo".
+ *
+ * PREÇO = VALOR DA PRODUÇÃO × 1000 ÷ QUANTIDADE em toda linha, como na API. E com
+ * um buraco de propósito: a laranja não tem 2022, então as duas médias dela não
+ * fecham e o painel diz qual ano faltou. Um harness só com médias completas
+ * esconderia o estado que mais importa revisar nesse painel.
+ */
+export function precoImplicitoFicticio(): PrecoImplicitoDoRecorte {
+  const porTonelada = [140, 24_500, 2_400, 1_150, 1_900];
+  const anos = Array.from({ length: 12 }, (_, k) => 2024 - k);
+
+  return {
+    ressalva:
+      'AMOSTRA FICTÍCIA. Nenhum número deste painel é dado da Tracbel nem do IBGE — a série de verdade é o valor ' +
+      'da produção dividido pela quantidade produzida, da Produção Agrícola Municipal.',
+    series: CULTURAS.map((c, i) => {
+      const quantidade = 10_000 * (i + 2);
+      const noAno: PrecoImplicitoNoAno[] = anos.map((ano, k) => {
+        const buraco = c.codigo === 'LARANJA' && ano === 2022;
+        const preco = onda(k, porTonelada[i], porTonelada[i] * 0.12);
+        return {
+          ano,
+          precoPorUnidade: buraco ? null : preco,
+          unidade: 'toneladas',
+          valorDaProducaoMilReais: buraco ? null : Number(((preco * quantidade) / 1000).toFixed(3)),
+          quantidadeProduzida: quantidade,
+          motivo: buraco ? 'SemValorDaProducao' : 'Nenhum',
+        };
+      });
+
+      // A MÉDIA SÓ SAI COM A JANELA INTEIRA, a mesma regra da API.
+      const media = (n: number): MediaPlurianual => {
+        const janela = noAno.slice(0, n);
+        const faltando = janela.filter((a) => a.precoPorUnidade === null).map((a) => a.ano);
+        const soma = janela.reduce((s, a) => s + (a.precoPorUnidade ?? 0), 0);
+        return { anos: n, preco: faltando.length > 0 ? null : Number((soma / n).toFixed(2)), anosFaltando: faltando };
+      };
+
+      return {
+        produtoCodigoIbge: 900_001 + i,
+        produto: c.nome,
+        unidade: 'toneladas',
+        anos: noAno,
+        mediaDeTresAnos: media(3),
+        mediaDeCincoAnos: media(5),
+        municipiosComDadoNoUltimoAno: 30 - i * 4,
+      };
+    }),
   };
 }
 

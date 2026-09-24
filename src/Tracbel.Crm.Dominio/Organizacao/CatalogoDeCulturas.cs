@@ -414,6 +414,68 @@ public sealed class ProdutoDoSicorNaCategoria
 }
 
 /// <summary>
+/// UMA CLASSIFICAÇÃO DE PRODUTO DO CRM DENTRO DE UMA CATEGORIA DE MÁQUINA (issue 69, D-P08).
+///
+/// <para><b>É o último elo entre a venda e a categoria.</b> A cadeia já existia inteira e parava aqui:</para>
+///
+/// <code>
+/// ART (linha) → ClassificacaoDoArt → frota.LinhaDeProduto → ??? → organizacao.CategoriaDeMaquina
+/// </code>
+///
+/// <para>O <c>ClassificacaoDoArt</c> já traduz as catorze linhas do ART para a classificação de produto do
+/// CRM — <c>TRATOR_MEDIO</c>, <c>COLHEDORA_DE_CANA</c>, <c>PLANTADEIRA</c>… —, e o <c>CargaDoArt</c> já
+/// grava isso em cada equipamento. O que faltava era dizer a qual <b>categoria de mercado</b> cada uma
+/// pertence, e sem isso a captura não podia ser lida por categoria (acréscimo ao aceite da issue 69).</para>
+///
+/// <para><b>A chave é o CÓDIGO da linha, e não o id</b>, pelo mesmo motivo do de-para do SICOR: as linhas
+/// de produto nascem da carga, com o código derivado do texto da origem, e o id só existe depois que ela
+/// roda. Semear por id seria semear um número que ainda não existe.</para>
+///
+/// <para><b>Uma linha pertence a uma categoria só.</b> A mesma linha em duas categorias contaria a mesma
+/// venda duas vezes na captura.</para>
+///
+/// <para><b>Linha sem categoria não é erro, é pendência</b>: a venda continua gravada e contada no total,
+/// e some apenas da leitura POR categoria — com o nome da linha dito na tela, para alguém decidir.</para>
+/// </summary>
+public sealed class LinhaDeProdutoNaCategoria
+{
+    private LinhaDeProdutoNaCategoria() { }
+
+    /// <summary>Identificador interno.</summary>
+    public int Id { get; private set; }
+
+    /// <summary>A categoria de máquina.</summary>
+    public int CategoriaDeMaquinaId { get; private set; }
+
+    /// <summary>O código da classificação de produto do CRM — <c>TRATOR_MEDIO</c>, <c>PLANTADEIRA</c>…</summary>
+    public string CodigoDaLinha { get; private set; } = default!;
+
+    /// <summary>O nome da linha, como a tela a mostra.</summary>
+    public string Descricao { get; private set; } = default!;
+
+    /// <summary>Liga uma classificação de produto a uma categoria de máquina.</summary>
+    /// <param name="categoriaDeMaquinaId">A categoria.</param>
+    /// <param name="codigoDaLinha">O código da classificação de produto do CRM.</param>
+    /// <param name="descricao">O nome da linha.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando o código ou a descrição não valem.</exception>
+    public static LinhaDeProdutoNaCategoria Ligar(int categoriaDeMaquinaId, string codigoDaLinha, string descricao)
+    {
+        if (string.IsNullOrWhiteSpace(codigoDaLinha))
+            throw new RegraDeNegocioViolada("A ligação precisa do código da classificação de produto do CRM.");
+
+        if (string.IsNullOrWhiteSpace(descricao))
+            throw new RegraDeNegocioViolada("A ligação precisa do nome da linha.");
+
+        return new LinhaDeProdutoNaCategoria
+        {
+            CategoriaDeMaquinaId = categoriaDeMaquinaId,
+            CodigoDaLinha = codigoDaLinha.Trim().ToUpperInvariant(),
+            Descricao = descricao.Trim()
+        };
+    }
+}
+
+/// <summary>
 /// UM GRUPO DE CULTURAS QUE COMPARTILHAM A MESMA TERRA E A MESMA MÁQUINA (issue 160, D-IM-01).
 ///
 /// <para><b>Por que existe.</b> O milho safrinha é plantado depois da soja, no mesmo talhão, e boa parte

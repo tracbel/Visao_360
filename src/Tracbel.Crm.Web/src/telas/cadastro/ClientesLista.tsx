@@ -200,7 +200,7 @@ export function ClientesLista() {
             titulo={temFiltro ? 'Nenhum cliente com esses filtros' : 'Esta filial ainda não tem clientes'}
             texto={
               temFiltro
-                ? 'A busca compara nome e nome fantasia por trecho, e o documento por valor inteiro — pedaço de CNPJ não encontra (dívida D-2 do documento 23).'
+                ? 'A busca compara nome e nome fantasia por trecho, e o documento por valor inteiro — pedaço de CNPJ não encontra.'
                 : 'O cadastro nasce na filial escolhida no cabeçalho. Cadastre o primeiro para a lista aparecer.'
             }
             acao={

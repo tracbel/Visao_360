@@ -40,8 +40,10 @@ export function AlcanceDaConsulta({
         ? ''
         : podeVerEmpresaInteira
           ? 'A visão da empresa inteira está disponível para o seu perfil. '
-          : 'A visão da empresa inteira exige a permissão de alcance entre filiais; o seu perfil não a tem, e a ' +
-            'distribuição oficial dos acessos está pendente (documento 32, P-10). '}
+          : // A citação "(documento 32, P-10)" saiu do fim da frase: o número do documento não diz nada a
+            // quem lê a dica, e a referência continua aqui, no código.
+            'A visão da empresa inteira exige a permissão de alcance entre filiais; o seu perfil não a tem, e a ' +
+            'distribuição oficial dos acessos está pendente. '}
       A ADR e a área plantada são da empresa inteira e aparecem para todos.
     </p>
   );

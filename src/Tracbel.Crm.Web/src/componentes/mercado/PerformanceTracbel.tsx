@@ -9,7 +9,9 @@
  *
  * SÓ VENDAS TEM DADO HOJE. O faturamento existe e é real; captura e não
  * capturado dependem das vendas em UNIDADES (issue 69), porque reais não servem
- * de numerador para uma demanda medida em máquinas.
+ * de numerador para uma demanda medida em máquinas. O motivo de cada um faltar
+ * NÃO é escrito aqui: é a frase que o servidor devolve nos números de decisão
+ * (issue 69, parte A) — a mesma dos cartões do topo da aba.
  *
  * VENDAS VEM PRIMEIRO, E ABERTA (maquete): é a aba que tem número. Abrir o
  * bloco numa aba de traço seria começar a leitura pelo que falta.
@@ -17,10 +19,11 @@
 
 import { ChartNoAxesColumnIncreasing, Tractor, Wrench, type LucideIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
+import type { NumeroDeDecisao, NumerosDeDecisao } from '../../tipos/territorio';
 import { MetricaAusente } from '../comum/MetricaAusente';
 import { ValorAusente } from '../comum/ValorAusente';
 import { reaisCompactos } from '../territorio/escalas';
-import { nº } from '../territorio/indicadoresDaAdr';
+import { nº, porcento } from '../territorio/indicadoresDaAdr';
 import type { TotaisDaAdr } from '../territorio/totaisDaAdr';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
 import { AbasInternas } from './AbasInternas';
@@ -68,7 +71,54 @@ function CartaoDeVenda({
   );
 }
 
-export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDaAdr; comTerritorio: boolean }) {
+/**
+ * CAPTURA E NÃO CAPTURADO, NA ABA DE CADA UM: o número quando o servidor o
+ * manda; senão o traço com a frase DELE — sem uma segunda redação escrita aqui.
+ */
+function NumeroNaAba({
+  metrica,
+  numero,
+  formatar,
+  depois,
+}: {
+  metrica: string;
+  numero: NumeroDeDecisao | null;
+  formatar: (v: number) => string;
+  /** O que vem depois do número, na frase em que ele aparece. */
+  depois: string;
+}) {
+  if (numero?.valor != null)
+    return (
+      <p className="mv-potencial-frase">
+        <strong>{formatar(numero.valor)}</strong> {depois}
+      </p>
+    );
+
+  if (numero?.frase) return <MetricaAusente metrica={metrica} motivo={numero.frase} />;
+
+  // A LEITURA AINDA NÃO RESPONDEU: o traço sem dica, porque não se afirma por
+  // que um número falta antes de saber se ele falta.
+  return (
+    <p className="cad-metrica-ausente">
+      <span className="cad-metrica-ausente-rotulo">{metrica}</span>
+      <span className="cad-ausente">
+        <span aria-hidden="true">—</span>
+        <span className="cad-so-leitor">sem dado</span>
+      </span>
+    </p>
+  );
+}
+
+export function PerformanceTracbel({
+  totais,
+  comTerritorio,
+  numeros,
+}: {
+  totais: TotaisDaAdr;
+  comTerritorio: boolean;
+  /** Os números de decisão do recorte, com o motivo de cada ausência — da API (issue 69, parte A). */
+  numeros: NumerosDeDecisao | null;
+}) {
   const [subAba, setSubAba] = useState<SubAba>('vendas');
 
   return (
@@ -82,10 +132,11 @@ export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDa
               O que sai de Vendas é medido — faturamento líquido pelo endereço principal do cliente. Máquina é o
               faturamento líquido de máquina; pós-venda é peça + serviço, composição provisória.
             </p>
+            {/* O PORQUÊ DE CAPTURA E NÃO CAPTURADO FALTAREM não mora aqui: é a
+                frase do servidor, na dica de cada um. Aqui fica o que eles são. */}
             <p>
-              Captura e não capturado dependem das vendas em UNIDADES (issue 69): reais não servem de numerador para
-              uma demanda medida em máquinas. Enquanto o denominador for demanda estimada, o número se chama captura,
-              e não share.
+              Captura e não capturado se contam em UNIDADES: reais não servem de numerador para uma demanda medida
+              em máquinas. Enquanto o denominador for demanda estimada, o número se chama captura, e não share.
             </p>
           </>
         }
@@ -147,8 +198,11 @@ export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDa
             id: 'captura',
             rotulo: 'Captura',
             conteudo: (
-              <MetricaAusente metrica="Captura Tracbel"
-                motivo="Vendas da Tracbel em unidades dividido pela demanda anual estimada. Precisa da issue 69, que traz as vendas por município em MÁQUINAS: o faturamento em reais que já existe não serve de numerador para uma demanda medida em máquinas. Não é market share — share exigiria o total vendido por todos os fabricantes, que nenhuma fonte aberta publica."
+              <NumeroNaAba
+                metrica="Captura Tracbel"
+                numero={numeros?.capturaPercentual ?? null}
+                formatar={porcento}
+                depois="da demanda anual estimada, em máquinas — captura, e não participação de mercado."
               />
             ),
           },
@@ -156,8 +210,11 @@ export function PerformanceTracbel({ totais, comTerritorio }: { totais: TotaisDa
             id: 'naoCapturado',
             rotulo: 'Não capturado',
             conteudo: (
-              <MetricaAusente metrica="Potencial não capturado"
-                motivo="A demanda ajustada menos as vendas, nunca abaixo de zero (issue 162). Depende da mesma issue 69 para sair em unidades e da issue 70 para sair em reais."
+              <NumeroNaAba
+                metrica="Potencial não capturado"
+                numero={numeros?.oportunidade ?? null}
+                formatar={(v) => nº(Math.round(v))}
+                depois="máquinas da demanda ajustada que a Tracbel ainda não vendeu."
               />
             ),
           },

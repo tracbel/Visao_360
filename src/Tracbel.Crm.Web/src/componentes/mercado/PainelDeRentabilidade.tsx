@@ -34,7 +34,9 @@
  *
  * OS PAINÉIS ANTIGOS DE PREÇO E DE CUSTO NÃO ESTÃO NA MAQUETE, e continuam na
  * tela, inteiros: o botão "Ver séries de preço e custo" do detalhamento os abre
- * embaixo da tabela. A competência de cada linha está no ⋮ dela.
+ * embaixo da tabela — e, entre os dois, o preço recebido pelo produtor da PAM
+ * (issue 198), a segunda série de preço, que não se emenda à da CONAB. A
+ * competência de cada linha está no ⋮ dela.
  *
  * MARGEM NEGATIVA APARECE COMO NEGATIVA, e a barra vira hachura. Uma cultura
  * que não paga o custo é exatamente o que este painel existe para mostrar.
@@ -55,6 +57,7 @@ import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import type { RecorteFiltrado } from '../territorio/indicadoresDaAdr';
 import { PainelDeCustos } from '../territorio/PainelDeCustos';
 import { PainelDePrecos } from '../territorio/PainelDePrecos';
+import { PainelDoPrecoImplicito } from '../territorio/PainelDoPrecoImplicito';
 import { areaColhidaNoRecorte, comAsCulturasDoMunicipioPrimeiro, type AreaNoRecorte } from './culturasDoMunicipio';
 import {
   CRITERIOS_DA_RENTABILIDADE,
@@ -176,12 +179,18 @@ function BotaoIr({ rotulo, aoClicar }: { rotulo: string; aoClicar?: () => void }
 
 export function PainelDeRentabilidade({
   produtosDoMunicipio = [],
+  municipioCodigoIbge = null,
   nomeDoMunicipio = null,
   municipios = [],
   carregando = false,
   recorte = null,
 }: {
   produtosDoMunicipio?: readonly number[];
+  /**
+   * O município escolhido. As séries da CONAB não mudam com ele (são de SP); a
+   * do preço recebido pelo produtor, da PAM, é municipal e passa a ser a dele.
+   */
+  municipioCodigoIbge?: number | null;
   nomeDoMunicipio?: string | null;
   /** Os municípios da leitura — a área colhida da Região Tracbel, peso da média. */
   municipios?: readonly IndicadoresDoMunicipio[];
@@ -681,6 +690,17 @@ export function PainelDeRentabilidade({
         {series && (
           <div className="mom-series" id={idDasSeries} data-bloco="rentabilidade-fontes">
             <PainelDePrecos produtosDoMunicipio={produtosDoMunicipio} />
+
+            {/* A SEGUNDA SÉRIE DE PREÇO, DO IBGE (issue 198) — ao lado da CONAB, e NUNCA emendada
+                nela. A da CONAB é mensal e por UF; esta é anual e por município, vai até 2010 e
+                entrega as médias de 3 e 5 anos. A distância entre as duas, medida em 22/09, vai de
+                +1,1% na soja a −28,4% no amendoim: emendá-las criaria um degrau artificial na
+                virada, e é por isso que são dois painéis. */}
+            <PainelDoPrecoImplicito
+              municipioCodigoIbge={municipioCodigoIbge}
+              nomeDoMunicipio={nomeDoMunicipio}
+              produtosDoMunicipio={produtosDoMunicipio}
+            />
             <PainelDeCustos produtosDoMunicipio={produtosDoMunicipio} />
           </div>
         )}

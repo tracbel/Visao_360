@@ -555,7 +555,7 @@ export function ClienteCadastro() {
           {motivoEscolhido?.exigeObservacao && (
             <p className="cad-nota">
               Este motivo pede observação, e o contrato do <code>DELETE</code> ainda não tem campo
-              para ela — está registrado como dívida D-4 do documento 23. Escolha um motivo específico
+              para ela — é uma dívida conhecida do cadastro. Escolha um motivo específico
               quando houver um.
             </p>
           )}

@@ -25,6 +25,7 @@ import { Fragment, useState } from 'react';
 import type {
   CulturaNoEstado,
   IndicadoresDoMunicipio,
+  NumerosDeDecisao,
   ProcedenciasDoTerritorio,
   RegraDePotencialAplicada,
   TotaisDaRegiaoTracbel,
@@ -67,6 +68,7 @@ export function DetalheDoMunicipio({
   regiaoTracbel,
   estado,
   procedencias,
+  numerosDeDecisao,
   aoFechar,
 }: {
   municipio: IndicadoresDoMunicipio;
@@ -79,6 +81,12 @@ export function DetalheDoMunicipio({
   estado: TotaisDoEstado | null;
   /** De onde veio cada medida (issue 167). */
   procedencias: ProcedenciasDoTerritorio | null;
+  /**
+   * Os números de decisão do RECORTE, com o motivo de cada ausência — da API
+   * (issue 69, parte A). A ficha usa só a FRASE: o que falta para o recorte falta
+   * para o município, e o servidor diz uma vez só, com a mesma redação do topo.
+   */
+  numerosDeDecisao: NumerosDeDecisao | null;
   aoFechar: () => void;
 }) {
   const { cobertura, vendas, estrutura, producao } = municipio;
@@ -176,6 +184,7 @@ export function DetalheDoMunicipio({
           culturasNoEstado={culturasNoEstado}
           procedencias={procedencias}
           periodo={periodo}
+          numerosDeDecisao={numerosDeDecisao}
           aoVerOportunidades={irParaOportunidades}
         />
       </PainelDaFicha>
@@ -495,10 +504,12 @@ export function DetalheDoMunicipio({
                   </dd>
                 </dl>
               )}
+              {/* A citação "(documento 32, P-2)" saiu do fim da frase: o número do documento não diz nada a
+                  quem lê a ficha, e a referência continua aqui, no código. */}
               <p className="cad-sub">
                 {nº(cobertura.clientes)} clientes com endereço aqui · {nº(cobertura.semCadencia)} vínculos em linha sem
                 cadência, fora da conta. Contato é qualquer interação registrada: nenhum tipo de atividade está marcado
-                como visita (documento 32, P-2).
+                como visita.
               </p>
 
               <h4 className="terr-detalhe-subtitulo">Vendas no período</h4>
@@ -532,7 +543,7 @@ export function DetalheDoMunicipio({
           executiva) e a lista com confiança e origem (issue 162).
           ------------------------------------------------------------------ */}
       <PainelDaFicha {...painel('oportunidades')}>
-        <OportunidadesDoMunicipio municipio={municipio} />
+        <OportunidadesDoMunicipio municipio={municipio} numerosDeDecisao={numerosDeDecisao} />
       </PainelDaFicha>
 
       <PainelDaFicha {...painel('historico')}>

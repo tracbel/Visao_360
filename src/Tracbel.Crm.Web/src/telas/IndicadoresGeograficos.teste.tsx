@@ -50,6 +50,9 @@ vi.mock('../componentes/territorio/PainelDePrecos', () => ({
 vi.mock('../componentes/territorio/PainelDeCustos', () => ({
   PainelDeCustos: () => <div data-bloco="custos" />,
 }));
+vi.mock('../componentes/territorio/PainelDoPrecoImplicito', () => ({
+  PainelDoPrecoImplicito: () => <div data-bloco="preco-implicito" />,
+}));
 vi.mock('../componentes/territorio/PainelDeCredito', () => ({
   PainelDeCredito: () => <div data-bloco="credito" />,
 }));
@@ -252,6 +255,27 @@ function painel(): PainelTerritorial {
     classificacoes: [
       { indicador: 'potencial', situacao: 'Estimativa', selo: 'estimativa', motivo: 'regra a confirmar' },
     ],
+    // O estado de hoje: os três sem dado, com o motivo vindo da API (issue 69, parte A).
+    numerosDeDecisao: {
+      demandaAnual: { valor: null, motivo: 'SemDemandaAnual', frase: 'Falta o ciclo de renovação (D-P01, issue 63).' },
+      mercadoAnual: {
+        valor: null,
+        motivo: 'SemPrecoDeMaquina',
+        frase: 'Não há preço de referência de máquina no CRM (issue 70).',
+        parcial: false,
+        categoriasSemPreco: [],
+      },
+      capturaPercentual: {
+        valor: null,
+        motivo: 'SemVendasEmUnidades',
+        frase: 'As vendas da Tracbel em MÁQUINAS não estão carregadas (issue 69).',
+      },
+      oportunidade: {
+        valor: null,
+        motivo: 'SemVendasEmUnidades',
+        frase: 'As vendas da Tracbel em MÁQUINAS não estão carregadas (issue 69).',
+      },
+    },
   };
 }
 
@@ -1095,9 +1119,14 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     abrir();
     await esperarACarga();
 
+    // O MOTIVO É A FRASE DO SERVIDOR (issue 69, parte A), letra por letra: a tela não escreve mais por que
+    // um destes números falta. Se uma constante do front voltasse, a frase deixaria de ser esta.
+    const { numerosDeDecisao } = painel();
+    expect(motivoDe('Mercado anual')).toBe(numerosDeDecisao.mercadoAnual.frase);
+    expect(motivoDe('Captura Tracbel')).toBe(numerosDeDecisao.capturaPercentual.frase);
+    expect(motivoDe('Oportunidade')).toBe(numerosDeDecisao.oportunidade.frase);
     expect(motivoDe('Mercado anual')).toMatch(/issue 70/);
     expect(motivoDe('Captura Tracbel')).toMatch(/issue 69/);
-    expect(motivoDe('Oportunidade')).toMatch(/issue 69/);
 
     // NENHUM DELES INVENTOU NÚMERO. O que se afirma é a ausência de dígito, e
     // não o texto exato: o "sem dado" que acompanha o traço é do `ValorAusente`
@@ -1107,6 +1136,57 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
       const valor = executivo(rotulo).querySelector('.mv-kpi-valor')!.textContent ?? '';
       expect(valor, `${rotulo} mostrou um número onde não há dado`).not.toMatch(/\d/);
       expect(valor).toContain('—');
+    }
+  });
+
+  it('quando a API manda o número, o cartão mostra o valor — e o mercado parcial diz, ao lado dele, o que ficou de fora', async () => {
+    // O DIA EM QUE AS ISSUES 69 E 70 CHEGAREM: nada muda na tela além do dado. O mercado anual que soma só
+    // as categorias com preço sai marcado como parcial no lugar da unidade, e não só na dica — lido sem a
+    // marca, afirmaria que a categoria sem preço não vale nada.
+    responder((p) => ({
+      ...p,
+      numerosDeDecisao: {
+        ...p.numerosDeDecisao,
+        mercadoAnual: {
+          valor: 42_000_000,
+          motivo: 'Nenhum',
+          frase: '',
+          parcial: true,
+          categoriasSemPreco: ['Colhedora de cana', 'Pulverizador'],
+        },
+        capturaPercentual: { valor: 14.8, motivo: 'Nenhum', frase: '' },
+        oportunidade: { valor: 311.6, motivo: 'Nenhum', frase: '' },
+      },
+    }));
+    abrir();
+    await esperarACarga();
+
+    const valor = (rotulo: string) => executivo(rotulo).querySelector<HTMLElement>('.mv-kpi-valor')!;
+    expect(valor('Mercado anual')).toHaveTextContent('R$ 42 mi');
+    expect(valor('Mercado anual')).toHaveTextContent('parcial — sem preço de Colhedora de cana, Pulverizador');
+    expect(valor('Captura Tracbel')).toHaveTextContent('14,8%');
+    expect(valor('Captura Tracbel')).toHaveTextContent('da demanda estimada');
+    expect(valor('Oportunidade')).toHaveTextContent('312');
+    expect(valor('Oportunidade')).toHaveTextContent('máquinas não capturadas');
+    // Com número, o valor não tem "por que não aparece" (a linha da variação continua com a dela).
+    for (const rotulo of ['Mercado anual', 'Captura Tracbel', 'Oportunidade'])
+      expect(within(valor(rotulo)).queryByRole('button')).toBeNull();
+  });
+
+  it('enquanto a leitura não responde, os quatro mostram o traço SEM dica — não se afirma por que falta antes de saber', async () => {
+    // A leitura que nunca volta: o painel fica carregando.
+    obterIndicadoresTerritoriais.mockReturnValue(new Promise(() => {}));
+    carregarMalhaDeSaoPaulo.mockResolvedValue(MALHA);
+    abrir();
+    await waitFor(() => expect(bloco('kpis-executivos')).not.toBeNull());
+
+    // A Demanda anual mostra a espera ("carregando…", correção da revisão de 24/09); os outros três, o
+    // traço. O que os quatro têm em comum é o que importa: nenhuma dica afirmando um motivo.
+    for (const rotulo of ['Demanda anual', 'Mercado anual', 'Captura Tracbel', 'Oportunidade']) {
+      const valor = executivo(rotulo).querySelector<HTMLElement>('.mv-kpi-valor')!;
+      expect(valor.textContent).toMatch(rotulo === 'Demanda anual' ? /carregando…/ : /—/);
+      expect(valor.textContent).not.toMatch(/\d/);
+      expect(within(valor).queryByRole('button')).toBeNull();
     }
   });
 
@@ -1706,11 +1786,14 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
     abrir();
     await esperarACarga();
 
+    // O MOTIVO É O DO SERVIDOR (issue 69, parte A) — o mesmo dos cartões do topo, e não uma terceira
+    // redação escrita no bloco Performance.
+    const { numerosDeDecisao } = painel();
     fireEvent.click(screen.getByRole('button', { name: 'Captura' }));
-    expect(esperarLacuna('Captura Tracbel')).toHaveTextContent(/issue 69/);
+    expect(esperarLacuna('Captura Tracbel').textContent).toBe(numerosDeDecisao.capturaPercentual.frase);
 
     fireEvent.click(screen.getByRole('button', { name: 'Não capturado' }));
-    esperarLacuna('Potencial não capturado');
+    expect(esperarLacuna('Potencial não capturado').textContent).toBe(numerosDeDecisao.oportunidade.frase);
   });
 
   it('nenhum RÓTULO da tela usa "share" — o número se chama captura (issue 162)', async () => {

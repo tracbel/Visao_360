@@ -85,6 +85,23 @@ public static class EndpointsDeTerritorio
                 "comercial (saca de 60 kg, caixa de 40,8 kg, arroba). O dólar é o PTAX médio do mesmo mês; " +
                 "mês sem PTAX vem sem dólar. A base só cresce: mês que saiu da janela da fonte continua aqui.");
 
+        // O PREÇO RECEBIDO PELO PRODUTOR, DA PAM (issue 198) — ROTA PRÓPRIA, e não mais um campo da de
+        // preços. As duas séries não se emendam (documento 49D): a da CONAB é mensal e por UF, esta é anual
+        // e por município, e a distância entre elas vai de +1,1% na soja a −28,4% no amendoim. Separadas na
+        // API, elas chegam à tela como duas coisas — que é o que são.
+        grupo.MapGet("/preco-implicito", async (
+                int? municipioCodigoIbge, ObterPrecoImplicitoDaPam caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(municipioCodigoIbge, ct)).Responder())
+            .WithName("ObterPrecoImplicitoDaPam")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("Preço recebido pelo produtor, anual e por município, derivado da PAM (issue 198).")
+            .WithDescription(
+                "O IBGE define o valor da produção da PAM como a média ponderada de quantidade e preço pago " +
+                "ao produtor: `valor × 1000 ÷ quantidade` devolve o preço daquele ano. Sem município, soma a " +
+                "ADR inteira — e a soma vem ANTES da divisão, o que dá a média ponderada pela colheita de " +
+                "cada um. Traz as médias de 3 e 5 anos, que só saem com todos os anos da janela. Valor " +
+                "NOMINAL, sem deflator. Não é a série mensal da CONAB e não se soma a ela.");
+
         // A RENTABILIDADE (issue 159): o que junta preço, custo e produtividade, que até aqui viviam em
         // três cartões separados da tela.
         grupo.MapGet("/rentabilidade", async (ObterRentabilidadeDasCulturas caso, CancellationToken ct) =>

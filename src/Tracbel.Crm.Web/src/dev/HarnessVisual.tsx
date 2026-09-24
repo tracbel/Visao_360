@@ -35,6 +35,7 @@ import {
   creditoFicticio,
   custosFicticios,
   parametrosFicticios,
+  precoImplicitoFicticio,
   precosFicticios,
   rentabilidadeFicticia,
 } from './amostrasDeMercado';
@@ -92,6 +93,7 @@ function respostasDeMercado(malha: ColecaoMunicipal, estado: NomeDoEstado): Reco
     return {
       ...doMomento,
       '/v1/territorio/precos': { series: [], primeiroMesDoDolar: null, ultimoMesDoDolar: null },
+      '/v1/territorio/preco-implicito': { series: [], ressalva: 'AMOSTRA FICTÍCIA — sem produção agrícola neste estado.' },
       '/v1/territorio/rentabilidade': [],
       '/v1/territorio/custos': [],
       '/v1/territorio/credito': {
@@ -111,6 +113,9 @@ function respostasDeMercado(malha: ColecaoMunicipal, estado: NomeDoEstado): Reco
   return {
     ...doMomento,
     '/v1/territorio/precos': precosFicticios(),
+    // A SEGUNDA SÉRIE DE PREÇO (issue 198): a rota é outra, e sem ela o painel
+    // do preço recebido pelo produtor abria no 404 do harness.
+    '/v1/territorio/preco-implicito': precoImplicitoFicticio(),
     '/v1/territorio/rentabilidade': rentabilidadeFicticia(),
     '/v1/territorio/custos': custosFicticios(),
     '/v1/territorio/credito': creditoFicticio(municipios),
