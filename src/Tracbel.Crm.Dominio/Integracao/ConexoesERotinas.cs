@@ -926,10 +926,13 @@ public static class RotinasDoSistema
             "O preço recebido (CONAB), o ATR (Socicana), o dólar PTAX, o custo de produção (CONAB) e o crédito rural (SICOR).",
             ["--somente-precos", "--somente-custos", "--somente-credito"], AgendaDaRotina.MensalEm(20, new TimeOnly(4, 0)), true,
             ["CONAB_PRECOS", "SOCICANA", "BCB_PTAX", "CONAB_CUSTOS", "BCB_SICOR"], null),
+        // O FATURAMENTO LÊ O BANCO DO PROTHEUS, e não mais a API REST (24/09/2026): a conexão que ele
+        // exige é a de banco, a mesma da carga de clientes e da conferência do ART. A descrição e as
+        // conexões moram só aqui — não estão na semente —, então a troca não pede migração.
         new(Faturamento, "Faturamento do Protheus",
-            "As notas de saída (SD2) do ano, que alimentam o faturamento, a curva ABC e os indicadores da diretoria.",
+            "As notas de venda (SD2) dos últimos três anos, lidas direto no banco do Protheus, que alimentam o faturamento, a curva ABC e os indicadores da diretoria.",
             ["--somente-faturamento"], AgendaDaRotina.DiariaAs(new TimeOnly(5, 0)), false,
-            [ConexoesDoSistema.Protheus], ConexoesDoSistema.Protheus),
+            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco),
         new(ArtVendas, "Vendas de máquina do ART",
             "As vendas de máquina do ART, conferidas com o dono do chassi no Protheus.",
             ["--somente-art"], AgendaDaRotina.ACada(60), false,
