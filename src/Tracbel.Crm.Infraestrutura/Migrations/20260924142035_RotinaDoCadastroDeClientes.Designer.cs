@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 
@@ -11,9 +12,11 @@ using Tracbel.Crm.Infraestrutura.Persistencia;
 namespace Tracbel.Crm.Infraestrutura.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    partial class CrmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260924142035_RotinaDoCadastroDeClientes")]
+    partial class RotinaDoCadastroDeClientes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1875,7 +1878,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         {
                             Id = 4,
                             Codigo = "VORTICE",
-                            Descricao = "A busca ao vivo no legado, congelado desde a fase 1, e a sincronia diária das carteiras MAQ_NOVOS. Sessão somente leitura.",
+                            Descricao = "A busca ao vivo no legado, congelado desde a fase 1 (somente referência).",
                             EhDoSistema = true,
                             EstaAtiva = true,
                             Nome = "Vórtice — sistema legado",
@@ -2713,16 +2716,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             EstaLigada = false,
                             Hora = new TimeOnly(3, 30, 0),
                             Nome = "Cadastro de clientes (Protheus)"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            AgendaVigenteDesde = new DateTime(2026, 9, 22, 12, 0, 0, 0, DateTimeKind.Utc),
-                            Cadencia = "Diaria",
-                            Codigo = "CARTEIRAS_VORTICE",
-                            EstaLigada = false,
-                            Hora = new TimeOnly(4, 30, 0),
-                            Nome = "Carteiras MAQ_NOVOS do Vórtice"
                         });
                 });
 

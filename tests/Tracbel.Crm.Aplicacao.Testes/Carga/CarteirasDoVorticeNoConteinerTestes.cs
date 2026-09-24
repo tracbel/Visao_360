@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Tracbel.Crm.Carga;
 using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Persistencia;
@@ -86,9 +88,47 @@ public sealed class CarteirasDoVorticeNoConteinerTestes
         linhas[0].DesvinculadoEm.Should().Be(Agora.AddDays(2));
         linhas[1].DesvinculadoEm.Should().BeNull();
 
-        (await db.RegistrosDeOrigem.CountAsync(r => r.Fluxo == CargaDeCarteirasDoVortice.Fluxo)).Should().Be(10);
+        (await db.RegistrosDeOrigem.CountAsync(r => r.Fluxo == CargaDeCarteirasDoVortice.Fluxo)).Should().Be(11);
         (await db.Usuarios.CountAsync(u => u.AguardandoLiberacaoDesde != null)).Should().Be(3);
         (await db.LinhasDeNegocio.SingleAsync()).Codigo.Should().Be("MAQ_NOVOS");
+    }
+
+    [FatoSeHouverSqlServer]
+    public async Task A_migracao_reativa_Guaira_Ituverava_e_Monte_Alto_e_nao_mexe_em_mais_nada()
+    {
+        // O BANCO COMO O SERVIDOR ESTAVA: migrado até a rotina das carteiras, com as três filiais inativas — e a
+        // Colorado, que continua inativa.
+        SqlConnection.ClearAllPools();
+        await using (var db = new CrmDbContext(Opcoes(), ProvedorDeContextoDeSistema.Instancia))
+        {
+            await db.Database.EnsureDeletedAsync();
+            await db.GetService<IMigrator>().MigrateAsync("RotinaDasCarteirasDoVortice");
+            await db.Database.ExecuteSqlRawAsync(@"
+                INSERT INTO organizacao.Empresa (ChavePublica, Codigo, Nome, Caminho, Nivel, EstaAtiva, CriadoEm) VALUES
+                (NEWID(), '010101', N'Tracbel Agro — Ribeirão Preto', '/', 0, 1, SYSUTCDATETIME()),
+                (NEWID(), '010104', N'Tracbel Agro — Guaíra', '/', 0, 0, SYSUTCDATETIME()),
+                (NEWID(), '010105', N'Tracbel Agro — Ituverava', '/', 0, 0, SYSUTCDATETIME()),
+                (NEWID(), '010110', N'Tracbel Agro — Monte Alto', '/', 0, 0, SYSUTCDATETIME()),
+                (NEWID(), 'CFRA_COLORADO_6', N'Colorado Desativado', '/', 0, 0, SYSUTCDATETIME());");
+        }
+
+        await using (var db = new CrmDbContext(Opcoes(), ProvedorDeContextoDeSistema.Instancia))
+        {
+            await db.Database.MigrateAsync();
+
+            var ativas = await db.Empresas.AsNoTracking().ToDictionaryAsync(e => e.Codigo, e => e.EstaAtiva);
+            ativas.Should().Equal(new Dictionary<string, bool>
+            {
+                ["010101"] = true,
+                ["010104"] = true,
+                ["010105"] = true,
+                ["010110"] = true,
+                ["CFRA_COLORADO_6"] = false
+            }, "a filial 06 do Vórtice é a Colorado, que não existe no Protheus: ela não é reativada nem inventada");
+
+            // E A PRÓXIMA SUBIDA DA API não refaz nada: a migração já está no histórico.
+            (await db.Database.GetPendingMigrationsAsync()).Should().BeEmpty();
+        }
     }
 
     [FatoSeHouverSqlServer]

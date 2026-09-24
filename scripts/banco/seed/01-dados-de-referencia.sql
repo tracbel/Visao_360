@@ -29,14 +29,16 @@ BEGIN TRANSACTION;
 -- ---------------------------------------------------------------------------------------------
 --  organizacao.Empresa — AS FILIAIS.
 --
---  Sao 18 linhas, das quais 13 ATIVAS: a lista oficial de filiais em operacao, confirmada pelo
---  Ricardo em 04/09/2026. O codigo segue o padrao 0101NN, em que NN e o numero da empresa no
---  sistema legado — a correspondencia e direta.
+--  Sao 18 linhas, das quais 16 ATIVAS: as 13 da lista oficial de filiais em operacao, confirmada
+--  pelo Ricardo em 04/09/2026, e Guaira, Ituverava e Monte Alto, REATIVADAS por decisao dele em
+--  24/09/2026 — as tres faturam no Protheus e respondem por clientes da area de atuacao. O codigo
+--  segue o padrao 0101NN, em que NN e o numero da empresa no sistema legado — a correspondencia e
+--  direta. O banco do servidor recebe a reativacao pela migracao
+--  FiliaisDeGuairaItuveravaEMonteAltoReativadas: ele nao recebe este seed.
 --
---  AS DEMAIS ENTRAM COM EstaAtiva = 0. O legado marca algumas delas como ativas e o negocio nao
---  as confirmou; trata-las como operacionais faria a API oferecer, no seletor de filial, uma
---  filial onde ninguem trabalha. Elas ficam no banco (nao se apaga filial: o historico aponta
---  para ela) e fora da lista de selecao, que so devolve ativas.
+--  AS DUAS COLORADO ENTRAM COM EstaAtiva = 0: sao historicas, ja inativas no legado, e nao existem
+--  no Protheus. Elas ficam no banco (nao se apaga filial: o historico aponta para ela) e fora da
+--  lista de selecao, que so devolve ativas.
 --
 --  HIERARQUIA PLANA de proposito: Caminho = '/' e Nivel = 0 em todas. As filiais sao irmas, nao
 --  ha holding intermediaria modelada nesta fase, e por isso "esta empresa e as abaixo" resolve
@@ -57,9 +59,9 @@ USING (VALUES
     ('010116', N'Tracbel Agro — Votuporanga', 1),
     ('010117', N'Tracbel Agro — Tupã', 1),
     ('010118', N'Tracbel Agro — Marília', 1),
-    ('010104', N'Tracbel Agro — Guaíra', 0),
-    ('010105', N'Tracbel Agro — Ituverava', 0),
-    ('010110', N'Tracbel Agro — Monte Alto', 0),
+    ('010104', N'Tracbel Agro — Guaíra', 1),
+    ('010105', N'Tracbel Agro — Ituverava', 1),
+    ('010110', N'Tracbel Agro — Monte Alto', 1),
     ('CFRA_COLORADO_6', N'Colorado Desativado', 0),
     ('CEQU', N'Colorado Equipamentos', 0)
 ) AS origem (Codigo, Nome, EstaAtiva)

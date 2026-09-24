@@ -12,8 +12,9 @@ namespace Tracbel.Crm.Aplicacao.Testes.Carga;
 /// <summary>
 /// UM VÓRTICE DE MENTIRA, pequeno e completo, para a sincronia das carteiras: um vendedor de campo sem conta no CRM,
 /// outro que já tem, o pool do INT.MERCADO, a gaveta "sem potencial", uma carteira digital, uma de filial que o CRM não
-/// tem e uma de vendedor desligado — e clientes com documento bom, sem documento, zerado e fora do CRM. Nomes e
-/// documentos fictícios, com dígito verificador válido. O mesmo cenário serve ao SQLite e ao contêiner.
+/// tem, uma de vendedor desligado e uma de teste de um robô — e clientes com documento bom, sem documento, zerado e
+/// fora do CRM. Nomes e documentos fictícios, com dígito verificador válido. O mesmo cenário serve ao SQLite e ao
+/// contêiner.
 /// </summary>
 internal static class CenarioDeCarteirasDoVortice
 {
@@ -83,7 +84,8 @@ internal static class CenarioDeCarteirasDoVortice
         [1002] = new(1002, "JOAO.SILVA", "JOAO SILVA FICTICIO"),
         [482] = new(482, "INT.MERCADO", "INT.MERCADO"),
         [1003] = new(1003, "ANA.DIGITAL", "ANA DIGITAL FICTICIA"),
-        [1004] = new(1004, "PEDRO.SAIU", "PEDRO SAIU FICTICIO")
+        [1004] = new(1004, "PEDRO.SAIU", "PEDRO SAIU FICTICIO"),
+        [1312] = new(1312, "ROBO.APP", "teste mobile lite")
     };
 
     /// <summary>Uma carteira de vendedor.</summary>
@@ -103,7 +105,8 @@ internal static class CenarioDeCarteirasDoVortice
         SemVendedor(717, 1, "TBA_S/POTENCIAL", 482, "SEM POTENCIAL"),
         ComVendedor(752, 1, "DGT_01RIB", 1003),
         SemVendedor(714, 5, "TBA_ARRENDAMENT", 482, "ARRENDAMENTO TRACBEL AGRO"),
-        ComVendedor(900, 1, "MAQ_01RIB_09", 1004, desligado: true)
+        ComVendedor(900, 1, "MAQ_01RIB_09", 1004, desligado: true),
+        SemVendedor(724, 1, "TESTE_ROBO", 1312, "TESTE APP MOBILE LITE")
     ];
 
     /// <summary>Um vínculo com documento de CPF.</summary>
@@ -122,7 +125,8 @@ internal static class CenarioDeCarteirasDoVortice
         Com(7, 18, CpfForaDoCrm),
         Com(8, 714, CpfDoCliente1),
         Com(9, 900, CnpjDoCliente2),
-        Com(10, 717, CnpjDoCliente2)
+        Com(10, 717, CnpjDoCliente2),
+        Com(11, 724, CpfDoCliente3)
     ];
 
     /// <summary>A leitura inteira.</summary>

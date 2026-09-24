@@ -137,8 +137,10 @@ public sealed class IntegracoesNaApiTestes
         var diaQueNaoExiste = await admin.PutAsJsonAsync(rotina, new { cadencia = "Mensal", dia = 31, hora = "05:00" }, Json);
         (await ComStatusAsync(diaQueNaoExiste, HttpStatusCode.UnprocessableEntity)).GetProperty("erros")[0].GetProperty("campo").GetString().Should().Be("dia");
 
-        await admin.PutAsJsonAsync($"{Base}/conexoes/{ConexoesDoSistema.Protheus}", new { endereco = "http://erp.exemplo.invalid/rest", usuario = "leitura" }, Json);
-        await admin.PutAsJsonAsync($"{Base}/conexoes/{ConexoesDoSistema.Protheus}/segredo", new { segredo = Senha }, Json);
+        // O FATURAMENTO LÊ O BANCO DO PROTHEUS (24/09/2026): a credencial que ele exige é a da conexão de banco.
+        await ComStatusAsync(await admin.PutAsJsonAsync($"{Base}/conexoes/{ConexoesDoSistema.ProtheusBanco}",
+            new { endereco = "erp.exemplo.invalid,1433", banco = "TMPRD", usuario = "leitura" }, Json), HttpStatusCode.OK);
+        await ComStatusAsync(await admin.PutAsJsonAsync($"{Base}/conexoes/{ConexoesDoSistema.ProtheusBanco}/segredo", new { segredo = Senha }, Json), HttpStatusCode.OK);
 
         var ligada = await ComStatusAsync(await admin.PutAsJsonAsync(rotina, new { cadencia = "Diaria", hora = "06:30", ligada = true }, Json), HttpStatusCode.OK);
         ligada.GetProperty("estaLigada").GetBoolean().Should().BeTrue();

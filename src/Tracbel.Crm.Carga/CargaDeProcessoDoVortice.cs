@@ -12,23 +12,21 @@ using Tracbel.Crm.Dominio.Processo;
 using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao.Carga;
-using Tracbel.Crm.Integracao.Protheus;
 using Tracbel.Crm.Integracao.Saneamento;
 
 namespace Tracbel.Crm.Carga;
 
 /// <summary>
-/// <b>LEGADO / SOMENTE REFERÊNCIA — CONGELADO NA FASE 1 (decisão D-12, documento 41)</b>, com UMA
-/// exceção que precisa ficar escrita: o <b>faturamento do Protheus</b> mora numa parte desta mesma
-/// classe (<c>CargaDeProcessoDoVortice.Faturamento.cs</c>) e continua operacional até a FASE 8.
+/// <b>LEGADO / SOMENTE REFERÊNCIA — CONGELADO NA FASE 1 (decisão D-12, documento 41).</b>
 ///
-/// <para>Por isso o congelamento é em DUAS ETAPAS. Agora, na fase 1, ele é operacional: o
-/// <c>Program</c> recusa qualquer modo que leia o Vórtice sem uma declaração explícita, e
-/// <c>--somente-faturamento</c> — que não abre conexão com o legado — segue livre. Na fase 8, com o
-/// faturamento morando em código próprio, o que sobrar do Vórtice sai do build.</para>
+/// <para>O <b>faturamento do Protheus</b>, que morava numa parte desta classe, saiu para código
+/// próprio em 24/09/2026 (<see cref="CargaDeFaturamentoDoProtheus"/>, <c>--somente-faturamento</c>):
+/// ele não lê o Vórtice, e a trilha de auditoria passa a dizer que a origem é o Protheus. Esta carga
+/// ainda o chama na etapa 10, para a carga completa continuar apurando a curva ABC.</para>
 ///
-/// <para>Enquanto isso, NADA aqui pode deixar de compilar: quebrar este arquivo quebra a nota
-/// fiscal do Protheus, que é o número que a diretoria lê todo dia.</para>
+/// <para>O congelamento é em DUAS ETAPAS. Agora, na fase 1, ele é operacional: o <c>Program</c>
+/// recusa qualquer modo que leia o Vórtice sem uma declaração explícita. Na fase 8, o que sobrar do
+/// Vórtice sai do build — e o faturamento já não depende disso.</para>
 ///
 /// A CARGA DO RELACIONAMENTO — usuário, carteira, processo, tarefa e interação.
 ///
@@ -49,7 +47,7 @@ namespace Tracbel.Crm.Carga;
 internal sealed partial class CargaDeProcessoDoVortice(
     Func<CrmDbContext> abrirContexto,
     LeitorDeCargaDoVortice leitor,
-    LeitorDeFaturamentoDoProtheus faturamentoDoProtheus,
+    CargaDeFaturamentoDoProtheus faturamentoDoProtheus,
     IReadOnlyDictionary<int, int> deParaDeFiliais,
     long usuarioResponsavelId,
     Action<string> relatar)
@@ -291,12 +289,14 @@ internal sealed partial class CargaDeProcessoDoVortice(
         //
         // A janela olha três anos para trás a partir de HOJE, porque agora o dado alcança hoje.
         //
-        // A etapa está num método próprio porque ela é a ÚNICA que não depende do Vórtice: lê o
+        // A etapa mora em classe própria porque ela é a ÚNICA que não depende do Vórtice: lê o
         // Protheus e o nosso banco, e mais nada. Isolada, dá para reexecutar só ela — ver
         // `--somente-faturamento`.
-        var faturamento = await CarregarFaturamentoAsync(sistemaId, ct);
+        var faturamento = await faturamentoDoProtheus.ExecutarAsync(ct);
         if (!faturamento.EhSucesso)
             return Resultado<ResumoDoRelacionamento>.Indisponivel(faturamento.Erro!);
+
+        foreach (var (decisao, quantas) in faturamento.Valor.Decisoes) Decidir(decisao, quantas);
 
         // -----------------------------------------------------------------------------------------
         // 11. O que só se sabe DEPOIS: o duplo ponteiro e a data do último contato.
@@ -349,7 +349,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
             VinculosComUltimoContato: carteirasComContato,
             VendasPerdidasLidas: vendasPerdidas.Valor.LinhasLidas,
             VendasPerdidasGravadas: vendasPerdidasGravadas,
-            MesesDeFaturamentoGravados: faturamento.Valor.Gravados,
+            MesesDeFaturamentoGravados: faturamento.Valor.MesesNovos,
             ClientesPorClasse: faturamento.Valor.Curva
                 .ToDictionary(p => p.Key.ToString(), p => p.Value, StringComparer.Ordinal),
             Recusadas: _recusas.Count,

@@ -300,6 +300,18 @@ internal sealed class CargaDeClientesDoProtheus(
 /// decisão para dizer por que um cliente de carteira não está no CRM — fora da área de atuação, município não
 /// reconhecido — e, na simulação, para projetar o que a carga da SA1 criaria. Uma segunda cópia da regra seria
 /// uma regra que um dia discorda da primeira.</para>
+///
+/// <para><b>As três decisões medidas que moram aqui, e que viajam com o código:</b></para>
+/// <list type="number">
+/// <item><b>O prefixo da UF sai do catálogo de municípios</b>, e não de uma lista escrita no código: uma segunda
+/// lista de UFs é uma lista que um dia discorda da primeira.</item>
+/// <item><b>A filial dona sai da área de atuação, e não da SA1.</b> Medido em 24/09/2026: <c>A1_FILIAL</c> vem
+/// vazio nas 38.752 linhas — o cadastro de cliente do Protheus é compartilhado entre filiais. Quem responde pelo
+/// cliente é a filial responsável pelo MUNICÍPIO dele, só nas linhas vigentes da área de atuação.</item>
+/// <item><b>O documento manda no tipo de pessoa, e não <c>A1_PESSOA</c>.</b> <see cref="Situar"/> devolve o
+/// <see cref="CpfCnpj"/> conferido no dígito verificador; onze dígitos é CPF, catorze é CNPJ, e quem chama tira o
+/// tipo dali — <c>A1_PESSOA</c> é um campo que alguém preencheu, e na SA1 real ele discorda.</item>
+/// </list>
 /// </summary>
 /// <param name="PrefixoDaUf">O prefixo IBGE de cada UF, tirado do catálogo de municípios.</param>
 /// <param name="MunicipioPorIbge">O município do CRM pelo código do IBGE.</param>

@@ -12,7 +12,7 @@ using Tracbel.Crm.Infraestrutura.Persistencia;
 namespace Tracbel.Crm.Infraestrutura.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    [Migration("20260924141103_RotinaDasCarteirasDoVortice")]
+    [Migration("20260924145624_RotinaDasCarteirasDoVortice")]
     partial class RotinaDasCarteirasDoVortice
     {
         /// <inheritdoc />
@@ -2710,6 +2710,16 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         new
                         {
                             Id = 5,
+                            AgendaVigenteDesde = new DateTime(2026, 9, 22, 12, 0, 0, 0, DateTimeKind.Utc),
+                            Cadencia = "Diaria",
+                            Codigo = "CADASTRO_CLIENTES",
+                            EstaLigada = false,
+                            Hora = new TimeOnly(3, 30, 0),
+                            Nome = "Cadastro de clientes (Protheus)"
+                        },
+                        new
+                        {
+                            Id = 6,
                             AgendaVigenteDesde = new DateTime(2026, 9, 22, 12, 0, 0, 0, DateTimeKind.Utc),
                             Cadencia = "Diaria",
                             Codigo = "CARTEIRAS_VORTICE",

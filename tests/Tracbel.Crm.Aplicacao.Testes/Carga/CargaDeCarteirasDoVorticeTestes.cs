@@ -83,7 +83,7 @@ public sealed class CargaDeCarteirasDoVorticeTestes : IDisposable
         var carteiras = await db.Carteiras.AsNoTracking().ToDictionaryAsync(c => c.Codigo);
         carteiras.Keys.Should().BeEquivalentTo(
             ["MAQ_01RIB_02_18", "MAQ_03BAR_02_19", "TBA_FILIAIS_708", "TBA_S_POTENCIAL_717", "DGT_01RIB_752"],
-            "a carteira de filial fora do CRM e a de vendedor desligado não entram");
+            "a carteira de filial fora do CRM, a de vendedor desligado e a de teste não entram");
         carteiras.Values.Should().OnlyContain(c => c.LinhaDeNegocioId == linha.Id);
         carteiras["MAQ_03BAR_02_19"].EmpresaId.Should().Be(_semente.Barretos, "o NroEmpresa 3 é a filial 010103");
         carteiras["MAQ_03BAR_02_19"].ResponsavelId.Should().Be(_semente.JoaoNoCrm, "o vendedor já tinha conta no CRM: casou pelo login");
@@ -145,6 +145,9 @@ public sealed class CargaDeCarteirasDoVorticeTestes : IDisposable
         (await db.Usuarios.CountAsync(u => u.NomePrincipal.StartsWith("joao.silva"))).Should().Be(1, "João já tinha conta: não se cria outra");
         (await db.Usuarios.AnyAsync(u => u.NomePrincipal == Principal("pedro.saiu"))).Should().BeFalse(
             "a carteira dele é de vendedor desligado e não entrou — não há por que criar a conta");
+        (await db.Usuarios.AnyAsync(u => u.NomePrincipal == Principal("robo.app"))).Should().BeFalse(
+            "o dono-robô só responde por carteira de teste, que não entra");
+        (await db.Carteiras.AnyAsync(c => c.Codigo.StartsWith("TESTE_"))).Should().BeFalse();
 
         // O DE-PARA do dono fica gravado: a próxima rodada o reencontra pelo identificador do Vórtice.
         (await db.ChavesExternas.CountAsync(c => c.Entidade == nameof(Usuario))).Should().Be(4);
@@ -180,7 +183,7 @@ public sealed class CargaDeCarteirasDoVorticeTestes : IDisposable
             .Where(r => r.Fluxo == CargaDeCarteirasDoVortice.Fluxo)
             .ToDictionaryAsync(r => r.ChaveOrigem);
 
-        registros.Should().HaveCount(10, "um registro por vínculo lido — os que entram e os que não");
+        registros.Should().HaveCount(11, "um registro por vínculo lido — os que entram e os que não");
         registros.Values.Count(r => r.Decisao == DecisaoDaIntegracao.Importado).Should().Be(5);
 
         registros["5/18"].Motivos.Should().Be(MotivoDePendenciaDaCarteira.SemDocumento);
@@ -189,6 +192,8 @@ public sealed class CargaDeCarteirasDoVorticeTestes : IDisposable
             "sem o cadastro do Protheus não há como dizer por que o cliente não está no CRM");
         registros["8/714"].Motivos.Should().Be(MotivoDePendenciaDaCarteira.FilialDaCarteiraForaDoCrm);
         registros["9/900"].Motivos.Should().Be(MotivoDePendenciaDaCarteira.CarteiraDeVendedorDesligado);
+        registros["11/724"].Motivos.Should().Be(MotivoDePendenciaDaCarteira.CarteiraDeTesteNaoCarregada,
+            "o resíduo de teste não entra (decisão de 24/09/2026), mesmo com cliente que casa");
 
         registros["1/18"].LinhaNaOrigem.Should().Be("MAQ-NOVOS");
         registros["1/18"].UnidadeNaOrigem.Should().Be("MAQ_01RIB_02", "o registro diz de que carteira da origem ele é");
@@ -221,13 +226,13 @@ public sealed class CargaDeCarteirasDoVorticeTestes : IDisposable
         segunda.Valor(CargaDeCarteirasDoVortice.RotuloDeDonosCriados).Should().Be(0);
         segunda.Valor(CargaDeCarteirasDoVortice.RotuloDeCarteirasCriadas).Should().Be(0);
         segunda.Valor(CargaDeCarteirasDoVortice.RotuloDeCarteirasAlteradas).Should().Be(0);
-        segunda.Valor("registros já conhecidos sem alteração").Should().Be(10);
+        segunda.Valor("registros já conhecidos sem alteração").Should().Be(11);
 
         await using var depois = Sistema();
         (await depois.ClienteCarteiras.CountAsync()).Should().Be(vinculos);
         (await depois.Usuarios.CountAsync()).Should().Be(usuarios);
         (await depois.Carteiras.CountAsync()).Should().Be(carteiras);
-        (await depois.RegistrosDeOrigem.CountAsync(r => r.Fluxo == CargaDeCarteirasDoVortice.Fluxo)).Should().Be(10);
+        (await depois.RegistrosDeOrigem.CountAsync(r => r.Fluxo == CargaDeCarteirasDoVortice.Fluxo)).Should().Be(11);
         (await depois.RegistrosDeOrigem.Where(r => r.ChaveOrigem == "1/18").Select(r => r.Leituras).SingleAsync()).Should().Be(2);
     }
 

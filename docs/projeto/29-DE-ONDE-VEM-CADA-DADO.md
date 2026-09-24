@@ -19,8 +19,15 @@ apenas `GET`.
 ## 1. Protheus — o faturamento
 
 **Arquivo:** `src/Tracbel.Crm.Integracao/Protheus/LeitorDeFaturamentoDoProtheus.cs`
-**Transporte:** `src/Tracbel.Crm.Integracao/Protheus/PonteDoProtheus.cs`
-**Endpoint:** `GET /api/framework/v1/genericQuery` — ver documento 28.
+**Carga:** `src/Tracbel.Crm.Carga/CargaDeFaturamentoDoProtheus.cs` (`--somente-faturamento [--simular]`)
+
+> **Atualização de 24/09/2026 — a leitura saiu da API REST e vai direto ao banco do Protheus**
+> (SQL Server, `ApplicationIntent=ReadOnly`, `SELECT ... WITH (NOLOCK)`, conexão "Protheus — banco
+> (leitura)"). O `GROUP BY` por filial, mês, cliente e grupo roda no próprio banco do ERP, e chegam só
+> os agregados: três anos em menos de um minuto. As regras abaixo (tipo `N`, lista de CFOP, grupo)
+> são as mesmas; as consultas exatas estão em `LeitorDeFaturamentoDoProtheus.ConsultaDaVenda` e
+> `ConsultaDoResumo`. O que segue sobre `genericQuery` e `tenantId` é o histórico da leitura REST.
+> Filial: `D2_FILIAL`, confirmada no banco com as dezesseis filiais (ver o comentário da classe).
 
 ### 1.1 `SA1` — cadastro de clientes
 

@@ -78,6 +78,12 @@ internal static class MotivoDePendenciaDaCarteira
 
     /// <summary>O vínculo aponta para uma carteira que o próprio Vórtice não tem.</summary>
     public const string CarteiraInexistenteNoVortice = "CARTEIRA_INEXISTENTE_NO_VORTICE";
+
+    /// <summary>
+    /// A carteira é resíduo de teste (<c>TESTE_*</c>, <c>TI_RPO</c> da consultoria) — decisão de 24/09/2026: não
+    /// entra, e o dono dela não ganha conta.
+    /// </summary>
+    public const string CarteiraDeTesteNaoCarregada = "CARTEIRA_DE_TESTE_NAO_CARREGADA";
 }
 
 /// <summary>O que a sincronia das carteiras fez (ou faria, na simulação), em número — sem nome nem documento.</summary>
@@ -98,8 +104,9 @@ internal sealed record RelatorioDaSincroniaDeCarteiras(
 /// A SINCRONIA DAS CARTEIRAS MAQ_NOVOS DO VÓRTICE (decisão de 24/09/2026).
 ///
 /// <para><b>O que entra.</b> Todas as carteiras do departamento <c>MAQ-NOVOS</c> — o vendedor de campo
-/// (<c>MAQ_*</c>), o pool da Inteligência de Mercado (<c>TBA_*</c>) e o digital (<c>DGT_*</c>). Nada é filtrado por
-/// tipo de carteira; o que as distingue são as noções que o modelo já tem, pela MESMA regra da carga antiga
+/// (<c>MAQ_*</c>), o pool da Inteligência de Mercado (<c>TBA_*</c>) e o digital (<c>DGT_*</c>). A única carteira que
+/// fica de fora por ser o que é, é o resíduo de TESTE (decisão de 24/09/2026) — pendente, com o motivo, e sem conta
+/// para o dono-robô. O que distingue as outras são as noções que o modelo já tem, pela MESMA regra da carga antiga
 /// (<see cref="ClassificacaoDeNatureza"/>): a natureza da carteira (comercial, administrativa, teste) e a natureza
 /// do dono (pessoa, departamento…). O pool do INT.MERCADO aparece como carteira de ÁREA; o código de origem
 /// (<c>MAQ_</c>, <c>TBA_</c>, <c>DGT_</c>) continua no código da carteira.</para>
@@ -353,6 +360,19 @@ internal sealed class CargaDeCarteirasDoVortice(
                 continue;
             }
 
+            // A NATUREZA PELA REGRA DA CARGA ANTIGA. Ela é gravada só no nascimento — depois disso é leitura que o
+            // negócio corrige pela tela, e a sincronia não desfaz a correção de ninguém.
+            var decisoes = new List<CorrecaoAplicada>();
+            carteira.Natureza = ClassificacaoDeNatureza.DaCarteira(carteira.Nome, plano.NomeDaLinha, donoNaOrigem.Nome, decisoes);
+
+            // O RESÍDUO DE TESTE NÃO ENTRA (decisão de 24/09/2026), e isso vem ANTES do dono: a conta de um robô de
+            // teste (NETO.APP, VORTICE.APP) ou da consultoria que só responde por teste não tem por que existir.
+            if (carteira.Natureza == NaturezaDaCarteira.Teste)
+            {
+                carteira.Motivo = MotivoDePendenciaDaCarteira.CarteiraDeTesteNaoCarregada;
+                continue;
+            }
+
             if (!plano.Donos.TryGetValue(seqDono, out var dono))
             {
                 dono = ResolverDono(donoNaOrigem, chavesDeUsuario, contaPorId, contasPorLogin);
@@ -367,11 +387,6 @@ internal sealed class CargaDeCarteirasDoVortice(
 
             carteira.Dono = dono;
             dono.Carteiras.Add(carteira);
-
-            // A NATUREZA PELA REGRA DA CARGA ANTIGA, e só no nascimento: depois disso ela é leitura que o negócio
-            // corrige pela tela, e a sincronia não desfaz a correção de ninguém.
-            var decisoes = new List<CorrecaoAplicada>();
-            carteira.Natureza = ClassificacaoDeNatureza.DaCarteira(carteira.Nome, plano.NomeDaLinha, donoNaOrigem.Nome, decisoes);
 
             if (existente is not null)
             {

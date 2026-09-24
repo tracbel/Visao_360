@@ -150,34 +150,34 @@
       "codigo": "010104",
       "descricao": "Tracbel Agro — Guaíra",
       "ordem": 14,
-      "ativo": false,
+      "ativo": true,
       "sigla_legado": "CGUA",
       "nro_empresa_legado": 4,
       "cidade": "Guaíra",
       "uf": "SP",
-      "observacao": "🔴 A CONFIRMAR: o Vórtice ainda marca esta filial como ativa (GE_Empresa), mas ela não consta da lista oficial de 04/09/2026. Antes de migrar, decidir se fechou, foi incorporada por outra, ou se o cadastro do legado está desatualizado. O código aqui é inferido pelo padrão 0101NN e precisa ser confirmado."
+      "observacao": "REATIVADA em 24/09/2026 por decisão do Ricardo: fatura no Protheus (SYS_COMPANY e X_V_UTIL_FILIAIS têm o código 0101NN confirmado) e responde por clientes da área de atuação. O banco do servidor recebe a mudança pela migração FiliaisDeGuairaItuveravaEMonteAltoReativadas."
     },
     {
       "codigo": "010105",
       "descricao": "Tracbel Agro — Ituverava",
       "ordem": 15,
-      "ativo": false,
+      "ativo": true,
       "sigla_legado": "CITU",
       "nro_empresa_legado": 5,
       "cidade": "Ituverava",
       "uf": "SP",
-      "observacao": "🔴 A CONFIRMAR: o Vórtice ainda marca esta filial como ativa (GE_Empresa), mas ela não consta da lista oficial de 04/09/2026. Antes de migrar, decidir se fechou, foi incorporada por outra, ou se o cadastro do legado está desatualizado. O código aqui é inferido pelo padrão 0101NN e precisa ser confirmado."
+      "observacao": "REATIVADA em 24/09/2026 por decisão do Ricardo: fatura no Protheus (SYS_COMPANY e X_V_UTIL_FILIAIS têm o código 0101NN confirmado) e responde por clientes da área de atuação. O banco do servidor recebe a mudança pela migração FiliaisDeGuairaItuveravaEMonteAltoReativadas."
     },
     {
       "codigo": "010110",
       "descricao": "Tracbel Agro — Monte Alto",
       "ordem": 16,
-      "ativo": false,
+      "ativo": true,
       "sigla_legado": "CMAL",
       "nro_empresa_legado": 10,
       "cidade": "Monte Alto",
       "uf": "SP",
-      "observacao": "🔴 A CONFIRMAR: o Vórtice ainda marca esta filial como ativa (GE_Empresa), mas ela não consta da lista oficial de 04/09/2026. Antes de migrar, decidir se fechou, foi incorporada por outra, ou se o cadastro do legado está desatualizado. O código aqui é inferido pelo padrão 0101NN e precisa ser confirmado."
+      "observacao": "REATIVADA em 24/09/2026 por decisão do Ricardo: fatura no Protheus (SYS_COMPANY e X_V_UTIL_FILIAIS têm o código 0101NN confirmado) e responde por clientes da área de atuação. O banco do servidor recebe a mudança pela migração FiliaisDeGuairaItuveravaEMonteAltoReativadas."
     },
     {
       "codigo": "CFRA_COLORADO_6",

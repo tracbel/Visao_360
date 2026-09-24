@@ -23,7 +23,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                 schema: "integracao",
                 table: "Rotina",
                 columns: new[] { "Id", "AgendaVigenteDesde", "AnoInicialDoHistorico", "Cadencia", "Codigo", "Dia", "EstaLigada", "ExecucaoPedidaEm", "ExecucaoPedidaPorId", "Hora", "IntervaloMinutos", "Mes", "Nome", "UltimaExecucaoIniciadaEm", "UltimaExecucaoTerminadaEm", "UltimaMensagem", "UltimoResultado" },
-                values: new object[] { 5, new DateTime(2026, 9, 22, 12, 0, 0, 0, DateTimeKind.Utc), null, "Diaria", "CARTEIRAS_VORTICE", null, false, null, null, new TimeOnly(4, 30, 0), null, null, "Carteiras MAQ_NOVOS do Vórtice", null, null, null, null });
+                values: new object[] { 6, new DateTime(2026, 9, 22, 12, 0, 0, 0, DateTimeKind.Utc), null, "Diaria", "CARTEIRAS_VORTICE", null, false, null, null, new TimeOnly(4, 30, 0), null, null, "Carteiras MAQ_NOVOS do Vórtice", null, null, null, null });
         }
 
         /// <inheritdoc />
@@ -33,7 +33,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                 schema: "integracao",
                 table: "Rotina",
                 keyColumn: "Id",
-                keyValue: 5);
+                keyValue: 6);
 
             migrationBuilder.UpdateData(
                 schema: "integracao",
