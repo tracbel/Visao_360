@@ -25,6 +25,7 @@ import { ReferenciaNaoEMunicipal } from '../comum/Comparacao';
 import { PainelDeCredito } from '../territorio/PainelDeCredito';
 import { PainelDeCustos } from '../territorio/PainelDeCustos';
 import { PainelDePrecos } from '../territorio/PainelDePrecos';
+import { PainelDoPrecoImplicito } from '../territorio/PainelDoPrecoImplicito';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
 import { AbasInternas } from './AbasInternas';
 import { ComposicaoDoFator } from './ComposicaoDoFator';
@@ -91,6 +92,17 @@ export function BlocoDoMomento({
                 <details className="cad-recolhivel" data-bloco="rentabilidade-fontes">
                   <summary>As duas séries que compõem a margem — preço e custo</summary>
                   <PainelDePrecos produtosDoMunicipio={produtosDoMunicipio} />
+
+                  {/* A SEGUNDA SÉRIE DE PREÇO, DO IBGE (issue 198) — ao lado da CONAB, e NUNCA emendada
+                      nela. A da CONAB é mensal e por UF; esta é anual e por município, vai até 2010 e
+                      entrega as médias de 3 e 5 anos. A distância entre as duas, medida em 22/09, vai de
+                      +1,1% na soja a −28,4% no amendoim: emendá-las criaria um degrau artificial na
+                      virada, e é por isso que são dois painéis. */}
+                  <PainelDoPrecoImplicito
+                    municipioCodigoIbge={municipioSelecionado}
+                    nomeDoMunicipio={nomeDoMunicipio}
+                    produtosDoMunicipio={produtosDoMunicipio}
+                  />
                   <ReferenciaNaoEMunicipal
                     nomeDoMunicipio={nomeDoMunicipio}
                     fonte="a localidade de referência da CONAB"
