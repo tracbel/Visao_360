@@ -212,8 +212,9 @@ public static class DecisaoDoMercado
 
         nameof(MotivoSemNumeroDeDecisao.SemVendasEmUnidades) =>
             $"As vendas da Tracbel em MÁQUINAS não estão carregadas, e {numero} precisa delas. O faturamento em reais " +
-            "que já existe não serve de numerador para uma demanda medida em máquinas (issue 69). A fonte canônica " +
-            "ainda não foi escolhida — é a decisão D-P08.",
+            "que já existe não serve de numerador para uma demanda medida em máquinas (issue 69). A fonte já está " +
+            "decidida — é o ART (D-P08, 24/09/2026) —, e o serviço de sincronização está desligado para o ajuste " +
+            "dos dados: quando ele voltar, o número aparece sozinho.",
 
         nameof(MotivoSemNumeroDeDecisao.SemPrecoDeMaquina) =>
             $"Não há preço de referência de máquina no CRM, e {numero} é a demanda de cada categoria multiplicada pelo " +

@@ -31,6 +31,8 @@ function abrir({ fator = null as number | null, demanda = 400 as number | null, 
       demandaDeSaoPaulo={null}
       carregando={carregando}
       procedenciaDaDemanda={null}
+      maquinasVendidas={null}
+      procedenciaDasVendas={null}
     />,
   );
 }

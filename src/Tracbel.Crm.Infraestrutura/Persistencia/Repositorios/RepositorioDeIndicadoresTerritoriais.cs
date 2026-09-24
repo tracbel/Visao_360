@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Comercial;
+using Tracbel.Crm.Dominio.Frota;
 using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
@@ -380,6 +381,92 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         }
 
         // -----------------------------------------------------------------------------------------
+        // AS VENDAS DE MÁQUINA EM UNIDADES — o ART (issue 69; D-P08 decidida em 24/09/2026).
+        //
+        // ELAS NÃO SÃO O FATURAMENTO ACIMA. Aquele é o Protheus, em REAIS; este é o ART, em MÁQUINAS.
+        // A captura é uma razão de unidades sobre demanda estimada em unidades, e reais no numerador a
+        // tornariam incomparável — os dois convivem, e nada aqui os soma.
+        //
+        // UMA VENDA É UMA MÁQUINA: cada linha do ART tem um chassi e vira uma venda. Somar a coluna de
+        // quantidade da origem contaria duas vezes a máquina que ela lançasse em lote.
+        //
+        // AUSÊNCIA DE CARGA NÃO É AUSÊNCIA DE VENDA: com a tabela vazia ao alcance desta consulta, o
+        // bloco inteiro sai NULO, e a captura sai vazia com o motivo. Zero é medida — a filial existe,
+        // o ART trouxe dado e ela não vendeu máquina no período.
+        // -----------------------------------------------------------------------------------------
+        var vendasDeMaquina = contexto.VendasDeMaquina.AsNoTracking()
+            .Where(v => v.ExcluidoEm == null
+                        && (consulta.FilialDaVendaId == null || v.EmpresaId == consulta.FilialDaVendaId));
+
+        var oArtTrouxeVenda = await contexto.VendasDeMaquina.AsNoTracking().AnyAsync(v => v.ExcluidoEm == null, ct);
+
+        var categoriaDaLinha = new Dictionary<string, (string Codigo, string Nome, short Ordem)>(StringComparer.Ordinal);
+        int vendasSemAData = 0;
+        DateOnly? vendaMaisRecente = null;
+        DateTime? carregadoAte = null;
+
+        if (oArtTrouxeVenda)
+        {
+            // O DE-PARA É CRUZADO EM MEMÓRIA, DE PROPÓSITO. `CodigoDaLinha` é texto ASCII com colação
+            // binária e `LinhaDeProduto.Codigo` é Unicode com a colação do banco: um JOIN entre os dois
+            // no SQL Server dá conflito de colação. As duas tabelas têm dezenas de linhas.
+            var codigoDaLinha = await contexto.LinhasDeProduto.AsNoTracking()
+                .ToDictionaryAsync(l => l.Id, l => l.Codigo, ct);
+
+            foreach (var ligacao in await (
+                         from ligacao in contexto.LinhasDeProdutoNasCategorias.AsNoTracking()
+                         join categoria in contexto.CategoriasDeMaquina.AsNoTracking()
+                             on ligacao.CategoriaDeMaquinaId equals categoria.Id
+                         select new { ligacao.CodigoDaLinha, categoria.Codigo, categoria.Nome, categoria.Ordem })
+                     .ToListAsync(ct))
+                categoriaDaLinha[ligacao.CodigoDaLinha] = (ligacao.Codigo, ligacao.Nome, ligacao.Ordem);
+
+            var datas = DataDoCriterio(vendasDeMaquina, CriterioDaData);
+            vendasSemAData = await datas.CountAsync(d => d == null, ct);
+            vendaMaisRecente = await datas.MaxAsync(ct);
+            carregadoAte = await vendasDeMaquina.MaxAsync(v => (DateTime?)v.ImportadaEm, ct);
+
+            var vendas = await (
+                    from venda in NoPeriodo(
+                        vendasDeMaquina, CriterioDaData, consulta.CompetenciaInicial, consulta.CompetenciaFinal.AddMonths(1))
+                    // A MÁQUINA ENTRA POR FORA (junção à esquerda): ela tem filial própria, e a de uma
+                    // máquina reaproveitada de outra filial pode estar fora do alcance de quem lê. Numa
+                    // junção comum a venda sumiria inteira; assim ela conta, e só a categoria fica sem saber.
+                    join maquina in contexto.Equipamentos.AsNoTracking().Where(e => e.ExcluidoEm == null)
+                        on venda.EquipamentoId equals maquina.Id into maquinas
+                    from maquina in maquinas.DefaultIfEmpty()
+                    select new { venda.CompradorId, LinhaDeProdutoId = maquina == null ? null : maquina.LinhaDeProdutoId })
+                .ToListAsync(ct);
+
+            foreach (var venda in vendas)
+            {
+                var grupoDaMaquina = GrupoDe(venda.CompradorId);
+                if (grupoDaMaquina == ForaDoFiltro) continue;
+
+                var acumulador = Do(grupoDaMaquina);
+                acumulador.MaquinasVendidas++;
+
+                if (venda.LinhaDeProdutoId is not { } linhaId || !codigoDaLinha.TryGetValue(linhaId, out var linha))
+                {
+                    acumulador.MaquinasSemClassificacao++;
+                    continue;
+                }
+
+                // LINHA SEM CATEGORIA CONTA NO TOTAL E SOME DA QUEBRA. Hoje são a colhedora de cana e a
+                // plataforma de corte, que ficaram sem categoria de propósito: são julgamento do
+                // comercial, não omissão (documento 48, §5.3).
+                if (!categoriaDaLinha.TryGetValue(linha, out var categoria))
+                {
+                    acumulador.MaquinasEmLinhaSemCategoria++;
+                    continue;
+                }
+
+                acumulador.MaquinasPorCategoria[categoria.Codigo] =
+                    acumulador.MaquinasPorCategoria.GetValueOrDefault(categoria.Codigo) + 1;
+            }
+        }
+
+        // -----------------------------------------------------------------------------------------
         // Potencial: a área plantada do último ano, para os produtos das regras vigentes HOJE (issue 71:
         // a regra tem vigência, e a de hoje é a que o mapa aplica — uma vigência futura ainda não vale).
         // -----------------------------------------------------------------------------------------
@@ -622,14 +709,51 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                         noMunicipio.AreaUtilHectares,
                         noMunicipio.Estimativa,
                         noMunicipio.MotivoSemParque,
-                        noMunicipio.MotivoSemDemanda)));
+                        noMunicipio.MotivoSemDemanda),
+                oArtTrouxeVenda ? acumulador.MaquinasVendidas : null));
         }
 
         var foraDoMapa = GruposForaDoMapa
             .Where(g => acumuladores.ContainsKey(g.Grupo))
             .Select(g => new IndicadoresForaDoMapa(
-                g.Codigo, g.Descricao, acumuladores[g.Grupo].Cobertura(), acumuladores[g.Grupo].Vendas()))
+                g.Codigo, g.Descricao, acumuladores[g.Grupo].Cobertura(), acumuladores[g.Grupo].Vendas(),
+                oArtTrouxeVenda ? acumuladores[g.Grupo].MaquinasVendidas : null))
             .ToList();
+
+        // O TOTAL DE UNIDADES DO RECORTE É A SOMA DOS MUNICÍPIOS QUE ENTRARAM NELE, e não de todos os
+        // grupos: a captura divide este número pela demanda DO RECORTE, e o que está fora do mapa não
+        // tem demanda do outro lado da razão. Ele sai à parte, para o leitor saber que existe.
+        var doRecorte = codigosNoRecorte.Where(acumuladores.ContainsKey).Select(c => acumuladores[c]).ToList();
+
+        // A CATEGORIA SAI NA ORDEM DE EXIBIÇÃO DO CATÁLOGO, a mesma do potencial por categoria: as duas
+        // listas ficam lado a lado na tela, e ordens diferentes fariam o leitor comparar linhas trocadas.
+        var categoriaPeloCodigo = categoriaDaLinha.Values
+            .DistinctBy(c => c.Codigo, StringComparer.Ordinal)
+            .ToDictionary(c => c.Codigo, c => (c.Nome, c.Ordem), StringComparer.Ordinal);
+
+        var maquinasVendidas = !oArtTrouxeVenda
+            ? null
+            : new VendasDeMaquinaDoRecorte(
+                CriterioDaData.ToString(),
+                FraseDoCriterio,
+                doRecorte.Sum(a => a.MaquinasVendidas),
+                [
+                    .. doRecorte
+                        .SelectMany(a => a.MaquinasPorCategoria)
+                        .GroupBy(c => c.Key, StringComparer.Ordinal)
+                        .Select(c => new UnidadesNaCategoria(
+                            c.Key,
+                            categoriaPeloCodigo.TryGetValue(c.Key, out var doCatalogo) ? doCatalogo.Nome : c.Key,
+                            c.Sum(u => u.Value)))
+                        .OrderBy(c => categoriaPeloCodigo.TryGetValue(c.CategoriaCodigo, out var ordem) ? ordem.Ordem : short.MaxValue)
+                        .ThenBy(c => c.CategoriaCodigo, StringComparer.Ordinal)
+                ],
+                GruposForaDoMapa.Where(g => acumuladores.ContainsKey(g.Grupo)).Sum(g => acumuladores[g.Grupo].MaquinasVendidas),
+                doRecorte.Sum(a => a.MaquinasSemClassificacao),
+                doRecorte.Sum(a => a.MaquinasEmLinhaSemCategoria),
+                vendasSemAData,
+                vendaMaisRecente,
+                carregadoAte);
 
         return new IndicadoresTerritoriais(
             consulta.CompetenciaInicial,
@@ -658,8 +782,65 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     RelevanciaDoRecorte(codigosNoRecorte, producao, totaisDoEstado),
                     RelevanciaPorCultura(codigosNoRecorte, daRegra, culturasNoEstado)),
             await LerTotaisDaRegiaoTracbelAsync(ct),
-            await MontarProcedenciasAsync(agoraUtc, ct));
+            await MontarProcedenciasAsync(agoraUtc, maquinasVendidas, ct),
+            MaquinasVendidas: maquinasVendidas);
     }
+
+    /// <summary>
+    /// QUAL DAS TRÊS DATAS DO ART define o período: o FATURAMENTO (D-P08.1, decidida em 24/09/2026).
+    ///
+    /// <para><b>Porque é isso que o ART é</b>: a view é de máquina faturada — ela traz o número da nota
+    /// e a data dela —, e máquina faturada é máquina vendida. A entrega, que esta leitura chegou a
+    /// propor, é evento posterior e <b>fica vazia</b> quando a origem manda data zerada: contar por ela
+    /// sumiria com a máquina faturada e ainda não entregue, e empurraria a venda de dezembro para
+    /// janeiro.</para>
+    ///
+    /// <para><b>E é o mesmo relógio do dinheiro.</b> O faturamento em reais do Protheus é por nota; com
+    /// o mesmo critério aqui, as duas medidas do mesmo período falam do mesmo evento. Com a entrega,
+    /// ficariam em relógios diferentes sem ninguém notar.</para>
+    ///
+    /// <para>O critério continua viajando na resposta, e a tela o escreve ao lado do número: decidido
+    /// não é o mesmo que implícito.</para>
+    /// </summary>
+    private const DataQueDefineOPeriodoDaVenda CriterioDaData = DataQueDefineOPeriodoDaVenda.Faturamento;
+
+    /// <summary>O critério em português, para a tela pôr ao lado do número.</summary>
+    private const string FraseDoCriterio =
+        "Contadas pela DATA DO FATURAMENTO (D-P08.1): a view do ART é de máquina faturada, e máquina faturada é " +
+        "máquina vendida. É o mesmo critério do faturamento em reais, então as duas medidas do período falam do " +
+        "mesmo evento. Venda ainda não faturada não cabe em período nenhum e aparece contada à parte.";
+
+    /// <summary>
+    /// As vendas dentro do período, pela data do critério.
+    ///
+    /// <para>O <c>switch</c> existe porque a data é uma COLUNA diferente em cada critério, e uma
+    /// árvore de expressão não escolhe coluna em tempo de execução — não há como escrever
+    /// <c>Where(v =&gt; DataDe(v) &gt;= inicio)</c> e esperar que o EF a traduza.</para>
+    /// </summary>
+    /// <param name="vendas">As vendas já filtradas por filial e exclusão.</param>
+    /// <param name="criterio">Qual das três datas.</param>
+    /// <param name="inicio">O primeiro dia do período.</param>
+    /// <param name="fim">O primeiro dia do mês SEGUINTE ao último — o limite é exclusivo.</param>
+    private static IQueryable<VendaDeMaquina> NoPeriodo(
+        IQueryable<VendaDeMaquina> vendas, DataQueDefineOPeriodoDaVenda criterio, DateOnly inicio, DateOnly fim) =>
+        criterio switch
+        {
+            DataQueDefineOPeriodoDaVenda.Venda => vendas.Where(v => v.VendidaEm >= inicio && v.VendidaEm < fim),
+            DataQueDefineOPeriodoDaVenda.Faturamento => vendas.Where(v => v.FaturadaEm >= inicio && v.FaturadaEm < fim),
+            _ => vendas.Where(v => v.EntregueEm >= inicio && v.EntregueEm < fim)
+        };
+
+    /// <summary>A data do critério de cada venda — para contar as vazias e achar a mais recente.</summary>
+    /// <param name="vendas">As vendas já filtradas por filial e exclusão.</param>
+    /// <param name="criterio">Qual das três datas.</param>
+    private static IQueryable<DateOnly?> DataDoCriterio(
+        IQueryable<VendaDeMaquina> vendas, DataQueDefineOPeriodoDaVenda criterio) =>
+        criterio switch
+        {
+            DataQueDefineOPeriodoDaVenda.Venda => vendas.Select(v => v.VendidaEm),
+            DataQueDefineOPeriodoDaVenda.Faturamento => vendas.Select(v => v.FaturadaEm),
+            _ => vendas.Select(v => v.EntregueEm)
+        };
 
     /// <summary>
     /// DE ONDE VEIO CADA NÚMERO — a procedência por indicador (issue 167).
@@ -671,7 +852,11 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
     /// <para><b>Fonte não carregada devolve nulo</b>, e a tela não mostra carimbo — em vez de carimbar
     /// uma origem que ninguém leu.</para>
     /// </summary>
-    private async Task<ProcedenciasDoTerritorio> MontarProcedenciasAsync(DateTime agoraUtc, CancellationToken ct)
+    /// <param name="agoraUtc">O instante da leitura.</param>
+    /// <param name="maquinas">As vendas em unidades do recorte; nulas quando o ART não trouxe nada.</param>
+    /// <param name="ct">Cancelamento.</param>
+    private async Task<ProcedenciasDoTerritorio> MontarProcedenciasAsync(
+        DateTime agoraUtc, VendasDeMaquinaDoRecorte? maquinas, CancellationToken ct)
     {
         var anoDaLavoura = await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking().MaxAsync(a => (short?)a.Ano, ct);
         var anoDoCenso = await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking().MaxAsync(f => (short?)f.Ano, ct);
@@ -724,7 +909,19 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     "ANP", "Autorizações de produção de etanol", null, "Capacidade autorizada (m³/dia)",
                     null, agoraUtc,
                     "A ANP só enxerga usina de ETANOL: ausência aqui não prova ausência de usina — " +
-                    "a que só faz açúcar não é autorizada por ela e não aparece."));
+                    "a que só faz açúcar não é autorizada por ela e não aparece."),
+
+            // O CARIMBO DA CAPTURA. Ele existe só quando há leitura a carimbar: sem venda no ART, a
+            // procedência é nula e a tela não carimba uma origem que não leu.
+            MaquinasVendidas: maquinas is null
+                ? null
+                : new ProcedenciaDoIndicador(
+                    "ART — sistema comercial de vendas", "Vendas de máquina, por chassi", null,
+                    "Máquinas vendidas (unidades)",
+                    maquinas.VendaMaisRecente is { } ate ? $"até {ate:dd/MM/yyyy}" : null,
+                    maquinas.CarregadoAte,
+                    $"{maquinas.FraseDoCriterio} O ART não traz financiamento, e o serviço está desligado para o " +
+                    "ajuste dos dados: o que se vê é o que já foi carregado, não o de hoje."));
     }
 
     /// <summary>
@@ -1200,6 +1397,19 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         public decimal Peca;
         public decimal Servico;
         public decimal Outros;
+
+        /// <summary>As máquinas vendidas a clientes deste grupo, em UNIDADES — o ART (issue 69).</summary>
+        public int MaquinasVendidas;
+
+        /// <summary>Delas, as que a classificação de produto do CRM não alcança.</summary>
+        public int MaquinasSemClassificacao;
+
+        /// <summary>Delas, as de linha que existe e ainda não foi ligada a uma categoria.</summary>
+        public int MaquinasEmLinhaSemCategoria;
+
+        /// <summary>Delas, quantas em cada categoria de máquina.</summary>
+        public readonly Dictionary<string, int> MaquinasPorCategoria = new(StringComparer.Ordinal);
+
         public readonly Dictionary<long, int> VinculosPorResponsavel = [];
         public readonly Dictionary<long, HashSet<long>> CarteirasPorResponsavel = [];
 

@@ -598,11 +598,19 @@ th[aria-sort='descending'] .terr-ordenar { color: var(--text-primary); }
 /* -----------------------------------------------------------------------------
    AS COLUNAS SAEM PELA LARGURA DA TABELA (fase 4; antes, pela da página).
 
-   Nove colunas cabem a partir de ~700px de TABELA — é o que a ficha aberta
-   deixa em 1.300px de conteúdo. Abaixo disso saem "Elegíveis", "No prazo" e
-   "Pós-venda"; abaixo de 480px, também a sub-região, os pendentes e as
-   máquinas, e ficam o município, as vendas e a ação — o que responde "onde
-   vender" num aparelho de mão. O que sai está INTEIRO na ficha, a um toque.
+   Nove colunas cabem a partir de ~700px de TABELA; a décima, "Vendidas", só a
+   partir de ~860px. Abaixo de 700 saem "Elegíveis", "No prazo" e "Pós-venda";
+   abaixo de 480px, também a sub-região, os pendentes e as máquinas, e ficam o
+   município, as vendas e a ação — o que responde "onde vender" num aparelho de
+   mão. O que sai está INTEIRO na ficha, a um toque.
+
+   "VENDIDAS" É A PRIMEIRA A SAIR (issue 69), e o degrau dela foi MEDIDO, não
+   escolhido: com dez colunas a tabela pede 753px de largura mínima, e com 742px
+   (1280px de janela, ficha aberta) ela passava 11px do cartão e rolava de lado.
+   O corte em 860px deixa ~14% de folga sobre esses 753px — e a folga existe
+   porque o CI roda em Linux, que desenha o texto MAIS LARGO que o Windows:
+   "passou aqui" já reprovou no CI por 1 a 3px. Na tela de 1536px com a ficha
+   aberta a tabela tem 901px, e a coluna aparece.
 
    A COLUNA DE AÇÃO NÃO SAI (revisão de 24/09/2026): o menu da engrenagem
    promete "Município e Ação ficam sempre", e o › é a porta da ficha na ponta
@@ -612,6 +620,12 @@ th[aria-sort='descending'] .terr-ordenar { color: var(--text-primary); }
    corpo, cada célula sabe de que coluna é (`data-coluna`), e a engrenagem pode
    tirar qualquer coluna sem deslocar as regras das outras.
    ----------------------------------------------------------------------------- */
+@container tabela (max-width: 859px) {
+  .terr-tabela-municipios [data-coluna='maquinasVendidas'] {
+    display: none;
+  }
+}
+
 @container tabela (max-width: 699px) {
   .terr-tabela-municipios [data-coluna='elegiveis'],
   .terr-tabela-municipios [data-coluna='noPrazo'],

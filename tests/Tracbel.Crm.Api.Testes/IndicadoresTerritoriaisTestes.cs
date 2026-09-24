@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
+using Tracbel.Crm.Dominio.Frota;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Identidade;
@@ -230,6 +231,75 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
             vencida,
             UsuarioPerfil.Conceder(303, desativado.Id, "teste — perfil desativado", 100, instante));
         db.Entry(vencida).Property(c => c.ExpiraEm).CurrentValue = DateTime.UtcNow.AddDays(-1);
+
+        await db.SaveChangesAsync();
+        await SemearVendasDeMaquinaAsync(db, coberto, foraDaCadencia, mineiro, agora);
+    }
+
+    /// <summary>
+    /// AS VENDAS DE MÁQUINA DO ART (issue 69, D-P08) — seis casos, um por distinção que a leitura
+    /// precisa fazer e que um total só esconderia.
+    ///
+    /// <para>Duas de trator médio em Ribeirão (a quebra por categoria); uma de colhedora de cana, que é
+    /// linha SEM categoria de propósito; uma de máquina sem classificação nenhuma; uma faturada fora do
+    /// período; uma de cliente de outra UF, que fica fora do mapa; e uma <b>ainda não faturada</b>, que
+    /// não cabe em período nenhum.</para>
+    ///
+    /// <para><b>Uma delas é faturada e NÃO entregue</b> (D-P08.1): é o caso que a data de entrega teria
+    /// feito sumir da contagem, e por isso ele existe aqui.</para>
+    /// </summary>
+    private static async Task SemearVendasDeMaquinaAsync(
+        CrmDbContext db, Cliente ribeirao, Cliente serrana, Cliente mineiro, DateTime agora)
+    {
+        var art = Dominio.Integracao.Sistema.Criar("ART_TESTE", "ART de teste", "View somente leitura");
+        db.Sistemas.Add(art);
+
+        // A COLHEDORA DE CANA NASCE SEM CATEGORIA no de-para semeado, por julgamento do comercial —
+        // é justamente o caso que este cenário precisa ter para provar que ela conta no total.
+        var tratorMedio = LinhaDeProduto.Criar("TRATOR_MEDIO", "Trator médio", null, PorteDeMaquina.Medio);
+        var colhedora = LinhaDeProduto.Criar("COLHEDORA_DE_CANA", "Colhedora de cana", null, PorteDeMaquina.NaoSeAplica);
+        db.LinhasDeProduto.AddRange(tratorMedio, colhedora);
+        await db.SaveChangesAsync();
+
+        Equipamento Maquina(string chassi, int? linha) =>
+            Equipamento.RegistrarPelaIntegracao(1, Chassi.Criar(chassi), OrigemDoEquipamento.Art, 100, null, linha);
+
+        var maquinas = new[]
+        {
+            Maquina("1TESTE00000000001", tratorMedio.Id),
+            Maquina("1TESTE00000000002", tratorMedio.Id),
+            Maquina("1TESTE00000000003", colhedora.Id),
+            Maquina("1TESTE00000000004", null),
+            Maquina("1TESTE00000000005", tratorMedio.Id),
+            Maquina("1TESTE00000000006", tratorMedio.Id),
+            Maquina("1TESTE00000000007", tratorMedio.Id)
+        };
+        db.Equipamentos.AddRange(maquinas);
+        await db.SaveChangesAsync();
+
+        DadosDaVendaNaOrigem Dados(DateOnly? faturadaEm, DateOnly? entregueEm, string chave) => new(
+            1, null, new DateOnly(2026, 1, 5), faturadaEm, entregueEm, agora,
+            null, null, null, "Varejo", false, false, 1, "TRATOR MEDIO", "PRODUTO DE TESTE",
+            "Agro Teste", "Unidade de teste", null, $"hash-{chave}", null);
+
+        void Vender(int posicao, long compradorId, DateOnly? faturadaEm, DateOnly? entregueEm = null) =>
+            db.VendasDeMaquina.Add(VendaDeMaquina.Registrar(
+                art.Id, $"ART-TESTE-{posicao}", maquinas[posicao].Id, compradorId,
+                Dados(faturadaEm, entregueEm, posicao.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                agora, 100));
+
+        Vender(0, ribeirao.Id, new DateOnly(2026, 2, 10), new DateOnly(2026, 3, 1));
+
+        // FATURADA E NÃO ENTREGUE — a máquina que o critério de entrega teria perdido (D-P08.1).
+        Vender(1, ribeirao.Id, new DateOnly(2026, 6, 30));
+
+        Vender(2, ribeirao.Id, new DateOnly(2026, 3, 15), new DateOnly(2026, 4, 2));
+        Vender(3, ribeirao.Id, new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 20));
+        Vender(4, serrana.Id, new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 20));
+        Vender(5, mineiro.Id, new DateOnly(2026, 5, 20), new DateOnly(2026, 6, 1));
+
+        // VENDIDA E AINDA NÃO FATURADA: não cabe em período nenhum, e ainda não é máquina vendida.
+        Vender(6, ribeirao.Id, null, null);
 
         await db.SaveChangesAsync();
     }
@@ -803,5 +873,138 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         resposta.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         var erros = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()).RootElement.GetProperty("erros");
         erros.EnumerateArray().Select(e => e.GetProperty("campo").GetString()).Should().Contain(campo);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // AS VENDAS DE MÁQUINA EM UNIDADES — o ART (issue 69; D-P08 decidida em 24/09/2026).
+    // ---------------------------------------------------------------------------------------------
+
+    private static JsonElement Maquinas(JsonElement dados) =>
+        dados.GetProperty("indicadores").GetProperty("maquinasVendidas");
+
+    [Fact]
+    public async Task As_maquinas_vendidas_vao_para_o_municipio_do_comprador_e_nao_para_o_da_filial()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        // Quatro no período: dois tratores, uma colhedora de cana e uma máquina sem classificação. A
+        // quinta venda de Ribeirão ainda não foi faturada, e a de Serrana foi faturada em setembro.
+        Municipio(dados, RibeiraoPreto).GetProperty("maquinasVendidas").GetInt32().Should().Be(4);
+
+        // SERRANA VENDEU — em setembro, fora do período de janeiro a junho. Zero aqui é medida, e não
+        // ausência: o ART trouxe dado, e nesta janela ela não faturou máquina nenhuma.
+        Municipio(dados, Serrana).GetProperty("maquinasVendidas").GetInt32().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task A_maquina_faturada_e_nao_entregue_conta_e_e_por_isso_que_o_criterio_e_o_faturamento()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        // A SEGUNDA VENDA DE RIBEIRÃO foi faturada em 30/06 e NÃO tem data de entrega. Ela é um dos
+        // quatro. Com o critério de entrega — a proposta que a D-P08.1 recusou — ela cairia em "sem
+        // data" e sumiria da contagem, e a fatia da Tracbel sairia menor sem ninguém notar.
+        Municipio(dados, RibeiraoPreto).GetProperty("maquinasVendidas").GetInt32().Should().Be(4);
+        Maquinas(dados).GetProperty("criterioDeData").GetString().Should().Be("Faturamento");
+        Maquinas(dados).GetProperty("vendasSemAData").GetInt32().Should().Be(1,
+            "só a venda ainda não faturada fica de fora — e ela ainda não é máquina vendida");
+    }
+
+    [Fact]
+    public async Task O_total_do_recorte_nao_inclui_o_que_esta_fora_do_mapa()
+    {
+        await SemearAsync();
+        var maquinas = Maquinas(await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo)));
+
+        maquinas.GetProperty("unidades").GetInt32().Should().Be(4,
+            "a captura divide isto pela demanda DO RECORTE, e quem está fora do mapa não tem demanda do outro lado");
+        maquinas.GetProperty("unidadesForaDoMapa").GetInt32().Should().Be(1,
+            "o cliente de Uberaba comprou, e a venda dele não some — aparece à parte");
+    }
+
+    [Fact]
+    public async Task A_quebra_por_categoria_vem_do_de_para_da_linha_de_produto()
+    {
+        await SemearAsync();
+        var maquinas = Maquinas(await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo)));
+
+        var categorias = maquinas.GetProperty("porCategoria").EnumerateArray().ToList();
+        categorias.Should().ContainSingle();
+        categorias[0].GetProperty("categoriaCodigo").GetString().Should().Be("TRATOR");
+        categorias[0].GetProperty("categoriaNome").GetString().Should().Be("Trator");
+        categorias[0].GetProperty("unidades").GetInt32().Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Linha_sem_categoria_conta_no_total_e_some_so_da_quebra()
+    {
+        await SemearAsync();
+        var maquinas = Maquinas(await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo)));
+
+        // A colhedora de cana ficou sem categoria de propósito — é julgamento do comercial, e não
+        // omissão. Somar as categorias tem de dar MENOS que o total, com a diferença explicada.
+        maquinas.GetProperty("unidadesEmLinhaSemCategoria").GetInt32().Should().Be(1);
+        maquinas.GetProperty("unidadesSemClassificacao").GetInt32().Should().Be(1,
+            "a máquina que entrou sem classificação de produto no CRM");
+
+        var somaDasCategorias = maquinas.GetProperty("porCategoria").EnumerateArray()
+            .Sum(c => c.GetProperty("unidades").GetInt32());
+        (somaDasCategorias + maquinas.GetProperty("unidadesEmLinhaSemCategoria").GetInt32()
+                           + maquinas.GetProperty("unidadesSemClassificacao").GetInt32())
+            .Should().Be(maquinas.GetProperty("unidades").GetInt32());
+    }
+
+    [Fact]
+    public async Task Venda_sem_a_data_do_criterio_nao_entra_em_periodo_nenhum_e_aparece_contada()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+        var maquinas = Maquinas(dados);
+
+        maquinas.GetProperty("criterioDeData").GetString().Should().Be("Faturamento");
+        maquinas.GetProperty("vendasSemAData").GetInt32().Should().Be(1);
+        maquinas.GetProperty("fraseDoCriterio").GetString().Should().Contain("D-P08.1",
+            "decidido não é o mesmo que implícito: a tela diz qual das três datas contou");
+
+        dados.GetProperty("metricasSemDado").EnumerateArray()
+            .Select(m => m.GetProperty("metrica").GetString())
+            .Should().Contain("dataDaVendaDeMaquina").And.Contain("categoriaDaLinhaDeProduto");
+    }
+
+    [Fact]
+    public async Task A_data_mais_recente_e_a_carga_dizem_ate_quando_o_art_trouxe_dado()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        // A MAIS RECENTE NÃO É LIMITADA PELO PERÍODO: a pergunta que ela responde é "até quando o ART
+        // trouxe venda", e não "quanto entrou nesta janela". A de Serrana, de setembro, é a resposta.
+        Maquinas(dados).GetProperty("vendaMaisRecente").GetString().Should().Be("2026-09-01");
+        Maquinas(dados).GetProperty("carregadoAte").GetString().Should().NotBeNull();
+
+        var carimbo = dados.GetProperty("indicadores").GetProperty("procedencias").GetProperty("maquinasVendidas");
+        carimbo.GetProperty("fonte").GetString().Should().Contain("ART");
+        carimbo.GetProperty("ressalva").GetString().Should().Contain("financiamento",
+            "o que a escolha da D-P08 custa fica escrito ao lado do número");
+    }
+
+    [Fact]
+    public async Task Com_as_unidades_carregadas_a_captura_sai_e_deixa_de_dizer_que_falta_a_fonte()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var captura = dados.GetProperty("numerosDeDecisao").GetProperty("capturaPercentual");
+
+        // A DEMANDA AINDA NÃO SAI neste cenário — não há regra de potencial com ciclo de renovação —,
+        // então a captura continua vazia. O que MUDA é o motivo: já não é "falta a fonte das unidades".
+        captura.GetProperty("motivo").GetString().Should().NotBe("SemVendasEmUnidades",
+            "as unidades chegaram; o que falta agora é o denominador (D-P01)");
+
+        dados.GetProperty("metricasSemDado").EnumerateArray()
+            .Select(m => m.GetProperty("metrica").GetString())
+            .Should().NotContain("vendasEmUnidades", "o ART trouxe venda neste cenário");
     }
 }

@@ -24,6 +24,8 @@ export type TotaisDaAdr = {
   maquina: number;
   posVenda: number;
   clientesQueCompraram: number;
+  /** As máquinas vendidas em UNIDADES, do ART (issue 69); nula quando o ART não trouxe venda nenhuma. */
+  maquinasVendidas: number | null;
   maquinasTeoricas: number;
   hectares: number;
   municipiosComArea: number;
@@ -57,6 +59,9 @@ export function calcularTotais(daAdr: IndicadoresDoMunicipio[]): TotaisDaAdr {
     maquina: soma((m) => m.vendas.maquina),
     posVenda: soma((m) => m.vendas.posVenda),
     clientesQueCompraram: soma((m) => m.vendas.clientesQueCompraram),
+    // NULO SÓ QUANDO TODOS SÃO NULOS — aí o ART não trouxe nada. Bastando um município com número, a
+    // soma é medida, e o município sem venda entra como zero, que é o que ele de fato vendeu.
+    maquinasVendidas: daAdr.every((m) => m.maquinasVendidas === null) ? null : soma((m) => m.maquinasVendidas ?? 0),
     maquinasTeoricas: comArea.reduce((s, m) => s + (m.potencialEstrutural?.parqueDeMaquinas ?? 0), 0),
     hectares: comArea.reduce((s, m) => s + (m.potencialEstrutural?.areaUtilHectares ?? 0), 0),
     municipiosComArea: comArea.length,
@@ -95,6 +100,16 @@ export type LinhaDaConferencia = {
    * parque zerado onde o que falta é o número.
    */
   maquinas: number | null;
+  /**
+   * As máquinas VENDIDAS da linha, em unidades (issue 69). Diferente de `maquinas`,
+   * TODA linha pode ter a sua — inclusive os grupos de fora do mapa, que também
+   * compram máquina. É aqui que a conferência das unidades fecha: sem a parcela de
+   * fora, o total da consulta somaria menos que as partes e ninguém saberia por quê.
+   *
+   * Nula quando o ART não trouxe venda nenhuma ao alcance — ausência de carga não é
+   * venda zero.
+   */
+  maquinasVendidas: number | null;
 };
 
 export type ConferenciaDaConsulta = {
@@ -146,6 +161,11 @@ export function conferenciaDaConsulta({
       vendas: soma((m) => m.vendas.valorLiquido),
       posVenda: soma((m) => m.vendas.posVenda),
       maquinas: null,
+      // NULO SÓ QUANDO TODOS SÃO NULOS. Bastando um município com número, a soma é
+      // medida, e o município sem venda entra como zero, que é o que ele vendeu.
+      maquinasVendidas: itens.every((m) => m.maquinasVendidas === null)
+        ? null
+        : soma((m) => m.maquinasVendidas ?? 0),
     };
   };
 
@@ -160,6 +180,7 @@ export function conferenciaDaConsulta({
         vendas: totais.vendas,
         posVenda: totais.posVenda,
         maquinas: totais.municipiosComArea === 0 ? null : Math.round(totais.maquinasTeoricas),
+        maquinasVendidas: totais.maquinasVendidas,
       };
 
   const foraDaAdr = municipios.filter((m) => !m.pertenceAAdr);
@@ -176,6 +197,7 @@ export function conferenciaDaConsulta({
       vendas: g.vendas.valorLiquido,
       posVenda: g.vendas.posVenda,
       maquinas: null,
+      maquinasVendidas: g.maquinasVendidas,
     })),
   ];
 
@@ -190,6 +212,13 @@ export function conferenciaDaConsulta({
       pendentes: mapa.pendentes + fora((g) => g.cobertura.pendentes),
       vendas: mapa.vendas + fora((g) => g.vendas.valorLiquido),
       posVenda: mapa.posVenda + fora((g) => g.vendas.posVenda),
+      // É AQUI QUE A CONFERÊNCIA DAS UNIDADES FECHA: mapa + fora do mapa = tudo o
+      // que a consulta encontrou. Sem a parcela de fora, o total sairia menor que a
+      // soma das linhas de cima e a conferência acusaria um sumiço que não houve.
+      maquinasVendidas:
+        mapa.maquinasVendidas === null && foraDoMapa.every((g) => g.maquinasVendidas === null)
+          ? null
+          : (mapa.maquinasVendidas ?? 0) + fora((g) => g.maquinasVendidas ?? 0),
     };
   }
 

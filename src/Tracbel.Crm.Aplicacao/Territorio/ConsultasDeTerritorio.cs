@@ -199,10 +199,10 @@ public sealed class ObterIndicadoresTerritoriais(
         DecisaoDoMercado.Calcular(
             indicadores.PotencialDoRecorte?.DemandaAnualDeMaquinas,
             indicadores.Momento?.DemandaAjustadaTotal,
-            // AS VENDAS EM UNIDADES SÃO NULAS, e não zero: `frota.VendaDeMaquina` existe e nenhuma carga
-            // deste repositório a alimenta (o ART está desligado para ajuste de dados). Zero aqui
-            // afirmaria que a Tracbel não vendeu máquina nenhuma no recorte — issue 69, decisão D-P08.
-            vendasEmUnidades: null,
+            // AS VENDAS EM UNIDADES VÊM DO ART (D-P08, decidida em 24/09/2026), e continuam NULAS quando
+            // ele não trouxe venda nenhuma — o serviço está desligado para o ajuste dos dados. Zero aqui
+            // afirmaria que a Tracbel não vendeu máquina no recorte; nulo diz que ninguém contou ainda.
+            vendasEmUnidades: indicadores.MaquinasVendidas?.Unidades,
             porCategoria: []);
 
     private async Task<MomentoDoRecorte?> MomentoDoMercadoAsync(
@@ -459,8 +459,36 @@ public sealed class ObterIndicadoresTerritoriais(
 
         lacunas.Add(new MetricaSemDado(
             "tipoDeProdutoEModelo",
-            "O faturamento carregado é por cliente e mês, sem o item da nota: não há como filtrar as " +
-            "vendas por tipo de produto nem por modelo (documento 32, seção 3.5)."));
+            "O faturamento EM REAIS é por cliente e mês, sem o item da nota: não há como abrir o valor por tipo de " +
+            "produto nem por modelo (documento 32, seção 3.5). As vendas de máquina em UNIDADES, essas sim, têm " +
+            "categoria — vêm do ART. As duas leituras não se misturam."));
+
+        // AS UNIDADES DO ART (issue 69, D-P08). Três coisas diferentes podem faltar aqui, e cada uma
+        // tem a sua frase: a carga inteira, a categoria de uma linha, e a data que põe a venda no período.
+        if (indicadores.MaquinasVendidas is null)
+            lacunas.Add(new MetricaSemDado(
+                "vendasEmUnidades",
+                "O ART não trouxe venda de máquina nenhuma ao alcance desta consulta, e é dele que saem as vendas em " +
+                "UNIDADES (D-P08, decidida em 24/09/2026). O serviço de sincronização está desligado para o ajuste dos " +
+                "dados; enquanto estiver, a captura e a oportunidade ficam vazias. Ausência de carga não é venda zero."));
+
+        if (indicadores.MaquinasVendidas is { } maquinas)
+        {
+            if (maquinas.UnidadesEmLinhaSemCategoria > 0)
+                lacunas.Add(new MetricaSemDado(
+                    "categoriaDaLinhaDeProduto",
+                    $"{maquinas.UnidadesEmLinhaSemCategoria:N0} máquinas vendidas são de uma linha que ainda não foi ligada a " +
+                    "uma categoria — hoje a colhedora de cana e a plataforma de corte, que são julgamento do comercial: " +
+                    "colher cana não é colher grão, e plataforma de corte é acessório de colheitadeira. Elas contam no " +
+                    "total e somem da leitura POR categoria (documento 48, §5.3)."));
+
+            if (maquinas.VendasSemAData > 0)
+                lacunas.Add(new MetricaSemDado(
+                    "dataDaVendaDeMaquina",
+                    $"{maquinas.VendasSemAData:N0} vendas do ART não têm a data que define o período — com o critério do " +
+                    "faturamento (D-P08.1), são vendas fechadas e ainda NÃO FATURADAS. Elas não cabem em período nenhum " +
+                    $"e ficam fora da contagem, porque ainda não são máquina vendida. {maquinas.FraseDoCriterio}"));
+        }
 
         lacunas.Add(new MetricaSemDado(
             "devolucoes",

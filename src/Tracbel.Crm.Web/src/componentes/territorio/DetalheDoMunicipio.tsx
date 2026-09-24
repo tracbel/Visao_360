@@ -410,6 +410,20 @@ export function DetalheDoMunicipio({
                   </>
                 )}
               </dd>
+              {/* A MEDIDA EM UNIDADES, do ART (issue 69, D-P08). Ela fica na MESMA lista de propósito —
+                  é a mesma pergunta, "quanto esta praça comprou" —, e com a unidade escrita porque é o
+                  único número daqui que não é em reais. Nulo é o ART não ter trazido venda; zero é medida. */}
+              <dt>Máquinas vendidas</dt>
+              <dd>
+                {municipio.maquinasVendidas === null ? (
+                  <span className="cad-sub">— o ART não trouxe venda de máquina nesta consulta</span>
+                ) : (
+                  <>
+                    <strong>{nº(municipio.maquinasVendidas)}</strong>
+                    <span className="cad-sub"> unidades, pelo ART — não se somam aos reais acima</span>
+                  </>
+                )}
+              </dd>
             </dl>
           </section>
 

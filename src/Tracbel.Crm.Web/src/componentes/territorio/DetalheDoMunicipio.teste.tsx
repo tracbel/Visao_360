@@ -81,6 +81,7 @@ const PROCEDENCIAS: ProcedenciasDoTerritorio = {
   estabelecimentos: null,
   rebanho: null,
   usinas: null,
+  maquinasVendidas: null,
 };
 
 /**
@@ -127,6 +128,7 @@ function municipio(
 ): IndicadoresDoMunicipio {
   return {
     potencialEstrutural,
+    maquinasVendidas: null,
     codigoIbge: 3543402,
     nome: 'Ribeirão Preto',
     pertenceAAdr: true,

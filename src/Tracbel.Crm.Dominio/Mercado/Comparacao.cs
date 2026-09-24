@@ -44,13 +44,18 @@ public sealed record ProcedenciaDoIndicador(
 /// <param name="Estabelecimentos">As propriedades, do Censo Agropecuário.</param>
 /// <param name="Rebanho">O efetivo bovino, da Pesquisa da Pecuária Municipal.</param>
 /// <param name="Usinas">As usinas de etanol autorizadas, da ANP.</param>
+/// <param name="MaquinasVendidas">
+/// As vendas de máquina em UNIDADES, do ART (D-P08). Nula quando o ART não trouxe venda nenhuma — e aí
+/// a captura não leva carimbo, porque não há leitura a carimbar.
+/// </param>
 public sealed record ProcedenciasDoTerritorio(
     ProcedenciaDoIndicador? AreaPlantada = null,
     ProcedenciaDoIndicador? ValorDaProducao = null,
     ProcedenciaDoIndicador? Tratores = null,
     ProcedenciaDoIndicador? Estabelecimentos = null,
     ProcedenciaDoIndicador? Rebanho = null,
-    ProcedenciaDoIndicador? Usinas = null);
+    ProcedenciaDoIndicador? Usinas = null,
+    ProcedenciaDoIndicador? MaquinasVendidas = null);
 
 /// <summary>
 /// Uma grandeza <b>somável</b>, com os denominadores que a tornam comparável.

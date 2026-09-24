@@ -175,6 +175,8 @@ export type ProcedenciasDoTerritorio = {
   estabelecimentos: ProcedenciaDoIndicador | null;
   rebanho: ProcedenciaDoIndicador | null;
   usinas: ProcedenciaDoIndicador | null;
+  /** As vendas de máquina em unidades, do ART (D-P08); nula quando o ART não trouxe nada. */
+  maquinasVendidas: ProcedenciaDoIndicador | null;
 };
 
 /**
@@ -365,6 +367,13 @@ export type IndicadoresDoMunicipio = {
   estrutura: EstruturaDoMunicipio;
   /** O parque e a demanda pelo motor (issue 72); nulo quando não há regra vigente nenhuma. */
   potencialEstrutural: PotencialEstruturalDoMunicipio | null;
+  /**
+   * As máquinas que a Tracbel vendeu a clientes daqui, em UNIDADES, pelo ART (issue 69, D-P08).
+   *
+   * NULO É O ART NÃO TER TRAZIDO VENDA NENHUMA; zero é medida. O valor em reais continua em `vendas`,
+   * que vem do Protheus e mede outra coisa — os dois não se somam.
+   */
+  maquinasVendidas: number | null;
 };
 
 /** Por que o parque ou a demanda não saiu — o enum do domínio, em texto. */
@@ -488,6 +497,8 @@ export type ClassificacaoDeIndicador = {
 };
 
 export type IndicadoresForaDoMapa = {
+  /** As máquinas do grupo em UNIDADES (issue 69); nulo quando o ART não trouxe venda nenhuma. */
+  maquinasVendidas: number | null;
   grupo: string;
   descricao: string;
   cobertura: CoberturaTerritorial;
@@ -531,6 +542,40 @@ export type IndicadoresTerritoriais = {
   procedencias: ProcedenciasDoTerritorio | null;
   /** O fator de ciclo do recorte, as parcelas e o porte estrutural (fase T3). */
   momento: MomentoDoRecorte | null;
+  /** As vendas de máquina do recorte em UNIDADES, pelo ART (issue 69); nulo quando o ART não trouxe nada. */
+  maquinasVendidas: VendasDeMaquinaDoRecorte | null;
+};
+
+/** Qual das três datas do ART põe a venda no período — a sub-decisão aberta da D-P08. */
+export type DataQueDefineOPeriodoDaVenda = 'Entrega' | 'Venda' | 'Faturamento';
+
+/** As máquinas vendidas numa categoria, em unidades. */
+export type UnidadesNaCategoria = { categoriaCodigo: string; categoriaNome: string; unidades: number };
+
+/**
+ * AS VENDAS DE MÁQUINA DA TRACBEL EM UNIDADES — o ART (D-P08, decidida em 24/09/2026).
+ *
+ * NÃO CONFUNDIR COM `vendas`, que é o faturamento em REAIS, do Protheus. A captura é uma razão de
+ * unidades sobre demanda estimada em unidades: reais no numerador a tornariam incomparável.
+ */
+export type VendasDeMaquinaDoRecorte = {
+  criterioDeData: DataQueDefineOPeriodoDaVenda;
+  /** O critério em português — a tela escreve qual data contou, em vez de deixá-la implícita. */
+  fraseDoCriterio: string;
+  unidades: number;
+  porCategoria: UnidadesNaCategoria[];
+  /** Vendidas a cliente sem município, sem código IBGE ou de outra UF — fora da captura. */
+  unidadesForaDoMapa: number;
+  /** Máquina sem classificação de produto, ou fora do alcance de filial de quem lê. */
+  unidadesSemClassificacao: number;
+  /** Linha que existe e ainda não foi ligada a uma categoria (colhedora de cana, plataforma de corte). */
+  unidadesEmLinhaSemCategoria: number;
+  /** Vendas em que a data do critério é vazia: não cabem em período nenhum. */
+  vendasSemAData: number;
+  /** A data mais recente, pelo critério — até quando o ART trouxe venda. */
+  vendaMaisRecente: string | null;
+  /** Quando a carga mais recente entrou no CRM. */
+  carregadoAte: string | null;
 };
 
 // ---------------------------------------------------------------------------

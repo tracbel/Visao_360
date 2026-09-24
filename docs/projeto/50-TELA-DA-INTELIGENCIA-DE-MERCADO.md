@@ -53,9 +53,9 @@ Nenhum rótulo, tooltip, título de aba ou campo de contrato usa a palavra *shar
 | 3 | Qual a relevância deste município ante a região e SP? | selo de comparação em cada indicador (§7) | **parcial** — a fatia de SP existe (#72); a **fatia da Região** ainda não é exposta por município |
 | 4 | O mercado está melhor ou pior que antes? | faixa + índice em *Momento do mercado* | **sim** (#73) |
 | 5 | Por quê? | as **três** parcelas do fator **por cultura**, na aba *Composição do fator*, com tooltip de fórmula e fonte | **sim** (#74) |
-| 6 | Quanto a Tracbel vende? | bloco *Performance Tracbel* | **sim em R$** (faturamento); **não em unidades** (#69) |
-| 7 | Qual é a nossa **captura**? | KPI *Captura Tracbel* · bloco *Performance* | **não** — precisa de #69 |
-| 8 | Quanto ainda não capturamos? | KPI *Oportunidade* | **não** — #69 e, para o R$, #70 |
+| 6 | Quanto a Tracbel vende? | bloco *Performance Tracbel* | **sim nas duas medidas**: R$ do Protheus e **unidades do ART**, que a D-P08 fixou como fonte canônica em 24/09/2026. Os dois não se somam |
+| 7 | Qual é a nossa **captura**? | KPI *Captura Tracbel* · bloco *Performance* | **o numerador chegou** (#69); falta o denominador, que é a **D-P01** |
+| 8 | Quanto ainda não capturamos? | KPI *Oportunidade* | **em unidades, junto com a 7**; em R$ ainda depende da #70 |
 | 9 | Quais culturas estão puxando o mercado? | *Momento do mercado*, uma linha por cultura | **sim** |
 | 10 | O crédito está aumentando ou diminuindo? | aba *Crédito* | **sim** (#73) |
 | 11 | O produtor ganhou ou perdeu poder de compra? | aba *Termo de troca* | **não** — precisa de **#70** |
@@ -119,8 +119,8 @@ a #163 pede, e a escolha vive na URL (`?municipio=<código IBGE>`) para poder se
 |---|---|---|
 | **Demanda anual** | soma, por cultura × categoria, de `área ÷ hectares por máquina ÷ ciclo de renovação` | **D-P01** |
 | **Mercado anual** | **soma, por categoria/modelo, de `demanda da categoria × preço de referência daquela categoria`** | **#70** |
-| **Captura Tracbel** | vendas Tracbel (un) ÷ demanda anual (un) | **#69** |
-| **Oportunidade** | `max(0, demanda ajustada − vendas)` | #69 e, em R$, #70 |
+| **Captura Tracbel** | vendas Tracbel (un) ÷ demanda anual (un) | ~~#69~~ **entregue** — a fonte é o ART (D-P08); falta só o denominador, que é a **D-P01** |
+| **Oportunidade** | `max(0, demanda ajustada − vendas)` | ~~#69~~ **entregue**; em R$, #70 |
 
 **D-P01 não é só o ciclo de renovação** [D]. Conforme a #63, ela fixa quatro coisas juntas: **cultura ×
 categoria/modelo de máquina × hectares por máquina × anos de renovação**. Sem as quatro não há demanda — e
@@ -135,8 +135,10 @@ torna a #70 dependência de valor, e não de conveniência.
 hectares por máquina (D-P01, issue #63)"* —, com link para a tela do Administrador. Nunca um número de
 exemplo.
 
-**Caminho curto** [P]: decidido o **D-P01**, sai a *Demanda anual*; entregue a **#69**, saem *Captura* e
-*Oportunidade* **em unidades**. Só o *Mercado anual* em R$ depende da #70.
+**Caminho curto** [P → parcialmente andado em 24/09/2026]: a **#69 foi entregue** — o ART chega ao território
+em unidades, por município e por categoria. Falta o **D-P01**, que é uma decisão e sai num formulário: no dia
+em que ela entrar, *Demanda anual*, *Captura* e *Oportunidade* aparecem juntas. Só o *Mercado anual* em R$
+depende da #70.
 
 ### 4.2 Porte e momento são **dois** números, nunca um [D]
 
@@ -249,9 +251,28 @@ aqui que moram as três parcelas de cada cultura (§4.3). Sem cultura com regra,
 
 ### 4.7 Performance Tracbel
 
-Abas internas: **Captura** · **Vendas** · **Não capturado**. Hoje só *Vendas* tem dado (faturamento em R$);
-as outras duas mostram o motivo e a issue que as destrava (#69). A classificação de confiança da
-oportunidade — alta, média, baixa — é a da #162 e aparece ao lado de cada linha.
+Abas internas: **Captura** · **Vendas** · **Não capturado**. A classificação de confiança da oportunidade —
+alta, média, baixa — é a da #162 e aparece ao lado de cada linha.
+
+**Duas medidas, e elas não se somam** [24/09/2026]. *Vendas* traz os três cartões em R$ do Protheus —
+total, máquina e pós-venda — e, **no pé do cartão "Máquina", as máquinas vendidas em unidades**, do ART.
+A maquete de 23/09 já desenhava essa linha; ela existia com um traço e a issue que a destravava, e agora
+tem número. O lugar é esse, e não um quarto cartão: são **duas medidas do mesmo evento** — a venda
+faturada —, em unidades diferentes, e lê-las juntas é o ponto. Reais e unidades não se somam, e a única
+conta que as juntaria é a que a tela **não** faz.
+
+*Captura* mostra a razão do recorte e a **quebra por categoria de máquina**, pelo de-para da linha de
+produto (D-P08). **Linha ainda sem categoria conta no total e some da quebra** — hoje a colhedora de cana e
+a plataforma de corte, que são julgamento do comercial —, e a diferença aparece nas limitações dos dados.
+
+*Não capturado* sai **em unidades**; em R$ continua esperando o preço de máquina (#70), e a tela diz isso em
+vez de calar sobre a metade que falta.
+
+**O critério de data viaja com o número.** A venda do ART tem três datas — venda, faturamento e entrega — e
+a escolha é a **D-P08.1, decidida em 24/09/2026: o faturamento**, porque a view do ART é de máquina faturada
+e máquina faturada é máquina vendida. Contar por entrega sumiria com a máquina faturada e ainda não
+entregue, e poria as unidades num relógio diferente do dos reais. O critério fica escrito no carimbo do
+indicador: **decidido não é o mesmo que implícito**.
 
 ---
 
@@ -389,13 +410,14 @@ o recorte como parâmetro, para que a #78 os reaproveite em vez de clonar a tela
 | O que falta | Tipo | Destrava |
 |---|---|---|
 | **D-P01** (#63) — cultura × categoria/modelo × ha por máquina × ciclo de renovação | **decisão** | Demanda anual · Mercado anual · cenários |
-| **#69** — vendas Tracbel por município em unidades | dado interno | Captura · Oportunidade · Performance |
+| ~~**#69** — vendas Tracbel por município em unidades~~ **ENTREGUE em 24/09/2026** | dado interno, do ART (D-P08) | Captura · Oportunidade · Performance — os três esperam agora só a D-P01 |
 | **#70** — preço de referência por categoria/modelo | dado interno | Mercado anual em R$ · termo de troca |
 | **Bandas de porte estrutural** (#166) | parâmetro com vigência | o rótulo de porte |
 | Fatia da **Região** e referências das razões (#163/#75) | tarefa desta tela | as comparações da §7 |
 
-**Ordem recomendada** [P]: D-P01 primeiro (é uma decisão, sai num formulário), depois #69 (dá três dos
-quatro KPIs em unidades), depois #70 (converte o mercado para R$).
+**Ordem recomendada** [P]: a **#69 saiu primeiro**, porque o de-para e a leitura eram código e não dependiam
+de ninguém decidir nada. Agora o caminho é **D-P01** — uma decisão, num formulário que já existe —, que
+acende três dos quatro KPIs de uma vez; depois **#70**, que converte o mercado para R$.
 
 ---
 
@@ -595,6 +617,25 @@ não começam na mesma linha são difíceis de comparar, que é o que eles exist
 A tabela de municípios ganhou cabeçalho fixo na rolagem, primeira coluna forte, número à direita com
 dígito de largura fixa e rolagem **dentro do cartão**. No celular mostra **cinco colunas em vez de oito**,
 por posição de coluna — o que sai está inteiro na ficha, a um toque.
+
+> *O parágrafo acima é da T4.8 e foi superado pela fase 4 da fidelidade às maquetes (23/09/2026): a rolagem
+> interna virou paginação, as colunas saem por **atributo** e não por posição, e a escolha delas é da
+> engrenagem. Fica registrado porque explica de onde a tabela veio.*
+
+**A décima coluna — *Vendidas*, em unidades** [24/09/2026, #69]. Ela fica ao lado de *Máquinas (teórico)*,
+que é contra quem ela se lê: o que a terra comporta contra o que a Tracbel entregou. Entra no CSV, ordena
+pelo cabeçalho e aparece na engrenagem, como as outras opcionais.
+
+**O degrau dela foi medido, e não escolhido.** Com dez colunas a tabela pede **753px** de largura mínima;
+com 742px — 1280px de janela, ficha aberta — ela passava 11px do cartão e rolava de lado, e a conferência
+visual reprovou. A coluna sai abaixo de **860px de tabela**, o que deixa ~14% de folga sobre os 753px. A
+folga não é zelo: o CI roda em **Linux**, que desenha o texto mais largo que o Windows, e o job visual do
+#229 já reprovou por 1 a 3px que passavam na estação. Na tela de 1536px com a ficha aberta a tabela tem
+901px, e a coluna aparece; o que sai está inteiro na ficha do município, a um toque.
+
+Na conferência dos totais (a dica do título) ela entra em **toda** linha, inclusive nos grupos de fora do
+mapa: sem essa parcela o total da consulta sairia menor que a soma das linhas acima dele, e a conferência
+acusaria um sumiço que não houve.
 
 ### As bibliotecas adotadas, e as recusadas [D]
 

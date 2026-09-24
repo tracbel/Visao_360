@@ -41,6 +41,9 @@ export function municipioDeTeste(
       posVenda: 350_000,
     },
     potencial: [],
+    // NULO, E NÃO ZERO: o município de teste nasce sem ART carregado, que é o estado de hoje. Zero
+    // aqui faria os testes passarem afirmando que a Tracbel não vendeu máquina nenhuma.
+    maquinasVendidas: null,
     responsaveisPelasCarteiras: [],
     producao: {
       ano: 2024,

@@ -358,7 +358,11 @@ for (const { nome, largura, altura } of LARGURAS) {
       // 1.300px de conteúdo, a tabela tem ~750px. Seis colunas abaixo de 700px
       // de tabela, três abaixo de 480px.
       const tabela = await larguraDaTabela(page);
-      const esperadas = tabela < 480 ? 3 : tabela < 700 ? 6 : 9;
+      // QUATRO DEGRAUS desde que "Vendidas" entrou (issue 69, D-P08). Ela é a
+      // PRIMEIRA a sair, em 860px de tabela: com dez colunas a tabela pede 753px
+      // de mínimo, e em 742px ela rolava de lado. Os três degraus de baixo são
+      // os da fase 4, sem mudança.
+      const esperadas = tabela < 480 ? 3 : tabela < 700 ? 6 : tabela < 860 ? 9 : 10;
       const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
       expect(colunas, `com ${tabela}px de tabela esperava ${esperadas} colunas`).toBe(esperadas);
 
@@ -386,7 +390,7 @@ for (const { nome, largura, altura } of LARGURAS) {
       expect(sobra, `Território com ficha passa ${sobra}px. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
 
       const tabela = await larguraDaTabela(page);
-      const esperadas = tabela < 480 ? 3 : tabela < 700 ? 6 : 9;
+      const esperadas = tabela < 480 ? 3 : tabela < 700 ? 6 : tabela < 860 ? 9 : 10;
       const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
       expect(colunas, `com ${tabela}px de tabela esperava ${esperadas} colunas`).toBe(esperadas);
       // A AÇÃO FICA EM TODA LARGURA — é o que o menu da engrenagem promete.
