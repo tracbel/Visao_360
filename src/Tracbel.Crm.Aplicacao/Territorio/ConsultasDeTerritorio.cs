@@ -137,11 +137,13 @@ public sealed record ClassificacaoDeIndicador(string Indicador, string Situacao,
 /// é o que a tela usa para ligar ou desligar a visão da empresa inteira.
 /// </param>
 /// <param name="Classificacoes">Como ler cada indicador — nenhum de regra pendente aparece como validado.</param>
+/// <param name="NumerosDeDecisao">Os quatro números do topo, com o motivo de cada ausência.</param>
 public sealed record PainelTerritorial(
     IndicadoresTerritoriais Indicadores,
     IReadOnlyList<MetricaSemDado> MetricasSemDado,
     bool PodeVerEmpresaInteira,
-    IReadOnlyList<ClassificacaoDeIndicador> Classificacoes);
+    IReadOnlyList<ClassificacaoDeIndicador> Classificacoes,
+    NumerosDeDecisao NumerosDeDecisao);
 
 /// <summary>
 /// OS TRÊS MAPAS DA ADR — cobertura de visita, vendas e potencial por área (documento 32, seção 8).
@@ -180,6 +182,29 @@ public sealed class ObterIndicadoresTerritoriais(
     /// <para><b>Sem município escolhido não há crédito nem percepção</b>, e o fator sai só com o
     /// preço: indicador ausente vale desvio zero, e não fator indeterminado.</para>
     /// </summary>
+    /// <summary>
+    /// OS QUATRO NÚMEROS DE DECISÃO (documento 50, §4.1), montados aqui e não no front.
+    ///
+    /// <para><b>Nenhum número muda com isto.</b> Os três que ainda não têm dado saem exatamente como
+    /// saíam — vazios —, mas o MOTIVO passa a vir da API. Ele era constante de TypeScript repetida em
+    /// dezesseis lugares de três arquivos, e no dia em que a issue 69 trouxer as unidades alguém teria de
+    /// achar os dezesseis.</para>
+    ///
+    /// <para><b>A composição por categoria nasce vazia de propósito</b>: o preço de referência é a issue
+    /// 70 e não existe no CRM. Passar uma lista vazia é o que faz o mercado anual sair com
+    /// <c>SemPrecoDeMaquina</c> em vez de com um total inventado — e é a mesma lista que, quando a 70
+    /// chegar, passa a trazer demanda e preço de cada categoria.</para>
+    /// </summary>
+    private static NumerosDeDecisao NumerosDeDecisaoDo(IndicadoresTerritoriais indicadores) =>
+        DecisaoDoMercado.Calcular(
+            indicadores.PotencialDoRecorte?.DemandaAnualDeMaquinas,
+            indicadores.Momento?.DemandaAjustadaTotal,
+            // AS VENDAS EM UNIDADES SÃO NULAS, e não zero: `frota.VendaDeMaquina` existe e nenhuma carga
+            // deste repositório a alimenta (o ART está desligado para ajuste de dados). Zero aqui
+            // afirmaria que a Tracbel não vendeu máquina nenhuma no recorte — issue 69, decisão D-P08.
+            vendasEmUnidades: null,
+            porCategoria: []);
+
     private async Task<MomentoDoRecorte?> MomentoDoMercadoAsync(
         IndicadoresTerritoriais indicadores, DateTime agoraUtc, CancellationToken ct)
     {
@@ -344,7 +369,8 @@ public sealed class ObterIndicadoresTerritoriais(
                     indicadores,
                     Lacunas(indicadores, contextoDeAcesso.PodeAlcancarTodasAsEmpresas, final >= mesCorrente),
                     contextoDeAcesso.PodeAlcancarTodasAsEmpresas,
-                    Classificar(indicadores)),
+                    Classificar(indicadores),
+                    NumerosDeDecisaoDo(indicadores)),
                 "organizacao.MunicipioDaAreaDeAtuacao · comercial.ClienteCarteira · comercial.FaturamentoDoCliente · organizacao.ProducaoAgricolaNoMunicipio",
                 relogio));
     }
