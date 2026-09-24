@@ -90,11 +90,28 @@ const HarnessDoShell = import.meta.env.DEV
   ? lazy(() => import('./dev/HarnessDoShell').then((m) => ({ default: m.HarnessDoShell })))
   : null;
 
+/**
+ * O HARNESS DA VISÃO 360 — `#/dev/visao360-visual`. A tela de entrada dentro do
+ * `Layout` real, sobre amostras fictícias (completo, vazio e sem carteira). Mesmo ternário,
+ * mesma razão: fora do `DEV` ele não chega ao `dist`.
+ */
+const HarnessDaVisao360 = import.meta.env.DEV
+  ? lazy(() => import('./dev/HarnessDaVisao360').then((m) => ({ default: m.HarnessDaVisao360 })))
+  : null;
+
 export function App() {
   if (HarnessDoShell && window.location.hash.startsWith('#/dev/shell-visual')) {
     return (
       <Suspense fallback={null}>
         <HarnessDoShell />
+      </Suspense>
+    );
+  }
+
+  if (HarnessDaVisao360 && window.location.hash.startsWith('#/dev/visao360-visual')) {
+    return (
+      <Suspense fallback={null}>
+        <HarnessDaVisao360 />
       </Suspense>
     );
   }

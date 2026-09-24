@@ -54,7 +54,18 @@ export type Rota = {
 };
 
 export const ROTAS: Rota[] = [
-  { caminho: '/', titulo: 'Visão 360', trilha: ['Visão 360'], Componente: Visao360, usaApi: true },
+  {
+    caminho: '/',
+    titulo: 'Visão 360',
+    trilha: ['Visão 360'],
+    Componente: Visao360,
+    usaApi: true,
+    // A LARGURA INTEIRA (24/09/2026), como os Indicadores Geográficos: com o teto
+    // de 1.400 px, uma janela de 1.920 deixava ~320 px vazios à direita do painel.
+    // Quem limita e centraliza agora é a página (`PaginaDoPainel`, até 1.580 px);
+    // o perfil do CEN guarda o teto antigo dentro da própria tela.
+    larga: true,
+  },
   {
     // Não é tela de produto: é o índice de desenvolvimento, e fica fora do menu
     // lateral de propósito (documentos 06 §4 e 08 §3).

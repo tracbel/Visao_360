@@ -40,9 +40,12 @@ import type { ProcedenciaDoIndicador } from '../../tipos/territorio';
  * leitura ficava longa demais e a grade de quatro KPIs virava quatro faixas
  * horizontais separadas por vazio. A largura escolhida está no CSS, e foi
  * conferida no harness antes de ser fixada.
+ *
+ * `className` deixa uma tela ajustar a PRÓPRIA largura sem mudar a das outras —
+ * a Visão 360 ocupa a coluna inteira até 2.100px de janela (24/09/2026).
  */
-export function PaginaDoPainel({ children }: { children: ReactNode }) {
-  return <div className="dash-pagina">{children}</div>;
+export function PaginaDoPainel({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={className ? `dash-pagina ${className}` : 'dash-pagina'}>{children}</div>;
 }
 
 /**

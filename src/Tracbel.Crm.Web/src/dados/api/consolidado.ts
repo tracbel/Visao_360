@@ -78,7 +78,7 @@ export type ConsolidadoDaFilial = {
   perdidos: number;
   tarefasPendentes: number;
   tarefasAtrasadas: number;
-  /** As linhas de negócio desta filial, com o número de vínculos de cada uma. */
+  /** As linhas de negócio desta filial, com o número de vínculos de cada uma — só carteira comercial. */
   porLinhaDeNegocio: { nome: string; clientes: number }[];
   /** Os CENs desta filial, com as carteiras deles somadas. */
   porResponsavel: { nome: string; carteiras: number; clientes: number; em30: number; em90: number; nunca: number }[];
@@ -196,8 +196,13 @@ async function lerFilial(
     const carteiras = cobertura.dados.itens;
     const painel = agenda.dados.itens[0];
 
+    // O MIX CONTA SÓ CARTEIRA COMERCIAL (24/09/2026). Somava todas: a carteira
+    // administrativa — depósito de cadastro, com milhares de vínculos numa linha
+    // só — e a de teste entravam como se fossem venda, e a fatia da linha delas
+    // crescia sem ninguém vender nada. É a mesma regra do ranking de CENs logo
+    // abaixo e do cartão de cobertura: vínculo que conta é o de carteira comercial.
     const porLinha = new Map<string, number>();
-    for (const c of carteiras) {
+    for (const c of carteiras.filter((k) => k.naturezaDaCarteira === 'Comercial')) {
       porLinha.set(c.linhaDeNegocioNome, (porLinha.get(c.linhaDeNegocioNome) ?? 0) + c.clientes);
     }
 
@@ -519,7 +524,10 @@ export function funilConsolidado(c: Consolidado | null): FaseDoFunil[] {
   return [...mapa.values()];
 }
 
-/** Junta as linhas de negócio de todas as filiais — é o "mix" do painel executivo. */
+/**
+ * Junta as linhas de negócio de todas as filiais — é o "mix" do painel executivo.
+ * Cada filial já chega só com as carteiras comerciais (ver `lerFilial`).
+ */
 export function mixDeLinhas(c: Consolidado | null): { nome: string; clientes: number }[] {
   const mapa = new Map<string, number>();
   for (const filial of c?.filiais ?? []) {
