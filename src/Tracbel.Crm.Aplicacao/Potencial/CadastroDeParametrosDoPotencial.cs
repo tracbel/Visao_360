@@ -172,6 +172,7 @@ public sealed class InformarParametroDoPotencial(
 public sealed class InformarRegraDePotencial(
     IRepositorioDeVigenciasDoPotencial vigencias,
     IRepositorioDeReferenciasDoPotencial referencias,
+    IRepositorioDoCatalogoNoPotencial catalogo,
     IUnidadeDeTrabalho unidade,
     IProvedorContextoAcesso acesso,
     IRelogio relogio)
@@ -196,6 +197,45 @@ public sealed class InformarRegraDePotencial(
         LeituraDeParametro.ConferirInicio(erros, vigenteDesde, entrada.VigenteDesde, agora);
         var justificativa = erros.Obrigatorio("justificativa", entrada.Justificativa, "a justificativa — a decisão ou a fonte destes valores");
 
+        // CULTURA E CATEGORIA SÃO OBRIGATÓRIAS NA REGRA NOVA (D-P01, issue 63).
+        //
+        // A decisão fixa QUATRO coisas juntas — cultura × categoria × hectares por máquina × anos de
+        // renovação —, e sem a categoria "máquinas teóricas" não diz de quê: a mesma lavoura pede um trator
+        // a cada tantos hectares e uma colheitadeira a cada outros tantos.
+        //
+        // As colunas continuam ANULÁVEIS no banco, e isso não é contradição: a vigência do café de
+        // 13/09/2026 nasceu antes do catálogo, e o passado não se reescreve. O que esta rota garante é que
+        // daqui para a frente nenhuma regra nasce sem dizer de qual cultura e de qual máquina ela fala.
+        var codigoDaCultura = erros.Obrigatorio("culturaCodigo", entrada.CulturaCodigo, "a cultura do catálogo");
+        var codigoDaCategoria = erros.Obrigatorio(
+            "categoriaDeMaquinaCodigo", entrada.CategoriaDeMaquinaCodigo, "a categoria de máquina");
+
+        // `Obrigatorio` devolve o texto mesmo quando registra o erro, então a busca no catálogo só roda com
+        // um código de verdade — senão o campo vazio ganharia DOIS erros: "é obrigatório" e "não existe".
+        ItemDoCatalogoDoPotencial? cultura = null;
+        if (!string.IsNullOrWhiteSpace(codigoDaCultura))
+        {
+            cultura = await catalogo.ObterCulturaAtivaAsync(codigoDaCultura, ct);
+            if (cultura is null)
+                erros.Registrar(
+                    "culturaCodigo",
+                    "Não há cultura ativa com este código no catálogo. Cultura desligada não recebe vigência nova: o " +
+                    "histórico dela continua explicando os números do passado, e uma regra apontando para uma cultura " +
+                    "fora de cena seria decisão sem dono.",
+                    entrada.CulturaCodigo);
+        }
+
+        ItemDoCatalogoDoPotencial? categoria = null;
+        if (!string.IsNullOrWhiteSpace(codigoDaCategoria))
+        {
+            categoria = await catalogo.ObterCategoriaDeMaquinaAsync(codigoDaCategoria, somenteAtiva: true, ct);
+            if (categoria is null)
+                erros.Registrar(
+                    "categoriaDeMaquinaCodigo",
+                    "Não há categoria de máquina ativa com este código no catálogo.",
+                    entrada.CategoriaDeMaquinaCodigo);
+        }
+
         // O PRODUTO PRECISA ESTAR NA PAM CARREGADA: a regra divide a área dele. O rótulo vem de lá, oficial —
         // nunca digitado.
         string? produtoNome = null;
@@ -213,7 +253,10 @@ public sealed class InformarRegraDePotencial(
         if (erros.TemErro)
             return erros.Recusar<RegraDePotencialDetalhe>("A regra da cultura tem campos a corrigir.");
 
-        if (await vigencias.ObterRegraAsync(produto!.Value, vigenteDesde!.Value, ct) is not null)
+        // A CATEGORIA ENTRA NA CONFERÊNCIA DE DATA OCUPADA. Sem ela, registrar a colheitadeira do café
+        // depois do trator do café seria recusado como "já existe vigência nesta data" — e é exatamente o
+        // par que a D-P01 pede.
+        if (await vigencias.ObterRegraAsync(produto!.Value, categoria!.Id, vigenteDesde!.Value, ct) is not null)
             return LeituraDeParametro.DataOcupada<RegraDePotencialDetalhe>(vigenteDesde.Value, entrada.VigenteDesde!);
 
         RegraDePotencial regra;
@@ -221,7 +264,8 @@ public sealed class InformarRegraDePotencial(
         {
             regra = RegraDePotencial.Informar(
                 produto.Value, produtoNome!, hectares!.Value, anos, modelo, situacao!.Value,
-                vigenteDesde.Value, justificativa, acesso.Atual.UsuarioId, agora);
+                vigenteDesde.Value, justificativa, acesso.Atual.UsuarioId, agora,
+                cultura!.Id, categoria.Id);
         }
         catch (RegraDeNegocioViolada erro)
         {
@@ -233,7 +277,11 @@ public sealed class InformarRegraDePotencial(
         if (!gravou.EhSucesso) return Resultado<RegraDePotencialDetalhe>.Conflito(gravou.Erro!);
 
         var nomes = await referencias.NomesDosUsuariosAsync([acesso.Atual.UsuarioId], ct);
-        return Resultado<RegraDePotencialDetalhe>.Ok(RegraDePotencialDetalhe.De(regra, nomes));
+        return Resultado<RegraDePotencialDetalhe>.Ok(RegraDePotencialDetalhe.De(
+            regra,
+            nomes,
+            new Dictionary<int, ItemDoCatalogoDoPotencial> { [cultura.Id] = cultura },
+            new Dictionary<int, ItemDoCatalogoDoPotencial> { [categoria.Id] = categoria }));
     }
 }
 
@@ -321,6 +369,7 @@ public sealed class InformarPercepcaoDoGestor(
 public sealed class RevogarParametroDoPotencial(
     IRepositorioDeVigenciasDoPotencial vigencias,
     IRepositorioDeReferenciasDoPotencial referencias,
+    IRepositorioDoCatalogoNoPotencial catalogo,
     IUnidadeDeTrabalho unidade,
     IProvedorContextoAcesso acesso,
     IRelogio relogio)
@@ -346,13 +395,19 @@ public sealed class RevogarParametroDoPotencial(
         return await RevogarAsync(parametro, motivo, ParametrosGeraisDetalhe.De, ct);
     }
 
-    /// <summary>Revoga a vigência da regra de um produto que começa na data.</summary>
+    /// <summary>
+    /// Revoga a vigência da regra de um produto NUMA CATEGORIA, que começa na data.
+    ///
+    /// <para><b>A categoria entra no endereço (D-P01).</b> Um produto passa a ter mais de uma regra na mesma
+    /// data — o trator e a colheitadeira do café —, e sem ela a revogação não saberia qual das duas derrubar.</para>
+    /// </summary>
     /// <param name="produtoCodigoIbge">O produto.</param>
+    /// <param name="categoriaDeMaquinaCodigo">A categoria — <c>TRATOR</c>, <c>COLHEITADEIRA</c>…</param>
     /// <param name="vigenteDesde">A data de início, aaaa-mm-dd.</param>
     /// <param name="entrada">O motivo.</param>
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<RegraDePotencialDetalhe>> RevogarRegraAsync(
-        int produtoCodigoIbge, string vigenteDesde, RevogacaoDeVigencia entrada, CancellationToken ct)
+        int produtoCodigoIbge, string categoriaDeMaquinaCodigo, string vigenteDesde, RevogacaoDeVigencia entrada, CancellationToken ct)
     {
         if (!acesso.Atual.Tem(Permissoes.ParametroDoPotencialAdministrar))
             return LeituraDeParametro.SemPermissao<RegraDePotencialDetalhe>(Permissoes.ParametroDoPotencialAdministrar);
@@ -362,12 +417,30 @@ public sealed class RevogarParametroDoPotencial(
         var motivo = erros.Obrigatorio("motivo", entrada.Motivo, "o motivo da revogação");
         if (erros.TemErro) return erros.Recusar<RegraDePotencialDetalhe>("A revogação tem campos a corrigir.");
 
-        var regra = await vigencias.ObterRegraAsync(produtoCodigoIbge, data!.Value, ct);
+        // AQUI A CATEGORIA É PROCURADA EM QUALQUER ESTADO, e não só entre as ativas: revogar a regra de uma
+        // categoria que foi desligada depois é justamente uma das coisas que se precisa poder fazer. Quem
+        // exige categoria ATIVA é o registro de vigência nova, que é decisão para a frente.
+        var categoria = await catalogo.ObterCategoriaDeMaquinaAsync(categoriaDeMaquinaCodigo, somenteAtiva: false, ct);
+
+        var regra = await vigencias.ObterRegraAsync(produtoCodigoIbge, categoria?.Id, data!.Value, ct);
         if (regra is null)
             return Resultado<RegraDePotencialDetalhe>.NaoEncontrado(
-                $"Não há vigência de pé da regra do produto {produtoCodigoIbge} começando em {data:yyyy-MM-dd}.");
+                $"Não há vigência de pé da regra do produto {produtoCodigoIbge} em {categoriaDeMaquinaCodigo} " +
+                $"começando em {data:yyyy-MM-dd}.");
 
-        return await RevogarAsync(regra, motivo, RegraDePotencialDetalhe.De, ct);
+        // LAMBDA, E NÃO O GRUPO DE MÉTODOS: `De` ganhou parâmetros opcionais para os rótulos do catálogo, e
+        // com eles a inferência de tipo do `RevogarAsync` deixa de resolver sozinha. De quebra, é aqui que a
+        // categoria já resolvida entra no detalhe devolvido — a tela mostra o que foi revogado com nome.
+        var catalogoDaCategoria = categoria is null
+            ? null
+            : new Dictionary<int, ItemDoCatalogoDoPotencial> { [categoria.Id] = categoria };
+
+        var culturas = regra.CulturaId is { } culturaId
+            ? await catalogo.CulturasAsync([culturaId], ct)
+            : null;
+
+        return await RevogarAsync(
+            regra, motivo, (r, nomes) => RegraDePotencialDetalhe.De(r, nomes, culturas, catalogoDaCategoria), ct);
     }
 
     /// <summary>Revoga a vigência da percepção de um município que começa na data.</summary>
