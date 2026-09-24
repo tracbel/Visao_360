@@ -34,6 +34,7 @@ import type { ComponentType, ReactNode } from 'react';
 import type {
   CulturaNoEstado,
   IndicadoresDoMunicipio,
+  NumerosDeDecisao,
   ProcedenciasDoTerritorio,
   RegraDePotencialAplicada,
 } from '../../../tipos/territorio';
@@ -114,6 +115,7 @@ export function VisaoGeralDoMunicipio({
   culturasNoEstado,
   procedencias,
   periodo,
+  numerosDeDecisao,
   aoVerOportunidades,
 }: {
   municipio: IndicadoresDoMunicipio;
@@ -121,6 +123,8 @@ export function VisaoGeralDoMunicipio({
   culturasNoEstado: CulturaNoEstado[];
   procedencias: ProcedenciasDoTerritorio | null;
   periodo: PeriodoDaLeitura | null;
+  /** Os números de decisão do recorte — daqui só sai a frase da oportunidade. */
+  numerosDeDecisao: NumerosDeDecisao | null;
   aoVerOportunidades: () => void;
 }) {
   const { cobertura, vendas, estrutura } = municipio;
@@ -331,14 +335,18 @@ export function VisaoGeralDoMunicipio({
               />
             }
           />
+          {/* AS MÁQUINAS POTENCIAIS SÃO A OPORTUNIDADE EM MÁQUINAS, um dos quatro
+              números de decisão: o motivo é a frase do servidor (issue 69, parte
+              A), a mesma da aba Oportunidades e do topo da aba Mercado. */}
           <ItemDeOportunidade
             icone={Tractor}
             rotulo="máquinas potenciais"
             valor={
-              <ValorAusente
-                motivo="Máquinas potenciais = demanda ajustada menos as vendas da Tracbel em unidades, nunca abaixo de zero (issue 162). As vendas em unidades por município ainda não existem (issue 69)."
-                oQue="as máquinas potenciais"
-              />
+              numerosDeDecisao?.oportunidade.frase ? (
+                <ValorAusente motivo={numerosDeDecisao.oportunidade.frase} oQue="as máquinas potenciais" />
+              ) : (
+                '—'
+              )
             }
           />
           <ItemDeOportunidade

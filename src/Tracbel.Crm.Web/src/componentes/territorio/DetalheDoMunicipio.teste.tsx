@@ -19,6 +19,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
   CulturaNoEstado,
   IndicadoresDoMunicipio,
+  NumerosDeDecisao,
   PotencialEstruturalDoMunicipio,
   PotencialTerritorial,
   ProcedenciasDoTerritorio,
@@ -80,6 +81,20 @@ const PROCEDENCIAS: ProcedenciasDoTerritorio = {
   estabelecimentos: null,
   rebanho: null,
   usinas: null,
+};
+
+/**
+ * OS NÚMEROS DE DECISÃO COMO A API OS MANDA (issue 69, parte A) — o estado de
+ * hoje, com frases que não existem em lugar nenhum do front: se a ficha mostrar
+ * uma delas, ela veio do servidor, e não de uma constante escrita na tela.
+ */
+const FRASE_SEM_PRECO = 'FRASE DO SERVIDOR — sem preço de referência de máquina (issue 70).';
+const FRASE_SEM_VENDAS = 'FRASE DO SERVIDOR — sem as vendas em MÁQUINAS (issue 69).';
+const NUMEROS: NumerosDeDecisao = {
+  demandaAnual: { valor: null, motivo: 'SemDemandaAnual', frase: 'FRASE DO SERVIDOR — sem demanda (issue 63).' },
+  mercadoAnual: { valor: null, motivo: 'SemPrecoDeMaquina', frase: FRASE_SEM_PRECO, parcial: false, categoriasSemPreco: [] },
+  capturaPercentual: { valor: null, motivo: 'SemVendasEmUnidades', frase: FRASE_SEM_VENDAS },
+  oportunidade: { valor: null, motivo: 'SemVendasEmUnidades', frase: FRASE_SEM_VENDAS },
 };
 
 function potencial(parcial: Partial<PotencialTerritorial> = {}): PotencialTerritorial {
@@ -157,6 +172,7 @@ function abrir(m: IndicadoresDoMunicipio, culturasNoEstado: CulturaNoEstado[] = 
         regiaoTracbel={denominadores ? REGIAO : null}
         estado={denominadores ? SAO_PAULO : null}
         procedencias={PROCEDENCIAS}
+        numerosDeDecisao={NUMEROS}
         aoFechar={aoFechar}
       />
     </ProvedorDoPeriodo>,
@@ -376,7 +392,8 @@ describe('DetalheDoMunicipio — a Visão geral', () => {
     abrir(comLavouraEEstrutura());
 
     expect(textoDaDica('Por que o potencial incremental não aparece')).toMatch(/issue 70/);
-    expect(textoDaDica('Por que as máquinas potenciais não aparece')).toMatch(/issue 69/);
+    // AS MÁQUINAS POTENCIAIS SÃO A OPORTUNIDADE EM MÁQUINAS: o motivo é o do servidor, e não uma redação daqui.
+    expect(textoDaDica('Por que as máquinas potenciais não aparece')).toBe(FRASE_SEM_VENDAS);
     // 11 de 18 vínculos no prazo.
     expect(document.querySelector('.terr-ficha-oport')).toHaveTextContent(/61,1%\s*cobertura atual/);
 
@@ -463,6 +480,12 @@ describe('DetalheDoMunicipio — Lavoura, Estrutura, Oportunidades e Histórico'
     const decisao = painelAtivo().querySelector<HTMLElement>('[data-camada="decisao"]')!;
     for (const rotulo of ['Demanda anual', 'Mercado anual', 'Captura Tracbel', 'Oportunidade'])
       expect(decisao).toHaveTextContent(rotulo);
+
+    // OS TRÊS SEM DADO DIZEM O QUE O SERVIDOR DIZ (issue 69, parte A) — a mesma frase do topo da aba
+    // Mercado, e não uma terceira redação escrita na ficha.
+    expect(textoDaDica('Por que mercado anual não aparece')).toBe(FRASE_SEM_PRECO);
+    expect(textoDaDica('Por que captura tracbel não aparece')).toBe(FRASE_SEM_VENDAS);
+    expect(textoDaDica('Por que oportunidade não aparece')).toBe(FRASE_SEM_VENDAS);
 
     const lista = painelAtivo().querySelector<HTMLElement>('[data-bloco-da-ficha="lista-de-oportunidades"]')!;
     expect(within(lista).getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Oportunidade', 'Confiança', 'Origem']);

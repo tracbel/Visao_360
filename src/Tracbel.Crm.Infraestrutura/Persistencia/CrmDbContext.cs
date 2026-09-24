@@ -286,6 +286,9 @@ public class CrmDbContext : DbContext
     /// <summary>Os produtos do SICOR que cada categoria de máquina agrupa.</summary>
     public DbSet<ProdutoDoSicorNaCategoria> ProdutosDoSicorNasCategorias => Set<ProdutoDoSicorNaCategoria>();
 
+    /// <summary>O de-para da classificação de produto do CRM para a categoria de mercado (issue 69).</summary>
+    public DbSet<LinhaDeProdutoNaCategoria> LinhasDeProdutoNasCategorias => Set<LinhaDeProdutoNaCategoria>();
+
     /// <summary>
     /// Os grupos de culturas que dividem a mesma terra e a mesma máquina (issue 160). Nascem vazios:
     /// sem grupo, cada cultura soma a área dela.

@@ -4,9 +4,10 @@
  *
  *   Demanda anual | Mercado anual | Captura Tracbel | Oportunidade
  *
- * TRÊS DELES NÃO TÊM DADO HOJE, e nascem dizendo o que falta e qual issue o
- * destrava. Isto não é um espaço reservado: é a resposta certa. Um número
- * plausível e errado leva a uma decisão; um espaço explicado leva a uma pergunta.
+ * TRÊS DELES NÃO TÊM DADO HOJE, e dizem o que falta e qual issue o destrava —
+ * com a frase que o SERVIDOR devolve (issue 69, parte A), e não uma escrita
+ * aqui. Isto não é um espaço reservado: é a resposta certa. Um número plausível
+ * e errado leva a uma decisão; um espaço explicado leva a uma pergunta.
  *
  * O DESENHO É O DA MAQUETE, e não o `CartaoDeIndicador` de antes: cartão tingido,
  * o glifo colorido grande numa coluna à esquerda e, empilhados à direita, o nome
@@ -21,10 +22,19 @@
  * dica. A linha de variação existe nos quatro, com traço, porque não há ano
  * anterior na leitura (issue 69).
  *
+ * A LINHA DE BAIXO É A DA VARIAÇÃO (maquete), e por isso o contexto de cada
+ * número mora em dois lugares: o que QUALIFICA O VALOR fica ao lado dele, no
+ * lugar da unidade — "parcial — sem preço de …" quando o mercado anual soma só as
+ * categorias que têm preço, "máquinas não capturadas" na oportunidade —, e o que
+ * EXPLICA A CONTA vai para a dica do nome.
+ *
  * CAPTURA, E NÃO MARKET SHARE (issue 162): enquanto o denominador for a demanda
  * ESTIMADA pelo motor, o nome é captura — e a unidade da maquete, "participação
  * no mercado", é a mesma palavra em português. Ela vira "da demanda estimada",
- * que é o que o número divide.
+ * que é o que o número divide. A frase "das máquinas que a região renova por
+ * ano" diria o mesmo, mas com "região" sozinha — que se lê como a sub-região — e
+ * sem dizer que o denominador é estimativa, que é justamente o que o separa de
+ * participação.
  */
 
 import {
@@ -38,29 +48,17 @@ import type { ReactNode } from 'react';
 import { InfoTooltip } from '../InfoTooltip';
 import { fatiasEmTexto, frasesDaProcedencia, montarSomavel } from '../comum/comparacoes';
 import { ValorAusente } from '../comum/ValorAusente';
-import type { MomentoDoRecorte, ProcedenciaDoIndicador } from '../../tipos/territorio';
-import { nº } from '../territorio/indicadoresDaAdr';
+import type { MomentoDoRecorte, NumerosDeDecisao, ProcedenciaDoIndicador } from '../../tipos/territorio';
+import { reaisCompactos } from '../territorio/escalas';
+import { nº, porcento } from '../territorio/indicadoresDaAdr';
 import { VariacaoAusente } from './VariacaoAusente';
 
-/** O que falta, e a issue que destrava — nunca um número de exemplo. */
-const MERCADO_ANUAL_SEM_DADO =
-  'Demanda anual × preço de referência, agregada por categoria de máquina. Precisa do preço de máquina por ' +
-  'modelo ao longo do tempo (issue 70), que não existe no CRM. Um preço genérico aplicado à demanda inteira ' +
-  'misturaria colhedora com trator compacto.';
-
-const CAPTURA_SEM_DADO =
-  'Vendas da Tracbel em unidades ÷ demanda anual estimada. Precisa da issue 69, que traz as vendas por município ' +
-  'em MÁQUINAS: o faturamento em reais que já existe não serve de numerador para uma demanda medida em máquinas. ' +
-  'Não é market share — share exigiria o total vendido por todos os fabricantes.';
-
-const OPORTUNIDADE_SEM_DADO =
-  'A demanda ajustada menos as vendas, nunca abaixo de zero (issue 162). Depende da issue 69 para sair em ' +
-  'unidades e da issue 70 para sair em reais.';
-
-const DEMANDA_SEM_DADO =
-  'Falta o ciclo de renovação por cultura. A decisão D-P01 (issue 63) fixa cultura, categoria, hectares por ' +
-  'máquina e anos de renovação — as quatro juntas. Sem elas não há demanda anual, e zero aqui afirmaria que a ' +
-  'região não renova máquina nenhuma.';
+/* AS QUATRO CONSTANTES DE MOTIVO SAÍRAM DAQUI (issue 69, parte A).
+ *
+ * Elas diziam, em texto escrito no TypeScript, por que cada número faltava — e as mesmas frases estavam
+ * repetidas na ficha do município e no bloco Performance, com redações que já tinham começado a divergir.
+ * Agora o motivo vem da API, de `DecisaoDoMercado.Frase`, que tem teste. A tela não escreve mais por que um
+ * número falta: ela mostra o que o servidor afirma. */
 
 /** Casas fixas: um fator neutro tem de sair `1,00`, e não `1`. */
 const fator = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -96,7 +94,13 @@ function CartaoDeDecisao({
    * com ele e de onde vem. É o que a maquete não mostra e a tela não pode perder.
    */
   sobre: ReactNode;
-  motivoSemDado: string;
+  /**
+   * Por que o número falta — a frase do servidor (issue 69, parte A).
+   *
+   * Ausente enquanto a leitura não respondeu: aí sai o traço SEM dica, que é o
+   * certo — não se pode afirmar por que falta um número antes de saber se ele falta.
+   */
+  motivoSemDado: string | undefined;
 }) {
   const nome = rotulo.toLowerCase();
 
@@ -119,7 +123,16 @@ function CartaoDeDecisao({
         <div className="mv-kpi-valor">
           {/* O TRAÇO OCUPA O LUGAR DO NÚMERO, e a unidade continua no dela: a
               linha tem a forma da maquete, e o motivo inteiro está na dica. */}
-          {valor === null ? <ValorAusente motivo={motivoSemDado} oQue={nome} /> : <strong>{valor}</strong>}
+          {valor !== null ? (
+            <strong>{valor}</strong>
+          ) : motivoSemDado ? (
+            <ValorAusente motivo={motivoSemDado} oQue={nome} />
+          ) : (
+            <span className="cad-ausente">
+              <span aria-hidden="true">—</span>
+              <span className="cad-so-leitor">sem dado</span>
+            </span>
+          )}
           <span className="mv-kpi-unidade">{unidade}</span>
         </div>
 
@@ -137,7 +150,15 @@ export function KpisExecutivos({
   demandaDeSaoPaulo,
   carregando,
   procedenciaDaDemanda,
+  numeros,
 }: {
+  /**
+   * Os quatro números com o motivo de cada ausência — da API (issue 69, parte A).
+   *
+   * Nulo enquanto a leitura não respondeu; aí os cartões mostram o traço sem frase, que é o certo: não se
+   * pode afirmar por que falta um número antes de saber se ele falta.
+   */
+  numeros: NumerosDeDecisao | null;
   momento: MomentoDoRecorte | null;
   /**
    * A DEMANDA ANUAL DO RECORTE INTEIRO, pelo motor (issue 72).
@@ -168,6 +189,8 @@ export function KpisExecutivos({
   const fatorAgregado = momento?.fatorAgregado ?? null;
   const variacao = fatorAgregado == null ? null : (fatorAgregado - 1) * 100;
 
+  const mercado = numeros?.mercadoAnual ?? null;
+
   return (
     <div className="dash-kpis mv-kpis" data-bloco="kpis-executivos">
       <CartaoDeDecisao
@@ -176,7 +199,7 @@ export function KpisExecutivos({
         tom="demanda"
         valor={carregando || demandaEstrutural === null ? null : nº(Math.round(demandaEstrutural))}
         unidade="máquinas"
-        motivoSemDado={DEMANDA_SEM_DADO}
+        motivoSemDado={numeros?.demandaAnual.frase}
         sobre={
           <>
             <p>
@@ -194,22 +217,34 @@ export function KpisExecutivos({
           </>
         }
       />
+      {/* OS TRÊS QUE AINDA NÃO TÊM DADO VÊM DA API (issue 69, parte A).
+          Eram `valor={null}` e três constantes escritas aqui. Nenhum número mudou — o que mudou é que a
+          ausência virou afirmação do servidor, com teste, e com a mesma redação da ficha do município. */}
       <CartaoDeDecisao
         rotulo="Mercado anual"
         icone={ChartPie}
         tom="mercado"
-        valor={null}
-        unidade="valor de mercado"
-        motivoSemDado={MERCADO_ANUAL_SEM_DADO}
-        sobre="Quanto vale, em reais, a demanda anual de máquinas do recorte: a demanda de cada categoria vezes o preço de referência dela."
+        valor={mercado?.valor == null ? null : reaisCompactos(mercado.valor)}
+        // PARCIAL SE DIZ AO LADO DO NÚMERO, e não só na dica: a soma das
+        // categorias com preço, lida sem a marca, afirmaria que a categoria sem
+        // preço não vale nada.
+        unidade={
+          mercado?.parcial ? `parcial — sem preço de ${mercado.categoriasSemPreco.join(', ')}` : 'valor de mercado'
+        }
+        motivoSemDado={mercado?.frase}
+        sobre={
+          'Quanto vale, em reais, a demanda anual de máquinas do recorte: a demanda de cada categoria vezes o ' +
+          'preço de referência dela — nunca a demanda inteira vezes um preço genérico. Categoria sem preço não ' +
+          'entra como zero: fica fora da soma, e o número sai marcado como parcial, com o nome dela.'
+        }
       />
       <CartaoDeDecisao
         rotulo="Captura Tracbel"
         icone={Target}
         tom="captura"
-        valor={null}
+        valor={numeros?.capturaPercentual.valor == null ? null : porcento(numeros.capturaPercentual.valor)}
         unidade="da demanda estimada"
-        motivoSemDado={CAPTURA_SEM_DADO}
+        motivoSemDado={numeros?.capturaPercentual.frase}
         sobre={
           'A parte da demanda anual estimada que a Tracbel vendeu, em máquinas. Chama-se captura, e não ' +
           'participação de mercado: o denominador é a demanda que o motor estima, e participação exigiria o ' +
@@ -220,10 +255,16 @@ export function KpisExecutivos({
         rotulo="Oportunidade"
         icone={Lightbulb}
         tom="oportunidade"
-        valor={null}
-        unidade="mercado não capturado"
-        motivoSemDado={OPORTUNIDADE_SEM_DADO}
-        sobre="O que a demanda ajustada comporta e a Tracbel ainda não vendeu — a demanda menos as vendas, nunca abaixo de zero (issue 162)."
+        valor={numeros?.oportunidade.valor == null ? null : nº(Math.round(numeros.oportunidade.valor))}
+        // "MÁQUINAS NÃO CAPTURADAS", e não o "mercado não capturado" da maquete:
+        // o número é contado em máquinas, e "mercado" ao lado dele se leria como
+        // reais — que é o mercado anual, o cartão ao lado.
+        unidade="máquinas não capturadas"
+        motivoSemDado={numeros?.oportunidade.frase}
+        sobre={
+          'Em máquinas: a demanda ajustada pelo momento menos o que a Tracbel já vendeu, nunca abaixo de zero ' +
+          '(issue 162). É o que o mercado de hoje comporta e ainda não foi capturado — e não o de um ano médio.'
+        }
       />
     </div>
   );

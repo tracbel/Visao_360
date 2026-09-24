@@ -294,6 +294,7 @@ export function IndicadoresGeograficos() {
         regiaoTracbel={indicadores.regiaoTracbel}
         estado={indicadores.estado}
         procedencias={indicadores.procedencias}
+        numerosDeDecisao={painel.dados?.numerosDeDecisao ?? null}
         aoFechar={() => escolherMunicipio(null)}
       />
     ) : null;
@@ -415,6 +416,7 @@ export function IndicadoresGeograficos() {
             nomeDoMunicipio={escolhido?.nome ?? null}
             produtosDoMunicipio={produtosPriorizados}
             mostrarOsMapas={indicadores !== null && desenho !== null && !territorioNaoCarregado}
+            numerosDeDecisao={painel.dados?.numerosDeDecisao ?? null}
           />
         ) : (
           <AbaDeTerritorio

@@ -456,8 +456,10 @@ export function Agenda() {
             <strong>Concluir, reagendar e criar tarefa não existem aqui</strong>, e é decisão
             declarada: nenhuma rota de relacionamento escreve. Processo e tarefa carregam o motor de
             regras — concluir uma tarefa gera a próxima e move a fase do processo —, e ele entra
-            junto com a tela que o exercita (dívida D-9 do documento 23). Um botão que gravasse só no
-            navegador daria a impressão de que a agenda mudou, e ela não mudaria.
+            {/* A citação "(dívida D-9 do documento 23)" saiu da tela: o número do documento não diz nada
+                a quem lê, e a referência continua aqui. */}
+            junto com a tela que o exercita. Um botão que gravasse só no navegador daria a impressão de
+            que a agenda mudou, e ela não mudaria.
           </p>
         </div>
       </BlocoRecolhivel>

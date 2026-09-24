@@ -30,8 +30,10 @@ function Linha({ linha }: { linha: LinhaDaConferencia }) {
 export function ConferenciaDosTotais({ conferencia }: { conferencia: ConferenciaDaConsulta }) {
   return (
     <>
+      {/* A CONFERÊNCIA É A DO DOCUMENTO 32 — a referência mora aqui, e não na
+          dica: o número do documento não diz nada a quem lê. */}
       <p>
-        <strong>A soma das linhas é o total da consulta</strong> — a conferência do documento 32: se não fechar, algo
+        <strong>A soma das linhas é o total da consulta</strong> — é a conferência da tabela: se não fechar, algo
         sumiu ou foi contado duas vezes. As linhas de total saíram do fim da tabela e estão aqui.
       </p>
       <ul>

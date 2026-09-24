@@ -33,6 +33,7 @@ import type { ContextoDeAcesso } from '../../dados/api/http';
 import type {
   ClassificacaoDeIndicador,
   IndicadoresTerritoriais,
+  NumerosDeDecisao,
   PotencialDoRecorteNoMapa,
   RegraDePotencialAplicada,
 } from '../../tipos/territorio';
@@ -76,7 +77,10 @@ export function AbaDeMercado({
   nomeDoMunicipio,
   produtosDoMunicipio,
   mostrarOsMapas,
+  numerosDeDecisao,
 }: {
+  /** Os quatro números do topo, com o motivo de cada ausência — da API (issue 69, parte A). */
+  numerosDeDecisao: NumerosDeDecisao | null;
   kpisDoMercado: Indicador[];
   carregando: boolean;
   ligacao: LigacaoDoMapa | null;
@@ -113,6 +117,7 @@ export function AbaDeMercado({
           demandaDeSaoPaulo={null}
           carregando={carregando}
           procedenciaDaDemanda={indicadores?.momento?.procedencia ?? null}
+          numeros={numerosDeDecisao}
         />
       </SecaoDoMercadoDaRegiao>
 
@@ -224,7 +229,7 @@ export function AbaDeMercado({
           municipioCodigoIbge={municipioCodigoIbge}
         />
 
-        <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} />
+        <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} numeros={numerosDeDecisao} />
       </div>
     </>
   );

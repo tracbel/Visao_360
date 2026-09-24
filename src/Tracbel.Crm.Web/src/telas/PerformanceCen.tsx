@@ -782,8 +782,8 @@ export function PerformanceCen() {
             motivo={
               'A coluna Duracao existe na origem e é ZERO em 122.812 de 122.812 interações do ' +
               'período. Teve 122.812 oportunidades de ser preenchida no ano e não foi preenchida ' +
-              'nenhuma vez. Qualquer métrica de produtividade por tempo é impossível hoje ' +
-              '(documento 25, §5).'
+              // A citação "(documento 25, §5)" saiu do texto pelo mesmo motivo das outras.
+              'nenhuma vez. Qualquer métrica de produtividade por tempo é impossível hoje.'
             }
           />
           <LacunaConhecida

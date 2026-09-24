@@ -34,7 +34,7 @@ function metodologia(modo: ModoDeCobertura): string {
     'Método: último contato registrado de cada vínculo em carteira, contra a cadência declarada da linha. ' +
     `${escala} ` +
     'Ressalva: contato é qualquer interação registrada, inclusive registro gerado pelo sistema — nenhum tipo de ' +
-    'atividade está marcado como visita (documento 32, P-2), então isto ainda não mede visita.'
+    'atividade está marcado como visita, então isto ainda não mede visita.'
   );
 }
 

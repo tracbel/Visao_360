@@ -653,6 +653,42 @@ export type MercadoNaCalculadora = {
 /** Filial do cabeçalho, ou empresa inteira (só para quem tem a permissão). */
 export type VisaoTerritorial = 'Filial' | 'Empresa';
 
+/** Por que um dos quatro números de decisão não saiu. `Nenhum` é "saiu". */
+export type MotivoSemNumeroDeDecisao =
+  | 'Nenhum'
+  | 'SemDemandaAnual'
+  | 'SemVendasEmUnidades'
+  | 'SemPrecoDeMaquina';
+
+/**
+ * Um dos quatro números do topo: o valor, ou o motivo de não haver valor.
+ *
+ * `frase` vem PRONTA do servidor — mandar só o código e montar o texto aqui devolveria a redação para o
+ * TypeScript, que é de onde ela está saindo. Vazia quando o número saiu.
+ */
+export type NumeroDeDecisao = { valor: number | null; motivo: MotivoSemNumeroDeDecisao; frase: string };
+
+/**
+ * O mercado anual — o único dos quatro que pode sair PELA METADE.
+ *
+ * Categoria sem preço não é somada como zero e também não derruba o total: sai a soma das que têm,
+ * marcada como `parcial`, com o nome das que ficaram de fora (documento 50, §4.1).
+ */
+export type MercadoAnual = NumeroDeDecisao & {
+  parcial: boolean;
+  categoriasSemPreco: string[];
+};
+
+/** Os quatro números de decisão do recorte (documento 50, §4.1). */
+export type NumerosDeDecisao = {
+  demandaAnual: NumeroDeDecisao;
+  mercadoAnual: MercadoAnual;
+  /** Em pontos percentuais. É CAPTURA, não market share (issue 162). */
+  capturaPercentual: NumeroDeDecisao;
+  /** `max(0, demanda ajustada − vendas)`, em máquinas. */
+  oportunidade: NumeroDeDecisao;
+};
+
 export type PainelTerritorial = {
   indicadores: IndicadoresTerritoriais;
   metricasSemDado: MetricaSemDado[];
@@ -660,6 +696,14 @@ export type PainelTerritorial = {
   podeVerEmpresaInteira: boolean;
   /** Como ler cada indicador — a tela mostra o selo junto dele. */
   classificacoes: ClassificacaoDeIndicador[];
+  /**
+   * OS QUATRO NÚMEROS DO TOPO, COM O MOTIVO — vindos da API (issue 69, parte A).
+   *
+   * Eles eram `valor={null}` escrito no TypeScript, e o motivo de cada um era uma constante repetida em
+   * dezesseis lugares de três arquivos. Nenhum número mudou: o que mudou é que a ausência passou a ser
+   * uma afirmação do servidor, com teste, e com uma redação só para a página e para a ficha.
+   */
+  numerosDeDecisao: NumerosDeDecisao;
 };
 
 /** Os filtros que a rota aceita. Vazio é "sem filtro" / "padrão". */

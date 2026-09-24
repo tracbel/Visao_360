@@ -111,7 +111,9 @@ export function kpisDaCarteira(c: ContextoDosKpis): CarteiraNaArea {
         deOnde:
           `${nº(c.totais.cobertos)} de ${nº(c.totais.elegiveis)} vínculos elegíveis no prazo · ${nº(c.totais.pendentes)} ` +
           'pendentes · regra provisória. "Com visita" é o município com ao menos um vínculo no prazo: contato é ' +
-          'qualquer interação registrada, porque nenhum tipo de atividade está marcado como visita (documento 32, P-2).',
+          // A citação "(documento 32, P-2)" saiu do fim da frase: o número do documento não diz nada a quem lê
+          // a dica, e a referência continua aqui, no código.
+          'qualquer interação registrada, porque nenhum tipo de atividade está marcado como visita.',
         semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : 'sem vínculo elegível',
       },
       {

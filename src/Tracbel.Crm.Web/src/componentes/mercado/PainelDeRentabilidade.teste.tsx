@@ -36,6 +36,11 @@ vi.mock('../MolduraDeGrafico', () => ({ MolduraDeGrafico: () => <div data-grafic
 vi.mock('./momento/GraficoReceitaCustoMargem', () => ({ GraficoReceitaCustoMargem: () => null }));
 vi.mock('../territorio/PainelDePrecos', () => ({ PainelDePrecos: () => <div data-bloco="precos" /> }));
 vi.mock('../territorio/PainelDeCustos', () => ({ PainelDeCustos: () => <div data-bloco="custos" /> }));
+vi.mock('../territorio/PainelDoPrecoImplicito', () => ({
+  PainelDoPrecoImplicito: ({ municipioCodigoIbge }: { municipioCodigoIbge?: number | null }) => (
+    <div data-bloco="preco-implicito" data-municipio={municipioCodigoIbge ?? 'recorte'} />
+  ),
+}));
 
 const guardado = new Map<string, string>();
 vi.stubGlobal('localStorage', {
@@ -119,7 +124,11 @@ const MUNICIPIOS: IndicadoresDoMunicipio[] = [
   municipioDeTeste({ codigoIbge: 3, nome: 'C', pertenceAAdr: false, potencial: colhida([[PAM_CAFE, 900_000]]) }),
 ];
 
-function abrir({ catalogoFalha = false, nomeDoMunicipio = null as string | null } = {}) {
+function abrir({
+  catalogoFalha = false,
+  nomeDoMunicipio = null as string | null,
+  municipioCodigoIbge = null as number | null,
+} = {}) {
   obterRentabilidadeDasCulturas.mockResolvedValue({ dados: LINHAS, procedencia: null });
   if (catalogoFalha) obterCatalogoDoMercado.mockRejectedValue(new Error('403'));
   else
@@ -137,7 +146,11 @@ function abrir({ catalogoFalha = false, nomeDoMunicipio = null as string | null 
 
   render(
     <ProvedorDeContextoDeAcesso>
-      <PainelDeRentabilidade municipios={MUNICIPIOS} nomeDoMunicipio={nomeDoMunicipio} />
+      <PainelDeRentabilidade
+        municipios={MUNICIPIOS}
+        nomeDoMunicipio={nomeDoMunicipio}
+        municipioCodigoIbge={municipioCodigoIbge}
+      />
     </ProvedorDeContextoDeAcesso>,
   );
 }
@@ -281,6 +294,20 @@ describe('a aba Rentabilidade', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ver séries de preço e custo' }));
     expect(document.querySelector('[data-bloco="precos"]')).not.toBeNull();
     expect(document.querySelector('[data-bloco="custos"]')).not.toBeNull();
+  });
+
+  it('o preço recebido pelo produtor (PAM, issue 198) abre junto das séries, entre preço e custo, no município escolhido', async () => {
+    abrir({ nomeDoMunicipio: 'Cafelândia', municipioCodigoIbge: 3508702 });
+    await esperar();
+
+    expect(document.querySelector('[data-bloco="preco-implicito"]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Ver séries de preço e custo' }));
+
+    // DUAS SÉRIES DE PREÇO, DOIS PAINÉIS: a da CONAB e a do IBGE ficam lado a lado e nunca se emendam.
+    const series = document.querySelector<HTMLElement>('[data-bloco="rentabilidade-fontes"]')!;
+    expect([...series.children].map((n) => (n as HTMLElement).dataset.bloco)).toEqual(['precos', 'preco-implicito', 'custos']);
+    // A DA PAM É MUNICIPAL: ela recebe o município escolhido, ao contrário das da CONAB.
+    expect(series.querySelector('[data-bloco="preco-implicito"]')).toHaveAttribute('data-municipio', '3508702');
   });
 
   it('nenhum `title=` cru', async () => {

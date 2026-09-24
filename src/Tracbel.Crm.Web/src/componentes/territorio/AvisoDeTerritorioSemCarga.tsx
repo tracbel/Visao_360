@@ -29,7 +29,10 @@ export function AvisoDeTerritorioSemCarga({
             no banco — {reaisCompactos(vendasForaDoMapa)}, somadas nos grupos fora do mapa
             {vendasSemCodigoIbge !== null &&
               `, dos quais ${reaisCompactos(vendasSemCodigoIbge)} de clientes cujo município ainda não tem código IBGE`}
-            . Os mapas e os totais da ADR aparecem assim que a carga do território rodar neste banco (documento 32, §4.6.1).
+            {/* A CITAÇÃO DO DOCUMENTO SAIU DA TELA. Ela dizia "(documento 32, §4.6.1)" no fim da frase:
+                o símbolo § e o número do documento não dizem nada a quem lê, e a referência continua
+                aqui, no código, para quem precisa auditar. */}
+            . Os mapas e os totais da ADR aparecem assim que a carga do território rodar neste banco.
           </>
         }
       />
