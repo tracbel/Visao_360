@@ -207,3 +207,51 @@ export type RentabilidadeDaCultura = {
   /** A frase que a tela mostra no lugar do número. */
   fraseDoMotivo: string;
 };
+/** Por que o preço implícito de um ano não saiu (issue 198). */
+export type MotivoSemPrecoImplicito =
+  | 'Nenhum'
+  | 'SemValorDaProducao'
+  | 'SemQuantidadeProduzida'
+  | 'SemColheita';
+
+/** O preço implícito de um ano — `valor da produção × 1000 ÷ quantidade produzida`. */
+export type PrecoImplicitoNoAno = {
+  ano: number;
+  /** Reais por unidade da quantidade; nulo com motivo. */
+  precoPorUnidade: number | null;
+  /** "toneladas", "mil frutos", "mil cachos" — vem do produto E do ano (issue 152). */
+  unidade: string;
+  /** O numerador e o denominador, para a conta poder ser conferida na tela. */
+  valorDaProducaoMilReais: number | null;
+  quantidadeProduzida: number | null;
+  motivo: MotivoSemPrecoImplicito;
+};
+
+/**
+ * Uma média plurianual — ela SÓ SAI com todos os anos da janela.
+ *
+ * Uma média de dois anos apresentada como de três é mais enganosa que ausência nenhuma, porque parece
+ * completa. Faltando um ano, `preco` é nulo e `anosFaltando` diz quais.
+ */
+export type MediaPlurianual = { anos: number; preco: number | null; anosFaltando: number[] };
+
+/** A série anual de um produto, com as médias. */
+export type SerieDoPrecoImplicito = {
+  produtoCodigoIbge: number;
+  produto: string;
+  unidade: string;
+  /** Do ano mais recente para o mais antigo. */
+  anos: PrecoImplicitoNoAno[];
+  mediaDeTresAnos: MediaPlurianual;
+  mediaDeCincoAnos: MediaPlurianual;
+  /** Quantos municípios sustentam o ano mais recente. */
+  municipiosComDadoNoUltimoAno: number;
+};
+
+/**
+ * O PREÇO RECEBIDO PELO PRODUTOR, DA PAM (issue 198) — anual e por município, desde 2010.
+ *
+ * NÃO SE EMENDA À SÉRIE MENSAL DA CONAB: são conceitos da mesma família e não intercambiáveis. Por isso
+ * este é um tipo próprio, e não um `SerieDePreco` a mais — assim ninguém concatena os dois por acidente.
+ */
+export type PrecoImplicitoDoRecorte = { series: SerieDoPrecoImplicito[]; ressalva: string };

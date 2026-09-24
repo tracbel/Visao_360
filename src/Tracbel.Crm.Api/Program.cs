@@ -191,6 +191,7 @@ builder.Services.AddScoped<IRepositorioDoMotorDoPotencial, RepositorioDoMotorDoP
 builder.Services.AddScoped<IRepositorioDeIndicadoresDeMercado, RepositorioDeIndicadoresDeMercado>();
 builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais, RepositorioDeIndicadoresTerritoriais>();
 builder.Services.AddScoped<IRepositorioDePrecosDeMercado, RepositorioDePrecosDeMercado>();
+builder.Services.AddScoped<IRepositorioDoPrecoImplicito, RepositorioDoPrecoImplicito>();
 builder.Services.AddScoped<IRepositorioDeCustosDeProducao, RepositorioDeCustosDeProducao>();
 builder.Services.AddScoped<IRepositorioDeCreditoRural, RepositorioDeCreditoRural>();
 builder.Services.AddScoped<IRepositorioDoCatalogoDoMercado, RepositorioDoCatalogoDoMercado>();
@@ -283,6 +284,7 @@ builder.Services.AddScoped<ListarTerritorioPorCarteira>();
 builder.Services.AddScoped<ObterIndicadoresTerritoriais>();
 builder.Services.AddScoped<SimularMaquinas>();
 builder.Services.AddScoped<ObterPrecosDeMercado>();
+builder.Services.AddScoped<ObterPrecoImplicitoDaPam>();
 builder.Services.AddScoped<ObterCustosDeProducao>();
 builder.Services.AddScoped<ObterCreditoRural>();
 builder.Services.AddScoped<ObterRentabilidadeDasCulturas>();
