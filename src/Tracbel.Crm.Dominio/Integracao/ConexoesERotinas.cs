@@ -826,7 +826,7 @@ public static class ConexoesDoSistema
         new(Protheus, "Protheus — API REST", TipoDeConexao.ApiRest,
             "O faturamento (SD2) lido direto do ERP. Só leitura: o pedido de token é autenticação, não escrita."),
         new(ProtheusBanco, "Protheus — banco (leitura)", TipoDeConexao.SqlServer,
-            "O dono do chassi e o cadastro do comprador, para a integração do ART. Sessão somente leitura."),
+            "O cadastro de clientes, o faturamento, o parque de máquinas pelo dono atual e a conferência do ART. Sessão somente leitura."),
         new(Art, "ART — vendas de máquina", TipoDeConexao.MySql,
             "A view de vendas de máquina liberada para o CRM. Sessão somente leitura."),
         new(Vortice, "Vórtice — sistema legado", TipoDeConexao.SqlServer,
@@ -909,6 +909,9 @@ public static class RotinasDoSistema
     /// <summary>As carteiras MAQ_NOVOS do Vórtice (decisão de 24/09/2026).</summary>
     public const string CarteirasVortice = "CARTEIRAS_VORTICE";
 
+    /// <summary>O parque de máquinas pelo proprietário atual no cadastro de veículos do Protheus (decisão de 24/09/2026).</summary>
+    public const string ParqueProtheus = "PARQUE_PROTHEUS";
+
     /// <summary>
     /// Quando as agendas semeadas passam a valer: o dia em que o orquestrador substituiu as tarefas do Windows. O
     /// que era devido antes dele (a mensal de 20/09) já rodou pelas tarefas antigas.
@@ -975,7 +978,19 @@ public static class RotinasDoSistema
         new(CarteirasVortice, "Carteiras MAQ_NOVOS do Vórtice",
             "A carteira de máquinas novas de cada vendedor, lida do Vórtice, com os clientes casados pelo CPF/CNPJ.",
             ["--somente-carteiras-vortice"], AgendaDaRotina.DiariaAs(new TimeOnly(4, 30)), false,
-            [ConexoesDoSistema.Vortice, ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.Vortice)
+            [ConexoesDoSistema.Vortice, ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.Vortice),
+
+        // O PARQUE DE MÁQUINAS PELO PROPRIETÁRIO ATUAL (decisão de 24/09/2026). Lê o cadastro de veículos do Protheus
+        // (VV1_PROATU + VV1_LJPATU, casados com a SA1 por código E loja) e mantém, para cada máquina cujo dono é
+        // cliente do CRM, o vínculo de dono atual com a evidência (nota de venda, ordem de serviço ou só cadastro).
+        // Diária às 05:30 — DEPOIS da SA1 (03:30), porque casa o dono pelo documento, e do faturamento (05:00); e
+        // no FIM da lista, como toda rotina nova: a posição é o identificador semeado. NASCE DESLIGADA: ligá-la
+        // traz vinte e poucas mil máquinas para produção, e isso é decisão de quem administra.
+        new(ParqueProtheus, "Parque de máquinas (Protheus)",
+            "As máquinas do cadastro de veículos do Protheus (VV1) cujo dono atual é cliente do CRM, com a evidência " +
+            "do dono — nota de venda, ordem de serviço ou só o cadastro — conferida contra o comprador do ART.",
+            ["--somente-parque-protheus"], AgendaDaRotina.DiariaAs(new TimeOnly(5, 30)), false,
+            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco)
     ];
 
     /// <summary>A rotina do catálogo pelo código; nula quando não existe.</summary>

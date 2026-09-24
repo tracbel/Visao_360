@@ -200,7 +200,7 @@ public sealed record EquipamentoDetalhe(
 /// O que o <c>POST</c> de equipamento aceita. Tudo texto, pela mesma razão dos contratos de
 /// cliente: a recusa é nossa, campo a campo, e não a do desserializador.
 /// </summary>
-/// <param name="Chassi">17 caracteres, sem I, O nem Q. Obrigatório e único.</param>
+/// <param name="Chassi">17 letras e números (I, O e Q inclusive, como a plaqueta da John Deere). Obrigatório e único.</param>
 /// <param name="ModeloCodigo">Código do modelo no catálogo de frota. Nunca texto livre.</param>
 /// <param name="ClienteChave">O GUID do dono. Obrigatório quando a situação é Ativo ou Vendido.</param>
 /// <param name="Situacao">Estoque, Ativo, Vendido ou Baixado. Padrão: Ativo.</param>

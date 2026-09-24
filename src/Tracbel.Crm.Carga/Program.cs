@@ -172,7 +172,23 @@ var somenteClientesDoProtheus = args.Contains("--somente-clientes-protheus", Str
 // pendente, e entra na rodada seguinte.
 var somenteCarteirasDoVortice = args.Contains("--somente-carteiras-vortice", StringComparer.Ordinal);
 
+// --somente-parque-protheus [--simular] — O PARQUE DE MÁQUINAS PELO PROPRIETÁRIO ATUAL (decisões de 24/09/2026).
+//
+// Le o cadastro de veiculos do Protheus (VV1010, so SELECT, NOLOCK) com o dono atual — VV1_PROATU + VV1_LJPATU,
+// casados com a SA1 por codigo E loja — e a evidencia dele (nota de venda, ordem de servico ou so o cadastro), e
+// SINCRONIZA: a maquina cujo dono e cliente do CRM entra, com um vinculo de dono atual; quando o dono muda, o
+// vinculo anterior e encerrado. E a rotina diaria PARQUE_PROTHEUS do orquestrador. Com --simular, calcula o plano so
+// com leitura e nao abre transacao.
+//
+// Vem DEPOIS do --somente-clientes-protheus e do --somente-art: casa o dono pelo documento, e confere o comprador do
+// ART que ja esta no CRM.
+var somenteParqueDoProtheus = args.Contains("--somente-parque-protheus", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
+
+// --somente-art --projetar — A PROJECAO DO PROXIMO CICLO DO ART, so com leitura: a mesma decisao por registro da carga,
+// sem transacao nenhuma. E a que roda da estacao contra o banco de producao (o --simular do ART grava e desfaz).
+var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 
 // =================================================================================================
 // O VÓRTICE ESTÁ CONGELADO — LEGADO / SOMENTE REFERÊNCIA (decisão D-12, documento 41).
@@ -191,6 +207,7 @@ var simular = args.Contains("--simular", StringComparer.Ordinal);
 //   --somente-custos        o custo de produção das culturas em SP, das séries da CONAB;
 //   --somente-credito       o crédito rural de investimento do SICOR, por município e mês;
 //   --somente-art           as vendas de máquina do ART;
+//   --somente-parque-protheus  o parque de máquinas pelo proprietário atual no Protheus;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // A ÚNICA LEITURA DO VÓRTICE LIBERADA (decisão de 24/09/2026):
@@ -201,7 +218,7 @@ var simular = args.Contains("--simular", StringComparer.Ordinal);
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
 
 var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somentePrecos && !somenteCustos && !somenteCredito
-                 && !somenteArt && !somenteClientesDoProtheus && !somenteCarteirasDoVortice && !somenteMedir;
+                 && !somenteArt && !somenteClientesDoProtheus && !somenteCarteirasDoVortice && !somenteParqueDoProtheus && !somenteMedir;
 
 if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
 {
@@ -249,7 +266,8 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
 if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura
-    && !somentePrecos && !somenteCustos && !somenteCredito && !somenteArt && !somenteClientesDoProtheus && !somenteCarteirasDoVortice)
+    && !somentePrecos && !somenteCustos && !somenteCredito && !somenteArt && !somenteClientesDoProtheus && !somenteCarteirasDoVortice
+    && !somenteParqueDoProtheus)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -540,6 +558,94 @@ if (somenteCarteirasDoVortice)
     }
 }
 
+// AS RAÍZES DE CNPJ DO GRUPO — a própria Tracbel, que não é dona de parque de cliente. O padrão é a lista do
+// faturamento (ParceirosPorRaizDeCnpj); ParqueProtheus__RaizesDoGrupo a substitui, sem publicação nova.
+var raizesDoGrupo = ParceirosPorRaizDeCnpj.RaizesDoGrupoConfiguradas(configuracao[ParceirosPorRaizDeCnpj.ChaveDaConfiguracao]);
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só o parque de máquinas pelo proprietário atual no Protheus (decisões de 24/09/2026).
+// -------------------------------------------------------------------------------------------------
+
+if (somenteParqueDoProtheus)
+{
+    var opcoesDoBancoParaOParque = new OpcoesDoBancoDoProtheus();
+    configuracao.GetSection(OpcoesDoBancoDoProtheus.Secao).Bind(opcoesDoBancoParaOParque);
+
+    if (!opcoesDoBancoParaOParque.EstaConfigurada)
+    {
+        Console.Error.WriteLine(
+            "O parque de máquinas exige ProtheusBanco__Servidor, __Banco, __Usuario e __Senha — ou a conexão \"Protheus — " +
+            "banco (leitura)\" configurada em Configurações > Integrações. Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    // A SIMULAÇÃO LÊ O CRM COM INTENÇÃO DE LEITURA DECLARADA, como a das carteiras: o plano é calculado só com
+    // consultas, e a cadeia diz isso ao servidor também.
+    var opcoesDoParque = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(600))
+            .Options
+        : new DbContextOptionsBuilder<CrmDbContext>().UseSqlServer(conexaoDoCrm, sql => sql.CommandTimeout(600)).Options;
+
+    CrmDbContext AbrirContextoDoParque() => new(opcoesDoParque, contexto, diario);
+
+    Console.WriteLine(simular
+        ? "Parque de máquinas do Protheus — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
+        : "Parque de máquinas do Protheus — sincronizando.");
+    Console.WriteLine($"  raízes de CNPJ do grupo (fora do parque): {string.Join(", ", raizesDoGrupo.Order(StringComparer.Ordinal))}");
+    Console.WriteLine();
+
+    var cargaDoParque = new CargaDoParqueDoProtheus(
+        AbrirContextoDoParque, new LeitorDoParqueDoProtheus(opcoesDoBancoParaOParque).LerAsync, raizesDoGrupo, usuarioId,
+        () => DateTime.UtcNow, Console.WriteLine);
+
+    try
+    {
+        // A MESMA TRAVA DAS OUTRAS CARGAS, e só quando grava: a rotina do orquestrador e uma rodada manual não
+        // sincronizam ao mesmo tempo. A simulação não a toma — ela não escreve, e não deve impedir quem escreve.
+        await using var travaDoParque = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), CargaDoParqueDoProtheus.Fluxo, CancellationToken.None);
+
+        var resultadoDoParque = await cargaDoParque.ExecutarAsync(simular, CancellationToken.None);
+        if (!resultadoDoParque.EhSucesso)
+        {
+            Console.Error.WriteLine("A SINCRONIA DO PARQUE PAROU: " + resultadoDoParque.Erro);
+            return 3;
+        }
+
+        foreach (var etapa in resultadoDoParque.Valor.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+        }
+
+        if (resultadoDoParque.Valor.Observacoes.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("- Observações -");
+            foreach (var observacao in resultadoDoParque.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        }
+
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A SINCRONIA DO PARQUE PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
 if (somenteArt)
 {
     var opcoesDoArt = new OpcoesDoArt();
@@ -556,6 +662,48 @@ if (somenteArt)
         return 2;
     }
 
+    if (projetar)
+    {
+        // A PROJEÇÃO NÃO TOMA A TRAVA NEM ABRE TRANSAÇÃO: só lê o ART, o Protheus e o CRM — este com intenção de
+        // leitura declarada na cadeia.
+        var opcoesDaProjecao = new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(600))
+            .Options;
+
+        Console.WriteLine("Carga do ART — PROJEÇÃO do próximo ciclo: só leitura, nenhuma transação é aberta.");
+        Console.WriteLine();
+
+        var projecao = await new CargaDoArt(
+                () => new CrmDbContext(opcoesDaProjecao, contexto, diario),
+                new LeitorDoArt(Options.Create(opcoesDoArt)).LerVendasAsync,
+                opcoesDoBancoDoProtheus.EstaConfigurada ? new LeitorDoCadastroDoProtheus(opcoesDoBancoDoProtheus).LerAsync : null,
+                raizesDoGrupo, usuarioId, Console.WriteLine)
+            .ProjetarAsync(CancellationToken.None);
+
+        if (!projecao.EhSucesso)
+        {
+            Console.Error.WriteLine("A PROJEÇÃO DO ART PAROU: " + projecao.Erro);
+            return 3;
+        }
+
+        foreach (var etapa in projecao.Valor.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+        }
+
+        Console.WriteLine();
+        foreach (var observacao in projecao.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        return 0;
+    }
+
     Console.WriteLine(simular
         ? "Carga do ART — SIMULAÇÃO: tudo roda numa transação desfeita no fim."
         : "Carga do ART — gravando.");
@@ -565,7 +713,7 @@ if (somenteArt)
     // de um ciclo, a carga manual é recusada em vez de gravar em paralelo, e a carga real fica registrada
     // em integracao.ExecucaoDeSincronizacao. Uma tentativa só — há alguém olhando o terminal.
     var executorDoArt = new ExecutorDaSincronizacaoDoArt(
-        conexaoDoCrm, AbrirContexto, opcoesDoArt, opcoesDoBancoDoProtheus, usuarioId,
+        conexaoDoCrm, AbrirContexto, opcoesDoArt, opcoesDoBancoDoProtheus, raizesDoGrupo, usuarioId,
         tentativas: 1, esperaBase: TimeSpan.Zero, Console.WriteLine,
         fabricaDeLog.CreateLogger<ExecutorDaSincronizacaoDoArt>());
 

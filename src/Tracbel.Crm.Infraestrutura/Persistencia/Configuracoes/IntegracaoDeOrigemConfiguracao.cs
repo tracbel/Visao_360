@@ -65,6 +65,7 @@ public sealed class VendaDeMaquinaConfiguracao : IEntityTypeConfiguration<VendaD
         b.Property(v => v.Transformacoes).HasMaxLength(1000).IsUnicode(true);
         b.Property(v => v.VendaDireta).IsRequired();
         b.Property(v => v.RepasseDireto).IsRequired();
+        b.Property(v => v.CompradorPeloDonoNoProtheus).IsRequired();
 
         b.Property(v => v.RegistradaNaOrigemEm).HasPrecision(3);
         b.Property(v => v.ImportadaEm).HasPrecision(3).IsRequired();
@@ -109,6 +110,7 @@ public sealed class VinculoDeClienteComEquipamentoConfiguracao : IEntityTypeConf
         b.HasIndex(v => v.ChavePublica).IsUnique().HasDatabaseName("UX_VinculoDeClienteComEquipamento_ChavePublica");
 
         b.Property(v => v.Natureza).HasConversion<string>().HasMaxLength(30).IsUnicode(false).IsRequired();
+        b.Property(v => v.Evidencia).HasConversion<string>().HasMaxLength(20).IsUnicode(false);
         b.Property(v => v.MotivoDoEncerramento).HasMaxLength(200).IsUnicode(true);
         b.Property(v => v.EncerradoEm).HasPrecision(3);
         b.Property(v => v.CriadoEm).HasPrecision(3).IsRequired();
@@ -120,6 +122,13 @@ public sealed class VinculoDeClienteComEquipamentoConfiguracao : IEntityTypeConf
             .IsUnique()
             .HasFilter("[VendaDeMaquinaId] IS NOT NULL AND [EncerradoEm] IS NULL")
             .HasDatabaseName("UX_VinculoDeClienteComEquipamento_Venda_Cliente_Natureza");
+
+        // UM DONO ATUAL VIGENTE POR MÁQUINA (decisão de 24/09/2026): a troca de dono encerra o anterior antes de abrir
+        // o novo, e o motor recusa a segunda linha vigente se a sincronia errar.
+        b.HasIndex(v => v.EquipamentoId)
+            .IsUnique()
+            .HasFilter("[Natureza] = 'ProprietarioAtual' AND [EncerradoEm] IS NULL")
+            .HasDatabaseName("UX_VinculoDeClienteComEquipamento_ProprietarioAtual");
 
         b.HasIndex(v => new { v.EquipamentoId, v.Natureza });
         b.HasIndex(v => v.ClienteId);
@@ -133,7 +142,15 @@ public sealed class VinculoDeClienteComEquipamentoConfiguracao : IEntityTypeConf
         b.HasOne<Sistema>().WithMany().HasForeignKey(v => v.SistemaId).OnDelete(DeleteBehavior.Restrict);
 
         b.ToTable(x => x.HasCheckConstraint(
-            "CK_VinculoDeClienteComEquipamento_Natureza", "[Natureza] IN ('CompradorNaVenda')"));
+            "CK_VinculoDeClienteComEquipamento_Natureza", "[Natureza] IN ('CompradorNaVenda','ProprietarioAtual')"));
+
+        // O COMPRADOR É SUSTENTADO PELA VENDA; o dono atual, pela evidência — e não aponta venda, para não aparecer
+        // duas vezes na lista de máquinas compradas pelo cliente.
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_VinculoDeClienteComEquipamento_Evidencia",
+            "([Natureza] = 'CompradorNaVenda' AND [Evidencia] IS NULL) " +
+            "OR ([Natureza] = 'ProprietarioAtual' AND [VendaDeMaquinaId] IS NULL " +
+            "AND [Evidencia] IN ('NotaDeVenda','OrdemDeServico','CadastroAntigo','VendaNoArt'))"));
         b.ToTable(x => x.HasCheckConstraint(
             "CK_VinculoDeClienteComEquipamento_Encerramento",
             "([EncerradoEm] IS NULL AND [MotivoDoEncerramento] IS NULL) OR ([EncerradoEm] IS NOT NULL AND [MotivoDoEncerramento] IS NOT NULL)"));
@@ -277,7 +294,7 @@ public sealed class CompradorPendenteConfiguracao : IEntityTypeConfiguration<Com
         b.ToTable(x => x.HasCheckConstraint(
             "CK_CompradorPendente_Grupo", "[Grupo] IN ('ComNotaNoProtheus','SemNotaNoProtheus')"));
         b.ToTable(x => x.HasCheckConstraint(
-            "CK_CompradorPendente_Situacao", "[Situacao] IN ('AguardandoCadastro','Cadastrado')"));
+            "CK_CompradorPendente_Situacao", "[Situacao] IN ('AguardandoCadastro','Cadastrado','ResolvidoPeloDonoNoProtheus')"));
         b.ToTable(x => x.HasCheckConstraint(
             "CK_CompradorPendente_SituacaoNoCadastroDoProtheus",
             "[SituacaoNoCadastroDoProtheus] IN ('NaoConferido','Ausente','Ativo','Bloqueado')"));

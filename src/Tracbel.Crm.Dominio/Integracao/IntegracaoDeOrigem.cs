@@ -379,7 +379,14 @@ public enum SituacaoDoCompradorPendente
     AguardandoCadastro = 0,
 
     /// <summary>Um cliente com este documento passou a existir no CRM.</summary>
-    Cadastrado = 1
+    Cadastrado = 1,
+
+    /// <summary>
+    /// As vendas dele entraram com o DONO ATUAL no Protheus, que é cliente do CRM (decisão de 24/09/2026): o cadastro
+    /// deste comprador deixou de travar a venda. Se ele passar a existir no CRM, a situação vira
+    /// <see cref="Cadastrado"/>.
+    /// </summary>
+    ResolvidoPeloDonoNoProtheus = 2
 }
 
 /// <summary>O que o cadastro de clientes do Protheus (SA1) diz sobre o documento.</summary>
@@ -563,6 +570,22 @@ public sealed class CompradorPendente : EntidadeBase
         Situacao = SituacaoDoCompradorPendente.Cadastrado;
         ApuradoEm = quando;
         MarcarAlteracao(usuarioId);
+    }
+
+    /// <summary>
+    /// Marca que as vendas deste comprador entraram com o dono atual no Protheus — ele sai da fila de espera, sem
+    /// fingir que foi cadastrado.
+    /// </summary>
+    /// <param name="quando">O instante.</param>
+    /// <param name="usuarioId">Quem roda a integração.</param>
+    /// <returns>Verdadeiro quando a situação mudou.</returns>
+    public bool MarcarResolvidoPeloDonoNoProtheus(DateTime quando, long usuarioId)
+    {
+        if (Situacao != SituacaoDoCompradorPendente.AguardandoCadastro) return false;
+        Situacao = SituacaoDoCompradorPendente.ResolvidoPeloDonoNoProtheus;
+        ApuradoEm = quando;
+        MarcarAlteracao(usuarioId);
+        return true;
     }
 
     private void Aplicar(ApuracaoDoCompradorPendente a, DateTime quando)

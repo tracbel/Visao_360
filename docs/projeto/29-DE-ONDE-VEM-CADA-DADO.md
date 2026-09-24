@@ -1,6 +1,6 @@
 # De onde vem cada dado — arquivos, tabelas e consultas
 
-> Documento 29 · Versão 1.0 · 08/09/2026
+> Documento 29 · Versão 1.1 · 24/09/2026 (1.0 de 08/09/2026; 1.1 acrescenta a seção 1.5, o parque pela VV1)
 > Responde a três perguntas: **qual arquivo** faz a leitura, **de quais tabelas** ela puxa, e
 > **qual é a consulta**. Serve para auditar um número da tela até a origem dele.
 > Convenção: `[medido]` = valor obtido ao vivo contra a produção em 08/09/2026.
@@ -107,7 +107,60 @@ Não entram na carga; existem nos scripts de `scripts/protheus/`.
 | `SX2` | Lista de tabelas do dicionário, com descrição |
 | `SX3` | Campos de cada tabela — evita chutar nome de coluna |
 | `SBM` | Catálogo dos grupos de produto |
-| `VV1` | Frota — 38.360 chassis `[medido]` |
+
+> A `VV1` saiu desta lista em 24/09/2026: ela é lida pela carga do parque (seção 1.5).
+
+### 1.5 `VV1` — o parque de máquinas e o dono atual (24/09/2026)
+
+**Arquivo:** `src/Tracbel.Crm.Integracao/Protheus/LeitorDoParqueDoProtheus.cs` — a ÚNICA leitura da `VV1010`
+no CRM; a conferência do ART (`Art/LeitorDoCadastroDoProtheus.cs`) usa esta mesma.
+**Carga:** `src/Tracbel.Crm.Carga/CargaDoParqueDoProtheus.cs` (`--somente-parque-protheus [--simular]`, rotina
+`PARQUE_PROTHEUS`, diária às 05:30, nasce desligada).
+**Regras puras:** `src/Tracbel.Crm.Integracao/Protheus/RegrasDoParque.cs`.
+
+**As tabelas, numa consulta só** (`LeitorDoParqueDoProtheus.Consulta`, `SELECT ... WITH (NOLOCK)`, conexão "Protheus
+— banco (leitura)", menos de 2 s para as 38.622 linhas `[medido 24/09]`):
+
+| Tabela | Colunas | Para quê |
+|---|---|---|
+| `VV1010` | `VV1_CHAINT`, `VV1_CHASSI`, `VV1_CODMAR`, `VV1_MODVEI`, `VV1_SEGMOD`, `VV1_FABMOD`, `VV1_ESTVEI`, `VV1_SITVEI`, `VV1_PROATU`, `VV1_LJPATU`, `VV1_DATVEN`, `VV1_DTUVEN` | A máquina e o **proprietário atual** |
+| `SA1010` | `A1_COD`, `A1_LOJA`, `A1_CGC` | O documento do dono — por código **E loja** |
+| `VV2010` / `VVR010` / `VE1010` | modelo, grupo do modelo, marca | O que a máquina é; o grupo separa o componente |
+| `VV0010 × VVA010` | `VV0_OPEMOV = '0'`, `VV0_SITNFI = '1'`, `VV0_DATMOV`, cliente e loja, por `VVA_CHAINT` | A **nota de venda válida** mais recente |
+| `VO1010` | `VO1_PROVEI`, `VO1_LOJPRO`, `VO1_DATABE`, `VO1_STATUS <> 'C'`, por `VO1_CHAINT` | A **ordem de serviço** mais recente não cancelada |
+
+**O dono é `VV1_PROATU + VV1_LJPATU`, e não `VV1_CLIULV`.** O cliente da última venda está vazio em 28.979 das
+32.595 máquinas com chassi e vinha sem a loja; pelo proprietário atual, 30.767 chegam a um documento só, e nenhuma
+fica ambígua `[medido]`. O proprietário atual é o que a oficina mantém: onde ele difere do cliente da última nota,
+quase sempre há ordem de serviço depois da nota.
+
+**O chassi é normalizado em C#** (`Chassi.Normalizar`: sem espaço nenhum, maiúsculo) — a mesma função da tela e
+do ART. Aparar só as pontas perdia 98 chassis.
+
+**As regras** (decisões do dono de 24/09/2026):
+
+| Regra | Onde |
+|---|---|
+| **Evidência do dono**: a nota de venda mais recente é dele → `NotaDeVenda`; senão, a ordem de serviço mais recente é dele → `OrdemDeServico`; senão → `CadastroAntigo`. Gravada no vínculo `ProprietarioAtual`, com a data | `MaquinaNoProtheus.Evidencia` |
+| **Fica fora do parque**: componente (grupos `AP`, `MOT`, `CAPOTA`, `KIT`); situação que não é "no cliente" (só vazia ou `1`); dono que é a própria Tracbel pela **raiz do CNPJ** (`ParceirosPorRaizDeCnpj`, a mesma lista do faturamento, configurável por `ParqueProtheus__RaizesDoGrupo`); chassi repetido com donos diferentes; identificador que não é VIN nem número de série aceitável | `CargaDoParqueDoProtheus`, `MotivoDePendenciaDoParque` |
+| **Protheus × ART**: vale o Protheus com nota ou ordem de serviço **do dono** depois do faturamento do ART, ou com a mesma raiz de CNPJ; sem isso, ou com o Protheus dizendo Tracbel, vale o comprador do ART e fica divergência. O comprador do ART continua como histórico | `RegrasDoParque.Comparar` |
+| **Dono confirmado**: quando o dono no Protheus é o comprador do ART, a máquina deixa de ser "proprietário não confirmado" (`Equipamento.ClienteId`) | `Equipamento.ConfirmarProprietario` |
+| **VIN** de 17 letras e números, **inclusive I, O e Q** (o `1CQ` da John Deere); **número de série curto** (5 a 16 posições) aceito quando o Protheus o tem exatamente | `Chassi` |
+
+**O que ela escreve:** `frota.Equipamento` (a máquina que o CRM não tem nasce com origem `Protheus`, sem dono
+confirmado, com modelo só por código idêntico do catálogo e com os anos de `VV1_FABMOD`),
+`frota.VinculoDeClienteComEquipamento` com natureza `ProprietarioAtual` (um vigente por máquina, pelo índice
+filtrado; o anterior é encerrado, nunca apagado) e `integracao.RegistroDeOrigem` com o fluxo `PROTHEUS.PARQUE_VV1`,
+uma linha por linha da VV1 com chassi, com o motivo de quem não entrou.
+
+**Travas:** leitura vazia não muda nada; uma rodada que encerraria mais de 20% dos donos vigentes (com pelo menos
+1.000) tem os encerramentos recusados e diz isso no relatório — a mesma regra do faturamento.
+
+`[medido 24/09, simulação contra a produção]` 22.285 máquinas com dono cliente do CRM (NotaDeVenda 4.141,
+OrdemDeServico 6.737, CadastroAntigo 11.320, VendaNoArt 87), de 6.165 clientes; 19.467 máquinas novas (4.725 com
+número de série curto; 11.742 com modelo do catálogo); 2.439 donos confirmados. Fora do parque: 4.808 componentes,
+2.541 donos fora do CRM, 1.147 sem dono, 922 com a Tracbel, 593 donos da própria Tracbel, 282 identificadores fora
+do padrão, 8 chassis repetidos com donos diferentes. Os números por etapa e como ligar a rotina estão no documento 35, seção 13.
 
 ---
 

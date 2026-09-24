@@ -31,7 +31,10 @@ public enum SituacaoDoEquipamento
 /// <summary>Quem afirma que esta máquina existe.</summary>
 public enum OrigemDoEquipamento
 {
-    /// <summary>Veio do ERP: é ativo faturado pela Tracbel.</summary>
+    /// <summary>
+    /// Veio do ERP: o cadastro de veículos do Protheus (VV1) — máquina que a Tracbel vendeu, nova ou usada, ou que a
+    /// oficina atendeu.
+    /// </summary>
     Protheus = 0,
 
     /// <summary>Foi declarada pelo CEN no CRM — inclusive a máquina do concorrente.</summary>
@@ -160,22 +163,107 @@ public sealed class Equipamento : EntidadeBase
     /// <param name="criadoPorId">Quem roda a integração.</param>
     /// <param name="modeloId">O modelo, quando a correspondência do produto é segura.</param>
     /// <param name="linhaDeProdutoId">A classificação de produto, quando existe.</param>
+    /// <param name="anoFabricacao">O ano de fabricação, quando a origem o declara.</param>
+    /// <param name="anoModelo">O ano do modelo, quando a origem o declara.</param>
     public static Equipamento RegistrarPelaIntegracao(
         int empresaId,
         Chassi chassi,
         OrigemDoEquipamento origem,
         long criadoPorId,
         int? modeloId = null,
-        int? linhaDeProdutoId = null) => new()
+        int? linhaDeProdutoId = null,
+        short? anoFabricacao = null,
+        short? anoModelo = null)
     {
-        EmpresaId = empresaId,
-        Chassi = chassi,
-        Origem = origem,
-        CriadoPorId = criadoPorId,
-        ModeloId = modeloId,
-        LinhaDeProdutoId = linhaDeProdutoId,
-        Situacao = SituacaoDoEquipamento.ProprietarioNaoConfirmado
-    };
+        // A MÁQUINA DE INTEGRAÇÃO SEM MODELO é a do ART e a do cadastro de veículos do Protheus: o produto da
+        // origem fica na origem, e a correspondência com o catálogo espera uma regra segura.
+        if (origem == OrigemDoEquipamento.Crm)
+            throw new RegraDeNegocioViolada("A máquina declarada no CRM é cadastrada pela tela, com modelo — não pela integração.");
+
+        ConferirAnos(anoFabricacao, anoModelo);
+
+        return new Equipamento
+        {
+            EmpresaId = empresaId,
+            Chassi = chassi,
+            Origem = origem,
+            CriadoPorId = criadoPorId,
+            ModeloId = modeloId,
+            LinhaDeProdutoId = linhaDeProdutoId,
+            AnoFabricacao = anoFabricacao,
+            AnoModelo = anoModelo,
+            Situacao = SituacaoDoEquipamento.ProprietarioNaoConfirmado
+        };
+    }
+
+    /// <summary>
+    /// CONFIRMA O DONO: a máquina deixa de ser "proprietário não confirmado" e passa a ser do cliente, em operação.
+    ///
+    /// <para>Quem confirma pela integração é a sincronia do parque (decisão de 24/09/2026), e só quando duas fontes
+    /// independentes concordam: o dono atual no cadastro de veículos do Protheus é o comprador da venda mais recente no
+    /// ART. Uma pessoa confirma pela tela, com <see cref="Alterar"/>.</para>
+    /// </summary>
+    /// <param name="clienteId">O dono confirmado.</param>
+    /// <param name="usuarioId">Quem confirma.</param>
+    /// <returns>Verdadeiro quando algo mudou.</returns>
+    public bool ConfirmarProprietario(long clienteId, long usuarioId)
+    {
+        if (EstaExcluido)
+            throw new RegraDeNegocioViolada("Equipamento baixado não aceita alteração.");
+        if (Situacao is not (SituacaoDoEquipamento.ProprietarioNaoConfirmado or SituacaoDoEquipamento.Ativo))
+            throw new RegraDeNegocioViolada(
+                $"Só a máquina em operação, ou com o dono ainda não confirmado, recebe dono confirmado (situação atual: {Situacao}).");
+
+        if (Situacao == SituacaoDoEquipamento.Ativo && ClienteId == clienteId) return false;
+
+        ClienteId = clienteId;
+        Situacao = SituacaoDoEquipamento.Ativo;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>
+    /// DESFAZ A CONFIRMAÇÃO: as duas fontes deixaram de concordar — a máquina foi revendida, e o dono atual no
+    /// Protheus já não é o comprador do ART. Ela volta a "proprietário não confirmado", sem dono; quem é o dono atual
+    /// segundo o Protheus continua no vínculo <see cref="NaturezaDoVinculoComEquipamento.ProprietarioAtual"/>.
+    /// </summary>
+    /// <param name="usuarioId">Quem desfaz.</param>
+    /// <returns>Verdadeiro quando algo mudou.</returns>
+    public bool DesfazerConfirmacaoDoProprietario(long usuarioId)
+    {
+        if (EstaExcluido || Situacao != SituacaoDoEquipamento.Ativo) return false;
+
+        ClienteId = null;
+        Situacao = SituacaoDoEquipamento.ProprietarioNaoConfirmado;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>
+    /// Aponta os anos de fabricação e de modelo que ainda estão vazios. Ano já informado — pela carga ou por uma
+    /// pessoa — não é trocado; ano fora da faixa aceita é ignorado, e não gravado.
+    /// </summary>
+    /// <param name="anoFabricacao">O ano de fabricação da origem.</param>
+    /// <param name="anoModelo">O ano do modelo da origem.</param>
+    /// <param name="usuarioId">Quem aponta.</param>
+    /// <returns>Verdadeiro quando algum ano foi apontado agora.</returns>
+    public bool DefinirAnosSeAusentes(short? anoFabricacao, short? anoModelo, long usuarioId)
+    {
+        if (EstaExcluido) return false;
+
+        var fabricacao = AnoFabricacao is null && AnoAceito(anoFabricacao) ? anoFabricacao : null;
+        var modelo = AnoModelo is null && AnoAceito(anoModelo) ? anoModelo : null;
+        if (fabricacao is null && modelo is null) return false;
+
+        AnoFabricacao ??= fabricacao;
+        AnoModelo ??= modelo;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>Se o ano cabe na faixa que a restrição <c>CK_Equipamento_Ano</c> e a tela aceitam.</summary>
+    /// <param name="ano">O ano.</param>
+    public static bool AnoAceito(short? ano) => ano is { } a && a >= 1900 && a <= DateTime.UtcNow.Year + 1;
 
     /// <summary>
     /// Aponta o modelo quando a máquina ainda não tem nenhum. Modelo já definido — pela carga ou por
@@ -246,11 +334,11 @@ public sealed class Equipamento : EntidadeBase
         if (EstaExcluido)
             throw new RegraDeNegocioViolada("Equipamento baixado não aceita alteração.");
 
-        // O MODELO SÓ FICA VAZIO na máquina que veio de integração sem correspondência segura — e,
-        // uma vez escolhido, não volta a ficar vazio por edição.
-        if (modeloId is null && (Origem != OrigemDoEquipamento.Art || ModeloId is not null))
+        // O MODELO SÓ FICA VAZIO na máquina que veio de integração sem correspondência segura — o ART e o
+        // cadastro de veículos do Protheus — e, uma vez escolhido, não volta a ficar vazio por edição.
+        if (modeloId is null && (Origem == OrigemDoEquipamento.Crm || ModeloId is not null))
             throw new RegraDeNegocioViolada(
-                "Informe o modelo do catálogo: só a máquina vinda do ART ainda sem modelo pode ficar sem ele.");
+                "Informe o modelo do catálogo: só a máquina vinda do ART ou do Protheus ainda sem modelo pode ficar sem ele.");
 
         ConferirAnos(anoFabricacao, anoModelo);
         ConferirPosse(situacao, clienteId);

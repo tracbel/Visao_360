@@ -10,6 +10,7 @@ using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao;
 using Tracbel.Crm.Integracao.Art;
+using Tracbel.Crm.Integracao.Protheus;
 
 namespace Tracbel.Crm.Carga.Sincronizacao;
 
@@ -196,6 +197,7 @@ internal sealed class ServicoDeSincronizacaoDoArt(
             () => new CrmDbContext(opcoesDoBanco, contexto, diario),
             art,
             protheus,
+            ParceirosPorRaizDeCnpj.RaizesDoGrupoConfiguradas(efetiva[ParceirosPorRaizDeCnpj.ChaveDaConfiguracao]),
             usuarioId,
             opcoes.Tentativas,
             TimeSpan.FromSeconds(opcoes.EsperaEntreTentativasSegundos),

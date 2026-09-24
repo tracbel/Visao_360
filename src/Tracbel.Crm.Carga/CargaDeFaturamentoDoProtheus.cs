@@ -537,37 +537,19 @@ internal sealed class CargaDeFaturamentoDoProtheus(
     // =============================================================================================
 
     /// <summary>
-    /// As raízes de CNPJ que não são cliente.
-    ///
-    /// <para><b>A raiz, e não o nome.</b> "TRACBEL AGRO NOR.", "TRACBEL AGRO NORTE" e "TRACBEL
-    /// AGRO NOROESTE" são a mesma empresa escrita de três jeitos; a raiz <c>09507371</c> é uma só.</para>
-    ///
-    /// <para>Medido em três anos: a fábrica levou R$ 96,6 milhões e a empresa irmã R$ 27,4
-    /// milhões, <b>tudo com CFOP 5102 — idêntico a uma venda</b>. Só o documento separa.</para>
-    /// </summary>
-    private static readonly Dictionary<string, NaturezaDoParceiro> NaturezaPorRaizDeCnpj = new(StringComparer.Ordinal)
-    {
-        ["89674782"] = NaturezaDoParceiro.Fabrica,       // John Deere Brasil
-        ["09507371"] = NaturezaDoParceiro.EmpresaDoGrupo, // Tracbel Agro Norte
-        ["03258870"] = NaturezaDoParceiro.EmpresaDoGrupo  // Tracbel — quatro cadastros na mesma raiz
-    };
-
-    /// <summary>
     /// O que é a contraparte de uma nota que não achou cliente no CRM.
     ///
-    /// <para>Só a fábrica e o grupo são reconhecidos por raiz. <b>Revenda não entra aqui</b>: não
-    /// há lista confiável de concessionária. Quem não é fábrica nem grupo entra como cadastro
-    /// faltando — que é o palpite certo na dúvida, porque é o que faz alguém olhar.</para>
+    /// <para>Só a fábrica e o grupo são reconhecidos, pela raiz do CNPJ — a lista mora em
+    /// <see cref="ParceirosPorRaizDeCnpj"/>, que o parque de máquinas também usa. <b>Revenda não entra
+    /// aqui</b>: não há lista confiável de concessionária. Quem não é fábrica nem grupo entra como
+    /// cadastro faltando — que é o palpite certo na dúvida, porque é o que faz alguém olhar.</para>
     /// </summary>
     /// <param name="documento">CPF ou CNPJ, só dígitos.</param>
     internal static NaturezaDoParceiro ClassificarParceiro(string documento)
     {
         if (documento.Length == 0) return NaturezaDoParceiro.SemDocumento;
 
-        return documento.Length == 14
-            && NaturezaPorRaizDeCnpj.TryGetValue(documento[..8], out var natureza)
-                ? natureza
-                : NaturezaDoParceiro.ClienteNaoCadastrado;
+        return ParceirosPorRaizDeCnpj.PelaRaiz(documento) ?? NaturezaDoParceiro.ClienteNaoCadastrado;
     }
 
     // =============================================================================================

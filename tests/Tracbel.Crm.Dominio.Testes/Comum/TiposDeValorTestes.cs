@@ -300,14 +300,76 @@ public class ChassiTestes
     [InlineData("")]
     [InlineData("1RW7250PVMR12345")]     // 16 caracteres
     [InlineData("1RW7250PVMR1234567")]   // 18 caracteres
-    [InlineData("1RW7250PVMRI23456")]    // contém I, proibido no padrão VIN
-    [InlineData("1RW7250PVMRO23456")]    // contém O
-    [InlineData("1RW7250PVMRQ23456")]    // contém Q
+    [InlineData("1RW7250PVMR-23456")]    // símbolo
+    [InlineData("1RW7250PVMR_23456")]    // sublinhado
+    [InlineData("1RW7250PVMRÉ23456")]    // letra fora do ASCII
     public void Recusa_entrada_invalida(string entrada)
     {
         // [V] EXT_Veic está morto e o cadastro vivo de equipamento não valida chassi como
         // formato — aqui a forma fixa é o que permite usar o chassi como chave natural.
         Chassi.TentarCriar(entrada, out _).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("1CQ7250PVMR123456")]    // o prefixo da John Deere (decisão 4 de 24/09/2026)
+    [InlineData("1RW7250PVMRI23456")]
+    [InlineData("1RW7250PVMRO23456")]
+    [InlineData("1rw7250pvmrq23456")]
+    public void Aceita_I_O_e_Q_porque_a_plaqueta_real_tem(string entrada)
+    {
+        // O padrão VIN internacional proíbe as três letras, mas o chassi é o que a plaqueta diz: 1.211 máquinas John
+        // Deere do Protheus começam em 1CQ. A letra é guardada como está — nunca trocada por 1 ou 0.
+        var chassi = Chassi.Criar(entrada);
+
+        chassi.Numero.Should().Be(entrada.ToUpperInvariant());
+        chassi.EhVin.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Todo_VIN_valido_pela_regra_antiga_continua_valido_e_com_a_mesma_chave()
+    {
+        // O PEDIDO DA SESSÃO DO ART (24/09/2026): mudar a regra não pode reescrever chave de máquina já gravada — se
+        // reescrevesse, seria migração de dados, e a recarga duplicaria a máquina. Toda forma aceita antes sai idêntica.
+        foreach (var antigo in new[] { "1RW7250PVMR123456", "9ZXY876WVUT543210", "1ABCD23EFGH456789", "  1rw7250pvmr 123456 " })
+        {
+            Chassi.TentarCriar(antigo, out var chassi).Should().BeTrue();
+            chassi.Numero.Should().Be(Chassi.Normalizar(antigo));
+            Chassi.Restaurar(chassi.Numero).Should().Be(chassi);
+        }
+    }
+
+    [Theory]
+    [InlineData("12345", "12345")]
+    [InlineData(" 0012 3456 ", "00123456")]
+    [InlineData("ch570-12345", "CH570-12345")]
+    [InlineData("PY6110J/0123", "PY6110J/0123")]
+    [InlineData("1BM6110JCHD1", "1BM6110JCHD1")]
+    public void O_identificador_curto_confirmado_tem_forma_propria(string entrada, string esperado)
+    {
+        Chassi.TentarCriarIdentificadorConfirmado(entrada, out var chassi).Should().BeTrue();
+
+        chassi.Numero.Should().Be(esperado);
+        chassi.EhVin.Should().BeFalse();
+        Chassi.Restaurar(chassi.Numero).Should().Be(chassi, "o banco devolve o que gravou");
+    }
+
+    [Theory]
+    [InlineData("1234")]                 // curto demais — número de quatro dígitos se repete entre marcas
+    [InlineData("SEMCHASSI")]            // sem dígito: é texto, não número de série
+    [InlineData("-12345")]               // começa com símbolo
+    [InlineData("12345/")]               // termina com símbolo
+    [InlineData("123\"45")]              // aspas não são de número de série
+    [InlineData("1RW7250PVMR123456")]    // 17 é VIN, não identificador curto
+    public void O_identificador_curto_recusa_o_que_nao_e_numero_de_serie(string entrada) =>
+        Chassi.TentarCriarIdentificadorConfirmado(entrada, out _).Should().BeFalse();
+
+    [Fact]
+    public void O_identificador_curto_nao_entra_pela_porta_da_tela()
+    {
+        // A TELA E AS IMPORTAÇÕES usam TentarCriar: o número curto só vira identidade com a confirmação do Protheus.
+        Chassi.TentarCriar("12345678", out _).Should().BeFalse();
+        var recusa = () => Chassi.Restaurar("12-");
+        recusa.Should().Throw<RegraDeNegocioViolada>();
     }
 }
 

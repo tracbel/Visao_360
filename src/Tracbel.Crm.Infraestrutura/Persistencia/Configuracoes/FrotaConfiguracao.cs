@@ -90,10 +90,12 @@ public sealed class EquipamentoConfiguracao : IEntityTypeConfiguration<Equipamen
         b.Property(e => e.ChavePublica).IsRequired().HasDefaultValueSql("NEWID()");
         b.HasIndex(e => e.ChavePublica).IsUnique().HasDatabaseName("UX_Equipamento_ChavePublica");
 
-        // O chassi é a identidade de verdade da máquina agrícola — tipo de valor validado.
+        // O chassi é a identidade de verdade da máquina agrícola — tipo de valor validado. A leitura RESTAURA: o banco
+        // guarda o VIN e o identificador curto que entrou confirmado pelo Protheus (decisão de 24/09/2026), e a
+        // confirmação aconteceu quando ele foi gravado.
         b.Property(e => e.Chassi)
-            .HasConversion(c => c.Numero, s => Dominio.Comum.Chassi.Criar(s))
-            .HasMaxLength(40).IsUnicode(false).IsRequired();
+            .HasConversion(c => c.Numero, s => Dominio.Comum.Chassi.Restaurar(s))
+            .HasMaxLength(Dominio.Comum.Chassi.TamanhoMaximo).IsUnicode(false).IsRequired();
 
         b.Property(e => e.NumeroSerie).HasMaxLength(40).IsUnicode(false);
         b.Property(e => e.Placa).HasMaxLength(10).IsUnicode(false);
@@ -135,9 +137,10 @@ public sealed class EquipamentoConfiguracao : IEntityTypeConfiguration<Equipamen
             "CK_Equipamento_Situacao", "[Situacao] IN ('Estoque','Ativo','Vendido','Baixado','ProprietarioNaoConfirmado')"));
         b.ToTable(x => x.HasCheckConstraint("CK_Equipamento_Origem", "[Origem] IN ('Protheus','Crm','Art')"));
 
-        // O modelo só falta na máquina que veio de integração com o produto pendente de revisão.
+        // O modelo só falta na máquina que veio de integração com o produto pendente de revisão — o ART e o
+        // cadastro de veículos do Protheus.
         b.ToTable(x => x.HasCheckConstraint(
-            "CK_Equipamento_ModeloPendente", "[ModeloId] IS NOT NULL OR [Origem] = 'Art'"));
+            "CK_Equipamento_ModeloPendente", "[ModeloId] IS NOT NULL OR [Origem] IN ('Art','Protheus')"));
         b.ToTable(x => x.HasCheckConstraint(
             "CK_Equipamento_Horimetro", "[HorimetroAtual] IS NULL OR [HorimetroAtual] >= 0"));
         b.ToTable(x => x.HasCheckConstraint(
