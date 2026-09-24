@@ -73,10 +73,22 @@ public sealed class RegraDePotencialConfiguracao : IEntityTypeConfiguration<Regr
         b.HasIndex(r => r.CulturaId);
         b.HasIndex(r => r.CategoriaDeMaquinaId);
 
-        b.HasIndex(r => new { r.ProdutoCodigoIbge, r.VigenteDesde })
+        // A CHAVE ÚNICA PASSOU A INCLUIR A CATEGORIA DE MÁQUINA (D-P01, issue 63).
+        //
+        // ELA ERA `(produto, vigência)`, e isso IMPEDIA a própria decisão que a #63 pede. A D-P01 fixa
+        // **cultura × categoria × hectares por máquina × anos de renovação**: no café cabem "um trator a
+        // cada 10 ha" E "uma colheitadeira a cada 200 ha", que são duas regras do mesmo produto, na mesma
+        // data. Com a chave antiga, registrar a segunda devolvia "já existe vigência nesta data" — e a
+        // decisão virava ata em vez de parâmetro.
+        //
+        // NULO CONTINUA COLIDINDO COM NULO, e é o que se quer: no SQL Server o índice único trata NULLs
+        // como iguais, então duas regras do mesmo produto e data **sem** categoria continuam recusadas.
+        // O filtro é escrito à mão de propósito — coluna anulável faz o EF gerar `WHERE col IS NOT NULL`
+        // sozinho, e aí a linha sem categoria duplicaria em silêncio.
+        b.HasIndex(r => new { r.ProdutoCodigoIbge, r.CategoriaDeMaquinaId, r.VigenteDesde })
             .IsUnique()
             .HasFilter("[RevogadoEm] IS NULL")
-            .HasDatabaseName("UX_RegraDePotencial_Produto_Vigencia");
+            .HasDatabaseName("UX_RegraDePotencial_Produto_Categoria_Vigencia");
 
         b.ToTable(t => t.HasCheckConstraint("CK_RegraDePotencial_Situacao", "[Situacao] IN ('AConfirmar','Confirmada')"));
         b.ToTable(t => t.HasCheckConstraint("CK_RegraDePotencial_HectaresPorMaquina", "[HectaresPorMaquina] > 0"));

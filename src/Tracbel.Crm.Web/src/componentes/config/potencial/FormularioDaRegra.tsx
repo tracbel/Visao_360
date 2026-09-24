@@ -7,13 +7,20 @@
 import { useState } from 'react';
 import { useContextoDeAcesso } from '../../../dados/api/contexto';
 import { informarRegraDePotencial } from '../../../dados/api/potencial';
-import type { NovaRegraDePotencial, ProdutoDaPam, RegraDePotencialDetalhe } from '../../../tipos/potencial';
+import type {
+  CategoriaNoCatalogo,
+  CulturaNoCatalogo,
+  NovaRegraDePotencial,
+  ProdutoDaPam,
+  RegraDePotencialDetalhe,
+} from '../../../tipos/potencial';
 import { AvisoDoFormulario, CampoSelecao, CampoTexto, CampoTextoLongo } from '../../cadastro/CamposDeFormulario';
 import { useEnvio } from './useEnvio';
 import { itensDeSelecao, numero } from './vigencias';
 
 const CAMPOS = [
-  'produtoCodigoIbge', 'hectaresPorMaquina', 'anosDeRenovacao', 'modeloDeReferencia', 'situacao', 'vigenteDesde', 'justificativa',
+  'produtoCodigoIbge', 'hectaresPorMaquina', 'anosDeRenovacao', 'modeloDeReferencia', 'situacao', 'vigenteDesde',
+  'justificativa', 'culturaCodigo', 'categoriaDeMaquinaCodigo',
 ] as const;
 
 const SITUACOES = itensDeSelecao([
@@ -27,12 +34,18 @@ function texto(valor: number | null | undefined): string {
 
 export function FormularioDaRegra({
   produtos,
+  culturas,
+  categorias,
   vigentes,
   hoje,
   aoGravar,
   aoCancelar,
 }: {
   produtos: ProdutoDaPam[];
+  /** As culturas ATIVAS do catálogo (issue 165) — a regra nova pertence a uma delas. */
+  culturas: CulturaNoCatalogo[];
+  /** As categorias de máquina ATIVAS (D-IM-06) — de qual máquina esta regra fala. */
+  categorias: CategoriaNoCatalogo[];
   vigentes: RegraDePotencialDetalhe[];
   hoje: string;
   aoGravar: (mensagem: string) => void;
@@ -42,6 +55,7 @@ export function FormularioDaRegra({
   const [valores, setValores] = useState<NovaRegraDePotencial>({
     produtoCodigoIbge: '', hectaresPorMaquina: '', anosDeRenovacao: '', modeloDeReferencia: '',
     situacao: 'AConfirmar', vigenteDesde: hoje, justificativa: '',
+    culturaCodigo: '', categoriaDeMaquinaCodigo: '',
   });
   const { enviando, erros, aviso, enviar, limparErro } = useEnvio(CAMPOS);
 
@@ -50,20 +64,40 @@ export function FormularioDaRegra({
     limparErro(campo);
   }
 
-  /** Escolher um produto que já tem regra traz os valores de hoje — muda-se só o que mudou. */
-  function escolherProduto(codigo: string) {
-    const atual = vigentes.find((r) => String(r.produtoCodigoIbge) === codigo);
+  /**
+   * Trazer os valores da regra que já vale para o par escolhido — muda-se só o que mudou.
+   *
+   * O PAR É PRODUTO **E CATEGORIA** (D-P01): trocar de categoria com o mesmo produto tem de trazer a regra
+   * daquela categoria, e não a do trator para todas. Sem isso, escolher "colheitadeira" no café herdaria
+   * "1 a cada 10 ha" do trator, que é a regra errada com cara de sugestão.
+   */
+  function preencherComAVigente(produto: string, categoria: string) {
+    const atual = vigentes.find(
+      (r) => String(r.produtoCodigoIbge) === produto && (r.categoriaDeMaquinaCodigo ?? '') === categoria,
+    );
+
     setValores((v) => ({
       ...v,
-      produtoCodigoIbge: codigo,
+      produtoCodigoIbge: produto,
+      categoriaDeMaquinaCodigo: categoria,
       ...(atual && {
         hectaresPorMaquina: texto(atual.hectaresPorMaquina),
         anosDeRenovacao: texto(atual.anosDeRenovacao),
         modeloDeReferencia: atual.modeloDeReferencia,
         situacao: atual.situacao,
+        culturaCodigo: atual.culturaCodigo ?? v.culturaCodigo,
       }),
     }));
+  }
+
+  function escolherProduto(codigo: string) {
+    preencherComAVigente(codigo, valores.categoriaDeMaquinaCodigo);
     limparErro('produtoCodigoIbge');
+  }
+
+  function escolherCategoria(codigo: string) {
+    preencherComAVigente(valores.produtoCodigoIbge, codigo);
+    limparErro('categoriaDeMaquinaCodigo');
   }
 
   async function gravar(evento: React.FormEvent) {
@@ -77,6 +111,14 @@ export function FormularioDaRegra({
     aoMudar: (v: string) => mudar(nome, v),
     erro: erros[nome],
   });
+
+  const itensDasCulturas = itensDeSelecao(
+    culturas.filter((c) => c.estaAtiva).map((c) => ({ codigo: c.codigo, descricao: c.nome })),
+  );
+
+  const itensDasCategorias = itensDeSelecao(
+    categorias.filter((c) => c.estaAtiva).map((c) => ({ codigo: c.codigo, descricao: c.nome })),
+  );
 
   const itens = itensDeSelecao(produtos.map((p) => ({
     codigo: String(p.codigoIbge),
@@ -95,9 +137,18 @@ export function FormularioDaRegra({
         </AvisoDoFormulario>
       )}
       <div className="form-grid cols-3">
-        <CampoSelecao rotulo="Cultura (produto da PAM)" obrigatorio largo itens={itens}
+        <CampoSelecao rotulo="Produto da PAM" obrigatorio largo itens={itens}
           valor={valores.produtoCodigoIbge} aoMudar={escolherProduto} erro={erros.produtoCodigoIbge}
           ajuda="Os mais plantados na ADR primeiro. A regra divide a área plantada deste produto." />
+        {/* AS DUAS METADES QUE FALTAVAM DA D-P01 (issue 63). A decisão fixa CULTURA × CATEGORIA × hectares
+            por máquina × anos de renovação, e até aqui a rota só aceitava as duas últimas: uma decisão
+            tomada em reunião não cabia no sistema. */}
+        <CampoSelecao rotulo="Cultura do catálogo" obrigatorio itens={itensDasCulturas}
+          valor={valores.culturaCodigo} aoMudar={(v) => mudar('culturaCodigo', v)} erro={erros.culturaCodigo}
+          ajuda="É ela que liga a regra ao preço e ao custo da cultura." />
+        <CampoSelecao rotulo="Categoria de máquina" obrigatorio itens={itensDasCategorias}
+          valor={valores.categoriaDeMaquinaCodigo} aoMudar={escolherCategoria} erro={erros.categoriaDeMaquinaCodigo}
+          ajuda="De qual máquina esta regra fala. A mesma lavoura pede um trator a cada tantos hectares e uma colheitadeira a cada outros tantos." />
         <CampoTexto rotulo="Hectares por máquina" obrigatorio {...campo('hectaresPorMaquina')}
           ajuda="Quantos hectares pedem uma máquina de referência." />
         <CampoTexto rotulo="Anos de renovação" {...campo('anosDeRenovacao')}

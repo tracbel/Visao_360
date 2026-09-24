@@ -322,6 +322,37 @@ captura                          = entregas da Tracbel no ano ÷ demanda anual
 Os parâmetros são **os da planilha, a confirmar** (D-P01). A área é a da safra 2025. As entregas da
 Tracbel por município e a captura existem na planilha, mas são dado interno e ficam fora deste documento.
 
+#### Errata: esta tabela **não serve de fixture** para o teste de ouro [M 24/09/2026]
+
+A #171 pede que o motor reproduza **30.317 e 3.457** "com os parâmetros da planilha", e a linha *Fontes* dela
+diz "PAM 2024 dos 203 municípios ... pode ser versionado como fixture". **A tabela acima não substitui esse
+fixture**, e a prova está nela mesma:
+
+1. **A coluna "Parque na região" soma 30.318** — 5.024 + 16.387 + 639 + 1.355 + 497 + 6.416 —, e o total
+   publicado é **30.317**. Diferença de uma máquina.
+2. **Nenhuma regra única de arredondamento leva a coluna do parque à coluna da demanda:**
+
+   | Cultura | parque ÷ ciclo | truncado | arredondado | na tabela |
+   |---|---:|---:|---:|---:|
+   | Café | 502,400 | 502 | 502 | 502 |
+   | Cana | 2.048,375 | 2.048 | 2.048 | 2.048 |
+   | Amendoim | 79,875 | 79 | **80** | **80** |
+   | Soja | 135,500 | **135** | 136 | **135** |
+   | Milho | 49,700 | 49 | **50** | **50** |
+   | Laranja | 641,600 | 641 | **642** | **642** |
+
+   Soja exige **truncar**; amendoim, milho e laranja exigem **arredondar**. As duas regras não coexistem.
+
+As duas anomalias dizem a mesma coisa: **a tabela é a apresentação arredondada de somas feitas município a
+município**, e não a entrada do cálculo. O motor soma os 203 antes de arredondar — é o que o
+`A_regiao_e_a_soma_dos_municipios_e_nao_o_motor_sobre_as_areas_somadas` já prova —, então alimentá-lo com os
+seis totais daria outro número e ainda por cima reproduziria o parque por construção, que é teste circular.
+
+**O que o teste de ouro precisa, então:** as **áreas plantadas da PAM dos 203 municípios × 6 culturas**,
+versionadas como fixture. Elas são dado público (SIDRA 5457) e estão no banco desde a #156 — hoje só
+alcançáveis pela VPN. Enquanto não existirem, a #171 fica com a aritmética e a agregação do motor provadas
+(41 testes em `MotorDoPotencialTestes` e `PotencialEstruturalTestes`) e **sem** a reprodução dos dois números.
+
 ### 3.3 Ajuste de ciclo
 
 ```
@@ -447,12 +478,17 @@ data — a regra é `ParametroComVigencia.VigenteEm`, e o motor (#72 a #74) vai 
 
 | Tabela | Chave | O que guarda | Quem altera |
 |---|---|---|---|
-| `RegraDePotencial` | produto da PAM + data | hectares por máquina, anos de renovação (pode faltar), modelo, a confirmar/confirmada | `ParametroDoPotencial.Administrar` |
+| `RegraDePotencial` | produto da PAM **+ categoria de máquina** + data | cultura do catálogo, categoria, hectares por máquina, anos de renovação (pode faltar), modelo, a confirmar/confirmada | `ParametroDoPotencial.Administrar` |
 | `ParametroDoPotencial` | data | meses da janela; peso dos contratos no crédito (o valor pesa o resto); limites de retração, aquecimento e superaquecimento; nome da faixa do meio; limite da percepção; pesos dos três indicadores; fator mínimo e máximo | `ParametroDoPotencial.Administrar` |
 | `PercepcaoDoGestor` | município + data | o ajuste em pontos percentuais, dentro do limite dos gerais vigentes na data de início | `PercepcaoDoGestor.Informar` (perfil **Gestor comercial**) |
 
 **As regras:**
 
+- **a chave da regra é produto × categoria × data** [M 24/09/2026]. Ela era `(produto, data)`, e isso
+  **impedia a própria decisão D-P01**: no café cabem "um trator a cada 10 ha" e "uma colheitadeira a cada
+  200 ha", que são duas regras do mesmo produto na mesma data, e a segunda era recusada como data ocupada.
+  Cultura e categoria passaram a ser **obrigatórias na regra nova** (as colunas seguem anuláveis, porque o
+  passado não se reescreve), e a revogação ganhou a categoria no endereço;
 - a vigência começa **hoje ou depois** (hoje é o dia de São Paulo); o passado não se reescreve;
 - só se **revoga** o que ainda não passou de hoje, com motivo; o resto se corrige com uma vigência nova;
 - uma vigência de pé por chave e data (índice único filtrado pelas não revogadas);

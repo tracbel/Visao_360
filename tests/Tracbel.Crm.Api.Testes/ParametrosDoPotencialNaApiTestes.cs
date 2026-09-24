@@ -62,7 +62,7 @@ public sealed class ParametrosDoPotencialNaApiTestes(ApiEmMemoria api) : IClassF
         return api.ClienteDeRibeirao();
     }
 
-    private static object RegraDoCafe(decimal hectares, DateOnly vigenteDesde, string? anos = null) => new
+    private static object RegraDoCafe(decimal hectares, DateOnly vigenteDesde, string? anos = null, string categoria = "TRATOR") => new
     {
         produtoCodigoIbge = Cafe.ToString(),
         hectaresPorMaquina = hectares.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -70,7 +70,10 @@ public sealed class ParametrosDoPotencialNaApiTestes(ApiEmMemoria api) : IClassF
         modeloDeReferencia = "3036N",
         situacao = "AConfirmar",
         vigenteDesde = Iso(vigenteDesde),
-        justificativa = "planilha 360, aba Administrador"
+        justificativa = "planilha 360, aba Administrador",
+        // CULTURA E CATEGORIA SÃO OBRIGATÓRIAS DESDE A D-P01 (issue 63): a decisão fixa as quatro juntas.
+        culturaCodigo = "CAFE",
+        categoriaDeMaquinaCodigo = categoria
     };
 
     private static async Task<JsonElement> LerAsync(HttpResponseMessage resposta, HttpStatusCode esperado)
@@ -101,7 +104,7 @@ public sealed class ParametrosDoPotencialNaApiTestes(ApiEmMemoria api) : IClassF
             await barretos.PostAsJsonAsync($"{Base}/culturas", RegraDoCafe(20m, Hoje.AddDays(5)), Json),
             await barretos.PostAsJsonAsync($"{Base}/geral", new { vigenteDesde = Iso(Hoje.AddDays(5)) }, Json),
             await barretos.PostAsJsonAsync($"{Base}/percepcoes", new { municipioCodigoIbge = Franca.ToString(), percentual = "2" }, Json),
-            await barretos.PostAsJsonAsync($"{Base}/culturas/{Cafe}/2026-09-13/revogacao", new { motivo = "x" }, Json)
+            await barretos.PostAsJsonAsync($"{Base}/culturas/{Cafe}/TRATOR/2026-09-13/revogacao", new { motivo = "x" }, Json)
         };
 
         foreach (var resposta in tentativas)
@@ -165,7 +168,7 @@ public sealed class ParametrosDoPotencialNaApiTestes(ApiEmMemoria api) : IClassF
         inclusao.Should().Contain(l => l.Campo == "Justificativa" && l.ValorNovo == "planilha 360, aba Administrador");
 
         var revogada = await LerAsync(
-            await http.PostAsJsonAsync($"{Base}/culturas/{Cafe}/{Iso(inicio)}/revogacao", new { motivo = "a planilha estava errada" }, Json),
+            await http.PostAsJsonAsync($"{Base}/culturas/{Cafe}/TRATOR/{Iso(inicio)}/revogacao", new { motivo = "a planilha estava errada" }, Json),
             HttpStatusCode.OK);
         revogada.GetProperty("vigencia").GetProperty("motivoDaRevogacao").GetString().Should().Be("a planilha estava errada");
         revogada.GetProperty("vigencia").GetProperty("revogadoPor").GetString().Should().NotBeNullOrWhiteSpace();
@@ -189,7 +192,7 @@ public sealed class ParametrosDoPotencialNaApiTestes(ApiEmMemoria api) : IClassF
 
         // A semente do café vale desde 13/09/2026 e já foi usada em dias que passaram.
         var revogarSemente = await LerAsync(
-            await http.PostAsJsonAsync($"{Base}/culturas/{Cafe}/2026-09-13/revogacao", new { motivo = "tarde demais" }, Json),
+            await http.PostAsJsonAsync($"{Base}/culturas/{Cafe}/TRATOR/2026-09-13/revogacao", new { motivo = "tarde demais" }, Json),
             HttpStatusCode.Conflict);
         revogarSemente.GetProperty("title").GetString().Should().Contain("vigência nova a partir de hoje");
     }
@@ -204,6 +207,56 @@ public sealed class ParametrosDoPotencialNaApiTestes(ApiEmMemoria api) : IClassF
         var repetida = await LerAsync(await http.PostAsJsonAsync($"{Base}/culturas", RegraDoCafe(19m, inicio), Json), HttpStatusCode.Conflict);
 
         repetida.GetProperty("erros").EnumerateArray().Single().GetProperty("mensagem").GetString().Should().Contain("revogue-a antes");
+    }
+
+    /// <summary>
+    /// O QUE A D-P01 PEDE E O SISTEMA NÃO ACEITAVA (issue 63).
+    ///
+    /// <para>A decisão fixa <b>cultura × categoria × hectares por máquina × anos de renovação</b>. No café
+    /// cabem "um trator a cada 10 ha" e "uma colheitadeira a cada 200 ha" — duas regras do mesmo produto, na
+    /// mesma data. A chave única era <c>(produto, vigência)</c>, e a segunda era recusada como data ocupada:
+    /// a decisão do comercial não cabia no sistema, e virava ata.</para>
+    /// </summary>
+    [Fact]
+    public async Task Duas_categorias_do_mesmo_produto_convivem_na_mesma_data()
+    {
+        var http = await AdministradorAsync();
+        var inicio = Hoje.AddDays(90);
+
+        await LerAsync(
+            await http.PostAsJsonAsync($"{Base}/culturas", RegraDoCafe(10m, inicio, anos: "8"), Json),
+            HttpStatusCode.Created);
+
+        var colheitadeira = await LerAsync(
+            await http.PostAsJsonAsync($"{Base}/culturas", RegraDoCafe(200m, inicio, anos: "12", categoria: "COLHEITADEIRA"), Json),
+            HttpStatusCode.Created);
+
+        colheitadeira.GetProperty("categoriaDeMaquinaCodigo").GetString().Should().Be("COLHEITADEIRA");
+        colheitadeira.GetProperty("categoriaDeMaquinaNome").GetString().Should().Be("Colheitadeira");
+        colheitadeira.GetProperty("culturaNome").GetString().Should().Be("Café");
+
+        // AS DUAS APARECEM NA LEITURA DA DATA. Agrupar por produto faria uma delas sumir sem aviso.
+        var vigentes = await LerAsync(await http.GetAsync($"{Base}?em={Iso(inicio)}"), HttpStatusCode.OK);
+        var doCafe = vigentes.GetProperty("dados").GetProperty("culturas").EnumerateArray()
+            .Where(c => c.GetProperty("produtoCodigoIbge").GetInt32() == Cafe)
+            .ToList();
+
+        doCafe.Select(c => c.GetProperty("categoriaDeMaquinaCodigo").GetString())
+            .Should().BeEquivalentTo(["TRATOR", "COLHEITADEIRA"]);
+        doCafe.Select(c => c.GetProperty("hectaresPorMaquina").GetDecimal())
+            .Should().BeEquivalentTo([10m, 200m]);
+
+        // E a revogação de uma não derruba a outra: o endereço tem a categoria.
+        await LerAsync(
+            await http.PostAsJsonAsync(
+                $"{Base}/culturas/{Cafe}/COLHEITADEIRA/{Iso(inicio)}/revogacao", new { motivo = "número a conferir" }, Json),
+            HttpStatusCode.OK);
+
+        vigentes = await LerAsync(await http.GetAsync($"{Base}?em={Iso(inicio)}"), HttpStatusCode.OK);
+        vigentes.GetProperty("dados").GetProperty("culturas").EnumerateArray()
+            .Where(c => c.GetProperty("produtoCodigoIbge").GetInt32() == Cafe)
+            .Select(c => c.GetProperty("categoriaDeMaquinaCodigo").GetString())
+            .Should().BeEquivalentTo(["TRATOR"]);
     }
 
     [Fact]
@@ -221,8 +274,13 @@ public sealed class ParametrosDoPotencialNaApiTestes(ApiEmMemoria api) : IClassF
             justificativa = "x"
         }, Json), HttpStatusCode.UnprocessableEntity);
 
+        // CULTURA E CATEGORIA ENTRAM NA RECUSA CAMPO A CAMPO (D-P01): elas passaram a ser obrigatórias, e
+        // uma regra sem elas não diz de qual cultura nem de qual máquina fala.
         recusa.GetProperty("erros").EnumerateArray().Select(e => e.GetProperty("campo").GetString())
-            .Should().BeEquivalentTo(["produtoCodigoIbge", "hectaresPorMaquina", "situacao", "vigenteDesde"]);
+            .Should().BeEquivalentTo([
+                "produtoCodigoIbge", "hectaresPorMaquina", "situacao", "vigenteDesde",
+                "culturaCodigo", "categoriaDeMaquinaCodigo"
+            ]);
     }
 
     [Fact]
