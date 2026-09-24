@@ -29,8 +29,16 @@ import { MemoryRouter } from 'react-router-dom';
 import { ProvedorDeContextoDeAcesso } from '../dados/api/contexto';
 import { IndicadoresGeograficos } from '../telas/IndicadoresGeograficos';
 import type { ColecaoMunicipal } from '../componentes/territorio/projecao';
-import { ESTADOS, painelFicticio, type NomeDoEstado } from './amostras';
-import { creditoFicticio, custosFicticios, precosFicticios, rentabilidadeFicticia } from './amostrasDeMercado';
+import { ESTADOS, municipiosDaMalha, painelFicticio, type NomeDoEstado } from './amostras';
+import {
+  catalogoFicticio,
+  creditoFicticio,
+  custosFicticios,
+  parametrosFicticios,
+  precoImplicitoFicticio,
+  precosFicticios,
+  rentabilidadeFicticia,
+} from './amostrasDeMercado';
 import '../estilos/design-system.css';
 
 /** O município fixo dos estados que abrem a ficha — sempre o mesmo, para a captura comparar. */
@@ -70,9 +78,22 @@ function envelope(dados: unknown): Response {
  * precisa estar: como um dos estados da tela, e não como o único.
  */
 function respostasDeMercado(malha: ColecaoMunicipal, estado: NomeDoEstado): Record<string, unknown> {
+  // O CATÁLOGO E AS PERCEPÇÕES DO MOMENTO (fidelidade às maquetes, fase 3): o
+  // catálogo liga cultura à PAM e ao preço; as percepções enchem a aba
+  // Percepção comercial. No `parcialmenteVazio` o catálogo continua (é
+  // configuração) e as percepções somem — é o estado sem leitura registrada.
+  const doMomento = {
+    '/v1/admin/parametros-do-potencial/catalogo': catalogoFicticio(),
+    '/v1/admin/parametros-do-potencial': parametrosFicticios(
+      estado === 'parcialmenteVazio' ? [] : municipiosDaMalha(malha, 30),
+    ),
+  };
+
   if (estado === 'parcialmenteVazio')
     return {
+      ...doMomento,
       '/v1/territorio/precos': { series: [], primeiroMesDoDolar: null, ultimoMesDoDolar: null },
+      '/v1/territorio/preco-implicito': { series: [], ressalva: 'AMOSTRA FICTÍCIA — sem produção agrícola neste estado.' },
       '/v1/territorio/rentabilidade': [],
       '/v1/territorio/custos': [],
       '/v1/territorio/credito': {
@@ -90,7 +111,11 @@ function respostasDeMercado(malha: ColecaoMunicipal, estado: NomeDoEstado): Reco
   const municipios = malha.features.map((f) => ({ codigo: Number(f.properties.codarea), nome: f.properties.nome }));
 
   return {
+    ...doMomento,
     '/v1/territorio/precos': precosFicticios(),
+    // A SEGUNDA SÉRIE DE PREÇO (issue 198): a rota é outra, e sem ela o painel
+    // do preço recebido pelo produtor abria no 404 do harness.
+    '/v1/territorio/preco-implicito': precoImplicitoFicticio(),
     '/v1/territorio/rentabilidade': rentabilidadeFicticia(),
     '/v1/territorio/custos': custosFicticios(),
     '/v1/territorio/credito': creditoFicticio(municipios),
@@ -127,7 +152,10 @@ function instalarInterceptador(): void {
 
     // Os painéis de mercado precisam da malha para a lista de municípios do
     // crédito — ela vem do mesmo arquivo público que os mapas usam.
-    if (caminho.startsWith('/v1/territorio/') && caminho !== '/v1/territorio/indicadores') {
+    if (
+      (caminho.startsWith('/v1/territorio/') && caminho !== '/v1/territorio/indicadores') ||
+      caminho.startsWith('/v1/admin/parametros-do-potencial')
+    ) {
       const malhaDosPaineis = (await (
         await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)
       ).json()) as ColecaoMunicipal;
@@ -243,7 +271,14 @@ export function HarnessVisual() {
           key={estado}
           initialEntries={[comFicha ? `/cobertura?${MUNICIPIO_DA_FICHA}=${3500105}` : '/cobertura']}
         >
-          <div className="app-content" style={{ padding: 16 }}>
+          {/* AS MESMAS CLASSES DA ÁREA DE CONTEÚDO DO `Layout` (fidelidade às
+              maquetes, 23/09/2026). Era uma `div` com 16px de folga, e a tela
+              de verdade tem 32px de cada lado (24 em cima) — a captura de 1300
+              mostrava 32px de conteúdo a mais do que o usuário vê numa janela
+              de 1300px de conteúdo. Com as classes reais, a largura da janela do
+              harness É a largura da coluna de conteúdo do aplicativo, e as
+              quebras medidas aqui são as que ele vai ver. */}
+          <div className="content conteudo-cadastro conteudo-largo">
             <IndicadoresGeograficos />
           </div>
         </MemoryRouter>

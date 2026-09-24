@@ -1,17 +1,36 @@
 /**
- * A tabela de municípios da ADR e o que ficou fora do mapa (issue 170, parte A).
+ * A tabela de municípios da ADR (issue 170, parte A; redesenhada na fidelidade
+ * às maquetes, 23/09/2026 — fase 4, `territorio-ficha.png`).
  *
  * A SOMA DAS LINHAS É O TOTAL DA CONSULTA — é a conferência do documento 32: se
  * não fechar, algo sumiu ou foi contado duas vezes.
+ *
+ * O QUE MUDOU NA FASE 4, e por quê:
+ * - AS LINHAS DE TOTAL SAÍRAM DO CORPO e foram para a dica do título (decisão 3
+ *   do usuário). A conta continua a mesma e continua testada — é
+ *   `conferenciaDaConsulta`, em `totaisDaAdr.ts`.
+ * - PAGINAÇÃO no lugar da rolagem interna de 520px: dez linhas por vez, com a
+ *   página escrita, em vez de uma lista presa num cartão.
+ * - TODA COLUNA ORDENA pelo clique no cabeçalho, com `aria-sort`.
+ * - A ENGRENAGEM escolhe as colunas visíveis (guardado no navegador).
+ * - OS CABEÇALHOS SÃO VISÍVEIS, inclusive "Ação", e em duas linhas pequenas como
+ *   na maquete: é o que faz as nove colunas caberem em ~750px, ao lado da ficha,
+ *   sem rolagem lateral.
  */
 
-import { ChevronRight, Download, MapPin, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown, Download, MapPin, Search } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { IndicadoresDoMunicipio, IndicadoresForaDoMapa } from '../../tipos/territorio';
+import { InfoTooltip } from '../InfoTooltip';
 import { ValorAusente } from '../comum/ValorAusente';
+import { ConferenciaDosTotais } from './carteira/ConferenciaDosTotais';
+import { EscolhaDeColunas } from './carteira/EscolhaDeColunas';
+import { PaginacaoDaTabela } from './carteira/PaginacaoDaTabela';
+import { COLUNAS_OPCIONAIS, useColunasOcultas, type ColunaOpcional } from './carteira/colunas';
+import { usePeriodoDaLeitura } from './carteira/periodo';
 import { reaisCompactos } from './escalas';
 import { MOTIVO_SEM_PARQUE, nº } from './indicadoresDaAdr';
-import type { TotaisDaAdr } from './totaisDaAdr';
+import { conferenciaDaConsulta, type TotaisDaAdr } from './totaisDaAdr';
 
 /** Tira acento e caixa: procurar "sao jose" acha "São José". */
 const achatar = (t: string) =>
@@ -20,11 +39,19 @@ const achatar = (t: string) =>
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
 
+/** "010101 — Catanduva" vira "Catanduva": o código é da base, o nome é o que se lê. */
+const nomeDaLoja = (m: IndicadoresDoMunicipio) => m.lojaNome?.replace(/^.*—\s*/, '') ?? null;
+
 /**
  * A LISTA NA TELA, EM CSV — o "Exportar" da maquete.
  *
- * Ele exporta O QUE ESTÁ NA TELA, incluindo o filtro de busca: um botão que
- * baixa uma lista diferente da que se está olhando é pior do que botão nenhum.
+ * Ele exporta O QUE ESTÁ NA TELA, incluindo o filtro de busca e a ordem: um botão
+ * que baixa uma lista diferente da que se está olhando é pior do que botão
+ * nenhum. A PÁGINA NÃO CORTA: a paginação é uma janela sobre a lista, e a
+ * planilha é a lista.
+ *
+ * O "% PENDENTE" ENTROU NA PLANILHA quando saiu da linha da tabela (fase 4): o
+ * número ficava embaixo de "Pendentes", e a maquete não o tem.
  *
  * Ponto e vírgula e vírgula decimal porque o Excel em português lê assim; o BOM
  * no começo é o que evita "São José" virar "SÃ£o JosÃ©" ao abrir.
@@ -38,6 +65,7 @@ function baixarCsv(linhas: IndicadoresDoMunicipio[]) {
     'Elegíveis',
     'No prazo',
     'Pendentes',
+    '% pendente',
     'Vendas (R$)',
     'Pós-venda (R$)',
     'Máquinas teóricas',
@@ -51,10 +79,11 @@ function baixarCsv(linhas: IndicadoresDoMunicipio[]) {
       celula(m.nome),
       celula(m.codigoIbge),
       celula(m.regiao),
-      celula(m.lojaNome?.replace(/^.*—\s*/, '') ?? null),
+      celula(nomeDaLoja(m)),
       celula(m.cobertura.vinculosComCadencia),
       celula(m.cobertura.cobertos),
       celula(m.cobertura.pendentes),
+      celula(m.cobertura.percentualPendente),
       celula(m.vendas.valorLiquido),
       celula(m.vendas.posVenda),
       celula(m.potencialEstrutural?.parqueDeMaquinas ?? null),
@@ -68,6 +97,98 @@ function baixarCsv(linhas: IndicadoresDoMunicipio[]) {
   a.download = `municipios-da-adr-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+type ChaveDeOrdem = 'municipio' | ColunaOpcional;
+type Ordem = { por: ChaveDeOrdem; direcao: 'asc' | 'desc' };
+
+/** O que cada coluna compara. Nulo (sem parque) vai para o fim nas duas direções: ausência não é o menor número. */
+const VALOR_DE_ORDEM: Record<ChaveDeOrdem, (m: IndicadoresDoMunicipio) => number | string | null> = {
+  municipio: (m) => m.nome,
+  hierarquia: (m) => `${m.regiao} ${nomeDaLoja(m) ?? ''}`,
+  elegiveis: (m) => m.cobertura.vinculosComCadencia,
+  noPrazo: (m) => m.cobertura.cobertos,
+  pendentes: (m) => m.cobertura.pendentes,
+  vendas: (m) => m.vendas.valorLiquido,
+  posVenda: (m) => m.vendas.posVenda,
+  maquinas: (m) => m.potencialEstrutural?.parqueDeMaquinas ?? null,
+};
+
+function ordenar(lista: IndicadoresDoMunicipio[], ordem: Ordem): IndicadoresDoMunicipio[] {
+  const valor = VALOR_DE_ORDEM[ordem.por];
+  const sinal = ordem.direcao === 'asc' ? 1 : -1;
+  const porNome = (a: IndicadoresDoMunicipio, b: IndicadoresDoMunicipio) => a.nome.localeCompare(b.nome, 'pt-BR');
+
+  return [...lista].sort((a, b) => {
+    const va = valor(a);
+    const vb = valor(b);
+    if (va === null || vb === null) return va === vb ? porNome(a, b) : va === null ? 1 : -1;
+    const diferenca = typeof va === 'string' ? va.localeCompare(String(vb), 'pt-BR') : va - Number(vb);
+    // EMPATE SE DESFAZ PELO NOME: sem isso, dois municípios com o mesmo número
+    // trocariam de lugar a cada clique, e a lista pareceria instável.
+    return diferenca !== 0 ? sinal * diferenca : porNome(a, b);
+  });
+}
+
+/** O padrão é o de antes da fase 4: quem vendeu mais, primeiro. */
+const ORDEM_PADRAO: Ordem = { por: 'vendas', direcao: 'desc' };
+
+/** Um cabeçalho que ordena. O nome acessível do botão é o nome da coluna; o estado está no `aria-sort`. */
+function CabecalhoOrdenavel({
+  chave,
+  ordem,
+  aoOrdenar,
+  numero = false,
+  semprePista = false,
+  sub,
+  dica,
+  children,
+}: {
+  chave: ChaveDeOrdem;
+  ordem: Ordem;
+  aoOrdenar: (chave: ChaveDeOrdem) => void;
+  numero?: boolean;
+  /** A maquete desenha ↕ em Município e Sub-região mesmo sem ordem ativa. */
+  semprePista?: boolean;
+  /** A segunda linha pequena do cabeçalho — "12 meses", "(provisório)". */
+  sub?: string;
+  dica?: ReactNode;
+  children: ReactNode;
+}) {
+  const ativa = ordem.por === chave;
+  return (
+    <th
+      scope="col"
+      data-coluna={chave}
+      className={numero ? 'terr-coluna-numero' : undefined}
+      aria-sort={ativa ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <span className="terr-th">
+        <button type="button" className="terr-ordenar" onClick={() => aoOrdenar(chave)}>
+          {children}
+          {ativa ? (
+            ordem.direcao === 'asc' ? (
+              <ArrowUp size={11} strokeWidth={2.4} aria-hidden="true" />
+            ) : (
+              <ArrowDown size={11} strokeWidth={2.4} aria-hidden="true" />
+            )
+          ) : semprePista ? (
+            <ChevronsUpDown size={11} strokeWidth={2.4} aria-hidden="true" />
+          ) : null}
+        </button>
+        {!sub && dica}
+      </span>
+      {/* COM SEGUNDA LINHA, A DICA VAI NELA — "12 meses ⓘ": na primeira, ao
+          lado de "VENDAS ↓", ela quebrava sozinha numa linha do meio quando a
+          tabela fica ao lado da ficha em 1.300px. */}
+      {sub && (
+        <span className="terr-th-sub">
+          {sub}
+          {dica}
+        </span>
+      )}
+    </th>
+  );
 }
 
 export function TabelaDeMunicipios({
@@ -91,11 +212,16 @@ export function TabelaDeMunicipios({
   territorioNaoCarregado: boolean;
   semFiltro: boolean;
 }) {
+  const periodo = usePeriodoDaLeitura();
+  const { ocultas, alternar, mostrarTodas } = useColunasOcultas();
+  const visivel = (c: ColunaOpcional) => !ocultas.includes(c);
+
   // A BUSCA FILTRA O QUE JÁ ESTÁ NA MÃO, e não vai à API: a resposta traz a ADR
   // inteira, então procurar um município é percorrer uma lista que já chegou.
-  // Uma busca que fosse ao servidor a cada tecla trocaria uma operação instantânea
-  // por uma com latência, e ainda perderia a conferência das somas.
   const [busca, setBusca] = useState('');
+  const [ordem, setOrdem] = useState<Ordem>(ORDEM_PADRAO);
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState(10);
 
   const filtrados = useMemo(() => {
     const termo = achatar(busca.trim());
@@ -105,256 +231,270 @@ export function TabelaDeMunicipios({
     );
   }, [daAdr, busca]);
 
-  // AS LINHAS DE TOTAL SÓ VALEM SOBRE A LISTA INTEIRA. Com a busca ativa elas
-  // saem, porque "Total da ADR" embaixo de doze municípios afirmaria que a ADR
-  // tem doze — e a conferência do documento 32 é justamente a soma fechar.
-  const buscando = filtrados.length !== daAdr.length;
+  const ordenados = useMemo(() => ordenar(filtrados, ordem), [filtrados, ordem]);
+
+  // O MUNICÍPIO ESCOLHIDO FORA DA TABELA APARECE NELA. Escolher pelo mapa ou pelo
+  // campo do filtro abre a ficha ao lado — e a linha dele precisa estar na
+  // página, marcada, e não na página 14. A troca acontece só quando a ESCOLHA
+  // muda (ajuste de estado durante a renderização, como o React recomenda para
+  // estado derivado de prop), e por isso não briga com quem está folheando.
+  //
+  // OUTRA LISTA VOLTA PARA A PÁGINA 1 (revisão de 24/09/2026): trocar a
+  // sub-região ou a loja troca os municípios, e ficar na página 3 da lista nova
+  // era mostrar dez linhas quaisquer do meio dela. A lista se reconhece pelos
+  // códigos, na ordem — reler os mesmos dados não tira ninguém do lugar. O
+  // salto até o escolhido continua valendo: se ele está na lista nova, a página
+  // é a dele.
+  const assinaturaDaLista = daAdr.map((m) => m.codigoIbge).join(',');
+  const [vistos, setVistos] = useState({ selecionado: null as number | null, lista: assinaturaDaLista });
+  if (selecionado !== vistos.selecionado || assinaturaDaLista !== vistos.lista) {
+    const listaMudou = assinaturaDaLista !== vistos.lista;
+    setVistos({ selecionado, lista: assinaturaDaLista });
+    const posicao = selecionado === null ? -1 : ordenados.findIndex((m) => m.codigoIbge === selecionado);
+    if (posicao >= 0) setPagina(Math.floor(posicao / tamanho) + 1);
+    else if (listaMudou) setPagina(1);
+  }
+
+  const totalDePaginas = Math.max(1, Math.ceil(ordenados.length / tamanho));
+  const paginaAtual = Math.min(pagina, totalDePaginas);
+  const naPagina = ordenados.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+
+  const conferencia = useMemo(
+    () => conferenciaDaConsulta({ municipios, daAdr, foraDoMapa, totais, semFiltro, territorioNaoCarregado }),
+    [municipios, daAdr, foraDoMapa, totais, semFiltro, territorioNaoCarregado],
+  );
+
+  /** Clicar na coluna ativa inverte; noutra, texto começa de A a Z e número do maior para o menor. */
+  const aoOrdenar = (chave: ChaveDeOrdem) => {
+    setOrdem((atual) =>
+      atual.por === chave
+        ? { por: chave, direcao: atual.direcao === 'asc' ? 'desc' : 'asc' }
+        : { por: chave, direcao: chave === 'municipio' || chave === 'hierarquia' ? 'asc' : 'desc' },
+    );
+    setPagina(1);
+  };
+
+  const colunasNaTela = 2 + COLUNAS_OPCIONAIS.filter((c) => visivel(c.id)).length;
+  const cabecalho = { ordem, aoOrdenar };
 
   return (
-    <div className="card cad-cartao" data-bloco="tabela-municipios">
-      <div className="card-header cad-cartao-cabecalho">
-        <div>
-          {/* A CONTAGEM ENTRA NO TÍTULO (maquete): "Municípios da ADR (203)". */}
-          <div className="card-title">Municípios da ADR ({nº(daAdr.length)})</div>
-          <div className="card-subtitle">
-            A soma das linhas é o total da consulta. Clique num município para abrir o detalhe.
-          </div>
+    <div className="card cad-cartao terr-tabela-cartao" data-bloco="tabela-municipios">
+      <div className="terr-tabela-cabecalho">
+        <div className="terr-tabela-cabecalho-texto">
+          {/* A CONTAGEM ENTRA NO TÍTULO (maquete): "Municípios da ADR (203)". A
+              dica ao lado é a conferência — os totais que eram linhas no fim. */}
+          <h2 className="card-title terr-tabela-titulo">
+            Municípios da ADR ({nº(daAdr.length)})
+            <InfoTooltip rotulo="Os totais da ADR e da consulta" texto={<ConferenciaDosTotais conferencia={conferencia} />} />
+          </h2>
+          <p className="card-subtitle">
+            A soma das linhas é o total da consulta. Clique em um município para ver os detalhes, desempenho e
+            oportunidades.
+          </p>
         </div>
 
-        {/* A BARRA DE FERRAMENTAS DA MAQUETE — busca e exportar, à direita do
-            título. A engrenagem de escolher colunas não veio junto: ela é um
-            painel de preferências por usuário, e não acabamento visual. */}
+        {/* A BARRA DE FERRAMENTAS DA MAQUETE — busca, exportar e a engrenagem. */}
         <div className="terr-tabela-barra">
           <label className="terr-busca">
             <Search size={15} strokeWidth={2} aria-hidden="true" />
             <input
               type="search"
               value={busca}
-              onChange={(e) => setBusca(e.target.value)}
+              onChange={(e) => {
+                setBusca(e.target.value);
+                setPagina(1);
+              }}
               placeholder="Buscar município..."
               aria-label="Buscar município, sub-região ou loja na lista"
             />
           </label>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => baixarCsv(filtrados)}
-            disabled={filtrados.length === 0}
-          >
+          <button type="button" className="btn btn-secondary terr-exportar" onClick={() => baixarCsv(ordenados)} disabled={ordenados.length === 0}>
             <Download size={14} strokeWidth={2} aria-hidden="true" />
             Exportar
           </button>
+          <EscolhaDeColunas ocultas={ocultas} aoAlternar={alternar} aoMostrarTodas={mostrarTodas} />
         </div>
       </div>
 
-      {/* O QUE A BUSCA FEZ, ESCRITO. Sem esta linha, uma lista filtrada é
-          indistinguível de uma ADR que encolheu. */}
-      {buscando && (
-        <p className="terr-tabela-contagem" role="status">
-          {nº(filtrados.length)} de {nº(daAdr.length)} municípios · os totais voltam quando a busca for limpa.
-        </p>
-      )}
       <div className="cad-tabela-wrap terr-tabela-municipios">
         <table className="cad-tabela">
-          <caption className="cad-so-leitor">Indicadores por município</caption>
+          <caption className="cad-so-leitor">Indicadores por município, página {paginaAtual} de {totalDePaginas}</caption>
           <thead>
             <tr>
-              <th scope="col">Município</th>
-              <th scope="col" className="terr-coluna-hierarquia">Região · loja</th>
-              {/* AS COLUNAS OPCIONAIS SAEM NO CELULAR (T4.6, corrigido na T4.7).
-
-                  Oito colunas comprimidas em 390px não são uma tabela, são um
-                  borrão — e rolagem lateral da página está proibida.
-
-                  A T4.6 tirou três e deixou cinco, e a REVISÃO DAS CAPTURAS
-                  mostrou que cinco também não cabem: em 390px a tabela virava
-                  uma lista de uma coluna, com as outras quatro escondidas atrás
-                  de rolagem horizontal dentro do cartão. O meu próprio teste
-                  passou porque contava `:visible`, que em Playwright quer dizer
-                  "não está `display:none`" — e não "cabe na tela".
-
-                  Abaixo de 560px ficam DUAS: o município e as vendas. É o que
-                  responde "onde vender" num aparelho de mão; o resto está
-                  inteiro na ficha do município, a um toque. */}
-              <th scope="col" className="terr-coluna-numero">Elegíveis</th>
-              <th scope="col" className="terr-coluna-numero">No prazo</th>
-              <th scope="col" className="terr-coluna-numero">Pendentes</th>
-              <th scope="col" className="terr-coluna-numero">Vendas</th>
-              <th scope="col" className="terr-coluna-numero">
-                Pós-venda <span className="cad-sub">(provisório)</span>
-              </th>
-              <th scope="col" className="terr-coluna-numero">Máquinas teóricas</th>
+              <CabecalhoOrdenavel chave="municipio" semprePista {...cabecalho}>
+                Município
+              </CabecalhoOrdenavel>
+              {/* "SUB-REGIÃO · LOJA", e não "Região · Loja" como a maquete
+                  escreve (decisão 2): Norte e Noroeste são sub-regiões da Região
+                  Tracbel (issue 163). */}
+              {visivel('hierarquia') && (
+                <CabecalhoOrdenavel chave="hierarquia" semprePista {...cabecalho}>
+                  Sub-região · Loja
+                </CabecalhoOrdenavel>
+              )}
+              {visivel('elegiveis') && (
+                <CabecalhoOrdenavel chave="elegiveis" numero {...cabecalho}>
+                  Elegíveis
+                </CabecalhoOrdenavel>
+              )}
+              {visivel('noPrazo') && (
+                <CabecalhoOrdenavel chave="noPrazo" numero {...cabecalho}>
+                  No prazo
+                </CabecalhoOrdenavel>
+              )}
+              {visivel('pendentes') && (
+                <CabecalhoOrdenavel
+                  chave="pendentes"
+                  numero
+                  {...cabecalho}
+                  // O "38,9%" QUE FICAVA EMBAIXO DO NÚMERO saiu da linha (maquete):
+                  // ele está na ficha e na planilha, e a dica diz onde.
+                  dica={
+                    <InfoTooltip
+                      rotulo="O que conta como pendente"
+                      texto="Pendentes são os vínculos elegíveis fora do prazo da cadência mais os nunca contatados. O percentual pendente de cada município está na ficha dele (aba Estrutura, em Cobertura de visita) e na planilha do Exportar."
+                    />
+                  }
+                >
+                  Pendentes
+                </CabecalhoOrdenavel>
+              )}
+              {visivel('vendas') && (
+                <CabecalhoOrdenavel
+                  chave="vendas"
+                  numero
+                  sub={periodo?.rotulo}
+                  {...cabecalho}
+                  dica={
+                    <InfoTooltip
+                      rotulo="O que entra nas vendas"
+                      texto={`Vendas líquidas no período${periodo ? ` (${periodo.intervalo})` : ''}, pelo endereço principal do cliente: máquina + peça + serviço + outros. O período é o do filtro, no alto da página.`}
+                    />
+                  }
+                >
+                  Vendas
+                </CabecalhoOrdenavel>
+              )}
+              {visivel('posVenda') && (
+                <CabecalhoOrdenavel chave="posVenda" numero sub="(provisório)" {...cabecalho}>
+                  Pós-venda
+                </CabecalhoOrdenavel>
+              )}
+              {visivel('maquinas') && (
+                <CabecalhoOrdenavel chave="maquinas" numero sub="(teórico)" {...cabecalho}>
+                  Máquinas
+                </CabecalhoOrdenavel>
+              )}
               {/* A COLUNA DE AÇÃO (maquete): o chevron que abre a ficha. O nome
                   do município continua sendo botão — esta é a segunda porta para
                   a mesma ficha, na ponta da linha, que é onde o dedo vai. */}
-              <th scope="col" className="terr-coluna-acao">
-                <span className="cad-so-leitor">Ação</span>
+              <th scope="col" data-coluna="acao" className="terr-coluna-acao">
+                Ação
               </th>
             </tr>
           </thead>
           <tbody>
-            {filtrados.map((m) => (
-              <tr key={m.codigoIbge} aria-current={m.codigoIbge === selecionado ? 'true' : undefined}>
-                <td>
-                  <button type="button" className="cad-th-ordenar" onClick={() => aoSelecionar(m.codigoIbge)}>
-                    <span className="terr-pin" aria-hidden="true">
-                      <MapPin size={13} strokeWidth={2} />
-                    </span>
-                    {m.nome}
-                  </button>
-                </td>
-                <td className="terr-coluna-hierarquia">
-                  {m.regiao}
-                  <div className="cad-sub">{m.lojaNome?.replace(/^.*—\s*/, '') ?? '—'}</div>
-                </td>
-                <td className="cad-mono">{nº(m.cobertura.vinculosComCadencia)}</td>
-                <td className="cad-mono">{nº(m.cobertura.cobertos)}</td>
-                <td className="cad-mono">
-                  {nº(m.cobertura.pendentes)}
-                  {m.cobertura.percentualPendente !== null && (
-                    <div className="cad-sub">{m.cobertura.percentualPendente.toLocaleString('pt-BR')}%</div>
-                  )}
-                </td>
-                <td className="cad-mono">{reaisCompactos(m.vendas.valorLiquido)}</td>
-                <td className="cad-mono">{reaisCompactos(m.vendas.posVenda)}</td>
-                <td className="cad-mono">
-                  {m.potencialEstrutural?.parqueDeMaquinas == null ? (
-                    <ValorAusente
-                      motivo={
-                        m.potencialEstrutural
-                          ? MOTIVO_SEM_PARQUE[m.potencialEstrutural.motivoSemParque]
-                          : 'nenhuma regra de potencial vigente alcança este município'
-                      }
-                      oQue={`o parque de ${m.nome}`}
-                    />
-                  ) : (
-                    nº(m.potencialEstrutural.parqueDeMaquinas)
-                  )}
-                </td>
-                <td className="terr-coluna-acao">
-                  <button
-                    type="button"
-                    className="terr-abrir-ficha"
-                    onClick={() => aoSelecionar(m.codigoIbge)}
-                    aria-label={`Abrir a ficha de ${m.nome}`}
-                  >
-                    <ChevronRight size={15} strokeWidth={2.4} aria-hidden="true" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-
-            {/* NENHUM MUNICÍPIO ACHADO NÃO É TABELA VAZIA SEM EXPLICAÇÃO. */}
-            {filtrados.length === 0 && (
-              <tr>
-                <td colSpan={9}>Nenhum município da ADR tem esse nome, sub-região ou loja.</td>
-              </tr>
-            )}
-
-            {/* OS TOTAIS SOMEM ENQUANTO A BUSCA ESTÁ ATIVA: "Total da ADR"
-                embaixo de doze linhas afirmaria que a ADR tem doze municípios, e
-                a conferência do documento 32 é justamente a soma fechar. */}
-            {buscando ? null : territorioNaoCarregado ? (
-              <tr className="terr-linha-total">
-                <td>Total da ADR</td>
-                <td colSpan={8}>território não carregado neste banco — as linhas abaixo são o que a consulta encontrou</td>
-              </tr>
-            ) : (
-              <tr className="terr-linha-total">
-                <td>Total da ADR {semFiltro ? '' : '(filtro)'}</td>
-                <td>{daAdr.length} municípios</td>
-                <td className="cad-mono">{nº(totais.elegiveis)}</td>
-                <td className="cad-mono">{nº(totais.cobertos)}</td>
-                <td className="cad-mono">{nº(totais.pendentes)}</td>
-                <td className="cad-mono">{reaisCompactos(totais.vendas)}</td>
-                <td className="cad-mono">{reaisCompactos(totais.posVenda)}</td>
-                <td className="cad-mono">{nº(Math.round(totais.maquinasTeoricas))}</td>
-                <td className="terr-coluna-acao" />
-              </tr>
-            )}
-            {!buscando && semFiltro && !territorioNaoCarregado && (
-              <LinhaDeGrupo
-                rotulo="São Paulo fora da ADR"
-                descricao="municípios com cliente fora da ADR"
-                itens={municipios.filter((m) => !m.pertenceAAdr)}
-              />
-            )}
-            {!buscando &&
-              foraDoMapa.map((g) => (
-                <tr key={g.grupo}>
-                  <td>
-                    {g.grupo}
-                    <div className="cad-sub">{g.descricao}</div>
+            {naPagina.map((m) => {
+              const escolhido = m.codigoIbge === selecionado;
+              return (
+                <tr key={m.codigoIbge} aria-current={escolhido ? 'true' : undefined}>
+                  <td data-coluna="municipio">
+                    <button type="button" className="terr-nome-municipio" onClick={() => aoSelecionar(m.codigoIbge)}>
+                      <span className="terr-pin" aria-hidden="true">
+                        <MapPin size={15} strokeWidth={2} />
+                      </span>
+                      {m.nome}
+                    </button>
                   </td>
-                  <td>—</td>
-                  <td className="cad-mono">{nº(g.cobertura.vinculosComCadencia)}</td>
-                  <td className="cad-mono">{nº(g.cobertura.cobertos)}</td>
-                  <td className="cad-mono">{nº(g.cobertura.pendentes)}</td>
-                  <td className="cad-mono">{reaisCompactos(g.vendas.valorLiquido)}</td>
-                  <td className="cad-mono">{reaisCompactos(g.vendas.posVenda)}</td>
-                  <td>—</td>
-                  <td className="terr-coluna-acao" />
+                  {visivel('hierarquia') && (
+                    <td data-coluna="hierarquia" className="terr-coluna-hierarquia">
+                      {m.regiao}
+                      <div className="terr-loja">{nomeDaLoja(m) ?? '—'}</div>
+                    </td>
+                  )}
+                  {visivel('elegiveis') && (
+                    <td data-coluna="elegiveis" className="cad-mono">
+                      {nº(m.cobertura.vinculosComCadencia)}
+                    </td>
+                  )}
+                  {visivel('noPrazo') && (
+                    <td data-coluna="noPrazo" className="cad-mono">
+                      {nº(m.cobertura.cobertos)}
+                    </td>
+                  )}
+                  {visivel('pendentes') && (
+                    <td data-coluna="pendentes" className="cad-mono">
+                      {nº(m.cobertura.pendentes)}
+                    </td>
+                  )}
+                  {visivel('vendas') && (
+                    <td data-coluna="vendas" className="cad-mono">
+                      {reaisCompactos(m.vendas.valorLiquido)}
+                    </td>
+                  )}
+                  {visivel('posVenda') && (
+                    <td data-coluna="posVenda" className="cad-mono">
+                      {reaisCompactos(m.vendas.posVenda)}
+                    </td>
+                  )}
+                  {visivel('maquinas') && (
+                    <td data-coluna="maquinas" className="cad-mono">
+                      {m.potencialEstrutural?.parqueDeMaquinas == null ? (
+                        <ValorAusente
+                          motivo={
+                            m.potencialEstrutural
+                              ? MOTIVO_SEM_PARQUE[m.potencialEstrutural.motivoSemParque]
+                              : 'nenhuma regra de potencial vigente alcança este município'
+                          }
+                          oQue={`o parque de ${m.nome}`}
+                        />
+                      ) : (
+                        nº(m.potencialEstrutural.parqueDeMaquinas)
+                      )}
+                    </td>
+                  )}
+                  <td data-coluna="acao" className="terr-coluna-acao">
+                    <button
+                      type="button"
+                      className="terr-abrir-ficha"
+                      onClick={() => aoSelecionar(m.codigoIbge)}
+                      aria-label={`Abrir a ficha de ${m.nome}`}
+                    >
+                      <ChevronRight size={15} strokeWidth={2.4} aria-hidden="true" />
+                    </button>
+                  </td>
                 </tr>
-              ))}
-            {!buscando && semFiltro && <LinhaDeTotal municipios={municipios} foraDoMapa={foraDoMapa} />}
+              );
+            })}
+
+            {/* NENHUM MUNICÍPIO NÃO É TABELA VAZIA SEM EXPLICAÇÃO. */}
+            {naPagina.length === 0 && (
+              <tr>
+                <td colSpan={colunasNaTela} className="terr-tabela-vazia">
+                  {territorioNaoCarregado
+                    ? 'Território não carregado neste banco: nenhum município marcado como ADR. O que a consulta encontrou está na dica do título.'
+                    : busca.trim()
+                      ? 'Nenhum município da ADR tem esse nome, sub-região ou loja.'
+                      : 'Nenhum município da ADR neste recorte.'}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      <PaginacaoDaTabela
+        total={ordenados.length}
+        deQuantos={daAdr.length}
+        pagina={paginaAtual}
+        tamanho={tamanho}
+        oQue="municípios"
+        aoTrocarPagina={setPagina}
+        aoTrocarTamanho={(t) => {
+          setTamanho(t);
+          setPagina(1);
+        }}
+      />
     </div>
-  );
-}
-
-/** Uma linha que soma um grupo de municípios. */
-function LinhaDeGrupo({ rotulo, descricao, itens }: { rotulo: string; descricao: string; itens: IndicadoresDoMunicipio[] }) {
-  const soma = (f: (m: IndicadoresDoMunicipio) => number) => itens.reduce((s, m) => s + f(m), 0);
-  return (
-    <tr>
-      <td>
-        {rotulo}
-        <div className="cad-sub">
-          {descricao} ({itens.length})
-        </div>
-      </td>
-      <td>—</td>
-      <td className="cad-mono">{nº(soma((m) => m.cobertura.vinculosComCadencia))}</td>
-      <td className="cad-mono">{nº(soma((m) => m.cobertura.cobertos))}</td>
-      <td className="cad-mono">{nº(soma((m) => m.cobertura.pendentes))}</td>
-      <td className="cad-mono">{reaisCompactos(soma((m) => m.vendas.valorLiquido))}</td>
-      <td className="cad-mono">{reaisCompactos(soma((m) => m.vendas.posVenda))}</td>
-      <td>—</td>
-      <td className="terr-coluna-acao" />
-    </tr>
-  );
-}
-
-/**
- * O total da consulta: municípios do mapa mais o que ficou fora dele. É o número
- * que a conferência SQL do documento 32 compara — se não fechar, algo sumiu ou
- * foi contado duas vezes.
- */
-function LinhaDeTotal({
-  municipios,
-  foraDoMapa,
-}: {
-  municipios: IndicadoresDoMunicipio[];
-  foraDoMapa: { cobertura: { vinculosComCadencia: number; cobertos: number; pendentes: number }; vendas: { valorLiquido: number; posVenda: number } }[];
-}) {
-  const somaMapa = (f: (m: IndicadoresDoMunicipio) => number) => municipios.reduce((s, m) => s + f(m), 0);
-  const somaFora = (f: (g: (typeof foraDoMapa)[number]) => number) => foraDoMapa.reduce((s, g) => s + f(g), 0);
-  return (
-    <tr className="terr-linha-total">
-      <td>
-        Total da consulta
-        <div className="cad-sub">municípios do mapa + tudo o que ficou fora dele</div>
-      </td>
-      <td>—</td>
-      <td className="cad-mono">{nº(somaMapa((m) => m.cobertura.vinculosComCadencia) + somaFora((g) => g.cobertura.vinculosComCadencia))}</td>
-      <td className="cad-mono">{nº(somaMapa((m) => m.cobertura.cobertos) + somaFora((g) => g.cobertura.cobertos))}</td>
-      <td className="cad-mono">{nº(somaMapa((m) => m.cobertura.pendentes) + somaFora((g) => g.cobertura.pendentes))}</td>
-      <td className="cad-mono">{reaisCompactos(somaMapa((m) => m.vendas.valorLiquido) + somaFora((g) => g.vendas.valorLiquido))}</td>
-      <td className="cad-mono">{reaisCompactos(somaMapa((m) => m.vendas.posVenda) + somaFora((g) => g.vendas.posVenda))}</td>
-      <td>—</td>
-      <td className="terr-coluna-acao" />
-    </tr>
   );
 }

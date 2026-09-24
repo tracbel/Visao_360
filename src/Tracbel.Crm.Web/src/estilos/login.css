@@ -284,17 +284,5 @@
   .login-carregando .brand-logo { animation: none; }
 }
 
-/* ---- o "Sair" do rodapé do menu ------------------------------------------- */
-
-/* Mora aqui, e não no design-system, pela mesma razão do resto do arquivo: o
-   rodapé com sessão não existia no protótipo. */
-.user-sair {
-  color: var(--jd-yellow);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.user-sair:hover,
-.user-sair:focus-visible {
-  text-decoration: underline;
-}
+/* O "Sair" do rodapé do menu, que morava aqui, foi para o menu do usuário na
+   fase 5 (`Layout.tsx`, `.usuario-menu-item` no design-system). */

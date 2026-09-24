@@ -19,11 +19,15 @@
  */
 
 import type {
+  MediaPlurianual,
   PainelDeCreditoRural,
+  PrecoImplicitoDoRecorte,
+  PrecoImplicitoNoAno,
   PrecosDeMercado,
   RentabilidadeDaCultura,
   SerieDeCusto,
 } from '../tipos/mercado';
+import type { CatalogoDoMercado, ParametrosDoPotencialVigentes } from '../tipos/potencial';
 
 /** As culturas que aparecem nos quatro painéis, na mesma ordem. */
 const CULTURAS = [
@@ -81,6 +85,59 @@ export function precosFicticios(): PrecosDeMercado {
 }
 
 /**
+ * O PREÇO RECEBIDO PELO PRODUTOR, DA PAM (issue 198) — a segunda série de preço,
+ * anual, que abre ao lado da CONAB em "Ver séries de preço e custo".
+ *
+ * PREÇO = VALOR DA PRODUÇÃO × 1000 ÷ QUANTIDADE em toda linha, como na API. E com
+ * um buraco de propósito: a laranja não tem 2022, então as duas médias dela não
+ * fecham e o painel diz qual ano faltou. Um harness só com médias completas
+ * esconderia o estado que mais importa revisar nesse painel.
+ */
+export function precoImplicitoFicticio(): PrecoImplicitoDoRecorte {
+  const porTonelada = [140, 24_500, 2_400, 1_150, 1_900];
+  const anos = Array.from({ length: 12 }, (_, k) => 2024 - k);
+
+  return {
+    ressalva:
+      'AMOSTRA FICTÍCIA. Nenhum número deste painel é dado da Tracbel nem do IBGE — a série de verdade é o valor ' +
+      'da produção dividido pela quantidade produzida, da Produção Agrícola Municipal.',
+    series: CULTURAS.map((c, i) => {
+      const quantidade = 10_000 * (i + 2);
+      const noAno: PrecoImplicitoNoAno[] = anos.map((ano, k) => {
+        const buraco = c.codigo === 'LARANJA' && ano === 2022;
+        const preco = onda(k, porTonelada[i], porTonelada[i] * 0.12);
+        return {
+          ano,
+          precoPorUnidade: buraco ? null : preco,
+          unidade: 'toneladas',
+          valorDaProducaoMilReais: buraco ? null : Number(((preco * quantidade) / 1000).toFixed(3)),
+          quantidadeProduzida: quantidade,
+          motivo: buraco ? 'SemValorDaProducao' : 'Nenhum',
+        };
+      });
+
+      // A MÉDIA SÓ SAI COM A JANELA INTEIRA, a mesma regra da API.
+      const media = (n: number): MediaPlurianual => {
+        const janela = noAno.slice(0, n);
+        const faltando = janela.filter((a) => a.precoPorUnidade === null).map((a) => a.ano);
+        const soma = janela.reduce((s, a) => s + (a.precoPorUnidade ?? 0), 0);
+        return { anos: n, preco: faltando.length > 0 ? null : Number((soma / n).toFixed(2)), anosFaltando: faltando };
+      };
+
+      return {
+        produtoCodigoIbge: 900_001 + i,
+        produto: c.nome,
+        unidade: 'toneladas',
+        anos: noAno,
+        mediaDeTresAnos: media(3),
+        mediaDeCincoAnos: media(5),
+        municipiosComDadoNoUltimoAno: 30 - i * 4,
+      };
+    }),
+  };
+}
+
+/**
  * A rentabilidade por cultura.
  *
  * MARGEM = RECEITA − CUSTO, e os três números fecham em toda linha: é o que
@@ -89,12 +146,17 @@ export function precosFicticios(): PrecosDeMercado {
  * comporta quando o número é ruim, que é justamente quando alguém olha.
  */
 export function rentabilidadeFicticia(): RentabilidadeDaCultura[] {
+  // O PREÇO É POR QUILO, o mesmo das séries fictícias acima (fidelidade às
+  // maquetes, fase 3). Estava dividido de novo pela saca — R$ 0,40 o quilo de
+  // café —, e quatro das cinco culturas saíam com margem de −2.000%: o gráfico
+  // de receita, custo e margem não era revisável. A laranja continua negativa
+  // de propósito, agora pelo custo.
   const linhas: { produtividade: number; preco: number; custo: number }[] = [
     { produtividade: 82_000, preco: 0.14, custo: 8_900 },
-    { produtividade: 2_100, preco: 24.5 / 60, custo: 21_400 },
-    { produtividade: 3_600, preco: 2.4 / 60, custo: 4_050 },
-    { produtividade: 6_400, preco: 1.15 / 60, custo: 4_800 },
-    { produtividade: 28_000, preco: 1.9 / 40.8, custo: 32_500 },
+    { produtividade: 2_100, preco: 24.5, custo: 21_400 },
+    { produtividade: 3_600, preco: 2.4, custo: 4_050 },
+    { produtividade: 6_400, preco: 1.15, custo: 4_800 },
+    { produtividade: 28_000, preco: 1.9, custo: 55_000 },
   ];
 
   return CULTURAS.map((c, i) => {
@@ -249,5 +311,69 @@ export function creditoFicticio(municipios: { codigo: number; nome: string }[]):
       indice: indice(2),
     },
     procedencia: PROCEDENCIA,
+  };
+}
+
+/**
+ * O CATÁLOGO DE CULTURAS (fidelidade às maquetes, fase 3 — Momento do mercado).
+ *
+ * POR QUE ELE PRECISOU EXISTIR NO HARNESS: é o catálogo que liga a cultura da
+ * rentabilidade à área colhida da PAM dos municípios (a "Média da Região
+ * Tracbel") e ao preço da CONAB (a coluna de preço do Termo de troca). Sem ele
+ * as duas abas abriam com o traço em tudo, e o layout não era revisável.
+ *
+ * OS CÓDIGOS DE PRODUTO SÃO OS INVENTADOS DO `amostras.ts` (900001 em diante,
+ * na mesma ordem de culturas), para a PAM fictícia dos municípios casar. O
+ * produto de preço é o `AMOSTRA-…` das séries fictícias acima.
+ */
+export function catalogoFicticio(): CatalogoDoMercado {
+  const quilos = [1000, 60, 60, 60, 40.8];
+  return {
+    categorias: [],
+    culturas: CULTURAS.map((c, i) => ({
+      codigo: c.codigo,
+      nome: c.nome,
+      segmento: 'Lavoura (amostra)',
+      unidadeComercial: c.unidade,
+      quilosPorUnidade: quilos[i],
+      fonteDoPreco: 'HARNESS',
+      produtoDoPreco: `AMOSTRA-${c.codigo}`,
+      serieDeCusto: i < 4 ? c.nome : null,
+      estaAtiva: true,
+      produtos: [{ codigoIbge: 900_001 + i, nome: c.nome, entraNaSomaDaLavoura: true }],
+    })),
+  };
+}
+
+/**
+ * AS PERCEPÇÕES DO GESTOR (issue 71), para a aba Percepção comercial.
+ *
+ * NENHUM NOME DE PESSOA: `informadoPor` fica nulo (o mesmo da semente da
+ * migração) e a justificativa se declara amostra. Os municípios são os da malha
+ * pública, os mesmos que o `amostras.ts` põe na Região Tracbel; as leituras são
+ * inventadas e cobrem os três sinais — positivo, zero e negativo.
+ */
+export function parametrosFicticios(municipios: { codigo: number; nome: string }[]): ParametrosDoPotencialVigentes {
+  const leituras = [4, 3, 2.5, 1, 0, -1.5, -3];
+  return {
+    em: '2026-09-23',
+    geral: null,
+    culturas: [],
+    pendencias: [],
+    percepcoes: municipios.slice(0, leituras.length).map((m, i) => ({
+      municipioCodigoIbge: m.codigo,
+      municipioNome: m.nome,
+      uf: 'SP',
+      percentual: leituras[i],
+      vigencia: {
+        vigenteDesde: '2026-08-01',
+        justificativa: 'amostra do harness — não é leitura de gestor nenhum',
+        informadoPor: null,
+        informadoEm: '2026-08-01T12:00:00Z',
+        revogadoEm: null,
+        revogadoPor: null,
+        motivoDaRevogacao: null,
+      },
+    })),
   };
 }

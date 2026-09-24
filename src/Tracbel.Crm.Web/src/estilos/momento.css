@@ -1,0 +1,1206 @@
+/* =============================================================================
+   O MOMENTO DO MERCADO EM LARGURA INTEIRA (fidelidade às maquetes, fase 3).
+
+   As cinco maquetes `momento-*.png` desenham o bloco do mesmo jeito: um cartão
+   branco grande; à esquerda o ícone de tendência, o título e uma frase; à
+   direita "Simular cenário"; abas SUBLINHADAS; e em cada aba uma fileira de
+   quatro cartões tingidos, dois ou três painéis lado a lado e a tabela de
+   detalhamento.
+
+   AS QUEBRAS SÃO PELA LARGURA DO CONTEÚDO (`@container indicadores`, a página),
+   como no resto da tela desde a fase 1: o mesmo arranjo aparece com a mesma
+   largura de conteúdo, com ou sem menu lateral, com qualquer zoom.
+
+   AS ALTURAS DOS GRÁFICOS SÃO FIXAS. Todo gráfico daqui tem altura declarada —
+   no pai, na moldura ou no próprio desenho. Gráfico que se mede pelo pai que se
+   mede pelo gráfico é a "rolagem infinita" que já aconteceu nesta tela.
+
+   Distâncias e letras saem das escalas `--e-*` e `--t-*`; as tintas dos cartões
+   são as mesmas dos quatro números do topo (`dashboard.css`), para os dois
+   níveis de cartão parecerem da mesma família.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   A CASCA DO BLOCO
+   ----------------------------------------------------------------------------- */
+.mom-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+  padding: var(--e-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  min-width: 0;
+}
+
+.mom-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--e-3);
+}
+
+.mom-cabecalho-titulos {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--e-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.mom-cabecalho-icone {
+  display: inline-flex;
+  grid-row: 1 / span 2;
+  color: var(--jd-green);
+}
+
+.mom-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+}
+
+.mom-subtitulo {
+  margin: 2px 0 0;
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+/* "SIMULAR CENÁRIO" É O BOTÃO COM MOLDURA DA MAQUETE — fundo branco, ícone de
+   ajustes à esquerda. Ele não é o primário da tela: é uma ferramenta. */
+.mom-simular {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  flex: none;
+  height: 34px;
+  padding: 0 var(--e-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font-size: var(--t-cartao);
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mom-simular:hover { background: var(--bg-hover); }
+.mom-simular[aria-pressed='true'] { border-color: var(--jd-green); color: var(--jd-green-dark); }
+.mom-simular:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
+
+@container indicadores (max-width: 719px) {
+  .mom-cabecalho { flex-wrap: wrap; }
+}
+
+/* -----------------------------------------------------------------------------
+   AS ABAS SUBLINHADAS
+
+   Texto, sem caixa: a ativa em verde com o sublinhado, as outras em cinza. Numa
+   coluna estreita elas rolam para o lado DENTRO da barra — a página não.
+   ----------------------------------------------------------------------------- */
+.mom-abas {
+  position: relative;
+  display: flex;
+  gap: 0;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  border-bottom: 1px solid var(--border);
+}
+
+.mom-aba {
+  flex: none;
+  padding: var(--e-2) var(--e-5);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--t-cartao);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mom-aba:hover { color: var(--jd-green-dark); background: var(--bg-hover); }
+
+.mom-aba[aria-selected='true'] {
+  color: var(--jd-green);
+  font-weight: 700;
+  border-bottom-color: var(--jd-green);
+}
+
+.mom-aba:focus-visible { outline: 2px solid var(--jd-green); outline-offset: -2px; }
+
+@container indicadores (max-width: 719px) {
+  .mom-aba { padding: var(--e-2) var(--e-3); }
+}
+
+.mom-painel-da-aba {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+  min-width: 0;
+}
+
+.mom-painel-da-aba > * { min-width: 0; }
+
+/* A calculadora, quando aberta, fica entre o cabeçalho e as abas. */
+.mom-bloco > .terr-calculadora { margin: 0; }
+
+/* -----------------------------------------------------------------------------
+   A FILEIRA DE QUATRO CARTÕES — 4 → 2 → 1 pela largura do conteúdo
+   ----------------------------------------------------------------------------- */
+.mom-cartoes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-3);
+}
+
+@container indicadores (min-width: 520px) {
+  .mom-cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container indicadores (min-width: 900px) {
+  .mom-cartoes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* O RESPIRO É O MÍNIMO QUE CABE EM 1.300 px DE CONTEÚDO (a tela real do
+   usuário): quatro cartões de ~308 px com ícone, texto e a pílula da variação
+   lado a lado, como na maquete, sem o rótulo quebrar em três linhas. */
+.mom-cartao {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--e-2);
+  min-height: 78px;
+  padding: var(--e-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+/* AS QUATRO TINTAS SÃO AS DOS KPIs DO TOPO — quase brancas, acima de 96% de
+   luminância: o texto continua preto sobre claro. Cor aqui é endereço. */
+.mom-cartao[data-tom='verde'] { background: #F3F9F2; border-color: #D9EAD6; }
+.mom-cartao[data-tom='azul'] { background: #F2F7FE; border-color: #D5E5F9; }
+.mom-cartao[data-tom='roxo'] { background: #F7F5FE; border-color: #E4DCFA; }
+.mom-cartao[data-tom='laranja'] { background: #FEF8F0; border-color: #F7E3C7; }
+.mom-cartao[data-tom='neutro'] { background: #F7F9F7; border-color: var(--border); }
+
+.mom-cartao-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--text-secondary);
+}
+
+.mom-cartao[data-tom='verde'] .mom-cartao-icone { color: #2E7D32; }
+.mom-cartao[data-tom='azul'] .mom-cartao-icone { color: var(--info); }
+.mom-cartao[data-tom='roxo'] .mom-cartao-icone { color: #6D28D9; }
+.mom-cartao[data-tom='laranja'] .mom-cartao-icone { color: var(--warning); }
+.mom-cartao[data-tom='neutro'] .mom-cartao-icone { color: var(--jd-green); }
+
+.mom-cartao-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mom-cartao-rotulo {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-1);
+  font-size: var(--t-apoio);
+  font-weight: 600;
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+}
+
+.mom-cartao-valor {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 var(--e-2);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: var(--lh-apertada);
+  color: var(--text-primary);
+  /* SEM `tabular-nums` AQUI: na Inter o recurso também alarga o HÍFEN para a
+     largura de um dígito, e "Cana-de-açúcar" saía "Cana - de - açúcar". O
+     cartão tem um valor só — não há coluna de dígitos a alinhar. */
+  font-variant-numeric: normal;
+  overflow-wrap: anywhere;
+}
+
+/* O traço tem o corpo do número que ele substitui: ausência com cara de texto
+   corrido parece defeito, não decisão. */
+.mom-cartao-valor .cad-ausente {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  font-size: 20px;
+  color: var(--text-tertiary);
+}
+
+.mom-cartao-valor .cad-ausente .dica-gatilho { font-size: var(--t-apoio); }
+
+.mom-cartao-unidade {
+  font-size: var(--t-apoio);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.mom-cartao-apoio {
+  min-height: calc(var(--t-apoio) * var(--lh-normal));
+  font-size: var(--t-apoio);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+/* O SENTIDO DA COMPOSIÇÃO ("↑ 2 · ↓ 1", "↓ índice 0,88") no lugar do adjetivo
+   da maquete: seta e número, em peso de título, sem inventar "favorável". */
+.mom-sentido {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 var(--e-1);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Os três sentidos da Commodity ("↑ 1  → 1  ↓ 1") ficam com um respiro entre si. */
+.mom-sentido > [data-sentido] + [data-sentido] { margin-left: var(--e-1); }
+
+.mom-sentido [data-sentido='alta'],
+.mom-sentido[data-sentido='alta'] { color: #1E7B34; }
+.mom-sentido [data-sentido='baixa'],
+.mom-sentido[data-sentido='baixa'] { color: var(--danger); }
+
+/* A PÍLULA DA DIREITA NA COMPOSIÇÃO: a variação no período, com a legenda
+   embaixo. */
+.mom-cartao-lateral {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.mom-pilula {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 58px;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  background: rgb(255 255 255 / 80%);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+/* O INTERVALO ("-20% a +30%") é mais comprido que um número: corpo menor, para
+   a pílula caber ao lado do texto em 1.300 px. */
+.mom-pilula[data-intervalo='true'] { font-size: 12px; }
+
+.mom-pilula[data-sentido='alta'] { background: #E3F4E6; color: #1E7B34; }
+.mom-pilula[data-sentido='baixa'] { background: var(--danger-bg); color: var(--danger); }
+.mom-pilula .cad-ausente { color: var(--text-tertiary); }
+
+/* "variação no período" em duas linhas, como na maquete: numa só ela alargava
+   a coluna da pílula e espremia o texto do cartão. */
+.mom-pilula-legenda {
+  max-width: 70px;
+  font-size: var(--t-meta);
+  line-height: 1.3;
+  color: var(--text-tertiary);
+}
+
+/* O CHEVRON DA PONTA leva à linha da cultura no detalhamento. */
+.mom-cartao-ir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.mom-cartao-ir:hover:not(:disabled) { background: rgb(255 255 255 / 70%); color: var(--text-primary); }
+.mom-cartao-ir:disabled { cursor: default; opacity: 0.35; }
+.mom-cartao-ir:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
+
+/* NUMA COLUNA ESTREITA a pílula desce para baixo do texto, em vez de espremer
+   o rótulo em três linhas. */
+@container indicadores (max-width: 1099px) {
+  .mom-cartao { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .mom-cartao-lateral { grid-column: 2 / -1; flex-direction: row; justify-content: flex-start; gap: var(--e-2); }
+}
+
+/* A VARIAÇÃO EMBAIXO DO VALOR: seta, número com sinal, e contra o quê. */
+.mom-variacao {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 var(--e-2);
+}
+
+.mom-variacao-numero {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mom-variacao-numero[data-sentido='alta'] { color: #1E7B34; }
+.mom-variacao-numero[data-sentido='baixa'] { color: var(--danger); }
+
+.mom-variacao-base { color: var(--text-secondary); }
+
+/* -----------------------------------------------------------------------------
+   OS PAINÉIS LADO A LADO
+
+   As proporções são as de cada maquete, medidas em 1672px. Abaixo de 1000px de
+   conteúdo eles empilham: dois painéis de 450px não são dois painéis, são dois
+   painéis ruins.
+   ----------------------------------------------------------------------------- */
+.mom-paineis {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-3);
+  align-items: stretch;
+}
+
+@container indicadores (min-width: 1000px) {
+  .mom-paineis[data-variante='composicao'] { grid-template-columns: minmax(0, 57fr) minmax(0, 43fr); }
+  .mom-paineis[data-variante='rentabilidade'] { grid-template-columns: minmax(0, 48fr) minmax(0, 52fr); }
+  .mom-paineis[data-variante='credito'] { grid-template-columns: minmax(0, 60fr) minmax(0, 40fr); }
+  .mom-paineis[data-variante='troca'] { grid-template-columns: minmax(0, 58fr) minmax(0, 42fr); }
+}
+
+/* A PERCEPÇÃO TEM TRÊS PAINÉIS: três colunas onde cabem (~350px cada), e dois
+   mais um abaixo disso. */
+@container indicadores (min-width: 700px) {
+  .mom-paineis[data-variante='percepcao'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mom-paineis[data-variante='percepcao'] > :last-child { grid-column: 1 / -1; }
+}
+
+@container indicadores (min-width: 1100px) {
+  .mom-paineis[data-variante='percepcao'] { grid-template-columns: minmax(0, 30fr) minmax(0, 30fr) minmax(0, 32fr); }
+  .mom-paineis[data-variante='percepcao'] > :last-child { grid-column: auto; }
+}
+
+.mom-painel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+  min-width: 0;
+  padding: var(--e-3) var(--e-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.mom-painel-cabecalho {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mom-painel-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-3);
+  min-width: 0;
+}
+
+.mom-painel-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+}
+
+.mom-painel-subtitulo {
+  margin: 0;
+  font-size: var(--t-meta);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+.mom-painel-direita {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-4);
+}
+
+/* O SELETOR DA MAQUETE: rótulo cinza ao lado, campo com moldura e seta. */
+.mom-seletor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  font-size: var(--t-apoio);
+  color: var(--text-secondary);
+}
+
+.mom-seletor select {
+  height: 28px;
+  min-width: 120px;
+  padding: 0 28px 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center / 12px 12px;
+  appearance: none;
+  font-family: inherit;
+  font-size: var(--t-apoio);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.mom-seletor select:disabled { cursor: not-allowed; color: var(--text-tertiary); background-color: var(--n-50); }
+.mom-seletor select:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
+
+/* A LEGENDA: bolinha, anel ou traço, e o nome. */
+.mom-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.mom-legenda li { display: inline-flex; align-items: center; gap: 6px; }
+
+.mom-legenda-marca {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--mom-cor);
+}
+
+.mom-legenda-marca[data-forma='anel'] { background: transparent; border: 2px solid var(--mom-cor); }
+.mom-legenda-marca[data-forma='linha'] { width: 16px; height: 3px; border-radius: 2px; }
+
+/* O BOTÃO DE TEXTO DOS PAINÉIS ("Ver todos", "Ver séries", "Exportar"). */
+.mom-botao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  height: 30px;
+  padding: 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font-family: inherit;
+  font-size: var(--t-apoio);
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mom-botao:hover:not(:disabled) { background: var(--bg-hover); }
+.mom-botao:disabled { cursor: not-allowed; color: var(--text-tertiary); }
+.mom-botao:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
+
+.mom-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--t-apoio);
+  font-weight: 600;
+  color: var(--jd-green-dark);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mom-link:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; }
+
+/* -----------------------------------------------------------------------------
+   AS TABELAS DE DETALHAMENTO
+
+   A rolagem é DENTRO do painel, nunca da página. Número à direita, com dígito
+   de largura fixa; o ⋮ na ponta de toda linha, como na maquete.
+   ----------------------------------------------------------------------------- */
+/* `position: relative` NÃO É ENFEITE: o texto só para o leitor de tela
+   (`cad-so-leitor`) é absoluto, e sem um ancestral posicionado DENTRO da
+   rolagem ele escapa dela — a tabela rolava por dentro e a PÁGINA passava da
+   janela assim mesmo (149 px em 1.024, 767 em 390, medidos). */
+.mom-tabela-rolagem {
+  position: relative;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.mom-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-apoio);
+}
+
+.mom-tabela th,
+.mom-tabela td {
+  padding: 5px var(--e-3);
+  border-bottom: 1px solid var(--n-100);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.mom-tabela thead th {
+  padding-top: var(--e-2);
+  padding-bottom: var(--e-2);
+  background: var(--n-50);
+  border-bottom: 1px solid var(--border);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+.mom-tabela thead th .dica { text-transform: none; }
+
+/* O `th` DE LINHA É UM NOME, e não um rótulo de coluna: o `th` global do
+   design system (fundo cinza, maiúsculas) faria "CANA-DE-AÇÚCAR" gritar numa
+   faixa cinza. */
+.mom-tabela tbody th {
+  background: transparent;
+  font-size: var(--t-apoio);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-primary);
+}
+
+.mom-tabela tbody tr:hover > * { background: var(--n-50); }
+
+.mom-tabela tbody tr:last-child > * { border-bottom: 0; }
+
+.mom-num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.mom-centro { text-align: center !important; }
+
+.mom-tabela .mom-acoes {
+  width: 32px;
+  padding-left: 0;
+  padding-right: var(--e-2);
+  text-align: right;
+}
+
+.mom-tabela tr[data-destaque='true'] > * { background: #F3F9F2; }
+.mom-tabela tr[data-escolhido='true'] > * { background: #EEF6EC; font-weight: 600; }
+
+.mom-alta { color: #1E7B34; font-weight: 600; }
+.mom-baixa { color: var(--danger); font-weight: 600; }
+.mom-roxo { color: #6D28D9; font-weight: 600; }
+
+.mom-tabela-vazia td {
+  padding: var(--e-4) var(--e-3);
+  color: var(--text-secondary);
+  white-space: normal;
+}
+
+/* O ⋮ É O GATILHO DE UMA DICA, com o corpo de um botão de linha. */
+.mom-menu-da-linha .dica-gatilho {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.mom-menu-da-linha .dica-gatilho:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* O CONTEÚDO DO ⋮ e das dicas longas: uma lista curta de pares. */
+.mom-detalhe {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 360px;
+  text-align: left;
+}
+
+.mom-detalhe dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px var(--e-3);
+  margin: 0;
+}
+
+.mom-detalhe dt { opacity: 0.75; }
+.mom-detalhe dd { margin: 0; font-weight: 600; }
+.mom-detalhe p { margin: 0; }
+.mom-detalhe table { border-collapse: collapse; }
+
+/* A TABELA DENTRO DA DICA herda o balão escuro: sem o fundo, a caixa-alta e o
+   respiro do `th`/`td` globais. */
+.mom-detalhe table th,
+.mom-detalhe table td {
+  padding: 1px 6px;
+  border: 0;
+  background: transparent !important;
+  color: inherit;
+  font-size: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mom-detalhe table thead th { font-weight: 700; opacity: 0.8; }
+.mom-detalhe table th:first-child,
+.mom-detalhe table td:first-child { text-align: left; }
+
+/* O NOME DA CULTURA COM O ÍCONE NA FRENTE. */
+.mom-cultura {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-width: 0;
+}
+
+.mom-icone-cultura {
+  display: inline-flex;
+  flex: none;
+}
+
+/* A linha que o chevron do cartão encontra pisca de leve, e só. */
+@keyframes mom-achada {
+  from { background: #FFF6CC; }
+  to { background: transparent; }
+}
+
+.mom-tabela tr[data-achada='true'] > * { animation: mom-achada 1.6s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mom-tabela tr[data-achada='true'] > * { animation: none; background: #FFF6CC; }
+}
+
+/* -----------------------------------------------------------------------------
+   OS RANKINGS DE BARRA HORIZONTAL (margem por cultura, top 5 de crédito e de
+   percepção, comparativo do termo de troca)
+   ----------------------------------------------------------------------------- */
+.mom-ranking {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mom-ranking-linha {
+  display: grid;
+  grid-template-columns: minmax(110px, 2fr) minmax(0, 5fr) minmax(96px, auto);
+  align-items: center;
+  gap: var(--e-3);
+  min-height: 27px;
+  font-size: var(--t-apoio);
+  color: var(--text-primary);
+}
+
+/* O ranking numerado tem a coluna do número à esquerda e, no crédito, a da
+   participação à direita. */
+.mom-ranking[data-numerado='true'] .mom-ranking-linha {
+  grid-template-columns: 26px minmax(96px, 2fr) minmax(0, 3fr) minmax(76px, auto) minmax(52px, auto);
+  min-height: 34px;
+  border-bottom: 1px solid var(--n-100);
+}
+
+.mom-ranking[data-numerado='true'][data-colunas='4'] .mom-ranking-linha {
+  grid-template-columns: 26px minmax(96px, 2fr) minmax(52px, auto) minmax(0, 3fr);
+}
+
+.mom-ranking-cabecalho {
+  font-size: 10.5px !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary) !important;
+  min-height: 26px !important;
+  background: var(--n-50);
+}
+
+.mom-ranking-posicao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--t-meta);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.mom-ranking-cabecalho .mom-ranking-posicao { border: 0; }
+
+.mom-ranking-nome { min-width: 0; overflow-wrap: anywhere; }
+
+.mom-barra {
+  position: relative;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--n-100);
+  overflow: hidden;
+}
+
+.mom-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--jd-green);
+}
+
+/* NEGATIVO É HACHURA, E NÃO SÓ COR: quem não distingue as cores continua vendo
+   que esta barra é de outra natureza. */
+.mom-barra > span[data-negativa='true'] {
+  background: repeating-linear-gradient(45deg, var(--danger) 0, var(--danger) 4px, var(--danger-bg) 4px, var(--danger-bg) 8px);
+}
+
+.mom-ranking-valor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--e-1);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mom-ranking-participacao {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* O COMPARATIVO DO TERMO DE TROCA: cultura, barra, sacas, variação e o ⋮. */
+.mom-comparativo {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mom-comparativo-linha {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.5fr) minmax(0, 2fr) 56px minmax(84px, auto) 28px;
+  align-items: center;
+  gap: var(--e-3);
+  min-height: 33px;
+  border-bottom: 1px solid var(--n-100);
+  font-size: var(--t-apoio);
+}
+
+.mom-comparativo-linha:last-child { border-bottom: 0; }
+
+@container indicadores (max-width: 519px) {
+  .mom-comparativo-linha { grid-template-columns: minmax(0, 1fr) 40px 60px 28px; }
+  .mom-comparativo-linha .mom-barra,
+  .mom-comparativo-linha.mom-ranking-cabecalho > :nth-child(3) { display: none; }
+}
+
+@container indicadores (max-width: 519px) {
+  .mom-ranking-linha { grid-template-columns: minmax(0, 1fr) auto; }
+  .mom-ranking-linha .mom-barra,
+  .mom-ranking-linha .mom-barra-vazia { display: none; }
+  .mom-ranking[data-numerado='true'] .mom-ranking-linha,
+  .mom-ranking[data-numerado='true'][data-colunas='4'] .mom-ranking-linha {
+    grid-template-columns: 26px minmax(0, 1fr) auto auto;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   COMPOSIÇÃO DO FATOR POR CULTURA — barras empilhadas das parcelas
+   ----------------------------------------------------------------------------- */
+.mom-pilhas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mom-pilhas-cabecalho,
+.mom-pilha {
+  display: grid;
+  grid-template-columns: minmax(118px, 1.3fr) minmax(0, 5fr) 64px;
+  align-items: center;
+  gap: var(--e-3);
+  font-size: var(--t-apoio);
+}
+
+.mom-pilhas-cabecalho {
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.mom-pilhas-cabecalho > :last-child,
+.mom-pilha-fator {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mom-pilha-trilho {
+  position: relative;
+  display: flex;
+  height: 22px;
+  border-radius: 3px;
+  background: var(--n-100);
+  overflow: hidden;
+}
+
+.mom-pilha-trilho > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.mom-pilha-trilho > span[data-parcela='commodity'] { background: #5BB26B; }
+.mom-pilha-trilho > span[data-parcela='credito'] { background: #9575E0; }
+.mom-pilha-trilho > span[data-parcela='percepcao'] { background: #F4B35E; color: #5B3A07; }
+
+/* A parcela que PUXA PARA BAIXO leva hachura por cima da cor: o sinal escrito
+   dentro dela diz o mesmo, e a hachura diz de longe. */
+.mom-pilha-trilho > span[data-negativa='true'] {
+  background-image: repeating-linear-gradient(45deg, rgb(0 0 0 / 16%) 0, rgb(0 0 0 / 16%) 3px, transparent 3px, transparent 7px);
+}
+
+/* -----------------------------------------------------------------------------
+   AS BARRAS AGRUPADAS (Demanda estrutural × ajustada) — desenhadas em HTML
+
+   Barras verticais simples não precisam do Chart.js: em HTML elas têm altura
+   declarada, o rótulo em cima de cada uma e nenhum canvas a medir.
+   ----------------------------------------------------------------------------- */
+.mom-colunas {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  column-gap: var(--e-2);
+}
+
+.mom-colunas-eixo {
+  position: relative;
+  grid-row: 1;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.mom-colunas-eixo > span {
+  position: absolute;
+  right: 0;
+  transform: translateY(50%);
+}
+
+.mom-colunas-area {
+  position: relative;
+  grid-row: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: var(--e-2);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.mom-colunas-grade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.mom-colunas-grade > span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--n-100);
+}
+
+.mom-colunas-grupo {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  flex: 1 1 0;
+  height: 100%;
+  min-width: 0;
+}
+
+.mom-colunas-barra {
+  position: relative;
+  flex: 0 1 34px;
+  min-width: 8px;
+  border-radius: 2px 2px 0 0;
+}
+
+.mom-colunas-barra > span {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding-bottom: 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.mom-colunas-rotulos {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-around;
+  gap: var(--e-2);
+  padding-top: 4px;
+  font-size: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.mom-colunas-rotulos > span {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -----------------------------------------------------------------------------
+   O GRÁFICO SEM SÉRIE — a moldura com a grade e a frase no meio
+   ----------------------------------------------------------------------------- */
+.mom-grafico-vazio {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-strong);
+  margin-left: 36px;
+}
+
+.mom-grafico-vazio-grade {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.mom-grafico-vazio-grade > span { border-top: 1px dashed var(--n-200); }
+.mom-grafico-vazio-grade > span:last-child { border-top: 0; }
+
+.mom-grafico-vazio-frase {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  margin: 0;
+  padding: var(--e-2) var(--e-3);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font-size: var(--t-apoio);
+  color: var(--text-secondary);
+}
+
+/* -----------------------------------------------------------------------------
+   A ROSCA DA PERCEPÇÃO E A LISTA AO LADO
+   ----------------------------------------------------------------------------- */
+/* A ROSCA TEM 150 px NA LARGURA DA MAQUETE e 124 px em 1.300 px de conteúdo:
+   o painel é um terço da linha, e a lista ao lado precisa do resto. */
+.mom-rosca-e-lista {
+  --mom-rosca: 124px;
+  display: grid;
+  grid-template-columns: var(--mom-rosca) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-3);
+}
+
+@container indicadores (min-width: 1400px) {
+  .mom-rosca-e-lista { --mom-rosca: 150px; gap: var(--e-4); }
+}
+
+/* ENTRE 700 E 1.100 px OS PAINÉIS DA PERCEPÇÃO SÃO DOIS POR LINHA (~350 px): a
+   lista não cabe ao lado da rosca e desce para baixo dela. Abaixo de 520 px é
+   uma coluna só, e o mesmo vale. */
+@container indicadores (max-width: 519px) {
+  .mom-rosca-e-lista { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+}
+
+@container indicadores (min-width: 700px) and (max-width: 1099px) {
+  .mom-rosca-e-lista { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+}
+
+/* O VALOR DA LEITURA TEM LARGURA FIXA, para as barras divergentes da tabela
+   ficarem no mesmo eixo de linha a linha. */
+.mom-leitura-valor {
+  display: inline-block;
+  min-width: 64px;
+  text-align: right;
+}
+
+.mom-rosca { position: relative; width: var(--mom-rosca); height: var(--mom-rosca); }
+
+.mom-rosca-centro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.mom-rosca-centro strong { font-size: 24px; line-height: 1; font-variant-numeric: tabular-nums; }
+.mom-rosca-centro span { font-size: var(--t-meta); color: var(--text-secondary); }
+
+.mom-faixas {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-apoio);
+}
+
+.mom-faixas th,
+.mom-faixas td {
+  padding: 4px 5px;
+  border: 0;
+  background: transparent !important;
+  font-size: var(--t-apoio);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-primary);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mom-faixas thead th {
+  font-size: var(--t-meta);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.mom-faixas .mom-num { text-align: right; }
+
+.mom-ponto {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: var(--e-2);
+  border-radius: 50%;
+  vertical-align: -1px;
+  background: var(--mom-cor);
+}
+
+/* A PÍLULA DA LEITURA NA TABELA DA PERCEPÇÃO: sinal, não adjetivo. */
+.mom-leitura {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+
+.mom-leitura > span:last-child {
+  padding: 1px var(--e-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--t-meta);
+  font-weight: 600;
+  background: var(--n-100);
+  color: var(--text-secondary);
+}
+
+.mom-leitura[data-sentido='alta'] > span:last-child { background: #E3F4E6; color: #1E7B34; }
+.mom-leitura[data-sentido='baixa'] > span:last-child { background: var(--danger-bg); color: var(--danger); }
+
+/* A BARRA DIVERGENTE da leitura em p.p.: o zero no meio, a barra para um lado
+   ou para o outro. */
+.mom-divergente {
+  position: relative;
+  display: inline-block;
+  width: 140px;
+  height: 10px;
+  margin-left: var(--e-2);
+  border-radius: 3px;
+  background: var(--n-100);
+  vertical-align: middle;
+}
+
+.mom-divergente::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 50%;
+  border-left: 1px solid var(--border-strong);
+}
+
+.mom-divergente > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background: #43A047;
+}
+
+.mom-divergente > span[data-negativa='true'] { background: var(--danger); }
+
+/* -----------------------------------------------------------------------------
+   OS PAINÉIS ANTIGOS DE PREÇO E CUSTO, ABERTOS POR "VER SÉRIES"
+
+   Eles não estão na maquete e continuam na tela, inteiros, um clique abaixo do
+   detalhamento — com tabela, gráfico e a origem de cada série.
+   ----------------------------------------------------------------------------- */
+.mom-series {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-3);
+  padding-top: var(--e-2);
+  border-top: 1px dashed var(--border);
+}

@@ -40,7 +40,13 @@ async function abrir(pagina: Page, estado: string) {
   // casca montou, inclusive nos estados `carregando` e `erro`.
   await expect(pagina.locator('[data-bloco="cabecalho"]')).toBeVisible();
 
-  if (estado !== 'carregando' && estado !== 'erro') {
+  if (estado === 'municipioSelecionado' || estado === 'fichaAberta') {
+    // COM MUNICÍPIO NA URL A TELA ABRE EM TERRITÓRIO (fidelidade às maquetes,
+    // 23/09/2026): a ficha mora só lá, e um endereço com município é o de quem
+    // estava olhando uma ficha. Não há mapa a esperar — a ficha é a última
+    // coisa a desenhar.
+    await expect(pagina.locator('[data-bloco="ficha-do-municipio"]')).toBeVisible({ timeout: 30_000 });
+  } else if (estado !== 'carregando' && estado !== 'erro') {
     // Os mapas são a última coisa a desenhar, e é depois deles que a altura para
     // de mudar. Capturar antes pegaria a página no meio do caminho.
     await expect(pagina.locator('[data-bloco="mapas"]')).toBeVisible({ timeout: 30_000 });
@@ -91,6 +97,50 @@ async function sobraLateral(pagina: Page) {
   });
 }
 
+/**
+ * A LARGURA DO CONTEÚDO — a régua das quebras desta tela (fidelidade às
+ * maquetes, 23/09/2026).
+ *
+ * As quebras deixaram de ser pela largura da JANELA e passaram a ser pela da
+ * página (`@container indicadores`, no `dashboard.css`): a janela inclui o menu
+ * lateral e as folgas, e as regras achavam que tinham um espaço que o conteúdo
+ * não tinha. As afirmações de arranjo medem a mesma régua que o CSS usa — medir
+ * a janela aqui seria testar uma regra que não existe mais.
+ */
+async function larguraDoConteudo(pagina: Page): Promise<number> {
+  return pagina.locator('.dash-pagina').evaluate((n) => {
+    const estilo = getComputedStyle(n);
+    return n.clientWidth - parseFloat(estilo.paddingLeft) - parseFloat(estilo.paddingRight);
+  });
+}
+
+/**
+ * A LARGURA DA TABELA DE MUNICÍPIOS — a régua das colunas dela (fase 4).
+ *
+ * O cartão da tabela é o contêiner (`container: tabela`), e a consulta mede a
+ * caixa de conteúdo dele; `clientWidth` é essa mesma caixa (o cartão tem borda
+ * e não tem folga lateral).
+ */
+async function larguraDaTabela(pagina: Page): Promise<number> {
+  return pagina.locator('[data-bloco="tabela-municipios"]').evaluate((n) => n.clientWidth);
+}
+
+/** Quanto a tabela passa do cartão que a segura — zero é caber sem rolar de lado. */
+async function sobraDentroDaTabela(pagina: Page): Promise<number> {
+  return pagina.locator('[data-bloco="tabela-municipios"] .cad-tabela-wrap').evaluate((n) => {
+    const tabela = n.querySelector('table')!;
+    return Math.round(tabela.getBoundingClientRect().width - n.clientWidth);
+  });
+}
+
+/** Quantas linhas visuais um conjunto de elementos ocupa, pelo topo de cada um. */
+async function linhasDe(pagina: Page, seletor: string): Promise<number> {
+  const topos = await pagina
+    .locator(seletor)
+    .evaluateAll((nós) => nós.map((n) => Math.round(n.getBoundingClientRect().top)));
+  return new Set(topos).size;
+}
+
 for (const { nome, largura, altura } of LARGURAS) {
   test.describe(`Mercado em ${nome}`, () => {
     test.use({ viewport: { width: largura, height: altura } });
@@ -130,17 +180,19 @@ for (const { nome, largura, altura } of LARGURAS) {
       const cartoes = page.locator('[data-bloco="kpis-executivos"] [data-kpi]');
       await expect(cartoes).toHaveCount(4);
 
-      const topos = await cartoes.evaluateAll((nós) =>
-        nós.map((n) => Math.round(n.getBoundingClientRect().top)),
-      );
-      const linhas = new Set(topos).size;
+      const linhas = await linhasDe(page, '[data-bloco="kpis-executivos"] [data-kpi]');
+      const conteudo = await larguraDoConteudo(page);
 
-      if (largura >= 1100) {
-        expect(linhas, `em ${largura}px os quatro KPIs deveriam estar numa linha só, e estão em ${linhas}`).toBe(1);
-      } else if (largura >= 560) {
-        expect(linhas, `em ${largura}px esperava 2×2`).toBe(2);
+      // PELA LARGURA DO CONTEÚDO, e não da janela (decisão do usuário de
+      // 23/09/2026): quatro numa linha a partir de 900px, 2 × 2 a partir de 520,
+      // um por linha abaixo disso. Numa janela de 1024 o conteúdo tem 960px, e
+      // os quatro cabem numa linha — como na maquete.
+      if (conteudo >= 900) {
+        expect(linhas, `com ${conteudo}px de conteúdo os quatro KPIs deveriam estar numa linha só, e estão em ${linhas}`).toBe(1);
+      } else if (conteudo >= 520) {
+        expect(linhas, `com ${conteudo}px de conteúdo esperava 2×2`).toBe(2);
       } else {
-        expect(linhas, `em ${largura}px cada KPI deveria ter a própria linha`).toBe(4);
+        expect(linhas, `com ${conteudo}px de conteúdo cada KPI deveria ter a própria linha`).toBe(4);
       }
     });
 
@@ -150,19 +202,99 @@ for (const { nome, largura, altura } of LARGURAS) {
       const cartoes = page.locator('[data-bloco="mapas"] [data-mapa]');
       await expect(cartoes).toHaveCount(4);
 
-      const topos = await cartoes.evaluateAll((nós) =>
-        nós.map((n) => Math.round(n.getBoundingClientRect().top)),
-      );
-      const linhas = new Set(topos).size;
+      const linhas = await linhasDe(page, '[data-bloco="mapas"] [data-mapa]');
+      const conteudo = await larguraDoConteudo(page);
 
-      // >= 2100 são quatro colunas; 851–2099 é 2×2; abaixo disso, um por linha.
+      // PELA LARGURA DO CONTEÚDO (decisão do usuário de 23/09/2026): quatro
+      // colunas a partir de 1100px, 2 × 2 de 600 a 1099, um por linha abaixo
+      // de 600.
       //
-      // O CORTE DESCEU DE 1100 PARA 850 na T4.8, seguindo o protótipo visual: em
-      // 1024 a página ficava com 5.775px de rolagem, quatro mapas de largura
-      // inteira empilhados. 850 é onde a coluna fica estreita demais para
-      // distinguir município.
-      const esperado = largura >= 2100 ? 1 : largura >= 851 ? 2 : 4;
-      expect(linhas, `em ${largura}px esperava ${esperado} linha(s) de mapa, e deu ${linhas}`).toBe(esperado);
+      // ERA 2100px DE JANELA PARA OS QUATRO LADO A LADO, e 851 para o 2 × 2. Com
+      // o menu lateral, nenhum monitor do comercial chegava aos quatro numa
+      // linha — que é o que a maquete mostra numa coluna de ~1440px — e os mapas
+      // ocupavam duas dobras. A régua agora é a página, não a janela.
+      const esperado = conteudo >= 1100 ? 1 : conteudo >= 600 ? 2 : 4;
+      expect(linhas, `com ${conteudo}px de conteúdo esperava ${esperado} linha(s) de mapa, e deu ${linhas}`).toBe(esperado);
+    });
+
+    test('cada cartão de mapa tem o tamanho da maquete, e o alternador cabe numa linha', async ({ page }) => {
+      // O DEFEITO QUE ISTO IMPEDE DE VOLTAR (fidelidade às maquetes, fase 2): os
+      // cartões de mapa tinham 570 a 640px de altura — título com piso de duas
+      // linhas, legenda de oito linhas com a unidade por extenso, uma linha
+      // reservada para o cursor. A maquete os desenha com ~245px numa coluna de
+      // ~1490. O teto aqui tem folga para o resumo de duas linhas do potencial.
+      await abrir(page, 'completo');
+
+      const conteudo = await larguraDoConteudo(page);
+      const alturas = await page
+        .locator('[data-bloco="mapas"] [data-mapa]')
+        .evaluateAll((nós) => nós.map((n) => Math.round(n.getBoundingClientRect().height)));
+      if (conteudo >= 1100) {
+        for (const altura of alturas)
+          expect(altura, `cartão de mapa com ${altura}px numa coluna de ${conteudo}px`).toBeLessThanOrEqual(280);
+      }
+
+      // O ALTERNADOR NUMA LINHA, SEM BOTÃO CORTADO — inclusive os CINCO recortes
+      // da estrutura (a maquete mostra quatro; tirar as usinas não foi decidido).
+      const alternadores = await page.locator('[data-bloco="mapas"] [data-mapa] > .terr-alternador').evaluateAll((nós) =>
+        nós.map((a) => ({
+          mapa: (a.closest('[data-mapa]') as HTMLElement).dataset.mapa,
+          linhas: new Set([...a.children].map((b) => Math.round(b.getBoundingClientRect().top))).size,
+          cortado: a.scrollWidth > a.clientWidth + 1,
+        })),
+      );
+      for (const a of alternadores) {
+        expect(a.linhas, `o alternador de ${a.mapa} quebrou em ${a.linhas} linhas com ${conteudo}px de conteúdo`).toBe(1);
+        expect(a.cortado, `o alternador de ${a.mapa} corta um botão com ${conteudo}px de conteúdo`).toBe(false);
+      }
+    });
+
+    test('a linha final tem Potencial e Performance lado a lado a partir de 1000px de conteúdo', async ({ page }) => {
+      // O MOMENTO DO MERCADO SAIU DESTA LINHA e foi para largura inteira, logo
+      // abaixo dos quatro números (decisão do usuário de 23/09/2026): num terço
+      // de linha, o Crédito crescia para baixo o que não tinha de largura.
+      await abrir(page, 'completo');
+
+      const conteudo = await larguraDoConteudo(page);
+      const linhas = await linhasDe(page, '.dash-linha-final > *');
+      expect(linhas, `com ${conteudo}px de conteúdo`).toBe(conteudo >= 1000 ? 1 : 2);
+
+      // E o Momento ocupa a largura inteira da página, em qualquer largura.
+      const momento = await page.locator('[data-bloco="momento-do-mercado"]').boundingBox();
+      expect(Math.round(momento!.width), 'o Momento do mercado não está em largura inteira').toBe(Math.round(conteudo));
+    });
+
+    test('as cinco abas do Momento cabem na largura, a altura assenta e cada uma é capturada', async ({ page }) => {
+      // A "ROLAGEM INFINITA" DO CRÉDITO (fidelidade às maquetes, fase 3) era um
+      // gráfico que se media pelo pai que se media pelo gráfico. Seis leituras
+      // seguidas da altura da página, depois de abrir cada aba, têm de ser
+      // iguais — e a página não pode passar da janela, nem pelo texto só para o
+      // leitor de tela escapando da rolagem de uma tabela.
+      await abrir(page, 'completo');
+      const bloco = page.locator('[data-bloco="momento-do-mercado"]');
+
+      for (const [aba, arquivo] of [
+        ['Composição do fator', 'composicao'],
+        ['Rentabilidade', 'rentabilidade'],
+        ['Crédito', 'credito'],
+        ['Termo de troca', 'termo-de-troca'],
+        ['Percepção comercial', 'percepcao'],
+      ] as const) {
+        await bloco.getByRole('tab', { name: aba }).click();
+        await expect(bloco.getByRole('tab', { name: aba })).toHaveAttribute('aria-selected', 'true');
+
+        const alturas: number[] = [];
+        for (let i = 0; i < 6; i++) {
+          await page.waitForTimeout(250);
+          alturas.push(await page.evaluate(() => document.documentElement.scrollHeight));
+        }
+        expect(new Set(alturas).size, `a altura da página não assenta na aba ${aba}: ${alturas.join(', ')}`).toBe(1);
+
+        await bloco.screenshot({ path: `capturas/${nome}/momento-${arquivo}.png` });
+
+        const { sobra, culpados } = await sobraLateral(page);
+        expect(sobra, `a aba ${aba} passa ${sobra}px da janela. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
+      }
     });
 
     test('os filtros secundários não ocupam a primeira dobra', async ({ page }) => {
@@ -213,37 +345,70 @@ for (const { nome, largura, altura } of LARGURAS) {
       const { sobra, culpados } = await sobraLateral(page);
       expect(sobra, `Território passa ${sobra}px. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
 
-      // QUANTAS COLUNAS FICAM, por largura: NOVE no desktop, cinco no tablet,
-      // duas no aparelho de mão.
+      // QUANTAS COLUNAS FICAM: NOVE com tabela larga, seis numa tabela de
+      // tablet, três no aparelho de mão.
       //
-      // A nona é a COLUNA DE AÇÃO da maquete (T4.9) — o chevron que abre a ficha
-      // na ponta da linha. Ela sai já em 768: 26px de botão numa tela de mão são
-      // 26px roubados das colunas que respondem "onde vender", e o nome do
-      // município continua sendo a porta para a mesma ficha.
-      const esperadas = largura <= 560 ? 2 : largura <= 768 ? 5 : 9;
+      // A nona é a COLUNA DE AÇÃO da maquete (T4.9) — o › que abre a ficha na
+      // ponta da linha. ELA NÃO SAI MAIS (revisão de 24/09/2026): o menu da
+      // engrenagem promete "Município e Ação ficam sempre", e a largura não
+      // pode desmentir a promessa.
+      //
+      // OS DEGRAUS SÃO PELA LARGURA DA TABELA (fase 4, 23/09/2026): eram pela da
+      // página, e a página não é a tabela — com a ficha aberta ao lado, em
+      // 1.300px de conteúdo, a tabela tem ~750px. Seis colunas abaixo de 700px
+      // de tabela, três abaixo de 480px.
+      const tabela = await larguraDaTabela(page);
+      const esperadas = tabela < 480 ? 3 : tabela < 700 ? 6 : 9;
       const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
-      expect(colunas, `em ${largura}px esperava ${esperadas} colunas`).toBe(esperadas);
+      expect(colunas, `com ${tabela}px de tabela esperava ${esperadas} colunas`).toBe(esperadas);
 
       // ============================================================================
-      // E QUE ELAS CABEM — que é o que o teste anterior NÃO media.
+      // E QUE ELAS CABEM — em TODA largura, desde a fase 4.
       //
       // `:visible` em Playwright quer dizer "não está `display:none`", e não "cabe
       // na tela". Com cinco colunas em 390px o teste passava enquanto a tabela
       // virava uma lista de nomes com as outras quatro escondidas atrás da rolagem
-      // horizontal do cartão — dado presente e invisível, que é pior que dado
-      // adiado. Só a revisão humana das capturas pegou isso (T4.7).
+      // horizontal do cartão — dado presente e invisível (T4.7).
       //
-      // Aqui a afirmação é geométrica: a tabela não é mais larga que o cartão que
-      // a segura. No desktop a rolagem interna é aceitável para oito colunas, e
-      // por isso a exigência vale onde ela engana — no celular.
+      // Até a fase 4 a rolagem interna era aceita no desktop; a maquete e a
+      // decisão 4 do usuário pedem a tabela inteira, sem rolar de lado, também
+      // ao lado da ficha — e é o teste de baixo que mede isso com a ficha aberta.
       // ============================================================================
-      if (largura <= 560) {
-        const sobra = await page.locator('[data-bloco="tabela-municipios"] .cad-tabela-wrap').evaluate((n) => {
-          const tabela = n.querySelector('table')!;
-          return Math.round(tabela.getBoundingClientRect().width - n.clientWidth);
-        });
-        expect(sobra, `a tabela passa ${sobra}px do cartão em ${largura}px — as colunas escondidas rolam para o lado`).toBeLessThanOrEqual(0);
-      }
+      const sobraDaTabela = await sobraDentroDaTabela(page);
+      expect(sobraDaTabela, `a tabela passa ${sobraDaTabela}px do cartão em ${largura}px — as colunas rolam para o lado`).toBeLessThanOrEqual(0);
+    });
+
+    test('com a ficha aberta ao lado, a tabela cabe sem rolar de lado e nenhum número quebra', async ({ page }) => {
+      await abrir(page, 'municipioSelecionado');
+      await page.screenshot({ path: `capturas/${nome}/territorio-ficha.png`, fullPage: true });
+
+      const { sobra, culpados } = await sobraLateral(page);
+      expect(sobra, `Território com ficha passa ${sobra}px. Culpados: ${culpados.join(' · ')}`).toBeLessThanOrEqual(0);
+
+      const tabela = await larguraDaTabela(page);
+      const esperadas = tabela < 480 ? 3 : tabela < 700 ? 6 : 9;
+      const colunas = await page.locator('[data-bloco="tabela-municipios"] thead th:visible').count();
+      expect(colunas, `com ${tabela}px de tabela esperava ${esperadas} colunas`).toBe(esperadas);
+      // A AÇÃO FICA EM TODA LARGURA — é o que o menu da engrenagem promete.
+      await expect(page.locator('[data-bloco="tabela-municipios"] thead th[data-coluna="acao"]')).toBeVisible();
+      expect(await sobraDentroDaTabela(page), 'a tabela rola de lado ao lado da ficha').toBeLessThanOrEqual(0);
+
+      // "SEM NÚMERO QUEBRANDO LETRA POR LETRA": todo valor dos cartões, da tabela
+      // e da ficha cabe na própria caixa, numa linha.
+      const quebrados = await page.evaluate(() =>
+        [
+          ...document.querySelectorAll<HTMLElement>(
+            '.terr-cart-kpi-valor, .terr-ficha-mini-valor, .terr-ficha-oport-valor, .terr-ficha-estrutura-valor, .terr-tabela-municipios td.cad-mono',
+          ),
+        ]
+          .filter((n) => n.offsetParent !== null && n.scrollWidth > n.clientWidth + 1)
+          .map((n) => n.textContent),
+      );
+      expect(quebrados, 'valores que não cabem na caixa').toEqual([]);
+
+      // PAGINAÇÃO, e não rolagem interna: dez linhas, e a faixa diz de quantas.
+      await expect(page.locator('[data-bloco="tabela-municipios"] tbody tr')).toHaveCount(10);
+      await expect(page.locator('[data-bloco="paginacao-municipios"]')).toContainText('de 30 municípios');
     });
 
     test('a ficha do município cabe na largura, com as evidências abertas', async ({ page }) => {
@@ -262,6 +427,12 @@ for (const { nome, largura, altura } of LARGURAS) {
         Math.round(caixa!.x + caixa!.width),
         `a ficha termina em ${Math.round(caixa!.x + caixa!.width)}px, fora da janela de ${largura}px`,
       ).toBeLessThanOrEqual(largura);
+
+      // TABELA E FICHA LADO A LADO a partir de 1150px de conteúdo, e a ficha
+      // embaixo abaixo disso (fidelidade às maquetes, 23/09/2026).
+      const conteudo = await larguraDoConteudo(page);
+      const linhas = await linhasDe(page, '.terr-territorio > *');
+      expect(linhas, `com ${conteudo}px de conteúdo`).toBe(conteudo >= 1150 ? 1 : 2);
     });
 
     test('a dica junto da borda direita não sai da tela', async ({ page }) => {

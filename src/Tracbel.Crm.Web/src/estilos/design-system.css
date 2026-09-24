@@ -35,7 +35,22 @@
   --bg-app: var(--n-50);
   --bg-surface: var(--white);
   --bg-elevated: var(--white);
-  --bg-sidebar: var(--n-950);
+  /* O verde-escuro da maquete (medido nela: #052820), e não mais o quase preto
+     do protótipo. Contraste conferido contra ele: texto do item 10:1, legenda de
+     seção 5,2:1, filial do rodapé 7:1 — tudo acima do AA de texto pequeno. */
+  --bg-sidebar: #052820;
+  --menu-texto: #C5D3CD;
+  --menu-texto-fraco: #9DB3AB;
+  --menu-legenda: #7F9A8F;
+  --menu-hover: rgba(255, 255, 255, 0.05);
+  --menu-ativo: rgba(20, 170, 100, 0.25);
+  --marca-verde: #34B864;
+  /* A largura do menu: o que cabe "Indicadores Geográficos" em 14 px sem cortar.
+     Era 248; a maquete tem 183 com letra menor. */
+  --largura-menu: 232px;
+  /* A altura da barra do topo, que é fixa (`sticky`): quem rola a página até um
+     elemento precisa descontá-la, senão o alvo para embaixo dela. */
+  --altura-do-topo: 56px;
   --bg-hover: var(--n-100);
   --border: var(--n-200);
   --border-strong: var(--n-300);
@@ -90,7 +105,10 @@
      Cada nome diz o PAPEL, e não o tamanho, porque é o papel que não muda
      quando o tamanho for ajustado.
      ========================================================================= */
-  --t-pagina: 22px;   /* o h1 da tela */
+  /* 26, e não 22 (fidelidade às maquetes, 23/09/2026): o h1 da maquete mede
+     26px. Só o `dashboard.css` lê este papel — as telas de cadastro usam o
+     `.page-title` de 20px, que não mudou. */
+  --t-pagina: 26px;   /* o h1 da tela */
   --t-secao: 16px;    /* o h2 de um bloco */
   --t-cartao: 13px;   /* o título de um painel dentro do bloco */
   --t-kpi: 30px;      /* o número de decisão — o maior da página, e sozinho nisso */
@@ -120,94 +138,187 @@ a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 input, textarea, select { font-family: inherit; font-size: inherit; color: inherit; }
 
-/* ===== SHELL ===== */
+/* ===== SHELL =====
+   Fidelidade às maquetes (23/09/2026): "visual da maquete, nossos itens". O
+   menu ganhou o verde-escuro, a marca por extenso, a pílula do item ativo e
+   respiro; a lista de telas continua a de `navegacao.ts`. */
 .app-shell {
   display: grid;
-  grid-template-columns: 248px 1fr;
+  grid-template-columns: var(--largura-menu) minmax(0, 1fr);
   min-height: 100vh;
 }
 
 /* ===== SIDEBAR ===== */
 .sidebar {
   background: var(--bg-sidebar);
-  color: var(--n-300);
+  color: var(--menu-texto);
   display: flex;
   flex-direction: column;
   height: 100vh;
   position: sticky;
   top: 0;
+  min-width: 0;
 }
+/* A marca começa na mesma coluna dos ícones (8 da nav + 12 do item). */
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 20px 20px 24px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 22px 20px 18px;
 }
-.brand-text { display: flex; flex-direction: column; line-height: 1.2; }
-.brand-name { color: var(--white); font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
-.brand-sub { color: var(--jd-yellow); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+/* A maquete usa uma grotesca pesada e estreita; com a Inter (até 700) o mais
+   perto é o negrito com as letras apertadas. */
+.marca-nome { color: var(--white); font-weight: 700; letter-spacing: -0.03em; }
+.marca-folha { flex-shrink: 0; color: var(--marca-verde); margin-bottom: 3px; }
+.marca-agro { color: var(--marca-verde); font-weight: 700; letter-spacing: -0.02em; }
 
 .sidebar-nav {
   flex: 1;
-  padding: 16px 12px;
+  padding: 6px 8px 16px;
   overflow-y: auto;
 }
-.nav-section { margin-bottom: 24px; }
+/* AS SEÇÕES SÃO NOSSAS, E A MAQUETE NÃO AS TEM — por isso a legenda é o mais
+   leve possível (11 px, cinza-esverdeado) e o respiro fica ENTRE os grupos,
+   que é o que separa sem desenhar linha nenhuma. */
+.nav-section + .nav-section { margin-top: 14px; }
 .nav-section-title {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  line-height: 16px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--n-500);
-  padding: 0 12px 8px;
+  color: var(--menu-legenda);
+  padding: 0 12px 6px;
 }
+/* 42 px de altura e 2 de intervalo. A maquete tem passo de ~41 px com letra de
+   ~12 px; com os 14 px daqui, o mesmo respiro pede um pouco mais. A queixa que
+   abriu esta mudança foi "zero espaço no nosso menu" (36 px, 13 px de letra). */
 .nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  border-radius: var(--radius);
-  color: var(--n-300);
-  font-size: 13px;
+  min-height: 42px;
+  padding: 0 8px 0 12px;
+  border-radius: 8px;
+  color: var(--menu-texto);
+  font-size: 14px;
   font-weight: 500;
+  letter-spacing: -0.005em;
   transition: background 0.12s ease, color 0.12s ease;
   margin-bottom: 2px;
 }
-.nav-item:hover { background: rgba(255,255,255,0.05); color: var(--white); }
-.nav-item.active {
-  background: rgba(54, 124, 43, 0.18);
-  color: var(--white);
-  box-shadow: inset 2px 0 0 var(--jd-green);
+.nav-item-rotulo {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.nav-item svg { flex-shrink: 0; opacity: 0.85; }
-.nav-item.active svg { opacity: 1; color: var(--jd-yellow); }
+.nav-item:hover { background: var(--menu-hover); color: var(--white); }
+.nav-item:focus-visible { outline: 2px solid var(--marca-verde); outline-offset: -2px; }
+/* A pílula cheia da maquete; o filete amarelo à esquerda saiu com ela. */
+.nav-item.active {
+  background: var(--menu-ativo);
+  color: var(--white);
+}
+.nav-item svg { flex-shrink: 0; opacity: 0.9; }
+.nav-item.active svg { opacity: 1; }
 
 .sidebar-footer {
-  padding: 12px;
+  position: relative;
+  padding: 10px 8px 14px;
   border-top: 1px solid rgba(255,255,255,0.06);
 }
 .user-chip {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: var(--radius);
+  padding: 8px 12px;
+  border-radius: 8px;
 }
+/* O disco cinza-claro da maquete, com as iniciais no lugar da silhueta. */
 .avatar {
-  width: 32px; height: 32px;
+  width: 36px; height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--jd-green), var(--jd-green-dark));
-  color: var(--white);
+  background: #E3EAE6;
+  color: #25463A;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.user-info { display: flex; flex-direction: column; line-height: 1.3; overflow: hidden; }
-.user-name { color: var(--white); font-size: 13px; font-weight: 500; }
-.user-role { color: var(--n-500); font-size: 11px; }
+.user-info { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; overflow: hidden; text-align: left; }
+.user-name { color: var(--white); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { color: var(--menu-texto-fraco); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* No acesso provisório a segunda linha é o aviso, e aviso não se corta. */
+.user-chip .user-role { white-space: normal; }
+
+/* O bloco inteiro é o botão que abre o menu do usuário (Sair). */
+.usuario-botao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: inherit;
+  transition: background 0.12s ease;
+}
+.usuario-botao:hover { background: var(--menu-hover); }
+.usuario-botao:focus-visible { outline: 2px solid var(--marca-verde); outline-offset: -2px; }
+.usuario-botao .user-info { flex: 1; }
+.usuario-seta { flex-shrink: 0; color: var(--menu-texto-fraco); transition: transform 0.15s ease; }
+.usuario-botao[aria-expanded='true'] .usuario-seta { transform: rotate(180deg); }
+/* Abre PARA CIMA: o bloco está no pé da tela. */
+.usuario-menu {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(100% - 4px);
+  padding: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  z-index: 5;
+}
+/* O E-MAIL DA CONTA, em cima do Sair: era um `title=` no nome, que o teclado e o
+   toque não alcançavam. Quebra em qualquer ponto — um e-mail longo não pode
+   alargar o menu para fora da barra lateral. */
+.usuario-menu-email {
+  margin: 0;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.usuario-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+.usuario-menu-item svg { color: var(--text-secondary); }
+.usuario-menu-item:hover { background: var(--bg-hover); }
+.usuario-menu-item:focus-visible { outline: 2px solid var(--jd-green); outline-offset: -2px; }
+
+/* O ☰ e o fundo da gaveta só existem abaixo de 900 px (ver o fim do arquivo). */
+.botao-menu { display: none; }
+.menu-fundo { display: none; }
 
 /* ===== MAIN ===== */
 .main {
@@ -215,49 +326,79 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   flex-direction: column;
   min-width: 0;
 }
+/* O padding lateral é o mesmo do `.content` (32 px): a trilha começa na coluna
+   do título da página, e a busca termina na borda direita do conteúdo, como na
+   maquete. */
 .topbar {
-  height: 60px;
+  height: var(--altura-do-topo);
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  gap: 16px;
+  padding: 0 32px;
   position: sticky;
   top: 0;
   z-index: 10;
+  /* A BARRA MEDE A SI MESMA (as regras `@container topo` do fim deste bloco):
+     o espaço dela depende do menu estar ao lado ou virar gaveta, e a janela
+     não sabe disso. */
+  container: topo / inline-size;
+}
+/* QUEM CEDE ESPAÇO PRIMEIRO É A BUSCA (ela tem o Ctrl+K e a tela Clientes);
+   o nome da tela só encolhe quando não há mais nada para encolher (celular). */
+.topbar-inicio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
   font-size: 13px;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
-.breadcrumb .current { color: var(--text-primary); font-weight: 500; }
-.breadcrumb .sep { color: var(--n-300); }
+.breadcrumb-nivel { display: inline-flex; align-items: center; gap: 6px; }
+.breadcrumb .current {
+  color: var(--text-primary);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadcrumb .sep { flex-shrink: 0; color: var(--n-400); }
 
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
 }
 .search {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--n-100);
+  height: 36px;
+  background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6px 10px;
-  width: 340px;
+  border-radius: 8px;
+  padding: 0 6px 0 12px;
+  /* 376 é o que cabe o placeholder inteiro ao lado do Ctrl K. */
+  width: 376px;
   /* ENCOLHE QUANDO FALTA ESPAÇO: com o seletor de filial ao lado, os 340 px fixos passavam 3 px da
      janela em 1.024 px, e toda tela ganhava rolagem lateral (21/09/2026). Onde cabe, fica igual. */
   min-width: 0;
   flex-shrink: 1;
   color: var(--text-tertiary);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
+/* O campo apaga o próprio contorno; quem mostra o foco é a caixa inteira. */
+.search:focus-within { border-color: var(--jd-green); box-shadow: 0 0 0 3px rgba(54, 124, 43, 0.12); }
+.search svg { flex-shrink: 0; }
 .search input {
   flex: 1;
   min-width: 0;
@@ -265,15 +406,42 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
   outline: none;
   background: transparent;
   font-size: 13px;
+  color: var(--text-primary);
 }
-.search kbd {
-  font-family: var(--font-mono);
+.search input::placeholder { color: var(--text-tertiary); }
+/* "Ctrl" e "K" em duas teclas, como na maquete. */
+/* A caixa de fora não é tecla: desfaz o `kbd` global (bloco da Nova Oportunidade). */
+.search-atalho { display: inline-flex; gap: 3px; flex-shrink: 0; background: none; border: 0; padding: 0; }
+.search-atalho kbd {
+  font-family: var(--font-sans);
   font-size: 10px;
-  background: var(--white);
+  font-weight: 500;
+  line-height: 16px;
+  min-width: 18px;
+  text-align: center;
+  background: var(--n-50);
   border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 2px 5px;
-  color: var(--text-tertiary);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--text-secondary);
+}
+
+/* Barra estreita (1.024 com menu, tablet com gaveta): só o nome da tela, sem o
+   caminho, e a busca sem o Ctrl K — é o que mais ocupa e menos diz ali. */
+@container topo (max-width: 960px) {
+  .breadcrumb-nivel { display: none; }
+  .search-atalho { display: none; }
+  .topbar .cad-filial select { max-width: 240px; }
+}
+@container topo (max-width: 700px) {
+  .topbar .cad-filial select { max-width: 170px; }
+}
+/* Celular: a busca sai (buscar cliente continua na tela Clientes, que tem a
+   própria busca), e só então o nome da tela aceita reticências. */
+@container topo (max-width: 600px) {
+  .topbar .search { display: none; }
+  .topbar-inicio { flex-shrink: 1; min-width: 0; }
+  .topbar .cad-filial select { max-width: 140px; }
 }
 .btn-icon {
   width: 36px; height: 36px;
@@ -7705,30 +7873,59 @@ tr.funil-nova {
 }
 
 @media (max-width: 900px) {
-  /* O shell vira uma faixa de navegação em cima, porque abaixo disso a barra
-     lateral de 248px não deixa conteúdo nenhum. */
-  /* `minmax(0, 1fr)` e o `min-width: 0` abaixo são o que impede a faixa de
-     navegação (1.550px de itens) de esticar a página inteira. */
+  /* ABAIXO DE 900 px O MENU VIRA GAVETA (23/09/2026), aberta pelo ☰ da barra.
+     Era uma faixa horizontal de 1.550 px de itens rolando de lado, sem as
+     seções e sem quem está usando. A gaveta é o mesmo menu, em pé, por cima
+     do conteúdo — que fica com a largura inteira. */
   .app-shell { grid-template-columns: minmax(0, 1fr); }
   .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--largura-menu);
+    max-width: 85vw;
     height: auto;
-    position: static;
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    overflow-x: auto;
-    min-width: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    /* `visibility` tira os links da ordem do Tab enquanto a gaveta está
+       fechada; o atraso deixa a animação de saída terminar antes. */
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
   }
-  .sidebar-brand { padding: 0 8px 0 0; border-bottom: 0; flex-shrink: 0; }
-  .sidebar-nav { display: flex; flex-direction: row; gap: 4px; padding: 0; overflow: visible; }
-  .nav-section { display: flex; flex-direction: row; gap: 4px; margin-bottom: 0; }
-  .nav-section-title { display: none; }
-  .nav-item { margin-bottom: 0; white-space: nowrap; }
-  .sidebar-footer { display: none; }
-  .topbar { padding: 0 12px; }
-  .topbar .search { display: none; }
+  .app-shell.menu-aberto .sidebar {
+    transform: none;
+    visibility: visible;
+    box-shadow: 16px 0 48px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease;
+  }
+  .app-shell.menu-aberto .menu-fundo {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(5, 20, 15, 0.45);
+  }
+  .botao-menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    margin-left: -6px;
+    border-radius: 8px;
+    color: var(--text-primary);
+  }
+  .botao-menu:hover { background: var(--bg-hover); }
+  .botao-menu:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; }
+  /* O que a barra esconde em cada largura está nas regras `@container topo`. */
+  .topbar { padding: 0 12px; gap: 8px; }
   .content { padding: 14px 12px 32px; }
+}
+
+@media (max-width: 900px) and (prefers-reduced-motion: reduce) {
+  .sidebar, .app-shell.menu-aberto .sidebar { transition: none; }
 }
 
 @media (max-width: 640px) {
@@ -7857,35 +8054,52 @@ tr.funil-nova {
 /* --- Seletor de filial no cabeçalho ---------------------------------------
    Só aparece nas rotas com `usaApi` (ver rotas.tsx): a filial é a fronteira de
    acesso da API, e nas telas que leem JSON do protótipo ela não existe. */
+/* O VISUAL DA MAQUETE (23/09/2026): caixa de 36 px com borda, ícone de mapa,
+   "Filial" em cinza sem caixa-alta, o nome em negrito e a seta desenhada — a
+   seta nativa do `select` sai (`appearance: none`) para não haver duas. */
 .cad-filial {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 10px;
+  gap: 8px;
+  height: 36px;
+  /* Não encolhe: a filial é a fronteira do que se vê, e quem cede espaço na
+     barra é a busca (ver `@container topo`). */
+  flex-shrink: 0;
+  padding: 0 10px 0 12px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  white-space: nowrap;
 }
+.cad-filial-icone { flex-shrink: 0; color: var(--text-secondary); }
 .cad-filial-rotulo {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 400;
+  /* secondary, e não tertiary: o tertiary dá 3,8:1 no branco, abaixo do AA. */
+  color: var(--text-secondary);
 }
+.cad-filial-campo { position: relative; display: flex; align-items: center; min-width: 0; }
 .cad-filial select {
+  appearance: none;
   border: 0;
   background: transparent;
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   cursor: pointer;
-  max-width: 230px;
+  max-width: 260px;
+  min-width: 0;
+  padding: 2px 24px 2px 4px;
+  text-overflow: ellipsis;
 }
-.cad-filial select:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; }
-.cad-filial-erro { color: var(--danger); border-color: #FECACA; background: var(--danger-bg); }
+/* Desligado (uma filial só) ele é um valor, não um campo: mesma cor, sem seta. */
+.cad-filial select:disabled { cursor: default; opacity: 1; color: var(--text-primary); padding-right: 4px; }
+.cad-filial select:disabled + .cad-filial-seta { display: none; }
+.cad-filial-seta { position: absolute; right: 2px; pointer-events: none; color: var(--text-secondary); }
+.cad-filial select:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; border-radius: 4px; }
+.cad-filial-erro { height: auto; min-height: 36px; color: var(--danger); border-color: #FECACA; background: var(--danger-bg); }
 
 /* --- Barra de busca e filtros --------------------------------------------- */
 .cad-barra {
@@ -9399,12 +9613,65 @@ tr.funil-nova {
    para onde deslizar. */
 .dica-balao { max-width: min(260px, calc(100vw - 32px)); }
 
+/* A DICA COM MAIS DE UM PARÁGRAFO OU COM LISTA (fidelidade às maquetes,
+   23/09/2026). O que saiu do corpo da página — procedência, alcance, "Como
+   interpretar" e "Limitações dos dados" — veio para dicas, e parte disso é
+   lista. Em 260px uma lista de métricas vira uma coluna estreita e comprida;
+   um pouco mais de largura, e só nesses balões, mantém a leitura em linhas.
+   O teto da janela continua valendo, pelo mesmo motivo do de cima. */
+.dica-balao:has(p, ul) { max-width: min(340px, calc(100vw - 32px)); }
+.dica-balao p { margin: 0; }
+.dica-balao p + p,
+.dica-balao p + ul,
+.dica-balao ul + p { margin-top: 6px; }
+.dica-balao ul { margin: 4px 0 0; padding-left: 14px; }
+.dica-balao li + li { margin-top: 2px; }
+.dica-balao strong { font-weight: 700; }
+.dica-balao code { font-family: var(--font-mono); font-size: 10px; color: inherit; background: none; }
+
 /* P-20 (fase 3): a filial guardada que deixou de ser permitida volta para a de casa, com aviso. */
 .cad-filial-aviso {
   font-size: 11px;
   color: var(--warning);
   margin-left: 6px;
   white-space: nowrap;
+}
+
+/* O AVISO NÃO EMPURRA A BARRA PARA FORA DA TELA (revisão de 24/09/2026).
+   A caixa da filial não encolhe (é a fronteira do que se vê) e o aviso não
+   quebrava: com ele, a barra passava 28px da janela em 1.024 e 175px em 390 —
+   rolagem lateral em toda tela do sistema, justamente no dia em que a filial
+   foi trocada sem a pessoa pedir. Em barra estreita o aviso desce para uma
+   segunda linha DENTRO da caixa, quebra onde precisar, e a caixa cede largura
+   como o resto; em barra larga continua tudo numa linha só.
+
+   GRADE, E NÃO `flex-wrap`: com quebra livre o campo da filial também descia,
+   e a caixa ficava com três linhas, mais alta que a barra. Na grade a primeira
+   linha é sempre ícone · rótulo · campo (o campo encolhe com reticências), e o
+   aviso ocupa a segunda inteira. */
+@container topo (max-width: 1100px) {
+  .topbar .cad-filial:has(.cad-filial-aviso) {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0 8px;
+    flex-shrink: 1;
+    min-width: 0;
+    height: auto;
+    min-height: 36px;
+    padding-block: 1px;
+    white-space: normal;
+  }
+  .topbar .cad-filial:has(.cad-filial-aviso) .cad-filial-campo { grid-column: 3; }
+  /* A LINHA DO CAMPO FICA JUSTA para o aviso caber em duas linhas embaixo dela
+     sem a caixa passar dos 56px da barra. */
+  .topbar .cad-filial:has(.cad-filial-aviso) select { padding-block: 0; line-height: 1.2; }
+  .topbar .cad-filial-aviso {
+    grid-column: 1 / -1;
+    margin-left: 0;
+    white-space: normal;
+    line-height: 1.15;
+  }
 }
 
 /* ---------------------------------------------------------------------------

@@ -37,7 +37,7 @@ export type RecorteDoPotencial = 'maquinas' | 'areaPlantada' | 'valorDaProducao'
 export const ROTULO_DE_COBERTURA: Record<ModoDeCobertura, string> = {
   cobertura: '% no prazo',
   pendencia: '% pendente',
-  quantidade: 'pendentes (qtd.)',
+  quantidade: 'Pendentes (qtd.)',
 };
 
 export const UNIDADE_DE_COBERTURA: Record<ModoDeCobertura, string> = {
@@ -58,12 +58,26 @@ export const ROTULO_DE_VENDAS: Record<RecorteDeVendas, string> = {
   posVenda: 'Pós-venda',
 };
 
+/**
+ * OS CINCO RECORTES DA ESTRUTURA NUMA LINHA SÓ (fidelidade às maquetes).
+ *
+ * A maquete mostra quatro — sem usinas —, e tirar as usinas é decisão que não
+ * foi tomada: ficam os cinco, com os nomes curtos da maquete ("Rebanho") para
+ * caberem num cartão de um quarto de linha. O bovino e o etanol, que saíram do
+ * botão, estão no nome do mapa e na dica dele. A densidade mantém a unidade
+ * VERDADEIRA — por mil km², e não por km² como a maquete escreve.
+ *
+ * "Por mil km²", e não "Tratores / mil km²": o botão fica logo depois de
+ * "Tratores", que já diz de quê. Com o nome inteiro os cinco rótulos somavam
+ * ~286 px num alternador de ~264 (cartão de um quarto de linha a 1216 px de
+ * conteúdo): no Windows passava por arredondamento, e no Linux do CI cortava.
+ */
 export const ROTULO_DA_ESTRUTURA: Record<RecorteDaEstrutura, string> = {
   tratores: 'Tratores',
-  densidade: 'Tratores / mil km²',
+  densidade: 'Por mil km²',
   estabelecimentos: 'Propriedades',
-  rebanho: 'Rebanho bovino',
-  usinas: 'Usinas de etanol',
+  rebanho: 'Rebanho',
+  usinas: 'Usinas',
 };
 
 export const FAIXAS_DA_ESTRUTURA = {
@@ -121,6 +135,31 @@ export const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFra
 export function mes(competencia: string): string {
   const [ano, m] = competencia.split('-');
   return `${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(m) - 1]}/${ano}`;
+}
+
+/**
+ * O NOME DO RECORTE FILTRADO — para o texto que fala dos municípios da leitura.
+ *
+ * "REGIÃO TRACBEL" É A ÁREA DE ATUAÇÃO INTEIRA, e não muda com o filtro (issue
+ * 163; é o que a dica da Sub-região diz). Os municípios da leitura, esses sim,
+ * são só os da sub-região e da loja escolhidas: chamar de "Região Tracbel" a
+ * média ou a contagem feitas sobre eles poria o nome da ADR num número do Norte.
+ * Sem filtro a resposta é nula, e o texto diz "Região Tracbel".
+ *
+ * `da` vai no meio da frase ("Municípios da Sub-região Norte com leitura…");
+ * `daCurto` vai num rótulo de cartão, onde "do recorte (Sub-região Norte · loja
+ * Catanduva)" não cabe — e aí o nome inteiro fica na dica, em `nome`.
+ */
+export type RecorteFiltrado = { nome: string; da: string; daCurto: string };
+
+export function recorteFiltrado(regiao: string, loja: string | null): RecorteFiltrado | null {
+  if (regiao && loja) {
+    const nome = `Sub-região ${regiao} · loja ${loja}`;
+    return { nome, da: `do recorte (${nome})`, daCurto: 'do recorte' };
+  }
+  if (regiao) return { nome: `Sub-região ${regiao}`, da: `da Sub-região ${regiao}`, daCurto: `da Sub-região ${regiao}` };
+  if (loja) return { nome: `loja ${loja}`, da: `da loja ${loja}`, daCurto: `da loja ${loja}` };
+  return null;
 }
 
 /**

@@ -1,21 +1,28 @@
 /**
- * A casca comum dos quatro cartões de mapa (issue 170 parte A; densidade na #31).
+ * A casca comum dos quatro cartões de mapa (issue 170 parte A; densidade na #31;
+ * desenho da maquete desde 23/09/2026).
  *
- * OS QUATRO TÊM O MESMO ESQUELETO — título, resumo, alternador, mapa, linha do
- * cursor e legenda —, e antes ele estava escrito quatro vezes. Aqui ele está uma
- * vez só, e cada mapa traz o que é dele.
+ * OS QUATRO TÊM O MESMO ESQUELETO — título, resumo, mapa com a legenda ao lado e
+ * alternador —, e ele está escrito uma vez só; cada mapa traz o que é dele.
  *
- * O AVISO PERMANENTE SAIU DAQUI (fase T2.1). Cada cartão terminava num parágrafo
- * de quatro a oito linhas explicando Censo, sigilo, ANP e regra provisória — e
- * quatro deles empilhados eram mais texto do que mapa. A hierarquia da issue 33
- * diz o que fazer: nível 1 é dado operacional, nível 2 é dica. Toda essa
- * metodologia virou o `ⓘ` ao lado do título, **sem perder uma palavra**.
+ * O CARTÃO TEM O TAMANHO DA MAQUETE, ~350 × 245 px numa coluna de 1490 px. Ele
+ * chegava a 640 px: título com piso de duas linhas, resumo com três metadados,
+ * legenda de oito linhas com a unidade por extenso, "fora da ADR", "contorno", e
+ * uma linha reservada para o cursor. Nada disso foi apagado:
+ *
+ * - os metadados que a maquete não mostra (elegíveis, no prazo e pendentes;
+ *   máquina, pós-venda e clientes; bovinos e usinas) abrem a dica do título;
+ * - a unidade por extenso, o "fora da ADR" e o hachurado do sem dado também
+ *   estão nela — e a unidade continua no nome acessível da legenda;
+ * - a linha do cursor passou a flutuar sobre o pé do mapa, e só aparece quando
+ *   há cursor: reservar a altura dela custava duas linhas em cada cartão.
  *
  * O ENQUADRAMENTO É COMPARTILHADO: os quatro recebem a mesma `ligacao`, e é por
  * isso que o mesmo município fica no mesmo lugar nos quatro e o cursor sobre ele
  * acende os quatro ao mesmo tempo.
  */
 
+import type { LucideIcon } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 import type { IndicadoresDoMunicipio } from '../../../tipos/territorio';
 import { InfoTooltip } from '../../InfoTooltip';
@@ -31,7 +38,7 @@ import type { Enquadramento } from '../projecao';
 export type LigacaoDoMapa = {
   enquadramento: Enquadramento;
   poligonos: PoligonoProjetado[];
-  /** Os municípios da ADR, que ganham o contorno verde. */
+  /** Os municípios da ADR, desenhados por cima dos vizinhos. */
   adr: ReadonlySet<number>;
   porCodigo: ReadonlyMap<number, IndicadoresDoMunicipio>;
   nomeDoPoligono: ReadonlyMap<number, string>;
@@ -42,21 +49,26 @@ export type LigacaoDoMapa = {
 };
 
 /**
- * O RESUMO DO CARTÃO — um número grande e os metadados dele (fase T4.9).
+ * O RESUMO DO CARTÃO — o número que responde o cartão, na forma da maquete.
  *
- * Era uma frase corrida com `·` entre as parcelas: "4.812 elegíveis · 1.540 no
- * prazo (32%) · 3.272 pendentes", tudo no mesmo corpo e na mesma cor. Quatro
- * cartões assim davam quatro linhas de texto onde a maquete mostra quatro
- * números. Nenhuma parcela saiu — o que mudou é que UMA delas é a resposta do
- * cartão e as outras são o contexto dela, à direita e em letra de metadado.
+ * As quatro maquetes não têm o mesmo desenho: a cobertura e as vendas põem o nome
+ * ao lado do número; o potencial, embaixo, com dois metadados à direita; a
+ * estrutura, ao lado, com uma segunda linha menor. As formas são poucas e
+ * declaradas aqui — cada mapa escolhe a sua, e nenhum inventa uma quinta.
  */
 export type ResumoDoMapa = {
   /** O número que responde o cartão. `null` mostra a frase de `semValor`. */
   valor: ReactNode | null;
-  /** O que ele mede — "municípios com vínculo", "total no período". */
-  rotulo: string;
-  /** As outras parcelas, à direita e divididas por filete. */
+  /** O que ele mede — "total no período", "tratores". */
+  rotulo: ReactNode;
+  /** O nome embaixo do número, e não ao lado (potencial). */
+  rotuloEmbaixo?: boolean;
+  /** Uma segunda linha, menor — "54.886 propriedades" (estrutura). */
+  complemento?: { valor: ReactNode; rotulo: ReactNode } | null;
+  /** Metadados à direita, em colunas divididas por filete (potencial). */
   meta?: readonly { valor: ReactNode; rotulo: ReactNode }[];
+  /** Um selo na linha do número — a variação das vendas contra o ano anterior. */
+  selo?: ReactNode;
   /** A frase de quando não há número — "sem área plantada ou regra para calcular". */
   semValor?: string;
 };
@@ -65,6 +77,7 @@ export function CartaoDeMapa({
   mapa,
   id,
   titulo,
+  icone: Icone,
   selo,
   metodologia,
   resumo,
@@ -73,34 +86,43 @@ export function CartaoDeMapa({
   estadoDe,
   faixas,
   unidade,
+  semDado,
   ligacao,
 }: {
-  /** O nome do mapa para o teste de estrutura; nenhuma regra de CSS o usa. */
+  /** O nome do mapa para o teste de estrutura e para a cor do ícone. */
   mapa: string;
   /** Separa os padrões de hachura dos SVGs. */
   id: string;
   titulo: ReactNode;
+  /** O ícone colorido à esquerda do título (maquete). */
+  icone: LucideIcon;
   /**
-   * O selo de como ler o indicador — "regra provisória", "estimativa".
+   * O selo de como ler o indicador — "Regra provisória".
    *
    * Ele fica na PONTA DA LINHA do título (maquete), e não colado no texto: assim
-   * os quatro cartões têm o selo no mesmo lugar, e a ressalva deixa de mudar de
-   * posição conforme o comprimento do nome do mapa.
+   * os cartões que têm selo o mostram no mesmo lugar.
    */
   selo?: ReactNode;
   /**
-   * Fonte, competência, método e ressalvas — tudo o que era parágrafo fixo.
+   * O que o cartão não mostra e não pode perder: os números do recorte que
+   * saíram do resumo, fonte, competência, método e ressalvas.
    *
    * Vai para a dica ao lado do título: continua a um toque, a um Tab e a um
    * ponteiro de distância, e não ocupa a tela de quem só quer ver o mapa.
    */
-  metodologia: string;
+  metodologia: ReactNode;
   resumo: ResumoDoMapa;
   alternador: ReactNode;
   tituloDoMapa: string;
   estadoDe: (codigo: number) => EstadoNoMapa;
   faixas: ComponentProps<typeof LegendaDoMapa>['faixas'];
+  /** A unidade por extenso — no nome acessível da legenda e na dica do título. */
   unidade: string;
+  /**
+   * O estado sem valor NA PALAVRA DO MAPA ("Sem cliente", "Sem valor") e o que
+   * ele quer dizer ali — hachurado não é zero em nenhum dos quatro.
+   */
+  semDado: { rotulo: string; explicacao: string };
   ligacao: LigacaoDoMapa;
 }) {
   const semValor = resumo.valor === null || resumo.valor === undefined;
@@ -108,71 +130,91 @@ export function CartaoDeMapa({
   return (
     <div className="card cad-cartao terr-mapa" data-mapa={mapa}>
       <div className="terr-mapa-cabecalho">
+        <span className="terr-mapa-icone" aria-hidden="true">
+          <Icone size={15} strokeWidth={2} />
+        </span>
         <div className="card-title">
           {titulo}
-          <InfoTooltip texto={metodologia} rotulo={`Fonte e método deste mapa`} />
+          <InfoTooltip
+            rotulo="Fonte e método deste mapa"
+            texto={
+              <>
+                {metodologia}
+                {/* O QUE SAIU DA LEGENDA VISÍVEL: a unidade por extenso, o
+                    hachurado e o fundo de fora da ADR. */}
+                <p>
+                  {`Legenda — ${unidade}. ${semDado.rotulo} (hachurado): ${semDado.explicacao}; não é zero. ` +
+                    'Cinza-claro, sem valor pintado: fora da ADR — o vizinho que entra no quadro do mapa.'}
+                </p>
+              </>
+            }
+          />
         </div>
-        {selo}
+        {selo && <span className="terr-mapa-selo">{selo}</span>}
       </div>
 
-      <p className="terr-mapa-resumo">
-        <span className="terr-mapa-principal">
-          {semValor ? (
-            <span className="terr-mapa-unidade">{resumo.semValor ?? 'sem dado no recorte'}</span>
-          ) : (
-            <>
-              <strong className="terr-mapa-numero">{resumo.valor}</strong>
-              <span className="terr-mapa-unidade">{resumo.rotulo}</span>
-            </>
-          )}
-        </span>
-
-        {/* AS OUTRAS PARCELAS CONTINUAM TODAS AQUI, à direita: o que mudou é o
-            peso delas, não a presença. */}
-        {resumo.meta && resumo.meta.length > 0 && (
-          <span className="terr-mapa-meta">
-            {resumo.meta.map((m, i) => (
-              <span className="terr-mapa-meta-item" key={i}>
-                <strong>{m.valor}</strong>
-                {m.rotulo}
+      <div className="terr-mapa-resumo">
+        {semValor ? (
+          <span className="terr-mapa-unidade">{resumo.semValor ?? 'sem dado no recorte'}</span>
+        ) : (
+          <>
+            <span className="terr-mapa-principal">
+              <span className="terr-mapa-linha">
+                <strong className="terr-mapa-numero">{resumo.valor}</strong>
+                {!resumo.rotuloEmbaixo && <span className="terr-mapa-unidade"> {resumo.rotulo}</span>}
+                {resumo.selo}
               </span>
-            ))}
-          </span>
+              {resumo.rotuloEmbaixo && <span className="terr-mapa-unidade">{resumo.rotulo}</span>}
+              {resumo.complemento && (
+                <span className="terr-mapa-complemento">
+                  <strong>{resumo.complemento.valor}</strong> {resumo.complemento.rotulo}
+                </span>
+              )}
+            </span>
+
+            {resumo.meta && resumo.meta.length > 0 && (
+              <span className="terr-mapa-meta">
+                {resumo.meta.map((m, i) => (
+                  <span className="terr-mapa-meta-item" key={i}>
+                    <strong>{m.valor}</strong> <span className="terr-mapa-meta-rotulo">{m.rotulo}</span>
+                  </span>
+                ))}
+              </span>
+            )}
+          </>
         )}
-      </p>
-
-      {/* O MAPA E A LEGENDA FICAM LADO A LADO — como na imagem base.
-
-          A legenda embaixo ocupava a largura inteira do cartão e empurrava o
-          alternador para fora da dobra; e as faixas ficavam em duas ou três
-          linhas, cada uma num lugar diferente nos quatro cartões. À direita, em
-          coluna, ela tem a altura do mapa, cabe numa coluna só e começa no mesmo
-          ponto nos quatro. */}
-      <div className="terr-mapa-corpo">
-        <MapaDeMunicipios
-          id={id}
-          titulo={tituloDoMapa}
-          enquadramento={ligacao.enquadramento}
-          poligonos={ligacao.poligonos}
-          estadoDe={estadoDe}
-          adr={ligacao.adr}
-          selecionado={ligacao.selecionado}
-          aoSelecionar={ligacao.aoSelecionar}
-          emFoco={ligacao.emFoco}
-          aoPassar={ligacao.aoPassar}
-        />
-        <LegendaDoMapa faixas={faixas} unidade={unidade} />
       </div>
 
-      {/* A LINHA DO CURSOR SÓ FALA QUANDO HÁ CURSOR (fase T2.1). Ela dizia
-          permanentemente "Passe o cursor sobre um município para ver o número
-          dele nos três mapas; clique para abrir a ficha" — instrução fixa, em
-          quatro cartões, e ainda por cima errada: os mapas são QUATRO. */}
-      <p className="terr-mapa-foco" aria-live="polite">{textoDoFoco(ligacao, estadoDe)}</p>
+      {/* O MAPA À ESQUERDA E A LEGENDA À DIREITA, em coluna — como na maquete,
+          em qualquer largura de cartão. */}
+      <div className="terr-mapa-corpo">
+        <div className="terr-mapa-desenho">
+          <MapaDeMunicipios
+            id={id}
+            titulo={tituloDoMapa}
+            enquadramento={ligacao.enquadramento}
+            poligonos={ligacao.poligonos}
+            estadoDe={estadoDe}
+            adr={ligacao.adr}
+            selecionado={ligacao.selecionado}
+            aoSelecionar={ligacao.aoSelecionar}
+            emFoco={ligacao.emFoco}
+            aoPassar={ligacao.aoPassar}
+          />
+
+          {/* A LINHA DO CURSOR SÓ FALA QUANDO HÁ CURSOR (fase T2.1), e agora
+              flutua sobre o pé do mapa em vez de reservar duas linhas do cartão.
+              A região `aria-live` continua no documento, vazia, para o leitor de
+              tela anunciar o município assim que o cursor chegar. */}
+          <p className="terr-mapa-foco" aria-live="polite">
+            {textoDoFoco(ligacao, estadoDe)}
+          </p>
+        </div>
+        <LegendaDoMapa faixas={faixas} unidade={unidade} semDado={semDado.rotulo} />
+      </div>
 
       {/* O ALTERNADOR FECHA O CARTÃO: ele é o controle, e controle vem depois do
-          que ele controla. Em cima, ele era a primeira coisa abaixo do título —
-          e a leitura começava por um botão em vez de por um mapa. */}
+          que ele controla. */}
       {alternador}
     </div>
   );

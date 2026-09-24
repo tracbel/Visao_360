@@ -1,8 +1,9 @@
+import { ChartColumnIncreasing } from 'lucide-react';
 import { useState } from 'react';
 import type { ClassificacaoDeIndicador } from '../../../tipos/territorio';
+import { VariacaoAusente } from '../../mercado/VariacaoAusente';
 import { FAIXAS_VENDAS, faixaDe, reaisCompactos } from '../escalas';
 import { ROTULO_DE_VENDAS, mes, nº, type RecorteDeVendas } from '../indicadoresDaAdr';
-import { SeloDeClassificacao } from '../SeloDeClassificacao';
 import type { TotaisDaAdr } from '../totaisDaAdr';
 import { CartaoDeMapa, type LigacaoDoMapa } from './CartaoDeMapa';
 import { foraDoRecorte } from './foraDoRecorte';
@@ -43,25 +44,33 @@ export function MapaDeVendas({
       id="vendas"
       ligacao={ligacao}
       titulo="Vendas realizadas"
-      selo={<SeloDeClassificacao classificacao={classificacao} />}
-      // Fonte, período e as três ressalvas que moravam no parágrafo do rodapé.
+      icone={ChartColumnIncreasing}
+      // O SELO "MEDIDO" SAIU DA LINHA DO TÍTULO (maquete) e abre a dica: ele é o
+      // único dos quatro que diz "este número é confiável", e a maquete não o
+      // mostra. A classificação e o motivo dela continuam, palavra por palavra.
       metodologia={
-        'Fonte: CRM Tracbel — faturamento, pelo endereço principal do cliente. ' +
-        `Competência: ${mes(competenciaInicial)} a ${mes(competenciaFinal)}. ` +
-        'Método: total = máquina + peça + serviço + outros; pós-venda = peça + serviço, composição provisória. ' +
-        'Ressalvas: valor absoluto favorece cidades grandes; devolução e cancelamento não são abatidos; nota sem ' +
-        'cliente no CRM não tem município e fica na tabela, fora do mapa.'
+        <>
+          <p>
+            {`No período: máquina ${reaisCompactos(totais.maquina)} · pós-venda ${reaisCompactos(totais.posVenda)} · ` +
+              `${nº(totais.clientesQueCompraram)} clientes compraram.`}
+          </p>
+          {classificacao && <p>{`${classificacao.selo}: ${classificacao.motivo}`}</p>}
+          <p>
+            {'Fonte: CRM Tracbel — faturamento, pelo endereço principal do cliente. ' +
+              `Competência: ${mes(competenciaInicial)} a ${mes(competenciaFinal)}. ` +
+              'Método: total = máquina + peça + serviço + outros; pós-venda = peça + serviço, composição provisória. ' +
+              'Ressalvas: valor absoluto favorece cidades grandes; devolução e cancelamento não são abatidos; nota sem ' +
+              'cliente no CRM não tem município e fica na tabela, fora do mapa.'}
+          </p>
+        </>
       }
+      // O CHIP DE VARIAÇÃO DA MAQUETE ("↑ +14% vs. ano anterior") existe, com o
+      // traço no lugar do número: não há ano anterior na leitura (issue 69).
       resumo={{
         valor: reaisCompactos(totais.vendas),
         rotulo: 'total no período',
-        meta: [
-          { valor: reaisCompactos(totais.maquina), rotulo: 'máquina' },
-          { valor: reaisCompactos(totais.posVenda), rotulo: 'pós-venda' },
-          { valor: nº(totais.clientesQueCompraram), rotulo: 'clientes compraram' },
-        ],
-      }
-      }
+        selo: <VariacaoAusente deQue="vendas realizadas" compacta />,
+      }}
       alternador={
         <div className="terr-alternador" role="group" aria-label="Recorte das vendas">
           {(Object.keys(ROTULO_DE_VENDAS) as RecorteDeVendas[]).map((recorte) => (
@@ -75,6 +84,9 @@ export function MapaDeVendas({
       estadoDe={estadoDasVendas}
       faixas={FAIXAS_VENDAS}
       unidade={`R$ no período — ${ROTULO_DE_VENDAS[recorteDeVendas].toLowerCase()}`}
+      // "SEM VENDA" NA MAQUETE, mas o hachurado daqui é o município SEM CLIENTE
+      // com endereço: cliente que não comprou é R$ 0, que é uma faixa da escala.
+      semDado={{ rotulo: 'Sem cliente', explicacao: 'nenhum cliente com endereço no município' }}
     />
   );
 }

@@ -31,6 +31,7 @@ export function AbasDaTela<T extends string>({
   ativa,
   aoTrocar,
   rotulo,
+  acessorio,
   children,
 }: {
   abas: readonly Aba<T>[];
@@ -38,6 +39,15 @@ export function AbasDaTela<T extends string>({
   aoTrocar: (id: T) => void;
   /** O que o leitor de tela anuncia ao entrar na barra. */
   rotulo: string;
+  /**
+   * Um controle à direita, NA LINHA DAS ABAS (fidelidade às maquetes,
+   * 23/09/2026) — hoje, o "Comparar com período anterior" da aba Mercado, que
+   * é onde a maquete o põe.
+   *
+   * Ele fica FORA do `tablist`: dentro, o leitor de tela o anunciaria como mais
+   * uma aba, e as setas passariam por ele.
+   */
+  acessorio?: ReactNode;
   /** O conteúdo da aba ativa. */
   children: ReactNode;
 }) {
@@ -55,25 +65,40 @@ export function AbasDaTela<T extends string>({
 
   return (
     <>
-      <div className="terr-abas" role="tablist" aria-label={rotulo} ref={barra} onKeyDown={andarComAsSetas} data-bloco="abas">
-        {abas.map((aba) => (
-          <button
-            key={aba.id}
-            id={`aba-${aba.id}`}
-            type="button"
-            role="tab"
-            className="terr-aba"
-            aria-selected={aba.id === ativa}
-            aria-controls={`painel-${aba.id}`}
-            tabIndex={aba.id === ativa ? 0 : -1}
-            onClick={() => aoTrocar(aba.id)}
-          >
-            {aba.icone && <aba.icone size={16} strokeWidth={2} aria-hidden="true" />}
-            {aba.rotulo}
-          </button>
-        ))}
+      <div className="terr-abas-barra">
+        <div className="terr-abas" role="tablist" aria-label={rotulo} ref={barra} onKeyDown={andarComAsSetas} data-bloco="abas">
+          {abas.map((aba) => (
+            <button
+              key={aba.id}
+              id={`aba-${aba.id}`}
+              type="button"
+              role="tab"
+              className="terr-aba"
+              aria-selected={aba.id === ativa}
+              // SÓ A ATIVA APONTA PARA O PAINEL: o da outra aba não está no
+              // documento, e um `aria-controls` para um id ausente é um
+              // controle que não controla nada.
+              aria-controls={aba.id === ativa ? `painel-${aba.id}` : undefined}
+              tabIndex={aba.id === ativa ? 0 : -1}
+              onClick={() => aoTrocar(aba.id)}
+            >
+              {aba.icone && <aba.icone size={16} strokeWidth={2} aria-hidden="true" />}
+              {aba.rotulo}
+            </button>
+          ))}
+        </div>
+        {acessorio && <div className="terr-abas-acessorio">{acessorio}</div>}
       </div>
-      <div id={`painel-${ativa}`} role="tabpanel" aria-labelledby={`aba-${ativa}`} data-aba={ativa}>
+      {/* O PAINEL TEM O RITMO VERTICAL DA ABA (fidelidade às maquetes): os
+          blocos de dentro eram irmãos sem espaço entre eles — a régua do
+          mercado encostava nos cartões e o título dos mapas, na régua. */}
+      <div
+        id={`painel-${ativa}`}
+        className="terr-aba-painel"
+        role="tabpanel"
+        aria-labelledby={`aba-${ativa}`}
+        data-aba={ativa}
+      >
         {children}
       </div>
     </>

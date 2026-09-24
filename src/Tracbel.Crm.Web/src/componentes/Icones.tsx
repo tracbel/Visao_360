@@ -2,7 +2,12 @@
  * Ícones do shell — copiados linha a linha do protótipo de referência
  * (`prototipo/referencia/index.html`). Não redesenhar: qualquer mudança de
  * traçado quebra a comparação visual com `docs/prototipo/capturas-referencia/`.
+ *
+ * Duas exceções, de 23/09/2026 (fidelidade às maquetes): o ícone de Indicadores
+ * Geográficos e a marca por extenso do menu, que o protótipo não tinha.
  */
+
+import { Map as Mapa } from 'lucide-react';
 
 type Props = { tamanho?: number };
 
@@ -110,6 +115,16 @@ export function IconeCoberturaRegional(p: Props) {
   );
 }
 
+/**
+ * O mapa aberto da maquete. Indicadores Geográficos usava o MESMO gráfico de
+ * linha de "Cobertura por Filial", e dois itens vizinhos com o mesmo desenho
+ * obrigam a ler o texto para achar o certo. É o `Map` do lucide, o mesmo que a
+ * própria tela usa, no traço dos outros ícones do menu.
+ */
+export function IconeIndicadoresGeograficos({ tamanho = 18 }: Props) {
+  return <Mapa size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
+}
+
 export function IconeConfiguracoes(p: Props) {
   return (
     <Svg {...p}>
@@ -163,5 +178,36 @@ export function LogoTracbel() {
       <path d="M8 22 L16 8 L24 22 Z" fill="#FFDE00" stroke="#1B5E20" strokeWidth="0.5" />
       <circle cx="16" cy="19" r="2.5" fill="#1B5E20" />
     </svg>
+  );
+}
+
+/**
+ * A marca por extenso do menu lateral, como na maquete: "TRACBEL" em branco, a
+ * folha e "Agro" em verde.
+ *
+ * É TEXTO E UM TRAÇO DE FOLHA, e não o arquivo da marca: o projeto não tem o
+ * arquivo oficial, e baixar logotipo da internet traria um desenho de origem
+ * incerta para dentro do pacote. A leitura é a mesma; quando o arquivo oficial
+ * chegar, ele entra aqui e o menu não muda de lugar.
+ *
+ * As cores são do `design-system.css` (`--marca-verde`, `--bg-sidebar`), para a
+ * nervura da folha ser sempre o fundo do menu, qualquer que ele seja. Ela só
+ * serve sobre esse fundo: a tela de login continua com o `LogoTracbel`.
+ */
+export function MarcaTracbelAgro() {
+  return (
+    <span className="marca" role="img" aria-label="Tracbel Agro">
+      <span className="marca-nome" aria-hidden="true">
+        TRACBEL
+      </span>
+      <svg className="marca-folha" aria-hidden="true" width="26" height="26" viewBox="0 0 24 24">
+        <path d="M21 2.5C11.5 2.5 4 7 4 14.2c0 2 .6 3.7 1.7 5C7 20.7 9 21.4 11.2 21.4 17.8 21.4 21 15 21 6.5z" fill="currentColor" />
+        {/* A cor vai em `style`: atributo de apresentação do SVG não lê variável de CSS. */}
+        <path d="M5.2 19.8 16 9" fill="none" style={{ stroke: 'var(--bg-sidebar)' }} strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+      <span className="marca-agro" aria-hidden="true">
+        Agro
+      </span>
+    </span>
   );
 }

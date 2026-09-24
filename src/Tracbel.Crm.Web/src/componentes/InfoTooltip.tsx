@@ -50,8 +50,17 @@ import * as Dica from '@radix-ui/react-tooltip';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 type Props = {
-  /** A explicação. Frase inteira, com fonte e ano quando for número. */
-  texto: string;
+  /**
+   * A explicação. Frase inteira, com fonte e ano quando for número.
+   *
+   * ACEITA MAIS QUE TEXTO desde a fidelidade às maquetes (23/09/2026): o que
+   * saiu do corpo da página — a procedência da leitura, o alcance da consulta,
+   * "Como interpretar os indicadores" e "Limitações dos dados" — veio morar em
+   * dicas, e parte disso é lista. Achatar uma lista numa frase só perderia a
+   * estrutura que fazia ela ser lida. Continua sendo conteúdo de LEITURA: nada
+   * clicável entra aqui, porque o balão não recebe ponteiro.
+   */
+  texto: ReactNode;
   /**
    * O que o leitor de tela anuncia ao chegar no gatilho. O padrão serve para a
    * dica de um rótulo; quando houver mais de uma na mesma tela, diga qual é

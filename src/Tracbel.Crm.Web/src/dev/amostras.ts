@@ -50,12 +50,17 @@ export const ESTADOS: readonly { id: NomeDoEstado; titulo: string; oQueProva: st
   {
     id: 'municipioSelecionado',
     titulo: 'Município selecionado',
-    oQueProva: 'o chip do recorte, o destaque nos quatro mapas e a ficha abaixo deles.',
+    // A FICHA MORA SÓ EM TERRITÓRIO desde 23/09/2026, e a tela abre nessa aba
+    // quando a URL já traz o município. O destaque nos quatro mapas continua a
+    // um clique, na aba Mercado.
+    oQueProva: 'o município no campo do filtro e a ficha aberta ao lado da tabela, em Território.',
   },
   {
     id: 'fichaAberta',
     titulo: 'Ficha com as evidências abertas',
-    oQueProva: 'as três camadas da ficha com os cinco detalhes expandidos — o estado mais alto da página.',
+    // A FICHA É EM ABAS desde a fase 4 (maquete): os cinco detalhes abrem
+    // expandidos, dentro das abas Lavoura e Estrutura.
+    oQueProva: 'a ficha com os cinco detalhes expandidos — eles estão nas abas Lavoura e Estrutura da ficha.',
   },
   { id: 'sigiloIbge', titulo: 'Sigilo do IBGE', oQueProva: 'nulo por sigilo em toda a estrutura: traço e ⓘ, nunca zero.' },
   { id: 'muitasCulturas', titulo: 'Muitas culturas', oQueProva: '18 culturas nas tabelas e na composição do fator.' },
@@ -99,6 +104,9 @@ const CULTURAS = [
 
 const codigoDaCultura = (indice: number) => 900_001 + indice;
 
+/** A fatia de cada cultura na área plantada do município — decrescente, e a soma não passa de 100%. */
+const PESO_DA_CULTURA = [0.62, 0.15, 0.12, 0.04, 0.02, 0.01];
+
 function potencialDaCultura(indice: number, area: number): PotencialTerritorial {
   return {
     produtoCodigoIbge: codigoDaCultura(indice),
@@ -129,16 +137,36 @@ function parcelaDoParque(indice: number, area: number): ParcelaDoParque {
 /**
  * Os municípios da amostra, tirados da malha real de São Paulo.
  *
- * O PASSO FIXO É O QUE TORNA A CAPTURA COMPARÁVEL: pegar um de cada 21 dá sempre
- * o mesmo conjunto, no mesmo lugar do mapa, em toda execução. Uma amostra
- * aleatória mudaria o desenho a cada rodada e nenhuma comparação valeria.
+ * UMA ÁREA CONTÍGUA, COMO A ADR DE VERDADE (fidelidade às maquetes, fase 2): os
+ * `quantos` municípios mais próximos do primeiro da malha (Adamantina, o da ficha
+ * do harness), pelo centro de cada um. Era um de cada 21 — trinta pontos
+ * espalhados pelo estado —, e com a ADR assim o mapa enquadrado na ADR era o
+ * estado inteiro com manchas: não havia como conferir o enquadramento da maquete,
+ * que mostra a área de atuação enchendo o quadro.
+ *
+ * CONTINUA DETERMINÍSTICA, que é o que torna a captura comparável: a mesma
+ * distância dá sempre o mesmo conjunto, no mesmo lugar do mapa. Os NÚMEROS não
+ * mudaram — eles dependem da posição na lista, não do município.
+ *
+ * Exportada para as percepções fictícias do Momento (`amostrasDeMercado.ts`)
+ * caírem nos MESMOS municípios que estão na Região Tracbel da amostra.
  */
-function municipiosDaMalha(malha: ColecaoMunicipal, quantos: number) {
-  const passo = Math.max(1, Math.floor(malha.features.length / quantos));
+export function municipiosDaMalha(malha: ColecaoMunicipal, quantos: number) {
+  const centro = (f: ColecaoMunicipal['features'][number]): [number, number] => {
+    const anel = f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : f.geometry.coordinates[0][0];
+    const [x, y] = anel.reduce<[number, number]>(([sx, sy], [lon, lat]) => [sx + lon, sy + lat], [0, 0]);
+    return [x / anel.length, y / anel.length];
+  };
+  const [x0, y0] = centro(malha.features[0]);
+
   return malha.features
-    .filter((_, i) => i % passo === 0)
+    .map((f) => {
+      const [x, y] = centro(f);
+      return { f, distancia: (x - x0) ** 2 + (y - y0) ** 2 };
+    })
+    .sort((a, b) => a.distancia - b.distancia)
     .slice(0, quantos)
-    .map((f) => ({ codigo: Number(f.properties.codarea), nome: f.properties.nome }));
+    .map(({ f }) => ({ codigo: Number(f.properties.codarea), nome: f.properties.nome }));
 }
 
 function montarMunicipio(
@@ -174,7 +202,11 @@ function montarMunicipio(
     potencial: semDado
       ? []
       : Array.from({ length: quantasCulturas }, (_, i) =>
-          potencialDaCultura(i, Math.round(area / (i + 1))),
+          // AS CULTURAS CABEM NA ÁREA PLANTADA DO MUNICÍPIO (fase 4): eram
+          // `area / (i + 1)`, e as três primeiras somavam 183% do total — a
+          // tabela "Lavoura (área plantada)" da ficha mostrava participações
+          // impossíveis. Os pesos somam menos de 100%, e o resto vira "Outros".
+          potencialDaCultura(i, Math.round(area * (PESO_DA_CULTURA[i] ?? 0.002))),
         ),
     producao: semDado
       ? null
@@ -408,9 +440,25 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
       },
     ],
     podeVerEmpresaInteira: false,
+    // AS CINCO CLASSIFICAÇÕES QUE A API DEVOLVE (`ConsultasDeTerritorio.Classificar`),
+    // com o selo que ela escreve: faltavam a cobertura e o pós-venda, e sem
+    // elas o selo "Regra provisória" do mapa de cobertura (maquete) não tinha
+    // como aparecer no harness.
     classificacoes: [
       { indicador: 'potencial', situacao: 'Estimativa', selo: 'estimativa', motivo: 'regra de amostra a confirmar' },
       { indicador: 'vendas', situacao: 'Medido', selo: 'medido', motivo: 'notas fiscais de saída (amostra)' },
+      {
+        indicador: 'coberturaDeVisita',
+        situacao: 'RegraComercialProvisoria',
+        selo: 'Regra provisória',
+        motivo: 'o que conta como visita e a periodicidade aguardam decisão do comercial (amostra)',
+      },
+      {
+        indicador: 'posVenda',
+        situacao: 'RegraComercialProvisoria',
+        selo: 'Composição provisória',
+        motivo: 'o que a diretoria considera pós-venda ainda não foi definido (amostra)',
+      },
     ],
     // A AMOSTRA REPRODUZ O ESTADO DE HOJE: a demanda sai, e os outros três dizem o que falta. O harness
     // existe para mostrar a tela como ela é, e a tela de hoje tem três travessões no topo.

@@ -27,26 +27,25 @@
 // `Map<string, string>` em quatro pontos, e o import sombrearia o construtor
 // nativo — um erro que o TypeScript aceitaria calado até o primeiro `new`.
 import { ChartSpline, Map as IconeMapa, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BlocoErro } from '../componentes/cadastro/EstadosDeTela';
-import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
+import { DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
 import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
 import { AbaDeMercado } from '../componentes/mercado/AbaDeMercado';
 import { produtosDoMunicipio } from '../componentes/mercado/culturasDoMunicipio';
 import { AbasDaTela, type Aba } from '../componentes/territorio/AbasDaTela';
 import { AbaDeTerritorio } from '../componentes/territorio/AbaDeTerritorio';
 import { AvisoDeTerritorioSemCarga } from '../componentes/territorio/AvisoDeTerritorioSemCarga';
-import { CartaoDeAlcance } from '../componentes/territorio/CartaoDeAlcance';
-import { ComoLerEstesNumeros } from '../componentes/territorio/ComoLerEstesNumeros';
 import { DetalheDoMunicipio } from '../componentes/territorio/DetalheDoMunicipio';
 import { FiltrosDosIndicadores } from '../componentes/territorio/FiltrosDosIndicadores';
-import { LARGURA_DO_DESENHO } from '../componentes/territorio/indicadoresDaAdr';
+import { LARGURA_DO_DESENHO, recorteFiltrado } from '../componentes/territorio/indicadoresDaAdr';
 import { kpisDaCarteira, kpisDoMercado, type ContextoDosKpis } from '../componentes/territorio/kpisDosIndicadores';
 import type { LigacaoDoMapa } from '../componentes/territorio/mapas/CartaoDeMapa';
 import { calcularFatiaNoEstado, calcularTotais } from '../componentes/territorio/totaisDaAdr';
 import type { PoligonoProjetado } from '../componentes/territorio/MapaDeMunicipios';
 import { caminhoSvg, enquadrar, type ColecaoMunicipal } from '../componentes/territorio/projecao';
+import { ComparacaoComPeriodoAnterior } from '../componentes/territorio/SecaoDoMercadoDaRegiao';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { carregarMalhaDeSaoPaulo, obterIndicadoresTerritoriais } from '../dados/api/territorio';
 import { useRecurso } from '../dados/api/useRecurso';
@@ -65,7 +64,6 @@ const ABAS: readonly Aba<IdDaAba>[] = [
 export function IndicadoresGeograficos() {
   const { contexto } = useContextoDeAcesso();
 
-  const [aba, setAba] = useState<IdDaAba>('mercado');
   const [filtros, setFiltros] = useState<FiltrosTerritoriais>({
     competenciaInicial: '',
     competenciaFinal: '',
@@ -103,6 +101,40 @@ export function IndicadoresGeograficos() {
       ),
     [definirParametros],
   );
+
+  // A ABA NÃO MORA NA URL — ela não é do recorte, e trocar de aba não muda o
+  // endereço (issue 163). Mas a ABA INICIAL segue a URL (fidelidade às
+  // maquetes, 23/09/2026): a ficha do município passou a morar só em
+  // Território, e um endereço com `?municipio=` — um F5, o botão voltar, um
+  // link colado no chat — é o de quem estava olhando uma ficha. Abrir em
+  // Mercado esconderia justamente o que o link aponta.
+  const [aba, setAba] = useState<IdDaAba>(() => (selecionado !== null ? 'territorio' : 'mercado'));
+
+  // CLICAR NO MAPA ESCOLHE E LEVA À FICHA (decisão do usuário, 23/09/2026). A
+  // escolha é a mesma de sempre — o parâmetro na URL, que vale para as duas
+  // abas —, e a aba troca para Território, onde a ficha abre ao lado da linha
+  // do município. O mapa fica mais embaixo na página do que a ficha; sem rolar,
+  // a troca de aba deixaria a pessoa olhando o fim de uma página mais curta.
+  const levarAFicha = useRef(false);
+  const escolherNoMapa = useCallback(
+    (codigo: number) => {
+      escolherMunicipio(codigo);
+      levarAFicha.current = true;
+      setAba('territorio');
+    },
+    [escolherMunicipio],
+  );
+
+  useEffect(() => {
+    if (!levarAFicha.current || aba !== 'territorio') return;
+    levarAFicha.current = false;
+    const abaDeTerritorio = document.getElementById('aba-territorio');
+    // `?.()` porque o jsdom dos testes não implementa `scrollIntoView`.
+    abaDeTerritorio?.scrollIntoView?.({ block: 'start' });
+    // O FOCO VAI PARA A ABA QUE ABRIU: o leitor de tela anuncia "Território,
+    // aba, selecionada", e o Tab seguinte continua dali — e não do topo.
+    abaDeTerritorio?.focus({ preventScroll: true });
+  }, [aba]);
 
   const [emFoco, setEmFoco] = useState<number | null>(null);
   const [lojasConhecidas, setLojasConhecidas] = useState<Map<string, string>>(() => new Map());
@@ -236,6 +268,13 @@ export function IndicadoresGeograficos() {
   // mudam quais culturas aparecem primeiro nos dois painéis.
   const produtosPriorizados = useMemo(() => produtosDoMunicipio(escolhido), [escolhido]);
   const semFiltro = filtros.regiao === '' && filtros.lojaCodigo === '';
+  // O NOME DO RECORTE FILTRADO (revisão de 24/09/2026): o Momento conta e pondera
+  // sobre os municípios desta leitura, que já vêm filtrados — e "Região Tracbel",
+  // na tela, é a área de atuação inteira. A loja sai pelo nome que o filtro mostra.
+  const recorteDosFiltros = recorteFiltrado(
+    filtros.regiao,
+    filtros.lojaCodigo === '' ? null : (lojasConhecidas.get(filtros.lojaCodigo) ?? filtros.lojaCodigo),
+  );
 
   const ligacao: LigacaoDoMapa | null = desenho && {
     enquadramento: desenho.enquadramento,
@@ -244,14 +283,15 @@ export function IndicadoresGeograficos() {
     porCodigo,
     nomeDoPoligono,
     selecionado,
-    aoSelecionar: escolherMunicipio,
+    aoSelecionar: escolherNoMapa,
     emFoco,
     aoPassar: setEmFoco,
   };
 
-  // A FICHA É MONTADA UMA VEZ e entregue à aba ativa: ela é o detalhe do
-  // município escolhido, que é do recorte e não da aba. Abrir pelo mapa
-  // (Mercado) ou pela tabela (Território) tem de dar na mesma ficha.
+  // A FICHA É MONTADA UMA VEZ, e mora só em Território (fidelidade às maquetes,
+  // 23/09/2026). Ela aparecia também embaixo dos mapas de Mercado — duas casas
+  // para o mesmo detalhe. Abrir pelo mapa, pela tabela ou pelo campo de
+  // município dá na mesma ficha, porque a escolha é uma só: a da URL.
   const ficha =
     escolhido && indicadores ? (
       <DetalheDoMunicipio
@@ -261,6 +301,7 @@ export function IndicadoresGeograficos() {
         regiaoTracbel={indicadores.regiaoTracbel}
         estado={indicadores.estado}
         procedencias={indicadores.procedencias}
+        numerosDeDecisao={painel.dados?.numerosDeDecisao ?? null}
         aoFechar={() => escolherMunicipio(null)}
       />
     ) : null;
@@ -270,50 +311,49 @@ export function IndicadoresGeograficos() {
     // esticavam por quase 1800px: a linha de leitura ficava longa demais e a
     // grade de quatro KPIs virava quatro faixas separadas por vazio. A largura
     // está no `dashboard.css` e foi escolhida no harness, não no chute.
+    //
+    // ELE TAMBÉM É A RÉGUA DOS ARRANJOS (fidelidade às maquetes): as quebras
+    // desta tela medem a largura DELE, e não a da janela — ver `dashboard.css`.
     <PaginaDoPainel>
       <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Indicadores Geográficos da ADR</h1>
-          {/* O SUBTÍTULO É A LINHA DA MAQUETE (fase T4.9) — uma frase.
-              Ele tinha três linhas, e a terceira ("nenhum número desta tela é
-              ilustrativo") não se perdeu: a procedência ao lado é exatamente o
-              controle que responde de onde vem o dado, e diz isso por número. */}
+          {/* O SUBTÍTULO É A LINHA DA MAQUETE (fase T4.9) — uma frase, com o
+              nome da empresa em negrito como ela mostra. Ele tinha três linhas,
+              e a terceira ("nenhum número desta tela é ilustrativo") não se
+              perdeu: a procedência, na dica de "Dados atualizados em…", é o
+              controle que responde de onde vem o dado. */}
           <p className="page-subtitle">
-            Panorama de mercado, potencial e performance por município da área de atuação da Tracbel Agro.
+            Panorama de mercado, potencial e performance por município da área de atuação da{' '}
+            <strong>Tracbel Agro.</strong>
           </p>
         </div>
 
-        {/* QUANDO O DADO FOI LIDO, E O BOTÃO DE RELER (maquete).
+        {/* QUANDO O DADO FOI LIDO, E O BOTÃO DE RELER (maquete) — e só isso.
+
+            O SELO DE PROCEDÊNCIA INTEIRO (sistema, objeto e instante) ocupava
+            uma segunda linha aqui, e a maquete reserva ao canto uma frase curta.
+            Ele foi para a dica ao lado da hora, com a mesma frase de sempre; o
+            aviso de dado desatualizado, que é alerta e não metadado, continua
+            escrito na linha quando aparece.
+
             O ícone de recarga da maquete é decorativo; aqui ele refaz a consulta
             — um botão de atualizar que não atualiza é a promessa mais fácil de
             quebrar numa tela de dado. */}
-        <div className="dash-cabecalho-direita">
-          <p className="dash-atualizado">
-            {painel.procedencia
-              ? `Dados atualizados em ${new Date(
-                  painel.procedencia.lidoEmUtc.endsWith('Z') ? painel.procedencia.lidoEmUtc : `${painel.procedencia.lidoEmUtc}Z`,
-                ).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
-              : 'Lendo os indicadores…'}
-            <button
-              type="button"
-              className="dash-recarregar"
-              onClick={painel.recarregar}
-              disabled={painel.carregando}
-              data-carregando={painel.carregando ? 'true' : 'false'}
-              aria-label="Reler os indicadores desta tela"
-            >
-              <RefreshCw size={14} strokeWidth={2} aria-hidden="true" />
-            </button>
-          </p>
-          <SeloProcedencia procedencia={painel.procedencia} />
-        </div>
+        <p className="dash-atualizado">
+          {painel.procedencia ? <DadosAtualizadosEm procedencia={painel.procedencia} /> : 'Lendo os indicadores…'}
+          <button
+            type="button"
+            className="dash-recarregar"
+            onClick={painel.recarregar}
+            disabled={painel.carregando}
+            data-carregando={painel.carregando ? 'true' : 'false'}
+            aria-label="Reler os indicadores desta tela"
+          >
+            <RefreshCw size={15} strokeWidth={2} aria-hidden="true" />
+          </button>
+        </p>
       </div>
-
-      <CartaoDeAlcance
-        visao={filtros.visao}
-        empresa={contexto.empresa}
-        podeVerEmpresaInteira={painel.dados?.podeVerEmpresaInteira}
-      />
 
       <FiltrosDosIndicadores
         filtros={filtros}
@@ -323,14 +363,22 @@ export function IndicadoresGeograficos() {
         indicadores={indicadores}
         respondeu={painel.dados !== null}
         podeVerEmpresaInteira={painel.dados?.podeVerEmpresaInteira ?? false}
+        // O ALCANCE DA CONSULTA ("Visão: filial … e as abaixo dela") era uma
+        // linha acima dos filtros; foi para a dica da Sub-região.
+        empresa={contexto.empresa}
         // O MUNICÍPIO ESCOLHIDO É FILTRO DE RECORTE (T4.6): ele mora na linha
         // com os outros, e não flutuando entre blocos. Ele vale para as duas
-        // abas, exatamente como sub-região e loja.
-        municipioEscolhido={escolhido?.nome ?? null}
-        aoLimparMunicipio={() => escolherMunicipio(null)}
+        // abas, exatamente como sub-região e loja — por isso escolher no campo
+        // NÃO troca de aba; quem leva à ficha é o clique no mapa.
+        municipios={daAdr}
+        municipioEscolhido={escolhido}
+        aoEscolherMunicipio={escolherMunicipio}
       />
 
-      {painel.dados && <ComoLerEstesNumeros classificacoes={painel.dados.classificacoes} />}
+      {/* "COMO INTERPRETAR OS INDICADORES" morava aqui, num `<details>` entre os
+          filtros e as abas; a maquete não o tem, e o texto foi para a dica ao
+          lado do "Comparar com período anterior" (Mercado) e do título "A
+          carteira na área de atuação" (Território). */}
 
       {painel.erro && <BlocoErro erro={painel.erro} aoTentarDeNovo={painel.recarregar} />}
       {erroDaMalha && <BlocoErro erro={erroDaMalha} />}
@@ -342,7 +390,18 @@ export function IndicadoresGeograficos() {
         />
       )}
 
-      <AbasDaTela abas={ABAS} ativa={aba} aoTrocar={setAba} rotulo="Leituras do recorte">
+      <AbasDaTela
+        abas={ABAS}
+        ativa={aba}
+        aoTrocar={setAba}
+        rotulo="Leituras do recorte"
+        // A COMPARAÇÃO COM O PERÍODO ANTERIOR FICA NA LINHA DAS ABAS, e só em
+        // Mercado — é onde a maquete de rentabilidade e crédito a põe, com os
+        // quatro números logo abaixo. Em Território a maquete não a mostra aí.
+        acessorio={
+          aba === 'mercado' ? <ComparacaoComPeriodoAnterior classificacoes={painel.dados?.classificacoes ?? []} /> : null
+        }
+      >
         {aba === 'mercado' ? (
           <AbaDeMercado
             kpisDoMercado={kpisDoMercado(contextoDosKpis)}
@@ -364,7 +423,7 @@ export function IndicadoresGeograficos() {
             nomeDoMunicipio={escolhido?.nome ?? null}
             produtosDoMunicipio={produtosPriorizados}
             mostrarOsMapas={indicadores !== null && desenho !== null && !territorioNaoCarregado}
-            ficha={ficha}
+            recorteDosFiltros={recorteDosFiltros}
             numerosDeDecisao={painel.dados?.numerosDeDecisao ?? null}
           />
         ) : (
@@ -380,6 +439,7 @@ export function IndicadoresGeograficos() {
             aoSelecionar={escolherMunicipio}
             territorioNaoCarregado={territorioNaoCarregado}
             semFiltro={semFiltro}
+            classificacoes={painel.dados?.classificacoes ?? []}
             ficha={ficha}
           />
         )}

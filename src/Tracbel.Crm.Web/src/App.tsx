@@ -81,7 +81,24 @@ const HarnessVisual = import.meta.env.DEV
   ? lazy(() => import('./dev/HarnessVisual').then((m) => ({ default: m.HarnessVisual })))
   : null;
 
+/**
+ * O HARNESS DO SHELL — `#/dev/shell-visual` (fidelidade às maquetes, fase 5).
+ * Desenha o `Layout` real, com menu e barra do topo, sobre sessão e filial
+ * fictícias. Mesmo ternário, mesma razão: fora do `DEV` ele não chega ao `dist`.
+ */
+const HarnessDoShell = import.meta.env.DEV
+  ? lazy(() => import('./dev/HarnessDoShell').then((m) => ({ default: m.HarnessDoShell })))
+  : null;
+
 export function App() {
+  if (HarnessDoShell && window.location.hash.startsWith('#/dev/shell-visual')) {
+    return (
+      <Suspense fallback={null}>
+        <HarnessDoShell />
+      </Suspense>
+    );
+  }
+
   if (HarnessVisual && window.location.hash.startsWith('#/dev/')) {
     return (
       <Suspense fallback={null}>

@@ -68,13 +68,20 @@ export function BlocoDePotencial({
         // "SIMULAR CENÁRIO" VAI PARA A LINHA DO ALTERNADOR (maquete). Ele estava
         // à direita do TÍTULO da seção, uma linha acima — e num painel de um
         // terço da largura o título ficava dividido com um botão.
+        //
+        // É UM BOTÃO COM BORDA, SEPARADO DO ALTERNADOR (maquete): dentro de um
+        // `terr-alternador` ele parecia um quarto segmento — uma quarta forma de
+        // ver o parque —, e ele é outra coisa: uma ferramenta que abre.
         acao={
-          <div className="terr-alternador" role="group" aria-label="Simulação">
-            <button type="button" aria-pressed={calculadoraAberta} onClick={() => setCalculadoraAberta(!calculadoraAberta)}>
-              <SlidersHorizontal size={13} strokeWidth={2} aria-hidden="true" />
-              {calculadoraAberta ? 'Fechar a simulação' : 'Simular cenário'}
-            </button>
-          </div>
+          <button
+            type="button"
+            className="mv-botao-acao"
+            aria-pressed={calculadoraAberta}
+            onClick={() => setCalculadoraAberta(!calculadoraAberta)}
+          >
+            <SlidersHorizontal size={14} strokeWidth={2} aria-hidden="true" />
+            {calculadoraAberta ? 'Fechar a simulação' : 'Simular cenário'}
+          </button>
         }
         abas={[
           {
@@ -93,7 +100,7 @@ export function BlocoDePotencial({
             rotulo: 'Demanda anual',
             conteudo:
               recorte?.demandaAnualDeMaquinas != null ? (
-                <p className="terr-recorte-titulo">
+                <p className="mv-potencial-frase">
                   <strong>{nº(Math.round(recorte.demandaAnualDeMaquinas))}</strong> máquinas por ano no recorte
                   consultado — o parque dividido pelo ciclo de renovação de cada cultura.
                 </p>

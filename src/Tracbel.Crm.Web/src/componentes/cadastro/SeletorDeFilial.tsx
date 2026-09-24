@@ -23,6 +23,7 @@
  * SÓ APARECE NAS TELAS LIGADAS À API (`rotas.tsx`, campo `usaApi`).
  */
 
+import { ChevronDown, Map as IconeMapa } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { obterEscopo, TODAS_AS_FILIAIS } from '../../dados/api/acesso';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
@@ -61,28 +62,37 @@ export function SeletorDeFilial() {
   const podeVerTodas = dados?.podeVerTodasAsFiliais ?? false;
   const nomeDaRecusada = recusada === TODAS_AS_FILIAIS ? 'Todas as filiais' : `a filial ${recusada}`;
 
+  // O VISUAL É O DA MAQUETE (23/09/2026): ícone de mapa, "Filial" em cinza, o
+  // nome em negrito e a seta. O controle continua o `select` nativo — teclado,
+  // leitor de tela e a lista do sistema vêm de graça; só a seta é desenhada.
+  // Sem escolha (uma filial só, ou carregando) a seta some: ela prometeria uma
+  // lista que não abre.
   return (
     <label className="cad-filial" title={recusada ? `${nomeDaRecusada} não está entre as suas escolhas; voltamos para a de casa.` : undefined}>
+      <IconeMapa className="cad-filial-icone" size={16} strokeWidth={1.75} aria-hidden="true" />
       <span className="cad-filial-rotulo">Filial</span>
-      <select
-        value={contexto.empresa}
-        disabled={escopo.carregando || (filiais.length <= 1 && !podeVerTodas)}
-        onChange={(e) => {
-          setRecusada(null);
-          trocarEmpresa(e.target.value);
-        }}
-        aria-label="Filial do contexto de acesso"
-      >
-        {escopo.carregando && <option value={contexto.empresa}>Carregando…</option>}
-        {podeVerTodas && <option value={TODAS_AS_FILIAIS}>Todas as filiais</option>}
-        {filiais.map((filial) => (
-          <option key={filial.codigo} value={filial.codigo}>
-            {filial.nome}
-            {/* O MARCADOR DE CASA SÓ SERVE QUANDO HÁ ESCOLHA — com uma filial só, ele apenas cortaria o nome. */}
-            {filial.ehCasa && filiais.length > 1 ? ' (casa)' : ''}
-          </option>
-        ))}
-      </select>
+      <span className="cad-filial-campo">
+        <select
+          value={contexto.empresa}
+          disabled={escopo.carregando || (filiais.length <= 1 && !podeVerTodas)}
+          onChange={(e) => {
+            setRecusada(null);
+            trocarEmpresa(e.target.value);
+          }}
+          aria-label="Filial do contexto de acesso"
+        >
+          {escopo.carregando && <option value={contexto.empresa}>Carregando…</option>}
+          {podeVerTodas && <option value={TODAS_AS_FILIAIS}>Todas as filiais</option>}
+          {filiais.map((filial) => (
+            <option key={filial.codigo} value={filial.codigo}>
+              {filial.nome}
+              {/* O MARCADOR DE CASA SÓ SERVE QUANDO HÁ ESCOLHA — com uma filial só, ele apenas cortaria o nome. */}
+              {filial.ehCasa && filiais.length > 1 ? ' (casa)' : ''}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="cad-filial-seta" size={16} aria-hidden="true" />
+      </span>
       {recusada && <span className="cad-filial-aviso">{nomeDaRecusada} não está entre as suas escolhas</span>}
     </label>
   );

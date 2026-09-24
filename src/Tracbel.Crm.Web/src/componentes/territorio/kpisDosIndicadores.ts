@@ -19,6 +19,7 @@ import type {
 import { reaisCompactos, reaisDaProducao } from './escalas';
 import { nº, porcento } from './indicadoresDaAdr';
 import { diferencaParaASoma, type FatiaNoEstado, type TotaisDaAdr } from './totaisDaAdr';
+import { periodoDaLeitura, type PeriodoDaLeitura } from './carteira/periodo';
 
 /** O que as duas linhas precisam saber sobre o estado da leitura. */
 export type ContextoDosKpis = {
@@ -42,36 +43,101 @@ export type ContextoDosKpis = {
 
 const SEM_TERRITORIO = 'território não carregado neste banco';
 
-export function kpisDaCarteira(c: ContextoDosKpis): Indicador[] {
-  return [
-    {
-      rotulo: 'Municípios da ADR',
-      valor: c.comTerritorio ? c.municipiosDaAdr : null,
-      deOnde: `${nº(c.totais.clientes)} clientes com endereço neles`,
-      semDado: c.indicadores ? SEM_TERRITORIO : 'área de atuação não carregada',
-    },
-    {
-      rotulo: 'Cobertura pela cadência',
-      valor: c.comTerritorio && c.coberturaDaAdr !== null ? porcento(c.coberturaDaAdr) : null,
-      tom: 'atencao',
-      deOnde: `${nº(c.totais.cobertos)} de ${nº(c.totais.elegiveis)} vínculos elegíveis no prazo · ${nº(c.totais.pendentes)} pendentes · regra provisória`,
-      semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : 'sem vínculo elegível',
-    },
-    {
-      rotulo: 'Vendas no período',
-      valor: c.comTerritorio ? reaisCompactos(c.totais.vendas) : null,
-      deOnde: `máquina ${reaisCompactos(c.totais.maquina)} · pós-venda ${reaisCompactos(c.totais.posVenda)} (composição provisória)`,
-      semDado: c.territorioNaoCarregado ? `${reaisCompactos(c.vendasForaDoMapa)} no período, todos fora do mapa` : '—',
-    },
-    {
-      rotulo: 'Parque teórico de máquinas',
-      valor: c.comTerritorio && c.totais.municipiosComArea > 0 ? nº(Math.round(c.totais.maquinasTeoricas)) : null,
-      deOnde: `${nº(Math.round(c.totais.hectares))} ha úteis em ${nº(c.totais.municipiosComArea)} municípios${
-        c.recorte?.demandaAnualDeMaquinas != null ? ` · ${nº(Math.round(c.recorte.demandaAnualDeMaquinas))} por ano` : ''
-      }${c.totais.potencialEstimado ? ' · estimativa, regra a confirmar' : ''}`,
-      semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : 'sem regra de potencial',
-    },
-  ];
+/**
+ * UM CARTÃO DA CARTEIRA (fidelidade às maquetes, 23/09/2026 — fase 4).
+ *
+ * Era um `Indicador` do `PainelDeIndicadores` do cadastro, que outras seis
+ * telas usam; o cartão da maquete é outro objeto (ladrilho de ícone, pílula de
+ * variação, mini-gráfico, barra de progresso), e por isso ganhou tipo próprio
+ * em vez de mudar o componente dos outros.
+ *
+ * O `deOnde` NÃO SAIU: a linha longa que ficava embaixo do número ("330 de 540
+ * vínculos elegíveis no prazo · 210 pendentes · regra provisória") foi para a
+ * dica do cartão — a maquete põe embaixo do número uma frase curta, que é o
+ * `contexto`.
+ */
+export type CartaoDaCarteira = {
+  id: 'municipios' | 'cobertura' | 'vendas' | 'parque';
+  rotulo: string;
+  /** O valor já escrito. `null` quando não há dado — vira travessão, nunca zero. */
+  valor: string | null;
+  /** A frase curta embaixo do número, como a maquete a escreve. */
+  contexto: string;
+  /** O que ficava embaixo do número antes — agora na dica ao lado do rótulo. */
+  deOnde: string;
+  /** Quando o valor é nulo, o que dizer no lugar do contexto. */
+  semDado: string;
+  /** A barra da cobertura, de 0 a 100 — só o cartão que a maquete desenha com ela. */
+  progresso?: number | null;
+};
+
+export type CarteiraNaArea = {
+  cartoes: CartaoDaCarteira[];
+  /** A janela que o servidor aplicou — o "12 meses" do cabeçalho, da tabela e da ficha. */
+  periodo: PeriodoDaLeitura | null;
+};
+
+export function kpisDaCarteira(c: ContextoDosKpis): CarteiraNaArea {
+  const daAdr = c.indicadores?.municipios.filter((m) => m.pertenceAAdr) ?? [];
+
+  // "COM VISITA" É O MUNICÍPIO COM AO MENOS UM VÍNCULO NO PRAZO DA CADÊNCIA —
+  // `cobertos`, e não `vinculosComCadencia`: elegível sem contato no prazo é
+  // justamente o que a cobertura NÃO cobre.
+  const comVisita = daAdr.filter((m) => m.cobertura.cobertos > 0).length;
+  const comVenda = daAdr.filter((m) => m.vendas.valorLiquido > 0).length;
+
+  return {
+    periodo: c.indicadores ? periodoDaLeitura(c.indicadores.competenciaInicial, c.indicadores.competenciaFinal) : null,
+    cartoes: [
+      {
+        id: 'municipios',
+        rotulo: 'Municípios da ADR',
+        valor: c.comTerritorio ? nº(c.municipiosDaAdr) : null,
+        contexto: `${nº(c.totais.clientes)} clientes com endereço neles`,
+        deOnde:
+          `Os municípios que a área de atuação marca como ADR, no recorte dos filtros. ${nº(c.totais.clientes)} ` +
+          'clientes com endereço neles: cada cliente conta no município do endereço principal do cadastro.',
+        semDado: c.indicadores ? SEM_TERRITORIO : 'área de atuação não carregada',
+      },
+      {
+        id: 'cobertura',
+        rotulo: 'Cobertura pela cadência',
+        // SEM `tom: 'atencao'`: o número ficava vermelho, e a maquete não o
+        // pinta. O que o vermelho queria dizer — que a regra é provisória — está
+        // escrito na dica, que é onde uma ressalva se lê.
+        valor: c.comTerritorio && c.coberturaDaAdr !== null ? porcento(c.coberturaDaAdr) : null,
+        progresso: c.comTerritorio ? c.coberturaDaAdr : null,
+        contexto: `${nº(comVisita)} municípios com visita`,
+        deOnde:
+          `${nº(c.totais.cobertos)} de ${nº(c.totais.elegiveis)} vínculos elegíveis no prazo · ${nº(c.totais.pendentes)} ` +
+          'pendentes · regra provisória. "Com visita" é o município com ao menos um vínculo no prazo: contato é ' +
+          // A citação "(documento 32, P-2)" saiu do fim da frase: o número do documento não diz nada a quem lê
+          // a dica, e a referência continua aqui, no código.
+          'qualquer interação registrada, porque nenhum tipo de atividade está marcado como visita.',
+        semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : 'sem vínculo elegível',
+      },
+      {
+        id: 'vendas',
+        rotulo: 'Vendas no período',
+        valor: c.comTerritorio ? reaisCompactos(c.totais.vendas) : null,
+        contexto: `em ${nº(comVenda)} municípios`,
+        deOnde: `máquina ${reaisCompactos(c.totais.maquina)} · pós-venda ${reaisCompactos(c.totais.posVenda)} (composição provisória). Vendas líquidas pelo endereço principal do cliente; "em N municípios" conta os da ADR com venda no período.`,
+        semDado: c.territorioNaoCarregado ? `${reaisCompactos(c.vendasForaDoMapa)} no período, todos fora do mapa` : '—',
+      },
+      {
+        id: 'parque',
+        rotulo: 'Parque teórico de máquinas',
+        valor: c.comTerritorio && c.totais.municipiosComArea > 0 ? nº(Math.round(c.totais.maquinasTeoricas)) : null,
+        // O SELO DE ESTIMATIVA É DO DADO: a palavra só aparece quando alguma
+        // regra que dimensionou máquina aqui ainda não foi confirmada.
+        contexto: c.totais.potencialEstimado ? 'estimativa na área de atuação' : 'na área de atuação',
+        deOnde: `${nº(Math.round(c.totais.hectares))} ha úteis em ${nº(c.totais.municipiosComArea)} municípios${
+          c.recorte?.demandaAnualDeMaquinas != null ? ` · ${nº(Math.round(c.recorte.demandaAnualDeMaquinas))} por ano` : ''
+        }${c.totais.potencialEstimado ? ' · estimativa, regra a confirmar' : ''}`,
+        semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : 'sem regra de potencial',
+      },
+    ],
+  };
 }
 
 /**
@@ -94,9 +160,32 @@ export function kpisDoMercado(c: ContextoDosKpis): Indicador[] {
   const contexto = (medida: MedidaSomavel, complemento?: string) =>
     [fatiasEmTexto(medida), complemento].filter(Boolean).join(' · ') || '—';
 
-  const tratores = montarSomavel(c.totais.tratores, regiao?.tratores ?? null, c.indicadores?.estado?.tratores.publicado ?? null);
+  // SIGILO EM TODOS OS MUNICÍPIOS NÃO É ZERO. A soma ignora o município sob
+  // sigilo (ele entra como nada, e não como zero); mas quando NENHUM município
+  // do recorte foi divulgado, a soma vazia saía "0 tratores" — que afirma que a
+  // região não tem trator. Aí o número é ausente, com o motivo.
+  //
+  // SÓ É SIGILO SE O CENSO FOI CARREGADO (revisão de 24/09/2026). Sem o Censo
+  // neste banco, todo município vem nulo também — e dizer "o número existe e foi
+  // ocultado" afirmaria uma leitura que nunca aconteceu. O ano do Censo é o que
+  // separa os dois: o repositório o preenche em todo município quando a carga
+  // rodou, inclusive nos sob sigilo.
+  const daAdr = c.indicadores?.municipios.filter((m) => m.pertenceAAdr) ?? [];
+  const algumComPropriedades = daAdr.some((m) => m.estrutura.estabelecimentos !== null);
+  const semCenso =
+    daAdr.length === 0
+      ? 'nenhum município da ADR neste recorte'
+      : c.anoDoCenso !== null
+        ? 'sigilo do IBGE em todos os municípios do recorte — o número existe e foi ocultado, e não é zero'
+        : 'Censo Agropecuário não carregado neste banco — não é zero';
+
+  const tratores = montarSomavel(
+    c.totais.municipiosComTratores > 0 ? c.totais.tratores : null,
+    regiao?.tratores ?? null,
+    c.indicadores?.estado?.tratores.publicado ?? null,
+  );
   const propriedades = montarSomavel(
-    c.totais.estabelecimentos,
+    algumComPropriedades ? c.totais.estabelecimentos : null,
     regiao?.estabelecimentos ?? null,
     c.indicadores?.estado?.estabelecimentos.publicado ?? null,
   );
@@ -114,20 +203,20 @@ export function kpisDoMercado(c: ContextoDosKpis): Indicador[] {
   return [
     {
       rotulo: 'Parque de tratores',
-      valor: c.comTerritorio ? nº(c.totais.tratores) : null,
+      valor: c.comTerritorio && c.totais.municipiosComTratores > 0 ? nº(c.totais.tratores) : null,
       deOnde: contexto(
         tratores,
         `${nº(c.totais.municipiosComTratores)} municípios divulgados${diferencaParaASoma(c.indicadores?.estado?.tratores)}`,
       ),
       procedencia: p?.tratores,
-      semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : 'Censo não carregado',
+      semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : semCenso,
     },
     {
       rotulo: 'Propriedades',
-      valor: c.comTerritorio ? nº(c.totais.estabelecimentos) : null,
+      valor: c.comTerritorio && algumComPropriedades ? nº(c.totais.estabelecimentos) : null,
       deOnde: contexto(propriedades, `estabelecimentos agropecuários${diferencaParaASoma(c.indicadores?.estado?.estabelecimentos)}`),
       procedencia: p?.estabelecimentos,
-      semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : 'Censo não carregado',
+      semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : semCenso,
     },
     {
       rotulo: 'Valor da lavoura',

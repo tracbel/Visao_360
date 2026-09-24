@@ -1,28 +1,40 @@
 /**
- * A RÉGUA DO MERCADO — momento, porte e o que a região tem (fase T4.8).
+ * A RÉGUA DO MERCADO — momento, porte e o que a região tem (fase T4.8; desenho
+ * da maquete desde 23/09/2026).
  *
- * Sete células divididas por um filete, numa faixa só: o momento e o porte nas
- * duas primeiras, com a faixa em pílula; os cinco indicadores estruturais nas
- * seguintes. É o `market-strip` do protótipo visual.
+ * UM CARTÃO BRANCO NUMA LINHA SÓ: o momento, um filete, o porte, outro filete, e
+ * os cinco indicadores estruturais. Entre os cinco não há filete — na maquete
+ * eles são um grupo, e o que os separa é espaço.
  *
  * POR QUE ELES FICAM JUNTOS. Antes eram dois blocos empilhados — uma faixa de
  * "porte e momento" e outra de "o que a região tem". São a mesma leitura: *como
- * está o mercado, e o que existe nele*. Separá-los dava dois retângulos brancos
- * seguidos, e fazia a página parecer mais longa do que o conteúdo pede.
+ * está o mercado, e o que existe nele*.
  *
- * O DIVISOR VERTICAL É O QUE TRANSFORMA SETE NÚMEROS NUMA RÉGUA, em vez de numa
- * lista: o olho corre por ela sem precisar de espaço grande entre os itens.
+ * O QUE SAIU DO CORPO FOI PARA AS DICAS, e nada se perdeu:
  *
- * NENHUM NÚMERO SAIU, e nenhuma explicação também: a comparação de cada
- * indicador continua na dica dele (documento 50, §7), o porte continua sem nome
- * enquanto a issue 166 não tiver bandas, e o momento continua dizendo por que
- * está ausente quando está.
+ * - O FATOR NUMÉRICO E A PROCEDÊNCIA DO MOMENTO saíram de dentro da pílula. A
+ *   pílula diz a faixa ("RETRAÍDO"), a frase ao lado diz a leitura, e o número,
+ *   a conta e a fonte estão na dica ao lado do título — uma só, como na maquete.
+ * - A COMPARAÇÃO E A PROCEDÊNCIA DE CADA INDICADOR eram duas dicas empilhadas
+ *   por número. Viraram uma, com as duas partes separadas dentro: a fatia (que a
+ *   tela calcula) e a fonte (que vem do contrato, nunca escrita à mão — issue
+ *   167).
+ * - O PORTE CONTINUA SEM NOME enquanto a issue 166 não tiver bandas: no lugar da
+ *   pílula "MÉDIO" da maquete fica o traço com o motivo.
  */
 
-import { BarChart3, Beef, Factory, Landmark, Sprout, Tractor, TrendingUp } from 'lucide-react';
-import { FaixaDeEstrutura, ItemDaFaixa } from '../dashboard/Dashboard';
+import {
+  Beef,
+  ChartNoAxesColumn,
+  Factory,
+  Landmark,
+  Sprout,
+  Tractor,
+  TrendingUp,
+  type LucideIcon,
+} from 'lucide-react';
 import { InfoTooltip } from '../InfoTooltip';
-import { Procedencia } from '../comum/Procedencia';
+import { frasesDaProcedencia } from '../comum/comparacoes';
 import { ValorAusente } from '../comum/ValorAusente';
 import type { Indicador } from '../cadastro/Indicadores';
 import type { MomentoDoRecorte } from '../../tipos/territorio';
@@ -35,7 +47,7 @@ import type { MomentoDoRecorte } from '../../tipos/territorio';
  * reordenasse a lista. Rótulo desconhecido simplesmente não ganha ícone — é
  * melhor que ganhar o ícone errado.
  */
-const ICONES: Record<string, typeof Tractor> = {
+const ICONES: Record<string, LucideIcon> = {
   'Parque de tratores': Tractor,
   Propriedades: Landmark,
   'Valor da lavoura': Sprout,
@@ -64,6 +76,62 @@ function motivoEmPortugues(motivo: string): string {
   return 'O fator agregado não pôde ser apurado para este recorte.';
 }
 
+/**
+ * Uma estatística da régua: ícone, número em cima, nome embaixo e UMA dica.
+ *
+ * A DICA JUNTA A FATIA E A FONTE, cada uma no seu parágrafo marcado: a fatia é
+ * conta da tela (documento 50, §7), a fonte é carimbo do contrato (issue 167).
+ * Juntas no mesmo balão, e nunca na mesma frase — é o que impede a fonte de ser
+ * escrita à mão dentro da comparação.
+ */
+function Estatistica({ indicador }: { indicador: Indicador }) {
+  const { rotulo, valor, deOnde, procedencia: fonte, semDado } = indicador;
+  const Icone = ICONES[rotulo];
+  const nome = rotulo.toLowerCase();
+  const vazio = valor === null || valor === undefined;
+  const comparacao = deOnde === '—' ? null : deOnde;
+
+  // O NOME DA DICA DIZ O QUE HÁ DENTRO: só a fatia, só a fonte, ou as duas.
+  const rotuloDaDica =
+    comparacao && fonte
+      ? `De onde vem ${nome} e quanto representa`
+      : comparacao
+        ? `Quanto ${nome} representa`
+        : `De onde vem ${nome}`;
+
+  return (
+    <div className="mv-faixa-item" data-faixa={rotulo}>
+      {Icone && (
+        <span className="mv-faixa-icone" aria-hidden="true">
+          <Icone size={17} strokeWidth={1.8} />
+        </span>
+      )}
+      <div className="mv-faixa-corpo">
+        {/* A DICA FICA NA LINHA DO NÚMERO, e não na do nome: numa coluna de
+            ~1300px cada estatística tem ~140px, e "Parque de tratores" com um ⓘ
+            ao lado quebrava em três linhas. O número é curto e tem sobra. */}
+        <span className="mv-faixa-valor">
+          {/* A MESMA AUSÊNCIA DA TELA INTEIRA — traço, "sem dado" para o leitor e
+              a dica "Por que … não aparece" —, no lugar do número. */}
+          {vazio ? <ValorAusente motivo={semDado ?? 'sem dado'} oQue={nome} /> : <strong>{valor}</strong>}
+          {!vazio && (comparacao || fonte) && (
+            <InfoTooltip
+              rotulo={rotuloDaDica}
+              texto={
+                <>
+                  {comparacao && <p data-parte="comparacao">{comparacao}</p>}
+                  {fonte && <p data-parte="procedencia">{frasesDaProcedencia(fonte)}</p>}
+                </>
+              }
+            />
+          )}
+        </span>
+        <span className="mv-faixa-rotulo">{rotulo}</span>
+      </div>
+    </div>
+  );
+}
+
 export function FaixaDoMercado({
   indicadores,
   momento,
@@ -73,81 +141,109 @@ export function FaixaDoMercado({
 }) {
   if (indicadores.length === 0 && !momento) return null;
 
-  const semFator = momento?.fatorAgregado == null;
+  const fatorAgregado = momento?.fatorAgregado ?? null;
+  const faixa = momento?.faixaDoMomento ?? null;
 
   return (
-    <FaixaDeEstrutura data-bloco="faixa-do-mercado" aria-label="O momento do mercado e o que a região tem">
+    // "ÁREA DE ATUAÇÃO", e não "região" sozinha (decisão 2 do usuário): o
+    // leitor de tela também lê este nome, e "região" confunde a Região Tracbel
+    // com a sub-região Norte ou Noroeste.
+    <div
+      className="mv-faixa"
+      data-bloco="faixa-do-mercado"
+      role="group"
+      aria-label="O momento do mercado e o que a área de atuação tem"
+    >
       {/* ---- MOMENTO ---- */}
-      <div className="dash-faixa-leitura" data-bloco="porte-e-momento">
-        <TrendingUp size={19} strokeWidth={2} aria-hidden="true" />
-        <div>
-          <strong>Momento do mercado</strong>
-          {semFator ? (
-            <ValorAusente
-              motivo={motivoEmPortugues(momento?.motivoSemFator ?? '')}
-              oQue="o momento do mercado"
+      <div className="mv-faixa-leitura" data-bloco="porte-e-momento">
+        <TrendingUp className="mv-faixa-glifo" data-tom="momento" size={26} strokeWidth={2.2} aria-hidden="true" />
+        <div className="mv-faixa-texto">
+          <span className="mv-faixa-titulo">
+            Momento do mercado
+            {/* A DICA DO TÍTULO LEVA O NÚMERO, A CONTA E A FONTE. As três parcelas
+                não cabem aqui porque são de cada cultura; quem quiser vê-las abre
+                o bloco "Momento do mercado", na composição do fator. */}
+            <InfoTooltip
+              rotulo="Como o momento do mercado é composto"
+              texto={
+                <>
+                  {fatorAgregado != null && (
+                    <p>
+                      <strong>
+                        Fator agregado {pt(fatorAgregado)}
+                        {faixa ? ` — ${faixa}` : ''}.
+                      </strong>
+                    </p>
+                  )}
+                  <p>
+                    Este número é a razão entre a demanda ajustada somada e a demanda estrutural somada — cada
+                    cultura pesa pela demanda que representa. As três parcelas (rentabilidade, crédito e percepção)
+                    são calculadas POR CULTURA e estão abertas em "Momento do mercado", na aba "Composição do fator",
+                    uma linha por cultura. Não há três setas aqui porque não existe uma decomposição agregada:
+                    inventá-la só para desenhar as setas seria um número sem conta.
+                  </p>
+                  {momento?.procedencia && <p>{frasesDaProcedencia(momento.procedencia)}</p>}
+                </>
+              }
             />
-          ) : (
-            <span className="dash-pilula" data-faixa={momento!.faixaDoMomento ?? undefined}>
-              {momento!.faixaDoMomento ?? 'sem faixa'} · {pt(momento!.fatorAgregado!)}
-              <Procedencia procedencia={momento!.procedencia} oQue="o momento do mercado" />
-              {/* O ⓘ QUE LEVA À CONTA. As três parcelas não cabem aqui porque são
-                  de cada cultura; quem quiser vê-las abre o bloco. */}
-              <InfoTooltip
-                rotulo="Como o momento do mercado é composto"
-                texto={
-                  'Este número é a razão entre a demanda ajustada somada e a demanda estrutural somada — cada ' +
-                  'cultura pesa pela demanda que representa. As três parcelas (rentabilidade, crédito e percepção) ' +
-                  'são calculadas POR CULTURA e estão abertas em "Momento do mercado", na aba "Composição do ' +
-                  'fator", uma linha por cultura. Não há três setas aqui porque não existe uma decomposição ' +
-                  'agregada: inventá-la só para desenhar as setas seria um número sem conta.'
-                }
-              />
-            </span>
-          )}
-          {/* A FRASE DO MOMENTO, embaixo da pílula (maquete: "Demanda estável e
-              preços firmes"). Ela vem pronta da API (`leitura`) e já existia na
-              resposta sem ter lugar na tela desde que a faixa virou régua —
-              "Mercado grande, agora retraído" é a leitura que a palavra da
-              pílula sozinha não dá. Vazia quando falta um dos dois lados. */}
-          {momento?.leitura && <p className="dash-faixa-frase">{momento.leitura}</p>}
+          </span>
+          <span className="mv-faixa-linha">
+            {fatorAgregado == null ? (
+              <ValorAusente motivo={motivoEmPortugues(momento?.motivoSemFator ?? '')} oQue="o momento do mercado" />
+            ) : (
+              <span className="mv-pilula" data-faixa={faixa ?? undefined}>
+                {faixa ?? 'sem faixa'}
+              </span>
+            )}
+            {/* A FRASE DO MOMENTO, NA LINHA DA PÍLULA (maquete: "Demanda estável
+                e preços firmes"). Ela vem pronta da API (`leitura`) — "Mercado
+                grande, agora retraído" é a leitura que a palavra sozinha não dá.
+                Vazia quando falta um dos dois lados. */}
+            {momento?.leitura && <span className="mv-faixa-frase">{momento.leitura}</span>}
+          </span>
         </div>
       </div>
 
       {/* ---- PORTE ---- */}
-      <div className="dash-faixa-leitura">
-        <BarChart3 size={19} strokeWidth={2} aria-hidden="true" />
-        <div>
-          <strong>Porte estrutural</strong>
-          {momento?.porte ? (
-            <span className="dash-pilula">{momento.porte}</span>
-          ) : (
-            <ValorAusente
-              motivo={
-                'O nome do porte — pequeno, médio ou grande — depende de bandas registradas, e elas ainda não ' +
-                'foram decididas (issue 166). Um corte sem dono é parâmetro inventado, então a tela mostra o ' +
-                'número da demanda anual acima e não dá nome. Nulo aqui NÃO quer dizer "pequeno".'
+      <div className="mv-faixa-leitura">
+        <ChartNoAxesColumn className="mv-faixa-glifo" size={26} strokeWidth={2.2} aria-hidden="true" />
+        <div className="mv-faixa-texto">
+          <span className="mv-faixa-titulo">
+            Porte estrutural
+            <InfoTooltip
+              rotulo="O que é o porte estrutural"
+              texto={
+                'O tamanho do mercado pela demanda estrutural — as máquinas que o parque renova por ano, antes do ' +
+                'momento. O número está em "Demanda anual", no alto da aba; o nome da faixa depende das bandas da ' +
+                'issue 166.'
               }
-              oQue="o nome do porte"
             />
-          )}
+          </span>
+          <span className="mv-faixa-linha">
+            {momento?.porte ? (
+              <span className="mv-pilula" data-faixa="porte">
+                {momento.porte}
+              </span>
+            ) : (
+              <ValorAusente
+                motivo={
+                  'O nome do porte — pequeno, médio ou grande — depende de bandas registradas, e elas ainda não ' +
+                  'foram decididas (issue 166). Um corte sem dono é parâmetro inventado, então a tela mostra o ' +
+                  'número da demanda anual acima e não dá nome. Nulo aqui NÃO quer dizer "pequeno".'
+                }
+                oQue="o nome do porte"
+              />
+            )}
+          </span>
         </div>
       </div>
 
       {/* ---- OS CINCO INDICADORES ESTRUTURAIS ---- */}
-      {indicadores.map((i) => (
-        <ItemDaFaixa
-          key={i.rotulo}
-          rotulo={i.rotulo}
-          icone={ICONES[i.rotulo]}
-          valor={i.valor}
-          // A COMPARAÇÃO CONTINUA SENDO DE CADA NÚMERO (documento 50, §7), só
-          // que na dica dele em vez de numa linha permanente embaixo.
-          comparacao={i.deOnde === '—' ? undefined : i.deOnde}
-          procedencia={i.procedencia}
-          motivoSemDado={i.semDado}
-        />
-      ))}
-    </FaixaDeEstrutura>
+      <div className="mv-faixa-numeros">
+        {indicadores.map((i) => (
+          <Estatistica key={i.rotulo} indicador={i} />
+        ))}
+      </div>
+    </div>
   );
 }
