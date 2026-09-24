@@ -91,6 +91,16 @@ export function iniciosVigentes<T extends { vigencia: VigenciaDoParametro }>(
   return inicios;
 }
 
+/**
+ * O que identifica uma regra: o produto E a categoria de máquina (D-P01).
+ *
+ * A vigência anterior ao catálogo não tem categoria, e cai numa chave própria — ela não disputa lugar com
+ * nenhuma das novas.
+ */
+export function chaveDaRegra(regra: { produtoCodigoIbge: number; categoriaDeMaquinaCodigo: string | null }): string {
+  return `${regra.produtoCodigoIbge}|${regra.categoriaDeMaquinaCodigo ?? 'sem-categoria'}`;
+}
+
 /** Uma linha da trilha: qualquer uma das três vigências, com o que a identifica para revogar. */
 export type LinhaDoHistorico = {
   id: string;
@@ -108,7 +118,10 @@ export type LinhaDoHistorico = {
  */
 export function montarHistorico(historico: HistoricoDosParametrosDoPotencial, hoje: string): LinhaDoHistorico[] {
   const gerais = iniciosVigentes(historico.gerais, () => 'geral', hoje);
-  const culturas = iniciosVigentes(historico.culturas, (r) => String(r.produtoCodigoIbge), hoje);
+  // A CHAVE DA REGRA É PRODUTO **E CATEGORIA** (D-P01). Só o produto fazia o trator e a colheitadeira do
+  // café disputarem a mesma chave: uma das duas seria marcada como "substituída" pela outra, que é outra
+  // decisão e não a substitui em nada.
+  const culturas = iniciosVigentes(historico.culturas, chaveDaRegra, hoje);
   const percepcoes = iniciosVigentes(historico.percepcoes, (p) => String(p.municipioCodigoIbge), hoje);
 
   const linhas: LinhaDoHistorico[] = [
@@ -125,16 +138,22 @@ export function montarHistorico(historico: HistoricoDosParametrosDoPotencial, ho
       alvo: { tipo: 'geral', vigenteDesde: g.vigencia.vigenteDesde },
     })),
     ...historico.culturas.map((r): LinhaDoHistorico => ({
-      id: `cultura-${r.produtoCodigoIbge}-${r.vigencia.vigenteDesde}-${r.vigencia.informadoEm}`,
+      id: `cultura-${chaveDaRegra(r)}-${r.vigencia.vigenteDesde}-${r.vigencia.informadoEm}`,
       tipo: 'Regra da cultura',
-      chave: r.produtoNome,
+      // A CATEGORIA VAI NA CHAVE VISÍVEL: sem ela, duas linhas escritas "Café" e nada que as distinga.
+      chave: r.categoriaDeMaquinaNome ? `${r.produtoNome} · ${r.categoriaDeMaquinaNome}` : r.produtoNome,
       resumo:
         `1 ${r.modeloDeReferencia} a cada ${numero(r.hectaresPorMaquina)} ha · ` +
         (r.anosDeRenovacao === null ? 'renovação não informada' : `renovação a cada ${numero(r.anosDeRenovacao, 1)} anos`) +
         (r.situacao === 'AConfirmar' ? ' · a confirmar' : ''),
       vigencia: r.vigencia,
-      estado: estadoDaVigencia(r.vigencia, culturas.get(String(r.produtoCodigoIbge)), hoje),
-      alvo: { tipo: 'cultura', produtoCodigoIbge: r.produtoCodigoIbge, vigenteDesde: r.vigencia.vigenteDesde },
+      estado: estadoDaVigencia(r.vigencia, culturas.get(chaveDaRegra(r)), hoje),
+      alvo: {
+        tipo: 'cultura',
+        produtoCodigoIbge: r.produtoCodigoIbge,
+        categoriaDeMaquinaCodigo: r.categoriaDeMaquinaCodigo ?? '',
+        vigenteDesde: r.vigencia.vigenteDesde,
+      },
     })),
     ...historico.percepcoes.map((p): LinhaDoHistorico => ({
       id: `percepcao-${p.municipioCodigoIbge}-${p.vigencia.vigenteDesde}-${p.vigencia.informadoEm}`,

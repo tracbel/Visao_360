@@ -1,4 +1,5 @@
 using Tracbel.Crm.Dominio.Organizacao;
+using Tracbel.Crm.Dominio.Portas;
 
 namespace Tracbel.Crm.Aplicacao.Potencial;
 
@@ -48,6 +49,10 @@ public sealed record VigenciaDoParametro(
 /// <param name="ModeloDeReferencia">O modelo de referência.</param>
 /// <param name="Situacao">AConfirmar ou Confirmada.</param>
 /// <param name="Vigencia">Desde quando, por quê e por quem.</param>
+/// <param name="CulturaCodigo">O código da cultura do catálogo; nulo nas vigências anteriores a ele.</param>
+/// <param name="CulturaNome">O nome da cultura, para a tela não precisar cruzar a lista.</param>
+/// <param name="CategoriaDeMaquinaCodigo">O código da categoria de máquina (D-P01); nulo nas anteriores.</param>
+/// <param name="CategoriaDeMaquinaNome">O nome da categoria.</param>
 public sealed record RegraDePotencialDetalhe(
     int ProdutoCodigoIbge,
     string ProdutoNome,
@@ -55,14 +60,35 @@ public sealed record RegraDePotencialDetalhe(
     decimal? AnosDeRenovacao,
     string ModeloDeReferencia,
     string Situacao,
-    VigenciaDoParametro Vigencia)
+    VigenciaDoParametro Vigencia,
+    string? CulturaCodigo = null,
+    string? CulturaNome = null,
+    string? CategoriaDeMaquinaCodigo = null,
+    string? CategoriaDeMaquinaNome = null)
 {
     /// <summary>Monta o detalhe.</summary>
     /// <param name="regra">A regra.</param>
     /// <param name="nomes">Nome de exibição por usuário.</param>
-    public static RegraDePotencialDetalhe De(RegraDePotencial regra, IReadOnlyDictionary<long, string> nomes) => new(
-        regra.ProdutoCodigoIbge, regra.ProdutoNome, regra.HectaresPorMaquina, regra.AnosDeRenovacao,
-        regra.ModeloDeReferencia, regra.Situacao.ToString(), VigenciaDoParametro.De(regra, nomes));
+    /// <param name="culturas">As culturas do catálogo, por identificador; ausente deixa o rótulo nulo.</param>
+    /// <param name="categorias">As categorias de máquina, por identificador.</param>
+    public static RegraDePotencialDetalhe De(
+        RegraDePotencial regra,
+        IReadOnlyDictionary<long, string> nomes,
+        IReadOnlyDictionary<int, ItemDoCatalogoDoPotencial>? culturas = null,
+        IReadOnlyDictionary<int, ItemDoCatalogoDoPotencial>? categorias = null)
+    {
+        var cultura = Achar(culturas, regra.CulturaId);
+        var categoria = Achar(categorias, regra.CategoriaDeMaquinaId);
+
+        return new RegraDePotencialDetalhe(
+            regra.ProdutoCodigoIbge, regra.ProdutoNome, regra.HectaresPorMaquina, regra.AnosDeRenovacao,
+            regra.ModeloDeReferencia, regra.Situacao.ToString(), VigenciaDoParametro.De(regra, nomes),
+            cultura?.Codigo, cultura?.Nome, categoria?.Codigo, categoria?.Nome);
+    }
+
+    private static ItemDoCatalogoDoPotencial? Achar(
+        IReadOnlyDictionary<int, ItemDoCatalogoDoPotencial>? mapa, int? id) =>
+        mapa is not null && id is { } chave && mapa.TryGetValue(chave, out var item) ? item : null;
 }
 
 /// <summary>Os parâmetros gerais do modelo, numa vigência. Os campos em aberto vêm nulos.</summary>
@@ -192,6 +218,8 @@ public sealed record NovoParametroDoPotencial(
 /// <param name="Situacao">AConfirmar ou Confirmada.</param>
 /// <param name="VigenteDesde">O primeiro dia em que vale — hoje ou depois.</param>
 /// <param name="Justificativa">Por que estes valores.</param>
+/// <param name="CulturaCodigo">A cultura do catálogo — <c>CAFE</c>, <c>CANA</c>… (issue 165).</param>
+/// <param name="CategoriaDeMaquinaCodigo">A categoria — <c>TRATOR</c>, <c>COLHEITADEIRA</c>… (D-P01).</param>
 public sealed record NovaRegraDePotencial(
     string? ProdutoCodigoIbge = null,
     string? HectaresPorMaquina = null,
@@ -199,7 +227,9 @@ public sealed record NovaRegraDePotencial(
     string? ModeloDeReferencia = null,
     string? Situacao = null,
     string? VigenteDesde = null,
-    string? Justificativa = null);
+    string? Justificativa = null,
+    string? CulturaCodigo = null,
+    string? CategoriaDeMaquinaCodigo = null);
 
 /// <summary>Uma vigência nova da percepção do gestor sobre um município.</summary>
 /// <param name="MunicipioCodigoIbge">O código IBGE de sete dígitos.</param>
