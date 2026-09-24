@@ -145,6 +145,64 @@ public sealed class FontesPublicasTestes
             "e faz duas telas discordarem sobre quais são as culturas");
     }
 
+    /// <summary>
+    /// A INTELIGÊNCIA DE MERCADO NÃO LÊ `public/dados` (issue 169).
+    ///
+    /// <para><b>O que este teste impede de voltar:</b> <c>public/dados/mercado-pracas.json</c> tinha quatro
+    /// praças fictícias — MT Norte, MT Sul, GO e BA —, com "total de mercado", "vendemos" e "indicamos
+    /// perdida" inventados, e ela continuava no pacote publicado. Nada a carregava, o que é pior e não
+    /// melhor: dado de mentira parado no ar é dado de mentira esperando alguém usá-lo.</para>
+    ///
+    /// <para><b>A regra:</b> `public/dados` é o seed do protótipo, e as telas que ainda o leem estão
+    /// listadas na issue 191. Mercado e Território leem a <b>API</b> — é de lá que vem o número do IBGE e
+    /// do CRM. Um <c>useDados</c> numa dessas pastas seria a volta do dado fictício por outra porta.</para>
+    /// </summary>
+    [Fact]
+    public void Mercado_e_territorio_nao_leem_o_seed_do_prototipo()
+    {
+        var raizDoFront = Path.Combine(Raiz, "src", "Tracbel.Crm.Web", "src");
+
+        string[] pastasDoMercado =
+        [
+            Path.Combine("componentes", "mercado"),
+            Path.Combine("componentes", "territorio"),
+            Path.Combine("componentes", "dashboard"),
+        ];
+
+        var daInteligenciaDeMercado = Directory
+            .EnumerateFiles(raizDoFront, "*.tsx", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(raizDoFront, "*.ts", SearchOption.AllDirectories))
+            .Where(f => pastasDoMercado.Any(p => f.Contains(p, StringComparison.Ordinal))
+                        || f.EndsWith("IndicadoresGeograficos.tsx", StringComparison.Ordinal));
+
+        // `useDados` e `carregar` são o par que lê `public/dados`. Comentários saem antes, pelo mesmo motivo
+        // do teste acima: a explicação de por que o seed saiu daqui cita o seed.
+        var leitor = new Regex(@"\buseDados\b|from\s+'[^']*dados/carregar'", RegexOptions.IgnoreCase);
+
+        var comSeed = daInteligenciaDeMercado
+            .Where(f => leitor.IsMatch(SemComentarios(File.ReadAllText(f))))
+            .Select(Path.GetFileName)
+            .ToList();
+
+        comSeed.Should().BeEmpty(
+            "Mercado e Território leem a API, não o seed do protótipo (issue 169): o número que a diretoria " +
+            "olha vem do IBGE e do CRM, e `public/dados` é dado ilustrativo");
+    }
+
+    /// <summary>O arquivo das praças fictícias não volta, nem no manifesto (issue 169).</summary>
+    [Fact]
+    public void O_seed_nao_tem_mais_as_pracas_ficticias_de_mercado()
+    {
+        var seed = Path.Combine(Raiz, "src", "Tracbel.Crm.Web", "public", "dados");
+
+        File.Exists(Path.Combine(seed, "mercado-pracas.json")).Should().BeFalse(
+            "as quatro praças eram de MT, GO e BA — estados em que a Tracbel Agro não atua — e os números " +
+            "eram inventados");
+
+        File.ReadAllText(Path.Combine(seed, "manifesto.json"))
+            .Should().NotContain("mercado-pracas", "o manifesto lista o que existe; entrada órfã é promessa de arquivo");
+    }
+
     /// <summary>Tira comentários de bloco e de linha, para o teste olhar o código e não a explicação dele.</summary>
     private static string SemComentarios(string codigo) =>
         Regex.Replace(Regex.Replace(codigo, @"/\*.*?\*/", "", RegexOptions.Singleline), @"//[^\n]*", "");

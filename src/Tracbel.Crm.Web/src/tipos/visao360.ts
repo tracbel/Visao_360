@@ -52,14 +52,14 @@ export interface AlertaGerencialDado {
 }
 export type AlertasPorPerfil360 = Record<PerfilId360, AlertaGerencialDado[]>;
 
-/** `mercado-pracas.json` (MERCADO_JD_PRACAS, app.js:7203). */
-export interface MercadoPraca {
-  total_mercado: number;
-  vendemos: number;
-  indicamos_perdida: number;
-  sem_conhecimento: number;
-}
-export type MercadoPracas = Record<string, MercadoPraca>;
+/* `mercado-pracas.json` SAIU (issue 169).
+ *
+ * Eram quatro praças fictícias — MT Norte, MT Sul, GO e BA —, com "total de
+ * mercado", "vendemos" e "indicamos perdida" inventados, e elas continuavam no
+ * pacote publicado mesmo sem nada carregá-las. A Inteligência de Mercado real
+ * responde essas perguntas com dado do IBGE e do CRM, por município de São
+ * Paulo; deixar as praças ali era manter no ar um número que ninguém mediu, em
+ * estados onde a Tracbel Agro não atua. */
 
 /** `vendas-perdidas-motivos.json` (VENDAS_PERDIDAS_MOTIVOS, app.js:7211). */
 export interface VendaPerdidaMotivo {
