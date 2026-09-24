@@ -65,7 +65,9 @@ export function informarPercepcaoDoGestor(contexto: ContextoDeAcesso, corpo: Nov
 /** O que identifica uma vigência para revogar: o tipo, a chave (produto ou município) e a data de início. */
 export type AlvoDaRevogacao =
   | { tipo: 'geral'; vigenteDesde: string }
-  | { tipo: 'cultura'; produtoCodigoIbge: number; vigenteDesde: string }
+  // A CATEGORIA ENTRA NA CHAVE (D-P01): um produto passa a ter mais de uma regra na mesma data — o trator e
+  // a colheitadeira do café —, e sem ela a revogação não sabe qual das duas derrubar.
+  | { tipo: 'cultura'; produtoCodigoIbge: number; categoriaDeMaquinaCodigo: string; vigenteDesde: string }
   | { tipo: 'percepcao'; municipioCodigoIbge: number; vigenteDesde: string };
 
 /** O caminho da revogação de cada tipo de vigência. */
@@ -74,7 +76,7 @@ export function caminhoDaRevogacao(alvo: AlvoDaRevogacao): string {
     case 'geral':
       return `${BASE}/geral/${alvo.vigenteDesde}/revogacao`;
     case 'cultura':
-      return `${BASE}/culturas/${alvo.produtoCodigoIbge}/${alvo.vigenteDesde}/revogacao`;
+      return `${BASE}/culturas/${alvo.produtoCodigoIbge}/${encodeURIComponent(alvo.categoriaDeMaquinaCodigo)}/${alvo.vigenteDesde}/revogacao`;
     case 'percepcao':
       return `${BASE}/percepcoes/${alvo.municipioCodigoIbge}/${alvo.vigenteDesde}/revogacao`;
   }

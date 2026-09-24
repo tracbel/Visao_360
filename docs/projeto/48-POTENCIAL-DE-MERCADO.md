@@ -478,12 +478,17 @@ data — a regra é `ParametroComVigencia.VigenteEm`, e o motor (#72 a #74) vai 
 
 | Tabela | Chave | O que guarda | Quem altera |
 |---|---|---|---|
-| `RegraDePotencial` | produto da PAM + data | hectares por máquina, anos de renovação (pode faltar), modelo, a confirmar/confirmada | `ParametroDoPotencial.Administrar` |
+| `RegraDePotencial` | produto da PAM **+ categoria de máquina** + data | cultura do catálogo, categoria, hectares por máquina, anos de renovação (pode faltar), modelo, a confirmar/confirmada | `ParametroDoPotencial.Administrar` |
 | `ParametroDoPotencial` | data | meses da janela; peso dos contratos no crédito (o valor pesa o resto); limites de retração, aquecimento e superaquecimento; nome da faixa do meio; limite da percepção; pesos dos três indicadores; fator mínimo e máximo | `ParametroDoPotencial.Administrar` |
 | `PercepcaoDoGestor` | município + data | o ajuste em pontos percentuais, dentro do limite dos gerais vigentes na data de início | `PercepcaoDoGestor.Informar` (perfil **Gestor comercial**) |
 
 **As regras:**
 
+- **a chave da regra é produto × categoria × data** [M 24/09/2026]. Ela era `(produto, data)`, e isso
+  **impedia a própria decisão D-P01**: no café cabem "um trator a cada 10 ha" e "uma colheitadeira a cada
+  200 ha", que são duas regras do mesmo produto na mesma data, e a segunda era recusada como data ocupada.
+  Cultura e categoria passaram a ser **obrigatórias na regra nova** (as colunas seguem anuláveis, porque o
+  passado não se reescreve), e a revogação ganhou a categoria no endereço;
 - a vigência começa **hoje ou depois** (hoje é o dia de São Paulo); o passado não se reescreve;
 - só se **revoga** o que ainda não passou de hoje, com motivo; o resto se corrige com uma vigência nova;
 - uma vigência de pé por chave e data (índice único filtrado pelas não revogadas);

@@ -95,12 +95,15 @@ public static class EndpointsDeParametrosDoPotencial
             .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
             .WithSummary("Revoga a vigência dos parâmetros gerais que começa na data (aaaa-mm-dd) — só se ainda não passou de hoje.");
 
-        grupo.MapPost("/culturas/{produtoCodigoIbge:int}/{vigenteDesde}/revogacao", async (
-                int produtoCodigoIbge, string vigenteDesde, RevogacaoDeVigencia corpo, RevogarParametroDoPotencial caso, CancellationToken ct) =>
-            (await caso.RevogarRegraAsync(produtoCodigoIbge, vigenteDesde, corpo, ct)).Responder())
+        // A CATEGORIA ENTROU NO ENDEREÇO (D-P01, issue 63): um produto passa a ter mais de uma regra na
+        // mesma data — o trator e a colheitadeira do café —, e sem ela a revogação não saberia qual derrubar.
+        grupo.MapPost("/culturas/{produtoCodigoIbge:int}/{categoriaDeMaquinaCodigo}/{vigenteDesde}/revogacao", async (
+                int produtoCodigoIbge, string categoriaDeMaquinaCodigo, string vigenteDesde,
+                RevogacaoDeVigencia corpo, RevogarParametroDoPotencial caso, CancellationToken ct) =>
+            (await caso.RevogarRegraAsync(produtoCodigoIbge, categoriaDeMaquinaCodigo, vigenteDesde, corpo, ct)).Responder())
             .WithName("RevogarRegraDePotencial")
             .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
-            .WithSummary("Revoga a vigência da regra de um produto que começa na data — só se ainda não passou de hoje.");
+            .WithSummary("Revoga a vigência da regra de um produto numa categoria de máquina, que começa na data — só se ainda não passou de hoje.");
 
         grupo.MapPost("/percepcoes/{municipioCodigoIbge:int}/{vigenteDesde}/revogacao", async (
                 int municipioCodigoIbge, string vigenteDesde, RevogacaoDeVigencia corpo, RevogarParametroDoPotencial caso, CancellationToken ct) =>

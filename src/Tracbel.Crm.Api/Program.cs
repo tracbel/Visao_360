@@ -197,6 +197,7 @@ builder.Services.AddScoped<IRepositorioDoCatalogoDoMercado, RepositorioDoCatalog
 builder.Services.AddScoped<IRepositorioDeRentabilidade, RepositorioDeRentabilidade>();
 builder.Services.AddScoped<IRepositorioDeParametrosDoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeReferenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
+builder.Services.AddScoped<IRepositorioDoCatalogoNoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeVigenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeFontesPublicas, RepositorioDeFontesPublicas>();
 builder.Services.AddScoped<IRepositorioDeOpcoesDosParametros, RepositorioDeFontesPublicas>();
