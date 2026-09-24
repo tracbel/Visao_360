@@ -50,7 +50,10 @@ export const ESTADOS: readonly { id: NomeDoEstado; titulo: string; oQueProva: st
   {
     id: 'municipioSelecionado',
     titulo: 'Município selecionado',
-    oQueProva: 'o chip do recorte, o destaque nos quatro mapas e a ficha abaixo deles.',
+    // A FICHA MORA SÓ EM TERRITÓRIO desde 23/09/2026, e a tela abre nessa aba
+    // quando a URL já traz o município. O destaque nos quatro mapas continua a
+    // um clique, na aba Mercado.
+    oQueProva: 'o município no campo do filtro e a ficha aberta ao lado da tabela, em Território.',
   },
   {
     id: 'fichaAberta',

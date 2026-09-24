@@ -90,7 +90,10 @@
      Cada nome diz o PAPEL, e não o tamanho, porque é o papel que não muda
      quando o tamanho for ajustado.
      ========================================================================= */
-  --t-pagina: 22px;   /* o h1 da tela */
+  /* 26, e não 22 (fidelidade às maquetes, 23/09/2026): o h1 da maquete mede
+     26px. Só o `dashboard.css` lê este papel — as telas de cadastro usam o
+     `.page-title` de 20px, que não mudou. */
+  --t-pagina: 26px;   /* o h1 da tela */
   --t-secao: 16px;    /* o h2 de um bloco */
   --t-cartao: 13px;   /* o título de um painel dentro do bloco */
   --t-kpi: 30px;      /* o número de decisão — o maior da página, e sozinho nisso */
@@ -9398,6 +9401,22 @@ tr.funil-nova {
    o balão para dentro da janela, mas um balão mais largo que a tela não teria
    para onde deslizar. */
 .dica-balao { max-width: min(260px, calc(100vw - 32px)); }
+
+/* A DICA COM MAIS DE UM PARÁGRAFO OU COM LISTA (fidelidade às maquetes,
+   23/09/2026). O que saiu do corpo da página — procedência, alcance, "Como
+   interpretar" e "Limitações dos dados" — veio para dicas, e parte disso é
+   lista. Em 260px uma lista de métricas vira uma coluna estreita e comprida;
+   um pouco mais de largura, e só nesses balões, mantém a leitura em linhas.
+   O teto da janela continua valendo, pelo mesmo motivo do de cima. */
+.dica-balao:has(p, ul) { max-width: min(340px, calc(100vw - 32px)); }
+.dica-balao p { margin: 0; }
+.dica-balao p + p,
+.dica-balao p + ul,
+.dica-balao ul + p { margin-top: 6px; }
+.dica-balao ul { margin: 4px 0 0; padding-left: 14px; }
+.dica-balao li + li { margin-top: 2px; }
+.dica-balao strong { font-weight: 700; }
+.dica-balao code { font-family: var(--font-mono); font-size: 10px; color: inherit; background: none; }
 
 /* P-20 (fase 3): a filial guardada que deixou de ser permitida volta para a de casa, com aviso. */
 .cad-filial-aviso {

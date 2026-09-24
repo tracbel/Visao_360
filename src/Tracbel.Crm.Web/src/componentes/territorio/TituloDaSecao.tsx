@@ -21,8 +21,14 @@ export function TituloDaSecao({
   titulo: string;
   /** Uma frase curta. Se precisar de ponto e vírgula, é metodologia. */
   subtitulo?: ReactNode;
-  /** Fonte, método e ressalvas — vai para a dica ao lado do título. */
-  metodologia?: string;
+  /**
+   * Fonte, método e ressalvas — vai para a dica ao lado do título.
+   *
+   * Aceita lista desde a fidelidade às maquetes (23/09/2026): "Limitações dos
+   * dados" e "Como interpretar os indicadores" saíram do corpo da página e
+   * vieram para a dica do título da seção a que pertencem.
+   */
+  metodologia?: ReactNode;
   /** Uma ação secundária à direita do título — hoje só "Simular cenário". */
   acao?: ReactNode;
 }) {

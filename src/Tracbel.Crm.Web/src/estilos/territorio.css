@@ -81,22 +81,26 @@
 }
 
 /* SÃO QUATRO MAPAS: em três colunas o quarto (a estrutura agropecuária) ficava sozinho numa linha, com
-   dois terços dela vazios (21/09/2026). Então 2 × 2 nas larguras médias, os quatro lado a lado num
-   monitor largo e um por linha na tela estreita. */
+   dois terços dela vazios (21/09/2026). Então os quatro lado a lado, 2 × 2 nas larguras médias e um por
+   linha na tela estreita.
+
+   AS QUEBRAS SÃO PELA LARGURA DO CONTEÚDO, e não da janela (fidelidade às maquetes, 23/09/2026):
+   quatro colunas a partir de 1100px, 2 × 2 de 600 a 1099, uma abaixo de 600. A maquete mostra os
+   quatro numa linha numa coluna de ~1440px, e o usuário tem ~1224px de conteúdo — os quatro cabem.
+   Antes, o corte dos quatro lado a lado era 2100px de JANELA, largura que quase ninguém tem: na
+   prática a grade era sempre 2 × 2, e os mapas ocupavam duas dobras. */
 .terr-grade-mapas {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-4);
 }
 
-/* 2100px, e não 2000 (fase T4.6): a captura do harness em 1920 mostrou que os
-   quatro lado a lado só respiram acima disso — abaixo, cada mapa fica estreito
-   demais para distinguir município, e o cartão vira um selo colorido. */
-@media (min-width: 2100px) {
-  .terr-grade-mapas {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+@container indicadores (min-width: 600px) {
+  .terr-grade-mapas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container indicadores (min-width: 1100px) {
+  .terr-grade-mapas { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* -----------------------------------------------------------------------------
@@ -119,23 +123,49 @@
   gap: var(--e-1);
 }
 
+/* O CARTÃO DE MAPA. É uma coluna de altura cheia — o alternador é empurrado
+   para o pé por `margin-top: auto`, e sem a coluna ele não teria contra o que
+   empurrar.
+
+   ELE TAMBÉM É UM CONTÊINER DE MEDIDA (fidelidade às maquetes, 23/09/2026): com
+   os quatro lado a lado, cada cartão tem de 260 a 380px, e a legenda ao lado do
+   mapa — que cabe num cartão de 2 × 2 — espreme o mapa a uma tira. A regra da
+   legenda mede o CARTÃO, e não a página, porque é o cartão que ficou estreito.
+
+   (`.terr-mapa`, `.terr-mapa-resumo` e `.terr-mapa-foco` estavam declarados duas
+   ou três vezes neste arquivo, cada declaração anulando parte da anterior.
+   Ficou uma de cada, com os valores que valiam na tela.) */
+.terr-mapa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  padding: 14px 16px;
+  container: mapa / inline-size;
+}
+
+/* A LINHA DE NÚMEROS DE CADA MAPA (fase T4.9 — maquete): um número grande à
+   esquerda com o nome dele ao lado, e os metadados do recorte à direita,
+   separados por filete. O piso de duas linhas mantém os quatro alternadores no
+   mesmo eixo quando um resumo quebra e o outro não. */
 .terr-mapa-resumo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-4);
   min-height: calc(var(--t-apoio) * var(--lh-normal) * 2);
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-tertiary);
 }
 
+/* O município sob o cursor. Altura mínima de duas linhas: sem ela, o mapa pula a cada troca de foco. */
 .terr-mapa-foco {
-  min-height: calc(var(--t-meta) * var(--lh-normal));
-}
-
-/* UMA COLUNA SÓ NO CELULAR, e não já no notebook (protótipo `dashboard.css`).
-
-   Eu cortava em 1.100, e em 1024 a página ficava com 5.775px de rolagem: quatro
-   mapas de largura inteira, um embaixo do outro. O protótipo mantém 2×2 até
-   850px, que é onde a coluna fica estreita demais para distinguir município. */
-@media (max-width: 850px) {
-  .terr-grade-mapas {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  min-height: 2.6em;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-primary);
 }
 
 /* -----------------------------------------------------------------------------
@@ -166,53 +196,38 @@
   max-width: 120px;
 }
 
-@media (max-width: 560px) {
-  /* Numa coluna de 360px a legenda ao lado espreme o mapa: ela volta para baixo. */
+/* NUM CARTÃO ESTREITO A LEGENDA AO LADO ESPREME O MAPA: ela volta para baixo.
+
+   Era `@media (max-width: 560px)` — o celular, onde o cartão tem ~360px. Com os
+   quatro mapas lado a lado a partir de 1100px de conteúdo, o cartão tem essa
+   mesma largura num monitor comum, e a regra passou a medir o cartão
+   (fidelidade às maquetes, 23/09/2026). O desenho da legenda da maquete —
+   curta, ao lado — é o redesenho do interior dos mapas, fase seguinte. */
+@container mapa (max-width: 439px) {
   .terr-mapa-corpo { grid-template-columns: minmax(0, 1fr); }
   .terr-mapa-corpo .terr-legenda { flex-direction: row; flex-wrap: wrap; max-width: none; }
 }
 
+/* A ALTURA DO MAPA ACOMPANHA O ARRANJO DA GRADE, e é fixa em cada um — é o que
+   faz os quatro cartões terminarem no mesmo lugar. Os degraus eram por janela
+   (2100 / 1180 / 560); agora são os da grade, pela largura do conteúdo:
+   um por linha 250, 2 × 2 270, e os quatro lado a lado 200 — o cartão de um
+   quarto de linha é mais estreito que o de 2 × 2, e o desenho da ADR, que é
+   mais largo que alto, não enche 270px de altura nele. */
 .terr-mapa .terr-svg {
-  height: 310px;
+  height: 250px;
   object-fit: contain;
   border-radius: var(--radius);
   background: var(--surface-2, #FBFCFB);
   border: 1px solid var(--border);
 }
 
-@media (min-width: 2100px) {
-  .terr-mapa .terr-svg { height: 265px; }
-}
-
-@media (max-width: 1180px) {
+@container indicadores (min-width: 600px) {
   .terr-mapa .terr-svg { height: 270px; }
 }
 
-@media (max-width: 560px) {
-  .terr-mapa .terr-svg { height: 250px; }
-}
-
-.terr-mapa {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-}
-
-/* A LINHA DE NÚMEROS DE CADA MAPA: o total que a cor distribui, logo abaixo do título. */
-.terr-mapa-resumo {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--jd-green-dark);
-}
-
-/* O município sob o cursor. Altura mínima de duas linhas: sem ela, o mapa pula a cada troca de foco. */
-.terr-mapa-foco {
-  min-height: 2.6em;
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-primary);
+@container indicadores (min-width: 1100px) {
+  .terr-mapa .terr-svg { height: 200px; }
 }
 
 .terr-periodo {
@@ -401,10 +416,24 @@
   padding: 0 16px 16px;
 }
 
-@media (min-width: 1200px) {
+/* A FICHA MEDE A SI MESMA (fidelidade às maquetes, 23/09/2026). As duas colunas
+   eram forçadas a partir de 1200px de JANELA — o que valia quando a ficha tinha
+   a largura da página. Ao lado da tabela ela tem ~460px, e duas colunas ali
+   davam 210px a cada par rótulo/valor: "8.000 ha" quebrava em três linhas. As
+   duas colunas agora dependem da largura da FICHA. */
+.terr-territorio-ficha { container: ficha / inline-size; }
+
+@container ficha (min-width: 640px) {
   .terr-detalhe-grade {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Os quatro números de decisão da ficha, numa ficha estreita, ficam 2 × 2: são
+   cartões de número grande, e quatro deles em 460px partiam "4 máq/ano" em
+   pedaços. O cartãozinho compacto da maquete é o redesenho da ficha, adiante. */
+@container ficha (max-width: 639px) {
+  .terr-detalhe .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* A TABELA DE RESPONSÁVEIS OCUPA A LINHA INTEIRA. Numa coluna de 260 px ela
@@ -536,19 +565,22 @@
    A ficha GRUDA no topo enquanto a tabela rola: ela é o detalhe da linha
    escolhida, e some da vista assim que a lista anda alguns nomes.
    ----------------------------------------------------------------------------- */
+/* LADO A LADO A PARTIR DE 1150px DE CONTEÚDO, na proporção da maquete (~62/38:
+   a tabela tem nove colunas, a ficha tem pares rótulo/valor). Abaixo disso a
+   ficha desce para baixo da tabela. Era 1200px de JANELA com 7/5 — e numa
+   janela de 1536 com menu lateral, a regra achava que tinha espaço que o
+   conteúdo não tinha (fidelidade às maquetes, 23/09/2026). */
 .terr-territorio { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-4); }
 
-.terr-territorio-com-ficha { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; }
+.terr-territorio-ficha { min-width: 0; }
 
-@media (max-width: 1200px) {
-  .terr-territorio-com-ficha { grid-template-columns: minmax(0, 1fr); }
-}
+@container indicadores (min-width: 1150px) {
+  .terr-territorio-com-ficha { grid-template-columns: minmax(0, 62fr) minmax(0, 38fr); align-items: start; }
 
-@media (min-width: 1201px) {
+  /* A FICHA SÓ GRUDA QUANDO ESTÁ AO LADO: embaixo da tabela, grudada no topo,
+     ela cobriria a própria tabela ao rolar. */
   .terr-territorio-ficha { position: sticky; top: var(--e-4); }
 }
-
-.terr-territorio-ficha { min-width: 0; }
 
 /* -----------------------------------------------------------------------------
    A TABELA DE MUNICÍPIOS (item 12 da fase T4.6)
@@ -657,8 +689,12 @@
    fazia a lista de uma coluna em 390px.
 
    O escopo é só esta tabela: as telas de cadastro não são cobertas por esta fase
-   e o harness não consegue conferi-las. */
-@media (max-width: 768px) {
+   e o harness não consegue conferi-las.
+
+   OS DEGRAUS SÃO PELA LARGURA DO CONTEÚDO (fidelidade às maquetes, 23/09/2026):
+   cinco colunas abaixo de 760px, duas abaixo de 520px. Eram 768 e 560 de janela
+   — os mesmos aparelhos, medidos agora pelo que a tabela de fato tem. */
+@container indicadores (max-width: 759px) {
   .terr-tabela-municipios .cad-tabela { min-width: 0; }
 
   .terr-tabela-municipios th:nth-child(3),
@@ -678,7 +714,7 @@
    invisível, que é pior que dado adiado. Ficam o município e as vendas; o resto
    está inteiro na ficha, a um toque. Sai também a região/loja, que se repete por
    dezenas de linhas e não é o que se procura num celular. */
-@media (max-width: 560px) {
+@container indicadores (max-width: 519px) {
   .terr-tabela-municipios th:nth-child(2),
   .terr-tabela-municipios th:nth-child(5),
   .terr-tabela-municipios th:nth-child(8),
@@ -850,19 +886,68 @@
    a diretoria não aprenda dois jeitos de trocar de aba no mesmo sistema.
    --------------------------------------------------------------------------- */
 
+/* A BARRA DAS ABAS (fidelidade às maquetes, 23/09/2026): as abas à esquerda e,
+   à direita, o controle da aba — o "Comparar com período anterior" de Mercado,
+   onde a maquete o põe. O filete de baixo corre pelas duas partes, para a linha
+   ler como uma só.
+
+   ELA PENDE DO CARTÃO DE FILTROS: na maquete as abas ficam a ~8px dele, mais
+   perto do que o cartão está do cabeçalho — filtros e abas são o mesmo recorte.
+   A margem negativa desconta metade do espaço entre os blocos da página.
+
+   Em conteúdo estreito o controle desce para uma segunda linha, sem filete. */
+.terr-abas-barra {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  margin-top: calc(-1 * var(--e-2));
+}
+
 .terr-abas {
   display: flex;
   gap: 4px;
-  padding: 0 4px;
-  margin: 16px 0 8px;
+  min-width: 0;
+  margin: 0;
   border-bottom: 1px solid var(--border);
 }
+
+.terr-abas-acessorio {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-bottom: 1px solid var(--border);
+}
+
+@container indicadores (max-width: 719px) {
+  .terr-abas-barra { grid-template-columns: minmax(0, 1fr); }
+
+  .terr-abas-acessorio {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    padding-top: var(--e-2);
+    border-bottom: 0;
+  }
+
+  .terr-abas-acessorio .dash-secao-controle { flex-wrap: wrap; }
+}
+
+/* O PAINEL DA ABA É UMA COLUNA COM O RITMO DA MAQUETE: 24px entre os blocos.
+   Os blocos eram irmãos sem espaço entre eles — a régua do mercado encostava
+   nos cartões, e o título dos mapas, na régua. */
+.terr-aba-painel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-5);
+}
+
+.terr-aba-painel > * { min-width: 0; }
 
 .terr-aba {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 18px;
+  /* Mais baixa que antes (12px em cima e embaixo): a maquete tem ~36px de aba. */
+  padding: var(--e-2) var(--e-4);
   border: 0;
   background: transparent;
   color: var(--text-secondary);
@@ -1082,15 +1167,8 @@
   gap: var(--e-2);
 }
 
-.terr-mapa-resumo {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--e-2) var(--e-4);
-  color: var(--text-tertiary);
-  font-weight: 400;
-}
+/* (`.terr-mapa-resumo` — a linha de número e metadados — está declarada uma vez
+   só, junto do cartão, lá em cima.) */
 
 .terr-mapa-principal {
   display: inline-flex;
@@ -1142,9 +1220,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 560px) {
-  /* Numa coluna estreita os metadados descem para baixo do número, sem filete —
-     uma borda vertical entre dois itens empilhados não divide nada. */
+/* Com um mapa por linha, numa coluna de celular, os metadados descem para baixo
+   do número, sem filete — uma borda vertical entre dois itens empilhados não
+   divide nada. (Era 560px de janela; é o arranjo de uma coluna, abaixo de 600px
+   de conteúdo.) */
+@container indicadores (max-width: 599px) {
   .terr-mapa-meta { margin-left: 0; }
   .terr-mapa-meta-item { padding-left: 0; border-left: 0; }
 }
@@ -1164,13 +1244,19 @@
   text-align: center;
 }
 
-/* Com o alternador colado embaixo, o cartão precisa ser uma coluna de altura
-   cheia — senão `margin-top: auto` não tem contra o que empurrar. */
-.terr-mapa {
-  display: flex;
-  flex-direction: column;
-  gap: var(--e-2);
+/* NUM CARTÃO ESTREITO O ALTERNADOR QUEBRA EM DUAS LINHAS em vez de cortar o
+   último botão (fidelidade às maquetes, 23/09/2026): com os quatro mapas lado a
+   lado, os cinco botões da estrutura agropecuária ("Usinas de etanol" por
+   último) não cabem em 260px, e o alternador recorta o que passa
+   (`overflow: hidden`). Fica DEPOIS da regra de cima de propósito: a consulta
+   de contêiner não soma especificidade, e quem vem depois ganha. */
+@container mapa (max-width: 439px) {
+  .terr-mapa > .terr-alternador { flex-wrap: wrap; }
+  .terr-mapa > .terr-alternador button { flex: 1 1 auto; padding: 6px 8px; }
 }
+
+/* (A coluna de altura cheia do cartão, que o `margin-top: auto` acima precisa,
+   está declarada uma vez só, em `.terr-mapa`, lá em cima.) */
 
 /* -----------------------------------------------------------------------------
    A BARRA DE FERRAMENTAS DA TABELA DE MUNICÍPIOS (maquete)
@@ -1252,9 +1338,10 @@
 
 .terr-abrir-ficha:hover { background: var(--jd-green); border-color: var(--jd-green); color: var(--text-inverse); }
 
-/* Abaixo de 768px a coluna de ação sai: o nome do município já abre a ficha, e
-   uma coluna de 26px numa tela de mão é o que empurra as outras para fora. */
-@media (max-width: 768px) {
+/* Abaixo de 760px de conteúdo a coluna de ação sai: o nome do município já abre
+   a ficha, e uma coluna de 26px numa tela de mão é o que empurra as outras para
+   fora. (Era 768px de janela — o mesmo degrau das cinco colunas.) */
+@container indicadores (max-width: 759px) {
   .terr-tabela-municipios .terr-coluna-acao { display: none; }
 }
 

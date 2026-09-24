@@ -1,18 +1,33 @@
 /**
  * A aba Mercado — os cinco blocos do documento 50, §4.
  *
- *   1. O mercado da região        4. Momento do mercado
- *   2. Visão geográfica           5. Performance Tracbel
- *   3. Potencial estrutural
+ * A ORDEM É A DA MAQUETE DE RENTABILIDADE E CRÉDITO (decisão do usuário,
+ * 23/09/2026):
+ *
+ *   1. O mercado da região — os quatro números de decisão, logo abaixo das abas
+ *   2. Momento do mercado — em LARGURA INTEIRA
+ *   3. A régua do mercado — momento, porte e os cinco números estruturais
+ *   4. Visão geográfica — os quatro mapas
+ *   5. Potencial estrutural e Performance Tracbel, lado a lado
+ *
+ * POR QUE O MOMENTO SAIU DA LINHA DE BAIXO. Ele era um terço de uma linha de
+ * três colunas, e dentro dele moram Rentabilidade e Crédito — tabela, gráfico e
+ * ranking espremidos em ~400px. Era a causa da "rolagem infinita" de Crédito: o
+ * painel crescia para baixo o que não tinha de largura. A maquete o põe em
+ * largura inteira, logo depois dos quatro números, e é ela que manda.
  *
  * OS QUATRO MAPAS FICAM AQUI, juntos e lado a lado. É a parte da tela que
  * funciona, e é a resposta à pergunta "onde está o mercado" — mandar a diretoria
  * trocar para Território para ver o território seria perder o que ela tem de
- * melhor. Eles mudaram de posição na página; por dentro, nada.
+ * melhor.
+ *
+ * A FICHA DO MUNICÍPIO NÃO MORA MAIS AQUI (fidelidade às maquetes). Ela aparecia
+ * embaixo dos mapas E ao lado da tabela de Território — duas casas para o mesmo
+ * detalhe. Agora clicar num município no mapa escolhe o município (a URL, issue
+ * 163) e leva para Território, onde a ficha abre ao lado da linha dele.
  */
 
 import { Sprout } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { InfoTooltip } from '../InfoTooltip';
 import type { ContextoDeAcesso } from '../../dados/api/http';
 import type {
@@ -56,7 +71,6 @@ export function AbaDeMercado({
   nomeDoMunicipio,
   produtosDoMunicipio,
   mostrarOsMapas,
-  ficha,
 }: {
   kpisDoMercado: Indicador[];
   carregando: boolean;
@@ -80,24 +94,33 @@ export function AbaDeMercado({
   produtosDoMunicipio: readonly number[];
   /** Se a grade pode ser desenhada — há resposta, há malha e o território está carregado. */
   mostrarOsMapas: boolean;
-  /** A ficha do município escolhido, montada uma vez pela casca. */
-  ficha: ReactNode;
 }) {
   const predominante = indicadores?.momento?.predominante ?? null;
 
   return (
     <>
-      <SecaoDoMercadoDaRegiao />
+      {/* OS QUATRO NÚMEROS DE DECISÃO vêm primeiro (documento 50, §4.1), logo
+          abaixo das abas — o título da seção fica só para o leitor de tela. */}
+      <SecaoDoMercadoDaRegiao>
+        <KpisExecutivos
+          momento={indicadores?.momento ?? null}
+          demandaEstrutural={recorte?.demandaAnualDeMaquinas ?? null}
+          demandaDeSaoPaulo={null}
+          carregando={carregando}
+          procedenciaDaDemanda={indicadores?.momento?.procedencia ?? null}
+        />
+      </SecaoDoMercadoDaRegiao>
 
-      {/* OS QUATRO NÚMEROS DE DECISÃO vêm primeiro (documento 50, §4.1), e o
-          porte e o momento logo abaixo — dois números, nunca um. */}
-      <KpisExecutivos
+      {/* O MOMENTO EM LARGURA INTEIRA (maquete de rentabilidade e crédito). Por
+          dentro ele não mudou nesta fase: abas, cartões e tabelas são os de
+          antes — o redesenho do interior é a fase 3. */}
+      <BlocoDoMomento
+        municipioSelecionado={municipioCodigoIbge}
+        nomeDoMunicipio={nomeDoMunicipio}
+        produtosDoMunicipio={produtosDoMunicipio}
         momento={indicadores?.momento ?? null}
-        demandaEstrutural={recorte?.demandaAnualDeMaquinas ?? null}
-        demandaDeSaoPaulo={null}
-        carregando={carregando}
-        procedenciaDaDemanda={indicadores?.momento?.procedencia ?? null}
       />
+
       {/* MOMENTO, PORTE E O QUE A REGIÃO TEM, NUMA RÉGUA SÓ (fase T4.8).
 
           Eram dois blocos brancos empilhados — a faixa de porte e momento e a
@@ -111,9 +134,17 @@ export function AbaDeMercado({
           titulo="Visão geográfica"
           subtitulo="Compare os municípios sob quatro perspectivas."
           metodologia={
-            'Os quatro mapas usam o mesmo enquadramento: o mesmo município fica no mesmo lugar nos quatro, e o ' +
-            'cursor sobre ele mostra o número dele em todos ao mesmo tempo. Clicar abre a ficha do município e ' +
-            'passa a valer para a página inteira.'
+            <>
+              <p>
+                Os quatro mapas usam o mesmo enquadramento: o mesmo município fica no mesmo lugar nos quatro, e o
+                cursor sobre ele mostra o número dele em todos ao mesmo tempo. Clicar num município escolhe o
+                município para a página inteira e abre a ficha dele na aba Território.
+              </p>
+              {/* AS LIMITAÇÕES DOS DADOS MORAM AQUI (fidelidade às maquetes,
+                  23/09/2026). Eram um `<details>` embaixo dos mapas, que a
+                  maquete não tem; a lista e o rodapé são os mesmos, inteiros. */}
+              <MetricasSemDado metricas={metricasSemDado} titulo="Limitações dos dados" naDica />
+            </>
           }
           // A CULTURA PREDOMINANTE VIRA O SELO DA SEÇÃO (protótipo, §.meta-chip).
           //
@@ -155,45 +186,21 @@ export function AbaDeMercado({
             classificacaoDe={classificacaoDe}
           />
         )}
-        {ficha}
-        {/* AUDITORIA É NÍVEL 4 (issue 33): fica na tela, inteira, mas recolhida —
-            ela não pode competir com mercado, potencial e mapas. */}
-        <MetricasSemDado metricas={metricasSemDado} titulo="Limitações dos dados" compacto />
       </section>
 
-      {/* OS TRÊS PAINÉIS DO RODAPÉ FICAM LADO A LADO (fase T4.7).
+      {/* A LINHA FINAL: POTENCIAL E PERFORMANCE, LADO A LADO.
 
-          Empilhados, cada um esticado de ponta a ponta, eles faziam mil e
-          duzentos pixels de rolagem para responder três perguntas que se olham
-          juntas: o que a área comporta, como o mercado está agora, e quanto a
-          Tracbel leva. Lado a lado, a leitura é uma só — e é a composição que
-          justifica a largura do container, em vez de deixá-la virar corredor.
-
-          Abaixo de 1400px eles voltam a empilhar: três colunas de 400px com
-          tabela e gráfico dentro não são três painéis, são três becos. */}
-      {/* OS TRÊS PAINÉIS DO RODAPÉ, LADO A LADO — como na imagem base.
-
-          O HTML do protótipo põe dois e um (Potencial e Momento juntos,
-          Performance em largura inteira), mas a MAQUETE mostra os três numa
-          linha, e é ela que manda: eles respondem três perguntas que se olham
-          juntas — o que a área comporta, como o mercado está agora, e quanto a
-          Tracbel leva.
-
-          Abaixo de 1400px eles empilham: três colunas de 400px com tabela e
-          gráfico dentro não são três painéis, são três becos. */}
-      <div className="dash-tres-colunas">
+          Eram três painéis (com o Momento no meio) — a maquete de visão geral
+          os mostrava assim. Com o Momento em largura inteira lá em cima (decisão
+          de 23/09/2026), ficam os dois que se leem juntos: o que a área comporta
+          e quanto a Tracbel leva. A proporção 5 : 4 é a da maquete; abaixo de
+          1000px de conteúdo eles empilham. */}
+      <div className="dash-linha-final">
         <BlocoDePotencial
           recorte={recorte}
           semFiltro={semFiltro}
           contexto={contexto}
           municipioCodigoIbge={municipioCodigoIbge}
-        />
-
-        <BlocoDoMomento
-          municipioSelecionado={municipioCodigoIbge}
-          nomeDoMunicipio={nomeDoMunicipio}
-          produtosDoMunicipio={produtosDoMunicipio}
-          momento={indicadores?.momento ?? null}
         />
 
         <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} />

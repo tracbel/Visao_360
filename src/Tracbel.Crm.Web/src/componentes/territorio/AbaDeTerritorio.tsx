@@ -15,8 +15,9 @@
  * painéis vazios agora só encheria a aba.
  */
 
-import type { IndicadoresDoMunicipio, IndicadoresForaDoMapa } from '../../tipos/territorio';
+import type { ClassificacaoDeIndicador, IndicadoresDoMunicipio, IndicadoresForaDoMapa } from '../../tipos/territorio';
 import { PainelDeIndicadores, type Indicador } from '../cadastro/Indicadores';
+import { ComoLerEstesNumeros } from './ComoLerEstesNumeros';
 import { TabelaDeMunicipios } from './TabelaDeMunicipios';
 import { TituloDaSecao } from './TituloDaSecao';
 import type { TotaisDaAdr } from './totaisDaAdr';
@@ -34,6 +35,7 @@ export function AbaDeTerritorio({
   aoSelecionar,
   territorioNaoCarregado,
   semFiltro,
+  classificacoes,
   ficha,
 }: {
   kpisDaCarteira: Indicador[];
@@ -48,15 +50,24 @@ export function AbaDeTerritorio({
   aoSelecionar: (codigo: number) => void;
   territorioNaoCarregado: boolean;
   semFiltro: boolean;
+  /** Os selos de como ler cada indicador — vão para a dica do título. */
+  classificacoes: ClassificacaoDeIndicador[];
   ficha: ReactNode;
 }) {
   return (
     <>
-      <TituloDaSecao
-        titulo="A carteira na área de atuação"
-        subtitulo="Quem está coberto, quanto foi vendido e quanto a área comporta — a leitura de quem trabalha o território."
-      />
-      <PainelDeIndicadores indicadores={kpisDaCarteira} carregando={carregando} />
+      <section data-bloco="carteira-na-area">
+        <TituloDaSecao
+          titulo="A carteira na área de atuação"
+          subtitulo="Quem está coberto, quanto foi vendido e quanto a área comporta — a leitura de quem trabalha o território."
+          // "COMO INTERPRETAR OS INDICADORES" MORA AQUI TAMBÉM (fidelidade às
+          // maquetes, 23/09/2026): era um `<details>` acima das abas, valendo
+          // para as duas; a maquete não o tem, e o texto foi para a dica do
+          // primeiro título de cada aba.
+          metodologia={classificacoes.length > 0 ? <ComoLerEstesNumeros classificacoes={classificacoes} /> : undefined}
+        />
+        <PainelDeIndicadores indicadores={kpisDaCarteira} carregando={carregando} />
+      </section>
 
       {/* A FICHA FICA AO LADO DA TABELA, e não abaixo (fase T4.7).
 

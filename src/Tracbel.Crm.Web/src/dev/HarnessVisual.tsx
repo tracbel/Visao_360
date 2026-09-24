@@ -243,7 +243,14 @@ export function HarnessVisual() {
           key={estado}
           initialEntries={[comFicha ? `/cobertura?${MUNICIPIO_DA_FICHA}=${3500105}` : '/cobertura']}
         >
-          <div className="app-content" style={{ padding: 16 }}>
+          {/* AS MESMAS CLASSES DA ÁREA DE CONTEÚDO DO `Layout` (fidelidade às
+              maquetes, 23/09/2026). Era uma `div` com 16px de folga, e a tela
+              de verdade tem 32px de cada lado (24 em cima) — a captura de 1300
+              mostrava 32px de conteúdo a mais do que o usuário vê numa janela
+              de 1300px de conteúdo. Com as classes reais, a largura da janela do
+              harness É a largura da coluna de conteúdo do aplicativo, e as
+              quebras medidas aqui são as que ele vai ver. */}
+          <div className="content conteudo-cadastro conteudo-largo">
             <IndicadoresGeograficos />
           </div>
         </MemoryRouter>

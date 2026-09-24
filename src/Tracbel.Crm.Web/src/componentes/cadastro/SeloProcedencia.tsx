@@ -22,21 +22,33 @@ function formatarInstante(iso: string): string {
   return data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
+/**
+ * A procedência inteira numa frase — sistema, objeto, instante e ressalva.
+ *
+ * Os dois desenhos do carimbo (o selo e a linha "Dados atualizados em…") usam
+ * esta mesma frase na dica: duas redações da mesma procedência são como elas
+ * passam a discordar.
+ */
+function detalheDaProcedencia(procedencia: Procedencia): string {
+  const maisRecente = procedencia.dadoMaisRecenteEm ? formatarInstante(procedencia.dadoMaisRecenteEm) : null;
+  return (
+    `${procedencia.sistema} · ${procedencia.objeto}. ` +
+    `Lido em ${formatarInstante(procedencia.lidoEmUtc)}` +
+    (maisRecente ? `. Alteração mais recente na origem: ${maisRecente}` : '') +
+    (procedencia.aviso ? `. ${procedencia.aviso}` : '')
+  );
+}
+
 export function SeloProcedencia({ procedencia }: { procedencia: Procedencia | null }) {
   if (!procedencia) return null;
 
   const lidoEm = formatarInstante(procedencia.lidoEmUtc);
-  const maisRecente = procedencia.dadoMaisRecenteEm ? formatarInstante(procedencia.dadoMaisRecenteEm) : null;
   const velho = procedencia.estaDesatualizado;
 
   // O DETALHE SAIU DO `title=` E VIROU DICA (issue 167): o `title` do navegador
   // não abre pelo teclado nem no toque, e o texto longo — que é o nosso caso,
   // porque ele diz sistema, objeto, instante e ressalva — vem cortado.
-  const detalhe =
-    `${procedencia.sistema} · ${procedencia.objeto}. ` +
-    `Lido em ${lidoEm}` +
-    (maisRecente ? `. Alteração mais recente na origem: ${maisRecente}` : '') +
-    (procedencia.aviso ? `. ${procedencia.aviso}` : '');
+  const detalhe = detalheDaProcedencia(procedencia);
 
   return (
     <span className={`cad-procedencia${velho ? ' cad-procedencia-velha' : ''}`}>
@@ -60,6 +72,30 @@ export function SeloProcedencia({ procedencia }: { procedencia: Procedencia | nu
       {velho && <span className="cad-procedencia-alerta">dado desatualizado</span>}
       <InfoTooltip texto={detalhe} rotulo="De onde vem o dado desta tela" />
     </span>
+  );
+}
+
+/**
+ * O CARIMBO EM UMA LINHA — "Dados atualizados em 23/09/2026, 18:26 ⓘ".
+ *
+ * É o desenho da maquete da tela de Indicadores Geográficos (fidelidade às
+ * maquetes, 23/09/2026). O selo inteiro — sistema, objeto e instante — ocupava
+ * uma segunda linha no canto do cabeçalho, e a maquete reserva ali uma frase
+ * curta. NADA DO SELO SE PERDEU: a mesma frase de procedência que o selo põe na
+ * dica dele está na dica desta linha.
+ *
+ * O DADO VELHO CONTINUA ESCRITO NA TELA, e não só na dica. É um alerta, e não
+ * metadado: ele só aparece quando a origem parou, e é justamente o que não pode
+ * ficar a um passo de distância — foi assim que 17 meses de faturamento parado
+ * passaram por atual no legado.
+ */
+export function DadosAtualizadosEm({ procedencia }: { procedencia: Procedencia }) {
+  return (
+    <>
+      Dados atualizados em {formatarInstante(procedencia.lidoEmUtc)}
+      {procedencia.estaDesatualizado && <span className="cad-procedencia-alerta">dado desatualizado</span>}
+      <InfoTooltip texto={detalheDaProcedencia(procedencia)} rotulo="De onde vem o dado desta tela" />
+    </>
   );
 }
 

@@ -32,10 +32,33 @@
   width: 100%;
   max-width: 1580px;
   margin-inline: auto;
-  padding-inline: var(--e-5);
+
+  /* SEM FOLGA LATERAL PRÓPRIA (fidelidade às maquetes, 23/09/2026). A área de
+     conteúdo do `Layout` já dá 32px de cada lado; os 24px que a página somava
+     faziam 56px de margem, e a maquete tem ~30. */
+  padding-inline: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--e-6);
+
+  /* O RITMO VERTICAL DA MAQUETE, medido nela em 1672px: cabeçalho → cartão de
+     filtros ~16px, e o mesmo entre os blocos de cima. Eram 32px entre tudo, e a
+     primeira dobra era metade espaço vazio. */
+  gap: var(--e-4);
+
+  /* A PÁGINA É O CONTÊINER DAS QUEBRAS (fidelidade às maquetes, 23/09/2026).
+
+     Toda quebra de arranjo desta tela era `@media` pela largura da JANELA — e o
+     conteúdo não é a janela: é a janela menos 248px de menu lateral e 64px de
+     folga. Num notebook de 1536px (125% de zoom) a coluna de conteúdo tem
+     ~1224px, e as regras achavam que tinham 1536: os três painéis do rodapé
+     ficavam lado a lado em colunas de 400px e o Crédito crescia para baixo o
+     que não tinha de largura — a "rolagem infinita". Os quatro mapas só ficavam
+     lado a lado acima de 2100px de janela, largura que quase ninguém tem.
+
+     Agora as quebras usam `@container indicadores`, medidas na largura desta
+     página. O mesmo arranjo aparece com a mesma largura de conteúdo, com ou sem
+     menu lateral, com qualquer zoom. */
+  container: indicadores / inline-size;
 }
 
 /* A LARGURA É RESPONSIVA, e não um número só (protótipo `dashboard.css`, §.page).
@@ -60,11 +83,12 @@
    grande e quebra o celular. */
 .dash-pagina > * { min-width: 0; }
 
-@media (max-width: 768px) {
-  .dash-pagina {
-    padding-inline: var(--e-4);
-    gap: var(--e-5);
-  }
+/* NA TELA DE MÃO a área de conteúdo do `Layout` desce para 12px de folga (a
+   regra dela é por janela, abaixo de 900px), e 12px é pouco para um cartão com
+   sombra: a página devolve 4px. É `@media` de propósito — compensa uma regra de
+   janela, e não um arranjo. */
+@media (max-width: 900px) {
+  .dash-pagina { padding-inline: var(--e-1); }
 }
 
 /* A SEÇÃO É SEPARADA POR ESPAÇO, não por borda: quando todo bloco tem moldura,
@@ -87,66 +111,57 @@
    A coluna da esquerda é a mais estreita de propósito: lista e resumo ficam
    melhores em coluna curta, e o gráfico é quem precisa de largura.
 
-   Abaixo de 1200px volta a ser uma coluna: duas colunas de 400px não são duas
-   colunas, são duas colunas ruins.
+   Abaixo de 1000px DE CONTEÚDO volta a ser uma coluna: duas colunas de 450px
+   não são duas colunas, são duas colunas ruins. (Era 1200px de janela; com a
+   folga da página e do menu, dá a mesma largura de conteúdo — ver
+   `.dash-pagina`.)
    ----------------------------------------------------------------------------- */
 .dash-duas-colunas {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--e-4);
   align-items: start;
 }
 
-/* O PAR DE PAINÉIS ANALÍTICOS divide meio a meio: nenhum dos dois é o
-   "secundário" do outro. A proporção 5/7 é para leitura × forma, que é o caso do
-   ranking ao lado do gráfico. */
-.dash-analitico { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container indicadores (min-width: 1000px) {
+  .dash-duas-colunas { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+
+  /* O PAR DE PAINÉIS ANALÍTICOS divide meio a meio: nenhum dos dois é o
+     "secundário" do outro. A proporção 5/7 é para leitura × forma, que é o
+     caso do ranking ao lado do gráfico. */
+  .dash-analitico { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* -----------------------------------------------------------------------------
-   TRÊS COLUNAS NO RODAPÉ — como na imagem base
+   A LINHA FINAL DA ABA MERCADO — Potencial estrutural e Performance Tracbel
 
-   Potencial estrutural, Momento do mercado e Performance Tracbel respondem três
-   perguntas que se olham JUNTAS: o que a área comporta, como o mercado está
-   agora, e quanto a Tracbel leva.
+   ERAM TRÊS COLUNAS, com o Momento do mercado no meio (maquete de visão geral).
+   A decisão de 23/09/2026 levou o Momento para largura inteira, logo abaixo dos
+   quatro números (maquete de rentabilidade e crédito): dentro dele moram
+   Rentabilidade e Crédito, com tabela, gráfico e ranking, e num terço de linha
+   eles cresciam para baixo o que não tinham de largura. Ficam aqui os dois que
+   se leem juntos — o que a área comporta e quanto a Tracbel leva.
+
+   5 : 4 é a proporção da maquete (500 : 386 nos três; o potencial tem o
+   alternador e a calculadora, e precisa da coluna maior). Abaixo de 1000px de
+   conteúdo eles empilham.
 
    `align-items: start` impede o painel mais curto de esticar até a altura do
    mais alto — vazio dentro de caixa parece falta.
+
+   AS REGRAS DE "GRADE DE KPI DENTRO DE UM TERÇO" SAÍRAM COM A TERCEIRA COLUNA:
+   elas existiam para os cartões de Rentabilidade e Crédito espremidos no meio,
+   e esses cartões agora têm a largura inteira.
    ----------------------------------------------------------------------------- */
-.dash-tres-colunas {
+.dash-linha-final {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--e-5);
   align-items: start;
 }
 
-@media (max-width: 1400px) {
-  .dash-tres-colunas { grid-template-columns: minmax(0, 1fr); gap: var(--e-6); }
-}
-
-/* Dentro de uma coluna de um terço, a grade de KPI do painel vira uma por linha:
-   quatro cartões em 480px viram quatro tarjas. */
-.dash-tres-colunas .dash-kpis,
-.dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: minmax(0, 1fr); }
-
-.dash-tres-colunas .dash-duas-colunas { grid-template-columns: minmax(0, 1fr); }
-
-@media (max-width: 1400px) {
-  .dash-tres-colunas .dash-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
-@media (max-width: 1100px) {
-  .dash-tres-colunas .dash-kpis,
-  .dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 560px) {
-  .dash-tres-colunas .dash-kpis,
-  .dash-tres-colunas .dash-kpis[data-colunas='3'] { grid-template-columns: minmax(0, 1fr); }
-}
-
-@media (max-width: 1200px) {
-  .dash-duas-colunas { grid-template-columns: minmax(0, 1fr); }
+@container indicadores (min-width: 1000px) {
+  .dash-linha-final { grid-template-columns: minmax(0, 5fr) minmax(0, 4fr); }
 }
 
 /* A coluna da leitura empilha resumo e lista com o mesmo respiro do resto. */
@@ -298,7 +313,7 @@
    ----------------------------------------------------------------------------- */
 .dash-kpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--e-4);
 }
 
@@ -309,23 +324,28 @@
    para Captura e Não capturado. Na captura de 1440 isso lê como cartão que não
    carregou, e não como espaço reservado. O layout volta a quatro colunas quando
    a issue 69 trouxer os dois que faltam; até lá, três números fazem três
-   colunas. */
-.dash-kpis[data-colunas='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+   colunas.
 
-/* A grade de TRÊS desce mais tarde: três cartões de ~320px cabem bem em 1024, e
-   quebrar ali daria 2 + 1, com o terceiro sozinho numa linha — o mesmo desenho
-   desequilibrado que a quarta coluna vazia produzia. */
-@media (max-width: 1100px) {
-  .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+   AS QUEBRAS SÃO PELA LARGURA DO CONTEÚDO (fidelidade às maquetes, 23/09/2026):
+   quatro colunas a partir de 900px, duas a partir de 520px, uma abaixo disso.
+   Era 1100px de JANELA para as quatro — e numa janela de 1024 a coluna de
+   conteúdo tem 960px, onde os quatro cabem folgados numa linha, como na
+   maquete.
 
-@media (max-width: 900px) {
+   A grade de TRÊS desce mais tarde: três cartões de ~230px cabem a partir de
+   700px, e quebrar antes daria 2 + 1, com o terceiro sozinho numa linha — o
+   mesmo desenho desequilibrado que a quarta coluna vazia produzia. */
+@container indicadores (min-width: 520px) {
+  .dash-kpis,
   .dash-kpis[data-colunas='3'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 560px) {
-  .dash-kpis,
-  .dash-kpis[data-colunas='3'] { grid-template-columns: minmax(0, 1fr); }
+@container indicadores (min-width: 700px) {
+  .dash-kpis[data-colunas='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@container indicadores (min-width: 900px) {
+  .dash-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 .dash-kpi {
@@ -491,9 +511,13 @@
 
    O divisor vertical é o que transforma sete números numa régua em vez de numa
    lista: o olho corre por ela sem precisar de espaço grande entre os itens. */
+/* AS QUEBRAS SÃO PELA LARGURA DO CONTEÚDO (fidelidade às maquetes, 23/09/2026):
+   a régua inteira numa linha a partir de 1100px — é como a maquete a mostra, e
+   numa coluna de 1224px as sete células cabem. Abaixo, os mesmos degraus de
+   antes (4 → 3 → 2 → 1), convertidos de largura de janela para de conteúdo. */
 .dash-faixa {
   display: grid;
-  grid-template-columns: 1.25fr 1.1fr repeat(5, 0.75fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -504,38 +528,51 @@
 .dash-faixa > * {
   padding: var(--e-3) var(--e-4);
   border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   min-width: 0;
 }
 
 .dash-faixa > *:last-child { border-right: 0; }
 
-@media (max-width: 1450px) {
-  .dash-faixa { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .dash-faixa > * { border-bottom: 1px solid var(--border); }
-}
-
-@media (max-width: 1180px) {
-  .dash-faixa { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
-@media (max-width: 850px) {
+@container indicadores (min-width: 480px) {
   .dash-faixa { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 560px) {
-  .dash-faixa { grid-template-columns: minmax(0, 1fr); }
+@container indicadores (min-width: 700px) {
+  .dash-faixa { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@container indicadores (min-width: 900px) {
+  .dash-faixa { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* NUMA LINHA SÓ não há linha de baixo para separar: o filete inferior sai. */
+@container indicadores (min-width: 1100px) {
+  .dash-faixa { grid-template-columns: 1.25fr 1.1fr repeat(5, 0.75fr); }
+  .dash-faixa > * { border-bottom: 0; }
 }
 
 /* O VALOR EM CIMA, O NOME EMBAIXO (protótipo, §.mini-stat). Lado a lado, num
    grid de sete células o rótulo longo ("Parque de tratores") empurrava o número
-   da célula vizinha para fora do eixo. */
+   da célula vizinha para fora do eixo.
+
+   O ITEM É DE DUAS COLUNAS: selo quadrado à esquerda, número e nome empilhados
+   à direita — que é o desenho da maquete (fase T4.9).
+
+   O CORPO É UM ENVOLTÓRIO, e não linhas soltas da grade: o ⓘ e a procedência
+   precisam ficar NA LINHA do rótulo. Soltos, cada um ganhava uma terceira e uma
+   quarta linha da grade, e a célula do trator ficava duas vezes mais alta que a
+   do rebanho, que não tem dica.
+
+   (Esta regra estava escrita duas vezes — a segunda, da T4.9, anulava metade da
+   primeira. Ficou uma, com os valores que valiam na tela.) */
 .dash-faixa-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px var(--e-2);
+  align-items: center;
   font-size: var(--t-apoio);
   color: var(--text-tertiary);
-  align-items: flex-start;
 }
 
 .dash-faixa-valor {
@@ -563,7 +600,8 @@
 }
 
 /* A PÍLULA NOMEIA A FAIXA, e é a leitura que se faz de longe. Fundo suave, texto
-   escuro: contraste de leitura, não de alarme. */
+   escuro: contraste de leitura, não de alarme. Sai em maiúsculas, como na
+   maquete ("NORMAL", "MÉDIO"). */
 .dash-pilula {
   display: inline-flex;
   align-items: center;
@@ -574,6 +612,7 @@
   font-size: var(--t-meta);
   font-weight: 700;
   letter-spacing: 0.02em;
+  text-transform: uppercase;
   background: var(--n-100);
   color: var(--text-secondary);
 }
@@ -599,13 +638,22 @@
 
 .dash-faixa-rotulo { color: var(--text-secondary); }
 
-/* O ícone da faixa é discreto de propósito: ele ajuda a achar a linha, não
-   compete com o número. */
+/* O ÍCONE DA FAIXA é um selo quadrado, como o dos filtros: os cinco indicadores
+   estruturais ganham a mesma âncora à esquerda que a maquete mostra (T4.9). Ele
+   ajuda a achar a linha, não compete com o número.
+
+   (Estava escrita duas vezes — a segunda anulava a cor e o alinhamento da
+   primeira. Ficou uma, com os valores que valiam na tela.) */
 .dash-faixa-icone {
   display: inline-flex;
   align-items: center;
-  color: var(--text-tertiary);
-  align-self: center;
+  justify-content: center;
+  align-self: flex-start;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--n-100);
+  color: var(--text-secondary);
 }
 
 /* -----------------------------------------------------------------------------
@@ -613,8 +661,7 @@
 
    Eram treze campos em duas fileiras, cada um com o motivo escrito embaixo, e
    ocupavam a primeira dobra inteira. Agora são quatro numa linha, e o resto em
-   "Mais filtros". Sem moldura: eles são controle, não conteúdo — uma caixa
-   branca em volta dava a eles o mesmo peso de um painel de números.
+   "Mais filtros".
    ----------------------------------------------------------------------------- */
 .dash-filtros {
   display: flex;
@@ -622,15 +669,21 @@
   gap: var(--e-2);
 }
 
-/* A LINHA DE FILTROS É UM CARTÃO, e cada filtro é uma caixa dentro dele (fase
-   T4.9 — maquete). Soltos sobre o fundo da página, os quatro campos não liam
-   como um grupo: liam como quatro controles espalhados acima do conteúdo. */
+/* A LINHA DE FILTROS É UM CARTÃO BRANCO (fase T4.9 — maquete). Soltos sobre o
+   fundo da página, os quatro campos não liam como um grupo: liam como quatro
+   controles espalhados acima do conteúdo.
+
+   DENTRO DELE, CADA FILTRO NÃO É MAIS UMA CAIXA (fidelidade às maquetes,
+   23/09/2026). A T4.9 pôs moldura em volta de cada filtro e tirou a do campo;
+   a maquete faz o inverso — o grupo é solto, separado do vizinho por um filete,
+   e O CAMPO tem a moldura, com a seta. É o campo que se clica, e é ele que tem
+   de parecer clicável. */
 .dash-filtros-linha {
   display: flex;
   flex-wrap: wrap;
-  align-items: stretch;
+  align-items: center;
   gap: var(--e-3);
-  padding: var(--e-3);
+  padding: var(--e-2) var(--e-3);
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -646,10 +699,14 @@
 /* -----------------------------------------------------------------------------
    O FILTRO COM SELO DE ÍCONE (fase T4.9 — maquete)
 
-   O ícone era de 14px, dentro do rótulo, colado ao texto. Na maquete ele é um
-   SELO QUADRADO à esquerda da caixa, e o rótulo e o valor ficam empilhados ao
-   lado. A diferença não é enfeite: o selo dá ao filtro uma âncora do tamanho de
-   um alvo de toque, e é por ele que o olho acha "o do período" sem ler.
+   Na maquete o ícone é um SELO QUADRADO à esquerda, e o rótulo pequeno e o
+   campo ficam empilhados ao lado. A diferença não é enfeite: o selo dá ao
+   filtro uma âncora do tamanho de um alvo de toque, e é por ele que o olho acha
+   "o do período" sem ler.
+
+   OS GRUPOS TÊM TETO DE LARGURA (272px, a maior da maquete): esticados até a
+   ponta de uma página de 1.580px, cada campo de município ficava com 350px para
+   mostrar "Todos os municípios". Sobra espaço à direita — como na maquete.
 
    Só vale na LINHA de filtros. Dentro de "Mais filtros" eles continuam
    empilhados, que é o desenho certo para uma lista de doze campos num popover.
@@ -658,11 +715,18 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: var(--e-3);
-  flex: 1 1 200px;
-  padding: var(--e-2) var(--e-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  column-gap: var(--e-2);
+  flex: 1 1 170px;
+  max-width: 272px;
+}
+
+/* O PERÍODO É O MAIS LARGO, como na maquete: o valor dele carrega o intervalo
+   ("12 meses (out/2025 a set/2026)"), e em 272px ele saía cortado no ano. */
+@container indicadores (min-width: 640px) {
+  .dash-filtros-linha > .dash-filtro:first-child {
+    flex-basis: 230px;
+    max-width: 310px;
+  }
 }
 
 .dash-filtro-icone {
@@ -670,8 +734,9 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--n-100);
   color: var(--text-secondary);
@@ -680,38 +745,70 @@
 .dash-filtro-corpo {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
 }
 
-/* Dentro da caixa o campo perde a moldura: a caixa já é a moldura, e duas
-   bordas concêntricas com 4px entre elas é ruído. */
-.dash-filtros-linha > .dash-filtro select,
-.dash-filtros-linha > .dash-filtro input {
-  height: auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
+/* O rótulo da linha é pequeno e baixo: ele nomeia o campo, não compete com ele.
+   A altura mínima é a do ⓘ: sem ela, os rótulos com dica (Período, Sub-região)
+   ficavam mais altos que os sem dica, e os campos saíam em alturas diferentes. */
+.dash-filtros-linha .dash-filtro-rotulo {
+  min-height: 17px;
+  font-size: var(--t-meta);
+  font-weight: 500;
+  line-height: var(--lh-apertada);
+}
+
+/* O CAMPO COM A PRÓPRIA MOLDURA E A SETA DA MAQUETE. A seta é desenhada aqui, e
+   não a do sistema, porque a do sistema muda de forma e de lugar conforme o
+   navegador — e a maquete tem uma só. A cor dela está escrita no SVG porque
+   variável de CSS não entra numa URL de dados; é o `--text-secondary`. */
+.dash-filtros-linha > .dash-filtro select {
+  width: 100%;
+  height: 28px;
+  padding: 0 28px 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center / 12px 12px;
+  appearance: none;
   font-size: var(--t-cartao);
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text-primary);
+  text-overflow: ellipsis;
+  cursor: pointer;
 }
 
-.dash-filtros-linha > .dash-filtro .dash-filtro-vazio {
-  height: auto;
-  font-size: var(--t-cartao);
+.dash-filtros-linha > .dash-filtro select:focus-visible {
+  outline: 2px solid var(--jd-green);
+  outline-offset: 1px;
+}
+
+/* O MUNICÍPIO ESCOLHIDO NÃO PASSA POR "TODOS" NUM RELANCE: ele muda a página
+   inteira, então o campo ganha a borda verde e o nome em peso de título. */
+.dash-filtros-linha > .dash-filtro select[data-ativo='true'] {
+  border-color: var(--jd-green);
   font-weight: 600;
 }
 
-/* "MAIS FILTROS" VAI PARA A DIREITA (maquete): ele não é o quinto filtro, é a
-   porta para o resto deles. `margin-left: auto` o empurra para a ponta da linha
-   e, quando a linha quebra, ele desce inteiro em vez de ficar grudado no quarto
-   campo. */
-.dash-filtros-linha > .dash-mais-filtros {
-  margin-left: auto;
-  align-self: center;
-  height: 40px;
-  padding: 0 var(--e-4);
+/* "MAIS FILTROS" LOGO DEPOIS DO MUNICÍPIO, e não empurrado para a ponta
+   (maquete): a porta para o resto dos filtros fica junto deles. */
+.dash-filtros-acao {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+/* O FILETE ENTRE OS GRUPOS (maquete). Ele só existe onde a linha é uma só —
+   a partir de 1000px de conteúdo cabem os quatro campos e o botão; abaixo
+   disso a linha quebra, e um filete no começo da segunda linha não separa nada. */
+@container indicadores (min-width: 1000px) {
+  .dash-filtros-linha > .dash-filtro + .dash-filtro,
+  .dash-filtros-linha > .dash-filtros-acao {
+    padding-left: var(--e-3);
+    border-left: 1px solid var(--border);
+  }
 }
 
 /* -----------------------------------------------------------------------------
@@ -722,11 +819,12 @@
    — os filtros comiam quase metade da primeira dobra, que é exatamente o defeito
    que a T4.6 veio consertar. A conferência visual mediu e reprovou.
 
-   Duas por linha, com selo menor e menos folga vertical, fecham em ~230px. O
-   teto é um terço da dobra, e ele existe para o número da tela chegar primeiro
-   que os controles dela.
+   Duas por linha, com selo menor e menos folga vertical, fecham bem abaixo do
+   teto de um terço da dobra, que existe para o número da tela chegar primeiro
+   que os controles dela. A quebra é pela largura do conteúdo (640px), e não
+   mais pela da janela.
    ----------------------------------------------------------------------------- */
-@media (max-width: 700px) {
+@container indicadores (max-width: 639px) {
   .dash-filtros-linha {
     gap: var(--e-2);
     padding: var(--e-2);
@@ -734,49 +832,24 @@
 
   .dash-filtros-linha > .dash-filtro {
     flex: 1 1 calc(50% - var(--e-2));
-    gap: var(--e-2);
-    padding: var(--e-1) var(--e-2);
+    max-width: none;
   }
 
   .dash-filtro-icone { width: 28px; height: 28px; }
 
-  .dash-filtros-linha > .dash-mais-filtros {
-    margin-left: 0;
-    flex: 1 1 100%;
+  .dash-filtros-acao { flex: 1 1 100%; }
+
+  .dash-filtros-acao > .dash-mais-filtros {
+    width: 100%;
     height: 36px;
     justify-content: center;
   }
 }
 
-@media (max-width: 380px) {
+@container indicadores (max-width: 329px) {
   /* Abaixo disso duas colunas deixam ~150px por caixa, e o valor do filtro fica
      cortado no meio da primeira palavra. Aí sim uma por linha. */
   .dash-filtros-linha > .dash-filtro { flex: 1 1 100%; }
-}
-
-/* -----------------------------------------------------------------------------
-   O CABEÇALHO EM TELA ESTREITA
-
-   O bloco da direita — "Dados atualizados em…", o botão de reler e a procedência
-   — não encolhe: a linha da hora é `nowrap` de propósito, e a procedência tem
-   três pedaços. Ao lado do título, em 768px, ele fazia a PÁGINA passar 12px da
-   janela, que é a regressão que a conferência visual pega.
-
-   Abaixo de 900px ele desce para baixo do título e passa a poder quebrar.
-   ----------------------------------------------------------------------------- */
-.dash-cabecalho-direita { min-width: 0; }
-
-@media (max-width: 900px) {
-  .dash-pagina .page-header { flex-wrap: wrap; }
-
-  .dash-cabecalho-direita {
-    align-items: flex-start;
-    text-align: left;
-    width: 100%;
-  }
-
-  .dash-atualizado { white-space: normal; flex-wrap: wrap; }
-  .dash-cabecalho-direita .cad-procedencia { flex-wrap: wrap; }
 }
 
 .dash-filtro-rotulo {
@@ -789,6 +862,7 @@
   color: var(--text-secondary);
 }
 
+/* Os campos de "Mais filtros" (o popover). */
 .dash-filtro select,
 .dash-filtro input {
   height: 32px;
@@ -800,41 +874,20 @@
   max-width: 100%;
 }
 
-.dash-filtro-vazio {
-  display: inline-flex;
-  align-items: center;
-  height: 32px;
-  font-size: var(--t-apoio);
-  color: var(--text-tertiary);
-}
-
-/* O MUNICÍPIO ESCOLHIDO é uma marca que se apaga com um clique: ele muda a
-   página inteira, então precisa estar visível e ser fácil de tirar. */
-.dash-municipio {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--e-2);
-  height: 32px;
-  padding: 0 var(--e-3);
-  border-radius: var(--radius);
-  background: var(--jd-green);
-  color: var(--text-inverse);
-  font-size: var(--t-apoio);
-  font-weight: 600;
-}
-
+/* O BOTÃO DA MAQUETE: moldura, fundo branco, funil e texto em peso de título. */
 .dash-mais-filtros {
   display: inline-flex;
   align-items: center;
   gap: var(--e-2);
   height: 32px;
-  padding: 0 var(--e-3);
+  padding: 0 var(--e-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--bg-surface);
-  font-size: var(--t-apoio);
+  font-size: var(--t-cartao);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .dash-mais-filtros:hover { background: var(--bg-hover); }
@@ -854,6 +907,7 @@
   font-size: var(--t-meta);
 }
 
+/* O popover mora num portal, fora da página: a quebra dele é pela janela. */
 .dash-popover {
   display: grid;
   grid-template-columns: repeat(2, minmax(160px, 1fr));
@@ -890,25 +944,73 @@
   font-weight: 600;
 }
 
-/* A PROCEDÊNCIA DO RECORTE é nível 4 da issue 33: ela fica, em letra de
-   metadado, e não com o peso de um filtro. */
-.dash-filtros-recorte {
-  margin: 0;
-  font-size: var(--t-meta);
-  line-height: var(--lh-normal);
-  color: var(--text-tertiary);
-}
+/* `.dash-municipio` (o chip do município), `.dash-filtro-vazio`,
+   `.dash-filtros-recorte` e `.dash-alcance` saíram com os elementos que
+   desenhavam (fidelidade às maquetes, 23/09/2026): o chip virou o campo de
+   escolha, e as duas linhas de metadado foram para as dicas do Período e da
+   Sub-região. */
 
-/* O ALCANCE era um cartão com três parágrafos acima de tudo. É contexto do
-   recorte, não indicador: vira uma linha, com o resto na dica. */
-.dash-alcance {
+/* -----------------------------------------------------------------------------
+   O CABEÇALHO DA PÁGINA (fidelidade às maquetes, 23/09/2026)
+
+   Título e subtítulo à esquerda; à direita, SÓ "Dados atualizados em … ⓘ ⟳",
+   centralizado na altura do bloco do título, como na maquete. A procedência
+   inteira, que ocupava uma segunda linha ali, está na dica.
+
+   EM CONTEÚDO ESTREITO a linha da hora desce para baixo do título e passa a
+   poder quebrar: ao lado do título, em 768px, ela fazia a PÁGINA passar da
+   janela, que é a regressão que a conferência visual pega.
+   ----------------------------------------------------------------------------- */
+.dash-atualizado {
   display: inline-flex;
   align-items: center;
   gap: var(--e-1);
+  flex: none;
   margin: 0;
-  font-size: var(--t-meta);
+  font-size: var(--t-apoio);
   line-height: var(--lh-normal);
   color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* O BOTÃO DE RELER É UM BOTÃO DE VERDADE, e não o ícone decorativo da maquete:
+   ele refaz a consulta da página. Sem isso, um ícone de recarga ao lado da hora
+   é a promessa mais fácil de quebrar que existe numa tela de dado.
+
+   SEM MOLDURA, como na maquete: é um ícone ao lado da frase. O alvo continua
+   com 24px, que é o que o dedo precisa. */
+.dash-recarregar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: var(--e-1);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.dash-recarregar:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+.dash-recarregar:disabled { cursor: progress; color: var(--text-tertiary); }
+.dash-recarregar:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
+
+/* Enquanto relê, o ícone gira — é o que diz que o clique foi recebido. */
+.dash-recarregar[data-carregando='true'] > svg { animation: dash-girar 0.9s linear infinite; }
+
+@keyframes dash-girar {
+  to { transform: rotate(360deg); }
+}
+
+/* Quem pediu menos movimento não ganha um ícone girando na tela. */
+@media (prefers-reduced-motion: reduce) {
+  .dash-recarregar[data-carregando='true'] > svg { animation: none; }
+}
+
+@container indicadores (max-width: 719px) {
+  .dash-atualizado { white-space: normal; flex-wrap: wrap; }
 }
 
 /* -----------------------------------------------------------------------------
@@ -918,28 +1020,49 @@
    da escala. Fora dele nada muda: as telas de cadastro continuam com o que
    tinham, porque esta fase não as cobre e o harness não as confere.
    ----------------------------------------------------------------------------- */
+/* O H1 DA MAQUETE: 26px, negrito, um pouco mais fechado (fidelidade às
+   maquetes, 23/09/2026 — o papel `--t-pagina` subiu de 22 para 26). */
 .dash-pagina .page-title {
+  margin-bottom: var(--e-1);
   font-size: var(--t-pagina);
   font-weight: 700;
   line-height: var(--lh-apertada);
+  letter-spacing: -0.015em;
   color: var(--text-primary);
 }
 
+/* O SUBTÍTULO DA MAQUETE é uma linha em cinza médio, com o nome da empresa em
+   negrito — no corpo do título de cartão, e não no de metadado. */
 .dash-pagina .page-subtitle {
-  font-size: var(--t-apoio);
+  font-size: var(--t-cartao);
   line-height: var(--lh-normal);
-  color: var(--text-tertiary);
-  max-width: 76ch;
+  color: var(--text-secondary);
 }
 
+.dash-pagina .page-subtitle strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* A LINHA DA HORA FICA NO MEIO DA ALTURA DO BLOCO DO TÍTULO, como na maquete —
+   e não colada ao topo do h1. */
 .dash-pagina .page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--e-4);
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+/* EM CONTEÚDO ESTREITO a linha da hora desce para baixo do título, alinhada à
+   esquerda. `flex-start` aqui não é detalhe: no celular o `.page-header` global
+   vira coluna, e o `center` de cima passaria a CENTRALIZAR a linha na tela.
+   (Fica depois da regra de cima porque a consulta de contêiner não soma
+   especificidade — quem vem depois ganha.) */
+@container indicadores (max-width: 719px) {
+  .dash-pagina .page-header { flex-wrap: wrap; align-items: flex-start; }
 }
 
 /* O TÍTULO DE SEÇÃO é o segundo maior da página, e é o que dá o ritmo da
@@ -958,6 +1081,11 @@
 }
 
 .dash-pagina .terr-secao-mercado { margin: 0; }
+
+/* O TÍTULO DE UMA SEÇÃO E O CONTEÚDO DELA ficam a 12px, como na maquete
+   (fidelidade às maquetes, 23/09/2026): colados, o subtítulo encostava no
+   alternador e nos cartões, e a seção lia como um bloco só. */
+.dash-pagina section > .terr-secao-mercado:first-child { margin-bottom: var(--e-3); }
 
 /* -----------------------------------------------------------------------------
    A PRIMEIRA CAMADA DE UM PAINEL: números grandes, lado a lado
@@ -1204,68 +1332,15 @@
    a tela não tinha. Nenhuma medida nova: continuam as escalas `--e-*` e `--t-*`.
    ============================================================================= */
 
-/* -----------------------------------------------------------------------------
-   O CANTO DIREITO DO CABEÇALHO: quando o dado foi lido, e o botão de reler
-
-   A maquete põe "Dados atualizados em 23/09/2026, 18:26" e um ícone de recarga
-   no alto à direita. Nós tínhamos a procedência inteira ali — sistema, objeto e
-   instante —, que é informação melhor e ocupa mais linha do que a maquete
-   reserva. As duas cabem: a linha curta em cima, a procedência embaixo dela, em
-   letra de metadado.
-   ----------------------------------------------------------------------------- */
-.dash-cabecalho-direita {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--e-1);
-  flex: none;
-  text-align: right;
-}
-
-.dash-atualizado {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--e-2);
-  font-size: var(--t-meta);
-  line-height: var(--lh-normal);
-  color: var(--text-tertiary);
-  white-space: nowrap;
-}
-
-/* O BOTÃO DE RELER É UM BOTÃO DE VERDADE, e não o ícone decorativo da maquete:
-   ele refaz a consulta da página. Sem isso, um ícone de recarga ao lado da hora
-   é a promessa mais fácil de quebrar que existe numa tela de dado. */
-.dash-recarregar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.dash-recarregar:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
-.dash-recarregar:disabled { cursor: progress; color: var(--text-tertiary); }
-
-/* Enquanto relê, o ícone gira — é o que diz que o clique foi recebido. */
-.dash-recarregar[data-carregando='true'] > svg { animation: dash-girar 0.9s linear infinite; }
-
-@keyframes dash-girar {
-  to { transform: rotate(360deg); }
-}
-
-/* Quem pediu menos movimento não ganha um ícone girando na tela. */
-@media (prefers-reduced-motion: reduce) {
-  .dash-recarregar[data-carregando='true'] > svg { animation: none; }
-}
+/* (O canto direito do cabeçalho — "Dados atualizados em…" e o botão de reler —
+   estava declarado aqui E no bloco do cabeçalho em tela estreita. Ficou uma
+   declaração só, no bloco "O CABEÇALHO DA PÁGINA", junto dos filtros.) */
 
 /* -----------------------------------------------------------------------------
-   O CONTROLE À DIREITA DO TÍTULO DE SEÇÃO (maquete: "Comparar com período
-   anterior" + interruptor + Δ%)
+   O CONTROLE "COMPARAR COM PERÍODO ANTERIOR" + interruptor + Δ% (maquete)
+
+   Morava à direita do título "O mercado da região"; desde 23/09/2026 fica na
+   linha das abas, à direita, como na maquete de rentabilidade e crédito.
 
    ELE NASCE DESLIGADO, com o motivo na dica. A API não devolve período anterior
    — só o crédito tem duas janelas —, e um interruptor que liga uma comparação
@@ -1286,6 +1361,24 @@
   gap: var(--e-2);
   white-space: nowrap;
 }
+
+/* O Δ% COM A MESMA MOLDURA E A MESMA SETA DOS CAMPOS DE FILTRO (maquete). */
+.dash-secao-controle select {
+  height: 28px;
+  min-width: 80px;
+  padding: 0 28px 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center / 12px 12px;
+  appearance: none;
+  font-size: var(--t-apoio);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.dash-secao-controle select:disabled { cursor: not-allowed; }
 
 /* O interruptor: um trilho e um botão. Desligado ele fica cinza e o cursor diz
    que não vai. */
@@ -1425,9 +1518,6 @@
   gap: var(--e-2);
 }
 
-/* A pílula sai em maiúsculas, como na maquete ("NORMAL", "MÉDIO"). */
-.dash-pilula { text-transform: uppercase; }
-
 /* A frase do momento fica ao lado da pílula, e não embaixo: é a leitura que
    explica a palavra ("Demanda estável e preços firmes"). */
 .dash-faixa-frase {
@@ -1437,32 +1527,9 @@
   color: var(--text-tertiary);
 }
 
-/* O selo do ícone da faixa vira um quadrado, como o dos filtros: os cinco
-   indicadores estruturais ganham a mesma âncora à esquerda que a maquete mostra. */
-.dash-faixa-icone {
-  width: 26px;
-  height: 26px;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  background: var(--n-100);
-  color: var(--text-secondary);
-  align-self: flex-start;
-}
-
-/* Com o selo quadrado, o item vira duas colunas: selo à esquerda, número e nome
-   empilhados à direita — que é o desenho da maquete.
-
-   O CORPO É UM ENVOLTÓRIO, e não linhas soltas da grade: o ⓘ e a procedência
-   precisam ficar NA LINHA do rótulo. Soltos, cada um ganhava uma terceira e uma
-   quarta linha da grade, e a célula do trator ficava duas vezes mais alta que a
-   do rebanho, que não tem dica. */
-.dash-faixa-item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: var(--e-2);
-  align-items: center;
-}
-
+/* (O selo quadrado do ícone da faixa e o item de duas colunas estavam
+   redeclarados aqui; as duas regras foram unidas às primeiras, lá em cima, com
+   os valores que valiam na tela.) */
 .dash-faixa-corpo {
   display: flex;
   flex-direction: column;

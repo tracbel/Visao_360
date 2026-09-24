@@ -23,17 +23,38 @@
  * POR QUE RADIX POPOVER: foco preso enquanto aberto, devolvido ao fechar, `Esc`,
  * clique fora, posicionamento com detecção de colisão e portal. É a mesma lista
  * de coisas que a dica precisava e que não vale reimplementar.
+ *
+ * ============================================================================
+ * O DESENHO DA MAQUETE (fidelidade às maquetes, 23/09/2026).
+ *
+ * Cada filtro é um SELO DE ÍCONE e, ao lado, o rótulo pequeno em cima de um
+ * CAMPO COM A PRÓPRIA MOLDURA. Antes a moldura era da caixa inteira e o campo
+ * não tinha borda — o inverso da maquete, e o campo não parecia clicável.
+ *
+ * O MUNICÍPIO VIROU UM CAMPO DE ESCOLHA DE VERDADE: "Todos os municípios" e os
+ * da ADR em ordem alfabética. Escolher aqui faz exatamente o que o clique no
+ * mapa e na tabela fazem — escreve `?municipio=` na URL, que é a fonte única da
+ * escolha (issue 163). Voltar para "Todos os municípios" é o que o × do chip
+ * fazia: tira o recorte e apaga o parâmetro.
+ *
+ * DUAS LINHAS SAÍRAM DO CORPO E FORAM PARA AS DICAS, sem perder uma palavra: a
+ * procedência do recorte ("Vendas de … a … · cobertura medida em …") está na
+ * dica do Período, e o alcance da consulta ("Visão: filial … e as abaixo
+ * dela"), na da Sub-região. A maquete não tem nenhuma das duas.
+ * ============================================================================
  */
 
 import * as Popover from '@radix-ui/react-popover';
-import { CalendarDays, Funnel, MapPin, Store, Users } from 'lucide-react';
+import { CalendarDays, Funnel, MapPin, Store, User } from 'lucide-react';
 import { useMemo, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { InfoTooltip } from '../InfoTooltip';
 import type {
   FiltrosTerritoriais,
+  IndicadoresDoMunicipio,
   IndicadoresTerritoriais,
   RegraDePotencialAplicada,
 } from '../../tipos/territorio';
+import { AlcanceDaConsulta } from './CartaoDeAlcance';
 import { anoCivilFechado, mes } from './indicadoresDaAdr';
 
 export function FiltrosDosIndicadores({
@@ -44,8 +65,10 @@ export function FiltrosDosIndicadores({
   indicadores,
   respondeu,
   podeVerEmpresaInteira,
-  municipioEscolhido = null,
-  aoLimparMunicipio,
+  empresa,
+  municipios,
+  municipioEscolhido,
+  aoEscolherMunicipio,
 }: {
   filtros: FiltrosTerritoriais;
   aoMudarFiltros: Dispatch<SetStateAction<FiltrosTerritoriais>>;
@@ -55,9 +78,14 @@ export function FiltrosDosIndicadores({
   /** Se a leitura já respondeu — antes disso a tela não afirma nada sobre permissão. */
   respondeu: boolean;
   podeVerEmpresaInteira: boolean;
-  /** O município escolhido no mapa — ele é filtro de recorte, e mora na linha com os outros. */
-  municipioEscolhido?: string | null;
-  aoLimparMunicipio?: () => void;
+  /** A filial do cabeçalho — o alcance da consulta a nomeia. */
+  empresa: string;
+  /** Os municípios da ADR no recorte, que são as opções do campo de município. */
+  municipios: readonly IndicadoresDoMunicipio[];
+  /** O município escolhido — ele é filtro de recorte, e mora na linha com os outros. */
+  municipioEscolhido: IndicadoresDoMunicipio | null;
+  /** Escolhe (ou, com `null`, tira) o município — a casca escreve isso na URL. */
+  aoEscolherMunicipio: (codigo: number | null) => void;
 }) {
   const anoCivil = anoCivilFechado();
   const presetDoPeriodo =
@@ -84,6 +112,23 @@ export function FiltrosDosIndicadores({
     [filtros.visao, filtros.filialDaVenda, filtros.filialDoCliente, presetDoPeriodo],
   );
 
+  // AS OPÇÕES DO MUNICÍPIO SÃO AS DA ADR, EM ORDEM ALFABÉTICA — é como se procura
+  // um nome numa lista de duzentos. A ordem por venda é a da tabela, que
+  // responde outra pergunta.
+  const opcoesDeMunicipio = useMemo(
+    () => [...municipios].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+    [municipios],
+  );
+
+  // UM MUNICÍPIO DE FORA DA ADR TAMBÉM PODE ESTAR ESCOLHIDO: o mapa desenha os
+  // vizinhos com cliente, e clicar num deles escolhe. Sem uma opção para ele, o
+  // campo mostraria "Todos os municípios" com um recorte ativo — afirmando o
+  // contrário do que a página está mostrando.
+  const escolhidoForaDaLista =
+    municipioEscolhido !== null && !municipios.some((m) => m.codigoIbge === municipioEscolhido.codigoIbge)
+      ? municipioEscolhido
+      : null;
+
   return (
     <div className="dash-filtros" data-bloco="filtros">
       <div className="dash-filtros-linha">
@@ -106,9 +151,31 @@ export function FiltrosDosIndicadores({
           <span className="dash-filtro-corpo">
             <span className="dash-filtro-rotulo">
               Período
+              {/* A PROCEDÊNCIA DO RECORTE MORA NESTA DICA (fidelidade às
+                  maquetes, 23/09/2026). Era uma linha de metadado embaixo dos
+                  filtros — nível 4 da issue 33 —, e a maquete não a tem. O
+                  assunto dela é o período em vigor, então é aqui que ela fica. */}
               <InfoTooltip
-                rotulo="Por que não há FYTD"
-                texto="FYTD não é oferecido: o calendário fiscal não foi confirmado (documento 32, P-4). O mês em curso fica fora do padrão, porque comparar um mês pela metade com meses cheios erra para baixo sem aviso."
+                rotulo="O período em vigor e por que não há FYTD"
+                texto={
+                  <>
+                    {indicadores && (
+                      <p>
+                        Vendas de <strong>{mes(indicadores.competenciaInicial)}</strong> a{' '}
+                        <strong>{mes(indicadores.competenciaFinal)}</strong>
+                        {presetDoPeriodo === '12meses' && ' (12 meses fechados)'}
+                        {presetDoPeriodo === 'anoCivil' && ' (ano civil até o último mês fechado)'} · cobertura
+                        medida em {new Date(indicadores.referenciaDaCobertura).toLocaleDateString('pt-BR')}
+                        {indicadores.anoDaAreaPlantada && ` · área plantada PAM/IBGE ${indicadores.anoDaAreaPlantada}`}.
+                      </p>
+                    )}
+                    <p>
+                      FYTD não é oferecido: o calendário fiscal não foi confirmado (documento 32, P-4). O mês em curso
+                      fica fora do padrão, porque comparar um mês pela metade com meses cheios erra para baixo sem
+                      aviso.
+                    </p>
+                  </>
+                }
               />
             </span>
             <select
@@ -135,14 +202,31 @@ export function FiltrosDosIndicadores({
             "4,2% da região" ser lido como fatia da ADR quando era fatia do Norte. */}
         <label className="dash-filtro">
           <span className="dash-filtro-icone" aria-hidden="true">
-            <Users size={17} strokeWidth={2} />
+            <User size={17} strokeWidth={2} />
           </span>
           <span className="dash-filtro-corpo">
             <span className="dash-filtro-rotulo">
               Sub-região
+              {/* O ALCANCE DA CONSULTA MORA NESTA DICA (fidelidade às
+                  maquetes): é recorte — filial ou empresa inteira —, e a
+                  sub-região é o filtro que explica a hierarquia do recorte.
+                  O porquê da escolha está em `CartaoDeAlcance.tsx`. */}
               <InfoTooltip
-                rotulo="O que é a sub-região"
-                texto="A hierarquia é São Paulo → Região Tracbel → sub-região → loja → município. Norte e Noroeste são SUB-REGIÕES; a Região Tracbel é a área de atuação inteira, e é ela o denominador das fatias desta tela."
+                rotulo="O que é a sub-região e o que esta consulta alcança"
+                texto={
+                  <>
+                    <p>
+                      A hierarquia é São Paulo → Região Tracbel → sub-região → loja → município. Norte e Noroeste são
+                      SUB-REGIÕES; a Região Tracbel é a área de atuação inteira, e é ela o denominador das fatias
+                      desta tela.
+                    </p>
+                    <AlcanceDaConsulta
+                      visao={filtros.visao}
+                      empresa={empresa}
+                      podeVerEmpresaInteira={respondeu ? podeVerEmpresaInteira : undefined}
+                    />
+                  </>
+                }
               />
             </span>
             <select
@@ -176,141 +260,144 @@ export function FiltrosDosIndicadores({
         </label>
 
         {/* O MUNICÍPIO É FILTRO DE RECORTE e vale para as duas abas: o lugar dele
-            é aqui, junto dos outros, e não flutuando entre blocos. */}
-        <div className="dash-filtro">
+            é aqui, junto dos outros, e não flutuando entre blocos.
+
+            ELE ERA UM CHIP COM ×, e virou o campo de escolha da maquete. O
+            teclado ganhou com isso: antes só se escolhia município pelo mapa
+            (ponteiro) ou pela tabela de Território; agora o campo alcança os
+            duzentos pelo Tab e pelas setas, de qualquer aba. */}
+        <label className="dash-filtro">
           <span className="dash-filtro-icone" aria-hidden="true">
             <MapPin size={17} strokeWidth={2} />
           </span>
           <span className="dash-filtro-corpo">
             <span className="dash-filtro-rotulo">Município</span>
-            {municipioEscolhido ? (
-              <button
-                type="button"
-                className="dash-municipio"
-                onClick={aoLimparMunicipio}
-                data-bloco="chip-municipio"
-                // O RÓTULO DIZ O QUE O CLIQUE FAZ, e não o que está escrito: quem
-                // usa leitor de tela ouve "Tirar o recorte de Cafelândia", e não
-                // "Cafelândia ×", que não é uma ação.
-                aria-label={`Tirar o recorte de ${municipioEscolhido}`}
-              >
-                {municipioEscolhido}
-                <span aria-hidden="true">×</span>
-              </button>
-            ) : (
-              <span className="dash-filtro-vazio">Todos os municípios</span>
-            )}
+            <select
+              value={municipioEscolhido ? String(municipioEscolhido.codigoIbge) : ''}
+              onChange={(e) => aoEscolherMunicipio(e.target.value === '' ? null : Number(e.target.value))}
+              data-bloco="municipio"
+              // O RECORTE ATIVO APARECE NO CAMPO: um município escolhido muda a
+              // página inteira, e o campo ganha a borda verde para isso não
+              // passar por "Todos" num relance.
+              data-ativo={municipioEscolhido ? 'true' : undefined}
+            >
+              <option value="">Todos os municípios</option>
+              {escolhidoForaDaLista && (
+                <option value={escolhidoForaDaLista.codigoIbge}>{escolhidoForaDaLista.nome} (fora da ADR)</option>
+              )}
+              {opcoesDeMunicipio.map((m) => (
+                <option key={m.codigoIbge} value={m.codigoIbge}>
+                  {m.nome}
+                </option>
+              ))}
+            </select>
           </span>
+        </label>
+
+        {/* "MAIS FILTROS" LOGO DEPOIS DO MUNICÍPIO (maquete): ele não é o quinto
+            filtro, é a porta para o resto deles — e na maquete ele fica colado
+            ao último campo, depois de um filete, e não empurrado para a ponta. */}
+        <div className="dash-filtros-acao">
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button type="button" className="dash-mais-filtros" data-bloco="mais-filtros">
+                {/* O FUNIL É O ÍCONE DA MAQUETE. O `sliders` que estava aqui é o de
+                    ajuste fino; funil é o de recorte, que é o que este botão faz. */}
+                <Funnel size={15} strokeWidth={2} aria-hidden="true" />
+                Mais filtros
+                {secundariosAtivos > 0 && <span className="dash-mais-filtros-selo">{secundariosAtivos}</span>}
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content className="dash-popover" sideOffset={6} collisionPadding={16} align="end">
+                <div className="dash-popover-titulo">Mais filtros</div>
+
+                <label className="dash-filtro">
+                  <span className="dash-filtro-rotulo">Vendas de</span>
+                  <input
+                    type="month"
+                    value={filtros.competenciaInicial}
+                    onChange={(e) => aoMudarFiltros((f) => ({ ...f, competenciaInicial: e.target.value }))}
+                  />
+                </label>
+                <label className="dash-filtro">
+                  <span className="dash-filtro-rotulo">até</span>
+                  <input
+                    type="month"
+                    value={filtros.competenciaFinal}
+                    onChange={(e) => aoMudarFiltros((f) => ({ ...f, competenciaFinal: e.target.value }))}
+                  />
+                </label>
+
+                <label className="dash-filtro">
+                  <span className="dash-filtro-rotulo">
+                    Visão
+                    {respondeu && !podeVerEmpresaInteira && (
+                      <InfoTooltip
+                        rotulo="Por que a empresa inteira está desligada"
+                        texto="A visão da empresa inteira exige a permissão de alcance entre filiais em profundidade Organização, e o seu perfil não a tem (documento 32, P-10)."
+                      />
+                    )}
+                  </span>
+                  <select
+                    value={filtros.visao}
+                    onChange={(e) => aoMudarFiltros((f) => ({ ...f, visao: e.target.value as FiltrosTerritoriais['visao'] }))}
+                  >
+                    <option value="Filial">Filial do cabeçalho</option>
+                    <option value="Empresa" disabled={respondeu ? !podeVerEmpresaInteira : false}>
+                      Empresa inteira
+                    </option>
+                  </select>
+                </label>
+
+                <FiltroDeFilial
+                  rotulo="Filial que vendeu"
+                  aplicaA="só às vendas"
+                  valor={filtros.filialDaVenda}
+                  lojas={lojasConhecidas}
+                  aoMudar={(valor) => aoMudarFiltros((f) => ({ ...f, filialDaVenda: valor }))}
+                />
+                <FiltroDeFilial
+                  rotulo="Filial de cadastro do cliente"
+                  aplicaA="à cobertura e às vendas"
+                  valor={filtros.filialDoCliente}
+                  lojas={lojasConhecidas}
+                  aoMudar={(valor) => aoMudarFiltros((f) => ({ ...f, filialDoCliente: valor }))}
+                />
+
+                <label className="dash-filtro">
+                  <span className="dash-filtro-rotulo">
+                    Cultura da regra
+                    <InfoTooltip rotulo="Por que há uma cultura só" texto="Só há uma regra de potencial informada; a lista cresce quando o comercial confirmar as demais (D-P01, issue 63)." />
+                  </span>
+                  {/* `defaultValue`, e não `value`: o campo é desligado e não tem
+                      `onChange`, e o React avisa no console a cada render que um
+                      `value` sem `onChange` vira campo somente leitura. O aviso
+                      era verdadeiro e barulhento. */}
+                  <select defaultValue={regra?.produtoCodigoIbge ?? ''} disabled={!regra}>
+                    {regra && <option value={regra.produtoCodigoIbge}>{regra.produtoNome}</option>}
+                  </select>
+                </label>
+
+                <FiltroSemDado rotulo="Tipo de cliente" opcoes="SAM · KAM · Varejo" motivo="não há classificação por cliente em nenhuma fonte carregada (documento 32, seção 3.4)" />
+                <FiltroSemDado rotulo="Tipo de produto" opcoes="colhedora · trator grande · médio" motivo="o faturamento carregado é por cliente e mês, sem o item da nota (documento 32, seção 3.5)" />
+                <FiltroSemDado rotulo="Modelo" opcoes="modelo da máquina" motivo="o faturamento carregado é por cliente e mês, sem o item da nota (documento 32, seção 3.5)" />
+                <FiltroSemDado
+                  rotulo="CEN / gestor"
+                  opcoes="—"
+                  motivo="a carteira do CRM ainda não diz quem atende cada município (issue 107); o que ela já tem está na ficha do município"
+                />
+
+                <Popover.Close className="dash-popover-fechar">Fechar</Popover.Close>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
         </div>
-
-        <Popover.Root>
-          <Popover.Trigger asChild>
-            <button type="button" className="dash-mais-filtros" data-bloco="mais-filtros">
-              {/* O FUNIL É O ÍCONE DA MAQUETE. O `sliders` que estava aqui é o de
-                  ajuste fino; funil é o de recorte, que é o que este botão faz. */}
-              <Funnel size={15} strokeWidth={2} aria-hidden="true" />
-              Mais filtros
-              {secundariosAtivos > 0 && <span className="dash-mais-filtros-selo">{secundariosAtivos}</span>}
-            </button>
-          </Popover.Trigger>
-          <Popover.Portal>
-            <Popover.Content className="dash-popover" sideOffset={6} collisionPadding={16} align="end">
-              <div className="dash-popover-titulo">Mais filtros</div>
-
-              <label className="dash-filtro">
-                <span className="dash-filtro-rotulo">Vendas de</span>
-                <input
-                  type="month"
-                  value={filtros.competenciaInicial}
-                  onChange={(e) => aoMudarFiltros((f) => ({ ...f, competenciaInicial: e.target.value }))}
-                />
-              </label>
-              <label className="dash-filtro">
-                <span className="dash-filtro-rotulo">até</span>
-                <input
-                  type="month"
-                  value={filtros.competenciaFinal}
-                  onChange={(e) => aoMudarFiltros((f) => ({ ...f, competenciaFinal: e.target.value }))}
-                />
-              </label>
-
-              <label className="dash-filtro">
-                <span className="dash-filtro-rotulo">
-                  Visão
-                  {respondeu && !podeVerEmpresaInteira && (
-                    <InfoTooltip
-                      rotulo="Por que a empresa inteira está desligada"
-                      texto="A visão da empresa inteira exige a permissão de alcance entre filiais em profundidade Organização, e o seu perfil não a tem (documento 32, P-10)."
-                    />
-                  )}
-                </span>
-                <select
-                  value={filtros.visao}
-                  onChange={(e) => aoMudarFiltros((f) => ({ ...f, visao: e.target.value as FiltrosTerritoriais['visao'] }))}
-                >
-                  <option value="Filial">Filial do cabeçalho</option>
-                  <option value="Empresa" disabled={respondeu ? !podeVerEmpresaInteira : false}>
-                    Empresa inteira
-                  </option>
-                </select>
-              </label>
-
-              <FiltroDeFilial
-                rotulo="Filial que vendeu"
-                aplicaA="só às vendas"
-                valor={filtros.filialDaVenda}
-                lojas={lojasConhecidas}
-                aoMudar={(valor) => aoMudarFiltros((f) => ({ ...f, filialDaVenda: valor }))}
-              />
-              <FiltroDeFilial
-                rotulo="Filial de cadastro do cliente"
-                aplicaA="à cobertura e às vendas"
-                valor={filtros.filialDoCliente}
-                lojas={lojasConhecidas}
-                aoMudar={(valor) => aoMudarFiltros((f) => ({ ...f, filialDoCliente: valor }))}
-              />
-
-              <label className="dash-filtro">
-                <span className="dash-filtro-rotulo">
-                  Cultura da regra
-                  <InfoTooltip rotulo="Por que há uma cultura só" texto="Só há uma regra de potencial informada; a lista cresce quando o comercial confirmar as demais (D-P01, issue 63)." />
-                </span>
-                {/* `defaultValue`, e não `value`: o campo é desligado e não tem
-                    `onChange`, e o React avisa no console a cada render que um
-                    `value` sem `onChange` vira campo somente leitura. O aviso
-                    era verdadeiro e barulhento. */}
-                <select defaultValue={regra?.produtoCodigoIbge ?? ''} disabled={!regra}>
-                  {regra && <option value={regra.produtoCodigoIbge}>{regra.produtoNome}</option>}
-                </select>
-              </label>
-
-              <FiltroSemDado rotulo="Tipo de cliente" opcoes="SAM · KAM · Varejo" motivo="não há classificação por cliente em nenhuma fonte carregada (documento 32, seção 3.4)" />
-              <FiltroSemDado rotulo="Tipo de produto" opcoes="colhedora · trator grande · médio" motivo="o faturamento carregado é por cliente e mês, sem o item da nota (documento 32, seção 3.5)" />
-              <FiltroSemDado rotulo="Modelo" opcoes="modelo da máquina" motivo="o faturamento carregado é por cliente e mês, sem o item da nota (documento 32, seção 3.5)" />
-              <FiltroSemDado
-                rotulo="CEN / gestor"
-                opcoes="—"
-                motivo="a carteira do CRM ainda não diz quem atende cada município (issue 107); o que ela já tem está na ficha do município"
-              />
-
-              <Popover.Close className="dash-popover-fechar">Fechar</Popover.Close>
-            </Popover.Content>
-          </Popover.Portal>
-        </Popover.Root>
       </div>
 
-      {/* A PROCEDÊNCIA DO RECORTE fica numa linha só, em letra de metadado: ela é
-          nível 4 da issue 33, e não pode ter o peso de um filtro. */}
-      {indicadores && (
-        <p className="dash-filtros-recorte">
-          Vendas de <strong>{mes(indicadores.competenciaInicial)}</strong> a{' '}
-          <strong>{mes(indicadores.competenciaFinal)}</strong>
-          {presetDoPeriodo === '12meses' && ' (12 meses fechados)'}
-          {presetDoPeriodo === 'anoCivil' && ' (ano civil até o último mês fechado)'} · cobertura medida em{' '}
-          {new Date(indicadores.referenciaDaCobertura).toLocaleDateString('pt-BR')}
-          {indicadores.anoDaAreaPlantada && ` · área plantada PAM/IBGE ${indicadores.anoDaAreaPlantada}`}.
-        </p>
-      )}
+      {/* A LINHA DA PROCEDÊNCIA DO RECORTE que morava aqui ("Vendas de … a … ·
+          cobertura medida em … · área plantada PAM/IBGE …") foi para a dica do
+          Período, inteira (fidelidade às maquetes, 23/09/2026). */}
     </div>
   );
 }

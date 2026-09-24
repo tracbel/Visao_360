@@ -36,38 +36,44 @@ import type { MetricaSemDado } from '../../tipos/relacionamento';
 export function MetricasSemDado({
   metricas,
   titulo = 'O que estes números não dizem',
-  compacto = false,
+  naDica = false,
 }: {
   metricas: MetricaSemDado[] | undefined;
   titulo?: string;
   /**
-   * Recolhe o bloco num detalhe de uma linha (fase T2.1, issues 31 e 33).
+   * Desenha a lista para morar DENTRO DE UMA DICA (fidelidade às maquetes,
+   * 23/09/2026).
    *
-   * Na Visão Diretoria esta informação é auditoria — nível 4 da hierarquia —, e
-   * um bloco de largura inteira aqui compete com mercado, potencial e mapas. O
-   * padrão continua aberto para as telas que já dependiam dele.
+   * Na Visão Diretoria esta informação é auditoria — nível 4 da hierarquia. A
+   * T2.1 a recolheu num `<details>` de uma linha embaixo dos mapas; a maquete
+   * não tem essa linha, e a decisão do usuário é que ela vá para a dica ao lado
+   * do título "Visão geográfica". O texto é o mesmo, inteiro, com o rodapé que
+   * diz de onde ele vem — só sem a caixa e sem o `<details>`, que dentro de um
+   * balão seriam moldura em volta de moldura. O padrão continua aberto para as
+   * telas que já dependiam dele.
    */
-  compacto?: boolean;
+  naDica?: boolean;
 }) {
   if (!metricas || metricas.length === 0) return null;
 
-  if (compacto) {
+  if (naDica) {
     return (
-      <details className="cad-recolhivel cad-semdado-compacto" data-bloco="limitacoes">
-        <summary>{titulo}</summary>
-        <ul className="cad-semdado-lista">
+      <>
+        <p>
+          <strong>{titulo}</strong>
+        </p>
+        <ul>
           {metricas.map((m) => (
             <li key={m.metrica}>
-              <code className="cad-semdado-nome">{m.metrica}</code>
-              <span className="cad-semdado-motivo">{m.motivo}</span>
+              <code>{m.metrica}</code>: {m.motivo}
             </li>
           ))}
         </ul>
-        <p className="cad-semdado-rodape">
-          Medido pela API na mesma consulta que produziu os números acima. Quando o dado melhorar, este texto muda
+        <p>
+          Medido pela API na mesma consulta que produziu os números da tela. Quando o dado melhorar, este texto muda
           sozinho.
         </p>
-      </details>
+      </>
     );
   }
 

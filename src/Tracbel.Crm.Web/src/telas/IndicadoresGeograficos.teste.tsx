@@ -17,7 +17,7 @@
  * composição da tela, e não o conteúdo deles.
  */
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProvedorDeContextoDeAcesso } from '../dados/api/contexto';
@@ -311,6 +311,31 @@ const painelDaAba = () => document.querySelector<HTMLElement>('[role="tabpanel"]
 const urlAtual = () => document.querySelector<HTMLElement>('[data-url]')!.textContent ?? '';
 const voltarNoHistorico = () => fireEvent.click(document.querySelector<HTMLElement>('[data-voltar]')!);
 
+/**
+ * O CAMPO DE MUNICÍPIO DOS FILTROS (fidelidade às maquetes, 23/09/2026).
+ *
+ * Ele substituiu o chip "Cafelândia ×": o recorte escolhido se lê no valor do
+ * campo, e tirar o recorte é voltar para "Todos os municípios".
+ */
+const campoDeMunicipio = () => screen.getByRole('combobox', { name: 'Município' }) as HTMLSelectElement;
+const escolherNoCampo = (codigo: number | '') =>
+  fireEvent.change(campoDeMunicipio(), { target: { value: String(codigo) } });
+
+/**
+ * Abre uma dica pelo teclado, lê o TEXTO dela e FECHA — ver `comparacaoDe`,
+ * mais abaixo, para o porquê de fechar antes de sair.
+ */
+function textoDaDica(rotulo: string, dentroDe: HTMLElement = document.body): string {
+  const gatilho = within(dentroDe).getByRole('button', { name: rotulo });
+  fireEvent.focus(gatilho);
+  const texto = screen.getByRole('tooltip').textContent ?? '';
+  fireEvent.blur(gatilho);
+  return texto;
+}
+
+/** A ficha do município, que desde 23/09/2026 mora só na aba Território. */
+const fichaNaTela = () => screen.queryByRole('heading', { name: 'Quem atende este município' });
+
 function abrir(entrada = '/cobertura') {
   render(
     <MemoryRouter initialEntries={[entrada]}>
@@ -441,35 +466,45 @@ describe('Indicadores Geográficos — as duas abas', () => {
 
     const ordem = blocosNaOrdem();
     expect(ordem.indexOf('filtros')).toBeLessThan(ordem.indexOf('abas'));
-    expect(ordem.indexOf('alcance')).toBeLessThan(ordem.indexOf('abas'));
 
     // E fora do painel da aba: se estivessem dentro, trocar de aba os trocaria.
     expect(painelDaAba().contains(bloco('filtros'))).toBe(false);
   });
 
-  it('a aba Mercado monta os cinco blocos na ordem do documento 50', async () => {
+  it('a aba Mercado monta os blocos na ordem da maquete de rentabilidade e crédito', async () => {
     responder();
     abrir();
     await esperarACarga();
 
     expect(blocosNaOrdem()).toEqual([
       'cabecalho',
-      'alcance',
+      // O ALCANCE ("Visão: filial … e as abaixo dela") e o "Como interpretar os
+      // indicadores" SAÍRAM DO CORPO (fidelidade às maquetes, 23/09/2026): a
+      // maquete não tem nenhum dos dois, e o texto deles foi para as dicas — ver
+      // o bloco "o que saiu do corpo foi para as dicas", mais abaixo.
       'filtros',
+      // O MUNICÍPIO É UM CAMPO DE ESCOLHA DE VERDADE (maquete), e não mais o chip.
+      'municipio',
       // O BOTÃO "Mais filtros" (T4.6): os secundários saíram da primeira dobra
       // e foram para um popover, com um selo dizendo quantos estão ativos.
       'mais-filtros',
-      'como-ler',
       'abas',
-      'mercado-da-regiao',
-      // O CONTROLE DE COMPARAÇÃO COM O PERÍODO ANTERIOR (T4.9 — maquete), à
-      // direita do título e DESLIGADO: a leitura devolve uma janela de
-      // competência, não duas. Ele aparece com o motivo na dica, que é o mesmo
-      // padrão dos filtros sem dado — some-lo faria a tela parecer completa.
+      // O CONTROLE DE COMPARAÇÃO COM O PERÍODO ANTERIOR (T4.9 — maquete),
+      // DESLIGADO: a leitura devolve uma janela de competência, não duas. Desde
+      // 23/09/2026 ele fica na LINHA DAS ABAS, à direita, como na maquete de
+      // rentabilidade e crédito — e por isso vem antes da primeira seção.
       'comparar-periodo',
-      // Os quatro números de decisão vêm primeiro (fase T3), depois porte ×
-      // momento, e só então a linha preservada — que vira a EVIDÊNCIA do porte.
+      // "O mercado da região" continua sendo a primeira seção, com o título só
+      // para o leitor de tela: os quatro cartões vêm logo abaixo das abas.
+      'mercado-da-regiao',
       'kpis-executivos',
+      // O MOMENTO EM LARGURA INTEIRA, logo depois dos quatro números (decisão do
+      // usuário de 23/09/2026). Ele era um terço da linha de baixo, e o Crédito
+      // crescia para baixo o que não tinha de largura.
+      'momento-do-mercado',
+      // O BLOCO ABRE NA COMPOSIÇÃO (fase T3.1): é a conta do número que a tela
+      // mostra lá em cima. Preços e custos continuam na aba Rentabilidade.
+      'composicao-do-fator',
       // A RÉGUA DO MERCADO (T4.8): momento, porte e os cinco indicadores
       // estruturais numa faixa só. Eram dois blocos brancos empilhados, e são a
       // mesma leitura — como está o mercado, e o que existe nele.
@@ -477,19 +512,29 @@ describe('Indicadores Geográficos — as duas abas', () => {
       'porte-e-momento',
       'visao-geografica',
       'mapas',
-      'limitacoes',
+      // "Limitações dos dados" saiu de baixo dos mapas: está na dica do título
+      // "Visão geográfica".
       'potencial-estrutural',
       // A PRIMEIRA CAMADA DO POTENCIAL são números grandes (T4.6); a
       // decomposição inteira — categoria, cultura e relevância — continua na
       // tela, num `<details>` recolhido. Nenhuma linha foi apagada.
       'potencial-do-recorte',
       'potencial-detalhe',
-      'momento-do-mercado',
-      // O BLOCO ABRE NA COMPOSIÇÃO (fase T3.1): é a conta do número que a tela
-      // mostra lá em cima. Preços e custos continuam na aba Rentabilidade.
-      'composicao-do-fator',
       'performance-tracbel',
     ]);
+  });
+
+  it('a linha final tem Potencial e Performance, lado a lado — e o Momento fora dela', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const final = document.querySelector<HTMLElement>('.dash-linha-final')!;
+    expect([...final.children].map((n) => (n as HTMLElement).dataset.bloco)).toEqual([
+      'potencial-estrutural',
+      'performance-tracbel',
+    ]);
+    expect(final.contains(bloco('momento-do-mercado'))).toBe(false);
   });
 
   it('os quatro mapas continuam juntos, na mesma grade, dentro de Mercado', async () => {
@@ -530,21 +575,68 @@ describe('Indicadores Geográficos — as duas abas', () => {
     irPara('Território');
     fireEvent.click(await screen.findByRole('button', { name: 'Cafelândia' }));
 
-    const chip = bloco('chip-municipio')!;
-    expect(chip).toHaveTextContent('Cafelândia');
-    // O chip vive ACIMA das abas: é do recorte, não da aba.
-    expect(painelDaAba().contains(chip)).toBe(false);
+    // O CAMPO DE MUNICÍPIO mostra o recorte — e ele vive ACIMA das abas: é do
+    // recorte, não da aba.
+    expect(campoDeMunicipio().value).toBe(String(CAFELANDIA));
+    expect(painelDaAba().contains(campoDeMunicipio())).toBe(false);
+    expect(fichaNaTela()).toBeInTheDocument();
 
     irPara('Mercado');
-    expect(bloco('chip-municipio')).toHaveTextContent('Cafelândia');
-    expect(screen.getByRole('heading', { name: 'Quem atende este município' })).toBeInTheDocument();
+    expect(campoDeMunicipio().value).toBe(String(CAFELANDIA));
+    // A FICHA MORA SÓ EM TERRITÓRIO (fidelidade às maquetes, 23/09/2026): em
+    // Mercado o município continua escolhido — os mapas o destacam e os painéis
+    // reagem a ele —, mas a ficha não aparece embaixo dos mapas.
+    expect(fichaNaTela()).not.toBeInTheDocument();
     // E a URL não muda ao trocar de aba: a aba não é do recorte.
     expect(urlAtual()).toBe(`?municipio=${CAFELANDIA}`);
 
-    // E o × devolve o recorte inteiro.
-    fireEvent.click(screen.getByRole('button', { name: 'Tirar o recorte de Cafelândia' }));
-    expect(bloco('chip-municipio')).toBeNull();
+    irPara('Território');
+    expect(fichaNaTela()).toBeInTheDocument();
+
+    // E "Todos os municípios" devolve o recorte inteiro — o que o × do chip fazia.
+    escolherNoCampo('');
+    expect(campoDeMunicipio().value).toBe('');
+    expect(fichaNaTela()).not.toBeInTheDocument();
     expect(urlAtual()).toBe('');
+  });
+
+  it('clicar num município no mapa escolhe o município e leva à ficha, em Território', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    // O mapa é ponteiro: o polígono é um `path` com o nome no `<title>` dele.
+    const mapa = await waitFor(() => {
+      const achado = document.querySelector<HTMLElement>('[data-mapa="cobertura"]');
+      expect(achado).not.toBeNull();
+      return achado!;
+    });
+    const poligono = [...mapa.querySelectorAll<SVGPathElement>('path.terr-poligono')].find((p) =>
+      (p.textContent ?? '').startsWith('Cafelândia'),
+    )!;
+    fireEvent.click(poligono);
+
+    expect(urlAtual()).toBe(`?municipio=${CAFELANDIA}`);
+    expect(screen.getByRole('tab', { name: 'Território' })).toHaveAttribute('aria-selected', 'true');
+    expect(painelDaAba().contains(bloco('ficha-do-municipio'))).toBe(true);
+    // O FOCO VAI PARA A ABA QUE ABRIU: o leitor de tela anuncia onde a pessoa
+    // foi parar, e o Tab seguinte continua dali.
+    expect(screen.getByRole('tab', { name: 'Território' })).toHaveFocus();
+  });
+
+  it('escolher no campo de município NÃO troca de aba — o campo é recorte, e vale para as duas', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    // As opções são "Todos os municípios" e os da ADR, em ordem alfabética:
+    // Araraquara está fora da ADR nesta amostra e não é opção.
+    expect([...campoDeMunicipio().options].map((o) => o.textContent)).toEqual(['Todos os municípios', 'Cafelândia']);
+
+    escolherNoCampo(CAFELANDIA);
+    expect(urlAtual()).toBe(`?municipio=${CAFELANDIA}`);
+    expect(screen.getByRole('tab', { name: 'Mercado' })).toHaveAttribute('aria-selected', 'true');
+    expect(bloco('mapas')).not.toBeNull();
   });
 
   it('nada se perde ao trocar de aba: o que sai de uma está na outra', async () => {
@@ -557,7 +649,7 @@ describe('Indicadores Geográficos — as duas abas', () => {
     const emTerritorio = new Set(blocosNaOrdem());
 
     // Os blocos de fora das abas aparecem nas duas.
-    for (const global of ['cabecalho', 'alcance', 'filtros', 'como-ler', 'abas']) {
+    for (const global of ['cabecalho', 'filtros', 'municipio', 'abas']) {
       expect(emMercado.has(global)).toBe(true);
       expect(emTerritorio.has(global)).toBe(true);
     }
@@ -592,8 +684,11 @@ describe('Indicadores Geográficos — o recorte mora na URL (issue 163)', () =>
     abrir(`/cobertura?municipio=${CAFELANDIA}`);
     await esperarACarga();
 
-    expect(bloco('chip-municipio')).toHaveTextContent('Cafelândia');
     expect(await screen.findByRole('heading', { name: 'Quem atende este município' })).toBeInTheDocument();
+    expect(campoDeMunicipio().value).toBe(String(CAFELANDIA));
+    // A TELA ABRE ONDE A FICHA MORA (fidelidade às maquetes, 23/09/2026): um
+    // endereço com município é o de quem estava olhando uma ficha.
+    expect(painelDaAba().dataset.aba).toBe('territorio');
   });
 
   it('código IBGE inválido não dá erro nem inventa município — a tela abre inteira', async () => {
@@ -601,7 +696,7 @@ describe('Indicadores Geográficos — o recorte mora na URL (issue 163)', () =>
     abrir('/cobertura?municipio=banana');
     await esperarACarga();
 
-    expect(bloco('chip-municipio')).toBeNull();
+    expect(campoDeMunicipio().value).toBe('');
     expect(bloco('mapas')).not.toBeNull();
     expect(screen.queryByRole('heading', { name: 'Quem atende este município' })).not.toBeInTheDocument();
   });
@@ -611,8 +706,12 @@ describe('Indicadores Geográficos — o recorte mora na URL (issue 163)', () =>
     abrir('/cobertura?municipio=9999999');
     await esperarACarga();
 
-    expect(bloco('chip-municipio')).toBeNull();
-    expect(bloco('mapas')).not.toBeNull();
+    // O CÓDIGO É UM INTEIRO VÁLIDO, então a tela abre em Território, onde uma
+    // ficha moraria — e ela não aparece, porque o município não existe no
+    // recorte. O campo diz "Todos os municípios", e a tabela está lá, inteira.
+    expect(campoDeMunicipio().value).toBe('');
+    expect(await screen.findByRole('button', { name: 'Cafelândia' })).toBeInTheDocument();
+    expect(bloco('ficha-do-municipio')).toBeNull();
   });
 
   it('cada escolha é uma entrada no histórico — voltar devolve o recorte anterior', async () => {
@@ -624,12 +723,12 @@ describe('Indicadores Geográficos — o recorte mora na URL (issue 163)', () =>
     fireEvent.click(await screen.findByRole('button', { name: 'Cafelândia' }));
     expect(urlAtual()).toBe(`?municipio=${CAFELANDIA}`);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Tirar o recorte de Cafelândia' }));
+    escolherNoCampo('');
     expect(urlAtual()).toBe('');
 
     voltarNoHistorico();
     expect(urlAtual()).toBe(`?municipio=${CAFELANDIA}`);
-    expect(bloco('chip-municipio')).toHaveTextContent('Cafelândia');
+    expect(campoDeMunicipio().value).toBe(String(CAFELANDIA));
   });
 });
 
@@ -1057,32 +1156,50 @@ describe('Indicadores Geográficos — densidade da primeira camada (issues 31 e
     return (copia.textContent ?? '').replace(/\s+/g, ' ').trim();
   }
 
-  it('"Como interpretar os indicadores" não é mais um card permanente', async () => {
+  /**
+   * "COMO INTERPRETAR" E "LIMITAÇÕES" SAÍRAM DO CORPO, E NÃO DA TELA
+   * (fidelidade às maquetes, 23/09/2026).
+   *
+   * Eram `<details>` de uma linha — um entre os filtros e as abas, o outro
+   * embaixo dos mapas. A maquete não tem nenhum dos dois, e a decisão do usuário
+   * é que o que existe hoje e não está na maquete vá para a dica ao lado do
+   * assunto. Estes testes eram "é recolhível e o conteúdo não se perde"; agora
+   * são "não ocupa o corpo, e o conteúdo inteiro está na dica".
+   */
+  it('"Como interpretar os indicadores" está na dica de Mercado e na de Território, e fora do corpo', async () => {
     responder();
     abrir();
     await esperarACarga();
 
-    const comoLer = bloco('como-ler')!;
-    expect(comoLer.tagName).toBe('DETAILS');
-    expect(comoLer.classList.contains('card')).toBe(false);
+    expect(bloco('como-ler')).toBeNull();
+    expect(document.body.textContent).not.toContain('Como interpretar os indicadores');
 
-    // Fechado, ele ocupa só o rótulo — e o conteúdo continua lá dentro.
-    expect(comoLer.querySelector('summary')!.textContent).toBe('Como interpretar os indicadores');
-    expect(comoLer.hasAttribute('open')).toBe(false);
-    expect(comoLer.textContent).toContain('regra a confirmar');
+    const mercado = textoDaDica('Como ler os números de Mercado');
+    expect(mercado).toContain('Como interpretar os indicadores');
+    expect(mercado).toContain('regra a confirmar');
+    // A dica das fatias, que morava ao lado do título "O mercado da região",
+    // veio junto — com a Região Tracbel como denominador, e nunca "região" só.
+    expect(mercado).toMatch(/denominador da Região Tracbel/);
+
+    irPara('Território');
+    const territorio = textoDaDica('Fonte e método de a carteira na área de atuação');
+    expect(territorio).toContain('Como interpretar os indicadores');
+    expect(territorio).toContain('regra a confirmar');
   });
 
-  it('"Limitações dos dados" é recolhível, e o conteúdo de auditoria não se perde', async () => {
+  it('"Limitações dos dados" está na dica da Visão geográfica, inteira, e fora do corpo', async () => {
     responder();
     abrir();
     await esperarACarga();
 
-    const limitacoes = bloco('limitacoes')!;
-    expect(limitacoes.tagName).toBe('DETAILS');
-    expect(limitacoes.hasAttribute('open')).toBe(false);
-    expect(limitacoes.querySelector('summary')!.textContent).toBe('Limitações dos dados');
-    expect(limitacoes.textContent).toContain('participacaoDeMercado');
-    expect(limitacoes.textContent).toContain('emplacamento não integrado');
+    expect(bloco('limitacoes')).toBeNull();
+
+    const dica = textoDaDica('Fonte e método de visão geográfica');
+    expect(dica).toContain('Limitações dos dados');
+    expect(dica).toContain('participacaoDeMercado');
+    expect(dica).toContain('emplacamento não integrado');
+    // O rodapé que diz de onde o texto vem também veio.
+    expect(dica).toContain('Medido pela API na mesma consulta');
   });
 
   it('nenhum dos quatro mapas despeja parágrafo metodológico na tela', async () => {
@@ -1282,5 +1399,71 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
     expect(bloco('potencial-estrutural')!.contains(calculadora)).toBe(true);
     // Ela não mora mais dentro do cartão do mapa de potencial.
     expect(document.querySelector('[data-mapa="potencial"]')!.contains(calculadora)).toBe(false);
+  });
+});
+
+/**
+ * O QUE SAIU DO CORPO FOI PARA AS DICAS (fidelidade às maquetes, 23/09/2026).
+ *
+ * A decisão do usuário: o que existe hoje e não está na maquete sai do corpo da
+ * página e vai para o ⓘ mais perto do assunto — NADA de substância é apagado.
+ * Estes testes são a prova de que o texto continua a um Tab de distância, e de
+ * que as regras que ele carregava (procedência presente, "Região Tracbel" e não
+ * "região", permissão só depois de lida) continuam valendo lá dentro.
+ */
+describe('Indicadores Geográficos — o que saiu do corpo foi para as dicas', () => {
+  afterEach(() => {
+    obterIndicadoresTerritoriais.mockReset();
+    carregarMalhaDeSaoPaulo.mockReset();
+    guardado.clear();
+  });
+
+  it('o cabeçalho mostra só "Dados atualizados em…", e a procedência inteira está na dica ao lado', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    const cabecalho = bloco('cabecalho')!;
+    expect(cabecalho).toHaveTextContent(/Dados atualizados em \d{2}\/\d{2}\/\d{4}/);
+    // O SELO DE PROCEDÊNCIA INTEIRO NÃO OCUPA MAIS UMA LINHA no cabeçalho…
+    expect(cabecalho.querySelector('.cad-procedencia')).toBeNull();
+
+    // …MAS A PROCEDÊNCIA CONTINUA NA TELA, pelo teclado: sistema, objeto e instante.
+    const dica = textoDaDica('De onde vem o dado desta tela', cabecalho);
+    expect(dica).toContain('CRM Tracbel · territorio.Municipio');
+    expect(dica).toMatch(/Lido em \d{2}\/\d{2}\/\d{4}/);
+
+    // E o botão de reler continua sendo um botão de verdade.
+    expect(within(cabecalho).getByRole('button', { name: 'Reler os indicadores desta tela' })).toBeInTheDocument();
+  });
+
+  it('o alcance da consulta está na dica da Sub-região, e não afirma permissão antes da resposta', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    expect(bloco('alcance')).toBeNull();
+
+    const dica = textoDaDica('O que é a sub-região e o que esta consulta alcança');
+    expect(dica).toMatch(/Visão: filial .* e as abaixo dela/);
+    // A amostra não tem a permissão da empresa inteira — e a dica diz isso.
+    expect(dica).toContain('exige a permissão de alcance entre filiais');
+    // A hierarquia que a dica já explicava continua lá, com o termo decidido.
+    expect(dica).toContain('Norte e Noroeste são SUB-REGIÕES');
+  });
+
+  it('a procedência do recorte está na dica do Período, e não numa linha embaixo dos filtros', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    expect(bloco('filtros')!.textContent).not.toContain('cobertura medida em');
+
+    const dica = textoDaDica('O período em vigor e por que não há FYTD');
+    expect(dica).toContain('Vendas de set/2025 a ago/2026 (12 meses fechados)');
+    expect(dica).toContain('cobertura medida em');
+    expect(dica).toContain('área plantada PAM/IBGE 2024');
+    // O motivo de não haver FYTD, que já morava nesta dica, continua nela.
+    expect(dica).toContain('FYTD não é oferecido');
   });
 });
