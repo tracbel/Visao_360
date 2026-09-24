@@ -25,8 +25,21 @@ const DIST = 'dist';
  * AS DO HARNESS DO SHELL ENTRARAM JUNTO (fase 5): ele tem o mesmo gatilho em
  * `App.tsx` e o mesmo risco — um `import()` alcançável levaria o `Layout` de
  * mentira e a sessão fictícia para o pacote.
+ *
+ * AS DO HARNESS DA VISÃO 360 TAMBÉM: o mesmo gatilho, o mesmo risco — e as
+ * amostras dele têm filial, cliente e faturamento inventados.
  */
-const MARCAS = ['AMOSTRA FICTÍCIA', 'HarnessVisual', 'mercado-visual', 'painelFicticio', 'shell-visual', 'HarnessDoShell'];
+const MARCAS = [
+  'AMOSTRA FICTÍCIA',
+  'HarnessVisual',
+  'mercado-visual',
+  'painelFicticio',
+  'shell-visual',
+  'HarnessDoShell',
+  'visao360-visual',
+  'HarnessDaVisao360',
+  'amostrasDaVisao360',
+];
 
 function arquivos(pasta) {
   return readdirSync(pasta).flatMap((nome) => {
