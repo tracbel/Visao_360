@@ -453,7 +453,7 @@ export function DetalheDoMunicipio({
             <p className="cad-sub">
               {nº(cobertura.clientes)} clientes com endereço aqui · {nº(cobertura.semCadencia)} vínculos em linha sem
               cadência, fora da conta. Contato é qualquer interação registrada: nenhum tipo de atividade está marcado
-              como visita (documento 32, P-2).
+              como visita.
             </p>
 
             <h4 className="terr-detalhe-subtitulo">Vendas no período</h4>

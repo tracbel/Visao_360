@@ -203,6 +203,44 @@ public sealed class FontesPublicasTestes
             .Should().NotContain("mercado-pracas", "o manifesto lista o que existe; entrada órfã é promessa de arquivo");
     }
 
+    /// <summary>
+    /// A TELA NÃO CITA DOCUMENTO INTERNO.
+    ///
+    /// <para><b>O defeito que isto impede de voltar:</b> cinco textos que o usuário lê terminavam com
+    /// "(documento 32, §4.6.1)", "(documento 25, §5)", "(documento 05 §3)". O <c>§</c> lido por quem não
+    /// conhece a convenção parece defeito de codificação — foi assim que o Ricardo o reportou —, e o número
+    /// do documento não diz nada a quem está olhando um indicador.</para>
+    ///
+    /// <para><b>A rastreabilidade não se perde:</b> a referência continua no comentário do código, que é
+    /// onde ela serve. Por isso o teste olha o código SEM os comentários.</para>
+    ///
+    /// <para><b>O que continua permitido:</b> citar a <b>issue</b> que destrava um número. "Precisa da
+    /// issue 69" é acionável para quem lê — diz que existe trabalho em andamento e qual —, enquanto
+    /// "documento 25, §5" é endereço de arquivo que ninguém fora daqui consegue abrir.</para>
+    /// </summary>
+    [Fact]
+    public void Nenhum_texto_de_tela_cita_documento_interno()
+    {
+        var raizDoFront = Path.Combine(Raiz, "src", "Tracbel.Crm.Web", "src");
+
+        var telas = Directory
+            .EnumerateFiles(raizDoFront, "*.tsx", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(raizDoFront, "*.ts", SearchOption.AllDirectories))
+            .Where(f => !f.EndsWith(".teste.ts", StringComparison.Ordinal) && !f.EndsWith(".teste.tsx", StringComparison.Ordinal));
+
+        // `§` em qualquer lugar fora de comentário, ou "documento N" / "doc N" escritos no texto.
+        var citacao = new Regex(@"§|\bdocumento\s+\d|\bdoc\s+\d", RegexOptions.IgnoreCase);
+
+        var citando = telas
+            .Where(f => citacao.IsMatch(SemComentarios(File.ReadAllText(f))))
+            .Select(Path.GetFileName)
+            .ToList();
+
+        citando.Should().BeEmpty(
+            "o texto que o usuário lê não cita documento interno nem usa o símbolo de seção: a referência " +
+            "mora no comentário do código, e o que vai para a tela é a issue que destrava o número");
+    }
+
     /// <summary>Tira comentários de bloco e de linha, para o teste olhar o código e não a explicação dele.</summary>
     private static string SemComentarios(string codigo) =>
         Regex.Replace(Regex.Replace(codigo, @"/\*.*?\*/", "", RegexOptions.Singleline), @"//[^\n]*", "");
