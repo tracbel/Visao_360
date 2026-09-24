@@ -115,29 +115,11 @@ internal sealed class CargaDeClientesDoProtheus(
         await using var contexto = abrirContexto();
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
 
-        // O PREFIXO DA UF SAI DO CATÁLOGO, e não de uma tabela escrita no código: uma segunda lista
-        // de UFs é uma lista que um dia discorda da primeira.
-        var municipios = await contexto.Municipios.AsNoTracking()
-            .Where(m => m.CodigoIbge != null)
-            .Select(m => new { m.Id, CodigoIbge = m.CodigoIbge!.Value, m.Uf })
-            .ToListAsync(ct);
-
-        var municipioPorIbge = municipios.ToDictionary(m => m.CodigoIbge, m => m.Id);
-        var prefixoDaUf = municipios
-            .GroupBy(m => m.Uf, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First().CodigoIbge / 100_000, StringComparer.OrdinalIgnoreCase);
-
-        // A FILIAL RESPONSÁVEL POR CADA MUNICÍPIO. Só as linhas vigentes: um município que saiu da
-        // área de atuação deixa de dar filial, e o cliente dele passa a ficar pendente — que é o
-        // comportamento certo, e não um dono herdado de uma divisão que não existe mais.
-        var empresaPorMunicipio = await contexto.MunicipiosDaAreaDeAtuacao.AsNoTracking()
-            .Where(a => a.EncerradoEm == null && a.EmpresaResponsavelId != null)
-            .Select(a => new { a.MunicipioId, EmpresaId = a.EmpresaResponsavelId!.Value })
-            .ToDictionaryAsync(a => a.MunicipioId, a => a.EmpresaId, ct);
+        var territorio = await TerritorioDaCargaDeClientes.LerAsync(contexto, ct);
 
         const string etapaDoDePara = "2. De-para de município e filial";
-        Contar(etapaDoDePara, "municípios no catálogo do CRM", municipioPorIbge.Count);
-        Contar(etapaDoDePara, "municípios com filial responsável", empresaPorMunicipio.Count);
+        Contar(etapaDoDePara, "municípios no catálogo do CRM", territorio.MunicipioPorIbge.Count);
+        Contar(etapaDoDePara, "municípios com filial responsável", territorio.EmpresaPorMunicipio.Count);
 
         var clientesPorDocumento = (await contexto.Clientes.Where(c => c.Documento != null).ToListAsync(ct))
             .ToDictionary(c => c.Documento!.Value.Numero, StringComparer.Ordinal);
@@ -152,32 +134,12 @@ internal sealed class CargaDeClientesDoProtheus(
 
         foreach (var (documento, loja) in porDocumento)
         {
-            // O DÍGITO VERIFICADOR É CONFERIDO ANTES DE TUDO: o CRM identifica cliente pelo
-            // documento, e um documento que ele recusa não tem como ser reencontrado na carga
-            // seguinte. Vale mais deixá-lo na lista de pendências, com o motivo, do que criar um
-            // cliente que ninguém consegue casar com nota nem com venda.
-            if (!CpfCnpj.TentarCriar(documento, out var cpfCnpj))
+            // A DECISÃO DE CADA DOCUMENTO mora em TerritorioDaCargaDeClientes.Situar, que a sincronia das
+            // carteiras do Vórtice também usa para dizer por que um cliente de carteira não está no CRM.
+            var (motivo, cpfCnpj, municipioId, empresaId) = territorio.Situar(documento, loja);
+            if (motivo is not null)
             {
-                Pendente(DocumentoInvalido);
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(loja.Uf) || !prefixoDaUf.TryGetValue(loja.Uf, out var prefixo))
-            {
-                Pendente(SemUf);
-                continue;
-            }
-
-            var codigoIbge = LeitorDeClientesDoProtheus.CodigoIbge(prefixo, loja.CodigoDoMunicipio);
-            if (codigoIbge is null || !municipioPorIbge.TryGetValue(codigoIbge.Value, out var municipioId))
-            {
-                Pendente(MunicipioNaoReconhecido);
-                continue;
-            }
-
-            if (!empresaPorMunicipio.TryGetValue(municipioId, out var empresaId))
-            {
-                Pendente(ForaDaAreaDeAtuacao);
+                Pendente(motivo);
                 continue;
             }
 
@@ -327,5 +289,91 @@ internal sealed class CargaDeClientesDoProtheus(
     {
         _contagens.Add((etapa, rotulo, valor));
         relatar($"  {rotulo}: {valor:N0}");
+    }
+}
+
+/// <summary>
+/// O QUE A CARGA DA SA1 PRECISA SABER DO TERRITÓRIO para decidir se um documento vira cliente: o prefixo IBGE de
+/// cada UF, o município pelo código do IBGE e a filial responsável por município da área de atuação.
+///
+/// <para><b>Por que separado da carga.</b> A sincronia das carteiras do Vórtice (24/09/2026) precisa da MESMA
+/// decisão para dizer por que um cliente de carteira não está no CRM — fora da área de atuação, município não
+/// reconhecido — e, na simulação, para projetar o que a carga da SA1 criaria. Uma segunda cópia da regra seria
+/// uma regra que um dia discorda da primeira.</para>
+///
+/// <para><b>As três decisões medidas que moram aqui, e que viajam com o código:</b></para>
+/// <list type="number">
+/// <item><b>O prefixo da UF sai do catálogo de municípios</b>, e não de uma lista escrita no código: uma segunda
+/// lista de UFs é uma lista que um dia discorda da primeira.</item>
+/// <item><b>A filial dona sai da área de atuação, e não da SA1.</b> Medido em 24/09/2026: <c>A1_FILIAL</c> vem
+/// vazio nas 38.752 linhas — o cadastro de cliente do Protheus é compartilhado entre filiais. Quem responde pelo
+/// cliente é a filial responsável pelo MUNICÍPIO dele, só nas linhas vigentes da área de atuação.</item>
+/// <item><b>O documento manda no tipo de pessoa, e não <c>A1_PESSOA</c>.</b> <see cref="Situar"/> devolve o
+/// <see cref="CpfCnpj"/> conferido no dígito verificador; onze dígitos é CPF, catorze é CNPJ, e quem chama tira o
+/// tipo dali — <c>A1_PESSOA</c> é um campo que alguém preencheu, e na SA1 real ele discorda.</item>
+/// </list>
+/// </summary>
+/// <param name="PrefixoDaUf">O prefixo IBGE de cada UF, tirado do catálogo de municípios.</param>
+/// <param name="MunicipioPorIbge">O município do CRM pelo código do IBGE.</param>
+/// <param name="EmpresaPorMunicipio">A filial responsável por município, só nas linhas vigentes.</param>
+internal sealed record TerritorioDaCargaDeClientes(
+    IReadOnlyDictionary<string, int> PrefixoDaUf,
+    IReadOnlyDictionary<int, int> MunicipioPorIbge,
+    IReadOnlyDictionary<int, int> EmpresaPorMunicipio)
+{
+    /// <summary>Lê o território do banco do CRM. Só leitura.</summary>
+    /// <param name="contexto">O contexto do CRM.</param>
+    /// <param name="ct">Cancelamento.</param>
+    internal static async Task<TerritorioDaCargaDeClientes> LerAsync(CrmDbContext contexto, CancellationToken ct)
+    {
+        // O PREFIXO DA UF SAI DO CATÁLOGO, e não de uma tabela escrita no código: uma segunda lista
+        // de UFs é uma lista que um dia discorda da primeira.
+        var municipios = await contexto.Municipios.AsNoTracking()
+            .Where(m => m.CodigoIbge != null)
+            .Select(m => new { m.Id, CodigoIbge = m.CodigoIbge!.Value, m.Uf })
+            .ToListAsync(ct);
+
+        var municipioPorIbge = municipios.ToDictionary(m => m.CodigoIbge, m => m.Id);
+        var prefixoDaUf = municipios
+            .GroupBy(m => m.Uf, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().CodigoIbge / 100_000, StringComparer.OrdinalIgnoreCase);
+
+        // A FILIAL RESPONSÁVEL POR CADA MUNICÍPIO. Só as linhas vigentes: um município que saiu da
+        // área de atuação deixa de dar filial, e o cliente dele passa a ficar pendente — que é o
+        // comportamento certo, e não um dono herdado de uma divisão que não existe mais.
+        var empresaPorMunicipio = await contexto.MunicipiosDaAreaDeAtuacao.AsNoTracking()
+            .Where(a => a.EncerradoEm == null && a.EmpresaResponsavelId != null)
+            .Select(a => new { a.MunicipioId, EmpresaId = a.EmpresaResponsavelId!.Value })
+            .ToDictionaryAsync(a => a.MunicipioId, a => a.EmpresaId, ct);
+
+        return new TerritorioDaCargaDeClientes(prefixoDaUf, municipioPorIbge, empresaPorMunicipio);
+    }
+
+    /// <summary>
+    /// Decide se o documento vira cliente: devolve o motivo da pendência, ou o documento conferido com o município
+    /// e a filial responsável.
+    /// </summary>
+    /// <param name="documento">O documento, só dígitos.</param>
+    /// <param name="loja">A loja escolhida para representar o cliente.</param>
+    internal (string? Motivo, CpfCnpj Documento, int MunicipioId, int EmpresaId) Situar(string documento, LojaDeClienteNoProtheus loja)
+    {
+        // O DÍGITO VERIFICADOR É CONFERIDO ANTES DE TUDO: o CRM identifica cliente pelo
+        // documento, e um documento que ele recusa não tem como ser reencontrado na carga
+        // seguinte. Vale mais deixá-lo na lista de pendências, com o motivo, do que criar um
+        // cliente que ninguém consegue casar com nota nem com venda.
+        if (!CpfCnpj.TentarCriar(documento, out var cpfCnpj))
+            return (CargaDeClientesDoProtheus.DocumentoInvalido, default, 0, 0);
+
+        if (string.IsNullOrWhiteSpace(loja.Uf) || !PrefixoDaUf.TryGetValue(loja.Uf, out var prefixo))
+            return (CargaDeClientesDoProtheus.SemUf, cpfCnpj, 0, 0);
+
+        var codigoIbge = LeitorDeClientesDoProtheus.CodigoIbge(prefixo, loja.CodigoDoMunicipio);
+        if (codigoIbge is null || !MunicipioPorIbge.TryGetValue(codigoIbge.Value, out var municipioId))
+            return (CargaDeClientesDoProtheus.MunicipioNaoReconhecido, cpfCnpj, 0, 0);
+
+        if (!EmpresaPorMunicipio.TryGetValue(municipioId, out var empresaId))
+            return (CargaDeClientesDoProtheus.ForaDaAreaDeAtuacao, cpfCnpj, municipioId, 0);
+
+        return (null, cpfCnpj, municipioId, empresaId);
     }
 }

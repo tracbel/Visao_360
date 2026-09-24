@@ -1800,7 +1800,7 @@ internal sealed partial class CargaDeProcessoDoVortice(
     /// Nada aqui protege nada, e por isso não há requisito de resistência a colisão adversária.
     /// </para>
     /// </summary>
-    private static Guid GuidEstavelDe(string texto) => new(MD5.HashData(Encoding.UTF8.GetBytes(texto)));
+    internal static Guid GuidEstavelDe(string texto) => new(MD5.HashData(Encoding.UTF8.GetBytes(texto)));
 }
 
 /// <summary>O que a carga de relacionamento fez, em número — é o corpo do relatório do documento 25.</summary>

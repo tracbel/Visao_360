@@ -817,7 +817,7 @@ public static class ConexoesDoSistema
     /// <summary>O ART — as vendas de máquina.</summary>
     public const string Art = "ART";
 
-    /// <summary>O Vórtice — o sistema legado, congelado.</summary>
+    /// <summary>O Vórtice — o sistema legado, congelado, exceto pelas carteiras MAQ_NOVOS (decisão de 24/09/2026).</summary>
     public const string Vortice = "VORTICE";
 
     /// <summary>As conexões, na ordem da tela.</summary>
@@ -830,7 +830,7 @@ public static class ConexoesDoSistema
         new(Art, "ART — vendas de máquina", TipoDeConexao.MySql,
             "A view de vendas de máquina liberada para o CRM. Sessão somente leitura."),
         new(Vortice, "Vórtice — sistema legado", TipoDeConexao.SqlServer,
-            "A busca ao vivo no legado, congelado desde a fase 1 (somente referência)."),
+            "A busca ao vivo no legado, congelado desde a fase 1, e a sincronia diária das carteiras MAQ_NOVOS. Sessão somente leitura."),
         new("IBGE_SIDRA", "IBGE — SIDRA", TipoDeConexao.FontePublica,
             "Produção agrícola, Censo Agropecuário, rebanho e área territorial.",
             "https://servicodados.ibge.gov.br/api/v3/agregados/5457/metadados"),
@@ -878,8 +878,8 @@ public sealed record RotinaDoSistema(
 
 /// <summary>
 /// AS ROTINAS DO SERVIDOR. As duas das fontes públicas nascem ligadas, com o calendário que as tarefas do Windows
-/// tinham até 22/09/2026; o faturamento e o ART nascem DESLIGADOS — ligá-los é trazer dado novo para produção, e
-/// isso é decisão de quem administra, não da migração.
+/// tinham até 22/09/2026; o faturamento, o ART e as carteiras do Vórtice nascem DESLIGADOS — ligá-los é trazer dado
+/// novo para produção, e isso é decisão de quem administra, não da migração.
 /// </summary>
 public static class RotinasDoSistema
 {
@@ -905,6 +905,9 @@ public static class RotinasDoSistema
 
     /// <summary>As vendas de máquina do ART.</summary>
     public const string ArtVendas = "ART_VENDAS";
+
+    /// <summary>As carteiras MAQ_NOVOS do Vórtice (decisão de 24/09/2026).</summary>
+    public const string CarteirasVortice = "CARTEIRAS_VORTICE";
 
     /// <summary>
     /// Quando as agendas semeadas passam a valer: o dia em que o orquestrador substituiu as tarefas do Windows. O
@@ -960,7 +963,19 @@ public static class RotinasDoSistema
             "O cadastro de clientes da SA1 do Protheus: cliente e endereço principal, pela filial responsável " +
             "do município. É a primeira carga do dia — sem cliente, o faturamento e o ART não acham dono.",
             ["--somente-clientes-protheus"], AgendaDaRotina.DiariaAs(new TimeOnly(3, 30)), false,
-            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco)
+            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco),
+
+        // AS CARTEIRAS DO VÓRTICE (decisão de 24/09/2026). É SINCRONIA, e não carga única: o Vórtice continua
+        // vivo e é editado todo dia (832 mudanças de vínculo em 30 dias, medidas nessa data). Diária às 04:30 —
+        // DEPOIS dos clientes da SA1, com quem ela casa pelo documento, e ANTES do faturamento das 05:00. A ordem
+        // sai da hora, e não da posição nesta lista: a posição é o identificador semeado, e inserir no meio
+        // renumeraria as rotinas que já existem. NASCE DESLIGADA como as outras que trazem dado novo para
+        // produção: quem liga é quem administra, em Configurações › Integrações, com a credencial do Vórtice
+        // gravada e testada. O banco do Protheus é opcional — com ele, o vínculo que não casa diz por quê.
+        new(CarteirasVortice, "Carteiras MAQ_NOVOS do Vórtice",
+            "A carteira de máquinas novas de cada vendedor, lida do Vórtice, com os clientes casados pelo CPF/CNPJ.",
+            ["--somente-carteiras-vortice"], AgendaDaRotina.DiariaAs(new TimeOnly(4, 30)), false,
+            [ConexoesDoSistema.Vortice, ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.Vortice)
     ];
 
     /// <summary>A rotina do catálogo pelo código; nula quando não existe.</summary>

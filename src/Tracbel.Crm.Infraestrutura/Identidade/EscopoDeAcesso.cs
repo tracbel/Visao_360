@@ -136,7 +136,8 @@ internal static class EscopoDeAcesso
                         ContextoAcesso.CodigoDeTodasAsFiliais)]);
 
             // TODAS, INCLUSIVE AS INATIVAS: "todas as filiais" é o que diz, e o dado de uma filial fechada
-            // (Guaíra, Ituverava, Monte Alto) continua no banco. O perfil concedido só numa filial NÃO
+            // (hoje, as duas Colorado; Guaíra, Ituverava e Monte Alto foram reativadas em 24/09/2026) continua
+            // no banco. O perfil concedido só numa filial NÃO
             // entra aqui — valer em todas seria dar a ele um alcance que ninguém concedeu.
             var todas = await banco.Empresas.Select(e => e.Id).ToListAsync(ct);
 

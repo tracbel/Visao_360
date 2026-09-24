@@ -162,6 +162,16 @@ var somenteArt = args.Contains("--somente-art", StringComparer.Ordinal);
 // consegue casar comprador nenhum e as vendas ficam todas pendentes.
 var somenteClientesDoProtheus = args.Contains("--somente-clientes-protheus", StringComparer.Ordinal);
 
+// --somente-carteiras-vortice [--simular] — AS CARTEIRAS MAQ_NOVOS DO VÓRTICE (decisão de 24/09/2026).
+//
+// Le do Vortice (so SELECT, NOLOCK) as carteiras do departamento MAQ-NOVOS e os clientes delas, casa cada cliente
+// com o cadastro do CRM pelo CPF/CNPJ e SINCRONIZA: vinculo novo entra, vinculo que sumiu e encerrado. E a rotina
+// diaria CARTEIRAS_VORTICE do orquestrador. Com --simular, calcula o plano so com leitura e nao abre transacao.
+//
+// Vem DEPOIS do --somente-clientes-protheus na ordem de carga: o cliente que ainda nao entrou pela SA1 fica
+// pendente, e entra na rodada seguinte.
+var somenteCarteirasDoVortice = args.Contains("--somente-carteiras-vortice", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
 // =================================================================================================
@@ -183,11 +193,15 @@ var simular = args.Contains("--simular", StringComparer.Ordinal);
 //   --somente-art           as vendas de máquina do ART;
 //   --somente-medir         só conta linhas, não grava nada.
 //
+// A ÚNICA LEITURA DO VÓRTICE LIBERADA (decisão de 24/09/2026):
+//   --somente-carteiras-vortice   as carteiras MAQ_NOVOS — o Vórtice continua sendo onde o comercial edita a
+//                                 carteira de cada vendedor, e ela não mora em nenhum outro lugar.
+//
 // O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
 
 var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somentePrecos && !somenteCustos && !somenteCredito
-                 && !somenteArt && !somenteClientesDoProtheus && !somenteMedir;
+                 && !somenteArt && !somenteClientesDoProtheus && !somenteCarteirasDoVortice && !somenteMedir;
 
 if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
 {
@@ -235,7 +249,7 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
 if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura
-    && !somentePrecos && !somenteCustos && !somenteCredito && !somenteArt && !somenteClientesDoProtheus)
+    && !somentePrecos && !somenteCustos && !somenteCredito && !somenteArt && !somenteClientesDoProtheus && !somenteCarteirasDoVortice)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -435,6 +449,95 @@ if (somenteClientesDoProtheus)
 
     Console.WriteLine();
     return 0;
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só as carteiras MAQ_NOVOS do Vórtice (decisão de 24/09/2026).
+// -------------------------------------------------------------------------------------------------
+
+if (somenteCarteirasDoVortice)
+{
+    if (string.IsNullOrWhiteSpace(conexaoDoLegado))
+    {
+        Console.Error.WriteLine(
+            "A sincronia das carteiras exige a credencial do Vórtice: grave-a e teste-a em Configurações › Integrações, " +
+            "ou defina Vortice__Conexao no servidor. Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    // O BANCO DO PROTHEUS É OPCIONAL: com ele, o vínculo cujo cliente não está no CRM diz POR QUÊ (fora da área de
+    // atuação, fora da SA1, ainda não carregado); sem ele, fica com o motivo genérico.
+    var opcoesDoBancoParaCarteiras = new OpcoesDoBancoDoProtheus();
+    configuracao.GetSection(OpcoesDoBancoDoProtheus.Secao).Bind(opcoesDoBancoParaCarteiras);
+    var leitorDaSa1 = opcoesDoBancoParaCarteiras.EstaConfigurada ? new LeitorDeClientesDoProtheus(opcoesDoBancoParaCarteiras) : null;
+
+    // A SIMULAÇÃO LÊ O CRM COM INTENÇÃO DE LEITURA DECLARADA: ela não grava nada por construção (o plano é calculado
+    // só com consultas), e a cadeia diz isso ao servidor também.
+    var opcoesDaSincronia = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(180))
+            .Options
+        : opcoesDoBanco;
+
+    CrmDbContext AbrirContextoDaSincronia() => new(opcoesDaSincronia, contexto, diario);
+
+    Console.WriteLine(simular
+        ? "Carteiras MAQ_NOVOS do Vórtice — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
+        : "Carteiras MAQ_NOVOS do Vórtice — sincronizando.");
+    if (leitorDaSa1 is null)
+        Console.WriteLine("  (sem o banco do Protheus configurado: o motivo de quem não casa fica genérico)");
+    Console.WriteLine();
+
+    var leitorDasCarteiras = new LeitorDeCarteirasDoVortice(new OpcoesDoVortice { Conexao = conexaoDoLegado });
+    var cargaDeCarteiras = new CargaDeCarteirasDoVortice(
+        AbrirContextoDaSincronia, leitorDasCarteiras.LerAsync, leitorDaSa1 is null ? null : leitorDaSa1.LerAsync,
+        deParaDeFiliais, usuarioId, () => DateTime.UtcNow, Console.WriteLine);
+
+    try
+    {
+        // A MESMA TRAVA DAS OUTRAS CARGAS, e só quando grava: a rotina do orquestrador e uma rodada manual não
+        // sincronizam ao mesmo tempo. A simulação não a toma — ela não escreve, e não deve impedir quem escreve.
+        await using var travaDasCarteiras = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), CargaDeCarteirasDoVortice.Fluxo, CancellationToken.None);
+
+        var resultadoDasCarteiras = await cargaDeCarteiras.ExecutarAsync(simular, CancellationToken.None);
+        if (!resultadoDasCarteiras.EhSucesso)
+        {
+            Console.Error.WriteLine("A SINCRONIA DAS CARTEIRAS PAROU: " + resultadoDasCarteiras.Erro);
+            return 3;
+        }
+
+        foreach (var etapa in resultadoDasCarteiras.Valor.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+        }
+
+        if (resultadoDasCarteiras.Valor.Observacoes.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("- Observações -");
+            foreach (var observacao in resultadoDasCarteiras.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        }
+
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A SINCRONIA DAS CARTEIRAS PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
 }
 
 if (somenteArt)
