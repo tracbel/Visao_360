@@ -29,10 +29,21 @@
  * A busca é a mesma `SeletorDeCliente` do cadastro — busca com sugestão contra
  * `/api/v1/clientes`, dentro da filial do cabeçalho. O que a tela guarda é a
  * CHAVE; o nome digitado nunca vira dado.
+ *
+ * ---------------------------------------------------------------------------
+ * 24/09/2026 — o painel executivo na largura da tela, como os Indicadores.
+ *
+ * A rota ganhou `larga` e o painel mora na `PaginaDoPainel` — a mesma página dos
+ * Indicadores Geográficos, CONTÊINER das quebras. Ela ocupa a coluna de
+ * conteúdo inteira: teto (1.940 px, centralizado) só acima de 2.100 px de janela.
+ * As grades do painel passaram a quebrar pela largura do conteúdo, e não da
+ * janela: na tela do Ricardo (1536 px com 125%, ~1.240 px de conteúdo) os cinco
+ * cartões ficam numa linha; abaixo disso, 3 + 2, dois e um.
  */
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
 import { PainelExecutivo } from '../componentes/painel360/PainelExecutivo';
 import { BlocoErro } from '../componentes/cadastro/EstadosDeTela';
 import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Indicadores';
@@ -51,6 +62,7 @@ import {
 } from '../dados/api/relacionamento';
 import { useRecurso } from '../dados/api/useRecurso';
 import { formatarData } from './cadastro/formato';
+import '../estilos/dashboard.css';
 
 /** Quantas linhas cada fila mostra antes de mandar para a tela cheia. */
 const LINHAS = 8;
@@ -80,28 +92,39 @@ export function Visao360() {
 
   if (perfil !== 'cen') {
     return (
-      <>
-        <div className="v360-header">
-          <div className="v360-header-left">
-            <h1 className="v360-title">Visão 360</h1>
-            <div className="v360-subtitle">
+      // A PÁGINA DOS INDICADORES: mesmo ritmo, e é ela a régua das quebras do
+      // painel (`@container indicadores`, no `dashboard.css`). A LARGURA É A DA
+      // COLUNA INTEIRA (`v360-pagina`): o teto de 1.580 só volta acima de 2.100px
+      // de janela, centralizado — pedido do Ricardo, com a captura a ~1.700px.
+      <PaginaDoPainel className="v360-pagina">
+        {/* O CABEÇALHO QUEBRA: título à esquerda e perfis à direita enquanto
+            couberem; em conteúdo estreito os perfis descem para a linha de
+            baixo, em vez de empurrar a página para o lado. */}
+        <div className="page-header v360-cabecalho" data-bloco="cabecalho">
+          <div className="v360-cabecalho-titulo">
+            <h1 className="page-title">Visão 360</h1>
+            <p className="page-subtitle">
               Dashboard executivo · <strong>Consolidado das filiais em operação</strong> ·{' '}
               <Link to="/relatorios/territorio" className="v360-link">
                 Indicadores geográficos da ADR →
               </Link>
-            </div>
+            </p>
           </div>
           <SeletorDePerfil perfil={perfil} aoTrocar={setPerfil} />
         </div>
 
         <PainelExecutivo />
-      </>
+      </PaginaDoPainel>
     );
   }
 
+  // O PERFIL DO CEN GUARDA O TETO DE SEMPRE. A rota ficou larga por causa do
+  // painel executivo; o trabalho do dia e o 360 do cliente são lista e ficha, e
+  // esticados por 1.900 px ficariam piores — `v360-pagina-cen` devolve a eles a
+  // largura que o `.content` dava.
   if (clienteChave) {
     return (
-      <>
+      <div className="v360-pagina-cen">
         <SeletorDePerfil perfil={perfil} aoTrocar={setPerfil} />
         <Cliente360Api
           chave={clienteChave}
@@ -110,21 +133,23 @@ export function Visao360() {
             setClienteNome('');
           }}
         />
-      </>
+      </div>
     );
   }
 
   return (
-    <MeuDia
-      perfil={perfil}
-      aoTrocarPerfil={setPerfil}
-      clienteChave={clienteChave}
-      clienteNome={clienteNome}
-      aoEscolher={(chave, nome) => {
-        setClienteChave(chave);
-        setClienteNome(nome);
-      }}
-    />
+    <div className="v360-pagina-cen">
+      <MeuDia
+        perfil={perfil}
+        aoTrocarPerfil={setPerfil}
+        clienteChave={clienteChave}
+        clienteNome={clienteNome}
+        aoEscolher={(chave, nome) => {
+          setClienteChave(chave);
+          setClienteNome(nome);
+        }}
+      />
+    </div>
   );
 }
 
@@ -347,6 +372,9 @@ function MeuDia({
  * de um cliente; Gerente e Diretoria abrem o painel consolidado das treze
  * filiais. É a mesma decisão registrada no documento 05 §8, agora com dado real
  * dos dois lados.
+ *
+ * Os três botões QUEBRAM DE LINHA quando não cabem (24/09/2026): lado a lado
+ * eles somam ~650 px, e no celular empurravam a página para o lado.
  */
 function SeletorDePerfil({ perfil, aoTrocar }: { perfil: PerfilId; aoTrocar: (p: PerfilId) => void }) {
   return (

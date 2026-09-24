@@ -99,13 +99,24 @@
   font-size: 13px;
 }
 
+/* O NOME CEDE, E A CONTAGEM DESCE PARA A LINHA DE BAIXO quando os dois não cabem
+   lado a lado (24/09/2026). Era um par sem quebra: com a contagem em fonte
+   monoespaçada e sem encolher, o nome do concorrente ficava com 120px e
+   quebrava em quatro linhas num cartão de meia largura. */
 .v360-concorrentes li {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 12px;
+  column-gap: 12px;
+}
+
+.v360-concorrentes li span:first-child {
+  flex: 1 1 12em;
+  min-width: 0;
 }
 
 .v360-concorrentes li span:last-child {
+  margin-left: auto;
   font-family: var(--font-mono);
   color: var(--text-secondary);
   white-space: nowrap;
@@ -116,3 +127,308 @@
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+/* "ano civil (jan–dez) ⓘ" — a dica colada à frase que ela explica. */
+.v360-periodo-regra {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+}
+
+/* =============================================================================
+   A VISÃO 360 NA PÁGINA DOS INDICADORES (24/09/2026)
+
+   O painel executivo passou a morar na `PaginaDoPainel` (`dashboard.css`): o
+   mesmo ritmo entre blocos dos Indicadores Geográficos e o mesmo CONTÊINER das
+   quebras — com a coluna de conteúdo inteira de largura (ver `.v360-pagina`).
+
+   AS QUEBRAS SÃO PELA LARGURA DO CONTEÚDO (`@container indicadores`), e não da
+   janela. Antes não havia quebra nenhuma: cinco cartões e três colunas fixas em
+   qualquer largura — no celular a página passava 85px da janela — e, num
+   monitor de 1.920, o teto de 1.400 do `.content` deixava ~320px vazios à
+   direita. A régua de hoje, medida no harness `#/dev/visao360-visual`:
+
+   | Conteúdo       | Cinco cartões | Linhas 2 e 3             | Linha 4      |
+   |----------------|---------------|--------------------------|--------------|
+   | ≥ 1.100 px     | 5 numa linha  | 3 colunas                | 1,6 : 1      |
+   | 900 – 1.099    | 3 + 2         | 2 colunas + 1 inteira    | 1,6 : 1      |
+   | 700 – 899      | 3 + 2         | 2 colunas + 1 inteira    | empilhada    |
+   | 520 – 699      | 2 + 2 + 1     | empilhadas               | empilhada    |
+   | < 520          | um por linha  | empilhadas               | empilhada    |
+
+   1.100, E NÃO 1.150, PARA OS CINCO NUMA LINHA: numa janela de 1.440 (o
+   notebook mais comum do comercial) o conteúdo tem ~1.130px, e com 1.150 os
+   cinco caíam para 3 + 2 por vinte pixels. Em 1.100 cada cartão tem ~178px de
+   miolo, e a palavra mais longa dos títulos ("CONHECIMENTO", ~90px) cabe com
+   folga de sobra; o título quebra em duas linhas, que é a altura do ícone ao
+   lado. Na tela do Ricardo (1536 px a 125%, ~1.240px de conteúdo) o miolo tem
+   ~205px.
+
+   AS REGRAS ESTÃO PRESAS A `.dash-pagina`, e não é detalhe: as antigas, sem
+   quebra, continuam no `design-system.css` com um seletor de uma classe só — e
+   este arquivo não pode depender de carregar depois dele para ganhar.
+   ============================================================================= */
+
+/* A LARGURA É A DA COLUNA DE CONTEÚDO INTEIRA (pedido do Ricardo, 24/09/2026,
+   com a captura da tela real a ~1.700px: "tirar todo esse espaço em branco").
+   A `dash-pagina` dos Indicadores para em 1.580 — numa janela de 2.000 isso já
+   deixa faixa. Aqui não há teto até 2.100px de janela; acima disso volta o de
+   1.940 dos Indicadores, CENTRALIZADO, porque cinco cartões esticados por 2.200px
+   deixam de ser uma linha que o olho lê de uma vez. */
+.dash-pagina.v360-pagina { max-width: none; }
+
+@media (min-width: 2100px) {
+  .dash-pagina.v360-pagina { max-width: 1940px; }
+}
+
+/* O cabeçalho: título e perfis lado a lado enquanto couberem; depois os perfis
+   descem para a linha de baixo, em vez de empurrar a página para o lado. */
+.dash-pagina .v360-cabecalho {
+  flex-wrap: wrap;
+  row-gap: var(--e-3);
+}
+
+.v360-cabecalho-titulo {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.dash-pagina .v360-cabecalho .page-subtitle { margin: 0; }
+
+/* O link para os Indicadores desce inteiro para a linha de baixo, em vez de
+   partir em "Indicadores geográficos / da ADR →". */
+.dash-pagina .v360-cabecalho .v360-link { white-space: nowrap; }
+
+.dash-pagina .v360-cabecalho .v360-perfil-toggle {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+/* OS PERFIS QUEBRAM DE LINHA: lado a lado os três somam ~650px, e no celular a
+   faixa empurrava a página. O comportamento do seletor não muda — só o arranjo. */
+.v360-perfil-toggle { flex-wrap: wrap; }
+.v360-perfil-btn { flex: 1 1 auto; min-width: 0; }
+
+/* O PERFIL DO CEN GUARDA O TETO DE SEMPRE: os 1.400px do `.content`, menos os
+   32px de folga de cada lado. A rota ficou larga por causa do painel. */
+.v360-pagina-cen { max-width: 1336px; }
+
+/* O painel: blocos separados pelo espaço da página, e não por margem de cada um. */
+.dash-pagina .v360-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dash-pagina .v360-container > * {
+  min-width: 0;
+  margin: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   OS CINCO CARTÕES
+   ----------------------------------------------------------------------------- */
+.dash-pagina .v360-kpi-row {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-3);
+}
+
+@container indicadores (min-width: 520px) {
+  .dash-pagina .v360-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* 2 + 2 + 1: o quinto ocupa a linha inteira, em vez de meia linha e um buraco. */
+  .dash-pagina .v360-kpi-row > :nth-child(5) { grid-column: 1 / -1; }
+}
+
+/* 3 + 2 NUMA GRADE DE SEIS: os três de cima ocupam dois sextos cada, e os dois de
+   baixo três sextos — as duas linhas terminam na mesma borda, sem a terceira
+   célula vazia que uma grade de três deixaria. */
+@container indicadores (min-width: 700px) {
+  .dash-pagina .v360-kpi-row { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .dash-pagina .v360-kpi-row > :nth-child(n) { grid-column: span 2; }
+  .dash-pagina .v360-kpi-row > :nth-child(n + 4) { grid-column: span 3; }
+}
+
+@container indicadores (min-width: 1100px) {
+  .dash-pagina .v360-kpi-row { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .dash-pagina .v360-kpi-row > :nth-child(n) { grid-column: auto; }
+}
+
+/* O CARTÃO NA ESCALA DOS INDICADORES: miolo 12/16, raio e borda da página. */
+.dash-pagina .v360-kpi-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--radius-lg);
+}
+
+/* O TÍTULO QUEBRA EM ATÉ DUAS LINHAS NA ALTURA DO ÍCONE (28px): com um título de
+   uma linha e o vizinho de duas, o número dos dois continua na mesma altura. */
+.dash-pagina .v360-kpi-header { min-height: 28px; }
+
+/* O título ocupa o resto da linha do ícone: a largura dele é o espaço que ele
+   TEM, e é contra ela que a conferência visual mede a folga das palavras. */
+.dash-pagina .v360-kpi-titulo { flex: 1 1 auto; min-width: 0; }
+.v360-kpi-titulo-fim { white-space: nowrap; }
+
+/* O ⓘ SEM FOLGA VERTICAL: com os 2px de folga do gatilho ele media 17px, mais
+   que a linha do título (13,75px), e a linha que o levava crescia — o número do
+   cartão descia três pixels em relação ao do vizinho. */
+.dash-pagina .v360-kpi-titulo .dica { margin-left: 2px; }
+.dash-pagina .v360-kpi-titulo .dica-gatilho { padding: 0 2px; }
+
+/* O ⓘ da meta ausente, no meio da linha de composição, no corpo dela. */
+.v360-kpi-detalhe .cad-ausente { display: inline-flex; vertical-align: middle; }
+
+/* -----------------------------------------------------------------------------
+   AS TRÊS LINHAS DE PAINÉIS
+   ----------------------------------------------------------------------------- */
+/* `align-items: start`, COMO NOS INDICADORES: cada painel tem a altura do que
+   mostra. Esticado até o vizinho, um painel "sem dado" ao lado de um ranking de
+   cinco linhas virava uma caixa de 440px com duas frases no meio — o espaço em
+   branco que o Ricardo apontou na tela real. */
+.dash-pagina .v360-grid-row2,
+.dash-pagina .v360-grid-row3,
+.dash-pagina .v360-grid-row4 {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--e-4);
+  align-items: start;
+}
+
+/* DUAS COLUNAS E UMA INTEIRA: o par de leitura lado a lado (conhecimento e
+   cobertura; os dois rankings) e o gráfico largo embaixo, com a largura toda —
+   que é do que a série de doze meses e o mix precisam. */
+@container indicadores (min-width: 700px) {
+  .dash-pagina .v360-grid-row2,
+  .dash-pagina .v360-grid-row3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .dash-pagina .v360-grid-row2 > :nth-child(3),
+  .dash-pagina .v360-grid-row3 > :nth-child(3) { grid-column: 1 / -1; }
+}
+
+@container indicadores (min-width: 900px) {
+  .dash-pagina .v360-grid-row4 { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+}
+
+@container indicadores (min-width: 1100px) {
+  /* As proporções de antes (05/09/2026): a cobertura um pouco maior que o
+     conhecimento, porque a legenda dela carrega números de cinco dígitos. */
+  .dash-pagina .v360-grid-row2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.35fr); }
+  .dash-pagina .v360-grid-row3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  .dash-pagina .v360-grid-row2 > :nth-child(3),
+  .dash-pagina .v360-grid-row3 > :nth-child(3) { grid-column: auto; }
+}
+
+/* O PAINEL NA ESCALA DOS INDICADORES, e CONTÊINER do que mora dentro dele: a
+   rosca e a legenda decidem se ficam lado a lado pela largura do PAINEL, que
+   muda com a coluna em que ele caiu, e não pela da página. */
+.dash-pagina .v360-card {
+  container: v360-cartao / inline-size;
+  min-width: 0;
+  padding: var(--e-4);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.dash-pagina .v360-card-header {
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-3);
+  margin-bottom: var(--e-3);
+}
+
+.dash-pagina .v360-card-header > div:first-child {
+  flex: 1 1 12em;
+  min-width: 0;
+}
+
+/* O TÍTULO DE PAINEL DOS INDICADORES: corpo `--t-cartao`, peso de título. */
+.dash-pagina .v360-card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--e-1);
+  font-size: var(--t-cartao);
+  font-weight: 600;
+  line-height: var(--lh-normal);
+}
+
+.dash-pagina .v360-card-sub { font-size: var(--t-meta); }
+
+/* "SEM DADO" É COMPACTO: a frase do motivo, centralizada, com respiro de uma
+   linha. Ele não guarda a altura do gráfico que não está ali — era `flex: 1`
+   com 120px de piso, e o painel vazio ficava do tamanho do vizinho cheio. */
+.dash-pagina .v360-card .v360-sem-dado {
+  flex: none;
+  min-height: 0;
+  padding: var(--e-3) var(--e-2) var(--e-2);
+}
+
+/* A LEGENDA NÃO SE ESPALHA: com o painel em largura inteira, o número ia parar
+   a meio palmo do rótulo. */
+.dash-pagina .v360-donut-legenda,
+.dash-pagina .v360-mix-legenda {
+  min-width: 0;
+  max-width: 420px;
+}
+
+/* A ROSCA E A LEGENDA EMPILHAM quando o painel fica estreito. A rosca tem
+   tamanho fixo (160px a da cobertura, 140px a do mix); ao lado dela, abaixo de
+   340px de miolo, a legenda ficava com menos de 140px e o rótulo quebrava em
+   três linhas. Empilhadas, as duas cabem inteiras. */
+@container v360-cartao (max-width: 339px) {
+  .v360-donut-wrap,
+  .v360-mix-wrap { flex-direction: column; align-items: stretch; gap: var(--e-3); }
+
+  .v360-donut-wrap > canvas,
+  .v360-mix-wrap > canvas { align-self: center; }
+
+  .v360-donut-legenda,
+  .v360-mix-legenda { max-width: none; }
+}
+
+/* -----------------------------------------------------------------------------
+   OS RANKINGS
+   ----------------------------------------------------------------------------- */
+
+/* O VALOR TINHA 100px FIXOS: num painel estreito eram eles, e não o nome, que
+   decidiam a largura. Agora cedem até o número, e o nome fica com o resto. */
+.dash-pagina .v360-topbar-valor-wrap {
+  flex: 0 1 100px;
+  min-width: 0;
+}
+
+/* O NOME DO CLIENTE É O GATILHO DA DICA com o nome inteiro (issue 167). O botão
+   da dica é redondo e sem altura de linha — aqui ele é texto, com reticências. */
+.v360-topbar-info > .dica {
+  display: flex;
+  max-width: 100%;
+}
+
+.v360-topbar-info > .dica > .dica-gatilho {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  line-height: inherit;
+  text-align: left;
+}
+
+.v360-topbar-info > .dica > .dica-gatilho:hover { background: none; }
+.v360-topbar-info > .dica > .dica-gatilho:hover .v360-topbar-nome { text-decoration: underline dotted; }
+.v360-topbar-info .dica-gatilho .v360-topbar-nome { display: block; }
+
+/* -----------------------------------------------------------------------------
+   A COMPOSIÇÃO — a tabela de onze colunas rola DENTRO da caixa dela, e só ali.
+   ----------------------------------------------------------------------------- */
+.dash-pagina .v360-composicao {
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+.v360-composicao-tabela th .dica { margin-left: 2px; }

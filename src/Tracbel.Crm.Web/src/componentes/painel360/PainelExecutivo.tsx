@@ -11,15 +11,32 @@
  * período e alcance escritos no próprio cartão, e a composição filial a filial
  * abre logo abaixo deles:
  *   A. faturamento da competência mais recente, com e sem cliente no CRM;
- *   B. realizado do ano civil ao lado da meta cadastrada — nunca previsão;
+ *   B. realizado do ano civil ao lado da meta — que ainda não existe (issue 138) — e nunca previsão;
  *   C. clientes únicos (filial de cadastro) e vínculos (filial da carteira);
  *   D. cobertura pela cadência declarada da linha — a regra do mapa;
  *   E. vendas perdidas registradas — sem percentual de mercado.
  *
  * Quando falta dado, o cartão **fica na tela**, no mesmo lugar e no mesmo
  * tamanho, dizendo o que falta — some o número, não o cartão.
+ *
+ * ---------------------------------------------------------------------------
+ * 24/09/2026 — responsivo e com os textos em dia.
+ *
+ * - AS GRADES QUEBRAM PELA LARGURA DO CONTEÚDO (`painel-executivo.css`), e não
+ *   da janela: a Visão 360 mora na `PaginaDoPainel`, a mesma dos Indicadores.
+ * - OS QUATRO `title=` VIRARAM DICA (issue 167): a regra de cada cartão, o nome
+ *   inteiro e a classe do cliente, e os nomes completos das linhas do mix. O
+ *   `title` não abre pelo teclado nem no toque.
+ * - A META SAIU DO TEXTO COMO SE EXISTISSE: a tabela antiga foi removida na
+ *   simplificação do banco (fase 1), e a API devolve o alvo sempre nulo. O
+ *   cartão mostra "—" com o motivo, e a issue que destrava é a 138.
+ * - O ANO É CIVIL, E A TELA PAROU DE DIZER QUE O FISCAL NÃO FOI CONFIRMADO: foi,
+ *   em 24/09 (novembro a outubro). O servidor ainda apura jan–dez, e a visão por
+ *   FY é o próximo passo — está na dica.
+ * - "PARTICIPAÇÃO DE MERCADO" VIROU "CAPTURA TRACBEL" (issue 162), e o cartão
+ *   de mercado diz o que conta: derrotas registradas, e não o tamanho do mercado.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   censConsolidados,
@@ -35,11 +52,38 @@ import {
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { useRecurso } from '../../dados/api/useRecurso';
 import { BlocoCarregando, BlocoErro } from '../cadastro/EstadosDeTela';
+import { ValorAusente } from '../comum/ValorAusente';
 import { GraficoBarrasHorizontais } from '../GraficoBarrasHorizontais';
+import { InfoTooltip } from '../InfoTooltip';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { GraficoDonutCentro } from '../GraficoDonutCentro';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import '../../estilos/painel-executivo.css';
+
+/**
+ * POR QUE A META NÃO APARECE — a frase é uma só, no cartão e na tabela.
+ *
+ * A tabela de metas do legado saiu na simplificação do banco (fase 1), e a API
+ * devolve o alvo sempre nulo. Dizer "nenhuma cadastrada" sugeria que bastava
+ * alguém cadastrar; não há onde. As metas administráveis são a issue 138.
+ */
+const MOTIVO_SEM_META =
+  'O CRM ainda não tem onde cadastrar meta: as metas administráveis — por filial, com vigência — são a issue 138. ' +
+  'Até lá o cartão mostra só o realizado.';
+
+/**
+ * O ANO DOS CARTÕES, na dica ao lado de "ano civil".
+ *
+ * O ano fiscal da Tracbel foi confirmado em 24/09/2026 — novembro a outubro,
+ * com o nome do ano em que termina. O servidor ainda apura estes cartões de
+ * janeiro a dezembro, então a tela diz "ano civil", que é o que o número é, e
+ * anuncia a visão por FY como o próximo passo. Não diz mais que o calendário
+ * fiscal "não foi confirmado": isso deixou de ser verdade.
+ */
+const DICA_DO_ANO_CIVIL =
+  'Os cartões somam o ano civil, de janeiro a dezembro, que é como o servidor apura o realizado hoje. ' +
+  'O ano fiscal da Tracbel vai de novembro a outubro e leva o nome do ano em que termina (o FY2026 vai de nov/2025 a out/2026); ' +
+  'a visão por FY nesta tela vem na próxima etapa.';
 
 /**
  * O valor em milhões, como a diretoria fala dele.
@@ -169,7 +213,8 @@ const CORES_AVATAR = ['#367C2B', '#1B5E20', '#0EA5E9', '#7C3AED', '#DB2777'] as 
 /**
  * Tira o "Venda de " que abre quase todas as linhas de negócio do legado.
  * O cartão tem uma coluna estreita e o prefixo se repete em oito de nove
- * rótulos — o nome inteiro fica no `title`, para quem passar o cursor.
+ * rótulos — os nomes inteiros ficam na dica do título do cartão, que abre pelo
+ * ponteiro, pelo teclado e pelo toque (era um `title` em cada rótulo).
  */
 function semPrefixoDeVenda(nome: string): string {
   return nome.replace(/^Venda(s)? de\s+/i, '').replace(/^Venda(s)?\s+/i, '');
@@ -274,8 +319,9 @@ export function PainelExecutivo() {
       )}
 
       {/* O PERÍODO DOS CARTÕES, ESCRITO. O ano segue a escolha — não fica preso a 2026 —, e é civil
-          porque o calendário fiscal não foi confirmado (documento 32, P-4). */}
-      <div className="v360-periodo" role="group" aria-label="Período dos indicadores">
+          porque é assim que o servidor apura hoje. O calendário fiscal (nov→out) FOI confirmado em
+          24/09/2026; a visão por FY é o passo seguinte, e a dica diz isso (documento 32, P-4). */}
+      <div className="v360-periodo" role="group" aria-label="Período dos indicadores" data-bloco="periodo">
         <label>
           Ano de referência
           <select value={ano} onChange={(e) => setAno(Number(e.target.value))}>
@@ -286,7 +332,11 @@ export function PainelExecutivo() {
             ))}
           </select>
         </label>
-        <span>ano civil (jan–dez) · calendário fiscal não confirmado, por isso não há FY · o faturamento do mês é a competência mais recente carregada</span>
+        <span className="v360-periodo-regra">
+          ano civil (jan–dez)
+          <InfoTooltip texto={DICA_DO_ANO_CIVIL} rotulo="Por que o ano é civil, e quando vem o ano fiscal" />
+        </span>
+        <span>o faturamento do mês é a competência mais recente carregada</span>
         {ex && (
           <span className={ex.respondidas < ex.filiais.length ? 'v360-periodo-alerta' : undefined}>
             {ex.respondidas} de {ex.filiais.length} filiais em operação responderam
@@ -322,7 +372,7 @@ export function PainelExecutivo() {
       {ex && ex.respondidas > 0 && <ComposicaoDosIndicadores ex={ex} />}
 
       {/* ROW 2: conhecimento · status da cobertura · faturamento --------- */}
-      <div className="v360-grid-row2">
+      <div className="v360-grid-row2" data-bloco="linha-2">
         <div className="v360-card v360-card-md">
           <div className="v360-card-header">
             <div>
@@ -342,15 +392,21 @@ export function PainelExecutivo() {
                   </li>
                 ))}
               </ul>
+              {/* CAPTURA TRACBEL, E NÃO "PARTICIPAÇÃO DE MERCADO" (issue 162). Este cartão conta derrotas;
+                  a parte da demanda que a Tracbel leva é medida nos Indicadores, com as unidades do ART. */}
               <p className="v360-nota">
                 {nº(vendasPerdidas.registradas)} formulários de {nº(vendasPerdidas.processosPerdidos)} processos perdidos.
-                Participação de mercado e emplacamento: <strong>sem dado</strong> — nenhuma fonte de mercado está integrada.
+                A <strong>Captura Tracbel</strong> — máquinas vendidas sobre a demanda estimada — é medida nos{' '}
+                <Link to="/relatorios/territorio" className="v360-link">
+                  Indicadores geográficos
+                </Link>
+                .
               </p>
             </>
           ) : (
             <SemDado
               oQue="o mercado"
-              porque="Nenhuma venda perdida com concorrente registrada, e não há emplacamento integrado."
+              porque="Nenhuma venda perdida com concorrente registrada no formulário do CEN, nas filiais que responderam."
             />
           )}
         </div>
@@ -369,7 +425,11 @@ export function PainelExecutivo() {
               Ver no mapa →
             </Link>
           </div>
-          {cobertura ? (
+          {/* SEM VÍNCULO, SEM ROSCA: com tudo em zero ela desenhava um anel vazio, um "—" no meio e
+              quatro zeros na legenda — quatro afirmações para dizer uma coisa só. */}
+          {cobertura && cobertura.vinculosComerciais === 0 ? (
+            <SemDado oQue="a cobertura" porque="Nenhum vínculo em carteira comercial, nas filiais que responderam." />
+          ) : cobertura ? (
             <div className="v360-donut-wrap">
               <GraficoDonutCentro
                 segmentos={fatiasDaCobertura}
@@ -431,7 +491,7 @@ export function PainelExecutivo() {
       </div>
 
       {/* ROW 3: top clientes · top CENs · mix por linha ------------------- */}
-      <div className="v360-grid-row3">
+      <div className="v360-grid-row3" data-bloco="linha-3">
         <div className="v360-card v360-card-md">
           <div className="v360-card-header">
             <div>
@@ -450,18 +510,25 @@ export function PainelExecutivo() {
                   {/* A LETRA NO LUGAR DA INICIAL. Nos outros rankings o quadrado traz as
                       iniciais da pessoa; aqui ele traz a classe da curva ABC, que é a
                       informação que qualifica o cliente — e ela é apurada do mesmo
-                      faturamento que ordena a lista. */}
+                      faturamento que ordena a lista. O quadrado é decoração: a classe
+                      por extenso está na dica do nome, e o leitor de tela a lê lá. */}
                   <div
                     className="v360-topbar-avatar"
                     style={{ background: corDaClasse(cliente.classe) }}
-                    title={cliente.classe ? `Classe ${cliente.classe}` : 'Classe não apurada'}
+                    aria-hidden="true"
                   >
                     {cliente.classe ?? '—'}
                   </div>
                   <div className="v360-topbar-info">
-                    <div className="v360-topbar-nome" title={cliente.nome}>
-                      {cliente.nome}
-                    </div>
+                    {/* O NOME CORTADO COM RETICÊNCIAS ABRE O NOME INTEIRO (issue 167). Era
+                        um `title`, que não abre pelo teclado nem no toque — e razão social
+                        de cooperativa é justamente o nome que não cabe. */}
+                    <InfoTooltip
+                      texto={`${cliente.nome} — ${cliente.classe ? `classe ${cliente.classe}` : 'classe não apurada'} na curva ABC.`}
+                      rotulo={`${cliente.nome}, ${cliente.classe ? `classe ${cliente.classe}` : 'classe não apurada'}`}
+                    >
+                      <span className="v360-topbar-nome">{cliente.nome}</span>
+                    </InfoTooltip>
                     <div className="v360-topbar-meta">
                       {cliente.ultimaCompraEm
                         ? `última compra em ${mesPorExtenso(cliente.ultimaCompraEm)}`
@@ -487,6 +554,14 @@ export function PainelExecutivo() {
               <div className="v360-card-sub">Ranking por vínculos em carteira comercial</div>
             </div>
           </div>
+          {/* SEM CARTEIRA, O CARTÃO DIZ POR QUÊ — como os vizinhos. Vazio, ele ficava só com o título,
+              que é o jeito de um painel parecer que não carregou. */}
+          {topCens.length === 0 && (
+            <SemDado
+              oQue="o ranking de CENs"
+              porque="Nenhum vínculo em carteira comercial de pessoa ou área, nas filiais que responderam."
+            />
+          )}
           <div className="v360-topbar-list">
             {topCens.map((c, i) => (
               <div className="v360-topbar-item" key={c.nome}>
@@ -524,31 +599,49 @@ export function PainelExecutivo() {
         <div className="v360-card v360-card-md">
           <div className="v360-card-header">
             <div>
-              <div className="v360-card-title">Mix por linha</div>
-              <div className="v360-card-sub">Participação de cada linha nos vínculos</div>
+              <div className="v360-card-title">
+                Mix por linha
+                <InfoTooltip
+                  rotulo="Como o mix por linha é contado"
+                  texto={
+                    <>
+                      <p>
+                        A parte de cada linha de negócio nos vínculos das carteiras comerciais. Carteira administrativa e
+                        de teste ficam de fora: são depósito de cadastro, e não carteira de ninguém.
+                      </p>
+                      {mix.length > 0 && (
+                        <p>Nomes completos, na ordem da legenda: {mix.slice(0, TOP + 3).map((l) => l.nome).join('; ')}.</p>
+                      )}
+                    </>
+                  }
+                />
+              </div>
+              <div className="v360-card-sub">Participação de cada linha nos vínculos das carteiras comerciais</div>
             </div>
           </div>
-          <div className="v360-mix-wrap">
-            <GraficoDonutCentro segmentos={segmentosDoMix} largura={140} altura={140} cutout="72%" bordaBranca tooltipUnidade="%" />
-            <div className="v360-mix-legenda">
-              {mix.slice(0, TOP + 3).map((l, i) => (
-                <div className="v360-legenda-item" key={l.nome}>
-                  <span className="dot" style={{ background: CORES_MIX[i % CORES_MIX.length] }} />
-                  <span className="v360-mix-linha" title={l.nome}>
-                    {semPrefixoDeVenda(l.nome)}
-                  </span>
-                  <strong>
-                    {totalDoMix > 0 ? Math.round((l.clientes / totalDoMix) * 100) : 0}%
-                  </strong>
-                </div>
-              ))}
+          {mix.length > 0 ? (
+            <div className="v360-mix-wrap">
+              <GraficoDonutCentro segmentos={segmentosDoMix} largura={140} altura={140} cutout="72%" bordaBranca tooltipUnidade="%" />
+              <div className="v360-mix-legenda">
+                {mix.slice(0, TOP + 3).map((l, i) => (
+                  <div className="v360-legenda-item" key={l.nome}>
+                    <span className="dot" style={{ background: CORES_MIX[i % CORES_MIX.length] }} />
+                    <span className="v360-mix-linha">{semPrefixoDeVenda(l.nome)}</span>
+                    <strong>
+                      {totalDoMix > 0 ? Math.round((l.clientes / totalDoMix) * 100) : 0}%
+                    </strong>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <SemDado oQue="o mix por linha" porque="Nenhum vínculo em carteira comercial, nas filiais que responderam." />
+          )}
         </div>
       </div>
 
       {/* ROW 4: vendas perdidas · alertas gerenciais ---------------------- */}
-      <div className="v360-grid-row4">
+      <div className="v360-grid-row4" data-bloco="linha-4">
         <div className="v360-card v360-card-lg">
           <div className="v360-card-header">
             <div>
@@ -577,7 +670,13 @@ export function PainelExecutivo() {
             ) : (
               <SemDado
                 oQue="o motivo da perda"
-                porque={`Os ${nº(totalPerdido)} processos perdidos existem, e nenhum deles tem o formulário de venda perdida preenchido.`}
+                // "OS 0 PROCESSOS PERDIDOS EXISTEM" não é frase: sem processo perdido, o que falta
+                // não é o formulário, é a perda.
+                porque={
+                  totalPerdido > 0
+                    ? `Os ${nº(totalPerdido)} processos perdidos existem, e nenhum deles tem o formulário de venda perdida preenchido.`
+                    : 'Nenhum processo perdido nas filiais que responderam.'
+                }
               />
             )}
           </div>
@@ -628,7 +727,7 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
   if (!ex) {
     const motivo = 'a leitura dos indicadores das filiais não respondeu';
     return (
-      <div className="v360-kpi-row">
+      <div className="v360-kpi-row" data-bloco="kpis">
         <CartaoSemDado titulo="Faturamento do mês" cor="#367C2B" motivo={motivo} icone="trending-up" />
         <CartaoSemDado titulo={`Meta e realizado · ${ano}`} cor="#1B5E20" motivo={motivo} icone="target" />
         <CartaoSemDado titulo="Clientes na carteira" cor="#0EA5E9" motivo={motivo} icone="users" />
@@ -651,7 +750,7 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
   const carteira = ex.carteira;
 
   return (
-    <div className="v360-kpi-row">
+    <div className="v360-kpi-row" data-bloco="kpis">
       {/* A. FATURAMENTO — nota de saída do Protheus, com e sem cliente no CRM. O ART não entra: ele
           registra venda de máquina, não nota, e somar os dois contaria a mesma máquina duas vezes. */}
       {mes ? (
@@ -674,7 +773,9 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
         <CartaoSemDado titulo="Faturamento do mês" cor="#367C2B" motivo="nenhuma nota carregada nas filiais que responderam" icone="trending-up" />
       )}
 
-      {/* B. META E REALIZADO — o realizado é medido; a meta é a cadastrada; previsão não existe. */}
+      {/* B. META E REALIZADO — o realizado é medido; a meta ainda não existe (issue 138); previsão não existe.
+          O ramo com alvo fica: a API continua devolvendo o campo, e o dia em que a 138 trouxer a meta o
+          cartão já sabe mostrá-la. */}
       <CartaoIndicador
         titulo={`Meta e realizado · ${ano}`}
         valor={doAno.ultimaCompetencia ? emMilhoes(doAno.total) : '—'}
@@ -686,22 +787,40 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
             : `sem faturamento carregado em ${ano}`
         }
         detalhe={
-          doAno.alvo === null
-            ? 'meta: nenhuma cadastrada · previsão: sem modelo aprovado'
-            : `meta ${emMilhoes(doAno.alvo)} em ${doAno.filiaisComMeta} filial(is) · ${porcento((100 * doAno.realizadoDasFiliaisComMeta) / doAno.alvo)} realizado nelas · previsão: sem modelo`
+          doAno.alvo === null ? (
+            <>
+              meta <ValorAusente motivo={MOTIVO_SEM_META} oQue="a meta" /> · previsão: sem modelo aprovado
+            </>
+          ) : (
+            `meta ${emMilhoes(doAno.alvo)} em ${doAno.filiaisComMeta} filial(is) · ${porcento((100 * doAno.realizadoDasFiliaisComMeta) / doAno.alvo)} realizado nelas · previsão: sem modelo`
+          )
         }
-        dica="Realizado: soma das notas de saída do ano civil, com e sem cliente no CRM. Meta: organizacao.Meta de faturamento, nível filial, com período dentro do ano. Previsão: não calculada — extrapolar a média dos meses não é previsão."
+        dica="Realizado: soma das notas de saída do ano civil (jan–dez), com e sem cliente no CRM. Meta: o CRM ainda não tem onde cadastrá-la — é a issue 138. Previsão: não calculada — extrapolar a média dos meses não é previsão."
         cor="#1B5E20"
         icone="target"
       />
 
-      {/* C. CLIENTES — únicos pela filial de cadastro; vínculos pela filial da carteira. */}
+      {/* C. CLIENTES — únicos pela filial de cadastro; vínculos pela filial da carteira.
+
+          O ZERO É "SEM VÍNCULO", E NÃO "SEM CLIENTE" (24/09/2026). A conta — e também a linha de
+          situações — só enxerga cliente com vínculo ativo em carteira. A carga do cadastro traz os
+          clientes da SA1 sem carteira, todos como suspect; até a carga das carteiras rodar, o banco tem
+          milhares de clientes e este cartão tem zero. Sem dizer isso, o zero se lia "cadastro vazio".
+          O número dos cadastrados sem carteira a API não devolve, e a tela não o inventa. */}
       <CartaoIndicador
         titulo="Clientes na carteira"
         valor={nº(carteira.clientesCadastradosComVinculo)}
-        subtexto={`clientes únicos com vínculo ativo · ${nº(carteira.vinculosComerciais)} vínculos em ${nº(carteira.carteirasComerciais)} carteiras comerciais`}
-        detalhe={`${nº(carteira.clientes)} clientes · ${nº(carteira.prospects)} prospects · ${nº(carteira.suspects)} suspects · ${nº(carteira.semDocumento)} sem CPF/CNPJ`}
-        dica="Cada cliente é contado uma vez, na filial em que está cadastrado, se tiver vínculo ativo em qualquer carteira. Um cliente em três carteiras é um cliente e três vínculos."
+        subtexto={
+          carteira.clientesCadastradosComVinculo > 0
+            ? `clientes únicos com vínculo ativo · ${nº(carteira.vinculosComerciais)} vínculos em ${nº(carteira.carteirasComerciais)} carteiras comerciais`
+            : 'nenhum cliente com vínculo ativo em carteira — cliente cadastrado sem carteira não entra nesta conta'
+        }
+        detalhe={
+          carteira.clientesCadastradosComVinculo > 0
+            ? `com vínculo: ${nº(carteira.clientes)} clientes · ${nº(carteira.prospects)} prospects · ${nº(carteira.suspects)} suspects · ${nº(carteira.semDocumento)} sem CPF/CNPJ`
+            : `${nº(carteira.vinculosComerciais)} vínculos em ${nº(carteira.carteirasComerciais)} carteiras comerciais`
+        }
+        dica="Cada cliente é contado uma vez, na filial em que está cadastrado, se tiver vínculo ativo em qualquer carteira. Um cliente em três carteiras é um cliente e três vínculos. Cliente cadastrado sem carteira não entra — nem no número, nem na divisão por situação: zero aqui quer dizer que nenhum cliente tem vínculo de carteira ainda, e não que o cadastro está vazio."
         cor="#0EA5E9"
         icone="users"
       />
@@ -717,13 +836,15 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
         icone="shield"
       />
 
-      {/* E. MERCADO — o que o CRM registra. Sem emplacamento, não há participação. */}
+      {/* E. MERCADO — o que o CRM registra de derrota. A Captura Tracbel (issue 162) não é deste cartão:
+          ela divide as unidades do ART (`frota.VendaDeMaquina`) pela demanda estimada, e mora nos
+          Indicadores Geográficos. As unidades do ART são máquinas, e não faturamento. */}
       <CartaoIndicador
         titulo="Conhecimento de mercado"
         valor={nº(mercado.vendasPerdidasRegistradas)}
         subtexto={`vendas perdidas registradas · ${nº(mercado.comConcorrente)} com concorrente${concorrentes === null ? '' : ` · ${nº(concorrentes)} concorrentes`}`}
-        detalhe={`${mercado.primeiraEm ? `${data(mercado.primeiraEm)} a ${data(mercado.ultimaEm)}` : 'sem registro'} · participação de mercado: sem dado (emplacamento não integrado)`}
-        dica={`${nº(mercado.comModeloDoConcorrente)} com modelo do concorrente, ${nº(mercado.comOsDoisPrecos)} com os dois preços, ${nº(mercado.unidades)} máquinas. As vendas de máquina do ART não estão no banco do CRM e, sozinhas, não dizem o tamanho do mercado.`}
+        detalhe={`${mercado.primeiraEm ? `${data(mercado.primeiraEm)} a ${data(mercado.ultimaEm)}` : 'sem registro'} · Captura Tracbel: nos Indicadores Geográficos`}
+        dica={`${nº(mercado.comModeloDoConcorrente)} com modelo do concorrente, ${nº(mercado.comOsDoisPrecos)} com os dois preços, ${nº(mercado.unidades)} máquinas nessas perdas. Este cartão conta derrotas registradas pelo CEN, e não o tamanho do mercado. As máquinas que a Tracbel vendeu estão no banco do CRM, lidas do ART — em unidades, e não em faturamento —, e a Captura Tracbel, que as divide pela demanda anual estimada, é medida nos Indicadores Geográficos.`}
         cor="#B45309"
         icone="eye"
         destaque
@@ -740,17 +861,18 @@ function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
   const mes = ex.faturamentoDoMes;
 
   return (
-    <details className="v360-composicao">
+    <details className="v360-composicao" data-bloco="composicao">
       <summary>Composição dos cinco indicadores — filial a filial, com fonte e regra</summary>
       <ul className="v360-composicao-regras">
         <li>
           <strong>Faturamento</strong>: Protheus SD2 (nota de saída de venda) → <code>comercial.FaturamentoDoCliente</code> e{' '}
           <code>comercial.FaturamentoSemCliente</code> → valor líquido da competência mais recente, com cliente e sem cliente
-          por natureza → soma das filiais. Devolução e cancelamento não são abatidos (P-5). O ART não é somado.
+          por natureza → soma das filiais. Devolução e cancelamento não são abatidos. O ART não é somado.
         </li>
+        {/* A META NÃO TEM TABELA (fase 1): a linha dizia de onde ela vinha, e ela não vem de lugar nenhum. */}
         <li>
-          <strong>Meta e realizado</strong>: as mesmas tabelas no ano civil {ex.ano}; meta de <code>organizacao.Meta</code> (tipo
-          faturamento, nível filial, período dentro do ano). Sem previsão.
+          <strong>Meta e realizado</strong>: as mesmas tabelas no ano civil {ex.ano}, de janeiro a dezembro. Meta: o CRM ainda
+          não tem onde cadastrá-la — as metas administráveis são a issue 138. Sem previsão.
         </li>
         <li>
           <strong>Clientes</strong>: <code>comercial.Cliente</code> × <code>comercial.ClienteCarteira</code> → cliente com
@@ -762,9 +884,12 @@ function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
           do mapa de cobertura.
         </li>
         <li>
-          <strong>Mercado</strong>: <code>processo.VendaPerdida</code> (formulário do CEN). Sem emplacamento, não há participação.
+          <strong>Mercado</strong>: <code>processo.VendaPerdida</code> (formulário do CEN) — derrotas registradas, e não o
+          tamanho do mercado. A Captura Tracbel é medida nos Indicadores Geográficos.
         </li>
       </ul>
+      {/* A ROLAGEM MORA AQUI, e só aqui: onze colunas não cabem num celular, e a tabela rola dentro da
+          própria caixa em vez de empurrar a página para o lado. */}
       <div className="cad-tabela-wrap v360-composicao-tabela">
         <table className="cad-tabela">
           <caption className="cad-so-leitor">Composição dos indicadores por filial</caption>
@@ -774,7 +899,9 @@ function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
               <th scope="col">Mês · com cliente</th>
               <th scope="col">Mês · sem cliente</th>
               <th scope="col">Realizado {ex.ano}</th>
-              <th scope="col">Meta {ex.ano}</th>
+              <th scope="col">
+                Meta {ex.ano} <InfoTooltip texto={MOTIVO_SEM_META} rotulo="Por que a meta não aparece" />
+              </th>
               <th scope="col">Clientes únicos</th>
               <th scope="col">Vínculos comerciais</th>
               <th scope="col">Elegíveis</th>
@@ -801,7 +928,7 @@ function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
                   <td className="num">{doMes ? emMilhoes(doMes.comCliente) : i.faturamentoDoMes ? `em ${mesPorExtenso(i.faturamentoDoMes.competencia)}` : '—'}</td>
                   <td className="num">{doMes ? emMilhoes(doMes.semCliente) : '—'}</td>
                   <td className="num">{emMilhoes(i.ano.total)}</td>
-                  <td className="num">{i.ano.alvoDaFilial === null ? 'sem meta' : emMilhoes(i.ano.alvoDaFilial)}</td>
+                  <td className="num">{i.ano.alvoDaFilial === null ? '—' : emMilhoes(i.ano.alvoDaFilial)}</td>
                   <td className="num">{nº(i.carteira.clientesCadastradosComVinculo)}</td>
                   <td className="num">{nº(i.carteira.vinculosComerciais)}</td>
                   <td className="num">{nº(i.cobertura.elegiveis)}</td>
@@ -816,7 +943,7 @@ function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
               <td className="num">{mes ? emMilhoes(mes.comCliente) : '—'}</td>
               <td className="num">{mes ? emMilhoes(mes.semCliente) : '—'}</td>
               <td className="num">{emMilhoes(ex.realizadoDoAno.total)}</td>
-              <td className="num">{ex.realizadoDoAno.alvo === null ? 'sem meta' : emMilhoes(ex.realizadoDoAno.alvo)}</td>
+              <td className="num">{ex.realizadoDoAno.alvo === null ? '—' : emMilhoes(ex.realizadoDoAno.alvo)}</td>
               <td className="num">{nº(ex.carteira.clientesCadastradosComVinculo)}</td>
               <td className="num">{nº(ex.carteira.vinculosComerciais)}</td>
               <td className="num">{nº(ex.cobertura.elegiveis)}</td>
@@ -844,23 +971,42 @@ function CartaoIndicador({
   titulo: string;
   valor: string;
   subtexto: string;
-  /** A segunda linha: a composição do número. */
-  detalhe?: string;
-  /** O texto completo da regra, para quem passar o cursor. */
+  /** A segunda linha: a composição do número. Aceita marcação para o "—ⓘ" de um número ausente. */
+  detalhe?: ReactNode;
+  /**
+   * O texto completo da regra, na dica ao lado do título (issue 167). Era o `title` do cartão
+   * inteiro: só aparecia com o ponteiro parado, e nunca pelo teclado nem no toque.
+   */
   dica?: string;
   cor: string;
   icone: NomeDeIcone;
   destaque?: boolean;
 }) {
   return (
-    <div className={destaque ? 'v360-kpi-card v360-kpi-highlight' : 'v360-kpi-card'} title={dica}>
+    <div className={destaque ? 'v360-kpi-card v360-kpi-highlight' : 'v360-kpi-card'} data-kpi={titulo}>
       <div className="v360-kpi-header">
         <div className="v360-kpi-icone" style={{ background: `${cor}20`, color: cor }}>
           <IconeDoIndicador nome={icone} />
         </div>
-        <div className="v360-kpi-titulo">{titulo}</div>
+        {/* A ÚLTIMA PALAVRA VAI COLADA AO ⓘ: com cinco cartões numa linha o título quebra em duas, e
+            sem isto o ⓘ caía sozinho na segunda — um ícone órfão que parece de outro bloco. */}
+        <div className="v360-kpi-titulo">
+          {dica ? (
+            <>
+              {titulo.slice(0, titulo.lastIndexOf(' ') + 1)}
+              <span className="v360-kpi-titulo-fim">
+                {titulo.slice(titulo.lastIndexOf(' ') + 1)}
+                <InfoTooltip texto={dica} rotulo={`Como se conta: ${titulo.toLowerCase()}`} />
+              </span>
+            </>
+          ) : (
+            titulo
+          )}
+        </div>
       </div>
-      <div className="v360-kpi-valor">{valor}</div>
+      {/* O TRAÇO TEM O PESO DO TRAÇO DO CARTÃO SEM DADO, e não o de um número: lado a lado, os dois
+          "—" da linha (faturamento e cobertura sem dado) liam como duas coisas diferentes. */}
+      <div className={valor === '—' ? 'v360-kpi-valor v360-kpi-vazio' : 'v360-kpi-valor'}>{valor}</div>
       <div className="v360-kpi-rodape">
         <span className="v360-kpi-sub">{subtexto}</span>
         {detalhe && <span className="v360-kpi-detalhe">{detalhe}</span>}
@@ -884,7 +1030,7 @@ function CartaoSemDado({
   destaque?: boolean;
 }) {
   return (
-    <div className={destaque ? 'v360-kpi-card v360-kpi-highlight' : 'v360-kpi-card'}>
+    <div className={destaque ? 'v360-kpi-card v360-kpi-highlight' : 'v360-kpi-card'} data-kpi={titulo}>
       <div className="v360-kpi-header">
         <div className="v360-kpi-icone" style={{ background: `${cor}20`, color: cor }}>
           <IconeDoIndicador nome={icone} />
