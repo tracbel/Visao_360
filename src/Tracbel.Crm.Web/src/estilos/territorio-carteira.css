@@ -608,6 +608,16 @@
 
 @container ficha (min-width: 500px) {
   .terr-ficha-minis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* Entre 500 e 580px cada cartãozinho tem ~96px úteis, e "R$ 400 mil" em 18px
+     ocupa ~95: no Windows cabia, no Linux do CI vazava. Letra de 15px (a da
+     maquete, ~16) e folga interna menor. */
+  .terr-ficha-minis .terr-ficha-mini { padding: 8px; }
+  .terr-ficha-minis .terr-ficha-mini-valor { font-size: 15px; }
+}
+
+@container ficha (min-width: 580px) {
+  .terr-ficha-minis .terr-ficha-mini { padding: 10px; }
+  .terr-ficha-minis .terr-ficha-mini-valor { font-size: 18px; }
 }
 
 .terr-ficha-mini {

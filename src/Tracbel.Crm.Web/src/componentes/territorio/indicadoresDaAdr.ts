@@ -66,10 +66,15 @@ export const ROTULO_DE_VENDAS: Record<RecorteDeVendas, string> = {
  * caberem num cartão de um quarto de linha. O bovino e o etanol, que saíram do
  * botão, estão no nome do mapa e na dica dele. A densidade mantém a unidade
  * VERDADEIRA — por mil km², e não por km² como a maquete escreve.
+ *
+ * "Por mil km²", e não "Tratores / mil km²": o botão fica logo depois de
+ * "Tratores", que já diz de quê. Com o nome inteiro os cinco rótulos somavam
+ * ~286 px num alternador de ~264 (cartão de um quarto de linha a 1216 px de
+ * conteúdo): no Windows passava por arredondamento, e no Linux do CI cortava.
  */
 export const ROTULO_DA_ESTRUTURA: Record<RecorteDaEstrutura, string> = {
   tratores: 'Tratores',
-  densidade: 'Tratores / mil km²',
+  densidade: 'Por mil km²',
   estabelecimentos: 'Propriedades',
   rebanho: 'Rebanho',
   usinas: 'Usinas',

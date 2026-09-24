@@ -719,6 +719,13 @@
   .terr-mapa .terr-selo:not(.terr-selo-Estimativa) { padding-inline: 6px; font-size: 10px; }
 }
 
+/* ABAIXO DE 300px (quatro cartões numa coluna de ~1150px) a folga some de novo:
+   a letra desce mais meio ponto, para a fonte do Linux caber onde a do Windows
+   cabe. */
+@container mapa (max-width: 300px) {
+  .terr-mapa > .terr-alternador button { padding-inline: 1px; font-size: 10px; letter-spacing: -0.02em; }
+}
+
 /* =============================================================================
    A LINHA FINAL — Potencial estrutural e Performance Tracbel
    ============================================================================= */
