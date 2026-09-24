@@ -275,14 +275,6 @@
       "status": "ok"
     },
     {
-      "nome": "MERCADO_JD_PRACAS",
-      "arquivo": "mercado-pracas.json",
-      "linha": 7203,
-      "registros": 4,
-      "descricao": "Mercado John Deere por praça",
-      "status": "ok"
-    },
-    {
       "nome": "VENDAS_PERDIDAS_MOTIVOS",
       "arquivo": "vendas-perdidas-motivos.json",
       "linha": 7211,
