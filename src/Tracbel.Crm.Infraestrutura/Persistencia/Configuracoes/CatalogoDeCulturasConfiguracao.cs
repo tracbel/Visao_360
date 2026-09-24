@@ -246,3 +246,58 @@ public sealed class CulturaNoGrupoDeCompartilhamentoConfiguracao : IEntityTypeCo
         b.HasOne<Cultura>().WithMany().HasForeignKey(c => c.CulturaId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+/// <summary>
+/// Mapeamento de <see cref="LinhaDeProdutoNaCategoria"/> — o último elo entre a venda de máquina e a
+/// categoria de mercado (issue 69, D-P08).
+///
+/// <para><b>Oito linhas nascem ligadas e duas nascem sem categoria</b>, de propósito. As oito são
+/// mecânicas — três tratores para Trator, a colheitadeira para Colheitadeira, a plantadeira, o
+/// pulverizador e os dois implementos. As duas que ficam de fora são JULGAMENTO DE NEGÓCIO, e o comercial
+/// decide:</para>
+///
+/// <list type="bullet">
+///   <item><c>COLHEDORA_DE_CANA</c> — colher cana é outra máquina que colher grão, e o catálogo tem uma
+///   categoria de colheitadeira só. Ligá-la a "Colheitadeira" mistura dois mercados; deixá-la fora tira da
+///   captura por categoria justamente a máquina mais vendida na região da cana.</item>
+///   <item><c>PLATAFORMA_DE_CORTE</c> — é acessório de colheitadeira, e não máquina que o produtor compra
+///   sozinha. Contá-la como implemento infla a contagem de implementos com peça de outra máquina.</item>
+/// </list>
+///
+/// <para>Enquanto as duas estiverem sem categoria, a venda delas continua no total e some só da leitura
+/// POR categoria — com o nome da linha dito na tela.</para>
+/// </summary>
+public sealed class LinhaDeProdutoNaCategoriaConfiguracao : IEntityTypeConfiguration<LinhaDeProdutoNaCategoria>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<LinhaDeProdutoNaCategoria> b)
+    {
+        b.ToTable("LinhaDeProdutoNaCategoria", "organizacao");
+        b.HasKey(p => p.Id);
+        b.Property(p => p.Id).ValueGeneratedOnAdd();
+
+        b.Property(p => p.CategoriaDeMaquinaId).IsRequired();
+        // O CÓDIGO É ASCII e comparado byte a byte: ele vem do `Codificar` da carga, que já tira acento e
+        // caixa. Colação binária evita que "TRATOR_MEDIO" e "trator_medio" virem duas linhas.
+        b.Property(p => p.CodigoDaLinha).HasMaxLength(80).IsUnicode(false)
+            .UseCollation("Latin1_General_BIN2").IsRequired();
+        b.Property(p => p.Descricao).HasMaxLength(200).IsUnicode(true).IsRequired();
+
+        // UMA LINHA PERTENCE A UMA CATEGORIA SÓ: a mesma linha em duas contaria a venda duas vezes.
+        b.HasIndex(p => p.CodigoDaLinha).IsUnique().HasDatabaseName("UX_LinhaDeProdutoNaCategoria_Linha");
+        b.HasIndex(p => p.CategoriaDeMaquinaId);
+
+        b.HasOne<CategoriaDeMaquina>().WithMany().HasForeignKey(p => p.CategoriaDeMaquinaId).OnDelete(DeleteBehavior.Restrict);
+
+        // AS OITO MECÂNICAS. Os ids das categorias são os semeados na issue 165: 1 Trator, 2 Plantadeira,
+        // 3 Colheitadeira, 4 Pulverizador, 5 Implemento, 6 Agricultura de precisão.
+        b.HasData(
+            new { Id = 1, CategoriaDeMaquinaId = 1, CodigoDaLinha = "TRATOR_PEQUENO", Descricao = "Trator pequeno" },
+            new { Id = 2, CategoriaDeMaquinaId = 1, CodigoDaLinha = "TRATOR_MEDIO", Descricao = "Trator médio" },
+            new { Id = 3, CategoriaDeMaquinaId = 1, CodigoDaLinha = "TRATOR_GRANDE", Descricao = "Trator grande" },
+            new { Id = 4, CategoriaDeMaquinaId = 3, CodigoDaLinha = "COLHEITADEIRA", Descricao = "Colheitadeira" },
+            new { Id = 5, CategoriaDeMaquinaId = 2, CodigoDaLinha = "PLANTADEIRA", Descricao = "Plantadeira" },
+            new { Id = 6, CategoriaDeMaquinaId = 4, CodigoDaLinha = "PULVERIZADOR", Descricao = "Pulverizador" },
+            new { Id = 7, CategoriaDeMaquinaId = 5, CodigoDaLinha = "IMPLEMENTO_JOHN_DEERE", Descricao = "Implemento John Deere" },
+            new { Id = 8, CategoriaDeMaquinaId = 5, CodigoDaLinha = "IMPLEMENTO_OUTRAS_MARCAS", Descricao = "Implemento de outras marcas" });
+    }
+}

@@ -84,5 +84,22 @@ public sealed record ProdutoDaPamNoCatalogo(int CodigoIbge, string Nome, bool En
 /// Os produtos do SICOR que ela agrupa. <b>Vazio não é erro</b>: o investimento do Banco Central não
 /// separa plantadeira, pulverizador nem agricultura de precisão (anexo 49C).
 /// </param>
+/// <param name="LinhasDeProduto">
+/// As classificações de produto do CRM que caem nesta categoria (issue 69, D-P08) — é por elas que a venda
+/// de máquina do ART chega à categoria: <c>ART (linha) → ClassificacaoDoArt → frota.LinhaDeProduto → esta
+/// ligação → categoria</c>.
+///
+/// <para><b>Vazio não é erro</b>: "Agricultura de precisão" não tem linha no ART.</para>
+/// </param>
 public sealed record CategoriaNoCatalogo(
-    string Codigo, string Nome, short Ordem, bool EstaAtiva, IReadOnlyList<int> ProdutosDoSicor);
+    string Codigo,
+    string Nome,
+    short Ordem,
+    bool EstaAtiva,
+    IReadOnlyList<int> ProdutosDoSicor,
+    IReadOnlyList<LinhaDeProdutoNaCategoriaNoCatalogo> LinhasDeProduto);
+
+/// <summary>Uma classificação de produto do CRM ligada a uma categoria.</summary>
+/// <param name="Codigo">O código da linha — <c>TRATOR_MEDIO</c>, <c>PLANTADEIRA</c>…</param>
+/// <param name="Nome">O nome de exibição.</param>
+public sealed record LinhaDeProdutoNaCategoriaNoCatalogo(string Codigo, string Nome);
