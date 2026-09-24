@@ -587,6 +587,19 @@ Eram treze campos em duas fileiras, cada um com o motivo escrito embaixo em linh
 nível 2). O botão mostra **quantos secundários estão ativos**: um filtro que muda o número da tela não
 pode ficar fora da vista sem aviso.
 
+**O Período tem três recortes desde 24/09/2026** [D]: **12 meses**, **ano fiscal** e **ano civil**. O ano
+fiscal entrou quando o calendário foi confirmado — **novembro a outubro**, com o nome do ano em que termina
+(doc 48 §5.5). Até então a dica do filtro dizia, por escrito, *"FYTD não é oferecido: o calendário fiscal
+não foi confirmado"*; essa frase saiu, porque a tela não pode continuar negando uma decisão tomada.
+
+Ele vem **antes** do ano civil na lista: é o calendário em que a Tracbel fecha o ano. O civil fica, e não
+por tradição — é o calendário de **toda fonte pública** com que esta tela compara (IBGE, CONAB, SICOR), e
+sem ele a comparação com o mercado sairia deslocada em dois meses.
+
+**O nome do ano fiscal nunca aparece sozinho.** "FY2026" sem o intervalo escrito ao lado é lido como ano
+civil por quem não conhece o calendário, e erra por dois meses sem avisar. O mês em curso continua fora dos
+três, porque comparar um mês pela metade com meses cheios erra para baixo em silêncio.
+
 ### A hierarquia do topo
 
 | antes | depois |

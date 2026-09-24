@@ -55,7 +55,7 @@ import type {
   RegraDePotencialAplicada,
 } from '../../tipos/territorio';
 import { AlcanceDaConsulta } from './CartaoDeAlcance';
-import { anoCivilFechado, mes } from './indicadoresDaAdr';
+import { anoCivilFechado, anoFiscalFechado, mes, nomeDoAnoFiscal } from './indicadoresDaAdr';
 
 export function FiltrosDosIndicadores({
   filtros,
@@ -88,12 +88,20 @@ export function FiltrosDosIndicadores({
   aoEscolherMunicipio: (codigo: number | null) => void;
 }) {
   const anoCivil = anoCivilFechado();
+  const anoFiscal = anoFiscalFechado();
+  const igual = (p: typeof anoCivil) =>
+    filtros.competenciaInicial === p.competenciaInicial && filtros.competenciaFinal === p.competenciaFinal;
+  // OS DOIS RECORTES NUNCA COINCIDEM: terminam no mesmo mês fechado, mas começam em
+  // meses diferentes — janeiro e novembro —, então a competência inicial sempre os
+  // separa e a ordem da conferência não decide nada.
   const presetDoPeriodo =
     filtros.competenciaInicial === '' && filtros.competenciaFinal === ''
       ? '12meses'
-      : filtros.competenciaInicial === anoCivil.competenciaInicial && filtros.competenciaFinal === anoCivil.competenciaFinal
-        ? 'anoCivil'
-        : 'personalizado';
+      : igual(anoFiscal)
+        ? 'anoFiscal'
+        : igual(anoCivil)
+          ? 'anoCivil'
+          : 'personalizado';
 
   // O INTERVALO EM VIGOR, escrito no próprio campo (maquete). Ele vem da
   // resposta, e não de uma conta local: é a competência que o servidor aplicou.
@@ -156,7 +164,7 @@ export function FiltrosDosIndicadores({
                   filtros — nível 4 da issue 33 —, e a maquete não a tem. O
                   assunto dela é o período em vigor, então é aqui que ela fica. */}
               <InfoTooltip
-                rotulo="O período em vigor e por que não há FYTD"
+                rotulo="O período em vigor e o calendário fiscal"
                 texto={
                   <>
                     {indicadores && (
@@ -164,16 +172,28 @@ export function FiltrosDosIndicadores({
                         Vendas de <strong>{mes(indicadores.competenciaInicial)}</strong> a{' '}
                         <strong>{mes(indicadores.competenciaFinal)}</strong>
                         {presetDoPeriodo === '12meses' && ' (12 meses fechados)'}
-                        {presetDoPeriodo === 'anoCivil' && ' (ano civil até o último mês fechado)'} · cobertura
+                        {presetDoPeriodo === 'anoCivil' && ' (ano civil até o último mês fechado)'}
+                        {presetDoPeriodo === 'anoFiscal' &&
+                          ` (${nomeDoAnoFiscal(indicadores.competenciaFinal) ?? 'ano fiscal'}, até o último mês fechado)`}{' '}
+                        · cobertura
                         medida em {new Date(indicadores.referenciaDaCobertura).toLocaleDateString('pt-BR')}
                         {indicadores.anoDaAreaPlantada && ` · área plantada PAM/IBGE ${indicadores.anoDaAreaPlantada}`}.
                       </p>
                     )}
                     {/* A citação "(documento 32, P-4)" saiu da dica: o número do
                         documento não diz nada a quem lê, e a referência fica aqui. */}
+                    {/* O CALENDÁRIO FISCAL FOI CONFIRMADO em 24/09/2026, e esta dica
+                        dizia o contrário até então. O nome do ano fiscal nunca aparece
+                        sozinho: "FY2026" sem o intervalo escrito é lido como ano civil
+                        por quem não conhece o calendário, e erra por dois meses. */}
                     <p>
-                      FYTD não é oferecido: o calendário fiscal não foi confirmado. O mês em curso fica fora do
-                      padrão, porque comparar um mês pela metade com meses cheios erra para baixo sem aviso.
+                      O <strong>ano fiscal da Tracbel vai de novembro a outubro</strong>, e leva o nome do ano em
+                      que termina: o FY2026 é de nov/2025 a out/2026. É assim que a diretoria compara um ano com o
+                      outro.
+                    </p>
+                    <p>
+                      O mês em curso fica fora dos três recortes, porque comparar um mês pela metade com meses
+                      cheios erra para baixo sem aviso.
                     </p>
                   </>
                 }
@@ -184,9 +204,20 @@ export function FiltrosDosIndicadores({
               onChange={(e) => {
                 if (e.target.value === '12meses') aoMudarFiltros((f) => ({ ...f, competenciaInicial: '', competenciaFinal: '' }));
                 else if (e.target.value === 'anoCivil') aoMudarFiltros((f) => ({ ...f, ...anoCivil }));
+                else if (e.target.value === 'anoFiscal') aoMudarFiltros((f) => ({ ...f, ...anoFiscal }));
               }}
             >
               <option value="12meses">12 meses{presetDoPeriodo === '12meses' && intervalo ? ` (${intervalo})` : ''}</option>
+              {/* O ANO FISCAL VEM ANTES DO CIVIL (24/09/2026): é o calendário em que a
+                  Tracbel fecha o ano, e a planilha do comercial conta assim. O civil
+                  fica, porque é o calendário de toda fonte pública com que a tela
+                  compara — IBGE, CONAB, SICOR. */}
+              <option value="anoFiscal">
+                Ano fiscal
+                {presetDoPeriodo === 'anoFiscal' && intervalo
+                  ? ` ${nomeDoAnoFiscal(indicadores?.competenciaFinal ?? '') ?? ''} (${intervalo})`.replace('  ', ' ')
+                  : ''}
+              </option>
               <option value="anoCivil">Ano civil{presetDoPeriodo === 'anoCivil' && intervalo ? ` (${intervalo})` : ''}</option>
               {/* A opção personalizada só existe quando ela está em vigor: quem a
                   escolhe é o par de campos de mês em "Mais filtros", e uma opção
