@@ -2015,11 +2015,14 @@ describe('Indicadores Geográficos — o que saiu do corpo foi para as dicas', (
 
     expect(bloco('filtros')!.textContent).not.toContain('cobertura medida em');
 
-    const dica = textoDaDica('O período em vigor e por que não há FYTD');
+    const dica = textoDaDica('O período em vigor e o calendário fiscal');
     expect(dica).toContain('Vendas de set/2025 a ago/2026 (12 meses fechados)');
     expect(dica).toContain('cobertura medida em');
     expect(dica).toContain('área plantada PAM/IBGE 2024');
-    // O motivo de não haver FYTD, que já morava nesta dica, continua nela.
-    expect(dica).toContain('FYTD não é oferecido');
+    // O CALENDÁRIO FISCAL FOI CONFIRMADO em 24/09/2026 (novembro a outubro). Esta
+    // dica dizia "FYTD não é oferecido: o calendário fiscal não foi confirmado", e
+    // agora diz o calendário — a tela não pode continuar negando uma decisão tomada.
+    expect(dica).toContain('novembro a outubro');
+    expect(dica, 'a tela ainda nega o calendário fiscal').not.toContain('não foi confirmado');
   });
 });

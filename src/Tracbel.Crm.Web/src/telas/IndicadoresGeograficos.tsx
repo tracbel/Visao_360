@@ -17,7 +17,8 @@
  *   propriedade; o potencial é o do município inteiro, por uma regra ainda a
  *   confirmar;
  * - não mostra valor em reais no potencial — não há preço de máquina confirmado;
- * - não oferece FYTD — o calendário fiscal não foi confirmado.
+ * - oferece ano fiscal desde 24/09/2026, quando o calendário foi confirmado:
+ *   **novembro a outubro**, com o nome do ano em que termina.
  *
  * OS NÚMEROS DA MAQUETE NÃO ESTÃO AQUI. Ela era ilustrativa; nenhum valor desta
  * tela é simulado.

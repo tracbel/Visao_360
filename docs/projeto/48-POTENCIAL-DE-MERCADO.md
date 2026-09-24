@@ -889,6 +889,10 @@ Milestones: **M11 — Potencial: dados e parâmetros**, **M12 — Potencial: mot
 A decisão travava porque ninguém tinha aberto as três candidatas lado a lado. Abaixo, o que cada uma tem
 **no código de hoje**, e não o que se supõe que ela tenha.
 
+> **Errata de 24/09/2026 — a comparação abaixo esqueceu uma fonte.** Ela abre três candidatas e conclui
+> que só a API GN tem financiamento. **O Vórtice tem**, com 14 anos de histórico, e não estava na mesa.
+> A medição está na **§5.5**; a linha "Financiamento" da tabela deve ser lida com ela ao lado.
+
 | | **ART** | **Protheus (SD2)** | **API Gestão de Negócios** |
 |---|---|---|---|
 | Quantidade de máquinas | **sim** — coluna `qte` da view | **na origem sim, no CRM não** | não medido (#12 não começou) |
@@ -1007,3 +1011,76 @@ ainda não é máquina vendida no sentido que a captura mede.
 **A planilha do comercial continua valendo para o que ela é.** Se algum dia a diretoria quiser o ano fiscal
 por entrega ao lado, o critério é um parâmetro do código (`DataQueDefineOPeriodoDaVenda`) e a resposta já
 carrega qual data contou — trocar é trocar uma constante, não reescrever a leitura.
+
+### 5.5 Três medições de 24/09/2026 — o calendário fiscal, o financiamento e o estado do ART
+
+Todas feitas contra a fonte, e não contra suposição. Duas delas corrigem coisas que este documento e a tela
+vinham afirmando.
+
+#### O calendário fiscal foi CONFIRMADO: novembro a outubro [D]
+
+O programa se contradizia. A issue #69 afirmava nov→out citando a planilha do comercial; a tela de
+Indicadores Geográficos dizia, por escrito, na dica do filtro de período: *"FYTD não é oferecido: o
+calendário fiscal não foi confirmado"*. Pela regra desta casa — **planilha é requisito, não fonte** — a
+planilha não bastava para fechar.
+
+> **Confirmado pelo Ricardo em 24/09/2026:** o **ano fiscal da Tracbel vai de novembro a outubro**, e leva
+> o nome do ano em que **termina** — o FY2026 é de nov/2025 a out/2026.
+
+Corroboração independente, achada depois: o protótipo já encodava esse calendário
+(`src/tipos/performanceCen.ts`: *"calendário fiscal Tracbel nov-out"*), e os painéis de performance contam
+assim desde sempre. Ninguém tinha trazido esse fato para a decisão.
+
+**Custo de implementação: baixo, e era o que se supunha caro.** O motor sempre aceitou janela arbitrária
+(`CompetenciaInicial`/`CompetenciaFinal`), então ano fiscal é **preset e rótulo**, não conta nova. O que
+exige cuidado são **novembro e dezembro**, os dois meses em que o ano fiscal vai à frente do civil: quem
+derivar um do outro erra o ano inteiro. Há teste para cada borda.
+
+#### O financiamento existe — no VÓRTICE, e não em nenhuma das três fontes comparadas [M]
+
+Medido no banco `CRM`, somente leitura. **Instituição financeira e linha de crédito vêm 100% preenchidas**
+nos formulários de venda (`IV_Q_*`), em gerações sucessivas que cobrem **2012→2026**. O domínio é o real:
+Recurso Próprio, Moder Frota, Finame, Consórcio, Pronaf, Pronamp, Pró-Trator, Bc John Deere, Inovagro,
+BNDES Pronamp, Proger, MDA, TFBD, Barter. À vista × financiado sai de "Não se aplica" (≈55/45).
+
+**O problema não é o dado — é a chave.** O financiamento está preso ao **processo/oportunidade**, não à
+unidade faturada, e o formulário corrente perdeu o que permitiria casar com o ART:
+
+| Formulário | Período | Linhas | Chassi | Nota fiscal |
+|---|---|---|---|---|
+| `IV_Q_ACOMPANH_VENDA_JDE` | 2012 → 2022 | 6.343 | 4.237 (67%) | 4.092 (65%) |
+| `IV_Q_VENDA_EQUIPAMENTO` | 07/2025 → hoje | 2.853 (linha de crédito 100%) | **10 (0,4%)** | **a coluna não existe** |
+
+O formulário atual tem só data, modelo e um chassi que quase ninguém preenche — **nenhuma chave** para a
+safra corrente. Marcar financiamento na venda do ART hoje cobriria 0,4%, e um número desses lido como
+cobertura engana mais que o vazio.
+
+> **Consequência para a #69:** o aceite pede marcar financiamento *"quando a fonte tiver"*. A fonte tem, e
+> não onde a unidade está. **Fica vazio com o motivo** — e o motivo agora é medido, não suposto.
+
+**Há um conserto barato, e ele não é de código.** O formulário antigo pedia chassi e nota; o atual parou de
+pedir. Se o comercial voltar a preencher `VENDA_CHASSI`, o financiamento passa a colar na unidade **daqui
+para a frente**, sem integração nova. É pedido de campo em formulário.
+
+#### O ART está no ar e lê 4.183 vendas — e nenhuma entra [M]
+
+O serviço `TracbelCrmSincronizacaoArt` estava **desativado** (não só parado) no AGRO-SISTEMAS-W. Religado
+em 24/09/2026 com `start= delayed-auto`, como o documento 35 §11.3 o descreve. Também se descobriu que
+**esta estação agora alcança o ART** (`aftracbel.tracbel.com.br` → `10.100.5.134:3306`), o que os
+documentos 30 e 32 davam como impossível ("sem rota — nem ping").
+
+Dois ciclos, o mesmo resultado:
+
+> `4183 registros lidos; 0 vendas incluídas; 0 atualizadas pela origem; 4183 pendentes; 0 máquinas incluídas.`
+
+**A leitura funciona; a importação não.** Um registro só é importável com **chassi válido + comprador único
+no CRM + filial** (`CargaDoArt`), e os 4.183 falham em ao menos um desses. A quebra por motivo é gravada em
+`integracao.MedicaoDaSincronizacao`, no banco do servidor — **ainda não lida**, e é o próximo passo.
+
+A hipótese mais provável, a confirmar contra essa tabela: os **compradores não estão no CRM**, efeito da
+sanitização de 15/09/2026 que esvaziou o cadastro. Se for isso, a ordem de carga é que está invertida — o
+cadastro de clientes precisa vir antes das vendas, e nenhuma linha do ART entra até lá.
+
+> **Consequência para a #69:** o aceite *"totais por ano iguais aos da fonte"* continua **não conferido**,
+> mas o motivo mudou de "a fonte está desligada" para "a fonte está ligada e a carga não casa comprador".
+> É um problema menor e localizado, e tem número: 4.183.
