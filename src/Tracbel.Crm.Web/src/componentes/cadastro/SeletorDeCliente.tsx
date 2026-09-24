@@ -162,7 +162,7 @@ export function SeletorDeCliente({
           {!buscando && !falha && achados.length === 0 && (
             <li className="cad-sugestao-vazia">
               Nenhum cliente encontrado nesta filial. O documento é comparado inteiro — pedaço de
-              CNPJ não encontra (dívida D-2 do documento 23).
+              CNPJ não encontra.
             </li>
           )}
           {!buscando &&

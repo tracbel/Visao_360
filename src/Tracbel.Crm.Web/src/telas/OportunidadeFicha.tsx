@@ -278,9 +278,10 @@ export function OportunidadeFicha() {
         <div className="cad-fichas">
           <p className="cad-estado-texto">
             <strong>Mudar de fase, fechar como ganha e marcar como perdida não existem aqui.</strong>{' '}
+            {/* A citação "(dívida D-9 do documento 23)" saiu da tela — ela continua no cabeçalho
+                deste arquivo, que é onde serve. */}
             Nenhuma rota de relacionamento escreve — mudar de fase dispara automação e concluir
-            tarefa gera a próxima, e o motor de regras entra junto com a tela que o exercita (dívida
-            D-9 do documento 23).
+            tarefa gera a próxima, e o motor de regras entra junto com a tela que o exercita.
           </p>
           <LacunaConhecida
             metrica="Probabilidade de fechamento"

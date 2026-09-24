@@ -37,7 +37,7 @@ export function CartaoDeAlcance({
           (podeVerEmpresaInteira
             ? 'A visão da empresa inteira está disponível para o seu perfil.'
             : 'A visão da empresa inteira exige a permissão de alcance entre filiais; o seu perfil não a tem, e a ' +
-              'distribuição oficial dos acessos está pendente (documento 32, P-10).') +
+              'distribuição oficial dos acessos está pendente.') +
           ' A ADR e a área plantada são da empresa inteira e aparecem para todos.'
         }
       />

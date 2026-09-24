@@ -531,8 +531,9 @@ export function CoberturaCarteira() {
               'char(1) com sete valores e sem tabela de domínio no banco — o significado mora ' +
               'dentro do cliente Gupta. Classificar por palavra do nome foi considerado e ' +
               'recusado: "Monitorar Cliente", com 25.230 tarefas, pode ser visita, ligação ou ' +
-              'WhatsApp, e o dado não diz qual. Destrava com uma triagem de 178 linhas pelo ' +
-              'negócio (documento 25, §3.4).'
+              // A citação "(documento 25, §3.4)" saiu do texto: o símbolo e o número do documento não
+              // dizem nada a quem lê a tela, e a referência fica aqui.
+              'WhatsApp, e o dado não diz qual. Destrava com uma triagem de 178 linhas pelo negócio.'
             }
           />
           <LacunaConhecida

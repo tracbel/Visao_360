@@ -183,7 +183,9 @@ export function Inicio() {
           <span className="kpi-value" style={{ fontSize: 16, paddingTop: 8 }}>
             Desktop e celular
           </span>
-          <span className="kpi-hint">Responder fora do desktop virou requisito (documento 05 §3)</span>
+          {/* A citação "(documento 05 §3)" saiu da dica: ela era a justificativa da decisão, e não
+              informação para quem está lendo o indicador. */}
+          <span className="kpi-hint">Responder fora do desktop virou requisito</span>
         </div>
       </div>
 
