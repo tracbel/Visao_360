@@ -249,6 +249,9 @@ function montarMunicipio(
       tratoresPorMilKm2: sobSigilo ? null : 250 + posicao * 10,
       capacidadeDeEtanolM3Dia: posicao % 4 === 0 ? 1_200 + posicao * 50 : null,
     },
+    // AS UNIDADES DO ART (issue 69). NO ESTADO PARCIALMENTE VAZIO O ART NÃO TROUXE NADA: é o caminho
+    // do vazio com motivo, que a conferência visual precisa provar tanto quanto o caminho cheio.
+    maquinasVendidas: estado === 'parcialmenteVazio' ? null : Math.round((area / 250 / 8) * 0.15),
     potencialEstrutural: semDado
       ? { parqueDeMaquinas: null, demandaAnualDeMaquinas: null, areaUtilHectares: null, estimativa: true, motivoSemParque: 'SemArea', motivoSemDemanda: 'SemArea' }
       : {
@@ -366,6 +369,8 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
         estabelecimentos: { ...PROCEDENCIA_DO_CENSO, variavel: 'Estabelecimentos agropecuários' },
         rebanho: { ...PROCEDENCIA_DO_CENSO, pesquisa: 'PPM', tabela: '3939', variavel: 'Efetivo bovino', competencia: '2024' },
         usinas: null,
+        // O ART NÃO TROUXE VENDA NA AMOSTRA, que é o estado de hoje: sem carimbo de captura.
+        maquinasVendidas: null,
       },
       // O MOMENTO COM A COMPOSIÇÃO FECHADA (T3.1): Σ ajustada ÷ Σ estrutural.
       momento: (() => {
@@ -427,6 +432,30 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
           },
         };
       })(),
+      // AS VENDAS EM UNIDADES DO RECORTE (issue 69). A soma dos municípios, para a captura do harness
+      // bater com a quebra que ele mesmo desenha; nula no estado parcialmente vazio.
+      maquinasVendidas:
+        estado === 'parcialmenteVazio'
+          ? null
+          : {
+              criterioDeData: 'Faturamento',
+              fraseDoCriterio:
+                'Contadas pela DATA DO FATURAMENTO (D-P08.1): a view do ART é de máquina faturada, e máquina ' +
+                'faturada é máquina vendida. AMOSTRA FICTÍCIA.',
+              unidades: municipios.reduce((s, m) => s + (m.maquinasVendidas ?? 0), 0),
+              porCategoria: [
+                { categoriaCodigo: 'TRATOR', categoriaNome: 'Trator', unidades: 118 },
+                { categoriaCodigo: 'COLHEITADEIRA', categoriaNome: 'Colheitadeira', unidades: 24 },
+                { categoriaCodigo: 'PLANTADEIRA', categoriaNome: 'Plantadeira', unidades: 17 },
+                { categoriaCodigo: 'PULVERIZADOR', categoriaNome: 'Pulverizador', unidades: 9 },
+              ],
+              unidadesForaDoMapa: 6,
+              unidadesSemClassificacao: 3,
+              unidadesEmLinhaSemCategoria: 11,
+              vendasSemAData: 2,
+              vendaMaisRecente: '2026-08-29',
+              carregadoAte: '2026-09-14T03:00:00Z',
+            },
     },
     metricasSemDado: [
       {

@@ -63,6 +63,7 @@ const FORA_DO_MAPA = [
       outros: 0,
       posVenda: 10_000,
     },
+    maquinasVendidas: null,
   },
 ];
 
@@ -391,18 +392,79 @@ describe('a tabela de municípios — ordenação', () => {
   });
 });
 
+/**
+ * A COLUNA DAS MÁQUINAS VENDIDAS (issue 69, D-P08).
+ *
+ * Ela é a única da tabela em UNIDADES, ao lado das teóricas — o que a terra
+ * comporta contra o que a Tracbel entregou. A distinção que estes testes guardam é
+ * a que um leitor desatento inverteria: NULO é "o ART não trouxe carga ao alcance",
+ * ZERO é "a filial existe, o ART trouxe dado e ela não vendeu aqui".
+ */
+describe('a tabela de municípios — as máquinas vendidas', () => {
+  const celula = () => document.querySelector<HTMLElement>('tbody td[data-coluna="maquinasVendidas"]')!;
+
+  it('mostra o número quando o ART trouxe venda', () => {
+    const vendeu = { ...DA_ADR, maquinasVendidas: 12 };
+    montar({ municipios: [vendeu, FORA_DA_ADR], daAdr: [vendeu], totais: calcularTotais([vendeu]) });
+
+    expect(celula()).toHaveTextContent('12');
+  });
+
+  it('ZERO É MEDIDA: o município que não vendeu nada mostra 0, e não o traço', () => {
+    const naoVendeu = { ...DA_ADR, maquinasVendidas: 0 };
+    montar({ municipios: [naoVendeu, FORA_DA_ADR], daAdr: [naoVendeu], totais: calcularTotais([naoVendeu]) });
+
+    expect(celula()).toHaveTextContent('0');
+    expect(within(celula()).queryByRole('button')).toBeNull();
+  });
+
+  it('sem carga do ART, o traço COM O MOTIVO — nunca um zero inventado', () => {
+    montar(); // o município de teste nasce com `maquinasVendidas: null`
+    expect(celula().textContent, 'inventou um número onde falta carga').not.toMatch(/\d/);
+
+    fireEvent.focus(within(celula()).getByRole('button', { name: /máquinas vendidas em Cafelândia/ }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/ausência de carga não é venda zero/);
+  });
+
+  it('o cabeçalho diz o critério de data, porque decidido não é o mesmo que implícito', () => {
+    montar();
+    fireEvent.focus(screen.getByRole('button', { name: 'O que conta como máquina vendida' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/DATA DO FATURAMENTO/);
+  });
+});
+
 describe('a tabela de municípios — colunas escolhidas', () => {
   const colunasNaTela = () => [...document.querySelectorAll<HTMLElement>('thead th')].map((th) => th.dataset.coluna);
 
   it('a engrenagem esconde uma coluna, e a escolha fica guardada no navegador', () => {
     const { unmount } = montar();
-    expect(colunasNaTela()).toEqual(['municipio', 'hierarquia', 'elegiveis', 'noPrazo', 'pendentes', 'vendas', 'posVenda', 'maquinas', 'acao']);
+    expect(colunasNaTela()).toEqual([
+      'municipio',
+      'hierarquia',
+      'elegiveis',
+      'noPrazo',
+      'pendentes',
+      'vendas',
+      'posVenda',
+      'maquinas',
+      'maquinasVendidas',
+      'acao',
+    ]);
 
     fireEvent.click(screen.getByRole('button', { name: 'Escolher as colunas da tabela' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Elegíveis' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Pós-venda (provisório)' }));
 
-    expect(colunasNaTela()).toEqual(['municipio', 'hierarquia', 'noPrazo', 'pendentes', 'vendas', 'maquinas', 'acao']);
+    expect(colunasNaTela()).toEqual([
+      'municipio',
+      'hierarquia',
+      'noPrazo',
+      'pendentes',
+      'vendas',
+      'maquinas',
+      'maquinasVendidas',
+      'acao',
+    ]);
     expect(document.querySelector('tbody td[data-coluna="elegiveis"]')).toBeNull();
     expect(JSON.parse(guardado.get(CHAVE_DAS_COLUNAS)!)).toEqual(['elegiveis', 'posVenda']);
     // O botão diz quantas estão escondidas.
@@ -443,7 +505,7 @@ describe('a tabela de municípios — colunas escolhidas', () => {
       },
     });
     montar();
-    expect(colunasNaTela()).toHaveLength(9);
+    expect(colunasNaTela()).toHaveLength(10);
 
     fireEvent.click(screen.getByRole('button', { name: 'Escolher as colunas da tabela' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'No prazo' }));
@@ -454,6 +516,16 @@ describe('a tabela de municípios — colunas escolhidas', () => {
     guardado.set(CHAVE_DAS_COLUNAS, JSON.stringify(['municipio', 'coisa', 'vendas']));
     montar();
     // "municipio" não se esconde; "coisa" não existe; "vendas" vale.
-    expect(colunasNaTela()).toEqual(['municipio', 'hierarquia', 'elegiveis', 'noPrazo', 'pendentes', 'posVenda', 'maquinas', 'acao']);
+    expect(colunasNaTela()).toEqual([
+      'municipio',
+      'hierarquia',
+      'elegiveis',
+      'noPrazo',
+      'pendentes',
+      'posVenda',
+      'maquinas',
+      'maquinasVendidas',
+      'acao',
+    ]);
   });
 });

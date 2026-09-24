@@ -32,6 +32,14 @@ function Linha({ linha, daAdr = false }: { linha: LinhaDaConferencia; daAdr?: bo
       ) : (
         daAdr && <> · — máquinas teóricas (nenhum município com parque: sem regra de potencial vigente ou sem área divulgada)</>
       )}
+      {/* AS UNIDADES ENTRAM EM TODA LINHA (issue 69), inclusive nos grupos de fora
+          do mapa — eles também compram máquina, e é essa parcela que faz o total da
+          consulta fechar. Sem venda ao alcance do ART, o traço e o motivo. */}
+      {linha.maquinasVendidas !== null ? (
+        <> · {nº(linha.maquinasVendidas)} máquinas vendidas</>
+      ) : (
+        <> · — máquinas vendidas (o ART não trouxe venda ao alcance desta consulta)</>
+      )}
     </li>
   );
 }

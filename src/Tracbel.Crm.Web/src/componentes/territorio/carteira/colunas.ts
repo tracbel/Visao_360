@@ -3,7 +3,7 @@
  * às maquetes, 23/09/2026 — fase 4; a engrenagem da maquete).
  *
  * MUNICÍPIO E AÇÃO NÃO SE ESCONDEM: um é a chave da linha, o outro é a porta da
- * ficha. As outras sete são escolha de quem lê.
+ * ficha. As outras oito são escolha de quem lê.
  *
  * A ESCOLHA FICA NO NAVEGADOR (`localStorage`), e só ela: é preferência de
  * leitura de uma pessoa numa máquina, não dado da empresa — não vai à API nem à
@@ -23,6 +23,9 @@ export const COLUNAS_OPCIONAIS = [
   { id: 'vendas', rotulo: 'Vendas' },
   { id: 'posVenda', rotulo: 'Pós-venda (provisório)' },
   { id: 'maquinas', rotulo: 'Máquinas (teórico)' },
+  // TEÓRICAS E VENDIDAS SÃO VIZINHAS (issue 69): é a comparação que a coluna
+  // existe para fazer — o que a terra comporta contra o que a Tracbel entregou.
+  { id: 'maquinasVendidas', rotulo: 'Vendidas (unidades)' },
 ] as const;
 
 export type ColunaOpcional = (typeof COLUNAS_OPCIONAIS)[number]['id'];

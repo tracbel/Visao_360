@@ -14,8 +14,14 @@
  * - TODA COLUNA ORDENA pelo clique no cabeçalho, com `aria-sort`.
  * - A ENGRENAGEM escolhe as colunas visíveis (guardado no navegador).
  * - OS CABEÇALHOS SÃO VISÍVEIS, inclusive "Ação", e em duas linhas pequenas como
- *   na maquete: é o que faz as nove colunas caberem em ~750px, ao lado da ficha,
- *   sem rolagem lateral.
+ *   na maquete: é o que faz as colunas caberem em ~750px, ao lado da ficha, sem
+ *   rolagem lateral.
+ *
+ * A DÉCIMA COLUNA — "Vendidas", em unidades (issue 69) — entrou depois da fase 4.
+ * Ela é opcional como as outras e fica ao lado de "Máquinas (teórico)", que é
+ * contra quem ela se lê. É também a PRIMEIRA a sair quando falta largura, em
+ * 860px de tabela: dez colunas pedem 753px de mínimo, e o degrau foi medido, não
+ * escolhido (ver o comentário das larguras em `territorio.css`).
  */
 
 import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown, Download, MapPin, Search } from 'lucide-react';
@@ -69,6 +75,7 @@ function baixarCsv(linhas: IndicadoresDoMunicipio[]) {
     'Vendas (R$)',
     'Pós-venda (R$)',
     'Máquinas teóricas',
+    'Máquinas vendidas (un)',
   ];
 
   const celula = (v: string | number | null) =>
@@ -87,6 +94,9 @@ function baixarCsv(linhas: IndicadoresDoMunicipio[]) {
       celula(m.vendas.valorLiquido),
       celula(m.vendas.posVenda),
       celula(m.potencialEstrutural?.parqueDeMaquinas ?? null),
+      // CÉLULA VAZIA, e não zero: quem abrir a planilha não pode ler "vendeu nenhuma"
+      // onde o ART simplesmente não trouxe venda. O `celula` já escreve vazio para nulo.
+      celula(m.maquinasVendidas),
     ].join(';'),
   );
 
@@ -112,6 +122,7 @@ const VALOR_DE_ORDEM: Record<ChaveDeOrdem, (m: IndicadoresDoMunicipio) => number
   vendas: (m) => m.vendas.valorLiquido,
   posVenda: (m) => m.vendas.posVenda,
   maquinas: (m) => m.potencialEstrutural?.parqueDeMaquinas ?? null,
+  maquinasVendidas: (m) => m.maquinasVendidas,
 };
 
 function ordenar(lista: IndicadoresDoMunicipio[], ordem: Ordem): IndicadoresDoMunicipio[] {
@@ -385,6 +396,25 @@ export function TabelaDeMunicipios({
                   Máquinas
                 </CabecalhoOrdenavel>
               )}
+              {/* VENDIDAS AO LADO DE TEÓRICAS (issue 69): o que a terra comporta
+                  contra o que a Tracbel entregou, lado a lado, que é a comparação
+                  que a coluna existe para fazer. */}
+              {visivel('maquinasVendidas') && (
+                <CabecalhoOrdenavel
+                  chave="maquinasVendidas"
+                  numero
+                  sub="(unidades)"
+                  {...cabecalho}
+                  dica={
+                    <InfoTooltip
+                      rotulo="O que conta como máquina vendida"
+                      texto="Máquinas vendidas no período, em unidades, pelo ART — o sistema comercial de vendas (decisão D-P08). Cada máquina tem um chassi e conta uma vez. O período é o do filtro, contado pela DATA DO FATURAMENTO (D-P08.1): é o mesmo evento da coluna Vendas, que é em reais. Venda ainda não faturada não cabe em período nenhum e está nas limitações dos dados."
+                    />
+                  }
+                >
+                  Vendidas
+                </CabecalhoOrdenavel>
+              )}
               {/* A COLUNA DE AÇÃO (maquete): o chevron que abre a ficha. O nome
                   do município continua sendo botão — esta é a segunda porta para
                   a mesma ficha, na ponta da linha, que é onde o dedo vai. */}
@@ -450,6 +480,21 @@ export function TabelaDeMunicipios({
                         />
                       ) : (
                         nº(m.potencialEstrutural.parqueDeMaquinas)
+                      )}
+                    </td>
+                  )}
+                  {visivel('maquinasVendidas') && (
+                    <td data-coluna="maquinasVendidas" className="cad-mono">
+                      {/* NULO É AUSÊNCIA DE CARGA, ZERO É MEDIDA: sem o ART ao alcance
+                          da consulta sai o traço com o motivo; com o ART carregado e
+                          nenhuma venda aqui, sai 0 — que é o que o município vendeu. */}
+                      {m.maquinasVendidas === null ? (
+                        <ValorAusente
+                          motivo="o ART não trouxe venda de máquina ao alcance desta consulta — e ausência de carga não é venda zero"
+                          oQue={`as máquinas vendidas em ${m.nome}`}
+                        />
+                      ) : (
+                        nº(m.maquinasVendidas)
                       )}
                     </td>
                   )}

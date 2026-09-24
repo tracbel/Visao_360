@@ -7,11 +7,12 @@
  * aberta dá isso — usar a palavra errada faria a diretoria ler uma estimativa
  * como um fato de mercado.
  *
- * SÓ VENDAS TEM DADO HOJE. O faturamento existe e é real; captura e não
- * capturado dependem das vendas em UNIDADES (issue 69), porque reais não servem
- * de numerador para uma demanda medida em máquinas. O motivo de cada um faltar
- * NÃO é escrito aqui: é a frase que o servidor devolve nos números de decisão
- * (issue 69, parte A) — a mesma dos cartões do topo da aba.
+ * AS DUAS MEDIDAS SÃO DE NATUREZAS DIFERENTES E NÃO SE SOMAM. O faturamento é em
+ * REAIS, do Protheus, pelo endereço principal do cliente. As máquinas vendidas
+ * são em UNIDADES, do ART, fonte canônica desde a decisão D-P08 (24/09/2026) —
+ * reais não servem de numerador para uma demanda medida em máquinas. O motivo de
+ * uma ausência NÃO é escrito aqui: é a frase que o servidor devolve nos números
+ * de decisão (issue 69, parte A) — a mesma dos cartões do topo da aba.
  *
  * VENDAS VEM PRIMEIRO, E ABERTA (maquete): é a aba que tem número. Abrir o
  * bloco numa aba de traço seria começar a leitura pelo que falta.
@@ -19,7 +20,7 @@
 
 import { ChartNoAxesColumnIncreasing, Tractor, Wrench, type LucideIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import type { NumeroDeDecisao, NumerosDeDecisao } from '../../tipos/territorio';
+import type { NumeroDeDecisao, NumerosDeDecisao, VendasDeMaquinaDoRecorte } from '../../tipos/territorio';
 import { MetricaAusente } from '../comum/MetricaAusente';
 import { ValorAusente } from '../comum/ValorAusente';
 import { reaisCompactos } from '../territorio/escalas';
@@ -113,11 +114,20 @@ export function PerformanceTracbel({
   totais,
   comTerritorio,
   numeros,
+  maquinasVendidas,
 }: {
   totais: TotaisDaAdr;
   comTerritorio: boolean;
   /** Os números de decisão do recorte, com o motivo de cada ausência — da API (issue 69, parte A). */
   numeros: NumerosDeDecisao | null;
+  /**
+   * As vendas de máquina do RECORTE, em unidades e por categoria (issue 69, D-P08).
+   *
+   * É o recorte, e não a soma da ADR: é o mesmo conjunto que o servidor usou como numerador da
+   * captura, e a quebra tem de falar do número que está em cima dela. A soma da ADR está em
+   * `totais.maquinasVendidas` e é a que aparece ao lado dos reais, que também são da ADR.
+   */
+  maquinasVendidas: VendasDeMaquinaDoRecorte | null;
 }) {
   const [subAba, setSubAba] = useState<SubAba>('vendas');
 
@@ -130,7 +140,9 @@ export function PerformanceTracbel({
           <>
             <p>
               O que sai de Vendas é medido — faturamento líquido pelo endereço principal do cliente. Máquina é o
-              faturamento líquido de máquina; pós-venda é peça + serviço, composição provisória.
+              faturamento líquido de máquina; pós-venda é peça + serviço, composição provisória. As máquinas
+              vendidas ao lado dela são em UNIDADES, do ART (decisão D-P08), contadas pela data do faturamento
+              (D-P08.1): é o mesmo evento dos reais, em outra unidade, e as duas não se somam.
             </p>
             {/* O PORQUÊ DE CAPTURA E NÃO CAPTURADO FALTAREM não mora aqui: é a
                 frase do servidor, na dica de cada um. Aqui fica o que eles são. */}
@@ -171,16 +183,25 @@ export function PerformanceTracbel({
                     rotulo="Máquina"
                     icone={Tractor}
                     valor={comTerritorio ? reaisCompactos(totais.maquina) : null}
-                    // AS MÁQUINAS VENDIDAS NÃO EXISTEM AINDA — o faturamento é em
-                    // reais, e a contagem em unidades é a issue 69. O lugar da
-                    // maquete fica, com o traço.
+                    // O PÉ DA MAQUETE AGORA TEM O NÚMERO (issue 69, D-P08): as
+                    // unidades vêm do ART, ao lado dos reais do Protheus. São duas
+                    // medidas do mesmo evento — a venda faturada —, e por isso cabem
+                    // no mesmo cartão sem se somarem.
+                    //
+                    // AUSÊNCIA DE CARGA NÃO É VENDA ZERO: sem nenhuma linha do ART ao
+                    // alcance da consulta o número é nulo e sai o traço com o motivo.
+                    // Zero, esse sim, é medida, e aparece como zero.
                     pe={
                       <>
-                        <ValorAusente
-                          motivo="As vendas em UNIDADES por município são a issue 69: hoje o faturamento chega em reais, e contar notas não é contar máquinas."
-                          oQue="o número de máquinas vendidas"
-                        />{' '}
-                        máquinas vendidas
+                        {totais.maquinasVendidas === null ? (
+                          <ValorAusente
+                            motivo="O ART não trouxe venda de máquina ao alcance desta consulta — e ausência de carga não é venda zero."
+                            oQue="o número de máquinas vendidas"
+                          />
+                        ) : (
+                          <strong>{nº(totais.maquinasVendidas)}</strong>
+                        )}{' '}
+                        {totais.maquinasVendidas === 1 ? 'máquina vendida' : 'máquinas vendidas'}
                       </>
                     }
                   />
@@ -198,12 +219,47 @@ export function PerformanceTracbel({
             id: 'captura',
             rotulo: 'Captura',
             conteudo: (
-              <NumeroNaAba
-                metrica="Captura Tracbel"
-                numero={numeros?.capturaPercentual ?? null}
-                formatar={porcento}
-                depois="da demanda anual estimada, em máquinas — captura, e não participação de mercado."
-              />
+              <>
+                <NumeroNaAba
+                  metrica="Captura Tracbel"
+                  numero={numeros?.capturaPercentual ?? null}
+                  formatar={porcento}
+                  depois="da demanda anual estimada, em máquinas — captura, e não participação de mercado."
+                />
+                {/* A CAPTURA POR CATEGORIA é o acréscimo ao aceite da issue 69: um número
+                    só não diz se a Tracbel leva os tratores e perde as colheitadeiras. A
+                    quebra vem do de-para da linha de produto (D-P08), e espelha a
+                    composição do potencial — é contra ela que estas unidades se leem.
+
+                    LINHA AINDA SEM CATEGORIA CONTA NO TOTAL E SOME DAQUI: a diferença é
+                    dita embaixo, e não fica como um buraco na conta. */}
+                {maquinasVendidas && maquinasVendidas.porCategoria.length > 0 && (
+                  <details className="mv-composicao" data-bloco="captura-por-categoria">
+                    <summary>Ver por categoria</summary>
+                    <div className="mv-composicao-corpo">
+                      <ul className="terr-recorte-linhas">
+                        {maquinasVendidas.porCategoria.map((c) => (
+                          <li key={c.categoriaCodigo}>
+                            {c.categoriaNome}: <strong>{nº(c.unidades)}</strong>
+                            <span className="cad-sub"> {c.unidades === 1 ? 'máquina' : 'máquinas'}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {maquinasVendidas.unidadesEmLinhaSemCategoria > 0 && (
+                        <p className="cad-sub">
+                          {`${nº(maquinasVendidas.unidadesEmLinhaSemCategoria)} ${
+                            maquinasVendidas.unidadesEmLinhaSemCategoria === 1 ? 'máquina está' : 'máquinas estão'
+                          } numa linha de produto que ainda não tem categoria, e por isso ${
+                            maquinasVendidas.unidadesEmLinhaSemCategoria === 1 ? 'conta' : 'contam'
+                          } no total e não ${
+                            maquinasVendidas.unidadesEmLinhaSemCategoria === 1 ? 'aparece' : 'aparecem'
+                          } na quebra. A classificação é julgamento do comercial.`}
+                        </p>
+                      )}
+                    </div>
+                  </details>
+                )}
+              </>
             ),
           },
           {

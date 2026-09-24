@@ -118,6 +118,7 @@ function painel(): PainelTerritorial {
             outros: 0,
             posVenda: 10_000,
           },
+          maquinasVendidas: null,
         },
       ],
       enderecos: 40,
@@ -218,6 +219,7 @@ function painel(): PainelTerritorial {
           ressalva: 'A PPM é anual e anda sozinha.',
         },
         usinas: null,
+        maquinasVendidas: null,
       },
       // O MOMENTO DO RECORTE COMO O DADO DE HOJE O PRODUZ (fase T3.1).
       //
@@ -249,6 +251,9 @@ function painel(): PainelTerritorial {
           ressalva: 'O fator é de CADA CULTURA. Indicador ausente vale desvio ZERO.',
         },
       },
+      // O ESTADO DE HOJE: o ART está desligado para o ajuste dos dados e não trouxe venda nenhuma.
+      // Nulo, e não um bloco zerado — zero afirmaria que a Tracbel não vendeu máquina na região.
+      maquinasVendidas: null,
     },
     metricasSemDado: [{ metrica: 'participacaoDeMercado', motivo: 'emplacamento não integrado' }],
     podeVerEmpresaInteira: false,
@@ -1938,13 +1943,18 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
       expect(variacao.textContent, `${cartao.dataset.mini} inventou uma variação`).not.toMatch(/\d/);
     }
 
-    // AS MÁQUINAS VENDIDAS NÃO EXISTEM (issue 69): o traço, e não um número.
+    // AS MÁQUINAS VENDIDAS EXISTEM (issue 69, D-P08) E AQUI NÃO HÁ NENHUMA: o
+    // cenário é o de hoje — o ART está desligado para o ajuste dos dados e não
+    // trouxe venda. Então sai o traço com o motivo verdadeiro, e NÃO um zero:
+    // ausência de carga não é venda zero. O motivo mudou de "a contagem em
+    // unidades ainda não existe" para "o ART não trouxe venda", que é o que é.
     const maquina = cartoes[1];
     expect(maquina).toHaveTextContent('máquinas vendidas');
+    expect(maquina.querySelector('.mv-venda-pe')!.textContent, 'inventou um zero onde falta carga').not.toMatch(/\d/);
     fireEvent.focus(
       within(maquina).getByRole('button', { name: 'Por que o número de máquinas vendidas não aparece' }),
     );
-    expect(screen.getByRole('tooltip')).toHaveTextContent(/issue 69/);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/ausência de carga não é venda zero/);
   });
 });
 

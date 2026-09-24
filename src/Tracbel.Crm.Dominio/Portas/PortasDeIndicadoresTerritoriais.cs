@@ -93,6 +93,85 @@ public sealed record VendasTerritoriais(
 }
 
 /// <summary>
+/// QUAL DAS TRÊS DATAS DO ART põe uma venda dentro do período — a D-P08.1, <b>decidida em
+/// 24/09/2026</b>: o <b>faturamento</b> (documento 48, §5.4).
+///
+/// <para><b>Porque é isso que o ART é:</b> a view é de máquina faturada — traz o número da nota e a
+/// data dela —, e máquina faturada é máquina vendida. A entrega é evento posterior e fica vazia
+/// quando a origem manda data zerada; contar por ela sumiria com a máquina faturada e ainda não
+/// entregue. E o faturamento é o mesmo relógio do dinheiro do Protheus, então as duas medidas do
+/// mesmo período falam do mesmo evento.</para>
+///
+/// <para>O critério continua viajando na resposta e a tela o escreve ao lado do número: <b>decidido
+/// não é o mesmo que implícito</b>.</para>
+/// </summary>
+public enum DataQueDefineOPeriodoDaVenda
+{
+    /// <summary>Quando a máquina chegou na fazenda. Evento posterior, e o que mais vem vazio.</summary>
+    Entrega = 0,
+
+    /// <summary>Quando o negócio fechou, antes da nota.</summary>
+    Venda = 1,
+
+    /// <summary>Quando a nota saiu. <b>É o critério em uso</b> (D-P08.1).</summary>
+    Faturamento = 2
+}
+
+/// <summary>As máquinas que a Tracbel vendeu numa categoria, em unidades.</summary>
+/// <param name="CategoriaCodigo">O código da categoria no catálogo (issue 165).</param>
+/// <param name="CategoriaNome">O nome de exibição.</param>
+/// <param name="Unidades">Quantas máquinas.</param>
+public sealed record UnidadesNaCategoria(string CategoriaCodigo, string CategoriaNome, int Unidades);
+
+/// <summary>
+/// AS VENDAS DE MÁQUINA DA TRACBEL EM UNIDADES — a fonte é o ART (D-P08, decidida em 24/09/2026).
+///
+/// <para><b>Não confundir com <see cref="VendasTerritoriais"/></b>, que é o faturamento em REAIS, do
+/// Protheus. Os dois medem coisas diferentes e não se somam: a captura é uma razão de unidades sobre
+/// demanda estimada em unidades, e reais no numerador a tornariam incomparável.</para>
+///
+/// <para><b>Uma venda é uma máquina.</b> A contagem é de vendas, e não da soma da coluna de
+/// quantidade da origem: cada linha do ART tem um chassi, e somar a quantidade declarada contaria
+/// duas vezes a máquina que a origem lançasse em lote.</para>
+///
+/// <para><b>Nulo é o ART não ter trazido venda nenhuma</b> — serviço desligado, carga não rodada.
+/// Zero, aí sim, é medida: a filial existe, o ART trouxe dado e ela não vendeu máquina no período.</para>
+/// </summary>
+/// <param name="CriterioDeData">Um <see cref="DataQueDefineOPeriodoDaVenda"/> como texto.</param>
+/// <param name="FraseDoCriterio">O critério em português, para a tela escrever ao lado do número.</param>
+/// <param name="Unidades">As máquinas vendidas a clientes dos municípios DO RECORTE.</param>
+/// <param name="PorCategoria">A quebra por categoria de máquina, pelo de-para da linha de produto (issue 69).</param>
+/// <param name="UnidadesForaDoMapa">
+/// As vendidas a cliente sem município, sem código IBGE ou de outra UF. Ficam fora da captura porque
+/// o denominador — a demanda do recorte — também não as cobre.
+/// </param>
+/// <param name="UnidadesSemClassificacao">
+/// Vendas cuja máquina não tem classificação de produto no CRM, ou cuja máquina está fora do alcance
+/// de filial de quem lê. Contam no total e não aparecem em categoria nenhuma.
+/// </param>
+/// <param name="UnidadesEmLinhaSemCategoria">
+/// Vendas de uma linha que existe e <b>ainda não foi ligada a uma categoria</b> — hoje a colhedora de
+/// cana e a plataforma de corte, que são julgamento do comercial (documento 48, §5.3).
+/// </param>
+/// <param name="VendasSemAData">
+/// Vendas sem a data do critério, que não cabem em período nenhum. Com o faturamento (D-P08.1), é a
+/// venda fechada e <b>ainda não faturada</b> — ela existe no ART e não é uma máquina vendida ainda.
+/// </param>
+/// <param name="VendaMaisRecente">A data mais recente, pelo critério — diz até quando o ART trouxe venda.</param>
+/// <param name="CarregadoAte">Quando a carga mais recente entrou no CRM (UTC).</param>
+public sealed record VendasDeMaquinaDoRecorte(
+    string CriterioDeData,
+    string FraseDoCriterio,
+    int Unidades,
+    IReadOnlyList<UnidadesNaCategoria> PorCategoria,
+    int UnidadesForaDoMapa,
+    int UnidadesSemClassificacao,
+    int UnidadesEmLinhaSemCategoria,
+    int VendasSemAData,
+    DateOnly? VendaMaisRecente,
+    DateTime? CarregadoAte);
+
+/// <summary>
 /// O potencial teórico de um produto num município, por uma regra — com a PAM do produto que o sustenta.
 ///
 /// <para><b>Cada cultura tem o seu ano</b> (issue 152): o último em que a área plantada DELA foi divulgada. Um ano
@@ -320,6 +399,12 @@ public sealed record ResponsavelPelaCarteira(string Nome, string Natureza, int V
 /// <param name="Producao">A lavoura inteira do município, somando as culturas; nulo quando a PAM não foi carregada.</param>
 /// <param name="Estrutura">O parque, as propriedades, o rebanho e as usinas.</param>
 /// <param name="PotencialEstrutural">O parque e a demanda do município pelo motor (issue 72), somando as categorias de máquina.</param>
+/// <param name="MaquinasVendidas">
+/// As máquinas que a Tracbel vendeu a clientes daqui, EM UNIDADES, pelo ART (issue 69, D-P08).
+///
+/// <para><b>Nulo é o ART não ter trazido venda nenhuma</b> ao alcance desta consulta; zero é medida.
+/// O valor em reais continua em <see cref="Vendas"/>, que vem do Protheus e mede outra coisa.</para>
+/// </param>
 public sealed record IndicadoresDoMunicipio(
     int CodigoIbge,
     string Nome,
@@ -335,7 +420,8 @@ public sealed record IndicadoresDoMunicipio(
     IReadOnlyList<ResponsavelPelaCarteira> ResponsaveisPelasCarteiras,
     ProducaoAgricolaDoMunicipio? Producao,
     EstruturaDoMunicipio Estrutura,
-    PotencialEstruturalDoMunicipio? PotencialEstrutural = null);
+    PotencialEstruturalDoMunicipio? PotencialEstrutural = null,
+    int? MaquinasVendidas = null);
 
 /// <summary>
 /// O POTENCIAL ESTRUTURAL DE UM MUNICÍPIO, pelo motor (issue 72) — o que o mapa C colore.
@@ -453,8 +539,20 @@ public sealed record PotencialDoRecorteNoMapa(
 /// <param name="Grupo">Código estável do grupo.</param>
 /// <param name="Descricao">O que o grupo é, em português.</param>
 /// <param name="Cobertura">A cobertura do grupo.</param>
-/// <param name="Vendas">As vendas do grupo.</param>
-public sealed record IndicadoresForaDoMapa(string Grupo, string Descricao, CoberturaTerritorial Cobertura, VendasTerritoriais Vendas);
+/// <param name="Vendas">As vendas do grupo, em reais.</param>
+/// <param name="MaquinasVendidas">
+/// As máquinas do grupo, em unidades (issue 69); nulo quando o ART não trouxe venda nenhuma.
+///
+/// <para>Ele está aqui pelo mesmo motivo que o valor em reais: é o que faz <b>mapa + fora do mapa =
+/// o total da consulta</b> fechar. Sem ele, somar a coluna de unidades daria menos que o total e
+/// ninguém saberia por quê.</para>
+/// </param>
+public sealed record IndicadoresForaDoMapa(
+    string Grupo,
+    string Descricao,
+    CoberturaTerritorial Cobertura,
+    VendasTerritoriais Vendas,
+    int? MaquinasVendidas = null);
 
 /// <summary>A regra de potencial vigente hoje, como a tela a cita junto do mapa.</summary>
 /// <param name="ProdutoCodigoIbge">O produto.</param>
@@ -509,6 +607,13 @@ public sealed record RegraDePotencialAplicada(
 /// <para><b>Porte e momento são dois números</b>, e o porte nasce sem nome até a issue 166 ter
 /// bandas: nomear exige um corte, e um corte sem dono é parâmetro inventado.</para>
 /// </param>
+/// <param name="MaquinasVendidas">
+/// As vendas de máquina do recorte EM UNIDADES, pelo ART (issue 69, D-P08 decidida em 24/09/2026).
+///
+/// <para><b>Nulo é o ART não ter trazido venda nenhuma</b> ao alcance desta consulta — serviço
+/// desligado para ajuste de dados, carga não rodada. É o que faz a captura sair vazia COM MOTIVO em
+/// vez de sair 0%, que afirmaria que a Tracbel não vendeu máquina na região.</para>
+/// </param>
 public sealed record IndicadoresTerritoriais(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -526,7 +631,8 @@ public sealed record IndicadoresTerritoriais(
     PotencialDoRecorteNoMapa? PotencialDoRecorte = null,
     TotaisDaRegiaoTracbel? RegiaoTracbel = null,
     ProcedenciasDoTerritorio? Procedencias = null,
-    MomentoDoRecorte? Momento = null);
+    MomentoDoRecorte? Momento = null,
+    VendasDeMaquinaDoRecorte? MaquinasVendidas = null);
 
 /// <summary>
 /// O acesso aos INDICADORES TERRITORIAIS — a leitura que alimenta os três mapas.

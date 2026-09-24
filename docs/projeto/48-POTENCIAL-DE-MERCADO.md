@@ -549,7 +549,8 @@ Cada decisão tem opções, a recomendação e o que ela bloqueia. **Nenhuma foi
 | D-P05 | Pesos, limites e cenários | a = 0,4, b = 0,5, d = 0,4, limites 0,4–1,5 (planilha); cenários só anotados | **DECIDIDA em 23/09/2026** (§5.1): pesos da planilha como **primeira vigência**, com autor, data e a justificativa "medidos no protótipo, a confirmar"; as três sensibilidades são **preço/rentabilidade, crédito e percepção** — o termo de troca fica fora até a #70 | #74 |
 | D-P06 | Termo de troca | 5080EN a R$ 300 mil fixo (planilha); 3036N no café (CRM); "base de venda" e "ART preço de trator" (conversa) | máquina de referência por cultura; preço histórico mensal (mediana das notas); unidade por cultura: saca de 60 kg (café, soja, milho, amendoim), tonelada de ATR (cana), caixa de 40,8 kg (laranja) | #70, #73 |
 | D-P07 | Rentabilidade | custo total CONAB (planilha usa o total por ha); na pasta, a CONAB de SP só tem café (Franca) e cana (Piracicaba, Penápolis) — mas a CONAB publica série histórica também de soja, milho, amendoim e laranja (§2.1), com os locais a conferir dentro dos arquivos | custo operacional para a margem de caixa e total para a de longo prazo; referência fora de SP ou outra fonte para as culturas sem série, registrada | #67, #73 |
-| D-P08 | Vendas para captura e share | entregas John Deere por ano fiscal (planilha); faturamento do Protheus (#18/#19); pedidos da API GN (#12) | **DECIDIDA em 24/09/2026** (§5.3, sobre o levantamento da §5.2): **o ART é a fonte canônica das vendas em unidades**; o Protheus segue sendo o faturamento **em reais**; a API GN entra depois, só para o financiamento. Em aberto uma sub-decisão: **qual das três datas do ART** define o período | #69 |
+| D-P08 | Vendas para captura e share | entregas John Deere por ano fiscal (planilha); faturamento do Protheus (#18/#19); pedidos da API GN (#12) | **DECIDIDA em 24/09/2026** (§5.3, sobre o levantamento da §5.2): **o ART é a fonte canônica das vendas em unidades**; o Protheus segue sendo o faturamento **em reais**; a API GN entra depois, só para o financiamento | #69 |
+| D-P08.1 | Qual das três datas do ART define o período | venda, faturamento e entrega; a planilha do comercial conta por entrega, em ano fiscal | **DECIDIDA em 24/09/2026** (§5.4): **a data do FATURAMENTO** — a view do ART é de máquina faturada, e máquina faturada é máquina vendida. É também o mesmo critério do faturamento em reais, o que impede as duas medidas de ficarem em relógios diferentes | #69 |
 | D-P09 | "O contrato foi da Tracbel?" | o SICOR não identifica cliente nem revenda | aceitar como **aproximação** a comparação, por município e mês, dos contratos do SICOR com os pedidos da Tracbel financiados (instituição e linha de crédito na API GN) — nunca contrato a contrato | #69, #73 |
 | D-P10 | Anos de referência | **[M 20/09] o rótulo da planilha está adiantado na área:** o que ela chama de área 2025 preliminar é a PAM de 2024, e a "2024" é a de 2023; o valor 2024 é mesmo de 2024 (errata da §3.8). Mais o Censo 2017 | usar o último ano completo de cada fonte, mostrar o ano em cada número e nunca misturar anos numa razão sem aviso. O banco já guarda **três anos** da PAM, então a escolha não pede nova carga | #64, #72 |
 | D-P11 | Preços de soja, milho e amendoim; forma de obter o CEPEA e a Socicana | não há série de soja, milho e amendoim na pasta; o CEPEA tem termos de uso e bloqueou a leitura automática; **a cana já tem fonte: Socicana** (preço do kg de ATR, mensal, em página HTML) | **[M 21/09] resolvido para soja, milho e amendoim — e para tudo o mais:** a CONAB publica o preço recebido pelo produtor em SP como dado aberto (§2.4). A Socicana é página pública e o `robots.txt` não restringe nada. **Aberto só o CEPEA:** licença a conferir; até lá, fora da coleta automática | #66 |
@@ -960,12 +961,10 @@ outro, e a tela não deve somá-los.
    a do que já foi carregado: a tela precisa dizer **até quando** o ART trouxe dado, e não apresentar o
    número como se fosse de hoje. Ausência de carga não é ausência de venda.
 
-**A sub-decisão que fica aberta — qual das três datas [P].** A view do ART traz **venda**, **faturamento** e
-**entrega**, e elas respondem a perguntas diferentes: a venda é quando o negócio fechou, o faturamento é
-quando a nota saiu, a entrega é quando a máquina chegou na fazenda. A planilha do comercial conta por
-**entrega**, em ano fiscal. **Recomendação:** entrega, porque é o que a planilha usa e é o momento em que a
-máquina passa a existir no campo — que é o que a captura mede. **Não está decidida**, e enquanto não
-estiver, a data usada aparece escrita ao lado do número, nunca implícita.
+**A sub-decisão que sobra — qual das três datas.** A view do ART traz **venda**, **faturamento** e
+**entrega**. A planilha do comercial conta por **entrega**, em ano fiscal, e por isso a primeira
+recomendação daqui foi essa. **Ela durou algumas horas: o Ricardo a recusou no mesmo dia, com razão. Ver a
+§5.4, que é o registro da D-P08.1.**
 
 **O que já foi feito e o que falta.** Dos três itens que a §5.2 listou como independentes da decisão:
 
@@ -977,3 +976,34 @@ estiver, a data usada aparece escrita ao lado do número, nunca implícita.
 2. **A leitura de `frota.VendaDeMaquina` pelo território:** pendente.
 3. **Ligar as unidades em `DecisaoDoMercado.Calcular`**, onde hoje entram como `null` com o motivo:
    pendente.
+
+### 5.4 D-P08.1 decidida — a data é a do faturamento [24/09/2026]
+
+A D-P08 escolheu o ART; sobrava dizer **qual das três datas** dele põe uma venda dentro do período. Esta
+seção fecha isso, e registra que a primeira recomendação daqui estava errada.
+
+> **Decidido:** o período é pela **DATA DO FATURAMENTO**.
+
+**O que eu tinha proposto, e por quê estava errado.** Propus a **entrega**, pelo único motivo de a planilha
+do comercial contar assim, em ano fiscal. O Ricardo respondeu com o fato que derruba a proposta: **a view do
+ART é de máquina faturada**, e máquina faturada é máquina vendida. O argumento é do dado e não da planilha —
+a view traz `num_nfe_venda` e `data_fat`, que são a nota; a entrega é o que acontece depois dela.
+
+**Três coisas que a entrega estragaria**, e nenhuma delas apareceria na tela:
+
+1. **Sumiria com a máquina faturada e ainda não entregue.** O saneamento deixa a data **vazia** quando a
+   origem manda `0000-00-00` (é regra escrita, e registrada como transformação). Toda máquina vendida e não
+   entregue cairia em "sem data" e sairia da contagem — uma subcontagem silenciosa, justo no fim de safra,
+   que é quando mais se compra e mais demora a entregar.
+2. **Empurraria a venda de dezembro para janeiro**, e com ela o fechamento do ano.
+3. **Poria as duas medidas em relógios diferentes.** O faturamento em reais, do Protheus, é por **nota**.
+   Com a entrega aqui, "R$ faturado no período" e "máquinas vendidas no período" seriam do mesmo período e
+   de eventos diferentes — o tipo de descasamento que ninguém percebe olhando a tela.
+
+**O que fica de fora, e aparece contado.** Venda fechada e **ainda não faturada** não tem a data do
+critério: ela não entra em período nenhum e aparece à parte, como `vendasSemAData`. Isso é o certo — ela
+ainda não é máquina vendida no sentido que a captura mede.
+
+**A planilha do comercial continua valendo para o que ela é.** Se algum dia a diretoria quiser o ano fiscal
+por entrega ao lado, o critério é um parâmetro do código (`DataQueDefineOPeriodoDaVenda`) e a resposta já
+carrega qual data contou — trocar é trocar uma constante, não reescrever a leitura.

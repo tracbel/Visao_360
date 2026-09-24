@@ -127,6 +127,7 @@ describe('a conferência da consulta', () => {
       descricao: 'clientes cujo município não tem código IBGE',
       cobertura: { clientes: 1, vinculos: 1, vinculosComCadencia: 2, cobertos: 1, foraDaCadencia: 1, nuncaContatados: 0, semCadencia: 0, pendentes: 1, percentualPendente: 50 },
       vendas: { clientesQueCompraram: 1, valorLiquido: 10_000, maquina: 0, peca: 6_000, servico: 4_000, outros: 0, posVenda: 10_000 },
+      maquinasVendidas: 2,
     },
   ];
   const municipios = [...daAdr, foraDaAdr];
@@ -189,6 +190,64 @@ describe('a conferência da consulta', () => {
       territorioNaoCarregado: false,
     });
     expect(c.adr!.maquinas).toBeNull();
+  });
+
+  /**
+   * AS UNIDADES DO ART NA CONFERÊNCIA (issue 69, D-P08).
+   *
+   * A conta que o olho não faz sozinho: os municípios do mapa mais os grupos que
+   * ficaram FORA dele. Sem a parcela de fora, o total da consulta sairia menor que
+   * a soma das linhas acima dele e a conferência acusaria um sumiço que não houve —
+   * o cliente sem código IBGE também compra máquina.
+   */
+  describe('as máquinas vendidas na conferência', () => {
+    const comVenda = daAdr.map((m, i) => ({ ...m, maquinasVendidas: i === 0 ? 3 : 4 }));
+
+    it('mapa + fora do mapa = o total da consulta, em unidades', () => {
+      const c = conferenciaDaConsulta({
+        municipios: [...comVenda, { ...foraDaAdr, maquinasVendidas: 5 }],
+        daAdr: comVenda,
+        foraDoMapa, // este grupo tem 2
+        totais: calcularTotais(comVenda),
+        semFiltro: true,
+        territorioNaoCarregado: false,
+      });
+
+      expect(c.adr!.maquinasVendidas).toBe(7);
+      expect(c.parcelas.map((p) => p.maquinasVendidas)).toEqual([5, 2]);
+      // 3 + 4 (ADR) + 5 (fora da ADR) + 2 (fora do mapa) = 14.
+      expect(c.consulta!.maquinasVendidas).toBe(14);
+    });
+
+    it('sem carga do ART em lugar nenhum, a linha fica SEM unidades — e não com "0 vendidas"', () => {
+      // Ausência de carga não é venda zero: zero afirmaria que a Tracbel não
+      // vendeu máquina no recorte, que é coisa muito diferente de não saber.
+      const c = conferenciaDaConsulta({
+        municipios,
+        daAdr,
+        foraDoMapa: [{ ...foraDoMapa[0], maquinasVendidas: null }],
+        totais,
+        semFiltro: true,
+        territorioNaoCarregado: false,
+      });
+
+      expect(c.adr!.maquinasVendidas).toBeNull();
+      expect(c.consulta!.maquinasVendidas).toBeNull();
+    });
+
+    it('um município vendeu e o outro não: o que não vendeu entra como ZERO, porque zero é medida', () => {
+      const umSoVendeu = [{ ...daAdr[0], maquinasVendidas: 6 }, { ...daAdr[1], maquinasVendidas: 0 }];
+      const c = conferenciaDaConsulta({
+        municipios: [...umSoVendeu, foraDaAdr],
+        daAdr: umSoVendeu,
+        foraDoMapa: [{ ...foraDoMapa[0], maquinasVendidas: null }],
+        totais: calcularTotais(umSoVendeu),
+        semFiltro: true,
+        territorioNaoCarregado: false,
+      });
+
+      expect(c.adr!.maquinasVendidas).toBe(6);
+    });
   });
 
   it('território não carregado: sem linha da ADR (e não zeros), mas o total da consulta continua', () => {

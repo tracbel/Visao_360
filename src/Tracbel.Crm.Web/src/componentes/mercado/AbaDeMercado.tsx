@@ -126,6 +126,8 @@ export function AbaDeMercado({
           carregando={carregando}
           procedenciaDaDemanda={indicadores?.momento?.procedencia ?? null}
           numeros={numerosDeDecisao}
+          maquinasVendidas={indicadores?.maquinasVendidas ?? null}
+          procedenciaDasVendas={indicadores?.procedencias?.maquinasVendidas ?? null}
         />
       </SecaoDoMercadoDaRegiao>
 
@@ -238,7 +240,12 @@ export function AbaDeMercado({
           municipioCodigoIbge={municipioCodigoIbge}
         />
 
-        <PerformanceTracbel totais={totais} comTerritorio={comTerritorio} numeros={numerosDeDecisao} />
+        <PerformanceTracbel
+          totais={totais}
+          comTerritorio={comTerritorio}
+          numeros={numerosDeDecisao}
+          maquinasVendidas={indicadores?.maquinasVendidas ?? null}
+        />
       </div>
     </>
   );

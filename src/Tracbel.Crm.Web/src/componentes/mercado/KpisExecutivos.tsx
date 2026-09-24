@@ -48,7 +48,12 @@ import type { ReactNode } from 'react';
 import { InfoTooltip } from '../InfoTooltip';
 import { fatiasEmTexto, frasesDaProcedencia, montarSomavel } from '../comum/comparacoes';
 import { ValorAusente } from '../comum/ValorAusente';
-import type { MomentoDoRecorte, NumerosDeDecisao, ProcedenciaDoIndicador } from '../../tipos/territorio';
+import type {
+  MomentoDoRecorte,
+  NumerosDeDecisao,
+  ProcedenciaDoIndicador,
+  VendasDeMaquinaDoRecorte,
+} from '../../tipos/territorio';
 import { reaisCompactos } from '../territorio/escalas';
 import { nº, porcento } from '../territorio/indicadoresDaAdr';
 import { VariacaoAusente } from './VariacaoAusente';
@@ -163,7 +168,19 @@ export function KpisExecutivos({
   carregando,
   procedenciaDaDemanda,
   numeros,
+  maquinasVendidas,
+  procedenciaDasVendas,
 }: {
+  /**
+   * As vendas de máquina do recorte em UNIDADES — o numerador da captura (issue 69, D-P08).
+   *
+   * Ela está aqui por uma razão só: dizer QUANTAS máquinas e POR QUAL DATA. Uma captura de 12% sem o
+   * numerador escrito é um número que ninguém confere, e o critério de data é decisão registrada
+   * (D-P08.1) — deixá-lo implícito seria escondê-lo.
+   */
+  maquinasVendidas: VendasDeMaquinaDoRecorte | null;
+  /** O carimbo da captura, do servidor; nulo quando o ART não trouxe venda nenhuma. */
+  procedenciaDasVendas: ProcedenciaDoIndicador | null;
   /**
    * Os quatro números com o motivo de cada ausência — da API (issue 69, parte A).
    *
@@ -261,9 +278,25 @@ export function KpisExecutivos({
         unidade="da demanda estimada"
         motivoSemDado={numeros?.capturaPercentual.frase}
         sobre={
-          'A parte da demanda anual estimada que a Tracbel vendeu, em máquinas. Chama-se captura, e não ' +
-          'participação de mercado: o denominador é a demanda que o motor estima, e participação exigiria o ' +
-          'total vendido por todos os fabricantes, que nenhuma fonte aberta publica (issue 162).'
+          <>
+            <p>
+              A parte da demanda anual estimada que a Tracbel vendeu, em máquinas. Chama-se captura, e não
+              participação de mercado: o denominador é a demanda que o motor estima, e participação exigiria o total
+              vendido por todos os fabricantes, que nenhuma fonte aberta publica (issue 162).
+            </p>
+            {/* O NUMERADOR FICA ESCRITO, e com o critério de data junto (issue 69, D-P08.1).
+                Uma captura de 12% sem o numerador é um número que ninguém confere; e o
+                critério de data é DECISÃO — decidido não é o mesmo que implícito, e a frase
+                vem do servidor, que é quem contou. */}
+            {maquinasVendidas && (
+              <p>
+                {`A conta deste recorte: ${nº(maquinasVendidas.unidades)} ${
+                  maquinasVendidas.unidades === 1 ? 'máquina vendida' : 'máquinas vendidas'
+                } ÷ a demanda anual estimada. ${maquinasVendidas.fraseDoCriterio}`}
+              </p>
+            )}
+            {procedenciaDasVendas && <p>{frasesDaProcedencia(procedenciaDasVendas)}</p>}
+          </>
         }
       />
       <CartaoDeDecisao
