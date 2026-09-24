@@ -243,6 +243,27 @@ function painel(): PainelTerritorial {
     classificacoes: [
       { indicador: 'potencial', situacao: 'Estimativa', selo: 'estimativa', motivo: 'regra a confirmar' },
     ],
+    // O estado de hoje: os três sem dado, com o motivo vindo da API (issue 69, parte A).
+    numerosDeDecisao: {
+      demandaAnual: { valor: null, motivo: 'SemDemandaAnual', frase: 'Falta o ciclo de renovação (D-P01, issue 63).' },
+      mercadoAnual: {
+        valor: null,
+        motivo: 'SemPrecoDeMaquina',
+        frase: 'Não há preço de referência de máquina no CRM (issue 70).',
+        parcial: false,
+        categoriasSemPreco: [],
+      },
+      capturaPercentual: {
+        valor: null,
+        motivo: 'SemVendasEmUnidades',
+        frase: 'As vendas da Tracbel em MÁQUINAS não estão carregadas (issue 69).',
+      },
+      oportunidade: {
+        valor: null,
+        motivo: 'SemVendasEmUnidades',
+        frase: 'As vendas da Tracbel em MÁQUINAS não estão carregadas (issue 69).',
+      },
+    },
   };
 }
 

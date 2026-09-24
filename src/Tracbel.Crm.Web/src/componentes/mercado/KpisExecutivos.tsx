@@ -26,28 +26,16 @@
 import { BarChart3, Lightbulb, PieChart, Target } from 'lucide-react';
 import { CartaoDeIndicador, GradeDeIndicadores } from '../dashboard/Dashboard';
 import { fatiasEmTexto, montarSomavel } from '../comum/comparacoes';
-import type { MomentoDoRecorte, ProcedenciaDoIndicador } from '../../tipos/territorio';
-import { nº } from '../territorio/indicadoresDaAdr';
+import type { MomentoDoRecorte, NumerosDeDecisao, ProcedenciaDoIndicador } from '../../tipos/territorio';
+import { reaisCompactos } from '../territorio/escalas';
+import { nº, porcento } from '../territorio/indicadoresDaAdr';
 
-/** O que falta, e a issue que destrava — nunca um número de exemplo. */
-const MERCADO_ANUAL_SEM_DADO =
-  'Demanda anual × preço de referência, agregada por categoria de máquina. Precisa do preço de máquina por ' +
-  'modelo ao longo do tempo (issue 70), que não existe no CRM. Um preço genérico aplicado à demanda inteira ' +
-  'misturaria colhedora com trator compacto.';
-
-const CAPTURA_SEM_DADO =
-  'Vendas da Tracbel em unidades ÷ demanda anual estimada. Precisa da issue 69, que traz as vendas por município ' +
-  'em MÁQUINAS: o faturamento em reais que já existe não serve de numerador para uma demanda medida em máquinas. ' +
-  'Não é market share — share exigiria o total vendido por todos os fabricantes.';
-
-const OPORTUNIDADE_SEM_DADO =
-  'A demanda ajustada menos as vendas, nunca abaixo de zero (issue 162). Depende da issue 69 para sair em ' +
-  'unidades e da issue 70 para sair em reais.';
-
-const DEMANDA_SEM_DADO =
-  'Falta o ciclo de renovação por cultura. A decisão D-P01 (issue 63) fixa cultura, categoria, hectares por ' +
-  'máquina e anos de renovação — as quatro juntas. Sem elas não há demanda anual, e zero aqui afirmaria que a ' +
-  'região não renova máquina nenhuma.';
+/* AS QUATRO CONSTANTES DE MOTIVO SAÍRAM DAQUI (issue 69, parte A).
+ *
+ * Elas diziam, em texto escrito no TypeScript, por que cada número faltava — e as mesmas frases estavam
+ * repetidas na ficha do município e no bloco Performance, com redações que já tinham começado a divergir.
+ * Agora o motivo vem da API, de `DecisaoDoMercado.Frase`, que tem teste. A tela não escreve mais por que um
+ * número falta: ela mostra o que o servidor afirma. */
 
 export function KpisExecutivos({
   momento,
@@ -55,7 +43,15 @@ export function KpisExecutivos({
   demandaDeSaoPaulo,
   carregando,
   procedenciaDaDemanda,
+  numeros,
 }: {
+  /**
+   * Os três números que ainda não têm dado, com o motivo — da API (issue 69, parte A).
+   *
+   * Nulo enquanto a leitura não respondeu; aí os cartões mostram o traço sem frase, que é o certo: não se
+   * pode afirmar por que falta um número antes de saber se ele falta.
+   */
+  numeros: NumerosDeDecisao | null;
   momento: MomentoDoRecorte | null;
   /**
    * A DEMANDA ANUAL DO RECORTE INTEIRO, pelo motor (issue 72).
@@ -100,28 +96,39 @@ export function KpisExecutivos({
             : 'o que o parque renova por ano')
         }
         procedencia={procedenciaDaDemanda}
-        motivoSemDado={DEMANDA_SEM_DADO}
+        motivoSemDado={numeros?.demandaAnual.frase}
       />
+      {/* OS TRÊS QUE AINDA NÃO TÊM DADO VÊM DA API (issue 69, parte A).
+          Eram `valor={null}` e três constantes escritas aqui. Nenhum número mudou — o que mudou é que a
+          ausência virou afirmação do servidor, com teste, e com a mesma redação da ficha do município. */}
       <CartaoDeIndicador
         rotulo="Mercado anual"
         icone={PieChart}
         tom="mercado"
-        valor={null}
-        motivoSemDado={MERCADO_ANUAL_SEM_DADO}
+        valor={numeros?.mercadoAnual.valor == null ? null : reaisCompactos(numeros.mercadoAnual.valor)}
+        contexto={
+          numeros?.mercadoAnual.parcial
+            ? `parcial — sem preço de ${numeros.mercadoAnual.categoriasSemPreco.join(', ')}`
+            : 'demanda de cada categoria × o preço dela'
+        }
+        motivoSemDado={numeros?.mercadoAnual.frase}
       />
       <CartaoDeIndicador
         rotulo="Captura Tracbel"
         icone={Target}
         tom="captura"
-        valor={null}
-        motivoSemDado={CAPTURA_SEM_DADO}
+        valor={numeros?.capturaPercentual.valor == null ? null : porcento(numeros.capturaPercentual.valor)}
+        contexto="das máquinas que a região renova por ano"
+        motivoSemDado={numeros?.capturaPercentual.frase}
       />
       <CartaoDeIndicador
         rotulo="Oportunidade"
         icone={Lightbulb}
         tom="oportunidade"
-        valor={null}
-        motivoSemDado={OPORTUNIDADE_SEM_DADO}
+        valor={numeros?.oportunidade.valor == null ? null : nº(Math.round(numeros.oportunidade.valor))}
+        unidade="máquinas"
+        contexto="a demanda ajustada menos o que já vendemos"
+        motivoSemDado={numeros?.oportunidade.frase}
       />
     </GradeDeIndicadores>
   );

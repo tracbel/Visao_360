@@ -18,6 +18,7 @@ import type { ContextoDeAcesso } from '../../dados/api/http';
 import type {
   ClassificacaoDeIndicador,
   IndicadoresTerritoriais,
+  NumerosDeDecisao,
   PotencialDoRecorteNoMapa,
   RegraDePotencialAplicada,
 } from '../../tipos/territorio';
@@ -57,7 +58,10 @@ export function AbaDeMercado({
   produtosDoMunicipio,
   mostrarOsMapas,
   ficha,
+  numerosDeDecisao,
 }: {
+  /** Os quatro números do topo, com o motivo de cada ausência — da API (issue 69, parte A). */
+  numerosDeDecisao: NumerosDeDecisao | null;
   kpisDoMercado: Indicador[];
   carregando: boolean;
   ligacao: LigacaoDoMapa | null;
@@ -97,6 +101,7 @@ export function AbaDeMercado({
         demandaDeSaoPaulo={null}
         carregando={carregando}
         procedenciaDaDemanda={indicadores?.momento?.procedencia ?? null}
+        numeros={numerosDeDecisao}
       />
       {/* MOMENTO, PORTE E O QUE A REGIÃO TEM, NUMA RÉGUA SÓ (fase T4.8).
 
