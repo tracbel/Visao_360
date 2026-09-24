@@ -1237,6 +1237,12 @@ no total; as outras seguem presas por outro motivo), 165 pelo comprador substitu
 outros continuam nela porque ainda têm venda presa. Os 57 identificadores que o Protheus tem como **componente**
 (agricultura de precisão, motor, capota, kit) não viram máquina: ganharam motivo próprio em vez de "incompleto".
 
+**O que o dado desmentiu, e vale reler antes de mexer nesta regra.** A expectativa registrada antes da medição era a
+contrária: que o Protheus resolveria sobretudo os `CHASSI_FORA_DO_PADRAO` (chassi certo, grafia diferente) e pouco
+dos `CHASSI_INCOMPLETO` (campo truncado na origem). Aconteceu o oposto: dos 703 que entram, **464 são "incompletos"**
+— porque o número curto do ART não estava truncado, era o identificador verdadeiro de implemento e componente, e o
+Protheus confirma que ele existe. Já os "fora do padrão" entram pela regra do `1CQ`, não pela `VV1`.
+
 **A divergência de dono, pela decisão 1**, na venda mais recente de cada chassi importável: 2.953 com o mesmo
 dono, 140 da mesma empresa (raiz de CNPJ), 220 com evidência do dono do Protheus depois da venda, 15 sem
 evidência e 54 com o Protheus dizendo Tracbel. **Ficam registradas 69 divergências** (as duas últimas), no lugar
