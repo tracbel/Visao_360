@@ -108,7 +108,7 @@ export function FiltrosDosIndicadores({
               Período
               <InfoTooltip
                 rotulo="Por que não há FYTD"
-                texto="FYTD não é oferecido: o calendário fiscal não foi confirmado (documento 32, P-4). O mês em curso fica fora do padrão, porque comparar um mês pela metade com meses cheios erra para baixo sem aviso."
+                texto="FYTD não é oferecido: o calendário fiscal não foi confirmado. O mês em curso fica fora do padrão, porque comparar um mês pela metade com meses cheios erra para baixo sem aviso."
               />
             </span>
             <select
@@ -240,7 +240,7 @@ export function FiltrosDosIndicadores({
                   {respondeu && !podeVerEmpresaInteira && (
                     <InfoTooltip
                       rotulo="Por que a empresa inteira está desligada"
-                      texto="A visão da empresa inteira exige a permissão de alcance entre filiais em profundidade Organização, e o seu perfil não a tem (documento 32, P-10)."
+                      texto="A visão da empresa inteira exige a permissão de alcance entre filiais em profundidade Organização, e o seu perfil não a tem."
                     />
                   )}
                 </span>
@@ -284,9 +284,9 @@ export function FiltrosDosIndicadores({
                 </select>
               </label>
 
-              <FiltroSemDado rotulo="Tipo de cliente" opcoes="SAM · KAM · Varejo" motivo="não há classificação por cliente em nenhuma fonte carregada (documento 32, seção 3.4)" />
-              <FiltroSemDado rotulo="Tipo de produto" opcoes="colhedora · trator grande · médio" motivo="o faturamento carregado é por cliente e mês, sem o item da nota (documento 32, seção 3.5)" />
-              <FiltroSemDado rotulo="Modelo" opcoes="modelo da máquina" motivo="o faturamento carregado é por cliente e mês, sem o item da nota (documento 32, seção 3.5)" />
+              <FiltroSemDado rotulo="Tipo de cliente" opcoes="SAM · KAM · Varejo" motivo="não há classificação por cliente em nenhuma fonte carregada" />
+              <FiltroSemDado rotulo="Tipo de produto" opcoes="colhedora · trator grande · médio" motivo="o faturamento carregado é por cliente e mês, sem o item da nota" />
+              <FiltroSemDado rotulo="Modelo" opcoes="modelo da máquina" motivo="o faturamento carregado é por cliente e mês, sem o item da nota" />
               <FiltroSemDado
                 rotulo="CEN / gestor"
                 opcoes="—"
