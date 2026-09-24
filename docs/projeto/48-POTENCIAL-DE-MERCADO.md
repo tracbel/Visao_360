@@ -1062,7 +1062,7 @@ cobertura engana mais que o vazio.
 pedir. Se o comercial voltar a preencher `VENDA_CHASSI`, o financiamento passa a colar na unidade **daqui
 para a frente**, sem integração nova. É pedido de campo em formulário.
 
-#### O ART está no ar e lê 4.183 vendas — e nenhuma entra [M]
+#### O ART está no ar e lê 4.183 vendas — e nenhuma entra [M — resolvido no mesmo dia; ver o fim desta subseção]
 
 O serviço `TracbelCrmSincronizacaoArt` estava **desativado** (não só parado) no AGRO-SISTEMAS-W. Religado
 em 24/09/2026 com `start= delayed-auto`, como o documento 35 §11.3 o descreve. Também se descobriu que
@@ -1121,6 +1121,30 @@ e carteira responsáveis"* — que é **decisão de negócio, não dado ausente*
 > e agora se sabe exatamente por quê — e que **não é problema desta issue**. O numerador da captura está
 > pronto no código e na tela; o que falta é o CRM ter clientes. Destravar 1.455 atribuições de filial e
 > carteira libera 96% das vendas de uma vez.
+
+#### E foi o que aconteceu, no mesmo dia [M, 24/09/2026 — tarde]
+
+Carregado o cadastro (27.336 clientes, §"A carga de clientes da SA1"), o **ciclo seguinte do ART casou
+sozinho**, sem nenhuma intervenção no serviço:
+
+> `4186 registros lidos; 2852 vendas incluídas; 0 atualizadas pela origem; 1334 pendentes; 2852 máquinas incluídas.`
+
+**Os pendentes não só caíram de 4.185 para 1.334 — eles mudaram de natureza**, que é o que prova o
+diagnóstico:
+
+| Causa | Antes | Depois |
+|---|---|---|
+| `COMPRADOR_AUSENTE_NO_CRM` | **4.183 (100%)** | 565 |
+| Problema de **chassi** | secundário, sempre acompanhado do comprador | **769 — agora é a causa principal** |
+
+Os 565 que restam são compradores de **município fora da área de atuação**: não têm filial responsável, e
+por isso a carga de clientes os deixou de fora de propósito. O número bate com os 6.298 documentos
+pendentes por `FORA_DA_AREA_DE_ATUACAO` e com as 5.453 notas que o faturamento pôs em
+`FaturamentoSemCliente`. **As três contas fecham entre si**, por caminhos independentes.
+
+A previsão de que "destravar as atribuições libera 96%" estava certa quanto à causa e **errada quanto ao
+mecanismo**: não foi preciso ninguém atribuir filial a 1.455 compradores. A filial já estava na área de
+atuação, e bastou a carga lê-la.
 
 #### Os totais na fonte, para quando houver contra o que conferir [M]
 
