@@ -26,6 +26,12 @@ export type RegraDePotencialDetalhe = {
   modeloDeReferencia: string;
   situacao: SituacaoDaRegra;
   vigencia: VigenciaDoParametro;
+  /** A cultura do catálogo; nula nas vigências anteriores a ele. */
+  culturaCodigo: string | null;
+  culturaNome: string | null;
+  /** A categoria de máquina (D-P01); nula nas vigências anteriores ao catálogo. */
+  categoriaDeMaquinaCodigo: string | null;
+  categoriaDeMaquinaNome: string | null;
 };
 
 export type ParametrosGeraisDetalhe = {
@@ -115,6 +121,10 @@ export type NovaRegraDePotencial = {
   situacao: string;
   vigenteDesde: string;
   justificativa: string;
+  /** A cultura do catálogo — `CAFE`, `CANA`… (issue 165). Obrigatória na regra nova. */
+  culturaCodigo: string;
+  /** A categoria de máquina — `TRATOR`, `COLHEITADEIRA`… (D-P01). Obrigatória na regra nova. */
+  categoriaDeMaquinaCodigo: string;
 };
 
 export type NovaPercepcaoDoGestor = {

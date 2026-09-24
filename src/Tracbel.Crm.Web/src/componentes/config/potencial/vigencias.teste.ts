@@ -80,10 +80,12 @@ describe('montarHistorico', () => {
       {
         produtoCodigoIbge: 40139, produtoNome: 'Café (em grão) Total', hectaresPorMaquina: 10, anosDeRenovacao: null,
         modeloDeReferencia: '3036N', situacao: 'AConfirmar', vigencia: vigencia('2026-09-13', { informadoEm: '2026-09-13T00:00:00' }),
+        culturaCodigo: 'CAFE', culturaNome: 'Café', categoriaDeMaquinaCodigo: 'TRATOR', categoriaDeMaquinaNome: 'Trator',
       },
       {
         produtoCodigoIbge: 40139, produtoNome: 'Café (em grão) Total', hectaresPorMaquina: 20, anosDeRenovacao: 10,
         modeloDeReferencia: '3036N', situacao: 'Confirmada', vigencia: vigencia('2026-10-01', { informadoEm: '2026-09-21T15:00:00' }),
+        culturaCodigo: 'CAFE', culturaNome: 'Café', categoriaDeMaquinaCodigo: 'TRATOR', categoriaDeMaquinaNome: 'Trator',
       },
     ],
     percepcoes: [
@@ -103,7 +105,46 @@ describe('montarHistorico', () => {
     expect(linhas[0].resumo).toBe('-2,5%');
     expect(linhas[1].resumo).toContain('renovação a cada 10 anos');
     expect(linhas[3].resumo).toContain('renovação não informada');
-    expect(linhas[1].alvo).toEqual({ tipo: 'cultura', produtoCodigoIbge: 40139, vigenteDesde: '2026-10-01' });
+    expect(linhas[1].alvo).toEqual({
+      tipo: 'cultura',
+      produtoCodigoIbge: 40139,
+      categoriaDeMaquinaCodigo: 'TRATOR',
+      vigenteDesde: '2026-10-01',
+    });
+  });
+
+  // O DEFEITO QUE ISTO IMPEDE DE VOLTAR (D-P01, issue 63): a chave da regra era só o produto, e com o
+  // trator e a colheitadeira do mesmo café registrados na mesma data, uma das duas era marcada como
+  // SUBSTITUÍDA pela outra — sem erro e sem aviso. Elas são decisões diferentes e não se substituem.
+  it('duas categorias do mesmo produto não disputam a mesma chave', () => {
+    const colheitadeira = {
+      produtoCodigoIbge: 40139,
+      produtoNome: 'Café (em grão) Total',
+      hectaresPorMaquina: 200,
+      anosDeRenovacao: 12,
+      modeloDeReferencia: 'C100',
+      situacao: 'Confirmada' as const,
+      vigencia: vigencia('2026-09-13', { informadoEm: '2026-09-13T10:00:00' }),
+      culturaCodigo: 'CAFE',
+      culturaNome: 'Café',
+      categoriaDeMaquinaCodigo: 'COLHEITADEIRA',
+      categoriaDeMaquinaNome: 'Colheitadeira',
+    };
+
+    const linhas = montarHistorico(
+      { ...historico, culturas: [historico.culturas[0], colheitadeira] },
+      HOJE,
+    );
+
+    const regras = linhas.filter((l) => l.tipo === 'Regra da cultura');
+    expect(regras).toHaveLength(2);
+    // As duas valem hoje: nenhuma substituiu a outra.
+    expect(regras.map((r) => r.estado)).toEqual(['vigente', 'vigente']);
+    // E a tela as distingue pelo nome, em vez de mostrar "Café" duas vezes.
+    expect(regras.map((r) => r.chave).sort()).toEqual([
+      'Café (em grão) Total · Colheitadeira',
+      'Café (em grão) Total · Trator',
+    ]);
   });
 
   it('o formulário dos gerais nasce com a vigência de hoje, em vírgula decimal, e sem justificativa', () => {

@@ -18,6 +18,7 @@ import { PERMISSAO, usePermissoes } from '../../dados/api/permissoes';
 import {
   listarHistoricoDosParametros,
   listarOpcoesDosParametros,
+  obterCatalogoDoMercado,
   obterParametrosDoPotencial,
 } from '../../dados/api/potencial';
 import { useRecurso } from '../../dados/api/useRecurso';
@@ -114,6 +115,9 @@ export function ConfigSecaoPotencial() {
   );
   const historico = useRecurso((sinal) => listarHistoricoDosParametros(contexto, sinal), [contexto.empresa, contexto.usuario]);
   const opcoes = useRecurso((sinal) => listarOpcoesDosParametros(contexto, sinal), [contexto.empresa, contexto.usuario]);
+  // O CATÁLOGO ALIMENTA OS DOIS CAMPOS NOVOS DA REGRA (D-P01): cultura e categoria de máquina. Ele é a
+  // fonte única do que é uma cultura — a lista não volta a ser escrita no código do formulário.
+  const catalogo = useRecurso((sinal) => obterCatalogoDoMercado(contexto, sinal), [contexto.empresa, contexto.usuario]);
 
   const podeAdministrar = permissoes.tem(PERMISSAO.parametroDoPotencialAdministrar);
   const podeInformar = permissoes.tem(PERMISSAO.percepcaoDoGestorInformar);
@@ -237,14 +241,23 @@ export function ConfigSecaoPotencial() {
             )}
             {podeAdministrar && aberto !== 'cultura' && (
               <div className="pot-botao-linha">
-                <button type="button" className="btn btn-secondary" onClick={() => abrir('cultura')} disabled={!opcoes.dados || !todos}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => abrir('cultura')}
+                  // O CATÁLOGO É PRÉ-REQUISITO: sem ele os campos de cultura e de categoria abririam vazios,
+                  // e a regra não pode nascer sem os dois.
+                  disabled={!opcoes.dados || !catalogo.dados || !todos}
+                >
                   Registrar regra de uma cultura
                 </button>
               </div>
             )}
-            {aberto === 'cultura' && opcoes.dados && (
+            {aberto === 'cultura' && opcoes.dados && catalogo.dados && (
               <FormularioDaRegra
                 produtos={opcoes.dados.produtos}
+                culturas={catalogo.dados.culturas}
+                categorias={catalogo.dados.categorias}
                 vigentes={culturasDeHoje}
                 hoje={hoje}
                 aoGravar={gravou}

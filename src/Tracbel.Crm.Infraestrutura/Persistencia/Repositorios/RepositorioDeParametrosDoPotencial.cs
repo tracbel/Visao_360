@@ -9,7 +9,10 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 /// vale para a empresa inteira, e a fronteira de multiempresa não se aplica.
 /// </summary>
 public sealed class RepositorioDeParametrosDoPotencial(CrmDbContext contexto)
-    : IRepositorioDeParametrosDoPotencial, IRepositorioDeReferenciasDoPotencial, IRepositorioDeVigenciasDoPotencial
+    : IRepositorioDeParametrosDoPotencial,
+      IRepositorioDeReferenciasDoPotencial,
+      IRepositorioDoCatalogoNoPotencial,
+      IRepositorioDeVigenciasDoPotencial
 {
     /// <inheritdoc />
     public async Task<IReadOnlyList<RegraDePotencial>> ListarRegrasAsync(CancellationToken ct) =>
@@ -60,9 +63,55 @@ public sealed class RepositorioDeParametrosDoPotencial(CrmDbContext contexto)
             .FirstOrDefaultAsync(ct);
 
     /// <inheritdoc />
-    public Task<RegraDePotencial?> ObterRegraAsync(int produtoCodigoIbge, DateOnly vigenteDesde, CancellationToken ct) =>
+    public Task<ItemDoCatalogoDoPotencial?> ObterCulturaAtivaAsync(string codigo, CancellationToken ct) =>
+        contexto.Culturas.AsNoTracking()
+            .Where(c => c.Codigo == codigo && c.EstaAtiva)
+            .Select(c => new ItemDoCatalogoDoPotencial(c.Id, c.Codigo, c.Nome))
+            .FirstOrDefaultAsync(ct);
+
+    /// <inheritdoc />
+    public Task<ItemDoCatalogoDoPotencial?> ObterCategoriaDeMaquinaAsync(string codigo, bool somenteAtiva, CancellationToken ct) =>
+        contexto.CategoriasDeMaquina.AsNoTracking()
+            .Where(c => c.Codigo == codigo && (!somenteAtiva || c.EstaAtiva))
+            .Select(c => new ItemDoCatalogoDoPotencial(c.Id, c.Codigo, c.Nome))
+            .FirstOrDefaultAsync(ct);
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<int, ItemDoCatalogoDoPotencial>> CulturasAsync(
+        IReadOnlyCollection<int> ids, CancellationToken ct)
+    {
+        if (ids.Count == 0) return new Dictionary<int, ItemDoCatalogoDoPotencial>();
+
+        // SEM FILTRO DE ATIVA: a regra de uma cultura desligada precisa continuar tendo NOME na trilha e na
+        // lista de vigências — o histórico dela é o que explica os números do passado.
+        return await contexto.Culturas.AsNoTracking()
+            .Where(c => ids.Contains(c.Id))
+            .Select(c => new ItemDoCatalogoDoPotencial(c.Id, c.Codigo, c.Nome))
+            .ToDictionaryAsync(c => c.Id, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<int, ItemDoCatalogoDoPotencial>> CategoriasDeMaquinaAsync(
+        IReadOnlyCollection<int> ids, CancellationToken ct)
+    {
+        if (ids.Count == 0) return new Dictionary<int, ItemDoCatalogoDoPotencial>();
+
+        return await contexto.CategoriasDeMaquina.AsNoTracking()
+            .Where(c => ids.Contains(c.Id))
+            .Select(c => new ItemDoCatalogoDoPotencial(c.Id, c.Codigo, c.Nome))
+            .ToDictionaryAsync(c => c.Id, ct);
+    }
+
+    /// <inheritdoc />
+    public Task<RegraDePotencial?> ObterRegraAsync(
+        int produtoCodigoIbge, int? categoriaDeMaquinaId, DateOnly vigenteDesde, CancellationToken ct) =>
         contexto.RegrasDePotencial
-            .FirstOrDefaultAsync(r => r.ProdutoCodigoIbge == produtoCodigoIbge && r.VigenteDesde == vigenteDesde && r.RevogadoEm == null, ct);
+            .FirstOrDefaultAsync(
+                r => r.ProdutoCodigoIbge == produtoCodigoIbge
+                     && r.CategoriaDeMaquinaId == categoriaDeMaquinaId
+                     && r.VigenteDesde == vigenteDesde
+                     && r.RevogadoEm == null,
+                ct);
 
     /// <inheritdoc />
     public Task<ParametroDoPotencial?> ObterGeralAsync(DateOnly vigenteDesde, CancellationToken ct) =>
