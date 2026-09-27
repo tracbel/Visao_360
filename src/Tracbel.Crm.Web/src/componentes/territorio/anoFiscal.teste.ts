@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { anoCivilFechado, anoFiscalFechado, nomeDoAnoFiscal } from './indicadoresDaAdr';
+import { anoCivilFechado, anoFiscalFechado, dozeMesesFechados, nomeDoAnoFiscal } from './indicadoresDaAdr';
 
 /** "Hoje" como data local, no dia 15 — longe das bordas do mês, que não são o assunto aqui. */
 const em = (ano: number, mes: number) => new Date(ano, mes - 1, 15);
@@ -44,6 +44,22 @@ describe('o ano fiscal até o último mês fechado', () => {
       expect(fiscal.competenciaFinal, `mês ${mes}: terminam no mesmo mês fechado`).toBe(civil.competenciaFinal);
       expect(fiscal.competenciaInicial, `mês ${mes}: mas começam em meses diferentes`).not.toBe(civil.competenciaInicial);
     }
+  });
+});
+
+describe('os doze meses fechados — o padrão até 27/09/2026, e agora uma escolha', () => {
+  it('vão do último mês fechado até onze meses antes dele', () => {
+    expect(dozeMesesFechados(em(2026, 9))).toEqual({ competenciaInicial: '2025-09', competenciaFinal: '2026-08' });
+  });
+
+  it('em janeiro atravessam o ano civil sem errar o ano de nenhuma das pontas', () => {
+    expect(dozeMesesFechados(em(2027, 1))).toEqual({ competenciaInicial: '2026-01', competenciaFinal: '2026-12' });
+  });
+
+  it('EM NOVEMBRO são o ano fiscal que acabou de fechar — os dois presets coincidem, e isso é aceito', () => {
+    // É o único mês em que os dois recortes são o mesmo: o filtro mostra o nome do ano
+    // fiscal, que é o mais específico, e o número é o mesmo pelos dois caminhos.
+    expect(dozeMesesFechados(em(2026, 11))).toEqual(anoFiscalFechado(em(2026, 11)));
   });
 });
 

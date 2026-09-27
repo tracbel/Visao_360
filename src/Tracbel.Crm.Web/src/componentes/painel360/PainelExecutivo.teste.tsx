@@ -5,8 +5,8 @@
  * (`testes-visuais/visao360.spec.ts`). Ele prende os TEXTOS que estavam errados
  * e as regras que os consertaram:
  *
- * - o ano é civil, e a tela parou de dizer que o calendário fiscal "não foi
- *   confirmado": foi, em 24/09 — a visão por FY é o próximo passo, na dica;
+ * - o ano é o FISCAL (nov→out), o período padrão desde 27/09/2026, e a tela não
+ *   diz mais que o calendário "não foi confirmado" nem que o FY "vem depois";
  * - a meta não tem tabela desde a fase 1: nada afirma que ela existe, e o
  *   motivo (issue 138) está na dica do "—";
  * - "participação de mercado" virou Captura Tracbel (issue 162), e o cartão de
@@ -85,19 +85,26 @@ function textoDaDica(gatilho: HTMLElement): string {
   return texto;
 }
 
+/** O ano fiscal de hoje — em novembro e dezembro ele já é o do ano civil seguinte. */
+const ANO_FISCAL = new Date().getMonth() + 1 >= 11 ? new Date().getFullYear() + 1 : new Date().getFullYear();
+
 beforeEach(() => guardado.clear());
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
-  it('o ano é civil, sem dizer que o fiscal não foi confirmado, e a dica anuncia o FY', async () => {
+  it('o ano é o fiscal (27/09/2026), sempre com o intervalo ao lado, e a dica não promete mais a próxima etapa', async () => {
     const { container } = await montar('completo');
 
-    expect(container).toHaveTextContent('ano civil (jan–dez)');
-    expect(container.textContent).not.toMatch(/não confirmado|não foi confirmado|não há FY/i);
+    expect(container).toHaveTextContent('ano fiscal (nov–out)');
+    expect(container.textContent).not.toMatch(/não confirmado|não foi confirmado|não há FY|ano civil \(jan–dez\)/i);
 
-    const dica = textoDaDica(screen.getByRole('button', { name: 'Por que o ano é civil, e quando vem o ano fiscal' }));
+    // O NOME DO ANO NUNCA SOZINHO: "FY2026" sem o intervalo se lê como ano civil.
+    const opcao = screen.getByRole('option', { name: `FY${ANO_FISCAL} (nov/${ANO_FISCAL - 1} a out/${ANO_FISCAL})` });
+    expect((opcao as HTMLOptionElement).selected).toBe(true);
+
+    const dica = textoDaDica(screen.getByRole('button', { name: 'Como o ano fiscal é contado' }));
     expect(dica).toContain('novembro a outubro');
-    expect(dica).toContain('próxima etapa');
+    expect(dica).not.toContain('próxima etapa');
   });
 
   it('a meta aparece como "—" com o motivo, e nenhum texto diz que ela tem tabela', async () => {
@@ -110,7 +117,7 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     expect(textoDaDica(doCartao)).toContain('issue 138');
 
     // A regra do cartão também deixou de citar a tabela removida.
-    const regra = textoDaDica(screen.getByRole('button', { name: 'Como se conta: meta e realizado · 2026' }));
+    const regra = textoDaDica(screen.getByRole('button', { name: `Como se conta: meta e realizado · fy${ANO_FISCAL}` }));
     expect(regra).toContain('issue 138');
     expect(regra).not.toContain('organizacao.Meta');
   });

@@ -39,14 +39,19 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
         DateTime CarregadoEm);
 
     /// <inheritdoc />
-    public async Task<IndicadoresExecutivosDaFilial> ApurarAsync(int ano, DateTime agoraUtc, CancellationToken ct)
+    public async Task<IndicadoresExecutivosDaFilial> ApurarAsync(
+        int ano, CalendarioDoAno calendario, Dominio.Comum.JanelaDeCompetencia meses, DateTime agoraUtc, CancellationToken ct)
     {
         var mesCorrente = new DateOnly(agoraUtc.Year, agoraUtc.Month, 1);
-        var primeiroMesDoAno = new DateOnly(ano, 1, 1);
-        var ultimoMesDoAno = new DateOnly(ano, 12, 1);
+
+        // OS MESES DO ANO VÊM PRONTOS, no calendário pedido — o fiscal (novembro a outubro) é o padrão desde
+        // 27/09/2026. Quem os calcula é a aplicação, uma vez: novembro e dezembro são os meses em que o ano
+        // fiscal vai à frente do civil, e uma segunda conta aqui é como as duas passariam a discordar.
+        var primeiroMesDoAno = meses.Inicial;
+        var ultimoMesDoAno = meses.Final;
 
         // -----------------------------------------------------------------------------------------
-        // Faturamento: a competência mais recente carregada, e o ano civil pedido.
+        // Faturamento: a competência mais recente carregada, e o ano pedido.
         //
         // A COMPETÊNCIA DO CARTÃO É A MAIS RECENTE QUE EXISTE até o mês corrente, com ou sem cliente —
         // e não "hoje". Se a carga parar, o cartão mostra o último mês carregado e diz qual é, em vez
@@ -128,7 +133,10 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
             0,
             null,
             0,
-            0);
+            0,
+            calendario.ToString(),
+            primeiroMesDoAno,
+            ultimoMesDoAno);
 
         // -----------------------------------------------------------------------------------------
         // Carteira e cobertura: os vínculos das carteiras desta filial.

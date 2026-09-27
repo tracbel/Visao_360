@@ -20,8 +20,10 @@ public sealed record PainelExecutivoDaFilial(
 /// (ponte P-8 do documento 23); por isso cada número daqui é de uma partição que não se sobrepõe
 /// entre filiais. O que não se soma, a documentação do contrato diz.</para>
 ///
-/// <para><b>O ano é civil e vem do pedido</b>, com o ano corrente como padrão: o cartão não fica
-/// preso a 2026, e não finge ser ano fiscal enquanto o calendário fiscal não for confirmado.</para>
+/// <para><b>O ano é o FISCAL, e vem do pedido</b> (decisão de 27/09/2026): novembro a outubro, com o nome do
+/// ano em que termina, e o ano fiscal em curso como padrão — o realizado até hoje. O civil continua possível
+/// por <c>ano</c>, que é como a rota era chamada antes da decisão; os dois juntos não fazem sentido e são
+/// recusados.</para>
 /// </summary>
 public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos repositorio, IRelogio relogio)
 {
@@ -31,26 +33,44 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
     private static readonly CultureInfo Portugues = CultureInfo.GetCultureInfo("pt-BR");
 
     /// <summary>Executa a apuração.</summary>
-    /// <param name="ano">O ano civil do cartão de meta × realizado. Nulo é o ano corrente.</param>
+    /// <param name="ano">O ano CIVIL do cartão de meta × realizado — só quando pedido.</param>
+    /// <param name="anoFiscal">O ano FISCAL (o ano em que ele termina). Nulo, e sem <paramref name="ano"/>, é o corrente.</param>
     /// <param name="ct">Cancelamento.</param>
-    public async Task<Resultado<ComProcedencia<PainelExecutivoDaFilial>>> ExecutarAsync(int? ano, CancellationToken ct)
+    public async Task<Resultado<ComProcedencia<PainelExecutivoDaFilial>>> ExecutarAsync(
+        int? ano, int? anoFiscal, CancellationToken ct)
     {
         var agora = relogio.Agora;
-        var anoPedido = ano ?? agora.Year;
+        var mesCorrente = new DateOnly(agora.Year, agora.Month, 1);
+        var erros = new ColetorDeErros();
 
-        if (anoPedido < PrimeiroAnoAceito || anoPedido > agora.Year)
-        {
-            var erros = new ColetorDeErros();
-            erros.Registrar("ano", $"O ano vai de {PrimeiroAnoAceito} a {agora.Year}.", ano?.ToString(CultureInfo.InvariantCulture));
+        if (ano is not null && anoFiscal is not null)
+            erros.Registrar("anoFiscal", "Peça o ano fiscal (anoFiscal) ou o civil (ano), e não os dois.",
+                anoFiscal.Value.ToString(CultureInfo.InvariantCulture));
+
+        // O CALENDÁRIO FISCAL É O PADRÃO (27/09/2026). O ano fiscal corrente é o que contém o mês de hoje:
+        // em novembro e dezembro ele já é o do ano civil seguinte, e é isso que a conta de AnoFiscal cuida.
+        var calendario = ano is not null ? CalendarioDoAno.Civil : CalendarioDoAno.Fiscal;
+        var anoPedido = ano ?? anoFiscal ?? AnoFiscal.Do(mesCorrente);
+        var ultimoAceito = calendario == CalendarioDoAno.Civil ? agora.Year : AnoFiscal.Do(mesCorrente);
+        var campo = calendario == CalendarioDoAno.Civil ? "ano" : "anoFiscal";
+
+        if (anoPedido < PrimeiroAnoAceito || anoPedido > ultimoAceito)
+            erros.Registrar(campo, $"O ano vai de {PrimeiroAnoAceito} a {ultimoAceito}.",
+                (ano ?? anoFiscal)?.ToString(CultureInfo.InvariantCulture));
+
+        if (erros.TemErro)
             return erros.Recusar<ComProcedencia<PainelExecutivoDaFilial>>("A consulta tem parâmetros que não valem.");
-        }
 
-        var indicadores = await repositorio.ApurarAsync(anoPedido, agora, ct);
+        var meses = calendario == CalendarioDoAno.Fiscal
+            ? AnoFiscal.Inteiro(anoPedido)
+            : new JanelaDeCompetencia(new DateOnly(anoPedido, 1, 1), new DateOnly(anoPedido, 12, 1));
+
+        var indicadores = await repositorio.ApurarAsync(anoPedido, calendario, meses, agora, ct);
 
         return Resultado<ComProcedencia<PainelExecutivoDaFilial>>.Ok(
             ComProcedencia<PainelExecutivoDaFilial>.DoNossoBanco(
                 new PainelExecutivoDaFilial(indicadores, Lacunas(indicadores, agora)),
-                "comercial.FaturamentoDoCliente · comercial.FaturamentoSemCliente · organizacao.Meta · " +
+                "comercial.FaturamentoDoCliente · comercial.FaturamentoSemCliente · " +
                 "comercial.ClienteCarteira · processo.VendaPerdida",
                 relogio));
     }
@@ -82,18 +102,28 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
             "devolucoes",
             "Devolução e cancelamento não são abatidos: o valor é a nota de saída de venda (documento 32, P-5)."));
 
+        // O ART ESTÁ NO CRM (frota.VendaDeMaquina, D-P08). A frase dizia que ele "não está no banco do CRM" —
+        // era verdade antes da carga do ART, e deixou de ser. O que continua valendo é que as duas medidas não
+        // se somam.
         lacunas.Add(new MetricaSemDado(
             "vendaDeMaquinaNoArt",
-            "O ART registra a venda de máquina, não a nota fiscal, e não está no banco do CRM. Ele não é somado a este " +
-            "faturamento: os dois medem coisas diferentes e não fecham mês a mês (documento 36, cartão A)."));
+            "As máquinas vendidas em UNIDADES vêm do ART (D-P08) e estão no CRM, mas não entram neste faturamento em " +
+            "reais: o ART registra a máquina faturada, o Protheus a nota, e os dois medem coisas diferentes que não " +
+            "fecham mês a mês (documento 36, cartão A)."));
 
-        lacunas.Add(new MetricaSemDado(
-            "calendarioFiscal",
-            Texto($"O ano do cartão é o civil ({i.Ano.Ano}). O calendário fiscal não foi confirmado (documento 32, P-4) — por isso não há FY nem FYTD nestes números.")));
+        // O CALENDÁRIO FOI CONFIRMADO (24/09/2026) E VIROU O PADRÃO (27/09/2026). A lacuna dizia que ele "não foi
+        // confirmado" e que por isso não havia FY; agora ela só aparece quando alguém pede o ano civil — e diz
+        // que o civil é escolha, e não falta de calendário.
+        if (i.Ano.Calendario == nameof(CalendarioDoAno.Civil))
+            lacunas.Add(new MetricaSemDado(
+                "calendarioCivil",
+                Texto($"O ano do cartão é o CIVIL ({i.Ano.Ano}), porque foi o pedido. O padrão é o ano fiscal da Tracbel, de novembro a outubro, decidido em 27/09/2026.")));
 
+        // A TABELA DE METAS SAIU NA FASE 1 (documento 41): a frase não cita mais `organizacao.Meta`, que não
+        // existe, e diz onde a meta vai morar — a issue 138.
         if (i.Ano.MetasDaFilial == 0)
         {
-            var texto = Texto($"Nenhuma meta de faturamento da filial cadastrada para {i.Ano.Ano} (organizacao.Meta). Sem meta, não há comparação: o cartão mostra só o realizado.");
+            var texto = Texto($"O CRM ainda não tem onde cadastrar a meta de faturamento de {i.Ano.Ano}: a tabela antiga saiu na simplificação do banco (fase 1), e as metas administráveis — por filial, com vigência — são a issue 138. Sem meta, não há comparação: o cartão mostra só o realizado.");
             if (i.Ano.MetasDetalhadas > 0)
                 texto += Texto($" Há {i.Ano.MetasDetalhadas} meta(s) de carteira, usuário ou linha no ano; elas não são somadas, para não contar o mesmo alvo duas vezes.");
             if (i.Ano.MetasQueCruzamOAno > 0)
@@ -122,10 +152,14 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
             "Vínculo com cliente cadastrado em outra filial é medido pela cadência da classe D: a classe do cliente " +
             "pertence ao cadastro da outra filial, fora do alcance desta leitura. É a mesma regra do mapa de cobertura."));
 
+        // A CAPTURA EXISTE (issue 162): máquinas vendidas sobre a demanda estimada, nos Indicadores Geográficos. O
+        // que não existe é participação de mercado, que exigiria o total vendido por todos os fabricantes.
         lacunas.Add(new MetricaSemDado(
             "participacaoDeMercado",
-            "Participação de mercado não é calculada: não há emplacamento nem dado de mercado carregado. O cartão " +
-            "mostra só o que o CRM registra — as vendas perdidas e para quem."));
+            "Participação de mercado não é calculada: não há emplacamento, e nenhuma fonte aberta publica o total " +
+            "vendido por todos os fabricantes. O que existe é a CAPTURA TRACBEL — máquinas vendidas sobre a demanda " +
+            "estimada —, medida nos Indicadores Geográficos. Este cartão mostra só o que o CRM registra: as vendas " +
+            "perdidas e para quem."));
 
         if (i.Mercado.VendasPerdidasRegistradas > i.Mercado.ComConcorrente)
             lacunas.Add(new MetricaSemDado(

@@ -163,6 +163,20 @@ export function recorteFiltrado(regiao: string, loja: string | null): RecorteFil
 }
 
 /**
+ * OS DOZE MESES FECHADOS — o último mês fechado e os onze anteriores.
+ *
+ * ERAM O PADRÃO DA TELA ATÉ 27/09/2026, quando o Ricardo decidiu que o padrão é o ano fiscal até hoje. O
+ * padrão agora é o do servidor (filtro vazio); os doze meses continuam como escolha, e por isso a conta
+ * passou a morar aqui — com o filtro vazio significando "ano fiscal", "12 meses" precisa dizer os meses.
+ */
+export function dozeMesesFechados(hoje = new Date()): Pick<FiltrosTerritoriais, 'competenciaInicial' | 'competenciaFinal'> {
+  const ultimoFechado = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  const primeiro = new Date(ultimoFechado.getFullYear(), ultimoFechado.getMonth() - 11, 1);
+  const competencia = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return { competenciaInicial: competencia(primeiro), competenciaFinal: competencia(ultimoFechado) };
+}
+
+/**
  * O ano civil até o último mês fechado — o recorte "acumulado do ano" pelo calendário de todo mundo.
  * Em janeiro, o último mês fechado é dezembro: o recorte vira o ano anterior inteiro.
  */
@@ -187,6 +201,10 @@ export const MES_INICIAL_DO_ANO_FISCAL = 11;
 
 /**
  * O ano fiscal até o último mês fechado — o mesmo recorte do ano civil, no calendário da Tracbel.
+ *
+ * **É O PERÍODO PADRÃO DAS TELAS desde 27/09/2026** (decisão do Ricardo): o servidor o aplica quando o
+ * filtro vem vazio (`AnoFiscal.AteOUltimoMesFechado`, no domínio). A conta daqui serve para reconhecer o
+ * preset quando o filtro traz os meses por extenso — e as duas têm teste para as mesmas bordas.
  *
  * **O ano fiscal leva o nome do ano em que TERMINA:** o FY2026 vai de novembro de 2025 a outubro de
  * 2026. É como a planilha do comercial conta, e é o que a diretoria compara de um ano para o outro.
