@@ -35,6 +35,14 @@ const nº = (v: number) => v.toLocaleString('pt-BR');
  * município pede as vendas em unidades separadas pelas categorias que têm
  * demanda aqui, e a leitura do município traz as unidades somadas.
  */
+/**
+ * O MERCADO ANUAL NÃO USA VENDAS (revisão de 27/09/2026): ele é a demanda de cada
+ * categoria vezes o preço de referência dela. O que falta ao município, para ele,
+ * é a demanda separada por categoria — e não as vendas, como para a captura.
+ */
+const MERCADO_SO_NO_RECORTE =
+  'O mercado anual existe para o recorte inteiro — está no topo da aba Mercado — e ainda não por município: ele é a demanda de cada categoria vezes o preço de referência dela, e a leitura do município traz a demanda somada, sem a quebra por categoria que o preço pede. O número do recorte não é repetido aqui porque é de outro lugar.';
+
 const SO_NO_RECORTE = (oQue: string) =>
   `${oQue} existe para o recorte inteiro — está no topo da aba Mercado — e ainda não por município: a conta do município pede as vendas em unidades separadas pelas categorias que têm demanda aqui, e a leitura do município traz as unidades somadas. O número do recorte não é repetido aqui porque é de outro lugar.`;
 
@@ -80,7 +88,7 @@ export function OportunidadesDoMunicipio({
           <CartaoDeIndicador
             rotulo="Mercado anual"
             valor={null}
-            motivoSemDado={numerosDeDecisao ? numerosDeDecisao.mercadoAnual.frase || SO_NO_RECORTE('O mercado anual') : undefined}
+            motivoSemDado={numerosDeDecisao ? numerosDeDecisao.mercadoAnual.frase || MERCADO_SO_NO_RECORTE : undefined}
           />
           <CartaoDeIndicador
             rotulo="Captura Tracbel"

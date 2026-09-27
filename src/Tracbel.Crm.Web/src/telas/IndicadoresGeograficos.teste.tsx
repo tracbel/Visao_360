@@ -306,6 +306,7 @@ function painel(): PainelTerritorial {
         maquinasCobertas: false,
         motivoSemVendas: 'FRASE DO SERVIDOR — o faturamento carregado começa em jan/2025, depois da janela anterior.',
         motivoSemMaquinas: 'FRASE DO SERVIDOR — o ART não trouxe venda de máquina ao alcance desta consulta.',
+        mesEmCurso: null,
       },
       // SEM A ÁREA DE TODAS AS CULTURAS: a resposta antiga, e o caminho de reserva das telas.
       lavouraDoRecorte: null,
@@ -1750,6 +1751,23 @@ describe('Indicadores Geográficos — densidade da primeira camada (issues 31 e
     );
     // UM FILTRO SECUNDÁRIO ATIVO NÃO FICA ESCONDIDO: o botão conta.
     expect(screen.getByRole('button', { name: /Mais filtros/ })).toHaveTextContent('1');
+  });
+
+  it('os meses do período personalizado não passam do último mês fechado — o mês em curso não se compara', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    fireEvent.click(screen.getByRole('button', { name: /Mais filtros/ }));
+    const hoje = new Date();
+    const ultimoFechado = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    const esperado = `${ultimoFechado.getFullYear()}-${String(ultimoFechado.getMonth() + 1).padStart(2, '0')}`;
+
+    for (const rotulo of ['Vendas de', 'até']) {
+      const campo = (await screen.findByText(rotulo)).closest('label')!.querySelector('input')!;
+      expect(campo).toHaveAttribute('type', 'month');
+      expect(campo).toHaveAttribute('max', esperado);
+    }
   });
 
   it('o "CEN / gestor" lista os responsáveis das carteiras comerciais, diz que não há gestor cadastrado e filtra', async () => {

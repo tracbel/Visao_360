@@ -244,7 +244,7 @@ export function PerformanceTracbel({
                   metrica="Captura Tracbel"
                   numero={numeros?.capturaPercentual ?? null}
                   formatar={porcento}
-                  depois="da demanda anual estimada, em máquinas — captura, e não participação de mercado."
+                  depois="da demanda estimada do período (a anual proporcional aos meses), em máquinas — captura, e não participação de mercado."
                 />
                 {/* A CAPTURA POR CATEGORIA é o acréscimo ao aceite da issue 69: um número
                     só não diz se a Tracbel leva os tratores e perde as colheitadeiras. A

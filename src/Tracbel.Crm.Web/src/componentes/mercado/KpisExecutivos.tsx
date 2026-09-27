@@ -36,6 +36,11 @@
  * ano" diria o mesmo, mas com "região" sozinha — que se lê como a sub-região — e
  * sem dizer que o denominador é estimativa, que é justamente o que o separa de
  * participação.
+ *
+ * A DEMANDA DA CAPTURA E DA OPORTUNIDADE É A DO PERÍODO (decisão do Ricardo de
+ * 27/09/2026): a anual proporcional aos meses — com o ano fiscal até agosto, dez
+ * doze avos. Com o ano inteiro, o número é o da planilha. O cartão "Demanda
+ * anual" continua anual; é só a conta das duas que usa o período.
  */
 
 import {
@@ -178,7 +183,13 @@ export function KpisExecutivos({
   numeros,
   maquinasVendidas,
   procedenciaDasVendas,
+  tipoDeProduto = null,
 }: {
+  /**
+   * O nome da categoria do filtro "Tipo de produto", quando ele está ligado. A demanda aqui passa a ser a da
+   * categoria, e o fator agregado do momento continua sendo o do recorte inteiro — a dica diz isso.
+   */
+  tipoDeProduto?: string | null;
   /**
    * As vendas de máquina do recorte em UNIDADES — o numerador da captura (issue 69, D-P08).
    *
@@ -256,10 +267,19 @@ export function KpisExecutivos({
               Máquinas por ano: o que o parque do recorte renova — o parque dividido pelo ciclo de renovação de
               cada cultura (issue 72).
             </p>
-            {variacao != null && fatorAgregado != null && (
+            {variacao != null && fatorAgregado != null && !tipoDeProduto && (
               <p>
                 {`${variacao > 0 ? '+' : ''}${nº(variacao)}% com o momento do mercado`} — o fator
                 agregado {fator(fatorAgregado)} aplicado a esta demanda.
+              </p>
+            )}
+            {/* COM O FILTRO DE TIPO DE PRODUTO, O FATOR AGREGADO NÃO É O DESTA DEMANDA: ele pesa todas as
+                categorias do recorte, e a demanda ajustada da categoria aplica o fator de cada cultura dela. */}
+            {variacao != null && fatorAgregado != null && tipoDeProduto && (
+              <p>
+                {`O momento do mercado do recorte inteiro, com todas as categorias, é ${variacao > 0 ? '+' : ''}${nº(variacao)}%`}{' '}
+                (fator agregado {fator(fatorAgregado)}). Esta demanda é só a de {tipoDeProduto}, e a ajustada dela
+                aplica o fator de cada cultura da categoria — ela pode andar diferente do agregado.
               </p>
             )}
             {fatias && <p>{fatias}</p>}
@@ -313,9 +333,11 @@ export function KpisExecutivos({
         sobre={
           <>
             <p>
-              A parte da demanda anual estimada que a Tracbel vendeu, em máquinas. Chama-se captura, e não
-              participação de mercado: o denominador é a demanda que o motor estima, e participação exigiria o total
-              vendido por todos os fabricantes, que nenhuma fonte aberta publica (issue 162).
+              A parte da demanda estimada DO PERÍODO que a Tracbel vendeu, em máquinas. A demanda do período é a
+              anual proporcional aos meses — com dez meses, dez doze avos dela —, para as vendas de uma parte do ano
+              não serem lidas contra o ano inteiro; com o ano fiscal inteiro, o número é o da planilha. Chama-se
+              captura, e não participação de mercado: o denominador é a demanda que o motor estima, e participação
+              exigiria o total vendido por todos os fabricantes, que nenhuma fonte aberta publica (issue 162).
             </p>
             {/* O NUMERADOR FICA ESCRITO, e com o critério de data junto (issue 69, D-P08.1).
                 Uma captura de 12% sem o numerador é um número que ninguém confere; e o
@@ -353,8 +375,9 @@ export function KpisExecutivos({
           />
         }
         sobre={
-          'Em máquinas: a demanda ajustada pelo momento menos o que a Tracbel já vendeu, nunca abaixo de zero ' +
-          '(issue 162). É o que o mercado de hoje comporta e ainda não foi capturado — e não o de um ano médio.'
+          'Em máquinas: a demanda ajustada pelo momento, proporcional aos meses do período, menos o que a Tracbel ' +
+          'já vendeu nele, nunca abaixo de zero (issue 162). É o que o mercado de hoje comporta e ainda não foi ' +
+          'capturado — e não o de um ano médio.'
         }
       />
     </div>

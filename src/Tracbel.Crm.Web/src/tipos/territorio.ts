@@ -434,6 +434,11 @@ export type PeriodoAnterior = {
   motivoSemVendas: string | null;
   /** Por que a variação em unidades não sai; nulo quando sai. */
   motivoSemMaquinas: string | null;
+  /**
+   * O último mês pedido, quando ele ainda está em curso (`aaaa-mm-dd`): aí não há comparação — o mês pela
+   * metade contra o mesmo mês inteiro do ano anterior erraria para baixo. Nulo quando o período está fechado.
+   */
+  mesEmCurso: string | null;
 };
 
 /**

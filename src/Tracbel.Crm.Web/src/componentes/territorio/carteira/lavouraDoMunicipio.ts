@@ -4,7 +4,10 @@
  *
  * DE ONDE VÊM AS CULTURAS (issue 168, 27/09/2026): o histórico do município
  * (`GET …/municipios/{codigo}/historico`) traz TODAS as culturas da PAM de cada
- * ano, e a tabela usa o ano mais recente dele. Antes dele chegar — ou na ficha
+ * ano, e a tabela põe CADA CULTURA NO ÚLTIMO ANO EM QUE A ÁREA DELA FOI
+ * DIVULGADA (issue 152, a regra do resto da tela) — e não o ano mais recente da
+ * lista, que numa PAM nova ainda incompleta faria a cultura que não chegou sumir
+ * da lavoura em vez de aparecer com o ano anterior dela. Antes dele chegar — ou na ficha
  * sozinha, sem os filtros da página —, a tabela cai no que a leitura do painel
  * tem: `municipio.potencial[]`, que detalha SÓ as culturas com regra de
  * potencial, e `municipio.producao`, o total da PAM.
@@ -34,8 +37,10 @@ export type LavouraDoMunicipio = {
   linhas: LinhaDaLavoura[];
   /** O resto até o total; nulo quando não sobra nada (ou quando o total não fecha). */
   outros: LinhaDaLavoura | null;
-  /** O ano da PAM do total, quando há total. */
+  /** O ano da PAM do total, quando há total — com todas as culturas, o mais recente delas. */
   ano: number | null;
+  /** Com todas as culturas, o ano mais antigo entre os de cada uma; igual a `ano` quando todas são do mesmo. */
+  anoMaisAntigo: number | null;
   /** A área plantada total da PAM; nula quando a PAM não foi carregada aqui. */
   totalPlantado: number | null;
   /** Quantas culturas a PAM divulgou com área neste município. */
@@ -72,27 +77,42 @@ export function nomeDaCultura(
   );
 }
 
+/**
+ * CADA CULTURA NO ÚLTIMO ANO EM QUE A ÁREA DELA FOI DIVULGADA (issue 152). O
+ * servidor só manda, em cada ano, as culturas com área; o ano mais recente de
+ * cada uma sobrescreve os anteriores.
+ */
+function culturasNoUltimoAnoDeCada(lavoura: readonly LavouraNoAno[]): { nome: string; area: number; ano: number }[] {
+  const porProduto = new Map<number, { nome: string; area: number; ano: number }>();
+  for (const doAno of [...lavoura].sort((a, b) => a.ano - b.ano))
+    for (const c of doAno.culturas)
+      if (c.areaPlantadaHectares != null && c.areaPlantadaHectares > 0)
+        porProduto.set(c.produtoCodigoIbge, { nome: c.produtoNome, area: c.areaPlantadaHectares, ano: doAno.ano });
+  return [...porProduto.values()];
+}
+
 export function lavouraDoMunicipio(
   municipio: IndicadoresDoMunicipio,
   regras: RegraDePotencialAplicada[],
   culturasNoEstado: CulturaNoEstado[],
   maximo = 4,
-  /** O ano mais recente da PAM no histórico do município — todas as culturas; nulo antes dele chegar. */
-  doHistorico: LavouraNoAno | null = null,
+  /** A lavoura de cada ano da PAM no histórico do município — todas as culturas; nula antes dele chegar. */
+  doHistorico: readonly LavouraNoAno[] | null = null,
 ): LavouraDoMunicipio | null {
-  const todasAsCulturas = doHistorico !== null && doHistorico.culturas.length > 0;
+  const noUltimoAnoDeCada = doHistorico === null ? [] : culturasNoUltimoAnoDeCada(doHistorico);
+  const todasAsCulturas = noUltimoAnoDeCada.length > 0;
 
   const comArea = todasAsCulturas
-    ? doHistorico.culturas
-        .filter((c) => c.areaPlantadaHectares != null && c.areaPlantadaHectares > 0)
-        .map((c) => ({ nome: c.produtoNome, area: c.areaPlantadaHectares! }))
-        .sort((a, b) => b.area - a.area)
+    ? [...noUltimoAnoDeCada].sort((a, b) => b.area - a.area)
     : municipio.potencial
         .filter((p) => p.areaPlantadaHectares != null && p.areaPlantadaHectares > 0)
         .map((p) => ({ nome: nomeDaCultura(p.produtoCodigoIbge, regras, culturasNoEstado), area: p.areaPlantadaHectares! }))
         .sort((a, b) => b.area - a.area);
 
-  const total = todasAsCulturas ? doHistorico.areaPlantadaHectares : (municipio.producao?.areaPlantadaHectares ?? null);
+  // COM TODAS AS CULTURAS, O TOTAL É A SOMA DELAS, cada uma no ano dela — o "Outros" são as que não couberam.
+  const total = todasAsCulturas
+    ? noUltimoAnoDeCada.reduce((s, c) => s + c.area, 0)
+    : (municipio.producao?.areaPlantadaHectares ?? null);
   const temTotal = total !== null && total > 0;
   if (!temTotal && comArea.length === 0) return null;
 
@@ -108,7 +128,8 @@ export function lavouraDoMunicipio(
     // MENOS DE UM HECTARE NÃO É "OUTROS": é arredondamento da PAM, e uma linha
     // "Outros 0 ha 0%" só ocuparia espaço.
     outros: areaDosOutros >= 1 ? linha('Outros', areaDosOutros) : null,
-    ano: todasAsCulturas ? doHistorico.ano : (municipio.producao?.ano ?? null),
+    ano: todasAsCulturas ? Math.max(...noUltimoAnoDeCada.map((c) => c.ano)) : (municipio.producao?.ano ?? null),
+    anoMaisAntigo: todasAsCulturas ? Math.min(...noUltimoAnoDeCada.map((c) => c.ano)) : (municipio.producao?.ano ?? null),
     totalPlantado: temTotal ? total : null,
     culturasComArea: todasAsCulturas ? comArea.length : (municipio.producao?.culturasComArea ?? null),
     culturasDetalhadas: comArea.length,

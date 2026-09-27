@@ -85,8 +85,13 @@ function textoDaDica(gatilho: HTMLElement): string {
   return texto;
 }
 
-/** O ano fiscal de hoje — em novembro e dezembro ele já é o do ano civil seguinte. */
-const ANO_FISCAL = new Date().getMonth() + 1 >= 11 ? new Date().getFullYear() + 1 : new Date().getFullYear();
+/**
+ * O ano fiscal do ÚLTIMO MÊS FECHADO — o padrão desde 27/09/2026: em novembro é o ano que acabou de fechar, e
+ * em dezembro já é o do ano civil seguinte.
+ */
+const ULTIMO_FECHADO = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+const ANO_FISCAL =
+  ULTIMO_FECHADO.getMonth() + 1 >= 11 ? ULTIMO_FECHADO.getFullYear() + 1 : ULTIMO_FECHADO.getFullYear();
 
 beforeEach(() => guardado.clear());
 afterEach(() => vi.unstubAllGlobals());
@@ -105,6 +110,9 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     const dica = textoDaDica(screen.getByRole('button', { name: 'Como o ano fiscal é contado' }));
     expect(dica).toContain('novembro a outubro');
     expect(dica).not.toContain('próxima etapa');
+    // ATÉ O ÚLTIMO MÊS FECHADO, como os Indicadores (27/09/2026): o mês em curso fica no cartão do mês.
+    expect(dica).toContain('até o ÚLTIMO MÊS FECHADO');
+    expect(dica).not.toContain('até hoje');
   });
 
   it('a meta aparece como "—" com o motivo, e nenhum texto diz que ela tem tabela', async () => {

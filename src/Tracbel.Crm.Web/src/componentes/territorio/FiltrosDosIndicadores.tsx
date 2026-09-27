@@ -391,10 +391,14 @@ export function FiltrosDosIndicadores({
               <Popover.Content className="dash-popover" sideOffset={6} collisionPadding={16} align="end">
                 <div className="dash-popover-titulo">Mais filtros</div>
 
+                {/* O ÚLTIMO MÊS ACEITO É O ÚLTIMO FECHADO (revisão de 27/09/2026): um período que termina no
+                    mês em curso compara um mês pela metade com o mesmo mês inteiro do ano anterior. O servidor
+                    também recusa a comparação nesse caso — o limite aqui só evita pedir o que não se compara. */}
                 <label className="dash-filtro">
                   <span className="dash-filtro-rotulo">Vendas de</span>
                   <input
                     type="month"
+                    max={dozeMeses.competenciaFinal}
                     value={filtros.competenciaInicial}
                     onChange={(e) => aoMudarFiltros((f) => ({ ...f, competenciaInicial: e.target.value }))}
                   />
@@ -403,6 +407,7 @@ export function FiltrosDosIndicadores({
                   <span className="dash-filtro-rotulo">até</span>
                   <input
                     type="month"
+                    max={dozeMeses.competenciaFinal}
                     value={filtros.competenciaFinal}
                     onChange={(e) => aoMudarFiltros((f) => ({ ...f, competenciaFinal: e.target.value }))}
                   />

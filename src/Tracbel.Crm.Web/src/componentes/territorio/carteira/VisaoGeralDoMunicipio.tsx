@@ -145,7 +145,7 @@ export function VisaoGeralDoMunicipio({
   const { cobertura, vendas, estrutura } = municipio;
   const motor = municipio.potencialEstrutural;
   const { periodoAnterior } = useComparacao();
-  const lavoura = lavouraDoMunicipio(municipio, regras, culturasNoEstado, 4, historico?.lavoura.at(-1) ?? null);
+  const lavoura = lavouraDoMunicipio(municipio, regras, culturasNoEstado, 4, historico?.lavoura ?? null);
   const antes = municipio.vendasNoPeriodoAnterior;
   const cobre = cobertura.vinculosComCadencia > 0 ? (100 * cobertura.cobertos) / cobertura.vinculosComCadencia : null;
 
@@ -262,9 +262,13 @@ export function VisaoGeralDoMunicipio({
                   {lavoura?.todasAsCulturas ? (
                     <p>
                       São todas as culturas que a PAM divulgou com área aqui ({nº(lavoura.culturasDetalhadas)}), da
-                      maior para a menor. As que não cabem nas linhas entram em "Outros", que é o total menos a soma das
-                      listadas. Cultura sem área divulgada (sigilo do IBGE ou não cultivada) não entra na conta —
-                      ausência não é zero. O café entra uma vez só, pelo total.
+                      maior para a menor, cada uma no último ano em que a área dela foi divulgada
+                      {lavoura.anoMaisAntigo !== null && lavoura.anoMaisAntigo !== lavoura.ano
+                        ? ` (de ${lavoura.anoMaisAntigo} a ${lavoura.ano})`
+                        : ''}
+                      . As que não cabem nas linhas entram em "Outros", que é o total menos a soma das listadas.
+                      Cultura sem área divulgada (sigilo do IBGE ou não cultivada) não entra na conta — ausência não é
+                      zero. O café entra uma vez só, pelo total.
                     </p>
                   ) : (
                     <p>

@@ -80,7 +80,10 @@ export function AbaDeMercado({
   mostrarOsMapas,
   recorteDosFiltros = null,
   numerosDeDecisao,
+  tipoDeProduto = null,
 }: {
+  /** O nome da categoria do filtro "Tipo de produto", quando ligado — os números de decisão são dela. */
+  tipoDeProduto?: string | null;
   /** Os quatro números do topo, com o motivo de cada ausência — da API (issue 69, parte A). */
   numerosDeDecisao: NumerosDeDecisao | null;
   kpisDoMercado: Indicador[];
@@ -132,6 +135,7 @@ export function AbaDeMercado({
           numeros={numerosDeDecisao}
           maquinasVendidas={indicadores?.maquinasVendidas ?? null}
           procedenciaDasVendas={indicadores?.procedencias?.maquinasVendidas ?? null}
+          tipoDeProduto={tipoDeProduto}
         />
       </SecaoDoMercadoDaRegiao>
 

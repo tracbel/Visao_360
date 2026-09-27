@@ -426,8 +426,9 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
             temMensal
               ? `O crédito de máquinas — trator, máquinas e implementos e colheitadeiras — mês a mês, em ${nomeDoRecorte}. ` +
                 `A linha verde é a janela recente; a cinza tracejada, a janela anterior: cada mês contra o de ` +
-                `${janela.mesesPorJanela} meses antes. A Região Tracbel é a área de atuação inteira, e Norte mais ` +
-                `Noroeste dão ela, mês a mês; São Paulo é o estado inteiro. Janela: ${textoDaJanela(janela)}`
+                `${janela.mesesPorJanela} meses antes. A Região Tracbel é a área de atuação inteira; Norte e ` +
+                'Noroeste são os municípios dela com a sub-região informada — o que estiver sem sub-região conta só ' +
+                `na Região Tracbel. São Paulo é o estado inteiro. Janela: ${textoDaJanela(janela)}`
               : 'O SICOR chega a esta leitura somado por ANO e para São Paulo inteiro — máquinas: trator, máquinas e ' +
                 'implementos e colheitadeiras. O mês a mês por recorte não veio nesta resposta: desenhar meses seria ' +
                 `fingir um detalhe que ela não traz. ${anos.at(-1)?.ano ?? ''} vai até ${MESES[mesFim - 1] ?? '—'}, ` +

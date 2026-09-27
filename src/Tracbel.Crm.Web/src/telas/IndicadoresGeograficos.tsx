@@ -444,6 +444,12 @@ export function IndicadoresGeograficos() {
             produtosDoMunicipio={produtosPriorizados}
             mostrarOsMapas={indicadores !== null && desenho !== null && !territorioNaoCarregado}
             recorteDosFiltros={recorteDosFiltros}
+            tipoDeProduto={
+              filtros.categoriaDeMaquina === ''
+                ? null
+                : (indicadores?.categoriasDeMaquina?.find((c) => c.codigo === filtros.categoriaDeMaquina)?.nome ??
+                  filtros.categoriaDeMaquina)
+            }
             numerosDeDecisao={painel.dados?.numerosDeDecisao ?? null}
           />
         ) : (

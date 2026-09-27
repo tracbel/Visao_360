@@ -212,6 +212,7 @@ const PERIODO_ANTERIOR: PeriodoAnterior = {
   maquinasCobertas: false,
   motivoSemVendas: null,
   motivoSemMaquinas: 'FRASE DO SERVIDOR — o ART começa em jan/2025.',
+  mesEmCurso: null,
 };
 
 const FILTROS = { visao: 'Filial', filialDaVenda: '', filialDoCliente: '', categoriaDeMaquina: '', responsavel: '' } as const;
@@ -572,6 +573,32 @@ describe('DetalheDoMunicipio — a Visão geral', () => {
     expect(dica).toMatch(/de 9 com área divulgada/);
   });
 
+  it('cada cultura entra no ÚLTIMO ANO em que a área dela foi divulgada, e não só o ano mais recente (issue 152)', async () => {
+    // O AMENDOIM SÓ TEM ÁREA EM 2023: com o ano mais recente da lista ele sumiria da lavoura — pela regra da
+    // issue 152, ele entra com a área de 2023, e a dica diz que os anos são de 2023 a 2024.
+    const comAmendoimSoEm2023: HistoricoDoMunicipio = {
+      ...HISTORICO,
+      lavoura: [
+        {
+          ...HISTORICO.lavoura[0],
+          culturas: [
+            ...HISTORICO.lavoura[0].culturas,
+            { produtoCodigoIbge: 40101, produtoNome: 'Amendoim (em casca)', areaPlantadaHectares: 5_000, areaColhidaHectares: 5_000, valorDaProducaoMilReais: 1 },
+          ],
+        },
+        HISTORICO.lavoura[1],
+      ],
+    };
+    await abrirComHistorico(comLavouraEEstrutura(), comAmendoimSoEm2023);
+    const lavoura = document.querySelector<HTMLElement>('[data-bloco-da-ficha="lavoura"]')!;
+
+    // CAFÉ 23.000, CANA 10.000 (2024, e não os 30.000 de 2023), AMENDOIM 5.000 (2023), SOJA 2.000.
+    const linhas = [...lavoura.querySelectorAll<HTMLElement>('tbody tr')].map((tr) => tr.dataset.cultura);
+    expect(linhas).toEqual(['Café (em grão) Total', 'Cana-de-açúcar', 'Amendoim (em casca)', 'Soja (em grão)', 'Outros']);
+    expect(lavoura.querySelector('[data-cultura="Cana-de-açúcar"]')).toHaveTextContent(/10\.000/);
+    expect(textoDaDica('De onde vem a lavoura do município')).toMatch(/último ano em que a área dela foi divulgada \(de 2023 a 2024\)/);
+  });
+
   it('com o histórico lido, a lavoura traz TODAS as culturas do ano mais recente (issue 168)', async () => {
     await abrirComHistorico(comLavouraEEstrutura());
     const lavoura = document.querySelector<HTMLElement>('[data-bloco-da-ficha="lavoura"]')!;
@@ -724,6 +751,7 @@ describe('DetalheDoMunicipio — Lavoura, Estrutura, Oportunidades e Histórico'
     abrir(comLavouraEEstrutura(), [], true, () => {}, {
       numeros: {
         ...NUMEROS,
+        mercadoAnual: { valor: 9_000_000, motivo: 'Nenhum', frase: '', parcial: false, categoriasSemPreco: [] },
         capturaPercentual: { valor: 12.5, motivo: 'Nenhum', frase: '' },
         oportunidade: { valor: 40, motivo: 'Nenhum', frase: '' },
       },
@@ -733,6 +761,11 @@ describe('DetalheDoMunicipio — Lavoura, Estrutura, Oportunidades e Histórico'
     expect(painelAtivo().querySelector('[data-camada="decisao"]')).not.toHaveTextContent('12,5');
     expect(textoDaDica('Por que captura tracbel não aparece')).toMatch(/existe para o recorte inteiro/);
     expect(textoDaDica('Por que oportunidade não aparece')).toMatch(/ainda não por município/);
+
+    // O MERCADO ANUAL NÃO USA VENDAS (revisão de 27/09/2026): o que falta ao município é a demanda por categoria.
+    const mercado = textoDaDica('Por que mercado anual não aparece');
+    expect(mercado).toMatch(/demanda de cada categoria vezes o preço de referência/);
+    expect(mercado).not.toMatch(/vendas em unidades/);
   });
 
   it('a aba Histórico sem os filtros da página não lê — e diz por quê', () => {

@@ -526,6 +526,7 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
         maquinasCobertas: !semArt,
         motivoSemVendas: null,
         motivoSemMaquinas: semArt ? 'AMOSTRA FICTÍCIA — o ART não trouxe venda de máquina ao alcance desta consulta.' : null,
+        mesEmCurso: null,
       },
       lavouraDoRecorte: Array.from({ length: culturasDaLavoura }, (_, i) => {
         const area = Math.round(areaTotal * (PESO_DA_CULTURA[i] ?? 0.002));

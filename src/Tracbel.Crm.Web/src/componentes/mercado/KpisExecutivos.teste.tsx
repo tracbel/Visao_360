@@ -105,4 +105,31 @@ describe('os quatro números de decisão', () => {
     expect(dica).toContain('D-P08.1');
     expect(dica).not.toContain('4 máquinas vendidas');
   });
+
+  it('a captura e a oportunidade dizem que a demanda é a do período, proporcional aos meses (27/09/2026)', () => {
+    abrir();
+    expect(lerDica('Fonte e método: Captura Tracbel')).toMatch(/demanda estimada DO PERÍODO.*proporcional aos meses/);
+    expect(lerDica('Fonte e método: Oportunidade')).toMatch(/proporcional aos meses do período/);
+  });
+
+  it('com o filtro de tipo de produto, o fator agregado é dito como o do recorte inteiro, e não o desta demanda', () => {
+    render(
+      <KpisExecutivos
+        numeros={NUMEROS}
+        momento={momento(0.88)}
+        demandaEstrutural={400}
+        demandaDeSaoPaulo={null}
+        carregando={false}
+        procedenciaDaDemanda={null}
+        maquinasVendidas={null}
+        procedenciaDasVendas={null}
+        tipoDeProduto="Trator"
+      />,
+    );
+
+    const dica = lerDica('Fonte e método: Demanda anual');
+    expect(dica).toContain('recorte inteiro, com todas as categorias, é -12%');
+    expect(dica).toContain('Esta demanda é só a de Trator');
+    expect(dica).not.toContain('aplicado a esta demanda');
+  });
 });

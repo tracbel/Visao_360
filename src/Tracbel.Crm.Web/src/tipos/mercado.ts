@@ -180,7 +180,8 @@ export type PainelDeCreditoRural = {
 export type CreditoNoMes = { linhas: number; valor: number };
 
 /**
- * O crédito de máquinas de um mês. A Região Tracbel é a ADR inteira, e Norte + Noroeste somam a
+ * O crédito de máquinas de um mês. A Região Tracbel é a ADR inteira; Norte e Noroeste são os municípios dela com
+ * a sub-região informada — o que estiver sem sub-região conta só na Região. Com todos informados, os dois somam a
  * Região mês a mês; São Paulo é o estado inteiro.
  */
 export type CreditoDeMaquinasNoMes = {

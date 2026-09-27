@@ -31,9 +31,10 @@
  *   simplificação do banco (fase 1), e a API devolve o alvo sempre nulo. O
  *   cartão mostra "—" com o motivo, e a issue que destrava é a 138.
  * - O ANO É O FISCAL (27/09/2026): novembro a outubro, com o nome do ano em que
- *   termina, e o ano fiscal em curso como padrão — o realizado até hoje. O servidor
- *   apura pelo mesmo calendário (`anoFiscal` na rota); a dica que prometia "a
- *   visão por FY na próxima etapa" saiu, porque a etapa chegou.
+ *   termina, e o ano fiscal do último mês fechado como padrão. O servidor apura
+ *   pelo mesmo calendário (`anoFiscal` na rota) e para no ÚLTIMO MÊS FECHADO,
+ *   como os Indicadores Geográficos: o mês em curso fica no cartão do mês,
+ *   marcado como parcial. Em novembro, o padrão é o ano que acabou de fechar.
  * - "PARTICIPAÇÃO DE MERCADO" VIROU "CAPTURA TRACBEL" (issue 162), e o cartão
  *   de mercado diz o que conta: derrotas registradas, e não o tamanho do mercado.
  */
@@ -82,12 +83,16 @@ const MOTIVO_SEM_META =
  */
 const DICA_DO_ANO_FISCAL =
   'Os cartões somam o ANO FISCAL da Tracbel, de novembro a outubro, com o nome do ano em que termina: o FY2026 vai de ' +
-  'nov/2025 a out/2026. O ano em curso é somado até hoje, e o mês em curso aparece marcado. É o período padrão desde ' +
-  '27/09/2026.';
+  'nov/2025 a out/2026. O ano em curso é somado até o ÚLTIMO MÊS FECHADO, como nos Indicadores Geográficos; o mês em ' +
+  'curso, pela metade, fica à parte, no cartão de faturamento em curso. É o período padrão desde 27/09/2026.';
 
-/** O ano fiscal de hoje: em novembro e dezembro ele já é o do ano civil seguinte. */
-function anoFiscalDe(data: Date): number {
-  return data.getMonth() + 1 >= 11 ? data.getFullYear() + 1 : data.getFullYear();
+/**
+ * O ano fiscal do ÚLTIMO MÊS FECHADO — o padrão (27/09/2026). Em novembro é o ano
+ * que acabou de fechar: o novo ainda não tem mês fechado para somar.
+ */
+function anoFiscalDoUltimoMesFechado(hoje: Date): number {
+  const ultimoFechado = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  return ultimoFechado.getMonth() + 1 >= 11 ? ultimoFechado.getFullYear() + 1 : ultimoFechado.getFullYear();
 }
 
 /** "FY2026 (nov/2025 a out/2026)" — o nome do ano fiscal nunca aparece sem o intervalo. */
@@ -246,7 +251,7 @@ const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDi
 
 export function PainelExecutivo() {
   const { contexto } = useContextoDeAcesso();
-  const anoCorrente = anoFiscalDe(new Date());
+  const anoCorrente = anoFiscalDoUltimoMesFechado(new Date());
   const [ano, setAno] = useState(anoCorrente);
 
   const consolidado = useRecurso((sinal) => obterConsolidado(contexto, sinal), [contexto.usuario]);
@@ -791,9 +796,7 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
         valor={doAno.ultimaCompetencia ? emMilhoes(doAno.total) : '—'}
         subtexto={
           doAno.ultimaCompetencia && doAno.primeiraCompetencia
-            ? `realizado ${mesCurto(doAno.primeiraCompetencia)} a ${mesPorExtenso(doAno.ultimaCompetencia)}${
-                mesEmCurso && mes && doAno.ultimaCompetencia === mes.competencia ? ' (em curso)' : ''
-              } · ano fiscal`
+            ? `realizado ${mesCurto(doAno.primeiraCompetencia)} a ${mesPorExtenso(doAno.ultimaCompetencia)} · até o último mês fechado`
             : `sem faturamento carregado no FY${ano} (nov/${ano - 1} a out/${ano})`
         }
         detalhe={
@@ -805,7 +808,7 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
             `meta ${emMilhoes(doAno.alvo)} em ${doAno.filiaisComMeta} filial(is) · ${porcento((100 * doAno.realizadoDasFiliaisComMeta) / doAno.alvo)} realizado nelas · previsão: sem modelo`
           )
         }
-        dica="Realizado: soma das notas de saída do ano fiscal (nov–out), com e sem cliente no CRM, até a última competência carregada. Meta: o CRM ainda não tem onde cadastrá-la — é a issue 138. Previsão: não calculada — extrapolar a média dos meses não é previsão."
+        dica="Realizado: soma das notas de saída do ano fiscal (nov–out), com e sem cliente no CRM, até o último mês fechado — o mês em curso está no cartão ao lado, marcado como parcial. Meta: o CRM ainda não tem onde cadastrá-la — é a issue 138. Previsão: não calculada — extrapolar a média dos meses não é previsão."
         cor="#1B5E20"
         icone="target"
       />
@@ -854,7 +857,7 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
         valor={nº(mercado.vendasPerdidasRegistradas)}
         subtexto={`vendas perdidas registradas · ${nº(mercado.comConcorrente)} com concorrente${concorrentes === null ? '' : ` · ${nº(concorrentes)} concorrentes`}`}
         detalhe={`${mercado.primeiraEm ? `${data(mercado.primeiraEm)} a ${data(mercado.ultimaEm)}` : 'sem registro'} · Captura Tracbel: nos Indicadores Geográficos`}
-        dica={`${nº(mercado.comModeloDoConcorrente)} com modelo do concorrente, ${nº(mercado.comOsDoisPrecos)} com os dois preços, ${nº(mercado.unidades)} máquinas nessas perdas. Este cartão conta derrotas registradas pelo CEN, e não o tamanho do mercado. As máquinas que a Tracbel vendeu estão no banco do CRM, lidas do ART — em unidades, e não em faturamento —, e a Captura Tracbel, que as divide pela demanda anual estimada, é medida nos Indicadores Geográficos.`}
+        dica={`${nº(mercado.comModeloDoConcorrente)} com modelo do concorrente, ${nº(mercado.comOsDoisPrecos)} com os dois preços, ${nº(mercado.unidades)} máquinas nessas perdas. Este cartão conta derrotas registradas pelo CEN, e não o tamanho do mercado. As máquinas que a Tracbel vendeu estão no banco do CRM, lidas do ART — em unidades, e não em faturamento —, e a Captura Tracbel, que as divide pela demanda estimada do período (a anual proporcional aos meses), é medida nos Indicadores Geográficos.`}
         cor="#B45309"
         icone="eye"
         destaque
