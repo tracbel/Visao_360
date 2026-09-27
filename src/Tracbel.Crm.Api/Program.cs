@@ -305,6 +305,7 @@ builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.InformarParametroDoPo
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.InformarRegraDePotencial>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.InformarPercepcaoDoGestor>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.RevogarParametroDoPotencial>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.SugerirBandasDePorte>();
 
 // O painel de fontes públicas e as opções dos formulários de parâmetros (issue 77).
 builder.Services.AddScoped<ObterFontesPublicas>();

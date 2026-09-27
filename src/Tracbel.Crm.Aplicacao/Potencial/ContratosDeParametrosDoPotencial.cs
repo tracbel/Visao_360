@@ -106,6 +106,9 @@ public sealed record RegraDePotencialDetalhe(
 /// <param name="FatorMinimo">O menor fator de ciclo, quando decidido.</param>
 /// <param name="FatorMaximo">O maior fator de ciclo, quando decidido.</param>
 /// <param name="MesesDeCarenciaDoSicor">Meses recentes do SICOR fora da janela; nulo é "não decidida" (D-IM-03).</param>
+/// <param name="MinimoDeLinhasNoCredito">Abaixo disto a base do crédito é pequena; nulo é "não decidido" (D-P03).</param>
+/// <param name="PorteMedioAPartirDe">Máquinas por ano a partir das quais o município é de mercado médio (issue 166).</param>
+/// <param name="PorteGrandeAPartirDe">Máquinas por ano a partir das quais o município é de mercado grande (issue 166).</param>
 /// <param name="Vigencia">Desde quando, por quê e por quem.</param>
 public sealed record ParametrosGeraisDetalhe(
     short MesesDaJanela,
@@ -122,6 +125,9 @@ public sealed record ParametrosGeraisDetalhe(
     decimal? FatorMinimo,
     decimal? FatorMaximo,
     short? MesesDeCarenciaDoSicor,
+    int? MinimoDeLinhasNoCredito,
+    decimal? PorteMedioAPartirDe,
+    decimal? PorteGrandeAPartirDe,
     VigenciaDoParametro Vigencia)
 {
     /// <summary>Monta o detalhe.</summary>
@@ -131,7 +137,8 @@ public sealed record ParametrosGeraisDetalhe(
         p.MesesDaJanela, p.PesoDosContratosNoCredito, 1 - p.PesoDosContratosNoCredito,
         p.LimiteDeRetracao, p.LimiteDeAquecimento, p.LimiteDeSuperaquecimento, p.NomeDaFaixaIntermediaria,
         p.LimiteDaPercepcao, p.PesoDoIndicadorDePreco, p.PesoDoIndicadorDeCredito, p.PesoDoIndicadorComercial,
-        p.FatorMinimo, p.FatorMaximo, p.MesesDeCarenciaDoSicor, VigenciaDoParametro.De(p, nomes));
+        p.FatorMinimo, p.FatorMaximo, p.MesesDeCarenciaDoSicor, p.MinimoDeLinhasNoCredito,
+        p.PorteMedioAPartirDe, p.PorteGrandeAPartirDe, VigenciaDoParametro.De(p, nomes));
 }
 
 /// <summary>A percepção do gestor sobre um município, numa vigência.</summary>
@@ -193,6 +200,12 @@ public sealed record HistoricoDosParametrosDoPotencial(
 /// <param name="FatorMaximo">Opcional, junto com o mínimo.</param>
 /// <param name="MesesDeCarenciaDoSicor">Meses recentes do SICOR fora da janela; vazio é "não decidida" (D-IM-03).</param>
 /// <param name="Justificativa">Por que estes valores.</param>
+/// <param name="MinimoDeLinhasNoCredito">
+/// Abaixo disto a base do crédito é pequena; vazio é "não decidido" (D-P03). Até 27/09/2026 o formulário não o
+/// mandava, e toda vigência nova registrada pela tela o apagava sem aviso.
+/// </param>
+/// <param name="PorteMedioAPartirDe">Máquinas por ano a partir das quais o município é médio; junto com a de grande (issue 166).</param>
+/// <param name="PorteGrandeAPartirDe">Máquinas por ano a partir das quais o município é grande; junto com a de médio (issue 166).</param>
 public sealed record NovoParametroDoPotencial(
     string? VigenteDesde = null,
     string? MesesDaJanela = null,
@@ -208,7 +221,31 @@ public sealed record NovoParametroDoPotencial(
     string? FatorMinimo = null,
     string? FatorMaximo = null,
     string? MesesDeCarenciaDoSicor = null,
-    string? Justificativa = null);
+    string? Justificativa = null,
+    string? MinimoDeLinhasNoCredito = null,
+    string? PorteMedioAPartirDe = null,
+    string? PorteGrandeAPartirDe = null);
+
+/// <summary>
+/// AS BANDAS DE PORTE PELOS TERCIS DOS MUNICÍPIOS DA ADR — a sugestão que o formulário dos parâmetros gerais
+/// preenche com um clique (issue 166, decidido em 27/09/2026). Não grava nada: quem registra a vigência é o
+/// administrador, que vê os números antes.
+/// </summary>
+/// <param name="PorteMedioAPartirDe">O primeiro tercil; nulo quando não há como cortar.</param>
+/// <param name="PorteGrandeAPartirDe">O segundo tercil; nulo quando não há como cortar.</param>
+/// <param name="MunicipiosDaAdr">Quantos municípios a ADR tem.</param>
+/// <param name="MunicipiosNaConta">Quantos deles têm demanda anual e entraram na conta.</param>
+/// <param name="AnoDaAreaPlantada">O ano da PAM por trás da demanda.</param>
+/// <param name="Justificativa">A frase pronta para a justificativa da vigência — o critério e a data da decisão.</param>
+/// <param name="Motivo">Por que não saiu, quando não saiu.</param>
+public sealed record SugestaoDasBandasDePorte(
+    decimal? PorteMedioAPartirDe,
+    decimal? PorteGrandeAPartirDe,
+    int MunicipiosDaAdr,
+    int MunicipiosNaConta,
+    short? AnoDaAreaPlantada,
+    string? Justificativa,
+    string? Motivo);
 
 /// <summary>Uma vigência nova da regra de uma cultura.</summary>
 /// <param name="ProdutoCodigoIbge">O código do produto na classificação 782 (ex.: 40139, café em grão).</param>

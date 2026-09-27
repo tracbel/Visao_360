@@ -76,6 +76,14 @@ public static class EndpointsDeParametrosDoPotencial
             .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
             .WithSummary("Registra uma vigência nova dos parâmetros gerais — o conjunto inteiro, a partir de hoje ou depois.");
 
+        // AS BANDAS DE PORTE PELOS TERCIS (issue 166): só calcula. Quem grava é o POST acima, com o nome de quem
+        // registrou — a sugestão preenche o formulário e o administrador confere antes.
+        grupo.MapGet("/geral/porte-pelos-tercis", async (SugerirBandasDePorte caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("SugerirBandasDePorte")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("As bandas de porte pelos tercis da demanda anual dos municípios da ADR — sugestão, não grava nada.");
+
         grupo.MapPost("/culturas", async (NovaRegraDePotencial corpo, InformarRegraDePotencial caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(corpo, ct)).Responder(criado => Results.Created($"{Base}/historico", criado)))
             .WithName("InformarRegraDePotencial")

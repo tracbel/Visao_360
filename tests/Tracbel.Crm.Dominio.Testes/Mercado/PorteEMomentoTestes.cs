@@ -99,6 +99,48 @@ public class PorteEMomentoTestes
     }
 
     // ---------------------------------------------------------------------------------------------
+    // Os cortes pelos tercis dos municípios da ADR (decisão do Ricardo de 27/09/2026)
+    // ---------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Os_tercis_sao_os_da_planilha_e_deixam_um_terco_dos_municipios_em_cada_porte()
+    {
+        // PERCENTIL.INC({1..9}; 1/3) = 3,667 e PERCENTIL.INC({1..9}; 2/3) = 6,333 — arredondados a uma casa.
+        var demandas = new decimal[] { 9, 1, 8, 2, 7, 3, 6, 4, 5 };
+
+        var bandas = ParametroDoPotencial.BandasPelosTercis(demandas);
+
+        bandas.Should().Be((3.7m, 6.3m), "a ordem de entrada não importa, e a interpolação é a do Excel");
+
+        var p = Parametros(bandas!.Value.MedioAPartirDe, bandas.Value.GrandeAPartirDe);
+        demandas.GroupBy(d => p.PorteDe(d)!).ToDictionary(g => g.Key, g => g.Count())
+            .Should().BeEquivalentTo(new Dictionary<string, int>
+            {
+                ["Mercado pequeno"] = 3, ["Mercado médio"] = 3, ["Mercado grande"] = 3
+            });
+    }
+
+    [Fact]
+    public void Sem_como_cortar_nao_ha_banda()
+    {
+        ParametroDoPotencial.BandasPelosTercis([10m, 20m]).Should().BeNull("o tercil pede pelo menos três municípios");
+        ParametroDoPotencial.BandasPelosTercis([0m, 0m, 0m, 0m, 5m, 9m])
+            .Should().BeNull("com um terço sem demanda o médio começaria em zero, e zero não é banda");
+        ParametroDoPotencial.BandasPelosTercis([7m, 7m, 7m, 7m]).Should().BeNull("todos iguais: o corte não separa ninguém");
+    }
+
+    [Fact]
+    public void O_porte_de_um_recorte_e_o_do_municipio_tipico_e_nao_o_da_soma()
+    {
+        var p = Parametros(porteMedio: 10m, porteGrande: 30m);
+
+        p.PorteDosMunicipios([5m, 20m, 35m]).Should().Be("Mercado médio", "a soma (60) passaria do corte de grande; a média (20) não");
+        p.PorteDosMunicipios([40m]).Should().Be("Mercado grande", "com um município só, o recorte é ele");
+        p.PorteDosMunicipios([]).Should().BeNull("sem município com demanda não há porte para nomear");
+        Parametros().PorteDosMunicipios([5m, 20m]).Should().BeNull("sem bandas registradas não há nome");
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // A faixa do momento usa a mesma régua dos índices
     // ---------------------------------------------------------------------------------------------
 

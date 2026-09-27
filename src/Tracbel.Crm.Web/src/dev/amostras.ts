@@ -529,8 +529,9 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
           },
           indiceDeCredito: 0.92,
           percepcaoPercentual: 2,
-          // O porte segue SEM NOME: as bandas da issue 166 não foram decididas,
-          // e o harness não pode inventar a decisão que a tela diz faltar.
+          // O porte segue SEM NOME: o critério da issue 166 está decidido (tercis da
+          // ADR), mas os números só existem depois que o administrador os registra —
+          // e o harness mostra o estado de antes, que é o que a tela explica.
           porte: null,
           faixaDoMomento: agregado === null ? null : agregado < 1 ? 'Retraído' : 'Normal',
           leitura: agregado === null ? '' : agregado < 1 ? 'Mercado retraído.' : 'Mercado normal.',

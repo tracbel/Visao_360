@@ -524,7 +524,11 @@ public sealed class ObterIndicadoresTerritoriais(
 
         var (fatorAgregado, estrutural, ajustada, motivo) = MomentoAgregado.Agregar(porCultura);
 
-        var porte = vigente?.PorteDe(recorte.DemandaAnualDeMaquinas);
+        // O PORTE É O DO MUNICÍPIO TÍPICO DO RECORTE (issue 166, 27/09/2026). As bandas são cortes de município — os
+        // tercis da ADR —, e a soma de uma região contra elas daria "grande" a todo recorte com mais de meia dúzia de
+        // municípios. Entram os municípios da ADR, a mesma população de onde os cortes saíram.
+        var porte = vigente?.PorteDosMunicipios(
+            [.. indicadores.Municipios.Where(m => m.PertenceAAdr).Select(m => m.PotencialEstrutural?.DemandaAnualDeMaquinas).OfType<decimal>()]);
 
         // SEM INDICADOR NENHUM, NÃO HÁ FAIXA (27/09/2026). Com preço, crédito e percepção ausentes, o fator é 1,00
         // por construção — desvio zero em tudo —, e a tela dizia "Mercado normal", uma afirmação sobre o mercado

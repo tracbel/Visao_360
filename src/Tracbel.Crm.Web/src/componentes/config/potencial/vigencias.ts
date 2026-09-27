@@ -132,7 +132,10 @@ export function montarHistorico(historico: HistoricoDosParametrosDoPotencial, ho
       resumo:
         `Janela ${g.mesesDaJanela} × ${g.mesesDaJanela} meses · crédito ${numero(g.pesoDosContratosNoCredito * 100, 0)}% contratos · ` +
         `faixas ${numero(g.limiteDeRetracao)} / ${numero(g.limiteDeAquecimento)} / ${numero(g.limiteDeSuperaquecimento)} · ` +
-        `percepção ±${numero(g.limiteDaPercepcao)}%`,
+        `percepção ±${numero(g.limiteDaPercepcao)}%` +
+        (g.porteMedioAPartirDe === null
+          ? ''
+          : ` · porte médio a partir de ${numero(g.porteMedioAPartirDe, 1)} e grande de ${numero(g.porteGrandeAPartirDe, 1)} máq/ano`),
       vigencia: g.vigencia,
       estado: estadoDaVigencia(g.vigencia, gerais.get('geral'), hoje),
       alvo: { tipo: 'geral', vigenteDesde: g.vigencia.vigenteDesde },
@@ -191,6 +194,9 @@ export function formularioDosGerais(vigente: ParametrosGeraisDetalhe | null, hoj
     fatorMinimo: campo(vigente?.fatorMinimo),
     fatorMaximo: campo(vigente?.fatorMaximo),
     mesesDeCarenciaDoSicor: campo(vigente?.mesesDeCarenciaDoSicor),
+    minimoDeLinhasNoCredito: campo(vigente?.minimoDeLinhasNoCredito),
+    porteMedioAPartirDe: campo(vigente?.porteMedioAPartirDe),
+    porteGrandeAPartirDe: campo(vigente?.porteGrandeAPartirDe),
     justificativa: '',
   };
 }

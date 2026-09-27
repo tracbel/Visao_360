@@ -95,6 +95,16 @@ function ParametrosGerais({ geral }: { geral: ParametrosGeraisDetalhe }) {
             {geral.fatorMinimo === null ? <EmAberto /> : `${numero(geral.fatorMinimo, 3)} a ${numero(geral.fatorMaximo, 3)}`}
           </dd>
         </div>
+        <div>
+          <dt>Porte do mercado (máq/ano por município)</dt>
+          <dd>
+            {geral.porteMedioAPartirDe === null ? (
+              <EmAberto />
+            ) : (
+              `médio a partir de ${numero(geral.porteMedioAPartirDe, 1)} · grande a partir de ${numero(geral.porteGrandeAPartirDe, 1)}`
+            )}
+          </dd>
+        </div>
       </dl>
       <LinhaDaVigencia vigencia={geral.vigencia} />
     </>
