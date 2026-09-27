@@ -47,13 +47,14 @@ public sealed record FaturamentoDaCompetencia(
 }
 
 /// <summary>
-/// O faturamento do ANO CIVIL pedido, ao lado da meta de faturamento cadastrada — e nunca de uma
-/// previsão (documento 36, cartão B).
+/// O faturamento do ANO CIVIL pedido, em reais — e nunca de uma previsão (documento 36, cartão B).
 ///
-/// <para><b>Ano civil, e não fiscal:</b> o calendário fiscal não foi confirmado (documento 32, P-4).
-/// <b>Meta só soma no nível da filial</b> (sem carteira, usuário nem linha de negócio) e com o
-/// período inteiro dentro do ano: somar a meta da filial com a das carteiras dela contaria o mesmo
-/// alvo duas vezes, e ratear uma meta que cruza o ano seria inventar a parte de cada mês.</para>
+/// <para><b>Ano civil, e não fiscal:</b> o calendário fiscal não foi confirmado (documento 32, P-4).</para>
+///
+/// <para><b>A meta saiu daqui (#138, 27/09/2026).</b> Este registro levava a meta de FATURAMENTO de
+/// <c>organizacao.Meta</c>, tabela que saiu na fase 1 sem nunca ter tido uma linha — os quatro campos vinham
+/// sempre zerados. A meta decidida é a de VENDA, em unidades, da API Gestão de Negócios, e mora na rota
+/// própria (<c>/relatorios/metas</c>); aqui fica só o faturamento.</para>
 /// </summary>
 /// <param name="Ano">O ano pedido.</param>
 /// <param name="PrimeiraCompetencia">O primeiro mês com faturamento no ano.</param>
@@ -61,21 +62,13 @@ public sealed record FaturamentoDaCompetencia(
 /// <param name="MesesComFaturamento">Quantos meses do ano têm linha de faturamento.</param>
 /// <param name="ComCliente">Realizado com cliente no CRM.</param>
 /// <param name="SemCliente">Realizado sem cliente no CRM, todas as naturezas.</param>
-/// <param name="MetasDaFilial">Metas de faturamento da filial com o período dentro do ano.</param>
-/// <param name="AlvoDaFilial">A soma dessas metas; nulo quando não há nenhuma — sem meta, e não meta zero.</param>
-/// <param name="MetasDetalhadas">Metas de carteira, usuário ou linha no ano — contadas, não somadas.</param>
-/// <param name="MetasQueCruzamOAno">Metas que começam ou terminam fora do ano — contadas, não rateadas.</param>
 public sealed record FaturamentoDoAno(
     int Ano,
     DateOnly? PrimeiraCompetencia,
     DateOnly? UltimaCompetencia,
     int MesesComFaturamento,
     decimal ComCliente,
-    decimal SemCliente,
-    int MetasDaFilial,
-    decimal? AlvoDaFilial,
-    int MetasDetalhadas,
-    int MetasQueCruzamOAno)
+    decimal SemCliente)
 {
     /// <summary>Tudo o que foi emitido no ano, até a última competência carregada.</summary>
     public decimal Total => ComCliente + SemCliente;

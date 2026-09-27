@@ -149,7 +149,7 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
     }
 
     [Fact]
-    public async Task O_ano_e_o_civil_pedido_e_o_cartao_fica_sem_meta()
+    public async Task O_ano_e_o_civil_pedido_e_o_cartao_so_traz_o_faturamento()
     {
         await SemearAsync();
         var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Rota));
@@ -159,13 +159,12 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
         ano.GetProperty("total").GetDecimal().Should().Be(1280m);
         ano.GetProperty("mesesComFaturamento").GetInt32().Should().Be(1);
 
-        // A META SAIU NA FASE 1 (documento 41). Sem fonte, o cartão mostra o realizado e declara a
-        // lacuna: "sem meta é sem meta, e não meta zero" — que é o que a tela já dizia, porque a
-        // tabela nunca teve uma linha.
-        ano.GetProperty("metasDaFilial").GetInt32().Should().Be(0);
-        ano.GetProperty("alvoDaFilial").ValueKind.Should().Be(JsonValueKind.Null);
-        ano.GetProperty("metasQueCruzamOAno").GetInt32().Should().Be(0);
-        Lacunas(dados).Should().Contain(["metaDeFaturamento", "calendarioFiscal", "previsao", "devolucoes"]);
+        // A META SAIU DESTE CARTÃO (#138, 27/09/2026): a meta de VENDA, em unidades, da API Gestão de Negócios, tem rota
+        // própria. A de faturamento nunca teve fonte, e os campos vinham sempre zerados.
+        ano.EnumerateObject().Select(p => p.Name).Should().NotContain(n => n.Contains("meta", StringComparison.OrdinalIgnoreCase)
+                                                                          || n.Contains("alvo", StringComparison.OrdinalIgnoreCase));
+        Lacunas(dados).Should().NotContain("metaDeFaturamento");
+        Lacunas(dados).Should().Contain(["calendarioFiscal", "previsao", "devolucoes"]);
     }
 
     [Fact]
@@ -176,9 +175,7 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
         var indicadores = dados.GetProperty("indicadores");
 
         indicadores.GetProperty("ano").GetProperty("total").GetDecimal().Should().Be(999m);
-        indicadores.GetProperty("ano").GetProperty("alvoDaFilial").ValueKind.Should().Be(JsonValueKind.Null, "sem meta é sem meta, e não meta zero");
         indicadores.GetProperty("faturamentoDoMes").GetProperty("total").GetDecimal().Should().Be(1280m);
-        Lacunas(dados).Should().Contain("metaDeFaturamento");
     }
 
     [Fact]
