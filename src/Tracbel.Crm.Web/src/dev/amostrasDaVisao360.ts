@@ -32,6 +32,7 @@
  */
 
 import type { CatalogoDeSelecao, PaginaDe } from '../tipos/api';
+import type { MetaERealizadoDaFilial } from '../tipos/metas';
 import type { PainelExecutivoDaFilial } from '../tipos/painelExecutivo';
 import type {
   Agregado,
@@ -427,11 +428,6 @@ export function indicadoresExecutivos(estado: EstadoDaVisao360, codigo: string, 
         mesesComFaturamento: vazio ? 0 : doAnoCorrente ? 9 : 12,
         comCliente: vazio ? 0 : n(24_000_000 * peso),
         semCliente: vazio ? 0 : n(5_600_000 * peso),
-        // A META NÃO EXISTE MAIS NO BANCO (fase 1): a API devolve sempre nulo.
-        metasDaFilial: 0,
-        alvoDaFilial: null,
-        metasDetalhadas: 0,
-        metasQueCruzamOAno: 0,
         total: vazio ? 0 : n(29_600_000 * peso),
       },
       // A SITUAÇÃO É CONTADA SÓ ENTRE QUEM TEM VÍNCULO (a rota real faz assim): no `semCarteira` os
@@ -476,6 +472,61 @@ export function indicadoresExecutivos(estado: EstadoDaVisao360, codigo: string, 
 }
 
 /* ------------------------------------------------------------------------ */
+/* A meta de venda × o realizado (#138)                                       */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * A meta de venda de uma filial, em máquinas. No `completo` o cadastro da API Gestão de Negócios foi lido, e o ano fiscal
+ * até agosto tem meta, realizado, pendentes do ART e consórcio; nos outros dois a rotina das metas ainda não rodou — é o
+ * que a produção mostra até alguém gravar a chave e ligar a rotina.
+ */
+export function metasDeVenda(estado: EstadoDaVisao360, codigo: string): MetaERealizadoDaFilial {
+  const { peso } = filial(estado, codigo);
+  const lida = estado === 'completo';
+  const p = lida ? peso : 0;
+  const meses = ['2025-11-01', '2025-12-01', '2026-01-01', '2026-02-01', '2026-03-01', '2026-04-01', '2026-05-01', '2026-06-01', '2026-07-01', '2026-08-01'];
+  const porMes = meses.map((competencia, i) => ({
+    competencia,
+    metaMaquinas: n((24 + (i % 4) * 3) * p),
+    realizadoMaquinas: n((19 + (i % 3) * 2) * p),
+    metaConsorcio: n(4 * p),
+  }));
+  const meta = porMes.reduce((s, m) => s + m.metaMaquinas, 0);
+  const realizado = porMes.reduce((s, m) => s + m.realizadoMaquinas, 0);
+
+  return {
+    periodo: {
+      inicial: '2025-11-01', final: '2026-08-01', meses: 10, anoFiscal: 2026, texto: 'nov/2025 a ago/2026', ehOPadrao: true,
+      inicialDoAnterior: '2024-11-01', finalDoAnterior: '2025-08-01',
+    },
+    alcance: 'Filial',
+    totais: { metaMaquinas: meta, realizadoMaquinas: realizado, pendentesNoArt: n(21 * p), metaConsorcio: n(40 * p) },
+    porMes,
+    porLinha: lida
+      ? [
+          { codigo: 'TRATOR_MEDIO', nome: 'TRATOR MÉDIO', meta: n(meta * 0.5), realizado: n(realizado * 0.55) },
+          { codigo: 'COLHEDORA_CANA_CH_570', nome: 'COLHEDORA CANA CH 570', meta: n(meta * 0.3), realizado: n(realizado * 0.25) },
+          { codigo: 'PULVERIZADOR', nome: 'PULVERIZADOR', meta: meta - n(meta * 0.5) - n(meta * 0.3), realizado: realizado - n(realizado * 0.55) - n(realizado * 0.25) },
+        ]
+      : [],
+    porConsultor: lida
+      ? [
+          { consultor: 'CONSULTOR.FICTICIO.UM', temConta: true, meta: n(meta * 0.6), realizado: n(realizado * 0.62) },
+          { consultor: 'CONSULTORA.FICTICIA.DOIS', temConta: false, meta: meta - n(meta * 0.6), realizado: realizado - n(realizado * 0.62) },
+        ]
+      : [],
+    mesEmCurso: { competencia: '2026-09-01', metaMaquinas: n(27 * p), realizadoMaquinas: n(11 * p), metaConsorcio: n(4 * p) },
+    mesmoTrechoDoFyAnterior: { realizadoMaquinas: n(realizado * 0.9) },
+    origem: lida
+      ? { sistema: 'API Gestão de Negócios', rota: '/api/v1/cadastros/metas', lidaEm: '2026-09-27T09:00:00Z', geradaNaOrigemEm: '2026-09-27T08:59:40Z' }
+      : null,
+    metricasSemDado: lida
+      ? [{ metrica: 'consorcio', motivo: `Meta de consórcio: ${n(40 * p)} cotas no período. O realizado de consórcio não é medido pelo CRM.` }]
+      : [{ metrica: 'cadastroDeMetasNaoLido', motivo: 'O cadastro de metas da API Gestão de Negócios ainda não foi lido.' }],
+  };
+}
+
+/* ------------------------------------------------------------------------ */
 /* A rota → a amostra                                                         */
 /* ------------------------------------------------------------------------ */
 
@@ -510,6 +561,8 @@ export function respostaDaVisao360(
       return faturamento(estado, empresa);
     case '/v1/relatorios/indicadores-executivos':
       return indicadoresExecutivos(estado, empresa, Number(consulta.get('ano') ?? 2026));
+    case '/v1/relatorios/metas':
+      return metasDeVenda(estado, empresa);
     case '/v1/processos':
       return contagemDeProcessos(estado, empresa, consulta.get('situacao') ?? '');
     default:

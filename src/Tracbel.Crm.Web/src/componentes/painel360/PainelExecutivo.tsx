@@ -11,7 +11,8 @@
  * período e alcance escritos no próprio cartão, e a composição filial a filial
  * abre logo abaixo deles:
  *   A. faturamento da competência mais recente, com e sem cliente no CRM;
- *   B. realizado do ano civil ao lado da meta — que ainda não existe (issue 138) — e nunca previsão;
+ *   B. a meta de VENDA da API Gestão de Negócios × as máquinas vendidas (ART), no ano fiscal até o último
+ *      mês fechado — de `/relatorios/metas`, lida filial a filial (#138) — e nunca previsão;
  *   C. clientes únicos (filial de cadastro) e vínculos (filial da carteira);
  *   D. cobertura pela cadência declarada da linha — a regra do mapa;
  *   E. vendas perdidas registradas — sem percentual de mercado.
@@ -27,9 +28,9 @@
  * - OS QUATRO `title=` VIRARAM DICA (issue 167): a regra de cada cartão, o nome
  *   inteiro e a classe do cliente, e os nomes completos das linhas do mix. O
  *   `title` não abre pelo teclado nem no toque.
- * - A META SAIU DO TEXTO COMO SE EXISTISSE: a tabela antiga foi removida na
- *   simplificação do banco (fase 1), e a API devolve o alvo sempre nulo. O
- *   cartão mostra "—" com o motivo, e a issue que destrava é a 138.
+ * - A META VOLTOU, E É OUTRA (27/09/2026, #138): a cota de venda da API Gestão de
+ *   Negócios, em MÁQUINAS, contra as máquinas do ART que o CRM tem. A meta de
+ *   faturamento em reais, que nunca teve fonte, saiu do cartão e da composição.
  * - O ANO É CIVIL, E A TELA PAROU DE DIZER QUE O FISCAL NÃO FOI CONFIRMADO: foi,
  *   em 24/09 (novembro a outubro). O servidor ainda apura jan–dez, e a visão por
  *   FY é o próximo passo — está na dica.
@@ -50,9 +51,9 @@ import {
   type ExecutivoConsolidado,
 } from '../../dados/api/consolidado';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
+import { obterMetasConsolidadas, type MetasConsolidadas } from '../../dados/api/metas';
 import { useRecurso } from '../../dados/api/useRecurso';
 import { BlocoCarregando, BlocoErro } from '../cadastro/EstadosDeTela';
-import { ValorAusente } from '../comum/ValorAusente';
 import { GraficoBarrasHorizontais } from '../GraficoBarrasHorizontais';
 import { InfoTooltip } from '../InfoTooltip';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
@@ -61,15 +62,22 @@ import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import '../../estilos/painel-executivo.css';
 
 /**
- * POR QUE A META NÃO APARECE — a frase é uma só, no cartão e na tabela.
+ * COMO A META DE VENDA SE CONTA — a frase é uma só, no cartão e na composição (#138, decisões de 27/09/2026).
  *
- * A tabela de metas do legado saiu na simplificação do banco (fase 1), e a API
- * devolve o alvo sempre nulo. Dizer "nenhuma cadastrada" sugeria que bastava
- * alguém cadastrar; não há onde. As metas administráveis são a issue 138.
+ * A meta é a cota da API Gestão de Negócios, em máquinas; o realizado são as máquinas do ART que o CRM tem. As vendas
+ * do ART que o CRM ainda não tem vêm à parte, em número, e o consórcio é em cotas, sem realizado.
  */
-const MOTIVO_SEM_META =
-  'O CRM ainda não tem onde cadastrar meta: as metas administráveis — por filial, com vigência — são a issue 138. ' +
-  'Até lá o cartão mostra só o realizado.';
+const REGRA_DA_META =
+  'Meta: a cota da API Gestão de Negócios, em máquinas, por consultor, linha, mês e filial. ' +
+  'Realizado: as máquinas vendidas que o CRM tem, lidas do ART, pela data da venda — por consultor, conta o vendedor da venda. ' +
+  'As vendas do ART que aguardam cadastro ou chassi não entram no realizado e aparecem à parte. ' +
+  'Consórcio: meta em cotas; o realizado de consórcio não é medido pelo CRM. ' +
+  'Período: o ano fiscal (novembro a outubro) até o último mês fechado, comparado com o mesmo trecho do ano fiscal anterior; o mês em curso vem à parte. ' +
+  'Previsão: não calculada — nenhum modelo aprovado.';
+
+/** A permissão que falta, dita como a tela de perfis a chama. */
+const SEM_PERMISSAO_DA_META =
+  'Você não tem a permissão de ler a meta de venda (Meta.Ler). Quem administra o CRM concede pelo perfil.';
 
 /**
  * O ANO DOS CARTÕES, na dica ao lado de "ano civil".
@@ -241,6 +249,9 @@ export function PainelExecutivo() {
 
   const consolidado = useRecurso((sinal) => obterConsolidado(contexto, sinal), [contexto.usuario]);
   const executivo = useRecurso((sinal) => obterExecutivoConsolidado(contexto, ano, sinal), [contexto.usuario, ano]);
+  // A META DE VENDA TEM LEITURA PRÓPRIA (#138): o período dela é o ano fiscal, e não o ano do seletor, e a falha dela não
+  // derruba os outros cartões.
+  const metas = useRecurso((sinal) => obterMetasConsolidadas(contexto, sinal), [contexto.usuario]);
 
   const dados = consolidado.dados;
   const total = useMemo(() => somarConsolidado(dados), [dados]);
@@ -358,7 +369,8 @@ export function PainelExecutivo() {
       ) : (
         <CincoIndicadores
           ex={ex && ex.respondidas > 0 ? ex : null}
-          ano={ano}
+          metas={metas.dados}
+          carregandoMetas={metas.carregando}
           // A CONTAGEM DE CONCORRENTES VEM DE OUTRA LEITURA (o consolidado). Ela só aparece quando as duas
           // leituras estão completas — senão o cartão juntaria um total de dez filiais com um de treze.
           concorrentes={
@@ -369,7 +381,7 @@ export function PainelExecutivo() {
         />
       )}
 
-      {ex && ex.respondidas > 0 && <ComposicaoDosIndicadores ex={ex} />}
+      {ex && ex.respondidas > 0 && <ComposicaoDosIndicadores ex={ex} metas={metas.dados} />}
 
       {/* ROW 2: conhecimento · status da cobertura · faturamento --------- */}
       <div className="v360-grid-row2" data-bloco="linha-2">
@@ -722,14 +734,84 @@ export function PainelExecutivo() {
 
 /* ------------------------------------------------------------------------ */
 
+/**
+ * B. A META DE VENDA × O REALIZADO (#138) — em MÁQUINAS, no ano fiscal até o último mês fechado.
+ *
+ * Tem leitura própria (`/relatorios/metas`), e por isso aparece mesmo quando os indicadores das filiais não responderam.
+ * No alcance Próprios — o vendedor, no perfil Padrão — é a meta dele; sem `Meta.Ler`, o cartão diz que falta a permissão,
+ * e não "meta zero".
+ */
+function CartaoDaMeta({ metas, carregando }: { metas: MetasConsolidadas | null; carregando: boolean }) {
+  const titulo = metas?.periodo ? `Meta e realizado · FY${metas.periodo.anoFiscal}` : 'Meta e realizado';
+
+  if (!metas || metas.respondidas === 0) {
+    const motivo = carregando
+      ? 'lendo a meta das filiais…'
+      : metas?.semPermissao
+        ? SEM_PERMISSAO_DA_META
+        : 'a leitura da meta das filiais não respondeu';
+    return <CartaoSemDado titulo={titulo} cor="#1B5E20" motivo={motivo} icone="target" />;
+  }
+
+  const { periodo, metaMaquinas: meta, realizadoMaquinas: realizado, origem } = metas;
+  const proprio = metas.alcance === 'Proprios';
+  const pct = meta > 0 ? (100 * realizado) / meta : null;
+
+  // O CADASTRO NÃO LIDO NÃO É "META ZERO": a rotina das metas ainda não rodou, e o cartão diz o que falta.
+  if (origem === null) {
+    return (
+      <CartaoIndicador
+        titulo={titulo}
+        valor="—"
+        subtexto="o cadastro de metas da Gestão de Negócios ainda não foi lido"
+        detalhe={`realizado: ${nº(realizado)} máquina(s) em ${periodo?.texto ?? 'período'} · a meta entra quando a rotina das metas rodar`}
+        dica={REGRA_DA_META}
+        cor="#1B5E20"
+        icone="target"
+      />
+    );
+  }
+
+  const partes = [
+    metas.pendentesNoArt ? `${nº(metas.pendentesNoArt)} vendas do ART aguardam cadastro ou chassi` : null,
+    metas.metaConsorcio > 0 ? `consórcio: ${nº(metas.metaConsorcio)} cotas, realizado não medido` : null,
+    `mesmo trecho do FY anterior: ${nº(metas.realizadoNoAnterior)}`,
+    metas.mesEmCurso
+      ? `${mesPorExtenso(metas.mesEmCurso.competencia)} em curso: ${nº(metas.mesEmCurso.realizadoMaquinas)} de ${nº(metas.mesEmCurso.metaMaquinas)}`
+      : null,
+  ].filter((p): p is string => p !== null);
+
+  return (
+    <CartaoIndicador
+      titulo={titulo}
+      valor={meta > 0 ? `${nº(realizado)} de ${nº(meta)}` : nº(realizado)}
+      subtexto={`${proprio ? 'Sua meta · ' : ''}máquinas vendidas${pct === null ? ' · sem meta no período' : ` · ${porcento(pct)} da meta`} · ${periodo?.texto ?? ''}`}
+      detalhe={partes.join(' · ')}
+      dica={`${REGRA_DA_META} Cadastro lido em ${diaEHora(origem.lidaEm)}${proprio ? '' : `, ${metas.respondidas} filial(is)`}.`}
+      cor="#1B5E20"
+      icone="target"
+    />
+  );
+}
+
 /** Os cinco cartões, cada um com fonte, período e alcance no rodapé — e o motivo quando falta dado. */
-function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado | null; ano: number; concorrentes: number | null }) {
+function CincoIndicadores({
+  ex,
+  metas,
+  carregandoMetas,
+  concorrentes,
+}: {
+  ex: ExecutivoConsolidado | null;
+  metas: MetasConsolidadas | null;
+  carregandoMetas: boolean;
+  concorrentes: number | null;
+}) {
   if (!ex) {
     const motivo = 'a leitura dos indicadores das filiais não respondeu';
     return (
       <div className="v360-kpi-row" data-bloco="kpis">
         <CartaoSemDado titulo="Faturamento do mês" cor="#367C2B" motivo={motivo} icone="trending-up" />
-        <CartaoSemDado titulo={`Meta e realizado · ${ano}`} cor="#1B5E20" motivo={motivo} icone="target" />
+        <CartaoDaMeta metas={metas} carregando={carregandoMetas} />
         <CartaoSemDado titulo="Clientes na carteira" cor="#0EA5E9" motivo={motivo} icone="users" />
         <CartaoSemDado titulo="Cobertura pela cadência" cor="#7C3AED" motivo={motivo} icone="shield" />
         <CartaoSemDado titulo="Conhecimento de mercado" cor="#B45309" motivo={motivo} icone="eye" destaque />
@@ -743,7 +825,6 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
   const mesEmCurso = mes !== null && mes.competencia.slice(0, 7) === mesCorrente;
   const alcance = `${ex.respondidas} filiais`;
 
-  const doAno = ex.realizadoDoAno;
   const cobertura = ex.cobertura;
   const coberturaPct = cobertura.elegiveis > 0 ? (100 * cobertura.cobertos) / cobertura.elegiveis : null;
   const mercado = ex.mercado;
@@ -773,32 +854,9 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
         <CartaoSemDado titulo="Faturamento do mês" cor="#367C2B" motivo="nenhuma nota carregada nas filiais que responderam" icone="trending-up" />
       )}
 
-      {/* B. META E REALIZADO — o realizado é medido; a meta ainda não existe (issue 138); previsão não existe.
-          O ramo com alvo fica: a API continua devolvendo o campo, e o dia em que a 138 trouxer a meta o
-          cartão já sabe mostrá-la. */}
-      <CartaoIndicador
-        titulo={`Meta e realizado · ${ano}`}
-        valor={doAno.ultimaCompetencia ? emMilhoes(doAno.total) : '—'}
-        subtexto={
-          doAno.ultimaCompetencia && doAno.primeiraCompetencia
-            ? `realizado ${mesCurto(doAno.primeiraCompetencia)} a ${mesPorExtenso(doAno.ultimaCompetencia)}${
-                mesEmCurso && mes && doAno.ultimaCompetencia === mes.competencia ? ' (em curso)' : ''
-              } · ano civil`
-            : `sem faturamento carregado em ${ano}`
-        }
-        detalhe={
-          doAno.alvo === null ? (
-            <>
-              meta <ValorAusente motivo={MOTIVO_SEM_META} oQue="a meta" /> · previsão: sem modelo aprovado
-            </>
-          ) : (
-            `meta ${emMilhoes(doAno.alvo)} em ${doAno.filiaisComMeta} filial(is) · ${porcento((100 * doAno.realizadoDasFiliaisComMeta) / doAno.alvo)} realizado nelas · previsão: sem modelo`
-          )
-        }
-        dica="Realizado: soma das notas de saída do ano civil (jan–dez), com e sem cliente no CRM. Meta: o CRM ainda não tem onde cadastrá-la — é a issue 138. Previsão: não calculada — extrapolar a média dos meses não é previsão."
-        cor="#1B5E20"
-        icone="target"
-      />
+      {/* B. META E REALIZADO — a meta de VENDA da API Gestão de Negócios × as máquinas do ART (#138). O faturamento
+          do ano em reais continua na composição, com o nome dele. */}
+      <CartaoDaMeta metas={metas} carregando={carregandoMetas} />
 
       {/* C. CLIENTES — únicos pela filial de cadastro; vínculos pela filial da carteira.
 
@@ -857,8 +915,10 @@ function CincoIndicadores({ ex, ano, concorrentes }: { ex: ExecutivoConsolidado 
  * A COMPOSIÇÃO DOS CINCO NÚMEROS, filial a filial — o que o pedido chama de "consultar os registros
  * que compõem". Cada coluna é somável; a linha de total é a do cartão.
  */
-function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
+function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; metas: MetasConsolidadas | null }) {
   const mes = ex.faturamentoDoMes;
+  const fy = metas?.periodo ? `FY${metas.periodo.anoFiscal}` : 'FY';
+  const metaDa = (codigo: string) => metas?.filiais.find((f) => f.filial.codigo === codigo)?.meta ?? null;
 
   return (
     <details className="v360-composicao" data-bloco="composicao">
@@ -869,10 +929,14 @@ function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
           <code>comercial.FaturamentoSemCliente</code> → valor líquido da competência mais recente, com cliente e sem cliente
           por natureza → soma das filiais. Devolução e cancelamento não são abatidos. O ART não é somado.
         </li>
-        {/* A META NÃO TEM TABELA (fase 1): a linha dizia de onde ela vinha, e ela não vem de lugar nenhum. */}
         <li>
-          <strong>Meta e realizado</strong>: as mesmas tabelas no ano civil {ex.ano}, de janeiro a dezembro. Meta: o CRM ainda
-          não tem onde cadastrá-la — as metas administráveis são a issue 138. Sem previsão.
+          <strong>Faturamento do ano</strong>: as mesmas tabelas no ano civil {ex.ano}, de janeiro a dezembro, em reais.
+        </li>
+        <li>
+          <strong>Meta e realizado</strong>: API Gestão de Negócios (cadastro de metas) → <code>organizacao.MetaDeVenda</code>, em
+          máquinas, contra <code>frota.VendaDeMaquina</code> (o ART), pela data da venda, no ano fiscal até o último mês fechado{' '}
+          {metas?.periodo ? `(${metas.periodo.texto})` : ''}. As vendas do ART que aguardam cadastro ou chassi ficam à parte; o
+          consórcio é em cotas, sem realizado. Sem previsão.
         </li>
         <li>
           <strong>Clientes</strong>: <code>comercial.Cliente</code> × <code>comercial.ClienteCarteira</code> → cliente com
@@ -898,10 +962,11 @@ function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
               <th scope="col">Filial</th>
               <th scope="col">Mês · com cliente</th>
               <th scope="col">Mês · sem cliente</th>
-              <th scope="col">Realizado {ex.ano}</th>
+              <th scope="col">Faturamento {ex.ano}</th>
               <th scope="col">
-                Meta {ex.ano} <InfoTooltip texto={MOTIVO_SEM_META} rotulo="Por que a meta não aparece" />
+                Meta {fy} (máq.) <InfoTooltip texto={REGRA_DA_META} rotulo="Como a meta de venda se conta" />
               </th>
+              <th scope="col">Realizado {fy} (máq.)</th>
               <th scope="col">Clientes únicos</th>
               <th scope="col">Vínculos comerciais</th>
               <th scope="col">Elegíveis</th>
@@ -916,19 +981,21 @@ function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
                 return (
                   <tr key={filial.codigo}>
                     <td>{filial.nome}</td>
-                    <td colSpan={10}>não respondeu — {erro?.message ?? 'motivo não informado'}</td>
+                    <td colSpan={11}>não respondeu — {erro?.message ?? 'motivo não informado'}</td>
                   </tr>
                 );
               }
               const i = painel.indicadores;
               const doMes = i.faturamentoDoMes && mes && i.faturamentoDoMes.competencia === mes.competencia ? i.faturamentoDoMes : null;
+              const metaDaFilial = metaDa(filial.codigo);
               return (
                 <tr key={filial.codigo}>
                   <td>{filial.nome}</td>
                   <td className="num">{doMes ? emMilhoes(doMes.comCliente) : i.faturamentoDoMes ? `em ${mesPorExtenso(i.faturamentoDoMes.competencia)}` : '—'}</td>
                   <td className="num">{doMes ? emMilhoes(doMes.semCliente) : '—'}</td>
                   <td className="num">{emMilhoes(i.ano.total)}</td>
-                  <td className="num">{i.ano.alvoDaFilial === null ? '—' : emMilhoes(i.ano.alvoDaFilial)}</td>
+                  <td className="num">{metaDaFilial ? nº(metaDaFilial.totais.metaMaquinas) : '—'}</td>
+                  <td className="num">{metaDaFilial ? nº(metaDaFilial.totais.realizadoMaquinas) : '—'}</td>
                   <td className="num">{nº(i.carteira.clientesCadastradosComVinculo)}</td>
                   <td className="num">{nº(i.carteira.vinculosComerciais)}</td>
                   <td className="num">{nº(i.cobertura.elegiveis)}</td>
@@ -943,7 +1010,8 @@ function ComposicaoDosIndicadores({ ex }: { ex: ExecutivoConsolidado }) {
               <td className="num">{mes ? emMilhoes(mes.comCliente) : '—'}</td>
               <td className="num">{mes ? emMilhoes(mes.semCliente) : '—'}</td>
               <td className="num">{emMilhoes(ex.realizadoDoAno.total)}</td>
-              <td className="num">{ex.realizadoDoAno.alvo === null ? '—' : emMilhoes(ex.realizadoDoAno.alvo)}</td>
+              <td className="num">{metas && metas.respondidas > 0 ? nº(metas.metaMaquinas) : '—'}</td>
+              <td className="num">{metas && metas.respondidas > 0 ? nº(metas.realizadoMaquinas) : '—'}</td>
               <td className="num">{nº(ex.carteira.clientesCadastradosComVinculo)}</td>
               <td className="num">{nº(ex.carteira.vinculosComerciais)}</td>
               <td className="num">{nº(ex.cobertura.elegiveis)}</td>
