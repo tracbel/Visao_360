@@ -23,7 +23,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProvedorDeContextoDeAcesso } from '../dados/api/contexto';
 import { EspelhoDaUrl } from '../testes/EspelhoDaUrl';
 import { ARARAQUARA, CAFELANDIA, municipioDeTeste } from '../testes/territorio';
-import type { PainelTerritorial } from '../tipos/territorio';
+import type { PainelTerritorial, RegraDePotencialAplicada } from '../tipos/territorio';
 import { IndicadoresGeograficos } from './IndicadoresGeograficos';
 
 // CADA TESTE DAQUI MONTA A PÁGINA INTEIRA — as duas abas, os quatro mapas
@@ -69,6 +69,35 @@ vi.stubGlobal('localStorage', {
   removeItem: (chave: string) => void guardado.delete(chave),
   clear: () => guardado.clear(),
 });
+
+/** Uma regra da D-P01 (27/09/2026): trator, confirmada, com o ciclo de troca. */
+function regraDeTrator(produtoCodigoIbge: number, produtoNome: string, hectaresPorMaquina: number): RegraDePotencialAplicada {
+  return {
+    produtoCodigoIbge,
+    produtoNome,
+    hectaresPorMaquina,
+    modeloDeReferencia: 'trator',
+    situacao: 'Confirmada',
+    justificativa: 'D-P01 decidida em 27/09/2026',
+    vigenteDesde: '2026-09-27',
+    anosDeRenovacao: 10,
+  };
+}
+
+/** O BANCO DEPOIS DA D-P01: uma regra por cultura, na ordem do servidor (pelo código do produto). */
+function comUmaRegraPorCultura(p: PainelTerritorial): PainelTerritorial {
+  return {
+    ...p,
+    indicadores: {
+      ...p.indicadores,
+      regras: [
+        regraDeTrator(40101, 'Amendoim (em casca)', 200),
+        regraDeTrator(40106, 'Cana-de-açúcar', 170),
+        regraDeTrator(40139, 'Café (em grão) Total', 20),
+      ],
+    },
+  };
+}
 
 function painel(): PainelTerritorial {
   return {
@@ -1585,6 +1614,49 @@ describe('Indicadores Geográficos — densidade da primeira camada (issues 31 e
     for (const preservado of ['ciclo de troca', 'concorrência', 'não clientes', 'contaria a mesma área duas vezes']) {
       expect(dica, `"${preservado}" se perdeu`).toContain(preservado);
     }
+  });
+
+  it('com uma regra por cultura, o resumo conta as culturas e o método cita todas — e não a primeira da lista', async () => {
+    // A PRIMEIRA PELO CÓDIGO DO PRODUTO É O AMENDOIM. Citá-la sozinha, como a tela fazia com `regras[0]`,
+    // dizia que o potencial inteiro era "1 trator a cada 200 ha de amendoim".
+    responder(comUmaRegraPorCultura);
+    abrir();
+    await esperarACarga();
+
+    const potencial = document.querySelector<HTMLElement>('[data-mapa="potencial"]')!;
+    const corpo = textoPermanente(potencial);
+    expect(corpo).toContain('3 culturas com regra');
+    expect(corpo, 'a primeira regra da lista virou o método do mapa inteiro').not.toContain('ha de Amendoim');
+
+    fireEvent.focus(within(potencial).getByRole('button', { name: 'Fonte e método deste mapa' }));
+    const dica = screen.getByRole('tooltip').textContent!;
+    for (const regra of [
+      '1 trator a cada 200 ha de Amendoim (em casca)',
+      '1 trator a cada 20 ha de Café (em grão) Total',
+      '1 trator a cada 170 ha de Cana-de-açúcar',
+    ]) {
+      expect(dica, `a regra "${regra}" sumiu do método`).toContain(regra);
+    }
+    // AS REGRAS DA D-P01 ESTÃO CONFIRMADAS: a frase fixa "a confirmar" era falsa para elas.
+    expect(dica).not.toContain('Regra a confirmar pelo comercial');
+  });
+
+  it('o filtro "Cultura da regra" lista todas as culturas com regra — e não diz mais que só há uma', async () => {
+    responder(comUmaRegraPorCultura);
+    abrir();
+    await esperarACarga();
+
+    fireEvent.click(screen.getByRole('button', { name: /Mais filtros/ }));
+    const campo = (await screen.findByText('Cultura da regra')).closest('label')!;
+
+    expect(within(campo).getByRole('combobox')).toHaveTextContent(
+      'Amendoim (em casca) · Café (em grão) Total · Cana-de-açúcar',
+    );
+
+    fireEvent.focus(within(campo).getByRole('button', { name: 'O que esta lista mostra' }));
+    const dica = screen.getByRole('tooltip');
+    expect(dica).toHaveTextContent('soma as 3 culturas com regra de potencial');
+    expect(dica).not.toHaveTextContent('Só há uma regra');
   });
 
   it('o mapa da estrutura perdeu o parágrafo de Censo, sigilo e ANP — e ele está na dica', async () => {

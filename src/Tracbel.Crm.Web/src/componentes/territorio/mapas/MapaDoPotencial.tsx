@@ -24,22 +24,39 @@ import type { EstadoNoMapa } from '../MapaDeMunicipios';
  * e valor da produção — no cartão onde a diretoria quer ver o mapa. Está tudo
  * aqui, palavra por palavra, a um `ⓘ` de distância.
  */
+/**
+ * AS REGRAS COMO O NEGÓCIO AS ESCREVEU, em ordem de nome — "1 trator a cada 20 ha de Café…".
+ *
+ * A lista vem do servidor pela ordem do código do produto, que não é ordem de leitura de ninguém; e,
+ * desde a D-P01 (27/09/2026), são várias. Citar só a primeira — era o que a tela fazia — dizia que o
+ * potencial inteiro era "1 trator a cada 200 ha de amendoim".
+ */
+function frasesDasRegras(regras: RegraDePotencialAplicada[]): string {
+  return [...regras]
+    .sort((a, b) => a.produtoNome.localeCompare(b.produtoNome, 'pt-BR'))
+    .map((r) => `1 ${r.modeloDeReferencia} a cada ${nº(r.hectaresPorMaquina)} ha de ${r.produtoNome}`)
+    .join('; ');
+}
+
 function metodologia(
   recorte: RecorteDoPotencial,
-  regra: RegraDePotencialAplicada | null,
+  regras: RegraDePotencialAplicada[],
   enderecos: number,
   enderecosComArea: number,
 ): string {
   if (recorte === 'maquinas') {
+    // "REGRA A CONFIRMAR" NÃO É MAIS FRASE FIXA: as regras da D-P01 estão confirmadas, e quando alguma
+    // não estiver, o aviso de estimativa logo acima desta frase diz isso — com base no dado.
     return (
-      'Fonte: IBGE/PAM — área plantada do município — com a regra de potencial do CRM. ' +
-      (regra
-        ? `Método: 1 ${regra.modeloDeReferencia} a cada ${regra.hectaresPorMaquina} ha de ${regra.produtoNome}. `
-        : 'Método: sem regra de potencial vigente. ') +
-      'Regra a confirmar pelo comercial (D-P01, issue 63). ' +
+      'Fonte: IBGE/PAM — área plantada do município — com as regras de potencial do CRM. ' +
+      (regras.length === 0
+        ? 'Método: sem regra de potencial vigente. '
+        : regras.length === 1
+          ? `Método: ${frasesDasRegras(regras)}. `
+          : `Método: a área plantada de cada cultura dividida pelos hectares por máquina da regra dela — ${frasesDasRegras(regras)}. `) +
       'É a área do município INTEIRO — clientes e não clientes juntos, sem separar: somar "clientes" e "não clientes" ' +
       `a ela contaria a mesma área duas vezes. Clientes: ${nº(enderecosComArea)} de ${nº(enderecos)} endereços com área ` +
-      'e cultura. Ressalva: não considera ciclo de troca, parque instalado, concorrência nem outras culturas.'
+      'e cultura. Ressalva: não considera ciclo de troca, parque instalado, concorrência nem as culturas sem regra.'
     );
   }
 
@@ -55,19 +72,24 @@ function metodologia(
 export function MapaDoPotencial({
   ligacao,
   totais,
-  regra,
+  regras,
   enderecos,
   enderecosComArea,
   classificacao,
 }: {
   ligacao: LigacaoDoMapa;
   totais: TotaisDaAdr;
-  regra: RegraDePotencialAplicada | null;
+  /** As regras vigentes — uma por cultura desde a D-P01. */
+  regras: RegraDePotencialAplicada[];
   enderecos: number;
   enderecosComArea: number;
   classificacao: ClassificacaoDeIndicador | null;
 }) {
   const [recorteDoPotencial, setRecorteDoPotencial] = useState<RecorteDoPotencial>('maquinas');
+
+  // QUANTAS CULTURAS TÊM REGRA — pelo produto, e não pela quantidade de regras: uma cultura pode ter
+  // regra em mais de uma categoria de máquina, e continua sendo uma cultura.
+  const culturasComRegra = new Set(regras.map((r) => r.produtoCodigoIbge)).size;
 
   function estadoDoPotencial(codigo: number): EstadoNoMapa {
     const m = ligacao.porCodigo.get(codigo);
@@ -76,7 +98,6 @@ export function MapaDoPotencial({
 
     // AS CULTURAS COM REGRA E A LAVOURA INTEIRA SÃO COISAS DIFERENTES: o recorte "máquinas teóricas"
     // olha só o que tem regra de potencial, e os outros dois olham TODAS as culturas do município.
-    const potencial = m!.potencial[0];
     const motor = m!.potencialEstrutural;
     const producao = m!.producao;
 
@@ -96,8 +117,16 @@ export function MapaDoPotencial({
             : 'produção agrícola não carregada para este município',
       };
 
-    // O ANO DA CULTURA SÓ APARECE QUANDO DIFERE DO DA LAVOURA ao lado (issue 152).
-    const anoDaCultura = potencial?.ano != null && potencial.ano !== producao?.ano ? ` (${potencial.ano})` : '';
+    // O ANO DAS CULTURAS SÓ APARECE QUANDO DIFERE DO DA LAVOURA ao lado (issue 152). Com uma regra por
+    // cultura, cada uma está no ano da PAM dela: um ano só aparece como ele, e anos diferentes como
+    // intervalo — e não o ano da primeira da lista, como se fosse o de todas.
+    const anos = [...new Set(m!.potencial.map((p) => p.ano).filter((a): a is number => a != null))].sort();
+    const anoDaCultura =
+      anos.length === 0 || (anos.length === 1 && anos[0] === producao?.ano)
+        ? ''
+        : anos.length === 1
+          ? ` (${anos[0]})`
+          : ` (${anos[0]}–${anos[anos.length - 1]})`;
     const daRegra = motor
       ? `${nº(Math.round(motor.areaUtilHectares ?? 0))} ha úteis${anoDaCultura} · ${nº(motor.parqueDeMaquinas ?? 0)} máquinas teóricas${motor.demandaAnualDeMaquinas != null ? ` · ${nº(motor.demandaAnualDeMaquinas)} por ano` : ''}${motor.estimativa ? ' · estimativa' : ''}`
       : 'sem regra de potencial vigente';
@@ -138,12 +167,16 @@ export function MapaDoPotencial({
           {totais.potencialEstimado && (
             <p>Estimativa: alguma regra que dimensionou máquina aqui ainda não foi confirmada pelo comercial (D-P01).</p>
           )}
-          <p>{metodologia(recorteDoPotencial, regra, enderecos, enderecosComArea)}</p>
+          <p>{metodologia(recorteDoPotencial, regras, enderecos, enderecosComArea)}</p>
         </>
       }
-      // A REGRA CONTINUA NO RESUMO, e agora como metadado à direita — que é onde
-      // a maquete põe "1.303 N / 10 ha de café". Ela é operacional e não é a
+      // A REGRA CONTINUA NO RESUMO, como metadado à direita — que é onde a
+      // maquete põe "1.303 N / 10 ha de café". Ela é operacional e não é a
       // resposta do cartão: a resposta é quantas máquinas o recorte comporta.
+      //
+      // COM MAIS DE UMA REGRA, O RESUMO CONTA AS CULTURAS e as regras vão para a
+      // dica, uma por uma. Uma regra só, escolhida pela ordem da lista, diria que
+      // ela é o método do mapa inteiro.
       resumo={{
         valor: totais.municipiosComArea > 0 ? nº(Math.round(totais.maquinasTeoricas)) : null,
         rotulo: 'máquinas potenciais',
@@ -153,14 +186,16 @@ export function MapaDoPotencial({
           totais.municipiosComArea > 0
             ? [
                 { valor: nº(totais.municipiosComArea), rotulo: 'municípios' },
-                ...(regra
+                ...(regras.length === 1
                   ? [
                       {
-                        valor: `1 ${regra.modeloDeReferencia}`,
-                        rotulo: `/ ${regra.hectaresPorMaquina} ha de ${regra.produtoNome}`,
+                        valor: `1 ${regras[0].modeloDeReferencia}`,
+                        rotulo: `/ ${nº(regras[0].hectaresPorMaquina)} ha de ${regras[0].produtoNome}`,
                       },
                     ]
-                  : []),
+                  : regras.length > 1
+                    ? [{ valor: nº(culturasComRegra), rotulo: culturasComRegra === 1 ? 'cultura com regra' : 'culturas com regra' }]
+                    : []),
               ]
             : undefined,
       }}

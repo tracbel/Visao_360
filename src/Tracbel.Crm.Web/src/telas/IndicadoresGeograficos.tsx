@@ -190,7 +190,10 @@ export function IndicadoresGeograficos() {
   const municipios = useMemo(() => indicadores?.municipios ?? [], [indicadores]);
   const porCodigo = useMemo(() => new Map(municipios.map((m) => [m.codigoIbge, m])), [municipios]);
   const adr = useMemo(() => new Set(municipios.filter((m) => m.pertenceAAdr).map((m) => m.codigoIbge)), [municipios]);
-  const regra = indicadores?.regras[0] ?? null;
+  // TODAS AS REGRAS, e não "a primeira": desde a D-P01 (27/09/2026) há uma por cultura, e a primeira da
+  // lista (a de menor código de produto) é a do amendoim — citá-la sozinha dizia que o potencial inteiro
+  // era "1 trator a cada 200 ha de amendoim".
+  const regras = useMemo(() => indicadores?.regras ?? [], [indicadores]);
 
   /**
    * O potencial do RECORTE CONSULTADO, pelo motor (issue 72).
@@ -360,7 +363,7 @@ export function IndicadoresGeograficos() {
         filtros={filtros}
         aoMudarFiltros={setFiltros}
         lojasConhecidas={lojasConhecidas}
-        regra={regra}
+        regras={regras}
         indicadores={indicadores}
         respondeu={painel.dados !== null}
         podeVerEmpresaInteira={painel.dados?.podeVerEmpresaInteira ?? false}
@@ -412,7 +415,7 @@ export function IndicadoresGeograficos() {
             totais={totais}
             comTerritorio={comTerritorio}
             coberturaDaAdr={coberturaDaAdr}
-            regra={regra}
+            regras={regras}
             recorte={recorte}
             semFiltro={semFiltro}
             contexto={contexto}

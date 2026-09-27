@@ -66,7 +66,7 @@ export function AbaDeMercado({
   totais,
   comTerritorio,
   coberturaDaAdr,
-  regra,
+  regras,
   recorte,
   semFiltro,
   contexto,
@@ -90,7 +90,8 @@ export function AbaDeMercado({
   totais: TotaisDaAdr;
   comTerritorio: boolean;
   coberturaDaAdr: number | null;
-  regra: RegraDePotencialAplicada | null;
+  /** As regras de potencial vigentes — uma por cultura desde a D-P01 (27/09/2026). */
+  regras: RegraDePotencialAplicada[];
   recorte: PotencialDoRecorteNoMapa | null;
   semFiltro: boolean;
   contexto: ContextoDeAcesso;
@@ -217,7 +218,7 @@ export function AbaDeMercado({
             indicadores={indicadores}
             totais={totais}
             coberturaDaAdr={coberturaDaAdr}
-            regra={regra}
+            regras={regras}
             anoDoCenso={anoDoCenso}
             anoDoRebanho={anoDoRebanho}
             classificacaoDe={classificacaoDe}

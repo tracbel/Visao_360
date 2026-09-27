@@ -61,7 +61,7 @@ export function FiltrosDosIndicadores({
   filtros,
   aoMudarFiltros,
   lojasConhecidas,
-  regra,
+  regras,
   indicadores,
   respondeu,
   podeVerEmpresaInteira,
@@ -73,7 +73,8 @@ export function FiltrosDosIndicadores({
   filtros: FiltrosTerritoriais;
   aoMudarFiltros: Dispatch<SetStateAction<FiltrosTerritoriais>>;
   lojasConhecidas: Map<string, string>;
-  regra: RegraDePotencialAplicada | null;
+  /** As regras de potencial vigentes — uma por cultura desde a D-P01 (27/09/2026). */
+  regras: RegraDePotencialAplicada[];
   indicadores: IndicadoresTerritoriais | null;
   /** Se a leitura já respondeu — antes disso a tela não afirma nada sobre permissão. */
   respondeu: boolean;
@@ -118,6 +119,13 @@ export function FiltrosDosIndicadores({
         presetDoPeriodo === 'personalizado',
       ].filter(Boolean).length,
     [filtros.visao, filtros.filialDaVenda, filtros.filialDoCliente, presetDoPeriodo],
+  );
+
+  // AS CULTURAS COM REGRA, uma vez cada — uma cultura pode ter regra em mais de
+  // uma categoria de máquina — e em ordem de nome, que é a ordem de quem lê.
+  const culturasDasRegras = useMemo(
+    () => [...new Set(regras.map((r) => r.produtoNome))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [regras],
   );
 
   // AS OPÇÕES DO MUNICÍPIO SÃO AS DA ADR, EM ORDEM ALFABÉTICA — é como se procura
@@ -398,17 +406,27 @@ export function FiltrosDosIndicadores({
                   aoMudar={(valor) => aoMudarFiltros((f) => ({ ...f, filialDoCliente: valor }))}
                 />
 
+                {/* A LISTA SÃO TODAS AS CULTURAS COM REGRA (D-P01, 27/09/2026), e não a
+                    primeira: com uma regra por cultura, a "primeira" era o amendoim, e a
+                    dica ainda dizia "só há uma regra informada". O campo nunca filtrou —
+                    o potencial soma as culturas —, e agora diz isso em vez de parecer
+                    uma escolha feita. */}
                 <label className="dash-filtro">
                   <span className="dash-filtro-rotulo">
                     Cultura da regra
-                    <InfoTooltip rotulo="Por que há uma cultura só" texto="Só há uma regra de potencial informada; a lista cresce quando o comercial confirmar as demais (D-P01, issue 63)." />
+                    <InfoTooltip
+                      rotulo="O que esta lista mostra"
+                      texto={
+                        culturasDasRegras.length === 0
+                          ? 'Não há regra de potencial vigente (D-P01, issue 63).'
+                          : culturasDasRegras.length === 1
+                            ? `O potencial do mapa vem da única cultura com regra de potencial: ${culturasDasRegras[0]}.`
+                            : `O potencial do mapa soma as ${culturasDasRegras.length} culturas com regra de potencial: ${culturasDasRegras.join(', ')}. Ver uma delas sozinha ainda não existe.`
+                      }
+                    />
                   </span>
-                  {/* `defaultValue`, e não `value`: o campo é desligado e não tem
-                      `onChange`, e o React avisa no console a cada render que um
-                      `value` sem `onChange` vira campo somente leitura. O aviso
-                      era verdadeiro e barulhento. */}
-                  <select defaultValue={regra?.produtoCodigoIbge ?? ''} disabled={!regra}>
-                    {regra && <option value={regra.produtoCodigoIbge}>{regra.produtoNome}</option>}
+                  <select disabled>
+                    <option>{culturasDasRegras.length === 0 ? '—' : culturasDasRegras.join(' · ')}</option>
                   </select>
                 </label>
 
