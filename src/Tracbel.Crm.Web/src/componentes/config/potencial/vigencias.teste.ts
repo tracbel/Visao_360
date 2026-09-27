@@ -72,6 +72,9 @@ describe('montarHistorico', () => {
     fatorMinimo: null,
     fatorMaximo: null,
     mesesDeCarenciaDoSicor: null,
+    minimoDeLinhasNoCredito: null,
+    porteMedioAPartirDe: null,
+    porteGrandeAPartirDe: null,
   };
 
   const historico: HistoricoDosParametrosDoPotencial = {

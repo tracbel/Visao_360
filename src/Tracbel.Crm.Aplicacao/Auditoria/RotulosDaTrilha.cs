@@ -191,7 +191,8 @@ public static class RotulosDaTrilha
             ["LimiteDaPercepcao"] = "Limite da percepção", ["PesoDoIndicadorDePreco"] = "Peso do indicador de preço",
             ["PesoDoIndicadorDeCredito"] = "Peso do indicador de crédito", ["PesoDoIndicadorComercial"] = "Peso do indicador comercial",
             ["FatorMinimo"] = "Fator mínimo", ["FatorMaximo"] = "Fator máximo",
-            ["MesesDeCarenciaDoSicor"] = "Carência do SICOR (meses)", ["MinimoDeLinhasNoCredito"] = "Mínimo de linhas do SICOR para a base não ser pequena"
+            ["MesesDeCarenciaDoSicor"] = "Carência do SICOR (meses)", ["MinimoDeLinhasNoCredito"] = "Mínimo de linhas do SICOR para a base não ser pequena",
+            ["PorteMedioAPartirDe"] = "Porte médio a partir de (máquinas por ano)", ["PorteGrandeAPartirDe"] = "Porte grande a partir de (máquinas por ano)"
         },
         ["PercepcaoDoGestor"] = new(StringComparer.Ordinal) { ["MunicipioId"] = "Município", ["Percentual"] = "Percentual" },
         ["VendaDeMaquina"] = new(StringComparer.Ordinal)

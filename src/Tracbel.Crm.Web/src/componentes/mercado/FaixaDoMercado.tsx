@@ -19,8 +19,9 @@
  *   por número. Viraram uma, com as duas partes separadas dentro: a fatia (que a
  *   tela calcula) e a fonte (que vem do contrato, nunca escrita à mão — issue
  *   167).
- * - O PORTE CONTINUA SEM NOME enquanto a issue 166 não tiver bandas: no lugar da
- *   pílula "MÉDIO" da maquete fica o traço com o motivo.
+ * - O PORTE FICA SEM NOME enquanto as bandas da issue 166 não forem registradas: no
+ *   lugar da pílula "MÉDIO" da maquete fica o traço com o motivo. Registradas (os
+ *   tercis da ADR, decididos em 27/09/2026), a pílula aparece.
  */
 
 import {
@@ -38,6 +39,7 @@ import { frasesDaProcedencia } from '../comum/comparacoes';
 import { ValorAusente } from '../comum/ValorAusente';
 import type { Indicador } from '../cadastro/Indicadores';
 import type { MomentoDoRecorte } from '../../tipos/territorio';
+import { MOTIVO_SEM_PORTE } from './motivoSemPorte';
 
 /**
  * O ícone de cada indicador estrutural, pelo rótulo.
@@ -216,8 +218,9 @@ export function FaixaDoMercado({
               rotulo="O que é o porte estrutural"
               texto={
                 'O tamanho do mercado pela demanda estrutural — as máquinas que o parque renova por ano, antes do ' +
-                'momento. O número está em "Demanda anual", no alto da aba; o nome da faixa depende das bandas da ' +
-                'issue 166.'
+                'momento. O nome compara o município típico do recorte (a demanda média por município da ADR) com ' +
+                'as bandas dos parâmetros gerais: os tercis dos municípios da ADR, um terço em cada porte (issue 166). ' +
+                'O total está em "Demanda anual", no alto da aba.'
               }
             />
           </span>
@@ -228,11 +231,7 @@ export function FaixaDoMercado({
               </span>
             ) : (
               <ValorAusente
-                motivo={
-                  'O nome do porte — pequeno, médio ou grande — depende de bandas registradas, e elas ainda não ' +
-                  'foram decididas (issue 166). Um corte sem dono é parâmetro inventado, então a tela mostra o ' +
-                  'número da demanda anual acima e não dá nome. Nulo aqui NÃO quer dizer "pequeno".'
-                }
+                motivo={MOTIVO_SEM_PORTE}
                 oQue="o nome do porte"
               />
             )}

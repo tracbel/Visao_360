@@ -396,6 +396,52 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
     }
 
     /// <summary>
+    /// O PORTE DE UM RECORTE DE VÁRIOS MUNICÍPIOS — pela demanda MÉDIA por município (issue 166, 27/09/2026).
+    ///
+    /// <para><b>Por que a média, e não a soma.</b> As bandas são cortes de MUNICÍPIO (os tercis da ADR). A soma de
+    /// uma região contra um corte de município daria "grande" a qualquer recorte com mais de meia dúzia de
+    /// municípios, e o nome não diria nada. A média pergunta a mesma coisa que o corte: "o município típico daqui
+    /// é de que porte?" — e com um município só, é ele.</para>
+    /// </summary>
+    /// <param name="demandasPorMunicipio">A demanda anual de cada município do recorte que tem demanda.</param>
+    public string? PorteDosMunicipios(IReadOnlyCollection<decimal> demandasPorMunicipio) =>
+        demandasPorMunicipio.Count == 0 ? null : PorteDe(demandasPorMunicipio.Average());
+
+    /// <summary>
+    /// AS BANDAS DE PORTE PELOS TERCIS DOS MUNICÍPIOS DA ADR (issue 166, decidido pelo Ricardo em 27/09/2026).
+    ///
+    /// <para><b>O corte sai da própria distribuição</b>: o "médio" começa no primeiro tercil da demanda anual dos
+    /// municípios e o "grande" no segundo — um terço dos municípios em cada porte. Nenhum número escolhido à mão.
+    /// O resultado é SUGESTÃO: vira parâmetro só quando alguém o registra como vigência, com o nome na trilha, e
+    /// continua editável depois.</para>
+    ///
+    /// <para><b>O tercil é o do Excel</b> (PERCENTIL.INC): interpolação linear entre as posições vizinhas — quem
+    /// conferir na planilha acha o mesmo número. Arredondado a uma casa, a precisão da coluna.</para>
+    ///
+    /// <para><b>Nulo quando não há como cortar</b>: menos de três municípios, ou tercis que não sobem (um terço da
+    /// ADR sem demanda nenhuma, ou todos iguais). Um corte que não separa ninguém não é banda.</para>
+    /// </summary>
+    /// <param name="demandasPorMunicipio">A demanda anual de cada município, em máquinas por ano.</param>
+    public static (decimal MedioAPartirDe, decimal GrandeAPartirDe)? BandasPelosTercis(IEnumerable<decimal> demandasPorMunicipio)
+    {
+        var ordenadas = demandasPorMunicipio.Order().ToArray();
+        if (ordenadas.Length < 3) return null;
+
+        var medio = decimal.Round(Percentil(ordenadas, 1m / 3), 1, MidpointRounding.AwayFromZero);
+        var grande = decimal.Round(Percentil(ordenadas, 2m / 3), 1, MidpointRounding.AwayFromZero);
+
+        return medio > 0 && medio < grande ? (medio, grande) : null;
+    }
+
+    private static decimal Percentil(decimal[] ordenadas, decimal fracao)
+    {
+        var posicao = (ordenadas.Length - 1) * fracao;
+        var abaixo = (int)decimal.Floor(posicao);
+        var acima = Math.Min(abaixo + 1, ordenadas.Length - 1);
+        return ordenadas[abaixo] + ((posicao - abaixo) * (ordenadas[acima] - ordenadas[abaixo]));
+    }
+
+    /// <summary>
     /// OS PRODUTOS DO SICOR QUE SÃO MÁQUINA — trator (7080), máquinas e implementos (4860) e
     /// colheitadeiras (2700).
     ///

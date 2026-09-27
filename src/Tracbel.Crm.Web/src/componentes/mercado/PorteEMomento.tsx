@@ -28,6 +28,7 @@ import { InfoTooltip } from '../InfoTooltip';
 import { Procedencia } from '../comum/Procedencia';
 import { ValorAusente } from '../comum/ValorAusente';
 import type { MomentoDoRecorte } from '../../tipos/territorio';
+import { MOTIVO_SEM_PORTE } from './motivoSemPorte';
 
 /** Casas fixas: um fator neutro tem de sair `1,00`, e não `1` — que vira contagem. */
 const pt = (v: number, casas = 2) =>
@@ -100,11 +101,7 @@ export function PorteEMomento({ momento }: { momento: MomentoDoRecorte | null })
         <div className="dash-momento-porte dash-momento-porte-sem-nome">
           <span className="dash-momento-rotulo">Porte estrutural</span>
           <ValorAusente
-            motivo={
-              'O nome do porte — pequeno, médio ou grande — depende de bandas registradas, e elas ainda não ' +
-              'foram decididas (issue 166). Um corte sem dono é parâmetro inventado, então a tela mostra o ' +
-              'número da demanda anual acima e não dá nome. Nulo aqui NÃO quer dizer "pequeno".'
-            }
+            motivo={MOTIVO_SEM_PORTE}
             oQue="o nome do porte"
           />
         </div>

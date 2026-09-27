@@ -50,7 +50,27 @@ export type ParametrosGeraisDetalhe = {
   fatorMaximo: number | null;
   /** Meses recentes do SICOR fora da janela; nulo é "não decidida" (D-IM-03, issue 157). */
   mesesDeCarenciaDoSicor: number | null;
+  /** Abaixo disto a base do crédito é pequena; nulo é "não decidido" (D-P03, issue 73). */
+  minimoDeLinhasNoCredito: number | null;
+  /** Máquinas por ano a partir das quais o município é de mercado médio; nulo é "não registrada" (issue 166). */
+  porteMedioAPartirDe: number | null;
+  /** Máquinas por ano a partir das quais o município é de mercado grande (issue 166). */
+  porteGrandeAPartirDe: number | null;
   vigencia: VigenciaDoParametro;
+};
+
+/**
+ * As bandas de porte pelos tercis dos municípios da ADR — a sugestão que preenche o formulário (issue 166). Não
+ * grava nada; nulas quando não há como cortar, com o motivo.
+ */
+export type SugestaoDasBandasDePorte = {
+  porteMedioAPartirDe: number | null;
+  porteGrandeAPartirDe: number | null;
+  municipiosDaAdr: number;
+  municipiosNaConta: number;
+  anoDaAreaPlantada: number | null;
+  justificativa: string | null;
+  motivo: string | null;
 };
 
 export type PercepcaoDoGestorDetalhe = {
@@ -110,6 +130,9 @@ export type NovoParametroDoPotencial = {
   fatorMinimo: string;
   fatorMaximo: string;
   mesesDeCarenciaDoSicor: string;
+  minimoDeLinhasNoCredito: string;
+  porteMedioAPartirDe: string;
+  porteGrandeAPartirDe: string;
   justificativa: string;
 };
 

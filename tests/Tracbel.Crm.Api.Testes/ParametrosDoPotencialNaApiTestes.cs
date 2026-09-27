@@ -332,6 +332,18 @@ public sealed class ParametrosDoPotencialNaApiTestes(ApiEmMemoria api) : IClassF
         historico.GetProperty("dados").GetProperty("gerais").GetArrayLength().Should().BeGreaterThanOrEqualTo(2, "a semente e a nova");
     }
 
+    [Fact]
+    public async Task Sem_municipio_da_ADR_com_demanda_a_sugestao_do_porte_diz_por_que()
+    {
+        var http = await AdministradorAsync();
+
+        var sugestao = (await LerAsync(await http.GetAsync($"{Base}/geral/porte-pelos-tercis"), HttpStatusCode.OK)).GetProperty("dados");
+
+        sugestao.GetProperty("porteMedioAPartirDe").ValueKind.Should().Be(JsonValueKind.Null, "sem corte não há banda, e nada de número inventado");
+        sugestao.GetProperty("justificativa").ValueKind.Should().Be(JsonValueKind.Null);
+        sugestao.GetProperty("motivo").GetString().Should().Contain("pelo menos três");
+    }
+
     private async Task<List<AlteracaoDeCampo>> TrilhaAsync(int regraId)
     {
         using var escopo = api.Services.CreateScope();

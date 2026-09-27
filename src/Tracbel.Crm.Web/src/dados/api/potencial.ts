@@ -19,6 +19,7 @@ import type {
   ParametrosGeraisDetalhe,
   PercepcaoDoGestorDetalhe,
   RegraDePotencialDetalhe,
+  SugestaoDasBandasDePorte,
 } from '../../tipos/potencial';
 import { ler, pedir, type ContextoDeAcesso } from './http';
 
@@ -52,6 +53,11 @@ export function listarOpcoesDosParametros(contexto: ContextoDeAcesso, sinal?: Ab
 
 export function informarParametrosGerais(contexto: ContextoDeAcesso, corpo: NovoParametroDoPotencial) {
   return pedir<ParametrosGeraisDetalhe>(`${BASE}/geral`, contexto, { metodo: 'POST', corpo });
+}
+
+/** As bandas de porte pelos tercis dos municípios da ADR (issue 166) — só calcula; quem grava é a vigência. */
+export function sugerirBandasDePorte(contexto: ContextoDeAcesso, sinal?: AbortSignal) {
+  return ler<SugestaoDasBandasDePorte>(`${BASE}/geral/porte-pelos-tercis`, contexto, { sinal });
 }
 
 export function informarRegraDePotencial(contexto: ContextoDeAcesso, corpo: NovaRegraDePotencial) {

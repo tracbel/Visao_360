@@ -111,6 +111,14 @@ public sealed class ObterParametrosDoPotencial(
                 pendencias.Add(
                     $"O nome da faixa entre {geral.LimiteDeRetracao.ToString("0.00", PtBr)} e {geral.LimiteDeAquecimento.ToString("0.00", PtBr)} " +
                     "está em aberto (D-P02): o texto diz \"= 1 anual\" e pula para \"> 1,2 aquecido\".");
+
+            // O CRITÉRIO FOI DECIDIDO EM 27/09/2026 — os tercis dos municípios da ADR —, e falta só registrar os
+            // números: a pendência diz onde se faz isso com um clique.
+            if (geral.PorteMedioAPartirDe is null)
+                pendencias.Add(
+                    "As bandas de porte não estão registradas (issue 166): sem elas o porte do mercado sai sem nome. " +
+                    "O critério está decidido — os tercis dos municípios da ADR —, e o botão \"Calcular pelos tercis\" " +
+                    "da nova vigência dos parâmetros gerais preenche os dois números.");
         }
 
         if (regras.Count == 0)

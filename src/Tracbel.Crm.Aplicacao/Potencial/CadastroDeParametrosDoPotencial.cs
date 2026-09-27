@@ -128,6 +128,9 @@ public sealed class InformarParametroDoPotencial(
         var fatorMinimo = LeituraDeParametro.Numero(erros, "fatorMinimo", entrada.FatorMinimo, false, "o fator mínimo");
         var fatorMaximo = LeituraDeParametro.Numero(erros, "fatorMaximo", entrada.FatorMaximo, false, "o fator máximo");
         var carencia = LeituraDeParametro.Numero(erros, "mesesDeCarenciaDoSicor", entrada.MesesDeCarenciaDoSicor, false, "a carência do SICOR");
+        var minimoDeLinhas = LeituraDeParametro.Numero(erros, "minimoDeLinhasNoCredito", entrada.MinimoDeLinhasNoCredito, false, "o mínimo de linhas do SICOR");
+        var porteMedio = LeituraDeParametro.Numero(erros, "porteMedioAPartirDe", entrada.PorteMedioAPartirDe, false, "a banda de mercado médio");
+        var porteGrande = LeituraDeParametro.Numero(erros, "porteGrandeAPartirDe", entrada.PorteGrandeAPartirDe, false, "a banda de mercado grande");
         var justificativa = erros.Obrigatorio("justificativa", entrada.Justificativa, "a justificativa — a decisão ou a fonte destes valores");
 
         if (meses is { } m && (m != decimal.Truncate(m) || m is < 1 or > 60))
@@ -137,6 +140,22 @@ public sealed class InformarParametroDoPotencial(
         // comparação ficam vazios. A regra está no domínio; aqui ela vira recusa com campo.
         if (carencia is { } c && (c != decimal.Truncate(c) || c < 0 || (meses is { } j && c >= j)))
             erros.Registrar("mesesDeCarenciaDoSicor", "A carência é um número inteiro de meses, de zero até um a menos que a janela.", entrada.MesesDeCarenciaDoSicor);
+
+        if (minimoDeLinhas is { } l && (l != decimal.Truncate(l) || l is < 1 or > 10_000))
+            erros.Registrar("minimoDeLinhasNoCredito", "O mínimo é um número inteiro de linhas, de 1 a 10.000. Para não marcar base pequena nenhuma, deixe em branco.", entrada.MinimoDeLinhasNoCredito);
+
+        // AS BANDAS DE PORTE ANDAM JUNTAS (issue 166). A regra está no domínio; aqui ela vira recusa no campo
+        // que ficou vazio, para quem preencheu só uma saber qual falta. A coluna guarda uma casa decimal: mais
+        // que isso seria arredondado em silêncio pelo banco.
+        if (porteMedio is null != porteGrande is null)
+            erros.Registrar(
+                porteMedio is null ? "porteMedioAPartirDe" : "porteGrandeAPartirDe",
+                "As bandas de porte andam juntas: informe a de mercado médio e a de grande, ou nenhuma das duas.");
+        foreach (var (campo, valor, texto) in new[] { ("porteMedioAPartirDe", porteMedio, entrada.PorteMedioAPartirDe), ("porteGrandeAPartirDe", porteGrande, entrada.PorteGrandeAPartirDe) })
+            if (valor is { } banda && (banda <= 0 || banda != decimal.Round(banda, 1)))
+                erros.Registrar(campo, "A banda é em máquinas por ano, maior que zero e com uma casa decimal no máximo.", texto);
+        if (porteMedio is { } medio && porteGrande is { } grande && medio > 0 && medio >= grande)
+            erros.Registrar("porteGrandeAPartirDe", "A banda de mercado grande começa acima da de médio.", entrada.PorteGrandeAPartirDe);
 
         if (erros.TemErro)
             return erros.Recusar<ParametrosGeraisDetalhe>("Os parâmetros gerais têm campos a corrigir.");
@@ -151,7 +170,10 @@ public sealed class InformarParametroDoPotencial(
                 new ParametroDoPotencial.Valores(
                     (short)meses!.Value, contratos!.Value, retracao!.Value, aquecimento!.Value, superaquecimento!.Value,
                     entrada.NomeDaFaixaIntermediaria, percepcao!.Value, pesoPreco, pesoCredito, pesoComercial, fatorMinimo, fatorMaximo,
-                    carencia is null ? null : (short)carencia.Value),
+                    carencia is null ? null : (short)carencia.Value,
+                    minimoDeLinhas is null ? null : (int)minimoDeLinhas.Value,
+                    porteMedio,
+                    porteGrande),
                 vigenteDesde.Value, justificativa, acesso.Atual.UsuarioId, agora);
         }
         catch (RegraDeNegocioViolada erro)

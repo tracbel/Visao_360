@@ -36,6 +36,14 @@
 .pot-acoes { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 .pot-botao-linha { margin-top: 14px; }
 
+/* O BOTÃO DOS TERCIS OCUPA A LINHA INTEIRA do formulário, logo abaixo das duas bandas que ele preenche, com o
+   resultado ao lado — e quebra para baixo do botão quando a largura não dá (issue 166). */
+.pot-tercis { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.pot-tercis .pot-sub { margin-top: 0; flex: 1 1 280px; line-height: 1.45; }
+.pot-tercis .pot-sub[data-estado="pronto"] { color: var(--text-secondary); }
+.pot-tercis .pot-sub[data-estado="semCorte"],
+.pot-tercis .pot-sub[data-estado="falhou"] { color: #B45309; }
+
 /* A FONTE QUE PEDE ATENÇÃO SALTA AOS OLHOS (aceite da issue 77: "fonte atrasada fica em destaque"). */
 .pot-fonte-atrasada { background: #FEF2F2; box-shadow: inset 4px 0 0 #EF4444; }
 .pot-fonte-semdado { background: #FFFBEB; box-shadow: inset 4px 0 0 #F59E0B; }
