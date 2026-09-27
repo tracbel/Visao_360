@@ -40,7 +40,8 @@ public sealed class RotinaDosProcessosDoVorticeTestes
         Catalogo.LigadaPorPadrao.Should().BeFalse("ligar é trazer dado novo para produção — decisão de quem administra, depois da simulação");
         Catalogo.ConexaoExigida.Should().Be(ConexoesDoSistema.Vortice);
         Catalogo.Conexoes.Should().Equal(ConexoesDoSistema.Vortice);
-        Catalogo.Modos.Should().Equal("--somente-processos-vortice");
+        // O FUNIL PRIMEIRO, A ONDA 2 DEPOIS: o processo perdido tira o motivo da venda perdida que o funil acabou de gravar.
+        Catalogo.Modos.Should().Equal("--somente-processos-vortice", "--somente-oportunidades-vortice");
 
         var carteiras = RotinasDoSistema.Obter(RotinasDoSistema.CarteirasVortice)!.AgendaPadrao.Hora;
         Catalogo.AgendaPadrao.Hora.Should().BeAfter(carteiras!.Value, "o funil liga o processo à carteira pelo de-para que a sincronia das carteiras grava");
