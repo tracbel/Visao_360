@@ -32,6 +32,8 @@ import type {
   FaturamentoDoCliente,
   PainelDoCen,
   VendasPerdidas,
+  FunilPorEstagio,
+  RecorteDoFunil,
   FaseDoFunil,
   InteracaoResumo,
   MunicipioParaSelecao,
@@ -156,8 +158,35 @@ export function obterPerdas(
 export function obterVendasPerdidas(
   contexto: ContextoDeAcesso,
   sinal?: AbortSignal,
+  recorte: RecorteDoFunil = {},
 ): Promise<ComProcedencia<VendasPerdidas>> {
-  return ler<VendasPerdidas>('/v1/relatorios/vendas-perdidas', contexto, { sinal });
+  return ler<VendasPerdidas>('/v1/relatorios/vendas-perdidas', contexto, {
+    sinal,
+    parametros: { de: recorte.de, ate: recorte.ate, formulario: recorte.formulario, responsavel: recorte.responsavel },
+  });
+}
+
+/**
+ * O funil por estágio do Vórtice — Lead a Faturamento —, contado no banco (documento 52).
+ *
+ * Sem `de`/`ate`, o servidor usa o ano fiscal até o último mês fechado; sem `base`, a coorte. O vazio vem com o motivo
+ * verdadeiro em `metricasSemDado` — a rotina que traz o funil ainda não rodou, falhou, ou não trouxe esta filial.
+ */
+export function obterFunilPorEstagio(
+  contexto: ContextoDeAcesso,
+  recorte: RecorteDoFunil,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<FunilPorEstagio>> {
+  return ler<FunilPorEstagio>('/v1/relatorios/funil-por-estagio', contexto, {
+    sinal,
+    parametros: {
+      de: recorte.de,
+      ate: recorte.ate,
+      base: recorte.base,
+      carteira: recorte.carteira,
+      responsavel: recorte.responsavel,
+    },
+  });
 }
 
 /* ---------------------------------------------------------------------- */

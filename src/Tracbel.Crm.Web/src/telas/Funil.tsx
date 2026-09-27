@@ -1,177 +1,140 @@
 /**
- * Funil de Vendas — o funil do protótipo, agora com os processos reais.
+ * Funil de Vendas — os seis estágios do Vórtice, de Lead a Faturamento.
  *
  * ---------------------------------------------------------------------------
- * 05/09/2026 — trocou a origem do dado, e só ela.
+ * 27/09/2026 — O FUNIL PASSOU A SER O ESTÁGIO, E NÃO A FASE (documento 52).
  *
- * **A forma é a mesma:** o funil em SVG com a legenda de conversão ao lado é o
- * porte de `mountFunil()` (`prototipo/referencia/assets/app.js`, linha 568), com
- * a mesma geometria, a mesma paleta e a mesma regra de rótulo. O que era uma
- * constante de sete fases no JavaScript agora vem de `/api/v1/relatorios/funil`,
- * que agrupa `processo.Processo` no banco dentro da filial do contexto.
+ * A tela desenhava a FASE do fluxo (`processo.Processo`, o BPM), e a fase não é
+ * o funil: ela diz em que caixa do fluxo o processo está, e não até onde ele
+ * chegou. O funil agora vem de `/api/v1/relatorios/funil-por-estagio`, que conta
+ * `processo.EstagioDoProcesso` — um processo 31/41/50 do Vórtice por estágio
+ * alcançado, pelo resultado do histórico, como o BI. A fase continua no
+ * Pipeline, que é onde ela responde alguma coisa.
  *
- * ---------------------------------------------------------------------------
- * AS DUAS MÉTRICAS DO ORIGINAL, E O QUE ACONTECE COM CADA UMA:
+ * AS DECISÕES DO RICARDO (27/09/2026), e onde cada uma aparece:
  *
- * | Aba | Situação |
- * |---|---|
- * | **Quantidade** | ✅ tem dado — 16.032 processos abertos, contados no banco |
- * | **Valor R$** | 🔴 **o funil aparece vazio, com o motivo** — 9 de 16.032 processos declaram valor (0,1%) |
+ * - **Lead e Qualificado são cumulativos**: quem chegou à Cobertura também
+ *   conta como Lead e Qualificado. Por isso o funil só estreita.
+ * - **A tela abre na COORTE** — os processos abertos no período e até onde
+ *   chegaram —, com a chave para o **FLUXO** — as etapas alcançadas no
+ *   período. Os dois números são diferentes de propósito, e a tela diz qual
+ *   está mostrando.
+ * - **O período padrão é o ano fiscal até o último mês fechado**, calculado no
+ *   servidor.
  *
- * A aba de valor **não some**: ela continua ali, e ao ser escolhida o gráfico
- * mostra por que não pode ser desenhado. Uma tela de gerência que perde um
- * gráfico sem explicação é pior do que uma que mostra o gráfico vazio com o
- * motivo escrito — e some-lo faria parecer que a métrica nunca existiu.
- *
- * ---------------------------------------------------------------------------
- * O FUNIL NÃO FORÇA ESTREITAMENTO, e isso é do original: a largura de cada
- * faixa é proporcional ao valor absoluto. Uma fase com mais processos que a
- * anterior aparece mais larga, e a legenda marca `↑` na conversão. Forçar o
- * desenho a estreitar sempre desenharia uma conversão que não aconteceu.
+ * A FORMA É A DO PROTÓTIPO: o funil em SVG com a legenda de conversão ao lado
+ * (`GraficoFunil`, porte de `mountFunil()`). Sem dado, o funil não vira zero:
+ * cada estágio mostra "—" com o motivo verdadeiro na dica — a rotina que traz o
+ * funil ainda não rodou, falhou, ou não trouxe esta filial.
  */
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../componentes/cadastro/EstadosDeTela';
 import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Indicadores';
 import { AvisoDeProcedencia, SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
 import { BlocoRecolhivel } from '../componentes/cadastro/BlocoRecolhivel';
 import { LacunaConhecida, MetricasSemDado } from '../componentes/cadastro/SemDado';
-import {
-  corDaFaixa,
-  GraficoFunil,
-  LegendaDoFunil,
-  type FaixaDoFunil,
-} from '../componentes/GraficoFunil';
+import { ValorAusente } from '../componentes/comum/ValorAusente';
+import { corDaFaixa, GraficoFunil, LegendaDoFunil, type FaixaDoFunil } from '../componentes/GraficoFunil';
 import { useContextoDeAcesso } from '../dados/api/contexto';
-import { contarProcessosPorSituacao, obterFunil, obterVendasPerdidas } from '../dados/api/relacionamento';
+import { obterFunilPorEstagio, obterVendasPerdidas } from '../dados/api/relacionamento';
 import { useRecurso } from '../dados/api/useRecurso';
-import type { FaseDoFunil, FatiaDeVendaPerdida } from '../tipos/relacionamento';
-import { formatarDinheiro } from './cadastro/formato';
+import type { BaseDoFunil, EstagioNoFunil, FatiaDeVendaPerdida } from '../tipos/relacionamento';
 
-/** Os desfechos que a tela conta, cada um com um `COUNT` no banco. */
-const DESFECHOS = ['Aberto', 'Ganho', 'Perdido', 'Cancelado', 'Suspenso'] as const;
+/** Os seis estágios, para a tela manter a forma quando o funil não tem dado. */
+const ESTAGIOS_DO_FUNIL = [
+  { estagio: 'Lead', nome: 'Lead' },
+  { estagio: 'Qualificado', nome: 'Qualificado' },
+  { estagio: 'Cobertura', nome: 'Cobertura' },
+  { estagio: 'Negociacao', nome: 'Negociação' },
+  { estagio: 'Pedido', nome: 'Pedido' },
+  { estagio: 'Faturamento', nome: 'Faturamento' },
+] as const;
 
-/** As duas métricas do funil do protótipo que fazem sentido no dado de hoje. */
-type Metrica = 'quantidade' | 'valor';
+/**
+ * Os formulários de venda perdida do Vórtice que entram (documento 52 §4), para o filtro. O `_MANITO` (Colorado) fica
+ * de fora, como na rotina.
+ */
+const FORMULARIOS = [
+  { codigo: 'IV_Q_VENDA_PERDIDA_FY25', nome: 'FY25 (desde 07/2025)' },
+  { codigo: 'IV_Q_VP_SEM_PARTICIPACAO', nome: 'Sem participação (desde 08/2025)' },
+  { codigo: 'IV_Q_VENDA_PERDIDA_MAQIMP', nome: 'Máquinas e implementos (2024–2025)' },
+  { codigo: 'IV_Q_VENDA_PERDIDA_PROD', nome: 'Produto (2022–2024)' },
+  { codigo: 'IV_Q_VENDA_PERDIDA', nome: 'Antigo (2012–2023)' },
+  { codigo: 'IV_Q_VENDA_PERDIDA_JDE', nome: 'JDE (2012–2016)' },
+  { codigo: 'IV_Q_VENDA_PERDIDA_IMPLEM', nome: 'Implementos' },
+  { codigo: 'IV_Q_VENDA_PERDIDA_IMPL', nome: 'Implementos, versão curta' },
+] as const;
+
+const nº = (v: number) => v.toLocaleString('pt-BR');
+const pct = (v: number | null) => (v === null ? null : `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`);
 
 export function Funil() {
   const { contexto } = useContextoDeAcesso();
-  const [fluxoEscolhido, setFluxoEscolhido] = useState<string>('');
-  const [metrica, setMetrica] = useState<Metrica>('quantidade');
+  const [base, setBase] = useState<BaseDoFunil>('abertura');
+  /** O período escolhido; nulo é o padrão do servidor — o ano fiscal até o último mês fechado. */
+  const [periodo, setPeriodo] = useState<{ de: string; ate: string } | null>(null);
+  const [formulario, setFormulario] = useState('');
 
-  const funil = useRecurso((sinal) => obterFunil(contexto, sinal), [contexto.empresa, contexto.usuario]);
+  const funil = useRecurso(
+    (sinal) => obterFunilPorEstagio(contexto, { base, de: periodo?.de, ate: periodo?.ate }, sinal),
+    [contexto.empresa, contexto.usuario, base, periodo?.de, periodo?.ate],
+  );
   const vendas = useRecurso(
-    (sinal) => obterVendasPerdidas(contexto, sinal),
-    [contexto.empresa, contexto.usuario],
+    (sinal) => obterVendasPerdidas(contexto, sinal, { de: periodo?.de, ate: periodo?.ate, formulario }),
+    [contexto.empresa, contexto.usuario, periodo?.de, periodo?.ate, formulario],
   );
 
-  const desfechos = useRecurso(
-    async (sinal) => {
-      const valores = await Promise.all(DESFECHOS.map((s) => contarProcessosPorSituacao(contexto, s, sinal)));
-      const mapa = Object.fromEntries(DESFECHOS.map((s, i) => [s, valores[i]])) as Record<
-        (typeof DESFECHOS)[number],
-        number
-      >;
-      return { dados: mapa, procedencia: null };
-    },
-    [contexto.empresa, contexto.usuario],
-  );
+  const dados = funil.dados;
+  const estagios = dados?.estagios ?? [];
+  const temFunil = estagios.length > 0;
+  const motivo =
+    dados?.metricasSemDado.find((m) => m.metrica === 'funil' || m.metrica === 'funilNoPeriodo')?.motivo ??
+    'O funil ainda não respondeu.';
+  const lead = estagios[0];
+  const faturamento = estagios[5];
+  const periodoMostrado = periodo ?? (dados ? { de: dados.periodo.de, ate: dados.periodo.ate } : null);
+  const leitura = base === 'abertura' ? 'Coorte' : 'Fluxo';
 
-  const fases = useMemo(() => funil.dados?.itens ?? [], [funil.dados]);
-  const contagens = desfechos.dados;
+  const faixas: FaixaDoFunil[] = estagios.map((e, i) => ({
+    chave: e.estagio,
+    rotulo: e.nome,
+    valor: e.processos,
+    cor: corDaFaixa(i, estagios.length),
+    texto: nº(e.processos),
+  }));
 
-  /** Os fluxos que existem NO DADO, do maior para o menor. Nenhum é escrito aqui. */
-  const fluxos = useMemo(() => {
-    const mapa = new Map<string, { codigo: string; nome: string; processos: number }>();
-    for (const f of fases) {
-      const atual = mapa.get(f.tipoProcessoCodigo);
-      if (atual) atual.processos += f.processos;
-      else
-        mapa.set(f.tipoProcessoCodigo, {
-          codigo: f.tipoProcessoCodigo,
-          nome: f.tipoProcessoNome,
-          processos: f.processos,
-        });
-    }
-    return [...mapa.values()].sort((a, b) => b.processos - a.processos);
-  }, [fases]);
-
-  /** O fluxo desenhado: o escolhido, ou o maior que existir. */
-  const fluxoAtivo = fluxoEscolhido || fluxos[0]?.codigo || '';
-
-  /** As fases do fluxo ativo, NA ORDEM DO FUNIL — é `faseOrdem`, do catálogo. */
-  const doFluxo = useMemo(
-    () =>
-      fases
-        .filter((f) => f.tipoProcessoCodigo === fluxoAtivo)
-        .sort((a, b) => a.faseOrdem - b.faseOrdem || a.faseNome.localeCompare(b.faseNome)),
-    [fases, fluxoAtivo],
-  );
-
-  const processosComValor = doFluxo.reduce((s, f) => s + f.processosComValor, 0);
-  const processosDoFluxo = doFluxo.reduce((s, f) => s + f.processos, 0);
-
-  /** O funil só é desenhável na métrica de valor se algum processo declarar valor. */
-  const valorTemLastro = processosComValor > 0;
-
-  const faixas: FaixaDoFunil[] = useMemo(
-    () =>
-      doFluxo.map((f, i) => ({
-        chave: `${f.tipoProcessoCodigo}-${f.faseCodigo}`,
-        rotulo: f.faseNome,
-        valor: metrica === 'quantidade' ? f.processos : (f.valorTotal ?? 0),
-        cor: corDaFaixa(i, doFluxo.length),
-        texto:
-          metrica === 'quantidade'
-            ? f.processos.toLocaleString('pt-BR')
-            : f.valorTotal === null
-              ? 'sem valor'
-              : formatarDinheiro(f.valorTotal),
-      })),
-    [doFluxo, metrica],
-  );
-
-  const somaDaMetrica =
-    metrica === 'quantidade'
-      ? processosDoFluxo
-      : doFluxo.reduce((s, f) => s + (f.valorTotal ?? 0), 0);
-
-  const abertos = fases.reduce((s, f) => s + f.processos, 0);
-  const comValorGeral = fases.reduce((s, f) => s + f.processosComValor, 0);
-
-  const razaoDeGanho =
-    contagens && contagens.Ganho + contagens.Perdido > 0
-      ? Math.round((contagens.Ganho / (contagens.Ganho + contagens.Perdido)) * 100)
-      : null;
+  const semNumero = temFunil ? undefined : 'sem dado — o motivo está logo abaixo';
 
   const indicadores: Indicador[] = [
     {
-      rotulo: 'Abertos',
-      valor: contagens?.Aberto ?? null,
-      deOnde: 'inclui fluxos que não são de venda — ver a nota do funil',
-      semDado: 'sem processo ao alcance deste contexto',
+      rotulo: 'Leads',
+      valor: lead ? lead.processos : null,
+      deOnde:
+        base === 'abertura'
+          ? `processos abertos em ${dados?.periodo.texto ?? 'período'} que viraram lead`
+          : `leads alcançados em ${dados?.periodo.texto ?? 'período'}`,
+      semDado: semNumero,
     },
-    { rotulo: 'Ganhos', valor: contagens?.Ganho ?? null, tom: 'bom', deOnde: 'encerrados com venda', semDado: '—' },
-    { rotulo: 'Perdidos', valor: contagens?.Perdido ?? null, tom: 'atencao', deOnde: 'encerrados sem venda', semDado: '—' },
     {
-      rotulo: 'Cancelados',
-      valor: contagens?.Cancelado ?? null,
+      rotulo: 'Faturados',
+      valor: faturamento ? faturamento.processos : null,
+      tom: 'bom',
+      deOnde: faturamento && faturamento.percentualSobreOLead !== null ? `${pct(faturamento.percentualSobreOLead)} dos leads` : 'sobre os leads',
+      semDado: semNumero,
+    },
+    {
+      rotulo: 'Ganhos · perdidos · abertos',
+      valor: lead ? `${nº(lead.ganhos)} · ${nº(lead.perdidos)} · ${nº(lead.abertos)}` : null,
+      deOnde: 'o desfecho, no Vórtice, dos processos contados no Lead',
+      semDado: semNumero,
+    },
+    {
+      rotulo: `Parados há mais de ${dados?.diasParaParado ?? 60} dias`,
+      valor: dados?.paradosEmNegociacaoOuPedido ?? null,
       tom: 'atencao',
-      deOnde: 'um quarto do fluxo de vendas da origem termina assim',
-      semDado: '—',
-    },
-    {
-      rotulo: 'Declaram valor',
-      valor: funil.dados ? comValorGeral : null,
-      tom: 'atencao',
-      deOnde: `de ${abertos.toLocaleString('pt-BR')} abertos — o resto não tem valor na origem`,
-      semDado: '—',
-    },
-    {
-      rotulo: 'Ganhos ÷ (ganhos + perdidos)',
-      valor: razaoDeGanho === null ? null : `${razaoDeGanho}%`,
-      deOnde: 'só os dois desfechos comerciais — não cobre os cancelados',
-      semDado: 'nenhum encerrado com desfecho comercial',
+      deOnde: 'em Negociação ou Pedido, sem avançar nem encerrar — hoje, qualquer que seja o período',
+      semDado: semNumero,
     },
   ];
 
@@ -181,343 +144,186 @@ export function Funil() {
         <div>
           <h1 className="page-title">Funil de Vendas</h1>
           <p className="page-subtitle">
-            <code>processo.Processo</code> — o funil por fase e os desfechos, agrupados no banco
-            dentro da filial do cabeçalho.
+            Os processos do Vórtice por estágio — de Lead a Faturamento —, contados no banco dentro da filial do
+            cabeçalho.
           </p>
         </div>
       </div>
 
       <AvisoDeProcedencia procedencia={funil.procedencia} />
 
-      <PainelDeIndicadores indicadores={indicadores} carregando={desfechos.carregando} />
+      <PainelDeIndicadores indicadores={indicadores} carregando={funil.carregando} />
 
-      {desfechos.erro && <BlocoErro erro={desfechos.erro} aoTentarDeNovo={desfechos.recarregar} />}
-
-      <MetricasSemDado metricas={funil.dados?.metricasSemDado} />
+      <MetricasSemDado metricas={dados?.metricasSemDado} />
 
       {/* ---------------------------------------------------------------- */}
-      {/* O funil, com a mesma forma do protótipo                          */}
+      {/* O funil por estágio, com a forma do protótipo                    */}
       {/* ---------------------------------------------------------------- */}
-      <div className="card cad-cartao">
+      <div className="card cad-cartao" data-bloco="funil-por-estagio">
         <div className="card-header cad-cartao-cabecalho">
           <div>
-            <div className="card-title">Funil de Vendas</div>
+            <div className="card-title">Funil por estágio</div>
             <div className="card-subtitle">
-              {metrica === 'quantidade'
-                ? `Soma de processos abertos: ${somaDaMetrica.toLocaleString('pt-BR')}`
-                : valorTemLastro
-                  ? `Soma de valor declarado: ${formatarDinheiro(somaDaMetrica)}`
-                  : 'Soma de valor: sem dado'}
+              {dados ? `${leitura} · ${dados.periodo.texto}${dados.periodo.ehOPadrao ? ' · ano fiscal até o último mês fechado' : ''}` : leitura}
             </div>
           </div>
           <SeloProcedencia procedencia={funil.procedencia} />
         </div>
 
         <div className="cad-barra">
-          <label className="cad-filtro">
-            Fluxo
-            <select value={fluxoAtivo} onChange={(e) => setFluxoEscolhido(e.target.value)}>
-              {fluxos.map((f) => (
-                <option key={f.codigo} value={f.codigo}>
-                  {f.nome} ({f.processos.toLocaleString('pt-BR')})
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {/* As abas de métrica do original. A de valor CONTINUA AQUI mesmo sem
-              lastro: escondê-la faria parecer que a métrica nunca existiu. */}
-          <div className="cad-filtro" role="group" aria-label="Métrica do funil">
-            Métrica
+          {/* A CHAVE COORTE × FLUXO (decisão de 27/09/2026). A coorte é o padrão; o fluxo é o que a Performance de CEN
+              e os alertas usam. */}
+          <div className="cad-filtro" role="group" aria-label="Leitura do funil">
+            Leitura
             <div className="funil-abas">
               <button
                 type="button"
-                className={metrica === 'quantidade' ? 'funil-aba ativa' : 'funil-aba'}
-                aria-pressed={metrica === 'quantidade'}
-                onClick={() => setMetrica('quantidade')}
+                className={base === 'abertura' ? 'funil-aba ativa' : 'funil-aba'}
+                aria-pressed={base === 'abertura'}
+                onClick={() => setBase('abertura')}
               >
-                Quantidade
+                Coorte
               </button>
               <button
                 type="button"
-                className={metrica === 'valor' ? 'funil-aba ativa' : 'funil-aba'}
-                aria-pressed={metrica === 'valor'}
-                onClick={() => setMetrica('valor')}
+                className={base === 'etapa' ? 'funil-aba ativa' : 'funil-aba'}
+                aria-pressed={base === 'etapa'}
+                onClick={() => setBase('etapa')}
               >
-                Valor R$
+                Fluxo
               </button>
             </div>
           </div>
+
+          <label className="cad-filtro">
+            De
+            <input
+              type="date"
+              value={periodoMostrado?.de ?? ''}
+              onChange={(e) => e.target.value && setPeriodo({ de: e.target.value, ate: periodoMostrado?.ate ?? e.target.value })}
+            />
+          </label>
+          <label className="cad-filtro">
+            Até
+            <input
+              type="date"
+              value={periodoMostrado?.ate ?? ''}
+              onChange={(e) => e.target.value && setPeriodo({ de: periodoMostrado?.de ?? e.target.value, ate: e.target.value })}
+            />
+          </label>
+          {periodo && (
+            <div className="cad-filtro">
+              &nbsp;
+              <button type="button" className="funil-aba" onClick={() => setPeriodo(null)}>
+                Ano fiscal até o último mês fechado
+              </button>
+            </div>
+          )}
         </div>
 
         {funil.carregando && <BlocoCarregando oQue="o funil" />}
         {funil.erro && <BlocoErro erro={funil.erro} aoTentarDeNovo={funil.recarregar} />}
 
-        {funil.dados && doFluxo.length === 0 && !funil.erro && (
-          <BlocoVazio
-            titulo="Nenhum processo aberto neste fluxo"
-            texto="O funil conta só o que está aberto. Troque o fluxo, ou confira a filial escolhida no cabeçalho."
-          />
-        )}
-
-        {doFluxo.length > 0 && metrica === 'valor' && !valorTemLastro && (
-          /* O GRÁFICO NÃO SOME — ele explica. É a regra em forma de tela. */
-          <div className="funil-container">
-            <div className="funil-sem-dado" role="note">
-              <strong>O funil por valor não pode ser desenhado.</strong>
-              <p>
-                Nenhum dos {processosDoFluxo.toLocaleString('pt-BR')} processos abertos deste fluxo
-                declara valor na origem. Desenhar as faixas com zero mostraria um funil de
-                R$ 0,00 com a forma de um funil de verdade — e é exatamente esse tipo de número
-                plausível e errado que este projeto existe para corrigir.
-              </p>
-              <p>
-                Na base inteira são <strong>358 de 45.397 processos (0,8%)</strong> com valor
-                declarado. Volte para <strong>Quantidade</strong>, que tem dado, ou escolha outro
-                fluxo.
-              </p>
-            </div>
-            <LegendaDoFunil faixas={faixas} />
-          </div>
-        )}
-
-        {/* A RESSALVA FICA COLADA NO GRÁFICO, e não só no aviso do topo. Quem
-            olha um funil desenhado lê a forma antes de ler qualquer outra coisa
-            da tela; a fração que o sustenta precisa estar no mesmo campo de
-            visão que as faixas. */}
-        {doFluxo.length > 0 && metrica === 'valor' && valorTemLastro && (
-          <div className="funil-cobertura" role="note">
-            <strong>
-              Este funil está desenhado sobre {processosComValor} de{' '}
-              {processosDoFluxo.toLocaleString('pt-BR')} processos
-            </strong>{' '}
-            ({((processosComValor / Math.max(processosDoFluxo, 1)) * 100).toFixed(1)}%) — os únicos
-            que declaram valor na origem. As faixas marcadas <em>sem valor</em> não valem zero: elas
-            não têm valor informado. A soma no cabeçalho é a desses {processosComValor}, e não a do
-            funil.
-          </div>
-        )}
-
-        {doFluxo.length > 0 && (metrica === 'quantidade' || valorTemLastro) && (
+        {temFunil && (
           <div className="funil-container">
             <GraficoFunil faixas={faixas} />
             <LegendaDoFunil faixas={faixas} />
           </div>
         )}
 
-        {doFluxo.length > 0 && (
-          <div className="funil-scope-note">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8h.01" />
-              <path d="M11 12h1v4h1" />
-            </svg>
-            <div>
-              <strong>Escopo:</strong> as fases vêm do dado, e não de uma lista escrita na tela — o
-              catálogo de fases foi carregado do próprio uso de 2026, em 50 pares fluxo × fase. As
-              faixas <strong>não são forçadas a estreitar</strong>: a largura é proporcional ao
-              número de processos, e uma fase maior que a anterior aparece maior, com{' '}
-              <strong>↑</strong> na coluna de conversão.{' '}
-              {metrica === 'quantidade' && processosComValor > 0 && (
-                <>
-                  Nesta seleção, {processosComValor} de {processosDoFluxo.toLocaleString('pt-BR')}{' '}
-                  processos declaram valor.
-                </>
-              )}
-            </div>
+        {dados && <TabelaDoFunil estagios={estagios} motivo={temFunil ? null : motivo} />}
+
+        <div className="funil-scope-note">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8h.01" />
+            <path d="M11 12h1v4h1" />
+          </svg>
+          <div>
+            <strong>{leitura}:</strong>{' '}
+            {base === 'abertura'
+              ? 'os processos abertos no período, e até onde cada um chegou — de cada 100 leads que entraram, quantos viraram pedido.'
+              : 'as etapas alcançadas no período, qualquer que seja a abertura — quantos pedidos e faturamentos saíram no período.'}{' '}
+            Lead e Qualificado são cumulativos: quem chegou à Cobertura também conta nos dois. O estágio é o resultado do
+            histórico do Vórtice, como o BI — a fase do fluxo não é o funil, e fica no Pipeline.
           </div>
-        )}
+        </div>
       </div>
 
       {/* ---------------------------------------------------------------- */}
-      {/* O detalhamento por fase, que a tabela do original ocupava         */}
+      {/* As perdas do período — o formulário de venda perdida              */}
       {/* ---------------------------------------------------------------- */}
-      {/* OS 32 PARES FLUXO × FASE, FECHADOS POR PADRÃO.
-
-          O funil acima já responde a pergunta da gerência — onde o processo
-          para. Esta tabela responde a pergunta seguinte, que é de quem vai
-          agir: em qual fluxo, exatamente. Aberta, ela respondia sozinha por
-          cerca de 1.700px da altura da tela.
-
-          O aviso sobre os fluxos que não são de venda veio para dentro dela: é
-          esta lista que ele explica. */}
-      <BlocoRecolhivel
-        titulo="Detalhamento por fase"
-        resumo={`todos os ${fases.length} pares fluxo × fase desta filial, e não só o fluxo desenhado`}
-      >
-        <div className="cad-aviso cad-aviso-atencao" role="note">
-          <strong>O número de abertos não é o tamanho do funil comercial.</strong>
-          <p>
-            <strong>16.422 processos</strong> de fluxos que não são de venda — aferição de
-            qualidade, pré-entrega, entrega física e prospecção de peças — ficam abertos para
-            sempre, porque o domínio de situação não tem o valor <code>Encerrado</code>. Eles
-            inflam o funil em <strong>46%</strong>. O seletor de fluxo acima separa o que é venda do
-            que não é.
-          </p>
-        </div>
-
-        {fases.length > 0 && (
-          <div className="cad-tabela-wrap">
-            <table className="cad-tabela">
-              <caption className="cad-so-leitor">Processos abertos por fluxo e fase</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Fluxo</th>
-                  <th scope="col">Fase</th>
-                  <th scope="col">Processos</th>
-                  <th scope="col">Peso</th>
-                  <th scope="col">Declaram valor</th>
-                  <th scope="col">Valor somado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...fases]
-                  .sort((a, b) => b.processos - a.processos)
-                  .map((f) => (
-                    <LinhaDoFunil
-                      key={`${f.tipoProcessoCodigo}-${f.faseCodigo}`}
-                      fase={f}
-                      maior={Math.max(1, ...fases.map((x) => x.processos))}
-                    />
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </BlocoRecolhivel>
-
-      {/* ---------------------------------------------------------------- */}
-      {/* Perdas por motivo                                                 */}
-      {/* ---------------------------------------------------------------- */}
-      {/* PERDAS POR MOTIVO — E O MOTIVO VEM DO FORMULÁRIO, NÃO DO PROCESSO.
-
-          Este cartão lia `/relatorios/perdas`, que agrupa `processo.Processo` por motivo. Ali o
-          motivo é "não informado" em 100% das linhas, e a tabela tinha uma linha só. Não era o
-          legado que não registrava: o Vórtice registra a derrota num FORMULÁRIO
-          (`IV_Q_VENDA_PERDIDA_FY25`), com motivo, concorrente e os dois preços, e ninguém tinha
-          olhado ali.
-
-          As duas populações continuam separadas de propósito — processos perdidos e formulários
-          preenchidos são números diferentes, e a diferença é quantas derrotas ninguém
-          registrou. */}
-      <div className="card cad-cartao">
+      {/* SÓ A PRINCIPAL CONTA (27/09/2026): a mesma perda registrada no FY25 e no SEM_PARTICIPACAO, ou detalhada nos
+          VP_*, conta uma vez. As duas populações continuam lado a lado — processos perdidos no funil e formulários
+          preenchidos —, porque a diferença é quantas derrotas ninguém registrou. */}
+      <div className="card cad-cartao" data-bloco="perdas-por-motivo">
         <div className="card-header cad-cartao-cabecalho">
           <div>
             <div className="card-title">Vendas perdidas por motivo</div>
             <div className="card-subtitle">
               {vendas.dados
-                ? `${vendas.dados.registradas.toLocaleString('pt-BR')} de ${vendas.dados.processosPerdidos.toLocaleString('pt-BR')} processos perdidos têm o formulário preenchido`
+                ? `${nº(vendas.dados.registradas)} formulários de ${nº(vendas.dados.processosPerdidos)} processos perdidos · ${vendas.dados.periodo.texto}`
                 : 'do formulário de venda perdida, contadas no banco'}
             </div>
           </div>
           <SeloProcedencia procedencia={vendas.procedencia} />
         </div>
 
+        <div className="cad-barra">
+          <label className="cad-filtro">
+            Formulário
+            <select value={formulario} onChange={(e) => setFormulario(e.target.value)}>
+              <option value="">Todos os formulários</option>
+              {FORMULARIOS.map((f) => (
+                <option key={f.codigo} value={f.codigo}>
+                  {f.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
         {vendas.carregando && <BlocoCarregando oQue="as vendas perdidas" />}
         {vendas.erro && <BlocoErro erro={vendas.erro} aoTentarDeNovo={vendas.recarregar} />}
 
-        <MetricasSemDado
-          metricas={vendas.dados?.metricasSemDado}
-          titulo="O que a distribuição de perdas não diz"
-        />
+        <MetricasSemDado metricas={vendas.dados?.metricasSemDado} titulo="O que a distribuição de perdas não diz" />
 
         {vendas.dados && vendas.dados.registradas === 0 && !vendas.erro && (
           <BlocoVazio
-            titulo="Nenhuma venda perdida registrada nesta filial"
-            texto="O motivo, o concorrente e a diferença de preço só existem quando o CEN preenche o formulário de venda perdida ao encerrar o processo."
+            titulo={`Nenhuma venda perdida registrada em ${vendas.dados.periodo.texto}`}
+            texto="O motivo, o concorrente e o preço só existem quando o CEN preenche o formulário de venda perdida no Vórtice — e chegam aqui pela rotina que traz o funil."
           />
         )}
 
         {vendas.dados && vendas.dados.porMotivo.length > 0 && (
-          <div className="cad-tabela-wrap">
-            <table className="cad-tabela">
-              <caption className="cad-so-leitor">Vendas perdidas por motivo</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Motivo</th>
-                  <th scope="col">Vendas perdidas</th>
-                  <th scope="col">Máquinas</th>
-                  <th scope="col">Nosso preço acima, em média</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vendas.dados.porMotivo.map((m) => (
-                  <tr key={m.codigo}>
-                    <td>{m.nome}</td>
-                    <td className="cad-mono">{m.quantidade.toLocaleString('pt-BR')}</td>
-                    <td className="cad-mono">{m.maquinas.toLocaleString('pt-BR')}</td>
-                    <td className="cad-mono">
-                      <Diferenca fatia={m} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TabelaDePerdas titulo="Motivo" legenda="Vendas perdidas por motivo" fatias={vendas.dados.porMotivo} />
         )}
       </div>
 
-      {/* PARA QUEM PERDEMOS. É a pergunta seguinte à do motivo, e o formulário responde: a
-          marca, e a diferença de preço média contra ela. */}
+      {/* PARA QUEM PERDEMOS: o fabricante, e o preço John Deere contra o dele quando o formulário traz os dois. */}
       {vendas.dados && vendas.dados.porConcorrente.length > 0 && (
-        <div className="card cad-cartao">
+        <div className="card cad-cartao" data-bloco="para-quem-perdemos">
           <div className="card-header cad-cartao-cabecalho">
             <div>
               <div className="card-title">Para quem perdemos</div>
               <div className="card-subtitle">
-                o fabricante que levou a venda, e a diferença de preço contra ele
+                o fabricante que levou a venda, e o preço John Deere contra o dele quando o formulário traz os dois ·{' '}
+                {vendas.dados.periodo.texto}
               </div>
             </div>
             <SeloProcedencia procedencia={vendas.procedencia} />
           </div>
-
-          <div className="cad-tabela-wrap">
-            <table className="cad-tabela">
-              <caption className="cad-so-leitor">Vendas perdidas por concorrente</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Concorrente</th>
-                  <th scope="col">Vendas perdidas</th>
-                  <th scope="col">Máquinas</th>
-                  <th scope="col">Nosso preço acima, em média</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vendas.dados.porConcorrente.map((c) => (
-                  <tr key={c.codigo}>
-                    <td className="cad-link-forte">{c.nome}</td>
-                    <td className="cad-mono">{c.quantidade.toLocaleString('pt-BR')}</td>
-                    <td className="cad-mono">{c.maquinas.toLocaleString('pt-BR')}</td>
-                    <td className="cad-mono">
-                      <Diferenca fatia={c} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TabelaDePerdas titulo="Concorrente" legenda="Vendas perdidas por concorrente" fatias={vendas.dados.porConcorrente} forte />
         </div>
       )}
 
-      <BlocoRecolhivel
-        titulo="O que este relatório não pode afirmar"
-        resumo="valor do funil, probabilidade de fechamento, meta e faturamento"
-      >
+      <BlocoRecolhivel titulo="O que este relatório não pode afirmar" resumo="valor do funil, meta e faturamento">
         <div className="cad-fichas">
           <LacunaConhecida
             metrica="Valor do funil e ticket médio"
             motivo={
-              '358 de 45.397 processos (0,8%) declaram valor na origem; nesta filial são 9 de ' +
-              '16.032 (0,1%). A aba "Valor R$" do funil continua na tela e mostra esse motivo no ' +
-              'lugar das faixas, em vez de desenhar um funil de R$ 0,00.'
-            }
-          />
-          <LacunaConhecida
-            metrica="Probabilidade de fechamento por fase"
-            motivo={
-              'Fase.ProbabilidadePercentual é nula nas 50 fases carregadas. A origem tem uma coluna ' +
-              'Perspectiva preenchida em 3.922 processos, mas por processo e não por fase — não dá ' +
-              'para derivar dela a probabilidade de uma coluna do funil.'
+              'O funil por estágio conta processos, e não valor: a rotina que o traz lê do Vórtice o estágio e o ' +
+              'desfecho de cada processo, e não o valor do negócio. Somar um valor aqui seria somar o que não foi lido.'
             }
           />
           <LacunaConhecida
@@ -526,7 +332,7 @@ export function Funil() {
               'A meta de venda tem fonte desde 27/09/2026 — a cota da API Gestão de Negócios, em máquinas ' +
               'por consultor, linha e mês — e o realizado são as máquinas vendidas lidas do ART. As duas ' +
               'estão no cartão "Meta e realizado" da Visão 360 e na Performance de CEN, e não no funil: ' +
-              'o funil conta processos do Vórtice, e nada liga um processo ganho à venda do ART.'
+              'o funil conta processos do Vórtice, e nada liga um processo faturado à venda do ART.'
             }
           />
           {/* A FRASE ANTIGA DIZIA QUE O FATURAMENTO "PAROU EM 11/04/2025" — era a cópia que o Vórtice
@@ -536,8 +342,9 @@ export function Funil() {
             metrica="Faturamento realizado"
             motivo={
               'O faturamento do Protheus está no CRM, lido direto da nota de saída, mas por cliente, ' +
-              'filial e mês: a nota não diz de qual processo nasceu, e nada liga um processo ganho ao ' +
-              'valor faturado. O faturamento aparece na Visão 360 e no 360 de cada cliente, e não no funil.'
+              'filial e mês: a nota não diz de qual processo nasceu, e o estágio Faturamento é o resultado ' +
+              'registrado no histórico do Vórtice, e não a nota. O valor faturado aparece na Visão 360 e no ' +
+              '360 de cada cliente, e não no funil.'
             }
           />
         </div>
@@ -546,39 +353,92 @@ export function Funil() {
   );
 }
 
-/** Uma linha do detalhamento: a fase, o peso dela, e a cobertura do valor. */
-function LinhaDoFunil({ fase, maior }: { fase: FaseDoFunil; maior: number }) {
-  const proporcao = Math.round((fase.processos / maior) * 100);
+/**
+ * Os seis estágios em número: processos, os dois percentuais, o subfunil digital e os desfechos.
+ *
+ * SEM DADO, A TABELA FICA — com "—" e o motivo na dica em cada estágio. Some o número, não o funil: um funil que
+ * desaparece parece um funil que nunca existiu, e um de zeros afirma uma medição que não houve.
+ */
+function TabelaDoFunil({ estagios, motivo }: { estagios: EstagioNoFunil[]; motivo: string | null }) {
+  const porCodigo = new Map(estagios.map((e) => [e.estagio, e]));
 
   return (
-    <tr>
-      <td>{fase.tipoProcessoNome}</td>
-      <td>
-        <div className="cad-link-forte">{fase.faseNome}</div>
-        <div className="cad-sub cad-mono">{fase.faseCodigo}</div>
-      </td>
-      <td className="cad-mono">{fase.processos.toLocaleString('pt-BR')}</td>
-      <td>
-        <span className="cad-barra-trilho" aria-hidden="true">
-          <span className="cad-barra-mini" style={{ width: `${proporcao}%` }} />
-        </span>
-        <span className="cad-so-leitor">{proporcao}% da maior fase</span>
-      </td>
-      <td className="cad-mono">
-        {fase.processosComValor === 0 ? (
-          <span className="cad-nada">nenhum</span>
-        ) : (
-          `${fase.processosComValor} de ${fase.processos.toLocaleString('pt-BR')}`
-        )}
-      </td>
-      <td className="cad-mono">
-        {fase.valorTotal === null ? (
-          <span className="cad-nada">sem valor declarado</span>
-        ) : (
-          formatarDinheiro(fase.valorTotal)
-        )}
-      </td>
-    </tr>
+    <div className="cad-tabela-wrap">
+      <table className="cad-tabela">
+        <caption className="cad-so-leitor">O funil por estágio, em número</caption>
+        <thead>
+          <tr>
+            <th scope="col">Estágio</th>
+            <th scope="col">Processos</th>
+            <th scope="col">Sobre o anterior</th>
+            <th scope="col">Sobre o Lead</th>
+            <th scope="col">Pela entrada digital</th>
+            <th scope="col">Ganhos</th>
+            <th scope="col">Perdidos</th>
+            <th scope="col">Abertos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ESTAGIOS_DO_FUNIL.map(({ estagio, nome }) => {
+            const e = porCodigo.get(estagio);
+            const ausente = <ValorAusente motivo={motivo ?? 'sem dado'} oQue={`o estágio ${nome}`} />;
+            return (
+              <tr key={estagio}>
+                <td className="cad-link-forte">{nome}</td>
+                <td className="cad-mono">{e ? nº(e.processos) : ausente}</td>
+                <td className="cad-mono">{e ? (pct(e.percentualSobreOAnterior) ?? '—') : ausente}</td>
+                <td className="cad-mono">{e ? (pct(e.percentualSobreOLead) ?? '—') : ausente}</td>
+                <td className="cad-mono">{e ? nº(e.pelaEntradaDigital) : ausente}</td>
+                <td className="cad-mono">{e ? nº(e.ganhos) : ausente}</td>
+                <td className="cad-mono">{e ? nº(e.perdidos) : ausente}</td>
+                <td className="cad-mono">{e ? nº(e.abertos) : ausente}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** A tabela de uma distribuição de perdas: quantas, quantas máquinas, e o preço John Deere contra o concorrente. */
+function TabelaDePerdas({
+  titulo,
+  legenda,
+  fatias,
+  forte = false,
+}: {
+  titulo: string;
+  legenda: string;
+  fatias: FatiaDeVendaPerdida[];
+  forte?: boolean;
+}) {
+  return (
+    <div className="cad-tabela-wrap">
+      <table className="cad-tabela">
+        <caption className="cad-so-leitor">{legenda}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{titulo}</th>
+            <th scope="col">Vendas perdidas</th>
+            <th scope="col">Máquinas</th>
+            <th scope="col">Preço JD acima, em média</th>
+          </tr>
+        </thead>
+        <tbody>
+          {fatias.map((f) => (
+            <tr key={f.codigo}>
+              <td className={forte ? 'cad-link-forte' : undefined}>{f.nome}</td>
+              <td className="cad-mono">{nº(f.quantidade)}</td>
+              <td className="cad-mono">{nº(f.maquinas)}</td>
+              <td className="cad-mono">
+                <Diferenca fatia={f} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

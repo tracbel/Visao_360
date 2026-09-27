@@ -8204,6 +8204,18 @@ tr.funil-nova {
   color: var(--text-primary);
 }
 .cad-filtro select:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
+/* O PERÍODO DO FUNIL (27/09/2026): a data tem a mesma caixa do seletor ao lado. */
+.cad-filtro input[type='date'] {
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.cad-filtro input[type='date']:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
 .cad-filtro-caixa {
   flex-direction: row;
   align-items: center;

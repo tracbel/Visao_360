@@ -46,16 +46,16 @@ import {
   mixDeLinhas,
   obterConsolidado,
   obterExecutivoConsolidado,
-  perdasConsolidadas,
+  obterPerdasEFunilConsolidados,
   somarConsolidado,
   faturamentoConsolidado,
-  vendasPerdidasConsolidadas,
   type ExecutivoConsolidado,
 } from '../../dados/api/consolidado';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { obterMetasConsolidadas, type MetasConsolidadas } from '../../dados/api/metas';
 import { useRecurso } from '../../dados/api/useRecurso';
 import { BlocoCarregando, BlocoErro } from '../cadastro/EstadosDeTela';
+import { ValorAusente } from '../comum/ValorAusente';
 import { GraficoBarrasHorizontais } from '../GraficoBarrasHorizontais';
 import { InfoTooltip } from '../InfoTooltip';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
@@ -254,6 +254,9 @@ function iniciais(nome: string): string {
 /** O protótipo mostra cinco no ranking. */
 const TOP = 5;
 
+/** Enquanto a leitura das perdas não volta — ou quando nenhuma filial respondeu. */
+const SEM_VENDA_PERDIDA = { registradas: 0, processosPerdidos: 0, porMotivo: [], porConcorrente: [] };
+
 const nº = (v: number) => v.toLocaleString('pt-BR');
 const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
@@ -267,13 +270,19 @@ export function PainelExecutivo() {
   // A META DE VENDA TEM LEITURA PRÓPRIA (#138): o período dela é o ano fiscal, e não o ano do seletor, e a falha dela não
   // derruba os outros cartões.
   const metas = useRecurso((sinal) => obterMetasConsolidadas(contexto, sinal), [contexto.usuario]);
+  // AS PERDAS E O FUNIL DO ANO FISCAL (27/09/2026, documento 52): leitura própria, porque o período segue o ano escolhido.
+  const perdasEFunil = useRecurso(
+    (sinal) => obterPerdasEFunilConsolidados(contexto, ano, anoCorrente, sinal),
+    [contexto.usuario, ano],
+  );
 
   const dados = consolidado.dados;
   const total = useMemo(() => somarConsolidado(dados), [dados]);
   const mix = useMemo(() => mixDeLinhas(dados), [dados]);
   const cens = useMemo(() => censConsolidados(dados), [dados]);
-  const perdas = useMemo(() => perdasConsolidadas(dados), [dados]);
-  const vendasPerdidas = useMemo(() => vendasPerdidasConsolidadas(dados), [dados]);
+  const pf = perdasEFunil.dados;
+  const vendasPerdidas = pf?.vendas ?? SEM_VENDA_PERDIDA;
+  const periodoDasPerdas = pf?.periodoTexto ?? nomeDoAno(ano);
   const faturamento = useMemo(() => faturamentoConsolidado(dados), [dados]);
 
   const ex = executivo.dados;
@@ -332,7 +341,7 @@ export function PainelExecutivo() {
       })),
     [vendasPerdidas],
   );
-  const totalPerdido = perdas.reduce((s, m) => s + m.quantidade, 0);
+  const totalPerdido = vendasPerdidas.processosPerdidos;
 
   if (consolidado.carregando) return <BlocoCarregando oQue="o consolidado das filiais" />;
 
@@ -386,13 +395,10 @@ export function PainelExecutivo() {
           ex={ex && ex.respondidas > 0 ? ex : null}
           metas={metas.dados}
           carregandoMetas={metas.carregando}
-          // A CONTAGEM DE CONCORRENTES VEM DE OUTRA LEITURA (o consolidado). Ela só aparece quando as duas
-          // leituras estão completas — senão o cartão juntaria um total de dez filiais com um de treze.
-          concorrentes={
-            ex && dados && ex.respondidas === ex.filiais.length && dados.falhas === 0
-              ? vendasPerdidas.porConcorrente.length
-              : null
-          }
+          // A CONTAGEM DE CONCORRENTES SAIU DO CARTÃO (27/09/2026): ela vinha da leitura das vendas perdidas, que agora é
+          // do período, e o cartão conta todo o histórico registrado. Juntar os dois daria um número de período nenhum; a
+          // lista do período está no bloco "Conhecimento de mercado", logo abaixo.
+          concorrentes={null}
         />
       )}
 
@@ -404,10 +410,14 @@ export function PainelExecutivo() {
           <div className="v360-card-header">
             <div>
               <div className="v360-card-title">Conhecimento de mercado</div>
-              <div className="v360-card-sub">Para quem perdemos, pelo formulário de venda perdida</div>
+              <div className="v360-card-sub">Para quem perdemos, pela venda perdida principal · {periodoDasPerdas}</div>
             </div>
           </div>
-          {vendasPerdidas.porConcorrente.length > 0 ? (
+          {/* SÓ A PRINCIPAL, NO PERÍODO (27/09/2026, documento 52 §4): a mesma perda registrada em dois formulários conta
+              uma vez, e o período segue o ano fiscal escolhido acima. */}
+          {perdasEFunil.carregando ? (
+            <BlocoCarregando oQue="as vendas perdidas do período" />
+          ) : vendasPerdidas.porConcorrente.length > 0 ? (
             <>
               <ul className="v360-concorrentes">
                 {vendasPerdidas.porConcorrente.slice(0, TOP).map((c) => (
@@ -422,7 +432,8 @@ export function PainelExecutivo() {
               {/* CAPTURA TRACBEL, E NÃO "PARTICIPAÇÃO DE MERCADO" (issue 162). Este cartão conta derrotas;
                   a parte da demanda que a Tracbel leva é medida nos Indicadores, com as unidades do ART. */}
               <p className="v360-nota">
-                {nº(vendasPerdidas.registradas)} formulários de {nº(vendasPerdidas.processosPerdidos)} processos perdidos.
+                {nº(vendasPerdidas.registradas)} formulários de {nº(vendasPerdidas.processosPerdidos)} processos perdidos no
+                período.
                 A <strong>Captura Tracbel</strong> — máquinas vendidas sobre a demanda estimada — é medida nos{' '}
                 <Link to="/relatorios/territorio" className="v360-link">
                   Indicadores geográficos
@@ -433,7 +444,11 @@ export function PainelExecutivo() {
           ) : (
             <SemDado
               oQue="o mercado"
-              porque="Nenhuma venda perdida com concorrente registrada no formulário do CEN, nas filiais que responderam."
+              porque={
+                pf && pf.respondidas === 0
+                  ? 'A leitura das vendas perdidas das filiais não respondeu.'
+                  : `Nenhuma venda perdida com concorrente registrada no formulário do CEN em ${periodoDasPerdas}, nas filiais que responderam.`
+              }
             />
           )}
         </div>
@@ -674,12 +689,14 @@ export function PainelExecutivo() {
             <div>
               <div className="v360-card-title">Vendas perdidas por motivo</div>
               <div className="v360-card-sub">
-                {nº(totalPerdido)} processos perdidos no período
+                {nº(totalPerdido)} processos do Vórtice perdidos · {periodoDasPerdas}
               </div>
             </div>
           </div>
           <div className="v360-perdidas-wrap">
-            {barrasDePerda.length > 0 ? (
+            {perdasEFunil.carregando ? (
+              <BlocoCarregando oQue="as vendas perdidas do período" />
+            ) : barrasDePerda.length > 0 ? (
               <>
                 {/* A moldura mede o cartão. Com largura fixa de 600px o gráfico
                     passava por cima da borda direita — o cartão tem menos que isso
@@ -700,9 +717,11 @@ export function PainelExecutivo() {
                 // "OS 0 PROCESSOS PERDIDOS EXISTEM" não é frase: sem processo perdido, o que falta
                 // não é o formulário, é a perda.
                 porque={
-                  totalPerdido > 0
-                    ? `Os ${nº(totalPerdido)} processos perdidos existem, e nenhum deles tem o formulário de venda perdida preenchido.`
-                    : 'Nenhum processo perdido nas filiais que responderam.'
+                  pf && pf.respondidas === 0
+                    ? 'A leitura das vendas perdidas das filiais não respondeu.'
+                    : totalPerdido > 0
+                      ? `Os ${nº(totalPerdido)} processos perdidos em ${periodoDasPerdas} existem, e nenhum deles tem o formulário de venda perdida preenchido no período.`
+                      : pf?.motivoSemFunil ?? `Nenhum processo perdido nem venda perdida registrada em ${periodoDasPerdas}, nas filiais que responderam.`
                 }
               />
             )}
@@ -733,13 +752,38 @@ export function PainelExecutivo() {
               acao="Ver agenda"
               para="/agenda"
             />
-            <Alerta
-              tipo="info"
-              titulo={`${nº(total.abertos)} processos abertos`}
-              detalhe={`${nº(total.ganhos)} ganhos e ${nº(total.perdidos)} perdidos no período`}
-              acao="Ver funil"
-              para="/relatorios/funil"
-            />
+            {/* PARADOS EM NEGOCIAÇÃO OU PEDIDO (27/09/2026, documento 52 §8) — pelo estágio mais avançado do processo, ainda
+                aberto no Vórtice, alcançado há mais de 60 dias. Sem funil, o número vira "—" e o motivo verdadeiro. Este
+                alerta tomou o lugar do "processos abertos", que contava a fase do fluxo (processo.Processo), e não o funil. */}
+            {pf?.parados != null ? (
+              <Alerta
+                tipo="aviso"
+                titulo={`${nº(pf.parados)} processos parados em Negociação ou Pedido há mais de ${pf.diasParaParado} dias`}
+                detalhe="O estágio mais avançado, ainda aberto no Vórtice, sem avançar nem encerrar — hoje, nas filiais que responderam"
+                acao="Ver funil"
+                para="/relatorios/funil"
+              />
+            ) : (
+              <Alerta
+                tipo="info"
+                titulo={
+                  <>
+                    Processos parados em Negociação ou Pedido:{' '}
+                    <ValorAusente
+                      oQue="os processos parados"
+                      motivo={
+                        perdasEFunil.carregando
+                          ? 'Lendo o funil das filiais.'
+                          : (pf?.motivoSemFunil ?? 'A leitura do funil das filiais não respondeu.')
+                      }
+                    />
+                  </>
+                }
+                detalhe="Pelo estágio mais avançado de cada processo do Vórtice, ainda aberto há mais de 60 dias"
+                acao="Ver funil"
+                para="/relatorios/funil"
+              />
+            )}
           </div>
         </div>
       </div>
@@ -1176,7 +1220,7 @@ function Alerta({
   para,
 }: {
   tipo: 'critico' | 'aviso' | 'info';
-  titulo: string;
+  titulo: ReactNode;
   detalhe: string;
   acao: string;
   para: string;

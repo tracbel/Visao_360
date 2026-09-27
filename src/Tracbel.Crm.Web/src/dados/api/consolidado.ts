@@ -37,6 +37,7 @@ import type {
   FaseDoFunil,
   Faturamento,
   FatiaDeVendaPerdida,
+  FunilPorEstagio,
   PainelDaAgenda,
   ProcessoResumo,
   ClienteNoRanking,
@@ -86,12 +87,9 @@ export type ConsolidadoDaFilial = {
    * As perdas por motivo desta filial, contadas em `processo.Processo`.
    *
    * O motivo é "não informado" em 100% — o Vórtice encerra o processo sem coluna de motivo.
-   * Quem responde por quê é `vendasPerdidas`, que lê o formulário do CEN.
+   * Quem responde por quê é `obterPerdasEFunilConsolidados`, que lê o formulário do CEN no período.
    */
   perdasPorMotivo: ContagemPorRotulo[];
-
-  /** As vendas perdidas registradas no formulário: motivo, concorrente e diferença de preço. */
-  vendasPerdidas: VendasPerdidas | null;
 
   /** O faturamento desta filial, lido da SD2 do Protheus. */
   faturamento: Faturamento | null;
@@ -178,19 +176,17 @@ async function lerFilial(
     porLinhaDeNegocio: [],
     porResponsavel: [],
     perdasPorMotivo: [],
-    vendasPerdidas: null,
     faturamento: null,
     fases: [],
   };
 
   try {
-    const [cobertura, agenda, funil, perdas, vendasPerdidas, faturamento, ganhos, perdidos] =
+    const [cobertura, agenda, funil, perdas, faturamento, ganhos, perdidos] =
       await Promise.all([
       ler<Agregado<ResumoDeCobertura>>('/v1/relatorios/cobertura', contexto, { sinal }),
       ler<Agregado<PainelDaAgenda>>('/v1/relatorios/agenda', contexto, { sinal }),
       ler<Agregado<FaseDoFunil>>('/v1/relatorios/funil', contexto, { sinal }),
       ler<Agregado<ContagemPorRotulo>>('/v1/relatorios/perdas', contexto, { sinal }),
-      ler<VendasPerdidas>('/v1/relatorios/vendas-perdidas', contexto, { sinal }),
       ler<Faturamento>('/v1/relatorios/faturamento', contexto, { sinal }),
       contar(contexto, 'Ganho', sinal),
       contar(contexto, 'Perdido', sinal),
@@ -260,7 +256,6 @@ async function lerFilial(
         .sort((a, b) => b.clientes - a.clientes),
       porResponsavel: [...porCen.values()].sort((a, b) => b.clientes - a.clientes),
       perdasPorMotivo: perdas.dados.itens,
-      vendasPerdidas: vendasPerdidas.dados,
       faturamento: faturamento.dados,
       fases: funil.dados.itens,
     };
@@ -585,7 +580,7 @@ export function perdasConsolidadas(c: Consolidado | null): ContagemPorRotulo[] {
  * peso, que é a única forma de o número consolidado significar o mesmo que o número de uma
  * filial só.
  */
-export function vendasPerdidasConsolidadas(c: Consolidado | null): {
+export function somarVendasPerdidas(filiais: VendasPerdidas[]): {
   registradas: number;
   processosPerdidos: number;
   porMotivo: FatiaDeVendaPerdida[];
@@ -619,13 +614,79 @@ export function vendasPerdidasConsolidadas(c: Consolidado | null): {
       .sort((a, b) => b.quantidade - a.quantidade);
   };
 
-  const vivas = (c?.filiais ?? []).filter((f) => !f.falhou && f.vendasPerdidas !== null);
+  return {
+    registradas: filiais.reduce((s, f) => s + f.registradas, 0),
+    processosPerdidos: filiais.reduce((s, f) => s + f.processosPerdidos, 0),
+    porMotivo: juntar(filiais.map((f) => f.porMotivo)),
+    porConcorrente: juntar(filiais.map((f) => f.porConcorrente)),
+  };
+}
+
+/* ------------------------------------------------------------------------ */
+/* As perdas e o funil do período (documento 52, 27/09/2026)                 */
+/* ------------------------------------------------------------------------ */
+
+/** As vendas perdidas e o alerta de processo parado, somados entre as filiais que responderam. */
+export type PerdasEFunilConsolidados = {
+  vendas: ReturnType<typeof somarVendasPerdidas>;
+  /** O período das vendas perdidas, escrito — o mesmo em toda filial. */
+  periodoTexto: string | null;
+  /** Os processos parados em Negociação ou Pedido; nulo quando nenhuma filial tem funil. */
+  parados: number | null;
+  diasParaParado: number;
+  /** O motivo verdadeiro de o funil não ter dado — a primeira filial que o disse. */
+  motivoSemFunil: string | null;
+  respondidas: number;
+  /** As filiais cuja leitura falhou, pelo nome. */
+  falhas: string[];
+};
+
+/**
+ * AS PERDAS E O FUNIL DO ANO FISCAL, filial a filial pela mesma ponte do consolidado (P-8).
+ *
+ * É UMA LEITURA SEPARADA, como a dos cinco cartões: o período dela segue o ano fiscal escolhido, e trocar o ano não
+ * pode refazer as leituras do painel inteiro. O ano corrente vai sem `de`/`ate` — o servidor usa o ano fiscal até o
+ * último mês fechado —; um ano fechado vai inteiro, de novembro a outubro.
+ *
+ * O FUNIL VEM PELO FLUXO (`base=etapa`): os alertas usam o fluxo (decisão de 27/09/2026). O parado não depende do
+ * período — é o estado de hoje.
+ */
+export async function obterPerdasEFunilConsolidados(
+  contexto: ContextoDeAcesso,
+  ano: number,
+  anoCorrente: number,
+  sinal?: AbortSignal,
+): Promise<{ dados: PerdasEFunilConsolidados; procedencia: null }> {
+  const periodo = ano === anoCorrente ? {} : { de: `${ano - 1}-11-01`, ate: `${ano}-10-31` };
+  const filiais = await listarFiliais(contexto, sinal);
+  const linhas = await comLimite(filiais, 4, async (filial) => {
+    const daFilial = { ...contexto, empresa: filial.codigo };
+    try {
+      const [vendas, funil] = await Promise.all([
+        ler<VendasPerdidas>('/v1/relatorios/vendas-perdidas', daFilial, { sinal, parametros: periodo }),
+        ler<FunilPorEstagio>('/v1/relatorios/funil-por-estagio', daFilial, { sinal, parametros: { ...periodo, base: 'etapa' } }),
+      ]);
+      return { filial, vendas: vendas.dados, funil: funil.dados };
+    } catch (causa) {
+      if (causa instanceof DOMException && causa.name === 'AbortError') throw causa;
+      return { filial, vendas: null, funil: null };
+    }
+  });
+
+  const vivas = linhas.filter((l) => l.vendas !== null && l.funil !== null);
+  const comFunil = vivas.filter((l) => l.funil!.paradosEmNegociacaoOuPedido !== null);
 
   return {
-    registradas: vivas.reduce((s, f) => s + (f.vendasPerdidas?.registradas ?? 0), 0),
-    processosPerdidos: vivas.reduce((s, f) => s + (f.vendasPerdidas?.processosPerdidos ?? 0), 0),
-    porMotivo: juntar(vivas.map((f) => f.vendasPerdidas!.porMotivo)),
-    porConcorrente: juntar(vivas.map((f) => f.vendasPerdidas!.porConcorrente)),
+    dados: {
+      vendas: somarVendasPerdidas(vivas.map((l) => l.vendas!)),
+      periodoTexto: vivas[0]?.vendas!.periodo.texto ?? null,
+      parados: comFunil.length > 0 ? comFunil.reduce((s, l) => s + l.funil!.paradosEmNegociacaoOuPedido!, 0) : null,
+      diasParaParado: vivas[0]?.funil!.diasParaParado ?? 60,
+      motivoSemFunil: comFunil.length > 0 ? null : (vivas[0]?.funil!.metricasSemDado[0]?.motivo ?? null),
+      respondidas: vivas.length,
+      falhas: linhas.filter((l) => l.vendas === null).map((l) => l.filial.nome),
+    },
+    procedencia: null,
   };
 }
 

@@ -42,6 +42,15 @@
  * soma por consultor da filial do cabeçalho — a tela só desenha. O consultor é
  * o login da GN, e não o responsável da carteira: por isso a tabela é à parte
  * da cobertura, e as duas não se cruzam por nome.
+ *
+ * ---------------------------------------------------------------------------
+ * 27/09/2026 — O FUNIL DO CEN (documento 52).
+ *
+ * O "0 ganhos · 0 perdidos · 0 abertos" contava `processo.Processo`, que só a
+ * onda 2 carrega. No lugar entra `/relatorios/funil-por-estagio` pelo FLUXO
+ * (a leitura da Performance, decisão do Ricardo) e com o responsável escolhido,
+ * e as perdas do período de `/relatorios/vendas-perdidas` — só a principal.
+ * Sem funil, cada estágio mostra "—" com o motivo verdadeiro.
  */
 
 import { useMemo, useState } from 'react';
@@ -57,7 +66,13 @@ import { ENTRAM_NO_RANKING } from '../dados/api/consolidado';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { ErroDaApi } from '../dados/api/http';
 import { obterMetaDaFilial } from '../dados/api/metas';
-import { obterPainelDoCen, obterResumoDeCobertura } from '../dados/api/relacionamento';
+import { ValorAusente } from '../componentes/comum/ValorAusente';
+import {
+  obterFunilPorEstagio,
+  obterPainelDoCen,
+  obterResumoDeCobertura,
+  obterVendasPerdidas,
+} from '../dados/api/relacionamento';
 import type { CoberturaPorClasse } from '../tipos/relacionamento';
 import { useRecurso } from '../dados/api/useRecurso';
 import { formatarData } from './cadastro/formato';
@@ -108,6 +123,16 @@ const FAIXAS_DE_COBERTURA: {
   { nome: 'Nunca contatado', cor: '#9CA3AF', medir: (c) => c.nuncaContatados },
   { nome: 'Sem cadencia declarada', cor: '#D4D8D5', medir: (c) => c.semCadenciaDeclarada },
 ];
+
+/** Os seis estágios do funil do Vórtice, na ordem (documento 52). */
+const ESTAGIOS = [
+  { estagio: 'Lead', nome: 'Lead' },
+  { estagio: 'Qualificado', nome: 'Qualificado' },
+  { estagio: 'Cobertura', nome: 'Cobertura' },
+  { estagio: 'Negociacao', nome: 'Negociação' },
+  { estagio: 'Pedido', nome: 'Pedido' },
+  { estagio: 'Faturamento', nome: 'Faturamento' },
+] as const;
 
 /** Quantas pessoas entram no gráfico antes de a barra virar um traço. */
 const CENS_NO_GRAFICO = 12;
@@ -164,6 +189,21 @@ export function PerformanceCen() {
   const resumo = useRecurso(
     (sinal) => obterResumoDeCobertura(contexto, sinal),
     [contexto.empresa, contexto.usuario],
+  );
+
+  /** O funil do CEN escolhido, pelo FLUXO — a leitura da Performance (27/09/2026). */
+  const funil = useRecurso(
+    (sinal) => obterFunilPorEstagio(contexto, { base: 'etapa', responsavel: cenEscolhido ?? undefined }, sinal),
+    [contexto.empresa, contexto.usuario, cenEscolhido],
+  );
+  const motivoDoFunil =
+    funil.dados?.metricasSemDado.find((m) => m.metrica === 'funil' || m.metrica === 'funilNoPeriodo')?.motivo ??
+    'O funil ainda não respondeu.';
+
+  /** As perdas do CEN no período: os processos perdidos no funil e os formulários de venda perdida (só a principal). */
+  const perdas = useRecurso(
+    (sinal) => obterVendasPerdidas(contexto, sinal, { responsavel: cenEscolhido ?? undefined }),
+    [contexto.empresa, contexto.usuario, cenEscolhido],
   );
 
   const carteiras = useMemo(() => resumo.dados?.itens ?? [], [resumo.dados]);
@@ -350,7 +390,7 @@ export function PerformanceCen() {
       rotulo: 'Nunca contatados',
       valor: resumo.dados ? totais.nunca : null,
       tom: 'atencao',
-      deOnde: 'sem nenhuma interação no recorte carregado',
+      deOnde: 'sem contato no histórico do Vórtice, pela regra da BI de carteiras',
       semDado: '—',
     },
   ];
@@ -506,22 +546,9 @@ export function PerformanceCen() {
               </table>
             </div>
 
+            {/* OS PROCESSOS SAÍRAM DAQUI (27/09/2026): "0 ganhos · 0 perdidos · 0 abertos" contava processo.Processo, que
+                só a onda 2 carrega. O funil do CEN, pelo responsável do processo no Vórtice, está no bloco logo abaixo. */}
             <div className="cad-fichas">
-              <div className="cad-ficha-linha">
-                <span className="cad-ficha-rotulo">Processos dos clientes desta carteira</span>
-                <span className="cad-ficha-valor">
-                  {painel.dados.painel.processosGanhos.toLocaleString('pt-BR')} ganhos ·{' '}
-                  {painel.dados.painel.processosPerdidos.toLocaleString('pt-BR')} perdidos ·{' '}
-                  {painel.dados.painel.processosAbertos.toLocaleString('pt-BR')} abertos
-                </span>
-              </div>
-              <div className="cad-ficha-linha">
-                <span className="cad-ficha-rotulo">Derrotas com formulário preenchido</span>
-                <span className="cad-ficha-valor">
-                  {painel.dados.painel.vendasPerdidasRegistradas.toLocaleString('pt-BR')} de{' '}
-                  {painel.dados.painel.processosPerdidos.toLocaleString('pt-BR')}
-                </span>
-              </div>
               <div className="cad-ficha-linha">
                 <span className="cad-ficha-rotulo">Faturamento dos clientes da carteira</span>
                 <span className="cad-ficha-valor">
@@ -534,6 +561,71 @@ export function PerformanceCen() {
               </div>
             </div>
           </>
+        )}
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* O FUNIL DO CEN — o fluxo por estágio e as perdas (27/09/2026)        */}
+      {/*                                                                     */}
+      {/* A Performance usa o FLUXO (decisão do Ricardo): as etapas que o CEN  */}
+      {/* fez andar no período, qualquer que seja a abertura do processo. O    */}
+      {/* dono é o responsável do processo no Vórtice (UsuResponsavel), e o    */}
+      {/* seletor é o mesmo do bloco acima.                                    */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="card cad-cartao" data-bloco="funil-do-cen">
+        <div className="card-header cad-cartao-cabecalho">
+          <div>
+            <div className="card-title">Funil do CEN — fluxo por estágio</div>
+            <div className="card-subtitle">
+              {funil.dados
+                ? `${painel.dados?.painel.responsavelNome ?? 'Todos os responsáveis'} · etapas alcançadas em ${funil.dados.periodo.texto}`
+                : 'as etapas alcançadas no período, pelo responsável do processo no Vórtice'}
+            </div>
+          </div>
+          <SeloProcedencia procedencia={funil.procedencia} />
+        </div>
+
+        {funil.carregando && <BlocoCarregando oQue="o funil do CEN" />}
+        {funil.erro && <BlocoErro erro={funil.erro} aoTentarDeNovo={funil.recarregar} />}
+
+        {funil.dados && (
+          <div className="cad-fichas">
+            {ESTAGIOS.map(({ estagio, nome }) => {
+              const e = funil.dados!.estagios.find((x) => x.estagio === estagio);
+              return (
+                <div className="cad-ficha-linha" key={estagio}>
+                  <span className="cad-ficha-rotulo">{nome}</span>
+                  <span className="cad-ficha-valor">
+                    {e ? (
+                      <>
+                        {e.processos.toLocaleString('pt-BR')}
+                        {e.percentualSobreOAnterior !== null && (
+                          <span className="cad-sub">
+                            {' '}
+                            · {e.percentualSobreOAnterior.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do anterior
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <ValorAusente oQue={`o estágio ${nome}`} motivo={motivoDoFunil} />
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+            <div className="cad-ficha-linha">
+              <span className="cad-ficha-rotulo">Perdas no período</span>
+              <span className="cad-ficha-valor">
+                {perdas.dados ? (
+                  `${perdas.dados.processosPerdidos.toLocaleString('pt-BR')} processos perdidos · ` +
+                  `${perdas.dados.registradas.toLocaleString('pt-BR')} com o formulário de venda perdida` +
+                  (perdas.dados.porMotivo[0] ? ` · mais comum: ${perdas.dados.porMotivo[0].nome}` : '')
+                ) : (
+                  <ValorAusente oQue="as perdas" motivo={perdas.erro?.message ?? 'Lendo as vendas perdidas.'} />
+                )}
+              </span>
+            </div>
+          </div>
         )}
       </div>
 
@@ -863,7 +955,7 @@ export function PerformanceCen() {
           depois do que a tela de fato tem para mostrar. */}
       <BlocoRecolhivel
         titulo="O que esta tela mostrava e não tem como sustentar"
-        resumo="faturamento por CEN, processos por pessoa, tempo de atendimento e conversão"
+        resumo="faturamento por CEN, tarefas por pessoa e tempo de atendimento"
       >
         <div className="cad-fichas">
           {/* A FRASE ANTIGA DIZIA QUE O FATURAMENTO "PAROU EM 11/04/2025" — era a cópia que o Vórtice
@@ -880,14 +972,14 @@ export function PerformanceCen() {
           />
           {/* O "ATINGIMENTO DE META" SAIU DESTA LISTA EM 27/09/2026: a meta de venda tem fonte — a API
               Gestão de Negócios — e está no bloco "Meta de venda × realizado", acima (#138). */}
+          {/* "PROCESSOS E TAREFAS POR CEN" DIZIA QUE FALTAVA ROTA (27/09/2026): os processos por CEN estão no funil do
+              CEN, acima, pelo responsável do processo no Vórtice. O que continua faltando é a agenda. */}
           <LacunaConhecida
-            metrica="Processos e tarefas por CEN"
+            metrica="Tarefas por CEN"
             motivo={
-              'Falta rota. ProprietarioId existe na consulta de processos do domínio, mas o ' +
-              'endpoint /api/v1/processos não o expõe; e /api/v1/tarefas só aceita "minhas", que ' +
-              'usa o usuário do contexto de acesso. Sem um parâmetro de responsável ou um ' +
-              'agregado por pessoa, não há como contar o pipeline nem a agenda de cada CEN sem ' +
-              'baixar 45 mil processos e 103 mil tarefas para somar no navegador.'
+              'Os processos de cada CEN estão no bloco "Funil do CEN", pelo responsável do processo no Vórtice. As ' +
+              'tarefas não: a agenda do Vórtice ainda não é trazida para o CRM, e sem ela não há pendências nem ' +
+              'atrasos por pessoa para contar.'
             }
           />
           <LacunaConhecida
@@ -899,15 +991,8 @@ export function PerformanceCen() {
               'nenhuma vez. Qualquer métrica de produtividade por tempo é impossível hoje.'
             }
           />
-          <LacunaConhecida
-            metrica="Taxa de conversão por CEN"
-            motivo={
-              'Depende das duas anteriores ao mesmo tempo: não há como contar ganhos e perdidos ' +
-              'por responsável sem a rota, e o desfecho comercial da origem tem o problema do ' +
-              'cancelamento — 3.675 cancelados contra 190 perdidos nesta filial, sem motivo ' +
-              'declarado em nenhum deles.'
-            }
-          />
+          {/* A "TAXA DE CONVERSÃO POR CEN" SAIU DESTA LISTA EM 27/09/2026: a conversão de estágio a estágio de cada CEN
+              está no funil do CEN, acima. */}
         </div>
       </BlocoRecolhivel>
     </>
