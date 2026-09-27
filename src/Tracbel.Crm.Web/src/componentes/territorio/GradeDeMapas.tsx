@@ -24,7 +24,7 @@ export function GradeDeMapas({
   indicadores,
   totais,
   coberturaDaAdr,
-  regra,
+  regras,
   anoDoCenso,
   anoDoRebanho,
   classificacaoDe,
@@ -33,7 +33,7 @@ export function GradeDeMapas({
   indicadores: IndicadoresTerritoriais;
   totais: TotaisDaAdr;
   coberturaDaAdr: number | null;
-  regra: RegraDePotencialAplicada | null;
+  regras: RegraDePotencialAplicada[];
   anoDoCenso: number | null;
   anoDoRebanho: number | null;
   classificacaoDe: (indicador: ClassificacaoDeIndicador['indicador']) => ClassificacaoDeIndicador | null;
@@ -56,7 +56,7 @@ export function GradeDeMapas({
       <MapaDoPotencial
         ligacao={ligacao}
         totais={totais}
-        regra={regra}
+        regras={regras}
         enderecos={indicadores.enderecos}
         enderecosComArea={indicadores.enderecosComArea}
         classificacao={classificacaoDe('potencial')}
