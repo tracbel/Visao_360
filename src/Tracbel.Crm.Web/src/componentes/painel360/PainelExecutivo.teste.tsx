@@ -286,10 +286,41 @@ describe('Painel executivo da Visão 360 — sem carteira e vazio', () => {
     expect(container).toHaveTextContent('Sem dado para o mix por linha');
   });
 
-  it('sem processo perdido, a tela não diz que "os 0 processos perdidos existem"', async () => {
+  it('sem processo perdido, a tela não diz que "os 0 processos perdidos existem" — diz o motivo verdadeiro', async () => {
     const { container } = await montar('vazio');
 
-    expect(container).toHaveTextContent('Nenhum processo perdido nas filiais que responderam.');
+    // A ROTINA DO FUNIL AINDA NÃO RODOU (27/09/2026): o processo perdido vem dela, e o cartão diz isso.
+    await waitFor(() => expect(container.querySelector('[data-bloco="linha-4"]')).toHaveTextContent('ainda não rodou'));
     expect(container.textContent).not.toContain('Os 0 processos perdidos existem');
+  });
+
+  it('sem funil, o alerta dos processos parados é "—" com o motivo, e não zero', async () => {
+    const { container } = await montar('vazio');
+
+    await waitFor(() =>
+      expect(container.querySelector('.v360-alertas-list')).toHaveTextContent('Processos parados em Negociação ou Pedido:'),
+    );
+    const motivo = textoDaDica(screen.getByRole('button', { name: 'Por que os processos parados não aparece' }));
+    expect(motivo).toContain('ainda não rodou');
+  });
+});
+
+describe('Painel executivo da Visão 360 — as perdas e o funil do período (documento 52)', () => {
+  it('conta os processos parados em Negociação ou Pedido somando as filiais', async () => {
+    const { container } = await montar('completo');
+
+    await waitFor(() =>
+      expect(container.querySelector('.v360-alertas-list')).toHaveTextContent(
+        /\d+ processos parados em Negociação ou Pedido há mais de 60 dias/,
+      ),
+    );
+    expect(container.querySelector('.v360-alertas-list')).not.toHaveTextContent('processos abertos');
+  });
+
+  it('as vendas perdidas são do período, e o período está escrito nos dois cartões', async () => {
+    const { container } = await montar('completo');
+
+    await waitFor(() => expect(container.querySelector('[data-bloco="linha-4"]')).toHaveTextContent('nov/2025 a ago/2026'));
+    expect(container.querySelector('[data-bloco="linha-2"]')).toHaveTextContent('pela venda perdida principal · nov/2025 a ago/2026');
   });
 });

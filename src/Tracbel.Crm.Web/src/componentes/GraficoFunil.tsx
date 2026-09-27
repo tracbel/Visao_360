@@ -11,8 +11,9 @@
  * anterior, com a legenda marcando `↑` na conversão.
  *
  * O QUE MUDA EM RELAÇÃO AO PROTÓTIPO É SÓ A ORIGEM DO DADO. Lá as sete fases
- * eram uma constante no JavaScript; aqui elas chegam de `/api/v1/relatorios/funil`,
- * que agrupa `processo.Processo` no banco dentro da filial do contexto.
+ * eram uma constante no JavaScript; aqui as faixas são os seis estágios do
+ * Vórtice, de `/api/v1/relatorios/funil-por-estagio`, contados no banco dentro
+ * da filial do contexto (27/09/2026, documento 52).
  *
  * O rótulo dentro da faixa segue a mesma regra do original: cabe dentro quando a
  * faixa passa de 55 unidades de largura, senão vai para a direita, na cor da
@@ -148,7 +149,7 @@ export function LegendaDoFunil({ faixas }: { faixas: FaixaDoFunil[] }) {
   return (
     <div className="funil-legend">
       <div className="legend-header">
-        <span>Fase</span>
+        <span>Estágio</span>
         <span style={{ float: 'right' }}>Conv.</span>
       </div>
       {faixas.map((faixa, i) => {

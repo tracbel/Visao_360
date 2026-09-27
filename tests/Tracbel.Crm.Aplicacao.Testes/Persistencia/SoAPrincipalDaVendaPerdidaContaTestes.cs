@@ -24,6 +24,9 @@ public sealed class SoAPrincipalDaVendaPerdidaContaTestes : IDisposable
 {
     private static readonly DateTime Agora = new(2026, 9, 27, 12, 0, 0, DateTimeKind.Utc);
 
+    /// <summary>O último ano inteiro, que contém as três respostas.</summary>
+    private static readonly FiltroDeVendaPerdida UmAno = new(Agora.AddYears(-1), Agora, null, null);
+
     private readonly SqliteConnection _conexao = new("Filename=:memory:");
     private readonly DbContextOptions<CrmDbContext> _opcoes;
 
@@ -74,12 +77,12 @@ public sealed class SoAPrincipalDaVendaPerdidaContaTestes : IDisposable
 
         (await repositorio.ContarAsync(CancellationToken.None)).Should().Be(1);
 
-        var porMotivo = (await repositorio.ResumirPorMotivoAsync(CancellationToken.None)).Should().ContainSingle().Subject;
+        var porMotivo = (await repositorio.ResumirPorMotivoAsync(UmAno, CancellationToken.None)).Should().ContainSingle().Subject;
         porMotivo.Quantidade.Should().Be(1);
         porMotivo.Maquinas.Should().Be(2, "as duas máquinas da principal — a duplicata e o complemento não somam as delas");
         porMotivo.DiferencaMediaDePreco.Should().Be(-100_000m, "a média é só da principal; com a duplicata ela iria para 0");
 
-        var porConcorrente = (await repositorio.ResumirPorConcorrenteAsync(CancellationToken.None)).Should().ContainSingle().Subject;
+        var porConcorrente = (await repositorio.ResumirPorConcorrenteAsync(UmAno, CancellationToken.None)).Should().ContainSingle().Subject;
         porConcorrente.Quantidade.Should().Be(1);
         porConcorrente.DiferencaMediaDePreco.Should().Be(-100_000m);
     }

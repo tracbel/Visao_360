@@ -118,13 +118,88 @@ export type FatiaDeVendaPerdida = {
 
 /** O relatório de vendas perdidas inteiro, como a API o devolve. */
 export type VendasPerdidas = {
-  /** Quantos formulários de venda perdida foram preenchidos. */
+  /** Quantos formulários de venda perdida (só a resposta principal) foram preenchidos no período. */
   registradas: number;
-  /** Quantos processos estão marcados como perdidos. Sempre maior ou igual a `registradas`. */
+  /** Quantos processos do funil do Vórtice terminaram perdidos no período. */
   processosPerdidos: number;
   porMotivo: FatiaDeVendaPerdida[];
   porConcorrente: FatiaDeVendaPerdida[];
   metricasSemDado: MetricaSemDado[];
+  /** O período, pela data em que o formulário foi preenchido; padrão: o ano fiscal até o último mês fechado. */
+  periodo: PeriodoDoRelatorio;
+  /** O formulário do Vórtice filtrado; nulo para todos. */
+  formulario: string | null;
+};
+
+/** O período de um relatório do funil, sempre escrito junto do número. */
+export type PeriodoDoRelatorio = {
+  /** O primeiro dia (AAAA-MM-DD), inclusive. */
+  de: string;
+  /** O último dia (AAAA-MM-DD), inclusive. */
+  ate: string;
+  /** "nov/2025 a ago/2026" no padrão; "01/11/2025 a 15/09/2026" num período escolhido. */
+  texto: string;
+  /** Se é o ano fiscal até o último mês fechado. */
+  ehOPadrao: boolean;
+};
+
+/** Os seis estágios do funil do Vórtice, na ordem (documento 52). */
+export type CodigoDoEstagio = 'Lead' | 'Qualificado' | 'Cobertura' | 'Negociacao' | 'Pedido' | 'Faturamento';
+
+/** Um estágio do funil — contado no banco sobre `processo.EstagioDoProcesso`. */
+export type EstagioNoFunil = {
+  estagio: CodigoDoEstagio;
+  nome: string;
+  processos: number;
+  /** Sobre o estágio anterior; nulo no Lead e quando o anterior é zero. */
+  percentualSobreOAnterior: number | null;
+  /** Sobre o Lead; nulo quando o Lead é zero. */
+  percentualSobreOLead: number | null;
+  /** O subfunil digital: alcançaram o estágio pela entrada digital (1278/3803). */
+  pelaEntradaDigital: number;
+  ganhos: number;
+  perdidos: number;
+  abertos: number;
+  /** Cancelados e suspensos. */
+  outros: number;
+};
+
+/** A última execução da rotina que traz o funil (PROCESSOS_VORTICE). */
+export type ExecucaoDaRotinaDoFunil = {
+  nome: string;
+  estaLigada: boolean;
+  iniciadaEm: string | null;
+  terminadaEm: string | null;
+  resultado: string | null;
+};
+
+/**
+ * `abertura` é a COORTE (os processos abertos no período e até onde chegaram) — o padrão; `etapa` é o FLUXO (as
+ * etapas alcançadas no período). Decisão do Ricardo de 27/09/2026.
+ */
+export type BaseDoFunil = 'abertura' | 'etapa';
+
+/** O funil por estágio, como a rota `/relatorios/funil-por-estagio` o devolve. */
+export type FunilPorEstagio = {
+  periodo: PeriodoDoRelatorio;
+  base: BaseDoFunil;
+  /** Vazio quando o funil não tem dado — o motivo verdadeiro vem em `metricasSemDado`. */
+  estagios: EstagioNoFunil[];
+  /** Os processos parados em Negociação ou Pedido há mais de `diasParaParado` dias; nulo sem dado. */
+  paradosEmNegociacaoOuPedido: number | null;
+  diasParaParado: number;
+  rotina: ExecucaoDaRotinaDoFunil | null;
+  metricasSemDado: MetricaSemDado[];
+};
+
+/** O que a tela pede ao funil e às vendas perdidas. Vazio é o padrão. */
+export type RecorteDoFunil = {
+  de?: string;
+  ate?: string;
+  base?: BaseDoFunil;
+  carteira?: string;
+  responsavel?: string;
+  formulario?: string;
 };
 
 /* ---------------------------------------------------------------------- */

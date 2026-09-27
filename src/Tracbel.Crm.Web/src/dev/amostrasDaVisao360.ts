@@ -39,6 +39,7 @@ import type {
   ContagemPorRotulo,
   FaseDoFunil,
   Faturamento,
+  FunilPorEstagio,
   PainelDaAgenda,
   ProcessoResumo,
   ResumoDeCobertura,
@@ -287,7 +288,7 @@ const CONCORRENTES = [
 export function vendasPerdidas(estado: EstadoDaVisao360, codigo: string): VendasPerdidas {
   const peso = pesoDaOperacao(estado, codigo);
   if (peso === 0) {
-    return { registradas: 0, processosPerdidos: 0, porMotivo: [], porConcorrente: [], metricasSemDado: [] };
+    return { registradas: 0, processosPerdidos: 0, porMotivo: [], porConcorrente: [], metricasSemDado: [], periodo: PERIODO_PADRAO, formulario: null };
   }
 
   const fatia = (codigoDaFatia: string, nome: string, base: number) => ({
@@ -305,6 +306,8 @@ export function vendasPerdidas(estado: EstadoDaVisao360, codigo: string): Vendas
     porMotivo: MOTIVOS.map((m, i) => fatia(`M${i}`, m, 30 - i * 5)),
     porConcorrente: CONCORRENTES.map((c, i) => fatia(`C${i}`, c, 26 - i * 5)),
     metricasSemDado: [],
+    periodo: PERIODO_PADRAO,
+    formulario: null,
   };
 }
 
@@ -535,9 +538,70 @@ export function metasDeVenda(estado: EstadoDaVisao360, codigo: string): MetaERea
 }
 
 /* ------------------------------------------------------------------------ */
-/* A rota → a amostra                                                         */
+/* O funil por estágio do Vórtice (documento 52)                             */
 /* ------------------------------------------------------------------------ */
 
+/** O período padrão das leituras do funil em 27/09/2026: o FY2026 até agosto. */
+const PERIODO_PADRAO = { de: '2025-11-01', ate: '2026-08-31', texto: 'nov/2025 a ago/2026', ehOPadrao: true };
+
+/**
+ * O funil de uma filial. No `completo` a rotina PROCESSOS_VORTICE rodou; nos outros dois ela ainda não rodou — é o
+ * que a produção mostra até alguém ligar a rotina —, e o funil volta vazio com o motivo.
+ */
+export function funilPorEstagio(estado: EstadoDaVisao360, codigo: string): FunilPorEstagio {
+  const peso = pesoDaOperacao(estado, codigo);
+  if (peso === 0) {
+    return {
+      periodo: PERIODO_PADRAO,
+      base: 'abertura',
+      estagios: [],
+      paradosEmNegociacaoOuPedido: null,
+      diasParaParado: 60,
+      rotina: { nome: 'Funil e vendas perdidas do Vórtice', estaLigada: false, iniciadaEm: null, terminadaEm: null, resultado: null },
+      metricasSemDado: [
+        {
+          metrica: 'funil',
+          motivo:
+            'A rotina "Funil e vendas perdidas do Vórtice" (PROCESSOS_VORTICE) ainda não rodou: ela nasce desligada, e quem administra a liga em Configurações › Integrações.',
+        },
+      ],
+    };
+  }
+
+  const bases = [2_900, 2_440, 2_350, 780, 540, 330].map((v) => n(v * peso));
+  const nomes = ['Lead', 'Qualificado', 'Cobertura', 'Negociação', 'Pedido', 'Faturamento'];
+  const codigos = ['Lead', 'Qualificado', 'Cobertura', 'Negociacao', 'Pedido', 'Faturamento'] as const;
+  return {
+    periodo: PERIODO_PADRAO,
+    base: 'abertura',
+    estagios: codigos.map((estagio, i) => ({
+      estagio,
+      nome: nomes[i],
+      processos: bases[i],
+      percentualSobreOAnterior: i === 0 || bases[i - 1] === 0 ? null : Math.round((1000 * bases[i]) / bases[i - 1]) / 10,
+      percentualSobreOLead: bases[0] === 0 ? null : Math.round((1000 * bases[i]) / bases[0]) / 10,
+      pelaEntradaDigital: n(bases[i] * (i < 2 ? 0.24 : 0.03)),
+      ganhos: n(bases[5] * 0.9),
+      perdidos: n(bases[i] * 0.2),
+      abertos: n(bases[i] * 0.5),
+      outros: n(bases[i] * 0.05),
+    })),
+    paradosEmNegociacaoOuPedido: n(37 * peso),
+    diasParaParado: 60,
+    rotina: {
+      nome: 'Funil e vendas perdidas do Vórtice',
+      estaLigada: true,
+      iniciadaEm: '2026-09-27T09:30:00Z',
+      terminadaEm: '2026-09-27T09:30:12Z',
+      resultado: 'Sucesso',
+    },
+    metricasSemDado: [],
+  };
+}
+
+/* ------------------------------------------------------------------------ */
+/* A rota → a amostra                                                         */
+/* ------------------------------------------------------------------------ */
 /**
  * A AMOSTRA DE CADA ROTA QUE A VISÃO 360 LÊ, pelo caminho da API — ou
  * `undefined` para a rota que ninguém simulou.
@@ -565,6 +629,8 @@ export function respostaDaVisao360(
       return perdasPorMotivo(estado, empresa);
     case '/v1/relatorios/vendas-perdidas':
       return vendasPerdidas(estado, empresa);
+    case '/v1/relatorios/funil-por-estagio':
+      return funilPorEstagio(estado, empresa);
     case '/v1/relatorios/faturamento':
       return faturamento(estado, empresa);
     case '/v1/relatorios/indicadores-executivos':

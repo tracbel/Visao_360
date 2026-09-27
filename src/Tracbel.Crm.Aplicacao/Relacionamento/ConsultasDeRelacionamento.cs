@@ -511,8 +511,8 @@ public sealed class ObterResumoDeCobertura(IRepositorioCarteiras repositorio, IR
         else if (nunca == clientes)
             ausentes.Add(new MetricaSemDado(
                 "coberturaDeCarteira",
-                $"Nenhum dos {clientes} clientes carteirizados tem interação registrada no recorte " +
-                "carregado. Sem interação não existe data de último contato, e o indicador de " +
+                $"Nenhum dos {clientes} clientes carteirizados tem a data do último contato. Ela vem do histórico do " +
+                "Vórtice, pela rotina das carteiras; sem ela não existe último contato, e o indicador de " +
                 "cobertura mede exatamente isso."));
 
         return Resultado<ComProcedencia<Agregado<ResumoDeCobertura>>>.Ok(
@@ -525,43 +525,61 @@ public sealed class ObterResumoDeCobertura(IRepositorioCarteiras repositorio, IR
 /// <summary>
 /// As vendas perdidas — por motivo, para quem, e a que distância de preço.
 ///
-/// <para><b>São duas populações, e a tela precisa das duas.</b> <see cref="ObterPerdas"/> conta
-/// PROCESSOS marcados como perdidos; esta conta os FORMULÁRIOS que o CEN preencheu sobre a
-/// derrota. A diferença entre os dois números é a informação mais acionável desta consulta:
-/// quantas derrotas ninguém registrou. Ela vai como métrica sem dado, junto do agregado.</para>
+/// <para><b>São duas populações, e a tela precisa das duas.</b> Os PROCESSOS do funil do Vórtice que terminaram
+/// perdidos, e os FORMULÁRIOS que o CEN preencheu sobre a derrota. A diferença entre os dois números é a informação mais
+/// acionável desta consulta: quantas derrotas ninguém registrou. Ela vai como métrica sem dado, junto do agregado.</para>
+///
+/// <para><b>O recorte (27/09/2026, documento 52 §4):</b> o período é o da data em que o formulário foi preenchido — o
+/// padrão é o ano fiscal até o último mês fechado —, o formulário de origem é filtro opcional, e só a resposta
+/// PRINCIPAL conta: a duplicata e o complemento repetem a mesma perda.</para>
 /// </summary>
-/// <param name="vendas">O acesso às vendas perdidas.</param>
-/// <param name="processos">O acesso a processos, só para o total de perdidos.</param>
-/// <param name="relogio">O relógio, para a procedência.</param>
+/// <param name="vendas">O acesso às vendas perdidas e aos processos perdidos do funil.</param>
+/// <param name="relogio">O relógio, para o período padrão e a procedência.</param>
 public sealed class ObterVendasPerdidas(
     IRepositorioVendasPerdidas vendas,
-    IRepositorioProcessos processos,
     IRelogio relogio)
 {
     /// <summary>Executa o agregado.</summary>
+    /// <param name="de">O primeiro dia; vazio com o último vazio é o ano fiscal até o último mês fechado.</param>
+    /// <param name="ate">O último dia, inclusive.</param>
+    /// <param name="formulario">O formulário de origem (<see cref="FormulariosDaVendaPerdida"/>); vazio para todos.</param>
+    /// <param name="responsavel">O responsável pelo processo no funil, pela chave pública; vazio para todos.</param>
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<ComProcedencia<VendasPerdidasResumidas>>> ExecutarAsync(
-        CancellationToken ct)
+        DateOnly? de, DateOnly? ate, string? formulario, Guid? responsavel, CancellationToken ct)
     {
-        var porMotivo = await vendas.ResumirPorMotivoAsync(ct);
-        var porConcorrente = await vendas.ResumirPorConcorrenteAsync(ct);
+        var erros = new ColetorDeErros();
+        var periodo = PeriodoDoRelatorio.Resolver(de, ate, relogio.Agora, erros);
+
+        var doFormulario = string.IsNullOrWhiteSpace(formulario) ? null : formulario.Trim().ToUpperInvariant();
+        if (doFormulario is not null && !FormulariosDaVendaPerdida.Todos.Contains(doFormulario, StringComparer.Ordinal))
+            erros.Registrar("formulario", $"Formulário fora da lista. Opções: {string.Join(", ", FormulariosDaVendaPerdida.Todos)}.", formulario);
+
+        if (erros.TemErro || periodo is null)
+            return erros.Recusar<ComProcedencia<VendasPerdidasResumidas>>("A consulta tem parâmetros que não valem.");
+
+        var filtro = new FiltroDeVendaPerdida(periodo.DeUtc, periodo.AteUtc, doFormulario, responsavel);
+        var porMotivo = await vendas.ResumirPorMotivoAsync(filtro, ct);
+        var porConcorrente = await vendas.ResumirPorConcorrenteAsync(filtro, ct);
         var registradas = porMotivo.Sum(f => f.Quantidade);
 
-        var perdidosNoProcesso = (await processos.ResumirPerdasAsync(ct)).Sum(p => p.Quantidade);
+        // O PROCESSO PERDIDO VEM DO FUNIL DO VÓRTICE (27/09/2026): processo.Processo só a onda 2 carrega, e contar ali
+        // dizia "0 processos perdidos" com centenas de formulários preenchidos.
+        var perdidosNoProcesso = await vendas.ContarProcessosPerdidosAsync(filtro, ct);
 
         var ausentes = new List<MetricaSemDado>();
 
         if (registradas == 0 && perdidosNoProcesso > 0)
             ausentes.Add(new MetricaSemDado(
                 "vendasPerdidasRegistradas",
-                $"Há {perdidosNoProcesso} processo(s) perdido(s) no período e nenhum formulário de " +
-                "venda perdida preenchido. O motivo, o concorrente e a diferença de preço só " +
+                $"Há {perdidosNoProcesso} processo(s) do Vórtice perdido(s) em {periodo.Texto} e nenhum formulário de " +
+                "venda perdida preenchido no período. O motivo, o concorrente e a diferença de preço só " +
                 "existem quando o CEN preenche o formulário."));
         else if (perdidosNoProcesso > registradas)
             ausentes.Add(new MetricaSemDado(
                 "vendasPerdidasSemFormulario",
-                $"{perdidosNoProcesso - registradas} de {perdidosNoProcesso} processos perdidos não " +
-                "têm formulário de venda perdida preenchido. A distribuição abaixo é das " +
+                $"{perdidosNoProcesso - registradas} de {perdidosNoProcesso} processos do Vórtice perdidos em {periodo.Texto} " +
+                "não têm formulário de venda perdida no período. A distribuição abaixo é das " +
                 $"{registradas} derrotas que foram registradas, e não de todas."));
 
         var semConcorrente = registradas - porConcorrente.Sum(f => f.Quantidade);
@@ -575,8 +593,8 @@ public sealed class ObterVendasPerdidas(
         return Resultado<ComProcedencia<VendasPerdidasResumidas>>.Ok(
             ComProcedencia<VendasPerdidasResumidas>.DoNossoBanco(
                 new VendasPerdidasResumidas(
-                    registradas, perdidosNoProcesso, porMotivo, porConcorrente, ausentes),
-                "processo.VendaPerdida",
+                    registradas, perdidosNoProcesso, porMotivo, porConcorrente, ausentes, periodo, doFormulario),
+                "processo.VendaPerdida · processo.EstagioDoProcesso",
                 relogio));
     }
 }
@@ -584,17 +602,21 @@ public sealed class ObterVendasPerdidas(
 /// <summary>
 /// O relatório de vendas perdidas como a tela o consome.
 /// </summary>
-/// <param name="Registradas">Quantos formulários de venda perdida foram preenchidos.</param>
-/// <param name="ProcessosPerdidos">Quantos processos estão marcados como perdidos no período.</param>
+/// <param name="Registradas">Quantos formulários de venda perdida (principais) foram preenchidos no período.</param>
+/// <param name="ProcessosPerdidos">Quantos processos do funil do Vórtice terminaram perdidos no período.</param>
 /// <param name="PorMotivo">A distribuição por motivo.</param>
 /// <param name="PorConcorrente">O ranking de para quem se perdeu.</param>
 /// <param name="MetricasSemDado">O que estes números não dizem.</param>
+/// <param name="Periodo">O período, escrito.</param>
+/// <param name="Formulario">O formulário filtrado; nulo para todos.</param>
 public sealed record VendasPerdidasResumidas(
     int Registradas,
     int ProcessosPerdidos,
     IReadOnlyList<FatiaDeVendaPerdida> PorMotivo,
     IReadOnlyList<FatiaDeVendaPerdida> PorConcorrente,
-    IReadOnlyList<MetricaSemDado> MetricasSemDado);
+    IReadOnlyList<MetricaSemDado> MetricasSemDado,
+    PeriodoDoRelatorio Periodo,
+    string? Formulario);
 
 /// <summary>
 /// O painel de um CEN — o filtro que a gerência pediu: escolhe a pessoa e vê a carteira dela.
@@ -633,17 +655,16 @@ public sealed class ObterPainelDoCen(IRepositorioPainelDoCen repositorio, IRelog
                 "quantos dias visitar. Eles não entram como cobertos nem como vencidos — não há " +
                 "prazo contra o que medi-los, e escolher um número aqui seria inventar a meta."));
 
-        // A RESSALVA MAIS IMPORTANTE DESTA TELA, e ela precede as outras: a data do último
-        // contato é calculada das interações CARREGADAS, e a carga é o recorte do ano corrente.
-        // Com cadência de 360 dias, isso muda a leitura de "nunca contatado": quem foi visitado
-        // em 2025 e não em 2026 aparece aqui como se nunca tivesse sido procurado.
+        // A RESSALVA DO ÚLTIMO CONTATO. A frase antiga dizia que ele vinha do "recorte carregado, o ano corrente" — era
+        // a carga legada. Desde 27/09/2026 a data vem do histórico INTEIRO do Vórtice, pela regra da BI de carteiras
+        // (os resultados que contam como contato), gravada pela rotina das carteiras (CargaDeCarteirasDoVortice). O que
+        // continua valendo dizer é o que "contato" é: qualquer resultado da lista, e não só visita.
         if (painel.Clientes > 0)
             ausentes.Add(new MetricaSemDado(
                 "historicoDeContato",
-                "\"Nunca contatado\" quer dizer \"sem interação no recorte carregado\", que é o " +
-                "ano corrente. Um cliente visitado em 2025 e ainda não em 2026 aparece nessa " +
-                "coluna. Onde a cadência é de 360 dias, essa diferença muda a leitura — e ela " +
-                "some quando a carga passar a trazer mais de um ano de histórico."));
+                "\"Nunca contatado\" quer dizer que o histórico do Vórtice não tem contato com o cliente pela regra da BI de " +
+                "carteiras — qualquer um dos resultados que ela conta como contato, e não só visita. A data vem do histórico " +
+                "inteiro, lida pela rotina das carteiras do Vórtice, e só anda para a frente."));
 
         // A FRASE ANTIGA DIZIA QUE O FATURAMENTO "PARA EM 11/04/2025" — era a cópia que o Vórtice recebia, e não o
         // faturamento. O daqui é o da SD2 do Protheus, lido direto pela rotina FATURAMENTO_PROTHEUS (#233). O que falta
