@@ -146,7 +146,9 @@ public static class RotulosDaTrilha
         ["Nome"] = "Nome", ["Segmento"] = "Segmento", ["UnidadeComercial"] = "Unidade comercial",
         ["QuilosPorUnidade"] = "Quilos por unidade", ["FonteDoPreco"] = "Fonte do preço",
         ["ProdutoDoPreco"] = "Produto na fonte de preço", ["SerieDeCusto"] = "Série de custo", ["EstaAtiva"] = "Ativa",
-        ["LocalDeReferenciaDoCusto"] = "Local de referência do custo", ["CamadaDeCustoDaMargem"] = "Camada de custo da margem"
+        ["LocalDeReferenciaDoCusto"] = "Local de referência do custo", ["CamadaDeCustoDaMargem"] = "Camada de custo da margem",
+        ["FonteDoIndice"] = "Fonte do índice de preço", ["ProdutoDoIndice"] = "Produto do índice de preço",
+        ["NivelDoIndice"] = "Nível do índice de preço"
     },
     ["ProdutoDaPamNaCultura"] = new(StringComparer.Ordinal)
     {

@@ -115,6 +115,26 @@ public sealed class Cultura
     /// </summary>
     public Mercado.CamadaDoCusto? CamadaDeCustoDaMargem { get; private set; }
 
+    /// <summary>
+    /// A FONTE DA SÉRIE QUE MEDE O MOMENTO DO PREÇO, quando não é a do preço (27/09/2026). Nula usa a do preço.
+    ///
+    /// <para><b>Por que existe.</b> O preço da cana na CONAB (R$/t, que a Rentabilidade usa) só tem os meses que o CRM
+    /// acumulou — a CONAB publica uma janela de 12 —, e o índice de momento pede 24 meses. A Socicana publica o preço do
+    /// kg de ATR, que é o que paga a cana em São Paulo (Consecana), há mais de dez anos. O índice é uma RAZÃO (12 meses
+    /// ÷ 12 anteriores), e não depende da unidade: medir o momento da cana pelo ATR não muda a margem, que continua em
+    /// R$ por tonelada pela CONAB.</para>
+    /// </summary>
+    public string? FonteDoIndice { get; private set; }
+
+    /// <summary>O produto da série do índice na fonte dela (<c>ATR</c> na Socicana); nulo usa o do preço.</summary>
+    public string? ProdutoDoIndice { get; private set; }
+
+    /// <summary>
+    /// O nível da série do índice (<c>MENSAL</c> na Socicana); nulo aceita o único nível que a fonte tem. A Socicana
+    /// publica o mensal e o acumulado da safra no mesmo produto, e o acumulado é média corrida — não é preço do mês.
+    /// </summary>
+    public string? NivelDoIndice { get; private set; }
+
     /// <summary>Registra uma cultura no catálogo.</summary>
     /// <param name="codigo">O código estável.</param>
     /// <param name="nome">O nome de exibição.</param>
@@ -224,6 +244,29 @@ public sealed class Cultura
 
         LocalDeReferenciaDoCusto = limpo;
         CamadaDeCustoDaMargem = camada;
+        return true;
+    }
+
+    /// <summary>
+    /// Define a série que mede o momento do preço, quando não é a do preço. Os três vazios voltam ao preço.
+    /// </summary>
+    /// <param name="fonte">A fonte (<c>SOCICANA</c>), ou nula.</param>
+    /// <param name="produto">O produto na fonte (<c>ATR</c>), ou nulo.</param>
+    /// <param name="nivel">O nível (<c>MENSAL</c>), ou nulo.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando vem fonte sem produto, produto sem fonte, ou nível sem os dois.</exception>
+    public bool DefinirSerieDoIndice(string? fonte, string? produto, string? nivel)
+    {
+        var (f, p, n) = (Limpar(fonte)?.ToUpperInvariant(), Limpar(produto), Limpar(nivel));
+
+        if ((f is null) != (p is null) || (n is not null && f is null))
+            throw new RegraDeNegocioViolada(
+                "A série do índice precisa de fonte e produto juntos; o nível é opcional, e só com os dois.");
+
+        if (FonteDoIndice == f && ProdutoDoIndice == p && NivelDoIndice == n) return false;
+
+        FonteDoIndice = f;
+        ProdutoDoIndice = p;
+        NivelDoIndice = n;
         return true;
     }
 
@@ -590,6 +633,9 @@ public static class CatalogoSemeado
     /// <param name="ProdutoDoPreco">O identificador na fonte de preço.</param>
     /// <param name="SerieDeCusto">O rótulo da série de custo da CONAB.</param>
     /// <param name="Produtos">Os produtos da PAM: código, nome e se entra na soma.</param>
+    /// <param name="FonteDoIndice">A fonte da série do índice de momento, quando não é a do preço.</param>
+    /// <param name="ProdutoDoIndice">O produto dela.</param>
+    /// <param name="NivelDoIndice">O nível dela.</param>
     public sealed record CulturaSemeada(
         string Codigo,
         string Nome,
@@ -599,7 +645,10 @@ public static class CatalogoSemeado
         string? FonteDoPreco,
         string? ProdutoDoPreco,
         string? SerieDeCusto,
-        IReadOnlyList<(int Codigo, string Nome, bool NaSoma)> Produtos);
+        IReadOnlyList<(int Codigo, string Nome, bool NaSoma)> Produtos,
+        string? FonteDoIndice = null,
+        string? ProdutoDoIndice = null,
+        string? NivelDoIndice = null);
 
     /// <summary>Uma categoria da semente, com os produtos do SICOR que ela agrupa.</summary>
     /// <param name="Codigo">O código estável.</param>
@@ -626,10 +675,12 @@ public static class CatalogoSemeado
             (40140, "Café (em grão) Arábica", false),
             (40141, "Café (em grão) Canephora", false)
         ]),
+        // O ÍNDICE DE MOMENTO DA CANA É O DO ATR MENSAL DA SOCICANA (27/09/2026): a CONAB só tem os meses que o CRM
+        // acumulou, e o índice pede 24. O preço da Rentabilidade continua o da CONAB, em R$ por tonelada.
         new("CANA", "Cana-de-açúcar", SegmentoDaCultura.Cana, "tonelada", 1_000m, "CONAB", "4238", "CANA DE AÇÚCAR",
         [
             (40106, "Cana-de-açúcar", true)
-        ]),
+        ], FonteDoIndice: "SOCICANA", ProdutoDoIndice: "ATR", NivelDoIndice: "MENSAL"),
         new("SOJA", "Soja", SegmentoDaCultura.Graos, "saca de 60 kg", 60m, "CONAB", "4744", "SOJA",
         [
             (40124, "Soja (em grão)", true)

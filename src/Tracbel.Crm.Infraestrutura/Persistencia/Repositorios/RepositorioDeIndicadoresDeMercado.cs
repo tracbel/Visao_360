@@ -52,19 +52,29 @@ public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : I
     private async Task<(Dictionary<string, IndiceDeMomento> Indices, DateOnly? UltimoMes)> MomentoPorCulturaAsync(
         short janela, ParametroDoPotencial? vigente, CancellationToken ct)
     {
+        // A SÉRIE DO ÍNDICE, QUANDO A CULTURA DECLARA UMA (27/09/2026), e senão a do preço. A cana mede o momento pelo
+        // ATR mensal da Socicana — mais de dez anos — enquanto o preço dela na Rentabilidade continua o da CONAB.
         var culturas = await contexto.Culturas.AsNoTracking()
-            .Where(c => c.EstaAtiva && c.FonteDoPreco != null && c.ProdutoDoPreco != null)
-            .Select(c => new { c.Codigo, c.FonteDoPreco, c.ProdutoDoPreco })
+            .Where(c => c.EstaAtiva
+                        && ((c.FonteDoIndice != null && c.ProdutoDoIndice != null)
+                            || (c.FonteDoPreco != null && c.ProdutoDoPreco != null)))
+            .Select(c => new
+            {
+                c.Codigo,
+                Fonte = c.FonteDoIndice ?? c.FonteDoPreco,
+                Produto = c.ProdutoDoIndice ?? c.ProdutoDoPreco,
+                c.NivelDoIndice
+            })
             .ToListAsync(ct);
 
         var indices = new Dictionary<string, IndiceDeMomento>(StringComparer.Ordinal);
         if (culturas.Count == 0) return (indices, null);
 
-        var codigos = culturas.Select(c => c.ProdutoDoPreco!).Distinct().ToList();
+        var codigos = culturas.Select(c => c.Produto!).Distinct().ToList();
 
         var series = (await contexto.CotacoesDeProdutos.AsNoTracking()
                 .Where(c => codigos.Contains(c.CodigoNaFonte))
-                .Select(c => new { c.Fonte, c.CodigoNaFonte, c.Mes, c.ValorEmReais })
+                .Select(c => new { c.Fonte, c.CodigoNaFonte, c.Nivel, c.Mes, c.ValorEmReais })
                 .ToListAsync(ct))
             .ToLookup(c => (c.Fonte, c.CodigoNaFonte));
 
@@ -72,7 +82,10 @@ public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : I
 
         foreach (var cultura in culturas)
         {
-            var serie = series[(cultura.FonteDoPreco!, cultura.ProdutoDoPreco!)]
+            // O NÍVEL SEPARA O MENSAL DO ACUMULADO DA SAFRA na Socicana: o acumulado é média corrida, e misturado ao
+            // mensal na mesma janela daria dois "preços" para o mesmo mês.
+            var serie = series[(cultura.Fonte!, cultura.Produto!)]
+                .Where(c => cultura.NivelDoIndice is null || c.Nivel == cultura.NivelDoIndice)
                 .OrderBy(c => c.Mes)
                 .ToList();
 

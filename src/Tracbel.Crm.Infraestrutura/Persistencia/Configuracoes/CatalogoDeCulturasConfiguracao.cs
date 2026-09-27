@@ -35,6 +35,12 @@ public sealed class CulturaConfiguracao : IEntityTypeConfiguration<Cultura>
         b.Property(c => c.LocalDeReferenciaDoCusto).HasMaxLength(Cultura.TamanhoDoTexto).IsUnicode(true);
         b.Property(c => c.CamadaDeCustoDaMargem).HasConversion<string>().HasMaxLength(20).IsUnicode(false);
 
+        // A SÉRIE DO ÍNDICE DE MOMENTO, quando não é a do preço (27/09/2026). Os tamanhos são os das colunas da
+        // cotação (`CotacaoDeProduto`), que é onde ela é procurada.
+        b.Property(c => c.FonteDoIndice).HasMaxLength(20).IsUnicode(false);
+        b.Property(c => c.ProdutoDoIndice).HasMaxLength(20).IsUnicode(false);
+        b.Property(c => c.NivelDoIndice).HasMaxLength(40).IsUnicode(true);
+
         b.HasIndex(c => c.Codigo).IsUnique().HasDatabaseName("UX_Cultura_Codigo");
 
         // O DOMÍNIO FECHADO NO BANCO (documento 14, seções 4 e 6), e não só no compilador.
@@ -58,6 +64,12 @@ public sealed class CulturaConfiguracao : IEntityTypeConfiguration<Cultura>
             "CK_Cultura_FonteDoPreco",
             "([FonteDoPreco] IS NULL AND [ProdutoDoPreco] IS NULL) OR ([FonteDoPreco] IS NOT NULL AND [ProdutoDoPreco] IS NOT NULL)"));
 
+        // A SÉRIE DO ÍNDICE: fonte e produto juntos, e o nível só com os dois — a mesma regra do domínio.
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_Cultura_SerieDoIndice",
+            "([FonteDoIndice] IS NULL AND [ProdutoDoIndice] IS NULL AND [NivelDoIndice] IS NULL) " +
+            "OR ([FonteDoIndice] IS NOT NULL AND [ProdutoDoIndice] IS NOT NULL)"));
+
         b.HasData(CatalogoSemeado.Culturas.Select((c, posicao) => new
         {
             Id = posicao + 1,
@@ -69,7 +81,10 @@ public sealed class CulturaConfiguracao : IEntityTypeConfiguration<Cultura>
             c.FonteDoPreco,
             c.ProdutoDoPreco,
             c.SerieDeCusto,
-            EstaAtiva = true
+            EstaAtiva = true,
+            c.FonteDoIndice,
+            c.ProdutoDoIndice,
+            c.NivelDoIndice
         }));
     }
 }

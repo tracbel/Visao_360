@@ -123,7 +123,7 @@ public static class PoliticaDeAuditoria
         // 11195 da CONAB?" precisa de resposta. O código não entra: ele é a identidade, e mudá-lo é outra cultura.
         ["Cultura"] =
             ["Nome", "Segmento", "UnidadeComercial", "QuilosPorUnidade", "FonteDoPreco", "ProdutoDoPreco", "SerieDeCusto", "EstaAtiva",
-             "LocalDeReferenciaDoCusto", "CamadaDeCustoDaMargem"],
+             "LocalDeReferenciaDoCusto", "CamadaDeCustoDaMargem", "FonteDoIndice", "ProdutoDoIndice", "NivelDoIndice"],
         ["ProdutoDaPamNaCultura"] = ["CulturaId", "ProdutoCodigoIbge", "EntraNaSomaDaLavoura"],
         ["CategoriaDeMaquina"] = ["Nome", "Ordem", "EstaAtiva"],
         ["ProdutoDoSicorNaCategoria"] = ["CategoriaDeMaquinaId", "CodigoProduto"],
