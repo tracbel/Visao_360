@@ -8,8 +8,9 @@ namespace Tracbel.Crm.Dominio.Portas;
 public enum AlcanceDaMeta
 {
     /// <summary>
-    /// Só a própria meta e o próprio realizado: a meta cujo consultor é a pessoa (a conta casada pela carga, ou o
-    /// login em maiúsculas) e as vendas cujo vendedor do ART é ela. É o vendedor, no perfil Padrão.
+    /// Só a própria meta e o próprio realizado: a meta cuja conta a carga casou com a pessoa, e as vendas PELA FILIAL DO
+    /// PEDIDO cujo vendedor do ART é ela (pela chave da pessoa, e só quando uma conta ativa tem aquele login). É o vendedor,
+    /// no perfil Padrão. A venda que ele fez por outra filial não entra — ampliar o recorte é decisão pendente.
     /// </summary>
     Proprios = 0,
 
@@ -48,8 +49,8 @@ public sealed record OrigemDaMetaDeVenda(string Sistema, string Rota, DateTime L
 /// <summary>O que o repositório apura para uma filial (ou para a própria pessoa), num período.</summary>
 /// <param name="MetaMaquinas">A meta de máquinas no período.</param>
 /// <param name="RealizadoMaquinas">As máquinas vendidas no período.</param>
-/// <param name="PendentesNoArt">As vendas do ART no período que aguardam cadastro ou chassi — nulo no alcance Próprios,
-/// porque a venda pendente ainda não tem a pessoa.</param>
+/// <param name="PendentesNoArt">As vendas do ART no período que aguardam na integração (cadastro, chassi ou outro motivo) —
+/// nulo no alcance Próprios, porque a venda pendente ainda não tem a pessoa.</param>
 /// <param name="PendentesSemFilial">As pendentes do período cuja unidade não tem filial no CRM — de nenhuma filial.</param>
 /// <param name="MetaConsorcio">A meta de consórcio no período, em cotas.</param>
 /// <param name="VendasSemVendedor">As vendas do período sem vendedor no ART — não entram em consultor nenhum.</param>
@@ -61,6 +62,8 @@ public sealed record OrigemDaMetaDeVenda(string Sistema, string Rota, DateTime L
 /// <param name="RealizadoNoAnterior">As máquinas vendidas no mesmo trecho do ano fiscal anterior.</param>
 /// <param name="MesEmCurso">O mês em curso, quando o pedido o deixou de fora — meta e realizado até aqui.</param>
 /// <param name="Origem">A última leitura do cadastro; nula quando a carga nunca rodou.</param>
+/// <param name="LoginSemCasamento">No alcance Próprios: o login da pessoa não casa com consultor nenhum da GN nem com
+/// vendedor nenhum do ART — o zero dela é falta de casamento, e não falta de meta.</param>
 public sealed record MetaERealizadoApurado(
     int MetaMaquinas,
     int RealizadoMaquinas,
@@ -75,7 +78,8 @@ public sealed record MetaERealizadoApurado(
     IReadOnlyList<MetaERealizadoDoConsultor> PorConsultor,
     int RealizadoNoAnterior,
     MetaERealizadoNoMes? MesEmCurso,
-    OrigemDaMetaDeVenda? Origem);
+    OrigemDaMetaDeVenda? Origem,
+    bool LoginSemCasamento = false);
 
 /// <summary>
 /// A META DE VENDA × O REALIZADO, para a filial do contexto de acesso (#138). Como todo repositório, sem <c>Where</c> de

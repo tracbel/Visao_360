@@ -21,7 +21,8 @@ public sealed record PeriodoDaMeta(
 /// <summary>Os totais do período.</summary>
 /// <param name="MetaMaquinas">A meta de máquinas, em unidades.</param>
 /// <param name="RealizadoMaquinas">As máquinas vendidas que o CRM tem (<c>frota.VendaDeMaquina</c>, D-M3).</param>
-/// <param name="PendentesNoArt">As vendas do ART que aguardam cadastro ou chassi — nulo no alcance Próprios.</param>
+/// <param name="PendentesNoArt">As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) — nulo no
+/// alcance Próprios.</param>
 /// <param name="MetaConsorcio">A meta de consórcio, em cotas — à parte, sem realizado (D-M4).</param>
 public sealed record TotaisDaMeta(int MetaMaquinas, int RealizadoMaquinas, int? PendentesNoArt, int MetaConsorcio);
 
@@ -82,6 +83,33 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
 
     private static readonly CultureInfo Portugues = CultureInfo.GetCultureInfo("pt-BR");
 
+    /// <summary>
+    /// O FUSO DA OPERAÇÃO. O relógio é UTC, e o mês fechado é o de São Paulo: das 21h do último dia até a meia-noite UTC,
+    /// o UTC já está no mês seguinte e o período padrão pularia um mês que ainda não fechou (revisão do PR #248). Sem o
+    /// fuso IANA no sistema, as mesmas −3 h que o resto do código usa — o Brasil não tem horário de verão desde 2019.
+    /// </summary>
+    private static readonly TimeZoneInfo FusoDeSaoPaulo = FusoDaOperacao();
+
+    /// <summary>O mês corrente em São Paulo, no dia 1, a partir do instante em UTC.</summary>
+    /// <param name="agoraUtc">O instante, em UTC.</param>
+    public static DateOnly MesCorrenteEmSaoPaulo(DateTime agoraUtc)
+    {
+        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(agoraUtc, DateTimeKind.Utc), FusoDeSaoPaulo);
+        return new DateOnly(local.Year, local.Month, 1);
+    }
+
+    private static TimeZoneInfo FusoDaOperacao()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        }
+        catch (Exception falha) when (falha is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return TimeZoneInfo.CreateCustomTimeZone("America/Sao_Paulo", TimeSpan.FromHours(-3), "São Paulo", "São Paulo");
+        }
+    }
+
     /// <summary>Executa a apuração.</summary>
     /// <param name="competenciaInicial">O primeiro mês (<c>AAAA-MM</c> ou <c>AAAA-MM-DD</c>); vazio com o final vazio é o padrão.</param>
     /// <param name="competenciaFinal">O último mês, inclusive.</param>
@@ -98,12 +126,11 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
         // ninguém decidiu abrir.
         var alcance = profundidade is Profundidade.Proprios or Profundidade.Equipe ? AlcanceDaMeta.Proprios : AlcanceDaMeta.Filial;
 
-        var agora = relogio.Agora;
-        var mesCorrente = new DateOnly(agora.Year, agora.Month, 1);
+        var mesCorrente = MesCorrenteEmSaoPaulo(relogio.Agora);
 
         var erros = new ColetorDeErros();
-        var inicial = Mes(erros, "competenciaInicial", competenciaInicial, agora.Year);
-        var final = Mes(erros, "competenciaFinal", competenciaFinal, agora.Year);
+        var inicial = Mes(erros, "competenciaInicial", competenciaInicial, mesCorrente.Year);
+        var final = Mes(erros, "competenciaFinal", competenciaFinal, mesCorrente.Year);
 
         if (string.IsNullOrWhiteSpace(competenciaInicial) != string.IsNullOrWhiteSpace(competenciaFinal))
             erros.Registrar(string.IsNullOrWhiteSpace(competenciaInicial) ? "competenciaInicial" : "competenciaFinal",
@@ -178,6 +205,11 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
             lacunas.Add(new MetricaSemDado("cadastroDeMetasNaoLido",
                 "O cadastro de metas da API Gestão de Negócios ainda não foi lido: grave o endereço pelo nome e a chave em " +
                 "Configurações › Integrações, teste, e ligue a rotina \"Metas de venda (Gestão de Negócios)\". Sem a leitura, a meta é zero."));
+        else if (a.LoginSemCasamento)
+            lacunas.Add(new MetricaSemDado("loginSemCasamento",
+                "Seu login não casa com consultor nenhum da API Gestão de Negócios nem com vendedor nenhum do ART nesta filial: por " +
+                "isso não aparece meta nem venda em seu nome — e não porque não haja. Quem administra o CRM confere se a sua conta " +
+                "tem o mesmo nome.sobrenome da GN e do ART."));
         else if (a.MetaMaquinas == 0 && a.MetaConsorcio == 0)
             lacunas.Add(new MetricaSemDado("semMetaNoPeriodo",
                 Texto($"Nenhuma meta cadastrada na API Gestão de Negócios para {periodo.Texto}{(alcance == AlcanceDaMeta.Proprios ? " em seu nome" : " nesta filial")}. Sem meta, não há comparação: o cartão mostra só o realizado.")));
@@ -192,10 +224,16 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
 
         if (a.PendentesNoArt is > 0)
             lacunas.Add(new MetricaSemDado("pendentesNoArt",
-                Texto($"{a.PendentesNoArt:N0} vendas do ART em {periodo.Texto} aguardam cadastro ou chassi e ainda não entram no realizado (D-M3): o realizado é o que o CRM tem.")));
+                Texto($"{a.PendentesNoArt:N0} vendas do ART em {periodo.Texto} aguardam na integração do ART (cadastro, chassi ou outro motivo) e ainda não entram no realizado (D-M3): o realizado é o que o CRM tem.")));
         else if (alcance == AlcanceDaMeta.Proprios)
             lacunas.Add(new MetricaSemDado("pendentesNoArt",
-                "As vendas do ART que aguardam cadastro ou chassi não entram no realizado (D-M3), e a pendente ainda não tem vendedor atribuído — por isso não aparecem aqui. A visão da filial as conta."));
+                "As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) não entram no realizado (D-M3), e a pendente ainda não tem vendedor atribuído — por isso não aparecem aqui. A visão da filial as conta."));
+
+        // A VENDA POR OUTRA FILIAL (revisão do PR #248): no alcance Próprios, o recorte é o da filial do pedido, como toda
+        // leitura. Ampliar para "todas as vendas da pessoa" é decisão pendente — a tela diz o que conta.
+        if (alcance == AlcanceDaMeta.Proprios)
+            lacunas.Add(new MetricaSemDado("vendasPelaFilial",
+                "Suas vendas contam pela filial da venda: a que você fez por outra filial aparece na meta de lá, e não aqui."));
 
         if (a.PendentesSemFilial > 0 && alcance == AlcanceDaMeta.Filial)
             lacunas.Add(new MetricaSemDado("pendentesSemFilial",
@@ -212,7 +250,7 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
 
         if (a.VendasSemVendedor > 0)
             lacunas.Add(new MetricaSemDado("vendasSemVendedor",
-                Texto($"{a.VendasSemVendedor:N0} venda(s) do período sem vendedor no ART entram no total da filial e em consultor nenhum. O vendedor passou a ser lido em 27/09/2026 (D-M2); a primeira leitura do ART depois da publicação preenche as vendas já importadas.")));
+                Texto($"{a.VendasSemVendedor:N0} venda(s) do período sem vendedor no ART entram no total da filial e em consultor nenhum. O vendedor passou a ser lido em 27/09/2026 (D-M2); a primeira leitura do ART depois da publicação preenche as vendas já importadas que o ART ainda traz, inclusive as que ficaram pendentes.")));
 
         lacunas.Add(new MetricaSemDado("metaDoAnoAnterior",
             Texto($"O mesmo trecho do ano anterior ({anterior.Texto}) traz só o realizado: a meta daquele ano não está no cadastro da API Gestão de Negócios.")));

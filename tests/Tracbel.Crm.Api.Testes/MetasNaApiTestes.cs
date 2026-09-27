@@ -86,7 +86,7 @@ public sealed class MetasNaApiTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemo
         var vendas = new (int Empresa, DateOnly Data, string Linha, string? Vendedor, string Chassi)[]
         {
             (1, new DateOnly(2025, 11, 10), "TRATOR MÉDIO", "cen.ribeiraopreto", "1MET4S00000000001"),
-            (1, new DateOnly(2025, 12, 5), "TRATOR MÉDIO", "outro.sem.conta", "1MET4S00000000002"),
+            (1, new DateOnly(2025, 12, 5), "TRATOR MÉDIO", "Outro Sem-Conta", "1MET4S00000000002"),
             (1, new DateOnly(2026, 2, 1), "COLHEDORA CANA CH 750", null, "1MET4S00000000003"),
             (1, new DateOnly(2024, 11, 20), "TRATOR MÉDIO", "cen.ribeiraopreto", "1MET4S00000000004"),
             (2, new DateOnly(2025, 11, 15), "TRATOR MÉDIO", "cen.barretos", "1MET4S00000000005")
@@ -130,7 +130,8 @@ public sealed class MetasNaApiTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemo
         dados.GetProperty("porConsultor").EnumerateArray().Select(c => c.GetProperty("consultor").GetString())
             .Should().Equal("CEN.RIBEIRAOPRETO");
         dados.GetProperty("mesmoTrechoDoFyAnterior").GetProperty("realizadoMaquinas").GetInt32().Should().Be(1);
-        Lacunas(dados).Should().Contain(["pendentesNoArt", "consorcio", "metaDoAnoAnterior", "previsao"]);
+        Lacunas(dados).Should().Contain(["pendentesNoArt", "vendasPelaFilial", "consorcio", "metaDoAnoAnterior", "previsao"]);
+        Lacunas(dados).Should().NotContain("loginSemCasamento", "a meta dele está casada com a conta");
         Lacunas(dados).Should().NotContain("consultoresSemConta", "no alcance Próprios não há consultor alheio");
     }
 
@@ -159,7 +160,7 @@ public sealed class MetasNaApiTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemo
 
         var consultores = dados.GetProperty("porConsultor").EnumerateArray().ToDictionary(c => c.GetProperty("consultor").GetString()!);
         consultores["OUTRO.SEM.CONTA"].GetProperty("temConta").GetBoolean().Should().BeFalse();
-        consultores["OUTRO.SEM.CONTA"].GetProperty("realizado").GetInt32().Should().Be(1, "o vendedor do ART casa com o consultor em maiúsculas");
+        consultores["OUTRO.SEM.CONTA"].GetProperty("realizado").GetInt32().Should().Be(1, "o vendedor do ART (\"Outro Sem-Conta\") casa com o consultor pela chave da pessoa");
         consultores["CEN.RIBEIRAOPRETO"].GetProperty("temConta").GetBoolean().Should().BeTrue();
 
         var meses = dados.GetProperty("porMes").EnumerateArray().ToList();
@@ -176,8 +177,8 @@ public sealed class MetasNaApiTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemo
     public async Task Sem_parametro_o_periodo_e_o_ano_fiscal_ate_o_ultimo_mes_fechado_com_o_mes_em_curso_a_parte()
     {
         await SemearAsync(api);
-        var agora = DateTime.UtcNow;
-        var mesCorrente = new DateOnly(agora.Year, agora.Month, 1);
+        // O MÊS CORRENTE É O DE SÃO PAULO (revisão do PR #248), e não o do UTC.
+        var mesCorrente = Tracbel.Crm.Aplicacao.Relacionamento.ObterMetaERealizado.MesCorrenteEmSaoPaulo(DateTime.UtcNow);
         var ultimoFechado = mesCorrente.AddMonths(-1);
         var inicioDoAno = new DateOnly(ultimoFechado.Month >= 11 ? ultimoFechado.Year : ultimoFechado.Year - 1, 11, 1);
 
@@ -190,6 +191,29 @@ public sealed class MetasNaApiTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemo
         periodo.GetProperty("inicialDoAnterior").GetString().Should().Be(inicioDoAno.AddMonths(-12).ToString("yyyy-MM-dd"));
         dados.GetProperty("mesEmCurso").GetProperty("competencia").GetString().Should().Be(mesCorrente.ToString("yyyy-MM-dd"));
         Lacunas(dados).Should().Contain("mesEmCurso");
+    }
+
+    [Fact]
+    public async Task No_alcance_proprios_o_login_que_nao_casa_diz_isso_e_nao_sem_meta()
+    {
+        await using var app = new ApiEmMemoria();
+        await app.InitializeAsync();
+        await SemearAsync(app);
+
+        // A CONTA DO CEN NÃO CASA COM NADA: a carga não achou a conta dele na GN, e o ART escreve outro nome.
+        using (var escopo = app.Services.CreateScope())
+        await using (var db = new CrmDbContext(escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>(), ProvedorDeContextoDeSistema.Instancia))
+        {
+            await db.MetasDeVenda.Where(m => m.ConsultorUsuarioId == 100).ExecuteUpdateAsync(s => s.SetProperty(m => m.ConsultorUsuarioId, (long?)null));
+            await db.VendasDeMaquina.Where(v => v.VendedorNaOrigem == "cen.ribeiraopreto")
+                .ExecuteUpdateAsync(s => s.SetProperty(v => v.VendedorNaOrigem, "outra.pessoa"));
+        }
+
+        var dados = await DadosAsync(await app.ClienteDeRibeirao().GetAsync(Rota + Periodo));
+
+        dados.GetProperty("totais").GetProperty("metaMaquinas").GetInt32().Should().Be(0);
+        Lacunas(dados).Should().Contain("loginSemCasamento").And.NotContain("semMetaNoPeriodo",
+            "o zero é falta de casamento do login, e não falta de meta");
     }
 
     [Theory]

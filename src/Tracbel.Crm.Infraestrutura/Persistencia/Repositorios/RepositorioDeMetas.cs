@@ -16,8 +16,10 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 ///
 /// <para><b>O realizado</b> é só <c>frota.VendaDeMaquina</c> (D-M3), pela data da venda, uma máquina por venda: é o que o
 /// CRM tem. As vendas que o ART tem e o CRM ainda não — comprador sem cadastro, chassi incompleto — são contadas à parte,
-/// como lacuna, e não somadas. Por consultor, conta a PESSOA: o vendedor do ART (D-M2), casado com o consultor da meta em
-/// maiúsculas. Por filial, conta a filial da venda — e isso quem faz é o filtro global, como em todo repositório.</para>
+/// como lacuna, e não somadas. Por consultor, conta a PESSOA: o vendedor do ART (D-M2), casado com o consultor da meta
+/// pela chave da pessoa (<see cref="MetaDeVenda.ChaveDaPessoa"/>: sem acento; espaço e hífen viram ponto). Por filial,
+/// conta a filial da venda — e isso quem faz é o filtro global, como em todo repositório; no alcance Próprios, também:
+/// a venda que a pessoa fez por outra filial fica fora (ampliar o recorte é decisão pendente).</para>
 ///
 /// <para><b>Somas em memória</b>, como nos indicadores: o volume é o de um ano de metas e vendas de uma filial (centenas de
 /// linhas), e o SQLite dos testes não agrega do mesmo jeito.</para>
@@ -40,15 +42,24 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
     {
         var acesso = contexto.Acesso;
 
-        // O LOGIN DA PESSOA: a parte antes do @ do nome principal, em maiúsculas — é o consultor da meta e o vendedor do ART.
+        // O LOGIN DA PESSOA: a parte antes do @ do nome principal, pela CHAVE DA PESSOA (sem acento; espaço e hífen viram
+        // ponto) — a mesma que se aplica ao consultor da meta e ao vendedor do ART, os três lados pela mesma função.
         var logins = await contexto.Usuarios.AsNoTracking()
             .Where(u => u.ExcluidoEm == null)
             .Select(u => new { u.Id, u.NomePrincipal })
             .ToListAsync(ct);
-        var loginsComConta = logins.Select(u => Login(u.NomePrincipal)).ToHashSet(StringComparer.Ordinal);
-        var meuLogin = alcance == AlcanceDaMeta.Proprios
-            ? logins.Where(u => u.Id == acesso.UsuarioId).Select(u => Login(u.NomePrincipal)).FirstOrDefault() ?? string.Empty
+        var contasPorChave = logins.GroupBy(u => MetaDeVenda.ChaveDaPessoa(Login(u.NomePrincipal)), StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+        var loginsComConta = contasPorChave.Keys.ToHashSet(StringComparer.Ordinal);
+
+        // NO ALCANCE PRÓPRIOS, A REGRA DA CARGA: a venda é da pessoa quando o vendedor tem a chave do login dela E só uma
+        // conta ativa tem esse login. Duas contas com o mesmo login não dizem de quem é a venda — nenhuma leva.
+        var minhaChave = alcance == AlcanceDaMeta.Proprios
+            ? logins.Where(u => u.Id == acesso.UsuarioId).Select(u => MetaDeVenda.ChaveDaPessoa(Login(u.NomePrincipal))).FirstOrDefault() ?? string.Empty
             : null;
+        var meuLogin = minhaChave is null ? null
+            : minhaChave.Length > 0 && contasPorChave.GetValueOrDefault(minhaChave) == 1 ? minhaChave
+            : string.Empty;
 
         var ultimoMes = mesEmCurso is { } emCurso && emCurso > periodo.Final ? emCurso : periodo.Final;
         var inicio = periodo.Inicial;
@@ -60,9 +71,11 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
                 .Where(m => m.ExcluidoEm == null && m.Competencia >= inicio && m.Competencia <= ultimoMes)
                 .Select(m => new { m.Competencia, m.CodigoDaLinha, m.LinhaNaOrigem, m.ConsultorNaOrigem, m.ConsultorUsuarioId, m.Origem, m.Quantidade })
                 .ToListAsync(ct))
-            .Select(m => new LinhaDeMeta(m.Competencia, m.CodigoDaLinha, m.LinhaNaOrigem, m.ConsultorNaOrigem, m.ConsultorUsuarioId,
-                MetaDeVenda.EhConsorcio(m.Origem, m.CodigoDaLinha), m.Quantidade))
-            .Where(m => meuLogin is null || m.ConsultorUsuarioId == acesso.UsuarioId || m.Consultor == meuLogin)
+            .Select(m => new LinhaDeMeta(m.Competencia, m.CodigoDaLinha, m.LinhaNaOrigem, MetaDeVenda.ChaveDaPessoa(m.ConsultorNaOrigem),
+                m.ConsultorUsuarioId, MetaDeVenda.EhConsorcio(m.Origem, m.CodigoDaLinha), m.Quantidade))
+            // A META DA PESSOA É A QUE A CARGA CASOU COM A CONTA DELA — só pelo id. Casar de novo aqui pelo texto seria
+            // uma segunda regra, que acharia a meta que a carga recusou casar (duas contas com o mesmo login).
+            .Where(m => meuLogin is null || m.ConsultorUsuarioId == acesso.UsuarioId)
             .ToList();
 
         var ultimaComMeta = await contexto.MetasDeVenda.AsNoTracking()
@@ -82,8 +95,8 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
                 .Select(v => new { VendidaEm = v.VendidaEm!.Value, v.LinhaNaOrigem, v.VendedorNaOrigem })
                 .ToListAsync(ct))
             .Select(v => new LinhaDeVenda(new DateOnly(v.VendidaEm.Year, v.VendidaEm.Month, 1), CodigoEstavel.De(v.LinhaNaOrigem, MetaDeVenda.TamanhoDaLinha),
-                v.LinhaNaOrigem, string.IsNullOrWhiteSpace(v.VendedorNaOrigem) ? null : v.VendedorNaOrigem.Trim().ToUpperInvariant()))
-            .Where(v => meuLogin is null || v.Vendedor == meuLogin)
+                v.LinhaNaOrigem, MetaDeVenda.ChaveDaPessoa(v.VendedorNaOrigem) is { Length: > 0 } vendedor ? vendedor : null))
+            .Where(v => meuLogin is null || (meuLogin.Length > 0 && v.Vendedor == meuLogin))
             .ToList();
 
         bool NoPeriodo(DateOnly mes) => periodo.Contem(mes);
@@ -137,6 +150,22 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
             ? await PendentesNoArtAsync(periodo, ct)
             : ((int?)null, 0);
 
+        // NO ALCANCE PRÓPRIOS, O ZERO QUE É FALTA DE CASAMENTO: nenhuma meta com a conta da pessoa, em mês nenhum, e nenhuma
+        // venda do ART com a chave do login dela, nesta filial. Aí o "sem meta" não é verdade — é o login que não casa.
+        var loginSemCasamento = false;
+        if (alcance == AlcanceDaMeta.Proprios
+            && !await contexto.MetasDeVenda.AsNoTracking().AnyAsync(m => m.ExcluidoEm == null && m.ConsultorUsuarioId == acesso.UsuarioId, ct))
+        {
+            var vendedores = meuLogin is { Length: > 0 }
+                ? await contexto.VendasDeMaquina.AsNoTracking()
+                    .Where(v => v.ExcluidoEm == null && v.VendedorNaOrigem != null)
+                    .Select(v => v.VendedorNaOrigem!)
+                    .Distinct()
+                    .ToListAsync(ct)
+                : [];
+            loginSemCasamento = !vendedores.Any(v => MetaDeVenda.ChaveDaPessoa(v) == meuLogin);
+        }
+
         return new MetaERealizadoApurado(
             metasDeMaquinas.Sum(m => m.Quantidade),
             vendasDoPeriodo.Count,
@@ -151,7 +180,8 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
             porConsultor,
             vendas.Count(v => anterior.Contem(v.Mes)),
             doMesEmCurso,
-            await OrigemAsync(ct));
+            await OrigemAsync(ct),
+            loginSemCasamento);
     }
 
     /// <summary>
