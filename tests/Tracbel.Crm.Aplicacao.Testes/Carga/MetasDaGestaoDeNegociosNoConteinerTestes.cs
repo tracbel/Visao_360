@@ -103,7 +103,7 @@ public sealed class MetasDaGestaoDeNegociosNoConteinerTestes
     public async Task O_Down_da_migracao_desfaz_a_frente_mesmo_com_trilha_verificacao_e_execucao()
     {
         // O DOWN COM DADO (revisão do PR #248): a trilha de uma meta revisada, uma verificação da conexão 13 e uma
-        // execução da rotina 8 — o que faria o CHECK recriado e as chaves estrangeiras recusarem o Down.
+        // execução da rotina 9 — o que faria o CHECK recriado e as chaves estrangeiras recusarem o Down.
         var semente = Recriar();
         await Sincronizar(semente, CadastroDeMetas(), Agora);
         var revisado = CadastroDeMetas();
@@ -118,13 +118,13 @@ public sealed class MetasDaGestaoDeNegociosNoConteinerTestes
                 "VALUES (13, SYSUTCDATETIME(), 1, 1, N'teste do Down', NULL)");
             await db.Database.ExecuteSqlRawAsync(
                 "INSERT INTO integracao.ExecucaoDeRotina (RotinaId, IniciadaEm, TerminadaEm, Motivo, Resultado, Maquina, Mensagem, CodigoDeSaida, PedidaPorId) " +
-                "VALUES (8, SYSUTCDATETIME(), SYSUTCDATETIME(), 'Agenda', 'Falha', N'teste', N'teste do Down', 3, NULL)");
+                "VALUES (9, SYSUTCDATETIME(), SYSUTCDATETIME(), 'Agenda', 'Falha', N'teste', N'teste do Down', 3, NULL)");
         }
 
         await using (var db = new CrmDbContext(Opcoes(), ProvedorDeContextoDeSistema.Instancia))
         {
             var migrador = db.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>();
-            var desfazer = () => migrador.MigrateAsync("20260927045134_ColhedoraDeCanaERegrasDasOutrasCategorias");
+            var desfazer = () => migrador.MigrateAsync("20260927065629_RotinaDosProcessosDoVortice");
             await desfazer.Should().NotThrowAsync("o Down apaga antes o que referencia o que ele remove");
 
             (await db.Conexoes.AsNoTracking().AnyAsync(c => c.Id == 13)).Should().BeFalse();

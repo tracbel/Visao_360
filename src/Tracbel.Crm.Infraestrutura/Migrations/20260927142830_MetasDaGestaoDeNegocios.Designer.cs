@@ -12,7 +12,7 @@ using Tracbel.Crm.Infraestrutura.Persistencia;
 namespace Tracbel.Crm.Infraestrutura.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    [Migration("20260927055940_MetasDaGestaoDeNegocios")]
+    [Migration("20260927142830_MetasDaGestaoDeNegocios")]
     partial class MetasDaGestaoDeNegocios
     {
         /// <inheritdoc />
@@ -105,7 +105,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         {
                             t.HasCheckConstraint("CK_AlteracaoDeCampo_Campo", "[Campo] COLLATE Latin1_General_BIN2 LIKE '[A-Z]%' AND [Campo] COLLATE Latin1_General_BIN2 NOT LIKE '%[^A-Za-z0-9]%'");
 
-                            t.HasCheckConstraint("CK_AlteracaoDeCampo_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
+                            t.HasCheckConstraint("CK_AlteracaoDeCampo_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
 
                             t.HasCheckConstraint("CK_AlteracaoDeCampo_Mudou", "([ValorAnterior] IS NOT NULL OR [ValorNovo] IS NOT NULL) AND ([ValorAnterior] IS NULL OR [ValorNovo] IS NULL OR [ValorAnterior] <> [ValorNovo])");
 
@@ -1574,7 +1574,540 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
 
                     b.ToTable("ChaveExterna", "integracao", t =>
                         {
-                            t.HasCheckConstraint("CK_ChaveExterna_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
+                            t.HasCheckConstraint("CK_ChaveExterna_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
+                        });
+                });
+
+            modelBuilder.Entity("Tracbel.Crm.Dominio.Integracao.ClassificacaoDeResultadoDoVortice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CodigoNaOrigem")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("ContaComoContato")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Estagio")
+                        .HasMaxLength(12)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(12)");
+
+                    b.Property<string>("Fonte")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoNaOrigem")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ClassificacaoDeResultadoDoVortice_Codigo");
+
+                    b.ToTable("ClassificacaoDeResultadoDoVortice", "integracao", t =>
+                        {
+                            t.HasCheckConstraint("CK_ClassificacaoDeResultadoDoVortice_Codigo", "[CodigoNaOrigem] > 0");
+
+                            t.HasCheckConstraint("CK_ClassificacaoDeResultadoDoVortice_Estagio", "[Estagio] IS NULL OR [Estagio] IN ('Lead','Qualificado','Cobertura','Negociacao','Pedido','Faturamento')");
+
+                            t.HasCheckConstraint("CK_ClassificacaoDeResultadoDoVortice_Utilidade", "[Estagio] IS NOT NULL OR [ContaComoContato] = 1");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CodigoNaOrigem = 1278,
+                            ContaComoContato = false,
+                            Estagio = "Lead",
+                            Fonte = "extrator do funil: Lead (l. 257)"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CodigoNaOrigem = 3803,
+                            ContaComoContato = false,
+                            Estagio = "Qualificado",
+                            Fonte = "extrator do funil: Qualificado (l. 384)"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CodigoNaOrigem = 250,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CodigoNaOrigem = 252,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CodigoNaOrigem = 254,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CodigoNaOrigem = 255,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CodigoNaOrigem = 260,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            CodigoNaOrigem = 263,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            CodigoNaOrigem = 265,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            CodigoNaOrigem = 267,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            CodigoNaOrigem = 299,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            CodigoNaOrigem = 300,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            CodigoNaOrigem = 304,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            CodigoNaOrigem = 305,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            CodigoNaOrigem = 306,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            CodigoNaOrigem = 307,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            CodigoNaOrigem = 570,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            CodigoNaOrigem = 1286,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            CodigoNaOrigem = 3225,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            CodigoNaOrigem = 3227,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            CodigoNaOrigem = 3639,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            CodigoNaOrigem = 3640,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            CodigoNaOrigem = 2605,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            CodigoNaOrigem = 1929,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            CodigoNaOrigem = 2547,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            CodigoNaOrigem = 2553,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            CodigoNaOrigem = 2554,
+                            ContaComoContato = true,
+                            Estagio = "Cobertura",
+                            Fonte = "extrator do funil: Cobertura (l. 520–525); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            CodigoNaOrigem = 2563,
+                            ContaComoContato = true,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            CodigoNaOrigem = 2564,
+                            ContaComoContato = true,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            CodigoNaOrigem = 2565,
+                            ContaComoContato = true,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            CodigoNaOrigem = 2566,
+                            ContaComoContato = true,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            CodigoNaOrigem = 2568,
+                            ContaComoContato = true,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 33,
+                            CodigoNaOrigem = 3234,
+                            ContaComoContato = true,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 34,
+                            CodigoNaOrigem = 3572,
+                            ContaComoContato = true,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 35,
+                            CodigoNaOrigem = 3573,
+                            ContaComoContato = true,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 36,
+                            CodigoNaOrigem = 2612,
+                            ContaComoContato = true,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 37,
+                            CodigoNaOrigem = 3223,
+                            ContaComoContato = true,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 38,
+                            CodigoNaOrigem = 2607,
+                            ContaComoContato = false,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); também Cobertura (decisão de 27/09/2026)"
+                        },
+                        new
+                        {
+                            Id = 39,
+                            CodigoNaOrigem = 2609,
+                            ContaComoContato = false,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); também Cobertura (decisão de 27/09/2026)"
+                        },
+                        new
+                        {
+                            Id = 40,
+                            CodigoNaOrigem = 2610,
+                            ContaComoContato = false,
+                            Estagio = "Negociacao",
+                            Fonte = "extrator do funil: Negociação (l. 666–669); também Cobertura (decisão de 27/09/2026)"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            CodigoNaOrigem = 2548,
+                            ContaComoContato = true,
+                            Estagio = "Pedido",
+                            Fonte = "extrator do funil: Pedido (l. 803); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 42,
+                            CodigoNaOrigem = 3231,
+                            ContaComoContato = true,
+                            Estagio = "Pedido",
+                            Fonte = "extrator do funil: Pedido (l. 803); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 43,
+                            CodigoNaOrigem = 3232,
+                            ContaComoContato = true,
+                            Estagio = "Pedido",
+                            Fonte = "extrator do funil: Pedido (l. 803); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 44,
+                            CodigoNaOrigem = 3239,
+                            ContaComoContato = false,
+                            Estagio = "Pedido",
+                            Fonte = "extrator do funil: Pedido (l. 803)"
+                        },
+                        new
+                        {
+                            Id = 45,
+                            CodigoNaOrigem = 3663,
+                            ContaComoContato = true,
+                            Estagio = "Pedido",
+                            Fonte = "extrator do funil: Pedido (l. 803); BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 46,
+                            CodigoNaOrigem = 2529,
+                            ContaComoContato = false,
+                            Estagio = "Faturamento",
+                            Fonte = "extrator do funil: Faturamento (l. 936)"
+                        },
+                        new
+                        {
+                            Id = 47,
+                            CodigoNaOrigem = 2530,
+                            ContaComoContato = false,
+                            Estagio = "Faturamento",
+                            Fonte = "extrator do funil: Faturamento (l. 936)"
+                        },
+                        new
+                        {
+                            Id = 48,
+                            CodigoNaOrigem = 3440,
+                            ContaComoContato = false,
+                            Estagio = "Faturamento",
+                            Fonte = "extrator do funil: Faturamento (l. 936)"
+                        },
+                        new
+                        {
+                            Id = 49,
+                            CodigoNaOrigem = 3494,
+                            ContaComoContato = false,
+                            Estagio = "Faturamento",
+                            Fonte = "extrator do funil: Faturamento (l. 936)"
+                        },
+                        new
+                        {
+                            Id = 50,
+                            CodigoNaOrigem = 257,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 51,
+                            CodigoNaOrigem = 258,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 52,
+                            CodigoNaOrigem = 302,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 53,
+                            CodigoNaOrigem = 308,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 54,
+                            CodigoNaOrigem = 3226,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 55,
+                            CodigoNaOrigem = 3235,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 56,
+                            CodigoNaOrigem = 3236,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 57,
+                            CodigoNaOrigem = 2622,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 58,
+                            CodigoNaOrigem = 1175,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 59,
+                            CodigoNaOrigem = 2555,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 60,
+                            CodigoNaOrigem = 2549,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 61,
+                            CodigoNaOrigem = 2550,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 62,
+                            CodigoNaOrigem = 3575,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
+                        },
+                        new
+                        {
+                            Id = 63,
+                            CodigoNaOrigem = 3576,
+                            ContaComoContato = true,
+                            Fonte = "BI_CARTEIRA_VN (l. 86–87)"
                         });
                 });
 
@@ -1898,7 +2431,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         {
                             Id = 4,
                             Codigo = "VORTICE",
-                            Descricao = "A busca ao vivo no legado, congelado desde a fase 1, e a sincronia diária das carteiras MAQ_NOVOS. Sessão somente leitura.",
+                            Descricao = "A busca ao vivo no legado, congelado desde a fase 1, a sincronia diária das carteiras MAQ_NOVOS e o funil e as vendas perdidas (histórico desde 2012). Sessão somente leitura.",
                             EhDoSistema = true,
                             EstaAtiva = true,
                             Nome = "Vórtice — sistema legado",
@@ -2772,6 +3305,16 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         new
                         {
                             Id = 8,
+                            AgendaVigenteDesde = new DateTime(2026, 9, 22, 12, 0, 0, 0, DateTimeKind.Utc),
+                            Cadencia = "Diaria",
+                            Codigo = "PROCESSOS_VORTICE",
+                            EstaLigada = false,
+                            Hora = new TimeOnly(6, 30, 0),
+                            Nome = "Funil e vendas perdidas do Vórtice"
+                        },
+                        new
+                        {
+                            Id = 9,
                             AgendaVigenteDesde = new DateTime(2026, 9, 22, 12, 0, 0, 0, DateTimeKind.Utc),
                             Cadencia = "Diaria",
                             Codigo = "METAS_GESTAO_NEGOCIOS",
@@ -5542,6 +6085,108 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Tracbel.Crm.Dominio.Processo.EstagioDoProcesso", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("AbertoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<bool>("AberturaDeduzida")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("AlcancadoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<long?>("CarteiraId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ClienteId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Desfecho")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("DesfechoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Estagio")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(12)");
+
+                    b.Property<bool>("HerdadoDoProcessoDna")
+                        .HasColumnType("bit");
+
+                    b.Property<long?>("NumeroDoProcessoDnaNaOrigem")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("NumeroDoProcessoNaOrigem")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("PelaEntradaDigital")
+                        .HasColumnType("bit");
+
+                    b.Property<long?>("ProcessoId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ResponsavelId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("ResultadoQueAbriu")
+                        .HasColumnType("int");
+
+                    b.Property<short>("TipoDeProcessoNaOrigem")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("UltimaAcaoDaEtapaEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarteiraId");
+
+                    b.HasIndex("ClienteId");
+
+                    b.HasIndex("ProcessoId");
+
+                    b.HasIndex("ResponsavelId");
+
+                    b.HasIndex("NumeroDoProcessoNaOrigem", "Estagio")
+                        .IsUnique()
+                        .HasDatabaseName("UX_EstagioDoProcesso_Numero_Estagio");
+
+                    b.HasIndex("EmpresaId", "Estagio", "AbertoEm");
+
+                    b.HasIndex("EmpresaId", "Estagio", "AlcancadoEm");
+
+                    b.ToTable("EstagioDoProcesso", "processo", t =>
+                        {
+                            t.HasCheckConstraint("CK_EstagioDoProcesso_Desfecho", "[Desfecho] IN ('Aberto','Suspenso','Ganho','Perdido','Cancelado')");
+
+                            t.HasCheckConstraint("CK_EstagioDoProcesso_Estagio", "[Estagio] IN ('Lead','Qualificado','Cobertura','Negociacao','Pedido','Faturamento')");
+
+                            t.HasCheckConstraint("CK_EstagioDoProcesso_Heranca", "([HerdadoDoProcessoDna] = 1 AND [NumeroDoProcessoDnaNaOrigem] IS NOT NULL) OR ([HerdadoDoProcessoDna] = 0 AND [NumeroDoProcessoDnaNaOrigem] IS NULL)");
+
+                            t.HasCheckConstraint("CK_EstagioDoProcesso_Tipo", "[TipoDeProcessoNaOrigem] IN (31, 41, 50)");
+                        });
+                });
+
             modelBuilder.Entity("Tracbel.Crm.Dominio.Processo.Fase", b =>
                 {
                     b.Property<int>("Id")
@@ -6300,6 +6945,11 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         .HasPrecision(3)
                         .HasColumnType("datetime2(3)");
 
+                    b.Property<string>("FormularioDeOrigem")
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
                     b.Property<string>("ModeloDoConcorrente")
                         .HasMaxLength(120)
                         .IsUnicode(true)
@@ -6313,8 +6963,19 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     b.Property<int>("MotivoDePerdaId")
                         .HasColumnType("int");
 
+                    b.Property<long?>("NumeroDoProcessoNaOrigem")
+                        .HasColumnType("bigint");
+
                     b.Property<DateOnly?>("OcorridaEm")
                         .HasColumnType("date");
+
+                    b.Property<string>("Papel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(12)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(12)")
+                        .HasDefaultValue("Principal");
 
                     b.Property<string>("Participacao")
                         .IsRequired()
@@ -6353,6 +7014,9 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     b.Property<int?>("TipoDeEquipamentoId")
                         .HasColumnType("int");
 
+                    b.Property<long?>("VendaPerdidaPrincipalId")
+                        .HasColumnType("bigint");
+
                     b.Property<byte[]>("Versao")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -6370,7 +7034,11 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
 
                     b.HasIndex("MotivoDePerdaId");
 
+                    b.HasIndex("NumeroDoProcessoNaOrigem");
+
                     b.HasIndex("ProcessoId");
+
+                    b.HasIndex("VendaPerdidaPrincipalId");
 
                     b.HasIndex("CatalogoDaRevendaId", "RevendaDoConcorrenteId");
 
@@ -6388,6 +7056,12 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             t.HasCheckConstraint("CK_VendaPerdida_CatalogoDoConcorrenteId", "[CatalogoDoConcorrenteId] = 8");
 
                             t.HasCheckConstraint("CK_VendaPerdida_CatalogoDoTipoDeEquipamentoId", "[CatalogoDoTipoDeEquipamentoId] = 9");
+
+                            t.HasCheckConstraint("CK_VendaPerdida_Formulario", "[FormularioDeOrigem] IS NULL OR [FormularioDeOrigem] IN ('IV_Q_VENDA_PERDIDA','IV_Q_VENDA_PERDIDA_FY25','IV_Q_VENDA_PERDIDA_MAQIMP','IV_Q_VP_SEM_PARTICIPACAO','IV_Q_VENDA_PERDIDA_JDE','IV_Q_VENDA_PERDIDA_PROD','IV_Q_VENDA_PERDIDA_IMPLEM','IV_Q_VENDA_PERDIDA_IMPL','IV_Q_VP_TRATOR','IV_Q_VP_COLHEITADEIRA','IV_Q_VP_PLANTADEIRA','IV_Q_VP_COLHEDORA')");
+
+                            t.HasCheckConstraint("CK_VendaPerdida_Papel", "[Papel] IN ('Principal','Complemento','Duplicata')");
+
+                            t.HasCheckConstraint("CK_VendaPerdida_PapelEPrincipal", "([Papel] = 'Principal' AND [VendaPerdidaPrincipalId] IS NULL) OR ([Papel] <> 'Principal' AND [VendaPerdidaPrincipalId] IS NOT NULL)");
 
                             t.HasCheckConstraint("CK_VendaPerdida_Participacao", "[Participacao] IN ('NaoInformado','Sim','Nao')");
 
@@ -8033,6 +8707,35 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Tracbel.Crm.Dominio.Processo.EstagioDoProcesso", b =>
+                {
+                    b.HasOne("Tracbel.Crm.Dominio.Organizacao.Carteira", null)
+                        .WithMany()
+                        .HasForeignKey("CarteiraId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Tracbel.Crm.Dominio.Comercial.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Tracbel.Crm.Dominio.Organizacao.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Tracbel.Crm.Dominio.Processo.Processo", null)
+                        .WithMany()
+                        .HasForeignKey("ProcessoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Tracbel.Crm.Dominio.Seguranca.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsavelId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("Tracbel.Crm.Dominio.Processo.Fase", b =>
                 {
                     b.HasOne("Tracbel.Crm.Dominio.Processo.TipoProcesso", null)
@@ -8250,6 +8953,11 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     b.HasOne("Tracbel.Crm.Dominio.Processo.Processo", null)
                         .WithMany()
                         .HasForeignKey("ProcessoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Tracbel.Crm.Dominio.Processo.VendaPerdida", null)
+                        .WithMany()
+                        .HasForeignKey("VendaPerdidaPrincipalId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Tracbel.Crm.Dominio.Metadado.CatalogoItem", null)
