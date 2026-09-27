@@ -24,6 +24,8 @@ import type {
   AnoFiscalDoMunicipio,
   HistoricoDoMunicipio,
   IndicadoresDoMunicipio,
+  MotivoSemNumeroDeDecisao,
+  NumerosDeDecisao,
   PainelTerritorial,
   ParcelaDoParque,
   PotencialTerritorial,
@@ -309,7 +311,41 @@ function montarMunicipio(
           motivoSemParque: 'Nenhum',
           motivoSemDemanda: 'Nenhum',
         },
+    // OS NÚMEROS DO MUNICÍPIO (27/09/2026), pela mesma conta dos cartões do topo: as vendas daqui sobre a
+    // demanda daqui. Sem demanda ou sem o ART, o número some com o motivo — os dois caminhos que a ficha mostra.
+    numerosDeDecisao: numerosDoMunicipio(
+      semDado ? null : Math.round(area / 250 / 8),
+      estado === 'parcialmenteVazio' ? null : Math.round((area / 250 / 8) * 0.15),
+    ),
   });
+}
+
+const FRASE_SEM_PRECO =
+  'Não há preço de referência de máquina no CRM, e o mercado anual é a demanda de cada categoria multiplicada pelo preço DAQUELA categoria (issue 70).';
+
+/** Os números de um município fictício: captura e oportunidade das vendas contra a demanda, anual. */
+function numerosDoMunicipio(demanda: number | null, vendidas: number | null): NumerosDeDecisao {
+  const sem = (motivo: MotivoSemNumeroDeDecisao, frase: string) => ({ valor: null, motivo, frase });
+  const semDemanda = sem('SemDemandaAnual', 'Sem a demanda anual não há base para este número (D-P01, issue 63).');
+  const semVendas = sem('SemVendasEmUnidades', 'As vendas da Tracbel em MÁQUINAS não chegaram a esta consulta (issue 69).');
+  const de = (valor: number) => ({ valor, motivo: 'Nenhum' as const, frase: '' });
+
+  return {
+    demandaAnual: demanda == null ? semDemanda : de(demanda),
+    mercadoAnual: { ...sem('SemPrecoDeMaquina', FRASE_SEM_PRECO), parcial: false, categoriasSemPreco: [] },
+    capturaPercentual:
+      vendidas == null ? semVendas : !demanda ? semDemanda : de(Math.round((vendidas / demanda) * 1000) / 10),
+    oportunidade: vendidas == null ? semVendas : demanda == null ? semDemanda : de(Math.max(0, demanda - vendidas)),
+    baseDaCaptura:
+      vendidas == null
+        ? null
+        : {
+            unidades: vendidas,
+            categorias: ['Trator'],
+            unidadesForaDaConta: 0,
+            frase: `A conta deste recorte: ${vendidas} máquinas vendidas da categoria Trator ÷ a demanda anual estimada da mesma categoria.`,
+          },
+  };
 }
 
 /** O painel inteiro, fictício, no estado pedido. */

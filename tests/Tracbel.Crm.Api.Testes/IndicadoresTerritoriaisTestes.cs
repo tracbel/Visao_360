@@ -1562,6 +1562,127 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         }
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // A FICHA DO MUNICÍPIO E O MOMENTO DO MERCADO COM O DADO QUE JÁ ESTAVA NO BANCO (27/09/2026).
+    // ---------------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task A_ficha_do_municipio_traz_demanda_captura_e_oportunidade_pela_mesma_conta_da_pagina()
+    {
+        // O PRINT DO RICARDO: a ficha de Orindiúva mostrava a demanda e deixava Captura e Oportunidade com "—" e
+        // "só no recorte" — a rota calculava a demanda por categoria e as vendas por categoria de cada município e
+        // jogava as duas fora.
+        await SemearAsync();
+        var regraId = await RegistrarRegraDoCafeComCicloAsync();
+        try
+        {
+            var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+            var ribeirao = Municipio(dados, RibeiraoPreto);
+            var numeros = ribeirao.GetProperty("numerosDeDecisao");
+
+            // 70 ha DE CAFÉ ÷ 20 ha por trator = 3,5 tratores; a cada 10 anos, 0,35 por ano.
+            numeros.GetProperty("demandaAnual").GetProperty("valor").GetDecimal().Should().Be(0.35m);
+
+            // OS MESMOS DOIS TRATORES DA PÁGINA: a plataforma e a máquina sem classificação ficam de fora, porque
+            // não há demanda delas aqui.
+            var conta = numeros.GetProperty("baseDaCaptura");
+            conta.GetProperty("unidades").GetInt32().Should().Be(2);
+            conta.GetProperty("unidadesForaDaConta").GetInt32().Should().Be(2);
+
+            // SÓ RIBEIRÃO TEM DEMANDA NO RECORTE, então a ficha e a página dão o mesmo número — a mesma conta.
+            numeros.GetProperty("capturaPercentual").GetProperty("valor").GetDecimal().Should().Be(
+                dados.GetProperty("numerosDeDecisao").GetProperty("capturaPercentual").GetProperty("valor").GetDecimal());
+
+            // DOIS VENDIDOS CONTRA 0,175 DE DEMANDA NOS SEIS MESES: vender além da estimativa não é oportunidade negativa.
+            numeros.GetProperty("oportunidade").GetProperty("valor").GetDecimal().Should().Be(0m);
+
+            numeros.GetProperty("mercadoAnual").GetProperty("motivo").GetString().Should().Be("SemPrecoDeMaquina",
+                "o preço por categoria é a issue 70 — o mercado anual continua sem número, com o motivo");
+
+            ribeirao.GetProperty("maquinasPorCategoria").EnumerateArray()
+                .Single(c => c.GetProperty("categoriaCodigo").GetString() == "TRATOR")
+                .GetProperty("unidades").GetInt32().Should().Be(2);
+
+            // SERRANA NÃO DIVULGOU ÁREA: sem demanda, a captura não tem denominador — e diz isso.
+            Municipio(dados, Serrana).GetProperty("numerosDeDecisao").GetProperty("capturaPercentual")
+                .GetProperty("motivo").GetString().Should().Be("SemDemandaAnual");
+
+            // O INGREDIENTE NÃO VAI PARA A TELA: ela recebe o resultado, e não as parcelas de cada município.
+            (!ribeirao.TryGetProperty("demandaPorCategoriaECultura", out var parcelas) || parcelas.ValueKind == JsonValueKind.Null)
+                .Should().BeTrue("a demanda por categoria e cultura é esvaziada depois de usada");
+        }
+        finally
+        {
+            await RevogarRegraAsync(regraId);
+        }
+    }
+
+    [Fact]
+    public async Task O_momento_le_o_credito_somado_dos_municipios_do_recorte_e_sem_indicador_nao_diz_normal()
+    {
+        // O PRINT DO RICARDO: "Crédito —" nos cartões, 0,0% em todas as culturas e "Mercado NORMAL" — com treze anos
+        // de SICOR no banco. A leitura era pedida sem município, e o crédito nunca era calculado.
+        await SemearAsync();
+        var regraId = await RegistrarRegraDoCafeComCicloAsync();
+        try
+        {
+            // ANTES DO CRÉDITO: nenhum indicador medido (nem preço, nem crédito, nem percepção). O fator é 1,00 por
+            // construção, e isso não é "mercado normal".
+            var semIndicador = (await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo)))
+                .GetProperty("indicadores").GetProperty("momento");
+            semIndicador.GetProperty("indiceDeCredito").ValueKind.Should().Be(JsonValueKind.Null);
+            semIndicador.GetProperty("faixaDoMomento").ValueKind.Should().Be(JsonValueKind.Null,
+                "sem indicador nenhum não há leitura do mercado");
+            semIndicador.GetProperty("leitura").GetString().Should().BeEmpty();
+
+            await SemearCreditoAsync();
+
+            var momento = (await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo)))
+                .GetProperty("indicadores").GetProperty("momento");
+
+            // RIBEIRÃO E SERRANA SOMADOS, UBERABA FORA: 3 linhas e R$ 700 mil na janela recente contra 1 linha e
+            // R$ 500 mil na anterior → 0,70 × 3 + 0,30 × 1,4 = 2,52. Só Ribeirão daria 0,70 × 2 + 0,30 × 1,2 = 1,76.
+            momento.GetProperty("indiceDeCredito").GetDecimal().Should().Be(2.52m);
+            momento.GetProperty("faixaDoMomento").ValueKind.Should().Be(JsonValueKind.String,
+                "com o crédito medido, a faixa volta a ter base");
+            momento.GetProperty("leitura").GetString().Should().NotBeEmpty();
+        }
+        finally
+        {
+            await RevogarRegraAsync(regraId);
+        }
+    }
+
+    /// <summary>
+    /// O SICOR DE TRATOR NAS DUAS JANELAS: Ribeirão com uma linha em 08/2025 e duas em 08/2026, Serrana com uma em
+    /// 08/2026, e Uberaba — fora do recorte — com uma grande, que não pode entrar na conta.
+    /// </summary>
+    private async Task SemearCreditoAsync()
+    {
+        using var escopo = api.Services.CreateScope();
+        var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+        await using var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia);
+
+        if (await db.CreditosRuraisDeInvestimento.AnyAsync()) return;
+
+        var agora = DateTime.UtcNow;
+        var id = await db.Municipios.Where(m => m.CodigoIbge != null).ToDictionaryAsync(m => m.CodigoIbge!.Value, m => m.Id);
+
+        CreditoRuralDeInvestimento Linha(int bcb, short ano, int municipio, decimal valor, int modalidade = 14) =>
+            CreditoRuralDeInvestimento.Registrar(
+                new CreditoRuralDeInvestimento.Chave(bcb, ano, 8, 7080, 154, 71, 431, 9, 1, modalidade),
+                id[municipio], valor, 0m, 100, agora);
+
+        db.CreditosRuraisDeInvestimento.AddRange(
+            Linha(6001, 2025, RibeiraoPreto, 500_000m),
+            Linha(6001, 2026, RibeiraoPreto, 300_000m),
+            Linha(6001, 2026, RibeiraoPreto, 300_000m, modalidade: 15),
+            Linha(6002, 2026, Serrana, 100_000m),
+            Linha(6003, 2026, 3170107, 900_000m));
+
+        await db.SaveChangesAsync();
+    }
+
     /// <summary>
     /// UMA REGRA DO CAFÉ COM CICLO, vigente hoje, pelo mesmo caminho do domínio que a tela do Administrador
     /// usa — trator por padrão. Devolve o Id para o teste revogá-la no fim.
