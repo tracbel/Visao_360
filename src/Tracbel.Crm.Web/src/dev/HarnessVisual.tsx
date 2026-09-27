@@ -29,7 +29,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ProvedorDeContextoDeAcesso } from '../dados/api/contexto';
 import { IndicadoresGeograficos } from '../telas/IndicadoresGeograficos';
 import type { ColecaoMunicipal } from '../componentes/territorio/projecao';
-import { ESTADOS, municipiosDaMalha, painelFicticio, type NomeDoEstado } from './amostras';
+import { ESTADOS, historicoFicticio, municipiosDaMalha, painelFicticio, type NomeDoEstado } from './amostras';
 import {
   catalogoFicticio,
   creditoFicticio,
@@ -105,6 +105,7 @@ function respostasDeMercado(malha: ColecaoMunicipal, estado: NomeDoEstado): Reco
         regiao: null,
         saoPaulo: null,
         procedencia: null,
+        porMes: [],
       },
     };
 
@@ -162,6 +163,14 @@ function instalarInterceptador(): void {
 
       const respostas = respostasDeMercado(malhaDosPaineis, estado);
       if (caminho in respostas) return envelope(respostas[caminho]);
+
+      // O HISTÓRICO DO MUNICÍPIO (27/09/2026) — a aba Histórico da ficha e a lavoura com todas as
+      // culturas da Visão geral. Município fora da amostra é 404, como na API.
+      const historico = /^\/v1\/territorio\/municipios\/(\d+)\/historico$/.exec(caminho);
+      if (historico) {
+        const dados = historicoFicticio(malhaDosPaineis, Number(historico[1]), estado);
+        if (dados) return envelope(dados);
+      }
     }
 
     if (caminho === '/v1/territorio/indicadores') {
@@ -278,7 +287,7 @@ export function HarnessVisual() {
               de 1300px de conteúdo. Com as classes reais, a largura da janela do
               harness É a largura da coluna de conteúdo do aplicativo, e as
               quebras medidas aqui são as que ele vai ver. */}
-          <div className="content conteudo-cadastro conteudo-largo">
+          <div className="content conteudo-cadastro">
             <IndicadoresGeograficos />
           </div>
         </MemoryRouter>

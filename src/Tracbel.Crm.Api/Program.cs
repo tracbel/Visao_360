@@ -189,7 +189,11 @@ builder.Services.AddScoped<IRepositorioCarteiras, RepositorioDeCarteiras>();
 builder.Services.AddScoped<IRepositorioTerritorio, RepositorioDeTerritorio>();
 builder.Services.AddScoped<IRepositorioDoMotorDoPotencial, RepositorioDoMotorDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeIndicadoresDeMercado, RepositorioDeIndicadoresDeMercado>();
-builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais, RepositorioDeIndicadoresTerritoriais>();
+// O MESMO REPOSITÓRIO RESPONDE AS DUAS PORTAS do território: o painel (uma janela, todos os municípios)
+// e o histórico (todos os anos, um município).
+builder.Services.AddScoped<RepositorioDeIndicadoresTerritoriais>();
+builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais>(s => s.GetRequiredService<RepositorioDeIndicadoresTerritoriais>());
+builder.Services.AddScoped<IRepositorioHistoricoDoMunicipio>(s => s.GetRequiredService<RepositorioDeIndicadoresTerritoriais>());
 builder.Services.AddScoped<IRepositorioDePrecosDeMercado, RepositorioDePrecosDeMercado>();
 builder.Services.AddScoped<IRepositorioDoPrecoImplicito, RepositorioDoPrecoImplicito>();
 builder.Services.AddScoped<IRepositorioDeCustosDeProducao, RepositorioDeCustosDeProducao>();
@@ -284,6 +288,7 @@ builder.Services.AddScoped<ListarMunicipios>();
 builder.Services.AddScoped<ObterCoberturaPorFilial>();
 builder.Services.AddScoped<ListarTerritorioPorCarteira>();
 builder.Services.AddScoped<ObterIndicadoresTerritoriais>();
+builder.Services.AddScoped<ObterHistoricoDoMunicipio>();
 builder.Services.AddScoped<SimularMaquinas>();
 builder.Services.AddScoped<ObterPrecosDeMercado>();
 builder.Services.AddScoped<ObterPrecoImplicitoDaPam>();

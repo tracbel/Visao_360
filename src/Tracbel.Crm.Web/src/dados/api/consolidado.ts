@@ -343,6 +343,9 @@ export type ExecutivoConsolidado = {
  * É UMA LEITURA SEPARADA do consolidado, e não mais uma dentro de `lerFilial`: trocar o ano do
  * cartão de meta não pode refazer as 65 leituras do painel inteiro. E a falha dela não derruba a
  * filial nos outros gráficos.
+ *
+ * O ANO É O FISCAL (27/09/2026): novembro a outubro, com o nome do ano em que termina. A rota ainda
+ * aceita `ano` como ano civil, e esta tela deixou de pedi-lo.
  */
 export async function obterExecutivoConsolidado(
   contexto: ContextoDeAcesso,
@@ -355,7 +358,7 @@ export async function obterExecutivoConsolidado(
       const resposta = await ler<PainelExecutivoDaFilial>(
         '/v1/relatorios/indicadores-executivos',
         { ...contexto, empresa: filial.codigo },
-        { sinal, parametros: { ano } },
+        { sinal, parametros: { anoFiscal: ano } },
       );
       return { filial, painel: resposta.dados, erro: null };
     } catch (causa) {

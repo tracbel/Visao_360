@@ -22,7 +22,7 @@ import { ProvedorDeContextoDeAcesso } from '../../dados/api/contexto';
 import { municipioDeTeste } from '../../testes/territorio';
 import type { RentabilidadeDaCultura } from '../../tipos/mercado';
 import type { CulturaNoCatalogo } from '../../tipos/potencial';
-import type { IndicadoresDoMunicipio, PotencialTerritorial } from '../../tipos/territorio';
+import type { AreaDoProdutoNoRecorte, IndicadoresDoMunicipio, PotencialTerritorial } from '../../tipos/territorio';
 import { recorteFiltrado, type RecorteFiltrado } from '../territorio/indicadoresDaAdr';
 import { PainelDeRentabilidade } from './PainelDeRentabilidade';
 
@@ -155,6 +155,7 @@ function abrir({
   carregando = false,
   recorte = null as RecorteFiltrado | null,
   linhas = LINHAS,
+  lavouraDoRecorte = null as AreaDoProdutoNoRecorte[] | null,
 } = {}) {
   obterRentabilidadeDasCulturas.mockResolvedValue({ dados: linhas, procedencia: null });
   if (catalogoFalha) obterCatalogoDoMercado.mockRejectedValue(new Error('403'));
@@ -179,6 +180,7 @@ function abrir({
         municipioCodigoIbge={municipioCodigoIbge}
         carregando={carregando}
         recorte={recorte}
+        lavouraDoRecorte={lavouraDoRecorte}
       />
     </ProvedorDeContextoDeAcesso>,
   );
@@ -242,7 +244,28 @@ describe('a aba Rentabilidade', () => {
     expect(lerDica('O que é a cultura destaque')).toMatch(/MAIOR ÁREA COLHIDA/);
   });
 
-  it('NO BANCO DE HOJE (uma regra só), média e destaque saem com o traço e o motivo verdadeiro', async () => {
+  it('COM A ÁREA DE TODAS AS CULTURAS (issue 168), a média e o destaque saem mesmo com uma regra só', async () => {
+    // A LEITURA DE 27/09/2026 traz a área de cada produto da PAM nos municípios da ADR, sem passar pelas
+    // regras: o café não tem regra aqui, e pesa na média do mesmo jeito. A laranja não tem área
+    // divulgada — e não pesa, com a ausência dita como do IBGE.
+    abrir({
+      municipios: COM_UMA_REGRA,
+      lavouraDoRecorte: [
+        { produtoCodigoIbge: PAM_CANA, produtoNome: 'Cana-de-açúcar', ano: 2024, areaPlantadaHectares: 91_000, areaColhidaHectares: 90_000, municipiosComArea: 2 },
+        { produtoCodigoIbge: PAM_CAFE, produtoNome: 'Café (Total)', ano: 2024, areaPlantadaHectares: 10_500, areaColhidaHectares: 10_000, municipiosComArea: 1 },
+      ],
+    });
+    await screen.findByText('R$ 5.322,00');
+
+    expect(cartao('Média da Região Tracbel')).toHaveTextContent('R$ 5.322,00');
+    expect(cartao('Cultura destaque')).toHaveTextContent('Cana-de-açúcar');
+    expect(linhaDaTabela('CAFE')).toHaveTextContent('10.000');
+    const laranja = lerDica('Por que a área colhida de Laranja não aparece', linhaDaTabela('LARANJA'));
+    expect(laranja).toMatch(/Nenhum município .* tem área colhida de Laranja divulgada/);
+    expect(laranja).not.toMatch(/regra/);
+  });
+
+  it('NUMA LEITURA SEM A ÁREA DE TODAS AS CULTURAS (uma regra só), média e destaque saem com o traço e o motivo verdadeiro', async () => {
     // O DEFEITO: com a área de uma cultura só, a "média ponderada" era a margem
     // da cana com o nome de média, e o destaque era sempre a cana.
     abrir({ municipios: COM_UMA_REGRA });
@@ -256,9 +279,10 @@ describe('a aba Rentabilidade', () => {
       const valor = cartao(rotulo).querySelector('.mom-cartao-valor')!;
       expect(valor.textContent, rotulo).not.toMatch(/\d|Cana/);
       const motivo = lerDica(`Por que ${oQue} não aparece`);
-      expect(motivo).toMatch(/só traz a área colhida das culturas com regra de potencial/);
+      expect(motivo).toMatch(/não trouxe a área de todas as culturas, só a das que têm regra de potencial/);
       expect(motivo).toMatch(/falta a de Café \(Total\) e Laranja/);
-      expect(motivo).toMatch(/pedida ao backend/);
+      // O PEDIDO AO BACKEND FOI ATENDIDO (issue 168): a frase não o promete mais.
+      expect(motivo).not.toMatch(/pedida ao backend/);
     }
     expect(lerDica('Por que a margem média da Região Tracbel não aparece')).toMatch(/média ponderada pela área de atuação/);
 

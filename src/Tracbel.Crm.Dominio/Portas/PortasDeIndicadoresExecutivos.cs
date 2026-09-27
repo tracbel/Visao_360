@@ -47,28 +47,51 @@ public sealed record FaturamentoDaCompetencia(
 }
 
 /// <summary>
-/// O faturamento do ANO CIVIL pedido, em reais — e nunca de uma previsão (documento 36, cartão B).
+/// Em que calendário o cartão de realizado soma o ano (documento 36, cartão B).
 ///
-/// <para><b>Ano civil, e não fiscal:</b> o calendário fiscal não foi confirmado (documento 32, P-4).</para>
+/// <para><b>O fiscal é o padrão desde 27/09/2026</b> — novembro a outubro, com o nome do ano em que termina
+/// (<see cref="Comum.AnoFiscal"/>). O civil continua possível por pedido explícito: é o calendário de toda
+/// fonte pública, e a rota o atendia antes da decisão.</para>
+/// </summary>
+public enum CalendarioDoAno
+{
+    /// <summary>Janeiro a dezembro — só quando o pedido traz <c>ano</c>.</summary>
+    Civil = 0,
+
+    /// <summary>Novembro a outubro, com o nome do ano em que termina — o padrão.</summary>
+    Fiscal = 1
+}
+
+/// <summary>
+/// O faturamento do ANO pedido — o fiscal, por padrão —, em reais, e nunca de uma previsão (documento 36, cartão B).
+///
+/// <para><b>Ano fiscal por padrão</b> (decisão de 27/09/2026): novembro a outubro. O ano que ainda corre é somado
+/// até o ÚLTIMO MÊS FECHADO, como nos Indicadores Geográficos — o mês em curso fica à parte, no cartão do mês.</para>
 ///
 /// <para><b>A meta saiu daqui (#138, 27/09/2026).</b> Este registro levava a meta de FATURAMENTO de
 /// <c>organizacao.Meta</c>, tabela que saiu na fase 1 sem nunca ter tido uma linha — os quatro campos vinham
 /// sempre zerados. A meta decidida é a de VENDA, em unidades, da API Gestão de Negócios, e mora na rota
 /// própria (<c>/relatorios/metas</c>); aqui fica só o faturamento.</para>
 /// </summary>
-/// <param name="Ano">O ano pedido.</param>
+/// <param name="Ano">O ano pedido — o fiscal (o ano em que ele termina) ou o civil, conforme o calendário.</param>
 /// <param name="PrimeiraCompetencia">O primeiro mês com faturamento no ano.</param>
 /// <param name="UltimaCompetencia">O último mês com faturamento no ano.</param>
 /// <param name="MesesComFaturamento">Quantos meses do ano têm linha de faturamento.</param>
 /// <param name="ComCliente">Realizado com cliente no CRM.</param>
 /// <param name="SemCliente">Realizado sem cliente no CRM, todas as naturezas.</param>
+/// <param name="Calendario">Um <see cref="CalendarioDoAno"/> como texto — a tela escreve qual é.</param>
+/// <param name="Inicio">O primeiro mês do ano no calendário escolhido (novembro no fiscal, janeiro no civil).</param>
+/// <param name="Fim">O último mês somado: o fim do ano, ou o último mês fechado quando o ano ainda corre.</param>
 public sealed record FaturamentoDoAno(
     int Ano,
     DateOnly? PrimeiraCompetencia,
     DateOnly? UltimaCompetencia,
     int MesesComFaturamento,
     decimal ComCliente,
-    decimal SemCliente)
+    decimal SemCliente,
+    string Calendario = nameof(CalendarioDoAno.Fiscal),
+    DateOnly? Inicio = null,
+    DateOnly? Fim = null)
 {
     /// <summary>Tudo o que foi emitido no ano, até a última competência carregada.</summary>
     public decimal Total => ComCliente + SemCliente;
@@ -159,7 +182,7 @@ public sealed record MercadoDaFilial(
 /// <summary>Os cinco indicadores executivos de uma filial.</summary>
 /// <param name="ReferenciaUtc">O instante da apuração — contra ele a cadência e o mês em curso são medidos.</param>
 /// <param name="FaturamentoDoMes">A competência mais recente carregada; nulo quando não há faturamento.</param>
-/// <param name="Ano">O ano civil pedido.</param>
+/// <param name="Ano">O ano pedido, no calendário escolhido — o fiscal, por padrão.</param>
 /// <param name="Carteira">Os clientes em carteira.</param>
 /// <param name="Cobertura">A cobertura pela cadência.</param>
 /// <param name="Mercado">As vendas perdidas registradas.</param>
@@ -183,8 +206,11 @@ public sealed record IndicadoresExecutivosDaFilial(
 public interface IRepositorioIndicadoresExecutivos
 {
     /// <summary>Apura os indicadores da filial do contexto de acesso.</summary>
-    /// <param name="ano">O ano civil do cartão de meta × realizado.</param>
+    /// <param name="ano">O ano do cartão de meta × realizado, no calendário escolhido.</param>
+    /// <param name="calendario">Fiscal (o padrão) ou civil.</param>
+    /// <param name="meses">Os meses somados daquele ano naquele calendário — os doze, ou até o último mês fechado quando o ano ainda corre. A aplicação os calcula, uma vez.</param>
     /// <param name="agoraUtc">O instante contra o qual a cadência e o mês em curso são medidos.</param>
     /// <param name="ct">Cancelamento.</param>
-    Task<IndicadoresExecutivosDaFilial> ApurarAsync(int ano, DateTime agoraUtc, CancellationToken ct);
+    Task<IndicadoresExecutivosDaFilial> ApurarAsync(
+        int ano, CalendarioDoAno calendario, Comum.JanelaDeCompetencia meses, DateTime agoraUtc, CancellationToken ct);
 }

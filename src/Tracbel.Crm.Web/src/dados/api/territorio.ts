@@ -17,6 +17,7 @@ import type {
 } from '../../tipos/mercado';
 import type {
   FiltrosTerritoriais,
+  HistoricoDoMunicipio,
   PainelTerritorial,
   ResultadoDaCalculadora,
   SimulacaoDeMaquinas,
@@ -40,6 +41,34 @@ export function obterIndicadoresTerritoriais(
       visao: filtros.visao,
       filialDaVenda: filtros.filialDaVenda,
       filialDoCliente: filtros.filialDoCliente,
+      categoriaDeMaquina: filtros.categoriaDeMaquina,
+      responsavel: filtros.responsavel,
+    },
+  });
+}
+
+/**
+ * O MUNICÍPIO AO LONGO DO TEMPO (27/09/2026) — as vendas por ano fiscal e a lavoura
+ * de cada ano da PAM, com todas as culturas.
+ *
+ * ROTA PRÓPRIA, e não mais um campo dos 645 municípios do painel: só a ficha aberta
+ * a pede. Leva os mesmos filtros de alcance do painel, sem o período — a ficha fica
+ * ao lado da linha da tabela, e os dois não podem discordar sobre o mesmo recorte.
+ */
+export function obterHistoricoDoMunicipio(
+  contexto: ContextoDeAcesso,
+  codigoIbge: number,
+  filtros: Pick<FiltrosTerritoriais, 'visao' | 'filialDaVenda' | 'filialDoCliente' | 'categoriaDeMaquina' | 'responsavel'>,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<HistoricoDoMunicipio>> {
+  return ler<HistoricoDoMunicipio>(`/v1/territorio/municipios/${codigoIbge}/historico`, contexto, {
+    sinal,
+    parametros: {
+      visao: filtros.visao,
+      filialDaVenda: filtros.filialDaVenda,
+      filialDoCliente: filtros.filialDoCliente,
+      categoriaDeMaquina: filtros.categoriaDeMaquina,
+      responsavel: filtros.responsavel,
     },
   });
 }

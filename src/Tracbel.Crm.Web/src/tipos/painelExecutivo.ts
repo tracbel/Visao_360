@@ -28,11 +28,19 @@ export type FaturamentoDaCompetencia = {
 };
 
 /**
- * O faturamento do ano civil, em reais — nunca uma previsão. A meta saiu daqui (#138): a meta de VENDA, em unidades, da
- * API Gestão de Negócios, tem rota própria (`tipos/metas.ts`).
+ * O faturamento do ano — nunca uma previsão. A meta saiu daqui (#138): a meta de VENDA, em unidades, da API Gestão de
+ * Negócios, tem rota própria (`tipos/metas.ts`).
+ *
+ * O ANO É O FISCAL POR PADRÃO (27/09/2026): novembro a outubro, com o nome do ano
+ * em que termina. `calendario` diz qual foi aplicado, e `inicio`/`fim` os meses.
  */
 export type FaturamentoDoAno = {
   ano: number;
+  calendario: 'Fiscal' | 'Civil';
+  /** `aaaa-mm-dd` — o primeiro mês do ano no calendário aplicado. */
+  inicio: string | null;
+  /** `aaaa-mm-dd` — o último mês do ano, mesmo quando ele ainda corre. */
+  fim: string | null;
   primeiraCompetencia: string | null;
   ultimaCompetencia: string | null;
   mesesComFaturamento: number;

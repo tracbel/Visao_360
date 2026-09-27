@@ -1,16 +1,24 @@
 /**
- * A LINHA "vs. ano anterior" QUE AINDA NÃO TEM NÚMERO (fidelidade às maquetes).
+ * A LINHA "vs. ano anterior" SEM NÚMERO (fidelidade às maquetes).
  *
  * A maquete põe, embaixo de cada número de decisão, de cada venda e no resumo do
  * mapa de vendas, uma variação contra o ano anterior: "↑ +8% vs. ano anterior
- * (10.182)". A leitura desta tela devolve UMA janela de competência, e não duas —
- * não há ano anterior para comparar.
+ * (10.182)". DESDE 27/09/2026 A LEITURA TRAZ O MESMO TRECHO DO ANO ANTERIOR, e a
+ * variação de verdade mora em `VariacaoContraOAnoAnterior`. Esta linha fica para
+ * os números que NÃO têm ano anterior — e cada um diz por quê: o número é
+ * estrutural (demanda, parque), é medido no instante (cobertura), ou a carga não
+ * cobre a janela anterior.
  *
  * A LINHA EXISTE MESMO ASSIM, no lugar e no tamanho da maquete (decisão do
  * usuário de 23/09/2026): some-la faria o cartão encolher e a tela parecer
  * completa; inventar um "+8%" seria número fictício. Fica o traço, o texto da
- * linha e a dica com o motivo e a issue que destrava. Sem seta: a seta afirma
- * uma direção, e direção sem número é palpite.
+ * linha e a dica com o motivo. Sem seta: a seta afirma uma direção, e direção sem
+ * número é palpite.
+ *
+ * O MOTIVO É OBRIGATÓRIO (27/09/2026). Havia um padrão — "a leitura devolve UMA
+ * janela de competência (issue 69)" —, e ele deixou de ser verdade no dia em que a
+ * leitura passou a devolver as duas. Um motivo padrão é justamente o texto que
+ * envelhece sem ninguém notar.
  *
  * O NOME DA DICA segue o padrão da tela ("Por que … não aparece"), com o nome do
  * número dentro — assim cada cartão tem a sua, e o leitor de tela sabe de qual
@@ -19,25 +27,15 @@
 
 import { InfoTooltip } from '../InfoTooltip';
 
-/** O motivo, igual em todo lugar em que a variação falta. */
-const MOTIVO_SEM_ANO_ANTERIOR =
-  'A leitura desta tela devolve UMA janela de competência — a do filtro de período —, e não duas: não há ano ' +
-  'anterior para comparar. A variação aparece quando a leitura passar a devolver a janela anterior junto (issue 69). ' +
-  'Até lá, um "+8%" aqui seria número inventado.';
-
 export function VariacaoAusente({
   deQue,
   compacta = false,
-  motivo = MOTIVO_SEM_ANO_ANTERIOR,
+  motivo,
 }: {
   deQue: string;
   compacta?: boolean;
-  /**
-   * Outro motivo, quando o que falta não é a janela anterior da leitura — a
-   * percepção comercial do Momento, por exemplo, não tem série guardada (issue
-   * 71). A frase e o desenho da linha continuam os mesmos da tela inteira.
-   */
-  motivo?: string;
+  /** Por que esta variação não tem número — verdadeiro para ESTE número. */
+  motivo: string;
 }) {
   return (
     <span className="mv-variacao" data-compacta={compacta || undefined}>

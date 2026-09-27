@@ -12,14 +12,15 @@
  * 69, parte A), a mesma dos cartões do topo da aba Mercado — e não uma
  * constante escrita aqui, que era a terceira redação da mesma ausência. Os
  * números da API são do RECORTE: o que falta para ele falta para o município.
- * Quando o recorte passar a ter o número, a frase vem vazia e a ficha fica com o
- * traço sem dica até existir a conta por município — ela não herda o número do
- * recorte, que seria de outro lugar.
+ * Quando o recorte tem o número, a frase vem vazia — e a ficha NÃO herda o
+ * número do recorte, que seria de outro lugar: ela fica com o traço e diz por
+ * quê (`SO_NO_RECORTE`), até existir a conta por município.
  *
  * EMBAIXO, A LISTA DE OPORTUNIDADES COM CONFIANÇA E ORIGEM (issue 162), com o
- * desenho pronto e vazia: nenhuma oportunidade existe ainda, porque ela depende
- * das vendas em unidades por município (issue 69) e da classificação de
- * confiança da 162. Uma lista com linhas de exemplo seria dado inventado.
+ * desenho pronto e vazia. As vendas em unidades por município já existem (issue
+ * 69, pelo ART); o que falta é a classificação de confiança da 162, que diz de
+ * onde vem cada oportunidade. Uma lista com linhas de exemplo seria dado
+ * inventado.
  */
 
 import { Inbox } from 'lucide-react';
@@ -28,6 +29,22 @@ import { InfoTooltip } from '../../InfoTooltip';
 import { CartaoDeIndicador, GradeDeIndicadores } from '../../dashboard/Dashboard';
 
 const nº = (v: number) => v.toLocaleString('pt-BR');
+
+/**
+ * Por que o número que o RECORTE tem não aparece no município: a conta do
+ * município pede as vendas em unidades separadas pelas categorias que têm
+ * demanda aqui, e a leitura do município traz as unidades somadas.
+ */
+/**
+ * O MERCADO ANUAL NÃO USA VENDAS (revisão de 27/09/2026): ele é a demanda de cada
+ * categoria vezes o preço de referência dela. O que falta ao município, para ele,
+ * é a demanda separada por categoria — e não as vendas, como para a captura.
+ */
+const MERCADO_SO_NO_RECORTE =
+  'O mercado anual existe para o recorte inteiro — está no topo da aba Mercado — e ainda não por município: ele é a demanda de cada categoria vezes o preço de referência dela, e a leitura do município traz a demanda somada, sem a quebra por categoria que o preço pede. O número do recorte não é repetido aqui porque é de outro lugar.';
+
+const SO_NO_RECORTE = (oQue: string) =>
+  `${oQue} existe para o recorte inteiro — está no topo da aba Mercado — e ainda não por município: a conta do município pede as vendas em unidades separadas pelas categorias que têm demanda aqui, e a leitura do município traz as unidades somadas. O número do recorte não é repetido aqui porque é de outro lugar.`;
 
 /** As três confianças da issue 162, com a origem de cada uma — a legenda da lista. */
 const CONFIANCAS = [
@@ -71,17 +88,17 @@ export function OportunidadesDoMunicipio({
           <CartaoDeIndicador
             rotulo="Mercado anual"
             valor={null}
-            motivoSemDado={numerosDeDecisao?.mercadoAnual.frase}
+            motivoSemDado={numerosDeDecisao ? numerosDeDecisao.mercadoAnual.frase || MERCADO_SO_NO_RECORTE : undefined}
           />
           <CartaoDeIndicador
             rotulo="Captura Tracbel"
             valor={null}
-            motivoSemDado={numerosDeDecisao?.capturaPercentual.frase}
+            motivoSemDado={numerosDeDecisao ? numerosDeDecisao.capturaPercentual.frase || SO_NO_RECORTE('A captura') : undefined}
           />
           <CartaoDeIndicador
             rotulo="Oportunidade"
             valor={null}
-            motivoSemDado={numerosDeDecisao?.oportunidade.frase}
+            motivoSemDado={numerosDeDecisao ? numerosDeDecisao.oportunidade.frase || SO_NO_RECORTE('A oportunidade') : undefined}
           />
         </GradeDeIndicadores>
       </section>
@@ -109,10 +126,10 @@ export function OportunidadesDoMunicipio({
                 <span className="terr-ficha-vazio">
                   <Inbox size={16} strokeWidth={2} aria-hidden="true" />
                   <span aria-hidden="true">—</span>
-                  <span>aguarda vendas por município (#69) e a confiança da #162</span>
+                  <span>aguarda a confiança da #162</span>
                   <InfoTooltip
                     rotulo="Por que não há oportunidades listadas"
-                    texto="A oportunidade é a demanda ajustada menos as vendas da Tracbel em unidades, e a confiança dela vem da origem — venda perdida, chassi acima do ciclo ou crédito sem venda. As vendas em unidades por município ainda não existem (issue 69), e a classificação de confiança é a issue 162. Até lá a lista fica vazia, e não com exemplos."
+                    texto="A oportunidade é a demanda ajustada menos as vendas da Tracbel em unidades, e a confiança dela vem da origem — venda perdida, chassi acima do ciclo ou crédito sem venda. As vendas em unidades por município já existem (issue 69, pelo ART, na aba Estrutura); o que falta é a classificação de confiança (issue 162), que diz de onde vem cada oportunidade. Até lá a lista fica vazia, e não com exemplos."
                   />
                 </span>
               </td>

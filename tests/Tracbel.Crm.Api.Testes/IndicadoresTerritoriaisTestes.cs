@@ -188,7 +188,11 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
             // Barretos vendeu para um cliente CADASTRADO em Ribeirão Preto: é a venda que, na visão
             // da filial de Barretos, fica em "cliente de outra filial".
             FaturamentoDoCliente.Criar(2, coberto.Id, new DateOnly(2026, 4, 1), 300m, 1, 1, new QuebraDoFaturamento(300m, 0m, 0m, 0m)),
-            FaturamentoDoCliente.Criar(1, inativado.Id, new DateOnly(2026, 5, 1), 80m, 1, 1, new QuebraDoFaturamento(0m, 80m, 0m, 0m)));
+            FaturamentoDoCliente.Criar(1, inativado.Id, new DateOnly(2026, 5, 1), 80m, 1, 1, new QuebraDoFaturamento(0m, 80m, 0m, 0m)),
+            // O MESMO TRECHO DO ANO ANTERIOR (27/09/2026): janeiro de 2025 é o primeiro mês da janela anterior de
+            // "janeiro a junho de 2026" — e é também o primeiro mês carregado, o que faz a janela anterior estar
+            // coberta inteira. Uma janela que comece antes dele não está.
+            FaturamentoDoCliente.Criar(1, coberto.Id, new DateOnly(2025, 1, 1), 400m, 1, 1, new QuebraDoFaturamento(300m, 60m, 40m, 0m)));
 
         // Notas sem cliente no CRM: duas de Ribeirão Preto (contraparte sem cadastro e fábrica) e uma
         // de Barretos (empresa do grupo). Documentos fictícios.
@@ -273,7 +277,8 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
             Maquina("1TESTE00000000004", null),
             Maquina("1TESTE00000000005", tratorMedio.Id),
             Maquina("1TESTE00000000006", tratorMedio.Id),
-            Maquina("1TESTE00000000007", tratorMedio.Id)
+            Maquina("1TESTE00000000007", tratorMedio.Id),
+            Maquina("1TESTE00000000008", tratorMedio.Id)
         };
         db.Equipamentos.AddRange(maquinas);
         await db.SaveChangesAsync();
@@ -301,6 +306,10 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
 
         // VENDIDA E AINDA NÃO FATURADA: não cabe em período nenhum, e ainda não é máquina vendida.
         Vender(6, ribeirao.Id, null, null);
+
+        // UM TRATOR NO MESMO TRECHO DO ANO ANTERIOR (27/09/2026), no primeiro mês que o ART trouxe: a janela
+        // anterior de "janeiro a junho de 2026" está coberta, e esta é a base da captura de antes.
+        Vender(7, ribeirao.Id, new DateOnly(2025, 1, 15), new DateOnly(2025, 2, 1));
 
         await db.SaveChangesAsync();
     }
@@ -1032,9 +1041,13 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
 
             var demanda = numeros.GetProperty("demandaAnual").GetProperty("valor").GetDecimal();
             demanda.Should().BePositive();
+
+            // A DEMANDA É A DO PERÍODO (decisão do Ricardo de 27/09/2026): janeiro a junho são seis meses, e a
+            // conta divide os dois tratores por metade da demanda anual.
             numeros.GetProperty("capturaPercentual").GetProperty("valor").GetDecimal()
-                .Should().BeApproximately(2m / demanda * 100m, 0.0001m,
-                    "dois tratores sobre a demanda de trator — as quatro máquinas poriam plataforma contra demanda de trator");
+                .Should().BeApproximately(2m / (demanda * 6m / 12m) * 100m, 0.0001m,
+                    "dois tratores sobre a demanda de trator dos seis meses — as quatro máquinas poriam plataforma contra demanda de trator");
+            conta.GetProperty("frase").GetString().Should().Contain("para os 6 meses do período (a anual × 6/12)");
         }
         finally
         {
@@ -1053,6 +1066,435 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         conta.GetProperty("unidades").GetInt32().Should().Be(0);
         conta.GetProperty("unidadesForaDaConta").GetInt32().Should().Be(4);
         conta.GetProperty("frase").GetString().Should().Contain("Nenhuma categoria tem demanda estimada");
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // O PERÍODO PADRÃO E O MESMO TRECHO DO ANO ANTERIOR (decisão do Ricardo de 27/09/2026).
+    // ---------------------------------------------------------------------------------------------
+
+    private static JsonElement Anterior(JsonElement dados) =>
+        dados.GetProperty("indicadores").GetProperty("periodoAnterior");
+
+    [Fact]
+    public async Task Sem_periodo_no_pedido_o_padrao_e_o_ano_fiscal_ate_o_ultimo_mes_fechado()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync("/api/v1/territorio/indicadores"));
+
+        // O ANO FISCAL VAI DE NOVEMBRO A OUTUBRO, e o mês em curso fica de fora. Em setembro de 2026 é
+        // nov/2025 a ago/2026; o teste segue o relógio — o mês de São Paulo, como o servidor —, e não uma data fixa.
+        var esperado = Dominio.Comum.AnoFiscal.AteOUltimoMesFechado(Dominio.Comum.AnoFiscal.MesCorrenteEmSaoPaulo(DateTime.UtcNow));
+
+        var indicadores = dados.GetProperty("indicadores");
+        indicadores.GetProperty("competenciaInicial").GetString().Should().Be(esperado.Inicial.ToString("yyyy-MM-dd"));
+        indicadores.GetProperty("competenciaFinal").GetString().Should().Be(esperado.Final.ToString("yyyy-MM-dd"));
+        esperado.Inicial.Month.Should().Be(11, "o ano fiscal da Tracbel começa em novembro");
+
+        Anterior(dados).GetProperty("competenciaInicial").GetString()
+            .Should().Be(esperado.DoAnoAnterior().Inicial.ToString("yyyy-MM-dd"), "o mesmo trecho do ano fiscal anterior");
+    }
+
+    [Fact]
+    public async Task Cada_municipio_traz_as_vendas_do_mesmo_trecho_do_ano_anterior()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        var anterior = Anterior(dados);
+        anterior.GetProperty("competenciaInicial").GetString().Should().Be("2025-01-01");
+        anterior.GetProperty("competenciaFinal").GetString().Should().Be("2025-06-01");
+        anterior.GetProperty("vendasCobertas").GetBoolean().Should().BeTrue("o faturamento carregado começa em jan/2025");
+        anterior.GetProperty("motivoSemVendas").ValueKind.Should().Be(JsonValueKind.Null);
+
+        var ribeirao = Municipio(dados, RibeiraoPreto);
+        ribeirao.GetProperty("vendas").GetProperty("valorLiquido").GetDecimal().Should().Be(1000m);
+        var deAntes = ribeirao.GetProperty("vendasNoPeriodoAnterior");
+        deAntes.GetProperty("valorLiquido").GetDecimal().Should().Be(400m);
+        deAntes.GetProperty("maquina").GetDecimal().Should().Be(300m);
+        deAntes.GetProperty("posVenda").GetDecimal().Should().Be(100m);
+
+        // O MUNICÍPIO QUE NÃO VENDEU NO ANO ANTERIOR TEM ZERO — a janela está coberta, e zero é medida.
+        Municipio(dados, Serrana).GetProperty("vendasNoPeriodoAnterior").GetProperty("valorLiquido").GetDecimal().Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task O_ano_anterior_nao_cria_linha_nem_grupo_fora_do_mapa_no_periodo()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+        // A VENDA DE JANEIRO DE 2025 NÃO ENTRA NO PERÍODO: o total de Ribeirão continua 1.000, e nenhum grupo
+        // fora do mapa nasce só com venda do ano anterior.
+        Municipio(dados, RibeiraoPreto).GetProperty("vendas").GetProperty("valorLiquido").GetDecimal().Should().Be(1000m);
+        Maquinas(dados).GetProperty("unidades").GetInt32().Should().Be(4, "o trator de jan/2025 é do ano anterior");
+    }
+
+    [Fact]
+    public async Task A_serie_mensal_da_adr_tem_um_ponto_por_mes_das_duas_janelas()
+    {
+        await SemearAsync();
+        var anterior = Anterior(await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo)));
+
+        var atual = anterior.GetProperty("serieAtual").EnumerateArray().ToList();
+        atual.Should().HaveCount(6, "janeiro a junho");
+        atual.Single(m => m.GetProperty("competencia").GetString() == "2026-03-01")
+            .GetProperty("valorLiquido").GetDecimal().Should().Be(1000m);
+        atual.Sum(m => m.GetProperty("valorLiquido").GetDecimal())
+            .Should().Be(1000m, "a série é dos municípios da ADR — o cliente de Uberaba e o inativado ficam fora dela");
+
+        var deAntes = anterior.GetProperty("serieAnterior").EnumerateArray().ToList();
+        deAntes.Should().HaveCount(6);
+        deAntes[0].GetProperty("valorLiquido").GetDecimal().Should().Be(400m);
+        deAntes[0].GetProperty("maquinasVendidas").GetInt32().Should().Be(1, "o trator de jan/2025, em unidades, sem somar aos reais");
+    }
+
+    [Fact]
+    public async Task Quando_a_carga_nao_cobre_o_ano_anterior_a_variacao_fica_vazia_com_o_motivo()
+    {
+        await SemearAsync();
+
+        // TREZE MESES a partir de jun/2025: o ano anterior começa em jun/2024, antes do primeiro mês carregado.
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(
+            "/api/v1/territorio/indicadores?competenciaInicial=2025-06&competenciaFinal=2026-06"));
+
+        Municipio(dados, RibeiraoPreto).GetProperty("vendasNoPeriodoAnterior").ValueKind.Should().Be(JsonValueKind.Null,
+            "comparar com meses que não foram carregados mostraria uma queda que não aconteceu");
+        Municipio(dados, RibeiraoPreto).GetProperty("maquinasVendidasNoPeriodoAnterior").ValueKind.Should().Be(JsonValueKind.Null);
+
+        var anterior = Anterior(dados);
+        anterior.GetProperty("vendasCobertas").GetBoolean().Should().BeFalse();
+        anterior.GetProperty("motivoSemVendas").GetString().Should().Contain("jan/2025").And.Contain("jun/2024");
+        anterior.GetProperty("serieAnterior").GetArrayLength().Should().Be(0);
+
+        dados.GetProperty("metricasSemDado").EnumerateArray().Select(m => m.GetProperty("metrica").GetString())
+            .Should().Contain(["anoAnteriorEmReais", "anoAnteriorEmUnidades"]);
+    }
+
+    [Fact]
+    public async Task A_captura_do_ano_anterior_usa_a_mesma_base_e_a_mesma_demanda()
+    {
+        await SemearAsync();
+        var regraId = await RegistrarRegraDoCafeComCicloAsync();
+        try
+        {
+            var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+            var numeros = dados.GetProperty("numerosDeDecisao");
+            var comparacao = dados.GetProperty("comparacaoComOAnoAnterior");
+            var demanda = numeros.GetProperty("demandaAnual").GetProperty("valor").GetDecimal();
+
+            // UM TRATOR no ano anterior, contra os DOIS de agora — a mesma categoria com demanda, e a mesma demanda
+            // do período: seis meses dos dois lados.
+            comparacao.GetProperty("baseDaCaptura").GetProperty("unidades").GetInt32().Should().Be(1);
+            comparacao.GetProperty("capturaPercentual").GetProperty("valor").GetDecimal()
+                .Should().BeApproximately(1m / (demanda * 6m / 12m) * 100m, 0.0001m);
+
+            // A DEMANDA E O MERCADO SÃO ESTRUTURAIS: o mesmo número dos dois lados daria uma variação de 0%
+            // que ninguém mediu. Eles saem sem número, com o motivo.
+            comparacao.GetProperty("demandaAnual").GetProperty("valor").ValueKind.Should().Be(JsonValueKind.Null);
+            comparacao.GetProperty("demandaAnual").GetProperty("motivo").GetString().Should().Be("NumeroEstrutural");
+            comparacao.GetProperty("mercadoAnual").GetProperty("motivo").GetString().Should().Be("SemNumeroNoPeriodo",
+                "sem preço de máquina, o mercado anual do período já não sai");
+        }
+        finally
+        {
+            await RevogarRegraAsync(regraId);
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // OS FILTROS "TIPO DE PRODUTO" E "CEN / GESTOR" (27/09/2026).
+    // ---------------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task O_tipo_de_produto_filtra_as_unidades_pela_categoria_do_de_para_e_nao_mexe_nos_reais()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo + "&categoriaDeMaquina=TRATOR"));
+
+        // DOIS TRATORES NO PERÍODO. A colhedora de cana (linha sem categoria) e a máquina sem classificação saem:
+        // não se sabe de que tipo elas são.
+        Maquinas(dados).GetProperty("unidades").GetInt32().Should().Be(2);
+        Municipio(dados, RibeiraoPreto).GetProperty("maquinasVendidas").GetInt32().Should().Be(2);
+        Municipio(dados, RibeiraoPreto).GetProperty("vendas").GetProperty("valorLiquido").GetDecimal()
+            .Should().Be(1000m, "os reais não têm o item da nota, e o filtro não os alcança");
+
+        dados.GetProperty("indicadores").GetProperty("categoriasDeMaquina").EnumerateArray()
+            .Select(c => c.GetProperty("codigo").GetString()).Should().Contain("TRATOR",
+                "a lista do filtro vem do de-para da linha de produto, e não de uma constante");
+        dados.GetProperty("metricasSemDado").EnumerateArray().Select(m => m.GetProperty("metrica").GetString())
+            .Should().Contain("filtroDeTipoDeProduto");
+    }
+
+    [Fact]
+    public async Task O_cen_filtra_os_clientes_e_a_cobertura_pelas_carteiras_do_responsavel()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo + "&responsavel=100"));
+
+        var responsaveis = dados.GetProperty("indicadores").GetProperty("responsaveisDasCarteiras").EnumerateArray().ToList();
+        responsaveis.Select(r => r.GetProperty("id").GetInt64()).Should().Contain(100);
+
+        // OS CLIENTES DAS CARTEIRAS DO RESPONSÁVEL continuam; a nota sem cliente no CRM não está em carteira
+        // nenhuma e sai do recorte.
+        Municipio(dados, RibeiraoPreto).GetProperty("vendas").GetProperty("valorLiquido").GetDecimal().Should().Be(1000m);
+        dados.GetProperty("indicadores").GetProperty("foraDoMapa").EnumerateArray()
+            .Select(g => g.GetProperty("grupo").GetString()).Should().NotContain(["ContraparteSemCadastro", "RepasseDeFabrica"]);
+        dados.GetProperty("metricasSemDado").EnumerateArray().Select(m => m.GetProperty("metrica").GetString())
+            .Should().Contain("filtroDeCen");
+    }
+
+    [Theory]
+    [InlineData("?categoriaDeMaquina=NAO_EXISTE", "categoriaDeMaquina")]
+    [InlineData("?responsavel=999999", "responsavel")]
+    [InlineData("?responsavel=abc", "responsavel")]
+    public async Task Filtro_novo_invalido_e_recusado_com_o_campo_nomeado(string consulta, string campo)
+    {
+        await SemearAsync();
+        var resposta = await api.ClienteDeRibeirao().GetAsync("/api/v1/territorio/indicadores" + consulta);
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        var erros = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()).RootElement.GetProperty("erros");
+        erros.EnumerateArray().Select(e => e.GetProperty("campo").GetString()).Should().Contain(campo);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // O HISTÓRICO DO MUNICÍPIO — vendas por ano fiscal e a lavoura inteira (27/09/2026).
+    // ---------------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task O_historico_traz_a_lavoura_com_todas_as_culturas_e_o_cafe_uma_vez_so()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync($"/api/v1/territorio/municipios/{RibeiraoPreto}/historico"));
+
+        dados.GetProperty("nome").GetString().Should().Be("Ribeirão Preto");
+
+        var lavoura = dados.GetProperty("lavoura").EnumerateArray().Single(l => l.GetProperty("ano").GetInt32() == 2024);
+        var culturas = lavoura.GetProperty("culturas").EnumerateArray().Select(c => c.GetProperty("produtoCodigoIbge").GetInt32()).ToList();
+
+        // A CANA E O CAFÉ PELO TOTAL — Arábica e Canephora somariam a mesma terra de novo.
+        culturas.Should().Equal(40106, 40139);
+        lavoura.GetProperty("areaPlantadaHectares").GetDecimal().Should().Be(1_070m);
+    }
+
+    [Fact]
+    public async Task O_historico_so_soma_os_anos_fiscais_que_a_carga_cobre_inteiros()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync($"/api/v1/territorio/municipios/{RibeiraoPreto}/historico"));
+
+        dados.GetProperty("primeiraCompetenciaDoFaturamento").GetString().Should().Be("2025-01-01");
+
+        var anos = dados.GetProperty("anosFiscais").EnumerateArray().ToList();
+        anos.Should().NotBeEmpty();
+
+        // NENHUM ANO SOMADO PELA METADE: o ano que começa antes de jan/2025 sai sem número, com o motivo; o que
+        // começa depois tem número.
+        foreach (var ano in anos.Append(dados.GetProperty("mesmoTrechoDoAnoAnterior")).Where(a => a.ValueKind != JsonValueKind.Null))
+        {
+            var inicio = DateOnly.Parse(ano.GetProperty("inicio").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
+            if (inicio < new DateOnly(2025, 1, 1))
+            {
+                ano.GetProperty("vendas").ValueKind.Should().Be(JsonValueKind.Null);
+                ano.GetProperty("motivoSemVendas").GetString().Should().Contain("jan/2025");
+            }
+            else
+                ano.GetProperty("vendas").ValueKind.Should().Be(JsonValueKind.Object);
+        }
+
+        // O ÚLTIMO É O ANO FISCAL CORRENTE, até o último mês fechado — pelo mês de São Paulo, como o servidor.
+        var ultimoFechado = Dominio.Comum.AnoFiscal.AteOUltimoMesFechado(
+            Dominio.Comum.AnoFiscal.MesCorrenteEmSaoPaulo(DateTime.UtcNow)).Final;
+        anos[^1].GetProperty("anoFiscal").GetInt32().Should().Be(Dominio.Comum.AnoFiscal.Do(ultimoFechado));
+        anos[^1].GetProperty("fim").GetString().Should().Be(ultimoFechado.ToString("yyyy-MM-dd"));
+    }
+
+    [Fact]
+    public async Task O_ano_fiscal_corrente_do_historico_bate_com_a_linha_do_painel()
+    {
+        await SemearAsync();
+
+        // A FICHA E A LINHA DA TABELA FALAM DO MESMO RECORTE: as vendas do ano fiscal corrente no histórico são
+        // as do município no painel, no ano fiscal até o último mês fechado — o padrão dos dois.
+        var historico = await DadosAsync(await api.ClienteDeRibeirao().GetAsync($"/api/v1/territorio/municipios/{RibeiraoPreto}/historico"));
+        var painel = await DadosAsync(await api.ClienteDeRibeirao().GetAsync("/api/v1/territorio/indicadores"));
+
+        var doAno = historico.GetProperty("anosFiscais").EnumerateArray().Last();
+        var doPainel = Municipio(painel, RibeiraoPreto).GetProperty("vendas").GetProperty("valorLiquido").GetDecimal();
+
+        if (doAno.GetProperty("vendas").ValueKind == JsonValueKind.Object)
+            doAno.GetProperty("vendas").GetProperty("valorLiquido").GetDecimal().Should().Be(doPainel);
+    }
+
+    [Fact]
+    public async Task O_historico_de_codigo_que_nao_e_de_sao_paulo_e_404()
+    {
+        await SemearAsync();
+        var resposta = await api.ClienteDeRibeirao().GetAsync("/api/v1/territorio/municipios/3170107/historico");
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.NotFound, "Uberaba é de Minas Gerais");
+    }
+
+    [Fact]
+    public async Task O_historico_de_filial_fora_do_alcance_e_recusado_com_403()
+    {
+        await SemearAsync();
+        var resposta = await api.ClienteDeRibeirao().GetAsync(
+            $"/api/v1/territorio/municipios/{RibeiraoPreto}/historico?filialDoCliente=" + ApiEmMemoria.FilialDeBarretos);
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.Forbidden, "a filial de Barretos não está ao alcance de quem é de Ribeirão");
+    }
+
+    [Fact]
+    public async Task O_historico_na_visao_da_empresa_sem_a_permissao_e_recusado_com_403()
+    {
+        await SemearAsync();
+        var resposta = await api.ClienteDeRibeirao().GetAsync($"/api/v1/territorio/municipios/{RibeiraoPreto}/historico?visao=Empresa");
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.Forbidden, "sem concessão explícita, a ponte não concede alcance de organização");
+        JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()).RootElement.GetProperty("type").GetString()
+            .Should().EndWith("sem-acesso");
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // CORREÇÕES DA REVISÃO (27/09/2026): janela longa, mês em curso e o CEN na visão da empresa.
+    // ---------------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Numa_janela_de_mais_de_doze_meses_a_maquina_dos_meses_em_comum_conta_nas_duas()
+    {
+        await SemearAsync();
+
+        // UMA VENDA EM 2023 faz o ART cobrir a janela anterior de "jan/2025 a jun/2026" (jan/2024 a jun/2025). Ela
+        // é desfeita no fim: o banco desta classe é um só.
+        var temporaria = await VenderTratorEmRibeiraoAsync(new DateOnly(2023, 6, 10), "1TESTE00000000009");
+        try
+        {
+            var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(
+                "/api/v1/territorio/indicadores?competenciaInicial=2025-01&competenciaFinal=2026-06"));
+
+            // O TRATOR DE JAN/2025 É DAS DUAS JANELAS: o começo da pedida e o meio da anterior. Antes da revisão ele
+            // entrava só na pedida, e o ano anterior saía uma máquina menor.
+            var ribeirao = Municipio(dados, RibeiraoPreto);
+            ribeirao.GetProperty("maquinasVendidas").GetInt32().Should().Be(5, "as quatro de 2026 e o trator de jan/2025");
+            ribeirao.GetProperty("maquinasVendidasNoPeriodoAnterior").GetInt32()
+                .Should().Be(1, "o trator de jan/2025 também é do mesmo trecho do ano anterior");
+            Anterior(dados).GetProperty("maquinasVendidas").GetProperty("unidades").GetInt32().Should().Be(1);
+        }
+        finally
+        {
+            await DesfazerVendaAsync(temporaria);
+        }
+    }
+
+    [Fact]
+    public async Task Periodo_que_termina_no_mes_em_curso_nao_compara_e_diz_por_que()
+    {
+        await SemearAsync();
+        var mesCorrente = Dominio.Comum.AnoFiscal.MesCorrenteEmSaoPaulo(DateTime.UtcNow);
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(
+            $"/api/v1/territorio/indicadores?competenciaInicial={mesCorrente.AddMonths(-5):yyyy-MM}&competenciaFinal={mesCorrente:yyyy-MM}"));
+
+        // O ÚLTIMO MÊS ESTÁ PELA METADE: contra o mesmo mês inteiro do ano anterior a variação erraria para baixo.
+        var anterior = Anterior(dados);
+        anterior.GetProperty("vendasCobertas").GetBoolean().Should().BeFalse();
+        anterior.GetProperty("maquinasCobertas").GetBoolean().Should().BeFalse();
+        anterior.GetProperty("motivoSemVendas").GetString().Should().Contain("está em curso");
+        anterior.GetProperty("serieAnterior").GetArrayLength().Should().Be(0);
+        Municipio(dados, RibeiraoPreto).GetProperty("vendasNoPeriodoAnterior").ValueKind.Should().Be(JsonValueKind.Null);
+        Municipio(dados, RibeiraoPreto).GetProperty("maquinasVendidasNoPeriodoAnterior").ValueKind.Should().Be(JsonValueKind.Null);
+
+        dados.GetProperty("metricasSemDado").EnumerateArray().Select(m => m.GetProperty("metrica").GetString())
+            .Should().Contain(["periodoParcial", "anoAnteriorEmReais"]);
+    }
+
+    [Fact]
+    public async Task Na_visao_da_empresa_o_filtro_de_cen_lista_e_aceita_os_responsaveis_de_todas_as_filiais()
+    {
+        await SemearAsync();
+
+        // UMA CARTEIRA COMERCIAL EM BARRETOS, do usuário 200. Desfeita no fim.
+        var carteiraId = await CriarCarteiraEmBarretosAsync();
+        try
+        {
+            var autorizado = api.ClienteComo(PerfilAutorizado, ApiEmMemoria.FilialDeRibeirao);
+
+            // NA EMPRESA INTEIRA, os dois — e o de Barretos é aceito como filtro.
+            var daEmpresa = await DadosAsync(await autorizado.GetAsync(Periodo + "&visao=Empresa"));
+            daEmpresa.GetProperty("indicadores").GetProperty("responsaveisDasCarteiras").EnumerateArray()
+                .Select(r => r.GetProperty("id").GetInt64()).Should().Contain([100L, 200L]);
+            (await autorizado.GetAsync(Periodo + "&visao=Empresa&responsavel=200")).StatusCode.Should().Be(HttpStatusCode.OK);
+
+            // NA FILIAL DO CABEÇALHO, só o dela — e o de Barretos é recusado.
+            var daFilial = await DadosAsync(await autorizado.GetAsync(Periodo));
+            daFilial.GetProperty("indicadores").GetProperty("responsaveisDasCarteiras").EnumerateArray()
+                .Select(r => r.GetProperty("id").GetInt64()).Should().NotContain(200L);
+            (await autorizado.GetAsync(Periodo + "&responsavel=200")).StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        }
+        finally
+        {
+            await ApagarCarteiraAsync(carteiraId);
+        }
+    }
+
+    private async Task<(long VendaId, long MaquinaId)> VenderTratorEmRibeiraoAsync(DateOnly faturadaEm, string chassi)
+    {
+        using var escopo = api.Services.CreateScope();
+        var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+        await using var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia);
+
+        var art = await db.Sistemas.SingleAsync(s => s.Codigo == "ART_TESTE");
+        var trator = await db.LinhasDeProduto.SingleAsync(l => l.Codigo == "TRATOR_MEDIO");
+        var comprador = await db.Clientes.SingleAsync(c => c.NomeRazao == "Coberto em Ribeirão");
+
+        var maquina = Equipamento.RegistrarPelaIntegracao(1, Chassi.Criar(chassi), OrigemDoEquipamento.Art, 100, null, trator.Id);
+        db.Equipamentos.Add(maquina);
+        await db.SaveChangesAsync();
+
+        var agora = DateTime.UtcNow;
+        var venda = VendaDeMaquina.Registrar(
+            art.Id, $"ART-TESTE-{chassi}", maquina.Id, comprador.Id,
+            new DadosDaVendaNaOrigem(
+                1, null, faturadaEm, faturadaEm, faturadaEm, agora,
+                null, null, null, "Varejo", false, false, 1, "TRATOR MEDIO", "PRODUTO DE TESTE",
+                "Agro Teste", "Unidade de teste", null, $"hash-{chassi}", null),
+            agora, 100);
+        db.VendasDeMaquina.Add(venda);
+        await db.SaveChangesAsync();
+
+        return (venda.Id, maquina.Id);
+    }
+
+    private async Task DesfazerVendaAsync((long VendaId, long MaquinaId) temporaria)
+    {
+        using var escopo = api.Services.CreateScope();
+        var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+        await using var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia);
+
+        await db.VendasDeMaquina.Where(v => v.Id == temporaria.VendaId).ExecuteDeleteAsync();
+        await db.Equipamentos.Where(e => e.Id == temporaria.MaquinaId).ExecuteDeleteAsync();
+    }
+
+    private async Task<long> CriarCarteiraEmBarretosAsync()
+    {
+        using var escopo = api.Services.CreateScope();
+        var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+        await using var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia);
+
+        var linha = await db.LinhasDeNegocio.SingleAsync(l => l.Codigo == "MAQ_TESTE");
+        var carteira = Carteira.Criar(2, linha.Id, "MAQ_TESTE_BARRETOS", "Máquinas Barretos", 200, 100);
+        db.Carteiras.Add(carteira);
+        await db.SaveChangesAsync();
+        return carteira.Id;
+    }
+
+    private async Task ApagarCarteiraAsync(long carteiraId)
+    {
+        using var escopo = api.Services.CreateScope();
+        var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+        await using var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia);
+
+        await db.Carteiras.Where(c => c.Id == carteiraId).ExecuteDeleteAsync();
     }
 
     /// <summary>

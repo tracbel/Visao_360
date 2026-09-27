@@ -41,6 +41,10 @@ public interface IRepositorioDeCreditoRural
 /// <param name="Regiao">O crédito de máquinas da Região (a ADR), somado; nulo sem dado.</param>
 /// <param name="SaoPaulo">O mesmo para São Paulo inteiro — o denominador da comparação.</param>
 /// <param name="Procedencia">De onde o crédito veio — SICOR, a janela e a ressalva do registro com atraso (issue 167).</param>
+/// <param name="PorMes">
+/// O crédito de máquinas MÊS A MÊS nas duas janelas, na Região Tracbel, nas duas sub-regiões e em São Paulo
+/// (issue 68, 27/09/2026) — a evolução que a maquete desenha, com a janela recente sobre a anterior.
+/// </param>
 public sealed record PainelDeCreditoRural(
     DateOnly? UltimoMes,
     JanelaDoCredito? Janela,
@@ -49,7 +53,37 @@ public sealed record PainelDeCreditoRural(
     IReadOnlyList<CreditoDeMaquinasNoMunicipio> PorMunicipio,
     CreditoNoRecorte? Regiao,
     CreditoNoRecorte? SaoPaulo,
-    Tracbel.Crm.Dominio.Mercado.ProcedenciaDoIndicador? Procedencia = null);
+    Tracbel.Crm.Dominio.Mercado.ProcedenciaDoIndicador? Procedencia = null,
+    IReadOnlyList<CreditoDeMaquinasNoMes>? PorMes = null);
+
+/// <summary>
+/// O CRÉDITO DE MÁQUINAS DE UM MÊS, por recorte — um ponto da evolução do valor financiado.
+///
+/// <para><b>A Região Tracbel é a ADR inteira</b> (os municípios com <c>PertenceAAdr</c>). Norte e Noroeste são os
+/// municípios dela com a sub-região informada: com todos informados — o caso de 27/09/2026 —, os dois somam a
+/// Região mês a mês; o município com a sub-região "não informada" conta só na Região. São Paulo vai junto porque
+/// é o denominador de toda comparação do crédito.</para>
+///
+/// <para><b>Linha não é contrato</b>, aqui também: é a soma dos contratos de uma combinação do SICOR.</para>
+/// </summary>
+/// <param name="Mes">O mês, no dia 1.</param>
+/// <param name="JanelaRecente">Se o mês é da janela recente (e não da anterior).</param>
+/// <param name="RegiaoTracbel">A ADR inteira.</param>
+/// <param name="Norte">A sub-região Norte.</param>
+/// <param name="Noroeste">A sub-região Noroeste.</param>
+/// <param name="SaoPaulo">São Paulo inteiro.</param>
+public sealed record CreditoDeMaquinasNoMes(
+    DateOnly Mes,
+    bool JanelaRecente,
+    CreditoNoMes RegiaoTracbel,
+    CreditoNoMes Norte,
+    CreditoNoMes Noroeste,
+    CreditoNoMes SaoPaulo);
+
+/// <summary>As linhas e o valor de um recorte num mês.</summary>
+/// <param name="Linhas">Linhas do SICOR — não contratos.</param>
+/// <param name="Valor">O valor contratado, em reais.</param>
+public sealed record CreditoNoMes(int Linhas, decimal Valor);
 
 /// <summary>
 /// A JANELA DE COMPARAÇÃO, DITA POR EXTENSO (issue 157) — para a tela não precisar recalculá-la e

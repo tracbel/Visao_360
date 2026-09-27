@@ -31,9 +31,11 @@
  * - A META VOLTOU, E É OUTRA (27/09/2026, #138): a cota de venda da API Gestão de
  *   Negócios, em MÁQUINAS, contra as máquinas do ART que o CRM tem. A meta de
  *   faturamento em reais, que nunca teve fonte, saiu do cartão e da composição.
- * - O ANO É CIVIL, E A TELA PAROU DE DIZER QUE O FISCAL NÃO FOI CONFIRMADO: foi,
- *   em 24/09 (novembro a outubro). O servidor ainda apura jan–dez, e a visão por
- *   FY é o próximo passo — está na dica.
+ * - O ANO É O FISCAL (27/09/2026): novembro a outubro, com o nome do ano em que
+ *   termina, e o ano fiscal do último mês fechado como padrão. O servidor apura
+ *   pelo mesmo calendário (`anoFiscal` na rota) e para no ÚLTIMO MÊS FECHADO,
+ *   como os Indicadores Geográficos: o mês em curso fica no cartão do mês,
+ *   marcado como parcial. Em novembro, o padrão é o ano que acabou de fechar.
  * - "PARTICIPAÇÃO DE MERCADO" VIROU "CAPTURA TRACBEL" (issue 162), e o cartão
  *   de mercado diz o que conta: derrotas registradas, e não o tamanho do mercado.
  */
@@ -80,18 +82,31 @@ const SEM_PERMISSAO_DA_META =
   'Você não tem a permissão de ler a meta de venda (Meta.Ler). Quem administra o CRM concede pelo perfil.';
 
 /**
- * O ANO DOS CARTÕES, na dica ao lado de "ano civil".
+ * O ANO DOS CARTÕES, na dica ao lado de "ano fiscal".
  *
  * O ano fiscal da Tracbel foi confirmado em 24/09/2026 — novembro a outubro,
- * com o nome do ano em que termina. O servidor ainda apura estes cartões de
- * janeiro a dezembro, então a tela diz "ano civil", que é o que o número é, e
- * anuncia a visão por FY como o próximo passo. Não diz mais que o calendário
- * fiscal "não foi confirmado": isso deixou de ser verdade.
+ * com o nome do ano em que termina — e virou o período padrão das telas em
+ * 27/09/2026. A dica dizia "ano civil… a visão por FY vem na próxima etapa": a
+ * etapa chegou, e o servidor apura pelo mesmo calendário.
  */
-const DICA_DO_ANO_CIVIL =
-  'Os cartões somam o ano civil, de janeiro a dezembro, que é como o servidor apura o realizado hoje. ' +
-  'O ano fiscal da Tracbel vai de novembro a outubro e leva o nome do ano em que termina (o FY2026 vai de nov/2025 a out/2026); ' +
-  'a visão por FY nesta tela vem na próxima etapa.';
+const DICA_DO_ANO_FISCAL =
+  'Os cartões somam o ANO FISCAL da Tracbel, de novembro a outubro, com o nome do ano em que termina: o FY2026 vai de ' +
+  'nov/2025 a out/2026. O ano em curso é somado até o ÚLTIMO MÊS FECHADO, como nos Indicadores Geográficos; o mês em ' +
+  'curso, pela metade, fica à parte, no cartão de faturamento em curso. É o período padrão desde 27/09/2026.';
+
+/**
+ * O ano fiscal do ÚLTIMO MÊS FECHADO — o padrão (27/09/2026). Em novembro é o ano
+ * que acabou de fechar: o novo ainda não tem mês fechado para somar.
+ */
+function anoFiscalDoUltimoMesFechado(hoje: Date): number {
+  const ultimoFechado = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  return ultimoFechado.getMonth() + 1 >= 11 ? ultimoFechado.getFullYear() + 1 : ultimoFechado.getFullYear();
+}
+
+/** "FY2026 (nov/2025 a out/2026)" — o nome do ano fiscal nunca aparece sem o intervalo. */
+function nomeDoAno(ano: number): string {
+  return `FY${ano} (nov/${ano - 1} a out/${ano})`;
+}
 
 /**
  * O valor em milhões, como a diretoria fala dele.
@@ -244,7 +259,7 @@ const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDi
 
 export function PainelExecutivo() {
   const { contexto } = useContextoDeAcesso();
-  const anoCorrente = new Date().getFullYear();
+  const anoCorrente = anoFiscalDoUltimoMesFechado(new Date());
   const [ano, setAno] = useState(anoCorrente);
 
   const consolidado = useRecurso((sinal) => obterConsolidado(contexto, sinal), [contexto.usuario]);
@@ -329,23 +344,23 @@ export function PainelExecutivo() {
         <BlocoErro erro={consolidado.erro} aoTentarDeNovo={consolidado.recarregar} />
       )}
 
-      {/* O PERÍODO DOS CARTÕES, ESCRITO. O ano segue a escolha — não fica preso a 2026 —, e é civil
-          porque é assim que o servidor apura hoje. O calendário fiscal (nov→out) FOI confirmado em
-          24/09/2026; a visão por FY é o passo seguinte, e a dica diz isso (documento 32, P-4). */}
+      {/* O PERÍODO DOS CARTÕES, ESCRITO. O ano segue a escolha — não fica preso a 2026 —, e é o
+          FISCAL (nov→out), o período padrão desde 27/09/2026. O nome do ano aparece sempre com o
+          intervalo ao lado: "FY2026" sozinho se lê como ano civil. */}
       <div className="v360-periodo" role="group" aria-label="Período dos indicadores" data-bloco="periodo">
         <label>
-          Ano de referência
+          Ano fiscal de referência
           <select value={ano} onChange={(e) => setAno(Number(e.target.value))}>
             {anos.map((a) => (
               <option key={a} value={a}>
-                {a}
+                {nomeDoAno(a)}
               </option>
             ))}
           </select>
         </label>
         <span className="v360-periodo-regra">
-          ano civil (jan–dez)
-          <InfoTooltip texto={DICA_DO_ANO_CIVIL} rotulo="Por que o ano é civil, e quando vem o ano fiscal" />
+          ano fiscal (nov–out)
+          <InfoTooltip texto={DICA_DO_ANO_FISCAL} rotulo="Como o ano fiscal é contado" />
         </span>
         <span>o faturamento do mês é a competência mais recente carregada</span>
         {ex && (
@@ -919,7 +934,7 @@ function CincoIndicadores({
         valor={nº(mercado.vendasPerdidasRegistradas)}
         subtexto={`vendas perdidas registradas · ${nº(mercado.comConcorrente)} com concorrente${concorrentes === null ? '' : ` · ${nº(concorrentes)} concorrentes`}`}
         detalhe={`${mercado.primeiraEm ? `${data(mercado.primeiraEm)} a ${data(mercado.ultimaEm)}` : 'sem registro'} · Captura Tracbel: nos Indicadores Geográficos`}
-        dica={`${nº(mercado.comModeloDoConcorrente)} com modelo do concorrente, ${nº(mercado.comOsDoisPrecos)} com os dois preços, ${nº(mercado.unidades)} máquinas nessas perdas. Este cartão conta derrotas registradas pelo CEN, e não o tamanho do mercado. As máquinas que a Tracbel vendeu estão no banco do CRM, lidas do ART — em unidades, e não em faturamento —, e a Captura Tracbel, que as divide pela demanda anual estimada, é medida nos Indicadores Geográficos.`}
+        dica={`${nº(mercado.comModeloDoConcorrente)} com modelo do concorrente, ${nº(mercado.comOsDoisPrecos)} com os dois preços, ${nº(mercado.unidades)} máquinas nessas perdas. Este cartão conta derrotas registradas pelo CEN, e não o tamanho do mercado. As máquinas que a Tracbel vendeu estão no banco do CRM, lidas do ART — em unidades, e não em faturamento —, e a Captura Tracbel, que as divide pela demanda estimada do período (a anual proporcional aos meses), é medida nos Indicadores Geográficos.`}
         cor="#B45309"
         icone="eye"
         destaque
@@ -950,7 +965,8 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
           por natureza → soma das filiais. Devolução e cancelamento não são abatidos. O ART não é somado.
         </li>
         <li>
-          <strong>Faturamento do ano</strong>: as mesmas tabelas no ano civil {ex.ano}, de janeiro a dezembro, em reais.
+          <strong>Faturamento do ano</strong>: as mesmas tabelas no ano fiscal {nomeDoAno(ex.ano)} (novembro a outubro), até o
+          último mês fechado, em reais.
         </li>
         <li>
           <strong>Meta e realizado</strong>: API Gestão de Negócios (cadastro de metas) → <code>organizacao.MetaDeVenda</code>, em
@@ -982,7 +998,7 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
               <th scope="col">Filial</th>
               <th scope="col">Mês · com cliente</th>
               <th scope="col">Mês · sem cliente</th>
-              <th scope="col">Faturamento {ex.ano}</th>
+              <th scope="col">Faturamento FY{ex.ano}</th>
               <th scope="col">
                 Meta {fy} (máq.) <InfoTooltip texto={REGRA_DA_META} rotulo="Como a meta de venda se conta" />
               </th>

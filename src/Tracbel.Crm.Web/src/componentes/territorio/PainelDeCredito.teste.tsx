@@ -16,7 +16,8 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProvedorDeContextoDeAcesso } from '../../dados/api/contexto';
-import type { JanelasDeCredito, PainelDeCreditoRural } from '../../tipos/mercado';
+import type { ReactNode } from 'react';
+import type { CreditoDeMaquinasNoMes, JanelasDeCredito, PainelDeCreditoRural } from '../../tipos/mercado';
 import { PainelDeCredito } from './PainelDeCredito';
 
 const obterCreditoRural = vi.hoisted(() => vi.fn());
@@ -27,8 +28,23 @@ vi.mock('../../dados/api/territorio', async (original) => ({
 }));
 
 // O Chart.js toca no canvas ao ser registrado, e o jsdom não tem canvas. O
-// gráfico tem teste próprio; aqui o que está sob prova é o crédito.
-vi.mock('../GraficoLinhaMensal', () => ({ GraficoLinhaMensal: () => <div data-grafico /> }));
+// gráfico tem teste próprio; aqui o que está sob prova é o crédito — e O QUE o
+// painel manda desenhar, que o substituto escreve em atributos.
+vi.mock('../GraficoLinhaMensal', () => ({
+  GraficoLinhaMensal: (p: { rotulos: string[]; valores: number[]; anteriores?: (number | null)[] }) => (
+    <div
+      data-grafico
+      data-rotulos={p.rotulos.join(',')}
+      data-valores={p.valores.join(',')}
+      data-anteriores={p.anteriores?.join(',')}
+    />
+  ),
+}));
+
+// A MOLDURA MEDE A LARGURA, e o jsdom mede zero: sem isto o gráfico nunca monta.
+vi.mock('../MolduraDeGrafico', () => ({
+  MolduraDeGrafico: ({ children }: { children: (l: number, a: number) => ReactNode }) => <>{children(600, 210)}</>,
+}));
 
 const guardado = new Map<string, string>();
 vi.stubGlobal('localStorage', {
@@ -107,7 +123,29 @@ function painel(): PainelDeCreditoRural {
         'Uma LINHA do SICOR não é um contrato: ela já é a soma dos contratos daquela combinação de município e ' +
         'produto, e não traz quantidade.',
     },
+    porMes: null,
   };
+}
+
+/**
+ * O MÊS A MÊS DAS DUAS JANELAS (issue 68), como o servidor manda: abr/2024 a mar/2026, a anterior
+ * primeiro. Cada recorte tem números próprios — a Região é Norte + Noroeste —, para um gráfico que
+ * lesse o recorte errado não passar.
+ */
+function porMes(): CreditoDeMaquinasNoMes[] {
+  return Array.from({ length: 24 }, (_, i) => {
+    const data = new Date(Date.UTC(2024, 3 + i, 1));
+    const norte = { linhas: 10 + i, valor: 1_000 * (i + 1) };
+    const noroeste = { linhas: 20 + i, valor: 2_000 * (i + 1) };
+    return {
+      mes: `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, '0')}-01`,
+      janelaRecente: i >= 12,
+      regiaoTracbel: { linhas: norte.linhas + noroeste.linhas, valor: norte.valor + noroeste.valor },
+      norte,
+      noroeste,
+      saoPaulo: { linhas: 100 * (i + 1), valor: 100_000 * (i + 1) },
+    };
+  });
 }
 
 function abrir(municipioSelecionado: number | null = null, ajustar: (p: PainelDeCreditoRural) => PainelDeCreditoRural = (p) => p) {
@@ -374,13 +412,51 @@ describe('o painel de crédito', () => {
     expect(nomesDoDetalhamento()[0]).toContain('Cafelândia');
   });
 
-  it('a evolução é ANUAL e diz por que não é mensal — não finge meses', async () => {
+  it('sem o mês a mês na resposta, a evolução é ANUAL e diz por que não é mensal — não finge meses', async () => {
     abrir();
     await esperarOPainel();
 
     const dica = lerDica('Como ler evolução do valor financiado');
     expect(dica).toMatch(/somado por ANO/);
     expect(dica).toMatch(/fingir um detalhe/);
+  });
+
+  it('com o mês a mês, a evolução é a janela recente sobre a anterior, na Região Tracbel (issue 68)', async () => {
+    abrir(null, (p) => ({ ...p, porMes: porMes() }));
+    await esperarOPainel();
+
+    const grafico = document.querySelector<HTMLElement>('[data-grafico]')!;
+    // A JANELA RECENTE: abr/25 a mar/26 — doze meses —, e a anterior alinhada mês a mês.
+    expect(grafico.dataset.rotulos?.split(',')).toEqual([
+      'abr/25', 'mai/25', 'jun/25', 'jul/25', 'ago/25', 'set/25', 'out/25', 'nov/25', 'dez/25', 'jan/26', 'fev/26', 'mar/26',
+    ]);
+    // Região = Norte + Noroeste: 3.000 × (i + 1). O 13º mês (i = 12) é o primeiro da recente.
+    expect(grafico.dataset.valores?.split(',')[0]).toBe('39000');
+    expect(grafico.dataset.anteriores?.split(',')[0]).toBe('3000');
+
+    const dica = lerDica('Como ler evolução do valor financiado');
+    expect(dica).toMatch(/mês a mês, em Região Tracbel/);
+    expect(dica).toMatch(/cada mês contra o de 12 meses antes/);
+    expect(dica).not.toMatch(/somado por ANO/);
+  });
+
+  it('o recorte da evolução troca a série: Norte, Noroeste e São Paulo', async () => {
+    abrir(null, (p) => ({ ...p, porMes: porMes() }));
+    await esperarOPainel();
+
+    const recorte = screen.getByRole('combobox', { name: 'Recorte da evolução' });
+    expect([...(recorte as HTMLSelectElement).options].map((o) => o.textContent)).toEqual([
+      'Região Tracbel',
+      'Norte',
+      'Noroeste',
+      'São Paulo',
+    ]);
+
+    fireEvent.change(recorte, { target: { value: 'norte' } });
+    expect(document.querySelector<HTMLElement>('[data-grafico]')!.dataset.valores?.split(',')[0]).toBe('13000');
+    fireEvent.change(recorte, { target: { value: 'saoPaulo' } });
+    expect(document.querySelector<HTMLElement>('[data-grafico]')!.dataset.valores?.split(',')[0]).toBe('1300000');
+    expect(lerDica('Como ler evolução do valor financiado')).toMatch(/mês a mês, em São Paulo/);
   });
 });
 

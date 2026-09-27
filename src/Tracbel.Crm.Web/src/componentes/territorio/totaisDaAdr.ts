@@ -40,10 +40,25 @@ export type TotaisDaAdr = {
   capacidadeDeEtanol: number;
   lavouraHectares: number;
   lavouraValor: number;
+  /**
+   * AS VENDAS DO MESMO TRECHO DO ANO ANTERIOR (27/09/2026), somadas como as de
+   * agora. Nulas quando o servidor não mandou o ano anterior — a carga não cobre a
+   * janela —, e aí a variação sai com o traço e o motivo, e não como queda.
+   */
+  vendasAnterior: number | null;
+  maquinaAnterior: number | null;
+  posVendaAnterior: number | null;
+  /** As máquinas do ano anterior, em unidades; nulas quando o ART não cobre a janela. */
+  maquinasVendidasAnterior: number | null;
 };
 
 export function calcularTotais(daAdr: IndicadoresDoMunicipio[]): TotaisDaAdr {
   const soma = (f: (m: IndicadoresDoMunicipio) => number) => daAdr.reduce((s, m) => s + f(m), 0);
+  // O ANO ANTERIOR VEM INTEIRO OU NÃO VEM: o servidor o manda em todo município
+  // quando a carga cobre a janela, e em nenhum quando não cobre.
+  const comAnterior = daAdr.length > 0 && daAdr.every((m) => m.vendasNoPeriodoAnterior != null);
+  const somaAnterior = (f: (v: NonNullable<IndicadoresDoMunicipio['vendasNoPeriodoAnterior']>) => number) =>
+    comAnterior ? soma((m) => f(m.vendasNoPeriodoAnterior!)) : null;
   // O NÚMERO VEM DO MOTOR (issue 72), e não mais de uma divisão feita aqui sobre a primeira regra:
   // `potencialEstrutural` já soma todas as culturas com regra, desconta a terra compartilhada entre
   // elas e soma as categorias de máquina sem somar a terra delas duas vezes.
@@ -81,6 +96,13 @@ export function calcularTotais(daAdr: IndicadoresDoMunicipio[]): TotaisDaAdr {
     capacidadeDeEtanol: soma((m) => m.estrutura.capacidadeDeEtanolM3Dia ?? 0),
     lavouraHectares: soma((m) => m.producao?.areaPlantadaHectares ?? 0),
     lavouraValor: soma((m) => m.producao?.valorDaProducaoMilReais ?? 0),
+    vendasAnterior: somaAnterior((v) => v.valorLiquido),
+    maquinaAnterior: somaAnterior((v) => v.maquina),
+    posVendaAnterior: somaAnterior((v) => v.posVenda),
+    maquinasVendidasAnterior:
+      daAdr.length > 0 && daAdr.every((m) => m.maquinasVendidasNoPeriodoAnterior != null)
+        ? soma((m) => m.maquinasVendidasNoPeriodoAnterior ?? 0)
+        : null,
   };
 }
 
