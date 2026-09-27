@@ -274,7 +274,21 @@ converge. **A lista tem 53 códigos distintos, não 55** [M].
 
 ---
 
-## 10. Consultas prontas (só agregados, para o Ricardo rodar se quiser conferir)
+## 10. Como ligar em produção
+
+1. **Publicar** a versão com as migrações `EstagioDoProcessoDoVortice`, `FormularioDaVendaPerdida` e
+   `RotinaDosProcessosDoVortice` — a API as aplica ao subir. A rotina nasce **desligada**.
+2. **Conferir a conexão** "Vórtice — sistema legado" em Configurações › Integrações: configurada e testada (a mesma
+   das carteiras).
+3. **A carteira antes do funil:** a `CARTEIRAS_VORTICE` precisa ter rodado ao menos uma vez — é o de-para dela que liga
+   o processo à carteira e, sem conta pelo login, ao dono da carteira. Sem ela o funil entra do mesmo jeito, sem carteira.
+4. **Simular no servidor** — `Tracbel.Crm.Carga.exe --somente-processos-vortice --simular` — e conferir os números com
+   os das §2, §3 e §4 (Lead cumulativo ~34,8 mil, Cobertura ~29 mil, Faturamento ~4,3 mil; ~3,2 mil respostas de venda
+   perdida). A simulação lê o CRM com intenção de leitura e não abre transação.
+5. **Ligar a rotina** "Funil e vendas perdidas do Vórtice" (diária às 06:30) ou apertar "Rodar agora". A primeira rodada
+   grava ~113 mil linhas em blocos de 2.000; as seguintes só gravam o que mudou.
+
+## 11. Consultas prontas (só agregados, para o Ricardo rodar se quiser conferir)
 
 ```sql
 -- Processos 31/41/50 e quantos têm DtaInclusao nula (o COALESCE da regra 4)

@@ -13,8 +13,8 @@ using Xunit;
 namespace Tracbel.Crm.Arquitetura.Testes.Banco;
 
 /// <summary>
-/// AS MIGRAÇÕES DO FUNIL NO SQL SERVER DE VERDADE (documento 52): <c>EstagioDoProcessoDoVortice</c> e
-/// <c>FormularioDaVendaPerdida</c>.
+/// AS MIGRAÇÕES DO FUNIL NO SQL SERVER DE VERDADE (documento 52): <c>EstagioDoProcessoDoVortice</c>,
+/// <c>FormularioDaVendaPerdida</c> e <c>RotinaDosProcessosDoVortice</c>.
 ///
 /// <para><b>O que só o motor prova:</b> a semente da classificação inteira gravada; o índice único (processo, estágio)
 /// recusando a segunda linha; os CHECKs do tipo, do estágio, da herança, do formulário e do papel; o filtro global de
@@ -172,6 +172,29 @@ public sealed class FunilDoVorticeNoConteinerTestes
         deRibeirao.EstagiosDoProcesso.AsNoTracking().Select(e => e.EmpresaId).Distinct().ToList()
             .Should().Equal([a], "a linha de Barretos não chega a quem só vê Ribeirão Preto");
         deRibeirao.EstagiosDoProcesso.Count().Should().Be(2);
+    }
+
+    [FatoSeHouverSqlServer]
+    public void A_migracao_da_rotina_a_insere_no_fim_desligada_e_a_conexao_do_Vortice_passa_a_citar_o_funil()
+    {
+        Recriar();
+        using var db = DeSistema();
+
+        var rotina = db.Rotinas.AsNoTracking().Single(r => r.Codigo == RotinasDoSistema.ProcessosVortice);
+        var posicao = RotinasDoSistema.Todas.ToList().FindIndex(r => r.Codigo == RotinasDoSistema.ProcessosVortice);
+        rotina.Id.Should().Be(posicao + 1, "o identificador semeado é a posição no catálogo, mais um");
+        rotina.Id.Should().Be(db.Rotinas.Max(r => r.Id), "rotina nova entra no fim");
+        rotina.EstaLigada.Should().BeFalse();
+        rotina.Agenda.Should().Be(AgendaDaRotina.DiariaAs(new TimeOnly(6, 30)));
+
+        db.Conexoes.AsNoTracking().Single(c => c.Id == 4).Descricao.Should().Contain("funil");
+
+        // E A MIGRAÇÃO VOLTA: o Down tira a rotina e devolve a descrição — e só isso.
+        var migrador = db.GetService<IMigrator>();
+        migrador.Migrate("FormularioDaVendaPerdida");
+        db.Rotinas.AsNoTracking().Any(r => r.Codigo == RotinasDoSistema.ProcessosVortice).Should().BeFalse();
+        db.Conexoes.AsNoTracking().Single(c => c.Id == 4).Descricao.Should().NotContain("funil");
+        migrador.Migrate();
     }
 
     [FatoSeHouverSqlServer]

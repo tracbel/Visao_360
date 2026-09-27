@@ -817,7 +817,10 @@ public static class ConexoesDoSistema
     /// <summary>O ART — as vendas de máquina.</summary>
     public const string Art = "ART";
 
-    /// <summary>O Vórtice — o sistema legado, congelado, exceto pelas carteiras MAQ_NOVOS (decisão de 24/09/2026).</summary>
+    /// <summary>
+    /// O Vórtice — o sistema legado, congelado, exceto pelas carteiras MAQ_NOVOS (decisão de 24/09/2026) e pelo histórico
+    /// do funil e da venda perdida (decisão de 27/09/2026).
+    /// </summary>
     public const string Vortice = "VORTICE";
 
     /// <summary>As conexões, na ordem da tela.</summary>
@@ -830,7 +833,8 @@ public static class ConexoesDoSistema
         new(Art, "ART — vendas de máquina", TipoDeConexao.MySql,
             "A view de vendas de máquina liberada para o CRM. Sessão somente leitura."),
         new(Vortice, "Vórtice — sistema legado", TipoDeConexao.SqlServer,
-            "A busca ao vivo no legado, congelado desde a fase 1, e a sincronia diária das carteiras MAQ_NOVOS. Sessão somente leitura."),
+            "A busca ao vivo no legado, congelado desde a fase 1, a sincronia diária das carteiras MAQ_NOVOS e o funil e " +
+            "as vendas perdidas (histórico desde 2012). Sessão somente leitura."),
         new("IBGE_SIDRA", "IBGE — SIDRA", TipoDeConexao.FontePublica,
             "Produção agrícola, Censo Agropecuário, rebanho e área territorial.",
             "https://servicodados.ibge.gov.br/api/v3/agregados/5457/metadados"),
@@ -912,6 +916,9 @@ public static class RotinasDoSistema
     /// <summary>O parque de máquinas pelo proprietário atual no cadastro de veículos do Protheus (decisão de 24/09/2026).</summary>
     public const string ParqueProtheus = "PARQUE_PROTHEUS";
 
+    /// <summary>O funil e as vendas perdidas do Vórtice (decisões de 27/09/2026, documento 52).</summary>
+    public const string ProcessosVortice = "PROCESSOS_VORTICE";
+
     /// <summary>
     /// Quando as agendas semeadas passam a valer: o dia em que o orquestrador substituiu as tarefas do Windows. O
     /// que era devido antes dele (a mensal de 20/09) já rodou pelas tarefas antigas.
@@ -990,7 +997,19 @@ public static class RotinasDoSistema
             "As máquinas do cadastro de veículos do Protheus (VV1) cujo dono atual é cliente do CRM, com a evidência " +
             "do dono — nota de venda, ordem de serviço ou só o cadastro — conferida contra o comprador do ART.",
             ["--somente-parque-protheus"], AgendaDaRotina.DiariaAs(new TimeOnly(5, 30)), false,
-            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco)
+            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco),
+
+        // O FUNIL E AS VENDAS PERDIDAS DO VÓRTICE (decisões de 27/09/2026, documento 52; errata "D-12 parcial" do
+        // documento 41). Relê a janela inteira a cada rodada — o funil custa 2–3 s e os formulários 1 s, medido em
+        // 27/09/2026 —, sem marca d'água. Diária às 06:30: DEPOIS das carteiras (04:30), cujo de-para liga o processo à
+        // carteira, e do parque (05:30). No FIM da lista, como toda rotina nova: a posição é o identificador semeado.
+        // NASCE DESLIGADA: ligá-la traz ~113 mil linhas de funil e ~3,2 mil vendas perdidas para produção, e isso é
+        // decisão de quem administra — a simulação primeiro.
+        new(ProcessosVortice, "Funil e vendas perdidas do Vórtice",
+            "O estágio de cada processo 31/41/50 do Vórtice desde 01/11/2023, pelo código de resultado do histórico, e as " +
+            "vendas perdidas dos formulários desde 2012 — prospect incluído, sem criar cliente, carteira nem usuário.",
+            ["--somente-processos-vortice"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 30)), false,
+            [ConexoesDoSistema.Vortice], ConexoesDoSistema.Vortice)
     ];
 
     /// <summary>A rotina do catálogo pelo código; nula quando não existe.</summary>
