@@ -1,0 +1,82 @@
+/*
+ * Diagnóstico Comercial (issue 257) — só o que as classes do cadastro não cobrem: o selo da classe de prioridade, a
+ * linha dos pesos, a ordenação por coluna e as barras dos sete componentes.
+ */
+
+/* AS CINCO CLASSES, as cores do protótipo em tons que passam no contraste AA sobre o fundo claro. O nome da classe
+   vai escrito ao lado do número: a cor sozinha não diz nada a quem não a distingue. */
+.diag-classe-Maxima { --diag-cor: #1B5E20; --diag-fundo: #E3F1E7; }
+.diag-classe-Alta { --diag-cor: #2F6B33; --diag-fundo: #EDF5EA; }
+.diag-classe-Moderada { --diag-cor: #7A5B00; --diag-fundo: #FFF4D1; }
+.diag-classe-Baixa { --diag-cor: #A2470C; --diag-fundo: #FDECDD; }
+.diag-classe-Manutencao { --diag-cor: var(--n-600); --diag-fundo: var(--n-100); }
+
+.diag-ioc {
+  display: inline-flex; align-items: baseline; gap: 6px; padding: 2px 8px; border-radius: 999px;
+  background: var(--diag-fundo); color: var(--diag-cor); white-space: nowrap;
+}
+.diag-ioc strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+.diag-classe-rotulo { font-size: 11px; font-weight: 600; }
+
+.diag-pesos {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; margin: 0 0 16px; padding: 10px 14px;
+  border: 1px solid var(--n-200); border-radius: 8px; background: var(--n-50); font-size: 13px; color: var(--text-secondary);
+}
+.diag-pesos strong { color: var(--text-primary); }
+.diag-a-confirmar {
+  margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #FFF4D1; color: #7A5B00; font-size: 11px; font-weight: 600;
+}
+.diag-link { margin-left: auto; font-weight: 600; color: var(--jd-green-dark); }
+
+/* O MÊS E A BUSCA COM A MESMA CAIXA DOS SELETORES ao lado — sem isto o navegador desenha os dois menores e mais altos. */
+.diag-barra-de-filtros .cad-filtro input[type='month'],
+.diag-barra-de-filtros .cad-filtro input[type='search'] {
+  height: 36px; padding: 0 8px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-surface); font-family: var(--font-sans); font-size: 13px; color: var(--text-primary);
+}
+.diag-barra-de-filtros .cad-filtro input:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
+.diag-barra-de-filtros .cad-filtro { justify-content: flex-end; }
+
+.diag-plano { margin-top: 4px; font-weight: 600; color: var(--text-primary); }
+
+/* A TABELA É LARGA E ROLA DENTRO DO CARTÃO — a página nunca rola para o lado. O texto da situação e do plano quebra
+   em vez de esticar a coluna. */
+.diag-tabela td { vertical-align: top; }
+.diag-texto { min-width: 220px; max-width: 320px; font-size: 12px; line-height: 1.45; color: var(--text-secondary); }
+.diag-ordenar {
+  all: unset; cursor: pointer; font: inherit; color: inherit; white-space: nowrap;
+}
+.diag-ordenar:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; border-radius: 2px; }
+.diag-municipio {
+  all: unset; cursor: pointer; font-weight: 600; color: var(--jd-green-dark);
+}
+.diag-municipio:hover { text-decoration: underline; }
+.diag-municipio:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; border-radius: 2px; }
+.diag-linha.aberta td { background: var(--n-50); }
+
+.diag-seta { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.diag-seta.sobe { color: var(--success); }
+.diag-seta.desce { color: var(--danger); }
+
+.diag-detalhe td { background: var(--n-50); }
+
+/* O DETALHE FICA NA ÁREA VISÍVEL: a célula ocupa a largura da tabela inteira (que rola no celular), e sem isto as
+   barras se esticavam até fora da tela. Preso à esquerda da rolagem e com teto de largura, ele se lê sem rolar. */
+.diag-componentes { position: sticky; left: 16px; max-width: min(820px, calc(100vw - 72px)); }
+.diag-componentes ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.diag-componentes li {
+  display: grid; grid-template-columns: 110px minmax(80px, 180px) 110px 1fr; align-items: center; gap: 12px; font-size: 13px;
+}
+.diag-componente-nome { font-weight: 600; color: var(--text-primary); }
+.diag-barra { height: 8px; border-radius: 4px; background: var(--n-200); overflow: hidden; }
+.diag-barra span { display: block; height: 100%; background: var(--jd-green); border-radius: 4px; }
+.diag-componente-valor { color: var(--text-primary); white-space: nowrap; }
+.diag-componente-mede { color: var(--text-tertiary); font-size: 12px; }
+.diag-ausentes { margin: 10px 0 0; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.diag-nada { margin: 16px 0 0; color: var(--text-secondary); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .diag-link { margin-left: 0; }
+  .diag-componentes li { grid-template-columns: 90px 1fr 70px; }
+  .diag-componente-mede { grid-column: 1 / -1; }
+}

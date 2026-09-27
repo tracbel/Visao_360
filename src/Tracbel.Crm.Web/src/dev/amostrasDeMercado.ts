@@ -19,6 +19,8 @@
  */
 
 import type {
+  ClasseDePrioridade,
+  DiagnosticoComercialDaRegiao,
   MediaPlurianual,
   PainelDeCreditoRural,
   PrecoImplicitoDoRecorte,
@@ -406,5 +408,119 @@ export function parametrosFicticios(municipios: { codigo: number; nome: string }
         motivoDaRevogacao: null,
       },
     })),
+  };
+}
+
+/**
+ * O DIAGNÓSTICO COMERCIAL FICTÍCIO (issue 257) — números inventados, mas coerentes entre si: o IOC é a média
+ * ponderada dos componentes pelos pesos do protótipo, e a classe sai do IOC. Um município em cada seis não tem carteira
+ * e um em cada nove não tem regra de potencial, para a tela mostrar os dois vazios com o motivo.
+ */
+export function diagnosticoFicticio(municipios: { codigo: number; nome: string }[], vazio: boolean): DiagnosticoComercialDaRegiao {
+  const pesos = { potencial: 25, cobertura: 20, credito: 15, rentabilidade: 15, clientes: 10, realizacao: 5, penetracao: 10 };
+  const culturas = ['Cana-de-açúcar', 'Soja', 'Café', 'Laranja', 'Milho', 'Amendoim'];
+  const lojas = ['Araraquara', 'Ribeirão Preto', 'Barretos', 'Franca', 'Bebedouro'];
+  const classe = (ioc: number): ClasseDePrioridade =>
+    ioc >= 80 ? 'Maxima' : ioc >= 60 ? 'Alta' : ioc >= 40 ? 'Moderada' : ioc >= 20 ? 'Baixa' : 'Manutencao';
+
+  const linhas = vazio
+    ? []
+    : municipios.map((m, i) => {
+        const r = (k: number) => ((i * 37 + k * 17) % 100) / 100;
+        const semCarteira = i % 6 === 5;
+        const semRegra = i % 9 === 8;
+        const demanda = semRegra ? null : Math.round((2 + r(1) * 40) * 10) / 10;
+        const ajustada = demanda === null ? null : Math.round(demanda * (0.85 + r(2) * 0.3) * 10) / 10;
+        const vendidas = demanda === null ? null : Math.round(demanda * r(3) * 0.6);
+        const vinculos = semCarteira ? 0 : 20 + Math.round(r(4) * 180);
+        const cobertos = Math.round(vinculos * r(5));
+        const credito = 0.7 + r(6) * 0.7;
+        const preco = 0.75 + r(7) * 0.55;
+        const c = {
+          potencial: ajustada === null ? null : Math.min(1, ajustada / 36),
+          cobertura: vinculos === 0 ? null : 1 - cobertos / vinculos,
+          credito: Math.max(0, Math.min(1, (credito - 0.6) / 0.8)),
+          rentabilidade: Math.max(0, Math.min(1, (preco - 0.6) / 0.8)),
+          clientes: ajustada === null ? null : Math.max(0, 1 - (vinculos / 4) / Math.max(1, ajustada * 3)),
+          realizacao: ajustada === null || vendidas === null ? null : Math.max(0, 1 - vendidas / Math.max(0.1, ajustada * 0.31)),
+          penetracao: demanda === null || vendidas === null ? null : Math.max(0, 1 - vendidas / demanda),
+        };
+        const comDado = (Object.keys(pesos) as (keyof typeof pesos)[]).filter((k) => c[k] !== null);
+        const soma = comDado.reduce((s, k) => s + pesos[k], 0);
+        const ioc = soma ? Math.round((1000 * comDado.reduce((s, k) => s + pesos[k] * (c[k] as number), 0)) / soma) / 10 : null;
+        const ausentes = [
+          ...(vinculos === 0 ? ['cobertura: nenhum vínculo de carteira com cadência declarada'] : []),
+          ...(demanda === null
+            ? ['potencial: o município não tem demanda estimada', 'clientes: o município não tem demanda estimada']
+            : []),
+        ];
+        return {
+          codigoIbge: m.codigo,
+          nome: m.nome,
+          regiao: i % 2 ? 'Noroeste' : 'Norte',
+          loja: lojas[i % lojas.length],
+          culturaPrincipal: culturas[i % culturas.length],
+          indiceDePreco: Math.round(preco * 1000) / 1000,
+          indiceDeCredito: Math.round(credito * 1000) / 1000,
+          creditoBasePequena: i % 7 === 3,
+          demandaEstrutural: demanda,
+          demandaAjustada: ajustada,
+          metaDePlanejamento: ajustada === null ? null : Math.round(ajustada * 0.31 * 100) / 100,
+          vendidasNoPeriodo: vendidas,
+          vendidasNoAno: vendidas,
+          clientes: Math.round(vinculos / 4),
+          vinculosComCadencia: vinculos,
+          cobertos,
+          cobertura: vinculos === 0 ? null : cobertos / vinculos,
+          penetracao: demanda === null || vendidas === null ? null : vendidas / demanda,
+          componentes: c,
+          ioc,
+          classe: ioc === null ? null : classe(ioc),
+          situacao: ioc !== null && ioc >= 60 ? 'elevado potencial, baixa cobertura comercial, crédito de mecanização em alta' : 'situação equilibrada',
+          planoDeAcao: ioc !== null && ioc >= 60 ? 'Expandir cobertura e visitas presenciais · Explorar financiamento (Moderfrota, Finame)' : 'Monitorar',
+          componentesAusentes: ausentes,
+          estimativa: true,
+        };
+      });
+
+  const conta = (k: ClasseDePrioridade) => linhas.filter((l) => l.classe === k).length;
+  const comIoc = linhas.filter((l) => l.ioc !== null);
+  return {
+    competenciaInicial: '2025-09-01',
+    competenciaFinal: '2026-08-01',
+    fracaoDoAnoNoPeriodo: 1,
+    categoria: 'TRATOR',
+    categoriaNome: 'Trator',
+    categorias: [
+      { codigo: 'TRATOR', nome: 'Trator', ordem: 1 },
+      { codigo: 'COLHEITADEIRA', nome: 'Colheitadeira', ordem: 3 },
+      { codigo: 'COLHEDORA_DE_CANA', nome: 'Colhedora de cana', ordem: 7 },
+    ],
+    pesos,
+    pesosVigentesDesde: '2026-09-27',
+    pesosDoPrototipo: true,
+    shares: [{ categoriaCodigo: 'TRATOR', categoriaNome: 'Trator', percentual: 31, doPrototipo: true }],
+    percentil90: 36,
+    resumo: {
+      maxima: conta('Maxima'),
+      alta: conta('Alta'),
+      moderada: conta('Moderada'),
+      baixa: conta('Baixa'),
+      manutencao: conta('Manutencao'),
+      semIndice: linhas.length - comIoc.length,
+      total: linhas.length,
+      iocMedio: comIoc.length ? Math.round((10 * comIoc.reduce((s, l) => s + (l.ioc as number), 0)) / comIoc.length) / 10 : null,
+    },
+    municipios: linhas,
+    lacunas: [
+      {
+        metrica: 'pesosDoIoc',
+        motivo: 'AMOSTRA FICTÍCIA — os pesos do IOC e a sazonalidade ainda são os do protótipo da pasta 360, a confirmar.',
+      },
+      {
+        metrica: 'cobertura',
+        motivo: 'AMOSTRA FICTÍCIA — a cobertura é a da cadência de cada classe de cliente no CRM, e não o corte fixo de 90 dias.',
+      },
+    ],
   };
 }

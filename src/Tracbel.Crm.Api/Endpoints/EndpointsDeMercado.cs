@@ -45,6 +45,28 @@ public static class EndpointsDeMercado
                 "O ajuste por cenário de mercado não entra: ele depende do fator de ciclo, cujos pesos são " +
                 "decisão em aberto (D-P05). O campo `sobreOsCenarios` diz isso para a tela.");
 
+        // O DIAGNÓSTICO COMERCIAL (issue 257) lê o mesmo dado do território, com o mesmo alcance — a mesma porta.
+        grupo.MapGet("/diagnostico", async (
+                ObterDiagnosticoComercial caso,
+                CancellationToken ct,
+                string? competenciaInicial = null,
+                string? competenciaFinal = null,
+                string? regiao = null,
+                string? lojaCodigo = null,
+                string? visao = null,
+                string? categoria = null,
+                string? responsavel = null) =>
+            (await caso.ExecutarAsync(competenciaInicial, competenciaFinal, regiao, lojaCodigo, visao, categoria, responsavel, ct)).Responder())
+            .WithName("ObterDiagnosticoComercial")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("O Índice de Oportunidade Comercial (IOC) de cada município da ADR, com a situação e o plano de ação.")
+            .WithDescription(
+                "Sete componentes de 0 a 1 — potencial, cobertura, crédito, rentabilidade, clientes, realização e " +
+                "penetração —, ponderados pelos pesos vigentes (Configurações › Potencial de mercado). Componente sem dado " +
+                "sai da conta e aparece em `componentesAusentes`: ausência de carga não é zero.\n\n" +
+                "Padrão: os últimos 12 meses fechados e a categoria TRATOR (como no protótipo); `categoria=TODAS` soma as " +
+                "categorias com demanda. Outro período é levado a um ano pela sazonalidade vigente.");
+
         return app;
     }
 }

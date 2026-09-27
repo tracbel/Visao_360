@@ -294,6 +294,7 @@ builder.Services.AddScoped<ListarTerritorioPorCarteira>();
 builder.Services.AddScoped<ObterIndicadoresTerritoriais>();
 builder.Services.AddScoped<ObterHistoricoDoMunicipio>();
 builder.Services.AddScoped<SimularMaquinas>();
+builder.Services.AddScoped<ObterDiagnosticoComercial>();
 builder.Services.AddScoped<ObterPrecosDeMercado>();
 builder.Services.AddScoped<ObterPrecoImplicitoDaPam>();
 builder.Services.AddScoped<ObterCustosDeProducao>();
