@@ -32,6 +32,16 @@
  * e nenhuma linha é contada duas vezes. O que **não** é somável é o cliente —
  * metade dos clientes está em duas ou mais carteiras (documento 25, §6), então
  * "clientes do CEN" é contagem de VÍNCULOS, e a tela escreve isso.
+ *
+ * ---------------------------------------------------------------------------
+ * 27/09/2026 — A META DE VENDA VOLTOU, COM FONTE (#138).
+ *
+ * A meta é a cota da API Gestão de Negócios, em máquinas por consultor, linha,
+ * mês e filial; o realizado de cada consultor são as vendas do ART em que ele é
+ * o vendedor (decisão D-M2). A rota `/api/v1/relatorios/metas` já devolve a
+ * soma por consultor da filial do cabeçalho — a tela só desenha. O consultor é
+ * o login da GN, e não o responsável da carteira: por isso a tabela é à parte
+ * da cobertura, e as duas não se cruzam por nome.
  */
 
 import { useMemo, useState } from 'react';
@@ -45,6 +55,8 @@ import { GraficoBarrasHorizontais } from '../componentes/GraficoBarrasHorizontai
 import { MolduraDeGrafico } from '../componentes/MolduraDeGrafico';
 import { ENTRAM_NO_RANKING } from '../dados/api/consolidado';
 import { useContextoDeAcesso } from '../dados/api/contexto';
+import { ErroDaApi } from '../dados/api/http';
+import { obterMetaDaFilial } from '../dados/api/metas';
 import { obterPainelDoCen, obterResumoDeCobertura } from '../dados/api/relacionamento';
 import type { CoberturaPorClasse } from '../tipos/relacionamento';
 import { useRecurso } from '../dados/api/useRecurso';
@@ -155,6 +167,21 @@ export function PerformanceCen() {
   );
 
   const carteiras = useMemo(() => resumo.dados?.itens ?? [], [resumo.dados]);
+
+  /** A meta de venda × o realizado da filial do cabeçalho, por consultor (#138). */
+  const meta = useRecurso(
+    (sinal) => obterMetaDaFilial(contexto, sinal),
+    [contexto.empresa, contexto.usuario],
+  );
+
+  /** O que o bloco da meta diz fechado: o total da filial com o período, ou por que não há número. */
+  const resumoDaMeta = !meta.dados
+    ? 'a cota da API Gestão de Negócios contra as vendas do ART, em máquinas'
+    : meta.dados.origem === null
+      ? 'o cadastro de metas da API Gestão de Negócios ainda não foi lido'
+      : `${meta.dados.totais.realizadoMaquinas.toLocaleString('pt-BR')} de ` +
+        `${meta.dados.totais.metaMaquinas.toLocaleString('pt-BR')} máquinas · ${meta.dados.periodo.texto} · ` +
+        `${meta.dados.porConsultor.length} ${meta.dados.porConsultor.length === 1 ? 'consultor' : 'consultores'}`;
 
   /**
    * QUEM ENTRA NO RANKING.
@@ -334,8 +361,8 @@ export function PerformanceCen() {
         <div>
           <h1 className="page-title">Performance de CEN</h1>
           <p className="page-subtitle">
-            <code>comercial.ClienteCarteira</code> — o único agregado por pessoa que tem dado real
-            hoje: <strong>quem está cobrindo a carteira e quem não está</strong>.
+            <code>comercial.ClienteCarteira</code> — <strong>quem está cobrindo a carteira e quem não
+            está</strong> — e a meta de venda de cada consultor contra as máquinas que ele vendeu.
           </p>
         </div>
       </div>
@@ -738,6 +765,87 @@ export function PerformanceCen() {
         )}
       </BlocoRecolhivel>
 
+      {/* A META DE VENDA × O REALIZADO, POR CONSULTOR (#138, 27/09/2026) — fechado, como a tabela acima.
+
+          Sem a rotina das metas ter rodado, o bloco diz que o cadastro não foi lido — e não "meta zero".
+          O 403 é falta de Meta.Ler, e tentar de novo não muda nada: o bloco não oferece o botão. */}
+      <BlocoRecolhivel
+        titulo={meta.dados?.alcance === 'Proprios' ? 'Sua meta de venda × o realizado' : 'Meta de venda × realizado, por consultor'}
+        resumo={resumoDaMeta}
+      >
+        {meta.carregando && <BlocoCarregando oQue="a meta de venda" />}
+        {meta.erro && (
+          <BlocoErro
+            erro={meta.erro}
+            aoTentarDeNovo={meta.erro instanceof ErroDaApi && meta.erro.status === 403 ? undefined : meta.recarregar}
+          />
+        )}
+
+        {meta.dados && meta.dados.porConsultor.length === 0 && (
+          <BlocoVazio
+            titulo={
+              meta.dados.origem === null
+                ? 'O cadastro de metas ainda não foi lido'
+                : `Nenhuma meta nem venda de máquina em ${meta.dados.periodo.texto}`
+            }
+            texto={
+              meta.dados.origem === null
+                ? 'A rotina das metas da API Gestão de Negócios ainda não rodou. Sem ela não há meta para comparar — e o CRM não mostra zero no lugar.'
+                : 'O cadastro da API Gestão de Negócios foi lido, e esta filial não tem meta de máquina nem venda do ART no período.'
+            }
+          />
+        )}
+
+        {meta.dados && meta.dados.porConsultor.length > 0 && (
+          <div className="cad-tabela-wrap">
+            <table className="cad-tabela">
+              <caption className="cad-so-leitor">
+                Meta de venda × realizado por consultor da filial {contexto.empresa}, {meta.dados.periodo.texto}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Consultor</th>
+                  <th scope="col">Meta (máq.)</th>
+                  <th scope="col">Realizado (máq.)</th>
+                  <th scope="col">Atingimento</th>
+                </tr>
+              </thead>
+              <tbody>
+                {meta.dados.porConsultor.map((c) => (
+                  <tr key={c.consultor}>
+                    <td>
+                      <div className="cad-link-forte">{c.consultor}</div>
+                      {!c.temConta && <div className="cad-sub">sem conta no CRM</div>}
+                    </td>
+                    <td className="cad-mono">{c.meta.toLocaleString('pt-BR')}</td>
+                    <td className="cad-mono">{c.realizado.toLocaleString('pt-BR')}</td>
+                    <td className="cad-mono">
+                      {c.meta > 0 ? (
+                        `${Math.round((c.realizado / c.meta) * 100)}%`
+                      ) : (
+                        <span className="cad-nada">sem meta no período</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {meta.dados && (
+          <p className="cad-sub">
+            Meta: a cota da API Gestão de Negócios, em máquinas. Realizado: as vendas do ART em que o
+            consultor é o vendedor, pela data da venda
+            {meta.dados.alcance === 'Filial' ? ' — a venda sem vendedor conta no total da filial e em ninguém' : ''}.
+            Período: {meta.dados.periodo.texto}
+            {meta.dados.periodo.ehOPadrao ? ', o ano fiscal até o último mês fechado' : ''}.
+          </p>
+        )}
+
+        <MetricasSemDado metricas={meta.dados?.metricasSemDado} />
+      </BlocoRecolhivel>
+
       {/* O AVISO DE QUE ESTA TELA ENCOLHEU MORAVA NO TOPO, EM LARANJA.
 
           Era a primeira coisa que a diretoria lia ao abrir a Performance, e o
@@ -746,7 +854,7 @@ export function PerformanceCen() {
           depois do que a tela de fato tem para mostrar. */}
       <BlocoRecolhivel
         titulo="O que esta tela mostrava e não tem como sustentar"
-        resumo="faturamento por CEN, meta, processos por pessoa, tempo de atendimento e conversão"
+        resumo="faturamento por CEN, processos por pessoa, tempo de atendimento e conversão"
       >
         <div className="cad-fichas">
           {/* A FRASE ANTIGA DIZIA QUE O FATURAMENTO "PAROU EM 11/04/2025" — era a cópia que o Vórtice
@@ -761,15 +869,8 @@ export function PerformanceCen() {
               'mostra é o faturamento dos CLIENTES da carteira de cada um.'
             }
           />
-          <LacunaConhecida
-            metrica="Atingimento de meta"
-            motivo={
-              'A tabela organizacao.Meta está vazia e não há fonte: nem o legado nem o protótipo ' +
-              'têm meta carregada — no protótipo elas eram números escritos no JavaScript. Sem ' +
-              'meta não existe percentual de atingimento, e um percentual sobre meta inventada é ' +
-              'pior do que percentual nenhum.'
-            }
-          />
+          {/* O "ATINGIMENTO DE META" SAIU DESTA LISTA EM 27/09/2026: a meta de venda tem fonte — a API
+              Gestão de Negócios — e está no bloco "Meta de venda × realizado", acima (#138). */}
           <LacunaConhecida
             metrica="Processos e tarefas por CEN"
             motivo={
