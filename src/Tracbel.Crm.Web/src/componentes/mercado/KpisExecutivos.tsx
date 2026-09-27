@@ -65,6 +65,7 @@ import { VariacaoContraOAnoAnterior } from '../territorio/comparacao';
 import { useComparacao } from '../territorio/contextoDaComparacao';
 import { reaisCompactos } from '../territorio/escalas';
 import { nº, porcento } from '../territorio/indicadoresDaAdr';
+import { fraseDosPrecos, marcaDeParcial } from './precosDeReferencia';
 import { VariacaoAusente } from './VariacaoAusente';
 
 /* AS QUATRO CONSTANTES DE MOTIVO SAÍRAM DAQUI (issue 69, parte A).
@@ -240,6 +241,7 @@ export function KpisExecutivos({
   const variacao = fatorAgregado == null ? null : Math.round((fatorAgregado - 1) * 100) || 0;
 
   const mercado = numeros?.mercadoAnual ?? null;
+  const frasePrecos = fraseDosPrecos(mercado);
 
   // O MESMO TRECHO DO ANO ANTERIOR (27/09/2026), com a frase do servidor para cada
   // ausência: a demanda e o mercado são estruturais; a captura e a oportunidade
@@ -298,15 +300,20 @@ export function KpisExecutivos({
         // PARCIAL SE DIZ AO LADO DO NÚMERO, e não só na dica: a soma das
         // categorias com preço, lida sem a marca, afirmaria que a categoria sem
         // preço não vale nada.
-        unidade={
-          mercado?.parcial ? `parcial — sem preço de ${mercado.categoriasSemPreco.join(', ')}` : 'valor de mercado'
-        }
+        unidade={marcaDeParcial(mercado) ?? 'valor de mercado'}
         motivoSemDado={mercado?.frase}
         variacao={semAnterior(doAnoAnterior?.mercadoAnual, 'mercado anual')}
         sobre={
-          'Quanto vale, em reais, a demanda anual de máquinas do recorte: a demanda de cada categoria vezes o ' +
-          'preço de referência dela — nunca a demanda inteira vezes um preço genérico. Categoria sem preço não ' +
-          'entra como zero: fica fora da soma, e o número sai marcado como parcial, com o nome dela.'
+          <>
+            <p>
+              Quanto vale, em reais, a demanda anual de máquinas do recorte: a demanda de cada categoria vezes o
+              preço de referência dela — nunca a demanda inteira vezes um preço genérico. Categoria sem preço não
+              entra como zero: fica fora da soma, e o número sai marcado como parcial, com o nome dela.
+            </p>
+            {/* O PREÇO FICA ESCRITO (issue 70): um valor em reais sem o preço que o fez é um número que
+                ninguém confere. */}
+            {frasePrecos && <p>{frasePrecos}</p>}
+          </>
         }
       />
       <CartaoDeDecisao
@@ -375,9 +382,24 @@ export function KpisExecutivos({
           />
         }
         sobre={
-          'Em máquinas: a demanda ajustada pelo momento, proporcional aos meses do período, menos o que a Tracbel ' +
-          'já vendeu nele, nunca abaixo de zero (issue 162). É o que o mercado de hoje comporta e ainda não foi ' +
-          'capturado — e não o de um ano médio.'
+          <>
+            <p>
+              Em máquinas: a demanda ajustada pelo momento, proporcional aos meses do período, menos o que a Tracbel
+              já vendeu nele, nunca abaixo de zero (issue 162). É o que o mercado de hoje comporta e ainda não foi
+              capturado — e não o de um ano médio.
+            </p>
+            {/* EM REAIS, O POTENCIAL INCREMENTAL (issue 70): a oportunidade de cada categoria vezes o preço dela. */}
+            {numeros?.potencialIncremental?.valor != null ? (
+              <p>
+                {`Em reais, o potencial incremental é ${reaisCompactos(numeros.potencialIncremental.valor)}`}
+                {marcaDeParcial(numeros.potencialIncremental) ? ` (${marcaDeParcial(numeros.potencialIncremental)})` : ''}
+                {' '}— a oportunidade de cada categoria vezes o preço dela. O que uma categoria vendeu além da demanda
+                não abate a falta de outra, e por isso ele pode passar destas máquinas vezes um preço médio.
+              </p>
+            ) : (
+              numeros?.potencialIncremental?.frase && <p>{numeros.potencialIncremental.frase}</p>
+            )}
+          </>
         }
       />
     </div>

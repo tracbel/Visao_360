@@ -253,6 +253,56 @@ public sealed class NumerosDeDecisaoTestes
             .Should().Contain("issue 70").And.Contain("preço genérico");
     }
 
+    // -------------------------------------------------------------------------------------------------
+    // Potencial incremental — a oportunidade de cada categoria vezes o preço dela (issue 70, 27/09/2026)
+    // -------------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void O_potencial_incremental_e_a_oportunidade_de_cada_categoria_vezes_o_preco_dela()
+    {
+        // Seis meses: o trator tem 12 máquinas/ano ajustadas → 6 no período, vendeu 4 → faltam 2 × R$ 500 mil.
+        // A colhedora vendeu 5 contra 1 do período: sobra, e a sobra NÃO abate a falta de trator.
+        var numeros = DecisaoDoMercado.Calcular(
+            demandaAnual: 14m,
+            demandaAjustada: 14m,
+            vendasEmUnidades: 9,
+            porCategoria:
+            [
+                new DemandaDaCategoria("Trator", 12m, 500_000m, DemandaAjustada: 12m, VendasEmUnidades: 4),
+                new DemandaDaCategoria("Colhedora de cana", 2m, 2_000_000m, DemandaAjustada: 2m, VendasEmUnidades: 5)
+            ],
+            mesesDoPeriodo: 6);
+
+        numeros.PotencialIncremental!.Valor.Should().Be(1_000_000m);
+        numeros.PotencialIncremental.Parcial.Should().BeFalse();
+        numeros.Oportunidade.Valor.Should().Be(0m,
+            "a conta do total (7 − 9) dá zero — e o potencial por categoria continua mostrando o trator que falta");
+    }
+
+    [Fact]
+    public void Categoria_sem_preco_deixa_o_potencial_parcial_e_sem_vendas_nao_ha_potencial()
+    {
+        var comUmaSemPreco = DecisaoDoMercado.Calcular(10m, 10m, 2,
+        [
+            new DemandaDaCategoria("Trator", 8m, 400_000m, DemandaAjustada: 8m, VendasEmUnidades: 2),
+            new DemandaDaCategoria("Plantadeira", 2m, null, DemandaAjustada: 2m, VendasEmUnidades: 0)
+        ]);
+
+        comUmaSemPreco.PotencialIncremental!.Valor.Should().Be(2_400_000m, "(8 − 2) × R$ 400 mil; a plantadeira fica de fora");
+        comUmaSemPreco.PotencialIncremental.Parcial.Should().BeTrue();
+        comUmaSemPreco.PotencialIncremental.CategoriasSemPreco.Should().Equal("Plantadeira");
+
+        var semVendas = DecisaoDoMercado.Calcular(10m, 10m, null,
+            [new DemandaDaCategoria("Trator", 10m, 400_000m, DemandaAjustada: 10m)]);
+        semVendas.PotencialIncremental!.Valor.Should().BeNull("sem a fonte das unidades não há o que descontar");
+        semVendas.PotencialIncremental.Motivo.Should().Be(nameof(MotivoSemNumeroDeDecisao.SemVendasEmUnidades));
+
+        var semPreco = DecisaoDoMercado.Calcular(10m, 10m, 3,
+            [new DemandaDaCategoria("Trator", 10m, null, DemandaAjustada: 10m, VendasEmUnidades: 3)]);
+        semPreco.PotencialIncremental!.Motivo.Should().Be(nameof(MotivoSemNumeroDeDecisao.SemPrecoDeMaquina));
+        semPreco.PotencialIncremental.Frase.Should().Contain("o potencial incremental").And.Contain("últimos 12 meses");
+    }
+
     [Fact]
     public void Motivo_desconhecido_nao_devolve_frase_vazia()
     {

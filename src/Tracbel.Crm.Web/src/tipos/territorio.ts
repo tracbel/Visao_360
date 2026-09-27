@@ -835,6 +835,22 @@ export type NumeroDeDecisao = { valor: number | null; motivo: MotivoSemNumeroDeD
 export type MercadoAnual = NumeroDeDecisao & {
   parcial: boolean;
   categoriasSemPreco: string[];
+  /** O preço com que cada categoria entrou na conta (issue 70); nulo quando o número não saiu. */
+  precos?: PrecoDeReferenciaDaCategoria[] | null;
+};
+
+/**
+ * O PREÇO DE REFERÊNCIA DE UMA CATEGORIA (issue 70, 27/09/2026): a mediana das medianas mensais das notas de
+ * máquina do Protheus casadas com as vendas do ART, nos últimos 12 meses.
+ */
+export type PrecoDeReferenciaDaCategoria = {
+  categoriaCodigo: string;
+  categoria: string;
+  preco: number;
+  /** Quantos meses da janela tinham preço. */
+  meses: number;
+  /** `aaaa-mm-dd`, dia 1 do mês mais recente que entrou. */
+  ultimoMes: string;
 };
 
 /**
@@ -862,6 +878,11 @@ export type NumerosDeDecisao = {
   oportunidade: NumeroDeDecisao;
   /** O numerador da captura e da oportunidade; nulo quando o ART não trouxe venda nenhuma. */
   baseDaCaptura: BaseDaCaptura | null;
+  /**
+   * Em reais: a oportunidade de CADA CATEGORIA vezes o preço dela (issue 70). Pode sair parcial, como o mercado
+   * anual, e passar do "máquinas potenciais" × preço — o que uma categoria vendeu a mais não abate a falta de outra.
+   */
+  potencialIncremental?: MercadoAnual | null;
 };
 
 export type PainelTerritorial = {

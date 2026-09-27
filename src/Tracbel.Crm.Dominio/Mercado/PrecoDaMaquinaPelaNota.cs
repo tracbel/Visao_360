@@ -57,6 +57,17 @@ public enum DesfechoDoCasamento
 public sealed record PrecoDaCategoriaNoMes(int CategoriaDeMaquinaId, DateOnly Mes, decimal Mediana, decimal Menor, decimal Maior, int Notas);
 
 /// <summary>
+/// O PREÇO DE REFERÊNCIA DE UMA CATEGORIA — o que multiplica a demanda dela no mercado anual e a oportunidade dela no
+/// potencial incremental (issue 70).
+/// </summary>
+/// <param name="CategoriaCodigo">O código da categoria no catálogo.</param>
+/// <param name="Categoria">O nome de exibição.</param>
+/// <param name="Preco">A mediana das medianas mensais da janela, em reais.</param>
+/// <param name="Meses">Quantos meses da janela tinham preço — o tamanho da base.</param>
+/// <param name="UltimoMes">O mês mais recente que entrou.</param>
+public sealed record PrecoDeReferenciaDaCategoria(string CategoriaCodigo, string Categoria, decimal Preco, int Meses, DateOnly UltimoMes);
+
+/// <summary>
 /// O PREÇO DA MÁQUINA PELA NOTA (issue 70, D-P12, decidida pelo Ricardo em 27/09/2026) — domínio puro, sem banco.
 ///
 /// <para><b>A regra.</b> Cada venda do ART aponta a nota pela filial que faturou e pelo número. Na <c>SD2</c>, a
@@ -164,6 +175,42 @@ public static class PrecoDaMaquinaPelaNota
         var ordenados = valores.Order().ToList();
         var meio = ordenados.Count / 2;
         return ordenados.Count % 2 == 1 ? ordenados[meio] : (ordenados[meio - 1] + ordenados[meio]) / 2m;
+    }
+
+    /// <summary>Quantos meses, contando o corrente, entram no preço de referência.</summary>
+    public const int MesesDoPrecoDeReferencia = 12;
+
+    /// <summary>
+    /// O PREÇO DE REFERÊNCIA DE UMA CATEGORIA: a mediana das medianas mensais dos últimos doze meses, contando o
+    /// corrente (issue 70, 27/09/2026).
+    ///
+    /// <para><b>Por que a mediana dos meses, e não a de todas as notas.</b> Um mês de feira, com trinta tratores
+    /// iguais faturados de uma vez, pesaria trinta vezes mais que um mês comum. Cada mês vale um voto, e a mediana dos
+    /// votos não se mexe com um mês fora da curva.</para>
+    ///
+    /// <para><b>Nulo quando a categoria não vendeu na janela.</b> Um preço de dois anos atrás, aplicado à demanda de
+    /// hoje, seria número com cara de atual. Sem preço recente, a categoria fica fora da soma, e o total sai parcial
+    /// com o nome dela.</para>
+    /// </summary>
+    /// <param name="categoriaCodigo">O código da categoria.</param>
+    /// <param name="categoria">O nome de exibição.</param>
+    /// <param name="meses">A mediana de cada mês com preço.</param>
+    /// <param name="hoje">O dia de hoje em São Paulo; o mês dele é o último da janela.</param>
+    public static PrecoDeReferenciaDaCategoria? PrecoDeReferencia(
+        string categoriaCodigo, string categoria, IEnumerable<(DateOnly Mes, decimal Mediana)> meses, DateOnly hoje)
+    {
+        var ultimo = new DateOnly(hoje.Year, hoje.Month, 1);
+        var primeiro = ultimo.AddMonths(-(MesesDoPrecoDeReferencia - 1));
+
+        var naJanela = meses.Where(m => m.Mes >= primeiro && m.Mes <= ultimo).ToList();
+        if (naJanela.Count == 0) return null;
+
+        return new PrecoDeReferenciaDaCategoria(
+            categoriaCodigo,
+            categoria,
+            decimal.Round(Mediana([.. naJanela.Select(m => m.Mediana)]), 2),
+            naJanela.Count,
+            naJanela.Max(m => m.Mes));
     }
 
     /// <summary>O preço de cada categoria em cada mês de emissão: mediana, menor, maior e quantas notas.</summary>
