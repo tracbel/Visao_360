@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
+using Tracbel.Crm.Dominio.Processo;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 
@@ -237,8 +238,9 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
         // -----------------------------------------------------------------------------------------
         // Mercado: as vendas perdidas registradas no formulário.
         // -----------------------------------------------------------------------------------------
+        // SÓ A PRINCIPAL CONTA (decisão de 27/09/2026): a duplicata e o complemento repetem a mesma perda.
         var perdas = await contexto.VendasPerdidas.AsNoTracking()
-            .Where(v => v.ExcluidoEm == null)
+            .Where(v => v.ExcluidoEm == null && v.Papel == PapelDaVendaPerdida.Principal)
             .Select(v => new
             {
                 v.ConcorrenteId,
