@@ -463,10 +463,9 @@ public sealed record FatiaDeVendaPerdida(
 /// <summary>
 /// O acesso às vendas perdidas — o que o formulário do CEN registrou sobre cada derrota.
 ///
-/// <para>É porta separada de <see cref="IRepositorioProcessos"/> porque responde a outra
-/// pergunta e sobre outra população: <c>ResumirPerdasAsync</c> conta PROCESSOS marcados como
-/// perdidos, e isto conta os FORMULÁRIOS preenchidos sobre eles. Os dois números são diferentes
-/// e a diferença é a informação — quantas derrotas ninguém registrou.</para>
+/// <para>Conta os FORMULÁRIOS preenchidos sobre as derrotas, e à parte os PROCESSOS perdidos do funil do Vórtice. Os dois
+/// números são diferentes e a diferença é a informação — quantas derrotas ninguém registrou. O processo perdido vem do
+/// funil (<c>processo.EstagioDoProcesso</c>, 27/09/2026), e não de <c>processo.Processo</c>, que só a onda 2 carrega.</para>
 /// </summary>
 public interface IRepositorioVendasPerdidas
 {
@@ -474,13 +473,23 @@ public interface IRepositorioVendasPerdidas
     /// <param name="ct">Cancelamento.</param>
     Task<int> ContarAsync(CancellationToken ct);
 
-    /// <summary>As vendas perdidas por motivo.</summary>
+    /// <summary>As vendas perdidas por motivo, no recorte pedido.</summary>
+    /// <param name="filtro">O período, o formulário e o responsável.</param>
     /// <param name="ct">Cancelamento.</param>
-    Task<IReadOnlyList<FatiaDeVendaPerdida>> ResumirPorMotivoAsync(CancellationToken ct);
+    Task<IReadOnlyList<FatiaDeVendaPerdida>> ResumirPorMotivoAsync(FiltroDeVendaPerdida filtro, CancellationToken ct);
 
-    /// <summary>As vendas perdidas por fabricante concorrente — para quem se perdeu.</summary>
+    /// <summary>As vendas perdidas por fabricante concorrente — para quem se perdeu —, no recorte pedido.</summary>
+    /// <param name="filtro">O período, o formulário e o responsável.</param>
     /// <param name="ct">Cancelamento.</param>
-    Task<IReadOnlyList<FatiaDeVendaPerdida>> ResumirPorConcorrenteAsync(CancellationToken ct);
+    Task<IReadOnlyList<FatiaDeVendaPerdida>> ResumirPorConcorrenteAsync(FiltroDeVendaPerdida filtro, CancellationToken ct);
+
+    /// <summary>
+    /// Quantos processos do funil do Vórtice (<c>processo.EstagioDoProcesso</c>) terminaram PERDIDOS no período — o
+    /// denominador da pergunta "quantas derrotas ninguém registrou". O formulário não entra neste número.
+    /// </summary>
+    /// <param name="filtro">O período e o responsável; o formulário não se aplica.</param>
+    /// <param name="ct">Cancelamento.</param>
+    Task<int> ContarProcessosPerdidosAsync(FiltroDeVendaPerdida filtro, CancellationToken ct);
 }
 
 /// <summary>

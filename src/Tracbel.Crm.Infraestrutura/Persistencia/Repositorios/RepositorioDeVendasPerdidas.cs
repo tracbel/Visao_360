@@ -28,11 +28,53 @@ public sealed class RepositorioDeVendasPerdidas(CrmDbContext contexto) : IReposi
     public Task<int> ContarAsync(CancellationToken ct) =>
         contexto.VendasPerdidas.Where(v => v.ExcluidoEm == null && v.Papel == PapelDaVendaPerdida.Principal).CountAsync(ct);
 
-    /// <inheritdoc />
-    public async Task<IReadOnlyList<FatiaDeVendaPerdida>> ResumirPorMotivoAsync(CancellationToken ct)
+    /// <summary>
+    /// AS PRINCIPAIS DO RECORTE. O período é o da data em que o CEN preencheu o formulário (<c>RegistradaEm</c>), a única
+    /// que toda resposta tem: a data da perda declarada (<c>OcorridaEm</c>) falta em boa parte do histórico, e filtrar por
+    /// ela faria a perda sem data sumir de todo período. O responsável é o do processo no funil, ligado pelo número do
+    /// processo no Vórtice — a resposta de formulário não tem dono próprio.
+    /// </summary>
+    private IQueryable<VendaPerdida> Principais(FiltroDeVendaPerdida filtro)
     {
-        var agrupado = await contexto.VendasPerdidas
-            .Where(v => v.ExcluidoEm == null && v.Papel == PapelDaVendaPerdida.Principal)
+        var consulta = contexto.VendasPerdidas.AsNoTracking()
+            .Where(v => v.ExcluidoEm == null
+                        && v.Papel == PapelDaVendaPerdida.Principal
+                        && v.RegistradaEm >= filtro.DeUtc
+                        && v.RegistradaEm < filtro.AteUtc);
+
+        if (filtro.Formulario is { } formulario)
+            consulta = consulta.Where(v => v.FormularioDeOrigem == formulario);
+
+        if (filtro.Responsavel is { } chave)
+            consulta = consulta.Where(v => contexto.EstagiosDoProcesso.Any(e =>
+                e.NumeroDoProcessoNaOrigem == v.NumeroDoProcessoNaOrigem
+                && e.Estagio == EstagioDoFunil.Lead
+                && contexto.Usuarios.Any(u => u.Id == e.ResponsavelId && u.ChavePublica == chave)));
+
+        return consulta;
+    }
+
+    /// <inheritdoc />
+    public Task<int> ContarProcessosPerdidosAsync(FiltroDeVendaPerdida filtro, CancellationToken ct)
+    {
+        // A LINHA DO LEAD É O PROCESSO: o estágio é cumulativo, e todo processo do funil tem a dele — contar só ela
+        // conta cada processo uma vez. A data é a do desfecho; sem ela, a da abertura.
+        var consulta = contexto.EstagiosDoProcesso.AsNoTracking()
+            .Where(e => e.Estagio == EstagioDoFunil.Lead
+                        && e.Desfecho == SituacaoDoProcesso.Perdido
+                        && (e.DesfechoEm ?? e.AbertoEm) >= filtro.DeUtc
+                        && (e.DesfechoEm ?? e.AbertoEm) < filtro.AteUtc);
+
+        if (filtro.Responsavel is { } chave)
+            consulta = consulta.Where(e => contexto.Usuarios.Any(u => u.Id == e.ResponsavelId && u.ChavePublica == chave));
+
+        return consulta.CountAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<FatiaDeVendaPerdida>> ResumirPorMotivoAsync(FiltroDeVendaPerdida filtro, CancellationToken ct)
+    {
+        var agrupado = await Principais(filtro)
             .GroupBy(v => v.MotivoDePerdaId)
             .Select(g => new Bruto(
                 g.Key,
@@ -63,13 +105,13 @@ public sealed class RepositorioDeVendasPerdidas(CrmDbContext contexto) : IReposi
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<FatiaDeVendaPerdida>> ResumirPorConcorrenteAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<FatiaDeVendaPerdida>> ResumirPorConcorrenteAsync(FiltroDeVendaPerdida filtro, CancellationToken ct)
     {
         // A LINHA SEM CONCORRENTE FICA DE FORA, e não vira "não informado": um ranking de para
         // quem se perdeu com uma fatia "não sei" no topo não responde nada. Quantas linhas não
         // declaram o concorrente é conta de outra pergunta, e a tela a faz pelo total.
-        var agrupado = await contexto.VendasPerdidas
-            .Where(v => v.ExcluidoEm == null && v.Papel == PapelDaVendaPerdida.Principal && v.ConcorrenteId != null)
+        var agrupado = await Principais(filtro)
+            .Where(v => v.ConcorrenteId != null)
             .GroupBy(v => v.ConcorrenteId!.Value)
             .Select(g => new Bruto(
                 g.Key,

@@ -181,6 +181,7 @@ builder.Services.AddScoped<IRepositorioEquipamentos, RepositorioDeEquipamentos>(
 builder.Services.AddScoped<IRepositorioCatalogos, RepositorioDeCatalogos>();
 builder.Services.AddScoped<IRepositorioProcessos, RepositorioDeProcessos>();
 builder.Services.AddScoped<IRepositorioVendasPerdidas, RepositorioDeVendasPerdidas>();
+builder.Services.AddScoped<IRepositorioFunilPorEstagio, RepositorioDoFunilPorEstagio>();
 builder.Services.AddScoped<IRepositorioPainelDoCen, RepositorioDoPainelDoCen>();
 builder.Services.AddScoped<IRepositorioFaturamento, RepositorioDeFaturamento>();
 builder.Services.AddScoped<IRepositorioTarefas, RepositorioDeTarefas>();
@@ -275,6 +276,7 @@ builder.Services.AddScoped<ObterProcesso>();
 builder.Services.AddScoped<ObterFunil>();
 builder.Services.AddScoped<ObterPerdas>();
 builder.Services.AddScoped<ObterVendasPerdidas>();
+builder.Services.AddScoped<ObterFunilPorEstagio>();
 builder.Services.AddScoped<ObterPainelDoCen>();
 builder.Services.AddScoped<ObterFaturamento>();
 builder.Services.AddScoped<ObterFaturamentoDoCliente>();

@@ -171,13 +171,35 @@ public static class EndpointsDeRelacionamento
             .ExigePermissao(Permissoes.RelatorioLer)
             .WithSummary("As perdas por motivo.");
 
-        grupo.MapGet("/vendas-perdidas", async (ObterVendasPerdidas caso, CancellationToken ct) =>
-                (await caso.ExecutarAsync(ct)).Responder())
+        grupo.MapGet("/vendas-perdidas", async (
+                ObterVendasPerdidas caso, CancellationToken ct, DateOnly? de = null, DateOnly? ate = null,
+                string? formulario = null, Guid? responsavel = null) =>
+                (await caso.ExecutarAsync(de, ate, formulario, responsavel, ct)).Responder())
             .WithName("ObterVendasPerdidas")
             .ExigePermissao(Permissoes.RelatorioLer)
             .WithSummary(
                 "As vendas perdidas registradas no formulário: por motivo, para qual concorrente " +
-                "e a que distância de preço.");
+                "e a que distância de preço.")
+            .WithDescription(
+                "Só a resposta principal conta. Período pela data em que o formulário foi preenchido (`de` e `ate`, AAAA-MM-DD; " +
+                "padrão: o ano fiscal até o último mês fechado); `formulario` filtra pelo formulário do Vórtice; `responsavel` " +
+                "(chave pública) pelo responsável do processo no funil. Os processos perdidos vêm do funil do Vórtice.");
+
+        // O FUNIL POR ESTÁGIO (documento 52, 27/09/2026): Lead → Faturamento, dos processos 31/41/50 do Vórtice. A mesma
+        // permissão do funil por fase, que a tela do Funil já exige; a filial é o filtro global, como em toda rota daqui.
+        grupo.MapGet("/funil-por-estagio", async (
+                ObterFunilPorEstagio caso, CancellationToken ct, DateOnly? de = null, DateOnly? ate = null,
+                string? @base = null, Guid? carteira = null, Guid? responsavel = null) =>
+                (await caso.ExecutarAsync(de, ate, @base, carteira, responsavel, ct)).Responder())
+            .WithName("ObterFunilPorEstagio")
+            .ExigePermissao(Permissoes.RelatorioLer)
+            .WithSummary("O funil por estágio — Lead, Qualificado, Cobertura, Negociação, Pedido e Faturamento — do Vórtice.")
+            .WithDescription(
+                "`base=abertura` (padrão) é a coorte: os processos abertos no período e até onde chegaram; `base=etapa` é o " +
+                "fluxo: as etapas alcançadas no período. Período em `de` e `ate` (AAAA-MM-DD; padrão: o ano fiscal até o " +
+                "último mês fechado). `carteira` e `responsavel` pela chave pública. Por estágio: processos, % sobre o " +
+                "anterior e sobre o Lead, o subfunil digital e os desfechos; mais os processos parados em Negociação ou " +
+                "Pedido e a última execução da rotina PROCESSOS_VORTICE.");
 
         grupo.MapGet("/faturamento", async (ObterFaturamento caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())
