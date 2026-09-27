@@ -157,7 +157,7 @@ export function EquipamentoFicha() {
         </div>
       </div>
 
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(5,1fr)', marginBottom: 24 }}>
+      <div className="kpi-grid kpi-grid-5" style={{ marginBottom: 24 }}>
         <div className="kpi">
           <span className="kpi-label">Horas de operação</span>
           <span className="kpi-value">
@@ -574,7 +574,7 @@ function AbaTelemetria({ e }: { e: Equipamento }) {
   const excesso = ((e.telemetria.consumo_medio_lh / e.telemetria.consumo_ideal_lh - 1) * 100).toFixed(1);
   return (
     <>
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 20 }}>
+      <div className="kpi-grid" style={{ marginBottom: 20 }}>
         <div className="kpi">
           <span className="kpi-label">Consumo médio</span>
           <span className="kpi-value">
