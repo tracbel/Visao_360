@@ -151,6 +151,7 @@ public sealed class MetasNaApiTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemo
         totais.GetProperty("realizadoMaquinas").GetInt32().Should().Be(3, "as três vendas de Ribeirão no período, com e sem vendedor");
         totais.GetProperty("pendentesNoArt").GetInt32().Should().Be(1, "a pendente de unidade sem filial não é de filial nenhuma");
         totais.GetProperty("metaConsorcio").GetInt32().Should().Be(5);
+        totais.GetProperty("vendasSemVendedor").GetInt32().Should().Be(1, "em número, para a tela somar as filiais");
 
         var linhas = dados.GetProperty("porLinha").EnumerateArray().ToDictionary(l => l.GetProperty("codigo").GetString()!);
         linhas["TRATOR_MEDIO"].GetProperty("meta").GetInt32().Should().Be(5);

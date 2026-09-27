@@ -500,7 +500,7 @@ export function metasDeVenda(estado: EstadoDaVisao360, codigo: string): MetaERea
       inicialDoAnterior: '2024-11-01', finalDoAnterior: '2025-08-01',
     },
     alcance: 'Filial',
-    totais: { metaMaquinas: meta, realizadoMaquinas: realizado, pendentesNoArt: n(21 * p), metaConsorcio: n(40 * p) },
+    totais: { metaMaquinas: meta, realizadoMaquinas: realizado, pendentesNoArt: n(21 * p), metaConsorcio: n(40 * p), vendasSemVendedor: n(2 * p) },
     porMes,
     porLinha: lida
       ? [
@@ -521,7 +521,10 @@ export function metasDeVenda(estado: EstadoDaVisao360, codigo: string): MetaERea
       ? { sistema: 'API Gestão de Negócios', rota: '/api/v1/cadastros/metas', lidaEm: '2026-09-27T09:00:00Z', geradaNaOrigemEm: '2026-09-27T08:59:40Z' }
       : null,
     metricasSemDado: lida
-      ? [{ metrica: 'consorcio', motivo: `Meta de consórcio: ${n(40 * p)} cotas no período. O realizado de consórcio não é medido pelo CRM.` }]
+      ? [
+          { metrica: 'consorcio', motivo: `Meta de consórcio: ${n(40 * p)} cotas no período. O realizado de consórcio não é medido pelo CRM.` },
+          { metrica: 'pendentesSemFilial', motivo: '3 vendas pendentes do ART no período têm unidade sem filial no CRM e não são contadas em filial nenhuma.' },
+        ]
       : [{ metrica: 'cadastroDeMetasNaoLido', motivo: 'O cadastro de metas da API Gestão de Negócios ainda não foi lido.' }],
   };
 }

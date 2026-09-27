@@ -70,7 +70,7 @@ import '../../estilos/painel-executivo.css';
 const REGRA_DA_META =
   'Meta: a cota da API Gestão de Negócios, em máquinas, por consultor, linha, mês e filial. ' +
   'Realizado: as máquinas vendidas que o CRM tem, lidas do ART, pela data da venda — por consultor, conta o vendedor da venda. ' +
-  'As vendas do ART que aguardam cadastro ou chassi não entram no realizado e aparecem à parte. ' +
+  'As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) não entram no realizado e aparecem à parte. ' +
   'Consórcio: meta em cotas; o realizado de consórcio não é medido pelo CRM. ' +
   'Período: o ano fiscal (novembro a outubro) até o último mês fechado, comparado com o mesmo trecho do ano fiscal anterior; o mês em curso vem à parte. ' +
   'Previsão: não calculada — nenhum modelo aprovado.';
@@ -773,7 +773,7 @@ function CartaoDaMeta({ metas, carregando }: { metas: MetasConsolidadas | null; 
   }
 
   const partes = [
-    metas.pendentesNoArt ? `${nº(metas.pendentesNoArt)} vendas do ART aguardam cadastro ou chassi` : null,
+    metas.pendentesNoArt ? `${nº(metas.pendentesNoArt)} vendas aguardam na integração do ART (cadastro, chassi ou outro motivo)` : null,
     metas.metaConsorcio > 0 ? `consórcio: ${nº(metas.metaConsorcio)} cotas, realizado não medido` : null,
     `mesmo trecho do FY anterior: ${nº(metas.realizadoNoAnterior)}`,
     metas.mesEmCurso
@@ -781,13 +781,30 @@ function CartaoDaMeta({ metas, carregando }: { metas: MetasConsolidadas | null; 
       : null,
   ].filter((p): p is string => p !== null);
 
+  // A FILIAL QUE FALHOU SAI DA SOMA, E NÃO EM SILÊNCIO (revisão do PR #248): o subtexto diz quantas responderam e
+  // quais ficaram fora — a que disse 403 está fora do alcance, e não é falha.
+  const esperadas = metas.respondidas + metas.falhas.length;
+
   return (
     <CartaoIndicador
       titulo={titulo}
       valor={meta > 0 ? `${nº(realizado)} de ${nº(meta)}` : nº(realizado)}
-      subtexto={`${proprio ? 'Sua meta · ' : ''}máquinas vendidas${pct === null ? ' · sem meta no período' : ` · ${porcento(pct)} da meta`} · ${periodo?.texto ?? ''}`}
+      subtexto={
+        <>
+          {`${proprio ? 'Sua meta · máquinas vendidas pela sua filial' : 'máquinas vendidas'}${pct === null ? ' · sem meta no período' : ` · ${porcento(pct)} da meta`} · ${periodo?.texto ?? ''}`}
+          {metas.falhas.length > 0 && (
+            <span className="v360-periodo-alerta">
+              {` · ${metas.respondidas} de ${esperadas} filiais — fora: ${metas.falhas.map((f) => f.nome).join(', ')}`}
+            </span>
+          )}
+        </>
+      }
       detalhe={partes.join(' · ')}
-      dica={`${REGRA_DA_META} Cadastro lido em ${diaEHora(origem.lidaEm)}${proprio ? '' : `, ${metas.respondidas} filial(is)`}.`}
+      dica={[
+        REGRA_DA_META,
+        `Cadastro lido em ${diaEHora(origem.lidaEm)}${proprio ? '' : `, ${metas.respondidas} filial(is)`}.`,
+        ...metas.observacoes,
+      ].join(' ')}
       cor="#1B5E20"
       icone="target"
     />
@@ -919,6 +936,9 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
   const mes = ex.faturamentoDoMes;
   const fy = metas?.periodo ? `FY${metas.periodo.anoFiscal}` : 'FY';
   const metaDa = (codigo: string) => metas?.filiais.find((f) => f.filial.codigo === codigo)?.meta ?? null;
+  // O TOTAL DA META COM FILIAL QUE FALHOU diz de quantas é: "1.250 (15 de 16)" — e não um número inteiro que não é.
+  const deQuantas =
+    metas && metas.falhas.length > 0 ? ` (${metas.respondidas} de ${metas.respondidas + metas.falhas.length})` : '';
 
   return (
     <details className="v360-composicao" data-bloco="composicao">
@@ -935,7 +955,7 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
         <li>
           <strong>Meta e realizado</strong>: API Gestão de Negócios (cadastro de metas) → <code>organizacao.MetaDeVenda</code>, em
           máquinas, contra <code>frota.VendaDeMaquina</code> (o ART), pela data da venda, no ano fiscal até o último mês fechado{' '}
-          {metas?.periodo ? `(${metas.periodo.texto})` : ''}. As vendas do ART que aguardam cadastro ou chassi ficam à parte; o
+          {metas?.periodo ? `(${metas.periodo.texto})` : ''}. As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) ficam à parte; o
           consórcio é em cotas, sem realizado. Sem previsão.
         </li>
         <li>
@@ -1010,8 +1030,8 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
               <td className="num">{mes ? emMilhoes(mes.comCliente) : '—'}</td>
               <td className="num">{mes ? emMilhoes(mes.semCliente) : '—'}</td>
               <td className="num">{emMilhoes(ex.realizadoDoAno.total)}</td>
-              <td className="num">{metas && metas.respondidas > 0 ? nº(metas.metaMaquinas) : '—'}</td>
-              <td className="num">{metas && metas.respondidas > 0 ? nº(metas.realizadoMaquinas) : '—'}</td>
+              <td className="num">{metas && metas.respondidas > 0 ? `${nº(metas.metaMaquinas)}${deQuantas}` : '—'}</td>
+              <td className="num">{metas && metas.respondidas > 0 ? `${nº(metas.realizadoMaquinas)}${deQuantas}` : '—'}</td>
               <td className="num">{nº(ex.carteira.clientesCadastradosComVinculo)}</td>
               <td className="num">{nº(ex.carteira.vinculosComerciais)}</td>
               <td className="num">{nº(ex.cobertura.elegiveis)}</td>
@@ -1038,7 +1058,8 @@ function CartaoIndicador({
 }: {
   titulo: string;
   valor: string;
-  subtexto: string;
+  /** A primeira linha do rodapé. Aceita marcação para o alerta das filiais que não responderam. */
+  subtexto: ReactNode;
   /** A segunda linha: a composição do número. Aceita marcação para o "—ⓘ" de um número ausente. */
   detalhe?: ReactNode;
   /**

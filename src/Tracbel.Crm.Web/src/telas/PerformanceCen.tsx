@@ -781,17 +781,23 @@ export function PerformanceCen() {
           />
         )}
 
+        {/* O VAZIO DIZ DE QUEM É (revisão do PR #248): no alcance Próprios, "esta filial não tem meta" seria falso — é a
+            pessoa que não tem, ou o login dela que não casa, e a lacuna logo abaixo diz qual dos dois. */}
         {meta.dados && meta.dados.porConsultor.length === 0 && (
           <BlocoVazio
             titulo={
               meta.dados.origem === null
                 ? 'O cadastro de metas ainda não foi lido'
-                : `Nenhuma meta nem venda de máquina em ${meta.dados.periodo.texto}`
+                : meta.dados.alcance === 'Proprios'
+                  ? `Nenhuma meta nem venda de máquina em seu nome em ${meta.dados.periodo.texto}`
+                  : `Nenhuma meta nem venda de máquina em ${meta.dados.periodo.texto}`
             }
             texto={
               meta.dados.origem === null
                 ? 'A rotina das metas da API Gestão de Negócios ainda não rodou. Sem ela não há meta para comparar — e o CRM não mostra zero no lugar.'
-                : 'O cadastro da API Gestão de Negócios foi lido, e esta filial não tem meta de máquina nem venda do ART no período.'
+                : meta.dados.alcance === 'Proprios'
+                  ? 'O cadastro da API Gestão de Negócios foi lido, e não há meta sua nem venda do ART em seu nome pela sua filial no período. Se o seu login não casa com a GN ou com o ART, a nota abaixo diz.'
+                  : 'O cadastro da API Gestão de Negócios foi lido, e esta filial não tem meta de máquina nem venda do ART no período.'
             }
           />
         )}
@@ -837,7 +843,10 @@ export function PerformanceCen() {
           <p className="cad-sub">
             Meta: a cota da API Gestão de Negócios, em máquinas. Realizado: as vendas do ART em que o
             consultor é o vendedor, pela data da venda
-            {meta.dados.alcance === 'Filial' ? ' — a venda sem vendedor conta no total da filial e em ninguém' : ''}.
+            {meta.dados.alcance === 'Filial'
+              ? ' — a venda sem vendedor conta no total da filial e em ninguém'
+              : ', vendas pela sua filial — a que você fez por outra filial conta lá'}
+            .
             Período: {meta.dados.periodo.texto}
             {meta.dados.periodo.ehOPadrao ? ', o ano fiscal até o último mês fechado' : ''}.
           </p>

@@ -113,7 +113,7 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     expect(cartao).toHaveTextContent('máquinas vendidas');
     expect(cartao).toHaveTextContent('da meta');
     expect(cartao).toHaveTextContent('nov/2025 a ago/2026');
-    expect(cartao).toHaveTextContent('vendas do ART aguardam cadastro ou chassi');
+    expect(cartao).toHaveTextContent('vendas aguardam na integração do ART (cadastro, chassi ou outro motivo)');
     expect(cartao).toHaveTextContent('consórcio');
     expect(cartao).toHaveTextContent('set/2026 em curso');
 
@@ -125,6 +125,10 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     expect(regra).toContain('API Gestão de Negócios');
     expect(regra).toContain('em máquinas');
     expect(regra).toContain('último mês fechado');
+    // AS LACUNAS DA META NA DICA (revisão do PR #248): as com número refeitas da soma das filiais.
+    expect(regra).toMatch(/\d+ consultor\(es\) com meta não têm conta no CRM/);
+    expect(regra).toMatch(/\d+ venda\(s\) do período sem vendedor no ART/);
+    expect(regra).toContain('unidade sem filial no CRM');
 
     // NA COMPOSIÇÃO, a meta e o realizado são em máquinas, e a coluna em reais chama-se Faturamento.
     const cabecalho = container.querySelector('.v360-composicao thead')!;
@@ -142,6 +146,37 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
       return c!;
     });
     expect(cartao).toHaveTextContent('o cadastro de metas da Gestão de Negócios ainda não foi lido');
+  });
+
+  it('a filial cuja meta falhou fica fora da soma NOMEADA, no cartão e no total da composição', async () => {
+    instalarApi('completo');
+    const original = globalThis.fetch;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (entrada: string, init?: RequestInit) =>
+        entrada.includes('/relatorios/metas') && new Headers(init?.headers).get('X-Tracbel-Empresa') === '990002'
+          ? new Response(JSON.stringify({ title: 'Falha interna' }), { status: 500 })
+          : original(entrada, init),
+      ),
+    );
+    const tela = render(
+      <ProvedorDeContextoDeAcesso>
+        <MemoryRouter>
+          <PainelExecutivo />
+        </MemoryRouter>
+      </ProvedorDeContextoDeAcesso>,
+    );
+
+    const cartao = await waitFor(() => {
+      const c = tela.container.querySelector('[data-kpi="Meta e realizado · FY2026"]');
+      expect(c).toHaveTextContent(/\d+ de \d+/);
+      return c!;
+    });
+    expect(cartao.querySelector('.v360-periodo-alerta')).toHaveTextContent('4 de 5 filiais — fora: Filial Fictícia Beta');
+
+    await waitFor(() => expect(tela.container.querySelector('[data-bloco="linha-3"]')).not.toBeNull());
+    const total = tela.container.querySelector('.v360-composicao tr.total')!;
+    expect(total).toHaveTextContent('(4 de 5)');
   });
 
   it('sem a permissão Meta.Ler, o cartão diz que falta a permissão', async () => {

@@ -24,7 +24,9 @@ public sealed record PeriodoDaMeta(
 /// <param name="PendentesNoArt">As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) — nulo no
 /// alcance Próprios.</param>
 /// <param name="MetaConsorcio">A meta de consórcio, em cotas — à parte, sem realizado (D-M4).</param>
-public sealed record TotaisDaMeta(int MetaMaquinas, int RealizadoMaquinas, int? PendentesNoArt, int MetaConsorcio);
+/// <param name="VendasSemVendedor">As vendas do período sem vendedor no ART: contam no total e em consultor nenhum. Em número,
+/// para a tela somar as filiais (revisão do PR #248) — a frase da lacuna é de uma filial só.</param>
+public sealed record TotaisDaMeta(int MetaMaquinas, int RealizadoMaquinas, int? PendentesNoArt, int MetaConsorcio, int VendasSemVendedor);
 
 /// <summary>O mesmo trecho do ano fiscal anterior — só o realizado: a meta daquele ano não está no cadastro.</summary>
 /// <param name="RealizadoMaquinas">As máquinas vendidas no mesmo trecho do ano anterior.</param>
@@ -157,7 +159,7 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
             new PeriodoDaMeta(periodo.Inicial, periodo.Final, periodo.Meses, AnoFiscal.Do(periodo.Final), periodo.Texto, ehOPadrao,
                 anterior.Inicial, anterior.Final),
             alcance.ToString(),
-            new TotaisDaMeta(apurado.MetaMaquinas, apurado.RealizadoMaquinas, apurado.PendentesNoArt, apurado.MetaConsorcio),
+            new TotaisDaMeta(apurado.MetaMaquinas, apurado.RealizadoMaquinas, apurado.PendentesNoArt, apurado.MetaConsorcio, apurado.VendasSemVendedor),
             apurado.PorMes,
             apurado.PorLinha,
             apurado.PorConsultor,

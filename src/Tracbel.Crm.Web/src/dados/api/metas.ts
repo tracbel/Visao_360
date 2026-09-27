@@ -38,6 +38,15 @@ export type MetasConsolidadas = {
   filiais: MetaDaFilial[];
   respondidas: number;
   foraDoAlcance: number;
+  /** As filiais que falharam (e não disseram 403): ficam fora da soma, e a tela as nomeia. */
+  falhas: Filial[];
+  /** As vendas do período sem vendedor no ART, somadas das filiais. */
+  vendasSemVendedor: number;
+  /**
+   * O que a soma não diz, em frases já consolidadas para a dica do cartão (revisão do PR #248): as que têm número são
+   * refeitas da soma — a frase da API é de uma filial só —, e as que valem para todas vêm da primeira filial.
+   */
+  observacoes: string[];
   /** Nenhuma filial respondeu e todas disseram 403: quem lê não tem `Meta.Ler`. */
   semPermissao: boolean;
   periodo: PeriodoDaMeta | null;
@@ -116,6 +125,26 @@ export function somarMetas(filiais: MetaDaFilial[]): MetasConsolidadas {
   const lacunas = new Map<string, MetricaSemDado>();
   for (const l of vivas.flatMap((m) => m.metricasSemDado)) if (!lacunas.has(l.metrica)) lacunas.set(l.metrica, l);
 
+  const porPessoa = [...consultores.values()];
+  const vendasSemVendedor = somar(vivas, (m) => m.totais.vendasSemVendedor ?? 0);
+  const semConta = porPessoa.filter((c) => !c.temConta && c.meta > 0).length;
+  const alcance = vivas[0]?.alcance ?? null;
+
+  // AS FRASES DA DICA DO CARTÃO. Com número, refeitas da soma: a da API é da filial que respondeu primeiro. Sem número
+  // de filial (o fim do cadastro, as pendentes sem filial, o login que não casa), a primeira vale para todas.
+  const observacoes = [
+    lacunas.get('loginSemCasamento')?.motivo,
+    lacunas.get('vendasPelaFilial')?.motivo,
+    lacunas.get('metaParcial')?.motivo,
+    alcance === 'Filial' && semConta > 0
+      ? `${semConta.toLocaleString('pt-BR')} consultor(es) com meta não têm conta no CRM: a meta deles aparece só na visão da filial.`
+      : undefined,
+    vendasSemVendedor > 0
+      ? `${vendasSemVendedor.toLocaleString('pt-BR')} venda(s) do período sem vendedor no ART contam no total e em consultor nenhum.`
+      : undefined,
+    lacunas.get('pendentesSemFilial')?.motivo,
+  ].filter((o): o is string => typeof o === 'string' && o.length > 0);
+
   const origem =
     vivas
       .map((m) => m.origem)
@@ -127,9 +156,12 @@ export function somarMetas(filiais: MetaDaFilial[]): MetasConsolidadas {
     filiais,
     respondidas: vivas.length,
     foraDoAlcance,
+    falhas: filiais.filter((f) => f.erro !== null && !f.foraDoAlcance).map((f) => f.filial),
+    vendasSemVendedor,
+    observacoes,
     semPermissao: vivas.length === 0 && filiais.length > 0 && foraDoAlcance === filiais.length,
     periodo: vivas[0]?.periodo ?? null,
-    alcance: vivas[0]?.alcance ?? null,
+    alcance,
     metaMaquinas: somar(vivas, (m) => m.totais.metaMaquinas),
     realizadoMaquinas: somar(vivas, (m) => m.totais.realizadoMaquinas),
     pendentesNoArt: comPendente.length === 0 ? null : somar(comPendente, (m) => m.totais.pendentesNoArt ?? 0),
@@ -144,7 +176,7 @@ export function somarMetas(filiais: MetaDaFilial[]): MetasConsolidadas {
             realizadoMaquinas: somar(emCurso, (m) => m!.realizadoMaquinas),
           },
     porLinha: [...linhas.values()].sort((a, b) => b.meta - a.meta || b.realizado - a.realizado || a.nome.localeCompare(b.nome)),
-    porConsultor: [...consultores.values()].sort(
+    porConsultor: porPessoa.sort(
       (a, b) => b.meta - a.meta || b.realizado - a.realizado || a.consultor.localeCompare(b.consultor),
     ),
     origem,

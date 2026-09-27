@@ -18,7 +18,7 @@ function meta(parcial: Partial<MetaERealizadoDaFilial> & { meta: number; realiza
   return {
     periodo,
     alcance: 'Filial',
-    totais: { metaMaquinas: parcial.meta, realizadoMaquinas: parcial.realizado, pendentesNoArt: parcial.pendentes === undefined ? 2 : parcial.pendentes, metaConsorcio: 3 },
+    totais: { metaMaquinas: parcial.meta, realizadoMaquinas: parcial.realizado, pendentesNoArt: parcial.pendentes === undefined ? 2 : parcial.pendentes, metaConsorcio: 3, vendasSemVendedor: 1 },
     porMes: [],
     porLinha: [{ codigo: 'TRATOR_MEDIO', nome: 'TRATOR MÉDIO', meta: parcial.meta, realizado: parcial.realizado }],
     porConsultor: parcial.porConsultor ?? [],
@@ -49,8 +49,28 @@ describe('somarMetas', () => {
     expect(soma.mesEmCurso).toEqual({ competencia: '2026-09-01', metaMaquinas: 2, realizadoMaquinas: 2 });
     expect(soma.porLinha).toEqual([{ codigo: 'TRATOR_MEDIO', nome: 'TRATOR MÉDIO', meta: 15, realizado: 13 }]);
     expect(soma.filiais.find((f) => f.filial.codigo === '010105')?.erro?.message).toBe('caiu');
+    expect(soma.falhas.map((f) => f.codigo)).toEqual(['010105']);
+    expect(soma.vendasSemVendedor).toBe(2);
     expect(soma.semPermissao).toBe(false);
     expect(soma.periodo?.anoFiscal).toBe(2026);
+  });
+
+  it('a 403 não é falha, e as frases da dica com número saem da soma, e não de uma filial', () => {
+    const lacunas = [
+      { metrica: 'consultoresSemConta', motivo: '1 consultor(es) com meta nesta filial não têm conta no CRM.' },
+      { metrica: 'pendentesSemFilial', motivo: '3 vendas pendentes do ART no período têm unidade sem filial no CRM.' },
+    ];
+    const soma = somarMetas([
+      respondeu('010101', { ...meta({ meta: 3, realizado: 1, porConsultor: [{ consultor: 'A.B', temConta: false, meta: 3, realizado: 1 }] }), metricasSemDado: lacunas }),
+      respondeu('010103', { ...meta({ meta: 2, realizado: 2, porConsultor: [{ consultor: 'C.D', temConta: false, meta: 2, realizado: 2 }] }), metricasSemDado: lacunas }),
+      proibida('010105'),
+    ]);
+
+    expect(soma.falhas).toEqual([]);
+    expect(soma.observacoes).toContain('2 consultor(es) com meta não têm conta no CRM: a meta deles aparece só na visão da filial.');
+    expect(soma.observacoes).toContain('2 venda(s) do período sem vendedor no ART contam no total e em consultor nenhum.');
+    expect(soma.observacoes).toContain('3 vendas pendentes do ART no período têm unidade sem filial no CRM.');
+    expect(soma.observacoes.join(' ')).not.toContain('1 consultor(es) com meta nesta filial');
   });
 
   it('403 é fora do alcance, e todas em 403 é falta da permissão', () => {

@@ -26,10 +26,15 @@ export type PeriodoDaMeta = {
 export type TotaisDaMeta = {
   metaMaquinas: number;
   realizadoMaquinas: number;
-  /** As vendas do ART que aguardam cadastro ou chassi; nulo no alcance Próprios (a pendente ainda não tem vendedor). */
+  /**
+   * As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo); nulo no alcance Próprios (a pendente
+   * ainda não tem vendedor).
+   */
   pendentesNoArt: number | null;
   /** Em cotas — à parte, sem realizado. */
   metaConsorcio: number;
+  /** As vendas do período sem vendedor no ART: contam no total e em consultor nenhum. Em número, para somar as filiais. */
+  vendasSemVendedor: number;
 };
 
 export type MetaERealizadoNoMes = {

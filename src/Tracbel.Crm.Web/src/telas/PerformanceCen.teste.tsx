@@ -35,7 +35,10 @@ const guardado = new Map<string, string>();
 /** A filial do contexto padrão; a amostra responde a ela com a primeira filial fictícia. */
 const FILIAL = '010101';
 
-function instalarApi(estado: EstadoDaVisao360, metasRecusadas = false) {
+/** Como a rota das metas responde: a amostra, 403, ou uma resposta dada pelo teste. */
+type RespostaDasMetas = 'amostra' | 'recusada' | { dados: unknown };
+
+function instalarApi(estado: EstadoDaVisao360, metas: RespostaDasMetas = 'amostra') {
   vi.stubGlobal('localStorage', {
     getItem: (chave: string) => guardado.get(chave) ?? null,
     setItem: (chave: string, valor: string) => void guardado.set(chave, valor),
@@ -46,8 +49,11 @@ function instalarApi(estado: EstadoDaVisao360, metasRecusadas = false) {
     'fetch',
     vi.fn(async (entrada: string, init?: RequestInit) => {
       const [caminho, consulta = ''] = entrada.replace(/^.*\/api/, '').split('?');
-      if (metasRecusadas && caminho === '/v1/relatorios/metas') {
+      if (caminho === '/v1/relatorios/metas' && metas === 'recusada') {
         return new Response(JSON.stringify({ title: 'Sem a permissão Meta.Ler' }), { status: 403 });
+      }
+      if (caminho === '/v1/relatorios/metas' && typeof metas === 'object') {
+        return new Response(JSON.stringify({ dados: metas.dados, procedencia: null }), { status: 200 });
       }
       const empresa = new Headers(init?.headers).get('X-Tracbel-Empresa') ?? '';
       const dados = respostaDaVisao360(caminho, new URLSearchParams(consulta), empresa, estado);
@@ -59,8 +65,8 @@ function instalarApi(estado: EstadoDaVisao360, metasRecusadas = false) {
 }
 
 /** Monta a tela e devolve o bloco da meta quando a leitura dela voltou. */
-async function montar(estado: EstadoDaVisao360, metasRecusadas = false) {
-  instalarApi(estado, metasRecusadas);
+async function montar(estado: EstadoDaVisao360, metas: RespostaDasMetas = 'amostra') {
+  instalarApi(estado, metas);
   const tela = render(
     <ProvedorDeContextoDeAcesso>
       <MemoryRouter>
@@ -124,8 +130,26 @@ describe('Performance de CEN — a meta de venda por consultor (#138)', () => {
     expect(within(bloco).queryByRole('table')).toBeNull();
   });
 
+  it('no alcance Próprios, o vazio é "em seu nome", as vendas contam pela sua filial, e a nota do login aparece', async () => {
+    const lida = metasDeVenda('completo', FILIAL);
+    const { bloco } = await montar('completo', {
+      dados: {
+        ...lida,
+        alcance: 'Proprios',
+        porConsultor: [],
+        metricasSemDado: [{ metrica: 'loginSemCasamento', motivo: 'Seu login não casa com consultor nenhum da API Gestão de Negócios.' }],
+      },
+    });
+
+    expect(bloco.querySelector('summary')).toHaveTextContent('Sua meta de venda × o realizado');
+    expect(bloco).toHaveTextContent('Nenhuma meta nem venda de máquina em seu nome');
+    expect(bloco).not.toHaveTextContent('esta filial não tem meta');
+    expect(bloco).toHaveTextContent('vendas pela sua filial');
+    expect(bloco).toHaveTextContent('Seu login não casa');
+  });
+
   it('o 403 é falta de permissão, e o bloco não oferece tentar de novo', async () => {
-    const { bloco } = await montar('completo', true);
+    const { bloco } = await montar('completo', 'recusada');
 
     expect(bloco).toHaveTextContent('Sem permissão para esta consulta');
     expect(within(bloco).queryByRole('button', { name: 'Tentar de novo' })).toBeNull();
