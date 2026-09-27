@@ -12,14 +12,21 @@
  * conteúdo é o mesmo — e este teste troca de aba antes de conferir, que é o que
  * uma pessoa faria. O último bloco compara a lista de medidas de ANTES da fase
  * 4 com a de agora: nenhuma pode ter sumido.
+ *
+ * 27/09/2026: a variação "vs. ano anterior" dos cartõezinhos passou a ter número
+ * onde há número, a lavoura da Visão geral traz todas as culturas quando o
+ * histórico do município chega, e a aba Histórico ganhou as séries que existem.
  */
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ProvedorDeContextoDeAcesso } from '../../dados/api/contexto';
 import type {
   CulturaNoEstado,
+  HistoricoDoMunicipio,
   IndicadoresDoMunicipio,
   NumerosDeDecisao,
+  PeriodoAnterior,
   PotencialEstruturalDoMunicipio,
   PotencialTerritorial,
   ProcedenciasDoTerritorio,
@@ -28,7 +35,28 @@ import type {
   TotaisDoEstado,
 } from '../../tipos/territorio';
 import { ProvedorDoPeriodo } from './carteira/periodo';
+import { ProvedorDaComparacao } from './comparacao';
 import { DetalheDoMunicipio } from './DetalheDoMunicipio';
+
+const obterHistoricoDoMunicipio = vi.hoisted(() => vi.fn());
+
+vi.mock('../../dados/api/territorio', async (original) => ({
+  ...(await original<typeof import('../../dados/api/territorio')>()),
+  obterHistoricoDoMunicipio,
+}));
+
+const guardado = new Map<string, string>();
+vi.stubGlobal('localStorage', {
+  getItem: (c: string) => guardado.get(c) ?? null,
+  setItem: (c: string, v: string) => void guardado.set(c, v),
+  removeItem: (c: string) => void guardado.delete(c),
+  clear: () => guardado.clear(),
+});
+
+afterEach(() => {
+  obterHistoricoDoMunicipio.mockReset();
+  guardado.clear();
+});
 
 const REGRA: RegraDePotencialAplicada = {
   produtoCodigoIbge: 40139,
@@ -146,6 +174,8 @@ function municipio(
     vendas: { clientesQueCompraram: 0, valorLiquido: 0, maquina: 0, peca: 0, servico: 0, outros: 0, posVenda: 0 },
     potencial: [p],
     responsaveisPelasCarteiras: [],
+    vendasNoPeriodoAnterior: null,
+    maquinasVendidasNoPeriodoAnterior: null,
     producao: null,
     estrutura: {
       anoDoCenso: null, tratores: null, tratoresAbaixoDe100Cv: null, tratoresDe100CvEMais: null, estabelecimentosComTrator: null,
@@ -169,21 +199,124 @@ const CAFE_EM_SP: CulturaNoEstado = {
   unidadeDaProdutividade: 't/ha',
 };
 
-function abrir(m: IndicadoresDoMunicipio, culturasNoEstado: CulturaNoEstado[] = [], denominadores = true, aoFechar = () => {}) {
+/** A janela anterior como a API a manda — o faturamento cobre, o ART não. */
+const PERIODO_ANTERIOR: PeriodoAnterior = {
+  competenciaInicial: '2024-11-01',
+  competenciaFinal: '2025-08-01',
+  primeiraCompetenciaDoFaturamento: '2023-01-01',
+  primeiroMesDoArt: '2025-01-01',
+  maquinasVendidas: null,
+  serieAtual: [],
+  serieAnterior: [],
+  vendasCobertas: true,
+  maquinasCobertas: false,
+  motivoSemVendas: null,
+  motivoSemMaquinas: 'FRASE DO SERVIDOR — o ART começa em jan/2025.',
+};
+
+const FILTROS = { visao: 'Filial', filialDaVenda: '', filialDoCliente: '', categoriaDeMaquina: '', responsavel: '' } as const;
+
+function abrir(
+  m: IndicadoresDoMunicipio,
+  culturasNoEstado: CulturaNoEstado[] = [],
+  denominadores = true,
+  aoFechar = () => {},
+  {
+    periodoAnterior = null,
+    comFiltros = false,
+    numeros = NUMEROS,
+  }: { periodoAnterior?: PeriodoAnterior | null; comFiltros?: boolean; numeros?: NumerosDeDecisao } = {},
+) {
   render(
-    <ProvedorDoPeriodo value={{ meses: 12, rotulo: '12 meses', intervalo: 'out/2025 a set/2026' }}>
-      <DetalheDoMunicipio
-        municipio={m}
-        regras={[REGRA]}
-        culturasNoEstado={culturasNoEstado}
-        regiaoTracbel={denominadores ? REGIAO : null}
-        estado={denominadores ? SAO_PAULO : null}
-        procedencias={PROCEDENCIAS}
-        numerosDeDecisao={NUMEROS}
-        aoFechar={aoFechar}
-      />
-    </ProvedorDoPeriodo>,
+    <ProvedorDeContextoDeAcesso>
+      <ProvedorDoPeriodo
+        value={{ meses: 10, rotulo: 'Ano fiscal', descricao: 'o ano fiscal até o último mês fechado', intervalo: 'nov/2025 a ago/2026' }}
+      >
+        <ProvedorDaComparacao periodoAnterior={periodoAnterior} numeros={null}>
+          <DetalheDoMunicipio
+            municipio={m}
+            regras={[REGRA]}
+            culturasNoEstado={culturasNoEstado}
+            regiaoTracbel={denominadores ? REGIAO : null}
+            estado={denominadores ? SAO_PAULO : null}
+            procedencias={PROCEDENCIAS}
+            numerosDeDecisao={numeros}
+            filtros={comFiltros ? FILTROS : undefined}
+            aoFechar={aoFechar}
+          />
+        </ProvedorDaComparacao>
+      </ProvedorDoPeriodo>
+    </ProvedorDeContextoDeAcesso>,
   );
+}
+
+/** O histórico como a API o manda: FY26 em curso, FY25 inteiro, o mesmo trecho do FY25 e dois anos da PAM. */
+const HISTORICO: HistoricoDoMunicipio = {
+  codigoIbge: 3543402,
+  nome: 'Ribeirão Preto',
+  primeiraCompetenciaDoFaturamento: '2024-11-01',
+  primeiroMesDoArt: '2025-01-01',
+  anosFiscais: [
+    {
+      anoFiscal: 2025,
+      inicio: '2024-11-01',
+      fim: '2025-10-01',
+      emCurso: false,
+      vendas: { clientesQueCompraram: 3, valorLiquido: 2_000_000, maquina: 1_500_000, peca: 300_000, servico: 200_000, outros: 0, posVenda: 500_000 },
+      motivoSemVendas: null,
+      maquinasVendidas: null,
+      motivoSemMaquinas: 'FRASE DO SERVIDOR — o ART começa em jan/2025, depois do começo do FY25.',
+    },
+    {
+      anoFiscal: 2026,
+      inicio: '2025-11-01',
+      fim: '2026-08-01',
+      emCurso: true,
+      vendas: { clientesQueCompraram: 4, valorLiquido: 1_250_000, maquina: 900_000, peca: 200_000, servico: 150_000, outros: 0, posVenda: 350_000 },
+      motivoSemVendas: null,
+      maquinasVendidas: 6,
+      motivoSemMaquinas: null,
+    },
+  ],
+  mesmoTrechoDoAnoAnterior: {
+    anoFiscal: 2025,
+    inicio: '2024-11-01',
+    fim: '2025-08-01',
+    emCurso: true,
+    vendas: { clientesQueCompraram: 3, valorLiquido: 1_000_000, maquina: 800_000, peca: 120_000, servico: 80_000, outros: 0, posVenda: 200_000 },
+    motivoSemVendas: null,
+    maquinasVendidas: null,
+    motivoSemMaquinas: 'FRASE DO SERVIDOR — o ART começa em jan/2025, depois do começo do FY25.',
+  },
+  lavoura: [
+    {
+      ano: 2023,
+      areaPlantadaHectares: 36_000,
+      areaColhidaHectares: 35_000,
+      valorDaProducaoMilReais: 400_000,
+      culturas: [{ produtoCodigoIbge: 40106, produtoNome: 'Cana-de-açúcar', areaPlantadaHectares: 30_000, areaColhidaHectares: 29_000, valorDaProducaoMilReais: 300_000 }],
+    },
+    {
+      ano: 2024,
+      areaPlantadaHectares: 37_226,
+      areaColhidaHectares: 36_000,
+      valorDaProducaoMilReais: 468_600,
+      culturas: [
+        { produtoCodigoIbge: 40106, produtoNome: 'Cana-de-açúcar', areaPlantadaHectares: 10_000, areaColhidaHectares: 10_000, valorDaProducaoMilReais: 100_000 },
+        { produtoCodigoIbge: 40139, produtoNome: 'Café (em grão) Total', areaPlantadaHectares: 23_000, areaColhidaHectares: 22_000, valorDaProducaoMilReais: 300_000 },
+        { produtoCodigoIbge: 40124, produtoNome: 'Soja (em grão)', areaPlantadaHectares: 2_000, areaColhidaHectares: 2_000, valorDaProducaoMilReais: 30_000 },
+        { produtoCodigoIbge: 40112, produtoNome: 'Laranja', areaPlantadaHectares: 1_000, areaColhidaHectares: 1_000, valorDaProducaoMilReais: 20_000 },
+        { produtoCodigoIbge: 40114, produtoNome: 'Milho (em grão)', areaPlantadaHectares: 1_000, areaColhidaHectares: 1_000, valorDaProducaoMilReais: 10_000 },
+        { produtoCodigoIbge: 40110, produtoNome: 'Feijão (em grão)', areaPlantadaHectares: 226, areaColhidaHectares: 200, valorDaProducaoMilReais: 8_600 },
+      ],
+    },
+  ],
+};
+
+/** A ficha com o histórico lido — espera a promessa resolver. */
+async function abrirComHistorico(m: IndicadoresDoMunicipio, historico: HistoricoDoMunicipio = HISTORICO) {
+  obterHistoricoDoMunicipio.mockResolvedValue({ dados: historico, procedencia: null });
+  await act(async () => abrir(m, [], true, () => {}, { comFiltros: true, periodoAnterior: PERIODO_ANTERIOR }));
 }
 
 /** Troca de aba como uma pessoa troca: clicando no nome dela. */
@@ -388,10 +521,40 @@ describe('DetalheDoMunicipio — a Visão geral', () => {
     expect(mini('clientes')).toHaveTextContent('12');
     expect(visao).not.toHaveTextContent('Clientes ativos');
 
-    expect(textoDaDica('Por que a variação de vendas no período não aparece')).toMatch(/issue 69/);
     // O período é o da página, e o seletor diz qual.
     expect((screen.getByRole('combobox', { name: 'Período do resumo' }) as HTMLSelectElement).disabled).toBe(true);
-    expect(screen.getByRole('combobox', { name: 'Período do resumo' })).toHaveTextContent('12 meses');
+    expect(screen.getByRole('combobox', { name: 'Período do resumo' })).toHaveTextContent('Ano fiscal');
+  });
+
+  it('vendas e pós-venda comparam com o mesmo trecho do ano anterior; parque e clientes dizem por que não', () => {
+    abrir(
+      municipio(potencial({ areaPlantadaHectares: 23_000 }), undefined, {
+        vendas: { clientesQueCompraram: 4, valorLiquido: 1_250_000, maquina: 900_000, peca: 200_000, servico: 150_000, outros: 0, posVenda: 350_000 },
+        vendasNoPeriodoAnterior: { clientesQueCompraram: 3, valorLiquido: 1_000_000, maquina: 800_000, peca: 120_000, servico: 80_000, outros: 0, posVenda: 200_000 },
+      }),
+      [],
+      true,
+      () => {},
+      { periodoAnterior: PERIODO_ANTERIOR },
+    );
+    const mini = (id: string) => document.querySelector<HTMLElement>(`[data-mini="${id}"]`)!;
+
+    // 1.250.000 / 1.000.000 = +25%; 350.000 / 200.000 = +75%.
+    expect(mini('vendas')).toHaveTextContent(/↑ \+25%/);
+    expect(mini('posVenda')).toHaveTextContent(/↑ \+75%/);
+    expect(textoDaDica('A variação de vendas no período')).toContain('nov/2024 a ago/2025, o mesmo trecho do ano anterior');
+
+    expect(textoDaDica('Por que a variação de máquinas teóricas não aparece')).toMatch(/número estrutural/);
+    expect(textoDaDica('Por que a variação de clientes com endereço não aparece')).toMatch(/cadastro de hoje/);
+  });
+
+  it('sem a janela anterior coberta, a variação de vendas diz o motivo do servidor — e não vira queda', () => {
+    abrir(comLavouraEEstrutura(), [], true, () => {}, {
+      periodoAnterior: { ...PERIODO_ANTERIOR, vendasCobertas: false, motivoSemVendas: 'FRASE DO SERVIDOR — faturamento começa depois.' },
+    });
+
+    expect(document.querySelector('[data-mini="vendas"]')).not.toHaveTextContent('↓');
+    expect(textoDaDica('Por que a variação de vendas no período não aparece')).toBe('FRASE DO SERVIDOR — faturamento começa depois.');
   });
 
   it('a lavoura lista as culturas do detalhe e "Outros" até o total da PAM', () => {
@@ -407,6 +570,18 @@ describe('DetalheDoMunicipio — a Visão geral', () => {
     const dica = textoDaDica('De onde vem a lavoura do município');
     expect(dica).toMatch(/só das culturas com regra de potencial/);
     expect(dica).toMatch(/de 9 com área divulgada/);
+  });
+
+  it('com o histórico lido, a lavoura traz TODAS as culturas do ano mais recente (issue 168)', async () => {
+    await abrirComHistorico(comLavouraEEstrutura());
+    const lavoura = document.querySelector<HTMLElement>('[data-bloco-da-ficha="lavoura"]')!;
+
+    const linhas = [...lavoura.querySelectorAll<HTMLElement>('tbody tr')].map((tr) => tr.dataset.cultura);
+    // AS QUATRO MAIORES, E "OUTROS" É O QUE FALTA ATÉ O TOTAL: milho e feijão, 1.226 ha.
+    expect(linhas).toEqual(['Café (em grão) Total', 'Cana-de-açúcar', 'Soja (em grão)', 'Laranja', 'Outros']);
+    expect(lavoura.querySelector('[data-cultura="Outros"]')).toHaveTextContent(/1\.226\s*3%/);
+    expect(textoDaDica('De onde vem a lavoura do município')).toMatch(/todas as culturas que a PAM divulgou com área aqui \(6\)/);
+    expect(obterHistoricoDoMunicipio).toHaveBeenCalledWith(expect.anything(), 3543402, FILTROS, expect.anything());
   });
 
   it('cultura com regra e área nula é "sem área divulgada (sigilo ou não cultivada)" — e não sigilo afirmado', () => {
@@ -537,18 +712,74 @@ describe('DetalheDoMunicipio — Lavoura, Estrutura, Oportunidades e Histórico'
 
     const lista = painelAtivo().querySelector<HTMLElement>('[data-bloco-da-ficha="lista-de-oportunidades"]')!;
     expect(within(lista).getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Oportunidade', 'Confiança', 'Origem']);
-    expect(lista).toHaveTextContent('aguarda vendas por município (#69) e a confiança da #162');
+    expect(lista).toHaveTextContent('aguarda a confiança da #162');
+    expect(lista).not.toHaveTextContent('#69');
     for (const nivel of ['Alta', 'Média', 'Baixa']) expect(lista).toHaveTextContent(nivel);
-    expect(textoDaDica('Por que não há oportunidades listadas')).toMatch(/não com exemplos/);
+    const dica = textoDaDica('Por que não há oportunidades listadas');
+    expect(dica).toMatch(/não com exemplos/);
+    expect(dica).toMatch(/já existem \(issue 69/);
   });
 
-  it('a aba Histórico diz que a série não existe, e não desenha linha', () => {
+  it('quando o recorte tem o número, o município não o herda — e diz por quê', () => {
+    abrir(comLavouraEEstrutura(), [], true, () => {}, {
+      numeros: {
+        ...NUMEROS,
+        capturaPercentual: { valor: 12.5, motivo: 'Nenhum', frase: '' },
+        oportunidade: { valor: 40, motivo: 'Nenhum', frase: '' },
+      },
+    });
+    irPara('Oportunidades');
+
+    expect(painelAtivo().querySelector('[data-camada="decisao"]')).not.toHaveTextContent('12,5');
+    expect(textoDaDica('Por que captura tracbel não aparece')).toMatch(/existe para o recorte inteiro/);
+    expect(textoDaDica('Por que oportunidade não aparece')).toMatch(/ainda não por município/);
+  });
+
+  it('a aba Histórico sem os filtros da página não lê — e diz por quê', () => {
     abrir(comLavouraEEstrutura());
     irPara('Histórico');
 
+    expect(painelAtivo()).toHaveTextContent('Histórico não lido');
+    expect(obterHistoricoDoMunicipio).not.toHaveBeenCalled();
+    expect(textoDaDica('Por que o histórico do município não foi lido')).toMatch(/filtros de alcance da página/);
+  });
+
+  it('a aba Histórico mostra as vendas por ano fiscal, o mesmo trecho e a lavoura ano a ano', async () => {
+    await abrirComHistorico(comLavouraEEstrutura());
+    irPara('Histórico');
+
+    const vendas = painelAtivo().querySelector<HTMLElement>('[data-historico="vendas"]')!;
+    const linhas = [...vendas.querySelectorAll<HTMLElement>('tbody tr')];
+    // O ANO MAIS RECENTE PRIMEIRO, e o mesmo trecho do anterior por último.
+    expect(linhas.map((l) => l.dataset.anoFiscal)).toEqual(['2026', '2025', '2025']);
+    expect(linhas[0]).toHaveTextContent(/FY26\s*nov\/2025 a ago\/2026 · em curso/);
+    expect(linhas[0]).toHaveTextContent('R$ 1,3 mi');
+    expect(linhas[2]).toHaveAttribute('data-mesmo-trecho', 'true');
+    expect(linhas[2]).toHaveTextContent(/o mesmo trecho/);
+
+    // REAIS E UNIDADES EM COLUNAS SEPARADAS; o ano que o ART não cobre fica com o traço e o motivo.
+    expect(linhas[0]).toHaveTextContent('6');
+    expect(within(linhas[1]).getByRole('button', { name: 'Por que as máquinas vendidas no FY25 não aparece' })).toBeInTheDocument();
+    expect(painelAtivo().querySelector('[data-comparacao-do-historico]')).toHaveTextContent(
+      'FY26 até ago/2026 contra FY25 no mesmo trecho: +25% em reais.',
+    );
+
+    const lavoura = painelAtivo().querySelector<HTMLElement>('[data-historico="lavoura"]')!;
+    expect([...lavoura.querySelectorAll<HTMLElement>('tbody tr')].map((l) => l.dataset.anoDaPam)).toEqual(['2024', '2023']);
+    expect(lavoura).toHaveTextContent(/Café \(em grão\) Total 23\.000 ha · Cana-de-açúcar 10\.000 ha · Soja \(em grão\) 2\.000 ha · mais 3/);
+
+    // A COBERTURA NÃO TEM SÉRIE, e diz por quê; nenhuma linha é desenhada.
     expect(painelAtivo()).toHaveTextContent('Sem série histórica');
     expect(painelAtivo().querySelector('canvas')).toBeNull();
-    expect(textoDaDica('Por que o histórico do município está vazio')).toMatch(/série histórica do município ainda não existe/);
+    expect(textoDaDica('Por que a cobertura de visita não tem histórico')).toMatch(/medida no instante/);
+  });
+
+  it('o histórico de outro município não aparece na ficha deste', async () => {
+    await abrirComHistorico(comLavouraEEstrutura(), { ...HISTORICO, codigoIbge: 3500000 });
+    irPara('Histórico');
+
+    expect(painelAtivo().querySelector('[data-historico="vendas"]')).toBeNull();
+    expect(painelAtivo()).toHaveTextContent('Lendo o histórico de Ribeirão Preto');
   });
 
   it('nenhum `title=` cru na ficha', () => {

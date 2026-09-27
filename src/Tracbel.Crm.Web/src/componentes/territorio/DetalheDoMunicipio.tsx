@@ -22,8 +22,13 @@
 
 import { Check, MapPin, X } from 'lucide-react';
 import { Fragment, useState } from 'react';
+import { useContextoDeAcesso } from '../../dados/api/contexto';
+import { obterHistoricoDoMunicipio } from '../../dados/api/territorio';
+import { useRecurso } from '../../dados/api/useRecurso';
 import type {
   CulturaNoEstado,
+  FiltrosTerritoriais,
+  HistoricoDoMunicipio,
   IndicadoresDoMunicipio,
   NumerosDeDecisao,
   ProcedenciasDoTerritorio,
@@ -36,7 +41,7 @@ import { ComparacaoSomavel } from '../comum/Comparacao';
 import { montarSomavel } from '../comum/comparacoes';
 import { ValorAusente } from '../comum/ValorAusente';
 import { AbasDaFicha, PainelDaFicha, type AbaDaFicha } from './carteira/AbasDaFicha';
-import { HistoricoDoMunicipio } from './carteira/HistoricoDoMunicipio';
+import { HistoricoDoMunicipio as AbaDoHistorico, type EstadoDoHistorico } from './carteira/HistoricoDoMunicipio';
 import { OportunidadesDoMunicipio } from './carteira/OportunidadesDoMunicipio';
 import { usePeriodoDaLeitura } from './carteira/periodo';
 import { VisaoGeralDoMunicipio } from './carteira/VisaoGeralDoMunicipio';
@@ -69,6 +74,7 @@ export function DetalheDoMunicipio({
   estado,
   procedencias,
   numerosDeDecisao,
+  filtros,
   aoFechar,
 }: {
   municipio: IndicadoresDoMunicipio;
@@ -87,11 +93,48 @@ export function DetalheDoMunicipio({
    * para o município, e o servidor diz uma vez só, com a mesma redação do topo.
    */
   numerosDeDecisao: NumerosDeDecisao | null;
+  /**
+   * Os filtros de alcance da página — o histórico do município é lido com eles
+   * (27/09/2026). Sem eles (a ficha sozinha, num teste), o histórico não é lido.
+   */
+  filtros?: Pick<FiltrosTerritoriais, 'visao' | 'filialDaVenda' | 'filialDoCliente' | 'categoriaDeMaquina' | 'responsavel'>;
   aoFechar: () => void;
 }) {
   const { cobertura, vendas, estrutura, producao } = municipio;
   const motor = municipio.potencialEstrutural;
   const periodo = usePeriodoDaLeitura();
+  const { contexto } = useContextoDeAcesso();
+
+  // O MUNICÍPIO AO LONGO DO TEMPO (27/09/2026): as vendas por ano fiscal e a
+  // lavoura inteira de cada ano da PAM. Uma leitura por município escolhido,
+  // com os mesmos filtros de alcance da página — a aba Histórico e a lavoura da
+  // Visão geral usam a mesma resposta.
+  const leituraDoHistorico = useRecurso<HistoricoDoMunicipio | null>(
+    (sinal) =>
+      filtros
+        ? obterHistoricoDoMunicipio(contexto, municipio.codigoIbge, filtros, sinal)
+        : Promise.resolve({ dados: null, procedencia: null }),
+    [
+      contexto.empresa,
+      contexto.usuario,
+      municipio.codigoIbge,
+      filtros?.visao,
+      filtros?.filialDaVenda,
+      filtros?.filialDoCliente,
+      filtros?.categoriaDeMaquina,
+      filtros?.responsavel,
+    ],
+  );
+  // O DADO ANTERIOR FICA NA TELA ENQUANTO O PRÓXIMO CARREGA (`useRecurso`): ao
+  // trocar de município, o histórico do outro não pode aparecer nesta ficha.
+  const historico =
+    leituraDoHistorico.dados?.codigoIbge === municipio.codigoIbge ? leituraDoHistorico.dados : null;
+  const estadoDoHistorico: EstadoDoHistorico = {
+    historico,
+    erro: leituraDoHistorico.erro,
+    recarregar: leituraDoHistorico.recarregar,
+    lido: filtros !== undefined,
+  };
 
   // A ABA NÃO VOLTA PARA A VISÃO GERAL QUANDO O MUNICÍPIO MUDA: quem está na
   // aba Lavoura e clica noutra linha da tabela está comparando lavouras — e é a
@@ -185,6 +228,7 @@ export function DetalheDoMunicipio({
           procedencias={procedencias}
           periodo={periodo}
           numerosDeDecisao={numerosDeDecisao}
+          historico={historico}
           aoVerOportunidades={irParaOportunidades}
         />
       </PainelDaFicha>
@@ -589,7 +633,7 @@ export function DetalheDoMunicipio({
       </PainelDaFicha>
 
       <PainelDaFicha {...painel('historico')}>
-        <HistoricoDoMunicipio nome={municipio.nome} />
+        <AbaDoHistorico nome={municipio.nome} estado={estadoDoHistorico} />
       </PainelDaFicha>
     </div>
   );

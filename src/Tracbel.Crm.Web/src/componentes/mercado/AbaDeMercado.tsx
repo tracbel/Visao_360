@@ -122,7 +122,10 @@ export function AbaDeMercado({
       <SecaoDoMercadoDaRegiao>
         <KpisExecutivos
           momento={indicadores?.momento ?? null}
-          demandaEstrutural={recorte?.demandaAnualDeMaquinas ?? null}
+          // A DEMANDA É A DO NÚMERO DE DECISÃO quando ele existe: com o filtro de
+          // tipo de produto ela é a da categoria escolhida, a mesma que divide a
+          // captura. Sem filtro, os dois são o total do recorte.
+          demandaEstrutural={numerosDeDecisao ? numerosDeDecisao.demandaAnual.valor : (recorte?.demandaAnualDeMaquinas ?? null)}
           demandaDeSaoPaulo={null}
           carregando={carregando}
           procedenciaDaDemanda={indicadores?.momento?.procedencia ?? null}
@@ -143,6 +146,7 @@ export function AbaDeMercado({
         produtosDoMunicipio={produtosDoMunicipio}
         momento={indicadores?.momento ?? null}
         municipios={indicadores?.municipios ?? []}
+        lavouraDoRecorte={indicadores?.lavouraDoRecorte ?? null}
         carregando={carregando}
         recorte={recorteDosFiltros}
       />

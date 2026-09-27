@@ -27,8 +27,9 @@ import { reaisCompactos } from '../territorio/escalas';
 import { nº, porcento } from '../territorio/indicadoresDaAdr';
 import type { TotaisDaAdr } from '../territorio/totaisDaAdr';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
+import { VariacaoContraOAnoAnterior } from '../territorio/comparacao';
+import { useComparacao } from '../territorio/contextoDaComparacao';
 import { AbasInternas } from './AbasInternas';
-import { VariacaoAusente } from './VariacaoAusente';
 
 type SubAba = 'vendas' | 'captura' | 'naoCapturado';
 
@@ -46,14 +47,20 @@ function CartaoDeVenda({
   rotulo,
   icone: Icone,
   valor,
+  atual,
+  anterior,
   pe,
 }: {
   rotulo: string;
   icone: LucideIcon;
   valor: string | null;
+  /** O número de agora e o do mesmo trecho do ano anterior, em reais — a variação da maquete (27/09/2026). */
+  atual: number | null;
+  anterior: number | null;
   pe: ReactNode;
 }) {
   const nome = rotulo.toLowerCase();
+  const { periodoAnterior } = useComparacao();
 
   return (
     <div className="mv-venda" data-mini={rotulo}>
@@ -65,7 +72,14 @@ function CartaoDeVenda({
         <strong className="mv-venda-valor">
           {valor === null ? <ValorAusente motivo={SEM_TERRITORIO} oQue={nome} /> : valor}
         </strong>
-        <VariacaoAusente deQue={nome} compacta />
+        <VariacaoContraOAnoAnterior
+          deQue={nome}
+          atual={valor === null ? null : atual}
+          anterior={anterior}
+          motivoSemAnterior={valor === null ? SEM_TERRITORIO : periodoAnterior?.motivoSemVendas}
+          formatar={reaisCompactos}
+          compacta
+        />
       </div>
       <div className="mv-venda-pe">{pe}</div>
     </div>
@@ -173,6 +187,8 @@ export function PerformanceTracbel({
                     rotulo="Vendas no período"
                     icone={ChartNoAxesColumnIncreasing}
                     valor={comTerritorio ? reaisCompactos(totais.vendas) : null}
+                    atual={totais.vendas}
+                    anterior={totais.vendasAnterior}
                     pe={
                       <>
                         <strong>{nº(totais.clientesQueCompraram)}</strong> clientes compraram
@@ -183,6 +199,8 @@ export function PerformanceTracbel({
                     rotulo="Máquina"
                     icone={Tractor}
                     valor={comTerritorio ? reaisCompactos(totais.maquina) : null}
+                    atual={totais.maquina}
+                    anterior={totais.maquinaAnterior}
                     // O PÉ DA MAQUETE AGORA TEM O NÚMERO (issue 69, D-P08): as
                     // unidades vêm do ART, ao lado dos reais do Protheus. São duas
                     // medidas do mesmo evento — a venda faturada —, e por isso cabem
@@ -209,6 +227,8 @@ export function PerformanceTracbel({
                     rotulo="Pós-venda"
                     icone={Wrench}
                     valor={comTerritorio ? reaisCompactos(totais.posVenda) : null}
+                    atual={totais.posVenda}
+                    anterior={totais.posVendaAnterior}
                     pe="Peças e serviços"
                   />
                 </div>

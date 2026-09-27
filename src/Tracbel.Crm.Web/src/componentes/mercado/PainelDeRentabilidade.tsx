@@ -16,13 +16,13 @@
  * a margem de cada cultura ponderada pela ÁREA COLHIDA DA REGIÃO — as duas com
  * teste em `momento/contas.teste.ts`.
  *
- * A MÉDIA E O DESTAQUE ESPERAM A ÁREA DE TODAS AS CULTURAS (revisão de
- * 24/09/2026). A leitura dos indicadores traz a área só das culturas com regra
- * de potencial — uma, no banco de hoje. Com a área de uma cultura só, a "média
- * ponderada" era a margem dela com o nome de média, e a "Cultura destaque" era
- * sempre ela. Enquanto a área por cultura não vier (pedido ao backend), os dois
- * cartões saem com o traço e esse motivo; e cada linha da coluna de área diz a
- * SUA ausência — "a leitura não traz" é diferente de "o IBGE não divulgou".
+ * A MÉDIA E O DESTAQUE USAM A ÁREA DE TODAS AS CULTURAS (issue 168, 27/09/2026).
+ * Até aqui a leitura dos indicadores trazia a área só das culturas com regra de
+ * potencial, e a "média ponderada" de uma cultura só era a margem dela com o nome
+ * de média. Agora a leitura traz a área de cada produto da PAM nos municípios da
+ * ADR do recorte (`lavouraDoRecorte`), sem passar pelas regras: toda cultura do
+ * catálogo tem área, e a ausência que sobra é a do IBGE — que cada linha da
+ * coluna de área diz, com a sua frase.
  *
  * COM FILTRO, O NOME É O DO RECORTE: a média é dos municípios da sub-região ou
  * da loja escolhidas, e "Região Tracbel" é a área de atuação inteira (issue 163).
@@ -50,7 +50,7 @@ import { obterRentabilidadeDasCulturas } from '../../dados/api/territorio';
 import { useRecurso } from '../../dados/api/useRecurso';
 import type { RentabilidadeDaCultura } from '../../tipos/mercado';
 import type { CulturaNoCatalogo } from '../../tipos/potencial';
-import type { IndicadoresDoMunicipio } from '../../tipos/territorio';
+import type { AreaDoProdutoNoRecorte, IndicadoresDoMunicipio } from '../../tipos/territorio';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
 import { ValorAusente } from '../comum/ValorAusente';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
@@ -100,8 +100,13 @@ const precoPorKg = (v: number) => `${reais(v, v < 1 ? 3 : 2)} / kg`;
 /** A área de uma linha da rentabilidade: a do catálogo, ou nenhuma, se a cultura não está nele. */
 type AreaDaLinha = AreaNoRecorte | { situacao: 'foraDoCatalogo' };
 
+/**
+ * A LEITURA ANTIGA — só as culturas com regra de potencial. A resposta de hoje
+ * traz a área de todas (`lavouraDoRecorte`); esta frase fica para a resposta que
+ * não a traga, e diz o que ela é.
+ */
 const SO_COM_REGRA =
-  'A leitura dos indicadores só traz a área colhida das culturas com regra de potencial — uma linha por regra ' +
+  'Esta leitura não trouxe a área de todas as culturas, só a das que têm regra de potencial — uma linha por regra ' +
   'vigente, em cada município.';
 
 const SEM_CATALOGO =
@@ -139,8 +144,8 @@ function motivoDaArea(area: AreaDaLinha, cultura: string, onde: string): string 
       );
     case 'foraDaLeitura':
       return (
-        `${SO_COM_REGRA} ${cultura} não tem regra vigente, então a área dela não chega a esta tela — o que não quer ` +
-        'dizer que ela não seja plantada. A área por cultura foi pedida ao backend.'
+        `${SO_COM_REGRA} ${cultura} não tem regra vigente, então a área dela não chegou a esta tela — o que não quer ` +
+        'dizer que ela não seja plantada.'
       );
     case 'semAreaDivulgada':
       return (
@@ -152,6 +157,20 @@ function motivoDaArea(area: AreaDaLinha, cultura: string, onde: string): string 
     case 'comArea':
       return '';
   }
+}
+
+/**
+ * POR QUE NENHUMA CULTURA TEM MARGEM — a frase que o servidor escreveu para as
+ * culturas sem margem, agrupada: uma causa, dita uma vez, com as culturas dela.
+ */
+function motivoSemMargem(linhas: readonly RentabilidadeDaCultura[]): string {
+  const porFrase = new Map<string, string[]>();
+  for (const l of linhas) {
+    if (l.margemPorHectare !== null || !l.fraseDoMotivo) continue;
+    porFrase.set(l.fraseDoMotivo, [...(porFrase.get(l.fraseDoMotivo) ?? []), l.culturaNome]);
+  }
+  if (porFrase.size === 0) return 'Nenhuma cultura teve margem apurada, e o servidor não disse por quê.';
+  return [...porFrase.entries()].map(([frase, culturas]) => `${culturas.join(', ')}: ${frase}`).join(' ');
 }
 
 function formatarCriterio(v: number, criterio: CriterioDaRentabilidade): string {
@@ -182,9 +201,12 @@ export function PainelDeRentabilidade({
   municipioCodigoIbge = null,
   nomeDoMunicipio = null,
   municipios = [],
+  lavouraDoRecorte = null,
   carregando = false,
   recorte = null,
 }: {
+  /** A área de todas as culturas da PAM nos municípios da ADR do recorte (issue 168); nula numa leitura antiga. */
+  lavouraDoRecorte?: readonly AreaDoProdutoNoRecorte[] | null;
   produtosDoMunicipio?: readonly number[];
   /**
    * O município escolhido. As séries da CONAB não mudam com ele (são de SP); a
@@ -226,9 +248,9 @@ export function PainelDeRentabilidade({
   /** A área colhida de cada cultura na Região Tracbel do recorte — ou por que ela não sai. */
   const areaDe = useMemo(() => {
     const mapa = new Map<string, AreaNoRecorte>();
-    for (const c of culturasDoCatalogo) mapa.set(c.codigo, areaColhidaNoRecorte(c, municipios));
+    for (const c of culturasDoCatalogo) mapa.set(c.codigo, areaColhidaNoRecorte(c, municipios, lavouraDoRecorte));
     return (l: RentabilidadeDaCultura): AreaDaLinha => mapa.get(l.culturaCodigo) ?? { situacao: 'foraDoCatalogo' };
-  }, [culturasDoCatalogo, municipios]);
+  }, [culturasDoCatalogo, municipios, lavouraDoRecorte]);
 
   const doMunicipio = useMemo(() => {
     const codigos = new Set<string>();
@@ -277,8 +299,8 @@ export function PainelDeRentabilidade({
       return `Nenhum município ${onde} veio na leitura dos indicadores — sem município não há área para pesar.`;
     if (faltam.length === 0) return null;
     return (
-      `${SO_COM_REGRA} ${conta} espera a área de cada cultura, e falta a de ${listar(faltam)}: a área por cultura ` +
-      'foi pedida ao backend. Calcular só com as que vieram daria o número de poucas culturas com o nome do todo.'
+      `${SO_COM_REGRA} ${conta} espera a área de cada cultura, e falta a de ${listar(faltam)}. Calcular só com as ` +
+      'que vieram daria o número de poucas culturas com o nome do todo.'
     );
   }
 
@@ -335,7 +357,11 @@ export function PainelDeRentabilidade({
             ' Por isso o cartão diz a cultura, e não um município.'
           }
           valor={melhor ? reais(melhor.margemPorHectare!) : null}
-          motivoSemDado="Nenhuma cultura teve margem apurada: falta preço, custo ou produtividade em todas elas."
+          // O MOTIVO É O DO SERVIDOR (Rentabilidade.cs), e não "falta preço, custo
+          // ou produtividade": a causa real da margem vazia costuma ser a D-P07 —
+          // a cultura sem local de referência e camada do custo escolhidos —, e é
+          // o servidor quem sabe qual das causas vale para cada uma.
+          motivoSemDado={motivoSemMargem(linhas)}
           apoio={melhor?.culturaNome}
           acao={
             <BotaoIr

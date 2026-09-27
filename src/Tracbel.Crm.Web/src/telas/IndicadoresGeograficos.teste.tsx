@@ -37,11 +37,15 @@ vi.setConfig({ testTimeout: 20_000 });
 
 const obterIndicadoresTerritoriais = vi.hoisted(() => vi.fn());
 const carregarMalhaDeSaoPaulo = vi.hoisted(() => vi.fn());
+// O HISTÓRICO DO MUNICÍPIO (27/09/2026) FICA LENDO nestes testes: a ficha cai na lavoura das culturas
+// com regra, que é o que eles conferem. O histórico tem teste próprio, na ficha.
+const obterHistoricoDoMunicipio = vi.hoisted(() => vi.fn(() => new Promise(() => {})));
 
 vi.mock('../dados/api/territorio', async (original) => ({
   ...(await original<typeof import('../dados/api/territorio')>()),
   obterIndicadoresTerritoriais,
   carregarMalhaDeSaoPaulo,
+  obterHistoricoDoMunicipio,
 }));
 
 vi.mock('../componentes/territorio/PainelDePrecos', () => ({
@@ -104,7 +108,8 @@ function comUmaRegraPorCultura(p: PainelTerritorial): PainelTerritorial {
 function painel(): PainelTerritorial {
   return {
     indicadores: {
-      competenciaInicial: '2025-09',
+      // O PADRÃO DO SERVIDOR DESDE 27/09/2026: o ano fiscal até o último mês fechado.
+      competenciaInicial: '2025-11',
       competenciaFinal: '2026-08',
       referenciaDaCobertura: '2026-09-01T00:00:00Z',
       interacaoMaisRecente: '2026-08-30T00:00:00Z',
@@ -287,6 +292,28 @@ function painel(): PainelTerritorial {
       // O CENÁRIO SEM CARGA: o ART não trouxe venda nenhuma ao alcance da consulta. Nulo, e não um
       // bloco zerado — zero afirmaria que a Tracbel não vendeu máquina na região.
       maquinasVendidas: null,
+      // A JANELA ANTERIOR QUE A CARGA NÃO COBRE (27/09/2026): o faturamento começa depois dela, e o ART
+      // não trouxe venda. A variação é o traço com o motivo do servidor — e não uma queda.
+      periodoAnterior: {
+        competenciaInicial: '2024-11-01',
+        competenciaFinal: '2025-08-01',
+        primeiraCompetenciaDoFaturamento: '2025-01-01',
+        primeiroMesDoArt: null,
+        maquinasVendidas: null,
+        serieAtual: [],
+        serieAnterior: [],
+        vendasCobertas: false,
+        maquinasCobertas: false,
+        motivoSemVendas: 'FRASE DO SERVIDOR — o faturamento carregado começa em jan/2025, depois da janela anterior.',
+        motivoSemMaquinas: 'FRASE DO SERVIDOR — o ART não trouxe venda de máquina ao alcance desta consulta.',
+      },
+      // SEM A ÁREA DE TODAS AS CULTURAS: a resposta antiga, e o caminho de reserva das telas.
+      lavouraDoRecorte: null,
+      categoriasDeMaquina: [
+        { codigo: 'TRATOR', nome: 'Trator', ordem: 1 },
+        { codigo: 'COLHEITADEIRA', nome: 'Colheitadeira', ordem: 2 },
+      ],
+      responsaveisDasCarteiras: [{ id: 7, nome: 'Carteira de teste Norte', natureza: 'Pessoa', carteiras: 2, gestor: null }],
     },
     metricasSemDado: [{ metrica: 'participacaoDeMercado', motivo: 'emplacamento não integrado' }],
     podeVerEmpresaInteira: false,
@@ -313,6 +340,13 @@ function painel(): PainelTerritorial {
         motivo: 'SemVendasEmUnidades',
         frase: 'As vendas da Tracbel em MÁQUINAS não estão carregadas (issue 69).',
       },
+      baseDaCaptura: null,
+    },
+    comparacaoComOAnoAnterior: {
+      demandaAnual: { valor: null, motivo: 'NumeroEstrutural', frase: 'FRASE DO SERVIDOR — a demanda anual é estrutural.' },
+      mercadoAnual: { valor: null, motivo: 'NumeroEstrutural', frase: 'FRASE DO SERVIDOR — o mercado anual é estrutural.' },
+      capturaPercentual: { valor: null, motivo: 'SemNumeroNoPeriodo', frase: 'FRASE DO SERVIDOR — sem captura no período.' },
+      oportunidade: { valor: null, motivo: 'SemNumeroNoPeriodo', frase: 'FRASE DO SERVIDOR — sem oportunidade no período.' },
       baseDaCaptura: null,
     },
   };
@@ -903,7 +937,7 @@ describe('Indicadores Geográficos — a aba Território da maquete', () => {
     expect(textoDaDica('De onde vem parque teórico de máquinas', cartao('parque'))).toContain('12.400 ha úteis');
   });
 
-  it('a variação "vs. ano anterior" não inventa número: traço e a issue que destrava', async () => {
+  it('a variação "vs. ano anterior" não inventa número: sem a janela anterior coberta, o traço e o motivo de cada cartão', async () => {
     responder();
     abrir();
     await esperarACarga();
@@ -912,13 +946,20 @@ describe('Indicadores Geográficos — a aba Território da maquete', () => {
     for (const id of ['municipios', 'cobertura', 'vendas', 'parque']) {
       const pilula = cartao(id).querySelector<HTMLElement>('.terr-cart-variacao')!;
       expect(pilula).toHaveTextContent('vs. ano anterior');
-      // Nenhum algarismo na pílula: sem período anterior não há "+5%".
+      // Nenhum algarismo na pílula: a carga não cobre a janela anterior, e não há "+5%".
       expect(pilula.textContent).not.toMatch(/\d/);
     }
-    expect(textoDaDica('Por que a variação de municípios da adr não aparece', cartao('municipios'))).toMatch(/issue 69/);
+    // CADA UM COM O SEU MOTIVO (27/09/2026): a área de atuação é a de hoje; as vendas dizem o que o
+    // servidor diz sobre a cobertura da carga — e não viram uma queda que não aconteceu.
+    expect(textoDaDica('Por que a variação de municípios da adr não aparece', cartao('municipios'))).toMatch(
+      /área de atuação de hoje/,
+    );
+    expect(textoDaDica('Por que a variação de vendas no período não aparece', cartao('vendas'))).toBe(
+      'FRASE DO SERVIDOR — o faturamento carregado começa em jan/2025, depois da janela anterior.',
+    );
   });
 
-  it('o título diz "sua área de atuação" e o controle de comparação vem desligado, com o período em vigor', async () => {
+  it('o título diz "sua área de atuação" e a comparação vem LIGADA, contra o mesmo trecho do ano anterior', async () => {
     responder();
     abrir();
     await esperarACarga();
@@ -928,12 +969,23 @@ describe('Indicadores Geográficos — a aba Território da maquete', () => {
     expect(secao).toHaveTextContent('visão consolidada da sua área de atuação');
     expect(secao).not.toHaveTextContent(/sua região/);
 
-    expect(within(secao).getByRole('switch', { name: 'Comparar com o período anterior' })).toBeDisabled();
+    // O INTERRUPTOR LIGA DE VERDADE desde que a leitura traz as duas janelas (27/09/2026).
+    const interruptor = within(secao).getByRole('switch', { name: 'Comparar com o período anterior' });
+    expect(interruptor).toBeEnabled();
+    expect(interruptor).toHaveAttribute('aria-checked', 'true');
+
     const periodo = within(secao).getByRole('combobox', { name: 'Período da carteira' }) as HTMLSelectElement;
     expect(periodo).toBeDisabled();
-    // set/2025 a ago/2026 são doze meses — escritos como a maquete escreve.
-    expect(periodo).toHaveTextContent('12 meses');
-    expect(textoDaDica('Por que a comparação e o período não mudam aqui', secao)).toContain('set/2025 a ago/2026');
+    // nov/2025 a ago/2026 é o ano fiscal até agosto — o padrão —, e o seletor diz o nome dele.
+    expect(periodo).toHaveTextContent('Ano fiscal');
+    const dica = textoDaDica('Com o que a comparação compara, e onde o período muda', secao);
+    expect(dica).toContain('mesmo trecho do ano anterior (nov/2024 a ago/2025)');
+    expect(dica).toContain('o ano fiscal FY2026 até ago/2026 (nov/2025 a ago/2026)');
+
+    // DESLIGAR ESCONDE AS VARIAÇÕES NO LUGAR DELAS — o cartão não muda de altura.
+    fireEvent.click(interruptor);
+    expect(interruptor).toHaveAttribute('aria-checked', 'false');
+    expect(cartao('vendas').querySelector('[data-comparacao="desligada"]')).not.toBeNull();
   });
 
   it('a conferência da tabela saiu das linhas e está na dica do título, com o total da consulta', async () => {
@@ -1259,11 +1311,19 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
   it('a linha "vs. ano anterior" existe nos quatro, com traço e o motivo — nunca um "+8%" inventado', async () => {
     // DECISÃO DO USUÁRIO (23/09/2026): o número que a maquete mostra e o
     // sistema não tem aparece no MESMO LUGAR, com "—" e a dica que diz o que
-    // falta. A leitura devolve uma janela de competência, não duas (issue 69).
+    // falta. DESDE 27/09/2026 o motivo é o do servidor, e é de cada número: a
+    // demanda e o mercado são estruturais; a captura e a oportunidade não têm
+    // o número do período, e sem ele não há o de antes.
     responder(comMomento);
     abrir();
     await esperarACarga();
 
+    const motivo: Record<string, string> = {
+      'Demanda anual': 'FRASE DO SERVIDOR — a demanda anual é estrutural.',
+      'Mercado anual': 'FRASE DO SERVIDOR — o mercado anual é estrutural.',
+      'Captura Tracbel': 'As vendas da Tracbel em MÁQUINAS não estão carregadas (issue 69).',
+      Oportunidade: 'As vendas da Tracbel em MÁQUINAS não estão carregadas (issue 69).',
+    };
     for (const rotulo of ['Demanda anual', 'Mercado anual', 'Captura Tracbel', 'Oportunidade']) {
       const linha = executivo(rotulo).querySelector<HTMLElement>('.mv-kpi-contexto')!;
       expect(linha).toHaveTextContent('vs. ano anterior');
@@ -1273,7 +1333,7 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
         name: `Por que a variação de ${rotulo.toLowerCase()} não aparece`,
       });
       fireEvent.focus(gatilho);
-      expect(screen.getByRole('tooltip')).toHaveTextContent(/issue 69/);
+      expect(screen.getByRole('tooltip')).toHaveTextContent(motivo[rotulo]);
       fireEvent.blur(gatilho);
     }
 
@@ -1661,6 +1721,61 @@ describe('Indicadores Geográficos — densidade da primeira camada (issues 31 e
     const dica = screen.getByRole('tooltip');
     expect(dica).toHaveTextContent('soma as 3 culturas com regra de potencial');
     expect(dica).not.toHaveTextContent('Só há uma regra');
+  });
+
+  it('o "Tipo de produto" filtra de verdade: as categorias vêm da leitura, e a escolha vai ao servidor', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    fireEvent.click(screen.getByRole('button', { name: /Mais filtros/ }));
+    const campo = (await screen.findByText('Tipo de produto')).closest('label')!;
+    const lista = within(campo).getByRole('combobox') as HTMLSelectElement;
+
+    // A LISTA É A DA LEITURA (catálogo + de-para), e não uma escrita na tela.
+    expect([...lista.options].map((o) => o.textContent)).toEqual(['Todas as categorias', 'Trator', 'Colheitadeira']);
+    expect(lista).toBeEnabled();
+
+    fireEvent.focus(within(campo).getByRole('button', { name: 'O que o tipo de produto filtra' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Os valores em reais não mudam');
+    fireEvent.blur(within(campo).getByRole('button', { name: 'O que o tipo de produto filtra' }));
+
+    fireEvent.change(lista, { target: { value: 'COLHEITADEIRA' } });
+    await waitFor(() =>
+      expect(obterIndicadoresTerritoriais).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ categoriaDeMaquina: 'COLHEITADEIRA' }),
+        expect.anything(),
+      ),
+    );
+    // UM FILTRO SECUNDÁRIO ATIVO NÃO FICA ESCONDIDO: o botão conta.
+    expect(screen.getByRole('button', { name: /Mais filtros/ })).toHaveTextContent('1');
+  });
+
+  it('o "CEN / gestor" lista os responsáveis das carteiras comerciais, diz que não há gestor cadastrado e filtra', async () => {
+    responder();
+    abrir();
+    await esperarACarga();
+
+    fireEvent.click(screen.getByRole('button', { name: /Mais filtros/ }));
+    const campo = (await screen.findByText('CEN / gestor')).closest('label')!;
+    const lista = within(campo).getByRole('combobox') as HTMLSelectElement;
+    expect([...lista.options].map((o) => o.textContent)).toEqual(['Todos os CENs', 'Carteira de teste Norte']);
+
+    fireEvent.focus(within(campo).getByRole('button', { name: 'O que o CEN / gestor filtra' }));
+    const dica = screen.getByRole('tooltip');
+    expect(dica).toHaveTextContent('responsável da carteira comercial');
+    expect(dica).toHaveTextContent('nenhum tem gestor cadastrado no CRM');
+    fireEvent.blur(within(campo).getByRole('button', { name: 'O que o CEN / gestor filtra' }));
+
+    fireEvent.change(lista, { target: { value: '7' } });
+    await waitFor(() =>
+      expect(obterIndicadoresTerritoriais).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ responsavel: '7' }),
+        expect.anything(),
+      ),
+    );
   });
 
   it('o mapa da estrutura perdeu o parágrafo de Censo, sigilo e ANP — e ele está na dica', async () => {
@@ -2093,7 +2208,8 @@ describe('Indicadores Geográficos — o que saiu do corpo foi para as dicas', (
     expect(bloco('filtros')!.textContent).not.toContain('cobertura medida em');
 
     const dica = textoDaDica('O período em vigor e o calendário fiscal');
-    expect(dica).toContain('Vendas de set/2025 a ago/2026 (12 meses fechados)');
+    // O PADRÃO É O ANO FISCAL ATÉ O ÚLTIMO MÊS FECHADO (27/09/2026), com o nome ao lado do intervalo.
+    expect(dica).toContain('Vendas de nov/2025 a ago/2026 (FY2026, até o último mês fechado)');
     expect(dica).toContain('cobertura medida em');
     expect(dica).toContain('área plantada PAM/IBGE 2024');
     // O CALENDÁRIO FISCAL FOI CONFIRMADO em 24/09/2026 (novembro a outubro). Esta

@@ -206,7 +206,20 @@
   line-height: 1.2;
 }
 
-.terr-cart-variacao .mv-variacao-traco { font-size: var(--t-apoio); }
+.terr-cart-variacao .mv-variacao-traco,
+.terr-cart-variacao .mv-variacao-numero { font-size: var(--t-apoio); }
+
+/* COM NÚMERO, A PÍLULA GANHA A COR DA DIREÇÃO (maquete, 27/09/2026): verde na
+   alta, vermelha na baixa. Sem número ela continua cinza — verde afirmaria alta. */
+.terr-cart-variacao:has(.mv-variacao[data-sentido='alta']) {
+  background: #ECFDF3;
+  border-color: #D1FADF;
+}
+
+.terr-cart-variacao:has(.mv-variacao[data-sentido='baixa']) {
+  background: #FEF3F2;
+  border-color: #FEE4E2;
+}
 .terr-cart-variacao .dica-gatilho { padding: 1px; }
 
 .terr-cart-variacao .mv-variacao-texto {
@@ -230,6 +243,21 @@
   border-bottom: 2px dashed currentColor;
   opacity: 0.35;
 }
+
+/* O MINI-GRÁFICO DE VERDADE (27/09/2026): o mês a mês da janela na cor do
+   cartão, e o mesmo mês do ano anterior como barra clara atrás. Mais largo que
+   o traço de base, e sem ele. */
+.terr-cart-mini.terr-cart-mini-serie {
+  width: 44px;
+  border-bottom: 0;
+  opacity: 1;
+  overflow: visible;
+}
+
+.terr-cart-kpi:has(.terr-cart-mini-serie) .terr-cart-kpi-contexto { padding-right: 52px; }
+
+.terr-cart-mini-agora { fill: currentColor; }
+.terr-cart-mini-antes { fill: currentColor; opacity: 0.22; }
 
 .terr-cart-kpi[data-kpi-carteira='municipios'] .terr-cart-mini { color: var(--jd-green); }
 .terr-cart-kpi[data-kpi-carteira='vendas'] .terr-cart-mini { color: #2563EB; }

@@ -17,7 +17,7 @@
  * entra como zero.
  */
 
-import type { IndicadoresDoMunicipio } from '../../tipos/territorio';
+import type { AreaDoProdutoNoRecorte, IndicadoresDoMunicipio } from '../../tipos/territorio';
 import type { CulturaNoCatalogo } from '../../tipos/potencial';
 
 /**
@@ -108,12 +108,27 @@ export type AreaNoRecorte =
 export function areaColhidaNoRecorte(
   cultura: CulturaNoCatalogo,
   municipios: readonly IndicadoresDoMunicipio[],
+  lavouraDoRecorte: readonly AreaDoProdutoNoRecorte[] | null = null,
 ): AreaNoRecorte {
   const queSomam = cultura.produtos.filter((p) => p.entraNaSomaDaLavoura);
   const codigos = new Set((queSomam.length > 0 ? queSomam : cultura.produtos).map((p) => p.codigoIbge));
 
   const daAdr = municipios.filter((m) => m.pertenceAAdr);
   if (daAdr.length === 0) return { situacao: 'semMunicipio' };
+
+  // A ÁREA DE TODAS AS CULTURAS (issue 168, 27/09/2026): a leitura passou a trazer
+  // a área de cada produto da PAM nos municípios da ADR do recorte, sem passar
+  // pelas regras de potencial. Com ela, cultura sem regra tem área — e a ausência
+  // só pode ser do IBGE, nunca da leitura.
+  if (lavouraDoRecorte !== null) {
+    const colhidas = lavouraDoRecorte.filter((a) => codigos.has(a.produtoCodigoIbge) && a.areaColhidaHectares !== null);
+    return colhidas.length === 0
+      ? { situacao: 'semAreaDivulgada' }
+      : { situacao: 'comArea', hectares: colhidas.reduce((s, a) => s + (a.areaColhidaHectares ?? 0), 0) };
+  }
+
+  // SEM A LEITURA NOVA (uma resposta antiga), vale o caminho de antes: a área das
+  // culturas com regra, e "fora da leitura" para as outras.
 
   // A LINHA DA REGRA EXISTE EM TODO MUNICÍPIO, com área nula onde a PAM não
   // divulgou: basta ela aparecer em algum para a leitura trazer o produto.

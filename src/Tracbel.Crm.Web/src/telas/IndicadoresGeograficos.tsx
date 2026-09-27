@@ -47,6 +47,7 @@ import { calcularFatiaNoEstado, calcularTotais } from '../componentes/territorio
 import type { PoligonoProjetado } from '../componentes/territorio/MapaDeMunicipios';
 import { caminhoSvg, enquadrar, type ColecaoMunicipal } from '../componentes/territorio/projecao';
 import { ComparacaoComPeriodoAnterior } from '../componentes/territorio/SecaoDoMercadoDaRegiao';
+import { ProvedorDaComparacao } from '../componentes/territorio/comparacao';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { carregarMalhaDeSaoPaulo, obterIndicadoresTerritoriais } from '../dados/api/territorio';
 import { useRecurso } from '../dados/api/useRecurso';
@@ -65,6 +66,8 @@ const ABAS: readonly Aba<IdDaAba>[] = [
 export function IndicadoresGeograficos() {
   const { contexto } = useContextoDeAcesso();
 
+  // O PERÍODO VAZIO É O PADRÃO DO SERVIDOR: o ano fiscal até o último mês fechado
+  // (decisão de 27/09/2026), comparado com o mesmo trecho do ano fiscal anterior.
   const [filtros, setFiltros] = useState<FiltrosTerritoriais>({
     competenciaInicial: '',
     competenciaFinal: '',
@@ -73,6 +76,8 @@ export function IndicadoresGeograficos() {
     visao: 'Filial',
     filialDaVenda: '',
     filialDoCliente: '',
+    categoriaDeMaquina: '',
+    responsavel: '',
   });
   // O MUNICÍPIO ESCOLHIDO MORA NA URL (issue 163), e não em `useState`.
   //
@@ -170,6 +175,8 @@ export function IndicadoresGeograficos() {
       filtros.visao,
       filtros.filialDaVenda,
       filtros.filialDoCliente,
+      filtros.categoriaDeMaquina,
+      filtros.responsavel,
     ],
   );
 
@@ -306,6 +313,9 @@ export function IndicadoresGeograficos() {
         estado={indicadores.estado}
         procedencias={indicadores.procedencias}
         numerosDeDecisao={painel.dados?.numerosDeDecisao ?? null}
+        // OS FILTROS DE ALCANCE VÃO JUNTO: o histórico do município é lido com
+        // eles, para a ficha e a linha da tabela falarem do mesmo recorte.
+        filtros={filtros}
         aoFechar={() => escolherMunicipio(null)}
       />
     ) : null;
@@ -394,6 +404,12 @@ export function IndicadoresGeograficos() {
         />
       )}
 
+      {/* A COMPARAÇÃO COM O MESMO TRECHO DO ANO ANTERIOR (27/09/2026) vale para as
+          duas abas: o interruptor e o Δ são da página, e a janela vem da resposta. */}
+      <ProvedorDaComparacao
+        periodoAnterior={indicadores?.periodoAnterior ?? null}
+        numeros={painel.dados?.comparacaoComOAnoAnterior ?? null}
+      >
       <AbasDaTela
         abas={ABAS}
         ativa={aba}
@@ -448,6 +464,7 @@ export function IndicadoresGeograficos() {
           />
         )}
       </AbasDaTela>
+      </ProvedorDaComparacao>
     </PaginaDoPainel>
   );
 }
