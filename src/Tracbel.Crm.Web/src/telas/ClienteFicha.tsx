@@ -180,7 +180,7 @@ export function ClienteFicha() {
       </div>
 
       {/* KPIs resumo */}
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(5,1fr)', marginBottom: 24 }}>
+      <div className="kpi-grid kpi-grid-5" style={{ marginBottom: 24 }}>
         <div className="kpi">
           <span className="kpi-label">Faturamento YTD 2026</span>
           <span className="kpi-value">{fmtBRL(c.financeiro.faturamento_ytd_2026)}</span>
@@ -718,7 +718,7 @@ function AbaFinanceiro({ c }: { c: ClienteFichaData }) {
   const pctUsado = (f.limite_usado / f.limite_credito) * 100;
   return (
     <>
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 20 }}>
+      <div className="kpi-grid" style={{ marginBottom: 20 }}>
         <div className="kpi">
           <span className="kpi-label">Faturamento 2024</span>
           <span className="kpi-value">{fmtBRL(f.faturamento_2024)}</span>
