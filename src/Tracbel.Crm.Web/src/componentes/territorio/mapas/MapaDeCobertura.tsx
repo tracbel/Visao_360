@@ -30,11 +30,12 @@ function metodologia(modo: ModoDeCobertura): string {
       : 'Percentual compara municípios de tamanhos diferentes; uma cidade com 3 vínculos muda de faixa com 1 contato.';
 
   return (
-    'Fonte: CRM Tracbel — carteira comercial e interações. ' +
-    'Método: último contato registrado de cada vínculo em carteira, contra a cadência declarada da linha. ' +
+    'Fonte: CRM Tracbel — carteira comercial e histórico do Vórtice. ' +
+    'Método: último contato de cada vínculo em carteira, pela regra da BI de carteiras do Vórtice (53 resultados que ' +
+    'contam como contato, em qualquer canal), contra a cadência declarada da linha. ' +
     `${escala} ` +
-    'Ressalva: contato é qualquer interação registrada, inclusive registro gerado pelo sistema — nenhum tipo de ' +
-    'atividade está marcado como visita, então isto ainda não mede visita.'
+    'Ressalva: o Vórtice registra o canal do contato — visita, telefone, WhatsApp —, mas o CRM ainda não o carrega, ' +
+    'então isto ainda não mede visita.'
   );
 }
 

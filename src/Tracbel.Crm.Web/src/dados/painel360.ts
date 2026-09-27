@@ -171,7 +171,7 @@ export function textoCadencia(
 ): string {
   const meta = metaFreq[cliente.classe];
   if (diasSemContato === null || !cliente.ult_int) {
-    return `Nenhuma interação registrada · a meta da classe ${cliente.classe} é de ${meta} dias.`;
+    return `Nenhum contato registrado · a meta da classe ${cliente.classe} é de ${meta} dias.`;
   }
   const naoZerou = cliente.exige_visita && cliente.ult_int.cat !== 'visita';
   if (naoZerou) {
@@ -227,7 +227,7 @@ export function clientesQuePedemAcao(
         gravidade: 'critico',
         texto:
           diasSemContato === null
-            ? 'Classe A sem nenhuma interação registrada'
+            ? 'Classe A sem nenhum contato registrado'
             : `Classe A sem contato há ${diasSemContato} dias`,
       });
     } else if (status === 'critico' || status === 'atraso') {

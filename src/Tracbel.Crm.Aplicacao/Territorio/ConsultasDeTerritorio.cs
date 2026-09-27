@@ -844,9 +844,11 @@ public sealed class ObterIndicadoresTerritoriais(
 
         lacunas.Add(new MetricaSemDado(
             "visita",
-            "A cobertura conta qualquer interação registrada como contato. Qual tipo de contato " +
-            "caracteriza visita, e se a periodicidade é a declarada no CRM ou a de 30/60/90/120 dias " +
-            "da maquete, ainda não foi decidido (documento 32, P-2)."));
+            "O contato usado na cobertura é o apurado pela regra da BI de carteiras do Vórtice (53 " +
+            "resultados que contam como contato, em qualquer canal), calculada todo dia pela rotina " +
+            "das carteiras sobre o histórico inteiro. O Vórtice registra o canal do contato — visita, " +
+            "telefone, WhatsApp —, mas o CRM ainda não carrega essa coluna: por isso não há como abrir " +
+            "a cobertura por canal (documento 32, P-2)."));
 
         lacunas.Add(new MetricaSemDado(
             "potencialDosClientes",
@@ -937,8 +939,10 @@ public sealed class ObterIndicadoresTerritoriais(
                 "o último mês fechado — novembro a outubro, decidido em 27/09/2026 —, comparado com o mesmo trecho do ano " +
                 "fiscal anterior. Devolução e cancelamento não são abatidos (documento 32, P-5)."),
             new("coberturaDeVisita", "RegraComercialProvisoria", "Regra provisória",
-                "Visita é qualquer interação registrada, e a periodicidade é a declarada no CRM. O que conta como visita, a " +
-                "periodicidade e a unidade (cliente ou vínculo) aguardam decisão do comercial (documento 32, P-2 e P-3)."),
+                "Contato é o resultado que a regra da BI de carteiras do Vórtice conta como tal (53 resultados, em " +
+                "qualquer canal), e a periodicidade é a cadência declarada no CRM por classe. O que aguarda decisão do " +
+                "comercial é o canal — visita, ligação, WhatsApp —, que o Vórtice registra e o CRM ainda não carrega " +
+                "(documento 32, P-2 e P-3)."),
             new("posVenda", "RegraComercialProvisoria", "Composição provisória",
                 "Pós-venda é peça mais serviço, pelo grupo do item da nota. O que a diretoria considera pós-venda ainda não foi " +
                 "definido (documento 32, seção 5, grupo 11)."),
