@@ -445,6 +445,28 @@ public sealed class VendaPerdidaConfiguracao : IEntityTypeConfiguration<VendaPer
             "CK_VendaPerdida_Participacao",
             "[Participacao] IN ('NaoInformado','Sim','Nao')"));
 
+        // DE ONDE VEIO E QUE PAPEL TEM (decisões de 27/09/2026, documento 52 §4). O formulário é o nome da tabela de
+        // respostas no Vórtice, da lista fechada; o papel nasce Principal — a venda perdida que já existia continua
+        // contando —, e só o complemento e a duplicata apontam para a principal.
+        b.Property(v => v.FormularioDeOrigem).HasMaxLength(40).IsUnicode(false);
+        b.Property(v => v.Papel)
+            .HasConversion<string>().HasMaxLength(12).IsUnicode(false).IsRequired()
+            .HasDefaultValue(PapelDaVendaPerdida.Principal);
+
+        b.HasIndex(v => v.VendaPerdidaPrincipalId);
+        b.HasIndex(v => v.NumeroDoProcessoNaOrigem);
+        b.HasOne<VendaPerdida>().WithMany().HasForeignKey(v => v.VendaPerdidaPrincipalId).OnDelete(DeleteBehavior.Restrict);
+
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_VendaPerdida_Formulario",
+            "[FormularioDeOrigem] IS NULL OR [FormularioDeOrigem] IN (" +
+            string.Join(",", FormulariosDaVendaPerdida.Todos.Select(f => $"'{f}'")) + ")"));
+        b.ToTable(x => x.HasCheckConstraint("CK_VendaPerdida_Papel", "[Papel] IN ('Principal','Complemento','Duplicata')"));
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_VendaPerdida_PapelEPrincipal",
+            "([Papel] = 'Principal' AND [VendaPerdidaPrincipalId] IS NULL) " +
+            "OR ([Papel] <> 'Principal' AND [VendaPerdidaPrincipalId] IS NOT NULL)"));
+
         b.Ignore(v => v.Eventos);
     }
 }

@@ -10,12 +10,12 @@ public sealed record ProcessoNaRegraDoEstagio(
     long Numero, short Tipo, long NumeroDoDna, DateTime? IncluidoEm, DateTime? PrimeiroAndamentoEm);
 
 /// <summary>Uma linha do histórico do Vórtice como a regra do estágio a enxerga.</summary>
-/// <param name="SeqHistorico">O identificador da linha — o desempate de duas linhas na mesma data.</param>
+/// <param name="Sequencia">O identificador da linha na origem (<c>SeqHistorico</c>) — o desempate de duas linhas na mesma data.</param>
 /// <param name="Processo">O processo da linha.</param>
 /// <param name="Resultado">O código de resultado (<c>IV_HISTORICO.Resultado</c>).</param>
 /// <param name="RealizadoEm">Quando (UTC).</param>
 /// <param name="AcaoGeradora">A ação que gerou a linha — só para o <c>DTA_ETAPA</c> do BI.</param>
-public sealed record ResultadoNaRegraDoEstagio(long SeqHistorico, long Processo, int Resultado, DateTime RealizadoEm, int? AcaoGeradora);
+public sealed record ResultadoNaRegraDoEstagio(long Sequencia, long Processo, int Resultado, DateTime RealizadoEm, int? AcaoGeradora);
 
 /// <summary>Onde o processo ficou depois da regra.</summary>
 public enum SituacaoNaRegraDoEstagio
@@ -227,7 +227,7 @@ public static class RegraDoEstagio
         {
             var primeiro = linhagem
                 .Where(r => estagioPorResultado[r.Resultado] >= estagio)
-                .OrderBy(r => r.RealizadoEm).ThenBy(r => r.SeqHistorico)
+                .OrderBy(r => r.RealizadoEm).ThenBy(r => r.Sequencia)
                 .FirstOrDefault();
             if (primeiro is null) break;
 

@@ -50,7 +50,10 @@ public static class RotulosDaTrilha
         ["PercepcaoDoGestor"] = "Percepção do gestor",
         ["VendaDeMaquina"] = "Venda de máquina",
         ["Conexao"] = "Conexão de integração",
-        ["Rotina"] = "Rotina do servidor"
+        ["Rotina"] = "Rotina do servidor",
+        ["EstagioDoProcesso"] = "Estágio do funil (Vórtice)",
+        ["ClassificacaoDeResultadoDoVortice"] = "Classificação de resultado do Vórtice",
+        ["VendaPerdida"] = "Venda perdida"
     };
 
     // Os campos que se repetem em várias entidades, com o mesmo sentido.
@@ -207,6 +210,19 @@ public static class RotulosDaTrilha
         {
             ["Cadencia"] = "Cadência", ["Mes"] = "Mês", ["Dia"] = "Dia", ["Hora"] = "Hora", ["IntervaloMinutos"] = "Intervalo (minutos)",
             ["EstaLigada"] = "Ligada"
+        },
+        ["EstagioDoProcesso"] = new(StringComparer.Ordinal)
+        {
+            ["NumeroDoProcessoNaOrigem"] = "Processo no Vórtice", ["Estagio"] = "Estágio", ["AlcancadoEm"] = "Alcançado em",
+            ["HerdadoDoProcessoDna"] = "Herdado do processo DNA"
+        },
+        ["ClassificacaoDeResultadoDoVortice"] = new(StringComparer.Ordinal)
+        {
+            ["Estagio"] = "Estágio do funil", ["ContaComoContato"] = "Conta como contato"
+        },
+        ["VendaPerdida"] = new(StringComparer.Ordinal)
+        {
+            ["Papel"] = "Papel (principal, complemento ou duplicata)", ["VendaPerdidaPrincipalId"] = "Venda perdida principal"
         }
     };
 

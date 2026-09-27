@@ -3,10 +3,10 @@ namespace Tracbel.Crm.Dominio.Processo;
 /// <summary>Uma resposta de venda perdida como a regra do papel a enxerga.</summary>
 /// <param name="Chave">O <c>SeqQuestionario</c> — a identidade da resposta.</param>
 /// <param name="Formulario">O formulário (<see cref="FormulariosDaVendaPerdida"/>).</param>
-/// <param name="SeqPessoa">A pessoa no Vórtice.</param>
+/// <param name="Pessoa">A pessoa no Vórtice (<c>SeqPessoa</c>).</param>
 /// <param name="Processo">O processo no Vórtice, quando o formulário aponta um.</param>
 /// <param name="RegistradaEm">Quando foi preenchida (UTC).</param>
-public sealed record RespostaNaRegraDoPapel(long Chave, string Formulario, long SeqPessoa, long? Processo, DateTime RegistradaEm);
+public sealed record RespostaNaRegraDoPapel(long Chave, string Formulario, long Pessoa, long? Processo, DateTime RegistradaEm);
 
 /// <summary>O papel decidido para uma resposta.</summary>
 /// <param name="Papel">Principal, complemento ou duplicata.</param>
@@ -68,7 +68,7 @@ public static class RegraDoPapelDaVendaPerdida
 
     private static RespostaNaRegraDoPapel? Par(RespostaNaRegraDoPapel resposta, IEnumerable<RespostaNaRegraDoPapel> candidatas) =>
         candidatas
-            .Where(c => c.SeqPessoa == resposta.SeqPessoa)
+            .Where(c => c.Pessoa == resposta.Pessoa)
             .Where(c => c.Processo is { } p && resposta.Processo is { } q
                 ? p == q
                 : Dia(c.RegistradaEm) == Dia(resposta.RegistradaEm))

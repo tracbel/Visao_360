@@ -171,7 +171,21 @@ public static class PoliticaDeAuditoria
             "NumeroDoPedido", "NumeroDaNotaFiscal", "SituacaoNaOrigem", "GestaoNaOrigem",
             "VendaDireta", "RepasseDireto", "Quantidade", "LinhaNaOrigem", "ProdutoNaOrigem",
             "UnidadeNaOrigem", "UnidadeDoFaturamentoNaOrigem"
-        ]
+        ],
+
+        // O FUNIL DO VÓRTICE (decisões de 27/09/2026, documento 52). A linha nasce da integração e não entra na trilha
+        // (RegistraInclusao); o que entra é a mudança — a data do estágio que a origem revisou, a herança que virou
+        // própria — e, sobretudo, a SAÍDA: o estágio que some da origem é removido, e a trilha guarda qual processo, qual
+        // estágio e desde quando. A pergunta "por que este processo saiu do Pedido?" tem resposta.
+        ["EstagioDoProcesso"] = ["NumeroDoProcessoNaOrigem", "Estagio", "AlcancadoEm", "HerdadoDoProcessoDna"],
+
+        // A CLASSIFICAÇÃO DOS RESULTADOS muda o funil e o último contato de todo mundo de uma vez: um código que passa de
+        // Cobertura para Negociação move milhares de processos. Quem mudou, e quando, precisa estar escrito.
+        ["ClassificacaoDeResultadoDoVortice"] = ["Estagio", "ContaComoContato"],
+
+        // A VENDA PERDIDA: o papel decide se ela conta — só a principal entra na soma —, e a exclusão é a resposta que
+        // sumiu do Vórtice. As duas mudam o número da diretoria sem que ninguém tenha editado a perda.
+        ["VendaPerdida"] = ["Papel", "VendaPerdidaPrincipalId", CampoDeExclusaoLogica]
     };
 
     /// <summary>As entidades auditadas, por nome de tipo.</summary>

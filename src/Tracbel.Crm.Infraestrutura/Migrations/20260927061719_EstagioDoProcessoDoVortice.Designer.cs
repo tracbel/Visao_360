@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 
@@ -11,9 +12,11 @@ using Tracbel.Crm.Infraestrutura.Persistencia;
 namespace Tracbel.Crm.Infraestrutura.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    partial class CrmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260927061719_EstagioDoProcessoDoVortice")]
+    partial class EstagioDoProcessoDoVortice
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -6755,11 +6758,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         .HasPrecision(3)
                         .HasColumnType("datetime2(3)");
 
-                    b.Property<string>("FormularioDeOrigem")
-                        .HasMaxLength(40)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(40)");
-
                     b.Property<string>("ModeloDoConcorrente")
                         .HasMaxLength(120)
                         .IsUnicode(true)
@@ -6773,19 +6771,8 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     b.Property<int>("MotivoDePerdaId")
                         .HasColumnType("int");
 
-                    b.Property<long?>("NumeroDoProcessoNaOrigem")
-                        .HasColumnType("bigint");
-
                     b.Property<DateOnly?>("OcorridaEm")
                         .HasColumnType("date");
-
-                    b.Property<string>("Papel")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(12)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(12)")
-                        .HasDefaultValue("Principal");
 
                     b.Property<string>("Participacao")
                         .IsRequired()
@@ -6824,9 +6811,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     b.Property<int?>("TipoDeEquipamentoId")
                         .HasColumnType("int");
 
-                    b.Property<long?>("VendaPerdidaPrincipalId")
-                        .HasColumnType("bigint");
-
                     b.Property<byte[]>("Versao")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -6844,11 +6828,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
 
                     b.HasIndex("MotivoDePerdaId");
 
-                    b.HasIndex("NumeroDoProcessoNaOrigem");
-
                     b.HasIndex("ProcessoId");
-
-                    b.HasIndex("VendaPerdidaPrincipalId");
 
                     b.HasIndex("CatalogoDaRevendaId", "RevendaDoConcorrenteId");
 
@@ -6866,12 +6846,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             t.HasCheckConstraint("CK_VendaPerdida_CatalogoDoConcorrenteId", "[CatalogoDoConcorrenteId] = 8");
 
                             t.HasCheckConstraint("CK_VendaPerdida_CatalogoDoTipoDeEquipamentoId", "[CatalogoDoTipoDeEquipamentoId] = 9");
-
-                            t.HasCheckConstraint("CK_VendaPerdida_Formulario", "[FormularioDeOrigem] IS NULL OR [FormularioDeOrigem] IN ('IV_Q_VENDA_PERDIDA','IV_Q_VENDA_PERDIDA_FY25','IV_Q_VENDA_PERDIDA_MAQIMP','IV_Q_VP_SEM_PARTICIPACAO','IV_Q_VENDA_PERDIDA_JDE','IV_Q_VENDA_PERDIDA_PROD','IV_Q_VENDA_PERDIDA_IMPLEM','IV_Q_VENDA_PERDIDA_IMPL','IV_Q_VP_TRATOR','IV_Q_VP_COLHEITADEIRA','IV_Q_VP_PLANTADEIRA','IV_Q_VP_COLHEDORA')");
-
-                            t.HasCheckConstraint("CK_VendaPerdida_Papel", "[Papel] IN ('Principal','Complemento','Duplicata')");
-
-                            t.HasCheckConstraint("CK_VendaPerdida_PapelEPrincipal", "([Papel] = 'Principal' AND [VendaPerdidaPrincipalId] IS NULL) OR ([Papel] <> 'Principal' AND [VendaPerdidaPrincipalId] IS NOT NULL)");
 
                             t.HasCheckConstraint("CK_VendaPerdida_Participacao", "[Participacao] IN ('NaoInformado','Sim','Nao')");
 
@@ -8710,11 +8684,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     b.HasOne("Tracbel.Crm.Dominio.Processo.Processo", null)
                         .WithMany()
                         .HasForeignKey("ProcessoId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Tracbel.Crm.Dominio.Processo.VendaPerdida", null)
-                        .WithMany()
-                        .HasForeignKey("VendaPerdidaPrincipalId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Tracbel.Crm.Dominio.Metadado.CatalogoItem", null)
