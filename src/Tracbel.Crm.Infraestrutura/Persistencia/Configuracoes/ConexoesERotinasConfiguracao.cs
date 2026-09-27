@@ -43,7 +43,7 @@ public sealed class ConexaoConfiguracao : IEntityTypeConfiguration<Conexao>
         b.HasOne<Usuario>().WithMany().HasForeignKey(c => c.SegredoAlteradoPorId).OnDelete(DeleteBehavior.Restrict);
 
         b.ToTable(x => x.HasCheckConstraint(
-            "CK_Conexao_Tipo", "[Tipo] IN ('ApiRest','SqlServer','MySql','FontePublica','Monitorada')"));
+            "CK_Conexao_Tipo", "[Tipo] IN ('ApiRest','SqlServer','MySql','FontePublica','Monitorada','ApiComChave')"));
         b.ToTable(x => x.HasCheckConstraint("CK_Conexao_UltimaVerificacao", "[UltimaVerificacao] IN ('NuncaVerificada','NoAr','ComFalha')"));
         b.ToTable(x => x.HasCheckConstraint("CK_Conexao_StatusEsperado", "[StatusEsperado] BETWEEN 100 AND 599"));
         b.ToTable(x => x.HasCheckConstraint(

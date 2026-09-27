@@ -50,7 +50,8 @@ public static class RotulosDaTrilha
         ["PercepcaoDoGestor"] = "Percepção do gestor",
         ["VendaDeMaquina"] = "Venda de máquina",
         ["Conexao"] = "Conexão de integração",
-        ["Rotina"] = "Rotina do servidor"
+        ["Rotina"] = "Rotina do servidor",
+        ["MetaDeVenda"] = "Meta de venda (Gestão de Negócios)"
     };
 
     // Os campos que se repetem em várias entidades, com o mesmo sentido.
@@ -195,7 +196,7 @@ public static class RotulosDaTrilha
             ["NumeroDaNotaFiscal"] = "Nota fiscal", ["SituacaoNaOrigem"] = "Situação na origem", ["GestaoNaOrigem"] = "Gestão na origem",
             ["VendaDireta"] = "Venda direta", ["RepasseDireto"] = "Repasse direto", ["Quantidade"] = "Quantidade",
             ["LinhaNaOrigem"] = "Linha na origem", ["ProdutoNaOrigem"] = "Produto na origem", ["UnidadeNaOrigem"] = "Unidade na origem",
-            ["UnidadeDoFaturamentoNaOrigem"] = "Unidade do faturamento na origem"
+            ["UnidadeDoFaturamentoNaOrigem"] = "Unidade do faturamento na origem", ["VendedorNaOrigem"] = "Vendedor na origem"
         },
         ["Conexao"] = new(StringComparer.Ordinal)
         {
@@ -207,6 +208,13 @@ public static class RotulosDaTrilha
         {
             ["Cadencia"] = "Cadência", ["Mes"] = "Mês", ["Dia"] = "Dia", ["Hora"] = "Hora", ["IntervaloMinutos"] = "Intervalo (minutos)",
             ["EstaLigada"] = "Ligada"
+        },
+        ["MetaDeVenda"] = new(StringComparer.Ordinal)
+        {
+            ["EmpresaId"] = "Filial", ["Competencia"] = "Mês da meta", ["LinhaNaOrigem"] = "Linha na origem",
+            ["CodigoDaLinha"] = "Código da linha", ["LinhaDeProdutoId"] = "Linha de produto", ["ConsultorNaOrigem"] = "Consultor na origem",
+            ["ConsultorUsuarioId"] = "Conta do consultor", ["VendaDireta"] = "Venda direta", ["Origem"] = "Origem da meta",
+            ["Quantidade"] = "Quantidade (unidades)", ["ValorUnitario"] = "Valor unitário", ["Margem"] = "Margem"
         }
     };
 
@@ -229,7 +237,9 @@ public static class RotulosDaTrilha
         [("UsinaDeEtanol", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("CorrespondenciaDeMunicipio", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("VendaDeMaquina", "EmpresaId")] = TipoDeReferencia.Empresa,
-        [("VendaDeMaquina", "EmpresaDoFaturamentoId")] = TipoDeReferencia.Empresa
+        [("VendaDeMaquina", "EmpresaDoFaturamentoId")] = TipoDeReferencia.Empresa,
+        [("MetaDeVenda", "EmpresaId")] = TipoDeReferencia.Empresa,
+        [("MetaDeVenda", "ConsultorUsuarioId")] = TipoDeReferencia.Usuario
     };
 
     /// <summary>A profundidade como a pessoa entende — o mesmo texto da tela de perfis.</summary>

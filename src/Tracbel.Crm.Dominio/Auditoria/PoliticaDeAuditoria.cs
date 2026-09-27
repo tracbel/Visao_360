@@ -170,7 +170,21 @@ public static class PoliticaDeAuditoria
             "EmpresaId", "EmpresaDoFaturamentoId", "VendidaEm", "FaturadaEm", "EntregueEm",
             "NumeroDoPedido", "NumeroDaNotaFiscal", "SituacaoNaOrigem", "GestaoNaOrigem",
             "VendaDireta", "RepasseDireto", "Quantidade", "LinhaNaOrigem", "ProdutoNaOrigem",
-            "UnidadeNaOrigem", "UnidadeDoFaturamentoNaOrigem"
+            "UnidadeNaOrigem", "UnidadeDoFaturamentoNaOrigem",
+
+            // O VENDEDOR (D-M2, 27/09/2026): é de quem é o realizado da meta. A primeira leitura depois da publicação
+            // preenche as vendas já importadas — cerca de 3,6 mil linhas de trilha, uma vez só.
+            "VendedorNaOrigem"
+        ],
+
+        // A META DE VENDA (#138, 27/09/2026): espelho do cadastro da API Gestão de Negócios. A inclusão pela integração não
+        // entra (ver RegistraInclusao) — o que entra é a REVISÃO: a GN mudou a quantidade, o mês, a filial ou o consultor
+        // de uma meta, e a pergunta "a meta de setembro era 12 ou 10, e desde quando?" precisa de resposta. A exclusão
+        // (a meta que sumiu da origem) e a volta também.
+        ["MetaDeVenda"] =
+        [
+            "EmpresaId", "Competencia", "LinhaNaOrigem", "CodigoDaLinha", "LinhaDeProdutoId", "ConsultorNaOrigem",
+            "ConsultorUsuarioId", "VendaDireta", "Origem", "Quantidade", "ValorUnitario", "Margem", CampoDeExclusaoLogica
         ]
     };
 

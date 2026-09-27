@@ -58,7 +58,10 @@ public sealed class PerfisDeSistemaTestes
             [107] = Permissoes.CoberturaLer, [108] = Permissoes.RelatorioLer, [109] = Permissoes.FaturamentoLer,
             [110] = Permissoes.TerritorioLer, [112] = Permissoes.LegadoLer, [113] = Permissoes.ClienteCriar,
             [114] = Permissoes.ClienteEditar, [115] = Permissoes.EquipamentoCriar, [116] = Permissoes.EquipamentoEditar,
-            [117] = Permissoes.ParametroDoPotencialLer
+            [117] = Permissoes.ParametroDoPotencialLer,
+
+            // #138 (27/09/2026): a meta de venda, no fim — as de antes não mudam de identificador.
+            [118] = Permissoes.MetaLer
         };
 
         PerfisDeSistema.LinhasDaSemente()
