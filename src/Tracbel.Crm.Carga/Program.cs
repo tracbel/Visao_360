@@ -196,6 +196,12 @@ var somenteParqueDoProtheus = args.Contains("--somente-parque-protheus", StringC
 // Vem DEPOIS do --somente-carteiras-vortice na ordem do dia: liga o processo a carteira pelo de-para que ela grava.
 var somenteProcessosDoVortice = args.Contains("--somente-processos-vortice", StringComparer.Ordinal);
 
+// --aceitar-queda — SÓ NO TERMINAL, e só para o funil: passa por cima da trava que aborta a rodada quando o funil ou as
+// vendas perdidas cairiam mais de 5%. A queda legitima (uma filial desativada tira ~7,7% do funil) nao pode travar a rotina
+// para sempre; a queda por leitura parcial nao pode passar sozinha. Por isso a opcao NAO esta nos modos da rotina: quem a
+// usa e uma pessoa, olhando o numero, e a aceitacao fica escrita na execucao (integracao.ExecucaoDeSincronizacao).
+var aceitarQueda = args.Contains("--aceitar-queda", StringComparer.Ordinal);
+
 // --somente-metas-gn [--simular] [--aceitar-remocao] — AS METAS DE VENDA DA API GESTÃO DE NEGÓCIOS (decisão de 27/09/2026, #138).
 //
 // Le /api/v1/cadastros/metas (so GET, chave no Bearer, certificado validado pelo NOME) e SINCRONIZA organizacao.MetaDeVenda:
@@ -204,6 +210,17 @@ var somenteProcessosDoVortice = args.Contains("--somente-processos-vortice", Str
 // e existe SO no terminal: a rotina nao o tem nos modos.
 var somenteMetasGn = args.Contains("--somente-metas-gn", StringComparer.Ordinal);
 var aceitarRemocao = args.Contains("--aceitar-remocao", StringComparer.Ordinal);
+
+// --somente-precos-de-maquina [--simular] — O PREÇO DE REFERÊNCIA DA MÁQUINA POR CATEGORIA (issue 70, D-P12, decidida
+// pelo Ricardo em 27/09/2026).
+//
+// Casa a venda do ART que o CRM ja tem (filial que faturou + numero da nota + linha da maquina) com o item de maquina da
+// nota de saida do Protheus (SD2, grupo VEIC, so SELECT, NOLOCK) e grava a mediana mensal do valor unitario por categoria
+// em organizacao.PrecoDeMaquinaNoMes — so o agregado. E a rotina diaria PRECOS_DE_MAQUINA do orquestrador. Com
+// --simular, le, casa e conta, e nao grava nada.
+//
+// Vem DEPOIS do --somente-art na ordem do dia: casa as vendas que o ART trouxe.
+var somentePrecosDeMaquina = args.Contains("--somente-precos-de-maquina", StringComparer.Ordinal);
 
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
@@ -230,6 +247,7 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-art           as vendas de máquina do ART;
 //   --somente-parque-protheus  o parque de máquinas pelo proprietário atual no Protheus;
 //   --somente-metas-gn      as metas de venda da API Gestão de Negócios;
+//   --somente-precos-de-maquina  o preço de referência da máquina por categoria, pela nota do Protheus;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // AS LEITURAS DO VÓRTICE LIBERADAS:
@@ -250,7 +268,7 @@ bool[] modosSemVortice =
 [
     somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
-    somenteMetasGn, somenteProcessosDoVortice
+    somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -624,6 +642,7 @@ if (somenteProcessosDoVortice)
     Console.WriteLine(simular
         ? "Funil e vendas perdidas do Vórtice — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
         : "Funil e vendas perdidas do Vórtice — sincronizando.");
+    if (aceitarQueda) Console.WriteLine("  --aceitar-queda: a trava de queda não aborta esta rodada; a aceitação fica escrita na execução.");
     Console.WriteLine();
 
     var opcoesDoVorticeParaOFunil = new OpcoesDoVortice { Conexao = conexaoDoLegado };
@@ -641,7 +660,7 @@ if (somenteProcessosDoVortice)
             ? null
             : await TravaDeFluxo.TomarAsync(AbrirContexto(), CargaDoFunilDoVortice.Fluxo, CancellationToken.None);
 
-        var resultadoDoFunil = await cargaDoFunil.ExecutarAsync(simular, CancellationToken.None);
+        var resultadoDoFunil = await cargaDoFunil.ExecutarAsync(simular, aceitarQueda, CancellationToken.None);
         if (!resultadoDoFunil.EhSucesso)
         {
             Console.Error.WriteLine("A SINCRONIA DO FUNIL PAROU: " + resultadoDoFunil.Erro);
@@ -757,6 +776,62 @@ if (somenteParqueDoProtheus)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A SINCRONIA DO PARQUE PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só o preço de referência da máquina por categoria (issue 70, D-P12). Lê o CRM e a SD2 do Protheus.
+// -------------------------------------------------------------------------------------------------
+
+if (somentePrecosDeMaquina)
+{
+    var opcoesDoBancoParaOPreco = new OpcoesDoBancoDoProtheus();
+    configuracao.GetSection(OpcoesDoBancoDoProtheus.Secao).Bind(opcoesDoBancoParaOPreco);
+
+    if (!opcoesDoBancoParaOPreco.EstaConfigurada)
+    {
+        Console.Error.WriteLine(
+            "O preço da máquina exige ProtheusBanco__Servidor, __Banco, __Usuario e __Senha — ou a conexão \"Protheus — " +
+            "banco (leitura)\" configurada em Configurações > Integrações. Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    Console.WriteLine(simular
+        ? "Preço da máquina pela nota do Protheus — SIMULAÇÃO: lê, casa e conta; nada é gravado."
+        : "Preço da máquina pela nota do Protheus — gravando a mediana mensal por categoria.");
+    Console.WriteLine();
+
+    var cargaDoPreco = new CargaDePrecoDeMaquina(
+        AbrirContexto, new LeitorDeItensDeMaquinaDoProtheus(opcoesDoBancoParaOPreco).LerAsync, usuarioId,
+        () => DateTime.UtcNow, Console.WriteLine);
+
+    try
+    {
+        // A TRAVA SÓ QUANDO GRAVA, como no parque: a simulação não escreve e não deve impedir quem escreve.
+        await using var travaDoPreco = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), CargaDePrecoDeMaquina.Fluxo, CancellationToken.None);
+
+        var resultadoDoPreco = await cargaDoPreco.ExecutarAsync(simular, CancellationToken.None);
+        if (!resultadoDoPreco.EhSucesso)
+        {
+            Console.Error.WriteLine("A CARGA DO PREÇO DA MÁQUINA PAROU: " + resultadoDoPreco.Erro);
+            return 3;
+        }
+
+        Console.WriteLine();
+        foreach (var (rotulo, valor) in resultadoDoPreco.Valor.Contagens)
+            Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A CARGA DO PREÇO DA MÁQUINA PAROU, e a transação foi desfeita: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;

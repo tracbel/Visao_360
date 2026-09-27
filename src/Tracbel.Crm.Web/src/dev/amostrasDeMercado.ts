@@ -81,6 +81,21 @@ export function precosFicticios(): PrecosDeMercado {
       }),
       procedencia: PROCEDENCIA,
     })),
+    // O TRATOR BASE (issue 70): a mediana fictícia dos tratores vendidos, só nos últimos 20 meses — a série do trator
+    // começa depois da da safra, como em produção (a primeira venda do ART casada com a nota), e há mês sem venda.
+    maquinas: [
+      {
+        categoriaCodigo: 'TRATOR',
+        categoriaNome: 'Trator',
+        meses: Array.from({ length: 20 }, (_, m) => m)
+          .filter((m) => m % 7 !== 3)
+          .map((m) => {
+            const mediana = Math.round(onda(m, 520_000, 60_000) / 1_000) * 1_000;
+            return { mes: mesDe(19 - m), mediana, menor: mediana - 80_000, maior: mediana + 150_000, notas: 3 + (m % 5) };
+          }),
+        procedencia: PROCEDENCIA,
+      },
+    ],
   };
 }
 

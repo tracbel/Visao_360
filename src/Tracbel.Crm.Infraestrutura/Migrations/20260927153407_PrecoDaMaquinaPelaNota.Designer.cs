@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 
@@ -11,9 +12,11 @@ using Tracbel.Crm.Infraestrutura.Persistencia;
 namespace Tracbel.Crm.Infraestrutura.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    partial class CrmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260927153407_PrecoDaMaquinaPelaNota")]
+    partial class PrecoDaMaquinaPelaNota
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4163,11 +4166,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     b.Property<bool>("EstaAtiva")
                         .HasColumnType("bit");
 
-                    b.Property<string>("FonteDoIndice")
-                        .HasMaxLength(20)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
-
                     b.Property<string>("FonteDoPreco")
                         .HasMaxLength(20)
                         .IsUnicode(false)
@@ -4178,21 +4176,11 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(80)");
 
-                    b.Property<string>("NivelDoIndice")
-                        .HasMaxLength(40)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(40)");
-
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(80)
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(80)");
-
-                    b.Property<string>("ProdutoDoIndice")
-                        .HasMaxLength(20)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("ProdutoDoPreco")
                         .HasMaxLength(40)
@@ -4237,8 +4225,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             t.HasCheckConstraint("CK_Cultura_ReferenciaDoCusto", "([LocalDeReferenciaDoCusto] IS NULL AND [CamadaDeCustoDaMargem] IS NULL) OR ([LocalDeReferenciaDoCusto] IS NOT NULL AND [CamadaDeCustoDaMargem] IS NOT NULL)");
 
                             t.HasCheckConstraint("CK_Cultura_Segmento", "[Segmento] IN ('Graos','Cana','Citros','Cafe','Fruticultura','Olericultura','Algodao','Borracha','Outros')");
-
-                            t.HasCheckConstraint("CK_Cultura_SerieDoIndice", "([FonteDoIndice] IS NULL AND [ProdutoDoIndice] IS NULL AND [NivelDoIndice] IS NULL) OR ([FonteDoIndice] IS NOT NULL AND [ProdutoDoIndice] IS NOT NULL)");
                         });
 
                     b.HasData(
@@ -4260,11 +4246,8 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             Id = 2,
                             Codigo = "CANA",
                             EstaAtiva = true,
-                            FonteDoIndice = "SOCICANA",
                             FonteDoPreco = "CONAB",
-                            NivelDoIndice = "MENSAL",
                             Nome = "Cana-de-açúcar",
-                            ProdutoDoIndice = "ATR",
                             ProdutoDoPreco = "4238",
                             QuilosPorUnidade = 1000m,
                             Segmento = "Cana",

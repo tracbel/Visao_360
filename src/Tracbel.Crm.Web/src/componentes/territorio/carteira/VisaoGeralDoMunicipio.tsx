@@ -418,20 +418,26 @@ export function VisaoGeralDoMunicipio({
               />
             }
           />
-          {/* AS MÁQUINAS POTENCIAIS SÃO A OPORTUNIDADE EM MÁQUINAS, um dos quatro
-              números de decisão: o motivo é a frase do servidor (issue 69, parte
-              A), a mesma da aba Oportunidades e do topo da aba Mercado. */}
+          {/* AS MÁQUINAS POTENCIAIS SÃO A OPORTUNIDADE EM MÁQUINAS DESTE MUNICÍPIO
+              (27/09/2026), a mesma da aba Oportunidades: o servidor passou a
+              montá-la por município. Na ausência, a frase é a do servidor —
+              do município, e na falta dela a do recorte. */}
           <ItemDeOportunidade
             icone={Tractor}
             rotulo="máquinas potenciais"
             valor={
-              <ValorAusente
-                motivo={
-                  numerosDeDecisao?.oportunidade.frase ||
-                  'A oportunidade em máquinas existe para o recorte inteiro — está no topo da aba Mercado — e ainda não por município: a conta do município pede as vendas em unidades separadas pelas categorias que têm demanda aqui, e a leitura do município traz as unidades somadas.'
-                }
-                oQue="as máquinas potenciais"
-              />
+              municipio.numerosDeDecisao?.oportunidade.valor != null ? (
+                municipio.numerosDeDecisao.oportunidade.valor.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+              ) : (
+                <ValorAusente
+                  motivo={
+                    municipio.numerosDeDecisao?.oportunidade.frase ||
+                    numerosDeDecisao?.oportunidade.frase ||
+                    'A oportunidade em máquinas ainda não saiu para este município: a conta pede a demanda das categorias que têm regra aqui e as vendas em unidades.'
+                  }
+                  oQue="as máquinas potenciais"
+                />
+              )
             }
           />
           <ItemDeOportunidade

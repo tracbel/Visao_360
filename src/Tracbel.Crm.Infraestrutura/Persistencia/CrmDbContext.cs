@@ -305,6 +305,9 @@ public class CrmDbContext : DbContext
     /// <summary>O preço dos produtos agrícolas, mês a mês, em reais (CONAB e Socicana).</summary>
     public DbSet<CotacaoDeProduto> CotacoesDeProdutos => Set<CotacaoDeProduto>();
 
+    /// <summary>O preço de cada categoria de máquina, mês a mês — a mediana das notas de venda (issue 70).</summary>
+    public DbSet<PrecoDeMaquinaNoMes> PrecosDeMaquina => Set<PrecoDeMaquinaNoMes>();
+
     /// <summary>O dólar PTAX de cada mês, para converter os preços.</summary>
     public DbSet<CotacaoDoDolar> CotacoesDoDolar => Set<CotacaoDoDolar>();
 

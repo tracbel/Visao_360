@@ -34,6 +34,31 @@ export type PrecosDeMercado = {
   series: SerieDePreco[];
   primeiroMesDoDolar: string | null;
   ultimoMesDoDolar: string | null;
+  /**
+   * O preço de cada categoria de máquina, mês a mês (issue 70, D-P12): a mediana das notas de venda do Protheus casadas
+   * com as vendas do ART. Vazio enquanto a rotina PRECOS_DE_MAQUINA não rodou; ausente em resposta antiga.
+   */
+  maquinas?: SerieDePrecoDeMaquina[];
+};
+
+/** O preço de uma categoria de máquina num mês — só o agregado das notas. */
+export type PrecoDeMaquinaNoMes = {
+  /** O mês da emissão, `aaaa-mm-01`. */
+  mes: string;
+  mediana: number;
+  menor: number;
+  maior: number;
+  /** Quantas notas entraram — o tamanho da base. */
+  notas: number;
+};
+
+/** A série de preço de uma categoria de máquina (issue 70). Mês sem venda não aparece. */
+export type SerieDePrecoDeMaquina = {
+  categoriaCodigo: string;
+  categoriaNome: string;
+  /** Do mais antigo ao mais recente. */
+  meses: PrecoDeMaquinaNoMes[];
+  procedencia: ProcedenciaDoIndicador | null;
 };
 
 /** O custo de uma aba da série histórica da CONAB (issue 67). Nulo é "a CONAB parou no operacional". */

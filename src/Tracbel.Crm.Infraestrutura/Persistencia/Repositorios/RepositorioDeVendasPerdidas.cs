@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Metadado;
 using Tracbel.Crm.Dominio.Portas;
+using Tracbel.Crm.Dominio.Processo;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 
@@ -16,18 +17,22 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 /// preços, e <c>ComOsDoisPrecos</c> viaja com a média para a tela poder dizer sobre quantas ela
 /// foi feita. Média sem denominador é exatamente o defeito que este CRM existe para não
 /// repetir.</para>
+///
+/// <para><b>Só a principal conta</b> (decisão de 27/09/2026): o <c>_JDE</c> gêmeo do antigo e o <c>SEM_PARTICIPACAO</c>
+/// gêmeo do FY25 repetem a mesma perda, e os <c>VP_*</c> a detalham. Contar os três faria a perda contar em dobro e o
+/// preço do gêmeo entrar na média.</para>
 /// </summary>
 public sealed class RepositorioDeVendasPerdidas(CrmDbContext contexto) : IRepositorioVendasPerdidas
 {
     /// <inheritdoc />
     public Task<int> ContarAsync(CancellationToken ct) =>
-        contexto.VendasPerdidas.Where(v => v.ExcluidoEm == null).CountAsync(ct);
+        contexto.VendasPerdidas.Where(v => v.ExcluidoEm == null && v.Papel == PapelDaVendaPerdida.Principal).CountAsync(ct);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<FatiaDeVendaPerdida>> ResumirPorMotivoAsync(CancellationToken ct)
     {
         var agrupado = await contexto.VendasPerdidas
-            .Where(v => v.ExcluidoEm == null)
+            .Where(v => v.ExcluidoEm == null && v.Papel == PapelDaVendaPerdida.Principal)
             .GroupBy(v => v.MotivoDePerdaId)
             .Select(g => new Bruto(
                 g.Key,
@@ -64,7 +69,7 @@ public sealed class RepositorioDeVendasPerdidas(CrmDbContext contexto) : IReposi
         // quem se perdeu com uma fatia "não sei" no topo não responde nada. Quantas linhas não
         // declaram o concorrente é conta de outra pergunta, e a tela a faz pelo total.
         var agrupado = await contexto.VendasPerdidas
-            .Where(v => v.ExcluidoEm == null && v.ConcorrenteId != null)
+            .Where(v => v.ExcluidoEm == null && v.Papel == PapelDaVendaPerdida.Principal && v.ConcorrenteId != null)
             .GroupBy(v => v.ConcorrenteId!.Value)
             .Select(g => new Bruto(
                 g.Key,
