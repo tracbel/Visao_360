@@ -23,3 +23,54 @@
   background: #fdecec;
   color: #9b2c2c;
 }
+
+/*
+ * A frota do cliente pelo dono atual (27/09/2026): dono atual pela sincronia do
+ * parque, dono confirmado no cadastro da máquina, e a evidência de cada um.
+ */
+.cad-selo-dono-atual {
+  background: #e3f1e6;
+  color: #1f5f2e;
+}
+
+.cad-selo-dono-confirmado {
+  background: #efe9fa;
+  color: #553c9a;
+}
+
+/* O aviso de que a lista de equipamentos está filtrada por um cliente — é filtro,
+   e não alerta: nem o laranja da atenção nem o vermelho do erro. */
+.cad-aviso-cliente {
+  background: #f1f7fd;
+  border-color: #d3e3f4;
+  border-left-color: var(--info);
+  color: var(--text-primary);
+}
+
+/* As partes quebram entre si, e não no meio: numa coluna estreita cada relação
+   desce inteira para a linha de baixo. */
+.frota-relacao {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.frota-relacao-parte {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.frota-relacao-outro {
+  color: var(--text-secondary);
+}
+
+/* Texto corrido, e não caixa: a frase da evidência quebra linha como qualquer
+   frase, e a dica vai colada no fim. */
+.frota-evidencia {
+  color: var(--text-secondary);
+}

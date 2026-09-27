@@ -423,8 +423,8 @@ export type PainelDoResponsavel = {
   processosAbertos: number;
   vendasPerdidasRegistradas: number;
   /**
-   * O faturamento dos CLIENTES da carteira, e não das vendas desta pessoa — a origem não diz
-   * quem vendeu cada nota. Para em 11/04/2025.
+   * O faturamento dos CLIENTES da carteira, e não das vendas desta pessoa — a carga do Protheus
+   * agrega a nota por cliente, filial e mês e ainda não lê o vendedor dela (`F2_VEND1`).
    */
   faturamentoDaCarteira: number;
 };
@@ -470,5 +470,94 @@ export type Faturamento = {
   ultimoMesEstaAberto: boolean;
   serie: MesDeFaturamento[];
   topClientes: ClienteNoRanking[];
+  metricasSemDado: MetricaSemDado[];
+};
+
+/* ---------------------------------------------------------------------- */
+/* A ficha do cliente — faturamento e carteiras                            */
+/* ---------------------------------------------------------------------- */
+
+/** Um período de faturamento do cliente, com a quebra por grupo de item da nota — as quatro parcelas somam o total. */
+export type PeriodoDeFaturamentoDoCliente = {
+  de: string;
+  ate: string;
+  valorLiquido: number;
+  /** Máquina (grupo VEIC da nota), em REAIS. As unidades vêm do ART, na frota, e não se somam a isto (D-P08). */
+  maquina: number;
+  peca: number;
+  servico: number;
+  outros: number;
+  notas: number;
+};
+
+/** Um mês da série do cliente, somadas as filiais ao alcance. */
+export type MesDeFaturamentoDoCliente = {
+  competencia: string;
+  valorLiquido: number;
+  maquina: number;
+  notas: number;
+};
+
+/** O faturamento do cliente numa filial — a que EMITIU a nota. */
+export type FaturamentoDoClienteNaFilial = {
+  filialCodigo: string;
+  filialNome: string;
+  dozeMeses: number;
+  maquinaNosDozeMeses: number;
+  notasNosDozeMeses: number;
+  naJanela: number;
+  ultimaNotaEm: string;
+};
+
+/**
+ * O faturamento de um cliente, lido da SD2 do Protheus pela rotina de faturamento — `/api/v1/clientes/{chave}/faturamento`.
+ *
+ * A JANELA ANCORA NA CARGA: os doze meses terminam na competência mais recente que a carga trouxe, e `carregadoEm`
+ * diz até quando ela foi. Com a rotina desligada, é isso que impede a tela de mostrar meses zerados como se o cliente
+ * tivesse parado de comprar.
+ */
+export type FaturamentoDoCliente = {
+  primeiraCompetenciaDaCarga: string | null;
+  competenciaMaisRecente: string | null;
+  /** Quando a carga gravou a competência mais recente (UTC). */
+  carregadoEm: string | null;
+  /** A carga gravou o último mês antes de ele acabar: o último ponto da série é parcial. */
+  ultimoMesEstaIncompleto: boolean;
+  ultimaCompraEm: string | null;
+  dozeMeses: PeriodoDeFaturamentoDoCliente | null;
+  janelaCarregada: PeriodoDeFaturamentoDoCliente | null;
+  serie: MesDeFaturamentoDoCliente[];
+  porFilial: FaturamentoDoClienteNaFilial[];
+  metricasSemDado: MetricaSemDado[];
+};
+
+/** Uma carteira do cliente, com o CEN, a filial e a cadência da classe dele. */
+export type CarteiraDoCliente = {
+  carteiraChave: string;
+  carteiraCodigo: string;
+  carteiraNome: string;
+  /** `Comercial`, `Administrativa` ou `Teste`. */
+  naturezaDaCarteira: string;
+  linhaDeNegocioNome: string;
+  responsavelNome: string | null;
+  /** `Pessoa` ou `Departamento` (caixa de área), entre outras. */
+  naturezaDoResponsavel: string | null;
+  filialCodigo: string;
+  filialNome: string;
+  /** A cadência da linha de negócio para a classe do cliente (D sem apuração). Nula quando a linha não declara. */
+  diasDeCadencia: number | null;
+  vinculadoEm: string;
+  /** Nulo é "sem registro no CRM", e não "nunca contatado". */
+  ultimaInteracaoEm: string | null;
+  diasSemContato: number | null;
+  estaForaDaCadencia: boolean | null;
+};
+
+/** As carteiras do cliente — `/api/v1/clientes/{chave}/carteiras`. */
+export type CarteirasDoCliente = {
+  /** A classe da curva ABC do faturamento, no cadastro do cliente. */
+  classe: string | null;
+  classeApuradaEm: string | null;
+  carteiras: CarteiraDoCliente[];
   metricasSemDado: MetricaSemDado[];
 };

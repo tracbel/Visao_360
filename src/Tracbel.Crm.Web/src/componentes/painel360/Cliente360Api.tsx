@@ -11,12 +11,19 @@
  * com o que existe dele, em cinco leituras paralelas.
  *
  * ---------------------------------------------------------------------------
- * OS BLOCOS QUE NÃO EXISTEM CONTINUAM NA TELA, e é a decisão principal deste
- * arquivo. Faturamento, títulos e ordens de serviço são o que o CEN mais pede
- * na ficha do cliente, e as três integrações estão **paradas na origem desde
- * 2024 e 2025**. Some-los faria a tela parecer completa; mostrá-los com um
- * número velho é o defeito de 17 meses que este projeto existe para corrigir. O
- * que fica é o bloco, vazio, **com a data em que a integração parou**.
+ * 27/09/2026 — O DADO CRUZADO: CRM × Protheus × ART.
+ *
+ * Três blocos deixaram de ser lacuna, porque o dado estava no banco e nenhuma
+ * tela o lia: a FROTA pelo dono atual da sincronia do parque (22.287 máquinas de
+ * 6.165 clientes, contra 2.440 de 1.181 pelo dono confirmado), com a relação e a
+ * evidência de cada máquina; o FATURAMENTO do cliente, lido da SD2 do Protheus,
+ * com a data da carga; e as CARTEIRAS com o CEN de cada uma. O bloco de
+ * faturamento substitui uma frase falsa ("parou em 11/04/2025"), que era da cópia
+ * do Vórtice, e não do faturamento.
+ *
+ * OS BLOCOS QUE NÃO EXISTEM CONTINUAM NA TELA: títulos em aberto e ordens de
+ * serviço, que o CRM ainda não carrega do Protheus. Some-los faria a tela
+ * parecer completa; o que fica é o bloco, vazio, com o motivo de hoje.
  */
 
 
@@ -34,9 +41,13 @@ import {
 } from '../../dados/api/relacionamento';
 import { useRecurso, type Leitura } from '../../dados/api/useRecurso';
 import { formatarData, formatarDataHora, formatarDinheiro } from '../../telas/cadastro/formato';
-import { INTEGRACOES_PARADAS, LacunaConhecida } from '../cadastro/SemDado';
+import { RelacaoComOCliente } from '../cadastro/RelacaoDaMaquina';
+import { LACUNAS_DA_FICHA_DO_CLIENTE, LacunaConhecida } from '../cadastro/SemDado';
 import { SeloProcedencia } from '../cadastro/SeloProcedencia';
+import { BlocoCarteirasDoCliente } from './BlocoCarteirasDoCliente';
+import { BlocoFaturamentoDoCliente } from './BlocoFaturamentoDoCliente';
 import { BlocoPainel, type EstadoBloco } from './BlocoPainel';
+import { Dado, SemValor } from './DadoDoPainel';
 
 /** Quantas linhas cada bloco mostra antes de mandar para a tela cheia. */
 const LINHAS = 8;
@@ -130,33 +141,42 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
           )}
         </BlocoPainel>
 
+        <BlocoCarteirasDoCliente chave={chave} />
+
         <BlocoPainel
           id="frota"
           titulo="Frota instalada"
-          subtitulo="frota.Equipamento — o parque do CEN, alterado diariamente na origem"
+          subtitulo="o dono atual pela sincronia do parque (Protheus e ART), com a evidência, e as compras no ART"
           fonte={<SeloProcedencia procedencia={frota.procedencia} />}
           acao={
             <Link to={`/equipamentos?cliente=${chave}`} className="btn btn-secondary btn-sm">
-              Ver todos
+              Ver todas
             </Link>
           }
           estado={estado(frota, (frota.dados?.itens.length ?? 0) > 0)}
-          mensagemVazia="Este cliente não tem máquina cadastrada nesta filial."
+          mensagemVazia={
+            'Nenhuma máquina deste cliente ao seu alcance: ele não é o dono atual de nenhuma pela sincronia do ' +
+            'parque, não comprou nenhuma no ART e não é o dono confirmado de nenhuma, nas filiais que você alcança.'
+          }
           mensagemErro={frota.erro?.message}
         >
           <ul className="p360-lista">
             {frota.dados?.itens.map((e) => (
-              <li className="p360-item" key={e.chave}>
+              <li className={e.relacaoComOCliente?.ehDonoAtual ? 'p360-item' : 'p360-item p360-item-info'} key={e.chave}>
                 <div className="p360-item-topo">
                   <Link to={`/equipamentos/${e.chave}`} className="p360-item-titulo">
-                    {e.modeloNome ?? 'Modelo não informado'}
+                    {e.modeloNome ?? e.produtoNaOrigem ?? 'Modelo não informado'}
                   </Link>
                   <span className="p360-item-data cad-mono">{e.chassi}</span>
                 </div>
                 <div className="p360-item-meta">
                   {e.marca ?? 'marca não informada'}
-                  {e.anoModelo ? ` · ${e.anoModelo}` : ''} · {e.situacao} · origem {e.origem}
+                  {e.anoModelo ? ` · ${e.anoModelo}` : ''}
+                  {e.classificacaoNome ? ` · ${e.classificacaoNome}` : ''} · origem {e.origem}
                   {e.marcaRepresentada === false && ' · máquina de concorrente'}
+                </div>
+                <div className="p360-item-obs">
+                  <RelacaoComOCliente maquina={e} />
                 </div>
               </li>
             ))}
@@ -168,6 +188,8 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
             </p>
           )}
         </BlocoPainel>
+
+        <BlocoFaturamentoDoCliente chave={chave} />
 
         <BlocoPainel
           id="oportunidades"
@@ -285,24 +307,14 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
         <div className="card-header">
           <div className="card-title">O que a ficha deste cliente não pode mostrar</div>
           <div className="card-subtitle">
-            Os blocos continuam aqui, vazios e com a data em que cada integração parou. Some-los
-            faria a tela parecer completa.
+            Os blocos continuam aqui, vazios e com o motivo de hoje. Some-los faria a tela parecer
+            completa.
           </div>
         </div>
         <div className="cad-fichas">
-          {INTEGRACOES_PARADAS.map((i) => (
-            <LacunaConhecida key={i.metrica} metrica={i.metrica} desde={i.desde} motivo={i.motivo} />
+          {LACUNAS_DA_FICHA_DO_CLIENTE.map((i) => (
+            <LacunaConhecida key={i.metrica} metrica={i.metrica} motivo={i.motivo} />
           ))}
-          <LacunaConhecida
-            metrica="As carteiras deste cliente e o CEN responsável"
-            motivo={
-              'Falta rota. /api/v1/cobertura devolve a carteira cliente a cliente, mas não aceita ' +
-              'clienteChave — só classe, dias sem contato e ordenação. Metade dos clientes está em ' +
-              'duas ou mais carteiras ao mesmo tempo, e essa é justamente a informação que o CEN ' +
-              'precisa ver aqui. Enquanto a rota não aceitar o filtro, a Cobertura de Carteira ' +
-              'responde a pergunta pelo outro lado.'
-            }
-          />
         </div>
       </div>
     </>
@@ -321,18 +333,4 @@ function rotuloDaNatureza(natureza: string): string {
   if (natureza === 'Ativa') return 'nós procuramos';
   if (natureza === 'Receptiva') return 'o cliente procurou';
   return 'registro do sistema';
-}
-
-function Dado({ rotulo, valor }: { rotulo: string; valor: React.ReactNode }) {
-  return (
-    <div className="p360-dado">
-      <dt className="p360-dado-rotulo">{rotulo}</dt>
-      <dd className="p360-dado-valor">{valor}</dd>
-    </div>
-  );
-}
-
-/** Ausência escrita em palavra, e nunca um zero ou um traço solto. */
-function SemValor({ texto }: { texto: string }) {
-  return <span className="cad-nada">{texto}</span>;
 }

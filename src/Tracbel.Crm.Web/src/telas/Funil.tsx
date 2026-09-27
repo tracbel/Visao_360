@@ -527,13 +527,15 @@ export function Funil() {
               'metas eram números escritos no JavaScript.'
             }
           />
+          {/* A FRASE ANTIGA DIZIA QUE O FATURAMENTO "PAROU EM 11/04/2025" — era a cópia que o Vórtice
+              recebia (EXT_NFS). O faturamento do Protheus está no CRM (27/09/2026); o que falta é a ponte
+              entre a nota e o processo. */}
           <LacunaConhecida
             metrica="Faturamento realizado"
-            desde="11/04/2025"
             motivo={
-              'A tabela de notas fiscais do ERP (EXT_NFS) parou de receber carga em 11/04/2025. Ela ' +
-              'continua respondendo à consulta e continua cheia, e é por isso que o número que ela ' +
-              'devolveria pareceria atual.'
+              'O faturamento do Protheus está no CRM, lido direto da nota de saída, mas por cliente, ' +
+              'filial e mês: a nota não diz de qual processo nasceu, e nada liga um processo ganho ao ' +
+              'valor faturado. O faturamento aparece na Visão 360 e no 360 de cada cliente, e não no funil.'
             }
           />
         </div>

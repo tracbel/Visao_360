@@ -20,6 +20,7 @@
 import type { ComProcedencia, PaginaDe } from '../../tipos/api';
 import type {
   Agregado,
+  CarteirasDoCliente,
   CoberturaDeFilial,
   CoberturaResumo,
   ConsultaDeCobertura,
@@ -28,6 +29,7 @@ import type {
   ConsultaDeTarefas,
   ContagemPorRotulo,
   Faturamento,
+  FaturamentoDoCliente,
   PainelDoCen,
   VendasPerdidas,
   FaseDoFunil,
@@ -373,4 +375,25 @@ export function obterFaturamento(
   sinal?: AbortSignal,
 ): Promise<ComProcedencia<Faturamento>> {
   return ler<Faturamento>('/v1/relatorios/faturamento', contexto, { sinal });
+}
+
+/**
+ * O faturamento de UM cliente — doze meses, quebra, filial que emitiu a nota e a data da carga. 404 quer dizer "não
+ * existe OU não está ao seu alcance".
+ */
+export function obterFaturamentoDoCliente(
+  contexto: ContextoDeAcesso,
+  chaveDoCliente: string,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<FaturamentoDoCliente>> {
+  return ler<FaturamentoDoCliente>(`/v1/clientes/${chaveDoCliente}/faturamento`, contexto, { sinal });
+}
+
+/** As carteiras em que o cliente está, com o CEN de cada uma — nas carteiras ao alcance de quem consulta. */
+export function listarCarteirasDoCliente(
+  contexto: ContextoDeAcesso,
+  chaveDoCliente: string,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<CarteirasDoCliente>> {
+  return ler<CarteirasDoCliente>(`/v1/clientes/${chaveDoCliente}/carteiras`, contexto, { sinal });
 }

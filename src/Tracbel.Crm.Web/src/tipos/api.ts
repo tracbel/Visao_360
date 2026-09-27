@@ -213,10 +213,37 @@ export type EquipamentoResumo = {
   naturezaDoVinculo: string | null;
   produtoNaOrigem: string | null;
   sistemaDaVenda: string | null;
+  /**
+   * O DONO ATUAL pelo vínculo da sincronia do parque (Protheus, ou o ART quando ele prevalece) — que não é o dono
+   * confirmado de `clienteChave`. Nulo quando não há dono atual ao alcance.
+   */
+  donoAtualChave: string | null;
+  donoAtualNome: string | null;
+  /** `NotaDeVenda`, `OrdemDeServico`, `CadastroAntigo` ou `VendaNoArt` — o que sustenta o dono atual. */
+  evidenciaDoDonoAtual: string | null;
+  /** A data da evidência mais recente do dono atual (`AAAA-MM-DD`). */
+  evidenciaDoDonoAtualEm: string | null;
+  /** O que a máquina é para o cliente do filtro `clienteChave`. Nula sem esse filtro. */
+  relacaoComOCliente: RelacaoComOCliente | null;
 };
 
-/** A máquina como a ficha a mostra, com o carimbo de concorrência. */
-export type EquipamentoDetalhe = EquipamentoResumo & {
+/**
+ * O QUE A MÁQUINA É PARA O CLIENTE DO FILTRO — as três relações podem valer juntas, e cada uma é uma afirmação
+ * diferente. O comprador do ART fica como histórico mesmo quando a máquina já é de outro (decisão de 24/09/2026).
+ */
+export type RelacaoComOCliente = {
+  /** O cliente é o dono atual pela sincronia do parque; a evidência está em `evidenciaDoDonoAtual`. */
+  ehDonoAtual: boolean;
+  /** O cadastro da máquina aponta o cliente como dono confirmado. */
+  ehDonoConfirmado: boolean;
+  /** A data da venda mais recente em que ele foi o comprador (`AAAA-MM-DD`); nula quando ele não comprou. */
+  compradaEm: string | null;
+  /** A venda entrou com o dono do Protheus no lugar do comprador do ART, que não é cliente do CRM. */
+  compradaPeloDonoNoProtheus: boolean;
+};
+
+/** A máquina como a ficha a mostra, com o carimbo de concorrência. A relação com um cliente só vem na listagem. */
+export type EquipamentoDetalhe = Omit<EquipamentoResumo, 'relacaoComOCliente'> & {
   numeroSerie: string | null;
   placa: string | null;
   familia: string | null;
@@ -247,7 +274,10 @@ export type MaquinaCompradaPeloCliente = {
   natureza: string;
   filialCodigo: string;
   sistemaCodigo: string;
-  /** Se o cliente também é o dono atual registrado. Comprar não faz dono. */
+  /**
+   * Se o cliente também é o dono atual — pelo vínculo da sincronia do parque ou pelo dono confirmado no cadastro da
+   * máquina. Comprar não faz dono.
+   */
   ehDonoAtual: boolean;
 };
 
