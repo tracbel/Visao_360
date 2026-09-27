@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
+using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
@@ -124,6 +125,76 @@ public sealed class RepositorioDeCarteiras(CrmDbContext contexto) : IRepositorio
                     carteiras[a.CarteiraId].NaturezaDoResponsavel.ToString()))
                 .OrderByDescending(r => r.Clientes)
         ];
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// A fronteira chega pela CARTEIRA, pela mesma razão de <see cref="Filtrar"/>: o vínculo não tem coluna de empresa.
+    /// Medido em 27/09/2026, 4.455 dos 8.537 vínculos ativos estão numa carteira de filial diferente da filial do
+    /// cadastro do cliente — quem não alcança a filial da carteira não a vê na ficha, e o cliente continua visível.
+    /// </remarks>
+    public async Task<CarteirasLidasDoCliente?> ListarDoClienteAsync(Guid chaveDoCliente, CancellationToken ct)
+    {
+        var cliente = await contexto.Clientes.AsNoTracking()
+            .Where(c => c.ChavePublica == chaveDoCliente)
+            .Select(c => new { c.Id, c.Classe, c.ClasseApuradaEm })
+            .FirstOrDefaultAsync(ct);
+
+        if (cliente is null) return null;
+
+        var lidos = await (
+                from vinculo in contexto.ClienteCarteiras.AsNoTracking()
+                join carteira in contexto.Carteiras.AsNoTracking() on vinculo.CarteiraId equals carteira.Id
+                join filial in contexto.Empresas.AsNoTracking() on carteira.EmpresaId equals filial.Id
+                join linha in contexto.LinhasDeNegocio.AsNoTracking() on carteira.LinhaDeNegocioId equals linha.Id
+                where vinculo.ClienteId == cliente.Id && vinculo.DesvinculadoEm == null && carteira.ExcluidoEm == null
+                select new
+                {
+                    carteira.ChavePublica,
+                    carteira.Codigo,
+                    carteira.Nome,
+                    carteira.Natureza,
+                    Linha = linha.Nome,
+                    linha.DiasCicloClasseA,
+                    linha.DiasCicloClasseB,
+                    linha.DiasCicloClasseC,
+                    linha.DiasCicloClasseD,
+                    Responsavel = contexto.Usuarios
+                        .Where(u => u.Id == carteira.ResponsavelId).Select(u => u.NomeExibicao).FirstOrDefault(),
+                    // O QUE O DONO DA CARTEIRA É: pessoa ou caixa de área, como na Cobertura — a enumeração vem crua e
+                    // vira texto em memória.
+                    NaturezaDoResponsavel = contexto.Usuarios
+                        .Where(u => u.Id == carteira.ResponsavelId).Select(u => (NaturezaDoUsuario?)u.Natureza).FirstOrDefault(),
+                    FilialCodigo = filial.Codigo,
+                    FilialNome = filial.Nome,
+                    vinculo.VinculadoEm,
+                    vinculo.UltimaInteracaoEm
+                })
+            .ToListAsync(ct);
+
+        return new CarteirasLidasDoCliente(
+            cliente.Classe,
+            cliente.ClasseApuradaEm,
+            [.. lidos
+                .OrderBy(v => v.Natureza == NaturezaDaCarteira.Comercial ? 0 : 1)
+                .ThenBy(v => v.FilialCodigo, StringComparer.Ordinal)
+                .ThenBy(v => v.Codigo, StringComparer.Ordinal)
+                .Select(v => new VinculoDoClienteComCarteira(
+                    v.ChavePublica,
+                    v.Codigo,
+                    v.Nome,
+                    v.Natureza.ToString(),
+                    v.Linha,
+                    v.DiasCicloClasseA,
+                    v.DiasCicloClasseB,
+                    v.DiasCicloClasseC,
+                    v.DiasCicloClasseD,
+                    v.Responsavel,
+                    v.NaturezaDoResponsavel?.ToString(),
+                    v.FilialCodigo,
+                    v.FilialNome,
+                    v.VinculadoEm,
+                    v.UltimaInteracaoEm))]);
     }
 
     private IQueryable<ClienteCarteira> Filtrar(ConsultaDeCobertura consulta)

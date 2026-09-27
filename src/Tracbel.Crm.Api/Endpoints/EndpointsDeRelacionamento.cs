@@ -131,6 +131,18 @@ public static class EndpointsDeRelacionamento
             .ExigePermissao(Permissoes.CoberturaLer)
             .WithSummary("A carteira cliente a cliente, com a data do último contato e o atraso de ciclo.");
 
+        // AS CARTEIRAS DE UM CLIENTE moram na ficha dele, e a rota fica sob /clientes — o mesmo desenho de
+        // /clientes/{chave}/maquinas-compradas. O caso de uso é de carteira, e a permissão é a da cobertura.
+        app.MapGet("/api/v1/clientes/{chave:guid}/carteiras", async (
+                Guid chave, ListarCarteirasDoCliente caso, CancellationToken ct) =>
+            (await caso.ExecutarAsync(chave, ct)).Responder())
+            .WithTags("Clientes (banco do CRM)")
+            .WithName("ListarCarteirasDoCliente")
+            .ExigePermissao(Permissoes.CoberturaLer)
+            .WithSummary(
+                "As carteiras em que o cliente está: natureza, CEN responsável, filial, classe, cadência da linha de " +
+                "negócio e a data do vínculo — nas carteiras ao alcance de quem consulta.");
+
         return app;
     }
 
@@ -174,6 +186,17 @@ public static class EndpointsDeRelacionamento
             .WithSummary(
                 "O faturamento lido da SD2 do Protheus: série dos últimos doze meses e os cinco " +
                 "maiores clientes, com a competência mais recente sempre junto do número.");
+
+        // O FATURAMENTO DE UM CLIENTE mora na ficha dele, e a rota fica sob /clientes, como as máquinas compradas.
+        app.MapGet("/api/v1/clientes/{chave:guid}/faturamento", async (
+                Guid chave, ObterFaturamentoDoCliente caso, CancellationToken ct) =>
+            (await caso.ExecutarAsync(chave, ct)).Responder())
+            .WithTags("Clientes (banco do CRM)")
+            .WithName("ObterFaturamentoDoCliente")
+            .ExigePermissao(Permissoes.FaturamentoLer)
+            .WithSummary(
+                "O faturamento do cliente lido da SD2 do Protheus: os doze meses até a competência mais recente da " +
+                "carga, a quebra máquina, peça, serviço e outros, a filial que emitiu a nota e a data da carga.");
 
         grupo.MapGet("/indicadores-executivos", async (
                 ObterIndicadoresExecutivos caso, CancellationToken ct, int? ano = null) =>
