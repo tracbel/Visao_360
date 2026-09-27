@@ -10,6 +10,13 @@ public interface IRepositorioDePrecosDeMercado
     /// </summary>
     /// <param name="ct">Cancelamento.</param>
     Task<PrecosDeMercado> LerAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Só o preço de cada categoria de máquina, mês a mês (issue 70) — o que o mercado anual e o potencial
+    /// incremental dos indicadores territoriais usam, sem ler as séries de commodity junto.
+    /// </summary>
+    /// <param name="ct">Cancelamento.</param>
+    Task<IReadOnlyList<SerieDePrecoDeMaquina>> LerPrecosDeMaquinaAsync(CancellationToken ct);
 }
 
 /// <summary>A base de preços inteira, como a tela a mostra.</summary>

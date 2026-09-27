@@ -30,6 +30,8 @@ import { Inbox } from 'lucide-react';
 import type { IndicadoresDoMunicipio, NumerosDeDecisao } from '../../../tipos/territorio';
 import { InfoTooltip } from '../../InfoTooltip';
 import { CartaoDeIndicador, GradeDeIndicadores } from '../../dashboard/Dashboard';
+import { fraseDosPrecos, marcaDeParcial } from '../../mercado/precosDeReferencia';
+import { reaisCompactos } from '../escalas';
 
 const nº = (v: number) => v.toLocaleString('pt-BR');
 /** Máquinas com uma casa: a demanda do município é estimativa, e 0,2 máquina é informação. */
@@ -43,11 +45,12 @@ const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDi
  */
 /**
  * O MERCADO ANUAL NÃO USA VENDAS (revisão de 27/09/2026): ele é a demanda de cada
- * categoria vezes o preço de referência dela. O que falta ao município, para ele,
- * é a demanda separada por categoria — e não as vendas, como para a captura.
+ * categoria vezes o preço de referência dela. Desde a issue 70 o município traz a
+ * própria conta; esta frase só aparece quando nem o município nem o recorte
+ * mandaram a deles.
  */
 const MERCADO_SO_NO_RECORTE =
-  'O mercado anual existe para o recorte inteiro — está no topo da aba Mercado — e ainda não por município: ele é a demanda de cada categoria vezes o preço de referência dela, e a leitura do município traz a demanda somada, sem a quebra por categoria que o preço pede. O número do recorte não é repetido aqui porque é de outro lugar.';
+  'O mercado anual do município é a demanda de cada categoria vezes o preço de referência dela, com as categorias daqui — e ele não saiu nesta leitura: o município não tem demanda estimada por categoria.';
 
 const SO_NO_RECORTE = (oQue: string) =>
   `${oQue} existe para o recorte inteiro — está no topo da aba Mercado — e ainda não por município: a conta do município pede as vendas em unidades separadas pelas categorias que têm demanda aqui, e a leitura do município traz as unidades somadas. O número do recorte não é repetido aqui porque é de outro lugar.`;
@@ -102,9 +105,16 @@ export function OportunidadesDoMunicipio({
                 : 'Sem parque, não há o que renovar.'
             }
           />
+          {/* O MERCADO ANUAL DO MUNICÍPIO (issue 70, 27/09/2026): a demanda de cada categoria daqui vezes o
+              preço dela. Parcial se diz ao lado do número, e o preço usado vai no contexto. */}
           <CartaoDeIndicador
             rotulo="Mercado anual"
-            valor={null}
+            valor={doMunicipio?.mercadoAnual.valor == null ? null : reaisCompactos(doMunicipio.mercadoAnual.valor)}
+            contexto={
+              [marcaDeParcial(doMunicipio?.mercadoAnual), fraseDosPrecos(doMunicipio?.mercadoAnual)]
+                .filter(Boolean)
+                .join(' · ') || undefined
+            }
             motivoSemDado={motivo(doMunicipio?.mercadoAnual.frase, numerosDeDecisao?.mercadoAnual.frase, MERCADO_SO_NO_RECORTE)}
           />
           <CartaoDeIndicador

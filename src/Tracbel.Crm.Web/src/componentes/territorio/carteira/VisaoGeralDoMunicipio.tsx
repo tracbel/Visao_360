@@ -6,10 +6,10 @@
  * a lavoura e a estrutura lado a lado, e o cartão verde das oportunidades.
  *
  * O QUE A MAQUETE MOSTRA E O SISTEMA NÃO TEM fica no lugar dela com "—" e a
- * dica do motivo (decisão 1): a área total e o tamanho médio das propriedades,
- * a vocação agrícola, o potencial incremental em reais e as máquinas
- * potenciais. Nenhum número daqui é da maquete — cada um vem do município
- * escolhido.
+ * dica do motivo (decisão 1): a área total e o tamanho médio das propriedades
+ * e a vocação agrícola. As máquinas potenciais e o potencial incremental em
+ * reais passaram a vir do servidor (27/09/2026, issues 69 e 70). Nenhum número
+ * daqui é da maquete — cada um vem do município escolhido.
  *
  * A VARIAÇÃO "vs. ano anterior" DOS CARTÕEZINHOS TEM NÚMERO ONDE HÁ NÚMERO
  * (27/09/2026): vendas e pós-venda contra o mesmo trecho do ano fiscal
@@ -148,6 +148,7 @@ export function VisaoGeralDoMunicipio({
   const lavoura = lavouraDoMunicipio(municipio, regras, culturasNoEstado, 4, historico?.lavoura ?? null);
   const antes = municipio.vendasNoPeriodoAnterior;
   const cobre = cobertura.vinculosComCadencia > 0 ? (100 * cobertura.cobertos) / cobertura.vinculosComCadencia : null;
+  const potencial = municipio.numerosDeDecisao?.potencialIncremental ?? null;
 
   return (
     <div className="terr-ficha-visao">
@@ -411,11 +412,21 @@ export function VisaoGeralDoMunicipio({
           <ItemDeOportunidade
             icone={ChartColumn}
             rotulo="potencial incremental"
+            // O POTENCIAL INCREMENTAL DO MUNICÍPIO (issue 70, 27/09/2026): a oportunidade de cada categoria daqui
+            // vezes o preço dela, montado no servidor. Parcial vai ao lado do número.
             valor={
-              <ValorAusente
-                motivo="O potencial incremental em reais é a oportunidade em máquinas vezes o preço de referência de cada categoria. As vendas em unidades por município já existem (issue 69, pelo ART); falta o preço de referência da máquina por categoria (issue 70), e sem ele a conta daria um número em reais sem base."
-                oQue="o potencial incremental"
-              />
+              potencial?.valor != null ? (
+                `${reaisCompactos(potencial.valor)}${potencial.parcial ? ' (parcial)' : ''}`
+              ) : (
+                <ValorAusente
+                  motivo={
+                    potencial?.frase ||
+                    numerosDeDecisao?.potencialIncremental?.frase ||
+                    'O potencial incremental em reais é a oportunidade de cada categoria vezes o preço de referência dela (issue 70), e ele não saiu para este município: a conta pede a demanda das categorias que têm regra aqui e as vendas em unidades.'
+                  }
+                  oQue="o potencial incremental"
+                />
+              )
             }
           />
           {/* AS MÁQUINAS POTENCIAIS SÃO A OPORTUNIDADE EM MÁQUINAS DESTE MUNICÍPIO

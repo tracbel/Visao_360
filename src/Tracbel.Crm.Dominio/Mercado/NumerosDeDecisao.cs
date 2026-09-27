@@ -50,18 +50,34 @@ public sealed record NumeroDeDecisao(decimal? Valor, string Motivo, string Frase
 /// <param name="Frase">A ausência explicada; vazia quando saiu.</param>
 /// <param name="Parcial">Se alguma categoria ficou de fora por não ter preço.</param>
 /// <param name="CategoriasSemPreco">Quais ficaram de fora, pelo nome.</param>
+/// <param name="Precos">
+/// O preço de referência de cada categoria que entrou — para a dica dizer com que preço a conta foi feita. Nulo
+/// quando quem montou não os informou.
+/// </param>
+/// <remarks>O POTENCIAL INCREMENTAL usa o mesmo formato: também é reais, e também pode sair pela metade.</remarks>
 public sealed record MercadoAnual(
     decimal? Valor,
     string Motivo,
     string Frase,
     bool Parcial,
-    IReadOnlyList<string> CategoriasSemPreco);
+    IReadOnlyList<string> CategoriasSemPreco,
+    IReadOnlyList<PrecoDeReferenciaDaCategoria>? Precos = null);
 
 /// <summary>A demanda de uma categoria e o preço de referência dela, quando houver.</summary>
 /// <param name="Categoria">O nome da categoria, para dizer qual ficou de fora.</param>
 /// <param name="DemandaAnual">A demanda anual daquela categoria, em máquinas.</param>
 /// <param name="PrecoDeReferencia">O preço de referência daquela categoria (issue 70); nulo quando não há.</param>
-public sealed record DemandaDaCategoria(string Categoria, decimal DemandaAnual, decimal? PrecoDeReferencia);
+/// <param name="DemandaAjustada">A demanda anual da categoria depois do fator de ciclo; nula sem fator.</param>
+/// <param name="VendasEmUnidades">
+/// As máquinas que a Tracbel vendeu nesta categoria no período: zero quando a fonte das unidades existe e a categoria
+/// não aparece nela; nula quando a fonte não existe — e aí o potencial incremental inteiro sai sem número.
+/// </param>
+public sealed record DemandaDaCategoria(
+    string Categoria,
+    decimal DemandaAnual,
+    decimal? PrecoDeReferencia,
+    decimal? DemandaAjustada = null,
+    int? VendasEmUnidades = null);
 
 /// <summary>
 /// O QUE A CAPTURA CONTOU — as máquinas vendidas das categorias que têm demanda, e o que ficou de fora.
@@ -148,12 +164,16 @@ public sealed record BaseDaCaptura(int Unidades, IReadOnlyList<string> Categoria
 /// <param name="CapturaPercentual">Que fatia da demanda a Tracbel leva, em pontos percentuais.</param>
 /// <param name="Oportunidade">Quantas máquinas da demanda ajustada ainda não foram capturadas.</param>
 /// <param name="BaseDaCaptura">O que a captura e a oportunidade contaram; nula quando a fonte das unidades não existe.</param>
+/// <param name="PotencialIncremental">
+/// Quanto vale, em reais, o que ainda não foi capturado — a oportunidade de cada categoria vezes o preço dela.
+/// </param>
 public sealed record NumerosDeDecisao(
     NumeroDeDecisao DemandaAnual,
     MercadoAnual MercadoAnual,
     NumeroDeDecisao CapturaPercentual,
     NumeroDeDecisao Oportunidade,
-    BaseDaCaptura? BaseDaCaptura = null);
+    BaseDaCaptura? BaseDaCaptura = null,
+    MercadoAnual? PotencialIncremental = null);
 
 /// <summary>
 /// OS QUATRO NÚMEROS DE DECISÃO (documento 50, §4.1) — domínio puro, sem banco.
@@ -202,7 +222,46 @@ public static class DecisaoDoMercado
             demanda,
             Mercado(demandaAnual, porCategoria),
             Captura(demandaAnual, vendasEmUnidades, mesesDoPeriodo),
-            Oportunidade(demandaAjustada, vendasEmUnidades, mesesDoPeriodo));
+            Oportunidade(demandaAjustada, vendasEmUnidades, mesesDoPeriodo),
+            PotencialIncremental: PotencialIncremental(porCategoria, vendasEmUnidades, mesesDoPeriodo));
+    }
+
+    /// <summary>
+    /// POTENCIAL INCREMENTAL — a soma, POR CATEGORIA, de <c>max(0, demanda ajustada do período − vendas) × preço</c>
+    /// (issue 70, 27/09/2026).
+    ///
+    /// <para><b>Categoria por categoria, e não o total de máquinas vezes um preço médio.</b> Trator vendido além da
+    /// demanda não preenche a falta de colhedora: cada categoria tem a sua oportunidade, e o que sobra numa não
+    /// abate a outra. Por isso a soma pode passar do "máquinas potenciais", que é a conta do total.</para>
+    ///
+    /// <para><b>Categoria sem preço fica de fora e marca o número como parcial</b>, como no mercado anual — somá-la
+    /// como zero afirmaria que a oportunidade dela não vale nada.</para>
+    /// </summary>
+    private static MercadoAnual PotencialIncremental(IReadOnlyList<DemandaDaCategoria> porCategoria, int? vendasEmUnidades, int meses)
+    {
+        const string nome = "o potencial incremental";
+
+        MercadoAnual Sem(MotivoSemNumeroDeDecisao motivo, IReadOnlyList<string> semPreco) =>
+            new(null, motivo.ToString(), Frase(motivo.ToString(), nome), false, semPreco);
+
+        if (vendasEmUnidades is null) return Sem(MotivoSemNumeroDeDecisao.SemVendasEmUnidades, []);
+
+        var daConta = porCategoria.Where(c => c.DemandaAjustada is not null).ToList();
+        if (daConta.Count == 0 || meses <= 0) return Sem(MotivoSemNumeroDeDecisao.SemDemandaAnual, []);
+
+        var semPreco = daConta
+            .Where(c => c.PrecoDeReferencia is null)
+            .Select(c => c.Categoria)
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToList();
+
+        var comPreco = daConta.Where(c => c.PrecoDeReferencia is not null).ToList();
+        if (comPreco.Count == 0) return Sem(MotivoSemNumeroDeDecisao.SemPrecoDeMaquina, semPreco);
+
+        var total = comPreco.Sum(c =>
+            Math.Max(0m, DemandaDoPeriodo(c.DemandaAjustada!.Value, meses) - (c.VendasEmUnidades ?? 0)) * c.PrecoDeReferencia!.Value);
+
+        return new MercadoAnual(total, nameof(MotivoSemNumeroDeDecisao.Nenhum), string.Empty, semPreco.Count > 0, semPreco);
     }
 
     /// <summary>
@@ -324,9 +383,13 @@ public static class DecisaoDoMercado
             "carga não rodou, ou não trouxe venda para cá.",
 
         nameof(MotivoSemNumeroDeDecisao.SemPrecoDeMaquina) =>
-            $"Não há preço de referência de máquina no CRM, e {numero} é a demanda de cada categoria multiplicada pelo " +
-            "preço DAQUELA categoria (issue 70). Um preço genérico aplicado à demanda inteira misturaria colhedora " +
-            "com trator compacto.",
+            // O PREÇO EXISTE DESDE 27/09/2026 (issue 70): a frase diz de onde ele vem e por que pode faltar, e não mais
+            // que "não há preço no CRM".
+            $"Nenhuma categoria com demanda neste recorte tem preço de referência, e {numero} é a conta de cada categoria " +
+            "multiplicada pelo preço DAQUELA categoria (issue 70). O preço é a mediana das notas de máquina do Protheus " +
+            "casadas com as vendas do ART nos últimos 12 meses: sem nota da categoria nesse tempo — ou sem a rotina " +
+            "\"Preço da máquina\" ter rodado —, não há preço. Um preço genérico aplicado à demanda inteira misturaria " +
+            "colhedora com trator compacto.",
 
         _ => $"Não foi possível apurar {numero} neste recorte."
     };

@@ -768,6 +768,30 @@ describe('DetalheDoMunicipio — Lavoura, Estrutura, Oportunidades e Histórico'
     expect(mercado).not.toMatch(/vendas em unidades/);
   });
 
+  // O PREÇO DA MÁQUINA CHEGOU (issue 70, 27/09/2026): com a conta do município vinda do servidor, a ficha mostra o
+  // mercado anual e o potencial incremental em reais — com o preço usado escrito e a marca de parcial ao lado.
+  it('com o preço da máquina, a ficha mostra o mercado anual e o potencial incremental do município', () => {
+    const precos = [{ categoriaCodigo: 'TRATOR', categoria: 'Trator', preco: 475_000, meses: 2, ultimoMes: '2026-09-01' }];
+    abrir(
+      municipio(potencial(), undefined, {
+        numerosDeDecisao: {
+          ...NUMEROS,
+          mercadoAnual: { valor: 3_325_000, motivo: 'Nenhum', frase: '', parcial: true, categoriasSemPreco: ['Plantadeira'], precos },
+          oportunidade: { valor: 2.4, motivo: 'Nenhum', frase: '' },
+          potencialIncremental: { valor: 1_140_000, motivo: 'Nenhum', frase: '', parcial: false, categoriasSemPreco: [], precos },
+        },
+      }),
+    );
+
+    expect(document.querySelector('.terr-ficha-oport')).toHaveTextContent(/R\$ 1,1 mi\s*potencial incremental/);
+
+    irPara('Oportunidades');
+    const decisao = painelAtivo().querySelector<HTMLElement>('[data-camada="decisao"]')!;
+    expect(decisao).toHaveTextContent('R$ 3,3 mi');
+    expect(decisao).toHaveTextContent('parcial — sem preço de Plantadeira');
+    expect(decisao).toHaveTextContent(/Trator: R\$ 475 mil \(mediana de 2 meses de notas, até 09\/2026\)/);
+  });
+
   it('a aba Histórico sem os filtros da página não lê — e diz por quê', () => {
     abrir(comLavouraEEstrutura());
     irPara('Histórico');

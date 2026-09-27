@@ -82,6 +82,9 @@ public sealed class RepositorioDePrecosDeMercado(CrmDbContext contexto) : IRepos
             await MaquinasAsync(ct));
     }
 
+    /// <inheritdoc />
+    public Task<IReadOnlyList<SerieDePrecoDeMaquina>> LerPrecosDeMaquinaAsync(CancellationToken ct) => MaquinasAsync(ct);
+
     /// <summary>
     /// O PREÇO DE CADA CATEGORIA DE MÁQUINA (issue 70, D-P12), na ordem de exibição do catálogo. As duas tabelas são
     /// pequenas — poucas categorias e alguns meses por ano —, e a junção é feita aqui, em memória.
