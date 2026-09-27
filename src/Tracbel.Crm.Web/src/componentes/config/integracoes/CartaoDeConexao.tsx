@@ -27,6 +27,7 @@ const ICONE: Record<TipoDeConexao, string> = {
   MySql: '🗄️',
   FontePublica: '🌐',
   Monitorada: '📡',
+  ApiComChave: '🔑',
 };
 
 const TIPO: Record<TipoDeConexao, string> = {
@@ -35,6 +36,7 @@ const TIPO: Record<TipoDeConexao, string> = {
   MySql: 'MySQL',
   FontePublica: 'Fonte pública',
   Monitorada: 'API monitorada',
+  ApiComChave: 'API com chave',
 };
 
 export function Situacao({ ok, nunca = 'Nunca testada' }: { ok: boolean | null; nunca?: string }) {
