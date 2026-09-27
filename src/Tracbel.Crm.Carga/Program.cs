@@ -217,8 +217,18 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 // O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
 
-var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somentePrecos && !somenteCustos && !somenteCredito
-                 && !somenteArt && !somenteClientesDoProtheus && !somenteCarteirasDoVortice && !somenteParqueDoProtheus && !somenteMedir;
+// OS MODOS QUE NÃO PASSAM PELA CARGA DO LEGADO — uma lista, e não uma expressão: cada frente nova ACRESCENTA o seu modo
+// aqui, no fim, e as duas isenções abaixo (a declaração do legado e a exigência do Vortice__Conexao) leem a mesma lista.
+// Antes eram duas expressões longas, repetidas, que cada modo novo tinha de tocar nas duas — e que duas frentes em paralelo
+// tocavam na mesma linha. As carteiras leem o Vórtice pelo leitor delas, com a exigência própria, mais abaixo.
+bool[] modosSemVortice =
+[
+    somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
+    somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus
+];
+var algumModoSemVortice = modosSemVortice.Any(modo => modo);
+
+var leOVortice = !algumModoSemVortice && !somenteMedir;
 
 if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
 {
@@ -265,9 +275,7 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A EXIGÊNCIA CAI NO MODO SÓ-FATURAMENTO, e só nele: essa etapa não abre conexão com o legado.
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
-if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura
-    && !somentePrecos && !somenteCustos && !somenteCredito && !somenteArt && !somenteClientesDoProtheus && !somenteCarteirasDoVortice
-    && !somenteParqueDoProtheus)
+if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !algumModoSemVortice)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
