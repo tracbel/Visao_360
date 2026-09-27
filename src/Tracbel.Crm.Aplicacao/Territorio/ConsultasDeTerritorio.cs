@@ -216,8 +216,11 @@ public sealed record FiltrosDeAlcance(
         }
 
         // O CEN É O RESPONSÁVEL DE UMA CARTEIRA COMERCIAL AO ALCANCE — e só esse: pedir o de uma carteira que o
-        // contexto não enxerga seria pedir para ver o que não é seu.
-        var responsaveis = await repositorio.ListarResponsaveisDasCarteirasAsync(ct);
+        // contexto não enxerga seria pedir para ver o que não é seu. NA VISÃO DA EMPRESA o alcance é o da
+        // empresa inteira, e a lista também (revisão de 27/09/2026) — só para quem tem a permissão; sem ela, a
+        // lista fica na filial do cabeçalho, e a recusa (403) vem logo abaixo.
+        var responsaveis = await repositorio.ListarResponsaveisDasCarteirasAsync(
+            visaoEscolhida == VisaoTerritorial.Empresa && contextoDeAcesso.PodeAlcancarTodasAsEmpresas, ct);
         long? responsavelId = null;
         if (!string.IsNullOrWhiteSpace(responsavel))
         {
@@ -318,8 +321,10 @@ public sealed class ObterIndicadoresTerritoriais(
     /// chegar, passa a trazer demanda e preço de cada categoria.</para>
     /// </summary>
     private static (NumerosDeDecisao Numeros, ComparacaoComOAnoAnterior Comparacao) NumerosDeDecisaoDo(
-        IndicadoresTerritoriais indicadores, string? categoriaFiltrada)
+        IndicadoresTerritoriais indicadores, string? categoriaFiltrada, int mesesDoPeriodo)
     {
+        // A DEMANDA DO PERÍODO (decisão do Ricardo de 27/09/2026): a captura e a oportunidade dividem as vendas do
+        // período pela demanda anual × meses/12. Com o ano fiscal inteiro, o número é o da planilha.
         // A CAPTURA COMPARA MÁQUINA COM MÁQUINA DA MESMA CATEGORIA (D-P01, 27/09/2026). A demanda é das
         // categorias que têm regra de potencial — hoje, só trator —, e o numerador fica nelas: a
         // colheitadeira e a colhedora de cana que o ART também traz não têm demanda do outro lado da conta.
@@ -340,7 +345,8 @@ public sealed class ObterIndicadoresTerritoriais(
         BaseDaCaptura? Base(VendasDeMaquinaDoRecorte? unidades) => BaseDaCaptura.Montar(
             unidades?.Unidades,
             unidades?.PorCategoria.Select(c => (c.CategoriaCodigo, c.Unidades)) ?? [],
-            comDemanda);
+            comDemanda,
+            mesesDoPeriodo);
 
         var (demanda, ajustada) = categoriaFiltrada is null
             ? (indicadores.PotencialDoRecorte?.DemandaAnualDeMaquinas, indicadores.Momento?.DemandaAjustadaTotal)
@@ -352,7 +358,8 @@ public sealed class ObterIndicadoresTerritoriais(
             demanda,
             ajustada,
             vendasEmUnidades: baseDaCaptura?.Unidades,
-            porCategoria: []) with { BaseDaCaptura = baseDaCaptura };
+            porCategoria: [],
+            mesesDoPeriodo) with { BaseDaCaptura = baseDaCaptura };
 
         // O MESMO TRECHO DO ANO ANTERIOR (27/09/2026): a MESMA base — as mesmas categorias com demanda, contra a
         // mesma demanda. O que muda entre os dois lados é só a venda.
@@ -362,7 +369,8 @@ public sealed class ObterIndicadoresTerritoriais(
             demanda,
             ajustada,
             anterior?.MaquinasVendidas is { } unidadesAnteriores ? Base(unidadesAnteriores) : null,
-            anterior?.MotivoSemMaquinas);
+            anterior?.MotivoSemMaquinas,
+            mesesDoPeriodo);
 
         return (numeros, comparacao);
     }
@@ -406,7 +414,7 @@ public sealed class ObterIndicadoresTerritoriais(
     {
         if (indicadores.PotencialDoRecorte is not { } recorte) return null;
 
-        var data = DateOnly.FromDateTime(agoraUtc);
+        var data = ParametroComVigencia.HojeNoBrasil(agoraUtc);
         var vigente = ParametroComVigencia.VigenteEm(await parametros.ListarGeraisAsync(ct), data);
         var doRecorte = await indicadoresDeMercado.LerAsync(data, null, ct);
 
@@ -495,12 +503,16 @@ public sealed class ObterIndicadoresTerritoriais(
             return Resultado<ComProcedencia<PainelTerritorial>>.SemPermissao(semPermissao);
 
         var agora = relogio.Agora;
-        var mesCorrente = new DateOnly(agora.Year, agora.Month, 1);
+        // O MÊS DE SÃO PAULO, e não o do UTC: às 22h de 31/10 o UTC já está em novembro, e o ano fiscal viraria
+        // três horas antes da hora.
+        var mesCorrente = AnoFiscal.MesCorrenteEmSaoPaulo(agora);
         var erros = new ColetorDeErros();
 
-        // SEM PERÍODO NO PEDIDO, O ANO FISCAL ATÉ O ÚLTIMO MÊS FECHADO (decisão de 27/09/2026). Com só o
-        // último mês, o começo é o do ano fiscal que o contém — a mesma regra, e não doze meses para trás.
-        var final = LerCompetencia(competenciaFinal, "competenciaFinal", mesCorrente.AddMonths(-1), erros);
+        // SEM PERÍODO NO PEDIDO, O ANO FISCAL ATÉ O ÚLTIMO MÊS FECHADO (decisão de 27/09/2026) — a conta do
+        // domínio, e não uma refeita aqui. Com só o último mês, o começo é o do ano fiscal que o contém — a
+        // mesma regra, e não doze meses para trás.
+        var padrao = AnoFiscal.AteOUltimoMesFechado(mesCorrente);
+        var final = LerCompetencia(competenciaFinal, "competenciaFinal", padrao.Final, erros);
         var inicial = LerCompetencia(competenciaInicial, "competenciaInicial", AnoFiscal.InicioDe(final), erros);
 
         if (final > mesCorrente)
@@ -534,7 +546,8 @@ public sealed class ObterIndicadoresTerritoriais(
                 filtros.FilialDaVendaId,
                 filtros.FilialDoClienteId,
                 filtros.CategoriaDeMaquina,
-                filtros.ResponsavelId),
+                filtros.ResponsavelId,
+                mesCorrente),
             agora,
             ct);
 
@@ -548,7 +561,8 @@ public sealed class ObterIndicadoresTerritoriais(
             ResponsaveisDasCarteiras = filtros.Responsaveis
         };
 
-        var (numeros, comparacao) = NumerosDeDecisaoDo(indicadores, filtros.CategoriaDeMaquina);
+        var (numeros, comparacao) = NumerosDeDecisaoDo(
+            indicadores, filtros.CategoriaDeMaquina, new JanelaDeCompetencia(inicial, final).Meses);
 
         return Resultado<ComProcedencia<PainelTerritorial>>.Ok(
             ComProcedencia<PainelTerritorial>.DoNossoBanco(
@@ -807,9 +821,9 @@ public sealed class ObterHistoricoDoMunicipio(
         if (semPermissao is not null)
             return Resultado<ComProcedencia<HistoricoDoMunicipio>>.SemPermissao(semPermissao);
 
-        // O MÊS EM CURSO FICA DE FORA, como no painel: um ano fiscal com o mês pela metade se leria como queda.
-        var agora = relogio.Agora;
-        var ultimoFechado = new DateOnly(agora.Year, agora.Month, 1).AddMonths(-1);
+        // O MÊS EM CURSO FICA DE FORA, como no painel: um ano fiscal com o mês pela metade se leria como queda. A
+        // conta é a do domínio, com o mês de São Paulo.
+        var ultimoFechado = AnoFiscal.AteOUltimoMesFechado(AnoFiscal.MesCorrenteEmSaoPaulo(relogio.Agora)).Final;
 
         var historico = await historicos.ApurarHistoricoDoMunicipioAsync(
             new ConsultaDoHistoricoDoMunicipio(

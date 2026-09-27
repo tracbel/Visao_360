@@ -59,9 +59,10 @@ public sealed record PainelDeCreditoRural(
 /// <summary>
 /// O CRÉDITO DE MÁQUINAS DE UM MÊS, por recorte — um ponto da evolução do valor financiado.
 ///
-/// <para><b>A Região Tracbel é a ADR inteira</b> (os municípios com <c>PertenceAAdr</c>), e as duas sub-regiões
-/// somam a Região: Norte + Noroeste = Região Tracbel, mês a mês. São Paulo vai junto porque é o denominador de
-/// toda comparação do crédito.</para>
+/// <para><b>A Região Tracbel é a ADR inteira</b> (os municípios com <c>PertenceAAdr</c>). Norte e Noroeste são os
+/// municípios dela com a sub-região informada: com todos informados — o caso de 27/09/2026 —, os dois somam a
+/// Região mês a mês; o município com a sub-região "não informada" conta só na Região. São Paulo vai junto porque
+/// é o denominador de toda comparação do crédito.</para>
 ///
 /// <para><b>Linha não é contrato</b>, aqui também: é a soma dos contratos de uma combinação do SICOR.</para>
 /// </summary>

@@ -119,17 +119,18 @@ public sealed class RepositorioDeCreditoRural(CrmDbContext contexto) : IReposito
             .Where(m => ids.Contains(m.Id) && m.CodigoIbge != null)
             .ToDictionaryAsync(m => m.Id, m => new { CodigoIbge = m.CodigoIbge!.Value, m.Nome }, ct);
 
-        var subRegiaoDaAdr = (await contexto.MunicipiosDaAreaDeAtuacao.AsNoTracking()
-                .Where(a => a.EncerradoEm == null && a.PertenceAAdr)
-                .Select(a => new { a.MunicipioId, a.Regiao })
-                .ToListAsync(ct))
-            .GroupBy(a => a.MunicipioId)
-            .ToDictionary(g => g.Key, g => g.First().Regiao);
+        // UMA LINHA VIGENTE POR MUNICÍPIO: o índice único filtrado (MunicipioId, EncerradoEm nulo) garante, e o
+        // dicionário direto — sem GroupBy e First — falharia alto no dia em que a garantia deixasse de valer.
+        var subRegiaoDaAdr = await contexto.MunicipiosDaAreaDeAtuacao.AsNoTracking()
+            .Where(a => a.EncerradoEm == null && a.PertenceAAdr)
+            .ToDictionaryAsync(a => a.MunicipioId, a => a.Regiao, ct);
         var daAdr = subRegiaoDaAdr.Keys.ToHashSet();
 
         // O MÊS A MÊS DAS DUAS JANELAS (issue 68, 27/09/2026) — a evolução do valor financiado. A soma é no banco,
-        // por mês e município, e a Região e as sub-regiões são montadas aqui pela área de atuação: Norte mais
-        // Noroeste dá a Região Tracbel, mês a mês, e São Paulo inclui o município sem código do IBGE.
+        // por mês e município, e a Região e as sub-regiões são montadas aqui pela área de atuação. A Região é a ADR
+        // INTEIRA; Norte e Noroeste são os municípios com a sub-região informada — o que está com a sub-região
+        // "não informada" conta na Região e em nenhuma das duas, e aí Norte + Noroeste fica abaixo da Região (em
+        // 27/09/2026 são 83 + 120 = 203, a ADR inteira). São Paulo inclui o município sem código do IBGE.
         var porMesEMunicipio = await nasJanelas
             .Where(c => ProdutosDeMaquina.Contains(c.CodigoProduto))
             .GroupBy(c => new { c.Ano, c.Mes, c.MunicipioId })

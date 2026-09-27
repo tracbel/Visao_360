@@ -321,4 +321,67 @@ public sealed class NumerosDeDecisaoTestes
         comparacao.CapturaPercentual.Frase.Should().Be(cobertura);
         comparacao.Oportunidade.Frase.Should().Be(cobertura);
     }
+
+    // -------------------------------------------------------------------------------------------------
+    // A demanda do período — proporcional aos meses (decisão do Ricardo de 27/09/2026)
+    // -------------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Com_dez_meses_a_captura_e_a_oportunidade_usam_dez_doze_avos_da_demanda()
+    {
+        // 120 de demanda anual → 100 em dez meses. 50 máquinas vendidas: 50% da demanda do período, e não
+        // 41,7% da anual — o ano ainda não acabou. A ajustada 120 vira 100, e sobram 50.
+        var numeros = DecisaoDoMercado.Calcular(120m, 120m, 50, [], mesesDoPeriodo: 10);
+
+        numeros.CapturaPercentual.Valor.Should().Be(50m);
+        numeros.Oportunidade.Valor.Should().Be(50m);
+        numeros.DemandaAnual.Valor.Should().Be(120m, "a demanda anual continua anual — só a conta da captura é do período");
+    }
+
+    [Fact]
+    public void Com_um_mes_a_demanda_do_periodo_e_um_doze_avos()
+    {
+        // 120 por ano → 10 no mês. 5 máquinas no mês = 50%; a oportunidade do mês é 10 − 5.
+        var numeros = DecisaoDoMercado.Calcular(120m, 120m, 5, [], mesesDoPeriodo: 1);
+
+        numeros.CapturaPercentual.Valor.Should().Be(50m);
+        numeros.Oportunidade.Valor.Should().Be(5m);
+    }
+
+    [Fact]
+    public void Com_o_ano_inteiro_o_numero_e_o_da_planilha()
+    {
+        // DOZE MESES, FATOR 1: a "Captura FY25" da planilha é vendas do ano ÷ demanda anual.
+        var doAno = DecisaoDoMercado.Calcular(120m, 120m, 30, [], mesesDoPeriodo: 12);
+        var semPeriodo = DecisaoDoMercado.Calcular(120m, 120m, 30, []);
+
+        doAno.CapturaPercentual.Valor.Should().Be(25m);
+        semPeriodo.CapturaPercentual.Valor.Should().Be(25m, "o padrão sem período é o ano inteiro");
+    }
+
+    [Fact]
+    public void O_ano_anterior_usa_a_mesma_demanda_proporcional_dos_dois_lados()
+    {
+        // DEZ MESES DOS DOIS LADOS: 100 de demanda do período. Agora 50 tratores (50%); antes, 40 (40%).
+        var baseAtual = BaseDaCaptura.Montar(50, [("TRATOR", 50)], SoTrator, mesesDoPeriodo: 10);
+        var atual = DecisaoDoMercado.Calcular(120m, 120m, baseAtual!.Unidades, [], mesesDoPeriodo: 10);
+
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(
+            atual, 120m, 120m, BaseDaCaptura.Montar(40, [("TRATOR", 40)], SoTrator, mesesDoPeriodo: 10), null, mesesDoPeriodo: 10);
+
+        comparacao.CapturaPercentual.Valor.Should().Be(40m);
+        comparacao.Oportunidade.Valor.Should().Be(60m, "100 da demanda do período menos os 40 de antes");
+    }
+
+    [Fact]
+    public void A_frase_da_conta_diz_que_a_demanda_e_a_do_periodo()
+    {
+        BaseDaCaptura.Montar(50, [("TRATOR", 50)], SoTrator, mesesDoPeriodo: 10)!.Frase
+            .Should().Be("A conta deste recorte: 50 máquinas vendidas da categoria Trator ÷ a demanda estimada da mesma " +
+                         "categoria para os 10 meses do período (a anual × 10/12).");
+        BaseDaCaptura.Montar(5, [("TRATOR", 5)], SoTrator, mesesDoPeriodo: 1)!.Frase
+            .Should().EndWith("para o mês do período (a anual × 1/12).");
+        BaseDaCaptura.Montar(50, [("TRATOR", 50)], SoTrator)!.Frase
+            .Should().EndWith("÷ a demanda anual estimada da mesma categoria.", "com o ano inteiro a frase é a de sempre");
+    }
 }

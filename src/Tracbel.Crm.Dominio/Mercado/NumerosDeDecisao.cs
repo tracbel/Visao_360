@@ -86,10 +86,12 @@ public sealed record BaseDaCaptura(int Unidades, IReadOnlyList<string> Categoria
     /// <param name="unidadesVendidas">O total de máquinas vendidas no recorte; nulo quando a fonte não existe.</param>
     /// <param name="vendidasPorCategoria">As máquinas vendidas por categoria, pelo código da categoria.</param>
     /// <param name="categoriasComDemanda">As categorias que têm demanda anual no recorte: código e nome.</param>
+    /// <param name="mesesDoPeriodo">Quantos meses o período tem — a demanda do outro lado é proporcional a eles.</param>
     public static BaseDaCaptura? Montar(
         int? unidadesVendidas,
         IEnumerable<(string Codigo, int Unidades)> vendidasPorCategoria,
-        IEnumerable<(string Codigo, string Nome)> categoriasComDemanda)
+        IEnumerable<(string Codigo, string Nome)> categoriasComDemanda,
+        int mesesDoPeriodo = 12)
     {
         // AUSÊNCIA DE CARGA NÃO É VENDA ZERO: sem a fonte, não há base — e a captura diz que falta a fonte.
         if (unidadesVendidas is not { } total) return null;
@@ -101,10 +103,10 @@ public sealed record BaseDaCaptura(int Unidades, IReadOnlyList<string> Categoria
         // ORDEM ESTÁVEL: a lista vai para a tela e para o teste, e não pode depender de quem chamou.
         var nomes = comDemanda.Select(c => c.Nome).Order(StringComparer.Ordinal).ToList();
 
-        return new BaseDaCaptura(naConta, nomes, total - naConta, FraseDa(naConta, nomes, total - naConta, total));
+        return new BaseDaCaptura(naConta, nomes, total - naConta, FraseDa(naConta, nomes, total - naConta, total, mesesDoPeriodo));
     }
 
-    private static string FraseDa(int naConta, IReadOnlyList<string> categorias, int fora, int total)
+    private static string FraseDa(int naConta, IReadOnlyList<string> categorias, int fora, int total, int meses)
     {
         if (categorias.Count == 0)
             return string.Format(PtBr,
@@ -115,10 +117,21 @@ public sealed record BaseDaCaptura(int Unidades, IReadOnlyList<string> Categoria
             ? $"da categoria {categorias[0]}"
             : $"das categorias {string.Join(", ", categorias.Take(categorias.Count - 1))} e {categorias[^1]}";
 
+        // A DEMANDA DO PERÍODO (decisão do Ricardo de 27/09/2026): a anual, proporcional aos meses. Com o ano
+        // inteiro a frase é a de sempre — e o número é o da planilha ("Captura FY25").
+        var doPeriodo = meses switch
+        {
+            12 => string.Empty,
+            1 => " para o mês do período (a anual × 1/12)",
+            _ => string.Format(PtBr, " para os {0} meses do período (a anual × {0}/12)", meses)
+        };
+
         var conta = string.Format(PtBr,
-            "A conta deste recorte: {0:N0} {1} {2} ÷ a demanda anual estimada {3}.",
+            "A conta deste recorte: {0:N0} {1} {2} ÷ a demanda {3} {4}{5}.",
             naConta, naConta == 1 ? "máquina vendida" : "máquinas vendidas", quais,
-            categorias.Count == 1 ? "da mesma categoria" : "das mesmas categorias");
+            meses == 12 ? "anual estimada" : "estimada",
+            categorias.Count == 1 ? "da mesma categoria" : "das mesmas categorias",
+            doPeriodo);
 
         if (fora == 0) return conta;
 
@@ -170,11 +183,16 @@ public static class DecisaoDoMercado
     /// <see cref="BaseDaCaptura.Unidades"/>, e não o total do ART; nulo quando a fonte não existe.
     /// </param>
     /// <param name="porCategoria">A demanda e o preço de cada categoria (issue 70). Lista vazia = não há composição.</param>
+    /// <param name="mesesDoPeriodo">
+    /// Quantos meses o período das vendas tem. A captura e a oportunidade usam a demanda DO PERÍODO — a anual ×
+    /// meses/12 (decisão do Ricardo de 27/09/2026); a demanda anual e o mercado anual continuam anuais.
+    /// </param>
     public static NumerosDeDecisao Calcular(
         decimal? demandaAnual,
         decimal? demandaAjustada,
         int? vendasEmUnidades,
-        IReadOnlyList<DemandaDaCategoria> porCategoria)
+        IReadOnlyList<DemandaDaCategoria> porCategoria,
+        int mesesDoPeriodo = 12)
     {
         var demanda = demandaAnual is { } valor
             ? NumeroDeDecisao.De(valor)
@@ -183,9 +201,22 @@ public static class DecisaoDoMercado
         return new NumerosDeDecisao(
             demanda,
             Mercado(demandaAnual, porCategoria),
-            Captura(demandaAnual, vendasEmUnidades),
-            Oportunidade(demandaAjustada, vendasEmUnidades));
+            Captura(demandaAnual, vendasEmUnidades, mesesDoPeriodo),
+            Oportunidade(demandaAjustada, vendasEmUnidades, mesesDoPeriodo));
     }
+
+    /// <summary>
+    /// A DEMANDA DO PERÍODO — a anual proporcional aos meses: <c>anual × meses / 12</c>.
+    ///
+    /// <para><b>Por que proporcional</b> (decisão do Ricardo de 27/09/2026): as vendas de dez meses divididas pela
+    /// demanda de doze dariam uma captura cinco sextos do que ela é, e a oportunidade cresceria só por o ano
+    /// ainda não ter acabado. Com o ano fiscal inteiro, o fator é 1 e o número é o da planilha ("Captura FY25").
+    /// A sazonalidade não entra: a demanda estimada é anual, e ratear por mês de safra seria uma regra que
+    /// ninguém decidiu.</para>
+    /// </summary>
+    /// <param name="anual">A demanda de um ano.</param>
+    /// <param name="meses">Os meses do período.</param>
+    public static decimal DemandaDoPeriodo(decimal anual, int meses) => anual * meses / 12m;
 
     /// <summary>
     /// MERCADO ANUAL — a soma, POR CATEGORIA, de <c>demanda da categoria × preço daquela categoria</c>.
@@ -235,23 +266,25 @@ public static class DecisaoDoMercado
     }
 
     /// <summary>
-    /// CAPTURA — vendas da Tracbel em unidades ÷ demanda anual, em pontos percentuais.
+    /// CAPTURA — vendas da Tracbel em unidades ÷ a demanda DO PERÍODO (<see cref="DemandaDoPeriodo"/>), em pontos
+    /// percentuais.
     ///
     /// <para>Os dois lados em MÁQUINAS: o faturamento em reais não serve de numerador para uma demanda
     /// medida em máquinas (issue 69).</para>
     /// </summary>
-    private static NumeroDeDecisao Captura(decimal? demandaAnual, int? vendasEmUnidades)
+    private static NumeroDeDecisao Captura(decimal? demandaAnual, int? vendasEmUnidades, int meses)
     {
         const string nome = "a captura";
 
         if (vendasEmUnidades is null) return NumeroDeDecisao.Sem(MotivoSemNumeroDeDecisao.SemVendasEmUnidades, nome);
-        if (demandaAnual is not > 0) return NumeroDeDecisao.Sem(MotivoSemNumeroDeDecisao.SemDemandaAnual, nome);
+        if (demandaAnual is not > 0 || meses <= 0) return NumeroDeDecisao.Sem(MotivoSemNumeroDeDecisao.SemDemandaAnual, nome);
 
-        return NumeroDeDecisao.De(vendasEmUnidades.Value / demandaAnual.Value * 100m);
+        return NumeroDeDecisao.De(vendasEmUnidades.Value / DemandaDoPeriodo(demandaAnual.Value, meses) * 100m);
     }
 
     /// <summary>
-    /// OPORTUNIDADE — <c>max(0, demanda ajustada − vendas)</c>, a regra da issue 162.
+    /// OPORTUNIDADE — <c>max(0, demanda ajustada do período − vendas)</c>, a regra da issue 162, com a demanda
+    /// proporcional aos meses (<see cref="DemandaDoPeriodo"/>, decisão de 27/09/2026).
     ///
     /// <para><b>Nunca abaixo de zero.</b> Vender mais do que a demanda estimada não é oportunidade
     /// negativa: é a estimativa tendo ficado curta, e o número certo ali é zero.</para>
@@ -259,14 +292,14 @@ public static class DecisaoDoMercado
     /// <para>A base é a demanda <b>ajustada</b> pelo momento do mercado, e não a estrutural — é o que
     /// sobra no mercado de hoje, e não no de um ano médio.</para>
     /// </summary>
-    private static NumeroDeDecisao Oportunidade(decimal? demandaAjustada, int? vendasEmUnidades)
+    private static NumeroDeDecisao Oportunidade(decimal? demandaAjustada, int? vendasEmUnidades, int meses)
     {
         const string nome = "a oportunidade";
 
         if (vendasEmUnidades is null) return NumeroDeDecisao.Sem(MotivoSemNumeroDeDecisao.SemVendasEmUnidades, nome);
-        if (demandaAjustada is null) return NumeroDeDecisao.Sem(MotivoSemNumeroDeDecisao.SemDemandaAnual, nome);
+        if (demandaAjustada is null || meses <= 0) return NumeroDeDecisao.Sem(MotivoSemNumeroDeDecisao.SemDemandaAnual, nome);
 
-        return NumeroDeDecisao.De(Math.Max(0m, demandaAjustada.Value - vendasEmUnidades.Value));
+        return NumeroDeDecisao.De(Math.Max(0m, DemandaDoPeriodo(demandaAjustada.Value, meses) - vendasEmUnidades.Value));
     }
 
     /// <summary>
@@ -308,8 +341,9 @@ public static class DecisaoDoMercado
     /// número, com o motivo.</para>
     ///
     /// <para><b>A mesma base dos dois lados</b> (D-P01): a captura anterior conta as máquinas das MESMAS
-    /// categorias que têm demanda hoje, contra a MESMA demanda anual. O que muda entre os dois números é só a
-    /// venda — e é exatamente o que a comparação quer medir.</para>
+    /// categorias que têm demanda hoje, contra a MESMA demanda — a do período, proporcional aos mesmos meses (o
+    /// trecho anterior tem o mesmo tamanho). O que muda entre os dois números é só a venda — e é exatamente o
+    /// que a comparação quer medir.</para>
     /// </summary>
     /// <param name="atual">Os quatro números do período pedido.</param>
     /// <param name="demandaAnual">A demanda estrutural do recorte — a mesma dos dois lados.</param>
@@ -319,12 +353,14 @@ public static class DecisaoDoMercado
     /// ano anterior inteiro.
     /// </param>
     /// <param name="motivoSemBaseAnterior">Por que a base anterior falta — a frase da cobertura do ART.</param>
+    /// <param name="mesesDoPeriodo">Os meses do período — os mesmos do trecho anterior.</param>
     public static ComparacaoComOAnoAnterior CompararComOAnoAnterior(
         NumerosDeDecisao atual,
         decimal? demandaAnual,
         decimal? demandaAjustada,
         BaseDaCaptura? baseAnterior,
-        string? motivoSemBaseAnterior)
+        string? motivoSemBaseAnterior,
+        int mesesDoPeriodo = 12)
     {
         const string estrutural =
             "é estrutural: sai da área plantada da PAM e das regras de potencial, e não das vendas do período — é a " +
@@ -354,8 +390,8 @@ public static class DecisaoDoMercado
                     "Sem o mercado anual do período não há variação a calcular — o motivo está no próprio número.")
                 : NumeroNoAnoAnterior.Sem(MotivoSemComparacao.NumeroEstrutural,
                     $"O mercado anual é a demanda vezes o preço de cada categoria, e a demanda {estrutural}"),
-            DoPeriodo(atual.CapturaPercentual, "a captura", unidades => Captura(demandaAnual, unidades)),
-            DoPeriodo(atual.Oportunidade, "a oportunidade", unidades => Oportunidade(demandaAjustada, unidades)),
+            DoPeriodo(atual.CapturaPercentual, "a captura", unidades => Captura(demandaAnual, unidades, mesesDoPeriodo)),
+            DoPeriodo(atual.Oportunidade, "a oportunidade", unidades => Oportunidade(demandaAjustada, unidades, mesesDoPeriodo)),
             baseAnterior);
     }
 }

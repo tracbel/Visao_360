@@ -21,9 +21,13 @@ public sealed record PainelExecutivoDaFilial(
 /// entre filiais. O que não se soma, a documentação do contrato diz.</para>
 ///
 /// <para><b>O ano é o FISCAL, e vem do pedido</b> (decisão de 27/09/2026): novembro a outubro, com o nome do
-/// ano em que termina, e o ano fiscal em curso como padrão — o realizado até hoje. O civil continua possível
-/// por <c>ano</c>, que é como a rota era chamada antes da decisão; os dois juntos não fazem sentido e são
-/// recusados.</para>
+/// ano em que termina. O civil continua possível por <c>ano</c>, que é como a rota era chamada antes da
+/// decisão; os dois juntos não fazem sentido e são recusados.</para>
+///
+/// <para><b>O ano em curso vai até o ÚLTIMO MÊS FECHADO</b> (decisão do Ricardo de 27/09/2026, a mesma dos
+/// Indicadores Geográficos): o mês em curso aparece à parte, no cartão "Faturamento em curso", marcado como
+/// parcial. Em novembro, o padrão é o ano fiscal que acabou de fechar, inteiro — até novembro fechar, as duas
+/// telas falam do mesmo ano. O mês é o de São Paulo, e não o do UTC.</para>
 /// </summary>
 public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos repositorio, IRelogio relogio)
 {
@@ -40,18 +44,19 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
         int? ano, int? anoFiscal, CancellationToken ct)
     {
         var agora = relogio.Agora;
-        var mesCorrente = new DateOnly(agora.Year, agora.Month, 1);
+        var mesCorrente = AnoFiscal.MesCorrenteEmSaoPaulo(agora);
+        var ultimoFechado = AnoFiscal.AteOUltimoMesFechado(mesCorrente).Final;
         var erros = new ColetorDeErros();
 
         if (ano is not null && anoFiscal is not null)
             erros.Registrar("anoFiscal", "Peça o ano fiscal (anoFiscal) ou o civil (ano), e não os dois.",
                 anoFiscal.Value.ToString(CultureInfo.InvariantCulture));
 
-        // O CALENDÁRIO FISCAL É O PADRÃO (27/09/2026). O ano fiscal corrente é o que contém o mês de hoje:
-        // em novembro e dezembro ele já é o do ano civil seguinte, e é isso que a conta de AnoFiscal cuida.
+        // O CALENDÁRIO FISCAL É O PADRÃO (27/09/2026), e o ano padrão é o do ÚLTIMO MÊS FECHADO: em novembro, o
+        // ano fiscal que acabou de fechar — o que ainda não tem mês fechado não tem o que somar.
         var calendario = ano is not null ? CalendarioDoAno.Civil : CalendarioDoAno.Fiscal;
-        var anoPedido = ano ?? anoFiscal ?? AnoFiscal.Do(mesCorrente);
-        var ultimoAceito = calendario == CalendarioDoAno.Civil ? agora.Year : AnoFiscal.Do(mesCorrente);
+        var anoPedido = ano ?? anoFiscal ?? AnoFiscal.Do(ultimoFechado);
+        var ultimoAceito = calendario == CalendarioDoAno.Civil ? ultimoFechado.Year : AnoFiscal.Do(ultimoFechado);
         var campo = calendario == CalendarioDoAno.Civil ? "ano" : "anoFiscal";
 
         if (anoPedido < PrimeiroAnoAceito || anoPedido > ultimoAceito)
@@ -61,15 +66,23 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
         if (erros.TemErro)
             return erros.Recusar<ComProcedencia<PainelExecutivoDaFilial>>("A consulta tem parâmetros que não valem.");
 
-        var meses = calendario == CalendarioDoAno.Fiscal
+        var inteiro = calendario == CalendarioDoAno.Fiscal
             ? AnoFiscal.Inteiro(anoPedido)
             : new JanelaDeCompetencia(new DateOnly(anoPedido, 1, 1), new DateOnly(anoPedido, 12, 1));
+
+        // O ANO QUE AINDA CORRE PARA NO ÚLTIMO MÊS FECHADO — o mesmo AteOUltimoMesFechado dos Indicadores, no
+        // fiscal; no civil, de janeiro até ele.
+        var meses = inteiro.Final <= ultimoFechado
+            ? inteiro
+            : calendario == CalendarioDoAno.Fiscal
+                ? AnoFiscal.AteOUltimoMesFechado(mesCorrente)
+                : new JanelaDeCompetencia(inteiro.Inicial, ultimoFechado);
 
         var indicadores = await repositorio.ApurarAsync(anoPedido, calendario, meses, agora, ct);
 
         return Resultado<ComProcedencia<PainelExecutivoDaFilial>>.Ok(
             ComProcedencia<PainelExecutivoDaFilial>.DoNossoBanco(
-                new PainelExecutivoDaFilial(indicadores, Lacunas(indicadores, agora)),
+                new PainelExecutivoDaFilial(indicadores, Lacunas(indicadores, mesCorrente, meses, inteiro)),
                 "comercial.FaturamentoDoCliente · comercial.FaturamentoSemCliente · " +
                 "comercial.ClienteCarteira · processo.VendaPerdida",
                 relogio));
@@ -79,10 +92,17 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
     private static string Texto(FormattableString texto) => texto.ToString(Portugues);
 
     /// <summary>O que os cartões não dizem — cada frase com a medida que a prova.</summary>
-    private static List<MetricaSemDado> Lacunas(IndicadoresExecutivosDaFilial i, DateTime agora)
+    private static List<MetricaSemDado> Lacunas(
+        IndicadoresExecutivosDaFilial i, DateOnly mesCorrente, JanelaDeCompetencia somado, JanelaDeCompetencia inteiro)
     {
         var lacunas = new List<MetricaSemDado>();
-        var mesCorrente = new DateOnly(agora.Year, agora.Month, 1);
+
+        // O ANO QUE AINDA CORRE vai até o último mês fechado, e a frase diz até quando — o mês em curso está no
+        // cartão ao lado, marcado como parcial.
+        if (somado.Final < inteiro.Final)
+            lacunas.Add(new MetricaSemDado(
+                "anoAteOUltimoMesFechado",
+                Texto($"O realizado do ano vai de {JanelaDeCompetencia.Mes(somado.Inicial)} a {JanelaDeCompetencia.Mes(somado.Final)}, o último mês fechado: o mês em curso ({JanelaDeCompetencia.Mes(mesCorrente)}) está pela metade e fica à parte, no cartão de faturamento em curso. O ano vai até {JanelaDeCompetencia.Mes(inteiro.Final)}.")));
 
         if (i.FaturamentoDoMes is not { } mes)
             lacunas.Add(new MetricaSemDado(
@@ -123,7 +143,11 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
         // existe, e diz onde a meta vai morar — a issue 138.
         if (i.Ano.MetasDaFilial == 0)
         {
-            var texto = Texto($"O CRM ainda não tem onde cadastrar a meta de faturamento de {i.Ano.Ano}: a tabela antiga saiu na simplificação do banco (fase 1), e as metas administráveis — por filial, com vigência — são a issue 138. Sem meta, não há comparação: o cartão mostra só o realizado.");
+            // O NOME DO ANO VEM COM O INTERVALO: "2026" sozinho, no ano fiscal, se lê como o civil e erra dois meses.
+            var doAno = i.Ano.Calendario == nameof(CalendarioDoAno.Civil)
+                ? Texto($"de {i.Ano.Ano}")
+                : Texto($"do {AnoFiscal.Nome(i.Ano.Ano)} ({JanelaDeCompetencia.Mes(inteiro.Inicial)} a {JanelaDeCompetencia.Mes(inteiro.Final)})");
+            var texto = Texto($"O CRM ainda não tem onde cadastrar a meta de faturamento {doAno}: a tabela antiga saiu na simplificação do banco (fase 1), e as metas administráveis — por filial, com vigência — são a issue 138. Sem meta, não há comparação: o cartão mostra só o realizado.");
             if (i.Ano.MetasDetalhadas > 0)
                 texto += Texto($" Há {i.Ano.MetasDetalhadas} meta(s) de carteira, usuário ou linha no ano; elas não são somadas, para não contar o mesmo alvo duas vezes.");
             if (i.Ano.MetasQueCruzamOAno > 0)

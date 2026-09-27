@@ -41,6 +41,10 @@ public enum VisaoTerritorial
 /// Só os clientes das carteiras comerciais deste responsável — o CEN dono da carteira. Vale para cobertura,
 /// vendas e unidades.
 /// </param>
+/// <param name="MesCorrente">
+/// O mês em curso em São Paulo, no dia 1. Quando o período termina nele, o último mês está pela metade e a
+/// comparação com o ano anterior fica vazia, com o motivo; nulo é não conferir.
+/// </param>
 public sealed record ConsultaDeIndicadoresTerritoriais(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -50,8 +54,12 @@ public sealed record ConsultaDeIndicadoresTerritoriais(
     int? FilialDaVendaId = null,
     int? FilialDoClienteId = null,
     string? CategoriaDeMaquina = null,
-    long? ResponsavelId = null)
+    long? ResponsavelId = null,
+    DateOnly? MesCorrente = null)
 {
+    /// <summary>O mês em curso, quando o período termina nele ou depois — o mês pela metade; nulo quando não.</summary>
+    public DateOnly? MesEmCurso => MesCorrente is { } corrente && CompetenciaFinal >= corrente ? CompetenciaFinal : null;
+
     /// <summary>A janela pedida.</summary>
     public Comum.JanelaDeCompetencia Janela => new(CompetenciaInicial, CompetenciaFinal);
 
@@ -499,6 +507,14 @@ public sealed record VendasNoMes(DateOnly Competencia, decimal ValorLiquido, dec
 /// mês, e o ART a partir de outro: se a janela anterior começa antes do que foi carregado, a comparação sairia
 /// como uma queda que não aconteceu. Aí a variação fica vazia, com o motivo — e as duas fontes são conferidas
 /// separadas, porque R$ e unidades nunca se somam (D-P08).</para>
+///
+/// <para><b>Por que só o primeiro mês, e não cada mês</b> (revisão de 27/09/2026): as duas cargas releem a
+/// janela INTEIRA a cada execução — o faturamento, os 36 meses da SD2; o ART, a view toda —, e uma execução que
+/// falhe é refeita pela seguinte. Um mês sem linha no meio da janela não é carga que faltou: é o ERP sem nota ao
+/// alcance naquele mês, e isso é medida. O que a carga não alcança é o que vem antes do primeiro mês dela.</para>
+///
+/// <para><b>O mês em curso também tira a comparação</b>: um período que termina no mês corrente tem o último mês
+/// pela metade, e contra o mesmo mês inteiro do ano anterior a variação erraria para baixo.</para>
 /// </summary>
 /// <param name="CompetenciaInicial">O primeiro mês da janela anterior.</param>
 /// <param name="CompetenciaFinal">O último mês da janela anterior.</param>
@@ -507,6 +523,7 @@ public sealed record VendasNoMes(DateOnly Competencia, decimal ValorLiquido, dec
 /// <param name="MaquinasVendidas">As unidades do recorte na janela anterior, com a quebra; nula quando o ART não a cobre.</param>
 /// <param name="SerieAtual">Mês a mês da janela pedida, nos municípios da ADR do recorte — o mini-gráfico.</param>
 /// <param name="SerieAnterior">O mesmo, na janela anterior; vazia quando o faturamento não a cobre.</param>
+/// <param name="MesEmCurso">O último mês do período pedido quando ele ainda está em curso; nulo quando não.</param>
 public sealed record PeriodoAnterior(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -514,34 +531,44 @@ public sealed record PeriodoAnterior(
     DateOnly? PrimeiroMesDoArt,
     VendasDeMaquinaDoRecorte? MaquinasVendidas,
     IReadOnlyList<VendasNoMes> SerieAtual,
-    IReadOnlyList<VendasNoMes> SerieAnterior)
+    IReadOnlyList<VendasNoMes> SerieAnterior,
+    DateOnly? MesEmCurso = null)
 {
-    /// <summary>Se o faturamento carregado cobre a janela anterior inteira.</summary>
-    public bool VendasCobertas => PrimeiraCompetenciaDoFaturamento is { } primeira && primeira <= CompetenciaInicial;
+    /// <summary>Se o faturamento carregado cobre a janela anterior inteira — e o período pedido não termina no mês em curso.</summary>
+    public bool VendasCobertas =>
+        MesEmCurso is null && PrimeiraCompetenciaDoFaturamento is { } primeira && primeira <= CompetenciaInicial;
 
-    /// <summary>Se o ART cobre a janela anterior inteira.</summary>
-    public bool MaquinasCobertas => PrimeiroMesDoArt is { } primeiro && primeiro <= CompetenciaInicial;
+    /// <summary>Se o ART cobre a janela anterior inteira — e o período pedido não termina no mês em curso.</summary>
+    public bool MaquinasCobertas => MesEmCurso is null && PrimeiroMesDoArt is { } primeiro && primeiro <= CompetenciaInicial;
+
+    /// <summary>Por que o mês em curso tira a comparação.</summary>
+    private string? MotivoDoMesEmCurso =>
+        MesEmCurso is { } mes
+            ? $"O último mês do período, {Comum.JanelaDeCompetencia.Mes(mes)}, está em curso: ele tem só parte das notas, " +
+              "e contra o mesmo mês inteiro do ano anterior a variação erraria para baixo. Termine o período no último " +
+              "mês fechado para comparar."
+            : null;
 
     /// <summary>Por que a variação em reais não sai; nulo quando sai.</summary>
     public string? MotivoSemVendas =>
         VendasCobertas
             ? null
-            : PrimeiraCompetenciaDoFaturamento is { } primeira
+            : MotivoDoMesEmCurso ?? (PrimeiraCompetenciaDoFaturamento is { } primeira
                 ? $"O mesmo trecho do ano anterior começa em {Comum.JanelaDeCompetencia.Mes(CompetenciaInicial)}, e o " +
                   $"faturamento carregado ao seu alcance começa em {Comum.JanelaDeCompetencia.Mes(primeira)}: comparar " +
                   "com meses que não foram carregados mostraria uma queda que não aconteceu."
-                : "Não há faturamento carregado ao alcance desta consulta — sem ele não há ano anterior para comparar.";
+                : "Não há faturamento carregado ao alcance desta consulta — sem ele não há ano anterior para comparar.");
 
     /// <summary>Por que a variação em unidades não sai; nulo quando sai.</summary>
     public string? MotivoSemMaquinas =>
         MaquinasCobertas
             ? null
-            : PrimeiroMesDoArt is { } primeiro
+            : MotivoDoMesEmCurso ?? (PrimeiroMesDoArt is { } primeiro
                 ? $"O mesmo trecho do ano anterior começa em {Comum.JanelaDeCompetencia.Mes(CompetenciaInicial)}, e a " +
                   $"primeira venda que o ART trouxe é de {Comum.JanelaDeCompetencia.Mes(primeiro)}: antes disso o ART " +
                   "não tem venda carregada, e a comparação mostraria uma queda que não aconteceu."
                 : "O ART não trouxe venda de máquina ao alcance desta consulta — sem ela não há ano anterior em " +
-                  "unidades para comparar.";
+                  "unidades para comparar.");
 }
 
 /// <summary>
@@ -860,8 +887,12 @@ public interface IRepositorioIndicadoresTerritoriais
     /// <summary>
     /// Os responsáveis das carteiras comerciais ao alcance do contexto — as opções do filtro "CEN / gestor".
     /// </summary>
+    /// <param name="empresaInteira">
+    /// Se a leitura é da visão da empresa: aí o alcance entre filiais é aberto, como no painel, e a lista traz os
+    /// responsáveis de todas as filiais. Quem chama já conferiu a permissão.
+    /// </param>
     /// <param name="ct">Cancelamento.</param>
-    Task<IReadOnlyList<ResponsavelDeCarteira>> ListarResponsaveisDasCarteirasAsync(CancellationToken ct);
+    Task<IReadOnlyList<ResponsavelDeCarteira>> ListarResponsaveisDasCarteirasAsync(bool empresaInteira, CancellationToken ct);
 }
 
 /// <summary>

@@ -42,11 +42,13 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
     public async Task<IndicadoresExecutivosDaFilial> ApurarAsync(
         int ano, CalendarioDoAno calendario, Dominio.Comum.JanelaDeCompetencia meses, DateTime agoraUtc, CancellationToken ct)
     {
-        var mesCorrente = new DateOnly(agoraUtc.Year, agoraUtc.Month, 1);
+        // O MÊS DE SÃO PAULO, e não o do UTC: às 22h do último dia do mês o UTC já virou o mês.
+        var mesCorrente = Dominio.Comum.AnoFiscal.MesCorrenteEmSaoPaulo(agoraUtc);
 
         // OS MESES DO ANO VÊM PRONTOS, no calendário pedido — o fiscal (novembro a outubro) é o padrão desde
-        // 27/09/2026. Quem os calcula é a aplicação, uma vez: novembro e dezembro são os meses em que o ano
-        // fiscal vai à frente do civil, e uma segunda conta aqui é como as duas passariam a discordar.
+        // 27/09/2026 —, e o ano que ainda corre vem até o último mês fechado. Quem os calcula é a aplicação,
+        // uma vez: novembro e dezembro são os meses em que o ano fiscal vai à frente do civil, e uma segunda
+        // conta aqui é como as duas passariam a discordar.
         var primeiroMesDoAno = meses.Inicial;
         var ultimoMesDoAno = meses.Final;
 

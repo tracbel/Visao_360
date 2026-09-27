@@ -66,8 +66,8 @@ public enum CalendarioDoAno
 /// O faturamento do ANO pedido — o fiscal, por padrão —, ao lado da meta de faturamento cadastrada — e
 /// nunca de uma previsão (documento 36, cartão B).
 ///
-/// <para><b>Ano fiscal por padrão</b> (decisão de 27/09/2026): novembro a outubro, até a última competência
-/// carregada — o ano em curso é somado até hoje, e o cartão diz quando o último mês está em curso.
+/// <para><b>Ano fiscal por padrão</b> (decisão de 27/09/2026): novembro a outubro. O ano que ainda corre é somado
+/// até o ÚLTIMO MÊS FECHADO, como nos Indicadores Geográficos — o mês em curso fica à parte, no cartão do mês.
 /// <b>Meta só soma no nível da filial</b> (sem carteira, usuário nem linha de negócio) e com o
 /// período inteiro dentro do ano: somar a meta da filial com a das carteiras dela contaria o mesmo
 /// alvo duas vezes, e ratear uma meta que cruza o ano seria inventar a parte de cada mês.</para>
@@ -84,7 +84,7 @@ public enum CalendarioDoAno
 /// <param name="MetasQueCruzamOAno">Metas que começam ou terminam fora do ano — contadas, não rateadas.</param>
 /// <param name="Calendario">Um <see cref="CalendarioDoAno"/> como texto — a tela escreve qual é.</param>
 /// <param name="Inicio">O primeiro mês do ano no calendário escolhido (novembro no fiscal, janeiro no civil).</param>
-/// <param name="Fim">O último mês do ano no calendário escolhido — o ano inteiro, mesmo quando ele ainda corre.</param>
+/// <param name="Fim">O último mês somado: o fim do ano, ou o último mês fechado quando o ano ainda corre.</param>
 public sealed record FaturamentoDoAno(
     int Ano,
     DateOnly? PrimeiraCompetencia,
@@ -215,7 +215,7 @@ public interface IRepositorioIndicadoresExecutivos
     /// <summary>Apura os indicadores da filial do contexto de acesso.</summary>
     /// <param name="ano">O ano do cartão de meta × realizado, no calendário escolhido.</param>
     /// <param name="calendario">Fiscal (o padrão) ou civil.</param>
-    /// <param name="meses">Os doze meses daquele ano naquele calendário — a aplicação os calcula, uma vez.</param>
+    /// <param name="meses">Os meses somados daquele ano naquele calendário — os doze, ou até o último mês fechado quando o ano ainda corre. A aplicação os calcula, uma vez.</param>
     /// <param name="agoraUtc">O instante contra o qual a cadência e o mês em curso são medidos.</param>
     /// <param name="ct">Cancelamento.</param>
     Task<IndicadoresExecutivosDaFilial> ApurarAsync(

@@ -572,17 +572,26 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     continue;
 
                 // O GRUPO SÓ NASCE COM VENDA DO PERÍODO, como no faturamento: o ano anterior acumula à parte.
-                var acumulador = doPeriodo ? Do(grupoDaMaquina) : DoAnterior(grupoDaMaquina);
-                acumulador.MaquinasVendidas++;
+                //
+                // DOIS "SE" INDEPENDENTES, e não um ou-outro (revisão de 27/09/2026): numa janela de mais de doze
+                // meses, os meses do meio são das DUAS janelas — o fim da anterior é o começo da pedida —, e a
+                // venda deles conta nas duas, como já contava no faturamento em reais.
+                void Contar(Acumulador acumulador)
+                {
+                    acumulador.MaquinasVendidas++;
+                    if (semClassificacao) acumulador.MaquinasSemClassificacao++;
+                    else if (emLinhaSemCategoria) acumulador.MaquinasEmLinhaSemCategoria++;
+                    else
+                        acumulador.MaquinasPorCategoria[codigoDaCategoria!] =
+                            acumulador.MaquinasPorCategoria.GetValueOrDefault(codigoDaCategoria!) + 1;
+                }
 
+                if (doPeriodo) Contar(Do(grupoDaMaquina));
+                if (janelaAnterior.Contem(dia)) Contar(DoAnterior(grupoDaMaquina));
+
+                // O MÊS A MÊS É POR MÊS, e cada mês uma vez só: as duas séries leem do mesmo dicionário.
                 if (grupoDaMaquina > 0)
                     NoMes(grupoDaMaquina, new DateOnly(dia.Year, dia.Month, 1)).MaquinasVendidas++;
-
-                if (semClassificacao) acumulador.MaquinasSemClassificacao++;
-                else if (emLinhaSemCategoria) acumulador.MaquinasEmLinhaSemCategoria++;
-                else
-                    acumulador.MaquinasPorCategoria[codigoDaCategoria!] =
-                        acumulador.MaquinasPorCategoria.GetValueOrDefault(codigoDaCategoria!) + 1;
             }
         }
 
@@ -921,7 +930,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             janela, janelaAnterior, primeiraCompetenciaDoFaturamento, primeiroMesDoArt, oArtTrouxeVenda,
             codigosNoRecorte.Where(c => area.TryGetValue(c, out var daArea) && daArea.PertenceAAdr).ToHashSet(),
             mensal,
-            UnidadesDoRecorte(anteriores));
+            UnidadesDoRecorte(anteriores),
+            consulta.MesEmCurso);
 
         // O ANO ANTERIOR DE CADA MUNICÍPIO, em reais e em unidades — só quando a fonte cobre a janela inteira.
         // Este bloco é à parte da montagem de propósito: ele não mexe no potencial, só acrescenta a base da
@@ -995,6 +1005,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
     /// <param name="daAdr">Os municípios da ADR que entraram no recorte.</param>
     /// <param name="mensal">As vendas de cada município em cada mês das duas janelas.</param>
     /// <param name="unidadesAnteriores">As unidades do recorte no ano anterior, já com a quebra.</param>
+    /// <param name="mesEmCurso">O último mês pedido, quando ele ainda está em curso — aí não há comparação.</param>
     private static PeriodoAnterior MontarPeriodoAnterior(
         Dominio.Comum.JanelaDeCompetencia janela,
         Dominio.Comum.JanelaDeCompetencia anterior,
@@ -1003,10 +1014,11 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         bool oArtTrouxeVenda,
         IReadOnlySet<int> daAdr,
         IReadOnlyDictionary<(int Grupo, DateOnly Mes), VendasDoMes> mensal,
-        VendasDeMaquinaDoRecorte unidadesAnteriores)
+        VendasDeMaquinaDoRecorte unidadesAnteriores,
+        DateOnly? mesEmCurso)
     {
-        var cobreVendas = primeiraDoFaturamento is { } primeira && primeira <= anterior.Inicial;
-        var cobreMaquinas = oArtTrouxeVenda && primeiroMesDoArt is { } primeiro && primeiro <= anterior.Inicial;
+        var cobreVendas = mesEmCurso is null && primeiraDoFaturamento is { } primeira && primeira <= anterior.Inicial;
+        var cobreMaquinas = mesEmCurso is null && oArtTrouxeVenda && primeiroMesDoArt is { } primeiro && primeiro <= anterior.Inicial;
 
         List<VendasNoMes> Serie(Dominio.Comum.JanelaDeCompetencia j, bool comUnidades)
         {
@@ -1032,7 +1044,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             oArtTrouxeVenda ? primeiroMesDoArt : null,
             cobreMaquinas ? unidadesAnteriores : null,
             Serie(janela, oArtTrouxeVenda),
-            cobreVendas ? Serie(anterior, cobreMaquinas) : []);
+            cobreVendas ? Serie(anterior, cobreMaquinas) : [],
+            mesEmCurso);
     }
 
     /// <summary>
@@ -1131,8 +1144,16 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ResponsavelDeCarteira>> ListarResponsaveisDasCarteirasAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<ResponsavelDeCarteira>> ListarResponsaveisDasCarteirasAsync(
+        bool empresaInteira, CancellationToken ct)
     {
+        // NA VISÃO DA EMPRESA, OS RESPONSÁVEIS DE TODAS AS FILIAIS (revisão de 27/09/2026): sem abrir o alcance, a
+        // lista — e a validação do filtro — ficava presa à filial do cabeçalho, e o painel da empresa inteira não
+        // aceitava o CEN de outra filial. A abertura vai para o diário com o motivo, como a do painel.
+        using var alcance = empresaInteira
+            ? contexto.AbrirAlcanceEntreEmpresas("Responsáveis das carteiras na visão consolidada da empresa (documento 32)")
+            : null;
+
         // AS CARTEIRAS COMERCIAIS AO ALCANCE (filtro global de filial), e o dono de cada uma. O gestor vem do
         // cadastro de usuário — hoje, em produção, nenhum responsável tem gestor cadastrado, e a tela diz isso.
         var carteiras = await contexto.Carteiras.AsNoTracking()

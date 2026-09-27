@@ -50,10 +50,9 @@ public sealed record JanelaDeCompetencia(DateOnly Inicial, DateOnly Final)
 /// vai de nov/2025 a out/2026. Até aqui a tela de Indicadores já oferecia o ano fiscal como opção do filtro
 /// (issue 69, #231), mas o servidor abria nos doze meses fechados e a Visão 360 somava o ano civil.</para>
 ///
-/// <para><b>"Até hoje" é até o último mês FECHADO</b> quando o número é comparado: o faturamento é mensal, e um
-/// mês pela metade contra o mesmo mês inteiro do ano anterior erraria para baixo sem avisar — a regra que o
-/// filtro de período já seguia. O cartão de realizado da Visão 360, que não compara, soma até o mês em curso e
-/// diz que ele está em curso.</para>
+/// <para><b>"Até hoje" é até o último mês FECHADO, em todas as telas</b> (decisão do Ricardo de 27/09/2026): o
+/// faturamento é mensal, e um mês pela metade contra o mesmo mês inteiro do ano anterior erraria para baixo sem
+/// avisar. O mês em curso aparece à parte, marcado como parcial — o cartão "Faturamento em curso" da Visão 360.</para>
 ///
 /// <para><b>Novembro e dezembro são os meses que pegam</b>: neles o ano fiscal vai à frente do civil, e derivar
 /// um do outro erra o ano inteiro. Por isso a conta mora aqui, uma vez, e não em cada leitura.</para>
@@ -93,4 +92,19 @@ public static class AnoFiscal
     /// <summary>"FY2026" — sempre ao lado do intervalo escrito, nunca sozinho (ele se lê como ano civil).</summary>
     /// <param name="anoFiscal">O ano fiscal.</param>
     public static string Nome(int anoFiscal) => $"FY{anoFiscal}";
+
+    /// <summary>
+    /// O MÊS CORRENTE EM SÃO PAULO, no dia 1 — de onde o último mês fechado e o ano fiscal são derivados.
+    ///
+    /// <para><b>O relógio do sistema é UTC</b>, e às 22h de 31 de outubro em São Paulo já é 1º de novembro em UTC:
+    /// derivar o mês do UTC trocaria o ano fiscal três horas antes da hora. São Paulo fica em UTC−3 o ano inteiro
+    /// desde 2019 (sem horário de verão) — a conta é fixa, como a de <c>ParametroComVigencia.HojeNoBrasil</c>, e não
+    /// depende do banco de fusos do sistema operacional, que o servidor e o contêiner dos testes não garantem ter.</para>
+    /// </summary>
+    /// <param name="agoraUtc">O instante, em UTC.</param>
+    public static DateOnly MesCorrenteEmSaoPaulo(DateTime agoraUtc)
+    {
+        var local = agoraUtc.AddHours(-3);
+        return new DateOnly(local.Year, local.Month, 1);
+    }
 }

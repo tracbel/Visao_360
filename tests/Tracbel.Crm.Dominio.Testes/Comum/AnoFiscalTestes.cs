@@ -71,6 +71,31 @@ public sealed class AnoFiscalTestes
     }
 
     [Fact]
+    public void As_22h_de_31_de_outubro_em_Sao_Paulo_ainda_e_outubro_e_o_ano_fiscal_nao_virou()
+    {
+        // 31/10/2026 às 22:00 em São Paulo é 01/11/2026 às 01:00 em UTC. Derivar o mês do UTC viraria o ano
+        // fiscal três horas antes da hora.
+        var agoraUtc = new DateTime(2026, 11, 1, 1, 0, 0, DateTimeKind.Utc);
+
+        var mes = AnoFiscal.MesCorrenteEmSaoPaulo(agoraUtc);
+        mes.Should().Be(new DateOnly(2026, 10, 1));
+
+        var janela = AnoFiscal.AteOUltimoMesFechado(mes);
+        janela.Inicial.Should().Be(new DateOnly(2025, 11, 1));
+        janela.Final.Should().Be(new DateOnly(2026, 9, 1), "outubro ainda está em curso");
+    }
+
+    [Fact]
+    public void A_meia_noite_de_1o_de_novembro_em_Sao_Paulo_o_ano_fiscal_que_fechou_vem_inteiro()
+    {
+        // 01/11/2026 às 00:00 em São Paulo = 03:00 UTC. O último mês fechado é outubro: o FY2026 inteiro.
+        var mes = AnoFiscal.MesCorrenteEmSaoPaulo(new DateTime(2026, 11, 1, 3, 0, 0, DateTimeKind.Utc));
+
+        mes.Should().Be(new DateOnly(2026, 11, 1));
+        AnoFiscal.AteOUltimoMesFechado(mes).Should().Be(AnoFiscal.Inteiro(2026));
+    }
+
+    [Fact]
     public void A_janela_contem_qualquer_dia_do_mes_e_so_os_meses_dela()
     {
         var janela = new JanelaDeCompetencia(new DateOnly(2025, 11, 1), new DateOnly(2026, 8, 1));
