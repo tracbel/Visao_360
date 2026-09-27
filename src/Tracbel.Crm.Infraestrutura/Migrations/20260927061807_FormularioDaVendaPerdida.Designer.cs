@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 
@@ -11,9 +12,11 @@ using Tracbel.Crm.Infraestrutura.Persistencia;
 namespace Tracbel.Crm.Infraestrutura.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    partial class CrmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260927061807_FormularioDaVendaPerdida")]
+    partial class FormularioDaVendaPerdida
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2423,7 +2426,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         {
                             Id = 4,
                             Codigo = "VORTICE",
-                            Descricao = "A busca ao vivo no legado, congelado desde a fase 1, a sincronia diária das carteiras MAQ_NOVOS e o funil e as vendas perdidas (histórico desde 2012). Sessão somente leitura.",
+                            Descricao = "A busca ao vivo no legado, congelado desde a fase 1, e a sincronia diária das carteiras MAQ_NOVOS. Sessão somente leitura.",
                             EhDoSistema = true,
                             EstaAtiva = true,
                             Nome = "Vórtice — sistema legado",
@@ -3281,16 +3284,6 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             EstaLigada = false,
                             Hora = new TimeOnly(5, 30, 0),
                             Nome = "Parque de máquinas (Protheus)"
-                        },
-                        new
-                        {
-                            Id = 8,
-                            AgendaVigenteDesde = new DateTime(2026, 9, 22, 12, 0, 0, 0, DateTimeKind.Utc),
-                            Cadencia = "Diaria",
-                            Codigo = "PROCESSOS_VORTICE",
-                            EstaLigada = false,
-                            Hora = new TimeOnly(6, 30, 0),
-                            Nome = "Funil e vendas perdidas do Vórtice"
                         });
                 });
 

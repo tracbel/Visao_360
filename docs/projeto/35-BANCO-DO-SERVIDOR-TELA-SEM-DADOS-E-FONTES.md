@@ -915,6 +915,7 @@ orquestrador entra (deixar as três faria a mesma carga rodar duas vezes). As ro
 | `FATURAMENTO_PROTHEUS` | `--somente-faturamento` | todo dia, 05:00 | **desligada** |
 | `ART_VENDAS` | `--somente-art` | a cada hora | **desligada** |
 | `CARTEIRAS_VORTICE` | `--somente-carteiras-vortice` | todo dia, 04:30 | **desligada** |
+| `PROCESSOS_VORTICE` | `--somente-processos-vortice` | todo dia, 06:30 | **desligada** — o funil e as vendas perdidas do Vórtice ([doc 52](52-FUNIL-PROCESSOS-E-VENDAS-PERDIDAS-DO-VORTICE.md)); simular antes de ligar |
 
 O faturamento e o ART nascem desligados: ligá-los é trazer dado novo para produção, e isso é decisão de quem
 administra. Nenhum dos dois liga sem a credencial da conexão que exige (Protheus e ART).

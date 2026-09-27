@@ -59,12 +59,13 @@ public sealed class MigracaoNoContainerTestes
             ["organizacao"] = 32,
             ["seguranca"] = 4,
             ["comercial"] = 8,
-            ["processo"] = 9,
+            ["processo"] = 10,
             ["frota"] = 7,
             ["auditoria"] = 1,
-            ["integracao"] = 13,
+            ["integracao"] = 14,
             ["metadado"] = 2
-        }, "é a conta do documento 14, seção 2.1 — 76 tabelas de modelo em 8 schemas, no banco de " +
+        }, "é a conta do documento 14, seção 2.1 — 78 tabelas de modelo em 8 schemas (as duas últimas, o funil do " +
+           "Vórtice e a classificação dos resultados, documento 52), no banco de " +
            "verdade. A migração inicial criava 80 em 10; a fase 1 do documento 41 removeu as 31 " +
            "que nunca receberam uma linha e esvaziou por completo os schemas 'documento' e " +
            "'relatorio'; a issue 64 acrescentou o total do estado, a 65 as cinco da estrutura " +
@@ -72,7 +73,7 @@ public sealed class MigracaoNoContainerTestes
            "RENAME da tabela da PAM, que preserva a área plantada já carregada — também funcionam " +
            "em banco que nasce agora");
 
-        porSchema.Values.Sum().Should().Be(76);
+        porSchema.Values.Sum().Should().Be(78);
     }
 
     [FatoSeHouverSqlServer]

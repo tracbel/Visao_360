@@ -34,7 +34,7 @@
 | **D-1** | **Modelo alvo aprovado como direção técnica** — 82 → 42 tabelas físicas (41 de domínio + 1 técnica), ~86 FKs, nenhum ciclo | é a direção, **não** autorização para executar tudo de uma vez: cada fase é implementada e validada em separado, com autorização própria |
 | **D-4** | **Municípios divergentes não são resolvidos automaticamente** | os 82 municípios com CEN divergente (mais 46 com grafia parecida) ficam marcados `PENDENTE DE VALIDAÇÃO COMERCIAL`; relatório no [documento 43](43-MUNICIPIOS-PENDENTES-DE-VALIDACAO-COMERCIAL.md); nenhuma fonte é assumida como verdade; a fase 9 só fecha depois da devolução do comercial |
 | **D-9** | **Corrigir a nomenclatura agora, com o banco vazio** — mas só depois do padrão e da matriz | [padrão](41-PADRAO-DE-NOMENCLATURA.md) e [matriz](41B-MATRIZ-DE-NOMENCLATURA.md) prontos para revisão; nenhum renome acontece antes da aprovação da matriz; cada renome acontece **dentro** da fase do assunto, nunca numa fase separada |
-| **D-12** | **Código de carga do Vórtice: congelado** — não remover, não usar, não deixar voltar ao fluxo | marcado `LEGADO / SOMENTE REFERÊNCIA`; congelamento em duas etapas (seção 5, fases 1 e 8), porque hoje o faturamento do Protheus roda **dentro** da carga do Vórtice |
+| **D-12** | **Código de carga do Vórtice: congelado** — não remover, não usar, não deixar voltar ao fluxo | marcado `LEGADO / SOMENTE REFERÊNCIA`; congelamento em duas etapas (seção 5, fases 1 e 8), porque hoje o faturamento do Protheus roda **dentro** da carga do Vórtice. **Errata de 27/09/2026 (§1.2): D-12 parcial — o histórico do funil e da venda perdida volta por carga nova** |
 | — | **Sem big bang** | uma fase por vez, cada uma compila, testa, valida banco e frontend, produz relatório e permite rollback |
 | — | **Agenda não vira entidade** | confirmado no código: a Agenda é leitura de `Tarefa` por responsável e data; nenhuma tabela nova |
 | — | **Commits pequenos, separados por fase** | padrão na seção 3.5; nenhum commit sem autorização, como hoje |
@@ -53,6 +53,28 @@ precisa — é orquestrado por dentro dela.
 serviço que chame a carga do Vórtice) e congelamento **de compilação** na fase 8, quando o faturamento
 do Protheus ganhar executor próprio. Enquanto isso, o código do Vórtice não acompanha os renomes: ele
 sai do build junto com a extração.
+
+### 1.2 Errata de 27/09/2026 — D-12 parcial — histórico do funil liberado em 27/09/2026
+
+> **O que muda.** A D-12 deixa de valer **só para o histórico do funil e da venda perdida**: os processos
+> 31/41/50 do Vórtice (`IV_PROCDADO`, `IV_PROCESSO`, `IV_HISTORICO`, desde 01/11/2023) e as respostas dos
+> formulários de venda perdida (todo o histórico, desde 2012). Decisão do Ricardo em 27/09/2026; desenho e
+> medidas no [documento 52](52-FUNIL-PROCESSOS-E-VENDAS-PERDIDAS-DO-VORTICE.md).
+>
+> **O que não muda.** A carga legada `CargaDeProcessoDoVortice` continua **congelada, LEGADO / SOMENTE
+> REFERÊNCIA**: nem ela nem `--somente-relacionamento` voltam ao fluxo. O histórico entra por uma carga
+> **nova** — `CargaDoFunilDoVortice`, modo `--somente-processos-vortice`, rotina `PROCESSOS_VORTICE` —, no padrão
+> da `CARTEIRAS_VORTICE` (#236): planeja só com leitura, simula, toma a `TravaDeFluxo` e deixa a trilha em
+> `integracao.RegistroDeOrigem`.
+>
+> **Por que o motivo da D-12 não se aplica a ela.** A D-12 existia porque a carga legada punha o Vórtice de volta
+> no fluxo operacional: criava cliente, carteira e usuário, carregava o faturamento por dentro e derivava o
+> último contato de qualquer interação. A carga nova **não cria cliente, carteira nem usuário** (o prospect entra
+> só no funil, sem cadastro), **não toca o faturamento** (que já saiu, #233) e **não grava o último contato**
+> (que é da `CARTEIRAS_VORTICE`, pela regra da BI).
+>
+> **As outras duas leituras liberadas** continuam as de 24/09/2026: as carteiras MAQ_NOVOS
+> (`--somente-carteiras-vortice`) e a busca ao vivo no legado.
 
 ---
 
