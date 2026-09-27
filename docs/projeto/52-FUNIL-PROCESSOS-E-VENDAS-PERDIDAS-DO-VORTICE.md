@@ -295,7 +295,7 @@ converge. **A lista tem 53 códigos distintos, não 55** [M].
 | **1 — backend** | doc 52 e errata; domínio (`EstagioDoProcesso`, `RegraDoEstagio`, classificação, papéis da venda perdida); M1/M2; leitores; `CargaDoFunilDoVortice` e o modo `--somente-processos-vortice`; a rotina e a M3 |
 | 2 — leitura | `GET /api/v1/relatorios/funil-por-estagio?de&ate&base=abertura\|etapa&carteira&responsavel`; vendas perdidas por período e formulário; painel do CEN e executivos; frases da API |
 | 3 — front | Funil, Visão 360 e Performance de CEN, com teste de texto proibido |
-| 4 — onda 2 | `Processo`, `Tarefa` e `Interacao` só dos clientes casados (24.855 processos), sem `UltimaInteracaoEm` |
+| 4 — onda 2 | `Processo`, `Tarefa` e `Interacao` só dos clientes casados (24.855 processos), sem `UltimaInteracaoEm` — §12 |
 | 5 — front da onda 2 | Agenda, ficha 360 e ficha de oportunidade |
 
 ---
@@ -358,4 +358,98 @@ FROM P GROUP BY CodProcesso ORDER BY CodProcesso;
 -- Volume da agenda da onda 2 (NÃO medido em 27/09)
 SELECT COUNT(*) FROM IV_AGENDA a WITH (NOLOCK) JOIN IV_PROCDADO d WITH (NOLOCK) ON d.Processo = a.Processo
 WHERE d.CodProcesso IN (31,41,50) AND a.DtaAgenda >= '20231101';
+
+-- Volume do histórico da onda 2 (NÃO medido em 27/09)
+SELECT COUNT(*) FROM IV_HISTORICO WITH (NOLOCK)
+WHERE CodProcesso IN (31,41,50) AND Processo IS NOT NULL AND DtaRealizacao >= '20231101';
 ```
+
+---
+
+## 12. Onda 2 — `Processo`, `Tarefa` e `Interacao` dos clientes casados (PR 4)
+
+> **Versão 1.1 · 27/09/2026.** Desenho no plano `plano-pr4-pipeline-2026-09-27` (só leitura, sobre a main
+> `00639cd`); decisões do Ricardo depois do merge do #249. **Não** tem tela: os textos, o filtro por processo na
+> Agenda e na linha do tempo, o selo do estágio e o `VendaPerdida.ProcessoId` são do PR 5.
+
+### 12.1 As decisões [D 27/09]
+
+| # | Decisão |
+|---|---|
+| P1 | **Só o `Resumo` entra**, como `Processo.Titulo`. Em branco, o título é composto: `{tipo do processo} · nº {número}`. A `Descricao` do processo, o `Assunto`, o `AssuntoCmpl` e o `Detalhe` da agenda e o `Detalhe` e o `ResultadoCmpl` do histórico **não são lidos** — nenhuma consulta os pronuncia, e o teste do leitor prende isso como o do funil. O assunto da tarefa e da interação vem do catálogo: o nome da ação — a da agenda na tarefa, a geradora na interação. |
+| P2 | Responsável da tarefa, quem a concluiu e autor da interação **sem conta no CRM → o dono do processo** (que, sem conta pelo login, é o dono da carteira, e sem os dois, o operador da rotina). A rotina conta cada caso no relatório. |
+| P4 | Os catálogos mínimos apagados em 15/09 voltam: `TipoProcesso` (31/41/50), `Fase`, `TipoTarefa`, `Resultado` e `MotivoDePerda` `NAO_INFORMADO_NA_ORIGEM` — só o que os processos, as tarefas e as interações que entram usam. |
+| P6 | Tarefa avulsa (sem processo) **não entra**: a agenda é lida pelo processo. |
+| P7 | O **pai DNA entra como processo** — a regra DNA é do funil (§3), não do cadastro. |
+| P8 | O processo **perdido** leva o motivo e o concorrente da **venda perdida principal** do mesmo número (a que a `PROCESSOS_VORTICE` já carrega, §4); sem formulário, `NAO_INFORMADO_NA_ORIGEM`. |
+| P10 | Tarefa **pendente só entra se o processo está em andamento** (aberto ou suspenso); as concluídas entram todas, desde 01/11/2023. Quando o processo encerra, a pendente sai (exclusão lógica). |
+
+### 12.2 O universo
+
+Um processo entra quando é **31, 41 ou 50**, tem abertura crível (`COALESCE(DtaInclusao, 1º andamento)`, a mesma
+faixa do funil: de 2000 até agora + 1 dia) **a partir de 01/11/2023**, a filial dele tem de-para no CRM e a pessoa
+**casa pelo CPF/CNPJ com exatamente um cliente ativo** do CRM. O prospect continua só no funil. A rotina **não cria**
+cliente, carteira nem usuário e **não toca** `ClienteCarteira.UltimaInteracaoEm`.
+
+A tarefa entra quando é de processo que entrou (P6, P10). A interação entra quando é de processo que entrou.
+
+### 12.3 O que é lido do Vórtice (só `SELECT`, `NOLOCK`, `ApplicationIntent=ReadOnly`)
+
+| Tabela | Colunas | Filtro |
+|---|---|---|
+| `IV_PROCDADO`, `IV_PROCESSO`, `GE_Pessoa`, `IVS_Pes`/`IVS_Depto` | o do funil + `Fase`, `FaseOrdem`, `DtaFase`, `DtaStatus`, `Resumo`, `Valor`, `Qtde`, `DtaPrevConclusao`, `DtaPrevConcOrig` | `CodProcesso IN (31,41,50)` e abertura a partir de 01/11/2023 |
+| `IV_AGENDA` (+ a linha do `IV_HISTORICO` que a concluiu) | `SeqAgenda`, `Processo`, `SeqUsuario`, `Acao`, `DtaAgenda`, `DtaLimiteExecucao`, `Prioridade`, `Realizada`, `HistoricoOrigem`, `TipoAgendamento`, `DtaGeracao`, `UltResultado`, `UltHistorico`, `DtaRealizacao` | pelo `IV_PROCDADO` 31/41/50, `DtaAgenda` a partir de 01/11/2023 |
+| `IV_HISTORICO` | `SeqHistorico`, `Processo`, `SeqUsuario`, `AcaoGeradora`, `Resultado`, `AgendaOrigem`, `Natureza`, `DtaRealizacao`, `Duracao`, `Latitude`, `Longitude`; `USUINCLUSAO` **só dentro de um `CASE`** que diz se o registro é de sistema — o login nunca sai | `CodProcesso IN (31,41,50)`, com processo, a partir de 01/11/2023 |
+| `IV_CodProcesso`, `IV_Acao`, `IV_Resultado`, `IV_ProcResultado` | código, nome, em uso, prazo; a classe do resultado pelo `IV_ProcResultado` dos tipos 31/41/50 | por lista de inteiros — só os códigos usados |
+| `GE_Usuario` | `SeqUsuario`, `CodUsuario` | por lista — o login serve só para achar a conta, e nunca é gravado |
+
+Não se lê: `IV_AGENDA.Contato`/`Vendedor`, `IV_HISTORICO.Contato`/`Vendedor`/`CodUsuario`, e nenhum texto livre além
+do `Resumo` (P1).
+
+### 12.4 Como cada coisa é gravada
+
+| Entidade | Chave | Regra |
+|---|---|---|
+| `TipoProcesso` | `ChaveExterna(TipoProcesso, CodProcesso)` | código `{nome}_{cod}`, como a carga antiga; o que já existe com o código é adotado |
+| `Fase` | único (tipo, código) | o texto de `IV_PROCESSO.Fase` dos processos que entram; vazia → `NAO_INFORMADA`; ordem = menor `FaseOrdem`; final pela palavra (`FINALIZ`, `CANCELA`, `CONCLU`) |
+| `TipoTarefa` | `ChaveExterna(TipoTarefa, Acao)` | `{nome}_{ação}`, categoria `Interna` (a origem não diz se é visita), prazo da ação; + `NAO_INFORMADA` |
+| `Resultado` | `ChaveExterna(Resultado, Resultado)` | `RES_{cod}`, sob a ação dona; classe pelo `IV_ProcResultado` 31/41/50. **Sem ação dona, não entra** (como na carga antiga) — e a tarefa que ele concluiria fica pendente, porque concluída exige desfecho |
+| `Processo` | `ChaveExterna(Processo, número)` | `Numero` = **número do Vórtice**; `CriadoEm` = abertura; situação pelo status (§ saneamento da carga antiga); encerrado sem data crível → `DtaStatus`, senão a abertura; valor e quantidade só positivos; dono: login → dono da carteira → operador |
+| `Tarefa` | `ChaveExterna(Tarefa, SeqAgenda)` | concluída só com data, desfecho e quem concluiu; reprogramada, concluída, reaberta: acompanha a origem |
+| `Interacao` | `ChaveExterna(Interacao, SeqHistorico)` | **só inclui** — o fato não muda (a tabela é somente-acrescentar). `EmpresaId` = a do processo |
+| duplo ponteiro | — | `Tarefa.InteracaoConclusaoId` = a linha que a concluiu (`UltHistorico`; senão a última com `AgendaOrigem` = a tarefa); `InteracaoOrigemId` = `HistoricoOrigem`; `Interacao.TarefaId` = `AgendaOrigem` |
+| `EstagioDoProcesso.ProcessoId` | — | ligado ao processo do mesmo número; desligado quando ele sai. A comparação do funil não enxerga a coluna |
+
+### 12.5 A rotina
+
+| Item | Como é |
+|---|---|
+| modo | `--somente-oportunidades-vortice [--simular] [--aceitar-queda]` — **o 2º modo da `PROCESSOS_VORTICE`**, depois do funil (que carrega a venda perdida que o P8 lê). Sem rotina nova e **sem migração**: os modos e a descrição não são semeados |
+| trava e execução | fluxo próprio `VORTICE.OPORTUNIDADES` (`TravaDeFluxo` e `integracao.ExecucaoDeSincronizacao`); o funil não é tocado |
+| ordem | lê o CRM → lê o Vórtice (processos, agenda **ou** histórico vazio → aborta) → planeja **só com leitura** → queda de mais de 5% em processos ou tarefas → aborta (passa só com `--aceitar-queda`, no terminal) → `--simular` para aqui → grava |
+| gravação | catálogos numa transação; processos, tarefas e interações em blocos de 2.000, **um por transação, com a `ChaveExterna` no mesmo bloco**; depois o duplo ponteiro e o estágio ligado. Bloco que cai: código 3, `Gravação parcial…`, e a próxima rodada completa |
+| saída do universo | processo: exclusão lógica, e as tarefas dele também; volta → restaurado. Interação fica |
+| trilha | a execução em `integracao.ExecucaoDeSincronizacao` (fluxo `VORTICE.OPORTUNIDADES`), com o resumo; o que muda num registro que já existia vai para a trilha de auditoria como integração do Vórtice. **Sem `RegistroDeOrigem` próprio**: todo processo da janela já está no do funil (`VORTICE.FUNIL`), e a tarefa e a interação têm a `ChaveExterna` — uma segunda trilha de 100 a 250 mil linhas dobraria a gravação sem responder pergunta nova |
+
+**O que não entra sai contado no relatório da rodada**, por motivo: processo fora da janela, de filial fora do CRM e
+sem cliente casado (com os códigos da #236 — `CLIENTE_AUSENTE_DO_CRM`, `CLIENTE_AMBIGUO_NO_CRM`…); tarefa pendente de
+processo encerrado (P10) e sem data de agenda; interação sem data crível.
+
+### 12.6 O que falta medir, e os riscos
+
+1. **Volume** da agenda e do histórico da onda 2 (as duas consultas no fim da §11): a estimativa é de 100 a 250 mil
+   linhas na primeira rodada. A simulação no servidor mostra o número antes de gravar.
+2. **Numeração** (P11): `Processo.Numero` é o número do Vórtice, e o índice único (filial, número) não colide entre
+   processos do Vórtice. Quando o CRM passar a abrir processo, precisa de uma faixa acima de `MAX(IV_PROCDADO.Processo)`.
+3. **Filial do processo ≠ filial do cliente** (P9): a lista lê o cliente sob o filtro de filial, e a chave dele pode
+   vir vazia para quem não alcança a filial do cliente. A contar na simulação.
+4. As pendentes antigas de processo aberto aparecem como **vencidas** na Agenda (P10) — o que a origem diz.
+5. O assunto da tarefa e da interação é o nome do catálogo, não o texto do vendedor (P1).
+
+### 12.7 Como ligar
+
+1. A `PROCESSOS_VORTICE` já roda o funil; o modo novo entra nela como segundo modo — **a rotina continua desligada**
+   até quem administra ligar.
+2. **Simular no servidor** — `Tracbel.Crm.Carga.exe --somente-oportunidades-vortice --simular` — e conferir: processos
+   que entram (~24,8 mil), tarefas, interações e as contagens do P2.
+3. Ligar (ou "Rodar agora"): o funil roda primeiro, e as oportunidades depois, na mesma rotina.

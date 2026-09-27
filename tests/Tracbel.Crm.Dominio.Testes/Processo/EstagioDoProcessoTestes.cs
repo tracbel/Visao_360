@@ -32,6 +32,22 @@ public sealed class EstagioDoProcessoTestes
     }
 
     [Fact]
+    public void A_ligacao_ao_processo_da_onda_2_fica_fora_do_retrato_que_o_funil_compara()
+    {
+        var linha = EstagioDoProcesso.Registrar(Retrato());
+        var antes = linha.Retrato;
+
+        linha.LigarAoProcesso(42).Should().BeTrue();
+        linha.LigarAoProcesso(42).Should().BeFalse("ligada igual não muda");
+        linha.ProcessoId.Should().Be(42);
+        linha.Retrato.Should().Be(antes, "o funil não enxerga a ligação — senão toda rodada do funil a desfaria");
+        linha.AtualizarDaOrigem(Retrato()).Should().BeFalse();
+
+        linha.LigarAoProcesso(null).Should().BeTrue("o processo saiu do CRM");
+        linha.ProcessoId.Should().BeNull();
+    }
+
+    [Fact]
     public void A_chave_nao_troca_e_o_tipo_fora_do_funil_e_recusado()
     {
         var linha = EstagioDoProcesso.Registrar(Retrato());

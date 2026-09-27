@@ -1040,10 +1040,15 @@ public static class RotinasDoSistema
         // carteira, e do parque (05:30). No FIM da lista, como toda rotina nova: a posição é o identificador semeado.
         // NASCE DESLIGADA: ligá-la traz ~113 mil linhas de funil e ~3,2 mil vendas perdidas para produção, e isso é
         // decisão de quem administra — a simulação primeiro.
+        //
+        // O SEGUNDO MODO É A ONDA 2 (documento 52 §12, 27/09/2026): processo, agenda e histórico dos clientes casados. Vem
+        // DEPOIS do funil, que grava as vendas perdidas de onde o processo perdido tira o motivo (P8). Os modos e a
+        // descrição não são semeados — só o nome —, e por isso acrescentar um modo não pede migração.
         new(ProcessosVortice, "Funil e vendas perdidas do Vórtice",
             "O estágio de cada processo 31/41/50 do Vórtice desde 01/11/2023, pelo código de resultado do histórico, e as " +
-            "vendas perdidas dos formulários desde 2012 — prospect incluído, sem criar cliente, carteira nem usuário.",
-            ["--somente-processos-vortice"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 30)), false,
+            "vendas perdidas dos formulários desde 2012 — prospect incluído, sem criar cliente, carteira nem usuário. Depois, " +
+            "as oportunidades, a agenda e a linha do tempo dos clientes casados, para o Pipeline e a Agenda.",
+            ["--somente-processos-vortice", "--somente-oportunidades-vortice"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 30)), false,
             [ConexoesDoSistema.Vortice], ConexoesDoSistema.Vortice),
 
         // AS METAS DE VENDA DA API GESTÃO DE NEGÓCIOS (decisão de 27/09/2026, #138) — a rotina 9, no FIM da lista como

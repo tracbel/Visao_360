@@ -75,6 +75,17 @@ sai do build junto com a extração.
 >
 > **As outras duas leituras liberadas** continuam as de 24/09/2026: as carteiras MAQ_NOVOS
 > (`--somente-carteiras-vortice`) e a busca ao vivo no legado.
+>
+> **Ampliação da errata — onda 2 (27/09/2026, depois do merge do #249).** A leitura liberada passa a cobrir também
+> o que a onda 2 precisa para os processos dos **clientes casados**: `IV_AGENDA` (a agenda dos processos 31/41/50),
+> `IV_ACAO`, `IV_RESULTADO`, `IV_PROCRESULTADO` e `IV_CODPROCESSO` (os catálogos, só os códigos usados), `GE_USUARIO`
+> (só `SeqUsuario` e `CodUsuario`, para achar a conta — o login não é gravado) e, de `IV_PROCESSO`, as colunas de fase,
+> resumo, valor, quantidade e previsão. Continua **fora** todo texto livre além do `Resumo` (decisão P1): a `Descricao`
+> do processo, o `Assunto` e o `Detalhe` da agenda e o `Detalhe` do histórico. A carga é outra carga **nova** —
+> `CargaDasOportunidadesDoVortice`, modo `--somente-oportunidades-vortice`, **segundo modo da `PROCESSOS_VORTICE`** —,
+> com o mesmo compromisso: não cria cliente, carteira nem usuário (liga ao que existe; responsável sem conta vira o
+> dono do processo), não toca o faturamento e não grava o último contato. Desenho no
+> [documento 52 §12](52-FUNIL-PROCESSOS-E-VENDAS-PERDIDAS-DO-VORTICE.md#12-onda-2--processo-tarefa-e-interacao-dos-clientes-casados-pr-4).
 
 ---
 

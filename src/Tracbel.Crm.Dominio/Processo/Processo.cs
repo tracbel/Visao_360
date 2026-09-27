@@ -224,7 +224,152 @@ public sealed class Processo : EntidadeBase
 
         MarcarAlteracao(usuarioId);
     }
+
+    /// <summary>O que o processo guarda, no formato em que a origem é comparada (documento 52 §12).</summary>
+    public RetratoDoProcessoDaOrigem RetratoDaOrigem => new(
+        Numero, EmpresaId, TipoProcessoId, ClienteId, CarteiraId, Titulo, FaseId, FaseDesde, Situacao, SituacaoDesde,
+        ConcluidoEm, MotivoDePerdaId, ConcorrenteId, ValorEstimado, Quantidade, PrevisaoConclusao, PrevisaoConclusaoOriginal,
+        ProprietarioId, CriadoEm);
+
+    /// <summary>
+    /// Registra o processo que o Vórtice declara — a onda 2 da rotina <c>PROCESSOS_VORTICE</c> (documento 52 §12).
+    ///
+    /// <para><b>Por que não <see cref="Abrir"/>.</b> <c>Abrir</c> é o nascimento pela tela: fase, situação, dono e
+    /// carteira entram por métodos separados, cada um com a sua regra. A origem declara tudo de uma vez, e o que a rotina
+    /// precisa é ACOMPANHAR — título, valor, dono, carteira e filial mudam lá, e nenhum método de tela os sincroniza. O
+    /// retrato é o mesmo na criação e na atualização, e as regras de encerramento (data e motivo) valem nos dois.</para>
+    /// </summary>
+    /// <param name="retrato">O estado declarado.</param>
+    /// <param name="criadoPorId">Quem roda a integração.</param>
+    public static Processo DaOrigem(RetratoDoProcessoDaOrigem retrato, long criadoPorId)
+    {
+        var processo = new Processo { Numero = retrato.Numero, CriadoPorId = criadoPorId };
+        processo.AplicarDaOrigem(Normalizar(retrato));
+        return processo;
+    }
+
+    /// <summary>Acompanha a origem. Devolve se alguma coisa mudou — relido igual, não muda nada.</summary>
+    /// <param name="retrato">O estado declarado nesta rodada, do mesmo número.</param>
+    /// <param name="usuarioId">Quem roda a integração.</param>
+    public bool AtualizarDaOrigem(RetratoDoProcessoDaOrigem retrato, long usuarioId)
+    {
+        // O NÚMERO É A IDENTIDADE na origem: outro número é outro processo, e não o mesmo que mudou.
+        if (retrato.Numero != Numero)
+            throw new RegraDeNegocioViolada("O processo da origem não troca de número: outro número é outro processo.");
+
+        var normalizado = Normalizar(retrato);
+        if (RetratoDaOrigem == normalizado) return false;
+
+        AplicarDaOrigem(normalizado);
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>O processo voltou ao universo da origem depois de sair: deixa de estar excluído. Devolve se mudou.</summary>
+    /// <param name="usuarioId">Quem roda a integração.</param>
+    public bool RestaurarDaOrigem(long usuarioId)
+    {
+        if (!EstaExcluido) return false;
+        ExcluidoEm = null;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>
+    /// O retrato com as datas no milissegundo e o título aparado — o que as colunas <c>datetime2(3)</c> e
+    /// <c>nvarchar(200)</c> guardam. Sem isso a data relida do Vórtice (passo de 1/300 s) nunca seria igual à gravada, e
+    /// toda rodada "alteraria" todos os processos sem nada ter mudado.
+    /// </summary>
+    /// <param name="r">O retrato como veio.</param>
+    public static RetratoDoProcessoDaOrigem Normalizar(RetratoDoProcessoDaOrigem r) => r with
+    {
+        Titulo = (r.Titulo ?? string.Empty).Trim(),
+        FaseDesde = EstagioDoProcesso.NoMilissegundo(r.FaseDesde),
+        SituacaoDesde = EstagioDoProcesso.NoMilissegundo(r.SituacaoDesde),
+        ConcluidoEm = EstagioDoProcesso.NoMilissegundo(r.ConcluidoEm),
+        AbertoEm = EstagioDoProcesso.NoMilissegundo(r.AbertoEm)
+    };
+
+    private void AplicarDaOrigem(RetratoDoProcessoDaOrigem r)
+    {
+        // AS MESMAS REGRAS DA TELA E DO BANCO (CK_Processo_Encerramento e CK_Processo_MotivoDePerda), recusadas aqui com a
+        // frase que explica: a origem não ganha exceção por ser a origem.
+        if (r.Titulo.Length == 0)
+            throw new RegraDeNegocioViolada("Processo sem título não existe.");
+
+        if (r.Situacao is not (SituacaoDoProcesso.Aberto or SituacaoDoProcesso.Suspenso) && r.ConcluidoEm is null)
+            throw new RegraDeNegocioViolada("Processo encerrado sem data de encerramento não existe: informe quando ele fechou.");
+
+        if (r.Situacao is SituacaoDoProcesso.Perdido && r.MotivoDePerdaId is null)
+            throw new RegraDeNegocioViolada("Processo perdido exige motivo de perda — sem motivo na origem, NAO_INFORMADO_NA_ORIGEM.");
+
+        EmpresaId = r.EmpresaId;
+        TipoProcessoId = r.TipoProcessoId;
+        ClienteId = r.ClienteId;
+        CarteiraId = r.CarteiraId;
+        Titulo = r.Titulo;
+        FaseId = r.FaseId;
+        FaseDesde = r.FaseDesde;
+        Situacao = r.Situacao;
+        SituacaoDesde = r.SituacaoDesde;
+        ConcluidoEm = r.ConcluidoEm;
+        MotivoDePerdaId = r.MotivoDePerdaId;
+        ConcorrenteId = r.ConcorrenteId;
+        ValorEstimado = r.ValorEstimado;
+        Quantidade = r.Quantidade;
+        PrevisaoConclusao = r.PrevisaoConclusao;
+        PrevisaoConclusaoOriginal = r.PrevisaoConclusaoOriginal;
+        ProprietarioId = r.ProprietarioId;
+
+        // A ABERTURA NA ORIGEM É O NASCIMENTO AQUI, como em Abrir: um processo de 2024 carregado hoje não é de hoje, e a
+        // lista e o funil leem a idade pela criação.
+        CriadoEm = r.AbertoEm;
+    }
 }
+
+/// <summary>
+/// O ESTADO QUE O VÓRTICE DECLARA PARA UM PROCESSO DA ONDA 2 — tudo o que a rotina compara para decidir se o processo
+/// mudou (documento 52 §12). As datas chegam cortadas no milissegundo (<see cref="Processo.Normalizar"/>).
+/// </summary>
+/// <param name="Numero">O número do processo no Vórtice — o mesmo que o usuário fala ao telefone.</param>
+/// <param name="EmpresaId">A filial do processo na origem, já no CRM.</param>
+/// <param name="TipoProcessoId">O tipo (31, 41 ou 50), já no catálogo do CRM.</param>
+/// <param name="ClienteId">O cliente que casou pelo documento — obrigatório: só o casado entra.</param>
+/// <param name="CarteiraId">A carteira MAQ_NOVOS da pessoa, quando a sincronia das carteiras a trouxe.</param>
+/// <param name="Titulo">O resumo da origem; em branco, composto do tipo e do número (decisão P1).</param>
+/// <param name="FaseId">A fase do BPM na origem, já no catálogo do CRM.</param>
+/// <param name="FaseDesde">Desde quando está na fase (UTC).</param>
+/// <param name="Situacao">A situação traduzida do status da origem.</param>
+/// <param name="SituacaoDesde">Desde quando está na situação (UTC).</param>
+/// <param name="ConcluidoEm">Quando encerrou (UTC) — obrigatório quando encerrado, nulo quando não.</param>
+/// <param name="MotivoDePerdaId">O motivo da venda perdida principal do mesmo processo, ou o "não informado" (decisão P8).</param>
+/// <param name="ConcorrenteId">O concorrente da venda perdida principal, quando o formulário o declara.</param>
+/// <param name="ValorEstimado">O valor da origem, quando é valor monetário válido e positivo.</param>
+/// <param name="Quantidade">A quantidade da origem, quando positiva.</param>
+/// <param name="PrevisaoConclusao">A previsão de conclusão vigente.</param>
+/// <param name="PrevisaoConclusaoOriginal">A primeira previsão registrada.</param>
+/// <param name="ProprietarioId">O dono: a conta do responsável, senão o dono da carteira, senão quem roda a rotina.</param>
+/// <param name="AbertoEm">A abertura na origem (UTC) — vira a criação do processo.</param>
+public sealed record RetratoDoProcessoDaOrigem(
+    long Numero,
+    int EmpresaId,
+    int TipoProcessoId,
+    long ClienteId,
+    long? CarteiraId,
+    string Titulo,
+    int FaseId,
+    DateTime FaseDesde,
+    SituacaoDoProcesso Situacao,
+    DateTime SituacaoDesde,
+    DateTime? ConcluidoEm,
+    int? MotivoDePerdaId,
+    int? ConcorrenteId,
+    Dinheiro? ValorEstimado,
+    decimal? Quantidade,
+    DateOnly? PrevisaoConclusao,
+    DateOnly? PrevisaoConclusaoOriginal,
+    long ProprietarioId,
+    DateTime AbertoEm);
 
 // O QUE SAIU DAQUI NA FASE 1 (documento 41): `PassagemDeFase` — o caminho percorrido, com o
 // tempo em cada fase — e `ItemDeProposta` — o que está sendo vendido dentro do processo. As duas
