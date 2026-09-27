@@ -202,13 +202,25 @@ public sealed class FunilDoVorticeNoConteinerTestes
     [FatoSeHouverSqlServer]
     public void As_duas_migracoes_voltam_e_vao_de_novo()
     {
-        Recriar();
+        var (a, _) = Recriar();
         using var db = DeSistema();
         var migrador = db.GetService<IMigrator>();
+
+        // COM TRILHA DO FUNIL NO BANCO: o Down recria o CHECK de Entidade sem EstagioDoProcesso, e a linha da trilha que
+        // cita a entidade faria a volta falhar — a migração a apaga antes.
+        var trilha = $@"
+            SET IDENTITY_INSERT seguranca.Usuario ON;
+            INSERT INTO seguranca.Usuario (Id, EmpresaId, IdentidadeExterna, NomePrincipal, NomeCompleto, NomeExibicao, Email, EstaAtivo, CriadoEm, CriadoPorId)
+            VALUES (1, {a}, NEWID(), 'operador@tracbel.com.br', 'Operador', 'Operador', 'operador@tracbel.com.br', 1, SYSUTCDATETIME(), 0);
+            SET IDENTITY_INSERT seguranca.Usuario OFF;
+            INSERT INTO auditoria.AlteracaoDeCampo (EmpresaId, Entidade, RegistroId, Campo, ValorAnterior, ValorNovo, AlteradoEm, AlteradoPorId, Origem, Operacao)
+            VALUES ({a}, 'EstagioDoProcesso', 1, 'Estagio', 'Pedido', NULL, SYSUTCDATETIME(), 1, 'Integracao', 'Exclusao');";
+        db.Database.ExecuteSqlRaw(trilha);
 
         migrador.Migrate("ColhedoraDeCanaERegrasDasOutrasCategorias");
         Tabelas(db).Should().NotContain(["processo.EstagioDoProcesso", "integracao.ClassificacaoDeResultadoDoVortice"]);
         Colunas(db, "VendaPerdida").Should().NotContain(["FormularioDeOrigem", "Papel", "VendaPerdidaPrincipalId", "NumeroDoProcessoNaOrigem"]);
+        db.AlteracoesDeCampo.Count(x => x.Entidade == "EstagioDoProcesso").Should().Be(0, "a volta apagou a trilha da entidade que saiu");
 
         migrador.Migrate();
         Tabelas(db).Should().Contain(["processo.EstagioDoProcesso", "integracao.ClassificacaoDeResultadoDoVortice"]);

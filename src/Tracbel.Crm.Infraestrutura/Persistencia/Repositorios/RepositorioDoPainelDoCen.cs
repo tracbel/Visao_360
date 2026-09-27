@@ -174,8 +174,10 @@ public sealed class RepositorioDoPainelDoCen(CrmDbContext contexto) : IRepositor
             .Select(g => new { Situacao = g.Key, Quantidade = g.Count() })
             .ToListAsync(ct);
 
+        // SÓ A PRINCIPAL CONTA (decisão de 27/09/2026): a duplicata e o complemento repetem a mesma perda.
         var vendasPerdidas = await contexto.VendasPerdidas.AsNoTracking()
             .CountAsync(v => v.ExcluidoEm == null
+                             && v.Papel == PapelDaVendaPerdida.Principal
                              && v.ClienteId != null
                              && clientesDoResponsavel.Contains(v.ClienteId.Value), ct);
 

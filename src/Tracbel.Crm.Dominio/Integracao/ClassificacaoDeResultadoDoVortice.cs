@@ -13,9 +13,12 @@ public sealed record ItemDaClassificacaoDoVortice(int Codigo, EstagioDoFunil? Es
 /// O QUE CADA CÓDIGO DE RESULTADO DO VÓRTICE SIGNIFICA PARA O CRM — o estágio do funil que ele prova e se ele conta
 /// como contato (decisões de 27/09/2026, documento 52 §2.2).
 ///
-/// <para><b>Uma lista só, lida pelas duas rotinas.</b> A <c>PROCESSOS_VORTICE</c> tira daqui o estágio; a
-/// <c>CARTEIRAS_VORTICE</c> tira daqui o último contato. Antes, cada uma teria a sua constante no código, e as duas
-/// divergiriam no primeiro código novo.</para>
+/// <para><b>O estágio vem daqui; o contato, ainda não.</b> A <c>PROCESSOS_VORTICE</c> lê esta tabela para o estágio. A
+/// <c>CARTEIRAS_VORTICE</c> ainda calcula o último contato com a CONSTANTE
+/// <c>LeitorDeCarteirasDoVortice.ResultadosQueContamComoContato</c> (PR #244), e não com a coluna
+/// <see cref="ContaComoContato"/>. As duas listas são a mesma — a da <c>BI_CARTEIRA_VN</c> —, e
+/// <c>ClassificacaoEUltimoContatoTestes</c> recusa o build se divergirem. Passar a carteira a ler a tabela é trabalho à
+/// parte.</para>
 ///
 /// <para><b>O estágio guardado é o MAIOR que o código prova.</b> As listas do extrator do BI são aninhadas — a da
 /// Cobertura contém a da Negociação, que contém a do Pedido, que contém a do Faturamento —, então "alcançou E" é "tem

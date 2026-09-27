@@ -33,18 +33,28 @@ public enum SituacaoNaRegraDoEstagio
     SemResultadoAceito = 3,
 
     /// <summary>Tem filho DNA: sai, e o filho herda os resultados dele.</summary>
-    PaiSubstituidoPeloFilhoDna = 4
+    PaiSubstituidoPeloFilhoDna = 4,
+
+    /// <summary>
+    /// Toda data que poderia abrir o processo — a inclusão, o primeiro andamento, o primeiro resultado — é absurda
+    /// (antes de 2000 ou depois de agora + 1 dia). Sem abertura crível, o processo não tem lugar na janela.
+    /// </summary>
+    AberturaInvalida = 5
 }
 
 /// <summary>Um estágio que o processo alcançou.</summary>
 /// <param name="Estagio">O estágio.</param>
-/// <param name="AlcancadoEm">O primeiro resultado que o alcança (UTC).</param>
+/// <param name="AlcancadoEm">
+/// O primeiro resultado que o alcança (UTC). O herdado do pai DNA pode ser ANTERIOR à abertura do próprio processo — e
+/// até à janela, quando o pai foi aberto antes dela (documento 52 §3).
+/// </param>
 /// <param name="ResultadoQueAbriu">O código desse resultado.</param>
 /// <param name="NumeroDoProcessoDna">O processo DNA de onde o resultado veio; nulo quando é do próprio processo.</param>
 /// <param name="PelaEntradaDigital">
-/// Lead: o processo teve o resultado da entrada digital do Lead (1278). Qualificado: teve o do Qualificado (3803).
-/// Da Cobertura em diante: entrou por um dos dois. É o que deixa ver o subfunil digital (1278 → 3803 → Cobertura →
-/// faturado) sem somar os dois.
+/// Se o estágio foi alcançado PELA ENTRADA DIGITAL — o resultado dela veio até a data do estágio, e não depois. Lead: a
+/// entrada do Lead (1278). Qualificado: a do Qualificado (3803). Da Cobertura em diante: uma das duas. É o que deixa ver
+/// o subfunil digital (1278 → 3803 → Cobertura → faturado) sem somar os dois, e sem contar como digital o processo que
+/// chegou por visita e só depois recebeu o contato digital.
 /// </param>
 /// <param name="UltimaAcaoDaEtapaEm">O <c>DTA_ETAPA</c> do BI; nulo em Lead e Qualificado, como no BI.</param>
 public sealed record EstagioApurado(
@@ -58,14 +68,16 @@ public sealed record EstagioApurado(
 /// <summary>O que a regra concluiu sobre um processo.</summary>
 /// <param name="Numero">O processo.</param>
 /// <param name="Tipo">31, 41 ou 50.</param>
-/// <param name="AbertoEm">A abertura (UTC), quando há.</param>
-/// <param name="AberturaDeduzida">Se a abertura veio do primeiro andamento.</param>
+/// <param name="AbertoEm">A abertura (UTC), quando há uma crível.</param>
+/// <param name="AberturaDeduzida">Se a abertura não veio da inclusão (nula ou recusada), e sim do histórico.</param>
 /// <param name="Situacao">No funil, ou por que não.</param>
 /// <param name="Estagios">Os estágios alcançados, na ordem.</param>
 /// <param name="ResultadosComDataFutura">Quantos resultados foram recusados por data futura.</param>
+/// <param name="AberturaRecusada">Se alguma data de abertura foi recusada por ser absurda (antes de 2000 ou no futuro).</param>
+/// <param name="DnaEmCiclo">Se o <c>ProcessoDNA</c> do processo o põe num ciclo (A→B, B→A): tratado como processo sem pai.</param>
 public sealed record ApuracaoDoProcesso(
     long Numero, short Tipo, DateTime? AbertoEm, bool AberturaDeduzida, SituacaoNaRegraDoEstagio Situacao,
-    IReadOnlyList<EstagioApurado> Estagios, int ResultadosComDataFutura);
+    IReadOnlyList<EstagioApurado> Estagios, int ResultadosComDataFutura, bool AberturaRecusada, bool DnaEmCiclo);
 
 /// <summary>
 /// A REGRA DO ESTÁGIO DO FUNIL — pura, sem banco, sem relógio próprio (decisões de 27/09/2026, documento 52 §3).
@@ -81,9 +93,11 @@ public sealed record ApuracaoDoProcesso(
 /// (<c>MAX(SeqHistorico)</c>) só servia para saber se alcançou alguma vez.</item>
 /// <item><b>A regra DNA, escrita.</b> O pai que tem filho DNA (31/41/50) sai; o filho herda os resultados do pai, com a
 /// data mínima. A herança é transitiva — o neto herda do filho, que herdou do pai — e só o último da cadeia fica. O
-/// pai de outro tipo não transmite nada: o BI filtra o histórico por 31/41/50.</item>
+/// pai de outro tipo não transmite nada: o BI filtra o histórico por 31/41/50. O <c>ProcessoDNA</c> em ciclo (A→B,
+/// B→A) é tratado como processo sem pai: sem isso, os dois se substituiriam e o funil perderia os dois.</item>
 /// <item><b>Janela única desde 01/11/2023</b> (o início do FY24), pela abertura: <c>COALESCE(DtaInclusao, 1º
-/// andamento)</c>. O BI tinha duas janelas (2024 e 2026).</item>
+/// andamento)</c>. O BI tinha duas janelas (2024 e 2026). Data de abertura absurda — antes de 2000 ou depois de agora
+/// + 1 dia — é recusada, e vale a seguinte.</item>
 /// <item><b>Data futura é recusada</b>: resultado depois de agora + 1 dia é digitação (há datas em 2103 no Vórtice).</item>
 /// <item><b>Uma linha por processo por estágio</b> — sem o fan-out por departamento do BI.</item>
 /// </list>
@@ -100,7 +114,13 @@ public static class RegraDoEstagio
     /// </summary>
     public static readonly DateTime InicioDaJanela = new(2023, 11, 1, 3, 0, 0, DateTimeKind.Utc);
 
-    /// <summary>Quanto além de agora uma data de resultado ainda é aceita.</summary>
+    /// <summary>
+    /// A ABERTURA MAIS ANTIGA CRÍVEL: 01/01/2000. O Vórtice da Tracbel é deste século; uma inclusão em 1900 é campo
+    /// vazio virado data, e não o começo de uma negociação.
+    /// </summary>
+    public static readonly DateTime MenorAberturaCrivel = new(2000, 1, 1, 3, 0, 0, DateTimeKind.Utc);
+
+    /// <summary>Quanto além de agora uma data de resultado ou de abertura ainda é aceita.</summary>
     public static readonly TimeSpan ToleranciaDeDataFutura = TimeSpan.FromDays(1);
 
     /// <summary>
@@ -156,46 +176,76 @@ public static class RegraDoEstagio
             if (linha.AcaoGeradora is not null) Acrescentar(acoes, linha);
         }
 
+        // O DNA EFETIVO: o do Vórtice, salvo quando ele fecha um ciclo — aí o processo é tratado como sem pai.
+        var emCiclo = porNumero.Values.Where(p => FechaCiclo(p, porNumero)).Select(p => p.Numero).ToHashSet();
+        long DnaDe(ProcessoNaRegraDoEstagio p) => emCiclo.Contains(p.Numero) ? p.Numero : p.NumeroDoDna;
+
         // O PAI COM FILHO DNA — o filho precisa ser do funil; o de outro tipo não substitui ninguém.
         var paisComFilho = porNumero.Values
-            .Where(p => p.NumeroDoDna != p.Numero && porNumero.ContainsKey(p.NumeroDoDna))
-            .Select(p => p.NumeroDoDna)
+            .Where(p => DnaDe(p) != p.Numero && porNumero.ContainsKey(DnaDe(p)))
+            .Select(DnaDe)
             .ToHashSet();
 
         var apuracoes = new List<ApuracaoDoProcesso>(porNumero.Count);
         foreach (var processo in porNumero.Values)
         {
-            var linhagem = Linhagem(processo, porNumero, aceitos);
+            var linhagem = Linhagem(processo, porNumero, aceitos, DnaDe);
+
             // A ABERTURA: a inclusão; nula, o primeiro andamento; sem andamento próprio, o primeiro resultado herdado —
-            // é o COALESCE do BI, que usa a data do histórico quando a inclusão falta.
-            var abertoEm = processo.IncluidoEm ?? processo.PrimeiroAndamentoEm ?? linhagem.Min(r => (DateTime?)r.RealizadoEm);
-            var deduzida = processo.IncluidoEm is null;
+            // é o COALESCE do BI, que usa a data do histórico quando a inclusão falta. A candidata absurda é recusada,
+            // como o resultado com data futura, e vale a seguinte.
+            DateTime?[] candidatas = [processo.IncluidoEm, processo.PrimeiroAndamentoEm, linhagem.Min(r => (DateTime?)r.RealizadoEm)];
+            var escolhida = Array.FindIndex(candidatas, d => d is { } data && data >= MenorAberturaCrivel && data <= limite);
+            var abertoEm = escolhida >= 0 ? candidatas[escolhida] : null;
+            var recusada = candidatas.Take(escolhida >= 0 ? escolhida : candidatas.Length).Any(d => d is not null);
+            var deduzida = escolhida != 0;
             var comFutura = futuros.GetValueOrDefault(processo.Numero);
+            var ciclo = emCiclo.Contains(processo.Numero);
 
             ApuracaoDoProcesso Sem(SituacaoNaRegraDoEstagio situacao) =>
-                new(processo.Numero, processo.Tipo, abertoEm, deduzida, situacao, [], comFutura);
+                new(processo.Numero, processo.Tipo, abertoEm, deduzida, situacao, [], comFutura, recusada, ciclo);
 
-            if (abertoEm is null) { apuracoes.Add(Sem(SituacaoNaRegraDoEstagio.SemAbertura)); continue; }
+            if (abertoEm is null)
+            {
+                apuracoes.Add(Sem(candidatas.Any(d => d is not null) ? SituacaoNaRegraDoEstagio.AberturaInvalida : SituacaoNaRegraDoEstagio.SemAbertura));
+                continue;
+            }
+
             if (abertoEm < InicioDaJanela) { apuracoes.Add(Sem(SituacaoNaRegraDoEstagio.ForaDaJanela)); continue; }
             if (paisComFilho.Contains(processo.Numero)) { apuracoes.Add(Sem(SituacaoNaRegraDoEstagio.PaiSubstituidoPeloFilhoDna)); continue; }
 
             var estagios = Estagios(processo.Numero, linhagem, estagioPorResultado, acoes.GetValueOrDefault(processo.Numero));
             apuracoes.Add(estagios.Count == 0
                 ? Sem(SituacaoNaRegraDoEstagio.SemResultadoAceito)
-                : new ApuracaoDoProcesso(processo.Numero, processo.Tipo, abertoEm, deduzida, SituacaoNaRegraDoEstagio.NoFunil, estagios, comFutura));
+                : new ApuracaoDoProcesso(
+                    processo.Numero, processo.Tipo, abertoEm, deduzida, SituacaoNaRegraDoEstagio.NoFunil, estagios, comFutura, recusada, ciclo));
         }
 
         return apuracoes;
     }
 
+    /// <summary>Se seguir o <c>ProcessoDNA</c> a partir do processo volta a ele mesmo (A→B, B→A; ou A→B→C→A).</summary>
+    private static bool FechaCiclo(ProcessoNaRegraDoEstagio processo, IReadOnlyDictionary<long, ProcessoNaRegraDoEstagio> porNumero)
+    {
+        var vistos = new HashSet<long> { processo.Numero };
+        var atual = processo;
+        while (atual.NumeroDoDna != atual.Numero && porNumero.TryGetValue(atual.NumeroDoDna, out var pai))
+        {
+            if (pai.Numero == processo.Numero) return true;
+            if (!vistos.Add(pai.Numero)) return false;
+            atual = pai;
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// Os resultados aceitos do processo e de toda a cadeia DNA acima dele — o pai, o avô —, parando no primeiro que
-    /// não é do funil. A guarda de ciclo existe porque o dado é do Vórtice: dois processos apontando um para o outro
-    /// não travam a rotina.
+    /// não é do funil. A guarda de repetição continua aqui mesmo com o ciclo resolvido: o dado é do Vórtice.
     /// </summary>
     private static List<ResultadoNaRegraDoEstagio> Linhagem(
         ProcessoNaRegraDoEstagio processo, IReadOnlyDictionary<long, ProcessoNaRegraDoEstagio> porNumero,
-        IReadOnlyDictionary<long, List<ResultadoNaRegraDoEstagio>> aceitos)
+        IReadOnlyDictionary<long, List<ResultadoNaRegraDoEstagio>> aceitos, Func<ProcessoNaRegraDoEstagio, long> dnaDe)
     {
         var linhagem = new List<ResultadoNaRegraDoEstagio>();
         var vistos = new HashSet<long>();
@@ -204,7 +254,8 @@ public static class RegraDoEstagio
         while (vistos.Add(atual.Numero))
         {
             if (aceitos.TryGetValue(atual.Numero, out var proprios)) linhagem.AddRange(proprios);
-            if (atual.NumeroDoDna == atual.Numero || !porNumero.TryGetValue(atual.NumeroDoDna, out var pai)) break;
+            var dna = dnaDe(atual);
+            if (dna == atual.Numero || !porNumero.TryGetValue(dna, out var pai)) break;
             atual = pai;
         }
 
@@ -220,8 +271,8 @@ public static class RegraDoEstagio
 
         // A ENTRADA DIGITAL é o resultado que prova só Lead (1278) ou só Qualificado (3803): o que fica abaixo da
         // Cobertura. A classificação diz quais são, e não uma lista escrita aqui.
-        var teveEntradaDoLead = linhagem.Any(r => estagioPorResultado[r.Resultado] == EstagioDoFunil.Lead);
-        var teveEntradaDoQualificado = linhagem.Any(r => estagioPorResultado[r.Resultado] == EstagioDoFunil.Qualificado);
+        var entradasDoLead = linhagem.Where(r => estagioPorResultado[r.Resultado] == EstagioDoFunil.Lead).ToList();
+        var entradasDoQualificado = linhagem.Where(r => estagioPorResultado[r.Resultado] == EstagioDoFunil.Qualificado).ToList();
 
         foreach (var estagio in Enum.GetValues<EstagioDoFunil>())
         {
@@ -231,11 +282,14 @@ public static class RegraDoEstagio
                 .FirstOrDefault();
             if (primeiro is null) break;
 
+            // "ENTROU POR", e não "teve": a entrada digital precisa ter vindo até a data do estágio. O processo que chegou
+            // à Cobertura por visita e depois recebeu um contato digital não entrou pelo digital.
+            bool AteAqui(IEnumerable<ResultadoNaRegraDoEstagio> entradas) => entradas.Any(r => r.RealizadoEm <= primeiro.RealizadoEm);
             var digital = estagio switch
             {
-                EstagioDoFunil.Lead => teveEntradaDoLead,
-                EstagioDoFunil.Qualificado => teveEntradaDoQualificado,
-                _ => teveEntradaDoLead || teveEntradaDoQualificado
+                EstagioDoFunil.Lead => AteAqui(entradasDoLead),
+                EstagioDoFunil.Qualificado => AteAqui(entradasDoQualificado),
+                _ => AteAqui(entradasDoLead) || AteAqui(entradasDoQualificado)
             };
 
             DateTime? ultimaAcao = null;

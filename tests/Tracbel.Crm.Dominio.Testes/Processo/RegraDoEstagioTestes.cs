@@ -212,6 +212,99 @@ public sealed class RegraDoEstagioTestes
     }
 
     [Fact]
+    public void O_pai_aberto_antes_da_janela_transmite_e_o_filho_herda_um_alcance_anterior_a_propria_abertura()
+    {
+        // O PAI É DE 2022 (fora da janela) e o filho, de 2024. O filho herda a Cobertura do pai, com a data de 2022 —
+        // anterior à abertura dele e à janela. A visão por fluxo (PR 2) precisa saber disso: filtrar AlcancadoEm pelo
+        // período deixa esse estágio de fora do fluxo de 2024, embora o processo esteja na coorte de 2024.
+        var apuracoes = Apurar(
+            [Processo(100, Em(2022, 5, 1)), Processo(101, Em(2024, 2, 1), dna: 100)],
+            Resultado(100, 250, Em(2022, 5, 10)),
+            Resultado(101, 2563, Em(2024, 2, 5)));
+
+        Do(apuracoes, 100).Situacao.Should().Be(SituacaoNaRegraDoEstagio.ForaDaJanela, "o pai é de antes de 01/11/2023");
+
+        var filho = Do(apuracoes, 101);
+        filho.AbertoEm.Should().Be(Em(2024, 2, 1));
+        var cobertura = filho.Estagios.Single(e => e.Estagio == EstagioDoFunil.Cobertura);
+        cobertura.AlcancadoEm.Should().Be(Em(2022, 5, 10)).And.BeBefore(filho.AbertoEm!.Value);
+        cobertura.NumeroDoProcessoDna.Should().Be(100);
+        filho.Estagios.Single(e => e.Estagio == EstagioDoFunil.Negociacao).AlcancadoEm.Should().Be(Em(2024, 2, 5));
+    }
+
+    [Fact]
+    public void A_entrada_digital_e_por_onde_o_processo_entrou_e_nao_o_que_ele_teve_depois()
+    {
+        // O PROCESSO CHEGOU À COBERTURA POR VISITA; o contato digital (1278) e o lead qualificado (3803) vieram depois.
+        var apuracao = Do(Apurar([Processo(110, Em(2024, 1, 5))],
+            Resultado(110, 250, Em(2024, 1, 10)),
+            Resultado(110, 1278, Em(2024, 2, 1)),
+            Resultado(110, 3803, Em(2024, 2, 2))), 110);
+
+        apuracao.Estagios.Should().OnlyContain(e => !e.PelaEntradaDigital,
+            "o Lead, o Qualificado e a Cobertura foram alcançados pela visita de 10/01; o digital veio depois");
+
+        // A MESMA DATA CONTA: o contato digital no dia da visita é a entrada.
+        var noMesmoDia = Do(Apurar([Processo(111, Em(2024, 1, 5))],
+            Resultado(111, 250, Em(2024, 1, 10)),
+            Resultado(111, 1278, Em(2024, 1, 10))), 111);
+        noMesmoDia.Estagios.Single(e => e.Estagio == EstagioDoFunil.Cobertura).PelaEntradaDigital.Should().BeTrue();
+        noMesmoDia.Estagios.Single(e => e.Estagio == EstagioDoFunil.Qualificado).PelaEntradaDigital.Should().BeFalse("não houve 3803");
+    }
+
+    [Fact]
+    public void A_abertura_absurda_e_recusada_e_vale_a_seguinte_e_sem_nenhuma_crivel_o_processo_fica_pendente()
+    {
+        var apuracoes = Apurar(
+            [
+                // INCLUSÃO EM 1900: campo vazio virado data — vale o primeiro andamento.
+                new ProcessoNaRegraDoEstagio(120, 41, 120, new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc), Em(2024, 3, 1)),
+                // INCLUSÃO EM 2103 E NENHUMA OUTRA DATA CRÍVEL: pendente.
+                new ProcessoNaRegraDoEstagio(121, 41, 121, new DateTime(2103, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(1899, 12, 31, 0, 0, 0, DateTimeKind.Utc))
+            ],
+            Resultado(120, 250, Em(2024, 3, 2)),
+            Resultado(121, 250, new DateTime(1999, 12, 31, 0, 0, 0, DateTimeKind.Utc)));
+
+        var recuperado = Do(apuracoes, 120);
+        recuperado.Should().BeEquivalentTo(new
+        {
+            AbertoEm = (DateTime?)Em(2024, 3, 1), AberturaDeduzida = true, AberturaRecusada = true, Situacao = SituacaoNaRegraDoEstagio.NoFunil
+        }, o => o.ExcludingMissingMembers());
+
+        var semData = Do(apuracoes, 121);
+        semData.Situacao.Should().Be(SituacaoNaRegraDoEstagio.AberturaInvalida);
+        semData.AbertoEm.Should().BeNull();
+        semData.Estagios.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void O_DNA_em_ciclo_e_tratado_como_processo_sem_pai_e_ninguem_some_do_funil()
+    {
+        // A→B E B→A: sem a proteção, cada um seria o "pai com filho" do outro, e os dois sairiam do funil.
+        var apuracoes = Apurar(
+            [Processo(130, Em(2024, 1, 5), dna: 131), Processo(131, Em(2024, 1, 6), dna: 130), Processo(132, Em(2024, 2, 1), dna: 130)],
+            Resultado(130, 250, Em(2024, 1, 10)),
+            Resultado(131, 3239, Em(2024, 1, 20)),
+            Resultado(132, 2563, Em(2024, 2, 5)));
+
+        var a = Do(apuracoes, 130);
+        var b = Do(apuracoes, 131);
+        a.DnaEmCiclo.Should().BeTrue();
+        b.DnaEmCiclo.Should().BeTrue();
+
+        // B NÃO TEM FILHO (o A, em ciclo, vale como sem pai): fica com os próprios estágios, nada herdado.
+        b.Situacao.Should().Be(SituacaoNaRegraDoEstagio.NoFunil);
+        b.Estagios.Should().OnlyContain(e => !e.Herdado).And.Subject.Max(e => e.Estagio).Should().Be(EstagioDoFunil.Pedido);
+
+        // A TEM O FILHO 132 (fora do ciclo): sai, e o 132 herda dele — e só dele, sem atravessar o ciclo até B.
+        a.Situacao.Should().Be(SituacaoNaRegraDoEstagio.PaiSubstituidoPeloFilhoDna);
+        var filho = Do(apuracoes, 132);
+        filho.DnaEmCiclo.Should().BeFalse();
+        filho.Estagios.Single(e => e.Estagio == EstagioDoFunil.Cobertura).NumeroDoProcessoDna.Should().Be(130);
+        filho.Estagios.Max(e => e.Estagio).Should().Be(EstagioDoFunil.Negociacao, "a venda aprovada é de B, que não é pai de ninguém");
+    }
+
+    [Fact]
     public void As_acoes_da_etapa_sao_as_do_extrator()
     {
         RegraDoEstagio.TodasAsAcoesDaEtapa.Should().Equal(50, 54, 597, 608, 609, 614, 767, 768, 769, 808, 823, 841);
