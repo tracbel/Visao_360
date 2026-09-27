@@ -6,7 +6,7 @@ using Xunit;
 namespace Tracbel.Crm.Dominio.Testes.Integracao;
 
 /// <summary>
-/// A API GESTÃO DE NEGÓCIOS NO CATÁLOGO DAS INTEGRAÇÕES (#138, 27/09/2026): a conexão 13 e a rotina 8, no FIM das listas —
+/// A API GESTÃO DE NEGÓCIOS NO CATÁLOGO DAS INTEGRAÇÕES (#138, 27/09/2026): a conexão 13 e a rotina 9, no FIM das listas —
 /// a posição é o identificador semeado —, e o tipo novo <see cref="TipoDeConexao.ApiComChave"/>, que tem endereço https e
 /// chave, e não tem usuário.
 /// </summary>
@@ -33,7 +33,7 @@ public sealed class GestaoDeNegociosNoCatalogoTestes
         var metas = todas[^1];
 
         metas.Codigo.Should().Be(RotinasDoSistema.MetasGestaoDeNegocios);
-        todas.Count.Should().Be(8, "é a rotina 8; a de processos do Vórtice vem depois, com o 9");
+        todas.Count.Should().Be(9, "é a rotina 9; a de processos do Vórtice (#247) entrou antes, com o 8");
         metas.Modos.Should().Equal("--somente-metas-gn");
         metas.LigadaPorPadrao.Should().BeFalse("trazer dado novo para produção é decisão de quem administra");
         metas.ConexaoExigida.Should().Be(ConexoesDoSistema.GestaoDeNegocios);

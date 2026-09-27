@@ -111,6 +111,137 @@ public sealed class VendaPerdida : EntidadeBase
     /// <summary>Quem preencheu, como a origem identifica. Só para rastrear.</summary>
     public string? RegistradaPor { get; private set; }
 
+    /// <summary>
+    /// O formulário do Vórtice de onde a resposta veio (<see cref="FormulariosDaVendaPerdida"/>); nulo quando a venda
+    /// perdida não veio do Vórtice.
+    /// </summary>
+    public string? FormularioDeOrigem { get; private set; }
+
+    /// <summary>
+    /// O PAPEL DA RESPOSTA (decisão de 27/09/2026). O mesmo negócio perdido aparece em mais de um formulário — o
+    /// <c>_JDE</c> repete o antigo, o <c>SEM_PARTICIPACAO</c> repete o FY25, e os <c>VP_*</c> detalham o FY25. Só a
+    /// principal conta; as outras ficam, apontando para ela, para ninguém somar a mesma perda duas vezes.
+    /// </summary>
+    public PapelDaVendaPerdida Papel { get; private set; } = PapelDaVendaPerdida.Principal;
+
+    /// <summary>A principal de quem esta é complemento ou duplicata; nula na principal.</summary>
+    public long? VendaPerdidaPrincipalId { get; private set; }
+
+    /// <summary>
+    /// O número do processo no Vórtice — liga a perda ao funil (<see cref="EstagioDoProcesso"/>) sem depender de
+    /// <see cref="Processo"/>, que só a onda 2 vai carregar.
+    /// </summary>
+    public long? NumeroDoProcessoNaOrigem { get; private set; }
+
+    /// <summary>Se esta perda entra na conta: só a principal, e só a que não foi excluída.</summary>
+    public bool Conta => Papel == PapelDaVendaPerdida.Principal && !EstaExcluido;
+
+    /// <summary>O conteúdo que a origem declara, no formato em que ela é comparada.</summary>
+    public ConteudoDaVendaPerdida Conteudo => new(
+        EmpresaId, RegistradaEm, OcorridaEm, MotivoDePerdaId, ClienteId, TipoDeEquipamentoId, ConcorrenteId,
+        RevendaDoConcorrenteId, ModeloDoConcorrente, ModeloOfertado, Quantidade, PrecoDoConcorrente, PrecoOfertado,
+        Participacao, FormularioDeOrigem, NumeroDoProcessoNaOrigem);
+
+    /// <summary>Registra uma resposta de formulário do Vórtice, já com o papel dela.</summary>
+    /// <param name="conteudo">O que a origem declara.</param>
+    /// <param name="criadoPorId">Quem roda a integração.</param>
+    /// <param name="papel">O papel; a principal é o padrão.</param>
+    /// <param name="principalId">A principal, quando o papel não é principal.</param>
+    public static VendaPerdida DaOrigem(
+        ConteudoDaVendaPerdida conteudo, long criadoPorId, PapelDaVendaPerdida papel = PapelDaVendaPerdida.Principal, long? principalId = null)
+    {
+        ValidarPapel(papel, principalId, null);
+        var venda = new VendaPerdida { CriadoPorId = criadoPorId, Papel = papel, VendaPerdidaPrincipalId = principalId };
+        venda.Aplicar(conteudo);
+        return venda;
+    }
+
+    /// <summary>Acompanha a origem. Devolve se o conteúdo mudou.</summary>
+    /// <param name="conteudo">O que a origem declara nesta rodada.</param>
+    /// <param name="usuarioId">Quem roda a integração.</param>
+    public bool AtualizarDaOrigem(ConteudoDaVendaPerdida conteudo, long usuarioId)
+    {
+        var normalizado = Normalizar(conteudo);
+        if (Conteudo == normalizado) return false;
+
+        Aplicar(normalizado);
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>
+    /// Define o papel da resposta. A principal não aponta para ninguém; o complemento e a duplicata apontam para a
+    /// principal, e nunca para si mesmos. Devolve se mudou.
+    /// </summary>
+    /// <param name="papel">O papel.</param>
+    /// <param name="principalId">A principal, quando o papel não é principal.</param>
+    /// <param name="usuarioId">Quem decide.</param>
+    public bool DefinirPapel(PapelDaVendaPerdida papel, long? principalId, long usuarioId)
+    {
+        ValidarPapel(papel, principalId, Id);
+
+        if (Papel == papel && VendaPerdidaPrincipalId == principalId) return false;
+
+        Papel = papel;
+        VendaPerdidaPrincipalId = principalId;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>
+    /// A resposta voltou a aparecer na origem depois de sumir: deixa de estar excluída. Devolve se mudou.
+    /// </summary>
+    /// <param name="usuarioId">Quem roda a integração.</param>
+    public bool RestaurarDaOrigem(long usuarioId)
+    {
+        if (!EstaExcluido) return false;
+        ExcluidoEm = null;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>
+    /// O conteúdo com a data no milissegundo — o que a coluna <c>datetime2(3)</c> guarda. Sem isso a data relida do
+    /// Vórtice (<c>datetime</c>, passo de 1/300 s) nunca seria igual à gravada.
+    /// </summary>
+    /// <param name="c">O conteúdo como veio.</param>
+    public static ConteudoDaVendaPerdida Normalizar(ConteudoDaVendaPerdida c) =>
+        c with { RegistradaEm = EstagioDoProcesso.NoMilissegundo(c.RegistradaEm), Quantidade = c.Quantidade < 1 ? 1 : c.Quantidade };
+
+    private static void ValidarPapel(PapelDaVendaPerdida papel, long? principalId, long? proprioId)
+    {
+        if (papel == PapelDaVendaPerdida.Principal && principalId is not null)
+            throw new RegraDeNegocioViolada("A venda perdida principal não aponta para outra principal.");
+        if (papel != PapelDaVendaPerdida.Principal && principalId is null)
+            throw new RegraDeNegocioViolada("O complemento e a duplicata precisam apontar a venda perdida principal.");
+        if (principalId is not null && principalId == proprioId)
+            throw new RegraDeNegocioViolada("A venda perdida não é complemento nem duplicata de si mesma.");
+    }
+
+    private void Aplicar(ConteudoDaVendaPerdida conteudo)
+    {
+        var c = Normalizar(conteudo);
+        if (c.FormularioDeOrigem is { } formulario && !FormulariosDaVendaPerdida.Todos.Contains(formulario, StringComparer.Ordinal))
+            throw new RegraDeNegocioViolada($"O formulário {formulario} não é de venda perdida.");
+
+        EmpresaId = c.EmpresaId;
+        RegistradaEm = c.RegistradaEm;
+        OcorridaEm = c.OcorridaEm;
+        MotivoDePerdaId = c.MotivoDePerdaId;
+        ClienteId = c.ClienteId;
+        TipoDeEquipamentoId = c.TipoDeEquipamentoId;
+        ConcorrenteId = c.ConcorrenteId;
+        RevendaDoConcorrenteId = c.RevendaDoConcorrenteId;
+        ModeloDoConcorrente = c.ModeloDoConcorrente;
+        ModeloOfertado = c.ModeloOfertado;
+        Quantidade = c.Quantidade;
+        PrecoDoConcorrente = c.PrecoDoConcorrente;
+        PrecoOfertado = c.PrecoOfertado;
+        Participacao = c.Participacao;
+        FormularioDeOrigem = c.FormularioDeOrigem;
+        NumeroDoProcessoNaOrigem = c.NumeroDoProcessoNaOrigem;
+    }
+
     /// <summary>Cria o registro de uma venda perdida.</summary>
     public static VendaPerdida Criar(
         int empresaId,
@@ -147,6 +278,107 @@ public sealed class VendaPerdida : EntidadeBase
             Participacao = participacao,
             RegistradaPor = registradaPor
         };
+}
+
+/// <summary>O que uma resposta de formulário do Vórtice declara sobre a venda perdida — o que a rotina compara.</summary>
+/// <param name="EmpresaId">A filial.</param>
+/// <param name="RegistradaEm">Quando o formulário foi preenchido (UTC).</param>
+/// <param name="OcorridaEm">Quando a venda foi perdida, como o CEN declarou.</param>
+/// <param name="MotivoDePerdaId">O motivo.</param>
+/// <param name="ClienteId">O cliente do CRM; nulo para o prospect.</param>
+/// <param name="TipoDeEquipamentoId">O tipo de equipamento.</param>
+/// <param name="ConcorrenteId">Quem levou.</param>
+/// <param name="RevendaDoConcorrenteId">A revenda que fechou.</param>
+/// <param name="ModeloDoConcorrente">O modelo do concorrente.</param>
+/// <param name="ModeloOfertado">O modelo que a Tracbel ofereceu.</param>
+/// <param name="Quantidade">Quantas máquinas.</param>
+/// <param name="PrecoDoConcorrente">O preço do concorrente.</param>
+/// <param name="PrecoOfertado">O preço da Tracbel.</param>
+/// <param name="Participacao">Se a Tracbel participou.</param>
+/// <param name="FormularioDeOrigem">O formulário de onde veio.</param>
+/// <param name="NumeroDoProcessoNaOrigem">O processo no Vórtice.</param>
+public sealed record ConteudoDaVendaPerdida(
+    int EmpresaId,
+    DateTime RegistradaEm,
+    DateOnly? OcorridaEm,
+    int MotivoDePerdaId,
+    long? ClienteId,
+    int? TipoDeEquipamentoId,
+    int? ConcorrenteId,
+    int? RevendaDoConcorrenteId,
+    string? ModeloDoConcorrente,
+    string? ModeloOfertado,
+    int Quantidade,
+    decimal? PrecoDoConcorrente,
+    decimal? PrecoOfertado,
+    ParticipacaoNaNegociacao Participacao,
+    string? FormularioDeOrigem,
+    long? NumeroDoProcessoNaOrigem);
+
+/// <summary>
+/// O PAPEL DE UMA RESPOSTA DE VENDA PERDIDA (decisão de 27/09/2026). Só a principal conta.
+/// </summary>
+public enum PapelDaVendaPerdida
+{
+    /// <summary>A resposta que representa a perda — a única que entra nas contas.</summary>
+    Principal = 0,
+
+    /// <summary>Um formulário de detalhe (<c>VP_*</c>) que acompanha a principal: acrescenta, não repete.</summary>
+    Complemento = 1,
+
+    /// <summary>O mesmo negócio registrado outra vez em outro formulário: repete a principal.</summary>
+    Duplicata = 2
+}
+
+/// <summary>
+/// OS FORMULÁRIOS DE VENDA PERDIDA DO VÓRTICE QUE ENTRAM (decisão de 27/09/2026, documento 52 §4) — o nome da tabela
+/// de respostas, como a origem o escreve. O <c>_MANITO</c> (Colorado) fica de fora.
+/// </summary>
+public static class FormulariosDaVendaPerdida
+{
+    /// <summary>O antigo, 2012–2023: 1.511 respostas, 1.001 com preço John Deere.</summary>
+    public const string Antigo = "IV_Q_VENDA_PERDIDA";
+
+    /// <summary>O atual, desde 07/2025.</summary>
+    public const string Fy25 = "IV_Q_VENDA_PERDIDA_FY25";
+
+    /// <summary>Máquinas e implementos, 2024–2025.</summary>
+    public const string MaqImp = "IV_Q_VENDA_PERDIDA_MAQIMP";
+
+    /// <summary>A perda em que a Tracbel não participou, desde 08/2025.</summary>
+    public const string SemParticipacao = "IV_Q_VP_SEM_PARTICIPACAO";
+
+    /// <summary>O gêmeo do antigo, 2012–2016.</summary>
+    public const string Jde = "IV_Q_VENDA_PERDIDA_JDE";
+
+    /// <summary>Produto, 2022–2024.</summary>
+    public const string Prod = "IV_Q_VENDA_PERDIDA_PROD";
+
+    /// <summary>Implementos.</summary>
+    public const string Implem = "IV_Q_VENDA_PERDIDA_IMPLEM";
+
+    /// <summary>Implementos, versão curta.</summary>
+    public const string Impl = "IV_Q_VENDA_PERDIDA_IMPL";
+
+    /// <summary>O detalhe do trator perdido — complemento do FY25.</summary>
+    public const string VpTrator = "IV_Q_VP_TRATOR";
+
+    /// <summary>O detalhe da colheitadeira perdida — complemento do FY25.</summary>
+    public const string VpColheitadeira = "IV_Q_VP_COLHEITADEIRA";
+
+    /// <summary>O detalhe da plantadeira perdida — complemento do FY25.</summary>
+    public const string VpPlantadeira = "IV_Q_VP_PLANTADEIRA";
+
+    /// <summary>O detalhe da colhedora perdida — complemento do FY25.</summary>
+    public const string VpColhedora = "IV_Q_VP_COLHEDORA";
+
+    /// <summary>Os doze, na ordem da restrição do banco.</summary>
+    public static readonly IReadOnlyList<string> Todos =
+        [Antigo, Fy25, MaqImp, SemParticipacao, Jde, Prod, Implem, Impl, VpTrator, VpColheitadeira, VpPlantadeira, VpColhedora];
+
+    /// <summary>Os formulários de detalhe, que acompanham o FY25.</summary>
+    public static readonly IReadOnlySet<string> Complementos =
+        new HashSet<string>(StringComparer.Ordinal) { VpTrator, VpColheitadeira, VpPlantadeira, VpColhedora };
 }
 
 /// <summary>

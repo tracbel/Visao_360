@@ -398,6 +398,12 @@ public class CrmDbContext : DbContext
     public DbSet<VendaPerdida> VendasPerdidas => Set<VendaPerdida>();
 
     /// <summary>
+    /// O funil do Vórtice: uma linha por processo 31/41/50 por estágio alcançado (documento 52). Não depende de
+    /// processo nem de cliente — o prospect entra.
+    /// </summary>
+    public DbSet<EstagioDoProcesso> EstagiosDoProcesso => Set<EstagioDoProcesso>();
+
+    /// <summary>
     /// O faturamento por cliente, filial e mês — a base da curva ABC e da série de doze meses.
     /// </summary>
     public DbSet<FaturamentoDoCliente> FaturamentoDosClientes => Set<FaturamentoDoCliente>();
@@ -480,6 +486,9 @@ public class CrmDbContext : DbContext
 
     /// <summary>Cada execução do serviço de sincronização, com resultado e contagens.</summary>
     public DbSet<ExecucaoDeSincronizacao> ExecucoesDeSincronizacao => Set<ExecucaoDeSincronizacao>();
+
+    /// <summary>O que cada código de resultado do Vórtice prova: o estágio do funil e o contato (documento 52).</summary>
+    public DbSet<ClassificacaoDeResultadoDoVortice> ClassificacoesDeResultadoDoVortice => Set<ClassificacaoDeResultadoDoVortice>();
 
     // ---- metadado ----
 

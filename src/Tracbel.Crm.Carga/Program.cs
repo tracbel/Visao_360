@@ -186,6 +186,16 @@ var somenteCarteirasDoVortice = args.Contains("--somente-carteiras-vortice", Str
 // ART que ja esta no CRM.
 var somenteParqueDoProtheus = args.Contains("--somente-parque-protheus", StringComparer.Ordinal);
 
+// --somente-processos-vortice [--simular] — O FUNIL E AS VENDAS PERDIDAS DO VÓRTICE (decisões de 27/09/2026, documento 52).
+//
+// Le do Vortice (so SELECT, NOLOCK) os processos 31/41/50 e o historico deles, e os doze formularios de venda perdida;
+// mantem processo.EstagioDoProcesso (uma linha por processo por estagio, do prospect tambem) e processo.VendaPerdida.
+// NAO cria cliente, carteira nem usuario: liga ao que o CRM ja tem. E a rotina diaria PROCESSOS_VORTICE do
+// orquestrador. Com --simular, calcula o plano so com leitura e nao abre transacao.
+//
+// Vem DEPOIS do --somente-carteiras-vortice na ordem do dia: liga o processo a carteira pelo de-para que ela grava.
+var somenteProcessosDoVortice = args.Contains("--somente-processos-vortice", StringComparer.Ordinal);
+
 // --somente-metas-gn [--simular] [--aceitar-remocao] — AS METAS DE VENDA DA API GESTÃO DE NEGÓCIOS (decisão de 27/09/2026, #138).
 //
 // Le /api/v1/cadastros/metas (so GET, chave no Bearer, certificado validado pelo NOME) e SINCRONIZA organizacao.MetaDeVenda:
@@ -222,9 +232,12 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-metas-gn      as metas de venda da API Gestão de Negócios;
 //   --somente-medir         só conta linhas, não grava nada.
 //
-// A ÚNICA LEITURA DO VÓRTICE LIBERADA (decisão de 24/09/2026):
-//   --somente-carteiras-vortice   as carteiras MAQ_NOVOS — o Vórtice continua sendo onde o comercial edita a
-//                                 carteira de cada vendedor, e ela não mora em nenhum outro lugar.
+// AS LEITURAS DO VÓRTICE LIBERADAS:
+//   --somente-carteiras-vortice   as carteiras MAQ_NOVOS (decisão de 24/09/2026) — o Vórtice continua sendo onde o
+//                                 comercial edita a carteira de cada vendedor, e ela não mora em nenhum outro lugar.
+//   --somente-processos-vortice   o histórico do funil e da venda perdida (decisão de 27/09/2026, errata "D-12
+//                                 parcial" do documento 41) — por uma carga NOVA, que não cria cadastro; a carga
+//                                 legada continua congelada.
 //
 // O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
@@ -232,12 +245,12 @@ const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que
 // OS MODOS QUE NÃO PASSAM PELA CARGA DO LEGADO — uma lista, e não uma expressão: cada frente nova ACRESCENTA o seu modo
 // aqui, no fim, e as duas isenções abaixo (a declaração do legado e a exigência do Vortice__Conexao) leem a mesma lista.
 // Antes eram duas expressões longas, repetidas, que cada modo novo tinha de tocar nas duas — e que duas frentes em paralelo
-// tocavam na mesma linha. As carteiras leem o Vórtice pelo leitor delas, com a exigência própria, mais abaixo.
+// tocavam na mesma linha. As carteiras e o funil leem o Vórtice pelo leitor deles, com a exigência própria, mais abaixo.
 bool[] modosSemVortice =
 [
     somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
-    somenteMetasGn
+    somenteMetasGn, somenteProcessosDoVortice
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -573,6 +586,89 @@ if (somenteCarteirasDoVortice)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A SINCRONIA DAS CARTEIRAS PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só o funil e as vendas perdidas do Vórtice (decisões de 27/09/2026, documento 52).
+// -------------------------------------------------------------------------------------------------
+
+if (somenteProcessosDoVortice)
+{
+    if (string.IsNullOrWhiteSpace(conexaoDoLegado))
+    {
+        Console.Error.WriteLine(
+            "O funil do Vórtice exige a credencial do Vórtice: grave-a e teste-a em Configurações › Integrações, ou defina " +
+            "Vortice__Conexao no servidor. Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    // A SIMULAÇÃO LÊ O CRM COM INTENÇÃO DE LEITURA DECLARADA, como a das carteiras. A gravação ganha dez minutos por
+    // comando: a primeira rodada são ~113 mil linhas, em blocos.
+    var opcoesDoFunil = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(600))
+            .Options
+        : new DbContextOptionsBuilder<CrmDbContext>().UseSqlServer(conexaoDoCrm, sql => sql.CommandTimeout(600)).Options;
+
+    CrmDbContext AbrirContextoDoFunil() => new(opcoesDoFunil, contexto, diario);
+
+    Console.WriteLine(simular
+        ? "Funil e vendas perdidas do Vórtice — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
+        : "Funil e vendas perdidas do Vórtice — sincronizando.");
+    Console.WriteLine();
+
+    var opcoesDoVorticeParaOFunil = new OpcoesDoVortice { Conexao = conexaoDoLegado };
+    var cargaDoFunil = new CargaDoFunilDoVortice(
+        AbrirContextoDoFunil,
+        new LeitorDoFunilDoVortice(opcoesDoVorticeParaOFunil).LerAsync,
+        new LeitorDeVendasPerdidasDoVortice(opcoesDoVorticeParaOFunil).LerAsync,
+        deParaDeFiliais, usuarioId, () => DateTime.UtcNow, Console.WriteLine);
+
+    try
+    {
+        // A MESMA TRAVA DAS OUTRAS CARGAS, e só quando grava: a rotina do orquestrador e uma rodada manual não
+        // sincronizam ao mesmo tempo. A simulação não a toma — ela não escreve, e não deve impedir quem escreve.
+        await using var travaDoFunil = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), CargaDoFunilDoVortice.Fluxo, CancellationToken.None);
+
+        var resultadoDoFunil = await cargaDoFunil.ExecutarAsync(simular, CancellationToken.None);
+        if (!resultadoDoFunil.EhSucesso)
+        {
+            Console.Error.WriteLine("A SINCRONIA DO FUNIL PAROU: " + resultadoDoFunil.Erro);
+            return 3;
+        }
+
+        foreach (var etapa in resultadoDoFunil.Valor.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+        }
+
+        if (resultadoDoFunil.Valor.Observacoes.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("- Observações -");
+            foreach (var observacao in resultadoDoFunil.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        }
+
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A SINCRONIA DO FUNIL PAROU, e o bloco em curso foi desfeito: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;
