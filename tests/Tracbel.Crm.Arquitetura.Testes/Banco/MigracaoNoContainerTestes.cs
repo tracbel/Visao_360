@@ -56,7 +56,7 @@ public sealed class MigracaoNoContainerTestes
 
         porSchema.Should().BeEquivalentTo(new Dictionary<string, int>
         {
-            ["organizacao"] = 34,
+            ["organizacao"] = 36,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 10,
@@ -64,7 +64,8 @@ public sealed class MigracaoNoContainerTestes
             ["auditoria"] = 1,
             ["integracao"] = 14,
             ["metadado"] = 2
-        }, "é a conta do documento 14, seção 2.1 — 80 tabelas de modelo em 8 schemas (o funil do Vórtice e a classificação " +
+        }, "é a conta do documento 14, seção 2.1 — 82 tabelas de modelo em 8 schemas (a sazonalidade, os pesos do IOC e o " +
+           "share-alvo do planejamento, issue 256, o funil do Vórtice e a classificação " +
            "dos resultados, documento 52, a meta de venda da issue 138 e o preço da máquina da issue 70), no banco de " +
            "verdade. A migração inicial criava 80 em 10; a fase 1 do documento 41 removeu as 31 " +
            "que nunca receberam uma linha e esvaziou por completo os schemas 'documento' e " +
@@ -73,7 +74,7 @@ public sealed class MigracaoNoContainerTestes
            "RENAME da tabela da PAM, que preserva a área plantada já carregada — também funcionam " +
            "em banco que nasce agora");
 
-        porSchema.Values.Sum().Should().Be(80);
+        porSchema.Values.Sum().Should().Be(82);
 
         // AS INTEGRAÇÕES SEMEADAS (#138): a conexão 13 é a API Gestão de Negócios e a rotina 9 são as metas — as duas no
         // fim da lista, sem renumerar as que já existem (a 8 é a do funil do Vórtice, #247).

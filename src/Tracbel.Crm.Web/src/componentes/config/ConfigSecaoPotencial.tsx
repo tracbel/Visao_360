@@ -16,9 +16,11 @@ import { useState } from 'react';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { PERMISSAO, usePermissoes } from '../../dados/api/permissoes';
 import {
+  listarHistoricoDoPlanejamento,
   listarHistoricoDosParametros,
   listarOpcoesDosParametros,
   obterCatalogoDoMercado,
+  obterParametrosDoPlanejamento,
   obterParametrosDoPotencial,
 } from '../../dados/api/potencial';
 import { useRecurso } from '../../dados/api/useRecurso';
@@ -31,10 +33,12 @@ import { FormularioDaPercepcao } from './potencial/FormularioDaPercepcao';
 import { FormularioDaRegra } from './potencial/FormularioDaRegra';
 import { FormularioDosGerais } from './potencial/FormularioDosGerais';
 import { HistoricoDosParametros } from './potencial/HistoricoDosParametros';
+import { PlanejamentoComercial } from './potencial/PlanejamentoComercial';
+import { montarHistoricoDoPlanejamento } from './potencial/planejamento';
 import { dataCurta, hojeEmSaoPaulo, iniciosVigentes, montarHistorico, numero } from './potencial/vigencias';
 import '../../estilos/potencial.css';
 
-type Formulario = 'geral' | 'cultura' | 'percepcao' | null;
+type Formulario = 'geral' | 'cultura' | 'percepcao' | 'planejamento' | 'share' | null;
 
 function EmAberto() {
   return <span className="pot-em-aberto">em aberto</span>;
@@ -128,6 +132,15 @@ export function ConfigSecaoPotencial() {
   // O CATÁLOGO ALIMENTA OS DOIS CAMPOS NOVOS DA REGRA (D-P01): cultura e categoria de máquina. Ele é a
   // fonte única do que é uma cultura — a lista não volta a ser escrita no código do formulário.
   const catalogo = useRecurso((sinal) => obterCatalogoDoMercado(contexto, sinal), [contexto.empresa, contexto.usuario]);
+  // O PLANEJAMENTO COMERCIAL (issue 256) — mesma data da tela, mesma trilha no fim.
+  const planejamento = useRecurso(
+    (sinal) => obterParametrosDoPlanejamento(contexto, em || undefined, sinal),
+    [contexto.empresa, contexto.usuario, em],
+  );
+  const historicoDoPlanejamento = useRecurso(
+    (sinal) => listarHistoricoDoPlanejamento(contexto, sinal),
+    [contexto.empresa, contexto.usuario],
+  );
 
   const podeAdministrar = permissoes.tem(PERMISSAO.parametroDoPotencialAdministrar);
   const podeInformar = permissoes.tem(PERMISSAO.percepcaoDoGestorInformar);
@@ -142,11 +155,24 @@ export function ConfigSecaoPotencial() {
     (r) => !r.vigencia.revogadoEm && iniciosDasCulturas.get(String(r.produtoCodigoIbge)) === r.vigencia.vigenteDesde,
   ) ?? [];
 
+  const doPlanejamento = historicoDoPlanejamento.dados;
+  const inicioDoPlanejamento = doPlanejamento ? iniciosVigentes(doPlanejamento.planejamentos, () => 'p', hoje).get('p') : undefined;
+  const planejamentoDeHoje =
+    doPlanejamento?.planejamentos.find((p) => !p.vigencia.revogadoEm && p.vigencia.vigenteDesde === inicioDoPlanejamento) ?? null;
+  const iniciosDosShares = doPlanejamento
+    ? iniciosVigentes(doPlanejamento.shares, (s) => s.categoriaDeMaquinaCodigo, hoje)
+    : new Map<string, string>();
+  const sharesDeHoje = doPlanejamento?.shares.filter(
+    (s) => !s.vigencia.revogadoEm && iniciosDosShares.get(s.categoriaDeMaquinaCodigo) === s.vigencia.vigenteDesde,
+  ) ?? [];
+
   function gravou(mensagem: string) {
     setRecado(mensagem);
     setAberto(null);
     vigentes.recarregar();
     historico.recarregar();
+    planejamento.recarregar();
+    historicoDoPlanejamento.recarregar();
   }
 
   function abrir(formulario: Formulario) {
@@ -332,12 +358,40 @@ export function ConfigSecaoPotencial() {
         </>
       )}
 
+      {planejamento.erro && <BlocoErro erro={planejamento.erro} aoTentarDeNovo={planejamento.recarregar} />}
+      {planejamento.dados && (
+        <PlanejamentoComercial
+          dados={planejamento.dados}
+          planejamentoDeHoje={planejamentoDeHoje}
+          sharesDeHoje={sharesDeHoje}
+          categorias={catalogo.dados?.categorias ?? null}
+          hoje={hoje}
+          // O FORMULÁRIO PARTE DO QUE VALE HOJE, que sai do histórico: sem ele, o botão espera.
+          podeAdministrar={podeAdministrar && !!doPlanejamento}
+          aberto={aberto === 'planejamento' || aberto === 'share' ? aberto : null}
+          abrir={abrir}
+          fechar={() => setAberto(null)}
+          aoGravar={gravou}
+        />
+      )}
+
       <CardConfig titulo="Histórico e trilha">
         {historico.carregando && <BlocoCarregando oQue="o histórico dos parâmetros" />}
         {historico.erro && <BlocoErro erro={historico.erro} aoTentarDeNovo={historico.recarregar} />}
+        {historicoDoPlanejamento.erro && (
+          <BlocoErro erro={historicoDoPlanejamento.erro} aoTentarDeNovo={historicoDoPlanejamento.recarregar} />
+        )}
         {todos && (
           <HistoricoDosParametros
-            linhas={montarHistorico(todos, hoje)}
+            // UMA TRILHA SÓ: o planejamento entra na mesma lista, na ordem de registro.
+            linhas={[
+              ...montarHistorico(todos, hoje),
+              ...(doPlanejamento ? montarHistoricoDoPlanejamento(doPlanejamento, hoje) : []),
+            ].sort(
+              (a, b) =>
+                b.vigencia.informadoEm.localeCompare(a.vigencia.informadoEm) ||
+                b.vigencia.vigenteDesde.localeCompare(a.vigencia.vigenteDesde),
+            )}
             hoje={hoje}
             podeRevogar={(linha) => (linha.alvo.tipo === 'percepcao' ? podeInformar : podeAdministrar)}
             aoRevogar={gravou}

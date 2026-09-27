@@ -8,17 +8,23 @@
 
 import type {
   CatalogoDoMercado,
+  HistoricoDoPlanejamento,
   HistoricoDosParametrosDoPotencial,
   NovaPercepcaoDoGestor,
   NovaRegraDePotencial,
+  NovoParametroDoPlanejamento,
   NovoParametroDoPotencial,
+  NovoShareAlvo,
   OpcoesDosParametros,
   PainelDeCoberturaDoMotor,
   PainelDeFontesPublicas,
+  ParametroDoPlanejamentoDetalhe,
+  ParametrosDoPlanejamentoVigentes,
   ParametrosDoPotencialVigentes,
   ParametrosGeraisDetalhe,
   PercepcaoDoGestorDetalhe,
   RegraDePotencialDetalhe,
+  ShareAlvoDetalhe,
   SugestaoDasBandasDePorte,
 } from '../../tipos/potencial';
 import { ler, pedir, type ContextoDeAcesso } from './http';
@@ -68,13 +74,33 @@ export function informarPercepcaoDoGestor(contexto: ContextoDeAcesso, corpo: Nov
   return pedir<PercepcaoDoGestorDetalhe>(`${BASE}/percepcoes`, contexto, { metodo: 'POST', corpo });
 }
 
+/** A sazonalidade, os pesos do IOC e o share-alvo que valem numa data (issue 256); sem data, hoje. */
+export function obterParametrosDoPlanejamento(contexto: ContextoDeAcesso, em: string | undefined, sinal?: AbortSignal) {
+  return ler<ParametrosDoPlanejamentoVigentes>(`${BASE}/planejamento`, contexto, { parametros: { em }, sinal });
+}
+
+/** Todas as vigências do planejamento, com autor e justificativa. */
+export function listarHistoricoDoPlanejamento(contexto: ContextoDeAcesso, sinal?: AbortSignal) {
+  return ler<HistoricoDoPlanejamento>(`${BASE}/planejamento/historico`, contexto, { sinal });
+}
+
+export function informarParametroDoPlanejamento(contexto: ContextoDeAcesso, corpo: NovoParametroDoPlanejamento) {
+  return pedir<ParametroDoPlanejamentoDetalhe>(`${BASE}/planejamento`, contexto, { metodo: 'POST', corpo });
+}
+
+export function informarShareAlvo(contexto: ContextoDeAcesso, corpo: NovoShareAlvo) {
+  return pedir<ShareAlvoDetalhe>(`${BASE}/planejamento/shares`, contexto, { metodo: 'POST', corpo });
+}
+
 /** O que identifica uma vigência para revogar: o tipo, a chave (produto ou município) e a data de início. */
 export type AlvoDaRevogacao =
   | { tipo: 'geral'; vigenteDesde: string }
   // A CATEGORIA ENTRA NA CHAVE (D-P01): um produto passa a ter mais de uma regra na mesma data — o trator e
   // a colheitadeira do café —, e sem ela a revogação não sabe qual das duas derrubar.
   | { tipo: 'cultura'; produtoCodigoIbge: number; categoriaDeMaquinaCodigo: string; vigenteDesde: string }
-  | { tipo: 'percepcao'; municipioCodigoIbge: number; vigenteDesde: string };
+  | { tipo: 'percepcao'; municipioCodigoIbge: number; vigenteDesde: string }
+  | { tipo: 'planejamento'; vigenteDesde: string }
+  | { tipo: 'share'; categoriaDeMaquinaCodigo: string; vigenteDesde: string };
 
 /** O caminho da revogação de cada tipo de vigência. */
 export function caminhoDaRevogacao(alvo: AlvoDaRevogacao): string {
@@ -85,6 +111,10 @@ export function caminhoDaRevogacao(alvo: AlvoDaRevogacao): string {
       return `${BASE}/culturas/${alvo.produtoCodigoIbge}/${encodeURIComponent(alvo.categoriaDeMaquinaCodigo)}/${alvo.vigenteDesde}/revogacao`;
     case 'percepcao':
       return `${BASE}/percepcoes/${alvo.municipioCodigoIbge}/${alvo.vigenteDesde}/revogacao`;
+    case 'planejamento':
+      return `${BASE}/planejamento/${alvo.vigenteDesde}/revogacao`;
+    case 'share':
+      return `${BASE}/planejamento/shares/${encodeURIComponent(alvo.categoriaDeMaquinaCodigo)}/${alvo.vigenteDesde}/revogacao`;
   }
 }
 

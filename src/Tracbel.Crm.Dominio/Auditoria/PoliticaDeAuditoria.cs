@@ -153,6 +153,20 @@ public static class PoliticaDeAuditoria
         ],
         ["PercepcaoDoGestor"] = ["MunicipioId", "Percentual", "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"],
 
+        // PLANEJAMENTO COMERCIAL (issue 256): a sazonalidade reparte a meta do ano entre os meses, os pesos decidem
+        // quais municípios sobem no IOC e o share-alvo vira a meta de planejamento. No protótipo da pasta 360 os três
+        // mudavam no navegador sem deixar rastro; aqui "quem pôs 40% de share no trator?" tem resposta.
+        ["ParametroDoPlanejamento"] =
+        [
+            "SazonalidadeJaneiro", "SazonalidadeFevereiro", "SazonalidadeMarco", "SazonalidadeAbril", "SazonalidadeMaio",
+            "SazonalidadeJunho", "SazonalidadeJulho", "SazonalidadeAgosto", "SazonalidadeSetembro", "SazonalidadeOutubro",
+            "SazonalidadeNovembro", "SazonalidadeDezembro",
+            "PesoDoPotencial", "PesoDaCobertura", "PesoDoCredito", "PesoDaRentabilidade", "PesoDosClientes", "PesoDaRealizacao",
+            "PesoDaPenetracao",
+            "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"
+        ],
+        ["ShareAlvoDaCategoria"] = ["CategoriaDeMaquinaId", "Percentual", "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"],
+
         // INTEGRAÇÕES (issue 136): quem mudou o endereço, o usuário, o monitoramento ou a agenda — e QUANDO a
         // credencial foi trocada. A senha protegida NÃO entra: a trilha guarda o antes e o depois em texto, e a
         // senha não pode estar em texto em lugar nenhum. O resultado dos testes e das execuções também não: é

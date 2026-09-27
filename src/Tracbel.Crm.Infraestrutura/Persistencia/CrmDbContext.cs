@@ -329,6 +329,12 @@ public class CrmDbContext : DbContext
     /// <summary>A percepção do gestor comercial por município, com vigência (issue 71).</summary>
     public DbSet<PercepcaoDoGestor> PercepcoesDoGestor => Set<PercepcaoDoGestor>();
 
+    /// <summary>A sazonalidade e os pesos do IOC do planejamento comercial, com vigência (issue 256).</summary>
+    public DbSet<ParametroDoPlanejamento> ParametrosDoPlanejamento => Set<ParametroDoPlanejamento>();
+
+    /// <summary>O share-alvo de cada categoria de máquina, com vigência (issue 256).</summary>
+    public DbSet<ShareAlvoDaCategoria> SharesAlvo => Set<ShareAlvoDaCategoria>();
+
     /// <summary>As metas de venda da API Gestão de Negócios, uma por linha da origem (#138).</summary>
     public DbSet<MetaDeVenda> MetasDeVenda => Set<MetaDeVenda>();
 
