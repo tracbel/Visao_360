@@ -376,7 +376,7 @@ WHERE CodProcesso IN (31,41,50) AND Processo IS NOT NULL AND DtaRealizacao >= '2
 
 | # | Decisão |
 |---|---|
-| P1 | **Só o `Resumo` entra**, como `Processo.Titulo`. Em branco, o título é composto: `{tipo do processo} · nº {número}`. A `Descricao` do processo, o `Assunto`, o `AssuntoCmpl` e o `Detalhe` da agenda e o `Detalhe` e o `ResultadoCmpl` do histórico **não são lidos** — nenhuma consulta os pronuncia, e o teste do leitor prende isso como o do funil. O assunto da tarefa e da interação vem do catálogo: o nome da ação (tarefa) ou do resultado (interação). |
+| P1 | **Só o `Resumo` entra**, como `Processo.Titulo`. Em branco, o título é composto: `{tipo do processo} · nº {número}`. A `Descricao` do processo, o `Assunto`, o `AssuntoCmpl` e o `Detalhe` da agenda e o `Detalhe` e o `ResultadoCmpl` do histórico **não são lidos** — nenhuma consulta os pronuncia, e o teste do leitor prende isso como o do funil. O assunto da tarefa e da interação vem do catálogo: o nome da ação — a da agenda na tarefa, a geradora na interação. |
 | P2 | Responsável da tarefa, quem a concluiu e autor da interação **sem conta no CRM → o dono do processo** (que, sem conta pelo login, é o dono da carteira, e sem os dois, o operador da rotina). A rotina conta cada caso no relatório. |
 | P4 | Os catálogos mínimos apagados em 15/09 voltam: `TipoProcesso` (31/41/50), `Fase`, `TipoTarefa`, `Resultado` e `MotivoDePerda` `NAO_INFORMADO_NA_ORIGEM` — só o que os processos, as tarefas e as interações que entram usam. |
 | P6 | Tarefa avulsa (sem processo) **não entra**: a agenda é lida pelo processo. |
@@ -413,7 +413,7 @@ do `Resumo` (P1).
 | `TipoProcesso` | `ChaveExterna(TipoProcesso, CodProcesso)` | código `{nome}_{cod}`, como a carga antiga; o que já existe com o código é adotado |
 | `Fase` | único (tipo, código) | o texto de `IV_PROCESSO.Fase` dos processos que entram; vazia → `NAO_INFORMADA`; ordem = menor `FaseOrdem`; final pela palavra (`FINALIZ`, `CANCELA`, `CONCLU`) |
 | `TipoTarefa` | `ChaveExterna(TipoTarefa, Acao)` | `{nome}_{ação}`, categoria `Interna` (a origem não diz se é visita), prazo da ação; + `NAO_INFORMADA` |
-| `Resultado` | `ChaveExterna(Resultado, Resultado)` | `RES_{cod}`, sob a ação dona (sem ação dona, sob `NAO_INFORMADA`); classe pelo `IV_ProcResultado` 31/41/50 |
+| `Resultado` | `ChaveExterna(Resultado, Resultado)` | `RES_{cod}`, sob a ação dona; classe pelo `IV_ProcResultado` 31/41/50. **Sem ação dona, não entra** (como na carga antiga) — e a tarefa que ele concluiria fica pendente, porque concluída exige desfecho |
 | `Processo` | `ChaveExterna(Processo, número)` | `Numero` = **número do Vórtice**; `CriadoEm` = abertura; situação pelo status (§ saneamento da carga antiga); encerrado sem data crível → `DtaStatus`, senão a abertura; valor e quantidade só positivos; dono: login → dono da carteira → operador |
 | `Tarefa` | `ChaveExterna(Tarefa, SeqAgenda)` | concluída só com data, desfecho e quem concluiu; reprogramada, concluída, reaberta: acompanha a origem |
 | `Interacao` | `ChaveExterna(Interacao, SeqHistorico)` | **só inclui** — o fato não muda (a tabela é somente-acrescentar). `EmpresaId` = a do processo |
@@ -427,14 +427,13 @@ do `Resumo` (P1).
 | modo | `--somente-oportunidades-vortice [--simular] [--aceitar-queda]` — **o 2º modo da `PROCESSOS_VORTICE`**, depois do funil (que carrega a venda perdida que o P8 lê). Sem rotina nova e **sem migração**: os modos e a descrição não são semeados |
 | trava e execução | fluxo próprio `VORTICE.OPORTUNIDADES` (`TravaDeFluxo` e `integracao.ExecucaoDeSincronizacao`); o funil não é tocado |
 | ordem | lê o CRM → lê o Vórtice (processos, agenda **ou** histórico vazio → aborta) → planeja **só com leitura** → queda de mais de 5% em processos ou tarefas → aborta (passa só com `--aceitar-queda`, no terminal) → `--simular` para aqui → grava |
-| gravação | catálogos numa transação; processos, tarefas e interações em blocos de 2.000, **um por transação, com a `ChaveExterna` no mesmo bloco**; depois o duplo ponteiro, o estágio ligado e a trilha. Bloco que cai: código 3, `Gravação parcial…`, e a próxima rodada completa |
+| gravação | catálogos numa transação; processos, tarefas e interações em blocos de 2.000, **um por transação, com a `ChaveExterna` no mesmo bloco**; depois o duplo ponteiro e o estágio ligado. Bloco que cai: código 3, `Gravação parcial…`, e a próxima rodada completa |
 | saída do universo | processo: exclusão lógica, e as tarefas dele também; volta → restaurado. Interação fica |
-| trilha | `RegistroDeOrigem` nos fluxos `VORTICE.PROCESSO` (todo processo da janela, com o motivo de quem não entra), `VORTICE.TAREFA` e `VORTICE.INTERACAO` (só dos processos que entram) |
+| trilha | a execução em `integracao.ExecucaoDeSincronizacao` (fluxo `VORTICE.OPORTUNIDADES`), com o resumo; o que muda num registro que já existia vai para a trilha de auditoria como integração do Vórtice. **Sem `RegistroDeOrigem` próprio**: todo processo da janela já está no do funil (`VORTICE.FUNIL`), e a tarefa e a interação têm a `ChaveExterna` — uma segunda trilha de 100 a 250 mil linhas dobraria a gravação sem responder pergunta nova |
 
-**Motivos de pendência:** processo — `FILIAL_DO_PROCESSO_FORA_DO_CRM`, `ABERTURA_COM_DATA_INVALIDA`,
-`CLIENTE_SEM_DOCUMENTO_NO_VORTICE`, `DOCUMENTO_ZERADO_NO_VORTICE`, `DOCUMENTO_INVALIDO_NO_VORTICE`,
-`CLIENTE_AUSENTE_DO_CRM`, `CLIENTE_EXCLUIDO_NO_CRM`, `CLIENTE_AMBIGUO_NO_CRM` (os da #236); tarefa —
-`TAREFA_PENDENTE_DE_PROCESSO_ENCERRADO` (P10), `DATA_DA_AGENDA_INVALIDA`; interação — `DATA_DA_INTERACAO_INVALIDA`.
+**O que não entra sai contado no relatório da rodada**, por motivo: processo fora da janela, de filial fora do CRM e
+sem cliente casado (com os códigos da #236 — `CLIENTE_AUSENTE_DO_CRM`, `CLIENTE_AMBIGUO_NO_CRM`…); tarefa pendente de
+processo encerrado (P10) e sem data de agenda; interação sem data crível.
 
 ### 12.6 O que falta medir, e os riscos
 

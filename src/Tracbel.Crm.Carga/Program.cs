@@ -202,6 +202,14 @@ var somenteProcessosDoVortice = args.Contains("--somente-processos-vortice", Str
 // usa e uma pessoa, olhando o numero, e a aceitacao fica escrita na execucao (integracao.ExecucaoDeSincronizacao).
 var aceitarQueda = args.Contains("--aceitar-queda", StringComparer.Ordinal);
 
+// --somente-oportunidades-vortice [--simular] — A ONDA 2 DOS PROCESSOS DO VÓRTICE (documento 52 §12, decisões de 27/09/2026).
+//
+// Le do Vortice (so SELECT, NOLOCK) processo, agenda e historico dos processos 31/41/50 desde 01/11/2023 e mantem
+// processo.Processo, processo.Tarefa e processo.Interacao dos clientes CASADOS pelo documento — o prospect fica so no funil.
+// So o Resumo entra de texto livre. NAO cria cliente, carteira nem usuario. E o 2o modo da rotina PROCESSOS_VORTICE, depois
+// do funil. --aceitar-queda vale aqui tambem, so no terminal.
+var somenteOportunidadesDoVortice = args.Contains("--somente-oportunidades-vortice", StringComparer.Ordinal);
+
 // --somente-metas-gn [--simular] [--aceitar-remocao] — AS METAS DE VENDA DA API GESTÃO DE NEGÓCIOS (decisão de 27/09/2026, #138).
 //
 // Le /api/v1/cadastros/metas (so GET, chave no Bearer, certificado validado pelo NOME) e SINCRONIZA organizacao.MetaDeVenda:
@@ -256,6 +264,8 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-processos-vortice   o histórico do funil e da venda perdida (decisão de 27/09/2026, errata "D-12
 //                                 parcial" do documento 41) — por uma carga NOVA, que não cria cadastro; a carga
 //                                 legada continua congelada.
+//   --somente-oportunidades-vortice  processo, agenda e histórico dos clientes casados (onda 2, documento 52 §12) —
+//                                 também carga nova, sem cadastro novo.
 //
 // O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
@@ -268,7 +278,7 @@ bool[] modosSemVortice =
 [
     somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
-    somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina
+    somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina, somenteOportunidadesDoVortice
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -688,6 +698,86 @@ if (somenteProcessosDoVortice)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A SINCRONIA DO FUNIL PAROU, e o bloco em curso foi desfeito: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — a onda 2: processo, agenda e histórico dos clientes casados (documento 52 §12).
+// -------------------------------------------------------------------------------------------------
+
+if (somenteOportunidadesDoVortice)
+{
+    if (string.IsNullOrWhiteSpace(conexaoDoLegado))
+    {
+        Console.Error.WriteLine(
+            "As oportunidades do Vórtice exigem a credencial do Vórtice: grave-a e teste-a em Configurações › Integrações, ou " +
+            "defina Vortice__Conexao no servidor. Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    // COMO NO FUNIL: a simulação lê o CRM com intenção de leitura declarada; a gravação ganha dez minutos por comando — a
+    // primeira rodada são dezenas de milhares de tarefas e interações, em blocos.
+    var opcoesDasOportunidades = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(600))
+            .Options
+        : new DbContextOptionsBuilder<CrmDbContext>().UseSqlServer(conexaoDoCrm, sql => sql.CommandTimeout(600)).Options;
+
+    CrmDbContext AbrirContextoDasOportunidades() => new(opcoesDasOportunidades, contexto, diario);
+
+    Console.WriteLine(simular
+        ? "Oportunidades, agenda e linha do tempo do Vórtice — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
+        : "Oportunidades, agenda e linha do tempo do Vórtice — sincronizando.");
+    if (aceitarQueda) Console.WriteLine("  --aceitar-queda: a trava de queda não aborta esta rodada; a aceitação fica escrita na execução.");
+    Console.WriteLine();
+
+    var cargaDasOportunidades = new CargaDasOportunidadesDoVortice(
+        AbrirContextoDasOportunidades,
+        new LeitorDasOportunidadesDoVortice(new OpcoesDoVortice { Conexao = conexaoDoLegado }).LerAsync,
+        deParaDeFiliais, usuarioId, () => DateTime.UtcNow, Console.WriteLine);
+
+    try
+    {
+        await using var travaDasOportunidades = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), CargaDasOportunidadesDoVortice.Fluxo, CancellationToken.None);
+
+        var resultadoDasOportunidades = await cargaDasOportunidades.ExecutarAsync(simular, aceitarQueda, CancellationToken.None);
+        if (!resultadoDasOportunidades.EhSucesso)
+        {
+            Console.Error.WriteLine("A SINCRONIA DAS OPORTUNIDADES PAROU: " + resultadoDasOportunidades.Erro);
+            return 3;
+        }
+
+        foreach (var etapa in resultadoDasOportunidades.Valor.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+        }
+
+        if (resultadoDasOportunidades.Valor.Observacoes.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("- Observações -");
+            foreach (var observacao in resultadoDasOportunidades.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        }
+
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A SINCRONIA DAS OPORTUNIDADES PAROU, e o bloco em curso foi desfeito: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;
