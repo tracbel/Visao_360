@@ -9,7 +9,7 @@
  * A CLASSIFICAÇÃO DE PRODUTO E O PORTE são filtros de banco (documento 35,
  * seção 10): trator pequeno, médio e grande, colhedora, pulverizador. A coluna
  * "Última venda" mostra o COMPRADOR NA VENDA, com a data — ele não é o dono, que
- * continua na coluna Cliente e só muda por confirmação de uma pessoa.
+ * fica na coluna Dono: o confirmado, ou o dono atual da sincronia do parque.
  *
  * DUAS COISAS QUE A API AINDA NÃO FAZ, e que a tela declara em vez de esconder:
  *
@@ -21,21 +21,32 @@
  *    filtrados AQUI, sobre as linhas lidas. Quando o filtro está ligado, a tela
  *    lê o teto da API (200 linhas) de uma vez e avisa se o total passar disso —
  *    filtrar em silêncio sobre uma página só faria a contagem mentir.
+ *
+ * O FILTRO POR CLIENTE (27/09/2026) chega pela rota, `?cliente={chave}` — é o
+ * "Ver todas" do 360 do cliente, que até aqui abria a lista sem filtro nenhum.
+ * Ele traz as máquinas de que o cliente é o DONO ATUAL pela sincronia do parque,
+ * as que ele COMPROU no ART e as de que é o dono confirmado, e a coluna "Relação
+ * com o cliente" diz qual é cada uma, com a evidência. A coluna do dono mostra o
+ * dono confirmado e, sem ele, o dono atual com a evidência — 19 mil máquinas do
+ * Protheus têm dono atual e nenhum dono confirmado.
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BarraDePaginacao } from '../../componentes/cadastro/BarraDePaginacao';
 import { BotaoDeNovoCadastro } from '../../componentes/cadastro/BotaoDeNovoCadastro';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../../componentes/cadastro/EstadosDeTela';
+import { EvidenciaDoDono, RelacaoComOCliente } from '../../componentes/cadastro/RelacaoDaMaquina';
 import { AvisoDeProcedencia, SeloProcedencia } from '../../componentes/cadastro/SeloProcedencia';
 import { distintosDe, itensDe, modelosDeFrota, useCatalogos } from '../../dados/api/catalogos';
+import { obterCliente } from '../../dados/api/clientes';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { CONSULTA_INICIAL, listarEquipamentos } from '../../dados/api/equipamentos';
 import { useRecurso } from '../../dados/api/useRecurso';
 import {
   CATALOGO,
   SEM_CLASSIFICACAO,
+  type ClienteDetalhe,
   type ConsultaDeEquipamentos,
   type EquipamentoResumo,
   type OrdemDeEquipamento,
@@ -56,10 +67,15 @@ const COLUNAS: { rotulo: string; ordem?: OrdemDeEquipamento }[] = [
   { rotulo: 'Ano', ordem: 'AnoModelo' },
   { rotulo: 'Situação', ordem: 'Situacao' },
   { rotulo: 'Origem' },
-  { rotulo: 'Cliente (dono)' },
+  { rotulo: 'Dono' },
   { rotulo: 'Última venda' },
   { rotulo: 'Cadastrado em', ordem: 'CriadoEm' },
 ];
+
+/** Com o filtro por cliente, a coluna que diz o que a máquina é para ele entra logo depois do dono. */
+const COLUNAS_COM_CLIENTE: typeof COLUNAS = COLUNAS.flatMap((coluna) =>
+  coluna.rotulo === 'Dono' ? [coluna, { rotulo: 'Relação com o cliente' }] : [coluna],
+);
 
 const ROTULO_DO_PORTE: Record<string, string> = { Pequeno: 'pequeno', Medio: 'médio', Grande: 'grande', NaoSeAplica: '' };
 
@@ -79,9 +95,22 @@ export function EquipamentosLista() {
   const navegar = useNavigate();
   const { catalogos } = useCatalogos(contexto);
 
+  // O CLIENTE DO FILTRO VEM DA ROTA e só dela: é o "Ver todas" do 360 e da ficha. Trocar de cliente é trocar de
+  // rota, e "Ver todas as máquinas" volta para a lista sem ele.
+  const [parametros, definirParametros] = useSearchParams();
+  const clienteDaRota = parametros.get('cliente') ?? '';
+
   const [consulta, setConsulta] = useState<ConsultaDeEquipamentos>(CONSULTA_INICIAL);
   const [termoDigitado, setTermoDigitado] = useState('');
   const [frota, setFrota] = useState<FiltroDeFrota>(FROTA_VAZIA);
+
+  const clienteDoFiltro = useRecurso<ClienteDetalhe | null>(
+    (sinal) =>
+      clienteDaRota ? obterCliente(contexto, clienteDaRota, sinal) : Promise.resolve({ dados: null, procedencia: null }),
+    [contexto.empresa, contexto.usuario, clienteDaRota],
+  );
+  const nomeDoCliente = clienteDaRota ? (clienteDoFiltro.dados?.nomeRazao ?? 'o cliente escolhido') : null;
+  const colunas = clienteDaRota ? COLUNAS_COM_CLIENTE : COLUNAS;
 
   const filtrandoFrota = frota.marca !== '' || frota.familia !== '' || frota.modelo !== '';
 
@@ -96,9 +125,13 @@ export function EquipamentosLista() {
   // Com o filtro de frota ligado, a paginação passa a ser da tela: pedir uma
   // página de 25 e filtrar dentro dela devolveria três linhas na página 1 e
   // trinta na página 2, com um total que não corresponde a nada.
+  //
+  // O CLIENTE ENTRA AQUI, derivado da rota a cada render — e não copiado para o estado, onde teria de ser
+  // sincronizado a cada troca de rota.
+  const consultaDoCliente: ConsultaDeEquipamentos = { ...consulta, clienteChave: clienteDaRota };
   const consultaEnviada: ConsultaDeEquipamentos = filtrandoFrota
-    ? { ...consulta, pagina: 1, tamanho: TETO_DA_API }
-    : consulta;
+    ? { ...consultaDoCliente, pagina: 1, tamanho: TETO_DA_API }
+    : consultaDoCliente;
 
   const leitura = useRecurso(
     (sinal) => listarEquipamentos(contexto, consultaEnviada, sinal),
@@ -174,7 +207,13 @@ export function EquipamentosLista() {
   function limparFiltros() {
     setTermoDigitado('');
     setFrota(FROTA_VAZIA);
+    // O cliente não é filtro desta barra: ele vem da rota, e sai por "Ver todas as máquinas".
     setConsulta({ ...CONSULTA_INICIAL, tamanho: consulta.tamanho });
+  }
+
+  function verTodasAsMaquinas() {
+    setConsulta((c) => ({ ...c, pagina: 1 }));
+    definirParametros({});
   }
 
   return (
@@ -190,6 +229,25 @@ export function EquipamentosLista() {
           <BotaoDeNovoCadastro para="/equipamentos/novo" rotulo="Novo equipamento" />
         </div>
       </div>
+
+      {clienteDaRota && (
+        <div className="cad-aviso cad-aviso-cliente" role="status">
+          <strong>
+            Máquinas de{' '}
+            {clienteDoFiltro.dados ? <Link to={`/clientes/${clienteDaRota}`}>{nomeDoCliente}</Link> : nomeDoCliente}
+          </strong>
+          <p>
+            As de que ele é o dono atual pela sincronia do parque (Protheus e ART, com a evidência), as que ele comprou no
+            ART — que ficam como histórico mesmo quando a máquina já é de outro — e as de que é o dono confirmado. Só
+            entram as máquinas das filiais ao seu alcance.
+          </p>
+          <div className="cad-aviso-acoes">
+            <button type="button" className="btn btn-secondary btn-sm" onClick={verTodasAsMaquinas}>
+              Ver todas as máquinas
+            </button>
+          </div>
+        </div>
+      )}
 
       <AvisoDeProcedencia procedencia={leitura.procedencia} />
 
@@ -359,7 +417,7 @@ export function EquipamentosLista() {
       <div className="card cad-cartao">
         <div className="card-header cad-cartao-cabecalho">
           <div>
-            <div className="card-title">Máquinas desta filial</div>
+            <div className="card-title">{clienteDaRota ? 'Máquinas do cliente' : 'Máquinas desta filial'}</div>
             <div className="card-subtitle">
               {leitura.recarregando ? 'Atualizando…' : `${pagina?.total ?? 0} no total`}
             </div>
@@ -372,7 +430,13 @@ export function EquipamentosLista() {
 
         {pagina && !leitura.erro && pagina.itens.length === 0 && (
           <BlocoVazio
-            titulo={temFiltro ? 'Nenhuma máquina com esses filtros' : 'Esta filial ainda não tem máquinas cadastradas'}
+            titulo={
+              temFiltro
+                ? 'Nenhuma máquina com esses filtros'
+                : clienteDaRota
+                  ? 'Nenhuma máquina deste cliente ao seu alcance'
+                  : 'Esta filial ainda não tem máquinas cadastradas'
+            }
             texto={
               temFiltro ? (
                 <>
@@ -380,6 +444,9 @@ export function EquipamentosLista() {
                   chassi ainda não encontra: é uma dívida conhecida da busca. Número de série e placa são
                   comparados por trecho.
                 </>
+              ) : clienteDaRota ? (
+                'Ele não é o dono atual de nenhuma máquina pela sincronia do parque, não comprou nenhuma no ART e não é ' +
+                'o dono confirmado de nenhuma — nas filiais que você alcança.'
               ) : (
                 'Cadastre a primeira máquina — inclusive a do concorrente, que é o que alimenta a Cobertura de Carteira.'
               )
@@ -388,6 +455,10 @@ export function EquipamentosLista() {
               temFiltro ? (
                 <button type="button" className="btn btn-secondary" onClick={limparFiltros}>
                   Limpar filtros
+                </button>
+              ) : clienteDaRota ? (
+                <button type="button" className="btn btn-secondary" onClick={verTodasAsMaquinas}>
+                  Ver todas as máquinas
                 </button>
               ) : (
                 <Link to="/equipamentos/novo" className="btn btn-primary">
@@ -407,7 +478,7 @@ export function EquipamentosLista() {
                 </caption>
                 <thead>
                   <tr>
-                    {COLUNAS.map((coluna) => (
+                    {colunas.map((coluna) => (
                       <th key={coluna.rotulo} scope="col" aria-sort={ariaOrdem(coluna.ordem, consulta)}>
                         {coluna.ordem ? (
                           <button type="button" className="cad-th-ordenar" onClick={() => trocarOrdem(coluna.ordem!)}>
@@ -465,14 +536,39 @@ export function EquipamentosLista() {
                           {maquina.origem === 'Art' ? <span className="cad-selo cad-selo-art">ART</span> : maquina.origem}
                         </td>
                         <td>
+                          {/* O DONO CONFIRMADO PRIMEIRO; sem ele, o DONO ATUAL da sincronia do parque, com a evidência.
+                              Os dois têm nome próprio na célula — 19 mil máquinas do Protheus têm o segundo e não o
+                              primeiro, e "dono não confirmado" sozinho escondia quem é. */}
                           {maquina.clienteChave ? (
-                            <Link to={`/clientes/${maquina.clienteChave}`}>{maquina.clienteNome}</Link>
+                            <>
+                              <Link to={`/clientes/${maquina.clienteChave}`}>{maquina.clienteNome}</Link>
+                              <div className="cad-sub">dono confirmado</div>
+                            </>
+                          ) : maquina.donoAtualChave ? (
+                            <>
+                              <Link to={`/clientes/${maquina.donoAtualChave}`}>{maquina.donoAtualNome}</Link>
+                              <div className="cad-sub">
+                                dono atual
+                                {/* Com o filtro por cliente a evidência já está na coluna da relação. */}
+                                {!clienteDaRota && (
+                                  <>
+                                    {' '}
+                                    <EvidenciaDoDono evidencia={maquina.evidenciaDoDonoAtual} em={maquina.evidenciaDoDonoAtualEm} />
+                                  </>
+                                )}
+                              </div>
+                            </>
                           ) : (
                             <span className="cad-vazio">
                               {maquina.situacao === 'ProprietarioNaoConfirmado' ? 'dono não confirmado' : 'sem dono'}
                             </span>
                           )}
                         </td>
+                        {clienteDaRota && (
+                          <td>
+                            <RelacaoComOCliente maquina={maquina} />
+                          </td>
+                        )}
                         <td>
                           {maquina.vendas > 0 ? (
                             <>

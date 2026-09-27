@@ -75,7 +75,12 @@ public sealed record ConsultaDeClientes(
 /// <param name="Termo">Busca por chassi, número de série ou placa.</param>
 /// <param name="Situacao">Filtro por situação da máquina.</param>
 /// <param name="Origem">Filtro por quem afirma que a máquina existe: o ERP ou o CEN.</param>
-/// <param name="ClienteId">Filtro pelo dono. É o que a Visão 360 usa.</param>
+/// <param name="ClienteId">
+/// Filtro pelo cliente — é o que a Visão 360 e a ficha usam. Traz as máquinas de que ele é o DONO ATUAL (o vínculo
+/// vigente da sincronia do parque, com a evidência), as que ele COMPROU numa venda registrada (o vínculo vigente de
+/// comprador, que fica como histórico) e as que têm ele como dono confirmado no cadastro da máquina. Até 27/09/2026
+/// era só a última coluna: 2.440 máquinas de 1.181 clientes, contra 22.287 máquinas de 6.165 clientes pelo dono atual.
+/// </param>
 /// <param name="ModeloId">Filtro por modelo.</param>
 /// <param name="Ordem">Coluna de ordenação.</param>
 /// <param name="Descendente">Ordem decrescente.</param>
@@ -134,6 +139,48 @@ public sealed record UltimaVendaDaMaquina(
     string? SistemaCodigo);
 
 /// <summary>
+/// O DONO ATUAL de uma máquina, pelo vínculo vigente da sincronia do parque (decisão de 24/09/2026) — com a evidência
+/// que o sustenta e a data dela.
+///
+/// <para><b>Não é o dono confirmado</b> (<c>Equipamento.ClienteId</c>). Aquele só existe quando o Protheus e o ART
+/// concordam, ou quando uma pessoa o confirmou: 2.440 máquinas em 27/09/2026. O dono atual existe em 22.287, e a
+/// evidência diz com que firmeza — a nota de venda do Protheus, a ordem de serviço, só o cadastro antigo ou a venda no
+/// ART. A tela mostra os dois, cada um com o nome dele.</para>
+/// </summary>
+/// <param name="ClienteChave">O GUID do dono atual, quando ele está ao alcance de quem consulta.</param>
+/// <param name="ClienteNome">A razão social dele.</param>
+/// <param name="Evidencia">O que sustenta a afirmação.</param>
+/// <param name="EvidenciaEm">A data da evidência mais recente.</param>
+public sealed record DonoAtualDaMaquina(
+    Guid? ClienteChave,
+    string? ClienteNome,
+    EvidenciaDoProprietario Evidencia,
+    DateOnly? EvidenciaEm);
+
+/// <summary>
+/// O QUE A MÁQUINA É PARA O CLIENTE DO FILTRO — só na listagem filtrada por cliente.
+///
+/// <para>As três relações podem valer juntas, e cada uma é uma afirmação diferente: ser o dono atual (o vínculo da
+/// sincronia do parque), ter comprado numa venda registrada (o comprador do ART, que fica sempre como histórico, mesmo
+/// quando a máquina já é de outro) e ser o dono confirmado no cadastro da máquina.</para>
+/// </summary>
+/// <param name="EhDonoAtual">Se o cliente é o dono atual — a evidência está no dono atual da máquina.</param>
+/// <param name="EhDonoConfirmado">Se o cadastro da máquina aponta o cliente como dono confirmado.</param>
+/// <param name="CompradaEm">
+/// A data da venda mais recente em que o cliente foi o comprador; nula quando ele não comprou a máquina numa venda
+/// registrada.
+/// </param>
+/// <param name="CompradaPeloDonoNoProtheus">
+/// Se essa venda entrou com o dono atual do Protheus no lugar do comprador do ART, que não é cliente do CRM (decisão 5
+/// de 24/09/2026) — o cliente está ali como comprador por substituição, e não porque o ART o nomeou.
+/// </param>
+public sealed record RelacaoDaMaquinaComOCliente(
+    bool EhDonoAtual,
+    bool EhDonoConfirmado,
+    DateOnly? CompradaEm,
+    bool CompradaPeloDonoNoProtheus);
+
+/// <summary>
 /// Um cliente junto do que a tela precisa mostrar ao lado dele: os CÓDIGOS dos itens de catálogo
 /// que ele referencia.
 ///
@@ -159,6 +206,8 @@ public sealed record ClienteComContexto(Cliente Cliente, string? OrigemCodigo, s
 /// <param name="Classificacao">A classificação de produto, quando a máquina tem uma.</param>
 /// <param name="UltimaVenda">A venda mais recente e o comprador nela, quando a máquina tem venda.</param>
 /// <param name="Divergencias">As divergências abertas da máquina — só na ficha, não na listagem.</param>
+/// <param name="DonoAtual">O dono atual pelo vínculo da sincronia do parque, quando há um ao alcance.</param>
+/// <param name="RelacaoComOCliente">O que a máquina é para o cliente do filtro — só na listagem filtrada por cliente.</param>
 public sealed record EquipamentoComContexto(
     Equipamento Equipamento,
     Guid? ClienteChave,
@@ -166,7 +215,9 @@ public sealed record EquipamentoComContexto(
     ModeloParaSelecao? Modelo,
     ClassificacaoDaMaquina? Classificacao = null,
     UltimaVendaDaMaquina? UltimaVenda = null,
-    IReadOnlyList<DivergenciaDaMaquina>? Divergencias = null);
+    IReadOnlyList<DivergenciaDaMaquina>? Divergencias = null,
+    DonoAtualDaMaquina? DonoAtual = null,
+    RelacaoDaMaquinaComOCliente? RelacaoComOCliente = null);
 
 /// <summary>Uma divergência aberta entre ART, CRM e Protheus sobre esta máquina.</summary>
 /// <param name="Tipo">O tipo. Ex.: CompradorDiferenteDoProprietarioNoCrm.</param>

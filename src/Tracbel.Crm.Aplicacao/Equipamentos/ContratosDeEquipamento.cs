@@ -28,6 +28,17 @@ namespace Tracbel.Crm.Aplicacao.Equipamentos;
 /// <param name="NaturezaDoVinculo">A natureza do vínculo do comprador: CompradorNaVenda.</param>
 /// <param name="ProdutoNaOrigem">O produto como a origem da venda escreve.</param>
 /// <param name="SistemaDaVenda">O sistema de onde a venda veio.</param>
+/// <param name="DonoAtualChave">
+/// O DONO ATUAL pelo vínculo da sincronia do parque (Protheus, ou o ART quando ele prevalece) — que não é o dono
+/// confirmado de <paramref name="ClienteChave"/>. Nulo quando não há dono atual ao alcance.
+/// </param>
+/// <param name="DonoAtualNome">A razão social do dono atual.</param>
+/// <param name="EvidenciaDoDonoAtual">NotaDeVenda, OrdemDeServico, CadastroAntigo ou VendaNoArt.</param>
+/// <param name="EvidenciaDoDonoAtualEm">A data da evidência mais recente do dono atual.</param>
+/// <param name="RelacaoComOCliente">
+/// O que a máquina é para o cliente do filtro <c>clienteChave</c> — dono atual, comprador numa venda, dono confirmado.
+/// Nula quando a listagem não é filtrada por cliente.
+/// </param>
 public sealed record EquipamentoResumo(
     Guid Chave,
     string Chassi,
@@ -52,7 +63,12 @@ public sealed record EquipamentoResumo(
     string? CompradorNaUltimaVendaNome,
     string? NaturezaDoVinculo,
     string? ProdutoNaOrigem,
-    string? SistemaDaVenda)
+    string? SistemaDaVenda,
+    Guid? DonoAtualChave,
+    string? DonoAtualNome,
+    string? EvidenciaDoDonoAtual,
+    DateOnly? EvidenciaDoDonoAtualEm,
+    RelacaoDaMaquinaComOCliente? RelacaoComOCliente)
 {
     /// <summary>Traduz a leitura para o que a listagem mostra.</summary>
     public static EquipamentoResumo De(EquipamentoComContexto leitura)
@@ -82,7 +98,12 @@ public sealed record EquipamentoResumo(
             leitura.UltimaVenda?.CompradorNome,
             leitura.UltimaVenda is null ? null : nameof(NaturezaDoVinculoComEquipamento.CompradorNaVenda),
             leitura.UltimaVenda?.ProdutoNaOrigem,
-            leitura.UltimaVenda?.SistemaCodigo);
+            leitura.UltimaVenda?.SistemaCodigo,
+            leitura.DonoAtual?.ClienteChave,
+            leitura.DonoAtual?.ClienteNome,
+            leitura.DonoAtual?.Evidencia.ToString(),
+            leitura.DonoAtual?.EvidenciaEm,
+            leitura.RelacaoComOCliente);
     }
 }
 
@@ -120,6 +141,10 @@ public sealed record EquipamentoResumo(
 /// <param name="ProdutoNaOrigem">O produto como a origem escreve.</param>
 /// <param name="SistemaDaVenda">O sistema de origem da venda.</param>
 /// <param name="DivergenciasAbertas">As divergências abertas entre ART, CRM e Protheus sobre esta máquina.</param>
+/// <param name="DonoAtualChave">O dono atual pelo vínculo da sincronia do parque — não é o dono confirmado.</param>
+/// <param name="DonoAtualNome">A razão social do dono atual.</param>
+/// <param name="EvidenciaDoDonoAtual">NotaDeVenda, OrdemDeServico, CadastroAntigo ou VendaNoArt.</param>
+/// <param name="EvidenciaDoDonoAtualEm">A data da evidência mais recente do dono atual.</param>
 public sealed record EquipamentoDetalhe(
     Guid Chave,
     string Chassi,
@@ -153,7 +178,11 @@ public sealed record EquipamentoDetalhe(
     string? NaturezaDoVinculo,
     string? ProdutoNaOrigem,
     string? SistemaDaVenda,
-    IReadOnlyList<DivergenciaDaMaquina> DivergenciasAbertas)
+    IReadOnlyList<DivergenciaDaMaquina> DivergenciasAbertas,
+    Guid? DonoAtualChave,
+    string? DonoAtualNome,
+    string? EvidenciaDoDonoAtual,
+    DateOnly? EvidenciaDoDonoAtualEm)
 {
     /// <summary>Traduz a leitura para a ficha.</summary>
     public static EquipamentoDetalhe De(EquipamentoComContexto leitura)
@@ -192,7 +221,11 @@ public sealed record EquipamentoDetalhe(
             leitura.UltimaVenda is null ? null : nameof(NaturezaDoVinculoComEquipamento.CompradorNaVenda),
             leitura.UltimaVenda?.ProdutoNaOrigem,
             leitura.UltimaVenda?.SistemaCodigo,
-            leitura.Divergencias ?? []);
+            leitura.Divergencias ?? [],
+            leitura.DonoAtual?.ClienteChave,
+            leitura.DonoAtual?.ClienteNome,
+            leitura.DonoAtual?.Evidencia.ToString(),
+            leitura.DonoAtual?.EvidenciaEm);
     }
 }
 

@@ -18,11 +18,12 @@
  *    texto vem inteiro da resposta, com a contagem apurada na mesma consulta —
  *    a tela não reescreve nem resume. Quando o dado melhorar, o texto muda
  *    sozinho, sem release.
- * 2. {@link LacunaConhecida} mostra o que **não tem rota nenhuma para pedir**:
- *    faturamento, títulos e ordens de serviço estão parados na origem desde
- *    2024 e 2025, e a categoria de contato nunca veio. Aqui o texto é escrito,
- *    porque não há consulta que o produza — mas ele carrega a data e o número
- *    que o documento 23, seção 6.1, e o documento 25, seção 9, mediram.
+ * 2. {@link LacunaConhecida} mostra o que **não tem rota nenhuma para pedir** —
+ *    na ficha do cliente, hoje, os títulos em aberto e as ordens de serviço, que
+ *    o CRM ainda não carrega do Protheus. Aqui o texto é escrito, porque não há
+ *    consulta que o produza — e por isso ele precisa ser conferido no código
+ *    quando o dado mudar: em 27/09/2026 três frases daqui eram falsas (o
+ *    faturamento e a frota "parados", que estavam no banco havia dias).
  */
 
 import type { MetricaSemDado } from '../../tipos/relacionamento';
@@ -136,43 +137,31 @@ export function LacunaConhecida({
 }
 
 /**
- * As três integrações mortas do legado, com a data em que cada uma parou.
+ * O que a ficha do cliente ainda não mostra, com o motivo de HOJE — conferido no
+ * código em 27/09/2026.
  *
- * Medido em 04/09/2026 e guardado por teste em `PonteDeLeituraDoVortice`
- * (documento 23, seção 6.1). As tabelas RESPONDEM à consulta, têm centenas de
- * milhares de linhas e PARECEM disponíveis — é exatamente por isso que a tela
- * precisa dizer a data em vez de mostrar o último número que sobrou lá dentro.
+ * ATÉ ESSA DATA ERAM QUATRO, e duas frases eram falsas. "O faturamento parou em
+ * 11/04/2025" era a cópia que o Vórtice recebia (`EXT_NFS`): o faturamento do
+ * Protheus estava no banco, de 09/2023 a 09/2026, e ganhou bloco próprio. "A
+ * frota do ERP parou em 24/05/2024" era a `EXT_Veic` do Vórtice: o cadastro de
+ * veículos do Protheus (VV1) é lido pela sincronia do parque, e a frota pelo dono
+ * atual também ganhou bloco. As duas que ficam não dependem do Vórtice: o CRM não
+ * lê nem guarda esses dados do Protheus.
  */
-export const INTEGRACOES_PARADAS = [
-  {
-    metrica: 'Faturamento',
-    desde: '11/04/2025',
-    motivo:
-      'A tabela de notas fiscais do ERP (EXT_NFS) parou de receber carga em 11/04/2025. Ela ' +
-      'continua respondendo à consulta e continua cheia, e é por isso que o número que ela ' +
-      'devolveria pareceria atual. A ponte do CRM não lê esta tabela, de propósito.',
-  },
+export const LACUNAS_DA_FICHA_DO_CLIENTE = [
   {
     metrica: 'Títulos em aberto',
-    desde: '05/2025',
     motivo:
-      'Os títulos financeiros (EXT_Titulo) estão presos em staging desde maio de 2025 — nunca ' +
-      'foram promovidos para a tabela que o CRM leria. Não há saldo, vencimento nem inadimplência ' +
-      'com lastro para mostrar.',
+      'O CRM ainda não lê os títulos do Protheus: não há carga, tabela nem rota do contas a ' +
+      'receber (SE1). Saldo, vencimento e inadimplência ficam no ERP até essa leitura existir — ' +
+      'pelo mesmo caminho do faturamento, direto do banco do Protheus.',
   },
   {
     metrica: 'Ordens de serviço',
-    desde: 'nunca promovidas',
     motivo:
-      'As ordens de serviço (EXT_OS) nunca chegaram a ser promovidas da área de integração. A ' +
-      'tabela existe e está vazia do ponto de vista de quem consulta.',
-  },
-  {
-    metrica: 'Frota do ERP',
-    desde: '24/05/2024',
-    motivo:
-      'A frota vinda do ERP (EXT_Veic) parou em 24/05/2024. O parque de máquinas que o CRM mostra ' +
-      'vem de IV_ClientePropr, que é do CEN e continua sendo alterado diariamente — são duas ' +
-      'fontes diferentes, e só uma está viva.',
+      'O CRM ainda não carrega as ordens de serviço da oficina. A sincronia do parque consulta a ' +
+      'OS mais recente de cada máquina na VO1 do Protheus só para decidir o dono atual — ela vira ' +
+      'a evidência "ordem de serviço" da frota, e não é guardada. Não há tabela nem rota de OS ' +
+      'por cliente.',
   },
 ] as const;

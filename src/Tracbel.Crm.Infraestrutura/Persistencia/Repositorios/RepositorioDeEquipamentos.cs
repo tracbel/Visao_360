@@ -27,8 +27,12 @@ public sealed class RepositorioDeEquipamentos(CrmDbContext contexto) : IReposito
             .Select(ComDonoEModelo())
             .ToListAsync(ct);
 
+        var completas = await ComplementarAsync(itens, ct);
+        if (consulta.ClienteId is { } clienteId)
+            completas = await RelacionarComOClienteAsync(completas, clienteId, ct);
+
         return new PaginaDe<EquipamentoComContexto>(
-            await ComplementarAsync(itens, ct), consulta.Paginacao.Pagina, consulta.Paginacao.Tamanho, total);
+            completas, consulta.Paginacao.Pagina, consulta.Paginacao.Tamanho, total);
     }
 
     /// <inheritdoc />
@@ -104,6 +108,8 @@ public sealed class RepositorioDeEquipamentos(CrmDbContext contexto) : IReposito
                 .FirstOrDefault(),
             null,
             null,
+            null,
+            null,
             null);
 
     /// <summary>
@@ -116,6 +122,10 @@ public sealed class RepositorioDeEquipamentos(CrmDbContext contexto) : IReposito
     ///
     /// <para>A venda e o comprador continuam passando pelo filtro global: venda de outra filial não
     /// conta, e comprador fora do alcance vem sem chave nem nome.</para>
+    ///
+    /// <para><b>O dono atual vem junto, pelo vínculo vigente da sincronia do parque</b> — numa consulta a mais pelo
+    /// mesmo conjunto de identificadores. O vínculo passa pelo filtro de filial como a venda: o dono atual fica na filial
+    /// do cliente, e um dono fora do alcance não aparece.</para>
     /// </summary>
     private async Task<List<EquipamentoComContexto>> ComplementarAsync(List<EquipamentoComContexto> itens, CancellationToken ct)
     {
@@ -135,12 +145,38 @@ public sealed class RepositorioDeEquipamentos(CrmDbContext contexto) : IReposito
             .Select(v => new { v.Id, v.EquipamentoId, v.VendidaEm, v.CompradorId, v.ProdutoNaOrigem, v.SistemaId })
             .ToListAsync(ct);
 
-        var idsDosCompradores = vendas.Select(v => v.CompradorId).Distinct().ToList();
+        // UM VIGENTE POR MÁQUINA, e o índice único UX_VinculoDeClienteComEquipamento_ProprietarioAtual garante.
+        var donosAtuais = await contexto.VinculosComEquipamento.AsNoTracking()
+            .Where(v => idsDasMaquinas.Contains(v.EquipamentoId)
+                        && v.Natureza == NaturezaDoVinculoComEquipamento.ProprietarioAtual
+                        && v.EncerradoEm == null
+                        && v.ExcluidoEm == null)
+            .Select(v => new { v.EquipamentoId, v.ClienteId, v.Evidencia, v.ReferenciaEm })
+            .ToListAsync(ct);
+
+        var idsDosCompradores = vendas.Select(v => v.CompradorId)
+            .Concat(donosAtuais.Select(d => d.ClienteId))
+            .Distinct()
+            .ToList();
         var compradores = idsDosCompradores.Count == 0
             ? []
             : await contexto.Clientes.AsNoTracking()
                 .Where(c => idsDosCompradores.Contains(c.Id))
                 .ToDictionaryAsync(c => c.Id, c => (c.ChavePublica, c.NomeRazao), ct);
+
+        var donoAtualPorMaquina = donosAtuais
+            .Where(d => d.Evidencia is not null)
+            .GroupBy(d => d.EquipamentoId)
+            .ToDictionary(g => g.Key, g =>
+            {
+                var dono = g.First();
+                var achou = compradores.TryGetValue(dono.ClienteId, out var cliente);
+                return new DonoAtualDaMaquina(
+                    achou ? cliente.ChavePublica : null,
+                    achou ? cliente.NomeRazao : null,
+                    dono.Evidencia!.Value,
+                    dono.ReferenciaEm);
+            });
 
         var sistemas = vendas.Count == 0
             ? []
@@ -167,7 +203,62 @@ public sealed class RepositorioDeEquipamentos(CrmDbContext contexto) : IReposito
                     sistemas.GetValueOrDefault(maisRecente.SistemaId));
             }
 
-            return item with { Classificacao = classificacao, UltimaVenda = ultima };
+            return item with
+            {
+                Classificacao = classificacao,
+                UltimaVenda = ultima,
+                DonoAtual = donoAtualPorMaquina.GetValueOrDefault(item.Equipamento.Id)
+            };
+        })];
+    }
+
+    /// <summary>
+    /// O QUE CADA MÁQUINA DA PÁGINA É PARA O CLIENTE DO FILTRO: dono atual, comprador numa venda registrada, dono
+    /// confirmado — as três podem valer juntas, e a tela diz cada uma com o nome dela.
+    ///
+    /// <para>O vínculo de comprador passa pelo filtro de filial pela filial da VENDA: a compra feita em filial fora do
+    /// alcance de quem consulta não aparece, como na lista de máquinas compradas.</para>
+    /// </summary>
+    private async Task<List<EquipamentoComContexto>> RelacionarComOClienteAsync(
+        List<EquipamentoComContexto> itens, long clienteId, CancellationToken ct)
+    {
+        if (itens.Count == 0) return itens;
+
+        var idsDasMaquinas = itens.Select(i => i.Equipamento.Id).ToList();
+
+        var vinculos = await contexto.VinculosComEquipamento.AsNoTracking()
+            .Where(v => v.ClienteId == clienteId
+                        && idsDasMaquinas.Contains(v.EquipamentoId)
+                        && v.EncerradoEm == null
+                        && v.ExcluidoEm == null)
+            .Select(v => new
+            {
+                v.EquipamentoId,
+                v.Natureza,
+                v.ReferenciaEm,
+                PeloDonoNoProtheus = contexto.VendasDeMaquina
+                    .Where(venda => venda.Id == v.VendaDeMaquinaId)
+                    .Select(venda => venda.CompradorPeloDonoNoProtheus)
+                    .FirstOrDefault()
+            })
+            .ToListAsync(ct);
+
+        return [.. itens.Select(item =>
+        {
+            var daMaquina = vinculos.Where(v => v.EquipamentoId == item.Equipamento.Id).ToList();
+            var compra = daMaquina
+                .Where(v => v.Natureza == NaturezaDoVinculoComEquipamento.CompradorNaVenda)
+                .OrderByDescending(v => v.ReferenciaEm)
+                .FirstOrDefault();
+
+            return item with
+            {
+                RelacaoComOCliente = new RelacaoDaMaquinaComOCliente(
+                    daMaquina.Any(v => v.Natureza == NaturezaDoVinculoComEquipamento.ProprietarioAtual),
+                    item.Equipamento.ClienteId == clienteId,
+                    compra?.ReferenciaEm,
+                    compra?.PeloDonoNoProtheus ?? false)
+            };
         })];
     }
 
@@ -178,8 +269,25 @@ public sealed class RepositorioDeEquipamentos(CrmDbContext contexto) : IReposito
 
         if (consulta.Situacao is { } situacao) linhas = linhas.Where(e => e.Situacao == situacao);
         if (consulta.Origem is { } origem) linhas = linhas.Where(e => e.Origem == origem);
-        if (consulta.ClienteId is { } dono) linhas = linhas.Where(e => e.ClienteId == dono);
         if (consulta.ModeloId is { } modelo) linhas = linhas.Where(e => e.ModeloId == modelo);
+
+        // O CLIENTE DO FILTRO É O DONO ATUAL, O COMPRADOR NUMA VENDA OU O DONO CONFIRMADO (27/09/2026). Até aqui só o
+        // último valia — Equipamento.ClienteId, que só existe quando o Protheus e o ART concordam: 2.440 máquinas de 1.181
+        // clientes, contra 22.287 máquinas de 6.165 clientes pelo dono atual. As regras de 24/09 (PR #238) já estão nos
+        // vínculos: vale a VV1 quando há evidência, e o comprador do ART fica como histórico — aqui só se lê o que a
+        // sincronia gravou.
+        //
+        // A FRONTEIRA CONTINUA A MESMA: a máquina passa pelo filtro de filial pela filial dela, e o vínculo pela dele (a
+        // do cliente, para o dono atual; a da venda, para o comprador). A máquina do cliente cadastrada numa filial fora
+        // do alcance de quem consulta não aparece — o filtro não abre acesso nenhum.
+        if (consulta.ClienteId is { } cliente)
+            linhas = linhas.Where(e => e.ClienteId == cliente
+                || contexto.VinculosComEquipamento.Any(v => v.EquipamentoId == e.Id
+                    && v.ClienteId == cliente
+                    && v.EncerradoEm == null
+                    && v.ExcluidoEm == null
+                    && (v.Natureza == NaturezaDoVinculoComEquipamento.ProprietarioAtual
+                        || v.Natureza == NaturezaDoVinculoComEquipamento.CompradorNaVenda)));
 
         // A CLASSIFICAÇÃO E O PORTE são filtros de banco, e não de tela: o parque de uma filial passa
         // de mil máquinas, e filtrar sobre a página lida faria a contagem mentir.

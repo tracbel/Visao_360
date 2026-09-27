@@ -19,6 +19,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AvisoDoFormulario, CampoSelecao, CampoSomenteLeitura, CampoTexto } from '../../componentes/cadastro/CamposDeFormulario';
 import { DialogoConfirmacao } from '../../componentes/cadastro/DialogoConfirmacao';
 import { BlocoCarregando, BlocoErro } from '../../componentes/cadastro/EstadosDeTela';
+import { FrotaDoCliente } from '../../componentes/cadastro/FrotaDoCliente';
 import { MaquinasCompradasDoCliente } from '../../componentes/cadastro/MaquinasCompradasDoCliente';
 import { AvisoDeProcedencia, SeloProcedencia } from '../../componentes/cadastro/SeloProcedencia';
 import { descricaoDe, itensDe, useCatalogos } from '../../dados/api/catalogos';
@@ -484,6 +485,9 @@ export function ClienteCadastro() {
         )}
       </form>
 
+      {/* A FROTA PELO DONO ATUAL vem antes das compras (27/09/2026): é a pergunta "o que este cliente tem hoje". As
+          compras no ART continuam logo abaixo, como histórico — comprar não faz dono. */}
+      {!ehNovo && cliente && <FrotaDoCliente contexto={contexto} chaveDoCliente={cliente.chave} />}
       {!ehNovo && cliente && <MaquinasCompradasDoCliente contexto={contexto} chaveDoCliente={cliente.chave} />}
 
       {!ehNovo && cliente && (

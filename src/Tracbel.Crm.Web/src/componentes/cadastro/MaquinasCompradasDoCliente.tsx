@@ -4,8 +4,9 @@
  * e 11).
  *
  * COMPRAR NÃO FAZ DONO. Uma máquina revendida teve dois compradores, e o ART
- * não diz quem a tem hoje: a coluna "Dono atual" só diz "sim" quando o cadastro
- * da máquina aponta este cliente como proprietário.
+ * não diz quem a tem hoje: a coluna "Dono atual" diz "sim" quando a sincronia do
+ * parque aponta este cliente como dono atual (vínculo com evidência, desde
+ * 24/09/2026) ou quando o cadastro da máquina o tem como dono confirmado.
  */
 
 import { Link } from 'react-router-dom';
@@ -94,7 +95,8 @@ export function MaquinasCompradasDoCliente({
       )}
       <div className="card-body">
         <p className="cad-nota">
-          O comprador de uma venda não vira dono automaticamente: a posse é confirmada no cadastro da máquina.
+          O comprador de uma venda não vira dono automaticamente: o dono atual vem da sincronia do parque, com a
+          evidência — é o cartão "Frota do cliente", acima.
         </p>
       </div>
     </div>

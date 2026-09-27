@@ -19,6 +19,57 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 public sealed class RepositorioDeFaturamento(CrmDbContext contexto) : IRepositorioFaturamento
 {
     /// <inheritdoc />
+    /// <remarks>
+    /// <para><b>A fronteira é a filial que EMITIU a nota</b> (<c>D2_FILIAL</c>), e não a do cadastro do cliente: medido
+    /// em 27/09/2026, 19.087 das 53.977 linhas são de uma filial diferente da filial do cliente. Quem consulta vê as
+    /// notas das filiais ao alcance dele — é a mesma regra do cartão de faturamento e do painel do CEN.</para>
+    ///
+    /// <para><b>A data da carga é a do cartão da Visão 360</b>: a gravação mais recente da competência mais recente
+    /// ao alcance. As somas ficam para o caso de uso, em memória — são no máximo 37 meses × 16 filiais de um
+    /// cliente, e o SQLite dos testes de API não agrega decimal.</para>
+    /// </remarks>
+    public async Task<FaturamentoLidoDoCliente?> DoClienteAsync(Guid chaveDoCliente, CancellationToken ct)
+    {
+        var clienteId = await contexto.Clientes.AsNoTracking()
+            .Where(c => c.ChavePublica == chaveDoCliente)
+            .Select(c => (long?)c.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (clienteId is null) return null;
+
+        var noAlcance = contexto.FaturamentoDosClientes.AsNoTracking().Where(f => f.ExcluidoEm == null);
+
+        var primeira = await noAlcance.MinAsync(f => (DateOnly?)f.Competencia, ct);
+        var ultima = await noAlcance.MaxAsync(f => (DateOnly?)f.Competencia, ct);
+
+        DateTime? carregadoEm = null;
+        if (ultima is { } competencia)
+            carregadoEm = await noAlcance
+                .Where(f => f.Competencia == competencia)
+                .MaxAsync(f => (DateTime?)(f.AlteradoEm ?? f.CriadoEm), ct);
+
+        var meses = await noAlcance
+            .Where(f => f.ClienteId == clienteId)
+            .Join(contexto.Empresas.AsNoTracking(), f => f.EmpresaId, e => e.Id, (f, e) => new MesDoClienteNaFilial(
+                f.Competencia,
+                e.Codigo,
+                e.Nome,
+                f.ValorLiquido,
+                f.ValorEmMaquina,
+                f.ValorEmPeca,
+                f.ValorEmServico,
+                f.ValorEmOutros,
+                f.Notas))
+            .ToListAsync(ct);
+
+        return new FaturamentoLidoDoCliente(
+            primeira,
+            ultima,
+            carregadoEm,
+            [.. meses.OrderBy(m => m.Competencia).ThenBy(m => m.FilialCodigo, StringComparer.Ordinal)]);
+    }
+
+    /// <inheritdoc />
     public Task<DateOnly?> CompetenciaMaisRecenteAsync(CancellationToken ct) =>
         contexto.FaturamentoDosClientes
             .Where(f => f.ExcluidoEm == null)

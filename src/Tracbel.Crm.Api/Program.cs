@@ -273,6 +273,8 @@ builder.Services.AddScoped<ObterPerdas>();
 builder.Services.AddScoped<ObterVendasPerdidas>();
 builder.Services.AddScoped<ObterPainelDoCen>();
 builder.Services.AddScoped<ObterFaturamento>();
+builder.Services.AddScoped<ObterFaturamentoDoCliente>();
+builder.Services.AddScoped<ListarCarteirasDoCliente>();
 builder.Services.AddScoped<ListarTarefas>();
 builder.Services.AddScoped<ObterPainelDaAgenda>();
 builder.Services.AddScoped<ListarInteracoes>();
