@@ -339,6 +339,10 @@ builder.Services.AddScoped<BuscarClientesNoLegado>();
 builder.Services.AddScoped<ListarParqueNoLegado>();
 builder.Services.AddScoped<VerificarPonteDoLegado>();
 
+// A META DE VENDA DA API GESTÃO DE NEGÓCIOS × O REALIZADO DO ART (#138, 27/09/2026).
+builder.Services.AddScoped<IRepositorioDeMetas, RepositorioDeMetas>();
+builder.Services.AddScoped<ObterMetaERealizado>();
+
 var app = builder.Build();
 
 // AS MIGRAÇÕES RODAM NA SUBIDA, EM PRODUÇÃO.

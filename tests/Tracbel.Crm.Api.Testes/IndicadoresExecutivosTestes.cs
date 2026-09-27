@@ -150,7 +150,7 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
     }
 
     [Fact]
-    public async Task O_padrao_e_o_ano_fiscal_ate_o_ultimo_mes_fechado_e_o_cartao_fica_sem_meta()
+    public async Task O_padrao_e_o_ano_fiscal_ate_o_ultimo_mes_fechado_e_o_cartao_so_traz_o_faturamento()
     {
         await SemearAsync();
         var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Rota));
@@ -173,13 +173,12 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
         dados.GetProperty("indicadores").GetProperty("faturamentoDoMes").GetProperty("competencia").GetString()
             .Should().Be(MesCorrente.ToString("yyyy-MM-dd"), "o mês em curso aparece à parte, no cartão do mês");
 
-        // A META SAIU NA FASE 1 (documento 41). Sem fonte, o cartão mostra o realizado e declara a
-        // lacuna: "sem meta é sem meta, e não meta zero" — que é o que a tela já dizia, porque a
-        // tabela nunca teve uma linha.
-        ano.GetProperty("metasDaFilial").GetInt32().Should().Be(0);
-        ano.GetProperty("alvoDaFilial").ValueKind.Should().Be(JsonValueKind.Null);
-        ano.GetProperty("metasQueCruzamOAno").GetInt32().Should().Be(0);
-        Lacunas(dados).Should().Contain(["metaDeFaturamento", "previsao", "devolucoes"]);
+        // A META SAIU DESTE CARTÃO (#138, 27/09/2026): a meta de VENDA, em unidades, da API Gestão de Negócios, tem rota
+        // própria. A de faturamento nunca teve fonte, e os campos vinham sempre zerados.
+        ano.EnumerateObject().Select(p => p.Name).Should().NotContain(n => n.Contains("meta", StringComparison.OrdinalIgnoreCase)
+                                                                          || n.Contains("alvo", StringComparison.OrdinalIgnoreCase));
+        Lacunas(dados).Should().NotContain("metaDeFaturamento");
+        Lacunas(dados).Should().Contain(["previsao", "devolucoes"]);
 
         // A FRASE QUE NEGAVA O CALENDÁRIO SAIU: ele foi confirmado em 24/09 e virou o padrão em 27/09.
         Lacunas(dados).Should().NotContain(["calendarioFiscal", "calendarioCivil"]);
@@ -196,9 +195,8 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
 
         indicadores.GetProperty("ano").GetProperty("calendario").GetString().Should().Be("Civil");
         indicadores.GetProperty("ano").GetProperty("total").GetDecimal().Should().Be(999m);
-        indicadores.GetProperty("ano").GetProperty("alvoDaFilial").ValueKind.Should().Be(JsonValueKind.Null, "sem meta é sem meta, e não meta zero");
         indicadores.GetProperty("faturamentoDoMes").GetProperty("total").GetDecimal().Should().Be(1280m);
-        Lacunas(dados).Should().Contain(["metaDeFaturamento", "calendarioCivil"]);
+        Lacunas(dados).Should().Contain("calendarioCivil").And.NotContain("metaDeFaturamento");
     }
 
     [Fact]

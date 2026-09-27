@@ -7,6 +7,11 @@
 **Contagem oficial** (seção 1 do documento 40): **82 tabelas físicas = 80 do modelo EF Core + 2
 históricos de migração.** As 82 estão todas abaixo, uma vez cada.
 
+> **Atualização de 27/09/2026 (issue 138).** A linha 6 (`organizacao.Meta`, NÃO CRIAR AINDA — "volta com a tela de
+> metas") voltou com outra forma: `organizacao.MetaDeVenda`, a cota de venda da API Gestão de Negócios, em unidades por
+> consultor, linha, mês e filial, uma linha por meta da origem, com carga diária e tela (o cartão B da Visão 360). O
+> modelo EF Core passa de 76 para **77 tabelas** (documento 14, seção 2.1).
+
 **Legenda**
 
 - **Linhas** = linhas antes da sanitização (banco local, carga completa). ✱ = uma das 35 tabelas do
@@ -39,7 +44,7 @@ históricos de migração.** As 82 estão todas abaixo, uma vez cada.
 | 3 | `organizacao.Carteira` | 142 | `Carteira` (CRM) | MANTER E REFATORAR | sai `PracaId`, `EquipeId`, `SupervisorId` (nulo em 655 de 655 carteiras no Vórtice); ganha escrita pela área administrativa | 1, 4 |
 | 4 | `organizacao.CarteiraMunicipio` | 532 | `CarteiraMunicipio` (Território) | MANTER E REFATORAR | fonte canônica de "qual CEN atende o município, por linha"; recebe a conciliação das planilhas | 8 |
 | 5 | `organizacao.HierarquiaComercial` ✱ | 0 | — | REMOVER FUTURAMENTE | *closure table* nunca preenchida; `Usuario.GestorId` é a fonte | 1 |
-| 6 | `organizacao.Meta` ✱ | 0 | — | NÃO CRIAR AINDA | lida e nunca gravada; volta com a tela de metas | 1 |
+| 6 | `organizacao.Meta` ✱ | 0 | — | NÃO CRIAR AINDA | lida e nunca gravada; volta com a tela de metas — **voltou em 27/09/2026 como `organizacao.MetaDeVenda`** (issue 138), a meta de venda da API Gestão de Negócios | 1 |
 | 7 | `organizacao.Praca` ✱ | 0 | — | REMOVER FUTURAMENTE | ideia não implementada; o potencial vem de área plantada × regra de potencial | 1 |
 | 8 | `organizacao.Municipio` | 9.863 | `Municipio` (Território) | MANTER E REFATORAR | `CodigoIbge` obrigatório (só restaram municípios do IBGE) | 5 |
 | 9 | `organizacao.MunicipioDaAreaDeAtuacao` | 238 | `MunicipioDaAreaDeAtuacao` (Território) | MANTER E REFATORAR | fonte canônica da filial responsável e da ADR; a linhagem da planilha (`ArquivoDeOrigem`, `LinhaNaOrigem`, `ImportadoEm`, `ImportadoPorId`) vai para `RegistroDeOrigem` | 8 |

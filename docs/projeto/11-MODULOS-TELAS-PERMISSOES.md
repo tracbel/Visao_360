@@ -220,6 +220,7 @@ credencial é o ponto mais frágil do sistema.
 | 3 colunas de senha, sem salt | **zero colunas de senha** — autenticação no Entra ID |
 | Mobile Lite sem política própria | a permissão é a mesma para web e mobile — uma fonte de verdade |
 | 41 fluxos marcados ativos e mortos | `UltimoUsoEm` + job mensal de higienização |
+| `IVS_UsrMeta` com 1 linha; metas escritas no JavaScript do protótipo | a meta de venda vem da API Gestão de Negócios (#138, 27/09/2026) e é lida com `Meta.Ler`, cuja **profundidade** decide quem se vê: `Proprios` no perfil Padrão (o vendedor vê só a própria), `EmpresaEAbaixo` na Gerência e na Diretoria, `Organizacao` no Administrador; o Gestor comercial não tem |
 
 ---
 

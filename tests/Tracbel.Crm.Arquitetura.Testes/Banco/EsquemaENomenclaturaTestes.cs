@@ -172,6 +172,10 @@ public sealed partial class EsquemaENomenclaturaTestes
         //      27/09/2026): o funil do Vórtice, uma linha por processo por estágio, sem depender de Processo nem de
         //      Cliente (62% do funil é prospect sem cadastro); e a lista do que cada código de resultado prova — o
         //      estágio e o contato —, a lista do funil, presa por teste à constante do último contato da carteira.
+        //   +1 organizacao.MetaDeVenda — issue 138 (decisão de 27/09/2026): a meta de venda é a cota da API Gestão de
+        //      Negócios, em unidades por consultor, linha, mês e filial. Tabela própria, e não coluna em outra, porque o grão
+        //      é a linha da origem (o id da GN): a chave de negócio não é única lá, e as duplicatas se somam na leitura. A
+        //      antiga organizacao.Meta saiu na fase 1 por nunca ter tido linha; esta nasce com fonte, carga e tela.
         //
         // Este teste é o que impede o modelo de crescer sem decisão registrada — o "portão" da
         // seção 10.2. Ele falhou de propósito quando as três últimas entraram, e é assim que se
@@ -182,7 +186,7 @@ public sealed partial class EsquemaENomenclaturaTestes
 
         var esperado = new Dictionary<string, int>
         {
-            ["organizacao"] = 32,
+            ["organizacao"] = 33,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 10,
@@ -193,14 +197,14 @@ public sealed partial class EsquemaENomenclaturaTestes
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 78 tabelas de modelo em 8 schemas — as duas últimas são o funil do Vórtice e a classificação dos resultados (documento 52): a fase 1 (documento 41) trouxe 80 em 10 " +
+            "a conta é 79 tabelas de modelo em 8 schemas — o funil do Vórtice e a classificação dos resultados (documento 52), e a meta de venda da API Gestão de Negócios (issue 138): a fase 1 (documento 41) trouxe 80 em 10 " +
             "para 49, tirando as 31 que nunca receberam uma linha e esvaziando por completo os " +
             "schemas 'documento' e 'relatorio'; a issue 64 acrescentou o total do estado, a 65 as " +
             "cinco da estrutura agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção a 68 as duas do crédito rural do SICOR e a 71 as duas dos parâmetros do potencial com vigência (os gerais e a percepção do gestor) a 136 as quatro das integrações configuráveis (conexão, verificação, rotina e execução da rotina) e a 154 o de-para entre a chave de cada fonte e o município do catálogo, e a 155 o total que o IBGE publica para o estado nas quatro pesquisas da estrutura agropecuária, e a 156 o milho separado em 1ª e 2ª safra, e a 165 as quatro do catálogo de culturas e categorias de máquina, e a 160 as duas do compartilhamento de máquina entre culturas, e a 69 o de-para entre a classificação de produto do CRM e a categoria de máquina — o último elo entre a venda do ART e a categoria de mercado (D-P08). O portão continua o mesmo nos dois sentidos: mudar " +
             "este número exige a decisão da seção 10.2 e a atualização do documento 14, seção 2.1, " +
             "na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(78);
+        porSchema.Values.Sum().Should().Be(79);
     }
 
     [Fact]

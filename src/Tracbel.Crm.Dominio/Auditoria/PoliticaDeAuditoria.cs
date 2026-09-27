@@ -170,7 +170,11 @@ public static class PoliticaDeAuditoria
             "EmpresaId", "EmpresaDoFaturamentoId", "VendidaEm", "FaturadaEm", "EntregueEm",
             "NumeroDoPedido", "NumeroDaNotaFiscal", "SituacaoNaOrigem", "GestaoNaOrigem",
             "VendaDireta", "RepasseDireto", "Quantidade", "LinhaNaOrigem", "ProdutoNaOrigem",
-            "UnidadeNaOrigem", "UnidadeDoFaturamentoNaOrigem"
+            "UnidadeNaOrigem", "UnidadeDoFaturamentoNaOrigem",
+
+            // O VENDEDOR (D-M2, 27/09/2026): é de quem é o realizado da meta. A primeira leitura depois da publicação
+            // preenche as vendas já importadas — cerca de 3,6 mil linhas de trilha, uma vez só.
+            "VendedorNaOrigem"
         ],
 
         // O FUNIL DO VÓRTICE (decisões de 27/09/2026, documento 52). A linha nasce da integração e não entra na trilha
@@ -185,7 +189,17 @@ public static class PoliticaDeAuditoria
 
         // A VENDA PERDIDA: o papel decide se ela conta — só a principal entra na soma —, e a exclusão é a resposta que
         // sumiu do Vórtice. As duas mudam o número da diretoria sem que ninguém tenha editado a perda.
-        ["VendaPerdida"] = ["Papel", "VendaPerdidaPrincipalId", CampoDeExclusaoLogica]
+        ["VendaPerdida"] = ["Papel", "VendaPerdidaPrincipalId", CampoDeExclusaoLogica],
+
+        // A META DE VENDA (#138, 27/09/2026): espelho do cadastro da API Gestão de Negócios. A inclusão pela integração não
+        // entra (ver RegistraInclusao) — o que entra é a REVISÃO: a GN mudou a quantidade, o mês, a filial ou o consultor
+        // de uma meta, e a pergunta "a meta de setembro era 12 ou 10, e desde quando?" precisa de resposta. A exclusão
+        // (a meta que sumiu da origem) e a volta também.
+        ["MetaDeVenda"] =
+        [
+            "EmpresaId", "Competencia", "LinhaNaOrigem", "CodigoDaLinha", "LinhaDeProdutoId", "ConsultorNaOrigem",
+            "ConsultorUsuarioId", "VendaDireta", "Origem", "Quantidade", "ValorUnitario", "Margem", CampoDeExclusaoLogica
+        ]
     };
 
     /// <summary>As entidades auditadas, por nome de tipo.</summary>

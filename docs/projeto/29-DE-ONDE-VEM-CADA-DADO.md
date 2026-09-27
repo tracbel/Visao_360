@@ -287,6 +287,7 @@ Não vão à origem — leem o nosso banco.
 | `Persistencia/Repositorios/RepositorioDeFaturamento.cs` | Série de 12 meses, top clientes, competência mais recente |
 | `Persistencia/Repositorios/RepositorioDeCarteiras.cs` | Cobertura por faixa de dias, CENs, mix por linha |
 | `Persistencia/Repositorios/RepositorioDoPainelDoCen.cs` | Cobertura **pela cadência declarada**, por responsável |
+| `Persistencia/Repositorios/RepositorioDeMetas.cs` | A meta de venda (API Gestão de Negócios) × as máquinas vendidas (ART), por mês, linha e consultor — seção 6 |
 | `Aplicacao/Relacionamento/ConsultasDeRelacionamento.cs` | Orquestra as anteriores para os endpoints |
 
 **Nenhum repositório escreve um `Where` de empresa.** A fronteira de filial entra sozinha, por
@@ -296,3 +297,18 @@ passar despercebido numa consulta nova.
 **Divergência conhecida:** a rosca "Status da cobertura" usa faixas de **30 e 90 dias**, que são
 arbitrárias, enquanto o painel do CEN usa a **cadência declarada** (180/120/360). As duas telas
 respondem diferente para o mesmo cliente. A rosca é a que está errada.
+
+---
+
+## 6. API Gestão de Negócios — a meta de venda (27/09/2026, #138)
+
+| Onde | O quê |
+|---|---|
+| Origem | `GET https://agro-sistemas-w.tracbel.com.br:5001/api/v1/cadastros/metas` — a cota de venda do ano fiscal, em unidades, por mês, filial (`filial_numero` = NN de `0101NN`), linha (o vocabulário do ART, mais CONSÓRCIO) e consultor (`NOME.SOBRENOME`), com tipo (Concessão/Direta) e origem (Campanha/Consórcio) |
+| Leitura | `Integracao/GestaoDeNegocios/ClienteDaGestaoDeNegocios.cs` (paginação, Bearer, certificado validado pelo nome) e `LeitorDeMetasDaGestaoDeNegocios.cs` (os nomes dos campos num lugar só) |
+| Saneamento | `Integracao/GestaoDeNegocios/SaneamentoDasMetas.cs` — mês, filial, linha codificada como no ART, consultor em maiúsculas, tipo, origem, quantidade |
+| Carga | `Carga/CargaDeMetasDaGestaoDeNegocios.cs` — `--somente-metas-gn`, rotina `METAS_GESTAO_NEGOCIOS` |
+| Tabela | `organizacao.MetaDeVenda` — uma linha por `id` da GN; o frescor em `integracao.PontoDeSincronismo` (`GESTAO_NEGOCIOS.METAS`) |
+| Realizado | `frota.VendaDeMaquina`, pela `VendidaEm`; por consultor, `VendedorNaOrigem` (o vendedor do ART, lido de `bi_art_veiculos.vendedor` desde 27/09/2026) em maiúsculas = `ConsultorNaOrigem` |
+| Lacuna | `integracao.RegistroDeOrigem` do ART sem venda (`VendaDeMaquinaId` nulo), pela filial da unidade (`integracao.CorrespondenciaDaOrigem`) |
+| Rota | `GET /api/v1/relatorios/metas`, `Meta.Ler` |

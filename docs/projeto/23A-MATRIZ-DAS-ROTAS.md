@@ -77,6 +77,7 @@ documento 46.
 | 37 | `GET /auth/eu` | `RotasDeAutenticacao.cs:90` | `ResolvedorDeContextoDoEntraId` | `seguranca.Usuario`, `organizacao.Empresa` (por `EscopoDeAcesso`) | não |
 | 38 | `GET /auth/entrar` | `RotasDeAutenticacao.cs:112` | — (desafio do OpenID Connect) | nenhuma | não |
 | 39 | `GET /auth/sair` | `RotasDeAutenticacao.cs:120` | — (encerra cookie e sessão na Microsoft) | nenhuma | não |
+| 40 | `GET /api/v1/relatorios/metas` (27/09/2026, #138) | `EndpointsDeRelacionamento.cs` (`MapearRelatorios`) | `ObterMetaERealizado` | `organizacao.MetaDeVenda`, `frota.VendaDeMaquina`, `integracao.RegistroDeOrigem`, `integracao.CorrespondenciaDaOrigem`, `integracao.PontoDeSincronismo`, `integracao.Sistema`, `seguranca.Usuario` | não |
 
 ### 2.3 Permissão, teste, tela e fase
 
@@ -125,6 +126,7 @@ repete na tabela — está provada na §3.1. A coluna "proposta" usa o vocabulá
 | 37 | `GET /auth/eu` | autenticado, sem permissão | `AutenticacaoTestes` | `ProvedorDeSessao` (toda tela) | 3 (#46) |
 | 38 | `GET /auth/entrar` | anônima, de propósito | `AutenticacaoTestes` | tela de login | 3 (#46) |
 | 39 | `GET /auth/sair` | autenticado | **nenhum** | menu lateral (`Sair`) | 3 (#46) |
+| 40 | `GET /relatorios/metas?competenciaInicial&competenciaFinal` | `Meta.Ler` — a profundidade decide o alcance: `Proprios` só a própria meta, `EmpresaEAbaixo` ou mais a filial (D-M5, 27/09/2026) | `MetasNaApiTestes` | cartão B da Visão 360 e a composição (`dados/api/metas.ts`, filial a filial); Performance de CEN | #138 |
 
 ---
 

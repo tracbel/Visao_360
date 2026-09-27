@@ -7,8 +7,9 @@
  *
  * - o ano é o FISCAL (nov→out), o período padrão desde 27/09/2026, e a tela não
  *   diz mais que o calendário "não foi confirmado" nem que o FY "vem depois";
- * - a meta não tem tabela desde a fase 1: nada afirma que ela existe, e o
- *   motivo (issue 138) está na dica do "—";
+ * - a meta é a de VENDA da API Gestão de Negócios, em máquinas, no ano fiscal
+ *   (#138, 27/09/2026) — e o cartão diz quando o cadastro não foi lido e quando
+ *   falta a permissão, em vez de mostrar meta zero;
  * - "participação de mercado" virou Captura Tracbel (issue 162), e o cartão de
  *   mercado não diz mais que o ART não está no banco;
  * - nenhum `title=` — a explicação é dica que abre pelo teclado (issue 167);
@@ -115,19 +116,104 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     expect(dica).not.toContain('até hoje');
   });
 
-  it('a meta aparece como "—" com o motivo, e nenhum texto diz que ela tem tabela', async () => {
+  it('a meta é a de venda, em máquinas, no ano fiscal — e a de faturamento, que nunca teve fonte, sumiu (#138)', async () => {
     const { container } = await montar('completo');
 
-    expect(container.textContent).not.toContain('organizacao.Meta');
-    expect(container.textContent).not.toMatch(/nenhuma cadastrada|sem meta/);
+    const cartao = await waitFor(() => {
+      const c = container.querySelector('[data-kpi="Meta e realizado · FY2026"]');
+      expect(c).not.toBeNull();
+      return c!;
+    });
+    await waitFor(() => expect(cartao).toHaveTextContent(/\d+ de \d+/));
+    expect(cartao).toHaveTextContent('máquinas vendidas');
+    expect(cartao).toHaveTextContent('da meta');
+    expect(cartao).toHaveTextContent('nov/2025 a ago/2026');
+    expect(cartao).toHaveTextContent('vendas aguardam na integração do ART (cadastro, chassi ou outro motivo)');
+    expect(cartao).toHaveTextContent('consórcio');
+    expect(cartao).toHaveTextContent('set/2026 em curso');
 
-    const [doCartao] = screen.getAllByRole('button', { name: 'Por que a meta não aparece' });
-    expect(textoDaDica(doCartao)).toContain('issue 138');
+    // A TABELA ANTIGA (`organizacao.Meta`, sem linha desde a fase 1) não é citada; a nova é `organizacao.MetaDeVenda`.
+    expect(container.textContent).not.toMatch(/organizacao\.Meta\b/);
+    expect(container.textContent).not.toContain('issue 138');
 
-    // A regra do cartão também deixou de citar a tabela removida.
-    const regra = textoDaDica(screen.getByRole('button', { name: `Como se conta: meta e realizado · fy${ANO_FISCAL}` }));
-    expect(regra).toContain('issue 138');
-    expect(regra).not.toContain('organizacao.Meta');
+    const regra = textoDaDica(screen.getByRole('button', { name: 'Como se conta: meta e realizado · fy2026' }));
+    expect(regra).toContain('API Gestão de Negócios');
+    expect(regra).toContain('em máquinas');
+    expect(regra).toContain('último mês fechado');
+    // AS LACUNAS DA META NA DICA (revisão do PR #248): as com número refeitas da soma das filiais.
+    expect(regra).toMatch(/\d+ consultor\(es\) com meta não têm conta no CRM/);
+    expect(regra).toMatch(/\d+ venda\(s\) do período sem vendedor no ART/);
+    expect(regra).toContain('unidade sem filial no CRM');
+
+    // NA COMPOSIÇÃO, a meta e o realizado são em máquinas, e a coluna em reais chama-se Faturamento.
+    const cabecalho = container.querySelector('.v360-composicao thead')!;
+    expect(cabecalho).toHaveTextContent('Meta FY2026 (máq.)');
+    expect(cabecalho).toHaveTextContent('Realizado FY2026 (máq.)');
+    expect(cabecalho).toHaveTextContent(`Faturamento FY${ANO_FISCAL}`);
+  });
+
+  it('sem a rotina das metas ter rodado, o cartão diz que o cadastro não foi lido — e não "meta zero"', async () => {
+    const { container } = await montar('vazio');
+
+    const cartao = await waitFor(() => {
+      const c = container.querySelector('[data-kpi="Meta e realizado · FY2026"]');
+      expect(c).not.toBeNull();
+      return c!;
+    });
+    expect(cartao).toHaveTextContent('o cadastro de metas da Gestão de Negócios ainda não foi lido');
+  });
+
+  it('a filial cuja meta falhou fica fora da soma NOMEADA, no cartão e no total da composição', async () => {
+    instalarApi('completo');
+    const original = globalThis.fetch;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (entrada: string, init?: RequestInit) =>
+        entrada.includes('/relatorios/metas') && new Headers(init?.headers).get('X-Tracbel-Empresa') === '990002'
+          ? new Response(JSON.stringify({ title: 'Falha interna' }), { status: 500 })
+          : original(entrada, init),
+      ),
+    );
+    const tela = render(
+      <ProvedorDeContextoDeAcesso>
+        <MemoryRouter>
+          <PainelExecutivo />
+        </MemoryRouter>
+      </ProvedorDeContextoDeAcesso>,
+    );
+
+    const cartao = await waitFor(() => {
+      const c = tela.container.querySelector('[data-kpi="Meta e realizado · FY2026"]');
+      expect(c).toHaveTextContent(/\d+ de \d+/);
+      return c!;
+    });
+    expect(cartao.querySelector('.v360-periodo-alerta')).toHaveTextContent('4 de 5 filiais — fora: Filial Fictícia Beta');
+
+    await waitFor(() => expect(tela.container.querySelector('[data-bloco="linha-3"]')).not.toBeNull());
+    const total = tela.container.querySelector('.v360-composicao tr.total')!;
+    expect(total).toHaveTextContent('(4 de 5)');
+  });
+
+  it('sem a permissão Meta.Ler, o cartão diz que falta a permissão', async () => {
+    instalarApi('completo');
+    const original = globalThis.fetch;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (entrada: string, init?: RequestInit) =>
+        entrada.includes('/relatorios/metas')
+          ? new Response(JSON.stringify({ title: 'Sem permissão', type: 'https://tracbel/erros/sem-permissao' }), { status: 403 })
+          : original(entrada, init),
+      ),
+    );
+    const tela = render(
+      <ProvedorDeContextoDeAcesso>
+        <MemoryRouter>
+          <PainelExecutivo />
+        </MemoryRouter>
+      </ProvedorDeContextoDeAcesso>,
+    );
+
+    await waitFor(() => expect(tela.container.querySelector('[data-kpi="Meta e realizado"]')).toHaveTextContent('Meta.Ler'));
   });
 
   it('o mercado fala em Captura Tracbel, nunca em participação ou share, e não diz que o ART está fora do banco', async () => {

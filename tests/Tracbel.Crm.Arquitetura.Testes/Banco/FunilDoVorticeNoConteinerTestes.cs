@@ -183,7 +183,9 @@ public sealed class FunilDoVorticeNoConteinerTestes
         var rotina = db.Rotinas.AsNoTracking().Single(r => r.Codigo == RotinasDoSistema.ProcessosVortice);
         var posicao = RotinasDoSistema.Todas.ToList().FindIndex(r => r.Codigo == RotinasDoSistema.ProcessosVortice);
         rotina.Id.Should().Be(posicao + 1, "o identificador semeado é a posição no catálogo, mais um");
-        rotina.Id.Should().Be(db.Rotinas.Max(r => r.Id), "rotina nova entra no fim");
+        // ENTROU NO FIM QUANDO NASCEU (#247, Id 8). Depois dela veio a das metas (Id 9), por isso o teste não
+        // exige mais que seja a última — só que o Id siga a posição no catálogo.
+        rotina.Id.Should().Be(8, "a rotina do funil entrou no fim do catálogo em 27/09/2026, antes da das metas");
         rotina.EstaLigada.Should().BeFalse();
         rotina.Agenda.Should().Be(AgendaDaRotina.DiariaAs(new TimeOnly(6, 30)));
 

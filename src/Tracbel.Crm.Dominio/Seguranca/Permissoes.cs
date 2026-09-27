@@ -110,6 +110,14 @@ public static class Permissoes
     public const string IntegracaoAdministrar = "Integracao.Administrar";
 
     /// <summary>
+    /// Ler a meta de venda e o realizado (#138, decisão D-M5 de 27/09/2026). A PROFUNDIDADE decide quem se vê: em
+    /// <see cref="Profundidade.Proprios"/>, só a própria meta — a do consultor cujo login é o da pessoa; em
+    /// <see cref="Profundidade.EmpresaEAbaixo"/>, a filial escolhida inteira, com os consultores sem conta; a visão de
+    /// todas as filiais é a soma das filiais, pelo alcance que a pessoa já tem.
+    /// </summary>
+    public const string MetaLer = "Meta.Ler";
+
+    /// <summary>
     /// Todas as permissões que existem, com o que cada uma deixa fazer. É a lista que o perfil aceita:
     /// conceder um código fora dela é recusado.
     /// </summary>
@@ -141,7 +149,8 @@ public static class Permissoes
         [ParametroDoPotencialAdministrar] = "Alterar os parâmetros do potencial de mercado, com vigência",
         [PercepcaoDoGestorInformar] = "Informar a percepção do gestor por município",
         [AuditoriaLer] = "Ler a trilha de auditoria: quem mudou o quê, e quando",
-        [IntegracaoAdministrar] = "Configurar e testar as integrações: credenciais, agendas e APIs monitoradas"
+        [IntegracaoAdministrar] = "Configurar e testar as integrações: credenciais, agendas e APIs monitoradas",
+        [MetaLer] = "Ler a meta de venda e o realizado"
     };
 
     /// <summary>A permissão existe no catálogo?</summary>
@@ -242,7 +251,8 @@ public static class PerfisDeSistema
         Seguranca.Permissoes.PercepcaoDoGestorInformar,
         Seguranca.Permissoes.UsuarioLer,
         Seguranca.Permissoes.AuditoriaLer,
-        Seguranca.Permissoes.IntegracaoAdministrar
+        Seguranca.Permissoes.IntegracaoAdministrar,
+        Seguranca.Permissoes.MetaLer
     ];
 
     /// <summary>
@@ -270,7 +280,10 @@ public static class PerfisDeSistema
 
                 // Issue 71: todo número do potencial sai com o parâmetro que o gerou, e quem vê o número pode
                 // ver o parâmetro. Alterar é do administrador.
-                (Seguranca.Permissoes.ParametroDoPotencialLer, Profundidade.EmpresaEAbaixo)
+                (Seguranca.Permissoes.ParametroDoPotencialLer, Profundidade.EmpresaEAbaixo),
+
+                // #138 (D-M5, 27/09/2026): o vendedor vê SÓ a própria meta e o próprio realizado. Linha 118.
+                (Seguranca.Permissoes.MetaLer, Profundidade.Proprios)
             ]),
 
         new(2, ExclusaoDeCadastro, "Exclusão de cadastro",
@@ -310,7 +323,8 @@ public static class PerfisDeSistema
                 (Seguranca.Permissoes.PercepcaoDoGestorInformar, Profundidade.Organizacao),
                 (Seguranca.Permissoes.UsuarioLer, Profundidade.Organizacao),
                 (Seguranca.Permissoes.AuditoriaLer, Profundidade.Organizacao),
-                (Seguranca.Permissoes.IntegracaoAdministrar, Profundidade.Organizacao)
+                (Seguranca.Permissoes.IntegracaoAdministrar, Profundidade.Organizacao),
+                (Seguranca.Permissoes.MetaLer, Profundidade.Organizacao)
             ]),
 
         new(5, GestorComercial, "Gestor comercial",
@@ -329,7 +343,10 @@ public static class PerfisDeSistema
                 (Seguranca.Permissoes.IntegracaoLer, Profundidade.EmpresaEAbaixo),
 
                 // Issue 113: vê os usuários da filial, sem agir.
-                (Seguranca.Permissoes.UsuarioLer, Profundidade.EmpresaEAbaixo)
+                (Seguranca.Permissoes.UsuarioLer, Profundidade.EmpresaEAbaixo),
+
+                // #138 (D-M5): o gerente vê a meta da filial inteira, inclusive a dos consultores sem conta. Linha 604.
+                (Seguranca.Permissoes.MetaLer, Profundidade.EmpresaEAbaixo)
             ]),
 
         new(7, Diretoria, "Diretoria",
@@ -344,7 +361,11 @@ public static class PerfisDeSistema
                 (Seguranca.Permissoes.UsuarioLer, Profundidade.Organizacao),
 
                 // Issue 135: lê a trilha de auditoria.
-                (Seguranca.Permissoes.AuditoriaLer, Profundidade.Organizacao)
+                (Seguranca.Permissoes.AuditoriaLer, Profundidade.Organizacao),
+
+                // #138 (D-M5): a diretoria vê TODAS as filiais pelo alcance que já tem ("Todas as filiais" no seletor, com a
+                // visão entre filiais) — a meta é por filial, e o consolidado é a soma. Linha 706.
+                (Seguranca.Permissoes.MetaLer, Profundidade.EmpresaEAbaixo)
             ])
     ];
 }

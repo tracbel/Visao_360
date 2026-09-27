@@ -4,6 +4,7 @@ using System.Net;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Tracbel.Crm.Carga;
@@ -16,6 +17,7 @@ using Tracbel.Crm.Integracao.Anp;
 using Tracbel.Crm.Integracao.Art;
 using Tracbel.Crm.Integracao.BancoCentral;
 using Tracbel.Crm.Integracao.Conab;
+using Tracbel.Crm.Integracao.GestaoDeNegocios;
 using Tracbel.Crm.Integracao.Ibge;
 using Tracbel.Crm.Integracao.Protheus;
 using Tracbel.Crm.Integracao.Socicana;
@@ -200,6 +202,15 @@ var somenteProcessosDoVortice = args.Contains("--somente-processos-vortice", Str
 // usa e uma pessoa, olhando o numero, e a aceitacao fica escrita na execucao (integracao.ExecucaoDeSincronizacao).
 var aceitarQueda = args.Contains("--aceitar-queda", StringComparer.Ordinal);
 
+// --somente-metas-gn [--simular] [--aceitar-remocao] — AS METAS DE VENDA DA API GESTÃO DE NEGÓCIOS (decisão de 27/09/2026, #138).
+//
+// Le /api/v1/cadastros/metas (so GET, chave no Bearer, certificado validado pelo NOME) e SINCRONIZA organizacao.MetaDeVenda:
+// meta nova entra, revisada muda com trilha, a que sumiu e excluida sem apagar. E a rotina diaria METAS_GESTAO_NEGOCIOS do
+// orquestrador. Com --simular, calcula o plano so com leitura. --aceitar-remocao passa por cima da trava de remocao em massa
+// e existe SO no terminal: a rotina nao o tem nos modos.
+var somenteMetasGn = args.Contains("--somente-metas-gn", StringComparer.Ordinal);
+var aceitarRemocao = args.Contains("--aceitar-remocao", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
 // --somente-art --projetar — A PROJECAO DO PROXIMO CICLO DO ART, so com leitura: a mesma decisao por registro da carga,
@@ -224,6 +235,7 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-credito       o crédito rural de investimento do SICOR, por município e mês;
 //   --somente-art           as vendas de máquina do ART;
 //   --somente-parque-protheus  o parque de máquinas pelo proprietário atual no Protheus;
+//   --somente-metas-gn      as metas de venda da API Gestão de Negócios;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // AS LEITURAS DO VÓRTICE LIBERADAS:
@@ -236,9 +248,19 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 // O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
 
-var leOVortice = !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura && !somentePrecos && !somenteCustos && !somenteCredito
-                 && !somenteArt && !somenteClientesDoProtheus && !somenteCarteirasDoVortice && !somenteParqueDoProtheus && !somenteMedir
-                 && !somenteProcessosDoVortice;
+// OS MODOS QUE NÃO PASSAM PELA CARGA DO LEGADO — uma lista, e não uma expressão: cada frente nova ACRESCENTA o seu modo
+// aqui, no fim, e as duas isenções abaixo (a declaração do legado e a exigência do Vortice__Conexao) leem a mesma lista.
+// Antes eram duas expressões longas, repetidas, que cada modo novo tinha de tocar nas duas — e que duas frentes em paralelo
+// tocavam na mesma linha. As carteiras e o funil leem o Vórtice pelo leitor deles, com a exigência própria, mais abaixo.
+bool[] modosSemVortice =
+[
+    somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
+    somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
+    somenteMetasGn, somenteProcessosDoVortice
+];
+var algumModoSemVortice = modosSemVortice.Any(modo => modo);
+
+var leOVortice = !algumModoSemVortice && !somenteMedir;
 
 if (leOVortice && !args.Contains(DeclaracaoDeUsoDoLegado, StringComparer.Ordinal))
 {
@@ -285,9 +307,7 @@ var conexaoDoLegado = configuracao["Vortice:Conexao"];
 // A EXIGÊNCIA CAI NO MODO SÓ-FATURAMENTO, e só nele: essa etapa não abre conexão com o legado.
 // A cadeia continua sendo passada adiante como veio (possivelmente vazia) — se algum caminho
 // tentar usá-la neste modo, a falha é imediata e ruidosa, que é o comportamento desejado.
-if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !somenteFaturamento && !somenteTerritorio && !somentePam && !somenteEstrutura
-    && !somentePrecos && !somenteCustos && !somenteCredito && !somenteArt && !somenteClientesDoProtheus && !somenteCarteirasDoVortice
-    && !somenteParqueDoProtheus && !somenteProcessosDoVortice)
+if (string.IsNullOrWhiteSpace(conexaoDoLegado) && !algumModoSemVortice)
 {
     Console.Error.WriteLine(
         "A leitura do sistema legado exige a variável de ambiente Vortice__Conexao, que NUNCA " +
@@ -744,6 +764,95 @@ if (somenteParqueDoProtheus)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A SINCRONIA DO PARQUE PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só as metas de venda da API Gestão de Negócios (decisão de 27/09/2026, #138). Não lê o Protheus nem o ART.
+// -------------------------------------------------------------------------------------------------
+
+if (somenteMetasGn)
+{
+    // A CREDENCIAL: a da tela (Configurações › Integrações), que CredenciaisDaTela já sobrepôs acima, ou
+    // GestaoDeNegocios__Base e GestaoDeNegocios__Chave do servidor. Nunca impressa.
+    var opcoesDaGestaoDeNegocios = new OpcoesDaGestaoDeNegocios();
+    configuracao.GetSection(OpcoesDaGestaoDeNegocios.Secao).Bind(opcoesDaGestaoDeNegocios);
+
+    if (opcoesDaGestaoDeNegocios.Problema() is { } problemaDaGestaoDeNegocios)
+    {
+        Console.Error.WriteLine(problemaDaGestaoDeNegocios + " Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    // O CLIENTE NÃO SEGUE REDIRECIONAMENTO: sem a chave aceita, a API manda para /entrar, e isso é recusa, não página.
+    var servicosDaGestaoDeNegocios = new ServiceCollection();
+    servicosDaGestaoDeNegocios.AddHttpClient(ClienteDaGestaoDeNegocios.NomeDoCliente)
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+    await using var provedorDaGestaoDeNegocios = servicosDaGestaoDeNegocios.BuildServiceProvider();
+    var leitorDasMetas = new LeitorDeMetasDaGestaoDeNegocios(new ClienteDaGestaoDeNegocios(
+        provedorDaGestaoDeNegocios.GetRequiredService<IHttpClientFactory>(), Options.Create(opcoesDaGestaoDeNegocios)));
+
+    // A SIMULAÇÃO LÊ O CRM COM INTENÇÃO DE LEITURA DECLARADA, como a das carteiras e a do parque.
+    var opcoesDasMetas = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(180))
+            .Options
+        : opcoesDoBanco;
+
+    CrmDbContext AbrirContextoDasMetas() => new(opcoesDasMetas, contexto, diario);
+
+    Console.WriteLine(simular
+        ? "Metas de venda da Gestão de Negócios — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
+        : "Metas de venda da Gestão de Negócios — sincronizando.");
+    if (aceitarRemocao) Console.WriteLine("  --aceitar-remocao: a trava de remoção em massa não aborta esta rodada.");
+    Console.WriteLine();
+
+    var cargaDasMetas = new CargaDeMetasDaGestaoDeNegocios(
+        AbrirContextoDasMetas, leitorDasMetas.LerAsync, usuarioId, () => DateTime.UtcNow, Console.WriteLine);
+
+    try
+    {
+        // A MESMA TRAVA DAS OUTRAS CARGAS, e só quando grava.
+        await using var travaDasMetas = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), CargaDeMetasDaGestaoDeNegocios.Fluxo, CancellationToken.None);
+
+        var resultadoDasMetas = await cargaDasMetas.ExecutarAsync(simular, aceitarRemocao, CancellationToken.None);
+        if (!resultadoDasMetas.EhSucesso)
+        {
+            Console.Error.WriteLine("A SINCRONIA DAS METAS PAROU: " + resultadoDasMetas.Erro);
+            return 3;
+        }
+
+        foreach (var etapa in resultadoDasMetas.Valor.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+        }
+
+        if (resultadoDasMetas.Valor.Observacoes.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("- Observações -");
+            foreach (var observacao in resultadoDasMetas.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        }
+
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A SINCRONIA DAS METAS PAROU, e a transação foi desfeita: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;

@@ -42,6 +42,9 @@ export function EditorDeConexao({ conexao: c, aoSalvar, aoCancelar }: Props) {
 
   const ehBanco = c.tipo === 'SqlServer' || c.tipo === 'MySql';
   const monitorada = c.tipo === 'Monitorada';
+  // A API COM CHAVE (a Gestão de Negócios, #138) não tem usuário: a chave é a credencial. O endereço é o NOME do
+  // servidor (D-M1) — pelo IP o certificado não confere, e a validação não é desligada.
+  const comChave = c.tipo === 'ApiComChave';
   const id = (campo: string) => `conexao-${c.codigo}-${campo}`;
 
   async function salvar() {
@@ -88,7 +91,9 @@ export function EditorDeConexao({ conexao: c, aoSalvar, aoCancelar }: Props) {
           <input
             id={id('endereco')}
             value={endereco}
-            placeholder={ehBanco ? 'servidor, servidor\\instancia ou servidor,porta' : 'https://…'}
+            placeholder={
+              ehBanco ? 'servidor, servidor\\instancia ou servidor,porta' : comChave ? 'https://agro-sistemas-w.tracbel.com.br:5001' : 'https://…'
+            }
             onChange={(e) => setEndereco(e.target.value)}
           />
         </Campo>
@@ -107,7 +112,7 @@ export function EditorDeConexao({ conexao: c, aoSalvar, aoCancelar }: Props) {
             <input id={id('objeto')} value={objeto} onChange={(e) => setObjeto(e.target.value)} />
           </Campo>
         )}
-        {!monitorada && (
+        {!monitorada && !comChave && (
           <Campo id={id('usuario')} rotulo="Usuário" erro={envio.erros.usuario}>
             <input id={id('usuario')} value={usuario} autoComplete="off" onChange={(e) => setUsuario(e.target.value)} />
           </Campo>
@@ -125,7 +130,7 @@ export function EditorDeConexao({ conexao: c, aoSalvar, aoCancelar }: Props) {
             </Campo>
           </>
         )}
-        <Campo id={id('senha')} rotulo={monitorada ? 'Segredo do cabeçalho' : 'Senha'} erro={envio.erros.segredo}>
+        <Campo id={id('senha')} rotulo={monitorada ? 'Segredo do cabeçalho' : comChave ? 'Chave da API' : 'Senha'} erro={envio.erros.segredo}>
           <input
             id={id('senha')}
             type="password"
@@ -142,6 +147,12 @@ export function EditorDeConexao({ conexao: c, aoSalvar, aoCancelar }: Props) {
           </div>
         )}
       </div>
+      {comChave && (
+        <p className="config-hint">
+          Use o NOME do servidor, e não o IP: o certificado é emitido para o nome, e a validação dele não é desligada — a chave vale para
+          a API inteira.
+        </p>
+      )}
       <p className="config-hint">
         A senha é guardada protegida no servidor e só abre lá: nenhuma tela, resposta ou log a mostra. Uma cópia do banco levada para
         outra máquina chega sem ela.

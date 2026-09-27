@@ -115,8 +115,11 @@ export async function listarFiliais(
   return (catalogo?.itens ?? []).map((i: ItemDeSelecao) => ({ codigo: i.codigo, nome: i.descricao }));
 }
 
-/** Roda as promessas com um teto de simultaneidade, para não abrir 65 conexões de uma vez. */
-async function comLimite<T, R>(itens: T[], limite: number, tarefa: (item: T) => Promise<R>): Promise<R[]> {
+/**
+ * Roda as promessas com um teto de simultaneidade, para não abrir 65 conexões de uma vez. Exportada para a leitura da
+ * meta de venda (`metas.ts`), que usa a mesma ponte filial a filial.
+ */
+export async function comLimite<T, R>(itens: T[], limite: number, tarefa: (item: T) => Promise<R>): Promise<R[]> {
   const resultados: R[] = new Array(itens.length);
   let proximo = 0;
 
@@ -327,13 +330,6 @@ export type ExecutivoConsolidado = {
     comCliente: number;
     semCliente: number;
     total: number;
-    /** Nulo quando nenhuma filial tem meta. */
-    alvo: number | null;
-    filiaisComMeta: number;
-    /** O realizado só das filiais com meta — o único que se compara com o alvo. */
-    realizadoDasFiliaisComMeta: number;
-    metasDetalhadas: number;
-    metasQueCruzamOAno: number;
   };
   /** Sem `clientesNasCarteirasDaFilial`: essa contagem não se soma. */
   carteira: Omit<CarteiraDaFilial, 'clientesNasCarteirasDaFilial'>;
@@ -416,7 +412,6 @@ export function somarExecutivo(ano: number, filiais: ExecutivoDaFilial[]): Execu
         };
 
   const anos = vivas.map((v) => v.i.ano);
-  const comMeta = anos.filter((a) => a.alvoDaFilial !== null);
   const carteiras = vivas.map((v) => v.i.carteira);
   const coberturas = vivas.map((v) => v.i.cobertura);
   const mercados = vivas.map((v) => v.i.mercado);
@@ -432,11 +427,6 @@ export function somarExecutivo(ano: number, filiais: ExecutivoDaFilial[]): Execu
       comCliente: somar(anos, (a) => a.comCliente),
       semCliente: somar(anos, (a) => a.semCliente),
       total: somar(anos, (a) => a.total),
-      alvo: comMeta.length === 0 ? null : somar(comMeta, (a) => a.alvoDaFilial ?? 0),
-      filiaisComMeta: comMeta.length,
-      realizadoDasFiliaisComMeta: somar(comMeta, (a) => a.total),
-      metasDetalhadas: somar(anos, (a) => a.metasDetalhadas),
-      metasQueCruzamOAno: somar(anos, (a) => a.metasQueCruzamOAno),
     },
     carteira: {
       clientesCadastradosComVinculo: somar(carteiras, (c) => c.clientesCadastradosComVinculo),

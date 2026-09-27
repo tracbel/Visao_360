@@ -221,6 +221,14 @@ só dela, nunca volta em resposta, não entra na trilha (só a data da troca, co
 passam pelo `Sigilo`. O botão "Testar" roda no servidor e só lê. As variáveis de ambiente continuam valendo como
 reserva. A API monitorada cadastrada pela tela faz GET num endereço escolhido pelo Administrador: é poder de quem
 administra, registrado na trilha, e o GET não segue redirecionamento. Rotas no documento 23, §2.14.
+
+**A meta de venda (issue 138, 27/09/2026).** Em `Meta.Ler` a PROFUNDIDADE decide o que
+se vê dentro da filial (decisão D-M5): em `Proprios` (perfil Padrão, linha 118) a pessoa vê só a própria meta — a do
+consultor cujo login é o dela — e as vendas do ART em que ela é a vendedora; em `EmpresaEAbaixo` (Gerência, 604;
+Diretoria, 706) a filial inteira, com os consultores que não têm conta; em `Organizacao` (Administrador, 428) tudo. A
+Diretoria vê todas as filiais pelo alcance que já tem (`Todas as filiais` no seletor). O Gestor comercial não tem
+`Meta.Ler`. A rota é `GET /api/v1/relatorios/metas`, uma filial por chamada.
+
 ---
 
 ## 5. Camada 3 — profundidade (o coração do modelo)
@@ -471,8 +479,10 @@ e `dados-locais/` continuam fora do Git.
 - **Antes:** `API_TOKEN` — nome genérico, sem nenhum uso no código.
 - **Agora:** `GESTAO_NEGOCIOS_API_URL` e `GESTAO_NEGOCIOS_API_TOKEN` no `.env` da raiz; no servidor,
   `GestaoDeNegocios__Base` e `GestaoDeNegocios__Chave`.
-- **Ninguém usa a chave ainda.** O cliente HTTP é a #13, e só se escreve depois do contrato (#12) e
-  da chave de cliente (#50). Até lá a chave fica guardada, sem chamada.
+- **Desde 27/09/2026 a chave é usada** pela rotina das metas de venda (#138): `ClienteDaGestaoDeNegocios`, só GET,
+  com a chave no cabeçalho Bearer e nenhuma mensagem de erro a citando (`Sigilo`). O endereço é o NOME do servidor,
+  `https://agro-sistemas-w.tracbel.com.br:5001`, com a validação do certificado inteira (D-M1). A credencial é gravada
+  pela tela, protegida; `GestaoDeNegocios__Base` e `GestaoDeNegocios__Chave` são a reserva no servidor.
 
 ### A varredura
 

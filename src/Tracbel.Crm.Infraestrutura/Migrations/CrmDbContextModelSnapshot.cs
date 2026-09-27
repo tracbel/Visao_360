@@ -102,7 +102,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         {
                             t.HasCheckConstraint("CK_AlteracaoDeCampo_Campo", "[Campo] COLLATE Latin1_General_BIN2 LIKE '[A-Z]%' AND [Campo] COLLATE Latin1_General_BIN2 NOT LIKE '%[^A-Za-z0-9]%'");
 
-                            t.HasCheckConstraint("CK_AlteracaoDeCampo_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
+                            t.HasCheckConstraint("CK_AlteracaoDeCampo_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
 
                             t.HasCheckConstraint("CK_AlteracaoDeCampo_Mudou", "([ValorAnterior] IS NOT NULL OR [ValorNovo] IS NOT NULL) AND ([ValorAnterior] IS NULL OR [ValorNovo] IS NULL OR [ValorAnterior] <> [ValorNovo])");
 
@@ -1386,6 +1386,11 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     b.Property<bool>("VendaDireta")
                         .HasColumnType("bit");
 
+                    b.Property<string>("VendedorNaOrigem")
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
                     b.Property<DateOnly?>("VendidaEm")
                         .HasColumnType("date");
 
@@ -1566,7 +1571,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
 
                     b.ToTable("ChaveExterna", "integracao", t =>
                         {
-                            t.HasCheckConstraint("CK_ChaveExterna_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
+                            t.HasCheckConstraint("CK_ChaveExterna_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CompradorPendente', 'Conexao', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FrotaDeTratoresNoMunicipio', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'ParametroDoPotencial', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
                         });
                 });
 
@@ -2377,7 +2382,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
 
                             t.HasCheckConstraint("CK_Conexao_StatusEsperado", "[StatusEsperado] BETWEEN 100 AND 599");
 
-                            t.HasCheckConstraint("CK_Conexao_Tipo", "[Tipo] IN ('ApiRest','SqlServer','MySql','FontePublica','Monitorada')");
+                            t.HasCheckConstraint("CK_Conexao_Tipo", "[Tipo] IN ('ApiRest','SqlServer','MySql','FontePublica','Monitorada','ApiComChave')");
 
                             t.HasCheckConstraint("CK_Conexao_UltimaVerificacao", "[UltimaVerificacao] IN ('NuncaVerificada','NoAr','ComFalha')");
                         });
@@ -2533,6 +2538,18 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             Nome = "Banco Central — SICOR",
                             StatusEsperado = 200,
                             Tipo = "FontePublica",
+                            UltimaVerificacao = "NuncaVerificada"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Codigo = "GESTAO_NEGOCIOS",
+                            Descricao = "O cadastro de metas de venda (unidades por consultor, linha, mês e filial) da API da Inteligência de Mercado. Só leitura, com a chave no cabeçalho Bearer.",
+                            EhDoSistema = true,
+                            EstaAtiva = true,
+                            Nome = "Gestão de Negócios — API",
+                            StatusEsperado = 200,
+                            Tipo = "ApiComChave",
                             UltimaVerificacao = "NuncaVerificada"
                         });
                 });
@@ -3291,6 +3308,16 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             EstaLigada = false,
                             Hora = new TimeOnly(6, 30, 0),
                             Nome = "Funil e vendas perdidas do Vórtice"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            AgendaVigenteDesde = new DateTime(2026, 9, 22, 12, 0, 0, 0, DateTimeKind.Utc),
+                            Cadencia = "Diaria",
+                            Codigo = "METAS_GESTAO_NEGOCIOS",
+                            EstaLigada = false,
+                            Hora = new TimeOnly(6, 0, 0),
+                            Nome = "Metas de venda (Gestão de Negócios)"
                         });
                 });
 
@@ -4894,6 +4921,156 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             t.HasCheckConstraint("CK_MedidaDoIbgeNoEstado_Uf", "[EstadoCodigoIbge] BETWEEN 11 AND 53");
 
                             t.HasCheckConstraint("CK_MedidaDoIbgeNoEstado_Valor", "[Valor] IS NULL OR [Valor] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Tracbel.Crm.Dominio.Organizacao.MetaDeVenda", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("AlteradoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<long?>("AlteradoPorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("AtualizadaPelaOrigemEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid>("ChavePublica")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<string>("CodigoDaLinha")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(60)");
+
+                    b.Property<DateOnly>("Competencia")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ConsultorNaOrigem")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<long?>("ConsultorUsuarioId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<long>("CriadoPorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExcluidoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime?>("GeradaNaOrigemEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("HashDaOrigem")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("IdNaOrigem")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IdadeNaOrigemSegundos")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ImportadaEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("LidaEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<int?>("LinhaDeProdutoId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LinhaNaOrigem")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<decimal?>("Margem")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Origem")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("Quantidade")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SistemaId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ValorUnitario")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("VendaDireta")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChavePublica")
+                        .IsUnique()
+                        .HasDatabaseName("UX_MetaDeVenda_ChavePublica");
+
+                    b.HasIndex("LinhaDeProdutoId");
+
+                    b.HasIndex("ConsultorUsuarioId", "Competencia")
+                        .HasDatabaseName("IX_MetaDeVenda_Consultor_Competencia");
+
+                    b.HasIndex("EmpresaId", "Competencia")
+                        .HasDatabaseName("IX_MetaDeVenda_Empresa_Competencia")
+                        .HasFilter("[ExcluidoEm] IS NULL");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EmpresaId", "Competencia"), new[] { "CodigoDaLinha", "ConsultorNaOrigem", "ConsultorUsuarioId", "VendaDireta", "Origem", "Quantidade" });
+
+                    b.HasIndex("SistemaId", "IdNaOrigem")
+                        .IsUnique()
+                        .HasDatabaseName("UX_MetaDeVenda_Sistema_IdNaOrigem");
+
+                    b.ToTable("MetaDeVenda", "organizacao", t =>
+                        {
+                            t.HasCheckConstraint("CK_MetaDeVenda_Competencia", "DAY([Competencia]) = 1");
+
+                            t.HasCheckConstraint("CK_MetaDeVenda_IdNaOrigem", "[IdNaOrigem] > 0");
+
+                            t.HasCheckConstraint("CK_MetaDeVenda_Origem", "[Origem] IN ('Campanha','Consorcio')");
+
+                            t.HasCheckConstraint("CK_MetaDeVenda_Quantidade", "[Quantidade] >= 0");
                         });
                 });
 
@@ -7153,6 +7330,13 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         },
                         new
                         {
+                            Id = 118,
+                            CodigoPermissao = "Meta.Ler",
+                            PerfilId = 1,
+                            Profundidade = "Proprios"
+                        },
+                        new
+                        {
                             Id = 201,
                             CodigoPermissao = "Cliente.Excluir",
                             PerfilId = 2,
@@ -7363,6 +7547,13 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         },
                         new
                         {
+                            Id = 428,
+                            CodigoPermissao = "Meta.Ler",
+                            PerfilId = 4,
+                            Profundidade = "Organizacao"
+                        },
+                        new
+                        {
                             Id = 501,
                             CodigoPermissao = "PercepcaoDoGestor.Informar",
                             PerfilId = 5,
@@ -7386,6 +7577,13 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         {
                             Id = 603,
                             CodigoPermissao = "Usuario.Ler",
+                            PerfilId = 6,
+                            Profundidade = "EmpresaEAbaixo"
+                        },
+                        new
+                        {
+                            Id = 604,
+                            CodigoPermissao = "Meta.Ler",
                             PerfilId = 6,
                             Profundidade = "EmpresaEAbaixo"
                         },
@@ -7423,6 +7621,13 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             CodigoPermissao = "Auditoria.Ler",
                             PerfilId = 7,
                             Profundidade = "Organizacao"
+                        },
+                        new
+                        {
+                            Id = 706,
+                            CodigoPermissao = "Meta.Ler",
+                            PerfilId = 7,
+                            Profundidade = "EmpresaEAbaixo"
                         });
                 });
 
@@ -8288,6 +8493,31 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     b.HasOne("Tracbel.Crm.Dominio.Seguranca.Usuario", null)
                         .WithMany()
                         .HasForeignKey("ImportadoPorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Tracbel.Crm.Dominio.Organizacao.MetaDeVenda", b =>
+                {
+                    b.HasOne("Tracbel.Crm.Dominio.Seguranca.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("ConsultorUsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Tracbel.Crm.Dominio.Organizacao.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Tracbel.Crm.Dominio.Frota.LinhaDeProduto", null)
+                        .WithMany()
+                        .HasForeignKey("LinhaDeProdutoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Tracbel.Crm.Dominio.Integracao.Sistema", null)
+                        .WithMany()
+                        .HasForeignKey("SistemaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

@@ -61,6 +61,9 @@ public sealed class VendaDeMaquinaConfiguracao : IEntityTypeConfiguration<VendaD
         b.Property(v => v.EmpresaNaOrigem).HasMaxLength(60).IsUnicode(true);
         b.Property(v => v.UnidadeNaOrigem).HasMaxLength(80).IsUnicode(true);
         b.Property(v => v.UnidadeDoFaturamentoNaOrigem).HasMaxLength(80).IsUnicode(true);
+
+        // O VENDEDOR DO ART (D-M2, 27/09/2026): nome.sobrenome, o mesmo do login — de quem é o realizado da meta.
+        b.Property(v => v.VendedorNaOrigem).HasMaxLength(80).IsUnicode(false);
         b.Property(v => v.HashDaOrigem).HasMaxLength(64).IsUnicode(false).IsRequired();
         b.Property(v => v.Transformacoes).HasMaxLength(1000).IsUnicode(true);
         b.Property(v => v.VendaDireta).IsRequired();

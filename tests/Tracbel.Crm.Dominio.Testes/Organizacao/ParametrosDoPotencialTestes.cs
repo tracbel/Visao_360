@@ -204,7 +204,8 @@ public sealed class ParametrosDoPotencialTestes
         var padrao = PerfisDeSistema.Todos.Single(p => p.EhPadrao).Permissoes.Select(p => p.Codigo).ToList();
         var administrador = PerfisDeSistema.Todos.Single(p => p.Codigo == PerfisDeSistema.Administrador).Permissoes.Select(p => p.Codigo).ToList();
 
-        padrao[^1].Should().Be(Permissoes.ParametroDoPotencialLer);
+        padrao.IndexOf(Permissoes.ParametroDoPotencialLer).Should().Be(16, "a da issue 71 continua na 17ª posição");
+        padrao[^1].Should().Be(Permissoes.MetaLer, "a da #138 entrou depois, no fim");
         padrao.IndexOf(Permissoes.EquipamentoEditar).Should().Be(15, "a 16ª permissão do padrão desde a fase 3");
         administrador.Skip(21).Take(3).Should().Equal(
             [Permissoes.ParametroDoPotencialLer, Permissoes.ParametroDoPotencialAdministrar, Permissoes.PercepcaoDoGestorInformar],
@@ -212,7 +213,8 @@ public sealed class ParametrosDoPotencialTestes
         administrador.IndexOf(Permissoes.UsuarioAdministrar).Should().Be(20, "a 21ª permissão do administrador desde a fase 3");
         administrador.IndexOf(Permissoes.UsuarioLer).Should().Be(24, "a da issue 113 entrou depois, no fim");
         administrador.IndexOf(Permissoes.AuditoriaLer).Should().Be(25, "a da issue 135 entrou depois dela, no fim");
-        administrador[^1].Should().Be(Permissoes.IntegracaoAdministrar, "a da issue 136 entrou depois, no fim");
+        administrador.IndexOf(Permissoes.IntegracaoAdministrar).Should().Be(26, "a da issue 136 entrou depois dela, no fim");
+        administrador[^1].Should().Be(Permissoes.MetaLer, "a da #138 entrou depois, no fim");
     }
     // =============================================================================================
     // A carência do SICOR (D-IM-03, issue 157)

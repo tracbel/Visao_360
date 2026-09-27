@@ -56,7 +56,7 @@ public sealed class MigracaoNoContainerTestes
 
         porSchema.Should().BeEquivalentTo(new Dictionary<string, int>
         {
-            ["organizacao"] = 32,
+            ["organizacao"] = 33,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 10,
@@ -64,8 +64,8 @@ public sealed class MigracaoNoContainerTestes
             ["auditoria"] = 1,
             ["integracao"] = 14,
             ["metadado"] = 2
-        }, "é a conta do documento 14, seção 2.1 — 78 tabelas de modelo em 8 schemas (as duas últimas, o funil do " +
-           "Vórtice e a classificação dos resultados, documento 52), no banco de " +
+        }, "é a conta do documento 14, seção 2.1 — 79 tabelas de modelo em 8 schemas (o funil do Vórtice e a classificação " +
+           "dos resultados, documento 52, e a meta de venda da issue 138), no banco de " +
            "verdade. A migração inicial criava 80 em 10; a fase 1 do documento 41 removeu as 31 " +
            "que nunca receberam uma linha e esvaziou por completo os schemas 'documento' e " +
            "'relatorio'; a issue 64 acrescentou o total do estado, a 65 as cinco da estrutura " +
@@ -73,7 +73,14 @@ public sealed class MigracaoNoContainerTestes
            "RENAME da tabela da PAM, que preserva a área plantada já carregada — também funcionam " +
            "em banco que nasce agora");
 
-        porSchema.Values.Sum().Should().Be(78);
+        porSchema.Values.Sum().Should().Be(79);
+
+        // AS INTEGRAÇÕES SEMEADAS (#138): a conexão 13 é a API Gestão de Negócios e a rotina 9 são as metas — as duas no
+        // fim da lista, sem renumerar as que já existem (a 8 é a do funil do Vórtice, #247).
+        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Conexao").Should().Be(13);
+        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Rotina").Should().Be(9);
+        contexto.Conexoes.Single(c => c.Id == 13).Codigo.Should().Be("GESTAO_NEGOCIOS");
+        contexto.Rotinas.Single(r => r.Id == 9).Codigo.Should().Be("METAS_GESTAO_NEGOCIOS");
     }
 
     [FatoSeHouverSqlServer]

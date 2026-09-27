@@ -17,9 +17,8 @@ public sealed class RotinaDosProcessosDoVorticeTestes
     [Fact]
     public void Entra_no_fim_da_lista_e_as_que_ja_existiam_nao_mudam_de_identificador()
     {
-        // Id = posição + 1, como a semente grava. As sete de antes ficam onde estavam; a do funil é a oitava. Quando a
-        // rotina das metas (METAS_GESTAO_NEGOCIOS) entrar antes dela na main, esta lista ganha a das metas no oitavo lugar,
-        // e a do funil passa a ser a nona — numa migração nova, sem reescrever a de hoje.
+        // Id = posição + 1, como a semente grava. As sete de antes ficam onde estavam; a do funil é a oitava (#247). A das
+        // metas (METAS_GESTAO_NEGOCIOS, #248) entrou DEPOIS dela, no nono lugar — nenhuma mudou de identificador.
         RotinasDoSistema.Todas.Select((r, posicao) => (Id: posicao + 1, r.Codigo)).Should().Equal(
             (1, RotinasDoSistema.FontesAnuais),
             (2, RotinasDoSistema.PrecosMensais),
@@ -28,9 +27,8 @@ public sealed class RotinaDosProcessosDoVorticeTestes
             (5, RotinasDoSistema.CadastroDeClientes),
             (6, RotinasDoSistema.CarteirasVortice),
             (7, RotinasDoSistema.ParqueProtheus),
-            (8, RotinasDoSistema.ProcessosVortice));
-
-        RotinasDoSistema.Todas[^1].Codigo.Should().Be(RotinasDoSistema.ProcessosVortice);
+            (8, RotinasDoSistema.ProcessosVortice),
+            (9, RotinasDoSistema.MetasGestaoDeNegocios));
     }
 
     [Fact]

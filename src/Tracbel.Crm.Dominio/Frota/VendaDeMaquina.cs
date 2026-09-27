@@ -25,6 +25,8 @@ namespace Tracbel.Crm.Dominio.Frota;
 /// <param name="UnidadeDoFaturamentoNaOrigem">A unidade que faturou, como a origem escreve.</param>
 /// <param name="HashDaOrigem">O resumo do conteúdo lido — é o que a recarga compara.</param>
 /// <param name="Transformacoes">As transformações aplicadas na leitura, em texto.</param>
+/// <param name="VendedorNaOrigem">O vendedor como a origem escreve (<c>nome.sobrenome</c> no ART) — de quem é o realizado
+/// da meta (D-M2, 27/09/2026).</param>
 public sealed record DadosDaVendaNaOrigem(
     int EmpresaId,
     int? EmpresaDoFaturamentoId,
@@ -45,7 +47,8 @@ public sealed record DadosDaVendaNaOrigem(
     string? UnidadeNaOrigem,
     string? UnidadeDoFaturamentoNaOrigem,
     string HashDaOrigem,
-    string? Transformacoes);
+    string? Transformacoes,
+    string? VendedorNaOrigem = null);
 
 /// <summary>
 /// A VENDA de uma máquina — um evento com data, filial e comprador, separado da máquina e do
@@ -56,8 +59,12 @@ public sealed record DadosDaVendaNaOrigem(
 /// duas vendas são fatos, e nenhuma é duplicata da outra.</para>
 ///
 /// <para><b>O que a venda não guarda:</b> valor, custo, comissão, lucro e margem — fora do escopo da
-/// integração e sensíveis. O vendedor também não: é nome de pessoa, sem vínculo com usuário do
-/// CRM.</para>
+/// integração e sensíveis.</para>
+///
+/// <para><b>O vendedor, sim, desde 27/09/2026</b> (<see cref="VendedorNaOrigem"/>, decisão D-M2 do Ricardo): o
+/// realizado da meta de venda é do vendedor do ART. Antes ele ficava de fora por minimização — nome de pessoa sem
+/// vínculo com usuário do CRM —; a meta da API Gestão de Negócios é por consultor, e o vendedor do ART é o único
+/// caminho que atribui 1.104 das 1.109 vendas do FY26 (99,5%), com o mesmo <c>nome.sobrenome</c> do login.</para>
 /// </summary>
 public sealed class VendaDeMaquina : EntidadeBase
 {
@@ -137,6 +144,13 @@ public sealed class VendaDeMaquina : EntidadeBase
     /// <summary>A unidade que faturou, como a origem escreve.</summary>
     public string? UnidadeDoFaturamentoNaOrigem { get; private set; }
 
+    /// <summary>
+    /// O vendedor como a origem escreve (<c>nome.sobrenome</c> no ART). É a pessoa do realizado da meta (D-M2,
+    /// 27/09/2026): a meta da GN é por consultor, e o casamento é pela chave da pessoa dos dois lados
+    /// (<see cref="Organizacao.MetaDeVenda.ChaveDaPessoa"/>).
+    /// </summary>
+    public string? VendedorNaOrigem { get; private set; }
+
     /// <summary>O resumo do conteúdo lido na última leitura que mudou a venda.</summary>
     public string HashDaOrigem { get; private set; } = default!;
 
@@ -211,6 +225,23 @@ public sealed class VendaDeMaquina : EntidadeBase
             .Select(campo => (campo, antes[campo], depois[campo]))];
     }
 
+    /// <summary>
+    /// PREENCHE SÓ O VENDEDOR da venda já importada cujo registro ficou pendente numa leitura (revisão do PR #248,
+    /// 27/09/2026). A venda é mantida como estava — a leitura pendente não vale para o comprador nem para o chassi —, mas
+    /// o vendedor que ela traz é o da mesma venda, e sem ele o realizado da meta não tem dono. Só quando o vendedor está
+    /// vazio: um vendedor já gravado não é trocado por uma leitura pendente. Devolve se mudou (a trilha registra).
+    /// </summary>
+    /// <param name="vendedor">O vendedor da leitura, já saneado.</param>
+    /// <param name="usuarioId">Quem roda a integração.</param>
+    public bool PreencherVendedor(string? vendedor, long usuarioId)
+    {
+        if (!string.IsNullOrWhiteSpace(VendedorNaOrigem) || string.IsNullOrWhiteSpace(vendedor)) return false;
+
+        VendedorNaOrigem = vendedor.Trim();
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
     /// <summary>Aponta a venda para outra máquina, quando a origem corrige o chassi.</summary>
     /// <param name="equipamentoId">A máquina certa.</param>
     /// <param name="usuarioId">Quem roda a integração.</param>
@@ -259,6 +290,7 @@ public sealed class VendaDeMaquina : EntidadeBase
         EmpresaNaOrigem = dados.EmpresaNaOrigem;
         UnidadeNaOrigem = dados.UnidadeNaOrigem;
         UnidadeDoFaturamentoNaOrigem = dados.UnidadeDoFaturamentoNaOrigem;
+        VendedorNaOrigem = dados.VendedorNaOrigem;
         HashDaOrigem = dados.HashDaOrigem;
         Transformacoes = dados.Transformacoes;
     }
@@ -280,7 +312,8 @@ public sealed class VendaDeMaquina : EntidadeBase
         [nameof(LinhaNaOrigem)] = LinhaNaOrigem,
         [nameof(ProdutoNaOrigem)] = ProdutoNaOrigem,
         [nameof(UnidadeNaOrigem)] = UnidadeNaOrigem,
-        [nameof(UnidadeDoFaturamentoNaOrigem)] = UnidadeDoFaturamentoNaOrigem
+        [nameof(UnidadeDoFaturamentoNaOrigem)] = UnidadeDoFaturamentoNaOrigem,
+        [nameof(VendedorNaOrigem)] = VendedorNaOrigem
     };
 }
 
