@@ -951,6 +951,9 @@ public static class RotinasDoSistema
     /// <summary>O cadastro de metas de venda da API Gestão de Negócios (decisão de 27/09/2026, #138).</summary>
     public const string MetasGestaoDeNegocios = "METAS_GESTAO_NEGOCIOS";
 
+    /// <summary>O preço de referência da máquina por categoria, pela nota do Protheus (issue 70, D-P12, 27/09/2026).</summary>
+    public const string PrecosDeMaquina = "PRECOS_DE_MAQUINA";
+
     /// <summary>
     /// Quando as agendas semeadas passam a valer: o dia em que o orquestrador substituiu as tarefas do Windows. O
     /// que era devido antes dele (a mensal de 20/09) já rodou pelas tarefas antigas.
@@ -1052,7 +1055,18 @@ public static class RotinasDoSistema
             "O cadastro de metas de venda da API Gestão de Negócios — unidades por consultor, linha, mês e filial —, " +
             "sincronizado com o CRM: meta nova entra, meta revisada fica na trilha, meta que some é excluída sem apagar.",
             ["--somente-metas-gn"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)), false,
-            [ConexoesDoSistema.GestaoDeNegocios], ConexoesDoSistema.GestaoDeNegocios)
+            [ConexoesDoSistema.GestaoDeNegocios], ConexoesDoSistema.GestaoDeNegocios),
+
+        // O PREÇO DE REFERÊNCIA DA MÁQUINA POR CATEGORIA (issue 70, D-P12, decidida pelo Ricardo em 27/09/2026) — a rotina
+        // 10, no FIM da lista como toda rotina nova. Casa a venda do ART que o CRM já tem com o item de máquina da nota do
+        // Protheus (SD2, grupo VEIC) e grava só a mediana mensal por categoria. Diária às 07:00, depois do faturamento
+        // (05:00) e com o ART da madrugada já carregado. NASCE DESLIGADA, como toda rotina que traz dado novo para produção:
+        // quem liga é quem administra, com a conexão do banco do Protheus já testada — e "Rodar agora" traz o histórico.
+        new(PrecosDeMaquina, "Preço da máquina (nota do Protheus)",
+            "O preço de referência de cada categoria de máquina — a mediana mensal do valor das notas de venda do Protheus, " +
+            "casadas com as vendas do ART pela filial e pelo número da nota. Alimenta o mercado anual e o termo de troca.",
+            ["--somente-precos-de-maquina"], AgendaDaRotina.DiariaAs(new TimeOnly(7, 0)), false,
+            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco)
     ];
 
     /// <summary>A rotina do catálogo pelo código; nula quando não existe.</summary>
