@@ -255,4 +255,27 @@ public sealed class CargaDoArtComOProtheusTestes : IDisposable
         (await depois.DivergenciasDeIntegracao.CountAsync()).Should().Be(divergencias);
         (await Registros())["5002"].Motivos.Should().Be(MotivoDePendenciaDoArt.ChassiIncompleto, "a projeção não grava");
     }
+
+    [Fact]
+    public async Task O_vendedor_do_art_vai_para_a_venda_e_a_primeira_leitura_com_ele_preenche_as_ja_importadas()
+    {
+        // D-M2 (27/09/2026): o realizado da meta é do vendedor do ART. A leitura de antes não o trazia; a primeira que traz
+        // muda o resumo de todos os registros e preenche o vendedor das vendas já importadas — com trilha, uma vez só.
+        await Rodar();
+        await using (var antes = Sistema())
+            (await antes.VendasDeMaquina.AsNoTracking().SingleAsync(v => v.ChaveOrigem == "5001")).VendedorNaOrigem.Should().BeNull();
+
+        var comVendedor = Vendas().Select(v => v with { Vendedor = "fulano.de.tal" }).ToList();
+        var relatorio = await Rodar(comVendedor);
+
+        relatorio.Valor(CargaDoArt.RotuloDeVendasAtualizadas).Should().BeGreaterThan(0, "o vendedor mudou o resumo das vendas já importadas");
+
+        await using var db = Sistema();
+        (await db.VendasDeMaquina.AsNoTracking().SingleAsync(v => v.ChaveOrigem == "5001")).VendedorNaOrigem.Should().Be("fulano.de.tal");
+        (await db.AlteracoesDeCampo.AsNoTracking()
+                .CountAsync(a => a.Entidade == nameof(VendaDeMaquina) && a.Campo == nameof(VendaDeMaquina.VendedorNaOrigem) && a.ValorNovo == "fulano.de.tal"))
+            .Should().Be(relatorio.Valor(CargaDoArt.RotuloDeVendasAtualizadas), "cada venda preenchida deixa uma linha de trilha");
+
+        (await Rodar(comVendedor)).Valor(CargaDoArt.RotuloDeVendasAtualizadas).Should().Be(0, "depois do preenchimento, a releitura igual não muda nada");
+    }
 }

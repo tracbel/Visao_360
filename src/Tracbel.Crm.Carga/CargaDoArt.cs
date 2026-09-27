@@ -424,7 +424,9 @@ internal sealed class CargaDoArt(
             var dados = new DadosDaVendaNaOrigem(
                 i.EmpresaId, i.EmpresaDoFaturamentoId, s.VendidaEm, s.FaturadaEm, s.EntregueEm, s.AbertaEm,
                 s.NumeroDoPedido, s.NumeroDaNotaFiscal, s.Situacao, s.Gestao, s.VendaDireta, s.RepasseDireto, s.Quantidade,
-                s.Linha, s.Produto, s.Empresa, s.Unidade, s.UnidadeDoFaturamento, s.Hash, s.TransformacoesEmTexto);
+                s.Linha, s.Produto, s.Empresa, s.Unidade, s.UnidadeDoFaturamento, s.Hash, s.TransformacoesEmTexto,
+                // O VENDEDOR DO ART (D-M2, 27/09/2026): de quem é o realizado da meta de venda.
+                s.Vendedor);
 
             if (!vendasPorChave.TryGetValue(s.Codigo, out var venda))
             {

@@ -178,6 +178,20 @@ public sealed class SaneamentoDoArtTestes
         SaneamentoDoArt.Sanear(Registro() with { DataDaVenda = "2025-09-17" }).Hash.Should().NotBe(original.Hash);
     }
 
+    [Fact]
+    public void O_vendedor_e_lido_como_a_origem_escreve_e_entra_no_resumo()
+    {
+        // D-M2 (27/09/2026): o vendedor do ART é de quem é o realizado da meta. Ele entra no resumo — é assim que a primeira
+        // leitura depois da publicação preenche as vendas já importadas.
+        var semVendedor = SaneamentoDoArt.Sanear(Registro());
+        var comVendedor = SaneamentoDoArt.Sanear(Registro() with { Vendedor = " fulano.de.tal " });
+
+        semVendedor.Vendedor.Should().BeNull();
+        comVendedor.Vendedor.Should().Be("fulano.de.tal");
+        comVendedor.Hash.Should().NotBe(semVendedor.Hash);
+        SaneamentoDoArt.Sanear(Registro() with { Vendedor = new string('x', 81) }).Vendedor.Should().BeNull("maior que a coluna é omitido, não cortado");
+    }
+
     // =============================================================================================
     // Correspondências
     // =============================================================================================
