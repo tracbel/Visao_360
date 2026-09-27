@@ -179,7 +179,7 @@ public sealed class MetasNaApiTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemo
     {
         await SemearAsync(api);
         // O MÊS CORRENTE É O DE SÃO PAULO (revisão do PR #248), e não o do UTC.
-        var mesCorrente = Tracbel.Crm.Aplicacao.Relacionamento.ObterMetaERealizado.MesCorrenteEmSaoPaulo(DateTime.UtcNow);
+        var mesCorrente = AnoFiscal.MesCorrenteEmSaoPaulo(DateTime.UtcNow);
         var ultimoFechado = mesCorrente.AddMonths(-1);
         var inicioDoAno = new DateOnly(ultimoFechado.Month >= 11 ? ultimoFechado.Year : ultimoFechado.Year - 1, 11, 1);
 

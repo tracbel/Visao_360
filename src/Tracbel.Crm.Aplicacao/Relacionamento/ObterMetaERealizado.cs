@@ -85,33 +85,6 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
 
     private static readonly CultureInfo Portugues = CultureInfo.GetCultureInfo("pt-BR");
 
-    /// <summary>
-    /// O FUSO DA OPERAÇÃO. O relógio é UTC, e o mês fechado é o de São Paulo: das 21h do último dia até a meia-noite UTC,
-    /// o UTC já está no mês seguinte e o período padrão pularia um mês que ainda não fechou (revisão do PR #248). Sem o
-    /// fuso IANA no sistema, as mesmas −3 h que o resto do código usa — o Brasil não tem horário de verão desde 2019.
-    /// </summary>
-    private static readonly TimeZoneInfo FusoDeSaoPaulo = FusoDaOperacao();
-
-    /// <summary>O mês corrente em São Paulo, no dia 1, a partir do instante em UTC.</summary>
-    /// <param name="agoraUtc">O instante, em UTC.</param>
-    public static DateOnly MesCorrenteEmSaoPaulo(DateTime agoraUtc)
-    {
-        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(agoraUtc, DateTimeKind.Utc), FusoDeSaoPaulo);
-        return new DateOnly(local.Year, local.Month, 1);
-    }
-
-    private static TimeZoneInfo FusoDaOperacao()
-    {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-        }
-        catch (Exception falha) when (falha is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return TimeZoneInfo.CreateCustomTimeZone("America/Sao_Paulo", TimeSpan.FromHours(-3), "São Paulo", "São Paulo");
-        }
-    }
-
     /// <summary>Executa a apuração.</summary>
     /// <param name="competenciaInicial">O primeiro mês (<c>AAAA-MM</c> ou <c>AAAA-MM-DD</c>); vazio com o final vazio é o padrão.</param>
     /// <param name="competenciaFinal">O último mês, inclusive.</param>
@@ -128,7 +101,9 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
         // ninguém decidiu abrir.
         var alcance = profundidade is Profundidade.Proprios or Profundidade.Equipe ? AlcanceDaMeta.Proprios : AlcanceDaMeta.Filial;
 
-        var mesCorrente = MesCorrenteEmSaoPaulo(relogio.Agora);
+        // O MÊS FECHADO É O DE SÃO PAULO, e não o do UTC (revisão do PR #248): às 22h do último dia o UTC já virou o mês.
+        // A conta é a do AnoFiscal, a mesma dos indicadores (#246).
+        var mesCorrente = AnoFiscal.MesCorrenteEmSaoPaulo(relogio.Agora);
 
         var erros = new ColetorDeErros();
         var inicial = Mes(erros, "competenciaInicial", competenciaInicial, mesCorrente.Year);
