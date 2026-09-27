@@ -1155,3 +1155,52 @@ de 1.335 para 632.
 - **A tela**: o dono atual e a evidência estão gravados no vínculo; a Visão 360 ainda lista as máquinas pelo
   comprador na venda e pelo dono confirmado. Mostrar o parque pelo dono atual, com o filtro de evidência, é o
   passo seguinte.
+
+## 14. As metas de venda da API Gestão de Negócios e o vendedor do ART (27/09/2026)
+
+### 14.1 As decisões (Ricardo, 27/09/2026)
+
+| # | Decisão | O que ela fixa |
+|---|---|---|
+| D-M1 | A API é chamada pelo **NOME**, `https://agro-sistemas-w.tracbel.com.br:5001`, com a validação do certificado inteira | o certificado é o curinga `*.tracbel.com.br` de uma autoridade pública (GeoTrust/DigiCert), válido de 17/09/2026 a 04/04/2027; pelo IP o único erro é o de nome. Nada de impressão digital fixada nem de "aceitar qualquer certificado": a chave vale para a API inteira |
+| D-M2 | O realizado por consultor é o **vendedor do ART** | o CRM passa a ler a coluna `vendedor` de `bi_art_veiculos` e a gravar `frota.VendaDeMaquina.VendedorNaOrigem`. Ele atribui 1.104 das 1.109 vendas do FY26 (99,5%); pelo usuário do CRM, 940; pela carteira do comprador, 538. A minimização que deixava o vendedor fora foi revista (comentário de `LeitorDoArt`) |
+| D-M3 | O realizado é só `frota.VendaDeMaquina`, com a lacuna em número | 1.109 no CRM × 1.322 no ART × 1.319 no painel da GN; as 213 pendentes aparecem como "N vendas do ART aguardam cadastro ou chassi". Somá-las fica para depois |
+| D-M4 | Consórcio à parte | meta em cotas (266 linhas, 417 cotas), realizado "não medido pelo CRM" |
+| D-M5 | Visibilidade por `Meta.Ler` | Padrão `Proprios` (118), Administrador `Organizacao` (428), Gerência `EmpresaEAbaixo` (604), Diretoria `EmpresaEAbaixo` (706, vê todas pelo alcance que já tem); Gestor comercial sem |
+
+### 14.2 A fonte
+
+- `GET /api/v1/cadastros/metas`, paginada (padrão 500, até 5.000 por página), com `Authorization: Bearer`. O envelope é
+  `cadastro, gerado_em, linhas, pagina, paginas, por_pagina, rotulo, tipo, total` — **sem** `idade_segundos`: o
+  cadastro é da própria GN, e não espelho (o atraso de ~21 h vale só para os painéis).
+- A chave de negócio (mês, filial, linha, consultor, tipo, origem) **não é única**: 1.540 linhas, 1.436 combinações, 83
+  grupos com 187 linhas que se somam. A chave natural é o `id` da GN (1 a 1.540, sem buraco).
+- **Os nomes do mês, da linha, do tipo e da origem na linha ainda não foram conferidos** contra a resposta real: ficam
+  num lugar só (`LinhaDeMetaNoJson`, `JsonPropertyName`) e, se não baterem, a leitura falha alto dizendo os campos que
+  chegaram — e nada é gravado.
+- A conexão é a **13**, `GESTAO_NEGOCIOS`, tipo novo `ApiComChave` (endereço https e chave, sem usuário). A credencial é
+  a da tela (Configurações › Integrações, protegida) ou, como reserva, `GestaoDeNegocios__Base` e `GestaoDeNegocios__Chave`
+  no servidor — os nomes da issue [001]. O botão "Testar" lê UMA linha do cadastro de metas.
+
+### 14.3 A rotina
+
+`METAS_GESTAO_NEGOCIOS` (rotina **8**), `--somente-metas-gn`, diária às 06:00, **nasce desligada** e exige a conexão 13.
+Lê tudo, confere o total e os ids, saneia, casa filial (`0101NN`), classificação (a tabela do ART; CONSÓRCIO e USADOS
+ficam sem) e consultor (a conta cujo login é o consultor em minúsculas), e sincroniza `organizacao.MetaDeVenda` numa
+transação: nova entra, revisada muda com trilha, a que some é excluída sem apagar e volta na mesma linha. **A remoção de
+mais de 20% das vigentes (com ao menos 100) aborta a carga inteira**; `--aceitar-remocao` só no terminal. O frescor fica
+no ponto de sincronismo `GESTAO_NEGOCIOS.METAS`. A segunda leitura igual grava zero.
+
+### 14.4 O vendedor do ART e o preenchimento
+
+O vendedor entrou no resumo do conteúdo do registro do ART: a primeira leitura depois da publicação acha todos os
+registros alterados e preenche o vendedor das vendas já importadas — cerca de **3,6 mil linhas de trilha, uma vez**.
+
+### 14.5 Como ligar em produção
+
+1. Publicar a versão com a migração `MetasDaGestaoDeNegocios`.
+2. Em Configurações › Integrações › "Gestão de Negócios — API": endereço `https://agro-sistemas-w.tracbel.com.br:5001`
+   (o NOME, não o IP) e a chave; "Testar" — tem de dizer quantas metas o cadastro tem.
+3. Rodar uma vez no terminal com `--somente-metas-gn --simular` e conferir as contagens (1.540 lidas; 1.502 unidades de
+   máquinas no FY2026; 417 cotas de consórcio).
+4. Ligar a rotina "Metas de venda (Gestão de Negócios)".
