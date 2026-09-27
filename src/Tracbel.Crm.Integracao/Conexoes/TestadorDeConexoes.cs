@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using MySqlConnector;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Portas;
+using Tracbel.Crm.Integracao.GestaoDeNegocios;
 using Tracbel.Crm.Integracao.Protheus;
 
 namespace Tracbel.Crm.Integracao.Conexoes;
@@ -15,6 +16,9 @@ namespace Tracbel.Crm.Integracao.Conexoes;
 /// <list type="bullet">
 /// <item><b>Protheus (API REST):</b> pede o token e lê UMA linha da SA1 (<c>A1_FILIAL</c>) pelo <c>genericQuery</c>,
 /// que é GET. Prova endereço, credencial e permissão de leitura; nenhum dado volta para a tela.</item>
+/// <item><b>API com chave (a Gestão de Negócios):</b> lê UMA linha do cadastro de metas com a chave no Bearer. A chave
+/// recusada, o redirecionamento para a tela de login e o certificado que não confere com o endereço (use o NOME, não o IP)
+/// são ditos como tais.</item>
 /// <item><b>Bancos (SQL Server e MySQL):</b> abre a sessão como somente leitura e roda uma consulta que não traz
 /// dado — <c>SELECT 1</c>; no ART, <c>SELECT 1 FROM &lt;visão&gt; LIMIT 1</c>, que prova que a visão existe e é
 /// legível.</item>
@@ -51,6 +55,7 @@ public sealed class TestadorDeConexoes(IHttpClientFactory fabrica) : ITestadorDe
             var (ok, resumo) = conexao.Tipo switch
             {
                 TipoDeConexao.ApiRest => await TestarProtheusAsync(conexao, limite.Token),
+                TipoDeConexao.ApiComChave => await TestarApiComChaveAsync(conexao, limite.Token),
                 TipoDeConexao.SqlServer => await TestarSqlServerAsync(conexao, limite.Token),
                 TipoDeConexao.MySql => await TestarMySqlAsync(conexao, limite.Token),
                 _ => await TestarHttpAsync(conexao, limite.Token)
@@ -110,6 +115,30 @@ public sealed class TestadorDeConexoes(IHttpClientFactory fabrica) : ITestadorDe
         return pagina.EhSucesso
             ? (true, "Autenticou (token) e leu uma linha da SA1 pelo genericQuery — só leitura; nenhum dado foi guardado.")
             : (false, pagina.Erro ?? "O Protheus não respondeu como esperado.");
+    }
+
+    /// <summary>
+    /// A API COM CHAVE (a Gestão de Negócios): lê UMA linha do cadastro de metas com a chave no Bearer. O
+    /// <c>openapi.json</c> não serve de teste — sem a chave ele manda para a tela de login, e com ela não prova que a
+    /// chave lê o que a rotina lê. Nada da linha é guardado: a resposta diz só quantas metas o cadastro tem.
+    /// </summary>
+    private async Task<(bool, string)> TestarApiComChaveAsync(ConexaoResolvida conexao, CancellationToken ct)
+    {
+        var opcoes = new OpcoesDaGestaoDeNegocios
+        {
+            Base = conexao.Endereco,
+            Chave = conexao.Segredo,
+            TamanhoDaPagina = 1,
+            TempoLimiteSegundos = (int)TempoLimite.TotalSeconds
+        };
+
+        var cliente = new ClienteDaGestaoDeNegocios(fabrica, Options.Create(opcoes), NomeDoCliente, TimeSpan.Zero);
+        var pagina = await cliente.LerPaginaAsync<System.Text.Json.JsonElement>(LeitorDeMetasDaGestaoDeNegocios.Rota, 1, 1, ct);
+
+        return pagina.EhSucesso
+            ? (true, string.Create(CultureInfo.InvariantCulture,
+                $"Autenticou com a chave e leu uma linha de {LeitorDeMetasDaGestaoDeNegocios.Rota} — o cadastro tem {pagina.Valor.Total} metas. Só leitura; nenhum dado foi guardado."))
+            : (false, pagina.Erro ?? "A API não respondeu como esperado.");
     }
 
     private static async Task<(bool, string)> TestarSqlServerAsync(ConexaoResolvida conexao, CancellationToken ct)

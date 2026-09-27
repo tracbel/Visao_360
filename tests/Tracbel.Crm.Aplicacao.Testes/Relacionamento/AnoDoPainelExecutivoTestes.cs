@@ -35,7 +35,7 @@ public sealed class AnoDoPainelExecutivoTestes
             return Task.FromResult(new IndicadoresExecutivosDaFilial(
                 agoraUtc,
                 null,
-                new FaturamentoDoAno(ano, null, null, 0, 0m, 0m, 0, null, 0, 0, calendario.ToString(), meses.Inicial, meses.Final),
+                new FaturamentoDoAno(ano, null, null, 0, 0m, 0m, calendario.ToString(), meses.Inicial, meses.Final),
                 new CarteiraDaFilial(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
                 new CoberturaDaFilial(0, 0, 0, 0, 0, 0, null, 0, 0),
                 new MercadoDaFilial(0, 0, 0, 0, 0, null, null)));
@@ -119,14 +119,14 @@ public sealed class AnoDoPainelExecutivoTestes
     }
 
     [Fact]
-    public async Task A_lacuna_da_meta_diz_o_ano_fiscal_com_o_intervalo()
+    public async Task O_cartao_do_ano_nao_tem_mais_a_lacuna_da_meta_de_faturamento()
     {
+        // A META DE FATURAMENTO SAIU DESTE CARTÃO (#138, 27/09/2026): a decidida é a de VENDA, em unidades, da API Gestão
+        // de Negócios, com rota própria (/relatorios/metas) e as lacunas dela lá.
         var (_, caso) = Montar(new DateTime(2026, 9, 27, 12, 0, 0, DateTimeKind.Utc));
 
         var resultado = await caso.ExecutarAsync(null, null, CancellationToken.None);
 
-        resultado.Valor.Dados.MetricasSemDado.Single(m => m.Metrica == "metaDeFaturamento").Motivo
-            .Should().Contain("meta de faturamento do FY2026 (nov/2025 a out/2026)",
-                "\"de 2026\" se lê como o ano civil e erra dois meses");
+        resultado.Valor.Dados.MetricasSemDado.Select(m => m.Metrica).Should().NotContain("metaDeFaturamento");
     }
 }

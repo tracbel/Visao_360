@@ -109,6 +109,47 @@ public sealed class IntegracoesConfiguraveisTestes : IDisposable
     }
 
     [Fact]
+    public void A_chave_da_gestao_de_negocios_vai_da_tela_para_os_nomes_da_issue_1()
+    {
+        // OS NOMES SÃO OS DA ISSUE [001] (.env.exemplo e documento 05): GestaoDeNegocios__Base e GestaoDeNegocios__Chave.
+        var protetor = new ProtetorDeSegredos();
+        var gn = Conexao.DoCatalogo(ConexoesDoSistema.Todas.Single(c => c.Codigo == ConexoesDoSistema.GestaoDeNegocios));
+        gn.Configurar("https://agro-sistemas-w.tracbel.com.br:5001", null, null, null, null, null);
+
+        var resolvedor = new ResolvedorDeConexoes(Ambiente(), protetor);
+        resolvedor.OrigemDe(gn).Should().Be(OrigemDaCredencial.Nenhuma, "sem a chave, só o endereço não basta");
+
+        gn.DefinirSegredo(protetor.Proteger(Senha), 100, DateTime.UtcNow);
+        var resolvida = resolvedor.Resolver(gn);
+
+        resolvida.Origem.Should().Be(OrigemDaCredencial.Tela);
+        resolvida.Usuario.Should().BeNull();
+        resolvida.ToString().Should().NotContain(Senha);
+
+        var chaves = ResolvedorDeConexoes.ParaConfiguracao(resolvida);
+        chaves.Should().BeEquivalentTo(new Dictionary<string, string?>
+        {
+            ["GestaoDeNegocios:Base"] = "https://agro-sistemas-w.tracbel.com.br:5001",
+            ["GestaoDeNegocios:Chave"] = Senha
+        });
+    }
+
+    [Fact]
+    public void Sem_a_tela_a_gestao_de_negocios_vale_pelo_ambiente_do_servidor()
+    {
+        var gn = Conexao.DoCatalogo(ConexoesDoSistema.Todas.Single(c => c.Codigo == ConexoesDoSistema.GestaoDeNegocios));
+        var resolvedor = new ResolvedorDeConexoes(
+            Ambiente(("GestaoDeNegocios:Base", "https://gn.exemplo.invalid:5001"), ("GestaoDeNegocios:Chave", "chave-do-ambiente")),
+            new ProtetorDeSegredos());
+
+        resolvedor.OrigemDe(gn).Should().Be(OrigemDaCredencial.Ambiente);
+        var resolvida = resolvedor.Resolver(gn);
+        (resolvida.Endereco, resolvida.Segredo).Should().Be(("https://gn.exemplo.invalid:5001", "chave-do-ambiente"));
+        ResolvedorDeConexoes.ChavesDoAmbiente(ConexoesDoSistema.GestaoDeNegocios)
+            .Should().Equal("GestaoDeNegocios:Base", "GestaoDeNegocios:Chave");
+    }
+
+    [Fact]
     public void A_cadeia_do_vortice_montada_pela_tela_escapa_a_senha_e_declara_somente_leitura()
     {
         var protetor = new ProtetorDeSegredos();

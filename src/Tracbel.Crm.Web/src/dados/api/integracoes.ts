@@ -11,7 +11,8 @@ import { ler, pedir, type ContextoDeAcesso } from './http';
 
 const BASE = '/v1/admin/integracoes';
 
-export type TipoDeConexao = 'ApiRest' | 'SqlServer' | 'MySql' | 'FontePublica' | 'Monitorada';
+/** `ApiComChave` é a API Gestão de Negócios (#138): endereço https e a chave (Bearer), sem usuário. */
+export type TipoDeConexao = 'ApiRest' | 'SqlServer' | 'MySql' | 'FontePublica' | 'Monitorada' | 'ApiComChave';
 export type OrigemDaCredencial = 'NaoSeAplica' | 'Tela' | 'Ambiente' | 'Nenhuma';
 export type CadenciaDaRotina = 'Anual' | 'Mensal' | 'Diaria' | 'Intervalo';
 

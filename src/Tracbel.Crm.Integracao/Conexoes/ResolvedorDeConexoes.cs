@@ -4,6 +4,7 @@ using MySqlConnector;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Integracao.Art;
+using Tracbel.Crm.Integracao.GestaoDeNegocios;
 using Tracbel.Crm.Integracao.Protheus;
 using Tracbel.Crm.Integracao.Vortice;
 
@@ -56,6 +57,9 @@ public sealed class ResolvedorDeConexoes(IConfiguration configuracao, IProtetorD
         ConexoesDoSistema.Art =>
             [$"{OpcoesDoArt.Secao}:Servidor", $"{OpcoesDoArt.Secao}:Banco", $"{OpcoesDoArt.Secao}:Usuario", $"{OpcoesDoArt.Secao}:Senha", $"{OpcoesDoArt.Secao}:Visao"],
         ConexoesDoSistema.Vortice => [$"{OpcoesDoVortice.Secao}:Conexao"],
+
+        // OS NOMES DA ISSUE [001] (.env.exemplo, documento 05): GestaoDeNegocios__Base e GestaoDeNegocios__Chave.
+        ConexoesDoSistema.GestaoDeNegocios => [$"{OpcoesDaGestaoDeNegocios.Secao}:Base", $"{OpcoesDaGestaoDeNegocios.Secao}:Chave"],
         _ => []
     };
 
@@ -94,6 +98,11 @@ public sealed class ResolvedorDeConexoes(IConfiguration configuracao, IProtetorD
             ConexoesDoSistema.Vortice => new Dictionary<string, string?>
             {
                 [$"{OpcoesDoVortice.Secao}:Conexao"] = conexao.CadeiaDeConexao
+            },
+            ConexoesDoSistema.GestaoDeNegocios => new Dictionary<string, string?>
+            {
+                [$"{OpcoesDaGestaoDeNegocios.Secao}:Base"] = conexao.Endereco,
+                [$"{OpcoesDaGestaoDeNegocios.Secao}:Chave"] = conexao.Segredo
             },
             _ => new Dictionary<string, string?>()
         };
@@ -146,6 +155,11 @@ public sealed class ResolvedorDeConexoes(IConfiguration configuracao, IProtetorD
             case ConexoesDoSistema.Vortice:
                 return new ConexaoResolvida(conexao.Codigo, conexao.Tipo, OrigemDaCredencial.Ambiente, null, null, null, null, null, null, null, 200,
                     configuracao[$"{OpcoesDoVortice.Secao}:Conexao"]);
+
+            case ConexoesDoSistema.GestaoDeNegocios:
+                return new ConexaoResolvida(conexao.Codigo, conexao.Tipo, OrigemDaCredencial.Ambiente,
+                    configuracao[$"{OpcoesDaGestaoDeNegocios.Secao}:Base"], null, null, null, null,
+                    configuracao[$"{OpcoesDaGestaoDeNegocios.Secao}:Chave"], null, 200, null);
 
             default:
                 return new ConexaoResolvida(conexao.Codigo, conexao.Tipo, OrigemDaCredencial.Nenhuma, conexao.Endereco, null, null, null, null, null, null, 200, null);

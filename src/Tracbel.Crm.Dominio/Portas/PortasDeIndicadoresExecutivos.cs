@@ -63,14 +63,15 @@ public enum CalendarioDoAno
 }
 
 /// <summary>
-/// O faturamento do ANO pedido — o fiscal, por padrão —, ao lado da meta de faturamento cadastrada — e
-/// nunca de uma previsão (documento 36, cartão B).
+/// O faturamento do ANO pedido — o fiscal, por padrão —, em reais, e nunca de uma previsão (documento 36, cartão B).
 ///
 /// <para><b>Ano fiscal por padrão</b> (decisão de 27/09/2026): novembro a outubro. O ano que ainda corre é somado
-/// até o ÚLTIMO MÊS FECHADO, como nos Indicadores Geográficos — o mês em curso fica à parte, no cartão do mês.
-/// <b>Meta só soma no nível da filial</b> (sem carteira, usuário nem linha de negócio) e com o
-/// período inteiro dentro do ano: somar a meta da filial com a das carteiras dela contaria o mesmo
-/// alvo duas vezes, e ratear uma meta que cruza o ano seria inventar a parte de cada mês.</para>
+/// até o ÚLTIMO MÊS FECHADO, como nos Indicadores Geográficos — o mês em curso fica à parte, no cartão do mês.</para>
+///
+/// <para><b>A meta saiu daqui (#138, 27/09/2026).</b> Este registro levava a meta de FATURAMENTO de
+/// <c>organizacao.Meta</c>, tabela que saiu na fase 1 sem nunca ter tido uma linha — os quatro campos vinham
+/// sempre zerados. A meta decidida é a de VENDA, em unidades, da API Gestão de Negócios, e mora na rota
+/// própria (<c>/relatorios/metas</c>); aqui fica só o faturamento.</para>
 /// </summary>
 /// <param name="Ano">O ano pedido — o fiscal (o ano em que ele termina) ou o civil, conforme o calendário.</param>
 /// <param name="PrimeiraCompetencia">O primeiro mês com faturamento no ano.</param>
@@ -78,10 +79,6 @@ public enum CalendarioDoAno
 /// <param name="MesesComFaturamento">Quantos meses do ano têm linha de faturamento.</param>
 /// <param name="ComCliente">Realizado com cliente no CRM.</param>
 /// <param name="SemCliente">Realizado sem cliente no CRM, todas as naturezas.</param>
-/// <param name="MetasDaFilial">Metas de faturamento da filial com o período dentro do ano.</param>
-/// <param name="AlvoDaFilial">A soma dessas metas; nulo quando não há nenhuma — sem meta, e não meta zero.</param>
-/// <param name="MetasDetalhadas">Metas de carteira, usuário ou linha no ano — contadas, não somadas.</param>
-/// <param name="MetasQueCruzamOAno">Metas que começam ou terminam fora do ano — contadas, não rateadas.</param>
 /// <param name="Calendario">Um <see cref="CalendarioDoAno"/> como texto — a tela escreve qual é.</param>
 /// <param name="Inicio">O primeiro mês do ano no calendário escolhido (novembro no fiscal, janeiro no civil).</param>
 /// <param name="Fim">O último mês somado: o fim do ano, ou o último mês fechado quando o ano ainda corre.</param>
@@ -92,10 +89,6 @@ public sealed record FaturamentoDoAno(
     int MesesComFaturamento,
     decimal ComCliente,
     decimal SemCliente,
-    int MetasDaFilial,
-    decimal? AlvoDaFilial,
-    int MetasDetalhadas,
-    int MetasQueCruzamOAno,
     string Calendario = nameof(CalendarioDoAno.Fiscal),
     DateOnly? Inicio = null,
     DateOnly? Fim = null)

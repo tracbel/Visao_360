@@ -1156,3 +1156,92 @@ de 1.335 para 632.
 - **A tela**: o dono atual e a evidência estão gravados no vínculo; a Visão 360 ainda lista as máquinas pelo
   comprador na venda e pelo dono confirmado. Mostrar o parque pelo dono atual, com o filtro de evidência, é o
   passo seguinte.
+
+## 14. As metas de venda da API Gestão de Negócios e o vendedor do ART (27/09/2026)
+
+### 14.1 As decisões (Ricardo, 27/09/2026)
+
+| # | Decisão | O que ela fixa |
+|---|---|---|
+| D-M1 | A API é chamada pelo **NOME**, `https://agro-sistemas-w.tracbel.com.br:5001`, com a validação do certificado inteira | o certificado é o curinga `*.tracbel.com.br` de uma autoridade pública (GeoTrust/DigiCert), válido de 17/09/2026 a 04/04/2027; pelo IP o único erro é o de nome. Nada de impressão digital fixada nem de "aceitar qualquer certificado": a chave vale para a API inteira |
+| D-M2 | O realizado por consultor é o **vendedor do ART** | o CRM passa a ler a coluna `vendedor` de `bi_art_veiculos` e a gravar `frota.VendaDeMaquina.VendedorNaOrigem`. Ele atribui 1.104 das 1.109 vendas do FY26 (99,5%); pelo usuário do CRM, 940; pela carteira do comprador, 538. A minimização que deixava o vendedor fora foi revista (comentário de `LeitorDoArt`) |
+| D-M3 | O realizado é só `frota.VendaDeMaquina`, com a lacuna em número | 1.109 no CRM × 1.322 no ART × 1.319 no painel da GN; as 213 pendentes aparecem como "N vendas do ART aguardam cadastro ou chassi". Somá-las fica para depois |
+| D-M4 | Consórcio à parte | meta em cotas (266 linhas, 417 cotas), realizado "não medido pelo CRM" |
+| D-M5 | Visibilidade por `Meta.Ler` | Padrão `Proprios` (118), Administrador `Organizacao` (428), Gerência `EmpresaEAbaixo` (604), Diretoria `EmpresaEAbaixo` (706, vê todas pelo alcance que já tem); Gestor comercial sem |
+
+### 14.2 A fonte
+
+- `GET /api/v1/cadastros/metas`, paginada (padrão 500, até 5.000 por página), com `Authorization: Bearer`. O envelope é
+  `cadastro, gerado_em, linhas, pagina, paginas, por_pagina, rotulo, tipo, total` — **sem** `idade_segundos`: o
+  cadastro é da própria GN, e não espelho (o atraso de ~21 h vale só para os painéis).
+- A chave de negócio (mês, filial, linha, consultor, tipo, origem) **não é única**: 1.540 linhas, 1.436 combinações, 83
+  grupos com 187 linhas que se somam. A chave natural é o `id` da GN (1 a 1.540, sem buraco).
+- **Os nomes do mês, da linha, do tipo e da origem na linha ainda não foram conferidos** contra a resposta real: ficam
+  num lugar só (`LinhaDeMetaNoJson`, `JsonPropertyName`) e, se não baterem, a leitura falha alto dizendo os campos que
+  chegaram — e nada é gravado.
+- A conexão é a **13**, `GESTAO_NEGOCIOS`, tipo novo `ApiComChave` (endereço https e chave, sem usuário). A credencial é
+  a da tela (Configurações › Integrações, protegida) ou, como reserva, `GestaoDeNegocios__Base` e `GestaoDeNegocios__Chave`
+  no servidor — os nomes da issue [001]. O botão "Testar" lê UMA linha do cadastro de metas.
+
+### 14.3 A rotina
+
+`METAS_GESTAO_NEGOCIOS` (rotina **8**), `--somente-metas-gn`, diária às 06:00, **nasce desligada** e exige a conexão 13.
+Lê tudo, confere o total e os ids, saneia, casa filial (`0101NN`), classificação (a tabela do ART; CONSÓRCIO e USADOS
+ficam sem) e consultor (a conta cujo login tem a mesma **chave da pessoa** — sem acento, maiúsculas, espaço e hífen
+viram ponto —, só quando uma conta ativa tem esse login), e sincroniza `organizacao.MetaDeVenda` numa transação: nova
+entra, revisada muda com trilha, a que some é excluída sem apagar e volta na mesma linha. **A remoção de mais de 20% das
+vigentes (com ao menos 100) aborta a carga inteira**; `--aceitar-remocao` só no terminal. O frescor fica no ponto de
+sincronismo `GESTAO_NEGOCIOS.METAS`. A segunda leitura igual grava zero.
+
+**As travas do formato (revisão do PR #248).** O `[JsonRequired]` só pega o campo que sumiu; o campo que chega noutra
+forma cai em recusa linha a linha. Por isso, antes de qualquer transação, **aborta a rodada inteira** — sem gravar, sem
+carimbar o frescor, saindo com erro (a rotina aparece como falha):
+
+| Trava | Quando |
+|---|---|
+| recusa | mais de **1%** das linhas lidas recusadas |
+| primeira carga | nenhuma meta vigente e QUALQUER `MES_INVALIDO`, `TIPO_DESCONHECIDO` ou `ORIGEM_DESCONHECIDA` |
+| classificação | menos de **90%** das linhas de máquina (sem consórcio e sem usados) com a classificação do ART |
+
+A mensagem diz os motivos em número; do tipo e da origem, os valores distintos que chegaram; do mês, só o formato
+(`NN/NN`); do consultor, nada. O relatório conta também os consultores com meta de máquinas sem nenhuma venda casada.
+
+### 14.4 O vendedor do ART e o preenchimento
+
+O vendedor entrou no resumo do conteúdo do registro do ART: a primeira leitura depois da publicação acha todos os
+registros alterados e preenche o vendedor das vendas já importadas — cerca de **3,6 mil linhas de trilha, uma vez**. A
+venda já importada cujo registro ficou pendente na leitura é mantida como estava, mas **ganha o vendedor** (só ele, só
+quando vazio, com trilha): sem isso, o realizado dela ficaria sem dono.
+
+**O casamento consultor × vendedor** usa a mesma chave da pessoa dos dois lados (`MetaDeVenda.ChaveDaPessoa`):
+`Outro Sem-Conta` no ART é `OUTRO.SEM.CONTA` na GN.
+
+**No alcance Próprios, as vendas contam pela filial da venda** (decisão pendente). A venda que o vendedor fez por outra
+filial aparece na meta de lá, e não em "Sua meta"; a tela diz isso. Ampliar o recorte para todas as vendas da pessoa é
+decisão do Ricardo. Medida pronta (só agregados, sessão de leitura):
+
+```sql
+-- FY26: vendas cujo vendedor tem meta de máquinas, mas só em OUTRA filial (a normalização completa — sem acento, espaço
+-- e hífen viram ponto — é a da aplicação; aqui, a aproximação por UPPER e REPLACE).
+WITH v AS (
+  SELECT UPPER(REPLACE(REPLACE(LTRIM(RTRIM(VendedorNaOrigem)), ' ', '.'), '-', '.')) AS Pessoa, EmpresaId
+  FROM frota.VendaDeMaquina
+  WHERE ExcluidoEm IS NULL AND VendedorNaOrigem IS NOT NULL AND VendidaEm >= '2025-11-01' AND VendidaEm < '2026-11-01'),
+m AS (
+  SELECT DISTINCT UPPER(REPLACE(REPLACE(LTRIM(RTRIM(ConsultorNaOrigem)), ' ', '.'), '-', '.')) AS Pessoa, EmpresaId
+  FROM organizacao.MetaDeVenda
+  WHERE ExcluidoEm IS NULL AND Origem = 'Campanha' AND Competencia >= '2025-11-01' AND Competencia < '2026-11-01')
+SELECT COUNT(*) AS VendasPorOutraFilial, COUNT(DISTINCT v.Pessoa) AS Vendedores
+FROM v
+WHERE EXISTS (SELECT 1 FROM m WHERE m.Pessoa = v.Pessoa)
+  AND NOT EXISTS (SELECT 1 FROM m WHERE m.Pessoa = v.Pessoa AND m.EmpresaId = v.EmpresaId);
+```
+
+### 14.5 Como ligar em produção
+
+1. Publicar a versão com a migração `MetasDaGestaoDeNegocios`.
+2. Em Configurações › Integrações › "Gestão de Negócios — API": endereço `https://agro-sistemas-w.tracbel.com.br:5001`
+   (o NOME, não o IP) e a chave; "Testar" — tem de dizer quantas metas o cadastro tem.
+3. Rodar uma vez no terminal com `--somente-metas-gn --simular` e conferir as contagens (1.540 lidas; 1.502 unidades de
+   máquinas no FY2026; 417 cotas de consórcio).
+4. Ligar a rotina "Metas de venda (Gestão de Negócios)".

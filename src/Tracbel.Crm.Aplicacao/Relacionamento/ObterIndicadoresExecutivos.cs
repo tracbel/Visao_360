@@ -13,8 +13,9 @@ public sealed record PainelExecutivoDaFilial(
     IReadOnlyList<MetricaSemDado> MetricasSemDado);
 
 /// <summary>
-/// OS CINCO CARTÕES DA VISÃO 360 (documento 36) — faturamento em curso, meta × realizado do ano,
-/// clientes na carteira, cobertura pela cadência e o que o CRM sabe do mercado.
+/// OS CINCO CARTÕES DA VISÃO 360 (documento 36) — faturamento em curso, o faturamento do ano,
+/// clientes na carteira, cobertura pela cadência e o que o CRM sabe do mercado. A meta × realizado do
+/// cartão B é a meta de VENDA, em rota própria (<see cref="ObterMetaERealizado"/>, #138).
 ///
 /// <para><b>Uma filial por chamada.</b> O consolidado das filiais é a tela somando as respostas
 /// (ponte P-8 do documento 23); por isso cada número daqui é de uma partição que não se sobrepõe
@@ -139,22 +140,9 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
                 "calendarioCivil",
                 Texto($"O ano do cartão é o CIVIL ({i.Ano.Ano}), porque foi o pedido. O padrão é o ano fiscal da Tracbel, de novembro a outubro, decidido em 27/09/2026.")));
 
-        // A TABELA DE METAS SAIU NA FASE 1 (documento 41): a frase não cita mais `organizacao.Meta`, que não
-        // existe, e diz onde a meta vai morar — a issue 138.
-        if (i.Ano.MetasDaFilial == 0)
-        {
-            // O NOME DO ANO VEM COM O INTERVALO: "2026" sozinho, no ano fiscal, se lê como o civil e erra dois meses.
-            var doAno = i.Ano.Calendario == nameof(CalendarioDoAno.Civil)
-                ? Texto($"de {i.Ano.Ano}")
-                : Texto($"do {AnoFiscal.Nome(i.Ano.Ano)} ({JanelaDeCompetencia.Mes(inteiro.Inicial)} a {JanelaDeCompetencia.Mes(inteiro.Final)})");
-            var texto = Texto($"O CRM ainda não tem onde cadastrar a meta de faturamento {doAno}: a tabela antiga saiu na simplificação do banco (fase 1), e as metas administráveis — por filial, com vigência — são a issue 138. Sem meta, não há comparação: o cartão mostra só o realizado.");
-            if (i.Ano.MetasDetalhadas > 0)
-                texto += Texto($" Há {i.Ano.MetasDetalhadas} meta(s) de carteira, usuário ou linha no ano; elas não são somadas, para não contar o mesmo alvo duas vezes.");
-            if (i.Ano.MetasQueCruzamOAno > 0)
-                texto += Texto($" {i.Ano.MetasQueCruzamOAno} meta(s) cruzam o ano e não são rateadas.");
-
-            lacunas.Add(new MetricaSemDado("metaDeFaturamento", texto));
-        }
+        // A META SAIU DESTE CARTÃO (#138, 27/09/2026): a decidida é a de VENDA, em unidades, da API Gestão de Negócios, com
+        // rota própria (/relatorios/metas) e as lacunas dela lá. A de faturamento nunca teve fonte — a frase que dizia
+        // "nenhuma meta cadastrada (organizacao.Meta)" apontava para uma tabela que saiu na fase 1.
 
         lacunas.Add(new MetricaSemDado(
             "previsao",

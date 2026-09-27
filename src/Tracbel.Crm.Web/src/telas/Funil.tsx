@@ -523,8 +523,10 @@ export function Funil() {
           <LacunaConhecida
             metrica="Atingimento de meta"
             motivo={
-              'A tabela organizacao.Meta está vazia. Não há fonte no legado nem no protótipo: lá as ' +
-              'metas eram números escritos no JavaScript.'
+              'A meta de venda tem fonte desde 27/09/2026 — a cota da API Gestão de Negócios, em máquinas ' +
+              'por consultor, linha e mês — e o realizado são as máquinas vendidas lidas do ART. As duas ' +
+              'estão no cartão "Meta e realizado" da Visão 360 e na Performance de CEN, e não no funil: ' +
+              'o funil conta processos do Vórtice, e nada liga um processo ganho à venda do ART.'
             }
           />
           {/* A FRASE ANTIGA DIZIA QUE O FATURAMENTO "PAROU EM 11/04/2025" — era a cópia que o Vórtice

@@ -210,7 +210,13 @@ public enum TipoDeConexao
     FontePublica = 3,
 
     /// <summary>API cadastrada pela tela só para ser monitorada: endereço, status esperado e, se pedir, um segredo.</summary>
-    Monitorada = 4
+    Monitorada = 4,
+
+    /// <summary>
+    /// API REST com CHAVE (Bearer), sem usuário — a API Gestão de Negócios (27/09/2026): endereço https e a chave. O
+    /// <see cref="ApiRest"/> é o Protheus, com usuário, senha e pedido de token; aqui a chave É a credencial.
+    /// </summary>
+    ApiComChave = 5
 }
 
 /// <summary>
@@ -297,7 +303,8 @@ public sealed partial class Conexao
     public bool TemSegredo => SegredoProtegido is { Length: > 0 };
 
     /// <summary>Se o tipo tem credencial.</summary>
-    public bool AceitaSegredo => Tipo is TipoDeConexao.ApiRest or TipoDeConexao.SqlServer or TipoDeConexao.MySql or TipoDeConexao.Monitorada;
+    public bool AceitaSegredo => Tipo is TipoDeConexao.ApiRest or TipoDeConexao.SqlServer or TipoDeConexao.MySql or TipoDeConexao.Monitorada
+        or TipoDeConexao.ApiComChave;
 
     /// <summary>Se o endereço se edita pela tela.</summary>
     public bool EnderecoEditavel => Tipo != TipoDeConexao.FontePublica;
@@ -307,6 +314,9 @@ public sealed partial class Conexao
     {
         TipoDeConexao.FontePublica => true,
         TipoDeConexao.Monitorada => !string.IsNullOrWhiteSpace(Endereco),
+
+        // A CHAVE É A CREDENCIAL: não há usuário, e sem a chave a API manda para a tela de login.
+        TipoDeConexao.ApiComChave => !string.IsNullOrWhiteSpace(Endereco) && TemSegredo,
         TipoDeConexao.MySql => !string.IsNullOrWhiteSpace(Endereco) && !string.IsNullOrWhiteSpace(Banco) && !string.IsNullOrWhiteSpace(Objeto)
                                && !string.IsNullOrWhiteSpace(Usuario) && TemSegredo,
         TipoDeConexao.SqlServer => !string.IsNullOrWhiteSpace(Endereco) && !string.IsNullOrWhiteSpace(Banco) && !string.IsNullOrWhiteSpace(Usuario) && TemSegredo,
@@ -365,6 +375,12 @@ public sealed partial class Conexao
                 if (!string.IsNullOrWhiteSpace(nomeDoCabecalho) && !NomeDeCabecalho().IsMatch(nomeDoCabecalho))
                     problemas.Add(("nomeDoCabecalho", "Use só letras, números e hífen (ex.: Authorization, X-Api-Key)."));
                 break;
+            case TipoDeConexao.ApiComChave:
+                // HTTPS, E PELO NOME (D-M1, 27/09/2026): a chave vale para a API inteira e não vai em claro pela rede. O
+                // nome não é conferido aqui — quem confere é a validação do certificado, no teste e na leitura.
+                if (!EhUrl(endereco) || !endereco!.Trim().StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    problemas.Add(("endereco", "Informe a URL completa com https:// — pelo NOME do servidor, que é o que o certificado declara."));
+                break;
             case TipoDeConexao.SqlServer:
             case TipoDeConexao.MySql:
                 if (string.IsNullOrWhiteSpace(endereco) || !NomeDeServidor().IsMatch(endereco.Trim()))
@@ -400,7 +416,7 @@ public sealed partial class Conexao
         Porta = Tipo == TipoDeConexao.MySql ? porta : null;
         Banco = Tipo is TipoDeConexao.SqlServer or TipoDeConexao.MySql ? Aparar(banco) : null;
         Objeto = Tipo == TipoDeConexao.MySql ? Aparar(objeto) : null;
-        Usuario = Tipo is TipoDeConexao.Monitorada ? null : Aparar(usuario);
+        Usuario = Tipo is TipoDeConexao.Monitorada or TipoDeConexao.ApiComChave ? null : Aparar(usuario);
         NomeDoCabecalho = Tipo == TipoDeConexao.Monitorada ? Aparar(nomeDoCabecalho) : null;
     }
 
@@ -823,6 +839,12 @@ public static class ConexoesDoSistema
     /// </summary>
     public const string Vortice = "VORTICE";
 
+    /// <summary>
+    /// A API Gestão de Negócios — o cadastro de metas de venda (#138) e, depois, os pedidos e o financiamento (#12). É
+    /// o mesmo código do sistema em <c>integracao.Sistema</c>.
+    /// </summary>
+    public const string GestaoDeNegocios = "GESTAO_NEGOCIOS";
+
     /// <summary>As conexões, na ordem da tela.</summary>
     public static readonly IReadOnlyList<ConexaoDoSistema> Todas =
     [
@@ -858,7 +880,14 @@ public static class ConexoesDoSistema
             "https://api.bcb.gov.br/dados/serie/bcdata.sgs.3698/dados?formato=json"),
         new("BCB_SICOR", "Banco Central — SICOR", TipoDeConexao.FontePublica,
             "O crédito rural de investimento por município.",
-            "https://olinda.bcb.gov.br/olinda/servico/SICOR/versao/v2/odata/InvestMunicipioProduto")
+            "https://olinda.bcb.gov.br/olinda/servico/SICOR/versao/v2/odata/InvestMunicipioProduto"),
+
+        // A API GESTÃO DE NEGÓCIOS (27/09/2026) — no FIM da lista: `ConexaoConfiguracao` semeia com Id = posição + 1, e
+        // inserir no meio renumeraria as que já existem. É a conexão 13. O endereço não vem da semente: quem administra
+        // grava pela tela o NOME do servidor (D-M1), https://agro-sistemas-w.tracbel.com.br:5001, e a chave.
+        new(GestaoDeNegocios, "Gestão de Negócios — API", TipoDeConexao.ApiComChave,
+            "O cadastro de metas de venda (unidades por consultor, linha, mês e filial) da API da Inteligência de Mercado. " +
+            "Só leitura, com a chave no cabeçalho Bearer.")
     ];
 }
 
@@ -918,6 +947,9 @@ public static class RotinasDoSistema
 
     /// <summary>O funil e as vendas perdidas do Vórtice (decisões de 27/09/2026, documento 52).</summary>
     public const string ProcessosVortice = "PROCESSOS_VORTICE";
+
+    /// <summary>O cadastro de metas de venda da API Gestão de Negócios (decisão de 27/09/2026, #138).</summary>
+    public const string MetasGestaoDeNegocios = "METAS_GESTAO_NEGOCIOS";
 
     /// <summary>
     /// Quando as agendas semeadas passam a valer: o dia em que o orquestrador substituiu as tarefas do Windows. O
@@ -1009,7 +1041,18 @@ public static class RotinasDoSistema
             "O estágio de cada processo 31/41/50 do Vórtice desde 01/11/2023, pelo código de resultado do histórico, e as " +
             "vendas perdidas dos formulários desde 2012 — prospect incluído, sem criar cliente, carteira nem usuário.",
             ["--somente-processos-vortice"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 30)), false,
-            [ConexoesDoSistema.Vortice], ConexoesDoSistema.Vortice)
+            [ConexoesDoSistema.Vortice], ConexoesDoSistema.Vortice),
+
+        // AS METAS DE VENDA DA API GESTÃO DE NEGÓCIOS (decisão de 27/09/2026, #138) — a rotina 9, no FIM da lista como
+        // toda rotina nova (a posição é o identificador semeado; a de processos do Vórtice entrou antes, com o 8). Diária
+        // às 06:00, depois do parque: a meta não depende de nenhuma outra carga, e às 06:00 o cadastro da GN já tem a
+        // noite inteira de edições. NASCE DESLIGADA: ligá-la traz dado novo para produção, e quem liga é quem administra,
+        // com o endereço pelo nome e a chave gravados e testados em Configurações › Integrações.
+        new(MetasGestaoDeNegocios, "Metas de venda (Gestão de Negócios)",
+            "O cadastro de metas de venda da API Gestão de Negócios — unidades por consultor, linha, mês e filial —, " +
+            "sincronizado com o CRM: meta nova entra, meta revisada fica na trilha, meta que some é excluída sem apagar.",
+            ["--somente-metas-gn"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)), false,
+            [ConexoesDoSistema.GestaoDeNegocios], ConexoesDoSistema.GestaoDeNegocios)
     ];
 
     /// <summary>A rotina do catálogo pelo código; nula quando não existe.</summary>

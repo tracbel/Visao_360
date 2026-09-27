@@ -28,7 +28,8 @@ export type FaturamentoDaCompetencia = {
 };
 
 /**
- * O realizado do ano e a meta de faturamento da filial — nunca uma previsão.
+ * O faturamento do ano — nunca uma previsão. A meta saiu daqui (#138): a meta de VENDA, em unidades, da API Gestão de
+ * Negócios, tem rota própria (`tipos/metas.ts`).
  *
  * O ANO É O FISCAL POR PADRÃO (27/09/2026): novembro a outubro, com o nome do ano
  * em que termina. `calendario` diz qual foi aplicado, e `inicio`/`fim` os meses.
@@ -45,11 +46,6 @@ export type FaturamentoDoAno = {
   mesesComFaturamento: number;
   comCliente: number;
   semCliente: number;
-  metasDaFilial: number;
-  /** Nulo quando não há meta — sem meta, e não meta zero. */
-  alvoDaFilial: number | null;
-  metasDetalhadas: number;
-  metasQueCruzamOAno: number;
   total: number;
 };
 

@@ -185,8 +185,9 @@ public sealed class AdministrarConexoes(
                          .Where(p => p.Campo is "statusEsperado" or "minutosEntreVerificacoes"))
                 erros.Registrar(campo, mensagem);
         }
-        else if (conexao.Tipo != TipoDeConexao.FontePublica && string.IsNullOrWhiteSpace(entrada.Usuario))
+        else if (conexao.Tipo is not (TipoDeConexao.FontePublica or TipoDeConexao.ApiComChave) && string.IsNullOrWhiteSpace(entrada.Usuario))
         {
+            // A API COM CHAVE NÃO TEM USUÁRIO: a chave é a credencial (a Gestão de Negócios, 27/09/2026).
             erros.Registrar("usuario", "Informe o usuário.");
         }
 

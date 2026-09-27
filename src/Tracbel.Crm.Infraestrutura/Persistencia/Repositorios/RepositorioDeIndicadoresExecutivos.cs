@@ -118,12 +118,9 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
         var mesesDoAno = doAno.Select(l => l.Competencia).Distinct().Order().ToList();
 
         // -----------------------------------------------------------------------------------------
-        // META DE FATURAMENTO: NÃO HÁ FONTE NESTA FASE.
-        //
-        // A tabela `organizacao.Meta` saiu na fase 1 da reestruturação (documento 41): nunca teve uma
-        // linha, e nenhuma tela a preenchia — a Visão 360 já mostrava "nenhuma meta cadastrada" para
-        // todas as filiais. O cartão continua com o realizado e com a mesma lacuna declarada; a
-        // contagem e o alvo voltam a ser lidos aqui quando a administração de metas existir.
+        // SÓ O FATURAMENTO. A meta decidida em 27/09/2026 é a de VENDA, em unidades, da API Gestão de
+        // Negócios, e é lida pela rota própria (RepositorioDeMetas); a de faturamento, que nunca teve fonte,
+        // saiu deste cartão (#138).
         // -----------------------------------------------------------------------------------------
         var anoApurado = new FaturamentoDoAno(
             ano,
@@ -132,10 +129,6 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
             mesesDoAno.Count,
             doAno.Where(l => l.Natureza is null).Sum(l => l.ValorLiquido),
             doAno.Where(l => l.Natureza is not null).Sum(l => l.ValorLiquido),
-            0,
-            null,
-            0,
-            0,
             calendario.ToString(),
             primeiroMesDoAno,
             ultimoMesDoAno);

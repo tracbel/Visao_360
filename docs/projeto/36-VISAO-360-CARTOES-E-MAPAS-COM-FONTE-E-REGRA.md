@@ -158,29 +158,27 @@ cartão diz "set/2026 até a carga de 08/09" e não compara com agosto cheio.
 
 ### 3.2 B — Meta e realizado
 
+> **Refeito em 27/09/2026 (issue 138), com as decisões D-M1 a D-M5 do Ricardo.** A meta é a **cota de venda da API
+> Gestão de Negócios**, em MÁQUINAS, e não uma meta de faturamento em reais. A meta de faturamento que este cartão
+> prometia nunca teve fonte (`organizacao.Meta`, 0 linhas, saiu na fase 1) e saiu do cartão e da rota dos indicadores.
+
 | Etapa | Conteúdo |
 |---|---|
-| Fonte | as mesmas notas do cartão A; meta de `organizacao.Meta` |
-| Campos | `Competencia`, `ValorLiquido`; `Meta.Tipo`, `PeriodoInicio`, `PeriodoFim`, `Alvo`, `CarteiraId`, `UsuarioId`, `LinhaDeNegocioId`, `EstaAtiva` |
-| Transformação [regra] | realizado = soma das notas do **ano civil** pedido; meta = soma das metas de faturamento **da filial** (sem carteira, usuário nem linha) com o período inteiro dentro do ano; meta de carteira/usuário/linha é contada e não somada; meta que cruza o ano é contada e não rateada; % só entre filiais com meta |
-| Indicador | realizado do ano; meta quando existe; nunca previsão |
-| Componente | cartão B e seletor "Ano de referência" |
+| Fonte | meta: `GET /api/v1/cadastros/metas` da API Gestão de Negócios → `organizacao.MetaDeVenda` (rotina `METAS_GESTAO_NEGOCIOS`, diária às 06:00); realizado: `frota.VendaDeMaquina` (o ART); lacuna: `integracao.RegistroDeOrigem` do ART sem venda |
+| Campos | meta: `Competencia`, `CodigoDaLinha`, `ConsultorNaOrigem`, `ConsultorUsuarioId`, `Origem`, `Quantidade`; realizado: `VendidaEm`, `LinhaNaOrigem`, `VendedorNaOrigem` |
+| Transformação [regra] | meta = soma das linhas da GN no período (as duplicatas de negócio da origem se somam); realizado = uma máquina por venda, pela data da venda, SÓ o que o CRM tem (D-M3); as vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) vêm em número, à parte; consórcio = meta em cotas, realizado não medido (D-M4); por consultor conta a PESSOA, o vendedor do ART (D-M2), casado com o consultor pela chave da pessoa (sem acento; espaço e hífen viram ponto); por filial conta a filial da venda — também em "Sua meta", onde a venda por outra filial fica fora (decisão pendente); a filial cuja leitura falhou sai da soma NOMEADA ("X de Y filiais — fora: …", e "(X de Y)" no total da composição) |
+| Período | o ano fiscal (nov→out) até o último mês FECHADO, comparado com o mesmo trecho do FY anterior (só o realizado); o mês em curso vem à parte, com a meta e o que já foi vendido nele |
+| Alcance | `Meta.Ler` (D-M5): Padrão vê só a própria meta; Gerência e Diretoria a filial (a Diretoria, todas, pelo alcance que já tem); Administrador tudo; Gestor comercial sem |
+| Indicador | "1.109 de 1.365 (81%)" em máquinas; nunca previsão |
+| Componente | cartão B (`/relatorios/metas`, filial a filial) e as colunas "Meta FY (máq.)" e "Realizado FY (máq.)" da composição; o faturamento do ano em reais continua na composição, com o nome "Faturamento" |
 
-**Conferência [medido]:** realizado 2026 (jan a set, setembro em curso) = R$ 569.092.026,32 na API e no
-SQL. `organizacao.Meta` tem **0 linhas**, e o ART não traz meta. Os arquivos com "meta" no nome não são
-meta real:
+**Conferência [medido em produção, 27/09/2026, só leitura]:** a meta FY26 sem consórcio é **1.502** unidades — igual à do
+painel da GN —, **1.365** até setembro; o realizado FY26 no CRM é **1.109** vendas (`frota.VendaDeMaquina`), contra 1.322
+no ART inteiro e 1.319 no painel da GN: as **213** que faltam estão pendentes em `RegistroDeOrigem` (143 com comprador
+ausente, 48 com chassi incompleto, o resto por outros motivos). O consórcio tem 266 linhas e 417 cotas.
 
-| Arquivo | O que é |
-|---|---|
-| `dados-locais/coleta/modelos/04-metas.xlsx` | a planilha-modelo de coleta (documento 34): colunas ano fiscal, início do ano fiscal, filial, linha, responsável, mês, tipo e alvo, **só com exemplos fictícios** — é o caminho para cadastrar a meta (P-26) e, de quebra, o calendário fiscal (P-4) |
-| `prototipo/dados-seed/config-metas.json`, `meta-frequencia.json` (e as cópias em `public/dados/`) | constantes ilustrativas do protótipo (documento 17, §7); não são lidas pelos cartões |
-| `docs/extracao-vortice/catalogos-bpm/IVS_UsrMeta.csv` | a tabela de metas por usuário do Vórtice: **1 linha** em produção (documento 17) |
-| `docs/extracao-vortice/_raw/modulos-meta.csv`, `tabelas-meta.csv` | metadados do esquema do Vórtice, não metas |
-
-**Por que o título mudou.** "Previsão FY 2026" prometia três coisas que não existem: previsão (nenhum
-modelo aprovado), ano fiscal (calendário não confirmado, P-4) e o ano fixo. O cartão agora diz o que
-mede e o que falta.
-
+**O que o cartão ainda não diz:** as pendentes somadas ao realizado (para bater com a GN, é o passo seguinte, se o
+Ricardo quiser), a previsão (a GN tem `/cadastros/forecast`, humana, ainda não lida) e a meta do DRE.
 ### 3.3 C — Clientes na carteira
 
 | Etapa | Conteúdo |
@@ -388,7 +386,7 @@ controles, o foco, as duas regiões e o ano civil) e `capturar-estados-visao360.
 | P-2 | Quais tipos de atividade contam como visita (marcar `ContaParaCobertura`) e se registro do sistema conta | a cobertura é de contato registrado; com só contato humano, 24.318 vínculos têm contato, e não 39.441 | gerente comercial |
 | P-4 | Calendário fiscal (início do ano) | cartões em ano civil; mapas sem FYTD | diretoria |
 | P-5 | Regra de devolução e cancelamento | nada é abatido | fiscal/controladoria |
-| P-26 | Cadastrar as metas de faturamento (por filial e, se houver, por carteira), preenchendo a planilha-modelo `04-metas.xlsx` | cartão B sem meta | comercial/diretoria |
+| P-26 | ~~Cadastrar as metas de faturamento~~ — **RESOLVIDA em 27/09/2026 (issue 138):** a meta é a cota de venda da API Gestão de Negócios, lida pela rotina `METAS_GESTAO_NEGOCIOS` (seção 3.2) | — | — |
 | P-27 | Regra de sanitização: 4 documentos em 8 cadastros de filiais diferentes; 7.391 clientes em carteira sem CPF/CNPJ; 387 CNPJs só por nome (P-25) | contagem única depende do cadastro; nada foi fundido nem completado | comercial (cadastro) + TI |
 | P-28 | Classe de cliente de outra filial na visão por filial | 501 vínculos medidos como D (diferença de 38 no prazo no consolidado) | TI + diretoria (junto com P-10/P-20) |
 | P-29 | Fonte de mercado (emplacamento) e venda perdida por município | sem participação; perda sem município | comercial + TI |

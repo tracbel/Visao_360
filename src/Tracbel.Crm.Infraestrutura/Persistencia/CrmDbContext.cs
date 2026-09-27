@@ -326,6 +326,9 @@ public class CrmDbContext : DbContext
     /// <summary>A percepção do gestor comercial por município, com vigência (issue 71).</summary>
     public DbSet<PercepcaoDoGestor> PercepcoesDoGestor => Set<PercepcaoDoGestor>();
 
+    /// <summary>As metas de venda da API Gestão de Negócios, uma por linha da origem (#138).</summary>
+    public DbSet<MetaDeVenda> MetasDeVenda => Set<MetaDeVenda>();
+
     // ---- seguranca ----
 
     /// <summary>Usuários.</summary>

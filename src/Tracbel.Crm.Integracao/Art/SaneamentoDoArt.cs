@@ -97,6 +97,7 @@ public static class MotivoDePendenciaDoArt
 /// <param name="Hash">O resumo do conteúdo lido.</param>
 /// <param name="Transformacoes">O que o saneamento mudou, uma frase por mudança.</param>
 /// <param name="Motivos">Os códigos de pendência que o saneamento já encontrou.</param>
+/// <param name="Vendedor">O vendedor, <c>nome.sobrenome</c>, como o ART escreve — de quem é o realizado da meta (D-M2).</param>
 public sealed record VendaDoArtSaneada(
     string Codigo,
     SituacaoDoChassiNaOrigem SituacaoDoChassi,
@@ -122,7 +123,8 @@ public sealed record VendaDoArtSaneada(
     int? Quantidade,
     string Hash,
     IReadOnlyList<string> Transformacoes,
-    IReadOnlyList<string> Motivos)
+    IReadOnlyList<string> Motivos,
+    string? Vendedor = null)
 {
     /// <summary>As transformações numa frase só, no tamanho da coluna — ou nulo quando não houve nenhuma.</summary>
     public string? TransformacoesEmTexto
@@ -200,7 +202,8 @@ public static class SaneamentoDoArt
             int.TryParse(registro.Quantidade, NumberStyles.Integer, CultureInfo.InvariantCulture, out var quantidade) ? quantidade : null,
             Resumir(registro),
             transformacoes,
-            motivos);
+            motivos,
+            Texto("vendedor", registro.Vendedor, 80, transformacoes));
     }
 
     /// <summary>
@@ -343,13 +346,18 @@ public static class SaneamentoDoArt
     /// <summary>
     /// O resumo do conteúdo lido — é o que a recarga compara para saber se o registro mudou. Entra
     /// tudo o que foi lido, e nada mais: o resumo não é reversível para um documento.
+    ///
+    /// <para><b>O vendedor entrou no resumo em 27/09/2026 (D-M2).</b> Por isso a primeira leitura depois
+    /// da publicação acha TODOS os registros alterados: é ela que preenche o vendedor das vendas já
+    /// importadas — cerca de 3,6 mil linhas de trilha, uma vez. Depois disso, o resumo volta a mudar só
+    /// quando a origem muda.</para>
     /// </summary>
     private static string Resumir(RegistroDoArt r)
     {
         var conteudo = string.Join('',
             r.Codigo, r.Chassis, r.CpfCnpj, r.Cliente, r.Linha, r.Produto, r.Empresa, r.Unidade, r.UnidadeDoFaturamento,
             r.DataDaVenda, r.DataDoFaturamento, r.Entrega, r.AbertaEm, r.Situacao, r.NumeroDoPedido, r.NumeroDaNotaFiscal,
-            r.Gestao, r.VendaDireta, r.RepasseDireto, r.Quantidade);
+            r.Gestao, r.VendaDireta, r.RepasseDireto, r.Quantidade, r.Vendedor);
 
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(conteudo)));
     }

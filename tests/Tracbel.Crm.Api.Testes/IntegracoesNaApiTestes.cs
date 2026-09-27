@@ -114,6 +114,7 @@ public sealed class IntegracoesNaApiTestes
     [InlineData(ConexoesDoSistema.Art, "objeto", """{"endereco":"art.exemplo.invalid","banco":"vendas","objeto":"vw; DROP TABLE x","usuario":"u"}""")]
     [InlineData("IBGE_SIDRA", "endereco", """{"endereco":"https://outro.exemplo.invalid"}""")]
     [InlineData(ConexoesDoSistema.Protheus, "usuario", """{"endereco":"http://erp.exemplo.invalid/rest"}""")]
+    [InlineData(ConexoesDoSistema.GestaoDeNegocios, "endereco", """{"endereco":"http://10.150.4.249:5001"}""")]
     public async Task A_configuracao_invalida_volta_no_campo(string codigo, string campo, string corpo)
     {
         await using var app = await ComAdministradorAsync();
@@ -122,6 +123,25 @@ public sealed class IntegracoesNaApiTestes
 
         var erro = await ComStatusAsync(resposta, HttpStatusCode.UnprocessableEntity);
         erro.GetProperty("erros").EnumerateArray().Select(e => e.GetProperty("campo").GetString()).Should().Contain(campo);
+    }
+
+    [Fact]
+    public async Task A_gestao_de_negocios_se_configura_com_endereco_https_e_chave_sem_usuario()
+    {
+        // A API COM CHAVE (#138): o endereço pelo NOME (D-M1) e a chave; o campo Usuário não existe para ela.
+        await using var app = await ComAdministradorAsync();
+        var admin = app.ClienteDeRibeirao();
+
+        var configurada = await ComStatusAsync(await admin.PutAsJsonAsync($"{Base}/conexoes/{ConexoesDoSistema.GestaoDeNegocios}",
+            new { endereco = "https://agro-sistemas-w.tracbel.com.br:5001" }, Json), HttpStatusCode.OK);
+        configurada.GetProperty("tipo").GetString().Should().Be("ApiComChave");
+        configurada.GetProperty("origemDaCredencial").GetString().Should().Be("Nenhuma", "sem a chave, a API manda para a tela de login");
+
+        var comChave = await admin.PutAsJsonAsync($"{Base}/conexoes/{ConexoesDoSistema.GestaoDeNegocios}/segredo", new { segredo = Senha }, Json);
+        var texto = await comChave.Content.ReadAsStringAsync();
+        comChave.StatusCode.Should().Be(HttpStatusCode.OK, texto);
+        texto.Should().NotContain(Senha);
+        JsonDocument.Parse(texto).RootElement.GetProperty("origemDaCredencial").GetString().Should().Be("Tela");
     }
 
     [Fact]

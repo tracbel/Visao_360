@@ -10,8 +10,15 @@ namespace Tracbel.Crm.Integracao.Art;
 ///
 /// <para><b>O que não está aqui, de propósito:</b> valor de venda e de compra, ICMS, custo, frete,
 /// comissão, bônus, lucro, margem e resultado contábil — a view tem 40 colunas assim, e nenhuma
-/// entra na integração. O vendedor e o usuário também não: são nomes de pessoa sem vínculo com
-/// usuário do CRM. A consulta nem os seleciona, então eles não chegam à memória deste processo.</para>
+/// entra na integração. O usuário que digitou a venda também não: é nome de pessoa sem papel no
+/// CRM. A consulta nem o seleciona, então ele não chega à memória deste processo.</para>
+///
+/// <para><b>O VENDEDOR ENTRA desde 27/09/2026 — a minimização foi revista por decisão do Ricardo
+/// (D-M2).</b> Até ali ele ficava de fora pela mesma razão do usuário. A meta de venda da API Gestão de
+/// Negócios é POR CONSULTOR, e o vendedor do ART é quem a realiza: preenchido em 100% das vendas, no
+/// formato <c>nome.sobrenome</c> — o login da conta do CRM e, em maiúsculas, o consultor da meta. Ele
+/// atribui 1.104 das 1.109 vendas do FY26 (99,5%); pelo comprador na carteira, só 538. O que entra é só
+/// o login, sem nome completo; ele vai para <c>VendaDeMaquina.VendedorNaOrigem</c> e para a trilha.</para>
 ///
 /// <para><b>Datas como texto</b> porque o ART guarda data zerada (<c>0000-00-00</c>), que o
 /// conector recusaria ou converteria em silêncio. Lida como texto, a transformação fica explícita
@@ -37,7 +44,8 @@ public sealed record RegistroDoArt(
     string? Gestao,
     string? VendaDireta,
     string? RepasseDireto,
-    string? Quantidade);
+    string? Quantidade,
+    string? Vendedor = null);
 
 /// <summary>
 /// A LEITURA DO ART — uma consulta à view de vendas, em sessão somente leitura.
@@ -49,12 +57,13 @@ public sealed class LeitorDoArt(IOptions<OpcoesDoArt> opcoes)
     public const string CodigoDoSistema = "ART";
 
     /// <summary>
-    /// As colunas lidas. Nenhuma financeira: ver <see cref="RegistroDoArt"/>.
+    /// As colunas lidas. Nenhuma financeira: ver <see cref="RegistroDoArt"/>. O <c>vendedor</c>, no fim,
+    /// é a decisão D-M2 de 27/09/2026.
     /// </summary>
     private const string Colunas =
         "CAST(codigo AS CHAR), chassis, cpf_cnpj, cliente, linha, produto, empresa, unidade, unidade_fat, " +
         "CAST(data_vda AS CHAR), CAST(data_fat AS CHAR), CAST(entrega AS CHAR), CAST(dt_abertura AS CHAR), " +
-        "situacao, num_ped, CAST(num_nfe_venda AS CHAR), gestao, venda_direta, repasse_direto, CAST(qte AS CHAR)";
+        "situacao, num_ped, CAST(num_nfe_venda AS CHAR), gestao, venda_direta, repasse_direto, CAST(qte AS CHAR), vendedor";
 
     /// <summary>Lê a view inteira.</summary>
     /// <param name="ct">Cancelamento.</param>
@@ -100,7 +109,7 @@ public sealed class LeitorDoArt(IOptions<OpcoesDoArt> opcoes)
                 registros.Add(new RegistroDoArt(
                     Texto(0) ?? string.Empty, Texto(1), Texto(2), Texto(3), Texto(4), Texto(5), Texto(6), Texto(7),
                     Texto(8), Texto(9), Texto(10), Texto(11), Texto(12), Texto(13), Texto(14), Texto(15), Texto(16),
-                    Texto(17), Texto(18), Texto(19)));
+                    Texto(17), Texto(18), Texto(19), Texto(20)));
             }
 
             return Resultado<IReadOnlyList<RegistroDoArt>>.Ok(registros);
