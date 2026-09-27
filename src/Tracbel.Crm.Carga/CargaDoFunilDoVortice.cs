@@ -6,7 +6,6 @@ using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Metadado;
-using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Processo;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao.Carga;
@@ -173,7 +172,6 @@ internal sealed class CargaDoFunilDoVortice(
     /// <summary>Rótulo: motivos novos.</summary>
     internal const string RotuloDeMotivosIncluidos = "motivos de perda incluídos no catálogo";
 
-    private const string EntidadeCarteira = nameof(Carteira);
     private const string EntidadeVendaPerdida = nameof(VendaPerdida);
 
     private readonly List<(string Etapa, string Rotulo, int Valor)> _contagens = [];
@@ -287,7 +285,7 @@ internal sealed class CargaDoFunilDoVortice(
             .Select(s => (int?)s.Id)
             .FirstOrDefaultAsync(ct);
 
-        var ligacoes = await LigacoesAsync(banco, plano.SistemaId, ct);
+        var ligacoes = await LigacoesComOCrm.LerAsync(banco, plano.SistemaId, ct);
 
         // ---------------------------------------------------------------------------------------------
         // O funil: a regra, e o que o CRM já tem.
@@ -313,7 +311,7 @@ internal sealed class CargaDoFunilDoVortice(
 
             if (motivo is null)
             {
-                var ligacao = ligacoes.Do(processo);
+                var ligacao = ligacoes.Do(processo.Documento, processo.SeqCarteira, processo.LoginDoResponsavel);
                 plano.Ligacoes.Add(ligacao);
                 var situacao = SaneamentoDeProcesso.Situacao(processo.Status, []).Situacao;
 
@@ -388,7 +386,7 @@ internal sealed class CargaDoFunilDoVortice(
     }
 
     private async Task PlanejarVendasPerdidasAsync(
-        CrmDbContext banco, Plano plano, Ligacoes ligacoes, IReadOnlyList<RespostaDeVendaPerdidaNoVortice> respostas, DateTime agora,
+        CrmDbContext banco, Plano plano, LigacoesComOCrm ligacoes, IReadOnlyList<RespostaDeVendaPerdidaNoVortice> respostas, DateTime agora,
         CancellationToken ct)
     {
         var motivos = await banco.MotivosDePerda.AsNoTracking().ToDictionaryAsync(m => m.Codigo, m => m.Id, StringComparer.Ordinal, ct);
@@ -541,53 +539,6 @@ internal sealed class CargaDoFunilDoVortice(
             .Where(e => !trilha.Planejados.Contains(e.Key) && e.Value.AusenteNaOrigemDesde is null)
             .Select(e => e.Key));
         return trilha;
-    }
-
-    /// <summary>
-    /// O QUE O CRM JÁ TEM PARA LIGAR — lido uma vez: o cliente pelo documento, a carteira pelo de-para da sincronia das
-    /// carteiras e a conta pelo login. Nada disso é criado aqui.
-    /// </summary>
-    private static async Task<Ligacoes> LigacoesAsync(CrmDbContext banco, int? sistemaId, CancellationToken ct)
-    {
-        var clientes = await banco.Clientes.AsNoTracking()
-            .Where(c => c.Documento != null)
-            .Select(c => new { c.Id, c.Documento, c.EmpresaId, Excluido = c.ExcluidoEm != null })
-            .ToListAsync(ct);
-        var clientePorDocumento = new Dictionary<string, long>(StringComparer.Ordinal);
-        foreach (var grupo in clientes.Where(c => !c.Excluido).GroupBy(c => c.Documento!.Value.Numero, StringComparer.Ordinal))
-            if (grupo.Count() == 1) clientePorDocumento[grupo.Key] = grupo.First().Id;
-
-        var carteiras = await banco.Carteiras.AsNoTracking()
-            .Where(k => k.ExcluidoEm == null)
-            .Select(k => new { k.Id, k.ResponsavelId })
-            .ToDictionaryAsync(k => k.Id, k => k.ResponsavelId, ct);
-
-        var carteiraPorSeq = new Dictionary<int, long>();
-        if (sistemaId is { } sistema)
-        {
-            foreach (var chave in await banco.ChavesExternas.AsNoTracking()
-                         .Where(c => c.SistemaId == sistema && c.Entidade == EntidadeCarteira)
-                         .Select(c => new { c.ChaveOrigem, c.RegistroId })
-                         .ToListAsync(ct))
-            {
-                if (int.TryParse(chave.ChaveOrigem, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seq)
-                    && carteiras.ContainsKey(chave.RegistroId))
-                    carteiraPorSeq[seq] = chave.RegistroId;
-            }
-        }
-
-        var contas = await banco.Usuarios.AsNoTracking()
-            .Where(u => u.ExcluidoEm == null)
-            .Select(u => new { u.Id, u.NomePrincipal })
-            .ToListAsync(ct);
-        var contaPorLogin = contas
-            .GroupBy(u => ParteLocal(u.NomePrincipal), StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() == 1)
-            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
-
-        return new Ligacoes(
-            clientePorDocumento, clientes.Where(c => !c.Excluido).GroupBy(c => c.Id).ToDictionary(g => g.Key, g => g.First().EmpresaId),
-            carteiraPorSeq, carteiras, contaPorLogin);
     }
 
     // =============================================================================================
@@ -985,13 +936,6 @@ internal sealed class CargaDoFunilDoVortice(
 
     private static string? Limitar(string? texto, int tamanho) => texto is null || texto.Length <= tamanho ? texto : texto[..tamanho];
 
-    /// <summary>O login da conta: a parte antes do <c>@</c> do nome principal.</summary>
-    private static string ParteLocal(string nomePrincipal)
-    {
-        var arroba = nomePrincipal.IndexOf('@', StringComparison.Ordinal);
-        return (arroba < 0 ? nomePrincipal : nomePrincipal[..arroba]).Trim().ToLowerInvariant();
-    }
-
     /// <summary>O conteúdo da venda perdida com os identificadores do catálogo; o código ainda não catalogado vale zero.</summary>
     private static ConteudoDaVendaPerdida Conteudo(
         PlanoDaResposta r, IReadOnlyDictionary<string, int> motivos, IReadOnlyDictionary<(int, string), int> itens)
@@ -1094,32 +1038,6 @@ internal sealed class CargaDoFunilDoVortice(
         public List<string> QueSumiram { get; } = [];
     }
 
-    /// <summary>A ligação de um processo com o que o CRM já tem.</summary>
-    private sealed record Ligacao(long? ClienteId, long? CarteiraId, long? ResponsavelId, bool ResponsavelPeloLogin);
-
-    private sealed record Ligacoes(
-        IReadOnlyDictionary<string, long> ClientePorDocumento,
-        IReadOnlyDictionary<long, int> EmpresaDoCliente,
-        IReadOnlyDictionary<int, long> CarteiraPorSeq,
-        IReadOnlyDictionary<long, long> DonoDaCarteira,
-        IReadOnlyDictionary<string, long> ContaPorLogin)
-    {
-        public long? Cliente(DocumentoDoVortice documento) =>
-            documento.Situacao == SituacaoDoDocumentoNoVortice.Valido && ClientePorDocumento.TryGetValue(documento.Numero!, out var id) ? id : null;
-
-        /// <summary>
-        /// O cliente pelo documento; a carteira pelo de-para gravado pela sincronia das carteiras; o responsável pelo
-        /// login do Vórtice e, sem conta, pelo dono da carteira.
-        /// </summary>
-        public Ligacao Do(ProcessoNoFunilDoVortice processo)
-        {
-            long? carteira = processo.SeqCarteira is { } seq && CarteiraPorSeq.TryGetValue(seq, out var k) ? k : null;
-            long? pelaConta = processo.LoginDoResponsavel is { } login && ContaPorLogin.TryGetValue(login.Trim().ToLowerInvariant(), out var u) ? u : null;
-            long? peloDono = carteira is { } c && DonoDaCarteira.TryGetValue(c, out var dono) ? dono : null;
-            return new Ligacao(Cliente(processo.Documento), carteira, pelaConta ?? peloDono, pelaConta is not null);
-        }
-    }
-
     private sealed class PlanoDaResposta
     {
         public required RespostaDeVendaPerdidaNoVortice Origem { get; init; }
@@ -1167,7 +1085,7 @@ internal sealed class CargaDoFunilDoVortice(
 
         public IReadOnlyList<ApuracaoDoProcesso> Apuracoes { get; set; } = [];
 
-        public List<Ligacao> Ligacoes { get; } = [];
+        public List<LigacaoDoProcesso> Ligacoes { get; } = [];
 
         public Dictionary<(long Numero, EstagioDoFunil Estagio), RetratoDoEstagio> Desejadas { get; } = [];
 
