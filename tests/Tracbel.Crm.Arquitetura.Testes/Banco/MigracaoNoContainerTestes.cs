@@ -300,7 +300,9 @@ public sealed class MigracaoNoContainerTestes
         contexto.CategoriasDeMaquina.Any(c => c.Codigo == "COLHEDORA_DE_CANA").Should().BeFalse();
         contexto.RegrasDePotencial.Count(r => r.CategoriaDeMaquinaId != trator.Id).Should().Be(0);
         contexto.RegrasDePotencial.Count(r => r.CategoriaDeMaquinaId == trator.Id).Should().Be(7, "as do trator são da migração anterior");
-        contexto.Culturas.AsNoTracking().Single(c => c.Codigo == "CAFE").LocalDeReferenciaDoCusto.Should().BeNull();
+        // SÓ A COLUNA CONFERIDA, e não a entidade: o banco está numa migração anterior, e a cultura do modelo já tem
+        // colunas que ele ainda não tem (a série do índice, 27/09/2026).
+        contexto.Culturas.AsNoTracking().Where(c => c.Codigo == "CAFE").Select(c => c.LocalDeReferenciaDoCusto).Single().Should().BeNull();
 
         migrador.Migrate();
         contexto.RegrasDePotencial.Count(r => r.CategoriaDeMaquinaId != trator.Id).Should().Be(8);
