@@ -60,22 +60,23 @@ public sealed class CatalogoDoMercadoNaApiTestes(ApiEmMemoria api) : IClassFixtu
     }
 
     [Fact]
-    public async Task As_categorias_vem_na_ordem_e_tres_delas_sem_produto_do_sicor()
+    public async Task As_categorias_vem_na_ordem_e_quatro_delas_sem_produto_do_sicor()
     {
-        // O investimento do Banco Central não separa plantadeira, pulverizador nem agricultura de precisão.
-        // Lista vazia não é erro — é o limite da fonte, e a categoria existe do mesmo jeito.
+        // O investimento do Banco Central não separa plantadeira, pulverizador nem agricultura de precisão, e
+        // tem um produto só para colheitadeira e colhedora de cana (fica na colheitadeira). Lista vazia não é
+        // erro — é o limite da fonte, e a categoria existe do mesmo jeito.
         var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Rota));
 
         var categorias = dados.GetProperty("categorias").EnumerateArray().ToList();
         categorias.Select(c => c.GetProperty("codigo").GetString()).Should().Equal(
-            ["TRATOR", "PLANTADEIRA", "COLHEITADEIRA", "PULVERIZADOR", "IMPLEMENTO", "PRECISAO"]);
+            ["TRATOR", "PLANTADEIRA", "COLHEITADEIRA", "PULVERIZADOR", "IMPLEMENTO", "PRECISAO", "COLHEDORA_DE_CANA"]);
 
         categorias.Single(c => c.GetProperty("codigo").GetString() == "TRATOR")
             .GetProperty("produtosDoSicor").EnumerateArray().Select(p => p.GetInt32()).Should().Equal([7080]);
 
         categorias.Where(c => c.GetProperty("produtosDoSicor").GetArrayLength() == 0)
             .Select(c => c.GetProperty("codigo").GetString())
-            .Should().BeEquivalentTo(["PLANTADEIRA", "PULVERIZADOR", "PRECISAO"]);
+            .Should().BeEquivalentTo(["PLANTADEIRA", "PULVERIZADOR", "PRECISAO", "COLHEDORA_DE_CANA"]);
     }
 
     [Fact]

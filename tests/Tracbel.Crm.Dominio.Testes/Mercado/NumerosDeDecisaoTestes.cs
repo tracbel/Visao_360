@@ -160,15 +160,15 @@ public sealed class NumerosDeDecisaoTestes
     [Fact]
     public void A_captura_conta_so_as_maquinas_das_categorias_que_tem_demanda()
     {
-        // O RECORTE DE HOJE EM MINIATURA: regra só de trator, e o ART trazendo trator, colheitadeira e uma
-        // colhedora de cana, que está em linha sem categoria e por isso não aparece na quebra.
+        // UM RECORTE EM MINIATURA: regra só de trator, e o ART trazendo trator, colheitadeira e uma
+        // plataforma de corte, que está em linha sem categoria e por isso não aparece na quebra.
         var conta = BaseDaCaptura.Montar(
             unidadesVendidas: 10,
             vendidasPorCategoria: [("TRATOR", 7), ("COLHEITADEIRA", 2)],
             categoriasComDemanda: [("TRATOR", "Trator")])!;
 
         conta.Unidades.Should().Be(7, "só o trator tem demanda do outro lado da conta");
-        conta.UnidadesForaDaConta.Should().Be(3, "as duas colheitadeiras e a colhedora sem categoria");
+        conta.UnidadesForaDaConta.Should().Be(3, "as duas colheitadeiras e a plataforma sem categoria");
         conta.Categorias.Should().Equal("Trator");
 
         var numeros = DecisaoDoMercado.Calcular(demandaAnual: 35m, demandaAjustada: 35m, vendasEmUnidades: conta.Unidades, porCategoria: []);

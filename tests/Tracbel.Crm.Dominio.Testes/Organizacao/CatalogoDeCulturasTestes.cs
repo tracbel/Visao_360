@@ -137,13 +137,23 @@ public sealed class CatalogoDeCulturasTestes
     }
 
     [Fact]
-    public void Tres_categorias_nascem_sem_produto_do_sicor_e_isso_nao_e_erro()
+    public void Quatro_categorias_nascem_sem_produto_do_sicor_e_isso_nao_e_erro()
     {
         // O investimento do Banco Central não separa plantadeira, pulverizador nem agricultura de precisão
-        // (anexo 49C). A categoria existe do mesmo jeito: só o crédito é que não a enxerga.
+        // (anexo 49C), e tem um produto só (2700) para colheitadeira e colhedora de cana — que fica na
+        // colheitadeira. A categoria existe do mesmo jeito: só o crédito é que não a enxerga.
         var semSicor = CatalogoSemeado.Categorias.Where(c => c.ProdutosDoSicor.Count == 0).Select(c => c.Codigo);
 
-        semSicor.Should().BeEquivalentTo(["PLANTADEIRA", "PULVERIZADOR", "PRECISAO"]);
+        semSicor.Should().BeEquivalentTo(["PLANTADEIRA", "PULVERIZADOR", "PRECISAO", "COLHEDORA_DE_CANA"]);
+    }
+
+    [Fact]
+    public void A_colhedora_de_cana_entra_no_fim_da_lista_e_as_categorias_de_antes_nao_mudam_de_lugar()
+    {
+        // O ID DA SEMENTE É A POSIÇÃO (27/09/2026): inserir no meio renumeraria as categorias que já têm
+        // regra, grupo e de-para apontando para elas.
+        CatalogoSemeado.Categorias.Select(c => c.Codigo).Should().Equal(
+            ["TRATOR", "PLANTADEIRA", "COLHEITADEIRA", "PULVERIZADOR", "IMPLEMENTO", "PRECISAO", "COLHEDORA_DE_CANA"]);
     }
 
     [Fact]

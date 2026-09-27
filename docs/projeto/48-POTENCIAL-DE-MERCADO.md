@@ -543,13 +543,13 @@ subseção que conta como.
 
 | # | Pergunta | Opções encontradas | Recomendação | Bloqueia |
 |---|---|---|---|---|
-| D-P01 | Hectares por máquina e anos de renovação por cultura; categorias de máquina | café: **10 ha (CRM, 3036N) × 20 ha (planilha)**; demais só na planilha; laranja perene e cana semiperene; "máquinas em geral" pede categorias além de trator | **DECIDIDA para o trator em 27/09/2026** (§5.6): **café 20 ha / 10 anos**, cana 170/8, amendoim 200/8, soja 200/10, milho 200/10, laranja 20/10 — a aba Administrador da planilha, igual ao padrão do protótipo, que o Ricardo mandou seguir. As outras categorias continuam em aberto | #72 |
+| D-P01 | Hectares por máquina e anos de renovação por cultura; categorias de máquina | café: **10 ha (CRM, 3036N) × 20 ha (planilha)**; demais só na planilha; laranja perene e cana semiperene; "máquinas em geral" pede categorias além de trator | **DECIDIDA para o trator em 27/09/2026** (§5.6): **café 20 ha / 10 anos**, cana 170/8, amendoim 200/8, soja 200/10, milho 200/10, laranja 20/10 — a aba Administrador da planilha, igual ao padrão do protótipo, que o Ricardo mandou seguir. **As outras categorias, DECIDIDAS no mesmo dia** (§5.7): colheitadeira, plantadeira, pulverizador e colhedora de cana, o padrão do protótipo aprovado como está | #72 |
 | D-P02 | Índice de momento de preço | último ÷ média (café); 1 contra 12, 6 contra 6, 12 contra 12 (cana); R12/R6/R3/R1 com janela deslocada (laranja); a faixa entre 1,0 e 1,2 não tem nome e "= 1" exato não acontece | **12 meses ÷ 12 anteriores** como índice oficial (é o que a conversa descreve); os outros como leitura auxiliar; faixas < 1,00 retraído, 1,00–1,20 normal, > 1,20–1,40 aquecido, > 1,40 superaquecido | #73 |
 | D-P03 | Índice de crédito | 70% contratos + 30% valor, 12 ÷ 12 (conversa); ticket médio 2026/2025 (planilha); ano fiscal ÷ mediana de 3 anos com suavização e limite (nota) | a da conversa, com suavização para município com poucos contratos e limite; decidir se trator entra (a nota exclui por endogeneidade com a própria venda) | #73 |
 | D-P04 | Percepção do gestor | por município, −5% a +5% (conversa); por cultura, −2 a +2 com peso 0,4, até ±40% (planilha) | **por município, ±5%**, com autor, data e justificativa; quem informa: gestor comercial | #71, #74 |
 | D-P05 | Pesos, limites e cenários | a = 0,4, b = 0,5, d = 0,4, limites 0,4–1,5 (planilha); cenários só anotados | **DECIDIDA em 23/09/2026** (§5.1): pesos da planilha como **primeira vigência**, com autor, data e a justificativa "medidos no protótipo, a confirmar"; as três sensibilidades são **preço/rentabilidade, crédito e percepção** — o termo de troca fica fora até a #70 | #74 |
 | D-P06 | Termo de troca | 5080EN a R$ 300 mil fixo (planilha); 3036N no café (CRM); "base de venda" e "ART preço de trator" (conversa) | máquina de referência por cultura; preço histórico mensal (mediana das notas); unidade por cultura: saca de 60 kg (café, soja, milho, amendoim), tonelada de ATR (cana), caixa de 40,8 kg (laranja) | #70, #73 |
-| D-P07 | Rentabilidade | custo total CONAB (planilha usa o total por ha); na pasta, a CONAB de SP só tem café (Franca) e cana (Piracicaba, Penápolis) — mas a CONAB publica série histórica também de soja, milho, amendoim e laranja (§2.1), com os locais a conferir dentro dos arquivos | custo operacional para a margem de caixa e total para a de longo prazo; referência fora de SP ou outra fonte para as culturas sem série, registrada | #67, #73 |
+| D-P07 | Rentabilidade | custo total CONAB (planilha usa o total por ha); na pasta, a CONAB de SP só tem café (Franca) e cana (Piracicaba, Penápolis) — mas a CONAB publica série histórica também de soja, milho, amendoim e laranja (§2.1), com os locais a conferir dentro dos arquivos | **DECIDIDA em 27/09/2026** (§5.7): **Franca para o café e Piracicaba para a cana, na camada do custo TOTAL** — é a referência da planilha do comercial, e o custo total da CONAB nesses dois locais bate com ela ao centavo. As outras quatro culturas ficam sem referência: a CONAB não publica custo delas em SP | #67, #73 |
 | D-P08 | Vendas para captura e share | entregas John Deere por ano fiscal (planilha); faturamento do Protheus (#18/#19); pedidos da API GN (#12) | **DECIDIDA em 24/09/2026** (§5.3, sobre o levantamento da §5.2): **o ART é a fonte canônica das vendas em unidades**; o Protheus segue sendo o faturamento **em reais**; a API GN entra depois, só para o financiamento | #69 |
 | D-P08.1 | Qual das três datas do ART define o período | venda, faturamento e entrega; a planilha do comercial conta por entrega, em ano fiscal | **DECIDIDA em 24/09/2026** (§5.4): **a data do FATURAMENTO** — a view do ART é de máquina faturada, e máquina faturada é máquina vendida. É também o mesmo critério do faturamento em reais, o que impede as duas medidas de ficarem em relógios diferentes | #69 |
 | D-P09 | "O contrato foi da Tracbel?" | o SICOR não identifica cliente nem revenda | aceitar como **aproximação** a comparação, por município e mês, dos contratos do SICOR com os pedidos da Tracbel financiados (instituição e linha de crédito na API GN) — nunca contrato a contrato | #69, #73 |
@@ -1315,14 +1315,48 @@ em `numerosDeDecisao.baseDaCaptura`), e o que fica de fora sai contado na frase 
 N máquinas vendidas da categoria Trator ÷ a demanda anual estimada da mesma categoria. M máquinas ficam de fora…"*.
 Quando outra categoria ganhar regra, ela entra na conta sozinha — a lista vem da demanda, e não de uma constante.
 
-#### O que continua em aberto [para o Ricardo]
+#### O que continuava em aberto [resolvido no mesmo dia — §5.7]
 
 - **As outras categorias do protótipo**, que a planilha da Tracbel não tem: colheitadeira de soja e milho, 1.500 ha e
   10 anos; plantadeira de soja e milho, 800 ha e 10 anos; pulverizador de cana, 1.500 ha e 8 anos, e de soja e milho,
-  1.000 ha e 8 anos; **colhedora de cana, 700 ha e 8 anos**. Esta última pede uma decisão antes do número: o catálogo
-  do CRM não tem a categoria "colhedora de cana", e a linha dela no ART ficou **sem categoria** por julgamento do
+  1.000 ha e 8 anos; **colhedora de cana, 700 ha e 8 anos**. Esta última pedia uma decisão antes do número: o catálogo
+  do CRM não tinha a categoria "colhedora de cana", e a linha dela no ART ficou **sem categoria** por julgamento do
   comercial (§5.3).
-- **Um defeito a corrigir antes da segunda categoria.** O motor (`RepositorioDoMotorDoPotencial`) e o mapa
-  (`RepositorioDeIndicadoresTerritoriais`) escolhem a regra vigente agrupando **só pelo produto**. Com um trator e uma
-  colheitadeira do café na mesma data, uma das duas some sem aviso. Com as seis regras de trator não há efeito — cada
-  produto tem uma categoria só —, mas a correção tem de entrar antes de qualquer regra de outra categoria.
+- **Um defeito a corrigir antes da segunda categoria** (issue #240). O motor (`RepositorioDoMotorDoPotencial`) e o
+  mapa (`RepositorioDeIndicadoresTerritoriais`) escolhiam a regra vigente agrupando **só pelo produto**. Com um trator e
+  uma colheitadeira do café na mesma data, uma das duas sumia sem aviso.
+
+### 5.7 As outras categorias e a D-P07, decididas [27/09/2026]
+
+**O Ricardo aprovou as duas coisas que a §5.6 deixou em aberto**, respondendo ao relatório da D-P01: *"Aprovo essas
+duas coisas"*.
+
+**As outras categorias entram como o protótipo as traz**, vigentes de 27/09/2026, confirmadas, pela migração
+`ColhedoraDeCanaERegrasDasOutrasCategorias` — o mesmo desenho da do trator (SQL escrito à mão, sem Id fixo,
+idempotente):
+
+| Categoria | Cultura | ha por máquina | Troca (anos) |
+|---|---|---|---|
+| Colheitadeira | Soja, Milho | 1.500 | 10 |
+| Plantadeira | Soja, Milho | 800 | 10 |
+| Pulverizador | Cana | 1.500 | 8 |
+| Pulverizador | Soja, Milho | 1.000 | 8 |
+| Colhedora de cana | Cana | 700 | 8 |
+
+**A colhedora de cana vira a sétima categoria**, no fim da lista da semente (o Id é a posição; inserir no meio
+renumeraria as categorias que já têm regra). A linha `COLHEDORA_DE_CANA` do ART passa a apontar para ela: a venda de
+colhedora deixa de ser "linha sem categoria" e entra na captura, contra a demanda de colhedora. Só a plataforma de
+corte continua sem categoria. O SICOR segue com um produto só para colheitadeira e colhedora (2700), que fica na
+colheitadeira — o Banco Central não separa as duas.
+
+**A #240 foi corrigida junto, e antes de tudo:** o motor e o mapa escolhem a vigência por **produto e categoria**. A
+ficha do município mostra uma linha de máquinas teóricas por categoria ("1 trator a cada 200 ha", "1 colheitadeira a
+cada 1.500 ha") e a soma — as máquinas somam; a área, não (é a regra de `Sobrepor`, que já existia no motor).
+
+> **D-P07 decidida:** Franca para o café e Piracicaba para a cana, na camada do custo **total**. É a referência que a
+> planilha do comercial usa, e o custo total da CONAB nesses dois locais bate com ela ao centavo (café em Franca:
+> R$ 26.232,06/ha em 2024 e R$ 29.279,94/ha em 2025; cana em Piracicaba: R$ 13.040,39/ha e R$ 13.903,20/ha). Penápolis,
+> dentro da região, sairia 25% mais barata — e não é a que o comercial usa. Laranja, amendoim, milho e soja ficam **sem
+> referência**: a CONAB não publica custo delas em São Paulo, e escolher outro estado seria decisão nova.
+
+A migração grava a referência só onde ninguém decidiu antes — a tela do Administrador também grava ali.

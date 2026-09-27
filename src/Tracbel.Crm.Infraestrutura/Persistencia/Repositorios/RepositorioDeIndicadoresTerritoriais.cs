@@ -452,9 +452,9 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     continue;
                 }
 
-                // LINHA SEM CATEGORIA CONTA NO TOTAL E SOME DA QUEBRA. Hoje são a colhedora de cana e a
-                // plataforma de corte, que ficaram sem categoria de propósito: são julgamento do
-                // comercial, não omissão (documento 48, §5.3).
+                // LINHA SEM CATEGORIA CONTA NO TOTAL E SOME DA QUEBRA. Hoje é a plataforma de corte, que
+                // ficou sem categoria de propósito: é acessório de colheitadeira, julgamento do comercial,
+                // não omissão (documento 48, §5.3). A colhedora de cana ganhou categoria própria em 27/09/2026.
                 if (!categoriaDaLinha.TryGetValue(linha, out var categoria))
                 {
                     acumulador.MaquinasEmLinhaSemCategoria++;
@@ -471,13 +471,22 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         // a regra tem vigência, e a de hoje é a que o mapa aplica — uma vigência futura ainda não vale).
         // -----------------------------------------------------------------------------------------
         var hoje = ParametroComVigencia.HojeNoBrasil(agoraUtc);
+
+        // POR PRODUTO E CATEGORIA (issue 240): a soja tem regra de trator e de colheitadeira que começam no
+        // mesmo dia, e agrupar só pelo produto deixava uma delas de fora sem aviso.
         var regras = (await contexto.RegrasDePotencial.AsNoTracking()
                 .Where(r => r.RevogadoEm == null && r.VigenteDesde <= hoje)
                 .ToListAsync(ct))
-            .GroupBy(r => r.ProdutoCodigoIbge)
+            .GroupBy(r => (r.ProdutoCodigoIbge, r.CategoriaDeMaquinaId))
             .Select(g => ParametroComVigencia.VigenteEm(g, hoje)!)
             .OrderBy(r => r.ProdutoCodigoIbge)
+            .ThenBy(r => r.CategoriaDeMaquinaId)
             .ToList();
+
+        // A CATEGORIA DE CADA REGRA, pelo nome e na ordem do catálogo — a ficha lista as máquinas do produto
+        // categoria por categoria, e a tela cita a regra com a máquina dela.
+        var categoriaDaRegra = await contexto.CategoriasDeMaquina.AsNoTracking()
+            .ToDictionaryAsync(c => c.Id, c => (c.Codigo, c.Nome, c.Ordem), ct);
 
         // O MOTOR (issue 72) lê a regra pela CULTURA do catálogo, e a área de uma cultura é a dos produtos
         // que entram na soma dela — por isso a leitura da PAM abre para eles, e não só para o produto da regra.
@@ -671,31 +680,60 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                 acumulador.Cobertura(),
                 acumulador.Vendas(),
                 [
-                    .. regras.Select(regra =>
+                    // UMA LINHA POR PRODUTO, COM AS CATEGORIAS DENTRO (issue 240). A PAM é do produto — área,
+                    // colheita, valor — e não se repete por categoria; as máquinas, sim: o trator e a
+                    // colheitadeira da soja são duas contas sobre a mesma área, e as duas somam.
+                    .. regras.GroupBy(r => r.ProdutoCodigoIbge).Select(doProduto =>
                     {
-                        var medidas = daRegra.GetValueOrDefault((codigo, regra.ProdutoCodigoIbge));
+                        var produto = doProduto.Key;
+                        var medidas = daRegra.GetValueOrDefault((codigo, produto));
+                        var chaves = catalogoDoMotor.PorProdutoDaRegra.GetValueOrDefault(produto) ?? [];
 
-                        // O NÚMERO VEM DO MOTOR, e não mais de uma divisão feita aqui: é a mesma conta do
-                        // total da tela e da calculadora. Sem catálogo que ligue o produto — regra de um
-                        // produto fora dele —, fica a divisão da própria regra, que é o que havia antes.
-                        var maquinas = catalogoDoMotor.PorProdutoDaRegra.TryGetValue(regra.ProdutoCodigoIbge, out var chave)
-                                       && parcelaDe.TryGetValue(chave, out var parcela)
-                            ? parcela.Parque
-                            : regra.MaquinasTeoricas(medidas.AreaPlantadaHectares);
+                        var porCategoria = doProduto
+                            .Select(regra =>
+                            {
+                                var categoria = regra.CategoriaDeMaquinaId is { } id && categoriaDaRegra.TryGetValue(id, out var doCatalogo)
+                                    ? doCatalogo
+                                    : (Codigo: RepositorioDoMotorDoPotencial.SemCategoriaCodigo,
+                                       Nome: RepositorioDoMotorDoPotencial.SemCategoriaNome,
+                                       Ordem: short.MaxValue);
 
-                        short? anoDela = anoDaCultura.TryGetValue(regra.ProdutoCodigoIbge, out var a) ? a : null;
-                        var unidade = anoDela is { } doAno ? UnidadesDaPam.DaQuantidade(regra.ProdutoCodigoIbge, doAno) : null;
+                                // O NÚMERO VEM DO MOTOR, e não de uma divisão feita aqui: é a mesma conta do
+                                // total da tela e da calculadora. Sem catálogo que ligue o produto — regra de
+                                // um produto fora dele —, fica a divisão da própria regra, que é o que havia antes.
+                                var chave = chaves.FirstOrDefault(k => k.CategoriaCodigo == categoria.Codigo);
+                                var maquinas = chave is not null && parcelaDe.TryGetValue(chave, out var parcela)
+                                    ? parcela.Parque
+                                    : regra.MaquinasTeoricas(medidas.AreaPlantadaHectares);
+
+                                return (categoria.Ordem, Linha: new MaquinasTeoricasNaCategoria(
+                                    categoria.Codigo, categoria.Nome, regra.HectaresPorMaquina, regra.ModeloDeReferencia, maquinas));
+                            })
+                            .OrderBy(x => x.Ordem)
+                            .ThenBy(x => x.Linha.CategoriaCodigo, StringComparer.Ordinal)
+                            .Select(x => x.Linha)
+                            .ToList();
+
+                        // A SOMA SAI DOS NÚMEROS INTEIROS, e cada linha só é arredondada para mostrar: somar
+                        // os arredondados daria um total que não bate com a conta do motor.
+                        decimal? total = porCategoria.Any(c => c.Maquinas is not null)
+                            ? porCategoria.Sum(c => c.Maquinas ?? 0m)
+                            : null;
+
+                        short? anoDela = anoDaCultura.TryGetValue(produto, out var a) ? a : null;
+                        var unidade = anoDela is { } doAno ? UnidadesDaPam.DaQuantidade(produto, doAno) : null;
                         return new PotencialTerritorial(
-                            regra.ProdutoCodigoIbge,
+                            produto,
                             medidas.AreaPlantadaHectares,
-                            maquinas is { } m ? decimal.Round(m, 1) : null,
+                            total is { } t ? decimal.Round(t, 1) : null,
                             medidas.AreaColhidaHectares,
                             medidas.ValorDaProducaoMilReais,
                             anoDela,
                             medidas.QuantidadeProduzida,
                             unidade?.Nome,
                             UnidadesDaPam.Produtividade(medidas.QuantidadeProduzida, medidas.AreaColhidaHectares),
-                            unidade?.DaProdutividade);
+                            unidade?.DaProdutividade,
+                            [.. porCategoria.Select(c => c with { Maquinas = c.Maquinas is { } m ? decimal.Round(m, 1) : null })]);
                     })
                 ],
                 ResponsaveisDe(acumulador),
@@ -762,9 +800,18 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             await contexto.ClienteCarteiras.AsNoTracking().MaxAsync(v => v.UltimaInteracaoEm, ct),
             ano,
             [
-                .. regras.Select(r => new RegraDePotencialAplicada(
-                    r.ProdutoCodigoIbge, r.ProdutoNome, r.HectaresPorMaquina, r.ModeloDeReferencia, r.Situacao.ToString(),
-                    r.Justificativa, r.VigenteDesde, r.AnosDeRenovacao))
+                // A CATEGORIA VAI JUNTO (issue 240): com regra de trator e de colheitadeira no mesmo produto,
+                // é ela que diz qual regra é qual.
+                .. regras.Select(r =>
+                {
+                    var categoria = r.CategoriaDeMaquinaId is { } id && categoriaDaRegra.TryGetValue(id, out var doCatalogo)
+                        ? doCatalogo
+                        : ((string Codigo, string Nome, short Ordem)?)null;
+
+                    return new RegraDePotencialAplicada(
+                        r.ProdutoCodigoIbge, r.ProdutoNome, r.HectaresPorMaquina, r.ModeloDeReferencia, r.Situacao.ToString(),
+                        r.Justificativa, r.VigenteDesde, r.AnosDeRenovacao, categoria?.Codigo, categoria?.Nome);
+                })
             ],
             itens,
             foraDoMapa,
