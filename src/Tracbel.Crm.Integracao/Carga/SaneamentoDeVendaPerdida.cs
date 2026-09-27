@@ -105,6 +105,29 @@ public static class SaneamentoDeVendaPerdida
     }
 
     /// <summary>
+    /// A que família o motivo pertence — a MESMA classificação da carga antiga (congelada), repetida aqui para a
+    /// rotina do funil não depender dela.
+    ///
+    /// <para>A classificação é nossa e não da origem — o formulário do Vórtice tem só o texto. Ela existe para a tela
+    /// poder agrupar os motivos em seis famílias sem que alguém decida isso de novo a cada relatório. O que não casa
+    /// cai em <see cref="CategoriaDeMotivoDePerda.Outro"/>, a resposta honesta para um motivo que ninguém
+    /// classificou.</para>
+    /// </summary>
+    /// <param name="codigo">O código do motivo, já codificado (sem acento, sem caixa).</param>
+    public static CategoriaDeMotivoDePerda CategoriaDoMotivo(string codigo) => codigo switch
+    {
+        "PRECO" or "CONDICAO_COMERCIAL" or "VALOR_NAO_PERCEBIDO" => CategoriaDeMotivoDePerda.Preco,
+        "DISPONIBILIDADE" or "CHEGOU_TARDE" or "PRAZO_DE_ENTREGA" => CategoriaDeMotivoDePerda.Prazo,
+        "ESPECIFICACAO_TECNICA" or "JD_NAO_POSSUI_PRODUTO" or "OPTOU_POR_USADO"
+            or "COMPARATIVO_DE_PERFORMANCE" or "CONFIGURACAO_INDISPONIVEL" => CategoriaDeMotivoDePerda.Produto,
+        "CREDITO_INDEFERIDO_BANCO_JD" or "CREDITO_INDEFERIDO_BJD" or "CREDITO_INDEFERIDO_OUTROS"
+            or "FINANCIAMENTO_NEGADO" => CategoriaDeMotivoDePerda.Financiamento,
+        "FIEL_A_CONCORRENCIA" or "PREFERENCIA_POR_CONCORRENTE" => CategoriaDeMotivoDePerda.Concorrencia,
+        "CLIENTE_ADIOU_INVESTIMENTO" or "DESISTENCIA" => CategoriaDeMotivoDePerda.Desistencia,
+        _ => CategoriaDeMotivoDePerda.Outro
+    };
+
+    /// <summary>
     /// O "Sim"/"Não" do formulário, com o branco preservado como desconhecido.
     /// </summary>
     /// <param name="bruto">O que veio da origem.</param>

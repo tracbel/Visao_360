@@ -142,12 +142,16 @@ public sealed class VendaPerdida : EntidadeBase
         RevendaDoConcorrenteId, ModeloDoConcorrente, ModeloOfertado, Quantidade, PrecoDoConcorrente, PrecoOfertado,
         Participacao, FormularioDeOrigem, NumeroDoProcessoNaOrigem);
 
-    /// <summary>Registra uma resposta de formulário do Vórtice, como principal (o papel é decidido depois).</summary>
+    /// <summary>Registra uma resposta de formulário do Vórtice, já com o papel dela.</summary>
     /// <param name="conteudo">O que a origem declara.</param>
     /// <param name="criadoPorId">Quem roda a integração.</param>
-    public static VendaPerdida DaOrigem(ConteudoDaVendaPerdida conteudo, long criadoPorId)
+    /// <param name="papel">O papel; a principal é o padrão.</param>
+    /// <param name="principalId">A principal, quando o papel não é principal.</param>
+    public static VendaPerdida DaOrigem(
+        ConteudoDaVendaPerdida conteudo, long criadoPorId, PapelDaVendaPerdida papel = PapelDaVendaPerdida.Principal, long? principalId = null)
     {
-        var venda = new VendaPerdida { CriadoPorId = criadoPorId };
+        ValidarPapel(papel, principalId, null);
+        var venda = new VendaPerdida { CriadoPorId = criadoPorId, Papel = papel, VendaPerdidaPrincipalId = principalId };
         venda.Aplicar(conteudo);
         return venda;
     }
@@ -174,12 +178,7 @@ public sealed class VendaPerdida : EntidadeBase
     /// <param name="usuarioId">Quem decide.</param>
     public bool DefinirPapel(PapelDaVendaPerdida papel, long? principalId, long usuarioId)
     {
-        if (papel == PapelDaVendaPerdida.Principal && principalId is not null)
-            throw new RegraDeNegocioViolada("A venda perdida principal não aponta para outra principal.");
-        if (papel != PapelDaVendaPerdida.Principal && principalId is null)
-            throw new RegraDeNegocioViolada("O complemento e a duplicata precisam apontar a venda perdida principal.");
-        if (principalId is not null && principalId == Id)
-            throw new RegraDeNegocioViolada("A venda perdida não é complemento nem duplicata de si mesma.");
+        ValidarPapel(papel, principalId, Id);
 
         if (Papel == papel && VendaPerdidaPrincipalId == principalId) return false;
 
@@ -208,6 +207,16 @@ public sealed class VendaPerdida : EntidadeBase
     /// <param name="c">O conteúdo como veio.</param>
     public static ConteudoDaVendaPerdida Normalizar(ConteudoDaVendaPerdida c) =>
         c with { RegistradaEm = EstagioDoProcesso.NoMilissegundo(c.RegistradaEm), Quantidade = c.Quantidade < 1 ? 1 : c.Quantidade };
+
+    private static void ValidarPapel(PapelDaVendaPerdida papel, long? principalId, long? proprioId)
+    {
+        if (papel == PapelDaVendaPerdida.Principal && principalId is not null)
+            throw new RegraDeNegocioViolada("A venda perdida principal não aponta para outra principal.");
+        if (papel != PapelDaVendaPerdida.Principal && principalId is null)
+            throw new RegraDeNegocioViolada("O complemento e a duplicata precisam apontar a venda perdida principal.");
+        if (principalId is not null && principalId == proprioId)
+            throw new RegraDeNegocioViolada("A venda perdida não é complemento nem duplicata de si mesma.");
+    }
 
     private void Aplicar(ConteudoDaVendaPerdida conteudo)
     {
