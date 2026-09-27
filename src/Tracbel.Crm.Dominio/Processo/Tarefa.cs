@@ -241,4 +241,153 @@ public sealed class Tarefa : EntidadeBase
     {
         if (interacaoOrigemId is not null) InteracaoOrigemId = interacaoOrigemId;
     }
+
+    /// <summary>O que a tarefa guarda, no formato em que a origem é comparada (documento 52 §12).</summary>
+    public RetratoDaTarefaDaOrigem RetratoDaOrigem => new(
+        EmpresaId, ProcessoId, ClienteId, TipoTarefaId, Assunto, ResponsavelId, OrigemAtribuicao, AgendadaPara, PrazoLimite,
+        Prioridade, Situacao, ConcluidaEm, ConcluidaPorId, ResultadoId, CriadoEm);
+
+    /// <summary>
+    /// Registra a tarefa que o Vórtice declara — a onda 2 da rotina <c>PROCESSOS_VORTICE</c> (documento 52 §12).
+    ///
+    /// <para><b>Por que não <see cref="Agendar"/> seguido de <see cref="Concluir"/>.</b> A agenda da origem ANDA entre
+    /// duas rodadas — a tarefa de ontem foi concluída, empurrada ou reaberta —, e <c>Concluir</c> recusa a segunda
+    /// conclusão, como deve recusar na tela. A rotina não conclui nada: ela espelha o que a origem já concluiu, com a
+    /// data, quem concluiu e o desfecho que a restrição do banco exige.</para>
+    /// </summary>
+    /// <param name="retrato">O estado declarado.</param>
+    /// <param name="criadoPorId">Quem roda a integração.</param>
+    public static Tarefa DaOrigem(RetratoDaTarefaDaOrigem retrato, long criadoPorId)
+    {
+        var tarefa = new Tarefa { CriadoPorId = criadoPorId };
+        tarefa.AplicarDaOrigem(Normalizar(retrato));
+        return tarefa;
+    }
+
+    /// <summary>Acompanha a origem. Devolve se alguma coisa mudou — relida igual, não muda nada.</summary>
+    /// <param name="retrato">O estado declarado nesta rodada.</param>
+    /// <param name="usuarioId">Quem roda a integração.</param>
+    public bool AtualizarDaOrigem(RetratoDaTarefaDaOrigem retrato, long usuarioId)
+    {
+        var normalizado = Normalizar(retrato);
+        if (RetratoDaOrigem == normalizado) return false;
+
+        AplicarDaOrigem(normalizado);
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>A tarefa voltou à origem depois de sair: deixa de estar excluída. Devolve se mudou.</summary>
+    /// <param name="usuarioId">Quem roda a integração.</param>
+    public bool RestaurarDaOrigem(long usuarioId)
+    {
+        if (!EstaExcluido) return false;
+        ExcluidoEm = null;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>
+    /// FECHA O DUPLO PONTEIRO com as interações que a origem declara: a que gerou a tarefa e a que a concluiu. A de
+    /// conclusão só vale para a tarefa concluída — pendente não tem quem a tenha concluído. Devolve se mudou.
+    /// </summary>
+    /// <param name="interacaoOrigemId">A interação que gerou a tarefa, quando ela está no CRM.</param>
+    /// <param name="interacaoConclusaoId">A interação que concluiu a tarefa, quando ela está no CRM.</param>
+    /// <param name="usuarioId">Quem roda a integração.</param>
+    public bool LigarInteracoes(long? interacaoOrigemId, long? interacaoConclusaoId, long usuarioId)
+    {
+        var conclusao = Situacao is SituacaoDaTarefa.Concluida ? interacaoConclusaoId : null;
+        if (InteracaoOrigemId == interacaoOrigemId && InteracaoConclusaoId == conclusao) return false;
+
+        InteracaoOrigemId = interacaoOrigemId;
+        InteracaoConclusaoId = conclusao;
+        MarcarAlteracao(usuarioId);
+        return true;
+    }
+
+    /// <summary>
+    /// O retrato com as datas no milissegundo e o assunto aparado — o que as colunas <c>datetime2(3)</c> guardam. Sem
+    /// isso a data relida do Vórtice (passo de 1/300 s) nunca seria igual à gravada.
+    /// </summary>
+    /// <param name="r">O retrato como veio.</param>
+    public static RetratoDaTarefaDaOrigem Normalizar(RetratoDaTarefaDaOrigem r) => r with
+    {
+        Assunto = (r.Assunto ?? string.Empty).Trim(),
+        AgendadaPara = EstagioDoProcesso.NoMilissegundo(r.AgendadaPara),
+        PrazoLimite = EstagioDoProcesso.NoMilissegundo(r.PrazoLimite),
+        ConcluidaEm = EstagioDoProcesso.NoMilissegundo(r.ConcluidaEm),
+        CriadaEm = EstagioDoProcesso.NoMilissegundo(r.CriadaEm)
+    };
+
+    private void AplicarDaOrigem(RetratoDaTarefaDaOrigem r)
+    {
+        // AS MESMAS REGRAS DE Agendar E DO BANCO (CK_Tarefa_Prioridade e CK_Tarefa_Conclusao): concluída tem data, quem
+        // concluiu e desfecho, sem exceção — a origem que marca "realizada" sem os três fica pendente, quem decide é a rotina.
+        if (r.Assunto.Length == 0)
+            throw new RegraDeNegocioViolada("Tarefa sem assunto não existe.");
+
+        if (r.AgendadaPara.Kind is not DateTimeKind.Utc)
+            throw new RegraDeNegocioViolada("A data da tarefa precisa estar em UTC.");
+
+        if (r.Prioridade is < 1 or > 5)
+            throw new RegraDeNegocioViolada("A prioridade da tarefa vai de 1 (alta) a 5 (baixa).");
+
+        if (r.Situacao is SituacaoDaTarefa.Concluida && (r.ConcluidaEm is null || r.ConcluidaPorId is null || r.ResultadoId is null))
+            throw new RegraDeNegocioViolada("Tarefa concluída tem data, quem concluiu e desfecho. Sem os três, ela é pendente.");
+
+        EmpresaId = r.EmpresaId;
+        ProcessoId = r.ProcessoId;
+        ClienteId = r.ClienteId;
+        TipoTarefaId = r.TipoTarefaId;
+        Assunto = r.Assunto;
+        ResponsavelId = r.ResponsavelId;
+        OrigemAtribuicao = r.OrigemAtribuicao;
+        AgendadaPara = r.AgendadaPara;
+        PrazoLimite = r.PrazoLimite;
+        Prioridade = r.Prioridade;
+        Situacao = r.Situacao;
+        ConcluidaEm = r.ConcluidaEm;
+        ConcluidaPorId = r.ConcluidaPorId;
+        ResultadoId = r.ResultadoId;
+        CriadoEm = r.CriadaEm;
+
+        // A TAREFA QUE A ORIGEM REABRIU não tem mais quem a concluiu: o ponteiro de conclusão vai junto.
+        if (Situacao is not SituacaoDaTarefa.Concluida) InteracaoConclusaoId = null;
+    }
 }
+
+/// <summary>
+/// O ESTADO QUE O VÓRTICE DECLARA PARA UMA TAREFA DA ONDA 2 — tudo o que a rotina compara para decidir se a tarefa
+/// mudou (documento 52 §12). As datas chegam cortadas no milissegundo (<see cref="Tarefa.Normalizar"/>).
+/// </summary>
+/// <param name="EmpresaId">A filial — a do processo, e não a do cliente.</param>
+/// <param name="ProcessoId">O processo do CRM. A onda 2 não traz tarefa avulsa (decisão P6).</param>
+/// <param name="ClienteId">O cliente do processo.</param>
+/// <param name="TipoTarefaId">A ação, já no catálogo do CRM; sem ação, o tipo "não informada".</param>
+/// <param name="Assunto">O nome da ação no catálogo — o texto livre da agenda não entra (decisão P1).</param>
+/// <param name="ResponsavelId">A conta de quem tem que fazer; sem conta, o dono do processo (decisão P2).</param>
+/// <param name="OrigemAtribuicao">Regra (agendamento automático) ou manual.</param>
+/// <param name="AgendadaPara">Quando está agendada (UTC).</param>
+/// <param name="PrazoLimite">O prazo limite (UTC), quando a origem declara.</param>
+/// <param name="Prioridade">De 1 (alta) a 5 (baixa).</param>
+/// <param name="Situacao">Pendente ou concluída.</param>
+/// <param name="ConcluidaEm">Quando foi concluída (UTC).</param>
+/// <param name="ConcluidaPorId">Quem concluiu; sem conta, o dono do processo (decisão P2).</param>
+/// <param name="ResultadoId">O desfecho registrado, já no catálogo do CRM.</param>
+/// <param name="CriadaEm">Quando a tarefa nasceu na origem (UTC).</param>
+public sealed record RetratoDaTarefaDaOrigem(
+    int EmpresaId,
+    long? ProcessoId,
+    long? ClienteId,
+    int TipoTarefaId,
+    string Assunto,
+    long ResponsavelId,
+    OrigemDaAtribuicao OrigemAtribuicao,
+    DateTime AgendadaPara,
+    DateTime? PrazoLimite,
+    short Prioridade,
+    SituacaoDaTarefa Situacao,
+    DateTime? ConcluidaEm,
+    long? ConcluidaPorId,
+    int? ResultadoId,
+    DateTime CriadaEm);

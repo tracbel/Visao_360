@@ -184,6 +184,19 @@ public sealed class EstagioDoProcesso
     }
 
     /// <summary>
+    /// LIGA A LINHA AO PROCESSO DO CRM, ou desliga — a onda 2 (documento 52 §12). Fica fora do <see cref="Retrato"/> de
+    /// propósito: quem compara a linha com a origem é o funil, e o funil não sabe se o processo foi carregado. Quem liga é
+    /// a carga das oportunidades, pelo número do processo. Devolve se mudou.
+    /// </summary>
+    /// <param name="processoId">O processo do CRM com o mesmo número; nulo quando ele não está (ou saiu) do CRM.</param>
+    public bool LigarAoProcesso(long? processoId)
+    {
+        if (ProcessoId == processoId) return false;
+        ProcessoId = processoId;
+        return true;
+    }
+
+    /// <summary>
     /// A DATA NO MILISSEGUNDO. A coluna é <c>datetime2(3)</c>, e o Vórtice grava <c>datetime</c> com passo de 1/300 s:
     /// sem truncar aqui, a data relida da origem nunca seria igual à gravada, e toda rodada "alteraria" o funil
     /// inteiro sem nada ter mudado.
