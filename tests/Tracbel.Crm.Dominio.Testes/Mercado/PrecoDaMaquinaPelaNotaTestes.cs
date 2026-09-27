@@ -149,6 +149,30 @@ public sealed class PrecoDaMaquinaPelaNotaTestes
     }
 
     [Fact]
+    public void O_preco_de_referencia_e_a_mediana_dos_meses_dos_ultimos_doze_contando_o_corrente()
+    {
+        // Em 27/09/2026 a janela vai de out/2025 a set/2026: setembro de 2025 fica de fora, por mais barato que seja.
+        var referencia = PrecoDaMaquinaPelaNota.PrecoDeReferencia(
+            "TRATOR",
+            "Trator",
+            [
+                (new DateOnly(2025, 9, 1), 100_000m),
+                (new DateOnly(2025, 10, 1), 500_000m),
+                (new DateOnly(2026, 3, 1), 520_000m),
+                (new DateOnly(2026, 9, 1), 2_000_000m)
+            ],
+            new DateOnly(2026, 9, 27));
+
+        referencia.Should().Be(new PrecoDeReferenciaDaCategoria("TRATOR", "Trator", 520_000m, 3, new DateOnly(2026, 9, 1)),
+            "cada mês é um voto, e o mês fora da curva (R$ 2 milhões) não arrasta a mediana");
+    }
+
+    [Fact]
+    public void Categoria_sem_nota_nos_ultimos_doze_meses_nao_tem_preco_de_referencia() =>
+        PrecoDaMaquinaPelaNota.PrecoDeReferencia("TRATOR", "Trator", [(new DateOnly(2025, 6, 1), 480_000m)], new DateOnly(2026, 9, 27))
+            .Should().BeNull("um preço de mais de um ano, aplicado à demanda de hoje, seria número com cara de atual");
+
+    [Fact]
     public void O_mes_gravado_so_muda_o_carimbo_quando_algum_numero_muda()
     {
         var gravado = new DateTime(2026, 9, 27, 12, 0, 0, DateTimeKind.Utc);

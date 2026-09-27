@@ -287,7 +287,8 @@ public sealed class ObterIndicadoresTerritoriais(
     IRelogio relogio,
     IProvedorContextoAcesso acesso,
     IRepositorioDeIndicadoresDeMercado indicadoresDeMercado,
-    IRepositorioDeParametrosDoPotencial parametros)
+    IRepositorioDeParametrosDoPotencial parametros,
+    IRepositorioDePrecosDeMercado precosDeMercado)
 {
     /// <summary>
     /// O MOMENTO DO MERCADO DO RECORTE — o fator POR CULTURA e o agregado (fases T3 e T3.1).
@@ -317,13 +318,16 @@ public sealed class ObterIndicadoresTerritoriais(
     /// dezesseis lugares de três arquivos, e no dia em que a issue 69 trouxer as unidades alguém teria de
     /// achar os dezesseis.</para>
     ///
-    /// <para><b>A composição por categoria nasce vazia de propósito</b>: o preço de referência é a issue
-    /// 70 e não existe no CRM. Passar uma lista vazia é o que faz o mercado anual sair com
-    /// <c>SemPrecoDeMaquina</c> em vez de com um total inventado — e é a mesma lista que, quando a 70
-    /// chegar, passa a trazer demanda e preço de cada categoria.</para>
+    /// <para><b>A composição por categoria traz o preço desde 27/09/2026</b> (issue 70): cada categoria com demanda
+    /// entra com o preço de referência dela — a mediana das notas do Protheus × ART dos últimos 12 meses —, a demanda
+    /// ajustada e as máquinas vendidas nela. Categoria sem preço entra sem ele, e o mercado sai parcial com o nome
+    /// dela, em vez de com um total inventado.</para>
     /// </summary>
     private static (NumerosDeDecisao Numeros, ComparacaoComOAnoAnterior Comparacao) NumerosDeDecisaoDo(
-        IndicadoresTerritoriais indicadores, string? categoriaFiltrada, int mesesDoPeriodo)
+        IndicadoresTerritoriais indicadores,
+        string? categoriaFiltrada,
+        int mesesDoPeriodo,
+        IReadOnlyDictionary<string, PrecoDeReferenciaDaCategoria> precos)
     {
         // A DEMANDA DO PERÍODO (decisão do Ricardo de 27/09/2026): a captura e a oportunidade dividem as vendas do
         // período pela demanda anual × meses/12. Com o ano fiscal inteiro, o número é o da planilha.
@@ -352,16 +356,33 @@ public sealed class ObterIndicadoresTerritoriais(
 
         var (demanda, ajustada) = categoriaFiltrada is null
             ? (indicadores.PotencialDoRecorte?.DemandaAnualDeMaquinas, indicadores.Momento?.DemandaAjustadaTotal)
-            : DemandaDaCategoria(indicadores, categoriaFiltrada);
+            : DemandaSoDaCategoria(indicadores, categoriaFiltrada);
 
         var baseDaCaptura = Base(indicadores.MaquinasVendidas);
 
-        var numeros = DecisaoDoMercado.Calcular(
-            demanda,
-            ajustada,
-            vendasEmUnidades: baseDaCaptura?.Unidades,
-            porCategoria: [],
-            mesesDoPeriodo) with { BaseDaCaptura = baseDaCaptura };
+        // A COMPOSIÇÃO: cada categoria com demanda, com o preço, a ajustada e as vendas DELA.
+        var vendidas = indicadores.MaquinasVendidas?.PorCategoria
+            .ToDictionary(c => c.CategoriaCodigo, c => c.Unidades, StringComparer.Ordinal);
+        var composicao = indicadores.PotencialDoRecorte?.PorCategoria
+            .Where(c => c.DemandaAnualDeMaquinas is not null
+                        && (categoriaFiltrada is null || string.Equals(c.CategoriaCodigo, categoriaFiltrada, StringComparison.Ordinal)))
+            .Select(c => (c.CategoriaCodigo, Parcela: new DemandaDaCategoria(
+                c.CategoriaNome,
+                c.DemandaAnualDeMaquinas!.Value,
+                precos.GetValueOrDefault(c.CategoriaCodigo)?.Preco,
+                DemandaSoDaCategoria(indicadores, c.CategoriaCodigo).Ajustada,
+                vendidas?.GetValueOrDefault(c.CategoriaCodigo))))
+            .ToList() ?? [];
+
+        var numeros = ComOsPrecos(
+            DecisaoDoMercado.Calcular(
+                demanda,
+                ajustada,
+                vendasEmUnidades: baseDaCaptura?.Unidades,
+                porCategoria: [.. composicao.Select(c => c.Parcela)],
+                mesesDoPeriodo) with { BaseDaCaptura = baseDaCaptura },
+            composicao.Select(c => c.CategoriaCodigo),
+            precos);
 
         // O MESMO TRECHO DO ANO ANTERIOR (27/09/2026): a MESMA base — as mesmas categorias com demanda, contra a
         // mesma demanda. O que muda entre os dois lados é só a venda.
@@ -378,6 +399,41 @@ public sealed class ObterIndicadoresTerritoriais(
     }
 
     /// <summary>
+    /// OS PREÇOS QUE A CONTA USOU vão junto do mercado anual e do potencial incremental — para a dica dizer com que
+    /// preço cada categoria entrou, de quantos meses e até quando.
+    /// </summary>
+    private static NumerosDeDecisao ComOsPrecos(
+        NumerosDeDecisao numeros, IEnumerable<string> categorias, IReadOnlyDictionary<string, PrecoDeReferenciaDaCategoria> precos)
+    {
+        List<PrecoDeReferenciaDaCategoria> usados = [.. categorias.Select(c => precos.GetValueOrDefault(c)).OfType<PrecoDeReferenciaDaCategoria>()];
+        if (usados.Count == 0) return numeros;
+
+        return numeros with
+        {
+            MercadoAnual = numeros.MercadoAnual.Valor is null ? numeros.MercadoAnual : numeros.MercadoAnual with { Precos = usados },
+            PotencialIncremental = numeros.PotencialIncremental is { Valor: not null } potencial
+                ? potencial with { Precos = usados }
+                : numeros.PotencialIncremental
+        };
+    }
+
+    /// <summary>
+    /// O PREÇO DE REFERÊNCIA DE CADA CATEGORIA, pelo código (issue 70, 27/09/2026): a mediana das medianas mensais
+    /// dos últimos doze meses, a mesma para a página e para cada município. Categoria sem nota na janela não entra.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, PrecoDeReferenciaDaCategoria>> PrecosDeReferenciaAsync(
+        DateTime agoraUtc, CancellationToken ct)
+    {
+        var hoje = ParametroComVigencia.HojeNoBrasil(agoraUtc);
+
+        return (await precosDeMercado.LerPrecosDeMaquinaAsync(ct))
+            .Select(s => PrecoDaMaquinaPelaNota.PrecoDeReferencia(
+                s.CategoriaCodigo, s.CategoriaNome, s.Meses.Select(m => (m.Mes, m.Mediana)), hoje))
+            .OfType<PrecoDeReferenciaDaCategoria>()
+            .ToDictionary(p => p.CategoriaCodigo, StringComparer.Ordinal);
+    }
+
+    /// <summary>
     /// OS NÚMEROS DE DECISÃO DE CADA MUNICÍPIO (27/09/2026) — demanda, captura e oportunidade da ficha.
     ///
     /// <para><b>A mesma conta da página, com os ingredientes do município</b>: a demanda das categorias que têm
@@ -391,7 +447,10 @@ public sealed class ObterIndicadoresTerritoriais(
     /// tela recebe o resultado — e não centenas de linhas por município.</para>
     /// </summary>
     private static IReadOnlyList<IndicadoresDoMunicipio> ComNumerosDeDecisao(
-        IndicadoresTerritoriais indicadores, string? categoriaFiltrada, int mesesDoPeriodo)
+        IndicadoresTerritoriais indicadores,
+        string? categoriaFiltrada,
+        int mesesDoPeriodo,
+        IReadOnlyDictionary<string, PrecoDeReferenciaDaCategoria> precos)
     {
         var fatores = indicadores.Momento?.PorCultura
                           .GroupBy(c => c.CulturaCodigo, StringComparer.Ordinal)
@@ -402,7 +461,7 @@ public sealed class ObterIndicadoresTerritoriais(
         [
             .. indicadores.Municipios.Select(m => m with
             {
-                NumerosDeDecisao = NumerosDoMunicipio(m, fatores, categoriaFiltrada, mesesDoPeriodo),
+                NumerosDeDecisao = NumerosDoMunicipio(m, fatores, categoriaFiltrada, mesesDoPeriodo, precos),
                 DemandaPorCategoriaECultura = null
             })
         ];
@@ -412,7 +471,8 @@ public sealed class ObterIndicadoresTerritoriais(
         IndicadoresDoMunicipio municipio,
         IReadOnlyDictionary<string, FatorDoCiclo> fatores,
         string? categoriaFiltrada,
-        int mesesDoPeriodo)
+        int mesesDoPeriodo,
+        IReadOnlyDictionary<string, PrecoDeReferenciaDaCategoria> precos)
     {
         if (municipio.PotencialEstrutural is null || municipio.DemandaPorCategoriaECultura is not { } parcelas) return null;
 
@@ -433,19 +493,26 @@ public sealed class ObterIndicadoresTerritoriais(
             ? municipio.PotencialEstrutural.DemandaAnualDeMaquinas
             : porCategoria.Count == 1 ? porCategoria[0].Demanda : null;
 
-        // A AJUSTADA: cada cultura com o fator dela, somada pela mesma regra do momento.
-        var (_, _, ajustada, _) = MomentoAgregado.Agregar(
-        [
-            .. daConta.GroupBy(p => (p.CulturaCodigo, p.Cultura)).Select(g =>
-            {
-                var demandaDaCultura = g.All(p => p.DemandaAnual is not null) ? g.Sum(p => p.DemandaAnual!.Value) : (decimal?)null;
-                var fator = fatores.GetValueOrDefault(g.Key.CulturaCodigo);
-                return new MomentoDaCultura(
-                    g.Key.CulturaCodigo, g.Key.Cultura, demandaDaCultura, g.Max(p => p.AreaUtilHectares), null,
-                    fator ?? new FatorDoCiclo(null, null, null, null, null, false, 0, false, "SemFator"),
-                    demandaDaCultura is { } d && fator?.Fator is { } f ? d * f : null);
-            })
-        ]);
+        // A AJUSTADA: cada cultura com o fator dela, somada pela mesma regra do momento — a do município inteiro e a
+        // de cada categoria, que é o que o potencial incremental multiplica pelo preço dela.
+        decimal? Ajustada(IEnumerable<DemandaNoMunicipio> doQue)
+        {
+            var (_, _, somada, _) = MomentoAgregado.Agregar(
+            [
+                .. doQue.GroupBy(p => (p.CulturaCodigo, p.Cultura)).Select(g =>
+                {
+                    var demandaDaCultura = g.All(p => p.DemandaAnual is not null) ? g.Sum(p => p.DemandaAnual!.Value) : (decimal?)null;
+                    var fator = fatores.GetValueOrDefault(g.Key.CulturaCodigo);
+                    return new MomentoDaCultura(
+                        g.Key.CulturaCodigo, g.Key.Cultura, demandaDaCultura, g.Max(p => p.AreaUtilHectares), null,
+                        fator ?? new FatorDoCiclo(null, null, null, null, null, false, 0, false, "SemFator"),
+                        demandaDaCultura is { } d && fator?.Fator is { } f ? d * f : null);
+                })
+            ]);
+            return somada;
+        }
+
+        var ajustada = Ajustada(daConta);
 
         var baseDaCaptura = BaseDaCaptura.Montar(
             municipio.MaquinasVendidas,
@@ -453,8 +520,24 @@ public sealed class ObterIndicadoresTerritoriais(
             comDemanda,
             mesesDoPeriodo);
 
-        return DecisaoDoMercado.Calcular(demanda, ajustada, baseDaCaptura?.Unidades, porCategoria: [], mesesDoPeriodo)
-            with { BaseDaCaptura = baseDaCaptura };
+        // A COMPOSIÇÃO DO MUNICÍPIO: a mesma da página, com a demanda, a ajustada e as vendas daqui (27/09/2026).
+        var composicao = porCategoria
+            .Where(c => c.Demanda is not null)
+            .Select(c => (c.Key.CategoriaCodigo, Parcela: new DemandaDaCategoria(
+                c.Key.CategoriaNome,
+                c.Demanda!.Value,
+                precos.GetValueOrDefault(c.Key.CategoriaCodigo)?.Preco,
+                Ajustada(daConta.Where(p => string.Equals(p.CategoriaCodigo, c.Key.CategoriaCodigo, StringComparison.Ordinal))),
+                municipio.MaquinasVendidas is null
+                    ? null
+                    : municipio.MaquinasPorCategoria?.FirstOrDefault(v => string.Equals(v.CategoriaCodigo, c.Key.CategoriaCodigo, StringComparison.Ordinal))?.Unidades ?? 0)))
+            .ToList();
+
+        return ComOsPrecos(
+            DecisaoDoMercado.Calcular(demanda, ajustada, baseDaCaptura?.Unidades, [.. composicao.Select(c => c.Parcela)], mesesDoPeriodo)
+                with { BaseDaCaptura = baseDaCaptura },
+            composicao.Select(c => c.CategoriaCodigo),
+            precos);
     }
 
     /// <summary>
@@ -464,7 +547,7 @@ public sealed class ObterIndicadoresTerritoriais(
     /// aplica a cada cultura dela o fator que o momento já calculou para essa cultura, agregando pela mesma
     /// regra do momento (só entram as culturas com os dois números).</para>
     /// </summary>
-    private static (decimal? Estrutural, decimal? Ajustada) DemandaDaCategoria(
+    private static (decimal? Estrutural, decimal? Ajustada) DemandaSoDaCategoria(
         IndicadoresTerritoriais indicadores, string categoria)
     {
         var daCategoria = indicadores.PotencialDoRecorte?.PorCategoria
@@ -660,14 +743,15 @@ public sealed class ObterIndicadoresTerritoriais(
         };
 
         var meses = new JanelaDeCompetencia(inicial, final).Meses;
+        var precos = await PrecosDeReferenciaAsync(agora, ct);
 
         // OS NÚMEROS DE CADA MUNICÍPIO, com o fator de ciclo que o momento acabou de calcular (27/09/2026).
         indicadores = indicadores with
         {
-            Municipios = ComNumerosDeDecisao(indicadores, filtros.CategoriaDeMaquina, meses)
+            Municipios = ComNumerosDeDecisao(indicadores, filtros.CategoriaDeMaquina, meses, precos)
         };
 
-        var (numeros, comparacao) = NumerosDeDecisaoDo(indicadores, filtros.CategoriaDeMaquina, meses);
+        var (numeros, comparacao) = NumerosDeDecisaoDo(indicadores, filtros.CategoriaDeMaquina, meses, precos);
 
         return Resultado<ComProcedencia<PainelTerritorial>>.Ok(
             ComProcedencia<PainelTerritorial>.DoNossoBanco(
