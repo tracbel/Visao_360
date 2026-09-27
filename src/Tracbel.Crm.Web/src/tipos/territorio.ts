@@ -724,6 +724,21 @@ export type MercadoAnual = NumeroDeDecisao & {
   categoriasSemPreco: string[];
 };
 
+/**
+ * O QUE A CAPTURA CONTOU (D-P01, 27/09/2026): as máquinas vendidas das categorias que têm demanda, e o
+ * que ficou de fora. Com regra só de trator, a colheitadeira e a colhedora de cana que o ART traz não
+ * entram — não há demanda delas do outro lado da conta.
+ *
+ * `frase` vem PRONTA do servidor, como a dos motivos: o cartão e a aba dizem a mesma coisa porque é o
+ * mesmo texto.
+ */
+export type BaseDaCaptura = {
+  unidades: number;
+  categorias: string[];
+  unidadesForaDaConta: number;
+  frase: string;
+};
+
 /** Os quatro números de decisão do recorte (documento 50, §4.1). */
 export type NumerosDeDecisao = {
   demandaAnual: NumeroDeDecisao;
@@ -732,6 +747,8 @@ export type NumerosDeDecisao = {
   capturaPercentual: NumeroDeDecisao;
   /** `max(0, demanda ajustada − vendas)`, em máquinas. */
   oportunidade: NumeroDeDecisao;
+  /** O numerador da captura e da oportunidade; nulo quando o ART não trouxe venda nenhuma. */
+  baseDaCaptura: BaseDaCaptura | null;
 };
 
 export type PainelTerritorial = {

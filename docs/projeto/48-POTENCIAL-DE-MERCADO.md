@@ -538,11 +538,12 @@ culturas por cliente). P-1 (CEN vigente) e P-10 (perfis) continuam nas issues #4
 
 ## 5. Decisões (#63)
 
-Cada decisão tem opções, a recomendação e o que ela bloqueia. **Nenhuma foi tomada.**
+Cada decisão tem opções, a recomendação e o que ela bloqueia. As tomadas dizem **DECIDIDA**, com a data e a
+subseção que conta como.
 
 | # | Pergunta | Opções encontradas | Recomendação | Bloqueia |
 |---|---|---|---|---|
-| D-P01 | Hectares por máquina e anos de renovação por cultura; categorias de máquina | café: **10 ha (CRM, 3036N) × 20 ha (planilha)**; demais só na planilha; laranja perene e cana semiperene; "máquinas em geral" pede categorias além de trator | tabela por cultura × categoria, confirmada pelo comercial com vigência; começar por trator nas 6 culturas | #72 |
+| D-P01 | Hectares por máquina e anos de renovação por cultura; categorias de máquina | café: **10 ha (CRM, 3036N) × 20 ha (planilha)**; demais só na planilha; laranja perene e cana semiperene; "máquinas em geral" pede categorias além de trator | **DECIDIDA para o trator em 27/09/2026** (§5.6): **café 20 ha / 10 anos**, cana 170/8, amendoim 200/8, soja 200/10, milho 200/10, laranja 20/10 — a aba Administrador da planilha, igual ao padrão do protótipo, que o Ricardo mandou seguir. As outras categorias continuam em aberto | #72 |
 | D-P02 | Índice de momento de preço | último ÷ média (café); 1 contra 12, 6 contra 6, 12 contra 12 (cana); R12/R6/R3/R1 com janela deslocada (laranja); a faixa entre 1,0 e 1,2 não tem nome e "= 1" exato não acontece | **12 meses ÷ 12 anteriores** como índice oficial (é o que a conversa descreve); os outros como leitura auxiliar; faixas < 1,00 retraído, 1,00–1,20 normal, > 1,20–1,40 aquecido, > 1,40 superaquecido | #73 |
 | D-P03 | Índice de crédito | 70% contratos + 30% valor, 12 ÷ 12 (conversa); ticket médio 2026/2025 (planilha); ano fiscal ÷ mediana de 3 anos com suavização e limite (nota) | a da conversa, com suavização para município com poucos contratos e limite; decidir se trator entra (a nota exclui por endogeneidade com a própria venda) | #73 |
 | D-P04 | Percepção do gestor | por município, −5% a +5% (conversa); por cultura, −2 a +2 com peso 0,4, até ±40% (planilha) | **por município, ±5%**, com autor, data e justificativa; quem informa: gestor comercial | #71, #74 |
@@ -1274,3 +1275,54 @@ das 23 abertas hoje; as divergências antigas que a regra agora explica deixam d
 
 **Nenhuma chave de máquina muda com a regra nova do chassi**: as 2.854 máquinas do CRM se normalizam em si mesmas
 (conferido na simulação do parque) — o VIN aceito antes é aceito igual, e a recarga não duplica máquina.
+
+### 5.6 D-P01 decidida — o trator nas seis culturas [27/09/2026]
+
+**A pergunta era uma só:** café, 10 ou 20 hectares por trator? O CRM tinha 10 (o exemplo do gerente, 13/09); a
+planilha de mapeamento dos 203 municípios, 20. O Ricardo respondeu: *"usar o que está no protótipo"*.
+
+**O protótipo e a planilha dizem a mesma coisa, cultura por cultura.** O padrão do protótipo Plataforma Inteligência
+Agro (o `DEFAULTS` do tipo de máquina "tratores", que a aba Administrador dele restaura) é idêntico à aba
+Administrador da planilha — que o comercial preenche como "hectares atendidos por 1 trator" e "taxa de troca":
+
+| Cultura | ha por trator | Troca (anos) |
+|---|---|---|
+| Café | **20** | 10 |
+| Cana | 170 | 8 |
+| Amendoim | 200 | 8 |
+| Soja | 200 | 10 |
+| Milho | 200 | 10 |
+| Laranja | 20 | 10 |
+
+> **Decidido:** as seis entram como **vigências de 27/09/2026**, confirmadas, na categoria **trator**, pela migração
+> `RegrasDoPotencialDosTratores`. A regra do café de 13/09 **continua gravada** e vale para os dias em que valeu —
+> o cálculo de 26/09 segue com 10 ha, e o de 27/09 em diante usa 20 ha e 10 anos.
+
+**O modelo de referência é "trator".** Nenhuma das duas fontes nomeia modelo; escrever um seria inventá-lo. A ficha do
+município passou a dizer "Máquinas teóricas (1 trator a cada 20 ha)", que lê bem com "trator" e com "3036N".
+
+**Por que SQL escrito à mão, e sem Id.** A tela do Administrador grava nesta tabela com identidade; uma semente com Id
+fixo colidiria com a linha que alguém tivesse registrado por lá. A inserção também pula o produto que já tenha, no
+trator, vigência de pé de 27/09 em diante — decisão tão nova quanto esta prevalece. Rodar de novo não duplica, e o
+`Down` tira só as seis sem autor (teste de contêiner: `As_seis_regras_dos_tratores_valem_de_27_09_…`).
+
+#### O numerador da captura passa a ser do trator [D]
+
+Com regra só de trator, **a demanda é de trator** — e o ART traz também colheitadeira, pulverizador, plantadeira e
+colhedora de cana. Dividir tudo pela demanda de trator inflaria a captura: seria pôr colheitadeira contra demanda de
+trator. **A captura e a oportunidade passaram a contar só as máquinas das categorias que têm demanda** (`BaseDaCaptura`,
+em `numerosDeDecisao.baseDaCaptura`), e o que fica de fora sai contado na frase do cartão: *"A conta deste recorte:
+N máquinas vendidas da categoria Trator ÷ a demanda anual estimada da mesma categoria. M máquinas ficam de fora…"*.
+Quando outra categoria ganhar regra, ela entra na conta sozinha — a lista vem da demanda, e não de uma constante.
+
+#### O que continua em aberto [para o Ricardo]
+
+- **As outras categorias do protótipo**, que a planilha da Tracbel não tem: colheitadeira de soja e milho, 1.500 ha e
+  10 anos; plantadeira de soja e milho, 800 ha e 10 anos; pulverizador de cana, 1.500 ha e 8 anos, e de soja e milho,
+  1.000 ha e 8 anos; **colhedora de cana, 700 ha e 8 anos**. Esta última pede uma decisão antes do número: o catálogo
+  do CRM não tem a categoria "colhedora de cana", e a linha dela no ART ficou **sem categoria** por julgamento do
+  comercial (§5.3).
+- **Um defeito a corrigir antes da segunda categoria.** O motor (`RepositorioDoMotorDoPotencial`) e o mapa
+  (`RepositorioDeIndicadoresTerritoriais`) escolhem a regra vigente agrupando **só pelo produto**. Com um trator e uma
+  colheitadeira do café na mesma data, uma das duas some sem aviso. Com as seis regras de trator não há efeito — cada
+  produto tem uma categoria só —, mas a correção tem de entrar antes de qualquer regra de outra categoria.

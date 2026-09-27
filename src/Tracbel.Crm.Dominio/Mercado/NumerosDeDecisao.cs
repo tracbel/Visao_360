@@ -63,16 +63,84 @@ public sealed record MercadoAnual(
 /// <param name="PrecoDeReferencia">O preço de referência daquela categoria (issue 70); nulo quando não há.</param>
 public sealed record DemandaDaCategoria(string Categoria, decimal DemandaAnual, decimal? PrecoDeReferencia);
 
+/// <summary>
+/// O QUE A CAPTURA CONTOU — as máquinas vendidas das categorias que têm demanda, e o que ficou de fora.
+///
+/// <para><b>Os dois lados da razão são da mesma máquina.</b> A demanda sai das regras de potencial, e a
+/// regra é por categoria (D-P01): com regra só de trator, a demanda é de trator. Dividir por ela também a
+/// colheitadeira, o pulverizador e a colhedora de cana que o ART traz inflaria a captura — seria pôr a
+/// venda de colheitadeira contra a demanda de trator.</para>
+///
+/// <para><b>O que fica de fora não some:</b> sai contado, com a frase que diz por quê. Quando outra
+/// categoria ganhar regra, ela entra sozinha — a lista vem da demanda, e não de uma constante.</para>
+/// </summary>
+/// <param name="Unidades">As máquinas vendidas nas categorias com demanda — o numerador da captura e da oportunidade.</param>
+/// <param name="Categorias">O nome das categorias que entraram na conta, em ordem alfabética.</param>
+/// <param name="UnidadesForaDaConta">As que ficaram de fora: de categoria sem demanda, de linha sem categoria ou sem classificação.</param>
+/// <param name="Frase">A conta por extenso, pronta para a tela — a mesma no cartão e na aba.</param>
+public sealed record BaseDaCaptura(int Unidades, IReadOnlyList<string> Categorias, int UnidadesForaDaConta, string Frase)
+{
+    private static readonly System.Globalization.CultureInfo PtBr = System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
+
+    /// <summary>Monta a base; nula quando a fonte das unidades não trouxe venda nenhuma.</summary>
+    /// <param name="unidadesVendidas">O total de máquinas vendidas no recorte; nulo quando a fonte não existe.</param>
+    /// <param name="vendidasPorCategoria">As máquinas vendidas por categoria, pelo código da categoria.</param>
+    /// <param name="categoriasComDemanda">As categorias que têm demanda anual no recorte: código e nome.</param>
+    public static BaseDaCaptura? Montar(
+        int? unidadesVendidas,
+        IEnumerable<(string Codigo, int Unidades)> vendidasPorCategoria,
+        IEnumerable<(string Codigo, string Nome)> categoriasComDemanda)
+    {
+        // AUSÊNCIA DE CARGA NÃO É VENDA ZERO: sem a fonte, não há base — e a captura diz que falta a fonte.
+        if (unidadesVendidas is not { } total) return null;
+
+        var comDemanda = categoriasComDemanda.DistinctBy(c => c.Codigo, StringComparer.Ordinal).ToList();
+        var codigos = comDemanda.Select(c => c.Codigo).ToHashSet(StringComparer.Ordinal);
+        var naConta = vendidasPorCategoria.Where(v => codigos.Contains(v.Codigo)).Sum(v => v.Unidades);
+
+        // ORDEM ESTÁVEL: a lista vai para a tela e para o teste, e não pode depender de quem chamou.
+        var nomes = comDemanda.Select(c => c.Nome).Order(StringComparer.Ordinal).ToList();
+
+        return new BaseDaCaptura(naConta, nomes, total - naConta, FraseDa(naConta, nomes, total - naConta, total));
+    }
+
+    private static string FraseDa(int naConta, IReadOnlyList<string> categorias, int fora, int total)
+    {
+        if (categorias.Count == 0)
+            return string.Format(PtBr,
+                "Nenhuma categoria tem demanda estimada neste recorte, e a captura não tem contra o que ler as {0:N0} {1}.",
+                total, total == 1 ? "máquina vendida" : "máquinas vendidas");
+
+        var quais = categorias.Count == 1
+            ? $"da categoria {categorias[0]}"
+            : $"das categorias {string.Join(", ", categorias.Take(categorias.Count - 1))} e {categorias[^1]}";
+
+        var conta = string.Format(PtBr,
+            "A conta deste recorte: {0:N0} {1} {2} ÷ a demanda anual estimada {3}.",
+            naConta, naConta == 1 ? "máquina vendida" : "máquinas vendidas", quais,
+            categorias.Count == 1 ? "da mesma categoria" : "das mesmas categorias");
+
+        if (fora == 0) return conta;
+
+        return conta + string.Format(PtBr,
+            " {0:N0} {1} de fora — de categoria que ainda não tem regra de potencial, de linha sem categoria ou " +
+            "sem classificação —, porque não há demanda delas do outro lado da conta.",
+            fora, fora == 1 ? "máquina fica" : "máquinas ficam");
+    }
+}
+
 /// <summary>Os quatro números de decisão de um recorte (documento 50, §4.1).</summary>
 /// <param name="DemandaAnual">Quantas máquinas o recorte renova por ano.</param>
 /// <param name="MercadoAnual">Quanto isso vale em reais.</param>
 /// <param name="CapturaPercentual">Que fatia da demanda a Tracbel leva, em pontos percentuais.</param>
 /// <param name="Oportunidade">Quantas máquinas da demanda ajustada ainda não foram capturadas.</param>
+/// <param name="BaseDaCaptura">O que a captura e a oportunidade contaram; nula quando a fonte das unidades não existe.</param>
 public sealed record NumerosDeDecisao(
     NumeroDeDecisao DemandaAnual,
     MercadoAnual MercadoAnual,
     NumeroDeDecisao CapturaPercentual,
-    NumeroDeDecisao Oportunidade);
+    NumeroDeDecisao Oportunidade,
+    BaseDaCaptura? BaseDaCaptura = null);
 
 /// <summary>
 /// OS QUATRO NÚMEROS DE DECISÃO (documento 50, §4.1) — domínio puro, sem banco.
@@ -97,7 +165,10 @@ public static class DecisaoDoMercado
     /// </summary>
     /// <param name="demandaAnual">A demanda estrutural do recorte, do motor; nula quando ele não a produziu.</param>
     /// <param name="demandaAjustada">A demanda depois do fator de ciclo; nula quando não há fator.</param>
-    /// <param name="vendasEmUnidades">As máquinas que a Tracbel vendeu no recorte (issue 69); nulo quando a fonte não existe.</param>
+    /// <param name="vendasEmUnidades">
+    /// As máquinas que a Tracbel vendeu no recorte (issue 69) NAS CATEGORIAS QUE TÊM DEMANDA — o
+    /// <see cref="BaseDaCaptura.Unidades"/>, e não o total do ART; nulo quando a fonte não existe.
+    /// </param>
     /// <param name="porCategoria">A demanda e o preço de cada categoria (issue 70). Lista vazia = não há composição.</param>
     public static NumerosDeDecisao Calcular(
         decimal? demandaAnual,
@@ -210,11 +281,14 @@ public static class DecisaoDoMercado
             $"Sem a demanda anual não há base para {numero}. Falta o ciclo de renovação por cultura: a decisão D-P01 " +
             "(issue 63) fixa cultura, categoria, hectares por máquina e anos de renovação — as quatro juntas.",
 
+        // O TEXTO NÃO AFIRMA O ESTADO DO SERVIÇO. Ele dizia "o serviço está desligado para o ajuste dos
+        // dados" — e continuou dizendo depois que o serviço voltou e trouxe milhares de vendas. O que a
+        // tela sabe é só o que a consulta alcançou.
         nameof(MotivoSemNumeroDeDecisao.SemVendasEmUnidades) =>
-            $"As vendas da Tracbel em MÁQUINAS não estão carregadas, e {numero} precisa delas. O faturamento em reais " +
-            "que já existe não serve de numerador para uma demanda medida em máquinas (issue 69). A fonte já está " +
-            "decidida — é o ART (D-P08, 24/09/2026) —, e o serviço de sincronização está desligado para o ajuste " +
-            "dos dados: quando ele voltar, o número aparece sozinho.",
+            $"As vendas da Tracbel em MÁQUINAS não chegaram a esta consulta, e {numero} precisa delas. O faturamento " +
+            "em reais que já existe não serve de numerador para uma demanda medida em máquinas (issue 69). A fonte " +
+            "está decidida — é o ART (D-P08, 24/09/2026) —, e nenhuma venda dele está ao alcance deste recorte: a " +
+            "carga não rodou, ou não trouxe venda para cá.",
 
         nameof(MotivoSemNumeroDeDecisao.SemPrecoDeMaquina) =>
             $"Não há preço de referência de máquina no CRM, e {numero} é a demanda de cada categoria multiplicada pelo " +

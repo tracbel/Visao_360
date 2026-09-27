@@ -1,10 +1,13 @@
 using FluentAssertions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Tracbel.Crm.Dominio.Metadado;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Dominio.Seguranca;
+using Tracbel.Crm.Infraestrutura.Migrations;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Xunit;
 
@@ -86,7 +89,10 @@ public sealed class MigracaoNoContainerTestes
         contexto.Database.EnsureDeleted();
         contexto.Database.Migrate();
 
-        var regras = contexto.RegrasDePotencial.Where(r => r.RevogadoEm == null).ToList();
+        // A DE 13/09 CONTINUA AQUI, como era — as seis de 27/09 (D-P01) têm o teste delas logo abaixo.
+        var regras = contexto.RegrasDePotencial
+            .Where(r => r.RevogadoEm == null && r.VigenteDesde == new DateOnly(2026, 9, 13))
+            .ToList();
 
         regras.Should().HaveCount(1,
             "sem regra vigente, o mapa C da Visão 360 mostra 'sem regra de potencial' e não calcula nada");
@@ -98,7 +104,6 @@ public sealed class MigracaoNoContainerTestes
 
         // ISSUE 71: a mesma linha virou a primeira vigência — a data de 13/09 preservada pelo RENAME de
         // InformadaEm, o texto de origem pelo RENAME de Origem, e sem autor, porque veio da migração.
-        regras[0].VigenteDesde.Should().Be(new DateOnly(2026, 9, 13));
         regras[0].Justificativa.Should().StartWith("Exemplo do gerente comercial");
         regras[0].InformadoPorId.Should().BeNull();
 
@@ -142,7 +147,75 @@ public sealed class MigracaoNoContainerTestes
              END
              """);
 
-        contexto.RegrasDePotencial.Count().Should().Be(1, "repor duas vezes não duplica");
+        contexto.RegrasDePotencial.Count(r => r.VigenteDesde == new DateOnly(2026, 9, 13))
+            .Should().Be(1, "repor duas vezes não duplica");
+    }
+
+    [FatoSeHouverSqlServer]
+    public void As_seis_regras_dos_tratores_valem_de_27_09_sem_reescrever_o_cafe_de_13_09()
+    {
+        // D-P01 DECIDIDA EM 27/09/2026 (issue 63): hectares por trator e anos de troca das seis culturas,
+        // da aba Administrador da planilha de mapeamento — igual ao padrão do protótipo, que o Ricardo
+        // mandou seguir. Sem elas a demanda anual não saía, e com ela a captura e a oportunidade.
+        using var contexto = CriarContexto();
+
+        contexto.Database.EnsureDeleted();
+        contexto.Database.Migrate();
+
+        var trator = contexto.CategoriasDeMaquina.Single(c => c.Codigo == "TRATOR");
+        var culturaPorId = contexto.Culturas.ToDictionary(c => c.Id, c => c.Codigo);
+        var produtosDaSoma = contexto.ProdutosDaPamNasCulturas.Where(p => p.EntraNaSomaDaLavoura).ToList();
+
+        var novas = contexto.RegrasDePotencial
+            .Where(r => r.VigenteDesde == new DateOnly(2026, 9, 27))
+            .ToList();
+
+        novas.Select(r => (Cultura: culturaPorId[r.CulturaId!.Value], r.HectaresPorMaquina, r.AnosDeRenovacao))
+            .Should().BeEquivalentTo(
+                new[]
+                {
+                    (Cultura: "CAFE", HectaresPorMaquina: 20m, AnosDeRenovacao: (decimal?)10m),
+                    (Cultura: "CANA", HectaresPorMaquina: 170m, AnosDeRenovacao: (decimal?)8m),
+                    (Cultura: "AMENDOIM", HectaresPorMaquina: 200m, AnosDeRenovacao: (decimal?)8m),
+                    (Cultura: "SOJA", HectaresPorMaquina: 200m, AnosDeRenovacao: (decimal?)10m),
+                    (Cultura: "MILHO", HectaresPorMaquina: 200m, AnosDeRenovacao: (decimal?)10m),
+                    (Cultura: "LARANJA", HectaresPorMaquina: 20m, AnosDeRenovacao: (decimal?)10m)
+                },
+                "é a aba Administrador da planilha, cultura por cultura, igual ao padrão do protótipo");
+
+        novas.Should().OnlyContain(r =>
+                r.CategoriaDeMaquinaId == trator.Id
+                && r.Situacao == SituacaoDaRegraDePotencial.Confirmada
+                && r.ModeloDeReferencia == "trator"
+                && r.InformadoPorId == null
+                && r.RevogadoEm == null,
+            "é trator sem modelo, confirmado pelo comercial, e vem da migração — não de um usuário do CRM");
+
+        // O PRODUTO DE CADA REGRA É O QUE ENTRA NA SOMA DA CULTURA: o café pelo Total (40139), e nunca
+        // Arábica mais Canephora, que dobraria a área.
+        foreach (var regra in novas)
+            produtosDaSoma.Should().Contain(p => p.CulturaId == regra.CulturaId && p.ProdutoCodigoIbge == regra.ProdutoCodigoIbge,
+                $"o produto {regra.ProdutoCodigoIbge} tem de ser o da soma da cultura dele");
+
+        // O PASSADO NÃO SE REESCREVE: o cálculo de 26/09 continua com o exemplo de 13/09, e o de 27/09 em
+        // diante usa a decisão.
+        var doCafe = contexto.RegrasDePotencial.Where(r => r.ProdutoCodigoIbge == 40139).ToList();
+        ParametroComVigencia.VigenteEm(doCafe, new DateOnly(2026, 9, 26))!.HectaresPorMaquina.Should().Be(10m);
+        var vigenteNaDecisao = ParametroComVigencia.VigenteEm(doCafe, new DateOnly(2026, 9, 27))!;
+        vigenteNaDecisao.HectaresPorMaquina.Should().Be(20m);
+        vigenteNaDecisao.AnosDeRenovacao.Should().Be(10m);
+
+        // RODAR DE NOVO NÃO DUPLICA: é o mesmo texto que a migração executa.
+        contexto.Database.ExecuteSqlRaw(RegrasDoPotencialDosTratores.Insercao);
+        contexto.RegrasDePotencial.Count().Should().Be(7, "a de 13/09 e as seis de 27/09 — rodar de novo não duplica");
+
+        // E A MIGRAÇÃO VOLTA: o Down tira as seis e só elas, e o Up as põe de novo.
+        var migrador = contexto.GetService<IMigrator>();
+        migrador.Migrate("ParquePeloProprietarioAtual");
+        contexto.RegrasDePotencial.Select(r => r.VigenteDesde).Should().Equal(new DateOnly(2026, 9, 13));
+
+        migrador.Migrate();
+        contexto.RegrasDePotencial.Count().Should().Be(7);
     }
 
     [FatoSeHouverSqlServer]

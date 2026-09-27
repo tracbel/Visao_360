@@ -245,6 +245,9 @@ export function PerformanceTracbel({
                           </li>
                         ))}
                       </ul>
+                      {/* QUAIS DESTAS ENTRAM NA CAPTURA: só as categorias com demanda (D-P01). A
+                          quebra mostra todas as vendas; a frase diz quantas foram para a conta. */}
+                      {numeros?.baseDaCaptura && <p className="cad-sub">{numeros.baseDaCaptura.frase}</p>}
                       {maquinasVendidas.unidadesEmLinhaSemCategoria > 0 && (
                         <p className="cad-sub">
                           {`${nº(maquinasVendidas.unidadesEmLinhaSemCategoria)} ${

@@ -1007,4 +1007,104 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
             .Select(m => m.GetProperty("metrica").GetString())
             .Should().NotContain("vendasEmUnidades", "o ART trouxe venda neste cenário");
     }
+
+    [Fact]
+    public async Task Com_regra_de_trator_a_captura_divide_so_os_tratores_pela_demanda_de_trator()
+    {
+        await SemearAsync();
+
+        // A REGRA DO CAFÉ COM CICLO (D-P01), vigente hoje: sem ela a demanda não sai e a captura não tem
+        // denominador. Ela é revogada no fim — o banco desta classe é um só, e os outros testes leem o
+        // cenário sem ciclo.
+        var regraId = await RegistrarRegraDoCafeComCicloAsync();
+        try
+        {
+            var numeros = (await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo))).GetProperty("numerosDeDecisao");
+            var conta = numeros.GetProperty("baseDaCaptura");
+
+            // QUATRO MÁQUINAS NO PERÍODO: dois tratores, uma colhedora de cana (linha sem categoria) e uma sem
+            // classificação. Só os tratores têm demanda do outro lado da conta.
+            conta.GetProperty("unidades").GetInt32().Should().Be(2);
+            conta.GetProperty("unidadesForaDaConta").GetInt32().Should().Be(2);
+            conta.GetProperty("categorias").EnumerateArray().Select(c => c.GetString()).Should().Equal("Trator");
+            conta.GetProperty("frase").GetString().Should().StartWith("A conta deste recorte: 2 máquinas vendidas da categoria Trator");
+
+            var demanda = numeros.GetProperty("demandaAnual").GetProperty("valor").GetDecimal();
+            demanda.Should().BePositive();
+            numeros.GetProperty("capturaPercentual").GetProperty("valor").GetDecimal()
+                .Should().BeApproximately(2m / demanda * 100m, 0.0001m,
+                    "dois tratores sobre a demanda de trator — as quatro máquinas poriam colhedora contra demanda de trator");
+        }
+        finally
+        {
+            await RevogarRegraAsync(regraId);
+        }
+    }
+
+    [Fact]
+    public async Task Sem_demanda_nenhuma_venda_entra_na_conta_e_a_base_diz_por_que()
+    {
+        await SemearAsync();
+        var conta = (await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo)))
+            .GetProperty("numerosDeDecisao").GetProperty("baseDaCaptura");
+
+        // A REGRA SEMEADA NÃO TEM CICLO: há parque, e não há demanda de categoria nenhuma.
+        conta.GetProperty("unidades").GetInt32().Should().Be(0);
+        conta.GetProperty("unidadesForaDaConta").GetInt32().Should().Be(4);
+        conta.GetProperty("frase").GetString().Should().Contain("Nenhuma categoria tem demanda estimada");
+    }
+
+    /// <summary>
+    /// QUEM GRAVA A REGRA TEMPORÁRIA: o usuário 100, na filial de Ribeirão. A vigência é auditada, e a
+    /// trilha recusa gravação sem filial — o contexto de sistema não tem filial de casa.
+    /// </summary>
+    private static Dominio.Portas.IProvedorContextoAcesso ContextoDeRibeirao()
+    {
+        var portador = new ContextoAcessoDaRequisicao();
+
+        portador.Definir(new ContextoAcesso(
+            usuarioId: 100,
+            nomeExibicao: "cen.ribeiraopreto",
+            empresaId: 1,
+            empresasVisiveis: new HashSet<int> { 1 },
+            subordinadosIds: new HashSet<long>(),
+            equipesIds: new HashSet<long>(),
+            profundidades: new Dictionary<string, Profundidade>()));
+
+        return portador;
+    }
+
+    /// <summary>
+    /// A REGRA DO CAFÉ COM CICLO, vigente hoje, pelo mesmo caminho do domínio que a tela do Administrador
+    /// usa. Devolve o Id para o teste revogá-la no fim.
+    /// </summary>
+    private async Task<int> RegistrarRegraDoCafeComCicloAsync()
+    {
+        using var escopo = api.Services.CreateScope();
+        var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+        await using var db = new CrmDbContext(opcoes, ContextoDeRibeirao());
+
+        var agora = DateTime.UtcNow;
+        var cafe = await db.Culturas.SingleAsync(c => c.Codigo == "CAFE");
+        var trator = await db.CategoriasDeMaquina.SingleAsync(c => c.Codigo == "TRATOR");
+
+        var regra = RegraDePotencial.Informar(
+            40139, "Café (em grão) Total", 20m, 10m, "trator", SituacaoDaRegraDePotencial.Confirmada,
+            ParametroComVigencia.HojeNoBrasil(agora), "teste da base da captura", 100, agora, cafe.Id, trator.Id);
+        db.RegrasDePotencial.Add(regra);
+        await db.SaveChangesAsync();
+
+        return regra.Id;
+    }
+
+    private async Task RevogarRegraAsync(int regraId)
+    {
+        using var escopo = api.Services.CreateScope();
+        var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+        await using var db = new CrmDbContext(opcoes, ContextoDeRibeirao());
+
+        var regra = await db.RegrasDePotencial.SingleAsync(r => r.Id == regraId);
+        regra.Revogar("fim do teste — os outros testes da classe leem o cenário sem ciclo", 100, DateTime.UtcNow);
+        await db.SaveChangesAsync();
+    }
 }

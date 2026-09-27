@@ -9,7 +9,7 @@
 
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { MomentoDoRecorte, NumerosDeDecisao } from '../../tipos/territorio';
+import type { MomentoDoRecorte, NumerosDeDecisao, VendasDeMaquinaDoRecorte } from '../../tipos/territorio';
 import { KpisExecutivos } from './KpisExecutivos';
 
 const momento = (fatorAgregado: number | null) => ({ fatorAgregado, procedencia: null }) as unknown as MomentoDoRecorte;
@@ -20,6 +20,7 @@ const NUMEROS: NumerosDeDecisao = {
   mercadoAnual: { valor: null, motivo: 'SemPrecoDeMaquina', frase: 'Sem preço de máquina.', parcial: false, categoriasSemPreco: [] },
   capturaPercentual: { valor: null, motivo: 'SemVendasEmUnidades', frase: 'Sem vendas em máquinas.' },
   oportunidade: { valor: null, motivo: 'SemVendasEmUnidades', frase: 'Sem vendas em máquinas.' },
+  baseDaCaptura: null,
 };
 
 function abrir({ fator = null as number | null, demanda = 400 as number | null, carregando = false } = {}) {
@@ -73,5 +74,35 @@ describe('os quatro números de decisão', () => {
     abrir({ demanda: null });
     expect(lerDica('Por que demanda anual não aparece')).toMatch(/D-P01/);
     expect(cartao('Demanda anual')).not.toHaveTextContent('carregando');
+  });
+
+  it('a dica da captura escreve a conta do SERVIDOR — só as categorias com demanda — e não o total do ART', () => {
+    // QUATRO MÁQUINAS VENDIDAS, DUAS NA CONTA: a regra é só de trator (D-P01), e a colhedora e a máquina
+    // sem classificação não têm demanda do outro lado. A frase vem pronta; a tela só junta o critério.
+    const conta =
+      'FRASE DO SERVIDOR — 2 máquinas vendidas da categoria Trator ÷ a demanda anual estimada da mesma categoria.';
+    render(
+      <KpisExecutivos
+        numeros={{
+          ...NUMEROS,
+          capturaPercentual: { valor: 12.5, motivo: 'Nenhum', frase: '' },
+          baseDaCaptura: { unidades: 2, categorias: ['Trator'], unidadesForaDaConta: 2, frase: conta },
+        }}
+        momento={momento(null)}
+        demandaEstrutural={16}
+        demandaDeSaoPaulo={null}
+        carregando={false}
+        procedenciaDaDemanda={null}
+        maquinasVendidas={
+          { unidades: 4, fraseDoCriterio: 'Pela data do faturamento (D-P08.1).' } as unknown as VendasDeMaquinaDoRecorte
+        }
+        procedenciaDasVendas={null}
+      />,
+    );
+
+    const dica = lerDica('Fonte e método: Captura Tracbel');
+    expect(dica).toContain(conta);
+    expect(dica).toContain('D-P08.1');
+    expect(dica).not.toContain('4 máquinas vendidas');
   });
 });

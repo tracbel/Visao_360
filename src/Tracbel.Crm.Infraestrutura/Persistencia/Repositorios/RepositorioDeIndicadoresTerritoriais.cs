@@ -920,8 +920,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     "Máquinas vendidas (unidades)",
                     maquinas.VendaMaisRecente is { } ate ? $"até {ate:dd/MM/yyyy}" : null,
                     maquinas.CarregadoAte,
-                    $"{maquinas.FraseDoCriterio} O ART não traz financiamento, e o serviço está desligado para o " +
-                    "ajuste dos dados: o que se vê é o que já foi carregado, não o de hoje."));
+                    $"{maquinas.FraseDoCriterio} O ART não traz financiamento. O que se vê é o que a última carga " +
+                    "trouxe — a data da carga, ao lado, diz até quando."));
     }
 
     /// <summary>

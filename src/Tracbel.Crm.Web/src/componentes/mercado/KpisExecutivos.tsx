@@ -287,13 +287,12 @@ export function KpisExecutivos({
             {/* O NUMERADOR FICA ESCRITO, e com o critério de data junto (issue 69, D-P08.1).
                 Uma captura de 12% sem o numerador é um número que ninguém confere; e o
                 critério de data é DECISÃO — decidido não é o mesmo que implícito, e a frase
-                vem do servidor, que é quem contou. */}
-            {maquinasVendidas && (
-              <p>
-                {`A conta deste recorte: ${nº(maquinasVendidas.unidades)} ${
-                  maquinasVendidas.unidades === 1 ? 'máquina vendida' : 'máquinas vendidas'
-                } ÷ a demanda anual estimada. ${maquinasVendidas.fraseDoCriterio}`}
-              </p>
+                vem do servidor, que é quem contou.
+
+                O NUMERADOR NÃO É O TOTAL DO ART (D-P01, 27/09/2026): são as máquinas das
+                categorias que têm demanda, e o que ficou de fora vem contado na mesma frase. */}
+            {maquinasVendidas && numeros?.baseDaCaptura && (
+              <p>{`${numeros.baseDaCaptura.frase} ${maquinasVendidas.fraseDoCriterio}`}</p>
             )}
             {procedenciaDasVendas && <p>{frasesDaProcedencia(procedenciaDasVendas)}</p>}
           </>
