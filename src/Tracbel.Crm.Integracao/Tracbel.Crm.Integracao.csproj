@@ -40,4 +40,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Os testes conferem o texto das consultas ao Vórtice (o que é lido, e o que nunca é). -->
+    <InternalsVisibleTo Include="Tracbel.Crm.Integracao.Testes" />
+  </ItemGroup>
+
 </Project>
