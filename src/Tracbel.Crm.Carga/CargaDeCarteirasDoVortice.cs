@@ -100,6 +100,13 @@ internal sealed record RelatorioDaSincroniaDeCarteiras(
     public int Valor(string rotulo) => Contagens.Where(c => c.Rotulo == rotulo).Sum(c => c.Valor);
 }
 
+/// <summary>O último contato dos clientes do CRM pela regra da BI, e o que ficou de fora dele.</summary>
+/// <param name="PorCliente">A data de cada cliente (UTC, ao milissegundo).</param>
+/// <param name="ClientesComMaisDeUmaPessoa">Clientes com contato em mais de uma pessoa do Vórtice — valeu a mais recente.</param>
+/// <param name="PessoasComDataNoFuturo">Pessoas cuja data passa de um dia depois da rodada — não entraram.</param>
+internal sealed record UltimoContatoDosClientes(
+    IReadOnlyDictionary<long, DateTime> PorCliente, int ClientesComMaisDeUmaPessoa, int PessoasComDataNoFuturo);
+
 /// <summary>
 /// A SINCRONIA DAS CARTEIRAS MAQ_NOVOS DO VÓRTICE (decisão de 24/09/2026).
 ///
@@ -128,6 +135,12 @@ internal sealed record RelatorioDaSincroniaDeCarteiras(
 /// <para><b>Planejar, depois gravar.</b> A rodada inteira é calculada primeiro, SÓ COM LEITURA — do Vórtice, do
 /// CRM e, se houver, da SA1. A simulação para aí: não abre transação de escrita, e os números que ela mostra são
 /// os do plano que a gravação executaria.</para>
+///
+/// <para><b>O último contato vem junto</b> (decisão de 27/09/2026: qualquer contato, como a BI do Vórtice). O
+/// histórico de lá dá a data de cada pessoa (<see cref="LeitorDeCarteirasDoVortice.ResultadosQueContamComoContato"/>);
+/// ela chega ao cliente do CRM pelo mesmo casamento do vínculo (<see cref="UltimoContatoPorCliente"/>) e vai para
+/// <c>ClienteCarteira.UltimaInteracaoEm</c> SÓ quando é mais nova que a gravada — nunca diminui, nunca apaga. A
+/// mudança fica na trilha de auditoria, com a integração do Vórtice como origem.</para>
 /// </summary>
 /// <param name="abrirContexto">Abre um contexto de banco com alcance de sistema.</param>
 /// <param name="lerVortice">A leitura das carteiras do Vórtice.</param>
@@ -175,6 +188,15 @@ internal sealed class CargaDeCarteirasDoVortice(
     /// <summary>Rótulo: carteiras atualizadas.</summary>
     internal const string RotuloDeCarteirasAlteradas = "carteiras já existentes com nome ou dono atualizados";
 
+    /// <summary>Rótulo: vínculos vigentes que estavam sem a data do último contato e passam a ter.</summary>
+    internal const string RotuloDeContatosGanhos = "vínculos que ganham a data do último contato (estavam sem)";
+
+    /// <summary>Rótulo: vínculos vigentes cuja data do último contato fica mais nova.</summary>
+    internal const string RotuloDeContatosAvancados = "vínculos cuja data do último contato avança";
+
+    /// <summary>Rótulo: vínculos incluídos nesta rodada que já nascem com a data do último contato.</summary>
+    internal const string RotuloDeVinculosNovosComContato = "vínculos incluídos que já nascem com a data do último contato";
+
     private const string EntidadeCarteira = nameof(Carteira);
     private const string EntidadeUsuario = nameof(Usuario);
 
@@ -198,6 +220,17 @@ internal sealed class CargaDeCarteirasDoVortice(
             return Resultado<RelatorioDaSincroniaDeCarteiras>.Indisponivel(
                 $"O Vórtice devolveu o departamento {leitura.Departamento.Depto} sem vínculo nenhum. Isso não é uma " +
                 "carteira vazia, é uma leitura a conferir — nada foi encerrado e nada foi gravado.");
+
+        if (leitura.TempoDaConsultaDosUltimosContatos is { } tempo)
+        {
+            relatar($"Último contato pela regra da BI (IV_Historico, {LeitorDeCarteirasDoVortice.ResultadosQueContamComoContato.Count} " +
+                    $"resultados): {leitura.UltimosContatos.Count:N0} pessoas, consulta de {tempo.TotalSeconds:N1} s.");
+
+            // HISTÓRICO VAZIO NÃO APAGA NADA — a data só anda para a frente —, mas também não é normal: diz em voz alta.
+            if (leitura.UltimosContatos.Count == 0)
+                _observacoes.Add("O histórico do Vórtice não devolveu contato nenhum para as pessoas das carteiras. Nenhuma " +
+                                 "data de último contato foi apagada (ela só anda para a frente), mas a leitura merece conferência.");
+        }
 
         IReadOnlyDictionary<string, LojaDeClienteNoProtheus>? sa1 = null;
         if (lerSa1 is not null)
@@ -223,7 +256,7 @@ internal sealed class CargaDeCarteirasDoVortice(
         Plano plano;
         await using (var leituraDoCrm = abrirContexto())
         {
-            plano = await PlanejarAsync(leituraDoCrm, leitura, sa1, ct);
+            plano = await PlanejarAsync(leituraDoCrm, leitura, sa1, agora, ct);
         }
 
         Relatar(leitura, plano, sa1 is not null);
@@ -244,7 +277,7 @@ internal sealed class CargaDeCarteirasDoVortice(
 
     private async Task<Plano> PlanejarAsync(
         CrmDbContext banco, LeituraDasCarteirasDoVortice leitura, IReadOnlyDictionary<string, LojaDeClienteNoProtheus>? sa1,
-        CancellationToken ct)
+        DateTime agora, CancellationToken ct)
     {
         var plano = new Plano();
         var departamento = leitura.Departamento;
@@ -493,12 +526,19 @@ internal sealed class CargaDeCarteirasDoVortice(
         plano.RegistrosQueSumiram = registros.Count(r => !vistos.Contains(r.Key) && r.Value.Ausente is null);
 
         // ---------------------------------------------------------------------------------------------
+        // O último contato de cada cliente do CRM, pela regra da BI (decisão de 27/09/2026).
+        // ---------------------------------------------------------------------------------------------
+        plano.Contatos = UltimoContatoPorCliente(
+            plano.Vinculos.Where(v => v.ClienteId is not null).Select(v => (v.Origem.SeqPessoa, v.ClienteId!.Value)),
+            leitura.UltimosContatos, agora);
+
+        // ---------------------------------------------------------------------------------------------
         // O que muda na carteirização: o desejado contra o vigente, só nas carteiras que esta sincronia administra.
         // ---------------------------------------------------------------------------------------------
         var gerida = plano.CarteirasGeridas.ToList();
         var vigentes = await banco.ClienteCarteiras.AsNoTracking()
             .Where(v => v.DesvinculadoEm == null && gerida.Contains(v.CarteiraId))
-            .Select(v => new { v.Id, v.ClienteId, v.CarteiraId })
+            .Select(v => new { v.Id, v.ClienteId, v.CarteiraId, v.UltimaInteracaoEm })
             .ToListAsync(ct);
 
         var seqPorCarteiraId = plano.Carteiras.Values.Where(c => c.CarteiraId is not null)
@@ -517,12 +557,27 @@ internal sealed class CargaDeCarteirasDoVortice(
             }
 
             vigentesPorPar.Add((v.ClienteId, seq));
+
+            // O ÚLTIMO CONTATO DO VÍNCULO QUE FICA: só quando a data da origem é mais nova que a gravada.
+            DateTime? contato = plano.Contatos.PorCliente.TryGetValue(v.ClienteId, out var data) ? data : null;
+            if (contato is { } novo && (v.UltimaInteracaoEm is null || novo > v.UltimaInteracaoEm))
+            {
+                plano.ContatosAGravar[v.Id] = novo;
+                if (v.UltimaInteracaoEm is null) plano.VinculosQueGanhamContato++;
+                else plano.VinculosQueAvancamContato++;
+            }
+
+            plano.VigentesDepois.Add((plano.Carteiras[seq].Prefixo, v.UltimaInteracaoEm is not null || contato is not null));
         }
 
         foreach (var (par, desde) in plano.Desejados)
         {
             if (vigentesPorPar.Contains(par)) { plano.Mantidos++; continue; }
             plano.ACriar.Add((par.ClienteId, par.SeqCarteira, desde));
+
+            var nasceComContato = plano.Contatos.PorCliente.ContainsKey(par.ClienteId);
+            if (nasceComContato) plano.VinculosNovosComContato++;
+            plano.VigentesDepois.Add((plano.Carteiras[par.SeqCarteira].Prefixo, nasceComContato));
         }
 
         plano.ClientesQueMudaramDeCarteira = plano.ACriar.Select(a => a.ClienteId).Distinct().Count(plano.ClientesQueSairam.Contains);
@@ -601,6 +656,55 @@ internal sealed class CargaDeCarteirasDoVortice(
             CargaDeClientesDoProtheus.SemUf => MotivoDePendenciaDaCarteira.ClienteSemUfNaSa1,
             _ => MotivoDePendenciaDaCarteira.ClienteAusenteDoCrm
         };
+    }
+
+    /// <summary>
+    /// O ÚLTIMO CONTATO DE CADA CLIENTE DO CRM (decisão de 27/09/2026: qualquer contato, como a BI do Vórtice).
+    ///
+    /// <para><b>A data é do cliente, e não do par cliente × carteira</b> — a leitura da BI, que busca o histórico
+    /// pela pessoa e sem filtro de departamento, e a mesma da reconciliação da carga do histórico, que calcula por
+    /// cliente. A pessoa do Vórtice chega ao cliente pelo MESMO casamento do vínculo (documento e carteira): só conta
+    /// a pessoa cujo vínculo entrou.</para>
+    ///
+    /// <para><b>Várias pessoas do Vórtice no mesmo cliente</b> — o cadastro repetido lá, que aqui é um cliente só —:
+    /// vale a mais recente.</para>
+    ///
+    /// <para><b>A data do futuro não entra</b> — a que passa de um dia depois do instante da rodada; o dia de folga
+    /// cobre a diferença de relógio e de fuso entre o Vórtice e o servidor. O vínculo só anda para a frente
+    /// (<see cref="ClienteCarteira.RegistrarInteracao"/>): uma data futura digitada errado no Vórtice travaria o
+    /// cliente como "contatado" para sempre, mesmo depois de corrigida lá. Medido em 27/09/2026: nenhuma.</para>
+    ///
+    /// <para><b>Ao milissegundo</b>, a precisão da coluna (<c>datetime2(3)</c>). O Vórtice guarda 1/300 s; sem o
+    /// corte, o banco arredondaria a data gravada, e a mesma data pareceria "avançar" a cada rodada.</para>
+    /// </summary>
+    /// <param name="casados">Cada pessoa do Vórtice e o cliente do CRM com que o vínculo dela casou.</param>
+    /// <param name="ultimosContatos">O último contato de cada pessoa, como a leitura trouxe (UTC).</param>
+    /// <param name="agora">O instante da rodada (UTC).</param>
+    internal static UltimoContatoDosClientes UltimoContatoPorCliente(
+        IEnumerable<(long SeqPessoa, long ClienteId)> casados, IReadOnlyDictionary<long, DateTime> ultimosContatos, DateTime agora)
+    {
+        var limite = agora.AddDays(1);
+        var porCliente = new Dictionary<long, DateTime>();
+        var pessoasPorCliente = new Dictionary<long, HashSet<long>>();
+        var noFuturo = new HashSet<long>();
+
+        foreach (var (seqPessoa, clienteId) in casados)
+        {
+            if (!ultimosContatos.TryGetValue(seqPessoa, out var contato)) continue;
+            if (contato > limite)
+            {
+                noFuturo.Add(seqPessoa);
+                continue;
+            }
+
+            contato = new DateTime(contato.Ticks - (contato.Ticks % TimeSpan.TicksPerMillisecond), contato.Kind);
+            if (!porCliente.TryGetValue(clienteId, out var anterior) || contato > anterior) porCliente[clienteId] = contato;
+
+            if (!pessoasPorCliente.TryGetValue(clienteId, out var pessoas)) pessoasPorCliente[clienteId] = pessoas = [];
+            pessoas.Add(seqPessoa);
+        }
+
+        return new UltimoContatoDosClientes(porCliente, pessoasPorCliente.Count(p => p.Value.Count > 1), noFuturo.Count);
     }
 
     // =============================================================================================
@@ -696,7 +800,8 @@ internal sealed class CargaDeCarteirasDoVortice(
         foreach (var carteira in plano.Carteiras.Values.Where(c => c.IdFinal is not null))
             GarantirChave(EntidadeCarteira, carteira.Origem.SeqCarteira, carteira.IdFinal!.Value);
 
-        // 4. A carteirização: encerra o que a origem deixou de declarar, inclui o que ela passou a declarar.
+        // 4. A carteirização: encerra o que a origem deixou de declarar, inclui o que ela passou a declarar, e leva
+        //    o último contato ao vínculo que fica — pela regra do domínio, que só anda para a frente.
         var aEncerrar = plano.AEncerrar.ToHashSet();
         var gerida = plano.CarteirasGeridas.ToList();
         foreach (var vinculo in await banco.ClienteCarteiras
@@ -704,6 +809,7 @@ internal sealed class CargaDeCarteirasDoVortice(
                      .ToListAsync(ct))
         {
             if (aEncerrar.Contains(vinculo.Id)) vinculo.Desvincular(agora);
+            else if (plano.ContatosAGravar.TryGetValue(vinculo.Id, out var contato)) vinculo.RegistrarInteracao(contato);
         }
 
         foreach (var (clienteId, seqCarteira, desde) in plano.ACriar)
@@ -711,8 +817,10 @@ internal sealed class CargaDeCarteirasDoVortice(
             // A CLASSE NÃO É DECIDIDA AQUI (issue 53): ela é apurada da curva ABC do faturamento, no cliente, e a
             // coluna do vínculo sai no cenário A. O valor é o padrão do modelo, só porque a coluna é obrigatória;
             // o ciclo de contato vem da LINHA de negócio, e o do vínculo fica vazio.
-            banco.ClienteCarteiras.Add(ClienteCarteira.Criar(
-                clienteId, plano.Carteiras[seqCarteira].IdFinal!.Value, ClasseDeCliente.C, usuarioId, vinculadoEmUtc: desde ?? agora));
+            var novo = ClienteCarteira.Criar(
+                clienteId, plano.Carteiras[seqCarteira].IdFinal!.Value, ClasseDeCliente.C, usuarioId, vinculadoEmUtc: desde ?? agora);
+            if (plano.Contatos.PorCliente.TryGetValue(clienteId, out var contato)) novo.RegistrarInteracao(contato);
+            banco.ClienteCarteiras.Add(novo);
         }
 
         // 5. A trilha da origem: um registro por vínculo, com a decisão e os motivos.
@@ -842,7 +950,25 @@ internal sealed class CargaDeCarteirasDoVortice(
         Contar(etapaDaCarteirizacao, "clientes que mudaram de carteira (encerrado numa, incluído noutra)", plano.ClientesQueMudaramDeCarteira);
         Contar(etapaDaCarteirizacao, "vínculos da origem que caem no mesmo par (cadastro repetido no Vórtice)", plano.ParesRepetidosNaOrigem);
 
-        const string etapaDaTrilha = "7. Trilha (integracao.RegistroDeOrigem)";
+        // O ÚLTIMO CONTATO: o que a regra da BI traz, o que muda nos vínculos, e como a carteira fica depois — por tipo,
+        // para a simulação no servidor poder ser lida contra a medição de 27/09/2026 (MAQ_ 96,7%, TBA_ 50,8%, DGT_ 38,6%).
+        const string etapaDoContato = "7. Último contato (ClienteCarteira.UltimaInteracaoEm, regra da BI de 27/09/2026)";
+        Contar(etapaDoContato, "pessoas do Vórtice com último contato no histórico", leitura.UltimosContatos.Count);
+        Contar(etapaDoContato, "clientes do CRM com último contato (pelo casamento do vínculo)", plano.Contatos.PorCliente.Count);
+        Contar(etapaDoContato, "  com mais de uma pessoa do Vórtice (valeu o contato mais recente)", plano.Contatos.ClientesComMaisDeUmaPessoa);
+        Contar(etapaDoContato, "  pessoas com data no futuro, ignoradas (travariam o vínculo)", plano.Contatos.PessoasComDataNoFuturo);
+        Contar(etapaDoContato, RotuloDeContatosGanhos, plano.VinculosQueGanhamContato);
+        Contar(etapaDoContato, RotuloDeContatosAvancados, plano.VinculosQueAvancamContato);
+        Contar(etapaDoContato, RotuloDeVinculosNovosComContato, plano.VinculosNovosComContato);
+        Contar(etapaDoContato, "vínculos vigentes depois da rodada", plano.VigentesDepois.Count);
+        Contar(etapaDoContato, "  com a data do último contato", plano.VigentesDepois.Count(v => v.ComContato));
+        foreach (var grupo in plano.VigentesDepois.GroupBy(v => v.Prefixo).OrderBy(g => OrdemDoPrefixo(g.Key)))
+        {
+            Contar(etapaDoContato, $"  {grupo.Key}: vínculos vigentes", grupo.Count());
+            Contar(etapaDoContato, $"  {grupo.Key}: com a data do último contato", grupo.Count(v => v.ComContato));
+        }
+
+        const string etapaDaTrilha = "8. Trilha (integracao.RegistroDeOrigem)";
         Contar(etapaDaTrilha, "registros lidos pela primeira vez", plano.RegistrosNovos);
         Contar(etapaDaTrilha, "registros já conhecidos com conteúdo alterado na origem", plano.RegistrosAlterados);
         Contar(etapaDaTrilha, "registros já conhecidos sem alteração", plano.RegistrosIguais);
@@ -1010,6 +1136,20 @@ internal sealed class CargaDeCarteirasDoVortice(
         public int ParesRepetidosNaOrigem { get; set; }
 
         public int CarteirasQueMudaramDeFilial { get; set; }
+
+        public UltimoContatoDosClientes Contatos { get; set; } = new(new Dictionary<long, DateTime>(), 0, 0);
+
+        /// <summary>O vínculo vigente que fica, e a data do último contato a levar a ele.</summary>
+        public Dictionary<long, DateTime> ContatosAGravar { get; } = [];
+
+        public int VinculosQueGanhamContato { get; set; }
+
+        public int VinculosQueAvancamContato { get; set; }
+
+        public int VinculosNovosComContato { get; set; }
+
+        /// <summary>Cada vínculo vigente depois da rodada: o tipo da carteira e se terá a data do último contato.</summary>
+        public List<(string Prefixo, bool ComContato)> VigentesDepois { get; } = [];
 
         public int ClientesNoCrm { get; set; }
 

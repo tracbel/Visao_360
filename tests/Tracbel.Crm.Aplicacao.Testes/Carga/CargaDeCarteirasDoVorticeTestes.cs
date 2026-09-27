@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Tracbel.Crm.Carga;
+using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Organizacao;
@@ -11,6 +12,7 @@ using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
+using Tracbel.Crm.Integracao.Carga;
 using Tracbel.Crm.Integracao.Vortice;
 using Xunit;
 using static Tracbel.Crm.Aplicacao.Testes.Carga.CenarioDeCarteirasDoVortice;
@@ -26,7 +28,9 @@ namespace Tracbel.Crm.Aplicacao.Testes.Carga;
 /// <item>é sincronia: rodar de novo sem mudança não grava vínculo; o que sumiu é encerrado; quem mudou de carteira sai
 /// de uma e entra na outra; nome e dono da carteira acompanham a origem;</item>
 /// <item>a conta do dono é a que o Entra ID entrega à pessoa quando ela entra — depois de liberada;</item>
-/// <item>a simulação não grava nada.</item>
+/// <item>a simulação não grava nada;</item>
+/// <item>o último contato pela regra da BI (decisão de 27/09/2026) chega ao vínculo pelo casamento dele, vale o mais
+/// recente do cliente, só anda para a frente e fica na trilha de auditoria.</item>
 /// </list>
 /// <para>SQLite em memória com o modelo de verdade, como as outras cargas.</para>
 /// </summary>
@@ -431,5 +435,140 @@ public sealed class CargaDeCarteirasDoVorticeTestes : IDisposable
         (await db.RegistrosDeOrigem.CountAsync()).Should().Be(0);
         (await db.ChavesExternas.CountAsync()).Should().Be(0);
         (await db.Sistemas.CountAsync()).Should().Be(0, "nem o sistema de origem é registrado na simulação");
+    }
+
+    // =============================================================================================
+    // O último contato pela regra da BI (decisão de 27/09/2026)
+    // =============================================================================================
+
+    private static readonly DateTime ContatoDoCliente1 = new(2026, 9, 10, 14, 30, 0, DateTimeKind.Utc);
+    private static readonly DateTime ContatoDoCliente2 = new(2026, 8, 15, 9, 0, 0, DateTimeKind.Utc);
+
+    private static async Task<DateTime?> UltimoContato(CrmDbContext db, string documento, string codigoDaCarteira)
+    {
+        var clienteId = ClienteId(db, documento);
+        var carteiraId = await db.Carteiras.Where(c => c.Codigo == codigoDaCarteira).Select(c => c.Id).SingleAsync();
+        return await db.ClienteCarteiras.AsNoTracking()
+            .Where(v => v.ClienteId == clienteId && v.CarteiraId == carteiraId && v.DesvinculadoEm == null)
+            .Select(v => v.UltimaInteracaoEm)
+            .SingleAsync();
+    }
+
+    private static List<AlteracaoDeCampo> TrilhaDoUltimoContato(CrmDbContext db) =>
+        [.. db.AlteracoesDeCampo.AsNoTracking().Where(a => a.Entidade == nameof(ClienteCarteira)).OrderBy(a => a.Id)];
+
+    [Fact]
+    public async Task A_primeira_rodada_ja_inclui_o_vinculo_com_o_ultimo_contato_da_BI()
+    {
+        var relatorio = await Sincronizar(Leitura(ultimosContatos: UltimosContatos()));
+
+        await using var db = Sistema();
+        (await UltimoContato(db, CpfDoCliente1, "MAQ_01RIB_02_18")).Should().Be(ContatoDoCliente1);
+
+        // O CLIENTE 2 está em duas pessoas do Vórtice que casam (2 e 10): vale a mais recente, nas duas carteiras dele.
+        // A pessoa 9 é dele também, mas o vínculo dela (vendedor desligado) não entrou — e o contato não conta.
+        (await UltimoContato(db, CnpjDoCliente2, "MAQ_03BAR_02_19")).Should().Be(ContatoDoCliente2);
+        (await UltimoContato(db, CnpjDoCliente2, "TBA_S_POTENCIAL_717")).Should().Be(ContatoDoCliente2);
+
+        (await UltimoContato(db, CpfDoCliente3, "TBA_FILIAIS_708")).Should().BeNull("sem contato no histórico é nunca contatado");
+        (await UltimoContato(db, CnpjDoCliente4, "DGT_01RIB_752")).Should().BeNull(
+            "a data do futuro não entra: com a regra de só avançar, ela travaria o vínculo para sempre");
+
+        relatorio.Valor(CargaDeCarteirasDoVortice.RotuloDeVinculosNovosComContato).Should().Be(3);
+        relatorio.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosGanhos).Should().Be(0, "não havia vínculo antes desta rodada");
+        relatorio.Valor("  com mais de uma pessoa do Vórtice (valeu o contato mais recente)").Should().Be(1);
+        relatorio.Valor("  pessoas com data no futuro, ignoradas (travariam o vínculo)").Should().Be(1);
+        relatorio.Valor("  com a data do último contato").Should().Be(3);
+
+        TrilhaDoUltimoContato(db).Should().BeEmpty(
+            "o vínculo que nasce da integração tem o rastro em RegistroDeOrigem; a trilha guarda o que a integração MUDA depois");
+    }
+
+    [Fact]
+    public async Task O_vinculo_que_ja_existia_ganha_a_data_e_a_mudanca_fica_na_trilha_com_o_Vortice_como_origem()
+    {
+        await Sincronizar();
+        await using (var antes = Sistema())
+            (await antes.ClienteCarteiras.CountAsync(v => v.UltimaInteracaoEm != null)).Should().Be(0);
+
+        var segunda = await Sincronizar(Leitura(ultimosContatos: UltimosContatos()), quando: Agora.AddDays(1));
+
+        segunda.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosGanhos).Should().Be(3);
+        segunda.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosAvancados).Should().Be(0);
+        segunda.Valor(CargaDeCarteirasDoVortice.RotuloDeVinculosNovosComContato).Should().Be(0);
+
+        await using (var db = Sistema())
+        {
+            (await UltimoContato(db, CpfDoCliente1, "MAQ_01RIB_02_18")).Should().Be(ContatoDoCliente1);
+            (await UltimoContato(db, CnpjDoCliente2, "MAQ_03BAR_02_19")).Should().Be(ContatoDoCliente2);
+
+            var vortice = await db.Sistemas.SingleAsync(s => s.Codigo == LeitorDeCargaDoVortice.CodigoDoSistema);
+            var trilha = TrilhaDoUltimoContato(db);
+            trilha.Should().HaveCount(3, "uma linha por vínculo que ganhou a data");
+            trilha.Should().OnlyContain(t =>
+                t.Campo == nameof(ClienteCarteira.UltimaInteracaoEm) && t.Operacao == OperacaoAuditada.Alteracao
+                && t.ValorAnterior == null && t.Origem == OrigemDaOperacao.Integracao && t.SistemaId == vortice.Id
+                && t.AlteradoPorId == _semente.Operador);
+            trilha.Select(t => t.ValorNovo).Should().Contain("2026-09-10T14:30:00.000");
+        }
+
+        // A RODADA SEGUINTE, sem contato novo na origem, não grava data nenhuma — nem trilha.
+        var terceira = await Sincronizar(Leitura(ultimosContatos: UltimosContatos()), quando: Agora.AddDays(2));
+        terceira.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosGanhos).Should().Be(0);
+        terceira.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosAvancados).Should().Be(0);
+        await using var depois = Sistema();
+        TrilhaDoUltimoContato(depois).Should().HaveCount(3);
+    }
+
+    [Fact]
+    public async Task A_data_so_anda_para_a_frente_e_nunca_diminui_nem_some()
+    {
+        await Sincronizar(Leitura(ultimosContatos: UltimosContatos()));
+
+        // NA ORIGEM, depois: a pessoa 1 aparece com um contato MAIS VELHO (histórico corrigido lá), a 2 com um mais novo,
+        // e a 10 sumiu do histórico.
+        var novoDoCliente2 = new DateTime(2026, 9, 22, 8, 0, 0, DateTimeKind.Utc);
+        var contatos = new Dictionary<long, DateTime> { [1] = new(2026, 1, 1, 8, 0, 0, DateTimeKind.Utc), [2] = novoDoCliente2 };
+
+        var relatorio = await Sincronizar(Leitura(ultimosContatos: contatos), quando: Agora.AddDays(1));
+
+        relatorio.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosAvancados).Should().Be(2, "os dois vínculos do cliente 2");
+        relatorio.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosGanhos).Should().Be(0);
+
+        await using (var db = Sistema())
+        {
+            (await UltimoContato(db, CpfDoCliente1, "MAQ_01RIB_02_18")).Should().Be(ContatoDoCliente1, "a data mais velha não desfaz a mais nova");
+            (await UltimoContato(db, CnpjDoCliente2, "MAQ_03BAR_02_19")).Should().Be(novoDoCliente2);
+            (await UltimoContato(db, CnpjDoCliente2, "TBA_S_POTENCIAL_717")).Should().Be(novoDoCliente2);
+
+            var trilha = TrilhaDoUltimoContato(db);
+            trilha.Should().HaveCount(2);
+            trilha.Should().OnlyContain(t => t.ValorAnterior == "2026-08-15T09:00:00.000" && t.ValorNovo == "2026-09-22T08:00:00.000");
+        }
+
+        // E O HISTÓRICO VAZIO não apaga nada.
+        var vazio = await Sincronizar(Leitura(ultimosContatos: new Dictionary<long, DateTime>()), quando: Agora.AddDays(2));
+        vazio.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosAvancados).Should().Be(0);
+        await using var depois = Sistema();
+        (await UltimoContato(depois, CpfDoCliente1, "MAQ_01RIB_02_18")).Should().Be(ContatoDoCliente1);
+        (await UltimoContato(depois, CnpjDoCliente2, "MAQ_03BAR_02_19")).Should().Be(novoDoCliente2);
+    }
+
+    [Fact]
+    public async Task A_simulacao_conta_quem_ganha_a_data_e_nao_grava_nenhuma()
+    {
+        await Sincronizar();
+
+        var simulada = await Sincronizar(Leitura(ultimosContatos: UltimosContatos()), simular: true, quando: Agora.AddDays(1));
+
+        simulada.Simulada.Should().BeTrue();
+        simulada.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosGanhos).Should().Be(3);
+        simulada.Valor("  MAQ_: vínculos vigentes").Should().Be(2);
+        simulada.Valor("  MAQ_: com a data do último contato").Should().Be(2);
+        simulada.Valor("  TBA_: com a data do último contato").Should().Be(1, "a gaveta do cliente 2 tem; a do cliente 3, não");
+
+        await using var db = Sistema();
+        (await db.ClienteCarteiras.CountAsync(v => v.UltimaInteracaoEm != null)).Should().Be(0);
+        TrilhaDoUltimoContato(db).Should().BeEmpty();
     }
 }

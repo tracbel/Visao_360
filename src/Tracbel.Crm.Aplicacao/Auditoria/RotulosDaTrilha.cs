@@ -20,6 +20,7 @@ public static class RotulosDaTrilha
         ["Equipamento"] = "Equipamento",
         ["Endereco"] = "Endereço",
         ["Municipio"] = "Município",
+        ["ClienteCarteira"] = "Cliente na carteira",
         ["Usuario"] = "Conta de usuário",
         ["UsuarioPerfil"] = "Concessão de perfil",
         ["Perfil"] = "Perfil",
@@ -83,6 +84,7 @@ public static class RotulosDaTrilha
         },
         ["Endereco"] = new(StringComparer.Ordinal) { ["MunicipioId"] = "Município" },
         ["Municipio"] = new(StringComparer.Ordinal) { ["CodigoIbge"] = "Código IBGE" },
+        ["ClienteCarteira"] = new(StringComparer.Ordinal) { ["UltimaInteracaoEm"] = "Último contato" },
         ["Usuario"] = new(StringComparer.Ordinal)
         {
             ["EmpresaId"] = "Filial de casa", ["GestorId"] = "Gestor", ["Natureza"] = "Natureza da conta",

@@ -47,6 +47,13 @@ public static class PoliticaDeAuditoria
         // era o que a carga já registrava à mão.
         ["Endereco"] = ["MunicipioId"],
 
+        // O ÚLTIMO CONTATO DO CLIENTE NA CARTEIRA (decisão de 27/09/2026): a sincronia das carteiras o traz
+        // do histórico do Vórtice, pela regra da BI, e ele move a cobertura de todas as telas. Não é o
+        // recarimbo que a lista evita: a data só anda para a frente, e cada linha da trilha é um contato
+        // novo na origem — a que não mudou não é gravada de novo. "De onde veio este último contato, e
+        // quando ele mudou?" tem resposta, com a integração do Vórtice como origem.
+        ["ClienteCarteira"] = ["UltimaInteracaoEm"],
+
         // Município: o reconhecimento no IBGE muda o código e, às vezes, a grafia do nome.
         ["Municipio"] = ["CodigoIbge", "Nome"],
 

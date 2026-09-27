@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Data.SqlClient;
 using Tracbel.Crm.Dominio.Comum;
@@ -151,7 +152,18 @@ public sealed record LeituraDasCarteirasDoVortice(
     DepartamentoNoVortice Departamento,
     IReadOnlyList<CarteiraNoVortice> Carteiras,
     IReadOnlyDictionary<long, DonoNoVortice> Donos,
-    IReadOnlyList<VinculoNoVortice> Vinculos);
+    IReadOnlyList<VinculoNoVortice> Vinculos)
+{
+    /// <summary>
+    /// O ÚLTIMO CONTATO de cada pessoa das carteiras, pela regra da BI do Vórtice (decisão de 27/09/2026, ver
+    /// <see cref="LeitorDeCarteirasDoVortice.ResultadosQueContamComoContato"/>): o <c>SeqPessoa</c> e a data (UTC). A
+    /// pessoa sem contato nenhum não aparece — ausência aqui é "nunca contatada", não erro de leitura.
+    /// </summary>
+    public IReadOnlyDictionary<long, DateTime> UltimosContatos { get; init; } = new Dictionary<long, DateTime>();
+
+    /// <summary>Quanto a consulta do último contato levou no Vórtice; nulo quando ninguém a mediu.</summary>
+    public TimeSpan? TempoDaConsultaDosUltimosContatos { get; init; }
+}
 
 /// <summary>
 /// A LEITURA DAS CARTEIRAS MAQ-NOVOS DO VÓRTICE (decisão de 24/09/2026).
@@ -165,9 +177,13 @@ public sealed record LeituraDasCarteirasDoVortice(
 /// carteira) → <c>IVS_Carteira</c> → <c>IV_VENDEDOR</c> pelo <c>SeqVendedor</c>. O departamento é
 /// <c>IVS_Depto.Depto = 'MAQ-NOVOS'</c>, com HÍFEN; no CRM a linha de negócio é <c>MAQ_NOVOS</c>.</para>
 ///
+/// <para><b>E o último contato de cada pessoa</b> (decisão de 27/09/2026): o do histórico, pela regra da BI do
+/// Vórtice (<see cref="ResultadosQueContamComoContato"/>), agregado lá — uma linha por pessoa.</para>
+///
 /// <para><b>SÓ LEITURA.</b> A conexão declara <c>ApplicationIntent=ReadOnly</c> e toda consulta é um
 /// <c>SELECT</c> com <c>NOLOCK</c> — o Vórtice é um sistema em produção, e esta leitura não segura trava nele.
-/// A coluna de senha de <c>GE_Usuario</c> não aparece em consulta nenhuma.</para>
+/// A coluna de senha de <c>GE_Usuario</c> não aparece em consulta nenhuma, nem a de nomes de pessoas do histórico
+/// (<c>IV_Historico.Contato</c>).</para>
 /// </summary>
 /// <param name="opcoes">A configuração do Vórtice — a cadeia vem de <c>Vortice__Conexao</c> ou da tela.</param>
 public sealed class LeitorDeCarteirasDoVortice(OpcoesDoVortice opcoes)
@@ -232,7 +248,55 @@ public sealed class LeitorDeCarteirasDoVortice(OpcoesDoVortice opcoes)
         WHERE p.SeqDepto = @seqDepto AND p.SeqCarteira IS NOT NULL
         """;
 
-    /// <summary>Lê o departamento, as carteiras, os donos e os vínculos, numa sessão de leitura.</summary>
+    /// <summary>
+    /// OS RESULTADOS DO HISTÓRICO QUE CONTAM COMO CONTATO — a regra da BI do Vórtice (decisão de 27/09/2026).
+    ///
+    /// <para><b>A decisão.</b> Em 27/09/2026 o Ricardo decidiu: <b>conta qualquer contato, como a BI do Vórtice</b>. A
+    /// especificação é a view <c>BI_CARTEIRA_VN</c>, modificada no Vórtice em 06/02/2026 e extraída em
+    /// <c>docs/extracao-vortice/modulos/views/BI_CARTEIRA_VN.sql</c>: o último contato é o <c>MAX(DtaRealizacao)</c>
+    /// do <c>IV_Historico</c> por <c>SeqPessoa</c>, SEM filtro de departamento, só nas linhas cujo <c>Resultado</c>
+    /// está nesta lista. A lista é a das linhas 86 e 87 da view, na MESMA ORDEM, para a conferência ser a olho — e o
+    /// teste <c>UltimoContatoDoVorticeTestes</c> a confere contra o arquivo. São 53 códigos, sem repetição; medido em
+    /// 27/09/2026, os 53 existem em <c>IV_Resultado</c> e todos aparecem no histórico das pessoas das carteiras
+    /// MAQ-NOVOS.</para>
+    ///
+    /// <para><b>Por que não o <c>IVS_Pes.DtaUltCtto</c>.</b> Parece a mesma coisa e não é. Ele só é preenchido para
+    /// os resultados marcados em <c>IVS_DeptoRes</c> — 12 no departamento —, e o job que o mantinha
+    /// (<c>vrtc_p_atualizar_data_ultimo_contato</c>) não roda desde 07/08/2025. Medido em 27/09/2026 nos 8.537 vínculos
+    /// ativos do CRM: ele daria data a 43,7% e ignora o contato mais novo em um terço deles; a regra da BI dá data a
+    /// 63,4%. A própria view registra a troca: <c>--PES.DTAULTCTTO</c> ao lado de cada uso do histórico.</para>
+    ///
+    /// <para><b>PROVISÓRIA.</b> A frente do funil vai transformar esta lista em dado — a tabela
+    /// <c>integracao.ClassificacaoDeResultadoDoVortice</c>, coluna <c>ContaComoContato</c> —, num PR futuro. Enquanto
+    /// as duas existirem, precisam ser IGUAIS: um código a mais numa delas faz a cobertura e o funil contarem contato
+    /// diferente para o mesmo histórico. Quando a tabela chegar, a consulta passa a lê-la e esta constante sai.</para>
+    ///
+    /// <para><b>A coluna <c>IV_Historico.Contato</c> guarda NOMES de pessoas</b>: não entra em consulta nenhuma, nem
+    /// para selecionar, nem para agrupar.</para>
+    /// </summary>
+    public static readonly IReadOnlyList<int> ResultadosQueContamComoContato =
+    [
+        250, 252, 254, 255, 257, 258, 260, 263, 265, 267, 299, 300, 302, 304, 305,
+        306, 307, 308, 570, 1286, 3223, 3225, 3227, 3226, 3231, 3232, 3663, 3234, 3235, 3236, 3639, 3640, 2605, 1929,
+        2612, 2622, 1175, 2547, 2553, 2554, 2555, 2548, 2549, 2550, 2563, 2564, 2565, 2566, 2568, 3572, 3573, 3575, 3576
+    ];
+
+    /// <summary>
+    /// O ÚLTIMO CONTATO, AGREGADO NO VÓRTICE: uma linha por pessoa — <c>(SeqPessoa, UltimoContatoEm)</c> —, e nenhuma
+    /// linha de histórico sai de lá. O universo de pessoas é o da consulta dos vínculos (cliente em carteira do
+    /// departamento); o histórico NÃO é filtrado por departamento: conta o contato de qualquer área, como a BI.
+    /// Medido em 27/09/2026: 17.272 das 41.761 pessoas, em 1,3 s na primeira leitura e 0,7 s na segunda.
+    /// </summary>
+    internal static readonly string ConsultaDosUltimosContatos = $"""
+        SELECT h.SeqPessoa, MAX(h.DtaRealizacao) AS UltimoContatoEm
+        FROM IV_Historico h WITH (NOLOCK)
+        WHERE h.Resultado IN ({string.Join(", ", ResultadosQueContamComoContato.Select(r => r.ToString(CultureInfo.InvariantCulture)))})
+          AND EXISTS (SELECT 1 FROM IVS_Pes p WITH (NOLOCK)
+                      WHERE p.SeqPessoa = h.SeqPessoa AND p.SeqDepto = @seqDepto AND p.SeqCarteira IS NOT NULL)
+        GROUP BY h.SeqPessoa
+        """;
+
+    /// <summary>Lê o departamento, as carteiras, os donos, os vínculos e o último contato, numa sessão de leitura.</summary>
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<LeituraDasCarteirasDoVortice>> LerAsync(CancellationToken ct)
     {
@@ -310,16 +374,28 @@ public sealed class LeitorDeCarteirasDoVortice(OpcoesDoVortice opcoes)
                 while (await leitor.ReadAsync(ct))
                 {
                     var documento = DocumentoDoVortice.Recompor(Decimal(leitor, 4), Decimal(leitor, 5), Texto(leitor, 3));
-                    DateTime? incluido = leitor.IsDBNull(2)
-                        ? null
-                        : DateTime.SpecifyKind(leitor.GetDateTime(2).AddHours(HorasDeDiferencaParaUtc), DateTimeKind.Utc);
-
-                    vinculos.Add(new VinculoNoVortice(Longo(leitor, 0)!.Value, Inteiro(leitor, 1), documento, incluido));
+                    vinculos.Add(new VinculoNoVortice(Longo(leitor, 0)!.Value, Inteiro(leitor, 1), documento, Utc(leitor, 2)));
                 }
             }
 
+            etapa = "o último contato";
+            var ultimosContatos = new Dictionary<long, DateTime>(20_000);
+            var cronometro = Stopwatch.StartNew();
+            await using (var comando = Comando(conexao, ConsultaDosUltimosContatos, departamento.SeqDepto))
+            await using (var leitor = await comando.ExecuteReaderAsync(ct))
+            {
+                while (await leitor.ReadAsync(ct))
+                    if (Utc(leitor, 1) is { } ultimo) ultimosContatos[Longo(leitor, 0)!.Value] = ultimo;
+            }
+
+            cronometro.Stop();
+
             return Resultado<LeituraDasCarteirasDoVortice>.Ok(
-                new LeituraDasCarteirasDoVortice(departamento, carteiras, donos, vinculos));
+                new LeituraDasCarteirasDoVortice(departamento, carteiras, donos, vinculos)
+                {
+                    UltimosContatos = ultimosContatos,
+                    TempoDaConsultaDosUltimosContatos = cronometro.Elapsed
+                });
         }
         catch (SqlException falha)
         {
@@ -357,4 +433,8 @@ public sealed class LeitorDeCarteirasDoVortice(OpcoesDoVortice opcoes)
     private static int Inteiro(SqlDataReader leitor, int i) => (int)(Decimal(leitor, i) ?? 0);
 
     private static short? Dias(SqlDataReader leitor, int i) => Decimal(leitor, i) is { } valor && valor > 0 ? (short)valor : null;
+
+    /// <summary>A data da origem, que é hora local sem fuso, levada ao UTC.</summary>
+    private static DateTime? Utc(SqlDataReader leitor, int i) =>
+        leitor.IsDBNull(i) ? null : DateTime.SpecifyKind(leitor.GetDateTime(i).AddHours(HorasDeDiferencaParaUtc), DateTimeKind.Utc);
 }

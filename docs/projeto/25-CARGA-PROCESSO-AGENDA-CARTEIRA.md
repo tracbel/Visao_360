@@ -405,6 +405,77 @@ uma delas é verificável, porque aponta para uma interação que está no banco
 > milhares de clientes por essa data, e calculá-la a cada abertura custaria varrer a tabela de
 > interações.
 
+#### Adendo de 27/09/2026 — o último contato pela regra da BI do Vórtice
+
+**Por que o adendo.** Depois da sanitização, o histórico não foi recarregado (`processo.*` está
+vazio, decisão D-12), e a conta desta seção não tem de onde tirar a data: em produção, **0 dos
+8.543 vínculos** cliente × carteira tinham `UltimaInteracaoEm`. A cobertura pela cadência saía 0%
+e "nunca contatado" em todas as telas — Visão 360, Cobertura de Carteira, Performance de CEN e
+Indicadores.
+
+**A decisão (Ricardo, 27/09/2026): conta qualquer contato, como a BI do Vórtice.** Ela
+**substitui "calcular só das interações carregadas" enquanto o histórico não é carregado**. A
+especificação é a view `BI_CARTEIRA_VN` (modificada no Vórtice em 06/02/2026; extraída em
+`docs/extracao-vortice/modulos/views/BI_CARTEIRA_VN.sql`):
+
+- último contato = `MAX(DtaRealizacao)` do `IV_Historico` por `SeqPessoa`, **sem filtro de
+  departamento**;
+- só as linhas com `Resultado` na lista das linhas 86–87 da view — **53 códigos**, sem repetição
+  (a contagem de "55" que circulou era arredondamento). A lista mora em
+  `LeitorDeCarteirasDoVortice.ResultadosQueContamComoContato`, na mesma ordem da view, e um teste
+  a confere contra o arquivo. Ela é **provisória**: a frente do funil vai transformá-la em dado
+  (`integracao.ClassificacaoDeResultadoDoVortice.ContaComoContato`); enquanto as duas existirem,
+  precisam ser iguais.
+
+**Onde roda.** Na rotina `CARTEIRAS_VORTICE`, que já lê as carteiras MAQ-NOVOS. Uma consulta nova,
+agregada no Vórtice por `SeqPessoa`, restrita às pessoas que a rotina já lê (cliente em carteira do
+departamento), com `NOLOCK` — só `(SeqPessoa, UltimoContatoEm)` sai de lá, nenhuma linha de
+histórico e nunca a coluna `Contato`, que guarda nomes de pessoas. Medida em 27/09/2026: **17.272
+das 41.761 pessoas** têm contato; **1,3 s** na primeira leitura e **0,7 s** na segunda.
+
+**Como a data chega ao vínculo.** Pelo mesmo casamento da sincronia (documento do cliente +
+carteira pelo de-para de `integracao.ChaveExterna`). A data é do **cliente**, como na BI (que busca
+o histórico pela pessoa) e como na conta desta seção (que calcula por cliente): várias pessoas do
+Vórtice no mesmo cliente do CRM → vale a mais recente. A gravação é `ClienteCarteira.RegistrarInteracao`,
+que **só avança**: nunca diminui, nunca apaga. Duas proteções:
+
+- **data futura recusada** — a que passa de um dia depois da rodada. Com a regra de só avançar, uma
+  data digitada errado no Vórtice travaria o vínculo para sempre. Medido em 27/09: nenhuma.
+- **ao milissegundo** — o `datetime` do Vórtice guarda 1/300 s e a coluna do CRM é `datetime2(3)`;
+  sem o corte, a mesma data pareceria avançar a cada rodada.
+
+**Medido em 27/09/2026 (só leitura).** **5.412 dos 8.537 vínculos ativos (63,4%) ganham data.**
+Por tipo de carteira: campo `MAQ_` 96,7%, pool `TBA_` 50,8%, digital `DGT_` 38,6%, `CONTA_CHAVE`
+89,6%. Por idade do contato:
+
+| Idade | Vínculos |
+|---|---:|
+| até 30 dias | 1.107 |
+| 31–60 | 838 |
+| 61–90 | 357 |
+| 91–120 | 247 |
+| 121–180 | 165 |
+| 181–360 | 467 |
+| mais de 360 | 2.231 |
+
+O contato com mais de um ano aparece como **atrasado**, e não como "nunca".
+
+**Por que continua não sendo o `DtaUltCtto`.** Os motivos acima valem, e medidos de novo: ele só é
+preenchido para os 12 resultados marcados em `IVS_DeptoRes` para o departamento, o job que o
+mantinha está parado desde 07/08/2025, e nos 8.537 vínculos ele daria data a 43,7% — ignorando o
+contato mais novo em um terço deles.
+
+**A trilha.** `ClienteCarteira.UltimaInteracaoEm` entrou na `PoliticaDeAuditoria`: cada mudança da
+data num vínculo que já existia vai para `auditoria.AlteracaoDeCampo`, com a integração do Vórtice
+como origem. A **primeira execução grava ~5,4 mil linhas** de trilha; depois, só os vínculos com
+contato novo na origem. O vínculo que nasce já com a data não entra (o nascimento pela integração
+tem o rastro em `integracao.RegistroDeOrigem`).
+
+**As duas fontes convergem pelo máximo.** Quando a carga do histórico voltar (frente do funil, em
+desenho), a instrução de conjunto desta seção também só avança
+(`cc.UltimaInteracaoEm < u.Ultima`), e a sincronia também: nenhuma apaga a data da outra, e o
+vínculo fica com o contato mais recente das duas.
+
 ---
 
 ## 7. O que foi recusado, e por quê

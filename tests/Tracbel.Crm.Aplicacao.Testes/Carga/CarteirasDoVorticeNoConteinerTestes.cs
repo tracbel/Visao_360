@@ -132,6 +132,35 @@ public sealed class CarteirasDoVorticeNoConteinerTestes
     }
 
     [FatoSeHouverSqlServer]
+    public async Task No_SQL_Server_o_ultimo_contato_so_anda_para_frente_fica_na_trilha_e_nao_avanca_sozinho()
+    {
+        var semente = Recriar();
+        await Sincronizar(semente, Leitura(), Agora);
+
+        // A DATA COMO O VÓRTICE A GUARDA: datetime, em 1/300 s. A coluna do CRM é datetime2(3) — sem o corte no
+        // milissegundo, o banco a arredondaria, e a rodada seguinte veria a mesma data "avançar".
+        var contatos = UltimosContatos();
+        contatos[1] = contatos[1].AddTicks(66_667);
+
+        var segunda = await Sincronizar(semente, Leitura(ultimosContatos: contatos), Agora.AddDays(1));
+        segunda.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosGanhos).Should().Be(3);
+
+        var terceira = await Sincronizar(semente, Leitura(ultimosContatos: contatos), Agora.AddDays(2));
+        terceira.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosGanhos).Should().Be(0);
+        terceira.Valor(CargaDeCarteirasDoVortice.RotuloDeContatosAvancados).Should().Be(0, "a mesma data não avança sozinha");
+
+        await using var db = new CrmDbContext(Opcoes(), ProvedorDeContextoDeSistema.Instancia);
+        var cliente1 = ClienteId(db, CpfDoCliente1);
+        (await db.ClienteCarteiras.AsNoTracking().Where(v => v.ClienteId == cliente1 && v.DesvinculadoEm == null)
+                .Select(v => v.UltimaInteracaoEm).SingleAsync())
+            .Should().Be(new DateTime(2026, 9, 10, 14, 30, 0, 6, DateTimeKind.Utc));
+
+        var trilha = await db.AlteracoesDeCampo.AsNoTracking().Where(a => a.Entidade == "ClienteCarteira").ToListAsync();
+        trilha.Should().HaveCount(3, "uma linha por vínculo que ganhou a data, e nenhuma na rodada sem mudança");
+        trilha.Should().OnlyContain(a => a.Campo == "UltimaInteracaoEm" && a.ValorAnterior == null && a.AlteradoPorId == semente.Operador);
+    }
+
+    [FatoSeHouverSqlServer]
     public async Task No_SQL_Server_a_simulacao_nao_grava_nada()
     {
         var semente = Recriar();
