@@ -60,7 +60,7 @@ internal sealed class CargaDeMetasDaGestaoDeNegocios(
     Action<string> relatar)
 {
     /// <summary>O fluxo: a trava da carga, o ponto de sincronismo (o frescor) e a fila de descarte.</summary>
-    internal const string Fluxo = "GESTAO_NEGOCIOS.METAS";
+    internal const string Fluxo = MetaDeVenda.FluxoDaCarga;
 
     /// <summary>A maior fração das metas vigentes que uma rodada pode excluir sem abortar.</summary>
     internal const double FracaoMaximaDeRemocao = 0.20;

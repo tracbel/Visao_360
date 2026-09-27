@@ -232,6 +232,21 @@ public static class EndpointsDeRelacionamento
             .ExigePermissao(Permissoes.CoberturaLer)
             .WithSummary("A cobertura por carteira: clientes, contatados em 30 e 90 dias, nunca contatados.");
 
+        // A META DE VENDA × O REALIZADO (#138, 27/09/2026). A profundidade de Meta.Ler decide o alcance (D-M5): Próprios vê
+        // a própria meta; a filial inteira a partir de EmpresaEAbaixo. Uma filial por chamada, como as outras da Visão 360.
+        grupo.MapGet("/metas", async (
+                ObterMetaERealizado caso, CancellationToken ct, string? competenciaInicial = null, string? competenciaFinal = null) =>
+                (await caso.ExecutarAsync(competenciaInicial, competenciaFinal, ct)).Responder())
+            .WithName("ObterMetaERealizado")
+            .ExigePermissao(Permissoes.MetaLer)
+            .WithSummary("A meta de venda (API Gestão de Negócios) × as máquinas vendidas (ART), da filial do cabeçalho.")
+            .WithDescription(
+                "Meta em unidades por mês, linha e consultor, contra as vendas de máquina que o CRM tem (frota.VendaDeMaquina, pela " +
+                "data da venda); as vendas do ART que aguardam cadastro ou chassi vêm em número, à parte. Consórcio à parte, em cotas. " +
+                "Período padrão: o ano fiscal (novembro a outubro) até o último mês fechado, com o mês em curso à parte e o realizado " +
+                "do mesmo trecho do ano fiscal anterior. `competenciaInicial` e `competenciaFinal` (AAAA-MM) pedem outro período. " +
+                "No alcance Próprios, só a meta e as vendas da própria pessoa.");
+
         return app;
     }
 }

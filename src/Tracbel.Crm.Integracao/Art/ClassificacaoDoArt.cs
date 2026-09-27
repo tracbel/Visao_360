@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Text;
+using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Integracao;
 
 namespace Tracbel.Crm.Integracao.Art;
@@ -71,27 +71,13 @@ public static class ClassificacaoDoArt
 
     /// <summary>
     /// O código estável de um texto: sem acento, maiúsculo, só letra, número e sublinhado — o mesmo
-    /// algoritmo do catálogo de frota da carga, para a recarga reencontrar a mesma linha.
+    /// algoritmo do catálogo de frota da carga, para a recarga reencontrar a mesma linha. A conta mora em
+    /// <see cref="CodigoEstavel"/> desde a meta de venda (#138): a leitura do realizado casa a linha da venda
+    /// com a da meta por este código, e as duas pontas precisam da mesma conta.
     /// </summary>
     /// <param name="texto">O texto da origem.</param>
     /// <param name="tamanhoMaximo">O tamanho da coluna.</param>
-    public static string Codificar(string texto, int tamanhoMaximo = 80)
-    {
-        var construtor = new StringBuilder(texto.Length);
-        foreach (var caractere in texto.Normalize(NormalizationForm.FormD))
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(caractere) == UnicodeCategory.NonSpacingMark) continue;
-            construtor.Append(char.IsAsciiLetterOrDigit(caractere) ? char.ToUpperInvariant(caractere) : '_');
-        }
-
-        var codigo = construtor.ToString();
-        while (codigo.Contains("__", StringComparison.Ordinal))
-            codigo = codigo.Replace("__", "_", StringComparison.Ordinal);
-
-        codigo = codigo.Trim('_');
-        if (codigo.Length > tamanhoMaximo) codigo = codigo[..tamanhoMaximo].TrimEnd('_');
-        return codigo.Length == 0 ? "SEM_CODIGO" : codigo;
-    }
+    public static string Codificar(string texto, int tamanhoMaximo = 80) => CodigoEstavel.De(texto, tamanhoMaximo);
 
     /// <summary>Só letras e números, sem acento, maiúsculos — para comparar identidade, não parecença.</summary>
     /// <param name="texto">O texto.</param>

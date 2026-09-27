@@ -76,7 +76,32 @@ public sealed class MetaDeVenda : EntidadeBase
     /// <summary>O tamanho da coluna do consultor.</summary>
     public const int TamanhoDoConsultor = 80;
 
+    /// <summary>
+    /// O fluxo da carga das metas — a trava, o ponto de sincronismo (o frescor que a tela mostra) e a fila de descarte.
+    /// Mora aqui porque a carga grava e a leitura lê o mesmo ponto.
+    /// </summary>
+    public const string FluxoDaCarga = "GESTAO_NEGOCIOS.METAS";
+
+    /// <summary>
+    /// O fluxo das vendas do ART na trilha da origem — o mesmo da carga do ART. As pendentes dele são a lacuna do realizado
+    /// (D-M3): vendas que o ART tem e o CRM ainda não, por cadastro ou chassi.
+    /// </summary>
+    public const string FluxoDasVendasDoArt = "ART.VENDA_DE_MAQUINA";
+
+    /// <summary>O código da linha de consórcio.</summary>
+    public const string CodigoDaLinhaDeConsorcio = "CONSORCIO";
+
     private MetaDeVenda() { }
+
+    /// <summary>
+    /// A META DE CONSÓRCIO fica à parte (D-M4): pela origem ou pela linha CONSÓRCIO. As duas marcas vieram juntas nas
+    /// 266 linhas medidas; a regra aceita qualquer uma, para uma linha de consórcio nunca cair na soma de máquinas. Uma regra
+    /// só, para a carga e a leitura.
+    /// </summary>
+    /// <param name="origem">A origem da meta.</param>
+    /// <param name="codigoDaLinha">O código da linha.</param>
+    public static bool EhConsorcio(OrigemDaMeta origem, string codigoDaLinha) =>
+        origem == OrigemDaMeta.Consorcio || codigoDaLinha == CodigoDaLinhaDeConsorcio;
 
     /// <summary>A filial da meta — a fronteira de acesso.</summary>
     public int EmpresaId { get; private set; }

@@ -68,7 +68,7 @@ public sealed record MetaSaneada(
     /// A META DE CONSÓRCIO fica à parte (D-M4): pela origem ou pela linha CONSÓRCIO. As duas marcas vieram juntas nas 266
     /// linhas medidas; a regra aceita qualquer uma, para uma linha de consórcio nunca cair na soma de máquinas.
     /// </summary>
-    public bool EhConsorcio => Origem == OrigemDaMeta.Consorcio || CodigoDaLinha == SaneamentoDasMetas.CodigoDaLinhaDeConsorcio;
+    public bool EhConsorcio => MetaDeVenda.EhConsorcio(Origem, CodigoDaLinha);
 }
 
 /// <summary>O resultado do saneamento de uma linha: a meta, ou os motivos de recusa.</summary>
@@ -89,9 +89,6 @@ public sealed record SaneamentoDaMeta(MetaSaneada? Meta, IReadOnlyList<string> M
 /// </summary>
 public static partial class SaneamentoDasMetas
 {
-    /// <summary>O código da linha de consórcio.</summary>
-    public const string CodigoDaLinhaDeConsorcio = "CONSORCIO";
-
     /// <summary>O tamanho da coluna da linha.</summary>
     public const int TamanhoDaLinha = 60;
 
