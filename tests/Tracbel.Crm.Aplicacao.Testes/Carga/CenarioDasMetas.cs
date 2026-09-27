@@ -60,8 +60,9 @@ internal static class CenarioDasMetas
         new(id, mes, filial, linha, consultor, tipo, origem, quantidade, "450000.00", "0.12");
 
     /// <summary>
-    /// O cadastro da primeira leitura: 1 e 2 do consultor com conta, 3 de quem não tem conta, 4 de consórcio, 5 em Ribeirão
-    /// — e duas recusas: a 6, de uma filial que o CRM não tem, e a 7, com mês que não se lê.
+    /// O cadastro da primeira leitura: 1 e 2 do consultor com conta, 3 de quem não tem conta, 4 de consórcio, 5 em Ribeirão.
+    /// Sem recusa: desde a revisão do PR #248, recusar mais de 1% das linhas aborta a rodada — a recusa que passa é testada
+    /// num cadastro grande.
     /// </summary>
     public static List<MetaNaOrigem> CadastroDeMetas() =>
     [
@@ -69,9 +70,7 @@ internal static class CenarioDasMetas
         Linha(2, mes: "2025-12", tipo: "Direta", quantidade: "1"),
         Linha(3, consultor: ConsultorSemConta, quantidade: "4"),
         Linha(4, linha: "CONSÓRCIO", origem: "Consórcio", quantidade: "7"),
-        Linha(5, filial: "01", quantidade: "3"),
-        Linha(6, filial: "99"),
-        Linha(7, mes: "novembro")
+        Linha(5, filial: "01", quantidade: "3")
     ];
 
     /// <summary>Um cadastro grande, só de linhas válidas — para a trava de remoção.</summary>

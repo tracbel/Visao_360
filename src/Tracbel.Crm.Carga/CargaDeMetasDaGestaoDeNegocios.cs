@@ -37,6 +37,11 @@ internal sealed record RelatorioDasMetasDaGestaoDeNegocios(
 /// consultor, tipo, origem ou quantidade — e a linha recusada não apaga a meta que já existia: ela fica como estava, e a
 /// recusa vai para a fila de descarte com o id e o motivo, sem nome.</para>
 ///
+/// <para><b>Mas recusa demais ABORTA A RODADA</b> (revisão do PR #248): mais de 1% das linhas recusadas, qualquer mês,
+/// tipo ou origem ilegível na primeira carga, ou menos de 90% das linhas de máquina com a classificação do ART. O campo que
+/// chega noutra forma passa pelo <c>[JsonRequired]</c> — e gravar o resto faria a tela mostrar meta nenhuma, ou só uma
+/// parte, como se fosse verdade. Abortar não grava, não carimba o frescor, e a rotina sai com erro.</para>
+///
 /// <para><b>A trava de remoção ABORTA A CARGA INTEIRA.</b> Uma rodada que excluiria mais de
 /// <see cref="FracaoMaximaDeRemocao"/> das metas vigentes (com ao menos <see cref="JanelaMinima"/> delas) é leitura que
 /// veio pela metade, ou a GN renumerando os ids — não o comercial refazendo a campanha numa madrugada. Nada é gravado, e o
@@ -44,8 +49,8 @@ internal sealed record RelatorioDasMetasDaGestaoDeNegocios(
 /// não o tem nos modos, e uma remoção em massa precisa de alguém olhando.</para>
 ///
 /// <para><b>Casar com o CRM</b>: a filial pelo código <c>0101NN</c>; a linha pela classificação do ART (CONSÓRCIO e USADOS
-/// ficam sem classificação, que não são categoria); o consultor pela conta cujo login — a parte antes do <c>@</c> — é o
-/// consultor em minúsculas, e só quando há UMA conta ativa assim.</para>
+/// ficam sem classificação, que não são categoria); o consultor pela conta cujo login — a parte antes do <c>@</c> — tem a
+/// mesma chave da pessoa (<see cref="MetaDeVenda.ChaveDaPessoa"/>), e só quando há UMA conta ativa assim.</para>
 /// </summary>
 /// <param name="abrirContexto">Abre um contexto de banco com alcance de sistema.</param>
 /// <param name="lerMetas">A leitura do cadastro de metas.</param>
@@ -92,11 +97,50 @@ internal sealed class CargaDeMetasDaGestaoDeNegocios(
     /// <summary>Rótulo: consultores sem conta.</summary>
     internal const string RotuloDeConsultoresSemConta = "consultores sem conta no CRM (só aparecem na visão da filial)";
 
+    /// <summary>
+    /// A maior fração de linhas recusadas que uma rodada aceita (revisão do PR #248). Acima disso a recusa não é a linha
+    /// torta de sempre: é a API mandando o campo noutra forma — e gravar o resto seria gravar pela metade.
+    /// </summary>
+    internal const double FracaoMaximaDeRecusa = 0.01;
+
+    /// <summary>
+    /// A menor fração das linhas de meta de máquina (sem consórcio e sem usados) que precisa achar a classificação do ART.
+    /// Abaixo disso a linha chegou noutra forma (um id no lugar do nome, por exemplo) e nada casaria com o realizado.
+    /// </summary>
+    internal const double FracaoMinimaDeClassificacao = 0.90;
+
+    /// <summary>
+    /// Os motivos que travam a PRIMEIRA carga com uma linha só: sem meta gravada, não há o que preservar, e mês, tipo ou
+    /// origem ilegíveis dizem que o formato da API não é o que o leitor espera.
+    /// </summary>
+    internal static readonly IReadOnlySet<string> MotivosQueTravamAPrimeiraCarga = new HashSet<string>(StringComparer.Ordinal)
+    {
+        MotivoDeRecusaDaMeta.MesInvalido, MotivoDeRecusaDaMeta.TipoDesconhecido, MotivoDeRecusaDaMeta.OrigemDesconhecida
+    };
+
+    /// <summary>Quantos valores distintos a mensagem de aborto mostra por campo.</summary>
+    private const int ValoresNaMensagem = 10;
+
+    /// <summary>Rótulo: consultores com meta de máquinas sem nenhuma venda casada.</summary>
+    internal const string RotuloDeConsultoresSemVendaCasada =
+        "consultores com meta de máquinas sem nenhuma venda casada no ART (pelo vendedor)";
+
     /// <summary>Se a rodada excluiria demais — leitura parcial.</summary>
     /// <param name="vigentes">As metas vigentes antes da rodada.</param>
     /// <param name="aExcluir">As que a rodada excluiria.</param>
     internal static bool RemocaoPassaDaTrava(int vigentes, int aExcluir) =>
         vigentes >= JanelaMinima && aExcluir > vigentes * FracaoMaximaDeRemocao;
+
+    /// <summary>Se a rodada recusaria demais — formato da origem mudando.</summary>
+    /// <param name="lidas">As linhas lidas.</param>
+    /// <param name="recusadas">As recusadas.</param>
+    internal static bool RecusaPassaDaTrava(int lidas, int recusadas) => recusadas > lidas * FracaoMaximaDeRecusa;
+
+    /// <summary>Se poucas linhas de máquina acharam a classificação do ART.</summary>
+    /// <param name="linhasDeMaquina">As linhas de meta de máquina, sem consórcio e sem usados.</param>
+    /// <param name="classificadas">As que acharam a classificação.</param>
+    internal static bool ClassificacaoAbaixoDoMinimo(int linhasDeMaquina, int classificadas) =>
+        linhasDeMaquina > 0 && classificadas < linhasDeMaquina * FracaoMinimaDeClassificacao;
 
     private readonly List<(string Etapa, string Rotulo, int Valor)> _contagens = [];
     private readonly List<string> _observacoes = [];
@@ -126,6 +170,15 @@ internal sealed class CargaDeMetasDaGestaoDeNegocios(
         }
 
         Relatar(plano);
+
+        // AS TRAVAS DO FORMATO (revisão do PR #248) — antes de qualquer transação. O [JsonRequired] só pega o campo que
+        // SUMIU; o campo que chega noutra forma passa por ele e cai aqui, linha a linha. Gravar o que sobrou e carimbar o
+        // frescor faria a tela mostrar "nenhuma meta" (ou só as diretas) como se fosse verdade, e a rotina seguiria verde.
+        if (TravaDoFormato(plano) is { } motivoDoAborto)
+            return Resultado<RelatorioDasMetasDaGestaoDeNegocios>.Indisponivel(
+                motivoDoAborto + " A CARGA INTEIRA FOI ABORTADA: nada foi gravado e o frescor não foi carimbado — a tela continua " +
+                "dizendo quando foi a última leitura boa. Isso é a API mandando o campo noutra forma, e não meta nova: confira os " +
+                "campos com a equipe da Gestão de Negócios.");
 
         if (RemocaoPassaDaTrava(plano.Vigentes, plano.AExcluir.Count))
         {
@@ -168,13 +221,25 @@ internal sealed class CargaDeMetasDaGestaoDeNegocios(
             .ToDictionaryAsync(l => l.Codigo, l => l.Id, StringComparer.Ordinal, ct);
 
         // A CONTA DO CONSULTOR: o login é a parte antes do @ do nome principal — o mesmo casamento das carteiras do Vórtice
-        // e o do Entra ID no primeiro login. Só a conta ativa, e só quando é uma.
+        // e o do Entra ID no primeiro login. Só a conta ativa, e só quando é uma. Os dois lados passam pela MESMA chave da
+        // pessoa (sem acento; espaço e hífen viram ponto), a que a leitura usa para casar o vendedor do ART.
         var contasPorLogin = (await banco.Usuarios.AsNoTracking()
                 .Where(u => u.ExcluidoEm == null)
                 .Select(u => new { u.Id, u.NomePrincipal })
                 .ToListAsync(ct))
-            .GroupBy(u => ParteLocal(u.NomePrincipal), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.Select(u => u.Id).ToList(), StringComparer.OrdinalIgnoreCase);
+            .GroupBy(u => MetaDeVenda.ChaveDaPessoa(ParteLocal(u.NomePrincipal)), StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Select(u => u.Id).ToList(), StringComparer.Ordinal);
+
+        // OS VENDEDORES DO ART QUE O CRM JÁ TEM — para contar quem tem meta e não casa com venda nenhuma. A coluna nasce na
+        // mesma migração das metas: sem ela (a simulação antes da publicação), a conta fica sem medir.
+        plano.VendedoresDoArt = plano.EsquemaDasMetas
+            ? (await banco.VendasDeMaquina.AsNoTracking()
+                    .Where(v => v.ExcluidoEm == null && v.VendedorNaOrigem != null)
+                    .Select(v => v.VendedorNaOrigem!)
+                    .Distinct()
+                    .ToListAsync(ct))
+                .Select(MetaDeVenda.ChaveDaPessoa).ToHashSet(StringComparer.Ordinal)
+            : null;
 
         plano.SistemaId = await banco.Sistemas.AsNoTracking()
             .Where(s => s.Codigo == LeitorDeMetasDaGestaoDeNegocios.CodigoDoSistema).Select(s => (int?)s.Id).FirstOrDefaultAsync(ct);
@@ -204,6 +269,12 @@ internal sealed class CargaDeMetasDaGestaoDeNegocios(
             if (motivos.Count > 0)
             {
                 plano.Recusadas.Add((linha.Id, motivos));
+
+                // O QUE A MENSAGEM DE ABORTO PODE DIZER: do tipo e da origem, o valor que chegou (é vocabulário, não
+                // pessoa); do mês, só o FORMATO. Do consultor, nada.
+                if (motivos.Contains(MotivoDeRecusaDaMeta.MesInvalido)) plano.Anotar(MotivoDeRecusaDaMeta.MesInvalido, SaneamentoDasMetas.FormatoDoMes(linha.Mes));
+                if (motivos.Contains(MotivoDeRecusaDaMeta.TipoDesconhecido)) plano.Anotar(MotivoDeRecusaDaMeta.TipoDesconhecido, linha.Tipo);
+                if (motivos.Contains(MotivoDeRecusaDaMeta.OrigemDesconhecida)) plano.Anotar(MotivoDeRecusaDaMeta.OrigemDesconhecida, linha.Origem);
                 continue;
             }
 
@@ -216,7 +287,16 @@ internal sealed class CargaDeMetasDaGestaoDeNegocios(
                 ? classe
                 : null;
 
-            long? consultorUsuarioId = contasPorLogin.TryGetValue(meta.ConsultorNaOrigem.ToLowerInvariant(), out var contas) && contas.Count == 1
+            // A LINHA DE MÁQUINA PRECISA ACHAR O VOCABULÁRIO DO ART — é por ele que o realizado casa. Consórcio e usados
+            // não são categoria e ficam fora da conta.
+            if (!meta.EhConsorcio && classificacao.Situacao != SituacaoDaCorrespondencia.NaoEClassificacaoDeProduto)
+            {
+                plano.LinhasDeMaquina++;
+                if (classificacao.Situacao == SituacaoDaCorrespondencia.CorrespondenciaExata) plano.LinhasDeMaquinaClassificadas++;
+                else plano.Anotar(ChaveDaLinhaSemClassificacao, meta.LinhaNaOrigem);
+            }
+
+            long? consultorUsuarioId = contasPorLogin.TryGetValue(MetaDeVenda.ChaveDaPessoa(meta.ConsultorNaOrigem), out var contas) && contas.Count == 1
                 ? contas[0]
                 : null;
 
@@ -314,6 +394,8 @@ internal sealed class CargaDeMetasDaGestaoDeNegocios(
             Contar(etapaDoConteudo, $"  unidades de máquinas no FY{ano.Key}", ano.Sum(v => v.Meta.Quantidade));
         Contar(etapaDoConteudo, "linhas sem classificação de produto no CRM (CONSÓRCIO, USADOS ou linha nova)",
             plano.Validas.Count(v => v.Dados.LinhaDeProdutoId is null));
+        Contar(etapaDoConteudo, "linhas de meta de máquina (sem consórcio e sem usados)", plano.LinhasDeMaquina);
+        Contar(etapaDoConteudo, "  com a classificação do ART (o mínimo é 90%)", plano.LinhasDeMaquinaClassificadas);
         Contar(etapaDoConteudo, "filiais com meta", plano.Validas.Select(v => v.Dados.EmpresaId).Distinct().Count());
 
         const string etapaDosConsultores = "3. Consultores";
@@ -322,6 +404,15 @@ internal sealed class CargaDeMetasDaGestaoDeNegocios(
         Contar(etapaDosConsultores, "consultores com conta no CRM (a meta aparece para eles)", consultores.Count(g => g.First().Dados.ConsultorUsuarioId is not null));
         Contar(etapaDosConsultores, RotuloDeConsultoresSemConta, consultores.Count(g => g.First().Dados.ConsultorUsuarioId is null));
         Contar(etapaDosConsultores, "  linhas desses consultores", plano.Validas.Count(v => v.Dados.ConsultorUsuarioId is null));
+
+        // QUEM TEM META E NÃO CASA COM VENDA NENHUMA pela chave da pessoa: ou ainda não vendeu, ou está escrito de outro
+        // jeito numa das fontes. É o número que diz se o casamento consultor × vendedor está funcionando.
+        if (plano.VendedoresDoArt is { } vendedores)
+            Contar(etapaDosConsultores, RotuloDeConsultoresSemVendaCasada, plano.Validas
+                .Where(v => !v.Meta.EhConsorcio)
+                .Select(v => MetaDeVenda.ChaveDaPessoa(v.Meta.ConsultorNaOrigem))
+                .Distinct(StringComparer.Ordinal)
+                .Count(c => !vendedores.Contains(c)));
 
         const string etapaDaSincronia = "4. Sincronia com organizacao.MetaDeVenda";
         Contar(etapaDaSincronia, "metas vigentes antes da rodada", plano.Vigentes);
@@ -340,6 +431,71 @@ internal sealed class CargaDeMetasDaGestaoDeNegocios(
     {
         _contagens.Add((etapa, rotulo, valor));
         relatar($"  {rotulo}: {valor:N0}");
+    }
+
+    // =============================================================================================
+    // As travas do formato — o campo que chega, mas noutra forma
+    // =============================================================================================
+
+    /// <summary>A chave, em <see cref="Plano.ValoresRecebidos"/>, das linhas de máquina sem a classificação do ART.</summary>
+    private const string ChaveDaLinhaSemClassificacao = "LINHA_SEM_CLASSIFICACAO";
+
+    /// <summary>
+    /// O MOTIVO PARA ABORTAR A RODADA INTEIRA, ou nulo quando ela pode seguir. Três travas, antes da de remoção:
+    /// <list type="number">
+    /// <item>a primeira carga (nenhuma meta vigente) com QUALQUER mês, tipo ou origem ilegível;</item>
+    /// <item>mais de <see cref="FracaoMaximaDeRecusa"/> das linhas lidas recusadas;</item>
+    /// <item>menos de <see cref="FracaoMinimaDeClassificacao"/> das linhas de máquina com a classificação do ART.</item>
+    /// </list>
+    /// A mensagem diz os motivos em número, os valores DISTINTOS que chegaram no tipo e na origem, o FORMATO do mês — e
+    /// nunca o consultor.
+    /// </summary>
+    private static string? TravaDoFormato(Plano plano)
+    {
+        var lidas = plano.Validas.Count + plano.Recusadas.Count;
+
+        if (plano.Vigentes == 0 && plano.Recusadas.Any(r => r.Motivos.Any(MotivosQueTravamAPrimeiraCarga.Contains)))
+            return string.Create(CultureInfo.InvariantCulture,
+                $"É a primeira carga (nenhuma meta gravada) e {plano.Recusadas.Count(r => r.Motivos.Any(MotivosQueTravamAPrimeiraCarga.Contains))} de {lidas} linhas " +
+                $"têm mês, tipo ou origem que o leitor não entende. {DescreverRecusas(plano)}");
+
+        if (RecusaPassaDaTrava(lidas, plano.Recusadas.Count))
+            return string.Create(CultureInfo.InvariantCulture,
+                $"A rodada recusaria {plano.Recusadas.Count} de {lidas} linhas — acima de {FracaoMaximaDeRecusa * 100:0}%. {DescreverRecusas(plano)}");
+
+        if (ClassificacaoAbaixoDoMinimo(plano.LinhasDeMaquina, plano.LinhasDeMaquinaClassificadas))
+            return string.Create(CultureInfo.InvariantCulture,
+                $"Só {plano.LinhasDeMaquinaClassificadas} de {plano.LinhasDeMaquina} linhas de meta de máquina acharam a classificação do ART " +
+                $"(o mínimo é {FracaoMinimaDeClassificacao * 100:0}%): o realizado não casaria com a meta. " +
+                $"A linha chegou como: {Valores(plano, ChaveDaLinhaSemClassificacao)}.");
+
+        return null;
+    }
+
+    /// <summary>Os motivos em número, e o que chegou em cada campo que dá para dizer.</summary>
+    private static string DescreverRecusas(Plano plano)
+    {
+        var motivos = plano.Recusadas.SelectMany(r => r.Motivos)
+            .GroupBy(m => m, StringComparer.Ordinal)
+            .OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal)
+            .Select(g => string.Create(CultureInfo.InvariantCulture, $"{g.Key} {g.Count()}"));
+
+        var texto = $"Recusas: {string.Join(", ", motivos)}.";
+        if (plano.ValoresRecebidos.ContainsKey(MotivoDeRecusaDaMeta.MesInvalido))
+            texto += $" O mês chegou no formato: {Valores(plano, MotivoDeRecusaDaMeta.MesInvalido)}.";
+        if (plano.ValoresRecebidos.ContainsKey(MotivoDeRecusaDaMeta.TipoDesconhecido))
+            texto += $" O tipo chegou como: {Valores(plano, MotivoDeRecusaDaMeta.TipoDesconhecido)}.";
+        if (plano.ValoresRecebidos.ContainsKey(MotivoDeRecusaDaMeta.OrigemDesconhecida))
+            texto += $" A origem chegou como: {Valores(plano, MotivoDeRecusaDaMeta.OrigemDesconhecida)}.";
+        return texto;
+    }
+
+    /// <summary>Os valores distintos de um campo, entre aspas, no máximo <see cref="ValoresNaMensagem"/>.</summary>
+    private static string Valores(Plano plano, string chave)
+    {
+        if (!plano.ValoresRecebidos.TryGetValue(chave, out var valores) || valores.Count == 0) return "(nenhum)";
+        var mostrados = valores.Take(ValoresNaMensagem).Select(v => $"\"{v}\"");
+        return string.Join(", ", mostrados) + (valores.Count > ValoresNaMensagem ? $" e mais {valores.Count - ValoresNaMensagem}" : string.Empty);
     }
 
     // =============================================================================================
@@ -395,5 +551,30 @@ internal sealed class CargaDeMetasDaGestaoDeNegocios(
         public List<int> AReativar { get; } = [];
 
         public List<int> AExcluir { get; } = [];
+
+        /// <summary>As linhas de meta de máquina (sem consórcio e sem usados) — o denominador da trava da classificação.</summary>
+        public int LinhasDeMaquina { get; set; }
+
+        /// <summary>As que acharam a classificação do ART.</summary>
+        public int LinhasDeMaquinaClassificadas { get; set; }
+
+        /// <summary>A chave de cada vendedor do ART que o CRM tem; nulo quando o banco ainda não tem a coluna.</summary>
+        public HashSet<string>? VendedoresDoArt { get; set; }
+
+        /// <summary>O que chegou nos campos que a mensagem de aborto pode citar, por motivo — distintos e ordenados.</summary>
+        public Dictionary<string, SortedSet<string>> ValoresRecebidos { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>Anota um valor recebido: sem espaço nas pontas, sem quebra de linha, até 40 caracteres.</summary>
+        public void Anotar(string chave, string? valor)
+        {
+            var texto = string.IsNullOrWhiteSpace(valor)
+                ? "(vazio)"
+                : new string([.. valor.Trim().Select(c => char.IsControl(c) ? ' ' : c)]);
+            if (texto.Length > 40) texto = texto[..40] + "…";
+
+            if (!ValoresRecebidos.TryGetValue(chave, out var valores))
+                ValoresRecebidos[chave] = valores = new SortedSet<string>(StringComparer.Ordinal);
+            valores.Add(texto);
+        }
     }
 }

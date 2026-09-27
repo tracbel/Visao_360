@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using Tracbel.Crm.Dominio.Comum;
 
 namespace Tracbel.Crm.Dominio.Organizacao;
@@ -102,6 +103,34 @@ public sealed class MetaDeVenda : EntidadeBase
     /// <param name="codigoDaLinha">O código da linha.</param>
     public static bool EhConsorcio(OrigemDaMeta origem, string codigoDaLinha) =>
         origem == OrigemDaMeta.Consorcio || codigoDaLinha == CodigoDaLinhaDeConsorcio;
+
+    /// <summary>
+    /// A CHAVE DE UMA PESSOA para casar o consultor da meta, o vendedor do ART e o login da conta (revisão do PR #248,
+    /// 27/09/2026): sem acento, em maiúsculas, e espaço ou hífen viram ponto — "Fulano de Tal", "FULANO-DE-TAL" e
+    /// "fulano.de.tal" são o mesmo <c>FULANO.DE.TAL</c>. Uma função só, aplicada aos TRÊS lados: comparar só maiúsculas
+    /// deixava de fora a pessoa escrita com acento ou com espaço numa das fontes. Vazio quando não há texto.
+    /// </summary>
+    /// <param name="texto">O consultor, o vendedor ou a parte antes do <c>@</c> do login.</param>
+    public static string ChaveDaPessoa(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return string.Empty;
+
+        var construtor = new StringBuilder(texto.Length);
+        foreach (var caractere in texto.Trim().Normalize(NormalizationForm.FormD))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(caractere) == UnicodeCategory.NonSpacingMark) continue;
+            var separador = char.IsWhiteSpace(caractere) || caractere is '-' or '.';
+            if (separador)
+            {
+                if (construtor.Length > 0 && construtor[^1] != '.') construtor.Append('.');
+                continue;
+            }
+
+            construtor.Append(char.ToUpperInvariant(caractere));
+        }
+
+        return construtor.ToString().TrimEnd('.');
+    }
 
     /// <summary>A filial da meta — a fronteira de acesso.</summary>
     public int EmpresaId { get; private set; }

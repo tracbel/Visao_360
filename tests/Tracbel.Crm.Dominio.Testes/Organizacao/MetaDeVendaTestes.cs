@@ -98,4 +98,16 @@ public sealed class MetaDeVendaTestes
             (706, Profundidade.EmpresaEAbaixo)
         ], "o padrão vê a própria meta, a gerência e a diretoria a filial, o administrador tudo; o gestor comercial fica sem");
     }
+
+    [Theory]
+    [InlineData("FULANO.DE.TAL", "FULANO.DE.TAL")]
+    [InlineData("fulano.de.tal", "FULANO.DE.TAL")]
+    [InlineData("Fulano de Tal", "FULANO.DE.TAL")]
+    [InlineData("  FULANO-DE  TAL ", "FULANO.DE.TAL")]
+    [InlineData("joão.conceição", "JOAO.CONCEICAO")]
+    [InlineData("José - Antônio", "JOSE.ANTONIO")]
+    [InlineData("", "")]
+    [InlineData(null, "")]
+    public void A_chave_da_pessoa_tira_acento_e_troca_espaco_e_hifen_por_ponto(string? texto, string chave) =>
+        MetaDeVenda.ChaveDaPessoa(texto).Should().Be(chave, "o consultor da GN, o vendedor do ART e o login passam pela mesma chave");
 }

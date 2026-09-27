@@ -175,6 +175,20 @@ public static partial class SaneamentoDasMetas
     }
 
     /// <summary>
+    /// O FORMATO de um mês que não se leu — cada dígito vira <c>N</c> e cada letra vira <c>A</c> (<c>"11/25"</c> →
+    /// <c>NN/NN</c>). É o que a mensagem de uma carga abortada pode dizer sem repetir o conteúdo da origem: o formato
+    /// basta para saber o que mudou na API.
+    /// </summary>
+    /// <param name="bruto">O campo como veio.</param>
+    public static string FormatoDoMes(string? bruto)
+    {
+        if (string.IsNullOrWhiteSpace(bruto)) return "(vazio)";
+        var texto = bruto.Trim();
+        if (texto.Length > 30) texto = texto[..30];
+        return new string([.. texto.Select(c => char.IsDigit(c) ? 'N' : char.IsLetter(c) ? 'A' : c)]);
+    }
+
+    /// <summary>
     /// O código da filial no CRM: <c>0101</c> + NN. Aceita o NN com um ou dois dígitos (<c>5</c> ou <c>"05"</c>) e o código
     /// inteiro (<c>010105</c>).
     /// </summary>
