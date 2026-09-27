@@ -19,9 +19,15 @@ namespace Tracbel.Crm.Integracao.Vortice;
 /// <param name="PrimeiroAndamentoEmUtc">O primeiro registro do histórico do processo (UTC).</param>
 /// <param name="Status">O status do processo na origem.</param>
 /// <param name="RealizadoEmUtc">Quando o processo foi encerrado na origem (UTC).</param>
+/// <param name="NumeroDoPai">
+/// O <c>ProcessoPai</c>, quando é outro processo. Não entra na regra: o BI herda só pelo <c>ProcessoDNA</c> (decisão de
+/// 27/09/2026). Medido em 27/09/2026: 5.671 processos 41/50 têm pai sem vínculo DNA — lido para ficar visível na trilha e
+/// no relatório, e para a decisão que o documento 52 §3 deixa aberta.
+/// </param>
 public sealed record ProcessoNoFunilDoVortice(
     long Numero, short Tipo, long NumeroDoDna, int? NroEmpresa, long? SeqPessoa, DocumentoDoVortice Documento, int? SeqCarteira,
-    string? LoginDoResponsavel, DateTime? IncluidoEmUtc, DateTime? PrimeiroAndamentoEmUtc, string? Status, DateTime? RealizadoEmUtc)
+    string? LoginDoResponsavel, DateTime? IncluidoEmUtc, DateTime? PrimeiroAndamentoEmUtc, string? Status, DateTime? RealizadoEmUtc,
+    long? NumeroDoPai = null)
 {
     /// <summary>O processo como a regra do estágio o enxerga.</summary>
     public ProcessoNaRegraDoEstagio NaRegra => new(Numero, Tipo, NumeroDoDna, IncluidoEmUtc, PrimeiroAndamentoEmUtc);
@@ -77,7 +83,7 @@ public sealed class LeitorDoFunilDoVortice(OpcoesDoVortice opcoes)
     /// mesma resposta a cada rodada.
     /// </summary>
     public const string ConsultaDosProcessos = $"""
-        SELECT d.Processo, d.CodProcesso, d.ProcessoDNA, d.NroEmpresa, d.SeqPessoa,
+        SELECT d.Processo, d.CodProcesso, d.ProcessoDNA, d.ProcessoPai, d.NroEmpresa, d.SeqPessoa,
                g.FisicaJuridica, g.NroCGCCPF, g.DigCGCCPF,
                c.SeqCarteira,
                p.UsuResponsavel, p.DtaInclusao, p.Status, p.DtaRealizacao,
@@ -132,11 +138,14 @@ public sealed class LeitorDoFunilDoVortice(OpcoesDoVortice opcoes)
             return Resultado<LeituraDoFunilDoVortice>.Indisponivel(
                 "A classificação dos resultados do Vórtice está vazia no CRM: sem ela, nenhum estágio existe. Nada foi gravado.");
 
+        if (LeituraDoVortice.CadeiaDeLeitura(opcoes.Conexao) is not { } cadeia)
+            return Resultado<LeituraDoFunilDoVortice>.Indisponivel(
+                "A cadeia de conexão do Vórtice está malformada. Confira a credencial em Configurações › Integrações. Nada foi gravado.");
+
         var etapa = "a conexão";
         try
         {
-            var cadeia = new SqlConnectionStringBuilder(opcoes.Conexao) { ApplicationIntent = ApplicationIntent.ReadOnly };
-            await using var conexao = new SqlConnection(cadeia.ConnectionString);
+            await using var conexao = new SqlConnection(cadeia);
             await conexao.OpenAsync(ct);
 
             etapa = "os processos";
@@ -165,11 +174,6 @@ public sealed class LeitorDoFunilDoVortice(OpcoesDoVortice opcoes)
                 $"O Vórtice não respondeu à leitura de {etapa} (erro SQL {falha.Number}). Quase sempre é a rede ou a " +
                 "credencial; a rotina é idempotente e pode rodar de novo. Nada foi gravado.");
         }
-        catch (ArgumentException)
-        {
-            return Resultado<LeituraDoFunilDoVortice>.Indisponivel(
-                "A cadeia de conexão do Vórtice está malformada. Confira a credencial em Configurações › Integrações. Nada foi gravado.");
-        }
     }
 
     /// <summary>Uma linha da consulta dos processos, traduzida.</summary>
@@ -191,7 +195,8 @@ public sealed class LeitorDoFunilDoVortice(OpcoesDoVortice opcoes)
             LeituraDoVortice.DataUtc(linha, "DtaInclusao", HorasDeDiferencaParaUtc),
             LeituraDoVortice.DataUtc(linha, "PrimeiroAndamento", HorasDeDiferencaParaUtc),
             LeituraDoVortice.Texto(linha, "Status"),
-            LeituraDoVortice.DataUtc(linha, "DtaRealizacao", HorasDeDiferencaParaUtc));
+            LeituraDoVortice.DataUtc(linha, "DtaRealizacao", HorasDeDiferencaParaUtc),
+            LeituraDoVortice.Longo(linha, "ProcessoPai") is { } pai && pai != numero ? pai : null);
     }
 
     /// <summary>Uma linha da consulta do histórico, traduzida.</summary>
@@ -230,9 +235,31 @@ internal static class LeituraDoVortice
     /// <summary>O número inteiro.</summary>
     public static long? Longo(IDataRecord linha, string coluna) => Numero(linha, coluna) is { } valor ? (long)valor : null;
 
-    /// <summary>A data da origem convertida para UTC.</summary>
-    public static DateTime? DataUtc(IDataRecord linha, string coluna, int horasParaUtc) =>
-        Valor(linha, coluna) is DateTime data ? DateTime.SpecifyKind(data.AddHours(horasParaUtc), DateTimeKind.Utc) : null;
+    /// <summary>
+    /// A data da origem convertida para UTC. A 31/12/9999 que o Vórtice usa como "sem data" não cabe mais três horas: vira
+    /// o maior instante possível, e quem a lê a recusa como data futura — nunca estoura a leitura inteira.
+    /// </summary>
+    public static DateTime? DataUtc(IDataRecord linha, string coluna, int horasParaUtc) => Valor(linha, coluna) is DateTime data
+        ? data > DateTime.MaxValue.AddHours(-horasParaUtc)
+            ? DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc)
+            : DateTime.SpecifyKind(data.AddHours(horasParaUtc), DateTimeKind.Utc)
+        : null;
+
+    /// <summary>
+    /// A CADEIA DE CONEXÃO COM INTENÇÃO DE LEITURA, ou nula quando a credencial está malformada. O "malformada" mora só
+    /// aqui: um <c>ArgumentException</c> no meio da leitura é defeito, e não credencial, e não pode ser dito como tal.
+    /// </summary>
+    public static string? CadeiaDeLeitura(string conexao)
+    {
+        try
+        {
+            return new SqlConnectionStringBuilder(conexao) { ApplicationIntent = ApplicationIntent.ReadOnly }.ConnectionString;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>A data da origem como ela está (hora de São Paulo).</summary>
     public static DateTime? DataLocal(IDataRecord linha, string coluna) => Valor(linha, coluna) is DateTime data ? data : null;

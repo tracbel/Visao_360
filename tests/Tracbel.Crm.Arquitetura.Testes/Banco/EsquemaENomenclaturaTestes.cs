@@ -171,7 +171,7 @@ public sealed partial class EsquemaENomenclaturaTestes
         //   +2 processo.EstagioDoProcesso e integracao.ClassificacaoDeResultadoDoVortice — documento 52 (decisões de
         //      27/09/2026): o funil do Vórtice, uma linha por processo por estágio, sem depender de Processo nem de
         //      Cliente (62% do funil é prospect sem cadastro); e a lista do que cada código de resultado prova — o
-        //      estágio e o contato —, que as rotinas do funil e das carteiras leem em vez de cada uma ter a sua.
+        //      estágio e o contato —, a lista do funil, presa por teste à constante do último contato da carteira.
         //
         // Este teste é o que impede o modelo de crescer sem decisão registrada — o "portão" da
         // seção 10.2. Ele falhou de propósito quando as três últimas entraram, e é assim que se

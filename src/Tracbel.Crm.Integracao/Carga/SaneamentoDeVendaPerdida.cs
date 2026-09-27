@@ -101,8 +101,27 @@ public static class SaneamentoDeVendaPerdida
             return 1;
         }
 
+        if (bruta.Value > MaiorQuantidadePlausivel)
+        {
+            // MAIS DE MIL MÁQUINAS NUM NEGÓCIO PERDIDO não é negócio, é digitação — e um '9999999999' estouraria o inteiro
+            // e derrubaria a rodada inteira por uma resposta. Entra como não declarada, com o valor anotado.
+            correcoes.Add(new CorrecaoAplicada(
+                "quantidade",
+                bruta.Value.ToString(CultureInfo.InvariantCulture),
+                "1",
+                $"Acima de {MaiorQuantidadePlausivel:N0} máquinas não é negócio perdido de revenda — é digitação. Entra como " +
+                "não declarada (uma máquina), para não entrar na soma."));
+            return 1;
+        }
+
         return (int)decimal.Truncate(bruta.Value);
     }
+
+    /// <summary>
+    /// A MAIOR QUANTIDADE PLAUSÍVEL num negócio perdido: mil máquinas. A maior frota de usina da região não compra isso
+    /// numa negociação; acima disso é tecla presa.
+    /// </summary>
+    public const int MaiorQuantidadePlausivel = 1_000;
 
     /// <summary>
     /// A que família o motivo pertence — a MESMA classificação da carga antiga (congelada), repetida aqui para a

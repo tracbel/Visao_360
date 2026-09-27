@@ -135,8 +135,11 @@ nov–dez/2023 são do tipo 31 e nenhum tem resultado aceito.
 2. **`AlcancadoEm`** é a data do **primeiro** resultado que alcança E. "Mais recente" do BI = "alcançou alguma vez".
 3. **DNA.** O pai que tem filho DNA (31/41/50) **sai**; o filho **herda** os resultados do pai, com a data mínima.
    A herança é transitiva (o neto herda do filho, que herdou do pai), e só o último da cadeia fica. Pai de outro
-   tipo não transmite nada — o BI filtra o histórico por 31/41/50.
-4. **Inclusão nula.** `AbertoEm = COALESCE(DtaInclusao, 1º andamento)`, e `AberturaDeduzida` marca o caso.
+   tipo não transmite nada — o BI filtra o histórico por 31/41/50. `ProcessoDNA` em **ciclo** (A→B, B→A) é tratado
+   como processo sem pai: sem isso os dois se substituiriam e sairiam do funil.
+4. **Inclusão nula.** `AbertoEm = COALESCE(DtaInclusao, 1º andamento)`, e `AberturaDeduzida` marca o caso. Data
+   de abertura **absurda** (antes de 2000 ou depois de agora + 1 dia) é recusada e vale a seguinte; sem nenhuma crível,
+   o processo fica pendente com `ABERTURA_COM_DATA_INVALIDA`.
 5. **Data futura.** Resultado com data depois de agora + 1 dia é recusado (há digitação em 2103 no Vórtice).
 6. **Uma linha por processo por estágio** — o fan-out do BI (um registro por departamento do histórico da família
    DNA) não existe aqui.
@@ -156,11 +159,38 @@ Cobertura, 274 em Pedido e 15 em Faturamento; há 6 netos e 351 filhos de pai de
 
 **Cumulativo [M]:** 34.773 → 29.296 → 29.003 → 9.348 → 6.453 → 4.305. Na semântica do BI, Qualificado → Cobertura
 daria 453%. O subfunil digital fica visível por `PelaEntradaDigital`: 1278 = 8.274 → 3803 = 1.096 → 803 chegam a
-Cobertura → 19 faturados.
+Cobertura → 19 faturados. `PelaEntradaDigital` é **`entrou por`**, e não `teve`: o 1278/3803 precisa ter data **menor ou
+igual** à `AlcancadoEm` do estágio — o processo que chegou à Cobertura por visita e só depois recebeu o contato
+digital não entrou pelo digital (revisão de 27/09).
 
 **Data da etapa:** `AlcancadoEm`. O `DTA_ETAPA` do BI (o máximo das ações geradoras) é mal definido — na
 Cobertura, 23% ficam sem data e 50% diferem em mais de 30 dias [M] — e fica em `UltimaAcaoDaEtapaEm` só para
 conciliar.
+
+**Herança anterior à abertura — atenção para a visão por fluxo (PR 2).** O pai aberto **antes** da janela não entra
+no funil, mas transmite: o filho da janela herda o estágio com a `AlcancadoEm` do pai, **anterior à própria abertura
+(e à janela)**. Na **coorte** (pela `AbertoEm`) o processo conta no período do filho; no **fluxo** (pela
+`AlcancadoEm`) esse estágio cai num período anterior — e, se o PR 2 filtrar o fluxo pela janela, some dele. O teste
+`O_pai_aberto_antes_da_janela_transmite…` prende o comportamento; o PR 2 decide como mostrar.
+
+**`ProcessoPai` × `ProcessoDNA` [M, 27/09, Vórtice, só agregados] — decisão aberta.** O BI herda **só** pelo
+`ProcessoDNA`, e a regra também (D de 27/09). Mas há processos com `ProcessoPai` e **sem** DNA:
+
+| Tipo | processos | com pai | filho DNA | pai sem DNA | pai sem DNA e o pai tem resultado aceito | tem os dois, pai ≠ DNA |
+|---|---:|---:|---:|---:|---:|---:|
+| 31 | 39.754 | 124 | 124 | 0 | 0 | 15 |
+| 41 | 23.840 | 5.351 | 2.802 | 2.549 | 2.238 | 206 |
+| 50 | 42.445 | 4.454 | 1.332 | 3.122 | 2.752 | 313 |
+
+Dos 5.671 filhos por `ProcessoPai` sem DNA, 5.292 são do mesmo tipo do pai (41→41: 2.483; 50→50: 2.809), todos na
+janela; desses 5.292, em 4.019 **o pai e o filho têm resultado aceito** — o mesmo negócio pode estar contando duas
+vezes, ou são negócios distintos do mesmo cliente (o desmembramento de um pedido). Nenhum processo tem DNA sem
+`ProcessoPai`, e os 534 que têm os dois apontando para processos diferentes indicam que o `ProcessoDNA` aponta a
+**raiz** da família (o neto aponta o avô) — por isso a herança transitiva basta. Nenhum `ProcessoDNA` em ciclo de dois
+foi achado. A rotina **não muda a regra** — seria reabrir a decisão —, mas lê o `ProcessoPai`, anota na trilha de cada
+processo (`filho do processo N por ProcessoPai, sem vínculo DNA`) e conta no relatório. **Pergunta ao Ricardo:** o filho
+por `ProcessoPai` sem DNA é o mesmo negócio (herda e o pai sai, como o DNA) ou outro negócio (fica como está)? A
+consulta está na §11.
 
 **FY26 [M]:** coorte (Cob., Neg., Ped., Fat.) 8.001 / 3.108 / 2.199 / 1.347; fluxo 8.833 / 3.758 / 2.563 / 1.835.
 O Funil usa a coorte, com chave para o fluxo [D 27/09]; Performance de CEN, alertas e vendas do período usam o
@@ -198,9 +228,14 @@ carteira; a rotina usa a filial do processo, que é a de onde vem o `EmpresaId`.
 5. **Catálogo:** `processo.MotivoDePerda` tem 0 linhas em produção [M]; a rotina garante o catálogo de motivos e os
    de concorrente, tipo de equipamento e revenda, pela mesma codificação da carga antiga.
 6. **Filial:** a do processo; sem processo, a do histórico em que o formulário foi preenchido; sem as duas, a do
-   cliente do CRM. Filial fora do CRM → pendente.
+   cliente do CRM. Filial fora do CRM → pendente. Data de preenchimento absurda (antes de 2000 ou no futuro) →
+   pendente com `DATA_DE_REGISTRO_INVALIDA`; quantidade acima de 1.000 máquinas → não declarada (uma), com a correção
+   anotada — o `9999999999` da origem derrubava a rodada.
 7. **Quem preencheu não é lido:** o login de quem respondeu é dado de pessoa, e a pergunta da perda não precisa dele.
    `ChaveExterna` pelo `SeqQuestionario`.
+8. **Só a principal conta — também nas telas que já existiam** (revisão de 27/09): o resumo por motivo e por
+   concorrente, o painel do CEN, os indicadores executivos e a cobertura do motor filtram `Papel = Principal`; sem
+   isso o `_JDE` gêmeo contava em dobro e o preço dele entrava na média.
 
 ---
 
@@ -214,12 +249,17 @@ carteira; a rotina usa a filial do processo, que é a de onde vem o `EmpresaId`.
 | modo | `--somente-processos-vortice [--simular]`, bloco próprio no `Program.cs`, fora de `leOVortice` |
 | leitura | relê a janela inteira a cada rodada, sem marca d'água (funil 2–3 s; formulários 1 s; histórico 31/41/50 ~295 mil linhas [M]) |
 | idempotência | chave (`NumeroDoProcessoNaOrigem`, `Estagio`); `ChaveExterna` pelo `SeqQuestionario`; `RegistroDeOrigem` com o motivo de cada pendência. Duas rodadas sem mudança na origem não alteram nada |
-| trava | leitura vazia **ou** queda de mais de 5% em relação ao que o CRM já tem **aborta sem apagar**; estágio sumido num processo presente é removido; processo ausente só sai se não existir mais em `IV_PROCDADO` (a leitura traz todo processo 31/41/50, sem janela) |
-| gravação | em blocos (~113 mil linhas na primeira rodada), cada bloco na sua transação; a simulação não abre transação nenhuma |
+| trava | leitura vazia **ou** queda de mais de 5% em relação ao que o CRM já tem **aborta sem apagar**; estágio sumido num processo presente é removido; processo ausente só sai se não existir mais em `IV_PROCDADO` (a leitura traz todo processo 31/41/50, sem janela). A queda **legítima** (uma filial desativada tira ~7,7%) passa com `--aceitar-queda` — **só no terminal**, fora dos modos da rotina —, e a aceitação fica escrita na execução |
+| gravação | em blocos de **processos inteiros** (~113 mil linhas na primeira rodada), cada bloco na sua transação: os estágios de um processo nunca ficam em blocos diferentes. Se um bloco cai, a rotina sai com código 3 e diz `Gravação parcial…; a próxima rodada completa`. As consultas por lista de ids vão em fatias de 1.000 (o SQL Server aceita 2.100 parâmetros, e as vendas perdidas passam de 3 mil). A simulação não abre transação nenhuma |
+| execução | cada rodada que grava deixa uma linha em `integracao.ExecucaoDeSincronizacao` (fluxo `VORTICE.FUNIL`): início, fim, contagens e a mensagem — inclusive a queda aceita e a gravação parcial |
 | último contato | **não grava** `UltimaInteracaoEm` — é da `CARTEIRAS_VORTICE`, pela regra da BI (PR #244) |
 
 **Motivos de pendência (`RegistroDeOrigem.Motivos`):** `FILIAL_DO_PROCESSO_FORA_DO_CRM`, `SEM_RESULTADO_ACEITO`,
-`PAI_SUBSTITUIDO_PELO_FILHO_DNA` (processos); `FILIAL_FORA_DO_CRM`, `SEM_DATA_DE_REGISTRO` (venda perdida).
+`PAI_SUBSTITUIDO_PELO_FILHO_DNA`, `ABERTURA_COM_DATA_INVALIDA` (processos); `FILIAL_FORA_DO_CRM`, `SEM_DATA_DE_REGISTRO`,
+`DATA_DE_REGISTRO_INVALIDA` (venda perdida).
+
+**A volta da M1** (`Down`) apaga a trilha de auditoria de `EstagioDoProcesso` e `ClassificacaoDeResultadoDoVortice`
+antes de recriar o CHECK de `Entidade` sem elas — senão a volta falharia com trilha no banco.
 
 ---
 
@@ -301,6 +341,19 @@ SELECT COUNT(*) FROM IV_Questionario a WITH (NOLOCK)
 JOIN IV_Q_VENDA_PERDIDA va WITH (NOLOCK) ON va.SEQQUESTIONARIO = a.SeqQuestionario
 JOIN IV_Questionario j WITH (NOLOCK) ON j.SeqPessoa = a.SeqPessoa AND CAST(j.DtaRealizacao AS date) = CAST(a.DtaRealizacao AS date)
 JOIN IV_Q_VENDA_PERDIDA_JDE vj WITH (NOLOCK) ON vj.SEQQUESTIONARIO = j.SeqQuestionario;
+
+-- ProcessoPai × ProcessoDNA (a tabela da §3, medida em 27/09)
+WITH P AS (
+    SELECT d.CodProcesso, d.Processo, d.ProcessoPai, d.ProcessoDNA,
+           CASE WHEN d.ProcessoPai IS NOT NULL AND d.ProcessoPai <> d.Processo THEN 1 ELSE 0 END AS TemPai,
+           CASE WHEN d.ProcessoDNA IS NOT NULL AND d.ProcessoDNA <> d.Processo THEN 1 ELSE 0 END AS TemDna
+    FROM IV_PROCDADO d WITH (NOLOCK) WHERE d.CodProcesso IN (31,41,50)
+)
+SELECT CodProcesso, COUNT(*) AS processos, SUM(TemPai) AS com_pai, SUM(TemDna) AS filho_dna,
+       SUM(CASE WHEN TemPai = 1 AND TemDna = 0 THEN 1 ELSE 0 END) AS pai_sem_dna,
+       SUM(CASE WHEN TemPai = 0 AND TemDna = 1 THEN 1 ELSE 0 END) AS dna_sem_pai,
+       SUM(CASE WHEN TemPai = 1 AND TemDna = 1 AND ProcessoPai <> ProcessoDNA THEN 1 ELSE 0 END) AS pai_diferente_do_dna
+FROM P GROUP BY CodProcesso ORDER BY CodProcesso;
 
 -- Volume da agenda da onda 2 (NÃO medido em 27/09)
 SELECT COUNT(*) FROM IV_AGENDA a WITH (NOLOCK) JOIN IV_PROCDADO d WITH (NOLOCK) ON d.Processo = a.Processo

@@ -181,7 +181,7 @@ public sealed class LeitoresDoFunilNoConteinerTestes
         // AS SÓ-COM-O-QUE-SE-LÊ, nos tipos do Vórtice (docs/extracao-vortice/ddl). A coluna de nomes do histórico
         // existe — é justamente ela que a leitura não pode tocar.
         Executar("""
-            CREATE TABLE dbo.IV_ProcDado (Processo numeric(18,0) NOT NULL PRIMARY KEY, NroEmpresa numeric(6,0) NULL,
+            CREATE TABLE dbo.IV_ProcDado (Processo numeric(18,0) NOT NULL PRIMARY KEY, NroEmpresa numeric(6,0) NULL, ProcessoPai numeric(18,0) NULL,
                 ProcessoDNA numeric(18,0) NULL, CodProcesso decimal(4,0) NULL, SeqPessoa decimal(10,0) NULL);
             CREATE TABLE dbo.IV_Processo (Processo numeric(18,0) NOT NULL PRIMARY KEY, UsuResponsavel varchar(20) NULL,
                 DtaInclusao datetime NULL, Status varchar(20) NULL, DtaRealizacao datetime NULL);

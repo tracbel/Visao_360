@@ -50,11 +50,11 @@ public sealed class CargaDoFunilNoConteinerTestes
         // DATA DO VÓRTICE FORA DO MILISSEGUNDO (passo de 1/300 s): a coluna corta, e a segunda rodada precisa bater.
         var historico = Historico().Select(h => h with { RealizadoEmUtc = h.RealizadoEmUtc.AddTicks(33_333) }).ToList();
 
-        var primeira = await Rotina(Abrir, semente, Funil(historico: historico), Respostas(), Agora).ExecutarAsync(false, CancellationToken.None);
+        var primeira = await Rotina(Abrir, semente, Funil(historico: historico), Respostas(), Agora).ExecutarAsync(false, false, CancellationToken.None);
         primeira.EhSucesso.Should().BeTrue(primeira.Erro);
         primeira.Valor.Valor(CargaDoFunilDoVortice.RotuloDeLinhasIncluidas).Should().Be(LinhasDoFunil);
 
-        var segunda = await Rotina(Abrir, semente, Funil(historico: historico), Respostas(), Agora.AddDays(1)).ExecutarAsync(false, CancellationToken.None);
+        var segunda = await Rotina(Abrir, semente, Funil(historico: historico), Respostas(), Agora.AddDays(1)).ExecutarAsync(false, false, CancellationToken.None);
         segunda.EhSucesso.Should().BeTrue(segunda.Erro);
         segunda.Valor.Valor(CargaDoFunilDoVortice.RotuloDeLinhasIncluidas).Should().Be(0);
         segunda.Valor.Valor(CargaDoFunilDoVortice.RotuloDeLinhasAlteradas).Should().Be(0, "a data relida do banco bate com a da origem, cortada");
@@ -69,5 +69,37 @@ public sealed class CargaDoFunilNoConteinerTestes
         (await leitura.VendasPerdidas.CountAsync(v => v.Papel == PapelDaVendaPerdida.Complemento)).Should().Be(1);
         (await leitura.RegistrosDeOrigem.CountAsync(r => r.Fluxo == CargaDoFunilDoVortice.Fluxo && r.Leituras == 2))
             .Should().Be(await leitura.RegistrosDeOrigem.CountAsync(r => r.Fluxo == CargaDoFunilDoVortice.Fluxo));
+    }
+
+    [FatoSeHouverSqlServer]
+    public async Task No_SQL_Server_mais_de_2100_vendas_perdidas_nao_estouram_o_limite_de_parametros()
+    {
+        // O VÓRTICE TEM ~3,2 MIL RESPOSTAS, e o SQL Server aceita 2.100 parâmetros por comando. As consultas por lista de
+        // identificadores (as vendas perdidas já gravadas, as do de-para) passam por aqui com 2.500 — nas duas rodadas.
+        SementeDoFunil semente;
+        SqlConnection.ClearAllPools();
+        await using (var db = new CrmDbContext(Opcoes(), ProvedorDeContextoDeSistema.Instancia))
+        {
+            await db.Database.EnsureDeletedAsync();
+            await db.Database.MigrateAsync();
+            semente = Semear(db);
+        }
+
+        CrmDbContext Abrir() => new(Opcoes(), new ContextoDeCargaDeSistema(
+            semente.Operador, semente.RibeiraoPreto, semente.DeParaDeFiliais.Values.ToHashSet()));
+
+        var muitas = Respostas();
+        for (var i = 0; i < 2_500; i++)
+            muitas.Add(R(10_000 + i, FormulariosDaVendaPerdida.MaqImp, Em(2024, 3, 1), 2000 + (i % ProspectsDeEnchimento),
+                102_000 + i, empresaDoProcesso: 1, motivo: "PRECO"));
+
+        var primeira = await Rotina(Abrir, semente, Funil(), muitas, Agora).ExecutarAsync(false, false, CancellationToken.None);
+        primeira.EhSucesso.Should().BeTrue(primeira.Erro);
+        primeira.Valor.Valor(CargaDoFunilDoVortice.RotuloDeVendasPerdidasIncluidas).Should().Be(6 + PerdasDeEnchimento + 2_500);
+
+        var segunda = await Rotina(Abrir, semente, Funil(), muitas, Agora.AddDays(1)).ExecutarAsync(false, false, CancellationToken.None);
+        segunda.EhSucesso.Should().BeTrue(segunda.Erro);
+        segunda.Valor.Valor(CargaDoFunilDoVortice.RotuloDeVendasPerdidasAlteradas).Should().Be(0);
+        segunda.Valor.Valor(CargaDoFunilDoVortice.RotuloDeVendasPerdidasIncluidas).Should().Be(0);
     }
 }

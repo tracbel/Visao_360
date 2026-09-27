@@ -250,6 +250,15 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // A VOLTA APAGA A TRILHA DAS DUAS ENTIDADES QUE SAEM, e é a única escrita à mão desta migração: o Down
+            // recria CK_AlteracaoDeCampo_Entidade (e CK_ChaveExterna_Entidade) com a lista de antes, sem
+            // EstagioDoProcesso nem ClassificacaoDeResultadoDoVortice — e uma linha da trilha que cite uma delas faria a
+            // restrição falhar. A tabela a que a linha apontava deixa de existir no mesmo passo; a trilha dela não tem
+            // mais o que explicar.
+            migrationBuilder.Sql(@"
+                DELETE FROM auditoria.AlteracaoDeCampo WHERE Entidade IN ('EstagioDoProcesso', 'ClassificacaoDeResultadoDoVortice');
+                DELETE FROM integracao.ChaveExterna WHERE Entidade IN ('EstagioDoProcesso', 'ClassificacaoDeResultadoDoVortice');");
+
             migrationBuilder.DropTable(
                 name: "ClassificacaoDeResultadoDoVortice",
                 schema: "integracao");

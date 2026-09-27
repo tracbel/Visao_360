@@ -124,10 +124,13 @@ public sealed class LeitorDeVendasPerdidasDoVortice(OpcoesDoVortice opcoes)
             return Resultado<IReadOnlyList<RespostaDeVendaPerdidaNoVortice>>.Indisponivel(
                 "A leitura das vendas perdidas exige a credencial do Vórtice. Nada foi gravado.");
 
+        if (LeituraDoVortice.CadeiaDeLeitura(opcoes.Conexao) is not { } cadeia)
+            return Resultado<IReadOnlyList<RespostaDeVendaPerdidaNoVortice>>.Indisponivel(
+                "A cadeia de conexão do Vórtice está malformada. Nada foi gravado.");
+
         try
         {
-            var cadeia = new SqlConnectionStringBuilder(opcoes.Conexao) { ApplicationIntent = ApplicationIntent.ReadOnly };
-            await using var conexao = new SqlConnection(cadeia.ConnectionString);
+            await using var conexao = new SqlConnection(cadeia);
             await conexao.OpenAsync(ct);
 
             var respostas = new List<RespostaDeVendaPerdidaNoVortice>(4_000);
@@ -141,11 +144,6 @@ public sealed class LeitorDeVendasPerdidasDoVortice(OpcoesDoVortice opcoes)
         {
             return Resultado<IReadOnlyList<RespostaDeVendaPerdidaNoVortice>>.Indisponivel(
                 $"O Vórtice não respondeu à leitura das vendas perdidas (erro SQL {falha.Number}). Nada foi gravado.");
-        }
-        catch (ArgumentException)
-        {
-            return Resultado<IReadOnlyList<RespostaDeVendaPerdidaNoVortice>>.Indisponivel(
-                "A cadeia de conexão do Vórtice está malformada. Nada foi gravado.");
         }
     }
 
