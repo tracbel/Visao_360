@@ -120,6 +120,54 @@ public static class EndpointsDeParametrosDoPotencial
             .ExigePermissao(Permissoes.PercepcaoDoGestorInformar)
             .WithSummary("Revoga a vigência da percepção de um município que começa na data — só se ainda não passou de hoje.");
 
+        MapearPlanejamento(grupo);
         return app;
+    }
+
+    /// <summary>
+    /// O PLANEJAMENTO COMERCIAL (issue 256) — a sazonalidade, os pesos do IOC e o share-alvo por categoria. O protótipo
+    /// da pasta 360 guardava os três no navegador de quem editava; aqui são vigências, com autor e trilha, como os
+    /// outros parâmetros deste grupo.
+    /// </summary>
+    private static void MapearPlanejamento(RouteGroupBuilder grupo)
+    {
+        grupo.MapGet("/planejamento", async (ObterParametrosDoPlanejamento caso, CancellationToken ct, string? em = null) =>
+                (await caso.ExecutarAsync(em, ct)).Responder())
+            .WithName("ObterParametrosDoPlanejamento")
+            .ExigePermissao(Permissoes.ParametroDoPotencialLer)
+            .WithSummary("A sazonalidade, os pesos do IOC e o share-alvo por categoria que valem numa data (padrão: hoje).");
+
+        grupo.MapGet("/planejamento/historico", async (ListarHistoricoDoPlanejamento caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ListarHistoricoDoPlanejamento")
+            .ExigePermissao(Permissoes.ParametroDoPotencialLer)
+            .WithSummary("Todas as vigências do planejamento, inclusive as revogadas e as futuras, com autor e justificativa.");
+
+        grupo.MapPost("/planejamento", async (NovoParametroDoPlanejamento corpo, InformarParametroDoPlanejamento caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(corpo, ct)).Responder(criado => Results.Created($"{Base}/planejamento/historico", criado)))
+            .WithName("InformarParametroDoPlanejamento")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("Registra uma vigência nova da sazonalidade (doze meses somando 100) e dos sete pesos do IOC.");
+
+        grupo.MapPost("/planejamento/{vigenteDesde}/revogacao", async (
+                string vigenteDesde, RevogacaoDeVigencia corpo, RevogarParametroDoPlanejamento caso, CancellationToken ct) =>
+            (await caso.RevogarPlanejamentoAsync(vigenteDesde, corpo, ct)).Responder())
+            .WithName("RevogarParametroDoPlanejamento")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("Revoga a vigência da sazonalidade e dos pesos que começa na data — só se ainda não passou de hoje.");
+
+        grupo.MapPost("/planejamento/shares", async (NovoShareAlvo corpo, InformarShareAlvo caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(corpo, ct)).Responder(criado => Results.Created($"{Base}/planejamento/historico", criado)))
+            .WithName("InformarShareAlvo")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("Registra uma vigência nova do share-alvo de uma categoria de máquina.");
+
+        grupo.MapPost("/planejamento/shares/{categoriaDeMaquinaCodigo}/{vigenteDesde}/revogacao", async (
+                string categoriaDeMaquinaCodigo, string vigenteDesde, RevogacaoDeVigencia corpo,
+                RevogarParametroDoPlanejamento caso, CancellationToken ct) =>
+            (await caso.RevogarShareAsync(categoriaDeMaquinaCodigo, vigenteDesde, corpo, ct)).Responder())
+            .WithName("RevogarShareAlvo")
+            .ExigePermissao(Permissoes.ParametroDoPotencialAdministrar)
+            .WithSummary("Revoga a vigência do share-alvo de uma categoria que começa na data — só se ainda não passou de hoje.");
     }
 }

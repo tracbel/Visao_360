@@ -59,3 +59,20 @@
 .pot-cobertura-cabecalho { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-bottom: 8px; }
 .pot-cobertura-cabecalho .pot-sub { margin-top: 0; }
 .pot-cobertura-cabecalho .pot-alerta { font-size: 12px; font-weight: 600; color: #B91C1C; }
+
+/* O PLANEJAMENTO COMERCIAL (issue 256). A sazonalidade em doze colunas — a forma do ano se lê de relance, o número
+   exato fica embaixo de cada barra; em tela estreita as colunas quebram em duas linhas de seis. */
+.pot-sazonalidade { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; margin: 16px 0 18px; }
+@media (max-width: 640px) { .pot-sazonalidade { grid-template-columns: repeat(6, minmax(0, 1fr)); row-gap: 14px; } }
+.pot-mes { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.pot-mes-barra { height: 72px; width: 100%; max-width: 38px; display: flex; align-items: flex-end; background: var(--n-100); border-radius: 4px; overflow: hidden; }
+.pot-mes-barra span { display: block; width: 100%; background: var(--jd-green); border-radius: 4px 4px 0 0; }
+.pot-mes-valor { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.pot-mes-nome { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .04em; }
+
+.pot-conjunto { border: 1px solid var(--n-200); border-radius: 8px; padding: 12px 14px 14px; margin: 0 0 16px; min-width: 0; }
+.pot-conjunto legend { font-size: 12px; font-weight: 600; color: var(--text-secondary); padding: 0 6px; }
+.pot-grade-meses { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px 12px; }
+.pot-grade-pesos { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px 16px; }
+.pot-soma { margin-top: 10px; font-size: 13px; color: var(--text-secondary); }
+.pot-soma-errada { color: #B91C1C; }

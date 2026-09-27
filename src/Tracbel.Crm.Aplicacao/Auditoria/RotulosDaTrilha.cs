@@ -48,6 +48,8 @@ public static class RotulosDaTrilha
         ["RegraDePotencial"] = "Regra do potencial por cultura",
         ["ParametroDoPotencial"] = "Parâmetros gerais do potencial",
         ["PercepcaoDoGestor"] = "Percepção do gestor",
+        ["ParametroDoPlanejamento"] = "Sazonalidade e pesos do IOC",
+        ["ShareAlvoDaCategoria"] = "Share-alvo da categoria",
         ["VendaDeMaquina"] = "Venda de máquina",
         ["Conexao"] = "Conexão de integração",
         ["Rotina"] = "Rotina do servidor",
@@ -195,6 +197,23 @@ public static class RotulosDaTrilha
             ["PorteMedioAPartirDe"] = "Porte médio a partir de (máquinas por ano)", ["PorteGrandeAPartirDe"] = "Porte grande a partir de (máquinas por ano)"
         },
         ["PercepcaoDoGestor"] = new(StringComparer.Ordinal) { ["MunicipioId"] = "Município", ["Percentual"] = "Percentual" },
+        ["ParametroDoPlanejamento"] = new(StringComparer.Ordinal)
+        {
+            ["SazonalidadeJaneiro"] = "Sazonalidade — janeiro (%)", ["SazonalidadeFevereiro"] = "Sazonalidade — fevereiro (%)",
+            ["SazonalidadeMarco"] = "Sazonalidade — março (%)", ["SazonalidadeAbril"] = "Sazonalidade — abril (%)",
+            ["SazonalidadeMaio"] = "Sazonalidade — maio (%)", ["SazonalidadeJunho"] = "Sazonalidade — junho (%)",
+            ["SazonalidadeJulho"] = "Sazonalidade — julho (%)", ["SazonalidadeAgosto"] = "Sazonalidade — agosto (%)",
+            ["SazonalidadeSetembro"] = "Sazonalidade — setembro (%)", ["SazonalidadeOutubro"] = "Sazonalidade — outubro (%)",
+            ["SazonalidadeNovembro"] = "Sazonalidade — novembro (%)", ["SazonalidadeDezembro"] = "Sazonalidade — dezembro (%)",
+            ["PesoDoPotencial"] = "Peso do potencial no IOC", ["PesoDaCobertura"] = "Peso da cobertura no IOC",
+            ["PesoDoCredito"] = "Peso do crédito no IOC", ["PesoDaRentabilidade"] = "Peso da rentabilidade no IOC",
+            ["PesoDosClientes"] = "Peso dos clientes no IOC", ["PesoDaRealizacao"] = "Peso da realização no IOC",
+            ["PesoDaPenetracao"] = "Peso da penetração no IOC"
+        },
+        ["ShareAlvoDaCategoria"] = new(StringComparer.Ordinal)
+        {
+            ["CategoriaDeMaquinaId"] = "Categoria de máquina", ["Percentual"] = "Share-alvo (%)"
+        },
         ["VendaDeMaquina"] = new(StringComparer.Ordinal)
         {
             ["EmpresaId"] = "Filial", ["EmpresaDoFaturamentoId"] = "Filial do faturamento", ["VendidaEm"] = "Vendida em",
