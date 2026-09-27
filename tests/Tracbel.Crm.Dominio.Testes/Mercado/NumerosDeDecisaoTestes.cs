@@ -154,6 +154,88 @@ public sealed class NumerosDeDecisaoTestes
     }
 
     // -------------------------------------------------------------------------------------------------
+    // A base da captura — máquina contra máquina da mesma categoria (D-P01, 27/09/2026)
+    // -------------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void A_captura_conta_so_as_maquinas_das_categorias_que_tem_demanda()
+    {
+        // O RECORTE DE HOJE EM MINIATURA: regra só de trator, e o ART trazendo trator, colheitadeira e uma
+        // colhedora de cana, que está em linha sem categoria e por isso não aparece na quebra.
+        var conta = BaseDaCaptura.Montar(
+            unidadesVendidas: 10,
+            vendidasPorCategoria: [("TRATOR", 7), ("COLHEITADEIRA", 2)],
+            categoriasComDemanda: [("TRATOR", "Trator")])!;
+
+        conta.Unidades.Should().Be(7, "só o trator tem demanda do outro lado da conta");
+        conta.UnidadesForaDaConta.Should().Be(3, "as duas colheitadeiras e a colhedora sem categoria");
+        conta.Categorias.Should().Equal("Trator");
+
+        var numeros = DecisaoDoMercado.Calcular(demandaAnual: 35m, demandaAjustada: 35m, vendasEmUnidades: conta.Unidades, porCategoria: []);
+
+        numeros.CapturaPercentual.Valor.Should().Be(20m,
+            "7 tratores sobre a demanda de 35 tratores — as 10 máquinas dariam 28,6%, e seria colheitadeira contra demanda de trator");
+    }
+
+    [Fact]
+    public void Sem_a_fonte_das_unidades_nao_ha_base_e_a_captura_continua_dizendo_que_falta_a_fonte()
+    {
+        BaseDaCaptura.Montar(null, [], [("TRATOR", "Trator")]).Should().BeNull("ausência de carga não é venda zero");
+    }
+
+    [Fact]
+    public void Sem_categoria_com_demanda_nenhuma_venda_entra_na_conta_e_a_frase_diz_por_que()
+    {
+        var conta = BaseDaCaptura.Montar(4, [("TRATOR", 2)], [])!;
+
+        conta.Unidades.Should().Be(0);
+        conta.UnidadesForaDaConta.Should().Be(4);
+        conta.Categorias.Should().BeEmpty();
+        conta.Frase.Should().Contain("Nenhuma categoria tem demanda estimada").And.Contain("4 máquinas vendidas");
+    }
+
+    [Fact]
+    public void A_frase_escreve_a_conta_e_o_que_ficou_de_fora_com_o_milhar_brasileiro()
+    {
+        var conta = BaseDaCaptura.Montar(1_300, [("TRATOR", 1_032), ("COLHEITADEIRA", 200)], [("TRATOR", "Trator")])!;
+
+        conta.Frase.Should().StartWith(
+            "A conta deste recorte: 1.032 máquinas vendidas da categoria Trator ÷ a demanda anual estimada da mesma categoria.");
+        conta.Frase.Should().Contain("268 máquinas ficam de fora").And.Contain("regra de potencial");
+    }
+
+    [Fact]
+    public void Categoria_com_demanda_e_sem_venda_entra_na_conta_com_zero_e_nada_fica_de_fora()
+    {
+        // Zero vendido é medida: a colheitadeira tem demanda e a Tracbel não vendeu nenhuma.
+        var conta = BaseDaCaptura.Montar(5, [("TRATOR", 5)], [("TRATOR", "Trator"), ("COLHEITADEIRA", "Colheitadeira")])!;
+
+        conta.Unidades.Should().Be(5);
+        conta.UnidadesForaDaConta.Should().Be(0);
+        conta.Categorias.Should().Equal("Colheitadeira", "Trator");
+        conta.Frase.Should().Contain("das categorias Colheitadeira e Trator").And.Contain("das mesmas categorias");
+        conta.Frase.Should().NotContain("de fora");
+    }
+
+    [Fact]
+    public void Uma_maquina_so_fica_no_singular()
+    {
+        var conta = BaseDaCaptura.Montar(2, [("TRATOR", 1)], [("TRATOR", "Trator")])!;
+
+        conta.Frase.Should().Contain("1 máquina vendida da categoria Trator").And.Contain("1 máquina fica de fora");
+    }
+
+    [Fact]
+    public void A_lista_das_categorias_da_conta_nao_depende_da_ordem_de_quem_chamou()
+    {
+        var umaOrdem = BaseDaCaptura.Montar(3, [], [("TRATOR", "Trator"), ("COLHEITADEIRA", "Colheitadeira")])!;
+        var outraOrdem = BaseDaCaptura.Montar(3, [], [("COLHEITADEIRA", "Colheitadeira"), ("TRATOR", "Trator")])!;
+
+        umaOrdem.Categorias.Should().Equal(outraOrdem.Categorias);
+        umaOrdem.Frase.Should().Be(outraOrdem.Frase);
+    }
+
+    // -------------------------------------------------------------------------------------------------
     // A frase — uma redação só para a página e para a ficha
     // -------------------------------------------------------------------------------------------------
 

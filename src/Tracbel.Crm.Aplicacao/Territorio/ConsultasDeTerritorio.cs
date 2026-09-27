@@ -195,15 +195,28 @@ public sealed class ObterIndicadoresTerritoriais(
     /// <c>SemPrecoDeMaquina</c> em vez de com um total inventado — e é a mesma lista que, quando a 70
     /// chegar, passa a trazer demanda e preço de cada categoria.</para>
     /// </summary>
-    private static NumerosDeDecisao NumerosDeDecisaoDo(IndicadoresTerritoriais indicadores) =>
-        DecisaoDoMercado.Calcular(
+    private static NumerosDeDecisao NumerosDeDecisaoDo(IndicadoresTerritoriais indicadores)
+    {
+        // A CAPTURA COMPARA MÁQUINA COM MÁQUINA DA MESMA CATEGORIA (D-P01, 27/09/2026). A demanda é das
+        // categorias que têm regra de potencial — hoje, só trator —, e o numerador fica nelas: a
+        // colheitadeira e a colhedora de cana que o ART também traz não têm demanda do outro lado da conta.
+        //
+        // AS VENDAS EM UNIDADES VÊM DO ART (D-P08, decidida em 24/09/2026), e a base continua NULA quando
+        // ele não trouxe venda nenhuma. Zero aqui afirmaria que a Tracbel não vendeu máquina no recorte;
+        // nulo diz que ninguém contou ainda.
+        var baseDaCaptura = BaseDaCaptura.Montar(
+            indicadores.MaquinasVendidas?.Unidades,
+            indicadores.MaquinasVendidas?.PorCategoria.Select(c => (c.CategoriaCodigo, c.Unidades)) ?? [],
+            indicadores.PotencialDoRecorte?.PorCategoria
+                .Where(c => c.DemandaAnualDeMaquinas is not null)
+                .Select(c => (c.CategoriaCodigo, c.CategoriaNome)) ?? []);
+
+        return DecisaoDoMercado.Calcular(
             indicadores.PotencialDoRecorte?.DemandaAnualDeMaquinas,
             indicadores.Momento?.DemandaAjustadaTotal,
-            // AS VENDAS EM UNIDADES VÊM DO ART (D-P08, decidida em 24/09/2026), e continuam NULAS quando
-            // ele não trouxe venda nenhuma — o serviço está desligado para o ajuste dos dados. Zero aqui
-            // afirmaria que a Tracbel não vendeu máquina no recorte; nulo diz que ninguém contou ainda.
-            vendasEmUnidades: indicadores.MaquinasVendidas?.Unidades,
-            porCategoria: []);
+            vendasEmUnidades: baseDaCaptura?.Unidades,
+            porCategoria: []) with { BaseDaCaptura = baseDaCaptura };
+    }
 
     private async Task<MomentoDoRecorte?> MomentoDoMercadoAsync(
         IndicadoresTerritoriais indicadores, DateTime agoraUtc, CancellationToken ct)
@@ -433,7 +446,7 @@ public sealed class ObterIndicadoresTerritoriais(
             "potencialDosClientes",
             $"{indicadores.Enderecos - indicadores.EnderecosComArea:N0} de {indicadores.Enderecos:N0} " +
             "endereços de cliente não têm área nem cultura. Sem isso não existe potencial por cliente — " +
-            "a base de propriedades está no ART, que não responde desta rede (documento 32, P-11)."));
+            "a base de propriedades está no ART e ainda não foi trazida para o CRM (documento 32, P-11)."));
 
         lacunas.Add(new MetricaSemDado(
             "potencialDosNaoClientes",
@@ -469,8 +482,8 @@ public sealed class ObterIndicadoresTerritoriais(
             lacunas.Add(new MetricaSemDado(
                 "vendasEmUnidades",
                 "O ART não trouxe venda de máquina nenhuma ao alcance desta consulta, e é dele que saem as vendas em " +
-                "UNIDADES (D-P08, decidida em 24/09/2026). O serviço de sincronização está desligado para o ajuste dos " +
-                "dados; enquanto estiver, a captura e a oportunidade ficam vazias. Ausência de carga não é venda zero."));
+                "UNIDADES (D-P08, decidida em 24/09/2026): a carga não rodou, ou não trouxe venda para este recorte. " +
+                "Enquanto for assim, a captura e a oportunidade ficam vazias. Ausência de carga não é venda zero."));
 
         if (indicadores.MaquinasVendidas is { } maquinas)
         {

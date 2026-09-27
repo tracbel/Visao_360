@@ -510,6 +510,8 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
         motivo: 'SemVendasEmUnidades',
         frase: 'AMOSTRA FICTÍCIA — as vendas em máquinas não estão carregadas (issue 69, D-P08).',
       },
+      // Sem venda carregada não há numerador — e a base é nula, como a API manda.
+      baseDaCaptura: null,
     },
   };
 }

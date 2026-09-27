@@ -96,6 +96,7 @@ const NUMEROS: NumerosDeDecisao = {
   mercadoAnual: { valor: null, motivo: 'SemPrecoDeMaquina', frase: FRASE_SEM_PRECO, parcial: false, categoriasSemPreco: [] },
   capturaPercentual: { valor: null, motivo: 'SemVendasEmUnidades', frase: FRASE_SEM_VENDAS },
   oportunidade: { valor: null, motivo: 'SemVendasEmUnidades', frase: FRASE_SEM_VENDAS },
+  baseDaCaptura: null,
 };
 
 function potencial(parcial: Partial<PotencialTerritorial> = {}): PotencialTerritorial {
@@ -557,7 +558,7 @@ const MEDIDAS_ANTES_DA_FASE_4 = [
   'Quantidade produzida',
   'Produtividade',
   'Valor da produção dela',
-  '3036N teóricos (1 a cada 10 ha)',
+  'Máquinas teóricas (1 3036N a cada 10 ha)',
   'Parque teórico do município',
   'Propriedades por tamanho',
   'até 10 ha',

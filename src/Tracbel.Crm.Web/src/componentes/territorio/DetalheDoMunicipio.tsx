@@ -282,7 +282,11 @@ export function DetalheDoMunicipio({
                       {p.valorDaProducaoMilReais === null ? 'não disponível' : reaisDaProducao(p.valorDaProducaoMilReais)}
                     </dd>
                     <dt>
-                      {regra ? `${regra.modeloDeReferencia} teóricos (1 a cada ${regra.hectaresPorMaquina} ha)` : 'Máquinas teóricas'}
+                      {/* "MÁQUINAS TEÓRICAS (1 trator a cada 20 ha)": o modelo vem como o negócio o
+                          escreveu — "3036N" ou "trator" —, e só a frase com o número lê bem com os dois. */}
+                      {regra
+                        ? `Máquinas teóricas (1 ${regra.modeloDeReferencia} a cada ${regra.hectaresPorMaquina} ha)`
+                        : 'Máquinas teóricas'}
                     </dt>
                     <dd>
                       <strong>{p.maquinasTeoricas === null ? '—' : nº(p.maquinasTeoricas)}</strong>

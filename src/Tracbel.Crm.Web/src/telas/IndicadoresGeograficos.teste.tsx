@@ -251,8 +251,8 @@ function painel(): PainelTerritorial {
           ressalva: 'O fator é de CADA CULTURA. Indicador ausente vale desvio ZERO.',
         },
       },
-      // O ESTADO DE HOJE: o ART está desligado para o ajuste dos dados e não trouxe venda nenhuma.
-      // Nulo, e não um bloco zerado — zero afirmaria que a Tracbel não vendeu máquina na região.
+      // O CENÁRIO SEM CARGA: o ART não trouxe venda nenhuma ao alcance da consulta. Nulo, e não um
+      // bloco zerado — zero afirmaria que a Tracbel não vendeu máquina na região.
       maquinasVendidas: null,
     },
     metricasSemDado: [{ metrica: 'participacaoDeMercado', motivo: 'emplacamento não integrado' }],
@@ -280,6 +280,7 @@ function painel(): PainelTerritorial {
         motivo: 'SemVendasEmUnidades',
         frase: 'As vendas da Tracbel em MÁQUINAS não estão carregadas (issue 69).',
       },
+      baseDaCaptura: null,
     },
   };
 }
@@ -1944,8 +1945,8 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
     }
 
     // AS MÁQUINAS VENDIDAS EXISTEM (issue 69, D-P08) E AQUI NÃO HÁ NENHUMA: o
-    // cenário é o de hoje — o ART está desligado para o ajuste dos dados e não
-    // trouxe venda. Então sai o traço com o motivo verdadeiro, e NÃO um zero:
+    // cenário é o sem carga — o ART não trouxe venda ao alcance da consulta.
+    // Então sai o traço com o motivo verdadeiro, e NÃO um zero:
     // ausência de carga não é venda zero. O motivo mudou de "a contagem em
     // unidades ainda não existe" para "o ART não trouxe venda", que é o que é.
     const maquina = cartoes[1];
