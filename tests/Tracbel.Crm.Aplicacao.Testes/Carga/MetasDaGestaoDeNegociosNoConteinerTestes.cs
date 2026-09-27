@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Tracbel.Crm.Carga;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Infraestrutura.Identidade;
@@ -96,6 +97,39 @@ public sealed class MetasDaGestaoDeNegociosNoConteinerTestes
         var atualizar = () => db.Database.ExecuteSqlRawAsync("UPDATE organizacao.MetaDeVenda SET Competencia = '2025-11-15' WHERE IdNaOrigem = 1");
 
         await atualizar.Should().ThrowAsync<SqlException>().WithMessage("*CK_MetaDeVenda_Competencia*");
+    }
+
+    [FatoSeHouverSqlServer]
+    public async Task O_Down_da_migracao_desfaz_a_frente_mesmo_com_trilha_verificacao_e_execucao()
+    {
+        // O DOWN COM DADO (revisão do PR #248): a trilha de uma meta revisada, uma verificação da conexão 13 e uma
+        // execução da rotina 8 — o que faria o CHECK recriado e as chaves estrangeiras recusarem o Down.
+        var semente = Recriar();
+        await Sincronizar(semente, CadastroDeMetas(), Agora);
+        var revisado = CadastroDeMetas();
+        revisado[0] = Linha(1, quantidade: "6");
+        await Sincronizar(semente, revisado, Agora.AddDays(1));
+
+        await using (var db = new CrmDbContext(Opcoes(), ProvedorDeContextoDeSistema.Instancia))
+        {
+            (await db.AlteracoesDeCampo.CountAsync(a => a.Entidade == nameof(MetaDeVenda))).Should().BeGreaterThan(0);
+            await db.Database.ExecuteSqlRawAsync(
+                "INSERT INTO integracao.VerificacaoDeConexao (ConexaoId, VerificadaEm, Ok, LatenciaMs, Resumo, VerificadaPorId) " +
+                "VALUES (13, SYSUTCDATETIME(), 1, 1, N'teste do Down', NULL)");
+            await db.Database.ExecuteSqlRawAsync(
+                "INSERT INTO integracao.ExecucaoDeRotina (RotinaId, IniciadaEm, TerminadaEm, Motivo, Resultado, Maquina, Mensagem, CodigoDeSaida, PedidaPorId) " +
+                "VALUES (8, SYSUTCDATETIME(), SYSUTCDATETIME(), 'Agenda', 'Falha', N'teste', N'teste do Down', 3, NULL)");
+        }
+
+        await using (var db = new CrmDbContext(Opcoes(), ProvedorDeContextoDeSistema.Instancia))
+        {
+            var migrador = db.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>();
+            var desfazer = () => migrador.MigrateAsync("20260927045134_ColhedoraDeCanaERegrasDasOutrasCategorias");
+            await desfazer.Should().NotThrowAsync("o Down apaga antes o que referencia o que ele remove");
+
+            (await db.Conexoes.AsNoTracking().AnyAsync(c => c.Id == 13)).Should().BeFalse();
+            await migrador.MigrateAsync();
+        }
     }
 
     [FatoSeHouverSqlServer]

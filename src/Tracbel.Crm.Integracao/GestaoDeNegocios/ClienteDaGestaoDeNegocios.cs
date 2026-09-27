@@ -116,6 +116,9 @@ public sealed class ClienteDaGestaoDeNegocios(
 
     private const int Tentativas = 3;
 
+    /// <summary>O maior total (e o maior número de páginas) que uma leitura aceita do envelope.</summary>
+    public const int TotalMaximoDeLinhas = 100_000;
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     private readonly TimeSpan _espera = esperaEntreTentativas ?? TimeSpan.FromSeconds(2);
@@ -230,7 +233,16 @@ public sealed class ClienteDaGestaoDeNegocios(
 
         var total = primeira.Valor.Total;
         var paginas = primeira.Valor.Paginas;
-        var linhas = new List<T>(Math.Max(total, 0));
+
+        // O TETO DA LEITURA (revisão do PR #248): o envelope é da outra ponta, e um total ou um número de páginas absurdo
+        // — defeito, ou resposta que não é a da API — faria o CRM reservar memória e pedir páginas sem fim. Nenhuma rota
+        // lida tem perto disso: o cadastro de metas tem 1.540 linhas.
+        if (total is < 0 or > TotalMaximoDeLinhas || paginas is < 0 or > TotalMaximoDeLinhas)
+            return Resultado<LeituraDaGestaoDeNegocios<T>>.Indisponivel(
+                string.Create(CultureInfo.InvariantCulture,
+                    $"{rota} declarou {total} linhas em {paginas} páginas — fora do teto de {TotalMaximoDeLinhas} linhas que o CRM lê. Isso não é o cadastro de sempre; nada foi lido além da primeira página e nada foi gravado."));
+
+        var linhas = new List<T>(Math.Min(total, porPagina * 4));
         linhas.AddRange(primeira.Valor.Linhas);
 
         for (var pagina = 2; pagina <= paginas; pagina++)

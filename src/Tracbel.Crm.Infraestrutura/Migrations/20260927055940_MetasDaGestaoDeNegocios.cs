@@ -189,6 +189,16 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // O DOWN COM DADO (revisão do PR #248). O que este Down remove é referenciado pelo que a frente gravou: o CHECK
+            // recriado sem 'MetaDeVenda' recusaria a trilha das metas, e as chaves estrangeiras recusariam apagar a conexão
+            // 13 com verificações e a rotina 8 com execuções. Desfazer a migração é desfazer a frente inteira, e esses
+            // registros saem junto. Ficam — sem referência a nada que some — a fila de descarte e o ponto de sincronismo
+            // do fluxo GESTAO_NEGOCIOS.METAS, o sistema GESTAO_NEGOCIOS e a trilha do vendedor do ART.
+            migrationBuilder.Sql("DELETE FROM [auditoria].[AlteracaoDeCampo] WHERE [Entidade] = N'MetaDeVenda';");
+            migrationBuilder.Sql("DELETE FROM [integracao].[ChaveExterna] WHERE [Entidade] = N'MetaDeVenda';");
+            migrationBuilder.Sql("DELETE FROM [integracao].[VerificacaoDeConexao] WHERE [ConexaoId] = 13;");
+            migrationBuilder.Sql("DELETE FROM [integracao].[ExecucaoDeRotina] WHERE [RotinaId] = 8;");
+
             migrationBuilder.DropTable(
                 name: "MetaDeVenda",
                 schema: "organizacao");

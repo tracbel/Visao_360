@@ -101,6 +101,20 @@ public sealed class ClienteDaGestaoDeNegociosTestes
         leitura.Erro.Should().Contain("mudou durante a leitura").And.Contain("nada foi gravado");
     }
 
+    [Theory]
+    [InlineData(1_000_000, 2)]
+    [InlineData(4, 500_000)]
+    public async Task Total_ou_paginas_acima_do_teto_derrubam_a_leitura_sem_pedir_a_segunda_pagina(int total, int paginas)
+    {
+        var tratador = new TratadorFalso(_ => Json(Pagina(1, paginas, total, 1, 2)));
+
+        var leitura = await Cliente(tratador).LerTudoAsync<JsonElement>(Rota, CancellationToken.None);
+
+        leitura.EhSucesso.Should().BeFalse();
+        leitura.Erro.Should().Contain("fora do teto").And.Contain("nada foi gravado");
+        tratador.Pedidos.Should().ContainSingle("o envelope absurdo não vira uma fila de páginas");
+    }
+
     [Fact]
     public async Task Linhas_que_nao_somam_o_total_nao_sao_devolvidas()
     {
