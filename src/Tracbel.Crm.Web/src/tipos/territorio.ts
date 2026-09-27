@@ -389,6 +389,82 @@ export type IndicadoresDoMunicipio = {
    * que vem do Protheus e mede outra coisa — os dois não se somam.
    */
   maquinasVendidas: number | null;
+  /**
+   * As vendas em reais no MESMO TRECHO DO ANO ANTERIOR (27/09/2026) — a base do "vs. ano anterior".
+   * Nulo quando o faturamento carregado não cobre a janela anterior inteira: o motivo está em
+   * `periodoAnterior.motivoSemVendas`.
+   */
+  vendasNoPeriodoAnterior: VendasTerritoriais | null;
+  /** As máquinas do mesmo trecho do ano anterior, em unidades (ART); nulo quando o ART não o cobre. */
+  maquinasVendidasNoPeriodoAnterior: number | null;
+};
+
+/** As vendas de um mês dos municípios da ADR do recorte — um ponto do mini-gráfico. */
+export type VendasNoMes = {
+  /** `aaaa-mm-dd`, dia 1. */
+  competencia: string;
+  valorLiquido: number;
+  maquina: number;
+  posVenda: number;
+  /** Em unidades (ART); nulo sem carga do ART. Não se soma aos reais. */
+  maquinasVendidas: number | null;
+};
+
+/**
+ * O MESMO TRECHO DO ANO ANTERIOR — a base de todo "vs. ano anterior" (decisão de 27/09/2026).
+ *
+ * É a janela pedida doze meses para trás: no padrão, o ano fiscal até agosto contra o ano fiscal
+ * anterior até agosto. A cobertura das duas fontes é conferida no servidor — se a carga começa depois
+ * da janela anterior, a variação fica vazia com o motivo, e não vira uma queda que não aconteceu.
+ */
+export type PeriodoAnterior = {
+  competenciaInicial: string;
+  competenciaFinal: string;
+  primeiraCompetenciaDoFaturamento: string | null;
+  primeiroMesDoArt: string | null;
+  /** As unidades do recorte no ano anterior; nula quando o ART não cobre a janela. */
+  maquinasVendidas: VendasDeMaquinaDoRecorte | null;
+  /** Mês a mês da janela pedida, nos municípios da ADR do recorte. */
+  serieAtual: VendasNoMes[];
+  /** O mesmo da janela anterior; vazia quando o faturamento não a cobre. */
+  serieAnterior: VendasNoMes[];
+  vendasCobertas: boolean;
+  maquinasCobertas: boolean;
+  /** Por que a variação em reais não sai; nulo quando sai. */
+  motivoSemVendas: string | null;
+  /** Por que a variação em unidades não sai; nulo quando sai. */
+  motivoSemMaquinas: string | null;
+  /**
+   * O último mês pedido, quando ele ainda está em curso (`aaaa-mm-dd`): aí não há comparação — o mês pela
+   * metade contra o mesmo mês inteiro do ano anterior erraria para baixo. Nulo quando o período está fechado.
+   */
+  mesEmCurso: string | null;
+};
+
+/**
+ * A área de um produto da PAM nos municípios da ADR do recorte (issue 168) — de TODAS as culturas, e não
+ * só das que têm regra de potencial. Cada produto no último ano em que a área dele foi divulgada.
+ */
+export type AreaDoProdutoNoRecorte = {
+  produtoCodigoIbge: number;
+  produtoNome: string;
+  ano: number;
+  areaPlantadaHectares: number | null;
+  areaColhidaHectares: number | null;
+  municipiosComArea: number;
+};
+
+/** Uma categoria de máquina do filtro "Tipo de produto" — do catálogo e do de-para da linha de produto. */
+export type CategoriaParaFiltro = { codigo: string; nome: string; ordem: number };
+
+/** Um responsável de carteira comercial — o CEN dono da carteira —, opção do filtro "CEN / gestor". */
+export type ResponsavelDeCarteira = {
+  id: number;
+  nome: string;
+  natureza: string;
+  carteiras: number;
+  /** O gestor direto no cadastro de usuário; nulo quando não há gestor cadastrado. */
+  gestor: string | null;
 };
 
 /** Por que o parque ou a demanda não saiu — o enum do domínio, em texto. */
@@ -565,6 +641,14 @@ export type IndicadoresTerritoriais = {
   momento: MomentoDoRecorte | null;
   /** As vendas de máquina do recorte em UNIDADES, pelo ART (issue 69); nulo quando o ART não trouxe nada. */
   maquinasVendidas: VendasDeMaquinaDoRecorte | null;
+  /** O mesmo trecho do ano anterior — a base do "vs. ano anterior" (27/09/2026). */
+  periodoAnterior: PeriodoAnterior | null;
+  /** A área de todas as culturas da PAM nos municípios da ADR do recorte (issue 168). */
+  lavouraDoRecorte: AreaDoProdutoNoRecorte[] | null;
+  /** As opções do filtro "Tipo de produto". */
+  categoriasDeMaquina: CategoriaParaFiltro[] | null;
+  /** As opções do filtro "CEN / gestor". */
+  responsaveisDasCarteiras: ResponsavelDeCarteira[] | null;
 };
 
 /** Qual das três datas do ART põe a venda no período — a sub-decisão aberta da D-P08. */
@@ -787,10 +871,30 @@ export type PainelTerritorial = {
    * uma afirmação do servidor, com teste, e com uma redação só para a página e para a ficha.
    */
   numerosDeDecisao: NumerosDeDecisao;
+  /**
+   * OS QUATRO NÚMEROS NO MESMO TRECHO DO ANO ANTERIOR (27/09/2026). Só a captura e a oportunidade têm
+   * número: a demanda e o mercado anual são estruturais, e a frase diz isso.
+   */
+  comparacaoComOAnoAnterior: ComparacaoComOAnoAnterior | null;
+};
+
+/** Por que um número de decisão não tem o valor do mesmo trecho do ano anterior. */
+export type MotivoSemComparacao = 'Nenhum' | 'NumeroEstrutural' | 'SemNumeroNoPeriodo' | 'AnoAnteriorSemVendas';
+
+/** Um número de decisão no mesmo trecho do ano anterior — ou por que ele não existe. */
+export type NumeroNoAnoAnterior = { valor: number | null; motivo: MotivoSemComparacao; frase: string };
+
+export type ComparacaoComOAnoAnterior = {
+  demandaAnual: NumeroNoAnoAnterior;
+  mercadoAnual: NumeroNoAnoAnterior;
+  capturaPercentual: NumeroNoAnoAnterior;
+  oportunidade: NumeroNoAnoAnterior;
+  baseDaCaptura: BaseDaCaptura | null;
 };
 
 /** Os filtros que a rota aceita. Vazio é "sem filtro" / "padrão". */
 export type FiltrosTerritoriais = {
+  /** Vazio com o final vazio é o padrão do servidor: o ano fiscal até o último mês fechado. */
   competenciaInicial: string;
   competenciaFinal: string;
   regiao: '' | RegiaoDaAdr;
@@ -800,4 +904,51 @@ export type FiltrosTerritoriais = {
   filialDaVenda: string;
   /** A filial de cadastro do cliente — cobertura e vendas. */
   filialDoCliente: string;
+  /** O "Tipo de produto": o código da categoria de máquina — só as unidades do ART e a captura. */
+  categoriaDeMaquina: string;
+  /** O "CEN / gestor": o Id do responsável da carteira comercial. */
+  responsavel: string;
+};
+
+/** Um ano fiscal de um município — reais e unidades, cada um com a sua cobertura. */
+export type AnoFiscalDoMunicipio = {
+  anoFiscal: number;
+  inicio: string;
+  fim: string;
+  /** O ano ainda não fechou: o número é até `fim`. */
+  emCurso: boolean;
+  vendas: VendasTerritoriais | null;
+  motivoSemVendas: string | null;
+  maquinasVendidas: number | null;
+  motivoSemMaquinas: string | null;
+};
+
+/** Uma cultura da PAM num município e num ano. */
+export type CulturaDaLavoura = {
+  produtoCodigoIbge: number;
+  produtoNome: string;
+  areaPlantadaHectares: number | null;
+  areaColhidaHectares: number | null;
+  valorDaProducaoMilReais: number | null;
+};
+
+/** A lavoura de um município num ano — o total e todas as culturas (issue 168). */
+export type LavouraNoAno = {
+  ano: number;
+  areaPlantadaHectares: number | null;
+  areaColhidaHectares: number | null;
+  valorDaProducaoMilReais: number | null;
+  culturas: CulturaDaLavoura[];
+};
+
+/** O município ao longo do tempo — `GET /api/v1/territorio/municipios/{codigo}/historico`. */
+export type HistoricoDoMunicipio = {
+  codigoIbge: number;
+  nome: string;
+  primeiraCompetenciaDoFaturamento: string | null;
+  primeiroMesDoArt: string | null;
+  anosFiscais: AnoFiscalDoMunicipio[];
+  /** O ano fiscal anterior nos mesmos meses do corrente; nulo quando o corrente já fechou. */
+  mesmoTrechoDoAnoAnterior: AnoFiscalDoMunicipio | null;
+  lavoura: LavouraNoAno[];
 };

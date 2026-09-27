@@ -27,7 +27,7 @@ import './momento/registroDoGraficoCombinado';
 import { SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
-import type { IndicadoresDoMunicipio, MomentoDoRecorte } from '../../tipos/territorio';
+import type { AreaDoProdutoNoRecorte, IndicadoresDoMunicipio, MomentoDoRecorte } from '../../tipos/territorio';
 import { InfoTooltip } from '../InfoTooltip';
 import type { RecorteFiltrado } from '../territorio/indicadoresDaAdr';
 import { PainelDeCredito } from '../territorio/PainelDeCredito';
@@ -55,9 +55,15 @@ export function BlocoDoMomento({
   produtosDoMunicipio = [],
   momento = null,
   municipios = [],
+  lavouraDoRecorte = null,
   carregando = false,
   recorte = null,
 }: {
+  /**
+   * A área de TODAS as culturas da PAM nos municípios da ADR do recorte (issue
+   * 168) — o peso da margem média e o critério da cultura destaque.
+   */
+  lavouraDoRecorte?: readonly AreaDoProdutoNoRecorte[] | null;
   municipioSelecionado?: number | null;
   nomeDoMunicipio?: string | null;
   /** Os produtos da PAM do municipio, por area — priorizam as culturas de preco e custo (issue 168). */
@@ -138,6 +144,7 @@ export function BlocoDoMomento({
             municipioCodigoIbge={municipioSelecionado}
             nomeDoMunicipio={nomeDoMunicipio}
             municipios={municipios}
+            lavouraDoRecorte={lavouraDoRecorte}
             carregando={carregando}
             recorte={recorte}
           />

@@ -6,10 +6,18 @@
  * a lavoura e a estrutura lado a lado, e o cartão verde das oportunidades.
  *
  * O QUE A MAQUETE MOSTRA E O SISTEMA NÃO TEM fica no lugar dela com "—" e a
- * dica do motivo (decisão 1): a variação "vs. ano anterior" dos quatro
- * cartõezinhos, a área total e o tamanho médio das propriedades, a vocação
- * agrícola, o potencial incremental em reais e as máquinas potenciais. Nenhum
- * número daqui é da maquete — cada um vem do município escolhido.
+ * dica do motivo (decisão 1): a área total e o tamanho médio das propriedades,
+ * a vocação agrícola, o potencial incremental em reais e as máquinas
+ * potenciais. Nenhum número daqui é da maquete — cada um vem do município
+ * escolhido.
+ *
+ * A VARIAÇÃO "vs. ano anterior" DOS CARTÕEZINHOS TEM NÚMERO ONDE HÁ NÚMERO
+ * (27/09/2026): vendas e pós-venda contra o mesmo trecho do ano fiscal
+ * anterior. As máquinas teóricas são estruturais, e os clientes com endereço
+ * são o cadastro de hoje — cada um fica com o traço e o motivo DELE.
+ *
+ * A LAVOURA TRAZ TODAS AS CULTURAS (issue 168) quando o histórico do município
+ * chega; antes dele, as culturas com regra e "Outros" até o total.
  *
  * TROCA DE TERMO (decisão 2): "Clientes ativos" vira "Clientes com endereço" —
  * o CRM não classifica cliente como ativo; o que ele sabe é quantos têm o
@@ -33,6 +41,7 @@ import {
 import type { ComponentType, ReactNode } from 'react';
 import type {
   CulturaNoEstado,
+  HistoricoDoMunicipio,
   IndicadoresDoMunicipio,
   NumerosDeDecisao,
   ProcedenciasDoTerritorio,
@@ -41,6 +50,8 @@ import type {
 import { InfoTooltip } from '../../InfoTooltip';
 import { ValorAusente } from '../../comum/ValorAusente';
 import { VariacaoAusente } from '../../mercado/VariacaoAusente';
+import { VariacaoContraOAnoAnterior } from '../comparacao';
+import { useComparacao } from '../contextoDaComparacao';
 import { reaisCompactos } from '../escalas';
 import { MOTIVO_SEM_PARQUE, nº, porcento } from '../indicadoresDaAdr';
 import { lavouraDoMunicipio } from './lavouraDoMunicipio';
@@ -54,12 +65,15 @@ function MiniCartao({
   rotulo,
   valor,
   motivoSemValor,
+  variacao,
 }: {
   id: string;
   icone: Icone;
   rotulo: string;
   valor: string | null;
   motivoSemValor?: string;
+  /** A linha "vs. ano anterior" — o número, ou o traço com o motivo deste cartão. */
+  variacao: ReactNode;
 }) {
   return (
     <div className="terr-ficha-mini" data-mini={id}>
@@ -72,11 +86,9 @@ function MiniCartao({
       <p className="terr-ficha-mini-valor">
         {valor ?? <ValorAusente motivo={motivoSemValor ?? 'Sem dado.'} oQue={rotulo.toLowerCase()} />}
       </p>
-      {/* A MESMA LINHA DE VARIAÇÃO DOS CARTÕES DE MERCADO — o traço, o texto e a
-          dica com o motivo e a issue 69. */}
-      <p className="terr-ficha-mini-variacao">
-        <VariacaoAusente deQue={rotulo.toLowerCase()} compacta />
-      </p>
+      {/* A MESMA LINHA DE VARIAÇÃO DOS CARTÕES DE MERCADO — o número contra o
+          mesmo trecho do ano anterior, ou o traço com o motivo deste cartão. */}
+      <p className="terr-ficha-mini-variacao">{variacao}</p>
     </div>
   );
 }
@@ -116,6 +128,7 @@ export function VisaoGeralDoMunicipio({
   procedencias,
   periodo,
   numerosDeDecisao,
+  historico,
   aoVerOportunidades,
 }: {
   municipio: IndicadoresDoMunicipio;
@@ -125,11 +138,15 @@ export function VisaoGeralDoMunicipio({
   periodo: PeriodoDaLeitura | null;
   /** Os números de decisão do recorte — daqui só sai a frase da oportunidade. */
   numerosDeDecisao: NumerosDeDecisao | null;
+  /** O município ao longo do tempo — daqui sai a lavoura com todas as culturas; nulo antes de chegar. */
+  historico: HistoricoDoMunicipio | null;
   aoVerOportunidades: () => void;
 }) {
   const { cobertura, vendas, estrutura } = municipio;
   const motor = municipio.potencialEstrutural;
-  const lavoura = lavouraDoMunicipio(municipio, regras, culturasNoEstado);
+  const { periodoAnterior } = useComparacao();
+  const lavoura = lavouraDoMunicipio(municipio, regras, culturasNoEstado, 4, historico?.lavoura ?? null);
+  const antes = municipio.vendasNoPeriodoAnterior;
   const cobre = cobertura.vinculosComCadencia > 0 ? (100 * cobertura.cobertos) / cobertura.vinculosComCadencia : null;
 
   return (
@@ -160,8 +177,38 @@ export function VisaoGeralDoMunicipio({
         </div>
 
         <div className="terr-ficha-minis">
-          <MiniCartao id="vendas" icone={ShoppingCart} rotulo="Vendas no período" valor={reaisCompactos(vendas.valorLiquido)} />
-          <MiniCartao id="posVenda" icone={Wrench} rotulo="Pós-venda (provisório)" valor={reaisCompactos(vendas.posVenda)} />
+          <MiniCartao
+            id="vendas"
+            icone={ShoppingCart}
+            rotulo="Vendas no período"
+            valor={reaisCompactos(vendas.valorLiquido)}
+            variacao={
+              <VariacaoContraOAnoAnterior
+                deQue="vendas no período"
+                atual={vendas.valorLiquido}
+                anterior={antes?.valorLiquido ?? null}
+                motivoSemAnterior={periodoAnterior?.motivoSemVendas}
+                formatar={reaisCompactos}
+                compacta
+              />
+            }
+          />
+          <MiniCartao
+            id="posVenda"
+            icone={Wrench}
+            rotulo="Pós-venda (provisório)"
+            valor={reaisCompactos(vendas.posVenda)}
+            variacao={
+              <VariacaoContraOAnoAnterior
+                deQue="pós-venda (provisório)"
+                atual={vendas.posVenda}
+                anterior={antes?.posVenda ?? null}
+                motivoSemAnterior={periodoAnterior?.motivoSemVendas}
+                formatar={reaisCompactos}
+                compacta
+              />
+            }
+          />
           <MiniCartao
             id="maquinas"
             icone={Tractor}
@@ -170,8 +217,27 @@ export function VisaoGeralDoMunicipio({
             motivoSemValor={
               motor ? MOTIVO_SEM_PARQUE[motor.motivoSemParque] : 'Nenhuma regra de potencial vigente alcança este município.'
             }
+            variacao={
+              <VariacaoAusente
+                deQue="máquinas teóricas"
+                compacta
+                motivo="As máquinas teóricas são um número estrutural — a área da PAM dividida pela regra de hectares por máquina — e não uma medida do período: não há ano anterior para comparar."
+              />
+            }
           />
-          <MiniCartao id="clientes" icone={Users} rotulo="Clientes com endereço" valor={nº(cobertura.clientes)} />
+          <MiniCartao
+            id="clientes"
+            icone={Users}
+            rotulo="Clientes com endereço"
+            valor={nº(cobertura.clientes)}
+            variacao={
+              <VariacaoAusente
+                deQue="clientes com endereço"
+                compacta
+                motivo="É o cadastro de hoje: o CRM guarda o endereço atual de cada cliente, e não o de um ano atrás — não há como contar os clientes com endereço aqui no ano anterior."
+              />
+            }
+          />
         </div>
       </section>
 
@@ -193,16 +259,33 @@ export function VisaoGeralDoMunicipio({
                     participação é sobre a área plantada total do município
                     {lavoura?.totalPlantado != null ? ` (${nº(Math.round(lavoura.totalPlantado))} ha)` : ''}.
                   </p>
+                  {lavoura?.todasAsCulturas ? (
+                    <p>
+                      São todas as culturas que a PAM divulgou com área aqui ({nº(lavoura.culturasDetalhadas)}), da
+                      maior para a menor, cada uma no último ano em que a área dela foi divulgada
+                      {lavoura.anoMaisAntigo !== null && lavoura.anoMaisAntigo !== lavoura.ano
+                        ? ` (de ${lavoura.anoMaisAntigo} a ${lavoura.ano})`
+                        : ''}
+                      . As que não cabem nas linhas entram em "Outros", que é o total menos a soma das listadas.
+                      Cultura sem área divulgada (sigilo do IBGE ou não cultivada) não entra na conta — ausência não é
+                      zero. O café entra uma vez só, pelo total.
+                    </p>
+                  ) : (
+                    <p>
+                      Esta leitura traz o detalhe só das culturas com regra de potencial
+                      {lavoura ? ` (${nº(lavoura.culturasDetalhadas)} aqui)` : ''}
+                      {lavoura?.culturasComArea != null ? `, de ${nº(lavoura.culturasComArea)} com área divulgada` : ''}.
+                      As demais entram em "Outros", que é o total menos a soma das listadas — nenhuma cultura é estimada.
+                      {lavoura && lavoura.culturasSemAreaDivulgada > 0
+                        ? ` ${nº(lavoura.culturasSemAreaDivulgada)} cultura(s) sem área divulgada no município (sigilo do IBGE ou não cultivada) não entram na conta — ausência não é zero.`
+                        : ''}{' '}
+                      O detalhe de todas as culturas chega com o histórico do município.
+                    </p>
+                  )}
                   <p>
-                    Esta leitura traz o detalhe só das culturas com regra de potencial
-                    {lavoura ? ` (${nº(lavoura.culturasDetalhadas)} aqui)` : ''}
-                    {lavoura?.culturasComArea != null ? `, de ${nº(lavoura.culturasComArea)} com área divulgada` : ''}. As
-                    demais entram em "Outros", que é o total menos a soma das listadas — nenhuma cultura é estimada.
-                    {lavoura && lavoura.culturasSemAreaDivulgada > 0
-                      ? ` ${nº(lavoura.culturasSemAreaDivulgada)} cultura(s) sem área divulgada no município (sigilo do IBGE ou não cultivada) não entram na conta — ausência não é zero.`
-                      : ''}
+                    A lista das culturas com regra, com colheita, produção e produtividade, está na aba Lavoura; a lavoura
+                    ano a ano, na aba Histórico.
                   </p>
-                  <p>A lista completa das culturas com regra, com colheita, produção e produtividade, está na aba Lavoura.</p>
                 </>
               }
             />
@@ -330,7 +413,7 @@ export function VisaoGeralDoMunicipio({
             rotulo="potencial incremental"
             valor={
               <ValorAusente
-                motivo="O potencial incremental em reais é a oportunidade em máquinas vezes o preço de referência de cada categoria. Precisa do preço de máquina por modelo (issue 70) e, antes dele, das vendas em unidades por município (issue 69)."
+                motivo="O potencial incremental em reais é a oportunidade em máquinas vezes o preço de referência de cada categoria. As vendas em unidades por município já existem (issue 69, pelo ART); falta o preço de referência da máquina por categoria (issue 70), e sem ele a conta daria um número em reais sem base."
                 oQue="o potencial incremental"
               />
             }
@@ -342,11 +425,13 @@ export function VisaoGeralDoMunicipio({
             icone={Tractor}
             rotulo="máquinas potenciais"
             valor={
-              numerosDeDecisao?.oportunidade.frase ? (
-                <ValorAusente motivo={numerosDeDecisao.oportunidade.frase} oQue="as máquinas potenciais" />
-              ) : (
-                '—'
-              )
+              <ValorAusente
+                motivo={
+                  numerosDeDecisao?.oportunidade.frase ||
+                  'A oportunidade em máquinas existe para o recorte inteiro — está no topo da aba Mercado — e ainda não por município: a conta do município pede as vendas em unidades separadas pelas categorias que têm demanda aqui, e a leitura do município traz as unidades somadas.'
+                }
+                oQue="as máquinas potenciais"
+              />
             }
           />
           <ItemDeOportunidade

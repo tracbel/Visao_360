@@ -117,4 +117,34 @@ public sealed class CreditoRuralNaApiTestes(ApiEmMemoria api) : IClassFixture<Ap
         (regiao.GetProperty("janelas").GetProperty("valor").GetDecimal()
          / estado.GetProperty("janelas").GetProperty("valor").GetDecimal()).Should().Be(0.5m);
     }
+
+    [Fact]
+    public async Task O_mes_a_mes_das_duas_janelas_vem_por_recorte_e_as_sub_regioes_somam_a_regiao()
+    {
+        // A EVOLUÇÃO DO VALOR FINANCIADO (issue 68, 27/09/2026): a série mensal da Região Tracbel não existia
+        // na leitura, e a tela desenhava o ano de São Paulo inteiro no lugar dela.
+        await SemearAsync();
+        var meses = (await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Rota))).GetProperty("porMes").EnumerateArray().ToList();
+
+        meses.Should().HaveCount(24, "doze meses de cada janela");
+        meses.Count(m => m.GetProperty("janelaRecente").GetBoolean()).Should().Be(12);
+
+        JsonElement Mes(string competencia) => meses.Single(m => m.GetProperty("mes").GetString()!.StartsWith(competencia, StringComparison.Ordinal));
+
+        var agosto = Mes("2026-08");
+        agosto.GetProperty("regiaoTracbel").GetProperty("valor").GetDecimal().Should().Be(600_000m);
+        agosto.GetProperty("norte").GetProperty("valor").GetDecimal().Should().Be(600_000m);
+        agosto.GetProperty("noroeste").GetProperty("valor").GetDecimal().Should().Be(0m);
+        agosto.GetProperty("saoPaulo").GetProperty("valor").GetDecimal().Should().Be(1_500_000m, "Presidente Prudente é estado e não é Região");
+        agosto.GetProperty("regiaoTracbel").GetProperty("linhas").GetInt32().Should().Be(1);
+
+        var agostoAnterior = Mes("2025-08");
+        agostoAnterior.GetProperty("janelaRecente").GetBoolean().Should().BeFalse();
+        agostoAnterior.GetProperty("regiaoTracbel").GetProperty("valor").GetDecimal().Should().Be(500_000m);
+
+        // AS SUB-REGIÕES SOMAM A REGIÃO, mês a mês.
+        foreach (var mes in meses)
+            (mes.GetProperty("norte").GetProperty("valor").GetDecimal() + mes.GetProperty("noroeste").GetProperty("valor").GetDecimal())
+                .Should().Be(mes.GetProperty("regiaoTracbel").GetProperty("valor").GetDecimal());
+    }
 }

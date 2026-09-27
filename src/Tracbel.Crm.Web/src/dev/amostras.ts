@@ -21,10 +21,13 @@
 import type { ColecaoMunicipal } from '../componentes/territorio/projecao';
 import { municipioDeTeste } from '../testes/territorio';
 import type {
+  AnoFiscalDoMunicipio,
+  HistoricoDoMunicipio,
   IndicadoresDoMunicipio,
   PainelTerritorial,
   ParcelaDoParque,
   PotencialTerritorial,
+  VendasNoMes,
 } from '../tipos/territorio';
 
 /** Os estados que o harness sabe montar. A URL escolhe com `?estado=`. */
@@ -106,6 +109,29 @@ const codigoDaCultura = (indice: number) => 900_001 + indice;
 
 /** A fatia de cada cultura na área plantada do município — decrescente, e a soma não passa de 100%. */
 const PESO_DA_CULTURA = [0.62, 0.15, 0.12, 0.04, 0.02, 0.01];
+
+/**
+ * OS MESES DO ANO FISCAL ATÉ O ÚLTIMO MÊS FECHADO — o período padrão desde 27/09/2026 —, e a
+ * fração das vendas de cada um. O ano anterior é a mesma janela doze meses antes, com as vendas
+ * um pouco menores: a amostra desenha uma alta, e a conferência visual vê a seta e o mini-gráfico.
+ */
+const MESES_DA_JANELA = ['2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08'];
+const PESO_DO_MES = [0.08, 0.07, 0.09, 0.1, 0.12, 0.11, 0.1, 0.11, 0.12, 0.1];
+const FATOR_DO_ANO_ANTERIOR = 0.86;
+
+function serieDoRecorte(total: number, maquinas: number, doAnoAnterior: boolean): VendasNoMes[] {
+  const fator = doAnoAnterior ? FATOR_DO_ANO_ANTERIOR : 1;
+  return MESES_DA_JANELA.map((m, i) => {
+    const [ano, mes] = m.split('-');
+    return {
+      competencia: `${doAnoAnterior ? Number(ano) - 1 : ano}-${mes}-01`,
+      valorLiquido: Math.round(total * PESO_DO_MES[i] * fator),
+      maquina: Math.round(total * 0.7 * PESO_DO_MES[i] * fator),
+      posVenda: Math.round(total * 0.25 * PESO_DO_MES[i] * fator),
+      maquinasVendidas: Math.round(maquinas * PESO_DO_MES[i] * fator),
+    };
+  });
+}
 
 function potencialDaCultura(indice: number, area: number): PotencialTerritorial {
   return {
@@ -261,6 +287,18 @@ function montarMunicipio(
     // AS UNIDADES DO ART (issue 69). NO ESTADO PARCIALMENTE VAZIO O ART NÃO TROUXE NADA: é o caminho
     // do vazio com motivo, que a conferência visual precisa provar tanto quanto o caminho cheio.
     maquinasVendidas: estado === 'parcialmenteVazio' ? null : Math.round((area / 250 / 8) * 0.15),
+    // O MESMO TRECHO DO ANO ANTERIOR (27/09/2026): as vendas um pouco menores, para a seta subir.
+    vendasNoPeriodoAnterior: {
+      clientesQueCompraram: semDado ? 0 : 2 + (posicao % 7),
+      valorLiquido: semDado ? 0 : Math.round((400_000 + posicao * 155_000) * FATOR_DO_ANO_ANTERIOR),
+      maquina: semDado ? 0 : Math.round((300_000 + posicao * 100_000) * FATOR_DO_ANO_ANTERIOR),
+      peca: semDado ? 0 : Math.round((60_000 + posicao * 30_000) * FATOR_DO_ANO_ANTERIOR),
+      servico: semDado ? 0 : Math.round((40_000 + posicao * 25_000) * FATOR_DO_ANO_ANTERIOR),
+      outros: 0,
+      posVenda: semDado ? 0 : Math.round((100_000 + posicao * 55_000) * FATOR_DO_ANO_ANTERIOR),
+    },
+    maquinasVendidasNoPeriodoAnterior:
+      estado === 'parcialmenteVazio' ? null : Math.round((area / 250 / 8) * 0.15 * FATOR_DO_ANO_ANTERIOR),
     potencialEstrutural: semDado
       ? { parqueDeMaquinas: null, demandaAnualDeMaquinas: null, areaUtilHectares: null, estimativa: true, motivoSemParque: 'SemArea', motivoSemDemanda: 'SemArea' }
       : {
@@ -287,10 +325,38 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
     parcelaDoParque(i, Math.round(areaTotal / (i + 1) / quantasCulturas)),
   );
 
+  const vendasDoRecorte = municipios.reduce((s, m) => s + m.vendas.valorLiquido, 0);
+  const unidadesDoRecorte = municipios.reduce((s, m) => s + (m.maquinasVendidas ?? 0), 0);
+  const semArt = estado === 'parcialmenteVazio';
+  const vendasDeMaquina = (unidades: number) => ({
+    criterioDeData: 'Faturamento' as const,
+    fraseDoCriterio:
+      'Contadas pela DATA DO FATURAMENTO (D-P08.1): a view do ART é de máquina faturada, e máquina ' +
+      'faturada é máquina vendida. AMOSTRA FICTÍCIA.',
+    unidades,
+    porCategoria: [
+      { categoriaCodigo: 'TRATOR', categoriaNome: 'Trator', unidades: 118 },
+      { categoriaCodigo: 'COLHEITADEIRA', categoriaNome: 'Colheitadeira', unidades: 24 },
+      { categoriaCodigo: 'PLANTADEIRA', categoriaNome: 'Plantadeira', unidades: 17 },
+      { categoriaCodigo: 'PULVERIZADOR', categoriaNome: 'Pulverizador', unidades: 9 },
+    ],
+    unidadesForaDoMapa: 6,
+    unidadesSemClassificacao: 3,
+    unidadesEmLinhaSemCategoria: 11,
+    vendasSemAData: 2,
+    vendaMaisRecente: '2026-08-29',
+    carregadoAte: '2026-09-14T03:00:00Z',
+  });
+
+  // A LAVOURA DE TODAS AS CULTURAS DO RECORTE (issue 168): as com regra e, no estado de três
+  // culturas, mais três SEM regra — é o que prova que a área colhida e "Outros" não dependem dela.
+  const culturasDaLavoura = Math.max(quantasCulturas, 6);
+
   return {
     indicadores: {
-      competenciaInicial: '2025-10',
-      competenciaFinal: '2026-09',
+      // O ANO FISCAL ATÉ O ÚLTIMO MÊS FECHADO (27/09/2026): nov/2025 a ago/2026, no fim de setembro.
+      competenciaInicial: '2025-11-01',
+      competenciaFinal: '2026-08-01',
       referenciaDaCobertura: '2026-09-23T00:00:00Z',
       interacaoMaisRecente: '2026-09-21T00:00:00Z',
       anoDaAreaPlantada: 2024,
@@ -445,28 +511,45 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
       })(),
       // AS VENDAS EM UNIDADES DO RECORTE (issue 69). A soma dos municípios, para a captura do harness
       // bater com a quebra que ele mesmo desenha; nula no estado parcialmente vazio.
-      maquinasVendidas:
-        estado === 'parcialmenteVazio'
-          ? null
-          : {
-              criterioDeData: 'Faturamento',
-              fraseDoCriterio:
-                'Contadas pela DATA DO FATURAMENTO (D-P08.1): a view do ART é de máquina faturada, e máquina ' +
-                'faturada é máquina vendida. AMOSTRA FICTÍCIA.',
-              unidades: municipios.reduce((s, m) => s + (m.maquinasVendidas ?? 0), 0),
-              porCategoria: [
-                { categoriaCodigo: 'TRATOR', categoriaNome: 'Trator', unidades: 118 },
-                { categoriaCodigo: 'COLHEITADEIRA', categoriaNome: 'Colheitadeira', unidades: 24 },
-                { categoriaCodigo: 'PLANTADEIRA', categoriaNome: 'Plantadeira', unidades: 17 },
-                { categoriaCodigo: 'PULVERIZADOR', categoriaNome: 'Pulverizador', unidades: 9 },
-              ],
-              unidadesForaDoMapa: 6,
-              unidadesSemClassificacao: 3,
-              unidadesEmLinhaSemCategoria: 11,
-              vendasSemAData: 2,
-              vendaMaisRecente: '2026-08-29',
-              carregadoAte: '2026-09-14T03:00:00Z',
-            },
+      maquinasVendidas: semArt ? null : vendasDeMaquina(unidadesDoRecorte),
+      // O MESMO TRECHO DO ANO ANTERIOR (27/09/2026), com o mês a mês dos mini-gráficos. No estado
+      // parcialmente vazio o ART não cobre a janela anterior, e as unidades dizem o motivo.
+      periodoAnterior: {
+        competenciaInicial: '2024-11-01',
+        competenciaFinal: '2025-08-01',
+        primeiraCompetenciaDoFaturamento: '2023-01-01',
+        primeiroMesDoArt: semArt ? null : '2019-01-01',
+        maquinasVendidas: semArt ? null : vendasDeMaquina(Math.round(unidadesDoRecorte * FATOR_DO_ANO_ANTERIOR)),
+        serieAtual: serieDoRecorte(vendasDoRecorte, semArt ? 0 : unidadesDoRecorte, false),
+        serieAnterior: serieDoRecorte(vendasDoRecorte, semArt ? 0 : unidadesDoRecorte, true),
+        vendasCobertas: true,
+        maquinasCobertas: !semArt,
+        motivoSemVendas: null,
+        motivoSemMaquinas: semArt ? 'AMOSTRA FICTÍCIA — o ART não trouxe venda de máquina ao alcance desta consulta.' : null,
+        mesEmCurso: null,
+      },
+      lavouraDoRecorte: Array.from({ length: culturasDaLavoura }, (_, i) => {
+        const area = Math.round(areaTotal * (PESO_DA_CULTURA[i] ?? 0.002));
+        return {
+          produtoCodigoIbge: codigoDaCultura(i),
+          produtoNome: CULTURAS[i],
+          ano: 2024,
+          areaPlantadaHectares: area,
+          areaColhidaHectares: Math.round(area * 0.96),
+          municipiosComArea: municipios.length,
+        };
+      }),
+      categoriasDeMaquina: [
+        { codigo: 'TRATOR', nome: 'Trator', ordem: 1 },
+        { codigo: 'COLHEITADEIRA', nome: 'Colheitadeira', ordem: 2 },
+        { codigo: 'PLANTADEIRA', nome: 'Plantadeira', ordem: 3 },
+        { codigo: 'PULVERIZADOR', nome: 'Pulverizador', ordem: 4 },
+      ],
+      // OS RESPONSÁVEIS SÃO DE MENTIRA E DIZEM ISSO NO NOME; nenhum com gestor, que é o estado de hoje.
+      responsaveisDasCarteiras: [
+        { id: 9001, nome: 'CEN de amostra — Norte', natureza: 'Pessoa', carteiras: 2, gestor: null },
+        { id: 9002, nome: 'CEN de amostra — Noroeste', natureza: 'Pessoa', carteiras: 3, gestor: null },
+      ],
     },
     metricasSemDado: [
       {
@@ -524,5 +607,100 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
       // Sem venda carregada não há numerador — e a base é nula, como a API manda.
       baseDaCaptura: null,
     },
+    // O ANO ANTERIOR DOS QUATRO NÚMEROS: demanda e mercado são estruturais, e captura e
+    // oportunidade não têm número no período — então não têm no ano anterior.
+    comparacaoComOAnoAnterior: {
+      demandaAnual: {
+        valor: null,
+        motivo: 'NumeroEstrutural',
+        frase: 'AMOSTRA FICTÍCIA — a demanda anual é estrutural: não tem ano anterior.',
+      },
+      mercadoAnual: {
+        valor: null,
+        motivo: 'NumeroEstrutural',
+        frase: 'AMOSTRA FICTÍCIA — o mercado anual é estrutural: não tem ano anterior.',
+      },
+      capturaPercentual: {
+        valor: null,
+        motivo: 'SemNumeroNoPeriodo',
+        frase: 'AMOSTRA FICTÍCIA — sem a captura no período, não há a do ano anterior.',
+      },
+      oportunidade: {
+        valor: null,
+        motivo: 'SemNumeroNoPeriodo',
+        frase: 'AMOSTRA FICTÍCIA — sem a oportunidade no período, não há a do ano anterior.',
+      },
+      baseDaCaptura: null,
+    },
+  };
+}
+
+/**
+ * O HISTÓRICO DE UM MUNICÍPIO DA AMOSTRA — a rota `…/municipios/{codigo}/historico` (27/09/2026).
+ *
+ * Três anos fiscais (o FY24 e o FY25 inteiros, o FY26 até agosto), o mesmo trecho do FY25 e três anos
+ * da PAM com todas as culturas. No estado parcialmente vazio o ART não cobre ano nenhum: as unidades
+ * ficam com o traço e o motivo, que a conferência visual precisa ver.
+ */
+export function historicoFicticio(malha: ColecaoMunicipal, codigo: number, estado: NomeDoEstado): HistoricoDoMunicipio | null {
+  const bases = municipiosDaMalha(malha, 30);
+  const posicao = bases.findIndex((b) => b.codigo === codigo);
+  if (posicao < 0) return null;
+  const m = montarMunicipio(bases[posicao], posicao, estado);
+  const semArt = estado === 'parcialmenteVazio';
+
+  const ano = (anoFiscal: number, inicio: string, fim: string, emCurso: boolean, fator: number): AnoFiscalDoMunicipio => ({
+    anoFiscal,
+    inicio,
+    fim,
+    emCurso,
+    vendas: {
+      clientesQueCompraram: m.vendas.clientesQueCompraram,
+      valorLiquido: Math.round(m.vendas.valorLiquido * fator),
+      maquina: Math.round(m.vendas.maquina * fator),
+      peca: Math.round(m.vendas.peca * fator),
+      servico: Math.round(m.vendas.servico * fator),
+      outros: 0,
+      posVenda: Math.round(m.vendas.posVenda * fator),
+    },
+    motivoSemVendas: null,
+    maquinasVendidas: semArt ? null : Math.round((m.maquinasVendidas ?? 0) * fator),
+    motivoSemMaquinas: semArt ? 'AMOSTRA FICTÍCIA — o ART não trouxe venda de máquina ao alcance desta consulta.' : null,
+  });
+
+  const area = m.producao?.areaPlantadaHectares ?? 0;
+  const lavoura = [2022, 2023, 2024].map((a, k) => {
+    const fator = [0.94, 0.97, 1][k];
+    const culturas = Array.from({ length: 6 }, (_, i) => {
+      const plantada = Math.round(area * (PESO_DA_CULTURA[i] ?? 0.002) * fator);
+      return {
+        produtoCodigoIbge: codigoDaCultura(i),
+        produtoNome: CULTURAS[i],
+        areaPlantadaHectares: plantada,
+        areaColhidaHectares: Math.round(plantada * 0.96),
+        valorDaProducaoMilReais: Math.round(plantada * 12.5),
+      };
+    });
+    return {
+      ano: a,
+      areaPlantadaHectares: Math.round(area * fator),
+      areaColhidaHectares: Math.round(area * fator * 0.96),
+      valorDaProducaoMilReais: Math.round(area * fator * 12.5),
+      culturas,
+    };
+  });
+
+  return {
+    codigoIbge: m.codigoIbge,
+    nome: m.nome,
+    primeiraCompetenciaDoFaturamento: '2023-11-01',
+    primeiroMesDoArt: semArt ? null : '2019-01-01',
+    anosFiscais: [
+      ano(2024, '2023-11-01', '2024-10-01', false, 1.1),
+      ano(2025, '2024-11-01', '2025-10-01', false, 1.15),
+      ano(2026, '2025-11-01', '2026-08-01', true, 1),
+    ],
+    mesmoTrechoDoAnoAnterior: ano(2025, '2024-11-01', '2025-08-01', true, FATOR_DO_ANO_ANTERIOR),
+    lavoura: m.producao === null ? [] : lavoura,
   };
 }

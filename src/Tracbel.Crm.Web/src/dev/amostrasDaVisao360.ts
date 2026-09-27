@@ -420,11 +420,16 @@ export function indicadoresExecutivos(estado: EstadoDaVisao360, codigo: string, 
             semCliente,
             total: comCliente + semCliente,
           },
+      // O ANO É O FISCAL (27/09/2026): o FY2026 vai de nov/2025 a out/2026, e em
+      // setembro dele há onze meses carregados.
       ano: {
         ano,
-        primeiraCompetencia: vazio ? null : `${ano}-01-01`,
-        ultimaCompetencia: vazio ? null : doAnoCorrente ? '2026-09-01' : `${ano}-12-01`,
-        mesesComFaturamento: vazio ? 0 : doAnoCorrente ? 9 : 12,
+        calendario: 'Fiscal',
+        inicio: `${ano - 1}-11-01`,
+        fim: `${ano}-10-01`,
+        primeiraCompetencia: vazio ? null : `${ano - 1}-11-01`,
+        ultimaCompetencia: vazio ? null : doAnoCorrente ? '2026-09-01' : `${ano}-10-01`,
+        mesesComFaturamento: vazio ? 0 : doAnoCorrente ? 11 : 12,
         comCliente: vazio ? 0 : n(24_000_000 * peso),
         semCliente: vazio ? 0 : n(5_600_000 * peso),
         // A META NÃO EXISTE MAIS NO BANCO (fase 1): a API devolve sempre nulo.
@@ -509,7 +514,7 @@ export function respostaDaVisao360(
     case '/v1/relatorios/faturamento':
       return faturamento(estado, empresa);
     case '/v1/relatorios/indicadores-executivos':
-      return indicadoresExecutivos(estado, empresa, Number(consulta.get('ano') ?? 2026));
+      return indicadoresExecutivos(estado, empresa, Number(consulta.get('anoFiscal') ?? 2026));
     case '/v1/processos':
       return contagemDeProcessos(estado, empresa, consulta.get('situacao') ?? '');
     default:

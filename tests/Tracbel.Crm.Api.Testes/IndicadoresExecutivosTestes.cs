@@ -31,7 +31,8 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
     private const string Rota = "/api/v1/relatorios/indicadores-executivos";
 
     private static readonly DateTime Agora = DateTime.UtcNow;
-    private static readonly DateOnly MesCorrente = new(Agora.Year, Agora.Month, 1);
+    // O MÊS DE SÃO PAULO, como o servidor: às 22h do último dia do mês o UTC já virou o mês.
+    private static readonly DateOnly MesCorrente = AnoFiscal.MesCorrenteEmSaoPaulo(Agora);
 
     private static async Task<JsonElement> DadosAsync(HttpResponseMessage resposta)
     {
@@ -149,15 +150,28 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
     }
 
     [Fact]
-    public async Task O_ano_e_o_civil_pedido_e_o_cartao_fica_sem_meta()
+    public async Task O_padrao_e_o_ano_fiscal_ate_o_ultimo_mes_fechado_e_o_cartao_fica_sem_meta()
     {
         await SemearAsync();
         var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Rota));
         var ano = dados.GetProperty("indicadores").GetProperty("ano");
 
-        ano.GetProperty("ano").GetInt32().Should().Be(Agora.Year);
-        ano.GetProperty("total").GetDecimal().Should().Be(1280m);
-        ano.GetProperty("mesesComFaturamento").GetInt32().Should().Be(1);
+        // O ANO FISCAL ATÉ O ÚLTIMO MÊS FECHADO É O PADRÃO (27/09/2026), como nos Indicadores Geográficos: o mês
+        // em curso — os R$ 1.280 semeados nele — fica no cartão do mês, e não no ano. O dezembro do ano civil
+        // anterior entra quando é do ano fiscal que vai até o último mês fechado. O teste segue o relógio.
+        var somado = AnoFiscal.AteOUltimoMesFechado(MesCorrente);
+        var anoFiscal = AnoFiscal.Do(somado.Final);
+        var dezembroEntra = somado.Contem(new DateOnly(Agora.Year - 1, 12, 1));
+
+        ano.GetProperty("ano").GetInt32().Should().Be(anoFiscal);
+        ano.GetProperty("calendario").GetString().Should().Be("Fiscal");
+        ano.GetProperty("inicio").GetString().Should().Be(somado.Inicial.ToString("yyyy-MM-dd"), "o ano fiscal começa em novembro");
+        ano.GetProperty("fim").GetString().Should().Be(somado.Final.ToString("yyyy-MM-dd"), "o mês em curso fica à parte");
+        ano.GetProperty("total").GetDecimal().Should().Be(dezembroEntra ? 999m : 0m,
+            "o mês em curso não entra no ano — ele está pela metade");
+        ano.GetProperty("mesesComFaturamento").GetInt32().Should().Be(dezembroEntra ? 1 : 0);
+        dados.GetProperty("indicadores").GetProperty("faturamentoDoMes").GetProperty("competencia").GetString()
+            .Should().Be(MesCorrente.ToString("yyyy-MM-dd"), "o mês em curso aparece à parte, no cartão do mês");
 
         // A META SAIU NA FASE 1 (documento 41). Sem fonte, o cartão mostra o realizado e declara a
         // lacuna: "sem meta é sem meta, e não meta zero" — que é o que a tela já dizia, porque a
@@ -165,20 +179,57 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
         ano.GetProperty("metasDaFilial").GetInt32().Should().Be(0);
         ano.GetProperty("alvoDaFilial").ValueKind.Should().Be(JsonValueKind.Null);
         ano.GetProperty("metasQueCruzamOAno").GetInt32().Should().Be(0);
-        Lacunas(dados).Should().Contain(["metaDeFaturamento", "calendarioFiscal", "previsao", "devolucoes"]);
+        Lacunas(dados).Should().Contain(["metaDeFaturamento", "previsao", "devolucoes"]);
+
+        // A FRASE QUE NEGAVA O CALENDÁRIO SAIU: ele foi confirmado em 24/09 e virou o padrão em 27/09.
+        Lacunas(dados).Should().NotContain(["calendarioFiscal", "calendarioCivil"]);
+        dados.GetProperty("metricasSemDado").EnumerateArray()
+            .Select(m => m.GetProperty("motivo").GetString()).Should().NotContain(m => m!.Contains("não foi confirmado"));
     }
 
     [Fact]
-    public async Task O_ano_anterior_segue_o_pedido_e_nao_muda_o_mes_do_cartao()
+    public async Task O_ano_civil_continua_por_pedido_e_nao_muda_o_mes_do_cartao()
     {
         await SemearAsync();
         var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync($"{Rota}?ano={Agora.Year - 1}"));
         var indicadores = dados.GetProperty("indicadores");
 
+        indicadores.GetProperty("ano").GetProperty("calendario").GetString().Should().Be("Civil");
         indicadores.GetProperty("ano").GetProperty("total").GetDecimal().Should().Be(999m);
         indicadores.GetProperty("ano").GetProperty("alvoDaFilial").ValueKind.Should().Be(JsonValueKind.Null, "sem meta é sem meta, e não meta zero");
         indicadores.GetProperty("faturamentoDoMes").GetProperty("total").GetDecimal().Should().Be(1280m);
-        Lacunas(dados).Should().Contain("metaDeFaturamento");
+        Lacunas(dados).Should().Contain(["metaDeFaturamento", "calendarioCivil"]);
+    }
+
+    [Fact]
+    public async Task O_ano_fiscal_pedido_comeca_em_novembro_e_para_no_ultimo_mes_fechado_se_ainda_corre()
+    {
+        await SemearAsync();
+
+        // O ANO FISCAL QUE CONTÉM O DEZEMBRO SEMEADO: o de dezembro do ano passado termina em outubro deste —
+        // salvo em novembro e dezembro, quando o fiscal corrente já é o seguinte. O pedido explícito é o
+        // mesmo nos dois casos; o que muda é até onde ele vai: o ano que ainda corre para no último mês fechado.
+        var anoFiscal = AnoFiscal.Do(new DateOnly(Agora.Year - 1, 12, 1));
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync($"{Rota}?anoFiscal={anoFiscal}"));
+        var ano = dados.GetProperty("indicadores").GetProperty("ano");
+
+        var inteiro = AnoFiscal.Inteiro(anoFiscal);
+        var ultimoFechado = MesCorrente.AddMonths(-1);
+        ano.GetProperty("ano").GetInt32().Should().Be(anoFiscal);
+        ano.GetProperty("inicio").GetString().Should().Be($"{anoFiscal - 1}-11-01");
+        ano.GetProperty("fim").GetString().Should().Be(
+            (inteiro.Final <= ultimoFechado ? inteiro.Final : ultimoFechado).ToString("yyyy-MM-dd"));
+        ano.GetProperty("primeiraCompetencia").GetString().Should().Be($"{Agora.Year - 1}-12-01");
+    }
+
+    [Fact]
+    public async Task Ano_civil_e_ano_fiscal_juntos_sao_recusados()
+    {
+        var resposta = await api.ClienteDeRibeirao().GetAsync($"{Rota}?ano={Agora.Year}&anoFiscal={Agora.Year}");
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()).RootElement.GetProperty("erros")
+            .EnumerateArray().Select(e => e.GetProperty("campo").GetString()).Should().Contain("anoFiscal");
     }
 
     [Fact]

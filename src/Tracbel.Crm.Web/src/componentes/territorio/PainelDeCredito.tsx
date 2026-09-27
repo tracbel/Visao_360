@@ -21,6 +21,12 @@
  *
  * OS MESES RECENTES AINDA MUDAM: o Banco Central acrescenta contrato registrado
  * com atraso. A dica da janela diz isso.
+ *
+ * A EVOLUÇÃO É MÊS A MÊS DESDE 27/09/2026 (issue 68): a leitura passou a trazer o
+ * crédito de máquinas de cada mês das duas janelas, na Região Tracbel, em Norte e
+ * Noroeste e em São Paulo. O gráfico desenha a janela recente sobre a anterior —
+ * cada mês contra o mesmo mês um ano antes —, no recorte escolhido. A série anual
+ * de São Paulo fica como reserva, para a resposta que não trouxer o mês a mês.
  */
 
 import { ClipboardList, HandCoins, MapPin, TrendingUp, Wallet } from 'lucide-react';
@@ -34,6 +40,7 @@ import type {
   JanelaDoCredito,
   JanelasDeCredito,
   PainelDeCreditoRural,
+  RecorteDoCredito,
 } from '../../tipos/mercado';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../cadastro/EstadosDeTela';
 import { ValorAusente } from '../comum/ValorAusente';
@@ -72,6 +79,14 @@ const SEM_BASE =
 const O_QUE_E_LINHA =
   'Uma LINHA do SICOR não é um contrato: ela já é a soma dos contratos daquela combinação de município, produto, ' +
   'programa e fonte, e não traz quantidade. O SICOR não identifica cliente nem revenda.';
+
+/** Os recortes da evolução mensal, na ordem da hierarquia: a Região, as duas sub-regiões e o estado. */
+const RECORTES_DA_EVOLUCAO: readonly { id: RecorteDoCredito; rotulo: string }[] = [
+  { id: 'regiaoTracbel', rotulo: 'Região Tracbel' },
+  { id: 'norte', rotulo: 'Norte' },
+  { id: 'noroeste', rotulo: 'Noroeste' },
+  { id: 'saoPaulo', rotulo: 'São Paulo' },
+];
 
 const NOME_DA_FAIXA: Record<FaixaDeMercado, string> = {
   Retraido: 'retraído',
@@ -267,6 +282,7 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
   const [ordem, setOrdem] = useState<CriterioDoCredito>('valor');
   const [todos, setTodos] = useState(false);
   const [foraDaRegiao, setForaDaRegiao] = useState(false);
+  const [recorteDaEvolucao, setRecorteDaEvolucao] = useState<RecorteDoCredito>('regiaoTracbel');
 
   if (credito.carregando) return <BlocoCarregando oQue="o crédito rural" />;
   if (credito.erro) return <BlocoErro erro={credito.erro} aoTentarDeNovo={credito.recarregar} />;
@@ -310,9 +326,13 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
   // Região, eram N na promessa e N + 1 na tabela.
   const naListaInteira = candidatos.length + (escolhido ? 1 : 0);
 
-  // ---------- a evolução: a série ANUAL que existe ----------
+  // ---------- a evolução: o MÊS A MÊS das duas janelas; o ano, como reserva ----------
   const anos = dados.porAno;
   const mesFim = Number(dados.ultimoMes.split('-')[1]);
+  const recentes = (dados.porMes ?? []).filter((m) => m.janelaRecente);
+  const anteriores = (dados.porMes ?? []).filter((m) => !m.janelaRecente);
+  const temMensal = recentes.length > 1;
+  const nomeDoRecorte = RECORTES_DA_EVOLUCAO.find((r) => r.id === recorteDaEvolucao)?.rotulo ?? 'Região Tracbel';
 
   return (
     <div className="mom-painel-da-aba" data-bloco="credito">
@@ -403,14 +423,57 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
           dica={
             // A DICA FALA COM QUEM LÊ O GRÁFICO: o que a série é e o que ela não
             // tem — e não o que a maquete desenhava no lugar dela.
-            'O SICOR chega a esta tela somado por ANO e para São Paulo inteiro — máquinas: trator, máquinas e ' +
-            'implementos e colheitadeiras. A série mensal, e a da Região Tracbel, não existem nesta leitura: desenhar ' +
-            `meses seria fingir um detalhe que ela não traz. ${anos.at(-1)?.ano ?? ''} vai até ${MESES[mesFim - 1] ?? '—'}, ` +
-            'e por isso o último ponto aparece tracejado.'
+            temMensal
+              ? `O crédito de máquinas — trator, máquinas e implementos e colheitadeiras — mês a mês, em ${nomeDoRecorte}. ` +
+                `A linha verde é a janela recente; a cinza tracejada, a janela anterior: cada mês contra o de ` +
+                `${janela.mesesPorJanela} meses antes. A Região Tracbel é a área de atuação inteira; Norte e ` +
+                'Noroeste são os municípios dela com a sub-região informada — o que estiver sem sub-região conta só ' +
+                `na Região Tracbel. São Paulo é o estado inteiro. Janela: ${textoDaJanela(janela)}`
+              : 'O SICOR chega a esta leitura somado por ANO e para São Paulo inteiro — máquinas: trator, máquinas e ' +
+                'implementos e colheitadeiras. O mês a mês por recorte não veio nesta resposta: desenhar meses seria ' +
+                `fingir um detalhe que ela não traz. ${anos.at(-1)?.ano ?? ''} vai até ${MESES[mesFim - 1] ?? '—'}, ` +
+                'e por isso o último ponto aparece tracejado.'
           }
-          direita={<Legenda itens={[{ nome: 'Máquinas · São Paulo, por ano', cor: '#367C2B' }]} />}
+          direita={
+            temMensal ? (
+              <>
+                <Legenda
+                  itens={[
+                    { nome: 'Janela recente', cor: '#367C2B', forma: 'linha' },
+                    { nome: 'Janela anterior', cor: '#9CA3AF', forma: 'linha' },
+                  ]}
+                />
+                <Seletor
+                  rotuloVisivel={false}
+                  rotulo="Recorte da evolução"
+                  valor={recorteDaEvolucao}
+                  opcoes={RECORTES_DA_EVOLUCAO}
+                  aoMudar={setRecorteDaEvolucao}
+                />
+              </>
+            ) : (
+              <Legenda itens={[{ nome: 'Máquinas · São Paulo, por ano', cor: '#367C2B' }]} />
+            )
+          }
         >
-          {anos.length > 1 ? (
+          {temMensal ? (
+            <MolduraDeGrafico altura={210}>
+              {(l, a) => (
+                <GraficoLinhaMensal
+                  rotulos={recentes.map((m) => mesCurto(m.mes))}
+                  valores={recentes.map((m) => m[recorteDaEvolucao].valor)}
+                  // O MÊS DA JANELA ANTERIOR, pela posição: as duas janelas têm o mesmo número de meses e a
+                  // anterior termina onde a recente começa — com 12 meses por janela, é o mesmo mês um ano antes.
+                  anteriores={recentes.map((_, i) => anteriores[i]?.[recorteDaEvolucao].valor ?? null)}
+                  nomeDaSerie="Janela recente"
+                  nomeDaAnterior={`${janela.mesesPorJanela} meses antes`}
+                  largura={l}
+                  altura={a}
+                  formatar={reaisCurtos}
+                />
+              )}
+            </MolduraDeGrafico>
+          ) : anos.length > 1 ? (
             <MolduraDeGrafico altura={210}>
               {(l, a) => (
                 <GraficoLinhaMensal

@@ -80,7 +80,10 @@ export function AbaDeMercado({
   mostrarOsMapas,
   recorteDosFiltros = null,
   numerosDeDecisao,
+  tipoDeProduto = null,
 }: {
+  /** O nome da categoria do filtro "Tipo de produto", quando ligado — os números de decisão são dela. */
+  tipoDeProduto?: string | null;
   /** Os quatro números do topo, com o motivo de cada ausência — da API (issue 69, parte A). */
   numerosDeDecisao: NumerosDeDecisao | null;
   kpisDoMercado: Indicador[];
@@ -122,13 +125,17 @@ export function AbaDeMercado({
       <SecaoDoMercadoDaRegiao>
         <KpisExecutivos
           momento={indicadores?.momento ?? null}
-          demandaEstrutural={recorte?.demandaAnualDeMaquinas ?? null}
+          // A DEMANDA É A DO NÚMERO DE DECISÃO quando ele existe: com o filtro de
+          // tipo de produto ela é a da categoria escolhida, a mesma que divide a
+          // captura. Sem filtro, os dois são o total do recorte.
+          demandaEstrutural={numerosDeDecisao ? numerosDeDecisao.demandaAnual.valor : (recorte?.demandaAnualDeMaquinas ?? null)}
           demandaDeSaoPaulo={null}
           carregando={carregando}
           procedenciaDaDemanda={indicadores?.momento?.procedencia ?? null}
           numeros={numerosDeDecisao}
           maquinasVendidas={indicadores?.maquinasVendidas ?? null}
           procedenciaDasVendas={indicadores?.procedencias?.maquinasVendidas ?? null}
+          tipoDeProduto={tipoDeProduto}
         />
       </SecaoDoMercadoDaRegiao>
 
@@ -143,6 +150,7 @@ export function AbaDeMercado({
         produtosDoMunicipio={produtosDoMunicipio}
         momento={indicadores?.momento ?? null}
         municipios={indicadores?.municipios ?? []}
+        lavouraDoRecorte={indicadores?.lavouraDoRecorte ?? null}
         carregando={carregando}
         recorte={recorteDosFiltros}
       />

@@ -1,7 +1,8 @@
 import { ChartColumnIncreasing } from 'lucide-react';
 import { useState } from 'react';
 import type { ClassificacaoDeIndicador } from '../../../tipos/territorio';
-import { VariacaoAusente } from '../../mercado/VariacaoAusente';
+import { VariacaoContraOAnoAnterior } from '../comparacao';
+import { useComparacao } from '../contextoDaComparacao';
 import { FAIXAS_VENDAS, faixaDe, reaisCompactos } from '../escalas';
 import { ROTULO_DE_VENDAS, mes, nº, type RecorteDeVendas } from '../indicadoresDaAdr';
 import type { TotaisDaAdr } from '../totaisDaAdr';
@@ -24,6 +25,7 @@ export function MapaDeVendas({
   classificacao: ClassificacaoDeIndicador | null;
 }) {
   const [recorteDeVendas, setRecorteDeVendas] = useState<RecorteDeVendas>('valorLiquido');
+  const { periodoAnterior } = useComparacao();
 
   function estadoDasVendas(codigo: number): EstadoNoMapa {
     const m = ligacao.porCodigo.get(codigo);
@@ -64,12 +66,22 @@ export function MapaDeVendas({
           </p>
         </>
       }
-      // O CHIP DE VARIAÇÃO DA MAQUETE ("↑ +14% vs. ano anterior") existe, com o
-      // traço no lugar do número: não há ano anterior na leitura (issue 69).
+      // O CHIP DE VARIAÇÃO DA MAQUETE ("↑ +14% vs. ano anterior") — contra o
+      // mesmo trecho do ano anterior (27/09/2026), ou o traço com o motivo quando
+      // a carga não cobre a janela anterior.
       resumo={{
         valor: reaisCompactos(totais.vendas),
         rotulo: 'total no período',
-        selo: <VariacaoAusente deQue="vendas realizadas" compacta />,
+        selo: (
+          <VariacaoContraOAnoAnterior
+            deQue="vendas realizadas"
+            atual={totais.vendas}
+            anterior={totais.vendasAnterior}
+            motivoSemAnterior={periodoAnterior?.motivoSemVendas}
+            formatar={reaisCompactos}
+            compacta
+          />
+        ),
       }}
       alternador={
         <div className="terr-alternador" role="group" aria-label="Recorte das vendas">

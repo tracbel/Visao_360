@@ -169,7 +169,34 @@ export type PainelDeCreditoRural = {
   saoPaulo: CreditoNoRecorte | null;
   /** De onde o crédito veio — SICOR, a janela e a ressalva do registro com atraso (issue 167). */
   procedencia: ProcedenciaDoIndicador | null;
+  /**
+   * O crédito de máquinas MÊS A MÊS nas duas janelas, por recorte (issue 68, 27/09/2026) — a
+   * evolução com a janela recente sobre a anterior. Nulo em resposta antiga.
+   */
+  porMes: CreditoDeMaquinasNoMes[] | null;
 };
+
+/** As linhas e o valor de um recorte num mês. Linha do SICOR não é contrato. */
+export type CreditoNoMes = { linhas: number; valor: number };
+
+/**
+ * O crédito de máquinas de um mês. A Região Tracbel é a ADR inteira; Norte e Noroeste são os municípios dela com
+ * a sub-região informada — o que estiver sem sub-região conta só na Região. Com todos informados, os dois somam a
+ * Região mês a mês; São Paulo é o estado inteiro.
+ */
+export type CreditoDeMaquinasNoMes = {
+  /** `aaaa-mm-01`. */
+  mes: string;
+  /** Se o mês é da janela recente (e não da anterior). */
+  janelaRecente: boolean;
+  regiaoTracbel: CreditoNoMes;
+  norte: CreditoNoMes;
+  noroeste: CreditoNoMes;
+  saoPaulo: CreditoNoMes;
+};
+
+/** O recorte da evolução mensal do crédito. */
+export type RecorteDoCredito = 'regiaoTracbel' | 'norte' | 'noroeste' | 'saoPaulo';
 
 /**
  * A rentabilidade de uma cultura (issue 159): receita, custo e margem por hectare.

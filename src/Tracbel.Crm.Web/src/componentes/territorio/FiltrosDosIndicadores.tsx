@@ -42,6 +42,16 @@
  * dica do Período, e o alcance da consulta ("Visão: filial … e as abaixo
  * dela"), na da Sub-região. A maquete não tem nenhuma das duas.
  * ============================================================================
+ *
+ * DOIS FILTROS PASSARAM A FILTRAR (27/09/2026):
+ *   - TIPO DE PRODUTO é a categoria de máquina, e a lista vem da leitura — do
+ *     catálogo de categorias e do de-para da linha de produto —, e não de uma
+ *     lista escrita aqui. Ele filtra as unidades do ART e, com elas, a captura
+ *     e a oportunidade; os reais não mudam, porque o faturamento carregado não
+ *     tem o item da nota;
+ *   - CEN / GESTOR é o responsável da carteira comercial no CRM (issue 107: a
+ *     carteira é a fonte). Ele filtra cobertura, reais e unidades pelos clientes
+ *     das carteiras dele.
  */
 
 import * as Popover from '@radix-ui/react-popover';
@@ -55,7 +65,7 @@ import type {
   RegraDePotencialAplicada,
 } from '../../tipos/territorio';
 import { AlcanceDaConsulta } from './CartaoDeAlcance';
-import { anoCivilFechado, anoFiscalFechado, mes, nomeDoAnoFiscal } from './indicadoresDaAdr';
+import { anoCivilFechado, anoFiscalFechado, dozeMesesFechados, mes, nomeDoAnoFiscal } from './indicadoresDaAdr';
 
 export function FiltrosDosIndicadores({
   filtros,
@@ -90,16 +100,23 @@ export function FiltrosDosIndicadores({
 }) {
   const anoCivil = anoCivilFechado();
   const anoFiscal = anoFiscalFechado();
+  const dozeMeses = dozeMesesFechados();
   const igual = (p: typeof anoCivil) =>
     filtros.competenciaInicial === p.competenciaInicial && filtros.competenciaFinal === p.competenciaFinal;
-  // OS DOIS RECORTES NUNCA COINCIDEM: terminam no mesmo mês fechado, mas começam em
-  // meses diferentes — janeiro e novembro —, então a competência inicial sempre os
-  // separa e a ordem da conferência não decide nada.
+  // O FILTRO VAZIO É O ANO FISCAL (decisão do Ricardo de 27/09/2026): é o padrão
+  // do servidor, que aplica o ano fiscal até o último mês fechado quando o pedido
+  // não traz período. Os doze meses deixaram de ser o vazio e passaram a dizer os
+  // meses por extenso.
+  //
+  // A ORDEM DA CONFERÊNCIA DECIDE NOS DOIS MESES EM QUE DOIS RECORTES COINCIDEM:
+  // em novembro, o ano fiscal que acabou de fechar É os doze meses fechados, e em
+  // janeiro o ano civil fechado é os doze meses. Nos dois casos o nome que fica é o
+  // do preset mais específico — o ano fiscal, e depois os doze meses.
   const presetDoPeriodo =
-    filtros.competenciaInicial === '' && filtros.competenciaFinal === ''
-      ? '12meses'
-      : igual(anoFiscal)
-        ? 'anoFiscal'
+    (filtros.competenciaInicial === '' && filtros.competenciaFinal === '') || igual(anoFiscal)
+      ? 'anoFiscal'
+      : igual(dozeMeses)
+        ? '12meses'
         : igual(anoCivil)
           ? 'anoCivil'
           : 'personalizado';
@@ -117,9 +134,20 @@ export function FiltrosDosIndicadores({
         filtros.filialDaVenda !== '',
         filtros.filialDoCliente !== '',
         presetDoPeriodo === 'personalizado',
+        filtros.categoriaDeMaquina !== '',
+        filtros.responsavel !== '',
       ].filter(Boolean).length,
-    [filtros.visao, filtros.filialDaVenda, filtros.filialDoCliente, presetDoPeriodo],
+    [filtros.visao, filtros.filialDaVenda, filtros.filialDoCliente, filtros.categoriaDeMaquina, filtros.responsavel, presetDoPeriodo],
   );
+
+  // AS CATEGORIAS VÊM DA LEITURA, na ordem do catálogo. A escolhida fica na lista
+  // mesmo antes da resposta, para o campo não mostrar "Todas" com um filtro ativo.
+  const categorias = useMemo(() => [...(indicadores?.categoriasDeMaquina ?? [])].sort((a, b) => a.ordem - b.ordem), [indicadores]);
+  const responsaveis = useMemo(
+    () => [...(indicadores?.responsaveisDasCarteiras ?? [])].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+    [indicadores],
+  );
+  const semGestor = responsaveis.filter((r) => r.gestor === null).length;
 
   // AS CULTURAS COM REGRA, uma vez cada — uma cultura pode ter regra em mais de
   // uma categoria de máquina — e em ordem de nome, que é a ordem de quem lê.
@@ -199,6 +227,14 @@ export function FiltrosDosIndicadores({
                       que termina: o FY2026 é de nov/2025 a out/2026. É assim que a diretoria compara um ano com o
                       outro.
                     </p>
+                    {/* O PADRÃO FOI DECIDIDO EM 27/09/2026 — e a dica diz qual é, e contra
+                        o que ele se compara, porque é isso que o "vs. ano anterior" dos
+                        cartões está medindo. */}
+                    <p>
+                      O período padrão é o <strong>ano fiscal até o último mês fechado</strong>, comparado com o{' '}
+                      <strong>mesmo trecho do ano fiscal anterior</strong> — nov/2025 a ago/2026 contra nov/2024 a
+                      ago/2025, por exemplo. Os doze meses fechados e o ano civil continuam aqui, como escolha.
+                    </p>
                     <p>
                       O mês em curso fica fora dos três recortes, porque comparar um mês pela metade com meses
                       cheios erra para baixo sem aviso.
@@ -210,22 +246,25 @@ export function FiltrosDosIndicadores({
             <select
               value={presetDoPeriodo}
               onChange={(e) => {
-                if (e.target.value === '12meses') aoMudarFiltros((f) => ({ ...f, competenciaInicial: '', competenciaFinal: '' }));
+                // O ANO FISCAL É O FILTRO VAZIO: quem decide o intervalo é o servidor,
+                // pela mesma regra do domínio — o que a tela mostra é o que ele aplicou.
+                if (e.target.value === 'anoFiscal') aoMudarFiltros((f) => ({ ...f, competenciaInicial: '', competenciaFinal: '' }));
+                else if (e.target.value === '12meses') aoMudarFiltros((f) => ({ ...f, ...dozeMeses }));
                 else if (e.target.value === 'anoCivil') aoMudarFiltros((f) => ({ ...f, ...anoCivil }));
-                else if (e.target.value === 'anoFiscal') aoMudarFiltros((f) => ({ ...f, ...anoFiscal }));
               }}
             >
-              <option value="12meses">12 meses{presetDoPeriodo === '12meses' && intervalo ? ` (${intervalo})` : ''}</option>
-              {/* O ANO FISCAL VEM ANTES DO CIVIL (24/09/2026): é o calendário em que a
-                  Tracbel fecha o ano, e a planilha do comercial conta assim. O civil
-                  fica, porque é o calendário de toda fonte pública com que a tela
-                  compara — IBGE, CONAB, SICOR. */}
+              {/* O ANO FISCAL É O PRIMEIRO E O PADRÃO (27/09/2026): é o calendário em
+                  que a Tracbel fecha o ano. O rótulo em vigor é "FY2026 (nov/2025 a
+                  ago/2026)" — o nome sempre ao lado do intervalo, e sem "Ano fiscal"
+                  na frente, porque com as duas coisas o texto não cabe no campo e o
+                  ano saía cortado. O civil fica, porque é o calendário de toda fonte
+                  pública com que a tela compara — IBGE, CONAB, SICOR. */}
               <option value="anoFiscal">
-                Ano fiscal
                 {presetDoPeriodo === 'anoFiscal' && intervalo
-                  ? ` ${nomeDoAnoFiscal(indicadores?.competenciaFinal ?? '') ?? ''} (${intervalo})`.replace('  ', ' ')
-                  : ''}
+                  ? `${nomeDoAnoFiscal(indicadores?.competenciaFinal ?? '') ?? 'Ano fiscal'} (${intervalo})`
+                  : 'Ano fiscal'}
               </option>
+              <option value="12meses">12 meses{presetDoPeriodo === '12meses' && intervalo ? ` (${intervalo})` : ''}</option>
               <option value="anoCivil">Ano civil{presetDoPeriodo === 'anoCivil' && intervalo ? ` (${intervalo})` : ''}</option>
               {/* A opção personalizada só existe quando ela está em vigor: quem a
                   escolhe é o par de campos de mês em "Mais filtros", e uma opção
@@ -352,10 +391,14 @@ export function FiltrosDosIndicadores({
               <Popover.Content className="dash-popover" sideOffset={6} collisionPadding={16} align="end">
                 <div className="dash-popover-titulo">Mais filtros</div>
 
+                {/* O ÚLTIMO MÊS ACEITO É O ÚLTIMO FECHADO (revisão de 27/09/2026): um período que termina no
+                    mês em curso compara um mês pela metade com o mesmo mês inteiro do ano anterior. O servidor
+                    também recusa a comparação nesse caso — o limite aqui só evita pedir o que não se compara. */}
                 <label className="dash-filtro">
                   <span className="dash-filtro-rotulo">Vendas de</span>
                   <input
                     type="month"
+                    max={dozeMeses.competenciaFinal}
                     value={filtros.competenciaInicial}
                     onChange={(e) => aoMudarFiltros((f) => ({ ...f, competenciaInicial: e.target.value }))}
                   />
@@ -364,6 +407,7 @@ export function FiltrosDosIndicadores({
                   <span className="dash-filtro-rotulo">até</span>
                   <input
                     type="month"
+                    max={dozeMeses.competenciaFinal}
                     value={filtros.competenciaFinal}
                     onChange={(e) => aoMudarFiltros((f) => ({ ...f, competenciaFinal: e.target.value }))}
                   />
@@ -433,13 +477,92 @@ export function FiltrosDosIndicadores({
                 {/* As citações "(documento 32, seção 3.4)" e "(documento 32, seção 3.5)" saíram
                     das dicas: a referência continua aqui, no código. */}
                 <FiltroSemDado rotulo="Tipo de cliente" opcoes="SAM · KAM · Varejo" motivo="não há classificação por cliente em nenhuma fonte carregada" />
-                <FiltroSemDado rotulo="Tipo de produto" opcoes="colhedora · trator grande · médio" motivo="o faturamento carregado é por cliente e mês, sem o item da nota" />
-                <FiltroSemDado rotulo="Modelo" opcoes="modelo da máquina" motivo="o faturamento carregado é por cliente e mês, sem o item da nota" />
+                <label className="dash-filtro">
+                  <span className="dash-filtro-rotulo">
+                    Tipo de produto
+                    <InfoTooltip
+                      rotulo="O que o tipo de produto filtra"
+                      texto={
+                        <>
+                          <p>
+                            A categoria da máquina, pela linha de produto do ART e pelo de-para do catálogo. Ela filtra
+                            as <strong>máquinas vendidas em unidades</strong> e, com elas, a captura e a oportunidade,
+                            que passam a usar só a demanda desta categoria.
+                          </p>
+                          <p>
+                            Os valores em reais não mudam: o faturamento carregado é por cliente e mês, sem o item da
+                            nota, e não separa uma colhedora de um trator. Venda de linha sem categoria no de-para sai
+                            da conta enquanto o filtro está ligado.
+                          </p>
+                          {categorias.length === 0 && respondeu && <p>O catálogo de categorias não voltou nesta leitura.</p>}
+                        </>
+                      }
+                    />
+                  </span>
+                  <select
+                    value={filtros.categoriaDeMaquina}
+                    disabled={categorias.length === 0 && filtros.categoriaDeMaquina === ''}
+                    onChange={(e) => aoMudarFiltros((f) => ({ ...f, categoriaDeMaquina: e.target.value }))}
+                  >
+                    <option value="">Todas as categorias</option>
+                    {filtros.categoriaDeMaquina !== '' && !categorias.some((c) => c.codigo === filtros.categoriaDeMaquina) && (
+                      <option value={filtros.categoriaDeMaquina}>{filtros.categoriaDeMaquina}</option>
+                    )}
+                    {categorias.map((c) => (
+                      <option key={c.codigo} value={c.codigo}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <FiltroSemDado
-                  rotulo="CEN / gestor"
-                  opcoes="—"
-                  motivo="a carteira do CRM ainda não diz quem atende cada município (issue 107); o que ela já tem está na ficha do município"
+                  rotulo="Modelo"
+                  opcoes="modelo da máquina"
+                  motivo="o faturamento em reais é por cliente e mês, sem o item da nota. As unidades do ART trazem o modelo, mas o recorte por modelo não foi construído — o recorte por categoria está em Tipo de produto"
                 />
+                <label className="dash-filtro">
+                  <span className="dash-filtro-rotulo">
+                    CEN / gestor
+                    <InfoTooltip
+                      rotulo="O que o CEN / gestor filtra"
+                      texto={
+                        <>
+                          <p>
+                            O CEN é o <strong>responsável da carteira comercial</strong> no CRM — a carteira é a fonte, e
+                            não a planilha (issue 107). O filtro fica com os clientes das carteiras dele: cobertura,
+                            vendas em reais e máquinas em unidades. O potencial e a lavoura não mudam, porque são do
+                            município inteiro.
+                          </p>
+                          {responsaveis.length > 0 && (
+                            <p>
+                              {responsaveis.length} responsáveis com carteira comercial ao seu alcance
+                              {semGestor > 0
+                                ? `; ${semGestor === responsaveis.length ? 'nenhum tem' : `${semGestor} não têm`} gestor cadastrado no CRM, e o recorte por gestor espera esse cadastro`
+                                : ''}
+                              .
+                            </p>
+                          )}
+                        </>
+                      }
+                    />
+                  </span>
+                  <select
+                    value={filtros.responsavel}
+                    disabled={responsaveis.length === 0 && filtros.responsavel === ''}
+                    onChange={(e) => aoMudarFiltros((f) => ({ ...f, responsavel: e.target.value }))}
+                  >
+                    <option value="">Todos os CENs</option>
+                    {filtros.responsavel !== '' && !responsaveis.some((r) => String(r.id) === filtros.responsavel) && (
+                      <option value={filtros.responsavel}>Responsável {filtros.responsavel}</option>
+                    )}
+                    {responsaveis.map((r) => (
+                      <option key={r.id} value={String(r.id)}>
+                        {r.nome}
+                        {r.gestor ? ` — gestor ${r.gestor}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
                 <Popover.Close className="dash-popover-fechar">Fechar</Popover.Close>
               </Popover.Content>
