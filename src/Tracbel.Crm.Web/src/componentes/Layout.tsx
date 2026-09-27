@@ -281,8 +281,8 @@ export function Layout() {
             não existem (`--bg-primary`, `--border-primary`). Consertar a regra
             global mudaria o pixel das outras treze telas e quebraria a comparação
             visual; o conserto amplo é do passo 3. */}
-        {/* `conteudo-largo` tira o teto de largura das telas de análise (`larga` na rota). */}
-        <div className={['content', rota.usaApi && 'conteudo-cadastro', rota.larga && 'conteudo-largo'].filter(Boolean).join(' ')}>
+        {/* Sem teto de largura (27/09/2026): toda tela usa a janela inteira. */}
+        <div className={['content', rota.usaApi && 'conteudo-cadastro'].filter(Boolean).join(' ')}>
           <Outlet />
         </div>
       </main>

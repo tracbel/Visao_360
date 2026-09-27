@@ -118,10 +118,9 @@ export function Visao360() {
     );
   }
 
-  // O PERFIL DO CEN GUARDA O TETO DE SEMPRE. A rota ficou larga por causa do
-  // painel executivo; o trabalho do dia e o 360 do cliente são lista e ficha, e
-  // esticados por 1.900 px ficariam piores — `v360-pagina-cen` devolve a eles a
-  // largura que o `.content` dava.
+  // O PERFIL DO CEN TAMBÉM USA A JANELA INTEIRA (27/09/2026). Ele guardava o
+  // teto de 1.336 px, e numa janela larga sobrava uma faixa vazia à direita —
+  // o defeito que o Ricardo apontou em todas as telas.
   if (clienteChave) {
     return (
       <div className="v360-pagina-cen">

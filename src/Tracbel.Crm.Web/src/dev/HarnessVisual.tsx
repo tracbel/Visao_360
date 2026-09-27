@@ -287,7 +287,7 @@ export function HarnessVisual() {
               de 1300px de conteúdo. Com as classes reais, a largura da janela do
               harness É a largura da coluna de conteúdo do aplicativo, e as
               quebras medidas aqui são as que ele vai ver. */}
-          <div className="content conteudo-cadastro conteudo-largo">
+          <div className="content conteudo-cadastro">
             <IndicadoresGeograficos />
           </div>
         </MemoryRouter>
