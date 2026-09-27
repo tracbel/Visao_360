@@ -19,8 +19,9 @@
  * A AUSÊNCIA TEM O LAYOUT DA PRESENÇA (decisão do usuário de 23/09/2026): onde a
  * maquete mostra "R$ 4,2 bi valor de mercado", a tela mostra "— ⓘ valor de
  * mercado" — o traço no lugar do número, a unidade no lugar dela, o motivo na
- * dica. A linha de variação existe nos quatro, com traço, porque não há ano
- * anterior na leitura (issue 69).
+ * dica. A linha de variação existe nos quatro (27/09/2026): na captura e na
+ * oportunidade, contra o mesmo trecho do ano anterior; na demanda e no mercado
+ * anual, o traço com o motivo — eles são estruturais e não têm ano anterior.
  *
  * A LINHA DE BAIXO É A DA VARIAÇÃO (maquete), e por isso o contexto de cada
  * número mora em dois lugares: o que QUALIFICA O VALOR fica ao lado dele, no
@@ -35,6 +36,11 @@
  * ano" diria o mesmo, mas com "região" sozinha — que se lê como a sub-região — e
  * sem dizer que o denominador é estimativa, que é justamente o que o separa de
  * participação.
+ *
+ * A DEMANDA DA CAPTURA E DA OPORTUNIDADE É A DO PERÍODO (decisão do Ricardo de
+ * 27/09/2026): a anual proporcional aos meses — com o ano fiscal até agosto, dez
+ * doze avos. Com o ano inteiro, o número é o da planilha. O cartão "Demanda
+ * anual" continua anual; é só a conta das duas que usa o período.
  */
 
 import {
@@ -50,10 +56,13 @@ import { fatiasEmTexto, frasesDaProcedencia, montarSomavel } from '../comum/comp
 import { ValorAusente } from '../comum/ValorAusente';
 import type {
   MomentoDoRecorte,
+  NumeroNoAnoAnterior,
   NumerosDeDecisao,
   ProcedenciaDoIndicador,
   VendasDeMaquinaDoRecorte,
 } from '../../tipos/territorio';
+import { VariacaoContraOAnoAnterior } from '../territorio/comparacao';
+import { useComparacao } from '../territorio/contextoDaComparacao';
 import { reaisCompactos } from '../territorio/escalas';
 import { nº, porcento } from '../territorio/indicadoresDaAdr';
 import { VariacaoAusente } from './VariacaoAusente';
@@ -87,7 +96,13 @@ function CartaoDeDecisao({
   unidade,
   sobre,
   motivoSemDado,
+  variacao,
 }: {
+  /**
+   * A LINHA "vs. ano anterior" (27/09/2026): a variação contra o mesmo trecho do
+   * ano anterior, ou o traço com o motivo verdadeiro deste número.
+   */
+  variacao: ReactNode;
   rotulo: string;
   icone: LucideIcon;
   tom: Tom;
@@ -153,9 +168,7 @@ function CartaoDeDecisao({
           <span className="mv-kpi-unidade">{unidade}</span>
         </div>
 
-        <div className="mv-kpi-contexto">
-          <VariacaoAusente deQue={nome} />
-        </div>
+        <div className="mv-kpi-contexto">{variacao}</div>
       </div>
     </div>
   );
@@ -170,7 +183,13 @@ export function KpisExecutivos({
   numeros,
   maquinasVendidas,
   procedenciaDasVendas,
+  tipoDeProduto = null,
 }: {
+  /**
+   * O nome da categoria do filtro "Tipo de produto", quando ele está ligado. A demanda aqui passa a ser a da
+   * categoria, e o fator agregado do momento continua sendo o do recorte inteiro — a dica diz isso.
+   */
+  tipoDeProduto?: string | null;
   /**
    * As vendas de máquina do recorte em UNIDADES — o numerador da captura (issue 69, D-P08).
    *
@@ -222,6 +241,15 @@ export function KpisExecutivos({
 
   const mercado = numeros?.mercadoAnual ?? null;
 
+  // O MESMO TRECHO DO ANO ANTERIOR (27/09/2026), com a frase do servidor para cada
+  // ausência: a demanda e o mercado são estruturais; a captura e a oportunidade
+  // comparam as vendas de antes contra a MESMA demanda.
+  const { numeros: doAnoAnterior } = useComparacao();
+  const lendo = carregando || numeros === null;
+  const semAnterior = (n: NumeroNoAnoAnterior | undefined, deQue: string) => (
+    <VariacaoAusente deQue={deQue} motivo={lendo ? 'A leitura ainda não voltou.' : (n?.frase ?? 'A leitura não trouxe o ano anterior.')} />
+  );
+
   return (
     <div className="dash-kpis mv-kpis" data-bloco="kpis-executivos">
       <CartaoDeDecisao
@@ -232,16 +260,26 @@ export function KpisExecutivos({
         carregando={carregando}
         unidade="máquinas"
         motivoSemDado={numeros?.demandaAnual.frase}
+        variacao={semAnterior(doAnoAnterior?.demandaAnual, 'demanda anual')}
         sobre={
           <>
             <p>
               Máquinas por ano: o que o parque do recorte renova — o parque dividido pelo ciclo de renovação de
               cada cultura (issue 72).
             </p>
-            {variacao != null && fatorAgregado != null && (
+            {variacao != null && fatorAgregado != null && !tipoDeProduto && (
               <p>
                 {`${variacao > 0 ? '+' : ''}${nº(variacao)}% com o momento do mercado`} — o fator
                 agregado {fator(fatorAgregado)} aplicado a esta demanda.
+              </p>
+            )}
+            {/* COM O FILTRO DE TIPO DE PRODUTO, O FATOR AGREGADO NÃO É O DESTA DEMANDA: ele pesa todas as
+                categorias do recorte, e a demanda ajustada da categoria aplica o fator de cada cultura dela. */}
+            {variacao != null && fatorAgregado != null && tipoDeProduto && (
+              <p>
+                {`O momento do mercado do recorte inteiro, com todas as categorias, é ${variacao > 0 ? '+' : ''}${nº(variacao)}%`}{' '}
+                (fator agregado {fator(fatorAgregado)}). Esta demanda é só a de {tipoDeProduto}, e a ajustada dela
+                aplica o fator de cada cultura da categoria — ela pode andar diferente do agregado.
               </p>
             )}
             {fatias && <p>{fatias}</p>}
@@ -264,6 +302,7 @@ export function KpisExecutivos({
           mercado?.parcial ? `parcial — sem preço de ${mercado.categoriasSemPreco.join(', ')}` : 'valor de mercado'
         }
         motivoSemDado={mercado?.frase}
+        variacao={semAnterior(doAnoAnterior?.mercadoAnual, 'mercado anual')}
         sobre={
           'Quanto vale, em reais, a demanda anual de máquinas do recorte: a demanda de cada categoria vezes o ' +
           'preço de referência dela — nunca a demanda inteira vezes um preço genérico. Categoria sem preço não ' +
@@ -277,12 +316,28 @@ export function KpisExecutivos({
         valor={numeros?.capturaPercentual.valor == null ? null : porcento(numeros.capturaPercentual.valor)}
         unidade="da demanda estimada"
         motivoSemDado={numeros?.capturaPercentual.frase}
+        // A CAPTURA JÁ É UM PERCENTUAL: a variação é em pontos percentuais, e o
+        // número de antes divide as vendas de antes pela MESMA demanda.
+        variacao={
+          <VariacaoContraOAnoAnterior
+            deQue="captura tracbel"
+            atual={lendo ? null : (numeros?.capturaPercentual.valor ?? null)}
+            anterior={lendo ? null : (doAnoAnterior?.capturaPercentual.valor ?? null)}
+            motivoSemAnterior={
+              lendo ? null : numeros?.capturaPercentual.valor == null ? numeros?.capturaPercentual.frase : doAnoAnterior?.capturaPercentual.frase
+            }
+            formatar={porcento}
+            emPontos
+          />
+        }
         sobre={
           <>
             <p>
-              A parte da demanda anual estimada que a Tracbel vendeu, em máquinas. Chama-se captura, e não
-              participação de mercado: o denominador é a demanda que o motor estima, e participação exigiria o total
-              vendido por todos os fabricantes, que nenhuma fonte aberta publica (issue 162).
+              A parte da demanda estimada DO PERÍODO que a Tracbel vendeu, em máquinas. A demanda do período é a
+              anual proporcional aos meses — com dez meses, dez doze avos dela —, para as vendas de uma parte do ano
+              não serem lidas contra o ano inteiro; com o ano fiscal inteiro, o número é o da planilha. Chama-se
+              captura, e não participação de mercado: o denominador é a demanda que o motor estima, e participação
+              exigiria o total vendido por todos os fabricantes, que nenhuma fonte aberta publica (issue 162).
             </p>
             {/* O NUMERADOR FICA ESCRITO, e com o critério de data junto (issue 69, D-P08.1).
                 Uma captura de 12% sem o numerador é um número que ninguém confere; e o
@@ -308,9 +363,21 @@ export function KpisExecutivos({
         // reais — que é o mercado anual, o cartão ao lado.
         unidade="máquinas não capturadas"
         motivoSemDado={numeros?.oportunidade.frase}
+        variacao={
+          <VariacaoContraOAnoAnterior
+            deQue="oportunidade"
+            atual={lendo ? null : (numeros?.oportunidade.valor ?? null)}
+            anterior={lendo ? null : (doAnoAnterior?.oportunidade.valor ?? null)}
+            motivoSemAnterior={
+              lendo ? null : numeros?.oportunidade.valor == null ? numeros?.oportunidade.frase : doAnoAnterior?.oportunidade.frase
+            }
+            formatar={(v) => `${nº(Math.round(v))} máquinas`}
+          />
+        }
         sobre={
-          'Em máquinas: a demanda ajustada pelo momento menos o que a Tracbel já vendeu, nunca abaixo de zero ' +
-          '(issue 162). É o que o mercado de hoje comporta e ainda não foi capturado — e não o de um ano médio.'
+          'Em máquinas: a demanda ajustada pelo momento, proporcional aos meses do período, menos o que a Tracbel ' +
+          'já vendeu nele, nunca abaixo de zero (issue 162). É o que o mercado de hoje comporta e ainda não foi ' +
+          'capturado — e não o de um ano médio.'
         }
       />
     </div>

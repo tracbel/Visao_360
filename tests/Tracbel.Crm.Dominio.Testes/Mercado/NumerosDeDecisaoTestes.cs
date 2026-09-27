@@ -258,4 +258,130 @@ public sealed class NumerosDeDecisaoTestes
     {
         DecisaoDoMercado.Frase("AlgoQueNinguemPreviu", "a captura").Should().NotBeNullOrWhiteSpace();
     }
+
+    // -------------------------------------------------------------------------------------------------
+    // O mesmo trecho do ano anterior (decisão de 27/09/2026)
+    // -------------------------------------------------------------------------------------------------
+
+    private static readonly (string, string)[] SoTrator = [("TRATOR", "Trator")];
+
+    [Fact]
+    public void A_captura_de_antes_usa_a_mesma_demanda_e_so_as_categorias_com_demanda()
+    {
+        // HOJE: 7 tratores sobre 35 de demanda = 20%. ANTES: 5 tratores e 2 colheitadeiras — só os tratores
+        // entram, contra a MESMA demanda: 5 ÷ 35.
+        var baseAtual = BaseDaCaptura.Montar(7, [("TRATOR", 7)], SoTrator);
+        var atual = DecisaoDoMercado.Calcular(35m, 40m, baseAtual!.Unidades, []);
+        var baseAnterior = BaseDaCaptura.Montar(7, [("TRATOR", 5), ("COLHEITADEIRA", 2)], SoTrator);
+
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(atual, 35m, 40m, baseAnterior, null);
+
+        comparacao.CapturaPercentual.Valor.Should().Be(5m / 35m * 100m);
+        comparacao.Oportunidade.Valor.Should().Be(35m, "40 de demanda ajustada menos os 5 tratores de antes");
+        comparacao.BaseDaCaptura!.UnidadesForaDaConta.Should().Be(2, "a colheitadeira não tem demanda do outro lado");
+    }
+
+    [Fact]
+    public void Demanda_e_mercado_anual_nao_tem_ano_anterior_porque_sao_estruturais()
+    {
+        // O MESMO NÚMERO DOS DOIS LADOS daria uma variação de 0% — uma estabilidade que ninguém mediu.
+        var atual = DecisaoDoMercado.Calcular(35m, 40m, 7, [Categoria("Trator", 35m, 300_000m)]);
+
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(
+            atual, 35m, 40m, BaseDaCaptura.Montar(7, [("TRATOR", 7)], SoTrator), null);
+
+        comparacao.DemandaAnual.Valor.Should().BeNull();
+        comparacao.DemandaAnual.Motivo.Should().Be(nameof(MotivoSemComparacao.NumeroEstrutural));
+        comparacao.DemandaAnual.Frase.Should().Contain("estrutural").And.Contain("PAM");
+        comparacao.MercadoAnual.Motivo.Should().Be(nameof(MotivoSemComparacao.NumeroEstrutural));
+    }
+
+    [Fact]
+    public void Sem_o_numero_do_periodo_nao_ha_variacao_e_a_frase_diz_por_que()
+    {
+        var atual = DecisaoDoMercado.Calcular(null, null, 7, []);
+
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(
+            atual, null, null, BaseDaCaptura.Montar(3, [("TRATOR", 3)], SoTrator), null);
+
+        comparacao.CapturaPercentual.Motivo.Should().Be(nameof(MotivoSemComparacao.SemNumeroNoPeriodo));
+        comparacao.MercadoAnual.Motivo.Should().Be(nameof(MotivoSemComparacao.SemNumeroNoPeriodo));
+    }
+
+    [Fact]
+    public void Sem_as_vendas_do_ano_anterior_a_frase_e_a_da_cobertura_da_fonte()
+    {
+        var atual = DecisaoDoMercado.Calcular(35m, 40m, 7, []);
+        const string cobertura = "A primeira venda que o ART trouxe é de jan/2024.";
+
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(atual, 35m, 40m, null, cobertura);
+
+        comparacao.CapturaPercentual.Valor.Should().BeNull("ausência de carga não é venda zero");
+        comparacao.CapturaPercentual.Motivo.Should().Be(nameof(MotivoSemComparacao.AnoAnteriorSemVendas));
+        comparacao.CapturaPercentual.Frase.Should().Be(cobertura);
+        comparacao.Oportunidade.Frase.Should().Be(cobertura);
+    }
+
+    // -------------------------------------------------------------------------------------------------
+    // A demanda do período — proporcional aos meses (decisão do Ricardo de 27/09/2026)
+    // -------------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Com_dez_meses_a_captura_e_a_oportunidade_usam_dez_doze_avos_da_demanda()
+    {
+        // 120 de demanda anual → 100 em dez meses. 50 máquinas vendidas: 50% da demanda do período, e não
+        // 41,7% da anual — o ano ainda não acabou. A ajustada 120 vira 100, e sobram 50.
+        var numeros = DecisaoDoMercado.Calcular(120m, 120m, 50, [], mesesDoPeriodo: 10);
+
+        numeros.CapturaPercentual.Valor.Should().Be(50m);
+        numeros.Oportunidade.Valor.Should().Be(50m);
+        numeros.DemandaAnual.Valor.Should().Be(120m, "a demanda anual continua anual — só a conta da captura é do período");
+    }
+
+    [Fact]
+    public void Com_um_mes_a_demanda_do_periodo_e_um_doze_avos()
+    {
+        // 120 por ano → 10 no mês. 5 máquinas no mês = 50%; a oportunidade do mês é 10 − 5.
+        var numeros = DecisaoDoMercado.Calcular(120m, 120m, 5, [], mesesDoPeriodo: 1);
+
+        numeros.CapturaPercentual.Valor.Should().Be(50m);
+        numeros.Oportunidade.Valor.Should().Be(5m);
+    }
+
+    [Fact]
+    public void Com_o_ano_inteiro_o_numero_e_o_da_planilha()
+    {
+        // DOZE MESES, FATOR 1: a "Captura FY25" da planilha é vendas do ano ÷ demanda anual.
+        var doAno = DecisaoDoMercado.Calcular(120m, 120m, 30, [], mesesDoPeriodo: 12);
+        var semPeriodo = DecisaoDoMercado.Calcular(120m, 120m, 30, []);
+
+        doAno.CapturaPercentual.Valor.Should().Be(25m);
+        semPeriodo.CapturaPercentual.Valor.Should().Be(25m, "o padrão sem período é o ano inteiro");
+    }
+
+    [Fact]
+    public void O_ano_anterior_usa_a_mesma_demanda_proporcional_dos_dois_lados()
+    {
+        // DEZ MESES DOS DOIS LADOS: 100 de demanda do período. Agora 50 tratores (50%); antes, 40 (40%).
+        var baseAtual = BaseDaCaptura.Montar(50, [("TRATOR", 50)], SoTrator, mesesDoPeriodo: 10);
+        var atual = DecisaoDoMercado.Calcular(120m, 120m, baseAtual!.Unidades, [], mesesDoPeriodo: 10);
+
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(
+            atual, 120m, 120m, BaseDaCaptura.Montar(40, [("TRATOR", 40)], SoTrator, mesesDoPeriodo: 10), null, mesesDoPeriodo: 10);
+
+        comparacao.CapturaPercentual.Valor.Should().Be(40m);
+        comparacao.Oportunidade.Valor.Should().Be(60m, "100 da demanda do período menos os 40 de antes");
+    }
+
+    [Fact]
+    public void A_frase_da_conta_diz_que_a_demanda_e_a_do_periodo()
+    {
+        BaseDaCaptura.Montar(50, [("TRATOR", 50)], SoTrator, mesesDoPeriodo: 10)!.Frase
+            .Should().Be("A conta deste recorte: 50 máquinas vendidas da categoria Trator ÷ a demanda estimada da mesma " +
+                         "categoria para os 10 meses do período (a anual × 10/12).");
+        BaseDaCaptura.Montar(5, [("TRATOR", 5)], SoTrator, mesesDoPeriodo: 1)!.Frase
+            .Should().EndWith("para o mês do período (a anual × 1/12).");
+        BaseDaCaptura.Montar(50, [("TRATOR", 50)], SoTrator)!.Frase
+            .Should().EndWith("÷ a demanda anual estimada da mesma categoria.", "com o ano inteiro a frase é a de sempre");
+    }
 }

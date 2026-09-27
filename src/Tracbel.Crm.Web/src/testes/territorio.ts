@@ -44,6 +44,9 @@ export function municipioDeTeste(
     // NULO, E NÃO ZERO: o município de teste nasce sem ART carregado, que é o estado de hoje. Zero
     // aqui faria os testes passarem afirmando que a Tracbel não vendeu máquina nenhuma.
     maquinasVendidas: null,
+    // NULO TAMBÉM O ANO ANTERIOR: sem a janela anterior coberta, a variação é o traço com o motivo.
+    vendasNoPeriodoAnterior: null,
+    maquinasVendidasNoPeriodoAnterior: null,
     responsaveisPelasCarteiras: [],
     producao: {
       ano: 2024,

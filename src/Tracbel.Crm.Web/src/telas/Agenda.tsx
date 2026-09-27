@@ -225,7 +225,7 @@ export function Agenda() {
             </div>
             <SeloProcedencia procedencia={painel.procedencia} />
           </div>
-          <div className="v360-donut-wrap cad-donut-estreito">
+          <div className="v360-donut-wrap cad-donut-agenda">
             <GraficoDonutCentro
               segmentos={faixasDaAgenda.map((f) => ({ valor: f.valor, cor: f.cor }))}
               largura={160}
@@ -242,7 +242,17 @@ export function Agenda() {
               {faixasDaAgenda.map((f) => (
                 <div className="v360-legenda-item" key={f.nome}>
                   <span className="dot" style={{ background: f.cor }} />
-                  {f.nome} <strong>{f.valor.toLocaleString('pt-BR')}</strong>
+                  <span>{f.nome}</span>
+                  {/* O tamanho da janela entre as pendentes — o mesmo que a rosca desenha. */}
+                  <span className="cad-donut-agenda-barra" aria-hidden="true">
+                    <span
+                      style={{
+                        width: `${(f.valor / Math.max(1, numeros!.pendentes)) * 100}%`,
+                        background: f.cor,
+                      }}
+                    />
+                  </span>
+                  <strong>{f.valor.toLocaleString('pt-BR')}</strong>
                 </div>
               ))}
             </div>

@@ -9,6 +9,10 @@
  * setembro tem seis dias de faturamento contra trinta e um de agosto —, ele é desenhado
  * TRACEJADO e com o ponto vazado. Sem isso a linha despenca no fim e parece queda de vendas,
  * quando é só o calendário.
+ *
+ * A SÉRIE ANTERIOR É OPCIONAL (27/09/2026): o mesmo mês, doze meses antes, como uma linha cinza
+ * tracejada atrás da principal — "a janela recente sobre a anterior", que é como a maquete
+ * desenha a evolução do crédito. Sem ela, o gráfico é o de sempre.
  */
 import {
   CategoryScale,
@@ -30,6 +34,7 @@ ChartJS.register(CategoryScale, Filler, LineElement, LinearScale, PointElement, 
 const COR_LINHA = '#367C2B';
 const COR_AREA = 'rgba(54, 124, 43, 0.10)';
 const COR_PARCIAL = '#9CA3AF';
+const COR_ANTERIOR = '#9CA3AF';
 
 export type GraficoLinhaMensalProps = {
   /** O rótulo de cada mês, já formatado. Ex.: `set/26`. */
@@ -41,6 +46,11 @@ export type GraficoLinhaMensalProps = {
   formatar: (valor: number) => string;
   /** Quando verdadeiro, o último ponto é parcial e sai tracejado. */
   ultimoParcial?: boolean;
+  /** O mesmo mês doze meses antes, alinhado a `valores`; nulo onde não há dado. */
+  anteriores?: (number | null)[];
+  /** Os nomes das duas séries no balão — só quando há a anterior. */
+  nomeDaSerie?: string;
+  nomeDaAnterior?: string;
 };
 
 export function GraficoLinhaMensal({
@@ -50,6 +60,9 @@ export function GraficoLinhaMensal({
   altura,
   formatar,
   ultimoParcial = false,
+  anteriores,
+  nomeDaSerie = 'Recente',
+  nomeDaAnterior = 'Um ano antes',
 }: GraficoLinhaMensalProps) {
   const fontesProntas = useFontesProntas();
   const ultimo = valores.length - 1;
@@ -58,6 +71,7 @@ export function GraficoLinhaMensal({
     labels: rotulos,
     datasets: [
       {
+        label: nomeDaSerie,
         data: valores,
         borderColor: COR_LINHA,
         backgroundColor: COR_AREA,
@@ -83,6 +97,27 @@ export function GraficoLinhaMensal({
             }
           : undefined,
       },
+      // A ANTERIOR VEM DEPOIS NA LISTA E ATRÁS NO DESENHO (`order` maior é desenhado antes): a
+      // leitura é a da série recente, e a de antes é a referência.
+      ...(anteriores
+        ? [
+            {
+              label: nomeDaAnterior,
+              data: anteriores,
+              borderColor: COR_ANTERIOR,
+              backgroundColor: 'transparent',
+              borderWidth: 1.5,
+              borderDash: [5, 4],
+              fill: false,
+              tension: 0.3,
+              pointRadius: 2,
+              pointBackgroundColor: COR_ANTERIOR,
+              pointBorderColor: COR_ANTERIOR,
+              pointBorderWidth: 1,
+              order: 2,
+            },
+          ]
+        : []),
     ],
   };
 
@@ -96,11 +131,12 @@ export function GraficoLinhaMensal({
           // dado existe no eixo e não tem valor. Formatá-lo viraria "R$ 0,00", que é outra coisa —
           // zero é uma medida, ausência não.
           label: (item: TooltipItem<'line'>) => {
-            if (item.parsed.y === null) return 'sem dado';
+            const nome = anteriores ? `${item.dataset.label ?? ''}: ` : '';
+            if (item.parsed.y === null) return `${nome}sem dado`;
 
-            return item.dataIndex === ultimo && ultimoParcial
-              ? `${formatar(item.parsed.y)} — mês em curso`
-              : formatar(item.parsed.y);
+            return item.datasetIndex === 0 && item.dataIndex === ultimo && ultimoParcial
+              ? `${nome}${formatar(item.parsed.y)} — mês em curso`
+              : `${nome}${formatar(item.parsed.y)}`;
           },
         },
       },

@@ -17,7 +17,7 @@ import type {
   TotaisDaRegiaoTracbel,
 } from '../../tipos/territorio';
 import { reaisCompactos, reaisDaProducao } from './escalas';
-import { nº, porcento } from './indicadoresDaAdr';
+import { mes, nº, porcento } from './indicadoresDaAdr';
 import { diferencaParaASoma, type FatiaNoEstado, type TotaisDaAdr } from './totaisDaAdr';
 import { periodoDaLeitura, type PeriodoDaLeitura } from './carteira/periodo';
 
@@ -69,6 +69,19 @@ export type CartaoDaCarteira = {
   semDado: string;
   /** A barra da cobertura, de 0 a 100 — só o cartão que a maquete desenha com ela. */
   progresso?: number | null;
+  /**
+   * A PÍLULA "vs. ano anterior" (27/09/2026): o número de agora e o do mesmo
+   * trecho do ano anterior, na unidade do cartão. Nula quando o número não tem
+   * ano anterior — e aí `motivoSemVariacao` diz por quê, verdadeiro para ele.
+   */
+  variacao: { atual: number | null; anterior: number | null; formatar: (v: number) => string } | null;
+  motivoSemVariacao: string;
+  /**
+   * O MINI-GRÁFICO DO CANTO: o mês a mês da janela, com o mesmo trecho do ano
+   * anterior atrás. Nulo quando o número não tem série — `motivoSemSerie` diz por quê.
+   */
+  serie: { atual: number[]; anterior: number[]; meses: string[] } | null;
+  motivoSemSerie: string;
 };
 
 export type CarteiraNaArea = {
@@ -86,6 +99,19 @@ export function kpisDaCarteira(c: ContextoDosKpis): CarteiraNaArea {
   const comVisita = daAdr.filter((m) => m.cobertura.cobertos > 0).length;
   const comVenda = daAdr.filter((m) => m.vendas.valorLiquido > 0).length;
 
+  // O MESMO TRECHO DO ANO ANTERIOR E O MÊS A MÊS (27/09/2026). Só as vendas têm os
+  // dois: os municípios, a cobertura e o parque não são medidas do período, e
+  // cada cartão diz, com a sua frase, por que não há ano anterior nem série.
+  const anterior = c.indicadores?.periodoAnterior ?? null;
+  const serieDeVendas =
+    anterior && anterior.serieAtual.length > 0
+      ? {
+          atual: anterior.serieAtual.map((m) => m.valorLiquido),
+          anterior: anterior.serieAnterior.map((m) => m.valorLiquido),
+          meses: anterior.serieAtual.map((m) => mes(m.competencia)),
+        }
+      : null;
+
   return {
     periodo: c.indicadores ? periodoDaLeitura(c.indicadores.competenciaInicial, c.indicadores.competenciaFinal) : null,
     cartoes: [
@@ -98,6 +124,12 @@ export function kpisDaCarteira(c: ContextoDosKpis): CarteiraNaArea {
           `Os municípios que a área de atuação marca como ADR, no recorte dos filtros. ${nº(c.totais.clientes)} ` +
           'clientes com endereço neles: cada cliente conta no município do endereço principal do cadastro.',
         semDado: c.indicadores ? SEM_TERRITORIO : 'área de atuação não carregada',
+        variacao: null,
+        motivoSemVariacao:
+          'O número de municípios é o da área de atuação de hoje, e não uma medida do período: ele não tem mesmo ' +
+          'trecho do ano anterior para comparar.',
+        serie: null,
+        motivoSemSerie: 'A área de atuação é a de hoje e não muda mês a mês: não há série a desenhar.',
       },
       {
         id: 'cobertura',
@@ -115,6 +147,12 @@ export function kpisDaCarteira(c: ContextoDosKpis): CarteiraNaArea {
           // a dica, e a referência continua aqui, no código.
           'qualquer interação registrada, porque nenhum tipo de atividade está marcado como visita.',
         semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : 'sem vínculo elegível',
+        variacao: null,
+        motivoSemVariacao:
+          'A cobertura é medida no instante da leitura, contra a cadência de cada vínculo — ela não é somada por ' +
+          'período, e o CRM não guarda a cobertura de um ano atrás. Não há ano anterior a comparar.',
+        serie: null,
+        motivoSemSerie: 'A cobertura é medida no instante da leitura, e o CRM não guarda a de cada mês.',
       },
       {
         id: 'vendas',
@@ -123,6 +161,12 @@ export function kpisDaCarteira(c: ContextoDosKpis): CarteiraNaArea {
         contexto: `em ${nº(comVenda)} municípios`,
         deOnde: `máquina ${reaisCompactos(c.totais.maquina)} · pós-venda ${reaisCompactos(c.totais.posVenda)} (composição provisória). Vendas líquidas pelo endereço principal do cliente; "em N municípios" conta os da ADR com venda no período.`,
         semDado: c.territorioNaoCarregado ? `${reaisCompactos(c.vendasForaDoMapa)} no período, todos fora do mapa` : '—',
+        variacao: c.comTerritorio ? { atual: c.totais.vendas, anterior: c.totais.vendasAnterior, formatar: reaisCompactos } : null,
+        motivoSemVariacao: c.comTerritorio
+          ? (anterior?.motivoSemVendas ?? 'A leitura não trouxe o mesmo trecho do ano anterior.')
+          : SEM_TERRITORIO,
+        serie: c.comTerritorio ? serieDeVendas : null,
+        motivoSemSerie: c.comTerritorio ? 'A leitura não trouxe o mês a mês das vendas.' : SEM_TERRITORIO,
       },
       {
         id: 'parque',
@@ -135,6 +179,13 @@ export function kpisDaCarteira(c: ContextoDosKpis): CarteiraNaArea {
           c.recorte?.demandaAnualDeMaquinas != null ? ` · ${nº(Math.round(c.recorte.demandaAnualDeMaquinas))} por ano` : ''
         }${c.totais.potencialEstimado ? ' · estimativa, regra a confirmar' : ''}`,
         semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : 'sem regra de potencial',
+        variacao: null,
+        motivoSemVariacao:
+          'O parque teórico é estrutural — a área da PAM e as regras de potencial de hoje —, e não uma medida do ' +
+          'período: ele é o mesmo nos dois trechos do ano. Compará-lo com a PAM do ano anterior pediria rodar o motor ' +
+          'sobre outro ano, e esta leitura não faz isso.',
+        serie: null,
+        motivoSemSerie: 'O parque teórico é estrutural e não muda mês a mês: não há série a desenhar.',
       },
     ],
   };

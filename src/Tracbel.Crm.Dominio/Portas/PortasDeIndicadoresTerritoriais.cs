@@ -33,6 +33,18 @@ public enum VisaoTerritorial
 /// <param name="FilialDoClienteId">
 /// Só os clientes cadastrados nesta filial. Vale para cobertura e vendas.
 /// </param>
+/// <param name="CategoriaDeMaquina">
+/// Só as máquinas desta categoria (o código do catálogo), pelo de-para da linha de produto. Vale para as
+/// vendas em UNIDADES do ART e para a captura; o faturamento em reais não tem o item da nota e não muda.
+/// </param>
+/// <param name="ResponsavelId">
+/// Só os clientes das carteiras comerciais deste responsável — o CEN dono da carteira. Vale para cobertura,
+/// vendas e unidades.
+/// </param>
+/// <param name="MesCorrente">
+/// O mês em curso em São Paulo, no dia 1. Quando o período termina nele, o último mês está pela metade e a
+/// comparação com o ano anterior fica vazia, com o motivo; nulo é não conferir.
+/// </param>
 public sealed record ConsultaDeIndicadoresTerritoriais(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -40,7 +52,24 @@ public sealed record ConsultaDeIndicadoresTerritoriais(
     string? LojaCodigo,
     VisaoTerritorial Visao = VisaoTerritorial.Filial,
     int? FilialDaVendaId = null,
-    int? FilialDoClienteId = null);
+    int? FilialDoClienteId = null,
+    string? CategoriaDeMaquina = null,
+    long? ResponsavelId = null,
+    DateOnly? MesCorrente = null)
+{
+    /// <summary>O mês em curso, quando o período termina nele ou depois — o mês pela metade; nulo quando não.</summary>
+    public DateOnly? MesEmCurso => MesCorrente is { } corrente && CompetenciaFinal >= corrente ? CompetenciaFinal : null;
+
+    /// <summary>A janela pedida.</summary>
+    public Comum.JanelaDeCompetencia Janela => new(CompetenciaInicial, CompetenciaFinal);
+
+    /// <summary>
+    /// O MESMO TRECHO DO ANO ANTERIOR — a comparação decidida em 27/09/2026. No padrão (ano fiscal até o
+    /// último mês fechado) é o mesmo trecho do ano fiscal anterior: nov/2024 a ago/2025 contra nov/2025 a
+    /// ago/2026.
+    /// </summary>
+    public Comum.JanelaDeCompetencia JanelaAnterior => Janela.DoAnoAnterior();
+}
 
 /// <summary>
 /// A cobertura de visita de um recorte territorial, contada por VÍNCULO cliente × carteira comercial
@@ -428,6 +457,17 @@ public sealed record ResponsavelPelaCarteira(string Nome, string Natureza, int V
 /// <para><b>Nulo é o ART não ter trazido venda nenhuma</b> ao alcance desta consulta; zero é medida.
 /// O valor em reais continua em <see cref="Vendas"/>, que vem do Protheus e mede outra coisa.</para>
 /// </param>
+/// <param name="VendasNoPeriodoAnterior">
+/// As vendas em reais no MESMO TRECHO DO ANO ANTERIOR (decisão de 27/09/2026) — a base do "vs. ano anterior".
+///
+/// <para><b>Nulo quando o faturamento carregado não cobre a janela anterior inteira</b>: comparar com meses
+/// que não foram carregados daria uma queda que não aconteceu. O motivo está em
+/// <see cref="PeriodoAnterior.MotivoSemVendas"/>.</para>
+/// </param>
+/// <param name="MaquinasVendidasNoPeriodoAnterior">
+/// As máquinas vendidas no mesmo trecho do ano anterior, em unidades (ART). Nulo quando o ART não trouxe
+/// venda nenhuma, ou quando a primeira venda que ele trouxe é posterior ao começo da janela anterior.
+/// </param>
 public sealed record IndicadoresDoMunicipio(
     int CodigoIbge,
     string Nome,
@@ -444,7 +484,92 @@ public sealed record IndicadoresDoMunicipio(
     ProducaoAgricolaDoMunicipio? Producao,
     EstruturaDoMunicipio Estrutura,
     PotencialEstruturalDoMunicipio? PotencialEstrutural = null,
-    int? MaquinasVendidas = null);
+    int? MaquinasVendidas = null,
+    VendasTerritoriais? VendasNoPeriodoAnterior = null,
+    int? MaquinasVendidasNoPeriodoAnterior = null);
+
+/// <summary>As vendas de UM MÊS dos municípios da ADR no recorte — um ponto do mini-gráfico.</summary>
+/// <param name="Competencia">O mês, no dia 1.</param>
+/// <param name="ValorLiquido">O faturamento líquido do mês, em reais (Protheus).</param>
+/// <param name="Maquina">A parte de máquina.</param>
+/// <param name="PosVenda">Peça mais serviço.</param>
+/// <param name="MaquinasVendidas">As máquinas do mês em UNIDADES (ART); nulo sem carga do ART. Não se soma aos reais.</param>
+public sealed record VendasNoMes(DateOnly Competencia, decimal ValorLiquido, decimal Maquina, decimal PosVenda, int? MaquinasVendidas);
+
+/// <summary>
+/// O MESMO TRECHO DO ANO ANTERIOR — a base de todo "vs. ano anterior" da tela (decisão de 27/09/2026).
+///
+/// <para><b>Não é "os meses de antes"</b>: é a janela pedida doze meses para trás. No padrão, o ano fiscal até
+/// agosto contra o ano fiscal anterior até agosto — cada mês contra ele mesmo, sem misturar safra nem o fim de
+/// ano.</para>
+///
+/// <para><b>A cobertura é conferida, e não suposta.</b> O faturamento do Protheus foi carregado a partir de um
+/// mês, e o ART a partir de outro: se a janela anterior começa antes do que foi carregado, a comparação sairia
+/// como uma queda que não aconteceu. Aí a variação fica vazia, com o motivo — e as duas fontes são conferidas
+/// separadas, porque R$ e unidades nunca se somam (D-P08).</para>
+///
+/// <para><b>Por que só o primeiro mês, e não cada mês</b> (revisão de 27/09/2026): as duas cargas releem a
+/// janela INTEIRA a cada execução — o faturamento, os 36 meses da SD2; o ART, a view toda —, e uma execução que
+/// falhe é refeita pela seguinte. Um mês sem linha no meio da janela não é carga que faltou: é o ERP sem nota ao
+/// alcance naquele mês, e isso é medida. O que a carga não alcança é o que vem antes do primeiro mês dela.</para>
+///
+/// <para><b>O mês em curso também tira a comparação</b>: um período que termina no mês corrente tem o último mês
+/// pela metade, e contra o mesmo mês inteiro do ano anterior a variação erraria para baixo.</para>
+/// </summary>
+/// <param name="CompetenciaInicial">O primeiro mês da janela anterior.</param>
+/// <param name="CompetenciaFinal">O último mês da janela anterior.</param>
+/// <param name="PrimeiraCompetenciaDoFaturamento">O primeiro mês com faturamento ao alcance; nulo sem faturamento.</param>
+/// <param name="PrimeiroMesDoArt">O mês da primeira venda que o ART trouxe, pelo critério de data; nulo sem ART.</param>
+/// <param name="MaquinasVendidas">As unidades do recorte na janela anterior, com a quebra; nula quando o ART não a cobre.</param>
+/// <param name="SerieAtual">Mês a mês da janela pedida, nos municípios da ADR do recorte — o mini-gráfico.</param>
+/// <param name="SerieAnterior">O mesmo, na janela anterior; vazia quando o faturamento não a cobre.</param>
+/// <param name="MesEmCurso">O último mês do período pedido quando ele ainda está em curso; nulo quando não.</param>
+public sealed record PeriodoAnterior(
+    DateOnly CompetenciaInicial,
+    DateOnly CompetenciaFinal,
+    DateOnly? PrimeiraCompetenciaDoFaturamento,
+    DateOnly? PrimeiroMesDoArt,
+    VendasDeMaquinaDoRecorte? MaquinasVendidas,
+    IReadOnlyList<VendasNoMes> SerieAtual,
+    IReadOnlyList<VendasNoMes> SerieAnterior,
+    DateOnly? MesEmCurso = null)
+{
+    /// <summary>Se o faturamento carregado cobre a janela anterior inteira — e o período pedido não termina no mês em curso.</summary>
+    public bool VendasCobertas =>
+        MesEmCurso is null && PrimeiraCompetenciaDoFaturamento is { } primeira && primeira <= CompetenciaInicial;
+
+    /// <summary>Se o ART cobre a janela anterior inteira — e o período pedido não termina no mês em curso.</summary>
+    public bool MaquinasCobertas => MesEmCurso is null && PrimeiroMesDoArt is { } primeiro && primeiro <= CompetenciaInicial;
+
+    /// <summary>Por que o mês em curso tira a comparação.</summary>
+    private string? MotivoDoMesEmCurso =>
+        MesEmCurso is { } mes
+            ? $"O último mês do período, {Comum.JanelaDeCompetencia.Mes(mes)}, está em curso: ele tem só parte das notas, " +
+              "e contra o mesmo mês inteiro do ano anterior a variação erraria para baixo. Termine o período no último " +
+              "mês fechado para comparar."
+            : null;
+
+    /// <summary>Por que a variação em reais não sai; nulo quando sai.</summary>
+    public string? MotivoSemVendas =>
+        VendasCobertas
+            ? null
+            : MotivoDoMesEmCurso ?? (PrimeiraCompetenciaDoFaturamento is { } primeira
+                ? $"O mesmo trecho do ano anterior começa em {Comum.JanelaDeCompetencia.Mes(CompetenciaInicial)}, e o " +
+                  $"faturamento carregado ao seu alcance começa em {Comum.JanelaDeCompetencia.Mes(primeira)}: comparar " +
+                  "com meses que não foram carregados mostraria uma queda que não aconteceu."
+                : "Não há faturamento carregado ao alcance desta consulta — sem ele não há ano anterior para comparar.");
+
+    /// <summary>Por que a variação em unidades não sai; nulo quando sai.</summary>
+    public string? MotivoSemMaquinas =>
+        MaquinasCobertas
+            ? null
+            : MotivoDoMesEmCurso ?? (PrimeiroMesDoArt is { } primeiro
+                ? $"O mesmo trecho do ano anterior começa em {Comum.JanelaDeCompetencia.Mes(CompetenciaInicial)}, e a " +
+                  $"primeira venda que o ART trouxe é de {Comum.JanelaDeCompetencia.Mes(primeiro)}: antes disso o ART " +
+                  "não tem venda carregada, e a comparação mostraria uma queda que não aconteceu."
+                : "O ART não trouxe venda de máquina ao alcance desta consulta — sem ela não há ano anterior em " +
+                  "unidades para comparar.");
+}
 
 /// <summary>
 /// O POTENCIAL ESTRUTURAL DE UM MUNICÍPIO, pelo motor (issue 72) — o que o mapa C colore.
@@ -644,6 +769,17 @@ public sealed record RegraDePotencialAplicada(
 /// desligado para ajuste de dados, carga não rodada. É o que faz a captura sair vazia COM MOTIVO em
 /// vez de sair 0%, que afirmaria que a Tracbel não vendeu máquina na região.</para>
 /// </param>
+/// <param name="PeriodoAnterior">
+/// O mesmo trecho do ano anterior — a base de todo "vs. ano anterior" (decisão de 27/09/2026), com a cobertura
+/// das duas fontes conferida e o mês a mês dos municípios da ADR para o mini-gráfico.
+/// </param>
+/// <param name="LavouraDoRecorte">
+/// A área de TODAS as culturas da PAM nos municípios da ADR do recorte (issue 168) — e não só das que têm regra
+/// de potencial, que era o que a leitura trazia até aqui. Cada produto no último ano em que a área dele foi
+/// divulgada, como no resto da tela.
+/// </param>
+/// <param name="CategoriasDeMaquina">As categorias que o filtro "Tipo de produto" oferece — as do de-para da linha de produto.</param>
+/// <param name="ResponsaveisDasCarteiras">Os responsáveis das carteiras comerciais ao alcance — as opções do filtro "CEN / gestor".</param>
 public sealed record IndicadoresTerritoriais(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -662,7 +798,57 @@ public sealed record IndicadoresTerritoriais(
     TotaisDaRegiaoTracbel? RegiaoTracbel = null,
     ProcedenciasDoTerritorio? Procedencias = null,
     MomentoDoRecorte? Momento = null,
-    VendasDeMaquinaDoRecorte? MaquinasVendidas = null);
+    VendasDeMaquinaDoRecorte? MaquinasVendidas = null,
+    PeriodoAnterior? PeriodoAnterior = null,
+    IReadOnlyList<AreaDoProdutoNoRecorte>? LavouraDoRecorte = null,
+    IReadOnlyList<CategoriaParaFiltro>? CategoriasDeMaquina = null,
+    IReadOnlyList<ResponsavelDeCarteira>? ResponsaveisDasCarteiras = null);
+
+/// <summary>
+/// A ÁREA DE UM PRODUTO DA PAM NOS MUNICÍPIOS DA ADR DO RECORTE (issue 168).
+///
+/// <para><b>Todos os produtos, e não só os de regra.</b> A rentabilidade pesa a margem pela área colhida da
+/// região, e a cultura destaque é a de maior área: com a área só das culturas que têm regra de potencial, a
+/// "média ponderada" era a de poucas culturas com o nome do todo, e uma cultura nova do catálogo sem regra ficava
+/// sem área na tela. Esta leitura não passa pelas regras.</para>
+///
+/// <para><b>Sigilo não vira zero:</b> o município sem área divulgada fica fora da soma, e
+/// <see cref="MunicipiosComArea"/> diz quantos entraram.</para>
+/// </summary>
+/// <param name="ProdutoCodigoIbge">O produto da classificação 782.</param>
+/// <param name="ProdutoNome">O rótulo oficial.</param>
+/// <param name="Ano">O último ano em que a área DESTE produto foi divulgada (issue 152).</param>
+/// <param name="AreaPlantadaHectares">A soma da área plantada; nula quando nenhum município divulgou.</param>
+/// <param name="AreaColhidaHectares">A soma da área colhida; nula quando nenhum município divulgou.</param>
+/// <param name="MunicipiosComArea">Quantos municípios do recorte entraram na soma da área plantada.</param>
+public sealed record AreaDoProdutoNoRecorte(
+    int ProdutoCodigoIbge,
+    string ProdutoNome,
+    short Ano,
+    decimal? AreaPlantadaHectares,
+    decimal? AreaColhidaHectares,
+    int MunicipiosComArea);
+
+/// <summary>
+/// Uma categoria de máquina que o filtro "Tipo de produto" oferece.
+///
+/// <para><b>A lista vem do catálogo e do de-para da linha de produto</b>, e não de uma constante: a categoria
+/// nova que o comercial ligar a uma linha aparece sozinha no filtro.</para>
+/// </summary>
+/// <param name="Codigo">O código da categoria no catálogo.</param>
+/// <param name="Nome">O nome de exibição.</param>
+/// <param name="Ordem">A ordem de exibição do catálogo.</param>
+public sealed record CategoriaParaFiltro(string Codigo, string Nome, short Ordem);
+
+/// <summary>
+/// Um responsável de carteira comercial — o CEN dono da carteira no CRM —, para o filtro "CEN / gestor".
+/// </summary>
+/// <param name="Id">O usuário, que é o valor do filtro.</param>
+/// <param name="Nome">O nome de exibição.</param>
+/// <param name="Natureza">Pessoa, departamento… — a carteira de área aparece como área.</param>
+/// <param name="Carteiras">Quantas carteiras comerciais dele estão ao alcance.</param>
+/// <param name="Gestor">O nome do gestor direto no cadastro de usuários; nulo quando não há gestor cadastrado.</param>
+public sealed record ResponsavelDeCarteira(long Id, string Nome, string Natureza, int Carteiras, string? Gestor);
 
 /// <summary>
 /// O acesso aos INDICADORES TERRITORIAIS — a leitura que alimenta os três mapas.
@@ -690,4 +876,141 @@ public interface IRepositorioIndicadoresTerritoriais
     /// </summary>
     /// <param name="ct">Cancelamento.</param>
     Task<IReadOnlyDictionary<string, int>> ListarFiliaisAsync(CancellationToken ct);
+
+    /// <summary>
+    /// As categorias de máquina que têm ao menos uma linha de produto no de-para — as opções do filtro
+    /// "Tipo de produto", na ordem do catálogo.
+    /// </summary>
+    /// <param name="ct">Cancelamento.</param>
+    Task<IReadOnlyList<CategoriaParaFiltro>> ListarCategoriasDeMaquinaAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Os responsáveis das carteiras comerciais ao alcance do contexto — as opções do filtro "CEN / gestor".
+    /// </summary>
+    /// <param name="empresaInteira">
+    /// Se a leitura é da visão da empresa: aí o alcance entre filiais é aberto, como no painel, e a lista traz os
+    /// responsáveis de todas as filiais. Quem chama já conferiu a permissão.
+    /// </param>
+    /// <param name="ct">Cancelamento.</param>
+    Task<IReadOnlyList<ResponsavelDeCarteira>> ListarResponsaveisDasCarteirasAsync(bool empresaInteira, CancellationToken ct);
 }
+
+/// <summary>
+/// O MUNICÍPIO AO LONGO DO TEMPO — a porta da rota do histórico (27/09/2026).
+///
+/// <para><b>Uma porta própria, e não o quinto membro da dos indicadores</b> (documento 22, seção 6.2): o
+/// painel lê uma janela de todos os municípios; o histórico lê todos os anos de um município só. São duas
+/// perguntas, e quem implementa as duas é o mesmo repositório, que já tem as junções e o critério de data.</para>
+/// </summary>
+public interface IRepositorioHistoricoDoMunicipio
+{
+    /// <summary>
+    /// O HISTÓRICO DE UM MUNICÍPIO — as vendas por ano fiscal e a lavoura por ano da PAM, com todas as
+    /// culturas. Nulo quando o código não é de um município de São Paulo.
+    /// </summary>
+    /// <param name="consulta">O município e os mesmos filtros de alcance da tela.</param>
+    /// <param name="ct">Cancelamento.</param>
+    Task<HistoricoDoMunicipio?> ApurarHistoricoDoMunicipioAsync(ConsultaDoHistoricoDoMunicipio consulta, CancellationToken ct);
+}
+
+/// <summary>O que o histórico de um município pede — os mesmos filtros de alcance do painel, sem o período.</summary>
+/// <param name="CodigoIbge">O município.</param>
+/// <param name="UltimoMesFechado">O último mês que entra — o mês em curso fica de fora, como no painel.</param>
+/// <param name="Visao">Filial ou empresa inteira.</param>
+/// <param name="FilialDaVendaId">Só as notas desta filial.</param>
+/// <param name="FilialDoClienteId">Só os clientes cadastrados nesta filial.</param>
+/// <param name="CategoriaDeMaquina">Só as máquinas desta categoria (unidades).</param>
+/// <param name="ResponsavelId">Só os clientes das carteiras deste responsável.</param>
+public sealed record ConsultaDoHistoricoDoMunicipio(
+    int CodigoIbge,
+    DateOnly UltimoMesFechado,
+    VisaoTerritorial Visao = VisaoTerritorial.Filial,
+    int? FilialDaVendaId = null,
+    int? FilialDoClienteId = null,
+    string? CategoriaDeMaquina = null,
+    long? ResponsavelId = null);
+
+/// <summary>
+/// UM ANO FISCAL DE UM MUNICÍPIO — as vendas em reais e as máquinas em unidades, cada uma com a sua cobertura.
+///
+/// <para><b>O ano que a carga não cobre inteiro não é somado pela metade</b>: o faturamento foi carregado a partir
+/// de um mês, e o ART de outro; um ano fiscal que começa antes disso sai sem o número, com o motivo — um total de
+/// seis meses ao lado de um de doze se leria como queda.</para>
+/// </summary>
+/// <param name="AnoFiscal">O ano fiscal — o ano civil em que ele termina.</param>
+/// <param name="Inicio">O primeiro mês (novembro).</param>
+/// <param name="Fim">O último mês que entrou — outubro, ou o último mês fechado quando o ano ainda corre.</param>
+/// <param name="EmCurso">Se o ano ainda não fechou: o número é do ano até <paramref name="Fim"/>.</param>
+/// <param name="Vendas">As vendas em reais; nulas quando o faturamento carregado não cobre o ano.</param>
+/// <param name="MotivoSemVendas">Por que as vendas não saíram.</param>
+/// <param name="MaquinasVendidas">As máquinas vendidas, em unidades; nulas quando o ART não cobre o ano.</param>
+/// <param name="MotivoSemMaquinas">Por que as unidades não saíram.</param>
+public sealed record AnoFiscalDoMunicipio(
+    int AnoFiscal,
+    DateOnly Inicio,
+    DateOnly Fim,
+    bool EmCurso,
+    VendasTerritoriais? Vendas,
+    string? MotivoSemVendas,
+    int? MaquinasVendidas,
+    string? MotivoSemMaquinas);
+
+/// <summary>Uma cultura da PAM num município e num ano.</summary>
+/// <param name="ProdutoCodigoIbge">O produto.</param>
+/// <param name="ProdutoNome">O rótulo oficial.</param>
+/// <param name="AreaPlantadaHectares">A área plantada; nula sob sigilo.</param>
+/// <param name="AreaColhidaHectares">A área colhida.</param>
+/// <param name="ValorDaProducaoMilReais">O valor da produção, em mil reais.</param>
+public sealed record CulturaDaLavoura(
+    int ProdutoCodigoIbge,
+    string ProdutoNome,
+    decimal? AreaPlantadaHectares,
+    decimal? AreaColhidaHectares,
+    decimal? ValorDaProducaoMilReais);
+
+/// <summary>
+/// A LAVOURA DE UM MUNICÍPIO NUM ANO DA PAM — o total e TODAS as culturas (issue 168), e não só as que têm regra.
+///
+/// <para><b>O café entra uma vez só</b>, pelo Total do IBGE: Arábica e Canephora ficam fora do total e da
+/// lista, porque somariam a mesma terra de novo.</para>
+/// </summary>
+/// <param name="Ano">O ano da PAM.</param>
+/// <param name="AreaPlantadaHectares">A soma das culturas.</param>
+/// <param name="AreaColhidaHectares">A soma das culturas.</param>
+/// <param name="ValorDaProducaoMilReais">A soma das culturas, em mil reais.</param>
+/// <param name="Culturas">As culturas com área plantada divulgada, da maior para a menor.</param>
+public sealed record LavouraNoAno(
+    short Ano,
+    decimal? AreaPlantadaHectares,
+    decimal? AreaColhidaHectares,
+    decimal? ValorDaProducaoMilReais,
+    IReadOnlyList<CulturaDaLavoura> Culturas);
+
+/// <summary>
+/// O MUNICÍPIO AO LONGO DO TEMPO — a aba Histórico da ficha e a lavoura inteira da Visão geral.
+///
+/// <para><b>Uma rota própria, e não mais um campo dos 645 municípios do painel</b>: o ano a ano e todas as
+/// culturas de cada município multiplicariam a resposta do painel por um número que só um município — o
+/// escolhido — usa.</para>
+///
+/// <para><b>A cobertura de visita não tem série</b>, e isto não a inventa: ela é medida no instante da
+/// leitura, e o CRM não guarda a de antes.</para>
+/// </summary>
+/// <param name="CodigoIbge">O município.</param>
+/// <param name="Nome">O nome oficial.</param>
+/// <param name="PrimeiraCompetenciaDoFaturamento">Desde quando há faturamento carregado ao alcance.</param>
+/// <param name="PrimeiroMesDoArt">Desde quando o ART trouxe venda.</param>
+/// <param name="AnosFiscais">Os anos fiscais, do mais antigo ao corrente.</param>
+/// <param name="MesmoTrechoDoAnoAnterior">
+/// O ano fiscal anterior cortado nos mesmos meses do corrente — a comparação que a diretoria faz. Nulo quando o
+/// ano corrente já fechou (aí a comparação é com o ano anterior inteiro, que já está na lista).
+/// </param>
+/// <param name="Lavoura">A lavoura de cada ano da PAM carregado, do mais antigo ao mais recente.</param>
+public sealed record HistoricoDoMunicipio(
+    int CodigoIbge,
+    string Nome,
+    DateOnly? PrimeiraCompetenciaDoFaturamento,
+    DateOnly? PrimeiroMesDoArt,
+    IReadOnlyList<AnoFiscalDoMunicipio> AnosFiscais,
+    AnoFiscalDoMunicipio? MesmoTrechoDoAnoAnterior,
+    IReadOnlyList<LavouraNoAno> Lavoura);

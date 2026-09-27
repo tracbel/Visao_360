@@ -119,11 +119,51 @@ public sealed class RepositorioDeCreditoRural(CrmDbContext contexto) : IReposito
             .Where(m => ids.Contains(m.Id) && m.CodigoIbge != null)
             .ToDictionaryAsync(m => m.Id, m => new { CodigoIbge = m.CodigoIbge!.Value, m.Nome }, ct);
 
-        var daAdr = (await contexto.MunicipiosDaAreaDeAtuacao.AsNoTracking()
-                .Where(a => a.EncerradoEm == null && a.PertenceAAdr)
-                .Select(a => a.MunicipioId)
-                .ToListAsync(ct))
-            .ToHashSet();
+        // UMA LINHA VIGENTE POR MUNICÍPIO: o índice único filtrado (MunicipioId, EncerradoEm nulo) garante, e o
+        // dicionário direto — sem GroupBy e First — falharia alto no dia em que a garantia deixasse de valer.
+        var subRegiaoDaAdr = await contexto.MunicipiosDaAreaDeAtuacao.AsNoTracking()
+            .Where(a => a.EncerradoEm == null && a.PertenceAAdr)
+            .ToDictionaryAsync(a => a.MunicipioId, a => a.Regiao, ct);
+        var daAdr = subRegiaoDaAdr.Keys.ToHashSet();
+
+        // O MÊS A MÊS DAS DUAS JANELAS (issue 68, 27/09/2026) — a evolução do valor financiado. A soma é no banco,
+        // por mês e município, e a Região e as sub-regiões são montadas aqui pela área de atuação. A Região é a ADR
+        // INTEIRA; Norte e Noroeste são os municípios com a sub-região informada — o que está com a sub-região
+        // "não informada" conta na Região e em nenhuma das duas, e aí Norte + Noroeste fica abaixo da Região (em
+        // 27/09/2026 são 83 + 120 = 203, a ADR inteira). São Paulo inclui o município sem código do IBGE.
+        var porMesEMunicipio = await nasJanelas
+            .Where(c => ProdutosDeMaquina.Contains(c.CodigoProduto))
+            .GroupBy(c => new { c.Ano, c.Mes, c.MunicipioId })
+            .Select(g => new
+            {
+                g.Key.Ano,
+                g.Key.Mes,
+                g.Key.MunicipioId,
+                Linhas = g.Count(),
+                Valor = g.Sum(c => (decimal?)c.Valor) ?? 0
+            })
+            .ToListAsync(ct);
+
+        var porMes = new List<CreditoDeMaquinasNoMes>();
+        for (var numero = inicioAnterior; numero <= fim; numero++)
+        {
+            var doNumero = MesDe(numero);
+            var doMes = porMesEMunicipio.Where(m => m.Ano == doNumero.Year && m.Mes == doNumero.Month).ToList();
+
+            CreditoNoMes Somar(Func<int, bool> noRecorte)
+            {
+                var linhas = doMes.Where(m => noRecorte(m.MunicipioId)).ToList();
+                return new CreditoNoMes(linhas.Sum(m => m.Linhas), linhas.Sum(m => m.Valor));
+            }
+
+            porMes.Add(new CreditoDeMaquinasNoMes(
+                doNumero,
+                numero >= inicioUltima,
+                Somar(daAdr.Contains),
+                Somar(id => subRegiaoDaAdr.GetValueOrDefault(id) == RegiaoDaAreaDeAtuacao.Norte),
+                Somar(id => subRegiaoDaAdr.GetValueOrDefault(id) == RegiaoDaAreaDeAtuacao.Noroeste),
+                Somar(_ => true)));
+        }
 
         // O ÍNDICE VEM DO DOMÍNIO (issue 73), e não de uma divisão feita aqui: é a mesma conta do recorte
         // e da tela. O peso e as faixas são parâmetro com vigência; sem vigência, saem as janelas sem
@@ -178,7 +218,7 @@ public sealed class RepositorioDeCreditoRural(CrmDbContext contexto) : IReposito
             "então a janela não termina no último mês com dado.");
 
         return new PainelDeCreditoRural(
-            ultimoMes, janela, porAno, porProduto, porMunicipio, regiao, saoPaulo, procedencia);
+            ultimoMes, janela, porAno, porProduto, porMunicipio, regiao, saoPaulo, procedencia, porMes);
     }
 
     /// <summary>O mês (dia 1) de um número "ano × 12 + mês", que é como as janelas são comparadas.</summary>

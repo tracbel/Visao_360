@@ -311,6 +311,22 @@ export function creditoFicticio(municipios: { codigo: number; nome: string }[]):
       indice: indice(2),
     },
     procedencia: PROCEDENCIA,
+    // O MÊS A MÊS DAS DUAS JANELAS (issue 68, 27/09/2026): 24 meses, da anterior à recente. Norte e
+    // Noroeste somam a Região mês a mês, como no servidor; a recente um pouco acima da anterior.
+    porMes: Array.from({ length: 24 }, (_, i) => {
+      const recente = i >= 12;
+      const valor = Math.round(onda(i, 52, 14) * 1_000_000 * (recente ? 1.07 : 1));
+      const linhas = Math.round(onda(i, 210, 40) * (recente ? 1.05 : 1));
+      const norte = { linhas: Math.round(linhas * 0.42), valor: Math.round(valor * 0.42) };
+      return {
+        mes: mesDe(25 - i),
+        janelaRecente: recente,
+        regiaoTracbel: { linhas, valor },
+        norte,
+        noroeste: { linhas: linhas - norte.linhas, valor: valor - norte.valor },
+        saoPaulo: { linhas: linhas * 7, valor: valor * 7 },
+      };
+    }),
   };
 }
 

@@ -27,9 +27,19 @@ export type FaturamentoDaCompetencia = {
   total: number;
 };
 
-/** O realizado do ano civil e a meta de faturamento da filial — nunca uma previsão. */
+/**
+ * O realizado do ano e a meta de faturamento da filial — nunca uma previsão.
+ *
+ * O ANO É O FISCAL POR PADRÃO (27/09/2026): novembro a outubro, com o nome do ano
+ * em que termina. `calendario` diz qual foi aplicado, e `inicio`/`fim` os meses.
+ */
 export type FaturamentoDoAno = {
   ano: number;
+  calendario: 'Fiscal' | 'Civil';
+  /** `aaaa-mm-dd` — o primeiro mês do ano no calendário aplicado. */
+  inicio: string | null;
+  /** `aaaa-mm-dd` — o último mês do ano, mesmo quando ele ainda corre. */
+  fim: string | null;
   primeiraCompetencia: string | null;
   ultimaCompetencia: string | null;
   mesesComFaturamento: number;

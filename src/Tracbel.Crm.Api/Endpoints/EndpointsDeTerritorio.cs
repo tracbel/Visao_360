@@ -62,9 +62,12 @@ public static class EndpointsDeTerritorio
                 string? lojaCodigo = null,
                 string? visao = null,
                 string? filialDaVenda = null,
-                string? filialDoCliente = null) =>
+                string? filialDoCliente = null,
+                string? categoriaDeMaquina = null,
+                string? responsavel = null) =>
             (await caso.ExecutarAsync(
-                competenciaInicial, competenciaFinal, regiao, lojaCodigo, visao, filialDaVenda, filialDoCliente, ct)).Responder())
+                competenciaInicial, competenciaFinal, regiao, lojaCodigo, visao, filialDaVenda, filialDoCliente,
+                categoriaDeMaquina, responsavel, ct)).Responder())
             .WithName("ObterIndicadoresTerritoriais")
             .ExigePermissao(Permissoes.TerritorioLer)
             .WithSummary("Cobertura de visita, vendas e potencial por área, município a município.")
@@ -72,7 +75,32 @@ public static class EndpointsDeTerritorio
                 "Um item por município de SP da área de atuação ou com cliente, identificado pelo código " +
                 "IBGE — o mesmo da malha do mapa. O que não tem polígono (cliente sem município, " +
                 "município sem código IBGE, outra UF) vem somado em foraDoMapa, para o total fechar. " +
-                "Período em competências aaaa-mm, inclusive; padrão = 12 meses fechados.");
+                "Período em competências aaaa-mm, inclusive; padrão = ANO FISCAL ATÉ O ÚLTIMO MÊS FECHADO " +
+                "(novembro a outubro, decidido em 27/09/2026). Cada resposta traz o mesmo trecho do ano anterior " +
+                "(periodoAnterior) e os números de decisão de antes (comparacaoComOAnoAnterior). categoriaDeMaquina " +
+                "filtra as unidades do ART pela categoria do de-para; responsavel filtra pelo CEN dono da carteira.");
+
+        // O MUNICÍPIO AO LONGO DO TEMPO (27/09/2026): vendas por ano fiscal e a lavoura inteira por ano da PAM.
+        // Rota própria, e não mais um campo dos 645 municípios do painel — só a ficha aberta a pede.
+        grupo.MapGet("/municipios/{codigoIbge:int}/historico", async (
+                int codigoIbge,
+                ObterHistoricoDoMunicipio caso,
+                CancellationToken ct,
+                string? visao = null,
+                string? filialDaVenda = null,
+                string? filialDoCliente = null,
+                string? categoriaDeMaquina = null,
+                string? responsavel = null) =>
+            (await caso.ExecutarAsync(
+                codigoIbge, visao, filialDaVenda, filialDoCliente, categoriaDeMaquina, responsavel, ct)).Responder())
+            .WithName("ObterHistoricoDoMunicipio")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("O histórico de um município: vendas por ano fiscal e a lavoura de cada ano da PAM.")
+            .WithDescription(
+                "Vendas em reais (Protheus) e máquinas em unidades (ART) por ano fiscal — novembro a outubro —, cada " +
+                "fonte só nos anos que a carga dela cobre inteiros, e o ano corrente ao lado do mesmo trecho do " +
+                "anterior. A lavoura de cada ano da PAM com todas as culturas, e não só as que têm regra de potencial. " +
+                "Aceita os mesmos filtros de alcance do painel.");
 
         grupo.MapGet("/precos", async (ObterPrecosDeMercado caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())

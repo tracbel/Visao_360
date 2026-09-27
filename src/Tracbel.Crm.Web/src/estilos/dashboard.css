@@ -1258,6 +1258,11 @@
 .dash-interruptor[aria-checked='true'] { background: var(--jd-green); }
 .dash-interruptor[aria-checked='true']::after { left: auto; right: 2px; }
 
+/* O INTERRUPTOR LIGA DE VERDADE desde 27/09/2026 (a leitura traz o mesmo trecho
+   do ano anterior): o cursor de proibido fica só para quando ele está desligado. */
+.dash-interruptor:not(:disabled) { cursor: pointer; }
+.dash-interruptor:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; }
+
 /* -----------------------------------------------------------------------------
    O CABEÇALHO DE PAINEL COM ALTERNADOR E AÇÃO NA MESMA LINHA (maquete)
 

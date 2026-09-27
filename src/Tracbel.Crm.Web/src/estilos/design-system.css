@@ -441,6 +441,9 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
 @container topo (max-width: 600px) {
   .topbar .search { display: none; }
   .topbar-inicio { flex-shrink: 1; min-width: 0; }
+  /* Sem a busca, o lado direito é só a filial, e ele não encolhe: encolhendo junto com o nome da
+     tela, a caixa da filial vazava 9 px da janela em "Cobertura por Filial e Carteira" (27/09/2026). */
+  .topbar-actions { flex-shrink: 0; }
   .topbar .cad-filial select { max-width: 140px; }
 }
 .btn-icon {
@@ -462,16 +465,15 @@ input, textarea, select { font-family: inherit; font-size: inherit; color: inher
 }
 
 /* ===== CONTENT ===== */
+/* TODA TELA USA A JANELA INTEIRA (27/09/2026). O teto de 1.400 px valia para todas menos três
+   telas de análise, e numa janela de 1.700 px a Cobertura de Carteira deixava uma faixa vazia do
+   tamanho de um terço da tela à direita. Quem precisa de largura de leitura — formulário, parágrafo —
+   cuida dela por dentro, reorganizando em colunas, e não o layout para todo mundo. */
 .content {
   flex: 1;
   padding: 24px 32px 48px;
-  max-width: 1400px;
   width: 100%;
-}
-/* As telas de análise (`larga` em rotas.tsx) usam a janela inteira: num monitor de 2.400 px, o teto
-   acima deixava 750 px vazios à direita dos mapas e gráficos (21/09/2026). */
-.content.conteudo-largo {
-  max-width: none;
+  min-width: 0;
 }
 
 /* ===== PAGE HEADER ===== */
@@ -852,8 +854,21 @@ td.mono { font-family: var(--font-mono); font-size: 12px; color: var(--text-seco
 .btn-sm { padding: 6px 10px; font-size: 12px; }
 
 /* ===== KPI VARIANTS ===== */
+.kpi-grid-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
 .kpi-grid-7 {
   grid-template-columns: repeat(7, 1fr);
+}
+/* AS COLUNAS FIXAS SÓ VALEM COM ESPAÇO (27/09/2026). Quatro ou cinco cartões lado a lado, no
+   celular, empurravam as fichas de cliente e de equipamento 500 px para fora da tela — e a 1.024 px,
+   com o menu aberto, 120 px. Abaixo de 1.100 px de janela, cabem quantos der, de 200 px no mínimo —
+   o que cabe "R$ 5.540.000" no corpo do número; com menos, o valor passava da borda do cartão. */
+.kpi-grid > * { min-width: 0; }
+@media (max-width: 1100px) {
+  .kpi-grid,
+  .kpi-grid-5,
+  .kpi-grid-7 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
 }
 .kpi-sm { padding: 12px 14px; }
 .kpi-sm .kpi-label { font-size: 11px; }
@@ -1572,6 +1587,21 @@ td.mono { font-family: var(--font-mono); font-size: 12px; color: var(--text-seco
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+}
+/* AS FICHAS DO PROTÓTIPO NO CELULAR E NO TABLET (27/09/2026). A coluna lateral de 340 px fixos
+   ficava ao lado mesmo a 390 px, e com as abas e os botões do cabeçalho a página passava até
+   500 px da janela — a 1.024, com o menu aberto, 120. Abaixo de 1.100 px de janela as colunas
+   empilham, as abas rolam dentro da própria faixa e os botões quebram linha. A 1.280, largura da
+   comparação com o protótipo, nada disto vale. */
+@media (max-width: 1100px) {
+  .ficha-grid { grid-template-columns: minmax(0, 1fr); }
+  .tabs { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+  .tab { flex-shrink: 0; white-space: nowrap; margin-bottom: 0; }
+  .cliente-header { flex-wrap: wrap; }
+  /* A base de 420 px faz os botões descerem de linha antes de espremer o nome e o documento. */
+  .cliente-header-left { flex: 1 1 420px; }
+  .cliente-header-actions { flex-wrap: wrap; flex-shrink: 1; min-width: 0; }
 }
 .ficha-bloco {
   background: var(--bg-primary);
@@ -1729,7 +1759,9 @@ td.mono { font-family: var(--font-mono); font-size: 12px; color: var(--text-seco
 /* Contatos */
 .contatos-list {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Dois por linha enquanto cada um tiver 260 px; no celular, um — eram dois de 228 px cortados
+     pela borda do bloco (27/09/2026). */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
   gap: 12px;
 }
 .contato-card {
@@ -5444,10 +5476,19 @@ kbd {
 .novaop-cen-nome { font-size: 13px; font-weight: 600; color: #1B5E20; }
 .novaop-cen-role { font-size: 11px; color: #367C2B; }
 
-/* Grid do formulário */
+/* Grid do formulário.
+   SEM O TETO DE 940 px (27/09/2026): numa janela de 1.920 o formulário ocupava metade da tela e o
+   resto ficava vazio. Com espaço, as seções 1 e 2 ficam lado a lado, e o impacto ao salvar ao lado
+   dos detalhes. A ordem de leitura e de tabulação não muda: 1 → 2 → 3 → impacto → salvar. */
 .novaop-grid {
-  max-width: 940px;
-  display: flex; flex-direction: column; gap: 16px;
+  container: novaop / inline-size;
+  display: flex; flex-wrap: wrap; gap: 16px;
+}
+.novaop-grid > * { flex: 1 1 100%; min-width: 0; }
+@container novaop (min-width: 1200px) {
+  .novaop-grid > .novaop-section,
+  .novaop-grid > .novaop-preview { flex-basis: calc(50% - 8px); }
+  .novaop-grid > .novaop-preview { align-self: flex-start; }
 }
 
 /* Seções */
@@ -5465,7 +5506,7 @@ kbd {
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 14px;
 }
-.novaop-section-body { flex: 1; }
+.novaop-section-body { flex: 1; min-width: 0; }
 .novaop-section-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
 .novaop-section-hint { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
 
@@ -5598,6 +5639,14 @@ textarea.novaop-input { resize: vertical; min-height: 60px; }
 }
 .btn-salvar:hover:not(:disabled) { background: #1B5E20; }
 .btn-salvar:disabled { background: #94A3B8; cursor: not-allowed; opacity: 0.7; }
+
+/* No celular, as linhas de dois e três campos empilham: três campos numa seção de 390 px passavam
+   9 px da tela (27/09/2026). Fica depois das regras de base para vencer na cascata. */
+@container novaop (max-width: 559px) {
+  .novaop-section { padding: 16px; gap: 12px; }
+  .novaop-row-2, .novaop-row-3, .novaop-preview-grid { grid-template-columns: minmax(0, 1fr); }
+  .novaop-cliente-info { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* Cliente boxes */
 .novaop-cliente-box.oculto { display: none; }
@@ -8364,8 +8413,20 @@ tr.funil-nova {
   color: #9A3412;
 }
 
-/* --- Campos do formulário -------------------------------------------------- */
-.cad-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+/* --- Campos do formulário --------------------------------------------------
+   AS COLUNAS SEGUEM A LARGURA DO CARTÃO (27/09/2026), e não a da janela: uma no celular, duas até
+   ~1.000 px de cartão e três acima. Com a tela inteira, duas colunas davam 780 px de campo para um
+   ano ou uma placa. Nas três, o campo largo ocupa duas, e não a linha inteira — e a ordem dos
+   formulários fecha as linhas sem buraco (Chassi + Marca, Família + Modelo, Razão social + Fantasia). */
+.card-body:has(> .cad-grade) { container: cadastro / inline-size; }
+.cad-grade { grid-template-columns: minmax(0, 1fr); gap: 14px 16px; }
+@container cadastro (min-width: 560px) {
+  .cad-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container cadastro (min-width: 1000px) {
+  .cad-grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cad-grade > .form-field-full { grid-column: span 2; }
+}
 .cad-obrigatorio { color: var(--danger); margin-left: 3px; }
 .cad-erro-campo {
   font-size: 11.5px;
@@ -8473,7 +8534,6 @@ tr.funil-nova {
 
 /* --- Celular e tablet ------------------------------------------------------ */
 @media (max-width: 900px) {
-  .cad-grade { grid-template-columns: 1fr; }
   .cad-barra { gap: 8px; }
   .cad-filtro { flex: 1 1 46%; }
   .cad-filtro select { width: 100%; }
@@ -9479,12 +9539,24 @@ tr.funil-nova {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* O donut da Agenda mora num cartão de largura inteira, e a legenda dele é a
-   mesma da Visão 360 — onde o cartão tem um terço da linha. Solta na largura
-   toda, o número ia parar a um palmo do rótulo. */
-.cad-donut-estreito {
-  max-width: 420px;
+/* O donut da Agenda mora num cartão de largura inteira. A legenda era a mesma da Visão 360 — onde
+   o cartão tem um terço da linha — e ficava presa em 420 px para o número não ir parar a um palmo
+   do rótulo; o resto do cartão, mais de mil pixels numa tela larga, ficava vazio (27/09/2026).
+   Agora cada janela ganha uma barra do seu tamanho entre o rótulo e o número, e é ela que ocupa a
+   largura. No celular, a legenda desce para baixo da rosca. */
+.cad-donut-agenda { flex-wrap: wrap; padding: 16px 20px; }
+.cad-donut-agenda .v360-donut-legenda { flex: 1 1 280px; gap: 8px; font-size: 12px; }
+.cad-donut-agenda .v360-legenda-item {
+  grid-template-columns: 8px minmax(96px, 140px) minmax(0, 1fr) auto;
+  gap: 10px;
 }
+.cad-donut-agenda-barra {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--n-100);
+  overflow: hidden;
+}
+.cad-donut-agenda-barra > span { display: block; height: 100%; border-radius: 4px; }
 
 /* --------------------------------------------------------------------------
    Ranking em barras horizontais — 06/09/2026.

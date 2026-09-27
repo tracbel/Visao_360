@@ -209,9 +209,9 @@
 .v360-perfil-toggle { flex-wrap: wrap; }
 .v360-perfil-btn { flex: 1 1 auto; min-width: 0; }
 
-/* O PERFIL DO CEN GUARDA O TETO DE SEMPRE: os 1.400px do `.content`, menos os
-   32px de folga de cada lado. A rota ficou larga por causa do painel. */
-.v360-pagina-cen { max-width: 1336px; }
+/* O PERFIL DO CEN TAMBÉM USA A JANELA INTEIRA (27/09/2026). Ele guardava o teto de 1.336px,
+   e numa janela de 1.920 sobravam ~290px vazios à direita — o mesmo defeito das outras telas. */
+.v360-pagina-cen { min-width: 0; }
 
 /* O painel: blocos separados pelo espaço da página, e não por margem de cada um. */
 .dash-pagina .v360-container {

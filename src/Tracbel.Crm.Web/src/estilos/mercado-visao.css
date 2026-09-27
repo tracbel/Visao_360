@@ -49,6 +49,22 @@
   color: var(--text-tertiary);
 }
 
+/* A VARIAÇÃO COM NÚMERO (27/09/2026): a seta e o número na cor da direção, o
+   texto "vs. ano anterior" continua cinza. Verde é alta e vermelho é baixa — a
+   direção do número, e não um julgamento sobre ele. */
+.mv-variacao-numero {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mv-variacao[data-sentido='alta'] .mv-variacao-numero { color: var(--jd-green); }
+.mv-variacao[data-sentido='baixa'] .mv-variacao-numero { color: #B42318; }
+.mv-variacao[data-sentido='estavel'] .mv-variacao-numero { color: var(--text-secondary); }
+
+/* DESLIGADA, A LINHA GUARDA O LUGAR: o cartão não muda de altura quando a
+   comparação liga e desliga. */
+.mv-variacao[data-comparacao='desligada'] { visibility: hidden; }
+
 /* -----------------------------------------------------------------------------
    OS QUATRO NÚMEROS DE DECISÃO
 
@@ -940,6 +956,16 @@
   gap: 2px;
   min-width: 0;
 }
+
+/* A VARIAÇÃO COM NÚMERO É MAIS LARGA QUE O TRAÇO (27/09/2026): num cartão de um
+   terço ela quebra antes do "vs. ano anterior", e não vaza do cartão. */
+.mv-venda-corpo .mv-variacao {
+  flex-wrap: wrap;
+  white-space: normal;
+  row-gap: 0;
+}
+
+.mv-venda-corpo .mv-variacao-texto { white-space: nowrap; }
 
 .mv-venda-rotulo {
   font-size: var(--t-meta);
