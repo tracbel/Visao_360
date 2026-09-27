@@ -537,10 +537,11 @@ export function PerformanceCen() {
         {/* A LINHA VAZIA DE DOZE MESES SAIU, E O LUGAR DELA TEM DADO.
 
             Ficava aqui um gráfico de linha desenhado com doze zeros e uma tampa
-            por cima explicando que não há série mensal — o motivo continua
-            verdadeiro (o faturamento parou na origem em 11/04/2025) e continua
-            escrito, no rodapé. O que mudou é que a moldura deixou de gastar
-            meia tela para não dizer nada.
+            por cima explicando que não há série mensal POR CEN — o motivo
+            continua escrito, no rodapé: a carga do faturamento não lê o vendedor
+            da nota (27/09/2026; a frase antiga dizia que o faturamento tinha
+            parado, e era a cópia do Vórtice). O que mudou é que a moldura
+            deixou de gastar meia tela para não dizer nada.
 
             No lugar entra a única leitura por pessoa que tem lastro: como a
             carteira de cada CEN se divide entre as faixas de tempo sem contato.
@@ -748,14 +749,16 @@ export function PerformanceCen() {
         resumo="faturamento por CEN, meta, processos por pessoa, tempo de atendimento e conversão"
       >
         <div className="cad-fichas">
+          {/* A FRASE ANTIGA DIZIA QUE O FATURAMENTO "PAROU EM 11/04/2025" — era a cópia que o Vórtice
+              recebia (EXT_NFS), e não o faturamento. O do Protheus está no CRM, lido direto da SD2 pela
+              rotina de faturamento (#233). O que falta de verdade é o recorte por vendedor (27/09/2026). */}
           <LacunaConhecida
             metrica="Faturamento por CEN e ranking de vendas"
-            desde="11/04/2025"
             motivo={
-              'A tabela de notas fiscais do ERP (EXT_NFS) parou de receber carga em 11/04/2025. ' +
-              'Ela continua respondendo à consulta e continua cheia — é exatamente por isso que o ' +
-              'número que ela devolveria pareceria atual, e é o defeito de 17 meses que este ' +
-              'projeto existe para corrigir. A ponte do CRM não lê esta tabela, de propósito.'
+              'O faturamento do Protheus está no CRM, mas por cliente, filial e mês: a carga agrega a ' +
+              'nota e ainda não lê o vendedor dela (F2_VEND1), e a carteira não diz quem vendeu cada ' +
+              'nota. Sem esse recorte não há faturamento POR CEN nem ranking de vendas — o que o painel ' +
+              'mostra é o faturamento dos CLIENTES da carteira de cada um.'
             }
           />
           <LacunaConhecida

@@ -491,9 +491,9 @@ public sealed class ObterIndicadoresTerritoriais(
                 lacunas.Add(new MetricaSemDado(
                     "categoriaDaLinhaDeProduto",
                     $"{maquinas.UnidadesEmLinhaSemCategoria:N0} máquinas vendidas são de uma linha que ainda não foi ligada a " +
-                    "uma categoria — hoje a colhedora de cana e a plataforma de corte, que são julgamento do comercial: " +
-                    "colher cana não é colher grão, e plataforma de corte é acessório de colheitadeira. Elas contam no " +
-                    "total e somem da leitura POR categoria (documento 48, §5.3)."));
+                    "uma categoria — hoje a plataforma de corte, que é acessório de colheitadeira, e não máquina que o " +
+                    "produtor compra sozinha: julgamento do comercial. Elas contam no total e somem da leitura POR " +
+                    "categoria (documento 48, §5.3)."));
 
             if (maquinas.VendasSemAData > 0)
                 lacunas.Add(new MetricaSemDado(

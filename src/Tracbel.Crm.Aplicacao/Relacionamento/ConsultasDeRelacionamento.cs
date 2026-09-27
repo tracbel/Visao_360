@@ -645,12 +645,17 @@ public sealed class ObterPainelDoCen(IRepositorioPainelDoCen repositorio, IRelog
                 "coluna. Onde a cadência é de 360 dias, essa diferença muda a leitura — e ela " +
                 "some quando a carga passar a trazer mais de um ano de histórico."));
 
+        // A FRASE ANTIGA DIZIA QUE O FATURAMENTO "PARA EM 11/04/2025" — era a cópia que o Vórtice recebia, e não o
+        // faturamento. O daqui é o da SD2 do Protheus, lido direto pela rotina FATURAMENTO_PROTHEUS (#233). O que falta
+        // de verdade é o recorte por vendedor: a carga agrega a nota por cliente, filial e mês, e não lê o vendedor
+        // dela (SF2.F2_VEND1) — ver LeitorDeFaturamentoDoProtheus.
         if (painel.FaturamentoDaCarteira > 0)
             ausentes.Add(new MetricaSemDado(
                 "faturamentoDaCarteira",
-                "O faturamento é dos CLIENTES da carteira, e não das vendas desta pessoa: a " +
-                "origem não diz quem vendeu cada nota. Ele também para em 11/04/2025, quando a " +
-                "integração com o ERP morreu."));
+                "O faturamento é dos CLIENTES da carteira, e não das vendas desta pessoa: a carga do " +
+                "Protheus agrega a nota por cliente, filial e mês e ainda não lê o vendedor da nota " +
+                "(F2_VEND1). Entram as notas que a rotina de faturamento carregou — a janela de três " +
+                "anos que ela mantém — nas filiais ao seu alcance."));
 
         return Resultado<ComProcedencia<PainelDoCenResumido>>.Ok(
             ComProcedencia<PainelDoCenResumido>.DoNossoBanco(
@@ -764,6 +769,361 @@ public sealed class ObterFaturamento(IRepositorioFaturamento repositorio, IRelog
             ComProcedencia<FaturamentoResumido>.DoNossoBanco(
                 new FaturamentoResumido(ultima, doUltimoMes, mesAindaAberto, serie, top, ausentes),
                 "comercial.FaturamentoDoCliente", relogio));
+    }
+}
+
+/// <summary>
+/// O FATURAMENTO DE UM CLIENTE — a série de doze meses, o total, a quebra por grupo de item da nota e a filial que
+/// faturou, lidos da SD2 do Protheus pela rotina <c>FATURAMENTO_PROTHEUS</c> (#233).
+///
+/// <para><b>Esta consulta troca uma frase falsa.</b> A ficha do cliente dizia que o faturamento tinha parado em
+/// 11/04/2025 e que "a ponte não lê" — era a cópia que o Vórtice recebia. Em 27/09/2026 a tabela tinha 53.977 meses de
+/// 7.505 clientes, em 16 filiais, de 09/2023 a 09/2026, e nenhuma tela a lia por cliente.</para>
+///
+/// <para><b>A janela ancora na carga, e não em hoje.</b> Os doze meses terminam na competência mais recente que a carga
+/// trouxe — a mesma âncora da série da diretoria. Com a rotina desligada, a tela diz até quando o dado vai (a data da
+/// carga), em vez de mostrar meses zerados no fim como se o cliente tivesse parado de comprar.</para>
+///
+/// <para><b>Reais e unidades não se somam (D-P08).</b> Os reais vêm do Protheus; as máquinas em unidades vêm do ART e
+/// aparecem na frota. A parcela "máquina" daqui é em reais, pelo grupo VEIC da própria linha da nota.</para>
+/// </summary>
+/// <param name="repositorio">O acesso ao faturamento.</param>
+/// <param name="relogio">O relógio, para a procedência e para medir o atraso.</param>
+public sealed class ObterFaturamentoDoCliente(IRepositorioFaturamento repositorio, IRelogio relogio)
+{
+    /// <summary>Quantos meses a série e o total trazem.</summary>
+    private const int MesesDaJanela = 12;
+
+    /// <summary>A partir de quantos dias sem competência nova a tela avisa — a régua de <see cref="ObterFaturamento"/>.</summary>
+    private const int DiasParaAvisarAtraso = 60;
+
+    /// <summary>Executa a leitura.</summary>
+    /// <param name="chave">O GUID público do cliente.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<ComProcedencia<FaturamentoDoClienteResumido>>> ExecutarAsync(Guid chave, CancellationToken ct)
+    {
+        var lido = await repositorio.DoClienteAsync(chave, ct);
+
+        // NÃO EXISTE E NÃO É SEU dão a mesma resposta, como no cadastro.
+        if (lido is null)
+            return Resultado<ComProcedencia<FaturamentoDoClienteResumido>>.NaoEncontrado(
+                $"Não há cliente {chave} ao seu alcance.");
+
+        var ausentes = new List<MetricaSemDado>();
+
+        if (lido.CompetenciaMaisRecenteDaCarga is not { } ultima)
+        {
+            ausentes.Add(new MetricaSemDado(
+                "faturamento",
+                "Não há faturamento carregado nas filiais ao seu alcance. Ele vem da SD2 do Protheus, pela " +
+                "rotina FATURAMENTO_PROTHEUS — sem nenhuma execução dela, não há o que mostrar."));
+
+            return Resultado<ComProcedencia<FaturamentoDoClienteResumido>>.Ok(
+                ComProcedencia<FaturamentoDoClienteResumido>.DoNossoBanco(
+                    new FaturamentoDoClienteResumido(null, null, null, false, null, null, null, [], [], ausentes),
+                    "comercial.FaturamentoDoCliente", relogio));
+        }
+
+        var inicio = ultima.AddMonths(-(MesesDaJanela - 1));
+        var primeira = lido.PrimeiraCompetenciaDaCarga ?? ultima;
+        var daJanela = lido.Meses.Where(m => m.Competencia >= inicio && m.Competencia <= ultima).ToList();
+
+        // O MÊS SEM NOTA ENTRA COM ZERO, e não some da série: um mês ausente faria a linha pular de agosto para
+        // outubro como se setembro não tivesse existido — a mesma regra da série da diretoria.
+        var serie = new List<MesDeFaturamentoDoCliente>(MesesDaJanela);
+        for (var mes = inicio; mes <= ultima; mes = mes.AddMonths(1))
+        {
+            var doMes = daJanela.Where(m => m.Competencia == mes).ToList();
+            serie.Add(new MesDeFaturamentoDoCliente(
+                mes, doMes.Sum(m => m.ValorLiquido), doMes.Sum(m => m.Maquina), doMes.Sum(m => m.Notas)));
+        }
+
+        // A FILIAL É A QUE EMITIU A NOTA. A que faturou só antes da janela fica na lista, com zero nos doze meses e a
+        // data da última nota — é o que diz "comprava em Barretos e parou".
+        var porFilial = lido.Meses
+            .GroupBy(m => (m.FilialCodigo, m.FilialNome))
+            .Select(g =>
+            {
+                var doze = g.Where(m => m.Competencia >= inicio && m.Competencia <= ultima).ToList();
+                return new FaturamentoDoClienteNaFilial(
+                    g.Key.FilialCodigo,
+                    g.Key.FilialNome,
+                    doze.Sum(m => m.ValorLiquido),
+                    doze.Sum(m => m.Maquina),
+                    doze.Sum(m => m.Notas),
+                    g.Sum(m => m.ValorLiquido),
+                    g.Max(m => m.Competencia));
+            })
+            .OrderByDescending(f => f.DozeMeses)
+            .ThenByDescending(f => f.UltimaNotaEm)
+            .ThenBy(f => f.FilialCodigo, StringComparer.Ordinal)
+            .ToList();
+
+        DateOnly? ultimaCompra = lido.Meses.Count == 0 ? null : lido.Meses.Max(m => m.Competencia);
+
+        // O MÊS MAIS RECENTE ESTÁ INTEIRO SÓ QUANDO A CARGA RODOU DEPOIS QUE ELE ACABOU. Medir pelo calendário ("é o
+        // mês corrente?") erra com a rotina desligada: a competência 09/2026 da carga de 24/09 continuaria parcial em
+        // outubro, e a tela passaria a tratá-la como mês fechado.
+        var inicioDoMesSeguinte = ultima.AddMonths(1).ToDateTime(TimeOnly.MinValue);
+        var ultimoMesIncompleto = lido.CarregadoEm is not { } carregadoEm || carregadoEm < inicioDoMesSeguinte;
+
+        if (lido.Meses.Count == 0)
+            ausentes.Add(new MetricaSemDado(
+                "faturamentoDoCliente",
+                $"Nenhuma nota de venda deste cliente nas filiais ao seu alcance, de {primeira:MM/yyyy} a " +
+                $"{ultima:MM/yyyy} — a janela de três anos que a carga do Protheus mantém. A fronteira é a filial " +
+                "que emitiu a nota: a nota de uma filial fora do seu alcance não aparece aqui."));
+        else if (daJanela.Count == 0)
+            ausentes.Add(new MetricaSemDado(
+                "faturamentoNosDozeMeses",
+                $"Nenhuma nota deste cliente de {inicio:MM/yyyy} a {ultima:MM/yyyy} nas filiais ao seu alcance. " +
+                $"A mais recente é de {ultimaCompra:MM/yyyy}."));
+
+        if (ultimoMesIncompleto)
+            ausentes.Add(new MetricaSemDado(
+                "mesIncompleto",
+                $"{ultima:MM/yyyy} não está inteiro: a carga gravou esse mês até " +
+                $"{lido.CarregadoEm:dd/MM/yyyy HH:mm} (UTC). O valor dele é parcial, e compará-lo com um mês " +
+                "fechado subestima o mês."));
+
+        var fimDaCompetencia = ultima.AddMonths(1).AddDays(-1);
+        var atraso = DateOnly.FromDateTime(relogio.Agora).DayNumber - fimDaCompetencia.DayNumber;
+        if (atraso > DiasParaAvisarAtraso)
+            ausentes.Add(new MetricaSemDado(
+                "faturamentoDesatualizado",
+                $"O faturamento mais recente carregado é de {ultima:MM/yyyy} — {atraso} dias atrás. A rotina lê a " +
+                "SD2 do Protheus; um atraso deste tamanho quer dizer que ela parou de rodar, e não que o cliente " +
+                "deixou de comprar."));
+
+        return Resultado<ComProcedencia<FaturamentoDoClienteResumido>>.Ok(
+            ComProcedencia<FaturamentoDoClienteResumido>.DoNossoBanco(
+                new FaturamentoDoClienteResumido(
+                    primeira,
+                    ultima,
+                    lido.CarregadoEm,
+                    ultimoMesIncompleto,
+                    ultimaCompra,
+                    Periodo(inicio, ultima, daJanela),
+                    Periodo(primeira, ultima, lido.Meses),
+                    serie,
+                    porFilial,
+                    ausentes),
+                "comercial.FaturamentoDoCliente",
+                relogio));
+    }
+
+    private static PeriodoDeFaturamentoDoCliente Periodo(DateOnly de, DateOnly ate, IReadOnlyCollection<MesDoClienteNaFilial> meses) =>
+        new(de, ate,
+            meses.Sum(m => m.ValorLiquido),
+            meses.Sum(m => m.Maquina),
+            meses.Sum(m => m.Peca),
+            meses.Sum(m => m.Servico),
+            meses.Sum(m => m.Outros),
+            meses.Sum(m => m.Notas));
+}
+
+/// <summary>O faturamento de um cliente como a ficha o consome.</summary>
+/// <param name="PrimeiraCompetenciaDaCarga">O começo da janela carregada ao alcance. Nulo quando não há carga.</param>
+/// <param name="CompetenciaMaisRecente">A competência mais recente da carga ao alcance — a âncora dos doze meses.</param>
+/// <param name="CarregadoEm">Quando a carga gravou essa competência (UTC) — o "até a carga de" da tela.</param>
+/// <param name="UltimoMesEstaIncompleto">
+/// Se a carga gravou a competência mais recente antes de ela acabar. Verdadeiro, o último mês da série é parcial.
+/// </param>
+/// <param name="UltimaCompraEm">A competência da nota mais recente do cliente ao alcance.</param>
+/// <param name="DozeMeses">O total dos doze meses até a competência mais recente, com a quebra.</param>
+/// <param name="JanelaCarregada">O total da janela inteira que a carga mantém, com a quebra.</param>
+/// <param name="Serie">Os doze meses, do mais antigo para o mais novo, com zero no mês sem nota.</param>
+/// <param name="PorFilial">A filial que emitiu a nota, com os doze meses e a janela.</param>
+/// <param name="MetricasSemDado">O que estes números não dizem.</param>
+public sealed record FaturamentoDoClienteResumido(
+    DateOnly? PrimeiraCompetenciaDaCarga,
+    DateOnly? CompetenciaMaisRecente,
+    DateTime? CarregadoEm,
+    bool UltimoMesEstaIncompleto,
+    DateOnly? UltimaCompraEm,
+    PeriodoDeFaturamentoDoCliente? DozeMeses,
+    PeriodoDeFaturamentoDoCliente? JanelaCarregada,
+    IReadOnlyList<MesDeFaturamentoDoCliente> Serie,
+    IReadOnlyList<FaturamentoDoClienteNaFilial> PorFilial,
+    IReadOnlyList<MetricaSemDado> MetricasSemDado);
+
+/// <summary>
+/// Um período de faturamento do cliente, com a quebra por grupo de item da nota — as quatro parcelas somam o total.
+/// </summary>
+/// <param name="De">A primeira competência do período.</param>
+/// <param name="Ate">A última.</param>
+/// <param name="ValorLiquido">O total.</param>
+/// <param name="Maquina">Máquina (grupo VEIC), em reais.</param>
+/// <param name="Peca">Peça.</param>
+/// <param name="Servico">Serviço e mão de obra.</param>
+/// <param name="Outros">Grupo que ainda não se sabe ler.</param>
+/// <param name="Notas">Notas distintas, somadas mês a mês.</param>
+public sealed record PeriodoDeFaturamentoDoCliente(
+    DateOnly De, DateOnly Ate, decimal ValorLiquido, decimal Maquina, decimal Peca, decimal Servico, decimal Outros, int Notas);
+
+/// <summary>Um mês da série do cliente.</summary>
+/// <param name="Competencia">O primeiro dia do mês.</param>
+/// <param name="ValorLiquido">O que foi faturado, somadas as filiais ao alcance.</param>
+/// <param name="Maquina">Quanto disso foi máquina.</param>
+/// <param name="Notas">Notas distintas.</param>
+public sealed record MesDeFaturamentoDoCliente(DateOnly Competencia, decimal ValorLiquido, decimal Maquina, int Notas);
+
+/// <summary>O faturamento do cliente numa filial — a que emitiu a nota.</summary>
+/// <param name="FilialCodigo">O código da filial.</param>
+/// <param name="FilialNome">O nome dela.</param>
+/// <param name="DozeMeses">O total dos doze meses.</param>
+/// <param name="MaquinaNosDozeMeses">Quanto disso foi máquina.</param>
+/// <param name="NotasNosDozeMeses">Notas nos doze meses.</param>
+/// <param name="NaJanela">O total da janela inteira carregada.</param>
+/// <param name="UltimaNotaEm">A competência da nota mais recente nesta filial.</param>
+public sealed record FaturamentoDoClienteNaFilial(
+    string FilialCodigo,
+    string FilialNome,
+    decimal DozeMeses,
+    decimal MaquinaNosDozeMeses,
+    int NotasNosDozeMeses,
+    decimal NaJanela,
+    DateOnly UltimaNotaEm);
+
+/// <summary>
+/// AS CARTEIRAS DO CLIENTE E O CEN DE CADA UMA — o bloco da ficha que dizia "Falta rota".
+///
+/// <para><b>A classe é a do cadastro do cliente</b> (curva ABC apurada do faturamento), e não a do vínculo: medido em
+/// 27/09/2026, os 8.537 vínculos ativos têm a classe C que a carga das carteiras grava por padrão, e os clientes
+/// deles se dividem em A, B, C e D pela apuração. A cadência também não é a do vínculo (nula em todos): é a da linha
+/// de negócio da carteira para a classe do cliente, D quando ela não foi apurada — a mesma regra do cartão de cobertura
+/// da Visão 360 e do painel do CEN.</para>
+///
+/// <para><b>O último contato vem vazio hoje, e o motivo vai junto</b>: nenhum vínculo tem a data, porque ela só é
+/// gravada quando uma interação é registrada no CRM, a carga das interações do Vórtice está congelada (D-12) e a
+/// rotina das carteiras não traz o último contato. Vazio aqui é "sem registro", e não "nunca contatado".</para>
+/// </summary>
+/// <param name="repositorio">O acesso à carteirização.</param>
+/// <param name="relogio">O relógio, para a procedência e para os dias sem contato.</param>
+public sealed class ListarCarteirasDoCliente(IRepositorioCarteiras repositorio, IRelogio relogio)
+{
+    /// <summary>Executa a leitura.</summary>
+    /// <param name="chave">O GUID público do cliente.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<ComProcedencia<CarteirasDoClienteResumidas>>> ExecutarAsync(Guid chave, CancellationToken ct)
+    {
+        var lido = await repositorio.ListarDoClienteAsync(chave, ct);
+
+        if (lido is null)
+            return Resultado<ComProcedencia<CarteirasDoClienteResumidas>>.NaoEncontrado(
+                $"Não há cliente {chave} ao seu alcance.");
+
+        var agora = relogio.Agora;
+        var classeDaCadencia = lido.Classe ?? ClasseDeCliente.D;
+        var carteiras = lido.Vinculos.Select(v => CarteiraDoCliente.De(v, classeDaCadencia, agora)).ToList();
+
+        var ausentes = new List<MetricaSemDado>();
+
+        if (carteiras.Count == 0)
+            ausentes.Add(new MetricaSemDado(
+                "carteiras",
+                "Este cliente não tem vínculo ativo em nenhuma carteira ao seu alcance. A fronteira é a filial da " +
+                "carteira: a carteira de uma filial fora do seu alcance não aparece aqui."));
+        else if (carteiras.All(c => c.UltimaInteracaoEm is null))
+            ausentes.Add(new MetricaSemDado(
+                "ultimoContato",
+                $"Nenhum dos {carteiras.Count} vínculos deste cliente tem data de último contato. Ela só é gravada " +
+                "quando uma interação é registrada no CRM; a carga das interações do Vórtice está congelada (decisão " +
+                "D-12) e a rotina das carteiras (CARTEIRAS_VORTICE) não traz o último contato. Vazio aqui quer dizer " +
+                "\"sem registro no CRM\", e não \"nunca contatado\"."));
+
+        if (lido.Classe is null)
+            ausentes.Add(new MetricaSemDado(
+                "classe",
+                "A classe deste cliente ainda não foi apurada: ela sai da curva ABC do faturamento, na carga do " +
+                "Protheus. A cadência abaixo usa a da classe D, a regra para quem não tem classe."));
+
+        return Resultado<ComProcedencia<CarteirasDoClienteResumidas>>.Ok(
+            ComProcedencia<CarteirasDoClienteResumidas>.DoNossoBanco(
+                new CarteirasDoClienteResumidas(lido.Classe?.ToString(), lido.ClasseApuradaEm, carteiras, ausentes),
+                "comercial.ClienteCarteira",
+                relogio));
+    }
+}
+
+/// <summary>As carteiras do cliente como a ficha as consome.</summary>
+/// <param name="Classe">A classe da curva ABC no cadastro do cliente: A, B, C ou D. Nula antes da apuração.</param>
+/// <param name="ClasseApuradaEm">Quando a classe foi apurada (UTC).</param>
+/// <param name="Carteiras">As carteiras em que ele está, ao alcance de quem consulta — as comerciais primeiro.</param>
+/// <param name="MetricasSemDado">O que estes números não dizem.</param>
+public sealed record CarteirasDoClienteResumidas(
+    string? Classe,
+    DateTime? ClasseApuradaEm,
+    IReadOnlyList<CarteiraDoCliente> Carteiras,
+    IReadOnlyList<MetricaSemDado> MetricasSemDado);
+
+/// <summary>Uma carteira do cliente, com o CEN, a filial e a cadência.</summary>
+/// <param name="CarteiraChave">O GUID público da carteira.</param>
+/// <param name="CarteiraCodigo">O código da carteira.</param>
+/// <param name="CarteiraNome">O nome.</param>
+/// <param name="NaturezaDaCarteira">Comercial, Administrativa ou Teste.</param>
+/// <param name="LinhaDeNegocioNome">A linha de negócio.</param>
+/// <param name="ResponsavelNome">O CEN responsável pela carteira.</param>
+/// <param name="NaturezaDoResponsavel">Pessoa ou caixa de área (Departamento), entre outras.</param>
+/// <param name="FilialCodigo">O código da filial dona da carteira.</param>
+/// <param name="FilialNome">O nome dela.</param>
+/// <param name="DiasDeCadencia">
+/// De quantos em quantos dias a linha de negócio visita a classe do cliente. Nulo quando a linha não declara.
+/// </param>
+/// <param name="VinculadoEm">Quando o cliente entrou na carteira (UTC).</param>
+/// <param name="UltimaInteracaoEm">O último contato registrado (UTC). Nulo é "sem registro".</param>
+/// <param name="DiasSemContato">Há quantos dias foi o último contato. Nulo sem registro.</param>
+/// <param name="EstaForaDaCadencia">
+/// Se o último contato passou da cadência. Nulo sem registro ou sem cadência — não se sabe, e "falso" diria que está em
+/// dia.
+/// </param>
+public sealed record CarteiraDoCliente(
+    Guid CarteiraChave,
+    string CarteiraCodigo,
+    string CarteiraNome,
+    string NaturezaDaCarteira,
+    string LinhaDeNegocioNome,
+    string? ResponsavelNome,
+    string? NaturezaDoResponsavel,
+    string FilialCodigo,
+    string FilialNome,
+    short? DiasDeCadencia,
+    DateTime VinculadoEm,
+    DateTime? UltimaInteracaoEm,
+    int? DiasSemContato,
+    bool? EstaForaDaCadencia)
+{
+    /// <summary>Traduz o vínculo lido, com a cadência da classe do cliente.</summary>
+    /// <param name="vinculo">O vínculo com a carteira.</param>
+    /// <param name="classe">A classe que escolhe a cadência — a do cadastro, ou D sem apuração.</param>
+    /// <param name="agoraUtc">O instante de referência dos dias sem contato.</param>
+    public static CarteiraDoCliente De(VinculoDoClienteComCarteira vinculo, ClasseDeCliente classe, DateTime agoraUtc)
+    {
+        var cadencia = classe switch
+        {
+            ClasseDeCliente.A => vinculo.CadenciaDaClasseA,
+            ClasseDeCliente.B => vinculo.CadenciaDaClasseB,
+            ClasseDeCliente.C => vinculo.CadenciaDaClasseC,
+            _ => vinculo.CadenciaDaClasseD
+        };
+
+        int? dias = vinculo.UltimaInteracaoEm is { } ultima ? (int)Math.Max(0, (agoraUtc - ultima).TotalDays) : null;
+
+        return new CarteiraDoCliente(
+            vinculo.CarteiraChave,
+            vinculo.CarteiraCodigo,
+            vinculo.CarteiraNome,
+            vinculo.NaturezaDaCarteira,
+            vinculo.LinhaDeNegocioNome,
+            vinculo.ResponsavelNome,
+            vinculo.NaturezaDoResponsavel,
+            vinculo.FilialCodigo,
+            vinculo.FilialNome,
+            cadencia,
+            vinculo.VinculadoEm,
+            vinculo.UltimaInteracaoEm,
+            dias,
+            dias is { } d && cadencia is { } c ? d > c : null);
     }
 }
 

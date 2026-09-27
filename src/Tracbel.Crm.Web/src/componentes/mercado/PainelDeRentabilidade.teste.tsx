@@ -117,6 +117,7 @@ function porRegra(regras: readonly number[], areas: Partial<Record<number, numbe
       produtoCodigoIbge,
       areaPlantadaHectares: area,
       maquinasTeoricas: null,
+      porCategoria: [],
       areaColhidaHectares: area,
       valorDaProducaoMilReais: null,
       ano: 2024,

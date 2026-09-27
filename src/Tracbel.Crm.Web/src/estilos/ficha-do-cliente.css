@@ -1,0 +1,91 @@
+/*
+ * Os blocos novos do 360 do cliente (27/09/2026): faturamento e carteiras.
+ *
+ * Tudo aqui QUEBRA LINHA em vez de empurrar a coluna: o bloco mora numa grade de
+ * duas colunas de ~640px na tela do Ricardo (1.536px, ~1.300px de conteúdo), vira
+ * uma coluna abaixo de 1.024px e precisa caber em 390px sem rolar de lado.
+ */
+
+.p360-dado-detalhe {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+.ficha-faturamento,
+.ficha-carteiras {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.ficha-subtitulo {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.ficha-filiais {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Nome à esquerda e valor à direita enquanto couberem; o detalhe desce inteiro
+   para a linha de baixo. */
+.ficha-filial {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+
+.ficha-filial:last-child {
+  border-bottom: 0;
+}
+
+.ficha-filial-nome {
+  flex: 1 1 180px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.ficha-filial-valor {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.ficha-filial-meta {
+  flex: 1 1 100%;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.45;
+}
+
+.ficha-carteira-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+
+.ficha-contato {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

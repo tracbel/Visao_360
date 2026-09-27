@@ -33,7 +33,13 @@ import type { EstadoNoMapa } from '../MapaDeMunicipios';
  */
 function frasesDasRegras(regras: RegraDePotencialAplicada[]): string {
   return [...regras]
-    .sort((a, b) => a.produtoNome.localeCompare(b.produtoNome, 'pt-BR'))
+    // POR CULTURA E, DENTRO DELA, POR CATEGORIA (issue 240): o trator e a colheitadeira da soja saem
+    // sempre juntos e sempre na mesma ordem.
+    .sort(
+      (a, b) =>
+        a.produtoNome.localeCompare(b.produtoNome, 'pt-BR') ||
+        (a.categoriaNome ?? '').localeCompare(b.categoriaNome ?? '', 'pt-BR'),
+    )
     .map((r) => `1 ${r.modeloDeReferencia} a cada ${nº(r.hectaresPorMaquina)} ha de ${r.produtoNome}`)
     .join('; ');
 }

@@ -370,6 +370,51 @@ public interface IRepositorioInteracoes
     Task<PaginaDe<InteracaoComContexto>> ListarAsync(ConsultaDeInteracoes consulta, CancellationToken ct);
 }
 
+/// <summary>
+/// Um vínculo do cliente com uma carteira, como a ficha do cliente o lê — com a filial, o responsável e a cadência
+/// da linha de negócio da carteira.
+/// </summary>
+/// <param name="CarteiraChave">O GUID público da carteira.</param>
+/// <param name="CarteiraCodigo">O código da carteira.</param>
+/// <param name="CarteiraNome">O nome da carteira.</param>
+/// <param name="NaturezaDaCarteira">Comercial, Administrativa ou Teste.</param>
+/// <param name="LinhaDeNegocioNome">A linha de negócio da carteira.</param>
+/// <param name="CadenciaDaClasseA">De quantos em quantos dias a linha visita o cliente A, quando declarado.</param>
+/// <param name="CadenciaDaClasseB">Idem, classe B.</param>
+/// <param name="CadenciaDaClasseC">Idem, classe C.</param>
+/// <param name="CadenciaDaClasseD">Idem, classe D.</param>
+/// <param name="ResponsavelNome">O CEN responsável pela carteira.</param>
+/// <param name="NaturezaDoResponsavel">Pessoa, Departamento, Sistema, Fornecedor ou Teste.</param>
+/// <param name="FilialCodigo">O código da filial dona da carteira.</param>
+/// <param name="FilialNome">O nome dela.</param>
+/// <param name="VinculadoEm">Quando o cliente entrou na carteira (UTC).</param>
+/// <param name="UltimaInteracaoEm">O último contato registrado no vínculo (UTC). Nulo é "sem registro".</param>
+public sealed record VinculoDoClienteComCarteira(
+    Guid CarteiraChave,
+    string CarteiraCodigo,
+    string CarteiraNome,
+    string NaturezaDaCarteira,
+    string LinhaDeNegocioNome,
+    short? CadenciaDaClasseA,
+    short? CadenciaDaClasseB,
+    short? CadenciaDaClasseC,
+    short? CadenciaDaClasseD,
+    string? ResponsavelNome,
+    string? NaturezaDoResponsavel,
+    string FilialCodigo,
+    string FilialNome,
+    DateTime VinculadoEm,
+    DateTime? UltimaInteracaoEm);
+
+/// <summary>As carteiras de um cliente e a classe dele, como a ficha as lê.</summary>
+/// <param name="Classe">A classe da curva ABC apurada do faturamento, no cadastro do cliente. Nula antes da apuração.</param>
+/// <param name="ClasseApuradaEm">Quando a classe foi apurada (UTC).</param>
+/// <param name="Vinculos">Os vínculos ativos, nas carteiras ao alcance de quem consulta.</param>
+public sealed record CarteirasLidasDoCliente(
+    ClasseDeCliente? Classe,
+    DateTime? ClasseApuradaEm,
+    IReadOnlyList<VinculoDoClienteComCarteira> Vinculos);
+
 /// <summary>O acesso à carteirização — a leitura que sustenta a tela de Cobertura.</summary>
 public interface IRepositorioCarteiras
 {
@@ -380,6 +425,15 @@ public interface IRepositorioCarteiras
     /// <param name="agoraUtc">O instante de referência das janelas de 30 e 90 dias.</param>
     /// <param name="ct">Cancelamento.</param>
     Task<IReadOnlyList<ResumoDeCobertura>> ResumirCoberturaAsync(DateTime agoraUtc, CancellationToken ct);
+
+    /// <summary>
+    /// As carteiras em que o cliente está — os vínculos ativos, com a filial, o responsável e a cadência da linha de
+    /// negócio. Nulo quando o cliente não existe ou está fora do alcance de quem consulta; lista vazia quando ele não
+    /// está em nenhuma carteira ao alcance.
+    /// </summary>
+    /// <param name="chaveDoCliente">O GUID público do cliente.</param>
+    /// <param name="ct">Cancelamento.</param>
+    Task<CarteirasLidasDoCliente?> ListarDoClienteAsync(Guid chaveDoCliente, CancellationToken ct);
 }
 
 /// <summary>
@@ -526,10 +580,56 @@ public sealed record ClienteNoRanking(
     Guid ClienteChave, string Nome, string? Classe, decimal ValorLiquido, DateOnly? UltimaCompraEm);
 
 /// <summary>
+/// Um mês de faturamento de um cliente numa filial — a linha de <c>FaturamentoDoCliente</c> como a ficha a lê, com a
+/// quebra por grupo de item da nota.
+/// </summary>
+/// <param name="Competencia">O primeiro dia do mês.</param>
+/// <param name="FilialCodigo">O código da filial que emitiu a nota (<c>D2_FILIAL</c>).</param>
+/// <param name="FilialNome">O nome dela.</param>
+/// <param name="ValorLiquido">O que foi faturado no mês.</param>
+/// <param name="Maquina">Quanto foi máquina (grupo <c>VEIC</c>).</param>
+/// <param name="Peca">Quanto foi peça.</param>
+/// <param name="Servico">Quanto foi serviço e mão de obra.</param>
+/// <param name="Outros">Quanto caiu em grupo que ainda não se sabe ler.</param>
+/// <param name="Notas">Quantas notas distintas.</param>
+public sealed record MesDoClienteNaFilial(
+    DateOnly Competencia,
+    string FilialCodigo,
+    string FilialNome,
+    decimal ValorLiquido,
+    decimal Maquina,
+    decimal Peca,
+    decimal Servico,
+    decimal Outros,
+    int Notas);
+
+/// <summary>O faturamento de um cliente, como o repositório o lê — com o que a carga carregou ao alcance.</summary>
+/// <param name="PrimeiraCompetenciaDaCarga">A competência mais antiga carregada ao alcance — o começo da janela.</param>
+/// <param name="CompetenciaMaisRecenteDaCarga">A competência mais recente carregada ao alcance, de qualquer cliente.</param>
+/// <param name="CarregadoEm">
+/// Quando a carga gravou a linha mais recente dessa competência (UTC) — a mesma leitura do cartão de faturamento da
+/// Visão 360.
+/// </param>
+/// <param name="Meses">Os meses do cliente, nas filiais ao alcance.</param>
+public sealed record FaturamentoLidoDoCliente(
+    DateOnly? PrimeiraCompetenciaDaCarga,
+    DateOnly? CompetenciaMaisRecenteDaCarga,
+    DateTime? CarregadoEm,
+    IReadOnlyList<MesDoClienteNaFilial> Meses);
+
+/// <summary>
 /// O acesso ao faturamento — a leitura que sustenta a série de doze meses e o ranking de clientes.
 /// </summary>
 public interface IRepositorioFaturamento
 {
+    /// <summary>
+    /// O faturamento de UM cliente, mês a mês e filial a filial, com a janela e a data da carga. Nulo quando o cliente
+    /// não existe ou está fora do alcance de quem consulta.
+    /// </summary>
+    /// <param name="chaveDoCliente">O GUID público do cliente.</param>
+    /// <param name="ct">Cancelamento.</param>
+    Task<FaturamentoLidoDoCliente?> DoClienteAsync(Guid chaveDoCliente, CancellationToken ct);
+
     /// <summary>
     /// A série mensal dos últimos meses, do mais antigo para o mais novo.
     /// </summary>

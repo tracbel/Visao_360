@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Metadado;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
@@ -166,8 +167,9 @@ public sealed class MigracaoNoContainerTestes
         var culturaPorId = contexto.Culturas.ToDictionary(c => c.Id, c => c.Codigo);
         var produtosDaSoma = contexto.ProdutosDaPamNasCulturas.Where(p => p.EntraNaSomaDaLavoura).ToList();
 
+        // SÓ AS DO TRATOR: as das outras categorias, do mesmo dia, têm o teste delas logo abaixo.
         var novas = contexto.RegrasDePotencial
-            .Where(r => r.VigenteDesde == new DateOnly(2026, 9, 27))
+            .Where(r => r.VigenteDesde == new DateOnly(2026, 9, 27) && r.CategoriaDeMaquinaId == trator.Id)
             .ToList();
 
         novas.Select(r => (Cultura: culturaPorId[r.CulturaId!.Value], r.HectaresPorMaquina, r.AnosDeRenovacao))
@@ -199,7 +201,9 @@ public sealed class MigracaoNoContainerTestes
 
         // O PASSADO NÃO SE REESCREVE: o cálculo de 26/09 continua com o exemplo de 13/09, e o de 27/09 em
         // diante usa a decisão.
-        var doCafe = contexto.RegrasDePotencial.Where(r => r.ProdutoCodigoIbge == 40139).ToList();
+        var doCafe = contexto.RegrasDePotencial
+            .Where(r => r.ProdutoCodigoIbge == 40139 && r.CategoriaDeMaquinaId == trator.Id)
+            .ToList();
         ParametroComVigencia.VigenteEm(doCafe, new DateOnly(2026, 9, 26))!.HectaresPorMaquina.Should().Be(10m);
         var vigenteNaDecisao = ParametroComVigencia.VigenteEm(doCafe, new DateOnly(2026, 9, 27))!;
         vigenteNaDecisao.HectaresPorMaquina.Should().Be(20m);
@@ -207,15 +211,91 @@ public sealed class MigracaoNoContainerTestes
 
         // RODAR DE NOVO NÃO DUPLICA: é o mesmo texto que a migração executa.
         contexto.Database.ExecuteSqlRaw(RegrasDoPotencialDosTratores.Insercao);
-        contexto.RegrasDePotencial.Count().Should().Be(7, "a de 13/09 e as seis de 27/09 — rodar de novo não duplica");
+        contexto.RegrasDePotencial.Count(r => r.CategoriaDeMaquinaId == trator.Id)
+            .Should().Be(7, "a de 13/09 e as seis de 27/09 — rodar de novo não duplica");
 
-        // E A MIGRAÇÃO VOLTA: o Down tira as seis e só elas, e o Up as põe de novo.
+        // E A MIGRAÇÃO VOLTA: o Down tira as seis e só elas, e o Up as põe de novo. (Voltar até antes dela
+        // desfaz também a migração das outras categorias, que vem depois.)
         var migrador = contexto.GetService<IMigrator>();
         migrador.Migrate("ParquePeloProprietarioAtual");
         contexto.RegrasDePotencial.Select(r => r.VigenteDesde).Should().Equal(new DateOnly(2026, 9, 13));
 
         migrador.Migrate();
-        contexto.RegrasDePotencial.Count().Should().Be(7);
+        contexto.RegrasDePotencial.Count(r => r.CategoriaDeMaquinaId == trator.Id).Should().Be(7);
+    }
+
+    [FatoSeHouverSqlServer]
+    public void A_colhedora_de_cana_vira_categoria_as_outras_categorias_ganham_regra_e_o_custo_ganha_referencia()
+    {
+        // AS DUAS DECISÕES DE 27/09/2026 (issue 63): as outras categorias do protótipo, aprovadas como estão,
+        // com a colhedora de cana virando categoria; e a D-P07, Franca e Piracicaba no custo total.
+        using var contexto = CriarContexto();
+
+        contexto.Database.EnsureDeleted();
+        contexto.Database.Migrate();
+
+        var colhedora = contexto.CategoriasDeMaquina.AsNoTracking().Single(c => c.Codigo == "COLHEDORA_DE_CANA");
+        colhedora.Id.Should().Be(7, "entrou no FIM da lista da semente — o Id é a posição, e as seis de antes não se mexem");
+        contexto.LinhasDeProdutoNasCategorias.AsNoTracking().Single(l => l.CodigoDaLinha == "COLHEDORA_DE_CANA")
+            .CategoriaDeMaquinaId.Should().Be(colhedora.Id, "a venda de colhedora do ART passa a entrar na categoria dela");
+
+        var trator = contexto.CategoriasDeMaquina.AsNoTracking().Single(c => c.Codigo == "TRATOR");
+        var categoriaPorId = contexto.CategoriasDeMaquina.AsNoTracking().ToDictionary(c => c.Id, c => c.Codigo);
+        var culturaPorId = contexto.Culturas.AsNoTracking().ToDictionary(c => c.Id, c => c.Codigo);
+
+        var novas = contexto.RegrasDePotencial.AsNoTracking()
+            .Where(r => r.VigenteDesde == new DateOnly(2026, 9, 27) && r.CategoriaDeMaquinaId != trator.Id)
+            .ToList();
+
+        novas.Select(r => (
+                Categoria: categoriaPorId[r.CategoriaDeMaquinaId!.Value],
+                Cultura: culturaPorId[r.CulturaId!.Value],
+                r.HectaresPorMaquina,
+                r.AnosDeRenovacao))
+            .Should().BeEquivalentTo(
+                new[]
+                {
+                    (Categoria: "COLHEITADEIRA", Cultura: "SOJA", HectaresPorMaquina: 1_500m, AnosDeRenovacao: (decimal?)10m),
+                    (Categoria: "COLHEITADEIRA", Cultura: "MILHO", HectaresPorMaquina: 1_500m, AnosDeRenovacao: (decimal?)10m),
+                    (Categoria: "PLANTADEIRA", Cultura: "SOJA", HectaresPorMaquina: 800m, AnosDeRenovacao: (decimal?)10m),
+                    (Categoria: "PLANTADEIRA", Cultura: "MILHO", HectaresPorMaquina: 800m, AnosDeRenovacao: (decimal?)10m),
+                    (Categoria: "PULVERIZADOR", Cultura: "CANA", HectaresPorMaquina: 1_500m, AnosDeRenovacao: (decimal?)8m),
+                    (Categoria: "PULVERIZADOR", Cultura: "SOJA", HectaresPorMaquina: 1_000m, AnosDeRenovacao: (decimal?)8m),
+                    (Categoria: "PULVERIZADOR", Cultura: "MILHO", HectaresPorMaquina: 1_000m, AnosDeRenovacao: (decimal?)8m),
+                    (Categoria: "COLHEDORA_DE_CANA", Cultura: "CANA", HectaresPorMaquina: 700m, AnosDeRenovacao: (decimal?)8m)
+                },
+                "é o padrão do protótipo, aprovado como está");
+
+        novas.Should().OnlyContain(r =>
+                r.Situacao == SituacaoDaRegraDePotencial.Confirmada && r.InformadoPorId == null && r.RevogadoEm == null,
+            "aprovadas pelo Ricardo, e vindas da migração — não de um usuário do CRM");
+
+        // A D-P07: o custo total da CONAB em Franca (café) e em Piracicaba (cana) — e nenhuma outra cultura.
+        var referencias = contexto.Culturas.AsNoTracking()
+            .ToDictionary(c => c.Codigo, c => (c.LocalDeReferenciaDoCusto, c.CamadaDeCustoDaMargem));
+        referencias["CAFE"].Should().Be(("Franca", (CamadaDoCusto?)CamadaDoCusto.Total));
+        referencias["CANA"].Should().Be(("Piracicaba", (CamadaDoCusto?)CamadaDoCusto.Total));
+        referencias.Where(r => r.Key is not "CAFE" and not "CANA")
+            .Should().OnlyContain(r => r.Value.LocalDeReferenciaDoCusto == null && r.Value.CamadaDeCustoDaMargem == null,
+                "a CONAB não publica custo das outras quatro em São Paulo — sem referência, e não uma inventada");
+
+        // RODAR DE NOVO NÃO DUPLICA NEM SOBRESCREVE: é o mesmo texto que a migração executa.
+        contexto.Database.ExecuteSqlRaw(ColhedoraDeCanaERegrasDasOutrasCategorias.InsercaoDasRegras);
+        contexto.Database.ExecuteSqlRaw(ColhedoraDeCanaERegrasDasOutrasCategorias.ReferenciaDoCusto);
+        contexto.RegrasDePotencial.Count(r => r.VigenteDesde == new DateOnly(2026, 9, 27) && r.CategoriaDeMaquinaId != trator.Id)
+            .Should().Be(8);
+
+        // E A MIGRAÇÃO VOLTA: o Down tira as oito, a referência do custo e a categoria — e só isso.
+        var migrador = contexto.GetService<IMigrator>();
+        migrador.Migrate("RegrasDoPotencialDosTratores");
+
+        contexto.CategoriasDeMaquina.Any(c => c.Codigo == "COLHEDORA_DE_CANA").Should().BeFalse();
+        contexto.RegrasDePotencial.Count(r => r.CategoriaDeMaquinaId != trator.Id).Should().Be(0);
+        contexto.RegrasDePotencial.Count(r => r.CategoriaDeMaquinaId == trator.Id).Should().Be(7, "as do trator são da migração anterior");
+        contexto.Culturas.AsNoTracking().Single(c => c.Codigo == "CAFE").LocalDeReferenciaDoCusto.Should().BeNull();
+
+        migrador.Migrate();
+        contexto.RegrasDePotencial.Count(r => r.CategoriaDeMaquinaId != trator.Id).Should().Be(8);
     }
 
     [FatoSeHouverSqlServer]

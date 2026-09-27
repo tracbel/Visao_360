@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Tracbel.Crm.Dominio.Frota;
 using Tracbel.Crm.Dominio.Portas;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
@@ -57,6 +58,20 @@ public sealed class RepositorioDeHistoricoComercial(CrmDbContext contexto) : IRe
 
         var sistemas = await contexto.Sistemas.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.Codigo, ct);
 
+        // O DONO ATUAL É O DA SINCRONIA DO PARQUE (24/09/2026), e não só o confirmado no cadastro da máquina: o
+        // confirmado existe quando o Protheus e o ART concordam, o vínculo de dono atual existe com qualquer evidência.
+        // Medido em 27/09/2026: dos 3.564 vínculos de comprador, 3.146 são do dono atual pelo vínculo e 2.440 do dono
+        // confirmado — a ficha dizia "comprador na venda" a 706 compradores que são o dono atual.
+        var donoAtualPelaSincronia = (await contexto.VinculosComEquipamento.AsNoTracking()
+                .Where(l => l.ClienteId == clienteId
+                            && idsDasMaquinas.Contains(l.EquipamentoId)
+                            && l.Natureza == NaturezaDoVinculoComEquipamento.ProprietarioAtual
+                            && l.EncerradoEm == null
+                            && l.ExcluidoEm == null)
+                .Select(l => l.EquipamentoId)
+                .ToListAsync(ct))
+            .ToHashSet();
+
         return [.. vinculos
             .Where(v => maquinas.ContainsKey(v.EquipamentoId) && vendas.ContainsKey(v.VendaId))
             .Select(v =>
@@ -73,7 +88,7 @@ public sealed class RepositorioDeHistoricoComercial(CrmDbContext contexto) : IRe
                     v.Natureza.ToString(),
                     filiais.GetValueOrDefault(v.EmpresaId, "?"),
                     v.SistemaId is { } sistema ? sistemas.GetValueOrDefault(sistema, "?") : "CRM",
-                    maquina.ClienteId == clienteId);
+                    maquina.ClienteId == clienteId || donoAtualPelaSincronia.Contains(v.EquipamentoId));
             })
             .OrderByDescending(m => m.VendidaEm)
             .ThenBy(m => m.Chassi, StringComparer.Ordinal)];

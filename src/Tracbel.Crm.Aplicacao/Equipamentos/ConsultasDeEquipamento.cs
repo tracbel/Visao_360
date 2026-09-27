@@ -24,7 +24,10 @@ public sealed class ListarEquipamentos(
     /// <param name="termo">Busca por chassi, número de série ou placa.</param>
     /// <param name="situacao">Filtro por situação. Domínio fechado.</param>
     /// <param name="origem">Filtro por Protheus, Crm ou Art. Domínio fechado.</param>
-    /// <param name="clienteChave">Filtro pelo dono — é o que a Visão 360 usa.</param>
+    /// <param name="clienteChave">
+    /// Filtro pelo cliente — é o que a Visão 360 e a ficha usam: as máquinas de que ele é o dono atual, as que ele
+    /// comprou numa venda registrada e as que têm ele como dono confirmado, cada uma com a relação na resposta.
+    /// </param>
     /// <param name="ordenarPor">Coluna de ordenação. Domínio fechado.</param>
     /// <param name="descendente">Ordem decrescente.</param>
     /// <param name="incluirInativos">Trazer também as máquinas baixadas.</param>
@@ -145,7 +148,8 @@ public sealed class ObterEquipamento(IRepositorioEquipamentos repositorio, IRelo
 
 /// <summary>
 /// AS MÁQUINAS QUE O CLIENTE COMPROU — pelo vínculo "comprador na venda", com a data da venda. Uma
-/// compra não faz do cliente o dono atual: o campo <c>EhDonoAtual</c> diz quando ele também é.
+/// compra não faz do cliente o dono atual: o campo <c>EhDonoAtual</c> diz quando ele também é — pelo vínculo de dono
+/// atual da sincronia do parque, ou pelo dono confirmado no cadastro da máquina.
 /// </summary>
 public sealed class ListarMaquinasCompradasPeloCliente(IRepositorioHistoricoComercial repositorio, IRelogio relogio)
 {

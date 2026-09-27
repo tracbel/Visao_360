@@ -121,7 +121,7 @@ public sealed class ProdutoDaPamNaCulturaConfiguracao : IEntityTypeConfiguration
 }
 
 /// <summary>
-/// Mapeamento de <see cref="CategoriaDeMaquina"/> — as seis categorias do pedido (D-IM-06, issue 165).
+/// Mapeamento de <see cref="CategoriaDeMaquina"/> — as seis categorias do pedido (D-IM-06, issue 165) e a colhedora de cana (27/09/2026).
 /// </summary>
 public sealed class CategoriaDeMaquinaConfiguracao : IEntityTypeConfiguration<CategoriaDeMaquina>
 {
@@ -154,7 +154,7 @@ public sealed class CategoriaDeMaquinaConfiguracao : IEntityTypeConfiguration<Ca
 /// Mapeamento de <see cref="ProdutoDoSicorNaCategoria"/> — o que tira a lista <c>[7080, 4860, 2700]</c>
 /// do código, onde a issue 157 a deixou de passagem.
 ///
-/// <para>Três das seis categorias nascem <b>sem produto</b>: o investimento do Banco Central não separa
+/// <para>Quatro das sete categorias nascem <b>sem produto</b>: o investimento do Banco Central não separa
 /// plantadeira, pulverizador nem agricultura de precisão (anexo 49C).</para>
 /// </summary>
 public sealed class ProdutoDoSicorNaCategoriaConfiguracao : IEntityTypeConfiguration<ProdutoDoSicorNaCategoria>
@@ -250,21 +250,22 @@ public sealed class CulturaNoGrupoDeCompartilhamentoConfiguracao : IEntityTypeCo
 /// Mapeamento de <see cref="LinhaDeProdutoNaCategoria"/> — o último elo entre a venda de máquina e a
 /// categoria de mercado (issue 69, D-P08).
 ///
-/// <para><b>Oito linhas nascem ligadas e duas nascem sem categoria</b>, de propósito. As oito são
-/// mecânicas — três tratores para Trator, a colheitadeira para Colheitadeira, a plantadeira, o
-/// pulverizador e os dois implementos. As duas que ficam de fora são JULGAMENTO DE NEGÓCIO, e o comercial
-/// decide:</para>
+/// <para><b>Nove linhas ligadas e uma sem categoria</b>, de propósito. As oito primeiras são mecânicas —
+/// três tratores para Trator, a colheitadeira para Colheitadeira, a plantadeira, o pulverizador e os dois
+/// implementos. As outras duas eram JULGAMENTO DE NEGÓCIO:</para>
 ///
 /// <list type="bullet">
-///   <item><c>COLHEDORA_DE_CANA</c> — colher cana é outra máquina que colher grão, e o catálogo tem uma
-///   categoria de colheitadeira só. Ligá-la a "Colheitadeira" mistura dois mercados; deixá-la fora tira da
-///   captura por categoria justamente a máquina mais vendida na região da cana.</item>
+///   <item><c>COLHEDORA_DE_CANA</c> — colher cana é outra máquina que colher grão, e o catálogo tinha uma
+///   categoria de colheitadeira só: ligá-la a "Colheitadeira" misturava dois mercados, e deixá-la fora tirava
+///   da captura a máquina mais vendida na região da cana. <b>Resolvido em 27/09/2026:</b> o Ricardo aprovou a
+///   regra da colhedora de cana (700 ha, troca em 8 anos), e ela ganhou categoria própria.</item>
 ///   <item><c>PLATAFORMA_DE_CORTE</c> — é acessório de colheitadeira, e não máquina que o produtor compra
-///   sozinha. Contá-la como implemento infla a contagem de implementos com peça de outra máquina.</item>
+///   sozinha. Contá-la como implemento infla a contagem de implementos com peça de outra máquina. Continua
+///   sem categoria.</item>
 /// </list>
 ///
-/// <para>Enquanto as duas estiverem sem categoria, a venda delas continua no total e some só da leitura
-/// POR categoria — com o nome da linha dito na tela.</para>
+/// <para>Linha sem categoria continua no total e some só da leitura POR categoria — com o nome da linha dito
+/// na tela.</para>
 /// </summary>
 public sealed class LinhaDeProdutoNaCategoriaConfiguracao : IEntityTypeConfiguration<LinhaDeProdutoNaCategoria>
 {
@@ -288,8 +289,9 @@ public sealed class LinhaDeProdutoNaCategoriaConfiguracao : IEntityTypeConfigura
 
         b.HasOne<CategoriaDeMaquina>().WithMany().HasForeignKey(p => p.CategoriaDeMaquinaId).OnDelete(DeleteBehavior.Restrict);
 
-        // AS OITO MECÂNICAS. Os ids das categorias são os semeados na issue 165: 1 Trator, 2 Plantadeira,
-        // 3 Colheitadeira, 4 Pulverizador, 5 Implemento, 6 Agricultura de precisão.
+        // AS OITO MECÂNICAS E A COLHEDORA DE CANA. Os ids das categorias são os semeados na issue 165 —
+        // 1 Trator, 2 Plantadeira, 3 Colheitadeira, 4 Pulverizador, 5 Implemento, 6 Agricultura de
+        // precisão — e o 7, Colhedora de cana, de 27/09/2026.
         b.HasData(
             new { Id = 1, CategoriaDeMaquinaId = 1, CodigoDaLinha = "TRATOR_PEQUENO", Descricao = "Trator pequeno" },
             new { Id = 2, CategoriaDeMaquinaId = 1, CodigoDaLinha = "TRATOR_MEDIO", Descricao = "Trator médio" },
@@ -298,6 +300,7 @@ public sealed class LinhaDeProdutoNaCategoriaConfiguracao : IEntityTypeConfigura
             new { Id = 5, CategoriaDeMaquinaId = 2, CodigoDaLinha = "PLANTADEIRA", Descricao = "Plantadeira" },
             new { Id = 6, CategoriaDeMaquinaId = 4, CodigoDaLinha = "PULVERIZADOR", Descricao = "Pulverizador" },
             new { Id = 7, CategoriaDeMaquinaId = 5, CodigoDaLinha = "IMPLEMENTO_JOHN_DEERE", Descricao = "Implemento John Deere" },
-            new { Id = 8, CategoriaDeMaquinaId = 5, CodigoDaLinha = "IMPLEMENTO_OUTRAS_MARCAS", Descricao = "Implemento de outras marcas" });
+            new { Id = 8, CategoriaDeMaquinaId = 5, CodigoDaLinha = "IMPLEMENTO_OUTRAS_MARCAS", Descricao = "Implemento de outras marcas" },
+            new { Id = 9, CategoriaDeMaquinaId = 7, CodigoDaLinha = "COLHEDORA_DE_CANA", Descricao = "Colhedora de cana" });
     }
 }
