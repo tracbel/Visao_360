@@ -106,7 +106,7 @@ public sealed class LeitoresDoFunilDoVorticeTestes
         var tabela = new DataTable();
         foreach (var (nome, tipo) in new[]
                  {
-                     ("Processo", typeof(decimal)), ("CodProcesso", typeof(decimal)), ("ProcessoDNA", typeof(decimal)),
+                     ("Processo", typeof(decimal)), ("CodProcesso", typeof(decimal)), ("ProcessoDNA", typeof(decimal)), ("ProcessoPai", typeof(decimal)),
                      ("NroEmpresa", typeof(decimal)), ("SeqPessoa", typeof(decimal)), ("FisicaJuridica", typeof(string)),
                      ("NroCGCCPF", typeof(decimal)), ("DigCGCCPF", typeof(decimal)), ("SeqCarteira", typeof(decimal)),
                      ("UsuResponsavel", typeof(string)), ("DtaInclusao", typeof(DateTime)), ("Status", typeof(string)),
@@ -115,8 +115,8 @@ public sealed class LeitoresDoFunilDoVorticeTestes
             tabela.Columns.Add(nome, tipo);
 
         // CPF 529.982.247-25: a base numérica sem o zero à esquerda não se aplica aqui, mas o dígito vem à parte.
-        tabela.Rows.Add(123456m, 41m, DBNull.Value, 13m, 777m, "F", 529982247m, 25m, 18m, "  MARIA.SOUZA ",
-            new DateTime(2024, 1, 5, 9, 30, 0), "   ", DBNull.Value, new DateTime(2024, 1, 6, 10, 0, 0));
+        tabela.Rows.Add(123456m, 41m, DBNull.Value, 120000m, 13m, 777m, "F", 529982247m, 25m, 18m, "  MARIA.SOUZA ",
+            new DateTime(2024, 1, 5, 9, 30, 0), "   ", new DateTime(9999, 12, 31, 23, 59, 59), new DateTime(2024, 1, 6, 10, 0, 0));
 
         using var leitor = tabela.CreateDataReader();
         leitor.Read().Should().BeTrue();
@@ -134,8 +134,9 @@ public sealed class LeitoresDoFunilDoVorticeTestes
             IncluidoEmUtc = (DateTime?)new DateTime(2024, 1, 5, 12, 30, 0, DateTimeKind.Utc),
             PrimeiroAndamentoEmUtc = (DateTime?)new DateTime(2024, 1, 6, 13, 0, 0, DateTimeKind.Utc),
             Status = (string?)null,
-            RealizadoEmUtc = (DateTime?)null
-        }, o => o.ExcludingMissingMembers());
+            NumeroDoPai = (long?)120000,
+            RealizadoEmUtc = (DateTime?)DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc)
+        }, o => o.ExcludingMissingMembers(), "a 31/12/9999 do Vórtice não estoura o AddHours: vira o maior instante, e a regra a recusa");
         processo.Documento.Numero.Should().Be("52998224725");
         processo.NaRegra.Should().Be(new ProcessoNaRegraDoEstagio(123456, 41, 123456, processo.IncluidoEmUtc, processo.PrimeiroAndamentoEmUtc));
     }
@@ -202,6 +203,22 @@ public sealed class LeitoresDoFunilDoVorticeTestes
 
         LeitorDeVendasPerdidasDoVortice.Quantidade("2,0").Should().Be(2m);
         LeitorDeVendasPerdidasDoVortice.Quantidade("duas").Should().BeNull("o que não é número é 'não declarada'");
+    }
+
+    [Fact]
+    public async Task A_cadeia_malformada_e_dita_como_credencial_e_so_ela()
+    {
+        var funil = await new LeitorDoFunilDoVortice(new OpcoesDoVortice { Conexao = "isto não é=uma;cadeia==de conexão" })
+            .LerAsync([250], CancellationToken.None);
+        funil.EhSucesso.Should().BeFalse();
+        funil.Erro.Should().Contain("malformada");
+
+        var perdas = await new LeitorDeVendasPerdidasDoVortice(new OpcoesDoVortice { Conexao = "isto não é=uma;cadeia==de conexão" })
+            .LerAsync(CancellationToken.None);
+        perdas.Erro.Should().Contain("malformada");
+
+        LeituraDoVortice.CadeiaDeLeitura("Server=vortice;Database=CRM;User Id=leitura;Password=x")
+            .Should().Contain("Application Intent=ReadOnly", "a intenção de leitura vai por cima do que vier na cadeia");
     }
 
     private static string RaizDoRepositorio()

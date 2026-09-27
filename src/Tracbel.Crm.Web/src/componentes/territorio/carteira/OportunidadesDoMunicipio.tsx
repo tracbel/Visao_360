@@ -8,13 +8,16 @@
  * Esta é a aba do "quanto dá para vender aqui", e é a pergunta que eles
  * respondem.
  *
- * O MOTIVO DE MERCADO ANUAL, CAPTURA E OPORTUNIDADE É A FRASE DO SERVIDOR (issue
- * 69, parte A), a mesma dos cartões do topo da aba Mercado — e não uma
- * constante escrita aqui, que era a terceira redação da mesma ausência. Os
- * números da API são do RECORTE: o que falta para ele falta para o município.
- * Quando o recorte tem o número, a frase vem vazia — e a ficha NÃO herda o
- * número do recorte, que seria de outro lugar: ela fica com o traço e diz por
- * quê (`SO_NO_RECORTE`), até existir a conta por município.
+ * CAPTURA E OPORTUNIDADE SÃO DO MUNICÍPIO (27/09/2026): o servidor passou a
+ * montá-las para cada um, pela mesma conta dos cartões do topo da aba Mercado —
+ * a demanda das categorias que têm regra aqui, as máquinas vendidas daqui
+ * nessas categorias e o fator de ciclo do recorte. Antes a ficha mostrava "—"
+ * e "só no recorte": a rota calculava os dois ingredientes e jogava fora.
+ *
+ * O MOTIVO DE CADA AUSÊNCIA É A FRASE DO SERVIDOR (issue 69, parte A) — a do
+ * município, e na falta dela a do recorte. A ficha NUNCA herda o NÚMERO do
+ * recorte, que seria de outro lugar; `SO_NO_RECORTE` só aparece quando o
+ * servidor não mandou a conta do município.
  *
  * EMBAIXO, A LISTA DE OPORTUNIDADES COM CONFIANÇA E ORIGEM (issue 162), com o
  * desenho pronto e vazia. As vendas em unidades por município já existem (issue
@@ -29,6 +32,9 @@ import { InfoTooltip } from '../../InfoTooltip';
 import { CartaoDeIndicador, GradeDeIndicadores } from '../../dashboard/Dashboard';
 
 const nº = (v: number) => v.toLocaleString('pt-BR');
+/** Máquinas com uma casa: a demanda do município é estimativa, e 0,2 máquina é informação. */
+const maquinas = (v: number) => v.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
 /**
  * Por que o número que o RECORTE tem não aparece no município: a conta do
@@ -62,6 +68,17 @@ export function OportunidadesDoMunicipio({
   numerosDeDecisao: NumerosDeDecisao | null;
 }) {
   const motor = municipio.potencialEstrutural;
+  const doMunicipio = municipio.numerosDeDecisao ?? null;
+  const captura = doMunicipio?.capturaPercentual.valor ?? null;
+  const oportunidade = doMunicipio?.oportunidade.valor ?? null;
+
+  /** A frase da ausência: a do município, a do recorte, e só então a constante. */
+  const motivo = (
+    doMunicipioFrase: string | undefined,
+    doRecorteFrase: string | undefined,
+    constante: string,
+  ): string | undefined =>
+    doMunicipioFrase || (numerosDeDecisao ? doRecorteFrase || constante : undefined);
 
   return (
     <div className="terr-ficha-oportunidades">
@@ -88,17 +105,19 @@ export function OportunidadesDoMunicipio({
           <CartaoDeIndicador
             rotulo="Mercado anual"
             valor={null}
-            motivoSemDado={numerosDeDecisao ? numerosDeDecisao.mercadoAnual.frase || MERCADO_SO_NO_RECORTE : undefined}
+            motivoSemDado={motivo(doMunicipio?.mercadoAnual.frase, numerosDeDecisao?.mercadoAnual.frase, MERCADO_SO_NO_RECORTE)}
           />
           <CartaoDeIndicador
             rotulo="Captura Tracbel"
-            valor={null}
-            motivoSemDado={numerosDeDecisao ? numerosDeDecisao.capturaPercentual.frase || SO_NO_RECORTE('A captura') : undefined}
+            valor={captura == null ? null : porcento(captura)}
+            contexto={doMunicipio?.baseDaCaptura?.frase}
+            motivoSemDado={motivo(doMunicipio?.capturaPercentual.frase, numerosDeDecisao?.capturaPercentual.frase, SO_NO_RECORTE('A captura'))}
           />
           <CartaoDeIndicador
             rotulo="Oportunidade"
-            valor={null}
-            motivoSemDado={numerosDeDecisao ? numerosDeDecisao.oportunidade.frase || SO_NO_RECORTE('A oportunidade') : undefined}
+            valor={oportunidade == null ? null : `${maquinas(oportunidade)} máq`}
+            contexto="a demanda ajustada do período menos as vendas daqui"
+            motivoSemDado={motivo(doMunicipio?.oportunidade.frase, numerosDeDecisao?.oportunidade.frase, SO_NO_RECORTE('A oportunidade'))}
           />
         </GradeDeIndicadores>
       </section>

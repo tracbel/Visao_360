@@ -768,6 +768,22 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         var porCategoriaNoRecorte = categoriasDoMotor.ToDictionary(
             g => g.Key.CategoriaCodigo, _ => new List<PotencialDoRecorte>(), StringComparer.Ordinal);
 
+        // A DEMANDA POR CATEGORIA E CULTURA DE CADA MUNICÍPIO (27/09/2026). O motor já a calcula aqui, e ela era
+        // jogada fora: é o ingrediente dos números de decisão da ficha do município, que a consulta monta com o
+        // fator de ciclo de cada cultura. Só as parcelas com parque — as outras não têm demanda para ajustar.
+        var nomeDaCategoriaNoMotor = categoriasDoMotor
+            .Select(g => g.Key)
+            .DistinctBy(k => k.CategoriaCodigo, StringComparer.Ordinal)
+            .ToDictionary(k => k.CategoriaCodigo, k => k.CategoriaNome, StringComparer.Ordinal);
+
+        List<DemandaNoMunicipio> DemandaDoMunicipio(List<(string Codigo, PotencialDoRecorte Resultado)> doMotor) =>
+        [
+            .. doMotor.SelectMany(c => c.Resultado.Parcelas
+                .Where(p => p.Parque is not null)
+                .Select(p => new DemandaNoMunicipio(
+                    c.Codigo, nomeDaCategoriaNoMotor[c.Codigo], p.CulturaCodigo, p.Cultura, p.DemandaAnual, p.AreaUtilHectares)))
+        ];
+
         var totaisDosMunicipios = new List<PotencialDoRecorte>();
         var codigosNoRecorte = new List<int>();
 
@@ -877,7 +893,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                         noMunicipio.Estimativa,
                         noMunicipio.MotivoSemParque,
                         noMunicipio.MotivoSemDemanda),
-                oArtTrouxeVenda ? acumulador.MaquinasVendidas : null));
+                oArtTrouxeVenda ? acumulador.MaquinasVendidas : null,
+                DemandaPorCategoriaECultura: DemandaDoMunicipio(doMotor)));
         }
 
         var foraDoMapa = GruposForaDoMapa
@@ -926,6 +943,17 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
 
         var maquinasVendidas = !oArtTrouxeVenda ? null : UnidadesDoRecorte(acumuladores);
 
+        // AS UNIDADES DE UM MUNICÍPIO POR CATEGORIA — a mesma leitura do recorte, para a captura da ficha contar
+        // só as categorias que têm demanda ali (27/09/2026).
+        List<UnidadesNaCategoria> UnidadesDoMunicipioPorCategoria(Acumulador? acumulador) =>
+        [
+            .. (acumulador?.MaquinasPorCategoria ?? [])
+                .Select(c => new UnidadesNaCategoria(
+                    c.Key, categoriaPeloCodigo.TryGetValue(c.Key, out var doCatalogo) ? doCatalogo.Nome : c.Key, c.Value))
+                .OrderBy(c => categoriaPeloCodigo.TryGetValue(c.CategoriaCodigo, out var ordem) ? ordem.Ordem : short.MaxValue)
+                .ThenBy(c => c.CategoriaCodigo, StringComparer.Ordinal)
+        ];
+
         var periodoAnterior = MontarPeriodoAnterior(
             janela, janelaAnterior, primeiraCompetenciaDoFaturamento, primeiroMesDoArt, oArtTrouxeVenda,
             codigosNoRecorte.Where(c => area.TryGetValue(c, out var daArea) && daArea.PertenceAAdr).ToHashSet(),
@@ -944,6 +972,9 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     : null,
                 MaquinasVendidasNoPeriodoAnterior = oArtTrouxeVenda && periodoAnterior.MaquinasCobertas
                     ? anteriores.GetValueOrDefault(i.CodigoIbge)?.MaquinasVendidas ?? 0
+                    : null,
+                MaquinasPorCategoria = oArtTrouxeVenda
+                    ? UnidadesDoMunicipioPorCategoria(acumuladores.GetValueOrDefault(i.CodigoIbge))
                     : null
             })
         ];

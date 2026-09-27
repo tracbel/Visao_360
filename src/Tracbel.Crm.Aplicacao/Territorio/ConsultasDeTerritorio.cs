@@ -304,8 +304,10 @@ public sealed class ObterIndicadoresTerritoriais(
     /// (23/09/2026): era solução técnica sem decisão de negócio, e conflitava com a issue 74. A
     /// predominante continua, como <b>contexto</b>, com o critério dito.</para>
     ///
-    /// <para><b>Sem município escolhido não há crédito nem percepção</b>, e o fator sai só com o
-    /// preço: indicador ausente vale desvio zero, e não fator indeterminado.</para>
+    /// <para><b>O crédito é o do recorte inteiro</b> — as linhas e o valor do SICOR somados nos mesmos municípios
+    /// da demanda (27/09/2026). <b>A percepção só vem com um município só</b>, porque juntar a opinião de vários
+    /// gestores não tem regra decidida (issue 71). Indicador ausente vale desvio zero, e não fator
+    /// indeterminado.</para>
     /// </summary>
     /// <summary>
     /// OS QUATRO NÚMEROS DE DECISÃO (documento 50, §4.1), montados aqui e não no front.
@@ -376,6 +378,86 @@ public sealed class ObterIndicadoresTerritoriais(
     }
 
     /// <summary>
+    /// OS NÚMEROS DE DECISÃO DE CADA MUNICÍPIO (27/09/2026) — demanda, captura e oportunidade da ficha.
+    ///
+    /// <para><b>A mesma conta da página, com os ingredientes do município</b>: a demanda das categorias que têm
+    /// regra aqui, as máquinas vendidas daqui nessas mesmas categorias e o fator de ciclo de cada cultura. A ficha
+    /// mostrava "—" e "só no recorte", e os dois ingredientes estavam calculados na rota — ela os jogava fora.</para>
+    ///
+    /// <para><b>O fator é o do recorte consultado</b>: o preço é de São Paulo, e o crédito é o dos municípios do
+    /// recorte. Com um município escolhido, o recorte é ele.</para>
+    ///
+    /// <para><b>A demanda por categoria e cultura sai da resposta</b> depois de usada: ela é o ingrediente, e a
+    /// tela recebe o resultado — e não centenas de linhas por município.</para>
+    /// </summary>
+    private static IReadOnlyList<IndicadoresDoMunicipio> ComNumerosDeDecisao(
+        IndicadoresTerritoriais indicadores, string? categoriaFiltrada, int mesesDoPeriodo)
+    {
+        var fatores = indicadores.Momento?.PorCultura
+                          .GroupBy(c => c.CulturaCodigo, StringComparer.Ordinal)
+                          .ToDictionary(g => g.Key, g => g.First().Fator, StringComparer.Ordinal)
+                      ?? new Dictionary<string, FatorDoCiclo>(StringComparer.Ordinal);
+
+        return
+        [
+            .. indicadores.Municipios.Select(m => m with
+            {
+                NumerosDeDecisao = NumerosDoMunicipio(m, fatores, categoriaFiltrada, mesesDoPeriodo),
+                DemandaPorCategoriaECultura = null
+            })
+        ];
+    }
+
+    private static NumerosDeDecisao? NumerosDoMunicipio(
+        IndicadoresDoMunicipio municipio,
+        IReadOnlyDictionary<string, FatorDoCiclo> fatores,
+        string? categoriaFiltrada,
+        int mesesDoPeriodo)
+    {
+        if (municipio.PotencialEstrutural is null || municipio.DemandaPorCategoriaECultura is not { } parcelas) return null;
+
+        // COM O FILTRO "TIPO DE PRODUTO", SÓ A CATEGORIA ESCOLHIDA — como na página: as unidades já vêm só dela.
+        var daConta = parcelas
+            .Where(p => categoriaFiltrada is null || string.Equals(p.CategoriaCodigo, categoriaFiltrada, StringComparison.Ordinal))
+            .ToList();
+
+        // A CATEGORIA TEM DEMANDA QUANDO TODAS AS PARCELAS DELA TÊM CICLO — a regra do motor para a categoria.
+        var porCategoria = daConta
+            .GroupBy(p => (p.CategoriaCodigo, p.CategoriaNome))
+            .Select(g => (g.Key, Demanda: g.All(p => p.DemandaAnual is not null) ? g.Sum(p => p.DemandaAnual!.Value) : (decimal?)null))
+            .ToList();
+
+        var comDemanda = porCategoria.Where(c => c.Demanda is not null).Select(c => c.Key).ToList();
+
+        decimal? demanda = categoriaFiltrada is null
+            ? municipio.PotencialEstrutural.DemandaAnualDeMaquinas
+            : porCategoria.Count == 1 ? porCategoria[0].Demanda : null;
+
+        // A AJUSTADA: cada cultura com o fator dela, somada pela mesma regra do momento.
+        var (_, _, ajustada, _) = MomentoAgregado.Agregar(
+        [
+            .. daConta.GroupBy(p => (p.CulturaCodigo, p.Cultura)).Select(g =>
+            {
+                var demandaDaCultura = g.All(p => p.DemandaAnual is not null) ? g.Sum(p => p.DemandaAnual!.Value) : (decimal?)null;
+                var fator = fatores.GetValueOrDefault(g.Key.CulturaCodigo);
+                return new MomentoDaCultura(
+                    g.Key.CulturaCodigo, g.Key.Cultura, demandaDaCultura, g.Max(p => p.AreaUtilHectares), null,
+                    fator ?? new FatorDoCiclo(null, null, null, null, null, false, 0, false, "SemFator"),
+                    demandaDaCultura is { } d && fator?.Fator is { } f ? d * f : null);
+            })
+        ]);
+
+        var baseDaCaptura = BaseDaCaptura.Montar(
+            municipio.MaquinasVendidas,
+            municipio.MaquinasPorCategoria?.Select(c => (c.CategoriaCodigo, c.Unidades)) ?? [],
+            comDemanda,
+            mesesDoPeriodo);
+
+        return DecisaoDoMercado.Calcular(demanda, ajustada, baseDaCaptura?.Unidades, porCategoria: [], mesesDoPeriodo)
+            with { BaseDaCaptura = baseDaCaptura };
+    }
+
+    /// <summary>
     /// A DEMANDA DE UMA CATEGORIA SÓ — a estrutural e a ajustada pelo momento — para o filtro "Tipo de produto".
     ///
     /// <para><b>Nenhuma conta nova</b>: a estrutural é a da categoria no potencial do recorte, e a ajustada
@@ -416,7 +498,12 @@ public sealed class ObterIndicadoresTerritoriais(
 
         var data = ParametroComVigencia.HojeNoBrasil(agoraUtc);
         var vigente = ParametroComVigencia.VigenteEm(await parametros.ListarGeraisAsync(ct), data);
-        var doRecorte = await indicadoresDeMercado.LerAsync(data, null, ct);
+
+        // O CRÉDITO É O DOS MESMOS MUNICÍPIOS DA DEMANDA (27/09/2026). A leitura era pedida sem município, e o
+        // crédito nunca saía: a tela mostrava "—" e 0,0% com treze anos de SICOR no banco. Os municípios são os
+        // do recorte — os mesmos que somam a demanda estrutural —, e com um município escolhido é só ele.
+        var doRecorte = await indicadoresDeMercado.LerDoRecorteAsync(
+            data, [.. indicadores.Municipios.Select(m => m.CodigoIbge)], ct);
 
         // UM FATOR POR CULTURA, cada um com o preço dela. O crédito e a percepção são do recorte, e
         // por isso entram iguais nas três contas — é a estrutura do modelo, não uma simplificação.
@@ -438,7 +525,14 @@ public sealed class ObterIndicadoresTerritoriais(
         var (fatorAgregado, estrutural, ajustada, motivo) = MomentoAgregado.Agregar(porCultura);
 
         var porte = vigente?.PorteDe(recorte.DemandaAnualDeMaquinas);
-        var faixa = LeituraDoMercado.FaixaDoFator(fatorAgregado, vigente);
+
+        // SEM INDICADOR NENHUM, NÃO HÁ FAIXA (27/09/2026). Com preço, crédito e percepção ausentes, o fator é 1,00
+        // por construção — desvio zero em tudo —, e a tela dizia "Mercado normal", uma afirmação sobre o mercado
+        // que ninguém mediu. O fator continua (é a conta neutra), mas sem nome de faixa e sem frase.
+        var semIndicador = porCultura.All(c => c.IndiceDePreco is null)
+                           && doRecorte.Credito?.Indice is null
+                           && doRecorte.PercepcaoDoGestor is null;
+        var faixa = semIndicador ? null : LeituraDoMercado.FaixaDoFator(fatorAgregado, vigente);
 
         return new MomentoDoRecorte(
             fatorAgregado,
@@ -561,8 +655,15 @@ public sealed class ObterIndicadoresTerritoriais(
             ResponsaveisDasCarteiras = filtros.Responsaveis
         };
 
-        var (numeros, comparacao) = NumerosDeDecisaoDo(
-            indicadores, filtros.CategoriaDeMaquina, new JanelaDeCompetencia(inicial, final).Meses);
+        var meses = new JanelaDeCompetencia(inicial, final).Meses;
+
+        // OS NÚMEROS DE CADA MUNICÍPIO, com o fator de ciclo que o momento acabou de calcular (27/09/2026).
+        indicadores = indicadores with
+        {
+            Municipios = ComNumerosDeDecisao(indicadores, filtros.CategoriaDeMaquina, meses)
+        };
+
+        var (numeros, comparacao) = NumerosDeDecisaoDo(indicadores, filtros.CategoriaDeMaquina, meses);
 
         return Resultado<ComProcedencia<PainelTerritorial>>.Ok(
             ComProcedencia<PainelTerritorial>.DoNossoBanco(

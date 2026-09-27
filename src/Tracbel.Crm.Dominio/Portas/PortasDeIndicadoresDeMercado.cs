@@ -17,13 +17,31 @@ public interface IRepositorioDeIndicadoresDeMercado
     /// <param name="municipioCodigoIbge">O município do recorte; nulo lê só os preços, que são de São Paulo.</param>
     /// <param name="ct">Cancelamento.</param>
     Task<IndicadoresDoRecorte> LerAsync(DateOnly data, int? municipioCodigoIbge, CancellationToken ct);
+
+    /// <summary>
+    /// Lê o momento de preço de cada cultura e o crédito SOMADO dos municípios de um recorte (27/09/2026).
+    ///
+    /// <para><b>O crédito do recorte é a soma das linhas e do valor dos municípios dele</b>, nas mesmas duas
+    /// janelas e com a mesma composição de um município só — e não a média dos índices de cada um, que daria
+    /// ao município de três linhas o mesmo peso do de trezentas. Era o que faltava para o Momento do mercado da
+    /// tela: ele chamava a leitura sem município, e o crédito nunca era calculado, com treze anos de SICOR no
+    /// banco.</para>
+    ///
+    /// <para><b>A percepção só vem com um município</b>: ela é opinião registrada município a município (D-P04),
+    /// e a regra de juntar as de vários não foi decidida (issue 71).</para>
+    /// </summary>
+    /// <param name="data">A data cujas vigências valem.</param>
+    /// <param name="municipiosCodigoIbge">Os municípios do recorte; vazio lê só os preços.</param>
+    /// <param name="ct">Cancelamento.</param>
+    Task<IndicadoresDoRecorte> LerDoRecorteAsync(
+        DateOnly data, IReadOnlyCollection<int> municipiosCodigoIbge, CancellationToken ct);
 }
 
 /// <summary>
 /// O QUE O FATOR DE CICLO PRECISA SABER SOBRE UM RECORTE.
 /// </summary>
 /// <param name="PrecoPorCultura">O momento de preço de cada cultura do catálogo, pelo código dela.</param>
-/// <param name="Credito">O índice de crédito do município; nulo sem município ou sem parâmetro vigente.</param>
+/// <param name="Credito">O índice de crédito do município ou do recorte; nulo sem município ou sem parâmetro vigente.</param>
 /// <param name="PercepcaoDoGestor">
 /// O ajuste do gestor sobre o município, em pontos percentuais; nulo quando ninguém informou. É opinião
 /// registrada, com autor e vigência (D-P04).

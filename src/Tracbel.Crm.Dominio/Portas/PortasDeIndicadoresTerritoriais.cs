@@ -468,6 +468,20 @@ public sealed record ResponsavelPelaCarteira(string Nome, string Natureza, int V
 /// As máquinas vendidas no mesmo trecho do ano anterior, em unidades (ART). Nulo quando o ART não trouxe
 /// venda nenhuma, ou quando a primeira venda que ele trouxe é posterior ao começo da janela anterior.
 /// </param>
+/// <param name="MaquinasPorCategoria">
+/// As máquinas vendidas daqui, por categoria (ART) — a base da captura do município, que conta só as categorias
+/// que têm demanda aqui (27/09/2026). Nulo quando o ART não trouxe venda nenhuma.
+/// </param>
+/// <param name="DemandaPorCategoriaECultura">
+/// A demanda do motor por categoria e cultura — o ingrediente dos números de decisão do município. <b>Só existe
+/// entre o repositório e a consulta</b>, que monta os números com ela e a esvazia antes de responder: a tela recebe
+/// o resultado, e não centenas de linhas por município.
+/// </param>
+/// <param name="NumerosDeDecisao">
+/// Demanda, captura e oportunidade DO MUNICÍPIO, pela mesma conta da página (27/09/2026). Até aqui a ficha
+/// mostrava "—" e "só no recorte": a rota calculava a demanda por categoria e as vendas por categoria de cada
+/// município e jogava as duas fora. O mercado anual segue sem preço (issue 70).
+/// </param>
 public sealed record IndicadoresDoMunicipio(
     int CodigoIbge,
     string Nome,
@@ -486,7 +500,30 @@ public sealed record IndicadoresDoMunicipio(
     PotencialEstruturalDoMunicipio? PotencialEstrutural = null,
     int? MaquinasVendidas = null,
     VendasTerritoriais? VendasNoPeriodoAnterior = null,
-    int? MaquinasVendidasNoPeriodoAnterior = null);
+    int? MaquinasVendidasNoPeriodoAnterior = null,
+    IReadOnlyList<UnidadesNaCategoria>? MaquinasPorCategoria = null,
+    IReadOnlyList<DemandaNoMunicipio>? DemandaPorCategoriaECultura = null,
+    NumerosDeDecisao? NumerosDeDecisao = null);
+
+/// <summary>
+/// A DEMANDA DE UMA CULTURA NUMA CATEGORIA DE MÁQUINA, DENTRO DE UM MUNICÍPIO — uma parcela do motor.
+///
+/// <para>É com ela que a consulta monta os números de decisão do município: a categoria diz o que entra na
+/// captura (as vendas das categorias que têm demanda aqui), e a cultura diz que fator de ciclo ajusta a demanda.</para>
+/// </summary>
+/// <param name="CategoriaCodigo">A categoria de máquina.</param>
+/// <param name="CategoriaNome">O nome de exibição da categoria.</param>
+/// <param name="CulturaCodigo">A cultura dominante da parcela.</param>
+/// <param name="Cultura">O nome da cultura.</param>
+/// <param name="DemandaAnual">A demanda anual da parcela; nula sem ciclo de renovação.</param>
+/// <param name="AreaUtilHectares">A área útil da parcela.</param>
+public sealed record DemandaNoMunicipio(
+    string CategoriaCodigo,
+    string CategoriaNome,
+    string CulturaCodigo,
+    string Cultura,
+    decimal? DemandaAnual,
+    decimal? AreaUtilHectares);
 
 /// <summary>As vendas de UM MÊS dos municípios da ADR no recorte — um ponto do mini-gráfico.</summary>
 /// <param name="Competencia">O mês, no dia 1.</param>

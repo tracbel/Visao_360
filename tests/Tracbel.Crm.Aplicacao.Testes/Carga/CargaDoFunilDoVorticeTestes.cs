@@ -55,13 +55,15 @@ public sealed class CargaDoFunilDoVorticeTestes : IDisposable
         _semente.Operador, _semente.RibeiraoPreto, new HashSet<int> { _semente.RibeiraoPreto, _semente.Barretos }));
 
     private async Task<Resultado<RelatorioDoFunilDoVortice>> Rodar(
-        LeituraDoFunilDoVortice? funil = null, List<RespostaDeVendaPerdidaNoVortice>? respostas = null, bool simular = false) =>
-        await Rotina(DaCarga, _semente, funil ?? Funil(), respostas ?? Respostas(), Agora).ExecutarAsync(simular, CancellationToken.None);
+        LeituraDoFunilDoVortice? funil = null, List<RespostaDeVendaPerdidaNoVortice>? respostas = null, bool simular = false,
+        bool aceitarQueda = false) =>
+        await Rotina(DaCarga, _semente, funil ?? Funil(), respostas ?? Respostas(), Agora).ExecutarAsync(simular, aceitarQueda, CancellationToken.None);
 
     private async Task<RelatorioDoFunilDoVortice> Sincronizar(
-        LeituraDoFunilDoVortice? funil = null, List<RespostaDeVendaPerdidaNoVortice>? respostas = null, bool simular = false)
+        LeituraDoFunilDoVortice? funil = null, List<RespostaDeVendaPerdidaNoVortice>? respostas = null, bool simular = false,
+        bool aceitarQueda = false)
     {
-        var resultado = await Rodar(funil, respostas, simular);
+        var resultado = await Rodar(funil, respostas, simular, aceitarQueda);
         resultado.EhSucesso.Should().BeTrue(resultado.Erro);
         return resultado.Valor;
     }
@@ -283,6 +285,107 @@ public sealed class CargaDoFunilDoVorticeTestes : IDisposable
         await Sincronizar();
         await using (var db = Sistema())
             (await db.VendasPerdidas.CountAsync(v => v.ExcluidoEm != null)).Should().Be(0, "voltou à origem, volta à conta");
+    }
+
+    [Fact]
+    public async Task A_queda_legitima_passa_so_com_aceitar_queda_no_terminal_e_fica_escrita_na_execucao()
+    {
+        await Sincronizar();
+        var semDezProspects = Funil(Processos().Where(p => p.Numero is < 2000 or >= 2010).ToList());
+
+        (await Rodar(funil: semDezProspects)).Erro.Should().Contain(CargaDoFunilDoVortice.OpcaoDeAceitarQueda,
+            "a mensagem diz como passar por cima quando a queda é legítima");
+
+        var aceita = await Sincronizar(semDezProspects, aceitarQueda: true);
+        aceita.Valor(CargaDoFunilDoVortice.RotuloDeLinhasRemovidas).Should().Be(10);
+        aceita.Observacoes.Should().ContainSingle(o => o.Contains(CargaDoFunilDoVortice.OpcaoDeAceitarQueda, StringComparison.Ordinal));
+
+        await using var db = Sistema();
+        var ultima = await db.ExecucoesDeSincronizacao.AsNoTracking()
+            .Where(e => e.Fluxo == CargaDoFunilDoVortice.Fluxo).OrderByDescending(e => e.Id).FirstAsync();
+        ultima.Resultado.Should().Be(ResultadoDaExecucao.Sucesso);
+        ultima.Mensagem.Should().Contain(CargaDoFunilDoVortice.OpcaoDeAceitarQueda, "a aceitação fica escrita onde a administração consulta");
+
+        RotinasDoSistema.Obter(RotinasDoSistema.ProcessosVortice)!.Modos.Should().NotContain(CargaDoFunilDoVortice.OpcaoDeAceitarQueda,
+            "a opção existe só no terminal: a rotina do orquestrador nunca aceita queda sozinha");
+    }
+
+    [Fact]
+    public async Task A_quantidade_absurda_vira_nao_declarada_e_nao_derruba_a_rodada()
+    {
+        var respostas = Respostas();
+        respostas.Add(R(900, FormulariosDaVendaPerdida.Fy25, Em(2025, 9, 10), 2001, 102001, empresaDoProcesso: 1, quantidade: 9_999_999_999m));
+
+        await Sincronizar(respostas: respostas);
+
+        await using var db = Sistema();
+        var sistemaId = await db.Sistemas.Where(s => s.Codigo == "VORTICE").Select(s => s.Id).SingleAsync();
+        var id = await db.ChavesExternas.Where(c => c.SistemaId == sistemaId && c.Entidade == nameof(VendaPerdida) && c.ChaveOrigem == "900")
+            .Select(c => c.RegistroId).SingleAsync();
+        (await db.VendasPerdidas.AsNoTracking().SingleAsync(v => v.Id == id)).Quantidade.Should().Be(1);
+
+        var registro = await db.RegistrosDeOrigem.AsNoTracking()
+            .SingleAsync(r => r.Fluxo == CargaDoFunilDoVortice.FluxoDaVendaPerdida && r.ChaveOrigem == "900");
+        registro.Transformacoes.Should().Contain("quantidade", "a correção fica anotada na trilha, com o motivo");
+    }
+
+    [Fact]
+    public async Task A_data_absurda_na_abertura_ou_no_preenchimento_fica_pendente_com_o_motivo()
+    {
+        var processos = Processos();
+        processos.Add(P(3000, 41, 1, new DateTime(2103, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
+        var historico = Historico();
+        historico.Add(new LinhaDoHistoricoDoFunil(9000, 3000, 250, new DateTime(1999, 12, 30, 0, 0, 0, DateTimeKind.Utc), null));
+        var respostas = Respostas();
+        respostas.Add(R(901, FormulariosDaVendaPerdida.Fy25, new DateTime(2103, 5, 1, 0, 0, 0, DateTimeKind.Utc), 1001, 101001, empresaDoProcesso: 1));
+
+        await Sincronizar(Funil(processos, historico), respostas);
+
+        await using var db = Sistema();
+        (await db.RegistrosDeOrigem.AsNoTracking().SingleAsync(r => r.Fluxo == CargaDoFunilDoVortice.Fluxo && r.ChaveOrigem == "3000"))
+            .Motivos.Should().Be(MotivoDePendenciaDoFunil.AberturaComDataInvalida);
+        (await db.EstagiosDoProcesso.AnyAsync(e => e.NumeroDoProcessoNaOrigem == 3000)).Should().BeFalse();
+        (await db.RegistrosDeOrigem.AsNoTracking().SingleAsync(r => r.Fluxo == CargaDoFunilDoVortice.FluxoDaVendaPerdida && r.ChaveOrigem == "901"))
+            .Motivos.Should().Be(MotivoDePendenciaDoFunil.DataDeRegistroInvalida);
+    }
+
+    [Fact]
+    public async Task A_gravacao_que_cai_no_meio_sai_com_erro_nenhum_processo_fica_pela_metade_e_a_proxima_rodada_completa()
+    {
+        // UM BANCO COM CHAVE ESTRANGEIRA LIGADA: o NN 3 aponta para uma filial que não existe, e o bloco que a grava cai.
+        using var conexao = new SqliteConnection("Filename=:memory:;Foreign Keys=True");
+        conexao.Open();
+        conexao.CreateCollation("Latin1_General_BIN2", (a, b) => string.CompareOrdinal(a, b));
+        var opcoes = new DbContextOptionsBuilder<CrmDbContext>().UseSqlite(conexao).Options;
+        SementeDoFunil semente;
+        using (var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia))
+        {
+            db.Database.EnsureCreated();
+            semente = Semear(db);
+        }
+
+        CrmDbContext Abrir() => new(opcoes, new ContextoDeCargaDeSistema(semente.Operador, semente.RibeiraoPreto, new HashSet<int> { semente.RibeiraoPreto, semente.Barretos }));
+        var deParaErrado = new Dictionary<int, int> { [1] = semente.RibeiraoPreto, [3] = 999_999 };
+
+        // BLOCOS DE 5 LINHAS: o 1001 (5 estágios) fecha o primeiro; o 1002 (1) e o 1004 (4, na filial que não existe), o segundo.
+        var caiu = await Rotina(Abrir, semente, Funil(), Respostas(), Agora, deParaErrado, tamanhoDoBloco: 5)
+            .ExecutarAsync(false, false, CancellationToken.None);
+
+        caiu.EhSucesso.Should().BeFalse("a rotina sai com erro, e o Program devolve código 3");
+        caiu.Erro.Should().Contain("Gravação parcial").And.Contain("1 de").And.Contain("próxima rodada completa");
+
+        using (var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia))
+        {
+            var porProcesso = db.EstagiosDoProcesso.AsNoTracking().GroupBy(e => e.NumeroDoProcessoNaOrigem).ToDictionary(g => g.Key, g => g.Count());
+            porProcesso.Should().Equal(new Dictionary<long, int> { [1001] = 5 },
+                "o primeiro bloco ficou inteiro; o segundo foi desfeito inteiro — o 1002 não ficou gravado sem o 1004, nem o 1004 pela metade");
+            db.ExecucoesDeSincronizacao.AsNoTracking().OrderByDescending(e => e.Id).First().Resultado.Should().Be(ResultadoDaExecucao.Falha);
+        }
+
+        var completa = await Rotina(Abrir, semente, Funil(), Respostas(), Agora.AddHours(1)).ExecutarAsync(false, false, CancellationToken.None);
+        completa.EhSucesso.Should().BeTrue(completa.Erro);
+        using (var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia))
+            db.EstagiosDoProcesso.Count().Should().Be(LinhasDoFunil, "a próxima rodada relê tudo e grava o que faltou");
     }
 
     /// <summary>O funil e as vendas perdidas, como texto — para comparar duas rodadas.</summary>

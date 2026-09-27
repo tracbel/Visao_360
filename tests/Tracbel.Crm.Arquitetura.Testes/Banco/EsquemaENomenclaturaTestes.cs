@@ -171,7 +171,7 @@ public sealed partial class EsquemaENomenclaturaTestes
         //   +2 processo.EstagioDoProcesso e integracao.ClassificacaoDeResultadoDoVortice — documento 52 (decisões de
         //      27/09/2026): o funil do Vórtice, uma linha por processo por estágio, sem depender de Processo nem de
         //      Cliente (62% do funil é prospect sem cadastro); e a lista do que cada código de resultado prova — o
-        //      estágio e o contato —, que as rotinas do funil e das carteiras leem em vez de cada uma ter a sua.
+        //      estágio e o contato —, a lista do funil, presa por teste à constante do último contato da carteira.
         //   +1 organizacao.MetaDeVenda — issue 138 (decisão de 27/09/2026): a meta de venda é a cota da API Gestão de
         //      Negócios, em unidades por consultor, linha, mês e filial. Tabela própria, e não coluna em outra, porque o grão
         //      é a linha da origem (o id da GN): a chave de negócio não é única lá, e as duplicatas se somam na leitura. A

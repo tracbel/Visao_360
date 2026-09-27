@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
+using Tracbel.Crm.Dominio.Processo;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 
@@ -361,7 +362,8 @@ public sealed class RepositorioDeCoberturaDoMotor(CrmDbContext contexto) : IRepo
     private async Task<GrupoDeCobertura> VendasPerdidasAsync(CancellationToken ct)
     {
         const string Unidade = "vendas perdidas";
-        var perdidas = contexto.VendasPerdidas.AsNoTracking().Where(v => v.ExcluidoEm == null);
+        // SÓ A PRINCIPAL CONTA (decisão de 27/09/2026): a duplicata e o complemento repetem a mesma perda.
+        var perdidas = contexto.VendasPerdidas.AsNoTracking().Where(v => v.ExcluidoEm == null && v.Papel == PapelDaVendaPerdida.Principal);
         var clientesNoMapa = ClientesNoMapa();
 
         var total = await perdidas.CountAsync(ct);
