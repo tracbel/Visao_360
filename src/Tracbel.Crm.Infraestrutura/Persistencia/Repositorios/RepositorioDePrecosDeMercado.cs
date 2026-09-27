@@ -78,6 +78,51 @@ public sealed class RepositorioDePrecosDeMercado(CrmDbContext contexto) : IRepos
         return new PrecosDeMercado(
             series,
             dolar.Count == 0 ? null : dolar.Keys.Min(),
-            dolar.Count == 0 ? null : dolar.Keys.Max());
+            dolar.Count == 0 ? null : dolar.Keys.Max(),
+            await MaquinasAsync(ct));
+    }
+
+    /// <summary>
+    /// O PREÇO DE CADA CATEGORIA DE MÁQUINA (issue 70, D-P12), na ordem de exibição do catálogo. As duas tabelas são
+    /// pequenas — poucas categorias e alguns meses por ano —, e a junção é feita aqui, em memória.
+    /// </summary>
+    private async Task<IReadOnlyList<SerieDePrecoDeMaquina>> MaquinasAsync(CancellationToken ct)
+    {
+        var precos = await contexto.PrecosDeMaquina.AsNoTracking()
+            .OrderBy(p => p.Mes)
+            .Select(p => new { p.CategoriaDeMaquinaId, p.Mes, p.Mediana, p.Menor, p.Maior, p.Notas, p.Fonte })
+            .ToListAsync(ct);
+
+        if (precos.Count == 0) return [];
+
+        var categorias = await contexto.CategoriasDeMaquina.AsNoTracking()
+            .Select(c => new { c.Id, c.Codigo, c.Nome, c.Ordem })
+            .ToDictionaryAsync(c => c.Id, ct);
+
+        return
+        [
+            .. precos
+                .Where(p => categorias.ContainsKey(p.CategoriaDeMaquinaId))
+                .GroupBy(p => p.CategoriaDeMaquinaId)
+                .OrderBy(g => categorias[g.Key].Ordem)
+                .Select(g =>
+                {
+                    var categoria = categorias[g.Key];
+                    return new SerieDePrecoDeMaquina(
+                        categoria.Codigo,
+                        categoria.Nome,
+                        [.. g.Select(p => new PrecoDeMaquinaLido(p.Mes, p.Mediana, p.Menor, p.Maior, p.Notas))],
+                        new ProcedenciaDoIndicador(
+                            "Protheus",
+                            "Notas de venda de máquina (SD2, grupo VEIC) casadas com as vendas do ART",
+                            g.First().Fonte,
+                            categoria.Nome,
+                            $"{g.First().Mes:MM/yyyy} a {g.Last().Mes:MM/yyyy}",
+                            DateTime.UtcNow,
+                            "A mediana do valor unitário das notas do mês, sem IPI e sem ICMS-ST e líquida de desconto. " +
+                            "Entram só as vendas do ART com a nota casada pela filial que faturou e pelo número; usado, " +
+                            "venda direta e nota com mais de uma máquina ficam de fora. Mês sem venda não tem preço."));
+                })
+        ];
     }
 }

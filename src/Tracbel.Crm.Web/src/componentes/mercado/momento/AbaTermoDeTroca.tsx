@@ -3,32 +3,35 @@
  * maquetes, fase 3).
  *
  * A PERGUNTA É "QUANTAS SACAS O PRODUTOR PRECISA PARA COMPRAR UM TRATOR", e ela
- * tem duas metades. A do PREÇO DA SAFRA existe: a CONAB e a Socicana, carregadas
- * todo mês (issue 66) — e a coluna do preço da commodity sai preenchida de
- * verdade. A do PREÇO DA MÁQUINA não existe: o preço de referência do trator,
- * por modelo e ao longo do tempo, é a issue 70. Sem ela não há sacas, variação,
- * melhor cultura de troca, tendência nem evolução.
+ * tem duas metades. A do PREÇO DA SAFRA é a série da CONAB e da Socicana,
+ * carregada todo mês (issue 66). A do PREÇO DO TRATOR é a mediana dos tratores
+ * vendidos no mês, pela nota do Protheus casada com a venda do ART (issue 70,
+ * D-P06 e D-P12, decididas pelo Ricardo em 27/09/2026) — o mesmo trator base
+ * para as seis culturas. A conta mora em `termoDeTroca.ts`; aqui só se desenha.
  *
  * O LAYOUT DA MAQUETE FICA INTEIRO (decisão 1 do usuário): os quatro cartões, o
- * gráfico com a moldura, o comparativo com as culturas reais e a tabela — e no
- * lugar de cada número que depende do trator, o traço com o motivo. Uma divisão
- * por um preço de trator inventado daria um número plausível e errado.
+ * gráfico com a moldura, o comparativo e a tabela. Enquanto a rotina do preço
+ * da máquina não roda, cada número que depende do trator sai com o traço e o
+ * motivo — uma divisão por um preço de trator inventado daria um número
+ * plausível e errado.
  */
 
 import { BarChart3, Sprout, Tractor, TrendingUp } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useContextoDeAcesso } from '../../../dados/api/contexto';
 import { obterCatalogoDoMercado } from '../../../dados/api/potencial';
 import { obterPrecosDeMercado } from '../../../dados/api/territorio';
 import { useRecurso } from '../../../dados/api/useRecurso';
-import type { SerieDePreco } from '../../../tipos/mercado';
+import type { SerieDePreco, SerieDePrecoDeMaquina } from '../../../tipos/mercado';
 import type { CulturaNoCatalogo } from '../../../tipos/potencial';
 import { BlocoErro } from '../../cadastro/EstadosDeTela';
 import { InfoTooltip } from '../../InfoTooltip';
+import { MolduraDeGrafico } from '../../MolduraDeGrafico';
 import { frasesDaProcedencia } from '../../comum/comparacoes';
 import { ValorAusente } from '../../comum/ValorAusente';
 import { comAsCulturasDoMunicipioPrimeiro } from '../culturasDoMunicipio';
-import { mesCurto, percentualComSinal, reais } from './formatos';
+import { mesCurto, numero, percentualComSinal, reais } from './formatos';
+import { CORES_DO_TERMO, GraficoDoTermoDeTroca } from './GraficoDoTermoDeTroca';
 import { NomeDaCultura } from './IconeDaCultura';
 import {
   CartaoDoMomento,
@@ -40,11 +43,28 @@ import {
   PainelDoMomento,
   Seletor,
 } from './pecas';
+import {
+  mediaDoTermo,
+  mesesAntes,
+  poderDeCompra,
+  serieDoTermo,
+  tratorBase,
+  variacaoDoTermo,
+  type TermoNoMes,
+} from './termoDeTroca';
 
-const DEPENDE_DO_TRATOR =
-  'Depende do preço de referência do trator (issue 70): o preço de máquina por modelo, ao longo do tempo, não ' +
-  'existe no CRM. O preço da saca existe (CONAB e Socicana, issue 66) — sozinho ele não responde quantas sacas ' +
-  'compram uma máquina, e a tela não divide por um preço de trator inventado.';
+const SEM_TRATOR =
+  'O preço do trator é a mediana dos tratores vendidos no mês, pela nota do Protheus casada com a venda do ART (issue 70). ' +
+  'A rotina "Preço da máquina (nota do Protheus)", em Configurações › Integrações, ainda não trouxe nenhum mês de trator — ' +
+  'e a tela não divide o preço da saca por um preço de trator inventado.';
+
+const SEM_MES_EM_COMUM =
+  'O preço do trator e o desta cultura ainda não têm um mês em comum: o termo é a divisão dos dois no MESMO mês, e mês ' +
+  'sem venda de trator não tem mediana.';
+
+const O_QUE_E_O_TRATOR_BASE =
+  'O trator base é a MEDIANA dos tratores vendidos pela Tracbel no mês, pelo valor da nota do Protheus (sem IPI e sem ' +
+  'ICMS-ST), casada com a venda do ART — o mesmo trator para todas as culturas (D-P06, decidida em 27/09/2026).';
 
 /** A série do kg de ATR acumulado da safra: útil no gráfico de preço, redundante aqui. */
 const NIVEL_ACUMULADO = 'ACUMULADO DA SAFRA';
@@ -52,7 +72,7 @@ const NIVEL_ACUMULADO = 'ACUMULADO DA SAFRA';
 /** Produtos de preço que o texto-base cita e que não são lavoura — não se trocam por trator em sacas. */
 const SEM_LAVOURA = ['BOI', 'LEITE'];
 
-type CulturaDaTroca = { chave: string; nome: string; serie: SerieDePreco | null };
+type CulturaDaTroca = { chave: string; nome: string; serie: SerieDePreco | null; termo: TermoNoMes[] };
 
 /** O preço do último mês, na unidade em que o mercado negocia. */
 function ultimoPreco(s: SerieDePreco) {
@@ -60,7 +80,7 @@ function ultimoPreco(s: SerieDePreco) {
   return ultimo ? { mes: ultimo.mes, valor: ultimo.valorEmReais * s.fatorComercial } : null;
 }
 
-/** O mesmo mês do ano anterior, quando a série já tem — a variação do PREÇO, e não do termo. */
+/** O mesmo mês do ano anterior, quando a série já tem — a variação do PREÇO da saca, e não do termo. */
 function variacaoDoPrecoEmUmAno(s: SerieDePreco): number | null {
   const ultimo = s.meses.at(-1);
   if (!ultimo) return null;
@@ -79,23 +99,24 @@ function culturasDaTroca(
   series: readonly SerieDePreco[],
   catalogo: readonly CulturaNoCatalogo[] | null,
   produtosDoMunicipio: readonly number[],
+  trator: SerieDePrecoDeMaquina | null,
 ): CulturaDaTroca[] {
   const utilizaveis = series.filter((s) => s.nivel !== NIVEL_ACUMULADO && s.meses.length > 0);
+  const termoDe = (serie: SerieDePreco | null) => (serie && trator ? serieDoTermo(serie, trator) : []);
 
   if (catalogo && catalogo.length > 0)
     return comAsCulturasDoMunicipioPrimeiro(
       catalogo.filter((c) => c.estaAtiva && c.produtoDoPreco !== null),
       produtosDoMunicipio,
-    ).map((c) => ({
-      chave: c.codigo,
-      nome: c.nome,
-      serie: utilizaveis.find((s) => s.codigoNaFonte === c.produtoDoPreco) ?? null,
-    }));
+    ).map((c) => {
+      const serie = utilizaveis.find((s) => s.codigoNaFonte === c.produtoDoPreco) ?? null;
+      return { chave: c.codigo, nome: c.nome, serie, termo: termoDe(serie) };
+    });
 
   return utilizaveis
     .filter((s) => !SEM_LAVOURA.some((p) => s.produto.toUpperCase().startsWith(p)))
     .sort((a, b) => a.produto.localeCompare(b.produto, 'pt-BR'))
-    .map((s) => ({ chave: `${s.fonte}|${s.codigoNaFonte}`, nome: s.produto, serie: s }));
+    .map((s) => ({ chave: `${s.fonte}|${s.codigoNaFonte}`, nome: s.produto, serie: s, termo: termoDe(s) }));
 }
 
 function Traco({ oQue }: { oQue: string }) {
@@ -107,15 +128,41 @@ function Traco({ oQue }: { oQue: string }) {
   );
 }
 
+/** As unidades comerciais que compram o trator, com uma casa só abaixo de dez (a cana, em toneladas, pede mais). */
+function unidades(v: number): string {
+  return numero(v, v < 10 ? 1 : 0);
+}
+
 export function AbaTermoDeTroca({ produtosDoMunicipio = [] }: { produtosDoMunicipio?: readonly number[] }) {
   const { contexto } = useContextoDeAcesso();
   const precos = useRecurso((sinal) => obterPrecosDeMercado(contexto, sinal), [contexto.empresa, contexto.usuario]);
   const catalogo = useRecurso((sinal) => obterCatalogoDoMercado(contexto, sinal), [contexto.empresa, contexto.usuario]);
 
+  const trator = useMemo(() => tratorBase(precos.dados?.maquinas), [precos.dados]);
+
   const culturas = useMemo(
-    () => culturasDaTroca(precos.dados?.series ?? [], catalogo.dados?.culturas ?? null, produtosDoMunicipio),
-    [precos.dados, catalogo.dados, produtosDoMunicipio],
+    () => culturasDaTroca(precos.dados?.series ?? [], catalogo.dados?.culturas ?? null, produtosDoMunicipio, trator),
+    [precos.dados, catalogo.dados, produtosDoMunicipio, trator],
   );
+
+  const comTermo = culturas.filter((c) => c.termo.length > 0);
+  const [escolhida, setEscolhida] = useState<string | null>(null);
+  const noGrafico = comTermo.find((c) => c.chave === escolhida) ?? comTermo[0] ?? null;
+
+  // O CARTÃO DE CIMA É DA PRIMEIRA CULTURA COM TERMO — a do município escolhido, quando há (issue 168).
+  const principal = comTermo[0] ?? null;
+  const ultimoDaPrincipal = principal?.termo.at(-1) ?? null;
+  const cincoAnos = principal ? variacaoDoTermo(principal.termo, 60) : null;
+  const tendencia = principal ? poderDeCompra(variacaoDoTermo(principal.termo, 3)) : null;
+
+  const melhor = comTermo.reduce<CulturaDaTroca | null>(
+    (m, c) => (m === null || c.termo.at(-1)!.unidades < m.termo.at(-1)!.unidades ? c : m),
+    null,
+  );
+
+  const maiorDoComparativo = Math.max(0, ...comTermo.map((c) => c.termo.at(-1)!.unidades));
+
+  const semTermo = trator === null ? SEM_TRATOR : SEM_MES_EM_COMUM;
 
   const semPreco = precos.carregando
     ? 'Lendo os preços da CONAB e da Socicana…'
@@ -131,17 +178,24 @@ export function AbaTermoDeTroca({ produtosDoMunicipio = [] }: { produtosDoMunici
           tom="verde"
           rotulo="Sacas para comprar 1 trator"
           oQue="as sacas por trator"
-          valor={null}
-          motivoSemDado={DEPENDE_DO_TRATOR}
-          apoio="no trator base (issue 70)"
+          dica={O_QUE_E_O_TRATOR_BASE}
+          procedencia={trator?.procedencia ?? null}
+          valor={ultimoDaPrincipal ? unidades(ultimoDaPrincipal.unidades) : null}
+          unidade={principal?.serie?.unidadeComercial}
+          motivoSemDado={semTermo}
+          apoio={principal && ultimoDaPrincipal ? `de ${principal.nome} · trator de ${mesCurto(ultimoDaPrincipal.mes)}` : 'no trator base'}
         />
         <CartaoDoMomento
           icone={BarChart3}
           tom="azul"
           rotulo="Variação (5 anos)"
           oQue="a variação do termo em 5 anos"
-          valor={null}
-          motivoSemDado={`${DEPENDE_DO_TRATOR} A variação em cinco anos pede o preço do trator nos cinco anos.`}
+          valor={cincoAnos === null ? null : percentualComSinal(cincoAnos)}
+          motivoSemDado={
+            trator === null || !ultimoDaPrincipal
+              ? semTermo
+              : `A variação em cinco anos compara ${mesCurto(ultimoDaPrincipal.mes)} com ${mesCurto(mesesAntes(ultimoDaPrincipal.mes, 60))}, e as duas séries ainda não chegam lá: a do trator começa em ${mesCurto(trator.meses[0].mes)}, e a da CONAB é acumulada pelo CRM mês a mês.`
+          }
           apoio="sacas hoje contra cinco anos atrás"
         />
         <CartaoDoMomento
@@ -149,49 +203,74 @@ export function AbaTermoDeTroca({ produtosDoMunicipio = [] }: { produtosDoMunici
           tom="neutro"
           rotulo="Melhor cultura de troca"
           oQue="a melhor cultura de troca"
-          valor={null}
-          motivoSemDado={`${DEPENDE_DO_TRATOR} Sem as sacas de cada cultura não há a que precisa de menos.`}
-          apoio="a que compra o trator com menos sacas"
+          dica="A cultura que entrega MENOS unidades pelo mesmo trator, no último mês de cada uma. As unidades são as do mercado de cada cultura — saca, caixa, tonelada —, então a comparação é de quantidade entregue, e não de peso."
+          valor={melhor ? melhor.nome : null}
+          motivoSemDado={semTermo}
+          apoio={
+            melhor
+              ? `${unidades(melhor.termo.at(-1)!.unidades)} ${melhor.serie?.unidadeComercial ?? ''} por trator`
+              : 'a que compra o trator com menos sacas'
+          }
         />
         <CartaoDoMomento
           icone={TrendingUp}
           tom="laranja"
           rotulo="Tendência atual"
           oQue="a tendência do termo de troca"
-          valor={null}
-          motivoSemDado={`${DEPENDE_DO_TRATOR} Sem a série do termo não há tendência a medir.`}
-          apoio="poder de compra vs. trimestre anterior"
+          dica="O poder de compra da safra contra o mesmo trator, no último mês contra três meses antes: precisar de 10% mais sacas é comprar cerca de 9% menos trator."
+          valor={tendencia === null ? null : percentualComSinal(tendencia, 1)}
+          motivoSemDado={
+            trator === null || !principal
+              ? semTermo
+              : `A tendência compara o último mês com três meses antes, e as duas séries de ${principal.nome} ainda não têm os dois meses — mês sem venda de trator não tem mediana.`
+          }
+          apoio={principal ? `poder de compra de ${principal.nome} vs. trimestre anterior` : 'poder de compra vs. trimestre anterior'}
         />
       </FileiraDeCartoes>
 
       <LinhaDePaineis variante="troca">
         <PainelDoMomento
           titulo="Evolução do termo de troca"
-          dica={`Sacas de cada cultura necessárias para comprar 1 trator, mês a mês, e a média de cinco anos. ${DEPENDE_DO_TRATOR}`}
+          dica={`Unidades de cada cultura necessárias para comprar 1 trator, mês a mês, e a média da série. Só os meses que as duas séries têm. ${O_QUE_E_O_TRATOR_BASE}`}
           subtitulo="Número de sacas de cada cultura necessárias para comprar 1 trator."
           direita={
             <>
               <Seletor
                 rotulo="Cultura"
-                valor={culturas[0]?.chave ?? ''}
-                opcoes={culturas.length > 0 ? culturas.map((c) => ({ id: c.chave, rotulo: c.nome })) : [{ id: '', rotulo: '—' }]}
-                motivoDesligado="Escolher a cultura não mudaria nada enquanto não houver série do termo de troca (issue 70)."
+                valor={noGrafico?.chave ?? ''}
+                opcoes={comTermo.length > 0 ? comTermo.map((c) => ({ id: c.chave, rotulo: c.nome })) : [{ id: '', rotulo: '—' }]}
+                aoMudar={comTermo.length > 1 ? setEscolhida : undefined}
+                motivoDesligado={comTermo.length === 0 ? semTermo : undefined}
               />
               <Legenda
                 itens={[
-                  { nome: 'Sacas necessárias', cor: '#0B5D2A' },
-                  { nome: 'Média (5 anos)', cor: '#8FD19E' },
+                  { nome: 'Sacas necessárias', cor: CORES_DO_TERMO.unidades },
+                  { nome: 'Média da série', cor: CORES_DO_TERMO.media },
                 ]}
               />
             </>
           }
         >
-          <GraficoSemSerie altura={190} frase="Sem série do termo de troca" motivo={DEPENDE_DO_TRATOR} oQue="a evolução do termo de troca" />
+          {noGrafico ? (
+            <MolduraDeGrafico altura={190}>
+              {(l, a) => (
+                <GraficoDoTermoDeTroca
+                  termo={noGrafico.termo}
+                  media={mediaDoTermo(noGrafico.termo)}
+                  unidade={noGrafico.serie?.unidadeComercial ?? ''}
+                  largura={l}
+                  altura={a}
+                />
+              )}
+            </MolduraDeGrafico>
+          ) : (
+            <GraficoSemSerie altura={190} frase="Sem série do termo de troca" motivo={semTermo} oQue="a evolução do termo de troca" />
+          )}
         </PainelDoMomento>
 
         <PainelDoMomento
           titulo="Comparativo por cultura"
-          dica={`Sacas necessárias para comprar 1 trator e a variação no ano, por cultura. As culturas são as reais, com preço carregado; o número espera o preço do trator. ${DEPENDE_DO_TRATOR}`}
+          dica={`Unidades necessárias para comprar 1 trator no último mês de cada cultura, e a variação contra o mesmo mês do ano anterior. ${O_QUE_E_O_TRATOR_BASE}`}
           subtitulo="Número de sacas necessárias para comprar 1 trator e variação no ano."
         >
           {precos.erro ? (
@@ -210,23 +289,43 @@ export function AbaTermoDeTroca({ produtosDoMunicipio = [] }: { produtosDoMunici
                   <span>Nenhuma cultura com série de preço carregada.</span>
                 </li>
               )}
-              {/* AS CULTURAS SÃO AS REAIS, com o trilho da barra vazio: o lugar do
-                  número existe, e o número espera o preço do trator (issue 70). */}
-              {culturas.map((c) => (
-                <li key={c.chave} className="mom-comparativo-linha" data-cultura={c.chave}>
-                  <NomeDaCultura nome={c.nome} />
-                  <span className="mom-barra" aria-hidden="true" />
-                  <span className="mom-num">
-                    <Traco oQue="sacas necessárias" />
-                  </span>
-                  <span className="mom-num">
-                    <Traco oQue="variação anual" />
-                  </span>
-                  <MenuDaLinha rotulo={`O termo de troca de ${c.nome}`}>
-                    <p>{DEPENDE_DO_TRATOR}</p>
-                  </MenuDaLinha>
-                </li>
-              ))}
+              {culturas.map((c) => {
+                const ultimo = c.termo.at(-1) ?? null;
+                const noAno = variacaoDoTermo(c.termo, 12);
+                return (
+                  <li key={c.chave} className="mom-comparativo-linha" data-cultura={c.chave}>
+                    <NomeDaCultura nome={c.nome} />
+                    <span className="mom-barra" aria-hidden="true">
+                      {ultimo && maiorDoComparativo > 0 && (
+                        <span style={{ width: `${(ultimo.unidades / maiorDoComparativo) * 100}%` }} />
+                      )}
+                    </span>
+                    <span className="mom-num">{ultimo ? unidades(ultimo.unidades) : <Traco oQue="sacas necessárias" />}</span>
+                    <span className="mom-num">{noAno === null ? <Traco oQue="variação anual" /> : percentualComSinal(noAno)}</span>
+                    <MenuDaLinha rotulo={`O termo de troca de ${c.nome}`}>
+                      {ultimo && c.serie ? (
+                        <dl>
+                          <dt>Mês</dt>
+                          <dd>{mesCurto(ultimo.mes)}</dd>
+                          <dt>Trator base</dt>
+                          <dd>
+                            {reais(ultimo.precoDoTrator, 0)} — mediana de {ultimo.notasDoTrator}{' '}
+                            {ultimo.notasDoTrator === 1 ? 'nota' : 'notas'}
+                          </dd>
+                          <dt>Preço da unidade</dt>
+                          <dd>
+                            {reais(ultimo.precoDaUnidade)} / {c.serie.unidadeComercial}
+                          </dd>
+                          <dt>Variação no ano</dt>
+                          <dd>{noAno === null ? 'as duas séries ainda não têm o mesmo mês do ano anterior' : percentualComSinal(noAno, 1)}</dd>
+                        </dl>
+                      ) : (
+                        <p>{c.serie ? semTermo : semPreco}</p>
+                      )}
+                    </MenuDaLinha>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </PainelDoMomento>
@@ -236,8 +335,8 @@ export function AbaTermoDeTroca({ produtosDoMunicipio = [] }: { produtosDoMunici
         titulo="Detalhamento do termo de troca por cultura"
         dica={
           'O preço da commodity é o último mês da série da CONAB (ou da Socicana, na cana), na unidade em que o ' +
-          'mercado negocia — é preço de São Paulo, recebido pelo produtor. O ⋮ de cada linha diz o mês, a fonte e a ' +
-          `variação do preço em um ano. ${DEPENDE_DO_TRATOR}`
+          'mercado negocia — é preço de São Paulo, recebido pelo produtor. O trator base e as sacas são do último mês ' +
+          `que as duas séries têm. ${O_QUE_E_O_TRATOR_BASE}`
         }
         subtitulo="Preços das commodities, preço do trator base e sacas necessárias."
       >
@@ -251,7 +350,7 @@ export function AbaTermoDeTroca({ produtosDoMunicipio = [] }: { produtosDoMunici
                 </th>
                 <th scope="col" className="mom-num">
                   Preço do trator base (R$){' '}
-                  <InfoTooltip rotulo="Por que o preço do trator não aparece" texto={DEPENDE_DO_TRATOR} />
+                  <InfoTooltip rotulo="O que é o trator base" texto={trator ? O_QUE_E_O_TRATOR_BASE : SEM_TRATOR} />
                 </th>
                 <th scope="col" className="mom-num">
                   Sacas necessárias
@@ -274,6 +373,9 @@ export function AbaTermoDeTroca({ produtosDoMunicipio = [] }: { produtosDoMunici
               {culturas.map((c) => {
                 const preco = c.serie ? ultimoPreco(c.serie) : null;
                 const emUmAno = c.serie ? variacaoDoPrecoEmUmAno(c.serie) : null;
+                const ultimo = c.termo.at(-1) ?? null;
+                const noAno = variacaoDoTermo(c.termo, 12);
+                const noTrimestre = poderDeCompra(variacaoDoTermo(c.termo, 3));
                 return (
                   <tr key={c.chave} data-cultura={c.chave}>
                     <th scope="row">
@@ -288,17 +390,15 @@ export function AbaTermoDeTroca({ produtosDoMunicipio = [] }: { produtosDoMunici
                         <ValorAusente motivo={semPreco} oQue={`o preço de ${c.nome}`} />
                       )}
                     </td>
-                    <td className="mom-num">
-                      <Traco oQue="preço do trator" />
-                    </td>
-                    <td className="mom-num">
-                      <Traco oQue="sacas necessárias" />
-                    </td>
-                    <td className="mom-num">
-                      <Traco oQue="variação anual" />
-                    </td>
+                    <td className="mom-num">{ultimo ? reais(ultimo.precoDoTrator, 0) : <Traco oQue="preço do trator" />}</td>
+                    <td className="mom-num">{ultimo ? unidades(ultimo.unidades) : <Traco oQue="sacas necessárias" />}</td>
+                    <td className="mom-num">{noAno === null ? <Traco oQue="variação anual" /> : percentualComSinal(noAno)}</td>
                     <td>
-                      <Traco oQue="tendência" />
+                      {noTrimestre === null ? (
+                        <Traco oQue="tendência" />
+                      ) : (
+                        `${noTrimestre >= 0 ? 'poder de compra ↑' : 'poder de compra ↓'} ${percentualComSinal(noTrimestre)}`
+                      )}
                     </td>
                     <td className="mom-acoes">
                       <MenuDaLinha rotulo={`O preço de ${c.nome}`}>
@@ -322,9 +422,13 @@ export function AbaTermoDeTroca({ produtosDoMunicipio = [] }: { produtosDoMunici
                               <dt>Meses na série</dt>
                               <dd>{c.serie.meses.length}</dd>
                             </dl>
-                            <p>A variação acima é do PREÇO da saca; a do termo de troca espera o preço do trator (issue 70).</p>
+                            <p>
+                              A variação acima é do PREÇO da saca.{' '}
+                              {ultimo ? `O termo de troca usa o trator de ${mesCurto(ultimo.mes)}.` : semTermo}
+                            </p>
                             {/* CADA SÉRIE DIZ A PRÓPRIA ORIGEM (issue 167), e não um selo do painel. */}
                             {c.serie.procedencia && <p>{frasesDaProcedencia(c.serie.procedencia)}</p>}
+                            {trator?.procedencia && <p>{frasesDaProcedencia(trator.procedencia)}</p>}
                           </>
                         ) : (
                           <p>{semPreco}</p>

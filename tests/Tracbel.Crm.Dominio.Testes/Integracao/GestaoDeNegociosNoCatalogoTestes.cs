@@ -27,13 +27,14 @@ public sealed class GestaoDeNegociosNoCatalogoTestes
     }
 
     [Fact]
-    public void A_rotina_das_metas_e_a_ultima_nasce_desligada_e_exige_a_gn()
+    public void A_rotina_das_metas_e_a_nona_nasce_desligada_e_exige_a_gn()
     {
         var todas = RotinasDoSistema.Todas;
-        var metas = todas[^1];
+        var metas = todas[8];
 
+        // É A ROTINA 9 (Id = posição + 1): a de processos do Vórtice (#247) entrou antes, com o 8, e a do preço da
+        // máquina (issue 70) depois, com o 10 — nenhuma mudou de identificador.
         metas.Codigo.Should().Be(RotinasDoSistema.MetasGestaoDeNegocios);
-        todas.Count.Should().Be(9, "é a rotina 9; a de processos do Vórtice (#247) entrou antes, com o 8");
         metas.Modos.Should().Equal("--somente-metas-gn");
         metas.LigadaPorPadrao.Should().BeFalse("trazer dado novo para produção é decisão de quem administra");
         metas.ConexaoExigida.Should().Be(ConexoesDoSistema.GestaoDeNegocios);
