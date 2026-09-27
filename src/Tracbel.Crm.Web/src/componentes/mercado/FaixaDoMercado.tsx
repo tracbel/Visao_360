@@ -191,8 +191,10 @@ export function FaixaDoMercado({
             {fatorAgregado == null ? (
               <ValorAusente motivo={motivoEmPortugues(momento?.motivoSemFator ?? '')} oQue="o momento do mercado" />
             ) : (
+              // SEM FAIXA É "SEM LEITURA": o servidor não classifica quando nenhum indicador foi medido — o
+              // fator 1,00 aí é só a conta neutra, e chamá-lo de "normal" afirmaria o que ninguém mediu.
               <span className="mv-pilula" data-faixa={faixa ?? undefined}>
-                {faixa ?? 'sem faixa'}
+                {faixa ?? 'sem leitura'}
               </span>
             )}
             {/* A FRASE DO MOMENTO, NA LINHA DA PÍLULA (maquete: "Demanda estável

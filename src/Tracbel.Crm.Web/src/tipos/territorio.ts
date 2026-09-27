@@ -397,6 +397,14 @@ export type IndicadoresDoMunicipio = {
   vendasNoPeriodoAnterior: VendasTerritoriais | null;
   /** As máquinas do mesmo trecho do ano anterior, em unidades (ART); nulo quando o ART não o cobre. */
   maquinasVendidasNoPeriodoAnterior: number | null;
+  /** As máquinas vendidas daqui por categoria (ART) — a base da captura da ficha; nulo sem carga do ART. */
+  maquinasPorCategoria?: UnidadesNaCategoria[] | null;
+  /**
+   * DEMANDA, CAPTURA E OPORTUNIDADE DESTE MUNICÍPIO (27/09/2026), pela mesma conta dos cartões do topo da aba
+   * Mercado — a demanda das categorias que têm regra aqui, as vendas daqui nessas categorias e o fator de ciclo
+   * do recorte. Nulo quando não há regra de potencial nenhuma. O mercado anual segue sem preço (issue 70).
+   */
+  numerosDeDecisao?: NumerosDeDecisao | null;
 };
 
 /** As vendas de um mês dos municípios da ADR do recorte — um ponto do mini-gráfico. */

@@ -7,10 +7,10 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 
 /// <summary>
 /// OS INDICADORES DE MERCADO DE UM RECORTE (issues 73 e 74) — o momento de preço por cultura e o
-/// crédito de um município, prontos para o fator de ciclo.
+/// crédito de um município ou de um recorte, prontos para o fator de ciclo.
 ///
 /// <para><b>Leitura enxuta, e não o painel inteiro.</b> O painel de crédito agrega 200 mil linhas por
-/// ano, produto e município para a tela; aqui a consulta filtra <b>um</b> município e duas janelas, e
+/// ano, produto e município para a tela; aqui a consulta filtra os municípios pedidos e duas janelas, e
 /// agrega no banco. Reaproveitar o painel faria cada clique em "Simular" pagar a conta da tela.</para>
 ///
 /// <para><b>A vigência é escolhida aqui</b>, pela data pedida — como em todo parâmetro do potencial: o
@@ -20,7 +20,12 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : IRepositorioDeIndicadoresDeMercado
 {
     /// <inheritdoc />
-    public async Task<IndicadoresDoRecorte> LerAsync(DateOnly data, int? municipioCodigoIbge, CancellationToken ct)
+    public Task<IndicadoresDoRecorte> LerAsync(DateOnly data, int? municipioCodigoIbge, CancellationToken ct) =>
+        LerDoRecorteAsync(data, municipioCodigoIbge is { } codigo ? [codigo] : [], ct);
+
+    /// <inheritdoc />
+    public async Task<IndicadoresDoRecorte> LerDoRecorteAsync(
+        DateOnly data, IReadOnlyCollection<int> municipiosCodigoIbge, CancellationToken ct)
     {
         var vigente = ParametroComVigencia.VigenteEm(
             await contexto.ParametrosDoPotencial.AsNoTracking()
@@ -31,8 +36,8 @@ public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : I
         var janela = vigente?.MesesDaJanela ?? 12;
 
         var precos = await MomentoPorCulturaAsync(janela, vigente, ct);
-        var credito = municipioCodigoIbge is { } codigo ? await CreditoAsync(codigo, janela, vigente, ct) : null;
-        var percepcao = municipioCodigoIbge is { } doGestor ? await PercepcaoAsync(doGestor, data, ct) : null;
+        var credito = municipiosCodigoIbge.Count > 0 ? await CreditoAsync(municipiosCodigoIbge, janela, vigente, ct) : null;
+        var percepcao = municipiosCodigoIbge.Count == 1 ? await PercepcaoAsync(municipiosCodigoIbge.First(), data, ct) : null;
 
         return new IndicadoresDoRecorte(precos.Indices, credito, percepcao, precos.UltimoMes);
     }
@@ -92,23 +97,25 @@ public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : I
     }
 
     /// <summary>
-    /// O ÍNDICE DE CRÉDITO DE UM MUNICÍPIO — duas janelas de linhas e valor, só dos produtos de máquina.
+    /// O ÍNDICE DE CRÉDITO DE UM MUNICÍPIO OU DE UM RECORTE — duas janelas de linhas e valor, só dos produtos
+    /// de máquina, somadas nos municípios pedidos.
     ///
     /// <para><b>A carência sai dos dois lados</b> (issue 157): o Banco Central acrescenta contrato
     /// registrado com atraso nos meses recentes, e terminar a janela no último mês com dado compara 12
     /// meses cheios com 12 que ainda estão enchendo.</para>
     /// </summary>
     private async Task<IndiceDeCredito?> CreditoAsync(
-        int municipioCodigoIbge, short janela, ParametroDoPotencial? vigente, CancellationToken ct)
+        IReadOnlyCollection<int> municipiosCodigoIbge, short janela, ParametroDoPotencial? vigente, CancellationToken ct)
     {
         if (vigente is null) return null;
 
-        var municipioId = await contexto.Municipios.AsNoTracking()
-            .Where(m => m.CodigoIbge == municipioCodigoIbge)
-            .Select(m => (int?)m.Id)
-            .FirstOrDefaultAsync(ct);
+        var codigos = municipiosCodigoIbge.Select(c => (int?)c).ToList();
+        var ids = await contexto.Municipios.AsNoTracking()
+            .Where(m => codigos.Contains(m.CodigoIbge))
+            .Select(m => m.Id)
+            .ToListAsync(ct);
 
-        if (municipioId is not { } id) return null;
+        if (ids.Count == 0) return null;
 
         var maquinas = ParametroDoPotencial.ProdutosDeMaquinaNoSicor;
 
@@ -123,7 +130,7 @@ public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : I
         var inicioAnterior = fim - (2 * janela - 1);
 
         var janelas = await contexto.CreditosRuraisDeInvestimento.AsNoTracking()
-            .Where(c => c.MunicipioId == id
+            .Where(c => ids.Contains(c.MunicipioId)
                         && maquinas.Contains(c.CodigoProduto)
                         && c.Ano * 12 + c.Mes >= inicioAnterior
                         && c.Ano * 12 + c.Mes <= fim)
