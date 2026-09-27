@@ -72,14 +72,14 @@ internal static class CenarioDoFunilDoVortice
         return new SementeDoFunil(ribeirao.Id, barretos.Id, operador.Id, maria.Id, cliente.Id, carteira.Id);
     }
 
-    private static DateTime Em(int ano, int mes, int dia, int hora = 10) => new(ano, mes, dia, hora, 0, 0, DateTimeKind.Utc);
+    public static DateTime Em(int ano, int mes, int dia, int hora = 10) => new(ano, mes, dia, hora, 0, 0, DateTimeKind.Utc);
 
     private static DocumentoDoVortice Cpf(string cpf) =>
         DocumentoDoVortice.Recompor(decimal.Parse(cpf[..9], CultureInfo.InvariantCulture), decimal.Parse(cpf[9..], CultureInfo.InvariantCulture), "F");
 
     private static readonly DocumentoDoVortice SemDocumento = DocumentoDoVortice.Recompor(null, null, "F");
 
-    private static ProcessoNoFunilDoVortice P(
+    public static ProcessoNoFunilDoVortice P(
         long numero, short tipo, int nn, DateTime? incluido, long? dna = null, DocumentoDoVortice? documento = null, int? carteira = null,
         string? login = null, string? status = null) =>
         new(numero, tipo, dna ?? numero, nn, numero + 100_000, documento ?? SemDocumento, carteira, login, incluido, incluido, status, null);
@@ -125,12 +125,12 @@ internal static class CenarioDoFunilDoVortice
     public static LeituraDoFunilDoVortice Funil(List<ProcessoNoFunilDoVortice>? processos = null, List<LinhaDoHistoricoDoFunil>? historico = null) =>
         new(processos ?? Processos(), historico ?? Historico());
 
-    private static RespostaDeVendaPerdidaNoVortice R(
+    public static RespostaDeVendaPerdidaNoVortice R(
         long questionario, string formulario, DateTime? registrada, long? processo, long pessoa, int? empresaDoProcesso = null,
         int? empresaDoHistorico = null, DocumentoDoVortice? documento = null, string? motivo = null, string? marca = null,
-        decimal? preco = null, string? participamos = null) =>
+        decimal? preco = null, string? participamos = null, decimal quantidade = 1) =>
         new(questionario, formulario, registrada, processo, pessoa, empresaDoProcesso, empresaDoHistorico, documento ?? SemDocumento,
-            "TRATOR", marca, "MODELO X", "REVENDA FICTICIA", "7230J", 1, null, preco, null, motivo, participamos);
+            "TRATOR", marca, "MODELO X", "REVENDA FICTICIA", "7230J", quantidade, null, preco, null, motivo, participamos);
 
     /// <summary>As respostas de venda perdida da primeira leitura.</summary>
     public static List<RespostaDeVendaPerdidaNoVortice> Respostas()
@@ -156,11 +156,11 @@ internal static class CenarioDoFunilDoVortice
     /// <summary>A rotina sobre as leituras dadas.</summary>
     public static CargaDoFunilDoVortice Rotina(
         Func<CrmDbContext> abrir, SementeDoFunil semente, LeituraDoFunilDoVortice funil, List<RespostaDeVendaPerdidaNoVortice> respostas,
-        DateTime agora) =>
+        DateTime agora, IReadOnlyDictionary<int, int>? deParaDeFiliais = null, int tamanhoDoBloco = CargaDoFunilDoVortice.TamanhoDoBloco) =>
         new(abrir,
             (_, _) => Task.FromResult(Resultado<LeituraDoFunilDoVortice>.Ok(funil)),
             _ => Task.FromResult(Resultado<IReadOnlyList<RespostaDeVendaPerdidaNoVortice>>.Ok(respostas)),
-            semente.DeParaDeFiliais, semente.Operador, () => agora, _ => { });
+            deParaDeFiliais ?? semente.DeParaDeFiliais, semente.Operador, () => agora, _ => { }, tamanhoDoBloco);
 
     /// <summary>A linha do funil deste processo neste estágio.</summary>
     public static EstagioDoProcesso? Linha(CrmDbContext db, long numero, EstagioDoFunil estagio) =>

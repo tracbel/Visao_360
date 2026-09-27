@@ -196,6 +196,12 @@ var somenteParqueDoProtheus = args.Contains("--somente-parque-protheus", StringC
 // Vem DEPOIS do --somente-carteiras-vortice na ordem do dia: liga o processo a carteira pelo de-para que ela grava.
 var somenteProcessosDoVortice = args.Contains("--somente-processos-vortice", StringComparer.Ordinal);
 
+// --aceitar-queda — SÓ NO TERMINAL, e só para o funil: passa por cima da trava que aborta a rodada quando o funil ou as
+// vendas perdidas cairiam mais de 5%. A queda legitima (uma filial desativada tira ~7,7% do funil) nao pode travar a rotina
+// para sempre; a queda por leitura parcial nao pode passar sozinha. Por isso a opcao NAO esta nos modos da rotina: quem a
+// usa e uma pessoa, olhando o numero, e a aceitacao fica escrita na execucao (integracao.ExecucaoDeSincronizacao).
+var aceitarQueda = args.Contains("--aceitar-queda", StringComparer.Ordinal);
+
 // --somente-metas-gn [--simular] [--aceitar-remocao] — AS METAS DE VENDA DA API GESTÃO DE NEGÓCIOS (decisão de 27/09/2026, #138).
 //
 // Le /api/v1/cadastros/metas (so GET, chave no Bearer, certificado validado pelo NOME) e SINCRONIZA organizacao.MetaDeVenda:
@@ -624,6 +630,7 @@ if (somenteProcessosDoVortice)
     Console.WriteLine(simular
         ? "Funil e vendas perdidas do Vórtice — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
         : "Funil e vendas perdidas do Vórtice — sincronizando.");
+    if (aceitarQueda) Console.WriteLine("  --aceitar-queda: a trava de queda não aborta esta rodada; a aceitação fica escrita na execução.");
     Console.WriteLine();
 
     var opcoesDoVorticeParaOFunil = new OpcoesDoVortice { Conexao = conexaoDoLegado };
@@ -641,7 +648,7 @@ if (somenteProcessosDoVortice)
             ? null
             : await TravaDeFluxo.TomarAsync(AbrirContexto(), CargaDoFunilDoVortice.Fluxo, CancellationToken.None);
 
-        var resultadoDoFunil = await cargaDoFunil.ExecutarAsync(simular, CancellationToken.None);
+        var resultadoDoFunil = await cargaDoFunil.ExecutarAsync(simular, aceitarQueda, CancellationToken.None);
         if (!resultadoDoFunil.EhSucesso)
         {
             Console.Error.WriteLine("A SINCRONIA DO FUNIL PAROU: " + resultadoDoFunil.Erro);

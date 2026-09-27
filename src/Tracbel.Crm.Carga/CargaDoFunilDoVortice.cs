@@ -34,6 +34,15 @@ internal static class MotivoDePendenciaDoFunil
 
     /// <summary>A resposta de venda perdida não tem data de preenchimento.</summary>
     public const string SemDataDeRegistro = "SEM_DATA_DE_REGISTRO";
+
+    /// <summary>
+    /// Toda data que abriria o processo (inclusão, primeiro andamento, primeiro resultado) é absurda — antes de 2000 ou
+    /// depois de agora + 1 dia.
+    /// </summary>
+    public const string AberturaComDataInvalida = "ABERTURA_COM_DATA_INVALIDA";
+
+    /// <summary>A data de preenchimento da resposta é absurda — antes de 2000 ou depois de agora + 1 dia.</summary>
+    public const string DataDeRegistroInvalida = "DATA_DE_REGISTRO_INVALIDA";
 }
 
 /// <summary>O que a rotina do funil fez (ou faria, na simulação), em número — sem nome nem documento.</summary>
@@ -80,6 +89,7 @@ internal sealed record RelatorioDoFunilDoVortice(
 /// <param name="usuarioId">Quem roda a rotina.</param>
 /// <param name="relogio">O relógio (UTC).</param>
 /// <param name="relatar">Onde a rotina escreve o andamento.</param>
+/// <param name="tamanhoDoBloco">Linhas por bloco de gravação — o teste usa um pequeno para exercitar a queda no meio.</param>
 internal sealed class CargaDoFunilDoVortice(
     Func<CrmDbContext> abrirContexto,
     Func<IReadOnlyCollection<int>, CancellationToken, Task<Resultado<LeituraDoFunilDoVortice>>> lerFunil,
@@ -87,7 +97,8 @@ internal sealed class CargaDoFunilDoVortice(
     IReadOnlyDictionary<int, int> deParaDeFiliais,
     long usuarioId,
     Func<DateTime> relogio,
-    Action<string> relatar)
+    Action<string> relatar,
+    int tamanhoDoBloco = CargaDoFunilDoVortice.TamanhoDoBloco)
 {
     /// <summary>O fluxo dos processos na trilha da origem — e o nome da trava da rotina.</summary>
     internal const string Fluxo = "VORTICE.FUNIL";
@@ -101,8 +112,21 @@ internal sealed class CargaDoFunilDoVortice(
     /// </summary>
     internal const double QuedaMaximaAceita = 0.05;
 
-    /// <summary>Linhas por bloco de gravação — cada bloco, uma transação.</summary>
+    /// <summary>
+    /// Linhas por bloco de gravação — cada bloco, uma transação. O bloco fecha em processos inteiros: pode passar deste
+    /// número pelos estágios do último processo (no máximo seis).
+    /// </summary>
     internal const int TamanhoDoBloco = 2_000;
+
+    /// <summary>
+    /// QUANTOS IDENTIFICADORES VÃO NUMA CONSULTA POR LISTA. O SQL Server aceita 2.100 parâmetros por comando, e a lista
+    /// de vendas perdidas do Vórtice já passa de 3 mil: a consulta por lista é feita em fatias, e nunca chega perto do
+    /// limite, qualquer que seja a tradução que o EF escolha para o <c>Contains</c>.
+    /// </summary>
+    internal const int IdsPorConsulta = 1_000;
+
+    /// <summary>A opção do terminal que passa por cima da trava de queda — nunca da rotina do orquestrador.</summary>
+    internal const string OpcaoDeAceitarQueda = "--aceitar-queda";
 
     /// <summary>O motivo de perda que substitui o que a origem não registrou — o mesmo código da carga antiga.</summary>
     internal const string MotivoNaoInformado = "NAO_INFORMADO_NA_ORIGEM";
@@ -157,8 +181,13 @@ internal sealed class CargaDoFunilDoVortice(
 
     /// <summary>Executa a rotina.</summary>
     /// <param name="simular">Só planeja e conta: não abre transação de escrita.</param>
+    /// <param name="aceitarQueda">
+    /// Passa por cima da trava de queda — só pelo terminal (<see cref="OpcaoDeAceitarQueda"/>), nunca pela rotina: a
+    /// queda legítima (uma filial desativada tira ~7,7% do funil) não pode travar a rotina para sempre, e a queda por
+    /// leitura parcial não pode passar sozinha. Quando aceita, fica escrita na execução e nas observações.
+    /// </param>
     /// <param name="ct">Cancelamento.</param>
-    public async Task<Resultado<RelatorioDoFunilDoVortice>> ExecutarAsync(bool simular, CancellationToken ct)
+    public async Task<Resultado<RelatorioDoFunilDoVortice>> ExecutarAsync(bool simular, bool aceitarQueda, CancellationToken ct)
     {
         Dictionary<int, EstagioDoFunil> estagioPorResultado;
         await using (var banco = abrirContexto())
@@ -197,16 +226,26 @@ internal sealed class CargaDoFunilDoVortice(
 
         Relatar(funil.Valor, formularios.Valor, plano);
 
+        var quedas = new List<string>();
         if (Queda(plano.LinhasExistentes, plano.Desejadas.Count) is { } quedaDoFunil)
-            return Falha(
-                $"O funil cairia de {plano.LinhasExistentes:N0} para {plano.Desejadas.Count:N0} linhas ({quedaDoFunil:P1}), mais do que " +
-                $"os {QuedaMaximaAceita:P0} que uma rodada aceita. Isso é leitura a conferir, não o funil andando — nada foi removido e " +
-                "nada foi gravado.");
-
+            quedas.Add($"o funil cairia de {plano.LinhasExistentes:N0} para {plano.Desejadas.Count:N0} linhas ({quedaDoFunil:P1})");
         if (Queda(plano.VendasPerdidasAtivas, plano.Respostas.Count(r => r.Motivo is null)) is { } quedaDasPerdas)
-            return Falha(
-                $"As vendas perdidas cairiam de {plano.VendasPerdidasAtivas:N0} para {plano.Respostas.Count(r => r.Motivo is null):N0} " +
-                $"({quedaDasPerdas:P1}), mais do que os {QuedaMaximaAceita:P0} aceitos. Nada foi excluído e nada foi gravado.");
+            quedas.Add($"as vendas perdidas cairiam de {plano.VendasPerdidasAtivas:N0} para {plano.Respostas.Count(r => r.Motivo is null):N0} " +
+                       $"({quedaDasPerdas:P1})");
+
+        if (quedas.Count > 0)
+        {
+            var descricao = string.Join("; ", quedas);
+            if (!aceitarQueda)
+                return Falha(
+                    $"{char.ToUpperInvariant(descricao[0])}{descricao[1..]} — mais do que os {QuedaMaximaAceita:P0} que uma rodada aceita. " +
+                    "Isso costuma ser leitura a conferir, não o funil andando: nada foi removido e nada foi gravado. Se a queda é " +
+                    $"legítima (uma filial desativada, por exemplo), rode no terminal com {OpcaoDeAceitarQueda}.");
+
+            plano.QuedaAceita = $"Queda aceita por {OpcaoDeAceitarQueda}, no terminal: {descricao}.";
+            _observacoes.Add(plano.QuedaAceita);
+            relatar("  " + plano.QuedaAceita);
+        }
 
         if (simular)
         {
@@ -214,11 +253,17 @@ internal sealed class CargaDoFunilDoVortice(
             return Resultado<RelatorioDoFunilDoVortice>.Ok(new RelatorioDoFunilDoVortice(true, _contagens, _observacoes));
         }
 
-        await AplicarAsync(plano, agora, ct);
-        return Resultado<RelatorioDoFunilDoVortice>.Ok(new RelatorioDoFunilDoVortice(false, _contagens, _observacoes));
+        var gravacao = await AplicarAsync(plano, agora, ct);
+        return gravacao.EhSucesso
+            ? Resultado<RelatorioDoFunilDoVortice>.Ok(new RelatorioDoFunilDoVortice(false, _contagens, _observacoes))
+            : Falha(gravacao.Erro!);
     }
 
     private static Resultado<RelatorioDoFunilDoVortice> Falha(string mensagem) => Resultado<RelatorioDoFunilDoVortice>.Indisponivel(mensagem);
+
+    /// <summary>A data crível: de 2000 até agora + 1 dia — a mesma faixa que a regra do estágio aceita na abertura.</summary>
+    private static bool DataCrivel(DateTime utc, DateTime agora) =>
+        utc >= RegraDoEstagio.MenorAberturaCrivel && utc <= agora + RegraDoEstagio.ToleranciaDeDataFutura;
 
     /// <summary>A queda relativa, quando passa do aceito; nula quando não passa (ou quando não havia nada antes).</summary>
     private static double? Queda(int antes, int depois)
@@ -262,6 +307,7 @@ internal sealed class CargaDoFunilDoVortice(
                 {
                     SituacaoNaRegraDoEstagio.PaiSubstituidoPeloFilhoDna => MotivoDePendenciaDoFunil.PaiSubstituidoPeloFilhoDna,
                     SituacaoNaRegraDoEstagio.SemResultadoAceito => MotivoDePendenciaDoFunil.SemResultadoAceito,
+                    SituacaoNaRegraDoEstagio.AberturaInvalida => MotivoDePendenciaDoFunil.AberturaComDataInvalida,
                     _ => null
                 };
 
@@ -270,7 +316,10 @@ internal sealed class CargaDoFunilDoVortice(
                 var ligacao = ligacoes.Do(processo);
                 plano.Ligacoes.Add(ligacao);
                 var situacao = SaneamentoDeProcesso.Situacao(processo.Status, []).Situacao;
+
+                // O DESFECHO SÓ TEM DATA quando encerra e quando a data é crível — a 31/12/9999 do Vórtice não é data.
                 var desfechoEm = situacao is SituacaoDoProcesso.Ganho or SituacaoDoProcesso.Perdido or SituacaoDoProcesso.Cancelado
+                                 && processo.RealizadoEmUtc is { } realizado && DataCrivel(realizado, agora)
                     ? processo.RealizadoEmUtc
                     : null;
 
@@ -297,7 +346,7 @@ internal sealed class CargaDoFunilDoVortice(
             var chave = (linha.NumeroDoProcessoNaOrigem, linha.Estagio);
             if (!plano.Desejadas.TryGetValue(chave, out var desejada))
             {
-                plano.ARemover.Add(linha.Id);
+                plano.ARemover.Add((linha.Id, linha.NumeroDoProcessoNaOrigem));
                 if (processos.ContainsKey(linha.NumeroDoProcessoNaOrigem)) plano.RemovidasDeProcessoPresente++;
                 continue;
             }
@@ -312,7 +361,7 @@ internal sealed class CargaDoFunilDoVortice(
         // ---------------------------------------------------------------------------------------------
         // A venda perdida.
         // ---------------------------------------------------------------------------------------------
-        await PlanejarVendasPerdidasAsync(banco, plano, ligacoes, respostas, ct);
+        await PlanejarVendasPerdidasAsync(banco, plano, ligacoes, respostas, agora, ct);
 
         // ---------------------------------------------------------------------------------------------
         // A trilha da origem, planejada.
@@ -339,7 +388,8 @@ internal sealed class CargaDoFunilDoVortice(
     }
 
     private async Task PlanejarVendasPerdidasAsync(
-        CrmDbContext banco, Plano plano, Ligacoes ligacoes, IReadOnlyList<RespostaDeVendaPerdidaNoVortice> respostas, CancellationToken ct)
+        CrmDbContext banco, Plano plano, Ligacoes ligacoes, IReadOnlyList<RespostaDeVendaPerdidaNoVortice> respostas, DateTime agora,
+        CancellationToken ct)
     {
         var motivos = await banco.MotivosDePerda.AsNoTracking().ToDictionaryAsync(m => m.Codigo, m => m.Id, StringComparer.Ordinal, ct);
         var itens = (await banco.CatalogoItens.AsNoTracking()
@@ -355,9 +405,15 @@ internal sealed class CargaDoFunilDoVortice(
             var item = new PlanoDaResposta { Origem = resposta, Correcoes = correcoes };
             plano.Respostas.Add(item);
 
-            if (resposta.RegistradaEmUtc is null)
+            if (resposta.RegistradaEmUtc is not { } registrada)
             {
                 item.Motivo = MotivoDePendenciaDoFunil.SemDataDeRegistro;
+                continue;
+            }
+
+            if (!DataCrivel(registrada, agora))
+            {
+                item.Motivo = MotivoDePendenciaDoFunil.DataDeRegistroInvalida;
                 continue;
             }
 
@@ -419,8 +475,13 @@ internal sealed class CargaDoFunilDoVortice(
             .Where(c => c.SistemaId == sistemaId && c.Entidade == EntidadeVendaPerdida)
             .Select(c => new { c.ChaveOrigem, c.RegistroId })
             .ToListAsync(ct);
-        var ids = chaves.Select(c => c.RegistroId).ToList();
-        var existentes = (await banco.VendasPerdidas.AsNoTracking().Where(v => ids.Contains(v.Id)).ToListAsync(ct)).ToDictionary(v => v.Id);
+        var existentes = new Dictionary<long, VendaPerdida>();
+        foreach (var fatia in chaves.Select(c => c.RegistroId).Distinct().Chunk(IdsPorConsulta))
+        {
+            var ids = fatia.ToList();
+            foreach (var venda in await banco.VendasPerdidas.AsNoTracking().Where(v => ids.Contains(v.Id)).ToListAsync(ct))
+                existentes[venda.Id] = venda;
+        }
         var porChave = chaves.Where(c => existentes.ContainsKey(c.RegistroId))
             .GroupBy(c => c.ChaveOrigem, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => existentes[g.First().RegistroId], StringComparer.Ordinal);
@@ -533,7 +594,7 @@ internal sealed class CargaDoFunilDoVortice(
     // A gravação — em blocos
     // =============================================================================================
 
-    private async Task AplicarAsync(Plano plano, DateTime agora, CancellationToken ct)
+    private async Task<Resultado<bool>> AplicarAsync(Plano plano, DateTime agora, CancellationToken ct)
     {
         int sistemaId;
         await using (var banco = abrirContexto())
@@ -552,41 +613,125 @@ internal sealed class CargaDoFunilDoVortice(
             return banco;
         }
 
-        // 1. O funil: inclui, atualiza, remove — cada bloco uma transação.
-        foreach (var bloco in plano.AIncluir.Chunk(TamanhoDoBloco))
+        // A EXECUÇÃO, REGISTRADA: é o que a administração consulta por fluxo — quando rodou, o que fez, se a queda foi
+        // aceita pelo terminal e, se caiu no meio, até onde gravou.
+        long execucaoId;
+        await using (var banco = Abrir())
         {
-            await using var banco = Abrir();
-            banco.EstagiosDoProcesso.AddRange(bloco.Select(EstagioDoProcesso.Registrar));
+            var execucao = ExecucaoDeSincronizacao.Iniciar(sistemaId, Fluxo, Environment.MachineName, relogio());
+            banco.ExecucoesDeSincronizacao.Add(execucao);
             await banco.SaveChangesAsync(ct);
+            execucaoId = execucao.Id;
         }
 
-        foreach (var bloco in plano.AAlterar.Chunk(TamanhoDoBloco))
+        // 1. O funil, EM BLOCOS DE PROCESSOS INTEIROS: inclusão, alteração e remoção de um processo andam no mesmo bloco,
+        // e o bloco é uma transação. Se um cair, nenhum processo fica com parte dos estágios de uma rodada e parte da outra.
+        var blocos = BlocosPorProcesso(plano, tamanhoDoBloco);
+        var gravados = 0;
+        try
         {
-            await using var banco = Abrir();
-            var ids = bloco.Select(b => b.Id).ToList();
-            var linhas = await banco.EstagiosDoProcesso.Where(e => ids.Contains(e.Id)).ToDictionaryAsync(e => e.Id, ct);
-            foreach (var (id, retrato) in bloco) linhas[id].AtualizarDaOrigem(retrato);
-            await banco.SaveChangesAsync(ct);
+            foreach (var bloco in blocos)
+            {
+                await using var banco = Abrir();
+                banco.EstagiosDoProcesso.AddRange(bloco.Incluir.Select(EstagioDoProcesso.Registrar));
+
+                var linhas = new Dictionary<long, EstagioDoProcesso>();
+                foreach (var fatia in bloco.Alterar.Select(a => a.Id).Concat(bloco.Remover).Chunk(IdsPorConsulta))
+                {
+                    var ids = fatia.ToList();
+                    foreach (var linha in await banco.EstagiosDoProcesso.Where(e => ids.Contains(e.Id)).ToListAsync(ct))
+                        linhas[linha.Id] = linha;
+                }
+
+                foreach (var (id, retrato) in bloco.Alterar) linhas[id].AtualizarDaOrigem(retrato);
+
+                // A REMOÇÃO PASSA PELO RASTREADOR, e não por um DELETE em massa, de propósito: é assim que a trilha de
+                // auditoria guarda qual processo saiu de qual estágio, e desde quando ele estava lá.
+                banco.EstagiosDoProcesso.RemoveRange(bloco.Remover.Select(id => linhas[id]));
+
+                await banco.SaveChangesAsync(ct);
+                gravados++;
+            }
+
+            // 2. A venda perdida: pequena (~3,2 mil respostas), numa transação só.
+            await AplicarVendasPerdidasAsync(Abrir, plano, sistemaId, agora, ct);
+
+            // 3. A trilha da origem.
+            await AplicarTrilhaAsync(Abrir, sistemaId, Fluxo, plano.RegistrosDoFunil, plano.TrilhaDoFunil, agora, ct);
+            await AplicarTrilhaAsync(Abrir, sistemaId, FluxoDaVendaPerdida, plano.RegistrosDaVendaPerdida, plano.TrilhaDaVendaPerdida, agora, ct);
+        }
+        catch (Exception falha) when (falha is DbUpdateException or InvalidOperationException or RegraDeNegocioViolada)
+        {
+            var onde = gravados < blocos.Count
+                ? $"{gravados} de {blocos.Count} blocos do funil gravados; o bloco {gravados + 1} foi desfeito inteiro, sem deixar " +
+                  "processo com parte dos estágios"
+                : $"os {blocos.Count} blocos do funil gravados; a venda perdida ou a trilha da origem parou no meio";
+            var mensagem = $"Gravação parcial: {onde}. A próxima rodada completa — ela relê tudo e grava só o que falta. " +
+                           $"Causa: {falha.GetBaseException().Message}";
+
+            await EncerrarAsync(Abrir, execucaoId, e => e.Falhar(1, mensagem, relogio()), ct);
+            return Resultado<bool>.Indisponivel(mensagem);
         }
 
-        // A REMOÇÃO PASSA PELO RASTREADOR, e não por um DELETE em massa, de propósito: é assim que a trilha de auditoria
-        // guarda qual processo saiu de qual estágio, e desde quando ele estava lá.
-        foreach (var bloco in plano.ARemover.Chunk(TamanhoDoBloco))
-        {
-            await using var banco = Abrir();
-            var ids = bloco.ToList();
-            banco.EstagiosDoProcesso.RemoveRange(await banco.EstagiosDoProcesso.Where(e => ids.Contains(e.Id)).ToListAsync(ct));
-            await banco.SaveChangesAsync(ct);
-        }
+        var resumo =
+            $"Funil: {plano.AIncluir.Count:N0} incluídas, {plano.AAlterar.Count:N0} alteradas, {plano.ARemover.Count:N0} removidas. " +
+            $"Vendas perdidas: {plano.Respostas.Count(r => r.Motivo is null && r.VendaPerdidaId is null):N0} incluídas, " +
+            $"{plano.VendasPerdidasAlteradas:N0} alteradas, {plano.AExcluir.Count:N0} excluídas." +
+            (plano.QuedaAceita is null ? string.Empty : " " + plano.QuedaAceita);
 
-        // 2. A venda perdida: pequena (~3,2 mil respostas), numa transação só.
-        await AplicarVendasPerdidasAsync(Abrir, plano, sistemaId, agora, ct);
-
-        // 3. A trilha da origem.
-        await AplicarTrilhaAsync(Abrir, sistemaId, Fluxo, plano.RegistrosDoFunil, plano.TrilhaDoFunil, agora, ct);
-        await AplicarTrilhaAsync(Abrir, sistemaId, FluxoDaVendaPerdida, plano.RegistrosDaVendaPerdida, plano.TrilhaDaVendaPerdida, agora, ct);
+        await EncerrarAsync(Abrir, execucaoId, e => e.Concluir(
+            1,
+            plano.RegistrosDoFunil.Count + plano.Respostas.Count,
+            plano.AIncluir.Count + plano.Respostas.Count(r => r.Motivo is null && r.VendaPerdidaId is null),
+            plano.AAlterar.Count + plano.ARemover.Count + plano.VendasPerdidasAlteradas + plano.PapeisAlterados + plano.AExcluir.Count,
+            plano.RegistrosDoFunil.Count(r => r.Motivos is not null) + plano.Respostas.Count(r => r.Motivo is not null),
+            resumo,
+            relogio()), ct);
 
         relatar("Gravado. A rotina pode rodar de novo a qualquer hora: sem mudança na origem, nada muda aqui.");
+        return Resultado<bool>.Ok(true);
+    }
+
+    private static async Task EncerrarAsync(
+        Func<CrmDbContext> abrir, long execucaoId, Action<ExecucaoDeSincronizacao> encerrar, CancellationToken ct)
+    {
+        await using var banco = abrir();
+        var execucao = await banco.ExecucoesDeSincronizacao.FirstAsync(e => e.Id == execucaoId, ct);
+        encerrar(execucao);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// OS BLOCOS DE GRAVAÇÃO, POR PROCESSO: os estágios de um processo nunca ficam em blocos diferentes. O bloco fecha
+    /// quando passa do tamanho — no máximo seis linhas além dele, as do último processo.
+    /// </summary>
+    private static List<BlocoDoFunil> BlocosPorProcesso(Plano plano, int tamanho)
+    {
+        var porProcesso = new SortedDictionary<long, BlocoDoFunil>();
+        BlocoDoFunil Do(long numero)
+        {
+            if (!porProcesso.TryGetValue(numero, out var bloco)) porProcesso[numero] = bloco = new BlocoDoFunil();
+            return bloco;
+        }
+
+        foreach (var retrato in plano.AIncluir) Do(retrato.NumeroDoProcessoNaOrigem).Incluir.Add(retrato);
+        foreach (var alteracao in plano.AAlterar) Do(alteracao.Retrato.NumeroDoProcessoNaOrigem).Alterar.Add(alteracao);
+        foreach (var (id, numero) in plano.ARemover) Do(numero).Remover.Add(id);
+
+        var blocos = new List<BlocoDoFunil>();
+        var atual = new BlocoDoFunil();
+        foreach (var processo in porProcesso.Values)
+        {
+            atual.Incluir.AddRange(processo.Incluir);
+            atual.Alterar.AddRange(processo.Alterar);
+            atual.Remover.AddRange(processo.Remover);
+            if (atual.Linhas < tamanho) continue;
+            blocos.Add(atual);
+            atual = new BlocoDoFunil();
+        }
+
+        if (atual.Linhas > 0) blocos.Add(atual);
+        return blocos;
     }
 
     private async Task AplicarVendasPerdidasAsync(Func<CrmDbContext> abrir, Plano plano, int sistemaId, DateTime agora, CancellationToken ct)
@@ -612,8 +757,12 @@ internal sealed class CargaDoFunilDoVortice(
         var chaves = await banco.ChavesExternas
             .Where(c => c.SistemaId == sistemaId && c.Entidade == EntidadeVendaPerdida)
             .ToListAsync(ct);
-        var idsGeridos = chaves.Select(c => c.RegistroId).ToList();
-        var geridas = await banco.VendasPerdidas.Where(v => idsGeridos.Contains(v.Id)).ToDictionaryAsync(v => v.Id, ct);
+        var geridas = new Dictionary<long, VendaPerdida>();
+        foreach (var fatia in chaves.Select(c => c.RegistroId).Distinct().Chunk(IdsPorConsulta))
+        {
+            var idsGeridos = fatia.ToList();
+            foreach (var venda in await banco.VendasPerdidas.Where(v => idsGeridos.Contains(v.Id)).ToListAsync(ct)) geridas[venda.Id] = venda;
+        }
         var chavePorOrigem = chaves.GroupBy(c => c.ChaveOrigem, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 
         // DUAS PASSADAS, NA ORDEM DO PAPEL: primeiro as principais — que não apontam para ninguém —, depois o complemento e
@@ -682,7 +831,7 @@ internal sealed class CargaDoFunilDoVortice(
     {
         var aTratar = planejados.Where(r => !trilha.Iguais.Contains(r.Chave)).ToList();
 
-        foreach (var bloco in aTratar.Chunk(TamanhoDoBloco))
+        foreach (var bloco in aTratar.Chunk(IdsPorConsulta))
         {
             await using var banco = abrir();
             var chaves = bloco.Select(r => r.Chave).ToList();
@@ -708,7 +857,7 @@ internal sealed class CargaDoFunilDoVortice(
             await banco.SaveChangesAsync(ct);
         }
 
-        foreach (var bloco in trilha.Iguais.Chunk(TamanhoDoBloco))
+        foreach (var bloco in trilha.Iguais.Chunk(IdsPorConsulta))
         {
             await using var banco = abrir();
             var chaves = bloco.ToList();
@@ -719,7 +868,7 @@ internal sealed class CargaDoFunilDoVortice(
                     .SetProperty(r => r.Leituras, r => r.Leituras + 1), ct);
         }
 
-        foreach (var bloco in trilha.QueSumiram.Chunk(TamanhoDoBloco))
+        foreach (var bloco in trilha.QueSumiram.Chunk(IdsPorConsulta))
         {
             await using var banco = abrir();
             var chaves = bloco.ToList();
@@ -757,6 +906,11 @@ internal sealed class CargaDoFunilDoVortice(
         Contar(etapaDaRegra, "abertura deduzida do primeiro andamento (inclusão nula)",
             plano.Desejadas.Values.Where(d => d.AberturaDeduzida).Select(d => d.NumeroDoProcessoNaOrigem).Distinct().Count());
         Contar(etapaDaRegra, "resultados recusados por data futura", apuracoes.Sum(a => a.ResultadosComDataFutura));
+        Contar(etapaDaRegra, "processos com data de abertura absurda recusada (valeu a seguinte, ou ficou pendente)",
+            apuracoes.Count(a => a.AberturaRecusada));
+        Contar(etapaDaRegra, "processos com DNA em ciclo (tratados como sem pai)", apuracoes.Count(a => a.DnaEmCiclo));
+        Contar(etapaDaRegra, "processos com ProcessoPai sem vínculo DNA (não herdam, como no BI — decisão aberta, documento 52 §3)",
+            funil.Processos.Count(p => p.NumeroDoPai is { } pai && pai != p.NumeroDoDna));
         foreach (var estagio in plano.Desejadas.Values.GroupBy(d => d.Estagio).OrderBy(g => g.Key))
         {
             Contar(etapaDaRegra, $"  {estagio.Key}: processos", estagio.Count());
@@ -858,14 +1012,21 @@ internal sealed class CargaDoFunilDoVortice(
             {
                 processo.Tipo.ToString(CultureInfo.InvariantCulture), processo.NroEmpresa?.ToString(CultureInfo.InvariantCulture),
                 processo.NumeroDoDna.ToString(CultureInfo.InvariantCulture), apuracao.Situacao.ToString(), processo.Status,
-                apuracao.AbertoEm?.ToString("O", CultureInfo.InvariantCulture), processo.RealizadoEmUtc?.ToString("O", CultureInfo.InvariantCulture)
+                apuracao.AbertoEm?.ToString("O", CultureInfo.InvariantCulture), processo.RealizadoEmUtc?.ToString("O", CultureInfo.InvariantCulture),
+                processo.NumeroDoPai?.ToString(CultureInfo.InvariantCulture), apuracao.AberturaRecusada.ToString(), apuracao.DnaEmCiclo.ToString()
             }
             .Concat(apuracao.Estagios.Select(e => string.Join(',', e.Estagio, e.AlcancadoEm.ToString("O", CultureInfo.InvariantCulture),
                 e.ResultadoQueAbriu.ToString(CultureInfo.InvariantCulture), e.NumeroDoProcessoDna?.ToString(CultureInfo.InvariantCulture),
                 e.PelaEntradaDigital, e.UltimaAcaoDaEtapaEm?.ToString("O", CultureInfo.InvariantCulture)))));
 
-        var transformacoes = new List<string>(2);
-        if (apuracao.AberturaDeduzida) transformacoes.Add("abertura: a inclusão é nula, e valeu o primeiro andamento (o COALESCE do BI)");
+        var transformacoes = new List<string>(4);
+        if (apuracao.AberturaRecusada)
+            transformacoes.Add("abertura: data absurda recusada (antes de 2000 ou depois de agora + 1 dia)" +
+                               (apuracao.AbertoEm is null ? ", e nenhuma outra é crível" : ", e valeu a seguinte"));
+        else if (apuracao.AberturaDeduzida) transformacoes.Add("abertura: a inclusão é nula, e valeu o primeiro andamento (o COALESCE do BI)");
+        if (apuracao.DnaEmCiclo) transformacoes.Add("DNA em ciclo: tratado como processo sem pai");
+        if (processo.NumeroDoPai is { } pai && pai != processo.NumeroDoDna)
+            transformacoes.Add($"filho do processo {pai.ToString(CultureInfo.InvariantCulture)} por ProcessoPai, sem vínculo DNA: não herda, como no BI");
         if (apuracao.ResultadosComDataFutura > 0)
             transformacoes.Add($"{apuracao.ResultadosComDataFutura} resultado(s) com data futura recusado(s)");
 
@@ -901,6 +1062,18 @@ internal sealed class CargaDoFunilDoVortice(
     // =============================================================================================
     // As peças do plano
     // =============================================================================================
+
+    /// <summary>Um bloco de gravação: processos inteiros, com o que incluir, alterar e remover de cada um.</summary>
+    private sealed class BlocoDoFunil
+    {
+        public List<RetratoDoEstagio> Incluir { get; } = [];
+
+        public List<(long Id, RetratoDoEstagio Retrato)> Alterar { get; } = [];
+
+        public List<long> Remover { get; } = [];
+
+        public int Linhas => Incluir.Count + Alterar.Count + Remover.Count;
+    }
 
     /// <summary>O registro da origem que esta rodada quer deixar na trilha.</summary>
     private sealed record RegistroPlanejado(string Chave, RetratoDoRegistroDeOrigem Retrato, DecisaoDaIntegracao Decisao, string? Motivos);
@@ -1004,7 +1177,9 @@ internal sealed class CargaDoFunilDoVortice(
 
         public List<(long Id, RetratoDoEstagio Retrato)> AAlterar { get; } = [];
 
-        public List<long> ARemover { get; } = [];
+        public List<(long Id, long Numero)> ARemover { get; } = [];
+
+        public string? QuedaAceita { get; set; }
 
         public int RemovidasDeProcessoPresente { get; set; }
 

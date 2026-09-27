@@ -102,8 +102,8 @@ decisões de 27/09/2026): `processo.EstagioDoProcesso`, uma linha por processo 3
 alcançado, e `integracao.ClassificacaoDeResultadoDoVortice`, o que cada código de resultado do histórico prova. O
 estágio é tabela própria, e não coluna de `Processo`, porque 62% do funil é **prospect sem cadastro** no CRM — ele
 entra no funil sem virar cliente, e a linha não pode depender de um processo que nunca vai existir aqui. A
-classificação é tabela, e não constante no código, porque duas rotinas a leem (o funil e o último contato da
-carteira): com uma constante em cada uma, o primeiro código novo faria as duas divergirem.
+classificação é tabela, e não constante no código, porque o código novo do Vórtice entra por migração, com
+autor na trilha. O último contato da carteira ainda usa a constante do PR #244 — a mesma lista, presa à tabela por teste.
 
 A conta é verificada por
 `EsquemaENomenclaturaTestes.Os_oito_schemas_do_modelo_unificado_existem_e_somam_cinquenta_e_cinco_tabelas`
