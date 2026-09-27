@@ -83,6 +83,10 @@ public sealed class ClienteCarteira
     /// como tal: a tela de Cobertura ordena centenas de clientes por esta data, e calcular na
     /// hora custaria varrer a tabela de interações, que herda 2,4 milhões de linhas. É
     /// mantido por regra na gravação da interação, com reconciliação diária por job.
+    ///
+    /// <para>Enquanto o histórico não é carregado, a sincronia das carteiras do Vórtice o traz
+    /// pela regra da BI de lá — qualquer contato (decisão de 27/09/2026). As fontes convergem
+    /// pelo máximo, em <see cref="RegistrarInteracao"/>.</para>
     /// </summary>
     public DateTime? UltimaInteracaoEm { get; private set; }
 
@@ -134,7 +138,14 @@ public sealed class ClienteCarteira
     /// <param name="quandoUtc">O instante do encerramento.</param>
     public void Desvincular(DateTime quandoUtc) => DesvinculadoEm ??= quandoUtc;
 
-    /// <summary>Carimba a data da última interação. Chamado pela regra de gravação de interação.</summary>
+    /// <summary>
+    /// Carimba a data do último contato — SÓ PARA A FRENTE: a mais recente vence, e nada a diminui nem a apaga.
+    ///
+    /// <para>Duas fontes chegam aqui: a gravação da interação no CRM e a sincronia das carteiras do Vórtice, que
+    /// traz o último contato pela regra da BI de lá (decisão de 27/09/2026). A data mais velha de uma nunca desfaz
+    /// a mais nova da outra — é o máximo das duas, qualquer que seja a ordem em que chegam.</para>
+    /// </summary>
+    /// <param name="ocorridaEmUtc">Quando o contato aconteceu (UTC).</param>
     public void RegistrarInteracao(DateTime ocorridaEmUtc)
     {
         if (UltimaInteracaoEm is null || ocorridaEmUtc > UltimaInteracaoEm)

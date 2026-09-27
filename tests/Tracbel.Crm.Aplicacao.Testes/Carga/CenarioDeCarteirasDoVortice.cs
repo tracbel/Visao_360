@@ -129,10 +129,32 @@ internal static class CenarioDeCarteirasDoVortice
         Com(11, 724, CpfDoCliente3)
     ];
 
-    /// <summary>A leitura inteira.</summary>
-    public static LeituraDasCarteirasDoVortice Leitura(List<CarteiraNoVortice>? carteiras = null, List<VinculoNoVortice>? vinculos = null) =>
+    /// <summary>
+    /// O último contato de cada pessoa pela regra da BI (decisão de 27/09/2026), antes do instante das rodadas
+    /// (24/09/2026 12h). O cliente 2 está em duas pessoas que casam (2 e 10): vale a mais recente. A pessoa 9 é do
+    /// cliente 2 também, mas numa carteira de vendedor desligado — o vínculo dela não entra, e o contato dela também
+    /// não. A 7 não tem cliente no CRM. A 4 traz uma data do futuro, que não pode travar o vínculo. A 3 nunca foi
+    /// contatada.
+    /// </summary>
+    public static Dictionary<long, DateTime> UltimosContatos() => new()
+    {
+        [1] = new DateTime(2026, 9, 10, 14, 30, 0, DateTimeKind.Utc),
+        [2] = new DateTime(2026, 5, 1, 10, 0, 0, DateTimeKind.Utc),
+        [10] = new DateTime(2026, 8, 15, 9, 0, 0, DateTimeKind.Utc),
+        [9] = new DateTime(2026, 9, 20, 8, 0, 0, DateTimeKind.Utc),
+        [7] = new DateTime(2026, 9, 1, 8, 0, 0, DateTimeKind.Utc),
+        [4] = new DateTime(2027, 1, 1, 8, 0, 0, DateTimeKind.Utc)
+    };
+
+    /// <summary>A leitura inteira — sem histórico, a menos que se passe o último contato.</summary>
+    public static LeituraDasCarteirasDoVortice Leitura(
+        List<CarteiraNoVortice>? carteiras = null, List<VinculoNoVortice>? vinculos = null,
+        IReadOnlyDictionary<long, DateTime>? ultimosContatos = null) =>
         new(new DepartamentoNoVortice(2, "MAQ-NOVOS", "Venda de Máquinas e Implemento", 180, 180, 180, 360),
-            carteiras ?? Carteiras(), Donos, vinculos ?? Vinculos());
+            carteiras ?? Carteiras(), Donos, vinculos ?? Vinculos())
+        {
+            UltimosContatos = ultimosContatos ?? new Dictionary<long, DateTime>()
+        };
 
     /// <summary>A sincronia sobre a leitura dada, sem SA1.</summary>
     public static CargaDeCarteirasDoVortice Sincronia(Func<CrmDbContext> abrir, LeituraDasCarteirasDoVortice leitura, DateTime agora, Semente semente) =>
