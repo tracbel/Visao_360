@@ -138,24 +138,146 @@ public sealed record ClassificacaoDeIndicador(string Indicador, string Situacao,
 /// </param>
 /// <param name="Classificacoes">Como ler cada indicador — nenhum de regra pendente aparece como validado.</param>
 /// <param name="NumerosDeDecisao">Os quatro números do topo, com o motivo de cada ausência.</param>
+/// <param name="ComparacaoComOAnoAnterior">
+/// Os quatro números no mesmo trecho do ano anterior — a base do "vs. ano anterior" dos cartões do topo
+/// (27/09/2026). Só a captura e a oportunidade têm número: a demanda e o mercado anual são estruturais.
+/// </param>
 public sealed record PainelTerritorial(
     IndicadoresTerritoriais Indicadores,
     IReadOnlyList<MetricaSemDado> MetricasSemDado,
     bool PodeVerEmpresaInteira,
     IReadOnlyList<ClassificacaoDeIndicador> Classificacoes,
-    NumerosDeDecisao NumerosDeDecisao);
+    NumerosDeDecisao NumerosDeDecisao,
+    ComparacaoComOAnoAnterior? ComparacaoComOAnoAnterior = null);
+
+/// <summary>
+/// OS FILTROS DE ALCANCE JÁ LIDOS — visão, filiais, tipo de produto e CEN —, os mesmos para o painel e para o
+/// histórico do município.
+///
+/// <para><b>Uma leitura só para as duas rotas</b>: a ficha do município mostra o histórico ao lado dos números
+/// do painel, e um filtro validado de um jeito numa e de outro jeito na outra faria os dois discordarem sobre o
+/// mesmo recorte.</para>
+/// </summary>
+/// <param name="Visao">Filial ou empresa inteira.</param>
+/// <param name="FilialDaVendaId">A filial que emitiu a nota.</param>
+/// <param name="FilialDoClienteId">A filial de cadastro do cliente.</param>
+/// <param name="CategoriaDeMaquina">O código da categoria do filtro "Tipo de produto".</param>
+/// <param name="ResponsavelId">O responsável do filtro "CEN / gestor".</param>
+/// <param name="Categorias">As categorias que o filtro oferece.</param>
+/// <param name="Responsaveis">Os responsáveis que o filtro oferece.</param>
+public sealed record FiltrosDeAlcance(
+    VisaoTerritorial Visao,
+    int? FilialDaVendaId,
+    int? FilialDoClienteId,
+    string? CategoriaDeMaquina,
+    long? ResponsavelId,
+    IReadOnlyList<CategoriaParaFiltro> Categorias,
+    IReadOnlyList<ResponsavelDeCarteira> Responsaveis)
+{
+    /// <summary>
+    /// Lê e confere os filtros. Parâmetro que não vale volta em <c>Erros</c> (422); pedido fora do alcance, em
+    /// <c>SemPermissao</c> (403) — e, como antes, os erros de forma vêm antes da permissão.
+    /// </summary>
+    public static async Task<(FiltrosDeAlcance? Filtros, ColetorDeErros Erros, string? SemPermissao)> LerAsync(
+        IRepositorioIndicadoresTerritoriais repositorio,
+        ContextoAcesso contextoDeAcesso,
+        string? visao,
+        string? filialDaVenda,
+        string? filialDoCliente,
+        string? categoriaDeMaquina,
+        string? responsavel,
+        CancellationToken ct)
+    {
+        var erros = new ColetorDeErros();
+
+        var visaoEscolhida = VisaoTerritorial.Filial;
+        if (!string.IsNullOrWhiteSpace(visao)
+            && !(Enum.TryParse(visao.Trim(), ignoreCase: true, out visaoEscolhida) && Enum.IsDefined(visaoEscolhida)))
+            erros.Registrar("visao", "A visão é Filial ou Empresa.", visao);
+
+        int? filialDaVendaId = null, filialDoClienteId = null;
+        if (!string.IsNullOrWhiteSpace(filialDaVenda) || !string.IsNullOrWhiteSpace(filialDoCliente))
+        {
+            var filiais = await repositorio.ListarFiliaisAsync(ct);
+            filialDaVendaId = ResolverFilial(filialDaVenda, "filialDaVenda", filiais, erros);
+            filialDoClienteId = ResolverFilial(filialDoCliente, "filialDoCliente", filiais, erros);
+        }
+
+        // O TIPO DE PRODUTO É A CATEGORIA DO CATÁLOGO, pelo de-para da linha de produto: a lista vem do banco, e
+        // o código que não está nela é recusado em vez de filtrar para uma categoria que ninguém ligou a nada.
+        var categorias = await repositorio.ListarCategoriasDeMaquinaAsync(ct);
+        string? categoria = null;
+        if (!string.IsNullOrWhiteSpace(categoriaDeMaquina))
+        {
+            categoria = categorias.FirstOrDefault(c => string.Equals(c.Codigo, categoriaDeMaquina.Trim(), StringComparison.OrdinalIgnoreCase))?.Codigo;
+            if (categoria is null)
+                erros.Registrar("categoriaDeMaquina",
+                    "Não há categoria de máquina com este código ligada a uma linha de produto.", categoriaDeMaquina);
+        }
+
+        // O CEN É O RESPONSÁVEL DE UMA CARTEIRA COMERCIAL AO ALCANCE — e só esse: pedir o de uma carteira que o
+        // contexto não enxerga seria pedir para ver o que não é seu.
+        var responsaveis = await repositorio.ListarResponsaveisDasCarteirasAsync(ct);
+        long? responsavelId = null;
+        if (!string.IsNullOrWhiteSpace(responsavel))
+        {
+            if (long.TryParse(responsavel.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var lido)
+                && responsaveis.Any(r => r.Id == lido))
+                responsavelId = lido;
+            else
+                erros.Registrar("responsavel",
+                    "Não há carteira comercial deste responsável ao alcance do seu contexto de acesso.", responsavel);
+        }
+
+        if (erros.TemErro) return (null, erros, null);
+
+        // A PERMISSÃO REAL DECIDE, e não a tela. A empresa inteira exige a permissão de alcance
+        // entre filiais em profundidade Organização; na visão da filial, pedir uma filial que o
+        // contexto não alcança seria pedir para ver o que não é seu.
+        if (visaoEscolhida == VisaoTerritorial.Empresa && !contextoDeAcesso.PodeAlcancarTodasAsEmpresas)
+            return (null, erros,
+                $"A visão da empresa inteira exige a permissão {ContextoAcesso.PermissaoDeAlcanceEntreEmpresas} " +
+                "em profundidade Organização, e o seu perfil não a tem (documento 32, P-10).");
+
+        if (visaoEscolhida == VisaoTerritorial.Filial
+            && new[] { (Id: filialDaVendaId, Codigo: filialDaVenda), (Id: filialDoClienteId, Codigo: filialDoCliente) }
+                .FirstOrDefault(f => f.Id is { } id && !contextoDeAcesso.EmpresasVisiveis.Contains(id)) is { Id: not null } foraDoAlcance)
+            return (null, erros,
+                $"A filial {foraDoAlcance.Codigo!.Trim()} não está ao alcance do seu contexto de acesso. " +
+                "Troque a filial no cabeçalho, ou use a visão da empresa se o seu perfil permitir.");
+
+        return (new FiltrosDeAlcance(
+            visaoEscolhida, filialDaVendaId, filialDoClienteId, categoria, responsavelId, categorias, responsaveis), erros, null);
+    }
+
+    private static int? ResolverFilial(
+        string? codigo, string campo, IReadOnlyDictionary<string, int> filiais, ColetorDeErros erros)
+    {
+        if (string.IsNullOrWhiteSpace(codigo)) return null;
+        if (filiais.TryGetValue(codigo.Trim(), out var id)) return id;
+
+        erros.Registrar(campo, "Não há filial com este código. Consulte /api/v1/catalogos/EMPRESA.", codigo);
+        return null;
+    }
+}
 
 /// <summary>
 /// OS TRÊS MAPAS DA ADR — cobertura de visita, vendas e potencial por área (documento 32, seção 8).
 ///
-/// <para><b>O período padrão são os doze meses FECHADOS</b> até o mês anterior ao corrente. O mês em
-/// curso fica de fora porque, no dia 13, ele tem 13 dias de nota — e um mapa com o mês parcial faria
-/// toda cidade parecer ter vendido menos. A maquete dizia "FYTD" e "últimos 12 meses" ao mesmo
-/// tempo; a decisão entre os dois está pendente, e o filtro de período deixa escolher.</para>
+/// <para><b>O período padrão é o ANO FISCAL ATÉ O ÚLTIMO MÊS FECHADO</b> (FYTD) — decisão do Ricardo de
+/// 27/09/2026, que encerrou a dúvida entre "FYTD" e "últimos 12 meses" que a maquete deixava aberta. O ano
+/// fiscal vai de novembro a outubro (<see cref="AnoFiscal"/>). O mês em curso continua de fora: no dia 13 ele
+/// tem 13 dias de nota, e um mapa com o mês parcial faria toda cidade parecer ter vendido menos. Os doze
+/// meses fechados e o ano civil seguem no filtro de período, como escolha.</para>
 ///
-/// <para><b>Os filtros que não têm dado não são aceitos em silêncio.</b> Tipo de cliente, tipo de
-/// produto e modelo não chegam aqui como parâmetro: a resposta os lista em <c>metricasSemDado</c>,
-/// com o motivo, e a tela os mostra desligados.</para>
+/// <para><b>Os filtros que não têm dado não são aceitos em silêncio.</b> Tipo de cliente e modelo não
+/// chegam aqui como parâmetro: a resposta os lista em <c>metricasSemDado</c>, com o motivo, e a tela os
+/// mostra desligados. O TIPO DE PRODUTO chega (27/09/2026), e só para o que tem o dado — as unidades do ART,
+/// pela categoria do de-para da linha de produto; os reais continuam sem o item da nota. O CEN chega como o
+/// responsável da carteira comercial.</para>
+///
+/// <para><b>Cada resposta traz o mesmo trecho do ano anterior</b> (<see cref="PeriodoAnterior"/>), e os
+/// quatro números de decisão trazem o número de antes, ou por que ele não existe.</para>
 /// </summary>
 public sealed class ObterIndicadoresTerritoriais(
     IRepositorioIndicadoresTerritoriais repositorio,
@@ -195,7 +317,8 @@ public sealed class ObterIndicadoresTerritoriais(
     /// <c>SemPrecoDeMaquina</c> em vez de com um total inventado — e é a mesma lista que, quando a 70
     /// chegar, passa a trazer demanda e preço de cada categoria.</para>
     /// </summary>
-    private static NumerosDeDecisao NumerosDeDecisaoDo(IndicadoresTerritoriais indicadores)
+    private static (NumerosDeDecisao Numeros, ComparacaoComOAnoAnterior Comparacao) NumerosDeDecisaoDo(
+        IndicadoresTerritoriais indicadores, string? categoriaFiltrada)
     {
         // A CAPTURA COMPARA MÁQUINA COM MÁQUINA DA MESMA CATEGORIA (D-P01, 27/09/2026). A demanda é das
         // categorias que têm regra de potencial — hoje, só trator —, e o numerador fica nelas: a
@@ -204,18 +327,78 @@ public sealed class ObterIndicadoresTerritoriais(
         // AS VENDAS EM UNIDADES VÊM DO ART (D-P08, decidida em 24/09/2026), e a base continua NULA quando
         // ele não trouxe venda nenhuma. Zero aqui afirmaria que a Tracbel não vendeu máquina no recorte;
         // nulo diz que ninguém contou ainda.
-        var baseDaCaptura = BaseDaCaptura.Montar(
-            indicadores.MaquinasVendidas?.Unidades,
-            indicadores.MaquinasVendidas?.PorCategoria.Select(c => (c.CategoriaCodigo, c.Unidades)) ?? [],
-            indicadores.PotencialDoRecorte?.PorCategoria
-                .Where(c => c.DemandaAnualDeMaquinas is not null)
-                .Select(c => (c.CategoriaCodigo, c.CategoriaNome)) ?? []);
+        //
+        // COM O FILTRO "TIPO DE PRODUTO", OS DOIS LADOS FICAM NA CATEGORIA ESCOLHIDA: as unidades já vêm só
+        // dela, e a demanda passa a ser a dela — dividir os implementos vendidos pela demanda de trator daria
+        // um número que não é captura de nada.
+        var comDemanda = indicadores.PotencialDoRecorte?.PorCategoria
+            .Where(c => c.DemandaAnualDeMaquinas is not null
+                        && (categoriaFiltrada is null || string.Equals(c.CategoriaCodigo, categoriaFiltrada, StringComparison.Ordinal)))
+            .Select(c => (c.CategoriaCodigo, c.CategoriaNome))
+            .ToList() ?? [];
 
-        return DecisaoDoMercado.Calcular(
-            indicadores.PotencialDoRecorte?.DemandaAnualDeMaquinas,
-            indicadores.Momento?.DemandaAjustadaTotal,
+        BaseDaCaptura? Base(VendasDeMaquinaDoRecorte? unidades) => BaseDaCaptura.Montar(
+            unidades?.Unidades,
+            unidades?.PorCategoria.Select(c => (c.CategoriaCodigo, c.Unidades)) ?? [],
+            comDemanda);
+
+        var (demanda, ajustada) = categoriaFiltrada is null
+            ? (indicadores.PotencialDoRecorte?.DemandaAnualDeMaquinas, indicadores.Momento?.DemandaAjustadaTotal)
+            : DemandaDaCategoria(indicadores, categoriaFiltrada);
+
+        var baseDaCaptura = Base(indicadores.MaquinasVendidas);
+
+        var numeros = DecisaoDoMercado.Calcular(
+            demanda,
+            ajustada,
             vendasEmUnidades: baseDaCaptura?.Unidades,
             porCategoria: []) with { BaseDaCaptura = baseDaCaptura };
+
+        // O MESMO TRECHO DO ANO ANTERIOR (27/09/2026): a MESMA base — as mesmas categorias com demanda, contra a
+        // mesma demanda. O que muda entre os dois lados é só a venda.
+        var anterior = indicadores.PeriodoAnterior;
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(
+            numeros,
+            demanda,
+            ajustada,
+            anterior?.MaquinasVendidas is { } unidadesAnteriores ? Base(unidadesAnteriores) : null,
+            anterior?.MotivoSemMaquinas);
+
+        return (numeros, comparacao);
+    }
+
+    /// <summary>
+    /// A DEMANDA DE UMA CATEGORIA SÓ — a estrutural e a ajustada pelo momento — para o filtro "Tipo de produto".
+    ///
+    /// <para><b>Nenhuma conta nova</b>: a estrutural é a da categoria no potencial do recorte, e a ajustada
+    /// aplica a cada cultura dela o fator que o momento já calculou para essa cultura, agregando pela mesma
+    /// regra do momento (só entram as culturas com os dois números).</para>
+    /// </summary>
+    private static (decimal? Estrutural, decimal? Ajustada) DemandaDaCategoria(
+        IndicadoresTerritoriais indicadores, string categoria)
+    {
+        var daCategoria = indicadores.PotencialDoRecorte?.PorCategoria
+            .FirstOrDefault(c => string.Equals(c.CategoriaCodigo, categoria, StringComparison.Ordinal));
+        if (daCategoria is null) return (null, null);
+
+        var fatores = indicadores.Momento?.PorCultura
+                          .GroupBy(c => c.CulturaCodigo, StringComparer.Ordinal)
+                          .ToDictionary(g => g.Key, g => g.First().Fator, StringComparer.Ordinal)
+                      ?? new Dictionary<string, FatorDoCiclo>(StringComparer.Ordinal);
+
+        var (_, _, ajustada, _) = MomentoAgregado.Agregar(
+        [
+            .. daCategoria.PorCultura.Select(p =>
+            {
+                var fator = fatores.GetValueOrDefault(p.CulturaCodigo);
+                return new MomentoDaCultura(
+                    p.CulturaCodigo, p.Cultura, p.DemandaAnual, p.AreaUtilHectares, null,
+                    fator ?? new FatorDoCiclo(null, null, null, null, null, false, 0, false, "SemFator"),
+                    p.DemandaAnual is { } d && fator?.Fator is { } f ? d * f : null);
+            })
+        ]);
+
+        return (daCategoria.DemandaAnualDeMaquinas, ajustada);
     }
 
     private async Task<MomentoDoRecorte?> MomentoDoMercadoAsync(
@@ -279,13 +462,15 @@ public sealed class ObterIndicadoresTerritoriais(
     private const int MesesNoMaximo = 36;
 
     /// <summary>Executa a apuração.</summary>
-    /// <param name="competenciaInicial">O primeiro mês, <c>aaaa-mm</c>. Nulo usa o padrão.</param>
-    /// <param name="competenciaFinal">O último mês, <c>aaaa-mm</c>, inclusive. Nulo usa o padrão.</param>
+    /// <param name="competenciaInicial">O primeiro mês, <c>aaaa-mm</c>. Nulo é o começo do ano fiscal do último mês.</param>
+    /// <param name="competenciaFinal">O último mês, <c>aaaa-mm</c>, inclusive. Nulo é o último mês fechado.</param>
     /// <param name="regiao">Norte ou Noroeste. Nulo é a área inteira.</param>
     /// <param name="lojaCodigo">O código da filial responsável. Nulo é todas.</param>
     /// <param name="visao"><c>Filial</c> (padrão) ou <c>Empresa</c>.</param>
     /// <param name="filialDaVenda">Código da filial que emitiu a nota. Nulo é todas ao alcance.</param>
     /// <param name="filialDoCliente">Código da filial de cadastro do cliente. Nulo é todas ao alcance.</param>
+    /// <param name="categoriaDeMaquina">O "Tipo de produto": o código da categoria de máquina. Nulo é todas.</param>
+    /// <param name="responsavel">O "CEN / gestor": o Id do responsável de carteira comercial. Nulo é todos.</param>
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<ComProcedencia<PainelTerritorial>>> ExecutarAsync(
         string? competenciaInicial,
@@ -295,48 +480,28 @@ public sealed class ObterIndicadoresTerritoriais(
         string? visao,
         string? filialDaVenda,
         string? filialDoCliente,
+        string? categoriaDeMaquina,
+        string? responsavel,
         CancellationToken ct)
     {
         var contextoDeAcesso = acesso.Atual;
-        var errosDeVisao = new ColetorDeErros();
 
-        var visaoEscolhida = VisaoTerritorial.Filial;
-        if (!string.IsNullOrWhiteSpace(visao)
-            && !(Enum.TryParse(visao.Trim(), ignoreCase: true, out visaoEscolhida) && Enum.IsDefined(visaoEscolhida)))
-            errosDeVisao.Registrar("visao", "A visão é Filial ou Empresa.", visao);
+        var (filtros, errosDosFiltros, semPermissao) = await FiltrosDeAlcance.LerAsync(
+            repositorio, contextoDeAcesso, visao, filialDaVenda, filialDoCliente, categoriaDeMaquina, responsavel, ct);
 
-        int? filialDaVendaId = null, filialDoClienteId = null;
-        if (!string.IsNullOrWhiteSpace(filialDaVenda) || !string.IsNullOrWhiteSpace(filialDoCliente))
-        {
-            var filiais = await repositorio.ListarFiliaisAsync(ct);
-            filialDaVendaId = ResolverFilial(filialDaVenda, "filialDaVenda", filiais, errosDeVisao);
-            filialDoClienteId = ResolverFilial(filialDoCliente, "filialDoCliente", filiais, errosDeVisao);
-        }
-
-        if (errosDeVisao.TemErro)
-            return errosDeVisao.Recusar<ComProcedencia<PainelTerritorial>>("A consulta tem parâmetros que não valem.");
-
-        // A PERMISSÃO REAL DECIDE, e não a tela. A empresa inteira exige a permissão de alcance
-        // entre filiais em profundidade Organização; na visão da filial, pedir uma filial que o
-        // contexto não alcança seria pedir para ver o que não é seu.
-        if (visaoEscolhida == VisaoTerritorial.Empresa && !contextoDeAcesso.PodeAlcancarTodasAsEmpresas)
-            return Resultado<ComProcedencia<PainelTerritorial>>.SemPermissao(
-                $"A visão da empresa inteira exige a permissão {ContextoAcesso.PermissaoDeAlcanceEntreEmpresas} " +
-                "em profundidade Organização, e o seu perfil não a tem (documento 32, P-10).");
-
-        if (visaoEscolhida == VisaoTerritorial.Filial
-            && new[] { (Id: filialDaVendaId, Codigo: filialDaVenda), (Id: filialDoClienteId, Codigo: filialDoCliente) }
-                .FirstOrDefault(f => f.Id is { } id && !contextoDeAcesso.EmpresasVisiveis.Contains(id)) is { Id: not null } foraDoAlcance)
-            return Resultado<ComProcedencia<PainelTerritorial>>.SemPermissao(
-                $"A filial {foraDoAlcance.Codigo!.Trim()} não está ao alcance do seu contexto de acesso. " +
-                "Troque a filial no cabeçalho, ou use a visão da empresa se o seu perfil permitir.");
+        if (errosDosFiltros.TemErro)
+            return errosDosFiltros.Recusar<ComProcedencia<PainelTerritorial>>("A consulta tem parâmetros que não valem.");
+        if (semPermissao is not null)
+            return Resultado<ComProcedencia<PainelTerritorial>>.SemPermissao(semPermissao);
 
         var agora = relogio.Agora;
         var mesCorrente = new DateOnly(agora.Year, agora.Month, 1);
         var erros = new ColetorDeErros();
 
+        // SEM PERÍODO NO PEDIDO, O ANO FISCAL ATÉ O ÚLTIMO MÊS FECHADO (decisão de 27/09/2026). Com só o
+        // último mês, o começo é o do ano fiscal que o contém — a mesma regra, e não doze meses para trás.
         var final = LerCompetencia(competenciaFinal, "competenciaFinal", mesCorrente.AddMonths(-1), erros);
-        var inicial = LerCompetencia(competenciaInicial, "competenciaInicial", final.AddMonths(-11), erros);
+        var inicial = LerCompetencia(competenciaInicial, "competenciaInicial", AnoFiscal.InicioDe(final), erros);
 
         if (final > mesCorrente)
             erros.Registrar("competenciaFinal", "O período não pode terminar depois do mês corrente.", competenciaFinal);
@@ -365,25 +530,35 @@ public sealed class ObterIndicadoresTerritoriais(
                 final,
                 regiaoEscolhida,
                 string.IsNullOrWhiteSpace(lojaCodigo) ? null : lojaCodigo.Trim(),
-                visaoEscolhida,
-                filialDaVendaId,
-                filialDoClienteId),
+                filtros!.Visao,
+                filtros.FilialDaVendaId,
+                filtros.FilialDoClienteId,
+                filtros.CategoriaDeMaquina,
+                filtros.ResponsavelId),
             agora,
             ct);
 
         // O MOMENTO DO MERCADO DO RECORTE (fase T3): o fator de ciclo e as parcelas que o explicam.
         // Ele é montado aqui, e não no repositório, pelo mesmo motivo da calculadora — o fator é conta
         // de DOMÍNIO sobre índices e vigências, e não uma leitura de banco.
-        indicadores = indicadores with { Momento = await MomentoDoMercadoAsync(indicadores, agora, ct) };
+        indicadores = indicadores with
+        {
+            Momento = await MomentoDoMercadoAsync(indicadores, agora, ct),
+            CategoriasDeMaquina = filtros.Categorias,
+            ResponsaveisDasCarteiras = filtros.Responsaveis
+        };
+
+        var (numeros, comparacao) = NumerosDeDecisaoDo(indicadores, filtros.CategoriaDeMaquina);
 
         return Resultado<ComProcedencia<PainelTerritorial>>.Ok(
             ComProcedencia<PainelTerritorial>.DoNossoBanco(
                 new PainelTerritorial(
                     indicadores,
-                    Lacunas(indicadores, contextoDeAcesso.PodeAlcancarTodasAsEmpresas, final >= mesCorrente),
+                    Lacunas(indicadores, contextoDeAcesso.PodeAlcancarTodasAsEmpresas, final >= mesCorrente, filtros),
                     contextoDeAcesso.PodeAlcancarTodasAsEmpresas,
                     Classificar(indicadores),
-                    NumerosDeDecisaoDo(indicadores)),
+                    numeros,
+                    comparacao),
                 "organizacao.MunicipioDaAreaDeAtuacao · comercial.ClienteCarteira · comercial.FaturamentoDoCliente · organizacao.ProducaoAgricolaNoMunicipio",
                 relogio));
     }
@@ -391,9 +566,37 @@ public sealed class ObterIndicadoresTerritoriais(
     /// <summary>
     /// O que os mapas pedem e o dado não sustenta — cada frase com a medida que a prova.
     /// </summary>
-    private static List<MetricaSemDado> Lacunas(IndicadoresTerritoriais indicadores, bool podeVerEmpresaInteira, bool periodoParcial)
+    private static List<MetricaSemDado> Lacunas(
+        IndicadoresTerritoriais indicadores, bool podeVerEmpresaInteira, bool periodoParcial, FiltrosDeAlcance filtros)
     {
         var lacunas = new List<MetricaSemDado>();
+
+        // O ANO ANTERIOR QUE A CARGA NÃO COBRE (27/09/2026): a variação fica vazia, e a frase diz desde quando
+        // cada fonte foi carregada — R$ e unidades separados, porque começaram em meses diferentes.
+        if (indicadores.PeriodoAnterior is { } anterior)
+        {
+            if (anterior.MotivoSemVendas is { } semVendas)
+                lacunas.Add(new MetricaSemDado("anoAnteriorEmReais", semVendas));
+            if (indicadores.MaquinasVendidas is not null && anterior.MotivoSemMaquinas is { } semMaquinas)
+                lacunas.Add(new MetricaSemDado("anoAnteriorEmUnidades", semMaquinas));
+        }
+
+        // O FILTRO "TIPO DE PRODUTO" SÓ ALCANÇA AS UNIDADES: o que ele deixa de fora precisa estar dito.
+        if (filtros.CategoriaDeMaquina is { } categoria)
+            lacunas.Add(new MetricaSemDado(
+                "filtroDeTipoDeProduto",
+                $"O filtro de tipo de produto ({filtros.Categorias.First(c => c.Codigo == categoria).Nome}) vale para as máquinas " +
+                "vendidas em UNIDADES (ART), para a captura e para a oportunidade — com a demanda da mesma categoria. O " +
+                "faturamento em reais não tem o item da nota e não muda com ele, e as máquinas sem linha de produto ou de " +
+                "linha ainda sem categoria ficam de fora: não se sabe de que tipo elas são."));
+
+        // O FILTRO "CEN / GESTOR" É O RESPONSÁVEL DA CARTEIRA — e nenhum deles tem gestor cadastrado hoje.
+        if (filtros.ResponsavelId is { } responsavel)
+            lacunas.Add(new MetricaSemDado(
+                "filtroDeCen",
+                $"O filtro de CEN mostra só os clientes das carteiras comerciais de {filtros.Responsaveis.First(r => r.Id == responsavel).Nome} " +
+                "e a cobertura dos vínculos dessas carteiras. A nota sem cliente no CRM não está em carteira nenhuma e sai " +
+                "do recorte. Um cliente pode estar em carteiras de mais de um CEN, e aparece no recorte de cada um."));
 
         // O MÊS CORRENTE AINDA NÃO ACABOU. Pedir até ele é permitido, e a resposta diz que o último
         // mês é parcial — comparar um mês pela metade com meses cheios erra para baixo sem aviso.
@@ -474,7 +677,7 @@ public sealed class ObterIndicadoresTerritoriais(
             "tipoDeProdutoEModelo",
             "O faturamento EM REAIS é por cliente e mês, sem o item da nota: não há como abrir o valor por tipo de " +
             "produto nem por modelo (documento 32, seção 3.5). As vendas de máquina em UNIDADES, essas sim, têm " +
-            "categoria — vêm do ART. As duas leituras não se misturam."));
+            "categoria — vêm do ART —, e é nelas que o filtro de tipo de produto age. As duas leituras não se misturam."));
 
         // AS UNIDADES DO ART (issue 69, D-P08). Três coisas diferentes podem faltar aqui, e cada uma
         // tem a sua frase: a carga inteira, a categoria de uma linha, e a data que põe a venda no período.
@@ -523,9 +726,13 @@ public sealed class ObterIndicadoresTerritoriais(
 
         return
         [
+            // O PERÍODO DEIXOU DE ESTAR PENDENTE (27/09/2026): o padrão é o ano fiscal até o último mês fechado,
+            // e a comparação é com o mesmo trecho do ano fiscal anterior. A frase dizia "FYTD ou 12 meses está
+            // pendente" — e continuaria dizendo, se ninguém a trocasse junto com a decisão.
             new("vendas", "Medido", "Medido",
-                "Notas de saída do Protheus, conferidas contra consulta independente. Devolução e cancelamento não são abatidos, " +
-                "e o período (FYTD ou 12 meses) está pendente (documento 32, P-4 e P-5)."),
+                "Notas de saída do Protheus, conferidas contra consulta independente. O período padrão é o ano fiscal até " +
+                "o último mês fechado — novembro a outubro, decidido em 27/09/2026 —, comparado com o mesmo trecho do ano " +
+                "fiscal anterior. Devolução e cancelamento não são abatidos (documento 32, P-5)."),
             new("coberturaDeVisita", "RegraComercialProvisoria", "Regra provisória",
                 "Visita é qualquer interação registrada, e a periodicidade é a declarada no CRM. O que conta como visita, a " +
                 "periodicidade e a unidade (cliente ou vínculo) aguardam decisão do comercial (documento 32, P-2 e P-3)."),
@@ -535,22 +742,15 @@ public sealed class ObterIndicadoresTerritoriais(
             new("potencial", "Estimativa", regraAConfirmar ? "Estimativa · regra a confirmar" : "Estimativa",
                 "Área plantada do município (IBGE) dividida pelos hectares por máquina da regra. É necessidade teórica da região, " +
                 "não área de cliente nem potencial comercial validado (documento 32, P-8)."),
-            // PLANILHA É REQUISITO, NÃO FONTE (issue 107): quem atende o município é o que a carteira do CRM diz —
-            // e ela ainda não tem responsável cadastrado. A tela não mostra nem compara o que as planilhas afirmam.
-            new("cenDoMunicipio", "FonteAConfirmar", "Da carteira · responsável a cadastrar",
-                "Quem atende o município é o responsável da carteira do CRM com clientes nele. Enquanto as carteiras não tiverem " +
-                "responsável cadastrado, o CEN do município fica sem dado (issue 107).")
+            // PLANILHA É REQUISITO, NÃO FONTE (issue 107): quem atende o município é o que a carteira do CRM diz.
+            // O SELO DIZIA "RESPONSÁVEL A CADASTRAR", e deixou de ser verdade com as carteiras do Vórtice (#236):
+            // as carteiras comerciais têm dono. O que continua em aberto é a divisão OFICIAL do território — qual
+            // CEN responde por qual município —, e é por isso que o selo não diz "medido" (D-P14).
+            new("cenDoMunicipio", "FonteAConfirmar", "Da carteira do CRM",
+                "Quem atende o município é o responsável de cada carteira comercial com clientes nele — o vendedor dono da " +
+                "carteira no CRM, pelas carteiras do Vórtice. É quem tem os clientes, e não a divisão oficial do território: " +
+                "qual CEN responde por qual município ainda não foi decidido (D-P14, issue 107).")
         ];
-    }
-
-    private static int? ResolverFilial(
-        string? codigo, string campo, IReadOnlyDictionary<string, int> filiais, ColetorDeErros erros)
-    {
-        if (string.IsNullOrWhiteSpace(codigo)) return null;
-        if (filiais.TryGetValue(codigo.Trim(), out var id)) return id;
-
-        erros.Registrar(campo, "Não há filial com este código. Consulte /api/v1/catalogos/EMPRESA.", codigo);
-        return null;
     }
 
     private static DateOnly LerCompetencia(string? texto, string campo, DateOnly padrao, ColetorDeErros erros)
@@ -562,6 +762,70 @@ public sealed class ObterIndicadoresTerritoriais(
 
         erros.Registrar(campo, "Use o formato aaaa-mm, por exemplo 2026-08.", texto);
         return padrao;
+    }
+}
+
+/// <summary>
+/// O HISTÓRICO DE UM MUNICÍPIO — a aba Histórico da ficha e a lavoura inteira da Visão geral (27/09/2026).
+///
+/// <para><b>As vendas por ano fiscal</b>, em reais (Protheus) e em unidades (ART), cada uma só nos anos que a
+/// carga dela cobre inteiros, e o ano corrente ao lado do mesmo trecho do anterior. <b>A lavoura por ano da
+/// PAM</b>, com todas as culturas (issue 168). <b>A cobertura não tem série</b> — ela é medida no instante da
+/// leitura —, e a tela diz isso em vez de desenhar uma.</para>
+///
+/// <para><b>Os mesmos filtros de alcance do painel</b>, lidos pela mesma regra (<see cref="FiltrosDeAlcance"/>):
+/// a ficha fica ao lado da linha da tabela, e os dois não podem discordar sobre o mesmo recorte.</para>
+/// </summary>
+public sealed class ObterHistoricoDoMunicipio(
+    IRepositorioIndicadoresTerritoriais repositorio,
+    IRepositorioHistoricoDoMunicipio historicos,
+    IRelogio relogio,
+    IProvedorContextoAcesso acesso)
+{
+    /// <summary>Executa a leitura.</summary>
+    /// <param name="codigoIbge">O município.</param>
+    /// <param name="visao"><c>Filial</c> (padrão) ou <c>Empresa</c>.</param>
+    /// <param name="filialDaVenda">Código da filial que emitiu a nota.</param>
+    /// <param name="filialDoCliente">Código da filial de cadastro do cliente.</param>
+    /// <param name="categoriaDeMaquina">O código da categoria do filtro "Tipo de produto".</param>
+    /// <param name="responsavel">O Id do responsável do filtro "CEN / gestor".</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<ComProcedencia<HistoricoDoMunicipio>>> ExecutarAsync(
+        int codigoIbge,
+        string? visao,
+        string? filialDaVenda,
+        string? filialDoCliente,
+        string? categoriaDeMaquina,
+        string? responsavel,
+        CancellationToken ct)
+    {
+        var (filtros, erros, semPermissao) = await FiltrosDeAlcance.LerAsync(
+            repositorio, acesso.Atual, visao, filialDaVenda, filialDoCliente, categoriaDeMaquina, responsavel, ct);
+
+        if (erros.TemErro)
+            return erros.Recusar<ComProcedencia<HistoricoDoMunicipio>>("A consulta tem parâmetros que não valem.");
+        if (semPermissao is not null)
+            return Resultado<ComProcedencia<HistoricoDoMunicipio>>.SemPermissao(semPermissao);
+
+        // O MÊS EM CURSO FICA DE FORA, como no painel: um ano fiscal com o mês pela metade se leria como queda.
+        var agora = relogio.Agora;
+        var ultimoFechado = new DateOnly(agora.Year, agora.Month, 1).AddMonths(-1);
+
+        var historico = await historicos.ApurarHistoricoDoMunicipioAsync(
+            new ConsultaDoHistoricoDoMunicipio(
+                codigoIbge, ultimoFechado, filtros!.Visao, filtros.FilialDaVendaId, filtros.FilialDoClienteId,
+                filtros.CategoriaDeMaquina, filtros.ResponsavelId),
+            ct);
+
+        if (historico is null)
+            return Resultado<ComProcedencia<HistoricoDoMunicipio>>.NaoEncontrado(
+                $"Não há município de São Paulo com o código IBGE {codigoIbge}.");
+
+        return Resultado<ComProcedencia<HistoricoDoMunicipio>>.Ok(
+            ComProcedencia<HistoricoDoMunicipio>.DoNossoBanco(
+                historico,
+                "comercial.FaturamentoDoCliente · frota.VendaDeMaquina · organizacao.ProducaoAgricolaNoMunicipio",
+                relogio));
     }
 }
 

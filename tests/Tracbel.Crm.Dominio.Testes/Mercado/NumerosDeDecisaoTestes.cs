@@ -258,4 +258,67 @@ public sealed class NumerosDeDecisaoTestes
     {
         DecisaoDoMercado.Frase("AlgoQueNinguemPreviu", "a captura").Should().NotBeNullOrWhiteSpace();
     }
+
+    // -------------------------------------------------------------------------------------------------
+    // O mesmo trecho do ano anterior (decisão de 27/09/2026)
+    // -------------------------------------------------------------------------------------------------
+
+    private static readonly (string, string)[] SoTrator = [("TRATOR", "Trator")];
+
+    [Fact]
+    public void A_captura_de_antes_usa_a_mesma_demanda_e_so_as_categorias_com_demanda()
+    {
+        // HOJE: 7 tratores sobre 35 de demanda = 20%. ANTES: 5 tratores e 2 colheitadeiras — só os tratores
+        // entram, contra a MESMA demanda: 5 ÷ 35.
+        var baseAtual = BaseDaCaptura.Montar(7, [("TRATOR", 7)], SoTrator);
+        var atual = DecisaoDoMercado.Calcular(35m, 40m, baseAtual!.Unidades, []);
+        var baseAnterior = BaseDaCaptura.Montar(7, [("TRATOR", 5), ("COLHEITADEIRA", 2)], SoTrator);
+
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(atual, 35m, 40m, baseAnterior, null);
+
+        comparacao.CapturaPercentual.Valor.Should().Be(5m / 35m * 100m);
+        comparacao.Oportunidade.Valor.Should().Be(35m, "40 de demanda ajustada menos os 5 tratores de antes");
+        comparacao.BaseDaCaptura!.UnidadesForaDaConta.Should().Be(2, "a colheitadeira não tem demanda do outro lado");
+    }
+
+    [Fact]
+    public void Demanda_e_mercado_anual_nao_tem_ano_anterior_porque_sao_estruturais()
+    {
+        // O MESMO NÚMERO DOS DOIS LADOS daria uma variação de 0% — uma estabilidade que ninguém mediu.
+        var atual = DecisaoDoMercado.Calcular(35m, 40m, 7, [Categoria("Trator", 35m, 300_000m)]);
+
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(
+            atual, 35m, 40m, BaseDaCaptura.Montar(7, [("TRATOR", 7)], SoTrator), null);
+
+        comparacao.DemandaAnual.Valor.Should().BeNull();
+        comparacao.DemandaAnual.Motivo.Should().Be(nameof(MotivoSemComparacao.NumeroEstrutural));
+        comparacao.DemandaAnual.Frase.Should().Contain("estrutural").And.Contain("PAM");
+        comparacao.MercadoAnual.Motivo.Should().Be(nameof(MotivoSemComparacao.NumeroEstrutural));
+    }
+
+    [Fact]
+    public void Sem_o_numero_do_periodo_nao_ha_variacao_e_a_frase_diz_por_que()
+    {
+        var atual = DecisaoDoMercado.Calcular(null, null, 7, []);
+
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(
+            atual, null, null, BaseDaCaptura.Montar(3, [("TRATOR", 3)], SoTrator), null);
+
+        comparacao.CapturaPercentual.Motivo.Should().Be(nameof(MotivoSemComparacao.SemNumeroNoPeriodo));
+        comparacao.MercadoAnual.Motivo.Should().Be(nameof(MotivoSemComparacao.SemNumeroNoPeriodo));
+    }
+
+    [Fact]
+    public void Sem_as_vendas_do_ano_anterior_a_frase_e_a_da_cobertura_da_fonte()
+    {
+        var atual = DecisaoDoMercado.Calcular(35m, 40m, 7, []);
+        const string cobertura = "A primeira venda que o ART trouxe é de jan/2024.";
+
+        var comparacao = DecisaoDoMercado.CompararComOAnoAnterior(atual, 35m, 40m, null, cobertura);
+
+        comparacao.CapturaPercentual.Valor.Should().BeNull("ausência de carga não é venda zero");
+        comparacao.CapturaPercentual.Motivo.Should().Be(nameof(MotivoSemComparacao.AnoAnteriorSemVendas));
+        comparacao.CapturaPercentual.Frase.Should().Be(cobertura);
+        comparacao.Oportunidade.Frase.Should().Be(cobertura);
+    }
 }

@@ -297,4 +297,110 @@ public static class DecisaoDoMercado
 
         _ => $"Não foi possível apurar {numero} neste recorte."
     };
+
+    /// <summary>
+    /// OS QUATRO NÚMEROS NO MESMO TRECHO DO ANO ANTERIOR — a base do "vs. ano anterior" dos cartões do topo
+    /// (decisão de 27/09/2026).
+    ///
+    /// <para><b>Só a captura e a oportunidade têm ano anterior</b>, porque só elas dependem das vendas do
+    /// período. A demanda e o mercado anual são ESTRUTURAIS — área da PAM e regra de hoje —, e são os mesmos
+    /// nos dois trechos: uma variação de 0% ali afirmaria uma estabilidade que ninguém mediu. Elas saem sem
+    /// número, com o motivo.</para>
+    ///
+    /// <para><b>A mesma base dos dois lados</b> (D-P01): a captura anterior conta as máquinas das MESMAS
+    /// categorias que têm demanda hoje, contra a MESMA demanda anual. O que muda entre os dois números é só a
+    /// venda — e é exatamente o que a comparação quer medir.</para>
+    /// </summary>
+    /// <param name="atual">Os quatro números do período pedido.</param>
+    /// <param name="demandaAnual">A demanda estrutural do recorte — a mesma dos dois lados.</param>
+    /// <param name="demandaAjustada">A demanda ajustada pelo momento — a mesma dos dois lados.</param>
+    /// <param name="baseAnterior">
+    /// As máquinas do ano anterior nas categorias com demanda; nula quando a fonte das unidades não cobre o
+    /// ano anterior inteiro.
+    /// </param>
+    /// <param name="motivoSemBaseAnterior">Por que a base anterior falta — a frase da cobertura do ART.</param>
+    public static ComparacaoComOAnoAnterior CompararComOAnoAnterior(
+        NumerosDeDecisao atual,
+        decimal? demandaAnual,
+        decimal? demandaAjustada,
+        BaseDaCaptura? baseAnterior,
+        string? motivoSemBaseAnterior)
+    {
+        const string estrutural =
+            "é estrutural: sai da área plantada da PAM e das regras de potencial, e não das vendas do período — é a " +
+            "mesma nos dois trechos do ano. Compará-la com a PAM do ano anterior pediria rodar o motor sobre outro ano, " +
+            "e esta leitura não faz isso.";
+
+        NumeroNoAnoAnterior DoPeriodo(NumeroDeDecisao doAtual, string nome, Func<int, NumeroDeDecisao> calcular)
+        {
+            if (doAtual.Valor is null)
+                return NumeroNoAnoAnterior.Sem(MotivoSemComparacao.SemNumeroNoPeriodo,
+                    $"Sem {nome} do período não há variação a calcular — o motivo está no próprio número.");
+
+            if (baseAnterior is null)
+                return NumeroNoAnoAnterior.Sem(MotivoSemComparacao.AnoAnteriorSemVendas,
+                    motivoSemBaseAnterior ?? $"As vendas em máquinas do ano anterior não chegaram a esta consulta, e {nome} precisa delas.");
+
+            var anterior = calcular(baseAnterior.Unidades);
+            return anterior.Valor is { } valor
+                ? new NumeroNoAnoAnterior(valor, nameof(MotivoSemComparacao.Nenhum), string.Empty)
+                : NumeroNoAnoAnterior.Sem(MotivoSemComparacao.SemNumeroNoPeriodo, anterior.Frase);
+        }
+
+        return new ComparacaoComOAnoAnterior(
+            NumeroNoAnoAnterior.Sem(MotivoSemComparacao.NumeroEstrutural, $"A demanda anual {estrutural}"),
+            atual.MercadoAnual.Valor is null
+                ? NumeroNoAnoAnterior.Sem(MotivoSemComparacao.SemNumeroNoPeriodo,
+                    "Sem o mercado anual do período não há variação a calcular — o motivo está no próprio número.")
+                : NumeroNoAnoAnterior.Sem(MotivoSemComparacao.NumeroEstrutural,
+                    $"O mercado anual é a demanda vezes o preço de cada categoria, e a demanda {estrutural}"),
+            DoPeriodo(atual.CapturaPercentual, "a captura", unidades => Captura(demandaAnual, unidades)),
+            DoPeriodo(atual.Oportunidade, "a oportunidade", unidades => Oportunidade(demandaAjustada, unidades)),
+            baseAnterior);
+    }
 }
+
+/// <summary>Por que um número de decisão não tem o valor do mesmo trecho do ano anterior.</summary>
+public enum MotivoSemComparacao
+{
+    /// <summary>Tem.</summary>
+    Nenhum = 0,
+
+    /// <summary>O número não depende do período: é estrutural, e seria o mesmo nos dois lados.</summary>
+    NumeroEstrutural = 1,
+
+    /// <summary>O número do período atual não saiu — sem ele não há variação.</summary>
+    SemNumeroNoPeriodo = 2,
+
+    /// <summary>A fonte das unidades não cobre o ano anterior inteiro.</summary>
+    AnoAnteriorSemVendas = 3
+}
+
+/// <summary>Um número de decisão no mesmo trecho do ano anterior — ou por que ele não existe.</summary>
+/// <param name="Valor">O número; nulo quando não há.</param>
+/// <param name="Motivo">Um <see cref="MotivoSemComparacao"/> como texto.</param>
+/// <param name="Frase">A ausência explicada, pronta para a dica; vazia quando o número saiu.</param>
+public sealed record NumeroNoAnoAnterior(decimal? Valor, string Motivo, string Frase)
+{
+    /// <summary>A ausência, com o motivo e a frase.</summary>
+    /// <param name="motivo">Por que não há.</param>
+    /// <param name="frase">A frase.</param>
+    public static NumeroNoAnoAnterior Sem(MotivoSemComparacao motivo, string frase) => new(null, motivo.ToString(), frase);
+}
+
+/// <summary>
+/// OS QUATRO NÚMEROS NO MESMO TRECHO DO ANO ANTERIOR — a variação que a maquete põe embaixo de cada um
+/// ("↑ +2 p.p. vs. ano anterior (16%)"). A tela calcula a diferença; o servidor diz o número de antes, ou por
+/// que ele não existe.
+/// </summary>
+/// <param name="DemandaAnual">Estrutural — sem ano anterior, com o motivo.</param>
+/// <param name="MercadoAnual">Estrutural — sem ano anterior, com o motivo.</param>
+/// <param name="CapturaPercentual">A captura do ano anterior, em pontos percentuais, contra a mesma demanda.</param>
+/// <param name="Oportunidade">A oportunidade do ano anterior, em máquinas, contra a mesma demanda ajustada.</param>
+/// <param name="BaseDaCaptura">O numerador do ano anterior, com a mesma lista de categorias; nulo sem cobertura.</param>
+public sealed record ComparacaoComOAnoAnterior(
+    NumeroNoAnoAnterior DemandaAnual,
+    NumeroNoAnoAnterior MercadoAnual,
+    NumeroNoAnoAnterior CapturaPercentual,
+    NumeroNoAnoAnterior Oportunidade,
+    BaseDaCaptura? BaseDaCaptura);

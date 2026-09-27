@@ -28,7 +28,7 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 /// <param name="contexto">O contexto do banco.</param>
 /// <param name="motor">A entrada do motor do potencial — as regras vigentes ligadas ao catálogo (issue 161).</param>
 public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, IRepositorioDoMotorDoPotencial motor)
-    : IRepositorioIndicadoresTerritoriais
+    : IRepositorioIndicadoresTerritoriais, IRepositorioHistoricoDoMunicipio
 {
     private const string SaoPaulo = "SP";
 
@@ -216,6 +216,36 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         Acumulador Do(int grupo) =>
             acumuladores.TryGetValue(grupo, out var existente) ? existente : acumuladores[grupo] = new Acumulador();
 
+        // O MESMO TRECHO DO ANO ANTERIOR (decisão de 27/09/2026) acumula À PARTE, num dicionário próprio: ele
+        // não pode criar grupo no mapa nem fora dele — um grupo que só vendeu no ano passado apareceria hoje
+        // com R$ 0, e a conferência "mapa + fora do mapa = total" ganharia uma linha que não é deste período.
+        var janela = consulta.Janela;
+        var janelaAnterior = consulta.JanelaAnterior;
+        var anteriores = new Dictionary<int, Acumulador>();
+
+        Acumulador DoAnterior(int grupo) =>
+            anteriores.TryGetValue(grupo, out var existente) ? existente : anteriores[grupo] = new Acumulador();
+
+        // O MÊS A MÊS DE CADA MUNICÍPIO, nas duas janelas — é dele que sai o mini-gráfico dos cartões.
+        var mensal = new Dictionary<(int Grupo, DateOnly Mes), VendasDoMes>();
+
+        VendasDoMes NoMes(int grupo, DateOnly mes) =>
+            mensal.TryGetValue((grupo, mes), out var existente) ? existente : mensal[(grupo, mes)] = new VendasDoMes();
+
+        // O FILTRO "CEN / GESTOR": os clientes das carteiras comerciais do responsável escolhido. Quem não
+        // está numa delas sai do recorte — do mapa e de fora dele —, como no filtro da filial do cliente.
+        HashSet<long>? clientesDoResponsavel = null;
+        if (consulta.ResponsavelId is { } responsavelEscolhido)
+            clientesDoResponsavel = (await (
+                    from vinculo in contexto.ClienteCarteiras.AsNoTracking().Where(v => v.DesvinculadoEm == null)
+                    join carteira in contexto.Carteiras.AsNoTracking() on vinculo.CarteiraId equals carteira.Id
+                    where carteira.ExcluidoEm == null
+                          && carteira.Natureza == NaturezaDaCarteira.Comercial
+                          && carteira.ResponsavelId == responsavelEscolhido
+                    select vinculo.ClienteId)
+                .ToListAsync(ct))
+                .ToHashSet();
+
         foreach (var cliente in clientes)
         {
             // MAIS DE UM ENDEREÇO PRINCIPAL: vale o de menor Id, e a ordenação da consulta é o que
@@ -224,7 +254,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
 
             classeDoCliente[cliente.Id] = cliente.Classe;
 
-            if (consulta.FilialDoClienteId is { } filialDoCliente && cliente.EmpresaId != filialDoCliente)
+            if ((consulta.FilialDoClienteId is { } filialDoCliente && cliente.EmpresaId != filialDoCliente)
+                || (clientesDoResponsavel is not null && !clientesDoResponsavel.Contains(cliente.Id)))
             {
                 grupoDoCliente[cliente.Id] = ForaDoFiltro;
                 continue;
@@ -245,6 +276,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         int GrupoDe(long clienteId)
         {
             if (grupoDoCliente.TryGetValue(clienteId, out var grupo)) return grupo;
+
+            if (clientesDoResponsavel is not null && !clientesDoResponsavel.Contains(clienteId)) return ForaDoFiltro;
 
             if (inativados.TryGetValue(clienteId, out var filialDoInativado))
                 return consulta.FilialDoClienteId is { } filtro && filialDoInativado != filtro ? ForaDoFiltro : ClienteInativado;
@@ -294,6 +327,10 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             var grupoDoVinculo = GrupoDe(vinculo.ClienteId);
             if (grupoDoVinculo == ForaDoFiltro) continue;
 
+            // COM O FILTRO DO CEN, a cobertura é a das carteiras DELE: o mesmo cliente numa carteira de outro
+            // responsável tem outro dono e outra cadência a cumprir.
+            if (consulta.ResponsavelId is { } doCen && responsavelDaCarteira[vinculo.CarteiraId] != doCen) continue;
+
             var acumulador = Do(grupoDoVinculo);
             var cadencia = cadencias[vinculo.CarteiraId];
 
@@ -328,12 +365,14 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         // O volume é o de linhas cliente × mês de um período de até 36 meses ao alcance da filial —
         // dezenas de milhares, não milhões.
         // -----------------------------------------------------------------------------------------
+        // AS DUAS JANELAS NUMA LEITURA SÓ: a pedida e o mesmo trecho do ano anterior. Os meses entre as duas —
+        // setembro e outubro, no ano fiscal até agosto — não são lidos.
         var faturamento = await contexto.FaturamentoDosClientes.AsNoTracking()
             .Where(f => f.ExcluidoEm == null
-                        && f.Competencia >= consulta.CompetenciaInicial
-                        && f.Competencia <= consulta.CompetenciaFinal
+                        && ((f.Competencia >= consulta.CompetenciaInicial && f.Competencia <= consulta.CompetenciaFinal)
+                            || (f.Competencia >= janelaAnterior.Inicial && f.Competencia <= janelaAnterior.Final))
                         && (consulta.FilialDaVendaId == null || f.EmpresaId == consulta.FilialDaVendaId))
-            .Select(f => new { f.ClienteId, f.ValorLiquido, f.ValorEmMaquina, f.ValorEmPeca, f.ValorEmServico, f.ValorEmOutros })
+            .Select(f => new { f.ClienteId, f.Competencia, f.ValorLiquido, f.ValorEmMaquina, f.ValorEmPeca, f.ValorEmServico, f.ValorEmOutros })
             .ToListAsync(ct);
 
         foreach (var cliente in faturamento.GroupBy(f => f.ClienteId))
@@ -341,22 +380,66 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             var grupoDaVenda = GrupoDe(cliente.Key);
             if (grupoDaVenda == ForaDoFiltro) continue;
 
-            var acumulador = Do(grupoDaVenda);
-            var liquido = cliente.Sum(f => f.ValorLiquido);
+            // O GRUPO SÓ NASCE COM VENDA DO PERÍODO: um cliente que só comprou no ano anterior não pode abrir,
+            // hoje, uma linha de R$ 0 no mapa ou fora dele.
+            var doPeriodo = cliente.Where(f => janela.Contem(f.Competencia)).ToList();
+            if (doPeriodo.Count > 0)
+            {
+                var acumulador = Do(grupoDaVenda);
+                var liquido = doPeriodo.Sum(f => f.ValorLiquido);
 
-            acumulador.ValorLiquido += liquido;
-            acumulador.Maquina += cliente.Sum(f => f.ValorEmMaquina);
-            acumulador.Peca += cliente.Sum(f => f.ValorEmPeca);
-            acumulador.Servico += cliente.Sum(f => f.ValorEmServico);
-            acumulador.Outros += cliente.Sum(f => f.ValorEmOutros);
-            if (liquido != 0) acumulador.ClientesQueCompraram++;
+                acumulador.ValorLiquido += liquido;
+                acumulador.Maquina += doPeriodo.Sum(f => f.ValorEmMaquina);
+                acumulador.Peca += doPeriodo.Sum(f => f.ValorEmPeca);
+                acumulador.Servico += doPeriodo.Sum(f => f.ValorEmServico);
+                acumulador.Outros += doPeriodo.Sum(f => f.ValorEmOutros);
+                if (liquido != 0) acumulador.ClientesQueCompraram++;
+            }
+
+            var doAnterior = cliente.Where(f => janelaAnterior.Contem(f.Competencia)).ToList();
+            if (doAnterior.Count > 0)
+            {
+                var acumulador = DoAnterior(grupoDaVenda);
+                var liquido = doAnterior.Sum(f => f.ValorLiquido);
+
+                acumulador.ValorLiquido += liquido;
+                acumulador.Maquina += doAnterior.Sum(f => f.ValorEmMaquina);
+                acumulador.Peca += doAnterior.Sum(f => f.ValorEmPeca);
+                acumulador.Servico += doAnterior.Sum(f => f.ValorEmServico);
+                acumulador.Outros += doAnterior.Sum(f => f.ValorEmOutros);
+                if (liquido != 0) acumulador.ClientesQueCompraram++;
+            }
+
+            // O MÊS A MÊS SÓ DOS MUNICÍPIOS — é o que os cartões da ADR desenham.
+            if (grupoDaVenda > 0)
+                foreach (var linha in cliente)
+                {
+                    var mes = NoMes(grupoDaVenda, linha.Competencia);
+                    mes.ValorLiquido += linha.ValorLiquido;
+                    mes.Maquina += linha.ValorEmMaquina;
+                    mes.PosVenda += linha.ValorEmPeca + linha.ValorEmServico;
+                }
         }
+
+        // DESDE QUANDO HÁ FATURAMENTO AO ALCANCE: é o que diz se o ano anterior pode ser comparado. Com e sem
+        // cliente, porque a carga grava os dois juntos.
+        var primeiraComCliente = await contexto.FaturamentoDosClientes.AsNoTracking()
+            .Where(f => f.ExcluidoEm == null && (consulta.FilialDaVendaId == null || f.EmpresaId == consulta.FilialDaVendaId))
+            .MinAsync(f => (DateOnly?)f.Competencia, ct);
+        var primeiraSemCliente = await contexto.FaturamentoSemClientes.AsNoTracking()
+            .Where(f => f.ExcluidoEm == null && (consulta.FilialDaVendaId == null || f.EmpresaId == consulta.FilialDaVendaId))
+            .MinAsync(f => (DateOnly?)f.Competencia, ct);
+        DateOnly? primeiraCompetenciaDoFaturamento =
+            primeiraComCliente is null ? primeiraSemCliente
+            : primeiraSemCliente is null ? primeiraComCliente
+            : primeiraComCliente < primeiraSemCliente ? primeiraComCliente : primeiraSemCliente;
 
         // A NOTA SEM CLIENTE NO CRM TAMBÉM É NOTA DESTA FILIAL. Sem ela, o total da tela seria só o
         // faturamento com cliente — R$ 320,6 mi a menos em 12 meses, medido em 13/09/2026 — e a
         // conferência "mapa + fora do mapa = o que a filial faturou" nunca fecharia. Ela não tem
-        // cadastro, logo não tem filial de cadastro: o filtro pela filial do cliente a exclui.
-        if (consulta.FilialDoClienteId is null)
+        // cadastro, logo não tem filial de cadastro: o filtro pela filial do cliente a exclui — e o do CEN
+        // também, porque sem cadastro ela não está em carteira nenhuma.
+        if (consulta.FilialDoClienteId is null && consulta.ResponsavelId is null)
         {
             var semCliente = await contexto.FaturamentoSemClientes.AsNoTracking()
                 .Where(f => f.ExcluidoEm == null
@@ -403,6 +486,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         var categoriaDaLinha = new Dictionary<string, (string Codigo, string Nome, short Ordem)>(StringComparer.Ordinal);
         int vendasSemAData = 0;
         DateOnly? vendaMaisRecente = null;
+        DateOnly? primeiroMesDoArt = null;
         DateTime? carregadoAte = null;
 
         if (oArtTrouxeVenda)
@@ -426,43 +510,79 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             vendaMaisRecente = await datas.MaxAsync(ct);
             carregadoAte = await vendasDeMaquina.MaxAsync(v => (DateTime?)v.ImportadaEm, ct);
 
+            // DESDE QUANDO O ART TRAZ VENDA, pelo mês da data do critério — é o que diz se o ano anterior
+            // pode ser comparado em unidades. O ART começou depois do Protheus, e cada fonte tem a sua.
+            if (await datas.MinAsync(ct) is { } primeiraVenda)
+                primeiroMesDoArt = new DateOnly(primeiraVenda.Year, primeiraVenda.Month, 1);
+
+            // AS DUAS JANELAS NUMA LEITURA SÓ, e a data de cada venda vem junto: a janela de cada uma — a
+            // pedida ou a do ano anterior — é decidida aqui, pela data do critério.
             var vendas = await (
                     from venda in NoPeriodo(
-                        vendasDeMaquina, CriterioDaData, consulta.CompetenciaInicial, consulta.CompetenciaFinal.AddMonths(1))
+                        vendasDeMaquina, CriterioDaData, janelaAnterior.Inicial, consulta.CompetenciaFinal.AddMonths(1))
                     // A MÁQUINA ENTRA POR FORA (junção à esquerda): ela tem filial própria, e a de uma
                     // máquina reaproveitada de outra filial pode estar fora do alcance de quem lê. Numa
                     // junção comum a venda sumiria inteira; assim ela conta, e só a categoria fica sem saber.
                     join maquina in contexto.Equipamentos.AsNoTracking().Where(e => e.ExcluidoEm == null)
                         on venda.EquipamentoId equals maquina.Id into maquinas
                     from maquina in maquinas.DefaultIfEmpty()
-                    select new { venda.CompradorId, LinhaDeProdutoId = maquina == null ? null : maquina.LinhaDeProdutoId })
+                    select new
+                    {
+                        venda.CompradorId,
+                        LinhaDeProdutoId = maquina == null ? null : maquina.LinhaDeProdutoId,
+                        venda.VendidaEm,
+                        venda.FaturadaEm,
+                        venda.EntregueEm
+                    })
                 .ToListAsync(ct);
 
             foreach (var venda in vendas)
             {
+                var data = DataPeloCriterio(CriterioDaData, venda.VendidaEm, venda.FaturadaEm, venda.EntregueEm);
+                if (data is not { } dia) continue;
+
+                var doPeriodo = janela.Contem(dia);
+                if (!doPeriodo && !janelaAnterior.Contem(dia)) continue;
+
                 var grupoDaMaquina = GrupoDe(venda.CompradorId);
                 if (grupoDaMaquina == ForaDoFiltro) continue;
 
-                var acumulador = Do(grupoDaMaquina);
+                // A CATEGORIA DA MÁQUINA, pelo de-para da linha de produto — ou por que ela não tem.
+                string? codigoDaCategoria = null;
+                var linhaDaMaquina = venda.LinhaDeProdutoId is { } linhaId && codigoDaLinha.TryGetValue(linhaId, out var achada)
+                    ? achada
+                    : null;
+                var semClassificacao = linhaDaMaquina is null;
+                var emLinhaSemCategoria = false;
+                if (linhaDaMaquina is not null)
+                {
+                    // LINHA SEM CATEGORIA CONTA NO TOTAL E SOME DA QUEBRA. Hoje é a plataforma de corte, que
+                    // ficou sem categoria de propósito: é acessório de colheitadeira, julgamento do comercial,
+                    // não omissão (documento 48, §5.3). A colhedora de cana ganhou categoria própria em 27/09/2026.
+                    if (categoriaDaLinha.TryGetValue(linhaDaMaquina, out var categoria))
+                        codigoDaCategoria = categoria.Codigo;
+                    else
+                        emLinhaSemCategoria = true;
+                }
+
+                // O FILTRO "TIPO DE PRODUTO" (a categoria): só a máquina que se SABE ser da categoria entra. A de
+                // linha sem categoria ou sem classificação fica de fora — não se sabe de que tipo ela é.
+                if (consulta.CategoriaDeMaquina is { } filtroDeCategoria
+                    && !string.Equals(codigoDaCategoria, filtroDeCategoria, StringComparison.Ordinal))
+                    continue;
+
+                // O GRUPO SÓ NASCE COM VENDA DO PERÍODO, como no faturamento: o ano anterior acumula à parte.
+                var acumulador = doPeriodo ? Do(grupoDaMaquina) : DoAnterior(grupoDaMaquina);
                 acumulador.MaquinasVendidas++;
 
-                if (venda.LinhaDeProdutoId is not { } linhaId || !codigoDaLinha.TryGetValue(linhaId, out var linha))
-                {
-                    acumulador.MaquinasSemClassificacao++;
-                    continue;
-                }
+                if (grupoDaMaquina > 0)
+                    NoMes(grupoDaMaquina, new DateOnly(dia.Year, dia.Month, 1)).MaquinasVendidas++;
 
-                // LINHA SEM CATEGORIA CONTA NO TOTAL E SOME DA QUEBRA. Hoje é a plataforma de corte, que
-                // ficou sem categoria de propósito: é acessório de colheitadeira, julgamento do comercial,
-                // não omissão (documento 48, §5.3). A colhedora de cana ganhou categoria própria em 27/09/2026.
-                if (!categoriaDaLinha.TryGetValue(linha, out var categoria))
-                {
-                    acumulador.MaquinasEmLinhaSemCategoria++;
-                    continue;
-                }
-
-                acumulador.MaquinasPorCategoria[categoria.Codigo] =
-                    acumulador.MaquinasPorCategoria.GetValueOrDefault(categoria.Codigo) + 1;
+                if (semClassificacao) acumulador.MaquinasSemClassificacao++;
+                else if (emLinhaSemCategoria) acumulador.MaquinasEmLinhaSemCategoria++;
+                else
+                    acumulador.MaquinasPorCategoria[codigoDaCategoria!] =
+                        acumulador.MaquinasPorCategoria.GetValueOrDefault(codigoDaCategoria!) + 1;
             }
         }
 
@@ -758,20 +878,21 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                 oArtTrouxeVenda ? acumuladores[g.Grupo].MaquinasVendidas : null))
             .ToList();
 
-        // O TOTAL DE UNIDADES DO RECORTE É A SOMA DOS MUNICÍPIOS QUE ENTRARAM NELE, e não de todos os
-        // grupos: a captura divide este número pela demanda DO RECORTE, e o que está fora do mapa não
-        // tem demanda do outro lado da razão. Ele sai à parte, para o leitor saber que existe.
-        var doRecorte = codigosNoRecorte.Where(acumuladores.ContainsKey).Select(c => acumuladores[c]).ToList();
-
         // A CATEGORIA SAI NA ORDEM DE EXIBIÇÃO DO CATÁLOGO, a mesma do potencial por categoria: as duas
         // listas ficam lado a lado na tela, e ordens diferentes fariam o leitor comparar linhas trocadas.
         var categoriaPeloCodigo = categoriaDaLinha.Values
             .DistinctBy(c => c.Codigo, StringComparer.Ordinal)
             .ToDictionary(c => c.Codigo, c => (c.Nome, c.Ordem), StringComparer.Ordinal);
 
-        var maquinasVendidas = !oArtTrouxeVenda
-            ? null
-            : new VendasDeMaquinaDoRecorte(
+        // O TOTAL DE UNIDADES DO RECORTE É A SOMA DOS MUNICÍPIOS QUE ENTRARAM NELE, e não de todos os
+        // grupos: a captura divide este número pela demanda DO RECORTE, e o que está fora do mapa não
+        // tem demanda do outro lado da razão. Ele sai à parte, para o leitor saber que existe. A MESMA CONTA
+        // vale para o ano anterior, que é o numerador da captura de antes (27/09/2026).
+        VendasDeMaquinaDoRecorte UnidadesDoRecorte(IReadOnlyDictionary<int, Acumulador> fonte)
+        {
+            var doRecorte = codigosNoRecorte.Where(fonte.ContainsKey).Select(c => fonte[c]).ToList();
+
+            return new VendasDeMaquinaDoRecorte(
                 CriterioDaData.ToString(),
                 FraseDoCriterio,
                 doRecorte.Sum(a => a.MaquinasVendidas),
@@ -786,12 +907,36 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                         .OrderBy(c => categoriaPeloCodigo.TryGetValue(c.CategoriaCodigo, out var ordem) ? ordem.Ordem : short.MaxValue)
                         .ThenBy(c => c.CategoriaCodigo, StringComparer.Ordinal)
                 ],
-                GruposForaDoMapa.Where(g => acumuladores.ContainsKey(g.Grupo)).Sum(g => acumuladores[g.Grupo].MaquinasVendidas),
+                GruposForaDoMapa.Where(g => fonte.ContainsKey(g.Grupo)).Sum(g => fonte[g.Grupo].MaquinasVendidas),
                 doRecorte.Sum(a => a.MaquinasSemClassificacao),
                 doRecorte.Sum(a => a.MaquinasEmLinhaSemCategoria),
                 vendasSemAData,
                 vendaMaisRecente,
                 carregadoAte);
+        }
+
+        var maquinasVendidas = !oArtTrouxeVenda ? null : UnidadesDoRecorte(acumuladores);
+
+        var periodoAnterior = MontarPeriodoAnterior(
+            janela, janelaAnterior, primeiraCompetenciaDoFaturamento, primeiroMesDoArt, oArtTrouxeVenda,
+            codigosNoRecorte.Where(c => area.TryGetValue(c, out var daArea) && daArea.PertenceAAdr).ToHashSet(),
+            mensal,
+            UnidadesDoRecorte(anteriores));
+
+        // O ANO ANTERIOR DE CADA MUNICÍPIO, em reais e em unidades — só quando a fonte cobre a janela inteira.
+        // Este bloco é à parte da montagem de propósito: ele não mexe no potencial, só acrescenta a base da
+        // variação a cada linha.
+        itens = [
+            .. itens.Select(i => i with
+            {
+                VendasNoPeriodoAnterior = periodoAnterior.VendasCobertas
+                    ? (anteriores.GetValueOrDefault(i.CodigoIbge) ?? new Acumulador()).Vendas()
+                    : null,
+                MaquinasVendidasNoPeriodoAnterior = oArtTrouxeVenda && periodoAnterior.MaquinasCobertas
+                    ? anteriores.GetValueOrDefault(i.CodigoIbge)?.MaquinasVendidas ?? 0
+                    : null
+            })
+        ];
 
         return new IndicadoresTerritoriais(
             consulta.CompetenciaInicial,
@@ -830,7 +975,443 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     RelevanciaPorCultura(codigosNoRecorte, daRegra, culturasNoEstado)),
             await LerTotaisDaRegiaoTracbelAsync(ct),
             await MontarProcedenciasAsync(agoraUtc, maquinasVendidas, ct),
-            MaquinasVendidas: maquinasVendidas);
+            MaquinasVendidas: maquinasVendidas,
+            PeriodoAnterior: periodoAnterior,
+            LavouraDoRecorte: await LerLavouraDoRecorteAsync(
+                codigosNoRecorte.Where(c => area.TryGetValue(c, out var daArea) && daArea.PertenceAAdr).ToList(), ct));
+    }
+
+    /// <summary>
+    /// O MESMO TRECHO DO ANO ANTERIOR, montado — a cobertura das duas fontes e o mês a mês da ADR do recorte.
+    ///
+    /// <para><b>A série é dos municípios DA ADR do recorte</b>, porque é a soma deles que os cartões mostram: os
+    /// vizinhos com cliente ficam no mapa, e não no número da área de atuação.</para>
+    /// </summary>
+    /// <param name="janela">A janela pedida.</param>
+    /// <param name="anterior">O mesmo trecho do ano anterior.</param>
+    /// <param name="primeiraDoFaturamento">Desde quando há faturamento ao alcance.</param>
+    /// <param name="primeiroMesDoArt">Desde quando o ART traz venda.</param>
+    /// <param name="oArtTrouxeVenda">Se há venda do ART ao alcance.</param>
+    /// <param name="daAdr">Os municípios da ADR que entraram no recorte.</param>
+    /// <param name="mensal">As vendas de cada município em cada mês das duas janelas.</param>
+    /// <param name="unidadesAnteriores">As unidades do recorte no ano anterior, já com a quebra.</param>
+    private static PeriodoAnterior MontarPeriodoAnterior(
+        Dominio.Comum.JanelaDeCompetencia janela,
+        Dominio.Comum.JanelaDeCompetencia anterior,
+        DateOnly? primeiraDoFaturamento,
+        DateOnly? primeiroMesDoArt,
+        bool oArtTrouxeVenda,
+        IReadOnlySet<int> daAdr,
+        IReadOnlyDictionary<(int Grupo, DateOnly Mes), VendasDoMes> mensal,
+        VendasDeMaquinaDoRecorte unidadesAnteriores)
+    {
+        var cobreVendas = primeiraDoFaturamento is { } primeira && primeira <= anterior.Inicial;
+        var cobreMaquinas = oArtTrouxeVenda && primeiroMesDoArt is { } primeiro && primeiro <= anterior.Inicial;
+
+        List<VendasNoMes> Serie(Dominio.Comum.JanelaDeCompetencia j, bool comUnidades)
+        {
+            var meses = new List<VendasNoMes>(j.Meses);
+            for (var mes = j.Inicial; mes <= j.Final; mes = mes.AddMonths(1))
+            {
+                var doMes = daAdr.Select(c => mensal.GetValueOrDefault((c, mes))).Where(v => v is not null).ToList();
+                meses.Add(new VendasNoMes(
+                    mes,
+                    decimal.Round(doMes.Sum(v => v!.ValorLiquido), 2),
+                    decimal.Round(doMes.Sum(v => v!.Maquina), 2),
+                    decimal.Round(doMes.Sum(v => v!.PosVenda), 2),
+                    comUnidades ? doMes.Sum(v => v!.MaquinasVendidas) : null));
+            }
+
+            return meses;
+        }
+
+        return new PeriodoAnterior(
+            anterior.Inicial,
+            anterior.Final,
+            primeiraDoFaturamento,
+            oArtTrouxeVenda ? primeiroMesDoArt : null,
+            cobreMaquinas ? unidadesAnteriores : null,
+            Serie(janela, oArtTrouxeVenda),
+            cobreVendas ? Serie(anterior, cobreMaquinas) : []);
+    }
+
+    /// <summary>
+    /// A ÁREA DE TODAS AS CULTURAS DA PAM nos municípios da ADR do recorte (issue 168) — uma leitura PRÓPRIA,
+    /// que não passa pelas regras de potencial.
+    ///
+    /// <para><b>Cada produto no último ano em que a área DELE foi divulgada</b> (issue 152), como no resto da
+    /// tela: o maior ano da tabela inteira misturaria anos em silêncio no dia em que a PAM nova entrasse
+    /// incompleta. A soma é em memória — o SQLite dos testes não agrega decimal —, e o volume é de uma linha por
+    /// produto e município dos anos carregados.</para>
+    ///
+    /// <para><b>Sigilo não vira zero:</b> o município sem área divulgada não entra na soma, e a contagem dos que
+    /// entraram vai junto.</para>
+    /// </summary>
+    /// <param name="codigosDaAdr">Os municípios da ADR que entraram no recorte, pelo código IBGE.</param>
+    /// <param name="ct">Cancelamento.</param>
+    private async Task<List<AreaDoProdutoNoRecorte>> LerLavouraDoRecorteAsync(IReadOnlyList<int> codigosDaAdr, CancellationToken ct)
+    {
+        if (codigosDaAdr.Count == 0) return [];
+
+        var linhas = await (
+                from linha in contexto.ProducoesAgricolasNosMunicipios.AsNoTracking()
+                join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
+                where municipio.CodigoIbge != null && codigosDaAdr.Contains(municipio.CodigoIbge!.Value)
+                select new
+                {
+                    linha.ProdutoCodigoIbge,
+                    linha.ProdutoNome,
+                    linha.Ano,
+                    linha.AreaPlantadaHectares,
+                    linha.AreaColhidaHectares
+                })
+            .ToListAsync(ct);
+
+        return
+        [
+            .. linhas
+                .GroupBy(l => l.ProdutoCodigoIbge)
+                .Select(produto =>
+                {
+                    var comArea = produto.Where(l => l.AreaPlantadaHectares is not null).ToList();
+                    if (comArea.Count == 0) return null;
+
+                    var ano = comArea.Max(l => l.Ano);
+                    var doAno = comArea.Where(l => l.Ano == ano).ToList();
+                    var colhidas = doAno.Where(l => l.AreaColhidaHectares is not null).ToList();
+
+                    return new AreaDoProdutoNoRecorte(
+                        produto.Key,
+                        doAno[0].ProdutoNome,
+                        ano,
+                        doAno.Sum(l => l.AreaPlantadaHectares!.Value),
+                        colhidas.Count == 0 ? null : colhidas.Sum(l => l.AreaColhidaHectares!.Value),
+                        doAno.Count);
+                })
+                .Where(a => a is not null)
+                .Select(a => a!)
+                .OrderByDescending(a => a.AreaPlantadaHectares)
+                .ThenBy(a => a.ProdutoCodigoIbge)
+        ];
+    }
+
+    /// <summary>
+    /// A data de uma venda pelo critério — o mesmo <c>switch</c> de <see cref="NoPeriodo"/>, em memória, depois
+    /// que as duas janelas já vieram numa leitura só.
+    /// </summary>
+    private static DateOnly? DataPeloCriterio(
+        DataQueDefineOPeriodoDaVenda criterio, DateOnly? vendidaEm, DateOnly? faturadaEm, DateOnly? entregueEm) =>
+        criterio switch
+        {
+            DataQueDefineOPeriodoDaVenda.Venda => vendidaEm,
+            DataQueDefineOPeriodoDaVenda.Faturamento => faturadaEm,
+            _ => entregueEm
+        };
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<CategoriaParaFiltro>> ListarCategoriasDeMaquinaAsync(CancellationToken ct)
+    {
+        // O CATÁLOGO E O DE-PARA, e não uma lista escrita aqui: a categoria que o comercial ligar a uma linha
+        // de produto aparece sozinha no filtro. Os dois cruzam por Id, sem tocar a colação da linha.
+        var comLinha = await contexto.LinhasDeProdutoNasCategorias.AsNoTracking()
+            .Select(l => l.CategoriaDeMaquinaId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        return
+        [
+            .. (await contexto.CategoriasDeMaquina.AsNoTracking()
+                    .Where(c => comLinha.Contains(c.Id))
+                    .Select(c => new { c.Codigo, c.Nome, c.Ordem })
+                    .ToListAsync(ct))
+                .OrderBy(c => c.Ordem)
+                .ThenBy(c => c.Codigo, StringComparer.Ordinal)
+                .Select(c => new CategoriaParaFiltro(c.Codigo, c.Nome, c.Ordem))
+        ];
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ResponsavelDeCarteira>> ListarResponsaveisDasCarteirasAsync(CancellationToken ct)
+    {
+        // AS CARTEIRAS COMERCIAIS AO ALCANCE (filtro global de filial), e o dono de cada uma. O gestor vem do
+        // cadastro de usuário — hoje, em produção, nenhum responsável tem gestor cadastrado, e a tela diz isso.
+        var carteiras = await contexto.Carteiras.AsNoTracking()
+            .Where(c => c.ExcluidoEm == null && c.Natureza == NaturezaDaCarteira.Comercial)
+            .Select(c => c.ResponsavelId)
+            .ToListAsync(ct);
+
+        var ids = carteiras.Distinct().ToList();
+        var usuarios = await contexto.Usuarios.AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new { u.Id, u.NomeExibicao, u.Natureza, u.GestorId })
+            .ToListAsync(ct);
+
+        var idsDosGestores = usuarios.Where(u => u.GestorId is not null).Select(u => u.GestorId!.Value).Distinct().ToList();
+        var gestores = idsDosGestores.Count == 0
+            ? new Dictionary<long, string>()
+            : await contexto.Usuarios.AsNoTracking()
+                .Where(u => idsDosGestores.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.NomeExibicao, ct);
+
+        return
+        [
+            .. usuarios
+                .Select(u => new ResponsavelDeCarteira(
+                    u.Id,
+                    u.NomeExibicao,
+                    u.Natureza.ToString(),
+                    carteiras.Count(c => c == u.Id),
+                    u.GestorId is { } gestor && gestores.TryGetValue(gestor, out var nome) ? nome : null))
+                .OrderBy(r => r.Nome, StringComparer.Create(new System.Globalization.CultureInfo("pt-BR"), true))
+        ];
+    }
+
+    /// <inheritdoc />
+    public async Task<HistoricoDoMunicipio?> ApurarHistoricoDoMunicipioAsync(
+        ConsultaDoHistoricoDoMunicipio consulta, CancellationToken ct)
+    {
+        // A VISÃO DA EMPRESA ABRE O ALCANCE ENTRE FILIAIS, como no painel — o caso de uso já conferiu a
+        // permissão, e a abertura vai para o diário com o motivo.
+        using var alcance = consulta.Visao == VisaoTerritorial.Empresa
+            ? contexto.AbrirAlcanceEntreEmpresas("Histórico do município na visão consolidada da empresa (documento 32)")
+            : null;
+
+        var doCodigo = await contexto.Municipios.AsNoTracking()
+            .Where(m => m.CodigoIbge == consulta.CodigoIbge && m.Uf == SaoPaulo)
+            .Select(m => new { m.Id, m.Nome })
+            .ToListAsync(ct);
+        if (doCodigo.Count == 0) return null;
+
+        var idsDoMunicipio = doCodigo.Select(m => m.Id).ToList();
+
+        // OS CLIENTES DO MUNICÍPIO, PELA MESMA REGRA DO PAINEL: o endereço principal de menor Id. Um cliente com
+        // dois endereços principais conta onde o painel o conta — senão a ficha e a linha da tabela discordariam
+        // do mesmo cliente.
+        var enderecos = await (
+                from endereco in contexto.Enderecos.AsNoTracking().Where(e => e.EhPrincipal && e.ExcluidoEm == null)
+                join cliente in contexto.Clientes.AsNoTracking().Where(c => c.ExcluidoEm == null)
+                    on endereco.ClienteId equals cliente.Id
+                where contexto.Enderecos.Any(e => e.ClienteId == cliente.Id
+                                                  && e.EhPrincipal
+                                                  && e.ExcluidoEm == null
+                                                  && e.MunicipioId != null
+                                                  && idsDoMunicipio.Contains(e.MunicipioId.Value))
+                select new { ClienteId = cliente.Id, cliente.EmpresaId, EnderecoId = endereco.Id, endereco.MunicipioId })
+            .ToListAsync(ct);
+
+        HashSet<long>? doResponsavel = null;
+        if (consulta.ResponsavelId is { } responsavel)
+            doResponsavel = (await (
+                    from vinculo in contexto.ClienteCarteiras.AsNoTracking().Where(v => v.DesvinculadoEm == null)
+                    join carteira in contexto.Carteiras.AsNoTracking() on vinculo.CarteiraId equals carteira.Id
+                    where carteira.ExcluidoEm == null
+                          && carteira.Natureza == NaturezaDaCarteira.Comercial
+                          && carteira.ResponsavelId == responsavel
+                    select vinculo.ClienteId)
+                .ToListAsync(ct))
+                .ToHashSet();
+
+        var clientes = enderecos
+            .GroupBy(e => e.ClienteId)
+            .Select(g => g.MinBy(e => e.EnderecoId)!)
+            .Where(e => e.MunicipioId is { } id && idsDoMunicipio.Contains(id))
+            .Where(e => consulta.FilialDoClienteId is not { } filial || e.EmpresaId == filial)
+            .Where(e => doResponsavel is null || doResponsavel.Contains(e.ClienteId))
+            .Select(e => e.ClienteId)
+            .ToHashSet();
+
+        var ultimoMes = new DateOnly(consulta.UltimoMesFechado.Year, consulta.UltimoMesFechado.Month, 1);
+        var idsDosClientes = clientes.ToList();
+
+        var faturamento = idsDosClientes.Count == 0
+            ? []
+            : await contexto.FaturamentoDosClientes.AsNoTracking()
+                .Where(f => f.ExcluidoEm == null
+                            && f.Competencia <= ultimoMes
+                            && idsDosClientes.Contains(f.ClienteId)
+                            && (consulta.FilialDaVendaId == null || f.EmpresaId == consulta.FilialDaVendaId))
+                .Select(f => new { f.ClienteId, f.Competencia, f.ValorLiquido, f.ValorEmMaquina, f.ValorEmPeca, f.ValorEmServico, f.ValorEmOutros })
+                .ToListAsync(ct);
+
+        // A COBERTURA É A DO ALCANCE INTEIRO, e não a do município: um município sem venda em 2023 não é um
+        // município sem carga em 2023.
+        var primeiraComCliente = await contexto.FaturamentoDosClientes.AsNoTracking()
+            .Where(f => f.ExcluidoEm == null && (consulta.FilialDaVendaId == null || f.EmpresaId == consulta.FilialDaVendaId))
+            .MinAsync(f => (DateOnly?)f.Competencia, ct);
+        var primeiraSemCliente = await contexto.FaturamentoSemClientes.AsNoTracking()
+            .Where(f => f.ExcluidoEm == null && (consulta.FilialDaVendaId == null || f.EmpresaId == consulta.FilialDaVendaId))
+            .MinAsync(f => (DateOnly?)f.Competencia, ct);
+        DateOnly? primeiraDoFaturamento =
+            primeiraComCliente is null ? primeiraSemCliente
+            : primeiraSemCliente is null ? primeiraComCliente
+            : primeiraComCliente < primeiraSemCliente ? primeiraComCliente : primeiraSemCliente;
+
+        // AS UNIDADES DO ART, pelo mesmo critério de data e pelo mesmo de-para de categoria do painel.
+        var vendasDeMaquina = contexto.VendasDeMaquina.AsNoTracking()
+            .Where(v => v.ExcluidoEm == null && (consulta.FilialDaVendaId == null || v.EmpresaId == consulta.FilialDaVendaId));
+        var primeiraVenda = await DataDoCriterio(vendasDeMaquina, CriterioDaData).MinAsync(ct);
+        DateOnly? primeiroMesDoArt = primeiraVenda is { } dia ? new DateOnly(dia.Year, dia.Month, 1) : null;
+
+        var codigoDaLinha = await contexto.LinhasDeProduto.AsNoTracking().ToDictionaryAsync(l => l.Id, l => l.Codigo, ct);
+        var categoriaDaLinha = (await (
+                    from ligacao in contexto.LinhasDeProdutoNasCategorias.AsNoTracking()
+                    join categoria in contexto.CategoriasDeMaquina.AsNoTracking() on ligacao.CategoriaDeMaquinaId equals categoria.Id
+                    select new { ligacao.CodigoDaLinha, categoria.Codigo })
+                .ToListAsync(ct))
+            .ToDictionary(l => l.CodigoDaLinha, l => l.Codigo, StringComparer.Ordinal);
+
+        var maquinas = idsDosClientes.Count == 0 || primeiroMesDoArt is null
+            ? []
+            : (await (
+                    from venda in vendasDeMaquina.Where(v => idsDosClientes.Contains(v.CompradorId))
+                    join maquina in contexto.Equipamentos.AsNoTracking().Where(e => e.ExcluidoEm == null)
+                        on venda.EquipamentoId equals maquina.Id into doEquipamento
+                    from maquina in doEquipamento.DefaultIfEmpty()
+                    select new
+                    {
+                        LinhaDeProdutoId = maquina == null ? null : maquina.LinhaDeProdutoId,
+                        venda.VendidaEm,
+                        venda.FaturadaEm,
+                        venda.EntregueEm
+                    })
+                .ToListAsync(ct))
+                .Select(v => new
+                {
+                    Data = DataPeloCriterio(CriterioDaData, v.VendidaEm, v.FaturadaEm, v.EntregueEm),
+                    Categoria = v.LinhaDeProdutoId is { } linha && codigoDaLinha.TryGetValue(linha, out var codigo)
+                                && categoriaDaLinha.TryGetValue(codigo, out var daCategoria)
+                        ? daCategoria
+                        : null
+                })
+                .Where(v => v.Data is { } data && data < ultimoMes.AddMonths(1))
+                .Where(v => consulta.CategoriaDeMaquina is null || string.Equals(v.Categoria, consulta.CategoriaDeMaquina, StringComparison.Ordinal))
+                .Select(v => new DateOnly(v.Data!.Value.Year, v.Data.Value.Month, 1))
+                .ToList();
+
+        AnoFiscalDoMunicipio Ano(int anoFiscal, Dominio.Comum.JanelaDeCompetencia meses)
+        {
+            var nome = Dominio.Comum.AnoFiscal.Nome(anoFiscal);
+            var cobreVendas = primeiraDoFaturamento is { } primeira && primeira <= meses.Inicial;
+            var cobreMaquinas = primeiroMesDoArt is { } primeiro && primeiro <= meses.Inicial;
+
+            var linhas = faturamento.Where(f => meses.Contem(f.Competencia)).ToList();
+            var vendas = !cobreVendas
+                ? null
+                : new VendasTerritoriais(
+                    linhas.GroupBy(f => f.ClienteId).Count(c => c.Sum(f => f.ValorLiquido) != 0),
+                    decimal.Round(linhas.Sum(f => f.ValorLiquido), 2),
+                    decimal.Round(linhas.Sum(f => f.ValorEmMaquina), 2),
+                    decimal.Round(linhas.Sum(f => f.ValorEmPeca), 2),
+                    decimal.Round(linhas.Sum(f => f.ValorEmServico), 2),
+                    decimal.Round(linhas.Sum(f => f.ValorEmOutros), 2));
+
+            return new AnoFiscalDoMunicipio(
+                anoFiscal,
+                meses.Inicial,
+                meses.Final,
+                meses.Final < Dominio.Comum.AnoFiscal.Inteiro(anoFiscal).Final,
+                vendas,
+                cobreVendas
+                    ? null
+                    : primeiraDoFaturamento is { } desde
+                        ? $"O faturamento carregado ao seu alcance começa em {Dominio.Comum.JanelaDeCompetencia.Mes(desde)}, depois do " +
+                          $"começo do {nome} ({Dominio.Comum.JanelaDeCompetencia.Mes(meses.Inicial)}): o ano sairia pela metade, e " +
+                          "pela metade ele se leria como queda."
+                        : "Não há faturamento carregado ao alcance desta consulta.",
+                cobreMaquinas ? maquinas.Count(meses.Contem) : null,
+                cobreMaquinas
+                    ? null
+                    : primeiroMesDoArt is { } artDesde
+                        ? $"A primeira venda que o ART trouxe é de {Dominio.Comum.JanelaDeCompetencia.Mes(artDesde)}, depois do " +
+                          $"começo do {nome} ({Dominio.Comum.JanelaDeCompetencia.Mes(meses.Inicial)}): as unidades desse ano " +
+                          "sairiam pela metade."
+                        : "O ART não trouxe venda de máquina ao alcance desta consulta.");
+        }
+
+        // DO PRIMEIRO ANO FISCAL QUE ALGUMA DAS DUAS FONTES COBRE INTEIRO até o corrente. O ano que nenhuma
+        // cobre não entra: ele seria uma linha de dois traços, e o motivo já está no primeiro ano que entra.
+        static int? PrimeiroInteiro(DateOnly? desde) =>
+            desde is not { } d ? null : d == Dominio.Comum.AnoFiscal.InicioDe(d) ? Dominio.Comum.AnoFiscal.Do(d) : Dominio.Comum.AnoFiscal.Do(d) + 1;
+
+        var corrente = Dominio.Comum.AnoFiscal.Do(ultimoMes);
+        var primeiroAno = new[] { PrimeiroInteiro(primeiraDoFaturamento), PrimeiroInteiro(primeiroMesDoArt) }
+            .Where(a => a is not null)
+            .Select(a => a!.Value)
+            .DefaultIfEmpty(corrente)
+            .Min();
+
+        var anos = new List<AnoFiscalDoMunicipio>();
+        for (var fy = Math.Min(primeiroAno, corrente); fy <= corrente; fy++)
+        {
+            var inteiro = Dominio.Comum.AnoFiscal.Inteiro(fy);
+            anos.Add(Ano(fy, new Dominio.Comum.JanelaDeCompetencia(
+                inteiro.Inicial, inteiro.Final < ultimoMes ? inteiro.Final : ultimoMes)));
+        }
+
+        // O MESMO TRECHO DO ANO ANTERIOR, quando o corrente ainda corre: é a comparação que a diretoria faz
+        // (27/09/2026) — o ano fiscal até agosto contra o anterior até agosto.
+        var doCorrente = anos[^1];
+        var mesmoTrecho = doCorrente.EmCurso
+            ? Ano(corrente - 1, new Dominio.Comum.JanelaDeCompetencia(doCorrente.Inicio, doCorrente.Fim).DoAnoAnterior())
+            : null;
+
+        return new HistoricoDoMunicipio(
+            consulta.CodigoIbge,
+            doCodigo[0].Nome,
+            primeiraDoFaturamento,
+            primeiroMesDoArt,
+            anos,
+            mesmoTrecho,
+            await LerLavouraPorAnoAsync(idsDoMunicipio, ct));
+    }
+
+    /// <summary>
+    /// A LAVOURA DE UM MUNICÍPIO EM CADA ANO DA PAM — o total e todas as culturas (issue 168).
+    ///
+    /// <para><b>O café entra uma vez só</b>, pelo Total: Arábica e Canephora saem da soma e da lista, como no
+    /// resto da tela. <b>Sigilo não vira zero</b>: a cultura sem área divulgada não entra na lista, e o total
+    /// que não tem nenhuma sai nulo.</para>
+    /// </summary>
+    private async Task<List<LavouraNoAno>> LerLavouraPorAnoAsync(IReadOnlyList<int> idsDoMunicipio, CancellationToken ct)
+    {
+        var linhas = await contexto.ProducoesAgricolasNosMunicipios.AsNoTracking()
+            .Where(p => idsDoMunicipio.Contains(p.MunicipioId) && !ProdutosQueDuplicamNaSoma.Contains(p.ProdutoCodigoIbge))
+            .Select(p => new
+            {
+                p.Ano,
+                p.ProdutoCodigoIbge,
+                p.ProdutoNome,
+                p.AreaPlantadaHectares,
+                p.AreaColhidaHectares,
+                p.ValorDaProducaoMilReais
+            })
+            .ToListAsync(ct);
+
+        static decimal? Somar(IEnumerable<decimal?> valores)
+        {
+            var divulgados = valores.Where(v => v is not null).ToList();
+            return divulgados.Count == 0 ? null : divulgados.Sum(v => v!.Value);
+        }
+
+        return
+        [
+            .. linhas
+                .GroupBy(l => l.Ano)
+                .OrderBy(g => g.Key)
+                .Select(g => new LavouraNoAno(
+                    g.Key,
+                    Somar(g.Select(l => l.AreaPlantadaHectares)),
+                    Somar(g.Select(l => l.AreaColhidaHectares)),
+                    Somar(g.Select(l => l.ValorDaProducaoMilReais)),
+                    [
+                        .. g.Where(l => l.AreaPlantadaHectares > 0)
+                            .OrderByDescending(l => l.AreaPlantadaHectares)
+                            .ThenBy(l => l.ProdutoCodigoIbge)
+                            .Select(l => new CulturaDaLavoura(
+                                l.ProdutoCodigoIbge, l.ProdutoNome, l.AreaPlantadaHectares, l.AreaColhidaHectares,
+                                l.ValorDaProducaoMilReais))
+                    ]))
+        ];
     }
 
     /// <summary>
@@ -1428,6 +2009,15 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         NaturezaDoParceiro.OutraRevenda => NotaParaOutraRevenda,
         _ => NotaSemCadastroDeCliente
     };
+
+    /// <summary>As vendas de um município num mês — o ponto do mini-gráfico, antes de somar a ADR.</summary>
+    private sealed class VendasDoMes
+    {
+        public decimal ValorLiquido;
+        public decimal Maquina;
+        public decimal PosVenda;
+        public int MaquinasVendidas;
+    }
 
     /// <summary>O contador de um grupo enquanto clientes, vínculos e notas são percorridos.</summary>
     private sealed class Acumulador
