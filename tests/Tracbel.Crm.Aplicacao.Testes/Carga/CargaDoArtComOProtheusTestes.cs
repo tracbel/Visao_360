@@ -278,4 +278,32 @@ public sealed class CargaDoArtComOProtheusTestes : IDisposable
 
         (await Rodar(comVendedor)).Valor(CargaDoArt.RotuloDeVendasAtualizadas).Should().Be(0, "depois do preenchimento, a releitura igual não muda nada");
     }
+
+    [Fact]
+    public async Task A_venda_importada_cujo_registro_ficou_pendente_ganha_o_vendedor_e_nada_mais()
+    {
+        // A 5004 ENTROU PELO DONO DO PROTHEUS. Na leitura seguinte o Protheus não foi lido: o registro fica pendente
+        // (comprador ausente) e a venda é mantida como estava — mas o vendedor, que é da mesma venda, entra (revisão do PR #248).
+        await Rodar();
+        long compradorAntes;
+        await using (var antes = Sistema())
+        {
+            var venda = await antes.VendasDeMaquina.AsNoTracking().SingleAsync(v => v.ChaveOrigem == "5004");
+            venda.VendedorNaOrigem.Should().BeNull();
+            compradorAntes = venda.CompradorId;
+        }
+
+        var relatorio = await Rodar(Vendas().Select(v => v with { Vendedor = "fulano.de.tal" }).ToList(), semProtheus: true);
+
+        relatorio.Valor(CargaDoArt.RotuloDeVendedorEmVendaMantida).Should().BeGreaterThan(0);
+        (await Registros())["5004"].Decisao.Should().Be(DecisaoDaIntegracao.Pendente);
+
+        await using var db = Sistema();
+        var mantida = await db.VendasDeMaquina.AsNoTracking().SingleAsync(v => v.ChaveOrigem == "5004");
+        mantida.VendedorNaOrigem.Should().Be("fulano.de.tal", "sem o vendedor, o realizado da venda mantida não teria dono");
+        mantida.CompradorId.Should().Be(compradorAntes, "a leitura pendente não troca o comprador");
+        (await db.AlteracoesDeCampo.AsNoTracking()
+                .CountAsync(a => a.Entidade == nameof(VendaDeMaquina) && a.Campo == nameof(VendaDeMaquina.VendedorNaOrigem) && a.ValorNovo == "fulano.de.tal"))
+            .Should().BeGreaterThan(0, "o preenchimento deixa trilha");
+    }
 }

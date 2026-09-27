@@ -77,6 +77,9 @@ internal sealed class CargaDoArt(
     /// <summary>Rótulo: registros pendentes.</summary>
     internal const string RotuloDePendentes = "registros pendentes (ao menos um motivo)";
 
+    /// <summary>Rótulo: vendas mantidas (registro pendente) que ganharam o vendedor nesta leitura.</summary>
+    internal const string RotuloDeVendedorEmVendaMantida = "vendas mantidas que ganharam o vendedor do ART nesta leitura (só o vendedor)";
+
     /// <summary>Rótulo: máquinas incluídas.</summary>
     internal const string RotuloDeMaquinasIncluidas = "máquinas incluídas (chassi novo no CRM, sem dono atual)";
 
@@ -287,6 +290,7 @@ internal sealed class CargaDoArt(
         var vistos = new HashSet<string>(StringComparer.Ordinal);
         var ativos = ativosPorChassi.Keys.ToHashSet(StringComparer.Ordinal);
         int registrosNovos = 0, registrosAlterados = 0, registrosIguais = 0, importadasQueFicaramPendentes = 0, compradoresPeloProtheus = 0;
+        var vendedoresEmVendasMantidas = 0;
 
         foreach (var lida in vendas.OrderByDescending(v => v.VendidaEm).ThenByDescending(v => long.TryParse(v.Codigo, out var n) ? n : 0))
         {
@@ -323,7 +327,16 @@ internal sealed class CargaDoArt(
 
             if (motivos.Count > 0)
             {
-                if (registro.VendaDeMaquinaId is not null) importadasQueFicaramPendentes++;
+                if (registro.VendaDeMaquinaId is not null)
+                {
+                    importadasQueFicaramPendentes++;
+
+                    // A VENDA MANTIDA GANHA O VENDEDOR (revisão do PR #248): sem isto, a venda importada antes da D-M2
+                    // cujo registro ficou pendente seguiria sem vendedor para sempre — e o realizado dela, sem dono.
+                    if (vendasPorChave.TryGetValue(s.Codigo, out var mantida) && mantida.PreencherVendedor(s.Vendedor, usuarioId))
+                        vendedoresEmVendasMantidas++;
+                }
+
                 registro.Decidir(DecisaoDaIntegracao.Pendente, string.Join(",", motivos), null);
                 foreach (var motivo in motivos)
                     pendentesPorMotivo[motivo] = pendentesPorMotivo.GetValueOrDefault(motivo) + 1;
@@ -342,6 +355,7 @@ internal sealed class CargaDoArt(
         foreach (var (motivo, quantidade) in pendentesPorMotivo.OrderByDescending(p => p.Value))
             Contar(etapaDaDecisao, $"  pendência por motivo: {motivo}", quantidade);
         Contar(etapaDaDecisao, "vendas já importadas cujo registro ficou pendente nesta leitura (venda mantida)", importadasQueFicaramPendentes);
+        Contar(etapaDaDecisao, RotuloDeVendedorEmVendaMantida, vendedoresEmVendasMantidas);
 
         // -----------------------------------------------------------------------------------------
         // 2. Máquinas.

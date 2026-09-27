@@ -146,7 +146,8 @@ public sealed class VendaDeMaquina : EntidadeBase
 
     /// <summary>
     /// O vendedor como a origem escreve (<c>nome.sobrenome</c> no ART). É a pessoa do realizado da meta (D-M2,
-    /// 27/09/2026): a meta da GN é por consultor, e o casamento é <c>UPPER(VendedorNaOrigem) = ConsultorNaOrigem</c>.
+    /// 27/09/2026): a meta da GN é por consultor, e o casamento é pela chave da pessoa dos dois lados
+    /// (<see cref="Organizacao.MetaDeVenda.ChaveDaPessoa"/>).
     /// </summary>
     public string? VendedorNaOrigem { get; private set; }
 
@@ -222,6 +223,23 @@ public sealed class VendaDeMaquina : EntidadeBase
         return [.. antes.Keys
             .Where(campo => antes[campo] != depois[campo])
             .Select(campo => (campo, antes[campo], depois[campo]))];
+    }
+
+    /// <summary>
+    /// PREENCHE SÓ O VENDEDOR da venda já importada cujo registro ficou pendente numa leitura (revisão do PR #248,
+    /// 27/09/2026). A venda é mantida como estava — a leitura pendente não vale para o comprador nem para o chassi —, mas
+    /// o vendedor que ela traz é o da mesma venda, e sem ele o realizado da meta não tem dono. Só quando o vendedor está
+    /// vazio: um vendedor já gravado não é trocado por uma leitura pendente. Devolve se mudou (a trilha registra).
+    /// </summary>
+    /// <param name="vendedor">O vendedor da leitura, já saneado.</param>
+    /// <param name="usuarioId">Quem roda a integração.</param>
+    public bool PreencherVendedor(string? vendedor, long usuarioId)
+    {
+        if (!string.IsNullOrWhiteSpace(VendedorNaOrigem) || string.IsNullOrWhiteSpace(vendedor)) return false;
+
+        VendedorNaOrigem = vendedor.Trim();
+        MarcarAlteracao(usuarioId);
+        return true;
     }
 
     /// <summary>Aponta a venda para outra máquina, quando a origem corrige o chassi.</summary>
