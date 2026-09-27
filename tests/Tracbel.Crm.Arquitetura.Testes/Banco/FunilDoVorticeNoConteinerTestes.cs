@@ -67,6 +67,10 @@ public sealed class FunilDoVorticeNoConteinerTestes
         classificacao.Select(c => (c.CodigoNaOrigem, c.Estagio, c.ContaComoContato, c.Fonte))
             .Should().Equal(ClassificacaoDeResultadoDoVortice.Semente.Select(i => (i.Codigo, i.Estagio, i.ContaComoContato, i.Fonte)));
         classificacao.Count(c => c.ContaComoContato).Should().Be(53);
+
+        // A TABELA E A CONSTANTE DO ÚLTIMO CONTATO (PR #244) SÃO A MESMA LISTA — a carteira e o funil não divergem.
+        classificacao.Where(c => c.ContaComoContato).Select(c => c.CodigoNaOrigem)
+            .Should().BeEquivalentTo(Tracbel.Crm.Integracao.Vortice.LeitorDeCarteirasDoVortice.ResultadosQueContamComoContato);
         classificacao.Single(c => c.CodigoNaOrigem == 2607).Estagio.Should().Be(EstagioDoFunil.Negociacao);
 
         db.EstagiosDoProcesso.Count().Should().Be(0);

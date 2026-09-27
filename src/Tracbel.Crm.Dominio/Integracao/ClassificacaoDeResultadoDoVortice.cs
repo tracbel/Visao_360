@@ -86,7 +86,8 @@ public sealed class ClassificacaoDeResultadoDoVortice
     /// <summary>
     /// OS QUE CONTAM COMO CONTATO — a lista da view <c>BI_CARTEIRA_VN</c> (l. 86–87), código a código e na ordem da
     /// view: 53 códigos distintos, não 55 (conferido em 27/09/2026). É a mesma lista da constante
-    /// <c>ResultadosQueContamComoContato</c> do PR #244; quando ele entrar, um teste prende as duas.
+    /// <c>LeitorDeCarteirasDoVortice.ResultadosQueContamComoContato</c> (PR #244), com que a sincronia das carteiras
+    /// calcula o último contato; <c>ClassificacaoEUltimoContatoTestes</c> prende as duas.
     /// </summary>
     public static readonly IReadOnlyList<int> ResultadosQueContamComoContato =
     [

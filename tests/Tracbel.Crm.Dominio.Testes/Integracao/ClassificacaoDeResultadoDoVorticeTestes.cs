@@ -71,8 +71,8 @@ public sealed class ClassificacaoDeResultadoDoVorticeTestes
     [Fact]
     public void A_lista_do_contato_e_a_das_linhas_86_e_87_da_view_da_BI_codigo_a_codigo_e_na_mesma_ordem()
     {
-        // É A MESMA VERIFICAÇÃO do PR #244 sobre a constante LeitorDeCarteirasDoVortice.ResultadosQueContamComoContato;
-        // quando ele entrar na main, as duas listas ficam presas à mesma view — e um teste passa a compará-las entre si.
+        // É A MESMA VERIFICAÇÃO do PR #244 sobre a constante LeitorDeCarteirasDoVortice.ResultadosQueContamComoContato:
+        // as duas listas ficam presas à mesma view, e ClassificacaoEUltimoContatoTestes compara uma com a outra.
         var view = File.ReadAllLines(Path.Combine(RaizDoRepositorio(), "docs", "extracao-vortice", "modulos", "views", "BI_CARTEIRA_VN.sql"));
         var trecho = view[85] + " " + view[86];
         trecho.Should().Contain("HIS.RESULTADO IN");

@@ -102,7 +102,7 @@ As listas do extrator são aninhadas (a da Cobertura contém a da Negociação, 
 Faturamento) — **exceto** 2607/2609/2610, que o extrator põe na Negociação e esquece na Cobertura. Guardar o maior
 estágio de cada código e contar "alcançou E" como "tem código de estágio ≥ E" reproduz as listas e conserta a
 exceção. `ContaComoContato` é a lista da `BI_CARTEIRA_VN` (l. 86–87), **53 códigos** distintos [M] — a mesma
-constante `ResultadosQueContamComoContato` do PR #244; um teste prende as duas à view.
+constante `ResultadosQueContamComoContato` do PR #244 (já na main); os testes prendem as duas à view e uma à outra.
 
 ### 2.3 `processo.VendaPerdida` ganha quatro colunas
 
