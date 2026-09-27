@@ -37,10 +37,13 @@ public sealed record ChaveNoMotor(string CategoriaCodigo, string CulturaCodigo);
 /// O CATÁLOGO QUE O MOTOR USA numa data, mais o de-para que devolve o número de cada regra à ficha dela.
 /// </summary>
 /// <param name="Regras">Uma linha por cultura e categoria.</param>
-/// <param name="PorProdutoDaRegra">Para cada produto com regra vigente, em que categoria e cultura ele caiu.</param>
+/// <param name="PorProdutoDaRegra">
+/// Para cada produto com regra vigente, em que categoria e cultura ele caiu — uma chave POR CATEGORIA
+/// (issue 240): a soja com regra de trator e de colheitadeira cai em dois lugares do motor.
+/// </param>
 public sealed record CatalogoDoMotor(
     IReadOnlyList<RegraNoMotor> Regras,
-    IReadOnlyDictionary<int, ChaveNoMotor> PorProdutoDaRegra);
+    IReadOnlyDictionary<int, IReadOnlyList<ChaveNoMotor>> PorProdutoDaRegra);
 
 /// <summary>
 /// A ÁREA PLANTADA MEDIDA DE UM MUNICÍPIO, por cultura do catálogo — o ponto de partida da calculadora.

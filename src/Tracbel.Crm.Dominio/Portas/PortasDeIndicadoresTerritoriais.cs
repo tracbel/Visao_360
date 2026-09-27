@@ -180,7 +180,10 @@ public sealed record VendasDeMaquinaDoRecorte(
 /// </summary>
 /// <param name="ProdutoCodigoIbge">O produto da regra.</param>
 /// <param name="AreaPlantadaHectares">A área plantada; nulo quando o IBGE não divulga ou não foi carregada.</param>
-/// <param name="MaquinasTeoricas">Área dividida pelos hectares por máquina; nulo quando a área é nula.</param>
+/// <param name="MaquinasTeoricas">
+/// As máquinas que a área comporta, SOMADAS as categorias com regra (issue 240): um hectare de soja pede um
+/// trator a cada tantos e uma colheitadeira a cada outros tantos, e as duas contam. Nulo quando a área é nula.
+/// </param>
 /// <param name="AreaColhidaHectares">A área colhida do mesmo produto e ano — abaixo da plantada em cultura perene nova ou em frustração de safra.</param>
 /// <param name="ValorDaProducaoMilReais">O valor da produção do mesmo produto e ano, em MIL reais.</param>
 /// <param name="Ano">O ano da PAM das quatro medidas; nulo quando a cultura não tem área divulgada em ano nenhum.</param>
@@ -188,6 +191,10 @@ public sealed record VendasDeMaquinaDoRecorte(
 /// <param name="UnidadeDaQuantidade">"toneladas", "mil frutos" ou "mil cachos" (<see cref="UnidadesDaPam"/>).</param>
 /// <param name="Produtividade">Quantidade sobre área colhida, no mesmo ano; nula sem colheita.</param>
 /// <param name="UnidadeDaProdutividade">"t/ha", "mil frutos/ha" ou "mil cachos/ha".</param>
+/// <param name="PorCategoria">
+/// O detalhe de <paramref name="MaquinasTeoricas"/>: uma linha por categoria de máquina com regra para este
+/// produto, na ordem de exibição do catálogo.
+/// </param>
 public sealed record PotencialTerritorial(
     int ProdutoCodigoIbge,
     decimal? AreaPlantadaHectares,
@@ -198,7 +205,23 @@ public sealed record PotencialTerritorial(
     decimal? QuantidadeProduzida,
     string? UnidadeDaQuantidade,
     decimal? Produtividade,
-    string? UnidadeDaProdutividade);
+    string? UnidadeDaProdutividade,
+    IReadOnlyList<MaquinasTeoricasNaCategoria>? PorCategoria = null);
+
+/// <summary>
+/// AS MÁQUINAS TEÓRICAS DE UM PRODUTO NUMA CATEGORIA — a regra que as dimensionou, e quantas deram.
+/// </summary>
+/// <param name="CategoriaCodigo">A categoria de máquina, pelo código do catálogo.</param>
+/// <param name="CategoriaNome">O nome de exibição da categoria.</param>
+/// <param name="HectaresPorMaquina">Os hectares por máquina da regra vigente.</param>
+/// <param name="ModeloDeReferencia">A máquina de referência, como o negócio a escreveu.</param>
+/// <param name="Maquinas">As máquinas que a área comporta nesta categoria; nulo quando a área é nula.</param>
+public sealed record MaquinasTeoricasNaCategoria(
+    string CategoriaCodigo,
+    string CategoriaNome,
+    decimal HectaresPorMaquina,
+    string ModeloDeReferencia,
+    decimal? Maquinas);
 
 /// <summary>
 /// UMA CULTURA DE REGRA NO TOTAL DE SÃO PAULO, como o IBGE publica — o termo de comparação da mesma cultura no
@@ -563,6 +586,11 @@ public sealed record IndicadoresForaDoMapa(
 /// <param name="Justificativa">Por que estes valores — a decisão ou a fonte.</param>
 /// <param name="VigenteDesde">Desde quando a regra vale.</param>
 /// <param name="AnosDeRenovacao">Anos de renovação, quando informado.</param>
+/// <param name="CategoriaCodigo">
+/// A categoria de máquina da regra (issue 240); nula só na regra anterior ao catálogo. Um produto pode ter uma
+/// regra por categoria, e é ela que diz qual é qual.
+/// </param>
+/// <param name="CategoriaNome">O nome de exibição da categoria.</param>
 public sealed record RegraDePotencialAplicada(
     int ProdutoCodigoIbge,
     string ProdutoNome,
@@ -571,7 +599,9 @@ public sealed record RegraDePotencialAplicada(
     string Situacao,
     string Justificativa,
     DateOnly VigenteDesde,
-    decimal? AnosDeRenovacao);
+    decimal? AnosDeRenovacao,
+    string? CategoriaCodigo = null,
+    string? CategoriaNome = null);
 
 /// <summary>O painel geográfico inteiro.</summary>
 /// <param name="CompetenciaInicial">O primeiro mês das vendas.</param>

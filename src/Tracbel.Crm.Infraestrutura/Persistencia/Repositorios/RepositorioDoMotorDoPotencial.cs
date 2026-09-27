@@ -12,7 +12,7 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 /// precisou do mesmo catálogo: duas leituras do mesmo conceito divergem no dia em que uma mudar, e é
 /// exatamente o defeito que o motor acabou de eliminar do lado do cálculo.</para>
 ///
-/// <para><b>O catálogo é pequeno</b> — seis culturas, seis categorias, algumas regras — e a leitura
+/// <para><b>O catálogo é pequeno</b> — seis culturas, sete categorias, algumas dezenas de regras — e a leitura
 /// traz tudo e cruza em memória, em vez de espalhar uma consulta por regra.</para>
 /// </summary>
 /// <param name="contexto">O contexto do banco.</param>
@@ -27,18 +27,21 @@ public sealed class RepositorioDoMotorDoPotencial(CrmDbContext contexto) : IRepo
     /// <inheritdoc />
     public async Task<CatalogoDoMotor> LerCatalogoAsync(DateOnly data, CancellationToken ct)
     {
-        // A VIGÊNCIA É ESCOLHIDA AQUI, e por produto: a regra de hoje é a que o mapa aplica, e a de uma
-        // data passada é a que valia lá. Uma vigência futura ainda não vale para nenhuma das duas.
+        // A VIGÊNCIA É ESCOLHIDA AQUI, por produto E CATEGORIA (issue 240): a regra de hoje é a que o mapa
+        // aplica, e a de uma data passada é a que valia lá. Uma vigência futura ainda não vale para nenhuma
+        // das duas. Agrupar só pelo produto — como era — fazia a colheitadeira da soja apagar o trator da
+        // soja, porque as duas vigências começam no mesmo dia e só uma sobrevivia ao desempate.
         var regras = (await contexto.RegrasDePotencial.AsNoTracking()
                 .Where(r => r.RevogadoEm == null && r.VigenteDesde <= data)
                 .ToListAsync(ct))
-            .GroupBy(r => r.ProdutoCodigoIbge)
+            .GroupBy(r => (r.ProdutoCodigoIbge, r.CategoriaDeMaquinaId))
             .Select(g => ParametroComVigencia.VigenteEm(g, data)!)
             .OrderBy(r => r.ProdutoCodigoIbge)
+            .ThenBy(r => r.CategoriaDeMaquinaId)
             .ToList();
 
         if (regras.Count == 0)
-            return new CatalogoDoMotor([], new Dictionary<int, ChaveNoMotor>());
+            return new CatalogoDoMotor([], new Dictionary<int, IReadOnlyList<ChaveNoMotor>>());
 
         var culturas = await contexto.Culturas.AsNoTracking().ToDictionaryAsync(c => c.Id, ct);
         var vinculos = await contexto.ProdutosDaPamNasCulturas.AsNoTracking().ToListAsync(ct);
@@ -108,10 +111,18 @@ public sealed class RepositorioDoMotorDoPotencial(CrmDbContext contexto) : IRepo
             .ToList();
 
         // O DE-PARA VALE PARA TODA REGRA, inclusive a que perdeu o desempate: a ficha do produto continua
-        // mostrando o número da cultura em que ele entrou, e não um traço mudo.
-        var porProduto = linhas.ToDictionary(
-            l => l.Regra.ProdutoCodigoIbge,
-            l => new ChaveNoMotor(l.Motor.CategoriaCodigo, l.Motor.CulturaCodigo));
+        // mostrando o número da cultura em que ele entrou, e não um traço mudo. Um produto tem uma chave
+        // POR CATEGORIA (issue 240) — o trator e a colheitadeira da soja caem em lugares diferentes do motor.
+        var porProduto = linhas
+            .GroupBy(l => l.Regra.ProdutoCodigoIbge)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<ChaveNoMotor>)
+                [
+                    .. g.Select(l => new ChaveNoMotor(l.Motor.CategoriaCodigo, l.Motor.CulturaCodigo))
+                        .Distinct()
+                        .OrderBy(c => c.CategoriaCodigo, StringComparer.Ordinal)
+                ]);
 
         return new CatalogoDoMotor(doMotor, porProduto);
     }

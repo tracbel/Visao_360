@@ -281,16 +281,40 @@ export function DetalheDoMunicipio({
                     <dd>
                       {p.valorDaProducaoMilReais === null ? 'não disponível' : reaisDaProducao(p.valorDaProducaoMilReais)}
                     </dd>
-                    <dt>
-                      {/* "MÁQUINAS TEÓRICAS (1 trator a cada 20 ha)": o modelo vem como o negócio o
-                          escreveu — "3036N" ou "trator" —, e só a frase com o número lê bem com os dois. */}
-                      {regra
-                        ? `Máquinas teóricas (1 ${regra.modeloDeReferencia} a cada ${regra.hectaresPorMaquina} ha)`
-                        : 'Máquinas teóricas'}
-                    </dt>
-                    <dd>
-                      <strong>{p.maquinasTeoricas === null ? '—' : nº(p.maquinasTeoricas)}</strong>
-                    </dd>
+                    {/* UMA LINHA POR CATEGORIA COM REGRA (issue 240): a soja pede um trator a cada
+                        tantos hectares E uma colheitadeira a cada outros tantos — são duas contas
+                        sobre a mesma área. "MÁQUINAS TEÓRICAS (1 trator a cada 20 ha)": o modelo vem
+                        como o negócio o escreveu — "3036N" ou "trator" —, e a frase com o número lê
+                        bem com os dois. Sem detalhe por categoria, fica a linha única de antes. */}
+                    {p.porCategoria.length > 0 ? (
+                      p.porCategoria.map((c) => (
+                        <Fragment key={c.categoriaCodigo}>
+                          <dt>{`Máquinas teóricas (1 ${c.modeloDeReferencia} a cada ${nº(c.hectaresPorMaquina)} ha)`}</dt>
+                          <dd>
+                            <strong>{c.maquinas === null ? '—' : nº(c.maquinas)}</strong>
+                          </dd>
+                        </Fragment>
+                      ))
+                    ) : (
+                      <>
+                        <dt>
+                          {regra
+                            ? `Máquinas teóricas (1 ${regra.modeloDeReferencia} a cada ${nº(regra.hectaresPorMaquina)} ha)`
+                            : 'Máquinas teóricas'}
+                        </dt>
+                        <dd>
+                          <strong>{p.maquinasTeoricas === null ? '—' : nº(p.maquinasTeoricas)}</strong>
+                        </dd>
+                      </>
+                    )}
+                    {p.porCategoria.length > 1 && (
+                      <>
+                        <dt>Máquinas teóricas somadas</dt>
+                        <dd>
+                          <strong>{p.maquinasTeoricas === null ? '—' : nº(p.maquinasTeoricas)}</strong>
+                        </dd>
+                      </>
+                    )}
                   </dl>
                 );
               })}

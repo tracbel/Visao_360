@@ -38,6 +38,7 @@ function comArea(areas: Array<[number, number | null]>): PotencialTerritorial[] 
     produtoCodigoIbge,
     areaPlantadaHectares,
     maquinasTeoricas: null,
+    porCategoria: [],
     areaColhidaHectares: null,
     valorDaProducaoMilReais: null,
     ano: 2024,

@@ -39,6 +39,8 @@ const REGRA: RegraDePotencialAplicada = {
   justificativa: 'exemplo do gerente comercial',
   vigenteDesde: '2026-09-13',
   anosDeRenovacao: null,
+  categoriaCodigo: 'TRATOR',
+  categoriaNome: 'Trator',
 };
 
 const REGIAO: TotaisDaRegiaoTracbel = {
@@ -104,6 +106,8 @@ function potencial(parcial: Partial<PotencialTerritorial> = {}): PotencialTerrit
     produtoCodigoIbge: 40139,
     areaPlantadaHectares: 70,
     maquinasTeoricas: 7,
+    // SEM DETALHE POR CATEGORIA a ficha mostra a linha única de antes, pela regra do produto.
+    porCategoria: [],
     areaColhidaHectares: 60,
     valorDaProducaoMilReais: 900,
     ano: 2024,
@@ -235,6 +239,34 @@ describe('DetalheDoMunicipio — o que a ficha sempre disse', () => {
     const potencialRecolhido = abrirEvidencia('potencial');
 
     expect(within(potencialRecolhido).queryByText('Parque teórico do município')).not.toBeInTheDocument();
+  });
+
+  it('com trator e colheitadeira no mesmo produto, a ficha mostra as duas contas e a soma (issue 240)', () => {
+    abrir(
+      municipio(
+        potencial({
+          produtoCodigoIbge: 40124,
+          maquinasTeoricas: 12.7,
+          porCategoria: [
+            { categoriaCodigo: 'TRATOR', categoriaNome: 'Trator', hectaresPorMaquina: 200, modeloDeReferencia: 'trator', maquinas: 11 },
+            {
+              categoriaCodigo: 'COLHEITADEIRA',
+              categoriaNome: 'Colheitadeira',
+              hectaresPorMaquina: 1500,
+              modeloDeReferencia: 'colheitadeira',
+              maquinas: 1.7,
+            },
+          ],
+        }),
+      ),
+    );
+    irPara('Lavoura');
+    const potencialRecolhido = abrirEvidencia('potencial');
+
+    expect(within(potencialRecolhido).getByText('Máquinas teóricas (1 trator a cada 200 ha)')).toBeInTheDocument();
+    expect(within(potencialRecolhido).getByText('Máquinas teóricas (1 colheitadeira a cada 1.500 ha)')).toBeInTheDocument();
+    const soma = within(potencialRecolhido).getByText('Máquinas teóricas somadas');
+    expect(soma.nextElementSibling).toHaveTextContent('12,7');
   });
 
   it('sem unidade ou sem colheita, não mostra número', () => {

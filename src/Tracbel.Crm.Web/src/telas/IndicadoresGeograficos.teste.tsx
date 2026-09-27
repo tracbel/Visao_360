@@ -81,6 +81,8 @@ function regraDeTrator(produtoCodigoIbge: number, produtoNome: string, hectaresP
     justificativa: 'D-P01 decidida em 27/09/2026',
     vigenteDesde: '2026-09-27',
     anosDeRenovacao: 10,
+    categoriaCodigo: 'TRATOR',
+    categoriaNome: 'Trator',
   };
 }
 
@@ -117,6 +119,8 @@ function painel(): PainelTerritorial {
           justificativa: 'regra do protótipo, a confirmar',
           vigenteDesde: '2026-09-21',
           anosDeRenovacao: null,
+          categoriaCodigo: 'TRATOR',
+          categoriaNome: 'Trator',
         },
       ],
       municipios: [

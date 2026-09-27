@@ -227,10 +227,25 @@ export type VendasTerritoriais = {
   posVenda: number;
 };
 
+/**
+ * As máquinas teóricas de um produto numa categoria (issue 240) — a regra que as dimensionou e
+ * quantas deram.
+ */
+export type MaquinasTeoricasNaCategoria = {
+  categoriaCodigo: string;
+  categoriaNome: string;
+  hectaresPorMaquina: number;
+  modeloDeReferencia: string;
+  maquinas: number | null;
+};
+
 export type PotencialTerritorial = {
   produtoCodigoIbge: number;
   areaPlantadaHectares: number | null;
+  /** SOMADAS as categorias com regra: o trator e a colheitadeira da soja são duas contas, e as duas contam. */
   maquinasTeoricas: number | null;
+  /** O detalhe de `maquinasTeoricas`, uma linha por categoria, na ordem do catálogo. */
+  porCategoria: MaquinasTeoricasNaCategoria[];
   /** A área colhida do mesmo produto e ano — abaixo da plantada em cultura perene nova. */
   areaColhidaHectares: number | null;
   /** O valor da produção do mesmo produto e ano, em MIL reais. */
@@ -515,6 +530,12 @@ export type RegraDePotencialAplicada = {
   /** aaaa-mm-dd — desde quando a regra vale (issue 71). */
   vigenteDesde: string;
   anosDeRenovacao: number | null;
+  /**
+   * A categoria de máquina da regra (issue 240). Um produto pode ter uma regra por categoria — é ela que
+   * diz qual é qual. Nula só na regra anterior ao catálogo.
+   */
+  categoriaCodigo: string | null;
+  categoriaNome: string | null;
 };
 
 export type IndicadoresTerritoriais = {

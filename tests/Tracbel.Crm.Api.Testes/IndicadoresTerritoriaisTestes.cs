@@ -240,7 +240,7 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
     /// AS VENDAS DE MÁQUINA DO ART (issue 69, D-P08) — seis casos, um por distinção que a leitura
     /// precisa fazer e que um total só esconderia.
     ///
-    /// <para>Duas de trator médio em Ribeirão (a quebra por categoria); uma de colhedora de cana, que é
+    /// <para>Duas de trator médio em Ribeirão (a quebra por categoria); uma de plataforma de corte, que é
     /// linha SEM categoria de propósito; uma de máquina sem classificação nenhuma; uma faturada fora do
     /// período; uma de cliente de outra UF, que fica fora do mapa; e uma <b>ainda não faturada</b>, que
     /// não cabe em período nenhum.</para>
@@ -254,11 +254,12 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         var art = Dominio.Integracao.Sistema.Criar("ART_TESTE", "ART de teste", "View somente leitura");
         db.Sistemas.Add(art);
 
-        // A COLHEDORA DE CANA NASCE SEM CATEGORIA no de-para semeado, por julgamento do comercial —
-        // é justamente o caso que este cenário precisa ter para provar que ela conta no total.
+        // A PLATAFORMA DE CORTE NASCE SEM CATEGORIA no de-para semeado, por julgamento do comercial —
+        // é acessório de colheitadeira —, e é justamente o caso que este cenário precisa ter para provar
+        // que ela conta no total. (Até 27/09/2026 este papel era da colhedora de cana, que ganhou categoria.)
         var tratorMedio = LinhaDeProduto.Criar("TRATOR_MEDIO", "Trator médio", null, PorteDeMaquina.Medio);
-        var colhedora = LinhaDeProduto.Criar("COLHEDORA_DE_CANA", "Colhedora de cana", null, PorteDeMaquina.NaoSeAplica);
-        db.LinhasDeProduto.AddRange(tratorMedio, colhedora);
+        var plataforma = LinhaDeProduto.Criar("PLATAFORMA_DE_CORTE", "Plataforma de corte", null, PorteDeMaquina.NaoSeAplica);
+        db.LinhasDeProduto.AddRange(tratorMedio, plataforma);
         await db.SaveChangesAsync();
 
         Equipamento Maquina(string chassi, int? linha) =>
@@ -268,7 +269,7 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         {
             Maquina("1TESTE00000000001", tratorMedio.Id),
             Maquina("1TESTE00000000002", tratorMedio.Id),
-            Maquina("1TESTE00000000003", colhedora.Id),
+            Maquina("1TESTE00000000003", plataforma.Id),
             Maquina("1TESTE00000000004", null),
             Maquina("1TESTE00000000005", tratorMedio.Id),
             Maquina("1TESTE00000000006", tratorMedio.Id),
@@ -888,7 +889,7 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         await SemearAsync();
         var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
 
-        // Quatro no período: dois tratores, uma colhedora de cana e uma máquina sem classificação. A
+        // Quatro no período: dois tratores, uma plataforma de corte e uma máquina sem classificação. A
         // quinta venda de Ribeirão ainda não foi faturada, e a de Serrana foi faturada em setembro.
         Municipio(dados, RibeiraoPreto).GetProperty("maquinasVendidas").GetInt32().Should().Be(4);
 
@@ -943,7 +944,7 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         await SemearAsync();
         var maquinas = Maquinas(await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo)));
 
-        // A colhedora de cana ficou sem categoria de propósito — é julgamento do comercial, e não
+        // A plataforma de corte ficou sem categoria de propósito — é julgamento do comercial, e não
         // omissão. Somar as categorias tem de dar MENOS que o total, com a diferença explicada.
         maquinas.GetProperty("unidadesEmLinhaSemCategoria").GetInt32().Should().Be(1);
         maquinas.GetProperty("unidadesSemClassificacao").GetInt32().Should().Be(1,
@@ -1022,7 +1023,7 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
             var numeros = (await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo))).GetProperty("numerosDeDecisao");
             var conta = numeros.GetProperty("baseDaCaptura");
 
-            // QUATRO MÁQUINAS NO PERÍODO: dois tratores, uma colhedora de cana (linha sem categoria) e uma sem
+            // QUATRO MÁQUINAS NO PERÍODO: dois tratores, uma plataforma de corte (linha sem categoria) e uma sem
             // classificação. Só os tratores têm demanda do outro lado da conta.
             conta.GetProperty("unidades").GetInt32().Should().Be(2);
             conta.GetProperty("unidadesForaDaConta").GetInt32().Should().Be(2);
@@ -1033,7 +1034,7 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
             demanda.Should().BePositive();
             numeros.GetProperty("capturaPercentual").GetProperty("valor").GetDecimal()
                 .Should().BeApproximately(2m / demanda * 100m, 0.0001m,
-                    "dois tratores sobre a demanda de trator — as quatro máquinas poriam colhedora contra demanda de trator");
+                    "dois tratores sobre a demanda de trator — as quatro máquinas poriam plataforma contra demanda de trator");
         }
         finally
         {
@@ -1074,11 +1075,57 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         return portador;
     }
 
+    [Fact]
+    public async Task Trator_e_colheitadeira_do_mesmo_produto_na_mesma_data_aparecem_os_dois()
+    {
+        // A ISSUE 240: o motor e o mapa escolhiam a regra vigente só pelo produto, e a segunda categoria do
+        // café sumia sem aviso. As duas começam hoje; as duas têm de aparecer — e as máquinas delas somam.
+        await SemearAsync();
+        var trator = await RegistrarRegraDoCafeComCicloAsync();
+        var colheitadeira = await RegistrarRegraDoCafeComCicloAsync("COLHEITADEIRA", 1_000m, "colheitadeira");
+        try
+        {
+            var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Periodo));
+
+            // 70 ha DE CAFÉ EM RIBEIRÃO: 70 ÷ 20 = 3,5 tratores e 70 ÷ 1.000 = 0,07 colheitadeira. Uma linha
+            // só para o produto — a PAM não se repete —, com as duas categorias dentro.
+            var cafe = Municipio(dados, RibeiraoPreto).GetProperty("potencial").EnumerateArray()
+                .Single(p => p.GetProperty("produtoCodigoIbge").GetInt32() == 40139);
+
+            var porCategoria = cafe.GetProperty("porCategoria").EnumerateArray().ToList();
+            porCategoria.Select(c => c.GetProperty("categoriaCodigo").GetString())
+                .Should().Equal(["TRATOR", "COLHEITADEIRA"], "na ordem de exibição do catálogo");
+            porCategoria[0].GetProperty("maquinas").GetDecimal().Should().Be(3.5m);
+            porCategoria[1].GetProperty("maquinas").GetDecimal().Should().Be(0.1m);
+            cafe.GetProperty("maquinasTeoricas").GetDecimal()
+                .Should().Be(3.6m, "3,5 + 0,07 = 3,57, arredondado uma vez só — e não 3,5 + 0,1");
+
+            dados.GetProperty("indicadores").GetProperty("regras").EnumerateArray()
+                .Where(r => r.GetProperty("produtoCodigoIbge").GetInt32() == 40139)
+                .Select(r => r.GetProperty("categoriaCodigo").GetString())
+                .Should().BeEquivalentTo(new[] { "TRATOR", "COLHEITADEIRA" }, "cada regra diz a máquina dela");
+
+            dados.GetProperty("indicadores").GetProperty("potencialDoRecorte").GetProperty("porCategoria").EnumerateArray()
+                .Select(c => c.GetProperty("categoriaCodigo").GetString())
+                .Should().Contain("TRATOR").And.Contain("COLHEITADEIRA");
+
+            dados.GetProperty("numerosDeDecisao").GetProperty("baseDaCaptura").GetProperty("categorias").EnumerateArray()
+                .Select(c => c.GetString())
+                .Should().Equal(["Colheitadeira", "Trator"], "a captura lê as duas categorias com demanda");
+        }
+        finally
+        {
+            await RevogarRegraAsync(colheitadeira);
+            await RevogarRegraAsync(trator);
+        }
+    }
+
     /// <summary>
-    /// A REGRA DO CAFÉ COM CICLO, vigente hoje, pelo mesmo caminho do domínio que a tela do Administrador
-    /// usa. Devolve o Id para o teste revogá-la no fim.
+    /// UMA REGRA DO CAFÉ COM CICLO, vigente hoje, pelo mesmo caminho do domínio que a tela do Administrador
+    /// usa — trator por padrão. Devolve o Id para o teste revogá-la no fim.
     /// </summary>
-    private async Task<int> RegistrarRegraDoCafeComCicloAsync()
+    private async Task<int> RegistrarRegraDoCafeComCicloAsync(
+        string categoriaCodigo = "TRATOR", decimal hectaresPorMaquina = 20m, string modelo = "trator")
     {
         using var escopo = api.Services.CreateScope();
         var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
@@ -1086,11 +1133,11 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
 
         var agora = DateTime.UtcNow;
         var cafe = await db.Culturas.SingleAsync(c => c.Codigo == "CAFE");
-        var trator = await db.CategoriasDeMaquina.SingleAsync(c => c.Codigo == "TRATOR");
+        var categoria = await db.CategoriasDeMaquina.SingleAsync(c => c.Codigo == categoriaCodigo);
 
         var regra = RegraDePotencial.Informar(
-            40139, "Café (em grão) Total", 20m, 10m, "trator", SituacaoDaRegraDePotencial.Confirmada,
-            ParametroComVigencia.HojeNoBrasil(agora), "teste da base da captura", 100, agora, cafe.Id, trator.Id);
+            40139, "Café (em grão) Total", hectaresPorMaquina, 10m, modelo, SituacaoDaRegraDePotencial.Confirmada,
+            ParametroComVigencia.HojeNoBrasil(agora), "teste da regra por categoria", 100, agora, cafe.Id, categoria.Id);
         db.RegrasDePotencial.Add(regra);
         await db.SaveChangesAsync();
 

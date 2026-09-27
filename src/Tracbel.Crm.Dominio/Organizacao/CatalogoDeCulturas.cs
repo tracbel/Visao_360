@@ -571,7 +571,7 @@ public sealed class CulturaNoGrupoDeCompartilhamento
 }
 
 /// <summary>
-/// AS SEIS CULTURAS E AS SEIS CATEGORIAS QUE A MIGRAÇÃO SEMEIA — o conteúdo do anexo 49C, medido nas
+/// AS SEIS CULTURAS E AS SETE CATEGORIAS QUE A MIGRAÇÃO SEMEIA — o conteúdo do anexo 49C, medido nas
 /// fontes em 22/09/2026 (issue 165).
 ///
 /// <para><b>Por que semear, e não deixar o administrador cadastrar do zero.</b> As seis já estão nas
@@ -649,11 +649,18 @@ public static class CatalogoSemeado
     ];
 
     /// <summary>
-    /// As seis categorias de máquina (D-IM-06), com os produtos do SICOR que existem para cada uma.
+    /// As categorias de máquina (D-IM-06), com os produtos do SICOR que existem para cada uma.
     ///
-    /// <para><b>Três categorias nascem sem produto do SICOR</b> — plantadeira, pulverizador e agricultura
-    /// de precisão —, porque o investimento do Banco Central não as separa (anexo 49C). Elas existem do
-    /// mesmo jeito: o parque e a demanda são por categoria, e só o crédito é que não as enxerga.</para>
+    /// <para><b>Quatro categorias nascem sem produto do SICOR</b> — plantadeira, pulverizador, agricultura
+    /// de precisão e colhedora de cana —, porque o investimento do Banco Central não as separa (anexo 49C).
+    /// Elas existem do mesmo jeito: o parque e a demanda são por categoria, e só o crédito é que não as
+    /// enxerga.</para>
+    ///
+    /// <para><b>A colhedora de cana entrou em 27/09/2026, e no FIM da lista</b> — o Id da semente é a
+    /// posição, e inserir no meio renumeraria as categorias que já têm regra, grupo e de-para apontando para
+    /// elas. Colher cana é outra máquina que colher grão (a colheitadeira): juntá-las misturava dois mercados,
+    /// e deixá-la sem categoria tirava da captura a máquina mais vendida na região da cana. O SICOR continua
+    /// com um produto só para as duas (2700), que fica na colheitadeira.</para>
     /// </summary>
     public static readonly IReadOnlyList<CategoriaSemeada> Categorias =
     [
@@ -662,6 +669,7 @@ public static class CatalogoSemeado
         new("COLHEITADEIRA", "Colheitadeira", 3, [(2700, "COLHEITADEIRAS, COLHEDEIRAS E ARRANCADEIRAS")]),
         new("PULVERIZADOR", "Pulverizador", 4, []),
         new("IMPLEMENTO", "Implemento", 5, [(4860, "MÁQUINAS E IMPLEMENTOS")]),
-        new("PRECISAO", "Agricultura de precisão", 6, [])
+        new("PRECISAO", "Agricultura de precisão", 6, []),
+        new("COLHEDORA_DE_CANA", "Colhedora de cana", 7, [])
     ];
 }
