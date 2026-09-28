@@ -239,8 +239,9 @@ mês (`TRUNCATE` de partição, sem `DELETE` linha a linha).
 | criar, alterar e inativar um cliente pela API gera linhas com `Origem = Usuario`, autor e `CorrelacaoId` | ✅ teste + 440 gravações no SQL Server |
 | uma execução de carga gera linhas com `Origem = Integracao` e o `SistemaId` certo | ✅ teste da consolidação (IBGE) e da origem declarada. **Nenhuma carga real foi executada**: IBGE e planilhas exigem rede e arquivos do comercial, o ART segue desabilitado e o Vórtice está congelado |
 | campo fora da política não gera linha | ✅ |
-| **p95 do `POST /api/v1/clientes` não piora mais que 10%** | ❌ **não atendido** — ver abaixo |
-| retenção (D-10) registrada na migração e no documento 14 | ⏸ **decidida em 20/09/2026 — 18 meses** (§5.3); falta escrevê-la na `MS_Description` e no doc 14, na #40 |
+| **p95 do `POST /api/v1/clientes` não piora mais que 10%** | ❌ **não atendido no ensaio** — ver abaixo. Desde 28/09/2026 o servidor mede o p95 sozinho (§6.2) |
+| retenção (D-10) registrada na migração e no documento 14 | ✅ **decidida em 20/09/2026 — 18 meses** (§5.3); gravada na `MS_Description` da tabela pela migração `RetencaoDaAuditoriaDecidida` e no doc 14 §10 (#40, 28/09/2026). A rotina que a **aplica** é a #268 |
+| a gravação recusada pela concorrência não deixa trilha | ✅ `TrilhaNaConcorrenciaNoConteinerTestes` (#40, 28/09/2026): duas pessoas alteram o mesmo cliente no SQL Server; a segunda recebe `Concorrencia` e nenhuma linha de trilha dela fica |
 
 ### 6.1 O desempenho, medido
 
@@ -277,18 +278,33 @@ teste.
 | C. Trilha fora da transação nas inclusões | uma ida a menos | **dado sem trilha** se a segunda gravação falhar — contraria o objetivo da fase |
 | D. Chave por sequência nas entidades auditadas | trilha no mesmo lote do `INSERT` | mudança de chave em `Cliente` e `Equipamento`, com reconstrução de tabela — escopo de outra fase |
 
+### 6.2 A opção A, executada: o servidor mede sozinho (28/09/2026, issue #51)
+
+A medida "antes × depois" no servidor ficou impossível: a fase 2 está em produção desde 20/09/2026, então não há mais
+"antes" para medir lá — e o roteiro dependia de uma sessão autenticada na estação, que o Entra ID barrava. A opção A foi
+cumprida pelo caminho que não depende de ninguém: **a própria API cronometra cada chamada** (`MeioDeCampoDeDesempenho`,
+antes do contexto de acesso — o tempo do pipeline inteiro, como o "Request finished" do ensaio) e guarda as últimas mil
+chamadas de cada rota. **Configurações › Integrações › Tempo de resposta da API** mostra p50, p95 e máximo por rota, com as
+gravações marcadas — são elas que passam pela trilha na mesma transação.
+
+O critério "não piora mais que 10%" era relativo a um "antes" que não existe mais em produção. O que se lê agora é o
+**número absoluto** no SQL Server nativo; a decisão entre A e B (aceitar o custo) passa a ser tomada olhando esse número.
+A medição recomeça a cada publicação, e a tela diz desde quando.
+
 ---
 
 ## 7. O que fica pendente
 
-1. **Decisão sobre o critério de desempenho** (§6.1).
+1. **Decisão sobre o critério de desempenho** (§6.1) — o número de produção passa a existir com a §6.2: a decisão entre A e
+   B é tomada olhando o p95 das gravações em Configurações › Integrações.
 2. ~~**Commit.**~~ Feito em 16/09/2026 ("sim você fará o commit de cada fase"), com a mensagem
    `feat(db): trilha de auditoria automática com origem da operação`. Enviado ao remoto desde então.
-3. ~~**D-10** — retenção da auditoria.~~ **Decidida em 20/09/2026: 18 meses** (§5.3). Falta aplicá-la
-   à `MS_Description` da partição e ao documento 14 — é o que resta da #40.
+3. ~~**D-10** — retenção da auditoria.~~ **Decidida em 20/09/2026: 18 meses** (§5.3), e **registrada em 28/09/2026**
+   na `MS_Description` (migração `RetencaoDaAuditoriaDecidida`) e no documento 14 §10 (#40). Aplicá-la — abrir os meses da
+   partição e expurgar o que passou de 18 meses — é a rotina da #268.
 4. ~~**Servidor.**~~ **Feito em 20/09/2026:** a migração `AuditoriaComOrigemDaOperacao` foi aplicada
    ao banco central, junto com a fase 1, com cópia de segurança conferida
-   (`TracbelCrm-antes-da-publicacao-20260920-124658.bak`). O que continua pendente lá é a **medida de
-   p95** e a conferência das 12 telas, ambas travadas pelo 401 do Entra ID — é o que resta da #51.
+   (`TracbelCrm-antes-da-publicacao-20260920-124658.bak`). As 12 telas foram conferidas pelo Ricardo em 20/09/2026, e
+   a **medida de p95** passou a ser feita pela própria API no servidor (§6.2, #51, 28/09/2026).
 5. **Evento de acesso (LGPD)** continua fora — a tabela saiu na fase 1 e a ficha da fase 2 não o
    incluía.

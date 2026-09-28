@@ -164,3 +164,24 @@ export function reagendarRotina(contexto: ContextoDeAcesso, codigo: string, corp
 export function pedirExecucao(contexto: ContextoDeAcesso, codigo: string) {
   return pedir<RotinaNaTela>(`${rotina(codigo)}/execucao`, contexto, { metodo: 'POST' });
 }
+
+/** O tempo de resposta de uma rota, medido pelo servidor nas chamadas recentes (issue 51). */
+export type DesempenhoDaRota = {
+  metodo: string;
+  rota: string;
+  chamadas: number;
+  amostras: number;
+  p50: number;
+  p95: number;
+  maximo: number;
+  erros: number;
+  /** Gravação — passa pela trilha de auditoria na mesma transação. */
+  grava: boolean;
+};
+
+export type DesempenhoDaApi = { desdeUtc: string; amostrasPorRota: number; rotas: DesempenhoDaRota[] };
+
+/** O tempo de resposta de cada rota, medido pela própria API desde a última subida (`Integracao.Ler`). */
+export function obterDesempenhoDaApi(contexto: ContextoDeAcesso, sinal?: AbortSignal): Promise<ComProcedencia<DesempenhoDaApi>> {
+  return ler<DesempenhoDaApi>('/v1/integracoes/desempenho', contexto, { sinal });
+}
