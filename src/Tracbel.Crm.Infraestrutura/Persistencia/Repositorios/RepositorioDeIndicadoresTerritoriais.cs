@@ -66,6 +66,18 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
     /// <summary>"Total", na classificação 220 (grupos de área total).</summary>
     private const int GrupoDeAreaTotal = 110085;
 
+    /// <summary>"Total", na classificação 222 (utilização das terras, SIDRA 6881).</summary>
+    private const int UtilizacaoTotal = 110087;
+
+    /// <summary>"Lavouras - permanentes".</summary>
+    private const int LavouraPermanente = 113470;
+
+    /// <summary>"Lavouras - temporárias".</summary>
+    private const int LavouraTemporaria = 113471;
+
+    /// <summary>"Lavouras - área para cultivo de flores".</summary>
+    private const int LavouraDeFlores = 40677;
+
     // As tabelas e variáveis do SIDRA que identificam a linha publicada do estado (issue 155). Elas
     // estão repetidas do leitor de propósito: a consulta não depende do projeto de integração, e o
     // banco guarda o número do SIDRA justamente para que a leitura seja conferível na origem.
@@ -706,6 +718,14 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         }
 
         var estrutura = await LerEstruturaAsync(ct);
+
+        // A VOCAÇÃO AGRÍCOLA (decidida em 28/09/2026): os tercis da fatia de lavoura entre os municípios da ADR — a ADR
+        // inteira, com filtro ou sem, como o porte. Fora da ADR não há vocação: o corte é da área de atuação.
+        var vocacoes = VocacaoAgricola.PelosTercis(estrutura
+            .Where(e => area.TryGetValue(e.Key, out var daArea) && daArea.PertenceAAdr && e.Value.FatiaDeLavouraPercentual is not null)
+            .ToDictionary(e => e.Key, e => e.Value.FatiaDeLavouraPercentual!.Value));
+        foreach (var (codigo, vocacao) in vocacoes)
+            estrutura[codigo] = estrutura[codigo] with { Vocacao = vocacao };
         var totaisDoEstado = await LerTotaisDoEstadoAsync(ano, ct);
         var parqueConectado = await LerParqueConectadoAsync(ct);
 
@@ -790,23 +810,32 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
 
         var totaisDosMunicipios = new List<PotencialDoRecorte>();
         var codigosNoRecorte = new List<int>();
+        var demandasDaAdr = new List<decimal>();
 
         var itens = new List<IndicadoresDoMunicipio>();
 
         foreach (var codigo in area.Keys.Concat(acumuladores.Keys.Where(k => k > 0)).Distinct().Order())
         {
             var linhaDaArea = area.GetValueOrDefault(codigo);
+            var daAdr = linhaDaArea?.PertenceAAdr == true && categoriasDoMotor.Count > 0;
 
             if (filtrado
                 && (linhaDaArea is null
                     || (consulta.Regiao is not null && linhaDaArea.Regiao != consulta.Regiao)
                     || (consulta.LojaCodigo is not null && linhaDaArea.LojaCodigo != consulta.LojaCodigo)))
+            {
+                // O PORTE É CORTADO NA ADR INTEIRA (issue 166): o município de fora do recorte não entra na tela, mas
+                // entra nos tercis. O motor é conta em memória — nenhuma leitura a mais.
+                if (daAdr && MotorDoPotencial.Sobrepor([.. MotorDoMunicipio(codigo).Select(c => c.Resultado)]).DemandaAnual is { } fora)
+                    demandasDaAdr.Add(fora);
                 continue;
+            }
 
             codigosNoRecorte.Add(codigo);
 
             var doMotor = MotorDoMunicipio(codigo);
             var noMunicipio = MotorDoPotencial.Sobrepor([.. doMotor.Select(c => c.Resultado)]);
+            if (daAdr && noMunicipio.DemandaAnual is { } demanda) demandasDaAdr.Add(demanda);
             var parcelaDe = doMotor
                 .SelectMany(c => c.Resultado.Parcelas.Select(p => (Chave: new ChaveNoMotor(c.Codigo, p.CulturaCodigo), Parcela: p)))
                 .ToDictionary(x => x.Chave, x => x.Parcela);
@@ -1024,7 +1053,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             MaquinasVendidas: maquinasVendidas,
             PeriodoAnterior: periodoAnterior,
             LavouraDoRecorte: await LerLavouraDoRecorteAsync(
-                codigosNoRecorte.Where(c => area.TryGetValue(c, out var daArea) && daArea.PertenceAAdr).ToList(), ct));
+                codigosNoRecorte.Where(c => area.TryGetValue(c, out var daArea) && daArea.PertenceAAdr).ToList(), ct),
+            DemandasDosMunicipiosDaAdr: demandasDaAdr);
     }
 
     /// <summary>
@@ -1900,6 +1930,21 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                      where linha.Ano == anoDoRebanho && linha.RebanhoCodigoIbge == Bovino && municipio.CodigoIbge != null
                      select new { Codigo = municipio.CodigoIbge!.Value, linha.Cabecas }).ToListAsync(ct);
 
+        // A UTILIZAÇÃO DAS TERRAS (6881, 28/09/2026): o ano é o dela, como o de cada fonte — hoje o mesmo Censo de 2017.
+        var anoDaUtilizacao = await contexto.UtilizacoesDasTerrasNosMunicipios.AsNoTracking().MaxAsync(u => (short?)u.Ano, ct);
+        var utilizacoes = anoDaUtilizacao is null
+            ? []
+            : await (from linha in contexto.UtilizacoesDasTerrasNosMunicipios.AsNoTracking()
+                     join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
+                     where linha.Ano == anoDaUtilizacao && municipio.CodigoIbge != null
+                     select new
+                     {
+                         Codigo = municipio.CodigoIbge!.Value,
+                         linha.UtilizacaoCodigoIbge,
+                         linha.EstabelecimentosComArea,
+                         linha.AreaHectares
+                     }).ToListAsync(ct);
+
         var areas = anoDaArea is null
             ? []
             : await (from linha in contexto.AreasTerritoriaisDosMunicipios.AsNoTracking()
@@ -1926,7 +1971,10 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             .Concat(rebanho.Select(r => r.Codigo))
             .Concat(areas.Select(a => a.Codigo))
             .Concat(usinas.Select(u => u.Codigo))
+            .Concat(utilizacoes.Select(u => u.Codigo))
             .Distinct();
+
+        var utilizacoesPorCodigo = utilizacoes.ToLookup(u => u.Codigo);
 
         var frotaPorCodigo = frota.ToLookup(f => f.Codigo);
         var faixasPorCodigo = faixas.ToLookup(f => f.Codigo);
@@ -1940,6 +1988,9 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         {
             var linhasDaFrota = frotaPorCodigo[codigo].ToDictionary(f => f.PotenciaCodigoIbge);
             var porGrupo = faixasPorCodigo[codigo].ToDictionary(f => f.GrupoDeAreaCodigoIbge, f => f.Estabelecimentos);
+            var linhasDaUtilizacao = utilizacoesPorCodigo[codigo].ToList();
+            var total = linhasDaUtilizacao.FirstOrDefault(u => u.UtilizacaoCodigoIbge == UtilizacaoTotal);
+            var daUtilizacao = linhasDaUtilizacao.ToDictionary(u => u.UtilizacaoCodigoIbge, u => u.AreaHectares);
 
             resultado[codigo] = new EstruturaDoMunicipio(
                 anoDoCenso,
@@ -1958,10 +2009,26 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                         u.CapacidadeDeAnidroM3Dia is null && u.CapacidadeDeHidratadoM3Dia is null
                             ? null
                             : (u.CapacidadeDeAnidroM3Dia ?? 0) + (u.CapacidadeDeHidratadoM3Dia ?? 0)))
-                ]);
+                ],
+                AreaDosEstabelecimentosHectares: total?.AreaHectares,
+                EstabelecimentosComArea: total?.EstabelecimentosComArea,
+                AreaDeLavouraHectares: AreaDeLavoura(daUtilizacao));
         }
 
         return resultado;
+    }
+
+    /// <summary>
+    /// A ÁREA EM LAVOURA — permanente e temporária, e flores quando divulgada. Sem uma das duas primeiras (sigilo), a
+    /// soma não sai: ela seria a lavoura de uma parte só com o nome do todo.
+    /// </summary>
+    private static decimal? AreaDeLavoura(IReadOnlyDictionary<int, decimal?> porUtilizacao)
+    {
+        if (porUtilizacao.GetValueOrDefault(LavouraPermanente) is not { } permanente
+            || porUtilizacao.GetValueOrDefault(LavouraTemporaria) is not { } temporaria)
+            return null;
+
+        return permanente + temporaria + (porUtilizacao.GetValueOrDefault(LavouraDeFlores) ?? 0m);
     }
 
     /// <summary>

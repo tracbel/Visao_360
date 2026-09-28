@@ -79,6 +79,19 @@ export type PercepcaoDoGestorDetalhe = {
   uf: string;
   percentual: number;
   vigencia: VigenciaDoParametro;
+  /** Para onde o gestor acha que o município vai nos próximos 3 meses (28/09/2026); nula quando não declarada. */
+  tendenciaParaTresMeses?: TendenciaDaPercepcao | null;
+};
+
+/** A tendência declarada pelo gestor para os próximos 3 meses. */
+export type TendenciaDaPercepcao = 'Alta' | 'Estavel' | 'Queda';
+
+/** A leitura de um município no fim de um mês — a série, reconstruída das vigências. */
+export type PercepcaoDoGestorNoMes = {
+  /** `aaaa-mm-01`. */
+  mes: string;
+  municipioCodigoIbge: number;
+  percentual: number;
 };
 
 /** O que vale numa data, com o que falta decidir. */
@@ -88,6 +101,8 @@ export type ParametrosDoPotencialVigentes = {
   culturas: RegraDePotencialDetalhe[];
   percepcoes: PercepcaoDoGestorDetalhe[];
   pendencias: string[];
+  /** A leitura de cada município no fim de cada um dos 12 meses até `em`. */
+  serieDasPercepcoes?: PercepcaoDoGestorNoMes[] | null;
 };
 
 /** Todas as vigências já registradas, inclusive revogadas e futuras. */
@@ -155,6 +170,8 @@ export type NovaPercepcaoDoGestor = {
   percentual: string;
   vigenteDesde: string;
   justificativa: string;
+  /** `Alta`, `Estavel` ou `Queda`; vazia é "não declarada". */
+  tendenciaParaTresMeses: string;
 };
 
 // ------------------------------------------------------------------------------------------------

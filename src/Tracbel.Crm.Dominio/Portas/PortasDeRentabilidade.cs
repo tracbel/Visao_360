@@ -44,6 +44,15 @@ public interface IRepositorioDeRentabilidade
 /// <param name="MargemTotal">Margem por hectare × área colhida.</param>
 /// <param name="Motivo">Por que a margem não saiu, como TEXTO; <c>Nenhum</c> quando saiu — a convenção do contrato é enum em texto.</param>
 /// <param name="FraseDoMotivo">A frase que a tela mostra no lugar do número.</param>
+/// <param name="Tendencia">
+/// A MESMA CULTURA UM ANO ANTES, para a tendência da margem (28/09/2026). Nula quando a PAM não tem o ano anterior.
+/// </param>
+/// <param name="SafraAnteriorDoCusto">
+/// A safra da série de custo publicada antes de <see cref="SafraDoCusto"/>, no mesmo local e camada — a anterior
+/// DA SÉRIE, e não a do ano anterior da PAM: a CONAB não publica todo ano em todo local, e alinhar pelo ano da PAM
+/// repetiria a mesma safra e daria uma variação zero que ninguém mediu.
+/// </param>
+/// <param name="CustoPorHectareDaSafraAnterior">O custo por hectare dessa safra.</param>
 public sealed record RentabilidadeDaCultura(
     string CulturaCodigo,
     string CulturaNome,
@@ -62,4 +71,51 @@ public sealed record RentabilidadeDaCultura(
     decimal? AreaColhidaHectares,
     decimal? MargemTotal,
     string Motivo,
-    string FraseDoMotivo);
+    string FraseDoMotivo,
+    TendenciaDaRentabilidade? Tendencia = null,
+    short? SafraAnteriorDoCusto = null,
+    decimal? CustoPorHectareDaSafraAnterior = null)
+{
+    /// <summary>A variação do custo por hectare da safra anterior da série para a atual, em fração.</summary>
+    public decimal? VariacaoDoCusto =>
+        CustoPorHectare is { } atual && CustoPorHectareDaSafraAnterior is > 0 && CustoPorHectareDaSafraAnterior is { } anterior
+            ? decimal.Round(atual / anterior - 1m, 4)
+            : null;
+}
+
+/// <summary>
+/// A RENTABILIDADE DE UM ANO CONTRA A DO ANTERIOR, na MESMA RÉGUA (28/09/2026).
+///
+/// <para><b>O preço é o recebido pelo produtor, da PAM</b> — valor da produção ÷ quantidade —, nos dois anos. A margem da
+/// tela usa a média dos meses da CONAB, mas a CONAB guarda só a janela de 12 meses: não há preço dela para o ano anterior.
+/// Comparar a CONAB de um ano com a PAM do outro mediria a troca de fonte, e não o mercado; por isso a tendência
+/// compara PAM com PAM, e diz isso.</para>
+///
+/// <para><b>O custo de cada ano é a safra mais recente até ele</b>, no local de referência — a mesma regra da margem.
+/// Quando a CONAB não publicou safra nova, os dois anos usam a mesma, e a tendência mede só a receita. A variação do
+/// custo em si é a da série (<see cref="RentabilidadeDaCultura.VariacaoDoCusto"/>).</para>
+/// </summary>
+/// <param name="Ano">O ano mais recente da PAM da cultura.</param>
+/// <param name="AnoAnterior">O ano anterior.</param>
+/// <param name="MargemPorHectare">A margem do ano pelo preço da PAM; nula sem preço, produtividade ou custo.</param>
+/// <param name="MargemPorHectareAnterior">A margem do ano anterior, na mesma régua.</param>
+/// <param name="SafraDoCusto">A safra de custo que valeu para o ano.</param>
+/// <param name="CustoPorHectare">O custo por hectare dessa safra.</param>
+/// <param name="SafraDoCustoAnterior">A safra de custo que valeu para o ano anterior.</param>
+/// <param name="CustoPorHectareAnterior">O custo dessa safra.</param>
+public sealed record TendenciaDaRentabilidade(
+    short Ano,
+    short AnoAnterior,
+    decimal? MargemPorHectare,
+    decimal? MargemPorHectareAnterior,
+    short? SafraDoCusto,
+    decimal? CustoPorHectare,
+    short? SafraDoCustoAnterior,
+    decimal? CustoPorHectareAnterior)
+{
+    /// <summary>A variação da margem, em fração — nula sem as duas margens ou com a anterior não positiva.</summary>
+    public decimal? VariacaoDaMargem =>
+        MargemPorHectare is { } atual && MargemPorHectareAnterior is > 0 && MargemPorHectareAnterior is { } anterior
+            ? decimal.Round(atual / anterior - 1m, 4)
+            : null;
+}

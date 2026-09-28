@@ -30,6 +30,9 @@ public sealed class RentabilidadeNaApiTestes(ApiEmMemoria api) : IClassFixture<A
     /// <summary>O custo total por hectare do café em Franca, safra 2025 — aceite da issue 67.</summary>
     private const decimal CustoDoCafe = 29_279.94m;
 
+    /// <summary>O custo total da safra anterior, semeado para a tendência.</summary>
+    private const decimal CustoDoCafeAnterior = 27_000m;
+
     private const int CafeTotal = 40139;
 
     private async Task SemearAsync()
@@ -46,6 +49,10 @@ public sealed class RentabilidadeNaApiTestes(ApiEmMemoria api) : IClassFixture<A
         db.ProducoesAgricolasNosEstados.Add(ProducaoAgricolaNoEstado.Registrar(
             35, 2025, CafeTotal, "Café (em grão) Total", new(52_000m, 50_000m, 90_000m, 3_000_000m), 100, agora));
 
+        // O ANO ANTERIOR, para a tendência: R$ 2,4 bilhões em 48.000 ha = R$ 50.000/ha recebidos.
+        db.ProducoesAgricolasNosEstados.Add(ProducaoAgricolaNoEstado.Registrar(
+            35, 2024, CafeTotal, "Café (em grão) Total", new(51_000m, 48_000m, 80_000m, 2_400_000m), 100, agora));
+
         // O preço da CONAB: dois meses de 2025, média R$ 33,00/kg.
         db.CotacoesDeProdutos.AddRange(
             CotacaoDeProduto.Registrar("CONAB", "11195", "SP", "PREÇO RECEBIDO P/ PRODUTOR", "CAFE",
@@ -59,6 +66,10 @@ public sealed class RentabilidadeNaApiTestes(ApiEmMemoria api) : IClassFixture<A
 
         db.CustosDeProducao.Add(CustoDeProducao.Registrar(
             "CAFÉ ARÁBICA", "Franca-SP-2025", "Franca", null, null, 2025, "saca de 60 kg", valores, 100, agora));
+
+        db.CustosDeProducao.Add(CustoDeProducao.Registrar(
+            "CAFÉ ARÁBICA", "Franca-SP-2024", "Franca", null, null, 2024, "saca de 60 kg",
+            valores with { CustoTotalHa = CustoDoCafeAnterior }, 100, agora));
 
         await db.SaveChangesAsync();
 
@@ -131,6 +142,44 @@ public sealed class RentabilidadeNaApiTestes(ApiEmMemoria api) : IClassFixture<A
 
         cafe.GetProperty("areaColhidaHectares").GetDecimal().Should().Be(50_000m, "a plantada é 52.000");
         cafe.GetProperty("margemTotal").GetDecimal().Should().Be((59_400m - CustoDoCafe) * 50_000m);
+    }
+
+    [Fact]
+    public async Task A_tendencia_compara_o_ano_com_o_anterior_na_mesma_regua_da_PAM()
+    {
+        // PAM COM PAM: a CONAB guarda só 12 meses, então os dois anos usam o preço recebido da PAM (valor ÷ área
+        // colhida), e cada um o custo da safra mais recente até ele.
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Rota));
+
+        var tendencia = Cultura(dados, "CAFE").GetProperty("tendencia");
+
+        tendencia.GetProperty("ano").GetInt32().Should().Be(2025);
+        tendencia.GetProperty("anoAnterior").GetInt32().Should().Be(2024);
+        tendencia.GetProperty("margemPorHectare").GetDecimal().Should().Be(60_000m - CustoDoCafe, "R$ 3 bi em 50.000 ha");
+        tendencia.GetProperty("margemPorHectareAnterior").GetDecimal().Should().Be(50_000m - CustoDoCafeAnterior, "R$ 2,4 bi em 48.000 ha");
+        tendencia.GetProperty("safraDoCustoAnterior").GetInt32().Should().Be(2024);
+        tendencia.GetProperty("variacaoDaMargem").GetDecimal().Should().Be(decimal.Round((60_000m - CustoDoCafe) / 23_000m - 1m, 4));
+    }
+
+    [Fact]
+    public async Task A_variacao_do_custo_e_a_da_safra_anterior_DA_SERIE()
+    {
+        await SemearAsync();
+        var cafe = Cultura(await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Rota)), "CAFE");
+
+        cafe.GetProperty("safraAnteriorDoCusto").GetInt32().Should().Be(2024);
+        cafe.GetProperty("custoPorHectareDaSafraAnterior").GetDecimal().Should().Be(CustoDoCafeAnterior);
+        cafe.GetProperty("variacaoDoCusto").GetDecimal().Should().Be(decimal.Round(CustoDoCafe / CustoDoCafeAnterior - 1m, 4));
+    }
+
+    [Fact]
+    public async Task Sem_o_ano_anterior_na_PAM_a_tendencia_vem_nula()
+    {
+        await SemearAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Rota));
+
+        Cultura(dados, "SOJA").GetProperty("tendencia").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]

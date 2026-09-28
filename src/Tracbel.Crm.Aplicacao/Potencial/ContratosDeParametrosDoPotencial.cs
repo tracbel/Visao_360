@@ -147,12 +147,23 @@ public sealed record ParametrosGeraisDetalhe(
 /// <param name="Uf">A UF.</param>
 /// <param name="Percentual">O ajuste, em pontos percentuais.</param>
 /// <param name="Vigencia">Desde quando, por quê e por quem.</param>
+/// <param name="TendenciaParaTresMeses"><c>Alta</c>, <c>Estavel</c> ou <c>Queda</c>; nula quando não foi declarada.</param>
 public sealed record PercepcaoDoGestorDetalhe(
     int MunicipioCodigoIbge,
     string MunicipioNome,
     string Uf,
     decimal Percentual,
-    VigenciaDoParametro Vigencia);
+    VigenciaDoParametro Vigencia,
+    string? TendenciaParaTresMeses = null);
+
+/// <summary>
+/// A LEITURA DE UM MUNICÍPIO NO FIM DE UM MÊS — a série da percepção, reconstruída das vigências (28/09/2026). Cada
+/// vigência diz desde quando vale; a leitura de um mês é a que valia no último dia dele. A tela tira a média do recorte.
+/// </summary>
+/// <param name="Mes">O primeiro dia do mês.</param>
+/// <param name="MunicipioCodigoIbge">O município.</param>
+/// <param name="Percentual">A leitura que valia no fim do mês.</param>
+public sealed record PercepcaoDoGestorNoMes(DateOnly Mes, int MunicipioCodigoIbge, decimal Percentual);
 
 /// <summary>
 /// OS PARÂMETROS QUE VALEM NUMA DATA — o conjunto que um cálculo daquela data usa (issue 71: "o cálculo de
@@ -165,12 +176,16 @@ public sealed record PercepcaoDoGestorDetalhe(
 /// <param name="Pendencias">
 /// O que falta decidir para o potencial sair completo — dito em frase, e não escondido num valor padrão.
 /// </param>
+/// <param name="SerieDasPercepcoes">
+/// A leitura de cada município no fim de cada um dos 12 meses até a data consultada — só onde havia leitura vigente.
+/// </param>
 public sealed record ParametrosDoPotencialVigentes(
     DateOnly Em,
     ParametrosGeraisDetalhe? Geral,
     IReadOnlyList<RegraDePotencialDetalhe> Culturas,
     IReadOnlyList<PercepcaoDoGestorDetalhe> Percepcoes,
-    IReadOnlyList<string> Pendencias);
+    IReadOnlyList<string> Pendencias,
+    IReadOnlyList<PercepcaoDoGestorNoMes>? SerieDasPercepcoes = null);
 
 /// <summary>Todas as vigências já registradas, inclusive as revogadas e as futuras, das mais novas para as mais antigas.</summary>
 /// <param name="Gerais">As dos parâmetros gerais.</param>
@@ -273,11 +288,13 @@ public sealed record NovaRegraDePotencial(
 /// <param name="Percentual">O ajuste, em pontos percentuais (ex.: -2,5).</param>
 /// <param name="VigenteDesde">O primeiro dia em que vale — hoje ou depois.</param>
 /// <param name="Justificativa">Por que este ajuste.</param>
+/// <param name="TendenciaParaTresMeses"><c>Alta</c>, <c>Estavel</c> ou <c>Queda</c>; vazia é "não declarada".</param>
 public sealed record NovaPercepcaoDoGestor(
     string? MunicipioCodigoIbge = null,
     string? Percentual = null,
     string? VigenteDesde = null,
-    string? Justificativa = null);
+    string? Justificativa = null,
+    string? TendenciaParaTresMeses = null);
 
 /// <summary>A revogação de uma vigência que ainda não passou de hoje.</summary>
 /// <param name="Motivo">Por que — fica na trilha.</param>

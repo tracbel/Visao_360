@@ -46,6 +46,24 @@ public sealed record MedidaPorCategoria(
     string? ValorBruto);
 
 /// <summary>
+/// A ÁREA DOS ESTABELECIMENTOS DE UM MUNICÍPIO numa utilização das terras — tabela SIDRA 6881, Censo 2017. As duas
+/// variáveis vêm juntas por (município, ano, utilização), como na frota.
+/// </summary>
+/// <param name="CodigoDoMunicipio">O código IBGE do município.</param>
+/// <param name="Ano">O ano do Censo.</param>
+/// <param name="UtilizacaoCodigo">A categoria da classificação 222.</param>
+/// <param name="UtilizacaoNome">O rótulo oficial.</param>
+/// <param name="EstabelecimentosComAreaBruto">Variável 9587, como o SIDRA escreveu.</param>
+/// <param name="AreaHectaresBruta">Variável 184, com PONTO decimal.</param>
+public sealed record LinhaDaUtilizacaoDasTerras(
+    int CodigoDoMunicipio,
+    short Ano,
+    int UtilizacaoCodigo,
+    string UtilizacaoNome,
+    string? EstabelecimentosComAreaBruto,
+    string? AreaHectaresBruta);
+
+/// <summary>
 /// A ÁREA TERRITORIAL DE UM MUNICÍPIO, em km² — tabela SIDRA 4714, Censo 2022.
 /// </summary>
 /// <param name="CodigoDoMunicipio">O código IBGE do município.</param>
@@ -131,6 +149,34 @@ public sealed class LeitorDaEstruturaAgropecuaria(HttpClient http)
 
     /// <summary>"Área da unidade territorial", em km² (4714).</summary>
     public const short VariavelDaAreaTerritorial = 6318;
+
+    /// <summary>Censo Agropecuário: área dos estabelecimentos por utilização das terras (28/09/2026).</summary>
+    public const short TabelaDaUtilizacaoDasTerras = 6881;
+
+    /// <summary>"Número de estabelecimentos agropecuários com área" (6881).</summary>
+    public const short VariavelDeEstabelecimentosComArea = 9587;
+
+    /// <summary>"Área dos estabelecimentos agropecuários", em hectares (6881).</summary>
+    public const short VariavelDaAreaDosEstabelecimentos = 184;
+
+    /// <summary>As duas variáveis da 6881, na ordem em que a URL as pede.</summary>
+    public static readonly short[] VariaveisDaUtilizacao =
+        [VariavelDeEstabelecimentosComArea, VariavelDaAreaDosEstabelecimentos];
+
+    /// <summary>"Utilização das terras" (6881).</summary>
+    public const short ClassificacaoDeUtilizacao = 222;
+
+    /// <summary>A utilização "Total".</summary>
+    public const int UtilizacaoTotal = 110087;
+
+    /// <summary>As três utilizações de lavoura: permanentes, temporárias e área para cultivo de flores.</summary>
+    public static readonly int[] UtilizacoesDeLavoura = [113470, 113471, 40677];
+
+    /// <summary>
+    /// As utilizações que o CRM guarda: o Total e as três de lavoura — o que a área total, o tamanho médio e a vocação
+    /// pedem. Pastagem e mata ficam na fonte até alguém pedi-las.
+    /// </summary>
+    public static readonly int[] UtilizacoesQueOCrmGuarda = [UtilizacaoTotal, .. UtilizacoesDeLavoura];
 
     /// <summary>As duas variáveis da 6871, na ordem em que a URL as pede.</summary>
     public static readonly short[] VariaveisDaFrota =
@@ -288,6 +334,49 @@ public sealed class LeitorDaEstruturaAgropecuaria(HttpClient http)
         [
             .. ordem.Select(c => new LinhaDaFrotaDeTratores(
                 c.Municipio, c.Ano, c.Potencia, nomes[c.Potencia], porChave[c][0], porChave[c][1]))
+        ];
+    }
+
+    /// <summary>
+    /// A área dos estabelecimentos dos municípios de uma UF, no total e nas lavouras, no Censo mais recente.
+    ///
+    /// <para><b>Pequena</b>: 645 municípios × 4 utilizações × 2 variáveis são 5.160 valores, longe do teto do SIDRA. As
+    /// outras classificações da 6881 (tipologia, condição do produtor, atividade, orientação) chegam no Total.</para>
+    /// </summary>
+    /// <param name="codigoDaUf">O código IBGE da UF.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<IReadOnlyList<LinhaDaUtilizacaoDasTerras>> LerUtilizacaoDasTerrasAsync(
+        int codigoDaUf, CancellationToken ct)
+    {
+        var ano = await LerUltimoAnoAsync(TabelaDaUtilizacaoDasTerras, ct);
+        var endereco = EnderecoNosMunicipios(
+            TabelaDaUtilizacaoDasTerras, VariaveisDaUtilizacao, ano, codigoDaUf, ClassificacaoDeUtilizacao, UtilizacoesQueOCrmGuarda);
+
+        var porChave = new Dictionary<(int Municipio, short Ano, int Utilizacao), string?[]>();
+        var nomes = new Dictionary<int, string>();
+        var ordem = new List<(int Municipio, short Ano, int Utilizacao)>();
+
+        await foreach (var celula in LerCelulasAsync(endereco, ct))
+        {
+            var posicao = Array.IndexOf(VariaveisDaUtilizacao, celula.Variavel);
+            if (posicao < 0) continue;
+
+            var chave = (celula.Localidade, celula.Ano, celula.Categoria);
+            if (!porChave.TryGetValue(chave, out var valores))
+            {
+                valores = new string?[VariaveisDaUtilizacao.Length];
+                porChave[chave] = valores;
+                ordem.Add(chave);
+            }
+
+            valores[posicao] = celula.Valor;
+            nomes[celula.Categoria] = celula.CategoriaNome;
+        }
+
+        return
+        [
+            .. ordem.Select(c => new LinhaDaUtilizacaoDasTerras(
+                c.Municipio, c.Ano, c.Utilizacao, nomes[c.Utilizacao], porChave[c][0], porChave[c][1]))
         ];
     }
 

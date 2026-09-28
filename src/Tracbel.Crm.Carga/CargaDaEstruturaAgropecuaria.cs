@@ -54,6 +54,7 @@ internal sealed class CargaDaEstruturaAgropecuaria(
 
     private const string FluxoDaFrota = "IBGE.FROTA_DE_TRATORES";
     private const string FluxoDosEstabelecimentos = "IBGE.ESTABELECIMENTOS_POR_AREA";
+    private const string FluxoDaUtilizacaoDasTerras = "IBGE.UTILIZACAO_DAS_TERRAS";
     private const string FluxoDoRebanho = "IBGE.REBANHO";
     private const string FluxoDaAreaTerritorial = "IBGE.AREA_TERRITORIAL";
     private const string FluxoDasUsinas = "ANP.USINA_DE_ETANOL";
@@ -79,6 +80,7 @@ internal sealed class CargaDaEstruturaAgropecuaria(
 
         await CarregarFrotaDeTratoresAsync(municipioPorCodigo, ct);
         await CarregarEstabelecimentosPorAreaAsync(municipioPorCodigo, ct);
+        await CarregarUtilizacaoDasTerrasAsync(municipioPorCodigo, ct);
         await CarregarRebanhoAsync(municipioPorCodigo, ct);
         await CarregarAreaTerritorialAsync(municipioPorCodigo, ct);
         await CarregarUsinasDeEtanolAsync(ct);
@@ -244,6 +246,88 @@ internal sealed class CargaDaEstruturaAgropecuaria(
         Contar(etapa, "linhas novas", novas.Count);
         Contar(etapa, "linhas reapuradas", alteradas);
         Contar(etapa, "linhas mantidas sem mudança", mantidas);
+        Contar(etapa, "linhas recusadas", recusas.Count);
+    }
+
+    // =============================================================================================
+    // 2b. Área dos estabelecimentos por utilização das terras (Censo Agropecuário, 28/09/2026)
+    // =============================================================================================
+
+    private async Task CarregarUtilizacaoDasTerrasAsync(
+        IReadOnlyDictionary<int, int> municipioPorCodigo, CancellationToken ct)
+    {
+        const string etapa = "Utilização das terras (Censo Agropecuário/IBGE)";
+
+        await using var trava = await TomarTravaAsync(FluxoDaUtilizacaoDasTerras, ct);
+
+        relatar("Lendo a área dos estabelecimentos por utilização das terras (SIDRA 6881)…");
+        var lidas = await ibge.LerUtilizacaoDasTerrasAsync(CodigoDeSaoPaulo, ct);
+
+        var agora = DateTime.UtcNow;
+        await using var contexto = abrirContexto();
+        await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
+
+        var sistemaId = await SistemaDoIbgeAsync(contexto, ct);
+        contexto.DeclararOrigemDasGravacoes(OrigemDaOperacao.Integracao, sistemaId);
+
+        var anos = lidas.Select(l => l.Ano).Distinct().ToList();
+        var existentes = (await contexto.UtilizacoesDasTerrasNosMunicipios.Where(u => anos.Contains(u.Ano)).ToListAsync(ct))
+            .ToDictionary(u => (u.MunicipioId, u.Ano, u.UtilizacaoCodigoIbge));
+
+        var recusas = new List<(object Conteudo, string Motivo)>();
+        var novas = new List<UtilizacaoDasTerrasNoMunicipio>();
+        int alteradas = 0, mantidas = 0, sigilosas = 0;
+
+        foreach (var linha in lidas)
+        {
+            if (!municipioPorCodigo.TryGetValue(linha.CodigoDoMunicipio, out var municipioId))
+            {
+                recusas.Add((linha, $"O município {linha.CodigoDoMunicipio} não está reconhecido no catálogo."));
+                continue;
+            }
+
+            int? estabelecimentos;
+            decimal? hectares;
+            try
+            {
+                estabelecimentos = ContagemDoSidra(linha.EstabelecimentosComAreaBruto);
+                // A ÁREA VEM COM PONTO DECIMAL, como a da 4714: o saneamento lê em cultura invariante.
+                hectares = SaneamentoDeTerritorio.MedidaDoSidra(linha.AreaHectaresBruta);
+            }
+            catch (FormatException formato)
+            {
+                recusas.Add((linha, formato.Message));
+                continue;
+            }
+
+            if (hectares is null) sigilosas++;
+
+            if (existentes.TryGetValue((municipioId, linha.Ano, linha.UtilizacaoCodigo), out var existente))
+            {
+                if (existente.Reapurar(linha.UtilizacaoNome, estabelecimentos, hectares, usuarioId, agora)) alteradas++;
+                else mantidas++;
+            }
+            else
+            {
+                novas.Add(UtilizacaoDasTerrasNoMunicipio.Registrar(
+                    municipioId, linha.Ano, linha.UtilizacaoCodigo, linha.UtilizacaoNome, estabelecimentos, hectares, usuarioId, agora));
+            }
+        }
+
+        contexto.UtilizacoesDasTerrasNosMunicipios.AddRange(novas);
+        await CargaDeTerritorio.SubstituirRecusasAsync(contexto, FluxoDaUtilizacaoDasTerras, recusas, ct);
+        await contexto.SaveChangesAsync(ct);
+
+        var periodo = Periodo(anos);
+        await CargaDeTerritorio.RegistrarRodadaAsync(
+            contexto, sistemaId, FluxoDaUtilizacaoDasTerras, lidas.Count, novas.Count + alteradas, recusas.Count, ct, periodo);
+        await transacao.CommitAsync(ct);
+
+        Contar(etapa, $"linhas lidas ({periodo})", lidas.Count);
+        Contar(etapa, "linhas novas", novas.Count);
+        Contar(etapa, "linhas reapuradas", alteradas);
+        Contar(etapa, "linhas mantidas sem mudança", mantidas);
+        Contar(etapa, "áreas sob sigilo (\"X\") preservadas como nulo", sigilosas);
         Contar(etapa, "linhas recusadas", recusas.Count);
     }
 

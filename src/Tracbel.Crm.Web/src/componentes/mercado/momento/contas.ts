@@ -9,6 +9,7 @@
  */
 
 import type { CreditoDeMaquinasNoMunicipio, JanelasDeCredito, RentabilidadeDaCultura } from '../../../tipos/mercado';
+import type { PercepcaoDoGestorNoMes, TendenciaDaPercepcao } from '../../../tipos/potencial';
 import type { ResponsavelPelaCarteira } from '../../../tipos/territorio';
 
 /* ---------------------------------------------------------------------------
@@ -95,6 +96,57 @@ export function margemMediaPonderada(
     areaTotal,
     culturas: validas.length,
   };
+}
+
+/**
+ * A TENDÊNCIA DA MARGEM MÉDIA — a média ponderada do ano contra a do anterior.
+ *
+ * AS DUAS MÉDIAS USAM OS MESMOS PESOS (a área colhida do recorte hoje) e as
+ * mesmas culturas: mudar o peso junto com a margem mediria a troca de lavoura, e
+ * não a margem. Só entram as culturas com as duas margens da tendência — que o
+ * servidor calcula PAM com PAM, porque a CONAB guarda só 12 meses.
+ *
+ * SEM BASE POSITIVA NÃO HÁ VARIAÇÃO: sair de uma margem média negativa para outra
+ * não tem percentual que signifique algo, e a resposta é ausência.
+ */
+export function tendenciaDaMargemMedia(
+  linhas: readonly RentabilidadeDaCultura[],
+  area: (l: RentabilidadeDaCultura) => number | null,
+): { atual: number; anterior: number; variacao: number | null; culturas: number; anos: readonly number[] } | null {
+  let pesos = 0;
+  let somaAtual = 0;
+  let somaAnterior = 0;
+  const anos = new Set<number>();
+  let culturas = 0;
+  for (const l of linhas) {
+    const t = l.tendencia;
+    const a = area(l);
+    if (!t || t.margemPorHectare === null || t.margemPorHectareAnterior === null || a === null || a <= 0) continue;
+    pesos += a;
+    somaAtual += t.margemPorHectare * a;
+    somaAnterior += t.margemPorHectareAnterior * a;
+    anos.add(t.ano);
+    culturas++;
+  }
+  if (pesos <= 0) return null;
+  const atual = somaAtual / pesos;
+  const anterior = somaAnterior / pesos;
+  return { atual, anterior, variacao: anterior > 0 ? atual / anterior - 1 : null, culturas, anos: [...anos].sort((x, y) => x - y) };
+}
+
+/**
+ * A VARIAÇÃO DO CUSTO POR CULTURA — da safra anterior da série da CONAB para a
+ * usada na margem. Só as culturas que têm as duas safras; o intervalo e a
+ * contagem por sentido são o que o cartão "Custo" mostra.
+ */
+export function variacoesDoCusto(
+  linhas: readonly RentabilidadeDaCultura[],
+): { cultura: string; variacao: number; safra: number; safraAnterior: number }[] {
+  return linhas.flatMap((l) =>
+    l.variacaoDoCusto != null && l.safraDoCusto !== null && l.safraAnteriorDoCusto != null
+      ? [{ cultura: l.culturaNome, variacao: l.variacaoDoCusto, safra: l.safraDoCusto, safraAnterior: l.safraAnteriorDoCusto }]
+      : [],
+  );
 }
 
 /**
@@ -234,6 +286,41 @@ export function distribuicaoDaPercepcao(
     semRegistro: total - registradas,
     total,
   };
+}
+
+/**
+ * A EVOLUÇÃO DA PERCEPÇÃO (28/09/2026) — a leitura média dos municípios do
+ * recorte no fim de cada mês, pelas vigências. Média simples entre municípios:
+ * a leitura é do município, e não pesa por área. O mês em que nenhum município
+ * do recorte tinha leitura fica de fora, em vez de entrar como zero.
+ */
+export function serieMediaDaPercepcao(
+  serie: readonly PercepcaoDoGestorNoMes[],
+  codigos: ReadonlySet<number>,
+): { mes: string; media: number; municipios: number }[] {
+  const porMes = new Map<string, number[]>();
+  for (const p of serie) {
+    if (codigos.size > 0 && !codigos.has(p.municipioCodigoIbge)) continue;
+    porMes.set(p.mes, [...(porMes.get(p.mes) ?? []), p.percentual]);
+  }
+  return [...porMes.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([mes, valores]) => ({ mes, media: valores.reduce((s, v) => s + v, 0) / valores.length, municipios: valores.length }));
+}
+
+/** Quantas leituras declaram cada tendência para 3 meses, e quantas não declaram. */
+export function contagemDasTendencias(leituras: readonly { tendenciaParaTresMeses?: TendenciaDaPercepcao | null }[]): {
+  Alta: number;
+  Estavel: number;
+  Queda: number;
+  semDeclarar: number;
+} {
+  const conta = { Alta: 0, Estavel: 0, Queda: 0, semDeclarar: 0 };
+  for (const l of leituras) {
+    if (l.tendenciaParaTresMeses) conta[l.tendenciaParaTresMeses]++;
+    else conta.semDeclarar++;
+  }
+  return conta;
 }
 
 /**

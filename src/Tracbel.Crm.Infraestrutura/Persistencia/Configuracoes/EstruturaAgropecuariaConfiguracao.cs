@@ -84,6 +84,48 @@ public sealed class EstabelecimentosPorAreaNoMunicipioConfiguracao
 }
 
 /// <summary>
+/// Mapeamento de <see cref="UtilizacaoDasTerrasNoMunicipio"/> — a área dos estabelecimentos por utilização das terras
+/// do Censo Agropecuário (28/09/2026).
+///
+/// <para><c>decimal(12,3)</c> em hectares: o maior município de São Paulo tem algumas centenas de milhares de hectares,
+/// e o IBGE publica a área com até três decimais.</para>
+/// </summary>
+public sealed class UtilizacaoDasTerrasNoMunicipioConfiguracao : IEntityTypeConfiguration<UtilizacaoDasTerrasNoMunicipio>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<UtilizacaoDasTerrasNoMunicipio> b)
+    {
+        b.ToTable("UtilizacaoDasTerrasNoMunicipio", "organizacao");
+        b.HasKey(u => u.Id);
+        b.Property(u => u.Id).ValueGeneratedOnAdd();
+
+        b.Property(u => u.MunicipioId).IsRequired();
+        b.Property(u => u.Ano).IsRequired();
+        b.Property(u => u.UtilizacaoCodigoIbge).IsRequired();
+        b.Property(u => u.UtilizacaoNome).HasMaxLength(200).IsUnicode(true).IsRequired();
+        b.Property(u => u.AreaHectares).HasPrecision(12, 3);
+        b.Property(u => u.ImportadoEm).HasPrecision(3).IsRequired();
+        b.Property(u => u.ImportadoPorId).IsRequired();
+
+        b.HasIndex(u => new { u.MunicipioId, u.Ano, u.UtilizacaoCodigoIbge })
+            .IsUnique()
+            .HasDatabaseName("UX_UtilizacaoDasTerrasNoMunicipio_Municipio_Ano_Utilizacao");
+
+        b.HasIndex(u => u.ImportadoPorId);
+
+        b.HasOne<Municipio>().WithMany().HasForeignKey(u => u.MunicipioId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Dominio.Seguranca.Usuario>().WithMany().HasForeignKey(u => u.ImportadoPorId).OnDelete(DeleteBehavior.Restrict);
+
+        b.ToTable(t => t.HasCheckConstraint("CK_UtilizacaoDasTerrasNoMunicipio_Ano", "[Ano] BETWEEN 1920 AND 2100"));
+        b.ToTable(t => t.HasCheckConstraint("CK_UtilizacaoDasTerrasNoMunicipio_Utilizacao", "[UtilizacaoCodigoIbge] > 0"));
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_UtilizacaoDasTerrasNoMunicipio_Medidas",
+            "([EstabelecimentosComArea] IS NULL OR [EstabelecimentosComArea] >= 0) " +
+            "AND ([AreaHectares] IS NULL OR [AreaHectares] >= 0)"));
+    }
+}
+
+/// <summary>
 /// Mapeamento de <see cref="RebanhoNoMunicipio"/> — o efetivo dos rebanhos da Pesquisa da Pecuária
 /// Municipal, que é anual.
 /// </summary>

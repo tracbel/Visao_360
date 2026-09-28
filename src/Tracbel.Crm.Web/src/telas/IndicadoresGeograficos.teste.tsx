@@ -41,11 +41,46 @@ const carregarMalhaDeSaoPaulo = vi.hoisted(() => vi.fn());
 // com regra, que é o que eles conferem. O histórico tem teste próprio, na ficha.
 const obterHistoricoDoMunicipio = vi.hoisted(() => vi.fn(() => new Promise(() => {})));
 
+// A RENTABILIDADE que o cartão do custo da Composição lê (28/09/2026): o café com o custo de Franca subindo de uma
+// safra para a outra, e a cana caindo.
+const obterRentabilidadeDasCulturas = vi.hoisted(() =>
+  vi.fn(() => {
+    const linha = (culturaCodigo: string, culturaNome: string, safra: number, custo: number, anterior: number) => ({
+      culturaCodigo,
+      culturaNome,
+      unidadeComercial: 't',
+      anoDaProdutividade: 2025,
+      produtividadeKgPorHa: null,
+      precoMedioPorKg: null,
+      mesesDePrecoNaMedia: 0,
+      receitaPorHectare: null,
+      localDoCusto: 'Franca',
+      camadaDoCusto: 'Total',
+      safraDoCusto: safra,
+      custoPorHectare: custo,
+      margemPorHectare: null,
+      margemPorUnidade: null,
+      areaColhidaHectares: null,
+      margemTotal: null,
+      motivo: 'SemPreco',
+      fraseDoMotivo: '',
+      safraAnteriorDoCusto: safra - 1,
+      custoPorHectareDaSafraAnterior: anterior,
+      variacaoDoCusto: custo / anterior - 1,
+    });
+    return Promise.resolve({
+      dados: [linha('CAFE', 'Café', 2025, 11_000, 10_000), linha('CANA', 'Cana-de-açúcar', 2024, 9_500, 10_000)],
+      procedencia: null,
+    });
+  }),
+);
+
 vi.mock('../dados/api/territorio', async (original) => ({
   ...(await original<typeof import('../dados/api/territorio')>()),
   obterIndicadoresTerritoriais,
   carregarMalhaDeSaoPaulo,
   obterHistoricoDoMunicipio,
+  obterRentabilidadeDasCulturas,
 }));
 
 vi.mock('../componentes/territorio/PainelDePrecos', () => ({
@@ -1481,10 +1516,12 @@ describe('Indicadores Geográficos — os quatro KPIs e o momento (fase T3)', ()
     );
     expect([...parcelas].sort()).toEqual(['commodity', 'credito', 'percepcao']);
 
-    // O CARTÃO DO CUSTO tem o traço e diz por quê.
+    // O CARTÃO DO CUSTO mostra o MOVIMENTO do custo da CONAB (28/09/2026) — contexto, e não parcela: uma cultura em
+    // alta, outra em baixa, e o intervalo na pílula. A dica diz que ele fica fora da conta (D-P05).
     const custo = composicao.querySelector<HTMLElement>('[data-cartao="Custo"]')!;
-    expect(custo.querySelector('.mom-cartao-valor')!.textContent).not.toMatch(/\d/);
-    expect(textoDaDica('Por que o custo no fator não aparece', custo)).toMatch(/D-P05/);
+    await waitFor(() => expect(custo.querySelector('.mom-cartao-valor')).toHaveTextContent(/↑\s*1.*↓\s*1/));
+    expect(custo).toHaveTextContent('-5% a +10%');
+    expect(textoDaDica('O que é o movimento do custo', custo)).toMatch(/D-P05/);
   });
 
   it('o SINAL carrega o sentido de cada parcela, e a dica diz que o índice é da cultura', async () => {
@@ -1890,7 +1927,8 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
 
     fireEvent.click(within(momento).getByRole('tab', { name: 'Percepção comercial' }));
     expect(valorDe('Tendência dos gestores').textContent).not.toMatch(/\d/);
-    expect(textoDaDica('Por que a tendência dos gestores não aparece', momento)).toMatch(/issue 71/);
+    // A LEITURA DAS PERCEPÇÕES não está simulada nesta tela: o motivo é o dela, e não uma frase genérica.
+    expect(textoDaDica('Por que a tendência dos gestores não aparece', momento)).toMatch(/percepç(ão|ões) registrada/);
   });
 
   it('as cinco abas do Momento são abas de verdade, e a Composição abre o bloco', async () => {

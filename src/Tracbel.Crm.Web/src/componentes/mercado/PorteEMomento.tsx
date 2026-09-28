@@ -28,7 +28,7 @@ import { InfoTooltip } from '../InfoTooltip';
 import { Procedencia } from '../comum/Procedencia';
 import { ValorAusente } from '../comum/ValorAusente';
 import type { MomentoDoRecorte } from '../../tipos/territorio';
-import { MOTIVO_SEM_PORTE } from './motivoSemPorte';
+import { descricaoDasBandas, MOTIVO_SEM_PORTE } from './motivoSemPorte';
 
 /** Casas fixas: um fator neutro tem de sair `1,00`, e não `1` — que vira contagem. */
 const pt = (v: number, casas = 2) =>
@@ -95,7 +95,16 @@ export function PorteEMomento({ momento }: { momento: MomentoDoRecorte | null })
       {momento.porte ? (
         <div className="dash-momento-porte">
           <span className="dash-momento-rotulo">Porte estrutural</span>
-          <span className="dash-momento-faixa">{momento.porte}</span>
+          <span className="dash-momento-faixa">
+            {momento.porte}
+            <InfoTooltip
+              rotulo="Como o porte foi nomeado"
+              texto={
+                'O município típico do recorte — a demanda anual média por município da ADR — comparado às bandas de ' +
+                'porte (issue 166).' + descricaoDasBandas(momento.bandasDoPorte)
+              }
+            />
+          </span>
         </div>
       ) : (
         <div className="dash-momento-porte dash-momento-porte-sem-nome">

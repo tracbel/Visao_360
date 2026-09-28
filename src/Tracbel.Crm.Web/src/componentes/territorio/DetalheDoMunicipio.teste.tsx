@@ -630,13 +630,35 @@ describe('DetalheDoMunicipio — a Visão geral', () => {
     const estrutura = document.querySelector<HTMLElement>('[data-bloco-da-ficha="estrutura"]')!;
 
     expect(estrutura).toHaveTextContent(/253\s*propriedades rurais/);
-    for (const [oQue, issue] of [
-      ['a área total das propriedades', /issue 174/],
-      ['o tamanho médio da propriedade', /issue 174/],
-      ['a vocação agrícola', /issue 166/],
+    // SEM A 6881 NA LEITURA, o traço diz a fonte e que sigilo não é zero.
+    for (const [oQue, motivo] of [
+      ['a área total das propriedades', /SIDRA 6881/],
+      ['o tamanho médio da propriedade', /SIDRA 6881/],
+      ['a vocação agrícola', /ADR|6881/],
     ] as const) {
-      expect(textoDaDica(`Por que ${oQue} não aparece`)).toMatch(issue);
+      expect(textoDaDica(`Por que ${oQue} não aparece`)).toMatch(motivo);
     }
+  });
+
+  it('com a utilização das terras do Censo, a área, o tamanho médio e a vocação aparecem com a conta na dica (28/09/2026)', () => {
+    const m = comLavouraEEstrutura();
+    m.estrutura = {
+      ...m.estrutura,
+      areaDosEstabelecimentosHectares: 45_210.4,
+      estabelecimentosComArea: 240,
+      areaDeLavouraHectares: 30_000,
+      tamanhoMedioHectares: 188.4,
+      fatiaDeLavouraPercentual: 66.4,
+      vocacao: { classe: 'Alta', fatiaDeLavouraPercentual: 66.4, mediaAPartirDe: 38.2, altaAPartirDe: 55.9, municipiosNaBase: 198 },
+    };
+    abrir(m);
+    const estrutura = document.querySelector<HTMLElement>('[data-bloco-da-ficha="estrutura"]')!;
+
+    expect(estrutura).toHaveTextContent(/45\.210 ha\s*área total das propriedades/);
+    expect(estrutura).toHaveTextContent(/188 ha/);
+    expect(estrutura).toHaveTextContent(/Alta/);
+    expect(textoDaDica('Como o tamanho médio é calculado')).toMatch(/240 estabelecimentos com área/);
+    expect(textoDaDica('Como a vocação agrícola é classificada')).toMatch(/66,4%.*198 municípios da ADR.*38,2%.*55,9%/);
   });
 
   it('as oportunidades: potencial e máquinas sem dado com o motivo, cobertura real — e "Ver detalhes" leva à aba', () => {

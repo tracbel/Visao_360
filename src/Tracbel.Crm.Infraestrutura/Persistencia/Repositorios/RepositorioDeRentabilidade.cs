@@ -27,7 +27,7 @@ public sealed class RepositorioDeRentabilidade(CrmDbContext contexto) : IReposit
     private const int CodigoDeSaoPaulo = 35;
 
     /// <summary>Uma medida da PAM no estado, do produto e do ano.</summary>
-    private sealed record MedidaDaPam(int Produto, short Ano, decimal? Quantidade, decimal? AreaColhida);
+    private sealed record MedidaDaPam(int Produto, short Ano, decimal? Quantidade, decimal? AreaColhida, decimal? ValorMilReais);
 
     /// <summary>Um preço mensal de uma fonte.</summary>
     private sealed record PrecoMensal(string Fonte, string Codigo, DateOnly Mes, decimal Valor);
@@ -52,7 +52,7 @@ public sealed class RepositorioDeRentabilidade(CrmDbContext contexto) : IReposit
 
         var daPam = await contexto.ProducoesAgricolasNosEstados.AsNoTracking()
             .Where(p => p.EstadoCodigoIbge == CodigoDeSaoPaulo && produtos.Contains(p.ProdutoCodigoIbge))
-            .Select(p => new MedidaDaPam(p.ProdutoCodigoIbge, p.Ano, p.QuantidadeProduzida, p.AreaColhidaHectares))
+            .Select(p => new MedidaDaPam(p.ProdutoCodigoIbge, p.Ano, p.QuantidadeProduzida, p.AreaColhidaHectares, p.ValorDaProducaoMilReais))
             .ToListAsync(ct);
 
         var precos = await contexto.CotacoesDeProdutos.AsNoTracking()
@@ -96,9 +96,10 @@ public sealed class RepositorioDeRentabilidade(CrmDbContext contexto) : IReposit
         var receita = Rentabilidade.ReceitaPorHectare(produtividade, preco);
 
         var custo = CustoDaReferencia(cultura, custos, ano);
-        var custoPorHa = custo is null || cultura.CamadaDeCustoDaMargem is not { } camada
-            ? null
-            : camada == CamadaDoCusto.Operacional ? custo.Operacional : custo.Total;
+        var custoPorHa = NaCamada(cultura, custo);
+
+        // A SAFRA ANTERIOR DA SÉRIE, e não a do ano anterior da PAM — ver RentabilidadeDaCultura.SafraAnteriorDoCusto.
+        var custoAnterior = custo is null ? null : CustoDaReferencia(cultura, custos, (short)(custo.Safra - 1));
 
         var margem = Rentabilidade.MargemPorHectare(receita, custoPorHa);
 
@@ -128,7 +129,55 @@ public sealed class RepositorioDeRentabilidade(CrmDbContext contexto) : IReposit
             areaColhida,
             Rentabilidade.MargemTotal(margem, areaColhida),
             motivo.ToString(),
-            Rentabilidade.Frase(motivo, cultura.Nome));
+            Rentabilidade.Frase(motivo, cultura.Nome),
+            Tendencia(cultura, linhas, custos, ano),
+            custoAnterior?.Safra,
+            NaCamada(cultura, custoAnterior));
+    }
+
+    /// <summary>O custo por hectare de uma safra na camada que a cultura escolheu; nulo sem safra ou sem camada.</summary>
+    private static decimal? NaCamada(Cultura cultura, CustoDaSafra? c) =>
+        c is null || cultura.CamadaDeCustoDaMargem is not { } camada
+            ? null
+            : camada == CamadaDoCusto.Operacional ? c.Operacional : c.Total;
+
+    /// <summary>
+    /// A TENDÊNCIA: o ano mais recente contra o anterior, os dois pelo preço recebido da PAM (valor ÷ quantidade) e pelo
+    /// custo da safra mais recente até cada ano. Ver <see cref="TendenciaDaRentabilidade"/>.
+    /// </summary>
+    private static TendenciaDaRentabilidade? Tendencia(
+        Cultura cultura, IReadOnlyList<MedidaDaPam> linhas, IReadOnlyList<CustoDaSafra> custos, short? ano)
+    {
+        if (ano is not { } a) return null;
+        var anterior = (short)(a - 1);
+        if (!linhas.Any(p => p.Ano == anterior)) return null;
+
+        var custo = CustoDaReferencia(cultura, custos, a);
+        var custoAnterior = CustoDaReferencia(cultura, custos, anterior);
+
+        return new TendenciaDaRentabilidade(
+            a,
+            anterior,
+            MargemPelaPam(linhas, a, NaCamada(cultura, custo)),
+            MargemPelaPam(linhas, anterior, NaCamada(cultura, custoAnterior)),
+            custo?.Safra,
+            NaCamada(cultura, custo),
+            custoAnterior?.Safra,
+            NaCamada(cultura, custoAnterior));
+    }
+
+    /// <summary>
+    /// A margem de um ano pela receita da PAM — valor da produção ÷ área colhida — menos o custo. É a receita que o
+    /// produtor recebeu, sem precisar do preço em R$/kg: o valor da PAM já é quantidade × preço recebido.
+    /// </summary>
+    private static decimal? MargemPelaPam(IReadOnlyList<MedidaDaPam> linhas, short ano, decimal? custoPorHa)
+    {
+        var doAno = linhas.Where(p => p.Ano == ano).ToList();
+        var area = doAno.Sum(p => p.AreaColhida ?? 0m);
+        var valor = doAno.Sum(p => p.ValorMilReais ?? 0m);
+        if (area <= 0 || valor <= 0 || custoPorHa is not { } custo) return null;
+
+        return decimal.Round(valor * 1_000m / area - custo, 2);
     }
 
     /// <summary>
