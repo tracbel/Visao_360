@@ -324,6 +324,9 @@ public class CrmDbContext : DbContext
     /// <summary>As tabelas auxiliares do SICOR: programa, subprograma, fonte e produto.</summary>
     public DbSet<ItemDoSicor> ItensDoSicor => Set<ItemDoSicor>();
 
+    /// <summary>O financiamento das vendas de máquina, dos formulários do Vórtice (issue 262).</summary>
+    public DbSet<FinanciamentoDaVenda> FinanciamentosDaVenda => Set<FinanciamentoDaVenda>();
+
     /// <summary>A regra de potencial de cada cultura, com vigência (issue 71).</summary>
     public DbSet<RegraDePotencial> RegrasDePotencial => Set<RegraDePotencial>();
 

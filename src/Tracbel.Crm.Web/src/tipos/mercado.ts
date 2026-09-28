@@ -536,3 +536,67 @@ export type DemandaEPrevisaoDaRegiao = {
 };
 
 export type FiltrosDaDemanda = { regiao?: string; lojaCodigo?: string; categoria?: string };
+
+/**
+ * O SHARE DA TRACBEL NO CRÉDITO DE MECANIZAÇÃO (issue 262, decisões de 28/09/2026): o crédito rural que a Tracbel
+ * financiou (formulários da venda do Vórtice, sem recurso próprio e sem consórcio) dividido pelo crédito de máquinas
+ * do SICOR, por filial e na Região, na janela do painel do crédito. Estimativa.
+ */
+export interface ShareNoRecorte {
+  valorTracbel: number;
+  financiamentos: number;
+  valorSicor: number;
+  linhasSicor: number;
+  /** De 0 a 1 (pode passar de 1 no município); nulo quando o SICOR não tem crédito. */
+  share: number | null;
+  valorDaConcorrencia: number;
+}
+
+export interface ShareDaFilial {
+  empresaId: number;
+  filial: string;
+  municipios: number;
+  share: ShareNoRecorte;
+}
+
+export interface ShareNoMunicipio {
+  codigoIbge: number;
+  nome: string;
+  filial: string | null;
+  share: ShareNoRecorte;
+  /** A Tracbel financiou mais que o SICOR registrou: o limite da leitura por município. */
+  acimaDoSicor: boolean;
+}
+
+export interface FinanciadoPorLinha {
+  linha: string;
+  contaNoShare: boolean;
+  financiamentos: number;
+  valor: number;
+}
+
+export interface ShareNoMes {
+  mes: string;
+  valorTracbel: number;
+  valorSicor: number;
+}
+
+export interface FinanciadoForaDaRegiao {
+  semMunicipio: number;
+  valorSemMunicipio: number;
+  foraDaAdr: number;
+  valorForaDaAdr: number;
+}
+
+export interface ShareNoCreditoDeMecanizacao {
+  inicio: string | null;
+  fim: string | null;
+  ultimoPedido: string | null;
+  regiao: ShareNoRecorte | null;
+  porFilial: ShareDaFilial[];
+  porMunicipio: ShareNoMunicipio[];
+  porLinha: FinanciadoPorLinha[];
+  porMes: ShareNoMes[];
+  foraDaRegiao: FinanciadoForaDaRegiao;
+  procedencia: ProcedenciaDoIndicador | null;
+}

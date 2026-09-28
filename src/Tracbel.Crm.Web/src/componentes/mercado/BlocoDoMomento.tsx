@@ -31,6 +31,7 @@ import type { AreaDoProdutoNoRecorte, IndicadoresDoMunicipio, MomentoDoRecorte }
 import { InfoTooltip } from '../InfoTooltip';
 import type { RecorteFiltrado } from '../territorio/indicadoresDaAdr';
 import { PainelDeCredito } from '../territorio/PainelDeCredito';
+import { PainelDoShareNoCredito } from '../territorio/PainelDoShareNoCredito';
 import { Calculadora } from './Calculadora';
 import { ComposicaoDoFator } from './ComposicaoDoFator';
 import { PainelDeRentabilidade } from './PainelDeRentabilidade';
@@ -151,7 +152,13 @@ export function BlocoDoMomento({
         )}
 
         {/* O SICOR PUBLICA POR MUNICÍPIO: aqui o recorte muda o que se lê. */}
-        {subAba === 'credito' && <PainelDeCredito municipioSelecionado={municipioSelecionado} />}
+        {subAba === 'credito' && (
+        <>
+          <PainelDeCredito municipioSelecionado={municipioSelecionado} />
+          {/* O SHARE DA TRACBEL NO CRÉDITO (issue 262): o numerador é o financiamento das vendas; o denominador, o SICOR de cima. */}
+          <PainelDoShareNoCredito />
+        </>
+      )}
 
         {subAba === 'troca' && <AbaTermoDeTroca produtosDoMunicipio={produtosDoMunicipio} />}
 

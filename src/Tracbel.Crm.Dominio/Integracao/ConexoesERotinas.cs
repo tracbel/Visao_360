@@ -1066,11 +1066,17 @@ public static class RotinasDoSistema
         // O SEGUNDO MODO É A ONDA 2 (documento 52 §12, 27/09/2026): processo, agenda e histórico dos clientes casados. Vem
         // DEPOIS do funil, que grava as vendas perdidas de onde o processo perdido tira o motivo (P8). Os modos e a
         // descrição não são semeados — só o nome —, e por isso acrescentar um modo não pede migração.
+        //
+        // O TERCEIRO MODO É O FINANCIAMENTO DAS VENDAS (issue 262, decisão de 28/09/2026): o valor financiado, a
+        // instituição e a linha de crédito dos formulários da venda, um por processo — o numerador do share da Tracbel no
+        // crédito de mecanização. Independe dos outros dois; vai por último porque é o mais novo.
         new(ProcessosVortice, "Funil e vendas perdidas do Vórtice",
             "O estágio de cada processo 31/41/50 do Vórtice desde 01/11/2023, pelo código de resultado do histórico, e as " +
             "vendas perdidas dos formulários desde 2012 — prospect incluído, sem criar cliente, carteira nem usuário. Depois, " +
-            "as oportunidades, a agenda e a linha do tempo dos clientes casados, para o Pipeline e a Agenda.",
-            ["--somente-processos-vortice", "--somente-oportunidades-vortice"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 30)), false,
+            "as oportunidades, a agenda e a linha do tempo dos clientes casados, para o Pipeline e a Agenda. Por fim, o " +
+            "financiamento das vendas (valor, instituição e linha), para o share no crédito de mecanização.",
+            ["--somente-processos-vortice", "--somente-oportunidades-vortice", "--somente-financiamentos-vortice"],
+            AgendaDaRotina.DiariaAs(new TimeOnly(6, 30)), false,
             [ConexoesDoSistema.Vortice], ConexoesDoSistema.Vortice),
 
         // AS METAS DE VENDA DA API GESTÃO DE NEGÓCIOS (decisão de 27/09/2026, #138) — a rotina 9, no FIM da lista como
