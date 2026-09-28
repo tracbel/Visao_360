@@ -165,6 +165,16 @@ public static class EndpointsDeTerritorio
                 "do último mês com dado. Linha é a linha do SICOR — a soma dos contratos de uma combinação —, " +
                 "não um contrato. O SICOR não identifica cliente nem revenda.");
 
+        grupo.MapGet("/credito/share", async (Tracbel.Crm.Aplicacao.Mercado.ObterShareNoCredito caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ObterShareNoCredito")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("Share da Tracbel no crédito de mecanização (issue 262).")
+            .WithDescription(
+                "O valor financiado em crédito rural nas vendas da Tracbel (formulários do Vórtice, sem recurso próprio e sem " +
+                "consórcio) dividido pelo crédito de máquinas do SICOR, na Região, por filial e por município (indicativo), na " +
+                "janela do painel do crédito. Estimativa: sem nome de cliente e sem contrato.");
+
         return app;
     }
 

@@ -234,7 +234,15 @@ public static class PoliticaDeAuditoria
         // O ESTOQUE DA GESTÃO DE NEGÓCIOS (28/09/2026): a máquina que muda de filial, de situação, de reserva ou de pagamento, e a
         // que sai (vendida) e volta. A descrição e as datas previstas não: são do TOTVS, e a pergunta é "estava disponível?".
         ["EquipamentoEmEstoque"] = ["EmpresaId", "Situacao", "Reservado", "Pago", "ChegadaPrevistaEm", CampoDeExclusaoLogica],
-        ["CoberturaDoEstoque"] = ["MesesDeEstoque", "Vendas", CampoDeExclusaoLogica]
+        ["CoberturaDoEstoque"] = ["MesesDeEstoque", "Vendas", CampoDeExclusaoLogica],
+
+        // O FINANCIAMENTO DAS VENDAS (issue 262): o valor, a linha e a instituição que o CEN corrigiu no formulário, o município
+        // casado depois, se passou a contar no share, e o processo cancelado (que sai) e o que volta.
+        ["FinanciamentoDaVenda"] =
+        [
+            "PedidoEm", "MunicipioId", "ValorFinanciado", "InstituicaoFinanceira", "LinhaDeCredito", "ContaNoCreditoRural",
+            CampoDeExclusaoLogica
+        ]
     };
 
     /// <summary>As entidades auditadas, por nome de tipo.</summary>

@@ -10,6 +10,7 @@
 import type { ComProcedencia } from '../../tipos/api';
 import type {
   PainelDeCreditoRural,
+  ShareNoCreditoDeMecanizacao,
   PrecoImplicitoDoRecorte,
   PrecosDeMercado,
   RentabilidadeDaCultura,
@@ -151,6 +152,14 @@ export function obterCreditoRural(
   sinal?: AbortSignal,
 ): Promise<ComProcedencia<PainelDeCreditoRural>> {
   return ler<PainelDeCreditoRural>('/v1/territorio/credito', contexto, { sinal });
+}
+
+/** O share da Tracbel no crédito de mecanização (issue 262) — estimativa, por filial e na Região. */
+export function obterShareNoCredito(
+  contexto: ContextoDeAcesso,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<ShareNoCreditoDeMecanizacao>> {
+  return ler<ShareNoCreditoDeMecanizacao>('/v1/territorio/credito/share', contexto, { sinal });
 }
 
 /** A malha municipal de São Paulo (IBGE, qualidade mínima). */

@@ -212,6 +212,13 @@ var aceitarQueda = args.Contains("--aceitar-queda", StringComparer.Ordinal);
 // do funil. --aceitar-queda vale aqui tambem, so no terminal.
 var somenteOportunidadesDoVortice = args.Contains("--somente-oportunidades-vortice", StringComparer.Ordinal);
 
+// --somente-financiamentos-vortice [--simular] — O FINANCIAMENTO DAS VENDAS, DOS FORMULÁRIOS DO VÓRTICE (issue 262, 28/09/2026).
+//
+// Le do Vortice (so SELECT, NOLOCK) os cinco formularios da venda com valor financiado e mantem organizacao.FinanciamentoDaVenda:
+// um por processo, o cancelado sai sem apagar. Sem pessoa: so o processo, a cidade do cadastro, a data, o valor, a instituicao e
+// a linha. E o 3o modo da rotina PROCESSOS_VORTICE. --aceitar-queda vale aqui tambem, so no terminal.
+var somenteFinanciamentosDoVortice = args.Contains("--somente-financiamentos-vortice", StringComparer.Ordinal);
+
 // --somente-metas-gn [--simular] [--aceitar-remocao] — AS METAS DE VENDA DA API GESTÃO DE NEGÓCIOS (decisão de 27/09/2026, #138).
 //
 // Le /api/v1/cadastros/metas (so GET, chave no Bearer, certificado validado pelo NOME) e SINCRONIZA organizacao.MetaDeVenda:
@@ -302,6 +309,8 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //                                 legada continua congelada.
 //   --somente-oportunidades-vortice  processo, agenda e histórico dos clientes casados (onda 2, documento 52 §12) —
 //                                 também carga nova, sem cadastro novo.
+//   --somente-financiamentos-vortice  o valor financiado, a instituição e a linha dos formulários da venda (issue 262,
+//                                 decisão de 28/09/2026) — sem pessoa, só o processo e a cidade do cadastro.
 //
 // O QUE PEDE A DECLARAÇÃO: a carga completa, --somente-cadastro e --somente-relacionamento.
 const string DeclaracaoDeUsoDoLegado = "--legado-somente-referencia-eu-sei-o-que-estou-fazendo";
@@ -315,7 +324,7 @@ bool[] modosSemVortice =
     somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
     somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina, somenteOportunidadesDoVortice,
-    somenteOperationsCenter, somentePlanejamentoGn, somenteEstoqueGn, somenteConferenciaGn
+    somenteOperationsCenter, somentePlanejamentoGn, somenteEstoqueGn, somenteConferenciaGn, somenteFinanciamentosDoVortice
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -815,6 +824,74 @@ if (somenteOportunidadesDoVortice)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A SINCRONIA DAS OPORTUNIDADES PAROU, e o bloco em curso foi desfeito: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — o financiamento das vendas, dos formulários do Vórtice (issue 262, 28/09/2026).
+// -------------------------------------------------------------------------------------------------
+
+if (somenteFinanciamentosDoVortice)
+{
+    if (string.IsNullOrWhiteSpace(conexaoDoLegado))
+    {
+        Console.Error.WriteLine(
+            "Os financiamentos do Vórtice exigem a credencial do Vórtice: grave-a e teste-a em Configurações › Integrações, ou " +
+            "defina Vortice__Conexao no servidor. Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    var opcoesDosFinanciamentos = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(600))
+            .Options
+        : new DbContextOptionsBuilder<CrmDbContext>().UseSqlServer(conexaoDoCrm, sql => sql.CommandTimeout(600)).Options;
+
+    Console.WriteLine(simular
+        ? "Financiamento das vendas do Vórtice — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
+        : "Financiamento das vendas do Vórtice — sincronizando.");
+    if (aceitarQueda) Console.WriteLine("  --aceitar-queda: a trava de queda não aborta esta rodada; a aceitação fica escrita na execução.");
+    Console.WriteLine();
+
+    var cargaDosFinanciamentos = new CargaDosFinanciamentosDoVortice(
+        () => new CrmDbContext(opcoesDosFinanciamentos, contexto, diario),
+        new LeitorDeFinanciamentosDoVortice(new OpcoesDoVortice { Conexao = conexaoDoLegado }).LerAsync,
+        usuarioId, () => DateTime.UtcNow, Console.WriteLine);
+
+    try
+    {
+        await using var travaDosFinanciamentos = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), CargaDosFinanciamentosDoVortice.Fluxo, CancellationToken.None);
+
+        var resultadoDosFinanciamentos = await cargaDosFinanciamentos.ExecutarAsync(simular, aceitarQueda, CancellationToken.None);
+        if (!resultadoDosFinanciamentos.EhSucesso)
+        {
+            Console.Error.WriteLine("A SINCRONIA DOS FINANCIAMENTOS PAROU: " + resultadoDosFinanciamentos.Erro);
+            return 3;
+        }
+
+        if (resultadoDosFinanciamentos.Valor.Observacoes.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("- Observações -");
+            foreach (var observacao in resultadoDosFinanciamentos.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        }
+
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A SINCRONIA DOS FINANCIAMENTOS PAROU, e o bloco em curso foi desfeito: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;

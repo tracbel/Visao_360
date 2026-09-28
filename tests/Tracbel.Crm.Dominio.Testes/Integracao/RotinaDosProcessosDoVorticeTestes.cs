@@ -45,7 +45,9 @@ public sealed class RotinaDosProcessosDoVorticeTestes
         Catalogo.ConexaoExigida.Should().Be(ConexoesDoSistema.Vortice);
         Catalogo.Conexoes.Should().Equal(ConexoesDoSistema.Vortice);
         // O FUNIL PRIMEIRO, A ONDA 2 DEPOIS: o processo perdido tira o motivo da venda perdida que o funil acabou de gravar.
-        Catalogo.Modos.Should().Equal("--somente-processos-vortice", "--somente-oportunidades-vortice");
+        // O FINANCIAMENTO DAS VENDAS (issue 262) independe dos dois e vai por último.
+        Catalogo.Modos.Should().Equal(
+            "--somente-processos-vortice", "--somente-oportunidades-vortice", "--somente-financiamentos-vortice");
 
         var carteiras = RotinasDoSistema.Obter(RotinasDoSistema.CarteirasVortice)!.AgendaPadrao.Hora;
         Catalogo.AgendaPadrao.Hora.Should().BeAfter(carteiras!.Value, "o funil liga o processo à carteira pelo de-para que a sincronia das carteiras grava");
