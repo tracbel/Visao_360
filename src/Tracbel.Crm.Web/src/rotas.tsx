@@ -36,6 +36,7 @@ import { Agenda } from './telas/Agenda';
 import { ClienteFicha } from './telas/ClienteFicha';
 import { CoberturaCarteira } from './telas/CoberturaCarteira';
 import { CoberturaRegional } from './telas/CoberturaRegional';
+import { ConferenciaComAGestao } from './telas/ConferenciaComAGestao';
 import { Configuracoes } from './telas/Configuracoes';
 import { DemandaEPrevisao } from './telas/DemandaEPrevisao';
 import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
@@ -237,6 +238,14 @@ export const ROTAS: Rota[] = [
     titulo: 'Estoque e Cobertura',
     trilha: ['Relatórios', 'Estoque e Cobertura'],
     Componente: EstoqueECobertura,
+    usaApi: true,
+  },
+  {
+    // Os números do CRM contra o gabarito da API Gestão de Negócios, filial a filial e chassi a chassi (28/09/2026).
+    caminho: '/relatorios/conferencia',
+    titulo: 'Conferência com a Gestão de Negócios',
+    trilha: ['Relatórios', 'Conferência com a Gestão de Negócios'],
+    Componente: ConferenciaComAGestao,
     usaApi: true,
   },
   {

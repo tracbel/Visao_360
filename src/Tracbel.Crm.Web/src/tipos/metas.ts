@@ -41,6 +41,8 @@ export type TotaisDaMeta = {
    * não leu — e não zero.
    */
   realizadoConsorcio: number | null;
+  /** As máquinas vendidas no período e ainda não entregues — fora do realizado pela régua da GN (28/09/2026). */
+  aguardandoEntrega: number;
 };
 
 export type MetaERealizadoNoMes = {
