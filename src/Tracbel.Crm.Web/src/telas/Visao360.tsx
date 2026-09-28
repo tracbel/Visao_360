@@ -2,56 +2,37 @@
  * Visão 360 — a tela inicial do CRM, em duas camadas e **sem dado de arquivo**.
  *
  * ---------------------------------------------------------------------------
- * 05/09/2026 — a última tela que ainda lia JSON do protótipo.
+ * AS CAMADAS, e o que sustenta cada uma:
  *
- * O que saiu, e por quê:
- *
- * - **O seletor de perfil e o painel executivo.** O painel do Gerente e o da
- *   Diretora mostravam faturamento de doze meses, ranking de CENs, mix de
- *   linhas e cobertura regional, todos de `public/dados/*.json`. Os quatro não
- *   têm lastro: o faturamento está parado na origem desde 11/04/2025, não
- *   existe rota que agrupe por pessoa, não há tabela de mix carregada, e a
- *   **regional não existe** — `IVS_Regional` tem zero linhas. Um painel de
- *   diretoria inteiro construído sobre isso é o pior lugar possível para um
- *   número plausível e errado.
- * - **O cliente 84391.** Só ele tinha ficha completa no protótipo; os outros 22
- *   da carteira abriam vazios. Agora **qualquer um dos 23.945 clientes
- *   carregados** abre com o que existe dele.
- *
- * ---------------------------------------------------------------------------
- * AS DUAS CAMADAS, e o que sustenta cada uma:
- *
- * | Camada | Quando aparece | De onde vem |
+ * | Perfil                 | O que aparece | De onde vem |
  * |---|---|---|
- * | **O meu dia** | nenhum cliente escolhido | `/relatorios/agenda`, `/tarefas`, `/cobertura` |
- * | **O 360 do cliente** | um cliente escolhido na busca | cinco leituras em paralelo, todas por `clienteChave` |
+ * | Diretoria e Gerente    | o painel executivo do consolidado das filiais | `PainelExecutivo`, filial a filial |
+ * | CEN, sem cliente       | o trabalho do dia | `/relatorios/agenda`, `/tarefas`, `/cobertura` |
+ * | CEN, com cliente       | o 360 do cliente | cinco leituras em paralelo, todas por `clienteChave` |
  *
- * A busca é a mesma `SeletorDeCliente` do cadastro — busca com sugestão contra
- * `/api/v1/clientes`, dentro da filial do cabeçalho. O que a tela guarda é a
- * CHAVE; o nome digitado nunca vira dado.
+ * A busca do cliente é a mesma `SeletorDeCliente` do cadastro — busca com sugestão contra `/api/v1/clientes`, dentro
+ * da filial do cabeçalho. O que a tela guarda é a CHAVE; o nome digitado nunca vira dado.
  *
  * ---------------------------------------------------------------------------
- * 24/09/2026 — o painel executivo na largura da tela, como os Indicadores.
- *
- * A rota ganhou `larga` e o painel mora na `PaginaDoPainel` — a mesma página dos
- * Indicadores Geográficos, CONTÊINER das quebras. Ela ocupa a coluna de
- * conteúdo inteira: teto (1.940 px, centralizado) só acima de 2.100 px de janela.
- * As grades do painel passaram a quebrar pela largura do conteúdo, e não da
- * janela: na tela do Ricardo (1536 px com 125%, ~1.240 px de conteúdo) os cinco
- * cartões ficam numa linha; abaixo disso, 3 + 2, dois e um.
+ * 28/09/2026 — AS TRÊS CAMADAS NO DESENHO DOS INDICADORES GEOGRÁFICOS (pedido do Ricardo). A página é a
+ * `PaginaDoPainel` — o mesmo contêiner das quebras —, o cabeçalho é o dos Indicadores, e o perfil deixou de ser uma
+ * faixa de três botões com avatar para ser um filtro da barra, ao lado do período. O trabalho do dia do CEN usa os
+ * mesmos cartões e painéis do painel executivo.
  */
 
+import { AlarmClock, CalendarCheck, CalendarRange, CheckCircle2, ListTodo } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
-import { PainelExecutivo } from '../componentes/painel360/PainelExecutivo';
-import { BlocoErro } from '../componentes/cadastro/EstadosDeTela';
-import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Indicadores';
+import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTela';
 import { SeletorDeCliente } from '../componentes/cadastro/SeletorDeCliente';
-import { SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
-import { BlocoPainel } from '../componentes/painel360/BlocoPainel';
+import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
+import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
+import { PainelDoMomento } from '../componentes/mercado/momento/pecas';
 import { Cliente360Api } from '../componentes/painel360/Cliente360Api';
+import { FiltroDoPerfil } from '../componentes/painel360/FiltroDoPerfil';
+import type { PerfilId } from '../componentes/painel360/perfis';
+import { PainelExecutivo } from '../componentes/painel360/PainelExecutivo';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import {
   COBERTURA_INICIAL,
@@ -63,105 +44,91 @@ import {
 import { useRecurso } from '../dados/api/useRecurso';
 import { formatarData } from './cadastro/formato';
 import '../estilos/dashboard.css';
+import '../estilos/mercado-visao.css';
+import '../estilos/momento.css';
+import '../estilos/painel-executivo.css';
 
 /** Quantas linhas cada fila mostra antes de mandar para a tela cheia. */
 const LINHAS = 8;
 
-/**
- * Os três perfis do protótipo. O CEN trabalha o cliente; os outros dois abrem o
- * painel consolidado das treze filiais.
- */
-const PERFIS = [
-  { id: 'cen', cargo: 'CEN', nome: 'Carteira e cliente', avatar: 'CE', cor: '#367C2B' },
-  { id: 'gerente', cargo: 'Gerente regional', nome: 'Consolidado das filiais', avatar: 'GR', cor: '#1B5E20' },
-  { id: 'diretoria', cargo: 'Diretoria comercial', nome: 'Consolidado das filiais', avatar: 'DC', cor: '#7C3AED' },
-] as const;
-
-type PerfilId = (typeof PERFIS)[number]['id'];
-
 export function Visao360() {
-  // A PORTA DE ENTRADA É O PAINEL EXECUTIVO, e não o painel do CEN.
-  //
-  // Quem abre o CRM precisa ver a tela do protótipo — o painel de gráficos com
-  // o negócio inteiro. O painel do CEN continua existindo, no perfil dele, e é
-  // para onde a etapa dos fluxos de negócio volta; ele só deixa de ser a
-  // primeira coisa que aparece.
+  // A PORTA DE ENTRADA É O PAINEL EXECUTIVO, e não o trabalho do CEN: quem abre o CRM precisa ver o negócio inteiro.
   const [perfil, setPerfil] = useState<PerfilId>('diretoria');
   const [clienteChave, setClienteChave] = useState('');
   const [clienteNome, setClienteNome] = useState('');
 
   if (perfil !== 'cen') {
     return (
-      // A PÁGINA DOS INDICADORES: mesmo ritmo, e é ela a régua das quebras do
-      // painel (`@container indicadores`, no `dashboard.css`). A LARGURA É A DA
-      // COLUNA INTEIRA (`v360-pagina`): o teto de 1.580 só volta acima de 2.100px
-      // de janela, centralizado — pedido do Ricardo, com a captura a ~1.700px.
+      // A LARGURA É A DA COLUNA INTEIRA (`v360-pagina`): o teto de 1.940 só volta acima de 2.100px de janela.
       <PaginaDoPainel className="v360-pagina">
-        {/* O CABEÇALHO QUEBRA: título à esquerda e perfis à direita enquanto
-            couberem; em conteúdo estreito os perfis descem para a linha de
-            baixo, em vez de empurrar a página para o lado. */}
-        <div className="page-header v360-cabecalho" data-bloco="cabecalho">
-          <div className="v360-cabecalho-titulo">
-            <h1 className="page-title">Visão 360</h1>
-            <p className="page-subtitle">
-              Dashboard executivo · <strong>Consolidado das filiais em operação</strong> ·{' '}
-              <Link to="/relatorios/territorio" className="v360-link">
-                Indicadores geográficos da ADR →
-              </Link>
-            </p>
-          </div>
-          <SeletorDePerfil perfil={perfil} aoTrocar={setPerfil} />
-        </div>
-
-        <PainelExecutivo />
+        <PainelExecutivo perfil={perfil} aoTrocarPerfil={setPerfil} />
       </PaginaDoPainel>
     );
   }
 
-  // O PERFIL DO CEN TAMBÉM USA A JANELA INTEIRA (27/09/2026). Ele guardava o
-  // teto de 1.336 px, e numa janela larga sobrava uma faixa vazia à direita —
-  // o defeito que o Ricardo apontou em todas as telas.
-  if (clienteChave) {
-    return (
-      <div className="v360-pagina-cen">
-        <SeletorDePerfil perfil={perfil} aoTrocar={setPerfil} />
-        <Cliente360Api
-          chave={clienteChave}
-          aoLimpar={() => {
-            setClienteChave('');
-            setClienteNome('');
-          }}
-        />
-      </div>
-    );
-  }
+  const escolher = (chave: string, nome: string) => {
+    setClienteChave(chave);
+    setClienteNome(nome);
+  };
 
   return (
-    <div className="v360-pagina-cen">
-      <MeuDia
-        perfil={perfil}
-        aoTrocarPerfil={setPerfil}
-        clienteChave={clienteChave}
-        clienteNome={clienteNome}
-        aoEscolher={(chave, nome) => {
-          setClienteChave(chave);
-          setClienteNome(nome);
-        }}
-      />
-    </div>
+    <PaginaDoPainel className="v360-pagina">
+      {/* COM CLIENTE ESCOLHIDO, O TÍTULO É O DELE: a ficha do 360 traz o próprio cabeçalho, com o nome e o botão de
+          trocar de cliente — dois títulos empilhados diriam a mesma coisa duas vezes. */}
+      {!clienteChave && (
+        <div className="page-header" data-bloco="cabecalho">
+          <div>
+            <h1 className="page-title">Visão 360</h1>
+            <p className="page-subtitle">
+              O trabalho do dia e o 360 de qualquer cliente da filial. Todo número desta tela vem do banco do CRM.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="dash-filtros" data-bloco="filtros">
+        <div className="dash-filtros-linha">
+          <FiltroDoPerfil perfil={perfil} aoTrocar={setPerfil} />
+          {clienteChave && (
+            <div className="dash-filtros-acao">
+              <button
+                type="button"
+                className="dash-mais-filtros"
+                onClick={() => {
+                  setClienteChave('');
+                  setClienteNome('');
+                }}
+              >
+                ← Voltar ao trabalho do dia
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {clienteChave ? (
+        <div className="v360-pagina-cen">
+          <Cliente360Api
+            chave={clienteChave}
+            aoLimpar={() => {
+              setClienteChave('');
+              setClienteNome('');
+            }}
+          />
+        </div>
+      ) : (
+        <MeuDia clienteChave={clienteChave} clienteNome={clienteNome} aoEscolher={escolher} />
+      )}
+    </PaginaDoPainel>
   );
 }
 
-/** A camada 1: o que precisa de ação hoje, tudo contado no banco. */
+/** A camada do CEN: o que precisa de ação hoje, tudo contado no banco. */
 function MeuDia({
-  perfil,
-  aoTrocarPerfil,
   clienteChave,
   clienteNome,
   aoEscolher,
 }: {
-  perfil: PerfilId;
-  aoTrocarPerfil: (p: PerfilId) => void;
   clienteChave: string;
   clienteNome: string;
   aoEscolher: (chave: string, nome: string) => void;
@@ -189,212 +156,163 @@ function MeuDia({
   );
 
   const numeros = painel.dados?.itens[0] ?? null;
-
-  const indicadores: Indicador[] = [
-    {
-      rotulo: 'Tarefas atrasadas',
-      valor: numeros?.atrasadas ?? null,
-      tom: 'atencao',
-      deOnde: 'a data agendada já passou e ninguém concluiu',
-      semDado: 'sem tarefa ao alcance deste contexto',
-    },
-    {
-      rotulo: 'Para hoje',
-      valor: numeros?.paraHoje ?? null,
-      deOnde: 'agendadas para a data de hoje',
-      semDado: '—',
-    },
-    {
-      rotulo: 'Próximos 7 dias',
-      valor: numeros?.proximosSeteDias ?? null,
-      deOnde: 'agendadas para a semana que vem',
-      semDado: '—',
-    },
-    {
-      rotulo: 'Pendentes ao todo',
-      valor: numeros?.pendentes ?? null,
-      deOnde: 'em Pendente ou Em andamento, nesta filial',
-      semDado: '—',
-    },
-    {
-      rotulo: 'Concluídas em 30 dias',
-      valor: numeros?.concluidasNosUltimosTrintaDias ?? null,
-      tom: 'bom',
-      deOnde: 'com data, autor e desfecho registrados',
-      semDado: '—',
-    },
-  ];
+  // LENDO NÃO É AUSÊNCIA: enquanto a agenda não volta, o cartão pulsa, sem afirmar motivo.
+  const motivo = painel.carregando ? undefined : 'Sem tarefa ao alcance deste contexto.';
+  const numero = (v: number | undefined) => (v === undefined ? null : v.toLocaleString('pt-BR'));
 
   return (
     <>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Visão 360</h1>
-          <p className="page-subtitle">
-            O trabalho do dia e o 360 de qualquer cliente da filial. Todo número desta tela vem do
-            banco do CRM.
-          </p>
-        </div>
+      <div className="dash-kpis mv-kpis" data-bloco="kpis" data-colunas="5">
+        <CartaoDeDecisao
+          rotulo="Tarefas atrasadas"
+          icone={AlarmClock}
+          tom="captura"
+          valor={numero(numeros?.atrasadas)}
+          carregando={painel.carregando}
+          motivoSemDado={motivo}
+          variacao="a data agendada já passou e ninguém concluiu"
+          sobre="Tarefas em Pendente ou Em andamento cuja data agendada já passou, nesta filial. É o que o dia de hoje precisa resolver primeiro."
+        />
+        <CartaoDeDecisao
+          rotulo="Para hoje"
+          icone={CalendarCheck}
+          tom="demanda"
+          valor={numero(numeros?.paraHoje)}
+          carregando={painel.carregando}
+          motivoSemDado={motivo}
+          variacao="agendadas para a data de hoje"
+          sobre="Tarefas agendadas para hoje, ainda não concluídas, nesta filial."
+        />
+        <CartaoDeDecisao
+          rotulo="Próximos 7 dias"
+          icone={CalendarRange}
+          tom="mercado"
+          valor={numero(numeros?.proximosSeteDias)}
+          carregando={painel.carregando}
+          motivoSemDado={motivo}
+          variacao="agendadas para a semana que vem"
+          sobre="Tarefas agendadas para os próximos sete dias, nesta filial."
+        />
+        <CartaoDeDecisao
+          rotulo="Pendentes ao todo"
+          icone={ListTodo}
+          tom="oportunidade"
+          valor={numero(numeros?.pendentes)}
+          carregando={painel.carregando}
+          motivoSemDado={motivo}
+          variacao="em Pendente ou Em andamento, nesta filial"
+          sobre="Todas as tarefas ainda abertas — Pendente ou Em andamento —, com ou sem data, nesta filial."
+        />
+        <CartaoDeDecisao
+          rotulo="Concluídas em 30 dias"
+          icone={CheckCircle2}
+          tom="neutro"
+          valor={numero(numeros?.concluidasNosUltimosTrintaDias)}
+          carregando={painel.carregando}
+          motivoSemDado={motivo}
+          variacao="com data, autor e desfecho registrados"
+          sobre="Tarefas concluídas nos últimos 30 dias, com a data, quem concluiu e o desfecho registrados."
+        />
       </div>
-
-      <SeletorDePerfil perfil={perfil} aoTrocar={aoTrocarPerfil} />
-
-      <div className="card cad-cartao">
-        <div className="card-header">
-          <div className="card-title">Abrir o 360 de um cliente</div>
-          <div className="card-subtitle">
-            Busca com sugestão contra <code>/api/v1/clientes</code>, dentro da filial do cabeçalho.
-            Nome e nome fantasia por trecho; documento por valor inteiro.
-          </div>
-        </div>
-        <div className="cad-fichas">
-          <SeletorDeCliente
-            rotulo="Cliente"
-            valor={clienteChave}
-            nome={clienteNome}
-            aoEscolher={aoEscolher}
-            largo
-            ajuda="Escolha um cliente para ver a frota, as oportunidades, a agenda e a linha do tempo dele."
-          />
-        </div>
-      </div>
-
-      <PainelDeIndicadores indicadores={indicadores} carregando={painel.carregando} />
 
       {painel.erro && <BlocoErro erro={painel.erro} aoTentarDeNovo={painel.recarregar} />}
-
       <MetricasSemDado metricas={painel.dados?.metricasSemDado} />
 
-      <div className="p360-grid">
-        <BlocoPainel
-          id="atrasadas"
+      <PainelDoMomento
+        titulo="Abrir o 360 de um cliente"
+        dica="Busca com sugestão contra o cadastro de clientes, dentro da filial do cabeçalho: nome e nome fantasia por trecho, documento por valor inteiro."
+        subtitulo="Escolha um cliente para ver a frota, as oportunidades, a agenda e a linha do tempo dele."
+        data-bloco="abrir-cliente"
+      >
+        <SeletorDeCliente rotulo="Cliente" valor={clienteChave} nome={clienteNome} aoEscolher={aoEscolher} largo />
+      </PainelDoMomento>
+
+      <div className="v360-linha" data-bloco="linha-cen" data-variante="mercado">
+        <PainelDoMomento
           titulo="Tarefas atrasadas"
-          subtitulo="as mais antigas primeiro — o atraso é medido contra a data agendada"
-          fonte={<SeloProcedencia procedencia={atrasadas.procedencia} />}
-          acao={
-            <Link to="/agenda" className="btn btn-secondary btn-sm">
-              Ver a agenda
+          dica="As mais antigas primeiro: o atraso é medido contra a data agendada."
+          subtitulo={
+            atrasadas.dados && atrasadas.dados.total > atrasadas.dados.itens.length
+              ? `As ${atrasadas.dados.itens.length} mais antigas de ${atrasadas.dados.total.toLocaleString('pt-BR')} atrasadas.`
+              : 'As mais antigas primeiro.'
+          }
+          direita={
+            <Link to="/agenda" className="v360-link">
+              Ver a agenda →
             </Link>
           }
-          estado={
-            atrasadas.carregando
-              ? 'carregando'
-              : atrasadas.erro
-                ? 'erro'
-                : (atrasadas.dados?.itens.length ?? 0) > 0
-                  ? 'ok'
-                  : 'vazio'
-          }
-          mensagemVazia="Nenhuma tarefa atrasada nesta filial."
-          mensagemErro={atrasadas.erro?.message}
+          data-bloco="atrasadas"
         >
-          <ul className="p360-lista">
-            {atrasadas.dados?.itens.map((t) => (
-              <li className="p360-item p360-item-critico" key={t.chave}>
-                <div className="p360-item-topo">
-                  <span className="p360-item-titulo">{t.assunto}</span>
-                  <span className="p360-item-data cad-mono">{t.diasDeAtraso} dias</span>
-                </div>
-                <div className="p360-item-meta">
-                  {t.clienteNome ?? 'sem cliente na origem'} · {t.responsavelNome} · agendada para{' '}
-                  {formatarData(t.agendadaPara)}
-                </div>
-              </li>
-            ))}
-          </ul>
-          {atrasadas.dados && atrasadas.dados.total > LINHAS && (
-            <p className="p360-item-obs">
-              {atrasadas.dados.total.toLocaleString('pt-BR')} tarefas atrasadas ao todo.
-            </p>
+          {atrasadas.carregando ? (
+            <BlocoCarregando oQue="as tarefas atrasadas" />
+          ) : atrasadas.erro ? (
+            <BlocoErro erro={atrasadas.erro} aoTentarDeNovo={atrasadas.recarregar} />
+          ) : (atrasadas.dados?.itens.length ?? 0) === 0 ? (
+            <p className="v360-nota">Nenhuma tarefa atrasada nesta filial.</p>
+          ) : (
+            <ul className="p360-lista">
+              {atrasadas.dados!.itens.map((t) => (
+                <li className="p360-item p360-item-critico" key={t.chave}>
+                  <div className="p360-item-topo">
+                    <span className="p360-item-titulo">{t.assunto}</span>
+                    <span className="p360-item-data cad-mono">{t.diasDeAtraso} dias</span>
+                  </div>
+                  <div className="p360-item-meta">
+                    {t.clienteNome ?? 'sem cliente na origem'} · {t.responsavelNome} · agendada para{' '}
+                    {formatarData(t.agendadaPara)}
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
-        </BlocoPainel>
+        </PainelDoMomento>
 
-        <BlocoPainel
-          id="sem-contato"
+        <PainelDoMomento
           titulo="Clientes há mais tempo sem contato"
-          subtitulo="o nunca-contatado vem antes de todos"
-          fonte={<SeloProcedencia procedencia={semContato.procedencia} />}
-          acao={
-            <Link to="/cobertura" className="btn btn-secondary btn-sm">
-              Ver a cobertura
+          dica="O cliente nunca contatado vem antes de todos; depois, os de contato mais antigo. Clicar no nome abre o 360 dele."
+          subtitulo={
+            semContato.dados && semContato.dados.total > LINHAS
+              ? `${semContato.dados.total.toLocaleString('pt-BR')} vínculos na carteira desta filial.`
+              : 'O nunca contatado vem antes de todos.'
+          }
+          direita={
+            <Link to="/cobertura" className="v360-link">
+              Ver a cobertura →
             </Link>
           }
-          estado={
-            semContato.carregando
-              ? 'carregando'
-              : semContato.erro
-                ? 'erro'
-                : (semContato.dados?.itens.length ?? 0) > 0
-                  ? 'ok'
-                  : 'vazio'
-          }
-          mensagemVazia="Nenhum vínculo de carteira nesta filial."
-          mensagemErro={semContato.erro?.message}
+          data-bloco="sem-contato"
         >
-          <ul className="p360-lista">
-            {semContato.dados?.itens.map((c) => (
-              <li className="p360-item p360-item-aviso" key={`${c.clienteChave}-${c.carteiraChave}`}>
-                <div className="p360-item-topo">
-                  <button
-                    type="button"
-                    className="p360-item-titulo cad-th-ordenar"
-                    onClick={() => aoEscolher(c.clienteChave, c.clienteNome)}
-                  >
-                    {c.clienteNome}
-                  </button>
-                  <span className="p360-item-data cad-mono">
-                    {c.diasSemContato === null ? 'nunca' : `${c.diasSemContato} dias`}
-                  </span>
-                </div>
-                <div className="p360-item-meta">
-                  {c.carteiraNome} · {c.linhaDeNegocioNome} · {c.responsavelNome}
-                </div>
-              </li>
-            ))}
-          </ul>
-          {semContato.dados && semContato.dados.total > LINHAS && (
-            <p className="p360-item-obs">
-              {semContato.dados.total.toLocaleString('pt-BR')} vínculos na carteira desta filial.
-            </p>
+          {semContato.carregando ? (
+            <BlocoCarregando oQue="a cobertura da carteira" />
+          ) : semContato.erro ? (
+            <BlocoErro erro={semContato.erro} aoTentarDeNovo={semContato.recarregar} />
+          ) : (semContato.dados?.itens.length ?? 0) === 0 ? (
+            <p className="v360-nota">Nenhum vínculo de carteira nesta filial.</p>
+          ) : (
+            <ul className="p360-lista">
+              {semContato.dados!.itens.map((c) => (
+                <li className="p360-item p360-item-aviso" key={`${c.clienteChave}-${c.carteiraChave}`}>
+                  <div className="p360-item-topo">
+                    <button
+                      type="button"
+                      className="p360-item-titulo cad-th-ordenar"
+                      onClick={() => aoEscolher(c.clienteChave, c.clienteNome)}
+                    >
+                      {c.clienteNome}
+                    </button>
+                    <span className="p360-item-data cad-mono">
+                      {c.diasSemContato === null ? 'nunca' : `${c.diasSemContato} dias`}
+                    </span>
+                  </div>
+                  <div className="p360-item-meta">
+                    {c.carteiraNome} · {c.linhaDeNegocioNome} · {c.responsavelNome}
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
-        </BlocoPainel>
+        </PainelDoMomento>
       </div>
-
     </>
-  );
-}
-
-/**
- * O seletor de perfil do protótipo, com os três papéis.
- *
- * Ele não é decorativo: **troca de tela**. O CEN abre o trabalho do dia e o 360
- * de um cliente; Gerente e Diretoria abrem o painel consolidado das treze
- * filiais. É a mesma decisão registrada no documento 05 §8, agora com dado real
- * dos dois lados.
- *
- * Os três botões QUEBRAM DE LINHA quando não cabem (24/09/2026): lado a lado
- * eles somam ~650 px, e no celular empurravam a página para o lado.
- */
-function SeletorDePerfil({ perfil, aoTrocar }: { perfil: PerfilId; aoTrocar: (p: PerfilId) => void }) {
-  return (
-    <div className="v360-perfil-toggle" role="group" aria-label="Perfil de visualização">
-      {PERFIS.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          className={p.id === perfil ? 'v360-perfil-btn active' : 'v360-perfil-btn'}
-          aria-pressed={p.id === perfil}
-          onClick={() => aoTrocar(p.id)}
-        >
-          <div className="v360-perfil-avatar" style={{ background: p.cor }}>
-            {p.avatar}
-          </div>
-          <div className="v360-perfil-info">
-            <div className="v360-perfil-cargo">{p.cargo}</div>
-            <div className="v360-perfil-nome">{p.nome}</div>
-          </div>
-        </button>
-      ))}
-    </div>
   );
 }

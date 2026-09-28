@@ -21,7 +21,7 @@
  * `#/dev/visao360-visual`. Os gráficos entram como dublê — o jsdom não tem canvas.
  */
 
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProvedorDeContextoDeAcesso } from '../../dados/api/contexto';
@@ -124,19 +124,21 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
       expect(c).not.toBeNull();
       return c!;
     });
-    await waitFor(() => expect(cartao).toHaveTextContent(/\d+ de \d+/));
-    expect(cartao).toHaveTextContent('máquinas vendidas');
+    // O CARTÃO É CURTO (28/09/2026, desenho dos Indicadores): o realizado, a meta, o percentual e o período; o resto da
+    // composição do número está na dica ao lado do nome.
+    await waitFor(() => expect(cartao).toHaveTextContent(/\d+\s*de \d+/));
     expect(cartao).toHaveTextContent('da meta');
     expect(cartao).toHaveTextContent('nov/2025 a ago/2026');
-    expect(cartao).toHaveTextContent('vendas aguardam na integração do ART (cadastro, chassi ou outro motivo)');
-    expect(cartao).toHaveTextContent('consórcio');
-    expect(cartao).toHaveTextContent('set/2026 em curso');
 
     // A TABELA ANTIGA (`organizacao.Meta`, sem linha desde a fase 1) não é citada; a nova é `organizacao.MetaDeVenda`.
     expect(container.textContent).not.toMatch(/organizacao\.Meta\b/);
     expect(container.textContent).not.toContain('issue 138');
 
-    const regra = textoDaDica(screen.getByRole('button', { name: 'Como se conta: meta e realizado · fy2026' }));
+    const regra = textoDaDica(screen.getByRole('button', { name: 'Fonte e método: Meta e realizado · FY2026' }));
+    expect(regra).toContain('Máquinas vendidas');
+    expect(regra).toContain('vendas aguardam na integração do ART (cadastro, chassi ou outro motivo)');
+    expect(regra).toContain('consórcio');
+    expect(regra).toContain('set/2026 em curso');
     expect(regra).toContain('API Gestão de Negócios');
     expect(regra).toContain('em máquinas');
     expect(regra).toContain('último mês fechado');
@@ -146,7 +148,10 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     expect(regra).toContain('unidade sem filial no CRM');
 
     // NA COMPOSIÇÃO, a meta e o realizado são em máquinas, e a coluna em reais chama-se Faturamento.
-    const cabecalho = container.querySelector('.v360-composicao thead')!;
+    // A composição abre pelo botão do painel dela.
+    const composicao = container.querySelector<HTMLElement>('[data-bloco="composicao"]')!;
+    fireEvent.click(within(composicao).getByRole('button', { name: 'Ver filial a filial' }));
+    const cabecalho = composicao.querySelector('thead')!;
     expect(cabecalho).toHaveTextContent('Meta FY2026 (máq.)');
     expect(cabecalho).toHaveTextContent('Realizado FY2026 (máq.)');
     expect(cabecalho).toHaveTextContent(`Faturamento FY${ANO_FISCAL}`);
@@ -190,7 +195,9 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     expect(cartao.querySelector('.v360-periodo-alerta')).toHaveTextContent('4 de 5 filiais — fora: Filial Fictícia Beta');
 
     await waitFor(() => expect(tela.container.querySelector('[data-bloco="linha-3"]')).not.toBeNull());
-    const total = tela.container.querySelector('.v360-composicao tr.total')!;
+    const composicao = tela.container.querySelector<HTMLElement>('[data-bloco="composicao"]')!;
+    fireEvent.click(within(composicao).getByRole('button', { name: 'Ver filial a filial' }));
+    const total = composicao.querySelector('tr[data-linha="total"]')!;
     expect(total).toHaveTextContent('(4 de 5)');
   });
 
@@ -213,17 +220,23 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
       </ProvedorDeContextoDeAcesso>,
     );
 
-    await waitFor(() => expect(tela.container.querySelector('[data-kpi="Meta e realizado"]')).toHaveTextContent('Meta.Ler'));
+    await waitFor(() => expect(tela.container.querySelector('[data-kpi="Meta e realizado"]')).not.toBeNull());
+    await waitFor(() => screen.getByRole('button', { name: 'Por que a meta e o realizado não aparece' }));
+    expect(textoDaDica(screen.getByRole('button', { name: 'Por que a meta e o realizado não aparece' }))).toContain('Meta.Ler');
   });
 
   it('o mercado fala em Captura Tracbel, nunca em participação ou share, e não diz que o ART está fora do banco', async () => {
     const { container } = await montar('completo');
 
-    expect(container).toHaveTextContent('Captura Tracbel');
     expect(container.textContent).not.toMatch(/participação de mercado|\bshare\b|emplacamento/i);
     expect(container.textContent).not.toContain('não estão no banco do CRM');
 
-    const regra = textoDaDica(screen.getByRole('button', { name: 'Como se conta: conhecimento de mercado' }));
+    // PARA QUEM PERDEMOS, a aba das vendas perdidas por concorrente, aponta a Captura Tracbel nos Indicadores.
+    const perdas = container.querySelector<HTMLElement>('[data-bloco="linha-4"]')!;
+    fireEvent.click(within(perdas).getByRole('button', { name: 'Para quem perdemos' }));
+    expect(perdas).toHaveTextContent('Captura Tracbel');
+
+    const regra = textoDaDica(screen.getByRole('button', { name: 'Fonte e método: Conhecimento de mercado' }));
     expect(regra).toContain('Captura Tracbel');
     expect(regra).toContain('unidades');
     expect(regra).not.toContain('não estão no banco do CRM');
@@ -235,8 +248,8 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     expect(container.querySelectorAll('[title]')).toHaveLength(0);
 
     // A regra de cada cartão com número virou ⓘ ao lado do título.
-    for (const titulo of ['clientes na carteira', 'cobertura pela cadência', 'conhecimento de mercado']) {
-      expect(screen.getByRole('button', { name: `Como se conta: ${titulo}` })).toBeInTheDocument();
+    for (const titulo of ['Clientes na carteira', 'Cobertura pela cadência', 'Conhecimento de mercado']) {
+      expect(screen.getByRole('button', { name: `Fonte e método: ${titulo}` })).toBeInTheDocument();
     }
 
     // O nome inteiro do cliente — cortado com reticências na tela — e a classe dele.
@@ -244,7 +257,7 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     expect(textoDaDica(cliente)).toContain('INTERIOR PAULISTA LTDA — classe A na curva ABC');
 
     // Os nomes completos das linhas do mix, que saíram do `title` de cada rótulo.
-    expect(textoDaDica(screen.getByRole('button', { name: 'Como o mix por linha é contado' }))).toContain(
+    expect(textoDaDica(screen.getByRole('button', { name: 'Como ler mix por linha' }))).toContain(
       'Venda de Pulverizadores Autopropelidos',
     );
   });
@@ -270,12 +283,13 @@ describe('Painel executivo da Visão 360 — sem carteira e vazio', () => {
 
     const cartao = container.querySelector('[data-kpi="Clientes na carteira"]')!;
     expect(cartao).toHaveTextContent('nenhum cliente com vínculo ativo em carteira');
-    expect(cartao).toHaveTextContent('cliente cadastrado sem carteira não entra nesta conta');
     // A divisão por situação é de quem TEM vínculo: com zero, ela não aparece como "0 suspects".
     expect(cartao.textContent).not.toMatch(/suspects/);
 
-    const regra = textoDaDica(screen.getByRole('button', { name: 'Como se conta: clientes na carteira' }));
+    const regra = textoDaDica(screen.getByRole('button', { name: 'Fonte e método: Clientes na carteira' }));
+    expect(regra).toContain('cliente cadastrado sem carteira não entra nesta conta');
     expect(regra).toContain('não que o cadastro está vazio');
+    expect(regra).not.toMatch(/suspects/);
   });
 
   it('sem vínculo, cobertura, CENs e mix dizem por que estão vazios', async () => {
@@ -320,7 +334,9 @@ describe('Painel executivo da Visão 360 — as perdas e o funil do período (do
   it('as vendas perdidas são do período, e o período está escrito nos dois cartões', async () => {
     const { container } = await montar('completo');
 
-    await waitFor(() => expect(container.querySelector('[data-bloco="linha-4"]')).toHaveTextContent('nov/2025 a ago/2026'));
-    expect(container.querySelector('[data-bloco="linha-2"]')).toHaveTextContent('pela venda perdida principal · nov/2025 a ago/2026');
+    const perdas = container.querySelector<HTMLElement>('[data-bloco="linha-4"]')!;
+    await waitFor(() => expect(perdas).toHaveTextContent('nov/2025 a ago/2026'));
+    fireEvent.click(within(perdas).getByRole('button', { name: 'Para quem perdemos' }));
+    expect(perdas).toHaveTextContent('Pela venda perdida principal · nov/2025 a ago/2026');
   });
 });
