@@ -112,6 +112,21 @@ Diga "1. copia de seguranca do banco"
 $pastaDeBackup = Escalar "SELECT CAST(SERVERPROPERTY('InstanceDefaultBackupPath') AS nvarchar(400))" 60
 $destinoDoBackup = Join-Path $pastaDeBackup ("{0}-antes-de-{1}-{2:yyyyMMdd-HHmm}.bak" -f $cfg.banco, $commitCurto, (Get-Date))
 
+# AS COPIAS DO PROPRIO AGENTE NAO SE ACUMULAM (28/09/2026). Cada publicacao tirava uma copia e nenhuma saia: em sete
+# dias foram 95 copias e 25,5 GB, e a publicacao do e913ba2 parou no meio do BACKUP com o disco cheio. Antes da copia
+# nova, ficam so as mais recentes do agente - o nome "<banco>-antes-de-<commit>-<data>.bak" - e a nova completa o
+# numero. As copias feitas a mao (antes da limpeza, do territorio, dos clientes, da estrutura, da publicacao manual)
+# tem outro nome e NAO sao tocadas. Apaga ANTES da copia nova porque e com o disco cheio que ela falha.
+$copiasAntigasMantidas = 4
+$copiasDoAgente = @(Get-ChildItem -Path $pastaDeBackup -Filter ("{0}-antes-de-*.bak" -f $cfg.banco) -File -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending)
+if ($copiasDoAgente.Count -gt $copiasAntigasMantidas) {
+    $apagadas = @($copiasDoAgente | Select-Object -Skip $copiasAntigasMantidas)
+    $bytes = ($apagadas | Measure-Object -Property Length -Sum).Sum
+    foreach ($velha in $apagadas) { Remove-Item -LiteralPath $velha.FullName -Force }
+    Diga ("{0} copias antigas do agente apagadas ({1:N1} GB); ficam as {2} mais recentes" -f $apagadas.Count, ($bytes / 1GB), $copiasAntigasMantidas)
+}
+
 Escalar "BACKUP DATABASE [$($cfg.banco)] TO DISK = N'$destinoDoBackup' WITH COPY_ONLY, CHECKSUM, INIT" | Out-Null
 Diga "copia em $destinoDoBackup"
 

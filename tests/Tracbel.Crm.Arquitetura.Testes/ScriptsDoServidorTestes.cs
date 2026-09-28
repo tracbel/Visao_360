@@ -127,6 +127,39 @@ public class ScriptsDoServidorTestes
             .And.Contain("$r.migracoesPendentes");
     }
 
+    /// <summary>
+    /// AS CÓPIAS DO AGENTE NÃO SE ACUMULAM (28/09/2026). Cada publicação tirava uma cópia do banco e nenhuma saía: 95
+    /// cópias, 25,5 GB em sete dias, e a publicação do e913ba2 parou no meio do BACKUP com o disco cheio. O teste prende
+    /// as duas coisas que importam: a limpeza vem ANTES da cópia nova (é com o disco cheio que ela falha), e o padrão só
+    /// casa as cópias do agente — as feitas à mão, com os nomes que estão hoje no servidor, ficam.
+    /// </summary>
+    [Fact]
+    public void A_publicacao_apaga_as_copias_antigas_do_agente_antes_da_nova_e_so_as_dele()
+    {
+        var codigo = SemComentarios(Ler("publicar-pacote.ps1"));
+
+        var limpeza = codigo.IndexOf("Remove-Item -LiteralPath $velha.FullName", StringComparison.Ordinal);
+        var copiaNova = codigo.IndexOf("BACKUP DATABASE", StringComparison.Ordinal);
+        limpeza.Should().BePositive("a publicação apaga as cópias antigas do próprio agente");
+        limpeza.Should().BeLessThan(copiaNova, "é com o disco cheio que a cópia nova falha");
+
+        const string padrao = "TracbelCrm-antes-de-*.bak";
+        codigo.Should().Contain("\"{0}-antes-de-*.bak\" -f $cfg.banco", "o nome que a própria publicação dá à cópia");
+
+        Casa(padrao, "TracbelCrm-antes-de-e913ba2-20260928-0035.bak").Should().BeTrue();
+        foreach (var feitaAMao in new[]
+                 {
+                     "TracbelCrm-antes-da-publicacao-20260921-113156.bak", "TracbelCrm-antes-do-territorio-20260920-0926.bak",
+                     "TracbelCrm-copia-antes-do-territorio-20260914.bak", "TracbelCrm-arquivo-antes-da-limpeza-20260915-095042.bak",
+                     "TracbelCrm-antes-dos-clientes-20260924-1059.bak", "TracbelCrm-antes-da-estrutura-20260924-1208.bak"
+                 })
+            Casa(padrao, feitaAMao).Should().BeFalse($"{feitaAMao} foi feita à mão e não é do agente");
+    }
+
+    /// <summary>O curinga do <c>Get-ChildItem -Filter</c> (<c>*</c>) como expressão regular, sem diferenciar caixa.</summary>
+    private static bool Casa(string curinga, string nome) =>
+        Regex.IsMatch(nome, "^" + Regex.Escape(curinga).Replace(@"\*", ".*") + "$", RegexOptions.IgnoreCase);
+
     private static string Ler(string nome) =>
         File.ReadAllText(Path.Combine(
             ArquiteturaTestes.LocalizarRaizDoRepositorio(), "scripts", "deploy", nome));
