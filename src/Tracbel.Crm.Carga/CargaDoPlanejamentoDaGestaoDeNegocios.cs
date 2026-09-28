@@ -245,10 +245,7 @@ internal sealed class CargaDoPlanejamentoDaGestaoDeNegocios(
 
         // ---- as cotas ----
         var empresaPorCodigo = await banco.Empresas.AsNoTracking().ToDictionaryAsync(e => e.Codigo, e => e.Id, StringComparer.Ordinal, ct);
-        var codigoPorNomeDeFilial = origem.Filiais
-            .Where(f => f.CodigoTotvs is not null)
-            .GroupBy(f => CodigoEstavel.De(f.Nome))
-            .ToDictionary(g => g.Key, g => g.First().CodigoTotvs!, StringComparer.Ordinal);
+        var codigoPorNomeDeFilial = FiliaisDaGestaoDeNegocios.CodigoPorNome(origem.Filiais);
 
         var contasPorLogin = (await banco.Usuarios.AsNoTracking()
                 .Where(u => u.ExcluidoEm == null)

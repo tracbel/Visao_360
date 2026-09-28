@@ -38,12 +38,6 @@ public sealed record CotaNaOrigem(
     string? Grupo, string? Cota, string? MesRotulo, string? Filial, string? Consultor, string? Gestor, string? Contemplacao,
     string? AlocadaEm, string? ContempladaEm, string? Produto, string? ValorDoBem, string? ValorDaParcela);
 
-/// <summary>Uma loja do de-para de filiais da GN.</summary>
-/// <param name="Numero">O número — o NroEmpresa do Vórtice, e os dois últimos dígitos do TOTVS.</param>
-/// <param name="Nome">O nome, como os painéis escrevem.</param>
-/// <param name="CodigoTotvs">O código da filial no TOTVS (<c>0101NN</c>); nulo em Digital, Grandes Contas e na Colorado.</param>
-public sealed record FilialDaGestao(int Numero, string Nome, string? CodigoTotvs);
-
 /// <summary>O planejamento inteiro, lido e conferido.</summary>
 /// <param name="Time">O de-para de consultores.</param>
 /// <param name="Forecast">O cadastro de forecast.</param>
@@ -84,9 +78,6 @@ public sealed class LeitorDoPlanejamentoDaGestaoDeNegocios(ClienteDaGestaoDeNego
     /// <summary>A rota da performance de consórcio, com a janela larga — o painel tem período padrão.</summary>
     public const string RotaDoConsorcio = "/api/v1/paineis/performance-consorcio?data_de=2000-01-01&data_ate=2100-12-31";
 
-    /// <summary>A rota do de-para das lojas.</summary>
-    public const string RotaDasFiliais = "/api/v1/filiais";
-
     private static readonly string[] Meses = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
     /// <summary>Lê as quatro rotas; uma que falhe derruba a leitura inteira — nada é gravado pela metade.</summary>
@@ -102,7 +93,7 @@ public sealed class LeitorDoPlanejamentoDaGestaoDeNegocios(ClienteDaGestaoDeNego
         var consorcio = await cliente.LerTudoAsync<JsonElement>(RotaDoConsorcio, ct);
         if (!consorcio.EhSucesso) return Resultado<LeituraDoPlanejamentoNaOrigem>.Indisponivel(consorcio.Erro!);
 
-        var filiais = await cliente.LerDocumentoAsync(RotaDasFiliais, ct);
+        var filiais = await cliente.LerDocumentoAsync(FiliaisDaGestaoDeNegocios.Rota, ct);
         if (!filiais.EhSucesso) return Resultado<LeituraDoPlanejamentoNaOrigem>.Indisponivel(filiais.Erro!);
 
         var convertido = Converter(time.Valor.Linhas, forecast.Valor.Linhas, consorcio.Valor.Linhas, filiais.Valor);
@@ -154,21 +145,10 @@ public sealed class LeitorDoPlanejamentoDaGestaoDeNegocios(ClienteDaGestaoDeNego
                 Texto(l, "valor_parcela")));
         }
 
-        if (filiais.ValueKind != JsonValueKind.Object || !filiais.TryGetProperty("filiais", out var listaDeFiliais)
-            || listaDeFiliais.ValueKind != JsonValueKind.Array)
-            return Resultado<LeituraDoPlanejamentoNaOrigem>.Indisponivel(
-                $"{RotaDasFiliais} não trouxe a lista \"filiais\". A API pode ter mudado de formato — nada foi gravado.");
+        var lojas = FiliaisDaGestaoDeNegocios.Converter(filiais);
+        if (!lojas.EhSucesso) return Resultado<LeituraDoPlanejamentoNaOrigem>.Indisponivel(lojas.Erro!);
 
-        var lojas = new List<FilialDaGestao>();
-        foreach (var f in listaDeFiliais.EnumerateArray())
-        {
-            if (!Inteiro(f, "numero", out var numero) || Texto(f, "nome") is not { Length: > 0 } nome)
-                return Resultado<LeituraDoPlanejamentoNaOrigem>.Indisponivel(
-                    $"Uma loja de {RotaDasFiliais} veio sem número ou sem nome. Campos recebidos: {Campos(f)}. Nada foi gravado.");
-            lojas.Add(new FilialDaGestao(numero, nome, Texto(f, "codigo_totvs") is { Length: > 0 } codigo ? codigo : null));
-        }
-
-        return Resultado<LeituraDoPlanejamentoNaOrigem>.Ok(new LeituraDoPlanejamentoNaOrigem(consultores, previsoes, cotas, meses, lojas, null));
+        return Resultado<LeituraDoPlanejamentoNaOrigem>.Ok(new LeituraDoPlanejamentoNaOrigem(consultores, previsoes, cotas, meses, lojas.Valor, null));
     }
 
     /// <summary>O mês de um rótulo do painel (<c>Set/2026</c>), no dia 1; nulo quando não se lê.</summary>
