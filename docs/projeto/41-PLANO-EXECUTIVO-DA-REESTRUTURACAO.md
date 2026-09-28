@@ -87,6 +87,25 @@ sai do build junto com a extração.
 > dono do processo), não toca o faturamento e não grava o último contato. Desenho no
 > [documento 52 §12](52-FUNIL-PROCESSOS-E-VENDAS-PERDIDAS-DO-VORTICE.md#12-onda-2--processo-tarefa-e-interacao-dos-clientes-casados-pr-4).
 
+### 1.3 Errata de 28/09/2026 — as metas de contagem de tabelas deixam de ser meta
+
+> **O que muda.** A D-1 continua sendo a **direção** (entidades com comportamento, sem tabela órfã, sem ciclo de FK), mas
+> os **números de chegada** das fases 5 a 10 — 48, 44, 43 e 42 tabelas — deixam de ser meta. Depois da fase 1 (50 tabelas, 49 de modelo),
+> o CRM ganhou tabelas **com decisão registrada e dado de verdade**: as fontes públicas do potencial de mercado (PAM,
+> estrutura agropecuária, preços, custos, SICOR, catálogo de culturas), as integrações configuráveis, o funil do Vórtice, a
+> meta de venda, o preço de referência da máquina e os parâmetros do planejamento. Em 28/09/2026 são **82**, e o número
+> sobe a cada tabela nova decidida (a percepção por cultura, #269, é a próxima).
+>
+> **O portão que vale agora** é o de sempre, só que sem alvo fixo: toda tabela nova entra com a decisão escrita no
+> [documento 14 §2.1](14-PADRAO-DE-BANCO.md#21-a-lista-fechada-hoje), e a contagem é conferida por **dois testes** —
+> `EsquemaENomenclaturaTestes` (modelo) e `MigracaoNoContainerTestes` (SQL Server de verdade). Mudar o número sem mudar
+> os dois e o documento 14 quebra o CI.
+>
+> **O que isso encerra.** As issues que só perseguiam a contagem antiga — o snapshot da fase 2 com 50 tabelas (#2), o
+> inventário das 50 (#7) e a fase 7 de 48 para 44 (#16) — perdem o objeto. O que elas pediam de útil já existe por outro
+> caminho: o retrato de cada tabela é o documento 14 §2.1 com os dois testes; a venda de máquina como evento, a posse pelo
+> dono atual (VV1) e o rastro por `RegistroDeOrigem` estão na main (#238, doc 35 §10).
+
 ---
 
 ## 2. Decisões pendentes

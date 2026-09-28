@@ -22,6 +22,7 @@ const api = vi.hoisted(() => ({
   reativarConexao: vi.fn(),
   reagendarRotina: vi.fn(),
   pedirExecucao: vi.fn(),
+  obterDesempenhoDaApi: vi.fn(),
 }));
 
 vi.mock('../../dados/api/integracoes', () => api);
@@ -70,6 +71,18 @@ const painel = (podeAdministrar: boolean): { dados: PainelDeIntegracoes; procede
   procedencia: PROCEDENCIA,
 });
 
+const DESEMPENHO = {
+  dados: {
+    desdeUtc: '2026-09-28T03:00:00Z',
+    amostrasPorRota: 1000,
+    rotas: [
+      { metodo: 'POST', rota: '/api/v1/clientes', chamadas: 1500, amostras: 1000, p50: 21.4, p95: 46.3, maximo: 120, erros: 0, grava: true },
+      { metodo: 'GET', rota: '/api/v1/territorio/indicadores', chamadas: 40, amostras: 40, p50: 310, p95: 980.5, maximo: 1200, erros: 1, grava: false },
+    ],
+  },
+  procedencia: { ...PROCEDENCIA, objeto: 'medição da própria API, em memória, desde a última subida do serviço' },
+};
+
 function montar() {
   render(
     <ProvedorDeContextoDeAcesso>
@@ -81,6 +94,7 @@ function montar() {
 describe('ConfigSecaoIntegracoes', () => {
   beforeEach(() => {
     sincronizacoes.listarSincronizacoes.mockResolvedValue([]);
+    api.obterDesempenhoDaApi.mockResolvedValue(DESEMPENHO);
   });
 
   afterEach(() => {
@@ -138,5 +152,21 @@ describe('ConfigSecaoIntegracoes', () => {
     expect(screen.queryByRole('button', { name: /Conectar nova API/ })).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Histórico' }).length).toBeGreaterThan(0);
     expect(screen.getByText('Configurar e testar é do Administrador.', { exact: false })).toBeInTheDocument();
+  });
+  it('o tempo de resposta medido pelo servidor aparece por rota, e o filtro deixa só as gravações', async () => {
+    api.obterPainelDeIntegracoes.mockResolvedValue(painel(false));
+    montar();
+
+    const cartao = (await screen.findByText('Tempo de resposta da API')).closest('.config-card') as HTMLElement;
+    const tabela = await within(cartao).findByRole('table');
+    expect(within(tabela).getByText('/api/v1/clientes')).toBeInTheDocument();
+    expect(within(tabela).getByText('46,3 ms')).toBeInTheDocument();
+    expect(within(tabela).getByText('as últimas 1.000')).toBeInTheDocument();
+    expect(within(tabela).getByText('/api/v1/territorio/indicadores')).toBeInTheDocument();
+
+    fireEvent.click(within(cartao).getByLabelText('Só as gravações'));
+
+    expect(within(tabela).queryByText('/api/v1/territorio/indicadores')).not.toBeInTheDocument();
+    expect(within(tabela).getByText('grava — passa pela trilha')).toBeInTheDocument();
   });
 });
