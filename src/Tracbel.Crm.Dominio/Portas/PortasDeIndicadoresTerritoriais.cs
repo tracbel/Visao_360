@@ -360,6 +360,13 @@ public sealed record UsinaDoMunicipio(string RazaoSocial, int? CapacidadeM3Dia);
 /// <param name="Bovinos">O efetivo de bovinos, em cabeças.</param>
 /// <param name="AreaKm2">A área territorial do município.</param>
 /// <param name="Usinas">As usinas de etanol instaladas aqui.</param>
+/// <param name="AreaDosEstabelecimentosHectares">A área total dos estabelecimentos agropecuários (Censo, 6881).</param>
+/// <param name="EstabelecimentosComArea">Os estabelecimentos com área (Censo, 6881).</param>
+/// <param name="AreaDeLavouraHectares">
+/// A área em lavoura permanente e temporária (e em flores, quando divulgada); nula quando uma das duas primeiras veio
+/// sob sigilo. A de flores sob sigilo fica de fora da soma — são poucos hectares, e a frase da tela diz isso.
+/// </param>
+/// <param name="Vocacao">A vocação agrícola pelos tercis da ADR; nula fora da ADR ou sem as duas áreas.</param>
 public sealed record EstruturaDoMunicipio(
     short? AnoDoCenso,
     int? Tratores,
@@ -371,8 +378,28 @@ public sealed record EstruturaDoMunicipio(
     short? AnoDoRebanho,
     int? Bovinos,
     decimal? AreaKm2,
-    IReadOnlyList<UsinaDoMunicipio> Usinas)
+    IReadOnlyList<UsinaDoMunicipio> Usinas,
+    decimal? AreaDosEstabelecimentosHectares = null,
+    int? EstabelecimentosComArea = null,
+    decimal? AreaDeLavouraHectares = null,
+    VocacaoAgricola? Vocacao = null)
 {
+    /// <summary>
+    /// O TAMANHO MÉDIO DA PROPRIEDADE, em hectares — a área dos estabelecimentos ÷ os estabelecimentos COM ÁREA
+    /// (Censo, 6881). Os "produtores sem área" da 6780 não entram: dividir por eles encolheria a média com gente que não
+    /// tem terra.
+    /// </summary>
+    public decimal? TamanhoMedioHectares =>
+        AreaDosEstabelecimentosHectares is { } area && EstabelecimentosComArea is > 0 and { } quantos
+            ? Math.Round(area / quantos, 1)
+            : null;
+
+    /// <summary>A fatia da área dos estabelecimentos em lavoura, em percentual; nula sem as duas áreas.</summary>
+    public decimal? FatiaDeLavouraPercentual =>
+        AreaDeLavouraHectares is { } lavoura && AreaDosEstabelecimentosHectares is > 0 and { } area
+            ? Math.Round(lavoura * 100m / area, 1)
+            : null;
+
     /// <summary>
     /// Tratores por mil km² — a densidade do parque, que compara município grande com pequeno.
     ///
@@ -387,6 +414,39 @@ public sealed record EstruturaDoMunicipio(
         Usinas.Count == 0 || Usinas.All(u => u.CapacidadeM3Dia is null)
             ? null
             : Usinas.Sum(u => u.CapacidadeM3Dia ?? 0);
+}
+
+/// <summary>
+/// A VOCAÇÃO AGRÍCOLA DE UM MUNICÍPIO — decidida pelo Ricardo em 28/09/2026: a fatia da área dos estabelecimentos
+/// em lavoura (Censo), cortada pelos TERCIS dos municípios da ADR, como o porte. Alta no terço de cima, Média no do
+/// meio, Baixa no de baixo — a vocação diz "aqui se planta mais do que no município típico da ADR", e não um adjetivo
+/// absoluto.
+/// </summary>
+/// <param name="Classe"><c>Alta</c>, <c>Média</c> ou <c>Baixa</c>.</param>
+/// <param name="FatiaDeLavouraPercentual">A fatia deste município.</param>
+/// <param name="MediaAPartirDe">O primeiro tercil da ADR, em percentual.</param>
+/// <param name="AltaAPartirDe">O segundo tercil.</param>
+/// <param name="MunicipiosNaBase">Quantos municípios da ADR tinham a fatia.</param>
+public sealed record VocacaoAgricola(
+    string Classe, decimal FatiaDeLavouraPercentual, decimal MediaAPartirDe, decimal AltaAPartirDe, int MunicipiosNaBase)
+{
+    /// <summary>
+    /// A vocação de cada município da ADR pelos tercis da fatia de lavoura. Os cortes são o PERCENTIL.INC do Excel —
+    /// a mesma conta das bandas de porte, sobre percentuais com uma casa. Sem três municípios, ou com tercis que não
+    /// sobem, não há vocação: um corte que não separa ninguém não classifica.
+    /// </summary>
+    /// <param name="fatiasDaAdr">A fatia de lavoura de cada município da ADR que a tem, pelo código IBGE.</param>
+    public static IReadOnlyDictionary<int, VocacaoAgricola> PelosTercis(IReadOnlyDictionary<int, decimal> fatiasDaAdr)
+    {
+        if (Organizacao.ParametroDoPotencial.BandasPelosTercis(fatiasDaAdr.Values) is not { } cortes)
+            return new Dictionary<int, VocacaoAgricola>();
+
+        return fatiasDaAdr.ToDictionary(
+            f => f.Key,
+            f => new VocacaoAgricola(
+                f.Value >= cortes.GrandeAPartirDe ? "Alta" : f.Value >= cortes.MedioAPartirDe ? "Média" : "Baixa",
+                f.Value, cortes.MedioAPartirDe, cortes.GrandeAPartirDe, fatiasDaAdr.Count));
+    }
 }
 
 /// <summary>

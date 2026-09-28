@@ -362,6 +362,27 @@ export type EstruturaDoMunicipio = {
   /** Densidade do parque — sem ela, o mapa de tratores é quase um mapa de tamanho do município. */
   tratoresPorMilKm2: number | null;
   capacidadeDeEtanolM3Dia: number | null;
+  /** A área total dos estabelecimentos, em ha (Censo, SIDRA 6881; 28/09/2026). Nula é sigilo ou fonte não carregada. */
+  areaDosEstabelecimentosHectares?: number | null;
+  /** Os estabelecimentos com área (6881) — o divisor do tamanho médio. */
+  estabelecimentosComArea?: number | null;
+  /** A área em lavoura permanente e temporária (e flores, quando divulgada). */
+  areaDeLavouraHectares?: number | null;
+  /** Área dos estabelecimentos ÷ estabelecimentos com área, em ha. */
+  tamanhoMedioHectares?: number | null;
+  /** A fatia da área dos estabelecimentos em lavoura, em %. */
+  fatiaDeLavouraPercentual?: number | null;
+  /** A vocação agrícola pelos tercis da ADR (decidida em 28/09/2026); nula fora da ADR ou sem a fatia. */
+  vocacao?: VocacaoAgricola | null;
+};
+
+/** A vocação agrícola: a fatia de lavoura cortada pelos tercis dos municípios da ADR. */
+export type VocacaoAgricola = {
+  classe: 'Alta' | 'Média' | 'Baixa';
+  fatiaDeLavouraPercentual: number;
+  mediaAPartirDe: number;
+  altaAPartirDe: number;
+  municipiosNaBase: number;
 };
 
 /**

@@ -34,6 +34,7 @@ public static class RotulosDaTrilha
         ["ProducaoAgricolaNoEstado"] = "Produção agrícola no estado (PAM)",
         ["FrotaDeTratoresNoMunicipio"] = "Tratores no município (Censo)",
         ["EstabelecimentosPorAreaNoMunicipio"] = "Propriedades por tamanho (Censo)",
+        ["UtilizacaoDasTerrasNoMunicipio"] = "Utilização das terras no município (Censo)",
         ["RebanhoNoMunicipio"] = "Rebanho no município (PPM)",
         ["AreaTerritorialDoMunicipio"] = "Área territorial do município",
     ["MedidaDoIbgeNoEstado"] = "Total publicado do estado (IBGE)",
@@ -145,6 +146,11 @@ public static class RotulosDaTrilha
         ["EstabelecimentosPorAreaNoMunicipio"] = new(StringComparer.Ordinal)
         {
             ["GrupoDeAreaNome"] = "Grupo de área", ["Estabelecimentos"] = "Estabelecimentos"
+        },
+        ["UtilizacaoDasTerrasNoMunicipio"] = new(StringComparer.Ordinal)
+        {
+            ["UtilizacaoNome"] = "Utilização das terras", ["EstabelecimentosComArea"] = "Estabelecimentos com área",
+            ["AreaHectares"] = "Área (ha)"
         },
         ["RebanhoNoMunicipio"] = new(StringComparer.Ordinal) { ["RebanhoNome"] = "Rebanho", ["Cabecas"] = "Cabeças" },
         ["AreaTerritorialDoMunicipio"] = new(StringComparer.Ordinal) { ["AreaKm2"] = "Área (km²)" },

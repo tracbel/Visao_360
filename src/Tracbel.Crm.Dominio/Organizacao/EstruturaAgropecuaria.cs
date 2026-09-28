@@ -200,6 +200,114 @@ public sealed class EstabelecimentosPorAreaNoMunicipio
 }
 
 /// <summary>
+/// A ÁREA DOS ESTABELECIMENTOS DE UM MUNICÍPIO, numa utilização das terras — Censo Agropecuário (tabela SIDRA 6881,
+/// classificação 222), 28/09/2026.
+///
+/// <para><b>Por que existe.</b> A 6780 só conta estabelecimentos; a área deles não estava no CRM, e a tela deixava em
+/// branco a área total das propriedades, o tamanho médio e a vocação agrícola. A 6881 traz as duas medidas — a área
+/// em hectares e os estabelecimentos com área — por utilização: o Total e as três de lavoura (permanente, temporária e
+/// flores) bastam para as três contas. As outras utilizações (pastagem, mata) ficam na fonte até alguém pedi-las.</para>
+///
+/// <para><b>Nulo é sigilo, nunca zero</b>, como nas outras tabelas do Censo: o IBGE oculta a lavoura de um município
+/// com poucos estabelecimentos, e a fatia dele sai sem valor em vez de sair zero.</para>
+/// </summary>
+public sealed class UtilizacaoDasTerrasNoMunicipio
+{
+    private UtilizacaoDasTerrasNoMunicipio() { }
+
+    /// <summary>Identificador interno.</summary>
+    public long Id { get; private set; }
+
+    /// <summary>O município.</summary>
+    public int MunicipioId { get; private set; }
+
+    /// <summary>O ano do Censo.</summary>
+    public short Ano { get; private set; }
+
+    /// <summary>A categoria da classificação 222. 110087 é o total; 113470, 113471 e 40677 são as lavouras.</summary>
+    public int UtilizacaoCodigoIbge { get; private set; }
+
+    /// <summary>O rótulo oficial da utilização.</summary>
+    public string UtilizacaoNome { get; private set; } = default!;
+
+    /// <summary>Estabelecimentos com área nessa utilização (variável 9587). Nulo é sigilo.</summary>
+    public int? EstabelecimentosComArea { get; private set; }
+
+    /// <summary>A área, em hectares (variável 184). Nulo é sigilo.</summary>
+    public decimal? AreaHectares { get; private set; }
+
+    /// <summary>Quando a carga gravou ou conferiu a linha (UTC).</summary>
+    public DateTime ImportadoEm { get; private set; }
+
+    /// <summary>Quem rodou a carga.</summary>
+    public long ImportadoPorId { get; private set; }
+
+    /// <summary>Registra a linha de um município, ano e utilização.</summary>
+    /// <param name="municipioId">O município.</param>
+    /// <param name="ano">O ano do Censo.</param>
+    /// <param name="utilizacaoCodigoIbge">A categoria da classificação 222.</param>
+    /// <param name="utilizacaoNome">O rótulo oficial.</param>
+    /// <param name="estabelecimentosComArea">A contagem, ou nulo.</param>
+    /// <param name="areaHectares">A área, ou nulo.</param>
+    /// <param name="importadoPorId">Quem rodou a carga.</param>
+    /// <param name="agoraUtc">O instante da carga.</param>
+    /// <exception cref="RegraDeNegocioViolada">Quando o ano, o código, a contagem ou a área não valem.</exception>
+    public static UtilizacaoDasTerrasNoMunicipio Registrar(
+        int municipioId, short ano, int utilizacaoCodigoIbge, string utilizacaoNome,
+        int? estabelecimentosComArea, decimal? areaHectares, long importadoPorId, DateTime agoraUtc)
+    {
+        MedicaoDoIbge.ConferirAno(ano);
+        MedicaoDoIbge.ConferirCategoria(utilizacaoCodigoIbge, utilizacaoNome);
+        MedicaoDoIbge.ConferirContagem(estabelecimentosComArea, nameof(estabelecimentosComArea));
+        ConferirArea(areaHectares);
+
+        return new UtilizacaoDasTerrasNoMunicipio
+        {
+            MunicipioId = municipioId,
+            Ano = ano,
+            UtilizacaoCodigoIbge = utilizacaoCodigoIbge,
+            UtilizacaoNome = utilizacaoNome.Trim(),
+            EstabelecimentosComArea = estabelecimentosComArea,
+            AreaHectares = areaHectares,
+            ImportadoEm = agoraUtc,
+            ImportadoPorId = importadoPorId
+        };
+    }
+
+    /// <summary>Confere a linha contra uma nova leitura e diz se alguma coisa mudou.</summary>
+    /// <param name="utilizacaoNome">O rótulo da nova leitura.</param>
+    /// <param name="estabelecimentosComArea">A contagem da nova leitura.</param>
+    /// <param name="areaHectares">A área da nova leitura.</param>
+    /// <param name="importadoPorId">Quem rodou a carga.</param>
+    /// <param name="agoraUtc">O instante da carga.</param>
+    public bool Reapurar(
+        string utilizacaoNome, int? estabelecimentosComArea, decimal? areaHectares, long importadoPorId, DateTime agoraUtc)
+    {
+        MedicaoDoIbge.ConferirContagem(estabelecimentosComArea, nameof(estabelecimentosComArea));
+        ConferirArea(areaHectares);
+
+        var mudou = UtilizacaoNome != utilizacaoNome.Trim()
+                    || EstabelecimentosComArea != estabelecimentosComArea
+                    || AreaHectares != areaHectares;
+
+        UtilizacaoNome = utilizacaoNome.Trim();
+        EstabelecimentosComArea = estabelecimentosComArea;
+        AreaHectares = areaHectares;
+        ImportadoEm = agoraUtc;
+        ImportadoPorId = importadoPorId;
+
+        return mudou;
+    }
+
+    /// <summary>Área zero vale (um município pode não ter flor); negativa não existe.</summary>
+    private static void ConferirArea(decimal? areaHectares)
+    {
+        if (areaHectares < 0)
+            throw new RegraDeNegocioViolada("A área dos estabelecimentos publicada pelo IBGE não é negativa.");
+    }
+}
+
+/// <summary>
 /// O EFETIVO DE UM REBANHO NUM MUNICÍPIO — Pesquisa da Pecuária Municipal (tabela SIDRA 3939).
 ///
 /// <para><b>Por que existe, e por que não veio junto do Censo.</b> Pecuária também mecaniza, e a

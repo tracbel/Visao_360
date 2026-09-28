@@ -41,6 +41,7 @@ import {
 import type { ComponentType, ReactNode } from 'react';
 import type {
   CulturaNoEstado,
+  EstruturaDoMunicipio,
   HistoricoDoMunicipio,
   IndicadoresDoMunicipio,
   NumerosDeDecisao,
@@ -105,6 +106,23 @@ function ItemDaEstrutura({ icone: Icone, valor, rotulo }: { icone: Icone; valor:
       </span>
     </li>
   );
+}
+
+/** Uma casa decimal fixa — os cortes da vocação são percentuais com uma casa. */
+const umaCasa = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+const SEM_AREA_DO_CENSO =
+  'A área dos estabelecimentos do Censo Agropecuário (SIDRA 6881) não veio para este município: sigilo do IBGE, que ' +
+  'oculta o valor quando poucos estabelecimentos o compõem, ou a carga anual da estrutura ainda não a leu. Sigilo NÃO é zero.';
+
+/** Por que a vocação não tem classe — fora da ADR, sem a lavoura (sigilo) ou sem a área. */
+function motivoSemVocacao(estrutura: EstruturaDoMunicipio, daAdr: boolean): string {
+  if (!daAdr)
+    return 'A vocação compara a fatia de lavoura com a dos municípios da ADR (tercis, decisão de 28/09/2026), e este município está fora dela.';
+  if (estrutura.areaDosEstabelecimentosHectares == null) return SEM_AREA_DO_CENSO;
+  if (estrutura.areaDeLavouraHectares == null)
+    return 'O IBGE ocultou por sigilo a área de lavoura permanente ou temporária deste município (Censo, SIDRA 6881): sem ela não há fatia de lavoura a comparar. Sigilo NÃO é zero.';
+  return 'Os tercis da ADR não cortam: menos de três municípios com a fatia de lavoura, ou todos iguais.';
 }
 
 function ItemDeOportunidade({ icone: Icone, valor, rotulo }: { icone: Icone; valor: ReactNode; rotulo: string }) {
@@ -341,17 +359,18 @@ export function VisaoGeralDoMunicipio({
             />
           </h3>
           <ul className="terr-ficha-estrutura">
-            {/* A ÁREA DOS ESTABELECIMENTOS DO CENSO NÃO ESTÁ NA CARGA do
-                território: o Censo entra com tratores, estabelecimentos e
-                faixas de tamanho, e não com a área deles. */}
+            {/* A ÁREA DOS ESTABELECIMENTOS VEM DA SIDRA 6881 (28/09/2026), a
+                utilização das terras do Censo — a mesma carga anual da
+                estrutura. Nulo é sigilo do IBGE ou a fonte ainda não lida. */}
             <ItemDaEstrutura
               icone={Fence}
               rotulo="área total das propriedades"
               valor={
-                <ValorAusente
-                  motivo="A área dos estabelecimentos do Censo Agropecuário não está na carga do território — ela entra pelo épico de integração do IBGE (issue 174), ainda sem issue própria."
-                  oQue="a área total das propriedades"
-                />
+                estrutura.areaDosEstabelecimentosHectares == null ? (
+                  <ValorAusente motivo={SEM_AREA_DO_CENSO} oQue="a área total das propriedades" />
+                ) : (
+                  `${nº(Math.round(estrutura.areaDosEstabelecimentosHectares))} ha`
+                )
               }
             />
             <ItemDaEstrutura
@@ -372,20 +391,43 @@ export function VisaoGeralDoMunicipio({
               icone={Ruler}
               rotulo="tamanho médio da propriedade"
               valor={
-                <ValorAusente
-                  motivo="É a área total das propriedades dividida pelo número delas — e a área total não está carregada (épico de integração do IBGE, issue 174)."
-                  oQue="o tamanho médio da propriedade"
-                />
+                estrutura.tamanhoMedioHectares == null ? (
+                  <ValorAusente
+                    motivo={`É a área total das propriedades dividida pelos estabelecimentos com área (Censo, SIDRA 6881). ${SEM_AREA_DO_CENSO}`}
+                    oQue="o tamanho médio da propriedade"
+                  />
+                ) : (
+                  <>
+                    {`${nº(Math.round(estrutura.tamanhoMedioHectares))} ha`}
+                    <InfoTooltip
+                      rotulo="Como o tamanho médio é calculado"
+                      texto={`A área dos estabelecimentos (${nº(Math.round(estrutura.areaDosEstabelecimentosHectares ?? 0))} ha) dividida pelos ${nº(estrutura.estabelecimentosComArea ?? 0)} estabelecimentos com área, no Censo Agropecuário${estrutura.anoDoCenso ? ` ${estrutura.anoDoCenso}` : ''}. O "produtor sem área" não entra: dividir por quem não tem terra encolheria a média.`}
+                    />
+                  </>
+                )
               }
             />
             <ItemDaEstrutura
               icone={Leaf}
               rotulo="vocação agrícola"
               valor={
-                <ValorAusente
-                  motivo="Não há regra decidida que classifique a vocação de um município (Alta, Média…). Como o porte estrutural, um adjetivo só entra com bandas decididas (issue 166)."
-                  oQue="a vocação agrícola"
-                />
+                estrutura.vocacao == null ? (
+                  <ValorAusente motivo={motivoSemVocacao(estrutura, municipio.pertenceAAdr)} oQue="a vocação agrícola" />
+                ) : (
+                  <>
+                    {estrutura.vocacao.classe}
+                    <InfoTooltip
+                      rotulo="Como a vocação agrícola é classificada"
+                      texto={
+                        `${umaCasa(estrutura.vocacao.fatiaDeLavouraPercentual)}% da área dos estabelecimentos está em lavoura ` +
+                        '(permanente, temporária e flores; Censo Agropecuário). A vocação compara essa fatia com a dos ' +
+                        `${estrutura.vocacao.municipiosNaBase} municípios da ADR, pelos tercis: Média a partir de ` +
+                        `${umaCasa(estrutura.vocacao.mediaAPartirDe)}% e Alta a partir de ${umaCasa(estrutura.vocacao.altaAPartirDe)}% ` +
+                        '— um terço dos municípios em cada classe (decisão de 28/09/2026).'
+                      }
+                    />
+                  </>
+                )
               }
             />
           </ul>

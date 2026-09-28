@@ -127,6 +127,7 @@ public sealed class RepositorioDeFontesPublicas(CrmDbContext contexto)
         "IBGE.PRODUCAO_AGRICOLA" => PorAnoAsync(contexto.ProducoesAgricolasNosMunicipios, p => p.Ano, p => p.MunicipioId, adr, ct),
         "IBGE.FROTA_DE_TRATORES" => PorAnoAsync(contexto.FrotasDeTratoresNosMunicipios, p => p.Ano, p => p.MunicipioId, adr, ct),
         "IBGE.ESTABELECIMENTOS_POR_AREA" => PorAnoAsync(contexto.EstabelecimentosPorAreaNosMunicipios, p => p.Ano, p => p.MunicipioId, adr, ct),
+        "IBGE.UTILIZACAO_DAS_TERRAS" => PorAnoAsync(contexto.UtilizacoesDasTerrasNosMunicipios, p => p.Ano, p => p.MunicipioId, adr, ct),
         "IBGE.REBANHO" => PorAnoAsync(contexto.RebanhosNosMunicipios, p => p.Ano, p => p.MunicipioId, adr, ct),
         "IBGE.AREA_TERRITORIAL" => PorAnoAsync(contexto.AreasTerritoriaisDosMunicipios, p => p.Ano, p => p.MunicipioId, adr, ct),
         "ANP.USINA_DE_ETANOL" => PorMesAsync(contexto.UsinasDeEtanol, u => u.MesDeReferencia, ct),

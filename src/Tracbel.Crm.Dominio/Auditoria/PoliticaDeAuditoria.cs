@@ -99,6 +99,7 @@ public static class PoliticaDeAuditoria
             ["SafraNome", "AreaPlantadaHectares", "AreaColhidaHectares", "QuantidadeProduzida"],
         ["FrotaDeTratoresNoMunicipio"] = ["PotenciaNome", "Tratores", "EstabelecimentosComTrator"],
         ["EstabelecimentosPorAreaNoMunicipio"] = ["GrupoDeAreaNome", "Estabelecimentos"],
+        ["UtilizacaoDasTerrasNoMunicipio"] = ["UtilizacaoNome", "EstabelecimentosComArea", "AreaHectares"],
         ["RebanhoNoMunicipio"] = ["RebanhoNome", "Cabecas"],
         ["AreaTerritorialDoMunicipio"] = ["AreaKm2"],
 
