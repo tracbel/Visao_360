@@ -70,7 +70,7 @@ const CARDS_NAVEGACAO: { caminho: string; desc: string; status: StatusTela }[] =
   },
   {
     // A rota fixa saiu: a ficha da oportunidade passou a ser `/oportunidades/:chave`
-    // e abre qualquer um dos 45.397 processos carregados. Como este mapa lista
+    // e abre qualquer processo trazido do Vórtice. Como este mapa lista
     // caminhos que se pode clicar, e uma chave de exemplo aqui envelheceria na
     // primeira recarga do banco, o caminho para uma oportunidade é o Pipeline.
     caminho: '/pipeline',

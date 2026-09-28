@@ -6,19 +6,21 @@
  *
  * Antes, esta tela montava a agenda de `public/dados/agenda.json` (nove tarefas
  * de exemplo), filtrava e contava no navegador, e gravava conclusões em
- * `localStorage`. Agora ela lê **103.339 tarefas migradas do Vórtice** por
- * `/api/v1/tarefas`, e os contadores do topo vêm de `/api/v1/relatorios/agenda`
- * — um `GROUP BY` no banco, dentro do filtro global da filial do cabeçalho.
+ * `localStorage`. Agora ela lê **as tarefas dos processos do Vórtice dos
+ * clientes do CRM** (a onda 2 da rotina PROCESSOS_VORTICE, documento 52 §12)
+ * por `/api/v1/tarefas`, e os contadores do topo vêm de
+ * `/api/v1/relatorios/agenda` — um `GROUP BY` no banco, dentro do filtro global
+ * da filial do cabeçalho.
  *
  * ---------------------------------------------------------------------------
  * AS TRÊS COISAS QUE MUDARAM DE SIGNIFICADO, e por que a tela as escreve:
  *
- * 1. **O ATRASO É MEDIDO CONTRA A DATA AGENDADA, não contra o prazo.** 81.571
- *    das 103.339 tarefas migradas não têm prazo limite, porque nenhuma das 178
- *    ações em uso no sistema de origem declara prazo (documento 25, §3.1).
- *    Medir por prazo faria 79% da agenda parecer em dia por falta de dado, que
- *    é o pior tipo de indicador verde. Quem calcula o atraso é a API, e a
- *    coluna de prazo diz "não declarado na origem" quando ele não existe.
+ * 1. **O ATRASO É MEDIDO CONTRA A DATA AGENDADA, não contra o prazo.** Nenhuma
+ *    das 178 ações em uso no sistema de origem declara prazo (documento 25,
+ *    §3.1), e a maior parte das tarefas chega sem ele. Medir por prazo faria a
+ *    agenda parecer em dia por falta de dado, que é o pior tipo de indicador
+ *    verde. Quem calcula o atraso é a API, e a coluna de prazo diz "não
+ *    declarado na origem" quando ele não existe.
  *
  * 2. **Não há "Nova tarefa" nem "Concluir".** Nenhuma rota de relacionamento
  *    escreve, e é decisão declarada — processo e tarefa carregam o motor de
@@ -27,9 +29,10 @@
  *    `localStorage` daria a impressão de que a agenda mudou; ela não mudaria.
  *
  * 3. **"Só as minhas" usa o usuário do contexto de acesso**, e não um seletor
- *    de CEN. Hoje ela devolve zero: as 273 pessoas migradas do Vórtice não são
- *    o usuário provisório do cabeçalho. A tela mostra o motivo que a própria
- *    API devolve, em vez de uma lista vazia sem explicação.
+ *    de CEN. A tarefa trazida do Vórtice fica com quem a tem lá quando o login
+ *    dele casa com uma conta do CRM; se não casa, fica com o dono do processo
+ *    (decisão P2 de 27/09/2026). Quem não tem tarefa no próprio nome vê zero, e
+ *    a tela diz por quê, em vez de uma lista vazia sem explicação.
  */
 
 import { useMemo, useState } from 'react';
@@ -192,8 +195,8 @@ export function Agenda() {
         <div>
           <h1 className="page-title">Agenda do CEN</h1>
           <p className="page-subtitle">
-            <code>processo.Tarefa</code> — 103.339 tarefas migradas do Vórtice, recorte de 2026. A
-            filial do cabeçalho define o que aparece aqui.
+            <code>processo.Tarefa</code> — as tarefas dos processos do Vórtice dos clientes cadastrados no CRM.
+            A filial do cabeçalho define o que aparece aqui.
           </p>
         </div>
       </div>
@@ -344,7 +347,7 @@ export function Agenda() {
             }
             texto={
               consulta.minhas
-                ? 'A agenda migrada pertence às 273 pessoas que vieram do Vórtice; o usuário do cabeçalho é o provisório de desenvolvimento e não é uma delas. Desmarque "Só as minhas" para ver a agenda da filial.'
+                ? 'Nenhuma tarefa está no seu nome. A tarefa trazida do Vórtice fica com quem a tem lá quando o login dessa pessoa casa com uma conta do CRM; se não casa, fica com o dono do processo. Desmarque "Só as minhas" para ver a agenda da filial.'
                 : temFiltro
                   ? 'Nenhuma tarefa da filial cai nesta combinação de situação, período e atraso.'
                   : 'A carga de 2026 trouxe tarefa para as treze filiais em operação. Se esta filial não mostra nenhuma, confira a filial escolhida no cabeçalho.'

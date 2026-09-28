@@ -936,6 +936,17 @@ a nova; rodando dali a cada cinco minutos, o executável estaria aberto justamen
 religado e a rotina `ART_VENDAS` estiver ligada no orquestrador, ele não sincroniza (registra "ignorada") — um dono
 só para a agenda do ART.
 
+**A via única das vendas do ART — decidida em 28/09/2026 (Q-P6, issue 49): a leitura direta.** As vendas do ART entram
+**só** pela leitura direta da view `bi_art_veiculos` (§7.5), com a rotina `ART_VENDAS` como a sua agenda. Foi a via que
+a D-P08 (24/09/2026, [doc 48 §5.3](48-POTENCIAL-DE-MERCADO.md)) tornou a fonte canônica das unidades. O painel `art` da
+API Gestão de Negócios fica **não usado**, por três motivos:
+- tem 21 campos, sem o documento do comprador, e sem documento a venda não casa com o cliente do CRM (§10.8);
+- traz regras do Qlik no meio do caminho;
+- lê a mesma origem por uma camada a mais.
+
+Se um dia o painel ganhar o documento e servir para conferir, entra como conferência e nunca como segunda porta de
+entrada da mesma venda.
+
 **A credencial das conexões** (Protheus, banco do Protheus, ART, Vórtice) pode ser gravada pela tela, protegida pela
 proteção de dados do Windows para a máquina (DPAPI), e a carga, o orquestrador, o serviço e a API a sobrepõem às
 variáveis de ambiente com os mesmos nomes (`Protheus__Senha`, `Art__Servidor`, `Vortice__Conexao`…). Sem credencial
@@ -1163,7 +1174,7 @@ de 1.335 para 632.
 
 | # | Decisão | O que ela fixa |
 |---|---|---|
-| D-M1 | A API é chamada pelo **NOME**, `https://agro-sistemas-w.tracbel.com.br:5001`, com a validação do certificado inteira | o certificado é o curinga `*.tracbel.com.br` de uma autoridade pública (GeoTrust/DigiCert), válido de 17/09/2026 a 04/04/2027; pelo IP o único erro é o de nome. Nada de impressão digital fixada nem de "aceitar qualquer certificado": a chave vale para a API inteira |
+| D-M1 | A API é chamada pelo **NOME**, `https://negocios-agro.tracbel.com.br:5001`, com a validação do certificado inteira | o certificado é o curinga `*.tracbel.com.br` de uma autoridade pública (GeoTrust/DigiCert), válido de 17/09/2026 a 04/04/2027; pelo IP o único erro é o de nome. Nada de impressão digital fixada nem de "aceitar qualquer certificado": a chave vale para a API inteira |
 | D-M2 | O realizado por consultor é o **vendedor do ART** | o CRM passa a ler a coluna `vendedor` de `bi_art_veiculos` e a gravar `frota.VendaDeMaquina.VendedorNaOrigem`. Ele atribui 1.104 das 1.109 vendas do FY26 (99,5%); pelo usuário do CRM, 940; pela carteira do comprador, 538. A minimização que deixava o vendedor fora foi revista (comentário de `LeitorDoArt`) |
 | D-M3 | O realizado é só `frota.VendaDeMaquina`, com a lacuna em número | 1.109 no CRM × 1.322 no ART × 1.319 no painel da GN; as 213 pendentes aparecem como "N vendas do ART aguardam cadastro ou chassi". Somá-las fica para depois |
 | D-M4 | Consórcio à parte | meta em cotas (266 linhas, 417 cotas), realizado "não medido pelo CRM" |
@@ -1240,7 +1251,7 @@ WHERE EXISTS (SELECT 1 FROM m WHERE m.Pessoa = v.Pessoa)
 ### 14.5 Como ligar em produção
 
 1. Publicar a versão com a migração `MetasDaGestaoDeNegocios`.
-2. Em Configurações › Integrações › "Gestão de Negócios — API": endereço `https://agro-sistemas-w.tracbel.com.br:5001`
+2. Em Configurações › Integrações › "Gestão de Negócios — API": endereço `https://negocios-agro.tracbel.com.br:5001`
    (o NOME, não o IP) e a chave; "Testar" — tem de dizer quantas metas o cadastro tem.
 3. Rodar uma vez no terminal com `--somente-metas-gn --simular` e conferir as contagens (1.540 lidas; 1.502 unidades de
    máquinas no FY2026; 417 cotas de consórcio).

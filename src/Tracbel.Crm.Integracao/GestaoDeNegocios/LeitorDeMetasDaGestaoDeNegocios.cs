@@ -41,11 +41,12 @@ public sealed record LeituraDasMetas(IReadOnlyList<MetaNaOrigem> Linhas, DateTim
 /// <summary>
 /// OS NOMES DOS CAMPOS DE UMA LINHA DE <c>/api/v1/cadastros/metas</c> — num lugar só.
 ///
-/// <para><b>Provisórios em parte.</b> O envelope e <c>id</c>, <c>filial_numero</c>, <c>consultor</c>,
-/// <c>quantidade</c>, <c>valor_unitario</c> e <c>margem</c> foram vistos no mapeamento de 27/09/2026. O nome do MÊS, da
-/// LINHA, do TIPO e da ORIGEM não foram registrados: ficam aqui <c>mes</c> (<c>AAAA-MM</c>), <c>linha</c>, <c>tipo</c> e
-/// <c>origem</c> até o Ricardo conferir a forma da resposta (o roteiro está no PR). Se o nome for outro, a leitura
-/// FALHA ALTO — dizendo os campos que chegaram — e nada é gravado; a correção é trocar o texto aqui.</para>
+/// <para><b>Conferidos contra a API real em 27/09/2026</b>, em <c>https://negocios-agro.tracbel.com.br:5001</c>, nas 1.540
+/// linhas: os dez nomes abaixo existem com estes nomes; <c>mes</c> vem como <c>AAAA-MM-DD</c> (o dia 1, de 2025-11-01 a
+/// 2026-12-01); <c>filial_numero</c> é número (1 a 18); <c>tipo</c> é Concessão ou Direta; <c>origem</c> é Campanha ou
+/// Consórcio; a linha usa o vocabulário do ART mais CONSÓRCIO. A API manda também <c>filial</c> (o nome da loja), que a
+/// leitura não usa. Se um nome mudar, a leitura FALHA ALTO — dizendo os campos que chegaram — e nada é gravado; a
+/// correção é trocar o texto aqui.</para>
 ///
 /// <para><b>Obrigatórios</b> são os que a meta não existe sem: a chave, o mês, a filial, a linha, o consultor, o tipo, a
 /// origem e a quantidade. O valor unitário e a margem não entram na conta de unidades — faltando, ficam nulos.</para>
