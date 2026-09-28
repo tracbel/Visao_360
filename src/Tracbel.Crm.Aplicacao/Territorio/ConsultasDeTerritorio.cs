@@ -593,15 +593,23 @@ public sealed class ObterIndicadoresTerritoriais(
         var porCultura = recorte.PorCultura
             .Select(p =>
             {
-                var indice = doRecorte.PrecoPorCultura.TryGetValue(p.CulturaCodigo, out var m) ? m.Indice : null;
+                var momento = doRecorte.PrecoPorCultura.GetValueOrDefault(p.CulturaCodigo);
+                var indice = momento?.Indice;
 
+                // A PERCEPÇÃO É DA CULTURA MAIS A DO MUNICÍPIO (decisão de 27/09/2026): a nota de campo da cultura é a
+                // base, e o ajuste do gestor sobre o município soma por cima — as duas na escala da D-P04.
                 var ajustado = FatorDeCiclo.Ajustar(
-                    p.DemandaAnual, indice, doRecorte.Credito?.Indice, doRecorte.PercepcaoDoGestor, vigente,
-                    recorte.Estimativa);
+                    p.DemandaAnual, indice, doRecorte.Credito?.Indice, doRecorte.PercepcaoDaCulturaNoRecorte(p.CulturaCodigo),
+                    vigente, recorte.Estimativa);
 
+                // A SÉRIE VAI JUNTO DO ÍNDICE (27/09/2026): o do mês (12 contra 12) e o do ano pela PAM medem a mesma
+                // coisa em frequências diferentes, e a tela precisa dizer qual está mostrando.
                 return new MomentoDaCultura(
                     p.CulturaCodigo, p.Cultura, p.DemandaAnual, p.AreaUtilHectares, indice,
-                    ajustado.Fator, ajustado.DemandaAjustada);
+                    ajustado.Fator, ajustado.DemandaAjustada,
+                    indice is null ? null : momento!.Serie,
+                    indice is null ? null : momento!.AnoRecente,
+                    doRecorte.PercepcaoPorCultura is { } notas && notas.TryGetValue(p.CulturaCodigo, out var nota) ? nota : null);
             })
             .ToList();
 
@@ -616,7 +624,7 @@ public sealed class ObterIndicadoresTerritoriais(
         // SEM INDICADOR NENHUM, NÃO HÁ FAIXA (27/09/2026). Com preço, crédito e percepção ausentes, o fator é 1,00
         // por construção — desvio zero em tudo —, e a tela dizia "Mercado normal", uma afirmação sobre o mercado
         // que ninguém mediu. O fator continua (é a conta neutra), mas sem nome de faixa e sem frase.
-        var semIndicador = porCultura.All(c => c.IndiceDePreco is null)
+        var semIndicador = porCultura.All(c => c.IndiceDePreco is null && c.PercepcaoDaCultura is null)
                            && doRecorte.Credito?.Indice is null
                            && doRecorte.PercepcaoDoGestor is null;
         var faixa = semIndicador ? null : LeituraDoMercado.FaixaDoFator(fatorAgregado, vigente);
@@ -638,13 +646,36 @@ public sealed class ObterIndicadoresTerritoriais(
                 "Fator de ciclo de mercado (issue 74), agregado pela demanda",
                 null,
                 "Demanda ajustada total ÷ demanda estrutural total",
-                doRecorte.UltimoMesDePreco is { } mes ? $"preço até {mes:MM/yyyy}" : null,
+                ReferenciaDoPreco(doRecorte.UltimoMesDePreco, porCultura),
                 agoraUtc,
+                "O momento de preço de cada cultura é o 12 contra 12 da série mensal dela (CONAB, ou a Socicana na cana); " +
+                "enquanto a série mensal não fecha as duas janelas — a CONAB só fecha em 09/2027 —, é o preço médio " +
+                "recebido pelo produtor no último ano da PAM contra o anterior, somado na área de atuação (decisão de " +
+                "27/09/2026). " +
                 "O fator é de CADA CULTURA: preço e rentabilidade são dela, crédito e percepção são do " +
                 "recorte. O número do topo é a razão entre a demanda ajustada somada e a estrutural somada — " +
                 "não é um índice médio de commodity, e cada cultura pesa pela demanda que representa. Com todas " +
                 "neutras, o agregado é 1,00. Indicador ausente vale desvio ZERO. O custo entra dentro da " +
                 "parcela de preço e rentabilidade; o termo de troca ficou de fora (D-P05) e precisa da issue 70."));
+    }
+
+    /// <summary>
+    /// ATÉ ONDE VAI O PREÇO QUE O MOMENTO USOU — o último mês da série mensal e, quando alguma cultura foi pelo anual
+    /// da PAM, o ano dela. Sem os dois, a procedência não afirma data nenhuma.
+    /// </summary>
+    private static string? ReferenciaDoPreco(DateOnly? ultimoMes, IReadOnlyList<MomentoDaCultura> porCultura)
+    {
+        var anoDaPam = porCultura
+            .Where(c => c.SerieDoIndice == nameof(SerieDoIndiceDePreco.AnualPam) && c.AnoDoIndice is not null)
+            .Select(c => c.AnoDoIndice!.Value)
+            .DefaultIfEmpty()
+            .Max();
+
+        var partes = new List<string>(2);
+        if (ultimoMes is { } mes) partes.Add($"preço mensal até {mes:MM/yyyy}");
+        if (anoDaPam > 0) partes.Add($"PAM {anoDaPam} contra {anoDaPam - 1}");
+
+        return partes.Count == 0 ? null : string.Join("; ", partes);
     }
 
     /// <summary>O período mais longo aceito: três anos, a janela da curva ABC (documento 27).</summary>
@@ -844,9 +875,11 @@ public sealed class ObterIndicadoresTerritoriais(
 
         lacunas.Add(new MetricaSemDado(
             "visita",
-            "A cobertura conta qualquer interação registrada como contato. Qual tipo de contato " +
-            "caracteriza visita, e se a periodicidade é a declarada no CRM ou a de 30/60/90/120 dias " +
-            "da maquete, ainda não foi decidido (documento 32, P-2)."));
+            "O contato usado na cobertura é o apurado pela regra da BI de carteiras do Vórtice (53 " +
+            "resultados que contam como contato, em qualquer canal), calculada todo dia pela rotina " +
+            "das carteiras sobre o histórico inteiro. O Vórtice registra o canal do contato — visita, " +
+            "telefone, WhatsApp —, mas o CRM ainda não carrega essa coluna: por isso não há como abrir " +
+            "a cobertura por canal (documento 32, P-2)."));
 
         lacunas.Add(new MetricaSemDado(
             "potencialDosClientes",
@@ -937,8 +970,10 @@ public sealed class ObterIndicadoresTerritoriais(
                 "o último mês fechado — novembro a outubro, decidido em 27/09/2026 —, comparado com o mesmo trecho do ano " +
                 "fiscal anterior. Devolução e cancelamento não são abatidos (documento 32, P-5)."),
             new("coberturaDeVisita", "RegraComercialProvisoria", "Regra provisória",
-                "Visita é qualquer interação registrada, e a periodicidade é a declarada no CRM. O que conta como visita, a " +
-                "periodicidade e a unidade (cliente ou vínculo) aguardam decisão do comercial (documento 32, P-2 e P-3)."),
+                "Contato é o resultado que a regra da BI de carteiras do Vórtice conta como tal (53 resultados, em " +
+                "qualquer canal), e a periodicidade é a cadência declarada no CRM por classe. O que aguarda decisão do " +
+                "comercial é o canal — visita, ligação, WhatsApp —, que o Vórtice registra e o CRM ainda não carrega " +
+                "(documento 32, P-2 e P-3)."),
             new("posVenda", "RegraComercialProvisoria", "Composição provisória",
                 "Pós-venda é peça mais serviço, pelo grupo do item da nota. O que a diretoria considera pós-venda ainda não foi " +
                 "definido (documento 32, seção 5, grupo 11)."),

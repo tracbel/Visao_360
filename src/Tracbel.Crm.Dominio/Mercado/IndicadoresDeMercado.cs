@@ -34,6 +34,8 @@ public enum MotivoSemIndicador
 /// <param name="MesesRecentes">Quantos meses entraram na janela recente.</param>
 /// <param name="MesesAnteriores">Quantos meses entraram na anterior.</param>
 /// <param name="Motivo">Por que não saiu, como texto; <c>Nenhum</c> quando saiu.</param>
+/// <param name="Serie">De que série ele saiu — <see cref="SerieDoIndiceDePreco"/> como texto.</param>
+/// <param name="AnoRecente">Na série anual da PAM, o ano mais recente comparado (o outro é o anterior a ele).</param>
 public sealed record IndiceDeMomento(
     decimal? Indice,
     string? Faixa,
@@ -41,7 +43,30 @@ public sealed record IndiceDeMomento(
     decimal? MediaAnterior,
     int MesesRecentes,
     int MesesAnteriores,
-    string Motivo);
+    string Motivo,
+    string Serie = nameof(SerieDoIndiceDePreco.Mensal),
+    short? AnoRecente = null);
+
+/// <summary>
+/// DE QUE SÉRIE O MOMENTO DE PREÇO SAIU (decisão do Ricardo em 27/09/2026).
+///
+/// <para><b>Mensal</b> é o índice 12 contra 12 da série da cultura (CONAB, ou a Socicana na cana). <b>AnualPam</b> é o
+/// preço médio recebido pelo produtor no último ano da PAM dividido pelo do ano anterior — o preço implícito da
+/// issue 198 (valor da produção ÷ quantidade), somado na área de atuação. Ele entra SÓ enquanto a série mensal
+/// não tem as duas janelas cheias: a CONAB é janela móvel de 12 meses e o CRM a acumula desde 09/2025, então o
+/// mensal só fecha em 09/2027. Quando fechar, o mensal volta sozinho — é a mesma regra, com a série mais fina.</para>
+///
+/// <para><b>Não é emenda:</b> as duas séries não se misturam num índice. Cada cultura tem um índice de UMA série, e a
+/// tela diz qual.</para>
+/// </summary>
+public enum SerieDoIndiceDePreco
+{
+    /// <summary>12 meses contra os 12 anteriores, na série mensal da cultura.</summary>
+    Mensal = 0,
+
+    /// <summary>O último ano da PAM contra o anterior, pelo preço implícito na área de atuação.</summary>
+    AnualPam = 1
+}
 
 /// <summary>
 /// AS DUAS JANELAS DO CRÉDITO — a recente e a anterior, em LINHAS do SICOR e em valor.
@@ -158,6 +183,56 @@ public static class IndicadoresDeMercado
             recentes.Count,
             anteriores.Count,
             nameof(MotivoSemIndicador.Nenhum));
+    }
+
+    /// <summary>
+    /// O MOMENTO DE PREÇO ANUAL PELA PAM (decisão do Ricardo em 27/09/2026): o preço implícito do último ano
+    /// dividido pelo do ano anterior.
+    ///
+    /// <para><b>Só entra quando a série mensal não fecha as duas janelas</b> — quem decide é quem lê o banco; aqui só
+    /// há conta. O preço implícito é o da issue 198 (valor da produção ÷ quantidade), a média ponderada do que o
+    /// produtor recebeu no ano.</para>
+    ///
+    /// <para><b>Os dois anos precisam ser VIZINHOS e ter preço</b>: 2025 contra 2023 mediria dois anos de variação
+    /// com o rótulo de um. Unidade diferente entre os dois anos (produto que trocou de unidade na PAM) também não
+    /// gera índice — seria dividir tonelada por mil frutos.</para>
+    /// </summary>
+    /// <param name="serie">Os anos do preço implícito da cultura, em qualquer ordem.</param>
+    /// <param name="parametro">Os parâmetros vigentes, que dão as faixas; nulo devolve o índice sem faixa.</param>
+    public static IndiceDeMomento MomentoAnualDaPam(
+        IReadOnlyList<PrecoImplicitoNoAno> serie, ParametroDoPotencial? parametro)
+    {
+        const string anual = nameof(SerieDoIndiceDePreco.AnualPam);
+
+        var comPreco = serie.Where(p => p.PrecoPorUnidade is > 0).OrderByDescending(p => p.Ano).ToList();
+        if (comPreco.Count == 0)
+            return new IndiceDeMomento(null, null, null, null, 0, 0, nameof(MotivoSemIndicador.SemFonte), anual);
+
+        var recente = comPreco[0];
+        var anterior = comPreco.FirstOrDefault(p => p.Ano == recente.Ano - 1);
+
+        if (anterior is null)
+            return new IndiceDeMomento(
+                null, null, recente.PrecoPorUnidade, null, 12, 0,
+                nameof(MotivoSemIndicador.SerieCurta), anual, recente.Ano);
+
+        if (!string.Equals(anterior.Unidade, recente.Unidade, StringComparison.Ordinal))
+            return new IndiceDeMomento(
+                null, null, recente.PrecoPorUnidade, anterior.PrecoPorUnidade, 12, 12,
+                nameof(MotivoSemIndicador.SemBaseDeComparacao), anual, recente.Ano);
+
+        var indice = recente.PrecoPorUnidade!.Value / anterior.PrecoPorUnidade!.Value;
+
+        return new IndiceDeMomento(
+            indice,
+            parametro?.FaixaDe(indice).ToString(),
+            recente.PrecoPorUnidade,
+            anterior.PrecoPorUnidade,
+            12,
+            12,
+            nameof(MotivoSemIndicador.Nenhum),
+            anual,
+            recente.Ano);
     }
 
     /// <summary>

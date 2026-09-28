@@ -70,7 +70,10 @@ const SEM_DEMANDA =
 
 const EXPLICA_COMMODITY =
   'Preço e rentabilidade são DE CADA CULTURA — o índice é dela, 12 meses contra os 12 anteriores (issue 73), e não ' +
-  'do recorte. O custo entra AQUI: rentabilidade é preço menos custo, e não uma quarta sensibilidade (D-P05).';
+  'do recorte. Enquanto a série mensal não fecha as duas janelas (a CONAB só fecha em 09/2027), o índice é o ANUAL da ' +
+  'PAM: o preço médio recebido pelo produtor no último ano contra o anterior, na área de atuação (decisão de ' +
+  '27/09/2026); o detalhe de cada cultura diz qual das duas séries ela usa. O custo entra AQUI: rentabilidade é ' +
+  'preço menos custo, e não uma quarta sensibilidade (D-P05).';
 
 const EXPLICA_CUSTO =
   'O custo não é uma parcela separada do fator (D-P05): a sensibilidade é de PREÇO E RENTABILIDADE, e o custo entra ' +
@@ -83,9 +86,21 @@ const EXPLICA_CREDITO =
   'financiar: sem crédito, nem a melhor safra vira máquina. Uma linha do SICOR não é um contrato.';
 
 const EXPLICA_PERCEPCAO =
-  'A leitura do comercial sobre o município, de −5 a +5 pontos percentuais, com autor e vigência (issue 71). É do ' +
-  'RECORTE, não da cultura. Ela soma dentro do parêntese do produtor, então o crédito a amplifica. É uma leitura ' +
-  'registrada, e não uma série: não há "variação no período" a calcular para ela.';
+  'A percepção tem duas camadas (decisão de 27/09/2026). A BASE é a percepção de campo de CADA CULTURA, a nota de −2 ' +
+  'a +2 da planilha do comercial, na escala da D-P04 — cada ponto vale 2,5 pontos percentuais, e ±2 é ±5%. Por cima, o ' +
+  'gestor ajusta o MUNICÍPIO, de −5 a +5 pontos (issue 71). As duas somam dentro do parêntese do produtor, então o ' +
+  'crédito as amplifica. É leitura registrada, com autor e vigência, e não uma série: não há "variação no período".';
+
+/**
+ * DE QUE SÉRIE O ÍNDICE DA CULTURA SAIU (27/09/2026): o 12 contra 12 da série
+ * mensal, ou o anual da PAM enquanto a mensal não fecha as duas janelas. As duas
+ * medem a mesma coisa em frequências diferentes — a tela diz qual está mostrando.
+ */
+function serieDoIndice(c: MomentoDaCultura): string {
+  return c.serieDoIndice === 'AnualPam'
+    ? `anual, PAM ${c.anoDoIndice ?? ''} contra ${c.anoDoIndice ? c.anoDoIndice - 1 : 'o ano anterior'}`
+    : '12 meses contra os 12 anteriores';
+}
 
 /**
  * A pílula da direita do cartão: a variação no período, ou o traço COM O
@@ -132,6 +147,14 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
   const credito = momento.indiceDeCredito;
   const percepcao = momento.percepcaoPercentual;
 
+  // A PERCEPÇÃO DE CAMPO É POR CULTURA (27/09/2026): como o preço, o cartão mostra
+  // o intervalo entre as culturas, e o ajuste do município quando houver.
+  const notas = momento.porCultura
+    .map((c) => c.percepcaoDaCultura ?? null)
+    .filter((v): v is number => v !== null);
+  const menorNota = notas.length > 0 ? Math.min(...notas) : null;
+  const maiorNota = notas.length > 0 ? Math.max(...notas) : null;
+
   return (
     <FileiraDeCartoes>
       <CartaoDoMomento
@@ -162,7 +185,7 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
             </span>
           )
         }
-        motivoSemDado="Nenhuma cultura do recorte tem índice de preço carregado (CONAB e Socicana, issue 66). Índice ausente vale desvio ZERO no fator — e não uma queda."
+        motivoSemDado="Nenhuma cultura do recorte tem índice de preço carregado (nem o mensal da CONAB ou da Socicana, nem o anual da PAM). Índice ausente vale desvio ZERO no fator — e não uma queda."
         apoio="Índice de preço de cada cultura"
         lateral={
           <Pilula
@@ -172,7 +195,7 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
                 ? `${percentualComSinal(menor)} a ${percentualComSinal(maior)}`
                 : undefined
             }
-            motivo="Nenhuma cultura do recorte tem índice de preço carregado (CONAB e Socicana, issue 66): não há variação de preço a mostrar."
+            motivo="Nenhuma cultura do recorte tem índice de preço carregado (nem o mensal da CONAB ou da Socicana, nem o anual da PAM): não há variação de preço a mostrar."
             oQue="a variação de preço das culturas"
           />
         }
@@ -219,9 +242,24 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
         rotulo="Percepção comercial"
         oQue="a percepção comercial"
         dica={EXPLICA_PERCEPCAO}
-        valor={percepcao === null ? null : <Sentido fracao={percepcao / 100}>{pontosPercentuais(percepcao)}</Sentido>}
-        motivoSemDado="Nenhuma percepção do gestor está registrada para este recorte (issue 71). Ausente vale ZERO no fator — e zero aqui não é neutralidade declarada, é falta de registro."
-        apoio="Leitura do gestor, de −5 a +5 p.p."
+        valor={
+          percepcao !== null ? (
+            <Sentido fracao={percepcao / 100}>{pontosPercentuais(percepcao)} no município</Sentido>
+          ) : menorNota !== null && maiorNota !== null ? (
+            <span className="mom-sentido">
+              {menorNota === maiorNota
+                ? pontosPercentuais(menorNota)
+                : `${pontosPercentuais(menorNota)} a ${pontosPercentuais(maiorNota)}`}{' '}
+              por cultura
+            </span>
+          ) : null
+        }
+        motivoSemDado="Nenhuma percepção está registrada para este recorte — nem a de campo por cultura, nem o ajuste do gestor sobre o município (issue 71). Ausente vale ZERO no fator — e zero aqui não é neutralidade declarada, é falta de registro."
+        apoio={
+          percepcao !== null
+            ? 'Ajuste do gestor, somado à nota de campo de cada cultura'
+            : 'Nota de campo de cada cultura (planilha, 27/09/2026), de −5 a +5 p.p.'
+        }
         lateral={
           <Pilula
             fracao={null}
@@ -410,7 +448,15 @@ function LinhaDaCultura({ c }: { c: MomentoDaCultura }) {
         <MenuDaLinha rotulo={`Detalhes do fator de ${c.cultura}`}>
           <dl>
             <dt>Índice de preço</dt>
-            <dd>{c.indiceDePreco === null ? 'não carregado — vale desvio zero' : pt(c.indiceDePreco)}</dd>
+            <dd>
+              {c.indiceDePreco === null ? 'não carregado — vale desvio zero' : `${pt(c.indiceDePreco)} · ${serieDoIndice(c)}`}
+            </dd>
+            <dt>Percepção de campo da cultura</dt>
+            <dd>
+              {c.percepcaoDaCultura === null || c.percepcaoDaCultura === undefined
+                ? 'sem nota vigente — vale zero'
+                : `${pontosPercentuais(c.percepcaoDaCultura)} (nota ${(c.percepcaoDaCultura / 2.5).toLocaleString('pt-BR')} de −2 a +2)`}
+            </dd>
             <dt>Indicadores com dado</dt>
             <dd>{c.fator.indicadoresUsados} de 3</dd>
             {c.fator.cortadoPeloLimite && (

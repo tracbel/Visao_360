@@ -383,7 +383,7 @@ export function PerformanceCen() {
       rotulo: 'Cobertura em 30 dias',
       valor: resumo.dados && totais.clientes > 0 ? `${Math.round((totais.em30 / totais.clientes) * 100)}%` : null,
       tom: 'bom',
-      deOnde: 'vínculos com interação nos últimos 30 dias, sobre o total',
+      deOnde: 'vínculos com contato nos últimos 30 dias (regra da BI de carteiras), sobre o total',
       semDado: '—',
     },
     {

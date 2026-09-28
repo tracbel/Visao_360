@@ -594,8 +594,8 @@ export function DetalheDoMunicipio({
                   quem lê a ficha, e a referência continua aqui, no código. */}
               <p className="cad-sub">
                 {nº(cobertura.clientes)} clientes com endereço aqui · {nº(cobertura.semCadencia)} vínculos em linha sem
-                cadência, fora da conta. Contato é qualquer interação registrada: nenhum tipo de atividade está marcado
-                como visita.
+                cadência, fora da conta. Contato é o apurado pela regra da BI de carteiras do Vórtice, em qualquer
+                canal — o Vórtice registra o canal, mas o CRM ainda não o carrega.
               </p>
 
               <h4 className="terr-detalhe-subtitulo">Vendas no período</h4>

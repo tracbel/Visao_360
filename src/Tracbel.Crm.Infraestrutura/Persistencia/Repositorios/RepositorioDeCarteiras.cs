@@ -13,13 +13,16 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 /// <para><b>A data do último contato é lida, não calculada na hora.</b> É a única exceção
 /// consciente à regra de não guardar dado derivado, e está registrada como tal na própria
 /// entidade: a tela ordena centenas de clientes por essa data, e calculá-la a cada abertura
-/// custaria varrer a tabela de interações. A carga a preenche a partir das interações que
-/// efetivamente entraram, e o job diário a reconcilia.</para>
+/// custaria varrer o histórico inteiro do Vórtice. Desde 27/09/2026 ela vem da regra da BI de
+/// carteiras (<c>BI_CARTEIRA_VN</c> — 53 resultados que contam como contato, em qualquer canal e
+/// em qualquer departamento), apurada todo dia pela rotina <c>CARTEIRAS_VORTICE</c> sobre o
+/// histórico INTEIRO — e não mais só das interações que a carga já tinha trazido para este banco.
+/// A data só anda para a frente.</para>
 ///
 /// <para>[V] No sistema de origem a mesma coluna só é preenchida para desfechos marcados numa
 /// tabela de configuração que quatro departamentos nunca povoaram — 31.556 clientes
-/// carteirizados aparecem lá como "nunca contatados" por construção, e a procedure que a
-/// atualizava parou em agosto de 2025. A nossa nasce do fato.</para>
+/// carteirizados apareciam lá como "nunca contatados" por construção, e a procedure que a
+/// atualizava parou em agosto de 2025. A nossa lê o histórico inteiro, pela regra da BI.</para>
 /// </summary>
 public sealed class RepositorioDeCarteiras(CrmDbContext contexto) : IRepositorioCarteiras
 {
@@ -215,8 +218,13 @@ public sealed class RepositorioDeCarteiras(CrmDbContext contexto) : IRepositorio
         if (consulta.ResponsavelId is { } responsavelId)
             linhas = linhas.Where(x => x.carteira.ResponsavelId == responsavelId);
 
+        // A CLASSE DO FILTRO É A DO CLIENTE (curva ABC apurada do faturamento), e não a do vínculo:
+        // ClienteCarteira.Classe é a coluna do legado, e continua entrando como C por assunção na
+        // maioria dos vínculos (IVS_Pes.Potencial é varchar(3) sem catálogo) — filtrar por ela
+        // recriaria a mesma distorção que tirou a ordenação por classe desta tela.
         if (consulta.Classe is { } classe)
-            linhas = linhas.Where(x => x.vinculo.Classe == classe);
+            linhas = linhas.Where(x =>
+                contexto.Clientes.Any(c => c.Id == x.vinculo.ClienteId && c.Classe == classe));
 
         if (consulta.SomenteSemContato)
             linhas = linhas.Where(x => x.vinculo.UltimaInteracaoEm == null);

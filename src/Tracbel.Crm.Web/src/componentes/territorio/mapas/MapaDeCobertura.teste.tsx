@@ -140,7 +140,7 @@ describe('o cartão do mapa de cobertura', () => {
     const gatilho = screen.getByRole('button', { name: 'Fonte e método deste mapa' });
     fireEvent.focus(gatilho);
     expect(screen.getByRole('tooltip')).toHaveTextContent(/Percentual compara municípios de tamanhos diferentes/);
-    expect(screen.getByRole('tooltip')).toHaveTextContent(/nenhum tipo de atividade está marcado como visita/);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/o CRM ainda não o carrega, então isto ainda não mede visita/);
     fireEvent.blur(gatilho);
 
     fireEvent.click(screen.getByRole('button', { name: 'Pendentes (qtd.)' }));

@@ -1445,7 +1445,9 @@ if (resumoDoRelacionamento is { } comDecisoes)
     Console.WriteLine($"  {comDecisoes.TarefasLigadasAInteracao,9}  " +
                       "Tarefas ligadas a interacao que as concluiu (o duplo ponteiro)");
     Console.WriteLine($"  {comDecisoes.VinculosComUltimoContato,9}  " +
-                      "Vinculos de carteira com data de ultimo contato calculada das interacoes");
+                      "Vinculos de carteira com data de ultimo contato calculada nesta carga " +
+                      "(a rotina diaria CARTEIRAS_VORTICE recalcula depois, pela regra da BI, " +
+                      "sobre o historico inteiro)");
 }
 
 return 0;

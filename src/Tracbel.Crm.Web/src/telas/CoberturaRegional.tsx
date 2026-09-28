@@ -23,10 +23,10 @@
  * níveis, com as rotas `/api/v1/cobertura/filiais` e `/carteiras`.
  *
  * ---------------------------------------------------------------------------
- * A LACUNA É DECLARADA, NÃO ESCONDIDA. Das 142 carteiras carregadas, 73 têm
- * cidade e 69 não têm — quase metade. **A carteira sem cidade aparece com a
- * lista vazia em vez de sumir**: escondê-la faria a tela mostrar uma operação
- * menor do que ela é. E o número vem da API, em `metricasSemDado`.
+ * A LACUNA É DECLARADA, NÃO ESCONDIDA. Nem toda carteira carregada declara
+ * cidade. **A carteira sem cidade aparece com a lista vazia em vez de
+ * sumir**: escondê-la faria a tela mostrar uma operação menor do que ela é.
+ * E o número vem da API, em `metricasSemDado`.
  */
 
 import { useMemo, useState } from 'react';
@@ -158,9 +158,11 @@ export function CoberturaRegional() {
    *
    * O PERCENTUAL É DE CONTATO EM 90 DIAS sobre os vínculos da carteira, e o
    * denominador está escrito na tela. O protótipo media "clientes A ou B
-   * tocados" — a classe A/B não se sustenta (59 de 49.109 vínculos têm classe
-   * lida), então o recorte por classe saiu e o universo passou a ser a carteira
-   * inteira, que é o que o dado sustenta.
+   * tocados" — a classe do VÍNCULO não se sustenta (`ClienteCarteira.Classe`
+   * segue entrando como C por assunção na maioria dos casos), então o recorte
+   * por classe saiu aqui e o universo passou a ser a carteira inteira. A
+   * classe do CLIENTE (curva ABC apurada do faturamento) já sustenta
+   * segmentação — ver o filtro `classe` da Cobertura de Carteira.
    */
   const carteirasComCobertura = cobertura.dados?.itens ?? [];
 
@@ -403,7 +405,7 @@ export function CoberturaRegional() {
         {carteiras.dados && visiveis.length === 0 && !carteiras.erro && (
           <BlocoVazio
             titulo="Nenhuma carteira desta filial declara cidade"
-            texto="O vínculo carteira × município vem da carga do sistema de origem. Das 142 carteiras carregadas, 69 não têm nenhuma cidade cadastrada — a lacuna é do cadastro, não da operação."
+            texto={`O vínculo carteira × município vem da carga do sistema de origem. Das ${totais.carteiras} carteiras carregadas, ${semCidade} não têm nenhuma cidade cadastrada — a lacuna é do cadastro, não da operação.`}
             acao={
               somenteComCidade ? (
                 <button type="button" className="btn btn-secondary" onClick={() => setSomenteComCidade(false)}>

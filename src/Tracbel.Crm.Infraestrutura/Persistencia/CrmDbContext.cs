@@ -329,6 +329,9 @@ public class CrmDbContext : DbContext
     /// <summary>A percepção do gestor comercial por município, com vigência (issue 71).</summary>
     public DbSet<PercepcaoDoGestor> PercepcoesDoGestor => Set<PercepcaoDoGestor>();
 
+    /// <summary>A percepção de campo por cultura, com vigência — a base da percepção no fator (27/09/2026).</summary>
+    public DbSet<PercepcaoDaCultura> PercepcoesDasCulturas => Set<PercepcaoDaCultura>();
+
     /// <summary>A sazonalidade e os pesos do IOC do planejamento comercial, com vigência (issue 256).</summary>
     public DbSet<ParametroDoPlanejamento> ParametrosDoPlanejamento => Set<ParametroDoPlanejamento>();
 

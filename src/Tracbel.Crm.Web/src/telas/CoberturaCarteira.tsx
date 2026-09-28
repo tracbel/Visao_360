@@ -11,20 +11,30 @@
  * de `/api/v1/relatorios/cobertura`, agrupado no banco.
  *
  * ---------------------------------------------------------------------------
+ * 27/09/2026 — o último contato passou a vir do histórico INTEIRO do Vórtice.
+ *
+ * Até aqui, `UltimaInteracaoEm` era apurada só das interações que a carga já
+ * tinha trazido para o CRM — um recorte. Agora ela vem da regra da BI de
+ * carteiras do Vórtice (`BI_CARTEIRA_VN`): 53 resultados que contam como
+ * contato, em qualquer canal e em qualquer departamento, calculados todo dia
+ * pela rotina `CARTEIRAS_VORTICE` sobre o histórico inteiro — e a data só anda
+ * para a frente. Hoje, 5.412 dos 8.537 vínculos ativos (63%) têm essa data;
+ * nas carteiras de campo (`MAQ_`), 96,7%.
+ *
+ * ---------------------------------------------------------------------------
  * AS TRÊS COISAS QUE MUDARAM, e as três são a mesma decisão:
  *
- * 1. **A ordenação por classe A/B saiu.** É a métrica mais visível do protótipo
- *    e ela não se sustenta: **59 de 49.109 vínculos** têm classe lida da
- *    origem; os outros 49.050 entraram como `C` por assunção, porque
- *    `IVS_Pes.Potencial` é `varchar(3)` sem catálogo e guarda `64`, `43`, `22`
- *    e `85`, que são resquício de outro domínio (documento 25, §5.1). Ordenar
- *    por um campo assumido em 99,9% dos casos é ordenar por nada.
+ * 1. **A ordenação por classe A/B saiu — mas a SEGMENTAÇÃO por classe voltou.**
+ *    A classe do VÍNCULO (`ClienteCarteira.Classe`) continua sem se sustentar:
+ *    ela nasce de `IVS_Pes.Potencial`, um `varchar(3)` sem catálogo, e segue
+ *    entrando como `C` por assunção na maioria dos vínculos (documento 25,
+ *    §5.1) — ordenar por ela seguiria sendo ordenar por nada. O que mudou é
+ *    que `Cliente.Classe` — a curva ABC apurada do faturamento (A 734 · B
+ *    1.045 · C 5.726 · D 19.831) — está pronta, e o filtro `classe` da rota
+ *    passou a usar essa classe, e não a do vínculo.
  *
- *    **A ordem passa a ser quem está há mais tempo sem contato**, que é dado
- *    real e calculado do fato: `UltimaInteracaoEm` não foi copiada da origem —
- *    ela é apurada das interações que efetivamente entraram. Copiar a coluna do
- *    legado teria alcançado 14.496 vínculos; calcular alcançou **39.589**
- *    (documento 25, §6.1).
+ *    **A ordem continua sendo quem está há mais tempo sem contato**, que é
+ *    dado real e calculado do fato.
  *
  * 2. **O mapa continua no lugar dele, vazio e com o motivo.** Ele plotava as
  *    coordenadas do protótipo, que são de Mato Grosso, Goiás e Bahia —
@@ -80,6 +90,21 @@ const FAIXAS = [
   { valor: '60', rotulo: 'Mais de 60 dias' },
   { valor: '90', rotulo: 'Mais de 90 dias' },
   { valor: '180', rotulo: 'Mais de 180 dias' },
+];
+
+/**
+ * As classes da curva ABC oferecidas no filtro.
+ *
+ * É `Cliente.Classe` — a classe apurada do faturamento —, e não a classe do
+ * vínculo (`ClienteCarteira.Classe`), que segue entrando como C por assunção
+ * na maioria dos casos e por isso não sustenta segmentação nenhuma.
+ */
+const CLASSES = [
+  { valor: '', rotulo: 'Qualquer classe' },
+  { valor: 'A', rotulo: 'Classe A' },
+  { valor: 'B', rotulo: 'Classe B' },
+  { valor: 'C', rotulo: 'Classe C' },
+  { valor: 'D', rotulo: 'Classe D' },
 ];
 
 /**
@@ -159,20 +184,20 @@ export function CoberturaCarteira() {
       rotulo: 'Contato em 30 dias',
       valor: resumo.dados ? totais.em30 : null,
       tom: 'bom',
-      deOnde: 'última interação registrada nos últimos 30 dias',
+      deOnde: 'último contato (regra da BI de carteiras do Vórtice) nos últimos 30 dias',
       semDado: '—',
     },
     {
       rotulo: 'Contato em 90 dias',
       valor: resumo.dados ? totais.em90 : null,
-      deOnde: 'última interação registrada nos últimos 90 dias',
+      deOnde: 'último contato (regra da BI de carteiras do Vórtice) nos últimos 90 dias',
       semDado: '—',
     },
     {
       rotulo: 'Nunca contatados',
       valor: resumo.dados ? totais.nunca : null,
       tom: 'atencao',
-      deOnde: 'sem nenhuma interação no recorte carregado',
+      deOnde: 'sem contato no histórico do Vórtice, pela regra da BI de carteiras',
       semDado: '—',
     },
   ];
@@ -181,6 +206,7 @@ export function CoberturaCarteira() {
     () =>
       consulta.somenteSemContato ||
       consulta.diasSemContato !== '' ||
+      consulta.classe !== '' ||
       consulta.ordenarPor !== COBERTURA_INICIAL.ordenarPor ||
       consulta.descendente,
     [consulta],
@@ -207,8 +233,9 @@ export function CoberturaCarteira() {
           <h1 className="page-title">Cobertura de Carteira</h1>
           <p className="page-subtitle">
             <code>comercial.ClienteCarteira</code> — quem está há tempo demais sem contato. A data do
-            último contato é <strong>calculada das interações que entraram</strong>, não copiada da
-            origem.
+            último contato vem do <strong>histórico inteiro do Vórtice</strong>, pela regra da BI de
+            carteiras (53 resultados que contam como contato, em qualquer canal), apurada todo dia
+            pela rotina das carteiras — e só anda para a frente.
           </p>
         </div>
       </div>
@@ -296,6 +323,23 @@ export function CoberturaCarteira() {
           </select>
         </label>
 
+        <label
+          className="cad-filtro"
+          title="Curva ABC apurada do faturamento (Cliente.Classe) — não a classe do vínculo importada do Vórtice."
+        >
+          Classe
+          <select
+            value={consulta.classe}
+            onChange={(e) => setConsulta((c) => ({ ...c, classe: e.target.value, pagina: 1 }))}
+          >
+            {CLASSES.map((cl) => (
+              <option key={cl.valor} value={cl.valor}>
+                {cl.rotulo}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <label className="cad-filtro cad-filtro-caixa">
           <input
             type="checkbox"
@@ -336,7 +380,7 @@ export function CoberturaCarteira() {
             texto={
               temFiltro
                 ? 'Nenhum vínculo desta filial cai nesta faixa de tempo sem contato.'
-                : 'A carteirização de 2026 trouxe 49.109 vínculos para as treze filiais. Confira a filial escolhida no cabeçalho.'
+                : 'A carteirização ativa tem 8.537 vínculos nas treze filiais. Confira a filial escolhida no cabeçalho.'
             }
             acao={
               temFiltro ? (
@@ -510,30 +554,18 @@ export function CoberturaCarteira() {
 
       <BlocoRecolhivel
         titulo="O que esta tela deixou de afirmar"
-        resumo="classe de cliente, canal de contato e o mapa"
+        resumo="canal de contato e o mapa"
       >
         <div className="cad-fichas">
           <LacunaConhecida
-            metrica="Segmentação por classe de cliente (A, B, C, D)"
-            motivo={
-              'A Cobertura do protótipo ordenava por classe A e B. Na carga de 2026, 59 de 49.109 ' +
-              'vínculos têm classe LIDA da origem; os outros 49.050 entraram como C por assunção — ' +
-              'IVS_Pes.Potencial é varchar(3) sem catálogo e guarda 64, 43, 22 e 85, que são ' +
-              'resquício de outro domínio. Ordenar por um campo assumido em 99,9% dos casos é ' +
-              'ordenar por nada, então a coluna de classe saiu e a ordem passou a ser o tempo sem ' +
-              'contato, que é dado real e verificável.'
-            }
-          />
-          <LacunaConhecida
             metrica="Interações por canal (visita, ligação, WhatsApp)"
             motivo={
-              'As 178 ações migradas entraram todas como categoria Interna. IV_Acao.Classe é ' +
-              'char(1) com sete valores e sem tabela de domínio no banco — o significado mora ' +
-              'dentro do cliente Gupta. Classificar por palavra do nome foi considerado e ' +
-              'recusado: "Monitorar Cliente", com 25.230 tarefas, pode ser visita, ligação ou ' +
-              // A citação "(documento 25, §3.4)" saiu do texto: o símbolo e o número do documento não
-              // dizem nada a quem lê a tela, e a referência fica aqui.
-              'WhatsApp, e o dado não diz qual. Destrava com uma triagem de 178 linhas pelo negócio.'
+              'O contato usado nesta tela vem da regra da BI de carteiras do Vórtice (53 resultados ' +
+              'que contam como contato), calculada todo dia pela rotina das carteiras — e ela conta ' +
+              'qualquer canal. O Vórtice REGISTRA o canal: nos últimos 12 meses, os contatos se ' +
+              'dividem em Visita (45%), Externo (18%), Telefone (14%) e WhatsApp (11%). O CRM, porém, ' +
+              'ainda não carrega essa coluna — só o resultado, não o canal que o produziu —, e por ' +
+              'isso não há como abrir esta lista por canal.'
             }
           />
           <LacunaConhecida
@@ -542,10 +574,8 @@ export function CoberturaCarteira() {
               'O mapa ficava aqui e plotava pinos em Mato Grosso, Goiás e Bahia — geografia do ' +
               'protótipo, não desta operação: as treze filiais estão todas no interior de São ' +
               'Paulo. Falta uma fonte de coordenada por cliente: organizacao.Municipio guarda o ' +
-              'município mas não latitude e longitude, e as interações têm coordenada em 29.491 ' +
-              'de 121.983 registros (24%) sem rota que as agregue por cliente. O território que ' +
-              'existe — 532 vínculos carteira × município — está em Cobertura por Filial e ' +
-              'Carteira.'
+              'município mas não latitude e longitude, e todo cliente segue com latitude 0. O ' +
+              'território que existe está em Cobertura por Filial e Carteira.'
             }
           />
         </div>

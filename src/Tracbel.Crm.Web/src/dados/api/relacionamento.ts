@@ -284,8 +284,11 @@ export function listarInteracoes(
  *
  * A ORDEM PADRÃO É QUEM ESTÁ HÁ MAIS TEMPO SEM CONTATO, e o nunca-contatado vem
  * antes de todos. Não é ordenação por classe, que é o que o protótipo fazia:
- * 59 de 49.109 vínculos têm classe lida, e ordenar por um campo assumido em
- * 99,9% dos casos ordenaria por nada (documento 25, §5.1).
+ * a classe do VÍNCULO (`ClienteCarteira.Classe`) segue entrando como `C` por
+ * assunção na maioria dos casos, e ordenar por ela ordenaria por nada
+ * (documento 25, §5.1). O filtro `classe` abaixo é outra coisa: ele usa a
+ * classe do CLIENTE — a curva ABC apurada do faturamento —, que sustenta
+ * segmentação.
  */
 export const COBERTURA_INICIAL: ConsultaDeCobertura = {
   pagina: 1,

@@ -291,3 +291,34 @@ public sealed class PercepcaoDoGestorConfiguracao : IEntityTypeConfiguration<Per
         b.ToTable(t => t.HasCheckConstraint("CK_PercepcaoDoGestor_Percentual", "[Percentual] BETWEEN -50 AND 50"));
     }
 }
+
+/// <summary>
+/// Mapeamento de <see cref="PercepcaoDaCultura"/> — a percepção de campo por cultura, com vigência (27/09/2026).
+///
+/// <para><b>A semente vem na migração, e não aqui</b>: ela liga a nota à cultura pelo CÓDIGO (CAFE, CANA…), e o Id
+/// da cultura é o que o banco deu. Um <c>HasData</c> teria de fixar esse Id — o mesmo cuidado da D-P01 (#239).</para>
+/// </summary>
+public sealed class PercepcaoDaCulturaConfiguracao : IEntityTypeConfiguration<PercepcaoDaCultura>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<PercepcaoDaCultura> b)
+    {
+        b.ToTable("PercepcaoDaCultura", "organizacao");
+        MapeamentoDeVigencia.Mapear(b, "PercepcaoDaCultura");
+
+        b.Property(p => p.CulturaId).IsRequired();
+        b.Property(p => p.Nota).HasPrecision(4, 2).IsRequired();
+
+        // O PERCENTUAL É DERIVADO DA NOTA pela escala decidida — não se grava uma segunda verdade para o mesmo número.
+        b.Ignore(p => p.Percentual);
+
+        b.HasOne<Cultura>().WithMany().HasForeignKey(p => p.CulturaId).OnDelete(DeleteBehavior.Restrict);
+
+        b.HasIndex(p => new { p.CulturaId, p.VigenteDesde })
+            .IsUnique()
+            .HasFilter("[RevogadoEm] IS NULL")
+            .HasDatabaseName("UX_PercepcaoDaCultura_Cultura_Vigencia");
+
+        b.ToTable(t => t.HasCheckConstraint("CK_PercepcaoDaCultura_Nota", "[Nota] BETWEEN -2 AND 2"));
+    }
+}

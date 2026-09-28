@@ -280,11 +280,14 @@ export type CoberturaResumo = {
   carteiraNome: string;
   linhaDeNegocioNome: string;
   /**
-   * A classe do cliente NESTA carteira.
+   * A classe do VÍNCULO nesta carteira (`ClienteCarteira.Classe`) — e não a
+   * classe do cliente.
    *
-   * SÓ 59 DE 49.109 VÍNCULOS TÊM CLASSE LIDA da origem; os outros 49.050
-   * entraram como `C` por assunção (documento 25, §5.1). A tela não ordena nem
-   * segmenta por este campo, e diz por quê.
+   * ELA SEGUE ENTRANDO COMO `C` POR ASSUNÇÃO na maioria dos vínculos: nasce de
+   * `IVS_Pes.Potencial`, um `varchar(3)` sem catálogo (documento 25, §5.1). A
+   * tela não ordena nem segmenta por este campo. Quem sustenta segmentação por
+   * classe é `Cliente.Classe` — a curva ABC apurada do faturamento —, que é o
+   * que o filtro `classe` desta consulta usa.
    */
   classe: string;
   ultimaInteracaoEm: string | null;
@@ -362,7 +365,7 @@ export type TerritorioDeCarteira = {
   responsavelNome: string;
   empresaCodigo: string;
   empresaNome: string;
-  /** Vazia quando a carteira não declara cidade — 69 das 142 estão assim. */
+  /** Vazia quando a carteira não declara cidade — parte delas está assim. */
   municipios: MunicipioParaSelecao[];
 };
 
