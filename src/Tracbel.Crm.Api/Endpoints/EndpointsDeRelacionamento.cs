@@ -277,7 +277,7 @@ public static class EndpointsDeRelacionamento
             .WithSummary("A meta de venda (API Gestão de Negócios) × as máquinas vendidas (ART), da filial do cabeçalho.")
             .WithDescription(
                 "Meta em unidades por mês, linha e consultor, contra as vendas de máquina que o CRM tem (frota.VendaDeMaquina, pela " +
-                "data da venda); as vendas do ART que aguardam cadastro ou chassi vêm em número, à parte. Consórcio à parte, em cotas. " +
+                "data da ENTREGA, a régua da GN desde 28/09/2026 — a vendida e não entregue vem à parte); as vendas do ART que aguardam cadastro ou chassi vêm em número, à parte. Consórcio à parte, em cotas. " +
                 "Período padrão: o ano fiscal (novembro a outubro) até o último mês fechado, com o mês em curso à parte e o realizado " +
                 "do mesmo trecho do ano fiscal anterior. `competenciaInicial` e `competenciaFinal` (AAAA-MM) pedem outro período. " +
                 "No alcance Próprios, só a meta e as vendas da própria pessoa.");

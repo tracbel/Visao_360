@@ -14,8 +14,8 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 /// negócio da origem SE SOMAM aqui — é por isso que a tabela guarda uma linha por id da GN. O consórcio fica à parte, em
 /// cotas (D-M4).</para>
 ///
-/// <para><b>O realizado</b> é só <c>frota.VendaDeMaquina</c> (D-M3), pela data da venda, uma máquina por venda: é o que o
-/// CRM tem. As vendas que o ART tem e o CRM ainda não — comprador sem cadastro, chassi incompleto — são contadas à parte,
+/// <para><b>O realizado</b> é só <c>frota.VendaDeMaquina</c>, uma máquina por venda: é o que o CRM tem. Segue a régua da GN
+/// (28/09/2026, no lugar da D-M3): só a máquina ENTREGUE, no mês da ENTREGA; a vendida e ainda não entregue vai à parte. As vendas que o ART tem e o CRM ainda não — comprador sem cadastro, chassi incompleto — são contadas à parte,
 /// como lacuna, e não somadas. Por consultor, conta a PESSOA: o vendedor do ART (D-M2), casado com o consultor da meta
 /// pela chave da pessoa (<see cref="MetaDeVenda.ChaveDaPessoa"/>: sem acento; espaço e hífen viram ponto). Por filial,
 /// conta a filial da venda — e isso quem faz é o filtro global, como em todo repositório; no alcance Próprios, também:
@@ -89,15 +89,25 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
         var inicioDoAnterior = anterior.Inicial;
         var fimDoAnterior = anterior.Final.AddMonths(1);
 
+        // A RÉGUA DA GN (decisão do Ricardo em 28/09/2026, no lugar da D-M3): o realizado é a máquina ENTREGUE, no mês da
+        // ENTREGA — medido na performance da GN, o mês é o da entrega em 1.321 de 1.321 linhas do FY26.
         var vendas = (await contexto.VendasDeMaquina.AsNoTracking()
-                .Where(v => v.ExcluidoEm == null && v.VendidaEm != null
-                            && ((v.VendidaEm >= inicio && v.VendidaEm < fimDoPeriodo) || (v.VendidaEm >= inicioDoAnterior && v.VendidaEm < fimDoAnterior)))
-                .Select(v => new { VendidaEm = v.VendidaEm!.Value, v.LinhaNaOrigem, v.VendedorNaOrigem })
+                .Where(v => v.ExcluidoEm == null && v.EntregueEm != null
+                            && ((v.EntregueEm >= inicio && v.EntregueEm < fimDoPeriodo) || (v.EntregueEm >= inicioDoAnterior && v.EntregueEm < fimDoAnterior)))
+                .Select(v => new { EntregueEm = v.EntregueEm!.Value, v.LinhaNaOrigem, v.VendedorNaOrigem })
                 .ToListAsync(ct))
-            .Select(v => new LinhaDeVenda(new DateOnly(v.VendidaEm.Year, v.VendidaEm.Month, 1), CodigoEstavel.De(v.LinhaNaOrigem, MetaDeVenda.TamanhoDaLinha),
+            .Select(v => new LinhaDeVenda(new DateOnly(v.EntregueEm.Year, v.EntregueEm.Month, 1), CodigoEstavel.De(v.LinhaNaOrigem, MetaDeVenda.TamanhoDaLinha),
                 v.LinhaNaOrigem, MetaDeVenda.ChaveDaPessoa(v.VendedorNaOrigem) is { Length: > 0 } vendedor ? vendedor : null))
             .Where(v => meuLogin is null || (meuLogin.Length > 0 && v.Vendedor == meuLogin))
             .ToList();
+
+        // A VENDIDA E AINDA NÃO ENTREGUE, vendida no período: não é realizado pela régua da GN — é contada à parte, para o
+        // cartão dizer quanto está a caminho.
+        var aguardandoEntrega = (await contexto.VendasDeMaquina.AsNoTracking()
+                .Where(v => v.ExcluidoEm == null && v.EntregueEm == null && v.VendidaEm != null && v.VendidaEm >= inicio && v.VendidaEm < fimDoPeriodo)
+                .Select(v => v.VendedorNaOrigem)
+                .ToListAsync(ct))
+            .Count(vendedor => meuLogin is null || (meuLogin.Length > 0 && MetaDeVenda.ChaveDaPessoa(vendedor) == meuLogin));
 
         // ---------------------------------------------------------------------------------------------
         // O realizado de consórcio (28/09/2026): as cotas vendidas, pelo mês que a performance da GN atribui. Pela filial da
@@ -203,7 +213,8 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
             await OrigemAsync(ct),
             loginSemCasamento,
             consorcioLidoEm is null ? null : cotas.Count(NoPeriodo),
-            consorcioLidoEm is { } lidoEm ? DateTime.SpecifyKind(lidoEm, DateTimeKind.Utc) : null);
+            consorcioLidoEm is { } lidoEm ? DateTime.SpecifyKind(lidoEm, DateTimeKind.Utc) : null,
+            aguardandoEntrega);
     }
 
     /// <summary>
