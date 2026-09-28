@@ -34,6 +34,7 @@ import {
   catalogoFicticio,
   creditoFicticio,
   custosFicticios,
+  demandaFicticia,
   diagnosticoFicticio,
   parametrosFicticios,
   precoImplicitoFicticio,
@@ -179,6 +180,12 @@ function instalarInterceptador(): void {
     if (caminho === '/v1/mercado/diagnostico') {
       const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;
       return envelope(diagnosticoFicticio(municipiosDaMalha(malha, 40), estado === 'parcialmenteVazio'));
+    }
+
+    // A DEMANDA E PREVISÃO (issue 258): os mesmos municípios da amostra do diagnóstico.
+    if (caminho === '/v1/mercado/demanda') {
+      const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;
+      return envelope(demandaFicticia(municipiosDaMalha(malha, 40), estado === 'parcialmenteVazio'));
     }
 
     if (caminho === '/v1/territorio/indicadores') {

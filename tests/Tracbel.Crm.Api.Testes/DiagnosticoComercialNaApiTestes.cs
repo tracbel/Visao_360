@@ -136,6 +136,20 @@ public sealed class DiagnosticoComercialNaApiTestes(ApiEmMemoria api) : IClassFi
         resumo.GetProperty("maxima").GetInt32().Should().Be(1);
         resumo.GetProperty("total").GetInt32().Should().Be(3);
         resumo.GetProperty("semIndice").GetInt32().Should().Be(0);
+
+        // OS TOTAIS DOS CARTÕES (28/09/2026): a demanda é a soma dos três municípios; sem ART, as vendas e a penetração
+        // ficam vazias — e não zero.
+        resumo.GetProperty("demandaEstrutural").GetDecimal().Should().Be(18m, "3 + 6 + 9 tratores por ano");
+        resumo.GetProperty("municipiosComDemanda").GetInt32().Should().Be(3);
+        resumo.GetProperty("metaDePlanejamento").GetDecimal().Should().BeGreaterThan(0m);
+        resumo.GetProperty("vendidasNoPeriodo").ValueKind.Should().Be(JsonValueKind.Null);
+        resumo.GetProperty("penetracao").ValueKind.Should().Be(JsonValueKind.Null);
+
+        // A LINHA TRAZ O CÓDIGO DA LOJA (o filtro recebe o código) e os clientes em partes, mesmo zerados.
+        maior.TryGetProperty("lojaCodigo", out _).Should().BeTrue();
+        maior.GetProperty("clientesPorClasse").GetProperty("semClasse").GetInt32().Should().Be(0);
+        maior.GetProperty("clientesEmCarteira").GetInt32().Should().Be(0);
+        maior.GetProperty("clientesQueCompraram").GetInt32().Should().Be(0);
     }
 
     [Fact]

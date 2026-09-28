@@ -164,7 +164,7 @@ public sealed class ObterDiagnosticoComercial(
             [.. shares.Where(s => categoriasDosShares.ContainsKey(s.CategoriaDeMaquinaId))
                 .Select(s => new ShareDoDiagnostico(categoriasDosShares[s.CategoriaDeMaquinaId].Codigo, categoriasDosShares[s.CategoriaDeMaquinaId].Nome, s.Percentual, s.InformadoPorId is null))],
             DiagnosticoComercial.Percentil90([.. entradas.Select(e => e.ParaOIoc.DemandaDoIoc).OfType<decimal>().Where(d => d > 0)]),
-            Resumir(linhas),
+            Resumir(linhas, indicadores.MaquinasVendidas is not null),
             linhas,
             Lacunas(indicadores, doPlanejamento, gerais, todas, codigoDaCategoria, nomeDaCategoria, sharePorCategoria, janela));
 
@@ -212,16 +212,16 @@ public sealed class ObterDiagnosticoComercial(
         var comDemanda = parcelas.Where(p => p.DemandaAnual is not null).ToList();
 
         var credito = deMercado.CreditoPorMunicipio.GetValueOrDefault(m.CodigoIbge)?.Indice;
-        decimal? percepcao = deMercado.PercepcaoPorMunicipio.TryGetValue(m.CodigoIbge, out var ajuste) ? ajuste : null;
 
-        // A DEMANDA AJUSTADA COM O CRÉDITO E A PERCEPÇÃO DESTE MUNICÍPIO, e o preço de cada cultura — o fator de ciclo
-        // da issue 74, parcela a parcela. Sem parâmetros gerais vigentes não há fator, e a ajustada fica vazia.
+        // A DEMANDA AJUSTADA COM O CRÉDITO DESTE MUNICÍPIO, o preço de cada cultura e a PERCEPÇÃO DE CADA CULTURA somada
+        // ao ajuste do gestor sobre o município (27/09/2026) — o fator de ciclo da issue 74, parcela a parcela, igual ao
+        // dos Indicadores Geográficos. Sem parâmetros gerais vigentes não há fator, e a ajustada fica vazia.
         decimal? Ajustada(DemandaNoMunicipio parcela) =>
             FatorDeCiclo.Ajustar(
                 parcela.DemandaAnual,
                 deMercado.PrecoPorCultura.GetValueOrDefault(parcela.CulturaCodigo)?.Indice,
                 credito,
-                percepcao,
+                deMercado.PercepcaoDaCulturaNoMunicipio(m.CodigoIbge, parcela.CulturaCodigo),
                 gerais).DemandaAjustada;
 
         var ajustadas = comDemanda.Select(x => (x.CategoriaCodigo, Ajustada: Ajustada(x))).ToList();
@@ -282,6 +282,7 @@ public sealed class ObterDiagnosticoComercial(
             m.CodigoIbge,
             m.Nome,
             m.Regiao,
+            m.LojaCodigo,
             m.LojaNome,
             o.CulturaPrincipal,
             o.IndiceDePrecoDaPrincipal,
@@ -293,6 +294,9 @@ public sealed class ObterDiagnosticoComercial(
             e.VendidasNoPeriodo,
             Arredondar(o.VendidasNoAno),
             o.Clientes,
+            m.Cobertura.PorClasse,
+            m.Cobertura.ClientesEmCarteira,
+            m.Vendas.ClientesQueCompraram,
             o.VinculosComCadencia,
             o.Cobertos,
             ioc?.Cobertura is { } cob ? decimal.Round(cob, 4) : null,
@@ -308,10 +312,22 @@ public sealed class ObterDiagnosticoComercial(
 
     private static decimal? Arredondar(decimal? valor) => valor is { } v ? decimal.Round(v, 2) : null;
 
-    private static ResumoDoDiagnostico Resumir(IReadOnlyList<MunicipioNoDiagnostico> linhas)
+    private static ResumoDoDiagnostico Resumir(IReadOnlyList<MunicipioNoDiagnostico> linhas, bool comArt)
     {
         int Da(ClasseDePrioridade classe) => linhas.Count(l => l.Classe == classe.ToString());
         var comIndice = linhas.Where(l => l.Ioc is not null).Select(l => l.Ioc!.Value).ToList();
+
+        // AS SOMAS SÓ DOS MUNICÍPIOS QUE TÊM O NÚMERO, e nulas quando nenhum tem: somar "sem dado" como zero daria um
+        // total menor que o real sem aviso. Quantos entraram vai junto, para a tela dizer a base.
+        static decimal? Soma(IEnumerable<decimal?> valores)
+        {
+            var com = valores.OfType<decimal>().ToList();
+            return com.Count > 0 ? decimal.Round(com.Sum(), 1) : null;
+        }
+
+        var estrutural = Soma(linhas.Select(l => l.DemandaEstrutural));
+        var vendidasNoAno = comArt ? Soma(linhas.Select(l => l.VendidasNoAno)) : null;
+
         return new ResumoDoDiagnostico(
             Da(ClasseDePrioridade.Maxima),
             Da(ClasseDePrioridade.Alta),
@@ -320,7 +336,16 @@ public sealed class ObterDiagnosticoComercial(
             Da(ClasseDePrioridade.Manutencao),
             linhas.Count - comIndice.Count,
             linhas.Count,
-            comIndice.Count > 0 ? decimal.Round(comIndice.Average(), 1) : null);
+            comIndice.Count > 0 ? decimal.Round(comIndice.Average(), 1) : null,
+            estrutural,
+            Soma(linhas.Select(l => l.DemandaAjustada)),
+            linhas.Count(l => l.DemandaEstrutural is not null),
+            Soma(linhas.Select(l => l.MetaDePlanejamento)),
+            comArt ? linhas.Sum(l => l.VendidasNoPeriodo ?? 0) : null,
+            vendidasNoAno,
+            estrutural is > 0 && vendidasNoAno is { } ano ? decimal.Round(ano / estrutural.Value, 4) : null,
+            linhas.Sum(l => l.Clientes),
+            linhas.Sum(l => l.ClientesQueCompraram));
     }
 
     /// <summary>O que o diagnóstico não consegue afirmar, cada frase com o motivo.</summary>
@@ -441,13 +466,39 @@ public sealed record ShareDoDiagnostico(string CategoriaCodigo, string Categoria
 /// <param name="SemIndice">Sem componente nenhum com dado.</param>
 /// <param name="Total">Municípios no diagnóstico.</param>
 /// <param name="IocMedio">A média dos que têm índice.</param>
+/// <param name="DemandaEstrutural">A soma da demanda estrutural dos municípios que a têm; nula sem nenhum.</param>
+/// <param name="DemandaAjustada">A soma da ajustada dos que a têm.</param>
+/// <param name="MunicipiosComDemanda">Quantos municípios entraram na soma da demanda.</param>
+/// <param name="MetaDePlanejamento">A soma da meta (demanda × share-alvo) dos que a têm.</param>
+/// <param name="VendidasNoPeriodo">Máquinas vendidas no período, pelo ART; nula sem carga do ART.</param>
+/// <param name="VendidasNoAno">As mesmas levadas a um ano pela sazonalidade.</param>
+/// <param name="Penetracao">Vendidas no ano ÷ demanda estrutural da região, de 0 a 1; nula sem ART ou sem demanda.</param>
+/// <param name="Clientes">Clientes com endereço principal nos municípios.</param>
+/// <param name="ClientesQueCompraram">Deles, os com faturamento no período.</param>
 public sealed record ResumoDoDiagnostico(
-    int Maxima, int Alta, int Moderada, int Baixa, int Manutencao, int SemIndice, int Total, decimal? IocMedio);
+    int Maxima,
+    int Alta,
+    int Moderada,
+    int Baixa,
+    int Manutencao,
+    int SemIndice,
+    int Total,
+    decimal? IocMedio,
+    decimal? DemandaEstrutural = null,
+    decimal? DemandaAjustada = null,
+    int MunicipiosComDemanda = 0,
+    decimal? MetaDePlanejamento = null,
+    int? VendidasNoPeriodo = null,
+    decimal? VendidasNoAno = null,
+    decimal? Penetracao = null,
+    int Clientes = 0,
+    int ClientesQueCompraram = 0);
 
 /// <summary>Um município no diagnóstico — a linha da tabela.</summary>
 /// <param name="CodigoIbge">O código IBGE.</param>
 /// <param name="Nome">O nome.</param>
 /// <param name="Regiao">A sub-região da ADR.</param>
+/// <param name="LojaCodigo">O código da filial responsável — o que o filtro de loja recebe.</param>
 /// <param name="Loja">A filial responsável.</param>
 /// <param name="CulturaPrincipal">A cultura de maior área útil.</param>
 /// <param name="IndiceDePreco">O momento de preço dela (1,00 estável).</param>
@@ -459,6 +510,9 @@ public sealed record ResumoDoDiagnostico(
 /// <param name="VendidasNoPeriodo">Máquinas vendidas no período (ART); nulo sem carga.</param>
 /// <param name="VendidasNoAno">As mesmas, levadas a um ano pela sazonalidade.</param>
 /// <param name="Clientes">Clientes com endereço no município.</param>
+/// <param name="ClientesPorClasse">Os mesmos pela classe ABC; nulo onde a apuração não separa.</param>
+/// <param name="ClientesEmCarteira">Deles, os com vínculo em carteira comercial.</param>
+/// <param name="ClientesQueCompraram">Deles, os com faturamento no período.</param>
 /// <param name="VinculosComCadencia">Vínculos com cadência declarada.</param>
 /// <param name="Cobertos">Deles, os cobertos.</param>
 /// <param name="Cobertura">Cobertos ÷ vínculos com cadência, de 0 a 1.</param>
@@ -474,6 +528,7 @@ public sealed record MunicipioNoDiagnostico(
     int CodigoIbge,
     string Nome,
     string Regiao,
+    string? LojaCodigo,
     string? Loja,
     string? CulturaPrincipal,
     decimal? IndiceDePreco,
@@ -485,6 +540,9 @@ public sealed record MunicipioNoDiagnostico(
     int? VendidasNoPeriodo,
     decimal? VendidasNoAno,
     int Clientes,
+    ClientesPorClasse? ClientesPorClasse,
+    int? ClientesEmCarteira,
+    int ClientesQueCompraram,
     int VinculosComCadencia,
     int Cobertos,
     decimal? Cobertura,

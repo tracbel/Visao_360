@@ -341,7 +341,7 @@ public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : I
             .Where(p => p.Vigente is not null)
             .ToDictionary(p => p.Codigo, p => p.Vigente!.Percentual);
 
-        return new IndicadoresPorMunicipio(precos.Indices, credito, percepcoes, precos.UltimoMes);
+        return new IndicadoresPorMunicipio(precos.Indices, credito, percepcoes, precos.UltimoMes, await PercepcaoPorCulturaAsync(data, ct));
     }
 
     /// <summary>A percepção do gestor vigente na data, em pontos percentuais.</summary>

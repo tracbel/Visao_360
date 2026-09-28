@@ -330,6 +330,8 @@ export type MunicipioNoDiagnostico = {
   codigoIbge: number;
   nome: string;
   regiao: string;
+  /** O código da filial responsável — o que o filtro de loja envia. */
+  lojaCodigo: string | null;
   loja: string | null;
   culturaPrincipal: string | null;
   indiceDePreco: number | null;
@@ -341,6 +343,12 @@ export type MunicipioNoDiagnostico = {
   vendidasNoPeriodo: number | null;
   vendidasNoAno: number | null;
   clientes: number;
+  /** Os mesmos clientes pela classe ABC; "sem classe" é quem não tem faturamento apurado — e não é D. */
+  clientesPorClasse: ClientesPorClasse | null;
+  /** Deles, os com vínculo em carteira comercial — os que têm dono no comercial. */
+  clientesEmCarteira: number | null;
+  /** Deles, os com faturamento no período. */
+  clientesQueCompraram: number;
   vinculosComCadencia: number;
   cobertos: number;
   cobertura: number | null;
@@ -363,7 +371,21 @@ export type ResumoDoDiagnostico = {
   semIndice: number;
   total: number;
   iocMedio: number | null;
+  /** As somas só dos municípios que têm o número; nulas quando nenhum tem. */
+  demandaEstrutural: number | null;
+  demandaAjustada: number | null;
+  municipiosComDemanda: number;
+  metaDePlanejamento: number | null;
+  /** Nula sem carga do ART — ausência de carga não é venda zero. */
+  vendidasNoPeriodo: number | null;
+  vendidasNoAno: number | null;
+  /** Vendidas no ano ÷ demanda estrutural, de 0 a 1. */
+  penetracao: number | null;
+  clientes: number;
+  clientesQueCompraram: number;
 };
+
+export type ClientesPorClasse = { a: number; b: number; c: number; d: number; semClasse: number };
 
 export type ShareDoDiagnostico = { categoriaCodigo: string; categoriaNome: string; percentual: number; doPrototipo: boolean };
 
@@ -400,5 +422,90 @@ export type FiltrosDoDiagnostico = {
   competenciaInicial?: string;
   competenciaFinal?: string;
   regiao?: string;
+  /** A filial responsável pelo município, pelo código. */
+  lojaCodigo?: string;
   categoria?: string;
+  /** `Filial` (padrão) ou `Empresa` — o mesmo alcance dos Indicadores Geográficos. */
+  visao?: 'Filial' | 'Empresa';
 };
+
+// ------------------------------------------------------------------------------------------------
+// Demanda e previsão — `GET /api/v1/mercado/demanda` (issue 258)
+// ------------------------------------------------------------------------------------------------
+
+export type TotaisDaDemanda = {
+  parque: number | null;
+  /** A renovação anual do parque — 100% do mercado. */
+  demandaEstrutural: number | null;
+  demandaAjustada: number | null;
+  /** Demanda × share-alvo — a meta anual da Tracbel. */
+  aEntregar: number | null;
+  aEntregarAjustada: number | null;
+  culturasComRegra: string[];
+  municipios: number;
+  municipiosComDemanda: number;
+  estimativa: boolean;
+};
+
+export type DemandaDaCultura = {
+  culturaCodigo: string;
+  cultura: string;
+  areaUtilHectares: number | null;
+  hectaresPorMaquina: number | null;
+  anosDeRenovacao: number | null;
+  parque: number | null;
+  demandaEstrutural: number | null;
+  demandaAjustada: number | null;
+  variacaoPercentual: number | null;
+};
+
+/** Um mês da previsão; `mes` é o do calendário (1 a 12), e a lista vem de novembro a outubro. */
+export type PrevisaoDoMes = {
+  mes: number;
+  fracao: number;
+  demandaEstrutural: number | null;
+  demandaAjustada: number | null;
+  aEntregar: number | null;
+  aEntregarAjustada: number | null;
+};
+
+export type EntregaDaLoja = { lojaCodigo: string | null; loja: string; aEntregarNoAno: number | null; porMes: (number | null)[] };
+
+export type DemandaDoMunicipioNaPrevisao = {
+  codigoIbge: number;
+  nome: string;
+  regiao: string;
+  lojaCodigo: string | null;
+  loja: string | null;
+  areaUtilHectares: number | null;
+  parque: number | null;
+  porCultura: { culturaCodigo: string; demanda: number }[];
+  demandaEstrutural: number | null;
+  demandaAjustada: number | null;
+  aEntregar: number | null;
+  aEntregarAjustada: number | null;
+  fatorDePreco: number | null;
+  fatorDeCredito: number | null;
+  culturaPredominante: string | null;
+  variacaoPercentual: number | null;
+};
+
+export type DemandaEPrevisaoDaRegiao = {
+  categoria: string;
+  categoriaNome: string;
+  categorias: { codigo: string; nome: string; ordem: number }[];
+  shareAlvo: number | null;
+  shareDoPrototipo: boolean;
+  sazonalidadeVigenteDesde: string | null;
+  sazonalidadeDoPrototipo: boolean;
+  anoDaAreaPlantada: number | null;
+  totais: TotaisDaDemanda;
+  porCultura: DemandaDaCultura[];
+  previsaoMensal: PrevisaoDoMes[];
+  porLoja: EntregaDaLoja[];
+  municipios: DemandaDoMunicipioNaPrevisao[];
+  culturas: { codigo: string; nome: string; demanda: number | null }[];
+  lacunas: { metrica: string; motivo: string }[];
+};
+
+export type FiltrosDaDemanda = { regiao?: string; lojaCodigo?: string; categoria?: string };

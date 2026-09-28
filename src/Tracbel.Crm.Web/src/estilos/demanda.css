@@ -1,0 +1,61 @@
+/*
+ * Demanda e Previsão (issue 258) — só o que o painel, a tabela do cadastro e o Diagnóstico não cobrem: as barras da
+ * previsão mensal, o mapa de calor das lojas e a matriz. Tudo sobre os tokens do design system.
+ */
+
+/* A PREVISÃO MENSAL — doze colunas, cada uma um botão; o número em cima, a barra, o mês e o peso do mês. */
+.dem-previsao {
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 8px; align-items: end; height: 240px;
+}
+.dem-previsao-mes {
+  all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-rows: auto 1fr auto auto; gap: 4px;
+  height: 100%; padding: 4px 2px; border-radius: 6px; text-align: center; transition: background 150ms ease-out, opacity 150ms ease-out;
+}
+.dem-previsao-mes:hover { background: var(--n-50); }
+.dem-previsao-mes:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; }
+.dem-previsao-mes[aria-pressed='true'] { background: #EDF5EA; }
+.dem-previsao-mes[data-apagado='true'] { opacity: 0.5; }
+.dem-previsao-valor { font-size: 13px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.dem-previsao-trilho { display: flex; align-items: flex-end; justify-content: center; min-height: 0; }
+.dem-previsao-trilho span {
+  display: block; width: 70%; max-width: 44px; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--jd-green);
+}
+.dem-previsao-mes[aria-pressed='true'] .dem-previsao-trilho span { background: var(--jd-green-dark); }
+.dem-previsao-nome { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; }
+.dem-previsao-fracao { font-size: 11px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+/* O MAPA DE CALOR — o número sempre escrito; a cor só reforça. */
+.dem-calor th[scope='row'] { white-space: nowrap; font-weight: 600; color: var(--text-primary); text-transform: none; font-size: 13px; }
+.dem-calor thead th { text-align: center; letter-spacing: 0; }
+.dem-calor thead th:first-child { text-align: left; }
+.dem-calor thead th[data-escolhido='true'] { color: var(--jd-green-dark); }
+.dem-calor-celula { text-align: center; font-variant-numeric: tabular-nums; font-size: 12px; border-left: 1px solid var(--bg-surface); }
+.dem-calor-celula[data-escolhido='true'] { box-shadow: inset 0 0 0 2px var(--jd-green-dark); }
+.dem-calor-total { min-width: 150px; white-space: nowrap; }
+.dem-calor-total strong { margin-left: 8px; font-variant-numeric: tabular-nums; }
+.dem-calor-barra { display: inline-block; vertical-align: middle; width: 90px; height: 8px; border-radius: 4px; background: var(--n-100); overflow: hidden; }
+.dem-calor-barra span { display: block; height: 100%; background: var(--jd-green-dark); }
+
+/* A TABELA DE CULTURAS E A MATRIZ */
+.dem-culturas th[scope='row'] { font-weight: 600; color: var(--text-primary); text-transform: none; font-size: 13px; }
+.dem-destaque { font-weight: 600; color: var(--text-primary); }
+.dem-entregar { font-weight: 700; color: var(--jd-green-dark); }
+.dem-cultura { color: var(--text-secondary); }
+.dem-municipio { font-weight: 600; color: var(--jd-green-dark); white-space: nowrap; }
+.dem-acoes-da-matriz { display: flex; gap: 8px; align-items: center; }
+.dem-busca {
+  height: 30px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--bg-surface);
+  font: inherit; font-size: 13px; color: var(--text-primary); min-width: 200px;
+}
+.dem-busca:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
+
+.dash-painel + .dash-painel { margin-top: 16px; }
+
+@media (max-width: 900px) {
+  .dem-previsao { grid-template-columns: repeat(6, minmax(0, 1fr)); height: auto; }
+  .dem-previsao-mes { height: 160px; }
+}
+@media (max-width: 640px) {
+  .dem-acoes-da-matriz { flex-wrap: wrap; }
+  .dem-busca { min-width: 0; width: 100%; }
+}
