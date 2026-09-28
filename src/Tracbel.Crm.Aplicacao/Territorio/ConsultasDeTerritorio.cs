@@ -618,8 +618,17 @@ public sealed class ObterIndicadoresTerritoriais(
         // O PORTE É O DO MUNICÍPIO TÍPICO DO RECORTE (issue 166, 27/09/2026). As bandas são cortes de município — os
         // tercis da ADR —, e a soma de uma região contra elas daria "grande" a todo recorte com mais de meia dúzia de
         // municípios. Entram os municípios da ADR, a mesma população de onde os cortes saíram.
-        var porte = vigente?.PorteDosMunicipios(
-            [.. indicadores.Municipios.Where(m => m.PertenceAAdr).Select(m => m.PotencialEstrutural?.DemandaAnualDeMaquinas).OfType<decimal>()]);
+        //
+        // SEM BANDA REGISTRADA, OS TERCIS DA ADR, CALCULADOS AQUI (28/09/2026). O critério foi decidido em 27/09 e as bandas
+        // nunca foram gravadas: a tela esperava alguém clicar em "Calcular pelos tercis". Agora a apuração as calcula da
+        // demanda da ADR inteira, e a registrada — quando houver — continua mandando.
+        var bandas = BandasDoPorteDoRecorte(
+            vigente,
+            [.. indicadores.Municipios.Where(m => m.PertenceAAdr).Select(m => m.PotencialEstrutural?.DemandaAnualDeMaquinas).OfType<decimal>()],
+            indicadores.DemandasDosMunicipiosDaAdr ?? []);
+        var porte = bandas is null
+            ? null
+            : ParametroDoPotencial.PorteNasBandas(bandas.DemandaMediaDoRecorte, bandas.MedioAPartirDe, bandas.GrandeAPartirDe);
 
         // SEM INDICADOR NENHUM, NÃO HÁ FAIXA (27/09/2026). Com preço, crédito e percepção ausentes, o fator é 1,00
         // por construção — desvio zero em tudo —, e a tela dizia "Mercado normal", uma afirmação sobre o mercado
@@ -656,7 +665,30 @@ public sealed class ObterIndicadoresTerritoriais(
                 "recorte. O número do topo é a razão entre a demanda ajustada somada e a estrutural somada — " +
                 "não é um índice médio de commodity, e cada cultura pesa pela demanda que representa. Com todas " +
                 "neutras, o agregado é 1,00. Indicador ausente vale desvio ZERO. O custo entra dentro da " +
-                "parcela de preço e rentabilidade; o termo de troca ficou de fora (D-P05) e precisa da issue 70."));
+                "parcela de preço e rentabilidade; o termo de troca ficou de fora (D-P05) e precisa da issue 70."),
+            bandas);
+    }
+
+    /// <summary>
+    /// AS BANDAS QUE NOMEIAM O PORTE DO RECORTE — as registradas na vigência, ou os tercis da ADR (issue 166).
+    /// Nulas quando o recorte não tem demanda, ou quando nem há banda registrada nem tercis que separem (menos de três
+    /// municípios, ou tercis que não sobem).
+    /// </summary>
+    /// <param name="vigente">Os parâmetros gerais vigentes; podem não existir.</param>
+    /// <param name="doRecorte">A demanda de cada município da ADR no recorte.</param>
+    /// <param name="daAdr">A demanda de cada município da ADR inteira.</param>
+    internal static BandasDoPorte? BandasDoPorteDoRecorte(
+        ParametroDoPotencial? vigente, IReadOnlyCollection<decimal> doRecorte, IReadOnlyCollection<decimal> daAdr)
+    {
+        if (doRecorte.Count == 0) return null;
+        var media = doRecorte.Average();
+
+        if (vigente?.BandasDePorte is { } registradas)
+            return new BandasDoPorte(registradas.MedioAPartirDe, registradas.GrandeAPartirDe, "Registradas", null, media);
+
+        return ParametroDoPotencial.BandasPelosTercis(daAdr) is { } tercis
+            ? new BandasDoPorte(tercis.MedioAPartirDe, tercis.GrandeAPartirDe, "TercisDaAdr", daAdr.Count, media)
+            : null;
     }
 
     /// <summary>

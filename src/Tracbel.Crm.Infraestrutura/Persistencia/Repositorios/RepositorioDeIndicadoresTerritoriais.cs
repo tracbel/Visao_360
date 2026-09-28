@@ -790,23 +790,32 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
 
         var totaisDosMunicipios = new List<PotencialDoRecorte>();
         var codigosNoRecorte = new List<int>();
+        var demandasDaAdr = new List<decimal>();
 
         var itens = new List<IndicadoresDoMunicipio>();
 
         foreach (var codigo in area.Keys.Concat(acumuladores.Keys.Where(k => k > 0)).Distinct().Order())
         {
             var linhaDaArea = area.GetValueOrDefault(codigo);
+            var daAdr = linhaDaArea?.PertenceAAdr == true && categoriasDoMotor.Count > 0;
 
             if (filtrado
                 && (linhaDaArea is null
                     || (consulta.Regiao is not null && linhaDaArea.Regiao != consulta.Regiao)
                     || (consulta.LojaCodigo is not null && linhaDaArea.LojaCodigo != consulta.LojaCodigo)))
+            {
+                // O PORTE É CORTADO NA ADR INTEIRA (issue 166): o município de fora do recorte não entra na tela, mas
+                // entra nos tercis. O motor é conta em memória — nenhuma leitura a mais.
+                if (daAdr && MotorDoPotencial.Sobrepor([.. MotorDoMunicipio(codigo).Select(c => c.Resultado)]).DemandaAnual is { } fora)
+                    demandasDaAdr.Add(fora);
                 continue;
+            }
 
             codigosNoRecorte.Add(codigo);
 
             var doMotor = MotorDoMunicipio(codigo);
             var noMunicipio = MotorDoPotencial.Sobrepor([.. doMotor.Select(c => c.Resultado)]);
+            if (daAdr && noMunicipio.DemandaAnual is { } demanda) demandasDaAdr.Add(demanda);
             var parcelaDe = doMotor
                 .SelectMany(c => c.Resultado.Parcelas.Select(p => (Chave: new ChaveNoMotor(c.Codigo, p.CulturaCodigo), Parcela: p)))
                 .ToDictionary(x => x.Chave, x => x.Parcela);
@@ -1024,7 +1033,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             MaquinasVendidas: maquinasVendidas,
             PeriodoAnterior: periodoAnterior,
             LavouraDoRecorte: await LerLavouraDoRecorteAsync(
-                codigosNoRecorte.Where(c => area.TryGetValue(c, out var daArea) && daArea.PertenceAAdr).ToList(), ct));
+                codigosNoRecorte.Where(c => area.TryGetValue(c, out var daArea) && daArea.PertenceAAdr).ToList(), ct),
+            DemandasDosMunicipiosDaAdr: demandasDaAdr);
     }
 
     /// <summary>

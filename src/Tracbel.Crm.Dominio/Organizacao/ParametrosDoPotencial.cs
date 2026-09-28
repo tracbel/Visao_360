@@ -392,8 +392,19 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
         if (demandaAnual is not { } demanda) return null;
         if (PorteMedioAPartirDe is not { } medio || PorteGrandeAPartirDe is not { } grande) return null;
 
-        return demanda >= grande ? "Mercado grande" : demanda >= medio ? "Mercado médio" : "Mercado pequeno";
+        return PorteNasBandas(demanda, medio, grande);
     }
+
+    /// <summary>As bandas registradas nesta vigência; nulas quando ninguém as registrou.</summary>
+    public (decimal MedioAPartirDe, decimal GrandeAPartirDe)? BandasDePorte =>
+        PorteMedioAPartirDe is { } medio && PorteGrandeAPartirDe is { } grande ? (medio, grande) : null;
+
+    /// <summary>O nome do porte de uma demanda anual, dadas as duas bandas.</summary>
+    /// <param name="demanda">A demanda estrutural em máquinas por ano.</param>
+    /// <param name="medioAPartirDe">Onde começa o mercado médio.</param>
+    /// <param name="grandeAPartirDe">Onde começa o mercado grande.</param>
+    public static string PorteNasBandas(decimal demanda, decimal medioAPartirDe, decimal grandeAPartirDe) =>
+        demanda >= grandeAPartirDe ? "Mercado grande" : demanda >= medioAPartirDe ? "Mercado médio" : "Mercado pequeno";
 
     /// <summary>
     /// O PORTE DE UM RECORTE DE VÁRIOS MUNICÍPIOS — pela demanda MÉDIA por município (issue 166, 27/09/2026).

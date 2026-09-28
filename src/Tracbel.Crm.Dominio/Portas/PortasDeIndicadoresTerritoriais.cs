@@ -920,6 +920,11 @@ public sealed record RegraDePotencialAplicada(
 /// </param>
 /// <param name="CategoriasDeMaquina">As categorias que o filtro "Tipo de produto" oferece — as do de-para da linha de produto.</param>
 /// <param name="ResponsaveisDasCarteiras">Os responsáveis das carteiras comerciais ao alcance — as opções do filtro "CEN / gestor".</param>
+/// <param name="DemandasDosMunicipiosDaAdr">
+/// A demanda anual de CADA município da ADR com demanda, com filtro de região ou de loja ou sem — a população de onde
+/// saem os tercis do porte (issue 166). Com filtro, os municípios de fora do recorte entram aqui e só aqui: o corte é da
+/// ADR inteira, e o recorte é comparado a ele.
+/// </param>
 public sealed record IndicadoresTerritoriais(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -942,7 +947,8 @@ public sealed record IndicadoresTerritoriais(
     PeriodoAnterior? PeriodoAnterior = null,
     IReadOnlyList<AreaDoProdutoNoRecorte>? LavouraDoRecorte = null,
     IReadOnlyList<CategoriaParaFiltro>? CategoriasDeMaquina = null,
-    IReadOnlyList<ResponsavelDeCarteira>? ResponsaveisDasCarteiras = null);
+    IReadOnlyList<ResponsavelDeCarteira>? ResponsaveisDasCarteiras = null,
+    IReadOnlyList<decimal>? DemandasDosMunicipiosDaAdr = null);
 
 /// <summary>
 /// A ÁREA DE UM PRODUTO DA PAM NOS MUNICÍPIOS DA ADR DO RECORTE (issue 168).

@@ -167,12 +167,29 @@ export type MomentoDoRecorte = {
   predominante: CulturaPredominante | null;
   indiceDeCredito: number | null;
   percepcaoPercentual: number | null;
-  /** Nulo enquanto a issue 166 não tiver bandas — e nulo não é "pequeno". */
+  /** Nulo sem demanda no recorte ou sem bandas — e nulo não é "pequeno". */
   porte: string | null;
   faixaDoMomento: string | null;
   /** "Mercado grande, agora retraído." — vazia quando falta os dois lados. */
   leitura: string;
   procedencia: ProcedenciaDoIndicador | null;
+  /** As bandas que deram o nome do porte, e de onde vieram (issue 166, 28/09/2026). */
+  bandasDoPorte?: BandasDoPorte | null;
+};
+
+/**
+ * AS BANDAS DO PORTE. `Registradas` quando o administrador gravou os números;
+ * `TercisDaAdr` quando ninguém gravou e a apuração calculou os tercis da demanda
+ * dos municípios da ADR — o critério decidido em 27/09/2026.
+ */
+export type BandasDoPorte = {
+  medioAPartirDe: number;
+  grandeAPartirDe: number;
+  origem: 'Registradas' | 'TercisDaAdr';
+  /** Quantos municípios da ADR entraram nos tercis; nulo nas registradas. */
+  municipiosNaBase: number | null;
+  /** A demanda média por município do recorte — o que foi comparado às bandas. */
+  demandaMediaDoRecorte: number;
 };
 
 /**

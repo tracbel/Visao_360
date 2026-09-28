@@ -39,7 +39,7 @@ import { frasesDaProcedencia } from '../comum/comparacoes';
 import { ValorAusente } from '../comum/ValorAusente';
 import type { Indicador } from '../cadastro/Indicadores';
 import type { MomentoDoRecorte } from '../../tipos/territorio';
-import { MOTIVO_SEM_PORTE } from './motivoSemPorte';
+import { descricaoDasBandas, MOTIVO_SEM_PORTE } from './motivoSemPorte';
 
 /**
  * O ícone de cada indicador estrutural, pelo rótulo.
@@ -219,8 +219,9 @@ export function FaixaDoMercado({
               texto={
                 'O tamanho do mercado pela demanda estrutural — as máquinas que o parque renova por ano, antes do ' +
                 'momento. O nome compara o município típico do recorte (a demanda média por município da ADR) com ' +
-                'as bandas dos parâmetros gerais: os tercis dos municípios da ADR, um terço em cada porte (issue 166). ' +
-                'O total está em "Demanda anual", no alto da aba.'
+                'as bandas: os tercis dos municípios da ADR, um terço em cada porte (issue 166). ' +
+                'O total está em "Demanda anual", no alto da aba.' +
+                descricaoDasBandas(momento?.bandasDoPorte)
               }
             />
           </span>
