@@ -63,7 +63,8 @@ public static class RotulosDaTrilha
         ["ForecastDaGerencia"] = "Forecast da gerência (Gestão de Negócios)",
         ["CotaDeConsorcioVendida"] = "Cota de consórcio vendida (Gestão de Negócios)",
         ["EquipamentoEmEstoque"] = "Máquina em estoque (Gestão de Negócios)",
-        ["CoberturaDoEstoque"] = "Cobertura do estoque (Gestão de Negócios)"
+        ["CoberturaDoEstoque"] = "Cobertura do estoque (Gestão de Negócios)",
+        ["FinanciamentoDaVenda"] = "Financiamento da venda (Vórtice)"
     };
 
     // Os campos que se repetem em várias entidades, com o mesmo sentido.
@@ -290,7 +291,12 @@ public static class RotulosDaTrilha
             ["EmpresaId"] = "Filial", ["Situacao"] = "Situação", ["Reservado"] = "Reservada", ["Pago"] = "Paga à fábrica",
             ["ChegadaPrevistaEm"] = "Chegada prevista"
         },
-        ["CoberturaDoEstoque"] = new(StringComparer.Ordinal) { ["MesesDeEstoque"] = "Meses de estoque", ["Vendas"] = "Vendas do período" }
+        ["CoberturaDoEstoque"] = new(StringComparer.Ordinal) { ["MesesDeEstoque"] = "Meses de estoque", ["Vendas"] = "Vendas do período" },
+        ["FinanciamentoDaVenda"] = new(StringComparer.Ordinal)
+        {
+            ["PedidoEm"] = "Data do pedido", ["MunicipioId"] = "Município", ["ValorFinanciado"] = "Valor financiado",
+            ["InstituicaoFinanceira"] = "Instituição financeira", ["LinhaDeCredito"] = "Linha de crédito", ["ContaNoCreditoRural"] = "Conta no share do crédito"
+        }
     };
 
     // O IDENTIFICADOR QUE APONTA PARA OUTRA TABELA e que a tela troca pelo nome. O que não está aqui (modelo,
@@ -309,6 +315,7 @@ public static class RotulosDaTrilha
         [("Endereco", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("PercepcaoDoGestor", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("CreditoRuralDeInvestimento", "MunicipioId")] = TipoDeReferencia.Municipio,
+        [("FinanciamentoDaVenda", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("UsinaDeEtanol", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("CorrespondenciaDeMunicipio", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("VendaDeMaquina", "EmpresaId")] = TipoDeReferencia.Empresa,
