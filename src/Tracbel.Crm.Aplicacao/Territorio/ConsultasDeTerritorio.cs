@@ -593,15 +593,20 @@ public sealed class ObterIndicadoresTerritoriais(
         var porCultura = recorte.PorCultura
             .Select(p =>
             {
-                var indice = doRecorte.PrecoPorCultura.TryGetValue(p.CulturaCodigo, out var m) ? m.Indice : null;
+                var momento = doRecorte.PrecoPorCultura.GetValueOrDefault(p.CulturaCodigo);
+                var indice = momento?.Indice;
 
                 var ajustado = FatorDeCiclo.Ajustar(
                     p.DemandaAnual, indice, doRecorte.Credito?.Indice, doRecorte.PercepcaoDoGestor, vigente,
                     recorte.Estimativa);
 
+                // A SÉRIE VAI JUNTO DO ÍNDICE (27/09/2026): o do mês (12 contra 12) e o do ano pela PAM medem a mesma
+                // coisa em frequências diferentes, e a tela precisa dizer qual está mostrando.
                 return new MomentoDaCultura(
                     p.CulturaCodigo, p.Cultura, p.DemandaAnual, p.AreaUtilHectares, indice,
-                    ajustado.Fator, ajustado.DemandaAjustada);
+                    ajustado.Fator, ajustado.DemandaAjustada,
+                    indice is null ? null : momento!.Serie,
+                    indice is null ? null : momento!.AnoRecente);
             })
             .ToList();
 
@@ -638,13 +643,36 @@ public sealed class ObterIndicadoresTerritoriais(
                 "Fator de ciclo de mercado (issue 74), agregado pela demanda",
                 null,
                 "Demanda ajustada total ÷ demanda estrutural total",
-                doRecorte.UltimoMesDePreco is { } mes ? $"preço até {mes:MM/yyyy}" : null,
+                ReferenciaDoPreco(doRecorte.UltimoMesDePreco, porCultura),
                 agoraUtc,
+                "O momento de preço de cada cultura é o 12 contra 12 da série mensal dela (CONAB, ou a Socicana na cana); " +
+                "enquanto a série mensal não fecha as duas janelas — a CONAB só fecha em 09/2027 —, é o preço médio " +
+                "recebido pelo produtor no último ano da PAM contra o anterior, somado na área de atuação (decisão de " +
+                "27/09/2026). " +
                 "O fator é de CADA CULTURA: preço e rentabilidade são dela, crédito e percepção são do " +
                 "recorte. O número do topo é a razão entre a demanda ajustada somada e a estrutural somada — " +
                 "não é um índice médio de commodity, e cada cultura pesa pela demanda que representa. Com todas " +
                 "neutras, o agregado é 1,00. Indicador ausente vale desvio ZERO. O custo entra dentro da " +
                 "parcela de preço e rentabilidade; o termo de troca ficou de fora (D-P05) e precisa da issue 70."));
+    }
+
+    /// <summary>
+    /// ATÉ ONDE VAI O PREÇO QUE O MOMENTO USOU — o último mês da série mensal e, quando alguma cultura foi pelo anual
+    /// da PAM, o ano dela. Sem os dois, a procedência não afirma data nenhuma.
+    /// </summary>
+    private static string? ReferenciaDoPreco(DateOnly? ultimoMes, IReadOnlyList<MomentoDaCultura> porCultura)
+    {
+        var anoDaPam = porCultura
+            .Where(c => c.SerieDoIndice == nameof(SerieDoIndiceDePreco.AnualPam) && c.AnoDoIndice is not null)
+            .Select(c => c.AnoDoIndice!.Value)
+            .DefaultIfEmpty()
+            .Max();
+
+        var partes = new List<string>(2);
+        if (ultimoMes is { } mes) partes.Add($"preço mensal até {mes:MM/yyyy}");
+        if (anoDaPam > 0) partes.Add($"PAM {anoDaPam} contra {anoDaPam - 1}");
+
+        return partes.Count == 0 ? null : string.Join("; ", partes);
     }
 
     /// <summary>O período mais longo aceito: três anos, a janela da curva ABC (documento 27).</summary>

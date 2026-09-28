@@ -106,7 +106,85 @@ public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : I
             indices[cultura.Codigo] = IndicadoresDeMercado.MomentoDePreco(recentes, anteriores, janela, vigente);
         }
 
+        // ONDE A SÉRIE MENSAL NÃO FECHA AS DUAS JANELAS, O ANUAL DA PAM (decisão do Ricardo em 27/09/2026). A CONAB
+        // é janela móvel de 12 meses e o CRM a acumula desde 09/2025: o 12 contra 12 só fecha em 09/2027. Até lá, o
+        // momento da cultura é o preço implícito do último ano da PAM contra o anterior — e quando o mensal fechar,
+        // ele volta sozinho, porque só se recorre ao anual quando o mensal não saiu.
+        var semMensal = indices
+            .Where(i => i.Value.Motivo != nameof(MotivoSemIndicador.Nenhum))
+            .Select(i => i.Key)
+            .ToList();
+
+        foreach (var (codigo, anual) in await MomentoAnualDaPamAsync(semMensal, vigente, ct))
+            if (anual.Motivo == nameof(MotivoSemIndicador.Nenhum))
+                indices[codigo] = anual;
+
         return (indices, ultimoMes);
+    }
+
+    /// <summary>
+    /// O MOMENTO ANUAL PELA PAM das culturas pedidas — o preço implícito (issue 198) do último ano contra o anterior,
+    /// somado na área de atuação.
+    ///
+    /// <para><b>A área de atuação, e não São Paulo inteiro, e não o município</b>: o momento é do mercado em que a
+    /// Tracbel vende, e o preço de um município só pode vir de um punhado de produtores (ou sob sigilo). A soma vem
+    /// antes da divisão — <c>Σ valor ÷ Σ quantidade</c> —, a média ponderada pela colheita, como na issue 198.</para>
+    ///
+    /// <para><b>Só os produtos que entram na soma da lavoura</b>: o café entra pelo "Total", e somar Arábica e
+    /// Canephora junto dobraria a conta.</para>
+    /// </summary>
+    private async Task<Dictionary<string, IndiceDeMomento>> MomentoAnualDaPamAsync(
+        IReadOnlyCollection<string> culturas, ParametroDoPotencial? vigente, CancellationToken ct)
+    {
+        var resultado = new Dictionary<string, IndiceDeMomento>(StringComparer.Ordinal);
+        if (culturas.Count == 0) return resultado;
+
+        var produtos = await (
+                from p in contexto.ProdutosDaPamNasCulturas.AsNoTracking()
+                join c in contexto.Culturas.AsNoTracking() on p.CulturaId equals c.Id
+                where p.EntraNaSomaDaLavoura && culturas.Contains(c.Codigo)
+                select new { c.Codigo, p.ProdutoCodigoIbge })
+            .ToListAsync(ct);
+
+        if (produtos.Count == 0) return resultado;
+
+        var codigosIbge = produtos.Select(p => p.ProdutoCodigoIbge).Distinct().ToList();
+
+        var somado = await (
+                from p in contexto.ProducoesAgricolasNosMunicipios.AsNoTracking()
+                join a in contexto.MunicipiosDaAreaDeAtuacao.AsNoTracking() on p.MunicipioId equals a.MunicipioId
+                where a.PertenceAAdr && codigosIbge.Contains(p.ProdutoCodigoIbge)
+                group p by new { p.ProdutoCodigoIbge, p.Ano } into g
+                select new
+                {
+                    g.Key.ProdutoCodigoIbge,
+                    g.Key.Ano,
+                    Valor = g.Sum(p => p.ValorDaProducaoMilReais),
+                    Quantidade = g.Sum(p => p.QuantidadeProduzida)
+                })
+            .ToListAsync(ct);
+
+        foreach (var cultura in produtos.GroupBy(p => p.Codigo))
+        {
+            // UM PRODUTO POR CULTURA NA SOMA, hoje em todas as seis. Se um dia houver dois, o ano soma os dois — e só
+            // quando os dois têm a mesma unidade, que é o que o domínio confere ao comparar os anos.
+            var doProduto = cultura.Select(p => p.ProdutoCodigoIbge).ToHashSet();
+            var principal = cultura.First().ProdutoCodigoIbge;
+
+            var serie = somado
+                .Where(s => doProduto.Contains(s.ProdutoCodigoIbge))
+                .GroupBy(s => s.Ano)
+                .Select(g => PrecoImplicitoDaPam.De(
+                    principal,
+                    g.Key,
+                    g.Any(s => s.Valor is not null) ? g.Sum(s => s.Valor ?? 0m) : null,
+                    g.Any(s => s.Quantidade is not null) ? g.Sum(s => s.Quantidade ?? 0m) : null))
+                .ToList();
+
+            resultado[cultura.Key] = IndicadoresDeMercado.MomentoAnualDaPam(serie, vigente);
+        }
+
+        return resultado;
     }
 
     /// <summary>

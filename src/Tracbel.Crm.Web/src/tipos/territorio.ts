@@ -117,6 +117,14 @@ export type MomentoDaCultura = {
   indiceDePreco: number | null;
   fator: FatorDoCiclo;
   demandaAjustada: number | null;
+  /**
+   * De que série o índice de preço saiu (27/09/2026): `Mensal` é o 12 contra 12;
+   * `AnualPam` é o preço implícito do último ano da PAM contra o anterior, que
+   * entra só enquanto a série mensal não fecha as duas janelas. Nulo sem índice.
+   */
+  serieDoIndice?: 'Mensal' | 'AnualPam' | null;
+  /** Na série anual da PAM, o ano mais recente comparado. */
+  anoDoIndice?: number | null;
 };
 
 /** A cultura que domina a área — CONTEXTO, e não regra de agregação. */

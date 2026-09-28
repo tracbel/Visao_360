@@ -70,7 +70,10 @@ const SEM_DEMANDA =
 
 const EXPLICA_COMMODITY =
   'Preço e rentabilidade são DE CADA CULTURA — o índice é dela, 12 meses contra os 12 anteriores (issue 73), e não ' +
-  'do recorte. O custo entra AQUI: rentabilidade é preço menos custo, e não uma quarta sensibilidade (D-P05).';
+  'do recorte. Enquanto a série mensal não fecha as duas janelas (a CONAB só fecha em 09/2027), o índice é o ANUAL da ' +
+  'PAM: o preço médio recebido pelo produtor no último ano contra o anterior, na área de atuação (decisão de ' +
+  '27/09/2026); o detalhe de cada cultura diz qual das duas séries ela usa. O custo entra AQUI: rentabilidade é ' +
+  'preço menos custo, e não uma quarta sensibilidade (D-P05).';
 
 const EXPLICA_CUSTO =
   'O custo não é uma parcela separada do fator (D-P05): a sensibilidade é de PREÇO E RENTABILIDADE, e o custo entra ' +
@@ -86,6 +89,17 @@ const EXPLICA_PERCEPCAO =
   'A leitura do comercial sobre o município, de −5 a +5 pontos percentuais, com autor e vigência (issue 71). É do ' +
   'RECORTE, não da cultura. Ela soma dentro do parêntese do produtor, então o crédito a amplifica. É uma leitura ' +
   'registrada, e não uma série: não há "variação no período" a calcular para ela.';
+
+/**
+ * DE QUE SÉRIE O ÍNDICE DA CULTURA SAIU (27/09/2026): o 12 contra 12 da série
+ * mensal, ou o anual da PAM enquanto a mensal não fecha as duas janelas. As duas
+ * medem a mesma coisa em frequências diferentes — a tela diz qual está mostrando.
+ */
+function serieDoIndice(c: MomentoDaCultura): string {
+  return c.serieDoIndice === 'AnualPam'
+    ? `anual, PAM ${c.anoDoIndice ?? ''} contra ${c.anoDoIndice ? c.anoDoIndice - 1 : 'o ano anterior'}`
+    : '12 meses contra os 12 anteriores';
+}
 
 /**
  * A pílula da direita do cartão: a variação no período, ou o traço COM O
@@ -162,7 +176,7 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
             </span>
           )
         }
-        motivoSemDado="Nenhuma cultura do recorte tem índice de preço carregado (CONAB e Socicana, issue 66). Índice ausente vale desvio ZERO no fator — e não uma queda."
+        motivoSemDado="Nenhuma cultura do recorte tem índice de preço carregado (nem o mensal da CONAB ou da Socicana, nem o anual da PAM). Índice ausente vale desvio ZERO no fator — e não uma queda."
         apoio="Índice de preço de cada cultura"
         lateral={
           <Pilula
@@ -172,7 +186,7 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
                 ? `${percentualComSinal(menor)} a ${percentualComSinal(maior)}`
                 : undefined
             }
-            motivo="Nenhuma cultura do recorte tem índice de preço carregado (CONAB e Socicana, issue 66): não há variação de preço a mostrar."
+            motivo="Nenhuma cultura do recorte tem índice de preço carregado (nem o mensal da CONAB ou da Socicana, nem o anual da PAM): não há variação de preço a mostrar."
             oQue="a variação de preço das culturas"
           />
         }
@@ -410,7 +424,9 @@ function LinhaDaCultura({ c }: { c: MomentoDaCultura }) {
         <MenuDaLinha rotulo={`Detalhes do fator de ${c.cultura}`}>
           <dl>
             <dt>Índice de preço</dt>
-            <dd>{c.indiceDePreco === null ? 'não carregado — vale desvio zero' : pt(c.indiceDePreco)}</dd>
+            <dd>
+              {c.indiceDePreco === null ? 'não carregado — vale desvio zero' : `${pt(c.indiceDePreco)} · ${serieDoIndice(c)}`}
+            </dd>
             <dt>Indicadores com dado</dt>
             <dd>{c.fator.indicadoresUsados} de 3</dd>
             {c.fator.cortadoPeloLimite && (
