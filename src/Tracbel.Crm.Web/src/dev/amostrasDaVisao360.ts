@@ -498,6 +498,7 @@ export function metasDeVenda(estado: EstadoDaVisao360, codigo: string): MetaERea
     metaMaquinas: n((24 + (i % 4) * 3) * p),
     realizadoMaquinas: n((19 + (i % 3) * 2) * p),
     metaConsorcio: n(4 * p),
+    realizadoConsorcio: n(3 * p),
   }));
   const meta = porMes.reduce((s, m) => s + m.metaMaquinas, 0);
   const realizado = porMes.reduce((s, m) => s + m.realizadoMaquinas, 0);
@@ -508,7 +509,7 @@ export function metasDeVenda(estado: EstadoDaVisao360, codigo: string): MetaERea
       inicialDoAnterior: '2024-11-01', finalDoAnterior: '2025-08-01',
     },
     alcance: 'Filial',
-    totais: { metaMaquinas: meta, realizadoMaquinas: realizado, pendentesNoArt: n(21 * p), metaConsorcio: n(40 * p), vendasSemVendedor: n(2 * p) },
+    totais: { metaMaquinas: meta, realizadoMaquinas: realizado, pendentesNoArt: n(21 * p), metaConsorcio: n(40 * p), vendasSemVendedor: n(2 * p), realizadoConsorcio: n(33 * p) },
     porMes,
     porLinha: lida
       ? [
@@ -523,7 +524,7 @@ export function metasDeVenda(estado: EstadoDaVisao360, codigo: string): MetaERea
           { consultor: 'CONSULTORA.FICTICIA.DOIS', temConta: false, meta: meta - n(meta * 0.6), realizado: realizado - n(realizado * 0.62) },
         ]
       : [],
-    mesEmCurso: { competencia: '2026-09-01', metaMaquinas: n(27 * p), realizadoMaquinas: n(11 * p), metaConsorcio: n(4 * p) },
+    mesEmCurso: { competencia: '2026-09-01', metaMaquinas: n(27 * p), realizadoMaquinas: n(11 * p), metaConsorcio: n(4 * p), realizadoConsorcio: n(1 * p) },
     mesmoTrechoDoFyAnterior: { realizadoMaquinas: n(realizado * 0.9) },
     origem: lida
       ? { sistema: 'API Gestão de Negócios', rota: '/api/v1/cadastros/metas', lidaEm: '2026-09-27T09:00:00Z', geradaNaOrigemEm: '2026-09-27T08:59:40Z' }

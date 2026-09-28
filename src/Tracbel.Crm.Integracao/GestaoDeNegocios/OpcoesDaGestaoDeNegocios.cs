@@ -12,7 +12,7 @@ namespace Tracbel.Crm.Integracao.GestaoDeNegocios;
 /// <para><b>O endereço é o NOME, com a validação do certificado inteira</b> (decisão D-M1 do Ricardo, 27/09/2026). O
 /// certificado do servidor é o curinga <c>*.tracbel.com.br</c> de uma autoridade pública (GeoTrust/DigiCert), válido até
 /// 04/04/2027; o único erro que aparecia era o de NOME, porque a chamada usava o IP. Chamado por
-/// <c>https://agro-sistemas-w.tracbel.com.br:5001</c>, ele passa na validação padrão e a renovação é transparente. Por
+/// <c>https://negocios-agro.tracbel.com.br:5001</c>, ele passa na validação padrão e a renovação é transparente. Por
 /// isso não há aqui impressão digital fixada nem "aceitar qualquer certificado": a chave vale para a API inteira, e
 /// desligar a validação a entregaria a quem se pusesse no meio do caminho.</para>
 /// </summary>
@@ -27,7 +27,7 @@ public sealed class OpcoesDaGestaoDeNegocios
     /// </summary>
     public const int TamanhoMaximoDaPagina = 5000;
 
-    /// <summary>A base da API, sem barra no fim. Ex.: <c>https://agro-sistemas-w.tracbel.com.br:5001</c>.</summary>
+    /// <summary>A base da API, sem barra no fim. Ex.: <c>https://negocios-agro.tracbel.com.br:5001</c>.</summary>
     public string? Base { get; set; }
 
     /// <summary>A chave (Bearer). Vem da tela ou de <c>GestaoDeNegocios__Chave</c>, nunca de arquivo versionado.</summary>

@@ -218,6 +218,17 @@ public static class PoliticaDeAuditoria
         [
             "EmpresaId", "Competencia", "LinhaNaOrigem", "CodigoDaLinha", "LinhaDeProdutoId", "ConsultorNaOrigem",
             "ConsultorUsuarioId", "VendaDireta", "Origem", "Quantidade", "ValorUnitario", "Margem", CampoDeExclusaoLogica
+        ],
+
+        // O PLANEJAMENTO DA GN (28/09/2026) — espelho, como a meta. O forecast muda toda semana (o best guess é reavaliado às
+        // segundas) e a trilha é o histórico dele: "quanto o gestor previa antes?". O gestor de um consultor é quem soma o
+        // time dele. A cota vendida é realizado: a trilha diz quando a GN a mudou de consultor ou de filial.
+        ["GestorDoConsultor"] = ["ConsultorNaOrigem", "GestorNaOrigem", "FilialNumero", "VigenteDesde", CampoDeExclusaoLogica],
+        ["ForecastDaGerencia"] = ["Competencia", "GestorNaOrigem", "LinhaNaOrigem", "Forecast", "BestGuess", CampoDeExclusaoLogica],
+        ["CotaDeConsorcioVendida"] =
+        [
+            "EmpresaId", "Competencia", "ConsultorNaOrigem", "ConsultorUsuarioId", "GestorNaOrigem", "Contemplacao", "ValorDoBem",
+            CampoDeExclusaoLogica
         ]
     };
 

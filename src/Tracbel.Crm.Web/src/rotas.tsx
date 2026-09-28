@@ -39,6 +39,7 @@ import { CoberturaRegional } from './telas/CoberturaRegional';
 import { Configuracoes } from './telas/Configuracoes';
 import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
+import { ForecastGerencia } from './telas/ForecastGerencia';
 import { Funil } from './telas/Funil';
 import { IndicadoresGeograficos } from './telas/IndicadoresGeograficos';
 import { Inicio } from './telas/Inicio';
@@ -218,6 +219,14 @@ export const ROTAS: Rota[] = [
     titulo: 'Performance de CEN',
     trilha: ['Relatórios', 'Performance de CEN'],
     Componente: PerformanceCen,
+    usaApi: true,
+  },
+  {
+    // A tela "Forecast Gerência" da API Gestão de Negócios, com o realizado que o CRM tem (28/09/2026).
+    caminho: '/relatorios/forecast',
+    titulo: 'Forecast da Gerência',
+    trilha: ['Relatórios', 'Forecast da Gerência'],
+    Componente: ForecastGerencia,
     usaApi: true,
   },
   {
