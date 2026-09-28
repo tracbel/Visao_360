@@ -48,6 +48,7 @@ public static class RotulosDaTrilha
         ["RegraDePotencial"] = "Regra do potencial por cultura",
         ["ParametroDoPotencial"] = "Parâmetros gerais do potencial",
         ["PercepcaoDoGestor"] = "Percepção do gestor",
+        ["PercepcaoDaCultura"] = "Percepção de campo da cultura",
         ["ParametroDoPlanejamento"] = "Sazonalidade e pesos do IOC",
         ["ShareAlvoDaCategoria"] = "Share-alvo da categoria",
         ["VendaDeMaquina"] = "Venda de máquina",
@@ -197,6 +198,7 @@ public static class RotulosDaTrilha
             ["PorteMedioAPartirDe"] = "Porte médio a partir de (máquinas por ano)", ["PorteGrandeAPartirDe"] = "Porte grande a partir de (máquinas por ano)"
         },
         ["PercepcaoDoGestor"] = new(StringComparer.Ordinal) { ["MunicipioId"] = "Município", ["Percentual"] = "Percentual" },
+        ["PercepcaoDaCultura"] = new(StringComparer.Ordinal) { ["CulturaId"] = "Cultura", ["Nota"] = "Nota de campo (−2 a +2)" },
         ["ParametroDoPlanejamento"] = new(StringComparer.Ordinal)
         {
             ["SazonalidadeJaneiro"] = "Sazonalidade — janeiro (%)", ["SazonalidadeFevereiro"] = "Sazonalidade — fevereiro (%)",

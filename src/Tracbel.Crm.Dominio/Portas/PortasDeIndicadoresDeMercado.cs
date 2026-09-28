@@ -47,8 +47,29 @@ public interface IRepositorioDeIndicadoresDeMercado
 /// registrada, com autor e vigência (D-P04).
 /// </param>
 /// <param name="UltimoMesDePreco">O mês mais recente da série de preço — a competência do índice.</param>
+/// <param name="PercepcaoPorCultura">
+/// A percepção de campo de cada cultura, pelo código dela, já em pontos percentuais (27/09/2026). Só as culturas com
+/// nota vigente aparecem; ausente vale zero, como toda percepção.
+/// </param>
 public sealed record IndicadoresDoRecorte(
     IReadOnlyDictionary<string, IndiceDeMomento> PrecoPorCultura,
     IndiceDeCredito? Credito,
     decimal? PercepcaoDoGestor,
-    DateOnly? UltimoMesDePreco);
+    DateOnly? UltimoMesDePreco,
+    IReadOnlyDictionary<string, decimal>? PercepcaoPorCultura = null)
+{
+    /// <summary>
+    /// A PERCEPÇÃO QUE ENTRA NO FATOR DE UMA CULTURA: a de campo da cultura mais o ajuste do gestor sobre o município.
+    /// Nula quando nenhuma das duas foi informada — e aí o fator a trata como zero, sem dizer que alguém a declarou
+    /// neutra.
+    /// </summary>
+    /// <param name="culturaCodigo">O código da cultura no catálogo.</param>
+    public decimal? PercepcaoDaCulturaNoRecorte(string culturaCodigo)
+    {
+        decimal? daCultura = PercepcaoPorCultura is not null && PercepcaoPorCultura.TryGetValue(culturaCodigo, out var p)
+            ? p
+            : null;
+
+        return daCultura is null && PercepcaoDoGestor is null ? null : (daCultura ?? 0m) + (PercepcaoDoGestor ?? 0m);
+    }
+}
