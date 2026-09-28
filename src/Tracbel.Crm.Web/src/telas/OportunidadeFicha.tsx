@@ -6,9 +6,9 @@
  *
  * Antes ela lia `public/dados/oportunidade-1517613.json` e vivia na rota fixa
  * `/oportunidades/1517613` — **existia uma oportunidade só no sistema inteiro**,
- * e ela não era real. Agora a rota é `/oportunidades/:chave` e qualquer um dos
- * 45.397 processos carregados abre, com a linha do tempo e a agenda dele ao
- * lado.
+ * e ela não era real. Agora a rota é `/oportunidades/:chave` e abre qualquer
+ * processo trazido do Vórtice (documento 52 §12), com a linha do tempo e a
+ * agenda dele ao lado.
  *
  * ---------------------------------------------------------------------------
  * O QUE ESTA TELA DECLARA EM VEZ DE MOSTRAR:
@@ -226,7 +226,7 @@ export function OportunidadeFicha() {
           subtitulo="processo.Tarefa — do CLIENTE, não deste processo: a rota não filtra por processo"
           fonte={<SeloProcedencia procedencia={agenda.procedencia} />}
           estado={estado(agenda, (agenda.dados?.itens.length ?? 0) > 0)}
-          mensagemVazia="Nenhuma tarefa registrada para este cliente no recorte carregado."
+          mensagemVazia="Nenhuma tarefa registrada para este cliente."
           mensagemErro={agenda.erro?.message}
         >
           <ul className="p360-lista">
@@ -251,7 +251,7 @@ export function OportunidadeFicha() {
           subtitulo="processo.Interacao — a mais recente primeiro"
           fonte={<SeloProcedencia procedencia={interacoes.procedencia} />}
           estado={estado(interacoes, (interacoes.dados?.itens.length ?? 0) > 0)}
-          mensagemVazia="Nenhuma interação registrada com este cliente no recorte de 2026."
+          mensagemVazia="Nenhuma interação registrada com este cliente."
           mensagemErro={interacoes.erro?.message}
         >
           <ul className="p360-lista">
@@ -286,9 +286,9 @@ export function OportunidadeFicha() {
           <LacunaConhecida
             metrica="Probabilidade de fechamento"
             motivo={
-              'Fase.ProbabilidadePercentual é nula nas 50 fases carregadas. A origem tem uma coluna ' +
-              'Perspectiva preenchida em 3.922 processos, mas por processo e não por fase — não dá ' +
-              'para derivar dela a probabilidade desta fase.'
+              'O Vórtice não declara probabilidade por fase, e a fase chega sem ela. A origem tem uma coluna ' +
+              'Perspectiva, mas ela é por processo e não por fase — não dá para derivar dela a ' +
+              'probabilidade desta fase.'
             }
           />
           <LacunaConhecida

@@ -1,10 +1,35 @@
+import { rmSync } from 'node:fs'
+import { resolve } from 'node:path'
 import react from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
 // `vitest/config` é o mesmo `defineConfig` do Vite, com o bloco `test` tipado.
 import { defineConfig } from 'vitest/config'
 
+/**
+ * O JSON FICTÍCIO DO PROTÓTIPO NÃO VAI PARA O PACOTE (issue 191).
+ *
+ * `public/dados` guarda o que as telas do protótipo leem — o cliente 84391, o trator 1RW7250…, a carteira do CEN de
+ * mentira. Essas telas só existem no `npm run dev` (ver `rotas.tsx`), mas o Vite copia a pasta `public` inteira para o
+ * `dist`, e os arquivos seguiriam publicados no servidor, a um endereço de distância. O desenvolvimento continua
+ * servindo a pasta normalmente; só o `build` a apaga do resultado. `npm run visual:conferir-pacote` confere.
+ */
+function semDadosDoPrototipoNoPacote(): Plugin {
+  let saida = ''
+  return {
+    name: 'sem-dados-do-prototipo-no-pacote',
+    apply: 'build',
+    configResolved(config) {
+      saida = resolve(config.root, config.build.outDir)
+    },
+    closeBundle() {
+      rmSync(resolve(saida, 'dados'), { recursive: true, force: true })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), semDadosDoPrototipoNoPacote()],
 
   // OS TESTES DE COMPONENTE (issue 031). O arquivo termina em `.teste.tsx`, como
   // os testes do backend terminam em `Testes.cs`: o nome diz em português o que
