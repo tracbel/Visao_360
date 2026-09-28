@@ -202,7 +202,7 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
             </Link>
           }
           estado={estado(oportunidades, (oportunidades.dados?.itens.length ?? 0) > 0)}
-          mensagemVazia="Este cliente não tem processo aberto no recorte carregado."
+          mensagemVazia="Este cliente não tem processo aberto."
           mensagemErro={oportunidades.erro?.message}
         >
           <ul className="p360-lista">
@@ -245,7 +245,7 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
             </Link>
           }
           estado={estado(agenda, (agenda.dados?.itens.length ?? 0) > 0)}
-          mensagemVazia="Nenhuma tarefa registrada para este cliente no recorte carregado."
+          mensagemVazia="Nenhuma tarefa registrada para este cliente."
           mensagemErro={agenda.erro?.message}
         >
           <ul className="p360-lista">
@@ -271,7 +271,7 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
           subtitulo="processo.Interacao — fato imutável, a mais recente primeiro"
           fonte={<SeloProcedencia procedencia={interacoes.procedencia} />}
           estado={estado(interacoes, (interacoes.dados?.itens.length ?? 0) > 0)}
-          mensagemVazia="Nenhuma interação registrada com este cliente no recorte de 2026."
+          mensagemVazia="Nenhuma interação registrada com este cliente."
           mensagemErro={interacoes.erro?.message}
           largo
         >

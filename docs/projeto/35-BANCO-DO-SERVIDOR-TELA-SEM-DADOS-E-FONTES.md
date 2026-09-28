@@ -936,6 +936,17 @@ a nova; rodando dali a cada cinco minutos, o executável estaria aberto justamen
 religado e a rotina `ART_VENDAS` estiver ligada no orquestrador, ele não sincroniza (registra "ignorada") — um dono
 só para a agenda do ART.
 
+**A via única das vendas do ART — decidida em 28/09/2026 (Q-P6, issue 49): a leitura direta.** As vendas do ART entram
+**só** pela leitura direta da view `bi_art_veiculos` (§7.5), com a rotina `ART_VENDAS` como a sua agenda. Foi a via que
+a D-P08 (24/09/2026, [doc 48 §5.3](48-POTENCIAL-DE-MERCADO.md)) tornou a fonte canônica das unidades. O painel `art` da
+API Gestão de Negócios fica **não usado**, por três motivos:
+- tem 21 campos, sem o documento do comprador, e sem documento a venda não casa com o cliente do CRM (§10.8);
+- traz regras do Qlik no meio do caminho;
+- lê a mesma origem por uma camada a mais.
+
+Se um dia o painel ganhar o documento e servir para conferir, entra como conferência e nunca como segunda porta de
+entrada da mesma venda.
+
 **A credencial das conexões** (Protheus, banco do Protheus, ART, Vórtice) pode ser gravada pela tela, protegida pela
 proteção de dados do Windows para a máquina (DPAPI), e a carga, o orquestrador, o serviço e a API a sobrepõem às
 variáveis de ambiente com os mesmos nomes (`Protheus__Senha`, `Art__Servidor`, `Vortice__Conexao`…). Sem credencial

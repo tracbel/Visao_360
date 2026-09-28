@@ -33,7 +33,9 @@ for (const { nome, largura, altura } of LARGURAS) {
     test.use({ viewport: { width: largura, height: altura } });
     const gaveta = largura <= 900;
 
-    for (const rota of ['/relatorios/territorio', '/clientes', '/config']) {
+    // Equipamentos entrou em 28/09/2026 (issue 43): era a única das telas do roteiro de regressão — Clientes, Visão
+    // 360, Equipamentos — sem captura em nenhuma largura. A Visão 360 tem a spec própria.
+    for (const rota of ['/relatorios/territorio', '/clientes', '/equipamentos', '/config']) {
       test(`${rota} cabe na largura e é capturado`, async ({ page }) => {
         await abrir(page, rota);
         await page.screenshot({ path: `capturas/${nome}/shell${rota.replace(/\//g, '-')}.png` });

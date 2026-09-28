@@ -19,8 +19,8 @@
  * ---------------------------------------------------------------------------
  * AS DUAS COISAS QUE ESTA TELA NÃO PODE AFIRMAR, e como ela diz isso:
  *
- * 1. **Valor do funil e ticket médio não têm dado.** 358 de 45.397 processos
- *    (0,8%) declaram valor; na filial de Ribeirão Preto são 9 de 16.032 (0,1%).
+ * 1. **Valor do funil e ticket médio quase não têm dado.** No Vórtice, menos
+ *    de 1% dos processos declara valor (documento 25, medido na carga antiga).
  *    A coluna mostra **quantos processos sustentam o valor** ao lado do valor,
  *    sempre — e a API devolve `valorTotal` nulo, e não zero, quando nenhum
  *    declara. Somar essa coluna e chamar o resultado de "valor do funil" seria
@@ -185,7 +185,7 @@ export function Pipeline() {
         <div>
           <h1 className="page-title">Pipeline de Vendas</h1>
           <p className="page-subtitle">
-            <code>processo.Processo</code> — 45.397 processos migrados do Vórtice, recorte de 2026.
+            <code>processo.Processo</code> — os processos do Vórtice dos clientes cadastrados no CRM.
             As colunas do funil vêm do dado, não de uma lista escrita na tela.
           </p>
         </div>

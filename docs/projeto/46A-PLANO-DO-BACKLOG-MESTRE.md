@@ -125,6 +125,9 @@ Cada pergunta diz o que ela destrava. **Negrito** = bloqueia o caminho crítico 
   foi ampliada a pedido do Ricardo (tela inteira, #235; meta e realizado, #248; frota, faturamento e carteiras do cliente,
   #243) —, e os relatórios seguem no menu, cada um atrás da permissão dele (fase 3, #46). Nada é escondido nem movido
   para perfil de gestão; a #027 (GitHub #28) perde o objeto.
+- **Q-P6 — respondida em 28/09/2026: a leitura direta.** As vendas do ART entram só pela view, com a rotina
+  `ART_VENDAS` como agenda. Foi o que a D-P08 fez fonte canônica das unidades. O painel `art` da API GN fica não usado,
+  porque não traz o documento do comprador. Registro no documento 35 §11.10, e a #048 (GitHub #49) fecha com ele.
 - **Q-T1 — respondida em 20/09/2026: 18 meses** de retenção da auditoria (documento 45 §5.3). Registrada no catálogo
   do banco e no documento 14 §10 em 28/09/2026 (#40); a rotina que a aplica é a #268.
 

@@ -14,7 +14,7 @@
  * original era justamente um arquivo à parte.
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const DIST = 'dist';
@@ -39,6 +39,13 @@ const MARCAS = [
   'visao360-visual',
   'HarnessDaVisao360',
   'amostrasDaVisao360',
+  // AS TELAS DO PROTÓTIPO QUE LEEM JSON FICTÍCIO (issue 191) — só no `npm run dev`. São os nomes dos arquivos que
+  // elas pedem e o título do mapa do protótipo: se um deles aparecer no pacote, a tela voltou junto. (`carteira-cen`
+  // não serve de marca: é também nome de classe no CSS global.)
+  'cliente-84391',
+  'equipamento-1RW7250PVMR123456',
+  'catalogo-modelos',
+  'Mapa do protótipo',
 ];
 
 function arquivos(pasta) {
@@ -49,6 +56,15 @@ function arquivos(pasta) {
 }
 
 let achados = 0;
+
+/**
+ * A PASTA `dados` NÃO PODE ESTAR NO PACOTE (issue 191). O plugin do `vite.config.ts` a apaga depois do `build`; se
+ * ele sair ou deixar de rodar, o JSON fictício volta a ser publicado sem ninguém ver.
+ */
+if (existsSync(join(DIST, 'dados'))) {
+  console.error(`REPROVADO: ${join(DIST, 'dados')} existe — o JSON fictício do protótipo foi para o pacote.`);
+  achados++;
+}
 
 for (const caminho of arquivos(DIST)) {
   // A malha e as imagens não são texto do nosso código; ler tudo como utf8 e
@@ -67,11 +83,11 @@ for (const caminho of arquivos(DIST)) {
 
 if (achados > 0) {
   console.error(
-    `\n${achados} marca(s) do harness visual no pacote de produção.\n` +
-      'O gatilho em App.tsx precisa manter o import() INALCANÇÁVEL fora do modo de\n' +
-      'desenvolvimento — veja o comentário do HarnessVisual lá.',
+    `\n${achados} marca(s) de desenvolvimento no pacote de produção.\n` +
+      'Os gatilhos em App.tsx e rotas.tsx precisam manter as telas INALCANÇÁVEIS fora do\n' +
+      'modo de desenvolvimento — veja o comentário do HarnessVisual lá e o topo de rotas.tsx.',
   );
   process.exit(1);
 }
 
-console.log('O pacote não tem nada do harness visual.');
+console.log('O pacote não tem nada do harness visual nem das telas do protótipo.');

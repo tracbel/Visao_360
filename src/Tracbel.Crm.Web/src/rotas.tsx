@@ -14,8 +14,21 @@
  *
  * **Rotas com parâmetro** (`:chave`) usam o GUID que a API devolve. As rotas de
  * identificador fixo do protótipo (`/clientes/84391`,
- * `/equipamentos/1RW7250PVMR123456`) continuam existindo e são declaradas ANTES
- * das rotas com parâmetro, porque `acharRota` casa a primeira que bater.
+ * `/equipamentos/1RW7250PVMR123456`) são declaradas ANTES das rotas com
+ * parâmetro, porque `acharRota` casa a primeira que bater.
+ *
+ * **As telas do protótipo que leem JSON fictício só existem no `npm run dev`**
+ * (issue 191): a ficha do cliente 84391, a do equipamento 1RW7250…, a Nova
+ * Oportunidade e o mapa do protótipo. Elas mostravam cliente, frota,
+ * faturamento e telemetria inventados sem aviso nenhum, e a Nova Oportunidade
+ * "salvava" só no navegador. Continuam no desenvolvimento porque a comparação
+ * visual as mede. No pacote publicado, o endereço delas cai na rota real (a
+ * ficha pela API diz que a chave não existe) ou na Visão 360.
+ *
+ * O TERNÁRIO É O QUE TIRA AS TELAS DO PACOTE, como os harness do `App.tsx`: no
+ * `build`, `import.meta.env.DEV` vira `false`, o ramo morre e os quatro
+ * componentes deixam de ser alcançáveis. `npm run visual:conferir-pacote`
+ * reprova se alguma marca delas voltar ao `dist`.
  */
 
 import type { ComponentType } from 'react';
@@ -57,14 +70,18 @@ export const ROTAS: Rota[] = [
     Componente: Visao360,
     usaApi: true,
   },
-  {
-    // Não é tela de produto: é o índice de desenvolvimento, e fica fora do menu
-    // lateral de propósito (documentos 06 §4 e 08 §3).
-    caminho: '/inicio-antigo',
-    titulo: 'Mapa do protótipo',
-    trilha: ['Mapa do protótipo'],
-    Componente: Inicio,
-  },
+  ...(import.meta.env.DEV
+    ? [
+        {
+          // Não é tela de produto: é o índice de desenvolvimento, e fica fora do menu
+          // lateral de propósito (documentos 06 §4 e 08 §3).
+          caminho: '/inicio-antigo',
+          titulo: 'Mapa do protótipo',
+          trilha: ['Mapa do protótipo'],
+          Componente: Inicio,
+        },
+      ]
+    : []),
   {
     caminho: '/agenda',
     titulo: 'Agenda do CEN',
@@ -102,14 +119,18 @@ export const ROTAS: Rota[] = [
     Componente: ClienteCadastro,
     usaApi: true,
   },
-  {
-    // A ficha rica do protótipo, que lê JSON. Continua aqui, e ANTES da rota com
-    // parâmetro, porque é ela que a comparação visual mede.
-    caminho: '/clientes/84391',
-    titulo: 'Ficha do Cliente',
-    trilha: ['Comercial', 'Clientes', 'Agroindustrial Salvador Arena Ltda'],
-    Componente: ClienteFicha,
-  },
+  ...(import.meta.env.DEV
+    ? [
+        {
+          // A ficha rica do protótipo, que lê JSON. Só no desenvolvimento, e ANTES da
+          // rota com parâmetro, porque é ela que a comparação visual mede.
+          caminho: '/clientes/84391',
+          titulo: 'Ficha do Cliente',
+          trilha: ['Comercial', 'Clientes', 'Agroindustrial Salvador Arena Ltda'],
+          Componente: ClienteFicha,
+        },
+      ]
+    : []),
   {
     caminho: '/clientes/:chave',
     titulo: 'Ficha do Cliente',
@@ -133,15 +154,19 @@ export const ROTAS: Rota[] = [
     Componente: EquipamentoCadastro,
     usaApi: true,
   },
-  {
-    // A ficha rica do protótipo (telemetria, revisões, garantia, peças), que lê
-    // JSON. Nenhum desses blocos existe na API ainda; ver o documento
-    // `docs/prototipo/07-PADRAO-DE-TELA.md`, seção "o que ficou de fora".
-    caminho: '/equipamentos/1RW7250PVMR123456',
-    titulo: 'Ficha do Equipamento',
-    trilha: ['Comercial', 'Equipamentos', 'Trator 7250R · 1RW7250PVMR123456'],
-    Componente: EquipamentoFicha,
-  },
+  ...(import.meta.env.DEV
+    ? [
+        {
+          // A ficha rica do protótipo (telemetria, revisões, garantia, peças), que lê
+          // JSON. Nenhum desses blocos existe na API ainda; ver o documento
+          // `docs/prototipo/07-PADRAO-DE-TELA.md`, seção "o que ficou de fora".
+          caminho: '/equipamentos/1RW7250PVMR123456',
+          titulo: 'Ficha do Equipamento',
+          trilha: ['Comercial', 'Equipamentos', 'Trator 7250R · 1RW7250PVMR123456'],
+          Componente: EquipamentoFicha,
+        },
+      ]
+    : []),
   {
     caminho: '/equipamentos/:chave',
     titulo: 'Ficha do Equipamento',
@@ -150,20 +175,27 @@ export const ROTAS: Rota[] = [
     usaApi: true,
   },
 
-  {
-    caminho: '/oportunidades/nova',
-    titulo: 'Nova Oportunidade',
-    trilha: ['Comercial', 'Oportunidades', 'Nova'],
-    Componente: NovaOportunidade,
-  },
+  ...(import.meta.env.DEV
+    ? [
+        {
+          // O formulário do protótipo grava só no `localStorage` do navegador. A
+          // criação de oportunidade pelo CRM entra com a issue 52.
+          caminho: '/oportunidades/nova',
+          titulo: 'Nova Oportunidade',
+          trilha: ['Comercial', 'Oportunidades', 'Nova'],
+          Componente: NovaOportunidade,
+        },
+      ]
+    : []),
   {
     // A ROTA DEIXOU DE SER FIXA. Era `/oportunidades/1517613` e servia a UMA
     // oportunidade inventada, de `public/dados/oportunidade-1517613.json` —
     // existia uma oportunidade só no sistema inteiro. Agora a chave vem da URL
-    // e qualquer um dos 45.397 processos carregados abre.
+    // e abre qualquer processo que a rotina PROCESSOS_VORTICE trouxe.
     //
-    // Precisa vir DEPOIS de `/oportunidades/nova`, porque `acharRota` casa a
-    // primeira declaração que bater e `nova` seria engolida por `:chave`.
+    // Precisa vir DEPOIS de `/oportunidades/nova` (no desenvolvimento), porque
+    // `acharRota` casa a primeira declaração que bater e `nova` seria engolida
+    // por `:chave`.
     caminho: '/oportunidades/:chave',
     titulo: 'Ficha de Oportunidade',
     trilha: ['Comercial', 'Oportunidades', 'Ficha'],
@@ -172,9 +204,9 @@ export const ROTAS: Rota[] = [
   },
   {
     caminho: '/relatorios/funil',
-    // "do Mês" saiu: o recorte carregado é o ANO de 2026, e a rota de funil não
-    // aceita período. Prometer um mês que o dado não delimita é o mesmo defeito
-    // de mostrar número sem dizer de onde ele vem.
+    // "do Mês" saiu: o funil tem o período escolhido na própria tela (o padrão é o
+    // ano fiscal até o último mês fechado), e um título com "do Mês" prometeria um
+    // recorte que ele não usa.
     titulo: 'Funil de Vendas',
     trilha: ['Relatórios', 'Funil de Vendas'],
     Componente: Funil,
