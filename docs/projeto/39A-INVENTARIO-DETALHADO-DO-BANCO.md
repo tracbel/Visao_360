@@ -1,5 +1,11 @@
 # Inventário detalhado do banco — anexo do documento 39
 
+> **Retrato de 15/09/2026, antes da fase 1 — não é o estado de hoje.** Ele descreve as 82 tabelas ANTIGAS, 32 das quais
+> a fase 1 removeu (31 de modelo e o histórico órfão de migrações — [documento 44](44-EXECUCAO-FASE-1-SIMPLIFICACAO-ESTRUTURAL.md)).
+> O banco atual (outras tabelas, em outro número) está no [documento 14 §2.1](14-PADRAO-DE-BANCO.md#21-a-lista-fechada-hoje),
+> conferido pelos testes `EsquemaENomenclaturaTestes` e `MigracaoNoContainerTestes`. Este anexo fica como registro do
+> ponto de partida da reestruturação ([documento 41 §1.3](41-PLANO-EXECUTIVO-DA-REESTRUTURACAO.md)).
+>
 > Gerado por `scripts/banco/auditoria/gerar-inventario-do-banco.ps1` em 15/09/2026 13:24, somente leitura.
 > Fonte: catálogo do banco local `TracbelCrm` (mesma estrutura do banco central: 12 migrações) e o código do repositório.
 > "Acesso" conta referências por DbSet, `Set<T>` e SQL em texto (`schema.Tabela`); "menção ao tipo" conta o nome da entidade
