@@ -167,12 +167,29 @@ export type MomentoDoRecorte = {
   predominante: CulturaPredominante | null;
   indiceDeCredito: number | null;
   percepcaoPercentual: number | null;
-  /** Nulo enquanto a issue 166 não tiver bandas — e nulo não é "pequeno". */
+  /** Nulo sem demanda no recorte ou sem bandas — e nulo não é "pequeno". */
   porte: string | null;
   faixaDoMomento: string | null;
   /** "Mercado grande, agora retraído." — vazia quando falta os dois lados. */
   leitura: string;
   procedencia: ProcedenciaDoIndicador | null;
+  /** As bandas que deram o nome do porte, e de onde vieram (issue 166, 28/09/2026). */
+  bandasDoPorte?: BandasDoPorte | null;
+};
+
+/**
+ * AS BANDAS DO PORTE. `Registradas` quando o administrador gravou os números;
+ * `TercisDaAdr` quando ninguém gravou e a apuração calculou os tercis da demanda
+ * dos municípios da ADR — o critério decidido em 27/09/2026.
+ */
+export type BandasDoPorte = {
+  medioAPartirDe: number;
+  grandeAPartirDe: number;
+  origem: 'Registradas' | 'TercisDaAdr';
+  /** Quantos municípios da ADR entraram nos tercis; nulo nas registradas. */
+  municipiosNaBase: number | null;
+  /** A demanda média por município do recorte — o que foi comparado às bandas. */
+  demandaMediaDoRecorte: number;
 };
 
 /**
@@ -345,6 +362,27 @@ export type EstruturaDoMunicipio = {
   /** Densidade do parque — sem ela, o mapa de tratores é quase um mapa de tamanho do município. */
   tratoresPorMilKm2: number | null;
   capacidadeDeEtanolM3Dia: number | null;
+  /** A área total dos estabelecimentos, em ha (Censo, SIDRA 6881; 28/09/2026). Nula é sigilo ou fonte não carregada. */
+  areaDosEstabelecimentosHectares?: number | null;
+  /** Os estabelecimentos com área (6881) — o divisor do tamanho médio. */
+  estabelecimentosComArea?: number | null;
+  /** A área em lavoura permanente e temporária (e flores, quando divulgada). */
+  areaDeLavouraHectares?: number | null;
+  /** Área dos estabelecimentos ÷ estabelecimentos com área, em ha. */
+  tamanhoMedioHectares?: number | null;
+  /** A fatia da área dos estabelecimentos em lavoura, em %. */
+  fatiaDeLavouraPercentual?: number | null;
+  /** A vocação agrícola pelos tercis da ADR (decidida em 28/09/2026); nula fora da ADR ou sem a fatia. */
+  vocacao?: VocacaoAgricola | null;
+};
+
+/** A vocação agrícola: a fatia de lavoura cortada pelos tercis dos municípios da ADR. */
+export type VocacaoAgricola = {
+  classe: 'Alta' | 'Média' | 'Baixa';
+  fatiaDeLavouraPercentual: number;
+  mediaAPartirDe: number;
+  altaAPartirDe: number;
+  municipiosNaBase: number;
 };
 
 /**

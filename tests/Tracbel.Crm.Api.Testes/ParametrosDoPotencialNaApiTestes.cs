@@ -333,6 +333,39 @@ public sealed class ParametrosDoPotencialNaApiTestes(ApiEmMemoria api) : IClassF
     }
 
     [Fact]
+    public async Task A_percepcao_guarda_a_tendencia_de_3_meses_e_a_leitura_traz_a_serie_mensal()
+    {
+        // 28/09/2026: o gestor diz também para onde o município vai nos próximos 3 meses, e a série mensal sai das
+        // vigências — a leitura que valia no fim de cada mês.
+        var http = await AdministradorAsync();
+        var inicio = Hoje.AddDays(3);
+
+        var registrada = await LerAsync(await http.PostAsJsonAsync($"{Base}/percepcoes", new
+        {
+            municipioCodigoIbge = Franca.ToString(), percentual = "1,5", vigenteDesde = Iso(inicio),
+            justificativa = "safra de café cheia", tendenciaParaTresMeses = "alta"
+        }, Json), HttpStatusCode.Created);
+        registrada.GetProperty("tendenciaParaTresMeses").GetString().Should().Be("Alta");
+
+        var recusada = await LerAsync(await http.PostAsJsonAsync($"{Base}/percepcoes", new
+        {
+            municipioCodigoIbge = Franca.ToString(), percentual = "1", vigenteDesde = Iso(Hoje.AddDays(4)),
+            justificativa = "x", tendenciaParaTresMeses = "subindo"
+        }, Json), HttpStatusCode.UnprocessableEntity);
+        recusada.GetProperty("erros").EnumerateArray().Single().GetProperty("campo").GetString().Should().Be("tendenciaParaTresMeses");
+
+        var vigentes = (await LerAsync(await http.GetAsync($"{Base}?em={Iso(inicio)}"), HttpStatusCode.OK)).GetProperty("dados");
+        vigentes.GetProperty("percepcoes").EnumerateArray().Single().GetProperty("tendenciaParaTresMeses").GetString().Should().Be("Alta");
+
+        var serie = vigentes.GetProperty("serieDasPercepcoes").EnumerateArray().ToList();
+        var mesDoInicio = Iso(new DateOnly(inicio.Year, inicio.Month, 1));
+        serie.Should().Contain(p => p.GetProperty("mes").GetString() == mesDoInicio
+                                    && p.GetProperty("municipioCodigoIbge").GetInt32() == Franca
+                                    && p.GetProperty("percentual").GetDecimal() == 1.5m);
+        serie.Select(p => p.GetProperty("mes").GetString()).Distinct().Should().HaveCountLessThanOrEqualTo(12);
+    }
+
+    [Fact]
     public async Task Sem_municipio_da_ADR_com_demanda_a_sugestao_do_porte_diz_por_que()
     {
         var http = await AdministradorAsync();

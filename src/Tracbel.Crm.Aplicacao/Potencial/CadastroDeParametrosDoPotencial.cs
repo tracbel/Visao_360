@@ -333,6 +333,18 @@ public sealed class InformarPercepcaoDoGestor(
         LeituraDeParametro.ConferirInicio(erros, vigenteDesde, entrada.VigenteDesde, agora);
         var justificativa = erros.Obrigatorio("justificativa", entrada.Justificativa, "a justificativa — por que este ajuste");
 
+        // A TENDÊNCIA PARA 3 MESES (28/09/2026): opcional; vazia é "não declarada", e não "estável".
+        TendenciaDaPercepcao? tendencia = null;
+        if (!string.IsNullOrWhiteSpace(entrada.TendenciaParaTresMeses))
+        {
+            if (Enum.TryParse<TendenciaDaPercepcao>(entrada.TendenciaParaTresMeses.Trim(), ignoreCase: true, out var lida)
+                && Enum.IsDefined(lida) && !int.TryParse(entrada.TendenciaParaTresMeses, out _))
+                tendencia = lida;
+            else
+                erros.Registrar("tendenciaParaTresMeses", "A tendência é Alta, Estavel ou Queda — ou vazia, quando não declarada.",
+                    entrada.TendenciaParaTresMeses);
+        }
+
         MunicipioDoParametro? municipio = null;
         if (codigo is { } c)
         {
@@ -367,7 +379,8 @@ public sealed class InformarPercepcaoDoGestor(
         try
         {
             percepcao = PercepcaoDoGestor.Informar(
-                municipio.Id, percentual!.Value, geral!.LimiteDaPercepcao, vigenteDesde.Value, justificativa, acesso.Atual.UsuarioId, agora);
+                municipio.Id, percentual!.Value, geral!.LimiteDaPercepcao, vigenteDesde.Value, justificativa, acesso.Atual.UsuarioId, agora,
+                tendencia);
         }
         catch (RegraDeNegocioViolada erro)
         {
@@ -380,7 +393,9 @@ public sealed class InformarPercepcaoDoGestor(
 
         var nomes = await referencias.NomesDosUsuariosAsync([acesso.Atual.UsuarioId], ct);
         return Resultado<PercepcaoDoGestorDetalhe>.Ok(
-            new PercepcaoDoGestorDetalhe(municipio.CodigoIbge, municipio.Nome, municipio.Uf, percepcao.Percentual, VigenciaDoParametro.De(percepcao, nomes)));
+            new PercepcaoDoGestorDetalhe(
+                municipio.CodigoIbge, municipio.Nome, municipio.Uf, percepcao.Percentual, VigenciaDoParametro.De(percepcao, nomes),
+                percepcao.TendenciaParaTresMeses?.ToString()));
     }
 }
 
@@ -489,7 +504,9 @@ public sealed class RevogarParametroDoPotencial(
 
         return await RevogarAsync(
             percepcao, motivo,
-            (p, nomes) => new PercepcaoDoGestorDetalhe(municipio!.CodigoIbge, municipio.Nome, municipio.Uf, p.Percentual, VigenciaDoParametro.De(p, nomes)),
+            (p, nomes) => new PercepcaoDoGestorDetalhe(
+                municipio!.CodigoIbge, municipio.Nome, municipio.Uf, p.Percentual, VigenciaDoParametro.De(p, nomes),
+                p.TendenciaParaTresMeses?.ToString()),
             ct);
     }
 

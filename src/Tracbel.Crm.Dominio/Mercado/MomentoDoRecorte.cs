@@ -98,6 +98,7 @@ public sealed record CulturaPredominante(string Cultura, decimal Fatia, string C
 /// <param name="FaixaDoMomento">Retraído, normal, aquecido ou superaquecido; nula sem fator.</param>
 /// <param name="Leitura">A frase que junta porte e momento, quando os dois existem.</param>
 /// <param name="Procedencia">De onde o momento veio.</param>
+/// <param name="BandasDoPorte">As bandas que deram o nome do porte, e de onde vieram; nulas sem porte.</param>
 public sealed record MomentoDoRecorte(
     decimal? FatorAgregado,
     string MotivoSemFator,
@@ -110,7 +111,28 @@ public sealed record MomentoDoRecorte(
     string? Porte,
     string? FaixaDoMomento,
     string Leitura,
-    ProcedenciaDoIndicador? Procedencia);
+    ProcedenciaDoIndicador? Procedencia,
+    BandasDoPorte? BandasDoPorte = null);
+
+/// <summary>
+/// AS BANDAS QUE NOMEARAM O PORTE (issue 166, 28/09/2026), com a origem.
+///
+/// <para><b>Registradas</b> quando o administrador gravou os dois números numa vigência dos parâmetros gerais;
+/// <b>TercisDaAdr</b> quando ninguém gravou e a apuração calculou os tercis da demanda anual dos municípios da ADR
+/// ali mesmo — o critério decidido em 27/09/2026, sem o passo manual de "Calcular pelos tercis". Os tercis andam com a
+/// PAM: no ano em que a área muda, as bandas mudam junto, até alguém registrar outras.</para>
+/// </summary>
+/// <param name="MedioAPartirDe">Máquinas por ano a partir das quais o mercado é médio.</param>
+/// <param name="GrandeAPartirDe">Máquinas por ano a partir das quais é grande.</param>
+/// <param name="Origem"><c>Registradas</c> ou <c>TercisDaAdr</c>.</param>
+/// <param name="MunicipiosNaBase">Quantos municípios da ADR com demanda entraram nos tercis; nulo nas registradas.</param>
+/// <param name="DemandaMediaDoRecorte">A demanda média por município do recorte, que foi comparada às bandas.</param>
+public sealed record BandasDoPorte(
+    decimal MedioAPartirDe,
+    decimal GrandeAPartirDe,
+    string Origem,
+    int? MunicipiosNaBase,
+    decimal DemandaMediaDoRecorte);
 
 /// <summary>
 /// A AGREGAÇÃO DO MOMENTO — a razão entre o que o motor ajustou e o que ele estruturou.

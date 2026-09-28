@@ -56,7 +56,7 @@ public sealed class MigracaoNoContainerTestes
 
         porSchema.Should().BeEquivalentTo(new Dictionary<string, int>
         {
-            ["organizacao"] = 40,
+            ["organizacao"] = 41,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 10,
@@ -64,7 +64,7 @@ public sealed class MigracaoNoContainerTestes
             ["auditoria"] = 1,
             ["integracao"] = 15,
             ["metadado"] = 2
-        }, "é a conta do documento 14, seção 2.1 — 89 tabelas de modelo em 8 schemas (a conferência com a Gestão de Negócios, o estoque e a cobertura e o planejamento da API Gestão de Negócios, 28/09/2026, a percepção de campo por cultura, a sazonalidade, os pesos do IOC e o " +
+        }, "é a conta do documento 14, seção 2.1 — 90 tabelas de modelo em 8 schemas (a utilização das terras do Censo, 28/09/2026, a conferência com a Gestão de Negócios, o estoque e a cobertura e o planejamento da API Gestão de Negócios, 28/09/2026, a percepção de campo por cultura, a sazonalidade, os pesos do IOC e o " +
            "share-alvo do planejamento, issue 256, o funil do Vórtice e a classificação " +
            "dos resultados, documento 52, a meta de venda da issue 138 e o preço da máquina da issue 70), no banco de " +
            "verdade. A migração inicial criava 80 em 10; a fase 1 do documento 41 removeu as 31 " +
@@ -74,7 +74,7 @@ public sealed class MigracaoNoContainerTestes
            "RENAME da tabela da PAM, que preserva a área plantada já carregada — também funcionam " +
            "em banco que nasce agora");
 
-        porSchema.Values.Sum().Should().Be(89);
+        porSchema.Values.Sum().Should().Be(90);
 
         // AS INTEGRAÇÕES SEMEADAS (#138): a conexão 13 é a API Gestão de Negócios e a rotina 9 são as metas — as duas no
         // fim da lista, sem renumerar as que já existem (a 8 é a do funil do Vórtice, #247). A conexão 14 e a rotina 11 são a
@@ -285,18 +285,21 @@ public sealed class MigracaoNoContainerTestes
                 r.Situacao == SituacaoDaRegraDePotencial.Confirmada && r.InformadoPorId == null && r.RevogadoEm == null,
             "aprovadas pelo Ricardo, e vindas da migração — não de um usuário do CRM");
 
-        // A D-P07: o custo total da CONAB em Franca (café) e em Piracicaba (cana) — e nenhuma outra cultura.
+        // A D-P07: o custo total da CONAB em Franca (café) e em Piracicaba (cana), de 27/09, e a cidade mais perto com
+        // a safra mais recente para as outras quatro, de 28/09 — todas no custo total.
         var referencias = contexto.Culturas.AsNoTracking()
             .ToDictionary(c => c.Codigo, c => (c.LocalDeReferenciaDoCusto, c.CamadaDeCustoDaMargem));
         referencias["CAFE"].Should().Be(("Franca", (CamadaDoCusto?)CamadaDoCusto.Total));
         referencias["CANA"].Should().Be(("Piracicaba", (CamadaDoCusto?)CamadaDoCusto.Total));
-        referencias.Where(r => r.Key is not "CAFE" and not "CANA")
-            .Should().OnlyContain(r => r.Value.LocalDeReferenciaDoCusto == null && r.Value.CamadaDeCustoDaMargem == null,
-                "a CONAB não publica custo das outras quatro em São Paulo — sem referência, e não uma inventada");
+        referencias["AMENDOIM"].Should().Be(("Jaboticabal", (CamadaDoCusto?)CamadaDoCusto.Total));
+        referencias["LARANJA"].Should().Be(("Itápolis", (CamadaDoCusto?)CamadaDoCusto.Total));
+        referencias["MILHO"].Should().Be(("Assis", (CamadaDoCusto?)CamadaDoCusto.Total));
+        referencias["SOJA"].Should().Be(("Assis", (CamadaDoCusto?)CamadaDoCusto.Total));
 
         // RODAR DE NOVO NÃO DUPLICA NEM SOBRESCREVE: é o mesmo texto que a migração executa.
         contexto.Database.ExecuteSqlRaw(ColhedoraDeCanaERegrasDasOutrasCategorias.InsercaoDasRegras);
         contexto.Database.ExecuteSqlRaw(ColhedoraDeCanaERegrasDasOutrasCategorias.ReferenciaDoCusto);
+        contexto.Database.ExecuteSqlRaw(ReferenciaDoCustoDasOutrasCulturas.ReferenciaDoCusto);
         contexto.RegrasDePotencial.Count(r => r.VigenteDesde == new DateOnly(2026, 9, 27) && r.CategoriaDeMaquinaId != trator.Id)
             .Should().Be(8);
 
@@ -310,6 +313,8 @@ public sealed class MigracaoNoContainerTestes
         // SÓ A COLUNA CONFERIDA, e não a entidade: o banco está numa migração anterior, e a cultura do modelo já tem
         // colunas que ele ainda não tem (a série do índice, 27/09/2026).
         contexto.Culturas.AsNoTracking().Where(c => c.Codigo == "CAFE").Select(c => c.LocalDeReferenciaDoCusto).Single().Should().BeNull();
+        contexto.Culturas.AsNoTracking().Where(c => c.LocalDeReferenciaDoCusto != null).Select(c => c.Codigo).Should()
+            .BeEmpty("o Down de 28/09 tira as quatro referências que gravou, e o de 27/09 as outras duas");
 
         migrador.Migrate();
         contexto.RegrasDePotencial.Count(r => r.CategoriaDeMaquinaId != trator.Id).Should().Be(8);

@@ -204,6 +204,22 @@ export function rentabilidadeFicticia(): RentabilidadeDaCultura[] {
       margemTotal: Number((margem * area).toFixed(0)),
       motivo: 'Nenhum',
       fraseDoMotivo: '',
+      // A TENDÊNCIA E A SAFRA ANTERIOR (28/09/2026): o ano anterior pela PAM, com margens um pouco diferentes, e o
+      // custo da safra anterior 4% a 9% abaixo — números da amostra, sem nada da Tracbel.
+      tendencia: {
+        ano: 2024,
+        anoAnterior: 2023,
+        margemPorHectare: margem,
+        margemPorHectareAnterior: Number((margem * [0.88, 0.93, 1.1, 0.97, 1.2][i]).toFixed(2)),
+        safraDoCusto: 2024,
+        custoPorHectare: custo,
+        safraDoCustoAnterior: 2023,
+        custoPorHectareAnterior: Number((custo * 0.95).toFixed(2)),
+        variacaoDaMargem: null,
+      },
+      safraAnteriorDoCusto: 2024,
+      custoPorHectareDaSafraAnterior: Number((custo / [1.04, 1.09, 1.06, 0.98, 1.07][i]).toFixed(2)),
+      variacaoDoCusto: [0.04, 0.09, 0.06, -0.02, 0.07][i],
     };
   });
 }
@@ -389,16 +405,31 @@ export function catalogoFicticio(): CatalogoDoMercado {
  */
 export function parametrosFicticios(municipios: { codigo: number; nome: string }[]): ParametrosDoPotencialVigentes {
   const leituras = [4, 3, 2.5, 1, 0, -1.5, -3];
+  const tendencias = ['Alta', 'Alta', 'Estavel', null, 'Estavel', 'Queda', 'Queda'] as const;
+  const comLeitura = municipios.slice(0, leituras.length);
+  // A SÉRIE MENSAL (28/09/2026): a leitura de cada município nos 12 meses, subindo devagar até a de hoje.
+  const meses = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(Date.UTC(2025, 9 + i, 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`;
+  });
   return {
     em: '2026-09-23',
     geral: null,
     culturas: [],
     pendencias: [],
-    percepcoes: municipios.slice(0, leituras.length).map((m, i) => ({
+    serieDasPercepcoes: meses.flatMap((mes, j) =>
+      comLeitura.map((m, i) => ({
+        mes,
+        municipioCodigoIbge: m.codigo,
+        percentual: Number((leituras[i] - (11 - j) * 0.15 + (j % 3 === 0 ? 0.3 : 0)).toFixed(2)),
+      })),
+    ),
+    percepcoes: comLeitura.map((m, i) => ({
       municipioCodigoIbge: m.codigo,
       municipioNome: m.nome,
       uf: 'SP',
       percentual: leituras[i],
+      tendenciaParaTresMeses: tendencias[i],
       vigencia: {
         vigenteDesde: '2026-08-01',
         justificativa: 'amostra do harness — não é leitura de gestor nenhum',

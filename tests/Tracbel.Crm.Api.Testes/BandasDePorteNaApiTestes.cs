@@ -163,10 +163,16 @@ public sealed class BandasDePorteNaApiTestes(ApiEmMemoria api) : IClassFixture<A
         (await LerAsync(await http.GetAsync($"{Base}/historico"), HttpStatusCode.OK))
             .GetProperty("dados").GetProperty("gerais").GetArrayLength().Should().Be(historicoAntes, "a sugestão não grava nada");
 
-        // 2. ANTES DE REGISTRAR, o porte não tem nome, e a pendência diz onde se resolve.
-        indicadores.GetProperty("momento").GetProperty("porte").ValueKind.Should().Be(JsonValueKind.Null);
+        // 2. ANTES DE REGISTRAR, o porte já tem nome, pelos tercis da ADR calculados na apuração (28/09/2026) — as
+        // mesmas bandas da sugestão, e ditas como tercis, e não como registradas. Não é pendência.
+        var bandasAntes = indicadores.GetProperty("momento").GetProperty("bandasDoPorte");
+        bandasAntes.GetProperty("origem").GetString().Should().Be("TercisDaAdr");
+        bandasAntes.GetProperty("medioAPartirDe").GetDecimal().Should().Be(medio);
+        bandasAntes.GetProperty("grandeAPartirDe").GetDecimal().Should().Be(grande);
+        bandasAntes.GetProperty("municipiosNaBase").GetInt32().Should().Be(MunicipiosDaAdr.Length);
+        indicadores.GetProperty("momento").GetProperty("porte").GetString().Should().NotBeNull();
         Pendencias(await LerAsync(await http.GetAsync(Base), HttpStatusCode.OK))
-            .Should().Contain(p => p.Contains("bandas de porte") && p.Contains("Calcular pelos tercis"));
+            .Should().NotContain(p => p.Contains("bandas de porte"));
 
         // 3. REGISTRADAS A PARTIR DE HOJE, o recorte ganha o nome do município típico.
         await LerAsync(await http.PostAsJsonAsync($"{Base}/geral", Gerais(Hoje,
@@ -186,9 +192,23 @@ public sealed class BandasDePorteNaApiTestes(ApiEmMemoria api) : IClassFixture<A
             "o recorte é comparado pela demanda média por município, a mesma população de onde os cortes saíram");
         depois.GetProperty("momento").GetProperty("porte").GetString().Should().NotBe("Mercado grande",
             "a soma dos seis municípios passaria do corte de grande, e o nome não diria nada");
+        depois.GetProperty("momento").GetProperty("bandasDoPorte").GetProperty("origem").GetString().Should().Be("Registradas");
+    }
 
-        Pendencias(await LerAsync(await http.GetAsync(Base), HttpStatusCode.OK))
-            .Should().NotContain(p => p.Contains("bandas de porte"));
+    [Fact]
+    public async Task Com_filtro_de_regiao_os_tercis_continuam_os_da_ADR_inteira()
+    {
+        // O CORTE É DA ADR, e não do recorte: com a região Norte escolhida (onde estão os seis), os tercis são os mesmos;
+        // com a Noroeste (nenhum), não há recorte a nomear.
+        var http = await AdministradorComAdrAsync();
+
+        var norte = (await LerAsync(await http.GetAsync("/api/v1/territorio/indicadores?regiao=Norte"), HttpStatusCode.OK))
+            .GetProperty("dados").GetProperty("indicadores");
+        var todos = (await LerAsync(await http.GetAsync("/api/v1/territorio/indicadores"), HttpStatusCode.OK))
+            .GetProperty("dados").GetProperty("indicadores");
+
+        norte.GetProperty("momento").GetProperty("bandasDoPorte").GetProperty("medioAPartirDe").GetDecimal()
+            .Should().Be(todos.GetProperty("momento").GetProperty("bandasDoPorte").GetProperty("medioAPartirDe").GetDecimal());
     }
 
     [Fact]

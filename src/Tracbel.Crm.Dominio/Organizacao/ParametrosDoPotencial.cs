@@ -392,8 +392,19 @@ public sealed class ParametroDoPotencial : ParametroComVigencia
         if (demandaAnual is not { } demanda) return null;
         if (PorteMedioAPartirDe is not { } medio || PorteGrandeAPartirDe is not { } grande) return null;
 
-        return demanda >= grande ? "Mercado grande" : demanda >= medio ? "Mercado médio" : "Mercado pequeno";
+        return PorteNasBandas(demanda, medio, grande);
     }
+
+    /// <summary>As bandas registradas nesta vigência; nulas quando ninguém as registrou.</summary>
+    public (decimal MedioAPartirDe, decimal GrandeAPartirDe)? BandasDePorte =>
+        PorteMedioAPartirDe is { } medio && PorteGrandeAPartirDe is { } grande ? (medio, grande) : null;
+
+    /// <summary>O nome do porte de uma demanda anual, dadas as duas bandas.</summary>
+    /// <param name="demanda">A demanda estrutural em máquinas por ano.</param>
+    /// <param name="medioAPartirDe">Onde começa o mercado médio.</param>
+    /// <param name="grandeAPartirDe">Onde começa o mercado grande.</param>
+    public static string PorteNasBandas(decimal demanda, decimal medioAPartirDe, decimal grandeAPartirDe) =>
+        demanda >= grandeAPartirDe ? "Mercado grande" : demanda >= medioAPartirDe ? "Mercado médio" : "Mercado pequeno";
 
     /// <summary>
     /// O PORTE DE UM RECORTE DE VÁRIOS MUNICÍPIOS — pela demanda MÉDIA por município (issue 166, 27/09/2026).
@@ -629,6 +640,13 @@ public sealed class PercepcaoDoGestor : ParametroComVigencia
     /// <summary>O ajuste, em pontos percentuais: −5 é "5% a menos", 0 é neutro.</summary>
     public decimal Percentual { get; private set; }
 
+    /// <summary>
+    /// PARA ONDE O GESTOR ACHA QUE O MUNICÍPIO VAI NOS PRÓXIMOS 3 MESES (decisão de 28/09/2026). É a segunda metade
+    /// da leitura: a primeira diz como está, esta diz para onde vai. Opcional — as leituras anteriores a 28/09 não a
+    /// têm, e nulo é "não declarada", e não "estável".
+    /// </summary>
+    public TendenciaDaPercepcao? TendenciaParaTresMeses { get; private set; }
+
     /// <summary>Registra uma vigência da percepção sobre um município.</summary>
     /// <param name="municipioId">O município.</param>
     /// <param name="percentual">O ajuste, em pontos percentuais.</param>
@@ -637,6 +655,7 @@ public sealed class PercepcaoDoGestor : ParametroComVigencia
     /// <param name="justificativa">Por que este ajuste.</param>
     /// <param name="informadoPorId">Quem registra.</param>
     /// <param name="agoraUtc">O instante do registro.</param>
+    /// <param name="tendenciaParaTresMeses">Para onde o município vai nos próximos 3 meses; opcional.</param>
     public static PercepcaoDoGestor Informar(
         int municipioId,
         decimal percentual,
@@ -644,8 +663,12 @@ public sealed class PercepcaoDoGestor : ParametroComVigencia
         DateOnly vigenteDesde,
         string justificativa,
         long informadoPorId,
-        DateTime agoraUtc)
+        DateTime agoraUtc,
+        TendenciaDaPercepcao? tendenciaParaTresMeses = null)
     {
+        if (tendenciaParaTresMeses is { } t && !Enum.IsDefined(t))
+            throw new RegraDeNegocioViolada("A tendência da percepção é Alta, Estável ou Queda.");
+
         if (municipioId <= 0)
             throw new RegraDeNegocioViolada("A percepção é de um município do catálogo.");
 
@@ -658,10 +681,26 @@ public sealed class PercepcaoDoGestor : ParametroComVigencia
                 "A percepção vai de −{0:0.##}% a +{0:0.##}% na data de início; {1:0.##}% passa disso.",
                 limiteDaPercepcao, percentual));
 
-        var percepcao = new PercepcaoDoGestor { MunicipioId = municipioId, Percentual = percentual };
+        var percepcao = new PercepcaoDoGestor
+        {
+            MunicipioId = municipioId, Percentual = percentual, TendenciaParaTresMeses = tendenciaParaTresMeses
+        };
         percepcao.Informar(vigenteDesde, justificativa, informadoPorId, agoraUtc);
         return percepcao;
     }
+}
+
+/// <summary>Para onde o gestor acha que o município vai nos próximos 3 meses (28/09/2026).</summary>
+public enum TendenciaDaPercepcao
+{
+    /// <summary>A leitura deve piorar.</summary>
+    Queda = -1,
+
+    /// <summary>A leitura deve se manter.</summary>
+    Estavel = 0,
+
+    /// <summary>A leitura deve melhorar.</summary>
+    Alta = 1
 }
 
 /// <summary>

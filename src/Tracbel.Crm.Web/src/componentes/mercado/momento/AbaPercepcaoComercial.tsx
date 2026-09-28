@@ -7,12 +7,14 @@
  * entra no fator. É isso que a aba mostra: a leitura do recorte, quantos
  * municípios estão de cada lado do zero, os cinco de maior leitura e a tabela.
  *
+ * DESDE 28/09/2026: a tendência para os próximos 3 meses é declarada pelo gestor
+ * junto com a leitura, e a evolução mensal sai das vigências (a leitura que
+ * valia no fim de cada mês), calculada pela API.
+ *
  * O QUE NÃO EXISTE, e fica com o traço e o motivo no lugar da maquete: o índice
  * de 0 a 100 (a escala registrada é outra, e a tela não converte uma na outra),
- * a comparação com o ano anterior, a tendência declarada para os próximos
- * meses, a série mensal e o impacto em reais. Tudo isso "aguarda a coleta da
- * percepção comercial por município" (issue 71) — ou o preço de máquina (issue
- * 70), no caso do impacto.
+ * a comparação com o ano anterior (a série ainda não tem doze meses) e o impacto
+ * em reais, que pede o preço de máquina por modelo (issue 70).
  *
  * SEM ADJETIVO QUE NÃO TENHA REGRA: "aquecido", "em alerta" e "muito positiva"
  * pedem limites que ninguém registrou. A leitura é positiva, neutra ou negativa
@@ -29,13 +31,21 @@ import { useContextoDeAcesso } from '../../../dados/api/contexto';
 import { obterParametrosDoPotencial } from '../../../dados/api/potencial';
 import { useRecurso } from '../../../dados/api/useRecurso';
 import { baixarCsv, carimboDeData } from '../../../dados/exportarCsv';
-import type { PercepcaoDoGestorDetalhe } from '../../../tipos/potencial';
+import type { PercepcaoDoGestorDetalhe, TendenciaDaPercepcao } from '../../../tipos/potencial';
 import type { IndicadoresDoMunicipio, MomentoDoRecorte } from '../../../tipos/territorio';
 import { BlocoErro } from '../../cadastro/EstadosDeTela';
+import { GraficoLinhaMensal } from '../../GraficoLinhaMensal';
 import { InfoTooltip } from '../../InfoTooltip';
+import { MolduraDeGrafico } from '../../MolduraDeGrafico';
 import type { RecorteFiltrado } from '../../territorio/indicadoresDaAdr';
-import { distribuicaoDaPercepcao, responsavelPrincipal, sentidoDaLeitura } from './contas';
-import { dataCurta, numero, pontosPercentuais, sentido, tomDoSentido } from './formatos';
+import {
+  contagemDasTendencias,
+  distribuicaoDaPercepcao,
+  responsavelPrincipal,
+  sentidoDaLeitura,
+  serieMediaDaPercepcao,
+} from './contas';
+import { dataCurta, mesCurto, numero, pontosPercentuais, sentido, tomDoSentido } from './formatos';
 import {
   CartaoDoMomento,
   FileiraDeCartoes,
@@ -51,10 +61,22 @@ import { Rosca } from './Rosca';
 import { VariacaoAusente } from '../VariacaoAusente';
 
 const AGUARDA_A_COLETA =
-  'Aguarda a coleta da percepção comercial por município (issue 71): hoje o que se registra é a leitura atual do ' +
-  'gestor, com vigência — não há série guardada mês a mês, e a tela não reconstrói uma a partir das vigências.';
+  'A percepção é registrada pelo gestor em Configurações › Parâmetros do potencial, município a município, com ' +
+  'vigência, autor e justificativa (issue 71) — e, desde 28/09/2026, com a tendência para os próximos 3 meses.';
 
-const SEM_ANO_ANTERIOR = `Sem a leitura do ano anterior não há variação a calcular. ${AGUARDA_A_COLETA}`;
+const COMO_A_SERIE_SAI =
+  'A série sai das vigências registradas: a leitura de cada mês é a que valia no último dia dele, e a do recorte é a ' +
+  'média simples dos municípios que tinham leitura naquele mês. Mês sem leitura fica de fora — não entra como zero.';
+
+const SEM_ANO_ANTERIOR =
+  'A comparação com o ano anterior pede a leitura de doze meses atrás, e a série registrada ainda não chega lá: as ' +
+  'leituras começaram a ser guardadas com vigência agora. Não é zero nem estabilidade.';
+
+const NOME_DA_TENDENCIA: Record<TendenciaDaPercepcao, { nome: string; seta: '↑' | '→' | '↓'; tom: 'alta' | 'neutro' | 'baixa' }> = {
+  Alta: { nome: 'Alta', seta: '↑', tom: 'alta' },
+  Estavel: { nome: 'Estável', seta: '→', tom: 'neutro' },
+  Queda: { nome: 'Queda', seta: '↓', tom: 'baixa' },
+};
 
 // A DICA FALA COM QUEM USA A TELA, e não com quem a desenhou: "a maquete
 // mostra" não significa nada para o gerente. O que ele precisa saber é que o
@@ -126,17 +148,26 @@ export function AbaPercepcaoComercial({
       : `Nenhum município ${da} tem percepção registrada (issue 71). ${AGUARDA_A_COLETA}`;
   const lido = !parametros.carregando && !parametros.erro;
 
+  const tendencias = contagemDasTendencias(leituras);
+  const declaradas = tendencias.Alta + tendencias.Estavel + tendencias.Queda;
+
+  const evolucao = useMemo(
+    () => serieMediaDaPercepcao(parametros.dados?.serieDasPercepcoes ?? [], new Set(daRegiao.map((m) => m.codigoIbge))),
+    [parametros.dados, daRegiao],
+  );
+
   const gestorDe = (p: PercepcaoDoGestorDetalhe) =>
     responsavelPrincipal(porCodigo.get(p.municipioCodigoIbge)?.responsaveisPelasCarteiras ?? []);
 
   function exportar() {
     baixarCsv(
       `percepcao-comercial-${carimboDeData()}`,
-      ['Município', 'Leitura (p.p.)', 'Sentido', 'Responsável pela carteira', 'Vigente desde'],
+      ['Município', 'Leitura (p.p.)', 'Sentido', 'Tendência (3 meses)', 'Responsável pela carteira', 'Vigente desde'],
       leituras.map((p) => [
         p.municipioNome,
         p.percentual.toLocaleString('pt-BR'),
         NOME_DO_SENTIDO[sentidoDaLeitura(p.percentual)],
+        p.tendenciaParaTresMeses ? NOME_DA_TENDENCIA[p.tendenciaParaTresMeses].nome : '',
         gestorDe(p)?.nome ?? '',
         dataCurta(p.vigencia.vigenteDesde),
       ]),
@@ -198,9 +229,38 @@ export function AbaPercepcaoComercial({
           tom="roxo"
           rotulo="Tendência dos gestores"
           oQue="a tendência dos gestores"
-          valor={null}
-          motivoSemDado={`O registro de hoje é a leitura atual, sem horizonte declarado. ${AGUARDA_A_COLETA}`}
-          apoio="para os próximos 3 meses"
+          dica={
+            `Quantas leituras ${da} declaram cada tendência para os próximos 3 meses: Alta (deve melhorar), Estável ou ` +
+            'Queda. É o que o gestor declarou ao registrar a leitura (decisão de 28/09/2026); a leitura sem tendência ' +
+            'declarada não conta como estável.'
+          }
+          valor={
+            !lido || declaradas === 0 ? null : (
+              <span className="mom-sentido">
+                {(['Alta', 'Estavel', 'Queda'] as const)
+                  .filter((t) => tendencias[t] > 0)
+                  .map((t) => (
+                    <span key={t} data-sentido={NOME_DA_TENDENCIA[t].tom}>
+                      <span aria-hidden="true">{NOME_DA_TENDENCIA[t].seta}</span> {tendencias[t]}
+                      <span className="cad-so-leitor">
+                        {' '}
+                        {tendencias[t] === 1 ? 'município' : 'municípios'} com tendência {NOME_DA_TENDENCIA[t].nome.toLowerCase()}
+                      </span>
+                    </span>
+                  ))}
+              </span>
+            )
+          }
+          motivoSemDado={
+            leituras.length === 0
+              ? semLeitura
+              : `Nenhuma das ${leituras.length} leituras ${da} declara a tendência para os próximos 3 meses — elas foram registradas antes de o campo existir. ${AGUARDA_A_COLETA}`
+          }
+          apoio={
+            tendencias.semDeclarar > 0 && declaradas > 0
+              ? `para os próximos 3 meses · ${tendencias.semDeclarar} sem declarar`
+              : 'para os próximos 3 meses'
+          }
         />
       </FileiraDeCartoes>
 
@@ -289,7 +349,7 @@ export function AbaPercepcaoComercial({
 
         <PainelDoMomento
           titulo="Evolução da percepção comercial"
-          dica={`A leitura média dos gestores sobre os municípios ${da}, mês a mês. ${AGUARDA_A_COLETA}`}
+          dica={`A leitura média dos gestores sobre os municípios ${da}, mês a mês. ${COMO_A_SERIE_SAI}`}
           subtitulo={`Leitura média dos gestores ${recorte ? `no recorte (${recorte.nome})` : 'na Região Tracbel'}.`}
           direita={
             <Seletor
@@ -297,11 +357,39 @@ export function AbaPercepcaoComercial({
               rotuloVisivel={false}
               valor="12"
               opcoes={[{ id: '12', rotulo: 'Últimos 12 meses' }]}
-              motivoDesligado={`Não há série para escolher o período. ${AGUARDA_A_COLETA}`}
+              motivoDesligado="A leitura traz os doze meses até hoje; um período maior pede leituras mais antigas do que as registradas."
             />
           }
         >
-          <GraficoSemSerie altura={170} frase="Sem série mensal" motivo={AGUARDA_A_COLETA} oQue="a evolução da percepção" />
+          {evolucao.length === 0 ? (
+            <GraficoSemSerie
+              altura={170}
+              frase="Sem leitura registrada no período"
+              motivo={`${semLeitura} ${COMO_A_SERIE_SAI}`}
+              oQue="a evolução da percepção"
+            />
+          ) : (
+            <div
+              role="img"
+              aria-label={`Leitura média dos gestores, mês a mês: ${evolucao
+                .map((p) => `${mesCurto(p.mes)} ${pontosPercentuais(p.media)}`)
+                .join('; ')}.`}
+              data-bloco="percepcao-evolucao"
+            >
+              <MolduraDeGrafico altura={170}>
+                {(l, a) => (
+                  <GraficoLinhaMensal
+                    rotulos={evolucao.map((p) => mesCurto(p.mes))}
+                    valores={evolucao.map((p) => Number(p.media.toFixed(2)))}
+                    largura={l}
+                    altura={a}
+                    formatar={(v) => pontosPercentuais(v)}
+                    nomeDaSerie="Leitura média"
+                  />
+                )}
+              </MolduraDeGrafico>
+            </div>
+          )}
         </PainelDoMomento>
       </LinhaDePaineis>
 
@@ -338,7 +426,10 @@ export function AbaPercepcaoComercial({
                 </th>
                 <th scope="col">
                   Tendência (3 meses){' '}
-                  <InfoTooltip rotulo="Por que a tendência não aparece" texto={AGUARDA_A_COLETA} />
+                  <InfoTooltip
+                    rotulo="De onde vem a tendência"
+                    texto="Para onde o gestor acha que o município vai nos próximos 3 meses, declarado junto com a leitura (28/09/2026). O traço é a leitura registrada antes de o campo existir, ou sem tendência declarada — não é estável."
+                  />
                 </th>
                 <th scope="col">
                   Impacto estimado{' '}
@@ -392,9 +483,18 @@ export function AbaPercepcaoComercial({
                         </>
                       )}
                     </td>
-                    <td>
-                      <span aria-hidden="true">—</span>
-                      <span className="cad-so-leitor">sem dado</span>
+                    <td data-tendencia={p.tendenciaParaTresMeses ?? undefined}>
+                      {p.tendenciaParaTresMeses ? (
+                        <span className="mom-sentido" data-sentido={NOME_DA_TENDENCIA[p.tendenciaParaTresMeses].tom}>
+                          <span aria-hidden="true">{NOME_DA_TENDENCIA[p.tendenciaParaTresMeses].seta}</span>{' '}
+                          {NOME_DA_TENDENCIA[p.tendenciaParaTresMeses].nome}
+                        </span>
+                      ) : (
+                        <>
+                          <span aria-hidden="true">—</span>
+                          <span className="cad-so-leitor">tendência não declarada</span>
+                        </>
+                      )}
                     </td>
                     <td>
                       <span aria-hidden="true">—</span>

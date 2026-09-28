@@ -11,7 +11,14 @@ import { AvisoDoFormulario, CampoSelecao, CampoTexto, CampoTextoLongo } from '..
 import { useEnvio } from './useEnvio';
 import { itensDeSelecao, numero } from './vigencias';
 
-const CAMPOS = ['municipioCodigoIbge', 'percentual', 'vigenteDesde', 'justificativa'] as const;
+const CAMPOS = ['municipioCodigoIbge', 'percentual', 'vigenteDesde', 'justificativa', 'tendenciaParaTresMeses'] as const;
+
+/** A tendência declarada para os próximos 3 meses (28/09/2026) — opcional. */
+const TENDENCIAS = [
+  { codigo: 'Alta', descricao: 'Alta — deve melhorar' },
+  { codigo: 'Estavel', descricao: 'Estável — deve se manter' },
+  { codigo: 'Queda', descricao: 'Queda — deve piorar' },
+];
 
 export function FormularioDaPercepcao({
   municipios,
@@ -28,7 +35,7 @@ export function FormularioDaPercepcao({
 }) {
   const { contexto } = useContextoDeAcesso();
   const [valores, setValores] = useState<NovaPercepcaoDoGestor>({
-    municipioCodigoIbge: '', percentual: '', vigenteDesde: hoje, justificativa: '',
+    municipioCodigoIbge: '', percentual: '', vigenteDesde: hoje, justificativa: '', tendenciaParaTresMeses: '',
   });
   const { enviando, erros, aviso, enviar, limparErro } = useEnvio(CAMPOS);
 
@@ -66,6 +73,9 @@ export function FormularioDaPercepcao({
             ? 'O limite é o dos parâmetros gerais vigentes na data de início.'
             : `Hoje, de −${numero(limiteDeHoje)}% a +${numero(limiteDeHoje)}%. Negativo reduz o potencial.`} />
         <CampoTexto rotulo="Vigente a partir de" tipo="date" obrigatorio {...campo('vigenteDesde')} ajuda="Hoje ou depois." />
+        <CampoSelecao rotulo="Tendência para os próximos 3 meses" itens={itensDeSelecao(TENDENCIAS)}
+          {...campo('tendenciaParaTresMeses')}
+          ajuda="Para onde o município vai, na sua leitura. Vazia é &quot;não declarada&quot;, e não estável." />
         <CampoTextoLongo rotulo="Justificativa" obrigatorio largo {...campo('justificativa')}
           exemplo="Por que o município está acima ou abaixo do que os números mostram — geada, usina nova, concorrente…" />
       </div>

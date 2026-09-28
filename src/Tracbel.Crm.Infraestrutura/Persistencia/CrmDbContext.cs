@@ -255,6 +255,10 @@ public class CrmDbContext : DbContext
     public DbSet<EstabelecimentosPorAreaNoMunicipio> EstabelecimentosPorAreaNosMunicipios =>
         Set<EstabelecimentosPorAreaNoMunicipio>();
 
+    /// <summary>A área dos estabelecimentos por utilização das terras (Censo Agropecuário, 28/09/2026).</summary>
+    public DbSet<UtilizacaoDasTerrasNoMunicipio> UtilizacoesDasTerrasNosMunicipios =>
+        Set<UtilizacaoDasTerrasNoMunicipio>();
+
     /// <summary>O efetivo dos rebanhos, ano a ano (Pesquisa da Pecuária Municipal).</summary>
     public DbSet<RebanhoNoMunicipio> RebanhosNosMunicipios => Set<RebanhoNoMunicipio>();
 

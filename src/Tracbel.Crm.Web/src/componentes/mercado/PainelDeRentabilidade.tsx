@@ -65,10 +65,11 @@ import {
   margemMediaPonderada,
   margemPercentual,
   ordenarRentabilidade,
+  tendenciaDaMargemMedia,
   valorDoCriterio,
   type CriterioDaRentabilidade,
 } from './momento/contas';
-import { numero, reais } from './momento/formatos';
+import { numero, percentualComSinal, reais, sentido, tomDoSentido } from './momento/formatos';
 import { CORES_DA_RENTABILIDADE } from './momento/cores';
 import { GraficoReceitaCustoMargem } from './momento/GraficoReceitaCustoMargem';
 import { NomeDaCultura } from './momento/IconeDaCultura';
@@ -322,6 +323,10 @@ export function PainelDeRentabilidade({
   const motivoDoDestaque = motivoSemConta(semAreaNaLeitura(linhas), 'A cultura de maior área');
   const destaque = motivoDoDestaque === null ? daMaiorArea(linhas, hectaresDe) : null;
   const semDivulgacao = comMargem.filter((l) => areaDe(l).situacao === 'semAreaDivulgada');
+  // A TENDÊNCIA USA AS MESMAS REGRAS DA MÉDIA: sem área de todas, não há conta.
+  const tendencia = motivoDaMedia === null ? tendenciaDaMargemMedia(linhas, hectaresDe) : null;
+  const anoDaTendencia = tendencia ? (tendencia.anos.length === 1 ? String(tendencia.anos[0]) : 'o último ano') : '';
+  const anoAnterior = tendencia ? (tendencia.anos.length === 1 ? String(tendencia.anos[0] - 1) : 'o anterior') : '';
   const nenhumaComArea =
     `Nenhuma cultura tem área colhida divulgada nos municípios ${onde} (PAM): sigilo do IBGE, ou lavoura que não ` +
     'existe ali. Ausência não é zero.';
@@ -438,10 +443,38 @@ export function PainelDeRentabilidade({
           tom="laranja"
           rotulo="Tendência"
           oQue="a tendência da margem"
-          valor={null}
-          motivoSemDado="Falta a série do ano anterior: a rentabilidade é calculada só para o ano da PAM mais recente (issue 159), e sem o ano anterior não há tendência a medir. Não é zero nem estabilidade."
-          apoio="na margem média, vs. ano anterior"
-          acao={<BotaoIr rotulo="Tendência sem série" />}
+          dica={
+            'A margem média ponderada do ano mais recente da PAM contra a do ano anterior, com os MESMOS pesos (a área ' +
+            `colhida dos municípios ${onde}) e as mesmas culturas. Nos dois anos a receita é o preço recebido pelo ` +
+            'produtor da PAM (valor da produção ÷ área colhida): a CONAB guarda só 12 meses e não tem o ano anterior, e ' +
+            'comparar a CONAB de um ano com a PAM do outro mediria a troca de fonte. O custo de cada ano é a safra da ' +
+            'CONAB mais recente até ele.' +
+            (tendencia
+              ? ` Margem média: ${reais(tendencia.anterior, 0)}/ha em ${anoAnterior} e ${reais(tendencia.atual, 0)}/ha em ${anoDaTendencia}, com ${tendencia.culturas} ${tendencia.culturas === 1 ? 'cultura' : 'culturas'}.`
+              : '')
+          }
+          valor={
+            esperandoArea ? (
+              <Carregando />
+            ) : tendencia?.variacao == null ? null : (
+              <span className="mom-sentido" data-sentido={tomDoSentido(tendencia.variacao)}>
+                <span aria-hidden="true">{sentido(tendencia.variacao)}</span> {percentualComSinal(tendencia.variacao, 1)}
+              </span>
+            )
+          }
+          motivoSemDado={
+            tendencia
+              ? `A margem média de ${anoAnterior} não foi positiva (${reais(tendencia.anterior, 0)}/ha): sobre uma base negativa ou zero, um percentual não diz nada.`
+              : motivoDaMedia ??
+                'Nenhuma cultura com área no recorte tem as duas margens — a do ano mais recente da PAM e a do anterior. Falta a PAM do ano anterior ou o custo da CONAB até ele. Não é zero nem estabilidade.'
+          }
+          apoio={tendencia ? `na margem média, ${anoDaTendencia} vs. ${anoAnterior}` : 'na margem média, vs. ano anterior'}
+          acao={
+            <BotaoIr
+              rotulo="Ver o detalhamento por cultura"
+              aoClicar={() => document.getElementById(idDaTabela)?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })}
+            />
+          }
         />
       </FileiraDeCartoes>
 
@@ -698,6 +731,22 @@ export function PainelDeRentabilidade({
                           <dd>{l.areaColhidaHectares === null ? '—' : `${numero(l.areaColhidaHectares)} ha`}</dd>
                           <dt>Margem total em SP</dt>
                           <dd>{l.margemTotal === null ? '—' : reais(l.margemTotal, 0)}</dd>
+                          <dt>Custo da safra anterior</dt>
+                          <dd>
+                            {l.custoPorHectareDaSafraAnterior == null
+                              ? 'sem safra anterior na série'
+                              : `${reais(l.custoPorHectareDaSafraAnterior)} (safra ${l.safraAnteriorDoCusto})` +
+                                (l.variacaoDoCusto == null ? '' : ` · ${percentualComSinal(l.variacaoDoCusto, 1)}`)}
+                          </dd>
+                          <dt>Tendência (preço da PAM)</dt>
+                          <dd>
+                            {l.tendencia &&
+                            l.tendencia.margemPorHectare !== null &&
+                            l.tendencia.margemPorHectareAnterior !== null
+                              ? `${reais(l.tendencia.margemPorHectareAnterior, 0)} em ${l.tendencia.anoAnterior} → ` +
+                                `${reais(l.tendencia.margemPorHectare, 0)} em ${l.tendencia.ano}`
+                              : 'sem as duas margens'}
+                          </dd>
                         </dl>
                         {l.margemPorHectare === null && l.fraseDoMotivo && <p>{l.fraseDoMotivo}</p>}
                         <p>O custo é da localidade de referência da CONAB, e não do município escolhido.</p>

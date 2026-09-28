@@ -12,7 +12,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProvedorDeContextoDeAcesso } from '../../../dados/api/contexto';
 import { municipioDeTeste } from '../../../testes/territorio';
-import type { PercepcaoDoGestorDetalhe } from '../../../tipos/potencial';
+import type { PercepcaoDoGestorDetalhe, PercepcaoDoGestorNoMes } from '../../../tipos/potencial';
 import type { MomentoDoRecorte } from '../../../tipos/territorio';
 import { recorteFiltrado, type RecorteFiltrado } from '../../territorio/indicadoresDaAdr';
 import { AbaPercepcaoComercial } from './AbaPercepcaoComercial';
@@ -27,6 +27,15 @@ vi.mock('../../../dados/api/potencial', async (original) => ({
 vi.mock('../../../dados/exportarCsv', async (original) => ({
   ...(await original<typeof import('../../../dados/exportarCsv')>()),
   baixarCsv,
+}));
+// O chart.js não desenha no jsdom: o dublê guarda o que o gráfico receberia.
+vi.mock('../../GraficoLinhaMensal', () => ({
+  GraficoLinhaMensal: ({ rotulos, valores }: { rotulos: string[]; valores: number[] }) => (
+    <div data-grafico="linha" data-rotulos={rotulos.join(',')} data-valores={valores.join(',')} />
+  ),
+}));
+vi.mock('../../MolduraDeGrafico', () => ({
+  MolduraDeGrafico: ({ children }: { children: (l: number, a: number) => React.ReactNode }) => <>{children(400, 170)}</>,
 }));
 
 const guardado = new Map<string, string>();
@@ -82,9 +91,9 @@ const LEITURAS = [
 
 const MOMENTO = { percepcaoPercentual: 2 } as MomentoDoRecorte;
 
-function abrir(leituras = LEITURAS, recorte: RecorteFiltrado | null = null) {
+function abrir(leituras = LEITURAS, recorte: RecorteFiltrado | null = null, serie: PercepcaoDoGestorNoMes[] = []) {
   obterParametrosDoPotencial.mockResolvedValue({
-    dados: { em: '2026-09-23', geral: null, culturas: [], percepcoes: leituras, pendencias: [] },
+    dados: { em: '2026-09-23', geral: null, culturas: [], percepcoes: leituras, pendencias: [], serieDasPercepcoes: serie },
     procedencia: null,
   });
   render(
@@ -166,14 +175,49 @@ describe('a aba Percepção comercial', () => {
     expect(sem).toHaveTextContent('40%');
   });
 
-  it('tendência, evolução e impacto saem vazios com o motivo — nunca um número', async () => {
+  it('sem tendência declarada nem série, os dois saem vazios com o motivo — nunca um número', async () => {
     abrir();
     await screen.findByText('Borborema', { selector: 'th' });
 
     expect(cartao('Tendência dos gestores').querySelector('.mom-cartao-valor')!.textContent).not.toMatch(/\d/);
+    expect(lerDica('Por que a tendência dos gestores não aparece')).toMatch(/antes de o campo existir/);
     const vazio = document.querySelector<HTMLElement>('[data-grafico-vazio]')!;
     fireEvent.focus(within(vazio).getByRole('button'));
-    expect(screen.getByRole('tooltip')).toHaveTextContent(/issue 71/);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/último dia/);
+  });
+
+  it('a tendência declarada aparece no cartão e na tabela, e a evolução é a média mensal do recorte (28/09/2026)', async () => {
+    abrir(
+      [
+        { ...leitura(1, 'Borborema', 3), tendenciaParaTresMeses: 'Alta' },
+        { ...leitura(2, 'Tupã', -2), tendenciaParaTresMeses: 'Queda' },
+        leitura(3, 'Guariba', 0),
+      ],
+      null,
+      [
+        { mes: '2026-08-01', municipioCodigoIbge: 1, percentual: 2 },
+        { mes: '2026-08-01', municipioCodigoIbge: 2, percentual: -1 },
+        { mes: '2026-09-01', municipioCodigoIbge: 1, percentual: 3 },
+        { mes: '2026-09-01', municipioCodigoIbge: 2, percentual: -2 },
+        { mes: '2026-09-01', municipioCodigoIbge: 3, percentual: 0 },
+        // O VIZINHO DE FORA DA REGIÃO não entra na média.
+        { mes: '2026-09-01', municipioCodigoIbge: 9, percentual: 5 },
+      ],
+    );
+    await screen.findByText('Borborema', { selector: 'th' });
+
+    const valor = cartao('Tendência dos gestores').querySelector('.mom-cartao-valor')!;
+    expect(valor).toHaveTextContent(/↑\s*1/);
+    expect(valor).toHaveTextContent(/↓\s*1/);
+    expect(cartao('Tendência dos gestores')).toHaveTextContent('1 sem declarar');
+
+    expect(linhas()[0].querySelector('[data-tendencia]')).toHaveTextContent('Alta');
+    expect(linhas()[1].querySelector('td:nth-of-type(4)')).toHaveTextContent('—');
+
+    // Agosto: (2 − 1) ÷ 2 = 0,5; setembro: (3 − 2 + 0) ÷ 3 ≈ 0,33.
+    const grafico = document.querySelector<HTMLElement>('[data-grafico="linha"]')!;
+    expect(grafico.dataset.rotulos).toBe('ago/26,set/26');
+    expect(grafico.dataset.valores).toBe('0.5,0.33');
   });
 
   it('"Exportar" baixa o CSV das linhas da tela, com o gestor do cadastro', async () => {
@@ -184,8 +228,9 @@ describe('a aba Percepção comercial', () => {
     expect(baixarCsv).toHaveBeenCalledTimes(1);
     const [, cabecalho, linhasDoCsv] = baixarCsv.mock.calls[0];
     expect(cabecalho).toContain('Responsável pela carteira');
-    expect(linhasDoCsv[0]).toEqual(['Borborema', '3', 'Positiva', 'Responsável Cadastrado', '01/08/2026']);
-    expect(linhasDoCsv[1][3]).toBe('');
+    expect(cabecalho).toContain('Tendência (3 meses)');
+    expect(linhasDoCsv[0]).toEqual(['Borborema', '3', 'Positiva', '', 'Responsável Cadastrado', '01/08/2026']);
+    expect(linhasDoCsv[1][4]).toBe('');
   });
 
   it('sem filtro, os municípios são "da Região Tracbel"', async () => {

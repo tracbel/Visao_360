@@ -34,6 +34,7 @@ public static class RotulosDaTrilha
         ["ProducaoAgricolaNoEstado"] = "Produção agrícola no estado (PAM)",
         ["FrotaDeTratoresNoMunicipio"] = "Tratores no município (Censo)",
         ["EstabelecimentosPorAreaNoMunicipio"] = "Propriedades por tamanho (Censo)",
+        ["UtilizacaoDasTerrasNoMunicipio"] = "Utilização das terras no município (Censo)",
         ["RebanhoNoMunicipio"] = "Rebanho no município (PPM)",
         ["AreaTerritorialDoMunicipio"] = "Área territorial do município",
     ["MedidaDoIbgeNoEstado"] = "Total publicado do estado (IBGE)",
@@ -146,6 +147,11 @@ public static class RotulosDaTrilha
         {
             ["GrupoDeAreaNome"] = "Grupo de área", ["Estabelecimentos"] = "Estabelecimentos"
         },
+        ["UtilizacaoDasTerrasNoMunicipio"] = new(StringComparer.Ordinal)
+        {
+            ["UtilizacaoNome"] = "Utilização das terras", ["EstabelecimentosComArea"] = "Estabelecimentos com área",
+            ["AreaHectares"] = "Área (ha)"
+        },
         ["RebanhoNoMunicipio"] = new(StringComparer.Ordinal) { ["RebanhoNome"] = "Rebanho", ["Cabecas"] = "Cabeças" },
         ["AreaTerritorialDoMunicipio"] = new(StringComparer.Ordinal) { ["AreaKm2"] = "Área (km²)" },
     ["MedidaDoIbgeNoEstado"] = new(StringComparer.Ordinal) { ["Valor"] = "Valor publicado", ["CategoriaNome"] = "Categoria do IBGE" },
@@ -202,7 +208,10 @@ public static class RotulosDaTrilha
             ["MesesDeCarenciaDoSicor"] = "Carência do SICOR (meses)", ["MinimoDeLinhasNoCredito"] = "Mínimo de linhas do SICOR para a base não ser pequena",
             ["PorteMedioAPartirDe"] = "Porte médio a partir de (máquinas por ano)", ["PorteGrandeAPartirDe"] = "Porte grande a partir de (máquinas por ano)"
         },
-        ["PercepcaoDoGestor"] = new(StringComparer.Ordinal) { ["MunicipioId"] = "Município", ["Percentual"] = "Percentual" },
+        ["PercepcaoDoGestor"] = new(StringComparer.Ordinal)
+        {
+            ["MunicipioId"] = "Município", ["Percentual"] = "Percentual", ["TendenciaParaTresMeses"] = "Tendência para 3 meses"
+        },
         ["PercepcaoDaCultura"] = new(StringComparer.Ordinal) { ["CulturaId"] = "Cultura", ["Nota"] = "Nota de campo (−2 a +2)" },
         ["ParametroDoPlanejamento"] = new(StringComparer.Ordinal)
         {

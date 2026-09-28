@@ -335,13 +335,44 @@ describe('a aba Rentabilidade', () => {
     expect(lerDica('O que é a margem média do recorte')).toMatch(/Sub-região Norte · loja Catanduva/);
   });
 
-  it('a tendência sai com o traço e o motivo, e nunca com um número', async () => {
+  it('sem as duas margens da PAM, a tendência sai com o traço e o motivo, e nunca com um número', async () => {
     abrir();
-    await esperar();
+    await esperarAArea();
 
     const valor = cartao('Tendência').querySelector('.mom-cartao-valor')!;
     expect(valor.textContent).not.toMatch(/\d/);
-    expect(lerDica('Por que a tendência da margem não aparece')).toMatch(/issue 159/);
+    expect(lerDica('Por que a tendência da margem não aparece')).toMatch(/duas margens/);
+  });
+
+  it('a tendência é a média ponderada do ano contra a do anterior, com os MESMOS pesos (28/09/2026)', async () => {
+    // Pesos da região: cana 90.000 ha, café 10.000 ha. 2024: (2.000 × 90 + 20.000 × 10) ÷ 100 = 3.800;
+    // 2025: (2.580 × 90 + 30.000 × 10) ÷ 100 = 5.322. Variação: 5.322 ÷ 3.800 − 1 = +40,1%.
+    const tendencia = (anterior: number, atual: number) => ({
+      ano: 2025,
+      anoAnterior: 2024,
+      margemPorHectare: atual,
+      margemPorHectareAnterior: anterior,
+      safraDoCusto: 2025,
+      custoPorHectare: null,
+      safraDoCustoAnterior: 2024,
+      custoPorHectareAnterior: null,
+      variacaoDaMargem: atual / anterior - 1,
+    });
+    abrir({
+      linhas: [
+        { ...LINHAS[0], tendencia: tendencia(2_000, 2_580) },
+        { ...LINHAS[1], tendencia: tendencia(20_000, 30_000) },
+        LINHAS[2],
+      ],
+    });
+    await esperarAArea();
+
+    const tendenciaNoCartao = cartao('Tendência');
+    expect(tendenciaNoCartao.querySelector('.mom-cartao-valor')).toHaveTextContent('+40,1%');
+    expect(tendenciaNoCartao).toHaveTextContent('na margem média, 2025 vs. 2024');
+    const dica = lerDica('O que é a tendência da margem');
+    expect(dica).toMatch(/preço recebido pelo produtor da PAM/);
+    expect(dica).toMatch(/R\$\s3\.800\/ha em 2024 e R\$\s5\.322\/ha em 2025, com 2 culturas/);
   });
 
   it('"Ordenar por" reordena o ranking pelas quatro colunas', async () => {
