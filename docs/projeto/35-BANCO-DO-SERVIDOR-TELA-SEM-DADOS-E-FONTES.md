@@ -1163,7 +1163,7 @@ de 1.335 para 632.
 
 | # | Decisão | O que ela fixa |
 |---|---|---|
-| D-M1 | A API é chamada pelo **NOME**, `https://agro-sistemas-w.tracbel.com.br:5001`, com a validação do certificado inteira | o certificado é o curinga `*.tracbel.com.br` de uma autoridade pública (GeoTrust/DigiCert), válido de 17/09/2026 a 04/04/2027; pelo IP o único erro é o de nome. Nada de impressão digital fixada nem de "aceitar qualquer certificado": a chave vale para a API inteira |
+| D-M1 | A API é chamada pelo **NOME**, `https://negocios-agro.tracbel.com.br:5001`, com a validação do certificado inteira | o certificado é o curinga `*.tracbel.com.br` de uma autoridade pública (GeoTrust/DigiCert), válido de 17/09/2026 a 04/04/2027; pelo IP o único erro é o de nome. Nada de impressão digital fixada nem de "aceitar qualquer certificado": a chave vale para a API inteira |
 | D-M2 | O realizado por consultor é o **vendedor do ART** | o CRM passa a ler a coluna `vendedor` de `bi_art_veiculos` e a gravar `frota.VendaDeMaquina.VendedorNaOrigem`. Ele atribui 1.104 das 1.109 vendas do FY26 (99,5%); pelo usuário do CRM, 940; pela carteira do comprador, 538. A minimização que deixava o vendedor fora foi revista (comentário de `LeitorDoArt`) |
 | D-M3 | O realizado é só `frota.VendaDeMaquina`, com a lacuna em número | 1.109 no CRM × 1.322 no ART × 1.319 no painel da GN; as 213 pendentes aparecem como "N vendas do ART aguardam cadastro ou chassi". Somá-las fica para depois |
 | D-M4 | Consórcio à parte | meta em cotas (266 linhas, 417 cotas), realizado "não medido pelo CRM" |
@@ -1240,7 +1240,7 @@ WHERE EXISTS (SELECT 1 FROM m WHERE m.Pessoa = v.Pessoa)
 ### 14.5 Como ligar em produção
 
 1. Publicar a versão com a migração `MetasDaGestaoDeNegocios`.
-2. Em Configurações › Integrações › "Gestão de Negócios — API": endereço `https://agro-sistemas-w.tracbel.com.br:5001`
+2. Em Configurações › Integrações › "Gestão de Negócios — API": endereço `https://negocios-agro.tracbel.com.br:5001`
    (o NOME, não o IP) e a chave; "Testar" — tem de dizer quantas metas o cadastro tem.
 3. Rodar uma vez no terminal com `--somente-metas-gn --simular` e conferir as contagens (1.540 lidas; 1.502 unidades de
    máquinas no FY2026; 417 cotas de consórcio).
