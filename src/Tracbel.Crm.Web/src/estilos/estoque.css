@@ -1,0 +1,32 @@
+/*
+ * Estoque e Cobertura (28/09/2026) — só o que as classes do cadastro não cobrem: a grade dos dois cartões, as barras da
+ * cobertura e os selos da reserva e da máquina parada.
+ */
+
+.est-grade { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; margin-bottom: 16px; }
+.est-grade > .card { margin-bottom: 0; }
+
+.est-tabela td,
+.est-tabela th { white-space: nowrap; }
+.est-tabela td.cad-mono { text-align: right; }
+.est-lista td:first-child { white-space: normal; min-width: 180px; }
+
+.est-reservada {
+  margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #FFF4D1; color: #7A5B00; font-size: 11px; font-weight: 600;
+}
+.est-velha { color: var(--danger); font-weight: 600; }
+.est-nada { margin: 16px 0 0; color: var(--text-secondary); font-size: 13px; }
+
+.est-cobertura { display: grid; gap: 20px; }
+.est-barras-titulo { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.est-media { font-weight: 500; color: var(--text-secondary); }
+.est-barras ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.est-barras li { display: grid; grid-template-columns: 120px 1fr 40px; align-items: center; gap: 8px; font-size: 12px; }
+.est-barra-rotulo { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.est-barra { height: 8px; border-radius: 4px; background: var(--n-200); overflow: hidden; }
+.est-barra span { display: block; height: 100%; background: var(--jd-green); border-radius: 4px; }
+.est-barra-valor { text-align: right; color: var(--text-primary); }
+
+@media (max-width: 1100px) {
+  .est-grade { grid-template-columns: minmax(0, 1fr); }
+}

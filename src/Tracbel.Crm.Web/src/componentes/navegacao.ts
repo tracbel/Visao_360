@@ -27,6 +27,7 @@ import {
   IconeDiagnostico,
   IconeEquipamentos,
   IconeForecast,
+  IconeEstoque,
   IconeFunil,
   IconeIndicadoresGeograficos,
   IconePerformance,
@@ -58,6 +59,7 @@ export const SECOES: SecaoNav[] = [
       { caminho: '/relatorios/funil', rotulo: 'Funil de Vendas', Icone: IconeFunil },
       { caminho: '/relatorios/performance', rotulo: 'Performance de CEN', Icone: IconePerformance },
       { caminho: '/relatorios/forecast', rotulo: 'Forecast da Gerência', Icone: IconeForecast },
+      { caminho: '/relatorios/estoque', rotulo: 'Estoque e Cobertura', Icone: IconeEstoque },
       { caminho: '/relatorios/cobertura', rotulo: 'Cobertura por Filial', Icone: IconeCoberturaRegional },
       // O mapa aberto da maquete (23/09/2026): antes era o mesmo ícone da linha de cima.
       { caminho: '/relatorios/territorio', rotulo: 'Indicadores Geográficos', Icone: IconeIndicadoresGeograficos },

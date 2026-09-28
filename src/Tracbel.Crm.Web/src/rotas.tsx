@@ -40,6 +40,7 @@ import { Configuracoes } from './telas/Configuracoes';
 import { DemandaEPrevisao } from './telas/DemandaEPrevisao';
 import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
+import { EstoqueECobertura } from './telas/EstoqueECobertura';
 import { ForecastGerencia } from './telas/ForecastGerencia';
 import { Funil } from './telas/Funil';
 import { IndicadoresGeograficos } from './telas/IndicadoresGeograficos';
@@ -228,6 +229,14 @@ export const ROTAS: Rota[] = [
     titulo: 'Forecast da Gerência',
     trilha: ['Relatórios', 'Forecast da Gerência'],
     Componente: ForecastGerencia,
+    usaApi: true,
+  },
+  {
+    // O painel "Estoque & Pedidos" do TOTVS, pela API Gestão de Negócios, e a cobertura em meses (28/09/2026).
+    caminho: '/relatorios/estoque',
+    titulo: 'Estoque e Cobertura',
+    trilha: ['Relatórios', 'Estoque e Cobertura'],
+    Componente: EstoqueECobertura,
     usaApi: true,
   },
   {

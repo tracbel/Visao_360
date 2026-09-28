@@ -970,6 +970,9 @@ public static class RotinasDoSistema
     /// <summary>O horímetro e a posição das máquinas John Deere, do Operations Center (decisão de 28/09/2026).</summary>
     public const string TelemetriaOperationsCenter = "TELEMETRIA_OPERATIONS_CENTER";
 
+    /// <summary>O estoque de máquinas e a cobertura, da API Gestão de Negócios (decisão de 28/09/2026).</summary>
+    public const string EstoqueGestaoDeNegocios = "ESTOQUE_GESTAO_NEGOCIOS";
+
     /// <summary>
     /// Quando as agendas semeadas passam a valer: o dia em que o orquestrador substituiu as tarefas do Windows. O
     /// que era devido antes dele (a mensal de 20/09) já rodou pelas tarefas antigas.
@@ -1103,7 +1106,18 @@ public static class RotinasDoSistema
             "O horímetro e a última posição de cada máquina John Deere conectada, do banco do BI que espelha o Operations " +
             "Center, gravados na máquina do CRM com o mesmo chassi — com o município onde a posição cai.",
             ["--somente-operations-center"], AgendaDaRotina.DiariaAs(new TimeOnly(7, 30)), false,
-            [ConexoesDoSistema.OperationsCenter], ConexoesDoSistema.OperationsCenter)
+            [ConexoesDoSistema.OperationsCenter], ConexoesDoSistema.OperationsCenter),
+
+        // O ESTOQUE E A COBERTURA DA API GESTÃO DE NEGÓCIOS (decisão de 28/09/2026) — a rotina 12, no FIM da lista como toda
+        // rotina nova. Espelha, máquina a máquina, o painel "Estoque & Pedidos" do TOTVS (o que está no pátio e o que vem da
+        // fábrica) e guarda a cobertura em meses de estoque, por mês e por grupo. De hora em hora, como o ART: a reserva e a
+        // situação mudam durante o dia, e a leitura inteira custa uma chamada. NASCE DESLIGADA, como toda rotina que traz dado
+        // novo para produção: quem liga é quem administra, com a conexão da GN já testada.
+        new(EstoqueGestaoDeNegocios, "Estoque e cobertura (Gestão de Negócios)",
+            "O estoque de máquinas e os pedidos de fábrica do TOTVS, máquina a máquina, pela API Gestão de Negócios — situação, " +
+            "reserva, pagamento, chegada prevista —, sem custo nem cliente; e a cobertura em meses de estoque, por mês e por grupo.",
+            ["--somente-estoque-gn"], AgendaDaRotina.ACada(60), false,
+            [ConexoesDoSistema.GestaoDeNegocios], ConexoesDoSistema.GestaoDeNegocios)
     ];
 
     /// <summary>A rotina do catálogo pelo código; nula quando não existe.</summary>

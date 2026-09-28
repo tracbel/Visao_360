@@ -229,7 +229,12 @@ public static class PoliticaDeAuditoria
         [
             "EmpresaId", "Competencia", "ConsultorNaOrigem", "ConsultorUsuarioId", "GestorNaOrigem", "Contemplacao", "ValorDoBem",
             CampoDeExclusaoLogica
-        ]
+        ],
+
+        // O ESTOQUE DA GESTÃO DE NEGÓCIOS (28/09/2026): a máquina que muda de filial, de situação, de reserva ou de pagamento, e a
+        // que sai (vendida) e volta. A descrição e as datas previstas não: são do TOTVS, e a pergunta é "estava disponível?".
+        ["EquipamentoEmEstoque"] = ["EmpresaId", "Situacao", "Reservado", "Pago", "ChegadaPrevistaEm", CampoDeExclusaoLogica],
+        ["CoberturaDoEstoque"] = ["MesesDeEstoque", "Vendas", CampoDeExclusaoLogica]
     };
 
     /// <summary>As entidades auditadas, por nome de tipo.</summary>
