@@ -481,7 +481,7 @@ e `dados-locais/` continuam fora do Git.
   `GestaoDeNegocios__Base` e `GestaoDeNegocios__Chave`.
 - **Desde 27/09/2026 a chave é usada** pela rotina das metas de venda (#138): `ClienteDaGestaoDeNegocios`, só GET,
   com a chave no cabeçalho Bearer e nenhuma mensagem de erro a citando (`Sigilo`). O endereço é o NOME do servidor,
-  `https://agro-sistemas-w.tracbel.com.br:5001`, com a validação do certificado inteira (D-M1). A credencial é gravada
+  `https://negocios-agro.tracbel.com.br:5001`, com a validação do certificado inteira (D-M1). A credencial é gravada
   pela tela, protegida; `GestaoDeNegocios__Base` e `GestaoDeNegocios__Chave` são a reserva no servidor.
 
 ### A varredura
