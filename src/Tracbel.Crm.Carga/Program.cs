@@ -19,6 +19,7 @@ using Tracbel.Crm.Integracao.BancoCentral;
 using Tracbel.Crm.Integracao.Conab;
 using Tracbel.Crm.Integracao.GestaoDeNegocios;
 using Tracbel.Crm.Integracao.Ibge;
+using Tracbel.Crm.Integracao.OperationsCenter;
 using Tracbel.Crm.Integracao.Protheus;
 using Tracbel.Crm.Integracao.Socicana;
 using Tracbel.Crm.Integracao.Vortice;
@@ -230,6 +231,14 @@ var aceitarRemocao = args.Contains("--aceitar-remocao", StringComparer.Ordinal);
 // Vem DEPOIS do --somente-art na ordem do dia: casa as vendas que o ART trouxe.
 var somentePrecosDeMaquina = args.Contains("--somente-precos-de-maquina", StringComparer.Ordinal);
 
+// --somente-operations-center [--simular] — A TELEMETRIA DAS MÁQUINAS JOHN DEERE (decisão de 28/09/2026).
+//
+// Le do banco do BI que espelha o Operations Center (MySQL, sessao READ ONLY) a ultima leitura de horas e a ultima posicao
+// de cada maquina e grava no equipamento do CRM com o mesmo chassi: o horimetro e a posicao, com o municipio onde ela cai
+// pela malha oficial do IBGE. Nao cria maquina. E a rotina diaria TELEMETRIA_OPERATIONS_CENTER do orquestrador. Com
+// --simular, le, casa e conta, e nao grava nada.
+var somenteOperationsCenter = args.Contains("--somente-operations-center", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
 // --somente-art --projetar — A PROJECAO DO PROXIMO CICLO DO ART, so com leitura: a mesma decisao por registro da carga,
@@ -256,6 +265,7 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-parque-protheus  o parque de máquinas pelo proprietário atual no Protheus;
 //   --somente-metas-gn      as metas de venda da API Gestão de Negócios;
 //   --somente-precos-de-maquina  o preço de referência da máquina por categoria, pela nota do Protheus;
+//   --somente-operations-center  o horímetro e a posição das máquinas John Deere conectadas;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // AS LEITURAS DO VÓRTICE LIBERADAS:
@@ -278,7 +288,8 @@ bool[] modosSemVortice =
 [
     somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
-    somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina, somenteOportunidadesDoVortice
+    somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina, somenteOportunidadesDoVortice,
+    somenteOperationsCenter
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -1011,6 +1022,95 @@ if (somenteMetasGn)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A SINCRONIA DAS METAS PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só a telemetria do Operations Center (decisão de 28/09/2026). Lê o banco do BI, a malha do IBGE e o CRM.
+// -------------------------------------------------------------------------------------------------
+
+if (somenteOperationsCenter)
+{
+    // A CREDENCIAL: a da tela (Configurações › Integrações), que CredenciaisDaTela já sobrepôs acima, ou
+    // OperationsCenter__Servidor, __Banco, __Usuario e __Senha do servidor. Nunca impressa.
+    var opcoesDoOperationsCenter = new OpcoesDoOperationsCenter();
+    configuracao.GetSection(OpcoesDoOperationsCenter.Secao).Bind(opcoesDoOperationsCenter);
+
+    if (!opcoesDoOperationsCenter.EstaConfigurada)
+    {
+        Console.Error.WriteLine(
+            "A telemetria exige OperationsCenter__Servidor, __Banco, __Usuario e __Senha — ou a conexão \"Operations Center\" " +
+            "configurada em Configurações > Integrações. Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    // A SIMULAÇÃO LÊ O CRM COM INTENÇÃO DE LEITURA DECLARADA, como a das metas e a do parque.
+    var opcoesDaTelemetria = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(180))
+            .Options
+        : opcoesDoBanco;
+
+    // A MALHA DE SÃO PAULO (35) DO IBGE. Sem ela a carga grava só o horímetro — a falha não para a rodada.
+    async Task<LocalizadorDeMunicipio?> LerMalhaDeSaoPauloAsync(CancellationToken ct)
+    {
+        try
+        {
+            return new LocalizadorDeMunicipio(await ibge.LerMalhaMunicipalAsync(35, ct));
+        }
+        catch (Exception falha) when (falha is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or FormatException)
+        {
+            Console.Error.WriteLine($"  a malha do IBGE não respondeu ({falha.GetType().Name}); só o horímetro será gravado.");
+            return null;
+        }
+    }
+
+    Console.WriteLine(simular
+        ? "Telemetria do Operations Center — SIMULAÇÃO: lê, casa e conta; nada é gravado."
+        : "Telemetria do Operations Center — gravando o horímetro e a posição das máquinas conectadas.");
+    Console.WriteLine();
+
+    var cargaDaTelemetria = new CargaDaTelemetriaDoOperationsCenter(
+        () => new CrmDbContext(opcoesDaTelemetria, contexto, diario),
+        new LeitorDoOperationsCenter(opcoesDoOperationsCenter).LerAsync,
+        LerMalhaDeSaoPauloAsync,
+        Console.WriteLine);
+
+    try
+    {
+        // A MESMA TRAVA DAS OUTRAS CARGAS, e só quando grava.
+        await using var travaDaTelemetria = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), CargaDaTelemetriaDoOperationsCenter.Fluxo, CancellationToken.None);
+
+        var resultadoDaTelemetria = await cargaDaTelemetria.ExecutarAsync(simular, CancellationToken.None);
+        if (!resultadoDaTelemetria.EhSucesso)
+        {
+            Console.Error.WriteLine("A CARGA DA TELEMETRIA PAROU: " + resultadoDaTelemetria.Erro);
+            return 3;
+        }
+
+        Console.WriteLine();
+        foreach (var (rotulo, valor) in resultadoDaTelemetria.Valor.Contagens)
+            Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+
+        foreach (var observacao in resultadoDaTelemetria.Valor.Observacoes)
+            Console.WriteLine("  " + observacao);
+
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A CARGA DA TELEMETRIA PAROU, e a transação foi desfeita: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;

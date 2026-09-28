@@ -150,6 +150,47 @@ public sealed class IntegracoesConfiguraveisTestes : IDisposable
     }
 
     [Fact]
+    public void O_operations_center_vai_da_tela_para_a_secao_que_a_carga_le_com_a_tabela_das_maquinas()
+    {
+        // A "VISÃO" QUE A TELA PEDE É A TABELA DAS MÁQUINAS (28/09/2026): é por ela que a leitura começa.
+        var protetor = new ProtetorDeSegredos();
+        var opcenter = Conexao.DoCatalogo(ConexoesDoSistema.Todas.Single(c => c.Codigo == ConexoesDoSistema.OperationsCenter));
+        opcenter.Tipo.Should().Be(TipoDeConexao.MySql);
+        opcenter.Configurar("bi.exemplo.invalid", null, "johndeere_prd", "machines", "leitura", null);
+        opcenter.DefinirSegredo(protetor.Proteger(Senha), 100, DateTime.UtcNow);
+
+        var resolvida = new ResolvedorDeConexoes(Ambiente(), protetor).Resolver(opcenter);
+        resolvida.Origem.Should().Be(OrigemDaCredencial.Tela);
+        resolvida.ToString().Should().NotContain(Senha);
+
+        ResolvedorDeConexoes.ParaConfiguracao(resolvida).Should().BeEquivalentTo(new Dictionary<string, string?>
+        {
+            ["OperationsCenter:Servidor"] = "bi.exemplo.invalid",
+            ["OperationsCenter:Porta"] = "3306",
+            ["OperationsCenter:Banco"] = "johndeere_prd",
+            ["OperationsCenter:Tabela"] = "machines",
+            ["OperationsCenter:Usuario"] = "leitura",
+            ["OperationsCenter:Senha"] = Senha
+        });
+    }
+
+    [Fact]
+    public void Sem_a_tela_o_operations_center_vale_pelo_ambiente_sem_exigir_a_tabela()
+    {
+        var opcenter = Conexao.DoCatalogo(ConexoesDoSistema.Todas.Single(c => c.Codigo == ConexoesDoSistema.OperationsCenter));
+        var resolvedor = new ResolvedorDeConexoes(
+            Ambiente(("OperationsCenter:Servidor", "bi.exemplo.invalid"), ("OperationsCenter:Banco", "johndeere_prd"),
+                ("OperationsCenter:Usuario", "leitura"), ("OperationsCenter:Senha", "do-ambiente")),
+            new ProtetorDeSegredos());
+
+        resolvedor.OrigemDe(opcenter).Should().Be(OrigemDaCredencial.Ambiente);
+        var resolvida = resolvedor.Resolver(opcenter);
+        resolvida.Objeto.Should().Be("machines", "sem a tabela no ambiente, a leitura começa pela do BI — e o Testar a lê");
+        resolvida.CadeiaDeConexao.Should().NotBeNull();
+        new MySqlConnector.MySqlConnectionStringBuilder(resolvida.CadeiaDeConexao!).Database.Should().Be("johndeere_prd");
+    }
+
+    [Fact]
     public void A_cadeia_do_vortice_montada_pela_tela_escapa_a_senha_e_declara_somente_leitura()
     {
         var protetor = new ProtetorDeSegredos();

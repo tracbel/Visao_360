@@ -482,6 +482,10 @@ public sealed record ResponsavelPelaCarteira(string Nome, string Natureza, int V
 /// mostrava "—" e "só no recorte": a rota calculava a demanda por categoria e as vendas por categoria de cada
 /// município e jogava as duas fora. O mercado anual segue sem preço (issue 70).
 /// </param>
+/// <param name="ParqueConectado">
+/// As máquinas do parque do CRM cuja última posição da telemetria cai aqui (Operations Center, 28/09/2026). Nulo quando
+/// nenhuma cai.
+/// </param>
 public sealed record IndicadoresDoMunicipio(
     int CodigoIbge,
     string Nome,
@@ -503,7 +507,73 @@ public sealed record IndicadoresDoMunicipio(
     int? MaquinasVendidasNoPeriodoAnterior = null,
     IReadOnlyList<UnidadesNaCategoria>? MaquinasPorCategoria = null,
     IReadOnlyList<DemandaNoMunicipio>? DemandaPorCategoriaECultura = null,
-    NumerosDeDecisao? NumerosDeDecisao = null);
+    NumerosDeDecisao? NumerosDeDecisao = null,
+    ParqueConectadoNoMunicipio? ParqueConectado = null);
+
+/// <summary>
+/// AS MÁQUINAS CONECTADAS NUM MUNICÍPIO — a telemetria do Operations Center da John Deere (decisão de 28/09/2026).
+///
+/// <para><b>É onde a máquina ESTÁ, e não onde o dono mora.</b> A máquina entra no município em que a última posição dela
+/// cai, pelo contorno oficial do IBGE. Só as do parque do CRM (as que casaram pelo chassi), ao alcance de quem consulta:
+/// a máquina conectada que o CRM não conhece não é contada.</para>
+///
+/// <para><b>"Sem uso há 30 dias" é contado a partir da leitura mais nova da telemetria</b>, e não do relógio: se a rotina
+/// parar, o parque inteiro não vira "parado" de uma hora para a outra. A máquina sem horímetro fica fora dessa conta — não
+/// se sabe se ela trabalhou.</para>
+/// </summary>
+/// <param name="Maquinas">As máquinas do parque do CRM com a última posição aqui.</param>
+/// <param name="ComHorimetro">Quantas delas têm horímetro.</param>
+/// <param name="SemUsoHa30Dias">Das com horímetro, quantas não mandaram leitura de horas nos 30 dias antes da referência.</param>
+/// <param name="HorimetroMediano">A mediana do horímetro das que têm; nula sem nenhuma.</param>
+/// <param name="Referencia">A leitura mais nova da telemetria ao alcance da consulta (UTC) — o "hoje" da conta dos 30 dias.</param>
+public sealed record ParqueConectadoNoMunicipio(
+    int Maquinas,
+    int ComHorimetro,
+    int SemUsoHa30Dias,
+    decimal? HorimetroMediano,
+    DateTime Referencia)
+{
+    /// <summary>A janela do "sem uso": 30 dias antes da leitura mais nova.</summary>
+    public const int DiasSemUso = 30;
+
+    /// <summary>Agrupa as máquinas conectadas por município, com a mesma referência para todos.</summary>
+    /// <param name="maquinas">As máquinas com a última posição num município.</param>
+    public static IReadOnlyDictionary<int, ParqueConectadoNoMunicipio> PorMunicipio(IReadOnlyList<MaquinaConectada> maquinas)
+    {
+        if (maquinas.Count == 0) return new Dictionary<int, ParqueConectadoNoMunicipio>();
+
+        var referencia = maquinas.Max(m => m.HorimetroEm is { } h && h > m.PosicaoEm ? h : m.PosicaoEm);
+        var corte = referencia.AddDays(-DiasSemUso);
+
+        return maquinas
+            .GroupBy(m => m.CodigoIbge)
+            .ToDictionary(g => g.Key, g =>
+            {
+                var comHoras = g.Where(m => m.Horimetro is not null && m.HorimetroEm is not null).ToList();
+                return new ParqueConectadoNoMunicipio(
+                    g.Count(),
+                    comHoras.Count,
+                    comHoras.Count(m => m.HorimetroEm < corte),
+                    Mediana([.. comHoras.Select(m => m.Horimetro!.Value)]),
+                    referencia);
+            });
+    }
+
+    private static decimal? Mediana(List<decimal> valores)
+    {
+        if (valores.Count == 0) return null;
+        valores.Sort();
+        var meio = valores.Count / 2;
+        return decimal.Round(valores.Count % 2 == 1 ? valores[meio] : (valores[meio - 1] + valores[meio]) / 2m, 0);
+    }
+}
+
+/// <summary>Uma máquina do parque com a última posição num município — o que a conta das conectadas usa.</summary>
+/// <param name="CodigoIbge">O município onde a última posição cai.</param>
+/// <param name="Horimetro">O horímetro, quando há.</param>
+/// <param name="HorimetroEm">Quando o horímetro foi lido.</param>
+/// <param name="PosicaoEm">Quando a máquina estava ali.</param>
+public sealed record MaquinaConectada(int CodigoIbge, decimal? Horimetro, DateTime? HorimetroEm, DateTime PosicaoEm);
 
 /// <summary>
 /// A DEMANDA DE UMA CULTURA NUMA CATEGORIA DE MÁQUINA, DENTRO DE UM MUNICÍPIO — uma parcela do motor.

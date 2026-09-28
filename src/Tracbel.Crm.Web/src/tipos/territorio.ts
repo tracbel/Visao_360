@@ -419,6 +419,23 @@ export type IndicadoresDoMunicipio = {
    * do recorte. Nulo quando não há regra de potencial nenhuma. O mercado anual segue sem preço (issue 70).
    */
   numerosDeDecisao?: NumerosDeDecisao | null;
+  /**
+   * AS MÁQUINAS CONECTADAS AQUI (Operations Center, 28/09/2026): as do parque do CRM cuja última posição cai neste
+   * município. Nulo quando nenhuma cai.
+   */
+  parqueConectado?: ParqueConectadoNoMunicipio | null;
+};
+
+/**
+ * AS MÁQUINAS CONECTADAS NUM MUNICÍPIO — onde a máquina está, e não onde o dono mora. "Sem uso há 30 dias" conta a
+ * partir da leitura mais nova da telemetria (`referencia`), e só entre as que têm horímetro.
+ */
+export type ParqueConectadoNoMunicipio = {
+  maquinas: number;
+  comHorimetro: number;
+  semUsoHa30Dias: number;
+  horimetroMediano: number | null;
+  referencia: string;
 };
 
 /** As vendas de um mês dos municípios da ADR do recorte — um ponto do mini-gráfico. */

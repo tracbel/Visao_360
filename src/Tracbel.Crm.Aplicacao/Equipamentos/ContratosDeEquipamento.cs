@@ -145,6 +145,11 @@ public sealed record EquipamentoResumo(
 /// <param name="DonoAtualNome">A razão social do dono atual.</param>
 /// <param name="EvidenciaDoDonoAtual">NotaDeVenda, OrdemDeServico, CadastroAntigo ou VendaNoArt.</param>
 /// <param name="EvidenciaDoDonoAtualEm">A data da evidência mais recente do dono atual.</param>
+/// <param name="HorimetroAtualizadoEm">Quando a máquina mandou o horímetro (UTC) — a telemetria do Operations Center.</param>
+/// <param name="PosicaoLatitude">A latitude da última posição da telemetria.</param>
+/// <param name="PosicaoLongitude">A longitude da última posição da telemetria.</param>
+/// <param name="PosicaoEm">Quando a máquina estava na última posição (UTC).</param>
+/// <param name="MunicipioDaPosicao">O município onde a última posição cai; nulo fora de São Paulo.</param>
 public sealed record EquipamentoDetalhe(
     Guid Chave,
     string Chassi,
@@ -182,7 +187,12 @@ public sealed record EquipamentoDetalhe(
     Guid? DonoAtualChave,
     string? DonoAtualNome,
     string? EvidenciaDoDonoAtual,
-    DateOnly? EvidenciaDoDonoAtualEm)
+    DateOnly? EvidenciaDoDonoAtualEm,
+    DateTime? HorimetroAtualizadoEm = null,
+    decimal? PosicaoLatitude = null,
+    decimal? PosicaoLongitude = null,
+    DateTime? PosicaoEm = null,
+    string? MunicipioDaPosicao = null)
 {
     /// <summary>Traduz a leitura para a ficha.</summary>
     public static EquipamentoDetalhe De(EquipamentoComContexto leitura)
@@ -225,7 +235,12 @@ public sealed record EquipamentoDetalhe(
             leitura.DonoAtual?.ClienteChave,
             leitura.DonoAtual?.ClienteNome,
             leitura.DonoAtual?.Evidencia.ToString(),
-            leitura.DonoAtual?.EvidenciaEm);
+            leitura.DonoAtual?.EvidenciaEm,
+            e.HorimetroAtualizadoEm,
+            e.PosicaoLatitude,
+            e.PosicaoLongitude,
+            e.PosicaoEm,
+            leitura.MunicipioDaPosicao);
     }
 }
 

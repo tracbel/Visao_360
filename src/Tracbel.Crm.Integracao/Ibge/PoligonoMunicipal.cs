@@ -19,8 +19,18 @@ public sealed class PoligonoMunicipal
 {
     private readonly IReadOnlyList<IReadOnlyList<(double Lon, double Lat)[]>> _poligonos;
 
-    private PoligonoMunicipal(IReadOnlyList<IReadOnlyList<(double Lon, double Lat)[]>> poligonos) =>
+    // A CAIXA QUE ENVOLVE O MUNICÍPIO: o ponto fora dela não está no município, e a pergunta sai sem percorrer o contorno.
+    // É o que deixa a telemetria perguntar 5 mil pontos aos 645 municípios de São Paulo em segundos.
+    private readonly (double MinLon, double MinLat, double MaxLon, double MaxLat) _caixa;
+
+    private PoligonoMunicipal(IReadOnlyList<IReadOnlyList<(double Lon, double Lat)[]>> poligonos)
+    {
         _poligonos = poligonos;
+        var pontos = poligonos.Where(p => p.Count > 0).SelectMany(p => p[0]).ToList();
+        _caixa = pontos.Count == 0
+            ? (double.NaN, double.NaN, double.NaN, double.NaN)
+            : (pontos.Min(p => p.Lon), pontos.Min(p => p.Lat), pontos.Max(p => p.Lon), pontos.Max(p => p.Lat));
+    }
 
     /// <summary>
     /// Lê a geometria GeoJSON de um município — <c>Polygon</c> ou <c>MultiPolygon</c>. Em cada
@@ -51,7 +61,8 @@ public sealed class PoligonoMunicipal
     /// <param name="longitude">Longitude em graus decimais.</param>
     /// <param name="latitude">Latitude em graus decimais.</param>
     public bool Contem(double longitude, double latitude) =>
-        _poligonos.Any(poligono =>
+        longitude >= _caixa.MinLon && longitude <= _caixa.MaxLon && latitude >= _caixa.MinLat && latitude <= _caixa.MaxLat
+        && _poligonos.Any(poligono =>
             poligono.Count > 0
             && Dentro(poligono[0], longitude, latitude)
             && !poligono.Skip(1).Any(buraco => Dentro(buraco, longitude, latitude)));

@@ -92,6 +92,21 @@ public sealed class Equipamento : EntidadeBase
     /// <summary>Quando o horímetro foi atualizado (UTC).</summary>
     public DateTime? HorimetroAtualizadoEm { get; private set; }
 
+    /// <summary>A latitude da última posição que a telemetria mandou, em graus decimais.</summary>
+    public decimal? PosicaoLatitude { get; private set; }
+
+    /// <summary>A longitude da última posição que a telemetria mandou, em graus decimais.</summary>
+    public decimal? PosicaoLongitude { get; private set; }
+
+    /// <summary>Quando a máquina estava na última posição (UTC).</summary>
+    public DateTime? PosicaoEm { get; private set; }
+
+    /// <summary>
+    /// O município onde a última posição cai, pelo contorno oficial do IBGE. Nulo sem posição, ou quando o ponto cai
+    /// fora de São Paulo — a malha lida é só a do estado.
+    /// </summary>
+    public int? MunicipioDaPosicaoId { get; private set; }
+
     /// <summary>Onde a máquina está, na descrição do CEN. Ex.: nome da fazenda ou do talhão.</summary>
     public string? LocalizacaoDescrita { get; private set; }
 
@@ -353,6 +368,62 @@ public sealed class Equipamento : EntidadeBase
         LocalizacaoDescrita = string.IsNullOrWhiteSpace(localizacaoDescrita) ? null : localizacaoDescrita.Trim();
 
         MarcarAlteracao(usuarioId);
+    }
+
+    /// <summary>
+    /// O MAIOR HORÍMETRO QUE SE ACEITA: 100 mil horas, onze anos e meio de motor ligado sem parar. Medido em 27/09/2026, o
+    /// Operations Center tem leitura de 374 mil horas — é terminal com a unidade errada, e gravá-la faria a máquina parecer
+    /// a mais usada do parque. O que passa daqui não entra, e a carga conta.
+    /// </summary>
+    public const decimal HorimetroMaximoPlausivel = 100_000m;
+
+    /// <summary>Se o horímetro pode ser de uma máquina de verdade: de zero ao máximo plausível.</summary>
+    /// <param name="horas">As horas.</param>
+    public static bool HorimetroPlausivel(decimal horas) => horas is >= 0 and <= HorimetroMaximoPlausivel;
+
+    /// <summary>
+    /// O HORÍMETRO QUE A TELEMETRIA MANDOU (Operations Center da John Deere, decisão de 28/09/2026).
+    ///
+    /// <para><b>Só a leitura mais nova entra.</b> A data manda, e não o número: horímetro que volta atrás numa leitura
+    /// mais nova é motor ou painel trocado, e a leitura mais nova é o que a máquina mostra hoje. A leitura igual ou mais
+    /// velha que a gravada não muda nada — a rotina relê tudo todo dia.</para>
+    ///
+    /// <para><b>Não carimba a alteração do cadastro</b>, e não entra na trilha (<c>PoliticaDeAuditoria</c>): é leitura,
+    /// não decisão. A data dela é <see cref="HorimetroAtualizadoEm"/>.</para>
+    /// </summary>
+    /// <param name="horas">As horas de motor.</param>
+    /// <param name="lidoEmUtc">Quando a máquina mandou a leitura.</param>
+    /// <returns>Verdadeiro quando o horímetro mudou.</returns>
+    public bool RegistrarHorimetro(decimal horas, DateTime lidoEmUtc)
+    {
+        if (EstaExcluido || !HorimetroPlausivel(horas)) return false;
+        if (HorimetroAtualizadoEm is { } gravado && lidoEmUtc <= gravado) return false;
+
+        HorimetroAtual = decimal.Round(horas, 2);
+        HorimetroAtualizadoEm = lidoEmUtc;
+        return true;
+    }
+
+    /// <summary>
+    /// A POSIÇÃO QUE A TELEMETRIA MANDOU, com o município onde ela cai.
+    ///
+    /// <para><b>Só a posição mais nova entra</b>, como o horímetro. O município vai junto com ela: posição nova com
+    /// município nulo é ponto fora de São Paulo, e não "município desconhecido".</para>
+    /// </summary>
+    /// <param name="posicao">A coordenada, já validada.</param>
+    /// <param name="lidaEmUtc">Quando a máquina estava ali.</param>
+    /// <param name="municipioId">O município onde o ponto cai; nulo fora de São Paulo.</param>
+    /// <returns>Verdadeiro quando a posição mudou.</returns>
+    public bool RegistrarPosicao(Coordenada posicao, DateTime lidaEmUtc, int? municipioId)
+    {
+        if (EstaExcluido) return false;
+        if (PosicaoEm is { } gravada && lidaEmUtc <= gravada) return false;
+
+        PosicaoLatitude = decimal.Round((decimal)posicao.Latitude, 7);
+        PosicaoLongitude = decimal.Round((decimal)posicao.Longitude, 7);
+        PosicaoEm = lidaEmUtc;
+        MunicipioDaPosicaoId = municipioId;
+        return true;
     }
 
     /// <summary>

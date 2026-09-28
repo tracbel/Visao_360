@@ -106,6 +106,11 @@ public sealed class EquipamentoConfiguracao : IEntityTypeConfiguration<Equipamen
         b.Property(e => e.HorimetroAtual).HasPrecision(12, 2);
         b.Property(e => e.HorimetroAtualizadoEm).HasPrecision(3);
 
+        // A POSIÇÃO DA TELEMETRIA (28/09/2026), com a mesma precisão da coordenada do endereço e da interação.
+        b.Property(e => e.PosicaoLatitude).HasPrecision(10, 7);
+        b.Property(e => e.PosicaoLongitude).HasPrecision(10, 7);
+        b.Property(e => e.PosicaoEm).HasPrecision(3);
+
         b.Property(e => e.CriadoEm).HasPrecision(3).IsRequired();
         b.Property(e => e.AlteradoEm).HasPrecision(3);
         b.Property(e => e.ExcluidoEm).HasPrecision(3);
@@ -124,7 +129,11 @@ public sealed class EquipamentoConfiguracao : IEntityTypeConfiguration<Equipamen
         b.HasIndex(e => e.EnderecoId);
         b.HasIndex(e => e.EmpresaId);
 
+        // AS MÁQUINAS CONECTADAS DE UM MUNICÍPIO, que a ficha do município conta.
+        b.HasIndex(e => e.MunicipioDaPosicaoId).HasFilter("[MunicipioDaPosicaoId] IS NOT NULL AND [ExcluidoEm] IS NULL");
+
         b.HasOne<Empresa>().WithMany().HasForeignKey(e => e.EmpresaId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Municipio>().WithMany().HasForeignKey(e => e.MunicipioDaPosicaoId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Cliente>().WithMany().HasForeignKey(e => e.ClienteId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Modelo>().WithMany().HasForeignKey(e => e.ModeloId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<LinhaDeProduto>().WithMany().HasForeignKey(e => e.LinhaDeProdutoId).OnDelete(DeleteBehavior.Restrict);
@@ -143,6 +152,12 @@ public sealed class EquipamentoConfiguracao : IEntityTypeConfiguration<Equipamen
             "CK_Equipamento_ModeloPendente", "[ModeloId] IS NOT NULL OR [Origem] IN ('Art','Protheus')"));
         b.ToTable(x => x.HasCheckConstraint(
             "CK_Equipamento_Horimetro", "[HorimetroAtual] IS NULL OR [HorimetroAtual] >= 0"));
+
+        // A POSIÇÃO VEM INTEIRA OU NÃO VEM: latitude sem longitude, ou coordenada sem data, não é lugar nenhum.
+        b.ToTable(x => x.HasCheckConstraint(
+            "CK_Equipamento_Posicao",
+            "([PosicaoLatitude] IS NULL AND [PosicaoLongitude] IS NULL AND [PosicaoEm] IS NULL AND [MunicipioDaPosicaoId] IS NULL) " +
+            "OR ([PosicaoLatitude] BETWEEN -90 AND 90 AND [PosicaoLongitude] BETWEEN -180 AND 180 AND [PosicaoEm] IS NOT NULL)"));
         b.ToTable(x => x.HasCheckConstraint(
             "CK_Equipamento_Ano",
             "([AnoFabricacao] IS NULL OR [AnoFabricacao] BETWEEN 1900 AND 2100) " +
