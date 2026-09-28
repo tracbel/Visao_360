@@ -255,6 +255,13 @@ var somenteOperationsCenter = args.Contains("--somente-operations-center", Strin
 // rotina ESTOQUE_GESTAO_NEGOCIOS do orquestrador, de hora em hora. --aceitar-remocao existe SO no terminal.
 var somenteEstoqueGn = args.Contains("--somente-estoque-gn", StringComparer.Ordinal);
 
+// --somente-conferencia-gn [--simular] — A CONFERÊNCIA COM A API GESTÃO DE NEGÓCIOS (decisão de 28/09/2026).
+//
+// Le a performance-maquinas da GN (meta e realizado, so GET) e compara com o CRM filial a filial, mes a mes, e o realizado
+// chassi a chassi. Grava integracao.ConferenciaDaGestaoDeNegocios (regravada inteira) e as divergencias em
+// integracao.DivergenciaDeIntegracao, com ciclo de vida. E a rotina CONFERENCIA_GESTAO_NEGOCIOS do orquestrador.
+var somenteConferenciaGn = args.Contains("--somente-conferencia-gn", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
 // --somente-art --projetar — A PROJECAO DO PROXIMO CICLO DO ART, so com leitura: a mesma decisao por registro da carga,
@@ -284,6 +291,7 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-precos-de-maquina  o preço de referência da máquina por categoria, pela nota do Protheus;
 //   --somente-operations-center  o horímetro e a posição das máquinas John Deere conectadas;
 //   --somente-estoque-gn    o estoque de máquinas e a cobertura, da API Gestão de Negócios;
+//   --somente-conferencia-gn  a conferência da meta e do realizado com a API Gestão de Negócios;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // AS LEITURAS DO VÓRTICE LIBERADAS:
@@ -307,7 +315,7 @@ bool[] modosSemVortice =
     somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
     somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina, somenteOportunidadesDoVortice,
-    somenteOperationsCenter, somentePlanejamentoGn, somenteEstoqueGn
+    somenteOperationsCenter, somentePlanejamentoGn, somenteEstoqueGn, somenteConferenciaGn
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -1289,6 +1297,74 @@ if (somenteEstoqueGn)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A SINCRONIA DO ESTOQUE PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só a conferência com a API Gestão de Negócios (decisão de 28/09/2026). Não lê o Protheus nem o ART.
+// -------------------------------------------------------------------------------------------------
+
+if (somenteConferenciaGn)
+{
+    // A CREDENCIAL: a mesma das metas — a da tela, ou GestaoDeNegocios__Base e __Chave do servidor. Nunca impressa.
+    var opcoesDaConferencia = new OpcoesDaGestaoDeNegocios();
+    configuracao.GetSection(OpcoesDaGestaoDeNegocios.Secao).Bind(opcoesDaConferencia);
+
+    if (opcoesDaConferencia.Problema() is { } problemaDaConferencia)
+    {
+        Console.Error.WriteLine(problemaDaConferencia + " Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    var servicosDaConferencia = new ServiceCollection();
+    servicosDaConferencia.AddHttpClient(ClienteDaGestaoDeNegocios.NomeDoCliente)
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+    await using var provedorDaConferencia = servicosDaConferencia.BuildServiceProvider();
+    var leitorDaConferencia = new LeitorDaConferenciaDaGestaoDeNegocios(new ClienteDaGestaoDeNegocios(
+        provedorDaConferencia.GetRequiredService<IHttpClientFactory>(), Options.Create(opcoesDaConferencia)));
+
+    var opcoesDoBancoDaConferencia = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(180))
+            .Options
+        : opcoesDoBanco;
+
+    Console.WriteLine(simular
+        ? "Conferência com a Gestão de Negócios — SIMULAÇÃO: apura e conta; nada é gravado."
+        : "Conferência com a Gestão de Negócios — apurando.");
+    Console.WriteLine();
+
+    var cargaDaConferencia = new CargaDaConferenciaDaGestaoDeNegocios(
+        () => new CrmDbContext(opcoesDoBancoDaConferencia, contexto, diario), leitorDaConferencia.LerAsync, usuarioId, () => DateTime.UtcNow,
+        Console.WriteLine);
+
+    try
+    {
+        await using var travaDaConferencia = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), Tracbel.Crm.Dominio.Integracao.ConferenciaDaGestaoDeNegocios.FluxoDaCarga, CancellationToken.None);
+
+        var resultadoDaConferencia = await cargaDaConferencia.ExecutarAsync(simular, CancellationToken.None);
+        if (!resultadoDaConferencia.EhSucesso)
+        {
+            Console.Error.WriteLine("A CONFERÊNCIA PAROU: " + resultadoDaConferencia.Erro);
+            return 3;
+        }
+
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A CONFERÊNCIA PAROU, e a transação foi desfeita: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;

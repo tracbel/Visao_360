@@ -364,6 +364,10 @@ builder.Services.AddScoped<ObterForecastDaGerencia>();
 builder.Services.AddScoped<IRepositorioDoEstoque, RepositorioDoEstoque>();
 builder.Services.AddScoped<ObterEstoqueECobertura>();
 
+// A CONFERÊNCIA COM A API GESTÃO DE NEGÓCIOS (28/09/2026).
+builder.Services.AddScoped<IRepositorioDaConferencia, RepositorioDaConferencia>();
+builder.Services.AddScoped<ObterConferenciaComAGestao>();
+
 var app = builder.Build();
 
 // AS MIGRAÇÕES RODAM NA SUBIDA, EM PRODUÇÃO.
