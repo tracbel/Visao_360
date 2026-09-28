@@ -157,7 +157,7 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
         if (i.Cobertura.TiposMarcadosComoVisita == 0)
             lacunas.Add(new MetricaSemDado(
                 "visita",
-                Texto($"Nenhum dos {i.Cobertura.TiposDeAtividade:N0} tipos de atividade está marcado como visita (ContaParaCobertura). A cobertura conta o último contato registrado de qualquer tipo — inclusive registro gerado pelo sistema — e não visita (documento 32, P-2).")));
+                Texto($"O contato usado na cobertura vem da regra da BI de carteiras do Vórtice (53 resultados que contam como contato, em qualquer canal), apurada todo dia pela rotina das carteiras — e não dos {i.Cobertura.TiposDeAtividade:N0} tipos de atividade cadastrados no CRM (nenhum marcado como visita, ContaParaCobertura). O Vórtice registra o canal do contato, mas o CRM ainda não o carrega: por isso a cobertura não abre por canal (documento 32, P-2).")));
 
         lacunas.Add(new MetricaSemDado(
             "classeDeClienteDeOutraFilial",

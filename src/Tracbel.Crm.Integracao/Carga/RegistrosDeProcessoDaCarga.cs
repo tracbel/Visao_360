@@ -87,8 +87,10 @@ public sealed record CarteiraParaCarga(
 ///
 /// <para><b>A data do último contato NÃO vem daqui.</b> A coluna equivalente do legado só é
 /// preenchida para desfechos que alguém marcou, numa tabela de configuração esquecida, e por
-/// isso 31.556 clientes carteirizados têm "nunca contatado" por construção. A nossa data nasce
-/// das interações efetivamente carregadas — o que a torna verificável.</para>
+/// isso 31.556 clientes carteirizados têm "nunca contatado" por construção. A nossa data vem da
+/// regra da BI de carteiras do Vórtice (53 resultados que contam como contato, em qualquer
+/// canal), apurada todo dia pela rotina das carteiras sobre o histórico inteiro — não mais só das
+/// interações que esta carga trouxe (documento 25, atualizado em 27/09/2026).</para>
 /// </summary>
 /// <param name="ChaveDeOrigem">A chave composta do vínculo na origem.</param>
 /// <param name="ChaveDoClienteDeOrigem">A pessoa.</param>

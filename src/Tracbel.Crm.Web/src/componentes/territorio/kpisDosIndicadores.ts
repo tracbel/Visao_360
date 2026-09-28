@@ -142,10 +142,11 @@ export function kpisDaCarteira(c: ContextoDosKpis): CarteiraNaArea {
         contexto: `${nº(comVisita)} municípios com visita`,
         deOnde:
           `${nº(c.totais.cobertos)} de ${nº(c.totais.elegiveis)} vínculos elegíveis no prazo · ${nº(c.totais.pendentes)} ` +
-          'pendentes · regra provisória. "Com visita" é o município com ao menos um vínculo no prazo: contato é ' +
+          'pendentes · regra provisória. "Com visita" é o município com ao menos um vínculo no prazo: contato é o ' +
           // A citação "(documento 32, P-2)" saiu do fim da frase: o número do documento não diz nada a quem lê
           // a dica, e a referência continua aqui, no código.
-          'qualquer interação registrada, porque nenhum tipo de atividade está marcado como visita.',
+          'apurado pela regra da BI de carteiras do Vórtice, em qualquer canal — o Vórtice registra o canal, mas o ' +
+          'CRM ainda não o carrega.',
         semDado: c.territorioNaoCarregado ? SEM_TERRITORIO : 'sem vínculo elegível',
         variacao: null,
         motivoSemVariacao:

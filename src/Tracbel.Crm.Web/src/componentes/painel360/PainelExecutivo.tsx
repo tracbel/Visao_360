@@ -964,8 +964,8 @@ function CincoIndicadores({
         titulo="Cobertura pela cadência"
         valor={coberturaPct === null ? '—' : porcento(coberturaPct)}
         subtexto={`${nº(cobertura.cobertos)} de ${nº(cobertura.elegiveis)} vínculos elegíveis com contato no prazo da linha`}
-        detalhe={`${nº(cobertura.pendentes)} pendentes (${nº(cobertura.foraDaCadencia)} fora do prazo + ${nº(cobertura.nuncaContatados)} nunca) · ${nº(cobertura.semCadencia)} em linha sem cadência, fora do % · contato registrado, não visita`}
-        dica={`Elegível: vínculo em carteira comercial de linha com cadência declarada (máquinas 180/180/180/360 dias por classe A/B/C/D; prospecção 120/120/120/180; peças e AMS 360). Contato: a última interação registrada de qualquer tipo — nenhum dos ${nº(cobertura.tiposDeAtividade)} tipos de atividade está marcado como visita.`}
+        detalhe={`${nº(cobertura.pendentes)} pendentes (${nº(cobertura.foraDaCadencia)} fora do prazo + ${nº(cobertura.nuncaContatados)} nunca) · ${nº(cobertura.semCadencia)} em linha sem cadência, fora do % · contato pela regra da BI, não visita`}
+        dica={`Elegível: vínculo em carteira comercial de linha com cadência declarada (máquinas 180/180/180/360 dias por classe A/B/C/D; prospecção 120/120/120/180; peças e AMS 360). Contato: o apurado pela regra da BI de carteiras do Vórtice (53 resultados, em qualquer canal) — não os ${nº(cobertura.tiposDeAtividade)} tipos de atividade cadastrados no CRM (nenhum marcado como visita); o Vórtice registra o canal, mas o CRM ainda não o carrega.`}
         cor="#7C3AED"
         icone="shield"
       />
