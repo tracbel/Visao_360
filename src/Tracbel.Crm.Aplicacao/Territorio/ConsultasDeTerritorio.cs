@@ -596,9 +596,11 @@ public sealed class ObterIndicadoresTerritoriais(
                 var momento = doRecorte.PrecoPorCultura.GetValueOrDefault(p.CulturaCodigo);
                 var indice = momento?.Indice;
 
+                // A PERCEPÇÃO É DA CULTURA MAIS A DO MUNICÍPIO (decisão de 27/09/2026): a nota de campo da cultura é a
+                // base, e o ajuste do gestor sobre o município soma por cima — as duas na escala da D-P04.
                 var ajustado = FatorDeCiclo.Ajustar(
-                    p.DemandaAnual, indice, doRecorte.Credito?.Indice, doRecorte.PercepcaoDoGestor, vigente,
-                    recorte.Estimativa);
+                    p.DemandaAnual, indice, doRecorte.Credito?.Indice, doRecorte.PercepcaoDaCulturaNoRecorte(p.CulturaCodigo),
+                    vigente, recorte.Estimativa);
 
                 // A SÉRIE VAI JUNTO DO ÍNDICE (27/09/2026): o do mês (12 contra 12) e o do ano pela PAM medem a mesma
                 // coisa em frequências diferentes, e a tela precisa dizer qual está mostrando.
@@ -606,7 +608,8 @@ public sealed class ObterIndicadoresTerritoriais(
                     p.CulturaCodigo, p.Cultura, p.DemandaAnual, p.AreaUtilHectares, indice,
                     ajustado.Fator, ajustado.DemandaAjustada,
                     indice is null ? null : momento!.Serie,
-                    indice is null ? null : momento!.AnoRecente);
+                    indice is null ? null : momento!.AnoRecente,
+                    doRecorte.PercepcaoPorCultura is { } notas && notas.TryGetValue(p.CulturaCodigo, out var nota) ? nota : null);
             })
             .ToList();
 
@@ -621,7 +624,7 @@ public sealed class ObterIndicadoresTerritoriais(
         // SEM INDICADOR NENHUM, NÃO HÁ FAIXA (27/09/2026). Com preço, crédito e percepção ausentes, o fator é 1,00
         // por construção — desvio zero em tudo —, e a tela dizia "Mercado normal", uma afirmação sobre o mercado
         // que ninguém mediu. O fator continua (é a conta neutra), mas sem nome de faixa e sem frase.
-        var semIndicador = porCultura.All(c => c.IndiceDePreco is null)
+        var semIndicador = porCultura.All(c => c.IndiceDePreco is null && c.PercepcaoDaCultura is null)
                            && doRecorte.Credito?.Indice is null
                            && doRecorte.PercepcaoDoGestor is null;
         var faixa = semIndicador ? null : LeituraDoMercado.FaixaDoFator(fatorAgregado, vigente);

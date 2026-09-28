@@ -125,6 +125,12 @@ export type MomentoDaCultura = {
   serieDoIndice?: 'Mensal' | 'AnualPam' | null;
   /** Na série anual da PAM, o ano mais recente comparado. */
   anoDoIndice?: number | null;
+  /**
+   * A percepção de campo DESTA cultura, em pontos percentuais (27/09/2026): a
+   * nota da planilha (−2 a +2) na escala da D-P04. O fator soma a ela o ajuste
+   * do gestor sobre o município. Nula sem nota vigente.
+   */
+  percepcaoDaCultura?: number | null;
 };
 
 /** A cultura que domina a área — CONTEXTO, e não regra de agregação. */

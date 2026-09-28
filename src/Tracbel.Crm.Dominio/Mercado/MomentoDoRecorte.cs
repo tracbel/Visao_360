@@ -31,6 +31,10 @@ public enum MotivoSemFatorAgregado
 /// <param name="DemandaAjustada">Estrutural × fator; nula quando um dos dois falta.</param>
 /// <param name="SerieDoIndice">De que série o índice de preço saiu — <see cref="SerieDoIndiceDePreco"/>; nula sem índice.</param>
 /// <param name="AnoDoIndice">Na série anual da PAM, o ano mais recente comparado.</param>
+/// <param name="PercepcaoDaCultura">
+/// A percepção de campo DESTA cultura, em pontos percentuais (27/09/2026); nula quando não há nota vigente. O fator
+/// soma a ela o ajuste do gestor sobre o município.
+/// </param>
 public sealed record MomentoDaCultura(
     string CulturaCodigo,
     string Cultura,
@@ -40,7 +44,8 @@ public sealed record MomentoDaCultura(
     FatorDoCiclo Fator,
     decimal? DemandaAjustada,
     string? SerieDoIndice = null,
-    short? AnoDoIndice = null);
+    short? AnoDoIndice = null,
+    decimal? PercepcaoDaCultura = null);
 
 /// <summary>
 /// A CULTURA PREDOMINANTE — contexto, e não regra de agregação.

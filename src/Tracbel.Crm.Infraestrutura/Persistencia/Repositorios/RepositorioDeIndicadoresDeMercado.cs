@@ -38,8 +38,29 @@ public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : I
         var precos = await MomentoPorCulturaAsync(janela, vigente, ct);
         var credito = municipiosCodigoIbge.Count > 0 ? await CreditoAsync(municipiosCodigoIbge, janela, vigente, ct) : null;
         var percepcao = municipiosCodigoIbge.Count == 1 ? await PercepcaoAsync(municipiosCodigoIbge.First(), data, ct) : null;
+        var porCultura = await PercepcaoPorCulturaAsync(data, ct);
 
-        return new IndicadoresDoRecorte(precos.Indices, credito, percepcao, precos.UltimoMes);
+        return new IndicadoresDoRecorte(precos.Indices, credito, percepcao, precos.UltimoMes, porCultura);
+    }
+
+    /// <summary>
+    /// A PERCEPÇÃO DE CAMPO VIGENTE DE CADA CULTURA na data, em pontos percentuais (27/09/2026) — a nota da cultura na
+    /// escala da D-P04.
+    /// </summary>
+    private async Task<Dictionary<string, decimal>> PercepcaoPorCulturaAsync(DateOnly data, CancellationToken ct)
+    {
+        var linhas = await (
+                from p in contexto.PercepcoesDasCulturas.AsNoTracking()
+                join c in contexto.Culturas.AsNoTracking() on p.CulturaId equals c.Id
+                where p.RevogadoEm == null && p.VigenteDesde <= data
+                select new { c.Codigo, Percepcao = p })
+            .ToListAsync(ct);
+
+        return linhas
+            .GroupBy(l => l.Codigo, StringComparer.Ordinal)
+            .Select(g => (g.Key, Vigente: ParametroComVigencia.VigenteEm(g.Select(l => l.Percepcao).ToList(), data)))
+            .Where(x => x.Vigente is not null)
+            .ToDictionary(x => x.Key, x => x.Vigente!.Percentual, StringComparer.Ordinal);
     }
 
     /// <summary>

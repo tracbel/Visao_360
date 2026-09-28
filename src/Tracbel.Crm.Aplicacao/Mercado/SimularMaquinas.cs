@@ -242,11 +242,12 @@ public sealed class SimularMaquinas(
         {
             var preco = doRecorte.PrecoPorCultura.GetValueOrDefault(parcela.CulturaCodigo);
 
+            // A PERCEPÇÃO É A DE CAMPO DA CULTURA MAIS O AJUSTE DO MUNICÍPIO (27/09/2026), como no Momento do mercado.
             var ajustado = FatorDeCiclo.Ajustar(
                 parcela.DemandaAnual,
                 preco?.Indice,
                 doRecorte.Credito?.Indice,
-                doRecorte.PercepcaoDoGestor,
+                doRecorte.PercepcaoDaCulturaNoRecorte(parcela.CulturaCodigo),
                 vigente,
                 total.Estimativa);
 
@@ -279,7 +280,7 @@ public sealed class SimularMaquinas(
             total.DemandaAnual,
             doRecorte.PrecoPorCultura.GetValueOrDefault(dominante.CulturaCodigo)?.Indice,
             doRecorte.Credito?.Indice,
-            doRecorte.PercepcaoDoGestor,
+            doRecorte.PercepcaoDaCulturaNoRecorte(dominante.CulturaCodigo),
             vigente,
             total.Estimativa);
 
