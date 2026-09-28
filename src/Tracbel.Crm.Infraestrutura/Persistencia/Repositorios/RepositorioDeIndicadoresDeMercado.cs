@@ -231,15 +231,8 @@ public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : I
 
         var maquinas = ParametroDoPotencial.ProdutosDeMaquinaNoSicor;
 
-        var ultimo = await contexto.CreditosRuraisDeInvestimento.AsNoTracking()
-            .Where(c => maquinas.Contains(c.CodigoProduto))
-            .MaxAsync(c => (int?)(c.Ano * 12 + c.Mes), ct);
-
-        if (ultimo is not { } fimBruto) return null;
-
-        var fim = fimBruto - (vigente.MesesDeCarenciaDoSicor ?? 0);
-        var inicioUltima = fim - (janela - 1);
-        var inicioAnterior = fim - (2 * janela - 1);
+        if (await JanelasDoSicorAsync(janela, vigente, ct) is not { } janelasDoSicor) return null;
+        var (inicioAnterior, inicioUltima, fim) = janelasDoSicor;
 
         var janelas = await contexto.CreditosRuraisDeInvestimento.AsNoTracking()
             .Where(c => ids.Contains(c.MunicipioId)
@@ -262,6 +255,93 @@ public sealed class RepositorioDeIndicadoresDeMercado(CrmDbContext contexto) : I
 
         return IndicadoresDeMercado.Credito(
             duas, vigente.PesoDosContratosNoCredito, vigente.MinimoDeLinhasNoCredito, vigente);
+    }
+
+    /// <summary>
+    /// AS DUAS JANELAS DO SICOR, contadas em meses corridos (ano × 12 + mês) a partir do último mês de máquina com
+    /// dado, descontada a carência; nulas sem crédito carregado.
+    /// </summary>
+    private async Task<(int InicioAnterior, int InicioUltima, int Fim)?> JanelasDoSicorAsync(
+        short janela, ParametroDoPotencial vigente, CancellationToken ct)
+    {
+        var maquinas = ParametroDoPotencial.ProdutosDeMaquinaNoSicor;
+
+        var ultimo = await contexto.CreditosRuraisDeInvestimento.AsNoTracking()
+            .Where(c => maquinas.Contains(c.CodigoProduto))
+            .MaxAsync(c => (int?)(c.Ano * 12 + c.Mes), ct);
+
+        if (ultimo is not { } fimBruto) return null;
+
+        var fim = fimBruto - (vigente.MesesDeCarenciaDoSicor ?? 0);
+        return (fim - (2 * janela - 1), fim - (janela - 1), fim);
+    }
+
+    /// <inheritdoc />
+    public async Task<IndicadoresPorMunicipio> LerPorMunicipioAsync(
+        DateOnly data, IReadOnlyCollection<int> municipiosCodigoIbge, CancellationToken ct)
+    {
+        var vigente = ParametroComVigencia.VigenteEm(
+            await contexto.ParametrosDoPotencial.AsNoTracking()
+                .Where(p => p.RevogadoEm == null && p.VigenteDesde <= data)
+                .ToListAsync(ct),
+            data);
+
+        var janela = vigente?.MesesDaJanela ?? 12;
+        var precos = await MomentoPorCulturaAsync(janela, vigente, ct);
+
+        var codigos = municipiosCodigoIbge.Select(c => (int?)c).ToList();
+        var municipios = await contexto.Municipios.AsNoTracking()
+            .Where(m => codigos.Contains(m.CodigoIbge))
+            .Select(m => new { m.Id, Codigo = m.CodigoIbge!.Value })
+            .ToListAsync(ct);
+        var ids = municipios.Select(m => m.Id).ToList();
+
+        var credito = new Dictionary<int, IndiceDeCredito>();
+        if (vigente is not null && ids.Count > 0 && await JanelasDoSicorAsync(janela, vigente, ct) is { } janelasDoSicor)
+        {
+            var (inicioAnterior, inicioUltima, fim) = janelasDoSicor;
+            var maquinas = ParametroDoPotencial.ProdutosDeMaquinaNoSicor;
+
+            // A MESMA CONTA DO RECORTE, AGRUPADA POR MUNICÍPIO NO BANCO: uma ida só, em vez de uma por município.
+            var porMunicipio = (await contexto.CreditosRuraisDeInvestimento.AsNoTracking()
+                    .Where(c => ids.Contains(c.MunicipioId)
+                                && maquinas.Contains(c.CodigoProduto)
+                                && c.Ano * 12 + c.Mes >= inicioAnterior
+                                && c.Ano * 12 + c.Mes <= fim)
+                    .GroupBy(c => c.MunicipioId)
+                    .Select(g => new
+                    {
+                        MunicipioId = g.Key,
+                        Linhas = g.Count(c => c.Ano * 12 + c.Mes >= inicioUltima),
+                        Valor = g.Where(c => c.Ano * 12 + c.Mes >= inicioUltima).Sum(c => (decimal?)c.Valor) ?? 0,
+                        LinhasAnteriores = g.Count(c => c.Ano * 12 + c.Mes < inicioUltima),
+                        ValorAnterior = g.Where(c => c.Ano * 12 + c.Mes < inicioUltima).Sum(c => (decimal?)c.Valor) ?? 0
+                    })
+                    .ToListAsync(ct))
+                .ToDictionary(x => x.MunicipioId);
+
+            // MUNICÍPIO SEM LINHA NENHUMA TAMBÉM TEM ÍNDICE — o do domínio, que sai vazio com o motivo "sem base". É
+            // a mesma resposta que a leitura de um município só daria.
+            foreach (var m in municipios)
+            {
+                var duas = porMunicipio.TryGetValue(m.Id, out var j)
+                    ? new JanelasDeCredito(j.Linhas, j.Valor, j.LinhasAnteriores, j.ValorAnterior)
+                    : new JanelasDeCredito(0, 0, 0, 0);
+                credito[m.Codigo] = IndicadoresDeMercado.Credito(
+                    duas, vigente.PesoDosContratosNoCredito, vigente.MinimoDeLinhasNoCredito, vigente);
+            }
+        }
+
+        var codigoPorId = municipios.ToDictionary(m => m.Id, m => m.Codigo);
+        var percepcoes = (await contexto.PercepcoesDoGestor.AsNoTracking()
+                .Where(p => ids.Contains(p.MunicipioId) && p.RevogadoEm == null && p.VigenteDesde <= data)
+                .ToListAsync(ct))
+            .GroupBy(p => p.MunicipioId)
+            .Select(g => (Codigo: codigoPorId[g.Key], Vigente: ParametroComVigencia.VigenteEm(g, data)))
+            .Where(p => p.Vigente is not null)
+            .ToDictionary(p => p.Codigo, p => p.Vigente!.Percentual);
+
+        return new IndicadoresPorMunicipio(precos.Indices, credito, percepcoes, precos.UltimoMes);
     }
 
     /// <summary>A percepção do gestor vigente na data, em pontos percentuais.</summary>

@@ -307,3 +307,98 @@ export type SerieDoPrecoImplicito = {
  * este é um tipo próprio, e não um `SerieDePreco` a mais — assim ninguém concatena os dois por acidente.
  */
 export type PrecoImplicitoDoRecorte = { series: SerieDoPrecoImplicito[]; ressalva: string };
+
+// ------------------------------------------------------------------------------------------------
+// Diagnóstico Comercial — o IOC por município (issue 257), `GET /api/v1/mercado/diagnostico`
+// ------------------------------------------------------------------------------------------------
+
+/** Os sete componentes do IOC, de 0 a 1 (1 é muita oportunidade); nulo é componente sem dado neste município. */
+export type ComponentesDoIoc = {
+  potencial: number | null;
+  cobertura: number | null;
+  credito: number | null;
+  rentabilidade: number | null;
+  clientes: number | null;
+  realizacao: number | null;
+  penetracao: number | null;
+};
+
+export type ClasseDePrioridade = 'Maxima' | 'Alta' | 'Moderada' | 'Baixa' | 'Manutencao';
+
+/** Um município no diagnóstico — a linha da tabela. */
+export type MunicipioNoDiagnostico = {
+  codigoIbge: number;
+  nome: string;
+  regiao: string;
+  loja: string | null;
+  culturaPrincipal: string | null;
+  indiceDePreco: number | null;
+  indiceDeCredito: number | null;
+  creditoBasePequena: boolean;
+  demandaEstrutural: number | null;
+  demandaAjustada: number | null;
+  metaDePlanejamento: number | null;
+  vendidasNoPeriodo: number | null;
+  vendidasNoAno: number | null;
+  clientes: number;
+  vinculosComCadencia: number;
+  cobertos: number;
+  cobertura: number | null;
+  penetracao: number | null;
+  componentes: ComponentesDoIoc | null;
+  ioc: number | null;
+  classe: ClasseDePrioridade | null;
+  situacao: string;
+  planoDeAcao: string;
+  componentesAusentes: string[];
+  estimativa: boolean;
+};
+
+export type ResumoDoDiagnostico = {
+  maxima: number;
+  alta: number;
+  moderada: number;
+  baixa: number;
+  manutencao: number;
+  semIndice: number;
+  total: number;
+  iocMedio: number | null;
+};
+
+export type ShareDoDiagnostico = { categoriaCodigo: string; categoriaNome: string; percentual: number; doPrototipo: boolean };
+
+export type DiagnosticoComercialDaRegiao = {
+  competenciaInicial: string;
+  competenciaFinal: string;
+  fracaoDoAnoNoPeriodo: number;
+  categoria: string;
+  categoriaNome: string;
+  categorias: { codigo: string; nome: string; ordem: number }[];
+  pesos: PesosDoIocUsados | null;
+  pesosVigentesDesde: string | null;
+  pesosDoPrototipo: boolean;
+  shares: ShareDoDiagnostico[];
+  percentil90: number | null;
+  resumo: ResumoDoDiagnostico;
+  municipios: MunicipioNoDiagnostico[];
+  lacunas: { metrica: string; motivo: string }[];
+};
+
+/** Os pesos que o diagnóstico usou (os mesmos nomes dos componentes). */
+export type PesosDoIocUsados = {
+  potencial: number;
+  cobertura: number;
+  credito: number;
+  rentabilidade: number;
+  clientes: number;
+  realizacao: number;
+  penetracao: number;
+};
+
+/** Os filtros do diagnóstico; ausente é o padrão do servidor (12 meses fechados, trator, a ADR inteira). */
+export type FiltrosDoDiagnostico = {
+  competenciaInicial?: string;
+  competenciaFinal?: string;
+  regiao?: string;
+  categoria?: string;
+};
