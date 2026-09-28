@@ -96,9 +96,10 @@ public sealed class RepositorioDeRentabilidade(CrmDbContext contexto) : IReposit
         var receita = Rentabilidade.ReceitaPorHectare(produtividade, preco);
 
         var custo = CustoDaReferencia(cultura, custos, ano);
-        var custoPorHa = custo is null || cultura.CamadaDeCustoDaMargem is not { } camada
-            ? null
-            : camada == CamadaDoCusto.Operacional ? custo.Operacional : custo.Total;
+        var custoPorHa = NaCamada(cultura, custo);
+
+        // A SAFRA ANTERIOR DA SÉRIE, e não a do ano anterior da PAM — ver RentabilidadeDaCultura.SafraAnteriorDoCusto.
+        var custoAnterior = custo is null ? null : CustoDaReferencia(cultura, custos, (short)(custo.Safra - 1));
 
         var margem = Rentabilidade.MargemPorHectare(receita, custoPorHa);
 
@@ -129,8 +130,16 @@ public sealed class RepositorioDeRentabilidade(CrmDbContext contexto) : IReposit
             Rentabilidade.MargemTotal(margem, areaColhida),
             motivo.ToString(),
             Rentabilidade.Frase(motivo, cultura.Nome),
-            Tendencia(cultura, linhas, custos, ano));
+            Tendencia(cultura, linhas, custos, ano),
+            custoAnterior?.Safra,
+            NaCamada(cultura, custoAnterior));
     }
+
+    /// <summary>O custo por hectare de uma safra na camada que a cultura escolheu; nulo sem safra ou sem camada.</summary>
+    private static decimal? NaCamada(Cultura cultura, CustoDaSafra? c) =>
+        c is null || cultura.CamadaDeCustoDaMargem is not { } camada
+            ? null
+            : camada == CamadaDoCusto.Operacional ? c.Operacional : c.Total;
 
     /// <summary>
     /// A TENDÊNCIA: o ano mais recente contra o anterior, os dois pelo preço recebido da PAM (valor ÷ quantidade) e pelo
@@ -143,22 +152,18 @@ public sealed class RepositorioDeRentabilidade(CrmDbContext contexto) : IReposit
         var anterior = (short)(a - 1);
         if (!linhas.Any(p => p.Ano == anterior)) return null;
 
-        decimal? Custo(CustoDaSafra? c) => c is null || cultura.CamadaDeCustoDaMargem is not { } camada
-            ? null
-            : camada == CamadaDoCusto.Operacional ? c.Operacional : c.Total;
-
         var custo = CustoDaReferencia(cultura, custos, a);
         var custoAnterior = CustoDaReferencia(cultura, custos, anterior);
 
         return new TendenciaDaRentabilidade(
             a,
             anterior,
-            MargemPelaPam(linhas, a, Custo(custo)),
-            MargemPelaPam(linhas, anterior, Custo(custoAnterior)),
+            MargemPelaPam(linhas, a, NaCamada(cultura, custo)),
+            MargemPelaPam(linhas, anterior, NaCamada(cultura, custoAnterior)),
             custo?.Safra,
-            Custo(custo),
+            NaCamada(cultura, custo),
             custoAnterior?.Safra,
-            Custo(custoAnterior));
+            NaCamada(cultura, custoAnterior));
     }
 
     /// <summary>

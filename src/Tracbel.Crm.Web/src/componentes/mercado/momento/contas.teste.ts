@@ -18,9 +18,11 @@ import {
   ordenarRentabilidade,
   participacao,
   responsavelPrincipal,
+  tendenciaDaMargemMedia,
   topDaRegiao,
   valorMedioPorLinha,
   variacao,
+  variacoesDoCusto,
 } from './contas';
 import { numero, percentualComSinal, pontosPercentuais, sentido } from './formatos';
 
@@ -59,6 +61,48 @@ const CANA = cultura('CANA', 11_480, 8_900);
 const LARANJA = cultura('LARANJA', 53_200, 55_000);
 const MILHO = cultura('MILHO', 7_360, null);
 const TODAS = [CANA, MILHO, LARANJA, CAFE];
+
+describe('a tendência da margem média e o movimento do custo (28/09/2026)', () => {
+  const comTendencia = (l: RentabilidadeDaCultura, anterior: number | null, atual: number | null): RentabilidadeDaCultura => ({
+    ...l,
+    tendencia: {
+      ano: 2025,
+      anoAnterior: 2024,
+      margemPorHectare: atual,
+      margemPorHectareAnterior: anterior,
+      safraDoCusto: null,
+      custoPorHectare: null,
+      safraDoCustoAnterior: null,
+      custoPorHectareAnterior: null,
+      variacaoDaMargem: null,
+    },
+  });
+  const area = (l: RentabilidadeDaCultura) => ({ CAFE: 10, CANA: 90, LARANJA: 50 })[l.culturaCodigo] ?? null;
+
+  it('pondera os dois anos com os MESMOS pesos, e só as culturas com as duas margens', () => {
+    const r = tendenciaDaMargemMedia(
+      [comTendencia(CAFE, 20_000, 30_000), comTendencia(CANA, 2_000, 2_580), comTendencia(LARANJA, null, -1_800), MILHO],
+      area,
+    )!;
+    expect(r.anterior).toBeCloseTo(3_800);
+    expect(r.atual).toBeCloseTo(5_322);
+    expect(r.variacao).toBeCloseTo(5_322 / 3_800 - 1);
+    expect(r.culturas).toBe(2);
+    expect(r.anos).toEqual([2025]);
+  });
+
+  it('sobre uma média anterior negativa não há percentual, e sem nenhuma cultura não há tendência', () => {
+    expect(tendenciaDaMargemMedia([comTendencia(CANA, -100, 200)], area)!.variacao).toBeNull();
+    expect(tendenciaDaMargemMedia([CAFE, CANA], area)).toBeNull();
+  });
+
+  it('o movimento do custo só traz as culturas com as duas safras', () => {
+    const comSafra = { ...CAFE, safraAnteriorDoCusto: 2024, custoPorHectareDaSafraAnterior: 20_000, variacaoDoCusto: 0.0725 };
+    expect(variacoesDoCusto([comSafra, CANA])).toEqual([
+      { cultura: 'CAFE', variacao: 0.0725, safra: 2025, safraAnterior: 2024 },
+    ]);
+  });
+});
 
 describe('o ranking de culturas da Rentabilidade', () => {
   it('ordena pela margem por hectare, do maior para o menor, com a negativa embaixo', () => {

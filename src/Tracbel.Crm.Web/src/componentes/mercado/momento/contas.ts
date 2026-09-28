@@ -98,6 +98,57 @@ export function margemMediaPonderada(
 }
 
 /**
+ * A TENDÊNCIA DA MARGEM MÉDIA — a média ponderada do ano contra a do anterior.
+ *
+ * AS DUAS MÉDIAS USAM OS MESMOS PESOS (a área colhida do recorte hoje) e as
+ * mesmas culturas: mudar o peso junto com a margem mediria a troca de lavoura, e
+ * não a margem. Só entram as culturas com as duas margens da tendência — que o
+ * servidor calcula PAM com PAM, porque a CONAB guarda só 12 meses.
+ *
+ * SEM BASE POSITIVA NÃO HÁ VARIAÇÃO: sair de uma margem média negativa para outra
+ * não tem percentual que signifique algo, e a resposta é ausência.
+ */
+export function tendenciaDaMargemMedia(
+  linhas: readonly RentabilidadeDaCultura[],
+  area: (l: RentabilidadeDaCultura) => number | null,
+): { atual: number; anterior: number; variacao: number | null; culturas: number; anos: readonly number[] } | null {
+  let pesos = 0;
+  let somaAtual = 0;
+  let somaAnterior = 0;
+  const anos = new Set<number>();
+  let culturas = 0;
+  for (const l of linhas) {
+    const t = l.tendencia;
+    const a = area(l);
+    if (!t || t.margemPorHectare === null || t.margemPorHectareAnterior === null || a === null || a <= 0) continue;
+    pesos += a;
+    somaAtual += t.margemPorHectare * a;
+    somaAnterior += t.margemPorHectareAnterior * a;
+    anos.add(t.ano);
+    culturas++;
+  }
+  if (pesos <= 0) return null;
+  const atual = somaAtual / pesos;
+  const anterior = somaAnterior / pesos;
+  return { atual, anterior, variacao: anterior > 0 ? atual / anterior - 1 : null, culturas, anos: [...anos].sort((x, y) => x - y) };
+}
+
+/**
+ * A VARIAÇÃO DO CUSTO POR CULTURA — da safra anterior da série da CONAB para a
+ * usada na margem. Só as culturas que têm as duas safras; o intervalo e a
+ * contagem por sentido são o que o cartão "Custo" mostra.
+ */
+export function variacoesDoCusto(
+  linhas: readonly RentabilidadeDaCultura[],
+): { cultura: string; variacao: number; safra: number; safraAnterior: number }[] {
+  return linhas.flatMap((l) =>
+    l.variacaoDoCusto != null && l.safraDoCusto !== null && l.safraAnteriorDoCusto != null
+      ? [{ cultura: l.culturaNome, variacao: l.variacaoDoCusto, safra: l.safraDoCusto, safraAnterior: l.safraAnteriorDoCusto }]
+      : [],
+  );
+}
+
+/**
  * A CULTURA DE MAIOR ÁREA — o critério da "Cultura destaque".
  *
  * É CONTEXTO, dito com o critério: "destaque" aqui é a que mais ocupa a terra

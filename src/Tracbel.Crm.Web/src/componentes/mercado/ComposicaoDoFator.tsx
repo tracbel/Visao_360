@@ -30,12 +30,17 @@
  */
 
 import { Coins, CreditCard, Leaf, Users } from 'lucide-react';
+import { useContextoDeAcesso } from '../../dados/api/contexto';
+import { obterRentabilidadeDasCulturas } from '../../dados/api/territorio';
+import { useRecurso } from '../../dados/api/useRecurso';
 import { BlocoCarregando } from '../cadastro/EstadosDeTela';
 import { InfoTooltip } from '../InfoTooltip';
 import { MetricaAusente } from '../comum/MetricaAusente';
 import { ValorAusente } from '../comum/ValorAusente';
+import type { RentabilidadeDaCultura } from '../../tipos/mercado';
 import type { MomentoDaCultura, MomentoDoRecorte } from '../../tipos/territorio';
 import { ColunasAgrupadas } from './momento/ColunasAgrupadas';
+import { variacoesDoCusto } from './momento/contas';
 import { numero, percentualComSinal, pontosPercentuais, sentido, tomDoSentido } from './momento/formatos';
 import { NomeDaCultura } from './momento/IconeDaCultura';
 import {
@@ -77,8 +82,10 @@ const EXPLICA_COMMODITY =
 
 const EXPLICA_CUSTO =
   'O custo não é uma parcela separada do fator (D-P05): a sensibilidade é de PREÇO E RENTABILIDADE, e o custo entra ' +
-  'dentro dela — rentabilidade é preço menos custo. Não existe índice de custo do recorte para mostrar aqui sem mudar ' +
-  'a conta. Os custos de produção da CONAB, safra a safra, estão na aba Rentabilidade (issue 67).';
+  'dentro dela — rentabilidade é preço menos custo. Por isso a coluna Custo do detalhamento fica com o traço. O cartão ' +
+  'mostra o MOVIMENTO do custo, que é contexto e não entra na conta: o custo total por hectare da CONAB na localidade ' +
+  'de referência de cada cultura (D-P07), a safra usada na margem contra a anterior publicada naquele local — a ' +
+  'anterior da série, porque a CONAB não publica todo ano em todo local. As séries inteiras estão na aba Rentabilidade.';
 
 const EXPLICA_CREDITO =
   'Índice de crédito do SICOR — 70% linhas e 30% valor, a janela recente contra a anterior (issue 73). É do ' +
@@ -132,8 +139,79 @@ function Sentido({ fracao, children }: { fracao: number; children: React.ReactNo
   );
 }
 
+/** A leitura da rentabilidade como o cartão do custo a recebe. */
+type LeituraDoCusto = { linhas: readonly RentabilidadeDaCultura[] | null; carregando: boolean; erro: boolean };
+
+/**
+ * O CARTÃO DO CUSTO — quantas culturas do recorte têm o custo em alta e em
+ * baixa, e o intervalo. As culturas são as do fator; sem nenhuma delas com as
+ * duas safras, são as do catálogo inteiro, e o apoio diz isso.
+ */
+function CartaoDoCusto({ momento, leitura }: { momento: MomentoDoRecorte; leitura: LeituraDoCusto }) {
+  const doRecorte = new Set(momento.porCultura.map((c) => c.culturaCodigo));
+  const todas = leitura.linhas ?? [];
+  const noRecorte = variacoesDoCusto(todas.filter((l) => doRecorte.has(l.culturaCodigo)));
+  const variacoes = noRecorte.length > 0 ? noRecorte : variacoesDoCusto(todas);
+  const doCatalogo = noRecorte.length === 0 && variacoes.length > 0;
+  const conta = (s: '↑' | '→' | '↓') => variacoes.filter((v) => sentido(v.variacao) === s).length;
+  const menor = variacoes.length > 0 ? Math.min(...variacoes.map((v) => v.variacao)) : null;
+  const maior = variacoes.length > 0 ? Math.max(...variacoes.map((v) => v.variacao)) : null;
+  const motivo = leitura.erro
+    ? 'A leitura da rentabilidade não respondeu, e é dela que vem o custo de cada cultura. O custo não é parcela do fator (D-P05): a conta do topo não muda.'
+    : 'Nenhuma cultura tem duas safras de custo da CONAB na localidade de referência (D-P07) — sem a anterior não há movimento a medir. O custo não é parcela do fator (D-P05).';
+
+  return (
+    <CartaoDoMomento
+      icone={Coins}
+      tom="azul"
+      rotulo="Custo"
+      oQue="o movimento do custo"
+      dica={
+        EXPLICA_CUSTO +
+        (variacoes.length > 0
+          ? ' ' + variacoes.map((v) => `${v.cultura}: ${percentualComSinal(v.variacao, 1)} (${v.safraAnterior}→${v.safra})`).join('; ') + '.'
+          : '')
+      }
+      valor={
+        leitura.carregando && variacoes.length === 0 ? (
+          <span className="cad-so-leitor">carregando…</span>
+        ) : variacoes.length === 0 ? null : (
+          <span className="mom-sentido">
+            {(['↑', '→', '↓'] as const)
+              .filter((s) => conta(s) > 0)
+              .map((s) => (
+                // O CUSTO QUE SOBE APERTA A MARGEM: a cor segue o efeito, e a seta, o movimento.
+                <span key={s} data-sentido={s === '↑' ? 'baixa' : s === '↓' ? 'alta' : 'neutro'}>
+                  <span aria-hidden="true">{s}</span> {conta(s)}
+                  <span className="cad-so-leitor">
+                    {' '}
+                    {conta(s) === 1 ? 'cultura' : 'culturas'} com custo {s === '↑' ? 'em alta' : s === '↓' ? 'em baixa' : 'estável'}
+                  </span>
+                </span>
+              ))}
+          </span>
+        )
+      }
+      motivoSemDado={motivo}
+      apoio={doCatalogo ? 'Custo/ha da CONAB, culturas do catálogo' : 'Custo/ha da CONAB, safra contra a anterior'}
+      lateral={
+        <Pilula
+          fracao={menor !== null && menor === maior ? menor : null}
+          texto={
+            menor !== null && maior !== null && menor !== maior
+              ? `${percentualComSinal(menor)} a ${percentualComSinal(maior)}`
+              : undefined
+          }
+          motivo={motivo}
+          oQue="a variação do custo"
+        />
+      }
+    />
+  );
+}
+
 /** Os quatro cartões — Commodity, Custo, Crédito e Percepção comercial. */
-function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
+function Cartoes({ momento, custo }: { momento: MomentoDoRecorte; custo: LeituraDoCusto }) {
   // O PREÇO É POR CULTURA: o cartão diz quantas sobem e quantas descem, e o
   // intervalo entre elas — sem inventar um índice de commodity do recorte, que
   // o domínio não tem (o agregado não é média de commodity, T3.1).
@@ -201,22 +279,7 @@ function Cartoes({ momento }: { momento: MomentoDoRecorte }) {
         }
       />
 
-      <CartaoDoMomento
-        icone={Coins}
-        tom="azul"
-        rotulo="Custo"
-        oQue="o custo no fator"
-        valor={null}
-        motivoSemDado={EXPLICA_CUSTO}
-        apoio="Entra na parcela de commodity (D-P05)"
-        lateral={
-          <Pilula
-            fracao={null}
-            motivo="O custo não tem variação própria no fator: ele entra dentro da parcela de commodity (D-P05), e a série de custo da CONAB está na aba Rentabilidade (issue 67)."
-            oQue="a variação do custo"
-          />
-        }
-      />
+      <CartaoDoCusto momento={momento} leitura={custo} />
 
       <CartaoDoMomento
         icone={CreditCard}
@@ -491,6 +554,12 @@ export function ComposicaoDoFator({
   momento: MomentoDoRecorte | null;
   carregando?: boolean;
 }) {
+  const { contexto } = useContextoDeAcesso();
+  const rentabilidade = useRecurso(
+    (sinal) => obterRentabilidadeDasCulturas(contexto, sinal),
+    [contexto.empresa, contexto.usuario],
+  );
+
   if (!momento)
     return carregando ? (
       <BlocoCarregando oQue="o momento do mercado" />
@@ -524,7 +593,10 @@ export function ComposicaoDoFator({
 
   return (
     <div className="mom-painel-da-aba" data-bloco="composicao-do-fator">
-      <Cartoes momento={momento} />
+      <Cartoes
+        momento={momento}
+        custo={{ linhas: rentabilidade.dados ?? null, carregando: rentabilidade.carregando, erro: !!rentabilidade.erro }}
+      />
 
       <LinhaDePaineis variante="composicao">
         <PainelDoMomento

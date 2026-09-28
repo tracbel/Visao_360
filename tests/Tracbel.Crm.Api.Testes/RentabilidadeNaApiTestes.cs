@@ -160,7 +160,17 @@ public sealed class RentabilidadeNaApiTestes(ApiEmMemoria api) : IClassFixture<A
         tendencia.GetProperty("margemPorHectareAnterior").GetDecimal().Should().Be(50_000m - CustoDoCafeAnterior, "R$ 2,4 bi em 48.000 ha");
         tendencia.GetProperty("safraDoCustoAnterior").GetInt32().Should().Be(2024);
         tendencia.GetProperty("variacaoDaMargem").GetDecimal().Should().Be(decimal.Round((60_000m - CustoDoCafe) / 23_000m - 1m, 4));
-        tendencia.GetProperty("variacaoDoCusto").GetDecimal().Should().Be(decimal.Round(CustoDoCafe / CustoDoCafeAnterior - 1m, 4));
+    }
+
+    [Fact]
+    public async Task A_variacao_do_custo_e_a_da_safra_anterior_DA_SERIE()
+    {
+        await SemearAsync();
+        var cafe = Cultura(await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Rota)), "CAFE");
+
+        cafe.GetProperty("safraAnteriorDoCusto").GetInt32().Should().Be(2024);
+        cafe.GetProperty("custoPorHectareDaSafraAnterior").GetDecimal().Should().Be(CustoDoCafeAnterior);
+        cafe.GetProperty("variacaoDoCusto").GetDecimal().Should().Be(decimal.Round(CustoDoCafe / CustoDoCafeAnterior - 1m, 4));
     }
 
     [Fact]

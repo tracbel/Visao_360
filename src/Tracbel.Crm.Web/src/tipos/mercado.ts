@@ -258,6 +258,33 @@ export type RentabilidadeDaCultura = {
   motivo: string;
   /** A frase que a tela mostra no lugar do número. */
   fraseDoMotivo: string;
+  /** O mesmo ano contra o anterior, os dois pelo preço recebido da PAM; nula sem o ano anterior. */
+  tendencia?: TendenciaDaRentabilidade | null;
+  /**
+   * A safra de custo publicada antes da usada — a anterior DA SÉRIE, porque a
+   * CONAB não publica todo ano em todo local — e o custo dela.
+   */
+  safraAnteriorDoCusto?: number | null;
+  custoPorHectareDaSafraAnterior?: number | null;
+  /** Da safra anterior da série para a atual, em fração. */
+  variacaoDoCusto?: number | null;
+};
+/**
+ * A RENTABILIDADE DE UM ANO CONTRA A DO ANTERIOR (28/09/2026). O preço dos dois
+ * anos é o recebido pelo produtor na PAM (valor ÷ área colhida), porque a CONAB
+ * guarda só 12 meses; o custo de cada ano é a safra mais recente até ele.
+ */
+export type TendenciaDaRentabilidade = {
+  ano: number;
+  anoAnterior: number;
+  margemPorHectare: number | null;
+  margemPorHectareAnterior: number | null;
+  safraDoCusto: number | null;
+  custoPorHectare: number | null;
+  safraDoCustoAnterior: number | null;
+  custoPorHectareAnterior: number | null;
+  /** Em fração; nula sem as duas margens ou com a anterior não positiva. */
+  variacaoDaMargem: number | null;
 };
 /** Por que o preço implícito de um ano não saiu (issue 198). */
 export type MotivoSemPrecoImplicito =
