@@ -55,11 +55,11 @@ public sealed class RepositorioDoForecast(CrmDbContext contexto) : IRepositorioD
             .Select(m => (m.CodigoDaLinha, m.LinhaNaOrigem, Consultor: MetaDeVenda.ChaveDaPessoa(m.ConsultorNaOrigem), m.Quantidade))
             .ToList();
 
-        // O REALIZADO: as vendas do mês, pela data da venda — a mesma regra do cartão da meta (D-M3).
+        // O REALIZADO: as máquinas ENTREGUES no mês, pela data da entrega — a régua da GN e do cartão da meta (28/09/2026).
         var inicio = competencia;
         var fim = competencia.AddMonths(1);
         var vendas = (await contexto.VendasDeMaquina.AsNoTracking()
-                .Where(v => v.ExcluidoEm == null && v.VendidaEm != null && v.VendidaEm >= inicio && v.VendidaEm < fim)
+                .Where(v => v.ExcluidoEm == null && v.EntregueEm != null && v.EntregueEm >= inicio && v.EntregueEm < fim)
                 .Select(v => new { v.LinhaNaOrigem, v.VendedorNaOrigem })
                 .ToListAsync(ct))
             .Select(v => (Codigo: CodigoEstavel.De(v.LinhaNaOrigem, MetaDeVenda.TamanhoDaLinha), v.LinhaNaOrigem,

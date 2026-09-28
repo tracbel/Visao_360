@@ -973,6 +973,9 @@ public static class RotinasDoSistema
     /// <summary>O estoque de máquinas e a cobertura, da API Gestão de Negócios (decisão de 28/09/2026).</summary>
     public const string EstoqueGestaoDeNegocios = "ESTOQUE_GESTAO_NEGOCIOS";
 
+    /// <summary>A conferência dos números do CRM com os da API Gestão de Negócios (decisão de 28/09/2026).</summary>
+    public const string ConferenciaGestaoDeNegocios = "CONFERENCIA_GESTAO_NEGOCIOS";
+
     /// <summary>
     /// Quando as agendas semeadas passam a valer: o dia em que o orquestrador substituiu as tarefas do Windows. O
     /// que era devido antes dele (a mensal de 20/09) já rodou pelas tarefas antigas.
@@ -1117,6 +1120,16 @@ public static class RotinasDoSistema
             "O estoque de máquinas e os pedidos de fábrica do TOTVS, máquina a máquina, pela API Gestão de Negócios — situação, " +
             "reserva, pagamento, chegada prevista —, sem custo nem cliente; e a cobertura em meses de estoque, por mês e por grupo.",
             ["--somente-estoque-gn"], AgendaDaRotina.ACada(60), false,
+            [ConexoesDoSistema.GestaoDeNegocios], ConexoesDoSistema.GestaoDeNegocios),
+
+        // A CONFERÊNCIA COM A GESTÃO DE NEGÓCIOS (decisão de 28/09/2026) — a rotina 13, no FIM da lista como toda rotina nova.
+        // Lê o gabarito da GN (a performance-maquinas: meta e realizado) e compara com o que o CRM conta, filial a filial,
+        // mês a mês, e o realizado chassi a chassi. Diária às 07:15: DEPOIS das metas (06:00) e com o ART da madrugada já
+        // carregado. NASCE DESLIGADA, como toda rotina nova: quem liga é quem administra.
+        new(ConferenciaGestaoDeNegocios, "Conferência com a Gestão de Negócios",
+            "A meta e o realizado de máquinas como a API Gestão de Negócios conta, comparados com o que o CRM conta, filial a " +
+            "filial e mês a mês — e cada máquina do realizado que não bate, chassi a chassi, com o motivo.",
+            ["--somente-conferencia-gn"], AgendaDaRotina.DiariaAs(new TimeOnly(7, 15)), false,
             [ConexoesDoSistema.GestaoDeNegocios], ConexoesDoSistema.GestaoDeNegocios)
     ];
 

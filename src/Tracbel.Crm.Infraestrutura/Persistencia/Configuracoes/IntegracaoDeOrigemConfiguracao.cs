@@ -384,7 +384,9 @@ public sealed class DivergenciaDeIntegracaoConfiguracao : IEntityTypeConfigurati
         b.ToTable(x => x.HasCheckConstraint(
             "CK_DivergenciaDeIntegracao_Tipo",
             "[Tipo] IN ('CompradorDiferenteDoProprietarioNoCrm','ProprietarioNoProtheusDiferenteDoComprador'," +
-            "'CompradorAlteradoNaOrigem','ChassiAlteradoNaOrigem','RegistroAusenteNaOrigem')"));
+            "'CompradorAlteradoNaOrigem','ChassiAlteradoNaOrigem','RegistroAusenteNaOrigem'," +
+            "'RealizadoSoNaGestao','RealizadoSoNoCrm','RealizadoEmOutraFilial','RealizadoEmOutroMes','RealizadoNaoEntregueNoCrm'," +
+            "'RealizadoPendenteNoArt')"));
         b.ToTable(x => x.HasCheckConstraint(
             "CK_DivergenciaDeIntegracao_Situacao", "[Situacao] IN ('Aberta','Resolvida','DeixouDeOcorrer')"));
 

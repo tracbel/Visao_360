@@ -58,6 +58,8 @@ export type MetasConsolidadas = {
   metaConsorcio: number;
   /** As cotas de consórcio vendidas, somadas das filiais que mediram; nulo quando nenhuma mediu (o consórcio não foi lido). */
   realizadoConsorcio: number | null;
+  /** As vendidas e ainda não entregues, somadas das filiais — fora do realizado (a régua da GN). */
+  aguardandoEntrega: number;
   realizadoNoAnterior: number;
   mesEmCurso: { competencia: string; metaMaquinas: number; realizadoMaquinas: number } | null;
   porLinha: MetaERealizadoNaLinha[];
@@ -169,6 +171,7 @@ export function somarMetas(filiais: MetaDaFilial[]): MetasConsolidadas {
     realizadoMaquinas: somar(vivas, (m) => m.totais.realizadoMaquinas),
     pendentesNoArt: comPendente.length === 0 ? null : somar(comPendente, (m) => m.totais.pendentesNoArt ?? 0),
     metaConsorcio: somar(vivas, (m) => m.totais.metaConsorcio),
+    aguardandoEntrega: somar(vivas, (m) => m.totais.aguardandoEntrega ?? 0),
     realizadoConsorcio: comConsorcio.length === 0 ? null : somar(comConsorcio, (m) => m.totais.realizadoConsorcio ?? 0),
     realizadoNoAnterior: somar(vivas, (m) => m.mesmoTrechoDoFyAnterior.realizadoMaquinas),
     mesEmCurso:

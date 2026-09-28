@@ -1,0 +1,17 @@
+/*
+ * Conferência com a Gestão de Negócios (28/09/2026) — só o que as classes do cadastro não cobrem: os números à direita e a
+ * diferença que não bate em destaque.
+ */
+
+.conf-tabela td,
+.conf-tabela th { white-space: nowrap; }
+.conf-tabela td.cad-mono { text-align: right; }
+.conf-tabela thead th { text-align: center; }
+.conf-tabela thead th:first-child { text-align: left; }
+
+.conf-dif { font-weight: 600; color: var(--danger); }
+.conf-dif.bate { font-weight: 500; color: var(--success); }
+
+.conf-lista td { vertical-align: top; }
+.conf-texto { min-width: 240px; max-width: 420px; font-size: 12px; line-height: 1.45; color: var(--text-secondary); }
+.conf-nada { margin: 16px 0 0; color: var(--text-secondary); font-size: 13px; }

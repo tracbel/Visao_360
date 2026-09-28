@@ -52,7 +52,7 @@ public sealed record OrigemDaMetaDeVenda(string Sistema, string Rota, DateTime L
 
 /// <summary>O que o repositório apura para uma filial (ou para a própria pessoa), num período.</summary>
 /// <param name="MetaMaquinas">A meta de máquinas no período.</param>
-/// <param name="RealizadoMaquinas">As máquinas vendidas no período.</param>
+/// <param name="RealizadoMaquinas">As máquinas entregues no período, pelo mês da entrega (a régua da GN, 28/09/2026).</param>
 /// <param name="PendentesNoArt">As vendas do ART no período que aguardam na integração (cadastro, chassi ou outro motivo) —
 /// nulo no alcance Próprios, porque a venda pendente ainda não tem a pessoa.</param>
 /// <param name="PendentesSemFilial">As pendentes do período cuja unidade não tem filial no CRM — de nenhuma filial.</param>
@@ -72,6 +72,9 @@ public sealed record OrigemDaMetaDeVenda(string Sistema, string Rota, DateTime L
 /// As cotas de consórcio vendidas no período; NULO quando o realizado de consórcio nunca foi lido — "não lido" não é zero.
 /// </param>
 /// <param name="ConsorcioLidoEm">A última leitura do realizado de consórcio (UTC); nula quando nunca foi lido.</param>
+/// <param name="AguardandoEntrega">
+/// As máquinas vendidas no período e ainda não entregues — fora do realizado pela régua da GN (28/09/2026), contadas à parte.
+/// </param>
 public sealed record MetaERealizadoApurado(
     int MetaMaquinas,
     int RealizadoMaquinas,
@@ -89,7 +92,8 @@ public sealed record MetaERealizadoApurado(
     OrigemDaMetaDeVenda? Origem,
     bool LoginSemCasamento = false,
     int? RealizadoConsorcio = null,
-    DateTime? ConsorcioLidoEm = null);
+    DateTime? ConsorcioLidoEm = null,
+    int AguardandoEntrega = 0);
 
 /// <summary>Uma linha do forecast: a meta (PO) do time, a previsão do gestor e o realizado do time.</summary>
 /// <param name="Codigo">O código estável da linha.</param>

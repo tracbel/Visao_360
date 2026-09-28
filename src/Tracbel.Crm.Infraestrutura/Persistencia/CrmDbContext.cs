@@ -515,6 +515,9 @@ public class CrmDbContext : DbContext
     /// <summary>As divergências entre fontes, registradas para revisão.</summary>
     public DbSet<DivergenciaDeIntegracao> DivergenciasDeIntegracao => Set<DivergenciaDeIntegracao>();
 
+    /// <summary>A conferência com a Gestão de Negócios: a meta e o realizado por filial e mês, lá e aqui (28/09/2026).</summary>
+    public DbSet<ConferenciaDaGestaoDeNegocios> ConferenciasDaGestaoDeNegocios => Set<ConferenciaDaGestaoDeNegocios>();
+
     /// <summary>Cada execução do serviço de sincronização, com resultado e contagens.</summary>
     public DbSet<ExecucaoDeSincronizacao> ExecucoesDeSincronizacao => Set<ExecucaoDeSincronizacao>();
 

@@ -62,9 +62,9 @@ public sealed class MigracaoNoContainerTestes
             ["processo"] = 10,
             ["frota"] = 9,
             ["auditoria"] = 1,
-            ["integracao"] = 14,
+            ["integracao"] = 15,
             ["metadado"] = 2
-        }, "é a conta do documento 14, seção 2.1 — 89 tabelas de modelo em 8 schemas (a utilização das terras do Censo, 28/09/2026, o estoque e a cobertura e o planejamento da API Gestão de Negócios, 28/09/2026, a percepção de campo por cultura, a sazonalidade, os pesos do IOC e o " +
+        }, "é a conta do documento 14, seção 2.1 — 90 tabelas de modelo em 8 schemas (a utilização das terras do Censo, 28/09/2026, a conferência com a Gestão de Negócios, o estoque e a cobertura e o planejamento da API Gestão de Negócios, 28/09/2026, a percepção de campo por cultura, a sazonalidade, os pesos do IOC e o " +
            "share-alvo do planejamento, issue 256, o funil do Vórtice e a classificação " +
            "dos resultados, documento 52, a meta de venda da issue 138 e o preço da máquina da issue 70), no banco de " +
            "verdade. A migração inicial criava 80 em 10; a fase 1 do documento 41 removeu as 31 " +
@@ -74,19 +74,20 @@ public sealed class MigracaoNoContainerTestes
            "RENAME da tabela da PAM, que preserva a área plantada já carregada — também funcionam " +
            "em banco que nasce agora");
 
-        porSchema.Values.Sum().Should().Be(89);
+        porSchema.Values.Sum().Should().Be(90);
 
         // AS INTEGRAÇÕES SEMEADAS (#138): a conexão 13 é a API Gestão de Negócios e a rotina 9 são as metas — as duas no
         // fim da lista, sem renumerar as que já existem (a 8 é a do funil do Vórtice, #247). A conexão 14 e a rotina 11 são a
         // telemetria do Operations Center (28/09/2026); a rotina 12, o estoque da Gestão de Negócios (28/09/2026).
         ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Conexao").Should().Be(14);
-        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Rotina").Should().Be(12);
+        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Rotina").Should().Be(13);
         contexto.Conexoes.Single(c => c.Id == 13).Codigo.Should().Be("GESTAO_NEGOCIOS");
         contexto.Conexoes.Single(c => c.Id == 14).Codigo.Should().Be("OPERATIONS_CENTER");
         contexto.Rotinas.Single(r => r.Id == 9).Codigo.Should().Be("METAS_GESTAO_NEGOCIOS");
         contexto.Rotinas.Single(r => r.Id == 10).Codigo.Should().Be("PRECOS_DE_MAQUINA");
         contexto.Rotinas.Single(r => r.Id == 11).Codigo.Should().Be("TELEMETRIA_OPERATIONS_CENTER");
         contexto.Rotinas.Single(r => r.Id == 12).Codigo.Should().Be("ESTOQUE_GESTAO_NEGOCIOS");
+        contexto.Rotinas.Single(r => r.Id == 13).Codigo.Should().Be("CONFERENCIA_GESTAO_NEGOCIOS");
     }
 
     [FatoSeHouverSqlServer]

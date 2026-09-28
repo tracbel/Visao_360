@@ -509,7 +509,7 @@ export function metasDeVenda(estado: EstadoDaVisao360, codigo: string): MetaERea
       inicialDoAnterior: '2024-11-01', finalDoAnterior: '2025-08-01',
     },
     alcance: 'Filial',
-    totais: { metaMaquinas: meta, realizadoMaquinas: realizado, pendentesNoArt: n(21 * p), metaConsorcio: n(40 * p), vendasSemVendedor: n(2 * p), realizadoConsorcio: n(33 * p) },
+    totais: { metaMaquinas: meta, realizadoMaquinas: realizado, pendentesNoArt: n(21 * p), metaConsorcio: n(40 * p), vendasSemVendedor: n(2 * p), realizadoConsorcio: n(33 * p), aguardandoEntrega: n(6 * p) },
     porMes,
     porLinha: lida
       ? [

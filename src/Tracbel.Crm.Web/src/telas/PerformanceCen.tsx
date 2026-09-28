@@ -934,7 +934,7 @@ export function PerformanceCen() {
         {meta.dados && (
           <p className="cad-sub">
             Meta: a cota da API Gestão de Negócios, em máquinas. Realizado: as vendas do ART em que o
-            consultor é o vendedor, pela data da venda
+            consultor é o vendedor, só as entregues e pelo mês da entrega, como a Gestão de Negócios
             {meta.dados.alcance === 'Filial'
               ? ' — a venda sem vendedor conta no total da filial e em ninguém'
               : ', vendas pela sua filial — a que você fez por outra filial conta lá'}
