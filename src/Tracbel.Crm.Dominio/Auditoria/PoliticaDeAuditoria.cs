@@ -153,6 +153,10 @@ public static class PoliticaDeAuditoria
         ],
         ["PercepcaoDoGestor"] = ["MunicipioId", "Percentual", "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"],
 
+        // A PERCEPÇÃO DE CAMPO POR CULTURA (27/09/2026): opinião registrada, como a do município — quem vê o fator
+        // precisa poder perguntar quem achou a nota, e quando.
+        ["PercepcaoDaCultura"] = ["CulturaId", "Nota", "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"],
+
         // PLANEJAMENTO COMERCIAL (issue 256): a sazonalidade reparte a meta do ano entre os meses, os pesos decidem
         // quais municípios sobem no IOC e o share-alvo vira a meta de planejamento. No protótipo da pasta 360 os três
         // mudavam no navegador sem deixar rastro; aqui "quem pôs 40% de share no trator?" tem resposta.

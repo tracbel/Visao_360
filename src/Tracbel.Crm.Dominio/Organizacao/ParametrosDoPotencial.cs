@@ -663,3 +663,67 @@ public sealed class PercepcaoDoGestor : ParametroComVigencia
         return percepcao;
     }
 }
+
+/// <summary>
+/// A PERCEPÇÃO DE CAMPO POR CULTURA, com vigência (decisão do Ricardo em 27/09/2026).
+///
+/// <para><b>De onde vem.</b> A planilha do comercial ("Mapeamento de Mercado", aba Administrador) guarda uma
+/// "percepção de campo" POR CULTURA, de −2 a +2 — café +1, cana −1, amendoim −2, soja −1,5, milho 0, laranja −1. O
+/// CRM tinha a percepção só POR MUNICÍPIO (<see cref="PercepcaoDoGestor"/>, D-P04), vazia. Ficou decidido: a base é a
+/// da cultura, e o gestor ainda ajusta o município.</para>
+///
+/// <para><b>A escala é a da D-P04, e não a da planilha.</b> Na planilha a nota entra dividida por 2 e com peso 0,4 —
+/// até ±40% na demanda. A D-P04 existe justamente para tirar esse ±40%: a nota vira pontos percentuais a
+/// <see cref="PontosPorNota"/> por ponto, e ±2 dá ±5%, o mesmo teto do ajuste por município. O Ricardo confirmou a
+/// escala em 27/09/2026.</para>
+///
+/// <para><b>Guarda-se a nota, e não o percentual</b>: é a nota que o comercial conhece e escreve; o percentual é
+/// derivado dela pela escala decidida, e mudar a escala não reescreve o que cada pessoa informou.</para>
+/// </summary>
+public sealed class PercepcaoDaCultura : ParametroComVigencia
+{
+    /// <summary>Quantos pontos percentuais vale um ponto da nota: ±2 × 2,5 = ±5 (a escala da D-P04).</summary>
+    public const decimal PontosPorNota = 2.5m;
+
+    /// <summary>A maior nota, para cima ou para baixo — a régua da planilha.</summary>
+    public const decimal NotaMaxima = 2m;
+
+    private PercepcaoDaCultura() { }
+
+    /// <summary>A cultura do catálogo.</summary>
+    public int CulturaId { get; private set; }
+
+    /// <summary>A nota de campo, de −2 a +2, como a planilha a escreve.</summary>
+    public decimal Nota { get; private set; }
+
+    /// <summary>O ajuste no fator, em pontos percentuais: a nota na escala da D-P04.</summary>
+    public decimal Percentual => Nota * PontosPorNota;
+
+    /// <summary>Registra uma vigência da percepção de campo de uma cultura.</summary>
+    /// <param name="culturaId">A cultura.</param>
+    /// <param name="nota">A nota, de −2 a +2.</param>
+    /// <param name="vigenteDesde">O primeiro dia em que vale.</param>
+    /// <param name="justificativa">Por que esta nota.</param>
+    /// <param name="informadoPorId">Quem registra.</param>
+    /// <param name="agoraUtc">O instante do registro.</param>
+    public static PercepcaoDaCultura Informar(
+        int culturaId,
+        decimal nota,
+        DateOnly vigenteDesde,
+        string justificativa,
+        long informadoPorId,
+        DateTime agoraUtc)
+    {
+        if (culturaId <= 0)
+            throw new RegraDeNegocioViolada("A percepção é de uma cultura do catálogo.");
+
+        if (Math.Abs(nota) > NotaMaxima)
+            throw new RegraDeNegocioViolada(string.Format(
+                System.Globalization.CultureInfo.GetCultureInfo("pt-BR"),
+                "A nota de campo vai de −{0:0.##} a +{0:0.##}; {1:0.##} passa disso.", NotaMaxima, nota));
+
+        var percepcao = new PercepcaoDaCultura { CulturaId = culturaId, Nota = nota };
+        percepcao.Informar(vigenteDesde, justificativa, informadoPorId, agoraUtc);
+        return percepcao;
+    }
+}

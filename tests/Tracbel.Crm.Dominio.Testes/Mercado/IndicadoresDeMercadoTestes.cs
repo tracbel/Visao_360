@@ -251,4 +251,64 @@ public sealed class IndicadoresDeMercadoTestes
     {
         IndicadoresDeMercado.Frase("Nenhum").Should().BeEmpty();
     }
+    // ---------------------------------------------------------------------------------------------------------
+    // O MOMENTO ANUAL PELA PAM (decisão de 27/09/2026) — enquanto a série mensal não fecha as duas janelas.
+    // ---------------------------------------------------------------------------------------------------------
+
+    /// <summary>Um ano do preço implícito do café (40139), a partir de valor e quantidade como o IBGE publica.</summary>
+    private static PrecoImplicitoNoAno AnoDoCafe(short ano, decimal valorMilReais, decimal toneladas) =>
+        PrecoImplicitoDaPam.De(40139, ano, valorMilReais, toneladas);
+
+    [Fact]
+    public void O_anual_da_PAM_e_o_ultimo_ano_contra_o_anterior_e_diz_de_que_serie_saiu()
+    {
+        // 2024: R$ 20.000 mil ÷ 1.000 t = R$ 20.000/t; 2025: R$ 24.000 mil ÷ 1.000 t = R$ 24.000/t → 1,20.
+        var indice = IndicadoresDeMercado.MomentoAnualDaPam(
+            [AnoDoCafe(2023, 18_000m, 1_000m), AnoDoCafe(2025, 24_000m, 1_000m), AnoDoCafe(2024, 20_000m, 1_000m)],
+            Parametros());
+
+        indice.Indice.Should().Be(1.20m);
+        indice.MediaRecente.Should().Be(24_000m);
+        indice.MediaAnterior.Should().Be(20_000m);
+        indice.Serie.Should().Be(nameof(SerieDoIndiceDePreco.AnualPam));
+        indice.AnoRecente.Should().Be((short)2025);
+        indice.Motivo.Should().Be(nameof(MotivoSemIndicador.Nenhum));
+        indice.Faixa.Should().Be(Parametros().FaixaDe(1.20m).ToString(), "a faixa é a mesma régua do índice mensal");
+    }
+
+    [Fact]
+    public void Ano_vizinho_faltando_nao_vira_indice_de_dois_anos()
+    {
+        var indice = IndicadoresDeMercado.MomentoAnualDaPam(
+            [AnoDoCafe(2025, 24_000m, 1_000m), AnoDoCafe(2023, 18_000m, 1_000m)], Parametros());
+
+        indice.Indice.Should().BeNull("2025 contra 2023 mediria dois anos com o rótulo de um");
+        indice.Motivo.Should().Be(nameof(MotivoSemIndicador.SerieCurta));
+        indice.AnoRecente.Should().Be((short)2025);
+    }
+
+    [Fact]
+    public void Ano_sem_preco_e_ignorado_e_sem_ano_nenhum_a_fonte_falta()
+    {
+        // 2025 sob sigilo (sem valor): o mais recente com preço é 2024, contra 2023.
+        var comSigilo = IndicadoresDeMercado.MomentoAnualDaPam(
+            [PrecoImplicitoDaPam.De(40139, 2025, null, 1_000m), AnoDoCafe(2024, 20_000m, 1_000m), AnoDoCafe(2023, 16_000m, 1_000m)],
+            Parametros());
+
+        comSigilo.Indice.Should().Be(1.25m);
+        comSigilo.AnoRecente.Should().Be((short)2024);
+
+        var vazio = IndicadoresDeMercado.MomentoAnualDaPam([], Parametros());
+        vazio.Indice.Should().BeNull();
+        vazio.Motivo.Should().Be(nameof(MotivoSemIndicador.SemFonte));
+    }
+
+    [Fact]
+    public void O_indice_mensal_continua_dizendo_que_e_mensal()
+    {
+        var indice = IndicadoresDeMercado.MomentoDePreco(Meses(12m), Meses(10m), 12, Parametros());
+
+        indice.Serie.Should().Be(nameof(SerieDoIndiceDePreco.Mensal));
+        indice.AnoRecente.Should().BeNull();
+    }
 }
