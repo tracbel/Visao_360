@@ -23,6 +23,7 @@ import {
   IconeCobertura,
   IconeCoberturaRegional,
   IconeConfiguracoes,
+  IconeDiagnostico,
   IconeEquipamentos,
   IconeFunil,
   IconeIndicadoresGeograficos,
@@ -58,6 +59,12 @@ export const SECOES: SecaoNav[] = [
       // O mapa aberto da maquete (23/09/2026): antes era o mesmo ícone da linha de cima.
       { caminho: '/relatorios/territorio', rotulo: 'Indicadores Geográficos', Icone: IconeIndicadoresGeograficos },
     ],
+  },
+  {
+    // O PROTÓTIPO DA PASTA 360 NO CRM (épico 264, pedido do Ricardo de 27/09/2026): as abas dele viram telas deste
+    // grupo, uma a uma. Os Indicadores Geográficos continuam nos Relatórios, onde já estavam.
+    titulo: 'Inteligência de Mercado',
+    itens: [{ caminho: '/mercado/diagnostico', rotulo: 'Diagnóstico Comercial', Icone: IconeDiagnostico }],
   },
   {
     titulo: 'Sistema',

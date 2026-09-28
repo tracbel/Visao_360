@@ -24,6 +24,7 @@ import { ClienteFicha } from './telas/ClienteFicha';
 import { CoberturaCarteira } from './telas/CoberturaCarteira';
 import { CoberturaRegional } from './telas/CoberturaRegional';
 import { Configuracoes } from './telas/Configuracoes';
+import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
 import { Funil } from './telas/Funil';
 import { IndicadoresGeograficos } from './telas/IndicadoresGeograficos';
@@ -205,6 +206,14 @@ export const ROTAS: Rota[] = [
     titulo: 'Indicadores Geográficos da ADR',
     trilha: ['Relatórios', 'Indicadores Geográficos'],
     Componente: IndicadoresGeograficos,
+    usaApi: true,
+  },
+  /* ---- Inteligência de Mercado: o protótipo da pasta 360 no CRM (épico 264) ---- */
+  {
+    caminho: '/mercado/diagnostico',
+    titulo: 'Diagnóstico Comercial',
+    trilha: ['Inteligência de Mercado', 'Diagnóstico Comercial'],
+    Componente: DiagnosticoComercial,
     usaApi: true,
   },
   {

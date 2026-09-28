@@ -7,7 +7,7 @@
  * Geográficos e a marca por extenso do menu, que o protótipo não tinha.
  */
 
-import { Map as Mapa } from 'lucide-react';
+import { Map as Mapa, Target as Alvo } from 'lucide-react';
 
 type Props = { tamanho?: number };
 
@@ -123,6 +123,11 @@ export function IconeCoberturaRegional(p: Props) {
  */
 export function IconeIndicadoresGeograficos({ tamanho = 18 }: Props) {
   return <Mapa size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
+}
+
+/** O alvo do Diagnóstico Comercial (issue 257) — onde mirar primeiro. Tela nova, sem par no protótipo de referência. */
+export function IconeDiagnostico({ tamanho = 18 }: Props) {
+  return <Alvo size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
 }
 
 export function IconeConfiguracoes(p: Props) {
