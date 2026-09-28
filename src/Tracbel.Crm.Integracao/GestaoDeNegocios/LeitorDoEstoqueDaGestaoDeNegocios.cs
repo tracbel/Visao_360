@@ -50,8 +50,6 @@ public sealed class LeitorDoEstoqueDaGestaoDeNegocios(ClienteDaGestaoDeNegocios 
     /// <summary>A rota da cobertura.</summary>
     public const string RotaDaCobertura = "/api/v1/cobertura";
 
-    private static readonly string[] Meses = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-
     /// <summary>Lê as três rotas; uma que falhe derruba a leitura inteira — nada é gravado pela metade.</summary>
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<LeituraDoEstoqueNaOrigem>> LerAsync(CancellationToken ct)
@@ -116,19 +114,6 @@ public sealed class LeitorDoEstoqueDaGestaoDeNegocios(ClienteDaGestaoDeNegocios 
             : null;
 
         return Resultado<LeituraDoEstoqueNaOrigem>.Ok(new LeituraDoEstoqueNaOrigem(equipamentos, itens, lojas.Valor, null, coberturaGerada));
-    }
-
-    /// <summary>O mês de um rótulo da GN (<c>Ago/2026</c>), no dia 1; nulo quando não se lê.</summary>
-    /// <param name="rotulo">O rótulo.</param>
-    public static DateOnly? Mes(string? rotulo)
-    {
-        if (string.IsNullOrWhiteSpace(rotulo)) return null;
-        var partes = rotulo.Trim().Split('/');
-        if (partes.Length != 2) return null;
-        var mes = Array.IndexOf(Meses, partes[0].Trim().ToLowerInvariant()) + 1;
-        return mes > 0 && int.TryParse(partes[1].Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var ano) && ano is >= 2000 and <= 2100
-            ? new DateOnly(ano, mes, 1)
-            : null;
     }
 
     private static string? Texto(JsonElement linha, string campo) =>

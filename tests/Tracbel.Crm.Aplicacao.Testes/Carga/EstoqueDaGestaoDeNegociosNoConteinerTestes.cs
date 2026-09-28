@@ -104,7 +104,7 @@ public sealed class EstoqueDaGestaoDeNegociosNoConteinerTestes
             "VALUES (12, SYSUTCDATETIME(), SYSUTCDATETIME(), 'Agenda', 'Falha', N'teste', N'teste do Down', 3, NULL)");
 
         var migrador = db.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>();
-        var desfazer = () => migrador.MigrateAsync("20260928022745_TelemetriaDoOperationsCenter");
+        var desfazer = () => migrador.MigrateAsync("20260928131802_PlanejamentoDaGestaoDeNegocios");
         await desfazer.Should().NotThrowAsync("o Down apaga antes o que referencia o que ele remove");
 
         (await db.Rotinas.AsNoTracking().AnyAsync(r => r.Id == 12)).Should().BeFalse();

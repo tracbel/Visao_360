@@ -330,6 +330,13 @@ public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixt
         cobertura.GetProperty("semCadencia").GetInt32().Should().Be(1);
         cobertura.GetProperty("percentualPendente").GetDecimal().Should().Be(50m);
 
+        // O CLIENTE EM DUAS CARTEIRAS CONTA UMA VEZ (28/09/2026, o Diagnóstico Comercial): três vínculos, dois clientes em
+        // carteira. E nenhum dos dois tem faturamento apurado em classe: são "sem classe", e não D.
+        cobertura.GetProperty("clientesEmCarteira").GetInt32().Should().Be(2);
+        var porClasse = cobertura.GetProperty("porClasse");
+        porClasse.GetProperty("semClasse").GetInt32().Should().Be(2);
+        porClasse.GetProperty("d").GetInt32().Should().Be(0, "sem classe não é classe D, embora a cadência o trate assim");
+
         Municipio(dados, Serrana).GetProperty("cobertura").GetProperty("foraDaCadencia").GetInt32().Should().Be(1);
     }
 

@@ -14,15 +14,24 @@ const periodo = {
   inicialDoAnterior: '2024-11-01', finalDoAnterior: '2025-08-01',
 };
 
-function meta(parcial: Partial<MetaERealizadoDaFilial> & { meta: number; realizado: number; pendentes?: number | null }): MetaERealizadoDaFilial {
+function meta(
+  parcial: Partial<MetaERealizadoDaFilial> & { meta: number; realizado: number; pendentes?: number | null; consorcio?: number | null },
+): MetaERealizadoDaFilial {
   return {
     periodo,
     alcance: 'Filial',
-    totais: { metaMaquinas: parcial.meta, realizadoMaquinas: parcial.realizado, pendentesNoArt: parcial.pendentes === undefined ? 2 : parcial.pendentes, metaConsorcio: 3, vendasSemVendedor: 1 },
+    totais: {
+      metaMaquinas: parcial.meta,
+      realizadoMaquinas: parcial.realizado,
+      pendentesNoArt: parcial.pendentes === undefined ? 2 : parcial.pendentes,
+      metaConsorcio: 3,
+      vendasSemVendedor: 1,
+      realizadoConsorcio: parcial.consorcio === undefined ? 2 : parcial.consorcio,
+    },
     porMes: [],
     porLinha: [{ codigo: 'TRATOR_MEDIO', nome: 'TRATOR MÉDIO', meta: parcial.meta, realizado: parcial.realizado }],
     porConsultor: parcial.porConsultor ?? [],
-    mesEmCurso: { competencia: '2026-09-01', metaMaquinas: 1, realizadoMaquinas: 1, metaConsorcio: 0 },
+    mesEmCurso: { competencia: '2026-09-01', metaMaquinas: 1, realizadoMaquinas: 1, metaConsorcio: 0, realizadoConsorcio: 0 },
     mesmoTrechoDoFyAnterior: { realizadoMaquinas: 4 },
     origem: parcial.origem === undefined ? { sistema: 'API Gestão de Negócios', rota: '/api/v1/cadastros/metas', lidaEm: '2026-09-27T09:00:00Z', geradaNaOrigemEm: null } : parcial.origem,
     metricasSemDado: [{ metrica: 'consorcio', motivo: 'Meta de consórcio à parte.' }],
@@ -45,6 +54,7 @@ describe('somarMetas', () => {
     expect(soma.realizadoMaquinas).toBe(13);
     expect(soma.pendentesNoArt).toBe(4);
     expect(soma.metaConsorcio).toBe(6);
+    expect(soma.realizadoConsorcio).toBe(4);
     expect(soma.realizadoNoAnterior).toBe(8);
     expect(soma.mesEmCurso).toEqual({ competencia: '2026-09-01', metaMaquinas: 2, realizadoMaquinas: 2 });
     expect(soma.porLinha).toEqual([{ codigo: 'TRATOR_MEDIO', nome: 'TRATOR MÉDIO', meta: 15, realizado: 13 }]);
@@ -98,5 +108,13 @@ describe('somarMetas', () => {
 
     expect(soma.pendentesNoArt).toBeNull();
     expect(soma.alcance).toBe('Proprios');
+  });
+
+  it('o consórcio que nenhuma filial leu fica nulo, e não zero; a que leu soma sozinha', () => {
+    const naoLido = somarMetas([respondeu('010101', meta({ meta: 3, realizado: 1, consorcio: null })), respondeu('010103', meta({ meta: 2, realizado: 2, consorcio: null }))]);
+    expect(naoLido.realizadoConsorcio).toBeNull();
+
+    const umaLeu = somarMetas([respondeu('010101', meta({ meta: 3, realizado: 1, consorcio: 5 })), respondeu('010103', meta({ meta: 2, realizado: 2, consorcio: null }))]);
+    expect(umaLeu.realizadoConsorcio).toBe(5);
   });
 });

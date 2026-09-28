@@ -23,8 +23,10 @@ import {
   IconeCobertura,
   IconeCoberturaRegional,
   IconeConfiguracoes,
+  IconeDemanda,
   IconeDiagnostico,
   IconeEquipamentos,
+  IconeForecast,
   IconeEstoque,
   IconeFunil,
   IconeIndicadoresGeograficos,
@@ -56,6 +58,7 @@ export const SECOES: SecaoNav[] = [
     itens: [
       { caminho: '/relatorios/funil', rotulo: 'Funil de Vendas', Icone: IconeFunil },
       { caminho: '/relatorios/performance', rotulo: 'Performance de CEN', Icone: IconePerformance },
+      { caminho: '/relatorios/forecast', rotulo: 'Forecast da Gerência', Icone: IconeForecast },
       { caminho: '/relatorios/estoque', rotulo: 'Estoque e Cobertura', Icone: IconeEstoque },
       { caminho: '/relatorios/cobertura', rotulo: 'Cobertura por Filial', Icone: IconeCoberturaRegional },
       // O mapa aberto da maquete (23/09/2026): antes era o mesmo ícone da linha de cima.
@@ -66,7 +69,12 @@ export const SECOES: SecaoNav[] = [
     // O PROTÓTIPO DA PASTA 360 NO CRM (épico 264, pedido do Ricardo de 27/09/2026): as abas dele viram telas deste
     // grupo, uma a uma. Os Indicadores Geográficos continuam nos Relatórios, onde já estavam.
     titulo: 'Inteligência de Mercado',
-    itens: [{ caminho: '/mercado/diagnostico', rotulo: 'Diagnóstico Comercial', Icone: IconeDiagnostico }],
+    // A ORDEM É A DO RACIOCÍNIO: primeiro quanto o mercado pede e quanto a Tracbel tem de entregar (Demanda), depois
+    // onde agir (Diagnóstico).
+    itens: [
+      { caminho: '/mercado/demanda', rotulo: 'Demanda e Previsão', Icone: IconeDemanda },
+      { caminho: '/mercado/diagnostico', rotulo: 'Diagnóstico Comercial', Icone: IconeDiagnostico },
+    ],
   },
   {
     titulo: 'Sistema',

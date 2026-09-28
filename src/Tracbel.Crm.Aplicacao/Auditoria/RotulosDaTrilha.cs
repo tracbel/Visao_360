@@ -58,6 +58,9 @@ public static class RotulosDaTrilha
         ["ClassificacaoDeResultadoDoVortice"] = "Classificação de resultado do Vórtice",
         ["VendaPerdida"] = "Venda perdida",
         ["MetaDeVenda"] = "Meta de venda (Gestão de Negócios)",
+        ["GestorDoConsultor"] = "Gestor do consultor (Gestão de Negócios)",
+        ["ForecastDaGerencia"] = "Forecast da gerência (Gestão de Negócios)",
+        ["CotaDeConsorcioVendida"] = "Cota de consórcio vendida (Gestão de Negócios)",
         ["EquipamentoEmEstoque"] = "Máquina em estoque (Gestão de Negócios)",
         ["CoberturaDoEstoque"] = "Cobertura do estoque (Gestão de Negócios)"
     };
@@ -258,6 +261,21 @@ public static class RotulosDaTrilha
             ["ConsultorUsuarioId"] = "Conta do consultor", ["VendaDireta"] = "Venda direta", ["Origem"] = "Origem da meta",
             ["Quantidade"] = "Quantidade (unidades)", ["ValorUnitario"] = "Valor unitário", ["Margem"] = "Margem"
         },
+        ["GestorDoConsultor"] = new(StringComparer.Ordinal)
+        {
+            ["ConsultorNaOrigem"] = "Consultor na origem", ["GestorNaOrigem"] = "Gestor (capitão)", ["FilialNumero"] = "Número da filial"
+        },
+        ["ForecastDaGerencia"] = new(StringComparer.Ordinal)
+        {
+            ["Competencia"] = "Mês do forecast", ["GestorNaOrigem"] = "Gestor", ["LinhaNaOrigem"] = "Linha na origem",
+            ["Forecast"] = "Forecast (unidades)", ["BestGuess"] = "Best guess (unidades)"
+        },
+        ["CotaDeConsorcioVendida"] = new(StringComparer.Ordinal)
+        {
+            ["EmpresaId"] = "Filial", ["Competencia"] = "Mês da cota", ["ConsultorNaOrigem"] = "Consultor na origem",
+            ["ConsultorUsuarioId"] = "Conta do consultor", ["GestorNaOrigem"] = "Gestor", ["Contemplacao"] = "Contemplação",
+            ["ValorDoBem"] = "Valor do bem"
+        },
         ["EquipamentoEmEstoque"] = new(StringComparer.Ordinal)
         {
             ["EmpresaId"] = "Filial", ["Situacao"] = "Situação", ["Reservado"] = "Reservada", ["Pago"] = "Paga à fábrica",
@@ -288,6 +306,8 @@ public static class RotulosDaTrilha
         [("VendaDeMaquina", "EmpresaDoFaturamentoId")] = TipoDeReferencia.Empresa,
         [("MetaDeVenda", "EmpresaId")] = TipoDeReferencia.Empresa,
         [("MetaDeVenda", "ConsultorUsuarioId")] = TipoDeReferencia.Usuario,
+        [("CotaDeConsorcioVendida", "EmpresaId")] = TipoDeReferencia.Empresa,
+        [("CotaDeConsorcioVendida", "ConsultorUsuarioId")] = TipoDeReferencia.Usuario,
         [("EquipamentoEmEstoque", "EmpresaId")] = TipoDeReferencia.Empresa
     };
 

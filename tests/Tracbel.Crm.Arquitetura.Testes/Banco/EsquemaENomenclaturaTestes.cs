@@ -186,6 +186,10 @@ public sealed partial class EsquemaENomenclaturaTestes
         //   +1 organizacao.PercepcaoDaCultura — decisão do Ricardo de 27/09/2026: a percepção de campo POR CULTURA da
         //      planilha (nota de −2 a +2) é a base da percepção no fator, na escala da D-P04, e o gestor ainda ajusta o
         //      município. Tabela própria porque o grão é a cultura, e não o município da PercepcaoDoGestor.
+        //   +3 organizacao.GestorDoConsultor, ForecastDaGerencia e CotaDeConsorcioVendida — decisão do Ricardo de 28/09/2026
+        //      (o planejamento da API Gestão de Negócios): o gestor de cada consultor, a previsão de cada gestor e o realizado de
+        //      consórcio. Três granularidades diferentes: o de-para é por pessoa e não tem filial, o forecast é por gestor ×
+        //      linha × mês e também não tem filial, e a cota é por grupo e cota, da filial que vendeu.
         //
         // Este teste é o que impede o modelo de crescer sem decisão registrada — o "portão" da
         // seção 10.2. Ele falhou de propósito quando as três últimas entraram, e é assim que se
@@ -196,7 +200,7 @@ public sealed partial class EsquemaENomenclaturaTestes
 
         var esperado = new Dictionary<string, int>
         {
-            ["organizacao"] = 37,
+            ["organizacao"] = 40,
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 10,
@@ -207,14 +211,14 @@ public sealed partial class EsquemaENomenclaturaTestes
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 85 tabelas de modelo em 8 schemas — o estoque de máquinas e a cobertura da API Gestão de Negócios (28/09/2026), a percepção de campo por cultura (27/09/2026), a sazonalidade, os pesos do IOC e o share-alvo do planejamento (issue 256), o funil do Vórtice e a classificação dos resultados (documento 52), a meta de venda da API Gestão de Negócios (issue 138) e o preço de referência da máquina (issue 70): a fase 1 (documento 41) trouxe 80 em 10 " +
+            "a conta é 88 tabelas de modelo em 8 schemas — o estoque de máquinas e a cobertura da API Gestão de Negócios (28/09/2026), o planejamento da API Gestão de Negócios (o gestor de cada consultor, o forecast da gerência e o consórcio vendido, 28/09/2026), a percepção de campo por cultura (27/09/2026), a sazonalidade, os pesos do IOC e o share-alvo do planejamento (issue 256), o funil do Vórtice e a classificação dos resultados (documento 52), a meta de venda da API Gestão de Negócios (issue 138) e o preço de referência da máquina (issue 70): a fase 1 (documento 41) trouxe 80 em 10 " +
             "para 49, tirando as 31 que nunca receberam uma linha e esvaziando por completo os " +
             "schemas 'documento' e 'relatorio'; a issue 64 acrescentou o total do estado, a 65 as " +
             "cinco da estrutura agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção a 68 as duas do crédito rural do SICOR e a 71 as duas dos parâmetros do potencial com vigência (os gerais e a percepção do gestor) a 136 as quatro das integrações configuráveis (conexão, verificação, rotina e execução da rotina) e a 154 o de-para entre a chave de cada fonte e o município do catálogo, e a 155 o total que o IBGE publica para o estado nas quatro pesquisas da estrutura agropecuária, e a 156 o milho separado em 1ª e 2ª safra, e a 165 as quatro do catálogo de culturas e categorias de máquina, e a 160 as duas do compartilhamento de máquina entre culturas, e a 69 o de-para entre a classificação de produto do CRM e a categoria de máquina — o último elo entre a venda do ART e a categoria de mercado (D-P08). O portão continua o mesmo nos dois sentidos: mudar " +
             "este número exige a decisão da seção 10.2 e a atualização do documento 14, seção 2.1, " +
             "na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(85);
+        porSchema.Values.Sum().Should().Be(88);
     }
 
     [Fact]

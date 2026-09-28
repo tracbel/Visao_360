@@ -88,8 +88,24 @@ public sealed record ConsultaDeIndicadoresTerritoriais(
 /// <param name="ForaDaCadencia">Com interação, mas mais antiga que o prazo.</param>
 /// <param name="NuncaContatados">Elegíveis sem interação nenhuma.</param>
 /// <param name="SemCadencia">Em linha de negócio que não declara prazo — fora da conta.</param>
+/// <param name="PorClasse">
+/// Os mesmos clientes pela classe ABC apurada do faturamento (28/09/2026, o Diagnóstico Comercial). Nulo onde a apuração
+/// não os separa.
+/// </param>
+/// <param name="ClientesEmCarteira">
+/// Clientes distintos com pelo menos um vínculo em carteira comercial — os que têm dono no comercial. Nulo onde a apuração
+/// não os conta.
+/// </param>
 public sealed record CoberturaTerritorial(
-    int Clientes, int Vinculos, int VinculosComCadencia, int Cobertos, int ForaDaCadencia, int NuncaContatados, int SemCadencia)
+    int Clientes,
+    int Vinculos,
+    int VinculosComCadencia,
+    int Cobertos,
+    int ForaDaCadencia,
+    int NuncaContatados,
+    int SemCadencia,
+    ClientesPorClasse? PorClasse = null,
+    int? ClientesEmCarteira = null)
 {
     /// <summary>Fora da cadência mais nunca contatados.</summary>
     public int Pendentes => ForaDaCadencia + NuncaContatados;
@@ -101,6 +117,18 @@ public sealed record CoberturaTerritorial(
     public decimal? PercentualPendente =>
         VinculosComCadencia == 0 ? null : decimal.Round(100m * Pendentes / VinculosComCadencia, 1);
 }
+
+/// <summary>
+/// Os clientes de um recorte pela classe ABC — a curva do faturamento do Protheus. <see cref="SemClasse"/> é o cliente sem
+/// faturamento apurado; nas contas de cadência ele vale como D, mas aqui ele é contado à parte, para a tela não dizer
+/// que é D quem nunca comprou.
+/// </summary>
+/// <param name="A">Classe A.</param>
+/// <param name="B">Classe B.</param>
+/// <param name="C">Classe C.</param>
+/// <param name="D">Classe D.</param>
+/// <param name="SemClasse">Sem classe apurada.</param>
+public sealed record ClientesPorClasse(int A, int B, int C, int D, int SemClasse);
 
 /// <summary>
 /// As vendas de um recorte, pelo endereço principal do cliente, com a quebra do grupo do item.
@@ -587,13 +615,18 @@ public sealed record MaquinaConectada(int CodigoIbge, decimal? Horimetro, DateTi
 /// <param name="Cultura">O nome da cultura.</param>
 /// <param name="DemandaAnual">A demanda anual da parcela; nula sem ciclo de renovação.</param>
 /// <param name="AreaUtilHectares">A área útil da parcela.</param>
+/// <param name="Parque">
+/// As máquinas que a área da parcela comporta (28/09/2026, a Demanda e previsão). Com ele e a área saem os hectares por
+/// máquina, e com a demanda, o ciclo de renovação — sem reler as regras.
+/// </param>
 public sealed record DemandaNoMunicipio(
     string CategoriaCodigo,
     string CategoriaNome,
     string CulturaCodigo,
     string Cultura,
     decimal? DemandaAnual,
-    decimal? AreaUtilHectares);
+    decimal? AreaUtilHectares,
+    decimal? Parque = null);
 
 /// <summary>As vendas de UM MÊS dos municípios da ADR no recorte — um ponto do mini-gráfico.</summary>
 /// <param name="Competencia">O mês, no dia 1.</param>

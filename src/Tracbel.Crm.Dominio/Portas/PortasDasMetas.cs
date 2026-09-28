@@ -18,12 +18,16 @@ public enum AlcanceDaMeta
     Filial = 1
 }
 
-/// <summary>Um mês: a meta de máquinas, o realizado e a meta de consórcio (em cotas, à parte).</summary>
+/// <summary>Um mês: a meta de máquinas, o realizado e o consórcio (em cotas, à parte).</summary>
 /// <param name="Competencia">O mês, no dia 1.</param>
 /// <param name="MetaMaquinas">A meta de máquinas, em unidades.</param>
 /// <param name="RealizadoMaquinas">As máquinas vendidas (<c>frota.VendaDeMaquina</c>, pela data da venda).</param>
 /// <param name="MetaConsorcio">A meta de consórcio, em cotas.</param>
-public sealed record MetaERealizadoNoMes(DateOnly Competencia, int MetaMaquinas, int RealizadoMaquinas, int MetaConsorcio);
+/// <param name="RealizadoConsorcio">
+/// As cotas de consórcio vendidas no mês (<c>organizacao.CotaDeConsorcioVendida</c>, 28/09/2026) — o mês que a performance
+/// da GN atribui.
+/// </param>
+public sealed record MetaERealizadoNoMes(DateOnly Competencia, int MetaMaquinas, int RealizadoMaquinas, int MetaConsorcio, int RealizadoConsorcio = 0);
 
 /// <summary>Uma linha de produto: a meta e o realizado, casados pelo código (o algoritmo do ART dos dois lados).</summary>
 /// <param name="Codigo">O código estável da linha (<c>TRATOR_MEDIO</c>).</param>
@@ -64,6 +68,10 @@ public sealed record OrigemDaMetaDeVenda(string Sistema, string Rota, DateTime L
 /// <param name="Origem">A última leitura do cadastro; nula quando a carga nunca rodou.</param>
 /// <param name="LoginSemCasamento">No alcance Próprios: o login da pessoa não casa com consultor nenhum da GN nem com
 /// vendedor nenhum do ART — o zero dela é falta de casamento, e não falta de meta.</param>
+/// <param name="RealizadoConsorcio">
+/// As cotas de consórcio vendidas no período; NULO quando o realizado de consórcio nunca foi lido — "não lido" não é zero.
+/// </param>
+/// <param name="ConsorcioLidoEm">A última leitura do realizado de consórcio (UTC); nula quando nunca foi lido.</param>
 public sealed record MetaERealizadoApurado(
     int MetaMaquinas,
     int RealizadoMaquinas,
@@ -79,7 +87,56 @@ public sealed record MetaERealizadoApurado(
     int RealizadoNoAnterior,
     MetaERealizadoNoMes? MesEmCurso,
     OrigemDaMetaDeVenda? Origem,
-    bool LoginSemCasamento = false);
+    bool LoginSemCasamento = false,
+    int? RealizadoConsorcio = null,
+    DateTime? ConsorcioLidoEm = null);
+
+/// <summary>Uma linha do forecast: a meta (PO) do time, a previsão do gestor e o realizado do time.</summary>
+/// <param name="Codigo">O código estável da linha.</param>
+/// <param name="Nome">A linha como a origem escreve.</param>
+/// <param name="Meta">O PO — a meta de máquinas dos consultores do time, no mês.</param>
+/// <param name="Forecast">O Forecast do gestor; nulo quando não informou.</param>
+/// <param name="BestGuess">O Best Guess do gestor; nulo quando não informou.</param>
+/// <param name="Realizado">As máquinas vendidas pelos consultores do time, no mês (ART, pelo vendedor).</param>
+public sealed record LinhaDoForecast(string Codigo, string Nome, int Meta, int? Forecast, int? BestGuess, int Realizado);
+
+/// <summary>O forecast de um gestor no mês, linha a linha.</summary>
+/// <param name="Gestor">O gestor, como a GN escreve.</param>
+/// <param name="Consultores">Quantos consultores o de-para põe no time dele.</param>
+/// <param name="Linhas">As linhas com meta, previsão ou venda.</param>
+public sealed record ForecastDoGestor(string Gestor, int Consultores, IReadOnlyList<LinhaDoForecast> Linhas);
+
+/// <summary>O forecast da gerência apurado para um mês.</summary>
+/// <param name="Competencia">O mês, no dia 1.</param>
+/// <param name="Gestores">Cada gestor com forecast, meta ou venda no mês.</param>
+/// <param name="Total">A soma de todos os gestores, linha a linha — com as vendas sem gestor, que entram só aqui.</param>
+/// <param name="VendasSemGestor">As vendas do mês cujo vendedor não está no de-para (ou sem vendedor): entram no total e em gestor nenhum.</param>
+/// <param name="LidoEm">A última leitura do forecast (UTC); nula quando nunca foi lido.</param>
+/// <param name="GeradoNaOrigemEm">Quando a API gerou o cadastro nessa leitura (UTC).</param>
+public sealed record ForecastApurado(
+    DateOnly Competencia,
+    IReadOnlyList<ForecastDoGestor> Gestores,
+    IReadOnlyList<LinhaDoForecast> Total,
+    int VendasSemGestor,
+    DateTime? LidoEm,
+    DateTime? GeradoNaOrigemEm);
+
+/// <summary>
+/// O FORECAST DA GERÊNCIA (28/09/2026) — a previsão de cada gestor da API Gestão de Negócios ao lado do PO e do realizado
+/// do time dele. O time é o de-para de consultores; o PO e o realizado passam pelo filtro global (as filiais ao alcance), e o
+/// forecast é do gestor inteiro.
+/// </summary>
+public interface IRepositorioDoForecast
+{
+    /// <summary>Os meses que têm forecast, do mais antigo ao mais recente.</summary>
+    /// <param name="ct">Cancelamento.</param>
+    Task<IReadOnlyList<DateOnly>> MesesComForecastAsync(CancellationToken ct);
+
+    /// <summary>Apura um mês.</summary>
+    /// <param name="competencia">O mês, no dia 1.</param>
+    /// <param name="ct">Cancelamento.</param>
+    Task<ForecastApurado> ApurarAsync(DateOnly competencia, CancellationToken ct);
+}
 
 /// <summary>
 /// A META DE VENDA × O REALIZADO, para a filial do contexto de acesso (#138). Como todo repositório, sem <c>Where</c> de

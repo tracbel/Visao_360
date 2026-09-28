@@ -56,6 +56,8 @@ export type MetasConsolidadas = {
   /** Nulo quando nenhuma filial mediu (o alcance Próprios não atribui pendente a pessoa). */
   pendentesNoArt: number | null;
   metaConsorcio: number;
+  /** As cotas de consórcio vendidas, somadas das filiais que mediram; nulo quando nenhuma mediu (o consórcio não foi lido). */
+  realizadoConsorcio: number | null;
   realizadoNoAnterior: number;
   mesEmCurso: { competencia: string; metaMaquinas: number; realizadoMaquinas: number } | null;
   porLinha: MetaERealizadoNaLinha[];
@@ -102,6 +104,7 @@ export function somarMetas(filiais: MetaDaFilial[]): MetasConsolidadas {
   const foraDoAlcance = filiais.filter((f) => f.foraDoAlcance).length;
 
   const comPendente = vivas.filter((m) => m.totais.pendentesNoArt !== null);
+  const comConsorcio = vivas.filter((m) => m.totais.realizadoConsorcio != null);
   const emCurso = vivas.map((m) => m.mesEmCurso).filter((m) => m !== null);
 
   const linhas = new Map<string, MetaERealizadoNaLinha>();
@@ -166,6 +169,7 @@ export function somarMetas(filiais: MetaDaFilial[]): MetasConsolidadas {
     realizadoMaquinas: somar(vivas, (m) => m.totais.realizadoMaquinas),
     pendentesNoArt: comPendente.length === 0 ? null : somar(comPendente, (m) => m.totais.pendentesNoArt ?? 0),
     metaConsorcio: somar(vivas, (m) => m.totais.metaConsorcio),
+    realizadoConsorcio: comConsorcio.length === 0 ? null : somar(comConsorcio, (m) => m.totais.realizadoConsorcio ?? 0),
     realizadoNoAnterior: somar(vivas, (m) => m.mesmoTrechoDoFyAnterior.realizadoMaquinas),
     mesEmCurso:
       emCurso.length === 0

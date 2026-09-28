@@ -37,9 +37,11 @@ import { ClienteFicha } from './telas/ClienteFicha';
 import { CoberturaCarteira } from './telas/CoberturaCarteira';
 import { CoberturaRegional } from './telas/CoberturaRegional';
 import { Configuracoes } from './telas/Configuracoes';
+import { DemandaEPrevisao } from './telas/DemandaEPrevisao';
 import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
 import { EstoqueECobertura } from './telas/EstoqueECobertura';
+import { ForecastGerencia } from './telas/ForecastGerencia';
 import { Funil } from './telas/Funil';
 import { IndicadoresGeograficos } from './telas/IndicadoresGeograficos';
 import { Inicio } from './telas/Inicio';
@@ -222,6 +224,14 @@ export const ROTAS: Rota[] = [
     usaApi: true,
   },
   {
+    // A tela "Forecast Gerência" da API Gestão de Negócios, com o realizado que o CRM tem (28/09/2026).
+    caminho: '/relatorios/forecast',
+    titulo: 'Forecast da Gerência',
+    trilha: ['Relatórios', 'Forecast da Gerência'],
+    Componente: ForecastGerencia,
+    usaApi: true,
+  },
+  {
     // O painel "Estoque & Pedidos" do TOTVS, pela API Gestão de Negócios, e a cobertura em meses (28/09/2026).
     caminho: '/relatorios/estoque',
     titulo: 'Estoque e Cobertura',
@@ -250,6 +260,13 @@ export const ROTAS: Rota[] = [
     usaApi: true,
   },
   /* ---- Inteligência de Mercado: o protótipo da pasta 360 no CRM (épico 264) ---- */
+  {
+    caminho: '/mercado/demanda',
+    titulo: 'Demanda e Previsão',
+    trilha: ['Inteligência de Mercado', 'Demanda e Previsão'],
+    Componente: DemandaEPrevisao,
+    usaApi: true,
+  },
   {
     caminho: '/mercado/diagnostico',
     titulo: 'Diagnóstico Comercial',

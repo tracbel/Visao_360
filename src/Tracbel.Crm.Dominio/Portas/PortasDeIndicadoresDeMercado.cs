@@ -59,11 +59,32 @@ public interface IRepositorioDeIndicadoresDeMercado
 /// <param name="CreditoPorMunicipio">O índice de crédito de cada município pedido, pelo código IBGE; ausente sem parâmetro vigente.</param>
 /// <param name="PercepcaoPorMunicipio">A percepção vigente, em pontos percentuais, dos municípios que têm uma.</param>
 /// <param name="UltimoMesDePreco">O mês mais recente da série de preço.</param>
+/// <param name="PercepcaoPorCultura">
+/// A percepção de campo de cada cultura, em pontos percentuais (27/09/2026) — a mesma para todos os municípios. Só as
+/// culturas com nota vigente aparecem.
+/// </param>
 public sealed record IndicadoresPorMunicipio(
     IReadOnlyDictionary<string, IndiceDeMomento> PrecoPorCultura,
     IReadOnlyDictionary<int, IndiceDeCredito> CreditoPorMunicipio,
     IReadOnlyDictionary<int, decimal> PercepcaoPorMunicipio,
-    DateOnly? UltimoMesDePreco);
+    DateOnly? UltimoMesDePreco,
+    IReadOnlyDictionary<string, decimal>? PercepcaoPorCultura = null)
+{
+    /// <summary>
+    /// A PERCEPÇÃO QUE ENTRA NO FATOR DE UMA CULTURA NUM MUNICÍPIO: a de campo da cultura mais o ajuste do gestor sobre
+    /// o município — a mesma soma de <see cref="IndicadoresDoRecorte.PercepcaoDaCulturaNoRecorte"/>. Nula quando nenhuma
+    /// das duas foi informada.
+    /// </summary>
+    /// <param name="codigoIbge">O município.</param>
+    /// <param name="culturaCodigo">O código da cultura no catálogo.</param>
+    public decimal? PercepcaoDaCulturaNoMunicipio(int codigoIbge, string culturaCodigo)
+    {
+        decimal? daCultura = PercepcaoPorCultura is not null && PercepcaoPorCultura.TryGetValue(culturaCodigo, out var p) ? p : null;
+        decimal? doMunicipio = PercepcaoPorMunicipio.TryGetValue(codigoIbge, out var m) ? m : null;
+
+        return daCultura is null && doMunicipio is null ? null : (daCultura ?? 0m) + (doMunicipio ?? 0m);
+    }
+}
 
 /// <summary>
 /// O QUE O FATOR DE CICLO PRECISA SABER SOBRE UM RECORTE.

@@ -257,6 +257,18 @@ public static class EndpointsDeRelacionamento
 
         // A META DE VENDA × O REALIZADO (#138, 27/09/2026). A profundidade de Meta.Ler decide o alcance (D-M5): Próprios vê
         // a própria meta; a filial inteira a partir de EmpresaEAbaixo. Uma filial por chamada, como as outras da Visão 360.
+        // O FORECAST DA GERÊNCIA (28/09/2026): a previsão de cada gestor da API Gestão de Negócios, com o PO e o realizado do time.
+        // É da gerência: Meta.Ler a partir da filial inteira.
+        grupo.MapGet("/forecast", async (ObterForecastDaGerencia caso, CancellationToken ct, string? competencia = null) =>
+                (await caso.ExecutarAsync(competencia, ct)).Responder())
+            .WithName("ObterForecastDaGerencia")
+            .ExigePermissao(Permissoes.MetaLer)
+            .WithSummary("O forecast e o best guess de cada gestor (API Gestão de Negócios), com o PO e o realizado do time, num mês.")
+            .WithDescription(
+                "Por gestor e linha: o PO (a meta dos consultores do time, pelo de-para de consultores da GN), o Forecast e o Best Guess " +
+                "do gestor e as máquinas vendidas pelo time (ART, pelo vendedor). Mês padrão: o corrente, quando tem forecast; senão, o " +
+                "mais recente com forecast. Pede Meta.Ler a partir da filial inteira.");
+
         grupo.MapGet("/metas", async (
                 ObterMetaERealizado caso, CancellationToken ct, string? competenciaInicial = null, string? competenciaFinal = null) =>
                 (await caso.ExecutarAsync(competenciaInicial, competenciaFinal, ct)).Responder())

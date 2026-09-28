@@ -220,6 +220,17 @@ public static class PoliticaDeAuditoria
             "ConsultorUsuarioId", "VendaDireta", "Origem", "Quantidade", "ValorUnitario", "Margem", CampoDeExclusaoLogica
         ],
 
+        // O PLANEJAMENTO DA GN (28/09/2026) — espelho, como a meta. O forecast muda toda semana (o best guess é reavaliado às
+        // segundas) e a trilha é o histórico dele: "quanto o gestor previa antes?". O gestor de um consultor é quem soma o
+        // time dele. A cota vendida é realizado: a trilha diz quando a GN a mudou de consultor ou de filial.
+        ["GestorDoConsultor"] = ["ConsultorNaOrigem", "GestorNaOrigem", "FilialNumero", "VigenteDesde", CampoDeExclusaoLogica],
+        ["ForecastDaGerencia"] = ["Competencia", "GestorNaOrigem", "LinhaNaOrigem", "Forecast", "BestGuess", CampoDeExclusaoLogica],
+        ["CotaDeConsorcioVendida"] =
+        [
+            "EmpresaId", "Competencia", "ConsultorNaOrigem", "ConsultorUsuarioId", "GestorNaOrigem", "Contemplacao", "ValorDoBem",
+            CampoDeExclusaoLogica
+        ],
+
         // O ESTOQUE DA GESTÃO DE NEGÓCIOS (28/09/2026): a máquina que muda de filial, de situação, de reserva ou de pagamento, e a
         // que sai (vendida) e volta. A descrição e as datas previstas não: são do TOTVS, e a pergunta é "estava disponível?".
         ["EquipamentoEmEstoque"] = ["EmpresaId", "Situacao", "Reservado", "Pago", "ChegadaPrevistaEm", CampoDeExclusaoLogica],

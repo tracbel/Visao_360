@@ -228,7 +228,7 @@ internal sealed class CargaDoEstoqueDaGestaoDeNegocios(
 
         foreach (var item in origem.Cobertura)
         {
-            DateOnly? competencia = item.Recorte == CoberturaDoEstoque.RecortePorMes ? LeitorDoEstoqueDaGestaoDeNegocios.Mes(item.Chave) : null;
+            DateOnly? competencia = item.Recorte == CoberturaDoEstoque.RecortePorMes ? LeitorDoPlanejamentoDaGestaoDeNegocios.Mes(item.Chave) : null;
             var chave = competencia is { } mes ? CoberturaDoEstoque.ChaveDoMes(mes) : item.Chave?.Trim() ?? string.Empty;
             var mesesOk = decimal.TryParse(item.Meses, NumberStyles.Number, CultureInfo.InvariantCulture, out var meses);
             var vendasOk = decimal.TryParse(item.Vendas, NumberStyles.Number, CultureInfo.InvariantCulture, out var vendas);

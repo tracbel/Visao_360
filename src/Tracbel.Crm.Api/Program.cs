@@ -296,6 +296,7 @@ builder.Services.AddScoped<ObterIndicadoresTerritoriais>();
 builder.Services.AddScoped<ObterHistoricoDoMunicipio>();
 builder.Services.AddScoped<SimularMaquinas>();
 builder.Services.AddScoped<ObterDiagnosticoComercial>();
+builder.Services.AddScoped<ObterDemandaEPrevisao>();
 builder.Services.AddScoped<ObterPrecosDeMercado>();
 builder.Services.AddScoped<ObterPrecoImplicitoDaPam>();
 builder.Services.AddScoped<ObterCustosDeProducao>();
@@ -354,6 +355,10 @@ builder.Services.AddScoped<VerificarPonteDoLegado>();
 // A META DE VENDA DA API GESTÃO DE NEGÓCIOS × O REALIZADO DO ART (#138, 27/09/2026).
 builder.Services.AddScoped<IRepositorioDeMetas, RepositorioDeMetas>();
 builder.Services.AddScoped<ObterMetaERealizado>();
+
+// O FORECAST DA GERÊNCIA DA API GESTÃO DE NEGÓCIOS (28/09/2026).
+builder.Services.AddScoped<IRepositorioDoForecast, RepositorioDoForecast>();
+builder.Services.AddScoped<ObterForecastDaGerencia>();
 
 // O ESTOQUE E A COBERTURA DA API GESTÃO DE NEGÓCIOS (28/09/2026).
 builder.Services.AddScoped<IRepositorioDoEstoque, RepositorioDoEstoque>();

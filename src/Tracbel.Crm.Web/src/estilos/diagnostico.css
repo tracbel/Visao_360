@@ -75,8 +75,138 @@
 .diag-ausentes { margin: 10px 0 0; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
 .diag-nada { margin: 16px 0 0; color: var(--text-secondary); font-size: 13px; }
 
+/* ============================================================================================================
+   O DESENHO DOS INDICADORES GEOGRÁFICOS (28/09/2026): distribuição, mapa ao lado da ficha e a tabela compacta.
+   ============================================================================================================ */
+
+.diag-nota { margin: 12px 0 0; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+/* A DISTRIBUIÇÃO — a barra empilhada e, embaixo, uma legenda que é também o filtro de classe. */
+.diag-distribuicao { display: grid; gap: 12px; }
+.diag-distribuicao-barra {
+  display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--n-100);
+}
+.diag-distribuicao-barra span { display: block; height: 100%; transition: opacity 150ms ease-out; }
+.diag-distribuicao-barra span[data-apagada='true'] { opacity: 0.25; }
+.diag-distribuicao-legenda { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.diag-classe-botao {
+  display: grid; grid-template-columns: 12px 1fr; grid-template-rows: auto auto auto; column-gap: 8px; row-gap: 2px;
+  align-items: center; padding: 10px 12px; border: 1px solid var(--n-200); border-radius: 8px; background: var(--bg-surface);
+  text-align: left; cursor: pointer; font: inherit; color: inherit; transition: border-color 150ms ease-out, opacity 150ms ease-out;
+}
+.diag-classe-botao:hover { border-color: var(--n-400); }
+.diag-classe-botao:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; }
+.diag-classe-botao[aria-pressed='true'] { border-color: var(--jd-green-dark); box-shadow: inset 0 0 0 1px var(--jd-green-dark); }
+.diag-classe-botao[data-apagada='true'] { opacity: 0.55; }
+.diag-classe-amostra { width: 12px; height: 12px; border-radius: 3px; grid-row: 1; }
+.diag-classe-nome { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.02em; }
+.diag-classe-quantos { grid-column: 1 / -1; font-size: 24px; line-height: 1.1; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.diag-classe-faixa { grid-column: 1 / -1; font-size: 12px; color: var(--text-tertiary); }
+.diag-limpar {
+  all: unset; justify-self: start; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--jd-green-dark);
+}
+.diag-limpar:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; border-radius: 2px; }
+.dash-painel .diag-pesos { margin: 14px 0 0; }
+
+.diag-limitacoes {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* O MAPA AO LADO DA FICHA — metade e metade no desktop, com a MESMA ALTURA: o mapa estica até o fim da ficha em vez de
+   deixar um buraco embaixo dele. Um embaixo do outro quando a coluna estreita. */
+.diag-mapa-e-ficha {
+  display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; margin: 16px 0;
+  scroll-margin-top: 80px;
+}
+.diag-mapa { display: flex; flex-direction: column; }
+.diag-mapa-corpo {
+  flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 360px;
+}
+.diag-mapa .terr-svg { width: 100%; height: 100%; max-height: 620px; }
+
+.diag-ficha { display: grid; gap: 14px; }
+.diag-ficha-cabecalho { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.diag-ficha-acoes { display: flex; align-items: center; gap: 8px; }
+.diag-fechar {
+  all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px;
+  color: var(--text-secondary);
+}
+.diag-fechar:hover { background: var(--n-100); color: var(--text-primary); }
+.diag-fechar:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 1px; }
+.diag-ioc-grande { padding: 4px 12px; }
+.diag-ioc-grande strong { font-size: 20px; }
+.diag-situacao { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-primary); }
+.diag-acoes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.diag-acoes li {
+  padding: 4px 10px; border-radius: 999px; background: #E3F1E7; color: var(--jd-green-dark); font-size: 12px; font-weight: 600;
+}
+.diag-ficha-numeros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.diag-numero {
+  display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--n-200); border-radius: 8px; background: var(--n-50);
+}
+.diag-numero-rotulo { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-tertiary); }
+.diag-numero-valor { font-size: 18px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.diag-numero-complemento { font-size: 12px; color: var(--text-secondary); }
+.diag-clientes { display: grid; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.diag-clientes-total strong { color: var(--text-primary); font-size: 15px; }
+.diag-clientes-classes { display: flex; flex-wrap: wrap; gap: 6px; }
+.diag-clientes-classe {
+  padding: 2px 8px; border: 1px solid var(--n-200); border-radius: 999px; font-variant-numeric: tabular-nums; color: var(--text-primary);
+}
+.diag-subtitulo { margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.diag-ficha .diag-componentes { position: static; max-width: none; }
+.diag-ficha .diag-componentes li { grid-template-columns: 96px minmax(60px, 140px) 84px 1fr; }
+
+/* A FICHA VAZIA — os cinco de maior IOC, cada um um botão. */
+.diag-primeiros { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; counter-reset: primeiro; }
+.diag-primeiros li { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--n-200); border-radius: 8px; }
+.diag-primeiro {
+  all: unset; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+.diag-primeiro:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; border-radius: 4px; }
+.diag-primeiro-nome { display: grid; font-weight: 600; color: var(--jd-green-dark); }
+.diag-primeiro-plano { font-size: 12px; color: var(--text-secondary); }
+
+/* A TABELA COMPACTA — uma linha de altura por município: nome, sub-linhas e ação não quebram. A tabela rola dentro do
+   painel quando não cabe; a página nunca rola para o lado. */
+.diag-subtitulo-da-tabela { margin: -4px 0 12px; font-size: 13px; color: var(--text-secondary); }
+.diag-linha.escolhida td { background: #EDF5EA; }
+.diag-tabela td { vertical-align: middle; }
+/* DEZ COLUNAS NUM PAINEL DE 1.200 px: o espaçamento padrão do cadastro deixava a próxima ação fora da largura. */
+.diag-tabela th,
+.diag-tabela td { padding-left: 8px; padding-right: 8px; }
+.diag-tabela td { font-size: 13px; }
+/* O CABEÇALHO EM ATÉ DUAS LINHAS, como a tabela de municípios dos Indicadores: "CULTURA PRINCIPAL" numa linha só
+   segurava a coluna mais larga que o conteúdo. */
+.diag-tabela thead th { white-space: normal; vertical-align: bottom; letter-spacing: 0; }
+.diag-tabela .diag-ordenar { white-space: normal; }
+.diag-tabela .diag-municipio,
+.diag-tabela .cad-sub { white-space: nowrap; }
+/* A SUB-LINHA NA FONTE DO TEXTO, e não na monoespaçada do número: "15 em carteira" em mono alargava a coluna inteira. */
+.diag-tabela .cad-sub { font-family: var(--font-sans); font-size: 11px; }
+.diag-tabela td:nth-child(2) { min-width: 96px; max-width: 130px; }
+.diag-proxima { max-width: 160px; }
+.diag-acao {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; font-size: 12px; font-weight: 600; color: var(--text-primary);
+  white-space: nowrap;
+}
+.diag-acao > :first-child { overflow: hidden; text-overflow: ellipsis; }
+.diag-acao-mais {
+  padding: 0 6px; border-radius: 999px; background: var(--n-100); color: var(--text-secondary); font-size: 11px; font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .diag-mapa-e-ficha { grid-template-columns: minmax(0, 1fr); }
+  .diag-distribuicao-legenda { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 @media (max-width: 640px) {
   .diag-link { margin-left: 0; }
   .diag-componentes li { grid-template-columns: 90px 1fr 70px; }
+  .diag-ficha .diag-componentes li { grid-template-columns: 90px 1fr 70px; }
   .diag-componente-mede { grid-column: 1 / -1; }
+  .diag-distribuicao-legenda { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .diag-ficha-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .diag-mapa-corpo { grid-template-columns: minmax(0, 1fr); }
 }

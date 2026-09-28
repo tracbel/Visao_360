@@ -172,4 +172,23 @@ public sealed class DiagnosticoComercialTestes
         DiagnosticoComercial.Percentil90([.. Enumerable.Range(1, 10).Select(i => (decimal)i)]).Should().Be(10m);
         DiagnosticoComercial.Percentil90([]).Should().BeNull();
     }
+
+    [Fact]
+    public void A_percepcao_do_municipio_no_diagnostico_soma_a_da_cultura_como_nos_indicadores()
+    {
+        // A MESMA SOMA DO RECORTE (27/09/2026), agora município a município: a nota de campo da cultura mais o ajuste do
+        // gestor sobre o município. Sem nenhuma das duas, nula — o fator a trata como zero sem dizer que alguém a
+        // declarou neutra.
+        var leitura = new Portas.IndicadoresPorMunicipio(
+            new Dictionary<string, IndiceDeMomento>(),
+            new Dictionary<int, IndiceDeCredito>(),
+            new Dictionary<int, decimal> { [3500105] = 2m },
+            null,
+            new Dictionary<string, decimal> { ["CAFE"] = 2.5m });
+
+        leitura.PercepcaoDaCulturaNoMunicipio(3500105, "CAFE").Should().Be(4.5m);
+        leitura.PercepcaoDaCulturaNoMunicipio(3500105, "SOJA").Should().Be(2m, "sem nota de campo, fica o ajuste do município");
+        leitura.PercepcaoDaCulturaNoMunicipio(3500204, "CAFE").Should().Be(2.5m, "sem ajuste do gestor, fica a nota da cultura");
+        leitura.PercepcaoDaCulturaNoMunicipio(3500204, "SOJA").Should().BeNull();
+    }
 }

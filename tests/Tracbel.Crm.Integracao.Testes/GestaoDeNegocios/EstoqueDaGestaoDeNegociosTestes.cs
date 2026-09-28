@@ -112,17 +112,6 @@ public sealed class EstoqueDaGestaoDeNegociosTestes
         convertido.Erro.Should().Contain("A linha 1").And.Contain("falta o campo \"sit_equipamento\"").And.NotContain("FULANO");
     }
 
-    [Theory]
-    [InlineData("Ago/2026", 2026, 8)]
-    [InlineData("dez/2025", 2025, 12)]
-    [InlineData(" Mar / 2026 ", 2026, 3)]
-    public void O_mes_da_cobertura_se_le_em_portugues(string rotulo, int ano, int mes) =>
-        LeitorDoEstoqueDaGestaoDeNegocios.Mes(rotulo).Should().Be(new DateOnly(ano, mes, 1));
-
-    [Theory]
-    [InlineData("Aug/2026")]
-    [InlineData("2026-08")]
-    [InlineData(null)]
-    public void Mes_que_nao_se_le_e_nulo(string? rotulo) =>
-        LeitorDoEstoqueDaGestaoDeNegocios.Mes(rotulo).Should().BeNull();
+    // O MÊS DA COBERTURA ("Ago/2026") é lido pelo mesmo LeitorDoPlanejamentoDaGestaoDeNegocios.Mes da performance de
+    // consórcio — os testes dele estão em PlanejamentoDaGestaoDeNegociosTestes.
 }
