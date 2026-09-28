@@ -16,14 +16,15 @@ public sealed class GestaoDeNegociosNoCatalogoTestes
         Conexao.DoCatalogo(ConexoesDoSistema.Todas.Single(c => c.Codigo == ConexoesDoSistema.GestaoDeNegocios));
 
     [Fact]
-    public void A_conexao_da_gn_e_a_ultima_da_lista_e_por_isso_a_13()
+    public void A_conexao_da_gn_e_a_13a_da_lista()
     {
         var todas = ConexoesDoSistema.Todas;
 
-        todas[^1].Codigo.Should().Be(ConexoesDoSistema.GestaoDeNegocios, "conexão nova entra no fim: a posição é o identificador");
-        todas.Count.Should().Be(13);
-        todas[^1].Tipo.Should().Be(TipoDeConexao.ApiComChave);
-        todas[^1].Endereco.Should().BeNull("o endereço é digitado pela tela, pelo NOME do servidor (D-M1)");
+        // A 13ª (Id = posição + 1): conexão nova entra no fim, e a do Operations Center (28/09/2026) veio depois, com o 14.
+        var gn = todas[12];
+        gn.Codigo.Should().Be(ConexoesDoSistema.GestaoDeNegocios, "conexão nova entra no fim: a posição é o identificador");
+        gn.Tipo.Should().Be(TipoDeConexao.ApiComChave);
+        gn.Endereco.Should().BeNull("o endereço é digitado pela tela, pelo NOME do servidor (D-M1)");
     }
 
     [Fact]

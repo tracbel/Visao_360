@@ -704,6 +704,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
 
         var estrutura = await LerEstruturaAsync(ct);
         var totaisDoEstado = await LerTotaisDoEstadoAsync(ano, ct);
+        var parqueConectado = await LerParqueConectadoAsync(ct);
 
         // -----------------------------------------------------------------------------------------
         // A montagem: os municípios de SP da área de atuação ou com dado, depois dos filtros.
@@ -894,7 +895,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                         noMunicipio.MotivoSemParque,
                         noMunicipio.MotivoSemDemanda),
                 oArtTrouxeVenda ? acumulador.MaquinasVendidas : null,
-                DemandaPorCategoriaECultura: DemandaDoMunicipio(doMotor)));
+                DemandaPorCategoriaECultura: DemandaDoMunicipio(doMotor),
+                ParqueConectado: parqueConectado.GetValueOrDefault(codigo)));
         }
 
         var foraDoMapa = GruposForaDoMapa
@@ -1844,6 +1846,23 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
     /// <para>Tudo vem indexado pelo <b>código IBGE</b>, que é a chave que o mapa usa; município sem
     /// código não entra, porque não tem polígono para colorir.</para>
     /// </summary>
+    /// <summary>
+    /// AS MÁQUINAS CONECTADAS DE CADA MUNICÍPIO (telemetria do Operations Center, 28/09/2026) — pelo município da última
+    /// posição, e pelo filtro de filial do equipamento: quem consulta conta as máquinas ao seu alcance.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<int, ParqueConectadoNoMunicipio>> LerParqueConectadoAsync(CancellationToken ct)
+    {
+        var linhas = await contexto.Equipamentos.AsNoTracking()
+            .Where(e => e.ExcluidoEm == null && e.MunicipioDaPosicaoId != null && e.PosicaoEm != null)
+            .Join(contexto.Municipios.AsNoTracking().Where(m => m.CodigoIbge != null),
+                e => e.MunicipioDaPosicaoId, m => (int?)m.Id,
+                (e, m) => new { Codigo = m.CodigoIbge!.Value, e.HorimetroAtual, e.HorimetroAtualizadoEm, PosicaoEm = e.PosicaoEm!.Value })
+            .ToListAsync(ct);
+
+        return ParqueConectadoNoMunicipio.PorMunicipio(
+            [.. linhas.Select(l => new MaquinaConectada(l.Codigo, l.HorimetroAtual, l.HorimetroAtualizadoEm, l.PosicaoEm))]);
+    }
+
     private async Task<Dictionary<int, EstruturaDoMunicipio>> LerEstruturaAsync(CancellationToken ct)
     {
         var anoDoCenso = await contexto.FrotasDeTratoresNosMunicipios.AsNoTracking().MaxAsync(f => (short?)f.Ano, ct);

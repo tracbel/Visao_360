@@ -795,10 +795,39 @@ export function EquipamentoCadastro() {
                 }
                 ajuda="É o que separa a frota nossa da do concorrente na Cobertura de Carteira."
               />
+              {/* A TELEMETRIA DO OPERATIONS CENTER (28/09/2026): o horímetro e a última posição chegam pela rotina
+                  diária, do banco do BI, na máquina com o mesmo chassi. Nenhum dos dois se digita aqui. */}
               <CampoSomenteLeitura
                 rotulo="Horímetro atual"
-                valor={maquina.horimetroAtual === null ? '—' : `${formatarNumero(maquina.horimetroAtual, 1)} h`}
-                ajuda="Vem do histórico de horímetro; não se digita nesta tela. O horímetro do ART ainda não está acessível."
+                valor={
+                  maquina.horimetroAtual === null
+                    ? '—'
+                    : `${formatarNumero(maquina.horimetroAtual, 1)} h${
+                        maquina.horimetroAtualizadoEm ? ` · lido em ${formatarDataHora(maquina.horimetroAtualizadoEm)}` : ''
+                      }`
+                }
+                ajuda="Vem da telemetria do Operations Center da John Deere, pelo chassi; não se digita nesta tela. Máquina sem telemetria fica sem horímetro."
+              />
+              <CampoSomenteLeitura
+                rotulo="Última posição"
+                valor={
+                  maquina.posicaoLatitude == null || maquina.posicaoLongitude == null ? (
+                    '—'
+                  ) : (
+                    <>
+                      {maquina.municipioDaPosicao ?? 'fora de São Paulo'}
+                      {maquina.posicaoEm && ` · em ${formatarDataHora(maquina.posicaoEm)}`}{' '}
+                      <a
+                        href={`https://www.openstreetmap.org/?mlat=${maquina.posicaoLatitude}&mlon=${maquina.posicaoLongitude}#map=14/${maquina.posicaoLatitude}/${maquina.posicaoLongitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        ver no mapa
+                      </a>
+                    </>
+                  )
+                }
+                ajuda="Onde a máquina mandou a última posição, pela telemetria do Operations Center — e o município onde o ponto cai, pelo contorno oficial do IBGE."
               />
               <CampoSomenteLeitura rotulo="Cadastrado em" valor={formatarDataHora(maquina.criadoEm)} />
               <CampoSomenteLeitura rotulo="Última alteração" valor={formatarDataHora(maquina.alteradoEm)} />

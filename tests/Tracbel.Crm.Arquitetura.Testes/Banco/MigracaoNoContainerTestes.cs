@@ -77,12 +77,15 @@ public sealed class MigracaoNoContainerTestes
         porSchema.Values.Sum().Should().Be(83);
 
         // AS INTEGRAÇÕES SEMEADAS (#138): a conexão 13 é a API Gestão de Negócios e a rotina 9 são as metas — as duas no
-        // fim da lista, sem renumerar as que já existem (a 8 é a do funil do Vórtice, #247).
-        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Conexao").Should().Be(13);
-        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Rotina").Should().Be(10);
+        // fim da lista, sem renumerar as que já existem (a 8 é a do funil do Vórtice, #247). A conexão 14 e a rotina 11 são a
+        // telemetria do Operations Center (28/09/2026).
+        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Conexao").Should().Be(14);
+        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Rotina").Should().Be(11);
         contexto.Conexoes.Single(c => c.Id == 13).Codigo.Should().Be("GESTAO_NEGOCIOS");
+        contexto.Conexoes.Single(c => c.Id == 14).Codigo.Should().Be("OPERATIONS_CENTER");
         contexto.Rotinas.Single(r => r.Id == 9).Codigo.Should().Be("METAS_GESTAO_NEGOCIOS");
         contexto.Rotinas.Single(r => r.Id == 10).Codigo.Should().Be("PRECOS_DE_MAQUINA");
+        contexto.Rotinas.Single(r => r.Id == 11).Codigo.Should().Be("TELEMETRIA_OPERATIONS_CENTER");
     }
 
     [FatoSeHouverSqlServer]

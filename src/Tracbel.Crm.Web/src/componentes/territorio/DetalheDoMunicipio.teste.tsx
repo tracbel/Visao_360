@@ -18,7 +18,7 @@
  * histórico do município chega, e a aba Histórico ganhou as séries que existem.
  */
 
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProvedorDeContextoDeAcesso } from '../../dados/api/contexto';
 import type {
@@ -415,8 +415,9 @@ describe('DetalheDoMunicipio — o que a ficha sempre disse', () => {
 });
 
 /** Um município com lavoura, estrutura e carteira — a ficha cheia. */
-const comLavouraEEstrutura = () =>
+const comLavouraEEstrutura = (extra: Partial<IndicadoresDoMunicipio> = {}) =>
   municipio(potencial({ areaPlantadaHectares: 23_000 }), undefined, {
+    ...extra,
     producao: {
       ano: 2024,
       areaPlantadaHectares: 37_226,
@@ -701,6 +702,27 @@ describe('DetalheDoMunicipio — Lavoura, Estrutura, Oportunidades e Histórico'
     expect(carteira).toHaveTextContent('Cobertura de visita');
     expect(carteira).toHaveTextContent('7 (38,9%)');
     expect(carteira).toHaveTextContent('Pós-venda');
+  });
+
+  it('as máquinas conectadas vêm da telemetria, e sem nenhuma a linha diz isso em vez de mostrar zero', () => {
+    abrir(
+      comLavouraEEstrutura({
+        parqueConectado: { maquinas: 12, comHorimetro: 10, semUsoHa30Dias: 3, horimetroMediano: 4200, referencia: '2026-09-25T10:00:00Z' },
+      }),
+    );
+    irPara('Estrutura');
+
+    const linha = painelAtivo().querySelector<HTMLElement>('[data-medida="parque-conectado"]')!;
+    expect(linha).toHaveTextContent('12 com a última posição aqui (Operations Center)');
+    expect(linha).toHaveTextContent('horímetro mediano 4.200 h');
+    expect(linha).toHaveTextContent('3 de 10 sem hora nova nos 30 dias até 25/09/2026');
+
+    cleanup();
+    abrir(comLavouraEEstrutura());
+    irPara('Estrutura');
+    const vazia = painelAtivo().querySelector<HTMLElement>('[data-medida="parque-conectado"]')!;
+    expect(vazia).toHaveTextContent('nenhuma máquina do parque do CRM com a última posição aqui');
+    expect(vazia).not.toHaveTextContent(/\b0\b/);
   });
 
   it('sem denominador, a fatia não aparece — e não vira 0%', () => {

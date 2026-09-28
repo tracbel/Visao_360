@@ -31,6 +31,7 @@ import type {
   HistoricoDoMunicipio,
   IndicadoresDoMunicipio,
   NumerosDeDecisao,
+  ParqueConectadoNoMunicipio,
   ProcedenciasDoTerritorio,
   RegraDePotencialAplicada,
   TotaisDaRegiaoTracbel,
@@ -63,6 +64,37 @@ function SobSigilo({ valor, oQue, formatar = nº }: { valor: number | null; oQue
       motivo="O IBGE suprimiu este número por sigilo: ele oculta o valor quando poucos estabelecimentos o compõem. Sigilo NÃO é zero."
       oQue={oQue}
     />
+  );
+}
+
+/**
+ * As máquinas conectadas do município, com o horímetro mediano e as que não trabalharam nos 30 dias antes da leitura
+ * mais nova da telemetria.
+ */
+function ParqueConectado({ parque }: { parque: ParqueConectadoNoMunicipio | null }) {
+  if (parque === null) {
+    return (
+      <span className="cad-sub">
+        — nenhuma máquina do parque do CRM com a última posição aqui, pela telemetria do Operations Center
+      </span>
+    );
+  }
+
+  const referencia = new Date(parque.referencia).toLocaleDateString('pt-BR');
+  return (
+    <>
+      <strong>{nº(parque.maquinas)}</strong>
+      <span className="cad-sub"> com a última posição aqui (Operations Center)</span>
+      {parque.horimetroMediano !== null && (
+        <span className="cad-sub"> · horímetro mediano {nº(parque.horimetroMediano)} h</span>
+      )}
+      {parque.comHorimetro > 0 && (
+        <span className="cad-sub">
+          {' '}
+          · {nº(parque.semUsoHa30Dias)} de {nº(parque.comHorimetro)} sem hora nova nos 30 dias até {referencia}
+        </span>
+      )}
+    </>
   );
 }
 
@@ -495,6 +527,13 @@ export function DetalheDoMunicipio({
                     <span className="cad-sub"> unidades, pelo ART — não se somam aos reais acima</span>
                   </>
                 )}
+              </dd>
+              {/* AS MÁQUINAS CONECTADAS (Operations Center, 28/09/2026): onde a máquina ESTÁ, pela última posição
+                  da telemetria — não onde o dono mora. Sem nenhuma aqui, a linha diz isso, e não mostra zero
+                  como se tivesse sido medido um parque vazio. */}
+              <dt>Máquinas conectadas</dt>
+              <dd data-medida="parque-conectado">
+                <ParqueConectado parque={municipio.parqueConectado ?? null} />
               </dd>
             </dl>
           </section>

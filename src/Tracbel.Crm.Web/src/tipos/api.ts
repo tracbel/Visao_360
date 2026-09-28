@@ -254,6 +254,15 @@ export type EquipamentoDetalhe = Omit<EquipamentoResumo, 'relacaoComOCliente'> &
   versao: string | null;
   /** As divergências abertas entre ART, CRM e Protheus sobre esta máquina. */
   divergenciasAbertas: DivergenciaDaMaquina[];
+  /** Quando a máquina mandou o horímetro (telemetria do Operations Center). */
+  horimetroAtualizadoEm?: string | null;
+  /** A última posição que a telemetria mandou, em graus decimais. */
+  posicaoLatitude?: number | null;
+  posicaoLongitude?: number | null;
+  /** Quando a máquina estava na última posição. */
+  posicaoEm?: string | null;
+  /** O município onde a última posição cai; nulo fora de São Paulo. */
+  municipioDaPosicao?: string | null;
 };
 
 /** Uma divergência aberta sobre a máquina — documento 35, seção 10. */

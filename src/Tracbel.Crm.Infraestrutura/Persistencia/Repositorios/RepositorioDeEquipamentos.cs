@@ -110,7 +110,8 @@ public sealed class RepositorioDeEquipamentos(CrmDbContext contexto) : IReposito
             null,
             null,
             null,
-            null);
+            null,
+            contexto.Municipios.Where(m => m.Id == e.MunicipioDaPosicaoId).Select(m => m.Nome).FirstOrDefault());
 
     /// <summary>
     /// A classificação e a venda mais recente das máquinas DA PÁGINA, em três consultas pelo conjunto

@@ -208,6 +208,7 @@ public sealed record ClienteComContexto(Cliente Cliente, string? OrigemCodigo, s
 /// <param name="Divergencias">As divergências abertas da máquina — só na ficha, não na listagem.</param>
 /// <param name="DonoAtual">O dono atual pelo vínculo da sincronia do parque, quando há um ao alcance.</param>
 /// <param name="RelacaoComOCliente">O que a máquina é para o cliente do filtro — só na listagem filtrada por cliente.</param>
+/// <param name="MunicipioDaPosicao">O nome do município onde a última posição da telemetria cai, quando cai em algum.</param>
 public sealed record EquipamentoComContexto(
     Equipamento Equipamento,
     Guid? ClienteChave,
@@ -217,7 +218,8 @@ public sealed record EquipamentoComContexto(
     UltimaVendaDaMaquina? UltimaVenda = null,
     IReadOnlyList<DivergenciaDaMaquina>? Divergencias = null,
     DonoAtualDaMaquina? DonoAtual = null,
-    RelacaoDaMaquinaComOCliente? RelacaoComOCliente = null);
+    RelacaoDaMaquinaComOCliente? RelacaoComOCliente = null,
+    string? MunicipioDaPosicao = null);
 
 /// <summary>Uma divergência aberta entre ART, CRM e Protheus sobre esta máquina.</summary>
 /// <param name="Tipo">O tipo. Ex.: CompradorDiferenteDoProprietarioNoCrm.</param>

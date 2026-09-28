@@ -464,7 +464,7 @@ expurgadas. Auditoria que ninguém consegue ler não é auditoria: é custo de d
 
 | Arquivo | No Git | Guarda | Nomes em |
 |---|---|---|---|
-| `.env` na raiz | não (`.gitignore`) | integrações: Protheus (REST e banco), ART, Entra ID, API Gestão de Negócios | `.env.exemplo` na raiz |
+| `.env` na raiz | não (`.gitignore`) | integrações: Protheus (REST e banco), ART, Entra ID, API Gestão de Negócios, Operations Center | `.env.exemplo` na raiz |
 | `infra/.env` | não (`.gitignore`) | banco local do contêiner (`DB_*`) | `infra/.env.exemplo` |
 
 No servidor, a aplicação lê as mesmas credenciais como variável de ambiente no formato de seção do
@@ -483,6 +483,17 @@ e `dados-locais/` continuam fora do Git.
   com a chave no cabeçalho Bearer e nenhuma mensagem de erro a citando (`Sigilo`). O endereço é o NOME do servidor,
   `https://negocios-agro.tracbel.com.br:5001`, com a validação do certificado inteira (D-M1). A credencial é gravada
   pela tela, protegida; `GestaoDeNegocios__Base` e `GestaoDeNegocios__Chave` são a reserva no servidor.
+
+### A credencial do Operations Center
+
+- **Até 27/09/2026** o endereço, o usuário e a senha do banco do BI (`johndeere_prd`, MySQL) estavam no fim do `.env`
+  em texto solto, sem nome de chave. Nessa data viraram `OPCENTER_DB_SERVER`, `_PORT`, `_DATABASE`, `_USER` e
+  `_PASSWORD`, sem imprimir valor nenhum.
+- **Desde 28/09/2026** a rotina da telemetria (`TELEMETRIA_OPERATIONS_CENTER`) lê esse banco. Ela abre uma sessão
+  `READ ONLY`, e nenhuma mensagem de erro cita servidor ou usuário: sai só o código do MySQL.
+  - Não lê as tabelas com nome de cliente e de fazenda do BI. Só lê chassi, horas e coordenada.
+- No servidor, a credencial é gravada pela tela, protegida, na conexão 14. As variáveis `OperationsCenter__Servidor`,
+  `__Porta`, `__Banco`, `__Usuario` e `__Senha` são a reserva.
 
 ### A varredura
 

@@ -312,3 +312,17 @@ respondem diferente para o mesmo cliente. A rosca é a que está errada.
 | Realizado | `frota.VendaDeMaquina`, pela `VendidaEm`; por consultor, `VendedorNaOrigem` (o vendedor do ART, lido de `bi_art_veiculos.vendedor` desde 27/09/2026) em maiúsculas = `ConsultorNaOrigem` |
 | Lacuna | `integracao.RegistroDeOrigem` do ART sem venda (`VendaDeMaquinaId` nulo), pela filial da unidade (`integracao.CorrespondenciaDaOrigem`) |
 | Rota | `GET /api/v1/relatorios/metas`, `Meta.Ler` |
+
+---
+
+## 7. Operations Center da John Deere — o horímetro e a posição (28/09/2026)
+
+| Onde | O quê |
+|---|---|
+| Origem | o banco MySQL do BI, `johndeere_prd`, que o BI carrega do Operations Center todo dia (termina por volta das 06:55). Só três tabelas: `machines` (o `MachineVin` é o chassi), `machineenginehours` (horas de motor) e `machinelocationhistory` (latitude e longitude) |
+| Leitura | `Integracao/OperationsCenter/LeitorDoOperationsCenter.cs` — a última leitura de cada máquina, pela chave primária (`MachineId` + data), em sessão `READ ONLY`. Medido em 27/09/2026: 7.882 máquinas, 5.511 com horas (79 s) e 5.200 com posição (103 s) |
+| Casamento | `Dominio/Frota/TelemetriaDoOperationsCenter.cs` — pelo chassi normalizado; sem ele, pelo número de série que aponta uma máquina só. Terminal repetido: vale a leitura mais nova |
+| Município | a malha oficial de São Paulo do IBGE (`LocalizadorDeMunicipio`); o ponto fora dela fica sem município |
+| Carga | `Carga/CargaDaTelemetriaDoOperationsCenter.cs` — `--somente-operations-center`, rotina `TELEMETRIA_OPERATIONS_CENTER`, diária às 07:30. Não cria máquina |
+| Colunas | `frota.Equipamento`: `HorimetroAtual`, `HorimetroAtualizadoEm`, `PosicaoLatitude`, `PosicaoLongitude`, `PosicaoEm` e `MunicipioDaPosicaoId`. Só a leitura mais nova entra; o horímetro acima de 100 mil horas não entra (há leitura de 374 mil no BI) |
+| Tela | a Ficha do Equipamento (horímetro e última posição) e a aba Estrutura da ficha do município (máquinas conectadas, horímetro mediano e sem hora nova em 30 dias) |

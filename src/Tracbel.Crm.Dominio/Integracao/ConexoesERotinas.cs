@@ -845,6 +845,12 @@ public static class ConexoesDoSistema
     /// </summary>
     public const string GestaoDeNegocios = "GESTAO_NEGOCIOS";
 
+    /// <summary>
+    /// O banco do Operations Center da John Deere (MySQL do BI, <c>johndeere_prd</c>) — a telemetria das máquinas: horímetro
+    /// e posição (decisão de 28/09/2026).
+    /// </summary>
+    public const string OperationsCenter = "OPERATIONS_CENTER";
+
     /// <summary>As conexões, na ordem da tela.</summary>
     public static readonly IReadOnlyList<ConexaoDoSistema> Todas =
     [
@@ -887,7 +893,14 @@ public static class ConexoesDoSistema
         // grava pela tela o NOME do servidor (D-M1), https://agro-sistemas-w.tracbel.com.br:5001, e a chave.
         new(GestaoDeNegocios, "Gestão de Negócios — API", TipoDeConexao.ApiComChave,
             "O cadastro de metas de venda (unidades por consultor, linha, mês e filial) da API da Inteligência de Mercado. " +
-            "Só leitura, com a chave no cabeçalho Bearer.")
+            "Só leitura, com a chave no cabeçalho Bearer."),
+
+        // O OPERATIONS CENTER DA JOHN DEERE (28/09/2026) — a conexão 14, no FIM da lista como toda conexão nova. É o banco
+        // MySQL do BI, que o próprio BI carrega do Operations Center todo dia (termina por volta das 06:55). A "visão" que a
+        // tela pede é a tabela das máquinas, `machines`, por onde a leitura começa — é ela que o botão Testar lê.
+        new(OperationsCenter, "Operations Center — telemetria John Deere", TipoDeConexao.MySql,
+            "O horímetro e a última posição das máquinas John Deere conectadas, do banco do BI que espelha o Operations " +
+            "Center. Sessão somente leitura.")
     ];
 }
 
@@ -953,6 +966,9 @@ public static class RotinasDoSistema
 
     /// <summary>O preço de referência da máquina por categoria, pela nota do Protheus (issue 70, D-P12, 27/09/2026).</summary>
     public const string PrecosDeMaquina = "PRECOS_DE_MAQUINA";
+
+    /// <summary>O horímetro e a posição das máquinas John Deere, do Operations Center (decisão de 28/09/2026).</summary>
+    public const string TelemetriaOperationsCenter = "TELEMETRIA_OPERATIONS_CENTER";
 
     /// <summary>
     /// Quando as agendas semeadas passam a valer: o dia em que o orquestrador substituiu as tarefas do Windows. O
@@ -1071,7 +1087,19 @@ public static class RotinasDoSistema
             "O preço de referência de cada categoria de máquina — a mediana mensal do valor das notas de venda do Protheus, " +
             "casadas com as vendas do ART pela filial e pelo número da nota. Alimenta o mercado anual e o termo de troca.",
             ["--somente-precos-de-maquina"], AgendaDaRotina.DiariaAs(new TimeOnly(7, 0)), false,
-            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco)
+            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco),
+
+        // A TELEMETRIA DO OPERATIONS CENTER (decisão de 28/09/2026) — a rotina 11, no FIM da lista como toda rotina nova.
+        // Lê a última leitura de horas e de posição de cada máquina do banco do BI e grava no equipamento do CRM que tem o
+        // mesmo chassi, com o município da posição. Diária às 07:30: o BI termina de carregar o Operations Center por volta
+        // das 06:55 (medido em 27/09/2026), e o parque do Protheus (05:30) já trouxe as máquinas do dia. A leitura leva uns
+        // três minutos — as duas tabelas de histórico somam 180 milhões de linhas. NASCE DESLIGADA, como toda rotina que
+        // traz dado novo para produção: quem liga é quem administra, com a conexão gravada e testada.
+        new(TelemetriaOperationsCenter, "Telemetria das máquinas (Operations Center)",
+            "O horímetro e a última posição de cada máquina John Deere conectada, do banco do BI que espelha o Operations " +
+            "Center, gravados na máquina do CRM com o mesmo chassi — com o município onde a posição cai.",
+            ["--somente-operations-center"], AgendaDaRotina.DiariaAs(new TimeOnly(7, 30)), false,
+            [ConexoesDoSistema.OperationsCenter], ConexoesDoSistema.OperationsCenter)
     ];
 
     /// <summary>A rotina do catálogo pelo código; nula quando não existe.</summary>

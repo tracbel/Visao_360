@@ -5,6 +5,7 @@ using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Integracao.Art;
 using Tracbel.Crm.Integracao.GestaoDeNegocios;
+using Tracbel.Crm.Integracao.OperationsCenter;
 using Tracbel.Crm.Integracao.Protheus;
 using Tracbel.Crm.Integracao.Vortice;
 
@@ -60,6 +61,10 @@ public sealed class ResolvedorDeConexoes(IConfiguration configuracao, IProtetorD
 
         // OS NOMES DA ISSUE [001] (.env.exemplo, documento 05): GestaoDeNegocios__Base e GestaoDeNegocios__Chave.
         ConexoesDoSistema.GestaoDeNegocios => [$"{OpcoesDaGestaoDeNegocios.Secao}:Base", $"{OpcoesDaGestaoDeNegocios.Secao}:Chave"],
+
+        // A TABELA NÃO É EXIGIDA DO AMBIENTE: sem ela, a leitura começa pela `machines`, que é a do BI.
+        ConexoesDoSistema.OperationsCenter =>
+            [$"{OpcoesDoOperationsCenter.Secao}:Servidor", $"{OpcoesDoOperationsCenter.Secao}:Banco", $"{OpcoesDoOperationsCenter.Secao}:Usuario", $"{OpcoesDoOperationsCenter.Secao}:Senha"],
         _ => []
     };
 
@@ -103,6 +108,15 @@ public sealed class ResolvedorDeConexoes(IConfiguration configuracao, IProtetorD
             {
                 [$"{OpcoesDaGestaoDeNegocios.Secao}:Base"] = conexao.Endereco,
                 [$"{OpcoesDaGestaoDeNegocios.Secao}:Chave"] = conexao.Segredo
+            },
+            ConexoesDoSistema.OperationsCenter => new Dictionary<string, string?>
+            {
+                [$"{OpcoesDoOperationsCenter.Secao}:Servidor"] = conexao.Endereco,
+                [$"{OpcoesDoOperationsCenter.Secao}:Porta"] = (conexao.Porta ?? 3306).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                [$"{OpcoesDoOperationsCenter.Secao}:Banco"] = conexao.Banco,
+                [$"{OpcoesDoOperationsCenter.Secao}:Tabela"] = conexao.Objeto,
+                [$"{OpcoesDoOperationsCenter.Secao}:Usuario"] = conexao.Usuario,
+                [$"{OpcoesDoOperationsCenter.Secao}:Senha"] = conexao.Segredo
             },
             _ => new Dictionary<string, string?>()
         };
@@ -160,6 +174,18 @@ public sealed class ResolvedorDeConexoes(IConfiguration configuracao, IProtetorD
                 return new ConexaoResolvida(conexao.Codigo, conexao.Tipo, OrigemDaCredencial.Ambiente,
                     configuracao[$"{OpcoesDaGestaoDeNegocios.Secao}:Base"], null, null, null, null,
                     configuracao[$"{OpcoesDaGestaoDeNegocios.Secao}:Chave"], null, 200, null);
+
+            case ConexoesDoSistema.OperationsCenter:
+            {
+                var opcoes = new OpcoesDeBanco(
+                    configuracao[$"{OpcoesDoOperationsCenter.Secao}:Servidor"],
+                    int.TryParse(configuracao[$"{OpcoesDoOperationsCenter.Secao}:Porta"], out var porta) ? porta : 3306,
+                    configuracao[$"{OpcoesDoOperationsCenter.Secao}:Banco"], configuracao[$"{OpcoesDoOperationsCenter.Secao}:Usuario"],
+                    configuracao[$"{OpcoesDoOperationsCenter.Secao}:Senha"]);
+                return new ConexaoResolvida(conexao.Codigo, conexao.Tipo, OrigemDaCredencial.Ambiente, opcoes.Servidor, opcoes.Porta, opcoes.Banco,
+                    configuracao[$"{OpcoesDoOperationsCenter.Secao}:Tabela"] is { Length: > 0 } tabela ? tabela : OpcoesDoOperationsCenter.TabelaDasMaquinasPadrao,
+                    opcoes.Usuario, opcoes.Senha, null, 200, CadeiaDoMySql(opcoes));
+            }
 
             default:
                 return new ConexaoResolvida(conexao.Codigo, conexao.Tipo, OrigemDaCredencial.Nenhuma, conexao.Endereco, null, null, null, null, null, null, 200, null);
