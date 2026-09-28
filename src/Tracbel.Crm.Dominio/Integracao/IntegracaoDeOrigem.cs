@@ -632,7 +632,28 @@ public enum TipoDeDivergencia
     ChassiAlteradoNaOrigem = 3,
 
     /// <summary>Uma venda importada deixou de aparecer na origem.</summary>
-    RegistroAusenteNaOrigem = 4
+    RegistroAusenteNaOrigem = 4,
+
+    // A CONFERÊNCIA COM A GESTÃO DE NEGÓCIOS (28/09/2026): o realizado de máquinas da GN (a performance-maquinas, só
+    // entregue, no mês da entrega) chassi a chassi contra o do CRM. A chave é o chassi.
+
+    /// <summary>A GN conta a máquina como realizado, e o CRM não tem venda nem registro pendente com o chassi.</summary>
+    RealizadoSoNaGestao = 5,
+
+    /// <summary>O CRM conta a máquina como realizado (entregue no período), e a GN não.</summary>
+    RealizadoSoNoCrm = 6,
+
+    /// <summary>Os dois contam a máquina, cada um numa filial.</summary>
+    RealizadoEmOutraFilial = 7,
+
+    /// <summary>Os dois contam a máquina na mesma filial, cada um num mês.</summary>
+    RealizadoEmOutroMes = 8,
+
+    /// <summary>A GN conta a máquina como entregue, e a venda do CRM ainda não tem a data de entrega.</summary>
+    RealizadoNaoEntregueNoCrm = 9,
+
+    /// <summary>A GN conta a máquina, e a venda está no ART mas pendente na integração do CRM (os motivos dizem por quê).</summary>
+    RealizadoPendenteNoArt = 10
 }
 
 /// <summary>Em que ponto está a divergência.</summary>

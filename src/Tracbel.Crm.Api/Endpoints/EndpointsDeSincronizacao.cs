@@ -71,6 +71,18 @@ public static class EndpointsDeSincronizacao
                 "vem Completo, Parcial ou Vazio, com a frase que diz o que falta e para quê. O dado interno passa pela fronteira de filial; " +
                 "a resposta diz quantas filiais entraram na conta.");
 
+        // A CONFERÊNCIA COM A GESTÃO DE NEGÓCIOS (28/09/2026): os números do CRM contra o gabarito da GN.
+        app.MapGet("/api/v1/integracoes/conferencia-gn", async (Aplicacao.Relacionamento.ObterConferenciaComAGestao caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(ct)).Responder())
+            .WithTags("Integrações (administração)")
+            .WithName("ObterConferenciaComAGestao")
+            .ExigePermissao(Permissoes.IntegracaoLer)
+            .WithSummary("A meta e o realizado de máquinas na API Gestão de Negócios e no CRM, por filial e mês, e cada máquina que não bate.")
+            .WithDescription(
+                "A última apuração da rotina 13 (Conferência com a Gestão de Negócios): a meta sem consórcio e o realizado — só a máquina " +
+                "entregue, no mês da entrega, a mesma régua dos dois lados —, lá e aqui, pela filial do cabeçalho ou por todas; e as " +
+                "divergências abertas do realizado, chassi a chassi, com o tipo e o que cada lado diz. Nenhum nome de cliente ou de CEN.");
+
         return app;
     }
 }

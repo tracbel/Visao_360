@@ -7,7 +7,7 @@
  * Geográficos e a marca por extenso do menu, que o protótipo não tinha.
  */
 
-import { CalendarRange as Previsao, Map as Mapa, Package as Caixa, Target as Alvo, TrendingUp as Tendencia } from 'lucide-react';
+import { CalendarRange as Previsao, ListChecks as Conferir, Map as Mapa, Package as Caixa, Target as Alvo, TrendingUp as Tendencia } from 'lucide-react';
 
 type Props = { tamanho?: number };
 
@@ -143,6 +143,11 @@ export function IconeForecast({ tamanho = 18 }: Props) {
 /** A caixa do Estoque e Cobertura (28/09/2026) — o que está no pátio. Tela nova, sem par no protótipo. */
 export function IconeEstoque({ tamanho = 18 }: Props) {
   return <Caixa size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
+}
+
+/** A lista conferida da Conferência com a Gestão de Negócios (28/09/2026). Tela nova, sem par no protótipo. */
+export function IconeConferencia({ tamanho = 18 }: Props) {
+  return <Conferir size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
 }
 
 export function IconeConfiguracoes(p: Props) {
