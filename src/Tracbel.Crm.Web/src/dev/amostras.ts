@@ -271,6 +271,23 @@ function montarMunicipio(
       anoDoRebanho: 2024,
       bovinos: sobSigilo ? null : 9_000 + posicao * 1_100,
       areaKm2: 700 + posicao * 45,
+      // A UTILIZAÇÃO DAS TERRAS (SIDRA 6881, 28/09/2026): a área, o tamanho médio e a vocação pelos tercis.
+      areaDosEstabelecimentosHectares: sobSigilo ? null : 42_000 + posicao * 3_100,
+      estabelecimentosComArea: sobSigilo ? null : 200 + posicao * 17,
+      areaDeLavouraHectares: sobSigilo ? null : 21_000 + posicao * 2_400,
+      tamanhoMedioHectares: sobSigilo ? null : Math.round(((42_000 + posicao * 3_100) / (200 + posicao * 17)) * 10) / 10,
+      fatiaDeLavouraPercentual: sobSigilo
+        ? null
+        : Math.round(((21_000 + posicao * 2_400) / (42_000 + posicao * 3_100)) * 1000) / 10,
+      vocacao: sobSigilo
+        ? null
+        : {
+            classe: (['Baixa', 'Média', 'Alta'] as const)[posicao % 3],
+            fatiaDeLavouraPercentual: Math.round(((21_000 + posicao * 2_400) / (42_000 + posicao * 3_100)) * 1000) / 10,
+            mediaAPartirDe: 38.2,
+            altaAPartirDe: 55.9,
+            municipiosNaBase: 198,
+          },
       usinas:
         posicao % 4 === 0
           ? [
@@ -529,10 +546,16 @@ export function painelFicticio(malha: ColecaoMunicipal, estado: NomeDoEstado): P
           },
           indiceDeCredito: 0.92,
           percepcaoPercentual: 2,
-          // O porte segue SEM NOME: o critério da issue 166 está decidido (tercis da
-          // ADR), mas os números só existem depois que o administrador os registra —
-          // e o harness mostra o estado de antes, que é o que a tela explica.
-          porte: null,
+          // O PORTE PELOS TERCIS DA ADR (28/09/2026): sem banda registrada, a apuração
+          // calcula os tercis — a amostra mostra esse caso, com as bandas na dica.
+          porte: 'Mercado médio',
+          bandasDoPorte: {
+            medioAPartirDe: 5.3,
+            grandeAPartirDe: 8.7,
+            origem: 'TercisDaAdr',
+            municipiosNaBase: 198,
+            demandaMediaDoRecorte: 6.4,
+          },
           faixaDoMomento: agregado === null ? null : agregado < 1 ? 'Retraído' : 'Normal',
           leitura: agregado === null ? '' : agregado < 1 ? 'Mercado retraído.' : 'Mercado normal.',
           procedencia: {

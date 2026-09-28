@@ -114,12 +114,26 @@ function serieDoIndice(c: MomentoDaCultura): string {
  * MOTIVO — o "—" mudo deixava a pessoa sem saber se faltava dado ou se a
  * variação era zero (decisão 1 do usuário).
  */
-function Pilula({ fracao, texto, motivo, oQue }: { fracao: number | null; texto?: string; motivo: string; oQue: string }) {
+function Pilula({
+  fracao,
+  texto,
+  motivo,
+  oQue,
+  altaEhRuim = false,
+}: {
+  fracao: number | null;
+  texto?: string;
+  motivo: string;
+  oQue: string;
+  /** No custo, subir aperta a margem: a cor segue o efeito, e o sinal escrito, o movimento. */
+  altaEhRuim?: boolean;
+}) {
+  const tom = fracao === null ? undefined : tomDoSentido(altaEhRuim ? -fracao : fracao);
   return (
     <>
       <span
         className="mom-pilula"
-        data-sentido={fracao === null ? undefined : tomDoSentido(fracao)}
+        data-sentido={tom}
         data-intervalo={texto ? 'true' : undefined}
       >
         {texto ?? (fracao === null ? <ValorAusente motivo={motivo} oQue={oQue} /> : percentualComSinal(fracao))}
@@ -204,6 +218,7 @@ function CartaoDoCusto({ momento, leitura }: { momento: MomentoDoRecorte; leitur
           }
           motivo={motivo}
           oQue="a variação do custo"
+          altaEhRuim
         />
       }
     />
