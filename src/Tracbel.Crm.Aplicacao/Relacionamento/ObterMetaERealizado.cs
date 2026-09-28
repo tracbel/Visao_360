@@ -20,7 +20,7 @@ public sealed record PeriodoDaMeta(
 
 /// <summary>Os totais do período.</summary>
 /// <param name="MetaMaquinas">A meta de máquinas, em unidades.</param>
-/// <param name="RealizadoMaquinas">As máquinas vendidas que o CRM tem (<c>frota.VendaDeMaquina</c>, D-M3).</param>
+/// <param name="RealizadoMaquinas">As máquinas ENTREGUES no período, pelo mês da entrega — a régua da GN (28/09/2026).</param>
 /// <param name="PendentesNoArt">As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) — nulo no
 /// alcance Próprios.</param>
 /// <param name="MetaConsorcio">A meta de consórcio, em cotas — à parte das máquinas (D-M4).</param>
@@ -30,8 +30,10 @@ public sealed record PeriodoDaMeta(
 /// As cotas de consórcio vendidas no período, pela regra da performance da GN (28/09/2026); nulo quando o realizado de
 /// consórcio ainda não foi lido.
 /// </param>
+/// <param name="AguardandoEntrega">As máquinas vendidas no período e ainda não entregues: fora do realizado, à parte.</param>
 public sealed record TotaisDaMeta(
-    int MetaMaquinas, int RealizadoMaquinas, int? PendentesNoArt, int MetaConsorcio, int VendasSemVendedor, int? RealizadoConsorcio = null);
+    int MetaMaquinas, int RealizadoMaquinas, int? PendentesNoArt, int MetaConsorcio, int VendasSemVendedor, int? RealizadoConsorcio = null,
+    int AguardandoEntrega = 0);
 
 /// <summary>O mesmo trecho do ano fiscal anterior — só o realizado: a meta daquele ano não está no cadastro.</summary>
 /// <param name="RealizadoMaquinas">As máquinas vendidas no mesmo trecho do ano anterior.</param>
@@ -66,8 +68,9 @@ public sealed record MetaERealizadoDaFilial(
 /// A META DE VENDA × O REALIZADO (#138, decisões D-M1..D-M5 de 27/09/2026) — o cartão "Meta e realizado" da Visão 360.
 ///
 /// <para><b>A meta é a cota da API Gestão de Negócios</b>, em unidades por consultor, linha, mês e filial; <b>o realizado
-/// são as máquinas do ART que o CRM tem</b> (<c>frota.VendaDeMaquina</c>, D-M3), e as que o ART tem e o CRM ainda não vêm
-/// em número, como lacuna. O consórcio fica à parte, em cotas, com o realizado "não medido pelo CRM" (D-M4).</para>
+/// são as máquinas do ART que o CRM tem ENTREGUES, pelo mês da entrega</b> — a régua da GN, decidida pelo Ricardo em
+/// 28/09/2026 no lugar da D-M3 ("pela data da venda"). A vendida e não entregue, e a que o ART tem e o CRM ainda não, vêm em
+/// número, à parte. O consórcio fica à parte, em cotas, com o realizado da performance de consórcio da GN.</para>
 ///
 /// <para><b>Quem vê o quê é a profundidade de <c>Meta.Ler</c></b> (D-M5): em <c>Proprios</c>, só a própria meta e as
 /// próprias vendas; em <c>EmpresaEAbaixo</c> ou mais, a filial inteira. A rota é por filial, como as outras da Visão 360:
@@ -140,7 +143,7 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
                 anterior.Inicial, anterior.Final),
             alcance.ToString(),
             new TotaisDaMeta(apurado.MetaMaquinas, apurado.RealizadoMaquinas, apurado.PendentesNoArt, apurado.MetaConsorcio, apurado.VendasSemVendedor,
-                apurado.RealizadoConsorcio),
+                apurado.RealizadoConsorcio, apurado.AguardandoEntrega),
             apurado.PorMes,
             apurado.PorLinha,
             apurado.PorConsultor,
@@ -199,7 +202,7 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
 
         if (a.MesEmCurso is { } emCurso)
             lacunas.Add(new MetricaSemDado("mesEmCurso",
-                Texto($"{JanelaDeCompetencia.Mes(emCurso.Competencia)} está em curso e fica fora da comparação — a meta do mês inteiro contra um mês pela metade erraria para baixo. Até agora: {emCurso.RealizadoMaquinas:N0} máquina(s) vendida(s), para uma meta de {emCurso.MetaMaquinas:N0} no mês.")));
+                Texto($"{JanelaDeCompetencia.Mes(emCurso.Competencia)} está em curso e fica fora da comparação — a meta do mês inteiro contra um mês pela metade erraria para baixo. Até agora: {emCurso.RealizadoMaquinas:N0} máquina(s) entregue(s), para uma meta de {emCurso.MetaMaquinas:N0} no mês.")));
 
         if (a.UltimaCompetenciaComMeta is { } ultima && ultima < periodo.Final)
             lacunas.Add(new MetricaSemDado("metaParcial",
@@ -207,16 +210,22 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
 
         if (a.PendentesNoArt is > 0)
             lacunas.Add(new MetricaSemDado("pendentesNoArt",
-                Texto($"{a.PendentesNoArt:N0} vendas do ART em {periodo.Texto} aguardam na integração do ART (cadastro, chassi ou outro motivo) e ainda não entram no realizado (D-M3): o realizado é o que o CRM tem.")));
+                Texto($"{a.PendentesNoArt:N0} vendas do ART em {periodo.Texto} aguardam na integração do ART (cadastro, chassi ou outro motivo) e ainda não entram no realizado: o realizado é o que o CRM tem.")));
         else if (alcance == AlcanceDaMeta.Proprios)
             lacunas.Add(new MetricaSemDado("pendentesNoArt",
-                "As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) não entram no realizado (D-M3), e a pendente ainda não tem vendedor atribuído — por isso não aparecem aqui. A visão da filial as conta."));
+                "As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) não entram no realizado, e a pendente ainda não tem vendedor atribuído — por isso não aparecem aqui. A visão da filial as conta."));
 
         // A VENDA POR OUTRA FILIAL (revisão do PR #248): no alcance Próprios, o recorte é o da filial do pedido, como toda
         // leitura. Ampliar para "todas as vendas da pessoa" é decisão pendente — a tela diz o que conta.
         if (alcance == AlcanceDaMeta.Proprios)
             lacunas.Add(new MetricaSemDado("vendasPelaFilial",
                 "Suas vendas contam pela filial da venda: a que você fez por outra filial aparece na meta de lá, e não aqui."));
+
+        // A RÉGUA DA GN (28/09/2026): só a entregue é realizado, no mês da entrega. A vendida e ainda não entregue vai à parte.
+        lacunas.Add(new MetricaSemDado("realizadoPelaEntrega",
+            a.AguardandoEntrega > 0
+                ? Texto($"O realizado conta só a máquina entregue, no mês da entrega — a mesma régua da Gestão de Negócios. {a.AguardandoEntrega:N0} máquina(s) vendida(s) em {periodo.Texto} ainda não foram entregues e ficam fora, até a entrega.")
+                : "O realizado conta só a máquina entregue, no mês da entrega — a mesma régua da Gestão de Negócios."));
 
         if (a.PendentesSemFilial > 0 && alcance == AlcanceDaMeta.Filial)
             lacunas.Add(new MetricaSemDado("pendentesSemFilial",

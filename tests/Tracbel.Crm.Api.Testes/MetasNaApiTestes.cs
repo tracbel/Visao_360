@@ -49,7 +49,7 @@ public sealed class MetasNaApiTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemo
         450_000m, null, $"h-{empresa}-{ano}-{mes}-{linha}-{consultor}");
 
     private static DadosDaVendaNaOrigem Venda(int empresa, DateOnly vendidaEm, string linha, string? vendedor, string hash) => new(
-        empresa, null, vendidaEm, vendidaEm, null, null, "P", "NF", "P", "Varejo", false, false, 1, linha, "TR 6110J", "Agro Norte",
+        empresa, null, vendidaEm, vendidaEm, vendidaEm, null, "P", "NF", "P", "Varejo", false, false, 1, linha, "TR 6110J", "Agro Norte",
         "Ribeirão Preto", null, hash, null, vendedor);
 
     internal static async Task SemearAsync(ApiEmMemoria app)
@@ -192,6 +192,36 @@ public sealed class MetasNaApiTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemo
         periodo.GetProperty("inicialDoAnterior").GetString().Should().Be(inicioDoAno.AddMonths(-12).ToString("yyyy-MM-dd"));
         dados.GetProperty("mesEmCurso").GetProperty("competencia").GetString().Should().Be(mesCorrente.ToString("yyyy-MM-dd"));
         Lacunas(dados).Should().Contain("mesEmCurso");
+    }
+
+    [Fact]
+    public async Task O_realizado_e_a_maquina_entregue_no_mes_da_entrega_e_a_nao_entregue_vai_a_parte()
+    {
+        // A RÉGUA DA GN (decisão do Ricardo em 28/09/2026): a venda do CEN de novembro só foi entregue em janeiro, e a da
+        // colhedora (fevereiro) ainda não foi entregue.
+        await using var app = new ApiEmMemoria();
+        await app.InitializeAsync();
+        await SemearAsync(app);
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.Gerencia);
+
+        using (var escopo = app.Services.CreateScope())
+        await using (var db = new CrmDbContext(escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>(), ProvedorDeContextoDeSistema.Instancia))
+        {
+            await db.VendasDeMaquina.Where(v => v.ChaveOrigem == "1MET4S00000000001")
+                .ExecuteUpdateAsync(s => s.SetProperty(v => v.EntregueEm, new DateOnly(2026, 1, 5)));
+            await db.VendasDeMaquina.Where(v => v.ChaveOrigem == "1MET4S00000000003")
+                .ExecuteUpdateAsync(s => s.SetProperty(v => v.EntregueEm, (DateOnly?)null));
+        }
+
+        var dados = await DadosAsync(await app.ClienteDeRibeirao().GetAsync(Rota + Periodo));
+
+        var totais = dados.GetProperty("totais");
+        totais.GetProperty("realizadoMaquinas").GetInt32().Should().Be(2, "a de dezembro e a do CEN, entregue em janeiro; a colhedora não foi entregue");
+        totais.GetProperty("aguardandoEntrega").GetInt32().Should().Be(1);
+        var meses = dados.GetProperty("porMes").EnumerateArray().ToDictionary(m => m.GetProperty("competencia").GetString()!);
+        meses["2025-11-01"].GetProperty("realizadoMaquinas").GetInt32().Should().Be(0, "vendida em novembro, entregue em janeiro");
+        meses["2026-01-01"].GetProperty("realizadoMaquinas").GetInt32().Should().Be(1);
+        Lacunas(dados).Should().Contain("realizadoPelaEntrega");
     }
 
     [Fact]

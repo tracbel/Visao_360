@@ -27,6 +27,7 @@ function meta(
       metaConsorcio: 3,
       vendasSemVendedor: 1,
       realizadoConsorcio: parcial.consorcio === undefined ? 2 : parcial.consorcio,
+      aguardandoEntrega: 3,
     },
     porMes: [],
     porLinha: [{ codigo: 'TRATOR_MEDIO', nome: 'TRATOR MÉDIO', meta: parcial.meta, realizado: parcial.realizado }],
@@ -55,6 +56,8 @@ describe('somarMetas', () => {
     expect(soma.pendentesNoArt).toBe(4);
     expect(soma.metaConsorcio).toBe(6);
     expect(soma.realizadoConsorcio).toBe(4);
+    // A vendida e não entregue soma entre as filiais, fora do realizado.
+    expect(soma.aguardandoEntrega).toBe(6);
     expect(soma.realizadoNoAnterior).toBe(8);
     expect(soma.mesEmCurso).toEqual({ competencia: '2026-09-01', metaMaquinas: 2, realizadoMaquinas: 2 });
     expect(soma.porLinha).toEqual([{ codigo: 'TRATOR_MEDIO', nome: 'TRATOR MÉDIO', meta: 15, realizado: 13 }]);
