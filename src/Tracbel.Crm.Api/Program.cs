@@ -171,6 +171,7 @@ builder.Services.Configure<OpcoesDoPrimeiroLogin>(opcoes =>
 builder.Services.AddScoped<IDiarioDeAlcanceEntreEmpresas, DiarioDeAlcanceEntreEmpresasEmLog>();
 
 builder.Services.AddSingleton<IRelogio, RelogioDoSistema>();
+builder.Services.AddSingleton<MedidorDeDesempenho>();
 
 // -------------------------------------------------------------------------------------------
 // As portas do domínio e seus adaptadores. O caso de uso conhece a interface; só esta linha
@@ -440,6 +441,10 @@ if (Directory.Exists(Path.Combine(app.Environment.ContentRootPath, "wwwroot")))
     app.UseDefaultFiles();
     app.UseStaticFiles();
 }
+
+// O CRONÔMETRO VEM ANTES DO CONTEXTO DE ACESSO (issue 51): montar o contexto também é tempo que o usuário espera, e o
+// p95 que o documento 45 pede é o da chamada inteira, como o "Request finished" do servidor.
+app.UseMiddleware<MeioDeCampoDeDesempenho>();
 
 // ORDEM IMPORTA: o contexto de acesso precisa estar definido antes de qualquer endpoint
 // resolver o CrmDbContext, porque o filtro global é pré-computado no construtor dele.

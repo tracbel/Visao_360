@@ -1,3 +1,25 @@
 {
-    "liveServer.settings.port": 5501
+    "liveServer.settings.port": 5501,
+
+    // O EXPLORADOR MOSTRA O PROJETO, E NÃO O QUE O BUILD E AS FERRAMENTAS DEIXAM PARA TRÁS (27/09/2026).
+    // Nada disto é apagado — só sai da árvore lateral. Tudo aqui é gerado de novo pelo build, pelos testes
+    // ou pelas ferramentas, e já está no .gitignore.
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true,
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/TestResults": true,
+        "**/test-results": true,
+        "**/playwright-report": true,
+        "**/.omc": true
+    },
+
+    // A BUSCA TAMBÉM IGNORA O QUE É GERADO: senão o "procurar em arquivos" devolve cópia de build.
+    "search.exclude": {
+        "**/bin": true,
+        "**/obj": true,
+        "**/node_modules": true,
+        "**/dist": true
+    }
 }

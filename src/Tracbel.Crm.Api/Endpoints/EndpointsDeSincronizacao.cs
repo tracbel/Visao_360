@@ -1,5 +1,7 @@
 using Tracbel.Crm.Api.Comum;
+using Tracbel.Crm.Aplicacao.Comum;
 using Tracbel.Crm.Aplicacao.Integracoes;
+using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Seguranca;
 
 namespace Tracbel.Crm.Api.Endpoints;
@@ -23,6 +25,27 @@ public static class EndpointsDeSincronizacao
             .WithName("ListarSincronizacoes")
             .ExigePermissao(Permissoes.IntegracaoLer)
             .WithSummary("Cada fluxo de sincronização com a última execução, o último sucesso e as execuções recentes.");
+
+        // O TEMPO DE RESPOSTA MEDIDO PELO PRÓPRIO SERVIDOR (issue 51). Não é caso de uso nem lê banco: a medida é da API,
+        // em memória, e a procedência diz isso — e desde quando.
+        app.MapGet("/api/v1/integracoes/desempenho", (MedidorDeDesempenho medidor, IRelogio relogio) =>
+                Results.Ok(new ComProcedencia<DesempenhoDaApi>(
+                    new DesempenhoDaApi(medidor.DesdeUtc, MedidorDeDesempenho.AmostrasPorRota, medidor.Resumo()),
+                    new Procedencia(
+                        Procedencias.SistemaProprio,
+                        "medição da própria API, em memória, desde a última subida do serviço",
+                        relogio.Agora,
+                        medidor.DesdeUtc,
+                        false,
+                        null))))
+            .WithTags("Integrações (administração)")
+            .WithName("ObterDesempenhoDaApi")
+            .ExigePermissao(Permissoes.IntegracaoLer)
+            .WithSummary("O tempo de resposta de cada rota da API, medido pelo servidor: p50, p95 e máximo das chamadas recentes (issue 51).")
+            .WithDescription(
+                "Cada rota guarda as últimas mil chamadas, com o tempo do pipeline inteiro — contexto de acesso, permissão, caso de " +
+                "uso, banco e trilha de auditoria. A medição recomeça a cada subida do serviço (toda publicação). 'grava' marca as " +
+                "rotas que passam pela trilha na mesma transação — é o custo que o documento 45 §6.1 pediu para medir no servidor.");
 
         app.MapGet("/api/v1/integracoes/fontes-publicas", async (ObterFontesPublicas caso, CancellationToken ct) =>
                 (await caso.ExecutarAsync(ct)).Responder())

@@ -119,6 +119,15 @@ Cada pergunta diz o que ela destrava. **Negrito** = bloqueia o caminho crítico 
 | Q-P8 | A #055 (CI mínimo no GitHub) é autorizada? Exige push e ação no remoto | #055 |
 | Q-P9 | O OpenAPI fica exposto fora de Desenvolvimento? (recomendado: não, ou só autenticado) | #004 |
 
+**Respostas registradas:**
+
+- **Q-P5 — respondida pelo uso (28/09/2026): manter.** A Visão 360 **é** o painel executivo — é a tela inicial do CRM e
+  foi ampliada a pedido do Ricardo (tela inteira, #235; meta e realizado, #248; frota, faturamento e carteiras do cliente,
+  #243) —, e os relatórios seguem no menu, cada um atrás da permissão dele (fase 3, #46). Nada é escondido nem movido
+  para perfil de gestão; a #027 (GitHub #28) perde o objeto.
+- **Q-T1 — respondida em 20/09/2026: 18 meses** de retenção da auditoria (documento 45 §5.3). Registrada no catálogo
+  do banco e no documento 14 §10 em 28/09/2026 (#40); a rotina que a aplica é a #268.
+
 ### 3.3 TI, jurídico e diretoria
 
 | # | Pergunta | Desbloqueia |

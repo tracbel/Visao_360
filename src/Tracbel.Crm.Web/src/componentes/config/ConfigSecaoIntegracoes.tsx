@@ -23,6 +23,7 @@ import { formatarDataHora } from '../../telas/cadastro/formato';
 import type { SituacaoDaSincronizacao } from '../../tipos/api';
 import { CardConfig } from './ConfigPartes';
 import { CartaoDeConexao } from './integracoes/CartaoDeConexao';
+import { CartaoDeDesempenho } from './integracoes/CartaoDeDesempenho';
 import { CartaoDeRotina } from './integracoes/CartaoDeRotina';
 import { NovaApiMonitorada } from './integracoes/NovaApiMonitorada';
 
@@ -187,6 +188,7 @@ export function ConfigSecaoIntegracoes() {
     <>
       <SistemasEConexoes />
       <CartaoDeSincronizacoes />
+      <CartaoDeDesempenho />
     </>
   );
 }
