@@ -104,7 +104,7 @@ export function chaveDaRegra(regra: { produtoCodigoIbge: number; categoriaDeMaqu
 /** Uma linha da trilha: qualquer uma das três vigências, com o que a identifica para revogar. */
 export type LinhaDoHistorico = {
   id: string;
-  tipo: 'Parâmetros gerais' | 'Regra da cultura' | 'Percepção do gestor';
+  tipo: 'Parâmetros gerais' | 'Regra da cultura' | 'Percepção do gestor' | 'Sazonalidade e pesos do IOC' | 'Share-alvo';
   chave: string;
   resumo: string;
   vigencia: VigenciaDoParametro;

@@ -205,6 +205,8 @@ builder.Services.AddScoped<IRepositorioDeParametrosDoPotencial, RepositorioDePar
 builder.Services.AddScoped<IRepositorioDeReferenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDoCatalogoNoPotencial, RepositorioDeParametrosDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeVigenciasDoPotencial, RepositorioDeParametrosDoPotencial>();
+builder.Services.AddScoped<IRepositorioDoPlanejamento, RepositorioDoPlanejamento>();
+builder.Services.AddScoped<IRepositorioDeVigenciasDoPlanejamento, RepositorioDoPlanejamento>();
 builder.Services.AddScoped<IRepositorioDeFontesPublicas, RepositorioDeFontesPublicas>();
 builder.Services.AddScoped<IRepositorioDeOpcoesDosParametros, RepositorioDeFontesPublicas>();
 builder.Services.AddScoped<IRepositorioDeCoberturaDoMotor, RepositorioDeCoberturaDoMotor>();
@@ -308,6 +310,11 @@ builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.InformarRegraDePotenc
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.InformarPercepcaoDoGestor>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.RevogarParametroDoPotencial>();
 builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.SugerirBandasDePorte>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.ObterParametrosDoPlanejamento>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.ListarHistoricoDoPlanejamento>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.InformarParametroDoPlanejamento>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.InformarShareAlvo>();
+builder.Services.AddScoped<Tracbel.Crm.Aplicacao.Potencial.RevogarParametroDoPlanejamento>();
 
 // O painel de fontes públicas e as opções dos formulários de parâmetros (issue 77).
 builder.Services.AddScoped<ObterFontesPublicas>();

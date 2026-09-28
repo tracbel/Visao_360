@@ -158,6 +158,69 @@ export type NovaPercepcaoDoGestor = {
 };
 
 // ------------------------------------------------------------------------------------------------
+// Planejamento comercial (issue 256) — sazonalidade, pesos do IOC e share-alvo por categoria
+// ------------------------------------------------------------------------------------------------
+
+/** Os sete pesos do Índice de Oportunidade Comercial, normalizados pela soma no cálculo. */
+export type PesosDoIoc = {
+  potencial: number;
+  cobertura: number;
+  credito: number;
+  rentabilidade: number;
+  clientes: number;
+  realizacao: number;
+  penetracao: number;
+};
+
+/** A sazonalidade (doze percentuais, janeiro a dezembro, somando 100) e os pesos do IOC, numa vigência. */
+export type ParametroDoPlanejamentoDetalhe = {
+  sazonalidade: number[];
+  pesos: PesosDoIoc;
+  vigencia: VigenciaDoParametro;
+};
+
+/** O share-alvo de uma categoria de máquina, numa vigência. */
+export type ShareAlvoDetalhe = {
+  categoriaDeMaquinaCodigo: string;
+  categoriaDeMaquinaNome: string;
+  percentual: number;
+  vigencia: VigenciaDoParametro;
+};
+
+export type ParametrosDoPlanejamentoVigentes = {
+  em: string;
+  planejamento: ParametroDoPlanejamentoDetalhe | null;
+  shares: ShareAlvoDetalhe[];
+  pendencias: string[];
+};
+
+export type HistoricoDoPlanejamento = {
+  planejamentos: ParametroDoPlanejamentoDetalhe[];
+  shares: ShareAlvoDetalhe[];
+};
+
+/** Uma vigência nova da sazonalidade e dos pesos — o conjunto inteiro, números como texto. */
+export type NovoParametroDoPlanejamento = {
+  vigenteDesde: string;
+  sazonalidade: string[];
+  pesoDoPotencial: string;
+  pesoDaCobertura: string;
+  pesoDoCredito: string;
+  pesoDaRentabilidade: string;
+  pesoDosClientes: string;
+  pesoDaRealizacao: string;
+  pesoDaPenetracao: string;
+  justificativa: string;
+};
+
+export type NovoShareAlvo = {
+  categoriaDeMaquinaCodigo: string;
+  percentual: string;
+  vigenteDesde: string;
+  justificativa: string;
+};
+
+// ------------------------------------------------------------------------------------------------
 // Painel de fontes públicas
 // ------------------------------------------------------------------------------------------------
 
