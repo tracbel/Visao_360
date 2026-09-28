@@ -203,6 +203,117 @@ public sealed class ClienteDaGestaoDeNegociosTestes
         leitura.Erro.Should().Contain("não tem o envelope esperado").And.Contain("total").And.Contain("linhas");
     }
 
+    // -----------------------------------------------------------------------------------------------------------------
+    // A #41: o intermitente se repete e se recupera; o definitivo não se repete; o tempo esgotado e o cancelamento são
+    // coisas diferentes; e o envelope aceita número vindo como texto, que é o que "tipos trocados" pede.
+    // -----------------------------------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task O_503_se_repete_e_a_leitura_se_recupera_na_terceira_tentativa()
+    {
+        var chamadas = 0;
+        var tratador = new TratadorFalso(_ => ++chamadas < 3
+            ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+            : Json(Pagina(1, 1, 2, 1, 2)));
+
+        var leitura = await Cliente(tratador).LerTudoAsync<JsonElement>(Rota, CancellationToken.None);
+
+        leitura.EhSucesso.Should().BeTrue(leitura.Erro);
+        leitura.Valor.Linhas.Should().HaveCount(2);
+        tratador.Pedidos.Should().HaveCount(3, "duas respostas 503 e a terceira, que entregou");
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.BadGateway)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.GatewayTimeout)]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    public async Task O_intermitente_que_nao_passa_esgota_as_tres_tentativas_e_diz_o_codigo(HttpStatusCode codigo)
+    {
+        var tratador = new TratadorFalso(_ => new HttpResponseMessage(codigo));
+
+        var leitura = await Cliente(tratador).LerTudoAsync<JsonElement>(Rota, CancellationToken.None);
+
+        leitura.EhSucesso.Should().BeFalse();
+        leitura.Erro.Should().Contain($"HTTP {(int)codigo}").And.NotContain(Chave);
+        tratador.Pedidos.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public async Task O_404_nao_se_repete_a_rota_nao_vai_aparecer_na_segunda_tentativa()
+    {
+        var tratador = new TratadorFalso(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        var leitura = await Cliente(tratador).LerTudoAsync<JsonElement>(Rota, CancellationToken.None);
+
+        leitura.EhSucesso.Should().BeFalse();
+        leitura.Erro.Should().Contain("HTTP 404").And.Contain(Rota);
+        tratador.Pedidos.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task O_tempo_esgotado_se_repete_e_depois_diz_o_limite()
+    {
+        // O TEMPO ESGOTADO DO HttpClient é um TaskCanceledException com o token de quem chamou INTACTO — é assim que ele
+        // se distingue do cancelamento de verdade.
+        var tratador = new TratadorFalso(_ => throw new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout"));
+
+        var leitura = await Cliente(tratador).LerTudoAsync<JsonElement>(Rota, CancellationToken.None);
+
+        leitura.EhSucesso.Should().BeFalse();
+        leitura.Erro.Should().Contain("não respondeu").And.Contain("em 5s");
+        tratador.Pedidos.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public async Task O_cancelamento_de_quem_chamou_sobe_e_nao_vira_indisponivel()
+    {
+        // CANCELAR NÃO É FALHA DA API: quem cancelou (o orquestrador parando, o serviço desligando) recebe o cancelamento,
+        // e nenhuma tentativa a mais é feita.
+        using var cancelamento = new CancellationTokenSource();
+        var tratador = new TratadorFalso(_ =>
+        {
+            cancelamento.Cancel();
+            throw new OperationCanceledException(cancelamento.Token);
+        });
+
+        var ler = () => Cliente(tratador).LerTudoAsync<JsonElement>(Rota, cancelamento.Token);
+
+        await ler.Should().ThrowAsync<OperationCanceledException>();
+        tratador.Pedidos.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Numero_que_chega_como_texto_no_envelope_e_lido_e_nao_zerado()
+    {
+        // TIPOS TROCADOS: o mesmo campo vem como número num painel e como texto noutro (medido no doc 46 §5). O envelope
+        // lê os dois; o que não for número de jeito nenhum continua falhando alto (Envelope_sem_os_campos…).
+        var tratador = new TratadorFalso(_ => Json(
+            """{"cadastro":"metas","total":"2","pagina":"1","paginas":"1","por_pagina":"2","linhas":[{"id":"1"},{"id":2}]}"""));
+
+        var leitura = await Cliente(tratador).LerTudoAsync<JsonElement>(Rota, CancellationToken.None);
+
+        leitura.EhSucesso.Should().BeTrue(leitura.Erro);
+        leitura.Valor.Total.Should().Be(2);
+        leitura.Valor.Linhas.Select(l => l.GetProperty("id").ValueKind).Should().Equal(JsonValueKind.String, JsonValueKind.Number);
+    }
+
+    [Theory]
+    [InlineData("null", null)]
+    [InlineData("75600.4", 75600)]
+    public async Task A_idade_do_espelho_e_guardada_como_veio_e_nula_quando_nao_vem(string idade, int? esperada)
+    {
+        var tratador = new TratadorFalso(_ => Json(
+            $$"""{"cadastro":"funil","tipo":"painel","total":1,"pagina":1,"paginas":1,"idade_segundos":{{idade}},"linhas":[{"id":1}]}"""));
+
+        var leitura = await Cliente(tratador).LerTudoAsync<JsonElement>(Rota, CancellationToken.None);
+
+        leitura.EhSucesso.Should().BeTrue(leitura.Erro);
+        leitura.Valor.IdadeSegundos.Should().Be(esperada);
+        leitura.Valor.GeradaEmUtc.Should().BeNull("sem gerado_em, o carimbo fica vazio — e a leitura continua valendo");
+    }
+
     [Theory]
     [InlineData("2026-09-27T01:30:00-03:00", "2026-09-27T04:30:00")]
     [InlineData("2026-09-27T04:30:00Z", "2026-09-27T04:30:00")]

@@ -389,6 +389,13 @@ arquivo). É recomendação, aplicada por script de provisionamento (ver seção
 | `wf.RegraExecucao`: partição mensal, **12 meses online**, arquivamento depois | já registrado no doc 04 (linha 992) e no doc 05, seção 10, tabela de auditoria | migration da tabela |
 | `aud.AlteracaoCampo`: 18 meses online, arquivo depois. `aud.EventoAcesso`: 24 meses. Mudança de permissão: **permanente** | doc 05, seção 10 — corrige o Vórtice, que audita tudo sem seletividade e sem expurgo (44,8M de 85,5M linhas do banco são log) | migration de cada tabela de auditoria |
 
+**`auditoria.AlteracaoDeCampo` — retenção DECIDIDA (D-10, 20/09/2026): 18 meses** ([documento 45 §5.3](45-EXECUCAO-FASE-2-AUDITORIA-AUTOMATICA.md)).
+A decisão está no próprio catálogo do banco — a `MS_Description` da tabela, gravada pela migração
+`RetencaoDaAuditoriaDecidida` (issue #40) — e o expurgo é **por partição** (`TRUNCATE ... WITH (PARTITIONS)` ou `SWITCH`),
+nunca por `DELETE`. **O que ainda não existe:** a rotina mensal que abre os meses seguintes da partição e tira o que passou
+de 18 meses. A função de partição foi criada com uma janela fixa de 16 meses, e sem a rotina tudo o que vier depois cai na
+última partição. É a issue #268 — até ela entrar, a política está registrada e não é aplicada.
+
 ---
 
 ## 11. Multiempresa sem cópia por filial
