@@ -20,6 +20,7 @@
 
 import type {
   ClasseDePrioridade,
+  DemandaEPrevisaoDaRegiao,
   DiagnosticoComercialDaRegiao,
   MediaPlurianual,
   PainelDeCreditoRural,
@@ -458,6 +459,7 @@ export function diagnosticoFicticio(municipios: { codigo: number; nome: string }
           codigoIbge: m.codigo,
           nome: m.nome,
           regiao: i % 2 ? 'Noroeste' : 'Norte',
+          lojaCodigo: `0101${String(10 + (i % lojas.length)).padStart(2, '0')}`,
           loja: lojas[i % lojas.length],
           culturaPrincipal: culturas[i % culturas.length],
           indiceDePreco: Math.round(preco * 1000) / 1000,
@@ -469,6 +471,16 @@ export function diagnosticoFicticio(municipios: { codigo: number; nome: string }
           vendidasNoPeriodo: vendidas,
           vendidasNoAno: vendidas,
           clientes: Math.round(vinculos / 4),
+          clientesPorClasse: (() => {
+            const n = Math.round(vinculos / 4);
+            const a = Math.round(n * 0.1);
+            const b = Math.round(n * 0.2);
+            const cc = Math.round(n * 0.3);
+            const semClasse = Math.round(n * 0.15);
+            return { a, b, c: cc, d: Math.max(0, n - a - b - cc - semClasse), semClasse };
+          })(),
+          clientesEmCarteira: Math.round((vinculos / 4) * 0.8),
+          clientesQueCompraram: Math.round((vinculos / 4) * r(8) * 0.5),
           vinculosComCadencia: vinculos,
           cobertos,
           cobertura: vinculos === 0 ? null : cobertos / vinculos,
@@ -510,6 +522,25 @@ export function diagnosticoFicticio(municipios: { codigo: number; nome: string }
       semIndice: linhas.length - comIoc.length,
       total: linhas.length,
       iocMedio: comIoc.length ? Math.round((10 * comIoc.reduce((s, l) => s + (l.ioc as number), 0)) / comIoc.length) / 10 : null,
+      ...(() => {
+        const soma = (f: (l: (typeof linhas)[number]) => number | null) => {
+          const com = linhas.map(f).filter((v): v is number => v !== null);
+          return com.length ? Math.round(com.reduce((s, v) => s + v, 0) * 10) / 10 : null;
+        };
+        const estrutural = soma((l) => l.demandaEstrutural);
+        const noAno = soma((l) => l.vendidasNoAno);
+        return {
+          demandaEstrutural: estrutural,
+          demandaAjustada: soma((l) => l.demandaAjustada),
+          municipiosComDemanda: linhas.filter((l) => l.demandaEstrutural !== null).length,
+          metaDePlanejamento: soma((l) => l.metaDePlanejamento),
+          vendidasNoPeriodo: linhas.reduce((s, l) => s + (l.vendidasNoPeriodo ?? 0), 0),
+          vendidasNoAno: noAno,
+          penetracao: estrutural && noAno !== null ? Math.round((noAno / estrutural) * 10000) / 10000 : null,
+          clientes: linhas.reduce((s, l) => s + l.clientes, 0),
+          clientesQueCompraram: linhas.reduce((s, l) => s + l.clientesQueCompraram, 0),
+        };
+      })(),
     },
     municipios: linhas,
     lacunas: [
@@ -521,6 +552,142 @@ export function diagnosticoFicticio(municipios: { codigo: number; nome: string }
         metrica: 'cobertura',
         motivo: 'AMOSTRA FICTÍCIA — a cobertura é a da cadência de cada classe de cliente no CRM, e não o corte fixo de 90 dias.',
       },
+    ],
+  };
+}
+/**
+ * A DEMANDA E PREVISÃO FICTÍCIA (issue 258) — números inventados e coerentes: parque = área ÷ ha/máquina, demanda =
+ * parque ÷ anos, a entregar = demanda × 31%, e os meses pela sazonalidade do protótipo. Um município em cada nove não
+ * tem regra, para a tela mostrar o traço.
+ */
+export function demandaFicticia(municipios: { codigo: number; nome: string }[], vazio: boolean): DemandaEPrevisaoDaRegiao {
+  const culturas = [
+    { codigo: 'CANA', nome: 'Cana-de-açúcar', ha: 170, anos: 8 },
+    { codigo: 'SOJA', nome: 'Soja', ha: 200, anos: 10 },
+    { codigo: 'CAFE', nome: 'Café', ha: 20, anos: 10 },
+    { codigo: 'LARANJA', nome: 'Laranja', ha: 20, anos: 10 },
+  ];
+  const lojas = [
+    ['010110', 'Araraquara'],
+    ['010111', 'Ribeirão Preto'],
+    ['010112', 'Barretos'],
+    ['010113', 'Franca'],
+    ['010114', 'Bebedouro'],
+  ];
+  const share = 0.31;
+  const sazonalidade = [7, 6, 6, 7, 8, 9, 10, 10, 10, 10, 9, 8]; // nov..out, soma 100
+  const meses = [11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const soma = (xs: (number | null)[]) => {
+    const com = xs.filter((x): x is number => x !== null);
+    return com.length ? Math.round(com.reduce((s, x) => s + x, 0) * 100) / 100 : null;
+  };
+
+  const linhas = vazio
+    ? []
+    : municipios.map((m, i) => {
+        const r = (k: number) => ((i * 31 + k * 13) % 100) / 100;
+        const semRegra = i % 9 === 8;
+        const porCultura = semRegra
+          ? []
+          : culturas
+              .filter((_, j) => (i + j) % 3 !== 0)
+              .map((c) => {
+                const area = Math.round((500 + r(c.ha) * 12000) / 10) * 10;
+                const parque = area / c.ha;
+                return { c, area, parque, demanda: Math.round((parque / c.anos) * 100) / 100 };
+              });
+        const fatorPreco = 0.9 + r(2) * 0.25;
+        const fatorCredito = 0.85 + r(3) * 0.3;
+        const estrutural = soma(porCultura.map((p) => p.demanda));
+        const ajustada = estrutural === null ? null : Math.round(estrutural * (fatorPreco + fatorCredito - 1) * 100) / 100;
+        const [lojaCodigo, loja] = lojas[i % lojas.length];
+        return {
+          codigoIbge: m.codigo,
+          nome: m.nome,
+          regiao: i % 2 ? 'Noroeste' : 'Norte',
+          lojaCodigo,
+          loja,
+          areaUtilHectares: soma(porCultura.map((p) => p.area)),
+          parque: soma(porCultura.map((p) => Math.round(p.parque * 100) / 100)),
+          porCultura: porCultura.map((p) => ({ culturaCodigo: p.c.codigo, demanda: p.demanda })),
+          demandaEstrutural: estrutural,
+          demandaAjustada: ajustada,
+          aEntregar: estrutural === null ? null : Math.round(estrutural * share * 100) / 100,
+          aEntregarAjustada: ajustada === null ? null : Math.round(ajustada * share * 100) / 100,
+          fatorDePreco: semRegra ? null : Math.round(fatorPreco * 1000) / 1000,
+          fatorDeCredito: semRegra ? null : Math.round(fatorCredito * 1000) / 1000,
+          culturaPredominante: porCultura.length ? [...porCultura].sort((a, b) => b.parque - a.parque)[0].c.nome : null,
+          variacaoPercentual: estrutural && ajustada !== null ? Math.round((ajustada / estrutural - 1) * 1000) / 10 : null,
+        };
+      });
+
+  const estrutural = soma(linhas.map((l) => l.demandaEstrutural));
+  const ajustada = soma(linhas.map((l) => l.demandaAjustada));
+  const porCulturaDoRecorte = culturas.map((c) => {
+    const demanda = soma(linhas.map((l) => l.porCultura.find((p) => p.culturaCodigo === c.codigo)?.demanda ?? null));
+    return {
+      culturaCodigo: c.codigo,
+      cultura: c.nome,
+      areaUtilHectares: demanda === null ? null : Math.round(demanda * c.anos * c.ha),
+      hectaresPorMaquina: c.ha,
+      anosDeRenovacao: c.anos,
+      parque: demanda === null ? null : Math.round(demanda * c.anos),
+      demandaEstrutural: demanda,
+      demandaAjustada: demanda === null ? null : Math.round(demanda * 1.04 * 100) / 100,
+      variacaoPercentual: demanda === null ? null : 4,
+    };
+  });
+
+  const porLoja = lojas
+    .map(([codigo, nome]) => {
+      const anual = soma(linhas.filter((l) => l.lojaCodigo === codigo).map((l) => l.aEntregarAjustada));
+      return {
+        lojaCodigo: codigo,
+        loja: nome,
+        aEntregarNoAno: anual,
+        porMes: sazonalidade.map((s) => (anual === null ? null : Math.round(anual * s) / 100)),
+      };
+    })
+    .sort((a, b) => (b.aEntregarNoAno ?? 0) - (a.aEntregarNoAno ?? 0));
+
+  return {
+    categoria: 'TRATOR',
+    categoriaNome: 'Trator',
+    categorias: [
+      { codigo: 'TRATOR', nome: 'Trator', ordem: 1 },
+      { codigo: 'COLHEITADEIRA', nome: 'Colheitadeira', ordem: 3 },
+    ],
+    shareAlvo: 31,
+    shareDoPrototipo: true,
+    sazonalidadeVigenteDesde: '2026-09-27',
+    sazonalidadeDoPrototipo: true,
+    anoDaAreaPlantada: 2024,
+    totais: {
+      parque: soma(linhas.map((l) => l.parque)),
+      demandaEstrutural: estrutural,
+      demandaAjustada: ajustada,
+      aEntregar: soma(linhas.map((l) => l.aEntregar)),
+      aEntregarAjustada: soma(linhas.map((l) => l.aEntregarAjustada)),
+      culturasComRegra: culturas.map((c) => c.nome),
+      municipios: linhas.length,
+      municipiosComDemanda: linhas.filter((l) => l.demandaEstrutural !== null).length,
+      estimativa: true,
+    },
+    porCultura: porCulturaDoRecorte.filter((c) => c.demandaEstrutural !== null),
+    previsaoMensal: meses.map((mes, i) => ({
+      mes,
+      fracao: sazonalidade[i] / 100,
+      demandaEstrutural: estrutural === null ? null : Math.round(estrutural * sazonalidade[i]) / 100,
+      demandaAjustada: ajustada === null ? null : Math.round(ajustada * sazonalidade[i]) / 100,
+      aEntregar: estrutural === null ? null : Math.round(estrutural * share * sazonalidade[i]) / 100,
+      aEntregarAjustada: ajustada === null ? null : Math.round(ajustada * share * sazonalidade[i]) / 100,
+    })),
+    porLoja,
+    municipios: linhas,
+    culturas: culturas.map((c) => ({ codigo: c.codigo, nome: c.nome, demanda: soma(linhas.map((l) => l.porCultura.find((p) => p.culturaCodigo === c.codigo)?.demanda ?? null)) })),
+    lacunas: [
+      { metrica: 'sazonalidade', motivo: 'AMOSTRA FICTÍCIA — a sazonalidade ainda é a do protótipo da pasta 360, a confirmar.' },
+      { metrica: 'porCliente', motivo: 'AMOSTRA FICTÍCIA — a demanda é por município, e não por cliente.' },
     ],
   };
 }

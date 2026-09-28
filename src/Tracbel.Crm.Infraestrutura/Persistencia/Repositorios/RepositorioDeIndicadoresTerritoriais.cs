@@ -268,7 +268,9 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     : municipio.Uf != SaoPaulo ? OutraUf : municipio.CodigoIbge.Value;
 
             grupoDoCliente[cliente.Id] = grupo;
-            Do(grupo).Clientes++;
+            var doGrupo = Do(grupo);
+            doGrupo.Clientes++;
+            doGrupo.ContarClasse(cliente.Classe);
         }
 
         // CADA LINHA CAI EM EXATAMENTE UM GRUPO, ou em nenhum quando o filtro a exclui. É o que
@@ -344,6 +346,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             };
 
             acumulador.Vinculos++;
+            acumulador.ClientesComVinculo.Add(vinculo.ClienteId);
 
             var responsavel = responsavelDaCarteira[vinculo.CarteiraId];
             acumulador.VinculosPorResponsavel[responsavel] = acumulador.VinculosPorResponsavel.GetValueOrDefault(responsavel) + 1;
@@ -782,7 +785,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             .. doMotor.SelectMany(c => c.Resultado.Parcelas
                 .Where(p => p.Parque is not null)
                 .Select(p => new DemandaNoMunicipio(
-                    c.Codigo, nomeDaCategoriaNoMotor[c.Codigo], p.CulturaCodigo, p.Cultura, p.DemandaAnual, p.AreaUtilHectares)))
+                    c.Codigo, nomeDaCategoriaNoMotor[c.Codigo], p.CulturaCodigo, p.Cultura, p.DemandaAnual, p.AreaUtilHectares, p.Parque)))
         ];
 
         var totaisDosMunicipios = new List<PotencialDoRecorte>();
@@ -2121,8 +2124,25 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         public readonly Dictionary<long, int> VinculosPorResponsavel = [];
         public readonly Dictionary<long, HashSet<long>> CarteirasPorResponsavel = [];
 
+        /// <summary>Os clientes distintos com vínculo em carteira comercial — o mesmo cliente em duas carteiras conta uma vez.</summary>
+        public readonly HashSet<long> ClientesComVinculo = [];
+
+        /// <summary>Os clientes do grupo pela classe ABC: A, B, C, D e sem classe.</summary>
+        private readonly int[] porClasse = new int[5];
+
+        public void ContarClasse(ClasseDeCliente? classe) => porClasse[classe switch
+        {
+            ClasseDeCliente.A => 0,
+            ClasseDeCliente.B => 1,
+            ClasseDeCliente.C => 2,
+            ClasseDeCliente.D => 3,
+            _ => 4
+        }]++;
+
         public CoberturaTerritorial Cobertura() => new(
-            Clientes, Vinculos, Cobertos + ForaDaCadencia + NuncaContatados, Cobertos, ForaDaCadencia, NuncaContatados, SemCadencia);
+            Clientes, Vinculos, Cobertos + ForaDaCadencia + NuncaContatados, Cobertos, ForaDaCadencia, NuncaContatados, SemCadencia,
+            new ClientesPorClasse(porClasse[0], porClasse[1], porClasse[2], porClasse[3], porClasse[4]),
+            ClientesComVinculo.Count);
 
         public VendasTerritoriais Vendas() => new(
             ClientesQueCompraram, decimal.Round(ValorLiquido, 2), decimal.Round(Maquina, 2),

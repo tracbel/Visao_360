@@ -67,6 +67,25 @@ public static class EndpointsDeMercado
                 "Padrão: os últimos 12 meses fechados e a categoria TRATOR (como no protótipo); `categoria=TODAS` soma as " +
                 "categorias com demanda. Outro período é levado a um ano pela sazonalidade vigente.");
 
+        // A DEMANDA E A PREVISÃO (issue 258) — as mesmas parcelas do motor, distribuídas pelo share-alvo e pela
+        // sazonalidade. A mesma porta e o mesmo alcance do Diagnóstico.
+        grupo.MapGet("/demanda", async (
+                ObterDemandaEPrevisao caso,
+                CancellationToken ct,
+                string? regiao = null,
+                string? lojaCodigo = null,
+                string? visao = null,
+                string? categoria = null) =>
+            (await caso.ExecutarAsync(regiao, lojaCodigo, visao, categoria, ct)).Responder())
+            .WithName("ObterDemandaEPrevisao")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("A demanda anual de máquinas da ADR, o que a Tracbel tem de entregar pelo share-alvo, e a previsão por mês e por loja.")
+            .WithDescription(
+                "O parque e a demanda de cada cultura em cada município são as parcelas do motor do potencial; a ajustada usa " +
+                "o fator de ciclo (preço, crédito e percepção). O \"a entregar\" é a demanda × o share-alvo vigente da " +
+                "categoria, e a previsão mensal a distribui pela sazonalidade vigente, de novembro a outubro (o ano fiscal).\n\n" +
+                "Padrão: a categoria TRATOR; `categoria=TODAS` soma as categorias com demanda, cada uma pelo próprio share.");
+
         return app;
     }
 }
