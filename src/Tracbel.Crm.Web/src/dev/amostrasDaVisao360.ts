@@ -601,6 +601,69 @@ export function funilPorEstagio(estado: EstadoDaVisao360, codigo: string): Funil
 }
 
 /* ------------------------------------------------------------------------ */
+/* O trabalho do dia do CEN (28/09/2026)                                      */
+/* ------------------------------------------------------------------------ */
+
+/** Uma página na forma que a API devolve. */
+function pagina<T>(itens: T[], total: number) {
+  return { itens, pagina: 1, tamanho: itens.length, total, totalDePaginas: 1, temProxima: false };
+}
+
+/**
+ * AS TAREFAS ATRASADAS DO PERFIL DO CEN — só no `completo`, com nomes que se declaram fictícios. Até 28/09/2026 o
+ * harness não simulava `/v1/tarefas`, e o perfil do CEN só mostrava o erro "não simula".
+ */
+function tarefasAtrasadas(estado: EstadoDaVisao360) {
+  if (estado !== 'completo') return pagina([], 0);
+  const assuntos = ['Retorno da proposta do trator', 'Visita de pós-venda', 'Negociar o usado', 'Revisão das 500 horas'];
+  return pagina(
+    assuntos.map((assunto, i) => ({
+      chave: `tarefa-ficticia-${i + 1}`,
+      assunto,
+      detalhe: null,
+      tipoTarefaCodigo: 'VISITA',
+      tipoTarefaNome: 'Visita',
+      clienteChave: `cliente-ficticio-${i + 1}`,
+      clienteNome: `Cliente Fictício ${['Alfa', 'Beta', 'Gama', 'Delta'][i]}`,
+      processoChave: null,
+      processoTitulo: null,
+      responsavelNome: 'CEN Fictício Gama',
+      agendadaPara: `2026-09-${String(10 + i).padStart(2, '0')}`,
+      prazoLimite: null,
+      prioridade: 2,
+      situacao: 'Pendente',
+      estaAtrasada: true,
+      diasDeAtraso: 18 - i * 4,
+      concluidaEm: null,
+      resultadoNome: null,
+    })),
+    1_024,
+  );
+}
+
+/** OS CLIENTES HÁ MAIS TEMPO SEM CONTATO — o nunca contatado primeiro, como a API ordena. */
+function clientesSemContato(estado: EstadoDaVisao360) {
+  if (estado !== 'completo') return pagina([], 0);
+  const dias = [null, 412, 365, 290];
+  return pagina(
+    dias.map((diasSemContato, i) => ({
+      clienteChave: `cliente-ficticio-${i + 11}`,
+      clienteNome: `Produtor Fictício ${['Epsilon', 'Zeta', 'Eta', 'Teta'][i]}`,
+      carteiraChave: 'carteira-ficticia-1',
+      carteiraNome: 'Carteira Fictícia Norte',
+      linhaDeNegocioNome: 'Máquinas e Implemento',
+      classe: 'C',
+      ultimaInteracaoEm: null,
+      diasSemContato,
+      diasCicloContato: 180,
+      estaForaDoCiclo: true,
+      responsavelNome: 'CEN Fictício Gama',
+    })),
+    48_360,
+  );
+}
+
+/* ------------------------------------------------------------------------ */
 /* A rota → a amostra                                                         */
 /* ------------------------------------------------------------------------ */
 /**
@@ -640,6 +703,10 @@ export function respostaDaVisao360(
       return metasDeVenda(estado, empresa);
     case '/v1/processos':
       return contagemDeProcessos(estado, empresa, consulta.get('situacao') ?? '');
+    case '/v1/tarefas':
+      return tarefasAtrasadas(estado);
+    case '/v1/cobertura':
+      return clientesSemContato(estado);
     default:
       return undefined;
   }

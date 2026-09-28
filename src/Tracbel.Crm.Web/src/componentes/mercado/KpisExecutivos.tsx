@@ -48,12 +48,8 @@ import {
   ChartPie,
   Lightbulb,
   Target,
-  type LucideIcon,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { InfoTooltip } from '../InfoTooltip';
 import { fatiasEmTexto, frasesDaProcedencia, montarSomavel } from '../comum/comparacoes';
-import { ValorAusente } from '../comum/ValorAusente';
 import type {
   MomentoDoRecorte,
   NumeroNoAnoAnterior,
@@ -66,6 +62,7 @@ import { useComparacao } from '../territorio/contextoDaComparacao';
 import { reaisCompactos } from '../territorio/escalas';
 import { nº, porcento } from '../territorio/indicadoresDaAdr';
 import { fraseDosPrecos, marcaDeParcial } from './precosDeReferencia';
+import { CartaoDeDecisao } from './CartaoDeDecisao';
 import { VariacaoAusente } from './VariacaoAusente';
 
 /* AS QUATRO CONSTANTES DE MOTIVO SAÍRAM DAQUI (issue 69, parte A).
@@ -78,102 +75,6 @@ import { VariacaoAusente } from './VariacaoAusente';
 /** Casas fixas: um fator neutro tem de sair `1,00`, e não `1`. */
 const fator = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-type Tom = 'demanda' | 'mercado' | 'captura' | 'oportunidade';
-
-/**
- * UM NÚMERO DE DECISÃO, no desenho da maquete.
- *
- * AS TRÊS LINHAS EXISTEM SEMPRE — nome, valor, variação —, com ou sem dado: é o
- * que mantém os quatro cartões da mesma altura sem fixar altura em pixel. Quando
- * um cartão fica mais alto que o vizinho, o olho lê a diferença como diferença de
- * importância, e aqui os quatro pesam igual.
- */
-function CartaoDeDecisao({
-  rotulo,
-  icone: Icone,
-  tom,
-  valor,
-  carregando = false,
-  unidade,
-  sobre,
-  motivoSemDado,
-  variacao,
-}: {
-  /**
-   * A LINHA "vs. ano anterior" (27/09/2026): a variação contra o mesmo trecho do
-   * ano anterior, ou o traço com o motivo verdadeiro deste número.
-   */
-  variacao: ReactNode;
-  rotulo: string;
-  icone: LucideIcon;
-  tom: Tom;
-  /** O valor pronto para a tela. `null` mostra o traço com o motivo — nunca zero. */
-  valor: string | null;
-  /**
-   * A leitura ainda não voltou. Aí não há ausência a afirmar: o traço com "falta
-   * o ciclo de renovação" antes da resposta é um motivo falso por alguns
-   * segundos. A barra pulsante é a mesma dos cartões da carteira.
-   */
-  carregando?: boolean;
-  /** A unidade da maquete, ao lado do número e menor que ele. */
-  unidade: string;
-  /**
-   * O QUE O NÚMERO É, na dica ao lado do nome: definição, o que o momento faz
-   * com ele e de onde vem. É o que a maquete não mostra e a tela não pode perder.
-   */
-  sobre: ReactNode;
-  /**
-   * Por que o número falta — a frase do servidor (issue 69, parte A).
-   *
-   * Ausente enquanto a leitura não respondeu: aí sai o traço SEM dica, que é o
-   * certo — não se pode afirmar por que falta um número antes de saber se ele falta.
-   */
-  motivoSemDado: string | undefined;
-}) {
-  const nome = rotulo.toLowerCase();
-
-  return (
-    <div className="mv-kpi" data-kpi={rotulo} data-tom={tom}>
-      {/* O GLIFO É ENDEREÇO, NÃO INFORMAÇÃO: ele não diz nada que o nome já não
-          diga, e por isso some do leitor de tela. Serve para o olho achar "o de
-          captura" de longe, e é colorido e grande como na maquete — sem
-          ladrilho em volta. */}
-      <span className="mv-kpi-glifo" aria-hidden="true">
-        <Icone size={30} strokeWidth={2} />
-      </span>
-
-      <div className="mv-kpi-corpo">
-        <div className="mv-kpi-rotulo">
-          <span>{rotulo}</span>
-          <InfoTooltip rotulo={`Fonte e método: ${rotulo}`} texto={sobre} />
-        </div>
-
-        <div className="mv-kpi-valor">
-          {/* O TRAÇO OCUPA O LUGAR DO NÚMERO, e a unidade continua no dela: a
-              linha tem a forma da maquete, e o motivo inteiro está na dica. */}
-          {carregando ? (
-            <>
-              <span className="cad-kpi-esqueleto" aria-hidden="true" />
-              <span className="cad-so-leitor">carregando…</span>
-            </>
-          ) : valor !== null ? (
-            <strong>{valor}</strong>
-          ) : motivoSemDado ? (
-            <ValorAusente motivo={motivoSemDado} oQue={nome} />
-          ) : (
-            <span className="cad-ausente">
-              <span aria-hidden="true">—</span>
-              <span className="cad-so-leitor">sem dado</span>
-            </span>
-          )}
-          <span className="mv-kpi-unidade">{unidade}</span>
-        </div>
-
-        <div className="mv-kpi-contexto">{variacao}</div>
-      </div>
-    </div>
-  );
-}
 
 export function KpisExecutivos({
   momento,

@@ -141,16 +141,19 @@ for (const { nome, largura, altura } of TODAS) {
       // do Linux do CI. Antes, esticados, eram 360 a 440px.
       await abrir(page, 'semCarteira');
       const conteudo = await larguraDoConteudo(page);
-      const paineis = await page.locator('.v360-card:has(.v360-sem-dado)').evaluateAll((nós) =>
+      const paineis = await page.locator('.v360-linha > .mom-painel:has(.v360-sem-dado)').evaluateAll((nós) =>
         nós.map((n) => {
           const estilo = getComputedStyle(n);
           const miolo = n.clientHeight - parseFloat(estilo.paddingTop) - parseFloat(estilo.paddingBottom);
+          // O ESPAÇO ENTRE O CABEÇALHO E O CONTEÚDO É O DO PAINEL DOS INDICADORES (`gap` do flex), e não reserva: ele
+          // entra na conta do que o painel desenha.
+          const entreFilhos = (parseFloat(estilo.rowGap) || 0) * Math.max(0, n.children.length - 1);
           const desenhado = [...n.children].reduce((s, filho) => {
             const e = getComputedStyle(filho);
             return s + (filho as HTMLElement).offsetHeight + parseFloat(e.marginTop) + parseFloat(e.marginBottom);
-          }, 0);
+          }, entreFilhos);
           return {
-            titulo: n.querySelector('.v360-card-title')?.textContent,
+            titulo: n.querySelector('.mom-painel-titulo')?.textContent,
             altura: Math.round(n.getBoundingClientRect().height),
             sobra: Math.round(miolo - desenhado),
           };
@@ -181,27 +184,26 @@ for (const { nome, largura, altura } of TODAS) {
           r.setEnd(no, fim);
           return r.getBoundingClientRect().width;
         };
+        // O CARTÃO É O DOS INDICADORES (28/09/2026): o número é o `<strong>` do valor, e o nome é o `<span>` do rótulo.
         return [...document.querySelectorAll<HTMLElement>('[data-bloco="kpis"] > [data-kpi]')].map((cartao) => {
-          const valor = cartao.querySelector<HTMLElement>('.v360-kpi-valor')!;
-          const texto = valor.firstChild!;
-          const titulo = cartao.querySelector<HTMLElement>('.v360-kpi-titulo')!;
+          const valor = cartao.querySelector<HTMLElement>('.mv-kpi-valor')!;
+          const numero = valor.querySelector('strong')?.firstChild ?? null;
+          const titulo = cartao.querySelector<HTMLElement>('.mv-kpi-rotulo')!;
+          const nome = titulo.querySelector('span')?.firstChild ?? null;
           const palavras: number[] = [];
-          for (const no of titulo.childNodes) {
-            if (no.nodeType !== Node.TEXT_NODE) continue;
-            const conteudo = no.textContent ?? '';
+          if (nome) {
+            const conteudo = nome.textContent ?? '';
             let inicio = 0;
             for (const palavra of conteudo.split(' ')) {
-              if (palavra) palavras.push(larguraDoTexto(no, inicio, inicio + palavra.length));
+              if (palavra) palavras.push(larguraDoTexto(nome, inicio, inicio + palavra.length));
               inicio += palavra.length + 1;
             }
           }
-          const fim = titulo.querySelector<HTMLElement>('.v360-kpi-titulo-fim');
-          if (fim) palavras.push(fim.getBoundingClientRect().width);
           return {
             kpi: cartao.dataset.kpi,
-            valor: larguraDoTexto(texto, 0, (texto.textContent ?? '').length),
+            valor: numero ? larguraDoTexto(numero, 0, (numero.textContent ?? '').length) : 0,
             caixaDoValor: valor.clientWidth,
-            maiorPalavra: Math.max(...palavras),
+            maiorPalavra: palavras.length > 0 ? Math.max(...palavras) : 0,
             caixaDoTitulo: titulo.clientWidth,
           };
         });
@@ -220,14 +222,14 @@ for (const { nome, largura, altura } of TODAS) {
       await abrir(page, 'completo');
       const conteudo = await larguraDoConteudo(page);
 
-      // Linhas 2 e 3: três colunas a partir de 1.100px; duas + uma inteira de 700 a 1.099; empilhadas abaixo.
+      // Carteira e cobertura (três painéis): três colunas a partir de 1.100px; duas + uma inteira de 700 a 1.099; empilhados abaixo.
       const esperadoDasTres = conteudo >= 1100 ? 1 : conteudo >= 700 ? 2 : 3;
-      for (const linha of ['linha-2', 'linha-3']) {
-        expect(await linhasDe(page, `[data-bloco="${linha}"] > *`), `${linha} com ${conteudo}px de conteúdo`).toBe(esperadoDasTres);
-      }
+      expect(await linhasDe(page, '[data-bloco="linha-3"] > *'), `linha-3 com ${conteudo}px de conteúdo`).toBe(esperadoDasTres);
 
-      // Linha 4 (vendas perdidas 1,6 : 1 alertas): lado a lado a partir de 900px.
-      expect(await linhasDe(page, '[data-bloco="linha-4"] > *'), `linha-4 com ${conteudo}px de conteúdo`).toBe(conteudo >= 900 ? 1 : 2);
+      // Resultado e atenção, e Clientes e mercado (dois painéis cada): lado a lado a partir de 900px.
+      for (const linha of ['linha-2', 'linha-4']) {
+        expect(await linhasDe(page, `[data-bloco="${linha}"] > *`), `${linha} com ${conteudo}px de conteúdo`).toBe(conteudo >= 900 ? 1 : 2);
+      }
 
       // Nenhum painel passa da borda da página.
       const paginaDireita = await page.locator('.dash-pagina').evaluate((n) => n.getBoundingClientRect().right);
@@ -237,17 +239,19 @@ for (const { nome, largura, altura } of TODAS) {
       for (const d of direitas) expect(d).toBeLessThanOrEqual(paginaDireita + 1);
     });
 
-    test('os perfis e o cabeçalho cabem na largura', async ({ page }) => {
+    test('a barra de filtros, com o perfil, e o cabeçalho cabem na largura', async ({ page }) => {
       await abrir(page, 'completo');
-      const direita = await page.locator('.v360-perfil-toggle').evaluate((n) => n.getBoundingClientRect().right);
       const janela = await page.evaluate(() => document.documentElement.clientWidth);
-      expect(Math.round(direita), 'a faixa de perfis sai pela direita da janela').toBeLessThanOrEqual(janela);
+      for (const bloco of ['cabecalho', 'filtros', 'perfil']) {
+        const direita = await page.locator(`[data-bloco="${bloco}"]`).first().evaluate((n) => n.getBoundingClientRect().right);
+        expect(Math.round(direita), `${bloco} sai pela direita da janela`).toBeLessThanOrEqual(janela);
+      }
     });
 
     test('a tabela de composição rola dentro da própria caixa, e não a página', async ({ page }) => {
       await abrir(page, 'vazio');
-      await page.locator('[data-bloco="composicao"] > summary').click();
-      const caixa = page.locator('[data-bloco="composicao"] .cad-tabela-wrap');
+      await page.locator('[data-bloco="composicao"] button[aria-expanded]').click();
+      const caixa = page.locator('[data-bloco="composicao"] .mom-tabela-rolagem');
       await expect(caixa).toBeVisible();
       await page.screenshot({ path: `capturas/${nome}/visao360-composicao.png`, fullPage: true });
 
