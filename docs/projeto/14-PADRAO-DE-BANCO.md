@@ -80,12 +80,12 @@ verificam **agora**:
 | `seguranca` | usuário, permissão e a ligação entre os dois | 4 |
 | `comercial` | cliente, contato, canal, endereço, carteira, faturamento do cliente e faturamento sem cliente (doc 31) | 8 — schema **padrão** do contexto |
 | `processo` | processo, fase, tarefa, interação, tipo, resultado, motivo e venda perdida; o estágio do funil do Vórtice, uma linha por processo por estágio (doc 52) | 10 |
-| `frota` | equipamento do cliente, marca, modelo, família, linha de produto, venda de máquina e vínculo de cliente com máquina (doc 35, seção 10) | 7 |
+| `frota` | equipamento do cliente, marca, modelo, família, linha de produto, venda de máquina e vínculo de cliente com máquina (doc 35, seção 10); o estoque de máquinas e os pedidos à fábrica, e a cobertura em meses de estoque, da API Gestão de Negócios (28/09/2026) | 9 |
 | `auditoria` | quem alterou o quê — particionada por mês | 1 |
 | `integracao` | fronteira com o ERP, o Vórtice e o ART: correspondência da origem, registro de origem, comprador pendente e divergência (doc 35, seção 10); execução de sincronização, uma linha por ciclo do serviço do Windows (doc 35, seção 11); conexão, verificação, rotina e execução da rotina — as integrações configuráveis pela tela (issue 136); a classificação dos resultados do Vórtice — o estágio do funil e o contato que cada código prova (doc 52) | 14 |
 | `metadado` | catálogo e item de catálogo — extensão sem release; ver seção 12 | 2 |
 
-**Total: 83 tabelas em 8 schemas.** A 83ª é `organizacao.PercepcaoDaCultura` (decisão do Ricardo de 27/09/2026): a percepção de campo por cultura da planilha, na escala da D-P04, base da percepção no fator. Antes dela, 82: A conta começou em 63 no
+**Total: 85 tabelas em 8 schemas.** As duas últimas são o **estoque da API Gestão de Negócios** (decisão do Ricardo de 28/09/2026): `frota.EquipamentoEmEstoque`, uma linha por chassi interno do TOTVS — o que está no pátio e o que vem da fábrica, com situação, reserva, pagamento e chegada prevista, sem custo e sem cliente —, e `frota.CoberturaDoEstoque`, os meses de estoque por mês e por grupo, que a GN calcula para a empresa inteira (sem filial). São duas porque são duas granularidades: a máquina é de uma filial e muda de hora em hora; a cobertura é da organização e muda uma vez por mês. Antes delas, 83. A 83ª é `organizacao.PercepcaoDaCultura` (decisão do Ricardo de 27/09/2026): a percepção de campo por cultura da planilha, na escala da D-P04, base da percepção no fator. Antes dela, 82: A conta começou em 63 no
 [17-MODELO-UNIFICADO](17-MODELO-UNIFICADO.md), seção 8.12, subiu para 80 em 10 schemas com as
 dezessete decisões registradas nos documentos 26, 31, 32 e 35, e a **fase 1** do
 [41-PLANO-EXECUTIVO](41-PLANO-EXECUTIVO-DA-REESTRUTURACAO.md) a trouxe para 49 em 8, removendo as 31

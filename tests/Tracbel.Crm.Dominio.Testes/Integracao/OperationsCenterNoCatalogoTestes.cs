@@ -29,7 +29,7 @@ public sealed class OperationsCenterNoCatalogoTestes
         var telemetria = todas[10];
 
         telemetria.Codigo.Should().Be(RotinasDoSistema.TelemetriaOperationsCenter);
-        todas.Should().HaveCount(11, "é a última");
+        todas.Should().HaveCount(c => c >= 11, "é a 11ª; as que vêm depois dela entram no fim");
         telemetria.Modos.Should().Equal("--somente-operations-center");
         telemetria.LigadaPorPadrao.Should().BeFalse("trazer dado novo para produção é decisão de quem administra");
         telemetria.ConexaoExigida.Should().Be(ConexoesDoSistema.OperationsCenter);

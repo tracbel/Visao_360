@@ -239,6 +239,14 @@ var somentePrecosDeMaquina = args.Contains("--somente-precos-de-maquina", String
 // --simular, le, casa e conta, e nao grava nada.
 var somenteOperationsCenter = args.Contains("--somente-operations-center", StringComparer.Ordinal);
 
+// --somente-estoque-gn [--simular] [--aceitar-remocao] — O ESTOQUE E A COBERTURA DA API GESTÃO DE NEGÓCIOS (decisão de
+// 28/09/2026).
+//
+// Le /api/v1/paineis/estoque-pedidos (SEM janela de datas: com ela o painel perde os pedidos a fabrica), /api/v1/cobertura e
+// /api/v1/filiais (so GET) e SINCRONIZA frota.EquipamentoEmEstoque e frota.CoberturaDoEstoque. Nao le custo nem cliente. E a
+// rotina ESTOQUE_GESTAO_NEGOCIOS do orquestrador, de hora em hora. --aceitar-remocao existe SO no terminal.
+var somenteEstoqueGn = args.Contains("--somente-estoque-gn", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
 // --somente-art --projetar — A PROJECAO DO PROXIMO CICLO DO ART, so com leitura: a mesma decisao por registro da carga,
@@ -266,6 +274,7 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-metas-gn      as metas de venda da API Gestão de Negócios;
 //   --somente-precos-de-maquina  o preço de referência da máquina por categoria, pela nota do Protheus;
 //   --somente-operations-center  o horímetro e a posição das máquinas John Deere conectadas;
+//   --somente-estoque-gn    o estoque de máquinas e a cobertura, da API Gestão de Negócios;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // AS LEITURAS DO VÓRTICE LIBERADAS:
@@ -289,7 +298,7 @@ bool[] modosSemVortice =
     somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
     somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina, somenteOportunidadesDoVortice,
-    somenteOperationsCenter
+    somenteOperationsCenter, somenteEstoqueGn
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -1111,6 +1120,87 @@ if (somenteOperationsCenter)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A CARGA DA TELEMETRIA PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só o estoque e a cobertura da API Gestão de Negócios (decisão de 28/09/2026). Não lê o Protheus nem o ART.
+// -------------------------------------------------------------------------------------------------
+
+if (somenteEstoqueGn)
+{
+    // A CREDENCIAL: a mesma das metas — a da tela, ou GestaoDeNegocios__Base e __Chave do servidor. Nunca impressa.
+    var opcoesDoEstoque = new OpcoesDaGestaoDeNegocios();
+    configuracao.GetSection(OpcoesDaGestaoDeNegocios.Secao).Bind(opcoesDoEstoque);
+
+    if (opcoesDoEstoque.Problema() is { } problemaDoEstoque)
+    {
+        Console.Error.WriteLine(problemaDoEstoque + " Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    // O CLIENTE NÃO SEGUE REDIRECIONAMENTO, como o das metas.
+    var servicosDoEstoque = new ServiceCollection();
+    servicosDoEstoque.AddHttpClient(ClienteDaGestaoDeNegocios.NomeDoCliente)
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+    await using var provedorDoEstoque = servicosDoEstoque.BuildServiceProvider();
+    var leitorDoEstoque = new LeitorDoEstoqueDaGestaoDeNegocios(new ClienteDaGestaoDeNegocios(
+        provedorDoEstoque.GetRequiredService<IHttpClientFactory>(), Options.Create(opcoesDoEstoque)));
+
+    // A SIMULAÇÃO LÊ O CRM COM INTENÇÃO DE LEITURA DECLARADA, como a das metas.
+    var opcoesDoBancoDoEstoque = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(180))
+            .Options
+        : opcoesDoBanco;
+
+    Console.WriteLine(simular
+        ? "Estoque da Gestão de Negócios — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
+        : "Estoque da Gestão de Negócios — sincronizando.");
+    if (aceitarRemocao) Console.WriteLine("  --aceitar-remocao: a trava de remoção em massa não aborta esta rodada.");
+    Console.WriteLine();
+
+    var cargaDoEstoque = new CargaDoEstoqueDaGestaoDeNegocios(
+        () => new CrmDbContext(opcoesDoBancoDoEstoque, contexto, diario), leitorDoEstoque.LerAsync, usuarioId, () => DateTime.UtcNow,
+        Console.WriteLine);
+
+    try
+    {
+        // A MESMA TRAVA DAS OUTRAS CARGAS, e só quando grava.
+        await using var travaDoEstoque = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), Tracbel.Crm.Dominio.Frota.EquipamentoEmEstoque.FluxoDaCarga, CancellationToken.None);
+
+        var resultadoDoEstoque = await cargaDoEstoque.ExecutarAsync(simular, aceitarRemocao, CancellationToken.None);
+        if (!resultadoDoEstoque.EhSucesso)
+        {
+            Console.Error.WriteLine("A SINCRONIA DO ESTOQUE PAROU: " + resultadoDoEstoque.Erro);
+            return 3;
+        }
+
+        foreach (var etapa in resultadoDoEstoque.Valor.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+        }
+
+        foreach (var observacao in resultadoDoEstoque.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A SINCRONIA DO ESTOQUE PAROU, e a transação foi desfeita: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;

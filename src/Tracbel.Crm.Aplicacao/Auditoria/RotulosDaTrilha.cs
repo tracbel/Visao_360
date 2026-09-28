@@ -57,7 +57,9 @@ public static class RotulosDaTrilha
         ["EstagioDoProcesso"] = "Estágio do funil (Vórtice)",
         ["ClassificacaoDeResultadoDoVortice"] = "Classificação de resultado do Vórtice",
         ["VendaPerdida"] = "Venda perdida",
-        ["MetaDeVenda"] = "Meta de venda (Gestão de Negócios)"
+        ["MetaDeVenda"] = "Meta de venda (Gestão de Negócios)",
+        ["EquipamentoEmEstoque"] = "Máquina em estoque (Gestão de Negócios)",
+        ["CoberturaDoEstoque"] = "Cobertura do estoque (Gestão de Negócios)"
     };
 
     // Os campos que se repetem em várias entidades, com o mesmo sentido.
@@ -255,7 +257,13 @@ public static class RotulosDaTrilha
             ["CodigoDaLinha"] = "Código da linha", ["LinhaDeProdutoId"] = "Linha de produto", ["ConsultorNaOrigem"] = "Consultor na origem",
             ["ConsultorUsuarioId"] = "Conta do consultor", ["VendaDireta"] = "Venda direta", ["Origem"] = "Origem da meta",
             ["Quantidade"] = "Quantidade (unidades)", ["ValorUnitario"] = "Valor unitário", ["Margem"] = "Margem"
-        }
+        },
+        ["EquipamentoEmEstoque"] = new(StringComparer.Ordinal)
+        {
+            ["EmpresaId"] = "Filial", ["Situacao"] = "Situação", ["Reservado"] = "Reservada", ["Pago"] = "Paga à fábrica",
+            ["ChegadaPrevistaEm"] = "Chegada prevista"
+        },
+        ["CoberturaDoEstoque"] = new(StringComparer.Ordinal) { ["MesesDeEstoque"] = "Meses de estoque", ["Vendas"] = "Vendas do período" }
     };
 
     // O IDENTIFICADOR QUE APONTA PARA OUTRA TABELA e que a tela troca pelo nome. O que não está aqui (modelo,
@@ -279,7 +287,8 @@ public static class RotulosDaTrilha
         [("VendaDeMaquina", "EmpresaId")] = TipoDeReferencia.Empresa,
         [("VendaDeMaquina", "EmpresaDoFaturamentoId")] = TipoDeReferencia.Empresa,
         [("MetaDeVenda", "EmpresaId")] = TipoDeReferencia.Empresa,
-        [("MetaDeVenda", "ConsultorUsuarioId")] = TipoDeReferencia.Usuario
+        [("MetaDeVenda", "ConsultorUsuarioId")] = TipoDeReferencia.Usuario,
+        [("EquipamentoEmEstoque", "EmpresaId")] = TipoDeReferencia.Empresa
     };
 
     /// <summary>A profundidade como a pessoa entende — o mesmo texto da tela de perfis.</summary>

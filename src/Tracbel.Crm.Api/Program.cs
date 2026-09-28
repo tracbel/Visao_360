@@ -355,6 +355,10 @@ builder.Services.AddScoped<VerificarPonteDoLegado>();
 builder.Services.AddScoped<IRepositorioDeMetas, RepositorioDeMetas>();
 builder.Services.AddScoped<ObterMetaERealizado>();
 
+// O ESTOQUE E A COBERTURA DA API GESTÃO DE NEGÓCIOS (28/09/2026).
+builder.Services.AddScoped<IRepositorioDoEstoque, RepositorioDoEstoque>();
+builder.Services.AddScoped<ObterEstoqueECobertura>();
+
 var app = builder.Build();
 
 // AS MIGRAÇÕES RODAM NA SUBIDA, EM PRODUÇÃO.

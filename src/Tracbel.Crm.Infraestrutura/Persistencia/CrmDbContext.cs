@@ -448,6 +448,12 @@ public class CrmDbContext : DbContext
     /// <summary>As vendas de máquina lidas da origem, sem valor financeiro.</summary>
     public DbSet<VendaDeMaquina> VendasDeMaquina => Set<VendaDeMaquina>();
 
+    /// <summary>O estoque de máquinas e os pedidos à fábrica, da API Gestão de Negócios (28/09/2026).</summary>
+    public DbSet<EquipamentoEmEstoque> EquipamentosEmEstoque => Set<EquipamentoEmEstoque>();
+
+    /// <summary>A cobertura do estoque, em meses, por mês e por grupo (28/09/2026).</summary>
+    public DbSet<CoberturaDoEstoque> CoberturasDoEstoque => Set<CoberturaDoEstoque>();
+
     /// <summary>A ligação entre cliente e máquina, com natureza, origem e data.</summary>
     public DbSet<VinculoDeClienteComEquipamento> VinculosComEquipamento => Set<VinculoDeClienteComEquipamento>();
 

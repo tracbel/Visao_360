@@ -19,7 +19,8 @@ public sealed class RotinaDosProcessosDoVorticeTestes
     {
         // Id = posição + 1, como a semente grava. As sete de antes ficam onde estavam; a do funil é a oitava (#247). A das
         // metas (METAS_GESTAO_NEGOCIOS, #248) entrou DEPOIS dela, no nono lugar, a do preço da máquina (PRECOS_DE_MAQUINA,
-        // issue 70) no décimo, e a da telemetria do Operations Center (28/09/2026) no 11º — nenhuma mudou de identificador.
+        // issue 70) no décimo, a da telemetria do Operations Center (28/09/2026) no 11º e a do estoque da Gestão de Negócios
+        // (28/09/2026) no 12º — nenhuma mudou de identificador.
         RotinasDoSistema.Todas.Select((r, posicao) => (Id: posicao + 1, r.Codigo)).Should().Equal(
             (1, RotinasDoSistema.FontesAnuais),
             (2, RotinasDoSistema.PrecosMensais),
@@ -31,7 +32,8 @@ public sealed class RotinaDosProcessosDoVorticeTestes
             (8, RotinasDoSistema.ProcessosVortice),
             (9, RotinasDoSistema.MetasGestaoDeNegocios),
             (10, RotinasDoSistema.PrecosDeMaquina),
-            (11, RotinasDoSistema.TelemetriaOperationsCenter));
+            (11, RotinasDoSistema.TelemetriaOperationsCenter),
+            (12, RotinasDoSistema.EstoqueGestaoDeNegocios));
     }
 
     [Fact]

@@ -270,6 +270,17 @@ public static class EndpointsDeRelacionamento
                 "do mesmo trecho do ano fiscal anterior. `competenciaInicial` e `competenciaFinal` (AAAA-MM) pedem outro período. " +
                 "No alcance Próprios, só a meta e as vendas da própria pessoa.");
 
+        // O ESTOQUE E A COBERTURA (28/09/2026): a disponibilidade de máquina para a venda, pela filial do cabeçalho — ou por
+        // todas, em "Todas as filiais" —, e a cobertura em meses, da organização. Sem custo e sem cliente.
+        grupo.MapGet("/estoque", async (ObterEstoqueECobertura caso, CancellationToken ct) => (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ObterEstoqueECobertura")
+            .ExigePermissao(Permissoes.RelatorioLer)
+            .WithSummary("O estoque de máquinas e os pedidos à fábrica (TOTVS, pela API Gestão de Negócios), e a cobertura em meses.")
+            .WithDescription(
+                "Máquina a máquina, da filial do cabeçalho: situação, reserva, pagamento, dias no pátio (de hoje, pela data de entrada) e " +
+                "chegada prevista do pedido; os totais e os grupos. A cobertura — o estoque dividido pelas vendas, em quantidade — é da " +
+                "organização, por mês e por grupo. O custo e o cliente do atendimento não são lidos.");
+
         return app;
     }
 }
