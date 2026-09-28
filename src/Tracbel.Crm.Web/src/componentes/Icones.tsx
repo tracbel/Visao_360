@@ -7,7 +7,7 @@
  * Geográficos e a marca por extenso do menu, que o protótipo não tinha.
  */
 
-import { Map as Mapa, Target as Alvo } from 'lucide-react';
+import { Map as Mapa, Target as Alvo, TrendingUp as Tendencia } from 'lucide-react';
 
 type Props = { tamanho?: number };
 
@@ -128,6 +128,11 @@ export function IconeIndicadoresGeograficos({ tamanho = 18 }: Props) {
 /** O alvo do Diagnóstico Comercial (issue 257) — onde mirar primeiro. Tela nova, sem par no protótipo de referência. */
 export function IconeDiagnostico({ tamanho = 18 }: Props) {
   return <Alvo size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
+}
+
+/** A tendência do Forecast da Gerência (28/09/2026) — a previsão dos gestores. Tela nova, sem par no protótipo. */
+export function IconeForecast({ tamanho = 18 }: Props) {
+  return <Tendencia size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
 }
 
 export function IconeConfiguracoes(p: Props) {

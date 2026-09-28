@@ -112,7 +112,7 @@ public sealed class ClienteDaGestaoDeNegocios(
     public const string NomeDoCliente = "GestaoDeNegocios";
 
     /// <summary>O endereço que o Ricardo decidiu usar (D-M1) — o que a mensagem de erro de certificado sugere.</summary>
-    public const string EnderecoPeloNome = "https://agro-sistemas-w.tracbel.com.br:5001";
+    public const string EnderecoPeloNome = "https://negocios-agro.tracbel.com.br:5001";
 
     private const int Tentativas = 3;
 
@@ -130,11 +130,61 @@ public sealed class ClienteDaGestaoDeNegocios(
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<PaginaDaGestaoDeNegocios<T>>> LerPaginaAsync<T>(string rota, int pagina, int porPagina, CancellationToken ct)
     {
-        var config = opcoes.Value;
-        if (config.Problema() is { } problema) return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel(problema);
+        // A ROTA PODE TRAZER PARÂMETRO (28/09/2026): o painel com período padrão só devolve tudo com data_de e data_ate, e a
+        // paginação entra depois deles.
+        var separador = rota.Contains('?', StringComparison.Ordinal) ? '&' : '?';
+        var corpo = await LerCorpoAsync(string.Create(CultureInfo.InvariantCulture, $"{rota}{separador}pagina={pagina}&por_pagina={porPagina}"), rota, ct);
+        if (!corpo.EhSucesso) return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel(corpo.Erro!);
 
-        var endereco = string.Create(CultureInfo.InvariantCulture,
-            $"{config.Base!.Trim().TrimEnd('/')}{rota}?pagina={pagina}&por_pagina={porPagina}");
+        try
+        {
+            var lida = JsonSerializer.Deserialize<PaginaDaGestaoDeNegocios<T>>(corpo.Valor, Json);
+            return lida is null
+                ? Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel($"A API Gestão de Negócios devolveu {rota} vazia.")
+                : Resultado<PaginaDaGestaoDeNegocios<T>>.Ok(lida);
+        }
+        catch (JsonException erro)
+        {
+            // A MENSAGEM DO LEITOR DE JSON diz o campo e a posição, nunca o valor: pode sair.
+            return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel(
+                $"A resposta de {rota} não tem o envelope esperado da API Gestão de Negócios ({erro.Message}). " +
+                "A API pode ter mudado de formato — nada foi gravado.");
+        }
+    }
+
+    /// <summary>
+    /// Uma rota SEM PAGINAÇÃO — o documento inteiro, como veio (28/09/2026: <c>/api/v1/filiais</c>, o de-para das lojas, que
+    /// não traz o envelope das rotas de cadastro e de painel). Mesmas regras: só GET, Bearer, certificado validado.
+    /// </summary>
+    /// <param name="rota">O caminho da rota.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<JsonElement>> LerDocumentoAsync(string rota, CancellationToken ct)
+    {
+        var corpo = await LerCorpoAsync(rota, rota, ct);
+        if (!corpo.EhSucesso) return Resultado<JsonElement>.Indisponivel(corpo.Erro!);
+
+        try
+        {
+            using var documento = JsonDocument.Parse(corpo.Valor);
+            return Resultado<JsonElement>.Ok(documento.RootElement.Clone());
+        }
+        catch (JsonException erro)
+        {
+            return Resultado<JsonElement>.Indisponivel(
+                $"A resposta de {rota} não é JSON ({erro.Message}). A API pode ter mudado de formato — nada foi gravado.");
+        }
+    }
+
+    /// <summary>O corpo da resposta de um GET, com as tentativas, a recusa da chave e o certificado conferido.</summary>
+    /// <param name="caminho">A rota com os parâmetros.</param>
+    /// <param name="rota">A rota, como as mensagens a citam.</param>
+    /// <param name="ct">Cancelamento.</param>
+    private async Task<Resultado<string>> LerCorpoAsync(string caminho, string rota, CancellationToken ct)
+    {
+        var config = opcoes.Value;
+        if (config.Problema() is { } problema) return Resultado<string>.Indisponivel(problema);
+
+        var endereco = $"{config.Base!.Trim().TrimEnd('/')}{caminho}";
 
         for (var tentativa = 1; tentativa <= Tentativas; tentativa++)
         {
@@ -151,7 +201,7 @@ public sealed class ClienteDaGestaoDeNegocios(
                 var codigo = (int)resposta.StatusCode;
 
                 if (codigo is >= 300 and < 400 || resposta.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
-                    return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel(
+                    return Resultado<string>.Indisponivel(
                         $"A API Gestão de Negócios recusou a chave (HTTP {codigo}{(codigo is >= 300 and < 400 ? ", redirecionou para a tela de login" : string.Empty)}). " +
                         "Grave a chave de novo em Configurações › Integrações. Nada foi lido.");
 
@@ -163,36 +213,22 @@ public sealed class ClienteDaGestaoDeNegocios(
                         continue;
                     }
 
-                    return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel(
+                    return Resultado<string>.Indisponivel(
                         $"A API Gestão de Negócios não entregou {rota} (HTTP {codigo}).");
                 }
 
                 var tipoDoConteudo = resposta.Content.Headers.ContentType?.MediaType;
                 if (tipoDoConteudo is not null && !tipoDoConteudo.Contains("json", StringComparison.OrdinalIgnoreCase))
-                    return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel(
+                    return Resultado<string>.Indisponivel(
                         $"A API Gestão de Negócios respondeu {rota} com {tipoDoConteudo}, e não JSON — é a tela de login: a chave não " +
                         "foi aceita. Grave a chave de novo em Configurações › Integrações. Nada foi lido.");
 
-                var corpo = await resposta.Content.ReadAsStringAsync(ct);
-                try
-                {
-                    var lida = JsonSerializer.Deserialize<PaginaDaGestaoDeNegocios<T>>(corpo, Json);
-                    return lida is null
-                        ? Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel($"A API Gestão de Negócios devolveu {rota} vazia.")
-                        : Resultado<PaginaDaGestaoDeNegocios<T>>.Ok(lida);
-                }
-                catch (JsonException erro)
-                {
-                    // A MENSAGEM DO LEITOR DE JSON diz o campo e a posição, nunca o valor: pode sair.
-                    return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel(
-                        $"A resposta de {rota} não tem o envelope esperado da API Gestão de Negócios ({erro.Message}). " +
-                        "A API pode ter mudado de formato — nada foi gravado.");
-                }
+                return Resultado<string>.Ok(await resposta.Content.ReadAsStringAsync(ct));
             }
             catch (HttpRequestException erro) when (erro.GetBaseException() is AuthenticationException)
             {
                 // CERTIFICADO: não se repete — outra tentativa daria o mesmo erro, e desligar a validação não é opção.
-                return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel(
+                return Resultado<string>.Indisponivel(
                     "O certificado da API Gestão de Negócios não passou na validação. O motivo mais provável é o endereço pelo " +
                     $"IP: use o NOME ({EnderecoPeloNome}), que é o que o certificado declara. A validação não é desligada — " +
                     $"a chave vale para a API inteira. Detalhe: {Ocultar(erro.GetBaseException().Message)}");
@@ -200,7 +236,7 @@ public sealed class ClienteDaGestaoDeNegocios(
             catch (HttpRequestException erro)
             {
                 if (tentativa == Tentativas)
-                    return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel(
+                    return Resultado<string>.Indisponivel(
                         $"Não foi possível falar com a API Gestão de Negócios: {Ocultar(erro.Message)}");
 
                 await Task.Delay(_espera * tentativa, ct);
@@ -208,14 +244,14 @@ public sealed class ClienteDaGestaoDeNegocios(
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
                 if (tentativa == Tentativas)
-                    return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel(
+                    return Resultado<string>.Indisponivel(
                         $"A API Gestão de Negócios não respondeu {rota} em {config.TempoLimiteSegundos}s.");
 
                 await Task.Delay(_espera * tentativa, ct);
             }
         }
 
-        return Resultado<PaginaDaGestaoDeNegocios<T>>.Indisponivel($"A leitura de {rota} esgotou as tentativas.");
+        return Resultado<string>.Indisponivel($"A leitura de {rota} esgotou as tentativas.");
     }
 
     /// <summary>

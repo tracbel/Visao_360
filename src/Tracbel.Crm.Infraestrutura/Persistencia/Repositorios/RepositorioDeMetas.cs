@@ -99,6 +99,24 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
             .Where(v => meuLogin is null || (meuLogin.Length > 0 && v.Vendedor == meuLogin))
             .ToList();
 
+        // ---------------------------------------------------------------------------------------------
+        // O realizado de consórcio (28/09/2026): as cotas vendidas, pelo mês que a performance da GN atribui. Pela filial da
+        // cota (o filtro global); no alcance Próprios, só as da conta que a carga casou com a pessoa — a mesma regra da meta.
+        // Nunca lido é NULO: o cartão diz "não lido", e não "zero cotas".
+        // ---------------------------------------------------------------------------------------------
+        var consorcioLidoEm = await contexto.PontosDeSincronismo.AsNoTracking()
+            .Where(p => p.Fluxo == CotaDeConsorcioVendida.FluxoDaCarga)
+            .Select(p => (DateTime?)p.ProcessadoEm)
+            .FirstOrDefaultAsync(ct);
+
+        var cotas = consorcioLidoEm is null
+            ? []
+            : await contexto.CotasDeConsorcioVendidas.AsNoTracking()
+                .Where(c => c.ExcluidoEm == null && c.Competencia >= inicio && c.Competencia <= ultimoMes
+                            && (meuLogin == null || c.ConsultorUsuarioId == acesso.UsuarioId))
+                .Select(c => c.Competencia)
+                .ToListAsync(ct);
+
         bool NoPeriodo(DateOnly mes) => periodo.Contem(mes);
 
         var metasDoPeriodo = metas.Where(m => NoPeriodo(m.Competencia)).ToList();
@@ -111,7 +129,8 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
                 mes,
                 metasDeMaquinas.Where(m => m.Competencia == mes).Sum(m => m.Quantidade),
                 vendasDoPeriodo.Count(v => v.Mes == mes),
-                metasDoPeriodo.Where(m => m.Consorcio && m.Competencia == mes).Sum(m => m.Quantidade)))
+                metasDoPeriodo.Where(m => m.Consorcio && m.Competencia == mes).Sum(m => m.Quantidade),
+                cotas.Count(c => c == mes)))
             .ToList();
 
         var nomeDaLinha = metasDeMaquinas.GroupBy(m => m.CodigoDaLinha, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().LinhaNaOrigem, StringComparer.Ordinal);
@@ -143,7 +162,8 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
                 mesCorrente,
                 metas.Where(m => !m.Consorcio && m.Competencia == mesCorrente).Sum(m => m.Quantidade),
                 vendas.Count(v => v.Mes == mesCorrente),
-                metas.Where(m => m.Consorcio && m.Competencia == mesCorrente).Sum(m => m.Quantidade))
+                metas.Where(m => m.Consorcio && m.Competencia == mesCorrente).Sum(m => m.Quantidade),
+                cotas.Count(c => c == mesCorrente))
             : null;
 
         var (pendentes, pendentesSemFilial) = alcance == AlcanceDaMeta.Filial
@@ -181,7 +201,9 @@ public sealed class RepositorioDeMetas(CrmDbContext contexto) : IRepositorioDeMe
             vendas.Count(v => anterior.Contem(v.Mes)),
             doMesEmCurso,
             await OrigemAsync(ct),
-            loginSemCasamento);
+            loginSemCasamento,
+            consorcioLidoEm is null ? null : cotas.Count(NoPeriodo),
+            consorcioLidoEm is { } lidoEm ? DateTime.SpecifyKind(lidoEm, DateTimeKind.Utc) : null);
     }
 
     /// <summary>

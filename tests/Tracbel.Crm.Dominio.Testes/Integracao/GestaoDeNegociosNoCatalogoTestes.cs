@@ -36,7 +36,9 @@ public sealed class GestaoDeNegociosNoCatalogoTestes
         // É A ROTINA 9 (Id = posição + 1): a de processos do Vórtice (#247) entrou antes, com o 8, e a do preço da
         // máquina (issue 70) depois, com o 10 — nenhuma mudou de identificador.
         metas.Codigo.Should().Be(RotinasDoSistema.MetasGestaoDeNegocios);
-        metas.Modos.Should().Equal("--somente-metas-gn");
+        // A META E O PLANEJAMENTO (28/09/2026): o forecast, o gestor e o consórcio são o segundo modo da mesma rotina — a
+        // mesma conexão, a mesma agenda, e nenhum identificador novo.
+        metas.Modos.Should().Equal("--somente-metas-gn", "--somente-planejamento-gn");
         metas.LigadaPorPadrao.Should().BeFalse("trazer dado novo para produção é decisão de quem administra");
         metas.ConexaoExigida.Should().Be(ConexoesDoSistema.GestaoDeNegocios);
         metas.AgendaPadrao.Should().Be(AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)));

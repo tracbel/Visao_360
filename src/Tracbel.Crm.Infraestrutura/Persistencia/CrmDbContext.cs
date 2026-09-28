@@ -341,6 +341,15 @@ public class CrmDbContext : DbContext
     /// <summary>As metas de venda da API Gestão de Negócios, uma por linha da origem (#138).</summary>
     public DbSet<MetaDeVenda> MetasDeVenda => Set<MetaDeVenda>();
 
+    /// <summary>O de-para de consultores da API Gestão de Negócios: o gestor de cada consultor (28/09/2026).</summary>
+    public DbSet<GestorDoConsultor> GestoresDosConsultores => Set<GestorDoConsultor>();
+
+    /// <summary>O forecast da gerência da API Gestão de Negócios, por gestor, linha e mês (28/09/2026).</summary>
+    public DbSet<ForecastDaGerencia> ForecastsDaGerencia => Set<ForecastDaGerencia>();
+
+    /// <summary>As cotas de consórcio vendidas — o realizado da meta de consórcio (28/09/2026).</summary>
+    public DbSet<CotaDeConsorcioVendida> CotasDeConsorcioVendidas => Set<CotaDeConsorcioVendida>();
+
     // ---- seguranca ----
 
     /// <summary>Usuários.</summary>

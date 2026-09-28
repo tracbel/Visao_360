@@ -1,0 +1,19 @@
+/*
+ * Forecast da Gerência (28/09/2026) — só o que as classes do cadastro não cobrem: o gestor como grupo da tabela, com a
+ * soma na primeira linha, e o total no fim.
+ */
+
+.fc-tabela td,
+.fc-tabela th { text-align: right; white-space: nowrap; }
+.fc-tabela th:first-child,
+.fc-tabela td:first-child { text-align: left; }
+
+/* A SOMA DO GESTOR abre o grupo: o nome em destaque, e as linhas de produto abaixo, recuadas. */
+.fc-soma th { font-weight: 600; color: var(--text-primary); }
+.fc-soma td { font-weight: 600; }
+.fc-gestor .fc-soma th,
+.fc-gestor .fc-soma td { background: var(--n-50); border-top: 1px solid var(--n-200); }
+.fc-nome-da-linha { padding-left: 28px !important; color: var(--text-secondary); }
+
+.fc-total .fc-soma th,
+.fc-total .fc-soma td { border-top: 2px solid var(--n-300); background: var(--bg-surface); }

@@ -3,7 +3,8 @@
  * Espelha `MetaERealizadoDaFilial` (`Aplicacao/Relacionamento/ObterMetaERealizado.cs`) em camelCase.
  *
  * A META é a cota da API Gestão de Negócios, em UNIDADES (máquinas); o REALIZADO são as máquinas vendidas que o CRM
- * tem (o ART, D-M3). O consórcio é à parte, em cotas, sem realizado (D-M4). Todo número se soma entre filiais.
+ * tem (o ART, D-M3). O consórcio é à parte, em cotas; o realizado dele são as cotas vendidas da performance de consórcio da
+ * mesma API (28/09/2026). Todo número se soma entre filiais.
  */
 
 import type { MetricaSemDado } from './relacionamento';
@@ -31,10 +32,15 @@ export type TotaisDaMeta = {
    * ainda não tem vendedor).
    */
   pendentesNoArt: number | null;
-  /** Em cotas — à parte, sem realizado. */
+  /** Em cotas — à parte das máquinas. */
   metaConsorcio: number;
   /** As vendas do período sem vendedor no ART: contam no total e em consultor nenhum. Em número, para somar as filiais. */
   vendasSemVendedor: number;
+  /**
+   * As cotas de consórcio vendidas no período, pela performance de consórcio da GN (28/09/2026); nulo enquanto a rotina
+   * não leu — e não zero.
+   */
+  realizadoConsorcio: number | null;
 };
 
 export type MetaERealizadoNoMes = {
@@ -42,6 +48,8 @@ export type MetaERealizadoNoMes = {
   metaMaquinas: number;
   realizadoMaquinas: number;
   metaConsorcio: number;
+  /** As cotas vendidas no mês (zero também enquanto o consórcio não foi lido — o total diz se foi). */
+  realizadoConsorcio: number;
 };
 
 export type MetaERealizadoNaLinha = { codigo: string; nome: string; meta: number; realizado: number };
