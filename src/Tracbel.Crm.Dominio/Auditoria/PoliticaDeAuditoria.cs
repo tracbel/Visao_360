@@ -152,7 +152,7 @@ public static class PoliticaDeAuditoria
             "PorteMedioAPartirDe", "PorteGrandeAPartirDe",
             "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"
         ],
-        ["PercepcaoDoGestor"] = ["MunicipioId", "Percentual", "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"],
+        ["PercepcaoDoGestor"] = ["MunicipioId", "Percentual", "TendenciaParaTresMeses", "VigenteDesde", "Justificativa", "RevogadoEm", "MotivoDaRevogacao"],
 
         // A PERCEPÇÃO DE CAMPO POR CULTURA (27/09/2026): opinião registrada, como a do município — quem vê o fator
         // precisa poder perguntar quem achou a nota, e quando.

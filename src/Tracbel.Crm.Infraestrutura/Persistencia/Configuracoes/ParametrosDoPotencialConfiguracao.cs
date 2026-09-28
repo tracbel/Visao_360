@@ -289,6 +289,11 @@ public sealed class PercepcaoDoGestorConfiguracao : IEntityTypeConfiguration<Per
         // O LIMITE FINO É O DA VIGÊNCIA DOS PARÂMETROS GERAIS, conferido pelo caso de uso; o banco segura o
         // teto do próprio parâmetro, para nenhum caminho gravar um ajuste absurdo.
         b.ToTable(t => t.HasCheckConstraint("CK_PercepcaoDoGestor_Percentual", "[Percentual] BETWEEN -50 AND 50"));
+
+        // A TENDÊNCIA PARA 3 MESES (28/09/2026) é texto, como os outros enums do modelo, e fechada no banco.
+        b.Property(p => p.TendenciaParaTresMeses).HasConversion<string>().HasMaxLength(10).IsUnicode(false);
+        b.ToTable(t => t.HasCheckConstraint(
+            "CK_PercepcaoDoGestor_Tendencia", "[TendenciaParaTresMeses] IS NULL OR [TendenciaParaTresMeses] IN ('Queda','Estavel','Alta')"));
     }
 }
 

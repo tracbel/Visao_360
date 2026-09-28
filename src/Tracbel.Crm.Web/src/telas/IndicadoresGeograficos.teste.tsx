@@ -1927,7 +1927,8 @@ describe('Indicadores Geográficos — ausência de dado é ausência de dado', 
 
     fireEvent.click(within(momento).getByRole('tab', { name: 'Percepção comercial' }));
     expect(valorDe('Tendência dos gestores').textContent).not.toMatch(/\d/);
-    expect(textoDaDica('Por que a tendência dos gestores não aparece', momento)).toMatch(/issue 71/);
+    // A LEITURA DAS PERCEPÇÕES não está simulada nesta tela: o motivo é o dela, e não uma frase genérica.
+    expect(textoDaDica('Por que a tendência dos gestores não aparece', momento)).toMatch(/percepç(ão|ões) registrada/);
   });
 
   it('as cinco abas do Momento são abas de verdade, e a Composição abre o bloco', async () => {

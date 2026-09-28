@@ -208,7 +208,10 @@ public static class RotulosDaTrilha
             ["MesesDeCarenciaDoSicor"] = "Carência do SICOR (meses)", ["MinimoDeLinhasNoCredito"] = "Mínimo de linhas do SICOR para a base não ser pequena",
             ["PorteMedioAPartirDe"] = "Porte médio a partir de (máquinas por ano)", ["PorteGrandeAPartirDe"] = "Porte grande a partir de (máquinas por ano)"
         },
-        ["PercepcaoDoGestor"] = new(StringComparer.Ordinal) { ["MunicipioId"] = "Município", ["Percentual"] = "Percentual" },
+        ["PercepcaoDoGestor"] = new(StringComparer.Ordinal)
+        {
+            ["MunicipioId"] = "Município", ["Percentual"] = "Percentual", ["TendenciaParaTresMeses"] = "Tendência para 3 meses"
+        },
         ["PercepcaoDaCultura"] = new(StringComparer.Ordinal) { ["CulturaId"] = "Cultura", ["Nota"] = "Nota de campo (−2 a +2)" },
         ["ParametroDoPlanejamento"] = new(StringComparer.Ordinal)
         {

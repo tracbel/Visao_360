@@ -56,7 +56,9 @@ public sealed class ObterParametrosDoPotencial(
 
         var usados = new ParametroComVigencia?[] { geral }.Concat(regrasVigentes).Concat(percepcoesVigentes).OfType<ParametroComVigencia>().ToList();
         var nomes = await referencias.NomesDosUsuariosAsync(Autores(usados), ct);
-        var municipios = await referencias.MunicipiosAsync(percepcoesVigentes.Select(p => p.MunicipioId).ToHashSet(), ct);
+        // TODOS OS MUNICÍPIOS COM LEITURA, e não só os vigentes hoje: a série mensal (28/09/2026) mostra também os que já
+        // tiveram leitura e não têm mais.
+        var municipios = await referencias.MunicipiosAsync(percepcoes.Select(p => p.MunicipioId).ToHashSet(), ct);
 
         // OS RÓTULOS DO CATÁLOGO. Sem eles a tela mostraria duas linhas de "Café" idênticas, uma do trator e
         // outra da colheitadeira, sem nada que as distinguisse.
@@ -71,7 +73,8 @@ public sealed class ObterParametrosDoPotencial(
             [.. regrasVigentes.Select(r => RegraDePotencialDetalhe.De(r, nomes, culturas, categorias))],
             [.. MontagemDasPercepcoes.Detalhar(percepcoesVigentes, municipios, nomes)
                 .OrderBy(p => p.MunicipioNome, StringComparer.Create(PtBr, ignoreCase: true))],
-            Pendencias(geral, regrasVigentes, categorias));
+            Pendencias(geral, regrasVigentes, categorias),
+            MontagemDasPercepcoes.SerieMensal(percepcoes, municipios, data));
 
         return Resultado<ComProcedencia<ParametrosDoPotencialVigentes>>.Ok(
             ComProcedencia<ParametrosDoPotencialVigentes>.DoNossoBanco(
@@ -192,7 +195,36 @@ internal static class MontagemDasPercepcoes
                 var municipio = municipios.GetValueOrDefault(p.MunicipioId);
                 return new PercepcaoDoGestorDetalhe(
                     municipio?.CodigoIbge ?? 0, municipio?.Nome ?? $"município {p.MunicipioId}", municipio?.Uf ?? "",
-                    p.Percentual, VigenciaDoParametro.De(p, nomes));
+                    p.Percentual, VigenciaDoParametro.De(p, nomes), p.TendenciaParaTresMeses?.ToString());
             })
         ];
+
+    /// <summary>
+    /// A SÉRIE MENSAL (28/09/2026): para cada um dos 12 meses até <paramref name="data"/>, a leitura que valia no último
+    /// dia do mês — ou no próprio dia consultado, no mês corrente. Município sem leitura vigente naquele fim de mês fica
+    /// de fora do mês, em vez de entrar como zero.
+    /// </summary>
+    /// <param name="percepcoes">Todas as vigências.</param>
+    /// <param name="municipios">O código IBGE de cada município.</param>
+    /// <param name="data">A data consultada.</param>
+    public static List<PercepcaoDoGestorNoMes> SerieMensal(
+        IReadOnlyList<PercepcaoDoGestor> percepcoes, IReadOnlyDictionary<int, MunicipioDoParametro> municipios, DateOnly data)
+    {
+        var serie = new List<PercepcaoDoGestorNoMes>();
+        var porMunicipio = percepcoes.GroupBy(p => p.MunicipioId).ToList();
+        var primeiroMes = new DateOnly(data.Year, data.Month, 1).AddMonths(-11);
+
+        for (var mes = primeiroMes; mes <= data; mes = mes.AddMonths(1))
+        {
+            var fim = mes.AddMonths(1).AddDays(-1);
+            if (fim > data) fim = data;
+
+            foreach (var grupo in porMunicipio)
+                if (ParametroComVigencia.VigenteEm(grupo, fim) is PercepcaoDoGestor vigente
+                    && municipios.TryGetValue(grupo.Key, out var municipio))
+                    serie.Add(new PercepcaoDoGestorNoMes(mes, municipio.CodigoIbge, vigente.Percentual));
+        }
+
+        return serie;
+    }
 }

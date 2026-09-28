@@ -9,6 +9,7 @@
  */
 
 import type { CreditoDeMaquinasNoMunicipio, JanelasDeCredito, RentabilidadeDaCultura } from '../../../tipos/mercado';
+import type { PercepcaoDoGestorNoMes, TendenciaDaPercepcao } from '../../../tipos/potencial';
 import type { ResponsavelPelaCarteira } from '../../../tipos/territorio';
 
 /* ---------------------------------------------------------------------------
@@ -285,6 +286,41 @@ export function distribuicaoDaPercepcao(
     semRegistro: total - registradas,
     total,
   };
+}
+
+/**
+ * A EVOLUÇÃO DA PERCEPÇÃO (28/09/2026) — a leitura média dos municípios do
+ * recorte no fim de cada mês, pelas vigências. Média simples entre municípios:
+ * a leitura é do município, e não pesa por área. O mês em que nenhum município
+ * do recorte tinha leitura fica de fora, em vez de entrar como zero.
+ */
+export function serieMediaDaPercepcao(
+  serie: readonly PercepcaoDoGestorNoMes[],
+  codigos: ReadonlySet<number>,
+): { mes: string; media: number; municipios: number }[] {
+  const porMes = new Map<string, number[]>();
+  for (const p of serie) {
+    if (codigos.size > 0 && !codigos.has(p.municipioCodigoIbge)) continue;
+    porMes.set(p.mes, [...(porMes.get(p.mes) ?? []), p.percentual]);
+  }
+  return [...porMes.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([mes, valores]) => ({ mes, media: valores.reduce((s, v) => s + v, 0) / valores.length, municipios: valores.length }));
+}
+
+/** Quantas leituras declaram cada tendência para 3 meses, e quantas não declaram. */
+export function contagemDasTendencias(leituras: readonly { tendenciaParaTresMeses?: TendenciaDaPercepcao | null }[]): {
+  Alta: number;
+  Estavel: number;
+  Queda: number;
+  semDeclarar: number;
+} {
+  const conta = { Alta: 0, Estavel: 0, Queda: 0, semDeclarar: 0 };
+  for (const l of leituras) {
+    if (l.tendenciaParaTresMeses) conta[l.tendenciaParaTresMeses]++;
+    else conta.semDeclarar++;
+  }
+  return conta;
 }
 
 /**
