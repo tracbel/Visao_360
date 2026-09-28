@@ -304,7 +304,7 @@ respondem diferente para o mesmo cliente. A rosca é a que está errada.
 
 | Onde | O quê |
 |---|---|
-| Origem | `GET https://agro-sistemas-w.tracbel.com.br:5001/api/v1/cadastros/metas` — a cota de venda do ano fiscal, em unidades, por mês, filial (`filial_numero` = NN de `0101NN`), linha (o vocabulário do ART, mais CONSÓRCIO) e consultor (`NOME.SOBRENOME`), com tipo (Concessão/Direta) e origem (Campanha/Consórcio) |
+| Origem | `GET https://negocios-agro.tracbel.com.br:5001/api/v1/cadastros/metas` — a cota de venda do ano fiscal, em unidades, por mês, filial (`filial_numero` = NN de `0101NN`), linha (o vocabulário do ART, mais CONSÓRCIO) e consultor (`NOME.SOBRENOME`), com tipo (Concessão/Direta) e origem (Campanha/Consórcio) |
 | Leitura | `Integracao/GestaoDeNegocios/ClienteDaGestaoDeNegocios.cs` (paginação, Bearer, certificado validado pelo nome) e `LeitorDeMetasDaGestaoDeNegocios.cs` (os nomes dos campos num lugar só) |
 | Saneamento | `Integracao/GestaoDeNegocios/SaneamentoDasMetas.cs` — mês, filial, linha codificada como no ART, consultor em maiúsculas, tipo, origem, quantidade |
 | Carga | `Carga/CargaDeMetasDaGestaoDeNegocios.cs` — `--somente-metas-gn`, rotina `METAS_GESTAO_NEGOCIOS` |
