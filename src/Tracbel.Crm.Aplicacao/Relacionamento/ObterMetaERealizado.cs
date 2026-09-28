@@ -23,10 +23,15 @@ public sealed record PeriodoDaMeta(
 /// <param name="RealizadoMaquinas">As máquinas vendidas que o CRM tem (<c>frota.VendaDeMaquina</c>, D-M3).</param>
 /// <param name="PendentesNoArt">As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) — nulo no
 /// alcance Próprios.</param>
-/// <param name="MetaConsorcio">A meta de consórcio, em cotas — à parte, sem realizado (D-M4).</param>
+/// <param name="MetaConsorcio">A meta de consórcio, em cotas — à parte das máquinas (D-M4).</param>
 /// <param name="VendasSemVendedor">As vendas do período sem vendedor no ART: contam no total e em consultor nenhum. Em número,
 /// para a tela somar as filiais (revisão do PR #248) — a frase da lacuna é de uma filial só.</param>
-public sealed record TotaisDaMeta(int MetaMaquinas, int RealizadoMaquinas, int? PendentesNoArt, int MetaConsorcio, int VendasSemVendedor);
+/// <param name="RealizadoConsorcio">
+/// As cotas de consórcio vendidas no período, pela regra da performance da GN (28/09/2026); nulo quando o realizado de
+/// consórcio ainda não foi lido.
+/// </param>
+public sealed record TotaisDaMeta(
+    int MetaMaquinas, int RealizadoMaquinas, int? PendentesNoArt, int MetaConsorcio, int VendasSemVendedor, int? RealizadoConsorcio = null);
 
 /// <summary>O mesmo trecho do ano fiscal anterior — só o realizado: a meta daquele ano não está no cadastro.</summary>
 /// <param name="RealizadoMaquinas">As máquinas vendidas no mesmo trecho do ano anterior.</param>
@@ -134,7 +139,8 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
             new PeriodoDaMeta(periodo.Inicial, periodo.Final, periodo.Meses, AnoFiscal.Do(periodo.Final), periodo.Texto, ehOPadrao,
                 anterior.Inicial, anterior.Final),
             alcance.ToString(),
-            new TotaisDaMeta(apurado.MetaMaquinas, apurado.RealizadoMaquinas, apurado.PendentesNoArt, apurado.MetaConsorcio, apurado.VendasSemVendedor),
+            new TotaisDaMeta(apurado.MetaMaquinas, apurado.RealizadoMaquinas, apurado.PendentesNoArt, apurado.MetaConsorcio, apurado.VendasSemVendedor,
+                apurado.RealizadoConsorcio),
             apurado.PorMes,
             apurado.PorLinha,
             apurado.PorConsultor,
@@ -216,10 +222,14 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
             lacunas.Add(new MetricaSemDado("pendentesSemFilial",
                 Texto($"{a.PendentesSemFilial:N0} vendas pendentes do ART no período têm unidade sem filial no CRM e não são contadas em filial nenhuma.")));
 
+        // O CONSÓRCIO (28/09/2026): o realizado vem da performance de consórcio da GN, cota a cota, pela mesma regra dela. Só
+        // quando nunca foi lido é que a frase diz "não lido" — e nunca "zero".
         lacunas.Add(new MetricaSemDado("consorcio",
-            a.MetaConsorcio > 0
-                ? Texto($"Meta de consórcio: {a.MetaConsorcio:N0} cotas no período. O realizado de consórcio não é medido pelo CRM — o ART registra máquina, não cota (D-M4).")
-                : "O realizado de consórcio não é medido pelo CRM — o ART registra máquina, não cota (D-M4)."));
+            a.RealizadoConsorcio is { } cotas
+                ? Texto($"Consórcio: {cotas:N0} cota(s) vendida(s) de uma meta de {a.MetaConsorcio:N0} no período, pela performance de consórcio da API Gestão de Negócios (lida em {a.ConsorcioLidoEm:dd/MM/yyyy HH:mm} UTC). É à parte das máquinas: a cota não é máquina vendida. As cotas da loja Digital não são de filial nenhuma do CRM e não aparecem aqui.")
+                : a.MetaConsorcio > 0
+                    ? Texto($"Meta de consórcio: {a.MetaConsorcio:N0} cotas no período. O realizado de consórcio ainda não foi lido: ele vem da rotina \"Metas de venda (Gestão de Negócios)\", no modo do planejamento.")
+                    : "O realizado de consórcio ainda não foi lido: ele vem da rotina \"Metas de venda (Gestão de Negócios)\", no modo do planejamento."));
 
         if (alcance == AlcanceDaMeta.Filial && a.ConsultoresSemConta > 0)
             lacunas.Add(new MetricaSemDado("consultoresSemConta",
@@ -233,7 +243,7 @@ public sealed class ObterMetaERealizado(IRepositorioDeMetas repositorio, IProved
             Texto($"O mesmo trecho do ano anterior ({anterior.Texto}) traz só o realizado: a meta daquele ano não está no cadastro da API Gestão de Negócios.")));
 
         lacunas.Add(new MetricaSemDado("previsao",
-            "Não há previsão do ano: nenhum modelo de projeção foi aprovado. A API Gestão de Negócios tem uma previsão feita por pessoas (/cadastros/forecast), que ainda não é lida."));
+            "Não há projeção do ano feita pelo CRM: nenhum modelo foi aprovado. A previsão que existe é a da gerência — o forecast e o best guess de cada gestor, lidos da API Gestão de Negócios — e fica no relatório \"Forecast da gerência\"."));
 
         return lacunas;
     }

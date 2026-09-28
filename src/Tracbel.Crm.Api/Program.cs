@@ -356,6 +356,10 @@ builder.Services.AddScoped<VerificarPonteDoLegado>();
 builder.Services.AddScoped<IRepositorioDeMetas, RepositorioDeMetas>();
 builder.Services.AddScoped<ObterMetaERealizado>();
 
+// O FORECAST DA GERÊNCIA DA API GESTÃO DE NEGÓCIOS (28/09/2026).
+builder.Services.AddScoped<IRepositorioDoForecast, RepositorioDoForecast>();
+builder.Services.AddScoped<ObterForecastDaGerencia>();
+
 var app = builder.Build();
 
 // AS MIGRAÇÕES RODAM NA SUBIDA, EM PRODUÇÃO.

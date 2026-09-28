@@ -67,15 +67,16 @@ import '../../estilos/painel-executivo.css';
  * COMO A META DE VENDA SE CONTA — a frase é uma só, no cartão e na composição (#138, decisões de 27/09/2026).
  *
  * A meta é a cota da API Gestão de Negócios, em máquinas; o realizado são as máquinas do ART que o CRM tem. As vendas
- * do ART que o CRM ainda não tem vêm à parte, em número, e o consórcio é em cotas, sem realizado.
+ * do ART que o CRM ainda não tem vêm à parte, em número, e o consórcio é em cotas — o realizado dele, desde 28/09/2026, são
+ * as cotas vendidas da performance de consórcio da mesma API.
  */
 const REGRA_DA_META =
   'Meta: a cota da API Gestão de Negócios, em máquinas, por consultor, linha, mês e filial. ' +
   'Realizado: as máquinas vendidas que o CRM tem, lidas do ART, pela data da venda — por consultor, conta o vendedor da venda. ' +
   'As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) não entram no realizado e aparecem à parte. ' +
-  'Consórcio: meta em cotas; o realizado de consórcio não é medido pelo CRM. ' +
+  'Consórcio: meta em cotas; o realizado são as cotas vendidas da performance de consórcio da API Gestão de Negócios, pelo mês que ela atribui — as da loja Digital não são de filial nenhuma e ficam fora. ' +
   'Período: o ano fiscal (novembro a outubro) até o último mês fechado, comparado com o mesmo trecho do ano fiscal anterior; o mês em curso vem à parte. ' +
-  'Previsão: não calculada — nenhum modelo aprovado.';
+  'Previsão: o CRM não calcula a sua; o forecast e o best guess dos gestores estão no relatório "Forecast da gerência".';
 
 /** A permissão que falta, dita como a tela de perfis a chama. */
 const SEM_PERMISSAO_DA_META =
@@ -833,7 +834,14 @@ function CartaoDaMeta({ metas, carregando }: { metas: MetasConsolidadas | null; 
 
   const partes = [
     metas.pendentesNoArt ? `${nº(metas.pendentesNoArt)} vendas aguardam na integração do ART (cadastro, chassi ou outro motivo)` : null,
-    metas.metaConsorcio > 0 ? `consórcio: ${nº(metas.metaConsorcio)} cotas, realizado não medido` : null,
+    // O CONSÓRCIO NÃO LIDO NÃO É "ZERO COTAS": o cartão diz que falta a leitura.
+    metas.realizadoConsorcio !== null
+      ? metas.metaConsorcio > 0 || metas.realizadoConsorcio > 0
+        ? `consórcio: ${nº(metas.realizadoConsorcio)} de ${nº(metas.metaConsorcio)} cotas`
+        : null
+      : metas.metaConsorcio > 0
+        ? `consórcio: ${nº(metas.metaConsorcio)} cotas de meta, realizado ainda não lido`
+        : null,
     `mesmo trecho do FY anterior: ${nº(metas.realizadoNoAnterior)}`,
     metas.mesEmCurso
       ? `${mesPorExtenso(metas.mesEmCurso.competencia)} em curso: ${nº(metas.mesEmCurso.realizadoMaquinas)} de ${nº(metas.mesEmCurso.metaMaquinas)}`
@@ -1016,7 +1024,8 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
           <strong>Meta e realizado</strong>: API Gestão de Negócios (cadastro de metas) → <code>organizacao.MetaDeVenda</code>, em
           máquinas, contra <code>frota.VendaDeMaquina</code> (o ART), pela data da venda, no ano fiscal até o último mês fechado{' '}
           {metas?.periodo ? `(${metas.periodo.texto})` : ''}. As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) ficam à parte; o
-          consórcio é em cotas, sem realizado. Sem previsão.
+          consórcio é em cotas, contra <code>organizacao.CotaDeConsorcioVendida</code> (a performance de consórcio da mesma API).
+          A previsão dos gestores está no relatório Forecast da gerência.
         </li>
         <li>
           <strong>Clientes</strong>: <code>comercial.Cliente</code> × <code>comercial.ClienteCarteira</code> → cliente com

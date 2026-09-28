@@ -57,7 +57,10 @@ public static class RotulosDaTrilha
         ["EstagioDoProcesso"] = "Estágio do funil (Vórtice)",
         ["ClassificacaoDeResultadoDoVortice"] = "Classificação de resultado do Vórtice",
         ["VendaPerdida"] = "Venda perdida",
-        ["MetaDeVenda"] = "Meta de venda (Gestão de Negócios)"
+        ["MetaDeVenda"] = "Meta de venda (Gestão de Negócios)",
+        ["GestorDoConsultor"] = "Gestor do consultor (Gestão de Negócios)",
+        ["ForecastDaGerencia"] = "Forecast da gerência (Gestão de Negócios)",
+        ["CotaDeConsorcioVendida"] = "Cota de consórcio vendida (Gestão de Negócios)"
     };
 
     // Os campos que se repetem em várias entidades, com o mesmo sentido.
@@ -255,6 +258,21 @@ public static class RotulosDaTrilha
             ["CodigoDaLinha"] = "Código da linha", ["LinhaDeProdutoId"] = "Linha de produto", ["ConsultorNaOrigem"] = "Consultor na origem",
             ["ConsultorUsuarioId"] = "Conta do consultor", ["VendaDireta"] = "Venda direta", ["Origem"] = "Origem da meta",
             ["Quantidade"] = "Quantidade (unidades)", ["ValorUnitario"] = "Valor unitário", ["Margem"] = "Margem"
+        },
+        ["GestorDoConsultor"] = new(StringComparer.Ordinal)
+        {
+            ["ConsultorNaOrigem"] = "Consultor na origem", ["GestorNaOrigem"] = "Gestor (capitão)", ["FilialNumero"] = "Número da filial"
+        },
+        ["ForecastDaGerencia"] = new(StringComparer.Ordinal)
+        {
+            ["Competencia"] = "Mês do forecast", ["GestorNaOrigem"] = "Gestor", ["LinhaNaOrigem"] = "Linha na origem",
+            ["Forecast"] = "Forecast (unidades)", ["BestGuess"] = "Best guess (unidades)"
+        },
+        ["CotaDeConsorcioVendida"] = new(StringComparer.Ordinal)
+        {
+            ["EmpresaId"] = "Filial", ["Competencia"] = "Mês da cota", ["ConsultorNaOrigem"] = "Consultor na origem",
+            ["ConsultorUsuarioId"] = "Conta do consultor", ["GestorNaOrigem"] = "Gestor", ["Contemplacao"] = "Contemplação",
+            ["ValorDoBem"] = "Valor do bem"
         }
     };
 
@@ -279,7 +297,9 @@ public static class RotulosDaTrilha
         [("VendaDeMaquina", "EmpresaId")] = TipoDeReferencia.Empresa,
         [("VendaDeMaquina", "EmpresaDoFaturamentoId")] = TipoDeReferencia.Empresa,
         [("MetaDeVenda", "EmpresaId")] = TipoDeReferencia.Empresa,
-        [("MetaDeVenda", "ConsultorUsuarioId")] = TipoDeReferencia.Usuario
+        [("MetaDeVenda", "ConsultorUsuarioId")] = TipoDeReferencia.Usuario,
+        [("CotaDeConsorcioVendida", "EmpresaId")] = TipoDeReferencia.Empresa,
+        [("CotaDeConsorcioVendida", "ConsultorUsuarioId")] = TipoDeReferencia.Usuario
     };
 
     /// <summary>A profundidade como a pessoa entende — o mesmo texto da tela de perfis.</summary>

@@ -87,6 +87,6 @@ public sealed class TestadorDaGestaoDeNegociosTestes
         var resultado = await new TestadorDeConexoes(new FabricaFalsa(tratador)).TestarAsync(Gn("https://10.150.4.249:5001"), CancellationToken.None);
 
         resultado.Ok.Should().BeFalse();
-        resultado.Resumo.Should().Contain("use o NOME").And.Contain("agro-sistemas-w.tracbel.com.br");
+        resultado.Resumo.Should().Contain("use o NOME").And.Contain("negocios-agro.tracbel.com.br");
     }
 }

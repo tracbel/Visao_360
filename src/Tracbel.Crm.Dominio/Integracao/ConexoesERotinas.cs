@@ -890,7 +890,7 @@ public static class ConexoesDoSistema
 
         // A API GESTÃO DE NEGÓCIOS (27/09/2026) — no FIM da lista: `ConexaoConfiguracao` semeia com Id = posição + 1, e
         // inserir no meio renumeraria as que já existem. É a conexão 13. O endereço não vem da semente: quem administra
-        // grava pela tela o NOME do servidor (D-M1), https://agro-sistemas-w.tracbel.com.br:5001, e a chave.
+        // grava pela tela o NOME do servidor (D-M1), https://negocios-agro.tracbel.com.br:5001, e a chave.
         new(GestaoDeNegocios, "Gestão de Negócios — API", TipoDeConexao.ApiComChave,
             "O cadastro de metas de venda (unidades por consultor, linha, mês e filial) da API da Inteligência de Mercado. " +
             "Só leitura, com a chave no cabeçalho Bearer."),
@@ -1072,10 +1072,14 @@ public static class RotinasDoSistema
         // às 06:00, depois do parque: a meta não depende de nenhuma outra carga, e às 06:00 o cadastro da GN já tem a
         // noite inteira de edições. NASCE DESLIGADA: ligá-la traz dado novo para produção, e quem liga é quem administra,
         // com o endereço pelo nome e a chave gravados e testados em Configurações › Integrações.
+        // O SEGUNDO MODO (28/09/2026) é o planejamento: o de-para de consultores (o gestor de cada um), o forecast da
+        // gerência e as cotas de consórcio vendidas. Vem DEPOIS das metas, e os modos e a descrição não são semeados — só o
+        // nome —, então acrescentá-lo não pede migração.
         new(MetasGestaoDeNegocios, "Metas de venda (Gestão de Negócios)",
             "O cadastro de metas de venda da API Gestão de Negócios — unidades por consultor, linha, mês e filial —, " +
-            "sincronizado com o CRM: meta nova entra, meta revisada fica na trilha, meta que some é excluída sem apagar.",
-            ["--somente-metas-gn"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)), false,
+            "sincronizado com o CRM: meta nova entra, meta revisada fica na trilha, meta que some é excluída sem apagar. Depois, " +
+            "o planejamento: o gestor de cada consultor, o forecast da gerência e as cotas de consórcio vendidas.",
+            ["--somente-metas-gn", "--somente-planejamento-gn"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)), false,
             [ConexoesDoSistema.GestaoDeNegocios], ConexoesDoSistema.GestaoDeNegocios),
 
         // O PREÇO DE REFERÊNCIA DA MÁQUINA POR CATEGORIA (issue 70, D-P12, decidida pelo Ricardo em 27/09/2026) — a rotina

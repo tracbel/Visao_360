@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Tracbel.Crm.Carga;
 using Tracbel.Crm.Carga.Sincronizacao;
 using Tracbel.Crm.Dominio.Comum;
+using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Integracao.Carga;
@@ -220,6 +221,13 @@ var somenteOportunidadesDoVortice = args.Contains("--somente-oportunidades-vorti
 var somenteMetasGn = args.Contains("--somente-metas-gn", StringComparer.Ordinal);
 var aceitarRemocao = args.Contains("--aceitar-remocao", StringComparer.Ordinal);
 
+// --somente-planejamento-gn [--simular] [--aceitar-remocao] — O PLANEJAMENTO DA API GESTÃO DE NEGÓCIOS (decisão de 28/09/2026).
+//
+// Le (so GET) o de-para de consultores, o forecast da gerencia, a performance de consorcio e o de-para das lojas, e SINCRONIZA
+// organizacao.GestorDoConsultor, organizacao.ForecastDaGerencia e organizacao.CotaDeConsorcioVendida. E o segundo modo da
+// rotina METAS_GESTAO_NEGOCIOS, depois das metas. Com --simular, calcula o plano so com leitura.
+var somentePlanejamentoGn = args.Contains("--somente-planejamento-gn", StringComparer.Ordinal);
+
 // --somente-precos-de-maquina [--simular] — O PREÇO DE REFERÊNCIA DA MÁQUINA POR CATEGORIA (issue 70, D-P12, decidida
 // pelo Ricardo em 27/09/2026).
 //
@@ -264,6 +272,7 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-art           as vendas de máquina do ART;
 //   --somente-parque-protheus  o parque de máquinas pelo proprietário atual no Protheus;
 //   --somente-metas-gn      as metas de venda da API Gestão de Negócios;
+//   --somente-planejamento-gn  o gestor de cada consultor, o forecast e o consórcio da API Gestão de Negócios;
 //   --somente-precos-de-maquina  o preço de referência da máquina por categoria, pela nota do Protheus;
 //   --somente-operations-center  o horímetro e a posição das máquinas John Deere conectadas;
 //   --somente-medir         só conta linhas, não grava nada.
@@ -289,7 +298,7 @@ bool[] modosSemVortice =
     somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
     somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina, somenteOportunidadesDoVortice,
-    somenteOperationsCenter
+    somenteOperationsCenter, somentePlanejamentoGn
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -1022,6 +1031,85 @@ if (somenteMetasGn)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A SINCRONIA DAS METAS PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só o planejamento da API Gestão de Negócios (decisão de 28/09/2026): o gestor de cada consultor, o forecast e o
+// consórcio. Não lê o Protheus nem o ART.
+// -------------------------------------------------------------------------------------------------
+
+if (somentePlanejamentoGn)
+{
+    var opcoesDoPlanejamento = new OpcoesDaGestaoDeNegocios();
+    configuracao.GetSection(OpcoesDaGestaoDeNegocios.Secao).Bind(opcoesDoPlanejamento);
+
+    if (opcoesDoPlanejamento.Problema() is { } problemaDoPlanejamento)
+    {
+        Console.Error.WriteLine(problemaDoPlanejamento + " Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    // O CLIENTE NÃO SEGUE REDIRECIONAMENTO, como o das metas: sem a chave aceita, a API manda para /entrar.
+    var servicosDoPlanejamento = new ServiceCollection();
+    servicosDoPlanejamento.AddHttpClient(ClienteDaGestaoDeNegocios.NomeDoCliente)
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+    await using var provedorDoPlanejamento = servicosDoPlanejamento.BuildServiceProvider();
+    var leitorDoPlanejamento = new LeitorDoPlanejamentoDaGestaoDeNegocios(new ClienteDaGestaoDeNegocios(
+        provedorDoPlanejamento.GetRequiredService<IHttpClientFactory>(), Options.Create(opcoesDoPlanejamento)));
+
+    var opcoesDaLeituraDoPlanejamento = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(180))
+            .Options
+        : opcoesDoBanco;
+
+    Console.WriteLine(simular
+        ? "Planejamento da Gestão de Negócios — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
+        : "Planejamento da Gestão de Negócios — sincronizando o gestor de cada consultor, o forecast e o consórcio.");
+    if (aceitarRemocao) Console.WriteLine("  --aceitar-remocao: a trava de remoção em massa não aborta esta rodada.");
+    Console.WriteLine();
+
+    var cargaDoPlanejamento = new CargaDoPlanejamentoDaGestaoDeNegocios(
+        () => new CrmDbContext(opcoesDaLeituraDoPlanejamento, contexto, diario), leitorDoPlanejamento.LerAsync, usuarioId,
+        () => DateTime.UtcNow, Console.WriteLine);
+
+    try
+    {
+        await using var travaDoPlanejamento = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), ForecastDaGerencia.FluxoDaCarga, CancellationToken.None);
+
+        var resultadoDoPlanejamento = await cargaDoPlanejamento.ExecutarAsync(simular, aceitarRemocao, CancellationToken.None);
+        if (!resultadoDoPlanejamento.EhSucesso)
+        {
+            Console.Error.WriteLine("A SINCRONIA DO PLANEJAMENTO PAROU: " + resultadoDoPlanejamento.Erro);
+            return 3;
+        }
+
+        foreach (var etapa in resultadoDoPlanejamento.Valor.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,7:N0}  {rotulo}");
+        }
+
+        foreach (var observacao in resultadoDoPlanejamento.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        Console.WriteLine();
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A SINCRONIA DO PLANEJAMENTO PAROU, e a transação foi desfeita: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;

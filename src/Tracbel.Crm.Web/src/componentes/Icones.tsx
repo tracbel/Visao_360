@@ -7,7 +7,7 @@
  * Geográficos e a marca por extenso do menu, que o protótipo não tinha.
  */
 
-import { CalendarRange as Previsao, Map as Mapa, Target as Alvo } from 'lucide-react';
+import { CalendarRange as Previsao, Map as Mapa, Target as Alvo, TrendingUp as Tendencia } from 'lucide-react';
 
 type Props = { tamanho?: number };
 
@@ -133,6 +133,11 @@ export function IconeDiagnostico({ tamanho = 18 }: Props) {
 /** O calendário da Demanda e previsão (issue 258) — a demanda do ano distribuída mês a mês. */
 export function IconeDemanda({ tamanho = 18 }: Props) {
   return <Previsao size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
+}
+
+/** A tendência do Forecast da Gerência (28/09/2026) — a previsão dos gestores. Tela nova, sem par no protótipo. */
+export function IconeForecast({ tamanho = 18 }: Props) {
+  return <Tendencia size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
 }
 
 export function IconeConfiguracoes(p: Props) {
