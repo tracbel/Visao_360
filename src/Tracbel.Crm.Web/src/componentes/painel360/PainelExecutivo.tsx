@@ -72,7 +72,7 @@ import '../../estilos/painel-executivo.css';
  */
 const REGRA_DA_META =
   'Meta: a cota da API Gestão de Negócios, em máquinas, por consultor, linha, mês e filial. ' +
-  'Realizado: as máquinas vendidas que o CRM tem, lidas do ART, pela data da venda — por consultor, conta o vendedor da venda. ' +
+  'Realizado: as máquinas ENTREGUES que o CRM tem, lidas do ART, no mês da entrega — a mesma régua da Gestão de Negócios; a vendida e ainda não entregue vem à parte. Por consultor, conta o vendedor da venda. ' +
   'As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) não entram no realizado e aparecem à parte. ' +
   'Consórcio: meta em cotas; o realizado são as cotas vendidas da performance de consórcio da API Gestão de Negócios, pelo mês que ela atribui — as da loja Digital não são de filial nenhuma e ficam fora. ' +
   'Período: o ano fiscal (novembro a outubro) até o último mês fechado, comparado com o mesmo trecho do ano fiscal anterior; o mês em curso vem à parte. ' +
@@ -833,6 +833,7 @@ function CartaoDaMeta({ metas, carregando }: { metas: MetasConsolidadas | null; 
   }
 
   const partes = [
+    metas.aguardandoEntrega > 0 ? `${nº(metas.aguardandoEntrega)} vendidas aguardando entrega` : null,
     metas.pendentesNoArt ? `${nº(metas.pendentesNoArt)} vendas aguardam na integração do ART (cadastro, chassi ou outro motivo)` : null,
     // O CONSÓRCIO NÃO LIDO NÃO É "ZERO COTAS": o cartão diz que falta a leitura.
     metas.realizadoConsorcio !== null
@@ -1022,7 +1023,7 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
         </li>
         <li>
           <strong>Meta e realizado</strong>: API Gestão de Negócios (cadastro de metas) → <code>organizacao.MetaDeVenda</code>, em
-          máquinas, contra <code>frota.VendaDeMaquina</code> (o ART), pela data da venda, no ano fiscal até o último mês fechado{' '}
+          máquinas, contra <code>frota.VendaDeMaquina</code> (o ART), só as entregues e pelo mês da entrega, como a Gestão de Negócios, no ano fiscal até o último mês fechado{' '}
           {metas?.periodo ? `(${metas.periodo.texto})` : ''}. As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) ficam à parte; o
           consórcio é em cotas, contra <code>organizacao.CotaDeConsorcioVendida</code> (a performance de consórcio da mesma API).
           A previsão dos gestores está no relatório Forecast da gerência.

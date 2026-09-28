@@ -200,7 +200,7 @@ export function ForecastGerencia() {
           <div>
             <strong>Como ler:</strong> o Forecast é o compromisso do gestor para o mês; o Best Guess, a aposta dele na semana.
             Os dois vêm da Gestão de Negócios, em máquinas, e o CRM não os edita. O PO é a meta dos consultores do time, e o
-            realizado, o que eles venderam pelo ART no mês.
+            realizado, as máquinas que eles venderam e o ART deu como entregues no mês — a régua da Gestão de Negócios.
           </div>
         </div>
       </div>
