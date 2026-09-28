@@ -15,7 +15,7 @@ import { SECOES } from './navegacao';
 const CAMINHOS_DO_MENU = SECOES.flatMap((secao) => secao.itens.map((item) => item.caminho));
 
 describe('menu lateral', () => {
-  it('oferece as dez telas de trabalho, e a Agenda não está entre elas', () => {
+  it('oferece as onze telas de trabalho, e a Agenda não está entre elas', () => {
     expect(CAMINHOS_DO_MENU).toEqual([
       '/',
       '/cobertura',
@@ -26,6 +26,7 @@ describe('menu lateral', () => {
       '/relatorios/performance',
       '/relatorios/cobertura',
       '/relatorios/territorio',
+      '/mercado/diagnostico',
       '/config',
     ]);
     expect(CAMINHOS_DO_MENU).not.toContain('/agenda');

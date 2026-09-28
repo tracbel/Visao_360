@@ -34,6 +34,7 @@ import {
   catalogoFicticio,
   creditoFicticio,
   custosFicticios,
+  diagnosticoFicticio,
   parametrosFicticios,
   precoImplicitoFicticio,
   precosFicticios,
@@ -171,6 +172,13 @@ function instalarInterceptador(): void {
         const dados = historicoFicticio(malhaDosPaineis, Number(historico[1]), estado);
         if (dados) return envelope(dados);
       }
+    }
+
+    // O DIAGNÓSTICO COMERCIAL (issue 257): os municípios da amostra são os mais próximos do primeiro da malha, os
+    // mesmos das outras telas; no `parcialmenteVazio` a ADR vem sem município nenhum.
+    if (caminho === '/v1/mercado/diagnostico') {
+      const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;
+      return envelope(diagnosticoFicticio(municipiosDaMalha(malha, 40), estado === 'parcialmenteVazio'));
     }
 
     if (caminho === '/v1/territorio/indicadores') {
