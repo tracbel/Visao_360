@@ -84,6 +84,16 @@
    grande e quebra o celular. */
 .dash-pagina > * { min-width: 0; }
 
+/* A PÁGINA NA COLUNA INTEIRA (29/09/2026): as telas que passaram para o padrão dos Indicadores vinham do contêiner sem
+   teto (PR #245, "sem teto de largura em tela nenhuma"), e o teto de 1.580 do `.dash-pagina` as estreitaria num monitor
+   largo. Acima de 2.100px de janela a linha de leitura ficaria longa demais: aí volta o teto de 1.940 — o mesmo da Visão
+   360 (`.v360-pagina`). */
+.dash-pagina.dash-pagina-larga { max-width: none; }
+
+@media (min-width: 2100px) {
+  .dash-pagina.dash-pagina-larga { max-width: 1940px; }
+}
+
 /* NA TELA DE MÃO a área de conteúdo do `Layout` desce para 12px de folga (a
    regra dela é por janela, abaixo de 900px), e 12px é pouco para um cartão com
    sombra: a página devolve 4px. É `@media` de propósito — compensa uma regra de
@@ -628,6 +638,35 @@
   cursor: pointer;
 }
 
+/* O CAMPO DE DATA E O DE BUSCA NA MESMA MOLDURA DO SELECT (29/09/2026): as telas que passaram ao padrão com um período
+   de "de" e "até" (o Funil) ou uma busca (o Pipeline) põem esses campos na linha, e o campo nativo, de outra altura e
+   outra borda, destoava dos vizinhos. */
+.dash-filtros-linha > .dash-filtro input[type='search'],
+.dash-filtros-linha > .dash-filtro input[type='date'] {
+  width: 100%;
+  height: 28px;
+  padding: 0 var(--e-2) 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  font-size: var(--t-cartao);
+  color: var(--text-primary);
+}
+
+/* UMA CAIXA DE MARCAR NA LINHA ("Incluir encerrados"): texto do tamanho do campo, sem selo de ícone — ela liga ou
+   desliga, e não escolhe um valor. */
+.dash-caixa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  font-size: var(--t-cartao);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dash-filtros-linha > .dash-filtro input[type='search']:focus-visible,
+.dash-filtros-linha > .dash-filtro input[type='date']:focus-visible,
 .dash-filtros-linha > .dash-filtro select:focus-visible {
   outline: 2px solid var(--jd-green);
   outline-offset: 1px;

@@ -63,7 +63,8 @@ describe('Funil de Vendas — o funil por estágio (documento 52)', () => {
 
     expect(bloco).toHaveTextContent('Coorte · nov/2025 a ago/2026 · ano fiscal até o último mês fechado');
     const linhas = within(bloco).getAllByRole('row').slice(1);
-    expect(linhas.map((l) => l.querySelector('td')?.textContent)).toEqual([
+    // O ESTÁGIO É O CABEÇALHO DA LINHA (`th scope="row"`), como nas tabelas dos Indicadores (29/09/2026).
+    expect(linhas.map((l) => l.querySelector('th')?.textContent)).toEqual([
       'Lead', 'Qualificado', 'Cobertura', 'Negociação', 'Pedido', 'Faturamento',
     ]);
     expect(linhas[0]).toHaveTextContent('100%');

@@ -26,20 +26,38 @@
  * (`GraficoFunil`, porte de `mountFunil()`). Sem dado, o funil não vira zero:
  * cada estágio mostra "—" com o motivo verdadeiro na dica — a rotina que traz o
  * funil ainda não rodou, falhou, ou não trouxe esta filial.
+ *
+ * ---------------------------------------------------------------------------
+ * 29/09/2026 — NO DESENHO DOS INDICADORES GEOGRÁFICOS (pedido do Ricardo: "vamos deixar todas as telas no padrão de
+ * indicadores geográficos"). As mesmas peças, na mesma ordem de leitura: o cabeçalho com a hora da leitura e o botão de
+ * reler; a barra de filtros (o período e o formulário da venda perdida); os quatro números de decisão (`CartaoDeDecisao`);
+ * e duas seções com título — o funil do período e as perdas do período —, em `PainelDoMomento`. A chave coorte × fluxo
+ * mora à direita do título do funil, no alternador dos Indicadores; a nota que explicava a leitura foi para a dica.
+ * NENHUM NÚMERO, REGRA OU TEXTO DE REGRA MUDOU.
  */
 
+import { BadgeCheck, CalendarDays, FileText, Hourglass, RefreshCw, Scale, Users } from 'lucide-react';
 import { useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../componentes/cadastro/EstadosDeTela';
-import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Indicadores';
-import { AvisoDeProcedencia, SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
+import { AvisoDeProcedencia, DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
 import { BlocoRecolhivel } from '../componentes/cadastro/BlocoRecolhivel';
 import { LacunaConhecida, MetricasSemDado } from '../componentes/cadastro/SemDado';
 import { ValorAusente } from '../componentes/comum/ValorAusente';
+import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
 import { corDaFaixa, GraficoFunil, LegendaDoFunil, type FaixaDoFunil } from '../componentes/GraficoFunil';
+import { InfoTooltip } from '../componentes/InfoTooltip';
+import { AbasInternas } from '../componentes/mercado/AbasInternas';
+import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
+import { PainelDoMomento } from '../componentes/mercado/momento/pecas';
+import { TituloDaSecao } from '../componentes/territorio/TituloDaSecao';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { obterFunilPorEstagio, obterVendasPerdidas } from '../dados/api/relacionamento';
 import { useRecurso } from '../dados/api/useRecurso';
 import type { BaseDoFunil, EstagioNoFunil, FatiaDeVendaPerdida } from '../tipos/relacionamento';
+import '../estilos/dashboard.css';
+import '../estilos/mercado-visao.css';
+import '../estilos/momento.css';
+import '../estilos/territorio.css';
 
 /** Os seis estágios, para a tela manter a forma quando o funil não tem dado. */
 const ESTAGIOS_DO_FUNIL = [
@@ -66,8 +84,11 @@ const FORMULARIOS = [
   { codigo: 'IV_Q_VENDA_PERDIDA_IMPL', nome: 'Implementos, versão curta' },
 ] as const;
 
+/** As duas abas do painel das perdas. */
+type AbaDasPerdas = 'motivo' | 'concorrente';
+
 const nº = (v: number) => v.toLocaleString('pt-BR');
-const pct = (v: number | null) => (v === null ? null : `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`);
+const pct =(v: number | null) => (v === null ? null : `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`);
 
 export function Funil() {
   const { contexto } = useContextoDeAcesso();
@@ -75,6 +96,7 @@ export function Funil() {
   /** O período escolhido; nulo é o padrão do servidor — o ano fiscal até o último mês fechado. */
   const [periodo, setPeriodo] = useState<{ de: string; ate: string } | null>(null);
   const [formulario, setFormulario] = useState('');
+  const [abaDasPerdas, setAbaDasPerdas] = useState<AbaDasPerdas>('motivo');
 
   const funil = useRecurso(
     (sinal) => obterFunilPorEstagio(contexto, { base, de: periodo?.de, ate: periodo?.ate }, sinal),
@@ -104,43 +126,15 @@ export function Funil() {
     texto: nº(e.processos),
   }));
 
-  const semNumero = temFunil ? undefined : 'sem dado — o motivo está logo abaixo';
-
-  const indicadores: Indicador[] = [
-    {
-      rotulo: 'Leads',
-      valor: lead ? lead.processos : null,
-      deOnde:
-        base === 'abertura'
-          ? `processos abertos em ${dados?.periodo.texto ?? 'período'} que viraram lead`
-          : `leads alcançados em ${dados?.periodo.texto ?? 'período'}`,
-      semDado: semNumero,
-    },
-    {
-      rotulo: 'Faturados',
-      valor: faturamento ? faturamento.processos : null,
-      tom: 'bom',
-      deOnde: faturamento && faturamento.percentualSobreOLead !== null ? `${pct(faturamento.percentualSobreOLead)} dos leads` : 'sobre os leads',
-      semDado: semNumero,
-    },
-    {
-      rotulo: 'Ganhos · perdidos · abertos',
-      valor: lead ? `${nº(lead.ganhos)} · ${nº(lead.perdidos)} · ${nº(lead.abertos)}` : null,
-      deOnde: 'o desfecho, no Vórtice, dos processos contados no Lead',
-      semDado: semNumero,
-    },
-    {
-      rotulo: `Parados há mais de ${dados?.diasParaParado ?? 60} dias`,
-      valor: dados?.paradosEmNegociacaoOuPedido ?? null,
-      tom: 'atencao',
-      deOnde: 'em Negociação ou Pedido, sem avançar nem encerrar — hoje, qualquer que seja o período',
-      semDado: semNumero,
-    },
-  ];
+  // SEM FUNIL, O NÚMERO É O TRAÇO COM O MOTIVO DO SERVIDOR; LENDO, O CARTÃO PULSA E NÃO AFIRMA MOTIVO NENHUM.
+  const motivoDoCartao = funil.carregando ? undefined : motivo;
+  const noPeriodo = dados?.periodo.texto ?? 'período';
+  const diasParado = dados?.diasParaParado ?? 60;
 
   return (
-    <>
-      <div className="page-header">
+    // A LARGURA É A DA COLUNA INTEIRA, como a Visão 360: o teto só volta acima de 2.100px de janela.
+    <PaginaDoPainel className="dash-pagina-larga">
+      <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Funil de Vendas</h1>
           <p className="page-subtitle">
@@ -148,107 +142,206 @@ export function Funil() {
             cabeçalho.
           </p>
         </div>
+        <p className="dash-atualizado">
+          {funil.procedencia ? <DadosAtualizadosEm procedencia={funil.procedencia} /> : 'Lendo o funil…'}
+          <button
+            type="button"
+            className="dash-recarregar"
+            onClick={() => {
+              funil.recarregar();
+              vendas.recarregar();
+            }}
+            disabled={funil.carregando || vendas.carregando}
+            data-carregando={funil.carregando || vendas.carregando ? 'true' : 'false'}
+            aria-label="Reler o funil"
+          >
+            <RefreshCw size={15} strokeWidth={2} aria-hidden="true" />
+          </button>
+        </p>
+      </div>
+
+      {/* O PERÍODO E O FORMULÁRIO, NA BARRA DOS INDICADORES. O período vale para o funil e para as perdas; o formulário, só
+          para as perdas. Sem período escolhido, vale o padrão do servidor — o ano fiscal até o último mês fechado. */}
+      <div className="dash-filtros" data-bloco="filtros">
+        <div className="dash-filtros-linha">
+          <label className="dash-filtro" data-bloco="de">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <CalendarDays size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">
+                De
+                <InfoTooltip
+                  texto="O período padrão é o ano fiscal (novembro a outubro) até o último mês fechado, calculado no servidor. Trocar uma das datas troca o período do funil e das perdas."
+                  rotulo="Como o período é contado"
+                />
+              </span>
+              <input
+                type="date"
+                value={periodoMostrado?.de ?? ''}
+                onChange={(e) => e.target.value && setPeriodo({ de: e.target.value, ate: periodoMostrado?.ate ?? e.target.value })}
+              />
+            </span>
+          </label>
+
+          <label className="dash-filtro" data-bloco="ate">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <CalendarDays size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Até</span>
+              <input
+                type="date"
+                value={periodoMostrado?.ate ?? ''}
+                onChange={(e) => e.target.value && setPeriodo({ de: periodoMostrado?.de ?? e.target.value, ate: e.target.value })}
+              />
+            </span>
+          </label>
+
+          <label className="dash-filtro" data-bloco="formulario">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <FileText size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Formulário da venda perdida</span>
+              <select value={formulario} onChange={(e) => setFormulario(e.target.value)}>
+                <option value="">Todos os formulários</option>
+                {FORMULARIOS.map((f) => (
+                  <option key={f.codigo} value={f.codigo}>
+                    {f.nome}
+                  </option>
+                ))}
+              </select>
+            </span>
+          </label>
+
+          {periodo && (
+            <div className="dash-filtros-acao">
+              <button type="button" className="dash-mais-filtros" onClick={() => setPeriodo(null)}>
+                Ano fiscal até o último mês fechado
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <AvisoDeProcedencia procedencia={funil.procedencia} />
 
-      <PainelDeIndicadores indicadores={indicadores} carregando={funil.carregando} />
+      <div className="dash-kpis mv-kpis" data-bloco="kpis">
+        <CartaoDeDecisao
+          rotulo="Leads"
+          icone={Users}
+          tom="demanda"
+          valor={lead ? nº(lead.processos) : null}
+          carregando={funil.carregando}
+          unidade="processos"
+          motivoSemDado={motivoDoCartao}
+          variacao={temFunil ? (base === 'abertura' ? 'abertos no período' : 'alcançados no período') : null}
+          sobre={
+            base === 'abertura'
+              ? `Processos abertos em ${noPeriodo} que viraram lead — a coorte do período. Lead e Qualificado são cumulativos: quem chegou à Cobertura também conta aqui.`
+              : `Leads alcançados em ${noPeriodo}, qualquer que seja a abertura — o fluxo do período.`
+          }
+        />
+        <CartaoDeDecisao
+          rotulo="Faturados"
+          icone={BadgeCheck}
+          tom="captura"
+          valor={faturamento ? nº(faturamento.processos) : null}
+          carregando={funil.carregando}
+          unidade="processos"
+          motivoSemDado={motivoDoCartao}
+          variacao={
+            faturamento && faturamento.percentualSobreOLead !== null ? `${pct(faturamento.percentualSobreOLead)} dos leads` : temFunil ? 'sobre os leads' : null
+          }
+          sobre="Os processos que chegaram ao estágio Faturamento — o resultado registrado no histórico do Vórtice, como o BI, e não a nota do Protheus. O percentual é sobre os leads da mesma leitura."
+        />
+        <CartaoDeDecisao
+          rotulo="Desfecho dos leads"
+          icone={Scale}
+          tom="mercado"
+          valor={lead ? nº(lead.ganhos) : null}
+          carregando={funil.carregando}
+          unidade="ganhos"
+          motivoSemDado={motivoDoCartao}
+          variacao={lead ? `${nº(lead.perdidos)} perdidos · ${nº(lead.abertos)} abertos` : null}
+          sobre="O desfecho, no Vórtice, dos processos contados no Lead: ganhos, perdidos e ainda abertos."
+        />
+        <CartaoDeDecisao
+          rotulo={`Parados há mais de ${diasParado} dias`}
+          icone={Hourglass}
+          tom="oportunidade"
+          valor={temFunil && dados?.paradosEmNegociacaoOuPedido != null ? nº(dados.paradosEmNegociacaoOuPedido) : null}
+          carregando={funil.carregando}
+          unidade="processos"
+          motivoSemDado={motivoDoCartao}
+          variacao={temFunil ? 'em Negociação ou Pedido, hoje' : null}
+          sobre={`Em Negociação ou Pedido há mais de ${diasParado} dias, sem avançar nem encerrar — hoje, qualquer que seja o período escolhido.`}
+        />
+      </div>
 
       <MetricasSemDado metricas={dados?.metricasSemDado} />
 
       {/* ---------------------------------------------------------------- */}
       {/* O funil por estágio, com a forma do protótipo                    */}
       {/* ---------------------------------------------------------------- */}
-      <div className="card cad-cartao" data-bloco="funil-por-estagio">
-        <div className="card-header cad-cartao-cabecalho">
-          <div>
-            <div className="card-title">Funil por estágio</div>
-            <div className="card-subtitle">
-              {dados ? `${leitura} · ${dados.periodo.texto}${dados.periodo.ehOPadrao ? ' · ano fiscal até o último mês fechado' : ''}` : leitura}
-            </div>
-          </div>
-          <SeloProcedencia procedencia={funil.procedencia} />
-        </div>
+      <section className="dash-secao" data-bloco="secao-funil">
+        <TituloDaSecao
+          titulo="O funil do período"
+          subtitulo="Até onde os processos do Vórtice chegaram, estágio a estágio."
+          metodologia="O estágio é o resultado do histórico do Vórtice, como o BI: seis estágios, uma linha por processo por estágio alcançado. A fase do fluxo (o BPM) não é o funil, e fica no Pipeline."
+        />
 
-        <div className="cad-barra">
-          {/* A CHAVE COORTE × FLUXO (decisão de 27/09/2026). A coorte é o padrão; o fluxo é o que a Performance de CEN
-              e os alertas usam. */}
-          <div className="cad-filtro" role="group" aria-label="Leitura do funil">
-            Leitura
-            <div className="funil-abas">
-              <button
-                type="button"
-                className={base === 'abertura' ? 'funil-aba ativa' : 'funil-aba'}
-                aria-pressed={base === 'abertura'}
-                onClick={() => setBase('abertura')}
-              >
+        <PainelDoMomento
+          titulo="Funil por estágio"
+          data-bloco="funil-por-estagio"
+          subtitulo={
+            dados
+              ? `${leitura} · ${dados.periodo.texto}${dados.periodo.ehOPadrao ? ' · ano fiscal até o último mês fechado' : ''}`
+              : leitura
+          }
+          dica={
+            <>
+              <p>
+                <strong>Coorte:</strong> os processos abertos no período, e até onde cada um chegou — de cada 100 leads que
+                entraram, quantos viraram pedido.
+              </p>
+              <p>
+                <strong>Fluxo:</strong> as etapas alcançadas no período, qualquer que seja a abertura — quantos pedidos e
+                faturamentos saíram no período.
+              </p>
+              <p>
+                Lead e Qualificado são cumulativos: quem chegou à Cobertura também conta nos dois. O estágio é o resultado do
+                histórico do Vórtice, como o BI — a fase do fluxo não é o funil, e fica no Pipeline.
+              </p>
+            </>
+          }
+          direita={
+            // A CHAVE COORTE × FLUXO (decisão de 27/09/2026), no alternador dos Indicadores. A coorte é o padrão; o fluxo
+            // é o que a Performance de CEN e os alertas usam.
+            <div className="terr-alternador" role="group" aria-label="Leitura do funil">
+              <button type="button" aria-pressed={base === 'abertura'} onClick={() => setBase('abertura')}>
                 Coorte
               </button>
-              <button
-                type="button"
-                className={base === 'etapa' ? 'funil-aba ativa' : 'funil-aba'}
-                aria-pressed={base === 'etapa'}
-                onClick={() => setBase('etapa')}
-              >
+              <button type="button" aria-pressed={base === 'etapa'} onClick={() => setBase('etapa')}>
                 Fluxo
               </button>
             </div>
-          </div>
+          }
+        >
+          {funil.carregando && <BlocoCarregando oQue="o funil" />}
+          {funil.erro && <BlocoErro erro={funil.erro} aoTentarDeNovo={funil.recarregar} />}
 
-          <label className="cad-filtro">
-            De
-            <input
-              type="date"
-              value={periodoMostrado?.de ?? ''}
-              onChange={(e) => e.target.value && setPeriodo({ de: e.target.value, ate: periodoMostrado?.ate ?? e.target.value })}
-            />
-          </label>
-          <label className="cad-filtro">
-            Até
-            <input
-              type="date"
-              value={periodoMostrado?.ate ?? ''}
-              onChange={(e) => e.target.value && setPeriodo({ de: periodoMostrado?.de ?? e.target.value, ate: e.target.value })}
-            />
-          </label>
-          {periodo && (
-            <div className="cad-filtro">
-              &nbsp;
-              <button type="button" className="funil-aba" onClick={() => setPeriodo(null)}>
-                Ano fiscal até o último mês fechado
-              </button>
+          {temFunil && (
+            <div className="funil-container">
+              <GraficoFunil faixas={faixas} />
+              <LegendaDoFunil faixas={faixas} />
             </div>
           )}
-        </div>
 
-        {funil.carregando && <BlocoCarregando oQue="o funil" />}
-        {funil.erro && <BlocoErro erro={funil.erro} aoTentarDeNovo={funil.recarregar} />}
-
-        {temFunil && (
-          <div className="funil-container">
-            <GraficoFunil faixas={faixas} />
-            <LegendaDoFunil faixas={faixas} />
-          </div>
-        )}
-
-        {dados && <TabelaDoFunil estagios={estagios} motivo={temFunil ? null : motivo} />}
-
-        <div className="funil-scope-note">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 8h.01" />
-            <path d="M11 12h1v4h1" />
-          </svg>
-          <div>
-            <strong>{leitura}:</strong>{' '}
-            {base === 'abertura'
-              ? 'os processos abertos no período, e até onde cada um chegou — de cada 100 leads que entraram, quantos viraram pedido.'
-              : 'as etapas alcançadas no período, qualquer que seja a abertura — quantos pedidos e faturamentos saíram no período.'}{' '}
-            Lead e Qualificado são cumulativos: quem chegou à Cobertura também conta nos dois. O estágio é o resultado do
-            histórico do Vórtice, como o BI — a fase do fluxo não é o funil, e fica no Pipeline.
-          </div>
-        </div>
-      </div>
+          {dados && <TabelaDoFunil estagios={estagios} motivo={temFunil ? null : motivo} />}
+        </PainelDoMomento>
+      </section>
 
       {/* ---------------------------------------------------------------- */}
       {/* As perdas do período — o formulário de venda perdida              */}
@@ -256,32 +349,16 @@ export function Funil() {
       {/* SÓ A PRINCIPAL CONTA (27/09/2026): a mesma perda registrada no FY25 e no SEM_PARTICIPACAO, ou detalhada nos
           VP_*, conta uma vez. As duas populações continuam lado a lado — processos perdidos no funil e formulários
           preenchidos —, porque a diferença é quantas derrotas ninguém registrou. */}
-      <div className="card cad-cartao" data-bloco="perdas-por-motivo">
-        <div className="card-header cad-cartao-cabecalho">
-          <div>
-            <div className="card-title">Vendas perdidas por motivo</div>
-            <div className="card-subtitle">
-              {vendas.dados
-                ? `${nº(vendas.dados.registradas)} formulários de ${nº(vendas.dados.processosPerdidos)} processos perdidos · ${vendas.dados.periodo.texto}`
-                : 'do formulário de venda perdida, contadas no banco'}
-            </div>
-          </div>
-          <SeloProcedencia procedencia={vendas.procedencia} />
-        </div>
-
-        <div className="cad-barra">
-          <label className="cad-filtro">
-            Formulário
-            <select value={formulario} onChange={(e) => setFormulario(e.target.value)}>
-              <option value="">Todos os formulários</option>
-              {FORMULARIOS.map((f) => (
-                <option key={f.codigo} value={f.codigo}>
-                  {f.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+      <section className="dash-secao" data-bloco="secao-perdas">
+        <TituloDaSecao
+          titulo="As perdas do período"
+          subtitulo={
+            vendas.dados
+              ? `${nº(vendas.dados.registradas)} formulários de ${nº(vendas.dados.processosPerdidos)} processos perdidos · ${vendas.dados.periodo.texto}`
+              : 'Do formulário de venda perdida, contadas no banco.'
+          }
+          metodologia="O motivo, o concorrente e o preço só existem quando o CEN preenche o formulário de venda perdida no Vórtice, e chegam aqui pela rotina que traz o funil. Só a venda perdida principal conta: a mesma perda registrada em dois formulários conta uma vez. A diferença entre os processos perdidos e os formulários é quantas derrotas ninguém registrou."
+        />
 
         {vendas.carregando && <BlocoCarregando oQue="as vendas perdidas" />}
         {vendas.erro && <BlocoErro erro={vendas.erro} aoTentarDeNovo={vendas.recarregar} />}
@@ -295,27 +372,46 @@ export function Funil() {
           />
         )}
 
-        {vendas.dados && vendas.dados.porMotivo.length > 0 && (
-          <TabelaDePerdas titulo="Motivo" legenda="Vendas perdidas por motivo" fatias={vendas.dados.porMotivo} />
+        {/* UM PAINEL, DUAS ABAS — o motivo e o concorrente —, como na Visão 360. Lado a lado, as duas tabelas de quatro
+            colunas cortavam o preço a 1.536 px; a aba dá a largura inteira a cada uma. */}
+        {vendas.dados && vendas.dados.registradas > 0 && (
+          <PainelDoMomento
+            titulo="Vendas perdidas"
+            data-bloco="perdas-por-motivo"
+            subtitulo="Quantas, quantas máquinas e o preço John Deere contra o do concorrente, por motivo e por fabricante."
+            dica="O motivo e o concorrente são os que o CEN declarou no formulário. O preço é a diferença média entre o nosso e o do concorrente, só nos formulários que trazem os dois — o denominador vem ao lado."
+          >
+            <AbasInternas<AbaDasPerdas>
+              rotulo="Vendas perdidas por"
+              ativa={abaDasPerdas}
+              aoTrocar={setAbaDasPerdas}
+              abas={[
+                {
+                  id: 'motivo',
+                  rotulo: 'Por motivo',
+                  conteudo:
+                    vendas.dados.porMotivo.length > 0 ? (
+                      <TabelaDePerdas titulo="Motivo" legenda="Vendas perdidas por motivo" fatias={vendas.dados.porMotivo} />
+                    ) : (
+                      <p className="v360-nota">Nenhum formulário do período declara o motivo.</p>
+                    ),
+                },
+                {
+                  // PARA QUEM PERDEMOS: o fabricante, e o preço John Deere contra o dele quando o formulário traz os dois.
+                  id: 'concorrente',
+                  rotulo: 'Para quem perdemos',
+                  conteudo:
+                    vendas.dados.porConcorrente.length > 0 ? (
+                      <TabelaDePerdas titulo="Concorrente" legenda="Vendas perdidas por concorrente" fatias={vendas.dados.porConcorrente} forte />
+                    ) : (
+                      <p className="v360-nota">Nenhum formulário do período declara o concorrente.</p>
+                    ),
+                },
+              ]}
+            />
+          </PainelDoMomento>
         )}
-      </div>
-
-      {/* PARA QUEM PERDEMOS: o fabricante, e o preço John Deere contra o dele quando o formulário traz os dois. */}
-      {vendas.dados && vendas.dados.porConcorrente.length > 0 && (
-        <div className="card cad-cartao" data-bloco="para-quem-perdemos">
-          <div className="card-header cad-cartao-cabecalho">
-            <div>
-              <div className="card-title">Para quem perdemos</div>
-              <div className="card-subtitle">
-                o fabricante que levou a venda, e o preço John Deere contra o dele quando o formulário traz os dois ·{' '}
-                {vendas.dados.periodo.texto}
-              </div>
-            </div>
-            <SeloProcedencia procedencia={vendas.procedencia} />
-          </div>
-          <TabelaDePerdas titulo="Concorrente" legenda="Vendas perdidas por concorrente" fatias={vendas.dados.porConcorrente} forte />
-        </div>
-      )}
+      </section>
 
       <BlocoRecolhivel titulo="O que este relatório não pode afirmar" resumo="valor do funil, meta e faturamento">
         <div className="cad-fichas">
@@ -349,7 +445,7 @@ export function Funil() {
           />
         </div>
       </BlocoRecolhivel>
-    </>
+    </PaginaDoPainel>
   );
 }
 
@@ -363,19 +459,19 @@ function TabelaDoFunil({ estagios, motivo }: { estagios: EstagioNoFunil[]; motiv
   const porCodigo = new Map(estagios.map((e) => [e.estagio, e]));
 
   return (
-    <div className="cad-tabela-wrap">
-      <table className="cad-tabela">
+    <div className="mom-tabela-rolagem">
+      <table className="mom-tabela">
         <caption className="cad-so-leitor">O funil por estágio, em número</caption>
         <thead>
           <tr>
             <th scope="col">Estágio</th>
-            <th scope="col">Processos</th>
-            <th scope="col">Sobre o anterior</th>
-            <th scope="col">Sobre o Lead</th>
-            <th scope="col">Pela entrada digital</th>
-            <th scope="col">Ganhos</th>
-            <th scope="col">Perdidos</th>
-            <th scope="col">Abertos</th>
+            <th scope="col" className="mom-num">Processos</th>
+            <th scope="col" className="mom-num">Sobre o anterior</th>
+            <th scope="col" className="mom-num">Sobre o Lead</th>
+            <th scope="col" className="mom-num">Pela entrada digital</th>
+            <th scope="col" className="mom-num">Ganhos</th>
+            <th scope="col" className="mom-num">Perdidos</th>
+            <th scope="col" className="mom-num">Abertos</th>
           </tr>
         </thead>
         <tbody>
@@ -384,14 +480,14 @@ function TabelaDoFunil({ estagios, motivo }: { estagios: EstagioNoFunil[]; motiv
             const ausente = <ValorAusente motivo={motivo ?? 'sem dado'} oQue={`o estágio ${nome}`} />;
             return (
               <tr key={estagio}>
-                <td className="cad-link-forte">{nome}</td>
-                <td className="cad-mono">{e ? nº(e.processos) : ausente}</td>
-                <td className="cad-mono">{e ? (pct(e.percentualSobreOAnterior) ?? '—') : ausente}</td>
-                <td className="cad-mono">{e ? (pct(e.percentualSobreOLead) ?? '—') : ausente}</td>
-                <td className="cad-mono">{e ? nº(e.pelaEntradaDigital) : ausente}</td>
-                <td className="cad-mono">{e ? nº(e.ganhos) : ausente}</td>
-                <td className="cad-mono">{e ? nº(e.perdidos) : ausente}</td>
-                <td className="cad-mono">{e ? nº(e.abertos) : ausente}</td>
+                <th scope="row">{nome}</th>
+                <td className="mom-num">{e ? nº(e.processos) : ausente}</td>
+                <td className="mom-num">{e ? (pct(e.percentualSobreOAnterior) ?? '—') : ausente}</td>
+                <td className="mom-num">{e ? (pct(e.percentualSobreOLead) ?? '—') : ausente}</td>
+                <td className="mom-num">{e ? nº(e.pelaEntradaDigital) : ausente}</td>
+                <td className="mom-num">{e ? nº(e.ganhos) : ausente}</td>
+                <td className="mom-num">{e ? nº(e.perdidos) : ausente}</td>
+                <td className="mom-num">{e ? nº(e.abertos) : ausente}</td>
               </tr>
             );
           })}
@@ -414,24 +510,24 @@ function TabelaDePerdas({
   forte?: boolean;
 }) {
   return (
-    <div className="cad-tabela-wrap">
-      <table className="cad-tabela">
+    <div className="mom-tabela-rolagem">
+      <table className="mom-tabela">
         <caption className="cad-so-leitor">{legenda}</caption>
         <thead>
           <tr>
             <th scope="col">{titulo}</th>
-            <th scope="col">Vendas perdidas</th>
-            <th scope="col">Máquinas</th>
-            <th scope="col">Preço JD acima, em média</th>
+            <th scope="col" className="mom-num">Vendas perdidas</th>
+            <th scope="col" className="mom-num">Máquinas</th>
+            <th scope="col" className="mom-num">Preço JD acima, em média</th>
           </tr>
         </thead>
         <tbody>
           {fatias.map((f) => (
             <tr key={f.codigo}>
-              <td className={forte ? 'cad-link-forte' : undefined}>{f.nome}</td>
-              <td className="cad-mono">{nº(f.quantidade)}</td>
-              <td className="cad-mono">{nº(f.maquinas)}</td>
-              <td className="cad-mono">
+              <th scope="row" data-forte={forte || undefined}>{f.nome}</th>
+              <td className="mom-num">{nº(f.quantidade)}</td>
+              <td className="mom-num">{nº(f.maquinas)}</td>
+              <td className="mom-num">
                 <Diferenca fatia={f} />
               </td>
             </tr>
