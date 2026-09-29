@@ -29,15 +29,25 @@
  * com o cliente" diz qual é cada uma, com a evidência. A coluna do dono mostra o
  * dono confirmado e, sem ele, o dono atual com a evidência — 19 mil máquinas do
  * Protheus têm dono atual e nenhum dono confirmado.
+ *
+ * 29/09/2026 — NO PADRÃO DOS INDICADORES GEOGRÁFICOS (#293, bloco 5): página na coluna inteira, cabeçalho com a hora da
+ * leitura e o reler, e a barra do padrão com os quatro filtros de banco à vista — busca, classificação, porte e
+ * situação. Marca, família, modelo, origem e as duas caixas foram para "Mais filtros", com o selo contando os ligados:
+ * eram onze campos numa barra só. A tabela ficou num painel da seção. Nenhum texto mudou.
  */
 
+import * as Popover from '@radix-ui/react-popover';
+import { Funnel, Gauge, ListFilter, RefreshCw, Search, Tractor } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BarraDePaginacao } from '../../componentes/cadastro/BarraDePaginacao';
 import { BotaoDeNovoCadastro } from '../../componentes/cadastro/BotaoDeNovoCadastro';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../../componentes/cadastro/EstadosDeTela';
 import { EvidenciaDoDono, RelacaoComOCliente } from '../../componentes/cadastro/RelacaoDaMaquina';
-import { AvisoDeProcedencia, SeloProcedencia } from '../../componentes/cadastro/SeloProcedencia';
+import { AvisoDeProcedencia, DadosAtualizadosEm } from '../../componentes/cadastro/SeloProcedencia';
+import { PaginaDoPainel } from '../../componentes/dashboard/Dashboard';
+import { PainelDoMomento } from '../../componentes/mercado/momento/pecas';
+import { TituloDaSecao } from '../../componentes/territorio/TituloDaSecao';
 import { distintosDe, itensDe, modelosDeFrota, useCatalogos } from '../../dados/api/catalogos';
 import { obterCliente } from '../../dados/api/clientes';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
@@ -53,6 +63,9 @@ import {
   type PaginaDe,
 } from '../../tipos/api';
 import { formatarDataHora } from './formato';
+import '../../estilos/dashboard.css';
+import '../../estilos/momento.css';
+import '../../estilos/territorio.css';
 import '../../estilos/frota-comercial.css';
 
 /** O teto de linhas por página da API. Pedir mais é recusado, e com razão. */
@@ -60,17 +73,26 @@ const TETO_DA_API = 200;
 
 const ESPERA_DA_BUSCA_MS = 350;
 
-const COLUNAS: { rotulo: string; ordem?: OrdemDeEquipamento }[] = [
+const COLUNAS: { rotulo: string; ordem?: OrdemDeEquipamento; numerica?: boolean }[] = [
   { rotulo: 'Chassi', ordem: 'Chassi' },
   { rotulo: 'Modelo' },
   { rotulo: 'Classificação' },
-  { rotulo: 'Ano', ordem: 'AnoModelo' },
-  { rotulo: 'Situação', ordem: 'Situacao' },
-  { rotulo: 'Origem' },
+  { rotulo: 'Ano', ordem: 'AnoModelo', numerica: true },
+  // A ORIGEM MORA NA LINHA DE BAIXO DA SITUAÇÃO (29/09/2026): com as onze colunas, a última venda, o cadastro e o
+  // Abrir saíam do painel a 1.536 px. A situação continua sendo a que ordena.
+  { rotulo: 'Situação e origem', ordem: 'Situacao' },
   { rotulo: 'Dono' },
   { rotulo: 'Última venda' },
-  { rotulo: 'Cadastrado em', ordem: 'CriadoEm' },
+  { rotulo: 'Cadastrado em', ordem: 'CriadoEm', numerica: true },
 ];
+
+/** A ordem da lista, dita como a tela a chama. */
+const ROTULO_DA_ORDEM: Record<OrdemDeEquipamento, string> = {
+  Chassi: 'chassi',
+  AnoModelo: 'ano do modelo',
+  Situacao: 'situação',
+  CriadoEm: 'data de cadastro',
+};
 
 /** Com o filtro por cliente, a coluna que diz o que a máquina é para ele entra logo depois do dono. */
 const COLUNAS_COM_CLIENTE: typeof COLUNAS = COLUNAS.flatMap((coluna) =>
@@ -216,9 +238,16 @@ export function EquipamentosLista() {
     definirParametros({});
   }
 
+  /** Os filtros de "Mais filtros" que estão ligados: um filtro que muda a lista não fica escondido sem aviso. */
+  const secundariosAtivos =
+    [frota.marca, frota.familia, frota.modelo, consulta.origem].filter((v) => v !== '').length +
+    (consulta.somenteComVenda ? 1 : 0) +
+    (consulta.incluirInativos ? 1 : 0);
+
   return (
-    <>
-      <div className="page-header">
+    // A LARGURA É A DA COLUNA INTEIRA, como a Visão 360: o teto só volta acima de 2.100px de janela.
+    <PaginaDoPainel className="dash-pagina-larga">
+      <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Equipamentos</h1>
           <p className="page-subtitle">
@@ -226,6 +255,19 @@ export function EquipamentosLista() {
           </p>
         </div>
         <div className="page-actions">
+          <p className="dash-atualizado">
+            {leitura.procedencia ? <DadosAtualizadosEm procedencia={leitura.procedencia} /> : 'Lendo os equipamentos…'}
+            <button
+              type="button"
+              className="dash-recarregar"
+              onClick={leitura.recarregar}
+              disabled={leitura.carregando}
+              data-carregando={leitura.carregando ? 'true' : 'false'}
+              aria-label="Reler os equipamentos"
+            >
+              <RefreshCw size={15} strokeWidth={2} aria-hidden="true" />
+            </button>
+          </p>
           <BotaoDeNovoCadastro para="/equipamentos/novo" rotulo="Novo equipamento" />
         </div>
       </div>
@@ -249,159 +291,197 @@ export function EquipamentosLista() {
         </div>
       )}
 
-      <AvisoDeProcedencia procedencia={leitura.procedencia} />
+      <div className="dash-filtros" data-bloco="filtros">
+        <div className="dash-filtros-linha">
+          <label className="dash-filtro" data-bloco="busca">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <Search size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Buscar máquina</span>
+              <input
+                type="search"
+                aria-label="Buscar equipamento por chassi, número de série ou placa"
+                placeholder="Chassi completo, número de série ou placa…"
+                value={termoDigitado}
+                onChange={(e) => setTermoDigitado(e.target.value)}
+              />
+            </span>
+          </label>
 
-      <div className="cad-barra">
-        <div className="cad-busca">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="search"
-            aria-label="Buscar equipamento por chassi, número de série ou placa"
-            placeholder="Chassi completo, número de série ou placa…"
-            value={termoDigitado}
-            onChange={(e) => setTermoDigitado(e.target.value)}
-          />
+          <label className="dash-filtro" data-bloco="classificacao">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <Tractor size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Classificação</span>
+              <select
+                value={consulta.linhaDeProduto}
+                onChange={(e) => setConsulta((c) => ({ ...c, linhaDeProduto: e.target.value, pagina: 1 }))}
+              >
+                <option value="">Todas</option>
+                {classificacoes.map((l) => (
+                  <option key={l.codigo} value={l.codigo}>
+                    {l.descricao}
+                  </option>
+                ))}
+                <option value={SEM_CLASSIFICACAO}>Sem classificação</option>
+              </select>
+            </span>
+          </label>
+
+          <label className="dash-filtro" data-bloco="porte">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <Gauge size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Porte</span>
+              <select value={consulta.porte} onChange={(e) => setConsulta((c) => ({ ...c, porte: e.target.value, pagina: 1 }))}>
+                <option value="">Todos</option>
+                {portes.map((p) => (
+                  <option key={p.codigo} value={p.codigo}>
+                    {p.descricao}
+                  </option>
+                ))}
+              </select>
+            </span>
+          </label>
+
+          <label className="dash-filtro" data-bloco="situacao">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <ListFilter size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Situação</span>
+              <select
+                value={consulta.situacao}
+                onChange={(e) => setConsulta((c) => ({ ...c, situacao: e.target.value, pagina: 1 }))}
+              >
+                <option value="">Todas</option>
+                {situacoes.map((s) => (
+                  <option key={s.codigo} value={s.codigo}>
+                    {s.descricao}
+                  </option>
+                ))}
+              </select>
+            </span>
+          </label>
+
+          <div className="dash-filtros-acao">
+            <Popover.Root>
+              <Popover.Trigger asChild>
+                <button type="button" className="dash-mais-filtros" data-bloco="mais-filtros">
+                  <Funnel size={15} strokeWidth={2} aria-hidden="true" />
+                  Mais filtros
+                  {secundariosAtivos > 0 && <span className="dash-mais-filtros-selo">{secundariosAtivos}</span>}
+                </button>
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Content className="dash-popover" sideOffset={6} collisionPadding={16} align="end">
+                  <div className="dash-popover-titulo">Mais filtros</div>
+
+                  <label className="dash-filtro">
+                    <span className="dash-filtro-rotulo">Marca</span>
+                    <select
+                      value={frota.marca}
+                      onChange={(e) => {
+                        setFrota({ marca: e.target.value, familia: '', modelo: '' });
+                        setConsulta((c) => ({ ...c, pagina: 1 }));
+                      }}
+                    >
+                      <option value="">Todas</option>
+                      {marcas.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="dash-filtro">
+                    <span className="dash-filtro-rotulo">Família</span>
+                    <select
+                      value={frota.familia}
+                      onChange={(e) => {
+                        setFrota((f) => ({ ...f, familia: e.target.value, modelo: '' }));
+                        setConsulta((c) => ({ ...c, pagina: 1 }));
+                      }}
+                    >
+                      <option value="">Todas</option>
+                      {familias.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="dash-filtro">
+                    <span className="dash-filtro-rotulo">Modelo</span>
+                    <select
+                      value={frota.modelo}
+                      onChange={(e) => {
+                        setFrota((f) => ({ ...f, modelo: e.target.value }));
+                        setConsulta((c) => ({ ...c, pagina: 1 }));
+                      }}
+                    >
+                      <option value="">Todos</option>
+                      {modelosOferecidos.map((m) => (
+                        <option key={m.codigo} value={m.codigo}>
+                          {m.modelo}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="dash-filtro">
+                    <span className="dash-filtro-rotulo">Origem</span>
+                    <select
+                      value={consulta.origem}
+                      onChange={(e) => setConsulta((c) => ({ ...c, origem: e.target.value, pagina: 1 }))}
+                    >
+                      <option value="">Todas</option>
+                      {origens.map((o) => (
+                        <option key={o.codigo} value={o.codigo}>
+                          {o.descricao}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="dash-caixa">
+                    <input
+                      type="checkbox"
+                      checked={consulta.somenteComVenda}
+                      onChange={(e) => setConsulta((c) => ({ ...c, somenteComVenda: e.target.checked, pagina: 1 }))}
+                    />
+                    Só com venda registrada
+                  </label>
+
+                  <label className="dash-caixa">
+                    <input
+                      type="checkbox"
+                      checked={consulta.incluirInativos}
+                      onChange={(e) => setConsulta((c) => ({ ...c, incluirInativos: e.target.checked, pagina: 1 }))}
+                    />
+                    Mostrar baixados
+                  </label>
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+          </div>
+
+          {temFiltro && (
+            <div className="dash-filtros-acao">
+              <button type="button" className="dash-mais-filtros" onClick={limparFiltros}>
+                Limpar filtros
+              </button>
+            </div>
+          )}
         </div>
-
-        <label className="cad-filtro">
-          Classificação
-          <select
-            value={consulta.linhaDeProduto}
-            onChange={(e) => setConsulta((c) => ({ ...c, linhaDeProduto: e.target.value, pagina: 1 }))}
-          >
-            <option value="">Todas</option>
-            {classificacoes.map((l) => (
-              <option key={l.codigo} value={l.codigo}>
-                {l.descricao}
-              </option>
-            ))}
-            <option value={SEM_CLASSIFICACAO}>Sem classificação</option>
-          </select>
-        </label>
-
-        <label className="cad-filtro">
-          Porte
-          <select value={consulta.porte} onChange={(e) => setConsulta((c) => ({ ...c, porte: e.target.value, pagina: 1 }))}>
-            <option value="">Todos</option>
-            {portes.map((p) => (
-              <option key={p.codigo} value={p.codigo}>
-                {p.descricao}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="cad-filtro">
-          Marca
-          <select
-            value={frota.marca}
-            onChange={(e) => {
-              setFrota({ marca: e.target.value, familia: '', modelo: '' });
-              setConsulta((c) => ({ ...c, pagina: 1 }));
-            }}
-          >
-            <option value="">Todas</option>
-            {marcas.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="cad-filtro">
-          Família
-          <select
-            value={frota.familia}
-            onChange={(e) => {
-              setFrota((f) => ({ ...f, familia: e.target.value, modelo: '' }));
-              setConsulta((c) => ({ ...c, pagina: 1 }));
-            }}
-          >
-            <option value="">Todas</option>
-            {familias.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="cad-filtro">
-          Modelo
-          <select
-            value={frota.modelo}
-            onChange={(e) => {
-              setFrota((f) => ({ ...f, modelo: e.target.value }));
-              setConsulta((c) => ({ ...c, pagina: 1 }));
-            }}
-          >
-            <option value="">Todos</option>
-            {modelosOferecidos.map((m) => (
-              <option key={m.codigo} value={m.codigo}>
-                {m.modelo}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="cad-filtro">
-          Situação
-          <select
-            value={consulta.situacao}
-            onChange={(e) => setConsulta((c) => ({ ...c, situacao: e.target.value, pagina: 1 }))}
-          >
-            <option value="">Todas</option>
-            {situacoes.map((s) => (
-              <option key={s.codigo} value={s.codigo}>
-                {s.descricao}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="cad-filtro">
-          Origem
-          <select
-            value={consulta.origem}
-            onChange={(e) => setConsulta((c) => ({ ...c, origem: e.target.value, pagina: 1 }))}
-          >
-            <option value="">Todas</option>
-            {origens.map((o) => (
-              <option key={o.codigo} value={o.codigo}>
-                {o.descricao}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="cad-filtro cad-filtro-caixa">
-          <input
-            type="checkbox"
-            checked={consulta.somenteComVenda}
-            onChange={(e) => setConsulta((c) => ({ ...c, somenteComVenda: e.target.checked, pagina: 1 }))}
-          />
-          Só com venda registrada
-        </label>
-
-        <label className="cad-filtro cad-filtro-caixa">
-          <input
-            type="checkbox"
-            checked={consulta.incluirInativos}
-            onChange={(e) => setConsulta((c) => ({ ...c, incluirInativos: e.target.checked, pagina: 1 }))}
-          />
-          Mostrar baixados
-        </label>
-
-        {temFiltro && (
-          <button type="button" className="btn btn-secondary btn-sm" onClick={limparFiltros}>
-            Limpar filtros
-          </button>
-        )}
       </div>
+
+      <AvisoDeProcedencia procedencia={leitura.procedencia} />
 
       {passouDoTeto && (
         <div className="cad-aviso cad-aviso-atencao" role="status">
@@ -414,207 +494,215 @@ export function EquipamentosLista() {
         </div>
       )}
 
-      <div className="card cad-cartao">
-        <div className="card-header cad-cartao-cabecalho">
-          <div>
-            <div className="card-title">{clienteDaRota ? 'Máquinas do cliente' : 'Máquinas desta filial'}</div>
-            <div className="card-subtitle">
-              {leitura.recarregando ? 'Atualizando…' : `${pagina?.total ?? 0} no total`}
-            </div>
-          </div>
-          <SeloProcedencia procedencia={leitura.procedencia} />
-        </div>
+      <section className="dash-secao" data-bloco="secao-maquinas">
+        <TituloDaSecao
+          titulo="As máquinas"
+          subtitulo={`Ordenadas por ${ROTULO_DA_ORDEM[consulta.ordenarPor] ?? consulta.ordenarPor}${consulta.descendente ? ', do maior para o menor' : ''}.`}
+        />
 
-        {leitura.carregando && <BlocoCarregando oQue="os equipamentos" />}
-        {leitura.erro && <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />}
+        <PainelDoMomento
+          titulo={clienteDaRota ? 'Máquinas do cliente' : 'Máquinas desta filial'}
+          data-bloco="maquinas"
+          subtitulo={leitura.recarregando ? 'Atualizando…' : `${pagina?.total ?? 0} no total`}
+          dica="Clique no título de uma coluna com seta para ordenar por ela. O chassi, ou o Abrir, abre a ficha da máquina; o duplo clique na linha também."
+        >
+          {leitura.carregando && <BlocoCarregando oQue="os equipamentos" />}
+          {leitura.erro && <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />}
 
-        {pagina && !leitura.erro && pagina.itens.length === 0 && (
-          <BlocoVazio
-            titulo={
-              temFiltro
-                ? 'Nenhuma máquina com esses filtros'
-                : clienteDaRota
-                  ? 'Nenhuma máquina deste cliente ao seu alcance'
-                  : 'Esta filial ainda não tem máquinas cadastradas'
-            }
-            texto={
-              temFiltro ? (
-                <>
-                  A busca compara o <strong>chassi inteiro</strong> — os 17 caracteres da plaqueta. Pedaço de
-                  chassi ainda não encontra: é uma dívida conhecida da busca. Número de série e placa são
-                  comparados por trecho.
-                </>
-              ) : clienteDaRota ? (
-                'Ele não é o dono atual de nenhuma máquina pela sincronia do parque, não comprou nenhuma no ART e não é ' +
-                'o dono confirmado de nenhuma — nas filiais que você alcança.'
-              ) : (
-                'Cadastre a primeira máquina — inclusive a do concorrente, que é o que alimenta a Cobertura de Carteira.'
-              )
-            }
-            acao={
-              temFiltro ? (
-                <button type="button" className="btn btn-secondary" onClick={limparFiltros}>
-                  Limpar filtros
-                </button>
-              ) : clienteDaRota ? (
-                <button type="button" className="btn btn-secondary" onClick={verTodasAsMaquinas}>
-                  Ver todas as máquinas
-                </button>
-              ) : (
-                <Link to="/equipamentos/novo" className="btn btn-primary">
-                  Cadastrar o primeiro equipamento
-                </Link>
-              )
-            }
-          />
-        )}
-
-        {pagina && pagina.itens.length > 0 && (
-          <>
-            <div className="cad-tabela-wrap">
-              <table className="cad-tabela">
-                <caption className="cad-so-leitor">
-                  Equipamentos da filial {contexto.empresa}, ordenados por {consulta.ordenarPor}
-                </caption>
-                <thead>
-                  <tr>
-                    {colunas.map((coluna) => (
-                      <th key={coluna.rotulo} scope="col" aria-sort={ariaOrdem(coluna.ordem, consulta)}>
-                        {coluna.ordem ? (
-                          <button type="button" className="cad-th-ordenar" onClick={() => trocarOrdem(coluna.ordem!)}>
-                            {coluna.rotulo}
-                            <span aria-hidden="true">{seta(coluna.ordem, consulta)}</span>
-                          </button>
-                        ) : (
-                          coluna.rotulo
-                        )}
-                      </th>
-                    ))}
-                    <th scope="col" className="cad-col-acoes">
-                      <span className="cad-so-leitor">Ações</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagina.itens.map((maquina) => {
-                    const modelo = maquina.modeloCodigo ? porCodigo.get(maquina.modeloCodigo) : undefined;
-                    return (
-                      <tr
-                        key={maquina.chave}
-                        className={maquina.estaInativo ? 'cad-linha-inativa' : undefined}
-                        onDoubleClick={() => navegar(`/equipamentos/${maquina.chave}`)}
-                      >
-                        <td className="cad-mono">
-                          <Link to={`/equipamentos/${maquina.chave}`} className="cad-link-forte">
-                            {maquina.chassi}
-                          </Link>
-                        </td>
-                        <td>
-                          {maquina.modeloNome ?? <span className="cad-vazio">sem modelo</span>}
-                          <div className="cad-sub">
-                            {maquina.marca ?? '—'}
-                            {modelo?.familia ? ` · ${modelo.familia}` : ''}
-                            {maquina.marcaRepresentada === false && (
-                              <span className="cad-selo cad-selo-concorrente">concorrente</span>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          {maquina.classificacaoNome ?? <span className="cad-vazio">sem classificação</span>}
-                          {maquina.porte && ROTULO_DO_PORTE[maquina.porte] && (
-                            <div className="cad-sub">porte {ROTULO_DO_PORTE[maquina.porte]}</div>
-                          )}
-                        </td>
-                        <td className="cad-mono">{maquina.anoModelo ?? <span className="cad-vazio">—</span>}</td>
-                        <td>
-                          <span className={`cad-selo cad-selo-${maquina.situacao.toLowerCase()}`}>
-                            {maquina.situacao === 'ProprietarioNaoConfirmado' ? 'dono não confirmado' : maquina.situacao}
-                          </span>
-                          {maquina.estaInativo && <span className="cad-selo cad-selo-inativo">baixado</span>}
-                        </td>
-                        <td>
-                          {maquina.origem === 'Art' ? <span className="cad-selo cad-selo-art">ART</span> : maquina.origem}
-                        </td>
-                        <td>
-                          {/* O DONO CONFIRMADO PRIMEIRO; sem ele, o DONO ATUAL da sincronia do parque, com a evidência.
-                              Os dois têm nome próprio na célula — 19 mil máquinas do Protheus têm o segundo e não o
-                              primeiro, e "dono não confirmado" sozinho escondia quem é. */}
-                          {maquina.clienteChave ? (
-                            <>
-                              <Link to={`/clientes/${maquina.clienteChave}`}>{maquina.clienteNome}</Link>
-                              <div className="cad-sub">dono confirmado</div>
-                            </>
-                          ) : maquina.donoAtualChave ? (
-                            <>
-                              <Link to={`/clientes/${maquina.donoAtualChave}`}>{maquina.donoAtualNome}</Link>
-                              <div className="cad-sub">
-                                dono atual
-                                {/* Com o filtro por cliente a evidência já está na coluna da relação. */}
-                                {!clienteDaRota && (
-                                  <>
-                                    {' '}
-                                    <EvidenciaDoDono evidencia={maquina.evidenciaDoDonoAtual} em={maquina.evidenciaDoDonoAtualEm} />
-                                  </>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <span className="cad-vazio">
-                              {maquina.situacao === 'ProprietarioNaoConfirmado' ? 'dono não confirmado' : 'sem dono'}
-                            </span>
-                          )}
-                        </td>
-                        {clienteDaRota && (
-                          <td>
-                            <RelacaoComOCliente maquina={maquina} />
-                          </td>
-                        )}
-                        <td>
-                          {maquina.vendas > 0 ? (
-                            <>
-                              <span className="cad-mono">{dataCurta(maquina.ultimaVendaEm)}</span>{' '}
-                              <span className="cad-selo cad-selo-comprador">comprador na venda</span>
-                              <div>
-                                {maquina.compradorNaUltimaVendaChave ? (
-                                  <Link to={`/clientes/${maquina.compradorNaUltimaVendaChave}`}>
-                                    {maquina.compradorNaUltimaVendaNome}
-                                  </Link>
-                                ) : (
-                                  <span className="cad-vazio">comprador de outra filial</span>
-                                )}
-                              </div>
-                              <div className="cad-sub">
-                                {maquina.sistemaDaVenda} · {maquina.produtoNaOrigem}
-                                {maquina.vendas > 1 ? ` · ${maquina.vendas} vendas` : ''}
-                              </div>
-                            </>
-                          ) : (
-                            <span className="cad-vazio">—</span>
-                          )}
-                        </td>
-                        <td className="cad-mono">{formatarDataHora(maquina.criadoEm)}</td>
-                        <td className="cad-col-acoes">
-                          <Link to={`/equipamentos/${maquina.chave}`} className="btn btn-secondary btn-sm">
-                            Abrir
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <BarraDePaginacao
-              pagina={pagina}
-              oQue="equipamentos"
-              aoTrocarPagina={(p) => setConsulta((c) => ({ ...c, pagina: p }))}
-              aoTrocarTamanho={(t) => setConsulta((c) => ({ ...c, tamanho: t, pagina: 1 }))}
+          {pagina && !leitura.erro && pagina.itens.length === 0 && (
+            <BlocoVazio
+              titulo={
+                temFiltro
+                  ? 'Nenhuma máquina com esses filtros'
+                  : clienteDaRota
+                    ? 'Nenhuma máquina deste cliente ao seu alcance'
+                    : 'Esta filial ainda não tem máquinas cadastradas'
+              }
+              texto={
+                temFiltro ? (
+                  <>
+                    A busca compara o <strong>chassi inteiro</strong> — os 17 caracteres da plaqueta. Pedaço de
+                    chassi ainda não encontra: é uma dívida conhecida da busca. Número de série e placa são
+                    comparados por trecho.
+                  </>
+                ) : clienteDaRota ? (
+                  'Ele não é o dono atual de nenhuma máquina pela sincronia do parque, não comprou nenhuma no ART e não é ' +
+                  'o dono confirmado de nenhuma — nas filiais que você alcança.'
+                ) : (
+                  'Cadastre a primeira máquina — inclusive a do concorrente, que é o que alimenta a Cobertura de Carteira.'
+                )
+              }
+              acao={
+                temFiltro ? (
+                  <button type="button" className="btn btn-secondary" onClick={limparFiltros}>
+                    Limpar filtros
+                  </button>
+                ) : clienteDaRota ? (
+                  <button type="button" className="btn btn-secondary" onClick={verTodasAsMaquinas}>
+                    Ver todas as máquinas
+                  </button>
+                ) : (
+                  <Link to="/equipamentos/novo" className="btn btn-primary">
+                    Cadastrar o primeiro equipamento
+                  </Link>
+                )
+              }
             />
-          </>
-        )}
-      </div>
-    </>
+          )}
+
+          {pagina && pagina.itens.length > 0 && (
+            <>
+              <div className="mom-tabela-rolagem">
+                <table className="mom-tabela">
+                  <caption className="cad-so-leitor">
+                    Equipamentos da filial {contexto.empresa}, ordenados por {consulta.ordenarPor}
+                  </caption>
+                  <thead>
+                    <tr>
+                      {colunas.map((coluna) => (
+                        <th
+                          key={coluna.rotulo}
+                          scope="col"
+                          className={coluna.numerica ? 'mom-num' : undefined}
+                          aria-sort={ariaOrdem(coluna.ordem, consulta)}
+                        >
+                          {coluna.ordem ? (
+                            <button type="button" className="cad-th-ordenar" onClick={() => trocarOrdem(coluna.ordem!)}>
+                              {coluna.rotulo}
+                              <span aria-hidden="true">{seta(coluna.ordem, consulta)}</span>
+                            </button>
+                          ) : (
+                            coluna.rotulo
+                          )}
+                        </th>
+                      ))}
+                      <th scope="col" className="mom-acoes">
+                        <span className="cad-so-leitor">Ações</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagina.itens.map((maquina) => {
+                      const modelo = maquina.modeloCodigo ? porCodigo.get(maquina.modeloCodigo) : undefined;
+                      return (
+                        <tr
+                          key={maquina.chave}
+                          className={maquina.estaInativo ? 'cad-linha-inativa' : undefined}
+                          onDoubleClick={() => navegar(`/equipamentos/${maquina.chave}`)}
+                        >
+                          <th scope="row" className="cad-mono">
+                            <Link to={`/equipamentos/${maquina.chave}`} className="cad-link-forte">
+                              {maquina.chassi}
+                            </Link>
+                          </th>
+                          <td>
+                            {maquina.modeloNome ?? <span className="cad-vazio">sem modelo</span>}
+                            <div className="cad-sub">
+                              {maquina.marca ?? '—'}
+                              {modelo?.familia ? ` · ${modelo.familia}` : ''}
+                              {maquina.marcaRepresentada === false && (
+                                <span className="cad-selo cad-selo-concorrente">concorrente</span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            {maquina.classificacaoNome ?? <span className="cad-vazio">sem classificação</span>}
+                            {maquina.porte && ROTULO_DO_PORTE[maquina.porte] && (
+                              <div className="cad-sub">porte {ROTULO_DO_PORTE[maquina.porte]}</div>
+                            )}
+                          </td>
+                          <td className="mom-num">{maquina.anoModelo ?? <span className="cad-vazio">—</span>}</td>
+                          <td>
+                            <span className={`cad-selo cad-selo-${maquina.situacao.toLowerCase()}`}>
+                              {maquina.situacao === 'ProprietarioNaoConfirmado' ? 'dono não confirmado' : maquina.situacao}
+                            </span>
+                            {maquina.estaInativo && <span className="cad-selo cad-selo-inativo">baixado</span>}
+                            <div className="cad-sub">
+                              origem{' '}
+                              {maquina.origem === 'Art' ? <span className="cad-selo cad-selo-art">ART</span> : maquina.origem}
+                            </div>
+                          </td>
+                          <td className="frota-celula-longa">
+                            {/* O DONO CONFIRMADO PRIMEIRO; sem ele, o DONO ATUAL da sincronia do parque, com a evidência.
+                                Os dois têm nome próprio na célula — 19 mil máquinas do Protheus têm o segundo e não o
+                                primeiro, e "dono não confirmado" sozinho escondia quem é. */}
+                            {maquina.clienteChave ? (
+                              <>
+                                <Link to={`/clientes/${maquina.clienteChave}`}>{maquina.clienteNome}</Link>
+                                <div className="cad-sub">dono confirmado</div>
+                              </>
+                            ) : maquina.donoAtualChave ? (
+                              <>
+                                <Link to={`/clientes/${maquina.donoAtualChave}`}>{maquina.donoAtualNome}</Link>
+                                <div className="cad-sub">
+                                  dono atual
+                                  {/* Com o filtro por cliente a evidência já está na coluna da relação. */}
+                                  {!clienteDaRota && (
+                                    <>
+                                      {' '}
+                                      <EvidenciaDoDono evidencia={maquina.evidenciaDoDonoAtual} em={maquina.evidenciaDoDonoAtualEm} />
+                                    </>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <span className="cad-vazio">
+                                {maquina.situacao === 'ProprietarioNaoConfirmado' ? 'dono não confirmado' : 'sem dono'}
+                              </span>
+                            )}
+                          </td>
+                          {clienteDaRota && (
+                            <td className="frota-celula-longa">
+                              <RelacaoComOCliente maquina={maquina} />
+                            </td>
+                          )}
+                          <td className="frota-celula-longa">
+                            {maquina.vendas > 0 ? (
+                              <>
+                                <span className="cad-mono">{dataCurta(maquina.ultimaVendaEm)}</span>{' '}
+                                <span className="cad-selo cad-selo-comprador">comprador na venda</span>
+                                <div>
+                                  {maquina.compradorNaUltimaVendaChave ? (
+                                    <Link to={`/clientes/${maquina.compradorNaUltimaVendaChave}`}>
+                                      {maquina.compradorNaUltimaVendaNome}
+                                    </Link>
+                                  ) : (
+                                    <span className="cad-vazio">comprador de outra filial</span>
+                                  )}
+                                </div>
+                                <div className="cad-sub">
+                                  {maquina.sistemaDaVenda} · {maquina.produtoNaOrigem}
+                                  {maquina.vendas > 1 ? ` · ${maquina.vendas} vendas` : ''}
+                                </div>
+                              </>
+                            ) : (
+                              <span className="cad-vazio">—</span>
+                            )}
+                          </td>
+                          <td className="mom-num">{formatarDataHora(maquina.criadoEm)}</td>
+                          <td className="mom-acoes">
+                            <Link to={`/equipamentos/${maquina.chave}`} className="btn btn-secondary btn-sm">
+                              Abrir
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <BarraDePaginacao
+                pagina={pagina}
+                oQue="equipamentos"
+                aoTrocarPagina={(p) => setConsulta((c) => ({ ...c, pagina: p }))}
+                aoTrocarTamanho={(t) => setConsulta((c) => ({ ...c, tamanho: t, pagina: 1 }))}
+              />
+            </>
+          )}
+        </PainelDoMomento>
+      </section>
+    </PaginaDoPainel>
   );
 }
 

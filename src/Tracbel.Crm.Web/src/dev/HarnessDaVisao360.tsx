@@ -30,6 +30,9 @@
  * AS OUTRAS TELAS DE RELACIONAMENTO TAMBÉM (29/09/2026): Funil, Pipeline, Agenda e as duas Coberturas leem as mesmas
  * rotas que a Visão 360 soma — processos, tarefas, cobertura, funil e perdas —, e com `rota=` o harness abre nelas, sobre
  * as mesmas amostras. É o que deixa conferir o redesenho delas no padrão dos Indicadores sem banco nem VPN.
+ *
+ * AS LISTAS DO CADASTRO TAMBÉM (29/09/2026, #293 bloco 5): Clientes e Equipamentos abrem com `rota=/clientes` e
+ * `rota=/equipamentos`, sobre as amostras de `amostrasDoCadastro.ts` — catálogos, clientes e máquinas.
  */
 
 import { useEffect, useState } from 'react';
@@ -40,6 +43,7 @@ import { ProvedorDeContextoDeAcesso } from '../dados/api/contexto';
 import { ProvedorDeSessao } from '../dados/api/sessao';
 import { ROTAS } from '../rotas';
 import { ESTADOS_DA_VISAO360, respostaDaVisao360, type EstadoDaVisao360 } from './amostrasDaVisao360';
+import { respostaDoCadastro } from './amostrasDoCadastro';
 import '../estilos/design-system.css';
 
 function parametro(nome: string): string | null {
@@ -119,10 +123,12 @@ function instalarInterceptador(): void {
     if (!url.includes('/api/v1/')) return anterior(entrada, init);
 
     const [caminho, consulta = ''] = url.replace(/^.*\/api/, '').split('?');
+    const parametros = new URLSearchParams(consulta);
     const dados =
       caminho === '/v1/acesso/escopo'
         ? ESCOPO_FICTICIO
-        : respostaDaVisao360(caminho, new URLSearchParams(consulta), filialDoPedido(init), estadoDaUrl());
+        : (respostaDaVisao360(caminho, parametros, filialDoPedido(init), estadoDaUrl()) ??
+          respostaDoCadastro(caminho, parametros, estadoDaUrl()));
     if (dados !== undefined) return envelope(dados);
 
     // UMA ROTA QUE NINGUÉM SIMULOU RESPONDE 404, e não vai à rede: o harness não

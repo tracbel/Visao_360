@@ -74,3 +74,13 @@
 .frota-evidencia {
   color: var(--text-secondary);
 }
+
+/* AS COLUNAS DE NOME QUEBRAM LINHA (29/09/2026, lista no padrão dos Indicadores): a `mom-tabela` não quebra por
+   padrão, e a razão social de uma cooperativa no Dono, com a evidência embaixo, empurrava a última venda, o cadastro
+   e o Abrir para fora do painel a 1.536 px. Com a quebra — e a origem na linha de baixo da situação —, a lista cabe
+   no painel. */
+.mom-tabela td.frota-celula-longa {
+  min-width: 170px;
+  max-width: 260px;
+  white-space: normal;
+}
