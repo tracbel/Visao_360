@@ -1,5 +1,9 @@
 # O banco do servidor, a tela sem dados e o caminho dos dados até lá
 
+> **Versão 1.9 · 29/09/2026 — o catálogo dos campos do ART (#17):** cada uma das 22 colunas que o CRM lê da view de
+> vendas, com o saneamento, a coluna onde grava, quem a usa hoje e se ainda é necessária; o que fica de fora de
+> propósito; e a comparação com o painel `art` da API Gestão de Negócios, atualizada. Em **§16**. Só leitura de código.
+>
 > **Versão 1.8 · 29/09/2026 — o valor de venda do ART:** o CRM passa a ler o `vr_vda` e a guardar a entrega e o valor no
 > retrato de cada registro do ART, e o faturamento do ano fiscal da Visão 360 passa a ser o ART das máquinas entregues
 > (decisão do Ricardo). Revê a versão 1.3. Em **§15**.
@@ -1291,3 +1295,73 @@ a nota do Protheus fica como conferência. O detalhe do cartão está no documen
 2. Esperar o próximo ciclo do serviço do ART (ou rodá-lo): ele regrava o retrato de todos os registros.
 3. Conferir com as duas consultas do documento 36, §3.1 — o ART e o CRM têm de dar o mesmo número de máquinas entregues
    no FY, menos as de unidade sem filial.
+
+## 16. O catálogo dos campos do ART (#17, 29/09/2026)
+
+Campo da view → código → coluna do CRM → quem usa → ainda é necessário. Feito só lendo o código, sem acessar o ART:
+`Integracao/Art/LeitorDoArt.cs` (a consulta), `SaneamentoDoArt.cs` (o saneamento), `Carga/CargaDoArt.cs` (a decisão e a
+gravação) e cada leitor das colunas gravadas. O caminho é sempre o mesmo:
+
+```
+view do ART ─► RegistroDoArt (22 colunas, tudo texto) ─► VendaDoArtSaneada ─► CargaDoArt
+                                                                              ├─► integracao.RegistroDeOrigem (o retrato, sempre)
+                                                                              ├─► frota.Equipamento (só a importável)
+                                                                              └─► frota.VendaDeMaquina (só a importável)
+```
+
+**Importável** é o registro com chassi válido (ou confirmado pelo cadastro de veículos do Protheus), comprador único no
+CRM (ou dono atual pelo Protheus) e unidade com filial. O que não passa fica só no retrato, pendente, com o motivo — a
+lista dos motivos é `MotivoDePendenciaDoArt`.
+
+### 16.1 As 22 colunas lidas
+
+| Coluna da view | Saneamento | Grava em | Quem usa hoje | Necessária? |
+|---|---|---|---|---|
+| `codigo` | texto, sem espaço nas pontas | `RegistroDeOrigem` (a chave do registro) e `VendaDeMaquina.ChaveOrigem` | a identidade da venda: a recarga compara por ela, e as divergências apontam para ela | sim |
+| `chassis` | VIN de 17 posições; vazio, incompleto, fora do padrão e múltiplo viram pendência; o curto confirmado pelo Protheus entra (§13) | `Equipamento.Chassi`; o texto como veio em `RegistroDeOrigem.ChassiNaOrigem` | a identidade da máquina: frota, fichas, parque, conferência com a Gestão de Negócios | sim |
+| `cpf_cnpj` | só dígitos; dígito verificador conferido | **não é gravado** | acha o comprador (`VendaDeMaquina.CompradorId`) e, sem cliente no CRM, a fila de compradores ausentes | sim — sem ele não há venda |
+| `cliente` | até 100 caracteres | **não é gravado** na venda | só a fila dos compradores ausentes, para quem vai cadastrar | sim, só para a fila |
+| `linha` | até 60; vazia é pendência | `VendaDeMaquina.LinhaNaOrigem`, `RegistroDeOrigem.LinhaNaOrigem`; pelo de-para (`CorrespondenciaDaOrigem`), a classificação da máquina, só se ausente e compatível com a família do modelo | o realizado da meta e o forecast por linha, a categoria do preço da máquina, a captura por categoria, o histórico comercial | sim |
+| `produto` | até 60; vazio é pendência | `VendaDeMaquina.ProdutoNaOrigem`, `RegistroDeOrigem.ProdutoNaOrigem`; pelo de-para exato, o modelo da máquina, só se ausente | as listas e fichas de equipamento, o histórico comercial | sim — e é a coluna que dá o **modelo** para o preço por modelo (#70) |
+| `empresa` | até 60 | `VendaDeMaquina.EmpresaNaOrigem` | **nenhum leitor** | não para tela; fica como evidência da origem (as 16 unidades são de duas empresas). Candidata a sair |
+| `unidade` | até 80 | `VendaDeMaquina.UnidadeNaOrigem`, `RegistroDeOrigem.UnidadeNaOrigem`; pelo de-para, a filial (`VendaDeMaquina.EmpresaId`) — sem filial, pendência | tudo o que soma por filial: Visão 360, metas, histórico | sim |
+| `unidade_fat` | até 80 | `VendaDeMaquina.UnidadeDoFaturamentoNaOrigem`; pelo de-para, `EmpresaDoFaturamentoId` | o preço da máquina (casa a venda com a nota do Protheus pela filial que faturou) e o histórico ("faturou 010102") | sim |
+| `data_vda` | data; zerada ou inválida fica vazia, com a transformação escrita | `VendaDeMaquina.VendidaEm`, `RegistroDeOrigem.VendidaEm` | a ordem das vendas, a última venda da máquina, o parque, o histórico | sim |
+| `data_fat` | idem | `VendaDeMaquina.FaturadaEm` | a captura pela data do faturamento (D-P08.1), o mês do preço da máquina, o histórico | sim |
+| `entrega` | idem | `VendaDeMaquina.EntregueEm`, `RegistroDeOrigem.EntregueEm` | o realizado da meta e o faturamento do ano fiscal (mês da entrega), o forecast, a conferência com a Gestão de Negócios, o histórico | sim |
+| `dt_abertura` | data e hora | `VendaDeMaquina.RegistradaNaOrigemEm` | só o histórico comercial | sim, pouco — é contexto da venda |
+| `situacao` | até 10 | `VendaDeMaquina.SituacaoNaOrigem` | o histórico comercial | sim, pouco |
+| `num_ped` | até 20 | `VendaDeMaquina.NumeroDoPedido` | o histórico comercial | sim, pouco |
+| `num_nfe_venda` | até 60 | `VendaDeMaquina.NumeroDaNotaFiscal` | o preço da máquina (casamento com a nota do Protheus) e o histórico | sim |
+| `gestao` | até 30 | `VendaDeMaquina.GestaoNaOrigem` | o histórico comercial (Varejo ou Grandes Contas, atributo da venda) | sim |
+| `venda_direta` | SIM/NÃO; outro valor é lido como Não, com a transformação escrita | `VendaDeMaquina.VendaDireta` | o preço da máquina a exclui da mediana; o histórico | sim |
+| `repasse_direto` | idem | `VendaDeMaquina.RepasseDireto` | idem | sim |
+| `qte` | número inteiro | `VendaDeMaquina.Quantidade` | **nenhum leitor**: toda soma do CRM conta uma máquina por venda, porque a venda é por chassi | não para cálculo; fica como evidência. Candidata a sair |
+| `vendedor` | até 80, `nome.sobrenome` (D-M2, §14) | `VendaDeMaquina.VendedorNaOrigem` | o realizado da meta por consultor e o forecast | sim |
+| `vr_vda` | duas casas; zero, negativo, ilegível ou acima da coluna ficam vazios (§15) | `RegistroDeOrigem.ValorDaVenda` | o faturamento do ano fiscal da Visão 360, mês a mês | sim |
+
+Duas colunas são **derivadas** de todas as outras: o resumo SHA-256 do conteúdo lido (`RegistroDeOrigem` e
+`VendaDeMaquina.HashDaOrigem`), que é o que a recarga compara, e as transformações do saneamento, uma frase por
+mudança (`Transformacoes` nos dois lugares).
+
+### 16.2 O que a consulta não seleciona, de propósito
+
+- **As outras colunas financeiras** da view: valor de compra, ICMS, custo, frete, comissão, bônus, lucro, margem e
+  resultado contábil. Só o `vr_vda` entrou, por decisão de 29/09/2026 (§15).
+- **O usuário que digitou a venda**: nome de pessoa sem papel no CRM. Como não é selecionado, não chega à memória do
+  processo.
+
+### 16.3 O painel `art` da API Gestão de Negócios, atualizado
+
+O documento 46 §5.6 comparou o painel `art` com a leitura direta em 16/09. Duas linhas mudaram desde então: o
+**vendedor** passou a vir da própria view (D-M2, 27/09) e o **valor de venda** também (`vr_vda`, 29/09). A conclusão
+continua a mesma — o painel não tem `cpf_cnpj`, `data_vda`, `unidade_fat`, `num_ped` nem `repasse_direto`, e sem o
+documento não registra venda nenhuma —, e a decisão GN-P3 do documento 53 §4 segue: o ART é lido direto, e a
+Gestão de Negócios entra como gabarito da conferência.
+
+### 16.4 O que este catálogo sugere, sem fazer
+
+- `empresa` e `qte` não têm leitor. Tirá-las da consulta muda o resumo de todos os registros, e a primeira leitura
+  depois regravaria o retrato de todos — o mesmo efeito do vendedor e do valor. Não vale fazer sozinho; vale junto da
+  próxima mudança que já vá mexer no resumo.
+- `produto` é o modelo que o preço por modelo precisa (#70): a coluna já está gravada em cada venda.
