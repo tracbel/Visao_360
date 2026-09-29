@@ -74,6 +74,11 @@ export type GraficoLinhaMensalProps = {
   nomeDaSerie?: string;
   nomeDaAnterior?: string;
   aparencia?: AparenciaDaLinhaMensal;
+  /**
+   * Linhas a mais no balão de cada mês, embaixo do valor (29/09/2026): na Visão 360, as máquinas entregues e a nota do
+   * Protheus do mesmo mês, como conferência. Recebe o índice do mês.
+   */
+  linhasDoBalao?: (indice: number) => string[];
 };
 
 export function GraficoLinhaMensal({
@@ -87,6 +92,7 @@ export function GraficoLinhaMensal({
   nomeDaSerie = 'Recente',
   nomeDaAnterior = 'Um ano antes',
   aparencia = {},
+  linhasDoBalao,
 }: GraficoLinhaMensalProps) {
   const fontesProntas = useFontesProntas();
   const ultimo = valores.length - 1;
@@ -167,6 +173,9 @@ export function GraficoLinhaMensal({
               ? `${nome}${formatar(item.parsed.y)} — mês em curso`
               : `${nome}${formatar(item.parsed.y)}`;
           },
+          ...(linhasDoBalao
+            ? { afterLabel: (item: TooltipItem<'line'>) => (item.datasetIndex === 0 ? linhasDoBalao(item.dataIndex) : []) }
+            : {}),
         },
       },
     },

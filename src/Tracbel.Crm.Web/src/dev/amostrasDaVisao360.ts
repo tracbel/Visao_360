@@ -667,10 +667,31 @@ export function indicadoresExecutivos(estado: EstadoDaVisao360, codigo: string, 
         495_000,
       ),
       entreguesNoMesEmCurso: entregues('2026-09-01', '2026-09-01', vazio ? 0 : 13 * peso, 510_000),
+      // MÊS A MÊS (29/09/2026): os doze meses até setembro, o mês em curso e parcial; de novembro a agosto somam os ~250
+      // do ano. Não depende do ano escolhido, como na rota.
+      entreguesPorMes: ENTREGAS_DOS_DOZE_MESES.map(([mes, maquinas]) =>
+        entregues(mes, mes, vazio ? 0 : maquinas * peso, mes === '2026-09-01' ? 510_000 : 520_000),
+      ),
     },
     metricasSemDado: [],
   };
 }
+
+/** As entregas de cada um dos doze meses da amostra, com a sazonalidade de uma revenda de máquina. */
+const ENTREGAS_DOS_DOZE_MESES: [string, number][] = [
+  ['2025-10-01', 22],
+  ['2025-11-01', 28],
+  ['2025-12-01', 20],
+  ['2026-01-01', 18],
+  ['2026-02-01', 21],
+  ['2026-03-01', 26],
+  ['2026-04-01', 27],
+  ['2026-05-01', 24],
+  ['2026-06-01', 25],
+  ['2026-07-01', 28],
+  ['2026-08-01', 31],
+  ['2026-09-01', 13],
+];
 
 /** Uma janela de máquinas entregues no ART: uma em seis ainda aguarda cadastro no CRM, uma em cinquenta sem valor. */
 function entregues(inicio: string, fim: string, maquinas: number, ticket: number): MaquinasEntreguesNoArt {

@@ -224,6 +224,10 @@ public sealed record MercadoDaFilial(
 /// <param name="EntreguesNoMesmoTrechoDoAnoAnterior">As mesmas contas no mesmo trecho do ano anterior — a variação do
 /// cartão, como nos Indicadores Geográficos.</param>
 /// <param name="EntreguesNoMesEmCurso">O mês em curso, à parte e parcial: entregues até agora.</param>
+/// <param name="EntreguesPorMes">O FATURAMENTO MÊS A MÊS PELO ART (pedido do Ricardo, 29/09/2026: "pegamos do ART na
+/// coluna entregue e valor"): os doze meses que terminam no mês em curso, um item por mês — com zero no mês sem entrega,
+/// para a série não pular mês —, na mesma régua de <paramref name="EntreguesNoAno"/>. O último é o mês em curso, parcial.
+/// Não depende do ano pedido: é o "Faturamento — 12 meses" da Visão 360.</param>
 public sealed record IndicadoresExecutivosDaFilial(
     DateTime ReferenciaUtc,
     FaturamentoDaCompetencia? FaturamentoDoMes,
@@ -233,7 +237,8 @@ public sealed record IndicadoresExecutivosDaFilial(
     MercadoDaFilial Mercado,
     MaquinasEntreguesNoArt? EntreguesNoAno = null,
     MaquinasEntreguesNoArt? EntreguesNoMesmoTrechoDoAnoAnterior = null,
-    MaquinasEntreguesNoArt? EntreguesNoMesEmCurso = null);
+    MaquinasEntreguesNoArt? EntreguesNoMesEmCurso = null,
+    IReadOnlyList<MaquinasEntreguesNoArt>? EntreguesPorMes = null);
 
 /// <summary>
 /// O acesso aos INDICADORES EXECUTIVOS — os cinco cartões da Visão 360.

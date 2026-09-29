@@ -335,6 +335,13 @@ export type ExecutivoConsolidado = {
     ano: MaquinasEntreguesNoArt | null;
     anterior: MaquinasEntreguesNoArt | null;
     mesEmCurso: MaquinasEntreguesNoArt | null;
+    /**
+     * Mês a mês, os doze que terminam no mês em curso, somados entre as filiais que trouxeram a série. Nulo quando
+     * nenhuma a trouxe (servidor anterior a 29/09/2026).
+     */
+    porMes: MaquinasEntreguesNoArt[] | null;
+    /** Quantas filiais que responderam trouxeram a série mês a mês. */
+    filiaisComSerie: number;
   };
   /** Sem `clientesNasCarteirasDaFilial`: essa contagem não se soma. */
   carteira: Omit<CarteiraDaFilial, 'clientesNasCarteirasDaFilial'>;
@@ -396,6 +403,18 @@ function somarEntregues(lista: (MaquinasEntreguesNoArt | null | undefined)[]): M
 }
 
 /**
+ * O FATURAMENTO MÊS A MÊS PELO ART somado entre as filiais, mês com mês (29/09/2026). Cada registro é de uma filial só — a
+ * da unidade que vendeu —, e o mesmo mês se soma com ele mesmo; a ordem é a do calendário.
+ */
+function somarPorMes(listas: (MaquinasEntreguesNoArt[] | null | undefined)[]): MaquinasEntreguesNoArt[] | null {
+  const comSerie = listas.filter((l): l is MaquinasEntreguesNoArt[] => !!l && l.length > 0);
+  if (comSerie.length === 0) return null;
+  const porMes = new Map<string, MaquinasEntreguesNoArt[]>();
+  for (const mes of comSerie.flat()) porMes.set(mes.inicio, [...(porMes.get(mes.inicio) ?? []), mes]);
+  return [...porMes.keys()].sort().map((inicio) => somarEntregues(porMes.get(inicio)!)!);
+}
+
+/**
  * Soma os cinco cartões. CADA NÚMERO É DE UMA PARTIÇÃO QUE NÃO SE SOBREPÕE ENTRE FILIAIS:
  * faturamento pela filial que emitiu, vínculo pela filial da carteira, cliente único pela filial
  * de cadastro, meta e venda perdida pela filial dona. Percentual nunca se soma — ele é refeito
@@ -454,6 +473,8 @@ export function somarExecutivo(ano: number, filiais: ExecutivoDaFilial[]): Execu
       ano: somarEntregues(vivas.map((v) => v.i.entreguesNoAno)),
       anterior: somarEntregues(vivas.map((v) => v.i.entreguesNoMesmoTrechoDoAnoAnterior)),
       mesEmCurso: somarEntregues(vivas.map((v) => v.i.entreguesNoMesEmCurso)),
+      porMes: somarPorMes(vivas.map((v) => v.i.entreguesPorMes)),
+      filiaisComSerie: vivas.filter((v) => (v.i.entreguesPorMes?.length ?? 0) > 0).length,
     },
     carteira: {
       clientesCadastradosComVinculo: somar(carteiras, (c) => c.clientesCadastradosComVinculo),

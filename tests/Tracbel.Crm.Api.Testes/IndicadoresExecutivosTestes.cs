@@ -385,13 +385,31 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
         anterior.GetProperty("maquinas").GetInt32().Should().Be(1);
         anterior.GetProperty("valor").GetDecimal().Should().Be(400_000m);
 
+        // O FATURAMENTO MÊS A MÊS (29/09/2026, "pegamos do ART na coluna entregue e valor"): os doze meses que terminam no
+        // mês em curso, com zero no mês sem entrega — a de doze meses antes do último fechado fica fora da série.
+        var porMes = indicadores.GetProperty("entreguesPorMes").EnumerateArray().ToList();
+        porMes.Should().HaveCount(12);
+        porMes[0].GetProperty("inicio").GetString().Should().Be(MesCorrente.AddMonths(-11).ToString("yyyy-MM-dd"));
+        porMes[^1].GetProperty("inicio").GetString().Should().Be(MesCorrente.ToString("yyyy-MM-dd"), "o último é o mês em curso");
+        porMes[^1].GetProperty("maquinas").GetInt32().Should().Be(1);
+        porMes[^1].GetProperty("valor").GetDecimal().Should().Be(300_000m);
+        porMes[^2].GetProperty("inicio").GetString().Should().Be(MesCorrente.AddMonths(-1).ToString("yyyy-MM-dd"));
+        porMes[^2].GetProperty("maquinas").GetInt32().Should().Be(3);
+        porMes[^2].GetProperty("valor").GetDecimal().Should().Be(750_000.50m);
+        porMes[^2].GetProperty("semValor").GetInt32().Should().Be(1);
+        porMes.Take(10).Sum(m => m.GetProperty("maquinas").GetInt32()).Should().Be(0, "mês sem entrega vem com zero, e não some");
+
         Lacunas(dados).Should().Contain(["maquinaSemValorNoArt", "entregueAguardandoNoCrm", "notaDoProtheusNaoSomada"]);
         Lacunas(dados).Should().NotContain("vendaDeMaquinaNoArt", "a frase dizia que o ART não entra no faturamento");
 
         // A FILIAL É A DA UNIDADE QUE VENDEU, e cada uma vê só a sua: somadas, nada conta duas vezes.
-        var barretos = (await DadosAsync(await api.ClienteDeBarretos().GetAsync(Rota))).GetProperty("indicadores").GetProperty("entreguesNoAno");
+        var deBarretos = (await DadosAsync(await api.ClienteDeBarretos().GetAsync(Rota))).GetProperty("indicadores");
+        var barretos = deBarretos.GetProperty("entreguesNoAno");
         barretos.GetProperty("maquinas").GetInt32().Should().Be(1);
         barretos.GetProperty("valor").GetDecimal().Should().Be(700_000m);
+        var barretosPorMes = deBarretos.GetProperty("entreguesPorMes").EnumerateArray().ToList();
+        barretosPorMes[^2].GetProperty("valor").GetDecimal().Should().Be(700_000m, "a série também é da filial da unidade que vendeu");
+        barretosPorMes.Sum(m => m.GetProperty("maquinas").GetInt32()).Should().Be(1);
     }
 
     [Theory]

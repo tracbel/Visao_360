@@ -261,12 +261,16 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
         // -----------------------------------------------------------------------------------------
         // O faturamento pelo ART (29/09/2026): as máquinas entregues, nos mesmos meses do ano.
         // -----------------------------------------------------------------------------------------
-        var (entreguesNoAno, entreguesNoAnterior, entreguesNoMes) =
+        var (entreguesNoAno, entreguesNoAnterior, entreguesNoMes, entreguesPorMes) =
             await EntreguesNoArtAsync(primeiroMesDoAno, ultimoMesDoAno, mesCorrente, ct);
 
         return new IndicadoresExecutivosDaFilial(
-            agoraUtc, doMes, anoApurado, carteiraDaFilial, cobertura, mercado, entreguesNoAno, entreguesNoAnterior, entreguesNoMes);
+            agoraUtc, doMes, anoApurado, carteiraDaFilial, cobertura, mercado, entreguesNoAno, entreguesNoAnterior, entreguesNoMes,
+            entreguesPorMes);
     }
+
+    /// <summary>Quantos meses a série do "Faturamento — 12 meses" leva, terminando no mês em curso.</summary>
+    private const int MesesDaSerie = 12;
 
     /// <summary>
     /// AS MÁQUINAS ENTREGUES NO ART (decisão do Ricardo de 29/09/2026: "o faturamento real do ano fiscal vem do ART, das
@@ -280,28 +284,37 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
     /// <para><b>A filial é a da unidade que vendeu</b>, pela correspondência que a carga do ART usa para a venda — o
     /// retrato não tem coluna de empresa, e por isso o filtro global não o alcança: a fronteira é refeita aqui, com o
     /// mesmo predicado do filtro. A unidade sem filial não é de filial nenhuma, e fica fora.</para>
+    ///
+    /// <para><b>A série mês a mês</b> (29/09/2026) sai da mesma leitura: os doze meses que terminam no mês em curso, com
+    /// zero no mês sem entrega.</para>
     /// </summary>
-    private async Task<(MaquinasEntreguesNoArt Ano, MaquinasEntreguesNoArt Anterior, MaquinasEntreguesNoArt MesEmCurso)> EntreguesNoArtAsync(
+    private async Task<(MaquinasEntreguesNoArt Ano, MaquinasEntreguesNoArt Anterior, MaquinasEntreguesNoArt MesEmCurso,
+        IReadOnlyList<MaquinasEntreguesNoArt> PorMes)> EntreguesNoArtAsync(
         DateOnly inicio, DateOnly fim, DateOnly mesCorrente, CancellationToken ct)
     {
         var inicioDoAnterior = inicio.AddMonths(-12);
         var fimDoAnterior = fim.AddMonths(-12);
+        var inicioDaSerie = mesCorrente.AddMonths(-(MesesDaSerie - 1));
+        var mesesDaSerie = Enumerable.Range(0, MesesDaSerie).Select(i => inicioDaSerie.AddMonths(i)).ToList();
 
         static MaquinasEntreguesNoArt Nenhuma(DateOnly de, DateOnly a) => new(de, a, 0, 0m, 0, 0);
 
         var art = await contexto.Sistemas.AsNoTracking()
             .Where(s => s.Codigo == ConexoesDoSistema.Art).Select(s => (int?)s.Id).FirstOrDefaultAsync(ct);
         if (art is not { } sistemaDoArt)
-            return (Nenhuma(inicio, fim), Nenhuma(inicioDoAnterior, fimDoAnterior), Nenhuma(mesCorrente, mesCorrente));
+            return (Nenhuma(inicio, fim), Nenhuma(inicioDoAnterior, fimDoAnterior), Nenhuma(mesCorrente, mesCorrente),
+                mesesDaSerie.Select(m => Nenhuma(m, m)).ToList());
 
-        var desde = inicioDoAnterior;
-        var ate = fim.AddMonths(1);
+        // UMA LEITURA SÓ, da janela que cobre as quatro contas: o ano, o mesmo trecho do anterior, o mês em curso e os doze
+        // meses da série — que, com um ano passado escolhido, ficam fora da janela do ano.
+        var desde = inicioDoAnterior < inicioDaSerie ? inicioDoAnterior : inicioDaSerie;
+        var ateDoAno = fim.AddMonths(1);
         var fimDoMes = mesCorrente.AddMonths(1);
 
         var registros = await contexto.RegistrosDeOrigem.AsNoTracking()
             .Where(r => r.SistemaId == sistemaDoArt && r.Fluxo == MetaDeVenda.FluxoDasVendasDoArt && r.AusenteNaOrigemDesde == null
                         && r.EntregueEm != null
-                        && ((r.EntregueEm >= desde && r.EntregueEm < ate) || (r.EntregueEm >= mesCorrente && r.EntregueEm < fimDoMes)))
+                        && ((r.EntregueEm >= desde && r.EntregueEm < ateDoAno) || (r.EntregueEm >= inicioDaSerie && r.EntregueEm < fimDoMes)))
             .Select(r => new { EntregueEm = r.EntregueEm!.Value, r.UnidadeNaOrigem, r.ValorDaVenda, r.VendaDeMaquinaId })
             .ToListAsync(ct);
 
@@ -338,6 +351,7 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
                 naJanela.Count(r => !r.NoCrm));
         }
 
-        return (Somar(inicio, fim), Somar(inicioDoAnterior, fimDoAnterior), Somar(mesCorrente, mesCorrente));
+        return (Somar(inicio, fim), Somar(inicioDoAnterior, fimDoAnterior), Somar(mesCorrente, mesCorrente),
+            mesesDaSerie.Select(m => Somar(m, m)).ToList());
     }
 }
