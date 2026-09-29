@@ -14,9 +14,17 @@
  *
  * Enquanto a medida não chegou (primeira renderização, antes do layout), nada é
  * desenhado: um gráfico com largura zero estoura no Chart.js.
+ *
+ * MEDIDA NOVA, GRÁFICO NOVO (29/09/2026): com `responsive: false`, o Chart.js
+ * guarda o tamanho com que nasceu. Quando a medida muda depois, o
+ * `react-chartjs-2` só troca os atributos `width`/`height` do canvas, e o
+ * Chart.js continua desenhando e lendo o ponteiro no tamanho antigo: o desenho
+ * sai cortado e o balão não aparece mais. Na Visão 360 isso acontecia quando o
+ * funil chegava e o alerta dos processos parados esticava a linha do
+ * faturamento. Por isso o gráfico é montado de novo a cada medida (`key`).
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 
 export function MolduraDeGrafico({
   altura,
@@ -56,6 +64,11 @@ export function MolduraDeGrafico({
     return () => observador.disconnect();
   }, [larguraMaxima, preencher, altura]);
 
+  const alturaDoDesenho = preencher ? medida.altura : altura;
+  const desenho = (
+    <Fragment key={`${medida.largura}x${alturaDoDesenho}`}>{children(medida.largura, alturaDoDesenho)}</Fragment>
+  );
+
   return (
     <div
       className="cad-moldura-grafico"
@@ -64,11 +77,7 @@ export function MolduraDeGrafico({
       style={{ minHeight: altura }}
     >
       {medida.largura > 0 &&
-        (preencher ? (
-          <div className="cad-moldura-grafico-camada">{children(medida.largura, medida.altura)}</div>
-        ) : (
-          children(medida.largura, altura)
-        ))}
+        (preencher ? <div className="cad-moldura-grafico-camada">{desenho}</div> : desenho)}
     </div>
   );
 }
