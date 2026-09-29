@@ -32,6 +32,9 @@
  */
 
 import type { CatalogoDeSelecao, PaginaDe } from '../tipos/api';
+import type { ConferenciaComAGestao } from '../tipos/conferencia';
+import type { EstoqueECobertura, MaquinaNaLista } from '../tipos/estoque';
+import type { LinhaDoForecast, RelatorioDoForecast } from '../tipos/forecast';
 import type { MetaERealizadoDaFilial } from '../tipos/metas';
 import type { MaquinasEntreguesNoArt, PainelExecutivoDaFilial } from '../tipos/painelExecutivo';
 import type {
@@ -861,6 +864,245 @@ function clientesSemContato(estado: EstadoDaVisao360) {
 }
 
 /* ------------------------------------------------------------------------ */
+/* Forecast, estoque e conferência com a GN (bloco 3 do #293, 29/09/2026)     */
+/* ------------------------------------------------------------------------ */
+
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+/**
+ * O FORECAST DA GERÊNCIA: três gestores, um com nome de regional inteiro, um forecast e um best guess não informados e
+ * uma linha sem PO — o que a tela mostra com o traço. O total soma as linhas, e as vendas sem gestor entram só nele.
+ */
+function forecastDaGerencia(estado: EstadoDaVisao360, competencia: string | null): RelatorioDoForecast {
+  const mes = competencia && /^\d{4}-\d{2}$/.test(competencia) ? `${competencia}-01` : '2026-09-01';
+  const vazio = estado !== 'completo';
+  const linha = (codigo: string, nome: string, meta: number, forecast: number | null, bestGuess: number | null, realizado: number) =>
+    ({ codigo, nome, meta, forecast, bestGuess, realizado }) satisfies LinhaDoForecast;
+  const gestores = vazio
+    ? []
+    : [
+        {
+          gestor: 'GESTOR FICTÍCIO DA REGIONAL NORTE PAULISTA',
+          consultores: 6,
+          linhas: [
+            linha('TRATOR_MEDIO', 'TRATOR MÉDIO', 14, 12, 13, 9),
+            linha('TRATOR_GRANDE', 'TRATOR GRANDE', 6, 5, 6, 4),
+            linha('COLHEITADEIRA', 'COLHEITADEIRA', 3, null, 2, 1),
+            linha('PULVERIZADOR', 'PULVERIZADOR', 2, 2, 2, 3),
+          ],
+        },
+        {
+          gestor: 'GESTOR FICTÍCIO BETA',
+          consultores: 4,
+          linhas: [linha('TRATOR_MEDIO', 'TRATOR MÉDIO', 10, 9, 8, 7), linha('PLANTADEIRA', 'PLANTADEIRA', 4, 3, null, 2)],
+        },
+        { gestor: 'GESTOR FICTÍCIO GAMA', consultores: 2, linhas: [linha('TRATOR_MEDIO', 'TRATOR MÉDIO', 0, null, null, 1)] },
+      ];
+  const vendasSemGestor = vazio ? 0 : 2;
+
+  const soma = (a: number | null, b: number | null) => (a === null && b === null ? null : (a ?? 0) + (b ?? 0));
+  const porCodigo = new Map<string, LinhaDoForecast>();
+  for (const l of gestores.flatMap((g) => g.linhas)) {
+    const atual = porCodigo.get(l.codigo);
+    porCodigo.set(
+      l.codigo,
+      atual
+        ? { ...atual, meta: atual.meta + l.meta, forecast: soma(atual.forecast, l.forecast), bestGuess: soma(atual.bestGuess, l.bestGuess), realizado: atual.realizado + l.realizado }
+        : { ...l },
+    );
+  }
+  const total = [...porCodigo.values()];
+  if (total[0]) total[0] = { ...total[0], realizado: total[0].realizado + vendasSemGestor };
+
+  return {
+    competencia: mes,
+    texto: `${MESES_CURTOS[Number(mes.slice(5, 7)) - 1]}/${mes.slice(0, 4)}`,
+    mesesDisponiveis: vazio ? [] : ['2026-07-01', '2026-08-01', '2026-09-01'],
+    alcance: 'Filiais',
+    gestores,
+    total,
+    vendasSemGestor,
+    lidoEm: vazio ? null : '2026-09-28T09:00:00Z',
+    geradoNaOrigemEm: vazio ? null : '2026-09-28T04:30:00Z',
+    metricasSemDado: [{ metrica: 'alcanceDasFiliais', motivo: 'O PO e o realizado são só da filial escolhida; o forecast é o do gestor inteiro.' }],
+  };
+}
+
+/**
+ * O ESTOQUE: onze máquinas em cinco grupos — reservada, parada há mais de 180 dias, usada, sem data de entrada, pedido à
+ * fábrica com e sem chegada prevista, configuração longa. Os totais e os grupos saem da lista, como a API os soma.
+ */
+function estoqueECobertura(estado: EstadoDaVisao360): EstoqueECobertura {
+  const vazio = estado !== 'completo';
+  const maquina = (p: Partial<MaquinaNaLista> & { descricao: string; grupo: string }): MaquinaNaLista => ({
+    filial: 'Filial Fictícia Alfa', configuracao: null, situacao: 'Estoque', tipo: 'MÁQUINA', ehUsado: false, anoModelo: '2026/2026',
+    chassi: null, entradaEm: '2026-07-01', diasNoPatio: 89, chegadaPrevistaEm: null, faturamentoPrevistoEm: null, pago: true,
+    reservado: false, ehPedidoAFabrica: false, situacaoNaFabrica: null, ...p,
+  });
+  const pedido = { situacao: 'PEDIDO', ehPedidoAFabrica: true, diasNoPatio: null, entradaEm: null, pago: false };
+  const maquinas = vazio
+    ? []
+    : [
+        maquina({ descricao: 'TRATOR FICTÍCIO 6155M', grupo: 'TRATOR 6000', chassi: '1FC6155MXPA000001', diasNoPatio: 12, entradaEm: '2026-09-16', configuracao: 'Cabine, transmissão AutoQuad Plus, pneus 520/85R42 duplados' }),
+        maquina({ descricao: 'TRATOR FICTÍCIO 6190M', grupo: 'TRATOR 6000', reservado: true, chassi: '1FC6190MXPA000002', diasNoPatio: 203, entradaEm: '2026-03-09' }),
+        maquina({ descricao: 'TRATOR FICTÍCIO 6125J', grupo: 'TRATOR 6000', ehUsado: true, anoModelo: '2021/2021', chassi: '1FC6125JXMA000003', diasNoPatio: 64, entradaEm: '2026-07-26', pago: false }),
+        maquina({ descricao: 'TRATOR FICTÍCIO 7230J', grupo: 'TRATOR 7000/8000', chassi: '1FC7230JXPA000004', diasNoPatio: 41, entradaEm: '2026-08-18' }),
+        maquina({ descricao: 'TRATOR FICTÍCIO 8R 340', grupo: 'TRATOR 7000/8000', reservado: true, chassi: '1FC8R340XPA000005', diasNoPatio: 18, entradaEm: '2026-09-10', filial: 'Filial Fictícia Gama do Interior Paulista' }),
+        maquina({ descricao: 'COLHEITADEIRA FICTÍCIA S760', grupo: 'COLHEITADEIRA', chassi: '1FCS760XPA000006', diasNoPatio: 256, entradaEm: '2026-01-15' }),
+        maquina({ descricao: 'COLHEITADEIRA FICTÍCIA S790', grupo: 'COLHEITADEIRA', ...pedido, chegadaPrevistaEm: '2026-11-30', situacaoNaFabrica: 'Em produção' }),
+        maquina({ descricao: 'PULVERIZADOR FICTÍCIO M4040', grupo: 'PULVERIZADOR', situacao: 'Remessa', chassi: '1FCM4040XPA000008', diasNoPatio: 97, entradaEm: '2026-06-23' }),
+        maquina({ descricao: 'PULVERIZADOR FICTÍCIO R4045', grupo: 'PULVERIZADOR', ...pedido, situacaoNaFabrica: 'Confirmado' }),
+        maquina({ descricao: 'PLANTADEIRA FICTÍCIA 2130', grupo: 'PLANTADEIRA', situacao: 'Consignado', reservado: true, chassi: '1FC2130XPA000010', diasNoPatio: 145, entradaEm: '2026-05-06' }),
+        maquina({ descricao: 'PLANTADEIRA FICTÍCIA 2150', grupo: 'PLANTADEIRA', diasNoPatio: null, entradaEm: null }),
+      ];
+
+  const conta = (lista: MaquinaNaLista[], f: (m: MaquinaNaLista) => boolean) => lista.filter(f).length;
+  const noPatio = (lista: MaquinaNaLista[]) => lista.filter((m) => !m.ehPedidoAFabrica);
+  const patio = noPatio(maquinas);
+  const COBERTURA_DO_GRUPO: Record<string, number | null> = {
+    'TRATOR 6000': 2.4, 'TRATOR 7000/8000': 3.1, COLHEITADEIRA: 5.8, PULVERIZADOR: 1.9, PLANTADEIRA: null,
+  };
+  const porGrupo = [...new Set(maquinas.map((m) => m.grupo))].map((grupo) => {
+    const doGrupo = maquinas.filter((m) => m.grupo === grupo);
+    const doPatio = noPatio(doGrupo);
+    const dias = doPatio.map((m) => m.diasNoPatio).filter((d): d is number => d !== null);
+    return {
+      grupo,
+      noPatio: doPatio.length,
+      disponiveis: conta(doPatio, (m) => !m.reservado),
+      reservadas: conta(doPatio, (m) => m.reservado),
+      pedidosAFabrica: conta(doGrupo, (m) => m.ehPedidoAFabrica),
+      idadeMediaEmDias: dias.length > 0 ? Math.round(dias.reduce((s, d) => s + d, 0) / dias.length) : null,
+      coberturaEmMeses: COBERTURA_DO_GRUPO[grupo] ?? null,
+    };
+  });
+
+  const media = (valores: number[]) => (valores.length > 0 ? valores.reduce((s, v) => s + v, 0) / valores.length : null);
+  const porMes = vazio
+    ? []
+    : [3.8, 3.4, 3.1, 2.9, 3.6, 3.2].map((meses, i) => ({
+        chave: `2026-0${i + 3}`,
+        competencia: `2026-0${i + 3}-01`,
+        meses,
+        vendas: [131, 148, 162, 171, 139, 152][i]!,
+      }));
+  const coberturaPorGrupo = vazio
+    ? []
+    : Object.entries(COBERTURA_DO_GRUPO)
+        .filter((par): par is [string, number] => par[1] !== null)
+        .map(([chave, meses]) => ({ chave, competencia: null, meses, vendas: Math.round(40 / meses) * 6 }));
+
+  return {
+    alcance: 'Filiais',
+    hoje: '2026-09-28',
+    totais: {
+      noPatio: patio.length,
+      disponiveis: conta(patio, (m) => !m.reservado),
+      reservadas: conta(patio, (m) => m.reservado),
+      pagas: conta(patio, (m) => m.pago),
+      maisDe180Dias: conta(patio, (m) => (m.diasNoPatio ?? 0) > 180),
+      pedidosAFabrica: conta(maquinas, (m) => m.ehPedidoAFabrica),
+    },
+    porGrupo,
+    maquinas,
+    cobertura: {
+      porMes,
+      porGrupo: coberturaPorGrupo,
+      mediaPorMes: media(porMes.map((m) => m.meses)),
+      mediaPorGrupo: media(coberturaPorGrupo.map((g) => g.meses)),
+      lidaEm: vazio ? null : '2026-09-28T12:00:00Z',
+      geradaNaOrigemEm: null,
+    },
+    lidoEm: vazio ? null : '2026-09-28T12:00:00Z',
+    geradoNaOrigemEm: null,
+    metricasSemDado: [{ metrica: 'valor', motivo: 'O valor do estoque não aparece: está a custo no TOTVS, e o CRM não lê custo.' }],
+  };
+}
+
+/**
+ * A CONFERÊNCIA COM A GN: cinco filiais, duas com diferença, seis meses e uma máquina de cada um dos seis tipos de
+ * divergência — com os rótulos que a API escreve.
+ */
+function conferenciaComAGestao(estado: EstadoDaVisao360): ConferenciaComAGestao {
+  const TIPOS: [string, string][] = [
+    ['RealizadoSoNaGestao', 'Só na Gestão de Negócios'],
+    ['RealizadoPendenteNoArt', 'Pendente na integração do ART'],
+    ['RealizadoNaoEntregueNoCrm', 'Sem a entrega no CRM'],
+    ['RealizadoEmOutraFilial', 'Em outra filial'],
+    ['RealizadoEmOutroMes', 'Em outro mês'],
+    ['RealizadoSoNoCrm', 'Só no CRM'],
+  ];
+  const regua = {
+    metrica: 'regua',
+    motivo: 'Os dois lados contam pela mesma régua: a meta sem consórcio, e o realizado só com a máquina entregue, no mês da entrega.',
+  };
+  const numeros = (metaNaGestao: number, metaNoCrm: number, realizadoNaGestao: number, realizadoNoCrm: number) => ({
+    metaNaGestao, metaNoCrm, realizadoNaGestao, realizadoNoCrm,
+  });
+
+  if (estado !== 'completo')
+    return {
+      alcance: 'Filiais',
+      totais: numeros(0, 0, 0, 0),
+      porFilial: [],
+      porMes: [],
+      porTipo: TIPOS.map(([tipo, rotulo]) => ({ tipo, rotulo, quantidade: 0 })),
+      divergencias: [],
+      apuradaEm: null,
+      geradaNaOrigemEm: null,
+      metricasSemDado: [
+        {
+          metrica: 'naoApurada',
+          motivo:
+            'A conferência ainda não foi apurada: ela vem da rotina "Conferência com a Gestão de Negócios". Sem ela, a tela fica vazia — e não quer dizer que os números batem.',
+        },
+        regua,
+      ],
+    };
+
+  const porFilial = [
+    { filial: 'Filial Fictícia Alfa', numeros: numeros(48, 48, 41, 39) },
+    { filial: 'Filial Fictícia Beta', numeros: numeros(36, 36, 30, 30) },
+    { filial: 'Filial Fictícia Delta', numeros: numeros(20, 20, 15, 16) },
+    { filial: 'Filial Fictícia Épsilon', numeros: numeros(12, 12, 9, 9) },
+    { filial: 'Filial Fictícia Gama do Interior Paulista', numeros: numeros(28, 27, 22, 21) },
+  ];
+  const porMes = [
+    [24, 24, 18, 18],
+    [24, 24, 21, 20],
+    [24, 24, 19, 19],
+    [24, 23, 20, 19],
+    [24, 24, 17, 17],
+    [24, 24, 22, 22],
+  ].map(([a, b, c, d], i) => ({ competencia: `2026-0${i + 3}-01`, numeros: numeros(a!, b!, c!, d!) }));
+  const somar = (campo: keyof ReturnType<typeof numeros>) => porFilial.reduce((s, f) => s + f.numeros[campo], 0);
+
+  const divergencia = (tipo: string, chassi: string, filial: string, descricao: string, noCrm: string | null, naGestao: string | null) => ({
+    tipo, rotulo: TIPOS.find(([t]) => t === tipo)![1], chassi, filial, descricao, noCrm, naGestao, detectadaEm: '2026-09-28T10:00:00Z',
+  });
+  const divergencias = [
+    divergencia('RealizadoSoNaGestao', '1FC6155MXPA100001', 'Filial Fictícia Alfa', 'A GN conta a máquina como entregue, e o CRM não tem a venda dela.', null, 'Filial Fictícia Alfa · 2026-08'),
+    divergencia('RealizadoPendenteNoArt', '1FC7230JXPA100002', 'Filial Fictícia Alfa', 'A venda está no ART, mas a integração a deixou pendente: o comprador não está no CRM.', 'pendente: COMPRADOR_AUSENTE_NO_CRM', 'Filial Fictícia Alfa · 2026-07'),
+    divergencia('RealizadoNaoEntregueNoCrm', '1FC8R340XPA100005', 'Filial Fictícia Delta', 'O CRM tem a venda, mas sem a data de entrega.', 'venda sem entrega', 'Filial Fictícia Delta · 2026-08'),
+    divergencia('RealizadoEmOutraFilial', '1FCS760XPA100003', 'Filial Fictícia Gama do Interior Paulista', 'O CRM conta a máquina em outra filial.', 'Filial Fictícia Delta · 2026-06', 'Filial Fictícia Gama do Interior Paulista · 2026-06'),
+    divergencia('RealizadoEmOutroMes', '1FCM4040XPA100004', 'Filial Fictícia Beta', 'O CRM conta a entrega em outro mês.', 'Filial Fictícia Beta · 2026-05', 'Filial Fictícia Beta · 2026-04'),
+    divergencia('RealizadoSoNoCrm', '1FC2130XPA100006', 'Filial Fictícia Delta', 'Só o CRM conta a máquina como entregue.', 'Filial Fictícia Delta · 2026-06', null),
+  ];
+
+  return {
+    alcance: 'Filiais',
+    totais: numeros(somar('metaNaGestao'), somar('metaNoCrm'), somar('realizadoNaGestao'), somar('realizadoNoCrm')),
+    porFilial,
+    porMes,
+    porTipo: TIPOS.map(([tipo, rotulo]) => ({ tipo, rotulo, quantidade: divergencias.filter((d) => d.tipo === tipo).length })),
+    divergencias,
+    apuradaEm: '2026-09-28T10:15:00Z',
+    geradaNaOrigemEm: null,
+    metricasSemDado: [regua],
+  };
+}
+
+/* ------------------------------------------------------------------------ */
 /* A rota → a amostra                                                         */
 /* ------------------------------------------------------------------------ */
 /**
@@ -880,6 +1122,12 @@ export function respostaDaVisao360(
   switch (caminho) {
     case '/v1/catalogos/EMPRESA':
       return catalogoDeEmpresas(estado);
+    case '/v1/relatorios/forecast':
+      return forecastDaGerencia(estado, consulta.get('competencia'));
+    case '/v1/relatorios/estoque':
+      return estoqueECobertura(estado);
+    case '/v1/integracoes/conferencia-gn':
+      return conferenciaComAGestao(estado);
     case '/v1/relatorios/cobertura':
       return coberturaPorCarteira(estado, empresa);
     case '/v1/relatorios/agenda':

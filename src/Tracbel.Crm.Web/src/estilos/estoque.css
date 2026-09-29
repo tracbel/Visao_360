@@ -1,14 +1,18 @@
 /*
  * Estoque e Cobertura (28/09/2026) — só o que as classes do cadastro não cobrem: a grade dos dois cartões, as barras da
  * cobertura e os selos da reserva e da máquina parada.
+ *
+ * 29/09/2026: os cartões viraram painéis da seção (`mom-painel`) e as tabelas, `mom-tabela` — o alinhamento dos números
+ * é o `mom-num` dela. Os dois painéis dos grupos ficam lado a lado pela largura do CONTEÚDO (`@container indicadores`,
+ * a da página), e não mais pela da janela: com o menu aberto, a janela de 1.100 px deixava a tabela dos grupos espremida.
  */
 
-.est-grade { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; margin-bottom: 16px; }
-.est-grade > .card { margin-bottom: 0; }
+.est-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--e-4); }
 
-.est-tabela td,
-.est-tabela th { white-space: nowrap; }
-.est-tabela td.cad-mono { text-align: right; }
+@container indicadores (min-width: 1100px) {
+  .est-grade { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+}
+
 .est-lista td:first-child { white-space: normal; min-width: 180px; }
 
 .est-reservada {
@@ -26,7 +30,3 @@
 .est-barra { height: 8px; border-radius: 4px; background: var(--n-200); overflow: hidden; }
 .est-barra span { display: block; height: 100%; background: var(--jd-green); border-radius: 4px; }
 .est-barra-valor { text-align: right; color: var(--text-primary); }
-
-@media (max-width: 1100px) {
-  .est-grade { grid-template-columns: minmax(0, 1fr); }
-}
