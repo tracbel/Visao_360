@@ -155,6 +155,36 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     expect(cabecalho).toHaveTextContent('Meta FY2026 (máq.)');
     expect(cabecalho).toHaveTextContent('Realizado FY2026 (máq.)');
     expect(cabecalho).toHaveTextContent(`Faturamento FY${ANO_FISCAL}`);
+    expect(cabecalho).toHaveTextContent('Máquinas entregues');
+    expect(cabecalho).toHaveTextContent(`NF Protheus FY${ANO_FISCAL}`);
+  });
+
+  it('o faturamento do ano é o ART das máquinas entregues, com a quantidade, e a nota do Protheus é só conferência (29/09/2026)', async () => {
+    const { container } = await montar('completo');
+
+    // "O FATURAMENTO REAL DO ANO FISCAL VEM DO ART DE MÁQUINAS ENTREGUES" — o valor, e a quantidade na linha de baixo.
+    const cartao = container.querySelector(`[data-kpi="Faturamento FY${ANO_FISCAL}"]`)!;
+    expect(cartao).toHaveTextContent(/R\$ [\d,]+ M/);
+    expect(cartao).toHaveTextContent(/[\d.]+ máquinas entregues · até [a-z]{3}\/\d{4}/);
+    expect(container.textContent).not.toContain('Faturamento em curso');
+
+    const regra = textoDaDica(screen.getByRole('button', { name: `Fonte e método: Faturamento FY${ANO_FISCAL}` }));
+    expect(regra).toContain('valor de venda do ART das máquinas ENTREGUES');
+    expect(regra).toContain('com e sem comprador no CRM');
+    expect(regra).toContain('ainda não viraram venda no CRM');
+    expect(regra).toContain('sem valor de venda no ART contam nas máquinas');
+    expect(regra).toContain('Mesmo trecho do ano anterior');
+    expect(regra).toContain('em curso e à parte');
+    expect(regra).toContain('Conferência, sem somar: a nota de saída do Protheus');
+  });
+
+  it('sem máquina entregue no período, o faturamento é o traço com o motivo — e não R$ 0', async () => {
+    const { container } = await montar('vazio');
+
+    const cartao = container.querySelector(`[data-kpi="Faturamento FY${ANO_FISCAL}"]`)!;
+    expect(cartao.textContent).not.toMatch(/R\$ 0/);
+    const motivo = textoDaDica(screen.getByRole('button', { name: 'Por que o faturamento do ano não aparece' }));
+    expect(motivo).toContain('Nenhuma máquina com entrega');
   });
 
   it('sem a rotina das metas ter rodado, o cartão diz que o cadastro não foi lido — e não "meta zero"', async () => {

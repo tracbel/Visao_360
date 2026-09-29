@@ -49,6 +49,24 @@ export type FaturamentoDoAno = {
   total: number;
 };
 
+/**
+ * O FATURAMENTO PELO ART (29/09/2026, decisão do Ricardo): as máquinas ENTREGUES no ART — a data de entrega preenchida —
+ * numa janela de meses, com e sem comprador no CRM, pela filial da unidade que vendeu. Uma máquina por registro, como a
+ * Gestão de Negócios conta; o valor é o de venda do ART. Não se soma com a nota do Protheus.
+ */
+export type MaquinasEntreguesNoArt = {
+  /** `aaaa-mm-dd` — o primeiro mês da janela. */
+  inicio: string;
+  /** `aaaa-mm-dd` — o último mês da janela. */
+  fim: string;
+  maquinas: number;
+  /** Em reais. A máquina sem valor no ART conta em `maquinas`, e não aqui. */
+  valor: number;
+  semValor: number;
+  /** As que ainda não viraram venda no CRM (comprador sem cadastro, chassi…) — entram na conta mesmo assim. */
+  aguardandoNoCrm: number;
+};
+
 /** Clientes únicos pela filial de cadastro, e vínculos pela filial da carteira. */
 export type CarteiraDaFilial = {
   clientesCadastradosComVinculo: number;
@@ -97,6 +115,12 @@ export type IndicadoresExecutivosDaFilial = {
   carteira: CarteiraDaFilial;
   cobertura: CoberturaDaFilial;
   mercado: MercadoDaFilial;
+  /** O faturamento do ano pelo ART, nos mesmos meses de `ano`. Ausente numa API anterior a 29/09/2026. */
+  entreguesNoAno?: MaquinasEntreguesNoArt | null;
+  /** O mesmo trecho do ano anterior. */
+  entreguesNoMesmoTrechoDoAnoAnterior?: MaquinasEntreguesNoArt | null;
+  /** O mês em curso, à parte e parcial. */
+  entreguesNoMesEmCurso?: MaquinasEntreguesNoArt | null;
 };
 
 export type PainelExecutivoDaFilial = {

@@ -8,10 +8,16 @@ namespace Tracbel.Crm.Integracao.Art;
 /// <summary>
 /// Uma linha da view de vendas de máquina do ART, como veio — tudo texto, antes do saneamento.
 ///
-/// <para><b>O que não está aqui, de propósito:</b> valor de venda e de compra, ICMS, custo, frete,
-/// comissão, bônus, lucro, margem e resultado contábil — a view tem 40 colunas assim, e nenhuma
-/// entra na integração. O usuário que digitou a venda também não: é nome de pessoa sem papel no
-/// CRM. A consulta nem o seleciona, então ele não chega à memória deste processo.</para>
+/// <para><b>O que não está aqui, de propósito:</b> valor de compra, ICMS, custo, frete, comissão, bônus,
+/// lucro, margem e resultado contábil — a view tem 40 colunas assim, e nenhuma entra na integração. O
+/// usuário que digitou a venda também não: é nome de pessoa sem papel no CRM. A consulta nem o
+/// seleciona, então ele não chega à memória deste processo.</para>
+///
+/// <para><b>O VALOR DE VENDA ENTRA desde 29/09/2026 — a minimização foi revista de novo por decisão do
+/// Ricardo:</b> "o faturamento real do ano fiscal vem do ART, das máquinas entregues". É só a coluna
+/// <c>vr_vda</c>, a venda como o comercial a registrou; as outras colunas financeiras continuam de fora.
+/// Ela vai para o retrato do registro (<c>integracao.RegistroDeOrigem.ValorDaVenda</c>), junto da data de
+/// entrega, para o faturamento do ano contar também a venda cujo comprador ainda não está no CRM.</para>
 ///
 /// <para><b>O VENDEDOR ENTRA desde 27/09/2026 — a minimização foi revista por decisão do Ricardo
 /// (D-M2).</b> Até ali ele ficava de fora pela mesma razão do usuário. A meta de venda da API Gestão de
@@ -45,7 +51,8 @@ public sealed record RegistroDoArt(
     string? VendaDireta,
     string? RepasseDireto,
     string? Quantidade,
-    string? Vendedor = null);
+    string? Vendedor = null,
+    string? ValorDaVenda = null);
 
 /// <summary>
 /// A LEITURA DO ART — uma consulta à view de vendas, em sessão somente leitura.
@@ -57,13 +64,15 @@ public sealed class LeitorDoArt(IOptions<OpcoesDoArt> opcoes)
     public const string CodigoDoSistema = "ART";
 
     /// <summary>
-    /// As colunas lidas. Nenhuma financeira: ver <see cref="RegistroDoArt"/>. O <c>vendedor</c>, no fim,
-    /// é a decisão D-M2 de 27/09/2026.
+    /// As colunas lidas. Financeira, só o valor de venda: ver <see cref="RegistroDoArt"/>. O <c>vendedor</c> é a
+    /// decisão D-M2 de 27/09/2026; o <c>vr_vda</c>, no fim, a de 29/09/2026 — como texto, pela mesma razão das datas:
+    /// a conversão fica explícita no saneamento.
     /// </summary>
     private const string Colunas =
         "CAST(codigo AS CHAR), chassis, cpf_cnpj, cliente, linha, produto, empresa, unidade, unidade_fat, " +
         "CAST(data_vda AS CHAR), CAST(data_fat AS CHAR), CAST(entrega AS CHAR), CAST(dt_abertura AS CHAR), " +
-        "situacao, num_ped, CAST(num_nfe_venda AS CHAR), gestao, venda_direta, repasse_direto, CAST(qte AS CHAR), vendedor";
+        "situacao, num_ped, CAST(num_nfe_venda AS CHAR), gestao, venda_direta, repasse_direto, CAST(qte AS CHAR), vendedor, " +
+        "CAST(vr_vda AS CHAR)";
 
     /// <summary>Lê a view inteira.</summary>
     /// <param name="ct">Cancelamento.</param>
@@ -109,7 +118,7 @@ public sealed class LeitorDoArt(IOptions<OpcoesDoArt> opcoes)
                 registros.Add(new RegistroDoArt(
                     Texto(0) ?? string.Empty, Texto(1), Texto(2), Texto(3), Texto(4), Texto(5), Texto(6), Texto(7),
                     Texto(8), Texto(9), Texto(10), Texto(11), Texto(12), Texto(13), Texto(14), Texto(15), Texto(16),
-                    Texto(17), Texto(18), Texto(19), Texto(20)));
+                    Texto(17), Texto(18), Texto(19), Texto(20), Texto(21)));
             }
 
             return Resultado<IReadOnlyList<RegistroDoArt>>.Ok(registros);

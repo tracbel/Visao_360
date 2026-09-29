@@ -229,6 +229,9 @@ public sealed class RegistroDeOrigemConfiguracao : IEntityTypeConfiguration<Regi
         b.Property(r => r.LinhaNaOrigem).HasMaxLength(60).IsUnicode(true);
         b.Property(r => r.ProdutoNaOrigem).HasMaxLength(60).IsUnicode(true);
         b.Property(r => r.UnidadeNaOrigem).HasMaxLength(80).IsUnicode(true);
+
+        // O VALOR DE VENDA DO ART (29/09/2026): o faturamento do ano fiscal, em reais, com duas casas.
+        b.Property(r => r.ValorDaVenda).HasPrecision(18, 2);
         b.Property(r => r.Transformacoes).HasMaxLength(1000).IsUnicode(true);
         b.Property(r => r.Decisao).HasConversion<string>().HasMaxLength(20).IsUnicode(false).IsRequired();
         b.Property(r => r.Motivos).HasMaxLength(400).IsUnicode(false);
