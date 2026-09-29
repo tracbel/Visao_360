@@ -88,7 +88,7 @@ public sealed class FontesPublicasTestes
     {
         var codigos = ConexoesDoSistema.Todas.Select(c => c.Codigo).ToHashSet();
 
-        RotinasDoSistema.Todas.SelectMany(r => r.Conexoes.Append(r.ConexaoExigida ?? r.Conexoes[0]))
+        RotinasDoSistema.Todas.SelectMany(r => r.ConexaoExigida is { } exigida ? r.Conexoes.Append(exigida) : r.Conexoes)
             .Where(c => !codigos.Contains(c)).Should().BeEmpty();
     }
     /// <summary>

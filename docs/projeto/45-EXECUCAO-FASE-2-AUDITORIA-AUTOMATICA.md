@@ -240,7 +240,7 @@ mês (`TRUNCATE` de partição, sem `DELETE` linha a linha).
 | uma execução de carga gera linhas com `Origem = Integracao` e o `SistemaId` certo | ✅ teste da consolidação (IBGE) e da origem declarada. **Nenhuma carga real foi executada**: IBGE e planilhas exigem rede e arquivos do comercial, o ART segue desabilitado e o Vórtice está congelado |
 | campo fora da política não gera linha | ✅ |
 | **p95 do `POST /api/v1/clientes` não piora mais que 10%** | ❌ **não atendido no ensaio** — ver abaixo. Desde 28/09/2026 o servidor mede o p95 sozinho (§6.2) |
-| retenção (D-10) registrada na migração e no documento 14 | ✅ **decidida em 20/09/2026 — 18 meses** (§5.3); gravada na `MS_Description` da tabela pela migração `RetencaoDaAuditoriaDecidida` e no doc 14 §10 (#40, 28/09/2026). A rotina que a **aplica** é a #268 |
+| retenção (D-10) registrada na migração e no documento 14 | ✅ **decidida em 20/09/2026 — 18 meses** (§5.3); gravada na `MS_Description` da tabela pela migração `RetencaoDaAuditoriaDecidida` e no doc 14 §10 (#40, 28/09/2026). **Aplicada pela rotina 14, `PARTICAO_AUDITORIA`** (#268, 29/09/2026): todo dia 1º, abre os meses seguintes e esvazia as partições com mais de 18 meses, mantendo as mudanças de permissão (permanentes) — doc 14 §10 |
 | a gravação recusada pela concorrência não deixa trilha | ✅ `TrilhaNaConcorrenciaNoConteinerTestes` (#40, 28/09/2026): duas pessoas alteram o mesmo cliente no SQL Server; a segunda recebe `Concorrencia` e nenhuma linha de trilha dela fica |
 
 ### 6.1 O desempenho, medido

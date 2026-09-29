@@ -34,7 +34,8 @@ public sealed class RotinaDosProcessosDoVorticeTestes
             (10, RotinasDoSistema.PrecosDeMaquina),
             (11, RotinasDoSistema.TelemetriaOperationsCenter),
             (12, RotinasDoSistema.EstoqueGestaoDeNegocios),
-            (13, RotinasDoSistema.ConferenciaGestaoDeNegocios));
+            (13, RotinasDoSistema.ConferenciaGestaoDeNegocios),
+            (14, RotinasDoSistema.ParticaoDaAuditoria));
     }
 
     [Fact]

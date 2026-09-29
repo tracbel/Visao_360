@@ -976,6 +976,9 @@ public static class RotinasDoSistema
     /// <summary>A conferência dos números do CRM com os da API Gestão de Negócios (decisão de 28/09/2026).</summary>
     public const string ConferenciaGestaoDeNegocios = "CONFERENCIA_GESTAO_NEGOCIOS";
 
+    /// <summary>A manutenção das tabelas de log particionadas por mês e a retenção da trilha (issue 268, D-10).</summary>
+    public const string ParticaoDaAuditoria = "PARTICAO_AUDITORIA";
+
     /// <summary>
     /// Quando as agendas semeadas passam a valer: o dia em que o orquestrador substituiu as tarefas do Windows. O
     /// que era devido antes dele (a mensal de 20/09) já rodou pelas tarefas antigas.
@@ -1136,7 +1139,23 @@ public static class RotinasDoSistema
             "A meta e o realizado de máquinas como a API Gestão de Negócios conta, comparados com o que o CRM conta, filial a " +
             "filial e mês a mês — e cada máquina do realizado que não bate, chassi a chassi, com o motivo.",
             ["--somente-conferencia-gn"], AgendaDaRotina.DiariaAs(new TimeOnly(7, 15)), false,
-            [ConexoesDoSistema.GestaoDeNegocios], ConexoesDoSistema.GestaoDeNegocios)
+            [ConexoesDoSistema.GestaoDeNegocios], ConexoesDoSistema.GestaoDeNegocios),
+
+        // A PARTIÇÃO DA AUDITORIA (issue 268, retenção D-10 decidida em 20/09/2026) — a rotina 14, no FIM da lista como
+        // toda rotina nova. As tabelas de log nasceram particionadas por mês com uma janela FIXA de 16 meses (hoje sobra só a
+        // trilha de alterações; a fase 1 removeu as outras três); sem esta rotina, tudo o que vem depois do último limite cai
+        // na última partição, e o expurgo por partição — o motivo de particionar — deixa de funcionar para ela. Todo dia 1º às
+        // 02:00 ela abre os meses seguintes de toda função PF_Mensal_* do banco e tira da trilha de alterações o que passou de
+        // 18 meses, por partição e sem DELETE; a mudança de permissão fica, porque é permanente (documento 05 §10).
+        //
+        // NASCE LIGADA, ao contrário das que trazem dado novo: ela não traz dado de fora, só mantém o banco — e desligada ela
+        // deixaria a política de retenção escrita e não aplicada, que é o defeito que ela existe para fechar. Não usa
+        // conexão nenhuma: trabalha no banco do próprio CRM.
+        new(ParticaoDaAuditoria, "Partição da auditoria",
+            "Abre os meses seguintes das tabelas de log particionadas por mês e tira da trilha de alterações o que passou de " +
+            "18 meses, uma partição por vez e sem DELETE. A mudança de permissão fica: ela é permanente.",
+            ["--somente-particao-auditoria"], AgendaDaRotina.MensalEm(1, new TimeOnly(2, 0)), true,
+            [], null)
     ];
 
     /// <summary>A rotina do catálogo pelo código; nula quando não existe.</summary>

@@ -80,7 +80,7 @@ public sealed class MigracaoNoContainerTestes
         // fim da lista, sem renumerar as que já existem (a 8 é a do funil do Vórtice, #247). A conexão 14 e a rotina 11 são a
         // telemetria do Operations Center (28/09/2026); a rotina 12, o estoque da Gestão de Negócios (28/09/2026).
         ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Conexao").Should().Be(14);
-        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Rotina").Should().Be(13);
+        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Rotina").Should().Be(14);
         contexto.Conexoes.Single(c => c.Id == 13).Codigo.Should().Be("GESTAO_NEGOCIOS");
         contexto.Conexoes.Single(c => c.Id == 14).Codigo.Should().Be("OPERATIONS_CENTER");
         contexto.Rotinas.Single(r => r.Id == 9).Codigo.Should().Be("METAS_GESTAO_NEGOCIOS");
@@ -88,6 +88,12 @@ public sealed class MigracaoNoContainerTestes
         contexto.Rotinas.Single(r => r.Id == 11).Codigo.Should().Be("TELEMETRIA_OPERATIONS_CENTER");
         contexto.Rotinas.Single(r => r.Id == 12).Codigo.Should().Be("ESTOQUE_GESTAO_NEGOCIOS");
         contexto.Rotinas.Single(r => r.Id == 13).Codigo.Should().Be("CONFERENCIA_GESTAO_NEGOCIOS");
+
+        // A ROTINA 14 É A DA PARTIÇÃO DA AUDITORIA (issue 268): a única que nasce ligada entre as que não são de fonte
+        // pública — ela não traz dado de fora, só mantém o banco.
+        var particao = contexto.Rotinas.Single(r => r.Id == 14);
+        particao.Codigo.Should().Be("PARTICAO_AUDITORIA");
+        particao.EstaLigada.Should().BeTrue();
     }
 
     [FatoSeHouverSqlServer]

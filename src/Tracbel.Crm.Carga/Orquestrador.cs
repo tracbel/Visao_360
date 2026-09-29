@@ -51,6 +51,13 @@ internal static class Orquestrador
     /// <summary>A opção da linha de comando.</summary>
     public const string Opcao = "--orquestrar";
 
+    /// <summary>
+    /// O PREFIXO DO RESUMO (issue 268): a carga que termina bem e escreve uma linha começando por ele tem o resto da linha
+    /// guardado na execução da rotina, no lugar do "ok" seco — é assim que "quantas partições abriu e quantas linhas
+    /// saíram" chega a Configurações › Integrações. Carga que não escreve a linha continua como era.
+    /// </summary>
+    public const string PrefixoDoResumo = "RESUMO: ";
+
     private const string RecursoDaTrava = "TracbelCrm.Orquestrador";
 
     /// <summary>O teto de cada carga. A PAM leva perto de uma hora; três é folga, não expectativa.</summary>
@@ -192,7 +199,12 @@ internal static class Orquestrador
 
             pior = Math.Max(pior, codigoDeSaida);
             var motivoDaFalha = codigoDeSaida == 0 ? null : ultimas.LastOrDefault(l => !string.IsNullOrWhiteSpace(l));
-            partes.Add(motivoDaFalha is null ? $"{modo}: ok" : $"{modo}: código {codigoDeSaida} — {motivoDaFalha}");
+            var resumo = codigoDeSaida == 0
+                ? ultimas.LastOrDefault(l => l is not null && l.StartsWith(PrefixoDoResumo, StringComparison.Ordinal))
+                : null;
+            partes.Add(motivoDaFalha is not null ? $"{modo}: código {codigoDeSaida} — {motivoDaFalha}"
+                : resumo is not null ? $"{modo}: ok — {resumo[PrefixoDoResumo.Length..]}"
+                : $"{modo}: ok");
             relatar($"  {modo}: código {codigoDeSaida}");
         }
 
