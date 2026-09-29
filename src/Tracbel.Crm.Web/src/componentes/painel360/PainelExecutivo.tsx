@@ -30,9 +30,33 @@
  *      Momento do mercado (`PainelDoMomento`), os rankings com barra e as tabelas de faixa dos Indicadores.
  * NENHUM NÚMERO, REGRA OU TEXTO DE REGRA MUDOU: o que estava no corpo dos cartões foi para a dica deles, e as vendas
  * perdidas por motivo e por concorrente passaram a ser um painel com duas abas.
+ *
+ * ---------------------------------------------------------------------------
+ * 29/09/2026 — NO DESENHO DA MAQUETE DO RICARDO (`docs/prototipo/capturas-referencia/visao-360-maquete-2026-09-29.png`):
+ * "deixe idêntico", sem inventar e sem tirar nada da tela. O desenho mora em `estilos/visao360.css`, embaixo de
+ * `.v360-maquete`. O que a maquete mostra e o CRM não tem de onde tirar ficou de fora, e não inventado: a variação dos
+ * clientes e do conhecimento de mercado (não há período anterior para essas contas), o "Ver todos os alertas" (não há
+ * tela de alertas) e o menu "⋮" do faturamento. Os seletores de unidade e de ordem do ranking entram DESLIGADOS, com o
+ * motivo na dica — o mesmo padrão dos Indicadores.
  */
-import { CalendarDays, Eye, RefreshCw, ShieldCheck, Target, TrendingUp, Users } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  CalendarDays,
+  ChartNoAxesCombined,
+  ChartPie,
+  CircleAlert,
+  Clock3,
+  Map as IconeDoMapa,
+  RefreshCw,
+  ShieldCheck,
+  Target,
+  TriangleAlert,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   censConsolidados,
@@ -55,8 +79,7 @@ import { GraficoBarrasHorizontais } from '../GraficoBarrasHorizontais';
 import { GraficoDonutCentro } from '../GraficoDonutCentro';
 import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import { InfoTooltip } from '../InfoTooltip';
-import { AbasInternas } from '../mercado/AbasInternas';
-import { PainelDoMomento } from '../mercado/momento/pecas';
+import { PainelDoMomento, Seletor } from '../mercado/momento/pecas';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
 import { FiltroDoPerfil } from './FiltroDoPerfil';
@@ -65,6 +88,7 @@ import '../../estilos/mercado-visao.css';
 import '../../estilos/momento.css';
 import '../../estilos/territorio.css';
 import '../../estilos/painel-executivo.css';
+import '../../estilos/visao360.css';
 
 /**
  * COMO A META DE VENDA SE CONTA — a frase é uma só, no cartão e na composição (#138, decisões de 27/09/2026).
@@ -145,6 +169,13 @@ function diaEHora(instante: string | null): string {
   return new Date(utc).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+/** O instante vira `29/09/2026 15:58`, no fuso de quem lê — a "Última atualização" do cabeçalho. */
+function diaEHoraCompletos(instante: Date): string {
+  const dia = instante.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const hora = instante.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `${dia} ${hora}`;
+}
+
 /** `2026-03-10` vira `10/03/2026`. */
 function data(dia: string | null): string {
   if (!dia) return '—';
@@ -175,14 +206,42 @@ function corDaClasse(classe: string | null): string {
   }
 }
 
-/** As cores dos estados da cobertura pela cadência — as mesmas do mapa: verde coberto, vermelho pendente. */
-const COR_COBERTO = '#367C2B';
-const COR_FORA_DA_CADENCIA = '#DC2626';
-const COR_NUNCA = '#7F1D1D';
-const COR_SEM_CADENCIA = '#D1D5DB';
+/**
+ * As cores dos estados da cobertura pela cadência — verde coberto, vermelho pendente, como no mapa —, nos tons amostrados
+ * da maquete de 29/09/2026. A linha sem cadência, fora do percentual, é o cinza-azulado dela.
+ */
+const COR_COBERTO = '#287B2E';
+const COR_FORA_DA_CADENCIA = '#E93034';
+const COR_NUNCA = '#7C1517';
+const COR_SEM_CADENCIA = '#8090B4';
 
-/** As cores do mix por linha, na paleta John Deere do protótipo. */
-const CORES_MIX = ['#367C2B', '#4A9B3D', '#6FBF5E', '#FFDE00', '#F59E0B', '#0EA5E9', '#8B5CF6', '#DC2626'] as const;
+/** As cores do mix por linha, na paleta John Deere do protótipo; a primeira é o verde da rosca da maquete. */
+const CORES_MIX = ['#29792D', '#4A9B3D', '#6FBF5E', '#FFDE00', '#F59E0B', '#0EA5E9', '#8B5CF6', '#DC2626'] as const;
+
+/** As barras das vendas perdidas por motivo, na ordem da maquete: três verdes, amarelo, terracota e azul. */
+const CORES_DAS_PERDAS = ['#2C7C30', '#5DB65B', '#A5D458', '#FDDB0B', '#CC784E', '#56ACFB'] as const;
+
+/**
+ * A LINHA DO FATURAMENTO NA MAQUETE: verde escuro, pontos cheios com borda branca, a área verde clara e a grade dos meses.
+ * O mês em curso continua tracejado — na maquete, cinza-azulado e cheio.
+ */
+const APARENCIA_DO_FATURAMENTO = {
+  corDaLinha: '#1E7A32',
+  corDaArea: 'rgba(46, 139, 62, 0.17)',
+  corDoParcial: '#6779A6',
+  parcialCheio: true,
+  larguraDaLinha: 2.4,
+  raioDoPonto: 4.5,
+  pontoComBorda: true,
+  gradeVertical: true,
+  tamanhoDaFonte: 11,
+  corDaFonte: '#4B5563',
+} as const;
+
+/** As barras do Top CENs: o primeiro escuro, o segundo e o terceiro médios, os outros claros (maquete). */
+function corDoCen(posicao: number): string {
+  return posicao === 0 ? '#036B37' : posicao < 3 ? '#50B26B' : '#8BD89A';
+}
 
 /**
  * Tira o "Venda de " que abre quase todas as linhas de negócio do legado. O prefixo se repete em oito de nove rótulos —
@@ -260,6 +319,10 @@ export function PainelExecutivo({
 
   const mixDoGrafico = useMemo(() => mix.slice(0, TOP + 3), [mix]);
   const totalDoMix = mixDoGrafico.reduce((s, l) => s + l.clientes, 0);
+  // O CENTRO DA ROSCA É A MAIOR LINHA, com o mesmo arredondamento da legenda — como a cobertura, que põe no centro a
+  // primeira fatia. Com uma linha só, é o "100% da carteira" da maquete.
+  const participacaoDaMaiorLinha =
+    mixDoGrafico.length > 0 && totalDoMix > 0 ? Math.round((mixDoGrafico[0].clientes / totalDoMix) * 100) : null;
 
   /*
    * AS BARRAS SAEM DO FORMULÁRIO, E NÃO DO PROCESSO.
@@ -273,7 +336,7 @@ export function PainelExecutivo({
       vendasPerdidas.porMotivo.slice(0, 6).map((m, i) => ({
         rotulo: m.nome,
         valor: m.quantidade,
-        cor: CORES_MIX[i % CORES_MIX.length],
+        cor: CORES_DAS_PERDAS[i % CORES_DAS_PERDAS.length],
         tooltipLinhas: [
           m.nome,
           `${nº(m.quantidade)} venda(s) perdida(s)`,
@@ -286,6 +349,8 @@ export function PainelExecutivo({
   );
   const totalPerdido = vendasPerdidas.processosPerdidos;
   const maiorConcorrente = vendasPerdidas.porConcorrente[0]?.quantidade ?? 1;
+  const semPerdaNenhuma =
+    !perdasEFunil.carregando && barrasDePerda.length === 0 && vendasPerdidas.porConcorrente.length === 0;
 
   const anos = Array.from({ length: anoCorrente - PRIMEIRO_ANO + 1 }, (_, i) => anoCorrente - i);
   const lendo = consolidado.carregando || executivo.carregando || metas.carregando || perdasEFunil.carregando;
@@ -295,6 +360,14 @@ export function PainelExecutivo({
     metas.recarregar();
     perdasEFunil.recarregar();
   };
+
+  // A ÚLTIMA ATUALIZAÇÃO É A DESTA LEITURA DO PAINEL — a hora em que as leituras das filiais voltaram, e que o botão ao
+  // lado refaz. Sem nenhuma filial respondendo, não houve atualização a datar.
+  const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
+  const comResposta = exComResposta !== null;
+  useEffect(() => {
+    if (!lendo && comResposta) setAtualizadoEm(new Date());
+  }, [lendo, comResposta]);
 
   return (
     <>
@@ -308,12 +381,16 @@ export function PainelExecutivo({
         </div>
         <p className="dash-atualizado">
           {ex ? (
-            <span className={ex.respondidas < ex.filiais.length ? 'v360-periodo-alerta' : undefined}>
-              {ex.respondidas} de {ex.filiais.length} filiais em operação responderam
+            <span className="v360-filiais">
+              <span className={ex.respondidas < ex.filiais.length ? 'v360-periodo-alerta' : undefined}>
+                {ex.respondidas} de {ex.filiais.length} filiais em operação responderam
+              </span>
+              <InfoTooltip texto={<FiliaisLidas ex={ex} />} rotulo="Quais filiais responderam" />
             </span>
           ) : (
             'Lendo as filiais…'
           )}
+          {atualizadoEm && <span className="v360-atualizado-em">Última atualização: {diaEHoraCompletos(atualizadoEm)}</span>}
           <button
             type="button"
             className="dash-recarregar"
@@ -353,8 +430,10 @@ export function PainelExecutivo({
           <FiltroDoPerfil perfil={perfil} aoTrocar={aoTrocarPerfil} />
 
           <div className="dash-filtros-acao">
-            <Link to="/relatorios/territorio" className="dash-mais-filtros">
-              Indicadores geográficos da ADR →
+            <Link to="/relatorios/territorio" className="dash-mais-filtros v360-botao-adr">
+              <IconeDoMapa size={19} strokeWidth={2} aria-hidden="true" />
+              Indicadores geográficos da ADR
+              <ArrowRight size={15} strokeWidth={2.4} aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -392,11 +471,22 @@ export function PainelExecutivo({
                     ? `${mesPorExtenso(faturamento.serie[0].competencia)} a ${mesPorExtenso(faturamento.competenciaMaisRecente!)} · notas com cliente no CRM`
                     : 'Nota fiscal de saída, lida do Protheus.'
                 }
+                direita={
+                  faturamento.serie.length > 0 ? (
+                    <Seletor
+                      rotulo="Unidade do faturamento"
+                      rotuloVisivel={false}
+                      valor="milhoes"
+                      opcoes={[{ id: 'milhoes', rotulo: 'R$ (Milhões)' }]}
+                      motivoDesligado="O gráfico mostra o faturamento em milhões de reais, a mesma unidade dos cartões; não há outra unidade para escolher."
+                    />
+                  ) : undefined
+                }
               >
                 {/* O SUBTÍTULO ESCREVE O PERÍODO, SEMPRE. Se a carga do ERP parar de novo, a série para de avançar e o
                     período denuncia — em vez de mostrar um total plausível e velho. */}
                 {faturamento.serie.length > 0 ? (
-                  <MolduraDeGrafico altura={220}>
+                  <MolduraDeGrafico altura={160}>
                     {(l, a) => (
                       <GraficoLinhaMensal
                         rotulos={faturamento.serie.map((m) => mesCurto(m.competencia))}
@@ -405,6 +495,7 @@ export function PainelExecutivo({
                         altura={a}
                         formatar={emMilhoes}
                         ultimoParcial={faturamento.ultimoMesEstaAberto}
+                        aparencia={APARENCIA_DO_FATURAMENTO}
                       />
                     )}
                   </MolduraDeGrafico>
@@ -425,6 +516,7 @@ export function PainelExecutivo({
                   {cobertura && (
                     <Alerta
                       tipo="critico"
+                      icone={TriangleAlert}
                       titulo={`${nº(cobertura.nuncaContatados)} vínculos elegíveis nunca contatados`}
                       detalhe={`De ${nº(cobertura.elegiveis)} vínculos em linha com cadência declarada`}
                       acao="Ver cobertura"
@@ -433,6 +525,7 @@ export function PainelExecutivo({
                   )}
                   <Alerta
                     tipo="aviso"
+                    icone={Clock3}
                     titulo={`${nº(total.atrasadas)} tarefas atrasadas`}
                     detalhe={`De ${nº(total.pendentes)} pendentes no total`}
                     acao="Ver agenda"
@@ -443,7 +536,8 @@ export function PainelExecutivo({
                       motivo verdadeiro. */}
                   {pf?.parados != null ? (
                     <Alerta
-                      tipo="aviso"
+                      tipo="atencao"
+                      icone={CircleAlert}
                       titulo={`${nº(pf.parados)} processos parados em Negociação ou Pedido há mais de ${pf.diasParaParado} dias`}
                       detalhe="O estágio mais avançado, ainda aberto no Vórtice, sem avançar nem encerrar — hoje, nas filiais que responderam"
                       acao="Ver funil"
@@ -452,6 +546,7 @@ export function PainelExecutivo({
                   ) : (
                     <Alerta
                       tipo="info"
+                      icone={CircleAlert}
                       titulo={
                         <>
                           Processos parados em Negociação ou Pedido:{' '}
@@ -491,8 +586,9 @@ export function PainelExecutivo({
                     : 'Pela cadência declarada da linha de negócio.'
                 }
                 direita={
-                  <Link to="/relatorios/territorio" className="v360-link">
-                    Ver no mapa →
+                  <Link to="/relatorios/territorio" className="v360-link v360-botao-contorno">
+                    Ver no mapa
+                    <ArrowRight size={13} strokeWidth={2.4} aria-hidden="true" />
                   </Link>
                 }
               >
@@ -504,11 +600,18 @@ export function PainelExecutivo({
                   <div className="v360-rosca-e-tabela">
                     <GraficoDonutCentro
                       segmentos={fatiasDaCobertura}
-                      largura={150}
-                      altura={150}
-                      cutout="70%"
+                      largura={124}
+                      altura={124}
+                      cutout="74%"
                       bordaBranca
-                      centro={{ linha1: coberturaPct === null ? '—' : porcento(coberturaPct), linha2: 'no prazo' }}
+                      centro={{
+                        linha1: coberturaPct === null ? '—' : porcento(coberturaPct),
+                        linha2: 'no prazo',
+                        corLinha1: '#0B1638',
+                        tamanhoLinha1: 21,
+                        tamanhoLinha2: 11,
+                        deslocamentoLinha2: 18,
+                      }}
                     />
                     <TabelaDeFaixas
                       itens={fatiasDaCobertura.map((f) => ({ nome: f.nome, cor: f.cor, valor: nº(f.valor) }))}
@@ -524,6 +627,17 @@ export function PainelExecutivo({
                 titulo="Top CENs"
                 dica="Os responsáveis de carteira comercial com mais vínculos, somados nas filiais que responderam, e quantos desses vínculos tiveram contato nos últimos 30 dias."
                 subtitulo="Ranking por vínculos em carteira comercial."
+                direita={
+                  topCens.length > 0 ? (
+                    <Seletor
+                      rotulo="Ordem do ranking"
+                      rotuloVisivel={false}
+                      valor="vinculos"
+                      opcoes={[{ id: 'vinculos', rotulo: 'Vínculos' }]}
+                      motivoDesligado="O ranking é por vínculos em carteira comercial. As carteiras e os vínculos com contato em 30 dias de cada responsável estão embaixo do nome dele."
+                    />
+                  ) : undefined
+                }
               >
                 {/* SEM CARTEIRA, O PAINEL DIZ POR QUÊ — como os vizinhos. */}
                 {topCens.length === 0 ? (
@@ -554,7 +668,7 @@ export function PainelExecutivo({
                           <span
                             style={{
                               width: `${Math.max(2, Math.round((c.clientes / maiorCen) * 100))}%`,
-                              background: i === 0 ? '#1E7B34' : i < 3 ? '#3E9B57' : '#8FD19E',
+                              background: corDoCen(i),
                             }}
                           />
                         </span>
@@ -584,11 +698,23 @@ export function PainelExecutivo({
                   <div className="v360-rosca-e-tabela">
                     <GraficoDonutCentro
                       segmentos={mixDoGrafico.map((l, i) => ({ valor: l.clientes, cor: CORES_MIX[i % CORES_MIX.length] }))}
-                      largura={150}
-                      altura={150}
-                      cutout="72%"
+                      largura={118}
+                      altura={118}
+                      cutout="78%"
                       bordaBranca
                       tooltipUnidade="%"
+                      centro={
+                        participacaoDaMaiorLinha === null
+                          ? undefined
+                          : {
+                              linha1: `${participacaoDaMaiorLinha}%`,
+                              linha2: 'da carteira',
+                              corLinha1: '#0B1638',
+                              tamanhoLinha1: 20,
+                              tamanhoLinha2: 11,
+                              deslocamentoLinha2: 18,
+                            }
+                      }
                     />
                     <TabelaDeFaixas
                       className="v360-mix-legenda"
@@ -678,10 +804,27 @@ export function PainelExecutivo({
                 titulo="Vendas perdidas"
                 dica="Pelo formulário de venda perdida do CEN, no ano fiscal escolhido. Por motivo: o que o CEN declarou. Para quem perdemos: pela venda perdida principal — a mesma perda em dois formulários conta uma vez."
                 subtitulo={`${nº(totalPerdido)} processos do Vórtice perdidos · ${periodoDasPerdas}`}
+                area="v360-perdas"
+                direita={
+                  // AS ABAS NA LINHA DO TÍTULO (maquete de 29/09/2026). SEM PERDA NENHUMA, SEM ABAS: duas abas que
+                  // mostram o mesmo vazio são um controle que não controla nada.
+                  semPerdaNenhuma ? undefined : (
+                    <div className="terr-alternador v360-abas" role="group" aria-label="Vendas perdidas">
+                      <button type="button" aria-pressed={abaDasPerdas === 'motivo'} onClick={() => setAbaDasPerdas('motivo')}>
+                        Por motivo
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={abaDasPerdas === 'concorrente'}
+                        onClick={() => setAbaDasPerdas('concorrente')}
+                      >
+                        Para quem perdemos
+                      </button>
+                    </div>
+                  )
+                }
               >
-                {/* SEM PERDA NENHUMA, SEM ABAS: duas abas que mostram o mesmo vazio são um controle que não controla nada,
-                    e ocupam a linha que o motivo precisa. */}
-                {!perdasEFunil.carregando && barrasDePerda.length === 0 && vendasPerdidas.porConcorrente.length === 0 ? (
+                {semPerdaNenhuma ? (
                   <SemDado
                     oQue="as vendas perdidas"
                     porque={
@@ -693,90 +836,82 @@ export function PainelExecutivo({
                             `Nenhum processo perdido nem venda perdida registrada em ${periodoDasPerdas}, nas filiais que responderam.`)
                     }
                   />
+                ) : perdasEFunil.carregando ? (
+                  <BlocoCarregando oQue="as vendas perdidas do período" />
+                ) : abaDasPerdas === 'motivo' ? (
+                  barrasDePerda.length > 0 ? (
+                    <>
+                      <MolduraDeGrafico altura={Math.max(120, barrasDePerda.length * 20 + 34)}>
+                        {(l, a) => (
+                          <GraficoBarrasHorizontais
+                            itens={barrasDePerda}
+                            largura={l}
+                            altura={a}
+                            valoresNaPonta
+                            espessura={11}
+                            tamanhoDoRotulo={11.5}
+                            corDoRotulo="#1F2937"
+                          />
+                        )}
+                      </MolduraDeGrafico>
+                      <p className="v360-nota">
+                        De <strong>{nº(vendasPerdidas.registradas)}</strong> derrotas com formulário preenchido. As outras{' '}
+                        <strong>{nº(Math.max(0, totalPerdido - vendasPerdidas.registradas))}</strong> foram encerradas sem
+                        ninguém registrar o motivo.
+                      </p>
+                    </>
+                  ) : (
+                    <SemDado
+                      oQue="o motivo da perda"
+                      // "OS 0 PROCESSOS PERDIDOS EXISTEM" não é frase: sem processo perdido, o que falta não é o
+                      // formulário, é a perda.
+                      porque={
+                        pf && pf.respondidas === 0
+                          ? 'A leitura das vendas perdidas das filiais não respondeu.'
+                          : totalPerdido > 0
+                            ? `Os ${nº(totalPerdido)} processos perdidos em ${periodoDasPerdas} existem, e nenhum deles tem o formulário de venda perdida preenchido no período.`
+                            : (pf?.motivoSemFunil ??
+                              `Nenhum processo perdido nem venda perdida registrada em ${periodoDasPerdas}, nas filiais que responderam.`)
+                      }
+                    />
+                  )
+                ) : vendasPerdidas.porConcorrente.length > 0 ? (
+                  <>
+                    <p className="v360-nota">Pela venda perdida principal · {periodoDasPerdas}</p>
+                    <ol className="mom-ranking v360-ranking" data-variante="concorrentes">
+                      {vendasPerdidas.porConcorrente.slice(0, TOP).map((c) => (
+                        <li key={c.codigo} className="mom-ranking-linha">
+                          <span className="mom-ranking-nome">{c.nome}</span>
+                          <span className="mom-barra" aria-hidden="true">
+                            <span style={{ width: `${Math.max(2, (c.quantidade / maiorConcorrente) * 100)}%`, background: '#B45309' }} />
+                          </span>
+                          <span className="mom-ranking-valor">
+                            {nº(c.quantidade)} {c.quantidade === 1 ? 'perda' : 'perdas'} · {nº(c.maquinas)} máq.
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    {/* CAPTURA TRACBEL, E NÃO "PARTICIPAÇÃO DE MERCADO" (issue 162). Este painel conta derrotas; a parte da
+                        demanda que a Tracbel leva é medida nos Indicadores, com as unidades do ART. */}
+                    <p className="v360-nota">
+                      {nº(vendasPerdidas.registradas)} formulários de {nº(vendasPerdidas.processosPerdidos)} processos perdidos
+                      no período. A <strong>Captura Tracbel</strong> — máquinas vendidas sobre a demanda estimada — é medida
+                      nos{' '}
+                      <Link to="/relatorios/territorio" className="v360-link">
+                        Indicadores geográficos
+                      </Link>
+                      .
+                    </p>
+                  </>
                 ) : (
-                <AbasInternas<AbaDasPerdas>
-                  rotulo="Vendas perdidas"
-                  ativa={abaDasPerdas}
-                  aoTrocar={setAbaDasPerdas}
-                  abas={[
-                    {
-                      id: 'motivo',
-                      rotulo: 'Por motivo',
-                      conteudo: perdasEFunil.carregando ? (
-                        <BlocoCarregando oQue="as vendas perdidas do período" />
-                      ) : barrasDePerda.length > 0 ? (
-                        <>
-                          <MolduraDeGrafico altura={Math.max(160, barrasDePerda.length * 30 + 50)}>
-                            {(l, a) => <GraficoBarrasHorizontais itens={barrasDePerda} largura={l} altura={a} />}
-                          </MolduraDeGrafico>
-                          <p className="v360-nota">
-                            De <strong>{nº(vendasPerdidas.registradas)}</strong> derrotas com formulário preenchido. As
-                            outras <strong>{nº(Math.max(0, totalPerdido - vendasPerdidas.registradas))}</strong> foram
-                            encerradas sem ninguém registrar o motivo.
-                          </p>
-                        </>
-                      ) : (
-                        <SemDado
-                          oQue="o motivo da perda"
-                          // "OS 0 PROCESSOS PERDIDOS EXISTEM" não é frase: sem processo perdido, o que falta não é o
-                          // formulário, é a perda.
-                          porque={
-                            pf && pf.respondidas === 0
-                              ? 'A leitura das vendas perdidas das filiais não respondeu.'
-                              : totalPerdido > 0
-                                ? `Os ${nº(totalPerdido)} processos perdidos em ${periodoDasPerdas} existem, e nenhum deles tem o formulário de venda perdida preenchido no período.`
-                                : (pf?.motivoSemFunil ??
-                                  `Nenhum processo perdido nem venda perdida registrada em ${periodoDasPerdas}, nas filiais que responderam.`)
-                          }
-                        />
-                      ),
-                    },
-                    {
-                      id: 'concorrente',
-                      rotulo: 'Para quem perdemos',
-                      conteudo: perdasEFunil.carregando ? (
-                        <BlocoCarregando oQue="as vendas perdidas do período" />
-                      ) : vendasPerdidas.porConcorrente.length > 0 ? (
-                        <>
-                          <p className="v360-nota">Pela venda perdida principal · {periodoDasPerdas}</p>
-                          <ol className="mom-ranking v360-ranking" data-variante="concorrentes">
-                            {vendasPerdidas.porConcorrente.slice(0, TOP).map((c) => (
-                              <li key={c.codigo} className="mom-ranking-linha">
-                                <span className="mom-ranking-nome">{c.nome}</span>
-                                <span className="mom-barra" aria-hidden="true">
-                                  <span style={{ width: `${Math.max(2, (c.quantidade / maiorConcorrente) * 100)}%`, background: '#B45309' }} />
-                                </span>
-                                <span className="mom-ranking-valor">
-                                  {nº(c.quantidade)} {c.quantidade === 1 ? 'perda' : 'perdas'} · {nº(c.maquinas)} máq.
-                                </span>
-                              </li>
-                            ))}
-                          </ol>
-                          {/* CAPTURA TRACBEL, E NÃO "PARTICIPAÇÃO DE MERCADO" (issue 162). Este painel conta derrotas;
-                              a parte da demanda que a Tracbel leva é medida nos Indicadores, com as unidades do ART. */}
-                          <p className="v360-nota">
-                            {nº(vendasPerdidas.registradas)} formulários de {nº(vendasPerdidas.processosPerdidos)} processos
-                            perdidos no período. A <strong>Captura Tracbel</strong> — máquinas vendidas sobre a demanda
-                            estimada — é medida nos{' '}
-                            <Link to="/relatorios/territorio" className="v360-link">
-                              Indicadores geográficos
-                            </Link>
-                            .
-                          </p>
-                        </>
-                      ) : (
-                        <SemDado
-                          oQue="o mercado"
-                          porque={
-                            pf && pf.respondidas === 0
-                              ? 'A leitura das vendas perdidas das filiais não respondeu.'
-                              : `Nenhuma venda perdida com concorrente registrada no formulário do CEN em ${periodoDasPerdas}, nas filiais que responderam.`
-                          }
-                        />
-                      ),
-                    },
-                  ]}
-                />
+                  <SemDado
+                    oQue="o mercado"
+                    porque={
+                      pf && pf.respondidas === 0
+                        ? 'A leitura das vendas perdidas das filiais não respondeu.'
+                        : `Nenhuma venda perdida com concorrente registrada no formulário do CEN em ${periodoDasPerdas}, nas filiais que responderam.`
+                    }
+                  />
                 )}
               </PainelDoMomento>
             </div>
@@ -867,9 +1002,10 @@ function CartaoDoFaturamento({ ex }: { ex: ExecutivoConsolidado }) {
     <CartaoDeDecisao
       rotulo={`Faturamento FY${ex.ano}`}
       oQue="o faturamento do ano"
-      icone={TrendingUp}
+      icone={ChartNoAxesCombined}
       tom="demanda"
       valor={valor}
+      selo={variacao !== null ? <SeloDaVariacao percentual={variacao} /> : undefined}
       motivoSemDado={motivo}
       variacao={ano ? `${nº(ano.maquinas)} máquinas entregues · até ${mesPorExtenso(ano.fim)}` : undefined}
       sobre={
@@ -970,6 +1106,14 @@ function CartaoDaMeta({ metas, carregando }: { metas: MetasConsolidadas | null; 
       {...comum}
       valor={nº(realizado)}
       unidade={meta > 0 ? `de ${nº(meta)}` : 'máquinas'}
+      // O PERCENTUAL DA META NO SELO É O MESMO DA LINHA DE BAIXO (maquete): para o leitor de tela, ele já foi dito ali.
+      selo={
+        pct !== null ? (
+          <span className="v360-selo" data-tom="meta" aria-hidden="true">
+            {porcento(pct)}
+          </span>
+        ) : undefined
+      }
       variacao={
         <>
           {`${pct === null ? 'sem meta no período' : `${porcento(pct)} da meta`} · ${periodo?.texto ?? ''}`}
@@ -1030,11 +1174,11 @@ function CincoIndicadores({
   if (!ex) {
     return (
       <div className="dash-kpis mv-kpis" data-bloco="kpis" data-colunas="5">
-        <CartaoDeDecisao rotulo={`Faturamento FY${ano}`} icone={TrendingUp} tom="demanda" {...semResposta} />
+        <CartaoDeDecisao rotulo={`Faturamento FY${ano}`} icone={ChartNoAxesCombined} tom="demanda" {...semResposta} />
         <CartaoDaMeta metas={metas} carregando={carregandoMetas} />
         <CartaoDeDecisao rotulo="Clientes na carteira" icone={Users} tom="mercado" {...semResposta} />
         <CartaoDeDecisao rotulo="Cobertura pela cadência" icone={ShieldCheck} tom="oportunidade" {...semResposta} />
-        <CartaoDeDecisao rotulo="Conhecimento de mercado" icone={Eye} tom="neutro" {...semResposta} />
+        <CartaoDeDecisao rotulo="Conhecimento de mercado" icone={ChartPie} tom="neutro" {...semResposta} />
       </div>
     );
   }
@@ -1115,7 +1259,7 @@ function CincoIndicadores({
           unidades do ART pela demanda estimada, e mora nos Indicadores Geográficos. */}
       <CartaoDeDecisao
         rotulo="Conhecimento de mercado"
-        icone={Eye}
+        icone={ChartPie}
         tom="neutro"
         valor={nº(mercado.vendasPerdidasRegistradas)}
         unidade="perdas"
@@ -1198,6 +1342,7 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
       direita={
         <button type="button" className="mom-botao" aria-expanded={aberta} onClick={() => setAberta((a) => !a)}>
           {aberta ? 'Fechar a composição' : 'Ver filial a filial'}
+          {!aberta && <ArrowRight size={14} strokeWidth={2.4} aria-hidden="true" />}
         </button>
       }
     >
@@ -1287,14 +1432,57 @@ function SemDado({ oQue, porque }: { oQue: string; porque: string }) {
   );
 }
 
+/**
+ * A VARIAÇÃO DO FATURAMENTO NO SELO DO CARTÃO (maquete de 29/09/2026) — a mesma da dica, contra o mesmo trecho do ano
+ * anterior. A seta é desenho; o leitor de tela ouve a frase inteira.
+ */
+function SeloDaVariacao({ percentual }: { percentual: number }) {
+  const sentido = percentual > 0 ? 'alta' : percentual < 0 ? 'baixa' : 'neutro';
+  const Seta = percentual < 0 ? ArrowDown : ArrowUp;
+  const texto = porcento(Math.abs(percentual));
+  return (
+    <span className="v360-selo" data-tom={sentido}>
+      <span className="v360-selo-desenho" aria-hidden="true">
+        {percentual !== 0 && <Seta size={12} strokeWidth={2.6} />}
+        {texto}
+      </span>
+      <span className="cad-so-leitor">
+        {percentual === 0 ? 'igual' : `${percentual > 0 ? 'mais' : 'menos'} ${texto}`} no valor, contra o mesmo trecho do ano
+        anterior
+      </span>
+    </span>
+  );
+}
+
+/** As filiais lidas pelo painel, na dica ao lado de "N de M filiais em operação responderam". */
+function FiliaisLidas({ ex }: { ex: ExecutivoConsolidado }) {
+  const responderam = ex.filiais.filter((f) => f.painel).map((f) => f.filial.nome);
+  const falharam = ex.filiais.filter((f) => !f.painel);
+  return (
+    <>
+      <p>O painel lê cada filial em operação, uma a uma, e soma as que responderam.</p>
+      {responderam.length > 0 && <p>Responderam: {responderam.join(', ')}.</p>}
+      {falharam.length > 0 && (
+        <p>
+          Não responderam:{' '}
+          {falharam.map((f) => `${f.filial.nome} (${f.erro?.message ?? 'motivo não informado'})`).join('; ')}.
+        </p>
+      )}
+    </>
+  );
+}
+
 function Alerta({
   tipo,
+  icone: Icone,
   titulo,
   detalhe,
   acao,
   para,
 }: {
-  tipo: 'critico' | 'aviso' | 'info';
+  tipo: 'critico' | 'aviso' | 'atencao' | 'info';
+  /** O ícone da maquete: triângulo no crítico, relógio nas tarefas, círculo com exclamação nos processos. */
+  icone: LucideIcon;
   titulo: ReactNode;
   detalhe: string;
   acao: string;
@@ -1302,12 +1490,8 @@ function Alerta({
 }) {
   return (
     <div className={`v360-alerta v360-alerta-${tipo}`}>
-      <div className="v360-alerta-icon">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2.4}>
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 16v-4" />
-          <path d="M12 8h.01" />
-        </svg>
+      <div className="v360-alerta-icon" aria-hidden="true">
+        <Icone size={22} strokeWidth={2.2} />
       </div>
       <div className="v360-alerta-body">
         <div className="v360-alerta-titulo">{titulo}</div>

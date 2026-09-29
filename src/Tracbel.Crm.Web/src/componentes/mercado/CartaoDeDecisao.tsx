@@ -30,6 +30,7 @@ export function CartaoDeDecisao({
   motivoSemDado,
   variacao,
   oQue,
+  selo,
 }: {
   /**
    * A LINHA DE BAIXO: nos Indicadores, a variação contra o mesmo trecho do ano anterior (27/09/2026), ou o traço com o
@@ -62,6 +63,11 @@ export function CartaoDeDecisao({
   motivoSemDado: string | undefined;
   /** Como o leitor de tela chama o número ausente; o padrão é o rótulo em minúsculas. */
   oQue?: string;
+  /**
+   * O SELO DO CANTO de cima, à direita — a variação ("↑ 12,5%") ou o percentual da meta, como na maquete da Visão 360 de
+   * 29/09/2026. Só com número de verdade: cartão sem o que comparar não ganha selo. O desenho mora em `visao360.css`.
+   */
+  selo?: ReactNode;
 }) {
   const nome = oQue ?? rotulo.toLowerCase();
 
@@ -102,6 +108,8 @@ export function CartaoDeDecisao({
 
         <div className="mv-kpi-contexto">{variacao}</div>
       </div>
+
+      {selo && <span className="mv-kpi-selo">{selo}</span>}
     </div>
   );
 }
