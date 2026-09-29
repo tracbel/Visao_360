@@ -4,7 +4,7 @@
  * botão de cadastro novo fica desligado — o registro novo precisa nascer numa filial.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EscopoDoUsuario } from '../../dados/api/acesso';
@@ -105,7 +105,10 @@ describe('BotaoDeNovoCadastro', () => {
 
     const botao = screen.getByRole('button', { name: 'Novo cliente' });
     expect(botao).toBeDisabled();
-    expect(botao).toHaveAttribute('title', expect.stringMatching(/escolha no seletor a filial/));
+    // O PORQUÊ ESTÁ NA DICA AO LADO, que abre pelo teclado — o `title` do botão desligado não abria (#293 bloco 5).
+    expect(botao).not.toHaveAttribute('title');
+    fireEvent.focus(screen.getByRole('button', { name: 'Por que “Novo cliente” está desligado' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent(/escolha no seletor a filial/);
   });
 
   it('numa filial é o link para o formulário', () => {

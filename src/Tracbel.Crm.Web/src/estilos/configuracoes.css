@@ -1,0 +1,52 @@
+/*
+ * Configurações no padrão dos Indicadores Geográficos (29/09/2026, #293 bloco 5).
+ *
+ * O cabeçalho deixou de ser a faixa verde do protótipo e passou a ser o `page-header` das outras telas. O cartão de
+ * quem está usando continua à direita, agora sobre fundo branco: a moldura translúcida da faixa sumia nele.
+ */
+
+.config-chip-no-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: 6px 14px 6px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.config-chip-no-cabecalho .cu-avatar { border-color: var(--border); }
+.config-chip-no-cabecalho .cu-role { color: var(--text-secondary); opacity: 1; }
+
+/* OS CARTÕES DAS SEÇÕES TÊM A FORMA DO PAINEL DOS INDICADORES (`mom-painel`): fundo branco, a borda e o raio do
+   padrão, e o título sem a faixa cinza do protótipo. A marcação do `CardConfig` é a mesma — só o desenho mudou —, e o
+   corpo continua sendo o container das consultas de largura das seções. */
+.config-content .config-card {
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.config-content .config-card .cc-header {
+  padding: var(--e-3) var(--e-4) 0;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.config-content .config-card .cc-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+}
+
+.config-content .config-card .cc-body {
+  padding: var(--e-3) var(--e-4) var(--e-4);
+}
+
+/* O ÍCONE DO MENU LATERAL É O TRAÇO DO RESTO DO CRM, e não mais um emoji: centrado na mesma caixa de 20 px. */
+.cmi-icon {
+  display: inline-grid;
+  place-items: center;
+}

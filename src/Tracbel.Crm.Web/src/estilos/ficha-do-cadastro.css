@@ -1,0 +1,49 @@
+/*
+ * As fichas de cliente e de equipamento no padrão dos Indicadores Geográficos (29/09/2026, #293 bloco 5) — e o botão
+ * "Novo …" das listas, que é peça do cadastro.
+ *
+ * O formulário continua formulário: os mesmos campos, na mesma grade. O que mudou é a moldura — o cartão do cadastro
+ * virou o painel das outras telas (`mom-painel`), dentro de seções com título.
+ *
+ * A GRADE DOS CAMPOS CONTINUA MEDINDO A PRÓPRIA LARGURA: as colunas da `cad-grade` saem da consulta `@container
+ * cadastro`, que o `card-body` abria. Sem o `card-body`, quem abre é o `.ficha-campos`.
+ */
+
+.ficha-campos {
+  container: cadastro / inline-size;
+}
+
+/* O CABEÇALHO DA FICHA TEM MAIS AÇÕES QUE O DAS OUTRAS TELAS — a hora, o reler e três botões —, e o chassi não quebra
+   linha: entre 768 e 1.024px de janela as ações passavam da largura. Quando não cabem ao lado do título, elas descem
+   inteiras para a linha de baixo, encostadas à direita. */
+.dash-pagina .page-header.ficha-cabecalho {
+  flex-wrap: wrap;
+}
+
+.ficha-cabecalho .page-actions {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+/* O RODAPÉ DO FORMULÁRIO (Cancelar / Gravar) fica separado dos campos pelo filete, com o respiro que o `card-body`
+   dava. */
+.mom-painel .cad-rodape-form {
+  padding-top: var(--e-3);
+}
+
+/* O "NOVO …" DESLIGADO EM "TODAS AS FILIAIS" leva a dica ao lado, e não mais no `title` do botão. */
+.cad-novo-desligado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+}
+
+/* AS COLUNAS DE TEXTO DAS TABELAS DA FICHA QUEBRAM LINHA — a descrição da divergência, o comprador e a origem da
+   venda. A `mom-tabela` não quebra por padrão, e uma frase inteira numa linha só levava a tabela para fora do painel. */
+.mom-tabela td.ficha-texto {
+  min-width: 180px;
+  max-width: 360px;
+  white-space: normal;
+}
