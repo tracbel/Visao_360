@@ -21,17 +21,24 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 export function MolduraDeGrafico({
   altura,
   larguraMaxima,
+  preencher = false,
   children,
 }: {
-  /** A altura do desenho, em pixels. */
+  /** A altura do desenho, em pixels. Com `preencher`, é a altura MÍNIMA. */
   altura: number;
   /** Teto de largura, para o gráfico não esticar além do que faz sentido. */
   larguraMaxima?: number;
-  /** Recebe a largura medida. */
+  /**
+   * O GRÁFICO ENCHE A ALTURA QUE SOBRA no painel (29/09/2026, a Visão 360 da maquete): num painel esticado até o vizinho
+   * da linha, o desenho cresce até o fundo em vez de deixar uma faixa vazia embaixo. O desenho fica numa camada
+   * absoluta — assim ele não empurra a altura do painel, e a linha pode voltar a encolher quando o vizinho encolhe.
+   */
+  preencher?: boolean;
+  /** Recebe a largura medida (e, com `preencher`, a altura medida). */
   children: (largura: number, altura: number) => ReactNode;
 }) {
   const caixa = useRef<HTMLDivElement>(null);
-  const [largura, setLargura] = useState(0);
+  const [medida, setMedida] = useState({ largura: 0, altura });
 
   useEffect(() => {
     const elemento = caixa.current;
@@ -39,18 +46,29 @@ export function MolduraDeGrafico({
 
     function medir() {
       const l = caixa.current?.clientWidth ?? 0;
-      setLargura(larguraMaxima ? Math.min(l, larguraMaxima) : l);
+      const a = preencher ? Math.max(altura, Math.floor(caixa.current?.clientHeight ?? 0)) : altura;
+      setMedida({ largura: larguraMaxima ? Math.min(l, larguraMaxima) : l, altura: a });
     }
 
     medir();
     const observador = new ResizeObserver(medir);
     observador.observe(elemento);
     return () => observador.disconnect();
-  }, [larguraMaxima]);
+  }, [larguraMaxima, preencher, altura]);
 
   return (
-    <div className="cad-moldura-grafico" ref={caixa} style={{ minHeight: altura }}>
-      {largura > 0 && children(largura, altura)}
+    <div
+      className="cad-moldura-grafico"
+      data-preencher={preencher ? 'true' : undefined}
+      ref={caixa}
+      style={{ minHeight: altura }}
+    >
+      {medida.largura > 0 &&
+        (preencher ? (
+          <div className="cad-moldura-grafico-camada">{children(medida.largura, medida.altura)}</div>
+        ) : (
+          children(medida.largura, altura)
+        ))}
     </div>
   );
 }

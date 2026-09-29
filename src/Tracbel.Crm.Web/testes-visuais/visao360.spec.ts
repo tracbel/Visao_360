@@ -20,7 +20,9 @@
  * - o número de cada cartão cabe com folga de 10% — a fonte do Linux do CI é
  *   mais larga que a do Windows, e o que cabe raspando aqui estoura lá;
  * - a tabela de composição, de onze colunas, rola dentro da caixa dela, e não a
- *   página.
+ *   página;
+ * - os cartões lado a lado têm nome, número e linha de baixo na mesma altura, e
+ *   os painéis lado a lado terminam juntos (a maquete de 29/09/2026).
  */
 
 import { expect, test, type Page } from '@playwright/test';
@@ -237,6 +239,45 @@ for (const { nome, largura, altura } of TODAS) {
         .locator('[data-bloco^="linha-"] > *')
         .evaluateAll((nós) => nós.map((n) => n.getBoundingClientRect().right));
       for (const d of direitas) expect(d).toBeLessThanOrEqual(paginaDireita + 1);
+    });
+
+    test('os cartões e os painéis de cada linha ficam alinhados, como na maquete', async ({ page }) => {
+      // PEDIDO DO RICARDO (29/09/2026): "olha como todos os cards estão alinhados no protótipo". Nos cartões lado a lado,
+      // o nome, o número e a linha de baixo começam na mesma altura — mesmo quando um deles quebra em duas linhas; nas
+      // linhas de painéis com dado, os painéis lado a lado terminam juntos.
+      await abrir(page, 'completo');
+
+      const cartoes = await page.locator('[data-bloco="kpis"] > [data-kpi]').evaluateAll((nós) =>
+        nós.map((n) => {
+          const topo = (s: string) => Math.round(n.querySelector(s)!.getBoundingClientRect().top);
+          return {
+            kpi: (n as HTMLElement).dataset.kpi,
+            cartao: Math.round(n.getBoundingClientRect().top),
+            nome: topo('.mv-kpi-rotulo'),
+            numero: topo('.mv-kpi-valor'),
+            baixo: topo('.mv-kpi-contexto'),
+          };
+        }),
+      );
+      const porLinha = new Map<number, typeof cartoes>();
+      for (const c of cartoes) porLinha.set(c.cartao, [...(porLinha.get(c.cartao) ?? []), c]);
+      for (const linha of porLinha.values()) {
+        for (const parte of ['nome', 'numero', 'baixo'] as const) {
+          const alturas = new Set(linha.map((c) => c[parte]));
+          expect(alturas.size, `${parte} desalinhado: ${linha.map((c) => `${c.kpi}=${c[parte]}`).join(' · ')}`).toBe(1);
+        }
+      }
+
+      for (const bloco of ['linha-2', 'linha-3', 'linha-4']) {
+        const paineis = await page.locator(`[data-bloco="${bloco}"] > *`).evaluateAll((nós) =>
+          nós.map((n) => ({ topo: Math.round(n.getBoundingClientRect().top), fundo: Math.round(n.getBoundingClientRect().bottom) })),
+        );
+        const lado = new Map<number, number[]>();
+        for (const p of paineis) lado.set(p.topo, [...(lado.get(p.topo) ?? []), p.fundo]);
+        for (const fundos of lado.values()) {
+          expect(Math.max(...fundos) - Math.min(...fundos), `${bloco}: painéis lado a lado terminam em ${fundos.join(' e ')}`).toBeLessThanOrEqual(1);
+        }
+      }
     });
 
     test('a barra de filtros, com o perfil, e o cabeçalho cabem na largura', async ({ page }) => {

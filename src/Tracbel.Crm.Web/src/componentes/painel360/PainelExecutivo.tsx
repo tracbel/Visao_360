@@ -486,7 +486,8 @@ export function PainelExecutivo({
                 {/* O SUBTÍTULO ESCREVE O PERÍODO, SEMPRE. Se a carga do ERP parar de novo, a série para de avançar e o
                     período denuncia — em vez de mostrar um total plausível e velho. */}
                 {faturamento.serie.length > 0 ? (
-                  <MolduraDeGrafico altura={160}>
+                  // O GRÁFICO ENCHE O PAINEL até o fundo, na altura dos alertas ao lado (maquete: os dois terminam juntos).
+                  <MolduraDeGrafico altura={150} preencher>
                     {(l, a) => (
                       <GraficoLinhaMensal
                         rotulos={faturamento.serie.map((m) => mesCurto(m.competencia))}
@@ -841,7 +842,7 @@ export function PainelExecutivo({
                 ) : abaDasPerdas === 'motivo' ? (
                   barrasDePerda.length > 0 ? (
                     <>
-                      <MolduraDeGrafico altura={Math.max(120, barrasDePerda.length * 20 + 34)}>
+                      <MolduraDeGrafico altura={Math.max(120, barrasDePerda.length * 19 + 32)} preencher>
                         {(l, a) => (
                           <GraficoBarrasHorizontais
                             itens={barrasDePerda}

@@ -130,7 +130,10 @@ export function GraficoBarrasHorizontais({
         ticks: {
           font: { size: tamanhoDoRotulo, family: FONTE_DOS_GRAFICOS },
           color: corDoRotulo,
-          ...(valoresNaPonta ? { callback: (_valor: unknown, i: number) => caberNoEixo(itens[i]?.rotulo ?? '') } : {}),
+          // TODO NOME APARECE: num gráfico baixo o Chart.js pula um nome sim, outro não, e a barra fica sem dono.
+          ...(valoresNaPonta
+            ? { autoSkip: false, callback: (_valor: unknown, i: number) => caberNoEixo(itens[i]?.rotulo ?? '') }
+            : {}),
         },
       },
     },

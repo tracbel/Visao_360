@@ -88,9 +88,11 @@
    ----------------------------------------------------------------------------- */
 .dash-pagina.v360-maquete .dash-kpis.mv-kpis { gap: 12px; }
 
+/* OS CINCO ALINHADOS PELO TOPO (pedido do Ricardo, 29/09/2026): nome, número e linha de baixo na mesma altura em todos
+   os cartões, como na maquete — centralizado, o cartão de linha de baixo mais curta descia o número em relação ao vizinho. */
 .dash-pagina.v360-maquete .mv-kpi {
   position: relative;
-  align-items: center;
+  align-items: start;
   padding: 11px 10px 11px 11px;
   border-radius: 10px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
@@ -115,26 +117,14 @@
 .dash-pagina.v360-maquete .mv-kpi-corpo { gap: 2px; }
 
 .dash-pagina.v360-maquete .mv-kpi-rotulo {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1.35;
   color: var(--v360-marinho);
 }
 
-/* O SELO NÃO COBRE O NOME: um calço flutuando à direita guarda o lugar dele só na PRIMEIRA linha do rótulo — o nome que
-   quebra usa a largura inteira na segunda. */
-.dash-pagina.v360-maquete .mv-kpi:has(.mv-kpi-selo) .mv-kpi-rotulo { display: block; }
 
-.dash-pagina.v360-maquete .mv-kpi:has(.mv-kpi-selo) .mv-kpi-rotulo::before {
-  content: '';
-  float: right;
-  width: 58px;
-  height: 14px;
-}
-
-.dash-pagina.v360-maquete .mv-kpi:has(.mv-kpi-selo) .mv-kpi-rotulo > .dica { display: inline-flex; vertical-align: -3px; margin-left: 3px; }
-
-.dash-pagina.v360-maquete .dash-kpis[data-colunas='5'] .mv-kpi-valor { font-size: 24px; color: var(--v360-marinho); }
+.dash-pagina.v360-maquete .dash-kpis[data-colunas='5'] .mv-kpi-valor { column-gap: 6px; font-size: 24px; color: var(--v360-marinho); }
 .dash-pagina.v360-maquete .mv-kpi-valor > strong { font-weight: 800; }
 .dash-pagina.v360-maquete .mv-kpi-unidade { font-size: 12px; color: var(--v360-cinza); }
 .dash-pagina.v360-maquete .dash-kpis[data-colunas='5'] .mv-kpi-contexto { font-size: 10.5px; line-height: 1.35; color: var(--v360-cinza); }
@@ -145,21 +135,51 @@
 .dash-pagina.v360-maquete .mv-kpi[data-tom='oportunidade'] { --mv-tom: #7b58f6; background: #f2f1fe; border-color: #dcd7f8; }
 .dash-pagina.v360-maquete .mv-kpi[data-tom='neutro'] { --mv-tom: #2e8b3e; background: #f4fbf8; border-color: #dbebe2; }
 
-/* O SELO DO CANTO — a variação ou o percentual da meta. */
+/* AS FAIXAS DE ALTURA SÃO DA LINHA DE CARTÕES, e não de cada cartão (subgrid): nome, número e linha de baixo ocupam três
+   faixas comuns aos cartões lado a lado. Quando um nome, um número com selo ou uma linha de baixo quebra num cartão, a
+   faixa cresce nos cinco — e os cinco continuam alinhados, como na maquete. */
+@supports (grid-template-rows: subgrid) {
+  .dash-pagina.v360-maquete .dash-kpis.mv-kpis > .mv-kpi {
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 2px;
+  }
+
+  .dash-pagina.v360-maquete .dash-kpis.mv-kpis > .mv-kpi > .mv-kpi-corpo { display: contents; }
+  .dash-pagina.v360-maquete .dash-kpis.mv-kpis > .mv-kpi > .mv-kpi-glifo { grid-column: 1; grid-row: 1 / span 3; }
+
+  .dash-pagina.v360-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-rotulo,
+  .dash-pagina.v360-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-valor,
+  .dash-pagina.v360-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-contexto {
+    grid-column: 2;
+    min-width: 0;
+  }
+}
+
+/* CINCO CARTÕES EM 1.100 A 1.299px DE CONTEÚDO (a tela do Ricardo, 1.536 a 125%, tem ~1.240): o ladrilho e o número
+   cedem um pouco para o selo caber ao lado do número — "R$ 595,9 M" com "↑ 12,5%" — sem descer uma linha. */
+@container indicadores (min-width: 1100px) and (max-width: 1299px) {
+  .dash-pagina.v360-maquete .dash-kpis[data-colunas='5'] .mv-kpi { column-gap: 8px; padding-inline: 10px 9px; }
+  .dash-pagina.v360-maquete .mv-kpi-glifo { width: 28px; height: 28px; }
+  .dash-pagina.v360-maquete .dash-kpis[data-colunas='5'] .mv-kpi-glifo svg { width: 19px; height: 19px; }
+  .dash-pagina.v360-maquete .dash-kpis[data-colunas='5'] .mv-kpi-valor { font-size: 22px; }
+}
+
+/* O SELO NA PONTA DA LINHA DO NÚMERO — a variação ou o percentual da meta. Sem lugar ao lado do número, ele desce para a
+   linha de baixo em vez de apertar o número. */
 .mv-kpi-selo {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  z-index: 1;
+  display: inline-flex;
+  align-self: center;
+  margin-left: auto;
 }
 
 .v360-selo {
   display: inline-flex;
   align-items: center;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border: 1px solid;
   border-radius: 6px;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 16px;
   font-variant-numeric: tabular-nums;
@@ -342,7 +362,9 @@
 /* -----------------------------------------------------------------------------
    OS ALERTAS — faixas tingidas, o ícone de cada um e o botão branco
    ----------------------------------------------------------------------------- */
-.dash-pagina.v360-maquete .v360-alertas-list { gap: 7px; }
+/* OS ALERTAS REPARTEM A ALTURA DA COLUNA quando o gráfico ao lado é mais alto: a lista termina junto com o painel. */
+.dash-pagina.v360-maquete .v360-alertas-list { flex: 1 1 auto; gap: 7px; }
+.dash-pagina.v360-maquete .v360-alertas-list > .v360-alerta { flex: 1 1 auto; }
 
 .dash-pagina.v360-maquete .v360-alerta {
   align-items: center;
@@ -407,10 +429,15 @@
 .dash-pagina.v360-maquete .v360-mix-legenda th,
 .dash-pagina.v360-maquete .v360-mix-legenda td { padding-block: 2px; font-size: 11px; }
 
-.dash-pagina.v360-maquete .v360-rosca-e-tabela .mom-faixas thead th {
-  padding-bottom: 0;
-  font-size: 10px;
-  color: var(--v360-cinza);
+/* A LEGENDA SEM A LINHA DE CABEÇALHO, como na maquete: "Vínculos" e "Participação" já estão no subtítulo do painel, e o
+   cabeçalho continua na tabela para o leitor de tela. */
+.dash-pagina.v360-maquete .v360-rosca-e-tabela .mom-faixas thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .dash-pagina.v360-maquete .v360-rosca-e-tabela .mom-faixas td strong { font-weight: 800; }
@@ -429,7 +456,7 @@
 
 .dash-pagina.v360-maquete .mom-ranking.v360-ranking[data-variante='cens'] .mom-ranking-linha,
 .dash-pagina.v360-maquete .mom-ranking.v360-ranking[data-variante='clientes'] .mom-ranking-linha {
-  min-height: 24px;
+  min-height: 22px;
   column-gap: 10px;
   border-bottom-color: var(--v360-linha-tabela);
   font-size: 11.5px;
@@ -452,8 +479,18 @@
   color: var(--v360-marinho);
 }
 
-.dash-pagina.v360-maquete .v360-ranking-titulo { font-size: 11.5px; line-height: 1.2; color: var(--v360-marinho); }
-.dash-pagina.v360-maquete .v360-ranking-meta { font-size: 9.5px; line-height: 1.15; }
+.dash-pagina.v360-maquete .v360-ranking-titulo { font-size: 11px; line-height: 1.15; color: var(--v360-marinho); }
+.dash-pagina.v360-maquete .v360-ranking-meta { font-size: 9px; line-height: 1.1; }
+
+/* AS LINHAS REPARTEM A ALTURA DO PAINEL (maquete): esticado até o vizinho da linha, o ranking cresce até o fundo, e cada
+   linha ganha a mesma parte do que sobra — a tabela termina junto com o painel, sem faixa vazia embaixo. */
+.dash-pagina.v360-maquete .mom-painel > .v360-ranking[data-variante='cens'],
+.dash-pagina.v360-maquete .mom-painel > .v360-ranking[data-variante='clientes'] { flex: 1 1 auto; }
+
+.dash-pagina.v360-maquete .v360-ranking[data-variante='cens'] > .mom-ranking-linha:not(.mom-ranking-cabecalho),
+.dash-pagina.v360-maquete .v360-ranking[data-variante='clientes'] > .mom-ranking-linha:not(.mom-ranking-cabecalho) {
+  flex: 1 1 auto;
+}
 .dash-pagina.v360-maquete .v360-ranking .mom-barra { height: 9px; border-radius: 3px; background: var(--v360-linha-tabela); }
 .dash-pagina.v360-maquete .v360-ranking .mom-ranking-valor { font-size: 12px; font-weight: 700; color: var(--v360-marinho); }
 
