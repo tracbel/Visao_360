@@ -12,6 +12,11 @@
  * O AJUSTE É O FATOR DE CICLO DO CRM (preço, crédito e percepção), e não as elasticidades do protótipo — é o mesmo
  * número da ficha do município nos Indicadores. O protótipo fazia o preço e o crédito opcionais; aqui a ajustada vem
  * sempre ao lado da estrutural, e a tela diz quando ela não saiu.
+ *
+ * 29/09/2026 — AS ÚLTIMAS PEÇAS DO PADRÃO (#293, bloco 4): os quatro números passaram ao `CartaoDeDecisao`, os painéis
+ * ao `PainelDoMomento`, a tabela das culturas e a matriz à `mom-tabela`, e a tela ganhou duas seções com título — a
+ * previsão e de onde vem o número — e a largura toda. O mapa de calor das lojas continua o mesmo: ele é uma
+ * visualização, e não uma tabela de leitura. NENHUM NÚMERO, REGRA OU TEXTO DE REGRA MUDOU.
  */
 
 import { BarChart3, CalendarDays, Flag, RefreshCw, Store, Tractor, User, Warehouse } from 'lucide-react';
@@ -19,7 +24,10 @@ import { useState } from 'react';
 import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTela';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
 import { DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
-import { CartaoDeIndicador, GradeDeIndicadores, PaginaDoPainel, Painel } from '../componentes/dashboard/Dashboard';
+import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
+import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
+import { PainelDoMomento } from '../componentes/mercado/momento/pecas';
+import { TituloDaSecao } from '../componentes/territorio/TituloDaSecao';
 import { EntregaPorLoja } from '../componentes/demanda/EntregaPorLoja';
 import { MatrizDaDemanda } from '../componentes/demanda/MatrizDaDemanda';
 import { PrevisaoMensal } from '../componentes/demanda/PrevisaoMensal';
@@ -32,6 +40,8 @@ import { baixarCsv, carimboDeData } from '../dados/exportarCsv';
 import type { DemandaEPrevisaoDaRegiao, FiltrosDaDemanda } from '../tipos/mercado';
 import '../estilos/territorio.css';
 import '../estilos/dashboard.css';
+import '../estilos/mercado-visao.css';
+import '../estilos/momento.css';
 import '../estilos/diagnostico.css';
 import '../estilos/demanda.css';
 
@@ -61,7 +71,8 @@ export function DemandaEPrevisao() {
   const mudar = (parcial: Partial<FiltrosDaDemanda>) => setFiltros((f) => ({ ...f, ...parcial }));
 
   return (
-    <PaginaDoPainel>
+    // A LARGURA É A DA COLUNA INTEIRA, como as outras telas do padrão: o teto só volta acima de 2.100px de janela.
+    <PaginaDoPainel className="dash-pagina-larga">
       <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Demanda e Previsão</h1>
@@ -155,33 +166,38 @@ export function DemandaEPrevisao() {
 
       {leitura.erro && <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />}
 
-      <GradeDeIndicadores data-bloco="kpis">
-        <CartaoDeIndicador
+      {/* OS QUATRO NÚMEROS NO CARTÃO DOS INDICADORES (29/09/2026, #293 bloco 4): o `CartaoDeDecisao` tingido, com o
+          glifo grande e o que o número é na dica. */}
+      <div className="dash-kpis mv-kpis" data-bloco="kpis">
+        <CartaoDeDecisao
           rotulo="Parque necessário"
           icone={Warehouse}
           tom="neutro"
           valor={totais?.parque != null ? n(totais.parque, 0) : null}
+          carregando={leitura.carregando && !dados}
           unidade="máquinas"
-          contexto={dados ? `${dados.categoriaNome} · o que a área plantada comporta` : undefined}
+          variacao={dados ? `${dados.categoriaNome} · o que a área plantada comporta` : null}
           motivoSemDado="Nenhum município do recorte tem regra de potencial para esta categoria."
+          sobre="A área plantada do recorte ÷ os hectares por máquina da regra de cada cultura: o parque que a área comporta."
         />
-        <CartaoDeIndicador
+        <CartaoDeDecisao
           rotulo="Demanda anual"
           icone={BarChart3}
           tom="demanda"
           valor={totais?.demandaAjustada != null ? n(totais.demandaAjustada) : totais?.demandaEstrutural != null ? n(totais.demandaEstrutural) : null}
+          carregando={leitura.carregando && !dados}
           unidade="máquinas/ano"
-          contexto={
+          variacao={
             totais?.demandaEstrutural != null
               ? comAjustada
                 ? `100% do mercado, ajustada pelo momento · estrutural ${n(totais.demandaEstrutural)}`
                 : '100% do mercado · a renovação do parque'
-              : undefined
+              : null
           }
           motivoSemDado="Sem ciclo de renovação nas regras da categoria: o parque sai, a demanda anual não."
-          destaque
+          sobre="O parque ÷ os anos de renovação: as máquinas que a região pede por ano. A ajustada é a mesma demanda pelo fator de ciclo — preço da cultura, crédito do município e percepção."
         />
-        <CartaoDeIndicador
+        <CartaoDeDecisao
           rotulo={doMes ? `A entregar em ${NOME_DO_MES_POR_EXTENSO[doMes.mes]}` : 'A entregar no ano'}
           icone={Flag}
           tom="captura"
@@ -194,36 +210,47 @@ export function DemandaEPrevisao() {
                 ? n((comAjustada ? totais!.aEntregarAjustada : totais!.aEntregar)!)
                 : null
           }
+          carregando={leitura.carregando && !dados}
           unidade="máquinas"
-          contexto={
+          variacao={
             dados?.shareAlvo != null
               ? `share-alvo de ${n(dados.shareAlvo, 0)}%${doMes ? ` · ${n(doMes.fracao * 100)}% do ano` : ' · a meta anual da Tracbel'}`
-              : undefined
+              : null
           }
           motivoSemDado="Sem share-alvo vigente para a categoria: registre-o em Configurações › Potencial de mercado."
+          sobre="A demanda × o share-alvo vigente da categoria: o que a Tracbel tem de entregar. Com um mês escolhido, é a entrega daquele mês pela sazonalidade."
         />
-        <CartaoDeIndicador
+        <CartaoDeDecisao
           rotulo="Culturas com regra"
           icone={Tractor}
           tom="mercado"
           valor={totais ? n(totais.culturasComRegra.length, 0) : null}
+          carregando={leitura.carregando && !dados}
           unidade={totais && totais.culturasComRegra.length > 0 ? 'culturas' : undefined}
-          contexto={totais?.culturasComRegra.length ? totais.culturasComRegra.join(', ') : 'nenhuma regra nesta categoria'}
+          variacao={totais?.culturasComRegra.length ? totais.culturasComRegra.join(', ') : 'nenhuma regra nesta categoria'}
+          motivoSemDado={leitura.carregando ? undefined : 'A leitura da demanda não respondeu.'}
+          sobre="As culturas do recorte com regra de potencial nesta categoria — hectares por máquina e anos de renovação — em Configurações › Potencial de mercado."
         />
-      </GradeDeIndicadores>
+      </div>
 
       {leitura.carregando && !dados && <BlocoCarregando oQue="a demanda" />}
 
       {dados && (
         <>
-          <Painel
+          <section className="dash-secao" data-bloco="secao-previsao">
+          <TituloDaSecao
+            titulo="A previsão"
+            subtitulo="O ano distribuído pela sazonalidade, e quem entrega quanto e quando."
+            metodologia="A demanda do ano, de novembro a outubro — o ano fiscal da Tracbel —, distribuída pela sazonalidade vigente e multiplicada pelo share-alvo da categoria."
+          />
+          <PainelDoMomento
             titulo="Previsão mensal"
-            metodologia={
+            dica={
               'A demanda do ano distribuída pela sazonalidade vigente, de novembro a outubro — o ano fiscal da Tracbel. ' +
               'A barra é o que a Tracbel tem de entregar no mês (demanda × share-alvo); o percentual embaixo é o peso do ' +
               'mês no ano. Clique num mês para ver a entrega dele no cartão e no quadro das lojas.'
             }
-            acao={<Limitacoes dados={dados} />}
+            direita={<Limitacoes dados={dados} />}
             data-bloco="previsao-mensal"
           >
             <p className="diag-subtitulo-da-tabela">
@@ -231,19 +258,26 @@ export function DemandaEPrevisao() {
               {dados.sazonalidadeDoPrototipo && <span className="diag-a-confirmar">sazonalidade do protótipo, a confirmar</span>}
             </p>
             <PrevisaoMensal meses={dados.previsaoMensal} ajustada={comAjustada} mesEscolhido={mes} aoEscolherMes={setMes} />
-          </Painel>
+          </PainelDoMomento>
 
-          <Painel
+          <PainelDoMomento
             titulo="Entrega por loja × mês"
-            metodologia="O que cada loja tem de entregar em cada mês: a demanda dos municípios dela × o share-alvo, distribuída pela sazonalidade. A intensidade da célula reforça o número, que vem sempre escrito."
+            dica="O que cada loja tem de entregar em cada mês: a demanda dos municípios dela × o share-alvo, distribuída pela sazonalidade. A intensidade da célula reforça o número, que vem sempre escrito."
             data-bloco="entrega-por-loja"
           >
             <EntregaPorLoja lojas={dados.porLoja} meses={dados.previsaoMensal.map((m) => m.mes)} mesEscolhido={mes} />
-          </Painel>
+          </PainelDoMomento>
+          </section>
 
-          <Painel
+          <section className="dash-secao" data-bloco="secao-origem">
+          <TituloDaSecao
+            titulo="De onde vem o número"
+            subtitulo="Os parâmetros de cada cultura e a demanda de cada município."
+            metodologia="Os hectares por máquina e os anos de renovação vêm das regras do potencial (Configurações › Potencial de mercado); a área plantada, da PAM do IBGE. A matriz é paginada e exportável."
+          />
+          <PainelDoMomento
             titulo="Parâmetros e demanda por cultura"
-            metodologia={
+            dica={
               'O parque é a área plantada (PAM do IBGE' +
               (dados.anoDaAreaPlantada ? `, ${dados.anoDaAreaPlantada}` : '') +
               ') ÷ os hectares por máquina da regra; a demanda é o parque ÷ os anos de renovação. Os dois parâmetros vêm das ' +
@@ -252,21 +286,21 @@ export function DemandaEPrevisao() {
             }
             data-bloco="por-cultura"
           >
-            <div className="cad-tabela-wrap">
-              <table className="cad-tabela diag-tabela dem-culturas">
+            <div className="mom-tabela-rolagem">
+              <table className="mom-tabela diag-tabela dem-culturas">
                 <caption className="cad-so-leitor">Os parâmetros e a demanda de cada cultura no recorte</caption>
                 <thead>
                   <tr>
                     <th scope="col">Cultura</th>
-                    <th scope="col">Área (ha)</th>
-                    <th scope="col">ha/máquina</th>
-                    <th scope="col">Renovação (anos)</th>
-                    <th scope="col">Parque</th>
-                    <th scope="col">Demanda/ano</th>
+                    <th scope="col" className="mom-num">Área (ha)</th>
+                    <th scope="col" className="mom-num">ha/máquina</th>
+                    <th scope="col" className="mom-num">Renovação (anos)</th>
+                    <th scope="col" className="mom-num">Parque</th>
+                    <th scope="col" className="mom-num">Demanda/ano</th>
                     {comAjustada && (
                       <>
-                        <th scope="col">Ajustada/ano</th>
-                        <th scope="col">Efeito do momento</th>
+                        <th scope="col" className="mom-num">Ajustada/ano</th>
+                        <th scope="col" className="mom-num">Efeito do momento</th>
                       </>
                     )}
                   </tr>
@@ -275,15 +309,15 @@ export function DemandaEPrevisao() {
                   {dados.porCultura.map((c) => (
                     <tr key={c.culturaCodigo}>
                       <th scope="row">{c.cultura}</th>
-                      <td className="cad-mono">{c.areaUtilHectares === null ? '—' : n(c.areaUtilHectares, 0)}</td>
-                      <td className="cad-mono">{c.hectaresPorMaquina === null ? '—' : n(c.hectaresPorMaquina, 0)}</td>
-                      <td className="cad-mono">{c.anosDeRenovacao === null ? '—' : n(c.anosDeRenovacao, 0)}</td>
-                      <td className="cad-mono">{c.parque === null ? '—' : n(c.parque, 0)}</td>
-                      <td className="cad-mono dem-destaque">{c.demandaEstrutural === null ? '—' : n(c.demandaEstrutural)}</td>
+                      <td className="mom-num">{c.areaUtilHectares === null ? '—' : n(c.areaUtilHectares, 0)}</td>
+                      <td className="mom-num">{c.hectaresPorMaquina === null ? '—' : n(c.hectaresPorMaquina, 0)}</td>
+                      <td className="mom-num">{c.anosDeRenovacao === null ? '—' : n(c.anosDeRenovacao, 0)}</td>
+                      <td className="mom-num">{c.parque === null ? '—' : n(c.parque, 0)}</td>
+                      <td className="mom-num dem-destaque">{c.demandaEstrutural === null ? '—' : n(c.demandaEstrutural)}</td>
                       {comAjustada && (
                         <>
-                          <td className="cad-mono dem-destaque">{c.demandaAjustada === null ? '—' : n(c.demandaAjustada)}</td>
-                          <td className="cad-mono">
+                          <td className="mom-num dem-destaque">{c.demandaAjustada === null ? '—' : n(c.demandaAjustada)}</td>
+                          <td className="mom-num">
                             {c.variacaoPercentual === null ? (
                               '—'
                             ) : (
@@ -299,11 +333,11 @@ export function DemandaEPrevisao() {
                 </tbody>
               </table>
             </div>
-          </Painel>
+          </PainelDoMomento>
 
-          <Painel
+          <PainelDoMomento
             titulo="Matriz município × potencial"
-            acao={
+            direita={
               <div className="dem-acoes-da-matriz">
                 <input
                   type="search"
@@ -326,7 +360,8 @@ export function DemandaEPrevisao() {
             data-bloco="matriz"
           >
             <MatrizDaDemanda dados={dados} busca={busca} />
-          </Painel>
+          </PainelDoMomento>
+          </section>
         </>
       )}
     </PaginaDoPainel>

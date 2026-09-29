@@ -36,7 +36,7 @@ function Cabecalho({
   aoOrdenar: (coluna: Coluna, texto?: boolean) => void;
 }) {
   return (
-    <th scope="col" aria-sort={ordem.coluna === coluna ? (ordem.sentido === 1 ? 'ascending' : 'descending') : 'none'}>
+    <th scope="col" className={texto ? undefined : 'mom-num'} aria-sort={ordem.coluna === coluna ? (ordem.sentido === 1 ? 'ascending' : 'descending') : 'none'}>
       <button type="button" className="diag-ordenar" onClick={() => aoOrdenar(coluna, texto)}>
         {rotulo}
         {ordem.coluna === coluna && <span aria-hidden="true">{ordem.sentido === 1 ? ' ▲' : ' ▼'}</span>}
@@ -85,8 +85,8 @@ export function MatrizDaDemanda({ dados, busca }: { dados: DemandaEPrevisaoDaReg
 
   return (
     <>
-      <div className="cad-tabela-wrap">
-        <table className="cad-tabela diag-tabela dem-matriz">
+      <div className="mom-tabela-rolagem">
+        <table className="mom-tabela diag-tabela dem-matriz">
           <caption className="cad-so-leitor">A demanda de máquinas de cada município da ADR, por cultura</caption>
           <thead>
             <tr>
@@ -101,9 +101,9 @@ export function MatrizDaDemanda({ dados, busca }: { dados: DemandaEPrevisaoDaReg
               {comShare && <Cabecalho {...cab} coluna="aEntregar" rotulo={`A entregar ${dados.shareAlvo !== null ? `${n(dados.shareAlvo, 0)}%` : ''}`} />}
               {comAjustada && (
                 <>
-                  <th scope="col">Fator preço</th>
-                  <th scope="col">Fator crédito</th>
-                  <th scope="col">Efeito líquido</th>
+                  <th scope="col" className="mom-num">Fator preço</th>
+                  <th scope="col" className="mom-num">Fator crédito</th>
+                  <th scope="col" className="mom-num">Efeito líquido</th>
                 </>
               )}
             </tr>
@@ -118,26 +118,26 @@ export function MatrizDaDemanda({ dados, busca }: { dados: DemandaEPrevisaoDaReg
                     {m.culturaPredominante && <> · {m.culturaPredominante}</>}
                   </div>
                 </td>
-                <td className="cad-mono">{num(m.areaUtilHectares, 0)}</td>
-                <td className="cad-mono">{num(m.parque, 0)}</td>
+                <td className="mom-num">{num(m.areaUtilHectares, 0)}</td>
+                <td className="mom-num">{num(m.parque, 0)}</td>
                 {dados.culturas.map((c) => {
                   const d = m.porCultura.find((p) => p.culturaCodigo === c.codigo)?.demanda ?? null;
                   return (
-                    <td key={c.codigo} className="cad-mono dem-cultura">
+                    <td key={c.codigo} className="mom-num dem-cultura">
                       {num(d)}
                     </td>
                   );
                 })}
-                <td className="cad-mono dem-destaque">{num(m.demandaEstrutural)}</td>
-                {comAjustada && <td className="cad-mono dem-destaque">{num(m.demandaAjustada)}</td>}
+                <td className="mom-num dem-destaque">{num(m.demandaEstrutural)}</td>
+                {comAjustada && <td className="mom-num dem-destaque">{num(m.demandaAjustada)}</td>}
                 {comShare && (
-                  <td className="cad-mono dem-entregar">{num(comAjustada ? (m.aEntregarAjustada ?? m.aEntregar) : m.aEntregar)}</td>
+                  <td className="mom-num dem-entregar">{num(comAjustada ? (m.aEntregarAjustada ?? m.aEntregar) : m.aEntregar)}</td>
                 )}
                 {comAjustada && (
                   <>
-                    <td className="cad-mono">{m.fatorDePreco === null ? '—' : <Seta valor={m.fatorDePreco - 1}>{variacaoDoFator(m.fatorDePreco)}</Seta>}</td>
-                    <td className="cad-mono">{m.fatorDeCredito === null ? '—' : <Seta valor={m.fatorDeCredito - 1}>{variacaoDoFator(m.fatorDeCredito)}</Seta>}</td>
-                    <td className="cad-mono">
+                    <td className="mom-num">{m.fatorDePreco === null ? '—' : <Seta valor={m.fatorDePreco - 1}>{variacaoDoFator(m.fatorDePreco)}</Seta>}</td>
+                    <td className="mom-num">{m.fatorDeCredito === null ? '—' : <Seta valor={m.fatorDeCredito - 1}>{variacaoDoFator(m.fatorDeCredito)}</Seta>}</td>
+                    <td className="mom-num">
                       {m.variacaoPercentual === null ? '—' : <Seta valor={m.variacaoPercentual}>{variacaoPercentual(m.variacaoPercentual)}</Seta>}
                     </td>
                   </>

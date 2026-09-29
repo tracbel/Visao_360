@@ -62,7 +62,9 @@ describe('Funil de Vendas — o funil por estágio (documento 52)', () => {
     });
 
     expect(bloco).toHaveTextContent('Coorte · nov/2025 a ago/2026 · ano fiscal até o último mês fechado');
-    const linhas = within(bloco).getAllByRole('row').slice(1);
+    // NA MAQUETE DE 29/09/2026 a tabela dos seis estágios saiu do painel do funil e ganhou um cartão só dela.
+    const tabela = container.querySelector('[data-bloco="funil-tabela"]') as HTMLElement;
+    const linhas = within(tabela).getAllByRole('row').slice(1);
     // O ESTÁGIO É O CABEÇALHO DA LINHA (`th scope="row"`), como nas tabelas dos Indicadores (29/09/2026).
     expect(linhas.map((l) => l.querySelector('th')?.textContent)).toEqual([
       'Lead', 'Qualificado', 'Cobertura', 'Negociação', 'Pedido', 'Faturamento',
@@ -84,14 +86,70 @@ describe('Funil de Vendas — o funil por estágio (documento 52)', () => {
 
   it('sem a rotina ter rodado, cada estágio é "—" com o motivo, e não zero', async () => {
     const { container } = montar('vazio');
-    const bloco = await waitFor(() => {
-      const b = container.querySelector('[data-bloco="funil-por-estagio"]') as HTMLElement;
-      expect(within(b).getAllByRole('row')).toHaveLength(7);
-      return b;
+    const tabela = await waitFor(() => {
+      const t = container.querySelector('[data-bloco="funil-tabela"]') as HTMLElement;
+      expect(within(t).getAllByRole('row')).toHaveLength(7);
+      return t;
     });
 
-    expect(bloco.querySelector('#funil-svg')).toBeNull();
-    expect(bloco.querySelectorAll('.cad-ausente').length).toBeGreaterThanOrEqual(6);
+    expect(container.querySelector('[data-bloco="funil-por-estagio"] #funil-svg')).toBeNull();
+    expect(tabela.querySelectorAll('.cad-ausente').length).toBeGreaterThanOrEqual(6);
+    // O PAINEL DO FUNIL DIZ POR QUÊ, e a conversão fica com os seis estágios e o traço.
+    expect(container.querySelector('[data-bloco="funil-por-estagio"] .funil-sem-grafico')).toHaveTextContent('ainda não rodou');
+    const conversao = container.querySelector('[data-bloco="funil-conversao"]') as HTMLElement;
+    expect(within(conversao).getAllByRole('row')).toHaveLength(7);
+    expect(conversao.querySelector('.funil-conversao-barra')).toBeNull();
     expect(container).toHaveTextContent('ainda não rodou');
+  });
+});
+
+describe('Funil de Vendas — o desenho da maquete de 29/09/2026', () => {
+  it('a conversão entre estágios fica num painel ao lado, com a barra e o percentual na cor da faixa', async () => {
+    const { container } = montar('completo');
+    const conversao = await waitFor(() => {
+      const c = container.querySelector('[data-bloco="funil-conversao"]') as HTMLElement;
+      expect(c.querySelectorAll('.funil-conversao-barra')).toHaveLength(5);
+      return c;
+    });
+
+    const linhas = within(conversao).getAllByRole('row').slice(1);
+    expect(linhas.map((l) => l.querySelector('th')?.textContent)).toEqual([
+      'Lead', 'Qualificado', 'Cobertura', 'Negociação', 'Pedido', 'Faturamento',
+    ]);
+    // O PRIMEIRO ESTÁGIO NÃO TEM DE ONDE CONVERTER: travessão, e não percentual.
+    expect(linhas[0].querySelector('[data-tom]')).toBeNull();
+    // A MESMA REGRA DE COR DA LEGENDA ANTIGA: 70% ou mais, verde; de 40% a 70%, laranja; abaixo, vermelho.
+    for (const linha of linhas.slice(1)) {
+      const pct = linha.querySelector('[data-tom]') as HTMLElement;
+      const valor = Number(pct.textContent?.replace(/[^\d]/g, ''));
+      expect(pct.dataset.tom).toBe(valor >= 70 ? 'bom' : valor >= 40 ? 'medio' : 'baixo');
+    }
+    // A CHAVE COORTE × FLUXO mora em cima da conversão.
+    expect(container.querySelector('.funil-lado .funil-chave')).not.toBeNull();
+  });
+
+  it('as perdas abrem na faixa laranja com o que a distribuição não diz, e as vendas perdidas em "Para quem perdemos"', async () => {
+    const { container, getByRole } = montar('completo');
+    const aviso = await waitFor(() => {
+      const a = container.querySelector('[data-bloco="perdas-resumo"] .funil-perdas-aviso') as HTMLElement;
+      expect(a).not.toBeNull();
+      return a;
+    });
+
+    expect(aviso).toHaveTextContent('O que a distribuição de perdas não diz');
+    expect(aviso).toHaveTextContent(/derrotas que foram registradas, e não de todos os [\d.]+ processos perdidos no período/);
+    expect(container.querySelector('section.dash-secao[data-bloco="secao-perdas"] .terr-secao-titulo')).toHaveTextContent(
+      'As perdas do período',
+    );
+
+    // COMO NA MAQUETE, a aba aberta é "Para quem perdemos"; "Por motivo" continua a um clique.
+    const painel = container.querySelector('[data-bloco="perdas-por-motivo"]') as HTMLElement;
+    expect(getByRole('button', { name: 'Para quem perdemos' })).toHaveAttribute('aria-pressed', 'true');
+    expect(painel.querySelector('thead th')).toHaveTextContent('Concorrente');
+    fireEvent.click(getByRole('button', { name: 'Por motivo' }));
+    expect(painel.querySelector('thead th')).toHaveTextContent('Motivo');
+
+    // O PREÇO E O DENOMINADOR NA MESMA LINHA.
+    expect(painel.querySelector('.funil-preco .funil-preco-base')).toHaveTextContent(/^de \d+ de \d+$/);
   });
 });

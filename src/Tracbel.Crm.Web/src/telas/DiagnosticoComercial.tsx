@@ -14,6 +14,10 @@
  *   5. a tabela inteira, paginada e exportável.
  *
  * ESTA É A CASCA: busca, guarda a escolha e monta os blocos, que moram em `componentes/diagnostico/`.
+ *
+ * 29/09/2026 — AS ÚLTIMAS PEÇAS DO PADRÃO (#293, bloco 4): os quatro números passaram ao `CartaoDeDecisao`, os painéis
+ * ao `PainelDoMomento`, as tabelas à `mom-tabela`, e a tela ganhou as duas seções com título — onde agir e os municípios
+ * — e a largura toda. NENHUM NÚMERO, REGRA OU TEXTO DE REGRA MUDOU.
  */
 
 import { BarChart3, Flag, RefreshCw, Target, Tractor } from 'lucide-react';
@@ -21,7 +25,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTela';
 import { DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
-import { CartaoDeIndicador, GradeDeIndicadores, PaginaDoPainel } from '../componentes/dashboard/Dashboard';
+import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
+import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
+import { TituloDaSecao } from '../componentes/territorio/TituloDaSecao';
 import {
   CABECALHO_DO_CSV,
   linhasDoCsv,
@@ -48,6 +54,8 @@ import { baixarCsv, carimboDeData } from '../dados/exportarCsv';
 import type { ClasseDePrioridade, FiltrosDoDiagnostico } from '../tipos/mercado';
 import '../estilos/territorio.css';
 import '../estilos/dashboard.css';
+import '../estilos/mercado-visao.css';
+import '../estilos/momento.css';
 import '../estilos/diagnostico.css';
 
 export function DiagnosticoComercial() {
@@ -158,7 +166,8 @@ export function DiagnosticoComercial() {
   );
 
   return (
-    <PaginaDoPainel>
+    // A LARGURA É A DA COLUNA INTEIRA, como as outras telas do padrão: o teto só volta acima de 2.100px de janela.
+    <PaginaDoPainel className="dash-pagina-larga">
       <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Diagnóstico Comercial</h1>
@@ -194,79 +203,103 @@ export function DiagnosticoComercial() {
 
       {diagnostico.erro && <BlocoErro erro={diagnostico.erro} aoTentarDeNovo={diagnostico.recarregar} />}
 
-      <GradeDeIndicadores data-bloco="kpis">
-        <CartaoDeIndicador
+      {/* OS QUATRO NÚMEROS NO CARTÃO DOS INDICADORES (29/09/2026, #293 bloco 4): o `CartaoDeDecisao` tingido, com o
+          glifo grande e o que o número é na dica — o mesmo da Visão 360, do Funil e da Performance de CEN. */}
+      <div className="dash-kpis mv-kpis" data-bloco="kpis">
+        <CartaoDeDecisao
           rotulo="Municípios prioritários"
           icone={Target}
           tom="oportunidade"
           valor={prioritarios === null || !resumo || resumo.total === 0 ? null : n(prioritarios, 0)}
+          carregando={diagnostico.carregando && !dados}
           unidade={`de ${resumo ? n(resumo.total, 0) : '—'}`}
-          contexto={resumo?.iocMedio != null ? `prioridade máxima e alta · IOC médio ${n(resumo.iocMedio)}` : 'prioridade máxima e alta'}
+          variacao={resumo?.iocMedio != null ? `prioridade máxima e alta · IOC médio ${n(resumo.iocMedio)}` : 'prioridade máxima e alta'}
           motivoSemDado="A área de atuação entra pela carga do território; sem ela, o diagnóstico não tem município para ordenar."
-          destaque
+          sobre="Os municípios da área de atuação com IOC de prioridade máxima (80 ou mais) e alta (60 a 80), sobre todos os do recorte. O IOC médio é o dos municípios com índice."
         />
-        <CartaoDeIndicador
+        <CartaoDeDecisao
           rotulo="Demanda anual"
           icone={BarChart3}
           tom="demanda"
           valor={resumo?.demandaAjustada != null ? n(resumo.demandaAjustada, 0) : resumo?.demandaEstrutural != null ? n(resumo.demandaEstrutural, 0) : null}
+          carregando={diagnostico.carregando && !dados}
           unidade="máquinas"
-          contexto={
+          variacao={
             resumo?.demandaEstrutural != null
               ? `${dados?.categoriaNome ?? ''} · ${resumo.demandaAjustada != null ? `ajustada pelo momento; estrutural ${n(resumo.demandaEstrutural, 0)}` : 'estrutural'}`
-              : undefined
+              : null
           }
           motivoSemDado="Nenhum município do recorte tem demanda estimada nesta categoria: falta regra de potencial ou área plantada."
+          sobre="As máquinas que a área de atuação pede por ano nesta categoria: a renovação do parque. Quando o momento está medido, o número é a demanda ajustada pelo fator de ciclo (preço, crédito e percepção), com a estrutural ao lado."
         />
-        <CartaoDeIndicador
+        <CartaoDeDecisao
           rotulo="Meta de planejamento"
           icone={Flag}
           tom="mercado"
           valor={resumo?.metaDePlanejamento != null ? n(resumo.metaDePlanejamento, 0) : null}
+          carregando={diagnostico.carregando && !dados}
           unidade="máquinas/ano"
-          contexto={share ? `demanda × share-alvo de ${n(share.percentual)}%` : 'demanda × share-alvo'}
+          variacao={share ? `demanda × share-alvo de ${n(share.percentual)}%` : 'demanda × share-alvo'}
           motivoSemDado="Sem share-alvo vigente para esta categoria: registre-o em Configurações › Potencial de mercado."
+          sobre="A demanda anual × o share-alvo vigente da categoria — o que a Tracbel planeja vender por ano. O share-alvo é parâmetro com vigência, em Configurações › Potencial de mercado."
         />
-        <CartaoDeIndicador
+        <CartaoDeDecisao
           rotulo="Vendidas no período"
           icone={Tractor}
           tom="captura"
           valor={resumo?.vendidasNoPeriodo != null ? n(resumo.vendidasNoPeriodo, 0) : null}
+          carregando={diagnostico.carregando && !dados}
           unidade="máquinas"
-          contexto={
+          variacao={
             resumo?.penetracao != null
               ? `penetração ${pct(resumo.penetracao)} da demanda · ${n(resumo.clientesQueCompraram, 0)} clientes compraram`
               : dados
                 ? `${mes(dados.competenciaInicial)} a ${mes(dados.competenciaFinal)}`
-                : undefined
+                : null
           }
           motivoSemDado={SEM_ART}
+          sobre="As máquinas vendidas no período pelo ART, nos municípios do recorte. A penetração é a venda levada a um ano sobre a demanda."
         />
-      </GradeDeIndicadores>
+      </div>
 
       {diagnostico.carregando && !dados && <BlocoCarregando oQue="o diagnóstico" />}
 
       {dados && (
         <>
-          <DistribuicaoPorClasse dados={dados} classe={classe} aoEscolherClasse={setClasse} />
+          <section className="dash-secao" data-bloco="secao-onde-agir">
+            <TituloDaSecao
+              titulo="Onde agir"
+              subtitulo="A prioridade dos municípios, o mapa da oportunidade e a ficha do escolhido."
+              metodologia="O IOC vai de 0 a 100 e ordena os municípios pelo que a Tracbel tem a ganhar agindo agora — potencial grande e pouco explorado, com crédito e preço a favor. Não é previsão de venda. Os pesos dos componentes são parâmetro com vigência."
+            />
 
-          <div className="diag-mapa-e-ficha" id="ficha-do-ioc">
-            <MapaDoIoc
-              desenho={desenho}
-              porCodigo={porCodigo}
-              adr={adr}
-              classe={classe}
-              selecionado={selecionado}
-              aoSelecionar={escolher}
-            />
-            <FichaDoMunicipioNoIoc
-              municipio={escolhido}
-              primeiros={primeiros}
-              semArt={semArt}
-              aoEscolher={escolher}
-              aoFechar={() => escolher(null)}
-            />
-          </div>
+            <DistribuicaoPorClasse dados={dados} classe={classe} aoEscolherClasse={setClasse} />
+
+            <div className="diag-mapa-e-ficha" id="ficha-do-ioc">
+              <MapaDoIoc
+                desenho={desenho}
+                porCodigo={porCodigo}
+                adr={adr}
+                classe={classe}
+                selecionado={selecionado}
+                aoSelecionar={escolher}
+              />
+              <FichaDoMunicipioNoIoc
+                municipio={escolhido}
+                primeiros={primeiros}
+                semArt={semArt}
+                aoEscolher={escolher}
+                aoFechar={() => escolher(null)}
+              />
+            </div>
+          </section>
+
+          <section className="dash-secao" data-bloco="secao-municipios">
+          <TituloDaSecao
+            titulo="Os municípios"
+            subtitulo="Todos os do recorte, pela ordem escolhida, paginados e exportáveis."
+            metodologia="A tabela leva a mesma ordem e o mesmo filtro de classe para todas as páginas, e o CSV leva todas as linhas filtradas, e não só a página."
+          />
 
           <TabelaDoIoc
             linhas={visiveis}
@@ -285,6 +318,7 @@ export function DiagnosticoComercial() {
             }
             acao={exportar}
           />
+          </section>
         </>
       )}
     </PaginaDoPainel>
