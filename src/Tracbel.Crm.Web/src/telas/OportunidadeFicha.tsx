@@ -92,7 +92,7 @@ export function OportunidadeFicha() {
         <div>
           <h1 className="page-title">{r.titulo}</h1>
           <p className="page-subtitle">
-            <code>processo.Processo</code> nº {r.numero} ·{' '}
+            Processo nº {r.numero} ·{' '}
             <Link to={`/clientes/${r.clienteChave}`}>{r.clienteNome}</Link> · leitura apenas
           </p>
         </div>
@@ -223,7 +223,7 @@ export function OportunidadeFicha() {
         <BlocoPainel
           id="agenda"
           titulo="Agenda do cliente"
-          subtitulo="processo.Tarefa — do CLIENTE, não deste processo: a rota não filtra por processo"
+          subtitulo="As tarefas do CLIENTE, e não só deste processo"
           fonte={<SeloProcedencia procedencia={agenda.procedencia} />}
           estado={estado(agenda, (agenda.dados?.itens.length ?? 0) > 0)}
           mensagemVazia="Nenhuma tarefa registrada para este cliente."
@@ -248,7 +248,7 @@ export function OportunidadeFicha() {
         <BlocoPainel
           id="interacoes"
           titulo="Linha do tempo do cliente"
-          subtitulo="processo.Interacao — a mais recente primeiro"
+          subtitulo="As interações, a mais recente primeiro"
           fonte={<SeloProcedencia procedencia={interacoes.procedencia} />}
           estado={estado(interacoes, (interacoes.dados?.itens.length ?? 0) > 0)}
           mensagemVazia="Nenhuma interação registrada com este cliente."
