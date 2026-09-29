@@ -33,17 +33,38 @@
  *    dele casa com uma conta do CRM; se não casa, fica com o dono do processo
  *    (decisão P2 de 27/09/2026). Quem não tem tarefa no próprio nome vê zero, e
  *    a tela diz por quê, em vez de uma lista vazia sem explicação.
+ *
+ * ---------------------------------------------------------------------------
+ * 29/09/2026 — NO DESENHO DOS INDICADORES GEOGRÁFICOS (#293, bloco 2). O cabeçalho com a hora da leitura, a barra de
+ * filtros, os seis números como `CartaoDeDecisao` em duas linhas de três e duas seções — a fila de pendências e as
+ * tarefas — em `PainelDoMomento`. O `title=` do prazo virou dica que abre pelo teclado. NENHUM NÚMERO, REGRA OU TEXTO
+ * DE REGRA MUDOU.
  */
 
+import {
+  AlarmClock,
+  CalendarCheck,
+  CalendarDays,
+  CalendarRange,
+  CalendarX,
+  CheckCircle2,
+  ListFilter,
+  ListTodo,
+  RefreshCw,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BarraDePaginacao } from '../componentes/cadastro/BarraDePaginacao';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../componentes/cadastro/EstadosDeTela';
 import { GraficoDonutCentro } from '../componentes/GraficoDonutCentro';
+import { InfoTooltip } from '../componentes/InfoTooltip';
 import { BlocoRecolhivel } from '../componentes/cadastro/BlocoRecolhivel';
-import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Indicadores';
-import { AvisoDeProcedencia, SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
+import { AvisoDeProcedencia, DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
+import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
+import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
+import { PainelDoMomento } from '../componentes/mercado/momento/pecas';
+import { TituloDaSecao } from '../componentes/territorio/TituloDaSecao';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { listarTarefas, obterPainelDaAgenda, TAREFAS_INICIAL } from '../dados/api/relacionamento';
 import { useRecurso } from '../dados/api/useRecurso';
@@ -54,17 +75,30 @@ import {
   type TarefaResumo,
 } from '../tipos/relacionamento';
 import { formatarData, formatarDataHora } from './cadastro/formato';
+import '../estilos/dashboard.css';
+import '../estilos/mercado-visao.css';
+import '../estilos/momento.css';
+import '../estilos/painel-executivo.css';
+import '../estilos/territorio.css';
 
-/** As colunas, e quais delas a API sabe ordenar. O resto é exibição. */
-const COLUNAS: { rotulo: string; ordem?: OrdemDeTarefa }[] = [
+/** As colunas, quais delas a API sabe ordenar, e quais são data (alinhadas à direita). O resto é exibição. */
+const COLUNAS: { rotulo: string; ordem?: OrdemDeTarefa; numerica?: boolean }[] = [
   { rotulo: 'Tarefa', ordem: 'Assunto' },
   { rotulo: 'Cliente' },
   { rotulo: 'Responsável' },
-  { rotulo: 'Agendada para', ordem: 'AgendadaPara' },
-  { rotulo: 'Prazo limite', ordem: 'PrazoLimite' },
+  { rotulo: 'Agendada para', ordem: 'AgendadaPara', numerica: true },
+  { rotulo: 'Prazo limite', ordem: 'PrazoLimite', numerica: true },
   { rotulo: 'Prioridade', ordem: 'Prioridade' },
   { rotulo: 'Situação' },
 ];
+
+/** A ordem da lista, dita como a tela a chama. */
+const ROTULO_DA_ORDEM: Record<OrdemDeTarefa, string> = {
+  AgendadaPara: 'data agendada',
+  Prioridade: 'prioridade',
+  PrazoLimite: 'prazo limite',
+  Assunto: 'assunto',
+};
 
 /** O rótulo que cada situação do domínio fechado recebe na tela. */
 const NOME_DA_SITUACAO: Record<string, string> = {
@@ -136,47 +170,6 @@ export function Agenda() {
     [consulta],
   );
 
-  const indicadores: Indicador[] = [
-    {
-      rotulo: 'Pendentes',
-      valor: numeros?.pendentes ?? null,
-      deOnde: 'tarefas em Pendente ou Em andamento',
-      semDado: 'sem tarefa ao alcance deste contexto',
-    },
-    {
-      rotulo: 'Atrasadas',
-      valor: numeros?.atrasadas ?? null,
-      tom: numeros && numeros.atrasadas > 0 ? 'atencao' : 'neutro',
-      deOnde: 'a data agendada já passou e ninguém concluiu',
-      semDado: 'sem tarefa ao alcance deste contexto',
-    },
-    {
-      rotulo: 'Para hoje',
-      valor: numeros?.paraHoje ?? null,
-      deOnde: 'agendadas para a data de hoje',
-      semDado: '—',
-    },
-    {
-      rotulo: 'Próximos 7 dias',
-      valor: numeros?.proximosSeteDias ?? null,
-      deOnde: 'agendadas para a semana que vem',
-      semDado: '—',
-    },
-    {
-      rotulo: 'Concluídas em 30 dias',
-      valor: numeros?.concluidasNosUltimosTrintaDias ?? null,
-      tom: 'bom',
-      deOnde: 'com data, autor e desfecho registrados',
-      semDado: '—',
-    },
-    {
-      rotulo: 'Sem prazo declarado',
-      valor: numeros?.semPrazoLimite ?? null,
-      deOnde: 'das pendentes — a origem não declara prazo em nenhuma ação',
-      semDado: '—',
-    },
-  ];
-
   function trocarOrdem(campo: OrdemDeTarefa) {
     setConsulta((c) =>
       c.ordenarPor === campo
@@ -189,21 +182,182 @@ export function Agenda() {
     setConsulta({ ...TAREFAS_INICIAL, tamanho: consulta.tamanho });
   }
 
+  // SEM TAREFA AO ALCANCE, O NÚMERO É O TRAÇO COM O MOTIVO; LENDO, O CARTÃO PULSA E NÃO AFIRMA MOTIVO NENHUM.
+  const semTarefa = painel.carregando ? undefined : 'Sem tarefa ao alcance deste contexto.';
+  const numero = (v: number | undefined) => (v === undefined ? null : v.toLocaleString('pt-BR'));
+
   return (
-    <>
-      <div className="page-header">
+    // A LARGURA É A DA COLUNA INTEIRA, como a Visão 360: o teto só volta acima de 2.100px de janela.
+    <PaginaDoPainel className="dash-pagina-larga">
+      <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Agenda do CEN</h1>
           <p className="page-subtitle">
-            <code>processo.Tarefa</code> — as tarefas dos processos do Vórtice dos clientes cadastrados no CRM.
-            A filial do cabeçalho define o que aparece aqui.
+            As tarefas dos processos do Vórtice dos clientes cadastrados no CRM. A filial do cabeçalho define o que aparece
+            aqui.
           </p>
+        </div>
+        <p className="dash-atualizado">
+          {lista.procedencia ? <DadosAtualizadosEm procedencia={lista.procedencia} /> : 'Lendo a agenda…'}
+          <button
+            type="button"
+            className="dash-recarregar"
+            onClick={() => {
+              painel.recarregar();
+              lista.recarregar();
+            }}
+            disabled={painel.carregando || lista.carregando}
+            data-carregando={painel.carregando || lista.carregando ? 'true' : 'false'}
+            aria-label="Reler a agenda"
+          >
+            <RefreshCw size={15} strokeWidth={2} aria-hidden="true" />
+          </button>
+        </p>
+      </div>
+
+      {/* A BARRA DOS INDICADORES. Os filtros valem para a lista; o painel do topo acompanha só o "Só as minhas". */}
+      <div className="dash-filtros" data-bloco="filtros">
+        <div className="dash-filtros-linha">
+          <label className="dash-filtro" data-bloco="situacao">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <ListFilter size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Situação</span>
+              <select value={consulta.situacao} onChange={(e) => setConsulta((c) => ({ ...c, situacao: e.target.value, pagina: 1 }))}>
+                <option value="">Todas</option>
+                {SITUACOES_DE_TAREFA.map((s) => (
+                  <option key={s} value={s}>
+                    {NOME_DA_SITUACAO[s]}
+                  </option>
+                ))}
+              </select>
+            </span>
+          </label>
+
+          <label className="dash-filtro" data-bloco="de">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <CalendarDays size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Agendada a partir de</span>
+              <input type="date" value={consulta.de} onChange={(e) => setConsulta((c) => ({ ...c, de: e.target.value, pagina: 1 }))} />
+            </span>
+          </label>
+
+          <label className="dash-filtro" data-bloco="ate">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <CalendarDays size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Até</span>
+              <input type="date" value={consulta.ate} onChange={(e) => setConsulta((c) => ({ ...c, ate: e.target.value, pagina: 1 }))} />
+            </span>
+          </label>
+
+          <div className="dash-filtros-acao">
+            <label className="dash-caixa">
+              <input
+                type="checkbox"
+                checked={consulta.somenteAtrasadas}
+                onChange={(e) => setConsulta((c) => ({ ...c, somenteAtrasadas: e.target.checked, pagina: 1 }))}
+              />
+              Só as atrasadas
+            </label>
+          </div>
+
+          <div className="dash-filtros-acao">
+            <label className="dash-caixa">
+              <input
+                type="checkbox"
+                checked={consulta.minhas}
+                onChange={(e) => setConsulta((c) => ({ ...c, minhas: e.target.checked, pagina: 1 }))}
+              />
+              Só as minhas
+            </label>
+          </div>
+
+          {temFiltro && (
+            <div className="dash-filtros-acao">
+              <button type="button" className="dash-mais-filtros" onClick={limparFiltros}>
+                Limpar filtros
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       <AvisoDeProcedencia procedencia={lista.procedencia} />
 
-      <PainelDeIndicadores indicadores={indicadores} carregando={painel.carregando} />
+      {/* SEIS NÚMEROS, EM DUAS LINHAS DE TRÊS: quatro mais dois deixaria dois cartões sozinhos numa linha larga. */}
+      <div className="dash-kpis mv-kpis" data-bloco="kpis" data-colunas="3">
+        <CartaoDeDecisao
+          rotulo="Pendentes"
+          icone={ListTodo}
+          tom="demanda"
+          valor={numero(numeros?.pendentes)}
+          carregando={painel.carregando}
+          unidade="tarefas"
+          motivoSemDado={semTarefa}
+          variacao={numeros ? 'em Pendente ou Em andamento' : null}
+          sobre="Tarefas em Pendente ou Em andamento, nesta filial — com ou sem data."
+        />
+        <CartaoDeDecisao
+          rotulo="Atrasadas"
+          icone={AlarmClock}
+          tom="captura"
+          valor={numero(numeros?.atrasadas)}
+          carregando={painel.carregando}
+          unidade="tarefas"
+          motivoSemDado={semTarefa}
+          variacao={numeros ? 'a data agendada já passou' : null}
+          sobre="A data agendada já passou e ninguém concluiu. O atraso é medido contra a data agendada, e não contra o prazo: a origem quase nunca declara prazo."
+        />
+        <CartaoDeDecisao
+          rotulo="Para hoje"
+          icone={CalendarCheck}
+          tom="mercado"
+          valor={numero(numeros?.paraHoje)}
+          carregando={painel.carregando}
+          unidade="tarefas"
+          motivoSemDado={semTarefa}
+          variacao={numeros ? 'agendadas para hoje' : null}
+          sobre="Tarefas agendadas para a data de hoje, ainda não concluídas."
+        />
+        <CartaoDeDecisao
+          rotulo="Próximos 7 dias"
+          icone={CalendarRange}
+          tom="oportunidade"
+          valor={numero(numeros?.proximosSeteDias)}
+          carregando={painel.carregando}
+          unidade="tarefas"
+          motivoSemDado={semTarefa}
+          variacao={numeros ? 'agendadas para a semana que vem' : null}
+          sobre="Tarefas agendadas para os próximos sete dias."
+        />
+        <CartaoDeDecisao
+          rotulo="Concluídas em 30 dias"
+          icone={CheckCircle2}
+          tom="neutro"
+          valor={numero(numeros?.concluidasNosUltimosTrintaDias)}
+          carregando={painel.carregando}
+          unidade="tarefas"
+          motivoSemDado={semTarefa}
+          variacao={numeros ? 'com data, autor e desfecho' : null}
+          sobre="Tarefas concluídas nos últimos 30 dias, com a data, quem concluiu e o desfecho registrados."
+        />
+        <CartaoDeDecisao
+          rotulo="Sem prazo declarado"
+          icone={CalendarX}
+          tom="neutro"
+          valor={numero(numeros?.semPrazoLimite)}
+          carregando={painel.carregando}
+          unidade="tarefas"
+          motivoSemDado={semTarefa}
+          variacao={numeros ? 'das pendentes' : null}
+          sobre="Das pendentes, as que não têm prazo limite — a origem não declara prazo em nenhuma ação."
+        />
+      </div>
 
       {painel.erro && <BlocoErro erro={painel.erro} aoTentarDeNovo={painel.recarregar} />}
 
@@ -217,253 +371,203 @@ export function Agenda() {
           tamanho relativo, que é o que responde se a agenda está em dia ou se
           virou um passivo. Nada aqui é somado no navegador. */}
       {faixasDaAgenda && (
-        <div className="card cad-cartao">
-          <div className="card-header cad-cartao-cabecalho">
-            <div>
-              <div className="card-title">Como as pendências estão distribuídas</div>
-              <div className="card-subtitle">
-                as {numeros!.pendentes.toLocaleString('pt-BR')} tarefas pendentes por janela de
-                prazo · contadas no banco
+        <section className="dash-secao" data-bloco="secao-fila">
+          <TituloDaSecao
+            titulo="A fila de pendências"
+            subtitulo={`As ${numeros!.pendentes.toLocaleString('pt-BR')} tarefas pendentes por janela de prazo.`}
+            metodologia="Vencidas, para hoje e próximos 7 dias vêm contadas no banco e não se sobrepõem. O que sobra das pendentes é o que está agendado para depois disso — subtração, e não estimativa."
+          />
+          <PainelDoMomento
+            titulo="Como as pendências estão distribuídas"
+            data-bloco="distribuicao"
+            subtitulo="Contadas no banco, dentro da filial do cabeçalho."
+            dica="A fatia vermelha é o que já venceu. O centro da rosca diz quanto das pendentes está vencido."
+          >
+            <div className="v360-donut-wrap cad-donut-agenda">
+              <GraficoDonutCentro
+                segmentos={faixasDaAgenda.map((f) => ({ valor: f.valor, cor: f.cor }))}
+                largura={160}
+                altura={160}
+                cutout="70%"
+                bordaBranca
+                centro={{
+                  linha1: `${Math.round((numeros!.atrasadas / Math.max(1, numeros!.pendentes)) * 100)}%`,
+                  linha2: 'vencidas',
+                  corLinha1: '#DC2626',
+                }}
+              />
+              <div className="v360-donut-legenda">
+                {faixasDaAgenda.map((f) => (
+                  <div className="v360-legenda-item" key={f.nome}>
+                    <span className="dot" style={{ background: f.cor }} />
+                    <span>{f.nome}</span>
+                    {/* O tamanho da janela entre as pendentes — o mesmo que a rosca desenha. */}
+                    <span className="cad-donut-agenda-barra" aria-hidden="true">
+                      <span
+                        style={{
+                          width: `${(f.valor / Math.max(1, numeros!.pendentes)) * 100}%`,
+                          background: f.cor,
+                        }}
+                      />
+                    </span>
+                    <strong>{f.valor.toLocaleString('pt-BR')}</strong>
+                  </div>
+                ))}
               </div>
             </div>
-            <SeloProcedencia procedencia={painel.procedencia} />
-          </div>
-          <div className="v360-donut-wrap cad-donut-agenda">
-            <GraficoDonutCentro
-              segmentos={faixasDaAgenda.map((f) => ({ valor: f.valor, cor: f.cor }))}
-              largura={160}
-              altura={160}
-              cutout="70%"
-              bordaBranca
-              centro={{
-                linha1: `${Math.round((numeros!.atrasadas / Math.max(1, numeros!.pendentes)) * 100)}%`,
-                linha2: 'vencidas',
-                corLinha1: '#DC2626',
-              }}
-            />
-            <div className="v360-donut-legenda">
-              {faixasDaAgenda.map((f) => (
-                <div className="v360-legenda-item" key={f.nome}>
-                  <span className="dot" style={{ background: f.cor }} />
-                  <span>{f.nome}</span>
-                  {/* O tamanho da janela entre as pendentes — o mesmo que a rosca desenha. */}
-                  <span className="cad-donut-agenda-barra" aria-hidden="true">
-                    <span
-                      style={{
-                        width: `${(f.valor / Math.max(1, numeros!.pendentes)) * 100}%`,
-                        background: f.cor,
-                      }}
-                    />
-                  </span>
-                  <strong>{f.valor.toLocaleString('pt-BR')}</strong>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+          </PainelDoMomento>
+        </section>
       )}
 
-      <div className="cad-barra">
-        <label className="cad-filtro">
-          Situação
-          <select
-            value={consulta.situacao}
-            onChange={(e) => setConsulta((c) => ({ ...c, situacao: e.target.value, pagina: 1 }))}
-          >
-            <option value="">Todas</option>
-            {SITUACOES_DE_TAREFA.map((s) => (
-              <option key={s} value={s}>
-                {NOME_DA_SITUACAO[s]}
-              </option>
-            ))}
-          </select>
-        </label>
+      <section className="dash-secao" data-bloco="secao-tarefas">
+        <TituloDaSecao
+          titulo="As tarefas"
+          subtitulo={lista.recarregando ? 'Atualizando…' : `${(pagina?.total ?? 0).toLocaleString('pt-BR')} no total, com os filtros da barra.`}
+          metodologia="A tarefa trazida do Vórtice fica com quem a tem lá quando o login dessa pessoa casa com uma conta do CRM; se não casa, fica com o dono do processo. O atraso é medido contra a data agendada."
+        />
 
-        <label className="cad-filtro">
-          Agendada a partir de
-          <input
-            type="date"
-            value={consulta.de}
-            onChange={(e) => setConsulta((c) => ({ ...c, de: e.target.value, pagina: 1 }))}
-          />
-        </label>
+        <PainelDoMomento
+          titulo="Tarefas desta filial"
+          data-bloco="tarefas"
+          subtitulo={`Ordenadas por ${ROTULO_DA_ORDEM[consulta.ordenarPor] ?? consulta.ordenarPor}${consulta.descendente ? ', do maior para o menor' : ''}.`}
+          dica="Clique no título de uma coluna com seta para ordenar por ela. O cliente abre o 360 dele."
+        >
+          {lista.carregando && <BlocoCarregando oQue="a agenda" />}
+          {lista.erro && <BlocoErro erro={lista.erro} aoTentarDeNovo={lista.recarregar} />}
 
-        <label className="cad-filtro">
-          Até
-          <input
-            type="date"
-            value={consulta.ate}
-            onChange={(e) => setConsulta((c) => ({ ...c, ate: e.target.value, pagina: 1 }))}
-          />
-        </label>
-
-        <label className="cad-filtro cad-filtro-caixa">
-          <input
-            type="checkbox"
-            checked={consulta.somenteAtrasadas}
-            onChange={(e) => setConsulta((c) => ({ ...c, somenteAtrasadas: e.target.checked, pagina: 1 }))}
-          />
-          Só as atrasadas
-        </label>
-
-        <label className="cad-filtro cad-filtro-caixa">
-          <input
-            type="checkbox"
-            checked={consulta.minhas}
-            onChange={(e) => setConsulta((c) => ({ ...c, minhas: e.target.checked, pagina: 1 }))}
-          />
-          Só as minhas
-        </label>
-
-        {temFiltro && (
-          <button type="button" className="btn btn-secondary btn-sm" onClick={limparFiltros}>
-            Limpar filtros
-          </button>
-        )}
-      </div>
-
-      <div className="card cad-cartao">
-        <div className="card-header cad-cartao-cabecalho">
-          <div>
-            <div className="card-title">Tarefas desta filial</div>
-            <div className="card-subtitle">
-              {lista.recarregando ? 'Atualizando…' : `${(pagina?.total ?? 0).toLocaleString('pt-BR')} no total`}
-            </div>
-          </div>
-          <SeloProcedencia procedencia={lista.procedencia} />
-        </div>
-
-        {lista.carregando && <BlocoCarregando oQue="a agenda" />}
-        {lista.erro && <BlocoErro erro={lista.erro} aoTentarDeNovo={lista.recarregar} />}
-
-        {pagina && !lista.erro && pagina.itens.length === 0 && (
-          <BlocoVazio
-            titulo={
-              consulta.minhas
-                ? 'Nenhuma tarefa atribuída a você'
-                : temFiltro
-                  ? 'Nenhuma tarefa com esses filtros'
-                  : 'Esta filial não tem tarefa carregada'
-            }
-            texto={
-              consulta.minhas
-                ? 'Nenhuma tarefa está no seu nome. A tarefa trazida do Vórtice fica com quem a tem lá quando o login dessa pessoa casa com uma conta do CRM; se não casa, fica com o dono do processo. Desmarque "Só as minhas" para ver a agenda da filial.'
-                : temFiltro
-                  ? 'Nenhuma tarefa da filial cai nesta combinação de situação, período e atraso.'
-                  : 'A carga de 2026 trouxe tarefa para as treze filiais em operação. Se esta filial não mostra nenhuma, confira a filial escolhida no cabeçalho.'
-            }
-            acao={
-              temFiltro ? (
-                <button type="button" className="btn btn-secondary" onClick={limparFiltros}>
-                  Limpar filtros
-                </button>
-              ) : undefined
-            }
-          />
-        )}
-
-        {pagina && pagina.itens.length > 0 && (
-          <>
-            <div className="cad-tabela-wrap cad-so-largo">
-              <table className="cad-tabela">
-                <caption className="cad-so-leitor">
-                  Tarefas da filial {contexto.empresa}, ordenadas por {consulta.ordenarPor}
-                </caption>
-                <thead>
-                  <tr>
-                    {COLUNAS.map((coluna) => (
-                      <th key={coluna.rotulo} scope="col" aria-sort={ariaOrdem(coluna.ordem, consulta)}>
-                        {coluna.ordem ? (
-                          <button type="button" className="cad-th-ordenar" onClick={() => trocarOrdem(coluna.ordem!)}>
-                            {coluna.rotulo}
-                            <span aria-hidden="true">{seta(coluna.ordem, consulta)}</span>
-                          </button>
-                        ) : (
-                          coluna.rotulo
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagina.itens.map((tarefa) => (
-                    <tr key={tarefa.chave}>
-                      <td>
-                        {/* O TIPO SÓ APARECE QUANDO ELE ACRESCENTA ALGUMA COISA.
-
-                            Na carga do Vórtice o assunto da tarefa é, na maior
-                            parte das linhas, o próprio nome do tipo — "Agendar
-                            Entrega Técnica Máq/imp" escrito duas vezes, uma em
-                            cima da outra, dobrando a altura de cada linha da
-                            tabela sem dizer nada de novo. */}
-                        <div className="cad-link-forte">{tarefa.assunto}</div>
-                        {!repete(tarefa.assunto, tarefa.tipoTarefaNome) && (
-                          <div className="cad-sub">{tarefa.tipoTarefaNome}</div>
-                        )}
-                        {tarefa.processoTitulo && <div className="cad-sub">{tarefa.processoTitulo}</div>}
-                      </td>
-                      <td>
-                        {tarefa.clienteChave && tarefa.clienteNome ? (
-                          <Link to={`/clientes/${tarefa.clienteChave}`} className="cad-link-forte">
-                            {tarefa.clienteNome}
-                          </Link>
-                        ) : (
-                          <span className="cad-nada">sem cliente na origem</span>
-                        )}
-                      </td>
-                      <td>{tarefa.responsavelNome}</td>
-                      <td className="cad-mono">
-                        {formatarDataHora(tarefa.agendadaPara)}
-                        {tarefa.estaAtrasada && (
-                          <div className="cad-alerta">
-                            {tarefa.diasDeAtraso} {tarefa.diasDeAtraso === 1 ? 'dia' : 'dias'} de atraso
-                          </div>
-                        )}
-                      </td>
-                      <td className="cad-mono">
-                        {tarefa.prazoLimite ? (
-                          formatarDataHora(tarefa.prazoLimite)
-                        ) : (
-                          <span className="cad-nada" title="A origem não declara prazo em nenhuma das 178 ações em uso.">
-                            não declarado
-                          </span>
-                        )}
-                      </td>
-                      <td>{NOME_DA_PRIORIDADE[tarefa.prioridade] ?? tarefa.prioridade}</td>
-                      <td>
-                        <span className={`cad-selo cad-selo-${tarefa.situacao.toLowerCase()}`}>
-                          {NOME_DA_SITUACAO[tarefa.situacao] ?? tarefa.situacao}
-                        </span>
-                        {tarefa.resultadoNome && <div className="cad-sub">{tarefa.resultadoNome}</div>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Em 390px a tabela de sete colunas não tem conserto por rolagem:
-                rolar para o lado esconde a coluna que identifica a linha. */}
-            <div className="cad-fichas cad-so-estreito">
-              {pagina.itens.map((tarefa) => (
-                <FichaDeTarefa key={tarefa.chave} tarefa={tarefa} />
-              ))}
-            </div>
-
-            <BarraDePaginacao
-              pagina={pagina}
-              oQue="tarefas"
-              aoTrocarPagina={(p) => setConsulta((c) => ({ ...c, pagina: p }))}
-              aoTrocarTamanho={(t) => setConsulta((c) => ({ ...c, tamanho: t, pagina: 1 }))}
+          {pagina && !lista.erro && pagina.itens.length === 0 && (
+            <BlocoVazio
+              titulo={
+                consulta.minhas
+                  ? 'Nenhuma tarefa atribuída a você'
+                  : temFiltro
+                    ? 'Nenhuma tarefa com esses filtros'
+                    : 'Esta filial não tem tarefa carregada'
+              }
+              texto={
+                consulta.minhas
+                  ? 'Nenhuma tarefa está no seu nome. A tarefa trazida do Vórtice fica com quem a tem lá quando o login dessa pessoa casa com uma conta do CRM; se não casa, fica com o dono do processo. Desmarque "Só as minhas" para ver a agenda da filial.'
+                  : temFiltro
+                    ? 'Nenhuma tarefa da filial cai nesta combinação de situação, período e atraso.'
+                    : 'A carga de 2026 trouxe tarefa para as treze filiais em operação. Se esta filial não mostra nenhuma, confira a filial escolhida no cabeçalho.'
+              }
+              acao={
+                temFiltro ? (
+                  <button type="button" className="btn btn-secondary" onClick={limparFiltros}>
+                    Limpar filtros
+                  </button>
+                ) : undefined
+              }
             />
-          </>
-        )}
-      </div>
+          )}
 
-      <BlocoRecolhivel
-        titulo="O que esta tela ainda não faz"
-        resumo="concluir, reagendar e criar tarefa"
-      >
+          {pagina && pagina.itens.length > 0 && (
+            <>
+              <div className="mom-tabela-rolagem cad-so-largo">
+                <table className="mom-tabela">
+                  <caption className="cad-so-leitor">
+                    Tarefas da filial {contexto.empresa}, ordenadas por {consulta.ordenarPor}
+                  </caption>
+                  <thead>
+                    <tr>
+                      {COLUNAS.map((coluna) => (
+                        <th
+                          key={coluna.rotulo}
+                          scope="col"
+                          className={coluna.numerica ? 'mom-num' : undefined}
+                          aria-sort={ariaOrdem(coluna.ordem, consulta)}
+                        >
+                          {coluna.ordem ? (
+                            <button type="button" className="cad-th-ordenar" onClick={() => trocarOrdem(coluna.ordem!)}>
+                              {coluna.rotulo}
+                              <span aria-hidden="true">{seta(coluna.ordem, consulta)}</span>
+                            </button>
+                          ) : (
+                            coluna.rotulo
+                          )}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagina.itens.map((tarefa) => (
+                      <tr key={tarefa.chave}>
+                        <th scope="row">
+                          {/* O TIPO SÓ APARECE QUANDO ELE ACRESCENTA ALGUMA COISA.
+
+                              Na carga do Vórtice o assunto da tarefa é, na maior
+                              parte das linhas, o próprio nome do tipo — "Agendar
+                              Entrega Técnica Máq/imp" escrito duas vezes, uma em
+                              cima da outra, dobrando a altura de cada linha da
+                              tabela sem dizer nada de novo. */}
+                          <div className="cad-link-forte">{tarefa.assunto}</div>
+                          {!repete(tarefa.assunto, tarefa.tipoTarefaNome) && <div className="cad-sub">{tarefa.tipoTarefaNome}</div>}
+                          {tarefa.processoTitulo && <div className="cad-sub">{tarefa.processoTitulo}</div>}
+                        </th>
+                        <td>
+                          {tarefa.clienteChave && tarefa.clienteNome ? (
+                            <Link to={`/clientes/${tarefa.clienteChave}`} className="cad-link-forte">
+                              {tarefa.clienteNome}
+                            </Link>
+                          ) : (
+                            <span className="cad-nada">sem cliente na origem</span>
+                          )}
+                        </td>
+                        <td>{tarefa.responsavelNome}</td>
+                        <td className="mom-num">
+                          {formatarDataHora(tarefa.agendadaPara)}
+                          {tarefa.estaAtrasada && (
+                            <div className="cad-alerta">
+                              {tarefa.diasDeAtraso} {tarefa.diasDeAtraso === 1 ? 'dia' : 'dias'} de atraso
+                            </div>
+                          )}
+                        </td>
+                        <td className="mom-num">
+                          {tarefa.prazoLimite ? (
+                            formatarDataHora(tarefa.prazoLimite)
+                          ) : (
+                            <>
+                              <span className="cad-nada">não declarado</span>{' '}
+                              <InfoTooltip
+                                texto="A origem não declara prazo em nenhuma das 178 ações em uso."
+                                rotulo="Por que o prazo não está declarado"
+                              />
+                            </>
+                          )}
+                        </td>
+                        <td>{NOME_DA_PRIORIDADE[tarefa.prioridade] ?? tarefa.prioridade}</td>
+                        <td>
+                          <span className={`cad-selo cad-selo-${tarefa.situacao.toLowerCase()}`}>
+                            {NOME_DA_SITUACAO[tarefa.situacao] ?? tarefa.situacao}
+                          </span>
+                          {tarefa.resultadoNome && <div className="cad-sub">{tarefa.resultadoNome}</div>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Em 390px a tabela de sete colunas não tem conserto por rolagem:
+                  rolar para o lado esconde a coluna que identifica a linha. */}
+              <div className="cad-fichas cad-so-estreito">
+                {pagina.itens.map((tarefa) => (
+                  <FichaDeTarefa key={tarefa.chave} tarefa={tarefa} />
+                ))}
+              </div>
+
+              <BarraDePaginacao
+                pagina={pagina}
+                oQue="tarefas"
+                aoTrocarPagina={(p) => setConsulta((c) => ({ ...c, pagina: p }))}
+                aoTrocarTamanho={(t) => setConsulta((c) => ({ ...c, tamanho: t, pagina: 1 }))}
+              />
+            </>
+          )}
+        </PainelDoMomento>
+      </section>
+
+      <BlocoRecolhivel titulo="O que esta tela ainda não faz" resumo="concluir, reagendar e criar tarefa">
         <div className="cad-fichas">
           <p className="cad-estado-texto">
             <strong>Concluir, reagendar e criar tarefa não existem aqui</strong>, e é decisão
@@ -476,9 +580,10 @@ export function Agenda() {
           </p>
         </div>
       </BlocoRecolhivel>
-    </>
+    </PaginaDoPainel>
   );
 }
+
 
 /** A mesma tarefa, em ficha, para quando a tabela não cabe. */
 function FichaDeTarefa({ tarefa }: { tarefa: TarefaResumo }) {

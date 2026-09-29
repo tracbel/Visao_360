@@ -653,6 +653,38 @@
   color: var(--text-primary);
 }
 
+/* PAINÉIS EMPILHADOS NA MESMA SEÇÃO (29/09/2026): quando o primeiro tem uma tabela larga — a cobertura por classe da
+   Performance de CEN, com seis colunas —, meia largura cortava a última coluna. Cada um fica com a linha inteira, com o
+   mesmo espaço entre painéis da grade de duas colunas. */
+.dash-empilhados {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-4);
+  min-width: 0;
+}
+
+/* O SELETOR NO TÍTULO DE UM PAINEL (29/09/2026): a escolha que só muda aquele painel — a métrica do ranking da
+   Performance de CEN — mora à direita do título dele, e não na barra da página. Mesma moldura do select da barra. */
+.dash-seletor-do-painel select {
+  height: 28px;
+  padding: 0 28px 0 var(--e-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center / 12px 12px;
+  appearance: none;
+  font-size: var(--t-cartao);
+  color: var(--text-primary);
+  max-width: 100%;
+  cursor: pointer;
+}
+
+.dash-seletor-do-painel select:focus-visible {
+  outline: 2px solid var(--jd-green);
+  outline-offset: 1px;
+}
+
 /* UMA CAIXA DE MARCAR NA LINHA ("Incluir encerrados"): texto do tamanho do campo, sem selo de ícone — ela liga ou
    desliga, e não escolhe um valor. */
 .dash-caixa {

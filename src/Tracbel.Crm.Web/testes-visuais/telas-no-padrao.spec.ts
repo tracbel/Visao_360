@@ -1,6 +1,7 @@
 /**
  * AS TELAS QUE PASSARAM PARA O PADRÃO DOS INDICADORES GEOGRÁFICOS (29/09/2026) — Funil de Vendas, Pipeline de Vendas e
- * Cobertura de Carteira — CABEM NA LARGURA E TÊM A FORMA DO PADRÃO.
+ * Cobertura de Carteira (bloco 1); Agenda, Performance de CEN e Cobertura por Filial (bloco 2) — CABEM NA LARGURA E TÊM
+ * A FORMA DO PADRÃO.
  *
  * Roda sobre o harness da Visão 360 aberto na rota de cada tela (`#/dev/visao360-visual?rota=…`): as três leem as
  * mesmas rotas que a Visão 360 soma, com as mesmas amostras fictícias, dentro do `Layout` real com o menu lateral —
@@ -25,9 +26,14 @@ const TODAS = [
 ] as const;
 
 const TELAS = [
+  // Bloco 1 (#294).
   { nome: 'funil', rota: '/relatorios/funil', cartoes: 4, secoes: 2 },
   { nome: 'pipeline', rota: '/pipeline', cartoes: 4, secoes: 2 },
   { nome: 'cobertura', rota: '/cobertura', cartoes: 5, secoes: 2 },
+  // Bloco 2 (#293, 29/09/2026).
+  { nome: 'agenda', rota: '/agenda', cartoes: 6, secoes: 2 },
+  { nome: 'performance', rota: '/relatorios/performance', cartoes: 4, secoes: 2 },
+  { nome: 'cobertura-por-filial', rota: '/relatorios/cobertura', cartoes: 5, secoes: 2 },
 ] as const;
 
 const ESTADOS = ['completo', 'vazio'] as const;

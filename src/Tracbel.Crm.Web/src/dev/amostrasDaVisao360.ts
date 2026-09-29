@@ -39,8 +39,11 @@ import type {
   ContagemPorRotulo,
   FaseDoFunil,
   Faturamento,
+  CoberturaDeFilial,
   FunilPorEstagio,
   PainelDaAgenda,
+  PainelDoCen,
+  TerritorioDeCarteira,
   ProcessoResumo,
   ResumoDeCobertura,
   VendasPerdidas,
@@ -424,6 +427,137 @@ export function contagemDeProcessos(
 }
 
 /* ------------------------------------------------------------------------ */
+/* O território das carteiras (Cobertura por Filial, 29/09/2026)              */
+/* ------------------------------------------------------------------------ */
+
+/** Municípios fictícios de SP — nomes inventados, id e UF de mentira, como o resto do harness. */
+const MUNICIPIOS_FICTICIOS = Array.from({ length: 14 }, (_, i) => ({
+  id: 900_000 + i,
+  nome: `Município Fictício ${String.fromCharCode(65 + i)}`,
+  uf: 'SP',
+  codigoIbge: null,
+}));
+
+/**
+ * As carteiras da filial com as cidades que atendem. No `completo`, cinco carteiras de campo declaram cidade e duas não
+ * (o depósito de cadastro e a de teste) — a lacuna do cadastro de origem, que a tela mostra com zero em vez de esconder.
+ */
+export function territorioDasCarteiras(estado: EstadoDaVisao360, codigo: string): Agregado<TerritorioDeCarteira> {
+  if (semVinculo(estado)) {
+    return { itens: [], metricasSemDado: [{ metrica: 'carteiras', motivo: 'Nenhuma carteira desta filial foi carregada ainda.' }] };
+  }
+  const f = filial(estado, codigo);
+  const carteira = (i: number, nome: string, linha: string, responsavel: string, cidades: number) => ({
+    carteiraChave: `00000000-0000-4000-8000-0000000c${String(100 + i).padStart(4, '0')}`,
+    carteiraCodigo: `CART_FICT_${i}`,
+    carteiraNome: nome,
+    linhaDeNegocioNome: linha,
+    responsavelNome: responsavel,
+    empresaCodigo: f.codigo,
+    empresaNome: f.nome,
+    municipios: MUNICIPIOS_FICTICIOS.slice(i % 4, (i % 4) + cidades),
+  });
+  const itens = [
+    carteira(1, 'Carteira fictícia 1', 'Máquinas e Implementos', 'CEN OLIVEIRA', 7),
+    carteira(2, 'Carteira fictícia 2', 'Máquinas e Implementos', 'CEN GAMA', 5),
+    carteira(3, 'Carteira fictícia 3', 'Peças e AMS', 'CEN RIBEIRO', 9),
+    carteira(4, 'Carteira fictícia 4', 'Prospecção de Novos Clientes', 'CEN COSTA', 3),
+    carteira(5, 'Inteligência de Mercado (amostra)', 'Máquinas e Implementos', 'INTELIGÊNCIA (AMOSTRA)', 10),
+    carteira(6, 'Depósito de cadastro (amostra)', 'Administrativa', 'SISTEMA (AMOSTRA)', 0),
+    carteira(7, 'Carteira de teste (amostra)', 'Administrativa', 'TESTE (AMOSTRA)', 0),
+  ];
+  return {
+    itens,
+    metricasSemDado: [
+      { metrica: 'carteirasSemMunicipio', motivo: '2 de 7 carteiras não declaram nenhuma cidade no sistema de origem e aparecem com zero.' },
+    ],
+  };
+}
+
+/** A cobertura territorial por filial: uma linha, a filial do cabeçalho, somada das carteiras acima. */
+export function coberturaPorFilial(estado: EstadoDaVisao360, codigo: string): Agregado<CoberturaDeFilial> {
+  const territorio = territorioDasCarteiras(estado, codigo);
+  if (territorio.itens.length === 0) return { itens: [], metricasSemDado: territorio.metricasSemDado };
+  const f = filial(estado, codigo);
+  const municipios = new Set(territorio.itens.flatMap((c) => c.municipios.map((m) => m.id)));
+  return {
+    itens: [
+      {
+        empresaChave: `00000000-0000-4000-8000-0000000e${f.codigo.slice(-4)}`,
+        empresaCodigo: f.codigo,
+        empresaNome: f.nome,
+        carteiras: territorio.itens.length,
+        carteirasComMunicipio: territorio.itens.filter((c) => c.municipios.length > 0).length,
+        municipios: municipios.size,
+        ufs: ['SP'],
+      },
+    ],
+    metricasSemDado: [],
+  };
+}
+
+/* ------------------------------------------------------------------------ */
+/* O painel do CEN (Performance de CEN, 29/09/2026)                           */
+/* ------------------------------------------------------------------------ */
+
+/** Os responsáveis do seletor da Performance de CEN — os mesmos nomes fictícios da cobertura por carteira. */
+const RESPONSAVEIS_DO_PAINEL = [
+  { chave: '00000000-0000-4000-8000-000000000c01', nome: 'CEN OLIVEIRA', natureza: 'Pessoa', carteiras: 2, peso: 1 },
+  { chave: '00000000-0000-4000-8000-000000000c02', nome: 'CEN GAMA', natureza: 'Pessoa', carteiras: 2, peso: 0.85 },
+  { chave: '00000000-0000-4000-8000-000000000c03', nome: 'CEN RIBEIRO', natureza: 'Pessoa', carteiras: 1, peso: 0.55 },
+  { chave: '00000000-0000-4000-8000-000000000c04', nome: 'INTELIGÊNCIA (AMOSTRA)', natureza: 'Departamento', carteiras: 1, peso: 0.45 },
+] as const;
+
+/**
+ * O painel de um responsável — ou o consolidado, sem responsável —, com a cobertura por classe da curva ABC contra a
+ * cadência declarada. No `completo` as quatro classes têm vínculo; nos outros dois, nenhum responsável tem carteira.
+ */
+export function painelDoCen(estado: EstadoDaVisao360, codigo: string, responsavel: string | null): PainelDoCen {
+  const semCarteira = semVinculo(estado);
+  const peso = semCarteira ? 0 : filial(estado, codigo).peso;
+  const escolhido = RESPONSAVEIS_DO_PAINEL.find((r) => r.chave === responsavel) ?? null;
+  const fator = peso * (escolhido ? escolhido.peso / 2.85 : 1);
+  const classe = (c: string, clientes: number, cobertos: number, fora: number, nunca: number, sem: number, dias: number | null) => ({
+    classe: c,
+    clientes: n(clientes * fator),
+    cobertos: n(cobertos * fator),
+    foraDaCadencia: n(fora * fator),
+    nuncaContatados: n(nunca * fator),
+    semCadenciaDeclarada: n(sem * fator),
+    diasDeCadencia: dias,
+  });
+  const porClasse = semCarteira
+    ? []
+    : [
+        classe('A', 320, 190, 95, 35, 0, 180),
+        classe('B', 540, 250, 190, 100, 0, 180),
+        classe('C', 1_900, 610, 720, 470, 100, null),
+        classe('D', 5_200, 1_050, 1_600, 2_150, 400, 360),
+      ];
+  const clientes = porClasse.reduce((s, c) => s + c.clientes, 0);
+
+  return {
+    painel: {
+      responsavelChave: escolhido?.chave ?? '',
+      responsavelNome: escolhido?.nome ?? 'Todos os responsáveis',
+      naturezaDoResponsavel: escolhido?.natureza ?? 'Pessoa',
+      carteiras: escolhido ? escolhido.carteiras : semCarteira ? 0 : 6,
+      clientes,
+      porClasse,
+      processosGanhos: 0,
+      processosPerdidos: 0,
+      processosAbertos: 0,
+      vendasPerdidasRegistradas: 0,
+      faturamentoDaCarteira: n(18_400_000 * fator),
+    },
+    responsaveis: semCarteira ? [] : RESPONSAVEIS_DO_PAINEL.map(({ chave, nome, natureza, carteiras }) => ({ chave, nome, natureza, carteiras })),
+    metricasSemDado: semCarteira
+      ? [{ metrica: 'carteiras', motivo: 'Nenhuma carteira desta filial tem vínculo ativo: a carga das carteiras ainda não rodou.' }]
+      : [],
+  };
+}
+
+/* ------------------------------------------------------------------------ */
 /* Os cinco cartões                                                           */
 /* ------------------------------------------------------------------------ */
 
@@ -764,6 +898,12 @@ export function respostaDaVisao360(
       return indicadoresExecutivos(estado, empresa, Number(consulta.get('anoFiscal') ?? 2026));
     case '/v1/relatorios/metas':
       return metasDeVenda(estado, empresa);
+    case '/v1/cobertura/filiais':
+      return coberturaPorFilial(estado, empresa);
+    case '/v1/cobertura/carteiras':
+      return territorioDasCarteiras(estado, empresa);
+    case '/v1/relatorios/cen':
+      return painelDoCen(estado, empresa, consulta.get('responsavel'));
     case '/v1/processos':
       return contagemDeProcessos(estado, empresa, consulta.get('situacao') ?? '', Number(consulta.get('tamanho') ?? '1'));
     case '/v1/tarefas':
