@@ -13,9 +13,13 @@ public sealed record PainelExecutivoDaFilial(
     IReadOnlyList<MetricaSemDado> MetricasSemDado);
 
 /// <summary>
-/// OS CINCO CARTÕES DA VISÃO 360 (documento 36) — faturamento em curso, o faturamento do ano,
-/// clientes na carteira, cobertura pela cadência e o que o CRM sabe do mercado. A meta × realizado do
-/// cartão B é a meta de VENDA, em rota própria (<see cref="ObterMetaERealizado"/>, #138).
+/// OS CINCO CARTÕES DA VISÃO 360 (documento 36) — o faturamento do ano, clientes na carteira, cobertura pela
+/// cadência e o que o CRM sabe do mercado. A meta × realizado do cartão B é a meta de VENDA, em rota própria
+/// (<see cref="ObterMetaERealizado"/>, #138).
+///
+/// <para><b>O faturamento do ano é o ART desde 29/09/2026</b> (decisão do Ricardo): o valor de venda das máquinas
+/// ENTREGUES, com e sem comprador no CRM, nos mesmos meses do ano. A nota do Protheus continua na resposta — o mês mais
+/// recente e o ano —, como conferência e como o faturamento de peça e serviço.</para>
 ///
 /// <para><b>Uma filial por chamada.</b> O consolidado das filiais é a tela somando as respostas
 /// (ponte P-8 do documento 23); por isso cada número daqui é de uma partição que não se sobrepõe
@@ -84,7 +88,7 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
         return Resultado<ComProcedencia<PainelExecutivoDaFilial>>.Ok(
             ComProcedencia<PainelExecutivoDaFilial>.DoNossoBanco(
                 new PainelExecutivoDaFilial(indicadores, Lacunas(indicadores, mesCorrente, meses, inteiro)),
-                "comercial.FaturamentoDoCliente · comercial.FaturamentoSemCliente · " +
+                "integracao.RegistroDeOrigem (ART) · comercial.FaturamentoDoCliente · comercial.FaturamentoSemCliente · " +
                 "comercial.ClienteCarteira · processo.VendaPerdida",
                 relogio));
     }
@@ -103,7 +107,30 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
         if (somado.Final < inteiro.Final)
             lacunas.Add(new MetricaSemDado(
                 "anoAteOUltimoMesFechado",
-                Texto($"O realizado do ano vai de {JanelaDeCompetencia.Mes(somado.Inicial)} a {JanelaDeCompetencia.Mes(somado.Final)}, o último mês fechado: o mês em curso ({JanelaDeCompetencia.Mes(mesCorrente)}) está pela metade e fica à parte, no cartão de faturamento em curso. O ano vai até {JanelaDeCompetencia.Mes(inteiro.Final)}.")));
+                Texto($"O realizado do ano vai de {JanelaDeCompetencia.Mes(somado.Inicial)} a {JanelaDeCompetencia.Mes(somado.Final)}, o último mês fechado: o mês em curso ({JanelaDeCompetencia.Mes(mesCorrente)}) está pela metade e fica à parte, na dica do cartão de faturamento. O ano vai até {JanelaDeCompetencia.Mes(inteiro.Final)}.")));
+
+        // O FATURAMENTO DO ANO É O ART (decisão de 29/09/2026): as máquinas ENTREGUES, pelo valor de venda. Cada frase
+        // abaixo diz o que o número dele não é.
+        if (i.EntreguesNoAno is { } entregues)
+        {
+            if (entregues.Maquinas == 0)
+                lacunas.Add(new MetricaSemDado(
+                    "faturamentoPeloArt",
+                    Texto($"Nenhuma máquina com entrega entre {JanelaDeCompetencia.Mes(entregues.Inicio)} e {JanelaDeCompetencia.Mes(entregues.Fim)} no ART, nesta filial. A data de entrega e o valor de venda passaram a ser gravados em 29/09/2026: até a primeira leitura do ART depois da publicação, as vendas que ainda não viraram venda no CRM não os têm.")));
+            else if (entregues.SemValor == entregues.Maquinas)
+                lacunas.Add(new MetricaSemDado(
+                    "valorDeVendaNaoLido",
+                    Texto($"As {entregues.Maquinas:N0} máquinas entregues no período ainda estão sem valor de venda: o valor do ART passou a ser lido em 29/09/2026 e chega na primeira leitura do ART depois da publicação. Até lá o faturamento não tem número.")));
+            else if (entregues.SemValor > 0)
+                lacunas.Add(new MetricaSemDado(
+                    "maquinaSemValorNoArt",
+                    Texto($"{entregues.SemValor:N0} das {entregues.Maquinas:N0} máquinas entregues não têm valor de venda no ART: contam nas máquinas, e não no faturamento.")));
+
+            if (entregues.AguardandoNoCrm > 0)
+                lacunas.Add(new MetricaSemDado(
+                    "entregueAguardandoNoCrm",
+                    Texto($"{entregues.AguardandoNoCrm:N0} das {entregues.Maquinas:N0} máquinas entregues ainda não viraram venda no CRM (comprador sem cadastro, chassi incompleto ou outro motivo da integração). Elas entram no faturamento, que é o ART inteiro, e não no realizado da meta, que conta só as vendas do CRM.")));
+        }
 
         if (i.FaturamentoDoMes is not { } mes)
             lacunas.Add(new MetricaSemDado(
@@ -123,14 +150,13 @@ public sealed class ObterIndicadoresExecutivos(IRepositorioIndicadoresExecutivos
             "devolucoes",
             "Devolução e cancelamento não são abatidos: o valor é a nota de saída de venda (documento 32, P-5)."));
 
-        // O ART ESTÁ NO CRM (frota.VendaDeMaquina, D-P08). A frase dizia que ele "não está no banco do CRM" —
-        // era verdade antes da carga do ART, e deixou de ser. O que continua valendo é que as duas medidas não
-        // se somam.
+        // O CARTÃO A É O ART DESDE 29/09/2026 (decisão do Ricardo). A frase dizia que o ART "não entra neste faturamento
+        // em reais" — valia quando o cartão era a nota do Protheus. O que continua valendo é que as duas não se somam.
         lacunas.Add(new MetricaSemDado(
-            "vendaDeMaquinaNoArt",
-            "As máquinas vendidas em UNIDADES vêm do ART (D-P08) e estão no CRM, mas não entram neste faturamento em " +
-            "reais: o ART registra a máquina faturada, o Protheus a nota, e os dois medem coisas diferentes que não " +
-            "fecham mês a mês (documento 36, cartão A)."));
+            "notaDoProtheusNaoSomada",
+            "O faturamento do ano é o valor de venda do ART das máquinas entregues. A nota de saída do Protheus " +
+            "(máquina, peça e serviço) fica ao lado, como conferência, e não é somada: as duas medem a mesma máquina por " +
+            "caminhos diferentes, e não fecham mês a mês (documento 36, cartão A)."));
 
         // O CALENDÁRIO FOI CONFIRMADO (24/09/2026) E VIROU O PADRÃO (27/09/2026). A lacuna dizia que ele "não foi
         // confirmado" e que por isso não havia FY; agora ela só aparece quando alguém pede o ano civil — e diz

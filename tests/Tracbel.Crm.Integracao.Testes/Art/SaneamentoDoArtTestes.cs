@@ -193,6 +193,49 @@ public sealed class SaneamentoDoArtTestes
     }
 
     // =============================================================================================
+    // Valor de venda (decisão de 29/09/2026: o faturamento do ano fiscal é o ART das máquinas entregues)
+    // =============================================================================================
+
+    [Theory]
+    [InlineData("485000", 485000)]
+    [InlineData("485000.456", 485000.46)]
+    [InlineData(" 1250000.5 ", 1250000.5)]
+    [InlineData("1.25E6", 1250000)]
+    public void O_valor_de_venda_vem_do_texto_do_double_com_duas_casas(string bruto, double esperado)
+    {
+        var transformacoes = new List<string>();
+
+        SaneamentoDoArt.Valor("valor de venda", bruto, transformacoes).Should().Be((decimal)esperado);
+        transformacoes.Should().BeEmpty("valor legível e positivo não é transformação");
+    }
+
+    [Theory]
+    [InlineData("0", "zero")]
+    [InlineData("-1500", "negativo")]
+    [InlineData("abc", "ilegível")]
+    [InlineData("1E20", "acima")]
+    public void O_valor_que_nao_passa_fica_vazio_e_a_transformacao_fica_escrita(string bruto, string trecho)
+    {
+        var transformacoes = new List<string>();
+
+        SaneamentoDoArt.Valor("valor de venda", bruto, transformacoes).Should().BeNull("valor que não passa nunca vira zero na soma");
+        transformacoes.Should().ContainSingle().Which.Should().Contain(trecho);
+    }
+
+    [Fact]
+    public void O_valor_de_venda_e_lido_e_entra_no_resumo()
+    {
+        // Como o vendedor (D-M2): no resumo, a primeira leitura depois da publicação grava o valor e a entrega de todos.
+        var semValor = SaneamentoDoArt.Sanear(Registro());
+        var comValor = SaneamentoDoArt.Sanear(Registro() with { ValorDaVenda = "485000" });
+
+        semValor.ValorDaVenda.Should().BeNull();
+        comValor.ValorDaVenda.Should().Be(485000m);
+        comValor.Hash.Should().NotBe(semValor.Hash);
+        SaneamentoDoArt.Sanear(Registro() with { ValorDaVenda = "485001" }).Hash.Should().NotBe(comValor.Hash, "o valor que muda na origem muda o registro");
+    }
+
+    // =============================================================================================
     // Correspondências
     // =============================================================================================
 

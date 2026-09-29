@@ -98,6 +98,8 @@ public static class MotivoDePendenciaDoArt
 /// <param name="Transformacoes">O que o saneamento mudou, uma frase por mudança.</param>
 /// <param name="Motivos">Os códigos de pendência que o saneamento já encontrou.</param>
 /// <param name="Vendedor">O vendedor, <c>nome.sobrenome</c>, como o ART escreve — de quem é o realizado da meta (D-M2).</param>
+/// <param name="ValorDaVenda">O valor de venda (<c>vr_vda</c>) em reais, com duas casas — o faturamento do ano fiscal
+/// (decisão de 29/09/2026). Vazio quando a origem não tem, ou tem zero ou negativo.</param>
 public sealed record VendaDoArtSaneada(
     string Codigo,
     SituacaoDoChassiNaOrigem SituacaoDoChassi,
@@ -124,7 +126,8 @@ public sealed record VendaDoArtSaneada(
     string Hash,
     IReadOnlyList<string> Transformacoes,
     IReadOnlyList<string> Motivos,
-    string? Vendedor = null)
+    string? Vendedor = null,
+    decimal? ValorDaVenda = null)
 {
     /// <summary>As transformações numa frase só, no tamanho da coluna — ou nulo quando não houve nenhuma.</summary>
     public string? TransformacoesEmTexto
@@ -203,7 +206,44 @@ public static class SaneamentoDoArt
             Resumir(registro),
             transformacoes,
             motivos,
-            Texto("vendedor", registro.Vendedor, 80, transformacoes));
+            Texto("vendedor", registro.Vendedor, 80, transformacoes),
+            Valor("valor de venda", registro.ValorDaVenda, transformacoes));
+    }
+
+    /// <summary>O maior valor de venda aceito: a coluna guarda 16 dígitos antes da vírgula; nenhuma máquina chega perto.</summary>
+    private const decimal ValorMaximo = 9_999_999_999_999_999.99m;
+
+    /// <summary>
+    /// O VALOR DE VENDA DO ART (decisão de 29/09/2026). Vem como texto do <c>double</c> da origem — com ponto, às vezes
+    /// em notação científica — e sai com duas casas. Zero, negativo ou ilegível sai VAZIO, com a transformação escrita:
+    /// a máquina continua contada, e o valor que falta não vira zero na soma sem ninguém saber.
+    /// </summary>
+    /// <param name="campo">O nome do campo, para a trilha.</param>
+    /// <param name="bruto">O valor como texto.</param>
+    /// <param name="transformacoes">Onde registrar.</param>
+    public static decimal? Valor(string campo, string? bruto, List<string> transformacoes)
+    {
+        if (string.IsNullOrWhiteSpace(bruto)) return null;
+
+        if (!decimal.TryParse(bruto.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var valor))
+        {
+            transformacoes.Add($"{campo}: ilegível na origem, ficou vazio");
+            return null;
+        }
+
+        if (valor <= 0)
+        {
+            transformacoes.Add($"{campo}: {(valor == 0 ? "zero" : "negativo")} na origem, ficou vazio");
+            return null;
+        }
+
+        if (valor > ValorMaximo)
+        {
+            transformacoes.Add($"{campo}: acima do que a coluna guarda, ficou vazio");
+            return null;
+        }
+
+        return Math.Round(valor, 2, MidpointRounding.AwayFromZero);
     }
 
     /// <summary>
@@ -351,13 +391,16 @@ public static class SaneamentoDoArt
     /// da publicação acha TODOS os registros alterados: é ela que preenche o vendedor das vendas já
     /// importadas — cerca de 3,6 mil linhas de trilha, uma vez. Depois disso, o resumo volta a mudar só
     /// quando a origem muda.</para>
+    ///
+    /// <para><b>O valor de venda entrou em 29/09/2026</b>, pelo mesmo caminho: a primeira leitura depois da publicação
+    /// acha todos os registros alterados, e é ela que grava a data de entrega e o valor no retrato de cada um.</para>
     /// </summary>
     private static string Resumir(RegistroDoArt r)
     {
         var conteudo = string.Join('',
             r.Codigo, r.Chassis, r.CpfCnpj, r.Cliente, r.Linha, r.Produto, r.Empresa, r.Unidade, r.UnidadeDoFaturamento,
             r.DataDaVenda, r.DataDoFaturamento, r.Entrega, r.AbertaEm, r.Situacao, r.NumeroDoPedido, r.NumeroDaNotaFiscal,
-            r.Gestao, r.VendaDireta, r.RepasseDireto, r.Quantidade, r.Vendedor);
+            r.Gestao, r.VendaDireta, r.RepasseDireto, r.Quantidade, r.Vendedor, r.ValorDaVenda);
 
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(conteudo)));
     }

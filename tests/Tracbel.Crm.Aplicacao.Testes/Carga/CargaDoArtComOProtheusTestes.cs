@@ -139,6 +139,25 @@ public sealed class CargaDoArtComOProtheusTestes : IDisposable
     }
 
     [Fact]
+    public async Task A_entrega_e_o_valor_ficam_no_retrato_tambem_do_registro_que_nao_virou_venda()
+    {
+        // 29/09/2026: o faturamento do ano é o ART inteiro das máquinas entregues. A pendente (chassi curto sem confirmação)
+        // só existe no retrato — é lá que a entrega e o valor precisam estar.
+        var vendas = Vendas().Select(v => v.Codigo is "5001" or "5008" ? v with { Entrega = "2023-06-01", ValorDaVenda = "485000.5" } : v).ToList();
+
+        await Rodar(vendas);
+
+        var registros = await Registros();
+        registros["5001"].Decisao.Should().Be(DecisaoDaIntegracao.Importado);
+        registros["5001"].EntregueEm.Should().Be(new DateOnly(2023, 6, 1));
+        registros["5001"].ValorDaVenda.Should().Be(485000.50m);
+        registros["5008"].Decisao.Should().Be(DecisaoDaIntegracao.Pendente);
+        registros["5008"].EntregueEm.Should().Be(new DateOnly(2023, 6, 1));
+        registros["5008"].ValorDaVenda.Should().Be(485000.50m, "a venda que aguarda na integração conta no faturamento");
+        registros["5002"].ValorDaVenda.Should().BeNull("sem valor na origem, fica vazio — e não zero");
+    }
+
+    [Fact]
     public async Task O_comprador_fora_do_CRM_da_lugar_ao_dono_do_Protheus_e_sai_da_fila()
     {
         var relatorio = await Rodar();

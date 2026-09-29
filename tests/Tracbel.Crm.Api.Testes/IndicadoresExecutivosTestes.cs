@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
+using Tracbel.Crm.Dominio.Frota;
+using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Processo;
 using Tracbel.Crm.Infraestrutura.Identidade;
@@ -291,6 +293,105 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
 
         var barretos = await DadosAsync(await api.ClienteDeBarretos().GetAsync(Rota));
         barretos.GetProperty("indicadores").GetProperty("mercado").GetProperty("vendasPerdidasRegistradas").GetInt32().Should().Be(1);
+    }
+
+    /// <summary>
+    /// O ART da filial: entregues no ano (uma com a venda no CRM, uma aguardando cadastro, uma sem valor), no mês em curso
+    /// e no mesmo trecho do ano anterior — e o que NÃO conta: a vendida e não entregue, a que sumiu da origem, a de
+    /// unidade sem filial e a de Barretos.
+    /// </summary>
+    private async Task SemearArtAsync()
+    {
+        using var escopo = api.Services.CreateScope();
+        var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+        await using var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia);
+
+        if (await db.Sistemas.AnyAsync(s => s.Codigo == ConexoesDoSistema.Art)) return;
+
+        var art = Sistema.Criar(ConexoesDoSistema.Art, "ART — vendas de máquina", "teste");
+        db.Sistemas.Add(art);
+        var comprador = Cliente.Criar(1, "Comprador do ART", TipoDePessoa.Juridica, 100, 100);
+        db.Clientes.Add(comprador);
+        var maquina = Equipamento.RegistrarPelaIntegracao(1, Chassi.Criar("1ART0000000000001"), OrigemDoEquipamento.Art, 100);
+        db.Equipamentos.Add(maquina);
+        await db.SaveChangesAsync();
+
+        foreach (var (codigo, texto, empresa) in new[] { ("RIBEIRAO_PRETO", "Ribeirão Preto", 1), ("BARRETOS", "Barretos", 2) })
+        {
+            var unidade = CorrespondenciaDaOrigem.Registrar(art.Id, TipoDeCorrespondencia.Unidade, codigo, texto, null, DateTime.UtcNow);
+            unidade.Avaliar(SituacaoDaCorrespondencia.CorrespondenciaExata, null, null, empresa, "nome idêntico");
+            db.CorrespondenciasDaOrigem.Add(unidade);
+        }
+
+        var ultimoFechado = MesCorrente.AddMonths(-1);
+        DateOnly Dia(DateOnly mes, int dia) => mes.AddDays(dia - 1);
+
+        var venda = VendaDeMaquina.Registrar(art.Id, "7009", maquina.Id, comprador.Id,
+            new DadosDaVendaNaOrigem(1, null, Dia(ultimoFechado, 2), null, Dia(ultimoFechado, 20), null, null, null, null, null,
+                false, false, 1, "TRATOR MÉDIO", "TR 6110J", null, "Ribeirão Preto", null, "h7009", null),
+            DateTime.UtcNow, 100);
+        db.VendasDeMaquina.Add(venda);
+        await db.SaveChangesAsync();
+
+        RegistroDeOrigem Registro(string codigo, string unidade, DateOnly? entregue, decimal? valor) =>
+            RegistroDeOrigem.Registrar(art.Id, MetaDeVenda.FluxoDasVendasDoArt, codigo,
+                new RetratoDoRegistroDeOrigem($"h{codigo}", null, "TRATOR MÉDIO", "TR 6110J", unidade, Dia(ultimoFechado, 1), null, entregue, valor),
+                DateTime.UtcNow);
+
+        var noCrm = Registro("7009", "Ribeirão Preto", Dia(ultimoFechado, 20), 250_000m);
+        noCrm.Decidir(DecisaoDaIntegracao.Importado, null, venda.Id);
+        var sumiu = Registro("7007", "Ribeirão Preto", Dia(ultimoFechado, 8), 111m);
+        sumiu.MarcarAusente(DateTime.UtcNow);
+
+        db.RegistrosDeOrigem.AddRange(
+            noCrm,
+            Registro("7001", "Ribeirão Preto", Dia(ultimoFechado, 10), 500_000.50m),
+            Registro("7002", "Ribeirão Preto", Dia(ultimoFechado, 12), null),
+            Registro("7003", "Ribeirão Preto", Dia(MesCorrente, 1), 300_000m),
+            Registro("7004", "Ribeirão Preto", Dia(ultimoFechado.AddMonths(-12), 5), 400_000m),
+            Registro("7005", "Barretos", Dia(ultimoFechado, 3), 700_000m),
+            Registro("7006", "Ribeirão Preto", null, 999m),
+            sumiu,
+            Registro("7008", "Unidade Desconhecida", Dia(ultimoFechado, 4), 222m));
+        await db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task O_faturamento_do_ano_e_o_ART_das_maquinas_entregues_com_e_sem_comprador_no_CRM()
+    {
+        await SemearAsync();
+        await SemearArtAsync();
+        var dados = await DadosAsync(await api.ClienteDeRibeirao().GetAsync(Rota));
+        var indicadores = dados.GetProperty("indicadores");
+        var somado = AnoFiscal.AteOUltimoMesFechado(MesCorrente);
+
+        // "VENDIDA = ENTREGUE NO ART" (29/09/2026): a data de entrega preenchida, nos meses do ano — o ART inteiro, e não só
+        // o que já virou venda no CRM. A vendida sem entrega, a que sumiu da origem e a de unidade sem filial não contam.
+        var ano = indicadores.GetProperty("entreguesNoAno");
+        ano.GetProperty("inicio").GetString().Should().Be(somado.Inicial.ToString("yyyy-MM-dd"));
+        ano.GetProperty("fim").GetString().Should().Be(somado.Final.ToString("yyyy-MM-dd"), "o mês em curso fica à parte");
+        ano.GetProperty("maquinas").GetInt32().Should().Be(3);
+        ano.GetProperty("valor").GetDecimal().Should().Be(750_000.50m, "a máquina sem valor conta em máquinas, e não em reais");
+        ano.GetProperty("semValor").GetInt32().Should().Be(1);
+        ano.GetProperty("aguardandoNoCrm").GetInt32().Should().Be(2, "só uma virou venda no CRM, e as outras entram mesmo assim");
+
+        var mes = indicadores.GetProperty("entreguesNoMesEmCurso");
+        mes.GetProperty("inicio").GetString().Should().Be(MesCorrente.ToString("yyyy-MM-dd"));
+        mes.GetProperty("maquinas").GetInt32().Should().Be(1);
+        mes.GetProperty("valor").GetDecimal().Should().Be(300_000m);
+
+        var anterior = indicadores.GetProperty("entreguesNoMesmoTrechoDoAnoAnterior");
+        anterior.GetProperty("inicio").GetString().Should().Be(somado.Inicial.AddMonths(-12).ToString("yyyy-MM-dd"));
+        anterior.GetProperty("maquinas").GetInt32().Should().Be(1);
+        anterior.GetProperty("valor").GetDecimal().Should().Be(400_000m);
+
+        Lacunas(dados).Should().Contain(["maquinaSemValorNoArt", "entregueAguardandoNoCrm", "notaDoProtheusNaoSomada"]);
+        Lacunas(dados).Should().NotContain("vendaDeMaquinaNoArt", "a frase dizia que o ART não entra no faturamento");
+
+        // A FILIAL É A DA UNIDADE QUE VENDEU, e cada uma vê só a sua: somadas, nada conta duas vezes.
+        var barretos = (await DadosAsync(await api.ClienteDeBarretos().GetAsync(Rota))).GetProperty("indicadores").GetProperty("entreguesNoAno");
+        barretos.GetProperty("maquinas").GetInt32().Should().Be(1);
+        barretos.GetProperty("valor").GetDecimal().Should().Be(700_000m);
     }
 
     [Theory]

@@ -122,7 +122,56 @@ serão os do banco de lá, e a tela nova só aparece lá depois de publicada (P-
 Todos os cartões saem da mesma rota; a tabela de cada um segue o caminho
 **fonte → tabela → campo → transformação → indicador → componente**.
 
-### 3.1 A — Faturamento em curso
+### 3.1 A — Faturamento do ano fiscal (pelo ART, desde 29/09/2026)
+
+> **Refeito em 29/09/2026, por decisão do Ricardo:** "o faturamento real do ano fiscal vem do ART, das máquinas
+> entregues"; "vendida = entregue no ART, as máquinas com a data de entrega preenchida". O cartão deixa de ser a nota do
+> Protheus da competência mais recente e passa a ser o **valor de venda do ART das máquinas ENTREGUES no ano fiscal**, com
+> a quantidade. A nota do Protheus continua na resposta e na tela — na dica do cartão e na composição —, como conferência
+> e como o faturamento de peça e serviço, que o ART não tem. As duas não se somam. A tabela abaixo desta caixa é a nova; a
+> seguinte, "Como era até 28/09", fica como registro.
+
+| Etapa | Conteúdo |
+|---|---|
+| Fonte | ART, view `bi_art_veiculos`, colunas `entrega` e `vr_vda` (o valor de venda; a única coluna financeira que o CRM lê — as outras continuam de fora), pela carga do ART |
+| Tabela | `integracao.RegistroDeOrigem` (fluxo `ART.VENDA_DE_MAQUINA`): o retrato de CADA registro do ART, com e sem venda no CRM — colunas novas `EntregueEm` e `ValorDaVenda` (migração `EntregaEValorDaVendaDoArt`) |
+| Transformação [regra] | máquina vendida = registro com a data de entrega preenchida (a régua da Gestão de Negócios); uma máquina por registro; mês = o da entrega; janela = os meses do ano fiscal até o último mês fechado (os mesmos do ano do cartão); filial = a da unidade que vendeu, pela correspondência que a carga usa (unidade sem filial fica fora); o registro que sumiu da origem não conta; `vr_vda` com duas casas, e zero, negativo ou ilegível ficam vazios com a transformação escrita — a máquina sem valor conta nas máquinas e não no valor |
+| Indicador | Σ valor de venda (R$) e nº de máquinas entregues no ano; à parte, o mesmo trecho do ano anterior e o mês em curso (parcial); quantas ainda não viraram venda no CRM e quantas estão sem valor |
+| Rota | `GET /api/v1/relatorios/indicadores-executivos` → `entreguesNoAno`, `entreguesNoMesmoTrechoDoAnoAnterior`, `entreguesNoMesEmCurso` (`inicio`, `fim`, `maquinas`, `valor`, `semValor`, `aguardandoNoCrm`) |
+| Componente | `PainelExecutivo.tsx` → `CartaoDoFaturamento` ("Faturamento FY2026", o valor e "N máquinas entregues · até ago/2026"); composição com "Faturamento FY", "Máquinas entregues" e "NF Protheus FY" |
+
+**Por que o ART inteiro, e não só `frota.VendaDeMaquina`.** No FY26 o CRM tinha 1.109 vendas contra 1.322 no ART e 1.319
+no painel da Gestão de Negócios (§3.2): as 213 que faltam aguardam na integração (comprador sem cadastro, chassi
+incompleto). Contando só o que virou venda, o faturamento ficaria ~16% abaixo do que a gestão vê. Por isso a entrega e o
+valor ficam no retrato de cada registro, e o cartão os soma todos. O cartão da meta continua contando só as vendas do CRM
+(D-M3): a diferença entre os dois é exatamente o "aguardam na integração", e a dica dos dois diz isso.
+
+**A transição da publicação.** A migração preenche a entrega dos registros que já viraram venda (a data vem da própria
+venda). O valor não tem de onde vir antes da primeira leitura do ART depois da publicação — o `vr_vda` entrou no resumo
+do registro, e essa leitura acha todos alterados e grava o valor e a entrega de cada um. Até ela, o cartão mostra o
+traço com o motivo ("o valor do ART chega na primeira leitura…"), e não R$ 0.
+
+**Conferência de produção [a fazer pelo Ricardo]** — a leitura de produção e do ART foi negada ao agente pelo
+classificador em 29/09. A consulta, só com agregados:
+
+```sql
+-- No ART (MySQL), por ano fiscal da entrega:
+SELECT CASE WHEN MONTH(entrega) >= 11 THEN YEAR(entrega) + 1 ELSE YEAR(entrega) END AS fy,
+       COUNT(*) AS maquinas, ROUND(SUM(vr_vda) / 1e6, 1) AS milhoes, SUM(vr_vda IS NULL OR vr_vda <= 0) AS sem_valor
+  FROM bi_art_veiculos
+ WHERE entrega >= '2024-11-01'
+ GROUP BY fy ORDER BY fy;
+```
+
+```sql
+-- No CRM, depois da primeira leitura do ART (deve bater com o ART, menos as unidades sem filial):
+SELECT COUNT(*) AS maquinas, SUM(ValorDaVenda) AS valor, SUM(CASE WHEN VendaDeMaquinaId IS NULL THEN 1 ELSE 0 END) AS aguardando
+  FROM integracao.RegistroDeOrigem
+ WHERE Fluxo = 'ART.VENDA_DE_MAQUINA' AND AusenteNaOrigemDesde IS NULL
+   AND EntregueEm >= '2025-11-01' AND EntregueEm < '2026-09-01';
+```
+
+**Como era até 28/09/2026** — a nota do Protheus da competência mais recente:
 
 | Etapa | Conteúdo |
 |---|---|

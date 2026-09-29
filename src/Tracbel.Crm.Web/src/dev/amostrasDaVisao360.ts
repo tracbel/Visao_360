@@ -33,7 +33,7 @@
 
 import type { CatalogoDeSelecao, PaginaDe } from '../tipos/api';
 import type { MetaERealizadoDaFilial } from '../tipos/metas';
-import type { PainelExecutivoDaFilial } from '../tipos/painelExecutivo';
+import type { MaquinasEntreguesNoArt, PainelExecutivoDaFilial } from '../tipos/painelExecutivo';
 import type {
   Agregado,
   ContagemPorRotulo,
@@ -519,9 +519,27 @@ export function indicadoresExecutivos(estado: EstadoDaVisao360, codigo: string, 
         primeiraEm: pesoDoMercado === 0 ? null : '2025-11-03',
         ultimaEm: pesoDoMercado === 0 ? null : '2026-09-19',
       },
+      // O FATURAMENTO PELO ART (29/09/2026): as máquinas entregues do FY até o último mês fechado — agosto, no
+      // FY2026 —, o mesmo trecho do FY anterior e setembro à parte. O ART é o realizado da meta (as vendas que o CRM
+      // tem) MAIS as que aguardam na integração, e por isso passa dele; ticket médio perto de R$ 520 mil.
+      entreguesNoAno: entregues(`${ano - 1}-11-01`, doAnoCorrente ? '2026-08-01' : `${ano}-10-01`, vazio ? 0 : 250 * peso, 520_000),
+      entreguesNoMesmoTrechoDoAnoAnterior: entregues(
+        `${ano - 2}-11-01`,
+        doAnoCorrente ? '2025-08-01' : `${ano - 1}-10-01`,
+        vazio ? 0 : 220 * peso,
+        495_000,
+      ),
+      entreguesNoMesEmCurso: entregues('2026-09-01', '2026-09-01', vazio ? 0 : 13 * peso, 510_000),
     },
     metricasSemDado: [],
   };
+}
+
+/** Uma janela de máquinas entregues no ART: uma em seis ainda aguarda cadastro no CRM, uma em cinquenta sem valor. */
+function entregues(inicio: string, fim: string, maquinas: number, ticket: number): MaquinasEntreguesNoArt {
+  const total = n(maquinas);
+  const semValor = n(total / 50);
+  return { inicio, fim, maquinas: total, valor: (total - semValor) * ticket, semValor, aguardandoNoCrm: n(total / 6) };
 }
 
 /* ------------------------------------------------------------------------ */
