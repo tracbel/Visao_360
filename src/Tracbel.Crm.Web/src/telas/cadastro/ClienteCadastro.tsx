@@ -12,8 +12,13 @@
  * `aria-describedby`. O aviso do topo fica só para o que não pertence a campo
  * nenhum — conflito de concorrência, ou uma mensagem endereçada a um campo que
  * esta tela não mostra. Nenhuma recusa da API desaparece pelo caminho.
+ *
+ * 29/09/2026 — NO PADRÃO DOS INDICADORES GEOGRÁFICOS (#293, bloco 5): página na coluna inteira, cabeçalho com a hora da
+ * leitura e o reler ao lado das ações, e três seções — o cadastro, a frota e o registro — com os cartões no desenho do
+ * painel das outras telas. O formulário continua formulário: os mesmos campos, na mesma grade, com as mesmas mensagens.
  */
 
+import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AvisoDoFormulario, CampoSelecao, CampoSomenteLeitura, CampoTexto } from '../../componentes/cadastro/CamposDeFormulario';
@@ -21,7 +26,10 @@ import { DialogoConfirmacao } from '../../componentes/cadastro/DialogoConfirmaca
 import { BlocoCarregando, BlocoErro } from '../../componentes/cadastro/EstadosDeTela';
 import { FrotaDoCliente } from '../../componentes/cadastro/FrotaDoCliente';
 import { MaquinasCompradasDoCliente } from '../../componentes/cadastro/MaquinasCompradasDoCliente';
-import { AvisoDeProcedencia, SeloProcedencia } from '../../componentes/cadastro/SeloProcedencia';
+import { AvisoDeProcedencia, DadosAtualizadosEm } from '../../componentes/cadastro/SeloProcedencia';
+import { PaginaDoPainel } from '../../componentes/dashboard/Dashboard';
+import { PainelDoMomento } from '../../componentes/mercado/momento/pecas';
+import { TituloDaSecao } from '../../componentes/territorio/TituloDaSecao';
 import { descricaoDe, itensDe, useCatalogos } from '../../dados/api/catalogos';
 import { alterarCliente, criarCliente, inativarCliente, obterCliente } from '../../dados/api/clientes';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
@@ -29,6 +37,10 @@ import { ErroDaApi } from '../../dados/api/http';
 import { useRecurso } from '../../dados/api/useRecurso';
 import { CATALOGO, type ClienteDetalhe, type NovoCliente } from '../../tipos/api';
 import { formatarDataHora } from './formato';
+import '../../estilos/dashboard.css';
+import '../../estilos/momento.css';
+import '../../estilos/territorio.css';
+import '../../estilos/ficha-do-cadastro.css';
 
 /** Os campos que ESTA tela mostra. O que a API recusar fora desta lista vai para o topo. */
 const CAMPOS_DA_TELA = [
@@ -302,16 +314,18 @@ export function ClienteCadastro() {
 
   if (!ehNovo && !cliente && !leitura.erro) {
     return (
-      <div className="card cad-cartao">
-        <BlocoCarregando oQue="a ficha do cliente" />
-      </div>
+      <PaginaDoPainel className="dash-pagina-larga">
+        <PainelDoMomento titulo="Ficha do cliente" data-bloco="carregando">
+          <BlocoCarregando oQue="a ficha do cliente" />
+        </PainelDoMomento>
+      </PaginaDoPainel>
     );
   }
 
   if (!ehNovo && leitura.erro) {
     return (
-      <>
-        <div className="page-header">
+      <PaginaDoPainel className="dash-pagina-larga">
+        <div className="page-header" data-bloco="cabecalho">
           <div>
             <h1 className="page-title">Cliente</h1>
           </div>
@@ -321,16 +335,17 @@ export function ClienteCadastro() {
             </Link>
           </div>
         </div>
-        <div className="card cad-cartao">
+        <PainelDoMomento titulo="Ficha do cliente" data-bloco="erro">
           <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />
-        </div>
-      </>
+        </PainelDoMomento>
+      </PaginaDoPainel>
     );
   }
 
   return (
-    <>
-      <div className="page-header">
+    // A LARGURA É A DA COLUNA INTEIRA, como a Visão 360: o teto só volta acima de 2.100px de janela.
+    <PaginaDoPainel className="dash-pagina-larga">
+      <div className="page-header ficha-cabecalho" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">{ehNovo ? 'Novo cliente' : cliente?.nomeRazao}</h1>
           <p className="page-subtitle">
@@ -346,6 +361,21 @@ export function ClienteCadastro() {
           </p>
         </div>
         <div className="page-actions">
+          {!ehNovo && leitura.procedencia && (
+            <p className="dash-atualizado">
+              <DadosAtualizadosEm procedencia={leitura.procedencia} />
+              <button
+                type="button"
+                className="dash-recarregar"
+                onClick={leitura.recarregar}
+                disabled={leitura.carregando || editando}
+                data-carregando={leitura.carregando ? 'true' : 'false'}
+                aria-label="Reler a ficha do cliente"
+              >
+                <RefreshCw size={15} strokeWidth={2} aria-hidden="true" />
+              </button>
+            </p>
+          )}
           <Link to="/clientes" className="btn btn-secondary">
             Voltar para a lista
           </Link>
@@ -388,145 +418,149 @@ export function ClienteCadastro() {
       )}
       <AvisoDeProcedencia procedencia={leitura.procedencia} />
 
-      <form className="card cad-cartao" onSubmit={gravar} noValidate>
-        <div className="card-header cad-cartao-cabecalho">
-          <div>
-            <div className="card-title">Identificação</div>
-            <div className="card-subtitle">
-              {editando ? 'Campos com * são obrigatórios' : 'Somente leitura — use Editar para alterar'}
+      <section className="dash-secao" data-bloco="secao-cadastro">
+        <TituloDaSecao titulo="O cadastro" />
+
+        <form onSubmit={gravar} noValidate data-bloco="formulario">
+          <PainelDoMomento
+            titulo="Identificação"
+            data-bloco="identificacao"
+            subtitulo={editando ? 'Campos com * são obrigatórios' : 'Somente leitura — use Editar para alterar'}
+          >
+            <div className="ficha-campos">
+              <div className="form-grid cad-grade">
+                <CampoTexto
+                  rotulo="Razão social ou nome"
+                  obrigatorio
+                  largo
+                  valor={formulario.nomeRazao}
+                  aoMudar={(v) => mudar('nomeRazao', v)}
+                  erro={errosDeCampo.nomeRazao}
+                  desabilitado={!editando}
+                  exemplo="Fazenda Santa Clara Grãos Ltda"
+                />
+                <CampoTexto
+                  rotulo="Nome fantasia"
+                  valor={formulario.nomeFantasia}
+                  aoMudar={(v) => mudar('nomeFantasia', v)}
+                  erro={errosDeCampo.nomeFantasia}
+                  desabilitado={!editando}
+                />
+                <CampoSelecao
+                  rotulo="Tipo de pessoa"
+                  obrigatorio
+                  valor={formulario.tipoDePessoa}
+                  aoMudar={(v) => mudar('tipoDePessoa', v)}
+                  itens={itensDe(catalogos, CATALOGO.tipoDePessoa)}
+                  erro={errosDeCampo.tipoDePessoa}
+                  desabilitado={!editando}
+                  ajuda="Define o documento aceito: 11 dígitos na física, 14 na jurídica."
+                />
+                <CampoTexto
+                  rotulo="CPF ou CNPJ"
+                  valor={formulario.documento}
+                  aoMudar={(v) => mudar('documento', v)}
+                  erro={errosDeCampo.documento}
+                  desabilitado={!editando}
+                  exemplo="18.245.339/0001-13"
+                  ajuda="Com ou sem máscara. O dígito verificador é conferido pela API."
+                />
+                <CampoTexto
+                  rotulo="Inscrição estadual"
+                  valor={formulario.inscricaoEstadual}
+                  aoMudar={(v) => mudar('inscricaoEstadual', v)}
+                  erro={errosDeCampo.inscricaoEstadual}
+                  desabilitado={!editando}
+                />
+                <CampoTexto
+                  rotulo="Atividade econômica"
+                  valor={formulario.atividadeEconomica}
+                  aoMudar={(v) => mudar('atividadeEconomica', v)}
+                  erro={errosDeCampo.atividadeEconomica}
+                  desabilitado={!editando}
+                />
+                <CampoSelecao
+                  rotulo="Situação"
+                  valor={formulario.situacao}
+                  aoMudar={(v) => mudar('situacao', v)}
+                  itens={itensDe(catalogos, CATALOGO.situacaoCliente)}
+                  erro={errosDeCampo.situacao}
+                  desabilitado={!editando}
+                  vazio={ehNovo ? 'Prospect (padrão da API)' : 'Selecione…'}
+                  ajuda="Domínio fechado no código e no banco: acrescentar item exige release e migração."
+                />
+                <CampoSelecao
+                  rotulo="Origem do lead"
+                  valor={formulario.origemCodigo}
+                  aoMudar={(v) => mudar('origemCodigo', v)}
+                  itens={itensDe(catalogos, CATALOGO.origemLead)}
+                  erro={errosDeCampo.origemCodigo}
+                  desabilitado={!editando}
+                  ajuda="Catálogo de banco: o negócio acrescenta item sem release."
+                />
+              </div>
             </div>
-          </div>
-          <SeloProcedencia procedencia={leitura.procedencia} />
-        </div>
 
-        <div className="card-body">
-          <div className="form-grid cad-grade">
-            <CampoTexto
-              rotulo="Razão social ou nome"
-              obrigatorio
-              largo
-              valor={formulario.nomeRazao}
-              aoMudar={(v) => mudar('nomeRazao', v)}
-              erro={errosDeCampo.nomeRazao}
-              desabilitado={!editando}
-              exemplo="Fazenda Santa Clara Grãos Ltda"
-            />
-            <CampoTexto
-              rotulo="Nome fantasia"
-              valor={formulario.nomeFantasia}
-              aoMudar={(v) => mudar('nomeFantasia', v)}
-              erro={errosDeCampo.nomeFantasia}
-              desabilitado={!editando}
-            />
-            <CampoSelecao
-              rotulo="Tipo de pessoa"
-              obrigatorio
-              valor={formulario.tipoDePessoa}
-              aoMudar={(v) => mudar('tipoDePessoa', v)}
-              itens={itensDe(catalogos, CATALOGO.tipoDePessoa)}
-              erro={errosDeCampo.tipoDePessoa}
-              desabilitado={!editando}
-              ajuda="Define o documento aceito: 11 dígitos na física, 14 na jurídica."
-            />
-            <CampoTexto
-              rotulo="CPF ou CNPJ"
-              valor={formulario.documento}
-              aoMudar={(v) => mudar('documento', v)}
-              erro={errosDeCampo.documento}
-              desabilitado={!editando}
-              exemplo="18.245.339/0001-13"
-              ajuda="Com ou sem máscara. O dígito verificador é conferido pela API."
-            />
-            <CampoTexto
-              rotulo="Inscrição estadual"
-              valor={formulario.inscricaoEstadual}
-              aoMudar={(v) => mudar('inscricaoEstadual', v)}
-              erro={errosDeCampo.inscricaoEstadual}
-              desabilitado={!editando}
-            />
-            <CampoTexto
-              rotulo="Atividade econômica"
-              valor={formulario.atividadeEconomica}
-              aoMudar={(v) => mudar('atividadeEconomica', v)}
-              erro={errosDeCampo.atividadeEconomica}
-              desabilitado={!editando}
-            />
-            <CampoSelecao
-              rotulo="Situação"
-              valor={formulario.situacao}
-              aoMudar={(v) => mudar('situacao', v)}
-              itens={itensDe(catalogos, CATALOGO.situacaoCliente)}
-              erro={errosDeCampo.situacao}
-              desabilitado={!editando}
-              vazio={ehNovo ? 'Prospect (padrão da API)' : 'Selecione…'}
-              ajuda="Domínio fechado no código e no banco: acrescentar item exige release e migração."
-            />
-            <CampoSelecao
-              rotulo="Origem do lead"
-              valor={formulario.origemCodigo}
-              aoMudar={(v) => mudar('origemCodigo', v)}
-              itens={itensDe(catalogos, CATALOGO.origemLead)}
-              erro={errosDeCampo.origemCodigo}
-              desabilitado={!editando}
-              ajuda="Catálogo de banco: o negócio acrescenta item sem release."
-            />
-          </div>
-        </div>
-
-        {editando && (
-          <div className="card-body cad-rodape-form">
-            <button type="button" className="btn btn-secondary" onClick={sairDaEdicao} disabled={gravando}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={gravando}>
-              {gravando ? 'Gravando…' : ehNovo ? 'Cadastrar cliente' : 'Gravar alterações'}
-            </button>
-          </div>
-        )}
-      </form>
-
-      {/* A FROTA PELO DONO ATUAL vem antes das compras (27/09/2026): é a pergunta "o que este cliente tem hoje". As
-          compras no ART continuam logo abaixo, como histórico — comprar não faz dono. */}
-      {!ehNovo && cliente && <FrotaDoCliente contexto={contexto} chaveDoCliente={cliente.chave} />}
-      {!ehNovo && cliente && <MaquinasCompradasDoCliente contexto={contexto} chaveDoCliente={cliente.chave} />}
+            {editando && (
+              <div className="cad-rodape-form">
+                <button type="button" className="btn btn-secondary" onClick={sairDaEdicao} disabled={gravando}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={gravando}>
+                  {gravando ? 'Gravando…' : ehNovo ? 'Cadastrar cliente' : 'Gravar alterações'}
+                </button>
+              </div>
+            )}
+          </PainelDoMomento>
+        </form>
+      </section>
 
       {!ehNovo && cliente && (
-        <div className="card cad-cartao">
-          <div className="card-header">
-            <div className="card-title">Registro</div>
-            <div className="card-subtitle">O que o CRM sabe sobre o próprio cadastro</div>
-          </div>
-          <div className="card-body">
-            <div className="form-grid cad-grade">
-              <CampoSomenteLeitura rotulo="Chave pública" valor={<code>{cliente.chave}</code>} largo
-                ajuda="É o GUID que a API usa. O identificador sequencial nunca sai da API — quem enumera /clientes/1, /clientes/2 conta quantos clientes a Tracbel tem." />
-              <CampoSomenteLeitura
-                rotulo="Filial dona do cadastro"
-                valor={`${descricaoDe(catalogos, CATALOGO.empresa, contexto.empresa)} · id interno ${cliente.empresaId}`}
-                ajuda="A fronteira de acesso, e é sempre a filial do cabeçalho: o que outra filial enxergasse não teria chegado até aqui — responderia 404." />
-              <CampoSomenteLeitura
-                rotulo="Proprietário"
-                valor={`Usuário ${cliente.proprietarioId}`}
-                ajuda="A API devolve o identificador, não o nome — não há endpoint de usuário ainda. Reatribuir dono é outra operação, com outra permissão (dívida D-6)." />
-              <CampoSomenteLeitura rotulo="Cadastrado em" valor={formatarDataHora(cliente.criadoEm)} />
-              <CampoSomenteLeitura rotulo="Última alteração" valor={formatarDataHora(cliente.alteradoEm)} />
-              <CampoSomenteLeitura rotulo="Nesta situação desde" valor={formatarDataHora(cliente.situacaoDesde)} />
-              <CampoSomenteLeitura
-                rotulo="Documento sem máscara"
-                valor={cliente.documentoSemMascara ?? '—'}
-                ajuda="É o que a integração usa."
-              />
-              {cliente.estaInativo && (
+        <section className="dash-secao" data-bloco="secao-frota">
+          <TituloDaSecao titulo="A frota" />
+          {/* A FROTA PELO DONO ATUAL vem antes das compras (27/09/2026): é a pergunta "o que este cliente tem hoje". As
+              compras no ART continuam logo abaixo, como histórico — comprar não faz dono. */}
+          <FrotaDoCliente contexto={contexto} chaveDoCliente={cliente.chave} />
+          <MaquinasCompradasDoCliente contexto={contexto} chaveDoCliente={cliente.chave} />
+        </section>
+      )}
+
+      {!ehNovo && cliente && (
+        <section className="dash-secao" data-bloco="secao-registro">
+          <TituloDaSecao titulo="O registro" />
+          <PainelDoMomento titulo="Registro" subtitulo="O que o CRM sabe sobre o próprio cadastro" data-bloco="registro">
+            <div className="ficha-campos">
+              <div className="form-grid cad-grade">
+                <CampoSomenteLeitura rotulo="Chave pública" valor={<code>{cliente.chave}</code>} largo
+                  ajuda="É o GUID que a API usa. O identificador sequencial nunca sai da API — quem enumera /clientes/1, /clientes/2 conta quantos clientes a Tracbel tem." />
                 <CampoSomenteLeitura
-                  rotulo="Motivo da inativação"
-                  valor={descricaoDe(catalogos, CATALOGO.motivoInativacao, cliente.motivoInativacaoCodigo)}
-                  largo
-                  ajuda="Exclusão lógica: a linha continua no banco e o histórico continua apontando para ela."
+                  rotulo="Filial dona do cadastro"
+                  valor={`${descricaoDe(catalogos, CATALOGO.empresa, contexto.empresa)} · id interno ${cliente.empresaId}`}
+                  ajuda="A fronteira de acesso, e é sempre a filial do cabeçalho: o que outra filial enxergasse não teria chegado até aqui — responderia 404." />
+                <CampoSomenteLeitura
+                  rotulo="Proprietário"
+                  valor={`Usuário ${cliente.proprietarioId}`}
+                  ajuda="A API devolve o identificador, não o nome — não há endpoint de usuário ainda. Reatribuir dono é outra operação, com outra permissão (dívida D-6)." />
+                <CampoSomenteLeitura rotulo="Cadastrado em" valor={formatarDataHora(cliente.criadoEm)} />
+                <CampoSomenteLeitura rotulo="Última alteração" valor={formatarDataHora(cliente.alteradoEm)} />
+                <CampoSomenteLeitura rotulo="Nesta situação desde" valor={formatarDataHora(cliente.situacaoDesde)} />
+                <CampoSomenteLeitura
+                  rotulo="Documento sem máscara"
+                  valor={cliente.documentoSemMascara ?? '—'}
+                  ajuda="É o que a integração usa."
                 />
-              )}
+                {cliente.estaInativo && (
+                  <CampoSomenteLeitura
+                    rotulo="Motivo da inativação"
+                    valor={descricaoDe(catalogos, CATALOGO.motivoInativacao, cliente.motivoInativacaoCodigo)}
+                    largo
+                    ajuda="Exclusão lógica: a linha continua no banco e o histórico continua apontando para ela."
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+          </PainelDoMomento>
+        </section>
       )}
 
       {confirmandoInativacao && (
@@ -587,6 +621,6 @@ export function ClienteCadastro() {
           <p>O formulário volta ao que estava gravado. Não há como desfazer depois.</p>
         </DialogoConfirmacao>
       )}
-    </>
+    </PaginaDoPainel>
   );
 }

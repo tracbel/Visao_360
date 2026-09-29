@@ -20,8 +20,14 @@
  *   catálogo, e é opcional (documento 35, seção 10).
  * - **O dono é escolhido por busca**, nunca digitado. O COMPRADOR de uma venda
  *   não é o dono: ele aparece no histórico comercial, com a data da venda.
+ *
+ * 29/09/2026 — NO PADRÃO DOS INDICADORES GEOGRÁFICOS (#293, bloco 5): página na coluna inteira, cabeçalho com a hora da
+ * leitura e o reler ao lado das ações, e três seções — o cadastro, o histórico (divergências e vendas) e o registro —
+ * com os cartões no desenho do painel das outras telas e as tabelas como `mom-tabela`. O formulário continua
+ * formulário; a nota da "Gestão" foi para a dica do histórico, com o mesmo texto.
  */
 
+import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -33,7 +39,10 @@ import {
 import { DialogoConfirmacao } from '../../componentes/cadastro/DialogoConfirmacao';
 import { BlocoCarregando, BlocoErro } from '../../componentes/cadastro/EstadosDeTela';
 import { SeletorDeCliente } from '../../componentes/cadastro/SeletorDeCliente';
-import { AvisoDeProcedencia, SeloProcedencia } from '../../componentes/cadastro/SeloProcedencia';
+import { AvisoDeProcedencia, DadosAtualizadosEm } from '../../componentes/cadastro/SeloProcedencia';
+import { PaginaDoPainel } from '../../componentes/dashboard/Dashboard';
+import { PainelDoMomento } from '../../componentes/mercado/momento/pecas';
+import { TituloDaSecao } from '../../componentes/territorio/TituloDaSecao';
 import { descricaoDe, distintosDe, itensDe, modelosDeFrota, useCatalogos } from '../../dados/api/catalogos';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
 import {
@@ -53,7 +62,11 @@ import {
   type VendaDaMaquina,
 } from '../../tipos/api';
 import { formatarDataHora, formatarNumero } from './formato';
+import '../../estilos/dashboard.css';
+import '../../estilos/momento.css';
+import '../../estilos/territorio.css';
 import '../../estilos/frota-comercial.css';
+import '../../estilos/ficha-do-cadastro.css';
 
 /** Os campos que ESTA tela mostra. O que a API recusar fora disto vai para o topo. */
 const CAMPOS_DA_TELA = [
@@ -354,16 +367,18 @@ export function EquipamentoCadastro() {
 
   if (!ehNovo && !maquina && !leitura.erro) {
     return (
-      <div className="card cad-cartao">
-        <BlocoCarregando oQue="a ficha do equipamento" />
-      </div>
+      <PaginaDoPainel className="dash-pagina-larga">
+        <PainelDoMomento titulo="Ficha do equipamento" data-bloco="carregando">
+          <BlocoCarregando oQue="a ficha do equipamento" />
+        </PainelDoMomento>
+      </PaginaDoPainel>
     );
   }
 
   if (!ehNovo && leitura.erro) {
     return (
-      <>
-        <div className="page-header">
+      <PaginaDoPainel className="dash-pagina-larga">
+        <div className="page-header" data-bloco="cabecalho">
           <div>
             <h1 className="page-title">Equipamento</h1>
           </div>
@@ -373,16 +388,17 @@ export function EquipamentoCadastro() {
             </Link>
           </div>
         </div>
-        <div className="card cad-cartao">
+        <PainelDoMomento titulo="Ficha do equipamento" data-bloco="erro">
           <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />
-        </div>
-      </>
+        </PainelDoMomento>
+      </PaginaDoPainel>
     );
   }
 
   return (
-    <>
-      <div className="page-header">
+    // A LARGURA É A DA COLUNA INTEIRA, como a Visão 360: o teto só volta acima de 2.100px de janela.
+    <PaginaDoPainel className="dash-pagina-larga">
+      <div className="page-header ficha-cabecalho" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">{ehNovo ? 'Novo equipamento' : maquina?.chassi}</h1>
           <p className="page-subtitle">
@@ -403,6 +419,24 @@ export function EquipamentoCadastro() {
           </p>
         </div>
         <div className="page-actions">
+          {!ehNovo && leitura.procedencia && (
+            <p className="dash-atualizado">
+              <DadosAtualizadosEm procedencia={leitura.procedencia} />
+              <button
+                type="button"
+                className="dash-recarregar"
+                onClick={() => {
+                  leitura.recarregar();
+                  historico.recarregar();
+                }}
+                disabled={leitura.carregando || editando}
+                data-carregando={leitura.carregando ? 'true' : 'false'}
+                aria-label="Reler a ficha do equipamento"
+              >
+                <RefreshCw size={15} strokeWidth={2} aria-hidden="true" />
+              </button>
+            </p>
+          )}
           <Link to="/equipamentos" className="btn btn-secondary">
             Voltar para a lista
           </Link>
@@ -454,386 +488,376 @@ export function EquipamentoCadastro() {
       )}
       <AvisoDeProcedencia procedencia={leitura.procedencia} />
 
-      <form className="card cad-cartao" onSubmit={gravar} noValidate>
-        <div className="card-header cad-cartao-cabecalho">
-          <div>
-            <div className="card-title">Identificação da máquina</div>
-            <div className="card-subtitle">
-              {editando ? 'Campos com * são obrigatórios' : 'Somente leitura — use Editar para alterar'}
-            </div>
-          </div>
-          <SeloProcedencia procedencia={leitura.procedencia} />
-        </div>
+      <section className="dash-secao" data-bloco="secao-cadastro">
+        <TituloDaSecao titulo="O cadastro" />
 
-        <div className="card-body">
-          <div className="form-grid cad-grade">
-            {ehNovo ? (
-              <CampoTexto
-                rotulo="Chassi"
-                obrigatorio
-                largo
-                valor={formulario.chassi}
-                aoMudar={(v) => mudar('chassi', v.toUpperCase())}
-                erro={errosDeCampo.chassi}
-                exemplo="1JD8R340ABC123456"
-                ajuda="17 caracteres, sem as letras I, O e Q. É a identidade da máquina e não muda depois."
-              />
-            ) : (
-              <CampoSomenteLeitura
-                rotulo="Chassi"
-                largo
-                valor={<code>{maquina?.chassi}</code>}
-                ajuda="Não entra na alteração: é a identidade da máquina e a chave de deduplicação. Chassi errado se corrige baixando o registro e cadastrando o certo, para o histórico não mudar de dono em silêncio."
-              />
-            )}
+        <form onSubmit={gravar} noValidate data-bloco="formulario">
+          <PainelDoMomento
+            titulo="Identificação da máquina"
+            data-bloco="identificacao"
+            subtitulo={editando ? 'Campos com * são obrigatórios' : 'Somente leitura — use Editar para alterar'}
+          >
+            <div className="ficha-campos">
+              <div className="form-grid cad-grade">
+                {ehNovo ? (
+                  <CampoTexto
+                    rotulo="Chassi"
+                    obrigatorio
+                    largo
+                    valor={formulario.chassi}
+                    aoMudar={(v) => mudar('chassi', v.toUpperCase())}
+                    erro={errosDeCampo.chassi}
+                    exemplo="1JD8R340ABC123456"
+                    ajuda="17 caracteres, sem as letras I, O e Q. É a identidade da máquina e não muda depois."
+                  />
+                ) : (
+                  <CampoSomenteLeitura
+                    rotulo="Chassi"
+                    largo
+                    valor={<code>{maquina?.chassi}</code>}
+                    ajuda="Não entra na alteração: é a identidade da máquina e a chave de deduplicação. Chassi errado se corrige baixando o registro e cadastrando o certo, para o histórico não mudar de dono em silêncio."
+                  />
+                )}
 
-            <CampoSelecao
-              rotulo="Marca"
-              valor={marca}
-              aoMudar={(v) => {
-                setMarca(v);
-                setFamilia('');
-                mudar('modeloCodigo', '');
-              }}
-              itens={comoItens(marcas)}
-              desabilitado={!editando}
-              vazio="Todas"
-              ajuda="Vem do catálogo de frota, junto com a família e o modelo."
-            />
-            <CampoSelecao
-              rotulo="Família"
-              valor={familia}
-              aoMudar={(v) => {
-                setFamilia(v);
-                mudar('modeloCodigo', '');
-              }}
-              itens={comoItens(familias)}
-              desabilitado={!editando}
-              vazio="Todas"
-            />
-            <CampoSelecao
-              rotulo="Modelo"
-              largo
-              valor={formulario.modeloCodigo}
-              aoMudar={(v) => {
-                mudar('modeloCodigo', v);
-                const escolhido = porCodigo.get(v);
-                if (escolhido) {
-                  setMarca(escolhido.marca);
-                  setFamilia(escolhido.familia);
-                }
-              }}
-              itens={modelosOferecidos.map((m, i) => ({
-                codigo: m.codigo,
-                descricao: m.descricao,
-                ordem: i + 1,
-                exigeObservacao: false,
-              }))}
-              erro={errosDeCampo.modeloCodigo}
-              desabilitado={!editando}
-              vazio={modeloPendenteDoArt ? 'Sem modelo — produto do ART pendente de revisão' : undefined}
-              ajuda={
-                modeloEscolhido
-                  ? `${modeloEscolhido.marca} · ${modeloEscolhido.familia} · ${modeloEscolhido.modelo}`
-                  : modeloPendenteDoArt
-                    ? `O produto do ART (“${maquina?.produtoNaOrigem ?? '—'}”) não tem correspondência segura no catálogo. Ele fica preservado na venda; escolha o modelo só se tiver certeza.`
-                    : 'Marca e família filtram a lista; escolher o modelo preenche as duas de volta.'
-              }
-            />
+                <CampoSelecao
+                  rotulo="Marca"
+                  valor={marca}
+                  aoMudar={(v) => {
+                    setMarca(v);
+                    setFamilia('');
+                    mudar('modeloCodigo', '');
+                  }}
+                  itens={comoItens(marcas)}
+                  desabilitado={!editando}
+                  vazio="Todas"
+                  ajuda="Vem do catálogo de frota, junto com a família e o modelo."
+                />
+                <CampoSelecao
+                  rotulo="Família"
+                  valor={familia}
+                  aoMudar={(v) => {
+                    setFamilia(v);
+                    mudar('modeloCodigo', '');
+                  }}
+                  itens={comoItens(familias)}
+                  desabilitado={!editando}
+                  vazio="Todas"
+                />
+                <CampoSelecao
+                  rotulo="Modelo"
+                  largo
+                  valor={formulario.modeloCodigo}
+                  aoMudar={(v) => {
+                    mudar('modeloCodigo', v);
+                    const escolhido = porCodigo.get(v);
+                    if (escolhido) {
+                      setMarca(escolhido.marca);
+                      setFamilia(escolhido.familia);
+                    }
+                  }}
+                  itens={modelosOferecidos.map((m, i) => ({
+                    codigo: m.codigo,
+                    descricao: m.descricao,
+                    ordem: i + 1,
+                    exigeObservacao: false,
+                  }))}
+                  erro={errosDeCampo.modeloCodigo}
+                  desabilitado={!editando}
+                  vazio={modeloPendenteDoArt ? 'Sem modelo — produto do ART pendente de revisão' : undefined}
+                  ajuda={
+                    modeloEscolhido
+                      ? `${modeloEscolhido.marca} · ${modeloEscolhido.familia} · ${modeloEscolhido.modelo}`
+                      : modeloPendenteDoArt
+                        ? `O produto do ART (“${maquina?.produtoNaOrigem ?? '—'}”) não tem correspondência segura no catálogo. Ele fica preservado na venda; escolha o modelo só se tiver certeza.`
+                        : 'Marca e família filtram a lista; escolher o modelo preenche as duas de volta.'
+                  }
+                />
 
-            <CampoSelecao
-              rotulo="Classificação de produto"
-              valor={formulario.linhaDeProdutoCodigo}
-              aoMudar={(v) => mudar('linhaDeProdutoCodigo', v)}
-              itens={itensDe(catalogos, CATALOGO.linhaDeProduto)}
-              erro={errosDeCampo.linhaDeProdutoCodigo}
-              desabilitado={!editando}
-              vazio="Sem classificação"
-              ajuda="Trator pequeno, médio, grande, colhedora… É o filtro de segmentação da lista. Opcional."
-            />
+                <CampoSelecao
+                  rotulo="Classificação de produto"
+                  valor={formulario.linhaDeProdutoCodigo}
+                  aoMudar={(v) => mudar('linhaDeProdutoCodigo', v)}
+                  itens={itensDe(catalogos, CATALOGO.linhaDeProduto)}
+                  erro={errosDeCampo.linhaDeProdutoCodigo}
+                  desabilitado={!editando}
+                  vazio="Sem classificação"
+                  ajuda="Trator pequeno, médio, grande, colhedora… É o filtro de segmentação da lista. Opcional."
+                />
 
-            <SeletorDeCliente
-              rotulo="Cliente proprietário"
-              largo
-              valor={formulario.clienteChave}
-              nome={nomeDoCliente}
-              aoEscolher={(chaveDoCliente, nome) => {
-                mudar('clienteChave', chaveDoCliente);
-                setNomeDoCliente(nome);
-              }}
-              erro={errosDeCampo.clienteChave}
-              desabilitado={!editando}
-              ajuda="O dono atual. Obrigatório quando a situação é Ativo ou Vendido. O comprador de uma venda do ART não é preenchido aqui automaticamente."
-            />
+                <SeletorDeCliente
+                  rotulo="Cliente proprietário"
+                  largo
+                  valor={formulario.clienteChave}
+                  nome={nomeDoCliente}
+                  aoEscolher={(chaveDoCliente, nome) => {
+                    mudar('clienteChave', chaveDoCliente);
+                    setNomeDoCliente(nome);
+                  }}
+                  erro={errosDeCampo.clienteChave}
+                  desabilitado={!editando}
+                  ajuda="O dono atual. Obrigatório quando a situação é Ativo ou Vendido. O comprador de uma venda do ART não é preenchido aqui automaticamente."
+                />
 
-            <CampoSelecao
-              rotulo="Situação"
-              valor={formulario.situacao}
-              aoMudar={(v) => mudar('situacao', v)}
-              itens={itensDe(catalogos, CATALOGO.situacaoEquipamento)}
-              erro={errosDeCampo.situacao}
-              desabilitado={!editando}
-              vazio={ehNovo ? 'Ativo (padrão da API)' : 'Selecione…'}
-            />
+                <CampoSelecao
+                  rotulo="Situação"
+                  valor={formulario.situacao}
+                  aoMudar={(v) => mudar('situacao', v)}
+                  itens={itensDe(catalogos, CATALOGO.situacaoEquipamento)}
+                  erro={errosDeCampo.situacao}
+                  desabilitado={!editando}
+                  vazio={ehNovo ? 'Ativo (padrão da API)' : 'Selecione…'}
+                />
 
-            {ehNovo ? (
-              <CampoSelecao
-                rotulo="Origem"
-                valor={formulario.origem}
-                aoMudar={(v) => mudar('origem', v)}
-                itens={itensDe(catalogos, CATALOGO.origemEquipamento)}
-                erro={errosDeCampo.origem}
-                vazio="Crm (padrão da API)"
-                ajuda="Quem afirma que a máquina existe: o ERP (Protheus) ou o CEN, pelo CRM."
-              />
-            ) : (
-              <CampoSomenteLeitura
-                rotulo="Origem"
-                valor={maquina?.origem}
-                ajuda="Não entra na alteração: diz quem afirma que a máquina existe, e é o que a tela de Cobertura usa."
-              />
-            )}
+                {ehNovo ? (
+                  <CampoSelecao
+                    rotulo="Origem"
+                    valor={formulario.origem}
+                    aoMudar={(v) => mudar('origem', v)}
+                    itens={itensDe(catalogos, CATALOGO.origemEquipamento)}
+                    erro={errosDeCampo.origem}
+                    vazio="Crm (padrão da API)"
+                    ajuda="Quem afirma que a máquina existe: o ERP (Protheus) ou o CEN, pelo CRM."
+                  />
+                ) : (
+                  <CampoSomenteLeitura
+                    rotulo="Origem"
+                    valor={maquina?.origem}
+                    ajuda="Não entra na alteração: diz quem afirma que a máquina existe, e é o que a tela de Cobertura usa."
+                  />
+                )}
 
-            <CampoTexto
-              rotulo="Ano de fabricação"
-              tipo="number"
-              valor={formulario.anoFabricacao}
-              aoMudar={(v) => mudar('anoFabricacao', v)}
-              erro={errosDeCampo.anoFabricacao}
-              desabilitado={!editando}
-            />
-            <CampoTexto
-              rotulo="Ano do modelo"
-              tipo="number"
-              valor={formulario.anoModelo}
-              aoMudar={(v) => mudar('anoModelo', v)}
-              erro={errosDeCampo.anoModelo}
-              desabilitado={!editando}
-            />
-            <CampoTexto
-              rotulo="Número de série"
-              valor={formulario.numeroSerie}
-              aoMudar={(v) => mudar('numeroSerie', v)}
-              erro={errosDeCampo.numeroSerie}
-              desabilitado={!editando}
-              ajuda="Buscável por trecho, diferente do chassi."
-            />
-            <CampoTexto
-              rotulo="Placa"
-              valor={formulario.placa}
-              aoMudar={(v) => mudar('placa', v.toUpperCase())}
-              erro={errosDeCampo.placa}
-              desabilitado={!editando}
-            />
-            <CampoTexto
-              rotulo="Localização"
-              largo
-              valor={formulario.localizacaoDescrita}
-              aoMudar={(v) => mudar('localizacaoDescrita', v)}
-              erro={errosDeCampo.localizacaoDescrita}
-              desabilitado={!editando}
-              exemplo="Fazenda Santa Clara · talhão 4"
-              ajuda="Texto livre: é a descrição do CEN, e não há catálogo de talhão."
-            />
-          </div>
-        </div>
-
-        {editando && (
-          <div className="card-body cad-rodape-form">
-            <button type="button" className="btn btn-secondary" onClick={sairDaEdicao} disabled={gravando}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={gravando}>
-              {gravando ? 'Gravando…' : ehNovo ? 'Cadastrar equipamento' : 'Gravar alterações'}
-            </button>
-          </div>
-        )}
-      </form>
-
-      {!ehNovo && maquina && maquina.divergenciasAbertas.length > 0 && (
-        <div className="card cad-cartao">
-          <div className="card-header">
-            <div className="card-title">Divergências abertas</div>
-            <div className="card-subtitle">
-              Onde ART, CRM e Protheus não concordam sobre esta máquina — nada é trocado automaticamente: a correção é
-              decisão de quem revisa o cadastro
-            </div>
-          </div>
-          <div className="cad-tabela-wrap">
-            <table className="cad-tabela">
-              <thead>
-                <tr>
-                  <th scope="col">Detectada em</th>
-                  <th scope="col">Tipo</th>
-                  <th scope="col">O que é</th>
-                </tr>
-              </thead>
-              <tbody>
-                {maquina.divergenciasAbertas.map((divergencia) => (
-                  <tr key={`${divergencia.tipo}-${divergencia.detectadaEm}`}>
-                    <td className="cad-mono">{formatarDataHora(divergencia.detectadaEm)}</td>
-                    <td>
-                      <span className="cad-selo cad-selo-pendente">
-                        {divergencia.tipo.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()}
-                      </span>
-                    </td>
-                    <td>{divergencia.descricao}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {!ehNovo && maquina && (
-        <div className="card cad-cartao">
-          <div className="card-header cad-cartao-cabecalho">
-            <div>
-              <div className="card-title">Histórico comercial</div>
-              <div className="card-subtitle">
-                Cada venda com o comprador NELA, a filial e as datas — o comprador de uma venda não é o dono atual
+                <CampoTexto
+                  rotulo="Ano de fabricação"
+                  tipo="number"
+                  valor={formulario.anoFabricacao}
+                  aoMudar={(v) => mudar('anoFabricacao', v)}
+                  erro={errosDeCampo.anoFabricacao}
+                  desabilitado={!editando}
+                />
+                <CampoTexto
+                  rotulo="Ano do modelo"
+                  tipo="number"
+                  valor={formulario.anoModelo}
+                  aoMudar={(v) => mudar('anoModelo', v)}
+                  erro={errosDeCampo.anoModelo}
+                  desabilitado={!editando}
+                />
+                <CampoTexto
+                  rotulo="Número de série"
+                  valor={formulario.numeroSerie}
+                  aoMudar={(v) => mudar('numeroSerie', v)}
+                  erro={errosDeCampo.numeroSerie}
+                  desabilitado={!editando}
+                  ajuda="Buscável por trecho, diferente do chassi."
+                />
+                <CampoTexto
+                  rotulo="Placa"
+                  valor={formulario.placa}
+                  aoMudar={(v) => mudar('placa', v.toUpperCase())}
+                  erro={errosDeCampo.placa}
+                  desabilitado={!editando}
+                />
+                <CampoTexto
+                  rotulo="Localização"
+                  largo
+                  valor={formulario.localizacaoDescrita}
+                  aoMudar={(v) => mudar('localizacaoDescrita', v)}
+                  erro={errosDeCampo.localizacaoDescrita}
+                  desabilitado={!editando}
+                  exemplo="Fazenda Santa Clara · talhão 4"
+                  ajuda="Texto livre: é a descrição do CEN, e não há catálogo de talhão."
+                />
               </div>
             </div>
-            <SeloProcedencia procedencia={historico.procedencia} />
-          </div>
-          {historico.carregando && <BlocoCarregando oQue="o histórico comercial" />}
-          {historico.erro && <BlocoErro erro={historico.erro} aoTentarDeNovo={historico.recarregar} />}
-          {historico.dados && historico.dados.length === 0 && (
-            <div className="card-body">
-              <p className="cad-nota">Nenhuma venda registrada para este chassi.</p>
-            </div>
-          )}
-          {historico.dados && historico.dados.length > 0 && (
-            <div className="cad-tabela-wrap">
-              <table className="cad-tabela">
-                <thead>
-                  <tr>
-                    <th scope="col">Venda</th>
-                    <th scope="col">Comprador na venda</th>
-                    <th scope="col">Produto e linha no ART</th>
-                    <th scope="col">Filial</th>
-                    <th scope="col">Gestão da venda</th>
-                    <th scope="col">Faturada · entregue</th>
-                    <th scope="col">Origem</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {historico.dados.map((venda) => (
-                    <tr key={venda.chave}>
-                      <td className="cad-mono">{dataCurta(venda.vendidaEm)}</td>
-                      <td>
-                        {venda.compradorChave ? (
-                          <Link to={`/clientes/${venda.compradorChave}`}>{venda.compradorNome}</Link>
-                        ) : (
-                          <span className="cad-vazio">comprador fora do seu alcance</span>
-                        )}
-                        <div className="cad-sub">
-                          <span className="cad-selo cad-selo-comprador">
-                            {venda.natureza === 'CompradorNaVenda' ? 'comprador na venda' : (venda.natureza ?? 'sem vínculo')}
-                          </span>
-                          {venda.vinculoEncerradoEm && ` encerrado em ${formatarDataHora(venda.vinculoEncerradoEm)}: ${venda.motivoDoEncerramento}`}
-                        </div>
-                      </td>
-                      <td>
-                        {venda.produtoNaOrigem}
-                        <div className="cad-sub">{venda.linhaNaOrigem}</div>
-                      </td>
-                      <td className="cad-mono">
-                        {venda.filialCodigo}
-                        {venda.filialDoFaturamentoCodigo && venda.filialDoFaturamentoCodigo !== venda.filialCodigo && (
-                          <div className="cad-sub">faturou {venda.filialDoFaturamentoCodigo}</div>
-                        )}
-                      </td>
-                      <td>{venda.gestaoNaOrigem ?? '—'}</td>
-                      <td className="cad-mono">
-                        {dataCurta(venda.faturadaEm)}
-                        <div className="cad-sub">{dataCurta(venda.entregueEm)}</div>
-                      </td>
-                      <td>
-                        {venda.sistemaCodigo} · <span className="cad-mono">{venda.chaveOrigem}</span>
-                        <div className="cad-sub">importada {formatarDataHora(venda.importadaEm)}</div>
-                        {venda.transformacoes && <div className="cad-sub">{venda.transformacoes}</div>}
-                      </td>
+
+            {editando && (
+              <div className="cad-rodape-form">
+                <button type="button" className="btn btn-secondary" onClick={sairDaEdicao} disabled={gravando}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={gravando}>
+                  {gravando ? 'Gravando…' : ehNovo ? 'Cadastrar equipamento' : 'Gravar alterações'}
+                </button>
+              </div>
+            )}
+          </PainelDoMomento>
+        </form>
+      </section>
+
+      {!ehNovo && maquina && (
+        <section className="dash-secao" data-bloco="secao-historico">
+          <TituloDaSecao titulo="O histórico" />
+
+          {maquina.divergenciasAbertas.length > 0 && (
+            <PainelDoMomento
+              titulo="Divergências abertas"
+              data-bloco="divergencias"
+              subtitulo="Onde ART, CRM e Protheus não concordam sobre esta máquina — nada é trocado automaticamente: a correção é decisão de quem revisa o cadastro"
+            >
+              <div className="mom-tabela-rolagem">
+                <table className="mom-tabela">
+                  <caption className="cad-so-leitor">As divergências abertas desta máquina</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Detectada em</th>
+                      <th scope="col">Tipo</th>
+                      <th scope="col">O que é</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {maquina.divergenciasAbertas.map((divergencia) => (
+                      <tr key={`${divergencia.tipo}-${divergencia.detectadaEm}`}>
+                        <td className="cad-mono">{formatarDataHora(divergencia.detectadaEm)}</td>
+                        <td>
+                          <span className="cad-selo cad-selo-pendente">
+                            {divergencia.tipo.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()}
+                          </span>
+                        </td>
+                        <td className="ficha-texto">{divergencia.descricao}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </PainelDoMomento>
           )}
-          <div className="card-body">
-            <p className="cad-nota">
-              “Gestão” (Varejo ou Grandes Contas) é atributo da venda, como o ART escreve — não é classificação do cliente nem
-              equivale a SAM ou KAM.
-            </p>
-          </div>
-        </div>
+
+          <PainelDoMomento
+            titulo="Histórico comercial"
+            data-bloco="historico-comercial"
+            subtitulo="Cada venda com o comprador NELA, a filial e as datas — o comprador de uma venda não é o dono atual"
+            dica="“Gestão” (Varejo ou Grandes Contas) é atributo da venda, como o ART escreve — não é classificação do cliente nem equivale a SAM ou KAM."
+          >
+            {historico.carregando && <BlocoCarregando oQue="o histórico comercial" />}
+            {historico.erro && <BlocoErro erro={historico.erro} aoTentarDeNovo={historico.recarregar} />}
+            {historico.dados && historico.dados.length === 0 && (
+              <p className="cad-nota">Nenhuma venda registrada para este chassi.</p>
+            )}
+            {historico.dados && historico.dados.length > 0 && (
+              <div className="mom-tabela-rolagem">
+                <table className="mom-tabela">
+                  <caption className="cad-so-leitor">As vendas desta máquina, com o comprador em cada uma</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Venda</th>
+                      <th scope="col">Comprador na venda</th>
+                      <th scope="col">Produto e linha no ART</th>
+                      <th scope="col">Filial</th>
+                      <th scope="col">Gestão da venda</th>
+                      <th scope="col">Faturada · entregue</th>
+                      <th scope="col">Origem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historico.dados.map((venda) => (
+                      <tr key={venda.chave}>
+                        <td className="cad-mono">{dataCurta(venda.vendidaEm)}</td>
+                        <td className="ficha-texto">
+                          {venda.compradorChave ? (
+                            <Link to={`/clientes/${venda.compradorChave}`}>{venda.compradorNome}</Link>
+                          ) : (
+                            <span className="cad-vazio">comprador fora do seu alcance</span>
+                          )}
+                          <div className="cad-sub">
+                            <span className="cad-selo cad-selo-comprador">
+                              {venda.natureza === 'CompradorNaVenda' ? 'comprador na venda' : (venda.natureza ?? 'sem vínculo')}
+                            </span>
+                            {venda.vinculoEncerradoEm && ` encerrado em ${formatarDataHora(venda.vinculoEncerradoEm)}: ${venda.motivoDoEncerramento}`}
+                          </div>
+                        </td>
+                        <td className="ficha-texto">
+                          {venda.produtoNaOrigem}
+                          <div className="cad-sub">{venda.linhaNaOrigem}</div>
+                        </td>
+                        <td className="cad-mono">
+                          {venda.filialCodigo}
+                          {venda.filialDoFaturamentoCodigo && venda.filialDoFaturamentoCodigo !== venda.filialCodigo && (
+                            <div className="cad-sub">faturou {venda.filialDoFaturamentoCodigo}</div>
+                          )}
+                        </td>
+                        <td>{venda.gestaoNaOrigem ?? '—'}</td>
+                        <td className="cad-mono">
+                          {dataCurta(venda.faturadaEm)}
+                          <div className="cad-sub">{dataCurta(venda.entregueEm)}</div>
+                        </td>
+                        <td className="ficha-texto">
+                          {venda.sistemaCodigo} · <span className="cad-mono">{venda.chaveOrigem}</span>
+                          <div className="cad-sub">importada {formatarDataHora(venda.importadaEm)}</div>
+                          {venda.transformacoes && <div className="cad-sub">{venda.transformacoes}</div>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </PainelDoMomento>
+        </section>
       )}
 
       {!ehNovo && maquina && (
-        <div className="card cad-cartao">
-          <div className="card-header">
-            <div className="card-title">Registro</div>
-            <div className="card-subtitle">O que o CRM sabe sobre o próprio cadastro</div>
-          </div>
-          <div className="card-body">
-            <div className="form-grid cad-grade">
-              <CampoSomenteLeitura rotulo="Chave pública" largo valor={<code>{maquina.chave}</code>} />
-              <CampoSomenteLeitura
-                rotulo="Filial dona do registro"
-                valor={`${descricaoDe(catalogos, CATALOGO.empresa, contexto.empresa)} · id interno ${maquina.empresaId}`}
-                ajuda="A fronteira de acesso, e é sempre a filial do cabeçalho: em outra filial esta ficha responde 404."
-              />
-              <CampoSomenteLeitura
-                rotulo="Marca representada"
-                valor={
-                  maquina.marcaRepresentada === null
-                    ? '—'
-                    : maquina.marcaRepresentada
-                      ? 'Sim — marca que a Tracbel representa'
-                      : 'Não — máquina de concorrente'
-                }
-                ajuda="É o que separa a frota nossa da do concorrente na Cobertura de Carteira."
-              />
-              {/* A TELEMETRIA DO OPERATIONS CENTER (28/09/2026): o horímetro e a última posição chegam pela rotina
-                  diária, do banco do BI, na máquina com o mesmo chassi. Nenhum dos dois se digita aqui. */}
-              <CampoSomenteLeitura
-                rotulo="Horímetro atual"
-                valor={
-                  maquina.horimetroAtual === null
-                    ? '—'
-                    : `${formatarNumero(maquina.horimetroAtual, 1)} h${
-                        maquina.horimetroAtualizadoEm ? ` · lido em ${formatarDataHora(maquina.horimetroAtualizadoEm)}` : ''
-                      }`
-                }
-                ajuda="Vem da telemetria do Operations Center da John Deere, pelo chassi; não se digita nesta tela. Máquina sem telemetria fica sem horímetro."
-              />
-              <CampoSomenteLeitura
-                rotulo="Última posição"
-                valor={
-                  maquina.posicaoLatitude == null || maquina.posicaoLongitude == null ? (
-                    '—'
-                  ) : (
-                    <>
-                      {maquina.municipioDaPosicao ?? 'fora de São Paulo'}
-                      {maquina.posicaoEm && ` · em ${formatarDataHora(maquina.posicaoEm)}`}{' '}
-                      <a
-                        href={`https://www.openstreetmap.org/?mlat=${maquina.posicaoLatitude}&mlon=${maquina.posicaoLongitude}#map=14/${maquina.posicaoLatitude}/${maquina.posicaoLongitude}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        ver no mapa
-                      </a>
-                    </>
-                  )
-                }
-                ajuda="Onde a máquina mandou a última posição, pela telemetria do Operations Center — e o município onde o ponto cai, pelo contorno oficial do IBGE."
-              />
-              <CampoSomenteLeitura rotulo="Cadastrado em" valor={formatarDataHora(maquina.criadoEm)} />
-              <CampoSomenteLeitura rotulo="Última alteração" valor={formatarDataHora(maquina.alteradoEm)} />
+        <section className="dash-secao" data-bloco="secao-registro">
+          <TituloDaSecao titulo="O registro" />
+          <PainelDoMomento titulo="Registro" subtitulo="O que o CRM sabe sobre o próprio cadastro" data-bloco="registro">
+            <div className="ficha-campos">
+              <div className="form-grid cad-grade">
+                <CampoSomenteLeitura rotulo="Chave pública" largo valor={<code>{maquina.chave}</code>} />
+                <CampoSomenteLeitura
+                  rotulo="Filial dona do registro"
+                  valor={`${descricaoDe(catalogos, CATALOGO.empresa, contexto.empresa)} · id interno ${maquina.empresaId}`}
+                  ajuda="A fronteira de acesso, e é sempre a filial do cabeçalho: em outra filial esta ficha responde 404."
+                />
+                <CampoSomenteLeitura
+                  rotulo="Marca representada"
+                  valor={
+                    maquina.marcaRepresentada === null
+                      ? '—'
+                      : maquina.marcaRepresentada
+                        ? 'Sim — marca que a Tracbel representa'
+                        : 'Não — máquina de concorrente'
+                  }
+                  ajuda="É o que separa a frota nossa da do concorrente na Cobertura de Carteira."
+                />
+                {/* A TELEMETRIA DO OPERATIONS CENTER (28/09/2026): o horímetro e a última posição chegam pela rotina
+                    diária, do banco do BI, na máquina com o mesmo chassi. Nenhum dos dois se digita aqui. */}
+                <CampoSomenteLeitura
+                  rotulo="Horímetro atual"
+                  valor={
+                    maquina.horimetroAtual === null
+                      ? '—'
+                      : `${formatarNumero(maquina.horimetroAtual, 1)} h${
+                          maquina.horimetroAtualizadoEm ? ` · lido em ${formatarDataHora(maquina.horimetroAtualizadoEm)}` : ''
+                        }`
+                  }
+                  ajuda="Vem da telemetria do Operations Center da John Deere, pelo chassi; não se digita nesta tela. Máquina sem telemetria fica sem horímetro."
+                />
+                <CampoSomenteLeitura
+                  rotulo="Última posição"
+                  valor={
+                    maquina.posicaoLatitude == null || maquina.posicaoLongitude == null ? (
+                      '—'
+                    ) : (
+                      <>
+                        {maquina.municipioDaPosicao ?? 'fora de São Paulo'}
+                        {maquina.posicaoEm && ` · em ${formatarDataHora(maquina.posicaoEm)}`}{' '}
+                        <a
+                          href={`https://www.openstreetmap.org/?mlat=${maquina.posicaoLatitude}&mlon=${maquina.posicaoLongitude}#map=14/${maquina.posicaoLatitude}/${maquina.posicaoLongitude}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          ver no mapa
+                        </a>
+                      </>
+                    )
+                  }
+                  ajuda="Onde a máquina mandou a última posição, pela telemetria do Operations Center — e o município onde o ponto cai, pelo contorno oficial do IBGE."
+                />
+                <CampoSomenteLeitura rotulo="Cadastrado em" valor={formatarDataHora(maquina.criadoEm)} />
+                <CampoSomenteLeitura rotulo="Última alteração" valor={formatarDataHora(maquina.alteradoEm)} />
+              </div>
             </div>
-          </div>
-        </div>
+          </PainelDoMomento>
+        </section>
       )}
 
       {confirmandoBaixa && (
@@ -880,6 +904,6 @@ export function EquipamentoCadastro() {
           <p>O formulário volta ao que estava gravado. Não há como desfazer depois.</p>
         </DialogoConfirmacao>
       )}
-    </>
+    </PaginaDoPainel>
   );
 }

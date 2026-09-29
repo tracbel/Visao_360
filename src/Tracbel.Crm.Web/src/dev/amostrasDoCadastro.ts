@@ -3,7 +3,8 @@
  *
  * As listas de Clientes e de Equipamentos passaram para o padrão dos Indicadores, e conferir o desenho delas pedia banco
  * e VPN. Aqui elas abrem pelo mesmo harness (`#/dev/visao360-visual?rota=/clientes`), sobre respostas com a forma do
- * contrato: `/v1/catalogos`, `/v1/clientes` e `/v1/equipamentos`.
+ * contrato: `/v1/catalogos`, `/v1/clientes` e `/v1/equipamentos`. As fichas (bloco 5b) leem daqui também: a do cliente,
+ * a da máquina, as vendas da máquina e as máquinas que o cliente comprou.
  *
  * NADA AQUI É DADO DA TRACBEL. Os nomes dizem que são fictícios, e o chassi começa com `1FC`, que não é prefixo de
  * fábrica nenhuma.
@@ -15,7 +16,17 @@
  * mesmas linhas.
  */
 
-import { SEM_CLASSIFICACAO, type CatalogoDeSelecao, type ClienteResumo, type EquipamentoResumo, type PaginaDe } from '../tipos/api';
+import {
+  SEM_CLASSIFICACAO,
+  type CatalogoDeSelecao,
+  type ClienteDetalhe,
+  type ClienteResumo,
+  type EquipamentoDetalhe,
+  type EquipamentoResumo,
+  type MaquinaCompradaPeloCliente,
+  type PaginaDe,
+  type VendaDaMaquina,
+} from '../tipos/api';
 import type { EstadoDaVisao360 } from './amostrasDaVisao360';
 
 function catalogo(codigo: string, nome: string, itens: [string, string][]): CatalogoDeSelecao {
@@ -253,8 +264,137 @@ function listaDeEquipamentos(estado: EstadoDaVisao360, consulta: URLSearchParams
   );
 }
 
-/** A amostra de cada rota do cadastro que as listas leem — ou `undefined` para a rota que ninguém simulou. */
+/** A família do modelo, como o catálogo a escreve (`Marca · Família · Modelo`). */
+function familiaDo(modeloCodigo: string | null): string | null {
+  const item = CATALOGOS.find((c) => c.codigo === 'MODELO_EQUIPAMENTO')?.itens.find((i) => i.codigo === modeloCodigo);
+  return item?.descricao.split(' · ')[1] ?? null;
+}
+
+/** A ficha do cliente: o resumo da lista, com o que só a ficha mostra. */
+function fichaDoCliente(chave: string): ClienteDetalhe | undefined {
+  const cliente = CLIENTES.find((c) => c.chave === chave);
+  if (!cliente) return undefined;
+  return {
+    ...cliente,
+    documentoSemMascara: cliente.documento?.replace(/\D/g, '') ?? null,
+    inscricaoEstadual: cliente.tipoDePessoa === 'Juridica' ? '000.000.000.000' : null,
+    atividadeEconomica: 'Atividade econômica fictícia',
+    situacaoDesde: cliente.criadoEm,
+    empresaId: 1,
+    proprietarioId: 1,
+    origemCodigo: 'FEIRA',
+    motivoInativacaoCodigo: cliente.estaInativo ? 'DUPLICADO' : null,
+    versao: 'AAAAAAAAB9E=',
+  };
+}
+
+/** A ficha da máquina: o resumo da lista, com a telemetria, o registro e — na 004 — duas divergências abertas. */
+function fichaDoEquipamento(chave: string): EquipamentoDetalhe | undefined {
+  const indice = EQUIPAMENTOS.findIndex((m) => m.chave === chave);
+  if (indice < 0) return undefined;
+  const { relacaoComOCliente: _semRelacao, ...maquina } = EQUIPAMENTOS[indice]!;
+  const comTelemetria = indice % 2 === 1;
+  return {
+    ...maquina,
+    numeroSerie: `NS-FIC-${String(indice + 1).padStart(5, '0')}`,
+    placa: null,
+    familia: familiaDo(maquina.modeloCodigo),
+    anoFabricacao: maquina.anoModelo ? maquina.anoModelo - 1 : null,
+    horimetroAtual: comTelemetria ? 3_482.5 + indice * 97 : null,
+    horimetroAtualizadoEm: comTelemetria ? '2026-09-28T06:55:00Z' : null,
+    posicaoLatitude: comTelemetria ? -21.1775 : null,
+    posicaoLongitude: comTelemetria ? -47.8103 : null,
+    posicaoEm: comTelemetria ? '2026-09-28T06:40:00Z' : null,
+    municipioDaPosicao: comTelemetria ? 'Município Fictício' : null,
+    localizacaoDescrita: 'Fazenda Fictícia Santa Clara · talhão 4',
+    empresaId: 1,
+    versao: 'AAAAAAAAC1Q=',
+    divergenciasAbertas:
+      indice === 3
+        ? [
+            {
+              tipo: 'CompradorDiferenteDoDono',
+              descricao: 'O comprador da venda no ART não é o dono atual pela sincronia do parque — texto fictício, do harness.',
+              detectadaEm: '2026-09-27T05:10:00Z',
+            },
+            {
+              tipo: 'ModeloSemCorrespondencia',
+              descricao: 'O produto do ART não tem correspondência segura no catálogo de modelos — texto fictício, do harness.',
+              detectadaEm: '2026-09-26T05:10:00Z',
+            },
+          ]
+        : [],
+  };
+}
+
+/** As vendas da máquina, da mais recente para a mais antiga: a primeira com o comprador da lista, a outra encerrada. */
+function vendasDaMaquina(chave: string): VendaDaMaquina[] | undefined {
+  const maquina = EQUIPAMENTOS.find((m) => m.chave === chave);
+  if (!maquina) return undefined;
+  return Array.from({ length: maquina.vendas }, (_, k) => ({
+    chave: `${chave}-venda-${k + 1}`,
+    sistemaCodigo: 'ART',
+    chaveOrigem: `FIC-${String(900001 + k)}`,
+    vendidaEm: k === 0 ? maquina.ultimaVendaEm : '2021-03-10',
+    faturadaEm: k === 0 ? maquina.ultimaVendaEm : '2021-03-15',
+    entregueEm: k === 0 ? maquina.ultimaVendaEm : '2021-04-02',
+    registradaNaOrigemEm: null,
+    filialCodigo: '010101',
+    filialNome: 'Filial Fictícia Alfa',
+    filialDoFaturamentoCodigo: k === 1 ? '010102' : '010101',
+    compradorChave: k === 0 ? maquina.compradorNaUltimaVendaChave : null,
+    compradorNome: k === 0 ? maquina.compradorNaUltimaVendaNome : null,
+    natureza: 'CompradorNaVenda',
+    vinculoReferenciaEm: null,
+    vinculoEncerradoEm: k === 1 ? '2025-01-15T00:00:00Z' : null,
+    motivoDoEncerramento: k === 1 ? 'máquina revendida (fictício)' : null,
+    linhaNaOrigem: 'Linha fictícia',
+    produtoNaOrigem: maquina.produtoNaOrigem ?? 'Produto fictício',
+    gestaoNaOrigem: k === 0 ? 'Varejo' : 'Grandes Contas',
+    situacaoNaOrigem: 'Entregue',
+    numeroDoPedido: null,
+    numeroDaNotaFiscal: null,
+    vendaDireta: false,
+    repasseDireto: false,
+    unidadeNaOrigem: null,
+    unidadeDoFaturamentoNaOrigem: null,
+    transformacoes: k === 1 ? 'valor com vírgula decimal convertido — texto fictício, do harness' : null,
+    importadaEm: '2026-09-29T06:00:00Z',
+    atualizadaPelaOrigemEm: null,
+  }));
+}
+
+/** As máquinas que o cliente comprou: as da lista em que ele é o comprador da última venda. */
+function maquinasCompradas(chaveDoCliente: string): MaquinaCompradaPeloCliente[] | undefined {
+  if (!CLIENTES.some((c) => c.chave === chaveDoCliente)) return undefined;
+  return EQUIPAMENTOS.filter((m) => m.compradorNaUltimaVendaChave === chaveDoCliente).map((m) => ({
+    equipamentoChave: m.chave,
+    chassi: m.chassi,
+    modeloNome: m.modeloNome,
+    classificacaoNome: m.classificacaoNome,
+    produtoNaOrigem: m.produtoNaOrigem,
+    vendidaEm: m.ultimaVendaEm,
+    natureza: 'CompradorNaVenda',
+    filialCodigo: '010101',
+    sistemaCodigo: 'ART',
+    ehDonoAtual: m.donoAtualChave === chaveDoCliente || m.clienteChave === chaveDoCliente,
+  }));
+}
+
+/** As rotas das fichas, pelo caminho com a chave: sem o registro, `undefined` — e o harness responde 404. */
+function respostaDeFicha(caminho: string, estado: EstadoDaVisao360): unknown {
+  if (estado === 'vazio') return undefined;
+  const cliente = /^\/v1\/clientes\/([^/]+)(\/maquinas-compradas)?$/.exec(caminho);
+  if (cliente) return cliente[2] ? maquinasCompradas(cliente[1]!) : fichaDoCliente(cliente[1]!);
+  const maquina = /^\/v1\/equipamentos\/([^/]+)(\/vendas)?$/.exec(caminho);
+  if (maquina) return maquina[2] ? vendasDaMaquina(maquina[1]!) : fichaDoEquipamento(maquina[1]!);
+  return undefined;
+}
+
+/** A amostra de cada rota do cadastro que as listas e as fichas leem — ou `undefined` para a rota que ninguém simulou. */
 export function respostaDoCadastro(caminho: string, consulta: URLSearchParams, estado: EstadoDaVisao360): unknown {
+  const ficha = respostaDeFicha(caminho, estado);
+  if (ficha !== undefined) return ficha;
   switch (caminho) {
     case '/v1/catalogos':
       return CATALOGOS;

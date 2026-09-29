@@ -859,6 +859,24 @@ th[aria-sort='descending'] .terr-ordenar { color: var(--text-primary); }
   transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 
+/* O ÍCONE NÃO ENCOLHE (29/09/2026, #293 bloco 5): com três abas — as de Configurações — num celular, a primeira
+   apertava e o ícone dela saía menor que o das outras. */
+.terr-aba svg { flex-shrink: 0; }
+
+/* EM CONTEÚDO ESTREITO A FILEIRA DE ABAS ROLA DE LADO, e o rótulo não quebra: "Minha conta" em duas linhas deixava
+   uma aba mais alta que as outras. A página continua sem rolagem lateral — quem rola é só a fileira. */
+@container indicadores (max-width: 479px) {
+  .terr-abas {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .terr-aba {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
 .terr-aba:hover {
   color: var(--jd-green);
   background: var(--bg-hover);

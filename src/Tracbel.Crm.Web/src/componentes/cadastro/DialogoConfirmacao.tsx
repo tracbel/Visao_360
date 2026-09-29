@@ -119,8 +119,10 @@ export function DialogoConfirmacao({
             <div className="mfi-title">{titulo}</div>
             {subtitulo && <div className="mfi-sub">{subtitulo}</div>}
           </div>
-          <button className="mfi-close" onClick={aoCancelar} title="Fechar" type="button">
-            ×
+          {/* O NOME DO BOTÃO É "Fechar" PELO aria-label, e não por um `title` (29/09/2026, #293 bloco 5): o "×" sozinho
+              não diz nada ao leitor de tela, e o `title` não abre pelo teclado. */}
+          <button className="mfi-close" onClick={aoCancelar} aria-label="Fechar" type="button">
+            <span aria-hidden="true">×</span>
           </button>
         </div>
         <div className="mfi-body">{children}</div>
