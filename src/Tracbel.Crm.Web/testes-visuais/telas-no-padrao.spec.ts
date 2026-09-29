@@ -25,6 +25,10 @@ const TODAS = [
 ] as const;
 
 const TELAS = [
+  // Bloco 3 (29/09/2026): os relatórios da Gestão de Negócios, com as amostras deles no mesmo harness.
+  { nome: 'forecast', rota: '/relatorios/forecast', cartoes: 5, secoes: 1 },
+  { nome: 'estoque', rota: '/relatorios/estoque', cartoes: 6, secoes: 2 },
+  { nome: 'conferencia', rota: '/relatorios/conferencia', cartoes: 5, secoes: 2 },
   { nome: 'funil', rota: '/relatorios/funil', cartoes: 4, secoes: 2 },
   { nome: 'pipeline', rota: '/pipeline', cartoes: 4, secoes: 2 },
   { nome: 'cobertura', rota: '/cobertura', cartoes: 5, secoes: 2 },
