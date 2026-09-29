@@ -371,11 +371,56 @@ export function faturamento(estado: EstadoDaVisao360, codigo: string): Faturamen
   };
 }
 
-/** A contagem de processos por situação: a tela só lê o `total`. */
-export function contagemDeProcessos(estado: EstadoDaVisao360, codigo: string, situacao: string): PaginaDe<ProcessoResumo> {
+/**
+ * Os processos por situação. A Visão 360 pede UMA linha e só lê o `total`; o Pipeline (29/09/2026, harness com `rota=`)
+ * pede uma página, e ganha linhas fictícias — com e sem valor declarado, parados há pouco e há muito — para o desenho
+ * da tabela ser conferido com dado.
+ */
+export function contagemDeProcessos(
+  estado: EstadoDaVisao360,
+  codigo: string,
+  situacao: string,
+  tamanho = 1,
+): PaginaDe<ProcessoResumo> {
   const peso = pesoDaOperacao(estado, codigo);
   const total = situacao === 'Ganho' ? n(260 * peso) : situacao === 'Perdido' ? n(310 * peso) : n(900 * peso);
-  return { itens: [], pagina: 1, tamanho: 1, total, totalDePaginas: total, temProxima: total > 1 };
+  const linhas = tamanho > 1 ? Math.min(tamanho, total, 12) : 0;
+  const fases = [
+    ['APRESENTACAO', 'Apresentação', 1],
+    ['NEGOCIACAO', 'Negociação', 2],
+    ['PEDIDO', 'Pedido de venda', 3],
+  ] as const;
+  const itens: ProcessoResumo[] = Array.from({ length: linhas }, (_, i) => {
+    const [faseCodigo, faseNome, faseOrdem] = fases[i % fases.length];
+    const dias = [4, 18, 37, 95, 140, 12][i % 6];
+    return {
+      chave: `00000000-0000-4000-8000-${String(900 + i).padStart(12, '0')}`,
+      numero: 48_210 + i,
+      titulo: `Trator fictício ${6110 + i * 5}J — negociação de amostra`,
+      clienteChave: `00000000-0000-4000-8000-${String(700 + i).padStart(12, '0')}`,
+      clienteNome: `Produtor Fictício ${['Alfa', 'Beta', 'Gama', 'Delta', 'Épsilon', 'Zeta'][i % 6]}`,
+      tipoProcessoCodigo: 'VENDA_MAQUINA',
+      tipoProcessoNome: 'Venda de máquina (amostra)',
+      faseCodigo,
+      faseNome,
+      faseOrdem,
+      faseDesde: `2026-0${(i % 8) + 1}-15`,
+      diasNaFase: dias,
+      situacao: situacao || 'Aberto',
+      valorEstimado: i % 4 === 0 ? 485_000 + i * 12_500 : null,
+      previsaoConclusao: i % 3 === 0 ? '2026-11-30' : null,
+      proprietarioNome: `CEN Fictício ${['Norte', 'Sul', 'Leste'][i % 3]}`,
+      criadoEm: '2026-03-02T10:00:00Z',
+    };
+  });
+  return {
+    itens,
+    pagina: 1,
+    tamanho: Math.max(1, tamanho),
+    total,
+    totalDePaginas: Math.max(1, Math.ceil(total / Math.max(1, tamanho))),
+    temProxima: total > Math.max(1, tamanho),
+  };
 }
 
 /* ------------------------------------------------------------------------ */
@@ -720,7 +765,7 @@ export function respostaDaVisao360(
     case '/v1/relatorios/metas':
       return metasDeVenda(estado, empresa);
     case '/v1/processos':
-      return contagemDeProcessos(estado, empresa, consulta.get('situacao') ?? '');
+      return contagemDeProcessos(estado, empresa, consulta.get('situacao') ?? '', Number(consulta.get('tamanho') ?? '1'));
     case '/v1/tarefas':
       return tarefasAtrasadas(estado);
     case '/v1/cobertura':

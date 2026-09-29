@@ -25,7 +25,11 @@
  * confere.
  *
  * Parâmetros do hash: `estado` (`completo`, `vazio` ou `semCarteira` — ver
- * `amostrasDaVisao360.ts`).
+ * `amostrasDaVisao360.ts`) e `rota` (padrão `/`).
+ *
+ * AS OUTRAS TELAS DE RELACIONAMENTO TAMBÉM (29/09/2026): Funil, Pipeline, Agenda e as duas Coberturas leem as mesmas
+ * rotas que a Visão 360 soma — processos, tarefas, cobertura, funil e perdas —, e com `rota=` o harness abre nelas, sobre
+ * as mesmas amostras. É o que deixa conferir o redesenho delas no padrão dos Indicadores sem banco nem VPN.
  */
 
 import { useEffect, useState } from 'react';
@@ -41,6 +45,11 @@ import '../estilos/design-system.css';
 function parametro(nome: string): string | null {
   const consulta = window.location.hash.split('?')[1] ?? '';
   return new URLSearchParams(consulta).get(nome);
+}
+
+function rotaDaUrl(): string {
+  const pedida = parametro('rota') ?? '/';
+  return pedida.startsWith('/') ? pedida : `/${pedida}`;
 }
 
 function estadoDaUrl(): EstadoDaVisao360 {
@@ -127,7 +136,7 @@ function instalarInterceptador(): void {
 
 instalarInterceptador();
 
-/** O mesmo desenho de rotas do `App.tsx`, num roteador em memória aberto na Visão 360. */
+/** O mesmo desenho de rotas do `App.tsx`, num roteador em memória aberto na rota pedida — a Visão 360, por padrão. */
 function criarRoteador() {
   return createMemoryRouter(
     [
@@ -141,7 +150,7 @@ function criarRoteador() {
         })),
       },
     ],
-    { initialEntries: ['/'] },
+    { initialEntries: [rotaDaUrl()] },
   );
 }
 
@@ -163,7 +172,7 @@ export function HarnessDaVisao360() {
   return (
     // A CHAVE REMONTA TUDO ao trocar de estado: sem ela, o `useRecurso` manteria
     // o dado do estado anterior na tela enquanto o novo carrega.
-    <div data-harness="visao360-visual" data-estado={estado} key={estado}>
+    <div data-harness="visao360-visual" data-estado={estado} key={`${estado}${rotaDaUrl()}`}>
       <ProvedorDeSessao>
         <ProvedorDeContextoDeAcesso>
           <ShellFicticio />
