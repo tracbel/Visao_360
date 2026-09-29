@@ -617,6 +617,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* A LINHA DE APOIO DE UM NÚMERO ("de 19 de 48") FICA DEBAIXO DELE, à direita (29/09/2026): a `.cad-sub` é flex, e na
+   coluna numérica saía encostada à esquerda, longe do número que ela qualifica. */
+.mom-num .cad-sub { justify-content: flex-end; }
+
 .mom-centro { text-align: center !important; }
 
 .mom-tabela .mom-acoes {
