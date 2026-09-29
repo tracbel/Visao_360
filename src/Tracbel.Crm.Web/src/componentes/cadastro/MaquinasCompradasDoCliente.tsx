@@ -7,6 +7,9 @@
  * não diz quem a tem hoje: a coluna "Dono atual" diz "sim" quando a sincronia do
  * parque aponta este cliente como dono atual (vínculo com evidência, desde
  * 24/09/2026) ou quando o cadastro da máquina o tem como dono confirmado.
+ *
+ * 29/09/2026 — o cartão virou o painel das outras telas (`PainelDoMomento`) e a tabela, `mom-tabela` (#293, bloco 5).
+ * A nota de que comprar não faz dono foi para a dica do painel, com o mesmo texto.
  */
 
 import { Link } from 'react-router-dom';
@@ -14,8 +17,8 @@ import { listarMaquinasCompradasPeloCliente } from '../../dados/api/equipamentos
 import type { ContextoDeAcesso } from '../../dados/api/http';
 import { useRecurso } from '../../dados/api/useRecurso';
 import type { MaquinaCompradaPeloCliente } from '../../tipos/api';
+import { PainelDoMomento } from '../mercado/momento/pecas';
 import { BlocoCarregando, BlocoErro } from './EstadosDeTela';
-import { SeloProcedencia } from './SeloProcedencia';
 import '../../estilos/frota-comercial.css';
 
 function dataCurta(valor: string | null): string {
@@ -37,26 +40,21 @@ export function MaquinasCompradasDoCliente({
   );
 
   return (
-    <div className="card cad-cartao">
-      <div className="card-header cad-cartao-cabecalho">
-        <div>
-          <div className="card-title">Máquinas compradas</div>
-          <div className="card-subtitle">
-            As vendas de máquina em que este cliente foi o comprador, da mais recente para a mais antiga
-          </div>
-        </div>
-        <SeloProcedencia procedencia={leitura.procedencia} />
-      </div>
+    <PainelDoMomento
+      titulo="Máquinas compradas"
+      data-bloco="maquinas-compradas"
+      subtitulo="As vendas de máquina em que este cliente foi o comprador, da mais recente para a mais antiga"
+      dica="O comprador de uma venda não vira dono automaticamente: o dono atual vem da sincronia do parque, com a evidência — é o cartão “Frota do cliente”, acima."
+    >
       {leitura.carregando && <BlocoCarregando oQue="as máquinas compradas" />}
       {leitura.erro && <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />}
       {leitura.dados && leitura.dados.length === 0 && (
-        <div className="card-body">
-          <p className="cad-nota">Nenhuma venda de máquina registrada com este cliente como comprador.</p>
-        </div>
+        <p className="cad-nota">Nenhuma venda de máquina registrada com este cliente como comprador.</p>
       )}
       {leitura.dados && leitura.dados.length > 0 && (
-        <div className="cad-tabela-wrap">
-          <table className="cad-tabela">
+        <div className="mom-tabela-rolagem">
+          <table className="mom-tabela">
+            <caption className="cad-so-leitor">As vendas de máquina em que o cliente foi o comprador</caption>
             <thead>
               <tr>
                 <th scope="col">Venda</th>
@@ -71,9 +69,9 @@ export function MaquinasCompradasDoCliente({
               {leitura.dados.map((maquina) => (
                 <tr key={`${maquina.equipamentoChave}-${maquina.vendidaEm ?? ''}`}>
                   <td className="cad-mono">{dataCurta(maquina.vendidaEm)}</td>
-                  <td className="cad-mono">
+                  <th scope="row" className="cad-mono">
                     <Link to={`/equipamentos/${maquina.equipamentoChave}`}>{maquina.chassi}</Link>
-                  </td>
+                  </th>
                   <td>
                     {maquina.modeloNome ?? maquina.produtoNaOrigem ?? '—'}
                     <div className="cad-sub">{maquina.classificacaoNome ?? 'sem classificação'}</div>
@@ -93,12 +91,6 @@ export function MaquinasCompradasDoCliente({
           </table>
         </div>
       )}
-      <div className="card-body">
-        <p className="cad-nota">
-          O comprador de uma venda não vira dono automaticamente: o dono atual vem da sincronia do parque, com a
-          evidência — é o cartão "Frota do cliente", acima.
-        </p>
-      </div>
-    </div>
+    </PainelDoMomento>
   );
 }

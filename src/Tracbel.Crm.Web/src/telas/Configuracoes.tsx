@@ -19,6 +19,11 @@
  *    (#138), Políticas de aprovação (#139), Taxonomias (#45), Usuários e
  *    Permissões de exemplo (#113), Auditoria de exemplo (#135), "Sistemas
  *    conectados" (#136) e os dados de perfil inventados (#140).
+ *
+ * ---------------------------------------------------------------------------
+ * 29/09/2026 — NO PADRÃO DOS INDICADORES GEOGRÁFICOS (#293, bloco 5): a faixa verde do protótipo virou o `page-header`
+ * das outras telas, com quem está usando à direita; as abas são as mesmas dos Indicadores (`AbasDaTela`), com o teclado
+ * andando pelas setas; e a página ocupa a coluna inteira. As seções e o que cada uma mostra não mudaram.
  */
 import { useState } from 'react';
 import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTela';
@@ -31,11 +36,16 @@ import { ConfigSecaoPotencial } from '../componentes/config/ConfigSecaoPotencial
 import { ConfigSecaoUsuarios } from '../componentes/config/ConfigSecaoUsuarios';
 import { MenuLateralConfig } from '../componentes/config/MenuLateralConfig';
 import { abasVisiveis, secoesVisiveis, type AbaConfig, type SecaoConfig } from '../componentes/config/secoes';
+import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
+import { AbasDaTela } from '../componentes/territorio/AbasDaTela';
 import { obterEscopo, type EscopoDoUsuario } from '../dados/api/acesso';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { PERMISSAO } from '../dados/api/permissoes';
 import { useSessao } from '../dados/api/sessao';
 import { useRecurso } from '../dados/api/useRecurso';
+import '../estilos/dashboard.css';
+import '../estilos/territorio.css';
+import '../estilos/configuracoes.css';
 
 function iniciais(nome: string): string {
   const partes = nome.replace(/@.*/, '').split(/[\s.]+/).filter(Boolean);
@@ -96,14 +106,31 @@ export function Configuracoes() {
 
   const nome = sessao.estado === 'autenticado' ? sessao.nome : (escopo?.usuario ?? contexto.usuario);
 
+  // O MENU LATERAL SÓ APARECE QUANDO HÁ ESCOLHA: com uma seção na aba, ele repetiria o nome da aba.
+  const corpo = (
+    <div className={`config-body ${secoesDaAba.length > 1 ? '' : 'config-body-sem-menu'}`}>
+      {secoesDaAba.length > 1 && (
+        <aside className="config-sidebar">
+          <MenuLateralConfig
+            secoes={secoesDaAba}
+            secaoAtiva={secaoValida?.id ?? 'conta'}
+            onSelecionar={(secao) => setEscolha({ aba: abaAtual, secao })}
+          />
+        </aside>
+      )}
+      <section className="config-content">{renderSecao()}</section>
+    </div>
+  );
+
   return (
-    <>
-      <div className="config-header">
+    // A LARGURA É A DA COLUNA INTEIRA, como a Visão 360: o teto só volta acima de 2.100px de janela.
+    <PaginaDoPainel className="dash-pagina-larga">
+      <div className="page-header" data-bloco="cabecalho">
         <div>
-          <div className="config-title">Configurações</div>
-          <div className="config-subtitle">A sua conta e, conforme o seu perfil, a administração do CRM</div>
+          <h1 className="page-title">Configurações</h1>
+          <p className="page-subtitle">A sua conta e, conforme o seu perfil, a administração do CRM</p>
         </div>
-        <div className="config-user-chip">
+        <div className="config-chip-no-cabecalho">
           <div className="cu-avatar" style={{ background: '#367C2B' }}>
             {iniciais(nome)}
           </div>
@@ -114,36 +141,13 @@ export function Configuracoes() {
         </div>
       </div>
 
-      {abas.length > 1 && (
-        <div className="config-abas" role="tablist" aria-label="Áreas de Configurações">
-          {abas.map((aba) => (
-            <button
-              key={aba.id}
-              type="button"
-              role="tab"
-              aria-selected={aba.id === abaAtual}
-              className={`config-aba ${aba.id === abaAtual ? 'active' : ''}`}
-              onClick={() => selecionarAba(aba.id)}
-            >
-              {aba.rotulo}
-            </button>
-          ))}
-        </div>
+      {abas.length > 1 ? (
+        <AbasDaTela abas={abas} ativa={abaAtual} aoTrocar={selecionarAba} rotulo="Áreas de Configurações">
+          {corpo}
+        </AbasDaTela>
+      ) : (
+        corpo
       )}
-
-      {/* O MENU LATERAL SÓ APARECE QUANDO HÁ ESCOLHA: com uma seção na aba, ele repetiria o nome da aba. */}
-      <div className={`config-body ${secoesDaAba.length > 1 ? '' : 'config-body-sem-menu'}`}>
-        {secoesDaAba.length > 1 && (
-          <aside className="config-sidebar">
-            <MenuLateralConfig
-              secoes={secoesDaAba}
-              secaoAtiva={secaoValida?.id ?? 'conta'}
-              onSelecionar={(secao) => setEscolha({ aba: abaAtual, secao })}
-            />
-          </aside>
-        )}
-        <section className="config-content">{renderSecao()}</section>
-      </div>
-    </>
+    </PaginaDoPainel>
   );
 }

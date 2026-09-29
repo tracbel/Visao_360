@@ -13,8 +13,22 @@
  *
  * O QUE AS PARTES SEGUINTES ACRESCENTAM AQUI: Taxonomias (#45), com a
  * permissão que a rota dela exigir. A Auditoria (#135) já entrou.
+ *
+ * OS ÍCONES SÃO OS DO RESTO DO CRM (29/09/2026, #293 bloco 5): eram emojis, que cada sistema desenha de um jeito e
+ * que nenhuma outra tela usa. Agora são os mesmos traços do menu e das abas dos Indicadores.
  */
 
+import {
+  ClipboardList,
+  Globe,
+  Plug,
+  Settings,
+  ShieldCheck,
+  TrendingUp,
+  UserRound,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { PERMISSAO } from '../../dados/api/permissoes';
 
 export type AbaConfig = 'conta' | 'comercial' | 'administracao';
@@ -24,28 +38,30 @@ export type SecaoConfig = 'conta' | 'potencial' | 'usuarios' | 'perfis' | 'audit
 export type DefinicaoDeSecao = {
   id: SecaoConfig;
   aba: AbaConfig;
-  icone: string;
+  icone: LucideIcon;
   rotulo: string;
   /** Recebe "a pessoa tem esta permissão?" e diz se a seção aparece. */
   visivel: (tem: (codigo: string) => boolean) => boolean;
 };
 
-export const ABAS: { id: AbaConfig; rotulo: string }[] = [
-  { id: 'conta', rotulo: 'Minha conta' },
-  { id: 'comercial', rotulo: 'Comercial' },
-  { id: 'administracao', rotulo: 'Administração' },
+export type DefinicaoDeAba = { id: AbaConfig; rotulo: string; icone: LucideIcon };
+
+export const ABAS: DefinicaoDeAba[] = [
+  { id: 'conta', rotulo: 'Minha conta', icone: UserRound },
+  { id: 'comercial', rotulo: 'Comercial', icone: TrendingUp },
+  { id: 'administracao', rotulo: 'Administração', icone: Settings },
 ];
 
 export const SECOES: DefinicaoDeSecao[] = [
   // Todo mundo tem uma conta.
-  { id: 'conta', aba: 'conta', icone: '👤', rotulo: 'Minha conta', visivel: () => true },
+  { id: 'conta', aba: 'conta', icone: UserRound, rotulo: 'Minha conta', visivel: () => true },
 
   // Ler os parâmetros é de todo mundo (issue 71: quem vê o número vê o parâmetro), e isso já aparece nas
   // telas de indicadores. A seção de Configurações é de quem ALTERA alguma coisa neles.
   {
     id: 'potencial',
     aba: 'comercial',
-    icone: '📈',
+    icone: TrendingUp,
     rotulo: 'Potencial de mercado',
     visivel: (tem) => tem(PERMISSAO.parametroDoPotencialAdministrar) || tem(PERMISSAO.percepcaoDoGestorInformar),
   },
@@ -54,19 +70,19 @@ export const SECOES: DefinicaoDeSecao[] = [
   {
     id: 'usuarios',
     aba: 'administracao',
-    icone: '👥',
+    icone: Users,
     rotulo: 'Usuários',
     visivel: (tem) => tem(PERMISSAO.usuarioLer) || tem(PERMISSAO.usuarioAdministrar),
   },
 
   // Issue 113 (2b): os perfis próprios e a matriz de permissões — só o Administrador.
-  { id: 'perfis', aba: 'administracao', icone: '🛡️', rotulo: 'Perfis', visivel: (tem) => tem(PERMISSAO.perfilAdministrar) },
+  { id: 'perfis', aba: 'administracao', icone: ShieldCheck, rotulo: 'Perfis', visivel: (tem) => tem(PERMISSAO.perfilAdministrar) },
 
   // Issue 135: a trilha de auditoria — Diretoria e Administrador.
-  { id: 'auditoria', aba: 'administracao', icone: '📋', rotulo: 'Auditoria', visivel: (tem) => tem(PERMISSAO.auditoriaLer) },
+  { id: 'auditoria', aba: 'administracao', icone: ClipboardList, rotulo: 'Auditoria', visivel: (tem) => tem(PERMISSAO.auditoriaLer) },
 
-  { id: 'integracoes', aba: 'administracao', icone: '🔌', rotulo: 'Integrações', visivel: (tem) => tem(PERMISSAO.integracaoLer) },
-  { id: 'fontes', aba: 'administracao', icone: '🌎', rotulo: 'Fontes públicas', visivel: (tem) => tem(PERMISSAO.integracaoLer) },
+  { id: 'integracoes', aba: 'administracao', icone: Plug, rotulo: 'Integrações', visivel: (tem) => tem(PERMISSAO.integracaoLer) },
+  { id: 'fontes', aba: 'administracao', icone: Globe, rotulo: 'Fontes públicas', visivel: (tem) => tem(PERMISSAO.integracaoLer) },
 ];
 
 /** As seções que a pessoa vê, na ordem da lista. */
@@ -75,7 +91,7 @@ export function secoesVisiveis(tem: (codigo: string) => boolean): DefinicaoDeSec
 }
 
 /** As abas com pelo menos uma seção visível, na ordem das abas. */
-export function abasVisiveis(tem: (codigo: string) => boolean): { id: AbaConfig; rotulo: string }[] {
+export function abasVisiveis(tem: (codigo: string) => boolean): DefinicaoDeAba[] {
   const comSecao = new Set(secoesVisiveis(tem).map((secao) => secao.aba));
   return ABAS.filter((aba) => comSecao.has(aba.id));
 }

@@ -25,7 +25,9 @@ export function MenuLateralConfig({
           className={`config-menu-item ${secaoAtiva === item.id ? 'active' : ''}`}
           onClick={() => onSelecionar(item.id)}
         >
-          <span className="cmi-icon">{item.icone}</span>
+          <span className="cmi-icon" aria-hidden="true">
+            <item.icone size={16} strokeWidth={2} />
+          </span>
           <span>{item.rotulo}</span>
         </button>
       ))}

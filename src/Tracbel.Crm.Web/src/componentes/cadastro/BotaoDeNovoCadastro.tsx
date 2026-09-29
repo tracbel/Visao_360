@@ -5,11 +5,16 @@
  * na filial do contexto, e nesse modo não há uma filial escolhida — a API recusa
  * o cadastro (`ContextoAcesso.MensagemDeCadastroEmTodasAsFiliais`). Oferecer um
  * formulário que vai ser recusado no fim seria pior do que não oferecer.
+ *
+ * O PORQUÊ FICA NA DICA ⓘ AO LADO, e não mais no `title` (29/09/2026, #293 bloco 5): o `title` de um botão desligado
+ * não abre pelo teclado nem no toque, e o motivo era justamente o que a pessoa precisava ler.
  */
 
 import { Link } from 'react-router-dom';
 import { TODAS_AS_FILIAIS } from '../../dados/api/acesso';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
+import { InfoTooltip } from '../InfoTooltip';
+import '../../estilos/ficha-do-cadastro.css';
 
 const ICONE_MAIS = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
@@ -23,15 +28,16 @@ export function BotaoDeNovoCadastro({ para, rotulo }: { para: string; rotulo: st
 
   if (contexto.empresa === TODAS_AS_FILIAIS) {
     return (
-      <button
-        type="button"
-        className="btn btn-primary"
-        disabled
-        title="Em “Todas as filiais” não dá para cadastrar: escolha no seletor a filial em que o registro vai ficar."
-      >
-        {ICONE_MAIS}
-        {rotulo}
-      </button>
+      <span className="cad-novo-desligado">
+        <button type="button" className="btn btn-primary" disabled>
+          {ICONE_MAIS}
+          {rotulo}
+        </button>
+        <InfoTooltip
+          texto="Em “Todas as filiais” não dá para cadastrar: escolha no seletor a filial em que o registro vai ficar."
+          rotulo={`Por que “${rotulo}” está desligado`}
+        />
+      </span>
     );
   }
 

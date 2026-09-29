@@ -6,15 +6,18 @@
  * clientes, e nenhuma tela o lia por cliente. Este cartão lê a mesma listagem que o 360 e a lista de equipamentos usam
  * (`/api/v1/equipamentos?clienteChave=`), com a relação e a evidência de cada máquina. As compras continuam no cartão
  * de baixo, como histórico.
+ *
+ * 29/09/2026 — o cartão virou o painel das outras telas (`PainelDoMomento`) e a tabela, `mom-tabela` (#293, bloco 5).
+ * A hora da leitura está no cabeçalho da ficha.
  */
 
 import { Link } from 'react-router-dom';
 import { CONSULTA_INICIAL, listarEquipamentos } from '../../dados/api/equipamentos';
 import type { ContextoDeAcesso } from '../../dados/api/http';
 import { useRecurso } from '../../dados/api/useRecurso';
+import { PainelDoMomento } from '../mercado/momento/pecas';
 import { BlocoCarregando, BlocoErro } from './EstadosDeTela';
 import { RelacaoComOCliente } from './RelacaoDaMaquina';
-import { SeloProcedencia } from './SeloProcedencia';
 
 /** Quantas máquinas o cartão mostra antes de mandar para a lista. */
 const LINHAS = 25;
@@ -27,30 +30,23 @@ export function FrotaDoCliente({ contexto, chaveDoCliente }: { contexto: Context
   const pagina = leitura.dados;
 
   return (
-    <div className="card cad-cartao" data-bloco="frota-do-cliente">
-      <div className="card-header cad-cartao-cabecalho">
-        <div>
-          <div className="card-title">Frota do cliente</div>
-          <div className="card-subtitle">
-            As máquinas de que ele é o dono atual pela sincronia do parque (Protheus e ART), com a evidência, e as que ele
-            comprou no ART
-          </div>
-        </div>
-        <SeloProcedencia procedencia={leitura.procedencia} />
-      </div>
+    <PainelDoMomento
+      titulo="Frota do cliente"
+      data-bloco="frota-do-cliente"
+      subtitulo="As máquinas de que ele é o dono atual pela sincronia do parque (Protheus e ART), com a evidência, e as que ele comprou no ART"
+    >
       {leitura.carregando && <BlocoCarregando oQue="a frota do cliente" />}
       {leitura.erro && <BlocoErro erro={leitura.erro} aoTentarDeNovo={leitura.recarregar} />}
       {pagina && pagina.itens.length === 0 && (
-        <div className="card-body">
-          <p className="cad-nota">
-            Nenhuma máquina deste cliente ao seu alcance: ele não é o dono atual de nenhuma pela sincronia do parque, não
-            comprou nenhuma no ART e não é o dono confirmado de nenhuma — nas filiais que você alcança.
-          </p>
-        </div>
+        <p className="cad-nota">
+          Nenhuma máquina deste cliente ao seu alcance: ele não é o dono atual de nenhuma pela sincronia do parque, não
+          comprou nenhuma no ART e não é o dono confirmado de nenhuma — nas filiais que você alcança.
+        </p>
       )}
       {pagina && pagina.itens.length > 0 && (
-        <div className="cad-tabela-wrap">
-          <table className="cad-tabela">
+        <div className="mom-tabela-rolagem">
+          <table className="mom-tabela">
+            <caption className="cad-so-leitor">As máquinas do cliente, com a relação de cada uma com ele</caption>
             <thead>
               <tr>
                 <th scope="col">Chassi</th>
@@ -62,9 +58,9 @@ export function FrotaDoCliente({ contexto, chaveDoCliente }: { contexto: Context
             <tbody>
               {pagina.itens.map((maquina) => (
                 <tr key={maquina.chave}>
-                  <td className="cad-mono">
+                  <th scope="row" className="cad-mono">
                     <Link to={`/equipamentos/${maquina.chave}`}>{maquina.chassi}</Link>
-                  </td>
+                  </th>
                   <td>
                     {maquina.modeloNome ?? maquina.produtoNaOrigem ?? <span className="cad-vazio">sem modelo</span>}
                     <div className="cad-sub">
@@ -84,15 +80,13 @@ export function FrotaDoCliente({ contexto, chaveDoCliente }: { contexto: Context
         </div>
       )}
       {pagina && pagina.total > 0 && (
-        <div className="card-body">
-          <p className="cad-nota">
-            {pagina.total > LINHAS
-              ? `${pagina.total.toLocaleString('pt-BR')} máquinas no total; as ${LINHAS} primeiras estão acima. `
-              : `${pagina.total.toLocaleString('pt-BR')} ${pagina.total === 1 ? 'máquina' : 'máquinas'}. `}
-            <Link to={`/equipamentos?cliente=${chaveDoCliente}`}>Ver na lista de equipamentos</Link>
-          </p>
-        </div>
+        <p className="cad-nota">
+          {pagina.total > LINHAS
+            ? `${pagina.total.toLocaleString('pt-BR')} máquinas no total; as ${LINHAS} primeiras estão acima. `
+            : `${pagina.total.toLocaleString('pt-BR')} ${pagina.total === 1 ? 'máquina' : 'máquinas'}. `}
+          <Link to={`/equipamentos?cliente=${chaveDoCliente}`}>Ver na lista de equipamentos</Link>
+        </p>
       )}
-    </div>
+    </PainelDoMomento>
   );
 }
