@@ -7,23 +7,38 @@
  *   CRM, em outra filial, em outro mês, só no CRM — e o que cada lado diz.
  *
  * É apurada pela rotina 13, uma vez por dia. Nenhum nome de cliente ou de CEN.
+ *
+ * 29/09/2026 — NO PADRÃO DOS INDICADORES GEOGRÁFICOS (#293, bloco 3): página na coluna inteira, o tipo e o chassi na
+ * barra de filtros, os cinco números em cartões de decisão e duas seções — os números lá e aqui, e as máquinas que não
+ * batem. Nenhum número nem texto mudou; os seis tipos de divergência são os mesmos.
  */
 
+import { Crosshair, ListFilter, RefreshCw, ScanSearch, Search, Target, Truck, TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../componentes/cadastro/EstadosDeTela';
-import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Indicadores';
-import { AvisoDeProcedencia, SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
+import { AvisoDeProcedencia, DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
+import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
+import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
+import { PainelDoMomento } from '../componentes/mercado/momento/pecas';
+import { TituloDaSecao } from '../componentes/territorio/TituloDaSecao';
 import { obterConferenciaComAGestao } from '../dados/api/conferencia';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { useRecurso } from '../dados/api/useRecurso';
 import { baixarCsv, carimboDeData } from '../dados/exportarCsv';
 import type { DivergenciaNaTela, NumerosDaConferencia } from '../tipos/conferencia';
+import '../estilos/dashboard.css';
+import '../estilos/mercado-visao.css';
+import '../estilos/momento.css';
+import '../estilos/painel-executivo.css';
+import '../estilos/territorio.css';
 import '../estilos/conferencia.css';
 
 const n = (v: number) => v.toLocaleString('pt-BR');
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const mes = (aaaammdd: string) => `${MESES[Number(aaaammdd.slice(5, 7)) - 1]}/${aaaammdd.slice(0, 4)}`;
+
+const NAO_APURADA = 'ainda não apurada';
 
 /** A diferença como a tela escreve: o CRM menos a GN, com sinal; zero é "bate". */
 export function diferenca(crm: number, gn: number): string {
@@ -42,12 +57,12 @@ const CABECALHO_DO_CSV = ['Tipo', 'Chassi', 'Filial', 'Na Gestão de Negócios',
 function Numeros({ numeros: x }: { numeros: NumerosDaConferencia }) {
   return (
     <>
-      <td className="cad-mono">{n(x.metaNaGestao)}</td>
-      <td className="cad-mono">{n(x.metaNoCrm)}</td>
-      <td className={`cad-mono conf-dif${x.metaNoCrm === x.metaNaGestao ? ' bate' : ''}`}>{diferenca(x.metaNoCrm, x.metaNaGestao)}</td>
-      <td className="cad-mono">{n(x.realizadoNaGestao)}</td>
-      <td className="cad-mono">{n(x.realizadoNoCrm)}</td>
-      <td className={`cad-mono conf-dif${x.realizadoNoCrm === x.realizadoNaGestao ? ' bate' : ''}`}>
+      <td className="mom-num">{n(x.metaNaGestao)}</td>
+      <td className="mom-num">{n(x.metaNoCrm)}</td>
+      <td className={`mom-num conf-dif${x.metaNoCrm === x.metaNaGestao ? ' bate' : ''}`}>{diferenca(x.metaNoCrm, x.metaNaGestao)}</td>
+      <td className="mom-num">{n(x.realizadoNaGestao)}</td>
+      <td className="mom-num">{n(x.realizadoNoCrm)}</td>
+      <td className={`mom-num conf-dif${x.realizadoNoCrm === x.realizadoNaGestao ? ' bate' : ''}`}>
         {diferenca(x.realizadoNoCrm, x.realizadoNaGestao)}
       </td>
     </>
@@ -63,12 +78,12 @@ function CabecalhoDosNumeros({ primeira }: { primeira: string }) {
         <th scope="colgroup" colSpan={3}>Realizado (entregue)</th>
       </tr>
       <tr>
-        <th scope="col">GN</th>
-        <th scope="col">CRM</th>
-        <th scope="col">CRM − GN</th>
-        <th scope="col">GN</th>
-        <th scope="col">CRM</th>
-        <th scope="col">CRM − GN</th>
+        <th scope="col" className="mom-num">GN</th>
+        <th scope="col" className="mom-num">CRM</th>
+        <th scope="col" className="mom-num">CRM − GN</th>
+        <th scope="col" className="mom-num">GN</th>
+        <th scope="col" className="mom-num">CRM</th>
+        <th scope="col" className="mom-num">CRM − GN</th>
       </tr>
     </thead>
   );
@@ -85,29 +100,16 @@ export function ConferenciaComAGestao() {
 
   const apurada = dados?.apuradaEm != null;
   const t = dados?.totais;
-  const indicadores: Indicador[] = [
-    { rotulo: 'Realizado na GN', valor: t && apurada ? t.realizadoNaGestao : null, deOnde: 'máquinas entregues, na performance da GN', semDado: 'ainda não apurada' },
-    {
-      rotulo: 'Realizado no CRM',
-      valor: t && apurada ? t.realizadoNoCrm : null,
-      deOnde: t ? `${diferenca(t.realizadoNoCrm, t.realizadoNaGestao)} contra a GN` : '',
-      tom: t && t.realizadoNoCrm === t.realizadoNaGestao ? 'bom' : 'atencao',
-      semDado: 'ainda não apurada',
-    },
-    { rotulo: 'Meta na GN', valor: t && apurada ? t.metaNaGestao : null, deOnde: 'o PO, sem consórcio', semDado: 'ainda não apurada' },
-    {
-      rotulo: 'Meta no CRM',
-      valor: t && apurada ? t.metaNoCrm : null,
-      deOnde: t ? `${diferenca(t.metaNoCrm, t.metaNaGestao)} contra a GN` : '',
-      tom: t && t.metaNoCrm === t.metaNaGestao ? 'bom' : 'atencao',
-      semDado: 'ainda não apurada',
-    },
-    { rotulo: 'Máquinas que não batem', valor: dados && apurada ? dados.divergencias.length : null, deOnde: 'divergências abertas, chassi a chassi', semDado: 'ainda não apurada' },
-  ];
+
+  /** Um número da conferência: sem apuração, o traço — e a linha de baixo diz que não foi apurada, como a faixa antiga. */
+  const apurado = (valor: number | undefined) => (t && apurada && valor !== undefined ? n(valor) : null);
+  const linhaDeBaixo = (deOnde: string) => (conferencia.carregando ? null : t && apurada ? deOnde : NAO_APURADA);
+  const motivo = dados ? 'A conferência ainda não foi apurada pela rotina 13, que roda uma vez por dia.' : undefined;
 
   return (
-    <>
-      <div className="page-header">
+    // A LARGURA É A DA COLUNA INTEIRA, como a Visão 360: o teto só volta acima de 2.100px de janela.
+    <PaginaDoPainel className="dash-pagina-larga">
+      <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Conferência com a Gestão de Negócios</h1>
           <p className="page-subtitle">
@@ -115,144 +117,228 @@ export function ConferenciaComAGestao() {
             o motivo.
           </p>
         </div>
-        {dados && (
+        <p className="dash-atualizado">
+          {conferencia.procedencia ? <DadosAtualizadosEm procedencia={conferencia.procedencia} /> : 'Lendo a conferência…'}
           <button
             type="button"
-            className="btn btn-secondary"
-            disabled={visiveis.length === 0}
-            onClick={() =>
-              baixarCsv(`conferencia-gn-${carimboDeData()}`, CABECALHO_DO_CSV,
-                visiveis.map((d) => [d.rotulo, d.chassi, d.filial, d.naGestao ?? '', d.noCrm ?? '', d.descricao, d.detectadaEm.slice(0, 10)]))
-            }
+            className="dash-recarregar"
+            onClick={conferencia.recarregar}
+            disabled={conferencia.carregando}
+            data-carregando={conferencia.carregando ? 'true' : 'false'}
+            aria-label="Reler a conferência"
           >
-            Exportar CSV
+            <RefreshCw size={15} strokeWidth={2} aria-hidden="true" />
           </button>
-        )}
+        </p>
+      </div>
+
+      {/* A BARRA DOS INDICADORES: o tipo e o chassi filtram a lista das máquinas que não batem. Os cartões e as tabelas
+          por filial e por mês são sempre da conferência inteira. */}
+      <div className="dash-filtros" data-bloco="filtros">
+        <div className="dash-filtros-linha">
+          <label className="dash-filtro" data-bloco="tipo">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <ListFilter size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Tipo</span>
+              <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+                <option value="">Todos</option>
+                {dados?.porTipo.map((p) => (
+                  <option key={p.tipo} value={p.tipo}>
+                    {p.rotulo}
+                  </option>
+                ))}
+              </select>
+            </span>
+          </label>
+
+          <label className="dash-filtro" data-bloco="busca">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <Search size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">Chassi</span>
+              <input type="search" value={busca} placeholder="Buscar pelo chassi" onChange={(e) => setBusca(e.target.value)} />
+            </span>
+          </label>
+        </div>
       </div>
 
       <AvisoDeProcedencia procedencia={conferencia.procedencia} />
-      <PainelDeIndicadores indicadores={indicadores} carregando={conferencia.carregando} />
+
+      <div className="dash-kpis mv-kpis" data-bloco="kpis" data-colunas="5">
+        <CartaoDeDecisao
+          rotulo="Realizado na GN"
+          icone={Truck}
+          tom="demanda"
+          valor={apurado(t?.realizadoNaGestao)}
+          carregando={conferencia.carregando}
+          unidade="máquinas"
+          motivoSemDado={motivo}
+          variacao={linhaDeBaixo('máquinas entregues, na performance da GN')}
+          sobre="As máquinas entregues que a Gestão de Negócios conta na performance — só a máquina entregue, no mês da entrega."
+        />
+        <CartaoDeDecisao
+          rotulo="Realizado no CRM"
+          icone={Crosshair}
+          tom="captura"
+          valor={apurado(t?.realizadoNoCrm)}
+          carregando={conferencia.carregando}
+          unidade="máquinas"
+          motivoSemDado={motivo}
+          variacao={linhaDeBaixo(t ? `${diferenca(t.realizadoNoCrm, t.realizadoNaGestao)} contra a GN` : '')}
+          sobre="As máquinas que o CRM conta como realizado pela mesma régua da GN — a entregue no ART, no mês da entrega. A linha de baixo é o CRM menos a GN; zero é “bate”."
+        />
+        <CartaoDeDecisao
+          rotulo="Meta na GN"
+          icone={Target}
+          tom="mercado"
+          valor={apurado(t?.metaNaGestao)}
+          carregando={conferencia.carregando}
+          unidade="máquinas"
+          motivoSemDado={motivo}
+          variacao={linhaDeBaixo('o PO, sem consórcio')}
+          sobre="A meta de máquinas (o PO) na Gestão de Negócios, sem consórcio."
+        />
+        <CartaoDeDecisao
+          rotulo="Meta no CRM"
+          icone={ScanSearch}
+          tom="oportunidade"
+          valor={apurado(t?.metaNoCrm)}
+          carregando={conferencia.carregando}
+          unidade="máquinas"
+          motivoSemDado={motivo}
+          variacao={linhaDeBaixo(t ? `${diferenca(t.metaNoCrm, t.metaNaGestao)} contra a GN` : '')}
+          sobre="A meta de máquinas que o CRM tem, sem consórcio. A linha de baixo é o CRM menos a GN; zero é “bate”."
+        />
+        <CartaoDeDecisao
+          rotulo="Máquinas que não batem"
+          icone={TriangleAlert}
+          tom="neutro"
+          valor={dados && apurada ? n(dados.divergencias.length) : null}
+          carregando={conferencia.carregando}
+          unidade="máquinas"
+          motivoSemDado={motivo}
+          variacao={linhaDeBaixo('divergências abertas, chassi a chassi')}
+          sobre="As máquinas do realizado que não batem entre a GN e o CRM, chassi a chassi, com o tipo da divergência. A lista está na seção de baixo."
+        />
+      </div>
+
       <MetricasSemDado metricas={dados?.metricasSemDado} titulo="O que esta conferência não afirma" />
 
       {conferencia.carregando && <BlocoCarregando oQue="a conferência" />}
       {conferencia.erro && <BlocoErro erro={conferencia.erro} aoTentarDeNovo={conferencia.recarregar} />}
 
       {dados && (
-        <div className="card cad-cartao" data-bloco="conferencia-por-filial">
-          <div className="card-header cad-cartao-cabecalho">
-            <div>
-              <div className="card-title">Por filial</div>
-              <div className="card-subtitle">
+        <section className="dash-secao" data-bloco="secao-numeros">
+          <TituloDaSecao titulo="Os números lá e aqui" subtitulo="A meta e o realizado na GN e no CRM, com a diferença." />
+
+          <PainelDoMomento
+            titulo="Por filial"
+            data-bloco="conferencia-por-filial"
+            subtitulo={
+              <>
                 {dados.alcance === 'Organizacao' ? 'todas as filiais' : 'a filial escolhida'}
                 {dados.apuradaEm && <> · apurada em {new Date(dados.apuradaEm).toLocaleString('pt-BR')}</>}
+              </>
+            }
+          >
+            {dados.porFilial.length === 0 ? (
+              <BlocoVazio titulo="Nada apurado" texto="A conferência vem da rotina 13, uma vez por dia." />
+            ) : (
+              <div className="mom-tabela-rolagem">
+                <table className="mom-tabela conf-tabela">
+                  <caption className="cad-so-leitor">Meta e realizado por filial, na GN e no CRM</caption>
+                  <CabecalhoDosNumeros primeira="Filial" />
+                  <tbody>
+                    {dados.porFilial.map((f) => (
+                      <tr key={f.filial}>
+                        <th scope="row">{f.filial}</th>
+                        <Numeros numeros={f.numeros} />
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
-            <SeloProcedencia procedencia={conferencia.procedencia} />
-          </div>
-          {dados.porFilial.length === 0 ? (
-            <BlocoVazio titulo="Nada apurado" texto="A conferência vem da rotina 13, uma vez por dia." />
-          ) : (
-            <div className="cad-tabela-wrap">
-              <table className="cad-tabela conf-tabela">
-                <caption className="cad-so-leitor">Meta e realizado por filial, na GN e no CRM</caption>
-                <CabecalhoDosNumeros primeira="Filial" />
-                <tbody>
-                  {dados.porFilial.map((f) => (
-                    <tr key={f.filial}>
-                      <th scope="row">{f.filial}</th>
-                      <Numeros numeros={f.numeros} />
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </PainelDoMomento>
 
-      {dados && dados.porMes.length > 0 && (
-        <div className="card cad-cartao" data-bloco="conferencia-por-mes">
-          <div className="card-header cad-cartao-cabecalho">
-            <div>
-              <div className="card-title">Por mês</div>
-              <div className="card-subtitle">o mês da entrega, para o realizado</div>
-            </div>
-          </div>
-          <div className="cad-tabela-wrap">
-            <table className="cad-tabela conf-tabela">
-              <caption className="cad-so-leitor">Meta e realizado por mês, na GN e no CRM</caption>
-              <CabecalhoDosNumeros primeira="Mês" />
-              <tbody>
-                {dados.porMes.map((m) => (
-                  <tr key={m.competencia}>
-                    <th scope="row">{mes(m.competencia)}</th>
-                    <Numeros numeros={m.numeros} />
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          {dados.porMes.length > 0 && (
+            <PainelDoMomento titulo="Por mês" data-bloco="conferencia-por-mes" subtitulo="o mês da entrega, para o realizado">
+              <div className="mom-tabela-rolagem">
+                <table className="mom-tabela conf-tabela">
+                  <caption className="cad-so-leitor">Meta e realizado por mês, na GN e no CRM</caption>
+                  <CabecalhoDosNumeros primeira="Mês" />
+                  <tbody>
+                    {dados.porMes.map((m) => (
+                      <tr key={m.competencia}>
+                        <th scope="row">{mes(m.competencia)}</th>
+                        <Numeros numeros={m.numeros} />
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </PainelDoMomento>
+          )}
+        </section>
       )}
 
       {dados && (
-        <div className="card cad-cartao" data-bloco="divergencias">
-          <div className="card-header cad-cartao-cabecalho">
-            <div>
-              <div className="card-title">Máquinas que não batem</div>
-              <div className="card-subtitle">
-                {dados.porTipo.filter((p) => p.quantidade > 0).map((p) => `${p.rotulo}: ${n(p.quantidade)}`).join(' · ') || 'nenhuma divergência aberta'}
-              </div>
-            </div>
-          </div>
-          <div className="cad-barra">
-            <label className="cad-filtro">
-              Tipo
-              <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
-                <option value="">Todos</option>
-                {dados.porTipo.map((p) => (
-                  <option key={p.tipo} value={p.tipo}>
-                    {p.rotulo}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="cad-filtro">
-              Chassi
-              <input type="search" value={busca} placeholder="Buscar pelo chassi" onChange={(e) => setBusca(e.target.value)} />
-            </label>
-          </div>
-          {visiveis.length === 0 ? (
-            <p className="conf-nada">Nenhuma máquina com esses filtros.</p>
-          ) : (
-            <div className="cad-tabela-wrap">
-              <table className="cad-tabela conf-lista">
-                <caption className="cad-so-leitor">Máquinas do realizado que não batem entre a GN e o CRM</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Chassi</th>
-                    <th scope="col">Tipo</th>
-                    <th scope="col">Na GN</th>
-                    <th scope="col">No CRM</th>
-                    <th scope="col">O que é</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visiveis.map((d) => (
-                    <tr key={`${d.tipo}-${d.chassi}`}>
-                      <td className="cad-mono">{d.chassi}</td>
-                      <td>{d.rotulo}</td>
-                      <td>{d.naGestao ?? '—'}</td>
-                      <td>{d.noCrm ?? '—'}</td>
-                      <td className="conf-texto">{d.descricao}</td>
+        <section className="dash-secao" data-bloco="secao-divergencias">
+          <TituloDaSecao titulo="As máquinas que não batem" subtitulo="Chassi a chassi, com o tipo e o que cada lado diz." />
+
+          <PainelDoMomento
+            titulo="Máquinas que não batem"
+            data-bloco="divergencias"
+            subtitulo={dados.porTipo.filter((p) => p.quantidade > 0).map((p) => `${p.rotulo}: ${n(p.quantidade)}`).join(' · ') || 'nenhuma divergência aberta'}
+            direita={
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={visiveis.length === 0}
+                onClick={() =>
+                  baixarCsv(`conferencia-gn-${carimboDeData()}`, CABECALHO_DO_CSV,
+                    visiveis.map((d) => [d.rotulo, d.chassi, d.filial, d.naGestao ?? '', d.noCrm ?? '', d.descricao, d.detectadaEm.slice(0, 10)]))
+                }
+              >
+                Exportar CSV
+              </button>
+            }
+          >
+            {visiveis.length === 0 ? (
+              <p className="conf-nada">Nenhuma máquina com esses filtros.</p>
+            ) : (
+              <div className="mom-tabela-rolagem">
+                <table className="mom-tabela conf-lista">
+                  <caption className="cad-so-leitor">Máquinas do realizado que não batem entre a GN e o CRM</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Chassi</th>
+                      <th scope="col">Tipo</th>
+                      <th scope="col">Na GN</th>
+                      <th scope="col">No CRM</th>
+                      <th scope="col">O que é</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody>
+                    {visiveis.map((d) => (
+                      <tr key={`${d.tipo}-${d.chassi}`}>
+                        <td className="cad-mono">{d.chassi}</td>
+                        <td>{d.rotulo}</td>
+                        <td>{d.naGestao ?? '—'}</td>
+                        <td>{d.noCrm ?? '—'}</td>
+                        <td className="conf-texto">{d.descricao}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </PainelDoMomento>
+        </section>
       )}
-    </>
+    </PaginaDoPainel>
   );
 }

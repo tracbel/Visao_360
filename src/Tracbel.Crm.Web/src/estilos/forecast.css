@@ -1,12 +1,10 @@
 /*
  * Forecast da Gerência (28/09/2026) — só o que as classes do cadastro não cobrem: o gestor como grupo da tabela, com a
  * soma na primeira linha, e o total no fim.
+ *
+ * 29/09/2026: a tabela virou `mom-tabela`, e o alinhamento dos números é o `mom-num` dela — as regras de alinhamento
+ * daqui saíram.
  */
-
-.fc-tabela td,
-.fc-tabela th { text-align: right; white-space: nowrap; }
-.fc-tabela th:first-child,
-.fc-tabela td:first-child { text-align: left; }
 
 /* A SOMA DO GESTOR abre o grupo: o nome em destaque, e as linhas de produto abaixo, recuadas. */
 .fc-soma th { font-weight: 600; color: var(--text-primary); }
