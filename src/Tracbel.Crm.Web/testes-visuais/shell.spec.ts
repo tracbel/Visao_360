@@ -103,7 +103,13 @@ for (const { nome, largura, altura } of LARGURAS) {
 
     test('o Sair se alcança pelo teclado', async ({ page }) => {
       await abrir(page, '/relatorios/territorio');
-      if (gaveta) await page.getByRole('button', { name: 'Abrir menu' }).click();
+      if (gaveta) {
+        await page.getByRole('button', { name: 'Abrir menu' }).click();
+        // A GAVETA LEVA O FOCO para o item da tela atual num `requestAnimationFrame` (Layout.tsx, `alternarMenu`). Sem
+        // esperar por ele, o foco que o teste põe no usuário logo abaixo às vezes chega ANTES, o quadro o devolve ao item
+        // do menu, e o Enter cai no link — foi a falha intermitente do CI da main em 29/09/2026 (768x1024, depois do #292).
+        await expect(page.locator('nav a[aria-current="page"]')).toBeFocused();
+      }
 
       const usuario = page.getByRole('button', { name: /Amostra Fictícia/ });
       await usuario.focus();
