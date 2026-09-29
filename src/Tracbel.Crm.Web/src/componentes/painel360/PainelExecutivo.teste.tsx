@@ -33,7 +33,16 @@ import { PainelExecutivo } from './PainelExecutivo';
 vi.setConfig({ testTimeout: 20_000 });
 
 vi.mock('../GraficoDonutCentro', () => ({ GraficoDonutCentro: () => <div data-grafico="donut" /> }));
-vi.mock('../GraficoLinhaMensal', () => ({ GraficoLinhaMensal: () => <div data-grafico="linha" /> }));
+// O DUBLÊ DA LINHA guarda os meses e o balão de cada um em atributos — o texto da tela não muda com ele.
+vi.mock('../GraficoLinhaMensal', () => ({
+  GraficoLinhaMensal: ({ rotulos, linhasDoBalao }: { rotulos: string[]; linhasDoBalao?: (i: number) => string[] }) => (
+    <div
+      data-grafico="linha"
+      data-rotulos={rotulos.join(',')}
+      data-balao={linhasDoBalao ? JSON.stringify(rotulos.map((_, i) => linhasDoBalao(i))) : undefined}
+    />
+  ),
+}));
 vi.mock('../GraficoBarrasHorizontais', () => ({ GraficoBarrasHorizontais: () => <div data-grafico="barras" /> }));
 vi.mock('../MolduraDeGrafico', () => ({
   MolduraDeGrafico: ({ children, altura }: { children: (l: number, a: number) => React.ReactNode; altura: number }) => (
@@ -373,6 +382,57 @@ describe('Painel executivo da Visão 360 — as perdas e o funil do período (do
   });
 });
 
+describe('Painel executivo da Visão 360 — o faturamento mês a mês pelo ART (29/09/2026)', () => {
+  it('o gráfico abre no ART, nos doze meses até o mês em curso, e o balão traz as máquinas e a nota do Protheus', async () => {
+    const { container } = await montar('completo');
+
+    // "PEGAMOS DO ART NA COLUNA ENTREGUE E VALOR": o valor de venda das entregues, pelo mês da entrega.
+    const painel = await waitFor(() => {
+      const p = container.querySelector<HTMLElement>('[data-fonte="art"]');
+      expect(p).toHaveTextContent('out/2025 a set/2026 · máquinas entregues, pelo ART');
+      return p!;
+    });
+    const grafico = painel.querySelector<HTMLElement>('[data-grafico="linha"]')!;
+    expect(grafico.dataset.rotulos!.split(',')).toHaveLength(12);
+    expect(grafico.dataset.rotulos!.split(',').at(-1)).toBe('set/26');
+
+    // A NOTA DO PROTHEUS NÃO SAI DA TELA: está no balão de cada mês, como conferência.
+    const balao = JSON.parse(grafico.dataset.balao!) as string[][];
+    expect(balao[10][0]).toMatch(/^[\d.]+ máquinas entregues/);
+    expect(balao[10][1]).toMatch(/^NF do Protheus no mês, conferência: R\$ [\d,]+ M$/);
+
+    const dica = textoDaDica(within(painel).getByRole('button', { name: 'Como ler faturamento — 12 meses' }));
+    expect(dica).toContain('máquinas ENTREGUES, pelo mês da data de entrega');
+    expect(dica).toContain('nunca se somam');
+  });
+
+  it('o seletor do canto troca o gráfico para a nota do Protheus, que era o gráfico até aqui', async () => {
+    const { container } = await montar('completo');
+
+    const fonte = screen.getByRole('combobox', { name: 'Fonte do faturamento' });
+    expect(fonte).toBeEnabled();
+    fireEvent.change(fonte, { target: { value: 'nota' } });
+
+    const painel = container.querySelector<HTMLElement>('[data-fonte="nota"]')!;
+    expect(painel).toHaveTextContent('notas com cliente no CRM');
+    expect(textoDaDica(within(painel).getByRole('button', { name: 'Como ler faturamento — 12 meses' }))).toContain(
+      'máquina, peça e serviço',
+    );
+  });
+
+  it('sem entrega na janela, o painel diz por quê, e não desenha uma linha em zero', async () => {
+    const { container } = await montar('vazio');
+
+    const painel = await waitFor(() => {
+      const p = container.querySelector<HTMLElement>('[data-fonte="art"]');
+      expect(p).toHaveTextContent('Sem dado para o faturamento mês a mês');
+      return p!;
+    });
+    expect(painel).toHaveTextContent('Nenhuma máquina com entrega de out/2025 a set/2026 no ART');
+    expect(painel.querySelector('[data-grafico="linha"]')).toBeNull();
+  });
+});
+
 describe('Painel executivo da Visão 360 — o desenho da maquete de 29/09/2026', () => {
   it('o selo do faturamento é a variação da dica, o da meta é o percentual da linha de baixo, e cartão sem comparação não tem selo', async () => {
     const { container } = await montar('completo');
@@ -415,13 +475,11 @@ describe('Painel executivo da Visão 360 — o desenho da maquete de 29/09/2026'
     expect(dica).toMatch(/Responderam: .*Filial Fictícia/);
   });
 
-  it('os seletores da maquete sem alternativa ficam desligados, com o motivo na dica', async () => {
+  it('o seletor da maquete sem alternativa fica desligado, com o motivo na dica', async () => {
     await montar('completo');
 
-    expect(screen.getByRole('combobox', { name: 'Unidade do faturamento' })).toBeDisabled();
-    expect(textoDaDica(screen.getByRole('button', { name: 'Por que unidade do faturamento está desligado' }))).toContain(
-      'milhões de reais',
-    );
+    // O "R$ (Milhões)" DO FATURAMENTO VIROU A ESCOLHA DA FONTE (29/09/2026) — ver o teste do faturamento mês a mês.
+    expect(screen.queryByRole('combobox', { name: 'Unidade do faturamento' })).toBeNull();
 
     expect(screen.getByRole('combobox', { name: 'Ordem do ranking' })).toBeDisabled();
     expect(textoDaDica(screen.getByRole('button', { name: 'Por que ordem do ranking está desligado' }))).toContain(

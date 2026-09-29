@@ -463,50 +463,7 @@ export function PainelExecutivo({
               subtitulo="O faturamento dos últimos doze meses e o que pede ação hoje."
             />
             <div className="v360-linha" data-bloco="linha-2" data-variante="resultado">
-              <PainelDoMomento
-                titulo="Faturamento — 12 meses"
-                dica="Nota fiscal de saída de venda, lida do Protheus (SD2), das notas com cliente no CRM, somada filial a filial. O último mês, quando ainda está correndo, sai tracejado: ele não caiu, está pela metade."
-                subtitulo={
-                  faturamento.serie.length > 0
-                    ? `${mesPorExtenso(faturamento.serie[0].competencia)} a ${mesPorExtenso(faturamento.competenciaMaisRecente!)} · notas com cliente no CRM`
-                    : 'Nota fiscal de saída, lida do Protheus.'
-                }
-                direita={
-                  faturamento.serie.length > 0 ? (
-                    <Seletor
-                      rotulo="Unidade do faturamento"
-                      rotuloVisivel={false}
-                      valor="milhoes"
-                      opcoes={[{ id: 'milhoes', rotulo: 'R$ (Milhões)' }]}
-                      motivoDesligado="O gráfico mostra o faturamento em milhões de reais, a mesma unidade dos cartões; não há outra unidade para escolher."
-                    />
-                  ) : undefined
-                }
-              >
-                {/* O SUBTÍTULO ESCREVE O PERÍODO, SEMPRE. Se a carga do ERP parar de novo, a série para de avançar e o
-                    período denuncia — em vez de mostrar um total plausível e velho. */}
-                {faturamento.serie.length > 0 ? (
-                  // O GRÁFICO ENCHE O PAINEL até o fundo, na altura dos alertas ao lado (maquete: os dois terminam juntos).
-                  <MolduraDeGrafico altura={150} preencher>
-                    {(l, a) => (
-                      <GraficoLinhaMensal
-                        rotulos={faturamento.serie.map((m) => mesCurto(m.competencia))}
-                        valores={faturamento.serie.map((m) => m.valorLiquido)}
-                        largura={l}
-                        altura={a}
-                        formatar={emMilhoes}
-                        ultimoParcial={faturamento.ultimoMesEstaAberto}
-                        aparencia={APARENCIA_DO_FATURAMENTO}
-                      />
-                    )}
-                  </MolduraDeGrafico>
-                ) : (
-                  <SemDado
-                    oQue="o faturamento"
-                    porque="Nenhuma nota carregada. A carga lê a SD2 do Protheus; se ela não rodou com a ponte configurada, não há série para desenhar."
-                  />
-                )}
-              </PainelDoMomento>
+              <PainelDoFaturamentoMensal ex={exComResposta} carregando={executivo.carregando} faturamento={faturamento} />
 
               <PainelDoMomento
                 titulo="Alertas gerenciais"
@@ -961,6 +918,156 @@ function TabelaDeFaixas({
         ))}
       </tbody>
     </table>
+  );
+}
+
+type FonteDoFaturamento = 'art' | 'nota';
+
+const FONTES_DO_FATURAMENTO: readonly { id: FonteDoFaturamento; rotulo: string }[] = [
+  { id: 'art', rotulo: 'ART · máquinas entregues' },
+  { id: 'nota', rotulo: 'Protheus · notas fiscais' },
+];
+
+const DICA_DO_FATURAMENTO_ART =
+  'O valor de venda do ART das máquinas ENTREGUES, pelo mês da data de entrega, somado filial a filial — a mesma régua ' +
+  'do cartão do faturamento do ano, com e sem comprador no CRM. A máquina sem valor de venda conta nas máquinas, e não ' +
+  'no valor. O mês em curso sai tracejado: ele não caiu, está pela metade. No balão de cada mês ficam as máquinas ' +
+  'entregues e, como conferência, a nota fiscal do Protheus do mesmo mês (máquina, peça e serviço) — as duas medem ' +
+  'caminhos diferentes e nunca se somam. O seletor ao lado troca o gráfico para a nota do Protheus.';
+
+const DICA_DO_FATURAMENTO_NOTA =
+  'Nota fiscal de saída de venda, lida do Protheus, das notas com cliente no CRM, somada filial a filial — máquina, peça e ' +
+  'serviço. O último mês, quando ainda está correndo, sai tracejado: ele não caiu, está pela metade. O faturamento de ' +
+  'máquina do CRM é o ART, no outro modo do seletor; a nota é a conferência e o faturamento de peça e serviço.';
+
+/**
+ * O FATURAMENTO — 12 MESES, pelo ART (pedido do Ricardo, 29/09/2026: "conseguimos pôr faturamento por mês ali no 360?
+ * Pegamos do ART na coluna entregue e valor").
+ *
+ * ABRE NO ART: o valor de venda das máquinas entregues, mês a mês, na régua do cartão do ano — os doze meses que terminam
+ * no mês em curso. A NOTA DO PROTHEUS, que era este gráfico até aqui, não sai da tela: está no balão de cada mês, como
+ * conferência, e no seletor do canto, que troca o gráfico para ela — o seletor "R$ (Milhões)", que não tinha o que
+ * escolher, virou a escolha da fonte.
+ */
+function PainelDoFaturamentoMensal({
+  ex,
+  carregando,
+  faturamento,
+}: {
+  ex: ExecutivoConsolidado | null;
+  carregando: boolean;
+  faturamento: ReturnType<typeof faturamentoConsolidado>;
+}) {
+  const [fonte, setFonte] = useState<FonteDoFaturamento>('art');
+  const serie = ex?.entregues.porMes ?? null;
+  const notaDoMes = useMemo(
+    () => new Map(faturamento.serie.map((m) => [m.competencia.slice(0, 7), m.valorLiquido])),
+    [faturamento.serie],
+  );
+
+  const seletor = (
+    <Seletor
+      rotulo="Fonte do faturamento"
+      rotuloVisivel={false}
+      valor={fonte}
+      opcoes={FONTES_DO_FATURAMENTO}
+      aoMudar={setFonte}
+    />
+  );
+
+  if (fonte === 'nota') {
+    return (
+      <PainelDoMomento
+        titulo="Faturamento — 12 meses"
+        data-fonte="nota"
+        dica={DICA_DO_FATURAMENTO_NOTA}
+        subtitulo={
+          faturamento.serie.length > 0
+            ? `${mesPorExtenso(faturamento.serie[0].competencia)} a ${mesPorExtenso(faturamento.competenciaMaisRecente!)} · notas com cliente no CRM`
+            : 'Nota fiscal de saída, lida do Protheus.'
+        }
+        direita={seletor}
+      >
+        {/* O SUBTÍTULO ESCREVE O PERÍODO, SEMPRE. Se a carga do ERP parar de novo, a série para de avançar e o período
+            denuncia — em vez de mostrar um total plausível e velho. */}
+        {faturamento.serie.length > 0 ? (
+          <MolduraDeGrafico altura={150} preencher>
+            {(l, a) => (
+              <GraficoLinhaMensal
+                rotulos={faturamento.serie.map((m) => mesCurto(m.competencia))}
+                valores={faturamento.serie.map((m) => m.valorLiquido)}
+                largura={l}
+                altura={a}
+                formatar={emMilhoes}
+                ultimoParcial={faturamento.ultimoMesEstaAberto}
+                aparencia={APARENCIA_DO_FATURAMENTO}
+              />
+            )}
+          </MolduraDeGrafico>
+        ) : (
+          <SemDado
+            oQue="o faturamento"
+            porque="Nenhuma nota carregada. A carga lê a SD2 do Protheus; se ela não rodou com a ponte configurada, não há série para desenhar."
+          />
+        )}
+      </PainelDoMomento>
+    );
+  }
+
+  // O QUE FALTA DIZ POR QUÊ: a leitura correndo, o servidor sem a série, nenhuma entrega na janela, ou as entregas ainda
+  // sem valor de venda — nunca um gráfico em zero.
+  const maquinas = serie?.reduce((s, m) => s + m.maquinas, 0) ?? 0;
+  const comValor = serie?.some((m) => m.valor > 0) ?? false;
+  const periodo = serie && serie.length > 0 ? `${mesPorExtenso(serie[0].inicio)} a ${mesPorExtenso(serie.at(-1)!.inicio)}` : null;
+  const porque = !ex
+    ? 'A leitura dos indicadores das filiais não respondeu.'
+    : !serie
+      ? 'As filiais que responderam não trouxeram o faturamento mês a mês pelo ART: o servidor ainda não tem essa versão. A nota do Protheus está no seletor ao lado.'
+      : maquinas === 0
+        ? `Nenhuma máquina com entrega de ${periodo} no ART, nas ${ex.respondidas} filiais que responderam.`
+        : !comValor
+          ? `As ${nº(maquinas)} máquinas entregues de ${periodo} ainda estão sem valor de venda: o valor do ART chega na primeira leitura do ART depois da publicação.`
+          : null;
+
+  return (
+    <PainelDoMomento
+      titulo="Faturamento — 12 meses"
+      data-fonte="art"
+      dica={DICA_DO_FATURAMENTO_ART}
+      subtitulo={periodo ? `${periodo} · máquinas entregues, pelo ART` : 'Máquinas entregues, pelo ART.'}
+      direita={seletor}
+    >
+      {carregando ? (
+        <BlocoCarregando oQue="o faturamento mês a mês" />
+      ) : porque !== null || !serie ? (
+        <SemDado oQue="o faturamento mês a mês" porque={porque ?? ''} />
+      ) : (
+        <MolduraDeGrafico altura={150} preencher>
+          {(l, a) => (
+            <GraficoLinhaMensal
+              rotulos={serie.map((m) => mesCurto(m.inicio))}
+              valores={serie.map((m) => m.valor)}
+              largura={l}
+              altura={a}
+              formatar={emMilhoes}
+              // O ÚLTIMO É O MÊS EM CURSO, sempre: a série termina nele.
+              ultimoParcial
+              aparencia={APARENCIA_DO_FATURAMENTO}
+              linhasDoBalao={(i) => {
+                const mes = serie[i];
+                const nota = notaDoMes.get(mes.inicio.slice(0, 7));
+                return [
+                  `${nº(mes.maquinas)} ${mes.maquinas === 1 ? 'máquina entregue' : 'máquinas entregues'}${mes.semValor > 0 ? ` (${nº(mes.semValor)} sem valor de venda)` : ''}`,
+                  nota !== undefined
+                    ? `NF do Protheus no mês, conferência: ${emMilhoes(nota)}`
+                    : 'NF do Protheus no mês: sem nota carregada',
+                ];
+              }}
+            />
+          )}
+        </MolduraDeGrafico>
+      )}
+    </PainelDoMomento>
   );
 }
 

@@ -121,6 +121,11 @@ export type IndicadoresExecutivosDaFilial = {
   entreguesNoMesmoTrechoDoAnoAnterior?: MaquinasEntreguesNoArt | null;
   /** O mês em curso, à parte e parcial. */
   entreguesNoMesEmCurso?: MaquinasEntreguesNoArt | null;
+  /**
+   * O faturamento MÊS A MÊS pelo ART (29/09/2026): os doze meses que terminam no mês em curso, um item por mês (zero no
+   * mês sem entrega). O último é o mês em curso, parcial. Não depende do ano pedido. Ausente no servidor anterior.
+   */
+  entreguesPorMes?: MaquinasEntreguesNoArt[] | null;
 };
 
 export type PainelExecutivoDaFilial = {
