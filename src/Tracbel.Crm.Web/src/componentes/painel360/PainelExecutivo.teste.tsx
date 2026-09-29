@@ -14,7 +14,9 @@
  *   mercado não diz mais que o ART não está no banco;
  * - nenhum `title=` — a explicação é dica que abre pelo teclado (issue 167);
  * - nenhuma citação de documento interno no texto da tela;
- * - o zero de "Clientes na carteira" diz que é falta de VÍNCULO, e não de cliente.
+ * - o zero de "Clientes na carteira" diz que é falta de VÍNCULO, e não de cliente;
+ * - o desenho da maquete de 29/09/2026 não inventa número: selo só onde há comparação, seletor sem alternativa
+ *   desligado e com o motivo, e a "última atualização" é a hora da leitura do painel.
  *
  * O CAMINHO É O DE PRODUÇÃO: o consolidado e os cinco cartões são lidos filial a
  * filial por um `fetch` de mentira que responde com as MESMAS amostras do harness
@@ -368,5 +370,74 @@ describe('Painel executivo da Visão 360 — as perdas e o funil do período (do
     await waitFor(() => expect(perdas).toHaveTextContent('nov/2025 a ago/2026'));
     fireEvent.click(within(perdas).getByRole('button', { name: 'Para quem perdemos' }));
     expect(perdas).toHaveTextContent('Pela venda perdida principal · nov/2025 a ago/2026');
+  });
+});
+
+describe('Painel executivo da Visão 360 — o desenho da maquete de 29/09/2026', () => {
+  it('o selo do faturamento é a variação da dica, o da meta é o percentual da linha de baixo, e cartão sem comparação não tem selo', async () => {
+    const { container } = await montar('completo');
+
+    // O SELO DO FATURAMENTO: a mesma variação da dica, contra o mesmo trecho do ano anterior, dita por extenso ao leitor.
+    const faturamento = container.querySelector(`[data-kpi="Faturamento FY${ANO_FISCAL}"]`)!;
+    const selo = faturamento.querySelector<HTMLElement>('.mv-kpi-selo')!;
+    expect(selo).toHaveTextContent('no valor, contra o mesmo trecho do ano anterior');
+    const desenho = selo.querySelector('.v360-selo-desenho')!.textContent!;
+    expect(desenho).toMatch(/^[\d,]+%$/);
+    const regra = textoDaDica(screen.getByRole('button', { name: `Fonte e método: Faturamento FY${ANO_FISCAL}` }));
+    expect(regra).toContain(`${desenho} no valor`);
+
+    // O SELO DA META é o percentual que a linha de baixo já diz.
+    const seloDaMeta = await waitFor(() => {
+      const s = container.querySelector('[data-kpi="Meta e realizado · FY2026"] .mv-kpi-selo');
+      expect(s).not.toBeNull();
+      return s!;
+    });
+    expect(container.querySelector('[data-kpi="Meta e realizado · FY2026"] .mv-kpi-contexto')).toHaveTextContent(
+      `${seloDaMeta.textContent} da meta`,
+    );
+
+    // A MAQUETE TEM SELO EM CLIENTES E EM MERCADO, e o CRM não tem período anterior para essas contas: nada é inventado.
+    for (const nome of ['Clientes na carteira', 'Cobertura pela cadência', 'Conhecimento de mercado']) {
+      expect(container.querySelector(`[data-kpi="${nome}"] .mv-kpi-selo`)).toBeNull();
+    }
+  });
+
+  it('o cabeçalho diz quais filiais responderam e a hora da última leitura do painel', async () => {
+    const { container } = await montar('completo');
+
+    await waitFor(() => expect(container.querySelector('.v360-atualizado-em')).not.toBeNull());
+    expect(container.querySelector('.v360-atualizado-em')).toHaveTextContent(
+      /^Última atualização: \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/,
+    );
+
+    const dica = textoDaDica(screen.getByRole('button', { name: 'Quais filiais responderam' }));
+    expect(dica).toContain('uma a uma');
+    expect(dica).toMatch(/Responderam: .*Filial Fictícia/);
+  });
+
+  it('os seletores da maquete sem alternativa ficam desligados, com o motivo na dica', async () => {
+    await montar('completo');
+
+    expect(screen.getByRole('combobox', { name: 'Unidade do faturamento' })).toBeDisabled();
+    expect(textoDaDica(screen.getByRole('button', { name: 'Por que unidade do faturamento está desligado' }))).toContain(
+      'milhões de reais',
+    );
+
+    expect(screen.getByRole('combobox', { name: 'Ordem do ranking' })).toBeDisabled();
+    expect(textoDaDica(screen.getByRole('button', { name: 'Por que ordem do ranking está desligado' }))).toContain(
+      'vínculos em carteira comercial',
+    );
+  });
+
+  it('as abas das vendas perdidas moram na linha do título e abrem em "Por motivo"', async () => {
+    const { container } = await montar('completo');
+
+    const perdas = container.querySelector<HTMLElement>('[data-bloco="linha-4"] [data-area="v360-perdas"]')!;
+    const direita = perdas.querySelector<HTMLElement>('.mom-painel-direita')!;
+    expect(within(direita).getByRole('button', { name: 'Por motivo' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(within(direita).getByRole('button', { name: 'Para quem perdemos' }));
+    expect(within(direita).getByRole('button', { name: 'Para quem perdemos' })).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => expect(perdas).toHaveTextContent('Pela venda perdida principal'));
   });
 });

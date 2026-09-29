@@ -59,8 +59,9 @@ export function Visao360() {
 
   if (perfil !== 'cen') {
     return (
-      // A LARGURA É A DA COLUNA INTEIRA (`v360-pagina`): o teto de 1.940 só volta acima de 2.100px de janela.
-      <PaginaDoPainel className="v360-pagina">
+      // A LARGURA É A DA COLUNA INTEIRA (`v360-pagina`): o teto de 1.940 só volta acima de 2.100px de janela. O desenho da
+      // maquete de 29/09/2026 (`v360-maquete`) é o do painel executivo; o trabalho do dia do CEN segue como está.
+      <PaginaDoPainel className="v360-pagina v360-maquete">
         <PainelExecutivo perfil={perfil} aoTrocarPerfil={setPerfil} />
       </PaginaDoPainel>
     );

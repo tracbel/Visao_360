@@ -1,0 +1,486 @@
+/* =============================================================================
+   A VISÃO 360 NA MAQUETE DO RICARDO (29/09/2026)
+   `docs/prototipo/capturas-referencia/visao-360-maquete-2026-09-29.png`, em 1672 × 941.
+
+   TUDO AQUI MORA EMBAIXO DE `.v360-maquete` — a classe que a Visão 360 põe na página do painel executivo. As peças são
+   as do padrão dos Indicadores (`mv-kpi`, `mom-painel`, `mom-ranking`, `terr-*`), e as outras telas continuam como
+   estão. As medidas e as cores foram amostradas da maquete.
+
+   A MAQUETE CABE INTEIRA NUMA TELA de 941px de altura: o ritmo vertical é apertado — 10px entre os blocos, painéis de
+   cabeçalho baixo, gráficos de 140px. As quebras continuam as da `painel-executivo.css` (pela largura do conteúdo);
+   aqui mudam só as proporções das colunas.
+   ============================================================================= */
+
+.v360-maquete {
+  --v360-marinho: #0b1638;
+  --v360-cinza: #5b6776;
+  --v360-verde-escuro: #0b5e36;
+  --v360-verde-borda: #2f7d4a;
+  --v360-cabecalho-tabela: #f3f5f5;
+  --v360-linha-tabela: #eef1f3;
+}
+
+.dash-pagina.v360-maquete { gap: 10px; }
+.dash-pagina.v360-maquete .dash-secao { gap: 6px; }
+
+/* -----------------------------------------------------------------------------
+   O CABEÇALHO — título marinho, e à direita as filiais que responderam e a hora da leitura
+   ----------------------------------------------------------------------------- */
+.dash-pagina.v360-maquete .page-header { margin-bottom: 0; }
+
+.dash-pagina.v360-maquete .page-title {
+  margin-bottom: 2px;
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--v360-marinho);
+}
+
+.dash-pagina.v360-maquete .page-subtitle { font-size: 12px; color: var(--v360-cinza); }
+
+.dash-pagina.v360-maquete .dash-atualizado {
+  align-self: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--v360-cinza);
+}
+
+.v360-filiais { display: inline-flex; align-items: center; gap: 4px; }
+
+/* O filete entre "responderam" e a hora, como na maquete. */
+.v360-atualizado-em {
+  margin-left: 8px;
+  padding-left: 14px;
+  border-left: 1px solid #dfe4e8;
+}
+
+/* -----------------------------------------------------------------------------
+   A BARRA DE FILTROS — mais baixa, e o botão dos Indicadores com o mapa e a borda verde
+   ----------------------------------------------------------------------------- */
+.dash-pagina.v360-maquete .dash-filtros-linha {
+  padding: 5px 10px;
+  background: #fafbfb;
+  border-color: #e8ecef;
+  border-radius: 10px;
+}
+
+.dash-pagina.v360-maquete .dash-filtro-icone { width: 32px; height: 32px; border-color: #e4e8ec; background: #f1f3f5; }
+.dash-pagina.v360-maquete .dash-filtros-linha .dash-filtro-rotulo { min-height: 13px; font-size: 10.5px; }
+.dash-pagina.v360-maquete .dash-filtros-linha > .dash-filtro select { height: 25px; font-size: 12px; }
+.dash-pagina.v360-maquete .dash-filtro-corpo { gap: 1px; }
+
+.dash-pagina.v360-maquete .v360-botao-adr {
+  gap: 10px;
+  height: 34px;
+  padding: 0 16px;
+  border: 1.5px solid var(--v360-verde-borda);
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--v360-marinho);
+}
+
+.dash-pagina.v360-maquete .v360-botao-adr > svg:first-child { color: #1e6b3a; }
+
+/* -----------------------------------------------------------------------------
+   OS CINCO CARTÕES — tintas da maquete, glifo num ladrilho claro e o selo no canto
+   ----------------------------------------------------------------------------- */
+.dash-pagina.v360-maquete .dash-kpis.mv-kpis { gap: 12px; }
+
+.dash-pagina.v360-maquete .mv-kpi {
+  position: relative;
+  align-items: center;
+  padding: 11px 10px 11px 11px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.v360-maquete .dash-kpis[data-colunas='5'] .mv-kpi { column-gap: 9px; }
+
+.dash-pagina.v360-maquete .mv-kpi-glifo {
+  align-self: start;
+  display: inline-grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  margin-top: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--mv-tom) 12%, #fff);
+}
+
+.dash-pagina.v360-maquete .dash-kpis[data-colunas='5'] .mv-kpi-glifo svg { width: 21px; height: 21px; }
+.dash-pagina.v360-maquete .mv-kpi[data-tom='demanda'] .mv-kpi-glifo svg { stroke-width: 2.4; }
+
+.dash-pagina.v360-maquete .mv-kpi-corpo { gap: 2px; }
+
+.dash-pagina.v360-maquete .mv-kpi-rotulo {
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--v360-marinho);
+}
+
+/* O SELO NÃO COBRE O NOME: um calço flutuando à direita guarda o lugar dele só na PRIMEIRA linha do rótulo — o nome que
+   quebra usa a largura inteira na segunda. */
+.dash-pagina.v360-maquete .mv-kpi:has(.mv-kpi-selo) .mv-kpi-rotulo { display: block; }
+
+.dash-pagina.v360-maquete .mv-kpi:has(.mv-kpi-selo) .mv-kpi-rotulo::before {
+  content: '';
+  float: right;
+  width: 58px;
+  height: 14px;
+}
+
+.dash-pagina.v360-maquete .mv-kpi:has(.mv-kpi-selo) .mv-kpi-rotulo > .dica { display: inline-flex; vertical-align: -3px; margin-left: 3px; }
+
+.dash-pagina.v360-maquete .dash-kpis[data-colunas='5'] .mv-kpi-valor { font-size: 24px; color: var(--v360-marinho); }
+.dash-pagina.v360-maquete .mv-kpi-valor > strong { font-weight: 800; }
+.dash-pagina.v360-maquete .mv-kpi-unidade { font-size: 12px; color: var(--v360-cinza); }
+.dash-pagina.v360-maquete .dash-kpis[data-colunas='5'] .mv-kpi-contexto { font-size: 10.5px; line-height: 1.35; color: var(--v360-cinza); }
+
+.dash-pagina.v360-maquete .mv-kpi[data-tom='demanda'] { --mv-tom: #16a34a; background: #f1fcf6; border-color: #d3eedd; }
+.dash-pagina.v360-maquete .mv-kpi[data-tom='captura'] { --mv-tom: #ff6d10; background: #fef9f4; border-color: #f8e0cb; }
+.dash-pagina.v360-maquete .mv-kpi[data-tom='mercado'] { --mv-tom: #3b8df8; background: #ebf6fe; border-color: #d1e5f6; }
+.dash-pagina.v360-maquete .mv-kpi[data-tom='oportunidade'] { --mv-tom: #7b58f6; background: #f2f1fe; border-color: #dcd7f8; }
+.dash-pagina.v360-maquete .mv-kpi[data-tom='neutro'] { --mv-tom: #2e8b3e; background: #f4fbf8; border-color: #dbebe2; }
+
+/* O SELO DO CANTO — a variação ou o percentual da meta. */
+.mv-kpi-selo {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 1;
+}
+
+.v360-selo {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border: 1px solid;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.v360-selo-desenho { display: inline-flex; align-items: center; gap: 2px; }
+.v360-selo-desenho > svg { width: 11px; height: 11px; }
+
+.v360-selo[data-tom='alta'] { color: #15803d; background: #e3f7ea; border-color: #bfe6cc; }
+.v360-selo[data-tom='baixa'] { color: #c81e1e; background: #fdeaea; border-color: #f4c7c7; }
+.v360-selo[data-tom='neutro'] { color: var(--v360-cinza, #5b6776); background: #f1f3f5; border-color: #dfe3e8; }
+.v360-selo[data-tom='meta'] { color: #ef4f24; background: #fdeee6; border-color: #f7cbb4; }
+
+/* -----------------------------------------------------------------------------
+   A COMPOSIÇÃO — uma faixa baixa, com o ícone de barras à esquerda e o botão à direita
+   ----------------------------------------------------------------------------- */
+.dash-pagina.v360-maquete .mom-painel[data-bloco='composicao'] { gap: 8px; padding: 8px 14px; }
+
+.dash-pagina.v360-maquete .mom-painel[data-bloco='composicao'] > .mom-painel-cabecalho {
+  position: relative;
+  min-height: 34px;
+  justify-content: center;
+  padding-left: 46px;
+}
+
+/* O ÍCONE É DESENHO, E SÓ: fundo de CSS, sem dado nenhum por trás. */
+.dash-pagina.v360-maquete .mom-painel[data-bloco='composicao'] > .mom-painel-cabecalho::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 34px;
+  height: 34px;
+  transform: translateY(-50%);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23166534' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 20.5h17'/%3E%3Crect x='5' y='11.5' width='3.4' height='6.5' rx='1'/%3E%3Crect x='10.3' y='4.5' width='3.4' height='13.5' rx='1'/%3E%3Crect x='15.6' y='8' width='3.4' height='10' rx='1'/%3E%3C/svg%3E")
+    center / 27px 27px no-repeat;
+}
+
+.dash-pagina.v360-maquete .mom-painel[data-bloco='composicao'] .mom-painel-titulo { font-size: 13.5px; }
+
+.dash-pagina.v360-maquete .mom-painel[data-bloco='composicao'] .mom-botao {
+  gap: 8px;
+  height: 30px;
+  padding: 0 14px;
+  border-color: #cfd6dd;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v360-marinho);
+}
+
+/* -----------------------------------------------------------------------------
+   OS TÍTULOS DE SEÇÃO E OS PAINÉIS
+   ----------------------------------------------------------------------------- */
+.dash-pagina.v360-maquete .terr-secao-mercado,
+.dash-pagina.v360-maquete section > .terr-secao-mercado:first-child { margin: 0; }
+
+.dash-pagina.v360-maquete .terr-secao-titulo {
+  margin-bottom: 1px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--v360-marinho);
+}
+
+.dash-pagina.v360-maquete .terr-secao-titulo > .dica,
+.dash-pagina.v360-maquete .mom-painel-titulo > .dica { margin-left: 3px; }
+
+.dash-pagina.v360-maquete .terr-secao-subtitulo { font-size: 11.5px; color: var(--v360-cinza); }
+
+.dash-pagina.v360-maquete .mom-painel {
+  gap: 8px;
+  padding: 10px 16px 12px;
+  border-color: #e7ecf0;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.dash-pagina.v360-maquete .mom-painel-titulo { font-size: 14.5px; font-weight: 800; color: var(--v360-marinho); }
+.dash-pagina.v360-maquete .mom-painel-subtitulo { font-size: 11px; color: var(--v360-cinza); }
+
+/* O CONTROLE DO CANTO NO MEIO DO CABEÇALHO (maquete): o seletor, as abas e os botões ficam à direita do título E do
+   subtítulo, e não só da linha do título — que assim não ganha a altura do controle. Na coluna estreita volta o arranjo
+   de sempre, com o controle quebrando para baixo. */
+@container indicadores (min-width: 700px) {
+  .dash-pagina.v360-maquete .mom-painel-cabecalho:has(> .mom-painel-linha > .mom-painel-direita) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 2px;
+  }
+
+  .dash-pagina.v360-maquete .mom-painel-cabecalho:has(> .mom-painel-linha > .mom-painel-direita) > .mom-painel-linha {
+    display: contents;
+  }
+
+  .dash-pagina.v360-maquete .mom-painel-cabecalho:has(> .mom-painel-linha > .mom-painel-direita) .mom-painel-titulo {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .dash-pagina.v360-maquete .mom-painel-cabecalho:has(> .mom-painel-linha > .mom-painel-direita) > .mom-painel-subtitulo {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .dash-pagina.v360-maquete .mom-painel-cabecalho:has(> .mom-painel-linha > .mom-painel-direita) .mom-painel-direita {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+
+  /* O BOTÃO BAIXO ("Ver no mapa") FICA SÓ NA LINHA DO TÍTULO, e o subtítulo — longo na cobertura — usa a largura inteira. */
+  .dash-pagina.v360-maquete
+    .mom-painel-cabecalho:has(> .mom-painel-linha > .mom-painel-direita):has(.v360-botao-contorno)
+    > .mom-painel-subtitulo {
+    grid-column: 1 / -1;
+  }
+
+  .dash-pagina.v360-maquete
+    .mom-painel-cabecalho:has(> .mom-painel-linha > .mom-painel-direita):has(.v360-botao-contorno)
+    .mom-painel-direita {
+    grid-row: 1;
+  }
+}
+
+/* O SELETOR DA MAQUETE NO CANTO DO PAINEL: branco e com a seta, desligado e com o motivo na dica ao lado. */
+.dash-pagina.v360-maquete .mom-painel-direita .mom-seletor select {
+  height: 28px;
+  min-width: 112px;
+  padding-right: 30px;
+  border-color: #dfe3e8;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dash-pagina.v360-maquete .mom-painel-direita .mom-seletor select:disabled {
+  color: var(--v360-marinho);
+  background-color: #fff;
+}
+
+/* O botão de contorno verde ("Ver no mapa"). */
+.dash-pagina.v360-maquete .v360-botao-contorno {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  border: 1.5px solid var(--v360-verde-borda);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1e6b3a;
+  white-space: nowrap;
+}
+
+.dash-pagina.v360-maquete .v360-botao-contorno:hover { background: #f0f8f2; text-decoration: none; }
+
+/* AS LINHAS DE PAINÉIS: as proporções da maquete, e a mesma altura na linha quando todos têm dado. Com um painel "sem
+   dado" na linha, cada um fica com a altura do que mostra (a regra da `painel-executivo.css`). */
+.dash-pagina.v360-maquete .v360-linha { gap: 12px; }
+.dash-pagina.v360-maquete .v360-linha:not(:has(.v360-sem-dado)) { align-items: stretch; }
+
+@container indicadores (min-width: 900px) {
+  .dash-pagina.v360-maquete .v360-linha[data-variante='resultado'] { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+  .dash-pagina.v360-maquete .v360-linha[data-variante='mercado'] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.07fr); }
+}
+
+/* O MIX FICA UM POUCO MAIS LARGO QUE NA MAQUETE: lá há uma linha de negócio só; com várias, o nome precisa de lugar ao
+   lado da rosca para não quebrar em duas linhas cada um. */
+@container indicadores (min-width: 1100px) {
+  .dash-pagina.v360-maquete .v360-linha[data-variante='tres'] {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.25fr) minmax(0, 1.1fr);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   OS ALERTAS — faixas tingidas, o ícone de cada um e o botão branco
+   ----------------------------------------------------------------------------- */
+.dash-pagina.v360-maquete .v360-alertas-list { gap: 7px; }
+
+.dash-pagina.v360-maquete .v360-alerta {
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px 7px 13px;
+  border-left: 0;
+  border-radius: 8px;
+}
+
+.dash-pagina.v360-maquete .v360-alerta-icon { display: inline-flex; margin-top: 0; }
+.dash-pagina.v360-maquete .v360-alerta-titulo { font-size: 11.5px; font-weight: 700; line-height: 1.3; }
+.dash-pagina.v360-maquete .v360-alerta-detalhe { margin-top: 1px; font-size: 10.5px; line-height: 1.35; color: var(--v360-cinza); }
+
+.dash-pagina.v360-maquete .v360-alerta-critico { background: #fde4e7; }
+.dash-pagina.v360-maquete .v360-alerta-critico .v360-alerta-icon { color: #c00012; }
+.dash-pagina.v360-maquete .v360-alerta-critico .v360-alerta-titulo { color: #b3101c; }
+
+.dash-pagina.v360-maquete .v360-alerta-aviso { background: #fff3e6; }
+.dash-pagina.v360-maquete .v360-alerta-aviso .v360-alerta-icon { color: #c5531e; }
+.dash-pagina.v360-maquete .v360-alerta-aviso .v360-alerta-titulo { color: #7a2e0e; }
+
+.dash-pagina.v360-maquete .v360-alerta-atencao { background: #fcf6e6; }
+.dash-pagina.v360-maquete .v360-alerta-atencao .v360-alerta-icon { color: #f59e0b; }
+.dash-pagina.v360-maquete .v360-alerta-atencao .v360-alerta-titulo { color: var(--v360-marinho); }
+
+.dash-pagina.v360-maquete .v360-alerta-info { background: #f1f5f9; }
+.dash-pagina.v360-maquete .v360-alerta-info .v360-alerta-icon { color: #64748b; }
+
+.dash-pagina.v360-maquete .v360-alerta-acao {
+  padding: 5px 14px;
+  border: 1px solid #dfe3e7;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--v360-marinho);
+  box-shadow: 0 1px 1px rgba(15, 23, 42, 0.04);
+}
+
+/* -----------------------------------------------------------------------------
+   AS ROSCAS E AS LEGENDAS — a cobertura e o mix
+   ----------------------------------------------------------------------------- */
+/* A ROSCA E A LEGENDA NO MEIO DA ALTURA QUE SOBRA quando o vizinho da linha é mais alto. */
+.dash-pagina.v360-maquete .v360-rosca-e-tabela { flex: 1; gap: 24px; padding-left: 4px; }
+
+/* A ROSCA E A LEGENDA LADO A LADO a partir de 300px de miolo (a `painel-executivo.css` empilha abaixo de 360): o Mix, na
+   coluna mais estreita da linha, fica como na maquete, e o nome longo da linha quebra dentro da legenda. */
+@container v360-painel (min-width: 300px) {
+  .dash-pagina.v360-maquete .v360-rosca-e-tabela { flex-direction: row; align-items: center; }
+  .dash-pagina.v360-maquete .v360-rosca-e-tabela > canvas { align-self: auto; }
+}
+
+.dash-pagina.v360-maquete .v360-rosca-e-tabela:has(.v360-mix-legenda) { gap: 18px; }
+
+.dash-pagina.v360-maquete .v360-rosca-e-tabela .mom-faixas th,
+.dash-pagina.v360-maquete .v360-rosca-e-tabela .mom-faixas td {
+  padding: 3px 4px;
+  font-size: 11.5px;
+  color: var(--v360-marinho);
+}
+
+.dash-pagina.v360-maquete .v360-mix-legenda th,
+.dash-pagina.v360-maquete .v360-mix-legenda td { padding-block: 2px; font-size: 11px; }
+
+.dash-pagina.v360-maquete .v360-rosca-e-tabela .mom-faixas thead th {
+  padding-bottom: 0;
+  font-size: 10px;
+  color: var(--v360-cinza);
+}
+
+.dash-pagina.v360-maquete .v360-rosca-e-tabela .mom-faixas td strong { font-weight: 800; }
+.dash-pagina.v360-maquete .v360-rosca-e-tabela .mom-ponto { width: 11px; height: 11px; margin-right: 12px; }
+
+/* -----------------------------------------------------------------------------
+   OS RANKINGS — cabeçalho cinza arredondado, linhas baixas, número numa caixinha
+   ----------------------------------------------------------------------------- */
+.dash-pagina.v360-maquete .v360-ranking .mom-ranking-cabecalho {
+  min-height: 20px !important;
+  border-radius: 6px;
+  background: var(--v360-cabecalho-tabela);
+  font-size: 9.5px !important;
+  color: var(--v360-cinza) !important;
+}
+
+.dash-pagina.v360-maquete .mom-ranking.v360-ranking[data-variante='cens'] .mom-ranking-linha,
+.dash-pagina.v360-maquete .mom-ranking.v360-ranking[data-variante='clientes'] .mom-ranking-linha {
+  min-height: 24px;
+  column-gap: 10px;
+  border-bottom-color: var(--v360-linha-tabela);
+  font-size: 11.5px;
+}
+
+.dash-pagina.v360-maquete .mom-ranking.v360-ranking[data-variante='cens'] .mom-ranking-linha {
+  grid-template-columns: 22px minmax(0, 1.3fr) minmax(40px, 1fr) minmax(44px, auto);
+}
+
+.dash-pagina.v360-maquete .mom-ranking.v360-ranking[data-variante='clientes'] .mom-ranking-linha {
+  grid-template-columns: 22px minmax(0, 1fr) 40px minmax(96px, auto);
+}
+
+.dash-pagina.v360-maquete .v360-ranking .mom-ranking-posicao {
+  width: 20px;
+  height: 18px;
+  border-color: #d9dee3;
+  background: #fff;
+  font-size: 10.5px;
+  color: var(--v360-marinho);
+}
+
+.dash-pagina.v360-maquete .v360-ranking-titulo { font-size: 11.5px; line-height: 1.2; color: var(--v360-marinho); }
+.dash-pagina.v360-maquete .v360-ranking-meta { font-size: 9.5px; line-height: 1.15; }
+.dash-pagina.v360-maquete .v360-ranking .mom-barra { height: 9px; border-radius: 3px; background: var(--v360-linha-tabela); }
+.dash-pagina.v360-maquete .v360-ranking .mom-ranking-valor { font-size: 12px; font-weight: 700; color: var(--v360-marinho); }
+
+/* A classe ABC: o selo verde da maquete, no meio da coluna. */
+.dash-pagina.v360-maquete .v360-classe { justify-self: center; width: 22px; height: 17px; border-radius: 3px; font-size: 10.5px; }
+.dash-pagina.v360-maquete [data-variante='clientes'] .mom-ranking-cabecalho > :nth-child(3) { justify-self: center; }
+
+/* -----------------------------------------------------------------------------
+   AS VENDAS PERDIDAS — as abas na linha do título
+   ----------------------------------------------------------------------------- */
+.dash-pagina.v360-maquete .v360-abas {
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid #d5dbe1;
+  border-radius: 7px;
+}
+
+.dash-pagina.v360-maquete .v360-abas button {
+  padding: 6px 16px;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v360-marinho);
+}
+
+.dash-pagina.v360-maquete .v360-abas button[aria-pressed='true'] { background: var(--v360-verde-escuro); color: #fff; }
+
+.dash-pagina.v360-maquete .v360-nota { font-size: 10.5px; color: var(--v360-cinza); }
+.dash-pagina.v360-maquete .v360-nota strong { color: var(--v360-marinho); }

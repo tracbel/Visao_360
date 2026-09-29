@@ -36,6 +36,28 @@ const COR_AREA = 'rgba(54, 124, 43, 0.10)';
 const COR_PARCIAL = '#9CA3AF';
 const COR_ANTERIOR = '#9CA3AF';
 
+/**
+ * O DESENHO DE UMA MAQUETE (29/09/2026, Visão 360): a linha, a área, o ponto e a grade. Sem ele, o gráfico é o de sempre.
+ *
+ * O MÊS PARCIAL CONTINUA DIFERENTE DOS OUTROS em qualquer aparência — tracejado e na cor dele —: cheio ou vazado é só o
+ * desenho do ponto.
+ */
+export type AparenciaDaLinhaMensal = {
+  corDaLinha?: string;
+  corDaArea?: string;
+  corDoParcial?: string;
+  /** O ponto do mês parcial pintado na cor dele, em vez de vazado. */
+  parcialCheio?: boolean;
+  larguraDaLinha?: number;
+  raioDoPonto?: number;
+  /** Borda branca em volta de cada ponto. */
+  pontoComBorda?: boolean;
+  /** As linhas verticais da grade, uma por mês. */
+  gradeVertical?: boolean;
+  tamanhoDaFonte?: number;
+  corDaFonte?: string;
+};
+
 export type GraficoLinhaMensalProps = {
   /** O rótulo de cada mês, já formatado. Ex.: `set/26`. */
   rotulos: string[];
@@ -51,6 +73,7 @@ export type GraficoLinhaMensalProps = {
   /** Os nomes das duas séries no balão — só quando há a anterior. */
   nomeDaSerie?: string;
   nomeDaAnterior?: string;
+  aparencia?: AparenciaDaLinhaMensal;
 };
 
 export function GraficoLinhaMensal({
@@ -63,9 +86,15 @@ export function GraficoLinhaMensal({
   anteriores,
   nomeDaSerie = 'Recente',
   nomeDaAnterior = 'Um ano antes',
+  aparencia = {},
 }: GraficoLinhaMensalProps) {
   const fontesProntas = useFontesProntas();
   const ultimo = valores.length - 1;
+  const corDaLinha = aparencia.corDaLinha ?? COR_LINHA;
+  const corDoParcial = aparencia.corDoParcial ?? COR_PARCIAL;
+  const raio = aparencia.raioDoPonto ?? 3;
+  const ehParcial = (i: number) => i === ultimo && ultimoParcial;
+  const fonte = { size: aparencia.tamanhoDaFonte ?? 10, family: FONTE_DOS_GRAFICOS };
 
   const data = {
     labels: rotulos,
@@ -73,19 +102,19 @@ export function GraficoLinhaMensal({
       {
         label: nomeDaSerie,
         data: valores,
-        borderColor: COR_LINHA,
-        backgroundColor: COR_AREA,
-        borderWidth: 2,
+        borderColor: corDaLinha,
+        backgroundColor: aparencia.corDaArea ?? COR_AREA,
+        borderWidth: aparencia.larguraDaLinha ?? 2,
         fill: true,
         tension: 0.3,
-        pointRadius: valores.map((_, i) => (i === ultimo && ultimoParcial ? 4 : 3)),
+        pointRadius: valores.map((_, i) => (ehParcial(i) ? raio + 1 : raio)),
         pointBackgroundColor: valores.map((_, i) =>
-          i === ultimo && ultimoParcial ? '#FFFFFF' : COR_LINHA,
+          ehParcial(i) ? (aparencia.parcialCheio ? corDoParcial : '#FFFFFF') : corDaLinha,
         ),
         pointBorderColor: valores.map((_, i) =>
-          i === ultimo && ultimoParcial ? COR_PARCIAL : COR_LINHA,
+          aparencia.pontoComBorda ? '#FFFFFF' : ehParcial(i) ? corDoParcial : corDaLinha,
         ),
-        pointBorderWidth: 2,
+        pointBorderWidth: aparencia.pontoComBorda ? 1.5 : 2,
         // O TRECHO FINAL TRACEJADO quando o mês ainda corre. `segment` recebe o par de pontos e
         // decide por trecho — é o único jeito de ter um pedaço da mesma linha com outro traço.
         segment: ultimoParcial
@@ -93,7 +122,7 @@ export function GraficoLinhaMensal({
               borderDash: (ctx: { p1DataIndex: number }) =>
                 ctx.p1DataIndex === ultimo ? [5, 4] : undefined,
               borderColor: (ctx: { p1DataIndex: number }) =>
-                ctx.p1DataIndex === ultimo ? COR_PARCIAL : undefined,
+                ctx.p1DataIndex === ultimo ? corDoParcial : undefined,
             }
           : undefined,
       },
@@ -143,14 +172,15 @@ export function GraficoLinhaMensal({
     },
     scales: {
       x: {
-        grid: { display: false },
-        ticks: { font: { size: 10, family: FONTE_DOS_GRAFICOS } },
+        grid: aparencia.gradeVertical ? { color: COR_DA_GRADE } : { display: false },
+        ticks: { font: fonte, color: aparencia.corDaFonte },
       },
       y: {
         beginAtZero: true,
         grid: { color: COR_DA_GRADE },
         ticks: {
-          font: { size: 10, family: FONTE_DOS_GRAFICOS },
+          font: fonte,
+          color: aparencia.corDaFonte,
           callback: (valor) => formatar(Number(valor)),
           maxTicksLimit: 5,
         },
