@@ -34,9 +34,25 @@
  * e duas seções com título — o funil do período e as perdas do período —, em `PainelDoMomento`. A chave coorte × fluxo
  * mora à direita do título do funil, no alternador dos Indicadores; a nota que explicava a leitura foi para a dica.
  * NENHUM NÚMERO, REGRA OU TEXTO DE REGRA MUDOU.
+ *
+ * ---------------------------------------------------------------------------
+ * 29/09/2026 — NA MAQUETE DO RICARDO (`docs/prototipo/capturas-referencia/funil-de-vendas-maquete-2026-09-29.png`: "quero idêntica a essa;
+ * não vai inventar nada; não tirará nenhuma informação da tela"). O mesmo conteúdo, no desenho dela:
+ *
+ * - os quatro cartões mais tingidos, com a onda decorativa no canto;
+ * - o funil em perspectiva, com o nome de cada estágio numa linha-guia (`GraficoFunil`);
+ * - a conversão entre estágios num painel próprio, ao lado, com a barra da conversão, e a chave coorte × fluxo em cima
+ *   dele;
+ * - a tabela dos seis estágios num cartão próprio, embaixo, com o ponto da cor de cada estágio;
+ * - as perdas do período numa faixa laranja, com "o que a distribuição de perdas não diz" à direita;
+ * - as abas das vendas perdidas na linha do título, e o preço com o denominador na mesma linha.
+ *
+ * O que a maquete escreve diferente do CRM ficou como o CRM escreve — "Coorte", e não "Conta"; "Formulário da venda
+ * perdida". O que não está na maquete e estava na tela continua: as dicas, o aviso de procedência, as métricas sem dado
+ * e o bloco "O que este relatório não pode afirmar".
  */
 
-import { BadgeCheck, CalendarDays, FileText, Hourglass, RefreshCw, Scale, Users } from 'lucide-react';
+import { CalendarDays, CircleAlert, CircleCheck, FileText, Hourglass, RefreshCw, Scale, Users } from 'lucide-react';
 import { useState } from 'react';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../componentes/cadastro/EstadosDeTela';
 import { AvisoDeProcedencia, DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
@@ -44,9 +60,8 @@ import { BlocoRecolhivel } from '../componentes/cadastro/BlocoRecolhivel';
 import { LacunaConhecida, MetricasSemDado } from '../componentes/cadastro/SemDado';
 import { ValorAusente } from '../componentes/comum/ValorAusente';
 import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
-import { corDaFaixa, GraficoFunil, LegendaDoFunil, type FaixaDoFunil } from '../componentes/GraficoFunil';
+import { ConversaoDoFunil, corDaFaixa, GraficoFunil, type FaixaDoFunil } from '../componentes/GraficoFunil';
 import { InfoTooltip } from '../componentes/InfoTooltip';
-import { AbasInternas } from '../componentes/mercado/AbasInternas';
 import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
 import { PainelDoMomento } from '../componentes/mercado/momento/pecas';
 import { TituloDaSecao } from '../componentes/territorio/TituloDaSecao';
@@ -58,6 +73,7 @@ import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
 import '../estilos/territorio.css';
+import '../estilos/funil.css';
 
 /** Os seis estágios, para a tela manter a forma quando o funil não tem dado. */
 const ESTAGIOS_DO_FUNIL = [
@@ -96,7 +112,7 @@ export function Funil() {
   /** O período escolhido; nulo é o padrão do servidor — o ano fiscal até o último mês fechado. */
   const [periodo, setPeriodo] = useState<{ de: string; ate: string } | null>(null);
   const [formulario, setFormulario] = useState('');
-  const [abaDasPerdas, setAbaDasPerdas] = useState<AbaDasPerdas>('motivo');
+  const [abaDasPerdas, setAbaDasPerdas] = useState<AbaDasPerdas>('concorrente');
 
   const funil = useRecurso(
     (sinal) => obterFunilPorEstagio(contexto, { base, de: periodo?.de, ate: periodo?.ate }, sinal),
@@ -133,7 +149,7 @@ export function Funil() {
 
   return (
     // A LARGURA É A DA COLUNA INTEIRA, como a Visão 360: o teto só volta acima de 2.100px de janela.
-    <PaginaDoPainel className="dash-pagina-larga">
+    <PaginaDoPainel className="dash-pagina-larga funil-maquete">
       <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Funil de Vendas</h1>
@@ -245,7 +261,7 @@ export function Funil() {
         />
         <CartaoDeDecisao
           rotulo="Faturados"
-          icone={BadgeCheck}
+          icone={CircleCheck}
           tom="captura"
           valor={faturamento ? nº(faturamento.processos) : null}
           carregando={funil.carregando}
@@ -292,34 +308,56 @@ export function Funil() {
           metodologia="O estágio é o resultado do histórico do Vórtice, como o BI: seis estágios, uma linha por processo por estágio alcançado. A fase do fluxo (o BPM) não é o funil, e fica no Pipeline."
         />
 
-        <PainelDoMomento
-          titulo="Funil por estágio"
-          data-bloco="funil-por-estagio"
-          subtitulo={
-            dados
-              ? `${leitura} · ${dados.periodo.texto}${dados.periodo.ehOPadrao ? ' · ano fiscal até o último mês fechado' : ''}`
-              : leitura
-          }
-          dica={
-            <>
-              <p>
-                <strong>Coorte:</strong> os processos abertos no período, e até onde cada um chegou — de cada 100 leads que
-                entraram, quantos viraram pedido.
+        {/* O FUNIL E A CONVERSÃO LADO A LADO, como na maquete; a tabela dos seis estágios vem embaixo, num cartão só dela. */}
+        <div className="funil-grade">
+          <PainelDoMomento
+            titulo="Funil por estágio"
+            data-bloco="funil-por-estagio"
+            area="funil-grafico"
+            subtitulo={
+              dados
+                ? `${leitura} · ${dados.periodo.texto}${dados.periodo.ehOPadrao ? ' · ano fiscal até o último mês fechado' : ''}`
+                : leitura
+            }
+            dica={
+              <>
+                <p>
+                  <strong>Coorte:</strong> os processos abertos no período, e até onde cada um chegou — de cada 100 leads
+                  que entraram, quantos viraram pedido.
+                </p>
+                <p>
+                  <strong>Fluxo:</strong> as etapas alcançadas no período, qualquer que seja a abertura — quantos pedidos e
+                  faturamentos saíram no período.
+                </p>
+                <p>
+                  Lead e Qualificado são cumulativos: quem chegou à Cobertura também conta nos dois. O estágio é o resultado
+                  do histórico do Vórtice, como o BI — a fase do fluxo não é o funil, e fica no Pipeline.
+                </p>
+              </>
+            }
+          >
+            {funil.carregando && <BlocoCarregando oQue="o funil" />}
+            {funil.erro && <BlocoErro erro={funil.erro} aoTentarDeNovo={funil.recarregar} />}
+
+            {temFunil && (
+              <div className="funil-grafico">
+                <GraficoFunil faixas={faixas} />
+              </div>
+            )}
+
+            {/* SEM FUNIL, O PAINEL DIZ POR QUÊ — com o motivo do servidor, o mesmo da nota de cima —, em vez de ficar em
+                branco. O funil não vira zero: a conversão e a tabela ficam com o traço em cada estágio. */}
+            {dados && !temFunil && !funil.carregando && !funil.erro && (
+              <p className="funil-sem-grafico" role="note">
+                {motivo}
               </p>
-              <p>
-                <strong>Fluxo:</strong> as etapas alcançadas no período, qualquer que seja a abertura — quantos pedidos e
-                faturamentos saíram no período.
-              </p>
-              <p>
-                Lead e Qualificado são cumulativos: quem chegou à Cobertura também conta nos dois. O estágio é o resultado do
-                histórico do Vórtice, como o BI — a fase do fluxo não é o funil, e fica no Pipeline.
-              </p>
-            </>
-          }
-          direita={
-            // A CHAVE COORTE × FLUXO (decisão de 27/09/2026), no alternador dos Indicadores. A coorte é o padrão; o fluxo
-            // é o que a Performance de CEN e os alertas usam.
-            <div className="terr-alternador" role="group" aria-label="Leitura do funil">
+            )}
+          </PainelDoMomento>
+
+          <div className="funil-lado">
+            {/* A CHAVE COORTE × FLUXO (decisão de 27/09/2026), em cima do painel da conversão, como na maquete. A coorte é o
+                padrão; o fluxo é o que a Performance de CEN e os alertas usam. */}
+            <div className="terr-alternador funil-chave" role="group" aria-label="Leitura do funil">
               <button type="button" aria-pressed={base === 'abertura'} onClick={() => setBase('abertura')}>
                 Coorte
               </button>
@@ -327,20 +365,38 @@ export function Funil() {
                 Fluxo
               </button>
             </div>
-          }
-        >
-          {funil.carregando && <BlocoCarregando oQue="o funil" />}
-          {funil.erro && <BlocoErro erro={funil.erro} aoTentarDeNovo={funil.recarregar} />}
 
-          {temFunil && (
-            <div className="funil-container">
-              <GraficoFunil faixas={faixas} />
-              <LegendaDoFunil faixas={faixas} />
-            </div>
-          )}
+            <PainelDoMomento
+              titulo="Conversão entre estágios"
+              data-bloco="funil-conversao"
+              area="funil-conversao"
+              dica={
+                <>
+                  <p>
+                    A conversão é entre estágios vizinhos: dos processos do estágio de cima, quantos chegaram a este. A
+                    barra é essa conversão, na cor do estágio.
+                  </p>
+                  <p>
+                    O primeiro estágio não tem de onde converter. Com menos de 10 processos no estágio anterior, a taxa não
+                    aparece — a base é pequena demais para significar alguma coisa. Acima de 100%, aparece ↑: o estágio tem
+                    mais processos que o anterior.
+                  </p>
+                  <p>A cor: 70% ou mais, verde; de 40% a 70%, laranja; abaixo de 40%, vermelho.</p>
+                </>
+              }
+            >
+              {dados && (
+                <ConversaoDoFunil estagios={ESTAGIOS_DO_FUNIL} faixas={faixas} motivo={temFunil ? null : motivo} />
+              )}
+            </PainelDoMomento>
+          </div>
+        </div>
 
-          {dados && <TabelaDoFunil estagios={estagios} motivo={temFunil ? null : motivo} />}
-        </PainelDoMomento>
+        {dados && (
+          <div className="mom-painel funil-painel-tabela" data-bloco="funil-tabela">
+            <TabelaDoFunil estagios={estagios} motivo={temFunil ? null : motivo} />
+          </div>
+        )}
       </section>
 
       {/* ---------------------------------------------------------------- */}
@@ -350,20 +406,51 @@ export function Funil() {
           VP_*, conta uma vez. As duas populações continuam lado a lado — processos perdidos no funil e formulários
           preenchidos —, porque a diferença é quantas derrotas ninguém registrou. */}
       <section className="dash-secao" data-bloco="secao-perdas">
-        <TituloDaSecao
-          titulo="As perdas do período"
-          subtitulo={
-            vendas.dados
-              ? `${nº(vendas.dados.registradas)} formulários de ${nº(vendas.dados.processosPerdidos)} processos perdidos · ${vendas.dados.periodo.texto}`
-              : 'Do formulário de venda perdida, contadas no banco.'
-          }
-          metodologia="O motivo, o concorrente e o preço só existem quando o CEN preenche o formulário de venda perdida no Vórtice, e chegam aqui pela rotina que traz o funil. Só a venda perdida principal conta: a mesma perda registrada em dois formulários conta uma vez. A diferença entre os processos perdidos e os formulários é quantas derrotas ninguém registrou."
-        />
+        {/* A FAIXA LARANJA DA MAQUETE: o título da seção à esquerda e, à direita, o que a distribuição de perdas não diz —
+            a mesma frase da metodologia, com os números do período, e o que a API mediu que falta. */}
+        <div className="funil-perdas-faixa" data-bloco="perdas-resumo">
+          <div className="funil-perdas-cabeca">
+            <span className="funil-perdas-icone" aria-hidden="true">
+              <CircleAlert size={30} strokeWidth={2.2} />
+            </span>
+            <div className="terr-secao-mercado">
+              <h2 className="terr-secao-titulo">
+                As perdas do período
+                <InfoTooltip
+                  texto="O motivo, o concorrente e o preço só existem quando o CEN preenche o formulário de venda perdida no Vórtice, e chegam aqui pela rotina que traz o funil. Só a venda perdida principal conta: a mesma perda registrada em dois formulários conta uma vez. A diferença entre os processos perdidos e os formulários é quantas derrotas ninguém registrou."
+                  rotulo="Fonte e método de as perdas do período"
+                />
+              </h2>
+              <p className="terr-secao-subtitulo">
+                {vendas.dados
+                  ? `${nº(vendas.dados.registradas)} formulários de ${nº(vendas.dados.processosPerdidos)} processos perdidos · ${vendas.dados.periodo.texto}`
+                  : 'Do formulário de venda perdida, contadas no banco.'}
+              </p>
+            </div>
+          </div>
+
+          {vendas.dados && (vendas.dados.registradas > 0 || vendas.dados.metricasSemDado.length > 0) && (
+            <div className="funil-perdas-aviso" role="note">
+              <span className="funil-perdas-aviso-icone" aria-hidden="true" />
+              <div>
+                <p className="funil-perdas-aviso-titulo">O que a distribuição de perdas não diz</p>
+                {vendas.dados.registradas > 0 && (
+                  <p>
+                    Só aparecem aqui os processos perdidos com o formulário de venda perdida preenchido. A distribuição
+                    abaixo é das {nº(vendas.dados.registradas)} derrotas que foram registradas, e não de todos os{' '}
+                    {nº(vendas.dados.processosPerdidos)} processos perdidos no período.
+                  </p>
+                )}
+                {vendas.dados.metricasSemDado.map((m) => (
+                  <p key={m.metrica}>{m.motivo}</p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {vendas.carregando && <BlocoCarregando oQue="as vendas perdidas" />}
         {vendas.erro && <BlocoErro erro={vendas.erro} aoTentarDeNovo={vendas.recarregar} />}
-
-        <MetricasSemDado metricas={vendas.dados?.metricasSemDado} titulo="O que a distribuição de perdas não diz" />
 
         {vendas.dados && vendas.dados.registradas === 0 && !vendas.erro && (
           <BlocoVazio
@@ -372,43 +459,46 @@ export function Funil() {
           />
         )}
 
-        {/* UM PAINEL, DUAS ABAS — o motivo e o concorrente —, como na Visão 360. Lado a lado, as duas tabelas de quatro
-            colunas cortavam o preço a 1.536 px; a aba dá a largura inteira a cada uma. */}
+        {/* UM PAINEL, DUAS ABAS — o motivo e o concorrente. Na maquete o alternador mora na linha do título, e a frase do
+            que a tabela mostra vem ao lado do nome. */}
         {vendas.dados && vendas.dados.registradas > 0 && (
           <PainelDoMomento
             titulo="Vendas perdidas"
             data-bloco="perdas-por-motivo"
-            subtitulo="Quantas, quantas máquinas e o preço John Deere contra o do concorrente, por motivo e por fabricante."
+            area="funil-perdas"
             dica="O motivo e o concorrente são os que o CEN declarou no formulário. O preço é a diferença média entre o nosso e o do concorrente, só nos formulários que trazem os dois — o denominador vem ao lado."
+            direita={
+              <>
+                <p className="funil-perdas-frase">
+                  Quantas, quantas máquinas e o preço John Deere contra o do concorrente, por motivo e por fabricante.
+                </p>
+                <div className="terr-alternador funil-abas" role="group" aria-label="Vendas perdidas por">
+                  <button type="button" aria-pressed={abaDasPerdas === 'motivo'} onClick={() => setAbaDasPerdas('motivo')}>
+                    Por motivo
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={abaDasPerdas === 'concorrente'}
+                    onClick={() => setAbaDasPerdas('concorrente')}
+                  >
+                    Para quem perdemos
+                  </button>
+                </div>
+              </>
+            }
           >
-            <AbasInternas<AbaDasPerdas>
-              rotulo="Vendas perdidas por"
-              ativa={abaDasPerdas}
-              aoTrocar={setAbaDasPerdas}
-              abas={[
-                {
-                  id: 'motivo',
-                  rotulo: 'Por motivo',
-                  conteudo:
-                    vendas.dados.porMotivo.length > 0 ? (
-                      <TabelaDePerdas titulo="Motivo" legenda="Vendas perdidas por motivo" fatias={vendas.dados.porMotivo} />
-                    ) : (
-                      <p className="v360-nota">Nenhum formulário do período declara o motivo.</p>
-                    ),
-                },
-                {
-                  // PARA QUEM PERDEMOS: o fabricante, e o preço John Deere contra o dele quando o formulário traz os dois.
-                  id: 'concorrente',
-                  rotulo: 'Para quem perdemos',
-                  conteudo:
-                    vendas.dados.porConcorrente.length > 0 ? (
-                      <TabelaDePerdas titulo="Concorrente" legenda="Vendas perdidas por concorrente" fatias={vendas.dados.porConcorrente} forte />
-                    ) : (
-                      <p className="v360-nota">Nenhum formulário do período declara o concorrente.</p>
-                    ),
-                },
-              ]}
-            />
+            {abaDasPerdas === 'motivo' ? (
+              vendas.dados.porMotivo.length > 0 ? (
+                <TabelaDePerdas titulo="Motivo" legenda="Vendas perdidas por motivo" fatias={vendas.dados.porMotivo} />
+              ) : (
+                <p className="v360-nota">Nenhum formulário do período declara o motivo.</p>
+              )
+            ) : // PARA QUEM PERDEMOS: o fabricante, e o preço John Deere contra o dele quando o formulário traz os dois.
+            vendas.dados.porConcorrente.length > 0 ? (
+              <TabelaDePerdas titulo="Concorrente" legenda="Vendas perdidas por concorrente" fatias={vendas.dados.porConcorrente} forte />
+            ) : (
+              <p className="v360-nota">Nenhum formulário do período declara o concorrente.</p>
+            )}
           </PainelDoMomento>
         )}
       </section>
@@ -475,12 +565,16 @@ function TabelaDoFunil({ estagios, motivo }: { estagios: EstagioNoFunil[]; motiv
           </tr>
         </thead>
         <tbody>
-          {ESTAGIOS_DO_FUNIL.map(({ estagio, nome }) => {
+          {ESTAGIOS_DO_FUNIL.map(({ estagio, nome }, i) => {
             const e = porCodigo.get(estagio);
             const ausente = <ValorAusente motivo={motivo ?? 'sem dado'} oQue={`o estágio ${nome}`} />;
             return (
               <tr key={estagio}>
-                <th scope="row">{nome}</th>
+                <th scope="row">
+                  {/* O PONTO DA COR DO ESTÁGIO, a mesma do funil e da conversão (maquete). */}
+                  <span className="funil-ponto" style={{ background: corDaFaixa(i, ESTAGIOS_DO_FUNIL.length) }} aria-hidden="true" />
+                  {nome}
+                </th>
                 <td className="mom-num">{e ? nº(e.processos) : ausente}</td>
                 <td className="mom-num">{e ? (pct(e.percentualSobreOAnterior) ?? '—') : ausente}</td>
                 <td className="mom-num">{e ? (pct(e.percentualSobreOLead) ?? '—') : ausente}</td>
@@ -550,18 +644,19 @@ function Diferenca({ fatia }: { fatia: FatiaDeVendaPerdida }) {
     return <span className="cad-nada">sem os dois preços</span>;
   }
 
+  // O VALOR E O DENOMINADOR NA MESMA LINHA, o denominador menor e cinza à direita (maquete).
   return (
-    <>
-      <div>
+    <span className="funil-preco">
+      <span>
         {fatia.diferencaMediaDePreco.toLocaleString('pt-BR', {
           style: 'currency',
           currency: 'BRL',
           maximumFractionDigits: 0,
         })}
-      </div>
-      <div className="cad-sub">
+      </span>
+      <span className="cad-sub funil-preco-base">
         de {fatia.comOsDoisPrecos} de {fatia.quantidade}
-      </div>
-    </>
+      </span>
+    </span>
   );
 }
