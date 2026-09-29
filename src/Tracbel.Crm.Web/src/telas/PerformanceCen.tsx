@@ -51,17 +51,29 @@
  * (a leitura da Performance, decisão do Ricardo) e com o responsável escolhido,
  * e as perdas do período de `/relatorios/vendas-perdidas` — só a principal.
  * Sem funil, cada estágio mostra "—" com o motivo verdadeiro.
+ *
+ * ---------------------------------------------------------------------------
+ * 29/09/2026 — NO DESENHO DOS INDICADORES GEOGRÁFICOS (#293, bloco 2). O cabeçalho com a hora da leitura; o CEN saiu de
+ * dentro do primeiro cartão e foi para a barra de filtros, porque ele vale para o painel do CEN, o funil e as perdas; os
+ * quatro números como `CartaoDeDecisao`; duas seções — o painel do CEN (cobertura por classe e funil lado a lado) e a
+ * carteira de cada CEN (a divisão e o ranking) — em `PainelDoMomento`; o seletor de métrica foi para o título do
+ * ranking. Os três blocos recolhíveis do fim ficaram. NENHUM NÚMERO, REGRA OU TEXTO DE REGRA MUDOU.
  */
 
+import { CalendarCheck, RefreshCw, UserRound, Users, UsersRound, UserX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { BlocoRecolhivel } from '../componentes/cadastro/BlocoRecolhivel';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../componentes/cadastro/EstadosDeTela';
-import { PainelDeIndicadores, type Indicador } from '../componentes/cadastro/Indicadores';
-import { AvisoDeProcedencia, SeloProcedencia } from '../componentes/cadastro/SeloProcedencia';
+import { AvisoDeProcedencia, DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
 import { LacunaConhecida, MetricasSemDado } from '../componentes/cadastro/SemDado';
+import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
 import { GraficoBarrasEmpilhadas } from '../componentes/GraficoBarrasEmpilhadas';
 import { GraficoBarrasHorizontais } from '../componentes/GraficoBarrasHorizontais';
+import { InfoTooltip } from '../componentes/InfoTooltip';
+import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
+import { PainelDoMomento } from '../componentes/mercado/momento/pecas';
 import { MolduraDeGrafico } from '../componentes/MolduraDeGrafico';
+import { TituloDaSecao } from '../componentes/territorio/TituloDaSecao';
 import { ENTRAM_NO_RANKING } from '../dados/api/consolidado';
 import { useContextoDeAcesso } from '../dados/api/contexto';
 import { ErroDaApi } from '../dados/api/http';
@@ -76,6 +88,13 @@ import {
 import type { CoberturaPorClasse } from '../tipos/relacionamento';
 import { useRecurso } from '../dados/api/useRecurso';
 import { formatarData } from './cadastro/formato';
+import '../estilos/dashboard.css';
+import '../estilos/mercado-visao.css';
+import '../estilos/momento.css';
+import '../estilos/painel-executivo.css';
+import '../estilos/territorio.css';
+
+const nº = (v: number) => v.toLocaleString('pt-BR');
 
 /**
  * As métricas que o ranking sabe desenhar. Todas saem do MESMO agregado que a
@@ -366,50 +385,120 @@ export function PerformanceCen() {
     }
   }
 
-  const indicadores: Indicador[] = [
-    {
-      rotulo: 'CENs com carteira',
-      valor: resumo.dados ? totais.cens : null,
-      deOnde: 'responsáveis distintos nas carteiras desta filial',
-      semDado: 'sem carteira ao alcance deste contexto',
-    },
-    {
-      rotulo: 'Vínculos atendidos',
-      valor: resumo.dados ? totais.clientes : null,
-      deOnde: 'vínculos cliente × carteira; metade dos clientes está em duas ou mais',
-      semDado: '—',
-    },
-    {
-      rotulo: 'Cobertura em 30 dias',
-      valor: resumo.dados && totais.clientes > 0 ? `${Math.round((totais.em30 / totais.clientes) * 100)}%` : null,
-      tom: 'bom',
-      deOnde: 'vínculos com contato nos últimos 30 dias (regra da BI de carteiras), sobre o total',
-      semDado: '—',
-    },
-    {
-      rotulo: 'Nunca contatados',
-      valor: resumo.dados ? totais.nunca : null,
-      tom: 'atencao',
-      deOnde: 'sem contato no histórico do Vórtice, pela regra da BI de carteiras',
-      semDado: '—',
-    },
-  ];
+  // SEM CARTEIRA AO ALCANCE, O NÚMERO É O TRAÇO COM O MOTIVO; LENDO, O CARTÃO PULSA E NÃO AFIRMA MOTIVO NENHUM.
+  const semCarteira = resumo.carregando ? undefined : 'Sem carteira ao alcance deste contexto.';
+  const nomeDoCen = painel.dados?.painel.responsavelNome ?? 'Todos os responsáveis';
 
   return (
-    <>
-      <div className="page-header">
+    // A LARGURA É A DA COLUNA INTEIRA, como a Visão 360: o teto só volta acima de 2.100px de janela.
+    <PaginaDoPainel className="dash-pagina-larga">
+      <div className="page-header" data-bloco="cabecalho">
         <div>
           <h1 className="page-title">Performance de CEN</h1>
           <p className="page-subtitle">
-            <code>comercial.ClienteCarteira</code> — <strong>quem está cobrindo a carteira e quem não
-            está</strong> — e a meta de venda de cada consultor contra as máquinas que ele vendeu.
+            <strong>Quem está cobrindo a carteira e quem não está</strong> — e a meta de venda de cada consultor contra as
+            máquinas que ele vendeu.
           </p>
+        </div>
+        <p className="dash-atualizado">
+          {resumo.procedencia ? <DadosAtualizadosEm procedencia={resumo.procedencia} /> : 'Lendo a performance…'}
+          <button
+            type="button"
+            className="dash-recarregar"
+            onClick={() => {
+              resumo.recarregar();
+              painel.recarregar();
+              funil.recarregar();
+              perdas.recarregar();
+              meta.recarregar();
+            }}
+            disabled={resumo.carregando || painel.carregando}
+            data-carregando={resumo.carregando || painel.carregando ? 'true' : 'false'}
+            aria-label="Reler a performance"
+          >
+            <RefreshCw size={15} strokeWidth={2} aria-hidden="true" />
+          </button>
+        </p>
+      </div>
+
+      {/* A BARRA DOS INDICADORES. O CEN escolhido vale para o painel do CEN e para o funil e as perdas dele; os números do
+          topo, o gráfico e o ranking são sempre de todos os responsáveis da filial. */}
+      <div className="dash-filtros" data-bloco="filtros">
+        <div className="dash-filtros-linha">
+          <label className="dash-filtro" data-bloco="cen">
+            <span className="dash-filtro-icone" aria-hidden="true">
+              <UserRound size={17} strokeWidth={2} />
+            </span>
+            <span className="dash-filtro-corpo">
+              <span className="dash-filtro-rotulo">
+                CEN
+                <InfoTooltip
+                  texto="O responsável escolhido vale para o painel do CEN — a cobertura por classe — e para o funil e as perdas dele. Os números do topo, a divisão da carteira e o ranking são sempre de todos os responsáveis da filial."
+                  rotulo="O que o CEN escolhido muda"
+                />
+              </span>
+              <select value={cenEscolhido ?? ''} onChange={(e) => setCenEscolhido(e.target.value === '' ? null : e.target.value)}>
+                <option value="">Todos os responsáveis</option>
+                {(painel.dados?.responsaveis ?? []).map((r) => (
+                  <option key={r.chave} value={r.chave}>
+                    {r.nome}
+                    {r.natureza === 'Departamento' ? ' (área)' : ''} · {r.carteiras} carteira
+                    {r.carteiras === 1 ? '' : 's'}
+                  </option>
+                ))}
+              </select>
+            </span>
+          </label>
         </div>
       </div>
 
       <AvisoDeProcedencia procedencia={resumo.procedencia} />
 
-      <PainelDeIndicadores indicadores={indicadores} carregando={resumo.carregando} />
+      <div className="dash-kpis mv-kpis" data-bloco="kpis">
+        <CartaoDeDecisao
+          rotulo="CENs com carteira"
+          icone={UsersRound}
+          tom="neutro"
+          valor={resumo.dados ? nº(totais.cens) : null}
+          carregando={resumo.carregando}
+          unidade="responsáveis"
+          motivoSemDado={semCarteira}
+          variacao={resumo.dados ? 'distintos nas carteiras desta filial' : null}
+          sobre="Responsáveis distintos nas carteiras comerciais desta filial. Pessoa e área entram; contas do sistema, do fornecedor e de teste não."
+        />
+        <CartaoDeDecisao
+          rotulo="Vínculos atendidos"
+          icone={Users}
+          tom="mercado"
+          valor={resumo.dados ? nº(totais.clientes) : null}
+          carregando={resumo.carregando}
+          unidade="vínculos"
+          motivoSemDado={semCarteira}
+          variacao={resumo.dados ? 'cliente × carteira' : null}
+          sobre="Vínculos cliente × carteira; metade dos clientes está em duas ou mais carteiras — por isso é contagem de vínculos, e não de clientes."
+        />
+        <CartaoDeDecisao
+          rotulo="Cobertura em 30 dias"
+          icone={CalendarCheck}
+          tom="demanda"
+          valor={resumo.dados && totais.clientes > 0 ? `${Math.round((totais.em30 / totais.clientes) * 100)}%` : null}
+          carregando={resumo.carregando}
+          motivoSemDado={resumo.carregando ? undefined : resumo.dados ? 'Sem vínculo na carteira: não há de quanto tirar o percentual.' : semCarteira}
+          variacao={resumo.dados && totais.clientes > 0 ? `${nº(totais.em30)} de ${nº(totais.clientes)} vínculos` : null}
+          sobre="Vínculos com contato nos últimos 30 dias (regra da BI de carteiras), sobre o total."
+        />
+        <CartaoDeDecisao
+          rotulo="Nunca contatados"
+          icone={UserX}
+          tom="oportunidade"
+          valor={resumo.dados ? nº(totais.nunca) : null}
+          carregando={resumo.carregando}
+          unidade="vínculos"
+          motivoSemDado={semCarteira}
+          variacao={resumo.dados ? 'sem contato no histórico' : null}
+          sobre="Sem contato no histórico do Vórtice, pela regra da BI de carteiras."
+        />
+      </div>
 
       <MetricasSemDado metricas={resumo.dados?.metricasSemDado} />
 
@@ -426,208 +515,197 @@ export function PerformanceCen() {
       {/* Prospecção. Onde a linha não declara cadência, o vínculo sai numa    */}
       {/* quarta faixa em vez de ser empurrado para um dos dois lados.         */}
       {/* ------------------------------------------------------------------ */}
-      <div className="card cad-cartao">
-        <div className="card-header cad-cartao-cabecalho">
-          <div>
-            <div className="card-title">Cobertura por classe do cliente</div>
-            <div className="card-subtitle">
-              {painel.dados
-                ? `${painel.dados.painel.responsavelNome} · ${painel.dados.painel.carteiras} carteira(s) · ${painel.dados.painel.clientes.toLocaleString('pt-BR')} vínculos`
-                : 'classe apurada da curva ABC do faturamento, contra a cadência declarada'}
-            </div>
-          </div>
-          <SeloProcedencia procedencia={painel.procedencia} />
-        </div>
+      <section className="dash-secao" data-bloco="secao-cen">
+        <TituloDaSecao
+          titulo="O painel do CEN"
+          subtitulo={
+            painel.dados
+              ? `${nomeDoCen} · ${painel.dados.painel.carteiras} carteira(s) · ${painel.dados.painel.clientes.toLocaleString('pt-BR')} vínculos`
+              : 'O responsável escolhido na barra, ou todos.'
+          }
+          metodologia="Coberto é o vínculo com contato dentro da cadência que o negócio declarou para a classe naquela linha de negócio — 180 dias em Venda de Máquinas, 360 em Peças e AMS, 120 em Prospecção. Onde a linha não declara cadência, o vínculo sai numa quarta faixa. O funil é o FLUXO: as etapas que o CEN fez andar no período, pelo responsável do processo no Vórtice."
+        />
 
-        <div className="cad-barra">
-          <label className="cad-filtro">
-            CEN
-            <select
-              value={cenEscolhido ?? ''}
-              onChange={(e) => setCenEscolhido(e.target.value === '' ? null : e.target.value)}
-            >
-              <option value="">Todos os responsáveis</option>
-              {(painel.dados?.responsaveis ?? []).map((r) => (
-                <option key={r.chave} value={r.chave}>
-                  {r.nome}
-                  {r.natureza === 'Departamento' ? ' (área)' : ''} · {r.carteiras} carteira
-                  {r.carteiras === 1 ? '' : 's'}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <div className="dash-empilhados">
+          <PainelDoMomento
+            titulo="Cobertura por classe do cliente"
+            data-bloco="cobertura-por-classe"
+            subtitulo="Classe apurada da curva ABC do faturamento, contra a cadência declarada."
+            dica="Três estados, e não dois: quem o CEN conhece e deixou vencer não é o mesmo problema que quem ele nunca procurou. O cinza-claro é a linha sem cadência declarada — não é bom nem ruim."
+          >
+            {painel.carregando && <BlocoCarregando oQue="o painel do CEN" />}
+            {painel.erro && <BlocoErro erro={painel.erro} aoTentarDeNovo={painel.recarregar} />}
 
-        {painel.carregando && <BlocoCarregando oQue="o painel do CEN" />}
-        {painel.erro && <BlocoErro erro={painel.erro} aoTentarDeNovo={painel.recarregar} />}
+            <MetricasSemDado metricas={painel.dados?.metricasSemDado} />
 
-        <MetricasSemDado metricas={painel.dados?.metricasSemDado} />
-
-        {painel.dados && painel.dados.painel.porClasse.length > 0 && (
-          <>
-            <MolduraDeGrafico altura={Math.max(170, painel.dados.painel.porClasse.length * 34 + 46)}>
-              {(l, a) => (
-                <GraficoBarrasEmpilhadas
-                  itens={painel.dados!.painel.porClasse.map(
-                      (c) => `Classe ${c.classe}${c.diasDeCadencia ? ` · ${c.diasDeCadencia}d` : ''}`,
+            {painel.dados && painel.dados.painel.porClasse.length > 0 && (
+              <>
+                <MolduraDeGrafico altura={Math.max(170, painel.dados.painel.porClasse.length * 34 + 46)}>
+                  {(l, a) => (
+                    <GraficoBarrasEmpilhadas
+                      itens={painel.dados!.painel.porClasse.map((c) => `Classe ${c.classe}${c.diasDeCadencia ? ` · ${c.diasDeCadencia}d` : ''}`)}
+                      faixas={FAIXAS_DE_COBERTURA.map((f) => ({
+                        nome: f.nome,
+                        cor: f.cor,
+                        valores: painel.dados!.painel.porClasse.map(f.medir),
+                      }))}
+                      largura={l}
+                      altura={a}
+                    />
                   )}
-                  faixas={FAIXAS_DE_COBERTURA.map((f) => ({
-                    nome: f.nome,
-                    cor: f.cor,
-                    valores: painel.dados!.painel.porClasse.map(f.medir),
-                  }))}
-                  largura={l}
-                  altura={a}
-                />
-              )}
-            </MolduraDeGrafico>
+                </MolduraDeGrafico>
 
-            <div className="cad-legenda-faixas">
-              {FAIXAS_DE_COBERTURA.map((f) => (
-                <span key={f.nome}>
-                  <i style={{ background: f.cor }} />
-                  {f.nome}{' '}
-                  <strong>
-                    {painel
-                      .dados!.painel.porClasse.reduce((t, c) => t + f.medir(c), 0)
-                      .toLocaleString('pt-BR')}
-                  </strong>
-                </span>
-              ))}
-            </div>
-
-            <div className="cad-tabela-wrap">
-              <table className="cad-tabela">
-                <caption className="cad-so-leitor">Cobertura por classe do cliente</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Classe</th>
-                    <th scope="col">Cadência</th>
-                    <th scope="col">Vínculos</th>
-                    <th scope="col">Cobertos</th>
-                    <th scope="col">Fora da cadência</th>
-                    <th scope="col">Nunca contatados</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {painel.dados.painel.porClasse.map((c) => (
-                    <tr key={c.classe}>
-                      <td className="cad-link-forte">{c.classe}</td>
-                      <td className="cad-mono">
-                        {/* Cadência nula com vínculo medido quer dizer que a classe aparece em
-                            linhas de negócio com prazos diferentes — 180 em Máquinas, 360 em
-                            Peças. Escrever um dos dois seria afirmar um prazo que não vale para
-                            todo mundo da linha. */}
-                        {c.diasDeCadencia ? (
-                          `${c.diasDeCadencia} dias`
-                        ) : c.semCadenciaDeclarada === c.clientes ? (
-                          <span className="cad-nada">não declarada</span>
-                        ) : (
-                          <span className="cad-nada">varia por linha</span>
-                        )}
-                      </td>
-                      <td className="cad-mono">{c.clientes.toLocaleString('pt-BR')}</td>
-                      <td className="cad-mono">
-                        <Fatia parte={c.cobertos} todo={c.clientes} />
-                      </td>
-                      <td className="cad-mono">
-                        <span className={c.foraDaCadencia > 0 ? 'cad-alerta' : undefined}>
-                          {c.foraDaCadencia.toLocaleString('pt-BR')}
-                        </span>
-                      </td>
-                      <td className="cad-mono">
-                        <span className={c.nuncaContatados > 0 ? 'cad-atencao' : undefined}>
-                          {c.nuncaContatados.toLocaleString('pt-BR')}
-                        </span>
-                      </td>
-                    </tr>
+                <div className="cad-legenda-faixas">
+                  {FAIXAS_DE_COBERTURA.map((f) => (
+                    <span key={f.nome}>
+                      <i style={{ background: f.cor }} />
+                      {f.nome}{' '}
+                      <strong>
+                        {painel.dados!.painel.porClasse.reduce((t, c) => t + f.medir(c), 0).toLocaleString('pt-BR')}
+                      </strong>
+                    </span>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* OS PROCESSOS SAÍRAM DAQUI (27/09/2026): "0 ganhos · 0 perdidos · 0 abertos" contava processo.Processo, que
-                só a onda 2 carrega. O funil do CEN, pelo responsável do processo no Vórtice, está no bloco logo abaixo. */}
-            <div className="cad-fichas">
-              <div className="cad-ficha-linha">
-                <span className="cad-ficha-rotulo">Faturamento dos clientes da carteira</span>
-                <span className="cad-ficha-valor">
-                  {painel.dados.painel.faturamentoDaCarteira.toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                    maximumFractionDigits: 0,
-                  })}
-                </span>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* O FUNIL DO CEN — o fluxo por estágio e as perdas (27/09/2026)        */}
-      {/*                                                                     */}
-      {/* A Performance usa o FLUXO (decisão do Ricardo): as etapas que o CEN  */}
-      {/* fez andar no período, qualquer que seja a abertura do processo. O    */}
-      {/* dono é o responsável do processo no Vórtice (UsuResponsavel), e o    */}
-      {/* seletor é o mesmo do bloco acima.                                    */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="card cad-cartao" data-bloco="funil-do-cen">
-        <div className="card-header cad-cartao-cabecalho">
-          <div>
-            <div className="card-title">Funil do CEN — fluxo por estágio</div>
-            <div className="card-subtitle">
-              {funil.dados
-                ? `${painel.dados?.painel.responsavelNome ?? 'Todos os responsáveis'} · etapas alcançadas em ${funil.dados.periodo.texto}`
-                : 'as etapas alcançadas no período, pelo responsável do processo no Vórtice'}
-            </div>
-          </div>
-          <SeloProcedencia procedencia={funil.procedencia} />
-        </div>
-
-        {funil.carregando && <BlocoCarregando oQue="o funil do CEN" />}
-        {funil.erro && <BlocoErro erro={funil.erro} aoTentarDeNovo={funil.recarregar} />}
-
-        {funil.dados && (
-          <div className="cad-fichas">
-            {ESTAGIOS.map(({ estagio, nome }) => {
-              const e = funil.dados!.estagios.find((x) => x.estagio === estagio);
-              return (
-                <div className="cad-ficha-linha" key={estagio}>
-                  <span className="cad-ficha-rotulo">{nome}</span>
-                  <span className="cad-ficha-valor">
-                    {e ? (
-                      <>
-                        {e.processos.toLocaleString('pt-BR')}
-                        {e.percentualSobreOAnterior !== null && (
-                          <span className="cad-sub">
-                            {' '}
-                            · {e.percentualSobreOAnterior.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do anterior
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <ValorAusente oQue={`o estágio ${nome}`} motivo={motivoDoFunil} />
-                    )}
-                  </span>
                 </div>
-              );
-            })}
-            <div className="cad-ficha-linha">
-              <span className="cad-ficha-rotulo">Perdas no período</span>
-              <span className="cad-ficha-valor">
-                {perdas.dados ? (
-                  `${perdas.dados.processosPerdidos.toLocaleString('pt-BR')} processos perdidos · ` +
-                  `${perdas.dados.registradas.toLocaleString('pt-BR')} com o formulário de venda perdida` +
-                  (perdas.dados.porMotivo[0] ? ` · mais comum: ${perdas.dados.porMotivo[0].nome}` : '')
-                ) : (
-                  <ValorAusente oQue="as perdas" motivo={perdas.erro?.message ?? 'Lendo as vendas perdidas.'} />
-                )}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
+
+                <div className="mom-tabela-rolagem">
+                  <table className="mom-tabela">
+                    <caption className="cad-so-leitor">Cobertura por classe do cliente</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Classe</th>
+                        <th scope="col" className="mom-num">Cadência</th>
+                        <th scope="col" className="mom-num">Vínculos</th>
+                        <th scope="col" className="mom-num">Cobertos</th>
+                        <th scope="col" className="mom-num">Fora da cadência</th>
+                        <th scope="col" className="mom-num">Nunca contatados</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {painel.dados.painel.porClasse.map((c) => (
+                        <tr key={c.classe}>
+                          <th scope="row">{c.classe}</th>
+                          <td className="mom-num">
+                            {/* Cadência nula com vínculo medido quer dizer que a classe aparece em
+                                linhas de negócio com prazos diferentes — 180 em Máquinas, 360 em
+                                Peças. Escrever um dos dois seria afirmar um prazo que não vale para
+                                todo mundo da linha. */}
+                            {c.diasDeCadencia ? (
+                              `${c.diasDeCadencia} dias`
+                            ) : c.semCadenciaDeclarada === c.clientes ? (
+                              <span className="cad-nada">não declarada</span>
+                            ) : (
+                              <span className="cad-nada">varia por linha</span>
+                            )}
+                          </td>
+                          <td className="mom-num">{c.clientes.toLocaleString('pt-BR')}</td>
+                          <td className="mom-num">
+                            <Fatia parte={c.cobertos} todo={c.clientes} />
+                          </td>
+                          <td className="mom-num">
+                            <span className={c.foraDaCadencia > 0 ? 'cad-alerta' : undefined}>
+                              {c.foraDaCadencia.toLocaleString('pt-BR')}
+                            </span>
+                          </td>
+                          <td className="mom-num">
+                            <span className={c.nuncaContatados > 0 ? 'cad-atencao' : undefined}>
+                              {c.nuncaContatados.toLocaleString('pt-BR')}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* OS PROCESSOS SAÍRAM DAQUI (27/09/2026): "0 ganhos · 0 perdidos · 0 abertos" contava processo.Processo, que
+                    só a onda 2 carrega. O funil do CEN, pelo responsável do processo no Vórtice, está no painel ao lado. */}
+                <p className="v360-nota">
+                  Faturamento dos clientes da carteira:{' '}
+                  <strong>
+                    {painel.dados.painel.faturamentoDaCarteira.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                      maximumFractionDigits: 0,
+                    })}
+                  </strong>
+                  <InfoTooltip
+                    texto="O faturamento dos CLIENTES da carteira, e não das vendas desta pessoa: a carga do Protheus agrega a nota por cliente, filial e mês e ainda não lê o vendedor dela."
+                    rotulo="O que é este faturamento"
+                  />
+                </p>
+              </>
+            )}
+          </PainelDoMomento>
+
+          {/* ------------------------------------------------------------------ */}
+          {/* O FUNIL DO CEN — o fluxo por estágio e as perdas (27/09/2026)        */}
+          {/*                                                                     */}
+          {/* A Performance usa o FLUXO (decisão do Ricardo): as etapas que o CEN  */}
+          {/* fez andar no período, qualquer que seja a abertura do processo. O    */}
+          {/* dono é o responsável do processo no Vórtice (UsuResponsavel), e o    */}
+          {/* seletor é o mesmo da barra.                                          */}
+          {/* ------------------------------------------------------------------ */}
+          <PainelDoMomento
+            titulo="Funil do CEN — fluxo por estágio"
+            data-bloco="funil-do-cen"
+            subtitulo={
+              funil.dados
+                ? `${nomeDoCen} · etapas alcançadas em ${funil.dados.periodo.texto}`
+                : 'as etapas alcançadas no período, pelo responsável do processo no Vórtice'
+            }
+            dica="O fluxo conta as etapas que o CEN fez andar no período, qualquer que seja a abertura do processo. As perdas são os processos perdidos no funil e os formulários de venda perdida — só a principal."
+          >
+            {funil.carregando && <BlocoCarregando oQue="o funil do CEN" />}
+            {funil.erro && <BlocoErro erro={funil.erro} aoTentarDeNovo={funil.recarregar} />}
+
+            {funil.dados && (
+              <>
+                <div className="mom-tabela-rolagem">
+                  <table className="mom-tabela">
+                    <caption className="cad-so-leitor">O funil do CEN, pelo fluxo</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Estágio</th>
+                        <th scope="col" className="mom-num">Processos</th>
+                        <th scope="col" className="mom-num">Sobre o anterior</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ESTAGIOS.map(({ estagio, nome }) => {
+                        const e = funil.dados!.estagios.find((x) => x.estagio === estagio);
+                        const ausente = <ValorAusente oQue={`o estágio ${nome}`} motivo={motivoDoFunil} />;
+                        return (
+                          <tr key={estagio}>
+                            <th scope="row">{nome}</th>
+                            <td className="mom-num">{e ? e.processos.toLocaleString('pt-BR') : ausente}</td>
+                            <td className="mom-num">
+                              {e
+                                ? e.percentualSobreOAnterior !== null
+                                  ? `${e.percentualSobreOAnterior.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
+                                  : '—'
+                                : ausente}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="v360-nota">
+                  <strong>Perdas no período:</strong>{' '}
+                  {perdas.dados ? (
+                    `${perdas.dados.processosPerdidos.toLocaleString('pt-BR')} processos perdidos · ` +
+                    `${perdas.dados.registradas.toLocaleString('pt-BR')} com o formulário de venda perdida` +
+                    (perdas.dados.porMotivo[0] ? ` · mais comum: ${perdas.dados.porMotivo[0].nome}` : '')
+                  ) : (
+                    <ValorAusente oQue="as perdas" motivo={perdas.erro?.message ?? 'Lendo as vendas perdidas.'} />
+                  )}
+                </p>
+              </>
+            )}
+          </PainelDoMomento>
+        </div>
+      </section>
 
       {/* O QUE FICOU DE FORA, DITO NA TELA. Excluir sem avisar é a mesma família de defeito que
           mostrar número sem dizer de onde ele vem — quem conhece a base vai procurar o
@@ -652,103 +730,102 @@ export function PerformanceCen() {
       {/* ------------------------------------------------------------------ */}
       {/* Os dois gráficos, lado a lado, no lugar dos dois do protótipo        */}
       {/* ------------------------------------------------------------------ */}
-      <div className="p360-grid">
-        {/* A LINHA VAZIA DE DOZE MESES SAIU, E O LUGAR DELA TEM DADO.
+      <section className="dash-secao" data-bloco="secao-carteiras">
+        <TituloDaSecao
+          titulo="A carteira de cada CEN"
+          subtitulo="Quem está cobrindo e quem não está, responsável a responsável."
+          metodologia="Somar carteira por responsável é exato: cada carteira tem um responsável só, e nenhuma linha é contada duas vezes. O gráfico e o ranking saem do mesmo agregado da tabela em número, no fim da tela."
+        />
 
-            Ficava aqui um gráfico de linha desenhado com doze zeros e uma tampa
-            por cima explicando que não há série mensal POR CEN — o motivo
-            continua escrito, no rodapé: a carga do faturamento não lê o vendedor
-            da nota (27/09/2026; a frase antiga dizia que o faturamento tinha
-            parado, e era a cópia do Vórtice). O que mudou é que a moldura
-            deixou de gastar meia tela para não dizer nada.
+        <div className="dash-duas-colunas dash-analitico">
+          {/* A LINHA VAZIA DE DOZE MESES SAIU, E O LUGAR DELA TEM DADO.
 
-            No lugar entra a única leitura por pessoa que tem lastro: como a
-            carteira de cada CEN se divide entre as faixas de tempo sem contato.
-            Mesmo agregado da tabela — gráfico e número nunca divergem. */}
-        <div className="card cad-cartao">
-          <div className="card-header cad-cartao-cabecalho">
-            <div>
-              <div className="card-title">Como a carteira de cada CEN está dividida</div>
-              <div className="card-subtitle">
-                {censNoGrafico.length > 0
-                  ? `${censNoGrafico.length} maiores de ${cens.length} responsáveis · fatia de cada faixa de tempo sem contato`
-                  : 'fatia de cada faixa de tempo sem contato'}
-              </div>
-            </div>
-            <SeloProcedencia procedencia={resumo.procedencia} />
-          </div>
+              Ficava aqui um gráfico de linha desenhado com doze zeros e uma tampa
+              por cima explicando que não há série mensal POR CEN — o motivo
+              continua escrito, no rodapé: a carga do faturamento não lê o vendedor
+              da nota (27/09/2026; a frase antiga dizia que o faturamento tinha
+              parado, e era a cópia do Vórtice). O que mudou é que a moldura
+              deixou de gastar meia tela para não dizer nada.
 
-          {resumo.carregando && <BlocoCarregando oQue="a divisão da carteira" />}
+              No lugar entra a única leitura por pessoa que tem lastro: como a
+              carteira de cada CEN se divide entre as faixas de tempo sem contato.
+              Mesmo agregado da tabela — gráfico e número nunca divergem. */}
+          <PainelDoMomento
+            titulo="Como a carteira de cada CEN está dividida"
+            data-bloco="carteira-dividida"
+            subtitulo={
+              censNoGrafico.length > 0
+                ? `${censNoGrafico.length} maiores de ${cens.length} responsáveis · fatia de cada faixa de tempo sem contato`
+                : 'fatia de cada faixa de tempo sem contato'
+            }
+            dica="As mesmas faixas e cores da Cobertura de Carteira: em dia (até 30 dias), aviso (31 a 90), atraso (mais de 90) e nunca contatado."
+          >
+            {resumo.carregando && <BlocoCarregando oQue="a divisão da carteira" />}
 
-          {!resumo.carregando && censNoGrafico.length > 0 && (
-            <>
-              <MolduraDeGrafico altura={Math.max(200, censNoGrafico.length * 24 + 40)}>
-                {(l, a) => (
-                  <GraficoBarrasEmpilhadas
-                    itens={censNoGrafico.map((c) => primeiroENome(c.responsavelNome))}
-                    faixas={FAIXAS_DE_CONTATO.map((f) => ({
-                      nome: f.nome,
-                      cor: f.cor,
-                      valores: censNoGrafico.map(f.medir),
-                    }))}
-                    largura={l}
-                    altura={a}
-                    proporcional
-                  />
-                )}
+            {!resumo.carregando && censNoGrafico.length > 0 && (
+              <>
+                <MolduraDeGrafico altura={Math.max(200, censNoGrafico.length * 24 + 40)}>
+                  {(l, a) => (
+                    <GraficoBarrasEmpilhadas
+                      itens={censNoGrafico.map((c) => primeiroENome(c.responsavelNome))}
+                      faixas={FAIXAS_DE_CONTATO.map((f) => ({
+                        nome: f.nome,
+                        cor: f.cor,
+                        valores: censNoGrafico.map(f.medir),
+                      }))}
+                      largura={l}
+                      altura={a}
+                      proporcional
+                    />
+                  )}
+                </MolduraDeGrafico>
+                <div className="cad-legenda-faixas">
+                  {FAIXAS_DE_CONTATO.map((f) => (
+                    <span key={f.nome}>
+                      <i style={{ background: f.cor }} />
+                      {f.nome} <strong>{cens.reduce((t, c) => t + f.medir(c), 0).toLocaleString('pt-BR')}</strong>
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+          </PainelDoMomento>
+
+          <PainelDoMomento
+            titulo="Ranking por métrica"
+            data-bloco="ranking"
+            subtitulo={`as ${Math.min(BARRAS, cens.length)} maiores · o mesmo agregado do gráfico ao lado`}
+            dica="A cor diz o sentido, e não o mérito: em nunca contatados, barra grande é problema, e ela é vermelha. Nas demais métricas, maior é melhor."
+            direita={
+              <label className="dash-seletor-do-painel">
+                <span className="cad-so-leitor">Métrica do ranking</span>
+                <select value={metricaDoRanking} onChange={(e) => setMetricaDoRanking(e.target.value as MetricaId)}>
+                  {METRICAS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.rotulo}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            }
+          >
+            {resumo.carregando && <BlocoCarregando oQue="o ranking" />}
+
+            {resumo.dados && barrasDoRanking.length === 0 && !resumo.erro && (
+              <BlocoVazio
+                titulo="Nenhum CEN com carteira nesta filial"
+                texto="O ranking sai da cobertura por carteira; sem carteira com responsavel nao ha barra."
+              />
+            )}
+
+            {barrasDoRanking.length > 0 && (
+              <MolduraDeGrafico altura={260}>
+                {(l, a) => <GraficoBarrasHorizontais itens={barrasDoRanking} largura={l} altura={a} />}
               </MolduraDeGrafico>
-              <div className="cad-legenda-faixas">
-                {FAIXAS_DE_CONTATO.map((f) => (
-                  <span key={f.nome}>
-                    <i style={{ background: f.cor }} />
-                    {f.nome}{' '}
-                    <strong>{cens.reduce((t, c) => t + f.medir(c), 0).toLocaleString('pt-BR')}</strong>
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
+            )}
+          </PainelDoMomento>
         </div>
-
-        <div className="card cad-cartao">
-          <div className="card-header cad-cartao-cabecalho">
-            <div>
-              <div className="card-title">Ranking por métrica</div>
-              <div className="card-subtitle">
-                as {Math.min(BARRAS, cens.length)} maiores · o mesmo agregado do gráfico ao lado
-              </div>
-            </div>
-            <label className="cad-filtro">
-              Métrica
-              <select
-                value={metricaDoRanking}
-                onChange={(e) => setMetricaDoRanking(e.target.value as MetricaId)}
-              >
-                {METRICAS.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.rotulo}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {resumo.carregando && <BlocoCarregando oQue="o ranking" />}
-
-          {resumo.dados && barrasDoRanking.length === 0 && !resumo.erro && (
-            <BlocoVazio
-              titulo="Nenhum CEN com carteira nesta filial"
-              texto="O ranking sai da cobertura por carteira; sem carteira com responsavel nao ha barra."
-            />
-          )}
-
-          {barrasDoRanking.length > 0 && (
-            <MolduraDeGrafico altura={260}>
-              {(l, a) => <GraficoBarrasHorizontais itens={barrasDoRanking} largura={l} altura={a} />}
-            </MolduraDeGrafico>
-          )}
-        </div>
-      </div>
+      </section>
 
       {/* A TABELA INTEIRA, FECHADA POR PADRÃO.
 
@@ -772,55 +849,47 @@ export function PerformanceCen() {
 
         {cens.length > 0 && (
           <>
-            <div className="cad-tabela-wrap cad-so-largo">
-              <table className="cad-tabela">
-                <caption className="cad-so-leitor">
-                  Cobertura de carteira por CEN da filial {contexto.empresa}
-                </caption>
+            <div className="mom-tabela-rolagem cad-so-largo">
+              <table className="mom-tabela">
+                <caption className="cad-so-leitor">Cobertura de carteira por CEN da filial {contexto.empresa}</caption>
                 <thead>
                   <tr>
                     {COLUNAS.map((coluna) => (
                       <th
                         key={coluna.rotulo}
                         scope="col"
-                        aria-sort={
-                          ordem === coluna.ordem ? (descendente ? 'descending' : 'ascending') : undefined
-                        }
+                        className={coluna.ordem === 'nome' ? undefined : 'mom-num'}
+                        aria-sort={ordem === coluna.ordem ? (descendente ? 'descending' : 'ascending') : undefined}
                       >
                         <button type="button" className="cad-th-ordenar" onClick={() => trocarOrdem(coluna.ordem)}>
                           {coluna.rotulo}
-                          <span aria-hidden="true">
-                            {ordem === coluna.ordem ? (descendente ? '▾' : '▴') : ''}
-                          </span>
+                          <span aria-hidden="true">{ordem === coluna.ordem ? (descendente ? '▾' : '▴') : ''}</span>
                         </button>
                       </th>
                     ))}
-                    <th scope="col">Último contato na carteira</th>
+                    <th scope="col" className="mom-num">Último contato na carteira</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ordenados.map((c) => (
                     <tr key={c.responsavelNome}>
-                      <td>
+                      <th scope="row">
                         <div className="cad-link-forte">{c.responsavelNome}</div>
                         <div className="cad-sub">
-                          {c.carteiras} {c.carteiras === 1 ? 'carteira' : 'carteiras'} ·{' '}
-                          {c.linhas.join(', ')}
+                          {c.carteiras} {c.carteiras === 1 ? 'carteira' : 'carteiras'} · {c.linhas.join(', ')}
                         </div>
-                      </td>
-                      <td className="cad-mono">{c.clientes.toLocaleString('pt-BR')}</td>
-                      <td>
+                      </th>
+                      <td className="mom-num">{c.clientes.toLocaleString('pt-BR')}</td>
+                      <td className="mom-num">
                         <Fatia parte={c.em30} todo={c.clientes} />
                       </td>
-                      <td>
+                      <td className="mom-num">
                         <Fatia parte={c.em90} todo={c.clientes} />
                       </td>
-                      <td className="cad-mono">
-                        <span className={c.nunca > 0 ? 'cad-atencao' : undefined}>
-                          {c.nunca.toLocaleString('pt-BR')}
-                        </span>
+                      <td className="mom-num">
+                        <span className={c.nunca > 0 ? 'cad-atencao' : undefined}>{c.nunca.toLocaleString('pt-BR')}</span>
                       </td>
-                      <td className="cad-mono">
+                      <td className="mom-num">
                         {c.ultimoContatoEm ? formatarData(c.ultimoContatoEm) : <span className="cad-nada">nunca</span>}
                       </td>
                     </tr>
@@ -895,34 +964,30 @@ export function PerformanceCen() {
         )}
 
         {meta.dados && meta.dados.porConsultor.length > 0 && (
-          <div className="cad-tabela-wrap">
-            <table className="cad-tabela">
+          <div className="mom-tabela-rolagem">
+            <table className="mom-tabela">
               <caption className="cad-so-leitor">
                 Meta de venda × realizado por consultor da filial {contexto.empresa}, {meta.dados.periodo.texto}
               </caption>
               <thead>
                 <tr>
                   <th scope="col">Consultor</th>
-                  <th scope="col">Meta (máq.)</th>
-                  <th scope="col">Realizado (máq.)</th>
-                  <th scope="col">Atingimento</th>
+                  <th scope="col" className="mom-num">Meta (máq.)</th>
+                  <th scope="col" className="mom-num">Realizado (máq.)</th>
+                  <th scope="col" className="mom-num">Atingimento</th>
                 </tr>
               </thead>
               <tbody>
                 {meta.dados.porConsultor.map((c) => (
                   <tr key={c.consultor}>
-                    <td>
+                    <th scope="row">
                       <div className="cad-link-forte">{c.consultor}</div>
                       {!c.temConta && <div className="cad-sub">sem conta no CRM</div>}
-                    </td>
-                    <td className="cad-mono">{c.meta.toLocaleString('pt-BR')}</td>
-                    <td className="cad-mono">{c.realizado.toLocaleString('pt-BR')}</td>
-                    <td className="cad-mono">
-                      {c.meta > 0 ? (
-                        `${Math.round((c.realizado / c.meta) * 100)}%`
-                      ) : (
-                        <span className="cad-nada">sem meta no período</span>
-                      )}
+                    </th>
+                    <td className="mom-num">{c.meta.toLocaleString('pt-BR')}</td>
+                    <td className="mom-num">{c.realizado.toLocaleString('pt-BR')}</td>
+                    <td className="mom-num">
+                      {c.meta > 0 ? `${Math.round((c.realizado / c.meta) * 100)}%` : <span className="cad-nada">sem meta no período</span>}
                     </td>
                   </tr>
                 ))}
@@ -995,7 +1060,7 @@ export function PerformanceCen() {
               está no funil do CEN, acima. */}
         </div>
       </BlocoRecolhivel>
-    </>
+    </PaginaDoPainel>
   );
 }
 
