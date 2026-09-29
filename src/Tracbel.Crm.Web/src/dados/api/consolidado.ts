@@ -49,6 +49,7 @@ import type {
   CarteiraDaFilial,
   CoberturaDaFilial,
   FaturamentoDaCompetencia,
+  MaquinasEntreguesNoArt,
   MercadoDaFilial,
   PainelExecutivoDaFilial,
 } from '../../tipos/painelExecutivo';
@@ -326,6 +327,15 @@ export type ExecutivoConsolidado = {
     semCliente: number;
     total: number;
   };
+  /**
+   * O FATURAMENTO PELO ART (29/09/2026): as máquinas entregues somadas entre as filiais — no ano, no mesmo trecho do ano
+   * anterior e no mês em curso. Nulo quando nenhuma filial o trouxe.
+   */
+  entregues: {
+    ano: MaquinasEntreguesNoArt | null;
+    anterior: MaquinasEntreguesNoArt | null;
+    mesEmCurso: MaquinasEntreguesNoArt | null;
+  };
   /** Sem `clientesNasCarteirasDaFilial`: essa contagem não se soma. */
   carteira: Omit<CarteiraDaFilial, 'clientesNasCarteirasDaFilial'>;
   cobertura: CoberturaDaFilial;
@@ -367,6 +377,23 @@ export async function obterExecutivoConsolidado(
 
 const somar = <T,>(lista: T[], valor: (x: T) => number) => lista.reduce((s, x) => s + valor(x), 0);
 const textos = (lista: (string | null | undefined)[]) => lista.filter((t): t is string => !!t).sort();
+
+/**
+ * As máquinas entregues no ART somadas entre as filiais. Cada registro é de UMA filial — a da unidade que vendeu —, e por
+ * isso a soma não conta nada duas vezes. A janela é a mesma em todas; a menor e a maior ficam, por garantia.
+ */
+function somarEntregues(lista: (MaquinasEntreguesNoArt | null | undefined)[]): MaquinasEntreguesNoArt | null {
+  const vivas = lista.filter((e): e is MaquinasEntreguesNoArt => !!e);
+  if (vivas.length === 0) return null;
+  return {
+    inicio: textos(vivas.map((e) => e.inicio))[0],
+    fim: textos(vivas.map((e) => e.fim)).at(-1)!,
+    maquinas: somar(vivas, (e) => e.maquinas),
+    valor: somar(vivas, (e) => e.valor),
+    semValor: somar(vivas, (e) => e.semValor),
+    aguardandoNoCrm: somar(vivas, (e) => e.aguardandoNoCrm),
+  };
+}
 
 /**
  * Soma os cinco cartões. CADA NÚMERO É DE UMA PARTIÇÃO QUE NÃO SE SOBREPÕE ENTRE FILIAIS:
@@ -422,6 +449,11 @@ export function somarExecutivo(ano: number, filiais: ExecutivoDaFilial[]): Execu
       comCliente: somar(anos, (a) => a.comCliente),
       semCliente: somar(anos, (a) => a.semCliente),
       total: somar(anos, (a) => a.total),
+    },
+    entregues: {
+      ano: somarEntregues(vivas.map((v) => v.i.entreguesNoAno)),
+      anterior: somarEntregues(vivas.map((v) => v.i.entreguesNoMesmoTrechoDoAnoAnterior)),
+      mesEmCurso: somarEntregues(vivas.map((v) => v.i.entreguesNoMesEmCurso)),
     },
     carteira: {
       clientesCadastradosComVinculo: somar(carteiras, (c) => c.clientesCadastradosComVinculo),

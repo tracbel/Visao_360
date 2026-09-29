@@ -1,5 +1,9 @@
 # O banco do servidor, a tela sem dados e o caminho dos dados até lá
 
+> **Versão 1.8 · 29/09/2026 — o valor de venda do ART:** o CRM passa a ler o `vr_vda` e a guardar a entrega e o valor no
+> retrato de cada registro do ART, e o faturamento do ano fiscal da Visão 360 passa a ser o ART das máquinas entregues
+> (decisão do Ricardo). Revê a versão 1.3. Em **§15**.
+>
 > **Versão 1.7 · 24/09/2026 — o parque pelo proprietário atual do Protheus:** a rotina `PARQUE_PROTHEUS` lê o
 > cadastro de veículos (`VV1`) com o dono atual e a evidência dele, e o ciclo do ART passa a aceitar o número de
 > série confirmado, o VIN com `1CQ` e o dono do Protheus no lugar do comprador ausente. Em **§13**.
@@ -1256,3 +1260,34 @@ WHERE EXISTS (SELECT 1 FROM m WHERE m.Pessoa = v.Pessoa)
 3. Rodar uma vez no terminal com `--somente-metas-gn --simular` e conferir as contagens (1.540 lidas; 1.502 unidades de
    máquinas no FY2026; 417 cotas de consórcio).
 4. Ligar a rotina "Metas de venda (Gestão de Negócios)".
+
+## 15. O valor de venda do ART e o faturamento do ano fiscal (29/09/2026)
+
+### 15.1 A decisão
+
+O Ricardo, em 29/09/2026: "o faturamento real do ano fiscal vem do ART, das máquinas entregues"; "vendida = entregue
+no ART, as máquinas com a data de entrega preenchida". Ela revê a versão 1.3 deste documento (o ART fora do faturamento
+da Visão 360): o cartão A passa a ser o valor de venda do ART das máquinas entregues no ano fiscal, com a quantidade, e
+a nota do Protheus fica como conferência. O detalhe do cartão está no documento 36, §3.1.
+
+### 15.2 O que a integração passou a ler
+
+| Coluna da view | Onde grava | Regra |
+|---|---|---|
+| `vr_vda` (double) | `integracao.RegistroDeOrigem.ValorDaVenda` (`decimal(18,2)`) | lida como texto e convertida no saneamento; duas casas; zero, negativo, ilegível ou acima da coluna ficam vazios com a transformação escrita |
+| `entrega` (já lida) | também em `integracao.RegistroDeOrigem.EntregueEm` | a mesma data saneada que ia só para `frota.VendaDeMaquina.EntregueEm` |
+
+- **A minimização foi revista pela segunda vez** (a primeira foi o vendedor, D-M2). Entra só o `vr_vda`; custo, ICMS,
+  frete, comissão, bônus, lucro e margem continuam fora da consulta.
+- **O retrato do registro, e não só a venda:** o faturamento conta o ART inteiro, e o registro cujo comprador ainda não
+  é cliente do CRM só existe em `RegistroDeOrigem`. `frota.VendaDeMaquina` não ganhou coluna.
+- **O resumo do registro inclui o `vr_vda`:** a primeira leitura do ART depois da publicação acha todos os registros
+  alterados e grava a entrega e o valor em cada um — como aconteceu com o vendedor. A migração
+  `EntregaEValorDaVendaDoArt` já preenche a entrega dos registros que viraram venda, pela data da própria venda.
+
+### 15.3 Como ligar em produção
+
+1. Publicar a versão com a migração `EntregaEValorDaVendaDoArt` (duas colunas; o total de tabelas não muda).
+2. Esperar o próximo ciclo do serviço do ART (ou rodá-lo): ele regrava o retrato de todos os registros.
+3. Conferir com as duas consultas do documento 36, §3.1 — o ART e o CRM têm de dar o mesmo número de máquinas entregues
+   no FY, menos as de unidade sem filial.

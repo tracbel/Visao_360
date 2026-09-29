@@ -4,7 +4,8 @@
  * OS CINCO CARTÕES (documento 36) vêm de `/relatorios/indicadores-executivos`, lido filial a filial e somado por
  * partição — cada número tem fonte, regra, período e alcance na dica ao lado do rótulo, e a composição filial a filial
  * abre logo abaixo deles:
- *   A. faturamento da competência mais recente, com e sem cliente no CRM;
+ *   A. o faturamento do ano fiscal pelo ART — o valor de venda das máquinas ENTREGUES, com e sem comprador no CRM
+ *      (decisão de 29/09/2026); a nota do Protheus fica como conferência, na dica e na composição;
  *   B. a meta de VENDA da API Gestão de Negócios × as máquinas vendidas (ART), no ano fiscal até o último mês fechado —
  *      de `/relatorios/metas`, lida filial a filial (#138) — e nunca previsão;
  *   C. clientes únicos (filial de cadastro) e vínculos (filial da carteira);
@@ -93,7 +94,7 @@ const SEM_PERMISSAO_DA_META =
 const DICA_DO_ANO_FISCAL =
   'Os cartões somam o ANO FISCAL da Tracbel, de novembro a outubro, com o nome do ano em que termina: o FY2026 vai de ' +
   'nov/2025 a out/2026. O ano em curso é somado até o ÚLTIMO MÊS FECHADO, como nos Indicadores Geográficos; o mês em ' +
-  'curso, pela metade, fica à parte, no cartão de faturamento em curso. É o período padrão desde 27/09/2026.';
+  'curso, pela metade, fica à parte, na dica do cartão de faturamento. É o período padrão desde 27/09/2026.';
 
 /**
  * O ano fiscal do ÚLTIMO MÊS FECHADO — o padrão (27/09/2026). Em novembro é o ano que acabou de fechar: o novo ainda não
@@ -368,7 +369,7 @@ export function PainelExecutivo({
         />
       )}
 
-      <CincoIndicadores ex={exComResposta} carregando={executivo.carregando} metas={metas.dados} carregandoMetas={metas.carregando} />
+      <CincoIndicadores ano={ano} ex={exComResposta} carregando={executivo.carregando} metas={metas.dados} carregandoMetas={metas.carregando} />
 
       {exComResposta && <ComposicaoDosIndicadores ex={exComResposta} metas={metas.dados} />}
 
@@ -828,6 +829,84 @@ function TabelaDeFaixas({
 }
 
 /**
+ * A. O FATURAMENTO DO ANO PELO ART (decisão do Ricardo de 29/09/2026): "o faturamento real do ano fiscal vem do ART, das
+ * máquinas entregues" — vendida é ENTREGUE, a data de entrega preenchida.
+ *
+ * O NÚMERO É O VALOR DE VENDA DO ART das máquinas com a entrega nos meses do ano — até o último mês fechado, como o resto
+ * do painel —, com e sem comprador no CRM: o ART inteiro, que é o que a Gestão de Negócios conta. A quantidade vai na linha
+ * de baixo. A nota de saída do Protheus, que era este cartão até 28/09, fica na dica e na composição como conferência, e
+ * não se soma: as duas medem a mesma máquina por caminhos diferentes.
+ *
+ * A MÁQUINA SEM VALOR NÃO VIRA ZERO: ela conta nas máquinas e fica fora do valor, dita. Quando nenhuma tem valor — o
+ * intervalo entre a publicação e a primeira leitura do ART —, o valor é o traço com o motivo.
+ */
+function CartaoDoFaturamento({ ex }: { ex: ExecutivoConsolidado }) {
+  const { ano, anterior, mesEmCurso } = ex.entregues;
+  const nota = ex.faturamentoDoMes;
+
+  const nenhumComValor = ano !== null && ano.maquinas > 0 && ano.semValor === ano.maquinas;
+  const valor = ano && ano.maquinas > 0 && !nenhumComValor ? emMilhoes(ano.valor) : null;
+  const motivo = !ano
+    ? 'As filiais que responderam não trouxeram o faturamento pelo ART: o servidor ainda não tem a versão de 29/09/2026.'
+    : ano.maquinas === 0
+      ? `Nenhuma máquina com entrega de ${mesPorExtenso(ano.inicio)} a ${mesPorExtenso(ano.fim)} no ART, nas ${ex.respondidas} filiais que responderam.`
+      : `As ${nº(ano.maquinas)} máquinas entregues ainda estão sem valor de venda: o valor do ART passou a ser lido em 29/09/2026 e chega na primeira leitura do ART depois da publicação.`;
+
+  // A VARIAÇÃO COMPARA O VALOR COM ELE MESMO, no mesmo trecho do ano anterior; sem valor de antes, não há percentual.
+  const variacao = ano && anterior && anterior.valor > 0 && !nenhumComValor ? (100 * (ano.valor - anterior.valor)) / anterior.valor : null;
+  const ressalvas = ano
+    ? [
+        ano.aguardandoNoCrm > 0
+          ? `${nº(ano.aguardandoNoCrm)} ainda não viraram venda no CRM (comprador sem cadastro, chassi ou outro motivo da integração) e contam aqui — o realizado da meta conta só as do CRM`
+          : null,
+        ano.semValor > 0 && !nenhumComValor ? `${nº(ano.semValor)} sem valor de venda no ART contam nas máquinas, e não no valor` : null,
+      ].filter((r): r is string => r !== null)
+    : [];
+
+  return (
+    <CartaoDeDecisao
+      rotulo={`Faturamento FY${ex.ano}`}
+      oQue="o faturamento do ano"
+      icone={TrendingUp}
+      tom="demanda"
+      valor={valor}
+      motivoSemDado={motivo}
+      variacao={ano ? `${nº(ano.maquinas)} máquinas entregues · até ${mesPorExtenso(ano.fim)}` : undefined}
+      sobre={
+        <>
+          <p>
+            <strong>O valor de venda do ART das máquinas ENTREGUES</strong> — a data de entrega preenchida
+            {ano ? `, de ${mesPorExtenso(ano.inicio)} a ${mesPorExtenso(ano.fim)} (o último mês fechado)` : ''} —, com e sem
+            comprador no CRM, pela filial da unidade que vendeu: uma máquina por venda do ART, como a Gestão de Negócios conta.{' '}
+            {ex.respondidas} filiais.
+          </p>
+          {ressalvas.length > 0 && <p>{ressalvas.join('. ')}.</p>}
+          {anterior && (
+            <p>
+              Mesmo trecho do ano anterior ({mesPorExtenso(anterior.inicio)} a {mesPorExtenso(anterior.fim)}): {emMilhoes(anterior.valor)} em{' '}
+              {nº(anterior.maquinas)} máquinas
+              {variacao !== null ? ` — ${variacao > 0 ? '+' : variacao < 0 ? '−' : ''}${porcento(Math.abs(variacao))} no valor` : ''}.
+            </p>
+          )}
+          {mesEmCurso && (
+            <p>
+              {mesPorExtenso(mesEmCurso.inicio)}, em curso e à parte: {emMilhoes(mesEmCurso.valor)} em {nº(mesEmCurso.maquinas)} máquinas
+              entregues até agora.
+            </p>
+          )}
+          {nota && (
+            <p>
+              Conferência, sem somar: a nota de saída do Protheus (máquina, peça e serviço) somou {emMilhoes(ex.realizadoDoAno.total)} no
+              ano e {emMilhoes(nota.total)} em {mesPorExtenso(nota.competencia)}, até {diaEHora(nota.carregadoEm)} — devolução não abatida.
+            </p>
+          )}
+        </>
+      }
+    />
+  );
+}
+
+/**
  * B. A META DE VENDA × O REALIZADO (#138) — em MÁQUINAS, no ano fiscal até o último mês fechado.
  *
  * Tem leitura própria (`/relatorios/metas`), e por isso aparece mesmo quando os indicadores das filiais não responderam.
@@ -927,11 +1006,13 @@ function CartaoDaMeta({ metas, carregando }: { metas: MetasConsolidadas | null; 
  * pelo toque.
  */
 function CincoIndicadores({
+  ano,
   ex,
   carregando,
   metas,
   carregandoMetas,
 }: {
+  ano: number;
   ex: ExecutivoConsolidado | null;
   carregando: boolean;
   metas: MetasConsolidadas | null;
@@ -949,7 +1030,7 @@ function CincoIndicadores({
   if (!ex) {
     return (
       <div className="dash-kpis mv-kpis" data-bloco="kpis" data-colunas="5">
-        <CartaoDeDecisao rotulo="Faturamento do mês" icone={TrendingUp} tom="demanda" {...semResposta} />
+        <CartaoDeDecisao rotulo={`Faturamento FY${ano}`} icone={TrendingUp} tom="demanda" {...semResposta} />
         <CartaoDaMeta metas={metas} carregando={carregandoMetas} />
         <CartaoDeDecisao rotulo="Clientes na carteira" icone={Users} tom="mercado" {...semResposta} />
         <CartaoDeDecisao rotulo="Cobertura pela cadência" icone={ShieldCheck} tom="oportunidade" {...semResposta} />
@@ -958,12 +1039,6 @@ function CincoIndicadores({
     );
   }
 
-  const mes = ex.faturamentoDoMes;
-  const hoje = new Date();
-  const mesCorrente = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
-  const mesEmCurso = mes !== null && mes.competencia.slice(0, 7) === mesCorrente;
-  const alcance = `${ex.respondidas} filiais`;
-
   const cobertura = ex.cobertura;
   const coberturaPct = cobertura.elegiveis > 0 ? (100 * cobertura.cobertos) / cobertura.elegiveis : null;
   const mercado = ex.mercado;
@@ -971,40 +1046,8 @@ function CincoIndicadores({
 
   return (
     <div className="dash-kpis mv-kpis" data-bloco="kpis" data-colunas="5">
-      {/* A. FATURAMENTO — nota de saída do Protheus, com e sem cliente no CRM. O ART não entra: ele registra venda de
-          máquina, não nota, e somar os dois contaria a mesma máquina duas vezes. */}
-      <CartaoDeDecisao
-        rotulo={mesEmCurso ? 'Faturamento em curso' : 'Faturamento do mês'}
-        icone={TrendingUp}
-        tom="demanda"
-        valor={mes ? emMilhoes(mes.total) : null}
-        motivoSemDado="Nenhuma nota carregada nas filiais que responderam."
-        variacao={
-          mes
-            ? mesEmCurso
-              ? `${mesPorExtenso(mes.competencia)} até ${diaEHora(mes.carregadoEm)} · ${alcance}`
-              : `${mesPorExtenso(mes.competencia)}, última carregada · ${alcance}`
-            : undefined
-        }
-        sobre={
-          mes ? (
-            <>
-              <p>
-                NF de saída (Protheus): com cliente {emMilhoes(mes.comCliente)} + sem cliente no CRM {emMilhoes(mes.semCliente)} ·
-                devolução não abatida
-                {mes.filiaisEmOutroMes.length > 0 ? ` · fora da soma, em outro mês: ${mes.filiaisEmOutroMes.join(', ')}` : ''}.
-              </p>
-              <p>
-                Sem cliente no CRM: contraparte sem cadastro {emMilhoes(mes.contraparteSemCadastro)}, fábrica{' '}
-                {emMilhoes(mes.repasseDeFabrica)}, empresa do grupo {emMilhoes(mes.empresaDoGrupo)}, outra revenda{' '}
-                {emMilhoes(mes.outraRevenda)}. Por grupo de item: máquina {emMilhoes(mes.maquina)}, peça {emMilhoes(mes.peca)},
-                serviço {emMilhoes(mes.servico)}, outros {emMilhoes(mes.outros)}. {nº(mes.notas)} notas.
-              </p>
-              <p>O faturamento do mês é a competência mais recente carregada; em curso, até a última carga.</p>
-            </>
-          ) : undefined
-        }
-      />
+      {/* A. FATURAMENTO DO ANO — o ART das máquinas ENTREGUES (decisão do Ricardo de 29/09/2026). */}
+      <CartaoDoFaturamento ex={ex} />
 
       {/* B. META E REALIZADO — a meta de VENDA da API Gestão de Negócios × as máquinas do ART (#138). */}
       <CartaoDaMeta metas={metas} carregando={carregandoMetas} />
@@ -1106,7 +1149,6 @@ function CincoIndicadores({
  */
 function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; metas: MetasConsolidadas | null }) {
   const [aberta, setAberta] = useState(false);
-  const mes = ex.faturamentoDoMes;
   const fy = metas?.periodo ? `FY${metas.periodo.anoFiscal}` : 'FY';
   const metaDa = (codigo: string) => metas?.filiais.find((f) => f.filial.codigo === codigo)?.meta ?? null;
   // O TOTAL DA META COM FILIAL QUE FALHOU diz de quantas é: "1.250 (15 de 16)" — e não um número inteiro que não é.
@@ -1121,13 +1163,15 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
       dica={
         <ul className="v360-composicao-regras">
           <li>
-            <strong>Faturamento</strong>: Protheus SD2 (nota de saída de venda) → <code>comercial.FaturamentoDoCliente</code> e{' '}
-            <code>comercial.FaturamentoSemCliente</code> → valor líquido da competência mais recente, com cliente e sem
-            cliente por natureza → soma das filiais. Devolução e cancelamento não são abatidos. O ART não é somado.
+            <strong>Faturamento</strong> (decisão de 29/09/2026): ART, <code>bi_art_veiculos</code> → o retrato de cada venda em{' '}
+            <code>integracao.RegistroDeOrigem</code> → o valor de venda (<code>vr_vda</code>) das máquinas com a data de entrega
+            no ano fiscal {nomeDoAno(ex.ano)}, até o último mês fechado, com e sem comprador no CRM, pela filial da unidade que
+            vendeu → soma das filiais. Máquinas entregues: uma por venda do ART; a sem valor conta nas máquinas e não no valor.
           </li>
           <li>
-            <strong>Faturamento do ano</strong>: as mesmas tabelas no ano fiscal {nomeDoAno(ex.ano)} (novembro a outubro),
-            até o último mês fechado, em reais.
+            <strong>NF Protheus</strong>, como conferência e sem somar: Protheus SD2 (nota de saída de venda) →{' '}
+            <code>comercial.FaturamentoDoCliente</code> e <code>comercial.FaturamentoSemCliente</code> → valor líquido no mesmo
+            ano, com cliente e sem cliente — máquina, peça e serviço. Devolução e cancelamento não são abatidos.
           </li>
           <li>
             <strong>Meta e realizado</strong>: API Gestão de Negócios (cadastro de metas) → <code>organizacao.MetaDeVenda</code>, em
@@ -1166,9 +1210,9 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
             <thead>
               <tr>
                 <th scope="col">Filial</th>
-                <th scope="col" className="mom-num">Mês · com cliente</th>
-                <th scope="col" className="mom-num">Mês · sem cliente</th>
                 <th scope="col" className="mom-num">Faturamento FY{ex.ano}</th>
+                <th scope="col" className="mom-num">Máquinas entregues</th>
+                <th scope="col" className="mom-num">NF Protheus FY{ex.ano}</th>
                 <th scope="col" className="mom-num">
                   Meta {fy} (máq.) <InfoTooltip texto={REGRA_DA_META} rotulo="Como a meta de venda se conta" />
                 </th>
@@ -1192,15 +1236,13 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
                   );
                 }
                 const i = painel.indicadores;
-                const doMes = i.faturamentoDoMes && mes && i.faturamentoDoMes.competencia === mes.competencia ? i.faturamentoDoMes : null;
+                const entregues = i.entreguesNoAno ?? null;
                 const metaDaFilial = metaDa(filial.codigo);
                 return (
                   <tr key={filial.codigo}>
                     <th scope="row">{filial.nome}</th>
-                    <td className="mom-num">
-                      {doMes ? emMilhoes(doMes.comCliente) : i.faturamentoDoMes ? `em ${mesPorExtenso(i.faturamentoDoMes.competencia)}` : '—'}
-                    </td>
-                    <td className="mom-num">{doMes ? emMilhoes(doMes.semCliente) : '—'}</td>
+                    <td className="mom-num">{entregues ? emMilhoes(entregues.valor) : '—'}</td>
+                    <td className="mom-num">{entregues ? nº(entregues.maquinas) : '—'}</td>
                     <td className="mom-num">{emMilhoes(i.ano.total)}</td>
                     <td className="mom-num">{metaDaFilial ? nº(metaDaFilial.totais.metaMaquinas) : '—'}</td>
                     <td className="mom-num">{metaDaFilial ? nº(metaDaFilial.totais.realizadoMaquinas) : '—'}</td>
@@ -1215,8 +1257,8 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
               })}
               <tr className="v360-total" data-linha="total">
                 <th scope="row">Total ({ex.respondidas} filiais)</th>
-                <td className="mom-num">{mes ? emMilhoes(mes.comCliente) : '—'}</td>
-                <td className="mom-num">{mes ? emMilhoes(mes.semCliente) : '—'}</td>
+                <td className="mom-num">{ex.entregues.ano ? emMilhoes(ex.entregues.ano.valor) : '—'}</td>
+                <td className="mom-num">{ex.entregues.ano ? nº(ex.entregues.ano.maquinas) : '—'}</td>
                 <td className="mom-num">{emMilhoes(ex.realizadoDoAno.total)}</td>
                 <td className="mom-num">{metas && metas.respondidas > 0 ? `${nº(metas.metaMaquinas)}${deQuantas}` : '—'}</td>
                 <td className="mom-num">{metas && metas.respondidas > 0 ? `${nº(metas.realizadoMaquinas)}${deQuantas}` : '—'}</td>

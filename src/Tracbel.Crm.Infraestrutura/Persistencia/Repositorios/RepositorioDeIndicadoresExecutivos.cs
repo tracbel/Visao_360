@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Comercial;
+using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Dominio.Processo;
@@ -257,6 +258,86 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
             datasDasPerdas.Count == 0 ? null : datasDasPerdas.Min(),
             datasDasPerdas.Count == 0 ? null : datasDasPerdas.Max());
 
-        return new IndicadoresExecutivosDaFilial(agoraUtc, doMes, anoApurado, carteiraDaFilial, cobertura, mercado);
+        // -----------------------------------------------------------------------------------------
+        // O faturamento pelo ART (29/09/2026): as máquinas entregues, nos mesmos meses do ano.
+        // -----------------------------------------------------------------------------------------
+        var (entreguesNoAno, entreguesNoAnterior, entreguesNoMes) =
+            await EntreguesNoArtAsync(primeiroMesDoAno, ultimoMesDoAno, mesCorrente, ct);
+
+        return new IndicadoresExecutivosDaFilial(
+            agoraUtc, doMes, anoApurado, carteiraDaFilial, cobertura, mercado, entreguesNoAno, entreguesNoAnterior, entreguesNoMes);
+    }
+
+    /// <summary>
+    /// AS MÁQUINAS ENTREGUES NO ART (decisão do Ricardo de 29/09/2026: "o faturamento real do ano fiscal vem do ART, das
+    /// máquinas entregues"), no ano, no mesmo trecho do ano anterior e no mês em curso.
+    ///
+    /// <para><b>Lê o retrato de cada registro do ART</b> (<c>integracao.RegistroDeOrigem</c>), e não só
+    /// <c>frota.VendaDeMaquina</c>: a venda cujo comprador ainda não está no CRM só existe ali, e sem ela o ano fica ~16%
+    /// abaixo do que a Gestão de Negócios mostra (1.109 × 1.322 no FY26, documento 36, §3.2). O registro que sumiu da
+    /// origem não conta.</para>
+    ///
+    /// <para><b>A filial é a da unidade que vendeu</b>, pela correspondência que a carga do ART usa para a venda — o
+    /// retrato não tem coluna de empresa, e por isso o filtro global não o alcança: a fronteira é refeita aqui, com o
+    /// mesmo predicado do filtro. A unidade sem filial não é de filial nenhuma, e fica fora.</para>
+    /// </summary>
+    private async Task<(MaquinasEntreguesNoArt Ano, MaquinasEntreguesNoArt Anterior, MaquinasEntreguesNoArt MesEmCurso)> EntreguesNoArtAsync(
+        DateOnly inicio, DateOnly fim, DateOnly mesCorrente, CancellationToken ct)
+    {
+        var inicioDoAnterior = inicio.AddMonths(-12);
+        var fimDoAnterior = fim.AddMonths(-12);
+
+        static MaquinasEntreguesNoArt Nenhuma(DateOnly de, DateOnly a) => new(de, a, 0, 0m, 0, 0);
+
+        var art = await contexto.Sistemas.AsNoTracking()
+            .Where(s => s.Codigo == ConexoesDoSistema.Art).Select(s => (int?)s.Id).FirstOrDefaultAsync(ct);
+        if (art is not { } sistemaDoArt)
+            return (Nenhuma(inicio, fim), Nenhuma(inicioDoAnterior, fimDoAnterior), Nenhuma(mesCorrente, mesCorrente));
+
+        var desde = inicioDoAnterior;
+        var ate = fim.AddMonths(1);
+        var fimDoMes = mesCorrente.AddMonths(1);
+
+        var registros = await contexto.RegistrosDeOrigem.AsNoTracking()
+            .Where(r => r.SistemaId == sistemaDoArt && r.Fluxo == MetaDeVenda.FluxoDasVendasDoArt && r.AusenteNaOrigemDesde == null
+                        && r.EntregueEm != null
+                        && ((r.EntregueEm >= desde && r.EntregueEm < ate) || (r.EntregueEm >= mesCorrente && r.EntregueEm < fimDoMes)))
+            .Select(r => new { EntregueEm = r.EntregueEm!.Value, r.UnidadeNaOrigem, r.ValorDaVenda, r.VendaDeMaquinaId })
+            .ToListAsync(ct);
+
+        var filialDaUnidade = await contexto.CorrespondenciasDaOrigem.AsNoTracking()
+            .Where(c => c.SistemaId == sistemaDoArt && c.Tipo == TipoDeCorrespondencia.Unidade && c.EmpresaCorrespondenteId != null
+                        && (c.Situacao == SituacaoDaCorrespondencia.CorrespondenciaExata || c.Situacao == SituacaoDaCorrespondencia.ConfirmadaPorRevisao))
+            .Select(c => new { c.TextoNaOrigem, EmpresaId = c.EmpresaCorrespondenteId!.Value })
+            .ToListAsync(ct);
+
+        var porTexto = filialDaUnidade
+            .GroupBy(c => c.TextoNaOrigem, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().EmpresaId, StringComparer.OrdinalIgnoreCase);
+
+        // O MESMO PREDICADO DO FILTRO GLOBAL (CrmDbContext.AplicarFronteiraDeEmpresa): serviço de sistema, alcance aberto
+        // com motivo, filial alcançada, filial de casa.
+        var acesso = contexto.Acesso;
+        bool Alcanca(int empresa) =>
+            acesso.EhServicoDeSistema || contexto.EstaComAlcanceEntreEmpresas
+            || acesso.EmpresasVisiveis.Contains(empresa) || acesso.EmpresaId == empresa;
+
+        var daFilial = registros
+            .Where(r => r.UnidadeNaOrigem is { } unidade && porTexto.TryGetValue(unidade, out var empresa) && Alcanca(empresa))
+            .Select(r => (Mes: new DateOnly(r.EntregueEm.Year, r.EntregueEm.Month, 1), r.ValorDaVenda, NoCrm: r.VendaDeMaquinaId is not null))
+            .ToList();
+
+        MaquinasEntreguesNoArt Somar(DateOnly de, DateOnly a)
+        {
+            var naJanela = daFilial.Where(r => r.Mes >= de && r.Mes <= a).ToList();
+            return new MaquinasEntreguesNoArt(
+                de, a,
+                naJanela.Count,
+                naJanela.Sum(r => r.ValorDaVenda ?? 0m),
+                naJanela.Count(r => r.ValorDaVenda is null),
+                naJanela.Count(r => !r.NoCrm));
+        }
+
+        return (Somar(inicio, fim), Somar(inicioDoAnterior, fimDoAnterior), Somar(mesCorrente, mesCorrente));
     }
 }

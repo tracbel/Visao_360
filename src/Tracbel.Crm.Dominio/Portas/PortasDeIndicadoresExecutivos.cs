@@ -9,6 +9,9 @@ namespace Tracbel.Crm.Dominio.Portas;
 /// aqui: ele registra a venda de máquina (pedido), não a nota — somar os dois contaria a mesma
 /// máquina duas vezes.</para>
 ///
+/// <para><b>Desde 29/09/2026 o cartão A é o ART</b> (<see cref="MaquinasEntreguesNoArt"/>): a nota do Protheus fica
+/// como conferência e como o faturamento de peça e serviço, que o ART não tem.</para>
+///
 /// <para><b>Sem dupla contagem por construção:</b> cada linha de faturamento cai em exatamente uma
 /// parcela (com cliente, ou uma das quatro naturezas), e a quebra por grupo de item (máquina, peça,
 /// serviço, outros) soma o mesmo total por outro corte.</para>
@@ -96,6 +99,36 @@ public sealed record FaturamentoDoAno(
     /// <summary>Tudo o que foi emitido no ano, até a última competência carregada.</summary>
     public decimal Total => ComCliente + SemCliente;
 }
+
+/// <summary>
+/// O FATURAMENTO DE MÁQUINAS PELO ART — o cartão A desde 29/09/2026, na decisão do Ricardo: "o faturamento real do ano
+/// fiscal vem do ART, das máquinas entregues"; "vendida = entregue no ART, as máquinas com a data de entrega preenchida".
+///
+/// <para><b>Conta o ART inteiro</b>, e não só o que já virou venda no CRM: cada registro presente na origem com a data de
+/// entrega na janela, pela filial da unidade que vendeu (a mesma correspondência que a carga do ART usa). A venda cujo
+/// comprador ainda não está cadastrado entra — é o que faz o número bater com a Gestão de Negócios —, e a parte dela
+/// vem em <see cref="AguardandoNoCrm"/>.</para>
+///
+/// <para><b>Uma máquina por registro</b>, como a Gestão de Negócios conta a performance. O valor é o <c>vr_vda</c> da
+/// origem; a máquina sem valor conta em máquinas e fica fora da soma em reais, em <see cref="SemValor"/>.</para>
+///
+/// <para><b>Não se soma com a nota do Protheus</b> (<see cref="FaturamentoDaCompetencia"/>): as duas medem a mesma
+/// máquina por caminhos diferentes. A nota continua na resposta, como conferência e para peça e serviço.</para>
+/// </summary>
+/// <param name="Inicio">O primeiro mês da janela.</param>
+/// <param name="Fim">O último mês da janela.</param>
+/// <param name="Maquinas">Registros do ART com a entrega na janela.</param>
+/// <param name="Valor">A soma do valor de venda deles, em reais.</param>
+/// <param name="SemValor">Deles, sem valor de venda na origem — contam em máquinas, e não em reais.</param>
+/// <param name="AguardandoNoCrm">Deles, os que ainda não viraram venda no CRM (comprador sem cadastro, chassi incompleto
+/// ou outro motivo da integração) — entram na conta mesmo assim.</param>
+public sealed record MaquinasEntreguesNoArt(
+    DateOnly Inicio,
+    DateOnly Fim,
+    int Maquinas,
+    decimal Valor,
+    int SemValor,
+    int AguardandoNoCrm);
 
 /// <summary>
 /// Os clientes em carteira, contados de dois jeitos que respondem a perguntas diferentes (documento
@@ -186,13 +219,21 @@ public sealed record MercadoDaFilial(
 /// <param name="Carteira">Os clientes em carteira.</param>
 /// <param name="Cobertura">A cobertura pela cadência.</param>
 /// <param name="Mercado">As vendas perdidas registradas.</param>
+/// <param name="EntreguesNoAno">O faturamento do ano pelo ART (29/09/2026): as máquinas entregues nos meses somados do
+/// ano — os mesmos de <paramref name="Ano"/>, até o último mês fechado quando o ano ainda corre.</param>
+/// <param name="EntreguesNoMesmoTrechoDoAnoAnterior">As mesmas contas no mesmo trecho do ano anterior — a variação do
+/// cartão, como nos Indicadores Geográficos.</param>
+/// <param name="EntreguesNoMesEmCurso">O mês em curso, à parte e parcial: entregues até agora.</param>
 public sealed record IndicadoresExecutivosDaFilial(
     DateTime ReferenciaUtc,
     FaturamentoDaCompetencia? FaturamentoDoMes,
     FaturamentoDoAno Ano,
     CarteiraDaFilial Carteira,
     CoberturaDaFilial Cobertura,
-    MercadoDaFilial Mercado);
+    MercadoDaFilial Mercado,
+    MaquinasEntreguesNoArt? EntreguesNoAno = null,
+    MaquinasEntreguesNoArt? EntreguesNoMesmoTrechoDoAnoAnterior = null,
+    MaquinasEntreguesNoArt? EntreguesNoMesEmCurso = null);
 
 /// <summary>
 /// O acesso aos INDICADORES EXECUTIVOS — os cinco cartões da Visão 360.

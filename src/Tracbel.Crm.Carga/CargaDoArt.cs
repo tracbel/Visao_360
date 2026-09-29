@@ -312,8 +312,11 @@ internal sealed class CargaDoArt(
                 compradoresPeloProtheus++;
             }
 
+            // A ENTREGA E O VALOR FICAM NO RETRATO, e não só na venda (29/09/2026): o faturamento do ano fiscal é o ART
+            // inteiro, e a venda cujo comprador ainda não está no CRM só existe aqui.
             var retrato = new RetratoDoRegistroDeOrigem(
-                s.Hash, s.ChassiNaOrigem, Limitar(s.Linha, 60), Limitar(s.Produto, 60), s.Unidade, s.VendidaEm, s.TransformacoesEmTexto);
+                s.Hash, s.ChassiNaOrigem, Limitar(s.Linha, 60), Limitar(s.Produto, 60), s.Unidade, s.VendidaEm, s.TransformacoesEmTexto,
+                s.EntregueEm, s.ValorDaVenda);
 
             if (!registros.TryGetValue(s.Codigo, out var registro))
             {

@@ -203,7 +203,11 @@ public enum DecisaoDaIntegracao
     Pendente = 1
 }
 
-/// <summary>O retrato de um registro da origem, sem dado pessoal nem valor financeiro.</summary>
+/// <summary>
+/// O retrato de um registro da origem, sem dado pessoal. Valor financeiro, só o valor de venda do ART (decisão de
+/// 29/09/2026): é o faturamento do ano fiscal, e ele precisa contar também a venda cujo comprador ainda não está no CRM
+/// — a que só existe aqui.
+/// </summary>
 /// <param name="Hash">O resumo do conteúdo lido.</param>
 /// <param name="ChassiNaOrigem">O chassi como a origem escreve.</param>
 /// <param name="LinhaNaOrigem">A linha como a origem escreve.</param>
@@ -211,6 +215,8 @@ public enum DecisaoDaIntegracao
 /// <param name="UnidadeNaOrigem">A unidade como a origem escreve.</param>
 /// <param name="VendidaEm">A data da venda, saneada.</param>
 /// <param name="Transformacoes">As transformações aplicadas na leitura.</param>
+/// <param name="EntregueEm">A data da entrega, saneada — a máquina vendida, pela régua da Gestão de Negócios.</param>
+/// <param name="ValorDaVenda">O valor de venda da origem, em reais, quando ela tem.</param>
 public sealed record RetratoDoRegistroDeOrigem(
     string Hash,
     string? ChassiNaOrigem,
@@ -218,7 +224,9 @@ public sealed record RetratoDoRegistroDeOrigem(
     string? ProdutoNaOrigem,
     string? UnidadeNaOrigem,
     DateOnly? VendidaEm,
-    string? Transformacoes);
+    string? Transformacoes,
+    DateOnly? EntregueEm = null,
+    decimal? ValorDaVenda = null);
 
 /// <summary>
 /// A TRILHA de cada registro lido da origem — identificador, primeira e última leitura, mudança de
@@ -265,6 +273,18 @@ public sealed class RegistroDeOrigem
 
     /// <summary>A data da venda, saneada.</summary>
     public DateOnly? VendidaEm { get; private set; }
+
+    /// <summary>
+    /// A data da entrega, saneada (29/09/2026). No ART, "vendida" é a máquina ENTREGUE — a régua da Gestão de Negócios —,
+    /// e é por esta data que o faturamento do ano fiscal é contado, com comprador no CRM ou não.
+    /// </summary>
+    public DateOnly? EntregueEm { get; private set; }
+
+    /// <summary>
+    /// O valor de venda da origem, em reais (o <c>vr_vda</c> do ART, decisão de 29/09/2026). Nulo quando a origem não o
+    /// tem — a venda continua contada em máquinas, e fica fora da soma em reais, dita.
+    /// </summary>
+    public decimal? ValorDaVenda { get; private set; }
 
     /// <summary>As transformações aplicadas na leitura.</summary>
     public string? Transformacoes { get; private set; }
@@ -358,6 +378,8 @@ public sealed class RegistroDeOrigem
         ProdutoNaOrigem = retrato.ProdutoNaOrigem;
         UnidadeNaOrigem = retrato.UnidadeNaOrigem;
         VendidaEm = retrato.VendidaEm;
+        EntregueEm = retrato.EntregueEm;
+        ValorDaVenda = retrato.ValorDaVenda;
         Transformacoes = retrato.Transformacoes;
     }
 }
