@@ -252,8 +252,8 @@ export function PainelDeCustos({ produtosDoMunicipio = [] }: { produtosDoMunicip
             titulo="Os custos de produção ainda não foram carregados neste banco"
             texto={
               <>
-                A rota respondeu, mas não há nenhum custo gravado: a carga (<code>--somente-custos</code>) ainda não rodou
-                aqui. Não é zero nem falta de permissão.
+                Não há nenhum custo gravado: a rotina <strong>Preços, custos e crédito</strong> ainda não rodou aqui —
+                quem administra a liga em Configurações › Integrações. Não é zero nem falta de permissão.
               </>
             }
           />

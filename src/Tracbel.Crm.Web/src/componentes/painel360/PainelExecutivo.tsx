@@ -1412,38 +1412,41 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
       titulo="Composição dos cinco indicadores"
       data-bloco="composicao"
       subtitulo="Filial a filial, com a fonte e a regra de cada número."
+      // A COMPOSIÇÃO FALA A LÍNGUA DO NEGÓCIO (29/09/2026, #31): trazia os nomes das tabelas e das colunas
+      // (`integracao.RegistroDeOrigem`, `vr_vda`, `comercial.FaturamentoDoCliente`, `organizacao.MetaDeVenda`,
+      // `frota.VendaDeMaquina`, `organizacao.CotaDeConsorcioVendida`, `ClienteCarteira.UltimaInteracaoEm`,
+      // `organizacao.LinhaDeNegocio`, `processo.VendaPerdida`). A regra de cada número é a mesma; a linhagem até a tabela
+      // mora no documento 29 ("de onde vem cada dado").
       dica={
         <ul className="v360-composicao-regras">
           <li>
-            <strong>Faturamento</strong> (decisão de 29/09/2026): ART, <code>bi_art_veiculos</code> → o retrato de cada venda em{' '}
-            <code>integracao.RegistroDeOrigem</code> → o valor de venda (<code>vr_vda</code>) das máquinas com a data de entrega
-            no ano fiscal {nomeDoAno(ex.ano)}, até o último mês fechado, com e sem comprador no CRM, pela filial da unidade que
-            vendeu → soma das filiais. Máquinas entregues: uma por venda do ART; a sem valor conta nas máquinas e não no valor.
+            <strong>Faturamento</strong> (decisão de 29/09/2026): as vendas de máquina do ART → o valor de venda das máquinas com
+            a data de entrega no ano fiscal {nomeDoAno(ex.ano)}, até o último mês fechado, com e sem comprador no CRM, pela filial
+            da unidade que vendeu → soma das filiais. Máquinas entregues: uma por venda do ART; a sem valor conta nas máquinas e
+            não no valor.
           </li>
           <li>
-            <strong>NF Protheus</strong>, como conferência e sem somar: Protheus SD2 (nota de saída de venda) →{' '}
-            <code>comercial.FaturamentoDoCliente</code> e <code>comercial.FaturamentoSemCliente</code> → valor líquido no mesmo
-            ano, com cliente e sem cliente — máquina, peça e serviço. Devolução e cancelamento não são abatidos.
+            <strong>NF Protheus</strong>, como conferência e sem somar: as notas fiscais de saída de venda do Protheus → valor
+            líquido no mesmo ano, com cliente e sem cliente — máquina, peça e serviço. Devolução e cancelamento não são abatidos.
           </li>
           <li>
-            <strong>Meta e realizado</strong>: API Gestão de Negócios (cadastro de metas) → <code>organizacao.MetaDeVenda</code>, em
-            máquinas, contra <code>frota.VendaDeMaquina</code> (o ART), só as entregues e pelo mês da entrega, como a Gestão de Negócios, no ano fiscal até o último mês fechado{' '}
+            <strong>Meta e realizado</strong>: API Gestão de Negócios (cadastro de metas) → a meta de venda, em máquinas, contra as
+            vendas do ART, só as entregues e pelo mês da entrega, como a Gestão de Negócios, no ano fiscal até o último mês fechado{' '}
             {metas?.periodo ? `(${metas.periodo.texto})` : ''}. As vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) ficam à parte; o
-            consórcio é em cotas, contra <code>organizacao.CotaDeConsorcioVendida</code> (a performance de consórcio da mesma API).
+            consórcio é em cotas, contra as cotas vendidas da performance de consórcio da mesma API.
             A previsão dos gestores está no relatório Forecast da gerência.
           </li>
           <li>
-            <strong>Clientes</strong>: <code>comercial.Cliente</code> × <code>comercial.ClienteCarteira</code> → cliente com
-            vínculo ativo, na filial de cadastro. Vínculos e carteiras, pela filial da carteira.
+            <strong>Clientes</strong>: o cadastro de clientes × os vínculos com as carteiras → cliente com vínculo ativo, na filial
+            de cadastro. Vínculos e carteiras, pela filial da carteira.
           </li>
           <li>
-            <strong>Cobertura</strong>: <code>ClienteCarteira.UltimaInteracaoEm</code> contra a cadência de{' '}
-            <code>organizacao.LinhaDeNegocio</code> pela classe ABC do cliente (sem classe = D) → cobertos ÷ elegíveis.
-            Mesma regra do mapa de cobertura.
+            <strong>Cobertura</strong>: a última interação de cada vínculo contra a cadência da linha de negócio, pela classe ABC
+            do cliente (sem classe = D) → cobertos ÷ elegíveis. Mesma regra do mapa de cobertura.
           </li>
           <li>
-            <strong>Mercado</strong>: <code>processo.VendaPerdida</code> (formulário do CEN) — derrotas registradas, e não o
-            tamanho do mercado. A Captura Tracbel é medida nos Indicadores Geográficos.
+            <strong>Mercado</strong>: as vendas perdidas (formulário do CEN) — derrotas registradas, e não o tamanho do mercado. A
+            Captura Tracbel é medida nos Indicadores Geográficos.
           </li>
         </ul>
       }

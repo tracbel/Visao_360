@@ -463,7 +463,7 @@ export function ClienteCadastro() {
                   erro={errosDeCampo.documento}
                   desabilitado={!editando}
                   exemplo="18.245.339/0001-13"
-                  ajuda="Com ou sem máscara. O dígito verificador é conferido pela API."
+                  ajuda="Com ou sem máscara. O dígito verificador é conferido ao gravar."
                 />
                 <CampoTexto
                   rotulo="Inscrição estadual"
@@ -486,8 +486,8 @@ export function ClienteCadastro() {
                   itens={itensDe(catalogos, CATALOGO.situacaoCliente)}
                   erro={errosDeCampo.situacao}
                   desabilitado={!editando}
-                  vazio={ehNovo ? 'Prospect (padrão da API)' : 'Selecione…'}
-                  ajuda="Domínio fechado no código e no banco: acrescentar item exige release e migração."
+                  vazio={ehNovo ? 'Prospect (padrão)' : 'Selecione…'}
+                  ajuda="A lista de situações é fixa."
                 />
                 <CampoSelecao
                   rotulo="Origem do lead"
@@ -496,7 +496,7 @@ export function ClienteCadastro() {
                   itens={itensDe(catalogos, CATALOGO.origemLead)}
                   erro={errosDeCampo.origemCodigo}
                   desabilitado={!editando}
-                  ajuda="Catálogo de banco: o negócio acrescenta item sem release."
+                  ajuda="Quem administra o CRM pode acrescentar origens."
                 />
               </div>
             </div>
@@ -531,16 +531,16 @@ export function ClienteCadastro() {
           <PainelDoMomento titulo="Registro" subtitulo="O que o CRM sabe sobre o próprio cadastro" data-bloco="registro">
             <div className="ficha-campos">
               <div className="form-grid cad-grade">
-                <CampoSomenteLeitura rotulo="Chave pública" valor={<code>{cliente.chave}</code>} largo
-                  ajuda="É o GUID que a API usa. O identificador sequencial nunca sai da API — quem enumera /clientes/1, /clientes/2 conta quantos clientes a Tracbel tem." />
+                {/* A CHAVE PÚBLICA SAIU DA FICHA (29/09/2026, #31): era o GUID da API, texto de quem programa. Quem precisa
+                    dela para suporte a tem na barra de endereço, que é a mesma. */}
                 <CampoSomenteLeitura
                   rotulo="Filial dona do cadastro"
-                  valor={`${descricaoDe(catalogos, CATALOGO.empresa, contexto.empresa)} · id interno ${cliente.empresaId}`}
-                  ajuda="A fronteira de acesso, e é sempre a filial do cabeçalho: o que outra filial enxergasse não teria chegado até aqui — responderia 404." />
+                  valor={descricaoDe(catalogos, CATALOGO.empresa, contexto.empresa)}
+                  ajuda="É sempre a filial do cabeçalho: o cadastro de outra filial não aparece aqui." />
                 <CampoSomenteLeitura
                   rotulo="Proprietário"
                   valor={`Usuário ${cliente.proprietarioId}`}
-                  ajuda="A API devolve o identificador, não o nome — não há endpoint de usuário ainda. Reatribuir dono é outra operação, com outra permissão (dívida D-6)." />
+                  ajuda="Por enquanto aparece o número do usuário, e não o nome. Trocar o dono é outra operação, com outra permissão." />
                 <CampoSomenteLeitura rotulo="Cadastrado em" valor={formatarDataHora(cliente.criadoEm)} />
                 <CampoSomenteLeitura rotulo="Última alteração" valor={formatarDataHora(cliente.alteradoEm)} />
                 <CampoSomenteLeitura rotulo="Nesta situação desde" valor={formatarDataHora(cliente.situacaoDesde)} />
@@ -554,7 +554,7 @@ export function ClienteCadastro() {
                     rotulo="Motivo da inativação"
                     valor={descricaoDe(catalogos, CATALOGO.motivoInativacao, cliente.motivoInativacaoCodigo)}
                     largo
-                    ajuda="Exclusão lógica: a linha continua no banco e o histórico continua apontando para ela."
+                    ajuda="Nada foi apagado: o cadastro e o histórico continuam guardados."
                   />
                 )}
               </div>
@@ -587,14 +587,13 @@ export function ClienteCadastro() {
               aoMudar={setMotivoDeInativacao}
               itens={motivos}
               erro={errosDeCampo.motivoCodigo}
-              ajuda="O motivo é obrigatório e vem do catálogo MOTIVO_INATIVACAO."
+              ajuda="O motivo é obrigatório."
             />
           </div>
           {motivoEscolhido?.exigeObservacao && (
             <p className="cad-nota">
-              Este motivo pede observação, e o contrato do <code>DELETE</code> ainda não tem campo
-              para ela — é uma dívida conhecida do cadastro. Escolha um motivo específico
-              quando houver um.
+              Este motivo pede observação, mas a observação ainda não é gravada. Escolha um motivo
+              mais específico quando houver um.
             </p>
           )}
         </DialogoConfirmacao>
