@@ -68,8 +68,8 @@ export function PainelDoShareNoCredito() {
         titulo="O financiamento das vendas ainda não foi carregado neste banco"
         texto={
           <>
-            A rota respondeu, mas não há financiamento gravado: o terceiro modo da rotina do Vórtice (
-            <code>--somente-financiamentos-vortice</code>) ainda não rodou aqui. Não é share zero.
+            Não há financiamento gravado: a rotina <strong>Funil e vendas perdidas do Vórtice</strong> ainda não trouxe
+            o financiamento das vendas — quem administra a liga em Configurações › Integrações. Não é share zero.
           </>
         }
       />

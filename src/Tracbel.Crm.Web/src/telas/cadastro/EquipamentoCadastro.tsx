@@ -515,7 +515,7 @@ export function EquipamentoCadastro() {
                     rotulo="Chassi"
                     largo
                     valor={<code>{maquina?.chassi}</code>}
-                    ajuda="Não entra na alteração: é a identidade da máquina e a chave de deduplicação. Chassi errado se corrige baixando o registro e cadastrando o certo, para o histórico não mudar de dono em silêncio."
+                    ajuda="Não entra na alteração: é a identidade da máquina. Chassi errado se corrige baixando o registro e cadastrando o certo, para o histórico não mudar de dono em silêncio."
                   />
                 )}
 
@@ -801,11 +801,12 @@ export function EquipamentoCadastro() {
           <PainelDoMomento titulo="Registro" subtitulo="O que o CRM sabe sobre o próprio cadastro" data-bloco="registro">
             <div className="ficha-campos">
               <div className="form-grid cad-grade">
-                <CampoSomenteLeitura rotulo="Chave pública" largo valor={<code>{maquina.chave}</code>} />
+                {/* A CHAVE PÚBLICA SAIU DA FICHA (29/09/2026, #31): era o GUID da API, texto de quem programa. Quem precisa
+                    dela para suporte a tem na barra de endereço, que é a mesma. */}
                 <CampoSomenteLeitura
                   rotulo="Filial dona do registro"
-                  valor={`${descricaoDe(catalogos, CATALOGO.empresa, contexto.empresa)} · id interno ${maquina.empresaId}`}
-                  ajuda="A fronteira de acesso, e é sempre a filial do cabeçalho: em outra filial esta ficha responde 404."
+                  valor={descricaoDe(catalogos, CATALOGO.empresa, contexto.empresa)}
+                  ajuda="É sempre a filial do cabeçalho: a máquina de outra filial não aparece aqui."
                 />
                 <CampoSomenteLeitura
                   rotulo="Marca representada"
@@ -869,16 +870,12 @@ export function EquipamentoCadastro() {
           aoCancelar={() => setConfirmandoBaixa(false)}
           aoConfirmar={confirmarBaixa}
         >
+          {/* A FRASE SOBRE O CONTRATO DA API SAIU (29/09/2026, #31): "o DELETE de equipamento não pede motivo" é
+              texto de quem programa. A regra continua a mesma — a baixa não pede motivo — e fica no documento 23 §2.2. */}
           <p>
-            A baixa é <strong>exclusão lógica</strong>: a linha e o histórico de horímetro continuam no
-            banco. A máquina sai da lista padrão e continua visível com o filtro{' '}
+            A baixa <strong>não apaga nada</strong>: o cadastro e o histórico de horímetro continuam
+            guardados. A máquina sai da lista padrão e continua visível com o filtro{' '}
             <em>Mostrar baixados</em>.
-          </p>
-          <p>
-            {/* A citação "do documento 23, seção 2.2" saiu da tela: número de documento interno não
-                diz nada a quem lê, e a referência fica aqui. */}
-            O <code>DELETE</code> de equipamento não pede motivo — diferente do de cliente. É o
-            contrato da API de cadastro.
           </p>
         </DialogoConfirmacao>
       )}
