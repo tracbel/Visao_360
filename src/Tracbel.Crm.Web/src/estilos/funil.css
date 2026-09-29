@@ -1,0 +1,477 @@
+/* =============================================================================
+   O FUNIL DE VENDAS NA MAQUETE DO RICARDO (29/09/2026)
+   `docs/prototipo/capturas-referencia/funil-de-vendas-maquete-2026-09-29.png`, em 1672 × 941.
+
+   TUDO AQUI MORA EMBAIXO DE `.funil-maquete`: os cartões, o alternador, os painéis e as tabelas são as peças do padrão
+   dos Indicadores, e as outras telas continuam como estão. As medidas e as cores foram amostradas da maquete.
+   ============================================================================= */
+
+.funil-maquete {
+  --funil-marinho: #0b1638;
+  --funil-verde-escuro: #0b5e36;
+  --funil-cabecalho-tabela: #f2f5f7;
+  --funil-linha-tabela: #eef1f4;
+}
+
+.dash-pagina.funil-maquete { gap: var(--e-3); }
+
+/* O TÍTULO DA PÁGINA, maior e mais pesado, em azul-marinho. */
+.funil-maquete .page-title {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--funil-marinho);
+}
+
+/* A BARRA DE FILTROS mais baixa: 52px na maquete. */
+.funil-maquete .dash-filtros-linha { padding: 6px 10px; }
+.funil-maquete .dash-filtros-linha .dash-filtro-rotulo { min-height: 14px; }
+
+/* -----------------------------------------------------------------------------
+   OS QUATRO CARTÕES — mais tingidos, glifo maior, e a onda decorativa no canto direito
+   ----------------------------------------------------------------------------- */
+.funil-maquete .dash-kpis.mv-kpis { gap: 14px; }
+
+.funil-maquete .mv-kpi {
+  position: relative;
+  overflow: hidden;
+  align-items: center;
+  padding: 9px 18px;
+  border-radius: 12px;
+}
+
+/* O conteúdo passa por cima da onda. */
+.funil-maquete .mv-kpi > * { position: relative; z-index: 1; }
+
+.funil-maquete .mv-kpi-glifo { margin-top: 0; }
+.funil-maquete .mv-kpi-glifo svg { width: 38px; height: 38px; }
+.funil-maquete .mv-kpi-valor { font-size: 30px; line-height: 1.15; }
+.funil-maquete .mv-kpi-corpo { gap: 1px; }
+.funil-maquete .mv-kpi-unidade { font-size: 14px; color: var(--text-secondary); }
+.funil-maquete .mv-kpi-contexto { font-size: 13.5px; color: var(--text-secondary); }
+
+/* A ONDA É ENFEITE, E SÓ: não tem dado nenhum por trás, e por isso é fundo de CSS — o leitor de tela não a vê, e nenhum
+   número depende dela. É a curva clara do canto direito dos quatro cartões da maquete. */
+.funil-maquete .mv-kpi::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 46%;
+  height: 82%;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  pointer-events: none;
+}
+
+.funil-maquete .mv-kpi[data-tom='demanda'] {
+  --mv-tom: #0fb45c;
+  background: linear-gradient(90deg, #effdf6 0%, #e6fbf0 55%, #dbf8e8 100%);
+  border-color: #cdf0dc;
+}
+
+.funil-maquete .mv-kpi[data-tom='demanda']::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' preserveAspectRatio='none'%3E%3Cpath d='M0 60 C18 58 28 52 40 46 C52 40 58 30 70 26 C82 22 90 10 100 2 L100 60 Z' fill='%23c9f3da' fill-opacity='0.85'/%3E%3Cpath d='M0 60 C18 58 28 52 40 46 C52 40 58 30 70 26 C82 22 90 10 100 2' fill='none' stroke='%239fe4bd' stroke-width='0.8'/%3E%3C/svg%3E");
+}
+
+.funil-maquete .mv-kpi[data-tom='captura'] {
+  --mv-tom: #fb7a12;
+  background: linear-gradient(90deg, #fff7ec 0%, #fff0dd 55%, #fde8cf 100%);
+  border-color: #f8dcb9;
+}
+
+.funil-maquete .mv-kpi[data-tom='captura']::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' preserveAspectRatio='none'%3E%3Cpath d='M0 60 C12 56 20 44 32 42 C44 40 48 50 58 46 C70 40 78 24 88 16 C94 11 97 8 100 6 L100 60 Z' fill='%23fcd6a8' fill-opacity='0.8'/%3E%3Cpath d='M0 60 C12 56 20 44 32 42 C44 40 48 50 58 46 C70 40 78 24 88 16 C94 11 97 8 100 6' fill='none' stroke='%23f9bf80' stroke-width='0.8'/%3E%3C/svg%3E");
+}
+
+.funil-maquete .mv-kpi[data-tom='mercado'] {
+  --mv-tom: #2d6fe6;
+  background: linear-gradient(90deg, #eff6ff 0%, #e6f0fe 55%, #dbe9fd 100%);
+  border-color: #cddff7;
+}
+
+.funil-maquete .mv-kpi[data-tom='mercado']::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' preserveAspectRatio='none'%3E%3Cpath d='M0 60 C20 58 34 40 50 26 C60 18 66 16 72 20 C80 26 86 40 100 44 L100 60 Z' fill='%23c4dcfb' fill-opacity='0.85'/%3E%3Cpath d='M0 60 C20 58 34 40 50 26 C60 18 66 16 72 20 C80 26 86 40 100 44' fill='none' stroke='%23a3c7f6' stroke-width='0.8'/%3E%3C/svg%3E");
+}
+
+.funil-maquete .mv-kpi[data-tom='oportunidade'] {
+  --mv-tom: #8b4ff0;
+  background: linear-gradient(90deg, #f6f3ff 0%, #efe9fe 55%, #e7defd 100%);
+  border-color: #ddd2fa;
+}
+
+.funil-maquete .mv-kpi[data-tom='oportunidade']::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' preserveAspectRatio='none'%3E%3Cpath d='M0 60 C22 58 36 44 52 30 C62 21 68 18 74 22 C82 28 88 38 100 40 L100 60 Z' fill='%23dccdfd' fill-opacity='0.85'/%3E%3Cpath d='M0 60 C22 58 36 44 52 30 C62 21 68 18 74 22 C82 28 88 38 100 40' fill='none' stroke='%23c6adfa' stroke-width='0.8'/%3E%3C/svg%3E");
+}
+
+/* -----------------------------------------------------------------------------
+   OS TÍTULOS DAS SEÇÕES
+   ----------------------------------------------------------------------------- */
+.funil-maquete .terr-secao-mercado { margin: 0; }
+.funil-maquete .terr-secao-titulo > .dica,
+.funil-maquete .mom-painel-titulo > .dica { margin-left: 4px; }
+.funil-maquete .terr-secao-titulo { margin-bottom: 1px; font-size: 19px; font-weight: 800; color: var(--funil-marinho); }
+.funil-maquete .terr-secao-subtitulo { font-size: 12.5px; }
+.funil-maquete .dash-secao { gap: var(--e-3); }
+
+/* OS PAINÉIS da maquete: branco, cantos de 12px e uma sombra quase nenhuma. */
+.funil-maquete .mom-painel {
+  border-color: #e7ecf1;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.funil-maquete .mom-painel-titulo { font-size: 16px; font-weight: 800; color: var(--funil-marinho); }
+
+/* -----------------------------------------------------------------------------
+   O FUNIL E A CONVERSÃO LADO A LADO
+   ----------------------------------------------------------------------------- */
+.funil-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 2.08fr) minmax(340px, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+@media (max-width: 1180px) {
+  .funil-grade { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* O painel do funil: o título no canto de cima, e o funil ao lado dele, e não embaixo — como na maquete. */
+.funil-maquete .mom-painel[data-area='funil-grafico'] {
+  container-type: inline-size;
+  gap: 0;
+  padding-bottom: 6px;
+}
+
+.funil-grafico {
+  display: flex;
+  justify-content: center;
+  color: var(--funil-marinho);
+}
+
+/* O ID VENCE A REGRA ANTIGA do #funil-svg (largura inteira), que ainda mora no design-system: 499 × 240, como na maquete, e
+   menor só quando a coluna não comporta. */
+#funil-svg.funil-3d {
+  display: block;
+  width: 499px;
+  max-width: 100%;
+  height: auto;
+  max-height: none;
+}
+
+/* A BOCA DO FUNIL começa depois do subtítulo e sobe até a altura do título, com o centro um pouco à direita do meio. */
+@container (min-width: 760px) {
+  .mom-painel[data-area='funil-grafico'] .mom-painel-subtitulo { max-width: calc(60% - 180px); }
+
+  .funil-grafico {
+    justify-content: flex-start;
+    margin-top: -42px;
+    padding-left: calc(60% - 172px);
+  }
+}
+
+/* Sem funil, o motivo no meio do painel, em cinza. */
+.funil-sem-grafico {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  margin: 0;
+  padding: var(--e-5) var(--e-4);
+  font-size: var(--t-apoio);
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+/* A conversão, com a chave coorte × fluxo em cima do canto dela. */
+.funil-lado {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.funil-lado > .mom-painel { flex: 1; padding-top: 18px; }
+
+.funil-maquete .funil-chave {
+  position: absolute;
+  top: -14px;
+  right: 10px;
+  z-index: 2;
+  padding: 3px;
+  gap: 2px;
+  background: var(--bg-surface);
+  border: 1px solid #e1e6ec;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+
+.funil-maquete .funil-chave button,
+.funil-maquete .funil-abas button {
+  padding: 6px 22px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.funil-maquete .funil-chave button[aria-pressed='true'],
+.funil-maquete .funil-abas button[aria-pressed='true'] {
+  background: var(--funil-verde-escuro);
+  color: #fff;
+}
+
+@media (max-width: 1180px) {
+  .funil-maquete .funil-chave { position: static; align-self: flex-end; margin-bottom: 6px; }
+}
+
+/* A tabela da conversão: cabeçalho cinza arredondado, ponto da cor, número, barra e percentual colorido. */
+.funil-conversao {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13.5px;
+  color: var(--funil-marinho);
+}
+
+.funil-conversao thead th {
+  padding: 8px 12px;
+  background: var(--funil-cabecalho-tabela);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: left;
+  text-transform: uppercase;
+  color: #5b6776;
+}
+
+.funil-conversao thead th:first-child { border-radius: 8px 0 0 8px; }
+.funil-conversao thead th:last-child { border-radius: 0 8px 8px 0; }
+
+.funil-conversao tbody th,
+.funil-conversao tbody td {
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--funil-linha-tabela);
+  background: transparent;
+  font-size: 13.5px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  white-space: nowrap;
+  color: var(--funil-marinho);
+}
+
+.funil-conversao tbody tr:last-child th,
+.funil-conversao tbody tr:last-child td { border-bottom: 0; }
+
+.funil-conversao .funil-conversao-num { font-variant-numeric: tabular-nums; }
+.funil-conversao .funil-conversao-barra-col { padding-inline: 8px; }
+.funil-conversao col.funil-col-nome { width: 34%; }
+.funil-conversao col.funil-col-num { width: 17%; }
+.funil-conversao col.funil-col-barra { width: 33%; }
+.funil-conversao col.funil-col-pct { width: 16%; }
+.funil-conversao .funil-conversao-pct { text-align: right; font-weight: 700; }
+.funil-conversao thead .funil-conversao-pct { font-weight: 700; }
+
+.funil-conversao-barra {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  background: #e8ecf0;
+  border-radius: 4px;
+}
+
+.funil-conversao-barra > span { display: block; height: 100%; border-radius: 4px; }
+
+.funil-conversao [data-tom='bom'] { color: #0a7a42; }
+.funil-conversao [data-tom='medio'] { color: #f06a0c; }
+.funil-conversao [data-tom='baixo'] { color: #e12b1f; }
+.funil-conversao [data-tom='cresceu'] { color: var(--info); }
+.funil-conversao-traco { font-weight: 400; color: var(--text-tertiary); }
+
+/* O PONTO DA COR DO ESTÁGIO, na conversão e na tabela. */
+.funil-ponto {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 12px;
+  vertical-align: 1px;
+  border-radius: 2px;
+}
+
+/* -----------------------------------------------------------------------------
+   A TABELA DOS SEIS ESTÁGIOS, num cartão só dela
+   ----------------------------------------------------------------------------- */
+.funil-maquete .funil-painel-tabela { padding: 8px 10px; gap: 0; }
+
+.funil-maquete .funil-painel-tabela .mom-tabela th,
+.funil-maquete .funil-painel-tabela .mom-tabela td {
+  padding: 2px 12px;
+  font-size: 12.5px;
+  color: var(--funil-marinho);
+}
+
+.funil-maquete .funil-painel-tabela .mom-tabela thead th {
+  padding-block: 6px;
+  background: var(--funil-cabecalho-tabela);
+  border-bottom: 0;
+  font-size: 10.5px;
+  color: #5b6776;
+}
+
+.funil-maquete .funil-painel-tabela .mom-tabela thead th:first-child { border-radius: 8px 0 0 8px; }
+.funil-maquete .funil-painel-tabela .mom-tabela thead th:last-child { border-radius: 0 8px 8px 0; }
+
+/* Os números no meio da coluna, com o fio vertical fraco entre as colunas (maquete). */
+.funil-maquete .funil-painel-tabela .mom-num { text-align: center !important; }
+.funil-maquete .funil-painel-tabela tbody td { border-left: 1px solid #f1f3f6; }
+
+/* -----------------------------------------------------------------------------
+   AS PERDAS DO PERÍODO — a faixa laranja
+   ----------------------------------------------------------------------------- */
+.funil-perdas-faixa {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 6px 6px 6px 18px;
+  background: linear-gradient(90deg, #fff1e1 0%, #fff4e8 100%);
+  border: 1px solid #fbd8b2;
+  border-radius: 12px;
+}
+
+@media (max-width: 1180px) {
+  .funil-perdas-faixa { grid-template-columns: minmax(0, 1fr); padding: 10px 12px; }
+}
+
+.funil-perdas-cabeca {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.funil-perdas-icone {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: #f26b0f;
+}
+
+.funil-perdas-icone svg { width: 40px; height: 40px; fill: #fff; stroke-width: 3.2; }
+
+.funil-maquete .funil-perdas-faixa .terr-secao-mercado { margin: 0; }
+.funil-maquete .funil-perdas-faixa .terr-secao-titulo { margin-bottom: 2px; font-size: 16px; }
+
+.funil-perdas-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 14px;
+  background: #ffe7d1;
+  border: 1px solid #fcca9b;
+  border-radius: 10px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #c2410c;
+}
+
+.funil-perdas-aviso p { margin: 0; }
+
+.funil-perdas-aviso .funil-perdas-aviso-titulo {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #e4570b;
+}
+
+/* O círculo laranja com o miolo branco, da maquete. */
+.funil-perdas-aviso-icone {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 3px, #f26b0f 3.5px 6px, #fff 6.5px 7.5px, #f26b0f 8px);
+}
+
+/* -----------------------------------------------------------------------------
+   AS VENDAS PERDIDAS — as abas na linha do título, a tabela compacta e o preço numa linha
+   ----------------------------------------------------------------------------- */
+.funil-maquete .mom-painel[data-area='funil-perdas'] { gap: var(--e-2); padding: 10px 14px; }
+
+.funil-maquete .mom-painel[data-area='funil-perdas'] .mom-painel-linha { flex-wrap: nowrap; align-items: center; }
+
+.funil-maquete .mom-painel[data-area='funil-perdas'] .mom-painel-titulo { font-size: 17px; flex-shrink: 0; }
+
+.funil-maquete .mom-painel[data-area='funil-perdas'] .mom-painel-direita {
+  flex: 1;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.funil-perdas-frase {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.funil-maquete .funil-abas {
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid #d5dbe1;
+  border-radius: 8px;
+}
+
+.funil-maquete .funil-abas button { border-radius: 0; padding: 6px 18px; }
+
+/* NA TELA ESTREITA o título, a frase e as abas se empilham: numa linha só, as abas passavam da janela. */
+@media (max-width: 900px) {
+  .funil-maquete .mom-painel[data-area='funil-perdas'] .mom-painel-linha,
+  .funil-maquete .mom-painel[data-area='funil-perdas'] .mom-painel-direita {
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .funil-maquete .mom-painel[data-area='funil-perdas'] .mom-painel-direita { width: 100%; }
+  .funil-conversao thead th { white-space: normal; }
+}
+
+.funil-maquete .mom-painel[data-area='funil-perdas'] .mom-tabela th,
+.funil-maquete .mom-painel[data-area='funil-perdas'] .mom-tabela td {
+  padding: 3px 18px;
+  font-size: 12.5px;
+  color: var(--funil-marinho);
+}
+
+.funil-maquete .mom-painel[data-area='funil-perdas'] .mom-tabela thead th {
+  padding-block: 6px;
+  background: var(--funil-cabecalho-tabela);
+  border-bottom: 0;
+  font-size: 10.5px;
+  color: #5b6776;
+}
+
+.funil-maquete .mom-painel[data-area='funil-perdas'] .mom-tabela thead th:first-child { border-radius: 8px 0 0 8px; }
+.funil-maquete .mom-painel[data-area='funil-perdas'] .mom-tabela thead th:last-child { border-radius: 0 8px 8px 0; }
+
+.funil-maquete .mom-painel[data-area='funil-perdas'] .mom-tabela .mom-num:not(:last-child) { text-align: center !important; }
+
+.funil-preco {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 28px;
+}
+
+.funil-preco-base {
+  min-width: 64px;
+  font-size: 11px;
+  text-align: right;
+  color: var(--text-tertiary);
+}
