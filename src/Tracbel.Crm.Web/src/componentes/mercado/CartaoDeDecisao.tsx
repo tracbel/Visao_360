@@ -64,8 +64,12 @@ export function CartaoDeDecisao({
   /** Como o leitor de tela chama o número ausente; o padrão é o rótulo em minúsculas. */
   oQue?: string;
   /**
-   * O SELO DO CANTO de cima, à direita — a variação ("↑ 12,5%") ou o percentual da meta, como na maquete da Visão 360 de
-   * 29/09/2026. Só com número de verdade: cartão sem o que comparar não ganha selo. O desenho mora em `visao360.css`.
+   * O SELO À DIREITA — a variação ("↑ 12,5%") ou o percentual da meta, como na maquete da Visão 360 de 29/09/2026. Só
+   * com número de verdade: cartão sem o que comparar não ganha selo. O desenho mora em `visao360.css`.
+   *
+   * MORA NA PONTA DA LINHA DO NÚMERO, e não na do nome: na linha do nome ele quebrava "Meta e realizado · FY2026" em duas
+   * linhas, e o número desse cartão descia em relação aos vizinhos. Na linha do número há folga, e os cinco cartões ficam
+   * com nome, número e linha de baixo na mesma altura.
    */
   selo?: ReactNode;
 }) {
@@ -104,12 +108,11 @@ export function CartaoDeDecisao({
             </span>
           )}
           {unidade && <span className="mv-kpi-unidade">{unidade}</span>}
+          {selo && <span className="mv-kpi-selo">{selo}</span>}
         </div>
 
         <div className="mv-kpi-contexto">{variacao}</div>
       </div>
-
-      {selo && <span className="mv-kpi-selo">{selo}</span>}
     </div>
   );
 }

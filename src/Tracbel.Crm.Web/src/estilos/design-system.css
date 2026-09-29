@@ -9257,6 +9257,11 @@ tr.funil-nova {
 /* --- Gráficos do painel executivo ------------------------------------------ */
 .cad-moldura-grafico { width: 100%; min-width: 0; }
 .cad-moldura-grafico canvas { max-width: 100%; }
+
+/* O GRÁFICO QUE ENCHE A ALTURA QUE SOBRA (`MolduraDeGrafico preencher`): a moldura cresce no painel, e o desenho fica numa
+   camada absoluta — sem empurrar a altura do painel, que assim volta a encolher quando o vizinho da linha encolhe. */
+.cad-moldura-grafico[data-preencher='true'] { position: relative; flex: 1 1 auto; }
+.cad-moldura-grafico[data-preencher='true'] > .cad-moldura-grafico-camada { position: absolute; inset: 0; }
 .p360-donut {
   display: flex;
   align-items: center;
