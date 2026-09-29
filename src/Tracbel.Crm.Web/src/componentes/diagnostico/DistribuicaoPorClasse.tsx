@@ -11,7 +11,7 @@
 
 import { Link } from 'react-router-dom';
 import { InfoTooltip } from '../InfoTooltip';
-import { Painel } from '../dashboard/Dashboard';
+import { PainelDoMomento } from '../mercado/momento/pecas';
 import { MetricasSemDado } from '../cadastro/SemDado';
 import type { ClasseDePrioridade, DiagnosticoComercialDaRegiao } from '../../tipos/mercado';
 import { CLASSES, COMPONENTES, dataCurta, n } from './diagnostico';
@@ -30,14 +30,14 @@ export function DistribuicaoPorClasse({
   const comIndice = resumo.total - resumo.semIndice;
 
   return (
-    <Painel
+    <PainelDoMomento
       titulo="Prioridade dos municípios"
-      metodologia={
+      dica={
         'O IOC vai de 0 a 100: alto é muito a ganhar — potencial grande e pouco explorado, com crédito e preço a favor. É ' +
         'uma ordem de prioridade entre os municípios, e não previsão de venda. As classes vão de 20 em 20 pontos. ' +
         'Componente sem dado num município sai da conta e os pesos dos outros são normalizados.'
       }
-      acao={
+      direita={
         dados.lacunas.length > 0 ? (
           // AS LIMITAÇÕES MORAM NUMA DICA, como nos Indicadores Geográficos: são auditoria, e não a primeira leitura.
           <span className="diag-limitacoes">
@@ -120,6 +120,6 @@ export function DistribuicaoPorClasse({
           componente com peso tem dado neles.
         </p>
       )}
-    </Painel>
+    </PainelDoMomento>
   );
 }

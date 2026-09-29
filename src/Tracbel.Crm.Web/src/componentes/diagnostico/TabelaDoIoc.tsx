@@ -15,21 +15,21 @@
 import { useMemo, useState } from 'react';
 import { BarraDePaginacao } from '../cadastro/BarraDePaginacao';
 import { ValorAusente } from '../comum/ValorAusente';
-import { Painel } from '../dashboard/Dashboard';
+import { PainelDoMomento } from '../mercado/momento/pecas';
 import type { MunicipioNoDiagnostico } from '../../tipos/mercado';
 import { acoesDoPlano, n, pct, SEM_ART, variacao, type ColunaDoDiagnostico } from './diagnostico';
 import { SeloDoIoc } from './FichaDoMunicipioNoIoc';
 
-const COLUNAS: { chave: ColunaDoDiagnostico; rotulo: string; texto?: boolean; dica?: string }[] = [
+const COLUNAS: { chave: ColunaDoDiagnostico; rotulo: string; texto?: boolean; dica?: string; numerica?: boolean }[] = [
   { chave: 'nome', rotulo: 'Município', texto: true },
   { chave: 'culturaPrincipal', rotulo: 'Cultura principal', texto: true, dica: 'com o momento de preço dela' },
   { chave: 'ioc', rotulo: 'IOC' },
-  { chave: 'demandaEstrutural', rotulo: 'Demanda/ano', dica: 'estrutural, com a ajustada embaixo' },
-  { chave: 'vendidasNoPeriodo', rotulo: 'Vendidas', dica: 'no período, pelo ART' },
-  { chave: 'clientes', rotulo: 'Clientes', dica: 'com os em carteira embaixo' },
-  { chave: 'cobertura', rotulo: 'Cobertura' },
-  { chave: 'penetracao', rotulo: 'Penetração' },
-  { chave: 'indiceDeCredito', rotulo: 'Crédito' },
+  { chave: 'demandaEstrutural', rotulo: 'Demanda/ano', dica: 'estrutural, com a ajustada embaixo', numerica: true },
+  { chave: 'vendidasNoPeriodo', rotulo: 'Vendidas', dica: 'no período, pelo ART', numerica: true },
+  { chave: 'clientes', rotulo: 'Clientes', dica: 'com os em carteira embaixo', numerica: true },
+  { chave: 'cobertura', rotulo: 'Cobertura', numerica: true },
+  { chave: 'penetracao', rotulo: 'Penetração', numerica: true },
+  { chave: 'indiceDeCredito', rotulo: 'Crédito', numerica: true },
 ];
 
 export function TabelaDoIoc({
@@ -69,15 +69,14 @@ export function TabelaDoIoc({
   const daPagina = useMemo(() => linhas.slice((atual - 1) * tamanho, atual * tamanho), [linhas, atual, tamanho]);
 
   return (
-    <Painel titulo="Municípios por prioridade" acao={acao} data-bloco="municipios-por-prioridade">
-      <p className="diag-subtitulo-da-tabela">{subtitulo}</p>
+    <PainelDoMomento titulo="Municípios por prioridade" subtitulo={subtitulo} direita={acao} data-bloco="municipios-por-prioridade">
 
       {linhas.length === 0 ? (
         <p className="diag-nota">{total === 0 ? 'Nenhum município da ADR neste recorte.' : 'Nenhum município com esses filtros.'}</p>
       ) : (
         <>
-          <div className="cad-tabela-wrap">
-            <table className="cad-tabela diag-tabela">
+          <div className="mom-tabela-rolagem">
+            <table className="mom-tabela diag-tabela">
               <caption className="cad-so-leitor">Municípios da ADR pelo Índice de Oportunidade Comercial</caption>
               <thead>
                 <tr>
@@ -85,6 +84,7 @@ export function TabelaDoIoc({
                     <th
                       key={c.chave}
                       scope="col"
+                      className={c.numerica ? 'mom-num' : undefined}
                       aria-sort={ordem.coluna === c.chave ? (ordem.sentido === 1 ? 'ascending' : 'descending') : 'none'}
                       title={c.dica}
                     >
@@ -128,7 +128,7 @@ export function TabelaDoIoc({
           />
         </>
       )}
-    </Painel>
+    </PainelDoMomento>
   );
 }
 
@@ -170,7 +170,7 @@ function Linha({
           <SeloDoIoc ioc={m.ioc} classe={m.classe} />
         )}
       </td>
-      <td className="cad-mono">
+      <td className="mom-num">
         {m.demandaEstrutural === null ? <ValorAusente motivo={semDemanda} oQue="a demanda" /> : n(m.demandaEstrutural)}
         {m.demandaAjustada !== null && m.demandaAjustada !== m.demandaEstrutural && (
           <div className="cad-sub" title="A demanda ajustada pelo momento: preço, crédito e percepção">
@@ -178,18 +178,18 @@ function Linha({
           </div>
         )}
       </td>
-      <td className="cad-mono">
+      <td className="mom-num">
         {m.vendidasNoPeriodo === null ? (
           <ValorAusente motivo={semArt ? SEM_ART : 'Sem venda do ART para este município.'} oQue="as vendas" />
         ) : (
           n(m.vendidasNoPeriodo, 0)
         )}
       </td>
-      <td className="cad-mono">
+      <td className="mom-num">
         {n(m.clientes, 0)}
         {m.clientesEmCarteira !== null && <div className="cad-sub">{n(m.clientesEmCarteira, 0)} em carteira</div>}
       </td>
-      <td className="cad-mono">
+      <td className="mom-num">
         {m.cobertura === null ? (
           <ValorAusente motivo="Nenhum vínculo de carteira com cadência declarada neste município." oQue="a cobertura" />
         ) : (
@@ -201,14 +201,14 @@ function Linha({
           </>
         )}
       </td>
-      <td className="cad-mono">
+      <td className="mom-num">
         {m.penetracao === null ? (
           <ValorAusente motivo={semArt ? SEM_ART : 'Sem demanda estimada para comparar.'} oQue="a penetração" />
         ) : (
           pct(m.penetracao)
         )}
       </td>
-      <td className="cad-mono">
+      <td className="mom-num">
         {m.indiceDeCredito === null ? (
           <ValorAusente motivo="O SICOR não formou o índice de crédito deste município." oQue="o crédito" />
         ) : (

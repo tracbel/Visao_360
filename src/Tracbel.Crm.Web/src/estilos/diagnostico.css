@@ -106,7 +106,8 @@
   all: unset; justify-self: start; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--jd-green-dark);
 }
 .diag-limpar:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; border-radius: 2px; }
-.dash-painel .diag-pesos { margin: 14px 0 0; }
+.dash-painel .diag-pesos,
+.mom-painel .diag-pesos { margin: 14px 0 0; }
 
 .diag-limitacoes {
   display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-secondary);

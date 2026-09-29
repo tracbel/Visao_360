@@ -138,3 +138,84 @@ for (const { nome, largura, altura } of TODAS) {
     }
   });
 }
+
+/**
+ * AS TELAS DE INTELIGÊNCIA DE MERCADO (bloco 4 do #293, 29/09/2026) — Demanda e Previsão e Diagnóstico Comercial. Elas
+ * leem as rotas de mercado, que o harness do SHELL responde com as amostras de Mercado (`#/dev/shell-visual?rota=…`), e
+ * não o da Visão 360. As mesmas provas das outras: cabem na largura, página na coluna inteira, as peças do padrão e os
+ * cartões iguais.
+ */
+const TELAS_DE_MERCADO = [
+  { nome: 'demanda', rota: '/mercado/demanda', cartoes: 4, secoes: 2 },
+  { nome: 'diagnostico', rota: '/mercado/diagnostico', cartoes: 4, secoes: 2 },
+] as const;
+
+async function abrirNoShell(pagina: Page, rota: string, cartoes: number) {
+  await pagina.goto(`/#/dev/shell-visual?estado=completo&rota=${encodeURIComponent(rota)}`);
+  await expect(pagina.locator('.app-shell')).toBeVisible({ timeout: 30_000 });
+  await expect(pagina.locator('[data-bloco="kpis"] [data-kpi]')).toHaveCount(cartoes, { timeout: 30_000 });
+  await expect(pagina.locator('[data-bloco="kpis"] .cad-kpi-esqueleto')).toHaveCount(0, { timeout: 30_000 });
+  await expect(pagina.locator('section.dash-secao').first()).toBeVisible({ timeout: 30_000 });
+  await pagina.waitForFunction(() => document.fonts.status === 'loaded');
+}
+
+for (const { nome, largura, altura } of TODAS) {
+  test.describe(`Telas de mercado no padrão dos Indicadores em ${nome}`, () => {
+    test.use({ viewport: { width: largura, height: altura } });
+
+    for (const tela of TELAS_DE_MERCADO) {
+      test(`${tela.nome}: cabe na largura, tem as peças do padrão e os cartões iguais`, async ({ page }) => {
+        await abrirNoShell(page, tela.rota, tela.cartoes);
+        await page.screenshot({ path: `capturas/${nome}/padrao-${tela.nome}.png`, fullPage: true });
+
+        const { sobra, culpados } = await sobraLateral(page);
+        expect(
+          sobra,
+          `A página passa ${sobra}px da janela de ${largura}px. Primeiros culpados: ${culpados.join(' · ') || 'nenhum'}`,
+        ).toBeLessThanOrEqual(0);
+
+        await expect(page.locator('.dash-pagina.dash-pagina-larga')).toHaveCount(1);
+        await expect(page.locator('.page-header .dash-atualizado')).toBeVisible();
+        await expect(page.locator('[data-bloco="filtros"] .dash-filtros-linha')).toBeVisible();
+        await expect(page.locator('section.dash-secao .terr-secao-titulo')).toHaveCount(tela.secoes);
+        expect(await page.locator('.mom-painel').count()).toBeGreaterThanOrEqual(tela.secoes);
+
+        const { esquerda, direita } = await page.evaluate(() => {
+          const conteudo = document.querySelector<HTMLElement>('.content')!;
+          const estilo = getComputedStyle(conteudo);
+          const caixa = conteudo.getBoundingClientRect();
+          const pagina = document.querySelector('.dash-pagina')!.getBoundingClientRect();
+          return {
+            esquerda: pagina.left - (caixa.left + parseFloat(estilo.paddingLeft)),
+            direita: caixa.right - parseFloat(estilo.paddingRight) - pagina.right,
+          };
+        });
+        const faixa = `sobra ${Math.round(esquerda)}px à esquerda e ${Math.round(direita)}px à direita`;
+        if (largura < 2100) {
+          expect(Math.round(esquerda), faixa).toBe(0);
+          expect(Math.round(direita), faixa).toBe(0);
+        } else {
+          expect(Math.abs(esquerda - direita), faixa).toBeLessThanOrEqual(2);
+        }
+
+        const cartoes = await page.locator('[data-bloco="kpis"] .mv-kpi').evaluateAll((nós) =>
+          nós.map((n) => {
+            const caixa = n.getBoundingClientRect();
+            const valor = n.querySelector<HTMLElement>('.mv-kpi-valor');
+            return {
+              topo: Math.round(caixa.top),
+              altura: Math.round(caixa.height),
+              cabe: !valor || valor.scrollWidth <= valor.clientWidth + 1,
+              nome: n.getAttribute('data-kpi'),
+            };
+          }),
+        );
+        const porLinha = new Map<number, number[]>();
+        for (const c of cartoes) porLinha.set(c.topo, [...(porLinha.get(c.topo) ?? []), c.altura]);
+        for (const [topo, alturas] of porLinha)
+          expect(Math.max(...alturas) - Math.min(...alturas), `cartões na linha de topo ${topo}: ${alturas.join(', ')}`).toBeLessThanOrEqual(1);
+        for (const c of cartoes) expect(c.cabe, `o número de "${c.nome}" não cabe no cartão`).toBe(true);
+      });
+    }
+  });
+}
