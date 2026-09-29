@@ -1,6 +1,7 @@
 /**
  * AS TELAS QUE PASSARAM PARA O PADRÃO DOS INDICADORES GEOGRÁFICOS (29/09/2026) — Funil de Vendas, Pipeline de Vendas e
- * Cobertura de Carteira — CABEM NA LARGURA E TÊM A FORMA DO PADRÃO.
+ * Cobertura de Carteira (bloco 1); Agenda, Performance de CEN e Cobertura por Filial (bloco 2); Forecast da Gerência,
+ * Estoque e Cobertura e Conferência com a GN (bloco 3) — CABEM NA LARGURA E TÊM A FORMA DO PADRÃO.
  *
  * Roda sobre o harness da Visão 360 aberto na rota de cada tela (`#/dev/visao360-visual?rota=…`): as três leem as
  * mesmas rotas que a Visão 360 soma, com as mesmas amostras fictícias, dentro do `Layout` real com o menu lateral —
@@ -25,13 +26,18 @@ const TODAS = [
 ] as const;
 
 const TELAS = [
-  // Bloco 3 (29/09/2026): os relatórios da Gestão de Negócios, com as amostras deles no mesmo harness.
-  { nome: 'forecast', rota: '/relatorios/forecast', cartoes: 5, secoes: 1 },
-  { nome: 'estoque', rota: '/relatorios/estoque', cartoes: 6, secoes: 2 },
-  { nome: 'conferencia', rota: '/relatorios/conferencia', cartoes: 5, secoes: 2 },
+  // Bloco 1 (#294).
   { nome: 'funil', rota: '/relatorios/funil', cartoes: 4, secoes: 2 },
   { nome: 'pipeline', rota: '/pipeline', cartoes: 4, secoes: 2 },
   { nome: 'cobertura', rota: '/cobertura', cartoes: 5, secoes: 2 },
+  // Bloco 2 (#293, 29/09/2026).
+  { nome: 'agenda', rota: '/agenda', cartoes: 6, secoes: 2 },
+  { nome: 'performance', rota: '/relatorios/performance', cartoes: 4, secoes: 2 },
+  { nome: 'cobertura-por-filial', rota: '/relatorios/cobertura', cartoes: 5, secoes: 2 },
+  // Bloco 3 (#293, 29/09/2026): os relatórios da Gestão de Negócios, com as amostras deles no mesmo harness.
+  { nome: 'forecast', rota: '/relatorios/forecast', cartoes: 5, secoes: 1 },
+  { nome: 'estoque', rota: '/relatorios/estoque', cartoes: 6, secoes: 2 },
+  { nome: 'conferencia', rota: '/relatorios/conferencia', cartoes: 5, secoes: 2 },
 ] as const;
 
 const ESTADOS = ['completo', 'vazio'] as const;
