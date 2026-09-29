@@ -4,6 +4,11 @@
 > Onde este documento e o §5 do 46 divergem, vale este. Nenhum valor pessoal está aqui: só nomes de rota, de campo,
 > contagens e datas. A chave nunca é citada: está no `.env` como `GESTAO_NEGOCIOS_API_TOKEN` e no servidor pela tela de
 > Integrações.
+>
+> **29/09/2026 — sem contrato e sem perguntas (§6):** o Ricardo decidiu que o CRM não precisa de contrato com a
+> equipe de Inteligência de Mercado. As perguntas do §5 não serão enviadas; o que o CRM precisa é deixar os dados
+> dessa equipe coerentes no próprio sistema, e a referência das regras é o protótipo dela, cujo código está na pasta
+> 360. A #12 fecha com esta versão.
 
 ## 1. O que a API é, hoje
 
@@ -90,8 +95,9 @@ passa por cima.
 
 ## 5. As perguntas à equipe de Inteligência de Mercado
 
-**Nenhuma foi enviada ainda.** Enviar é contato com terceiros e pede a autorização do Ricardo, então o dono do envio é o
-Ricardo. A medição respondeu parte delas. As que continuam abertas estão abaixo, na ordem do §5.9 do documento 46.
+**Não serão enviadas** — ver §6. Ficam registradas como estavam em 28/09, porque cada resposta que falta é um limite
+conhecido da leitura, e a tabela diz como o CRM convive com ele. A medição respondeu parte delas; a ordem é a do §5.9
+do documento 46.
 
 | # | Pergunta | Situação em 28/09/2026 |
 |---|---|---|
@@ -117,3 +123,29 @@ Ricardo. A medição respondeu parte delas. As que continuam abertas estão abai
 16. A performance de consórcio chegou com 76 min de idade, e os outros painéis com minutos. Qual é o ciclo dela?
 17. As lojas sem código TOTVS (Digital, Grandes Contas, as duas Colorado) vão continuar fora do de-para? A venda da
     Digital tem uma filial de origem que o CRM deveria usar?
+
+## 6. Sem contrato: o que vale no lugar das perguntas (29/09/2026)
+
+**A decisão, do Ricardo:** *"não precisa de contrato, só devemos deixar as informações deles redondas em nossos
+sistemas com base no protótipo deles, lá tem todo o código"*.
+
+**O que isso muda no CRM:**
+
+- **As perguntas do §5 ficam registradas, e não serão enviadas.** Cada resposta que falta vira um **limite
+  conhecido** da leitura, e o CRM já convive com todos eles sem depender de resposta:
+  - lê com janela explícita;
+  - compara pelo resumo do conteúdo;
+  - descarta na leitura o financeiro e os nomes;
+  - trata o fuso de `gerado_em` como horário local;
+  - usa o `estoque-pedidos` no lugar do `estoque`.
+
+  Se um desses limites virar problema medido, a pergunta volta com o número na mão.
+- **A referência das regras de negócio da equipe é o protótipo**, `360\Protótipo Plataforma Inteligencia Agro -
+  Tracbel.html`, com o JavaScript extraído em `360\pagina_2026-09-25T17-58-10\js-inline\`. O protótipo **não chama a
+  API Gestão de Negócios**: os dados dele vêm embutidos, e o que interessa nele é o código, que diz como cada número é
+  calculado. Um exemplo já aplicado: a D-P03 (o índice de crédito) foi decidida lendo `sichCredVar` e
+  `credIntervalMap` (documento 48 §5.8.1).
+- **"Deixar redondo" é o épico #264** — trazer cada aba do protótipo para o CRM, com dado vivo e as regras dele. As
+  abas que faltam são a #259, a #260, a #261 e a #263.
+- **A leitura da API continua como está**: as rotinas 9, 12 e 13 (§3), nascidas desligadas, com as travas das metas. A
+  API segue sendo espelho, e o CRM a usa como fonte das metas, do forecast, do estoque e como gabarito da conferência.
