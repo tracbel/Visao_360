@@ -182,8 +182,8 @@ export function PainelDePrecos({ produtosDoMunicipio = [] }: { produtosDoMunicip
             titulo="Os preços ainda não foram carregados neste banco"
             texto={
               <>
-                A rota respondeu, mas não há nenhuma cotação gravada: a carga mensal de preços (
-                <code>--somente-precos</code>) ainda não rodou aqui. Não é zero nem falta de permissão.
+                Não há nenhuma cotação gravada: a rotina <strong>Preços, custos e crédito</strong> ainda não rodou aqui
+                — quem administra a liga em Configurações › Integrações. Não é zero nem falta de permissão.
               </>
             }
           />

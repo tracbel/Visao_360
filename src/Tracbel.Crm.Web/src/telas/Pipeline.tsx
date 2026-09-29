@@ -394,7 +394,7 @@ export function Pipeline() {
           titulo="Processos desta filial"
           data-bloco="processos"
           subtitulo={`Ordenados por ${ROTULO_DA_ORDEM[consulta.ordenarPor] ?? consulta.ordenarPor}${consulta.descendente ? ', do maior para o menor' : ''}.`}
-          dica="Clique no título de uma coluna com seta para ordenar por ela. O processo abre a ficha da oportunidade; o cliente, o 360 dele."
+          dica="Clique no título de uma coluna com seta para ordenar por ela. O processo abre a ficha da oportunidade; o cliente, o 360 dele. A lista não filtra por fase: a contagem do funil acima está certa, mas o filtro na lista mostraria um total que não bate com as linhas."
         >
           {lista.carregando && <BlocoCarregando oQue="os processos" />}
           {lista.erro && <BlocoErro erro={lista.erro} aoTentarDeNovo={lista.recarregar} />}
@@ -508,24 +508,16 @@ export function Pipeline() {
         </PainelDoMomento>
       </section>
 
-      <BlocoRecolhivel
-        titulo="O que esta tela ainda não faz, e por quê"
-        resumo="filtro por fase na lista e mudança de fase pelo quadro"
-      >
+      {/* O FILTRO POR FASE FOI PARA A DICA DA LISTA (29/09/2026, #31): o parágrafo explicava o GROUP BY, o parâmetro
+          da rota e o total que a API declara — texto de quem programa. A razão continua medida na dívida P-7: a
+          listagem aplica a fase depois de paginar, e o total não bate com as linhas. */}
+      <BlocoRecolhivel titulo="O que esta tela ainda não faz, e por quê" resumo="mudança de fase pelo quadro">
         <div className="cad-fichas">
           <p className="cad-estado-texto">
-            <strong>Não há filtro por fase na lista.</strong> A contagem por fase do quadro acima é
-            confiável — ela sai de um <code>GROUP BY</code> no banco. Já a listagem aplica{' '}
-            <code>faseCodigo</code> <em>depois</em> de o banco paginar: medido ao vivo,{' '}
-            <code>?faseCodigo=APRESENTACAO&amp;tamanho=25</code> devolve 12 linhas e continua
-            declarando <code>total: 16.039</code>. Oferecer esse filtro mostraria uma contagem que
-            não corresponde às linhas. Registrado como dívida <strong>P-7</strong>.
-          </p>
-          <p className="cad-estado-texto">
-            <strong>Mudar de fase, fechar e marcar como perdida saíram.</strong> Nenhuma rota de
             {/* A citação "(dívida D-9 do documento 23)" saiu da tela pelo mesmo motivo das outras. */}
-            relacionamento escreve: mudar de fase dispara automação e concluir tarefa gera a
-            próxima, e o motor de regras entra junto com a tela que o exercita.
+            <strong>Mudar de fase, fechar e marcar como perdida ainda não estão aqui.</strong> Mudar
+            de fase dispara automações — concluir uma tarefa gera a próxima —, e elas entram junto
+            com a tela que as controla.
           </p>
         </div>
       </BlocoRecolhivel>
