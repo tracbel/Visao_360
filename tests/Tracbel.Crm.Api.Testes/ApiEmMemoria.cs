@@ -55,6 +55,11 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
     {
         builder.UseEnvironment("Development");
 
+        // O CACHE DAS LEITURAS FICA DESLIGADO, SALVO QUANDO O TESTE PEDE: quase todo teste grava direto no banco entre
+        // duas leituras — como as rotinas fazem, em outro processo —, e o vigia que perceberia isso confere de 15 em 15
+        // segundos. Quem testa o cache liga com `MinutosDoCache`.
+        builder.UseSetting("CacheDasLeituras:Minutos", MinutosDoCache.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
         builder.ConfigureServices(servicos =>
         {
             // Tira o registro de SQL Server que o Program.cs fez e põe SQLite no lugar. É a
@@ -88,6 +93,9 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
 
     /// <summary>O que o teste troca além do banco — hoje, o cliente HTTP do botão "Testar" (issue 136).</summary>
     public Action<IServiceCollection>? AjustarServicos { get; init; }
+
+    /// <summary>Por quantos minutos as leituras ficam guardadas. Zero (o padrão dos testes) desliga o cache.</summary>
+    public int MinutosDoCache { get; init; }
 
     /// <inheritdoc />
     public async Task InitializeAsync()
