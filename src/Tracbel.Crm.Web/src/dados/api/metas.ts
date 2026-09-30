@@ -1,9 +1,9 @@
 /**
- * A META DE VENDA × O REALIZADO, filial a filial (#138) — `GET /api/v1/relatorios/metas`.
+ * A META DE VENDA × O REALIZADO (#138) — `GET /api/v1/relatorios/metas`.
  *
- * A mesma ponte do consolidado (P-8): uma leitura por filial, com o cabeçalho da filial, no máximo quatro de cada vez,
- * e a tela soma por partição — cada meta e cada venda são de UMA filial. Três desfechos por filial, e nenhum vira zero
- * sem dizer:
+ * O cartão lê a filial do seletor do topo, ou "Todas as filiais", numa leitura só (30/09/2026, #313). A tabela de
+ * composição, em "Todas", lê filial a filial — a ponte do consolidado (P-8), no máximo quatro de cada vez —, e soma por
+ * partição: cada meta e cada venda são de UMA filial. Três desfechos por leitura, e nenhum vira zero sem dizer:
  *
  * - respondeu: entra na soma;
  * - 403: a filial está fora do alcance de quem lê (o vendedor, no perfil Padrão, só lê a própria) — não é falha;
@@ -21,7 +21,7 @@ import type {
   OrigemDaMetaDeVenda,
   PeriodoDaMeta,
 } from '../../tipos/metas';
-import { comLimite, listarFiliais, type Filial } from './consolidado';
+import { comLimite, filialDaSelecao, listarFiliais, type Filial } from './consolidado';
 import { ErroDaApi, ler, type ContextoDeAcesso } from './http';
 
 /** A resposta de UMA filial — ou por que ela não entrou. */
@@ -77,24 +77,37 @@ export function obterMetaDaFilial(contexto: ContextoDeAcesso, sinal?: AbortSigna
   return ler<MetaERealizadoDaFilial>('/v1/relatorios/metas', contexto, { sinal });
 }
 
-/** Lê a meta de cada filial em operação e soma. */
+/**
+ * A meta da filial do seletor do topo — uma filial, ou "Todas as filiais" numa leitura só (30/09/2026, #313): o
+ * servidor soma todas as que a pessoa alcança.
+ */
 export async function obterMetasConsolidadas(
   contexto: ContextoDeAcesso,
   sinal?: AbortSignal,
 ): Promise<{ dados: MetasConsolidadas; procedencia: null }> {
-  const filiais = await listarFiliais(contexto, sinal);
-  const linhas = await comLimite(filiais, 4, async (filial): Promise<MetaDaFilial> => {
-    try {
-      const resposta = await ler<MetaERealizadoDaFilial>('/v1/relatorios/metas', { ...contexto, empresa: filial.codigo }, { sinal });
-      return { filial, meta: resposta.dados, erro: null, foraDoAlcance: false };
-    } catch (causa) {
-      if (causa instanceof DOMException && causa.name === 'AbortError') throw causa;
-      if (causa instanceof ErroDaApi && causa.status === 403) return { filial, meta: null, erro: causa, foraDoAlcance: true };
-      return { filial, meta: null, erro: causa instanceof Error ? causa : new Error(String(causa)), foraDoAlcance: false };
-    }
-  });
+  const filial = await filialDaSelecao(contexto, sinal);
+  return { dados: somarMetas([await lerMeta(contexto, filial, sinal)]), procedencia: null };
+}
 
-  return { dados: somarMetas(linhas), procedencia: null };
+/** A meta filial a filial — só a tabela de composição, quando alguém a abre em "Todas as filiais" (#313). */
+export async function obterMetasPorFilial(
+  contexto: ContextoDeAcesso,
+  sinal?: AbortSignal,
+): Promise<{ dados: MetaDaFilial[]; procedencia: null }> {
+  const filiais = await listarFiliais(contexto, sinal);
+  return { dados: await comLimite(filiais, 4, (filial) => lerMeta(contexto, filial, sinal)), procedencia: null };
+}
+
+/** A meta de uma filial (ou de "Todas"): respondeu, está fora do alcance (403) ou falhou — nunca zero sem dizer. */
+async function lerMeta(contexto: ContextoDeAcesso, filial: Filial, sinal?: AbortSignal): Promise<MetaDaFilial> {
+  try {
+    const resposta = await ler<MetaERealizadoDaFilial>('/v1/relatorios/metas', { ...contexto, empresa: filial.codigo }, { sinal });
+    return { filial, meta: resposta.dados, erro: null, foraDoAlcance: false };
+  } catch (causa) {
+    if (causa instanceof DOMException && causa.name === 'AbortError') throw causa;
+    if (causa instanceof ErroDaApi && causa.status === 403) return { filial, meta: null, erro: causa, foraDoAlcance: true };
+    return { filial, meta: null, erro: causa instanceof Error ? causa : new Error(String(causa)), foraDoAlcance: false };
+  }
 }
 
 /**

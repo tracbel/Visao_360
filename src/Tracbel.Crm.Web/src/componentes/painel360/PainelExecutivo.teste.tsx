@@ -53,6 +53,8 @@ vi.mock('../MolduraDeGrafico', () => ({
 // O `localStorage` do Node não guarda nada sem `--localstorage-file`, e o
 // contexto de acesso lê dele na primeira renderização.
 const guardado = new Map<string, string>();
+/** Onde o contexto de acesso guarda a filial do seletor do topo. */
+const CHAVE_DO_CONTEXTO = 'tracbel-crm:contexto-acesso';
 
 function instalarApi(estado: EstadoDaVisao360) {
   vi.stubGlobal('localStorage', {
@@ -209,16 +211,20 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     expect(cartao).toHaveTextContent('o cadastro de metas da Gestão de Negócios ainda não foi lido');
   });
 
-  it('a filial cuja meta falhou fica fora da soma NOMEADA, no cartão e no total da composição', async () => {
+  it('em "Todas as filiais", cada painel é UMA leitura; a composição lê filial a filial só ao abrir, e a meta que falhou fica nomeada na linha dela (#313)', async () => {
     instalarApi('completo');
+    guardado.set(CHAVE_DO_CONTEXTO, JSON.stringify({ usuario: 'amostra@exemplo.invalid', empresa: 'TODAS' }));
     const original = globalThis.fetch;
+    const pedidos: { caminho: string; empresa: string }[] = [];
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (entrada: string, init?: RequestInit) =>
-        entrada.includes('/relatorios/metas') && new Headers(init?.headers).get('X-Tracbel-Empresa') === '990002'
+      vi.fn(async (entrada: string, init?: RequestInit) => {
+        const empresa = new Headers(init?.headers).get('X-Tracbel-Empresa') ?? '';
+        pedidos.push({ caminho: entrada.replace(/^.*\/api/, '').split('?')[0], empresa });
+        return entrada.includes('/relatorios/metas') && empresa === '990002'
           ? new Response(JSON.stringify({ title: 'Falha interna' }), { status: 500 })
-          : original(entrada, init),
-      ),
+          : original(entrada, init);
+      }),
     );
     const tela = render(
       <ProvedorDeContextoDeAcesso>
@@ -227,19 +233,62 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
         </MemoryRouter>
       </ProvedorDeContextoDeAcesso>,
     );
-
-    const cartao = await waitFor(() => {
-      const c = tela.container.querySelector('[data-kpi="Meta e realizado · FY2026"]');
-      expect(c).toHaveTextContent(/\d+ de \d+/);
-      return c!;
-    });
-    expect(cartao.querySelector('.v360-periodo-alerta')).toHaveTextContent('4 de 5 filiais — fora: Filial Fictícia Beta');
-
     await waitFor(() => expect(tela.container.querySelector('[data-bloco="linha-3"]')).not.toBeNull());
+    await waitFor(() =>
+      expect(tela.container.querySelector('[data-kpi="Meta e realizado · FY2026"]')).toHaveTextContent(/[\d.]+\s*de [\d.]+/),
+    );
+    expect(tela.container.querySelector('.v360-filiais')).toHaveTextContent('Todas as filiais que você alcança');
+
+    // ERAM ~147 LEITURAS, UMA POR FILIAL E PAINEL: agora cada rota é lida uma vez, em "TODAS".
+    const dosPaineis = pedidos.filter((p) => !p.caminho.startsWith('/v1/catalogos'));
+    expect(new Set(dosPaineis.map((p) => p.empresa))).toEqual(new Set(['TODAS']));
+    for (const rota of ['/v1/relatorios/indicadores-executivos', '/v1/relatorios/metas', '/v1/relatorios/cobertura', '/v1/relatorios/vendas-perdidas'])
+      expect(dosPaineis.filter((p) => p.caminho === rota), rota).toHaveLength(1);
+
+    // A COMPOSIÇÃO É O DETALHE FILIAL A FILIAL: ela lê cada filial só quando alguém a abre.
     const composicao = tela.container.querySelector<HTMLElement>('[data-bloco="composicao"]')!;
     fireEvent.click(within(composicao).getByRole('button', { name: 'Ver filial a filial' }));
-    const total = composicao.querySelector('tr[data-linha="total"]')!;
-    expect(total).toHaveTextContent('(4 de 5)');
+    const beta = await within(composicao).findByRole('rowheader', { name: 'Filial Fictícia Beta' });
+    expect(beta.closest('tr')).toHaveTextContent('não respondeu');
+    expect(within(composicao).getByRole('rowheader', { name: 'Filial Fictícia Alfa' }).closest('tr')).not.toHaveTextContent('não respondeu');
+    expect(composicao.querySelector('tr[data-linha="total"]')).toHaveTextContent('Total — todas as filiais');
+    expect(new Set(pedidos.filter((p) => p.caminho === '/v1/relatorios/indicadores-executivos').map((p) => p.empresa))).toEqual(
+      new Set(['TODAS', '990001', '990002', '990003', '990004', '990005']),
+    );
+  });
+
+  it('com uma filial escolhida no seletor do topo, toda leitura é dela, e o cabeçalho diz qual é (#313)', async () => {
+    guardado.set(CHAVE_DO_CONTEXTO, JSON.stringify({ usuario: 'amostra@exemplo.invalid', empresa: '990003' }));
+    instalarApi('completo');
+    const original = globalThis.fetch;
+    const empresas = new Set<string>();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (entrada: string, init?: RequestInit) => {
+        if (!entrada.includes('/catalogos/')) empresas.add(new Headers(init?.headers).get('X-Tracbel-Empresa') ?? '');
+        return original(entrada, init);
+      }),
+    );
+    const tela = render(
+      <ProvedorDeContextoDeAcesso>
+        <MemoryRouter>
+          <PainelExecutivo />
+        </MemoryRouter>
+      </ProvedorDeContextoDeAcesso>,
+    );
+    await waitFor(() => expect(tela.container.querySelector('[data-bloco="linha-3"]')).not.toBeNull());
+
+    expect(empresas).toEqual(new Set(['990003']));
+    expect(tela.container.querySelector('.v360-filiais')).toHaveTextContent('Filial: Filial Fictícia Gama do Interior Paulista');
+    // O TEXTO DO "SEM DADO" DIZ ONDE MEDIU, e não "nas filiais que responderam".
+    expect(tela.container.textContent).not.toContain('filiais que responderam');
+
+    // A COMPOSIÇÃO COM UMA FILIAL é a linha dela, sem a ponte filial a filial.
+    const composicao = tela.container.querySelector<HTMLElement>('[data-bloco="composicao"]')!;
+    fireEvent.click(within(composicao).getByRole('button', { name: 'Ver filial a filial' }));
+    expect(within(composicao).getByRole('rowheader', { name: 'Filial Fictícia Gama do Interior Paulista' })).toBeInTheDocument();
+    expect(composicao.querySelector('tr[data-linha="total"]')).toBeNull();
+    expect(empresas).toEqual(new Set(['990003']));
   });
 
   it('sem a permissão Meta.Ler, o cartão diz que falta a permissão', async () => {
@@ -462,7 +511,7 @@ describe('Painel executivo da Visão 360 — o desenho da maquete de 29/09/2026'
     }
   });
 
-  it('o cabeçalho diz quais filiais responderam e a hora da última leitura do painel', async () => {
+  it('o cabeçalho diz de onde vêm os números e a hora da última leitura do painel', async () => {
     const { container } = await montar('completo');
 
     await waitFor(() => expect(container.querySelector('.v360-atualizado-em')).not.toBeNull());
@@ -470,9 +519,10 @@ describe('Painel executivo da Visão 360 — o desenho da maquete de 29/09/2026'
       /^Última atualização: \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/,
     );
 
-    const dica = textoDaDica(screen.getByRole('button', { name: 'Quais filiais responderam' }));
-    expect(dica).toContain('uma a uma');
-    expect(dica).toMatch(/Responderam: .*Filial Fictícia/);
+    // A FILIAL DO SELETOR DO TOPO (30/09/2026, #313), e o caminho para ver a empresa inteira.
+    const dica = textoDaDica(screen.getByRole('button', { name: 'De onde vêm os números' }));
+    expect(dica).toContain('a filial escolhida no seletor do topo');
+    expect(dica).toContain('Todas as filiais');
   });
 
   it('o seletor da maquete sem alternativa fica desligado, com o motivo na dica', async () => {

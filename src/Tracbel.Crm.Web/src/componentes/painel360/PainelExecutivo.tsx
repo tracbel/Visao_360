@@ -58,18 +58,27 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { TODAS_AS_FILIAIS } from '../../dados/api/acesso';
 import {
   censConsolidados,
   mixDeLinhas,
+  noRecorte,
   obterConsolidado,
   obterExecutivoConsolidado,
+  obterExecutivoPorFilial,
   obterPerdasEFunilConsolidados,
   somarConsolidado,
   faturamentoConsolidado,
   type ExecutivoConsolidado,
+  type ExecutivoDaFilial,
 } from '../../dados/api/consolidado';
 import { useContextoDeAcesso } from '../../dados/api/contexto';
-import { obterMetasConsolidadas, type MetasConsolidadas } from '../../dados/api/metas';
+import {
+  obterMetasConsolidadas,
+  obterMetasPorFilial,
+  type MetaDaFilial,
+  type MetasConsolidadas,
+} from '../../dados/api/metas';
 import { useRecurso } from '../../dados/api/useRecurso';
 import { BlocoCarregando, BlocoErro } from '../cadastro/EstadosDeTela';
 import { ValorAusente } from '../comum/ValorAusente';
@@ -275,15 +284,17 @@ export function PainelExecutivo({
   const [ano, setAno] = useState(anoCorrente);
   const [abaDasPerdas, setAbaDasPerdas] = useState<AbaDasPerdas>('motivo');
 
-  const consolidado = useRecurso((sinal) => obterConsolidado(contexto, sinal), [contexto.usuario]);
-  const executivo = useRecurso((sinal) => obterExecutivoConsolidado(contexto, ano, sinal), [contexto.usuario, ano]);
+  // A FILIAL DO SELETOR DO TOPO MANDA EM TODA LEITURA (30/09/2026, #313): trocar a filial — ou pôr "Todas as filiais" —
+  // relê o painel inteiro, e cada painel é uma leitura só.
+  const consolidado = useRecurso((sinal) => obterConsolidado(contexto, sinal), [contexto.usuario, contexto.empresa]);
+  const executivo = useRecurso((sinal) => obterExecutivoConsolidado(contexto, ano, sinal), [contexto.usuario, contexto.empresa, ano]);
   // A META DE VENDA TEM LEITURA PRÓPRIA (#138): o período dela é o ano fiscal, e não o ano do seletor, e a falha dela não
   // derruba os outros cartões.
-  const metas = useRecurso((sinal) => obterMetasConsolidadas(contexto, sinal), [contexto.usuario]);
+  const metas = useRecurso((sinal) => obterMetasConsolidadas(contexto, sinal), [contexto.usuario, contexto.empresa]);
   // AS PERDAS E O FUNIL DO ANO FISCAL (27/09/2026, documento 52): leitura própria, porque o período segue o ano escolhido.
   const perdasEFunil = useRecurso(
     (sinal) => obterPerdasEFunilConsolidados(contexto, ano, anoCorrente, sinal),
-    [contexto.usuario, ano],
+    [contexto.usuario, contexto.empresa, ano],
   );
 
   const dados = consolidado.dados;
@@ -297,6 +308,9 @@ export function PainelExecutivo({
 
   const ex = executivo.dados;
   const exComResposta = ex && ex.respondidas > 0 ? ex : null;
+  // ONDE O NÚMERO FOI MEDIDO, para os textos que dizem "nenhum … em Barretos" ou "nas filiais que você alcança".
+  const selecao = dados?.filiais[0]?.filial ?? ex?.filiais[0]?.filial ?? null;
+  const recorte = noRecorte(selecao);
   const cobertura = ex?.cobertura ?? null;
   const coberturaPct = cobertura && cobertura.elegiveis > 0 ? (100 * cobertura.cobertos) / cobertura.elegiveis : null;
 
@@ -375,20 +389,20 @@ export function PainelExecutivo({
         <div>
           <h1 className="page-title">Visão 360</h1>
           <p className="page-subtitle">
-            Painel executivo do <strong>consolidado das filiais em operação</strong> da Tracbel Agro: resultado,
+            Painel executivo da Tracbel Agro — da <strong>filial escolhida no seletor do topo</strong>, ou de todas: resultado,
             carteira, cobertura e mercado.
           </p>
         </div>
         <p className="dash-atualizado">
           {ex ? (
             <span className="v360-filiais">
-              <span className={ex.respondidas < ex.filiais.length ? 'v360-periodo-alerta' : undefined}>
-                {ex.respondidas} de {ex.filiais.length} filiais em operação responderam
+              <span className={ex.respondidas === 0 ? 'v360-periodo-alerta' : undefined}>
+                {selecao?.codigo === TODAS_AS_FILIAIS ? 'Todas as filiais que você alcança' : `Filial: ${selecao?.nome ?? '—'}`}
               </span>
-              <InfoTooltip texto={<FiliaisLidas ex={ex} />} rotulo="Quais filiais responderam" />
+              <InfoTooltip texto={<FiliaisLidas ex={ex} />} rotulo="De onde vêm os números" />
             </span>
           ) : (
-            'Lendo as filiais…'
+            'Lendo a filial…'
           )}
           {atualizadoEm && <span className="v360-atualizado-em">Última atualização: {diaEHoraCompletos(atualizadoEm)}</span>}
           <button
@@ -467,7 +481,7 @@ export function PainelExecutivo({
 
               <PainelDoMomento
                 titulo="Alertas gerenciais"
-                dica="O que pede ação hoje, somado nas filiais que responderam: vínculos elegíveis que nunca tiveram contato, tarefas atrasadas e processos parados no funil do Vórtice."
+                dica={`O que pede ação hoje, ${recorte}: vínculos elegíveis que nunca tiveram contato, tarefas atrasadas e processos parados no funil do Vórtice.`}
                 subtitulo="Para atenção neste perfil."
               >
                 <div className="v360-alertas-list">
@@ -497,7 +511,7 @@ export function PainelExecutivo({
                       tipo="atencao"
                       icone={CircleAlert}
                       titulo={`${nº(pf.parados)} processos parados em Negociação ou Pedido há mais de ${pf.diasParaParado} dias`}
-                      detalhe="O estágio mais avançado, ainda aberto no Vórtice, sem avançar nem encerrar — hoje, nas filiais que responderam"
+                      detalhe={`O estágio mais avançado, ainda aberto no Vórtice, sem avançar nem encerrar — hoje, ${recorte}`}
                       acao="Ver funil"
                       para="/relatorios/funil"
                     />
@@ -553,7 +567,7 @@ export function PainelExecutivo({
                 {/* SEM VÍNCULO, SEM ROSCA: com tudo em zero ela desenhava um anel vazio, um "—" no meio e quatro
                     zeros na legenda — quatro afirmações para dizer uma coisa só. */}
                 {cobertura && cobertura.vinculosComerciais === 0 ? (
-                  <SemDado oQue="a cobertura" porque="Nenhum vínculo em carteira comercial, nas filiais que responderam." />
+                  <SemDado oQue="a cobertura" porque={`Nenhum vínculo em carteira comercial ${recorte}.`} />
                 ) : cobertura ? (
                   <div className="v360-rosca-e-tabela">
                     <GraficoDonutCentro
@@ -583,7 +597,7 @@ export function PainelExecutivo({
 
               <PainelDoMomento
                 titulo="Top CENs"
-                dica="Os responsáveis de carteira comercial com mais vínculos, somados nas filiais que responderam, e quantos desses vínculos tiveram contato nos últimos 30 dias."
+                dica={`Os responsáveis de carteira comercial com mais vínculos ${recorte}, e quantos desses vínculos tiveram contato nos últimos 30 dias.`}
                 subtitulo="Ranking por vínculos em carteira comercial."
                 direita={
                   topCens.length > 0 ? (
@@ -601,7 +615,7 @@ export function PainelExecutivo({
                 {topCens.length === 0 ? (
                   <SemDado
                     oQue="o ranking de CENs"
-                    porque="Nenhum vínculo em carteira comercial de pessoa ou área, nas filiais que responderam."
+                    porque={`Nenhum vínculo em carteira comercial de pessoa ou área ${recorte}.`}
                   />
                 ) : (
                   <ol className="mom-ranking v360-ranking" data-numerado="true" data-variante="cens">
@@ -685,7 +699,7 @@ export function PainelExecutivo({
                     />
                   </div>
                 ) : (
-                  <SemDado oQue="o mix por linha" porque="Nenhum vínculo em carteira comercial, nas filiais que responderam." />
+                  <SemDado oQue="o mix por linha" porque={`Nenhum vínculo em carteira comercial ${recorte}.`} />
                 )}
               </PainelDoMomento>
             </div>
@@ -791,7 +805,7 @@ export function PainelExecutivo({
                         : totalPerdido > 0
                           ? `Os ${nº(totalPerdido)} processos perdidos em ${periodoDasPerdas} existem, e nenhum deles tem o formulário de venda perdida preenchido no período.`
                           : (pf?.motivoSemFunil ??
-                            `Nenhum processo perdido nem venda perdida registrada em ${periodoDasPerdas}, nas filiais que responderam.`)
+                            `Nenhum processo perdido nem venda perdida registrada em ${periodoDasPerdas}, ${recorte}.`)
                     }
                   />
                 ) : perdasEFunil.carregando ? (
@@ -829,7 +843,7 @@ export function PainelExecutivo({
                           : totalPerdido > 0
                             ? `Os ${nº(totalPerdido)} processos perdidos em ${periodoDasPerdas} existem, e nenhum deles tem o formulário de venda perdida preenchido no período.`
                             : (pf?.motivoSemFunil ??
-                              `Nenhum processo perdido nem venda perdida registrada em ${periodoDasPerdas}, nas filiais que responderam.`)
+                              `Nenhum processo perdido nem venda perdida registrada em ${periodoDasPerdas}, ${recorte}.`)
                       }
                     />
                   )
@@ -867,7 +881,7 @@ export function PainelExecutivo({
                     porque={
                       pf && pf.respondidas === 0
                         ? 'A leitura das vendas perdidas das filiais não respondeu.'
-                        : `Nenhuma venda perdida com concorrente registrada no formulário do CEN em ${periodoDasPerdas}, nas filiais que responderam.`
+                        : `Nenhuma venda perdida com concorrente registrada no formulário do CEN em ${periodoDasPerdas}, ${recorte}.`
                     }
                   />
                 )}
@@ -1022,9 +1036,9 @@ function PainelDoFaturamentoMensal({
   const porque = !ex
     ? 'A leitura dos indicadores das filiais não respondeu.'
     : !serie
-      ? 'As filiais que responderam não trouxeram o faturamento mês a mês pelo ART: o servidor ainda não tem essa versão. A nota do Protheus está no seletor ao lado.'
+      ? 'A leitura não trouxe o faturamento mês a mês pelo ART: o servidor ainda não tem essa versão. A nota do Protheus está no seletor ao lado.'
       : maquinas === 0
-        ? `Nenhuma máquina com entrega de ${periodo} no ART, nas ${ex.respondidas} filiais que responderam.`
+        ? `Nenhuma máquina com entrega de ${periodo} no ART ${noRecorte(ex.filiais[0]?.filial)}.`
         : !comValor
           ? `As ${nº(maquinas)} máquinas entregues de ${periodo} ainda estão sem valor de venda: o valor do ART chega na primeira leitura do ART depois da publicação.`
           : null;
@@ -1090,9 +1104,9 @@ function CartaoDoFaturamento({ ex }: { ex: ExecutivoConsolidado }) {
   const nenhumComValor = ano !== null && ano.maquinas > 0 && ano.semValor === ano.maquinas;
   const valor = ano && ano.maquinas > 0 && !nenhumComValor ? emMilhoes(ano.valor) : null;
   const motivo = !ano
-    ? 'As filiais que responderam não trouxeram o faturamento pelo ART: o servidor ainda não tem a versão de 29/09/2026.'
+    ? 'A leitura não trouxe o faturamento pelo ART: o servidor ainda não tem a versão de 29/09/2026.'
     : ano.maquinas === 0
-      ? `Nenhuma máquina com entrega de ${mesPorExtenso(ano.inicio)} a ${mesPorExtenso(ano.fim)} no ART, nas ${ex.respondidas} filiais que responderam.`
+      ? `Nenhuma máquina com entrega de ${mesPorExtenso(ano.inicio)} a ${mesPorExtenso(ano.fim)} no ART ${noRecorte(ex.filiais[0]?.filial)}.`
       : `As ${nº(ano.maquinas)} máquinas entregues ainda estão sem valor de venda: o valor do ART passou a ser lido em 29/09/2026 e chega na primeira leitura do ART depois da publicação.`;
 
   // A VARIAÇÃO COMPARA O VALOR COM ELE MESMO, no mesmo trecho do ano anterior; sem valor de antes, não há percentual.
@@ -1122,7 +1136,7 @@ function CartaoDoFaturamento({ ex }: { ex: ExecutivoConsolidado }) {
             <strong>O valor de venda do ART das máquinas ENTREGUES</strong> — a data de entrega preenchida
             {ano ? `, de ${mesPorExtenso(ano.inicio)} a ${mesPorExtenso(ano.fim)} (o último mês fechado)` : ''} —, com e sem
             comprador no CRM, pela filial da unidade que vendeu: uma máquina por venda do ART, como a Gestão de Negócios conta.{' '}
-            {ex.respondidas} filiais.
+            Medido {noRecorte(ex.filiais[0]?.filial)}.
           </p>
           {ressalvas.length > 0 && <p>{ressalvas.join('. ')}.</p>}
           {anterior && (
@@ -1398,20 +1412,25 @@ function CincoIndicadores({
  * A COMPOSIÇÃO DOS CINCO NÚMEROS, filial a filial — o que o pedido chama de "consultar os registros que compõem". Cada
  * coluna é somável; a linha de total é a do cartão. Fechada por padrão, como as séries da Rentabilidade: a tabela de
  * onze colunas é conferência, e não leitura de todo dia.
+ *
+ * FILIAL A FILIAL SÓ QUANDO ABRE (30/09/2026, #313): os cartões são uma leitura só, na filial do seletor. Em "Todas as
+ * filiais", abrir a composição lê filial a filial — a ponte de antes, agora fora do caminho da tela —, e o total é o
+ * do cartão. Com uma filial escolhida, a linha é a dela.
  */
 function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; metas: MetasConsolidadas | null }) {
   const [aberta, setAberta] = useState(false);
-  const fy = metas?.periodo ? `FY${metas.periodo.anoFiscal}` : 'FY';
-  const metaDa = (codigo: string) => metas?.filiais.find((f) => f.filial.codigo === codigo)?.meta ?? null;
-  // O TOTAL DA META COM FILIAL QUE FALHOU diz de quantas é: "1.250 (15 de 16)" — e não um número inteiro que não é.
-  const deQuantas =
-    metas && metas.falhas.length > 0 ? ` (${metas.respondidas} de ${metas.respondidas + metas.falhas.length})` : '';
+  const lida = ex.filiais[0]?.filial;
+  const todas = lida?.codigo === TODAS_AS_FILIAIS;
 
   return (
     <PainelDoMomento
       titulo="Composição dos cinco indicadores"
       data-bloco="composicao"
-      subtitulo="Filial a filial, com a fonte e a regra de cada número."
+      subtitulo={
+        todas || !lida
+          ? 'Filial a filial, com a fonte e a regra de cada número.'
+          : `${lida.nome}, com a fonte e a regra de cada número. Filial a filial em “Todas as filiais”.`
+      }
       // A COMPOSIÇÃO FALA A LÍNGUA DO NEGÓCIO (29/09/2026, #31): trazia os nomes das tabelas e das colunas
       // (`integracao.RegistroDeOrigem`, `vr_vda`, `comercial.FaturamentoDoCliente`, `organizacao.MetaDeVenda`,
       // `frota.VendaDeMaquina`, `organizacao.CotaDeConsorcioVendida`, `ClienteCarteira.UltimaInteracaoEm`,
@@ -1459,77 +1478,134 @@ function ComposicaoDosIndicadores({ ex, metas }: { ex: ExecutivoConsolidado; met
     >
       {/* A ROLAGEM MORA AQUI, e só aqui: onze colunas não cabem num celular, e a tabela rola dentro da própria caixa em
           vez de empurrar a página para o lado. */}
-      {aberta && (
-        <div className="mom-tabela-rolagem v360-composicao-tabela">
-          <table className="mom-tabela">
-            <caption className="cad-so-leitor">Composição dos indicadores por filial</caption>
-            <thead>
-              <tr>
-                <th scope="col">Filial</th>
-                <th scope="col" className="mom-num">Faturamento FY{ex.ano}</th>
-                <th scope="col" className="mom-num">Máquinas entregues</th>
-                <th scope="col" className="mom-num">NF Protheus FY{ex.ano}</th>
-                <th scope="col" className="mom-num">
-                  Meta {fy} (máq.) <InfoTooltip texto={REGRA_DA_META} rotulo="Como a meta de venda se conta" />
-                </th>
-                <th scope="col" className="mom-num">Realizado {fy} (máq.)</th>
-                <th scope="col" className="mom-num">Clientes únicos</th>
-                <th scope="col" className="mom-num">Vínculos comerciais</th>
-                <th scope="col" className="mom-num">Elegíveis</th>
-                <th scope="col" className="mom-num">No prazo</th>
-                <th scope="col" className="mom-num">Pendentes</th>
-                <th scope="col" className="mom-num">Vendas perdidas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ex.filiais.map(({ filial, painel, erro }) => {
-                if (!painel) {
-                  return (
-                    <tr key={filial.codigo}>
-                      <th scope="row">{filial.nome}</th>
-                      <td colSpan={11}>não respondeu — {erro?.message ?? 'motivo não informado'}</td>
-                    </tr>
-                  );
-                }
-                const i = painel.indicadores;
-                const entregues = i.entreguesNoAno ?? null;
-                const metaDaFilial = metaDa(filial.codigo);
-                return (
-                  <tr key={filial.codigo}>
-                    <th scope="row">{filial.nome}</th>
-                    <td className="mom-num">{entregues ? emMilhoes(entregues.valor) : '—'}</td>
-                    <td className="mom-num">{entregues ? nº(entregues.maquinas) : '—'}</td>
-                    <td className="mom-num">{emMilhoes(i.ano.total)}</td>
-                    <td className="mom-num">{metaDaFilial ? nº(metaDaFilial.totais.metaMaquinas) : '—'}</td>
-                    <td className="mom-num">{metaDaFilial ? nº(metaDaFilial.totais.realizadoMaquinas) : '—'}</td>
-                    <td className="mom-num">{nº(i.carteira.clientesCadastradosComVinculo)}</td>
-                    <td className="mom-num">{nº(i.carteira.vinculosComerciais)}</td>
-                    <td className="mom-num">{nº(i.cobertura.elegiveis)}</td>
-                    <td className="mom-num">{nº(i.cobertura.cobertos)}</td>
-                    <td className="mom-num">{nº(i.cobertura.pendentes)}</td>
-                    <td className="mom-num">{nº(i.mercado.vendasPerdidasRegistradas)}</td>
-                  </tr>
-                );
-              })}
-              <tr className="v360-total" data-linha="total">
-                <th scope="row">Total ({ex.respondidas} filiais)</th>
-                <td className="mom-num">{ex.entregues.ano ? emMilhoes(ex.entregues.ano.valor) : '—'}</td>
-                <td className="mom-num">{ex.entregues.ano ? nº(ex.entregues.ano.maquinas) : '—'}</td>
-                <td className="mom-num">{emMilhoes(ex.realizadoDoAno.total)}</td>
-                <td className="mom-num">{metas && metas.respondidas > 0 ? `${nº(metas.metaMaquinas)}${deQuantas}` : '—'}</td>
-                <td className="mom-num">{metas && metas.respondidas > 0 ? `${nº(metas.realizadoMaquinas)}${deQuantas}` : '—'}</td>
-                <td className="mom-num">{nº(ex.carteira.clientesCadastradosComVinculo)}</td>
-                <td className="mom-num">{nº(ex.carteira.vinculosComerciais)}</td>
-                <td className="mom-num">{nº(ex.cobertura.elegiveis)}</td>
-                <td className="mom-num">{nº(ex.cobertura.cobertos)}</td>
-                <td className="mom-num">{nº(ex.cobertura.pendentes)}</td>
-                <td className="mom-num">{nº(ex.mercado.vendasPerdidasRegistradas)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
+      {aberta &&
+        (todas ? (
+          <ComposicaoFilialAFilial ex={ex} metas={metas} />
+        ) : (
+          <TabelaDaComposicao ex={ex} linhas={ex.filiais} metasDasFiliais={metas?.filiais ?? []} metas={metas} comTotal={false} />
+        ))}
     </PainelDoMomento>
+  );
+}
+
+/**
+ * "TODAS AS FILIAIS", ABERTA: a composição lê filial a filial só agora — a ponte de antes, fora do caminho da tela —, e
+ * o total continua o do cartão, que é a leitura de todas numa vez só.
+ */
+function ComposicaoFilialAFilial({ ex, metas }: { ex: ExecutivoConsolidado; metas: MetasConsolidadas | null }) {
+  const { contexto } = useContextoDeAcesso();
+  const porFilial = useRecurso(
+    (sinal) => obterExecutivoPorFilial(contexto, ex.ano, sinal),
+    [contexto.usuario, contexto.empresa, ex.ano],
+  );
+  const metasPorFilial = useRecurso((sinal) => obterMetasPorFilial(contexto, sinal), [contexto.usuario, contexto.empresa]);
+
+  if (porFilial.carregando) return <BlocoCarregando oQue="a composição filial a filial" />;
+  if (porFilial.erro) return <BlocoErro erro={porFilial.erro} aoTentarDeNovo={porFilial.recarregar} />;
+  return (
+    <TabelaDaComposicao
+      ex={ex}
+      linhas={porFilial.dados ?? []}
+      metasDasFiliais={metasPorFilial.dados ?? []}
+      metas={metas}
+      comTotal
+    />
+  );
+}
+
+/** A tabela da composição: uma linha por filial lida e, em "Todas as filiais", o total do cartão. */
+function TabelaDaComposicao({
+  ex,
+  linhas,
+  metasDasFiliais,
+  metas,
+  comTotal,
+}: {
+  ex: ExecutivoConsolidado;
+  linhas: ExecutivoDaFilial[];
+  metasDasFiliais: MetaDaFilial[];
+  metas: MetasConsolidadas | null;
+  comTotal: boolean;
+}) {
+  const fy = metas?.periodo ? `FY${metas.periodo.anoFiscal}` : 'FY';
+  // A META QUE FALHOU NA FILIAL NÃO VIRA TRAÇO MUDO: a célula diz que a leitura falhou; o traço é "sem meta".
+  const metaDa = (codigo: string) => metasDasFiliais.find((f) => f.filial.codigo === codigo) ?? null;
+  const celulaDaMeta = (codigo: string, valor: (m: NonNullable<MetaDaFilial['meta']>) => number) => {
+    const lida = metaDa(codigo);
+    if (lida?.meta) return nº(valor(lida.meta));
+    return lida?.erro && !lida.foraDoAlcance ? 'não respondeu' : '—';
+  };
+
+  return (
+    <div className="mom-tabela-rolagem v360-composicao-tabela">
+      <table className="mom-tabela">
+        <caption className="cad-so-leitor">Composição dos indicadores por filial</caption>
+        <thead>
+          <tr>
+            <th scope="col">Filial</th>
+            <th scope="col" className="mom-num">Faturamento FY{ex.ano}</th>
+            <th scope="col" className="mom-num">Máquinas entregues</th>
+            <th scope="col" className="mom-num">NF Protheus FY{ex.ano}</th>
+            <th scope="col" className="mom-num">
+              Meta {fy} (máq.) <InfoTooltip texto={REGRA_DA_META} rotulo="Como a meta de venda se conta" />
+            </th>
+            <th scope="col" className="mom-num">Realizado {fy} (máq.)</th>
+            <th scope="col" className="mom-num">Clientes únicos</th>
+            <th scope="col" className="mom-num">Vínculos comerciais</th>
+            <th scope="col" className="mom-num">Elegíveis</th>
+            <th scope="col" className="mom-num">No prazo</th>
+            <th scope="col" className="mom-num">Pendentes</th>
+            <th scope="col" className="mom-num">Vendas perdidas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.map(({ filial, painel, erro }) => {
+            if (!painel) {
+              return (
+                <tr key={filial.codigo}>
+                  <th scope="row">{filial.nome}</th>
+                  <td colSpan={11}>não respondeu — {erro?.message ?? 'motivo não informado'}</td>
+                </tr>
+              );
+            }
+            const i = painel.indicadores;
+            const entregues = i.entreguesNoAno ?? null;
+            return (
+              <tr key={filial.codigo}>
+                <th scope="row">{filial.nome}</th>
+                <td className="mom-num">{entregues ? emMilhoes(entregues.valor) : '—'}</td>
+                <td className="mom-num">{entregues ? nº(entregues.maquinas) : '—'}</td>
+                <td className="mom-num">{emMilhoes(i.ano.total)}</td>
+                <td className="mom-num">{celulaDaMeta(filial.codigo, (m) => m.totais.metaMaquinas)}</td>
+                <td className="mom-num">{celulaDaMeta(filial.codigo, (m) => m.totais.realizadoMaquinas)}</td>
+                <td className="mom-num">{nº(i.carteira.clientesCadastradosComVinculo)}</td>
+                <td className="mom-num">{nº(i.carteira.vinculosComerciais)}</td>
+                <td className="mom-num">{nº(i.cobertura.elegiveis)}</td>
+                <td className="mom-num">{nº(i.cobertura.cobertos)}</td>
+                <td className="mom-num">{nº(i.cobertura.pendentes)}</td>
+                <td className="mom-num">{nº(i.mercado.vendasPerdidasRegistradas)}</td>
+              </tr>
+            );
+          })}
+          {comTotal && (
+            <tr className="v360-total" data-linha="total">
+              <th scope="row">Total — todas as filiais</th>
+              <td className="mom-num">{ex.entregues.ano ? emMilhoes(ex.entregues.ano.valor) : '—'}</td>
+              <td className="mom-num">{ex.entregues.ano ? nº(ex.entregues.ano.maquinas) : '—'}</td>
+              <td className="mom-num">{emMilhoes(ex.realizadoDoAno.total)}</td>
+              <td className="mom-num">{metas && metas.respondidas > 0 ? nº(metas.metaMaquinas) : '—'}</td>
+              <td className="mom-num">{metas && metas.respondidas > 0 ? nº(metas.realizadoMaquinas) : '—'}</td>
+              <td className="mom-num">{nº(ex.carteira.clientesCadastradosComVinculo)}</td>
+              <td className="mom-num">{nº(ex.carteira.vinculosComerciais)}</td>
+              <td className="mom-num">{nº(ex.cobertura.elegiveis)}</td>
+              <td className="mom-num">{nº(ex.cobertura.cobertos)}</td>
+              <td className="mom-num">{nº(ex.cobertura.pendentes)}</td>
+              <td className="mom-num">{nº(ex.mercado.vendasPerdidasRegistradas)}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -1565,20 +1641,27 @@ function SeloDaVariacao({ percentual }: { percentual: number }) {
   );
 }
 
-/** As filiais lidas pelo painel, na dica ao lado de "N de M filiais em operação responderam". */
+/**
+ * DE ONDE VÊM OS NÚMEROS, na dica ao lado da filial do cabeçalho (30/09/2026, #313): a filial escolhida no seletor do
+ * topo, ou todas as que a pessoa alcança — numa leitura só por painel.
+ */
 function FiliaisLidas({ ex }: { ex: ExecutivoConsolidado }) {
-  const responderam = ex.filiais.filter((f) => f.painel).map((f) => f.filial.nome);
-  const falharam = ex.filiais.filter((f) => !f.painel);
+  const lida = ex.filiais[0];
+  const todas = lida?.filial.codigo === TODAS_AS_FILIAIS;
   return (
     <>
-      <p>O painel lê cada filial em operação, uma a uma, e soma as que responderam.</p>
-      {responderam.length > 0 && <p>Responderam: {responderam.join(', ')}.</p>}
-      {falharam.length > 0 && (
+      {todas ? (
         <p>
-          Não responderam:{' '}
-          {falharam.map((f) => `${f.filial.nome} (${f.erro?.message ?? 'motivo não informado'})`).join('; ')}.
+          Os números somam todas as filiais que você alcança. Para ver uma filial só, escolha-a no seletor do topo; o
+          detalhe filial a filial está na composição dos cinco indicadores.
+        </p>
+      ) : (
+        <p>
+          Os números são de {lida?.filial.nome ?? 'uma filial'}, a filial escolhida no seletor do topo. Quem tem o alcance
+          entre filiais vê a empresa inteira escolhendo “Todas as filiais”.
         </p>
       )}
+      {lida && !lida.painel && <p>A leitura não respondeu: {lida.erro?.message ?? 'motivo não informado'}.</p>}
     </>
   );
 }

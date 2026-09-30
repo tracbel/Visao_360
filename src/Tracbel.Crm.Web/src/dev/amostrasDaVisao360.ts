@@ -90,6 +90,8 @@ function filiaisDo(estado: EstadoDaVisao360): FilialDeAmostra[] {
 
 function filial(estado: EstadoDaVisao360, codigo: string): FilialDeAmostra {
   const lista = filiaisDo(estado);
+  // "TODAS AS FILIAIS" (30/09/2026, #313): o servidor soma todas numa leitura só; aqui, uma filial com o peso de todas.
+  if (codigo === 'TODAS') return { codigo, nome: 'Todas as filiais', peso: lista.reduce((s, f) => s + f.peso, 0) };
   return lista.find((f) => f.codigo === codigo) ?? lista[0];
 }
 
