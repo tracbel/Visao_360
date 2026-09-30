@@ -864,26 +864,47 @@ function tarefasAtrasadas(estado: EstadoDaVisao360) {
   );
 }
 
-/** OS CLIENTES HÁ MAIS TEMPO SEM CONTATO — o nunca contatado primeiro, como a API ordena. */
-function clientesSemContato(estado: EstadoDaVisao360) {
+/**
+ * OS CLIENTES HÁ MAIS TEMPO SEM CONTATO — o nunca contatado primeiro, como a API ordena. Desde a maquete da Cobertura
+ * (30/09/2026), com a curva ABC do cliente e a prioridade que sai dela, e a busca por cliente, carteira ou responsável.
+ */
+function clientesSemContato(estado: EstadoDaVisao360, consulta: URLSearchParams) {
   if (estado !== 'completo') return pagina([], 0);
-  const dias = [null, 412, 365, 290];
-  return pagina(
-    dias.map((diasSemContato, i) => ({
-      clienteChave: `cliente-ficticio-${i + 11}`,
-      clienteNome: `Produtor Fictício ${['Epsilon', 'Zeta', 'Eta', 'Teta'][i]}`,
-      carteiraChave: 'carteira-ficticia-1',
-      carteiraNome: 'Carteira Fictícia Norte',
-      linhaDeNegocioNome: 'Máquinas e Implemento',
-      classe: 'C',
-      ultimaInteracaoEm: null,
-      diasSemContato,
-      diasCicloContato: 180,
-      estaForaDoCiclo: true,
-      responsavelNome: 'CEN Fictício Gama',
-    })),
-    48_360,
+  const linhas: [string, number | null, string | null][] = [
+    ['Epsilon', null, 'A'],
+    ['Zeta', null, 'A'],
+    ['Eta', null, 'B'],
+    ['Teta', null, null],
+    ['Iota', 412, 'A'],
+    ['Capa', 365, 'B'],
+    ['Lambda', 290, 'C'],
+    ['Mi', 210, 'D'],
+    ['Ni', 95, 'B'],
+    ['Xi', 40, 'A'],
+  ];
+  const prioridade = (classe: string | null) => (classe === 'A' ? 'Alta' : classe === 'B' ? 'Media' : 'Baixa');
+  const itens = linhas.map(([nome, diasSemContato, classeDoCliente], i) => ({
+    clienteChave: `cliente-ficticio-${i + 11}`,
+    clienteNome: `PRODUTOR FICTÍCIO ${nome.toUpperCase()}`,
+    carteiraChave: `carteira-ficticia-${(i % 2) + 1}`,
+    carteiraNome: i % 2 === 0 ? 'Carteira fictícia 1' : 'Carteira fictícia 2',
+    linhaDeNegocioNome: 'Venda de Máquinas e Implementos',
+    classe: 'C',
+    ultimaInteracaoEm:
+      diasSemContato === null ? null : new Date(Date.UTC(2026, 8, 24) - diasSemContato * 86_400_000).toISOString(),
+    diasSemContato,
+    diasCicloContato: 180,
+    estaForaDoCiclo: diasSemContato === null || diasSemContato > 180,
+    responsavelNome: 'CEN FICTÍCIO GAMA DOS SANTOS',
+    classeDoCliente,
+    prioridade: prioridade(classeDoCliente),
+  }));
+  const termo = (consulta.get('termo') ?? '').trim().toLowerCase();
+  if (!termo) return pagina(itens, 48_360);
+  const achados = itens.filter((l) =>
+    [l.clienteNome, l.carteiraNome, l.responsavelNome].some((texto) => texto.toLowerCase().includes(termo)),
   );
+  return pagina(achados, achados.length);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -1180,7 +1201,7 @@ export function respostaDaVisao360(
     case '/v1/tarefas':
       return tarefasAtrasadas(estado);
     case '/v1/cobertura':
-      return clientesSemContato(estado);
+      return clientesSemContato(estado, consulta);
     default:
       return undefined;
   }

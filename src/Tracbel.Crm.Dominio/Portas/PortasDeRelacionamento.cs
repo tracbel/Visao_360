@@ -255,6 +255,10 @@ public sealed record InteracaoComContexto(
 /// <param name="SomenteSemContato">Só quem nunca foi contatado.</param>
 /// <param name="Ordem">Coluna de ordenação.</param>
 /// <param name="Descendente">Ordem decrescente.</param>
+/// <param name="Termo">
+/// Um trecho do nome do cliente, do nome ou do código da carteira, ou do nome do responsável (30/09/2026, a caixa de
+/// busca da maquete da Cobertura). Vazio não filtra.
+/// </param>
 public sealed record ConsultaDeCobertura(
     Paginacao Paginacao,
     long? CarteiraId = null,
@@ -263,7 +267,8 @@ public sealed record ConsultaDeCobertura(
     int? DiasSemContato = null,
     bool SomenteSemContato = false,
     OrdemDeCobertura Ordem = OrdemDeCobertura.UltimaInteracaoEm,
-    bool Descendente = false);
+    bool Descendente = false,
+    string? Termo = null);
 
 /// <summary>
 /// Uma linha da tela de Cobertura: o cliente na carteira, com quanto tempo faz que ninguém fala
@@ -278,6 +283,10 @@ public sealed record ConsultaDeCobertura(
 /// <param name="UltimaInteracaoEm">Quando foi o último contato. Nulo é "nunca".</param>
 /// <param name="DiasCicloContato">A cadência esperada, quando declarada.</param>
 /// <param name="ResponsavelNome">O CEN responsável pela carteira.</param>
+/// <param name="ClasseDoCliente">
+/// A curva ABC do CLIENTE (<c>Cliente.Classe</c>, apurada do faturamento) — e não a do vínculo. Nula quando o cliente não
+/// tem faturamento para classificar.
+/// </param>
 public sealed record LinhaDeCobertura(
     Guid ClienteChave,
     string ClienteNome,
@@ -287,7 +296,8 @@ public sealed record LinhaDeCobertura(
     ClasseDeCliente Classe,
     DateTime? UltimaInteracaoEm,
     short? DiasCicloContato,
-    string ResponsavelNome);
+    string ResponsavelNome,
+    ClasseDeCliente? ClasseDoCliente = null);
 
 /// <summary>A cobertura de uma carteira inteira, contada no banco.</summary>
 /// <param name="CarteiraChave">O GUID público da carteira.</param>

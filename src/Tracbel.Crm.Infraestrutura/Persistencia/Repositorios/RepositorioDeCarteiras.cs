@@ -56,7 +56,9 @@ public sealed class RepositorioDeCarteiras(CrmDbContext contexto) : IRepositorio
                 contexto.Carteiras.Where(k => k.Id == v.CarteiraId)
                     .SelectMany(k => contexto.Usuarios
                         .Where(u => u.Id == k.ResponsavelId).Select(u => u.NomeExibicao))
-                    .FirstOrDefault()!))
+                    .FirstOrDefault()!,
+                // A CURVA ABC DO CLIENTE, que decide a prioridade da tela (decisão do Ricardo, 30/09/2026).
+                contexto.Clientes.Where(c => c.Id == v.ClienteId).Select(c => c.Classe).FirstOrDefault()))
             .ToListAsync(ct);
 
         return new PaginaDe<LinhaDeCobertura>(
@@ -225,6 +227,18 @@ public sealed class RepositorioDeCarteiras(CrmDbContext contexto) : IRepositorio
         if (consulta.Classe is { } classe)
             linhas = linhas.Where(x =>
                 contexto.Clientes.Any(c => c.Id == x.vinculo.ClienteId && c.Classe == classe));
+
+        // A BUSCA DA MAQUETE (30/09/2026): um trecho do cliente, da carteira (nome ou código) ou do responsável. A colação
+        // do banco não diferencia caixa nem acento.
+        if (!string.IsNullOrWhiteSpace(consulta.Termo))
+        {
+            var trecho = consulta.Termo.Trim();
+            linhas = linhas.Where(x =>
+                contexto.Clientes.Any(c => c.Id == x.vinculo.ClienteId && c.NomeRazao.Contains(trecho))
+                || x.carteira.Nome.Contains(trecho)
+                || x.carteira.Codigo.Contains(trecho)
+                || contexto.Usuarios.Any(u => u.Id == x.carteira.ResponsavelId && u.NomeExibicao.Contains(trecho)));
+        }
 
         if (consulta.SomenteSemContato)
             linhas = linhas.Where(x => x.vinculo.UltimaInteracaoEm == null);

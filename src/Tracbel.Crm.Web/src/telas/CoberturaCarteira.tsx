@@ -36,15 +36,9 @@
  *    **A ordem continua sendo quem está há mais tempo sem contato**, que é
  *    dado real e calculado do fato.
  *
- * 2. **O mapa continua no lugar dele, vazio e com o motivo.** Ele plotava as
+ * 2. **O mapa saiu, e o motivo está no fim da tela.** Ele plotava as
  *    coordenadas do protótipo, que são de Mato Grosso, Goiás e Bahia —
- *    geografia que não existe nesta operação: as treze filiais estão todas no
- *    interior de São Paulo. **A moldura fica**: tirar o bloco faria a tela
- *    perder um elemento sem explicar nada, e uma tela de gerência que perde um
- *    gráfico é pior do que uma que mostra o gráfico vazio com o motivo escrito.
- *    Falta uma fonte de coordenada por cliente — `organizacao.Municipio` não
- *    guarda latitude e longitude, e as interações têm coordenada em 24% dos
- *    registros sem rota que as agregue. O território que existe está na
+ *    geografia que não existe nesta operação. O território que existe está na
  *    Cobertura por Filial e Carteira (documento 26).
  *
  * 3. **"Registrar contato" saiu.** Gravava em `localStorage` e mexia nos
@@ -52,19 +46,48 @@
  *    acrescentar, e nenhuma rota de relacionamento escreve (dívida D-9).
  *
  * ---------------------------------------------------------------------------
- * 29/09/2026 — NO DESENHO DOS INDICADORES GEOGRÁFICOS (pedido do Ricardo: "vamos deixar todas as telas no padrão de
- * indicadores geográficos"). O cabeçalho com a hora da leitura, a barra de filtros, os cinco números como
- * `CartaoDeDecisao` e duas seções — qual carteira está descoberta e quem contatar primeiro — em `PainelDoMomento`. A
- * frase longa de onde vem o contato foi para a dica do subtítulo; os `title=` viraram dica que abre pelo teclado.
- * NENHUM NÚMERO, REGRA OU TEXTO DE REGRA MUDOU.
+ * 29/09/2026 — NO DESENHO DOS INDICADORES GEOGRÁFICOS: o cabeçalho com a hora da leitura, a barra de filtros, os cinco
+ * números como `CartaoDeDecisao` e duas seções em `PainelDoMomento`.
+ *
+ * ---------------------------------------------------------------------------
+ * 30/09/2026 — IDÊNTICA À MAQUETE DO RICARDO (`docs/prototipo/capturas-referencia/cobertura-carteira-maquete-2026-09-30.png`),
+ * com as regras do Funil e da Visão 360: não inventar e não tirar nada da tela. O desenho mora em `estilos/cobertura.css`,
+ * embaixo de `.dash-pagina.cob-maquete`.
+ *
+ * - **"Qual carteira está descoberta?"** é o cartão da seção: barras de 100% com o percentual de cada faixa escrito
+ *   dentro, o total ao lado e o **maior risco** no canto — a carteira comercial com mais vínculos há mais de 90 dias ou
+ *   nunca contatados.
+ * - **"Distribuição da cobertura"**, ao lado: a rosca das quatro faixas (todas as carteiras, ou a escolhida) e as
+ *   **carteiras por maior exposição**.
+ * - **"Quem contatar primeiro"**: a busca por cliente, carteira ou responsável (no servidor), o **Exportar** (a lista
+ *   inteira com os filtros, em CSV), a **prioridade** e o menu de cada linha (a ficha e as máquinas do cliente).
+ *
+ * DUAS DECISÕES DO RICARDO (30/09/2026): a PRIORIDADE é a curva ABC do cliente (A alta, B média, C, D e sem classe baixa),
+ * e o cartão "Contato em 90 dias" é SÓ A FAIXA de 31 a 90 dias — os cartões e a rosca somam o total de vínculos.
+ *
+ * O QUE A MAQUETE TEM E ESTA TELA NÃO: o mini-gráfico de tendência no canto de cada cartão. Ele desenha a evolução de cada
+ * número, e o CRM não guarda a cobertura de cada dia — desenhar a curva seria inventá-la.
  */
 
-import { BriefcaseBusiness, CalendarCheck, CalendarClock, Layers, RefreshCw, Users, UserX } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import {
+  ArrowDown,
+  ArrowUp,
+  BriefcaseBusiness,
+  CalendarCheck,
+  CalendarClock,
+  CircleAlert,
+  Download,
+  EllipsisVertical,
+  Layers,
+  RefreshCw,
+  Search,
+  Users,
+  UsersRound,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { GraficoBarrasEmpilhadas } from '../componentes/GraficoBarrasEmpilhadas';
+import { GraficoDonutCentro } from '../componentes/GraficoDonutCentro';
 import { InfoTooltip } from '../componentes/InfoTooltip';
-import { MolduraDeGrafico } from '../componentes/MolduraDeGrafico';
 import { BarraDePaginacao } from '../componentes/cadastro/BarraDePaginacao';
 import { BlocoRecolhivel } from '../componentes/cadastro/BlocoRecolhivel';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../componentes/cadastro/EstadosDeTela';
@@ -73,15 +96,23 @@ import { LacunaConhecida, MetricasSemDado } from '../componentes/cadastro/SemDad
 import { ValorAusente } from '../componentes/comum/ValorAusente';
 import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
 import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
-import { PainelDoMomento } from '../componentes/mercado/momento/pecas';
+import { PainelDoMomento, Seletor } from '../componentes/mercado/momento/pecas';
 import { TituloDaSecao } from '../componentes/territorio/TituloDaSecao';
 import { useContextoDeAcesso } from '../dados/api/contexto';
-import { COBERTURA_INICIAL, listarCobertura, obterResumoDeCobertura } from '../dados/api/relacionamento';
+import { baixarCsv, carimboDeData } from '../dados/exportarCsv';
+import {
+  COBERTURA_INICIAL,
+  LINHAS_NO_EXPORTAR,
+  listarCobertura,
+  listarCoberturaInteira,
+  obterResumoDeCobertura,
+} from '../dados/api/relacionamento';
 import { useRecurso } from '../dados/api/useRecurso';
 import type {
   ConsultaDeCobertura,
   CoberturaResumo,
   OrdemDeCobertura,
+  PrioridadeDeContato,
   ResumoDeCobertura,
 } from '../tipos/relacionamento';
 import { formatarData } from './cadastro/formato';
@@ -90,15 +121,17 @@ import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
 import '../estilos/painel-executivo.css';
 import '../estilos/territorio.css';
+import '../estilos/cobertura.css';
 
 /** As colunas, quais delas a API sabe ordenar, e quais são número (alinhadas à direita). */
 const COLUNAS: { rotulo: string; ordem?: OrdemDeCobertura; numerica?: boolean }[] = [
   { rotulo: 'Cliente', ordem: 'Nome' },
   { rotulo: 'Carteira' },
   { rotulo: 'Responsável' },
-  { rotulo: 'Último contato', ordem: 'UltimaInteracaoEm', numerica: true },
+  { rotulo: 'Último contato', ordem: 'UltimaInteracaoEm' },
   { rotulo: 'Dias sem contato', numerica: true },
   { rotulo: 'Ciclo declarado', numerica: true },
+  { rotulo: 'Prioridade' },
 ];
 
 const nº = (v: number) => v.toLocaleString('pt-BR');
@@ -127,35 +160,75 @@ const CLASSES = [
   { valor: 'D', rotulo: 'Classe D' },
 ];
 
+/** As quatro faixas de um conjunto de vínculos — exclusivas, e a soma é o total. */
+type Faixas = { em30: number; entre31e90: number; acima90: number; nunca: number; total: number };
+
 /**
- * As quatro faixas de tempo sem contato, na ordem em que a barra as empilha.
+ * As quatro faixas de tempo sem contato, na ordem em que a barra as empilha, com os nomes e as cores da maquete.
  *
- * As cores são as mesmas do donut "Status da cobertura" da Visão 360 — verde,
- * âmbar, vermelho, cinza — para que a mesma faixa tenha a mesma cor nas duas
- * telas. O cinza do "nunca contatado" é de propósito o único sem temperatura:
- * ele não é um atraso pior, é a ausência de qualquer registro.
- *
- * `medir` deriva cada faixa dos acumulados que a API devolve, que são
- * cumulativos (`comContatoEm90Dias` inclui os de 30). Subtrair aqui é o que
- * torna as fatias exclusivas e a soma igual ao total de clientes.
+ * `medir` deriva cada faixa dos acumulados que a API devolve, que são cumulativos (`comContatoEm90Dias` inclui os de
+ * 30). Subtrair aqui é o que torna as fatias exclusivas e a soma igual ao total de vínculos.
  */
-const FAIXAS_DE_CONTATO: { nome: string; cor: string; medir: (c: ResumoDeCobertura) => number }[] = [
-  { nome: 'Em dia (até 30 dias)', cor: '#367C2B', medir: (c) => c.comContatoEm30Dias },
-  { nome: 'Aviso (31 a 90 dias)', cor: '#C1660A', medir: (c) => c.comContatoEm90Dias - c.comContatoEm30Dias },
-  {
-    nome: 'Atraso (mais de 90 dias)',
-    cor: '#DC2626',
-    medir: (c) => c.clientes - c.comContatoEm90Dias - c.nuncaContatados,
-  },
-  { nome: 'Nunca contatado', cor: '#9CA3AF', medir: (c) => c.nuncaContatados },
+const FAIXAS_DE_CONTATO: { nome: string; cor: string; de: (f: Faixas) => number }[] = [
+  { nome: 'Em até 30 dias', cor: '#1B873F', de: (f) => f.em30 },
+  { nome: 'Entre 31 e 90 dias', cor: '#F39A1E', de: (f) => f.entre31e90 },
+  { nome: 'Acima de 90 dias', cor: '#E53935', de: (f) => f.acima90 },
+  { nome: 'Nunca contatados', cor: '#8A909A', de: (f) => f.nunca },
 ];
 
-/** Quantas carteiras entram no gráfico antes de a barra virar um traço. */
+function faixasDe(c: Pick<ResumoDeCobertura, 'clientes' | 'comContatoEm30Dias' | 'comContatoEm90Dias' | 'nuncaContatados'>): Faixas {
+  return {
+    em30: c.comContatoEm30Dias,
+    entre31e90: c.comContatoEm90Dias - c.comContatoEm30Dias,
+    acima90: Math.max(0, c.clientes - c.comContatoEm90Dias - c.nuncaContatados),
+    nunca: c.nuncaContatados,
+    total: c.clientes,
+  };
+}
+
+/** A exposição: há mais de 90 dias ou nunca contatados, sobre o total. Nula sem vínculo. */
+function exposicao(f: Faixas): number | null {
+  return f.total > 0 ? (f.acima90 + f.nunca) / f.total : null;
+}
+
+/** O percentual inteiro de uma parte, ou nulo sem denominador. */
+const fatia = (parte: number, todo: number) => (todo > 0 ? Math.round((100 * parte) / todo) : null);
+
+/** Quantas carteiras entram nas barras antes de a barra virar um traço. */
 const CARTEIRAS_NO_GRAFICO = 12;
+
+/** Quantas carteiras o ranking de exposição mostra. */
+const CARTEIRAS_NO_RANKING = 5;
+
+/** O intervalo entre a última tecla e o pedido à API — o mesmo das outras listas com busca. */
+const ESPERA_DA_BUSCA_MS = 350;
+
+/**
+ * A partir de quanto a exposição de uma carteira pinta de vermelho no ranking — um terço dos vínculos há mais de 90 dias
+ * ou nunca contatados. Abaixo, laranja. É desenho, e não regra de negócio: o número está ao lado.
+ */
+const EXPOSICAO_VERMELHA = 1 / 3;
+
+/**
+ * O MAIOR RISCO E O RANKING DE EXPOSIÇÃO CONTAM AS CARTEIRAS COMERCIAIS — a mesma regra do mix e do ranking de CENs da
+ * Visão 360: a carteira administrativa e a de teste são depósito de cadastro, com todo mundo "nunca contatado" por
+ * construção, e não carteira de ninguém.
+ */
+const ehComercial = (c: ResumoDeCobertura) => c.naturezaDaCarteira === 'Comercial';
 
 export function CoberturaCarteira() {
   const { contexto } = useContextoDeAcesso();
   const [consulta, setConsulta] = useState<ConsultaDeCobertura>(COBERTURA_INICIAL);
+  const [termoDigitado, setTermoDigitado] = useState('');
+
+  // A BUSCA VAI AO SERVIDOR um instante depois da última tecla, e não a cada letra — o mesmo desenho do Pipeline.
+  useEffect(() => {
+    const relogio = setTimeout(
+      () => setConsulta((c) => (c.termo === termoDigitado ? c : { ...c, termo: termoDigitado, pagina: 1 })),
+      ESPERA_DA_BUSCA_MS,
+    );
+    return () => clearTimeout(relogio);
+  }, [termoDigitado]);
 
   const resumo = useRecurso(
     (sinal) => obterResumoDeCobertura(contexto, sinal),
@@ -180,18 +253,31 @@ export function CoberturaCarteira() {
     const clientes = carteiras.reduce((s, c) => s + c.clientes, 0);
     return {
       carteiras: carteiras.length,
-      clientes,
-      em30: carteiras.reduce((s, c) => s + c.comContatoEm30Dias, 0),
-      em90: carteiras.reduce((s, c) => s + c.comContatoEm90Dias, 0),
-      nunca: carteiras.reduce((s, c) => s + c.nuncaContatados, 0),
+      faixas: faixasDe({
+        clientes,
+        comContatoEm30Dias: carteiras.reduce((s, c) => s + c.comContatoEm30Dias, 0),
+        comContatoEm90Dias: carteiras.reduce((s, c) => s + c.comContatoEm90Dias, 0),
+        nuncaContatados: carteiras.reduce((s, c) => s + c.nuncaContatados, 0),
+      }),
     };
   }, [carteiras]);
+
+  /** As carteiras comerciais pela exposição, da maior para a menor. */
+  const porExposicao = useMemo(
+    () =>
+      carteiras
+        .filter((c) => ehComercial(c) && c.clientes > 0)
+        .map((c) => ({ carteira: c, exposicao: exposicao(faixasDe(c)) ?? 0 }))
+        .sort((a, b) => b.exposicao - a.exposicao || b.carteira.clientes - a.carteira.clientes),
+    [carteiras],
+  );
 
   const temFiltro = useMemo(
     () =>
       consulta.somenteSemContato ||
       consulta.diasSemContato !== '' ||
       consulta.classe !== '' ||
+      consulta.termo.trim() !== '' ||
       consulta.ordenarPor !== COBERTURA_INICIAL.ordenarPor ||
       consulta.descendente,
     [consulta],
@@ -206,27 +292,33 @@ export function CoberturaCarteira() {
   }
 
   function limparFiltros() {
+    setTermoDigitado('');
     setConsulta({ ...COBERTURA_INICIAL, tamanho: consulta.tamanho });
   }
 
   const pagina = lista.dados;
+  const { faixas } = totais;
 
   const semCarteira = resumo.carregando ? undefined : 'Sem carteira ao alcance deste contexto.';
-  const pct = (parte: number) => (totais.clientes > 0 ? `${Math.round((100 * parte) / totais.clientes)}% dos vínculos` : null);
+  const dosVinculos = (parte: number) => {
+    const p = fatia(parte, faixas.total);
+    return p === null ? null : `${p}% dos vínculos`;
+  };
 
   return (
     // A LARGURA É A DA COLUNA INTEIRA, como a Visão 360: o teto só volta acima de 2.100px de janela.
-    <PaginaDoPainel className="dash-pagina-larga">
+    <PaginaDoPainel className="dash-pagina-larga cob-maquete">
       <div className="page-header" data-bloco="cabecalho">
         <div>
-          <h1 className="page-title">Cobertura de Carteira</h1>
-          <p className="page-subtitle">
-            Quem está há tempo demais sem contato, carteira a carteira, na filial do cabeçalho.
+          <h1 className="page-title">
+            <BriefcaseBusiness className="cob-titulo-icone" size={24} strokeWidth={2.4} aria-hidden="true" />
+            Cobertura de Carteira
             <InfoTooltip
               rotulo="De onde vem o último contato"
               texto="A data do último contato vem do histórico inteiro do Vórtice, pela regra da BI de carteiras (53 resultados que contam como contato, em qualquer canal), apurada todo dia pela rotina das carteiras — e só anda para a frente."
             />
-          </p>
+          </h1>
+          <p className="page-subtitle">Quem está há tempo demais sem contato, carteira a carteira, na filial do cabeçalho.</p>
         </div>
         <p className="dash-atualizado">
           {lista.procedencia ? <DadosAtualizadosEm procedencia={lista.procedencia} /> : 'Lendo a cobertura…'}
@@ -317,56 +409,56 @@ export function CoberturaCarteira() {
         <CartaoDeDecisao
           rotulo="Carteiras"
           icone={BriefcaseBusiness}
-          tom="neutro"
+          tom="demanda"
           valor={resumo.dados ? nº(totais.carteiras) : null}
           carregando={resumo.carregando}
           unidade="carteiras"
           motivoSemDado={semCarteira}
-          variacao={resumo.dados ? 'com cliente vinculado' : null}
+          variacao={null}
           sobre="As carteiras desta filial com pelo menos um cliente vinculado."
         />
         <CartaoDeDecisao
-          rotulo="Clientes carteirizados"
+          rotulo="Clientes carteira"
           icone={Users}
           tom="mercado"
-          valor={resumo.dados ? nº(totais.clientes) : null}
+          valor={resumo.dados ? nº(faixas.total) : null}
           carregando={resumo.carregando}
           unidade="vínculos"
           motivoSemDado={semCarteira}
-          variacao={resumo.dados ? 'cliente × carteira' : null}
+          variacao={null}
           sobre="Vínculos cliente × carteira: o mesmo cliente conta em cada carteira em que está."
         />
         <CartaoDeDecisao
           rotulo="Contato em 30 dias"
           icone={CalendarCheck}
           tom="demanda"
-          valor={resumo.dados ? nº(totais.em30) : null}
+          valor={resumo.dados ? nº(faixas.em30) : null}
           carregando={resumo.carregando}
           unidade="vínculos"
           motivoSemDado={semCarteira}
-          variacao={resumo.dados ? pct(totais.em30) : null}
+          variacao={resumo.dados ? dosVinculos(faixas.em30) : null}
           sobre="Último contato (regra da BI de carteiras do Vórtice) nos últimos 30 dias."
         />
         <CartaoDeDecisao
           rotulo="Contato em 90 dias"
           icone={CalendarClock}
           tom="captura"
-          valor={resumo.dados ? nº(totais.em90) : null}
+          valor={resumo.dados ? nº(faixas.entre31e90) : null}
           carregando={resumo.carregando}
           unidade="vínculos"
           motivoSemDado={semCarteira}
-          variacao={resumo.dados ? pct(totais.em90) : null}
-          sobre="Último contato (regra da BI de carteiras do Vórtice) nos últimos 90 dias — inclui os de 30."
+          variacao={resumo.dados ? dosVinculos(faixas.entre31e90) : null}
+          sobre="Último contato (regra da BI de carteiras do Vórtice) entre 31 e 90 dias atrás — só a faixa, sem os de 30 dias: as quatro faixas somam o total de vínculos (decisão de 30/09/2026)."
         />
         <CartaoDeDecisao
           rotulo="Nunca contatados"
-          icone={UserX}
+          icone={UsersRound}
           tom="oportunidade"
-          valor={resumo.dados ? nº(totais.nunca) : null}
+          valor={resumo.dados ? nº(faixas.nunca) : null}
           carregando={resumo.carregando}
           unidade="vínculos"
           motivoSemDado={semCarteira}
-          variacao={resumo.dados ? pct(totais.nunca) : null}
+          variacao={resumo.dados ? dosVinculos(faixas.nunca) : null}
           sobre="Sem contato no histórico do Vórtice, pela regra da BI de carteiras."
         />
       </div>
@@ -375,85 +467,79 @@ export function CoberturaCarteira() {
 
       <MetricasSemDado metricas={resumo.dados?.metricasSemDado} />
 
-      {/*
-        O MAPA SAIU DAQUI, E NO LUGAR DELE ENTROU O DADO QUE EXISTE.
+      <div className="cob-linha" data-bloco="linha-cobertura">
+        {/* QUAL CARTEIRA ESTÁ DESCOBERTA — o cartão da seção, como na maquete. O mapa que ficava aqui plotava pinos de
+            outro estado; o motivo virou a nota do fim da tela. */}
+        <section className="dash-secao cob-cartao" data-bloco="secao-carteiras">
+          <TituloDaSecao
+            titulo="Qual carteira está descoberta?"
+            subtitulo="A fatia de cada faixa de tempo sem contato, carteira a carteira."
+            metodologia="As faixas são exclusivas: até 30 dias, de 31 a 90, mais de 90 e nunca contatado — a soma é o total de vínculos. O maior risco é a carteira comercial com a maior fatia há mais de 90 dias ou nunca contatada; a administrativa e a de teste ficam fora dele, porque são depósito de cadastro."
+            acao={
+              porExposicao[0] && porExposicao[0].exposicao > 0 ? (
+                <div className="cob-secao-acao">
+                  <MaiorRisco carteira={porExposicao[0].carteira} exposicao={porExposicao[0].exposicao} />
+                </div>
+              ) : undefined
+            }
+          />
 
-        Ele ficou meses como moldura vazia com o motivo escrito — os pinos eram
-        de Mato Grosso, e as treze filiais estão no interior de São Paulo. A
-        moldura vazia se defendia enquanto era o único jeito de não perder um
-        elemento da tela; ela deixou de se defender quando ocupava uma tela
-        inteira de altura sem responder nada.
+          <div className="cob-barras" data-bloco="cobertura-por-carteira">
+            <div className="cob-barras-cabecalho">
+              <h3 className="cob-barras-titulo">
+                Cobertura por carteira
+                <InfoTooltip
+                  rotulo="Como ler a cobertura por carteira"
+                  texto={`As maiores carteiras primeiro: são elas que movem o número consolidado${
+                    carteiras.length > carteirasNoGrafico.length
+                      ? ` (as ${carteirasNoGrafico.length} maiores de ${carteiras.length})`
+                      : ''
+                  }. O número exato de todas as carteiras está em “Cobertura por carteira, em número”, no fim da tela.`}
+                />
+              </h3>
+              <span className="cob-barras-total" aria-hidden="true">
+                Total
+              </span>
+            </div>
 
-        O que ocupa o espaço agora responde a pergunta que a gerência faz aqui:
-        QUAL CARTEIRA ESTÁ DESCOBERTA. Mesmo dado do resumo por carteira, lido
-        como barra em vez de sete colunas de número. O motivo do mapa não sumiu:
-        virou a nota do fim da tela.
-      */}
-      <section className="dash-secao" data-bloco="secao-carteiras">
-        <TituloDaSecao
-          titulo="Qual carteira está descoberta"
-          subtitulo="A fatia de cada faixa de tempo sem contato, carteira a carteira."
-          metodologia="As faixas são exclusivas: em dia (até 30 dias), aviso (31 a 90), atraso (mais de 90) e nunca contatado — a soma é o total de vínculos. As cores são as mesmas da cobertura da Visão 360."
-        />
+            {resumo.carregando && <BlocoCarregando oQue="a cobertura por carteira" />}
+            {!resumo.carregando && carteirasNoGrafico.length > 0 && <BarrasDaCobertura carteiras={carteirasNoGrafico} />}
+          </div>
+        </section>
 
-        <PainelDoMomento
-          titulo="Cobertura por carteira"
-          data-bloco="cobertura-por-carteira"
-          subtitulo={
-            carteiras.length > 0
-              ? `${carteirasNoGrafico.length} maiores de ${carteiras.length} carteiras · fatia de cada faixa de tempo sem contato`
-              : 'distribuição de cada carteira por faixa de tempo sem contato'
-          }
-          dica="As maiores carteiras primeiro: são elas que movem o número consolidado. O número exato de todas as carteiras está em “Cobertura por carteira, em número”, no fim da tela."
-        >
-          {resumo.carregando && <BlocoCarregando oQue="a cobertura por carteira" />}
+        <DistribuicaoDaCobertura carteiras={carteiras} total={faixas} porExposicao={porExposicao} carregando={resumo.carregando} />
+      </div>
 
-          {!resumo.carregando && carteirasNoGrafico.length > 0 && (
-            <>
-              <MolduraDeGrafico altura={Math.max(220, carteirasNoGrafico.length * 26 + 40)}>
-                {(largura, altura) => (
-                  <GraficoBarrasEmpilhadas
-                    itens={carteirasNoGrafico.map((c) => c.carteiraNome)}
-                    faixas={FAIXAS_DE_CONTATO.map((f) => ({
-                      nome: f.nome,
-                      cor: f.cor,
-                      valores: carteirasNoGrafico.map(f.medir),
-                    }))}
-                    largura={largura}
-                    altura={altura}
-                    proporcional
-                  />
-                )}
-              </MolduraDeGrafico>
-              <div className="cad-legenda-faixas">
-                {FAIXAS_DE_CONTATO.map((f) => (
-                  <span key={f.nome}>
-                    <i style={{ background: f.cor }} />
-                    {f.nome} <strong>{somar(carteiras, f.medir).toLocaleString('pt-BR')}</strong>
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
-        </PainelDoMomento>
-      </section>
-
-      <section className="dash-secao" data-bloco="secao-clientes">
+      <section className="dash-secao cob-cartao" data-bloco="secao-clientes">
         <TituloDaSecao
           titulo="Quem contatar primeiro"
           subtitulo={
             lista.recarregando
               ? 'Atualizando…'
-              : `${(pagina?.total ?? 0).toLocaleString('pt-BR')} vínculos · quem está há mais tempo sem contato primeiro`
+              : `${nº(pagina?.total ?? 0)} vínculos · quem está há mais tempo sem contato primeiro.`
           }
-          metodologia="A ordem é quem está há mais tempo sem contato — dado real, calculado do fato —, e o nunca contatado vem antes de todos. A classe do vínculo importada do Vórtice não ordena nada: ela entra como C por assunção na maioria dos casos."
+          metodologia="A ordem é quem está há mais tempo sem contato — dado real, calculado do fato —, e o nunca contatado vem antes de todos. A prioridade é a curva ABC do cliente, apurada do faturamento: A é alta, B é média, C, D e o cliente sem classe são baixa. A classe do vínculo importada do Vórtice não ordena nada: ela entra como C por assunção na maioria dos casos."
+          acao={
+            <div className="cob-secao-acao cob-busca-e-exportar">
+              <label className="cob-busca">
+                <Search size={15} strokeWidth={2} aria-hidden="true" />
+                <span className="cad-so-leitor">Buscar cliente, carteira ou responsável</span>
+                <input
+                  type="search"
+                  value={termoDigitado}
+                  placeholder="Buscar cliente, carteira ou responsável..."
+                  onChange={(e) => setTermoDigitado(e.target.value)}
+                />
+              </label>
+              <BotaoExportar consulta={consulta} total={pagina?.total ?? 0} />
+            </div>
+          }
         />
 
         <PainelDoMomento
           titulo="Clientes por tempo sem contato"
           data-bloco="clientes-sem-contato"
-          subtitulo={`Ordenados por ${consulta.ordenarPor === 'Nome' ? 'nome' : 'último contato'}${consulta.descendente ? ', do maior para o menor' : ''}.`}
-          dica="Fora do ciclo é a carteira que declara de quantos em quantos dias o cliente deve ser visitado, e o último contato passou desse prazo. Sem cadência declarada, não se afirma que está em dia nem fora."
+          dica={`Ordenados por ${consulta.ordenarPor === 'Nome' ? 'nome' : 'último contato'}${consulta.descendente ? ', do maior para o menor' : ''}. Fora do ciclo é a carteira que declara de quantos em quantos dias o cliente deve ser visitado, e o último contato passou desse prazo. Sem cadência declarada, não se afirma que está em dia nem fora.`}
         >
           {lista.carregando && <BlocoCarregando oQue="a cobertura da carteira" />}
           {lista.erro && <BlocoErro erro={lista.erro} aoTentarDeNovo={lista.recarregar} />}
@@ -463,7 +549,7 @@ export function CoberturaCarteira() {
               titulo={temFiltro ? 'Nenhum cliente com esses filtros' : 'Esta filial não tem carteira carregada'}
               texto={
                 temFiltro
-                  ? 'Nenhum vínculo desta filial cai nesta faixa de tempo sem contato.'
+                  ? 'Nenhum vínculo desta filial cai nesta faixa de tempo sem contato, ou nesta busca.'
                   : 'A carteirização ativa tem 8.537 vínculos nas treze filiais. Confira a filial escolhida no cabeçalho.'
               }
               acao={
@@ -479,7 +565,7 @@ export function CoberturaCarteira() {
           {pagina && pagina.itens.length > 0 && (
             <>
               <div className="mom-tabela-rolagem cad-so-largo">
-                <table className="mom-tabela">
+                <table className="mom-tabela cob-tabela">
                   <caption className="cad-so-leitor">
                     Cobertura da filial {contexto.empresa}, ordenada por {consulta.ordenarPor}
                   </caption>
@@ -495,42 +581,38 @@ export function CoberturaCarteira() {
                           {coluna.ordem ? (
                             <button type="button" className="cad-th-ordenar" onClick={() => trocarOrdem(coluna.ordem!)}>
                               {coluna.rotulo}
-                              <span aria-hidden="true">{seta(coluna.ordem, consulta)}</span>
+                              <SetaDaOrdem campo={coluna.ordem} consulta={consulta} />
                             </button>
                           ) : (
                             coluna.rotulo
                           )}
                         </th>
                       ))}
+                      <th scope="col">
+                        <span className="cad-so-leitor">Ações</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {pagina.itens.map((linha) => (
                       <tr key={`${linha.clienteChave}-${linha.carteiraChave}`}>
                         <th scope="row">
-                          <Link to={`/clientes/${linha.clienteChave}`} className="cad-link-forte">
+                          <Link to={`/clientes/${linha.clienteChave}`} className="cob-cliente">
                             {linha.clienteNome}
                           </Link>
                         </th>
                         <td>
-                          <div>{linha.carteiraNome}</div>
+                          <div className="cob-carteira">{linha.carteiraNome}</div>
                           <div className="cad-sub">{linha.linhaDeNegocioNome}</div>
                         </td>
-                        <td>{linha.responsavelNome}</td>
-                        {/* A AUSÊNCIA É DITA UMA VEZ, e não três.
-
-                            Estas três colunas repetiam "nunca", "sem contato
-                            registrado" e "sem cadência declarada" em vermelho na
-                            mesma linha, e a página inteira — a ordem põe os nunca
-                            contatados primeiro — virava um bloco de texto igual.
-                            O aviso fica na primeira coluna, onde a informação
-                            nasce; as outras duas mostram o travessão de dado
-                            ausente, com o motivo na dica (issue 167: nenhum `title=`). */}
-                        <td className="mom-num">
+                        <td className="cob-responsavel">{linha.responsavelNome}</td>
+                        {/* A AUSÊNCIA É DITA UMA VEZ, e não três: o aviso fica no último contato, onde a informação nasce;
+                            as outras duas mostram o travessão de dado ausente, com o motivo na dica (issue 167). */}
+                        <td>
                           {linha.ultimaInteracaoEm ? (
                             formatarData(linha.ultimaInteracaoEm)
                           ) : (
-                            <span className="cad-alerta">nunca contatado</span>
+                            <span className="cob-nunca">nunca contatado</span>
                           )}
                         </td>
                         <td className="mom-num">
@@ -538,14 +620,13 @@ export function CoberturaCarteira() {
                             <ValorAusente motivo="Sem contato registrado: não há de quando contar." oQue="os dias sem contato" />
                           ) : (
                             <span className={linha.diasSemContato > 90 ? 'cad-alerta' : undefined}>
-                              {linha.diasSemContato.toLocaleString('pt-BR')}
+                              {nº(linha.diasSemContato)}
                             </span>
                           )}
                         </td>
                         <td className="mom-num">
-                          {/* FORA DO CICLO É NULO, E NÃO FALSO, quando não há
-                              cadência declarada: falso diria "está em dia", e não
-                              é isso que se sabe. */}
+                          {/* FORA DO CICLO É NULO, E NÃO FALSO, quando não há cadência declarada: falso diria "está em
+                              dia", e não é isso que se sabe. */}
                           {linha.diasCicloContato === null ? (
                             <ValorAusente
                               motivo="A carteira não declara de quantos em quantos dias este cliente deve ser visitado."
@@ -557,6 +638,12 @@ export function CoberturaCarteira() {
                               {linha.estaForaDoCiclo && <div className="cad-alerta">fora do ciclo</div>}
                             </>
                           )}
+                        </td>
+                        <td>
+                          <SeloDePrioridade prioridade={linha.prioridade} classe={linha.classeDoCliente} />
+                        </td>
+                        <td className="cob-coluna-menu">
+                          <MenuDaLinha linha={linha} />
                         </td>
                       </tr>
                     ))}
@@ -581,12 +668,8 @@ export function CoberturaCarteira() {
         </PainelDoMomento>
       </section>
 
-      {/* A MESMA COBERTURA POR CARTEIRA, EM NÚMERO.
-
-          O gráfico acima responde "quem está descoberto" e para por aí. Quem
-          precisa do número exato — as 42 carteiras, e não as 12 maiores — abre
-          aqui. Fechado por padrão: aberto, esta tabela sozinha respondia por
-          cerca de 2.000px da altura da tela. */}
+      {/* A MESMA COBERTURA POR CARTEIRA, EM NÚMERO. As barras respondem "quem está descoberto" e param por aí; quem
+          precisa do número exato — todas as carteiras, e não as doze maiores — abre aqui. Fechado por padrão. */}
       <BlocoRecolhivel
         titulo="Cobertura por carteira, em número"
         resumo={`as ${carteiras.length} carteiras desta filial, contadas no banco`}
@@ -616,19 +699,17 @@ export function CoberturaCarteira() {
                       <div className="cad-sub">{c.linhaDeNegocioNome}</div>
                     </th>
                     <td>{c.responsavelNome}</td>
-                    <td className="mom-num">{c.clientes.toLocaleString('pt-BR')}</td>
+                    <td className="mom-num">{nº(c.clientes)}</td>
                     <td className="mom-num">
-                      {c.comContatoEm30Dias.toLocaleString('pt-BR')}
+                      {nº(c.comContatoEm30Dias)}
                       <div className="cad-sub">{percentual(c.comContatoEm30Dias, c.clientes)}</div>
                     </td>
                     <td className="mom-num">
-                      {c.comContatoEm90Dias.toLocaleString('pt-BR')}
+                      {nº(c.comContatoEm90Dias)}
                       <div className="cad-sub">{percentual(c.comContatoEm90Dias, c.clientes)}</div>
                     </td>
                     <td className="mom-num">
-                      <span className={c.nuncaContatados > 0 ? 'cad-atencao' : undefined}>
-                        {c.nuncaContatados.toLocaleString('pt-BR')}
-                      </span>
+                      <span className={c.nuncaContatados > 0 ? 'cad-atencao' : undefined}>{nº(c.nuncaContatados)}</span>
                     </td>
                     <td className="mom-num">
                       {c.ultimoContatoEm ? formatarData(c.ultimoContatoEm) : <span className="cad-nada">nunca</span>}
@@ -641,7 +722,7 @@ export function CoberturaCarteira() {
         )}
       </BlocoRecolhivel>
 
-      <BlocoRecolhivel titulo="O que esta tela deixou de afirmar" resumo="canal de contato e o mapa">
+      <BlocoRecolhivel titulo="O que esta tela deixou de afirmar" resumo="canal de contato, o mapa e a tendência dos cartões">
         <div className="cad-fichas">
           <LacunaConhecida
             metrica="Interações por canal (visita, ligação, WhatsApp)"
@@ -664,12 +745,329 @@ export function CoberturaCarteira() {
               'território que existe está em Cobertura por Filial e Carteira.'
             }
           />
+          <LacunaConhecida
+            metrica="A tendência de cada cartão"
+            motivo={
+              'A maquete desenha, no canto de cada um dos cinco cartões, a curva da evolução do número. ' +
+              'O CRM guarda o último contato de cada vínculo, e não a cobertura de cada dia: sem essa ' +
+              'série, a curva seria inventada. Ela entra quando a cobertura passar a ser guardada dia a dia.'
+            }
+          />
         </div>
       </BlocoRecolhivel>
     </PaginaDoPainel>
   );
 }
 
+/**
+ * AS BARRAS DE 100% DA MAQUETE — em HTML, e não em canvas: o percentual de cada faixa escrito dentro dela, o total ao
+ * lado, e o nome inteiro da carteira para o leitor de tela. A faixa estreita demais para o número fica com a cor; o
+ * número está na frase de cada linha e na tabela do fim da tela.
+ */
+function BarrasDaCobertura({ carteiras }: { carteiras: ResumoDeCobertura[] }) {
+  return (
+    <div className="cob-barras-corpo">
+      <ul className="cob-barras-lista">
+        {carteiras.map((c) => {
+          const f = faixasDe(c);
+          const frase = FAIXAS_DE_CONTATO.map((faixa) => `${faixa.nome.toLowerCase()}: ${fatia(faixa.de(f), f.total) ?? 0}%`).join(
+            ', ',
+          );
+          return (
+            <li key={c.carteiraChave} className="cob-barras-linha">
+              <span className="cob-barras-nome">{c.carteiraNome}</span>
+              <span className="cob-barras-trilho" aria-hidden="true">
+                {FAIXAS_DE_CONTATO.map((faixa) => {
+                  const p = f.total > 0 ? (100 * faixa.de(f)) / f.total : 0;
+                  return p > 0 ? (
+                    <span key={faixa.nome} className="cob-barras-faixa" style={{ width: `${p}%`, background: faixa.cor }}>
+                      {p >= 6 ? `${Math.round(p)}%` : ''}
+                    </span>
+                  ) : null;
+                })}
+              </span>
+              <span className="cob-barras-numero">{nº(c.clientes)}</span>
+              <span className="cad-so-leitor">
+                {c.carteiraNome}, {nº(c.clientes)} vínculos — {frase}.
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="cob-barras-eixo" aria-hidden="true">
+        {[0, 20, 40, 60, 80, 100].map((t) => (
+          <span key={t} style={{ left: `${t}%` }}>
+            {t}%
+          </span>
+        ))}
+      </div>
+      <ul className="cob-legenda">
+        {FAIXAS_DE_CONTATO.map((faixa) => (
+          <li key={faixa.nome}>
+            <i style={{ background: faixa.cor }} aria-hidden="true" />
+            {faixa.nome}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** O MAIOR RISCO, no canto do cartão: a carteira comercial com a maior fatia há mais de 90 dias ou nunca contatada. */
+function MaiorRisco({ carteira, exposicao: valor }: { carteira: ResumoDeCobertura; exposicao: number }) {
+  return (
+    <div className="cob-risco" role="note">
+      <span className="cob-risco-icone" aria-hidden="true">
+        <CircleAlert size={22} strokeWidth={2.4} />
+      </span>
+      <span className="cob-risco-texto">
+        <strong>Maior risco: {carteira.carteiraNome}</strong>
+        <span>{Math.round(valor * 100)}% dos clientes há mais de 90 dias ou nunca contatados.</span>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * A DISTRIBUIÇÃO DA COBERTURA — a rosca das quatro faixas, de todas as carteiras ou da escolhida, e as carteiras
+ * comerciais pela exposição.
+ */
+function DistribuicaoDaCobertura({
+  carteiras,
+  total,
+  porExposicao,
+  carregando,
+}: {
+  carteiras: ResumoDeCobertura[];
+  total: Faixas;
+  porExposicao: { carteira: ResumoDeCobertura; exposicao: number }[];
+  carregando: boolean;
+}) {
+  const [escolhida, setEscolhida] = useState('');
+  const carteira = carteiras.find((c) => c.carteiraChave === escolhida) ?? null;
+  const f = carteira ? faixasDe(carteira) : total;
+  const opcoes = useMemo(
+    () => [
+      { id: '', rotulo: 'Todas as carteiras' },
+      ...[...carteiras].sort((a, b) => a.carteiraNome.localeCompare(b.carteiraNome)).map((c) => ({ id: c.carteiraChave, rotulo: c.carteiraNome })),
+    ],
+    [carteiras],
+  );
+
+  return (
+    <PainelDoMomento
+      titulo="Distribuição da cobertura"
+      data-bloco="distribuicao-da-cobertura"
+      area="cob-distribuicao"
+      dica="Os vínculos pelas quatro faixas de tempo sem contato — de todas as carteiras, ou da escolhida ao lado. As carteiras por maior exposição são as comerciais, pela fatia há mais de 90 dias ou nunca contatada."
+      direita={<Seletor rotulo="Carteira da distribuição" rotuloVisivel={false} valor={escolhida} opcoes={opcoes} aoMudar={setEscolhida} />}
+    >
+      {carregando && <BlocoCarregando oQue="a distribuição da cobertura" />}
+
+      {!carregando && f.total > 0 && (
+        <>
+          <div className="cob-rosca-e-legenda">
+            <GraficoDonutCentro
+              segmentos={FAIXAS_DE_CONTATO.map((faixa) => ({ valor: faixa.de(f), cor: faixa.cor }))}
+              largura={140}
+              altura={140}
+              cutout="70%"
+              bordaBranca
+              centro={{
+                linha1: nº(f.total),
+                linha2: 'vínculos',
+                corLinha1: '#0B1638',
+                // O NÚMERO CABE NO MIOLO: o "310" da maquete é grande; o "31.040" de uma filial grande encolhe.
+                tamanhoLinha1: f.total >= 10_000 ? 19 : f.total >= 1_000 ? 22 : 26,
+                tamanhoLinha2: 12,
+                deslocamentoLinha2: 19,
+              }}
+            />
+            <table className="cob-legenda-tabela">
+              <caption className="cad-so-leitor">
+                A distribuição {carteira ? `da carteira ${carteira.carteiraNome}` : 'de todas as carteiras'}
+              </caption>
+              <thead className="cad-so-leitor">
+                <tr>
+                  <th scope="col">Faixa</th>
+                  <th scope="col">Vínculos</th>
+                  <th scope="col">Parte</th>
+                </tr>
+              </thead>
+              <tbody>
+                {FAIXAS_DE_CONTATO.map((faixa) => (
+                  <tr key={faixa.nome}>
+                    <th scope="row">
+                      <i style={{ background: faixa.cor }} aria-hidden="true" />
+                      {faixa.nome}
+                    </th>
+                    <td>{nº(faixa.de(f))}</td>
+                    <td>{fatia(faixa.de(f), f.total)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {porExposicao.length > 0 && (
+            <div className="cob-exposicao">
+              <h4 className="cob-exposicao-titulo">
+                Carteiras por maior exposição <span>( &gt; 90 dias + nunca contatados )</span>
+              </h4>
+              <ol className="cob-exposicao-lista">
+                {porExposicao.slice(0, CARTEIRAS_NO_RANKING).map(({ carteira: c, exposicao: e }, i) => (
+                  <li key={c.carteiraChave}>
+                    <span className="cob-exposicao-posicao" data-primeira={i === 0 ? 'true' : undefined} aria-hidden="true">
+                      {i + 1}
+                    </span>
+                    <span className="cob-exposicao-nome">{c.carteiraNome}</span>
+                    <strong className="cob-exposicao-pct">{Math.round(e * 100)}%</strong>
+                    <span className="cob-exposicao-trilho" aria-hidden="true">
+                      <span
+                        style={{ width: `${Math.round(e * 100)}%` }}
+                        data-tom={e >= EXPOSICAO_VERMELHA ? 'alta' : 'media'}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </>
+      )}
+    </PainelDoMomento>
+  );
+}
+
+/** A PRIORIDADE — pela curva ABC do cliente (decisão de 30/09/2026). A seta e a palavra carregam o sentido. */
+function SeloDePrioridade({ prioridade, classe }: { prioridade: PrioridadeDeContato; classe: string | null }) {
+  const rotulo = prioridade === 'Media' ? 'Média' : prioridade;
+  return (
+    <span className="cob-prioridade" data-prioridade={prioridade}>
+      {prioridade === 'Baixa' ? <i aria-hidden="true" /> : <ArrowUp size={13} strokeWidth={2.6} aria-hidden="true" />}
+      {rotulo}
+      <span className="cad-so-leitor">, {classe ? `classe ${classe} da curva ABC` : 'cliente sem classe na curva ABC'}</span>
+    </span>
+  );
+}
+
+/** O MENU DE CADA LINHA — o que já existe para o cliente: a ficha e as máquinas dele. */
+function MenuDaLinha({ linha }: { linha: CoberturaResumo }) {
+  const [aberto, setAberto] = useState(false);
+  const caixa = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: MouseEvent) => {
+      if (!caixa.current?.contains(e.target as Node)) setAberto(false);
+    };
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAberto(false);
+    };
+    document.addEventListener('mousedown', fora);
+    document.addEventListener('keydown', tecla);
+    return () => {
+      document.removeEventListener('mousedown', fora);
+      document.removeEventListener('keydown', tecla);
+    };
+  }, [aberto]);
+
+  return (
+    <div className="cob-menu" ref={caixa}>
+      <button
+        type="button"
+        className="cob-menu-botao"
+        aria-haspopup="menu"
+        aria-expanded={aberto}
+        aria-label={`Ações de ${linha.clienteNome}`}
+        onClick={() => setAberto((a) => !a)}
+      >
+        <EllipsisVertical size={16} strokeWidth={2.2} aria-hidden="true" />
+      </button>
+      {aberto && (
+        <div className="cob-menu-lista" role="menu">
+          <Link role="menuitem" to={`/clientes/${linha.clienteChave}`}>
+            Abrir a ficha do cliente
+          </Link>
+          <Link role="menuitem" to={`/equipamentos?cliente=${linha.clienteChave}`}>
+            Ver as máquinas do cliente
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * O EXPORTAR DA MAQUETE — a lista inteira, com os mesmos filtros e a mesma busca, em CSV. Vai ao servidor de 200 em 200,
+ * até o total ou até {@link LINHAS_NO_EXPORTAR}; passando disso, o botão diz que leva as primeiras.
+ */
+function BotaoExportar({ consulta, total }: { consulta: ConsultaDeCobertura; total: number }) {
+  const { contexto } = useContextoDeAcesso();
+  const [exportando, setExportando] = useState(false);
+  const [falha, setFalha] = useState<string | null>(null);
+
+  async function exportar() {
+    setExportando(true);
+    setFalha(null);
+    try {
+      const { itens } = await listarCoberturaInteira(contexto, consulta);
+      baixarCsv(`cobertura-de-carteira-${contexto.empresa}-${carimboDeData()}`, CABECALHO_DO_CSV, itens.map(linhaDoCsv));
+    } catch (causa) {
+      setFalha(causa instanceof Error ? causa.message : 'A exportação não terminou.');
+    } finally {
+      setExportando(false);
+    }
+  }
+
+  return (
+    <span className="cob-exportar-caixa">
+      <button type="button" className="cob-exportar" onClick={exportar} disabled={exportando || total === 0}>
+        <Download size={15} strokeWidth={2.2} aria-hidden="true" />
+        {exportando ? 'Exportando…' : 'Exportar'}
+      </button>
+      {total > LINHAS_NO_EXPORTAR && (
+        <InfoTooltip
+          rotulo="Quantas linhas o Exportar leva"
+          texto={`A lista tem ${nº(total)} vínculos; o Exportar leva os primeiros ${nº(LINHAS_NO_EXPORTAR)}, na ordem da tela. Um filtro ou a busca diminuem a lista.`}
+        />
+      )}
+      {falha && (
+        <span className="cad-alerta" role="alert">
+          {falha}
+        </span>
+      )}
+    </span>
+  );
+}
+
+const CABECALHO_DO_CSV = [
+  'Cliente',
+  'Classe do cliente (curva ABC)',
+  'Prioridade',
+  'Carteira',
+  'Linha de negócio',
+  'Responsável',
+  'Último contato',
+  'Dias sem contato',
+  'Ciclo declarado (dias)',
+  'Fora do ciclo',
+];
+
+function linhaDoCsv(l: CoberturaResumo): unknown[] {
+  return [
+    l.clienteNome,
+    l.classeDoCliente ?? '',
+    l.prioridade === 'Media' ? 'Média' : l.prioridade,
+    l.carteiraNome,
+    l.linhaDeNegocioNome,
+    l.responsavelNome,
+    l.ultimaInteracaoEm ? formatarData(l.ultimaInteracaoEm) : 'nunca contatado',
+    l.diasSemContato ?? '',
+    l.diasCicloContato ?? '',
+    l.estaForaDoCiclo === null ? '' : l.estaForaDoCiclo ? 'sim' : 'não',
+  ];
+}
 
 /** A mesma linha, em ficha, para quando a tabela não cabe. */
 function FichaDeCobertura({ linha }: { linha: CoberturaResumo }) {
@@ -698,11 +1096,13 @@ function FichaDeCobertura({ linha }: { linha: CoberturaResumo }) {
       <div className="cad-ficha-linha">
         <span className="cad-ficha-rotulo">Dias sem contato</span>
         <span className="cad-ficha-valor">
-          {linha.diasSemContato === null ? (
-            <span className="cad-alerta">sem contato registrado</span>
-          ) : (
-            linha.diasSemContato.toLocaleString('pt-BR')
-          )}
+          {linha.diasSemContato === null ? <span className="cad-alerta">sem contato registrado</span> : nº(linha.diasSemContato)}
+        </span>
+      </div>
+      <div className="cad-ficha-linha">
+        <span className="cad-ficha-rotulo">Prioridade</span>
+        <span className="cad-ficha-valor">
+          <SeloDePrioridade prioridade={linha.prioridade} classe={linha.classeDoCliente} />
         </span>
       </div>
     </div>
@@ -720,12 +1120,9 @@ function ariaOrdem(campo: OrdemDeCobertura | undefined, consulta: ConsultaDeCobe
   return consulta.descendente ? ('descending' as const) : ('ascending' as const);
 }
 
-function seta(campo: OrdemDeCobertura | undefined, consulta: ConsultaDeCobertura) {
-  if (!campo || consulta.ordenarPor !== campo) return '';
-  return consulta.descendente ? '▾' : '▴';
-}
-
-/** A soma de uma faixa em todas as carteiras. */
-function somar(carteiras: ResumoDeCobertura[], medir: (c: ResumoDeCobertura) => number): number {
-  return carteiras.reduce((total, c) => total + medir(c), 0);
+/** A seta da coluna ordenada, como na maquete — para cima na ordem crescente. */
+function SetaDaOrdem({ campo, consulta }: { campo: OrdemDeCobertura; consulta: ConsultaDeCobertura }) {
+  if (consulta.ordenarPor !== campo) return null;
+  const Seta = consulta.descendente ? ArrowDown : ArrowUp;
+  return <Seta className="cob-seta-da-ordem" size={13} strokeWidth={2.4} aria-hidden="true" />;
 }

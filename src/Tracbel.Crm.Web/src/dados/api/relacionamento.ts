@@ -298,6 +298,7 @@ export const COBERTURA_INICIAL: ConsultaDeCobertura = {
   somenteSemContato: false,
   ordenarPor: 'UltimaInteracaoEm',
   descendente: false,
+  termo: '',
 };
 
 /** A carteira cliente a cliente, com a data do último contato. */
@@ -316,8 +317,33 @@ export function listarCobertura(
       somenteSemContato: consulta.somenteSemContato,
       ordenarPor: consulta.ordenarPor,
       descendente: consulta.descendente,
+      termo: consulta.termo.trim(),
     },
   });
+}
+
+/** Quantas linhas o Exportar da Cobertura leva no máximo — 50 páginas de 200. */
+export const LINHAS_NO_EXPORTAR = 10_000;
+
+/**
+ * A LISTA INTEIRA DA COBERTURA, com os mesmos filtros e a mesma busca, para o Exportar (30/09/2026): página a página, de
+ * 200 em 200 — o tamanho máximo da API —, até o total ou até {@link LINHAS_NO_EXPORTAR}.
+ */
+export async function listarCoberturaInteira(
+  contexto: ContextoDeAcesso,
+  consulta: ConsultaDeCobertura,
+  sinal?: AbortSignal,
+): Promise<{ itens: CoberturaResumo[]; total: number }> {
+  const tamanho = 200;
+  const primeira = await listarCobertura(contexto, { ...consulta, pagina: 1, tamanho }, sinal);
+  const total = primeira.dados.total;
+  const itens = [...primeira.dados.itens];
+  const paginas = Math.min(Math.ceil(total / tamanho), Math.ceil(LINHAS_NO_EXPORTAR / tamanho));
+  for (let pagina = 2; pagina <= paginas; pagina++) {
+    const resposta = await listarCobertura(contexto, { ...consulta, pagina, tamanho }, sinal);
+    itens.push(...resposta.dados.itens);
+  }
+  return { itens, total };
 }
 
 /** A cobertura por carteira: clientes, contatados em 30 e 90 dias, nunca contatados. */
