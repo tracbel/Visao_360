@@ -269,7 +269,7 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
             entreguesPorMes);
     }
 
-    /// <summary>Quantos meses a série do "Faturamento — 12 meses" leva, terminando no mês em curso.</summary>
+    /// <summary>Quantos meses a série do "Faturamento — 12 meses" leva, terminando no mês em curso ou no fim do ano fechado.</summary>
     private const int MesesDaSerie = 12;
 
     /// <summary>
@@ -285,8 +285,8 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
     /// retrato não tem coluna de empresa, e por isso o filtro global não o alcança: a fronteira é refeita aqui, com o
     /// mesmo predicado do filtro. A unidade sem filial não é de filial nenhuma, e fica fora.</para>
     ///
-    /// <para><b>A série mês a mês</b> (29/09/2026) sai da mesma leitura: os doze meses que terminam no mês em curso, com
-    /// zero no mês sem entrega.</para>
+    /// <para><b>A série mês a mês</b> (29/09/2026) sai da mesma leitura: os doze meses que terminam no mês em curso — ou,
+    /// num ano fiscal fechado, em outubro dele (30/09/2026, #313) —, com zero no mês sem entrega.</para>
     /// </summary>
     private async Task<(MaquinasEntreguesNoArt Ano, MaquinasEntreguesNoArt Anterior, MaquinasEntreguesNoArt MesEmCurso,
         IReadOnlyList<MaquinasEntreguesNoArt> PorMes)> EntreguesNoArtAsync(
@@ -294,7 +294,10 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
     {
         var inicioDoAnterior = inicio.AddMonths(-12);
         var fimDoAnterior = fim.AddMonths(-12);
-        var inicioDaSerie = mesCorrente.AddMonths(-(MesesDaSerie - 1));
+        // A SÉRIE SEGUE O ANO ESCOLHIDO (30/09/2026, #313): no ano que corre — o último mês fechado é o de ontem —, ela vai
+        // até o mês em curso; num ano fiscal fechado, termina em outubro dele.
+        var fimDaSerie = fim.AddMonths(1) >= mesCorrente ? mesCorrente : fim;
+        var inicioDaSerie = fimDaSerie.AddMonths(-(MesesDaSerie - 1));
         var mesesDaSerie = Enumerable.Range(0, MesesDaSerie).Select(i => inicioDaSerie.AddMonths(i)).ToList();
 
         static MaquinasEntreguesNoArt Nenhuma(DateOnly de, DateOnly a) => new(de, a, 0, 0m, 0, 0);
@@ -309,12 +312,15 @@ public sealed class RepositorioDeIndicadoresExecutivos(CrmDbContext contexto) : 
         // meses da série — que, com um ano passado escolhido, ficam fora da janela do ano.
         var desde = inicioDoAnterior < inicioDaSerie ? inicioDoAnterior : inicioDaSerie;
         var ateDoAno = fim.AddMonths(1);
+        var ateDaSerie = fimDaSerie.AddMonths(1);
         var fimDoMes = mesCorrente.AddMonths(1);
 
         var registros = await contexto.RegistrosDeOrigem.AsNoTracking()
             .Where(r => r.SistemaId == sistemaDoArt && r.Fluxo == MetaDeVenda.FluxoDasVendasDoArt && r.AusenteNaOrigemDesde == null
                         && r.EntregueEm != null
-                        && ((r.EntregueEm >= desde && r.EntregueEm < ateDoAno) || (r.EntregueEm >= inicioDaSerie && r.EntregueEm < fimDoMes)))
+                        && ((r.EntregueEm >= desde && r.EntregueEm < ateDoAno)
+                            || (r.EntregueEm >= inicioDaSerie && r.EntregueEm < ateDaSerie)
+                            || (r.EntregueEm >= mesCorrente && r.EntregueEm < fimDoMes)))
             .Select(r => new { EntregueEm = r.EntregueEm!.Value, r.UnidadeNaOrigem, r.ValorDaVenda, r.VendaDeMaquinaId })
             .ToListAsync(ct);
 

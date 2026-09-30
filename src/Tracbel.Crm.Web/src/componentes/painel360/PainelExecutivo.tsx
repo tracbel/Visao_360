@@ -68,7 +68,9 @@ import {
   obterExecutivoPorFilial,
   obterPerdasEFunilConsolidados,
   somarConsolidado,
-  faturamentoConsolidado,
+  obterFaturamentoDoAno,
+  somarFaturamentos,
+  type FaturamentoSomado,
   type ExecutivoConsolidado,
   type ExecutivoDaFilial,
 } from '../../dados/api/consolidado';
@@ -304,7 +306,9 @@ export function PainelExecutivo({
   const pf = perdasEFunil.dados;
   const vendasPerdidas = pf?.vendas ?? SEM_VENDA_PERDIDA;
   const periodoDasPerdas = pf?.periodoTexto ?? nomeDoAno(ano);
-  const faturamento = useMemo(() => faturamentoConsolidado(dados), [dados]);
+  // O FATURAMENTO PELA NOTA SEGUE O ANO (30/09/2026, #313): leitura própria, e trocar o ano não relê o que é "hoje".
+  const faturamentoDoAno = useRecurso((sinal) => obterFaturamentoDoAno(contexto, ano, sinal), [contexto.usuario, contexto.empresa, ano]);
+  const faturamento = useMemo(() => somarFaturamentos(faturamentoDoAno.dados ? [faturamentoDoAno.dados] : []), [faturamentoDoAno.dados]);
 
   const ex = executivo.dados;
   const exComResposta = ex && ex.respondidas > 0 ? ex : null;
@@ -367,12 +371,14 @@ export function PainelExecutivo({
     !perdasEFunil.carregando && barrasDePerda.length === 0 && vendasPerdidas.porConcorrente.length === 0;
 
   const anos = Array.from({ length: anoCorrente - PRIMEIRO_ANO + 1 }, (_, i) => anoCorrente - i);
-  const lendo = consolidado.carregando || executivo.carregando || metas.carregando || perdasEFunil.carregando;
+  const lendo =
+    consolidado.carregando || executivo.carregando || metas.carregando || perdasEFunil.carregando || faturamentoDoAno.carregando;
   const reler = () => {
     consolidado.recarregar();
     executivo.recarregar();
     metas.recarregar();
     perdasEFunil.recarregar();
+    faturamentoDoAno.recarregar();
   };
 
   // A ÚLTIMA ATUALIZAÇÃO É A DESTA LEITURA DO PAINEL — a hora em que as leituras das filiais voltaram, e que o botão ao
@@ -474,7 +480,7 @@ export function PainelExecutivo({
           <SecaoDoPainel bloco="secao-resultado">
             <TituloDaSecao
               titulo="Resultado e atenção"
-              subtitulo="O faturamento dos últimos doze meses e o que pede ação hoje."
+              subtitulo="O faturamento mês a mês do período escolhido e o que pede ação hoje."
             />
             <div className="v360-linha" data-bloco="linha-2" data-variante="resultado">
               <PainelDoFaturamentoMensal ex={exComResposta} carregando={executivo.carregando} faturamento={faturamento} />
@@ -482,7 +488,7 @@ export function PainelExecutivo({
               <PainelDoMomento
                 titulo="Alertas gerenciais"
                 dica={`O que pede ação hoje, ${recorte}: vínculos elegíveis que nunca tiveram contato, tarefas atrasadas e processos parados no funil do Vórtice.`}
-                subtitulo="Para atenção neste perfil."
+                subtitulo="Hoje, para atenção neste perfil."
               >
                 <div className="v360-alertas-list">
                   {cobertura && (
@@ -554,8 +560,8 @@ export function PainelExecutivo({
                 dica="Os vínculos em carteira comercial pela cadência declarada da linha de negócio e pela classe ABC do cliente — a mesma regra do mapa de cobertura. Linha sem cadência declarada fica fora do percentual."
                 subtitulo={
                   cobertura
-                    ? `${nº(cobertura.vinculosComerciais)} vínculos em carteira comercial, pela cadência da linha.`
-                    : 'Pela cadência declarada da linha de negócio.'
+                    ? `Hoje: ${nº(cobertura.vinculosComerciais)} vínculos em carteira comercial, pela cadência da linha.`
+                    : 'Hoje, pela cadência declarada da linha de negócio.'
                 }
                 direita={
                   <Link to="/relatorios/territorio" className="v360-link v360-botao-contorno">
@@ -598,7 +604,7 @@ export function PainelExecutivo({
               <PainelDoMomento
                 titulo="Top CENs"
                 dica={`Os responsáveis de carteira comercial com mais vínculos ${recorte}, e quantos desses vínculos tiveram contato nos últimos 30 dias.`}
-                subtitulo="Ranking por vínculos em carteira comercial."
+                subtitulo="Hoje: ranking por vínculos em carteira comercial."
                 direita={
                   topCens.length > 0 ? (
                     <Seletor
@@ -664,7 +670,7 @@ export function PainelExecutivo({
                     )}
                   </>
                 }
-                subtitulo="Participação de cada linha nos vínculos das carteiras comerciais."
+                subtitulo="Hoje: participação de cada linha nos vínculos das carteiras comerciais."
               >
                 {mix.length > 0 ? (
                   <div className="v360-rosca-e-tabela">
@@ -713,7 +719,7 @@ export function PainelExecutivo({
               metodologia={
                 <>
                   <p>
-                    Os clientes são ordenados pelo faturamento acumulado com cliente no CRM; a classe é a da curva ABC
+                    Os clientes são ordenados pelo faturamento com cliente no CRM no ano fiscal escolhido; a classe é a da curva ABC
                     apurada do mesmo faturamento.
                   </p>
                   <p>
@@ -728,8 +734,8 @@ export function PainelExecutivo({
             <div className="v360-linha" data-bloco="linha-4" data-variante="mercado">
               <PainelDoMomento
                 titulo="Top 5 clientes"
-                dica="Maior faturamento acumulado, com a classe da curva ABC e o mês da última compra."
-                subtitulo="Maior faturamento acumulado · classe da curva ABC."
+                dica={`Maior faturamento pela nota do Protheus no ${nomeDoAno(ano)} — o ano escolhido no período —, com a classe da curva ABC e o mês da última compra no ano.`}
+                subtitulo={`Maior faturamento no ${nomeDoAno(ano)} · classe da curva ABC.`}
               >
                 {faturamento.topClientes.length > 0 ? (
                   <ol className="mom-ranking v360-ranking" data-numerado="true" data-variante="clientes">
@@ -768,7 +774,14 @@ export function PainelExecutivo({
                     ))}
                   </ol>
                 ) : (
-                  <SemDado oQue="o ranking de clientes" porque="Nenhum faturamento carregado para ordenar os clientes." />
+                  <SemDado
+                    oQue="o ranking de clientes"
+                    porque={
+                      faturamentoDoAno.carregando
+                        ? `Lendo o faturamento do ${nomeDoAno(ano)}…`
+                        : `Nenhum faturamento com cliente no CRM no ${nomeDoAno(ano)} ${recorte}.`
+                    }
+                  />
                 )}
               </PainelDoMomento>
 
@@ -970,7 +983,7 @@ function PainelDoFaturamentoMensal({
 }: {
   ex: ExecutivoConsolidado | null;
   carregando: boolean;
-  faturamento: ReturnType<typeof faturamentoConsolidado>;
+  faturamento: FaturamentoSomado;
 }) {
   const [fonte, setFonte] = useState<FonteDoFaturamento>('art');
   const serie = ex?.entregues.porMes ?? null;

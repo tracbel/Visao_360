@@ -76,12 +76,15 @@ public sealed class RepositorioDeFaturamento(CrmDbContext contexto) : IRepositor
             .MaxAsync(f => (DateOnly?)f.Competencia, ct);
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<MesDeFaturamento>> SerieMensalAsync(int meses, CancellationToken ct)
+    public async Task<IReadOnlyList<MesDeFaturamento>> SerieMensalAsync(int meses, DateOnly? ate, CancellationToken ct)
     {
-        var ultima = await CompetenciaMaisRecenteAsync(ct);
-        if (ultima is null) return [];
+        var maisRecente = await CompetenciaMaisRecenteAsync(ct);
+        if (maisRecente is null) return [];
 
-        var primeira = ultima.Value.AddMonths(-(meses - 1));
+        // O FIM DO ANO ESCOLHIDO, ou a competência mais recente se ela vem antes: o ano que ainda corre termina no último
+        // mês carregado, e não em meses vazios no futuro.
+        var ultima = ate is { } fim && fim < maisRecente.Value ? fim : maisRecente.Value;
+        var primeira = ultima.AddMonths(-(meses - 1));
 
         var agrupado = await contexto.FaturamentoDosClientes
             .Where(f => f.ExcluidoEm == null && f.Competencia >= primeira && f.Competencia <= ultima)
@@ -111,10 +114,10 @@ public sealed class RepositorioDeFaturamento(CrmDbContext contexto) : IRepositor
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ClienteNoRanking>> TopClientesAsync(int quantos, CancellationToken ct)
+    public async Task<IReadOnlyList<ClienteNoRanking>> TopClientesAsync(int quantos, DateOnly? de, DateOnly? ate, CancellationToken ct)
     {
         var porCliente = await contexto.FaturamentoDosClientes
-            .Where(f => f.ExcluidoEm == null)
+            .Where(f => f.ExcluidoEm == null && (de == null || f.Competencia >= de) && (ate == null || f.Competencia <= ate))
             .GroupBy(f => f.ClienteId)
             .Select(g => new
             {

@@ -257,6 +257,39 @@ describe('Painel executivo da Visão 360 — textos verdadeiros', () => {
     );
   });
 
+  it('trocar o ano relê o que tem data — a nota do Protheus e o Top 5 clientes com o ano novo — e não o que é "hoje" (#313)', async () => {
+    instalarApi('completo');
+    const original = globalThis.fetch;
+    const pedidos: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (entrada: string, init?: RequestInit) => {
+        pedidos.push(entrada.replace(/^.*\/api/, ''));
+        return original(entrada, init);
+      }),
+    );
+    const tela = render(
+      <ProvedorDeContextoDeAcesso>
+        <MemoryRouter>
+          <PainelExecutivo />
+        </MemoryRouter>
+      </ProvedorDeContextoDeAcesso>,
+    );
+    await waitFor(() => expect(tela.container.querySelector('[data-bloco="linha-4"]')).not.toBeNull());
+    await waitFor(() => expect(pedidos.some((p) => p.startsWith(`/v1/relatorios/faturamento?anoFiscal=${ANO_FISCAL}`))).toBe(true));
+    const coberturasAntes = pedidos.filter((p) => p.startsWith('/v1/relatorios/cobertura')).length;
+
+    const anterior = ANO_FISCAL - 1;
+    fireEvent.change(tela.container.querySelector('[data-bloco="periodo"] select')!, { target: { value: String(anterior) } });
+
+    await waitFor(() => expect(pedidos.some((p) => p.startsWith(`/v1/relatorios/faturamento?anoFiscal=${anterior}`))).toBe(true));
+    await waitFor(() => expect(tela.container).toHaveTextContent(`Maior faturamento no FY${anterior} (nov/${anterior - 1} a out/${anterior})`));
+    expect(pedidos.some((p) => p.startsWith(`/v1/relatorios/indicadores-executivos?anoFiscal=${anterior}`))).toBe(true);
+    // O QUE É "HOJE" NÃO É RELIDO: a cobertura, os CENs e o mix não dependem do ano.
+    expect(pedidos.filter((p) => p.startsWith('/v1/relatorios/cobertura')).length).toBe(coberturasAntes);
+    expect(tela.container).toHaveTextContent('Hoje: ranking por vínculos em carteira comercial.');
+  });
+
   it('com uma filial escolhida no seletor do topo, toda leitura é dela, e o cabeçalho diz qual é (#313)', async () => {
     guardado.set(CHAVE_DO_CONTEXTO, JSON.stringify({ usuario: 'amostra@exemplo.invalid', empresa: '990003' }));
     instalarApi('completo');

@@ -109,8 +109,8 @@ export type ConsolidadoDaFilial = {
    */
   perdasPorMotivo: ContagemPorRotulo[];
 
-  /** O faturamento desta filial, lido da SD2 do Protheus. */
-  faturamento: Faturamento | null;
+  // O FATURAMENTO PELA NOTA SAIU DAQUI (30/09/2026, #313): ele segue o ano escolhido, e tem leitura própria
+  // (`obterFaturamentoDoAno`) — trocar o ano não relê os painéis que são "hoje".
   /** As fases do funil desta filial, para o consolidado somar por fase. */
   fases: FaseDoFunil[];
 };
@@ -219,18 +219,16 @@ async function lerFilial(
     porLinhaDeNegocio: [],
     porResponsavel: [],
     perdasPorMotivo: [],
-    faturamento: null,
     fases: [],
   };
 
   try {
-    const [cobertura, agenda, funil, perdas, faturamento, ganhos, perdidos] =
+    const [cobertura, agenda, funil, perdas, ganhos, perdidos] =
       await Promise.all([
       ler<Agregado<ResumoDeCobertura>>('/v1/relatorios/cobertura', contexto, { sinal }),
       ler<Agregado<PainelDaAgenda>>('/v1/relatorios/agenda', contexto, { sinal }),
       ler<Agregado<FaseDoFunil>>('/v1/relatorios/funil', contexto, { sinal }),
       ler<Agregado<ContagemPorRotulo>>('/v1/relatorios/perdas', contexto, { sinal }),
-      ler<Faturamento>('/v1/relatorios/faturamento', contexto, { sinal }),
       contar(contexto, 'Ganho', sinal),
       contar(contexto, 'Perdido', sinal),
     ]);
@@ -299,7 +297,6 @@ async function lerFilial(
         .sort((a, b) => b.clientes - a.clientes),
       porResponsavel: [...porCen.values()].sort((a, b) => b.clientes - a.clientes),
       perdasPorMotivo: perdas.dados.itens,
-      faturamento: faturamento.dados,
       fases: funil.dados.itens,
     };
   } catch (causa) {
@@ -802,7 +799,35 @@ export async function obterPerdasEFunilConsolidados(
 }
 
 /**
- * Junta o faturamento das treze filiais numa série só, e num ranking só.
+ * O FATURAMENTO PELA NOTA DO PROTHEUS NO ANO FISCAL ESCOLHIDO, na filial do seletor (30/09/2026, #313) — o gráfico do
+ * "Faturamento — 12 meses" no modo da nota e o "Top 5 clientes". A série termina no fim do ano (ou no último mês
+ * carregado, no ano que corre), e o ranking é o faturamento do ano.
+ */
+export async function obterFaturamentoDoAno(
+  contexto: ContextoDeAcesso,
+  ano: number,
+  sinal?: AbortSignal,
+): Promise<{ dados: Faturamento; procedencia: null }> {
+  const filial = await filialDaSelecao(contexto, sinal);
+  const resposta = await ler<Faturamento>('/v1/relatorios/faturamento', { ...contexto, empresa: filial.codigo }, {
+    sinal,
+    parametros: { anoFiscal: ano },
+  });
+  return { dados: resposta.dados, procedencia: null };
+}
+
+/** O faturamento somado: uma série, e um ranking. */
+export type FaturamentoSomado = {
+  competenciaMaisRecente: string | null;
+  valorDoUltimoMes: number;
+  ultimoMesEstaAberto: boolean;
+  serie: MesDeFaturamento[];
+  topClientes: ClienteNoRanking[];
+};
+
+/**
+ * Junta o faturamento de várias leituras numa série só, e num ranking só. Na Visão 360 é uma leitura, a da filial do
+ * seletor — "Todas as filiais" já vem somada do servidor —; a soma fica para quem juntar filiais.
  *
  * A SÉRIE SE SOMA POR COMPETÊNCIA, e não se concatena: o mesmo mês existe em cada filial, e
  * emendar as listas produziria treze pontos de janeiro em vez de um.
@@ -810,15 +835,7 @@ export async function obterPerdasEFunilConsolidados(
  * O RANKING DE CLIENTES SE SOMA POR CLIENTE. Um grupo que compra em Ribeirão Preto e em
  * Votuporanga aparece nas duas listas, e é o total dele que interessa à diretoria.
  */
-export function faturamentoConsolidado(c: Consolidado | null): {
-  competenciaMaisRecente: string | null;
-  valorDoUltimoMes: number;
-  ultimoMesEstaAberto: boolean;
-  serie: MesDeFaturamento[];
-  topClientes: ClienteNoRanking[];
-} {
-  const vivas = (c?.filiais ?? []).filter((f) => !f.falhou && f.faturamento !== null);
-  const comDado = vivas.map((f) => f.faturamento!);
+export function somarFaturamentos(comDado: Faturamento[]): FaturamentoSomado {
 
   const porMes = new Map<string, MesDeFaturamento>();
   for (const filial of comDado) {
