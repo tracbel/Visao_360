@@ -116,7 +116,7 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
         <BlocoPainel
           id="identificacao"
           titulo="Identificação e situação"
-          subtitulo="comercial.Cliente"
+          subtitulo="O cadastro do cliente"
           fonte={<SeloProcedencia procedencia={cliente.procedencia} />}
           estado={estado(cliente, ficha !== null)}
           mensagemErro={cliente.erro?.message}
@@ -194,7 +194,7 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
         <BlocoPainel
           id="oportunidades"
           titulo="Oportunidades abertas"
-          subtitulo="processo.Processo — com a fase e há quanto tempo está nela"
+          subtitulo="Os processos abertos, com a fase e há quanto tempo estão nela"
           fonte={<SeloProcedencia procedencia={oportunidades.procedencia} />}
           acao={
             <Link to="/pipeline" className="btn btn-secondary btn-sm">
@@ -237,7 +237,7 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
         <BlocoPainel
           id="agenda"
           titulo="Agenda deste cliente"
-          subtitulo="processo.Tarefa — o que está marcado e o que passou"
+          subtitulo="O que está marcado e o que passou"
           fonte={<SeloProcedencia procedencia={agenda.procedencia} />}
           acao={
             <Link to="/agenda" className="btn btn-secondary btn-sm">
@@ -268,7 +268,7 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
         <BlocoPainel
           id="interacoes"
           titulo="Linha do tempo"
-          subtitulo="processo.Interacao — fato imutável, a mais recente primeiro"
+          subtitulo="O que aconteceu com o cliente, a mais recente primeiro"
           fonte={<SeloProcedencia procedencia={interacoes.procedencia} />}
           estado={estado(interacoes, (interacoes.dados?.itens.length ?? 0) > 0)}
           mensagemVazia="Nenhuma interação registrada com este cliente."

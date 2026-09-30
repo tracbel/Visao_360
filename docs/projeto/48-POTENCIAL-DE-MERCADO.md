@@ -3,8 +3,8 @@
 > **Data:** 17/09/2026 · atualizado em **20/09/2026** com as issues **#64** (PAM completa, no servidor)
 > e **#65** (Censo, rebanho, área territorial e usinas), a **errata do ano** da §3.8 e a escolha da
 > fonte das usinas (§2.3).
-> **Status:** as duas primeiras fontes da fase P1 estão no banco; **nenhuma regra decidida** — as 14
-> decisões da §5 continuam na #63.
+> **Status:** as duas primeiras fontes da fase P1 estão no banco. **As decisões da #63 foram fechadas em
+> 29/09/2026** — a situação de cada uma, e a issue dona das que continuam abertas, está na §5.8.
 > **Fontes deste documento:** a pasta `360/` na raiz do repositório (fora do Git), lida por inteiro — 14
 > arquivos, 272 abas, 6 CSVs, com as fórmulas célula a célula; as anotações da conversa com a diretoria
 > e o comercial, transcritas por Ricardo em 17/09/2026; os documentos 32, 46 e 46A; o código.
@@ -539,13 +539,14 @@ culturas por cliente). P-1 (CEN vigente) e P-10 (perfis) continuam nas issues #4
 ## 5. Decisões (#63)
 
 Cada decisão tem opções, a recomendação e o que ela bloqueia. As tomadas dizem **DECIDIDA**, com a data e a
-subseção que conta como.
+subseção que conta como. **A #63 fechou em 29/09/2026:** a situação de cada decisão — as 14 daqui e as 11 do
+documento 49 §11 — está na §5.8, com a issue dona das que continuam abertas.
 
 | # | Pergunta | Opções encontradas | Recomendação | Bloqueia |
 |---|---|---|---|---|
 | D-P01 | Hectares por máquina e anos de renovação por cultura; categorias de máquina | café: **10 ha (CRM, 3036N) × 20 ha (planilha)**; demais só na planilha; laranja perene e cana semiperene; "máquinas em geral" pede categorias além de trator | **DECIDIDA para o trator em 27/09/2026** (§5.6): **café 20 ha / 10 anos**, cana 170/8, amendoim 200/8, soja 200/10, milho 200/10, laranja 20/10 — a aba Administrador da planilha, igual ao padrão do protótipo, que o Ricardo mandou seguir. **As outras categorias, DECIDIDAS no mesmo dia** (§5.7): colheitadeira, plantadeira, pulverizador e colhedora de cana, o padrão do protótipo aprovado como está | #72 |
 | D-P02 | Índice de momento de preço | último ÷ média (café); 1 contra 12, 6 contra 6, 12 contra 12 (cana); R12/R6/R3/R1 com janela deslocada (laranja); a faixa entre 1,0 e 1,2 não tem nome e "= 1" exato não acontece | **12 meses ÷ 12 anteriores** como índice oficial (é o que a conversa descreve); os outros como leitura auxiliar; faixas < 1,00 retraído, 1,00–1,20 normal, > 1,20–1,40 aquecido, > 1,40 superaquecido | #73 |
-| D-P03 | Índice de crédito | 70% contratos + 30% valor, 12 ÷ 12 (conversa); ticket médio 2026/2025 (planilha); ano fiscal ÷ mediana de 3 anos com suavização e limite (nota) | a da conversa, com suavização para município com poucos contratos e limite; decidir se trator entra (a nota exclui por endogeneidade com a própria venda) | #73 |
+| D-P03 | Índice de crédito | 70% contratos + 30% valor, 12 ÷ 12 (conversa); ticket médio 2026/2025 (planilha); ano fiscal ÷ mediana de 3 anos com suavização e limite (nota) | **DECIDIDA em 29/09/2026** (§5.8.1), como o protótipo: os três produtos de máquina do SICOR entram, **trator incluído**; 70% linhas + 30% valor, 12 ÷ 12; município com **menos de 5 linhas no período anterior herda o índice da Região Tracbel**; sem limite próprio no índice — a trava é a do fator (0,40–1,50) | #73 |
 | D-P04 | Percepção do gestor | por município, −5% a +5% (conversa); por cultura, −2 a +2 com peso 0,4, até ±40% (planilha) | **por município, ±5%**, com autor, data e justificativa; quem informa: gestor comercial | #71, #74 |
 | D-P05 | Pesos, limites e cenários | a = 0,4, b = 0,5, d = 0,4, limites 0,4–1,5 (planilha); cenários só anotados | **DECIDIDA em 23/09/2026** (§5.1): pesos da planilha como **primeira vigência**, com autor, data e a justificativa "medidos no protótipo, a confirmar"; as três sensibilidades são **preço/rentabilidade, crédito e percepção** — o termo de troca fica fora até a #70 | #74 |
 | D-P06 | Termo de troca | 5080EN a R$ 300 mil fixo (planilha); 3036N no café (CRM); "base de venda" e "ART preço de trator" (conversa) | máquina de referência por cultura; preço histórico mensal (mediana das notas); unidade por cultura: saca de 60 kg (café, soja, milho, amendoim), tonelada de ATR (cana), caixa de 40,8 kg (laranja) | #70, #73 |
@@ -1360,3 +1361,72 @@ cada 1.500 ha") e a soma — as máquinas somam; a área, não (é a regra de `S
 > referência**: a CONAB não publica custo delas em São Paulo, e escolher outro estado seria decisão nova.
 
 A migração grava a referência só onde ninguém decidiu antes — a tela do Administrador também grava ali.
+
+### 5.8 A #63 fechada: o que está decidido e quem é dono do resto [29/09/2026]
+
+**O Ricardo delegou a última decisão em aberto**, em 29/09/2026: *"você é o especialista com todos os documentos que
+te dei, veja a melhor solução"*. O aceite da #63 pede D-P01 a D-P05 e D-P10 decididas — as que bloqueiam o motor — e as
+demais com dono. A única das seis que faltava era a D-P03.
+
+#### 5.8.1 D-P03 decidida — o índice de crédito, como o protótipo
+
+A referência é o protótipo da pasta 360, que o Ricardo mandou seguir em 27/09/2026 (§5.6). O código dele foi lido
+(`sichCredVar` e `credIntervalMap`, no JavaScript da página extraída em `360\pagina_2026-09-25T17-58-10\`):
+
+| Ponto | O protótipo | Decisão |
+|---|---|---|
+| Quais produtos entram | os três de mecanização — `PKEYS`: trator, máquinas e implementos, colheitadeiras —, somados sem filtro de produto | **os três, trator incluído**: 7080, 4860 e 2700 (`ParametroDoPotencial.ProdutosDeMaquinaNoSicor`). É o que o CRM já faz |
+| Composição | `0,7 × variação das linhas + 0,3 × variação do valor`, janela contra a mesma janela do ano anterior | **mantida**: 70% linhas + 30% valor, 12 ÷ 12 (§7.3) |
+| Município com pouca base | `CRED_MINBASE = 5`: com menos de 5 linhas no período **anterior**, o município herda o índice da Região Tracbel | **o mesmo**: menos de 5 linhas no período anterior → o número que entra no fator é o da Região Tracbel; a tela mostra o índice próprio, a contagem e que o fator usou o da região |
+| Limite do índice | nenhum no índice; a trava é a do fator (`_fac`, com o `clamp`) | **nenhum limite próprio, e sem mediana de 3 anos**: o fator já trava em 0,40–1,50 (D-P05). Uma trava no índice seria uma trava sobre a trava |
+
+**Por que o trator entra, apesar da nota da pasta.** A nota excluía o trator por endogeneidade: o crédito de trator
+inclui as máquinas que a própria Tracbel vendeu (36% dos contratos de mecanização da região, #262). O risco é real, mas
+é risco do **estudo de elasticidade** (§7.3.1), que tenta explicar a venda pelo crédito — e ele continua obrigado a rodar
+nas duas versões e dizer quanto a exclusão muda. Para o **momento do mercado**, que é o que o índice alimenta, tirar o
+trator tiraria o sinal mais direto de mecanização do município, e o protótipo não o tira.
+
+**Por que o período anterior, e não o atual.** O salto de 2 para 4 linhas ("+100%") vem do denominador pequeno. Olhar
+a base anterior é olhar exatamente o que produz o índice extremo; um município que cresceu de 3 para 30 linhas tem um
+crescimento de verdade para mostrar, e não herda nada.
+
+**Isto muda uma regra da §7.3**, que dizia "município com poucas linhas é marcado, não suavizado". A marca continua —
+a tela diz que a base é pequena, com a contagem. O que muda é o número que entra no **fator**: herdar a região não é
+maquiagem, é trocar um índice sem informação pela melhor estimativa que existe para o município, que é a da região em
+volta. Continua valendo que nada é corrigido em silêncio.
+
+**A implementação vem numa PR própria**, porque muda número na tela: o parâmetro `MinimoDeLinhasNoCredito` passa a 5
+na vigência atual (só onde ninguém decidiu antes) e o motor passa a herdar a região abaixo dele, com teste.
+
+#### 5.8.2 A situação de cada decisão
+
+As 14 da §5 e as 11 do documento 49 §11. "Decidida" diz onde a decisão está escrita e onde o código a aplica; as que
+continuam abertas têm uma issue dona, e o prazo é o dela.
+
+| Decisão | Situação | Onde |
+|---|---|---|
+| D-P01 hectares e renovação | **decidida** em 27/09 — trator e as outras seis categorias como o protótipo | §5.6, §5.7 |
+| D-P02 momento de preço | **decidida** — 12 ÷ 12, faixas < 1,00 retraído, 1,00–1,20 normal, 1,20–1,40 aquecido, > 1,40 superaquecido | §5, #73 |
+| D-P03 índice de crédito | **decidida** em 29/09 | §5.8.1; a PR da implementação |
+| D-P04 percepção do gestor | **decidida** — por município, ±5%, pelo gestor comercial; em 28/09 ganhou a tendência de 3 meses | §5, #288 |
+| D-P05 pesos, limites e cenários | **decidida** em 23/09 | §5.1 |
+| D-P06 termo de troca | **decidida** em 27/09 — o trator mediano da categoria; o preço é a mediana mensal das notas do Protheus casadas com o ART; unidade por cultura (saca de 60 kg, tonelada de ATR, caixa de 40,8 kg) | #251 |
+| D-P07 rentabilidade | **decidida** em 27/09 (café em Franca, cana em Piracicaba, custo total) e estendida em 28/09 (amendoim em Jaboticabal, laranja em Itápolis, milho e soja em Assis) | §5.7, #288 |
+| D-P08 e D-P08.1 vendas | **decididas** em 24/09 | §5.3, §5.4 |
+| D-P09 contrato da Tracbel | **decidida** em 28/09 — comparação agregada por filial em 12 meses; o casamento contrato a contrato foi rejeitado | #262 |
+| D-P10 anos de referência | **decidida** — último ano completo de cada fonte, com o ano em cada número (a PAM de 2024 resolvida na #64) | §5, #64 |
+| D-P11 fontes de preço | **decidida** para tudo menos o CEPEA; a licença do CEPEA é do Ricardo | #117 |
+| D-P12 valor em R$ | **decidida** em 27/09 — Σ demanda da categoria × preço de referência da categoria; categoria sem preço deixa o total parcial, com o nome dela | #254; o preço por modelo segue na #70 |
+| D-P13 propriedades × clientes | intenção **decidida** (por município e faixa do Censo); o cruzamento depende da área por cliente | dona: #79 |
+| D-P14 base do CEN | **aberta** — quem atende cada município é decisão do comercial | dona: #48 (com a #107) |
+| D-IM-01 culturas que dividem a terra | **decidida** como a recomendação — grupos de compartilhamento configurados pelo administrador | #165 |
+| D-IM-02 base do poder de compra | **decidida** em 27/09 — o mesmo mês de cinco anos antes, só quando as duas séries têm esse mês | #251 |
+| D-IM-03 carência do SICOR | forma **decidida** (parâmetro com vigência; a semente nasceu sem carência, como o protótipo); o valor sai de medir quanto um mês do SICOR cresce depois de publicado — dado aberto do Banco Central | a PR da D-P03 |
+| D-IM-04 indicador 1 do fator | **decidida** em 23/09 — preço e rentabilidade; o termo de troca entra quando houver preço por modelo | §5.1; dona: #70 |
+| D-IM-05 regra dos cenários | **decidida** — banda por indicador: o conservador põe cada índice na borda de baixo da faixa em que está, o otimista na de cima | #74 |
+| D-IM-06 categorias de máquina | **decidida** em 27/09 — sete categorias, trator primeiro | §5.6, §5.7 |
+| D-IM-07 nível Loja | **decidida** — a loja responsável pela área de atuação; tê-la editável no CRM segue com a #107 | #163 |
+| D-IM-08 schema das tabelas novas | **aberta** — as tabelas da rodada do motor nascem na parte B da #170, e é lá que o schema se escolhe | dona: #170 |
+| D-IM-09 confiança da oportunidade | **aberta** — alta, média e baixa como no documento 49 §9.5 | dona: #162 |
+| D-IM-10 janela da renovação | **aberta** — ponto de partida ciclo − 2 / ciclo + 2 anos | donas: #166 e #164 |
+| D-IM-11 permissão do mercado | **encerrada** em 23/09 — fica `Territorio.Ler` | documento 49 §11.1 |
