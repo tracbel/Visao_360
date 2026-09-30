@@ -395,9 +395,28 @@ arquivo). É recomendação, aplicada por script de provisionamento (ver seção
 **`auditoria.AlteracaoDeCampo` — retenção DECIDIDA (D-10, 20/09/2026): 18 meses** ([documento 45 §5.3](45-EXECUCAO-FASE-2-AUDITORIA-AUTOMATICA.md)).
 A decisão está no próprio catálogo do banco — a `MS_Description` da tabela, gravada pela migração
 `RetencaoDaAuditoriaDecidida` (issue #40) — e o expurgo é **por partição** (`TRUNCATE ... WITH (PARTITIONS)` ou `SWITCH`),
-nunca por `DELETE`. **O que ainda não existe:** a rotina mensal que abre os meses seguintes da partição e tira o que passou
-de 18 meses. A função de partição foi criada com uma janela fixa de 16 meses, e sem a rotina tudo o que vier depois cai na
-última partição. É a issue #268 — até ela entrar, a política está registrada e não é aplicada.
+nunca por `DELETE`.
+
+**Quem aplica: a rotina 14, `PARTICAO_AUDITORIA` (issue #268, 29/09/2026)** — Configurações › Integrações › Rotinas, todo dia
+1º às 02:00, nascida ligada (`Persistencia/ManutencaoDasParticoes.cs`, modo `--somente-particao-auditoria`, com
+`--simular`):
+
+1. **abre os meses seguintes de toda tabela particionada por mês** — cada função `PF_Mensal_*` que o banco tem; hoje só a
+   da trilha, porque a fase 1 removeu as outras três tabelas — com `SPLIT RANGE`, até os próximos três meses terem
+   partição própria. A função foi criada com uma janela fixa de 16 meses, e sem isto tudo o que viesse depois cairia na
+   última partição;
+2. **tira da trilha de alterações as partições inteiras anteriores ao corte** — o primeiro dia do mês de 18 meses atrás —
+   com `TRUNCATE ... WITH (PARTITIONS (n))`, e une os limites antigos (`MERGE RANGE`). Nenhuma linha mais nova que o corte
+   é tocada;
+3. **mantém a mudança de permissão**, que é **permanente** (documento 05 §10): na mesma transação, as linhas das entidades
+   do schema `seguranca` da partição são guardadas numa tabela temporária e voltam depois do `TRUNCATE`, com o mesmo
+   identificador. A lista das entidades sai do modelo, não de uma lista escrita à mão.
+
+A execução guarda o resumo: quantos meses abriu, quantas partições e linhas saíram e quantas mudanças de permissão
+ficaram. Só a trilha de alterações tem retenção aplicada, a da D-10; outra tabela particionada que vier ganha os meses, e
+a retenção dela é decisão dela.
+
+**Permissão exigida:** a do login que aplica as migrações — `ALTER` na tabela e na função de partição.
 
 ---
 

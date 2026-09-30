@@ -269,6 +269,14 @@ var somenteEstoqueGn = args.Contains("--somente-estoque-gn", StringComparer.Ordi
 // integracao.DivergenciaDeIntegracao, com ciclo de vida. E a rotina CONFERENCIA_GESTAO_NEGOCIOS do orquestrador.
 var somenteConferenciaGn = args.Contains("--somente-conferencia-gn", StringComparer.Ordinal);
 
+// --somente-particao-auditoria [--simular] — A MANUTENÇÃO DAS TABELAS DE LOG PARTICIONADAS POR MÊS (issue 268, D-10).
+//
+// Abre os meses seguintes das tabelas de log particionadas por mes (SPLIT RANGE em toda funcao PF_Mensal_*) e tira da
+// trilha de alteracoes as particoes inteiras com
+// mais de 18 meses (TRUNCATE ... WITH PARTITIONS, nunca DELETE), mantendo as mudancas de permissao, que sao permanentes. So
+// o banco do CRM, sem conexao nenhuma. E a rotina mensal PARTICAO_AUDITORIA do orquestrador. Com --simular, so conta.
+var somenteParticaoDaAuditoria = args.Contains("--somente-particao-auditoria", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
 // --somente-art --projetar — A PROJECAO DO PROXIMO CICLO DO ART, so com leitura: a mesma decisao por registro da carga,
@@ -299,6 +307,7 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-operations-center  o horímetro e a posição das máquinas John Deere conectadas;
 //   --somente-estoque-gn    o estoque de máquinas e a cobertura, da API Gestão de Negócios;
 //   --somente-conferencia-gn  a conferência da meta e do realizado com a API Gestão de Negócios;
+//   --somente-particao-auditoria  os meses seguintes das tabelas de log e a retenção de 18 meses da trilha;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // AS LEITURAS DO VÓRTICE LIBERADAS:
@@ -324,7 +333,8 @@ bool[] modosSemVortice =
     somenteFaturamento, somenteTerritorio, somentePam, somenteEstrutura, somentePrecos, somenteCustos, somenteCredito,
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
     somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina, somenteOportunidadesDoVortice,
-    somenteOperationsCenter, somentePlanejamentoGn, somenteEstoqueGn, somenteConferenciaGn, somenteFinanciamentosDoVortice
+    somenteOperationsCenter, somentePlanejamentoGn, somenteEstoqueGn, somenteConferenciaGn, somenteFinanciamentosDoVortice,
+    somenteParticaoDaAuditoria
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -1442,6 +1452,46 @@ if (somenteConferenciaGn)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A CONFERÊNCIA PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só a manutenção das tabelas de log particionadas por mês (issue 268, D-10). Só o banco do CRM.
+// -------------------------------------------------------------------------------------------------
+
+if (somenteParticaoDaAuditoria)
+{
+    Console.WriteLine(simular
+        ? "Partição da auditoria — SIMULAÇÃO: conta os meses a abrir e o que sairia da trilha; nada muda."
+        : "Partição da auditoria — abrindo os meses seguintes e aplicando a retenção de 18 meses da trilha.");
+    Console.WriteLine();
+
+    try
+    {
+        // A TRAVA SÓ QUANDO MUDA, como nas outras: a simulação não parte nada e não deve impedir quem parte.
+        await using var travaDaParticao = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), ManutencaoDasParticoes.Fluxo, CancellationToken.None);
+
+        await using var bancoDaParticao = AbrirContexto();
+        var resultadoDaParticao = await new ManutencaoDasParticoes(bancoDaParticao)
+            .ExecutarAsync(DateTime.UtcNow, simular, CancellationToken.None);
+
+        foreach (var linha in resultadoDaParticao.Detalhes)
+            Console.WriteLine("  " + linha);
+
+        // A ÚLTIMA LINHA É O RESUMO, com o prefixo que o orquestrador guarda na execução da rotina.
+        Console.WriteLine();
+        Console.WriteLine(Orquestrador.PrefixoDoResumo + resultadoDaParticao.Resumo);
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or InvalidOperationException or Microsoft.Data.SqlClient.SqlException)
+    {
+        // O QUE FALHOU NO MEIO FOI DESFEITO: cada partição é esvaziada numa transação, com XACT_ABORT.
+        Console.Error.WriteLine("A PARTIÇÃO DA AUDITORIA PAROU: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;

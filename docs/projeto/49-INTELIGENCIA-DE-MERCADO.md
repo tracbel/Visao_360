@@ -517,6 +517,9 @@ mapas, antes da tabela.
 As 14 decisões da #63 continuam lá. O texto de 21/09 fixou a forma de quase todas; os **valores** seguem em
 aberto. As novas, que esta análise encontrou:
 
+> **Atualização de 29/09/2026:** a #63 fechou. A situação de cada uma destas onze — decidida, e onde; ou aberta, e
+> com qual issue dona — está no documento 48 §5.8.2.
+
 | # | Pergunta | Opções | Recomendação | Bloqueia |
 |---|---|---|---|---|
 | D-IM-01 | Culturas que dividem terra e máquina no mesmo ano | somar tudo (planilha); grupos de compartilhamento; área física | grupos por categoria, configurados pelo administrador; soja + milho 2ª safra e amendoim em reforma de cana como primeiros casos | IM-11, #72 |
