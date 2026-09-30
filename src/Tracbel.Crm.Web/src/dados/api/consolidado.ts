@@ -27,6 +27,22 @@
  *
  * A alternativa seria a tela da diretoria não existir até lá, e ela é pior: o
  * pedido é justamente ver o negócio inteiro, e os números existem no banco.
+ *
+ * ---------------------------------------------------------------------------
+ * A PONTE SAIU DO CAMINHO DA TELA (30/09/2026, #313)
+ *
+ * Abrir a Visão 360 custava ~147 chamadas — sete leituras do painel, uma dos
+ * cartões, duas de perdas e funil e uma da meta, POR FILIAL —, e a tela esperava
+ * a filial mais lenta. O Ricardo: "algumas coisas demoram para carregar, não
+ * podemos ter isso"; e decidiu que o seletor de filial do topo FILTRA a Visão
+ * 360: uma filial, ou "Todas as filiais".
+ *
+ * O servidor já sabe somar: com `TODAS` no cabeçalho, a pessoa que tem o alcance
+ * entre filiais enxerga todas pelo filtro global, e as mesmas consultas somam
+ * tudo numa leitura só (é o que o Forecast, o Estoque e a Conferência já fazem).
+ * Então cada painel é UMA leitura, na filial do seletor. A ponte filial a filial
+ * ficou só para a tabela de composição — que é, ela mesma, "filial a filial" —,
+ * e só quando alguém a abre em "Todas as filiais".
  */
 
 import type { CatalogoDeSelecao, ComProcedencia, ItemDeSelecao, PaginaDe } from '../../tipos/api';
@@ -53,6 +69,7 @@ import type {
   MercadoDaFilial,
   PainelExecutivoDaFilial,
 } from '../../tipos/painelExecutivo';
+import { TODAS_AS_FILIAIS } from './acesso';
 import { ler, type ContextoDeAcesso } from './http';
 
 /** Uma filial em operação, como o catálogo `EMPRESA` a declara. */
@@ -92,8 +109,8 @@ export type ConsolidadoDaFilial = {
    */
   perdasPorMotivo: ContagemPorRotulo[];
 
-  /** O faturamento desta filial, lido da SD2 do Protheus. */
-  faturamento: Faturamento | null;
+  // O FATURAMENTO PELA NOTA SAIU DAQUI (30/09/2026, #313): ele segue o ano escolhido, e tem leitura própria
+  // (`obterFaturamentoDoAno`) — trocar o ano não relê os painéis que são "hoje".
   /** As fases do funil desta filial, para o consolidado somar por fase. */
   fases: FaseDoFunil[];
 };
@@ -114,9 +131,34 @@ export async function listarFiliais(
   return (catalogo?.itens ?? []).map((i: ItemDeSelecao) => ({ codigo: i.codigo, nome: i.descricao }));
 }
 
+/** O que a tela escreve quando o seletor está em "Todas as filiais". */
+export const NOME_DE_TODAS_AS_FILIAIS = 'Todas as filiais';
+
+/**
+ * A FILIAL DO SELETOR DO TOPO (30/09/2026, #313) — uma filial, ou "Todas as filiais". É o recorte de toda leitura da
+ * Visão 360; o nome sai do catálogo de filiais, e a filial que ele não traz fica com o código.
+ */
+export async function filialDaSelecao(contexto: ContextoDeAcesso, sinal?: AbortSignal): Promise<Filial> {
+  if (contexto.empresa === TODAS_AS_FILIAIS) return { codigo: TODAS_AS_FILIAIS, nome: NOME_DE_TODAS_AS_FILIAIS };
+  try {
+    const filiais = await listarFiliais(contexto, sinal);
+    return { codigo: contexto.empresa, nome: filiais.find((f) => f.codigo === contexto.empresa)?.nome ?? contexto.empresa };
+  } catch (causa) {
+    // O NOME NÃO SEGURA A TELA: sem o catálogo, a filial fica com o código, e as leituras seguem.
+    if (causa instanceof DOMException && causa.name === 'AbortError') throw causa;
+    return { codigo: contexto.empresa, nome: contexto.empresa };
+  }
+}
+
+/** A frase do recorte, para os textos que dizem onde o número foi medido: "em Barretos" ou "nas filiais que você alcança". */
+export function noRecorte(filial: Filial | null | undefined): string {
+  if (!filial) return 'na filial escolhida';
+  return filial.codigo === TODAS_AS_FILIAIS ? 'nas filiais que você alcança' : `em ${filial.nome}`;
+}
+
 /**
  * Roda as promessas com um teto de simultaneidade, para não abrir 65 conexões de uma vez. Exportada para a leitura da
- * meta de venda (`metas.ts`), que usa a mesma ponte filial a filial.
+ * meta de venda (`metas.ts`), que usa a mesma ponte filial a filial na tabela de composição.
  */
 export async function comLimite<T, R>(itens: T[], limite: number, tarefa: (item: T) => Promise<R>): Promise<R[]> {
   const resultados: R[] = new Array(itens.length);
@@ -177,18 +219,16 @@ async function lerFilial(
     porLinhaDeNegocio: [],
     porResponsavel: [],
     perdasPorMotivo: [],
-    faturamento: null,
     fases: [],
   };
 
   try {
-    const [cobertura, agenda, funil, perdas, faturamento, ganhos, perdidos] =
+    const [cobertura, agenda, funil, perdas, ganhos, perdidos] =
       await Promise.all([
       ler<Agregado<ResumoDeCobertura>>('/v1/relatorios/cobertura', contexto, { sinal }),
       ler<Agregado<PainelDaAgenda>>('/v1/relatorios/agenda', contexto, { sinal }),
       ler<Agregado<FaseDoFunil>>('/v1/relatorios/funil', contexto, { sinal }),
       ler<Agregado<ContagemPorRotulo>>('/v1/relatorios/perdas', contexto, { sinal }),
-      ler<Faturamento>('/v1/relatorios/faturamento', contexto, { sinal }),
       contar(contexto, 'Ganho', sinal),
       contar(contexto, 'Perdido', sinal),
     ]);
@@ -257,7 +297,6 @@ async function lerFilial(
         .sort((a, b) => b.clientes - a.clientes),
       porResponsavel: [...porCen.values()].sort((a, b) => b.clientes - a.clientes),
       perdasPorMotivo: perdas.dados.itens,
-      faturamento: faturamento.dados,
       fases: funil.dados.itens,
     };
   } catch (causa) {
@@ -278,22 +317,22 @@ export type Consolidado = {
 };
 
 /**
- * O consolidado das filiais em operação.
+ * O painel da filial do seletor — uma filial, ou "Todas as filiais" numa leitura só (#313).
  *
- * Devolve no formato de `useRecurso` para a tela não precisar saber que por
- * trás disso existem 65 requisições.
+ * Devolve no formato de `useRecurso`, com a filial lida em `filiais`: as contas da tela (`somarConsolidado`, o mix, o
+ * ranking de CENs, o faturamento) são as mesmas, sobre uma linha.
  */
 export async function obterConsolidado(
   contexto: ContextoDeAcesso,
   sinal?: AbortSignal,
 ): Promise<{ dados: Consolidado; procedencia: null }> {
-  const filiais = await listarFiliais(contexto, sinal);
-  const linhas = await comLimite(filiais, 4, (f) => lerFilial(contexto, f, sinal));
+  const filial = await filialDaSelecao(contexto, sinal);
+  const linha = await lerFilial(contexto, filial, sinal);
 
   return {
     dados: {
-      filiais: linhas,
-      falhas: linhas.filter((l) => l.falhou).length,
+      filiais: [linha],
+      falhas: linha.falhou ? 1 : 0,
       lidoEm: new Date().toISOString(),
     },
     procedencia: null,
@@ -364,22 +403,37 @@ export async function obterExecutivoConsolidado(
   ano: number,
   sinal?: AbortSignal,
 ): Promise<{ dados: ExecutivoConsolidado; procedencia: null }> {
-  const filiais = await listarFiliais(contexto, sinal);
-  const linhas = await comLimite(filiais, 4, async (filial): Promise<ExecutivoDaFilial> => {
-    try {
-      const resposta = await ler<PainelExecutivoDaFilial>(
-        '/v1/relatorios/indicadores-executivos',
-        { ...contexto, empresa: filial.codigo },
-        { sinal, parametros: { anoFiscal: ano } },
-      );
-      return { filial, painel: resposta.dados, erro: null };
-    } catch (causa) {
-      if (causa instanceof DOMException && causa.name === 'AbortError') throw causa;
-      return { filial, painel: null, erro: causa instanceof Error ? causa : new Error(String(causa)) };
-    }
-  });
+  // UMA LEITURA, NA FILIAL DO SELETOR (#313): em "Todas as filiais" o servidor soma todas as que a pessoa alcança.
+  const filial = await filialDaSelecao(contexto, sinal);
+  return { dados: somarExecutivo(ano, [await lerExecutivo(contexto, filial, ano, sinal)]), procedencia: null };
+}
 
-  return { dados: somarExecutivo(ano, linhas), procedencia: null };
+/**
+ * OS CINCO CARTÕES FILIAL A FILIAL — só a tabela de composição, e só quando alguém a abre em "Todas as filiais" (#313).
+ * É a ponte P-8 de antes, fora do caminho da tela: a composição É o detalhe por filial.
+ */
+export async function obterExecutivoPorFilial(
+  contexto: ContextoDeAcesso,
+  ano: number,
+  sinal?: AbortSignal,
+): Promise<{ dados: ExecutivoDaFilial[]; procedencia: null }> {
+  const filiais = await listarFiliais(contexto, sinal);
+  return { dados: await comLimite(filiais, 4, (filial) => lerExecutivo(contexto, filial, ano, sinal)), procedencia: null };
+}
+
+/** Os cinco cartões de uma filial (ou de "Todas") — ou a falha dela, que nunca vira zero. */
+async function lerExecutivo(contexto: ContextoDeAcesso, filial: Filial, ano: number, sinal?: AbortSignal): Promise<ExecutivoDaFilial> {
+  try {
+    const resposta = await ler<PainelExecutivoDaFilial>(
+      '/v1/relatorios/indicadores-executivos',
+      { ...contexto, empresa: filial.codigo },
+      { sinal, parametros: { anoFiscal: ano } },
+    );
+    return { filial, painel: resposta.dados, erro: null };
+  } catch (causa) {
+    if (causa instanceof DOMException && causa.name === 'AbortError') throw causa;
+    return { filial, painel: null, erro: causa instanceof Error ? causa : new Error(String(causa)) };
+  }
 }
 
 const somar = <T,>(lista: T[], valor: (x: T) => number) => lista.reduce((s, x) => s + valor(x), 0);
@@ -711,20 +765,21 @@ export async function obterPerdasEFunilConsolidados(
   sinal?: AbortSignal,
 ): Promise<{ dados: PerdasEFunilConsolidados; procedencia: null }> {
   const periodo = ano === anoCorrente ? {} : { de: `${ano - 1}-11-01`, ate: `${ano}-10-31` };
-  const filiais = await listarFiliais(contexto, sinal);
-  const linhas = await comLimite(filiais, 4, async (filial) => {
-    const daFilial = { ...contexto, empresa: filial.codigo };
-    try {
-      const [vendas, funil] = await Promise.all([
-        ler<VendasPerdidas>('/v1/relatorios/vendas-perdidas', daFilial, { sinal, parametros: periodo }),
-        ler<FunilPorEstagio>('/v1/relatorios/funil-por-estagio', daFilial, { sinal, parametros: { ...periodo, base: 'etapa' } }),
-      ]);
-      return { filial, vendas: vendas.dados, funil: funil.dados };
-    } catch (causa) {
-      if (causa instanceof DOMException && causa.name === 'AbortError') throw causa;
-      return { filial, vendas: null, funil: null };
-    }
-  });
+  // UMA LEITURA DE CADA, NA FILIAL DO SELETOR (#313).
+  const filial = await filialDaSelecao(contexto, sinal);
+  const daFilial = { ...contexto, empresa: filial.codigo };
+  let linha: { filial: Filial; vendas: VendasPerdidas | null; funil: FunilPorEstagio | null };
+  try {
+    const [vendas, funil] = await Promise.all([
+      ler<VendasPerdidas>('/v1/relatorios/vendas-perdidas', daFilial, { sinal, parametros: periodo }),
+      ler<FunilPorEstagio>('/v1/relatorios/funil-por-estagio', daFilial, { sinal, parametros: { ...periodo, base: 'etapa' } }),
+    ]);
+    linha = { filial, vendas: vendas.dados, funil: funil.dados };
+  } catch (causa) {
+    if (causa instanceof DOMException && causa.name === 'AbortError') throw causa;
+    linha = { filial, vendas: null, funil: null };
+  }
+  const linhas = [linha];
 
   const vivas = linhas.filter((l) => l.vendas !== null && l.funil !== null);
   const comFunil = vivas.filter((l) => l.funil!.paradosEmNegociacaoOuPedido !== null);
@@ -744,7 +799,35 @@ export async function obterPerdasEFunilConsolidados(
 }
 
 /**
- * Junta o faturamento das treze filiais numa série só, e num ranking só.
+ * O FATURAMENTO PELA NOTA DO PROTHEUS NO ANO FISCAL ESCOLHIDO, na filial do seletor (30/09/2026, #313) — o gráfico do
+ * "Faturamento — 12 meses" no modo da nota e o "Top 5 clientes". A série termina no fim do ano (ou no último mês
+ * carregado, no ano que corre), e o ranking é o faturamento do ano.
+ */
+export async function obterFaturamentoDoAno(
+  contexto: ContextoDeAcesso,
+  ano: number,
+  sinal?: AbortSignal,
+): Promise<{ dados: Faturamento; procedencia: null }> {
+  const filial = await filialDaSelecao(contexto, sinal);
+  const resposta = await ler<Faturamento>('/v1/relatorios/faturamento', { ...contexto, empresa: filial.codigo }, {
+    sinal,
+    parametros: { anoFiscal: ano },
+  });
+  return { dados: resposta.dados, procedencia: null };
+}
+
+/** O faturamento somado: uma série, e um ranking. */
+export type FaturamentoSomado = {
+  competenciaMaisRecente: string | null;
+  valorDoUltimoMes: number;
+  ultimoMesEstaAberto: boolean;
+  serie: MesDeFaturamento[];
+  topClientes: ClienteNoRanking[];
+};
+
+/**
+ * Junta o faturamento de várias leituras numa série só, e num ranking só. Na Visão 360 é uma leitura, a da filial do
+ * seletor — "Todas as filiais" já vem somada do servidor —; a soma fica para quem juntar filiais.
  *
  * A SÉRIE SE SOMA POR COMPETÊNCIA, e não se concatena: o mesmo mês existe em cada filial, e
  * emendar as listas produziria treze pontos de janeiro em vez de um.
@@ -752,15 +835,7 @@ export async function obterPerdasEFunilConsolidados(
  * O RANKING DE CLIENTES SE SOMA POR CLIENTE. Um grupo que compra em Ribeirão Preto e em
  * Votuporanga aparece nas duas listas, e é o total dele que interessa à diretoria.
  */
-export function faturamentoConsolidado(c: Consolidado | null): {
-  competenciaMaisRecente: string | null;
-  valorDoUltimoMes: number;
-  ultimoMesEstaAberto: boolean;
-  serie: MesDeFaturamento[];
-  topClientes: ClienteNoRanking[];
-} {
-  const vivas = (c?.filiais ?? []).filter((f) => !f.falhou && f.faturamento !== null);
-  const comDado = vivas.map((f) => f.faturamento!);
+export function somarFaturamentos(comDado: Faturamento[]): FaturamentoSomado {
 
   const porMes = new Map<string, MesDeFaturamento>();
   for (const filial of comDado) {

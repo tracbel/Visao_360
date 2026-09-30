@@ -201,13 +201,14 @@ public static class EndpointsDeRelacionamento
                 "anterior e sobre o Lead, o subfunil digital e os desfechos; mais os processos parados em Negociação ou " +
                 "Pedido e a última execução da rotina PROCESSOS_VORTICE.");
 
-        grupo.MapGet("/faturamento", async (ObterFaturamento caso, CancellationToken ct) =>
-                (await caso.ExecutarAsync(ct)).Responder())
+        grupo.MapGet("/faturamento", async (int? anoFiscal, ObterFaturamento caso, CancellationToken ct) =>
+                (await caso.ExecutarAsync(anoFiscal, ct)).Responder())
             .WithName("ObterFaturamento")
             .ExigePermissao(Permissoes.FaturamentoLer)
             .WithSummary(
-                "O faturamento lido da SD2 do Protheus: série dos últimos doze meses e os cinco " +
-                "maiores clientes, com a competência mais recente sempre junto do número.");
+                "O faturamento lido da SD2 do Protheus: série de doze meses e os cinco maiores clientes, com a " +
+                "competência mais recente sempre junto do número. Com anoFiscal, a série termina no fim do ano (ou no " +
+                "último mês carregado) e o ranking é o do ano; sem ele, os doze meses até o último carregado e o acumulado.");
 
         // O FATURAMENTO DE UM CLIENTE mora na ficha dele, e a rota fica sob /clientes, como as máquinas compradas.
         app.MapGet("/api/v1/clientes/{chave:guid}/faturamento", async (

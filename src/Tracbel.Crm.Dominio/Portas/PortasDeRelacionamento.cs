@@ -642,16 +642,22 @@ public interface IRepositorioFaturamento
     /// <summary>
     /// A série mensal dos últimos meses, do mais antigo para o mais novo.
     /// </summary>
-    /// <param name="meses">Quantos meses trazer, contados da competência mais recente que existe.</param>
+    /// <param name="meses">Quantos meses trazer, contados do último mês da janela.</param>
+    /// <param name="ate">
+    /// O último mês da janela — o fim do ano fiscal escolhido (30/09/2026, #313). Nulo, ou depois da competência mais
+    /// recente que existe, é a mais recente.
+    /// </param>
     /// <param name="ct">Cancelamento.</param>
-    Task<IReadOnlyList<MesDeFaturamento>> SerieMensalAsync(int meses, CancellationToken ct);
+    Task<IReadOnlyList<MesDeFaturamento>> SerieMensalAsync(int meses, DateOnly? ate, CancellationToken ct);
 
     /// <summary>
-    /// Os maiores clientes por faturamento acumulado.
+    /// Os maiores clientes por faturamento na janela — o ano fiscal escolhido (#313) —, ou acumulado, sem janela.
     /// </summary>
     /// <param name="quantos">Quantos trazer.</param>
+    /// <param name="de">O primeiro mês da janela; nulo é desde o começo.</param>
+    /// <param name="ate">O último mês da janela; nulo é até o fim.</param>
     /// <param name="ct">Cancelamento.</param>
-    Task<IReadOnlyList<ClienteNoRanking>> TopClientesAsync(int quantos, CancellationToken ct);
+    Task<IReadOnlyList<ClienteNoRanking>> TopClientesAsync(int quantos, DateOnly? de, DateOnly? ate, CancellationToken ct);
 
     /// <summary>
     /// A competência mais recente com faturamento, ou nula quando não há nenhum.

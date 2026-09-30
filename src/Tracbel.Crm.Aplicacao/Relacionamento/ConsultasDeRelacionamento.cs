@@ -738,8 +738,13 @@ public sealed class ObterFaturamento(IRepositorioFaturamento repositorio, IRelog
     private const int DiasParaAvisarAtraso = 60;
 
     /// <summary>Executa a leitura.</summary>
+    /// <param name="anoFiscal">
+    /// O ANO FISCAL ESCOLHIDO NA TELA (30/09/2026, #313): a série termina no fim dele (ou no último mês carregado, no ano
+    /// que corre), e o ranking é o faturamento dele. Nulo é o de antes: os doze meses até o último carregado e o ranking
+    /// acumulado.
+    /// </param>
     /// <param name="ct">Cancelamento.</param>
-    public async Task<Resultado<ComProcedencia<FaturamentoResumido>>> ExecutarAsync(CancellationToken ct)
+    public async Task<Resultado<ComProcedencia<FaturamentoResumido>>> ExecutarAsync(int? anoFiscal, CancellationToken ct)
     {
         var ultima = await repositorio.CompetenciaMaisRecenteAsync(ct);
         var ausentes = new List<MetricaSemDado>();
@@ -757,8 +762,9 @@ public sealed class ObterFaturamento(IRepositorioFaturamento repositorio, IRelog
                     "comercial.FaturamentoDoCliente", relogio));
         }
 
-        var serie = await repositorio.SerieMensalAsync(MesesDaSerie, ct);
-        var top = await repositorio.TopClientesAsync(ClientesNoRanking, ct);
+        var doAno = anoFiscal is { } ano ? AnoFiscal.Inteiro(ano) : null;
+        var serie = await repositorio.SerieMensalAsync(MesesDaSerie, doAno?.Final, ct);
+        var top = await repositorio.TopClientesAsync(ClientesNoRanking, doAno?.Inicial, doAno?.Final, ct);
 
         // O ÚLTIMO MÊS DA SÉRIE, e ele pode estar ABERTO. Medido em 06/09/2026: setembro tinha
         // R$ 1,7 milhão contra R$ 15,9 milhões de agosto — não porque a empresa parou de vender,
@@ -767,12 +773,14 @@ public sealed class ObterFaturamento(IRepositorioFaturamento repositorio, IRelog
         // comparação que faz uma diretoria decidir errado.
         var doUltimoMes = serie.LastOrDefault()?.ValorLiquido ?? 0m;
         var hoje = DateOnly.FromDateTime(relogio.Agora);
-        var mesAindaAberto = ultima.Value.Year == hoje.Year && ultima.Value.Month == hoje.Month;
+        // O ÚLTIMO MÊS É O DA SÉRIE: num ano fiscal fechado ele é outubro, e não está em curso.
+        var ultimoDaSerie = serie.LastOrDefault()?.Competencia ?? ultima.Value;
+        var mesAindaAberto = ultimoDaSerie.Year == hoje.Year && ultimoDaSerie.Month == hoje.Month;
 
         if (mesAindaAberto)
             ausentes.Add(new MetricaSemDado(
                 "mesEmCurso",
-                $"{ultima.Value:MM/yyyy} ainda está em curso — o valor é do que já foi faturado " +
+                $"{ultimoDaSerie:MM/yyyy} ainda está em curso — o valor é do que já foi faturado " +
                 $"até {hoje:dd/MM}, e não do mês inteiro. Compará-lo com um mês fechado " +
                 "subestima o mês corrente."));
 
@@ -788,7 +796,7 @@ public sealed class ObterFaturamento(IRepositorioFaturamento repositorio, IRelog
 
         return Resultado<ComProcedencia<FaturamentoResumido>>.Ok(
             ComProcedencia<FaturamentoResumido>.DoNossoBanco(
-                new FaturamentoResumido(ultima, doUltimoMes, mesAindaAberto, serie, top, ausentes),
+                new FaturamentoResumido(ultimoDaSerie, doUltimoMes, mesAindaAberto, serie, top, ausentes),
                 "comercial.FaturamentoDoCliente", relogio));
     }
 }

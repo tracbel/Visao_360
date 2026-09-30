@@ -412,6 +412,30 @@ public sealed class IndicadoresExecutivosTestes(ApiEmMemoria api) : IClassFixtur
         barretosPorMes.Sum(m => m.GetProperty("maquinas").GetInt32()).Should().Be(1);
     }
 
+    [Fact]
+    public async Task Num_ano_fiscal_fechado_a_serie_do_ART_termina_em_outubro_dele()
+    {
+        // O PERÍODO MUDA TODOS OS PAINÉIS COM DATA (decisão do Ricardo de 30/09/2026, #313): o "Faturamento — 12 meses" de
+        // um ano fechado são os doze meses dele, de novembro a outubro, e não os doze que terminam hoje.
+        await SemearAsync();
+        await SemearArtAsync();
+        var anoPassado = AnoFiscal.Do(MesCorrente.AddMonths(-1)) - 1;
+        var doAno = AnoFiscal.Inteiro(anoPassado);
+
+        var indicadores = (await DadosAsync(await api.ClienteDeRibeirao().GetAsync($"{Rota}?anoFiscal={anoPassado}"))).GetProperty("indicadores");
+        var porMes = indicadores.GetProperty("entreguesPorMes").EnumerateArray().ToList();
+
+        porMes.Should().HaveCount(12);
+        porMes[0].GetProperty("inicio").GetString().Should().Be(doAno.Inicial.ToString("yyyy-MM-dd"));
+        porMes[^1].GetProperty("inicio").GetString().Should().Be(doAno.Final.ToString("yyyy-MM-dd"), "o ano fechado termina em outubro");
+        // A ENTREGA DE DOZE MESES ANTES DO ÚLTIMO FECHADO é deste ano, e agora entra na série.
+        porMes.Sum(m => m.GetProperty("maquinas").GetInt32()).Should().Be(1);
+        porMes.Sum(m => m.GetProperty("valor").GetDecimal()).Should().Be(400_000m);
+
+        // O MÊS EM CURSO CONTINUA MEDIDO À PARTE, qualquer que seja o ano pedido.
+        indicadores.GetProperty("entreguesNoMesEmCurso").GetProperty("valor").GetDecimal().Should().Be(300_000m);
+    }
+
     [Theory]
     [InlineData(2019)]
     [InlineData(9999)]

@@ -25,7 +25,7 @@
  * confere.
  *
  * Parâmetros do hash: `estado` (`completo`, `vazio` ou `semCarteira` — ver
- * `amostrasDaVisao360.ts`) e `rota` (padrão `/`).
+ * `amostrasDaVisao360.ts`), `rota` (padrão `/`) e `filial` (padrão `TODAS`: o seletor do topo em "Todas as filiais").
  *
  * AS OUTRAS TELAS DE RELACIONAMENTO TAMBÉM (29/09/2026): Funil, Pipeline, Agenda e as duas Coberturas leem as mesmas
  * rotas que a Visão 360 soma — processos, tarefas, cobertura, funil e perdas —, e com `rota=` o harness abre nelas, sobre
@@ -42,7 +42,7 @@ import type { EscopoDoUsuario } from '../dados/api/acesso';
 import { ProvedorDeContextoDeAcesso } from '../dados/api/contexto';
 import { ProvedorDeSessao } from '../dados/api/sessao';
 import { ROTAS } from '../rotas';
-import { ESTADOS_DA_VISAO360, respostaDaVisao360, type EstadoDaVisao360 } from './amostrasDaVisao360';
+import { catalogoDeEmpresas, ESTADOS_DA_VISAO360, respostaDaVisao360, type EstadoDaVisao360 } from './amostrasDaVisao360';
 import { respostaDoCadastro } from './amostrasDoCadastro';
 import '../estilos/design-system.css';
 
@@ -61,12 +61,8 @@ function estadoDaUrl(): EstadoDaVisao360 {
   return ESTADOS_DA_VISAO360.some((e) => e.id === pedido) ? (pedido as EstadoDaVisao360) : 'completo';
 }
 
-/**
- * O escopo do seletor de filial da barra do topo. O código é o padrão do
- * contexto de acesso (`010101`), para o seletor abrir já com a filial escolhida;
- * o nome é o de uma filial fictícia.
- */
-const ESCOPO_FICTICIO: EscopoDoUsuario = {
+/** O escopo das outras telas do harness: a filial padrão do contexto de acesso (`010101`), com nome fictício. */
+const ESCOPO_DE_UMA_FILIAL: EscopoDoUsuario = {
   usuario: 'amostra.ficticia@exemplo.invalid',
   filialAtual: { codigo: '010101', nome: 'Filial Fictícia Alfa', ehCasa: true },
   filialPedidaRecusada: null,
@@ -75,6 +71,41 @@ const ESCOPO_FICTICIO: EscopoDoUsuario = {
   podeVerTodasAsFiliais: false,
   perfis: [],
 };
+
+/**
+ * O escopo do seletor de filial da barra do topo na Visão 360: as filiais da amostra, e "Todas as filiais" — a Visão
+ * 360 segue o seletor (30/09/2026, #313), e o harness precisa deixar escolher.
+ */
+function escopoFicticio(): EscopoDoUsuario {
+  // AS OUTRAS TELAS DO HARNESS ficam com o escopo de antes — uma filial, sem "Todas" —, e as capturas delas não mudam.
+  if (rotaDaUrl() !== '/') return ESCOPO_DE_UMA_FILIAL;
+  const filiais = catalogoDeEmpresas(estadoDaUrl())[0].itens.map((f, i) => ({ codigo: f.codigo, nome: f.descricao, ehCasa: i === 0 }));
+  return {
+    usuario: 'amostra.ficticia@exemplo.invalid',
+    filialAtual: filiais[0],
+    filialPedidaRecusada: null,
+    filiaisPermitidas: filiais,
+    permissoes: [],
+    podeVerTodasAsFiliais: true,
+    perfis: [],
+  };
+}
+
+/**
+ * A FILIAL EM QUE O HARNESS ABRE: `filial=` no hash, e "Todas as filiais" sem ele — as capturas continuam mostrando a
+ * empresa inteira, como antes de a Visão 360 seguir o seletor. Gravada antes de o provedor de contexto ler.
+ */
+function abrirNaFilialDaUrl(): void {
+  if (rotaDaUrl() !== '/' && parametro('filial') === null) return;
+  try {
+    localStorage.setItem(
+      'tracbel-crm:contexto-acesso',
+      JSON.stringify({ usuario: 'amostra.ficticia@exemplo.invalid', empresa: parametro('filial') ?? 'TODAS' }),
+    );
+  } catch {
+    // Sem armazenamento, o contexto abre no padrão dele.
+  }
+}
 
 /** Uma resposta pronta, no envelope que o `ler()` espera. */
 function envelope(dados: unknown): Response {
@@ -126,7 +157,7 @@ function instalarInterceptador(): void {
     const parametros = new URLSearchParams(consulta);
     const dados =
       caminho === '/v1/acesso/escopo'
-        ? ESCOPO_FICTICIO
+        ? escopoFicticio()
         : (respostaDaVisao360(caminho, parametros, filialDoPedido(init), estadoDaUrl()) ??
           respostaDoCadastro(caminho, parametros, estadoDaUrl()));
     if (dados !== undefined) return envelope(dados);
@@ -141,6 +172,7 @@ function instalarInterceptador(): void {
 }
 
 instalarInterceptador();
+abrirNaFilialDaUrl();
 
 /** O mesmo desenho de rotas do `App.tsx`, num roteador em memória aberto na rota pedida — a Visão 360, por padrão. */
 function criarRoteador() {
