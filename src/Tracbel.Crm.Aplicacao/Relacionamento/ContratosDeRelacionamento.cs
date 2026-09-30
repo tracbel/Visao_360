@@ -1,3 +1,4 @@
+using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Portas;
 
 namespace Tracbel.Crm.Aplicacao.Relacionamento;
@@ -299,6 +300,12 @@ public sealed record InteracaoResumo(
 /// <param name="DiasCicloContato">A cadência esperada, quando declarada.</param>
 /// <param name="EstaForaDoCiclo">Passou da cadência esperada. Nulo quando não há cadência declarada.</param>
 /// <param name="ResponsavelNome">O CEN responsável pela carteira.</param>
+/// <param name="ClasseDoCliente">A curva ABC do cliente, apurada do faturamento. Nula quando não há faturamento.</param>
+/// <param name="Prioridade">
+/// <c>Alta</c>, <c>Media</c> ou <c>Baixa</c> — PELA CURVA ABC DO CLIENTE (decisão do Ricardo em 30/09/2026, a coluna da
+/// maquete da Cobertura): A é alta, B é média, C, D e o cliente sem classe são baixa. Dois clientes igualmente nunca
+/// contatados podem ter prioridades diferentes — é o tamanho do cliente que decide quem vem primeiro na ligação.
+/// </param>
 public sealed record CoberturaResumo(
     Guid ClienteChave,
     string ClienteNome,
@@ -310,8 +317,19 @@ public sealed record CoberturaResumo(
     int? DiasSemContato,
     short? DiasCicloContato,
     bool? EstaForaDoCiclo,
-    string ResponsavelNome)
+    string ResponsavelNome,
+    string? ClasseDoCliente,
+    string Prioridade)
 {
+    /// <summary>A prioridade pela curva ABC do cliente.</summary>
+    /// <param name="classe">A classe do cliente, ou nula.</param>
+    public static string PrioridadeDa(ClasseDeCliente? classe) => classe switch
+    {
+        ClasseDeCliente.A => "Alta",
+        ClasseDeCliente.B => "Media",
+        _ => "Baixa"
+    };
+
     /// <summary>Traduz a leitura para a linha da Cobertura.</summary>
     /// <param name="leitura">A linha de cobertura.</param>
     /// <param name="agoraUtc">O instante de referência.</param>
@@ -335,6 +353,8 @@ public sealed record CoberturaResumo(
             // FORA DO CICLO É NULO, NÃO FALSO, quando não há cadência declarada. Falso diria
             // "está em dia", e não é isso que se sabe: não se sabe nada.
             leitura.DiasCicloContato is { } ciclo ? dias is null || dias > ciclo : null,
-            leitura.ResponsavelNome);
+            leitura.ResponsavelNome,
+            leitura.ClasseDoCliente?.ToString(),
+            PrioridadeDa(leitura.ClasseDoCliente));
     }
 }

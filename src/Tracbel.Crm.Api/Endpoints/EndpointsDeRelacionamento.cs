@@ -123,13 +123,16 @@ public static class EndpointsDeRelacionamento
                 int? diasSemContato = null,
                 bool somenteSemContato = false,
                 string? ordenarPor = null,
-                bool descendente = false) =>
+                bool descendente = false,
+                string? termo = null) =>
             (await caso.ExecutarAsync(
                 pagina, tamanho, classe, diasSemContato, somenteSemContato,
-                ordenarPor, descendente, ct)).Responder())
+                ordenarPor, descendente, ct, termo)).Responder())
             .WithName("ListarCobertura")
             .ExigePermissao(Permissoes.CoberturaLer)
-            .WithSummary("A carteira cliente a cliente, com a data do último contato e o atraso de ciclo.");
+            .WithSummary(
+                "A carteira cliente a cliente, com a data do último contato, o atraso de ciclo e a prioridade pela curva " +
+                "ABC do cliente. `termo` filtra por um trecho do cliente, da carteira ou do responsável.");
 
         // AS CARTEIRAS DE UM CLIENTE moram na ficha dele, e a rota fica sob /clientes — o mesmo desenho de
         // /clientes/{chave}/maquinas-compradas. O caso de uso é de carteira, e a permissão é a da cobertura.

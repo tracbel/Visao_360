@@ -296,7 +296,17 @@ export type CoberturaResumo = {
   /** Nulo — e não falso — quando não há cadência declarada. */
   estaForaDoCiclo: boolean | null;
   responsavelNome: string;
+  /** A curva ABC do CLIENTE (`Cliente.Classe`, apurada do faturamento). Nula sem faturamento. */
+  classeDoCliente: string | null;
+  /**
+   * PELA CURVA ABC DO CLIENTE (decisão do Ricardo em 30/09/2026): A é alta, B é média, C, D e sem classe são baixa. Dois
+   * clientes igualmente nunca contatados podem ter prioridades diferentes.
+   */
+  prioridade: PrioridadeDeContato;
 };
+
+/** A prioridade da lista da Cobertura — pela curva ABC do cliente. */
+export type PrioridadeDeContato = 'Alta' | 'Media' | 'Baixa';
 
 /** A cobertura de uma carteira inteira, contada no banco. */
 export type ResumoDeCobertura = {
@@ -450,6 +460,8 @@ export type ConsultaDeCobertura = {
   somenteSemContato: boolean;
   ordenarPor: OrdemDeCobertura;
   descendente: boolean;
+  /** Um trecho do cliente, da carteira (nome ou código) ou do responsável. Vazio não filtra. */
+  termo: string;
 };
 
 /**

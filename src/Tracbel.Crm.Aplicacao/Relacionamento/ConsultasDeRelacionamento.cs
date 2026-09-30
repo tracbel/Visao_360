@@ -436,6 +436,7 @@ public sealed class ListarCobertura(IRepositorioCarteiras repositorio, IRelogio 
     /// <param name="ordenarPor">Coluna de ordenação. Domínio fechado.</param>
     /// <param name="descendente">Ordem decrescente.</param>
     /// <param name="ct">Cancelamento.</param>
+    /// <param name="termo">Um trecho do cliente, da carteira ou do responsável. Vazio não filtra.</param>
     public async Task<Resultado<ComProcedencia<PaginaDe<CoberturaResumo>>>> ExecutarAsync(
         int? pagina,
         int? tamanho,
@@ -444,7 +445,8 @@ public sealed class ListarCobertura(IRepositorioCarteiras repositorio, IRelogio 
         bool somenteSemContato,
         string? ordenarPor,
         bool descendente,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? termo = null)
     {
         var erros = new ColetorDeErros();
 
@@ -474,7 +476,8 @@ public sealed class ListarCobertura(IRepositorioCarteiras repositorio, IRelogio 
                 DiasSemContato: diasSemContato,
                 SomenteSemContato: somenteSemContato,
                 Ordem: ordem,
-                Descendente: descendente),
+                Descendente: descendente,
+                Termo: string.IsNullOrWhiteSpace(termo) ? null : termo.Trim()),
             ct);
 
         var agora = relogio.Agora;

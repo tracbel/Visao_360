@@ -1,0 +1,604 @@
+/* =============================================================================
+   A COBERTURA DE CARTEIRA NA MAQUETE DO RICARDO (30/09/2026)
+   `docs/prototipo/capturas-referencia/cobertura-carteira-maquete-2026-09-30.png`, em 1672 × 941.
+
+   TUDO AQUI MORA EMBAIXO DE `.dash-pagina.cob-maquete` — a classe que só a Cobertura de Carteira põe na página. As peças
+   são as do padrão dos Indicadores (`mv-kpi`, `mom-painel`, `terr-*`), e as outras telas continuam como estão. O
+   prefixo `.dash-pagina` é de propósito: o `dashboard.css` carrega depois, e sem ele as regras dele ganhariam destas.
+   ============================================================================= */
+
+.cob-maquete {
+  --cob-marinho: #0b1638;
+  --cob-cinza: #5b6776;
+  --cob-borda: #e6eaee;
+  --cob-linha: #eef1f3;
+}
+
+.dash-pagina.cob-maquete { gap: 12px; }
+
+/* -----------------------------------------------------------------------------
+   O CABEÇALHO — o ícone verde da pasta, o título marinho e o ⓘ ao lado
+   ----------------------------------------------------------------------------- */
+.dash-pagina.cob-maquete .page-header { margin-bottom: 0; }
+
+.dash-pagina.cob-maquete .page-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2px;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--cob-marinho);
+}
+
+.dash-pagina.cob-maquete .cob-titulo-icone { flex: none; color: #1b873f; }
+.dash-pagina.cob-maquete .page-title .info-tooltip-gatilho { font-size: 14px; }
+.dash-pagina.cob-maquete .page-subtitle { margin-left: 34px; font-size: 12.5px; color: var(--cob-cinza); }
+.dash-pagina.cob-maquete .dash-atualizado { align-self: center; gap: 8px; font-size: 12px; color: var(--cob-cinza); }
+
+/* -----------------------------------------------------------------------------
+   A BARRA DE FILTROS — branca, com o ladrilho cinza de cada filtro
+   ----------------------------------------------------------------------------- */
+.dash-pagina.cob-maquete .dash-filtros-linha {
+  padding: 8px 12px;
+  background: #fff;
+  border-color: var(--cob-borda);
+  border-radius: 10px;
+}
+
+.dash-pagina.cob-maquete .dash-filtro-icone { border-color: #e3e7eb; background: #f3f5f7; }
+.dash-pagina.cob-maquete .dash-filtros-linha .dash-filtro-rotulo { font-size: 11px; }
+.dash-pagina.cob-maquete .dash-filtros-linha > .dash-filtro select { height: 30px; font-size: 13px; }
+
+/* O LADRILHO GRANDE E A CAIXA LARGA DA MAQUETE só a partir de 640px. Abaixo disso vale a quebra em duas colunas do
+   dashboard.css, com o ladrilho de 28px — a caixa de 210px passava da janela de 390px. */
+@container indicadores (min-width: 640px) {
+  .dash-pagina.cob-maquete .dash-filtro-icone { width: 36px; height: 36px; }
+  .dash-pagina.cob-maquete .dash-filtros-linha > .dash-filtro select { min-width: 210px; }
+}
+.dash-pagina.cob-maquete .dash-caixa { font-size: 13px; }
+
+/* -----------------------------------------------------------------------------
+   OS CINCO CARTÕES — tinta da maquete, o ladrilho do ícone maior que o da Visão 360
+   ----------------------------------------------------------------------------- */
+.dash-pagina.cob-maquete .dash-kpis.mv-kpis { gap: 14px; }
+
+.dash-pagina.cob-maquete .mv-kpi {
+  align-items: start;
+  padding: 20px 14px 18px 18px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.cob-maquete .dash-kpis[data-colunas='5'] .mv-kpi { column-gap: 12px; }
+
+.dash-pagina.cob-maquete .mv-kpi-glifo {
+  align-self: start;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-top: 0;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--mv-tom) 13%, #fff);
+}
+
+.dash-pagina.cob-maquete .dash-kpis[data-colunas='5'] .mv-kpi-glifo svg { width: 23px; height: 23px; stroke-width: 2.2; }
+.dash-pagina.cob-maquete .mv-kpi-rotulo { font-size: 13px; font-weight: 700; line-height: 1.35; color: var(--cob-marinho); }
+.dash-pagina.cob-maquete .dash-kpis[data-colunas='5'] .mv-kpi-valor { column-gap: 8px; font-size: 28px; line-height: 1.2; color: var(--cob-marinho); }
+.dash-pagina.cob-maquete .mv-kpi-valor > strong { font-weight: 800; }
+.dash-pagina.cob-maquete .mv-kpi-unidade { font-size: 13px; color: var(--cob-cinza); }
+.dash-pagina.cob-maquete .dash-kpis[data-colunas='5'] .mv-kpi-contexto { font-size: 12px; line-height: 1.35; color: var(--cob-cinza); }
+
+.dash-pagina.cob-maquete .mv-kpi[data-tom='demanda'] { --mv-tom: #16a34a; background: #f1fbf5; border-color: #cfebd9; }
+.dash-pagina.cob-maquete .mv-kpi[data-tom='captura'] { --mv-tom: #f07a17; background: #fef8f2; border-color: #f6dcc3; }
+.dash-pagina.cob-maquete .mv-kpi[data-tom='mercado'] { --mv-tom: #3b82f6; background: #eef6fe; border-color: #cfe2f6; }
+.dash-pagina.cob-maquete .mv-kpi[data-tom='oportunidade'] { --mv-tom: #8b5cf6; background: #f5f2fe; border-color: #dfd6fa; }
+
+/* CINCO CARTÕES EM 1.100 A 1.299px DE CONTEÚDO (a tela do Ricardo, 1.536 a 125%, tem ~1.240): o ladrilho e o número
+   cedem um pouco para "31.040 vínculos" caber numa linha, como na maquete, sem a unidade descer. */
+@container indicadores (min-width: 1100px) and (max-width: 1299px) {
+  .dash-pagina.cob-maquete .dash-kpis[data-colunas='5'] .mv-kpi { column-gap: 10px; padding-inline: 14px 10px; }
+  .dash-pagina.cob-maquete .mv-kpi-glifo { width: 34px; height: 34px; }
+  .dash-pagina.cob-maquete .dash-kpis[data-colunas='5'] .mv-kpi-glifo svg { width: 20px; height: 20px; }
+  .dash-pagina.cob-maquete .dash-kpis[data-colunas='5'] .mv-kpi-valor { column-gap: 6px; font-size: 24px; }
+  .dash-pagina.cob-maquete .mv-kpi-unidade { font-size: 12px; }
+}
+
+/* NOME, NÚMERO E LINHA DE BAIXO NA MESMA ALTURA nos cartões lado a lado — as faixas são da linha (subgrid), como na
+   Visão 360: o cartão sem linha de baixo não sobe o número em relação ao vizinho. */
+@supports (grid-template-rows: subgrid) {
+  .dash-pagina.cob-maquete .dash-kpis.mv-kpis > .mv-kpi {
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 5px;
+  }
+
+  .dash-pagina.cob-maquete .dash-kpis.mv-kpis > .mv-kpi > .mv-kpi-corpo { display: contents; }
+  .dash-pagina.cob-maquete .dash-kpis.mv-kpis > .mv-kpi > .mv-kpi-glifo { grid-column: 1; grid-row: 1 / span 3; }
+
+  .dash-pagina.cob-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-rotulo,
+  .dash-pagina.cob-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-valor,
+  .dash-pagina.cob-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-contexto {
+    grid-column: 2;
+    min-width: 0;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   OS CARTÕES DE SEÇÃO — a seção é o cartão branco, com o título dentro e a ação à direita
+   ----------------------------------------------------------------------------- */
+.dash-pagina.cob-maquete .cob-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+@container indicadores (min-width: 1100px) {
+  .dash-pagina.cob-maquete .cob-linha { grid-template-columns: minmax(0, 2.05fr) minmax(0, 1fr); }
+}
+
+.dash-pagina.cob-maquete section.cob-cartao {
+  gap: 12px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid var(--cob-borda);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+/* O TÍTULO DA SEÇÃO E A AÇÃO LADO A LADO: o título e o subtítulo à esquerda, o alerta (ou a busca) à direita ocupando
+   as duas linhas, como na maquete. */
+.dash-pagina.cob-maquete section.cob-cartao > .terr-secao-mercado {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  row-gap: 2px;
+  margin: 0;
+}
+
+.dash-pagina.cob-maquete section.cob-cartao > .terr-secao-mercado > .terr-secao-cabecalho { display: contents; }
+
+.dash-pagina.cob-maquete section.cob-cartao .terr-secao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--cob-marinho);
+}
+
+.dash-pagina.cob-maquete section.cob-cartao .terr-secao-subtitulo {
+  grid-column: 1;
+  grid-row: 2;
+  margin: 0;
+  font-size: 13px;
+  color: var(--cob-cinza);
+}
+
+.dash-pagina.cob-maquete .cob-secao-acao { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+
+@container indicadores (max-width: 699px) {
+  .dash-pagina.cob-maquete section.cob-cartao > .terr-secao-mercado { grid-template-columns: minmax(0, 1fr); }
+  .dash-pagina.cob-maquete .cob-secao-acao { grid-column: 1; grid-row: 3; margin-top: 8px; }
+}
+
+/* O MAIOR RISCO — a faixa vermelha clara, com o círculo do alerta */
+.dash-pagina.cob-maquete .cob-risco {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 10px 12px;
+  background: #fdecec;
+  border: 1px solid #f7d6d6;
+  border-radius: 10px;
+  color: #c62828;
+}
+
+.dash-pagina.cob-maquete .cob-risco-icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e53935;
+  color: #fff;
+}
+
+.dash-pagina.cob-maquete .cob-risco-texto { display: grid; gap: 2px; font-size: 12px; line-height: 1.3; }
+.dash-pagina.cob-maquete .cob-risco-texto strong { font-size: 13px; font-weight: 700; }
+
+/* -----------------------------------------------------------------------------
+   AS BARRAS DE 100% — o nome à esquerda, as faixas com o percentual dentro, o total à direita
+   ----------------------------------------------------------------------------- */
+.dash-pagina.cob-maquete .cob-barras { display: flex; flex-direction: column; gap: 8px; }
+
+.dash-pagina.cob-maquete .cob-barras-cabecalho { display: flex; align-items: center; justify-content: space-between; }
+
+.dash-pagina.cob-maquete .cob-barras-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cob-marinho);
+}
+
+.dash-pagina.cob-maquete .cob-barras-total {
+  width: 52px;
+  padding: 4px 0;
+  border-radius: 6px;
+  background: #f1f3f5;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: #384250;
+}
+
+.dash-pagina.cob-maquete .cob-barras-corpo {
+  --cob-nome: 150px;
+  --cob-numero: 52px;
+  --cob-vao: 12px;
+  position: relative;
+}
+
+/* A GRADE VERTICAL DE 20 EM 20%, atrás das barras e só na faixa delas. */
+.dash-pagina.cob-maquete .cob-barras-corpo::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  bottom: 60px;
+  left: calc(var(--cob-nome) + var(--cob-vao));
+  right: calc(var(--cob-numero) + var(--cob-vao));
+  background-image: linear-gradient(to right, #eceff2 1px, transparent 1px);
+  background-size: 20% 100%;
+  border-right: 1px solid #eceff2;
+  pointer-events: none;
+}
+
+.dash-pagina.cob-maquete .cob-barras-lista { position: relative; display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+
+.dash-pagina.cob-maquete .cob-barras-linha {
+  display: grid;
+  grid-template-columns: var(--cob-nome) minmax(0, 1fr) var(--cob-numero);
+  column-gap: var(--cob-vao);
+  align-items: center;
+}
+
+.dash-pagina.cob-maquete .cob-barras-nome {
+  overflow: hidden;
+  font-size: 13px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #2b3440;
+}
+
+.dash-pagina.cob-maquete .cob-barras-trilho { display: flex; height: 27px; overflow: hidden; }
+
+.dash-pagina.cob-maquete .cob-barras-faixa {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.dash-pagina.cob-maquete .cob-barras-numero { font-size: 13px; font-weight: 700; text-align: center; color: var(--cob-marinho); }
+
+.dash-pagina.cob-maquete .cob-barras-eixo {
+  position: relative;
+  height: 18px;
+  margin: 4px calc(var(--cob-numero) + var(--cob-vao)) 0 calc(var(--cob-nome) + var(--cob-vao));
+  font-size: 12px;
+  color: var(--cob-cinza);
+}
+
+.dash-pagina.cob-maquete .cob-barras-eixo > span { position: absolute; top: 0; transform: translateX(-50%); }
+
+.dash-pagina.cob-maquete .cob-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 30px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  color: #2b3440;
+}
+
+.dash-pagina.cob-maquete .cob-legenda li { display: inline-flex; align-items: center; gap: 8px; }
+.dash-pagina.cob-maquete .cob-legenda i { width: 12px; height: 12px; border-radius: 50%; }
+
+@container indicadores (max-width: 699px) {
+  .dash-pagina.cob-maquete .cob-barras-corpo { --cob-nome: 96px; --cob-numero: 40px; --cob-vao: 8px; }
+}
+
+/* -----------------------------------------------------------------------------
+   A DISTRIBUIÇÃO — a rosca com a legenda ao lado, e as carteiras por exposição
+   ----------------------------------------------------------------------------- */
+.dash-pagina.cob-maquete .mom-painel[data-area='cob-distribuicao'] {
+  gap: 12px;
+  padding: 16px 18px;
+  border-color: var(--cob-borda);
+  border-radius: 12px;
+}
+
+.dash-pagina.cob-maquete .mom-painel[data-area='cob-distribuicao'] .mom-painel-titulo {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--cob-marinho);
+}
+
+/* O SELETOR NA LINHA DO TÍTULO, como na maquete; quando os dois não cabem (a coluna estreita de 1.536px), ele desce e
+   fica à direita, em vez de passar da borda do painel. */
+.dash-pagina.cob-maquete .mom-painel[data-area='cob-distribuicao'] .mom-painel-titulo { flex-shrink: 0; }
+.dash-pagina.cob-maquete .mom-painel[data-area='cob-distribuicao'] .mom-painel-direita { min-width: 0; margin-left: auto; }
+
+.dash-pagina.cob-maquete .mom-painel[data-area='cob-distribuicao'] .mom-seletor select {
+  width: 158px;
+  height: 32px;
+  min-width: 0;
+  max-width: 100%;
+  padding-right: 30px;
+  border-color: #dfe3e8;
+  border-radius: 8px;
+  background-color: #fff;
+  font-size: 12.5px;
+  color: var(--cob-marinho);
+}
+
+
+.dash-pagina.cob-maquete .cob-rosca-e-legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 26px; }
+.dash-pagina.cob-maquete .cob-rosca-e-legenda > canvas { flex: none; }
+
+.dash-pagina.cob-maquete .cob-legenda-tabela { flex: 1 1 180px; border-collapse: collapse; font-size: 13px; color: #2b3440; }
+
+/* A LEGENDA NÃO É TABELA DE DADO NA APARÊNCIA: sem o cabeçalho cinza, a caixa alta e os filetes das tabelas do padrão. */
+.dash-pagina.cob-maquete .cob-legenda-tabela th,
+.dash-pagina.cob-maquete .cob-legenda-tabela td {
+  border: 0;
+  background: none;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.dash-pagina.cob-maquete .cob-legenda-tabela th { padding: 5px 0; font-size: 13px; font-weight: 400; text-align: left; color: #2b3440; }
+.dash-pagina.cob-maquete .cob-legenda-tabela th > i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 10px;
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+
+.dash-pagina.cob-maquete .cob-legenda-tabela td {
+  padding: 5px 0 5px 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--cob-marinho);
+}
+
+.dash-pagina.cob-maquete .cob-exposicao { padding-top: 12px; border-top: 1px solid var(--cob-linha); }
+
+.dash-pagina.cob-maquete .cob-exposicao-titulo {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cob-marinho);
+}
+
+.dash-pagina.cob-maquete .cob-exposicao-titulo > span { margin-left: 4px; font-size: 12px; font-weight: 400; color: var(--cob-cinza); }
+
+.dash-pagina.cob-maquete .cob-exposicao-lista { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+
+.dash-pagina.cob-maquete .cob-exposicao-lista > li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 44px minmax(80px, 1.3fr);
+  column-gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: #2b3440;
+}
+
+.dash-pagina.cob-maquete .cob-exposicao-posicao {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 22px;
+  border-radius: 11px;
+  background: #eef1f4;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cob-marinho);
+}
+
+.dash-pagina.cob-maquete .cob-exposicao-posicao[data-primeira='true'] { background: #d7f1ea; color: #0f766e; }
+
+.dash-pagina.cob-maquete .cob-exposicao-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-pagina.cob-maquete .cob-exposicao-pct { font-weight: 700; text-align: right; color: var(--cob-marinho); }
+
+.dash-pagina.cob-maquete .cob-exposicao-trilho { height: 8px; overflow: hidden; border-radius: 4px; background: #eef0f3; }
+.dash-pagina.cob-maquete .cob-exposicao-trilho > span { display: block; height: 100%; border-radius: 4px; }
+.dash-pagina.cob-maquete .cob-exposicao-trilho > span[data-tom='alta'] { background: #e53935; }
+.dash-pagina.cob-maquete .cob-exposicao-trilho > span[data-tom='media'] { background: #f39a1e; }
+
+/* -----------------------------------------------------------------------------
+   QUEM CONTATAR PRIMEIRO — a busca e o Exportar à direita, e a tabela num cartão interno
+   ----------------------------------------------------------------------------- */
+.dash-pagina.cob-maquete .cob-busca-e-exportar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+
+.dash-pagina.cob-maquete .cob-busca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 300px;
+  max-width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #dfe4e8;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--cob-cinza);
+}
+
+.dash-pagina.cob-maquete .cob-busca input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--cob-marinho);
+}
+
+.dash-pagina.cob-maquete .cob-busca:focus-within { border-color: #1b873f; box-shadow: 0 0 0 3px rgba(27, 135, 63, 0.12); }
+
+.dash-pagina.cob-maquete .cob-exportar-caixa { display: inline-flex; align-items: center; gap: 6px; }
+
+.dash-pagina.cob-maquete .cob-exportar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1.5px solid #a8d8b9;
+  border-radius: 8px;
+  background: #f1fbf5;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0b5e36;
+  cursor: pointer;
+}
+
+.dash-pagina.cob-maquete .cob-exportar:disabled { cursor: default; opacity: 0.6; }
+
+.dash-pagina.cob-maquete section.cob-cartao .mom-painel[data-bloco='clientes-sem-contato'] {
+  gap: 8px;
+  padding: 12px 14px;
+  border-color: var(--cob-borda);
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.dash-pagina.cob-maquete .mom-painel[data-bloco='clientes-sem-contato'] .mom-painel-titulo {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cob-marinho);
+}
+
+.dash-pagina.cob-maquete .cob-tabela thead th {
+  padding: 9px 12px;
+  background: #f3f5f7;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #4b5563;
+}
+
+.dash-pagina.cob-maquete .cob-tabela thead .cad-th-ordenar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+
+.dash-pagina.cob-maquete .cob-seta-da-ordem { color: #6b7280; }
+
+.dash-pagina.cob-maquete .cob-tabela tbody th,
+.dash-pagina.cob-maquete .cob-tabela tbody td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--cob-linha);
+  font-size: 12.5px;
+  vertical-align: middle;
+}
+
+.dash-pagina.cob-maquete .cob-cliente { font-size: 13px; font-weight: 700; text-decoration: none; color: #15803d; }
+.dash-pagina.cob-maquete .cob-cliente:hover { text-decoration: underline; }
+.dash-pagina.cob-maquete .cob-carteira { font-size: 12px; color: #2b3440; }
+.dash-pagina.cob-maquete .cob-tabela .cad-sub { font-size: 11px; }
+.dash-pagina.cob-maquete .cob-responsavel { font-size: 12px; color: #2b3440; }
+.dash-pagina.cob-maquete .cob-nunca { font-weight: 700; color: #dc2626; }
+
+/* A PRIORIDADE — a pílula da maquete: vermelha com a seta, laranja com a seta, verde com o ponto */
+.dash-pagina.cob-maquete .cob-prioridade {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dash-pagina.cob-maquete .cob-prioridade[data-prioridade='Alta'] { background: #fde8e8; color: #dc2626; }
+.dash-pagina.cob-maquete .cob-prioridade[data-prioridade='Media'] { background: #fdefd9; color: #d97706; }
+.dash-pagina.cob-maquete .cob-prioridade[data-prioridade='Baixa'] { background: #dcf5e6; color: #15803d; }
+.dash-pagina.cob-maquete .cob-prioridade > i { width: 9px; height: 9px; border-radius: 50%; background: #16a34a; }
+
+/* O MENU DE CADA LINHA */
+.dash-pagina.cob-maquete .cob-coluna-menu { width: 36px; text-align: right; }
+.dash-pagina.cob-maquete .cob-menu { position: relative; display: inline-block; }
+
+.dash-pagina.cob-maquete .cob-menu-botao {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #374151;
+  cursor: pointer;
+}
+
+.dash-pagina.cob-maquete .cob-menu-botao:hover,
+.dash-pagina.cob-maquete .cob-menu-botao[aria-expanded='true'] { background: #f1f3f5; }
+
+.dash-pagina.cob-maquete .cob-menu-lista {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid var(--cob-borda);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  text-align: left;
+}
+
+.dash-pagina.cob-maquete .cob-menu-lista > a {
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  text-decoration: none;
+  color: var(--cob-marinho);
+}
+
+.dash-pagina.cob-maquete .cob-menu-lista > a:hover,
+.dash-pagina.cob-maquete .cob-menu-lista > a:focus-visible { background: #f1fbf5; color: #0b5e36; }
