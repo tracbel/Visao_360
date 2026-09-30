@@ -173,6 +173,17 @@ builder.Services.AddScoped<IDiarioDeAlcanceEntreEmpresas, DiarioDeAlcanceEntreEm
 builder.Services.AddSingleton<IRelogio, RelogioDoSistema>();
 builder.Services.AddSingleton<MedidorDeDesempenho>();
 
+// O CACHE DAS LEITURAS (30/09/2026, ver CacheDasLeituras.cs): até 10 minutos, e limpo na hora em que uma rotina ou uma
+// gravação muda o dado. A política é SÓ a nossa — a padrão do ASP.NET recusa qualquer requisição autenticada, e aqui
+// todas são.
+builder.Services.Configure<OpcoesDoCacheDasLeituras>(builder.Configuration.GetSection(OpcoesDoCacheDasLeituras.Secao));
+builder.Services.AddSingleton<VersaoDosDados>();
+builder.Services.AddHostedService<VigiaDaVersaoDosDados>();
+builder.Services.AddOutputCache();
+builder.Services.AddOptions<Microsoft.AspNetCore.OutputCaching.OutputCacheOptions>()
+    .Configure<VersaoDosDados, IOptions<OpcoesDoCacheDasLeituras>>((cache, versao, opcoes) =>
+        cache.AddBasePolicy(new PoliticaDeCacheDasLeituras(versao, opcoes)));
+
 // -------------------------------------------------------------------------------------------
 // As portas do domínio e seus adaptadores. O caso de uso conhece a interface; só esta linha
 // sabe qual implementação entra (documento 22, seção 7).
@@ -469,6 +480,11 @@ app.UseMiddleware<MeioDeCampoDeContextoDeAcesso>();
 // A PERMISSÃO QUE CADA ROTA DECLARA é conferida aqui, contra o contexto que o meio de campo acima montou
 // (fase 3 do documento 41). A rota sem declaração nenhuma é barrada pelo teste de arquitetura, não aqui.
 app.UseMiddleware<MeioDeCampoDePermissao>();
+
+// O CACHE VEM DEPOIS DA PERMISSÃO: quem perdeu o acesso à rota recebe o 403, e não a resposta guardada. A gravação que
+// termina bem muda a versão dos dados na volta — por isso o meio de campo dela fica por fora do cache.
+app.UseMiddleware<MeioDeCampoDeGravacao>();
+app.UseOutputCache();
 
 // Prova de vida que também confirma que o banco responde — é o que o script de subida checa.
 app.MapGet("/saude/banco", async (DbContextOptions<CrmDbContext> opcoesDoBanco, CancellationToken ct) =>
