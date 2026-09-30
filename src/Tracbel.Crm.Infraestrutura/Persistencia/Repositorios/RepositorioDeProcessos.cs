@@ -154,7 +154,7 @@ public sealed class RepositorioDeProcessos(CrmDbContext contexto) : IRepositorio
             contexto.Usuarios.Where(u => u.Id == p.ProprietarioId).Select(u => u.NomeExibicao).FirstOrDefault(),
             contexto.MotivosDePerda.Where(m => m.Id == p.MotivoDePerdaId).Select(m => m.Codigo).FirstOrDefault());
 
-    private static IQueryable<Processo> Filtrar(IQueryable<Processo> linhas, ConsultaDeProcessos consulta)
+    private IQueryable<Processo> Filtrar(IQueryable<Processo> linhas, ConsultaDeProcessos consulta)
     {
         linhas = linhas.Where(p => p.ExcluidoEm == null);
 
@@ -165,6 +165,22 @@ public sealed class RepositorioDeProcessos(CrmDbContext contexto) : IRepositorio
         if (consulta.Situacao is { } situacao) linhas = linhas.Where(p => p.Situacao == situacao);
         if (consulta.TipoProcessoId is { } tipo) linhas = linhas.Where(p => p.TipoProcessoId == tipo);
         if (consulta.FaseId is { } fase) linhas = linhas.Where(p => p.FaseId == fase);
+
+        // O FLUXO E A FASE PELO CÓDIGO, NO BANCO (30/09/2026, dívida P-7): antes o caso de uso filtrava a página já
+        // paginada, e `?faseCodigo=` devolvia 12 linhas de 25 com o total do fluxo inteiro. Agora o total é o da fase,
+        // e é o que a seta de cada fase do Pipeline abre na lista.
+        if (!string.IsNullOrWhiteSpace(consulta.TipoProcessoCodigo))
+        {
+            var codigoDoFluxo = consulta.TipoProcessoCodigo.Trim();
+            linhas = linhas.Where(p =>
+                contexto.TiposDeProcesso.Any(t => t.Id == p.TipoProcessoId && t.Codigo == codigoDoFluxo));
+        }
+
+        if (!string.IsNullOrWhiteSpace(consulta.FaseCodigo))
+        {
+            var codigoDaFase = consulta.FaseCodigo.Trim();
+            linhas = linhas.Where(p => contexto.Fases.Any(f => f.Id == p.FaseId && f.Codigo == codigoDaFase));
+        }
         if (consulta.ClienteId is { } cliente) linhas = linhas.Where(p => p.ClienteId == cliente);
         if (consulta.ProprietarioId is { } dono) linhas = linhas.Where(p => p.ProprietarioId == dono);
 

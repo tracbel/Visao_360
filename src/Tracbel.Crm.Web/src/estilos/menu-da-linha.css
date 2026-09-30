@@ -1,0 +1,47 @@
+/* =============================================================================
+   O MENU DE UMA LINHA DE TABELA — `componentes/comum/MenuDaLinha.tsx`
+   Os três pontos da Cobertura de Carteira e do Pipeline (30/09/2026), com a lista de links que abre embaixo.
+   ============================================================================= */
+
+.menu-da-linha { position: relative; display: inline-block; }
+
+.menu-da-linha-botao {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #374151;
+  cursor: pointer;
+}
+
+.menu-da-linha-botao:hover,
+.menu-da-linha-botao[aria-expanded='true'] { background: #f1f3f5; }
+
+.menu-da-linha-lista {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid #e6eaee;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  text-align: left;
+}
+
+.menu-da-linha-lista > a {
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  text-decoration: none;
+  color: #0b1638;
+}
+
+.menu-da-linha-lista > a:hover,
+.menu-da-linha-lista > a:focus-visible { background: #f1fbf5; color: #0b5e36; }

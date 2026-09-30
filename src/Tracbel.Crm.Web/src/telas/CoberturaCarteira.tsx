@@ -77,14 +77,13 @@ import {
   CalendarClock,
   CircleAlert,
   Download,
-  EllipsisVertical,
   Layers,
   RefreshCw,
   Search,
   Users,
   UsersRound,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { GraficoDonutCentro } from '../componentes/GraficoDonutCentro';
 import { InfoTooltip } from '../componentes/InfoTooltip';
@@ -93,6 +92,7 @@ import { BlocoRecolhivel } from '../componentes/cadastro/BlocoRecolhivel';
 import { BlocoCarregando, BlocoErro, BlocoVazio } from '../componentes/cadastro/EstadosDeTela';
 import { AvisoDeProcedencia, DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
 import { LacunaConhecida, MetricasSemDado } from '../componentes/cadastro/SemDado';
+import { MenuDaLinha } from '../componentes/comum/MenuDaLinha';
 import { ValorAusente } from '../componentes/comum/ValorAusente';
 import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
 import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
@@ -643,7 +643,14 @@ export function CoberturaCarteira() {
                           <SeloDePrioridade prioridade={linha.prioridade} classe={linha.classeDoCliente} />
                         </td>
                         <td className="cob-coluna-menu">
-                          <MenuDaLinha linha={linha} />
+                          {/* O QUE JÁ EXISTE PARA O CLIENTE: a ficha e as máquinas dele. */}
+                          <MenuDaLinha
+                            rotulo={`Ações de ${linha.clienteNome}`}
+                            itens={[
+                              { rotulo: 'Abrir a ficha do cliente', para: `/clientes/${linha.clienteChave}` },
+                              { rotulo: 'Ver as máquinas do cliente', para: `/equipamentos?cliente=${linha.clienteChave}` },
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -948,53 +955,6 @@ function SeloDePrioridade({ prioridade, classe }: { prioridade: PrioridadeDeCont
       {rotulo}
       <span className="cad-so-leitor">, {classe ? `classe ${classe} da curva ABC` : 'cliente sem classe na curva ABC'}</span>
     </span>
-  );
-}
-
-/** O MENU DE CADA LINHA — o que já existe para o cliente: a ficha e as máquinas dele. */
-function MenuDaLinha({ linha }: { linha: CoberturaResumo }) {
-  const [aberto, setAberto] = useState(false);
-  const caixa = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!aberto) return;
-    const fora = (e: MouseEvent) => {
-      if (!caixa.current?.contains(e.target as Node)) setAberto(false);
-    };
-    const tecla = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAberto(false);
-    };
-    document.addEventListener('mousedown', fora);
-    document.addEventListener('keydown', tecla);
-    return () => {
-      document.removeEventListener('mousedown', fora);
-      document.removeEventListener('keydown', tecla);
-    };
-  }, [aberto]);
-
-  return (
-    <div className="cob-menu" ref={caixa}>
-      <button
-        type="button"
-        className="cob-menu-botao"
-        aria-haspopup="menu"
-        aria-expanded={aberto}
-        aria-label={`Ações de ${linha.clienteNome}`}
-        onClick={() => setAberto((a) => !a)}
-      >
-        <EllipsisVertical size={16} strokeWidth={2.2} aria-hidden="true" />
-      </button>
-      {aberto && (
-        <div className="cob-menu-lista" role="menu">
-          <Link role="menuitem" to={`/clientes/${linha.clienteChave}`}>
-            Abrir a ficha do cliente
-          </Link>
-          <Link role="menuitem" to={`/equipamentos?cliente=${linha.clienteChave}`}>
-            Ver as máquinas do cliente
-          </Link>
-        </div>
-      )}
-    </div>
   );
 }
 

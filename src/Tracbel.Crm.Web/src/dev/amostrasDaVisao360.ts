@@ -251,23 +251,103 @@ export function painelDaAgenda(estado: EstadoDaVisao360, codigo: string): Agrega
   };
 }
 
+/** Uma fase da amostra: código, nome, processos, quantos declaram valor e a soma do que declaram. */
+type FaseDaAmostra = readonly [codigo: string, nome: string, processos: number, comValor: number, valor: number];
+
+/**
+ * O FUNIL DA MAQUETE DO PIPELINE (30/09/2026): três fluxos e 24 pares fluxo × fase. O de venda tem as 15 fases da imagem,
+ * com os nomes dela — é pelo nome que a tela escolhe a cor —, algumas com valor declarado e a maioria sem; os outros dois
+ * completam a conta. Somados, 13.838 abertos e 653 com valor, como na maquete; cada filial leva a sua fração.
+ */
+const FLUXOS_DA_AMOSTRA: { codigo: string; nome: string; fases: FaseDaAmostra[] }[] = [
+  {
+    codigo: 'VENDA',
+    nome: 'Venda de equipamento (amostra)',
+    fases: [
+      ['NAO_INICIADO', 'Não iniciado', 1, 0, 0],
+      ['APRESENTACAO', 'Apresentação', 7_234, 8, 1_475_830],
+      ['MONITORAMENTO', 'Monitoramento', 129, 0, 0],
+      ['FINALIZADO', 'Finalizado', 2, 0, 0],
+      ['NEGOCIACAO', 'Negociação', 186, 19, 539_387],
+      ['PEDIDO_DE_VENDA', 'Pedido de Venda', 18, 0, 0],
+      ['MONTAGEM', 'Montagem', 120, 23, 39_378_912],
+      ['ANALISE', 'Análise', 3, 0, 0],
+      ['APROVACAO', 'Aprovação', 87, 8, 989_263],
+      ['FORMALIZACAO', 'Formalização', 1, 0, 0],
+      ['AUTORIZACAO', 'Autorização', 6, 0, 0],
+      ['FATURAMENTO', 'Faturamento', 99, 16, 184_266],
+      ['RECEBIMENTO', 'Recebimento', 1, 0, 0],
+      ['PREPARACAO', 'Preparação', 8, 0, 0],
+      ['ENTREGA', 'Entrega', 8, 2, 4_312_000],
+    ],
+  },
+  {
+    codigo: 'PROSPECCAO',
+    nome: 'Prospecção de clientes (amostra)',
+    fases: [
+      ['PROSPECCAO', 'Prospecção', 5_420, 540, 12_800_000],
+      ['QUALIFICACAO', 'Qualificação', 214, 21, 3_150_000],
+      ['VISITA', 'Visita agendada', 96, 9, 870_000],
+      ['PROPOSTA', 'Proposta', 41, 4, 1_240_000],
+      ['RETORNO', 'Retorno', 27, 0, 0],
+      ['DESCARTE', 'Descarte', 12, 0, 0],
+    ],
+  },
+  {
+    codigo: 'POS_VENDA',
+    nome: 'Pós-venda (amostra)',
+    fases: [
+      ['ENTREGA_TECNICA', 'Entrega técnica', 88, 3, 96_000],
+      ['ACOMPANHAMENTO', 'Acompanhamento', 31, 0, 0],
+      ['ENCERRAMENTO', 'Encerramento', 6, 0, 0],
+    ],
+  },
+];
+
 export function fasesDoFunil(estado: EstadoDaVisao360, codigo: string): Agregado<FaseDoFunil> {
   const peso = pesoDaOperacao(estado, codigo);
   if (peso === 0) return { itens: [], metricasSemDado: [] };
-  const fases = ['Qualificação', 'Proposta', 'Negociação', 'Fechamento'];
-  return {
-    itens: fases.map((nome, i) => ({
-      tipoProcessoCodigo: 'VENDA',
-      tipoProcessoNome: 'Venda de máquina (amostra)',
-      faseCodigo: `F${i + 1}`,
-      faseNome: nome,
-      faseOrdem: i + 1,
-      processos: n((420 - i * 80) * peso),
-      processosComValor: n((12 - i * 2) * peso),
-      valorTotal: null,
-    })),
-    metricasSemDado: [],
-  };
+
+  const itens: FaseDoFunil[] = FLUXOS_DA_AMOSTRA.flatMap((fluxo) =>
+    fluxo.fases.map(([faseCodigo, faseNome, processos, comValor, valor], i) => {
+      // NENHUMA FASE SOME NA FILIAL PEQUENA: o agrupamento do banco não devolve fase com zero processo.
+      const naFilial = Math.max(1, n(processos * peso));
+      const declarando = Math.min(naFilial, n(comValor * peso));
+      return {
+        tipoProcessoCodigo: fluxo.codigo,
+        tipoProcessoNome: fluxo.nome,
+        faseCodigo,
+        faseNome,
+        faseOrdem: i + 1,
+        processos: naFilial,
+        processosComValor: declarando,
+        valorTotal: declarando > 0 ? n(valor * peso) : null,
+      };
+    }),
+  );
+
+  // O MOTIVO COM O TEXTO DA API (`ObterFunil`, em português): nenhum valor, ou menos de 10% dos abertos declarando.
+  const processos = itens.reduce((s, f) => s + f.processos, 0);
+  const comValor = itens.reduce((s, f) => s + f.processosComValor, 0);
+  const pct = ((comValor * 100) / processos).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const metricasSemDado =
+    comValor === 0
+      ? [
+          {
+            metrica: 'valorDoFunil',
+            motivo: `Nenhum dos ${processos.toLocaleString('pt-BR')} processos abertos declara valor. O sistema de origem tem a coluna e praticamente não a preenche; somar zeros e apresentar o total como valor do funil mostraria um número que não representa negócio nenhum.`,
+          },
+        ]
+      : (comValor * 100) / processos < 10
+        ? [
+            {
+              metrica: 'valorDoFunilConfiavel',
+              motivo: `Só ${comValor.toLocaleString('pt-BR')} de ${processos.toLocaleString('pt-BR')} processos abertos declaram valor (${pct}%). O total vem preenchido, mas ele representa essa fração — não o funil inteiro.`,
+            },
+          ]
+        : [];
+
+  return { itens, metricasSemDado };
 }
 
 export function perdasPorMotivo(estado: EstadoDaVisao360, codigo: string): Agregado<ContagemPorRotulo> {
@@ -379,55 +459,95 @@ export function faturamento(estado: EstadoDaVisao360, codigo: string): Faturamen
   };
 }
 
+/** O dia de referência do harness — o mesmo do "Dados atualizados em 24/09/2026". */
+const HOJE_DA_AMOSTRA = Date.UTC(2026, 8, 24);
+
+/** Os dias parados das linhas da amostra, do mais antigo para o mais novo — a ordem padrão da lista. */
+const DIAS_PARADOS_DA_AMOSTRA = [1_302, 1_063, 1_063, 1_063, 1_063, 845, 610, 402, 233, 140, 95, 37];
+
+/** As fases das linhas sem filtro — de fluxos diferentes, como a lista da maquete. */
+const FASES_DAS_LINHAS: readonly [fluxo: string, fase: string][] = [
+  ['VENDA', 'MONITORAMENTO'],
+  ['PROSPECCAO', 'PROSPECCAO'],
+  ['PROSPECCAO', 'PROSPECCAO'],
+  ['VENDA', 'APRESENTACAO'],
+  ['PROSPECCAO', 'QUALIFICACAO'],
+  ['VENDA', 'NEGOCIACAO'],
+];
+
 /**
  * Os processos por situação. A Visão 360 pede UMA linha e só lê o `total`; o Pipeline (29/09/2026, harness com `rota=`)
  * pede uma página, e ganha linhas fictícias — com e sem valor declarado, parados há pouco e há muito — para o desenho
  * da tabela ser conferido com dado.
+ *
+ * DESDE A MAQUETE DO PIPELINE (30/09/2026) a amostra respeita o fluxo, a fase e a busca, como a API depois da P-7: o total
+ * aberto é o do funil acima, e o de uma fase é o da fase.
  */
-export function contagemDeProcessos(
-  estado: EstadoDaVisao360,
-  codigo: string,
-  situacao: string,
-  tamanho = 1,
-): PaginaDe<ProcessoResumo> {
+export function contagemDeProcessos(estado: EstadoDaVisao360, codigo: string, consulta: URLSearchParams): PaginaDe<ProcessoResumo> {
   const peso = pesoDaOperacao(estado, codigo);
-  const total = situacao === 'Ganho' ? n(260 * peso) : situacao === 'Perdido' ? n(310 * peso) : n(900 * peso);
-  const linhas = tamanho > 1 ? Math.min(tamanho, total, 12) : 0;
-  const fases = [
-    ['APRESENTACAO', 'Apresentação', 1],
-    ['NEGOCIACAO', 'Negociação', 2],
-    ['PEDIDO', 'Pedido de venda', 3],
-  ] as const;
-  const itens: ProcessoResumo[] = Array.from({ length: linhas }, (_, i) => {
-    const [faseCodigo, faseNome, faseOrdem] = fases[i % fases.length];
-    const dias = [4, 18, 37, 95, 140, 12][i % 6];
+  const situacao = consulta.get('situacao') ?? '';
+  const tamanho = Number(consulta.get('tamanho') ?? '1');
+  const fluxoPedido = consulta.get('tipoProcessoCodigo') ?? '';
+  const fasePedida = consulta.get('faseCodigo') ?? '';
+  const termo = (consulta.get('termo') ?? '').trim().toLowerCase();
+
+  const fases = fasesDoFunil(estado, codigo).itens;
+  const daFase = (fluxo: string, fase: string) => fases.find((f) => f.tipoProcessoCodigo === fluxo && f.faseCodigo === fase)!;
+  const escolhidas = fases.filter(
+    (f) => (!fluxoPedido || f.tipoProcessoCodigo === fluxoPedido) && (!fasePedida || f.faseCodigo === fasePedida),
+  );
+  const abertos = escolhidas.reduce((s, f) => s + f.processos, 0);
+  const filtrado = fluxoPedido !== '' || fasePedida !== '';
+
+  const totalDaSituacao =
+    situacao === 'Ganho'
+      ? n(260 * peso)
+      : situacao === 'Perdido'
+        ? n(310 * peso)
+        : situacao === 'Aberto'
+          ? abertos
+          : // SEM SITUAÇÃO, a lista traz os abertos e os suspensos, como a API.
+            abertos + (filtrado ? 0 : n(9 * peso));
+
+  const quantas = tamanho > 1 ? Math.min(tamanho, totalDaSituacao, DIAS_PARADOS_DA_AMOSTRA.length) : 0;
+  const todas: ProcessoResumo[] = Array.from({ length: quantas }, (_, i) => {
+    const fase = filtrado ? escolhidas[i % escolhidas.length] : daFase(...FASES_DAS_LINHAS[i % FASES_DAS_LINHAS.length]);
+    const dias = DIAS_PARADOS_DA_AMOSTRA[i];
+    const numero = 48_210 + i;
+    const deVenda = fase.tipoProcessoCodigo === 'VENDA';
     return {
       chave: `00000000-0000-4000-8000-${String(900 + i).padStart(12, '0')}`,
-      numero: 48_210 + i,
-      titulo: `Trator fictício ${6110 + i * 5}J — negociação de amostra`,
+      numero,
+      titulo: deVenda ? `Trator fictício ${6110 + i * 5}J — nº ${numero}` : `Prospecção de amostra — nº ${numero}`,
       clienteChave: `00000000-0000-4000-8000-${String(700 + i).padStart(12, '0')}`,
-      clienteNome: `Produtor Fictício ${['Alfa', 'Beta', 'Gama', 'Delta', 'Épsilon', 'Zeta'][i % 6]}`,
-      tipoProcessoCodigo: 'VENDA_MAQUINA',
-      tipoProcessoNome: 'Venda de máquina (amostra)',
-      faseCodigo,
-      faseNome,
-      faseOrdem,
-      faseDesde: `2026-0${(i % 8) + 1}-15`,
+      clienteNome: `PRODUTOR FICTÍCIO ${['ALFA', 'BETA', 'GAMA', 'DELTA', 'ÉPSILON', 'ZETA'][i % 6]}`,
+      tipoProcessoCodigo: fase.tipoProcessoCodigo,
+      tipoProcessoNome: fase.tipoProcessoNome,
+      faseCodigo: fase.faseCodigo,
+      faseNome: fase.faseNome,
+      faseOrdem: fase.faseOrdem,
+      faseDesde: new Date(HOJE_DA_AMOSTRA - dias * 86_400_000).toISOString().slice(0, 10),
       diasNaFase: dias,
       situacao: situacao || 'Aberto',
-      valorEstimado: i % 4 === 0 ? 485_000 + i * 12_500 : null,
-      previsaoConclusao: i % 3 === 0 ? '2026-11-30' : null,
-      proprietarioNome: `CEN Fictício ${['Norte', 'Sul', 'Leste'][i % 3]}`,
-      criadoEm: '2026-03-02T10:00:00Z',
+      valorEstimado: i % 4 === 3 ? 485_000 + i * 12_500 : null,
+      previsaoConclusao: i % 5 === 4 ? '2026-11-30' : null,
+      proprietarioNome: `CEN FICTÍCIO ${['NORTE', 'SUL', 'LESTE'][i % 3]}`,
+      criadoEm: '2023-03-02T10:00:00Z',
     };
   });
+
+  const itens = termo
+    ? todas.filter((p) => p.titulo.toLowerCase().includes(termo) || String(p.numero) === termo)
+    : todas;
+  const total = termo ? itens.length : totalDaSituacao;
+  const porPagina = Math.max(1, tamanho);
   return {
     itens,
     pagina: 1,
-    tamanho: Math.max(1, tamanho),
+    tamanho: porPagina,
     total,
-    totalDePaginas: Math.max(1, Math.ceil(total / Math.max(1, tamanho))),
-    temProxima: total > Math.max(1, tamanho),
+    totalDePaginas: Math.max(1, Math.ceil(total / porPagina)),
+    temProxima: total > porPagina,
   };
 }
 
@@ -1197,7 +1317,7 @@ export function respostaDaVisao360(
     case '/v1/relatorios/cen':
       return painelDoCen(estado, empresa, consulta.get('responsavel'));
     case '/v1/processos':
-      return contagemDeProcessos(estado, empresa, consulta.get('situacao') ?? '', Number(consulta.get('tamanho') ?? '1'));
+      return contagemDeProcessos(estado, empresa, consulta);
     case '/v1/tarefas':
       return tarefasAtrasadas(estado);
     case '/v1/cobertura':

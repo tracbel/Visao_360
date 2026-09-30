@@ -1,3 +1,4 @@
+using System.Globalization;
 using Tracbel.Crm.Aplicacao.Comum;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
@@ -81,23 +82,16 @@ public sealed class ListarProcessos(
                 ClienteId: clienteId,
                 Ordem: ordem,
                 Descendente: descendente,
-                IncluirEncerrados: incluirEncerrados),
+                IncluirEncerrados: incluirEncerrados,
+                // O CÓDIGO DO FLUXO E O DA FASE VÃO AO BANCO (30/09/2026, dívida P-7). Filtrados aqui, sobre a página
+                // já paginada, o total continuava o da lista inteira e a página vinha pela metade.
+                TipoProcessoCodigo: string.IsNullOrWhiteSpace(tipoProcessoCodigo) ? null : tipoProcessoCodigo.Trim(),
+                FaseCodigo: string.IsNullOrWhiteSpace(faseCodigo) ? null : faseCodigo.Trim()),
             ct);
 
         var agora = relogio.Agora;
 
-        // O FILTRO POR CÓDIGO DE FASE E DE FLUXO ACONTECE AQUI, e não no repositório, porque o
-        // que a API expõe é o CÓDIGO estável do catálogo e não o identificador interno — mesma
-        // regra do cadastro. Ele é aplicado sobre a página já paginada pelo banco apenas quando
-        // vem preenchido, e a tela de kanban usa a rota de funil, que agrupa no banco.
-        var itens = pagi.Itens
-            .Where(p => faseCodigo is null
-                        || string.Equals(p.FaseCodigo, faseCodigo, StringComparison.OrdinalIgnoreCase))
-            .Where(p => tipoProcessoCodigo is null
-                        || string.Equals(p.TipoProcessoCodigo, tipoProcessoCodigo,
-                            StringComparison.OrdinalIgnoreCase))
-            .Select(p => ProcessoResumo.De(p, agora))
-            .ToList();
+        var itens = pagi.Itens.Select(p => ProcessoResumo.De(p, agora)).ToList();
 
         var resumo = new PaginaDe<ProcessoResumo>(
             itens, pagi.Pagina, pagi.Tamanho, pagi.Total);
@@ -139,6 +133,14 @@ public sealed class ObterProcesso(IRepositorioProcessos repositorio, IRelogio re
 /// </summary>
 public sealed class ObterFunil(IRepositorioProcessos repositorio, IRelogio relogio)
 {
+    /// <summary>
+    /// Os números do motivo em português — "653 de 13.838 (4,7%)", como a tela escreve —, e não na cultura do servidor,
+    /// que mudava o separador conforme a máquina (30/09/2026, a caixa laranja do Pipeline na maquete).
+    /// </summary>
+    private static readonly CultureInfo Portugues = CultureInfo.GetCultureInfo("pt-BR");
+
+    private static string Texto(FormattableString texto) => texto.ToString(Portugues);
+
     /// <summary>Executa o agregado.</summary>
     /// <param name="ct">Cancelamento.</param>
     public async Task<Resultado<ComProcedencia<Agregado<FaseDoFunil>>>> ExecutarAsync(CancellationToken ct)
@@ -159,14 +161,14 @@ public sealed class ObterFunil(IRepositorioProcessos repositorio, IRelogio relog
         if (comValor == 0)
             ausentes.Add(new MetricaSemDado(
                 "valorDoFunil",
-                $"Nenhum dos {processos} processos abertos declara valor. O sistema de origem tem a " +
+                Texto($"Nenhum dos {processos:N0} processos abertos declara valor. O sistema de origem tem a ") +
                 "coluna e praticamente não a preenche; somar zeros e apresentar o total como valor " +
                 "do funil mostraria um número que não representa negócio nenhum."));
         else if (processos > 0 && comValor * 100 / processos < 10)
             ausentes.Add(new MetricaSemDado(
                 "valorDoFunilConfiavel",
-                $"Só {comValor} de {processos} processos abertos declaram valor " +
-                $"({comValor * 100.0 / processos:F1}%). O total vem preenchido, mas ele representa " +
+                Texto($"Só {comValor:N0} de {processos:N0} processos abertos declaram valor ") +
+                Texto($"({comValor * 100.0 / processos:F1}%). O total vem preenchido, mas ele representa ") +
                 "essa fração — não o funil inteiro."));
 
         if (processos == 0)

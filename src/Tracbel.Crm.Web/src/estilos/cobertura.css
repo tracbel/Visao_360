@@ -558,47 +558,5 @@
 .dash-pagina.cob-maquete .cob-prioridade[data-prioridade='Baixa'] { background: #dcf5e6; color: #15803d; }
 .dash-pagina.cob-maquete .cob-prioridade > i { width: 9px; height: 9px; border-radius: 50%; background: #16a34a; }
 
-/* O MENU DE CADA LINHA */
+/* O MENU DE CADA LINHA — o componente é o `MenuDaLinha` compartilhado; aqui só a coluna dele. */
 .dash-pagina.cob-maquete .cob-coluna-menu { width: 36px; text-align: right; }
-.dash-pagina.cob-maquete .cob-menu { position: relative; display: inline-block; }
-
-.dash-pagina.cob-maquete .cob-menu-botao {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #374151;
-  cursor: pointer;
-}
-
-.dash-pagina.cob-maquete .cob-menu-botao:hover,
-.dash-pagina.cob-maquete .cob-menu-botao[aria-expanded='true'] { background: #f1f3f5; }
-
-.dash-pagina.cob-maquete .cob-menu-lista {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 20;
-  display: grid;
-  min-width: 210px;
-  padding: 6px;
-  border: 1px solid var(--cob-borda);
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  text-align: left;
-}
-
-.dash-pagina.cob-maquete .cob-menu-lista > a {
-  padding: 8px 10px;
-  border-radius: 6px;
-  font-size: 12.5px;
-  text-decoration: none;
-  color: var(--cob-marinho);
-}
-
-.dash-pagina.cob-maquete .cob-menu-lista > a:hover,
-.dash-pagina.cob-maquete .cob-menu-lista > a:focus-visible { background: #f1fbf5; color: #0b5e36; }
