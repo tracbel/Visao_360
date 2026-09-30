@@ -1,5 +1,9 @@
 # API do CRM — cadastro próprio e ponte de leitura do Vórtice
 
+> **Versão 1.1 · 29/09/2026 — as 107 rotas de hoje e quem chama cada uma** (issue 6): 101 o front chama, 1 só a
+> infraestrutura, 3 são a ponte do Vórtice que nenhuma tela usa, e 2 — a escrita do catálogo de culturas — não têm
+> consumidor. Em **§11**. A §2 continua descrevendo as rotas de 04/09.
+>
 > **Documento 23** · Versão 1.0 · 04/09/2026
 > Cobre `src/Tracbel.Crm.Api`, `src/Tracbel.Crm.Aplicacao` e `src/Tracbel.Crm.Integracao/Vortice`.
 > É o passo 1 de três: a fundação sobre a qual o front (passo 2) é construído.
@@ -928,3 +932,147 @@ curl -H "X-Tracbel-Usuario: cen.ribeiraopreto@tracbel.com.br" \
 
 Em Desenvolvimento os dois cabeçalhos podem ser omitidos — a API cai no padrão de
 `appsettings.Development.json` e **loga o aviso `PROVISÓRIO`**.
+
+---
+
+## 11. Todas as rotas e quem chama cada uma (issue 6, 29/09/2026)
+
+**A §2 descreve as rotas de 04/09.** A API tem hoje **107**. Esta seção lista todas elas e classifica cada uma por
+quem a chama. É a entrada da #5 (o catálogo gerado a partir do OpenAPI) e da #4 (os metadados de cada rota).
+
+**Nada foi removido** — a issue pede classificar, não apagar.
+
+### 11.1 Como foi medido
+
+- **As rotas:** um script leu cada `Map*` de `src/Tracbel.Crm.Api`, com o prefixo do `MapGroup` e as constantes
+  `Base`. Deu 107, o mesmo total de chamadas `Map*` do projeto.
+- **Quem chama:** todo caminho `/v1/...` do front fora de teste e de `dev/`, inclusive os montados com constante
+  (`const BASE = '/v1/admin/usuarios'`) e com as funções auxiliares `conexao()` e `rotina()` de
+  `dados/api/integracoes.ts`. Os scripts de `scripts/` foram varridos atrás de `/saude` e `/api/v1/legado`.
+
+### 11.2 O resultado
+
+| Classe | Rotas | O que quer dizer |
+|---|---:|---|
+| **ATIVO** | 101 | o front chama. A coluna "quem chama" diz o módulo de `dados/api/` (ou o componente, nas rotas de `/auth`) |
+| **INTERNO** | 1 | só a infraestrutura chama: `/saude/banco`, a prova de vida da publicação |
+| **LEGADO** | 3 | a ponte de leitura do Vórtice (`/api/v1/legado/*`). Nenhuma tela a usa desde que o CRM passou a ter os dados próprios; ela continua de pé, com a permissão `Legado.Ler`, e responde 503 sem VPN |
+| **SEM CONSUMIDOR** | 2 | a escrita do catálogo de culturas (`POST` e `PUT` em `/catalogo/culturas`). A API está pronta, com permissão e trilha, mas a tela de Configurações só **lê** o catálogo |
+
+**O que isto sugere, sem fazer:**
+- **A ponte do Vórtice** pode ser desligada quando o Vórtice for desligado. Até lá, ela não custa nada parada.
+- **A escrita do catálogo de culturas** pede a tela em Configurações › Potencial de mercado, ou a decisão de que cultura
+  nova entra só por migração. Nas duas saídas, a rota deixa de estar sem consumidor.
+
+### 11.3 A lista
+
+| Método | Rota | Classe | Quem chama |
+|---|---|---|---|
+| `GET` | `/api/v1/acesso/escopo` | ATIVO | acesso.ts |
+| `GET` | `/api/v1/admin/integracoes` | ATIVO | integracoes.ts |
+| `GET` | `/api/v1/admin/integracoes/conexoes/{codigo}/verificacoes` | ATIVO | integracoes.ts |
+| `GET` | `/api/v1/admin/integracoes/rotinas/{codigo}/execucoes` | ATIVO | integracoes.ts |
+| `POST` | `/api/v1/admin/integracoes/conexoes` | ATIVO | integracoes.ts |
+| `PUT` | `/api/v1/admin/integracoes/conexoes/{codigo}` | ATIVO | integracoes.ts |
+| `PUT` | `/api/v1/admin/integracoes/conexoes/{codigo}/segredo` | ATIVO | integracoes.ts |
+| `POST` | `/api/v1/admin/integracoes/conexoes/{codigo}/segredo/remocao` | ATIVO | integracoes.ts |
+| `POST` | `/api/v1/admin/integracoes/conexoes/{codigo}/teste` | ATIVO | integracoes.ts |
+| `POST` | `/api/v1/admin/integracoes/conexoes/{codigo}/desativacao` | ATIVO | integracoes.ts |
+| `POST` | `/api/v1/admin/integracoes/conexoes/{codigo}/reativacao` | ATIVO | integracoes.ts |
+| `PUT` | `/api/v1/admin/integracoes/rotinas/{codigo}` | ATIVO | integracoes.ts |
+| `POST` | `/api/v1/admin/integracoes/rotinas/{codigo}/execucao` | ATIVO | integracoes.ts |
+| `GET` | `/api/v1/admin/perfis/todos` | ATIVO | perfis.ts |
+| `GET` | `/api/v1/admin/permissoes` | ATIVO | perfis.ts |
+| `POST` | `/api/v1/admin/perfis` | ATIVO | administracao.ts, perfis.ts |
+| `PUT` | `/api/v1/admin/perfis/{codigo}` | ATIVO | perfis.ts |
+| `POST` | `/api/v1/admin/perfis/{codigo}/desativacao` | ATIVO | perfis.ts |
+| `POST` | `/api/v1/admin/perfis/{codigo}/reativacao` | ATIVO | perfis.ts |
+| `GET` | `/api/v1/admin/usuarios` | ATIVO | administracao.ts |
+| `GET` | `/api/v1/admin/usuarios/{chave:guid}` | ATIVO | administracao.ts |
+| `POST` | `/api/v1/admin/usuarios/{chave:guid}/liberacao` | ATIVO | administracao.ts |
+| `POST` | `/api/v1/admin/usuarios/{chave:guid}/concessoes` | ATIVO | administracao.ts |
+| `POST` | `/api/v1/admin/usuarios/{chave:guid}/concessoes/{concessaoId:long}/revogacao` | ATIVO | administracao.ts |
+| `POST` | `/api/v1/admin/usuarios/{chave:guid}/desativacao` | ATIVO | administracao.ts |
+| `POST` | `/api/v1/admin/usuarios/{chave:guid}/reativacao` | ATIVO | administracao.ts |
+| `GET` | `/api/v1/admin/perfis` | ATIVO | administracao.ts, perfis.ts |
+| `GET` | `/api/v1/admin/auditoria` | ATIVO | auditoria.ts |
+| `GET` | `/api/v1/admin/auditoria/entidades` | ATIVO | auditoria.ts |
+| `GET` | `/api/v1/catalogos` | ATIVO | catalogos.ts |
+| `GET` | `/api/v1/catalogos/{codigo}` | ATIVO | consolidado.ts |
+| `GET` | `/api/v1/clientes` | ATIVO | clientes.ts, http.ts |
+| `GET` | `/api/v1/clientes/{chave:guid}` | ATIVO | clientes.ts |
+| `POST` | `/api/v1/clientes` | ATIVO | clientes.ts, http.ts |
+| `PUT` | `/api/v1/clientes/{chave:guid}` | ATIVO | clientes.ts |
+| `DELETE` | `/api/v1/clientes/{chave:guid}` | ATIVO | clientes.ts |
+| `GET` | `/api/v1/equipamentos` | ATIVO | equipamentos.ts |
+| `GET` | `/api/v1/equipamentos/{chave:guid}` | ATIVO | equipamentos.ts |
+| `GET` | `/api/v1/equipamentos/{chave:guid}/vendas` | ATIVO | equipamentos.ts |
+| `GET` | `/api/v1/clientes/{chave:guid}/maquinas-compradas` | ATIVO | equipamentos.ts |
+| `POST` | `/api/v1/equipamentos` | ATIVO | equipamentos.ts |
+| `PUT` | `/api/v1/equipamentos/{chave:guid}` | ATIVO | equipamentos.ts |
+| `DELETE` | `/api/v1/equipamentos/{chave:guid}` | ATIVO | equipamentos.ts |
+| `POST` | `/api/v1/mercado/calculadora` | ATIVO | territorio.ts |
+| `GET` | `/api/v1/mercado/diagnostico` | ATIVO | mercado.ts |
+| `GET` | `/api/v1/mercado/demanda` | ATIVO | mercado.ts |
+| `GET` | `/api/v1/admin/parametros-do-potencial` | ATIVO | potencial.ts |
+| `GET` | `/api/v1/admin/parametros-do-potencial/opcoes` | ATIVO | potencial.ts |
+| `GET` | `/api/v1/admin/parametros-do-potencial/catalogo` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/catalogo/culturas` | SEM CONSUMIDOR | nenhum |
+| `PUT` | `/api/v1/admin/parametros-do-potencial/catalogo/culturas/{codigo}` | SEM CONSUMIDOR | nenhum |
+| `GET` | `/api/v1/admin/parametros-do-potencial/historico` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/geral` | ATIVO | potencial.ts |
+| `GET` | `/api/v1/admin/parametros-do-potencial/geral/porte-pelos-tercis` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/culturas` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/percepcoes` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/geral/{vigenteDesde}/revogacao` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/culturas/{produtoCodigoIbge:int}/{categoriaDeMaquinaCodigo}/{vigenteDesde}/revogacao` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/percepcoes/{municipioCodigoIbge:int}/{vigenteDesde}/revogacao` | ATIVO | potencial.ts |
+| `GET` | `/api/v1/admin/parametros-do-potencial/planejamento` | ATIVO | potencial.ts |
+| `GET` | `/api/v1/admin/parametros-do-potencial/planejamento/historico` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/planejamento` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/planejamento/{vigenteDesde}/revogacao` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/planejamento/shares` | ATIVO | potencial.ts |
+| `POST` | `/api/v1/admin/parametros-do-potencial/planejamento/shares/{categoriaDeMaquinaCodigo}/{vigenteDesde}/revogacao` | ATIVO | potencial.ts |
+| `GET` | `/api/v1/processos` | ATIVO | consolidado.ts, relacionamento.ts |
+| `GET` | `/api/v1/processos/{chave:guid}` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/tarefas` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/interacoes` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/cobertura` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/clientes/{chave:guid}/carteiras` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/relatorios/funil` | ATIVO | consolidado.ts, relacionamento.ts |
+| `GET` | `/api/v1/relatorios/perdas` | ATIVO | consolidado.ts, relacionamento.ts |
+| `GET` | `/api/v1/relatorios/vendas-perdidas` | ATIVO | consolidado.ts, relacionamento.ts |
+| `GET` | `/api/v1/relatorios/funil-por-estagio` | ATIVO | consolidado.ts, relacionamento.ts |
+| `GET` | `/api/v1/relatorios/faturamento` | ATIVO | consolidado.ts, relacionamento.ts |
+| `GET` | `/api/v1/clientes/{chave:guid}/faturamento` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/relatorios/indicadores-executivos` | ATIVO | consolidado.ts |
+| `GET` | `/api/v1/relatorios/cen` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/relatorios/agenda` | ATIVO | consolidado.ts, relacionamento.ts |
+| `GET` | `/api/v1/relatorios/cobertura` | ATIVO | consolidado.ts, relacionamento.ts |
+| `GET` | `/api/v1/relatorios/forecast` | ATIVO | forecast.ts |
+| `GET` | `/api/v1/relatorios/metas` | ATIVO | metas.ts |
+| `GET` | `/api/v1/relatorios/estoque` | ATIVO | estoque.ts |
+| `GET` | `/api/v1/integracoes/sincronizacoes` | ATIVO | sincronizacoes.ts |
+| `GET` | `/api/v1/integracoes/desempenho` | ATIVO | integracoes.ts |
+| `GET` | `/api/v1/integracoes/fontes-publicas` | ATIVO | potencial.ts |
+| `GET` | `/api/v1/integracoes/cobertura-do-motor` | ATIVO | potencial.ts |
+| `GET` | `/api/v1/integracoes/conferencia-gn` | ATIVO | conferencia.ts |
+| `GET` | `/api/v1/municipios` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/territorio/indicadores` | ATIVO | territorio.ts |
+| `GET` | `/api/v1/territorio/municipios/{codigoIbge:int}/historico` | ATIVO | territorio.ts |
+| `GET` | `/api/v1/territorio/precos` | ATIVO | territorio.ts, tipos/mercado.ts |
+| `GET` | `/api/v1/territorio/preco-implicito` | ATIVO | territorio.ts |
+| `GET` | `/api/v1/territorio/rentabilidade` | ATIVO | territorio.ts |
+| `GET` | `/api/v1/territorio/custos` | ATIVO | territorio.ts |
+| `GET` | `/api/v1/territorio/credito` | ATIVO | territorio.ts |
+| `GET` | `/api/v1/territorio/credito/share` | ATIVO | territorio.ts |
+| `GET` | `/api/v1/cobertura/filiais` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/cobertura/carteiras` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/legado/clientes` | LEGADO | nenhuma tela (ponte do Vórtice, somente leitura) |
+| `GET` | `/api/v1/legado/clientes/{identificador:long}/parque` | LEGADO | nenhuma tela (ponte do Vórtice, somente leitura) |
+| `GET` | `/api/v1/legado/saude` | LEGADO | nenhuma tela (ponte do Vórtice, somente leitura) |
+| `GET` | `/auth/eu` | ATIVO | componentes/config/ConfigSecaoConta.tsx, sessao.tsx |
+| `GET` | `/auth/entrar` | ATIVO | sessao.tsx |
+| `GET` | `/auth/sair` | ATIVO | componentes/Layout.tsx |
+| `GET` | `/saude/banco` | INTERNO | scripts de publicação, agente e troca de certificado (prova de vida) |
+

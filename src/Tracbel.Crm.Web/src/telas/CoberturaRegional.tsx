@@ -318,9 +318,9 @@ export function CoberturaRegional() {
             subtitulo="Vínculos com interação nos últimos 90 dias, sobre o total da carteira."
             dica={
               <>
-                As faixas de cor são de leitura, e <strong>não são meta</strong>: <code>organizacao.Meta</code> está vazia e
-                não há fonte no legado nem no protótipo, onde a meta de 80% era um número escrito no JavaScript. O medidor
-                mostra onde a operação está, e não se ela passou.
+                As faixas de cor são de leitura, e <strong>não são meta</strong>: nenhuma meta de cobertura foi cadastrada,
+                nem no sistema antigo nem no protótipo, onde os 80% eram um número fixo no código. O medidor mostra onde a
+                operação está, e não se ela passou.
               </>
             }
           >
@@ -479,10 +479,9 @@ export function CoberturaRegional() {
           e passou a ficar depois do território que de fato existe. */}
       <BlocoRecolhivel titulo="Por que esta tela não tem regional" resumo="as sete regionais do protótipo não existem no dado">
         <p className="cad-coluna-meta">
-          MT Norte, GO, BA Oeste e mais quatro vinham do protótipo. No Vórtice, a tabela de regional
-          (<code>IVS_Regional</code>) <strong>existe e tem zero linhas</strong> — não há tabela,
-          coluna nem valor de texto que as sustente. E as treze filiais em operação estão todas no
-          interior de São Paulo. O agrupamento preenchido é{' '}
+          MT Norte, GO, BA Oeste e mais quatro vinham do protótipo. No Vórtice, o cadastro de
+          regionais <strong>existe e está vazio</strong> — nenhum dado sustenta essas regionais. E as
+          treze filiais em operação estão todas no interior de São Paulo. O agrupamento preenchido é{' '}
           <strong>filial → carteira → cidades</strong>, e é o que esta tela mostra.
         </p>
       </BlocoRecolhivel>

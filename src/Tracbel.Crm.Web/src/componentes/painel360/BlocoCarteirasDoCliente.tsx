@@ -43,7 +43,7 @@ export function BlocoCarteirasDoCliente({ chave }: { chave: string }) {
     <BlocoPainel
       id="carteiras"
       titulo="Carteiras e CEN"
-      subtitulo="comercial.ClienteCarteira — as carteiras ao seu alcance, com o CEN responsável por cada uma"
+      subtitulo="As carteiras ao seu alcance, com o CEN responsável por cada uma"
       fonte={<SeloProcedencia procedencia={leitura.procedencia} />}
       estado={estadoDe(leitura.carregando, leitura.erro, dados)}
       mensagemErro={leitura.erro?.message}

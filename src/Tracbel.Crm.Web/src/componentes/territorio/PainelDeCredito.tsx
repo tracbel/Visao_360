@@ -294,8 +294,8 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
         titulo="O crédito rural ainda não foi carregado neste banco"
         texto={
           <>
-            A rota respondeu, mas não há nenhuma linha do SICOR gravada: a carga (<code>--somente-credito</code>) ainda
-            não rodou aqui. Não é zero nem falta de permissão.
+            Não há nenhuma linha do SICOR gravada: a rotina <strong>Preços, custos e crédito</strong> ainda não rodou
+            aqui — quem administra a liga em Configurações › Integrações. Não é zero nem falta de permissão.
           </>
         }
       />
