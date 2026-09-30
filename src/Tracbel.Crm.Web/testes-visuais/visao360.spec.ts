@@ -325,15 +325,17 @@ test.describe('Visão 360 em 1536x864, com a linha mudando depois do desenho', (
     // faturamento. O gráfico, de tamanho fixo, ficava com a medida com que nasceu: cortado depois de jun/26, sem encher o
     // painel, e sem balão — o Chart.js lia o ponteiro no tamanho antigo.
     await abrir(page, 'completo');
-    const canvas = page.locator('[data-fonte="art"] canvas');
+    // O CANVAS É LIDO PELA MOLDURA, NA HORA: a cada medida nova o gráfico é montado de novo, e um canvas guardado de
+    // antes pode já ter saído da página (no CI, a medida ainda mudou uma vez depois de a página abrir).
+    const moldura = page.locator('[data-fonte="art"] .cad-moldura-grafico');
     const medir = () =>
-      canvas.evaluate((c: HTMLCanvasElement) => {
-        const r = c.getBoundingClientRect();
-        const moldura = c.closest('.cad-moldura-grafico')!;
+      moldura.evaluate((m: HTMLElement) => {
+        const c = m.querySelector('canvas');
+        const r = c?.getBoundingClientRect();
         return {
-          naTela: [Math.round(r.width), Math.round(r.height)],
-          moldura: [moldura.clientWidth, moldura.clientHeight],
-          desenho: [c.width / devicePixelRatio, c.height / devicePixelRatio].map(Math.round),
+          naTela: r ? [Math.round(r.width), Math.round(r.height)] : [0, 0],
+          moldura: [m.clientWidth, m.clientHeight],
+          desenho: c ? [c.width / devicePixelRatio, c.height / devicePixelRatio].map(Math.round) : [0, 0],
         };
       });
     const antes = await medir();
