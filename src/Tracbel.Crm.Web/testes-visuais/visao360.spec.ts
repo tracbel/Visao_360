@@ -316,3 +316,41 @@ for (const { nome, largura, altura } of TODAS) {
     });
   });
 }
+
+test.describe('Visão 360 em 1536x864, com a linha mudando depois do desenho', () => {
+  test.use({ viewport: { width: 1536, height: 864 } });
+
+  test('o gráfico do faturamento acompanha o painel quando a linha cresce depois de desenhado', async ({ page }) => {
+    // O DEFEITO (29/09/2026, print do Ricardo): quando o funil chega, o alerta dos processos parados estica a linha do
+    // faturamento. O gráfico, de tamanho fixo, ficava com a medida com que nasceu: cortado depois de jun/26, sem encher o
+    // painel, e sem balão — o Chart.js lia o ponteiro no tamanho antigo.
+    await abrir(page, 'completo');
+    // O CANVAS É LIDO PELA MOLDURA, NA HORA: a cada medida nova o gráfico é montado de novo, e um canvas guardado de
+    // antes pode já ter saído da página (no CI, a medida ainda mudou uma vez depois de a página abrir).
+    const moldura = page.locator('[data-fonte="art"] .cad-moldura-grafico');
+    const medir = () =>
+      moldura.evaluate((m: HTMLElement) => {
+        const c = m.querySelector('canvas');
+        const r = c?.getBoundingClientRect();
+        return {
+          naTela: r ? [Math.round(r.width), Math.round(r.height)] : [0, 0],
+          moldura: [m.clientWidth, m.clientHeight],
+          desenho: c ? [c.width / devicePixelRatio, c.height / devicePixelRatio].map(Math.round) : [0, 0],
+        };
+      });
+    const antes = await medir();
+
+    // O funil chegou: o terceiro alerta ganhou o texto longo, e a linha cresceu.
+    await page.locator('.v360-alertas-list').evaluate((n: HTMLElement) => {
+      n.style.minHeight = `${n.offsetHeight + 160}px`;
+    });
+    await expect.poll(async () => (await medir()).moldura[1], { message: 'a moldura do faturamento não cresceu com a linha' }).toBeGreaterThan(antes.moldura[1]);
+
+    // O canvas na tela e o tamanho em que o Chart.js desenha são os da moldura, com 1px de arredondamento.
+    const diferenca = ({ naTela, desenho, moldura }: Awaited<ReturnType<typeof medir>>) =>
+      Math.max(...moldura.flatMap((v, i) => [Math.abs(naTela[i] - v), Math.abs(desenho[i] - v)]));
+    await expect
+      .poll(async () => diferenca(await medir()), { message: 'o gráfico ficou com a medida antiga depois que a linha cresceu' })
+      .toBeLessThanOrEqual(1);
+  });
+});
