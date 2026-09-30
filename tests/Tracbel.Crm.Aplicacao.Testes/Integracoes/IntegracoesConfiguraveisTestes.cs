@@ -306,6 +306,30 @@ public sealed class IntegracoesConfiguraveisTestes : IDisposable
     }
 
     [Fact]
+    public async Task A_carga_que_termina_bem_e_escreve_o_resumo_tem_o_resumo_guardado_na_execucao()
+    {
+        // ISSUE 268: "registra em ExecucaoDeRotina quantas partições abriu e quantas linhas saíram". A carga escreve a linha
+        // com o prefixo do resumo, e o orquestrador a guarda no lugar do "ok" seco.
+        await using (var db = Contexto())
+        {
+            foreach (var cada in await db.Rotinas.ToListAsync()) cada.IniciarExecucao(new DateTime(2026, 9, 22, 13, 0, 0, DateTimeKind.Utc));
+            var particao = await db.Rotinas.SingleAsync(r => r.Codigo == RotinasDoSistema.ParticaoDaAuditoria);
+            particao.PedirExecucao(100, new DateTime(2026, 9, 23, 11, 0, 0, DateTimeKind.Utc));
+            await db.SaveChangesAsync();
+        }
+
+        const string Resumo = "abriu 12 limite(s) de mês; expurgou 2 partição(ões) da trilha (40 linha(s))";
+        var cargas = new CargasSimuladas(_ => 0, saida: Orquestrador.PrefixoDoResumo + Resumo);
+        (await VoltaAsync(cargas, new TestadorSimulado(true), new DateTime(2026, 9, 23, 12, 0, 0, DateTimeKind.Utc))).Should().Be(0);
+
+        cargas.Rodadas.Should().Equal("--somente-particao-auditoria");
+        await using var leitura = Contexto();
+        var execucao = await leitura.ExecucoesDeRotina.SingleAsync();
+        execucao.Resultado.Should().Be(ResultadoDaExecucao.Sucesso);
+        execucao.Mensagem.Should().Be($"--somente-particao-auditoria: ok — {Resumo}");
+    }
+
+    [Fact]
     public async Task A_api_monitorada_e_testada_quando_o_intervalo_vence()
     {
         await using (var db = Contexto())
