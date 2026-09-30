@@ -1,0 +1,548 @@
+/* =============================================================================
+   O PIPELINE NA MAQUETE DO RICARDO (30/09/2026)
+   `docs/prototipo/capturas-referencia/pipeline-maquete-2026-09-30.png`, em 1672 × 941.
+
+   TUDO AQUI MORA EMBAIXO DE `.dash-pagina.pip-maquete` — a classe que só o Pipeline põe na página. As peças são as do
+   padrão dos Indicadores (`mv-kpi`, `mom-painel`, `terr-*`), e as outras telas continuam como estão. O prefixo
+   `.dash-pagina` é de propósito: o `dashboard.css` carrega depois, e sem ele as regras dele ganhariam destas.
+   ============================================================================= */
+
+.pip-maquete {
+  --pip-marinho: #0b1638;
+  --pip-cinza: #5b6776;
+  --pip-borda: #e6eaee;
+  --pip-linha: #eef1f3;
+  --pip-verde: #1b873f;
+}
+
+.dash-pagina.pip-maquete { gap: 12px; }
+
+/* -----------------------------------------------------------------------------
+   O CABEÇALHO — o ladrilho verde do gráfico, o título marinho e o subtítulo embaixo dele
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pip-maquete .page-header { margin-bottom: 0; }
+.dash-pagina.pip-maquete .pip-cabecalho { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+.dash-pagina.pip-maquete .pip-titulo-icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #e6f4ea;
+  color: var(--pip-verde);
+}
+
+.dash-pagina.pip-maquete .page-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--pip-marinho);
+}
+
+.dash-pagina.pip-maquete .page-subtitle { margin: 0; font-size: 12.5px; color: var(--pip-cinza); }
+.dash-pagina.pip-maquete .dash-atualizado { align-self: center; gap: 8px; font-size: 12px; color: var(--pip-cinza); }
+
+/* -----------------------------------------------------------------------------
+   A BARRA DE FILTROS — branca, sem o ladrilho de ícone e sem o filete entre os grupos; o rótulo em cima do campo
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pip-maquete .dash-filtros-linha {
+  align-items: flex-end;
+  gap: 14px 22px;
+  padding: 12px 20px 14px;
+  background: #fff;
+  border-color: var(--pip-borda);
+  border-radius: 10px;
+}
+
+.dash-pagina.pip-maquete .dash-filtros-linha > .dash-filtro + .dash-filtro,
+.dash-pagina.pip-maquete .dash-filtros-linha > .dash-filtros-acao {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.dash-pagina.pip-maquete .dash-filtros-linha > .dash-filtro { grid-template-columns: minmax(0, 1fr); }
+.dash-pagina.pip-maquete .dash-filtro-corpo { gap: 6px; }
+
+.dash-pagina.pip-maquete .dash-filtros-linha .dash-filtro-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2b3440;
+}
+
+.dash-pagina.pip-maquete .dash-filtros-linha > .dash-filtro select {
+  height: 32px;
+  border-color: #dfe3e8;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--pip-marinho);
+}
+
+/* A BUSCA COM A LUPA DENTRO, no campo cinza da maquete. */
+.dash-pagina.pip-maquete .pip-busca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #e3e7eb;
+  border-radius: 6px;
+  background: #f3f5f7;
+  color: #6b7280;
+}
+
+.dash-pagina.pip-maquete .dash-filtros-linha > .dash-filtro .pip-busca input[type='search'] {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 12.5px;
+  color: var(--pip-marinho);
+}
+
+.dash-pagina.pip-maquete .pip-busca:focus-within { border-color: var(--pip-verde); box-shadow: 0 0 0 3px rgba(27, 135, 63, 0.12); }
+
+.dash-pagina.pip-maquete .dash-filtros-acao { height: 32px; }
+.dash-pagina.pip-maquete .dash-caixa { font-size: 12.5px; color: #2b3440; }
+
+/* AS LARGURAS DA MAQUETE quando os campos cabem numa linha: o fluxo e a busca largos, a situação estreita. Abaixo disso
+   vale a quebra do dashboard.css. */
+@container indicadores (min-width: 1000px) {
+  .dash-pagina.pip-maquete .dash-filtros-linha > .dash-filtro[data-bloco='fluxo'] { flex: 0 1 288px; max-width: 288px; }
+  .dash-pagina.pip-maquete .dash-filtros-linha > .dash-filtro[data-bloco='busca'] { flex: 0 1 336px; max-width: 336px; }
+  .dash-pagina.pip-maquete .dash-filtros-linha > .dash-filtro[data-bloco='situacao'] { flex: 0 1 162px; max-width: 162px; }
+}
+
+/* -----------------------------------------------------------------------------
+   OS QUATRO CARTÕES — a tinta da maquete e o ícone solto, com um véu da cor dentro
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pip-maquete .dash-kpis.mv-kpis { gap: 12px; }
+
+.dash-pagina.pip-maquete .mv-kpi {
+  align-items: start;
+  column-gap: 14px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.pip-maquete .mv-kpi-glifo {
+  align-self: start;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-top: 0;
+  background: none;
+}
+
+.dash-pagina.pip-maquete .mv-kpi-glifo svg {
+  width: 32px;
+  height: 32px;
+  stroke-width: 2;
+  fill: color-mix(in srgb, var(--mv-tom) 20%, transparent);
+}
+
+.dash-pagina.pip-maquete .mv-kpi-rotulo { font-size: 13px; font-weight: 700; line-height: 1.35; color: var(--pip-marinho); }
+.dash-pagina.pip-maquete .mv-kpi-valor { column-gap: 8px; font-size: 26px; line-height: 1.2; color: var(--pip-marinho); }
+.dash-pagina.pip-maquete .mv-kpi-valor > strong { font-weight: 800; }
+.dash-pagina.pip-maquete .mv-kpi-unidade { font-size: 13px; color: var(--pip-cinza); }
+.dash-pagina.pip-maquete .mv-kpi-contexto { font-size: 12px; line-height: 1.35; color: #2b3440; }
+
+.dash-pagina.pip-maquete .mv-kpi[data-tom='demanda'] { --mv-tom: #16a34a; background: #effaf3; border-color: #cdebd8; }
+.dash-pagina.pip-maquete .mv-kpi[data-tom='mercado'] { --mv-tom: #2f7ff5; background: #eef4fe; border-color: #cfe0f7; }
+.dash-pagina.pip-maquete .mv-kpi[data-tom='captura'] { --mv-tom: #e0a31a; background: #fff8ea; border-color: #f7e2b5; }
+.dash-pagina.pip-maquete .mv-kpi[data-tom='oportunidade'] { --mv-tom: #8b5cf6; background: #f6f2fe; border-color: #e2d8fb; }
+
+/* NOME, NÚMERO E LINHA DE BAIXO NA MESMA ALTURA nos cartões lado a lado — as faixas são da linha (subgrid), como na
+   Visão 360 e na Cobertura. */
+@supports (grid-template-rows: subgrid) {
+  .dash-pagina.pip-maquete .dash-kpis.mv-kpis > .mv-kpi {
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 4px;
+  }
+
+  .dash-pagina.pip-maquete .dash-kpis.mv-kpis > .mv-kpi > .mv-kpi-corpo { display: contents; }
+  .dash-pagina.pip-maquete .dash-kpis.mv-kpis > .mv-kpi > .mv-kpi-glifo { grid-column: 1; grid-row: 1 / span 3; }
+
+  .dash-pagina.pip-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-rotulo,
+  .dash-pagina.pip-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-valor,
+  .dash-pagina.pip-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-contexto {
+    grid-column: 2;
+    min-width: 0;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   O QUE ESTES NÚMEROS NÃO DIZEM — a caixa laranja da maquete, com o ponto de exclamação no círculo. O nome técnico da
+   métrica fica só para o leitor de tela.
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pip-maquete .cad-semdado {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  column-gap: 16px;
+  align-items: center;
+  margin: 0;
+  padding: 12px 20px 12px 18px;
+  background: #fff4e8;
+  border: 1px solid #f7d3a8;
+  border-radius: 10px;
+}
+
+.dash-pagina.pip-maquete .cad-semdado::before {
+  content: '!';
+  display: grid;
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f5a04a;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.dash-pagina.pip-maquete .cad-semdado > * { grid-column: 2; }
+.dash-pagina.pip-maquete .cad-semdado-titulo { font-size: 14px; font-weight: 800; color: #8a3a0a; }
+.dash-pagina.pip-maquete .cad-semdado-titulo > svg { display: none; }
+.dash-pagina.pip-maquete .cad-semdado-lista { gap: 2px; margin-top: 3px; }
+.dash-pagina.pip-maquete .cad-semdado-lista li { font-size: 12px; line-height: 1.45; }
+.dash-pagina.pip-maquete .cad-semdado-motivo { color: #4a3a2e; }
+.dash-pagina.pip-maquete .cad-semdado-rodape { margin: 1px 0 0; font-size: 12px; color: #6b5a4c; }
+
+.dash-pagina.pip-maquete .cad-semdado-nome {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* -----------------------------------------------------------------------------
+   OS CARTÕES DE SEÇÃO — a seção é o cartão branco, com o ícone e o título dentro e a ação à direita
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pip-maquete section.pip-cartao {
+  gap: 14px;
+  padding: 16px 18px 18px;
+  background: #fff;
+  border: 1px solid var(--pip-borda);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.pip-maquete section.pip-cartao > .terr-secao-mercado {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  row-gap: 2px;
+  margin: 0;
+}
+
+.dash-pagina.pip-maquete section.pip-cartao > .terr-secao-mercado > .terr-secao-cabecalho { display: contents; }
+
+.dash-pagina.pip-maquete section.pip-cartao .terr-secao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--pip-marinho);
+}
+
+.dash-pagina.pip-maquete .pip-secao-icone { flex: none; color: var(--pip-verde); }
+
+/* O SUBTÍTULO ALINHADO AO TEXTO DO TÍTULO, e não ao ícone. */
+.dash-pagina.pip-maquete section.pip-cartao .terr-secao-subtitulo {
+  grid-column: 1;
+  grid-row: 2;
+  margin: 0 0 0 32px;
+  font-size: 12.5px;
+  color: var(--pip-cinza);
+}
+
+.dash-pagina.pip-maquete .pip-secao-acao { grid-column: 2; grid-row: 1 / span 2; align-self: center; margin: 0; }
+.dash-pagina.pip-maquete .pip-quadro-resumo { align-self: end; font-size: 12px; text-align: right; color: var(--pip-cinza); }
+
+@container indicadores (max-width: 699px) {
+  .dash-pagina.pip-maquete section.pip-cartao > .terr-secao-mercado { grid-template-columns: minmax(0, 1fr); }
+  .dash-pagina.pip-maquete .pip-secao-acao { grid-column: 1; grid-row: 3; margin-top: 8px; text-align: left; }
+}
+
+/* O PAINEL DENTRO DA SEÇÃO NÃO É UM SEGUNDO CARTÃO: sem moldura, e o título dele só para o leitor de tela. */
+.dash-pagina.pip-maquete section.pip-cartao > .mom-painel {
+  gap: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.dash-pagina.pip-maquete section.pip-cartao > .mom-painel > .mom-painel-cabecalho {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* -----------------------------------------------------------------------------
+   AS FASES — um cartão por fase, oito por linha na largura da maquete
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pip-maquete .pip-fases {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-pagina.pip-maquete .pip-fase {
+  --pip-fase: #9ca3af;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 10px 9px 12px;
+  border: 1px solid #e6e9ed;
+  border-radius: 8px;
+  background: #fafbfc;
+}
+
+.dash-pagina.pip-maquete .pip-fase[data-cor='verde'] { --pip-fase: #16a34a; }
+.dash-pagina.pip-maquete .pip-fase[data-cor='azul'] { --pip-fase: #2f7ff5; }
+.dash-pagina.pip-maquete .pip-fase[data-cor='laranja'] { --pip-fase: #f0961e; }
+.dash-pagina.pip-maquete .pip-fase[data-cor='roxo'] { --pip-fase: #a466f0; }
+
+/* O FUNDO PINTA SÓ A FASE COM VALOR DECLARADO, como na maquete. */
+.dash-pagina.pip-maquete .pip-fase[data-com-valor='true'] {
+  background: color-mix(in srgb, var(--pip-fase) 7%, #fff);
+  border-color: color-mix(in srgb, var(--pip-fase) 28%, #fff);
+}
+
+.dash-pagina.pip-maquete .pip-fase[data-escolhida='true'] { box-shadow: 0 0 0 2px var(--pip-fase); }
+.dash-pagina.pip-maquete .pip-fase:has(.pip-fase-seta:focus-visible) { outline: 2px solid var(--pip-verde); outline-offset: 2px; }
+
+.dash-pagina.pip-maquete .pip-fase-cabeca { display: flex; align-items: center; gap: 6px; min-width: 0; }
+
+.dash-pagina.pip-maquete .pip-fase-ponto {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--pip-fase);
+}
+
+.dash-pagina.pip-maquete .pip-fase-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pip-marinho);
+}
+
+/* A SETA É O BOTÃO, e a área dele cobre o cartão inteiro. Ela desce um pouco, entre o nome e o número, como na maquete. */
+.dash-pagina.pip-maquete .pip-fase-seta {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 22px;
+  margin: 0 -2px -12px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.dash-pagina.pip-maquete .pip-fase-seta::after { content: ''; position: absolute; inset: 0; border-radius: 8px; }
+.dash-pagina.pip-maquete .pip-fase-seta:focus-visible { outline: 0; }
+.dash-pagina.pip-maquete .pip-fase[data-com-valor='true'] .pip-fase-seta,
+.dash-pagina.pip-maquete .pip-fase-seta[aria-pressed='true'] { color: var(--pip-fase); }
+.dash-pagina.pip-maquete .pip-fase:hover { border-color: color-mix(in srgb, var(--pip-fase) 45%, #fff); }
+
+.dash-pagina.pip-maquete .pip-fase-numero {
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e8ebee;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  color: var(--pip-marinho);
+}
+
+.dash-pagina.pip-maquete .pip-fase-numero[data-maior='true'] { color: #15803d; }
+
+.dash-pagina.pip-maquete .pip-fase-meta {
+  padding-top: 5px;
+  font-size: 9.5px;
+  font-style: normal;
+  line-height: 1.4;
+  color: #6b7280;
+}
+
+.dash-pagina.pip-maquete .pip-fase-meta.cad-nada {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-top: 9px;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+/* O ⓘ DO "SEM VALOR" FICA POR CIMA DA ÁREA DA SETA, para abrir a dica dele e não a lista. */
+.dash-pagina.pip-maquete .pip-fase .dica { position: relative; z-index: 1; }
+
+.dash-pagina.pip-maquete .pip-fase-valor { display: block; font-size: 12px; font-weight: 700; color: #374151; }
+.dash-pagina.pip-maquete .pip-fase[data-cor='verde'] .pip-fase-valor { color: #15803d; }
+
+/* -----------------------------------------------------------------------------
+   OS PROCESSOS — o Exportar à direita e a tabela solta no cartão
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pip-maquete .pip-lista-acoes { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+
+.dash-pagina.pip-maquete .pip-fase-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 6px 0 12px;
+  border: 1px solid #cdebd8;
+  border-radius: 15px;
+  background: #effaf3;
+  font-size: 12px;
+  color: #0b5e36;
+}
+
+.dash-pagina.pip-maquete .pip-fase-filtro > button {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dash-pagina.pip-maquete .pip-fase-filtro > button:hover { background: #d7f0df; }
+
+.dash-pagina.pip-maquete .pip-exportar-caixa { display: inline-flex; align-items: center; gap: 6px; }
+
+.dash-pagina.pip-maquete .pip-exportar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.dash-pagina.pip-maquete .pip-exportar:hover { background: #f8fafb; }
+.dash-pagina.pip-maquete .pip-exportar:disabled { cursor: default; opacity: 0.6; }
+
+.dash-pagina.pip-maquete .pip-tabela thead th {
+  padding: 9px 12px;
+  background: #f3f5f7;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: left;
+  text-transform: uppercase;
+  color: #4b5563;
+}
+
+.dash-pagina.pip-maquete .pip-tabela thead th:first-child { border-radius: 8px 0 0 0; }
+.dash-pagina.pip-maquete .pip-tabela thead th:last-child { border-radius: 0 8px 0 0; }
+
+.dash-pagina.pip-maquete .pip-tabela thead .cad-th-ordenar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+
+.dash-pagina.pip-maquete .pip-seta-da-ordem { color: #374151; }
+
+/* LINHAS BAIXAS, como na maquete: título e linha de baixo coladas, 31px por processo. */
+.dash-pagina.pip-maquete .pip-tabela tbody th,
+.dash-pagina.pip-maquete .pip-tabela tbody td {
+  padding: 3px 12px;
+  border-bottom: 1px solid var(--pip-linha);
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: left;
+  vertical-align: middle;
+  color: #2b3440;
+}
+
+.dash-pagina.pip-maquete .pip-processo { font-size: 12.5px; font-weight: 700; text-decoration: none; color: #15803d; }
+.dash-pagina.pip-maquete .pip-cliente { font-size: 12px; font-weight: 500; text-decoration: none; color: #15803d; }
+.dash-pagina.pip-maquete .pip-processo:hover,
+.dash-pagina.pip-maquete .pip-cliente:hover { text-decoration: underline; }
+.dash-pagina.pip-maquete .pip-tabela .cad-sub { margin: 0; font-size: 11px; line-height: 1.2; color: #6b7280; }
+.dash-pagina.pip-maquete .pip-fase-da-linha { color: #2b3440; }
+.dash-pagina.pip-maquete .pip-tabela .cad-nada { font-size: 12px; color: #6b7280; }
+.dash-pagina.pip-maquete .pip-valor { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--pip-marinho); }
+
+/* OS DIAS PARADOS — a pílula vermelha da maquete, a partir de 90 dias. */
+.dash-pagina.pip-maquete .pip-parado { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: #2b3440; }
+
+.dash-pagina.pip-maquete .pip-parado[data-alerta='true'] {
+  display: inline-block;
+  padding: 0 7px;
+  border-radius: 10px;
+  background: #fde8e8;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+/* A SITUAÇÃO — a pílula larga da maquete, nas cores de cada situação do sistema. */
+.dash-pagina.pip-maquete .pip-situacao {
+  min-width: 70px;
+  padding: 3px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.dash-pagina.pip-maquete .pip-situacao.cad-selo-aberto { background: #dbeafe; color: #1d4ed8; }
+
+.dash-pagina.pip-maquete .pip-coluna-menu { width: 44px; text-align: right; }

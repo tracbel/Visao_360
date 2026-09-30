@@ -538,6 +538,11 @@ encerrados. O quadro de fases acima continua correto, porque vem do agregado.
 **O conserto é do lado da API** — empurrar os dois códigos para dentro de `ConsultaDeProcessos`,
 como `situacao` já está. É a mesma natureza de **P-3** (a API não filtra por modelo).
 
+> **Paga em 30/09/2026**, com o Pipeline na maquete do Ricardo: `ConsultaDeProcessos` ganhou
+> `TipoProcessoCodigo` e `FaseCodigo`, o repositório resolve os dois no banco antes de paginar, e o
+> total passa a ser o da fase. A seta de cada fase do quadro abre a lista filtrada por ela
+> (`PipelineDaMaqueteTestes`).
+
 **Verificação:** `npx tsc --noEmit` limpo; 1.280px e 390px sem erro de console e sem rolagem
 horizontal.
 

@@ -74,6 +74,14 @@ public enum OrdemDeCobertura
 /// <param name="Ordem">Coluna de ordenação.</param>
 /// <param name="Descendente">Ordem decrescente.</param>
 /// <param name="IncluirEncerrados">Traz também os processos já encerrados. Padrão é não trazer.</param>
+/// <param name="TipoProcessoCodigo">
+/// Filtro pelo CÓDIGO do fluxo — o que a API expõe. Resolvido no banco, antes da paginação (30/09/2026: era aplicado
+/// sobre a página já paginada, e o total não batia com as linhas — a dívida P-7).
+/// </param>
+/// <param name="FaseCodigo">
+/// Filtro pelo CÓDIGO da fase, também no banco. O código é único dentro do fluxo: com o fluxo junto, é uma coluna do
+/// quadro; sozinho, é a fase de mesmo código em todos os fluxos.
+/// </param>
 public sealed record ConsultaDeProcessos(
     Paginacao Paginacao,
     string? Termo = null,
@@ -86,7 +94,9 @@ public sealed record ConsultaDeProcessos(
     DateOnly? AbertoAte = null,
     OrdemDeProcesso Ordem = OrdemDeProcesso.FaseDesde,
     bool Descendente = true,
-    bool IncluirEncerrados = false);
+    bool IncluirEncerrados = false,
+    string? TipoProcessoCodigo = null,
+    string? FaseCodigo = null);
 
 /// <summary>
 /// Um processo junto do que a tela mostra ao lado dele — cliente, fluxo, fase e dono já

@@ -88,6 +88,27 @@ export function listarProcessos(
 }
 
 /**
+ * A LISTA INTEIRA DOS PROCESSOS, com os filtros da tela, para o Exportar do Pipeline (30/09/2026): de 200 em 200 — o
+ * tamanho máximo da API —, até o total ou até {@link LINHAS_NO_EXPORTAR}, como a da Cobertura.
+ */
+export async function listarProcessosInteira(
+  contexto: ContextoDeAcesso,
+  consulta: ConsultaDeProcessos,
+  sinal?: AbortSignal,
+): Promise<{ itens: ProcessoResumo[]; total: number }> {
+  const tamanho = 200;
+  const primeira = await listarProcessos(contexto, { ...consulta, pagina: 1, tamanho }, sinal);
+  const total = primeira.dados.total;
+  const itens = [...primeira.dados.itens];
+  const paginas = Math.min(Math.ceil(total / tamanho), Math.ceil(LINHAS_NO_EXPORTAR / tamanho));
+  for (let pagina = 2; pagina <= paginas; pagina++) {
+    const resposta = await listarProcessos(contexto, { ...consulta, pagina, tamanho }, sinal);
+    itens.push(...resposta.dados.itens);
+  }
+  return { itens, total };
+}
+
+/**
  * Quantos processos existem numa situação — só a contagem, sem trazer as linhas.
  *
  * A CONTAGEM É DO BANCO, e não da tela: pede uma linha e lê o `total`, que o
@@ -322,7 +343,7 @@ export function listarCobertura(
   });
 }
 
-/** Quantas linhas o Exportar da Cobertura leva no máximo — 50 páginas de 200. */
+/** Quantas linhas o Exportar leva no máximo — 50 páginas de 200. Vale para a Cobertura e para o Pipeline. */
 export const LINHAS_NO_EXPORTAR = 10_000;
 
 /**

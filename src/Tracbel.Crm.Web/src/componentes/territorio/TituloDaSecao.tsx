@@ -17,6 +17,7 @@ export function TituloDaSecao({
   subtitulo,
   metodologia,
   acao,
+  icone,
 }: {
   titulo: string;
   /** Uma frase curta. Se precisar de ponto e vírgula, é metodologia. */
@@ -29,13 +30,16 @@ export function TituloDaSecao({
    * vieram para a dica do título da seção a que pertencem.
    */
   metodologia?: ReactNode;
-  /** Uma ação secundária à direita do título — hoje só "Simular cenário". */
+  /** Uma ação secundária à direita do título — "Simular cenário", a busca e o Exportar das maquetes. */
   acao?: ReactNode;
+  /** O ícone antes do título, quando a maquete desenha um (Pipeline, 30/09/2026). Decorativo: `aria-hidden` nele. */
+  icone?: ReactNode;
 }) {
   return (
     <div className="terr-secao-mercado">
       <div className="terr-secao-cabecalho">
         <h2 className="terr-secao-titulo">
+          {icone}
           {titulo}
           {metodologia && <InfoTooltip texto={metodologia} rotulo={`Fonte e método de ${titulo.toLowerCase()}`} />}
         </h2>
