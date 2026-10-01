@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Mercado;
 using Tracbel.Crm.Dominio.Metadado;
 using Tracbel.Crm.Dominio.Organizacao;
@@ -88,6 +89,10 @@ public sealed class MigracaoNoContainerTestes
         contexto.Rotinas.Single(r => r.Id == 11).Codigo.Should().Be("TELEMETRIA_OPERATIONS_CENTER");
         contexto.Rotinas.Single(r => r.Id == 12).Codigo.Should().Be("ESTOQUE_GESTAO_NEGOCIOS");
         contexto.Rotinas.Single(r => r.Id == 13).Codigo.Should().Be("CONFERENCIA_GESTAO_NEGOCIOS");
+
+        // A ROTINA 9 LÊ DE HORA EM HORA (01/10/2026): o UPDATE com condição da migração trocou a agenda semeada.
+        var metas = contexto.Rotinas.Single(r => r.Id == 9);
+        (metas.Cadencia, metas.Hora, metas.IntervaloMinutos).Should().Be((CadenciaDaRotina.Intervalo, (TimeOnly?)null, (int?)60));
 
         // A ROTINA 14 É A DA PARTIÇÃO DA AUDITORIA (issue 268): a única que nasce ligada entre as que não são de fonte
         // pública — ela não traz dado de fora, só mantém o banco.

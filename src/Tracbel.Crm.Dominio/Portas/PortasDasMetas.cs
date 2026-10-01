@@ -117,18 +117,21 @@ public sealed record ForecastDoGestor(string Gestor, int Consultores, IReadOnlyL
 /// <param name="VendasSemGestor">As vendas do mês cujo vendedor não está no de-para (ou sem vendedor): entram no total e em gestor nenhum.</param>
 /// <param name="LidoEm">A última leitura do forecast (UTC); nula quando nunca foi lido.</param>
 /// <param name="GeradoNaOrigemEm">Quando a API gerou o cadastro nessa leitura (UTC).</param>
+/// <param name="GestoresForaDoRecorte">Os gestores com forecast no mês que ficaram fora das filiais escolhidas: nenhum
+/// consultor do time é delas, e o time não tem meta nem venda nelas.</param>
 public sealed record ForecastApurado(
     DateOnly Competencia,
     IReadOnlyList<ForecastDoGestor> Gestores,
     IReadOnlyList<LinhaDoForecast> Total,
     int VendasSemGestor,
     DateTime? LidoEm,
-    DateTime? GeradoNaOrigemEm);
+    DateTime? GeradoNaOrigemEm,
+    int GestoresForaDoRecorte = 0);
 
 /// <summary>
 /// O FORECAST DA GERÊNCIA (28/09/2026) — a previsão de cada gestor da API Gestão de Negócios ao lado do PO e do realizado
 /// do time dele. O time é o de-para de consultores; o PO e o realizado passam pelo filtro global (as filiais ao alcance), e o
-/// forecast é do gestor inteiro.
+/// forecast é do gestor inteiro — mas só do gestor que pertence às filiais escolhidas (01/10/2026).
 /// </summary>
 public interface IRepositorioDoForecast
 {
@@ -139,7 +142,11 @@ public interface IRepositorioDoForecast
     /// <summary>Apura um mês.</summary>
     /// <param name="competencia">O mês, no dia 1.</param>
     /// <param name="ct">Cancelamento.</param>
-    Task<ForecastApurado> ApurarAsync(DateOnly competencia, CancellationToken ct);
+    /// <param name="filiaisDoRecorte">
+    /// As filiais escolhidas, quando não é a organização inteira: aí só entra o gestor que tem consultor delas no de-para, ou
+    /// meta ou venda nelas. Nulo é "Todas as filiais" — todo gestor com forecast entra.
+    /// </param>
+    Task<ForecastApurado> ApurarAsync(DateOnly competencia, CancellationToken ct, IReadOnlySet<int>? filiaisDoRecorte = null);
 }
 
 /// <summary>

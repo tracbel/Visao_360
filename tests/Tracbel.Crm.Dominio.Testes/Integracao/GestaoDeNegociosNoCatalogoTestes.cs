@@ -41,7 +41,8 @@ public sealed class GestaoDeNegociosNoCatalogoTestes
         metas.Modos.Should().Equal("--somente-metas-gn", "--somente-planejamento-gn");
         metas.LigadaPorPadrao.Should().BeFalse("trazer dado novo para produção é decisão de quem administra");
         metas.ConexaoExigida.Should().Be(ConexoesDoSistema.GestaoDeNegocios);
-        metas.AgendaPadrao.Should().Be(AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)));
+        // DE HORA EM HORA (01/10/2026): o forecast do mês novo é digitado no dia 1º, depois da leitura das 06:00.
+        metas.AgendaPadrao.Should().Be(AgendaDaRotina.ACada(60));
     }
 
     [Fact]

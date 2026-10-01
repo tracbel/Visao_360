@@ -213,7 +213,7 @@ cartão diz "set/2026 até a carga de 08/09" e não compara com agosto cheio.
 
 | Etapa | Conteúdo |
 |---|---|
-| Fonte | meta: `GET /api/v1/cadastros/metas` da API Gestão de Negócios → `organizacao.MetaDeVenda` (rotina `METAS_GESTAO_NEGOCIOS`, diária às 06:00); realizado: `frota.VendaDeMaquina` (o ART); lacuna: `integracao.RegistroDeOrigem` do ART sem venda |
+| Fonte | meta: `GET /api/v1/cadastros/metas` da API Gestão de Negócios → `organizacao.MetaDeVenda` (rotina `METAS_GESTAO_NEGOCIOS`, de hora em hora desde 01/10/2026; era diária às 06:00); realizado: `frota.VendaDeMaquina` (o ART); lacuna: `integracao.RegistroDeOrigem` do ART sem venda |
 | Campos | meta: `Competencia`, `CodigoDaLinha`, `ConsultorNaOrigem`, `ConsultorUsuarioId`, `Origem`, `Quantidade`; realizado: `VendidaEm`, `LinhaNaOrigem`, `VendedorNaOrigem` |
 | Transformação [regra] | meta = soma das linhas da GN no período (as duplicatas de negócio da origem se somam); realizado = uma máquina por venda, pela data da venda, SÓ o que o CRM tem (D-M3); as vendas que aguardam na integração do ART (cadastro, chassi ou outro motivo) vêm em número, à parte; consórcio = meta em cotas, realizado não medido (D-M4); por consultor conta a PESSOA, o vendedor do ART (D-M2), casado com o consultor pela chave da pessoa (sem acento; espaço e hífen viram ponto); por filial conta a filial da venda — também em "Sua meta", onde a venda por outra filial fica fora (decisão pendente); a filial cuja leitura falhou sai da soma NOMEADA ("X de Y filiais — fora: …", e "(X de Y)" no total da composição) |
 | Período | o ano fiscal (nov→out) até o último mês FECHADO, comparado com o mesmo trecho do FY anterior (só o realizado); o mês em curso vem à parte, com a meta e o que já foi vendido nele |
