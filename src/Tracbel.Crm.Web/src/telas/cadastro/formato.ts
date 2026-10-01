@@ -52,3 +52,39 @@ export function formatarDinheiro(valor: number | null | undefined): string {
     maximumFractionDigits: 0,
   });
 }
+
+/** Conectivos que não viram inicial e ficam em minúscula: "Hamilton de Souza Lopes". */
+const CONECTIVOS = new Set(['da', 'das', 'de', 'do', 'dos', 'e']);
+
+/** As siglas do negócio que ficam em caixa alta no meio de um nome: "Implementos CEN", e não "Implementos Cen". */
+const SIGLAS = new Set(['CEN', 'AMS', 'ART', 'GN', 'JD', 'ABC']);
+
+/** "JOÃO" vira "João"; o login ou a sigla com ponto (GESTOR.NORTE, INT.MERCADO) e as siglas do negócio ficam como estão. */
+function capitular(palavra: string): string {
+  if (palavra.includes('.')) return palavra;
+  const maiuscula = palavra.toLocaleUpperCase('pt-BR');
+  if (SIGLAS.has(maiuscula)) return maiuscula;
+  return palavra.charAt(0).toLocaleUpperCase('pt-BR') + palavra.slice(1).toLocaleLowerCase('pt-BR');
+}
+
+/**
+ * O NOME COMO AS MAQUETES ESCREVEM NOS GRÁFICOS: primeiro nome, a inicial do segundo e o último — "Matheus A. Cruz"
+ * (Performance de CEN e Forecast da Gerência, 01/10/2026). O nome inteiro continua na tabela e no leitor de tela.
+ */
+export function nomeCurto(nome: string): string {
+  const partes = nome.trim().split(/\s+/);
+  if (partes.length === 1) return nome;
+  const primeiro = capitular(partes[0]);
+  const ultimo = capitular(partes[partes.length - 1]);
+  const meio = partes.slice(1, -1).find((p) => !CONECTIVOS.has(p.toLocaleLowerCase('pt-BR')));
+  return meio ? `${primeiro} ${meio.charAt(0).toLocaleUpperCase('pt-BR')}. ${ultimo}` : `${primeiro} ${ultimo}`;
+}
+
+/** O nome inteiro em caixa de nome próprio — "Gestor Fictício da Regional Norte" —, com os conectivos em minúscula. */
+export function nomeProprio(nome: string): string {
+  return nome
+    .trim()
+    .split(/\s+/)
+    .map((p, i) => (i > 0 && CONECTIVOS.has(p.toLocaleLowerCase('pt-BR')) ? p.toLocaleLowerCase('pt-BR') : capitular(p)))
+    .join(' ');
+}

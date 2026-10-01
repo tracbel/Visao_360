@@ -1114,35 +1114,108 @@ function clientesSemContato(estado: EstadoDaVisao360, consulta: URLSearchParams)
 
 const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
+/** Uma linha de produto do forecast da amostra: código, nome, PG, forecast, best guess e realizado. */
+type LinhaDoForecastDaAmostra = readonly [codigo: string, nome: string, meta: number, forecast: number | null, bestGuess: number | null, realizado: number];
+
 /**
- * O FORECAST DA GERÊNCIA: três gestores, um com nome de regional inteiro, um forecast e um best guess não informados e
- * uma linha sem PO — o que a tela mostra com o traço. O total soma as linhas, e as vendas sem gestor entram só nele.
+ * OS NOVE GESTORES DA MAQUETE DO FORECAST (01/10/2026): cinco com nome de pessoa (letra grega, como os CENs fictícios),
+ * um com nome de regional inteiro, um login da GN, um com uma linha só e um sem PG — o que a tela mostra com o traço.
+ */
+const GESTORES_DO_FORECAST: { gestor: string; consultores: number; linhas: LinhaDoForecastDaAmostra[] }[] = [
+  {
+    gestor: 'ALFA MATIAS DE ARAUJO CRUZ',
+    consultores: 5,
+    linhas: [
+      ['TRATOR_PEQUENO', 'TRATOR PEQUENO', 4, 6, 2, 4],
+      ['IMPLEMENTOS', 'IMPLEMENTOS CEN', 6, 8, 3, 6],
+      ['TRATOR_MEDIO', 'TRATOR MÉDIO', 4, 5, 2, 4],
+      ['TRATOR_GRANDE', 'TRATOR GRANDE', 4, 3, 1, 4],
+    ],
+  },
+  {
+    gestor: 'BETA ITALO JARDIM SILVA',
+    consultores: 4,
+    linhas: [
+      ['TRATOR_PEQUENO', 'TRATOR PEQUENO', 4, 3, 4, 3],
+      ['TRATOR_MEDIO', 'TRATOR MÉDIO', 6, 4, 6, 5],
+      ['TRATOR_GRANDE', 'TRATOR GRANDE', 3, 3, 3, 2],
+    ],
+  },
+  {
+    gestor: 'GAMA LUZIA FERRAZ MELO',
+    consultores: 3,
+    linhas: [
+      ['TRATOR_MEDIO', 'TRATOR MÉDIO', 8, 5, 5, 5],
+      ['COLHEITADEIRA', 'COLHEITADEIRA', 5, 3, 3, 3],
+    ],
+  },
+  {
+    gestor: 'DELTA CAIO RAMOS ALMEIDA',
+    consultores: 3,
+    linhas: [
+      ['TRATOR_MEDIO', 'TRATOR MÉDIO', 6, 3, 2, 3],
+      ['PULVERIZADOR', 'PULVERIZADOR', 4, 2, 2, 2],
+    ],
+  },
+  {
+    gestor: 'ÉPSILON RAFA SANTANA LIMA',
+    consultores: 2,
+    linhas: [
+      ['TRATOR_MEDIO', 'TRATOR MÉDIO', 7, 3, 2, 3],
+      ['PLANTADEIRA', 'PLANTADEIRA', 3, 1, 1, 1],
+    ],
+  },
+  {
+    gestor: 'GESTOR FICTÍCIO DA REGIONAL NORTE PAULISTA',
+    consultores: 6,
+    linhas: [
+      ['TRATOR_MEDIO', 'TRATOR MÉDIO', 14, 12, 13, 9],
+      ['TRATOR_GRANDE', 'TRATOR GRANDE', 6, 5, 6, 4],
+      ['COLHEITADEIRA', 'COLHEITADEIRA', 3, null, 2, 1],
+      ['PULVERIZADOR', 'PULVERIZADOR', 2, 2, 2, 3],
+    ],
+  },
+  {
+    gestor: 'GESTOR.SUL',
+    consultores: 3,
+    linhas: [
+      ['TRATOR_MEDIO', 'TRATOR MÉDIO', 10, 9, 8, 7],
+      ['PLANTADEIRA', 'PLANTADEIRA', 4, 3, null, 2],
+    ],
+  },
+  { gestor: 'ZETA JOAO PRADO OLIVEIRA', consultores: 2, linhas: [['TRATOR_MEDIO', 'TRATOR MÉDIO', 6, 4, 3, 4]] },
+  { gestor: 'ETA FERNANDA TAVARES SANTOS', consultores: 2, linhas: [['TRATOR_MEDIO', 'TRATOR MÉDIO', 0, null, null, 1]] },
+];
+
+/** O mês da amostra muda os números um pouco, para a comparação com o mês anterior ter o que comparar. */
+const FATOR_DO_MES_DO_FORECAST: Record<string, number> = { '2026-06': 0.97, '2026-07': 1.05, '2026-08': 0.92, '2026-09': 1 };
+
+/**
+ * O FORECAST DA GERÊNCIA: os nove gestores acima, um forecast e um best guess não informados e uma linha sem PG — o que a
+ * tela mostra com o traço. O total soma as linhas, e as vendas sem gestor entram só nele.
  */
 function forecastDaGerencia(estado: EstadoDaVisao360, competencia: string | null): RelatorioDoForecast {
   const mes = competencia && /^\d{4}-\d{2}$/.test(competencia) ? `${competencia}-01` : '2026-09-01';
   const vazio = estado !== 'completo';
-  const linha = (codigo: string, nome: string, meta: number, forecast: number | null, bestGuess: number | null, realizado: number) =>
-    ({ codigo, nome, meta, forecast, bestGuess, realizado }) satisfies LinhaDoForecast;
+  const fator = FATOR_DO_MES_DO_FORECAST[mes.slice(0, 7)] ?? 1;
+  const noMes = (v: number | null) => (v === null ? null : n(v * fator));
   const gestores = vazio
     ? []
-    : [
-        {
-          gestor: 'GESTOR FICTÍCIO DA REGIONAL NORTE PAULISTA',
-          consultores: 6,
-          linhas: [
-            linha('TRATOR_MEDIO', 'TRATOR MÉDIO', 14, 12, 13, 9),
-            linha('TRATOR_GRANDE', 'TRATOR GRANDE', 6, 5, 6, 4),
-            linha('COLHEITADEIRA', 'COLHEITADEIRA', 3, null, 2, 1),
-            linha('PULVERIZADOR', 'PULVERIZADOR', 2, 2, 2, 3),
-          ],
-        },
-        {
-          gestor: 'GESTOR FICTÍCIO BETA',
-          consultores: 4,
-          linhas: [linha('TRATOR_MEDIO', 'TRATOR MÉDIO', 10, 9, 8, 7), linha('PLANTADEIRA', 'PLANTADEIRA', 4, 3, null, 2)],
-        },
-        { gestor: 'GESTOR FICTÍCIO GAMA', consultores: 2, linhas: [linha('TRATOR_MEDIO', 'TRATOR MÉDIO', 0, null, null, 1)] },
-      ];
+    : GESTORES_DO_FORECAST.map((g) => ({
+        gestor: g.gestor,
+        consultores: g.consultores,
+        linhas: g.linhas.map(
+          ([codigo, nome, meta, forecast, bestGuess, realizado]) =>
+            ({
+              codigo,
+              nome,
+              meta: n(meta * fator),
+              forecast: noMes(forecast),
+              bestGuess: noMes(bestGuess),
+              realizado: n(realizado * fator),
+            }) satisfies LinhaDoForecast,
+        ),
+      }));
   const vendasSemGestor = vazio ? 0 : 2;
 
   const soma = (a: number | null, b: number | null) => (a === null && b === null ? null : (a ?? 0) + (b ?? 0));
@@ -1162,7 +1235,7 @@ function forecastDaGerencia(estado: EstadoDaVisao360, competencia: string | null
   return {
     competencia: mes,
     texto: `${MESES_CURTOS[Number(mes.slice(5, 7)) - 1]}/${mes.slice(0, 4)}`,
-    mesesDisponiveis: vazio ? [] : ['2026-07-01', '2026-08-01', '2026-09-01'],
+    mesesDisponiveis: vazio ? [] : ['2026-06-01', '2026-07-01', '2026-08-01', '2026-09-01'],
     alcance: 'Filiais',
     gestores,
     total,

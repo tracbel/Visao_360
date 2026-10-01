@@ -123,7 +123,7 @@ import type {
   ResumoDeCobertura,
   VendasPerdidas,
 } from '../tipos/relacionamento';
-import { formatarData } from './cadastro/formato';
+import { formatarData, nomeCurto } from './cadastro/formato';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
@@ -219,25 +219,6 @@ function intervaloDo(periodo: PeriodoId, hoje: Date): { de: string; ate: string 
   return { de: dataIso(new Date(hoje.getTime() - dias * 86_400_000)), ate: dataIso(hoje) };
 }
 
-/** Conectivos que não viram inicial: "Hamilton de Souza Lopes" é "Hamilton S. Lopes". */
-const CONECTIVOS = new Set(['da', 'das', 'de', 'do', 'dos', 'e']);
-
-/** "JOÃO" vira "João"; a sigla com ponto (INT.MERCADO) fica como está. */
-const capitular = (palavra: string) =>
-  palavra.includes('.') ? palavra : palavra.charAt(0).toLocaleUpperCase('pt-BR') + palavra.slice(1).toLocaleLowerCase('pt-BR');
-
-/**
- * O NOME COMO A MAQUETE ESCREVE: primeiro nome, a inicial do segundo e o último — "Matheus A. Cruz". O nome inteiro
- * continua na tabela em números e no leitor de tela de cada barra.
- */
-function nomeCurto(nome: string): string {
-  const partes = nome.trim().split(/\s+/);
-  if (partes.length === 1) return nome;
-  const primeiro = capitular(partes[0]);
-  const ultimo = capitular(partes[partes.length - 1]);
-  const meio = partes.slice(1, -1).find((p) => !CONECTIVOS.has(p.toLocaleLowerCase('pt-BR')));
-  return meio ? `${primeiro} ${meio.charAt(0).toLocaleUpperCase('pt-BR')}. ${ultimo}` : `${primeiro} ${ultimo}`;
-}
 
 /** Uma pessoa, com as carteiras dela somadas. */
 type LinhaDeCen = {

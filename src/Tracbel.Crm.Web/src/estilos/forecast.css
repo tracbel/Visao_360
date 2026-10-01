@@ -1,17 +1,520 @@
-/*
- * Forecast da Gerência (28/09/2026) — só o que as classes do cadastro não cobrem: o gestor como grupo da tabela, com a
- * soma na primeira linha, e o total no fim.
- *
- * 29/09/2026: a tabela virou `mom-tabela`, e o alinhamento dos números é o `mom-num` dela — as regras de alinhamento
- * daqui saíram.
- */
+/* =============================================================================
+   O FORECAST DA GERÊNCIA NA MAQUETE DO RICARDO (01/10/2026)
+   `docs/prototipo/capturas-referencia/forecast-gerencia-maquete-2026-10-01.png`, em 1672 × 941.
 
-/* A SOMA DO GESTOR abre o grupo: o nome em destaque, e as linhas de produto abaixo, recuadas. */
-.fc-soma th { font-weight: 600; color: var(--text-primary); }
-.fc-soma td { font-weight: 600; }
-.fc-gestor .fc-soma th,
-.fc-gestor .fc-soma td { background: var(--n-50); border-top: 1px solid var(--n-200); }
-.fc-nome-da-linha { padding-left: 28px !important; color: var(--text-secondary); }
+   TUDO AQUI MORA EMBAIXO DE `.dash-pagina.fc-maquete` — a classe que só o Forecast da Gerência põe na página. As peças
+   são as do padrão dos Indicadores (`mv-kpi`, `mom-painel`, `terr-*`), e as outras telas continuam como estão. O
+   prefixo `.dash-pagina` é de propósito: o `dashboard.css` carrega depois, e sem ele as regras dele ganhariam destas.
+   ============================================================================= */
 
-.fc-total .fc-soma th,
-.fc-total .fc-soma td { border-top: 2px solid var(--n-300); background: var(--bg-surface); }
+.fc-maquete {
+  --fc-marinho: #0b1638;
+  --fc-cinza: #5b6776;
+  --fc-borda: #e6eaee;
+  --fc-linha: #eef1f3;
+  --fc-verde: #1b873f;
+  --fc-verde-escuro: #1b6e35;
+  --fc-verde-claro: #5fd07a;
+}
+
+.dash-pagina.fc-maquete { gap: 12px; }
+
+/* O TEXTO SÓ PARA O LEITOR DE TELA, onde a maquete não desenha título: o painel da tabela. */
+.dash-pagina.fc-maquete section.fc-cartao > .mom-painel > .mom-painel-cabecalho {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* -----------------------------------------------------------------------------
+   O CABEÇALHO
+   ----------------------------------------------------------------------------- */
+.dash-pagina.fc-maquete .page-header { margin-bottom: 0; }
+
+.dash-pagina.fc-maquete .page-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--fc-marinho);
+}
+
+.dash-pagina.fc-maquete .page-subtitle { margin: 0; font-size: 13px; color: var(--fc-cinza); }
+.dash-pagina.fc-maquete .dash-atualizado { align-self: center; gap: 8px; font-size: 12px; color: var(--fc-cinza); }
+.dash-pagina.fc-maquete .fc-calendario { flex: none; color: #6b7280; }
+
+/* -----------------------------------------------------------------------------
+   A BARRA DE FILTROS — branca, o rótulo em cima, o ícone dentro do campo e o "Limpar filtros" em link
+   ----------------------------------------------------------------------------- */
+.dash-pagina.fc-maquete .dash-filtros-linha {
+  align-items: flex-end;
+  gap: 14px 22px;
+  padding: 12px 20px 14px;
+  background: #fff;
+  border-color: var(--fc-borda);
+  border-radius: 10px;
+}
+
+.dash-pagina.fc-maquete .dash-filtros-linha > .dash-filtro { grid-template-columns: minmax(0, 1fr); }
+.dash-pagina.fc-maquete .dash-filtro-corpo { gap: 6px; }
+
+.dash-pagina.fc-maquete .dash-filtros-linha .dash-filtro-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2b3440;
+}
+
+.dash-pagina.fc-maquete .dash-filtros-linha > .dash-filtro select {
+  height: 34px;
+  border-color: #dfe3e8;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--fc-marinho);
+}
+
+.dash-pagina.fc-maquete .fc-campo-com-icone { position: relative; display: block; }
+
+.dash-pagina.fc-maquete .fc-campo-com-icone > svg {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  color: #4b5563;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.dash-pagina.fc-maquete .dash-filtros-linha > .dash-filtro .fc-campo-com-icone select { padding-left: 34px; }
+.dash-pagina.fc-maquete .dash-filtros-linha > .dash-filtros-acao { height: 34px; margin-left: auto; }
+
+.dash-pagina.fc-maquete .fc-limpar {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  color: #1f6fd1;
+  cursor: pointer;
+}
+
+@container indicadores (min-width: 1000px) {
+  .dash-pagina.fc-maquete .dash-filtros-linha > .dash-filtro[data-bloco='mes'] { flex: 0 1 296px; max-width: 296px; }
+  .dash-pagina.fc-maquete .dash-filtros-linha > .dash-filtro[data-bloco='gerencia'] { flex: 0 1 274px; max-width: 274px; }
+  .dash-pagina.fc-maquete .dash-filtros-linha > .dash-filtro[data-bloco='visao'] { flex: 0 1 268px; max-width: 268px; }
+}
+
+/* -----------------------------------------------------------------------------
+   OS CINCO CARTÕES — a tinta da maquete, o ícone num ladrilho, a comparação e a descrição embaixo
+   ----------------------------------------------------------------------------- */
+.dash-pagina.fc-maquete .dash-kpis.mv-kpis { gap: 12px; }
+
+.dash-pagina.fc-maquete .mv-kpi {
+  align-items: start;
+  column-gap: 14px;
+  padding: 16px 16px 14px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.fc-maquete .mv-kpi-glifo {
+  align-self: start;
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-top: 0;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--mv-tom) 15%, #fff);
+}
+
+.dash-pagina.fc-maquete .dash-kpis[data-colunas='5'] .mv-kpi-glifo svg { width: 25px; height: 25px; stroke-width: 2.3; }
+.dash-pagina.fc-maquete .mv-kpi-rotulo { font-size: 13px; font-weight: 700; line-height: 1.35; color: var(--fc-marinho); }
+.dash-pagina.fc-maquete .dash-kpis[data-colunas='5'] .mv-kpi-valor { column-gap: 10px; font-size: 28px; line-height: 1.2; color: var(--fc-marinho); }
+.dash-pagina.fc-maquete .mv-kpi-valor > strong { font-weight: 800; }
+.dash-pagina.fc-maquete .mv-kpi-unidade { font-size: 13px; color: var(--fc-cinza); }
+.dash-pagina.fc-maquete .dash-kpis[data-colunas='5'] .mv-kpi-contexto { display: grid; gap: 2px; font-size: 11.5px; line-height: 1.35; color: var(--fc-cinza); }
+
+.dash-pagina.fc-maquete .fc-comparacao { color: var(--fc-cinza); }
+.dash-pagina.fc-maquete .fc-descricao { color: #2b3440; }
+.dash-pagina.fc-maquete .fc-variacao { display: inline-flex; align-items: center; gap: 3px; font-weight: 700; }
+.dash-pagina.fc-maquete .fc-variacao[data-sentido='sobe'] { color: #15803d; }
+.dash-pagina.fc-maquete .fc-variacao[data-sentido='desce'] { color: #dc2626; }
+.dash-pagina.fc-maquete .fc-variacao[data-sentido='igual'] { color: #4b5563; }
+.dash-pagina.fc-maquete .fc-sem-comparacao { font-style: italic; }
+
+.dash-pagina.fc-maquete .mv-kpi[data-tom='demanda'] { --mv-tom: #16a34a; background: #f1fbf5; border-color: #cfebd9; }
+.dash-pagina.fc-maquete .mv-kpi[data-tom='mercado'] { --mv-tom: #2f6fe0; background: #f0f6fe; border-color: #d3e3f7; }
+.dash-pagina.fc-maquete .mv-kpi[data-tom='oportunidade'] { --mv-tom: #7c3aed; background: #f7f4fe; border-color: #e4dbfb; }
+.dash-pagina.fc-maquete .mv-kpi[data-tom='captura'] { --mv-tom: #f07a17; background: #fff7f0; border-color: #f7dcc3; }
+.dash-pagina.fc-maquete .mv-kpi[data-tom='neutro'] { --mv-tom: #16a34a; background: #f5fcf8; border-color: #d9efe1; }
+
+@supports (grid-template-rows: subgrid) {
+  .dash-pagina.fc-maquete .dash-kpis.mv-kpis > .mv-kpi {
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 4px;
+  }
+
+  .dash-pagina.fc-maquete .dash-kpis.mv-kpis > .mv-kpi > .mv-kpi-corpo { display: contents; }
+  .dash-pagina.fc-maquete .dash-kpis.mv-kpis > .mv-kpi > .mv-kpi-glifo { grid-column: 1; grid-row: 1 / span 3; }
+
+  .dash-pagina.fc-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-rotulo,
+  .dash-pagina.fc-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-valor,
+  .dash-pagina.fc-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-contexto {
+    grid-column: 2;
+    min-width: 0;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   ATENÇÃO DA GERÊNCIA — a faixa laranja clara com o triângulo
+   ----------------------------------------------------------------------------- */
+.dash-pagina.fc-maquete .fc-alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 22px;
+  background: #fff4ea;
+  border: 1px solid #f8d3ae;
+  border-radius: 10px;
+}
+
+.dash-pagina.fc-maquete .fc-alerta-icone { flex: none; margin-top: 4px; color: #e8590c; }
+.dash-pagina.fc-maquete .fc-alerta-texto { display: grid; gap: 3px; min-width: 0; font-size: 12.5px; line-height: 1.45; color: #4a3a2e; }
+.dash-pagina.fc-maquete .fc-alerta-titulo { font-size: 15px; font-weight: 800; color: #d9480f; }
+.dash-pagina.fc-maquete .fc-alerta-texto strong:not(.fc-alerta-titulo) { font-weight: 700; color: #2b2118; }
+
+/* -----------------------------------------------------------------------------
+   OS TRÊS GRÁFICOS — cartões brancos lado a lado a partir de 1.100px de conteúdo
+   ----------------------------------------------------------------------------- */
+.dash-pagina.fc-maquete .fc-graficos { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+
+@container indicadores (min-width: 1400px) {
+  .dash-pagina.fc-maquete .fc-graficos { grid-template-columns: minmax(0, 1.18fr) minmax(0, 1.18fr) minmax(0, 1fr); }
+}
+
+/* DE 1.100 A 1.399px (a tela do Ricardo, 1.536 a 125%) os três têm a mesma largura: com menos, a legenda da rosca
+   descia para baixo dela, e o painel ficava mais alto que os vizinhos. */
+@container indicadores (min-width: 1100px) and (max-width: 1399px) {
+  .dash-pagina.fc-maquete .fc-graficos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.dash-pagina.fc-maquete .fc-graficos > .mom-painel,
+.dash-pagina.fc-maquete section.fc-cartao {
+  gap: 12px;
+  padding: 16px 18px 18px;
+  background: #fff;
+  border: 1px solid var(--fc-borda);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+/* O TÍTULO E O SELETOR (OU A LEGENDA) NA MESMA LINHA, como a maquete: o texto do título quebra antes de o seletor descer. */
+.dash-pagina.fc-maquete .fc-graficos .mom-painel-linha { flex-wrap: nowrap; align-items: flex-start; }
+
+.dash-pagina.fc-maquete .fc-graficos .mom-painel-titulo {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 14.5px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--fc-marinho);
+}
+
+.dash-pagina.fc-maquete .fc-painel-icone,
+.dash-pagina.fc-maquete .fc-secao-icone { flex: none; color: var(--fc-verde); }
+
+.dash-pagina.fc-maquete .fc-graficos .mom-painel-subtitulo { margin: 0 0 0 32px; font-size: 12px; color: var(--fc-cinza); }
+.dash-pagina.fc-maquete .fc-graficos .mom-painel-direita { flex: none; min-width: 0; margin-left: auto; }
+
+.dash-pagina.fc-maquete .fc-seletor select {
+  height: 32px;
+  min-width: 86px;
+  max-width: 100%;
+  padding: 0 30px 0 12px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 11px center / 12px 12px;
+  appearance: none;
+  font-size: 12.5px;
+  color: var(--fc-marinho);
+  cursor: pointer;
+}
+
+.dash-pagina.fc-maquete .fc-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: #2b3440;
+}
+
+.dash-pagina.fc-maquete .fc-legenda li { display: inline-flex; align-items: center; gap: 6px; }
+.dash-pagina.fc-maquete .fc-legenda i { width: 10px; height: 10px; border-radius: 50%; }
+
+/* O RANKING: a trilha cinza inteira, a barra verde que clareia, o percentual depois da ponta. */
+.dash-pagina.fc-maquete .fc-ranking,
+.dash-pagina.fc-maquete .fc-pg { display: grid; gap: 10px; margin: 6px 0 0; padding: 0; list-style: none; }
+
+.dash-pagina.fc-maquete .fc-ranking-linha,
+.dash-pagina.fc-maquete .fc-pg-linha {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  column-gap: 14px;
+  align-items: center;
+}
+
+.dash-pagina.fc-maquete .fc-ranking-nome,
+.dash-pagina.fc-maquete .fc-pg-nome {
+  overflow: hidden;
+  font-size: 12.5px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #2b3440;
+}
+
+.dash-pagina.fc-maquete .fc-ranking-trilho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 18px;
+  background: #eef0f3;
+}
+
+.dash-pagina.fc-maquete .fc-ranking-barra {
+  flex: none;
+  height: 100%;
+  background: color-mix(in srgb, #3aa85a, #b6e3c0 var(--fc-tom, 0%));
+}
+
+.dash-pagina.fc-maquete .fc-ranking-barra[data-primeira='true'] { background: var(--fc-verde-escuro); }
+.dash-pagina.fc-maquete .fc-ranking-valor { flex: none; font-size: 12px; font-weight: 600; color: #2b3440; }
+
+/* O PG E O REALIZADO EM PAR. */
+.dash-pagina.fc-maquete .fc-pg-barras { display: grid; gap: 3px; min-width: 0; }
+.dash-pagina.fc-maquete .fc-pg-par { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dash-pagina.fc-maquete .fc-pg-barra { flex: none; height: 8px; }
+.dash-pagina.fc-maquete .fc-pg-barra[data-serie='pg'] { background: var(--fc-verde-escuro); }
+.dash-pagina.fc-maquete .fc-pg-barra[data-serie='realizado'] { background: var(--fc-verde-claro); }
+.dash-pagina.fc-maquete .fc-pg-valor { flex: none; font-size: 11px; line-height: 1; color: #6b7280; }
+.dash-pagina.fc-maquete .fc-pg-valor[data-serie='pg'] { font-weight: 600; color: var(--fc-marinho); }
+
+/* A DISTRIBUIÇÃO: a rosca e a legenda ao lado. */
+.dash-pagina.fc-maquete .fc-distribuicao { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 16px; }
+.dash-pagina.fc-maquete .fc-distribuicao > canvas { flex: none; }
+.dash-pagina.fc-maquete .fc-distribuicao-legenda { flex: 1 1 140px; border-collapse: collapse; font-size: 12.5px; color: #2b3440; }
+
+.dash-pagina.fc-maquete .fc-distribuicao-legenda th,
+.dash-pagina.fc-maquete .fc-distribuicao-legenda td {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.dash-pagina.fc-maquete .fc-distribuicao-legenda th { font-size: 12.5px; font-weight: 400; text-align: left; color: #2b3440; }
+
+.dash-pagina.fc-maquete .fc-distribuicao-legenda th > i {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 10px;
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+
+.dash-pagina.fc-maquete .fc-distribuicao-legenda td {
+  padding-left: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--fc-marinho);
+}
+
+/* -----------------------------------------------------------------------------
+   A PREVISÃO POR GESTOR — o cartão da seção, o Exportar à direita e a tabela com os grupos
+   ----------------------------------------------------------------------------- */
+.dash-pagina.fc-maquete section.fc-cartao > .terr-secao-mercado {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  row-gap: 2px;
+  margin: 0;
+}
+
+.dash-pagina.fc-maquete section.fc-cartao > .terr-secao-mercado > .terr-secao-cabecalho { display: contents; }
+
+.dash-pagina.fc-maquete section.fc-cartao .terr-secao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--fc-marinho);
+}
+
+.dash-pagina.fc-maquete section.fc-cartao .terr-secao-subtitulo {
+  grid-column: 1;
+  grid-row: 2;
+  margin: 0 0 0 36px;
+  font-size: 12px;
+  color: var(--fc-cinza);
+}
+
+.dash-pagina.fc-maquete .fc-secao-acao { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+
+.dash-pagina.fc-maquete .fc-exportar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.dash-pagina.fc-maquete .fc-exportar:disabled { cursor: default; opacity: 0.6; }
+
+@container indicadores (max-width: 699px) {
+  .dash-pagina.fc-maquete section.fc-cartao > .terr-secao-mercado { grid-template-columns: minmax(0, 1fr); }
+  .dash-pagina.fc-maquete .fc-secao-acao { grid-column: 1; grid-row: 3; justify-self: start; margin-top: 8px; }
+}
+
+.dash-pagina.fc-maquete section.fc-cartao > .mom-painel {
+  gap: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.dash-pagina.fc-maquete .fc-tabela { width: 100%; }
+
+.dash-pagina.fc-maquete .fc-tabela thead th {
+  padding: 8px 12px;
+  background: #f3f5f7;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #4b5563;
+}
+
+.dash-pagina.fc-maquete .fc-tabela thead th:first-child { padding-left: 42px; }
+
+.dash-pagina.fc-maquete .fc-tabela thead .cad-th-ordenar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+
+.dash-pagina.fc-maquete .fc-seta-inativa { color: #9aa4b2; }
+.dash-pagina.fc-maquete .fc-seta-ativa { color: #374151; }
+
+.dash-pagina.fc-maquete .fc-tabela tbody th,
+.dash-pagina.fc-maquete .fc-tabela tbody td {
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--fc-linha);
+  font-size: 12px;
+  line-height: 1.3;
+  vertical-align: middle;
+  color: #2b3440;
+}
+
+.dash-pagina.fc-maquete .fc-tabela .fc-soma th,
+.dash-pagina.fc-maquete .fc-tabela .fc-soma td { font-size: 12.5px; font-weight: 700; color: var(--fc-marinho); }
+.dash-pagina.fc-maquete .fc-tabela .fc-soma th { text-align: left; }
+.dash-pagina.fc-maquete .fc-grupo[data-aberto='true'] > .fc-soma > * { background: #f7f9fa; }
+
+.dash-pagina.fc-maquete .fc-abrir {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: 0 8px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: #374151;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.dash-pagina.fc-maquete .fc-abrir:hover { background: #eef1f3; }
+.dash-pagina.fc-maquete .fc-nome { vertical-align: middle; }
+.dash-pagina.fc-maquete .fc-consultores { margin-left: 8px; font-size: 11px; font-weight: 400; color: #8a94a3; }
+
+.dash-pagina.fc-maquete .fc-tabela .fc-filho td { font-size: 11.5px; color: #4b5563; }
+.dash-pagina.fc-maquete .fc-tabela .fc-nome-do-filho { padding-left: 50px; }
+
+.dash-pagina.fc-maquete .fc-tabela .fc-total th,
+.dash-pagina.fc-maquete .fc-tabela .fc-total td { padding-top: 8px; padding-bottom: 8px; border-bottom: 0; font-size: 13.5px; }
+.dash-pagina.fc-maquete .fc-tabela .fc-total th { padding-left: 12px; }
+
+/* O ATINGIMENTO EM BARRA: escuro no gestor e no total, claro nas linhas de dentro. */
+.dash-pagina.fc-maquete .fc-coluna-atingimento { width: 220px; text-align: left; }
+
+.dash-pagina.fc-maquete .fc-atingimento {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #2b3440;
+}
+
+.dash-pagina.fc-maquete .fc-atingimento-trilho {
+  display: block;
+  width: 140px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #e9ecef;
+}
+
+.dash-pagina.fc-maquete .fc-atingimento-trilho > span { display: block; height: 100%; border-radius: 5px; background: var(--fc-verde-claro); }
+.dash-pagina.fc-maquete .fc-atingimento[data-forte='true'] .fc-atingimento-trilho > span { background: #2e9d4f; }
+.dash-pagina.fc-maquete .fc-atingimento[data-total='true'] .fc-atingimento-trilho > span { background: var(--fc-verde-escuro); }
+
+@container indicadores (max-width: 699px) {
+  .dash-pagina.fc-maquete .fc-atingimento-trilho { width: 70px; }
+  .dash-pagina.fc-maquete .fc-coluna-atingimento { width: auto; }
+  .dash-pagina.fc-maquete .fc-ranking-linha,
+  .dash-pagina.fc-maquete .fc-pg-linha { grid-template-columns: 92px minmax(0, 1fr); column-gap: 8px; }
+}
