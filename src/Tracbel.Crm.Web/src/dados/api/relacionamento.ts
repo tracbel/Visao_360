@@ -367,12 +367,16 @@ export async function listarCoberturaInteira(
   return { itens, total };
 }
 
-/** A cobertura por carteira: clientes, contatados em 30 e 90 dias, nunca contatados. */
+/**
+ * A cobertura por carteira: clientes, contatados em 30 e 90 dias, nunca contatados. `classe` (A a D) conta só os
+ * clientes daquela classe — sem classe apurada conta como D, a regra do painel do CEN (01/10/2026).
+ */
 export function obterResumoDeCobertura(
   contexto: ContextoDeAcesso,
   sinal?: AbortSignal,
+  classe?: string,
 ): Promise<ComProcedencia<Agregado<ResumoDeCobertura>>> {
-  return ler<Agregado<ResumoDeCobertura>>('/v1/relatorios/cobertura', contexto, { sinal });
+  return ler<Agregado<ResumoDeCobertura>>('/v1/relatorios/cobertura', contexto, { sinal, parametros: { classe } });
 }
 
 /* ---------------------------------------------------------------------- */
@@ -429,18 +433,19 @@ export function listarMunicipios(
  * O painel de um CEN — cobertura por classe, processos e faturamento da carteira.
  *
  * Sem `responsavelChave` devolve o consolidado de todos os responsáveis, que é o que a tela
- * mostra antes de alguém escolher um nome.
+ * mostra antes de alguém escolher um nome. `carteiraChave` recorta numa carteira só — o filtro
+ * de carteira da Performance (01/10/2026).
  */
 export function obterPainelDoCen(
   contexto: ContextoDeAcesso,
   responsavelChave: string | null,
   sinal?: AbortSignal,
+  carteiraChave?: string | null,
 ): Promise<ComProcedencia<PainelDoCen>> {
-  const caminho = responsavelChave
-    ? `/v1/relatorios/cen?responsavel=${encodeURIComponent(responsavelChave)}`
-    : '/v1/relatorios/cen';
-
-  return ler<PainelDoCen>(caminho, contexto, { sinal });
+  return ler<PainelDoCen>('/v1/relatorios/cen', contexto, {
+    sinal,
+    parametros: { responsavel: responsavelChave ?? undefined, carteira: carteiraChave ?? undefined },
+  });
 }
 
 /**

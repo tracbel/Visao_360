@@ -167,6 +167,7 @@ export function PainelDoMomento({
   direita,
   children,
   area,
+  icone,
   ...resto
 }: {
   titulo: string;
@@ -177,6 +178,8 @@ export function PainelDoMomento({
   children: ReactNode;
   /** Nome da área na grade da aba — o CSS decide a largura relativa por ele. */
   area?: string;
+  /** O ícone antes do título, quando a maquete desenha um (Performance de CEN, 01/10/2026). `aria-hidden` nele. */
+  icone?: ReactNode;
 } & React.HTMLAttributes<HTMLElement>) {
   return (
     <section className="mom-painel" data-area={area} {...resto}>
@@ -186,6 +189,7 @@ export function PainelDoMomento({
       <header className="mom-painel-cabecalho">
         <div className="mom-painel-linha">
           <h3 className="mom-painel-titulo">
+            {icone}
             {titulo}
             {dica && <InfoTooltip texto={dica} rotulo={`Como ler ${titulo.toLowerCase()}`} />}
           </h3>

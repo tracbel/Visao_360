@@ -67,16 +67,27 @@ public sealed class RepositorioDeCarteiras(CrmDbContext contexto) : IRepositorio
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ResumoDeCobertura>> ResumirCoberturaAsync(
-        DateTime agoraUtc, CancellationToken ct)
+        DateTime agoraUtc, CancellationToken ct, ClasseDeCliente? classe = null)
     {
         var trintaDias = agoraUtc.AddDays(-30);
         var noventaDias = agoraUtc.AddDays(-90);
 
+        var vinculos = contexto.ClienteCarteiras.Where(v => v.DesvinculadoEm == null);
+
+        // A CLASSE DO CLIENTE (01/10/2026, o filtro da Performance de CEN), com a MESMA conta do painel do CEN
+        // (`RepositorioDoPainelDoCen`): a classe lida do cliente, e nula conta como D — quem não tem classe apurada nunca
+        // apareceu no faturamento. Com a mesma subconsulta, os cartões e o gráfico por classe da tela não divergem.
+        if (classe is { } escolhida)
+        {
+            vinculos = vinculos.Where(v =>
+                (contexto.Clientes.Where(c => c.Id == v.ClienteId).Select(c => c.Classe).FirstOrDefault()
+                 ?? ClasseDeCliente.D) == escolhida);
+        }
+
         // O AGRUPAMENTO É DO BANCO. São 49 mil vínculos: contar "quantos tiveram contato nos
         // últimos 30 dias" na tela significaria trazer os 49 mil para contar cinco números por
         // carteira.
-        var agrupado = await contexto.ClienteCarteiras
-            .Where(v => v.DesvinculadoEm == null)
+        var agrupado = await vinculos
             .GroupBy(v => v.CarteiraId)
             .Select(g => new
             {

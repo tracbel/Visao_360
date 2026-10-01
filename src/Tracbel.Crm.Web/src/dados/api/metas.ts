@@ -72,9 +72,19 @@ export type MetasConsolidadas = {
 
 const somar = <T,>(lista: T[], valor: (x: T) => number) => lista.reduce((s, x) => s + valor(x), 0);
 
-/** A meta e o realizado da filial do cabeçalho — a Performance de CEN, que é de uma filial por vez. */
-export function obterMetaDaFilial(contexto: ContextoDeAcesso, sinal?: AbortSignal) {
-  return ler<MetaERealizadoDaFilial>('/v1/relatorios/metas', contexto, { sinal });
+/**
+ * A meta e o realizado da filial do cabeçalho — a Performance de CEN, que é de uma filial por vez. Sem competências, o
+ * servidor usa o ano fiscal até o último mês fechado; com elas (`AAAA-MM`), o período do filtro da tela (01/10/2026).
+ */
+export function obterMetaDaFilial(
+  contexto: ContextoDeAcesso,
+  sinal?: AbortSignal,
+  competencias?: { inicial: string; final: string },
+) {
+  return ler<MetaERealizadoDaFilial>('/v1/relatorios/metas', contexto, {
+    sinal,
+    parametros: { competenciaInicial: competencias?.inicial, competenciaFinal: competencias?.final },
+  });
 }
 
 /**

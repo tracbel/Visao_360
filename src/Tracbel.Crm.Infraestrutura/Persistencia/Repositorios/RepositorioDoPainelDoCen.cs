@@ -65,7 +65,7 @@ public sealed class RepositorioDoPainelDoCen(CrmDbContext contexto) : IRepositor
 
     /// <inheritdoc />
     public async Task<PainelDoResponsavel?> ObterPainelAsync(
-        Guid? responsavelChave, DateTime agoraUtc, CancellationToken ct)
+        Guid? responsavelChave, DateTime agoraUtc, CancellationToken ct, Guid? carteiraChave = null)
     {
         long? responsavelId = null;
         var nome = "Todos os responsáveis";
@@ -87,11 +87,13 @@ public sealed class RepositorioDoPainelDoCen(CrmDbContext contexto) : IRepositor
         }
 
         // As carteiras COMERCIAIS do responsável, com a cadência de cada classe já junto: é ela
-        // que decide se um cliente está coberto, e ela vem da linha de negócio da carteira.
+        // que decide se um cliente está coberto, e ela vem da linha de negócio da carteira. A
+        // carteira escolhida no filtro da Performance (01/10/2026) recorta mais uma vez.
         var carteiras = await contexto.Carteiras.AsNoTracking()
             .Where(c => c.ExcluidoEm == null
                         && c.Natureza == NaturezaDaCarteira.Comercial
-                        && (responsavelId == null || c.ResponsavelId == responsavelId))
+                        && (responsavelId == null || c.ResponsavelId == responsavelId)
+                        && (carteiraChave == null || c.ChavePublica == carteiraChave))
             .Select(c => new
             {
                 c.Id,

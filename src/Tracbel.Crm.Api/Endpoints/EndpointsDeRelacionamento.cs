@@ -238,14 +238,14 @@ public static class EndpointsDeRelacionamento
                 "vendas perdidas registradas. Todo número se soma entre filiais, exceto clientesNasCarteirasDaFilial.");
 
         grupo.MapGet("/cen", async (
-                ObterPainelDoCen caso, CancellationToken ct, Guid? responsavel = null) =>
-                (await caso.ExecutarAsync(responsavel, ct)).Responder())
+                ObterPainelDoCen caso, CancellationToken ct, Guid? responsavel = null, Guid? carteira = null) =>
+                (await caso.ExecutarAsync(responsavel, ct, carteira)).Responder())
             .WithName("ObterPainelDoCen")
             .ExigePermissao(Permissoes.RelatorioLer)
             .WithSummary(
                 "O painel de um CEN: cobertura por classe A/B/C/D contra a cadência declarada, " +
                 "processos ganhos e perdidos, e o faturamento da carteira. Sem `responsavel`, " +
-                "devolve o consolidado.");
+                "devolve o consolidado; `carteira` (chave pública) recorta numa carteira só.");
 
         grupo.MapGet("/agenda", async (ObterPainelDaAgenda caso, CancellationToken ct, bool minhas = false) =>
                 (await caso.ExecutarAsync(minhas, ct)).Responder())
@@ -253,11 +253,13 @@ public static class EndpointsDeRelacionamento
             .ExigePermissao(Permissoes.TarefaLer)
             .WithSummary("O painel do CEN: pendentes, atrasadas, hoje, próximos sete dias.");
 
-        grupo.MapGet("/cobertura", async (ObterResumoDeCobertura caso, CancellationToken ct) =>
-                (await caso.ExecutarAsync(ct)).Responder())
+        grupo.MapGet("/cobertura", async (ObterResumoDeCobertura caso, CancellationToken ct, string? classe = null) =>
+                (await caso.ExecutarAsync(ct, classe)).Responder())
             .WithName("ObterResumoDeCobertura")
             .ExigePermissao(Permissoes.CoberturaLer)
-            .WithSummary("A cobertura por carteira: clientes, contatados em 30 e 90 dias, nunca contatados.");
+            .WithSummary(
+                "A cobertura por carteira: clientes, contatados em 30 e 90 dias, nunca contatados. `classe` (A, B, C ou D) " +
+                "conta só os clientes daquela classe da curva ABC; sem classe apurada conta como D, como no painel do CEN.");
 
         // A META DE VENDA × O REALIZADO (#138, 27/09/2026). A profundidade de Meta.Ler decide o alcance (D-M5): Próprios vê
         // a própria meta; a filial inteira a partir de EmpresaEAbaixo. Uma filial por chamada, como as outras da Visão 360.

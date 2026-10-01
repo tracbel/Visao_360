@@ -1,0 +1,565 @@
+/* =============================================================================
+   A PERFORMANCE DE CEN NA MAQUETE DO RICARDO (01/10/2026)
+   `docs/prototipo/capturas-referencia/performance-cen-maquete-2026-10-01.png`, em 1672 × 941.
+
+   TUDO AQUI MORA EMBAIXO DE `.dash-pagina.pcen-maquete` — a classe que só a Performance de CEN põe na página. As peças
+   são as do padrão dos Indicadores (`mv-kpi`, `mom-painel`, `terr-*`), e as outras telas continuam como estão. O
+   prefixo `.dash-pagina` é de propósito: o `dashboard.css` carrega depois, e sem ele as regras dele ganhariam destas.
+   ============================================================================= */
+
+.pcen-maquete {
+  --pcen-marinho: #0b1638;
+  --pcen-cinza: #5b6776;
+  --pcen-borda: #e6eaee;
+  --pcen-linha: #eef1f3;
+  --pcen-verde: #1b873f;
+}
+
+.dash-pagina.pcen-maquete { gap: 12px; }
+
+/* O TEXTO SÓ PARA O LEITOR DE TELA, onde a maquete não desenha título: a seção dos dois painéis e o painel da cobertura
+   por classe. */
+.dash-pagina.pcen-maquete .pcen-secao-dupla > .terr-secao-mercado,
+.dash-pagina.pcen-maquete section.pcen-cartao > .mom-painel > .mom-painel-cabecalho {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* -----------------------------------------------------------------------------
+   O CABEÇALHO — o título marinho grande e a hora da leitura com o calendário
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pcen-maquete .page-header { margin-bottom: 0; }
+
+.dash-pagina.pcen-maquete .page-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--pcen-marinho);
+}
+
+.dash-pagina.pcen-maquete .page-subtitle { margin: 0; font-size: 13px; color: var(--pcen-cinza); }
+.dash-pagina.pcen-maquete .dash-atualizado { align-self: center; gap: 8px; font-size: 12px; color: var(--pcen-cinza); }
+.dash-pagina.pcen-maquete .pcen-calendario { flex: none; color: #6b7280; }
+
+/* -----------------------------------------------------------------------------
+   A BARRA DE FILTROS — branca, sem o ladrilho de ícone, o rótulo em cima do campo e o "Limpar filtros" em link
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pcen-maquete .dash-filtros-linha {
+  align-items: flex-end;
+  gap: 14px 18px;
+  padding: 12px 20px 14px;
+  background: #fff;
+  border-color: var(--pcen-borda);
+  border-radius: 10px;
+}
+
+.dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro { grid-template-columns: minmax(0, 1fr); }
+.dash-pagina.pcen-maquete .dash-filtro-corpo { gap: 6px; }
+
+.dash-pagina.pcen-maquete .dash-filtros-linha .dash-filtro-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2b3440;
+}
+
+.dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro select {
+  height: 34px;
+  border-color: #dfe3e8;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--pcen-marinho);
+}
+
+/* O PERÍODO COM O CALENDÁRIO DENTRO DO CAMPO, como a maquete. */
+.dash-pagina.pcen-maquete .pcen-campo-com-icone { position: relative; display: block; }
+
+.dash-pagina.pcen-maquete .pcen-campo-com-icone > svg {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  color: #4b5563;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro .pcen-campo-com-icone select { padding-left: 34px; }
+
+.dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtros-acao { height: 34px; margin-left: auto; }
+
+.dash-pagina.pcen-maquete .pcen-limpar {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  color: #1f6fd1;
+  cursor: pointer;
+}
+
+
+/* AS LARGURAS DA MAQUETE quando os campos e o "Limpar filtros" cabem numa linha (1.300px de conteúdo ou mais); de 1.000
+   a 1.299px — a tela do Ricardo, 1.536 a 125% — um pouco mais estreitos, para o link não descer sozinho. Abaixo disso
+   vale a quebra do dashboard.css. */
+@container indicadores (min-width: 1300px) {
+  .dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cen'] { flex: 0 1 316px; max-width: 316px; }
+  .dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro[data-bloco='periodo'],
+  .dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro[data-bloco='classe'],
+  .dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro[data-bloco='carteira'] { flex: 0 1 252px; max-width: 252px; }
+}
+
+@container indicadores (min-width: 1000px) and (max-width: 1299px) {
+  .dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cen'] { flex: 0 1 268px; max-width: 268px; }
+  .dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro[data-bloco='periodo'],
+  .dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro[data-bloco='classe'],
+  .dash-pagina.pcen-maquete .dash-filtros-linha > .dash-filtro[data-bloco='carteira'] { flex: 0 1 214px; max-width: 214px; }
+}
+
+/* -----------------------------------------------------------------------------
+   OS QUATRO CARTÕES — a tinta da maquete e o ícone num ladrilho da cor
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pcen-maquete .dash-kpis.mv-kpis { gap: 14px; }
+
+.dash-pagina.pcen-maquete .mv-kpi {
+  align-items: start;
+  column-gap: 16px;
+  padding: 18px 18px 16px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.pcen-maquete .mv-kpi-glifo {
+  align-self: start;
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-top: 0;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--mv-tom) 16%, #fff);
+}
+
+.dash-pagina.pcen-maquete .mv-kpi-glifo svg { width: 25px; height: 25px; stroke-width: 2.3; }
+.dash-pagina.pcen-maquete .mv-kpi-rotulo { font-size: 13.5px; font-weight: 700; line-height: 1.35; color: var(--pcen-marinho); }
+.dash-pagina.pcen-maquete .mv-kpi-valor { column-gap: 8px; font-size: 28px; line-height: 1.2; color: var(--pcen-marinho); }
+.dash-pagina.pcen-maquete .mv-kpi-valor > strong { font-weight: 800; }
+.dash-pagina.pcen-maquete .mv-kpi-unidade { font-size: 13px; color: var(--pcen-cinza); }
+.dash-pagina.pcen-maquete .mv-kpi-contexto { font-size: 12px; line-height: 1.35; color: #3b4452; }
+
+.dash-pagina.pcen-maquete .mv-kpi[data-tom='demanda'] { --mv-tom: #16a34a; background: #f1fbf5; border-color: #cfebd9; }
+.dash-pagina.pcen-maquete .mv-kpi[data-tom='mercado'] { --mv-tom: #2f6fe0; background: #f0f6fe; border-color: #d3e3f7; }
+.dash-pagina.pcen-maquete .mv-kpi[data-tom='oportunidade'] { --mv-tom: #7c3aed; background: #f7f4fe; border-color: #e4dbfb; }
+
+/* NOME, NÚMERO E LINHA DE BAIXO NA MESMA ALTURA nos cartões lado a lado — as faixas são da linha (subgrid). */
+@supports (grid-template-rows: subgrid) {
+  .dash-pagina.pcen-maquete .dash-kpis.mv-kpis > .mv-kpi {
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 4px;
+  }
+
+  .dash-pagina.pcen-maquete .dash-kpis.mv-kpis > .mv-kpi > .mv-kpi-corpo { display: contents; }
+  .dash-pagina.pcen-maquete .dash-kpis.mv-kpis > .mv-kpi > .mv-kpi-glifo { grid-column: 1; grid-row: 1 / span 3; }
+
+  .dash-pagina.pcen-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-rotulo,
+  .dash-pagina.pcen-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-valor,
+  .dash-pagina.pcen-maquete .dash-kpis.mv-kpis > .mv-kpi .mv-kpi-contexto {
+    grid-column: 2;
+    min-width: 0;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   OS CARTÕES DE SEÇÃO E DE PAINEL — brancos, com o ícone verde antes do título e o seletor à direita
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pcen-maquete section.pcen-cartao,
+.dash-pagina.pcen-maquete .pcen-paineis > .mom-painel {
+  gap: 12px;
+  padding: 16px 18px 18px;
+  background: #fff;
+  border: 1px solid var(--pcen-borda);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.pcen-maquete section.pcen-cartao > .terr-secao-mercado {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  row-gap: 2px;
+  margin: 0;
+}
+
+.dash-pagina.pcen-maquete section.pcen-cartao > .terr-secao-mercado > .terr-secao-cabecalho { display: contents; }
+
+.dash-pagina.pcen-maquete section.pcen-cartao .terr-secao-titulo,
+.dash-pagina.pcen-maquete .pcen-paineis .mom-painel-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--pcen-marinho);
+}
+
+.dash-pagina.pcen-maquete section.pcen-cartao .terr-secao-titulo { grid-column: 1; grid-row: 1; }
+.dash-pagina.pcen-maquete .pcen-secao-icone,
+.dash-pagina.pcen-maquete .pcen-painel-icone { flex: none; color: var(--pcen-verde); }
+
+/* O SUBTÍTULO ALINHADO AO TEXTO DO TÍTULO, e não ao ícone. */
+.dash-pagina.pcen-maquete section.pcen-cartao .terr-secao-subtitulo,
+.dash-pagina.pcen-maquete .pcen-paineis .mom-painel-subtitulo {
+  margin: 0 0 0 32px;
+  font-size: 12px;
+  color: var(--pcen-cinza);
+}
+
+.dash-pagina.pcen-maquete section.pcen-cartao .terr-secao-subtitulo { grid-column: 1; grid-row: 2; }
+.dash-pagina.pcen-maquete .pcen-secao-acao { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+
+.dash-pagina.pcen-maquete .pcen-seletor select {
+  height: 34px;
+  min-width: 150px;
+  max-width: 100%;
+  padding: 0 32px 0 12px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 11px center / 12px 12px;
+  appearance: none;
+  font-size: 12.5px;
+  color: var(--pcen-marinho);
+  cursor: pointer;
+}
+
+.dash-pagina.pcen-maquete .pcen-seletor select:focus-visible { outline: 2px solid var(--pcen-verde); outline-offset: 1px; }
+
+@container indicadores (max-width: 699px) {
+  .dash-pagina.pcen-maquete section.pcen-cartao > .terr-secao-mercado { grid-template-columns: minmax(0, 1fr); }
+  .dash-pagina.pcen-maquete .pcen-secao-acao { grid-column: 1; grid-row: 3; margin-top: 8px; }
+}
+
+/* O PAINEL DENTRO DA SEÇÃO DA COBERTURA NÃO É UM SEGUNDO CARTÃO. */
+.dash-pagina.pcen-maquete section.pcen-cartao > .mom-painel {
+  gap: 14px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+/* OS DOIS PAINÉIS LADO A LADO a partir de 1.100px de conteúdo. */
+.dash-pagina.pcen-maquete .pcen-paineis { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+
+@container indicadores (min-width: 1100px) {
+  .dash-pagina.pcen-maquete .pcen-paineis { grid-template-columns: minmax(0, 1fr) minmax(0, 1.03fr); }
+}
+
+.dash-pagina.pcen-maquete .pcen-paineis .mom-painel-titulo { flex-shrink: 0; }
+.dash-pagina.pcen-maquete .pcen-paineis .mom-painel-direita { min-width: 0; margin-left: auto; }
+
+/* -----------------------------------------------------------------------------
+   A COBERTURA POR CLASSE — as barras de 100% à esquerda e a tabela à direita
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pcen-maquete .pcen-classes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; align-items: start; }
+
+@container indicadores (min-width: 1100px) {
+  .dash-pagina.pcen-maquete .pcen-classes { grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr); }
+}
+
+.dash-pagina.pcen-maquete .pcen-barras { --pcen-nome: 62px; --pcen-vao: 12px; position: relative; padding-top: 4px; }
+
+/* A GRADE VERTICAL DE 20 EM 20%, atrás das barras e só na faixa delas. */
+.dash-pagina.pcen-maquete .pcen-barras::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 52px;
+  left: calc(var(--pcen-nome) + var(--pcen-vao));
+  right: 0;
+  background-image: linear-gradient(to right, #eceff2 1px, transparent 1px);
+  background-size: 20% 100%;
+  border-right: 1px solid #eceff2;
+  pointer-events: none;
+}
+
+.dash-pagina.pcen-maquete .pcen-barras-lista { position: relative; display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+
+.dash-pagina.pcen-maquete .pcen-barras-linha {
+  display: grid;
+  grid-template-columns: var(--pcen-nome) minmax(0, 1fr);
+  column-gap: var(--pcen-vao);
+  align-items: center;
+}
+
+.dash-pagina.pcen-maquete .pcen-barras-nome { font-size: 13px; text-align: right; white-space: nowrap; color: #2b3440; }
+.dash-pagina.pcen-maquete .pcen-barras-trilho { display: flex; height: 27px; overflow: hidden; }
+
+.dash-pagina.pcen-maquete .pcen-barras-faixa,
+.dash-pagina.pcen-maquete .pcen-cens-faixa {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.dash-pagina.pcen-maquete .pcen-barras-faixa { font-size: 12.5px; }
+
+.dash-pagina.pcen-maquete .pcen-eixo {
+  position: relative;
+  height: 18px;
+  margin: 6px 0 0 calc(var(--pcen-nome) + var(--pcen-vao));
+  font-size: 11.5px;
+  color: var(--pcen-cinza);
+}
+
+.dash-pagina.pcen-maquete .pcen-eixo > span { position: absolute; top: 0; transform: translateX(-50%); }
+
+.dash-pagina.pcen-maquete .pcen-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  color: #2b3440;
+}
+
+.dash-pagina.pcen-maquete .pcen-legenda li { display: inline-flex; align-items: center; gap: 7px; }
+.dash-pagina.pcen-maquete .pcen-legenda i { width: 11px; height: 11px; border-radius: 50%; }
+
+/* A TABELA DA MAQUETE: filetes em todas as células, o grupo com o "%" à direita, a barrinha de cada estado. */
+.dash-pagina.pcen-maquete .pcen-tabela-classes { border: 1px solid var(--pcen-linha); border-radius: 8px; }
+.dash-pagina.pcen-maquete .pcen-tabela-classes table { border-collapse: collapse; width: 100%; }
+
+.dash-pagina.pcen-maquete .pcen-tabela-classes th,
+.dash-pagina.pcen-maquete .pcen-tabela-classes td {
+  padding: 9px 10px;
+  border-right: 1px solid var(--pcen-linha);
+  border-bottom: 1px solid var(--pcen-linha);
+  font-size: 12.5px;
+  white-space: nowrap;
+  color: #2b3440;
+}
+
+.dash-pagina.pcen-maquete .pcen-tabela-classes thead th {
+  background: #f3f5f7;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #4b5563;
+}
+
+.dash-pagina.pcen-maquete .pcen-tabela-classes thead th.pcen-grupo > span:first-child { display: inline-block; min-width: 70%; text-align: center; }
+.dash-pagina.pcen-maquete .pcen-tabela-classes thead th.pcen-grupo > span:last-child { float: right; }
+.dash-pagina.pcen-maquete .pcen-tabela-classes tbody th { font-weight: 700; color: var(--pcen-marinho); }
+.dash-pagina.pcen-maquete .pcen-tabela-classes td.pcen-celula-barra { width: 90px; padding-inline: 4px; border-right: 0; }
+.dash-pagina.pcen-maquete .pcen-tabela-classes td.mom-num:has(+ td.pcen-celula-barra) { border-right: 0; }
+.dash-pagina.pcen-maquete .pcen-tabela-classes td[data-alerta='true'] { font-weight: 600; color: #dc2626; }
+
+.dash-pagina.pcen-maquete .pcen-mini-trilho {
+  display: block;
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #eef0f3;
+}
+
+.dash-pagina.pcen-maquete .pcen-mini-trilho > span { display: block; height: 100%; border-radius: 4px; }
+
+/* O PRINCIPAL ALERTA — a faixa laranja clara, com o triângulo, o rótulo e o filete antes do texto. */
+.dash-pagina.pcen-maquete .pcen-alerta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  background: #fff4ea;
+  border: 1px solid #f8d3ae;
+  border-radius: 10px;
+}
+
+.dash-pagina.pcen-maquete .pcen-alerta-icone { flex: none; color: #e8590c; }
+
+.dash-pagina.pcen-maquete .pcen-alerta-rotulo {
+  flex: none;
+  padding-right: 18px;
+  border-right: 1px solid #f3c79c;
+  font-size: 15px;
+  font-weight: 800;
+  color: #d9480f;
+}
+
+.dash-pagina.pcen-maquete .pcen-alerta-texto { display: grid; gap: 3px; min-width: 0; font-size: 12px; line-height: 1.4; color: #4a3a2e; }
+.dash-pagina.pcen-maquete .pcen-alerta-texto > strong { font-size: 13px; font-weight: 700; color: #c2410c; }
+
+/* NA TELA ESTREITA o texto do alerta desce para a linha de baixo, na largura toda, e o filete sai. */
+@container indicadores (max-width: 699px) {
+  .dash-pagina.pcen-maquete .pcen-alerta { flex-wrap: wrap; gap: 8px 12px; padding: 12px 14px; }
+  .dash-pagina.pcen-maquete .pcen-alerta-rotulo { padding-right: 0; border-right: 0; }
+  .dash-pagina.pcen-maquete .pcen-alerta-texto { flex: 1 1 100%; }
+}
+
+.dash-pagina.pcen-maquete .pcen-nota { margin: 0; }
+
+/* -----------------------------------------------------------------------------
+   A CARTEIRA DOS CENs E O RANKING — o nome curto à esquerda, a barra fina, como a maquete
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pcen-maquete .pcen-cens-lista,
+.dash-pagina.pcen-maquete .pcen-ranking { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+
+.dash-pagina.pcen-maquete .pcen-cens-linha,
+.dash-pagina.pcen-maquete .pcen-ranking-linha {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: center;
+}
+
+.dash-pagina.pcen-maquete .pcen-cens-nome,
+.dash-pagina.pcen-maquete .pcen-ranking-nome {
+  overflow: hidden;
+  font-size: 12.5px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #2b3440;
+}
+
+.dash-pagina.pcen-maquete [data-escolhido='true'] > .pcen-cens-nome,
+.dash-pagina.pcen-maquete [data-escolhido='true'] > .pcen-ranking-nome { font-weight: 800; color: var(--pcen-marinho); }
+
+.dash-pagina.pcen-maquete .pcen-cens-trilho { display: flex; height: 16px; overflow: hidden; }
+.dash-pagina.pcen-maquete .pcen-cens-faixa { font-size: 10.5px; font-weight: 600; }
+.dash-pagina.pcen-maquete [data-escolhido='true'] > .pcen-cens-trilho { box-shadow: 0 0 0 2px var(--pcen-marinho); }
+
+.dash-pagina.pcen-maquete .pcen-ranking-trilho { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+.dash-pagina.pcen-maquete .pcen-ranking-barra {
+  flex: none;
+  height: 16px;
+  max-width: calc(100% - 52px);
+  border-radius: 2px;
+  background: color-mix(in srgb, #3aa85a, #b6e3c0 var(--pcen-tom, 0%));
+}
+
+.dash-pagina.pcen-maquete .pcen-ranking-barra[data-primeira='true'] { background: #1b7a35; }
+.dash-pagina.pcen-maquete .pcen-ranking[data-vermelho='true'] .pcen-ranking-barra { background: color-mix(in srgb, #e53935, #f6b3b1 var(--pcen-tom, 0%)); }
+.dash-pagina.pcen-maquete .pcen-ranking[data-vermelho='true'] .pcen-ranking-barra[data-primeira='true'] { background: #c62828; }
+.dash-pagina.pcen-maquete [data-escolhido='true'] .pcen-ranking-barra { box-shadow: 0 0 0 2px var(--pcen-marinho); }
+
+.dash-pagina.pcen-maquete .pcen-ranking-valor { flex: none; font-size: 11.5px; font-weight: 600; color: #2b3440; }
+
+@container indicadores (max-width: 699px) {
+  .dash-pagina.pcen-maquete .pcen-cens-linha,
+  .dash-pagina.pcen-maquete .pcen-ranking-linha { grid-template-columns: 92px minmax(0, 1fr); column-gap: 8px; }
+}
+
+/* -----------------------------------------------------------------------------
+   OS CARTÕES DO FIM — fechados lado a lado; o aberto, embaixo, na largura toda
+   ----------------------------------------------------------------------------- */
+.dash-pagina.pcen-maquete .pcen-recolhiveis { display: grid; gap: 12px; }
+
+.dash-pagina.pcen-maquete .pcen-recolhiveis-linha {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 14px;
+}
+
+.dash-pagina.pcen-maquete .pcen-recolhivel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 18px;
+  border: 1px solid var(--pcen-borda);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dash-pagina.pcen-maquete .pcen-recolhivel:hover { border-color: #cfd6dd; }
+.dash-pagina.pcen-maquete .pcen-recolhivel:focus-visible { outline: 2px solid var(--pcen-verde); outline-offset: 2px; }
+.dash-pagina.pcen-maquete .pcen-recolhivel[aria-expanded='true'] { border-color: #a8d8b9; background: #f6fbf8; }
+
+.dash-pagina.pcen-maquete .pcen-recolhivel-icone { display: inline-grid; flex: none; place-items: center; color: var(--pcen-verde); }
+
+.dash-pagina.pcen-maquete .pcen-icone-info {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--pcen-verde);
+  color: #fff;
+}
+
+.dash-pagina.pcen-maquete .pcen-recolhivel-corpo-do-botao { display: grid; flex: 1; gap: 3px; min-width: 0; }
+
+.dash-pagina.pcen-maquete .pcen-recolhivel-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--pcen-marinho);
+}
+
+.dash-pagina.pcen-maquete .pcen-recolhivel-selo {
+  padding: 2px 9px;
+  border: 1px solid #dfe3e8;
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #4b5563;
+}
+
+.dash-pagina.pcen-maquete .pcen-recolhivel-texto { font-size: 11.5px; line-height: 1.35; color: var(--pcen-cinza); }
+.dash-pagina.pcen-maquete .pcen-recolhivel-seta { flex: none; color: #374151; transition: transform 0.15s ease; }
+.dash-pagina.pcen-maquete .pcen-recolhivel[aria-expanded='true'] .pcen-recolhivel-seta { transform: rotate(180deg); }
+
+.dash-pagina.pcen-maquete .pcen-recolhivel-aberto {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--pcen-borda);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.dash-pagina.pcen-maquete .pcen-recolhivel-aberto[hidden] { display: none; }
+
+.dash-pagina.pcen-maquete .pcen-recolhivel-resumo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pcen-cinza);
+}

@@ -499,11 +499,23 @@ public sealed class ObterResumoDeCobertura(IRepositorioCarteiras repositorio, IR
 {
     /// <summary>Executa o agregado.</summary>
     /// <param name="ct">Cancelamento.</param>
+    /// <param name="classe">
+    /// Só os vínculos de clientes desta classe da curva ABC — o filtro da Performance de CEN (01/10/2026). Sem classe
+    /// apurada conta como D, como no painel do CEN. Domínio fechado; vazio conta todos.
+    /// </param>
     public async Task<Resultado<ComProcedencia<Agregado<ResumoDeCobertura>>>> ExecutarAsync(
-        CancellationToken ct)
+        CancellationToken ct, string? classe = null)
     {
+        var erros = new ColetorDeErros();
+        var classeEscolhida = string.IsNullOrWhiteSpace(classe)
+            ? null
+            : erros.ItemDeDominio<ClasseDeCliente>("classe", classe);
+
+        if (erros.TemErro)
+            return erros.Recusar<ComProcedencia<Agregado<ResumoDeCobertura>>>("A consulta tem parâmetros que não valem.");
+
         var agora = relogio.Agora;
-        var carteiras = await repositorio.ResumirCoberturaAsync(agora, ct);
+        var carteiras = await repositorio.ResumirCoberturaAsync(agora, ct, classeEscolhida);
 
         var clientes = carteiras.Sum(c => c.Clientes);
         var nunca = carteiras.Sum(c => c.NuncaContatados);
@@ -638,11 +650,12 @@ public sealed class ObterPainelDoCen(IRepositorioPainelDoCen repositorio, IRelog
     /// <summary>Executa o painel.</summary>
     /// <param name="responsavelChave">O CEN escolhido; nulo traz o consolidado.</param>
     /// <param name="ct">Cancelamento.</param>
+    /// <param name="carteiraChave">Só esta carteira — o filtro da Performance de CEN (01/10/2026); nula traz todas.</param>
     public async Task<Resultado<ComProcedencia<PainelDoCenResumido>>> ExecutarAsync(
-        Guid? responsavelChave, CancellationToken ct)
+        Guid? responsavelChave, CancellationToken ct, Guid? carteiraChave = null)
     {
         var agora = relogio.Agora;
-        var painel = await repositorio.ObterPainelAsync(responsavelChave, agora, ct);
+        var painel = await repositorio.ObterPainelAsync(responsavelChave, agora, ct, carteiraChave);
 
         if (painel is null)
             return Resultado<ComProcedencia<PainelDoCenResumido>>.NaoEncontrado(
