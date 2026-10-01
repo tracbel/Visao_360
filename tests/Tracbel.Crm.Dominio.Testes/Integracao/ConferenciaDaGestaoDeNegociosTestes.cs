@@ -20,8 +20,8 @@ public sealed class ConferenciaDaGestaoDeNegociosTestes
         conferencia.LigadaPorPadrao.Should().BeFalse();
         conferencia.ConexaoExigida.Should().Be(ConexoesDoSistema.GestaoDeNegocios);
         conferencia.AgendaPadrao.Should().Be(AgendaDaRotina.DiariaAs(new TimeOnly(7, 15)));
-        conferencia.AgendaPadrao.Hora.Should().BeAfter(RotinasDoSistema.Obter(RotinasDoSistema.MetasGestaoDeNegocios)!.AgendaPadrao.Hora!.Value,
-            "compara com a meta que a rotina 9 acabou de trazer");
+        RotinasDoSistema.Obter(RotinasDoSistema.MetasGestaoDeNegocios)!.AgendaPadrao.Should().Be(AgendaDaRotina.ACada(60),
+            "compara com a meta que a rotina 9 trouxe há menos de uma hora");
     }
 
     [Fact]

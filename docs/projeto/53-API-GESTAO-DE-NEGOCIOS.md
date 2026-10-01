@@ -59,13 +59,15 @@
 | L-9 | O capitão do de-para **é o gestor**: 8 de 8 gestores do forecast e da performance de consórcio. Os 59 consultores com meta e os 30 com cota estão no de-para, e 2 consultores aparecem em duas linhas (vale a vigência mais recente) | planejamento |
 | L-10 | A cota vendida tem chave **grupo + cota** (185 cotas, 185 pares distintos) | consórcio |
 | L-11 | `chaint` é único no estoque (690 de 690). O chassi falta no pedido que ainda não saiu da fábrica | estoque |
+| L-12 | **O forecast do mês novo é digitado no próprio dia 1º.** Em 01/10/2026, a leitura das 06:00 trouxe o forecast de out/2026 de 2 gestores; às 11:39, a GN tinha o de 7 (37 linhas, soma 105) e nenhum best guess (em set/2026 foram 34 de 39 linhas). Por isso a rotina 9 lê de hora em hora | planejamento |
+| L-13 | **O Vórtice não substitui o forecast** (medido em 01/10/2026 pelo agente do Vórtice): não há PG nem forecast por gestor × linha × mês. A previsão de conclusão do processo está em ~10% dos 12.977 abertos do modelo 50, a perspectiva em ~6%, e a linha da máquina em 1,6% (sem o porte do trator). PG, forecast e best guess vêm só da GN | planejamento |
 
 ## 3. O que o CRM consome
 
 | Rota | Tabela do CRM | Rotina | Issue / PR |
 |---|---|---|---|
-| `cadastros/metas` | `organizacao.MetaDeVenda` | 9, modo `--somente-metas-gn` | #138 / #248 |
-| `cadastros/de_para_consultores`, `cadastros/forecast`, `paineis/performance-consorcio` (linhas Realizado), `filiais` | `organizacao.GestorDoConsultor`, `ForecastDaGerencia`, `CotaDeConsorcioVendida` | 9, modo `--somente-planejamento-gn` | #278 / #279 |
+| `cadastros/metas` | `organizacao.MetaDeVenda` | 9, modo `--somente-metas-gn`, de hora em hora desde 01/10/2026 (era diária às 06:00) | #138 / #248 |
+| `cadastros/de_para_consultores`, `cadastros/forecast`, `paineis/performance-consorcio` (linhas Realizado), `filiais` | `organizacao.GestorDoConsultor`, `ForecastDaGerencia`, `CotaDeConsorcioVendida` | 9, modo `--somente-planejamento-gn`, de hora em hora (L-12) | #278 / #279 |
 | `paineis/estoque-pedidos`, `cobertura`, `filiais` | `frota.EquipamentoEmEstoque`, `frota.CoberturaDoEstoque` | 12, `--somente-estoque-gn`, de hora em hora | #281 / #282 |
 | `paineis/performance-maquinas`, `filiais` | `integracao.ConferenciaDaGestaoDeNegocios` e `integracao.DivergenciaDeIntegracao` | 13, `--somente-conferencia-gn` | #285 / #286 |
 

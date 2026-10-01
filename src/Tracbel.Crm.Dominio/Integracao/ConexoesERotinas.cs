@@ -1083,18 +1083,20 @@ public static class RotinasDoSistema
             [ConexoesDoSistema.Vortice], ConexoesDoSistema.Vortice),
 
         // AS METAS DE VENDA DA API GESTÃO DE NEGÓCIOS (decisão de 27/09/2026, #138) — a rotina 9, no FIM da lista como
-        // toda rotina nova (a posição é o identificador semeado; a de processos do Vórtice entrou antes, com o 8). Diária
-        // às 06:00, depois do parque: a meta não depende de nenhuma outra carga, e às 06:00 o cadastro da GN já tem a
-        // noite inteira de edições. NASCE DESLIGADA: ligá-la traz dado novo para produção, e quem liga é quem administra,
+        // toda rotina nova (a posição é o identificador semeado; a de processos do Vórtice entrou antes, com o 8). A meta
+        // não depende de nenhuma outra carga; a agenda (de hora em hora desde 01/10/2026) está explicada logo abaixo. NASCE DESLIGADA: ligá-la traz dado novo para produção, e quem liga é quem administra,
         // com o endereço pelo nome e a chave gravados e testados em Configurações › Integrações.
         // O SEGUNDO MODO (28/09/2026) é o planejamento: o de-para de consultores (o gestor de cada um), o forecast da
         // gerência e as cotas de consórcio vendidas. Vem DEPOIS das metas, e os modos e a descrição não são semeados — só o
         // nome —, então acrescentá-lo não pede migração.
+        // DE HORA EM HORA (01/10/2026), e não mais às 06:00: o gestor digita o forecast do mês novo no próprio dia 1º, e o
+        // best guess ao longo do mês. Em 01/10 a leitura das 06:00 trouxe o forecast de 2 gestores; às 11:39 a GN já tinha o
+        // de 7. A leitura inteira são cinco chamadas, e a meta que não mudou não grava nada.
         new(MetasGestaoDeNegocios, "Metas de venda (Gestão de Negócios)",
             "O cadastro de metas de venda da API Gestão de Negócios — unidades por consultor, linha, mês e filial —, " +
             "sincronizado com o CRM: meta nova entra, meta revisada fica na trilha, meta que some é excluída sem apagar. Depois, " +
             "o planejamento: o gestor de cada consultor, o forecast da gerência e as cotas de consórcio vendidas.",
-            ["--somente-metas-gn", "--somente-planejamento-gn"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)), false,
+            ["--somente-metas-gn", "--somente-planejamento-gn"], AgendaDaRotina.ACada(60), false,
             [ConexoesDoSistema.GestaoDeNegocios], ConexoesDoSistema.GestaoDeNegocios),
 
         // O PREÇO DE REFERÊNCIA DA MÁQUINA POR CATEGORIA (issue 70, D-P12, decidida pelo Ricardo em 27/09/2026) — a rotina
@@ -1133,8 +1135,8 @@ public static class RotinasDoSistema
 
         // A CONFERÊNCIA COM A GESTÃO DE NEGÓCIOS (decisão de 28/09/2026) — a rotina 13, no FIM da lista como toda rotina nova.
         // Lê o gabarito da GN (a performance-maquinas: meta e realizado) e compara com o que o CRM conta, filial a filial,
-        // mês a mês, e o realizado chassi a chassi. Diária às 07:15: DEPOIS das metas (06:00) e com o ART da madrugada já
-        // carregado. NASCE DESLIGADA, como toda rotina nova: quem liga é quem administra.
+        // mês a mês, e o realizado chassi a chassi. Diária às 07:15: com a meta lida há menos de uma hora (a rotina 9 é de
+        // hora em hora desde 01/10/2026) e com o ART da madrugada já carregado. NASCE DESLIGADA, como toda rotina nova: quem liga é quem administra.
         new(ConferenciaGestaoDeNegocios, "Conferência com a Gestão de Negócios",
             "A meta e o realizado de máquinas como a API Gestão de Negócios conta, comparados com o que o CRM conta, filial a " +
             "filial e mês a mês — e cada máquina do realizado que não bate, chassi a chassi, com o motivo.",

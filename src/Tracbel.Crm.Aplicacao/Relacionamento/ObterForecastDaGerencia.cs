@@ -38,8 +38,8 @@ public sealed record RelatorioDoForecast(
 /// "Forecast Gerência" da GN, com o realizado que o CRM tem.
 ///
 /// <para><b>É da gerência.</b> Pede <c>Meta.Ler</c> a partir do alcance da filial: quem só vê a própria meta não vê a previsão
-/// dos gestores. O PO e o realizado são das filiais escolhidas no seletor; o forecast é do gestor inteiro — quando a escolha
-/// não é "Todas as filiais", a resposta diz.</para>
+/// dos gestores. O PO e o realizado são das filiais escolhidas no seletor; o forecast é do gestor inteiro, mas só dos gestores
+/// dessas filiais (01/10/2026) — quando a escolha não é "Todas as filiais", a resposta diz, e conta os que ficaram fora.</para>
 ///
 /// <para><b>O mês padrão é o corrente</b> (de São Paulo), quando tem forecast; senão, o mais recente com forecast.</para>
 /// </summary>
@@ -79,11 +79,13 @@ public sealed class ObterForecastDaGerencia(IRepositorioDoForecast repositorio, 
         var corrente = AnoFiscal.MesCorrenteEmSaoPaulo(relogio.Agora);
         var mes = pedido ?? MesPadrao(meses, corrente);
 
-        var apurado = await repositorio.ApurarAsync(mes, ct);
-
         // A ORGANIZAÇÃO É "TODAS AS FILIAIS" NO SELETOR — e não a profundidade: a diretoria lê a meta na filial e vê todas pela
-        // escolha no seletor; o administrador, com a profundidade da organização, olhando uma filial, vê só ela.
+        // escolha no seletor; o administrador, com a profundidade da organização, olhando uma filial, vê só ela. Fora dela, o
+        // forecast é só dos gestores das filiais escolhidas — as mesmas que o filtro global deixa ver.
         var organizacao = acesso.Atual.VeTodasAsFiliais;
+        IReadOnlySet<int>? filiais = organizacao ? null : new HashSet<int>(acesso.Atual.EmpresasVisiveis) { acesso.Atual.EmpresaId };
+
+        var apurado = await repositorio.ApurarAsync(mes, ct, filiais);
 
         var resposta = new RelatorioDoForecast(
             apurado.Competencia,
@@ -98,11 +100,39 @@ public sealed class ObterForecastDaGerencia(IRepositorioDoForecast repositorio, 
             Lacunas(apurado, organizacao, meses));
 
         return Resultado<ComProcedencia<RelatorioDoForecast>>.Ok(
-            ComProcedencia<RelatorioDoForecast>.DoNossoBanco(
-                resposta,
-                "organizacao.ForecastDaGerencia · organizacao.GestorDoConsultor (API Gestão de Negócios) · organizacao.MetaDeVenda · frota.VendaDeMaquina (ART)",
-                relogio));
+            new ComProcedencia<RelatorioDoForecast>(resposta, ProcedenciaDaLeitura(apurado.LidoEm, relogio.Agora)));
     }
+
+    /// <summary>Mais do que isto sem leitura da GN, e a tela avisa: a rotina lê de hora em hora.</summary>
+    public static readonly TimeSpan IdadeQueDesatualiza = TimeSpan.FromHours(3);
+
+    private const string ObjetoDaProcedencia =
+        "organizacao.ForecastDaGerencia · organizacao.GestorDoConsultor (API Gestão de Negócios) · organizacao.MetaDeVenda · frota.VendaDeMaquina (ART)";
+
+    /// <summary>
+    /// "DADOS ATUALIZADOS EM" É A HORA DA LEITURA DA GN (01/10/2026), e não a da consulta ao nosso banco: em 01/10 a tela disse
+    /// 11:32 com o forecast lido às 06:00, antes de cinco dos sete gestores digitarem o mês. Sem leitura, fica a hora da
+    /// consulta — e a lacuna <c>forecastNaoLido</c> diz o resto.
+    /// </summary>
+    /// <param name="lidoEm">A última leitura do forecast (UTC).</param>
+    /// <param name="agora">Agora (UTC).</param>
+    public static Procedencia ProcedenciaDaLeitura(DateTime? lidoEm, DateTime agora)
+    {
+        if (lidoEm is not { } lido) return Procedencias.DoNossoBanco(ObjetoDaProcedencia, agora);
+
+        var velho = agora - lido > IdadeQueDesatualiza;
+        return new Procedencia(
+            Procedencias.SistemaProprio,
+            ObjetoDaProcedencia,
+            lido,
+            null,
+            velho,
+            velho
+                ? Texto($"leu o forecast da Gestão de Negócios pela última vez em {lido + FusoDeSaoPaulo:dd/MM/yyyy 'às' HH:mm}, há mais de {IdadeQueDesatualiza.TotalHours:N0} horas: o que os gestores digitaram depois ainda não está aqui. A leitura é da rotina \"Metas de venda (Gestão de Negócios)\", em Configurações › Integrações.")
+                : null);
+    }
+
+    private static readonly TimeSpan FusoDeSaoPaulo = TimeSpan.FromHours(-3);
 
     /// <summary>
     /// O mês que a tela abre: o corrente, quando tem forecast; senão, o mais recente com forecast até ele; senão, o mais
@@ -132,10 +162,28 @@ public sealed class ObterForecastDaGerencia(IRepositorioDoForecast repositorio, 
         else if (!meses.Contains(a.Competencia))
             lacunas.Add(new MetricaSemDado("semForecastNoMes",
                 Texto($"Nenhum gestor informou forecast para {JanelaDeCompetencia.Mes(a.Competencia)}: a coluna fica vazia, e não com zero.")));
+        else
+        {
+            // O QUE A GN AINDA NÃO TEM (01/10/2026): no dia 1º, 37 linhas de forecast e nenhum best guess — o best guess vem
+            // depois, e a tela dizia só "nenhum gestor informou", sem dizer até quando.
+            var linhas = a.Gestores.SelectMany(g => g.Linhas).ToList();
+            if (linhas.Count > 0 && linhas.All(l => l.BestGuess is null))
+                lacunas.Add(new MetricaSemDado("semBestGuessNoMes",
+                    Texto($"Nenhum gestor informou o best guess de {JanelaDeCompetencia.Mes(a.Competencia)} na Gestão de Negócios até a última leitura: a coluna fica vazia, e não com zero.")));
+
+            var semForecast = a.Gestores.Count(g => g.Linhas.Any(l => l.Meta > 0) && g.Linhas.All(l => l.Forecast is null));
+            if (semForecast > 0)
+                lacunas.Add(new MetricaSemDado("gestoresSemForecast",
+                    Texto($"{semForecast:N0} gestor(es) com PG em {JanelaDeCompetencia.Mes(a.Competencia)} não informaram forecast na Gestão de Negócios: o forecast deles fica vazio, e não com zero.")));
+        }
 
         if (!organizacao)
             lacunas.Add(new MetricaSemDado("alcanceDasFiliais",
                 "O PO e o realizado são só da filial escolhida; o forecast é o do gestor inteiro, que atravessa filiais. A comparação exata é em \"Todas as filiais\"."));
+
+        if (a.GestoresForaDoRecorte > 0)
+            lacunas.Add(new MetricaSemDado("gestoresForaDoRecorte",
+                Texto($"{a.GestoresForaDoRecorte:N0} gestor(es) com forecast em {JanelaDeCompetencia.Mes(a.Competencia)} ficam fora da filial escolhida: nenhum consultor do time é dela, e o time não tem meta nem venda nela. O forecast da gerência inteira está em \"Todas as filiais\".")));
 
         if (a.VendasSemGestor > 0)
             lacunas.Add(new MetricaSemDado("vendasSemGestor",

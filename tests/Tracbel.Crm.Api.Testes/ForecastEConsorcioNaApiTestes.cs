@@ -62,12 +62,16 @@ public sealed class ForecastEConsorcioNaApiTestes
         db.GestoresDosConsultores.AddRange(
             GestorDoConsultor.Registrar(gn.Id, 1, "CEN.RIBEIRAOPRETO", "GESTOR.NORTE", 1, null, "g1", leitura, 100),
             GestorDoConsultor.Registrar(gn.Id, 2, "OUTRO.SEM.CONTA", "GESTOR.SUL", 1, null, "g2", leitura, 100),
-            GestorDoConsultor.Registrar(gn.Id, 3, "CEN.BARRETOS", "GESTOR.NORTE", 3, null, "g3", leitura, 100));
+            GestorDoConsultor.Registrar(gn.Id, 3, "CEN.BARRETOS", "GESTOR.NORTE", 3, null, "g3", leitura, 100),
+            GestorDoConsultor.Registrar(gn.Id, 4, "OUTRO.DE.BARRETOS", "GESTOR.OESTE", 3, null, "g4", leitura, 100));
 
+        // OUT/2026 É O DIA 1º DE 01/10/2026: o Oeste (só Barretos) já digitou o forecast, ninguém digitou o best guess, e o
+        // Norte tem PG em Ribeirão (a meta de out/2026 do CEN) sem forecast.
         db.ForecastsDaGerencia.AddRange(
             ForecastDaGerencia.Registrar(gn.Id, 1, new DateOnly(2025, 11, 1), "GESTOR.NORTE", "TRATOR MÉDIO", 6, 5, "f1", leitura, 100),
             ForecastDaGerencia.Registrar(gn.Id, 2, new DateOnly(2025, 11, 1), "GESTOR.SUL", "TRATOR MÉDIO", null, 1, "f2", leitura, 100),
-            ForecastDaGerencia.Registrar(gn.Id, 3, new DateOnly(2025, 12, 1), "GESTOR.NORTE", "TRATOR MÉDIO", 4, 4, "f3", leitura, 100));
+            ForecastDaGerencia.Registrar(gn.Id, 3, new DateOnly(2025, 12, 1), "GESTOR.NORTE", "TRATOR MÉDIO", 4, 4, "f3", leitura, 100),
+            ForecastDaGerencia.Registrar(gn.Id, 4, new DateOnly(2026, 10, 1), "GESTOR.OESTE", "TRATOR MÉDIO", 7, null, "f4", leitura, 100));
 
         DadosDaCotaNaOrigem Cota(int empresa, string consultor, long? conta) => new(
             empresa, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 12), "Lance", null, consultor, conta, "GESTOR.NORTE", "TRATOR",
@@ -111,7 +115,7 @@ public sealed class ForecastEConsorcioNaApiTestes
 
         dados.GetProperty("competencia").GetString().Should().Be("2025-11-01");
         dados.GetProperty("alcance").GetString().Should().Be("Filiais");
-        dados.GetProperty("mesesDisponiveis").EnumerateArray().Select(m => m.GetString()).Should().Equal("2025-11-01", "2025-12-01");
+        dados.GetProperty("mesesDisponiveis").EnumerateArray().Select(m => m.GetString()).Should().Equal("2025-11-01", "2025-12-01", "2026-10-01");
 
         var gestores = Gestores(dados);
         gestores.Keys.Should().Equal("GESTOR.NORTE", "GESTOR.SUL");
@@ -146,6 +150,73 @@ public sealed class ForecastEConsorcioNaApiTestes
         var norte = Linha(Gestores(dados)["GESTOR.NORTE"], "TRATOR_MEDIO");
         (Numero(norte, "meta"), Numero(norte, "realizado")).Should().Be(((int?)7, (int?)2), "3 + 4 de meta, e as vendas de Ribeirão e de Barretos");
         Lacunas(dados).Should().NotContain("alcanceDasFiliais");
+    }
+
+    [Fact]
+    public async Task Na_filial_o_gestor_de_outra_filial_fica_fora_e_e_contado()
+    {
+        await using var app = await AppAsync();
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.Gerencia);
+
+        var dados = await DadosAsync(await app.ClienteDeRibeirao().GetAsync(Rota + "?competencia=2026-10"));
+
+        // O OESTE SÓ TEM BARRETOS: o forecast dele não entra na tela de Ribeirão, nem no total — em 01/10/2026, a filial de
+        // Ribeirão via gestores de Franca com PG zero ao lado.
+        var gestores = Gestores(dados);
+        gestores.Keys.Should().Equal(["GESTOR.NORTE"], "o Norte tem a meta de out/2026 em Ribeirão; o Oeste é só de Barretos");
+        var norte = Linha(gestores["GESTOR.NORTE"], "TRATOR_MEDIO");
+        (Numero(norte, "meta"), Numero(norte, "forecast"), Numero(norte, "bestGuess")).Should().Be(((int?)9, (int?)null, (int?)null));
+        Numero(Linha(dados.GetProperty("total"), "TRATOR_MEDIO"), "forecast").Should().BeNull("o forecast do Oeste ficou fora");
+
+        Lacunas(dados).Should().Contain(["gestoresForaDoRecorte", "gestoresSemForecast", "semBestGuessNoMes", "alcanceDasFiliais"]);
+        var fora = dados.GetProperty("metricasSemDado").EnumerateArray().Single(m => m.GetProperty("metrica").GetString() == "gestoresForaDoRecorte");
+        fora.GetProperty("motivo").GetString().Should().StartWith("1 gestor(es) com forecast em out/2026").And.Contain("Todas as filiais");
+    }
+
+    [Fact]
+    public async Task Em_todas_as_filiais_o_gestor_de_outra_filial_entra_com_o_forecast()
+    {
+        await using var app = await AppAsync();
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.Diretoria);
+
+        var dados = await DadosAsync(await app.ClienteComo(ApiEmMemoria.UsuarioDeRibeirao, ContextoAcesso.CodigoDeTodasAsFiliais)
+            .GetAsync(Rota + "?competencia=2026-10"));
+
+        Gestores(dados).Keys.Should().Equal("GESTOR.NORTE", "GESTOR.OESTE");
+        Numero(Linha(dados.GetProperty("total"), "TRATOR_MEDIO"), "forecast").Should().Be(7);
+        Lacunas(dados).Should().NotContain(["gestoresForaDoRecorte", "alcanceDasFiliais"]).And.Contain("semBestGuessNoMes");
+    }
+
+    [Fact]
+    public async Task Dados_atualizados_e_a_hora_da_leitura_da_gn_e_nao_a_da_consulta()
+    {
+        await using var app = await AppAsync();
+        await app.ConcederPerfilAsync(100, PerfisDeSistema.Gerencia);
+
+        var resposta = await app.ClienteDeRibeirao().GetAsync(Rota + "?competencia=2025-11");
+        var raiz = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync()).RootElement;
+        var procedencia = raiz.GetProperty("procedencia");
+
+        procedencia.GetProperty("lidoEmUtc").GetDateTime().Should().Be(raiz.GetProperty("dados").GetProperty("lidoEm").GetDateTime(),
+            "em 01/10/2026 a tela disse 11:32 com o forecast lido às 06:00");
+        procedencia.GetProperty("estaDesatualizado").GetBoolean().Should().BeFalse("a leitura acabou de acontecer");
+    }
+
+    [Fact]
+    public void Leitura_com_mais_de_tres_horas_avisa_com_a_hora_de_sao_paulo()
+    {
+        var lido = new DateTime(2026, 10, 1, 9, 0, 0, DateTimeKind.Utc);
+
+        var fresca = ObterForecastDaGerencia.ProcedenciaDaLeitura(lido, lido.AddHours(2));
+        (fresca.LidoEmUtc, fresca.EstaDesatualizado, fresca.Aviso).Should().Be((lido, false, (string?)null));
+
+        var velha = ObterForecastDaGerencia.ProcedenciaDaLeitura(lido, lido.AddHours(5));
+        velha.EstaDesatualizado.Should().BeTrue();
+        velha.Aviso.Should().Contain("01/10/2026 às 06:00").And.Contain("há mais de 3 horas");
+
+        var agora = new DateTime(2026, 10, 1, 14, 0, 0, DateTimeKind.Utc);
+        var nunca = ObterForecastDaGerencia.ProcedenciaDaLeitura(null, agora);
+        (nunca.LidoEmUtc, nunca.EstaDesatualizado).Should().Be((agora, false), "sem leitura, a lacuna forecastNaoLido diz o resto");
     }
 
     [Fact]

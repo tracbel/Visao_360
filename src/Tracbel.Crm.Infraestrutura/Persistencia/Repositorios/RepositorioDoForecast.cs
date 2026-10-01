@@ -16,7 +16,8 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 ///
 /// <para><b>O PO e o realizado passam pelo filtro global</b> (as filiais ao alcance de quem lê); o forecast, que é do gestor
 /// inteiro e não tem filial, não. Por isso a regra de aplicação só abre o relatório a partir do alcance da filial, e diz
-/// quando o PO e o realizado não são da organização inteira.</para>
+/// quando o PO e o realizado não são da organização inteira. Fora de "Todas as filiais", só entra o forecast do gestor que
+/// pertence às filiais escolhidas (01/10/2026), e os que ficaram fora são contados.</para>
 ///
 /// <para><b>Somas em memória</b>, como na meta: é um mês de metas, vendas e previsões.</para>
 /// </summary>
@@ -32,16 +33,15 @@ public sealed class RepositorioDoForecast(CrmDbContext contexto) : IRepositorioD
             .ToListAsync(ct);
 
     /// <inheritdoc />
-    public async Task<ForecastApurado> ApurarAsync(DateOnly competencia, CancellationToken ct)
+    public async Task<ForecastApurado> ApurarAsync(DateOnly competencia, CancellationToken ct, IReadOnlySet<int>? filiaisDoRecorte = null)
     {
-        var time = GestorDoConsultor.GestorPorConsultor(
-            (await contexto.GestoresDosConsultores.AsNoTracking()
-                .Where(g => g.ExcluidoEm == null)
-                .Select(g => new { g.ConsultorNaOrigem, g.GestorNaOrigem, g.VigenteDesde, g.IdNaOrigem })
-                .ToListAsync(ct))
-            .Select(g => (g.ConsultorNaOrigem, g.GestorNaOrigem, g.VigenteDesde, g.IdNaOrigem)));
+        var deParas = await contexto.GestoresDosConsultores.AsNoTracking()
+            .Where(g => g.ExcluidoEm == null)
+            .Select(g => new { g.ConsultorNaOrigem, g.GestorNaOrigem, g.VigenteDesde, g.IdNaOrigem, g.FilialNumero })
+            .ToListAsync(ct);
+        var time = GestorDoConsultor.GestorPorConsultor(deParas.Select(g => (g.ConsultorNaOrigem, g.GestorNaOrigem, g.VigenteDesde, g.IdNaOrigem)));
 
-        var previsoes = await contexto.ForecastsDaGerencia.AsNoTracking()
+        var todasAsPrevisoes = await contexto.ForecastsDaGerencia.AsNoTracking()
             .Where(f => f.ExcluidoEm == null && f.Competencia == competencia)
             .Select(f => new { f.GestorNaOrigem, f.CodigoDaLinha, f.LinhaNaOrigem, f.Forecast, f.BestGuess })
             .ToListAsync(ct);
@@ -67,6 +67,37 @@ public sealed class RepositorioDoForecast(CrmDbContext contexto) : IRepositorioD
             .ToList();
 
         string? GestorDe(string consultor) => consultor.Length > 0 && time.TryGetValue(consultor, out var gestor) ? gestor : null;
+
+        // O RECORTE DAS FILIAIS (01/10/2026): o forecast não tem filial, e sem recorte a filial de Ribeirão via o forecast dos
+        // gestores de Franca com PO zero ao lado. Fica o gestor que pertence às filiais escolhidas — um consultor do time é
+        // delas pelo de-para (o NN da GN é o fim do código 0101NN), ou o time tem meta ou venda nelas (já recortadas pelo
+        // filtro global).
+        var previsoes = todasAsPrevisoes;
+        var foraDoRecorte = 0;
+        if (filiaisDoRecorte is not null)
+        {
+            var codigos = deParas.Where(d => d.FilialNumero is >= 1 and <= 99)
+                .Select(d => "0101" + d.FilialNumero!.Value.ToString("00", CultureInfo.InvariantCulture))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            var empresaPorCodigo = await contexto.Empresas.AsNoTracking()
+                .Where(e => codigos.Contains(e.Codigo))
+                .Select(e => new { e.Codigo, e.Id })
+                .ToDictionaryAsync(e => e.Codigo, e => e.Id, StringComparer.Ordinal, ct);
+
+            var doRecorte = deParas
+                .Where(d => d.FilialNumero is >= 1 and <= 99
+                            && GestorDe(MetaDeVenda.ChaveDaPessoa(d.ConsultorNaOrigem)) == d.GestorNaOrigem
+                            && empresaPorCodigo.TryGetValue("0101" + d.FilialNumero!.Value.ToString("00", CultureInfo.InvariantCulture), out var empresa)
+                            && filiaisDoRecorte.Contains(empresa))
+                .Select(d => d.GestorNaOrigem)
+                .Concat(metas.Select(m => GestorDe(m.Consultor)).OfType<string>())
+                .Concat(vendas.Select(v => GestorDe(v.Vendedor)).OfType<string>())
+                .ToHashSet(StringComparer.Ordinal);
+
+            previsoes = [.. todasAsPrevisoes.Where(p => doRecorte.Contains(p.GestorNaOrigem))];
+            foraDoRecorte = todasAsPrevisoes.Select(p => p.GestorNaOrigem).Where(g => !doRecorte.Contains(g)).Distinct(StringComparer.Ordinal).Count();
+        }
 
         var nomeDaLinha = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var p in previsoes) nomeDaLinha.TryAdd(p.CodigoDaLinha, p.LinhaNaOrigem);
@@ -130,6 +161,7 @@ public sealed class RepositorioDoForecast(CrmDbContext contexto) : IRepositorioD
             total,
             vendas.Count(v => GestorDe(v.Vendedor) is null),
             ponto is null ? null : DateTime.SpecifyKind(ponto.ProcessadoEm, DateTimeKind.Utc),
-            gerado);
+            gerado,
+            foraDoRecorte);
     }
 }
