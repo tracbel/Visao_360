@@ -143,34 +143,91 @@ const LINHAS = [
   'Venda de Pulverizadores Autopropelidos',
 ] as const;
 
+/**
+ * DEZ CENs FICTÍCIOS, como a maquete da Performance de CEN (01/10/2026): primeiro nome de letra grega, para ninguém
+ * confundir com gente de verdade, e o resto no formato dos nomes do Vórtice — a tela abrevia em "Alfa M. Cruz".
+ */
 const CENS = [
-  'CEN FICTÍCIO ALFA DE SOUZA PEREIRA DOS SANTOS',
-  'CEN FICTÍCIA BETA OLIVEIRA',
-  'CEN FICTÍCIO GAMA',
-  'CEN FICTÍCIA DELTA RIBEIRO',
-  'CEN FICTÍCIO ÉPSILON COSTA',
-  'CEN FICTÍCIO ZETA',
+  'ALFA MATIAS DE ARAUJO CRUZ',
+  'BETA ITALIA JARDIM SILVA',
+  'GAMA LUZIA FERRAZ MELO',
+  'DELTA CAIO RAMOS ALMEIDA',
+  'ÉPSILON RAFA SANTANA LIMA',
+  'ZETA JOAO PRADO OLIVEIRA',
+  'ETA FERNANDA TAVARES SANTOS',
+  'TETA RICO ANDRADE SANTOS',
+  'IOTA LUCAS MOREIRA RIBEIRO',
+  'CAPA JULIANA CARVALHO COSTA',
 ] as const;
 
-export function coberturaPorCarteira(estado: EstadoDaVisao360, codigo: string): Agregado<ResumoDeCobertura> {
+/**
+ * As faixas de cada carteira comercial, em fração dos vínculos: até 30 dias, de 31 a 90, mais de 90 e nunca — as dez
+ * primeiras são as linhas da maquete; as duas últimas são a segunda carteira de Alfa e de Beta, mais descobertas.
+ */
+const FAIXAS_DAS_CARTEIRAS: readonly [em30: number, de31a90: number, acima90: number, nunca: number][] = [
+  [0.68, 0.18, 0.1, 0.04],
+  [0.62, 0.22, 0.12, 0.04],
+  [0.58, 0.26, 0.12, 0.04],
+  [0.52, 0.28, 0.16, 0.04],
+  [0.48, 0.3, 0.18, 0.04],
+  [0.45, 0.32, 0.2, 0.03],
+  [0.42, 0.36, 0.18, 0.04],
+  [0.38, 0.34, 0.24, 0.04],
+  [0.34, 0.4, 0.22, 0.04],
+  [0.28, 0.38, 0.3, 0.04],
+  [0.24, 0.3, 0.26, 0.2],
+  [0.14, 0.28, 0.3, 0.28],
+];
+
+/**
+ * A CLASSE DA CURVA ABC NA AMOSTRA (o filtro da Performance de CEN, 01/10/2026): a fração dos vínculos de cada classe e
+ * o quanto ela é mais (ou menos) contatada que a média — a A mais coberta, a D menos e mais nunca contatada.
+ */
+const CLASSES_DA_AMOSTRA: Record<string, { parte: number; contato: number; nunca: number }> = {
+  A: { parte: 0.09, contato: 1.3, nunca: 0.5 },
+  B: { parte: 0.15, contato: 1.15, nunca: 0.7 },
+  C: { parte: 0.31, contato: 1, nunca: 1 },
+  D: { parte: 0.45, contato: 0.9, nunca: 1.15 },
+};
+
+/** Os números de uma carteira com as quatro faixas, na classe pedida — ou em todas. */
+function vinculosDaCarteira(
+  clientesDaCarteira: number,
+  [em30, de31a90, , nunca]: readonly [number, number, number, number],
+  classe: string | null,
+) {
+  const recorte = classe ? CLASSES_DA_AMOSTRA[classe] : undefined;
+  const clientes = n(clientesDaCarteira * (recorte?.parte ?? 1));
+  const fracaoNunca = Math.min(0.9, nunca * (recorte?.nunca ?? 1));
+  const fracao30 = Math.min(1 - fracaoNunca, em30 * (recorte?.contato ?? 1));
+  const fracao90 = Math.min(1 - fracaoNunca, fracao30 + de31a90 * (recorte?.contato ?? 1));
+  return {
+    clientes,
+    comContatoEm30Dias: n(clientes * fracao30),
+    comContatoEm90Dias: n(clientes * fracao90),
+    nuncaContatados: n(clientes * fracaoNunca),
+  };
+}
+
+export function coberturaPorCarteira(
+  estado: EstadoDaVisao360,
+  codigo: string,
+  classe: string | null = null,
+): Agregado<ResumoDeCobertura> {
   if (semVinculo(estado)) return { itens: [], metricasSemDado: [] };
 
   const { peso } = filial(estado, codigo);
+  const parte = classe ? (CLASSES_DA_AMOSTRA[classe]?.parte ?? 1) : 1;
   const itens: ResumoDeCobertura[] = [];
 
-  LINHAS.forEach((linha, i) => {
-    const clientes = n((1400 - i * 150) * peso);
-    const responsavel = CENS[(i + Number(codigo.slice(-1))) % CENS.length];
+  FAIXAS_DAS_CARTEIRAS.forEach((faixas, i) => {
     itens.push({
       carteiraChave: `${codigo}-c${i}`,
-      carteiraCodigo: `C${codigo.slice(-2)}${i}`,
+      carteiraCodigo: `C${codigo.slice(-2)}${String(i).padStart(2, '0')}`,
       carteiraNome: `Carteira fictícia ${i + 1}`,
-      linhaDeNegocioNome: linha,
-      responsavelNome: responsavel,
-      clientes,
-      comContatoEm30Dias: n(clientes * 0.22),
-      comContatoEm90Dias: n(clientes * 0.41),
-      nuncaContatados: n(clientes * 0.3),
+      linhaDeNegocioNome: LINHAS[i % LINHAS.length],
+      responsavelNome: CENS[i % CENS.length],
+      ...vinculosDaCarteira((1400 - i * 90) * peso, faixas, classe),
       ultimoContatoEm: '2026-09-20T13:00:00Z',
       naturezaDaCarteira: 'Comercial',
       naturezaDoResponsavel: 'Pessoa',
@@ -184,10 +241,7 @@ export function coberturaPorCarteira(estado: EstadoDaVisao360, codigo: string): 
     carteiraNome: 'Inteligência de Mercado (amostra)',
     linhaDeNegocioNome: 'Prospecção de Novos Clientes',
     responsavelNome: 'INTELIGÊNCIA DE MERCADO (AMOSTRA)',
-    clientes: n(900 * peso),
-    comContatoEm30Dias: n(120 * peso),
-    comContatoEm90Dias: n(260 * peso),
-    nuncaContatados: n(410 * peso),
+    ...vinculosDaCarteira(900 * peso, [0.13, 0.16, 0.25, 0.46], classe),
     ultimoContatoEm: '2026-09-18T13:00:00Z',
     naturezaDaCarteira: 'Comercial',
     naturezaDoResponsavel: 'Departamento',
@@ -202,10 +256,10 @@ export function coberturaPorCarteira(estado: EstadoDaVisao360, codigo: string): 
       carteiraNome: 'Depósito de cadastro (amostra)',
       linhaDeNegocioNome: 'Venda de Máquinas e Implemento',
       responsavelNome: 'SISTEMA (AMOSTRA)',
-      clientes: n(9000 * peso),
+      clientes: n(9000 * peso * parte),
       comContatoEm30Dias: 0,
       comContatoEm90Dias: 0,
-      nuncaContatados: n(9000 * peso),
+      nuncaContatados: n(9000 * peso * parte),
       ultimoContatoEm: null,
       naturezaDaCarteira: 'Administrativa',
       naturezaDoResponsavel: 'Sistema',
@@ -216,10 +270,10 @@ export function coberturaPorCarteira(estado: EstadoDaVisao360, codigo: string): 
       carteiraNome: 'Carteira de teste (amostra)',
       linhaDeNegocioNome: 'Linha de Teste (amostra)',
       responsavelNome: 'TESTE (AMOSTRA)',
-      clientes: n(2500 * peso),
+      clientes: n(2500 * peso * parte),
       comContatoEm30Dias: 0,
       comContatoEm90Dias: 0,
-      nuncaContatados: n(2500 * peso),
+      nuncaContatados: n(2500 * peso * parte),
       ultimoContatoEm: null,
       naturezaDaCarteira: 'Teste',
       naturezaDoResponsavel: 'Teste',
@@ -625,60 +679,87 @@ export function coberturaPorFilial(estado: EstadoDaVisao360, codigo: string): Ag
 /* O painel do CEN (Performance de CEN, 29/09/2026)                           */
 /* ------------------------------------------------------------------------ */
 
-/** Os responsáveis do seletor da Performance de CEN — os mesmos nomes fictícios da cobertura por carteira. */
-const RESPONSAVEIS_DO_PAINEL = [
-  { chave: '00000000-0000-4000-8000-000000000c01', nome: 'CEN OLIVEIRA', natureza: 'Pessoa', carteiras: 2, peso: 1 },
-  { chave: '00000000-0000-4000-8000-000000000c02', nome: 'CEN GAMA', natureza: 'Pessoa', carteiras: 2, peso: 0.85 },
-  { chave: '00000000-0000-4000-8000-000000000c03', nome: 'CEN RIBEIRO', natureza: 'Pessoa', carteiras: 1, peso: 0.55 },
-  { chave: '00000000-0000-4000-8000-000000000c04', nome: 'INTELIGÊNCIA (AMOSTRA)', natureza: 'Departamento', carteiras: 1, peso: 0.45 },
-] as const;
+/**
+ * Cada classe contra a cadência declarada, em fração dos vínculos dela — coberta, fora da cadência, nunca contatada e
+ * sem cadência —, nas proporções da maquete da Performance (01/10/2026). A cadência é a da amostra antiga: 180 dias
+ * para A e B, a C em linhas de prazos diferentes, 360 para a D.
+ */
+const COBERTURA_POR_CLASSE_DA_AMOSTRA: readonly [classe: string, cob: number, fora: number, nunca: number, sem: number, dias: number | null][] = [
+  ['A', 0.62, 0.18, 0.12, 0.08, 180],
+  ['B', 0.48, 0.22, 0.2, 0.1, 180],
+  ['C', 0.28, 0.34, 0.26, 0.12, null],
+  ['D', 0.14, 0.32, 0.42, 0.12, 360],
+];
+
+/** A chave fictícia de um responsável, pela posição dele na lista da filial. */
+const chaveDoResponsavel = (i: number) => `00000000-0000-4000-8000-${(0xc00 + i).toString(16).padStart(12, '0')}`;
 
 /**
  * O painel de um responsável — ou o consolidado, sem responsável —, com a cobertura por classe da curva ABC contra a
  * cadência declarada. No `completo` as quatro classes têm vínculo; nos outros dois, nenhum responsável tem carteira.
+ *
+ * DESDE A MAQUETE DA PERFORMANCE (01/10/2026) os responsáveis e os vínculos saem das MESMAS carteiras de
+ * `coberturaPorCarteira` — nomes, chaves e totais batem com os cartões —, e a carteira escolhida recorta o painel.
  */
-export function painelDoCen(estado: EstadoDaVisao360, codigo: string, responsavel: string | null): PainelDoCen {
-  const semCarteira = semVinculo(estado);
-  const peso = semCarteira ? 0 : filial(estado, codigo).peso;
-  const escolhido = RESPONSAVEIS_DO_PAINEL.find((r) => r.chave === responsavel) ?? null;
-  const fator = peso * (escolhido ? escolhido.peso / 2.85 : 1);
-  const classe = (c: string, clientes: number, cobertos: number, fora: number, nunca: number, sem: number, dias: number | null) => ({
-    classe: c,
-    clientes: n(clientes * fator),
-    cobertos: n(cobertos * fator),
-    foraDaCadencia: n(fora * fator),
-    nuncaContatados: n(nunca * fator),
-    semCadenciaDeclarada: n(sem * fator),
-    diasDeCadencia: dias,
+export function painelDoCen(
+  estado: EstadoDaVisao360,
+  codigo: string,
+  responsavel: string | null,
+  carteira: string | null = null,
+): PainelDoCen {
+  const comerciais = coberturaPorCarteira(estado, codigo).itens.filter(
+    (c) => c.naturezaDaCarteira === 'Comercial' && (c.naturezaDoResponsavel === 'Pessoa' || c.naturezaDoResponsavel === 'Departamento'),
+  );
+  const nomes = [...new Set(comerciais.map((c) => c.responsavelNome))];
+  const responsaveis = nomes.map((nome, i) => {
+    const dele = comerciais.filter((c) => c.responsavelNome === nome);
+    return { chave: chaveDoResponsavel(i), nome, natureza: dele[0].naturezaDoResponsavel, carteiras: dele.length };
   });
-  const porClasse = semCarteira
-    ? []
-    : [
-        classe('A', 320, 190, 95, 35, 0, 180),
-        classe('B', 540, 250, 190, 100, 0, 180),
-        classe('C', 1_900, 610, 720, 470, 100, null),
-        classe('D', 5_200, 1_050, 1_600, 2_150, 400, 360),
-      ];
-  const clientes = porClasse.reduce((s, c) => s + c.clientes, 0);
+
+  const escolhido = responsaveis.find((r) => r.chave === responsavel) ?? null;
+  const noRecorte = comerciais.filter(
+    (c) => (!escolhido || c.responsavelNome === escolhido.nome) && (!carteira || c.carteiraChave === carteira),
+  );
+  const vinculos = noRecorte.reduce((s, c) => s + c.clientes, 0);
+  const total = comerciais.reduce((s, c) => s + c.clientes, 0);
+
+  const porClasse = COBERTURA_POR_CLASSE_DA_AMOSTRA.map(([classe, cob, fora, nunca, , dias]) => {
+    const daClasse = n(vinculos * (CLASSES_DA_AMOSTRA[classe]?.parte ?? 0));
+    const cobertos = n(daClasse * cob);
+    const foraDaCadencia = n(daClasse * fora);
+    const nuncaContatados = n(daClasse * nunca);
+    // O RESTO, para as quatro somarem a classe: a sobra do arredondamento cai aqui, e nunca abaixo de zero.
+    const semCadenciaDeclarada = Math.max(0, daClasse - cobertos - foraDaCadencia - nuncaContatados);
+    return {
+      classe,
+      clientes: cobertos + foraDaCadencia + nuncaContatados + semCadenciaDeclarada,
+      cobertos,
+      foraDaCadencia,
+      nuncaContatados,
+      semCadenciaDeclarada,
+      diasDeCadencia: dias,
+    };
+  }).filter((c) => c.clientes > 0);
 
   return {
     painel: {
       responsavelChave: escolhido?.chave ?? '',
       responsavelNome: escolhido?.nome ?? 'Todos os responsáveis',
       naturezaDoResponsavel: escolhido?.natureza ?? 'Pessoa',
-      carteiras: escolhido ? escolhido.carteiras : semCarteira ? 0 : 6,
-      clientes,
+      carteiras: noRecorte.length,
+      clientes: porClasse.reduce((s, c) => s + c.clientes, 0),
       porClasse,
       processosGanhos: 0,
       processosPerdidos: 0,
       processosAbertos: 0,
       vendasPerdidasRegistradas: 0,
-      faturamentoDaCarteira: n(18_400_000 * fator),
+      faturamentoDaCarteira: total > 0 ? n(18_400_000 * filial(estado, codigo).peso * (vinculos / total)) : 0,
     },
-    responsaveis: semCarteira ? [] : RESPONSAVEIS_DO_PAINEL.map(({ chave, nome, natureza, carteiras }) => ({ chave, nome, natureza, carteiras })),
-    metricasSemDado: semCarteira
-      ? [{ metrica: 'carteiras', motivo: 'Nenhuma carteira desta filial tem vínculo ativo: a carga das carteiras ainda não rodou.' }]
-      : [],
+    responsaveis,
+    metricasSemDado:
+      comerciais.length === 0
+        ? [{ metrica: 'carteiras', motivo: 'Nenhuma carteira desta filial tem vínculo ativo: a carga das carteiras ainda não rodou.' }]
+        : [],
   };
 }
 
@@ -1293,7 +1374,7 @@ export function respostaDaVisao360(
     case '/v1/integracoes/conferencia-gn':
       return conferenciaComAGestao(estado);
     case '/v1/relatorios/cobertura':
-      return coberturaPorCarteira(estado, empresa);
+      return coberturaPorCarteira(estado, empresa, consulta.get('classe'));
     case '/v1/relatorios/agenda':
       return painelDaAgenda(estado, empresa);
     case '/v1/relatorios/funil':
@@ -1315,7 +1396,7 @@ export function respostaDaVisao360(
     case '/v1/cobertura/carteiras':
       return territorioDasCarteiras(estado, empresa);
     case '/v1/relatorios/cen':
-      return painelDoCen(estado, empresa, consulta.get('responsavel'));
+      return painelDoCen(estado, empresa, consulta.get('responsavel'), consulta.get('carteira'));
     case '/v1/processos':
       return contagemDeProcessos(estado, empresa, consulta);
     case '/v1/tarefas':

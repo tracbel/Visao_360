@@ -444,7 +444,12 @@ public interface IRepositorioCarteiras
     /// <summary>A cobertura por carteira, contada pelo banco.</summary>
     /// <param name="agoraUtc">O instante de referência das janelas de 30 e 90 dias.</param>
     /// <param name="ct">Cancelamento.</param>
-    Task<IReadOnlyList<ResumoDeCobertura>> ResumirCoberturaAsync(DateTime agoraUtc, CancellationToken ct);
+    /// <param name="classe">
+    /// Só os vínculos de clientes desta classe da curva ABC (01/10/2026, o filtro da Performance de CEN). O cliente sem
+    /// classe apurada conta como D, a mesma regra do painel do CEN. Nulo conta todos.
+    /// </param>
+    Task<IReadOnlyList<ResumoDeCobertura>> ResumirCoberturaAsync(
+        DateTime agoraUtc, CancellationToken ct, ClasseDeCliente? classe = null);
 
     /// <summary>
     /// As carteiras em que o cliente está — os vínculos ativos, com a filial, o responsável e a cadência da linha de
@@ -587,8 +592,12 @@ public interface IRepositorioPainelDoCen
     /// <param name="responsavelChave">A chave pública dele; nulo traz o consolidado de todos.</param>
     /// <param name="agoraUtc">O instante contra o qual a cadência é medida.</param>
     /// <param name="ct">Cancelamento.</param>
+    /// <param name="carteiraChave">
+    /// Só esta carteira (01/10/2026, o filtro da Performance de CEN). Nula traz todas as comerciais do responsável; uma
+    /// carteira fora do recorte devolve o painel zerado, e não erro.
+    /// </param>
     Task<PainelDoResponsavel?> ObterPainelAsync(
-        Guid? responsavelChave, DateTime agoraUtc, CancellationToken ct);
+        Guid? responsavelChave, DateTime agoraUtc, CancellationToken ct, Guid? carteiraChave = null);
 }
 
 /// <summary>Um mês da série de faturamento.</summary>
