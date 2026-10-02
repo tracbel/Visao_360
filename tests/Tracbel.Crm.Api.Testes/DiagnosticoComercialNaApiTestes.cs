@@ -150,6 +150,11 @@ public sealed class DiagnosticoComercialNaApiTestes(ApiEmMemoria api) : IClassFi
         maior.GetProperty("clientesPorClasse").GetProperty("semClasse").GetInt32().Should().Be(0);
         maior.GetProperty("clientesEmCarteira").GetInt32().Should().Be(0);
         maior.GetProperty("clientesQueCompraram").GetInt32().Should().Be(0);
+
+        // O CEN / GESTOR DA MAQUETE (02/10/2026): a resposta traz os CENs que o filtro oferece, e cada município o CEN da
+        // carteira com mais vínculos nele — sem carteira, nenhum, e não um nome inventado.
+        dados.GetProperty("responsaveis").ValueKind.Should().Be(JsonValueKind.Array);
+        maior.GetProperty("responsavel").ValueKind.Should().Be(JsonValueKind.Null, "nenhuma carteira tem vínculo nos municípios do cenário");
     }
 
     [Fact]
@@ -196,11 +201,12 @@ public sealed class DiagnosticoComercialNaApiTestes(ApiEmMemoria api) : IClassFi
     {
         var http = await ComDemandaAsync();
 
-        var resposta = await http.GetAsync($"{Rota}?categoria=TRATORR&competenciaFinal=2026-13");
+        var resposta = await http.GetAsync($"{Rota}?categoria=TRATORR&competenciaFinal=2026-13&responsavel=999999");
 
         var corpo = await resposta.Content.ReadAsStringAsync();
         resposta.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity, corpo);
-        corpo.Should().Contain("\"categoria\"").And.Contain("\"competenciaFinal\"");
+        corpo.Should().Contain("\"categoria\"").And.Contain("\"competenciaFinal\"").And.Contain("\"responsavel\"",
+            "o CEN do filtro é um responsável de carteira ao alcance — e não qualquer número");
     }
 
     [Fact]

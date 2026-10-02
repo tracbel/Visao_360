@@ -6,20 +6,21 @@
  * distribuição e o selo da tabela precisam dizer a mesma cor para a mesma classe.
  */
 
-import type { ClasseDePrioridade, ComponentesDoIoc, MunicipioNoDiagnostico } from '../../tipos/mercado';
+import type { ClasseDePrioridade, ComponentesDoIoc, MunicipioNoDiagnostico, ResumoDoDiagnostico } from '../../tipos/mercado';
 
 /**
  * As cinco classes: o nome inteiro nos cartões e no CSV, o curto no selo da tabela, a faixa do IOC e a cor do mapa.
  *
- * A COR DO MAPA É UMA ESCALA ORDENADA, do verde escuro (máxima) ao cinza (manutenção): o olho lê "mais escuro, mais a
- * ganhar" sem legenda. O nome da classe vai sempre escrito ao lado — a cor sozinha não diz nada a quem não a distingue.
+ * A COR DO MAPA É A ESCALA DA MAQUETE (02/10/2026), do verde escuro (máxima) ao vermelho (manutenção), passando por verde,
+ * amarelo e laranja. O nome da classe vai sempre escrito ao lado — a cor sozinha não diz nada a quem não a distingue — e
+ * o município sem IOC continua hachurado, e não cinza: cinza é o fundo de fora da ADR.
  */
 export const CLASSES: { chave: ClasseDePrioridade; rotulo: string; curto: string; faixa: string; cor: string }[] = [
-  { chave: 'Maxima', rotulo: 'Prioridade máxima', curto: 'Máxima', faixa: 'IOC 80 ou mais', cor: '#1B5E20' },
-  { chave: 'Alta', rotulo: 'Alta prioridade', curto: 'Alta', faixa: 'IOC 60 a 80', cor: '#4A8A4F' },
-  { chave: 'Moderada', rotulo: 'Prioridade moderada', curto: 'Moderada', faixa: 'IOC 40 a 60', cor: '#D9A400' },
-  { chave: 'Baixa', rotulo: 'Baixa prioridade', curto: 'Baixa', faixa: 'IOC 20 a 40', cor: '#E8743B' },
-  { chave: 'Manutencao', rotulo: 'Manutenção', curto: 'Manutenção', faixa: 'IOC abaixo de 20', cor: '#B8C0B8' },
+  { chave: 'Maxima', rotulo: 'Prioridade máxima', curto: 'Máxima', faixa: 'IOC ≥ 80', cor: '#1E7B34' },
+  { chave: 'Alta', rotulo: 'Alta prioridade', curto: 'Alta', faixa: 'IOC 60–80', cor: '#5DB665' },
+  { chave: 'Moderada', rotulo: 'Prioridade moderada', curto: 'Moderada', faixa: 'IOC 40–60', cor: '#F2B829' },
+  { chave: 'Baixa', rotulo: 'Baixa prioridade', curto: 'Baixa', faixa: 'IOC 20–40', cor: '#F07A2E' },
+  { chave: 'Manutencao', rotulo: 'Manutenção', curto: 'Manutenção', faixa: 'IOC < 20', cor: '#E2453C' },
 ];
 
 export const ROTULO_DA_CLASSE = Object.fromEntries(CLASSES.map((c) => [c.chave, c.rotulo])) as Record<ClasseDePrioridade, string>;
@@ -66,6 +67,8 @@ export const acoesDoPlano = (plano: string) =>
 
 export type ColunaDoDiagnostico =
   | 'nome'
+  | 'loja'
+  | 'planoDeAcao'
   | 'culturaPrincipal'
   | 'ioc'
   | 'demandaEstrutural'
@@ -91,6 +94,42 @@ export function ordenar(
     if (typeof va === 'string' && typeof vb === 'string') return sentido * va.localeCompare(vb, 'pt-BR');
     return sentido * ((va as number) - (vb as number));
   });
+}
+
+/**
+ * O RESUMO DOS MUNICÍPIOS À VISTA — a mesma conta do servidor (`ObterDiagnosticoComercial.Resumir`), refeita aqui quando a
+ * cultura principal ou o CEN recortam a lista (02/10/2026): os cartões e a prioridade passam a ser do recorte, e não da
+ * ADR inteira. As somas são só dos municípios que têm o número, e nulas quando nenhum tem; sem o ART, as vendas ficam
+ * nulas, e não zero.
+ */
+export function resumir(linhas: readonly MunicipioNoDiagnostico[], comArt: boolean): ResumoDoDiagnostico {
+  const da = (c: ClasseDePrioridade) => linhas.filter((l) => l.classe === c).length;
+  const comIndice = linhas.filter((l) => l.ioc !== null).map((l) => l.ioc as number);
+  const soma = (valores: (number | null)[]) => {
+    const com = valores.filter((v): v is number => v !== null);
+    return com.length > 0 ? Math.round(com.reduce((s, v) => s + v, 0) * 10) / 10 : null;
+  };
+  const estrutural = soma(linhas.map((l) => l.demandaEstrutural));
+  const noAno = comArt ? soma(linhas.map((l) => l.vendidasNoAno)) : null;
+  return {
+    maxima: da('Maxima'),
+    alta: da('Alta'),
+    moderada: da('Moderada'),
+    baixa: da('Baixa'),
+    manutencao: da('Manutencao'),
+    semIndice: linhas.length - comIndice.length,
+    total: linhas.length,
+    iocMedio: comIndice.length > 0 ? Math.round((comIndice.reduce((s, v) => s + v, 0) / comIndice.length) * 10) / 10 : null,
+    demandaEstrutural: estrutural,
+    demandaAjustada: soma(linhas.map((l) => l.demandaAjustada)),
+    municipiosComDemanda: linhas.filter((l) => l.demandaEstrutural !== null).length,
+    metaDePlanejamento: soma(linhas.map((l) => l.metaDePlanejamento)),
+    vendidasNoPeriodo: comArt ? linhas.reduce((s, l) => s + (l.vendidasNoPeriodo ?? 0), 0) : null,
+    vendidasNoAno: noAno,
+    penetracao: estrutural !== null && estrutural > 0 && noAno !== null ? Math.round((noAno / estrutural) * 10000) / 10000 : null,
+    clientes: linhas.reduce((s, l) => s + l.clientes, 0),
+    clientesQueCompraram: linhas.reduce((s, l) => s + l.clientesQueCompraram, 0),
+  };
 }
 
 export const CABECALHO_DO_CSV = [
