@@ -40,6 +40,7 @@ import { ConferenciaComAGestao } from './telas/ConferenciaComAGestao';
 import { Configuracoes } from './telas/Configuracoes';
 import { DemandaEPrevisao } from './telas/DemandaEPrevisao';
 import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
+import { DimensionamentoAdr } from './telas/DimensionamentoAdr';
 import { PrecoDeCommodities } from './telas/PrecoDeCommodities';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
 import { EstoqueECobertura } from './telas/EstoqueECobertura';
@@ -270,6 +271,13 @@ export const ROTAS: Rota[] = [
     usaApi: true,
   },
   /* ---- Inteligência de Mercado: o protótipo da pasta 360 no CRM (épico 264) ---- */
+  {
+    caminho: '/mercado/dimensionamento',
+    titulo: 'Dimensionamento ADR',
+    trilha: ['Inteligência de Mercado', 'Dimensionamento ADR'],
+    Componente: DimensionamentoAdr,
+    usaApi: true,
+  },
   {
     caminho: '/mercado/precos',
     titulo: 'Preço de Commodities',

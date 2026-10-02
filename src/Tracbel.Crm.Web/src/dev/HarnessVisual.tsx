@@ -35,6 +35,7 @@ import {
   creditoFicticio,
   custosFicticios,
   demandaFicticia,
+  dimensionamentoFicticio,
   precosDasCulturasFicticios,
   diagnosticoFicticio,
   parametrosFicticios,
@@ -202,6 +203,13 @@ function instalarInterceptador(): void {
           cultura: parametros.get('cultura'),
         }),
       );
+    }
+
+    // O DIMENSIONAMENTO DA ADR (issue 259): os mesmos municípios da amostra são o recorte, e a malha inteira é o mapa.
+    if (caminho === '/v1/mercado/dimensionamento') {
+      const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;
+      const todos = malha.features.map((f) => ({ codigo: Number(f.properties.codarea), nome: f.properties.nome }));
+      return envelope(dimensionamentoFicticio(todos, municipiosDaMalha(malha, 40), estado === 'parcialmenteVazio'));
     }
 
     if (caminho === '/v1/territorio/indicadores') {

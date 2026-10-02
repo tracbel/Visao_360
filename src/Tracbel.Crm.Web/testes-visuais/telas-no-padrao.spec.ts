@@ -144,7 +144,8 @@ for (const { nome, largura, altura } of TODAS) {
 }
 
 /**
- * AS TELAS DE INTELIGÊNCIA DE MERCADO (bloco 4 do #293, 29/09/2026) — Demanda e Previsão e Diagnóstico Comercial. Elas
+ * AS TELAS DE INTELIGÊNCIA DE MERCADO (bloco 4 do #293, 29/09/2026) — Demanda e Previsão, Diagnóstico Comercial e (02/10) o
+ * Dimensionamento ADR. Elas
  * leem as rotas de mercado, que o harness do SHELL responde com as amostras de Mercado (`#/dev/shell-visual?rota=…`), e
  * não o da Visão 360. As mesmas provas das outras: cabem na largura, página na coluna inteira, as peças do padrão e os
  * cartões iguais.
@@ -152,6 +153,7 @@ for (const { nome, largura, altura } of TODAS) {
 const TELAS_DE_MERCADO = [
   { nome: 'demanda', rota: '/mercado/demanda', cartoes: 4, secoes: 2 },
   { nome: 'diagnostico', rota: '/mercado/diagnostico', cartoes: 4, secoes: 2 },
+  { nome: 'dimensionamento', rota: '/mercado/dimensionamento', cartoes: 4, secoes: 3 },
   { nome: 'precos', rota: '/mercado/precos', cartoes: 4, secoes: 2 },
 ] as const;
 
