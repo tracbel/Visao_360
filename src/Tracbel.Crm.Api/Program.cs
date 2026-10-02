@@ -237,6 +237,7 @@ builder.Services.AddScoped<IConsultaDoHistoricoDeIntegracoes>(s => s.GetRequired
 builder.Services.AddScoped<IRepositorioIndicadoresExecutivos, RepositorioDeIndicadoresExecutivos>();
 builder.Services.AddScoped<IRepositorioHistoricoComercial, RepositorioDeHistoricoComercial>();
 builder.Services.AddScoped<IRepositorioDeOrdensDeServico, RepositorioDeOrdensDeServico>();
+builder.Services.AddScoped<IRepositorioDePecas, RepositorioDePecas>();
 builder.Services.AddScoped<IRepositorioSincronizacoes, RepositorioDeSincronizacoes>();
 builder.Services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalho>();
 
@@ -297,6 +298,7 @@ builder.Services.AddScoped<ObterFunilPorEstagio>();
 builder.Services.AddScoped<ObterPainelDoCen>();
 builder.Services.AddScoped<ObterFaturamento>();
 builder.Services.AddScoped<ObterFaturamentoDoCliente>();
+builder.Services.AddScoped<ObterPecasDoCliente>();
 builder.Services.AddScoped<ListarCarteirasDoCliente>();
 builder.Services.AddScoped<ListarTarefas>();
 builder.Services.AddScoped<ObterPainelDaAgenda>();

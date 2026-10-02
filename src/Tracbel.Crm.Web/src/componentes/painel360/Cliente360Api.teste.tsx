@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProvedorDeContextoDeAcesso } from '../../dados/api/contexto';
 import type { EquipamentoResumo } from '../../tipos/api';
 import type { OrdensDeServicoResumidas } from '../../tipos/ordensDeServico';
+import type { PecasDoCliente } from '../../tipos/pecas';
 import type { CarteirasDoCliente, FaturamentoDoCliente } from '../../tipos/relacionamento';
 import { Cliente360Api } from './Cliente360Api';
 
@@ -35,6 +36,7 @@ const relacionamento = vi.hoisted(() => ({
   listarTarefas: vi.fn(),
   listarInteracoes: vi.fn(),
   obterFaturamentoDoCliente: vi.fn(),
+  obterPecasDoCliente: vi.fn(),
   listarCarteirasDoCliente: vi.fn(),
   PROCESSOS_INICIAL: {},
   TAREFAS_INICIAL: {},
@@ -134,6 +136,27 @@ const semOrdens: OrdensDeServicoResumidas = {
   metricasSemDado: [{ metrica: 'ordensDeServicoDoRecorte', motivo: 'Nenhuma ordem de serviço deste cliente nos últimos três anos.' }],
 };
 
+const pecas: PecasDoCliente = {
+  de: '2025-11-01', ate: '2026-10-01', dozeMeses: 20000, devolucoesNosDozeMeses: -500, descontoNosDozeMeses: 800, itensNosDozeMeses: 40,
+  porSetor: [{ nome: 'BALCAO', valor: 12000 }, { nome: 'OFICINA', valor: 8000 }],
+  porGrupo: [{ nome: 'PECAS', valor: 15000 }, { nome: 'LUBRIFICANTE', valor: 5000 }],
+  serie: Array.from({ length: 12 }, (_, i) => ({ competencia: `2026-${String(i + 1).padStart(2, '0')}-01`, valor: i === 11 ? 3000 : 1500 })),
+  ultimaCompraEm: '2026-10-01', vendedorPrincipal: 'VENDEDOR DE AMOSTRA', orcamentosEmAberto: 2, valorEmOrcamentosAbertos: 4500, orcamentosVencidos: 1,
+  orcamentos: [
+    { chave: 'o1', numero: '000700', filialCodigo: '010116', filialNome: 'Votuporanga', situacao: 'Parcialmente Atendido', prazo: 'VENCIDO',
+      reserva: 'NAO RESERVADO', orcadoEm: '2026-08-01', validoAte: '2026-09-01', vendedorNome: 'VENDEDOR DE AMOSTRA', valorTotal: 1500, itens: 3 },
+    { chave: 'o2', numero: '000777', filialCodigo: '010116', filialNome: 'Votuporanga', situacao: 'Aberto', prazo: 'NO PRAZO',
+      reserva: 'RESERVADO', orcadoEm: '2026-09-20', validoAte: '2099-12-31', vendedorNome: 'VENDEDOR DE AMOSTRA', valorTotal: 3000, itens: 1 },
+  ],
+  carregadoEm: '2026-10-02T09:00:00', orcamentosCarregadosEm: '2026-10-02T09:00:00', metricasSemDado: [],
+};
+
+const semPecas: PecasDoCliente = {
+  ...pecas, dozeMeses: 0, devolucoesNosDozeMeses: 0, porSetor: [], porGrupo: [], serie: pecas.serie.map((m) => ({ ...m, valor: 0 })),
+  ultimaCompraEm: null, vendedorPrincipal: null, orcamentosEmAberto: 0, valorEmOrcamentosAbertos: 0, orcamentosVencidos: 0, orcamentos: [],
+  metricasSemDado: [{ metrica: 'pecasDoCliente', motivo: 'Nenhuma compra de peça deste cliente nos últimos três anos.' }],
+};
+
 function montar() {
   render(
     <MemoryRouter>
@@ -170,6 +193,7 @@ describe('Cliente360Api', () => {
     relacionamento.obterFaturamentoDoCliente.mockResolvedValue({ dados: faturamento, procedencia: PROCEDENCIA });
     relacionamento.listarCarteirasDoCliente.mockResolvedValue({ dados: carteiras, procedencia: PROCEDENCIA });
     equipamentos.listarOrdensDeServicoDoCliente.mockResolvedValue({ dados: ordens, procedencia: PROCEDENCIA });
+    relacionamento.obterPecasDoCliente.mockResolvedValue({ dados: pecas, procedencia: PROCEDENCIA });
 
     montar();
 
@@ -205,8 +229,17 @@ describe('Cliente360Api', () => {
     expect(within(oficina).getByText('00012345').closest('li')).toHaveClass('p360-item-critico');
     expect(within(oficina).getByRole('link', { name: 'TRATOR 7250R' })).toHaveAttribute('href', '/equipamentos/m1');
 
-    // As lacunas que ficam dizem o motivo de hoje — e as frases falsas saíram.
-    expect(screen.getByText('Títulos em aberto')).toBeInTheDocument();
+    // As peças: os doze meses, balcão × oficina, o grupo pelo nome do comercial e o orçamento vencido na faixa vermelha.
+    const pecasBloco = (await screen.findByText('Peças em 12 meses')).closest('[data-bloco="pecas"]') as HTMLElement;
+    expect(within(pecasBloco).getByText(/20\.000/)).toBeInTheDocument();
+    expect(within(pecasBloco).getByText('Balcão')).toBeInTheDocument();
+    expect(within(pecasBloco).getByText(/Oficina R\$/)).toBeInTheDocument();
+    expect(within(pecasBloco).getByText(/Lubrificantes/)).toBeInTheDocument();
+    expect(within(pecasBloco).getByText(/vendedor principal: VENDEDOR DE AMOSTRA/)).toBeInTheDocument();
+    expect(within(pecasBloco).getByText('000700').closest('li')).toHaveClass('p360-item-critico');
+    expect(within(pecasBloco).getByText('000777').closest('li')).not.toHaveClass('p360-item-critico');
+
+    // As lacunas que ficam dizem o motivo de hoje — e as frases falsas saíram.    expect(screen.getByText('Títulos em aberto')).toBeInTheDocument();
     expect(screen.queryByText(/ainda não carrega as ordens de serviço/)).not.toBeInTheDocument();
     expect(screen.queryByText(/11\/04\/2025/)).not.toBeInTheDocument();
     expect(screen.queryByText(/24\/05\/2024/)).not.toBeInTheDocument();
@@ -236,6 +269,7 @@ describe('Cliente360Api', () => {
     });
 
     equipamentos.listarOrdensDeServicoDoCliente.mockResolvedValue({ dados: semOrdens, procedencia: PROCEDENCIA });
+    relacionamento.obterPecasDoCliente.mockResolvedValue({ dados: semPecas, procedencia: PROCEDENCIA });
 
     montar();
 
@@ -248,5 +282,9 @@ describe('Cliente360Api', () => {
     const oficina = (await screen.findByRole('button', { name: 'Por que o histórico de ordens de serviço não aparece' }))
       .closest('[data-bloco="ordens-de-servico"]') as HTMLElement;
     expect(within(oficina).getByText(/Nenhuma ordem de serviço deste cliente/)).toBeInTheDocument();
-  });
+
+    // Sem compra de peça, o bloco mostra o traço com o motivo.
+    const pecasBloco = (await screen.findByText('Peças em 12 meses')).closest('[data-bloco="pecas"]') as HTMLElement;
+    expect(within(pecasBloco).getByText(/Nenhuma compra de peça deste cliente/)).toBeInTheDocument();
+    expect(within(pecasBloco).getByText('nada orçado esperando o cliente')).toBeInTheDocument();  });
 });

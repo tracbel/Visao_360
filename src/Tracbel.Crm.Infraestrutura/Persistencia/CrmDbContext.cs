@@ -473,6 +473,12 @@ public class CrmDbContext : DbContext
     /// <summary>As ordens de serviço da oficina, do Protheus, com o total de peças e de serviços (02/10/2026).</summary>
     public DbSet<OrdemDeServico> OrdensDeServico => Set<OrdemDeServico>();
 
+    /// <summary>O faturamento de peças do Protheus, apurado por mês (02/10/2026).</summary>
+    public DbSet<FaturamentoDePecasNoMes> FaturamentosDePecasNoMes => Set<FaturamentoDePecasNoMes>();
+
+    /// <summary>Os orçamentos de peças do Protheus (02/10/2026).</summary>
+    public DbSet<OrcamentoDePecas> OrcamentosDePecas => Set<OrcamentoDePecas>();
+
     /// <summary>A ligação entre cliente e máquina, com natureza, origem e data.</summary>
     public DbSet<VinculoDeClienteComEquipamento> VinculosComEquipamento => Set<VinculoDeClienteComEquipamento>();
 
