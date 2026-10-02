@@ -1047,6 +1047,7 @@ quem a chama. É a entrada da #5 (o catálogo gerado a partir do OpenAPI) e da #
 | `GET` | `/api/v1/relatorios/funil-por-estagio` | ATIVO | consolidado.ts, relacionamento.ts |
 | `GET` | `/api/v1/relatorios/faturamento` | ATIVO | consolidado.ts, relacionamento.ts |
 | `GET` | `/api/v1/clientes/{chave:guid}/faturamento` | ATIVO | relacionamento.ts |
+| `GET` | `/api/v1/clientes/{chave:guid}/pecas` | ATIVO | relacionamento.ts |
 | `GET` | `/api/v1/relatorios/indicadores-executivos` | ATIVO | consolidado.ts |
 | `GET` | `/api/v1/relatorios/cen` | ATIVO | relacionamento.ts |
 | `GET` | `/api/v1/relatorios/agenda` | ATIVO | consolidado.ts, relacionamento.ts |

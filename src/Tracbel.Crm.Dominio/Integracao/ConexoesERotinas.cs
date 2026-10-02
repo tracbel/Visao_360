@@ -1169,11 +1169,15 @@ public static class RotinasDoSistema
         // DESLIGADA, como toda rotina que traz dado novo para produção: quem liga é quem administra, com a conexão do banco do
         // Protheus já testada — e a primeira rodada simulada mostra o que ela gravaria. Os modos e a descrição não são semeados
         // (só o nome), e por isso as peças e os orçamentos entram depois como modos novos, sem migração.
+        //
+        // O SEGUNDO MODO SÃO AS PEÇAS (02/10/2026): o faturamento de peças por mês, setor, grupo, linha e vendedor, e os
+        // orçamentos de peças — as views do extrator "Faturamento Peças" do BI. Independe das ordens de serviço; vai depois delas.
         new(PosVendaProtheus, "Pós-venda do Protheus",
             "As ordens de serviço da oficina dos últimos três anos e as ainda abertas, de qualquer data, lidas pelas mesmas views " +
             "do BI, com o valor de peças e de serviços na régua do painel de pós-venda — casadas com o cliente pelo CPF/CNPJ e com " +
-            "a máquina pelo chassi, sem nome nem contato de ninguém.",
-            ["--somente-ordens-de-servico"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)), false,
+            "a máquina pelo chassi, sem nome nem contato de ninguém. Depois, o faturamento de peças por mês (balcão e oficina, " +
+            "grupo, linha e vendedor) e os orçamentos de peças, sem custo nem margem.",
+            ["--somente-ordens-de-servico", "--somente-pecas-protheus"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)), false,
             [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco)
     ];
 
