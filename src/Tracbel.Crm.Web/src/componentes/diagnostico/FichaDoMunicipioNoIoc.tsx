@@ -5,12 +5,13 @@
  * em cinco ou seis linhas e cada município ocupava a altura de uma tela. Aqui elas têm largura para serem lidas, ao
  * lado dos sete componentes que as explicam.
  *
- * SEM MUNICÍPIO ESCOLHIDO, A FICHA MOSTRA OS CINCO DE MAIOR IOC — o ponto de partida de quem abre a tela para saber
- * onde agir.
+ * SEM MUNICÍPIO ESCOLHIDO, NO LUGAR DELA FICA "ONDE AGIR PRIMEIRO" (`OndeAgirPrimeiro`, 02/10/2026) — os cinco de maior
+ * IOC, o ponto de partida de quem abre a tela para saber onde agir.
  */
 
 import { X } from 'lucide-react';
 import { ValorAusente } from '../comum/ValorAusente';
+import { nomeProprio } from '../../telas/cadastro/formato';
 import type { MunicipioNoDiagnostico } from '../../tipos/mercado';
 import {
   acoesDoPlano,
@@ -25,45 +26,13 @@ import {
 
 export function FichaDoMunicipioNoIoc({
   municipio: m,
-  primeiros,
   semArt,
-  aoEscolher,
   aoFechar,
 }: {
-  municipio: MunicipioNoDiagnostico | null;
-  /** Os de maior IOC, para a ficha vazia. */
-  primeiros: MunicipioNoDiagnostico[];
+  municipio: MunicipioNoDiagnostico;
   semArt: boolean;
-  aoEscolher: (codigo: number) => void;
   aoFechar: () => void;
 }) {
-  if (!m) {
-    return (
-      <div className="card cad-cartao diag-ficha" data-bloco="ficha">
-        <div className="diag-ficha-cabecalho">
-          <div>
-            <div className="card-title">Onde agir primeiro</div>
-            <div className="card-subtitle">Os cinco municípios de maior IOC no recorte. Clique num deles, no mapa ou na tabela.</div>
-          </div>
-        </div>
-        <ol className="diag-primeiros">
-          {primeiros.map((p) => (
-            <li key={p.codigoIbge}>
-              <button type="button" className="diag-primeiro" onClick={() => aoEscolher(p.codigoIbge)}>
-                <span className="diag-primeiro-nome">
-                  {p.nome}
-                  <span className="cad-sub">{p.loja ?? p.regiao}</span>
-                </span>
-                {p.ioc !== null && p.classe !== null && <SeloDoIoc ioc={p.ioc} classe={p.classe} />}
-              </button>
-              {p.planoDeAcao && <div className="diag-primeiro-plano">{acoesDoPlano(p.planoDeAcao)[0]}</div>}
-            </li>
-          ))}
-        </ol>
-      </div>
-    );
-  }
-
   const acoes = acoesDoPlano(m.planoDeAcao);
   const porClasse = m.clientesPorClasse;
 
@@ -73,8 +42,9 @@ export function FichaDoMunicipioNoIoc({
         <div>
           <div className="card-title">{m.nome}</div>
           <div className="card-subtitle">
-            {m.regiao}
+            Região {m.regiao}
             {m.loja && <> · {m.loja}</>}
+            {m.responsavel && <> · CEN {nomeProprio(m.responsavel)}</>}
             {m.culturaPrincipal && <> · cultura principal: {m.culturaPrincipal}</>}
           </div>
         </div>

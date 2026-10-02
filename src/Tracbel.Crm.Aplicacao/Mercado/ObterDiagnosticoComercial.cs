@@ -166,7 +166,8 @@ public sealed class ObterDiagnosticoComercial(
             DiagnosticoComercial.Percentil90([.. entradas.Select(e => e.ParaOIoc.DemandaDoIoc).OfType<decimal>().Where(d => d > 0)]),
             Resumir(linhas, indicadores.MaquinasVendidas is not null),
             linhas,
-            Lacunas(indicadores, doPlanejamento, gerais, todas, codigoDaCategoria, nomeDaCategoria, sharePorCategoria, janela));
+            Lacunas(indicadores, doPlanejamento, gerais, todas, codigoDaCategoria, nomeDaCategoria, sharePorCategoria, janela),
+            filtros.Responsaveis);
 
         return Resultado<ComProcedencia<DiagnosticoComercialDaRegiao>>.Ok(
             ComProcedencia<DiagnosticoComercialDaRegiao>.DoNossoBanco(
@@ -307,7 +308,10 @@ public sealed class ObterDiagnosticoComercial(
             ioc is null ? "" : string.Join(", ", ioc.Situacao),
             ioc is null ? "" : string.Join(" · ", ioc.PlanoDeAcao),
             ioc?.ComponentesAusentes ?? [],
-            e.Estimativa);
+            e.Estimativa,
+            // O CEN DO MUNICÍPIO (02/10/2026, maquete do Ricardo: "Regional Leste • Fernando Silva") é o responsável da
+            // carteira com mais vínculos aqui — a mesma lista dos Indicadores, já em ordem.
+            m.ResponsaveisPelasCarteiras.FirstOrDefault()?.Nome);
     }
 
     private static decimal? Arredondar(decimal? valor) => valor is { } v ? decimal.Round(v, 2) : null;
@@ -434,6 +438,7 @@ public sealed class ObterDiagnosticoComercial(
 /// <param name="Resumo">Quantos municípios em cada classe.</param>
 /// <param name="Municipios">Os municípios da ADR, do maior IOC para o menor.</param>
 /// <param name="Lacunas">O que o diagnóstico não consegue afirmar, com o motivo.</param>
+/// <param name="Responsaveis">Os CENs que o filtro "CEN / Gestor" oferece: os responsáveis de carteira comercial ao alcance.</param>
 public sealed record DiagnosticoComercialDaRegiao(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -448,7 +453,8 @@ public sealed record DiagnosticoComercialDaRegiao(
     decimal? Percentil90,
     ResumoDoDiagnostico Resumo,
     IReadOnlyList<MunicipioNoDiagnostico> Municipios,
-    IReadOnlyList<MetricaSemDado> Lacunas);
+    IReadOnlyList<MetricaSemDado> Lacunas,
+    IReadOnlyList<ResponsavelDeCarteira> Responsaveis);
 
 /// <summary>O share-alvo de uma categoria, como o diagnóstico o usou.</summary>
 /// <param name="CategoriaCodigo">A categoria.</param>
@@ -524,6 +530,7 @@ public sealed record ResumoDoDiagnostico(
 /// <param name="PlanoDeAcao">Até três ações.</param>
 /// <param name="ComponentesAusentes">O que ficou fora da conta, e por quê.</param>
 /// <param name="Estimativa">Se alguma regra de potencial usada aqui está a confirmar.</param>
+/// <param name="Responsavel">O CEN do município: o responsável da carteira comercial com mais vínculos aqui; nulo sem carteira.</param>
 public sealed record MunicipioNoDiagnostico(
     int CodigoIbge,
     string Nome,
@@ -553,4 +560,5 @@ public sealed record MunicipioNoDiagnostico(
     string Situacao,
     string PlanoDeAcao,
     IReadOnlyList<string> ComponentesAusentes,
-    bool Estimativa);
+    bool Estimativa,
+    string? Responsavel = null);

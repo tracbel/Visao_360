@@ -147,7 +147,7 @@ const LINHAS = [
  * DEZ CENs FICTÍCIOS, como a maquete da Performance de CEN (01/10/2026): primeiro nome de letra grega, para ninguém
  * confundir com gente de verdade, e o resto no formato dos nomes do Vórtice — a tela abrevia em "Alfa M. Cruz".
  */
-const CENS = [
+export const CENS = [
   'ALFA MATIAS DE ARAUJO CRUZ',
   'BETA ITALIA JARDIM SILVA',
   'GAMA LUZIA FERRAZ MELO',

@@ -211,3 +211,435 @@
   .diag-ficha-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .diag-mapa-corpo { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* =============================================================================
+   O DIAGNÓSTICO COMERCIAL NA MAQUETE DO RICARDO (02/10/2026)
+   `docs/prototipo/capturas-referencia/diagnostico-comercial-maquete-2026-10-02.png`, em 1672 × 941.
+
+   TUDO AQUI MORA EMBAIXO DE `.dash-pagina.diag-maquete` — a classe que só o Diagnóstico põe na página: este arquivo
+   também é lido pela Demanda e Previsão, que continua como está. O prefixo `.dash-pagina` é de propósito: o
+   `dashboard.css` carrega depois, e sem ele as regras dele ganhariam destas.
+   ============================================================================= */
+
+.diag-maquete {
+  --dg-marinho: #0b1638;
+  --dg-cinza: #5b6776;
+  --dg-borda: #e6eaee;
+  --dg-linha: #eef1f3;
+  --dg-verde: #1b873f;
+}
+
+.dash-pagina.diag-maquete { gap: 12px; }
+.dash-pagina.diag-maquete .diag-icone-verde { flex: none; color: var(--dg-verde); }
+
+/* O CABEÇALHO */
+.dash-pagina.diag-maquete .page-header { margin-bottom: 0; }
+.dash-pagina.diag-maquete .page-title { margin-bottom: 2px; font-size: 28px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; color: var(--dg-marinho); }
+.dash-pagina.diag-maquete .page-subtitle { margin: 0; font-size: 13px; color: var(--dg-cinza); }
+.dash-pagina.diag-maquete .dash-atualizado { align-self: center; gap: 8px; font-size: 12px; color: var(--dg-cinza); }
+
+/* A BARRA DE FILTROS — branca, o ladrilho do ícone à esquerda de cada campo, o rótulo em cima */
+.dash-pagina.diag-maquete .dash-filtros-linha {
+  align-items: flex-end;
+  gap: 12px 20px;
+  padding: 12px 18px 14px;
+  background: #fff;
+  border-color: var(--dg-borda);
+  border-radius: 10px;
+}
+
+.dash-pagina.diag-maquete .dash-filtros-linha .dash-filtro-rotulo { font-size: 12px; font-weight: 600; color: #2b3440; }
+.dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro select { height: 34px; border-color: #dfe3e8; border-radius: 6px; font-size: 12.5px; color: var(--dg-marinho); }
+.dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtros-acao { margin-left: auto; }
+
+@container indicadores (min-width: 1000px) {
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco='periodo'] { flex: 0 1 300px; max-width: 300px; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco='regional'] { flex: 0 1 274px; max-width: 274px; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cultura'] { flex: 0 1 262px; max-width: 262px; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cen'] { flex: 0 1 274px; max-width: 274px; }
+}
+
+/* OS QUATRO CARTÕES — a tinta da maquete, o ícone num ladrilho, duas linhas embaixo e a rosca da meta à direita */
+.dash-pagina.diag-maquete .dash-kpis.mv-kpis { gap: 12px; }
+
+.dash-pagina.diag-maquete .mv-kpi {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 14px;
+  padding: 16px 16px 14px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.diag-maquete .mv-kpi-glifo {
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-top: 0;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--mv-tom) 15%, #fff);
+}
+
+.dash-pagina.diag-maquete .mv-kpi-glifo svg { width: 25px; height: 25px; stroke-width: 2.3; }
+.dash-pagina.diag-maquete .mv-kpi-rotulo { font-size: 13px; font-weight: 700; line-height: 1.35; color: var(--dg-marinho); }
+.dash-pagina.diag-maquete .mv-kpi-valor { column-gap: 10px; font-size: 28px; line-height: 1.2; color: var(--dg-marinho); }
+.dash-pagina.diag-maquete .mv-kpi-valor > strong { font-weight: 800; }
+.dash-pagina.diag-maquete .mv-kpi-unidade { font-size: 13px; color: var(--dg-cinza); }
+.dash-pagina.diag-maquete .mv-kpi-contexto { display: grid; gap: 2px; font-size: 12px; line-height: 1.35; color: #2b3440; }
+.dash-pagina.diag-maquete .diag-kpi-nota { color: var(--dg-cinza); }
+.dash-pagina.diag-maquete .mv-kpi-grafico { align-self: center; }
+.dash-pagina.diag-maquete .diag-rosca { display: block; }
+
+.dash-pagina.diag-maquete .mv-kpi[data-tom='oportunidade'] { --mv-tom: #7c3aed; background: #f7f4fe; border-color: #e4dbfb; }
+.dash-pagina.diag-maquete .mv-kpi[data-tom='demanda'] { --mv-tom: #16a34a; background: #f1fbf5; border-color: #cfebd9; }
+.dash-pagina.diag-maquete .mv-kpi[data-tom='mercado'] { --mv-tom: #2f6fe0; background: #f0f6fe; border-color: #d3e3f7; }
+.dash-pagina.diag-maquete .mv-kpi[data-tom='captura'] { --mv-tom: #f07a17; background: #fff7f0; border-color: #f7dcc3; }
+
+/* AS DUAS SEÇÕES SÃO CARTÕES BRANCOS, com o título grande e o ícone verde */
+.dash-pagina.diag-maquete section.diag-cartao {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px 18px;
+  background: #fff;
+  border: 1px solid var(--dg-borda);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.diag-maquete section.diag-cartao > .terr-secao-mercado { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; row-gap: 2px; margin: 0; }
+.dash-pagina.diag-maquete section.diag-cartao > .terr-secao-mercado > .terr-secao-cabecalho { display: contents; }
+
+.dash-pagina.diag-maquete section.diag-cartao .terr-secao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--dg-marinho);
+}
+
+.dash-pagina.diag-maquete section.diag-cartao .terr-secao-subtitulo { grid-column: 1; grid-row: 2; margin: 0 0 0 34px; font-size: 12px; color: var(--dg-cinza); }
+.dash-pagina.diag-maquete section.diag-cartao .terr-secao-cabecalho > :not(h2) { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
+
+/* "OS MUNICÍPIOS": o subtítulo na linha do título, como a maquete, e o Exportar à direita */
+@container indicadores (min-width: 900px) {
+  .dash-pagina.diag-maquete section[data-bloco='secao-municipios'] > .terr-secao-mercado { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; }
+  .dash-pagina.diag-maquete section[data-bloco='secao-municipios'] .terr-secao-subtitulo { grid-column: 2; grid-row: 1; margin: 0 0 0 4px; }
+  .dash-pagina.diag-maquete section[data-bloco='secao-municipios'] .terr-secao-cabecalho > :not(h2) { grid-column: 3; grid-row: 1; align-self: center; }
+}
+
+.dash-pagina.diag-maquete .diag-entenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--dg-cinza);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.diag-entenda-conteudo { max-width: 420px; display: grid; gap: 10px; font-size: 12.5px; line-height: 1.5; color: #2b3440; }
+.diag-entenda-conteudo p { margin: 0; }
+.diag-entenda-componentes { display: grid; gap: 4px; margin: 0; padding-left: 18px; }
+
+.dash-pagina.diag-maquete .diag-exportar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.dash-pagina.diag-maquete .diag-exportar:disabled { cursor: default; opacity: 0.6; }
+
+/* OS PAINÉIS DE DENTRO DAS SEÇÕES SEM MOLDURA PRÓPRIA: a seção já é o cartão */
+.dash-pagina.diag-maquete section.diag-cartao > .mom-painel { gap: 10px; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+.dash-pagina.diag-maquete section.diag-cartao > .mom-painel .mom-painel-titulo { font-size: 13px; font-weight: 700; color: var(--dg-marinho); }
+
+/* A TABELA NÃO TEM TÍTULO PRÓPRIO NA MAQUETE: o nome do painel fica só para o leitor de tela */
+.dash-pagina.diag-maquete section[data-bloco='secao-municipios'] > .mom-painel > .mom-painel-cabecalho {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A PRIORIDADE DOS MUNICÍPIOS: a régua de cinco cores e os cartões com a faixa da cor à esquerda */
+.dash-pagina.diag-maquete .diag-distribuicao { gap: 10px; }
+.dash-pagina.diag-maquete .diag-distribuicao-barra { height: 10px; border-radius: 5px; background: none; }
+.dash-pagina.diag-maquete .diag-distribuicao-barra span { flex: 1 1 0; }
+.dash-pagina.diag-maquete .diag-distribuicao-legenda { gap: 10px; }
+
+.dash-pagina.diag-maquete .diag-classe-botao {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto;
+  row-gap: 2px;
+  padding: 10px 12px 10px 20px;
+  border: 1px solid #e3e7eb;
+  border-radius: 8px;
+  background:
+    linear-gradient(var(--diag-faixa), var(--diag-faixa)) no-repeat 8px 10px / 4px calc(100% - 20px),
+    #fff;
+}
+
+.dash-pagina.diag-maquete .diag-classe-nome { font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--dg-marinho); }
+.dash-pagina.diag-maquete .diag-classe-quantos { grid-column: 1; font-size: 22px; font-weight: 800; color: var(--dg-marinho); }
+.dash-pagina.diag-maquete .diag-classe-faixa { grid-column: 1; font-size: 11.5px; color: var(--dg-cinza); }
+
+/* O MAPA AO LADO DE "ONDE AGIR PRIMEIRO" */
+.dash-pagina.diag-maquete .diag-mapa-e-ficha { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: 14px; margin: 0; }
+.dash-pagina.diag-maquete .diag-mapa,
+.dash-pagina.diag-maquete .diag-ficha { padding: 14px 16px; border: 1px solid var(--dg-borda); border-radius: 10px; box-shadow: none; }
+.dash-pagina.diag-maquete .diag-mapa .card-title,
+.dash-pagina.diag-maquete .diag-ficha .card-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: var(--dg-marinho); }
+.dash-pagina.diag-maquete .diag-mapa .terr-mapa-icone { color: var(--dg-verde); }
+.dash-pagina.diag-maquete .diag-mapa-corpo { grid-template-columns: minmax(0, 1fr) 150px; gap: 8px; min-height: 300px; }
+.dash-pagina.diag-maquete .diag-mapa-area { position: relative; min-width: 0; touch-action: none; }
+.dash-pagina.diag-maquete .diag-mapa-area[data-arrastavel='true'] { cursor: grab; }
+.dash-pagina.diag-maquete .diag-mapa .terr-svg { max-height: 300px; }
+
+.dash-pagina.diag-maquete .diag-zoom {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 1;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #d9dee4;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.dash-pagina.diag-maquete .diag-zoom button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: #fff;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.dash-pagina.diag-maquete .diag-zoom button + button { border-top: 1px solid #e5e7eb; }
+.dash-pagina.diag-maquete .diag-zoom button:disabled { cursor: default; color: #c3c9d0; }
+
+.dash-pagina.diag-maquete .diag-legenda { display: grid; align-content: center; gap: 12px; margin: 0; padding: 0; list-style: none; font-size: 11.5px; line-height: 1.35; color: #2b3440; }
+.dash-pagina.diag-maquete .diag-legenda li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 8px; align-items: start; }
+.dash-pagina.diag-maquete .diag-legenda i { width: 14px; height: 14px; margin-top: 1px; border-radius: 50%; }
+
+.dash-pagina.diag-maquete .diag-legenda i.diag-legenda-sem-ioc {
+  background: repeating-linear-gradient(45deg, #f3f4f6 0 2px, #9ca3af 2px 3.5px);
+}
+
+/* "ONDE AGIR PRIMEIRO": a posição num círculo, o nome com a região e o CEN, a barra do IOC, o número e a classe */
+.dash-pagina.diag-maquete .diag-primeiros-cartao { align-content: start; gap: 12px; }
+.dash-pagina.diag-maquete .diag-ficha .card-subtitle { margin-top: 2px; font-size: 12px; color: var(--dg-cinza); }
+
+.dash-pagina.diag-maquete .diag-ver-todos {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #dfe3e8;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.dash-pagina.diag-maquete .diag-primeiros { gap: 8px; }
+.dash-pagina.diag-maquete .diag-primeiros li { display: block; padding: 0; border: 0; }
+
+.dash-pagina.diag-maquete .diag-primeiro {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) minmax(60px, 160px) 40px auto;
+  align-items: center;
+  column-gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid #e8ebef;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.dash-pagina.diag-maquete .diag-primeiro:hover { border-color: #c9d2db; }
+
+.dash-pagina.diag-maquete .diag-primeiro-posicao {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #d6dbe1;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.dash-pagina.diag-maquete .diag-primeiro-nome { display: grid; gap: 1px; min-width: 0; }
+.dash-pagina.diag-maquete .diag-primeiro-nome strong { overflow: hidden; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; color: #17733a; }
+.dash-pagina.diag-maquete .diag-primeiro-onde { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; color: var(--dg-cinza); }
+.dash-pagina.diag-maquete .diag-primeiro-trilho { display: block; height: 8px; overflow: hidden; border-radius: 4px; background: #e8ecef; }
+.dash-pagina.diag-maquete .diag-primeiro-trilho > span { display: block; height: 100%; border-radius: 4px; background: #1e7b34; }
+.dash-pagina.diag-maquete .diag-primeiro-ioc { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; color: var(--dg-marinho); }
+.dash-pagina.diag-maquete .diag-primeiro-classe { padding: 2px 8px; border-radius: 6px; background: var(--diag-fundo); font-size: 11px; font-weight: 700; white-space: nowrap; color: var(--diag-cor); }
+
+/* A TABELA DOS MUNICÍPIOS */
+.dash-pagina.diag-maquete .diag-tabela { width: 100%; }
+
+.dash-pagina.diag-maquete .diag-tabela thead th {
+  padding: 8px 10px;
+  background: #f3f5f7;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+  color: #4b5563;
+}
+
+.dash-pagina.diag-maquete .diag-tabela .diag-ordenar { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.dash-pagina.diag-maquete .diag-seta-inativa { color: #9aa4b2; }
+.dash-pagina.diag-maquete .diag-seta-ativa { color: #374151; }
+
+.dash-pagina.diag-maquete .diag-tabela tbody td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--dg-linha);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  vertical-align: middle;
+  color: #2b3440;
+}
+
+.dash-pagina.diag-maquete .diag-coluna-posicao { width: 28px; color: var(--dg-cinza); }
+.dash-pagina.diag-maquete .diag-municipio { font-size: 12.5px; font-weight: 700; color: #17733a; }
+.dash-pagina.diag-maquete .diag-loja { max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+.dash-pagina.diag-maquete .diag-cultura { color: #17733a; }
+
+.dash-pagina.diag-maquete .diag-ioc-pilula {
+  display: inline-block;
+  min-width: 42px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--diag-fundo);
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--diag-cor);
+}
+
+.dash-pagina.diag-maquete .diag-classe-Maxima { --diag-cor: #14632b; --diag-fundo: #d4f0db; }
+.dash-pagina.diag-maquete .diag-classe-Alta { --diag-cor: #1f6b2d; --diag-fundo: #e3f4e5; }
+
+.dash-pagina.diag-maquete .diag-coluna-cobertura { min-width: 120px; }
+.dash-pagina.diag-maquete .diag-cobertura { display: inline-flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums; }
+.dash-pagina.diag-maquete .diag-cobertura-trilho { display: block; width: 64px; height: 8px; overflow: hidden; border-radius: 4px; background: #e8ecef; }
+.dash-pagina.diag-maquete .diag-cobertura-trilho > span { display: block; height: 100%; border-radius: 4px; background: #5db665; }
+.dash-pagina.diag-maquete .diag-coluna-acao { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+.dash-pagina.diag-maquete .diag-acao { display: inline; font-size: 12px; font-weight: 400; color: #4b5563; }
+.dash-pagina.diag-maquete .diag-coluna-menu { width: 36px; text-align: right; }
+.dash-pagina.diag-maquete .diag-aviso-da-tabela { margin: 0 0 4px; font-size: 12px; color: var(--dg-cinza); }
+
+@container indicadores (max-width: 1099px) {
+  .dash-pagina.diag-maquete .diag-mapa-e-ficha { grid-template-columns: minmax(0, 1fr); }
+  .dash-pagina.diag-maquete .diag-distribuicao-legenda { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@container indicadores (max-width: 699px) {
+  .dash-pagina.diag-maquete .diag-distribuicao-legenda { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash-pagina.diag-maquete section.diag-cartao > .terr-secao-mercado { grid-template-columns: minmax(0, 1fr); }
+  .dash-pagina.diag-maquete section.diag-cartao .terr-secao-cabecalho > :not(h2) { grid-column: 1; grid-row: 3; justify-self: start; margin-top: 8px; }
+  .dash-pagina.diag-maquete .diag-mapa-corpo { grid-template-columns: minmax(0, 1fr); }
+  .dash-pagina.diag-maquete .diag-legenda { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash-pagina.diag-maquete .diag-primeiro { grid-template-columns: 26px minmax(0, 1fr) 40px auto; }
+  .dash-pagina.diag-maquete .diag-primeiro-trilho { display: none; }
+  .dash-pagina.diag-maquete .diag-ficha-cabecalho { flex-wrap: wrap; }
+}
+
+/* AJUSTES DA PRIMEIRA CONFERÊNCIA (02/10/2026, a 1.672 px) */
+.dash-pagina.diag-maquete section.diag-cartao .terr-secao-subtitulo { max-width: none; }
+.dash-pagina.diag-maquete .diag-tabela td:nth-child(2) { min-width: 0; max-width: none; }
+.dash-pagina.diag-maquete .diag-coluna-acao { max-width: none; }
+.dash-pagina.diag-maquete .diag-acao { display: block; max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-pagina.diag-maquete .diag-loja { max-width: 170px; }
+.dash-pagina.diag-maquete .mv-kpi { column-gap: 12px; }
+.dash-pagina.diag-maquete .mv-kpi-grafico .diag-rosca { width: 56px; height: 56px; }
+
+/* O NÚMERO DA CLASSE E A FAIXA NA MESMA LINHA, como a maquete. */
+.dash-pagina.diag-maquete .diag-classe-botao { grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: baseline; }
+.dash-pagina.diag-maquete .diag-classe-nome { grid-column: 1 / -1; }
+.dash-pagina.diag-maquete .diag-classe-quantos { grid-column: 1; }
+.dash-pagina.diag-maquete .diag-classe-faixa { grid-column: 2; }
+
+/* AJUSTES DA SEGUNDA CONFERÊNCIA (02/10/2026, a 1.536 px — a tela do Ricardo) */
+
+/* A ROSCA FLUTUA À DIREITA DO NÚMERO, e o título do cartão usa a largura inteira: na coluna própria ela espremia
+   "Meta de planejamento" em duas linhas. */
+.dash-pagina.diag-maquete .mv-kpi { position: relative; grid-template-columns: auto minmax(0, 1fr); }
+.dash-pagina.diag-maquete .mv-kpi-grafico { position: absolute; right: 14px; top: 50%; transform: translateY(-38%); }
+.dash-pagina.diag-maquete .mv-kpi:has(.mv-kpi-grafico) .mv-kpi-valor,
+.dash-pagina.diag-maquete .mv-kpi:has(.mv-kpi-grafico) .mv-kpi-contexto { padding-right: 62px; }
+
+@container indicadores (min-width: 1000px) and (max-width: 1399px) {
+  .dash-pagina.diag-maquete .dash-filtros-linha { gap: 12px 16px; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco='periodo'] { flex: 0 1 262px; max-width: 262px; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco='regional'] { flex: 0 1 222px; max-width: 222px; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cultura'] { flex: 0 1 206px; max-width: 206px; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cen'] { flex: 0 1 214px; max-width: 214px; }
+
+  /* A TABELA CABE INTEIRA, com o menu da linha à vista. */
+  .dash-pagina.diag-maquete .diag-tabela thead th { padding: 8px 7px; font-size: 10px; }
+  .dash-pagina.diag-maquete .diag-tabela tbody td { padding: 5px 7px; }
+  .dash-pagina.diag-maquete .diag-tabela .diag-ordenar { gap: 4px; }
+  .dash-pagina.diag-maquete .diag-cobertura { gap: 6px; }
+  .dash-pagina.diag-maquete .diag-cobertura-trilho { width: 40px; }
+  .dash-pagina.diag-maquete .diag-coluna-cobertura { min-width: 0; }
+  .dash-pagina.diag-maquete .diag-acao { max-width: 150px; }
+  .dash-pagina.diag-maquete .diag-loja { max-width: 120px; }
+}
+
+/* AJUSTES DA TERCEIRA CONFERÊNCIA (02/10/2026): a 1.536 px a tabela passava 55 px da largura, ditada pelos cabeçalhos,
+   e o período cortava "ago/2026". */
+@container indicadores (min-width: 1000px) and (max-width: 1399px) {
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco='periodo'] { flex: 0 1 292px; max-width: 292px; }
+  .dash-pagina.diag-maquete .diag-tabela thead th { font-size: 9.5px; letter-spacing: 0; }
+  .dash-pagina.diag-maquete .diag-tabela .diag-ordenar svg { width: 11px; height: 11px; }
+  .dash-pagina.diag-maquete .diag-acao { max-width: 128px; }
+}
+
+/* O "ENTENDA OS INDICADORES" EM UMA COLUNA: o `dash-popover` é de duas, para os campos do "Mais filtros". */
+.dash-popover.diag-entenda-conteudo { grid-template-columns: minmax(0, 1fr); width: min(440px, calc(100vw - 32px)); }
+
+/* O MAPA PRESO AO TOPO DO CARTÃO: com a ficha aberta ao lado, centralizado ele boiava no meio de um vão. */
+.dash-pagina.diag-maquete .diag-mapa-corpo { flex: 0 0 auto; align-items: start; margin-top: 10px; }
+.dash-pagina.diag-maquete .diag-legenda { align-self: center; }

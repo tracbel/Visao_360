@@ -31,6 +31,7 @@ export function CartaoDeDecisao({
   variacao,
   oQue,
   selo,
+  grafico,
 }: {
   /**
    * A LINHA DE BAIXO: nos Indicadores, a variação contra o mesmo trecho do ano anterior (27/09/2026), ou o traço com o
@@ -72,6 +73,11 @@ export function CartaoDeDecisao({
    * com nome, número e linha de baixo na mesma altura.
    */
   selo?: ReactNode;
+  /**
+   * O GRÁFICO PEQUENO À DIREITA DO CARTÃO — a rosca do share-alvo na meta do Diagnóstico (maquete de 02/10/2026). Só com
+   * número de verdade; o cartão sem ele é o de sempre.
+   */
+  grafico?: ReactNode;
 }) {
   const nome = oQue ?? rotulo.toLowerCase();
 
@@ -113,6 +119,8 @@ export function CartaoDeDecisao({
 
         <div className="mv-kpi-contexto">{variacao}</div>
       </div>
+
+      {grafico && <div className="mv-kpi-grafico">{grafico}</div>}
     </div>
   );
 }
