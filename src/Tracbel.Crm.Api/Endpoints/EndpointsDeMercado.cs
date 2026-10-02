@@ -86,6 +86,32 @@ public static class EndpointsDeMercado
                 "categoria, e a previsão mensal a distribui pela sazonalidade vigente, de novembro a outubro (o ano fiscal).\n\n" +
                 "Padrão: a categoria TRATOR; `categoria=TODAS` soma as categorias com demanda, cada uma pelo próprio share.");
 
+        // O DIMENSIONAMENTO DA ADR (issue 259) — a PAM do estado inteiro e a carteira, com o mesmo alcance do Diagnóstico.
+        grupo.MapGet("/dimensionamento", async (
+                ObterDimensionamentoDaAdr caso,
+                CancellationToken ct,
+                string? anoBase = null,
+                string? cultura = null,
+                string? regiao = null,
+                string? lojaCodigo = null,
+                string? visao = null,
+                string? responsavel = null,
+                string? classe = null,
+                string? usina = null) =>
+            (await caso.ExecutarAsync(anoBase, cultura, regiao, lojaCodigo, visao, responsavel, classe, usina, ct)).Responder())
+            .WithName("ObterDimensionamentoDaAdr")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("O tamanho da ADR dentro de São Paulo, o perfil de cada loja, a matriz municipal e a carteira que cobre o território.")
+            .WithDescription(
+                "Área plantada, quantidade e valor da produção são os da PAM do IBGE (tabela 5457), no ano-base e no anterior: o " +
+                "recorte é a soma dos municípios, e São Paulo é o total que o IBGE publica para o estado — sem o total carregado, a " +
+                "fatia sai vazia com o motivo. A cultura de cada produto vem do catálogo; o resto vai para `OUTRAS`. A quantidade " +
+                "soma só o que é publicado em toneladas.\n\n" +
+                "A carteira é a dos Indicadores (vínculo em carteira comercial, município do endereço principal, classe da curva ABC), " +
+                "em faixas ACUMULADAS de dias desde o último contato (< 30, 60, 90 e 120). Com região, loja ou usina, ela conta só os " +
+                "clientes dos municípios do recorte; com o CEN, o território é o dos municípios onde ele tem cliente.\n\n" +
+                "Padrão: o ano mais recente da PAM, todas as culturas, a ADR inteira.");
+
         return app;
     }
 }
