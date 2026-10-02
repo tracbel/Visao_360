@@ -32,12 +32,20 @@ public enum CenarioDeMercado
 /// com o preço e o crédito, e "moderado" em março não é o mesmo número de "moderado" em agosto. A tela mostra o cenário de
 /// hoje ao lado do que foi combinado.</para>
 ///
+/// <para><b>Não é <c>EntidadeBase</c>, de propósito</b>, pelo mesmo motivo de <see cref="MunicipioDaAreaDeAtuacao"/>: toda
+/// entidade-base é dona de uma filial (<c>EmpresaId</c>, a fronteira de multiempresa), e a meta não é. Ela é do município, e a
+/// filial é atributo dele — a diretoria precisa ver a meta da ADR inteira. Quem grava em qual município é conferido no caso
+/// de uso, pela filial responsável na área de atuação.</para>
+///
 /// <para><b>Quem grava é a Gerência e a Diretoria</b> (permissão <c>Planejamento.Gravar</c>, decisão de 02/10/2026); o CEN
-/// vê. A permissão é conferida pelo caso de uso — aqui só há a regra do que a meta pode ser.</para>
+/// vê. Aqui só há a regra do que a meta pode ser.</para>
 /// </summary>
-public sealed class MetaDoCenarioNoMunicipio : EntidadeBase
+public sealed class MetaDoCenarioNoMunicipio
 {
     private MetaDoCenarioNoMunicipio() { }
+
+    /// <summary>Identificador interno.</summary>
+    public long Id { get; private set; }
 
     /// <summary>O município.</summary>
     public int MunicipioId { get; private set; }
@@ -57,6 +65,24 @@ public sealed class MetaDoCenarioNoMunicipio : EntidadeBase
     /// <summary>A meta em máquinas no momento da escolha — o número combinado, que não muda quando o mercado muda.</summary>
     public decimal MetaNaEscolha { get; private set; }
 
+    /// <summary>Quem escolheu primeiro.</summary>
+    public long EscolhidaPorId { get; private set; }
+
+    /// <summary>Quando (UTC).</summary>
+    public DateTime EscolhidaEm { get; private set; }
+
+    /// <summary>Quem mudou por último; nulo enquanto ninguém mudou.</summary>
+    public long? AlteradaPorId { get; private set; }
+
+    /// <summary>Quando (UTC).</summary>
+    public DateTime? AlteradaEm { get; private set; }
+
+    /// <summary>Quem gravou por último — o autor que a tela mostra.</summary>
+    public long GravadaPorId => AlteradaPorId ?? EscolhidaPorId;
+
+    /// <summary>Quando foi gravada por último.</summary>
+    public DateTime GravadaEm => AlteradaEm ?? EscolhidaEm;
+
     /// <summary>Escolhe a meta de um município pela primeira vez.</summary>
     /// <param name="municipioId">O município.</param>
     /// <param name="categoriaDeMaquinaId">A categoria.</param>
@@ -65,10 +91,11 @@ public sealed class MetaDoCenarioNoMunicipio : EntidadeBase
     /// <param name="valorManual">O número digitado, só no manual.</param>
     /// <param name="metaNaEscolha">A meta do cenário hoje — no manual, o próprio número.</param>
     /// <param name="usuarioId">Quem escolheu.</param>
+    /// <param name="agoraUtc">Quando.</param>
     /// <exception cref="RegraDeNegocioViolada">Quando a combinação não vale.</exception>
     public static MetaDoCenarioNoMunicipio Escolher(
         int municipioId, int categoriaDeMaquinaId, short anoFiscal, CenarioDeMercado cenario, decimal? valorManual, decimal metaNaEscolha,
-        long usuarioId)
+        long usuarioId, DateTime agoraUtc)
     {
         if (municipioId <= 0) throw new RegraDeNegocioViolada("A meta é de um município.");
         if (categoriaDeMaquinaId <= 0) throw new RegraDeNegocioViolada("A meta é de uma categoria de máquina.");
@@ -79,7 +106,8 @@ public sealed class MetaDoCenarioNoMunicipio : EntidadeBase
             MunicipioId = municipioId,
             CategoriaDeMaquinaId = categoriaDeMaquinaId,
             AnoFiscal = anoFiscal,
-            CriadoPorId = usuarioId
+            EscolhidaPorId = usuarioId,
+            EscolhidaEm = agoraUtc
         };
         meta.Aplicar(cenario, valorManual, metaNaEscolha);
         return meta;
@@ -90,13 +118,15 @@ public sealed class MetaDoCenarioNoMunicipio : EntidadeBase
     /// <param name="valorManual">O número digitado, só no manual.</param>
     /// <param name="metaNaEscolha">A meta do cenário hoje.</param>
     /// <param name="usuarioId">Quem mudou.</param>
+    /// <param name="agoraUtc">Quando.</param>
     /// <returns>Se algo mudou.</returns>
-    public bool Alterar(CenarioDeMercado cenario, decimal? valorManual, decimal metaNaEscolha, long usuarioId)
+    public bool Alterar(CenarioDeMercado cenario, decimal? valorManual, decimal metaNaEscolha, long usuarioId, DateTime agoraUtc)
     {
         var antes = (Cenario, ValorManual, MetaNaEscolha);
         Aplicar(cenario, valorManual, metaNaEscolha);
         if (antes == (Cenario, ValorManual, MetaNaEscolha)) return false;
-        MarcarAlteracao(usuarioId);
+        AlteradaPorId = usuarioId;
+        AlteradaEm = agoraUtc;
         return true;
     }
 

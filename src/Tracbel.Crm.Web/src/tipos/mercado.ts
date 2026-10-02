@@ -920,3 +920,108 @@ export type PrecosDasCulturas = {
   culturas: PrecoDaCultura[];
   lacunas: { metrica: string; motivo: string }[];
 };
+
+// ------------------------------------------------------------------------------------------------
+// Cenários de mercado — `GET /api/v1/mercado/cenarios` e `PUT /api/v1/mercado/cenarios/{codigoIbge}` (issue 263)
+// ------------------------------------------------------------------------------------------------
+
+export type CenarioDeMercado = 'Conservador' | 'Moderado' | 'Otimista' | 'Manual';
+
+/** A meta gravada de um município: o cenário, o número combinado, e o mesmo cenário com o mercado de hoje. */
+export type EscolhaDoCenario = {
+  cenario: CenarioDeMercado;
+  valorManual: number | null;
+  metaCombinada: number;
+  /** O mesmo cenário com o mercado de hoje; nulo no manual. */
+  metaDoCenarioHoje: number | null;
+  gravadaPor: string | null;
+  gravadaEm: string;
+};
+
+export type CenarioDoMunicipio = {
+  codigoIbge: number;
+  nome: string;
+  regiao: string;
+  lojaCodigo: string | null;
+  loja: string | null;
+  culturaPrincipal: string | null;
+  /** O quanto o preço das culturas move o mercado do município, em % (o fator de ciclo). */
+  efeitoDoPreco: number | null;
+  efeitoDoCredito: number | null;
+  realizadoNoAno: number | null;
+  realizadoNoIntervalo: number | null;
+  realizadoNoAnoAnterior: number | null;
+  mediaDosAnosAnteriores: number | null;
+  clientes: number | null;
+  potencial: number | null;
+  mercadoAjustado: number | null;
+  metaEstrutural: number | null;
+  shareEstrutural: number | null;
+  shareAjustado: number | null;
+  conservador: number | null;
+  moderado: number | null;
+  otimista: number | null;
+  /** Se os cenários partem do mercado ajustado; falso é a meta estrutural (fator sem dado). */
+  baseAjustada: boolean;
+  escolha: EscolhaDoCenario | null;
+  aEntregar: number | null;
+  enquadramento: string | null;
+  diferencaParaOModerado: number | null;
+  recomendacao: 'Gradual' | 'SemHistorico' | 'Atingivel' | null;
+  acimaDoRealizado: number | null;
+  metaGradual: number | null;
+  gravavel: boolean;
+};
+
+export type TotaisDosCenarios = {
+  realizadoNoAno: number | null;
+  realizadoNoAnoAnterior: number | null;
+  mediaDosAnosAnteriores: number | null;
+  realizadoNoIntervalo: number | null;
+  clientes: number | null;
+  potencial: number | null;
+  mercadoAjustado: number | null;
+  metaEstrutural: number | null;
+  realizacaoSobrePotencial: number | null;
+  aEntregar: number | null;
+  municipiosComMeta: number;
+  municipios: number;
+  entregasAte: string | null;
+};
+
+export type CenariosDeMercado = {
+  categoria: string;
+  categoriaNome: string;
+  categorias: { codigo: string; nome: string; ordem: number }[];
+  anoFiscal: number;
+  anosFiscais: number[];
+  anosDaMedia: number[];
+  situacaoDoAno: 'Corrente' | 'Fechado' | 'Futuro';
+  intervaloDe: string;
+  intervaloAte: string;
+  shareAlvo: number | null;
+  shareDoPrototipo: boolean;
+  podeGravar: boolean;
+  porQueNaoGrava: string | null;
+  alcanceDaGravacao: string | null;
+  totais: TotaisDosCenarios;
+  municipios: CenarioDoMunicipio[];
+  lacunas: { metrica: string; motivo: string }[];
+};
+
+export type FiltrosDosCenarios = {
+  categoria?: string;
+  anoFiscal?: number;
+  de?: string;
+  ate?: string;
+  regiao?: string;
+  lojaCodigo?: string;
+};
+
+/** O corpo da escolha — o número dos três cenários é calculado no servidor; só o manual leva `valorManual`. */
+export type EscolhaDeMetaDoCenario = {
+  categoria: string;
+  anoFiscal: string;
+  cenario: CenarioDeMercado;
+  valorManual?: string;
+};

@@ -3,14 +3,14 @@ using Tracbel.Crm.Dominio.Organizacao;
 namespace Tracbel.Crm.Dominio.Portas;
 
 /// <summary>
-/// AS METAS ESCOLHIDAS NOS CENÁRIOS DE MERCADO (issue 263) — uma por município, categoria e ano fiscal.
+/// A LEITURA DOS CENÁRIOS DE MERCADO (issue 263) — as metas gravadas e o que decide quem pode gravar onde.
 ///
 /// <para>A meta não tem filial: o município é da ADR, e a loja responsável é atributo dele. Por isso a porta devolve, junto
 /// do município, a filial responsável — é com ela que o caso de uso confere se quem grava alcança o município.</para>
 /// </summary>
 public interface IRepositorioDosCenarios
 {
-    /// <summary>As metas vigentes (não excluídas) de uma categoria num ano fiscal, com o nome de quem gravou por último.</summary>
+    /// <summary>As metas de uma categoria num ano fiscal, com o nome de quem gravou por último.</summary>
     /// <param name="categoriaDeMaquinaId">A categoria.</param>
     /// <param name="anoFiscal">O ano fiscal.</param>
     /// <param name="ct">Cancelamento.</param>
@@ -24,8 +24,12 @@ public interface IRepositorioDosCenarios
     /// <param name="codigoIbge">O código do IBGE.</param>
     /// <param name="ct">Cancelamento.</param>
     Task<MunicipioDoCenario?> ObterMunicipioAsync(int codigoIbge, CancellationToken ct);
+}
 
-    /// <summary>A meta vigente, rastreada para alteração; nula quando ainda não foi escolhida.</summary>
+/// <summary>A GRAVAÇÃO DAS METAS DOS CENÁRIOS (issue 263) — uma por município, categoria e ano fiscal.</summary>
+public interface IRepositorioDeMetasDosCenarios
+{
+    /// <summary>A meta, rastreada para alteração; nula quando ainda não foi escolhida.</summary>
     /// <param name="municipioId">O município.</param>
     /// <param name="categoriaDeMaquinaId">A categoria.</param>
     /// <param name="anoFiscal">O ano fiscal.</param>

@@ -176,7 +176,7 @@ public static class PoliticaDeAuditoria
         // clicou. Aqui é decisão da Gerência e da Diretoria, e a pergunta "a meta de Barretos era 12 ou 14, e quem mudou?"
         // precisa de resposta. A chave (município, categoria, ano fiscal) entra para a inclusão dizer de qual meta se trata.
         ["MetaDoCenarioNoMunicipio"] =
-            ["MunicipioId", "CategoriaDeMaquinaId", "AnoFiscal", "Cenario", "ValorManual", "MetaNaEscolha", CampoDeExclusaoLogica],
+            ["MunicipioId", "CategoriaDeMaquinaId", "AnoFiscal", "Cenario", "ValorManual", "MetaNaEscolha"],
 
         // INTEGRAÇÕES (issue 136): quem mudou o endereço, o usuário, o monitoramento ou a agenda — e QUANDO a
         // credencial foi trocada. A senha protegida NÃO entra: a trilha guarda o antes e o depois em texto, e a

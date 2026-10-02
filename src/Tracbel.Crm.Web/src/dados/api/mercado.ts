@@ -4,7 +4,11 @@
 
 import type { ComProcedencia } from '../../tipos/api';
 import type {
+  CenariosDeMercado,
   DemandaEPrevisaoDaRegiao,
+  EscolhaDeMetaDoCenario,
+  EscolhaDoCenario,
+  FiltrosDosCenarios,
   DiagnosticoComercialDaRegiao,
   DimensionamentoDaAdr,
   FiltrosDaDemanda,
@@ -14,7 +18,7 @@ import type {
   FinanciamentosDoSicor,
   PrecosDasCulturas,
 } from '../../tipos/mercado';
-import { ler, type ContextoDeAcesso } from './http';
+import { ler, pedir, type ContextoDeAcesso } from './http';
 
 /** O IOC de cada município da ADR, com a situação e o plano de ação (issue 257). */
 export function obterDiagnosticoComercial(
@@ -98,4 +102,28 @@ export function obterFinanciamentosDoSicor(
 /** O momento de preço de cada cultura no mês, em R3, R6 e R12, e a série histórica (issue 260). */
 export function obterPrecosDasCulturas(contexto: ContextoDeAcesso, sinal?: AbortSignal): Promise<ComProcedencia<PrecosDasCulturas>> {
   return ler<PrecosDasCulturas>('/v1/mercado/precos', contexto, { sinal });
+}
+
+/** O planejamento da meta de cada município: realizado, potencial, meta estrutural e os três cenários (issue 263). */
+export function obterCenariosDeMercado(
+  contexto: ContextoDeAcesso,
+  filtros: FiltrosDosCenarios,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<CenariosDeMercado>> {
+  return ler<CenariosDeMercado>('/v1/mercado/cenarios', contexto, {
+    sinal,
+    parametros: {
+      categoria: filtros.categoria,
+      anoFiscal: filtros.anoFiscal === undefined ? undefined : String(filtros.anoFiscal),
+      de: filtros.de,
+      ate: filtros.ate,
+      regiao: filtros.regiao,
+      lojaCodigo: filtros.lojaCodigo,
+    },
+  });
+}
+
+/** Grava a meta de um município — o servidor calcula o número do cenário com o mercado de hoje (issue 263). */
+export function escolherMetaDoCenario(contexto: ContextoDeAcesso, codigoIbge: number, corpo: EscolhaDeMetaDoCenario): Promise<EscolhaDoCenario> {
+  return pedir<EscolhaDoCenario>(`/v1/mercado/cenarios/${codigoIbge}`, contexto, { metodo: 'PUT', corpo });
 }

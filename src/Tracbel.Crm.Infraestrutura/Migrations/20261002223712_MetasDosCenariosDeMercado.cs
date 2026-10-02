@@ -36,17 +36,15 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     Cenario = table.Column<string>(type: "varchar(16)", unicode: false, maxLength: 16, nullable: false),
                     ValorManual = table.Column<decimal>(type: "decimal(9,2)", precision: 9, scale: 2, nullable: true),
                     MetaNaEscolha = table.Column<decimal>(type: "decimal(9,2)", precision: 9, scale: 2, nullable: false),
-                    ChavePublica = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
-                    CriadoEm = table.Column<DateTime>(type: "datetime2(3)", precision: 3, nullable: false),
-                    CriadoPorId = table.Column<long>(type: "bigint", nullable: false),
-                    AlteradoEm = table.Column<DateTime>(type: "datetime2(3)", precision: 3, nullable: true),
-                    AlteradoPorId = table.Column<long>(type: "bigint", nullable: true),
-                    ExcluidoEm = table.Column<DateTime>(type: "datetime2(3)", precision: 3, nullable: true),
-                    Versao = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                    EscolhidaPorId = table.Column<long>(type: "bigint", nullable: false),
+                    EscolhidaEm = table.Column<DateTime>(type: "datetime2(3)", precision: 3, nullable: false),
+                    AlteradaPorId = table.Column<long>(type: "bigint", nullable: true),
+                    AlteradaEm = table.Column<DateTime>(type: "datetime2(3)", precision: 3, nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MetaDoCenarioNoMunicipio", x => x.Id);
+                    table.CheckConstraint("CK_MetaDoCenarioNoMunicipio_Alteracao", "([AlteradaPorId] IS NULL AND [AlteradaEm] IS NULL) OR ([AlteradaPorId] IS NOT NULL AND [AlteradaEm] IS NOT NULL)");
                     table.CheckConstraint("CK_MetaDoCenarioNoMunicipio_AnoFiscal", "[AnoFiscal] BETWEEN 2000 AND 2100");
                     table.CheckConstraint("CK_MetaDoCenarioNoMunicipio_Cenario", "[Cenario] IN ('Conservador','Moderado','Otimista','Manual')");
                     table.CheckConstraint("CK_MetaDoCenarioNoMunicipio_Manual", "([Cenario] = 'Manual' AND [ValorManual] IS NOT NULL AND [ValorManual] + 0 = [MetaNaEscolha] + 0) OR ([Cenario] <> 'Manual' AND [ValorManual] IS NULL)");
@@ -66,15 +64,15 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MetaDoCenarioNoMunicipio_Usuario_AlteradoPorId",
-                        column: x => x.AlteradoPorId,
+                        name: "FK_MetaDoCenarioNoMunicipio_Usuario_AlteradaPorId",
+                        column: x => x.AlteradaPorId,
                         principalSchema: "seguranca",
                         principalTable: "Usuario",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_MetaDoCenarioNoMunicipio_Usuario_CriadoPorId",
-                        column: x => x.CriadoPorId,
+                        name: "FK_MetaDoCenarioNoMunicipio_Usuario_EscolhidaPorId",
+                        column: x => x.EscolhidaPorId,
                         principalSchema: "seguranca",
                         principalTable: "Usuario",
                         principalColumn: "Id",
@@ -105,17 +103,16 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                 sql: "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CoberturaDoEstoque', 'CompradorPendente', 'Conexao', 'ConferenciaDaGestaoDeNegocios', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotaDeConsorcioVendida', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EquipamentoEmEstoque', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDePecasNoMes', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FinanciamentoDaVenda', 'ForecastDaGerencia', 'FrotaDeTratoresNoMunicipio', 'GestorDoConsultor', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'MetaDoCenarioNoMunicipio', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'OrcamentoDePecas', 'OrdemDeServico', 'ParametroDoPlanejamento', 'ParametroDoPotencial', 'PercepcaoDaCultura', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'PrecoDeMaquinaNoMes', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'ShareAlvoDaCategoria', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'UtilizacaoDasTerrasNoMunicipio', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MetaDoCenarioNoMunicipio_AlteradoPorId",
+                name: "IX_MetaDoCenarioNoMunicipio_AlteradaPorId",
                 schema: "organizacao",
                 table: "MetaDoCenarioNoMunicipio",
-                column: "AlteradoPorId");
+                column: "AlteradaPorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MetaDoCenarioNoMunicipio_Ano_Categoria",
                 schema: "organizacao",
                 table: "MetaDoCenarioNoMunicipio",
-                columns: new[] { "AnoFiscal", "CategoriaDeMaquinaId" },
-                filter: "[ExcluidoEm] IS NULL");
+                columns: new[] { "AnoFiscal", "CategoriaDeMaquinaId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_MetaDoCenarioNoMunicipio_CategoriaDeMaquinaId",
@@ -124,25 +121,17 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                 column: "CategoriaDeMaquinaId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MetaDoCenarioNoMunicipio_CriadoPorId",
+                name: "IX_MetaDoCenarioNoMunicipio_EscolhidaPorId",
                 schema: "organizacao",
                 table: "MetaDoCenarioNoMunicipio",
-                column: "CriadoPorId");
-
-            migrationBuilder.CreateIndex(
-                name: "UX_MetaDoCenarioNoMunicipio_ChavePublica",
-                schema: "organizacao",
-                table: "MetaDoCenarioNoMunicipio",
-                column: "ChavePublica",
-                unique: true);
+                column: "EscolhidaPorId");
 
             migrationBuilder.CreateIndex(
                 name: "UX_MetaDoCenarioNoMunicipio_Municipio_Categoria_Ano",
                 schema: "organizacao",
                 table: "MetaDoCenarioNoMunicipio",
                 columns: new[] { "MunicipioId", "CategoriaDeMaquinaId", "AnoFiscal" },
-                unique: true,
-                filter: "[ExcluidoEm] IS NULL");
+                unique: true);
         }
 
         /// <inheritdoc />

@@ -19,6 +19,8 @@
  */
 
 import type {
+  CenarioDoMunicipio,
+  CenariosDeMercado,
   ClasseDePrioridade,
   ClientesDaCarteira,
   DemandaEPrevisaoDaRegiao,
@@ -1100,6 +1102,118 @@ export function precosDasCulturasFicticios(vazio: boolean): PrecosDasCulturas {
     lacunas: [
       { metrica: 'faixas', motivo: 'AMOSTRA FICTÍCIA — as faixas são as do momento do CRM, e não os cortes do protótipo.' },
       { metrica: 'r12Anual', motivo: 'AMOSTRA FICTÍCIA — o R12 de quem tem 13 meses é o preço anual da PAM.' },
+    ],
+  };
+}
+
+/**
+ * OS CENÁRIOS DE MERCADO (issue 263) — sobre a amostra da Demanda, para os números baterem entre as duas telas: o moderado é
+ * o "a entregar" ajustado do município, o realizado e a média saem do mesmo sorteio fixo, e três municípios já têm meta
+ * gravada (um em cada cenário e um manual), para a tabela mostrar os quatro estados.
+ */
+export function cenariosFicticios(municipios: { codigo: number; nome: string }[], vazio: boolean): CenariosDeMercado {
+  const demanda = demandaFicticia(municipios, vazio);
+  const anoFiscal = 2026;
+  const redondo = (v: number) => Math.round(v * 100) / 100;
+  const linhas: CenarioDoMunicipio[] = demanda.municipios.map((m, i) => {
+    const r = (k: number) => ((i * 37 + k * 11) % 100) / 100;
+    const moderado = m.aEntregarAjustada ?? m.aEntregar;
+    const anterior = i % 5 === 4 ? 0 : Math.round(r(1) * 6);
+    const noAno = Math.round(anterior * (0.4 + r(2)));
+    const media = redondo(anterior * (0.7 + r(3) * 0.5));
+    const recomendacao =
+      moderado === null ? null : anterior > 0 && moderado > anterior * 1.5 ? 'Gradual' : anterior === 0 && moderado > 2 ? 'SemHistorico' : 'Atingivel';
+    const cenarioGravado = i === 1 ? 'Otimista' : i === 2 ? 'Conservador' : i === 3 ? 'Manual' : null;
+    const valorDo = (c: string) => (moderado === null ? null : redondo(moderado * (c === 'Conservador' ? 0.95 : c === 'Otimista' ? 1.05 : 1)));
+    const escolha =
+      cenarioGravado === null || moderado === null
+        ? null
+        : {
+            cenario: cenarioGravado as 'Otimista' | 'Conservador' | 'Manual',
+            valorManual: cenarioGravado === 'Manual' ? 6 : null,
+            metaCombinada: cenarioGravado === 'Manual' ? 6 : (valorDo(cenarioGravado) ?? 0),
+            metaDoCenarioHoje: cenarioGravado === 'Manual' ? null : valorDo(cenarioGravado),
+            gravadaPor: 'Gerente de Ribeirão',
+            gravadaEm: '2026-10-02T15:00:00Z',
+          };
+    return {
+      codigoIbge: m.codigoIbge,
+      nome: m.nome,
+      regiao: m.regiao,
+      lojaCodigo: m.lojaCodigo,
+      loja: m.loja,
+      culturaPrincipal: m.culturaPredominante,
+      efeitoDoPreco: m.fatorDePreco === null ? null : Math.round((m.fatorDePreco - 1) * 1000) / 10,
+      efeitoDoCredito: m.fatorDeCredito === null ? null : Math.round((m.fatorDeCredito - 1) * 1000) / 10,
+      realizadoNoAno: noAno,
+      realizadoNoIntervalo: noAno,
+      realizadoNoAnoAnterior: anterior,
+      mediaDosAnosAnteriores: media,
+      clientes: Math.max(0, noAno - (i % 2)),
+      potencial: m.demandaEstrutural,
+      mercadoAjustado: m.demandaAjustada,
+      metaEstrutural: m.aEntregar,
+      shareEstrutural: m.demandaEstrutural ? Math.round((noAno / m.demandaEstrutural) * 1000) / 10 : null,
+      shareAjustado: m.demandaAjustada ? Math.round((noAno / m.demandaAjustada) * 1000) / 10 : null,
+      conservador: valorDo('Conservador'),
+      moderado: moderado === null ? null : redondo(moderado),
+      otimista: valorDo('Otimista'),
+      baseAjustada: m.aEntregarAjustada !== null,
+      escolha,
+      aEntregar: escolha?.metaCombinada ?? (moderado === null ? null : redondo(moderado)),
+      enquadramento: cenarioGravado === 'Manual' ? 'Otimista' : null,
+      diferencaParaOModerado: cenarioGravado === 'Manual' && moderado ? Math.round((6 / moderado - 1) * 1000) / 10 : null,
+      recomendacao,
+      acimaDoRealizado: recomendacao === 'Gradual' && moderado !== null ? Math.round((moderado / anterior - 1) * 100) : null,
+      metaGradual: recomendacao === 'Gradual' ? redondo(anterior * 1.3) : null,
+      gravavel: i % 4 !== 3 || i === 3,
+    };
+  });
+  const soma = (xs: (number | null)[]) => {
+    const com = xs.filter((x): x is number => x !== null);
+    return com.length ? Math.round(com.reduce((s, x) => s + x, 0) * 100) / 100 : null;
+  };
+  const potencial = soma(linhas.map((l) => l.potencial));
+  const realizado = linhas.reduce((s, l) => s + (l.realizadoNoAno ?? 0), 0);
+  return {
+    categoria: 'TRATOR',
+    categoriaNome: 'Trator',
+    categorias: [
+      { codigo: 'TRATOR', nome: 'Trator', ordem: 1 },
+      { codigo: 'COLHEDORA_DE_CANA', nome: 'Colhedora de cana', ordem: 7 },
+    ],
+    anoFiscal,
+    anosFiscais: [2027, 2026, 2025, 2024, 2023],
+    anosDaMedia: [2022, 2023, 2024, 2025],
+    situacaoDoAno: 'Corrente',
+    intervaloDe: '2025-11',
+    intervaloAte: '2026-10',
+    shareAlvo: 31,
+    shareDoPrototipo: true,
+    podeGravar: true,
+    porQueNaoGrava: null,
+    alcanceDaGravacao: 'Os municípios das filiais ao seu alcance',
+    totais: {
+      realizadoNoAno: vazio ? null : realizado,
+      realizadoNoAnoAnterior: vazio ? null : linhas.reduce((s, l) => s + (l.realizadoNoAnoAnterior ?? 0), 0),
+      mediaDosAnosAnteriores: vazio ? null : soma(linhas.map((l) => l.mediaDosAnosAnteriores)),
+      realizadoNoIntervalo: vazio ? null : realizado,
+      clientes: vazio ? null : linhas.reduce((s, l) => s + (l.clientes ?? 0), 0),
+      potencial,
+      mercadoAjustado: soma(linhas.map((l) => l.mercadoAjustado)),
+      metaEstrutural: soma(linhas.map((l) => l.metaEstrutural)),
+      realizacaoSobrePotencial: potencial ? Math.round((realizado / potencial) * 1000) / 10 : null,
+      aEntregar: soma(linhas.map((l) => l.aEntregar)),
+      municipiosComMeta: linhas.filter((l) => l.escolha !== null).length,
+      municipios: linhas.length,
+      entregasAte: vazio ? null : '2026-10-02',
+    },
+    municipios: linhas,
+    lacunas: [
+      {
+        metrica: 'pecas',
+        motivo: 'Peças e serviços não entram no planejamento: o protótipo só planejava tratores e colhedora de cana, e a meta de pós-venda não tem fonte (issue 138).',
+      },
     ],
   };
 }

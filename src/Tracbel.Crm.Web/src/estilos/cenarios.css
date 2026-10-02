@@ -1,0 +1,69 @@
+/*
+ * Cenários de Mercado (issue 263) — só o que a tabela do Diagnóstico e o painel não cobrem: o momento em duas linhas, os
+ * botões C / M / O com o número manual, o share por tom e a situação. Tudo sobre os tokens do design system; a cor só reforça
+ * o que vem escrito.
+ */
+
+.cen-nota { margin: 0; font-size: 13px; color: var(--text-tertiary); }
+
+.cen-aviso {
+  margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--n-50, #f6f7f5); border: 1px solid var(--n-200, #e2e5df);
+  color: var(--text-secondary); font-size: 13px;
+}
+
+/* A REGRA DO DIAGNÓSTICO prende a segunda coluna em 130 px sem quebra; aqui ela é o momento, em duas linhas. */
+.cen-tabela td:nth-child(2) { min-width: 0; max-width: none; white-space: nowrap; }
+.cen-tabela th[scope='row'] { font-weight: 600; color: var(--text-primary); text-transform: none; font-size: 13px; }
+.cen-municipio { font-weight: 600; color: var(--jd-green-dark); white-space: nowrap; }
+
+.cen-momento { display: table-cell; font-size: 12px; }
+.cen-efeito { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cen-efeito.sobe { color: #1B7A3A; }
+.cen-efeito.desce { color: #C62828; }
+.cen-efeito.estavel { color: #8A6A00; }
+.cen-efeito.sem { color: var(--text-tertiary); font-weight: 500; }
+
+.cen-meta { font-weight: 700; color: var(--jd-green-dark); }
+.cen-a-entregar strong { font-weight: 800; color: var(--jd-green-dark); }
+
+.cen-share { font-weight: 700; }
+.cen-share.alto { color: #1B7A3A; }
+.cen-share.medio { color: #8A6A00; }
+.cen-share.zero { color: #C62828; }
+.cen-share-ajustado { color: var(--text-secondary); font-size: 12px; }
+
+/* O CENÁRIO: três botões e o número manual, numa linha só. */
+.cen-escolha { white-space: nowrap; }
+.cen-botoes { display: inline-flex; align-items: center; gap: 4px; }
+.cen-botao {
+  min-width: 28px; height: 28px; padding: 0 6px; border-radius: 6px; border: 1px solid var(--n-300, #cdd3c6);
+  background: var(--surface, #fff); color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.cen-botao:hover:not(:disabled) { border-color: var(--jd-green, #367c2b); color: var(--jd-green-dark); }
+.cen-botao:focus-visible, .cen-manual:focus-visible { outline: 2px solid var(--jd-green, #367c2b); outline-offset: 1px; }
+.cen-botao.ativo { background: var(--jd-green, #367c2b); border-color: var(--jd-green, #367c2b); color: #fff; }
+/* O PADRÃO AINDA NÃO GRAVADO: o moderado vale, mas ninguém escolheu — tracejado, e não cheio. */
+.cen-botao.padrao { border-style: dashed; border-color: var(--jd-green, #367c2b); color: var(--jd-green-dark); }
+.cen-botao:disabled { cursor: not-allowed; opacity: 0.45; }
+.cen-manual {
+  width: 58px; height: 28px; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--n-300, #cdd3c6);
+  text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; background: var(--surface, #fff);
+}
+.cen-manual.ativo { border-color: var(--jd-green, #367c2b); border-width: 2px; font-weight: 700; }
+.cen-manual:disabled { cursor: not-allowed; opacity: 0.55; }
+.cen-erro { margin-top: 4px; max-width: 220px; white-space: normal; font-size: 11px; color: #B42318; }
+
+.cen-col-situacao { min-width: 160px; }
+.cen-tabela td.cen-situacao { white-space: normal; font-size: 12px; min-width: 160px; max-width: 200px; line-height: 1.35; }
+.cen-kpi-linha { display: block; }
+.cen-recomendacao.alerta { color: #A8531A; }
+.cen-recomendacao.neutro { color: var(--text-tertiary); }
+.cen-recomendacao.ok { color: #1B7A3A; }
+.cen-enquadramento.sobe strong { color: #1B7A3A; }
+.cen-enquadramento.desce strong { color: #C62828; }
+.cen-enquadramento { color: var(--text-secondary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cen-botao { transition: none; }
+}

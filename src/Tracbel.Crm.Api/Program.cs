@@ -214,7 +214,9 @@ builder.Services.AddScoped<IRepositorioDoPrecoImplicito, RepositorioDoPrecoImpli
 builder.Services.AddScoped<IRepositorioDeCustosDeProducao, RepositorioDeCustosDeProducao>();
 builder.Services.AddScoped<IRepositorioDeCreditoRural, RepositorioDeCreditoRural>();
 builder.Services.AddScoped<IRepositorioDosFinanciamentos, RepositorioDosFinanciamentos>();
-builder.Services.AddScoped<IRepositorioDosCenarios, RepositorioDosCenarios>();
+builder.Services.AddScoped<RepositorioDosCenarios>();
+builder.Services.AddScoped<IRepositorioDosCenarios>(s => s.GetRequiredService<RepositorioDosCenarios>());
+builder.Services.AddScoped<IRepositorioDeMetasDosCenarios>(s => s.GetRequiredService<RepositorioDosCenarios>());
 builder.Services.AddScoped<IRepositorioDoShareNoCredito, RepositorioDoShareNoCredito>();
 builder.Services.AddScoped<IRepositorioDoCatalogoDoMercado, RepositorioDoCatalogoDoMercado>();
 builder.Services.AddScoped<IRepositorioDeRentabilidade, RepositorioDeRentabilidade>();

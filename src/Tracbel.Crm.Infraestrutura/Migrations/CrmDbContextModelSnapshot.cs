@@ -6301,11 +6301,11 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<DateTime?>("AlteradoEm")
+                    b.Property<DateTime?>("AlteradaEm")
                         .HasPrecision(3)
                         .HasColumnType("datetime2(3)");
 
-                    b.Property<long?>("AlteradoPorId")
+                    b.Property<long?>("AlteradaPorId")
                         .HasColumnType("bigint");
 
                     b.Property<short>("AnoFiscal")
@@ -6320,21 +6320,12 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(16)");
 
-                    b.Property<Guid>("ChavePublica")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<DateTime>("CriadoEm")
+                    b.Property<DateTime>("EscolhidaEm")
                         .HasPrecision(3)
                         .HasColumnType("datetime2(3)");
 
-                    b.Property<long>("CriadoPorId")
+                    b.Property<long>("EscolhidaPorId")
                         .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("ExcluidoEm")
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)");
 
                     b.Property<decimal>("MetaNaEscolha")
                         .HasPrecision(9, 2)
@@ -6347,34 +6338,25 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         .HasPrecision(9, 2)
                         .HasColumnType("decimal(9,2)");
 
-                    b.Property<byte[]>("Versao")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("AlteradoPorId");
+                    b.HasIndex("AlteradaPorId");
 
                     b.HasIndex("CategoriaDeMaquinaId");
 
-                    b.HasIndex("ChavePublica")
-                        .IsUnique()
-                        .HasDatabaseName("UX_MetaDoCenarioNoMunicipio_ChavePublica");
-
-                    b.HasIndex("CriadoPorId");
+                    b.HasIndex("EscolhidaPorId");
 
                     b.HasIndex("AnoFiscal", "CategoriaDeMaquinaId")
-                        .HasDatabaseName("IX_MetaDoCenarioNoMunicipio_Ano_Categoria")
-                        .HasFilter("[ExcluidoEm] IS NULL");
+                        .HasDatabaseName("IX_MetaDoCenarioNoMunicipio_Ano_Categoria");
 
                     b.HasIndex("MunicipioId", "CategoriaDeMaquinaId", "AnoFiscal")
                         .IsUnique()
-                        .HasDatabaseName("UX_MetaDoCenarioNoMunicipio_Municipio_Categoria_Ano")
-                        .HasFilter("[ExcluidoEm] IS NULL");
+                        .HasDatabaseName("UX_MetaDoCenarioNoMunicipio_Municipio_Categoria_Ano");
 
                     b.ToTable("MetaDoCenarioNoMunicipio", "organizacao", t =>
                         {
+                            t.HasCheckConstraint("CK_MetaDoCenarioNoMunicipio_Alteracao", "([AlteradaPorId] IS NULL AND [AlteradaEm] IS NULL) OR ([AlteradaPorId] IS NOT NULL AND [AlteradaEm] IS NOT NULL)");
+
                             t.HasCheckConstraint("CK_MetaDoCenarioNoMunicipio_AnoFiscal", "[AnoFiscal] BETWEEN 2000 AND 2100");
 
                             t.HasCheckConstraint("CK_MetaDoCenarioNoMunicipio_Cenario", "[Cenario] IN ('Conservador','Moderado','Otimista','Manual')");
@@ -10499,7 +10481,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                 {
                     b.HasOne("Tracbel.Crm.Dominio.Seguranca.Usuario", null)
                         .WithMany()
-                        .HasForeignKey("AlteradoPorId")
+                        .HasForeignKey("AlteradaPorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Tracbel.Crm.Dominio.Organizacao.CategoriaDeMaquina", null)
@@ -10510,7 +10492,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
 
                     b.HasOne("Tracbel.Crm.Dominio.Seguranca.Usuario", null)
                         .WithMany()
-                        .HasForeignKey("CriadoPorId")
+                        .HasForeignKey("EscolhidaPorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

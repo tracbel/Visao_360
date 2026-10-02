@@ -404,6 +404,7 @@ public sealed class ObterCenariosDeMercado(
 public sealed class EscolherMetaDoCenario(
     ObterCenariosDeMercado leitura,
     IRepositorioDosCenarios cenarios,
+    IRepositorioDeMetasDosCenarios metas,
     IRepositorioDoCatalogoNoPotencial catalogo,
     IUnidadeDeTrabalho unidade,
     IProvedorContextoAcesso acesso,
@@ -474,19 +475,20 @@ public sealed class EscolherMetaDoCenario(
             return Resultado<EscolhaDoCenario>.Falha($"A categoria {codigo} não está no catálogo.");
 
         var usuario = acesso.Atual.UsuarioId;
-        var existente = await cenarios.ObterParaAlterarAsync(municipio.Id, categoria.Id, (short)ano, ct);
+        var agora = relogio.Agora;
+        var existente = await metas.ObterParaAlterarAsync(municipio.Id, categoria.Id, (short)ano, ct);
         MetaDoCenarioNoMunicipio gravada;
         try
         {
             if (existente is null)
             {
                 gravada = MetaDoCenarioNoMunicipio.Escolher(
-                    municipio.Id, categoria.Id, (short)ano, cenario!.Value, cenario == CenarioDeMercado.Manual ? valor : null, meta!.Value, usuario);
-                await cenarios.AdicionarAsync(gravada, ct);
+                    municipio.Id, categoria.Id, (short)ano, cenario!.Value, cenario == CenarioDeMercado.Manual ? valor : null, meta!.Value, usuario, agora);
+                await metas.AdicionarAsync(gravada, ct);
             }
             else
             {
-                existente.Alterar(cenario!.Value, cenario == CenarioDeMercado.Manual ? valor : null, meta!.Value, usuario);
+                existente.Alterar(cenario!.Value, cenario == CenarioDeMercado.Manual ? valor : null, meta!.Value, usuario, agora);
                 gravada = existente;
             }
         }
@@ -504,7 +506,7 @@ public sealed class EscolherMetaDoCenario(
             gravada.MetaNaEscolha,
             gravada.Cenario == CenarioDeMercado.Manual ? null : gravada.MetaNaEscolha,
             acesso.Atual.NomeExibicao,
-            gravada.AlteradoEm ?? gravada.CriadoEm));
+            gravada.GravadaEm));
     }
 }
 

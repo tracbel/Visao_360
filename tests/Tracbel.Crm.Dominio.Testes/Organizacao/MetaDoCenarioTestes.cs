@@ -11,8 +11,10 @@ namespace Tracbel.Crm.Dominio.Testes.Organizacao;
 /// </summary>
 public sealed class MetaDoCenarioTestes
 {
+    private static readonly DateTime Agora = new(2026, 10, 2, 18, 0, 0, DateTimeKind.Utc);
+
     private static MetaDoCenarioNoMunicipio Moderado(decimal meta = 2.79m) =>
-        MetaDoCenarioNoMunicipio.Escolher(10, 1, 2026, CenarioDeMercado.Moderado, null, meta, 100);
+        MetaDoCenarioNoMunicipio.Escolher(10, 1, 2026, CenarioDeMercado.Moderado, null, meta, 100, Agora);
 
     [Fact]
     public void O_cenario_grava_o_numero_do_mercado_de_hoje_e_quem_escolheu()
@@ -22,14 +24,14 @@ public sealed class MetaDoCenarioTestes
         meta.Cenario.Should().Be(CenarioDeMercado.Moderado);
         meta.MetaNaEscolha.Should().Be(2.79m, "duas casas, como a tela mostra");
         meta.ValorManual.Should().BeNull();
-        meta.CriadoPorId.Should().Be(100);
-        meta.AlteradoEm.Should().BeNull();
+        meta.EscolhidaPorId.Should().Be(100);
+        meta.AlteradaEm.Should().BeNull();
     }
 
     [Fact]
     public void O_manual_e_o_proprio_numero_digitado()
     {
-        var meta = MetaDoCenarioNoMunicipio.Escolher(10, 1, 2026, CenarioDeMercado.Manual, 5m, 99m, 100);
+        var meta = MetaDoCenarioNoMunicipio.Escolher(10, 1, 2026, CenarioDeMercado.Manual, 5m, 99m, 100, Agora);
 
         meta.ValorManual.Should().Be(5m);
         meta.MetaNaEscolha.Should().Be(5m, "no manual a meta do cenário não conta — vale o número de quem digitou");
@@ -40,12 +42,13 @@ public sealed class MetaDoCenarioTestes
     {
         var meta = Moderado();
 
-        meta.Alterar(CenarioDeMercado.Moderado, null, 2.79m, 200).Should().BeFalse("a mesma escolha não muda nada");
-        meta.AlteradoPorId.Should().BeNull();
+        meta.Alterar(CenarioDeMercado.Moderado, null, 2.79m, 200, Agora).Should().BeFalse("a mesma escolha não muda nada");
+        meta.AlteradaPorId.Should().BeNull();
 
-        meta.Alterar(CenarioDeMercado.Otimista, null, 2.93m, 200).Should().BeTrue();
+        meta.Alterar(CenarioDeMercado.Otimista, null, 2.93m, 200, Agora.AddHours(1)).Should().BeTrue();
         meta.Cenario.Should().Be(CenarioDeMercado.Otimista);
-        meta.AlteradoPorId.Should().Be(200);
+        meta.AlteradaPorId.Should().Be(200);
+        meta.GravadaPorId.Should().Be(200, "o autor que a tela mostra é o da última gravação");
     }
 
     [Theory]
@@ -55,7 +58,7 @@ public sealed class MetaDoCenarioTestes
     [InlineData(CenarioDeMercado.Moderado, 3, "Só o cenário manual")]
     public void A_combinacao_que_nao_vale_e_recusada(CenarioDeMercado cenario, int? valor, string motivo)
     {
-        var escolher = () => MetaDoCenarioNoMunicipio.Escolher(10, 1, 2026, cenario, valor, 1m, 100);
+        var escolher = () => MetaDoCenarioNoMunicipio.Escolher(10, 1, 2026, cenario, valor, 1m, 100, Agora);
 
         escolher.Should().Throw<RegraDeNegocioViolada>().WithMessage($"*{motivo}*");
     }
@@ -66,7 +69,7 @@ public sealed class MetaDoCenarioTestes
     [InlineData(10, 1, 1999)]
     public void A_meta_e_de_um_municipio_uma_categoria_e_um_ano_fiscal(int municipio, int categoria, short ano)
     {
-        var escolher = () => MetaDoCenarioNoMunicipio.Escolher(municipio, categoria, ano, CenarioDeMercado.Moderado, null, 1m, 100);
+        var escolher = () => MetaDoCenarioNoMunicipio.Escolher(municipio, categoria, ano, CenarioDeMercado.Moderado, null, 1m, 100, Agora);
 
         escolher.Should().Throw<RegraDeNegocioViolada>();
     }

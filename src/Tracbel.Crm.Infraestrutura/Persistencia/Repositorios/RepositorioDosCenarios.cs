@@ -5,17 +5,18 @@ using Tracbel.Crm.Dominio.Portas;
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 
 /// <summary>
-/// As metas dos Cenários de mercado no banco do CRM (issue 263). A tabela não tem filial — a fronteira de multiempresa
-/// não se aplica, e quem pode gravar em qual município é conferido no caso de uso, pela filial responsável dele.
+/// As metas dos Cenários de mercado no banco do CRM (issue 263) — a leitura e a gravação. A tabela não tem filial: a
+/// fronteira de multiempresa não se aplica, e quem pode gravar em qual município é conferido no caso de uso, pela filial
+/// responsável dele.
 /// </summary>
-public sealed class RepositorioDosCenarios(CrmDbContext contexto) : IRepositorioDosCenarios
+public sealed class RepositorioDosCenarios(CrmDbContext contexto) : IRepositorioDosCenarios, IRepositorioDeMetasDosCenarios
 {
     /// <inheritdoc />
     public async Task<IReadOnlyList<MetaGravadaNoCenario>> ListarAsync(int categoriaDeMaquinaId, short anoFiscal, CancellationToken ct)
     {
         var metas = await (
                 from meta in contexto.MetasDosCenarios.AsNoTracking()
-                where meta.CategoriaDeMaquinaId == categoriaDeMaquinaId && meta.AnoFiscal == anoFiscal && meta.ExcluidoEm == null
+                where meta.CategoriaDeMaquinaId == categoriaDeMaquinaId && meta.AnoFiscal == anoFiscal
                 join municipio in contexto.Municipios.AsNoTracking() on meta.MunicipioId equals municipio.Id
                 where municipio.CodigoIbge != null
                 select new
@@ -24,8 +25,8 @@ public sealed class RepositorioDosCenarios(CrmDbContext contexto) : IRepositorio
                     meta.Cenario,
                     meta.ValorManual,
                     meta.MetaNaEscolha,
-                    AutorId = meta.AlteradoPorId ?? meta.CriadoPorId,
-                    Em = meta.AlteradoEm ?? meta.CriadoEm
+                    AutorId = meta.AlteradaPorId ?? meta.EscolhidaPorId,
+                    Em = meta.AlteradaEm ?? meta.EscolhidaEm
                 })
             .ToListAsync(ct);
 
@@ -76,9 +77,7 @@ public sealed class RepositorioDosCenarios(CrmDbContext contexto) : IRepositorio
     public Task<MetaDoCenarioNoMunicipio?> ObterParaAlterarAsync(
         int municipioId, int categoriaDeMaquinaId, short anoFiscal, CancellationToken ct) =>
         contexto.MetasDosCenarios.FirstOrDefaultAsync(
-            m => m.MunicipioId == municipioId && m.CategoriaDeMaquinaId == categoriaDeMaquinaId && m.AnoFiscal == anoFiscal
-                 && m.ExcluidoEm == null,
-            ct);
+            m => m.MunicipioId == municipioId && m.CategoriaDeMaquinaId == categoriaDeMaquinaId && m.AnoFiscal == anoFiscal, ct);
 
     /// <inheritdoc />
     public async Task AdicionarAsync(MetaDoCenarioNoMunicipio meta, CancellationToken ct) =>
