@@ -27,6 +27,7 @@ import {
   type PaginaDe,
   type VendaDaMaquina,
 } from '../tipos/api';
+import type { OrdensDeServicoResumidas } from '../tipos/ordensDeServico';
 import type { EstadoDaVisao360 } from './amostrasDaVisao360';
 
 function catalogo(codigo: string, nome: string, itens: [string, string][]): CatalogoDeSelecao {
@@ -381,13 +382,47 @@ function maquinasCompradas(chaveDoCliente: string): MaquinaCompradaPeloCliente[]
   }));
 }
 
+/**
+ * As ordens de serviço de uma ficha (02/10/2026): uma aberta há 52 dias (na faixa vermelha) e uma fechada — números
+ * fictícios, do harness.
+ */
+function ordensDeServico(chassi: string | null, modelo: string | null): OrdensDeServicoResumidas {
+  const base = {
+    filialCodigo: '010101', filialNome: 'Filial Fictícia Alfa', tipoDeAtendimento: 'OFICINA', liberadaEm: null, canceladaEm: null,
+    chassi, modelo, equipamentoChave: null, clienteChave: CLIENTES[0]?.chave ?? null, clienteNome: CLIENTES[0]?.nomeRazao ?? null,
+  };
+  const aberta = {
+    ...base, chave: 'os-ficticia-1', numero: '00012345', situacao: 'Aberta' as const, abertaEm: '2026-08-11', fechadaEm: null,
+    horimetro: 3420.5, valorDePecas: 18450.9, valorDeServicos: 4200, itensDePeca: 7, itensDeServico: 3,
+  };
+  const fechada = {
+    ...base, chave: 'os-ficticia-2', numero: '00011002', situacao: 'Fechada' as const, abertaEm: '2026-03-02', fechadaEm: '2026-03-09',
+    horimetro: 3105, valorDePecas: 2310, valorDeServicos: 1500, itensDePeca: 2, itensDeServico: 1,
+  };
+  return {
+    emAberto: 1, emAbertoHaMaisDe45Dias: 1, diasDaMaisAntigaEmAberto: 52, valorEmAberto: 22650.9, nosUltimos12Meses: 1,
+    pecasNosUltimos12Meses: 2310, servicosNosUltimos12Meses: 1500, ultimaAbertaEm: '2026-08-11', totalDeOrdens: 2,
+    ordens: [{ ordem: aberta, diasEmAberto: 52 }, { ordem: fechada, diasEmAberto: null }],
+    carregadoEm: '2026-10-02T09:00:00Z', metricasSemDado: [],
+  };
+}
+
 /** As rotas das fichas, pelo caminho com a chave: sem o registro, `undefined` — e o harness responde 404. */
 function respostaDeFicha(caminho: string, estado: EstadoDaVisao360): unknown {
   if (estado === 'vazio') return undefined;
-  const cliente = /^\/v1\/clientes\/([^/]+)(\/maquinas-compradas)?$/.exec(caminho);
-  if (cliente) return cliente[2] ? maquinasCompradas(cliente[1]!) : fichaDoCliente(cliente[1]!);
-  const maquina = /^\/v1\/equipamentos\/([^/]+)(\/vendas)?$/.exec(caminho);
-  if (maquina) return maquina[2] ? vendasDaMaquina(maquina[1]!) : fichaDoEquipamento(maquina[1]!);
+  const cliente = /^\/v1\/clientes\/([^/]+)(\/maquinas-compradas|\/ordens-de-servico)?$/.exec(caminho);
+  if (cliente) {
+    if (cliente[2] === '/ordens-de-servico') return CLIENTES.some((c) => c.chave === cliente[1]) ? ordensDeServico(null, null) : undefined;
+    return cliente[2] ? maquinasCompradas(cliente[1]!) : fichaDoCliente(cliente[1]!);
+  }
+  const maquina = /^\/v1\/equipamentos\/([^/]+)(\/vendas|\/ordens-de-servico)?$/.exec(caminho);
+  if (maquina) {
+    if (maquina[2] === '/ordens-de-servico') {
+      const encontrada = EQUIPAMENTOS.find((m) => m.chave === maquina[1]);
+      return encontrada ? ordensDeServico(encontrada.chassi, encontrada.modeloNome) : undefined;
+    }
+    return maquina[2] ? vendasDaMaquina(maquina[1]!) : fichaDoEquipamento(maquina[1]!);
+  }
   return undefined;
 }
 

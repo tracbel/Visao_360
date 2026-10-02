@@ -243,7 +243,12 @@ public static class PoliticaDeAuditoria
         [
             "PedidoEm", "MunicipioId", "ValorFinanciado", "InstituicaoFinanceira", "LinhaDeCredito", "ContaNoCreditoRural",
             CampoDeExclusaoLogica
-        ]
+        ],
+
+        // AS ORDENS DE SERVIÇO DO PROTHEUS (02/10/2026): a OS que muda de situação (abriu, liberou, fechou, cancelou), de
+        // filial ou de cliente casado, e a que some da origem e volta. Os valores não: crescem a cada peça requisitada
+        // enquanto a OS está aberta, e a trilha diária deles diria só "a oficina trabalhou".
+        ["OrdemDeServico"] = ["EmpresaId", "ClienteId", "Situacao", "FechadaEm", "CanceladaEm", CampoDeExclusaoLogica]
     };
 
     /// <summary>As entidades auditadas, por nome de tipo.</summary>

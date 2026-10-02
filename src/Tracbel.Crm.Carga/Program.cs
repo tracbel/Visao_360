@@ -277,6 +277,15 @@ var somenteConferenciaGn = args.Contains("--somente-conferencia-gn", StringCompa
 // o banco do CRM, sem conexao nenhuma. E a rotina mensal PARTICAO_AUDITORIA do orquestrador. Com --simular, so conta.
 var somenteParticaoDaAuditoria = args.Contains("--somente-particao-auditoria", StringComparer.Ordinal);
 
+// --somente-ordens-de-servico [--simular] [--aceitar-remocao] — AS ORDENS DE SERVIÇO DA OFICINA, DO PROTHEUS (02/10/2026).
+//
+// Le as views do BI X_V_BI_SERVICOS_CAPA_E_ITENS_OS e X_V_BI_SERVICOS_SRV_EXECUTADO_OS (so SELECT, NOLOCK) — as OS abertas
+// nos ultimos tres anos e as ainda abertas, de qualquer data — e SINCRONIZA frota.OrdemDeServico: uma linha por OS, com o
+// valor de pecas e de servicos na regua do painel de pos-venda do BI, casada com o cliente pelo CPF/CNPJ e com a maquina
+// pelo chassi. E a rotina diaria POS_VENDA_PROTHEUS do orquestrador. Com --simular, calcula o plano so com leitura e mostra
+// os totais em reais para conferir com o BI. --aceitar-remocao existe SO no terminal.
+var somenteOrdensDeServico = args.Contains("--somente-ordens-de-servico", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
 // --somente-art --projetar — A PROJECAO DO PROXIMO CICLO DO ART, so com leitura: a mesma decisao por registro da carga,
@@ -308,6 +317,7 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-estoque-gn    o estoque de máquinas e a cobertura, da API Gestão de Negócios;
 //   --somente-conferencia-gn  a conferência da meta e do realizado com a API Gestão de Negócios;
 //   --somente-particao-auditoria  os meses seguintes das tabelas de log e a retenção de 18 meses da trilha;
+//   --somente-ordens-de-servico  as ordens de serviço da oficina, pelas views do BI no banco do Protheus;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // AS LEITURAS DO VÓRTICE LIBERADAS:
@@ -334,7 +344,7 @@ bool[] modosSemVortice =
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
     somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina, somenteOportunidadesDoVortice,
     somenteOperationsCenter, somentePlanejamentoGn, somenteEstoqueGn, somenteConferenciaGn, somenteFinanciamentosDoVortice,
-    somenteParticaoDaAuditoria
+    somenteParticaoDaAuditoria, somenteOrdensDeServico
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -990,6 +1000,97 @@ if (somenteParqueDoProtheus)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A SINCRONIA DO PARQUE PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só as ordens de serviço da oficina (02/10/2026). Lê o CRM e as views do BI no banco do Protheus.
+// -------------------------------------------------------------------------------------------------
+
+if (somenteOrdensDeServico)
+{
+    var opcoesDoBancoParaAsOrdens = new OpcoesDoBancoDoProtheus();
+    configuracao.GetSection(OpcoesDoBancoDoProtheus.Secao).Bind(opcoesDoBancoParaAsOrdens);
+
+    if (!opcoesDoBancoParaAsOrdens.EstaConfigurada)
+    {
+        Console.Error.WriteLine(
+            "As ordens de serviço exigem ProtheusBanco__Servidor, __Banco, __Usuario e __Senha — ou a conexão \"Protheus — " +
+            "banco (leitura)\" configurada em Configurações > Integrações. Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    // A SIMULAÇÃO LÊ O CRM COM INTENÇÃO DE LEITURA DECLARADA, como a do parque.
+    var opcoesDasOrdens = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(600))
+            .Options
+        : new DbContextOptionsBuilder<CrmDbContext>().UseSqlServer(conexaoDoCrm, sql => sql.CommandTimeout(600)).Options;
+
+    Console.WriteLine(simular
+        ? "Ordens de serviço do Protheus — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
+        : "Ordens de serviço do Protheus — sincronizando.");
+    if (aceitarRemocao) Console.WriteLine("  --aceitar-remocao: a trava de remoção em massa não aborta esta rodada.");
+    Console.WriteLine();
+
+    var cargaDasOrdens = new CargaDasOrdensDeServicoDoProtheus(
+        () => new CrmDbContext(opcoesDasOrdens, contexto, diario), new LeitorDasOrdensDeServicoDoProtheus(opcoesDoBancoParaAsOrdens).LerAsync,
+        usuarioId, () => DateTime.UtcNow, Console.WriteLine);
+
+    try
+    {
+        // A TRAVA SÓ QUANDO GRAVA, como no parque: a simulação não escreve e não deve impedir quem escreve.
+        await using var travaDasOrdens = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), Tracbel.Crm.Dominio.Frota.OrdemDeServico.FluxoDaCarga, CancellationToken.None);
+
+        var resultadoDasOrdens = await cargaDasOrdens.ExecutarAsync(simular, aceitarRemocao, CancellationToken.None);
+        if (!resultadoDasOrdens.EhSucesso)
+        {
+            Console.Error.WriteLine("A SINCRONIA DAS ORDENS DE SERVIÇO PAROU: " + resultadoDasOrdens.Erro);
+            return 3;
+        }
+
+        foreach (var etapa in resultadoDasOrdens.Valor.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,9:N0}  {rotulo}");
+        }
+
+        if (resultadoDasOrdens.Valor.Observacoes.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("- Observações -");
+            foreach (var observacao in resultadoDasOrdens.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        }
+
+        // A ÚLTIMA LINHA É O RESUMO, com o prefixo que o orquestrador guarda na execução da rotina.
+        var relatorio = resultadoDasOrdens.Valor;
+        Console.WriteLine();
+        Console.WriteLine(Orquestrador.PrefixoDoResumo + string.Format(
+            System.Globalization.CultureInfo.GetCultureInfo("pt-BR"),
+            "{0:N0} OS lidas; {1:N0} com cliente do CRM; {2:N0} novas, {3:N0} atualizadas, {4:N0} excluídas{5}.",
+            relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloDeOrdensLidas),
+            relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloComCliente),
+            relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloDeNovas),
+            relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloDeAtualizadas),
+            relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloDeExcluidas),
+            relatorio.Simulada ? " (simulação: nada gravado)" : string.Empty));
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A SINCRONIA DAS ORDENS DE SERVIÇO PAROU, e a transação foi desfeita: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;

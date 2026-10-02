@@ -1,5 +1,10 @@
 # O banco do servidor, a tela sem dados e o caminho dos dados até lá
 
+> **Versão 2.0 · 02/10/2026 — as ordens de serviço da oficina:** a rotina 15 `POS_VENDA_PROTHEUS` lê as OS do Protheus
+> pelas mesmas views do BI e mantém `frota.OrdemDeServico`, com o valor de peças e de serviços na régua do painel de
+> pós-venda; a ficha do cliente e a da máquina passam a mostrá-las. Em **§17**. Nasce desligada; nada foi lido da
+> produção daqui.
+>
 > **Versão 1.9 · 29/09/2026 — o catálogo dos campos do ART (#17):** cada uma das 22 colunas que o CRM lê da view de
 > vendas, com o saneamento, a coluna onde grava, quem a usa hoje e se ainda é necessária; o que fica de fora de
 > propósito; e a comparação com o painel `art` da API Gestão de Negócios, atualizada. Em **§16**. Só leitura de código.
@@ -1365,3 +1370,71 @@ Gestão de Negócios entra como gabarito da conferência.
   depois regravaria o retrato de todos — o mesmo efeito do vendedor e do valor. Não vale fazer sozinho; vale junto da
   próxima mudança que já vá mexer no resumo.
 - `produto` é o modelo que o preço por modelo precisa (#70): a coluna já está gravada em cada venda.
+
+## 17. As ordens de serviço da oficina, pelas views do BI (02/10/2026)
+
+Pedido do Ricardo em 02/10/2026: "trazer os dados que faltam", começando por peças e serviços — ele subiu os extratores
+do BI (`360\qvds\`) com "todos os SQL e queries prontos". Esta seção é a primeira parte: as **ordens de serviço**. O
+faturamento de peças por item e os orçamentos de peças entram depois, como modos novos da mesma rotina.
+
+### 17.1 A fonte
+
+As duas views que o extrator **"Pós Vendas Serviços"** do Qlik lê no banco do Protheus — a definição delas mora no banco e
+não vem no arquivo do Qlik; as colunas são as que o script do BI seleciona:
+
+| View | O que é | O que o CRM lê |
+|---|---|---|
+| `X_V_BI_SERVICOS_CAPA_E_ITENS_OS` | a OS item a item (peça ou serviço), com a capa repetida | filial, número, situação da capa, tipo de atendimento, as quatro datas, chassi, modelo, horímetro, o CPF/CNPJ do proprietário (só para casar), e de cada peça o código, a requisição, a quantidade, o unitário e o desconto |
+| `X_V_BI_SERVICOS_SRV_EXECUTADO_OS` | o serviço executado (VO4), com os tempos e os valores | os códigos do serviço, o tipo de tempo, os oito tempos (da linha e da OS), os descontos e os valores de que sai o "Valor serviço c/desc" |
+
+**O que não entra, de propósito:** o nome, o endereço, o e-mail e o telefone do cliente (a view traz; o documento serve só
+para casar e é descartado), o técnico e o consultor, a placa e a cor. **O que o BI tem e o CRM não:** o histórico da
+Noroeste de 2022 a 2024, que o BI lê de outro banco (`NOROESTE_OS_FECHADA_HIST`), e o de-para de filial por consultor que o
+BI aplica por planilha (`De_Para_Filiais_e_Consultores.xlsx`) — planilha não é fonte; a filial é a do Protheus.
+
+**A janela:** as OS abertas nos últimos três anos (como o faturamento) e as que ainda estão na oficina, de qualquer data. A
+data é convertida no banco pelos dois formatos possíveis — data de verdade, ou texto `DD/MM/AAAA` ou `AAAAMMDD` —, porque o
+tipo da coluna da view não se vê daqui.
+
+### 17.2 A régua do valor — a do painel "Pós-Venda (Serviços)"
+
+`RegrasDoValorDaOrdemDeServico`, portada linha a linha do script do extrator (abas "02 - Pecas_OS" e "03 - Srv Executado") e
+das medidas mestras do painel:
+
+- **Peças** = Σ quantidade × (unitário − desconto unitário). O desconto da peça vem repetido em cada requisição dela: o BI
+  toma o maior por peça (a chave sem a requisição, `CHAVE_PECA_2`) e o rateia pela quantidade — somado, desconta uma vez.
+  Portado como está, inclusive o `REPLACE` que tira toda ocorrência do sufixo de nove (a OS `00000001` com a requisição
+  `00000001` perde o número da OS também).
+- **Serviços** = o "Valor serviço c/desc": RAT, FDLI e RSF valem zero; km de socorro é km vendido × valor do km; serviço de
+  terceiro é o valor dele; o resto é tempo vendido × valor da hora, com o desconto rateado pelo tempo vendido total.
+- **O nulo segue o Qlik:** conta com nulo dá nulo, divisão por zero dá nulo, e o nulo não entra na soma.
+
+### 17.3 A tabela e a rotina
+
+`frota.OrdemDeServico` (a 92ª tabela, documento 14 §2.1): uma linha por OS (filial e número), com a situação (Aberta,
+Liberada — o `D` antigo —, Fechada, Cancelada), as datas, o chassi e o modelo como o Protheus escreve, o horímetro da
+abertura, o total de peças e de serviços e quantas linhas de cada. O cliente é casado pelo CPF/CNPJ do proprietário (só
+quando um cliente só o tem) e a máquina pelo chassi normalizado; a OS que não casa entra sem cliente ou sem máquina — ela é
+da filial e conta no pós-venda dela. A OS de filial que o CRM não tem fica de fora, contada.
+
+**É sincronia:** a OS nova entra; a que mudou é atualizada, e a trilha guarda a situação, o fechamento, o cancelamento, a
+filial e o cliente (os valores não: crescem a cada peça enquanto a OS está aberta); a que some da origem dentro da janela é
+excluída sem apagar; a que volta é reativada na mesma linha; a fechada que envelheceu e saiu da janela fica — é história da
+máquina. **As travas:** mais de 5% de OS ilegíveis (situação desconhecida ou sem abertura) ou excluir mais de 20% do que
+está vigente na janela aborta a rodada inteira; só `--aceitar-remocao`, no terminal, passa por cima da segunda.
+
+**A rotina 15, `POS_VENDA_PROTHEUS`:** diária às 06:00 (depois da SA1 das 03:30 e do parque das 05:30), modo
+`--somente-ordens-de-servico`, conexão do banco do Protheus. **Nasce desligada.** Antes de ligar, a rodada simulada
+(`Tracbel.Crm.Carga --somente-ordens-de-servico --simular`) mostra o que gravaria e os totais em reais nos recortes do BI
+("Vlr Peças (A e L)", "Vlr Srv c/desc (A e L)", e as fechadas por ano de abertura) — é por eles que se confere a régua
+contra o painel. Se o login da conexão não tiver leitura nas views, a rodada para com o erro SQL 229 e o pedido do
+`GRANT SELECT`; se a view não existir no banco configurado, com o 208.
+
+### 17.4 Onde aparece
+
+- **Ficha 360 do cliente** — bloco "Ordens de serviço": as que estão na oficina e a mais antiga, as abertas há mais de 45
+  dias (a faixa vermelha do BI), o valor em aberto, as fechadas nos doze meses com peças e serviços, e a lista com as
+  abertas primeiro. Saiu do cartão "O que a ficha deste cliente não pode mostrar".
+- **Ficha da máquina** — quadro "Ordens de serviço" no histórico, pelo chassi, com o horímetro de cada OS.
+- **Rotas:** `GET /api/v1/clientes/{chave}/ordens-de-servico` e `GET /api/v1/equipamentos/{chave}/ordens-de-servico`,
+  com a permissão `Equipamento.Ler`; a OS passa pela fronteira de filial.

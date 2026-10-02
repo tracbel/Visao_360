@@ -53,6 +53,26 @@ public static class EndpointsDeEquipamento
                 "O histórico comercial da máquina: cada venda, o comprador NELA (não o dono atual), a filial, " +
                 "as datas e a trilha da origem.");
 
+        // AS ORDENS DE SERVIÇO DA OFICINA (02/10/2026), da rotina 15 POS_VENDA_PROTHEUS: por máquina aqui, e por cliente logo
+        // abaixo, sob /clientes, como as máquinas compradas. A mesma permissão da ficha da máquina.
+        grupo.MapGet("/{chave:guid}/ordens-de-servico", async (Guid chave, ListarOrdensDeServico caso, CancellationToken ct) =>
+                (await caso.DoEquipamentoAsync(chave, ct)).Responder())
+            .WithName("ListarOrdensDeServicoDoEquipamento")
+            .ExigePermissao(Permissoes.EquipamentoLer)
+            .WithSummary(
+                "As ordens de serviço da máquina (pelo chassi), do Protheus: situação, datas, horímetro e o valor de peças e de " +
+                "serviços na régua do painel de pós-venda do BI, com o resumo das abertas e dos doze meses.");
+
+        app.MapGet("/api/v1/clientes/{chave:guid}/ordens-de-servico", async (
+                Guid chave, ListarOrdensDeServico caso, CancellationToken ct) =>
+            (await caso.DoClienteAsync(chave, ct)).Responder())
+            .WithTags("Clientes (banco do CRM)")
+            .WithName("ListarOrdensDeServicoDoCliente")
+            .ExigePermissao(Permissoes.EquipamentoLer)
+            .WithSummary(
+                "As ordens de serviço do cliente (pelo CPF/CNPJ do proprietário na OS), do Protheus: as abertas e há quantos dias, " +
+                "os doze meses de peças e serviços e a lista, as abertas primeiro.");
+
         // AS MÁQUINAS COMPRADAS PELO CLIENTE moram na ficha do cliente, e a rota fica sob /clientes; o caso
         // de uso é de frota, por isso o registro está aqui.
         app.MapGet("/api/v1/clientes/{chave:guid}/maquinas-compradas", async (

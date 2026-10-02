@@ -1,4 +1,4 @@
-import type { ProcedenciaDoIndicador } from './territorio';
+import type { ProcedenciaDoIndicador, ResponsavelDeCarteira } from './territorio';
 /**
  * A base de preços de mercado (issue 66) — como a rota `/v1/territorio/precos` a entrega.
  *
@@ -387,6 +387,8 @@ export type MunicipioNoDiagnostico = {
   planoDeAcao: string;
   componentesAusentes: string[];
   estimativa: boolean;
+  /** O CEN do município: o responsável da carteira comercial com mais vínculos aqui; nulo sem carteira. */
+  responsavel: string | null;
 };
 
 export type ResumoDoDiagnostico = {
@@ -431,6 +433,8 @@ export type DiagnosticoComercialDaRegiao = {
   resumo: ResumoDoDiagnostico;
   municipios: MunicipioNoDiagnostico[];
   lacunas: { metrica: string; motivo: string }[];
+  /** Os CENs que o filtro "CEN / Gestor" oferece: os responsáveis de carteira comercial ao alcance. */
+  responsaveis: ResponsavelDeCarteira[];
 };
 
 /** Os pesos que o diagnóstico usou (os mesmos nomes dos componentes). */
@@ -454,6 +458,8 @@ export type FiltrosDoDiagnostico = {
   categoria?: string;
   /** `Filial` (padrão) ou `Empresa` — o mesmo alcance dos Indicadores Geográficos. */
   visao?: 'Filial' | 'Empresa';
+  /** O CEN da carteira, pelo id do responsável — o filtro "CEN / Gestor" (02/10/2026). */
+  responsavel?: string;
 };
 
 // ------------------------------------------------------------------------------------------------

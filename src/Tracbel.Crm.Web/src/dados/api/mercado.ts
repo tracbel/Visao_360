@@ -26,6 +26,7 @@ export function obterDiagnosticoComercial(
       lojaCodigo: filtros.lojaCodigo,
       visao: filtros.visao,
       categoria: filtros.categoria,
+      responsavel: filtros.responsavel,
     },
   });
 }

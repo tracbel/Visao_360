@@ -31,6 +31,7 @@ import type {
   SerieDeCusto,
 } from '../tipos/mercado';
 import type { CatalogoDoMercado, ParametrosDoPotencialVigentes } from '../tipos/potencial';
+import { CENS } from './amostrasDaVisao360';
 
 /** As culturas que aparecem nos quatro painéis, na mesma ordem. */
 const CULTURAS = [
@@ -447,8 +448,17 @@ export function parametrosFicticios(municipios: { codigo: number; nome: string }
  * O DIAGNÓSTICO COMERCIAL FICTÍCIO (issue 257) — números inventados, mas coerentes entre si: o IOC é a média
  * ponderada dos componentes pelos pesos do protótipo, e a classe sai do IOC. Um município em cada seis não tem carteira
  * e um em cada nove não tem regra de potencial, para a tela mostrar os dois vazios com o motivo.
+ *
+ * O CEN DE CADA MUNICÍPIO (02/10/2026) é um dos dez CENs fictícios da Visão 360 — o município sem carteira fica sem CEN.
+ * Com um CEN escolhido, como na API, só o município da carteira dele mantém o CEN.
  */
-export function diagnosticoFicticio(municipios: { codigo: number; nome: string }[], vazio: boolean): DiagnosticoComercialDaRegiao {
+export function diagnosticoFicticio(
+  municipios: { codigo: number; nome: string }[],
+  vazio: boolean,
+  responsavel: string | null = null,
+): DiagnosticoComercialDaRegiao {
+  const responsaveis = CENS.map((nome, i) => ({ id: 9001 + i, nome, natureza: 'Pessoa', carteiras: 1 + (i % 3), gestor: null }));
+  const escolhido = responsaveis.find((r) => String(r.id) === responsavel) ?? null;
   const pesos = { potencial: 25, cobertura: 20, credito: 15, rentabilidade: 15, clientes: 10, realizacao: 5, penetracao: 10 };
   const culturas = ['Cana-de-açúcar', 'Soja', 'Café', 'Laranja', 'Milho', 'Amendoim'];
   const lojas = ['Araraquara', 'Ribeirão Preto', 'Barretos', 'Franca', 'Bebedouro'];
@@ -523,6 +533,7 @@ export function diagnosticoFicticio(municipios: { codigo: number; nome: string }
           planoDeAcao: ioc !== null && ioc >= 60 ? 'Expandir cobertura e visitas presenciais · Explorar financiamento (Moderfrota, Finame)' : 'Monitorar',
           componentesAusentes: ausentes,
           estimativa: true,
+          responsavel: semCarteira ? null : ((cen) => (!escolhido || escolhido.nome === cen ? cen : null))(CENS[i % CENS.length]),
         };
       });
 
@@ -584,6 +595,7 @@ export function diagnosticoFicticio(municipios: { codigo: number; nome: string }
         motivo: 'AMOSTRA FICTÍCIA — a cobertura é a da cadência de cada classe de cliente no CRM, e não o corte fixo de 90 dias.',
       },
     ],
+    responsaveis,
   };
 }
 /**
