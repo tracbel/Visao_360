@@ -141,6 +141,17 @@ public static class EndpointsDeMercado
                 "Padrão: os 12 meses que terminam no último mês do SICOR descontada a carência, os três produtos de máquina, todos os " +
                 "programas, a Região Tracbel (`recorte=adr`). O share da Tracbel contra a concorrência é a issue 262, no painel do crédito.");
 
+        // O PREÇO DE COMMODITIES (issue 260) — os quatro horizontes do momento de preço de cada cultura e a série.
+        grupo.MapGet("/precos", async (ObterPrecosDasCulturas caso, CancellationToken ct) => (await caso.ExecutarAsync(ct)).Responder())
+            .WithName("ObterPrecosDasCulturas")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("A variação do preço de cada cultura no mês, em R3, R6 e R12, com as duas médias e a série histórica.")
+            .WithDescription(
+                "Cada horizonte é a média dos últimos N meses sobre a dos N anteriores, com as duas janelas cheias — a conta do " +
+                "momento de preço do CRM. O R12 é o PRÓPRIO momento dos Indicadores, inclusive o preço anual da PAM onde a série " +
+                "mensal ainda não fecha 24 meses (`serie = AnualPam`). As faixas são as do CRM, e não os cortes do protótipo.\n\n" +
+                "A série de cada cultura é a do índice quando ela declara uma (a cana pelo ATR mensal da Socicana), e senão a do " +
+                "preço (CONAB), na unidade em que a fonte publica.");
         return app;
     }
 }

@@ -42,6 +42,7 @@ import { DemandaEPrevisao } from './telas/DemandaEPrevisao';
 import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
 import { DimensionamentoAdr } from './telas/DimensionamentoAdr';
 import { FinanciamentosSicor } from './telas/FinanciamentosSicor';
+import { PrecoDeCommodities } from './telas/PrecoDeCommodities';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
 import { EstoqueECobertura } from './telas/EstoqueECobertura';
 import { ForecastGerencia } from './telas/ForecastGerencia';
@@ -276,6 +277,13 @@ export const ROTAS: Rota[] = [
     titulo: 'Dimensionamento ADR',
     trilha: ['Inteligência de Mercado', 'Dimensionamento ADR'],
     Componente: DimensionamentoAdr,
+    usaApi: true,
+  },
+  {
+    caminho: '/mercado/precos',
+    titulo: 'Preço de Commodities',
+    trilha: ['Inteligência de Mercado', 'Preço de Commodities'],
+    Componente: PrecoDeCommodities,
     usaApi: true,
   },
   {

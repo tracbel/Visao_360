@@ -1,0 +1,23 @@
+/*
+ * Preço de Commodities (issue 260) — só o que o painel e a tabela do Diagnóstico não cobrem: a coluna do horizonte escolhido
+ * em destaque, o nome da cultura como botão, o selo da PAM e o tom de cada faixa. A cor só reforça a seta e o nome escritos.
+ */
+
+.prc-tabela th[data-escolhido='true'],
+.prc-tabela td[data-escolhido='true'] { background: #F2F7F1; font-weight: 700; }
+.prc-tabela td:nth-child(2) { min-width: 0; max-width: none; }
+.prc-cultura {
+  all: unset; cursor: pointer; font-weight: 600; color: var(--jd-green-dark);
+}
+.prc-cultura:hover { text-decoration: underline; }
+.prc-cultura:focus-visible { outline: 2px solid var(--jd-green); outline-offset: 2px; border-radius: 2px; }
+.prc-selo {
+  margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--n-100); color: var(--text-secondary);
+  font-size: 10px; font-weight: 700; vertical-align: middle;
+}
+.prc-situacao { font-weight: 700; white-space: nowrap; }
+.prc-situacao[data-tom='retraido'] { color: #C62828; }
+.prc-situacao[data-tom='intermediaria'] { color: #8A6A00; }
+.prc-situacao[data-tom='aquecido'] { color: #3E7B43; }
+.prc-situacao[data-tom='superaquecido'] { color: #1B5E20; }
+.prc-situacao[data-tom='sem'] { color: var(--text-tertiary); font-weight: 600; }

@@ -14,22 +14,12 @@
  * tracejada atrás da principal — "a janela recente sobre a anterior", que é como a maquete
  * desenha a evolução do crédito. Sem ela, o gráfico é o de sempre.
  */
-import {
-  CategoryScale,
-  Chart as ChartJS,
-  Filler,
-  LineElement,
-  LinearScale,
-  PointElement,
-  Tooltip,
-  type ChartOptions,
-  type TooltipItem,
-} from 'chart.js';
+// O REGISTRO VEM ANTES DO PADRÃO DOS GRÁFICOS: ver o comentário de registroDaLinhaMensal.ts.
+import './registroDaLinhaMensal';
+import type { ChartOptions, TooltipItem } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { COR_DA_GRADE, FONTE_DOS_GRAFICOS } from './padraoDosGraficos';
 import { useFontesProntas } from './useFontesProntas';
-
-ChartJS.register(CategoryScale, Filler, LineElement, LinearScale, PointElement, Tooltip);
 
 const COR_LINHA = '#367C2B';
 const COR_AREA = 'rgba(54, 124, 43, 0.10)';

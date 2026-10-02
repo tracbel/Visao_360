@@ -12,6 +12,7 @@ import type {
   FiltrosDoDimensionamento,
   FiltrosDosFinanciamentos,
   FinanciamentosDoSicor,
+  PrecosDasCulturas,
 } from '../../tipos/mercado';
 import { ler, type ContextoDeAcesso } from './http';
 
@@ -92,4 +93,9 @@ export function obterFinanciamentosDoSicor(
       usina: filtros.usina,
     },
   });
+}
+
+/** O momento de preço de cada cultura no mês, em R3, R6 e R12, e a série histórica (issue 260). */
+export function obterPrecosDasCulturas(contexto: ContextoDeAcesso, sinal?: AbortSignal): Promise<ComProcedencia<PrecosDasCulturas>> {
+  return ler<PrecosDasCulturas>('/v1/mercado/precos', contexto, { sinal });
 }

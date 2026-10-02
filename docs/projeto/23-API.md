@@ -1018,6 +1018,7 @@ quem a chama. É a entrada da #5 (o catálogo gerado a partir do OpenAPI) e da #
 | `GET` | `/api/v1/mercado/demanda` | ATIVO | mercado.ts |
 | `GET` | `/api/v1/mercado/dimensionamento` | ATIVO | mercado.ts |
 | `GET` | `/api/v1/mercado/financiamentos` | ATIVO | mercado.ts |
+| `GET` | `/api/v1/mercado/precos` | ATIVO | mercado.ts |
 | `GET` | `/api/v1/admin/parametros-do-potencial` | ATIVO | potencial.ts |
 | `GET` | `/api/v1/admin/parametros-do-potencial/opcoes` | ATIVO | potencial.ts |
 | `GET` | `/api/v1/admin/parametros-do-potencial/catalogo` | ATIVO | potencial.ts |
