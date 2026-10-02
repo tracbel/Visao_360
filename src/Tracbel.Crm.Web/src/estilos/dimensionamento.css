@@ -1,0 +1,77 @@
+/*
+ * Dimensionamento ADR (issue 259) — só o que o painel, a tabela do Diagnóstico e a Demanda não cobrem: o mapa do estado
+ * com a legenda ao lado, as cores das fatias e da tecnificação, o quadro da carteira, as barras da prioridade e as células
+ * da matriz com o ano anterior embaixo. Tudo sobre os tokens do design system; a cor só reforça o número escrito.
+ */
+
+/* O MAPA DO ESTADO — o desenho à esquerda, a legenda e a ficha do município escolhido à direita. */
+.dim-mapa { display: grid; gap: 12px; }
+.dim-mapa-controle { display: flex; justify-content: flex-end; }
+.dim-mapa-corpo { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 20px; align-items: start; }
+.dim-mapa-area { min-width: 0; }
+.dim-mapa-area .terr-svg { width: 100%; height: auto; display: block; }
+.dim-mapa-lado { display: grid; gap: 16px; font-size: 13px; color: var(--text-secondary); }
+.dim-legenda { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.dim-legenda li { display: grid; gap: 4px; }
+.dim-legenda-rampa { display: flex; gap: 2px; }
+.dim-legenda-rampa i { display: block; width: 26px; height: 12px; border-radius: 2px; border: 1px solid var(--border); }
+.dim-mapa-ficha { margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--n-50); display: grid; gap: 4px; }
+.dim-mapa-ficha dt { font-weight: 700; color: var(--text-primary); }
+.dim-mapa-ficha dd { margin: 0; font-variant-numeric: tabular-nums; }
+.dim-nota { margin: 0; font-size: 13px; color: var(--text-tertiary); }
+
+/* AS TABELAS */
+.dim-tabela th[scope='row'] { font-weight: 600; color: var(--text-primary); text-transform: none; font-size: 13px; white-space: nowrap; }
+.dim-destaque { font-weight: 700; color: var(--jd-green-dark); }
+.dim-fatia { font-weight: 700; }
+.dim-fatia[data-tom='alta'] { color: #1B5E20; }
+.dim-fatia[data-tom='boa'] { color: #3E7B43; }
+.dim-fatia[data-tom='media'] { color: #8A6A00; }
+.dim-fatia[data-tom='baixa'] { color: #A8531A; }
+.dim-tecnificacao { font-weight: 700; }
+.dim-tecnificacao[data-tom='acima'] { color: #1B5E20; }
+.dim-tecnificacao[data-tom='abaixo'] { color: #A8531A; }
+.dim-tecnificacao[data-tom='media'] { color: var(--text-secondary); }
+.dim-selo {
+  margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--n-100); color: var(--text-secondary);
+  font-size: 11px; font-weight: 600; text-transform: lowercase; vertical-align: middle;
+}
+
+/* O QUADRO DA CARTEIRA — duas fileiras de números pequenos, como os dois quadros do protótipo. */
+.dim-carteira { display: grid; gap: 12px; }
+.dim-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+.dim-numero {
+  display: grid; gap: 2px; align-content: start; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-surface); border-left: 3px solid var(--n-200);
+}
+.dim-numero[data-tom='forte'] { border-left-color: var(--jd-yellow, #FFDE00); }
+.dim-numero[data-tom='bom'] { border-left-color: var(--jd-green); }
+.dim-numero[data-tom='alerta'] { border-left-color: #A8531A; }
+.dim-numero-valor { font-size: 20px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.dim-numero-rotulo { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.dim-numero-apoio { font-size: 11px; color: var(--text-tertiary); }
+
+/* A PRIORIDADE — a barra da cobertura com o número, e a barra da prioridade. */
+.dim-barra-cobertura { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.dim-barra-trilho { display: inline-block; width: 80px; height: 10px; border-radius: 5px; background: var(--n-100); overflow: hidden; }
+.dim-barra-trilho span { display: block; height: 100%; background: currentColor; }
+.dim-barra-numero { min-width: 36px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dim-barra-cobertura[data-tom='critica'] { color: #C62828; }
+.dim-barra-cobertura[data-tom='baixa'] { color: #D9622B; }
+.dim-barra-cobertura[data-tom='media'] { color: #8A6A00; }
+.dim-barra-cobertura[data-tom='alta'] { color: #1B5E20; }
+.dim-barra-prioridade { display: block; min-width: 120px; height: 10px; border-radius: 5px; background: #F6ECE7; overflow: hidden; }
+.dim-barra-prioridade span { display: block; height: 100%; background: #A8531A; }
+
+/* A MATRIZ — o ano anterior e a variação embaixo do ano-base, na mesma célula. */
+.dim-municipio { font-weight: 600; color: var(--jd-green-dark); }
+.dim-medida { white-space: nowrap; }
+.dim-medida-atual { display: block; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.dim-medida-anterior { display: block; font-size: 11px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.dim-classe-a { font-weight: 700; color: var(--jd-green-dark); }
+/* O VENDEDOR QUEBRA A LINHA: a regra do Diagnóstico prende a segunda coluna em 130 px sem quebra, e o nome invadia a vizinha. */
+.dim-matriz td:nth-child(2) { min-width: 110px; max-width: 160px; white-space: normal; }
+
+@media (max-width: 1100px) {
+  .dim-mapa-corpo { grid-template-columns: minmax(0, 1fr); }
+}
