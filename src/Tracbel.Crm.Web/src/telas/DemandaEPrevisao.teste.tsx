@@ -14,6 +14,10 @@ import type { DemandaEPrevisaoDaRegiao } from '../tipos/mercado';
 import { cabecalhoDoCsv, linhasDoCsv } from '../componentes/demanda/demanda';
 import { DemandaEPrevisao } from './DemandaEPrevisao';
 
+// A SUÍTE INTEIRA RODA COM A MÁQUINA CARREGADA: o primeiro teste montava a tela em 5,9 s e caía no limite padrão de 5 s
+// (02/10/2026). A mesma folga das outras telas.
+vi.setConfig({ testTimeout: 20_000 });
+
 const pedidos: string[] = [];
 const MESES = [11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 

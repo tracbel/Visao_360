@@ -35,6 +35,15 @@ type Props = {
   faixas: FaixaDoMedidor[];
   corPonteiro?: string;
   corPivo?: string;
+  /**
+   * O nome da medida, embaixo do número ("Cobertura no período"), como a maquete da Cobertura por Filial de 02/10/2026.
+   * Sem ele, o desenho é o de antes.
+   */
+  legenda?: string;
+  /** A espessura do arco, em unidades do desenho; o padrão é 16. A maquete de 02/10/2026 usa um arco mais grosso. */
+  espessura?: number;
+  /** Um filete branco entre as faixas, como a maquete de 02/10/2026. */
+  separadores?: boolean;
 };
 
 const COR_PONTEIRO_PADRAO = '#1A2420'; // var(--text-primary)
@@ -61,7 +70,12 @@ export function GraficoGauge({
   faixas,
   corPonteiro = COR_PONTEIRO_PADRAO,
   corPivo = COR_PIVO_PADRAO,
+  legenda,
+  espessura = TRACO,
+  separadores = false,
 }: Props) {
+  // COM LEGENDA, A MOLDURA CRESCE embaixo, para a linha do nome da medida — o resto do desenho não muda de lugar.
+  const alturaDoDesenho = legenda ? VB_ALTURA + 16 : VB_ALTURA;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -98,7 +112,7 @@ export function GraficoGauge({
 
       // Faixas de leitura, uma atrás da outra.
       ctx.lineCap = 'butt';
-      ctx.lineWidth = TRACO * escala;
+      ctx.lineWidth = espessura * escala;
       let anterior = 0;
       faixas.forEach((faixa) => {
         ctx.beginPath();
@@ -108,11 +122,26 @@ export function GraficoGauge({
         anterior = faixa.max;
       });
 
+      // O FILETE BRANCO ENTRE AS FAIXAS: um traço radial na fronteira de cada uma, da borda de dentro à de fora.
+      if (separadores) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2 * escala;
+        for (const faixa of faixas.slice(0, -1)) {
+          const ang = anguloDe(faixa.max);
+          const dentro = r - (espessura / 2 + 1) * escala;
+          const fora = r + (espessura / 2 + 1) * escala;
+          ctx.beginPath();
+          ctx.moveTo(cx + dentro * Math.cos(ang), cy + dentro * Math.sin(ang));
+          ctx.lineTo(cx + fora * Math.cos(ang), cy + fora * Math.sin(ang));
+          ctx.stroke();
+        }
+      }
+
       // Rótulos POR FORA do arco: dentro eles disputariam espaço com o valor.
       ctx.font = `${10 * escala}px Inter, sans-serif`;
       ctx.fillStyle = COR_TICK;
       ctx.textBaseline = 'middle';
-      const raioTick = r + (TRACO / 2 + FOLGA_TICK) * escala;
+      const raioTick = r + (espessura / 2 + FOLGA_TICK) * escala;
       for (let v = 0; v <= 100; v += 25) {
         const ang = anguloDe(v);
         ctx.textAlign = 'center';
@@ -130,7 +159,7 @@ export function GraficoGauge({
 
       // Ponteiro.
       const angValor = anguloDe(valor);
-      const raioPonteiro = r - (TRACO / 2 + 6) * escala;
+      const raioPonteiro = r - (espessura / 2 + 6) * escala;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.lineTo(cx + raioPonteiro * Math.cos(angValor), cy + raioPonteiro * Math.sin(angValor));
@@ -155,20 +184,26 @@ export function GraficoGauge({
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(formatar(valor), cx, cy + 42 * escala);
+
+      if (legenda) {
+        ctx.font = `500 ${11 * escala}px Inter, sans-serif`;
+        ctx.fillStyle = COR_PONTEIRO_PADRAO;
+        ctx.fillText(legenda, cx, cy + 60 * escala);
+      }
     }
 
     desenhar();
     const ro = new ResizeObserver(desenhar);
     ro.observe(canvas);
     return () => ro.disconnect();
-  }, [valor, faixas, corPonteiro, corPivo]);
+  }, [valor, faixas, corPonteiro, corPivo, legenda, espessura, separadores]);
 
   return (
     <canvas
       ref={canvasRef}
-      style={{ display: 'block', width: '100%', aspectRatio: `${VB_LARGURA} / ${VB_ALTURA}` }}
+      style={{ display: 'block', width: '100%', aspectRatio: `${VB_LARGURA} / ${alturaDoDesenho}` }}
       role="img"
-      aria-label={`Medidor em ${formatar(valor)}`}
+      aria-label={`Medidor em ${formatar(valor)}${legenda ? ` — ${legenda}` : ''}`}
     />
   );
 }
