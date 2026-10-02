@@ -117,6 +117,30 @@ public static class EndpointsDeMercado
                 "clientes dos municípios do recorte; com o CEN, o território é o dos municípios onde ele tem cliente.\n\n" +
                 "Padrão: o ano mais recente da PAM, todas as culturas, a ADR inteira.");
 
+        // A GESTÃO DE FINANCIAMENTOS (issue 261) — o SICOR de máquinas com o período, o produto e o programa escolhidos.
+        grupo.MapGet("/financiamentos", async (
+                ObterFinanciamentosDoSicor caso,
+                CancellationToken ct,
+                string? de = null,
+                string? ate = null,
+                string? produto = null,
+                string? programa = null,
+                string? recorte = null,
+                string? lojaCodigo = null,
+                string? usina = null) =>
+            (await caso.ExecutarAsync(de, ate, produto, programa, recorte, lojaCodigo, usina, ct)).Responder())
+            .WithName("ObterFinanciamentosDoSicor")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("O crédito de mecanização do SICOR por município e por loja, no período, produto e programa escolhidos.")
+            .WithDescription(
+                "Linhas e valor financiado dos produtos de máquina do SICOR (investimento), comparados com o MESMO período do ano " +
+                "anterior. O índice é o do CRM (70% linhas, 30% valor) e a situação é a faixa dele — e não os cortes de ±5%/±20% do " +
+                "protótipo. LINHA NÃO É CONTRATO: o Banco Central não publica quantidade de contrato.\n\n" +
+                "A série vai do primeiro ao último mês do SICOR, para a tela agrupar por mês, trimestre, semestre ou ano. O momento " +
+                "traz R3, R6 e R12 terminando no fim do período.\n\n" +
+                "Padrão: os 12 meses que terminam no último mês do SICOR descontada a carência, os três produtos de máquina, todos os " +
+                "programas, a Região Tracbel (`recorte=adr`). O share da Tracbel contra a concorrência é a issue 262, no painel do crédito.");
+
         // O PREÇO DE COMMODITIES (issue 260) — os quatro horizontes do momento de preço de cada cultura e a série.
         grupo.MapGet("/precos", async (ObterPrecosDasCulturas caso, CancellationToken ct) => (await caso.ExecutarAsync(ct)).Responder())
             .WithName("ObterPrecosDasCulturas")

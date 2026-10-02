@@ -10,6 +10,8 @@ import type {
   FiltrosDaDemanda,
   FiltrosDoDiagnostico,
   FiltrosDoDimensionamento,
+  FiltrosDosFinanciamentos,
+  FinanciamentosDoSicor,
   PrecosDasCulturas,
 } from '../../tipos/mercado';
 import { ler, type ContextoDeAcesso } from './http';
@@ -68,6 +70,26 @@ export function obterDimensionamentoDaAdr(
       visao: filtros.visao,
       responsavel: filtros.responsavel,
       classe: filtros.classe,
+      usina: filtros.usina,
+    },
+  });
+}
+
+/** O crédito de mecanização do SICOR no período, produto e programa escolhidos, por município e loja (issue 261). */
+export function obterFinanciamentosDoSicor(
+  contexto: ContextoDeAcesso,
+  filtros: FiltrosDosFinanciamentos,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<FinanciamentosDoSicor>> {
+  return ler<FinanciamentosDoSicor>('/v1/mercado/financiamentos', contexto, {
+    sinal,
+    parametros: {
+      de: filtros.de,
+      ate: filtros.ate,
+      produto: filtros.produto,
+      programa: filtros.programa,
+      recorte: filtros.recorte,
+      lojaCodigo: filtros.lojaCodigo,
       usina: filtros.usina,
     },
   });

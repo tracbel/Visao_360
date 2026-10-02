@@ -9,8 +9,9 @@
 import { useMemo, useState } from 'react';
 import { nomeProprio } from '../../telas/cadastro/formato';
 import type { DimensionamentoDaAdr, PerfilDaLoja } from '../../tipos/mercado';
-import { CabecalhoOrdenavel } from './CabecalhoOrdenavel';
-import { n, ordenar, pct, proximaOrdem, reais, type Ordem } from './dimensionamento';
+import { CabecalhoOrdenavel } from '../comum/CabecalhoOrdenavel';
+import { ordenar, proximaOrdem, type Ordem } from '../comum/ordenacao';
+import { n, pct, reais } from './dimensionamento';
 
 type Coluna = 'loja' | 'municipios' | 'area' | 'valor' | 'reaisPorHectare' | 'tecnificacao' | 'culturaDominante';
 

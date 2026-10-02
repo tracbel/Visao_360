@@ -41,6 +41,7 @@ import { Configuracoes } from './telas/Configuracoes';
 import { DemandaEPrevisao } from './telas/DemandaEPrevisao';
 import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
 import { DimensionamentoAdr } from './telas/DimensionamentoAdr';
+import { FinanciamentosSicor } from './telas/FinanciamentosSicor';
 import { PrecoDeCommodities } from './telas/PrecoDeCommodities';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
 import { EstoqueECobertura } from './telas/EstoqueECobertura';
@@ -283,6 +284,13 @@ export const ROTAS: Rota[] = [
     titulo: 'Preço de Commodities',
     trilha: ['Inteligência de Mercado', 'Preço de Commodities'],
     Componente: PrecoDeCommodities,
+    usaApi: true,
+  },
+  {
+    caminho: '/mercado/financiamentos',
+    titulo: 'Gestão de Financiamentos',
+    trilha: ['Inteligência de Mercado', 'Gestão de Financiamentos'],
+    Componente: FinanciamentosSicor,
     usaApi: true,
   },
   {

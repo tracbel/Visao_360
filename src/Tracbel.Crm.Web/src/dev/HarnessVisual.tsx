@@ -36,6 +36,7 @@ import {
   custosFicticios,
   demandaFicticia,
   dimensionamentoFicticio,
+  financiamentosFicticios,
   precosDasCulturasFicticios,
   diagnosticoFicticio,
   parametrosFicticios,
@@ -210,6 +211,12 @@ function instalarInterceptador(): void {
       const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;
       const todos = malha.features.map((f) => ({ codigo: Number(f.properties.codarea), nome: f.properties.nome }));
       return envelope(dimensionamentoFicticio(todos, municipiosDaMalha(malha, 40), estado === 'parcialmenteVazio'));
+    }
+
+    // A GESTÃO DE FINANCIAMENTOS (issue 261): os mesmos municípios da amostra do diagnóstico.
+    if (caminho === '/v1/mercado/financiamentos') {
+      const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;
+      return envelope(financiamentosFicticios(municipiosDaMalha(malha, 40), estado === 'parcialmenteVazio'));
     }
 
     if (caminho === '/v1/territorio/indicadores') {

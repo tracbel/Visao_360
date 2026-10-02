@@ -154,6 +154,7 @@ const TELAS_DE_MERCADO = [
   { nome: 'demanda', rota: '/mercado/demanda', cartoes: 4, secoes: 2 },
   { nome: 'diagnostico', rota: '/mercado/diagnostico', cartoes: 4, secoes: 2 },
   { nome: 'dimensionamento', rota: '/mercado/dimensionamento', cartoes: 4, secoes: 3 },
+  { nome: 'financiamentos', rota: '/mercado/financiamentos', cartoes: 4, secoes: 2 },
   { nome: 'precos', rota: '/mercado/precos', cartoes: 4, secoes: 2 },
 ] as const;
 

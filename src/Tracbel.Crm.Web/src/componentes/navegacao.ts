@@ -28,6 +28,7 @@ import {
   IconeDiagnostico,
   IconeDimensionamento,
   IconeEquipamentos,
+  IconeFinanciamentos,
   IconeForecast,
   IconeEstoque,
   IconeFunil,
@@ -74,10 +75,12 @@ export const SECOES: SecaoNav[] = [
     // grupo, uma a uma. Os Indicadores Geográficos continuam nos Relatórios, onde já estavam.
     titulo: 'Inteligência de Mercado',
     // A ORDEM É A DAS ABAS DO PROTÓTIPO: primeiro o tamanho do território (Dimensionamento), o momento do preço (Preço de
-    // Commodities), depois quanto o mercado pede e quanto a Tracbel tem de entregar (Demanda), e por fim onde agir (Diagnóstico).
+    // Commodities), o crédito que financia a máquina (Financiamentos), depois quanto o mercado pede e quanto a Tracbel tem de
+    // entregar (Demanda), e por fim onde agir (Diagnóstico).
     itens: [
       { caminho: '/mercado/dimensionamento', rotulo: 'Dimensionamento ADR', Icone: IconeDimensionamento },
       { caminho: '/mercado/precos', rotulo: 'Preço de Commodities', Icone: IconePrecos },
+      { caminho: '/mercado/financiamentos', rotulo: 'Gestão de Financiamentos', Icone: IconeFinanciamentos },
       { caminho: '/mercado/demanda', rotulo: 'Demanda e Previsão', Icone: IconeDemanda },
       { caminho: '/mercado/diagnostico', rotulo: 'Diagnóstico Comercial', Icone: IconeDiagnostico },
     ],

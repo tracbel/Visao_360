@@ -8,8 +8,9 @@
 
 import { useMemo, useState } from 'react';
 import type { CulturaTracbelNoEstado, DimensionamentoDaAdr } from '../../tipos/mercado';
-import { CabecalhoOrdenavel } from './CabecalhoOrdenavel';
-import { n, ordenar, pct, proximaOrdem, type Ordem } from './dimensionamento';
+import { CabecalhoOrdenavel } from '../comum/CabecalhoOrdenavel';
+import { ordenar, proximaOrdem, type Ordem } from '../comum/ordenacao';
+import { n, pct } from './dimensionamento';
 
 type Coluna = 'nome' | 'areaT' | 'areaSp' | 'areaPct' | 'qtdT' | 'qtdSp' | 'qtdPct' | 'valorT' | 'valorSp' | 'valorPct' | 'loja';
 

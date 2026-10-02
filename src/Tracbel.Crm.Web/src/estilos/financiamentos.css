@@ -1,0 +1,36 @@
+/*
+ * Gestão de Financiamentos (issue 261) — só o que o painel, a tabela do Diagnóstico e a Demanda não cobrem: a linha da
+ * dispersão com a tabela por loja, os controles da série, as células com o ano anterior embaixo e o tom de cada faixa. Tudo
+ * sobre os tokens do design system; a cor só reforça o nome escrito da faixa.
+ */
+
+/* A TABELA POR LOJA PRECISA DE MAIS LARGURA QUE A DISPERSÃO: com o ano anterior na célula, a 1.536 px ela pede uns 760 px. */
+@container indicadores (min-width: 1000px) {
+  .mom-paineis[data-variante='financiamentos'] { grid-template-columns: minmax(0, 40fr) minmax(0, 60fr); }
+}
+
+.fin-serie { display: grid; gap: 10px; }
+.fin-serie-controles { display: flex; flex-wrap: wrap; gap: 16px; justify-content: flex-end; }
+.fin-dispersao { display: grid; gap: 8px; }
+.fin-nota { margin: 0; font-size: 13px; color: var(--text-tertiary); }
+
+/* AS TABELAS — a regra do Diagnóstico prende a segunda coluna em 130 px sem quebra, e a célula com o ano anterior invadia a
+   vizinha. */
+.fin-tabela td:nth-child(2) { min-width: 0; max-width: none; }
+.fin-tabela th[scope='row'] { font-weight: 600; color: var(--text-primary); text-transform: none; font-size: 13px; white-space: nowrap; }
+.fin-municipio { font-weight: 600; color: var(--jd-green-dark); }
+.fin-selo {
+  margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--n-100); color: var(--text-secondary);
+  font-size: 11px; font-weight: 600; text-transform: lowercase; vertical-align: middle;
+}
+
+.fin-medida { white-space: nowrap; }
+.fin-medida-atual { display: block; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.fin-medida-anterior { display: block; font-size: 11px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+.fin-situacao { font-weight: 700; white-space: nowrap; }
+.fin-situacao[data-tom='retraido'] { color: #C62828; }
+.fin-situacao[data-tom='intermediaria'] { color: #8A6A00; }
+.fin-situacao[data-tom='aquecido'] { color: #3E7B43; }
+.fin-situacao[data-tom='superaquecido'] { color: #1B5E20; }
+.fin-situacao[data-tom='sem'] { color: var(--text-tertiary); font-weight: 600; }

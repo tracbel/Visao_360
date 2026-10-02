@@ -12,8 +12,9 @@ import { useMemo, useState } from 'react';
 import { BarraDePaginacao } from '../cadastro/BarraDePaginacao';
 import { nomeProprio } from '../../telas/cadastro/formato';
 import type { DimensionamentoDaAdr, LinhaDaMatrizMunicipal, MedidaComAnterior } from '../../tipos/mercado';
-import { CabecalhoOrdenavel } from './CabecalhoOrdenavel';
-import { dataCurta, n, ordenar, pct, proximaOrdem, sentidoDe, variacao, type Ordem } from './dimensionamento';
+import { CabecalhoOrdenavel } from '../comum/CabecalhoOrdenavel';
+import { ordenar, proximaOrdem, type Ordem } from '../comum/ordenacao';
+import { dataCurta, n, pct, sentidoDe, variacao } from './dimensionamento';
 
 type Coluna =
   | 'nome' | 'vendedor' | 'area' | 'quantidade' | 'valor' | 'fatiaNaRegiao' | 'fatiaNoEstado'
