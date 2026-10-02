@@ -26,7 +26,11 @@
   Rode este script de novo, com -SoAtualizarOToken, para trocar.
 
   QUANDO OS SCRIPTS DO AGENTE MUDAREM (uma correcao nele ou no publicar-pacote.ps1), rode com
-  -SoAtualizarOsScripts: copia os dois, religa a tarefa e a dispara, sem pedir o token.
+  -SoAtualizarOsScripts: copia os dois e a limpeza, religa a tarefa e a dispara, sem pedir o token.
+
+  A LIMPEZA DO SERVIDOR (02/10/2026) vai junto, nos dois caminhos: o limpeza-do-servidor.ps1 e a tarefa
+  `TracbelCrmLimpeza`, todo dia as 03:30, como SYSTEM - o log do banco em recuperacao simples, as copias
+  antigas do agente e o aviso das sessoes de Area de Trabalho Remota esquecidas. Ela roda uma vez na hora.
 
   =================================================================================================
   O QUE ELE INSTALA
@@ -34,13 +38,16 @@
     C:\aplicacoes\tracbel-crm-agente\
         agente-de-publicacao.ps1     o agente
         publicar-pacote.ps1          a troca de versao, com volta atras
+        limpeza-do-servidor.ps1      a limpeza de todo dia (log do banco, copias antigas, sessoes esquecidas)
+        limpeza.json                 o que a ultima limpeza achou (criado na primeira rodada dela)
         configuracao.json            repositorio, caminhos, conexao (integrada) — sem segredo
         token.txt                    so o SYSTEM e os administradores leem
         estado.json                  o que o agente sabe de si (criado na primeira rodada)
         logs\                        um arquivo por rodada
 
     Tarefa agendada `TracbelCrmPublicacao`, a cada 5 minutos, como SYSTEM.
-    Fonte `TracbelCrmPublicacao` no log de eventos do Windows.
+    Tarefa agendada `TracbelCrmLimpeza`, todo dia as 03:30, como SYSTEM.
+    Fontes `TracbelCrmPublicacao` e `TracbelCrmLimpeza` no log de eventos do Windows.
 #>
 
 [CmdletBinding()]
@@ -59,6 +66,8 @@ param(
     [int]    $PortaApi = 5443,
     [int]    $IntervaloEmMinutos = 5,
     [string] $NomeTarefa = 'TracbelCrmPublicacao',
+    [string] $NomeDaLimpeza = 'TracbelCrmLimpeza',
+    [string] $HoraDaLimpeza = '03:30',
     [switch] $SoAtualizarOToken,
     [switch] $SoAtualizarOsScripts
 )
@@ -75,6 +84,28 @@ if ($PastaDoAgente -match '\s' -or $DestinoDaApi -match '\s') {
 
 $porSmb = "\\$Servidor\$($PastaDoAgente -replace ':', '$')"
 
+<#
+  A TAREFA DA LIMPEZA DO SERVIDOR (02/10/2026): todo dia, como SYSTEM, e uma rodada na hora - o log do banco
+  passa a recuperacao simples ja na instalacao, e nao na madrugada seguinte. O /F recria a tarefa igual, entao
+  rodar de novo nao duplica nada. O script ja tem de estar copiado na pasta do agente.
+#>
+function RegistrarALimpeza() {
+    $saida = Invoke-NoServidor -Nome 'crm-agente-limpeza' -TimeoutSegundos 300 -Script @"
+`$argumentos = @(
+    '/Create', '/TN', '$NomeDaLimpeza',
+    '/TR', 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File $PastaDoAgente\limpeza-do-servidor.ps1',
+    '/SC', 'DAILY', '/ST', '$HoraDaLimpeza',
+    '/RU', 'SYSTEM', '/RL', 'HIGHEST', '/F')
+& schtasks.exe @argumentos
+Write-Output ('codigo da limpeza: ' + `$LASTEXITCODE)
+& schtasks.exe /Run /TN '$NomeDaLimpeza'
+Write-Output ('limpeza disparada: ' + `$LASTEXITCODE)
+"@
+    Write-Host $saida
+    if ($saida -notmatch 'codigo da limpeza: 0') { throw "Nao consegui registrar a tarefa $NomeDaLimpeza. A saida esta acima." }
+    Ok "tarefa $NomeDaLimpeza registrada (todo dia as $HoraDaLimpeza, como SYSTEM) e disparada agora"
+}
+
 # -------------------------------------------------------------------------------------------------
 # SO OS SCRIPTS: a correcao de um defeito do agente chega ao servidor sem pedir o token de novo. O
 # fine-grained token so aparece uma vez no GitHub, e refaze-lo passa por aprovacao (21/09/2026).
@@ -86,7 +117,11 @@ if ($SoAtualizarOsScripts) {
     }
     Copy-Item (Join-Path $PSScriptRoot 'agente-de-publicacao.ps1') $porSmb -Force
     Copy-Item (Join-Path $PSScriptRoot 'publicar-pacote.ps1') $porSmb -Force
-    Ok "agente-de-publicacao.ps1 e publicar-pacote.ps1 copiados para $PastaDoAgente"
+    Copy-Item (Join-Path $PSScriptRoot 'limpeza-do-servidor.ps1') $porSmb -Force
+    Ok "agente-de-publicacao.ps1, publicar-pacote.ps1 e limpeza-do-servidor.ps1 copiados para $PastaDoAgente"
+
+    Passo "A limpeza do servidor ($NomeDaLimpeza)"
+    RegistrarALimpeza
 
     # RELIGA E RODA NA HORA: a tarefa pode ter sido desligada enquanto o defeito era corrigido, e a
     # rodada seguinte ja acha os scripts novos - o commit que tinha falhado e tentado de novo sozinho.
@@ -167,6 +202,7 @@ Passo '3. Copiar o agente e a configuracao'
 # -------------------------------------------------------------------------------------------------
 Copy-Item (Join-Path $PSScriptRoot 'agente-de-publicacao.ps1') $porSmb -Force
 Copy-Item (Join-Path $PSScriptRoot 'publicar-pacote.ps1') $porSmb -Force
+Copy-Item (Join-Path $PSScriptRoot 'limpeza-do-servidor.ps1') $porSmb -Force
 
 # A CONEXAO E INTEGRADA: a tarefa roda como SYSTEM, que no dominio e a conta da MAQUINA, e o banco
 # esta na mesma maquina. Nenhuma senha em arquivo.
@@ -218,6 +254,11 @@ Write-Output ('codigo do schtasks: ' + `$LASTEXITCODE)
 Write-Host $saida
 if ($saida -notmatch 'codigo do schtasks: 0') { throw "Nao consegui registrar a tarefa $NomeTarefa. A saida esta acima." }
 Ok "tarefa registrada, a cada $IntervaloEmMinutos minutos, como SYSTEM"
+
+# -------------------------------------------------------------------------------------------------
+Passo "5b. A limpeza do servidor ($NomeDaLimpeza)"
+# -------------------------------------------------------------------------------------------------
+RegistrarALimpeza
 
 # -------------------------------------------------------------------------------------------------
 Passo '6. Primeira passada em SIMULACAO'

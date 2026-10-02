@@ -281,6 +281,7 @@ apagado** antes de perguntar, e vale para aquele commit só.
 | Servidor, a cada 5 min | `scripts/deploy/agente-de-publicacao.ps1` | decide se há o que publicar |
 | Servidor | `scripts/deploy/publicar-pacote.ps1` | troca a versão, com prova de vida e volta atrás |
 | Servidor, a cada publicação | `scripts/deploy/registrar-rotinas.ps1` (viaja no pacote) | recria as rotinas `TracbelCrmFontesPublicas` (anual) e `TracbelCrmPrecos` (mensal) |
+| Servidor, todo dia às 03:30 | `scripts/deploy/limpeza-do-servidor.ps1` | log do banco em recuperação simples, cópias antigas do agente, retrato da memória e aviso das sessões esquecidas (§6.5.4) |
 | Estação | `scripts/deploy/verificar-publicacao.ps1` | em que versão o servidor está e o que ele espera |
 | Estação | `scripts/deploy/autorizar-publicacao.ps1` | libera uma publicação destrutiva, ou pede nova tentativa de uma que falhou |
 
@@ -439,6 +440,52 @@ merge, e a volta atrás usa a cópia guardada no servidor, não um pacote antigo
 
 **Fica para depois:** o certificado vence em **12/10/2026**, e o agente atualizar os próprios scripts a
 partir do pacote do CI, em vez de depender do `-SoAtualizarOsScripts`.
+
+#### 6.5.4 A limpeza do servidor — 02/10/2026
+
+O Ricardo pediu: *"verifique a memória no servidor, deixe sempre para limpar"*. Antes de qualquer mudança, o servidor foi
+medido só lendo: o compartilhamento `C$`, o `systeminfo` e o `tasklist` remotos, e o CIM por DCOM.
+
+| O que foi medido | O que significa |
+|---|---|
+| 16 GB de memória: ~11,7 GB em uso e 4,1 GB de cache | o cache é memória livre emprestada a arquivo, e o Windows a devolve sozinho; "esvaziá-lo" só faria o servidor reler do disco |
+| o CRM inteiro (API, sincronização do ART e rotinas) com ~340 MB | o CRM não é o que ocupa a memória |
+| quatro sessões de Área de Trabalho Remota **desconectadas** e esquecidas, de 1,8 a 4,3 GB cada | é a memória que dá para devolver, mas cada uma é o trabalho aberto de alguém |
+| `TracbelCrm_log.ldf` com 6,6 GB, para um banco de 1 GB, crescendo ~300 MB por dia | recuperação FULL sem backup de log: o log nunca era reaproveitado |
+| as cópias do agente, depois do #276, em 5 arquivos | a retenção funciona, mas o disco já encheu duas vezes antes de ela chegar ao servidor |
+
+**As decisões do Ricardo (02/10/2026):**
+
+- **Sessões desconectadas: não encerrar, só avisar.** A limpeza diz quem está desconectado, há quanto tempo e quanto de
+  memória a sessão segura. Encerrar fica com quem a abriu.
+- **Log do banco: recuperação simples e encolher.** Sem backup de log, a FULL não dava volta a ponto nenhum no tempo. A
+  volta continua sendo a cópia completa que o agente tira antes de cada publicação. Em 28/09, a mesma pergunta tinha
+  ficado sem aprovação; agora foi aprovada.
+
+**O que ficou:** a tarefa `TracbelCrmLimpeza` roda o `limpeza-do-servidor.ps1` como SYSTEM, todo dia às 03:30. Cada
+passo tem o seu `try`, e um que falha não impede os outros:
+
+1. põe o banco em recuperação SIMPLES, se ainda não estiver, e encolhe **só o arquivo de log** quando ele passa de
+   2 GB, para 1 GB. O arquivo de dados não é tocado;
+2. apaga as cópias `TracbelCrm-antes-de-*.bak` além das 5 mais recentes, pelo mesmo nome que o `publicar-pacote.ps1`
+   usa. As feitas à mão ficam;
+3. tira o retrato: memória disponível e cache, o que a API, a sincronização e o SQL Server ocupam, os oito processos
+   que mais ocupam e o disco C:;
+4. lê as sessões pela API do Windows (`wtsapi32`), e não pelo `quser`, cuja saída vem traduzida e em colunas
+   variáveis. A desconectada há mais de 24 horas vira **aviso**.
+
+O resultado vai para o log de eventos (fonte `TracbelCrmLimpeza`: 4000 tudo bem, 4100 com aviso, 4900 com erro), para
+`limpeza.json`, que o `verificar-publicacao.ps1` mostra, e para `logs\limpeza-<data>.log`.
+
+**Como chega ao servidor:** pelo caminho que já existe. O `instalar-agente-de-publicacao.ps1 -SoAtualizarOsScripts`
+copia o script, registra a tarefa e a dispara na hora, então o log já encolhe na instalação. O
+`ScriptsDoServidorTestes` prende as decisões: nada que encerre sessão ou pare processo, só o log encolhido, só as
+cópias do agente apagadas, e a tarefa registrada também no `-SoAtualizarOsScripts`.
+
+**Medido no PowerShell 5.1 da estação, em simulação:** os dois passos do banco, sem banco, caem no `try`, e o resto
+termina. A leitura das sessões devolve a sessão aberta com o estado e a hora certos. Antes da correção, o 5.1 quebrou
+com *"Os tipos de argumento não correspondem"* num `@($lista)` de `List[T]` dentro de uma hashtable literal. O
+PowerShell 7 não acusa esse erro, e o script passou a usar `.ToArray()`.
 
 ### 6.6 A decisão de 17/09/2026 e o que a sustentou
 
