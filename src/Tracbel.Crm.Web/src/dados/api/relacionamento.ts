@@ -18,6 +18,7 @@
  */
 
 import type { ComProcedencia, PaginaDe } from '../../tipos/api';
+import type { PecasDoCliente } from '../../tipos/pecas';
 import type {
   Agregado,
   CarteirasDoCliente,
@@ -471,6 +472,18 @@ export function obterFaturamentoDoCliente(
   sinal?: AbortSignal,
 ): Promise<ComProcedencia<FaturamentoDoCliente>> {
   return ler<FaturamentoDoCliente>(`/v1/clientes/${chaveDoCliente}/faturamento`, contexto, { sinal });
+}
+
+/**
+ * As peças de UM cliente (02/10/2026) — os doze meses com balcão × oficina e o grupo comercial, o vendedor principal e os
+ * orçamentos em aberto, do Protheus. 404 quer dizer "não existe OU não está ao seu alcance".
+ */
+export function obterPecasDoCliente(
+  contexto: ContextoDeAcesso,
+  chaveDoCliente: string,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<PecasDoCliente>> {
+  return ler<PecasDoCliente>(`/v1/clientes/${chaveDoCliente}/pecas`, contexto, { sinal });
 }
 
 /** As carteiras em que o cliente está, com o CEN de cada uma — nas carteiras ao alcance de quem consulta. */

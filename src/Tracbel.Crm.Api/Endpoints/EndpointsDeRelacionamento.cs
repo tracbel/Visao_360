@@ -224,6 +224,18 @@ public static class EndpointsDeRelacionamento
                 "O faturamento do cliente lido da SD2 do Protheus: os doze meses até a competência mais recente da " +
                 "carga, a quebra máquina, peça, serviço e outros, a filial que emitiu a nota e a data da carga.");
 
+        // AS PEÇAS DO CLIENTE (02/10/2026): o faturamento de peças por mês e os orçamentos, da rotina 15 POS_VENDA_PROTHEUS. A
+        // mesma permissão do faturamento do cliente, que é o mesmo assunto em reais.
+        app.MapGet("/api/v1/clientes/{chave:guid}/pecas", async (
+                Guid chave, ObterPecasDoCliente caso, CancellationToken ct) =>
+            (await caso.ExecutarAsync(chave, ct)).Responder())
+            .WithTags("Clientes (banco do CRM)")
+            .WithName("ObterPecasDoCliente")
+            .ExigePermissao(Permissoes.FaturamentoLer)
+            .WithSummary(
+                "As peças do cliente, do Protheus: os doze meses com balcão × oficina e o grupo comercial (na régua do painel " +
+                "\"Faturamento Peças\" do BI), a série, o vendedor principal e os orçamentos em aberto. Sem custo nem margem.");
+
         grupo.MapGet("/indicadores-executivos", async (
                 ObterIndicadoresExecutivos caso, CancellationToken ct, int? ano = null, int? anoFiscal = null) =>
                 (await caso.ExecutarAsync(ano, anoFiscal, ct)).Responder())
