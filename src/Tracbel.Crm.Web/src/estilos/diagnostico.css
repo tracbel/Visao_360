@@ -643,3 +643,126 @@
 /* O MAPA PRESO AO TOPO DO CARTÃO: com a ficha aberta ao lado, centralizado ele boiava no meio de um vão. */
 .dash-pagina.diag-maquete .diag-mapa-corpo { flex: 0 0 auto; align-items: start; margin-top: 10px; }
 .dash-pagina.diag-maquete .diag-legenda { align-self: center; }
+
+/* =============================================================================
+   QUARTA CONFERÊNCIA, DETALHE A DETALHE COM A IMAGEM (02/10/2026, "não está igualzinho, olhe os detalhes")
+   As medidas são as da maquete a 1.672 px: a barra de filtros com 60 px e os campos repartindo a linha sem filete, os
+   cartões com 105 px e o gráfico pequeno no canto, as classes com 55, as linhas de "Onde agir primeiro" com 38, e a
+   tabela densa, com o cabeçalho em caixa normal e a próxima ação inteira.
+   ============================================================================= */
+.dash-pagina.diag-maquete .dash-atualizado { align-self: flex-end; font-size: 11.5px; }
+
+.dash-pagina.diag-maquete .dash-filtros-linha { align-items: center; gap: 12px 14px; padding: 9px 12px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
+.dash-pagina.diag-maquete .dash-filtros-linha .dash-filtro-icone { width: 32px; height: 32px; border-radius: 7px; background: #f3f5f7; border-color: #e3e7eb; }
+.dash-pagina.diag-maquete .dash-filtros-linha .dash-filtro-icone svg { width: 16px; height: 16px; }
+.dash-pagina.diag-maquete .dash-filtros-linha .dash-filtro-rotulo { min-height: 0; font-size: 11px; font-weight: 500; color: #374151; }
+.dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro select { height: 28px; padding-left: 10px; font-size: 12px; }
+
+.dash-pagina.diag-maquete .dash-mais-filtros {
+  height: 38px;
+  padding: 0 18px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dg-marinho);
+}
+
+@container indicadores (min-width: 1000px) {
+  .dash-pagina.diag-maquete .dash-filtros-linha { flex-wrap: nowrap; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro + .dash-filtro,
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtros-acao { padding-left: 0; border-left: 0; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco] { flex: 1 1 0; max-width: none; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtro[data-bloco='periodo'] { flex-grow: 1.12; }
+  .dash-pagina.diag-maquete .dash-filtros-linha > .dash-filtros-acao { margin-left: 4px; }
+}
+
+/* OS CARTÕES: mais baixos, o glifo de 42 px e o gráfico pequeno no canto de cima; a rosca da meta continua no meio. */
+.dash-pagina.diag-maquete .mv-kpi { padding: 13px 16px 11px; }
+.dash-pagina.diag-maquete .mv-kpi-glifo { width: 42px; height: 42px; border-radius: 10px; }
+.dash-pagina.diag-maquete .mv-kpi-glifo svg { width: 23px; height: 23px; }
+.dash-pagina.diag-maquete .mv-kpi-rotulo { font-size: 12.5px; }
+.dash-pagina.diag-maquete .mv-kpi-valor { font-size: 26px; }
+.dash-pagina.diag-maquete .mv-kpi-contexto { gap: 1px; margin-top: 2px; font-size: 11.5px; line-height: 1.4; color: var(--dg-cinza); }
+.dash-pagina.diag-maquete .mv-kpi-grafico:has(.mini-grafico) { top: 14px; transform: none; }
+.dash-pagina.diag-maquete .mv-kpi:has(.mini-grafico) .mv-kpi-rotulo,
+.dash-pagina.diag-maquete .mv-kpi:has(.mini-grafico) .mv-kpi-valor { padding-right: 66px; }
+.dash-pagina.diag-maquete .mv-kpi:has(.mini-grafico) .mv-kpi-contexto { padding-right: 0; }
+.dash-pagina.diag-maquete .mini-grafico { display: block; }
+
+/* "ONDE AGIR?" E AS CLASSES: o subtítulo encostado no título, os cartões das classes baixos, com "mun." na faixa. */
+.dash-pagina.diag-maquete section.diag-cartao { gap: 12px; padding: 14px 16px 16px; }
+.dash-pagina.diag-maquete section.diag-cartao .terr-secao-titulo { font-size: 17px; }
+.dash-pagina.diag-maquete section.diag-cartao .terr-secao-subtitulo { font-size: 11.5px; }
+.dash-pagina.diag-maquete .diag-entenda { font-size: 11.5px; }
+.dash-pagina.diag-maquete .diag-distribuicao-barra { height: 9px; }
+.dash-pagina.diag-maquete .diag-classe-botao { padding: 7px 12px 7px 20px; }
+.dash-pagina.diag-maquete .diag-classe-nome { font-size: 11.5px; }
+.dash-pagina.diag-maquete .diag-classe-quantos { font-size: 21px; line-height: 1.15; }
+.dash-pagina.diag-maquete .diag-classe-faixa { font-size: 10.5px; }
+
+/* O MAPA E "ONDE AGIR PRIMEIRO": a legenda com bolinhas — "Sem dados" continua hachurada, porque é assim que o mapa pinta
+   o município sem IOC —, e as linhas da lista mais justas, a frase de baixo do título em uma linha. */
+.dash-pagina.diag-maquete .diag-legenda i { width: 13px; height: 13px; }
+.dash-pagina.diag-maquete .diag-ficha .card-subtitle { font-size: 11px; }
+.dash-pagina.diag-maquete .diag-primeiros-cartao { gap: 10px; }
+.dash-pagina.diag-maquete .diag-primeiros { gap: 5px; }
+.dash-pagina.diag-maquete .diag-primeiro { padding: 6px 12px; column-gap: 12px; }
+.dash-pagina.diag-maquete .diag-primeiro-nome strong { font-size: 12.5px; }
+.dash-pagina.diag-maquete .diag-primeiro-onde { font-size: 10.5px; }
+.dash-pagina.diag-maquete .diag-primeiro-classe { padding: 2px 9px; font-size: 10.5px; }
+.dash-pagina.diag-maquete .diag-ver-todos { height: 28px; font-size: 11.5px; }
+
+/* A TABELA: o cabeçalho em caixa normal, como a maquete, as linhas densas e a próxima ação inteira. */
+.dash-pagina.diag-maquete .diag-tabela thead th { padding: 6px 7px; font-size: 10px; font-weight: 600; letter-spacing: 0; text-transform: none; color: #374151; }
+.dash-pagina.diag-maquete .diag-tabela tbody td { padding: 2px 7px; font-size: 11px; line-height: 1.45; }
+.dash-pagina.diag-maquete .diag-municipio { font-size: 11.5px; }
+.dash-pagina.diag-maquete .diag-ioc-pilula { min-width: 56px; padding: 1px 8px; font-size: 10.5px; }
+.dash-pagina.diag-maquete .diag-cobertura-trilho { width: 56px; height: 7px; }
+.dash-pagina.diag-maquete .diag-acao { max-width: none; overflow: visible; font-size: 10.5px; }
+.dash-pagina.diag-maquete .diag-coluna-acao { white-space: nowrap; }
+.dash-pagina.diag-maquete .diag-loja { max-width: none; }
+/* O BOTÃO DOS TRÊS PONTOS DE 28 PX segurava a linha em 33: aqui ele tem a altura da linha da maquete. */
+.dash-pagina.diag-maquete .diag-tabela .menu-da-linha { display: block; line-height: 0; }
+.dash-pagina.diag-maquete .diag-tabela .menu-da-linha-botao { width: 22px; height: 16px; }
+.dash-pagina.diag-maquete .diag-tabela .diag-ioc-pilula { padding-top: 0; padding-bottom: 0; line-height: 15px; }
+.dash-pagina.diag-maquete .diag-tabela .diag-municipio { padding: 0; line-height: 1.45; }
+.dash-pagina.diag-maquete .diag-tabela .cad-ausente { line-height: 1; }
+
+/* O MAPA NA ALTURA DA LISTA AO LADO, como a maquete: os dois cartões fecham juntos. */
+.dash-pagina.diag-maquete .diag-mapa-corpo { min-height: 236px; margin-top: 6px; }
+.dash-pagina.diag-maquete .diag-mapa .terr-svg { max-height: 240px; }
+.dash-pagina.diag-maquete .diag-legenda { gap: 9px; font-size: 11px; }
+
+/* AS LINHAS DE "ONDE AGIR PRIMEIRO" COM 38 PX, e a frase do título em uma linha. */
+.dash-pagina.diag-maquete .diag-primeiro { padding: 4px 12px; }
+.dash-pagina.diag-maquete .diag-primeiro-nome { line-height: 1.3; }
+.dash-pagina.diag-maquete .diag-primeiro-posicao { width: 22px; height: 22px; font-size: 11px; }
+.dash-pagina.diag-maquete .diag-ficha .card-subtitle { font-size: 10.5px; }
+.dash-pagina.diag-maquete .mv-kpi-contexto { font-size: 11px; }
+
+@container indicadores (min-width: 1000px) and (max-width: 1399px) {
+  .dash-pagina.diag-maquete .dash-filtros-linha { gap: 10px; padding-left: 10px; padding-right: 10px; }
+  .dash-pagina.diag-maquete .dash-filtros-linha .dash-filtro-icone { width: 30px; height: 30px; }
+  .dash-pagina.diag-maquete .dash-mais-filtros { padding: 0 12px; }
+  /* O GRÁFICO PEQUENO MENOR, para o nome e o número do cartão caberem na linha deles. */
+  .dash-pagina.diag-maquete .mini-grafico { width: 42px; height: 30px; }
+  .dash-pagina.diag-maquete .mv-kpi:has(.mini-grafico) .mv-kpi-rotulo,
+  .dash-pagina.diag-maquete .mv-kpi:has(.mini-grafico) .mv-kpi-valor { padding-right: 46px; }
+  .dash-pagina.diag-maquete .diag-tabela thead th { padding: 6px 5px; font-size: 9.5px; }
+  .dash-pagina.diag-maquete .diag-tabela tbody td { padding: 2px 5px; }
+  .dash-pagina.diag-maquete .diag-acao { max-width: none; overflow: visible; }
+}
+
+/* ABAIXO DE 1.200 PX DE CONTEÚDO a tabela não cabe com a próxima ação inteira: ela volta a terminar em reticências, com o
+   texto todo na dica. */
+@container indicadores (max-width: 1199px) {
+  .dash-pagina.diag-maquete .diag-acao { max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+  .dash-pagina.diag-maquete .diag-loja { max-width: 112px; overflow: hidden; text-overflow: ellipsis; }
+  /* A COLUNA DA LOJA CURTA MOSTRA A CIDADE, e o nome inteiro fica na dica. */
+  .dash-pagina.diag-maquete .diag-loja .nome-da-loja-marca { display: none; }
+  .dash-pagina.diag-maquete .diag-tabela thead th { padding-left: 4px; padding-right: 4px; }
+  .dash-pagina.diag-maquete .diag-tabela tbody td { padding-left: 4px; padding-right: 4px; }
+  .dash-pagina.diag-maquete .diag-cobertura-trilho { width: 36px; }
+}

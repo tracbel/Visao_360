@@ -39,6 +39,12 @@ export function obterDemandaEPrevisao(
 ): Promise<ComProcedencia<DemandaEPrevisaoDaRegiao>> {
   return ler<DemandaEPrevisaoDaRegiao>('/v1/mercado/demanda', contexto, {
     sinal,
-    parametros: { regiao: filtros.regiao, lojaCodigo: filtros.lojaCodigo, categoria: filtros.categoria },
+    parametros: {
+      regiao: filtros.regiao,
+      lojaCodigo: filtros.lojaCodigo,
+      categoria: filtros.categoria,
+      anoFiscal: filtros.anoFiscal === undefined ? undefined : String(filtros.anoFiscal),
+      cultura: filtros.cultura,
+    },
   });
 }

@@ -15,7 +15,8 @@
  *
  * O QUE A MAQUETE NÃO DESENHA E A TELA NÃO PERDE: os pesos do IOC, o share-alvo e as limitações estão no "Entenda os
  * indicadores"; o que era sub-linha da tabela está na dica da célula e na ficha. A variação dos municípios prioritários
- * e os minigráficos dos cartões não entram: o CRM não guarda o IOC de antes para comparar.
+ * não entra: o CRM não guarda o IOC de antes para comparar. Os gráficos pequenos dos cartões são por classe de
+ * prioridade — a série que o diagnóstico tem (02/10/2026, segunda conferência com a imagem).
  *
  * ESTA É A CASCA: busca, guarda a escolha e monta os blocos, que moram em `componentes/diagnostico/`.
  */
@@ -27,6 +28,7 @@ import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTel
 import { DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
 import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
 import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
+import { MiniGrafico } from '../componentes/mercado/MiniGrafico';
 import { TituloDaSecao } from '../componentes/territorio/TituloDaSecao';
 import {
   CABECALHO_DO_CSV,
@@ -176,6 +178,14 @@ export function DiagnosticoComercial() {
   const share = dados?.shares.find((s) => s.categoriaCodigo === dados.categoria);
   const prioritarios = resumo ? resumo.maxima + resumo.alta : null;
 
+  // AS SÉRIES DOS GRÁFICOS PEQUENOS DOS CARTÕES (maquete de 02/10/2026): o diagnóstico não tem mês a mês — o IOC é um
+  // retrato —, e a série de verdade que ele tem é por classe de prioridade, da manutenção à máxima.
+  const ORDEM_DAS_CLASSES: ClasseDePrioridade[] = ['Manutencao', 'Baixa', 'Moderada', 'Alta', 'Maxima'];
+  const somaPorClasse = (valor: (m: (typeof doRecorte)[number]) => number | null) =>
+    ORDEM_DAS_CLASSES.map((c) => doRecorte.filter((m) => m.classe === c).reduce((s, m) => s + (valor(m) ?? 0), 0));
+  const demandaPorClasse = somaPorClasse((m) => m.demandaAjustada ?? m.demandaEstrutural);
+  const vendasPorClasse = somaPorClasse((m) => m.vendidasNoPeriodo);
+
   const aviso = [
     classe !== null && `só a classe ${ROTULO_DA_CLASSE[classe].toLowerCase()}`,
     cultura !== null && `só a cultura principal ${cultura}`,
@@ -193,7 +203,7 @@ export function DiagnosticoComercial() {
           </p>
         </div>
         <p className="dash-atualizado">
-          {diagnostico.procedencia ? <DadosAtualizadosEm procedencia={diagnostico.procedencia} /> : 'Lendo o diagnóstico…'}
+          {diagnostico.procedencia ? <DadosAtualizadosEm procedencia={diagnostico.procedencia} dicaNoTexto /> : 'Lendo o diagnóstico…'}
           <button
             type="button"
             className="dash-recarregar"
@@ -229,15 +239,24 @@ export function DiagnosticoComercial() {
           tom="oportunidade"
           valor={prioritarios === null || !resumo || resumo.total === 0 ? null : n(prioritarios, 0)}
           carregando={diagnostico.carregando && !dados}
-          unidade={`de ${resumo ? n(resumo.total, 0) : '—'}`}
           variacao={
             <>
-              <span>prioridade máxima e alta</span>
+              <span>prioridade acima da média</span>
               {resumo?.iocMedio != null && <span className="diag-kpi-nota">(IOC médio: {n(resumo.iocMedio)})</span>}
             </>
           }
+          grafico={
+            resumo && resumo.total > 0 ? (
+              <MiniGrafico
+                tipo="barras"
+                cor="#7c3aed"
+                valores={[resumo.manutencao, resumo.baixa, resumo.moderada, resumo.alta, resumo.maxima]}
+                rotulo={`Municípios por classe, da manutenção à máxima: ${resumo.manutencao}, ${resumo.baixa}, ${resumo.moderada}, ${resumo.alta} e ${resumo.maxima}`}
+              />
+            ) : undefined
+          }
           motivoSemDado="A área de atuação entra pela carga do território; sem ela, o diagnóstico não tem município para ordenar."
-          sobre="Os municípios do recorte com IOC de prioridade máxima (80 ou mais) e alta (60 a 80), sobre todos os do recorte. O IOC médio é o dos municípios com índice. A variação contra o período anterior não entra: o CRM não guarda o IOC de antes."
+          sobre={`Os municípios do recorte com IOC de prioridade máxima (80 ou mais) e alta (60 a 80) — acima da prioridade moderada —${resumo ? `, de ${n(resumo.total, 0)} no recorte` : ''}. O IOC médio é o dos municípios com índice. O gráfico é a quantidade de municípios em cada classe, da manutenção à máxima. A variação contra o período anterior não entra: o CRM não guarda o IOC de antes.`}
         />
         <CartaoDeDecisao
           rotulo="Demanda anual"
@@ -248,18 +267,26 @@ export function DiagnosticoComercial() {
           unidade="unidades"
           variacao={
             resumo?.demandaEstrutural != null ? (
-              <>
-                <span>
-                  {dados?.categoriaNome} · {resumo.demandaAjustada != null ? 'ajustada pelo momento' : 'estrutural'}
-                </span>
-                <span className="diag-kpi-nota">
-                  {resumo.demandaAjustada != null ? `estrutural ${n(resumo.demandaEstrutural, 0)}` : 'a renovação do parque'}
-                </span>
-              </>
+              <span>
+                {dados?.categoriaNome} -{' '}
+                {resumo.demandaAjustada != null
+                  ? `ajustada pelo momento; estimativa ${n(resumo.demandaEstrutural, 0)}`
+                  : 'estrutural, a renovação do parque'}
+              </span>
             ) : null
           }
+          grafico={
+            resumo?.demandaEstrutural != null ? (
+              <MiniGrafico
+                tipo="linha"
+                cor="#16a34a"
+                valores={demandaPorClasse}
+                rotulo={`A demanda dos municípios em cada classe, da manutenção à máxima: ${demandaPorClasse.map((v) => n(v, 0)).join(', ')}`}
+              />
+            ) : undefined
+          }
           motivoSemDado="Nenhum município do recorte tem demanda estimada nesta categoria: falta regra de potencial ou área plantada."
-          sobre="As máquinas que a área de atuação pede por ano nesta categoria: a renovação do parque. Quando o momento está medido, o número é a demanda ajustada pelo fator de ciclo (preço, crédito e percepção), com a estrutural ao lado."
+          sobre="As máquinas que a área de atuação pede por ano nesta categoria: a renovação do parque. Quando o momento está medido, o número é a demanda ajustada pelo fator de ciclo (preço, crédito e percepção), e a estimativa ao lado é a estrutural, sem o momento. O gráfico é a demanda dos municípios de cada classe, da manutenção à máxima."
         />
         <CartaoDeDecisao
           rotulo="Meta de planejamento"
@@ -290,8 +317,18 @@ export function DiagnosticoComercial() {
               `${mes(dados.competenciaInicial)} a ${mes(dados.competenciaFinal)}`
             ) : null
           }
+          grafico={
+            resumo?.vendidasNoPeriodo != null ? (
+              <MiniGrafico
+                tipo="barras"
+                cor="#f07a17"
+                valores={vendasPorClasse}
+                rotulo={`As vendas nos municípios de cada classe, da manutenção à máxima: ${vendasPorClasse.map((v) => n(v, 0)).join(', ')}`}
+              />
+            ) : undefined
+          }
           motivoSemDado={SEM_ART}
-          sobre="As máquinas vendidas no período pelo ART, nos municípios do recorte. A penetração é a venda levada a um ano sobre a demanda."
+          sobre="As máquinas vendidas no período pelo ART, nos municípios do recorte. A penetração é a venda levada a um ano sobre a demanda. O gráfico é a venda nos municípios de cada classe, da manutenção à máxima."
         />
       </div>
 
@@ -334,11 +371,17 @@ export function DiagnosticoComercial() {
             <TituloDaSecao
               titulo="Os municípios"
               icone={<Sheet size={20} strokeWidth={2.2} className="diag-icone-verde" aria-hidden="true" />}
-              subtitulo="Todos os municípios, ordenados por prioridade, região ou oportunidade."
-              metodologia={
-                `${dados.categoriaNome} · vendas de ${mes(dados.competenciaInicial)} a ${mes(dados.competenciaFinal)}` +
-                (dados.fracaoDoAnoNoPeriodo !== 1 ? ` (levadas a um ano pela sazonalidade: ${pct(dados.fracaoDoAnoNoPeriodo)} do ano)` : '') +
-                '. A tabela leva a mesma ordem e os mesmos filtros para todas as páginas, e o CSV leva todas as linhas filtradas, e não só a página. A dica de cada célula traz o resto: a demanda ajustada, os clientes em carteira, os vínculos da cobertura, o momento de preço da cultura e o plano de ação inteiro.'
+              // SEM ⓘ NO TÍTULO, como a maquete: o método vai na dica do próprio subtítulo.
+              subtitulo={
+                <span
+                  title={
+                    `${dados.categoriaNome} · vendas de ${mes(dados.competenciaInicial)} a ${mes(dados.competenciaFinal)}` +
+                    (dados.fracaoDoAnoNoPeriodo !== 1 ? ` (levadas a um ano pela sazonalidade: ${pct(dados.fracaoDoAnoNoPeriodo)} do ano)` : '') +
+                    '. A tabela leva a mesma ordem e os mesmos filtros para todas as páginas, e o CSV leva todas as linhas filtradas, e não só a página. A dica de cada célula traz o resto: a demanda ajustada, os clientes em carteira, os vínculos da cobertura, o momento de preço da cultura e o plano de ação inteiro.'
+                  }
+                >
+                  Todos os municípios, ordenados por prioridade, região ou oportunidade.
+                </span>
               }
               acao={
                 <button

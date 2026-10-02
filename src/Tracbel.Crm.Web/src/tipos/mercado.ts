@@ -478,6 +478,18 @@ export type TotaisDaDemanda = {
   municipios: number;
   municipiosComDemanda: number;
   estimativa: boolean;
+  /** O parque com a área do ano anterior da PAM (02/10/2026). */
+  parqueAnoAnterior: number | null;
+  /** A demanda estrutural com a área do ano anterior. */
+  demandaEstruturalAnoAnterior: number | null;
+  /** As culturas cuja área útil no recorte cresceu sobre o ano anterior. */
+  culturasComAumentoDeArea: string[] | null;
+  /** As máquinas entregues no ano fiscal até hoje (ART, pela entrega); nulo sem ART ou com cultura escolhida. */
+  entreguesNoPeriodo: number | null;
+  /** O mesmo trecho do ano fiscal anterior. */
+  entreguesNoPeriodoAnterior: number | null;
+  /** O último dia contado nas entregas (aaaa-mm-dd). */
+  entregasAte: string | null;
 };
 
 export type DemandaDaCultura = {
@@ -490,6 +502,10 @@ export type DemandaDaCultura = {
   demandaEstrutural: number | null;
   demandaAjustada: number | null;
   variacaoPercentual: number | null;
+  /** A área, o parque e a demanda com a PAM do ano anterior. */
+  areaAnoAnterior: number | null;
+  parqueAnoAnterior: number | null;
+  demandaAnoAnterior: number | null;
 };
 
 /** Um mês da previsão; `mes` é o do calendário (1 a 12), e a lista vem de novembro a outubro. */
@@ -500,6 +516,8 @@ export type PrevisaoDoMes = {
   demandaAjustada: number | null;
   aEntregar: number | null;
   aEntregarAjustada: number | null;
+  /** As máquinas entregues no mês do ano fiscal escolhido (ART); nulo no mês que não começou, sem ART ou com cultura. */
+  entregues: number | null;
 };
 
 export type EntregaDaLoja = { lojaCodigo: string | null; loja: string; aEntregarNoAno: number | null; porMes: (number | null)[] };
@@ -521,6 +539,9 @@ export type DemandaDoMunicipioNaPrevisao = {
   fatorDeCredito: number | null;
   culturaPredominante: string | null;
   variacaoPercentual: number | null;
+  /** A demanda estrutural com a área do ano anterior da PAM, e a variação de hoje sobre ela (%). */
+  demandaEstruturalAnoAnterior: number | null;
+  variacaoAnoAnterior: number | null;
 };
 
 export type DemandaEPrevisaoDaRegiao = {
@@ -539,9 +560,18 @@ export type DemandaEPrevisaoDaRegiao = {
   municipios: DemandaDoMunicipioNaPrevisao[];
   culturas: { codigo: string; nome: string; demanda: number | null }[];
   lacunas: { metrica: string; motivo: string }[];
+  /** O ano fiscal das entregas (2026 é nov/2025 a out/2026) e os que o filtro "Período" oferece. */
+  anoFiscal: number;
+  anosFiscais: number[];
+  /** A cultura que recorta a demanda; nulo é todas. */
+  cultura: string | null;
+  /** As culturas com demanda na categoria e no recorte — o filtro "Cultura". */
+  culturasDoFiltro: { codigo: string; nome: string; demanda: number | null }[];
+  /** O ano da PAM da comparação. */
+  anoDaAreaAnterior: number | null;
 };
 
-export type FiltrosDaDemanda = { regiao?: string; lojaCodigo?: string; categoria?: string };
+export type FiltrosDaDemanda = { regiao?: string; lojaCodigo?: string; categoria?: string; anoFiscal?: number; cultura?: string };
 
 /**
  * O SHARE DA TRACBEL NO CRÉDITO DE MECANIZAÇÃO (issue 262, decisões de 28/09/2026): o crédito rural que a Tracbel
