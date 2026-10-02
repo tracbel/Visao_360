@@ -59,7 +59,7 @@ export function DistribuicaoPorClasse({
                 <span className="diag-classe-nome">{c.rotulo}</span>
                 <strong className="diag-classe-quantos">{n(q, 0)}</strong>
                 <span className="diag-classe-faixa" title={comIndice > 0 ? `${n((100 * q) / comIndice, 0)}% dos municípios com IOC` : undefined}>
-                  {c.faixa}
+                  {c.faixa} • mun.
                   {comIndice > 0 && ` • ${n((100 * q) / comIndice, 0)}%`}
                 </span>
               </button>

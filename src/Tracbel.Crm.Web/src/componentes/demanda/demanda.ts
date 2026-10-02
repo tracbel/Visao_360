@@ -16,8 +16,11 @@ export const variacaoDoFator = (fator: number) => {
   return `${d > 0 ? '+' : d < 0 ? '−' : ''}${n(Math.abs(d), 0)}%`;
 };
 
-/** Uma variação já em pontos percentuais: 8 vira "+8%". */
-export const variacaoPercentual = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${n(Math.abs(v), 0)}%`;
+/** Uma variação já em pontos percentuais: 8 vira "+8%". O sinal é o do número ARREDONDADO: −0,3 vira "0%", e não "−0%". */
+export const variacaoPercentual = (v: number) => {
+  const r = Math.round(v);
+  return `${r > 0 ? '+' : r < 0 ? '−' : ''}${n(Math.abs(r), 0)}%`;
+};
 
 /** O CSV da matriz: uma linha por município, com todas as culturas — e não só a página. */
 export function cabecalhoDoCsv(dados: DemandaEPrevisaoDaRegiao): string[] {

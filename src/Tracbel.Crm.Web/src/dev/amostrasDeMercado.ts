@@ -463,7 +463,8 @@ export function diagnosticoFicticio(
   const escolhido = responsaveis.find((r) => String(r.id) === responsavel) ?? null;
   const pesos = { potencial: 25, cobertura: 20, credito: 15, rentabilidade: 15, clientes: 10, realizacao: 5, penetracao: 10 };
   const culturas = ['Cana-de-açúcar', 'Soja', 'Café', 'Laranja', 'Milho', 'Amendoim'];
-  const lojas = ['Araraquara', 'Ribeirão Preto', 'Barretos', 'Franca', 'Bebedouro'];
+  // O NOME DA LOJA COMO ELE VEM DE PRODUÇÃO ("Tracbel Agro — Cidade", o padrão das filiais), e como a maquete escreve.
+  const lojas = ['Araraquara', 'Ribeirão Preto', 'Barretos', 'Franca', 'Bebedouro'].map((cidade) => `Tracbel Agro — ${cidade}`);
   const classe = (ioc: number): ClasseDePrioridade =>
     ioc >= 80 ? 'Maxima' : ioc >= 60 ? 'Alta' : ioc >= 40 ? 'Moderada' : ioc >= 20 ? 'Baixa' : 'Manutencao';
 
@@ -604,20 +605,32 @@ export function diagnosticoFicticio(
  * A DEMANDA E PREVISÃO FICTÍCIA (issue 258) — números inventados e coerentes: parque = área ÷ ha/máquina, demanda =
  * parque ÷ anos, a entregar = demanda × 31%, e os meses pela sazonalidade do protótipo. Um município em cada nove não
  * tem regra, para a tela mostrar o traço.
+ *
+ * DESDE A MAQUETE DE 02/10/2026: a área do ano anterior é a de hoje × um fator por cultura (a cana e a soja cresceram, o
+ * café encolheu); a entrega do ano fiscal é ~30% da demanda do mês, até out/2026 no ano corrente e o ano inteiro nos
+ * anteriores; a cultura escolhida recorta a demanda e tira a entrega, como na API.
  */
-export function demandaFicticia(municipios: { codigo: number; nome: string }[], vazio: boolean): DemandaEPrevisaoDaRegiao {
-  const culturas = [
-    { codigo: 'CANA', nome: 'Cana-de-açúcar', ha: 170, anos: 8 },
-    { codigo: 'SOJA', nome: 'Soja', ha: 200, anos: 10 },
-    { codigo: 'CAFE', nome: 'Café', ha: 20, anos: 10 },
-    { codigo: 'LARANJA', nome: 'Laranja', ha: 20, anos: 10 },
+export function demandaFicticia(
+  municipios: { codigo: number; nome: string }[],
+  vazio: boolean,
+  opcoes: { anoFiscal?: number | null; cultura?: string | null } = {},
+): DemandaEPrevisaoDaRegiao {
+  const todasAsCulturas = [
+    { codigo: 'CANA', nome: 'Cana-de-açúcar', ha: 170, anos: 8, antes: 0.93 },
+    { codigo: 'SOJA', nome: 'Soja', ha: 200, anos: 10, antes: 0.88 },
+    { codigo: 'CAFE', nome: 'Café', ha: 20, anos: 10, antes: 1.04 },
+    { codigo: 'LARANJA', nome: 'Laranja', ha: 20, anos: 10, antes: 0.97 },
   ];
+  const cultura = opcoes.cultura ? opcoes.cultura.toUpperCase() : null;
+  const culturas = todasAsCulturas.filter((c) => cultura === null || c.codigo === cultura);
+  const anoFiscal = opcoes.anoFiscal ?? 2026;
+  // O NOME DA LOJA COMO ELE VEM DE PRODUÇÃO ("Tracbel Agro — Cidade"), e como a maquete escreve.
   const lojas = [
-    ['010110', 'Araraquara'],
-    ['010111', 'Ribeirão Preto'],
-    ['010112', 'Barretos'],
-    ['010113', 'Franca'],
-    ['010114', 'Bebedouro'],
+    ['010110', 'Tracbel Agro — Araraquara'],
+    ['010111', 'Tracbel Agro — Ribeirão Preto'],
+    ['010112', 'Tracbel Agro — Barretos'],
+    ['010113', 'Tracbel Agro — Franca'],
+    ['010114', 'Tracbel Agro — Bebedouro'],
   ];
   const share = 0.31;
   const sazonalidade = [7, 6, 6, 7, 8, 9, 10, 10, 10, 10, 9, 8]; // nov..out, soma 100
@@ -634,13 +647,15 @@ export function demandaFicticia(municipios: { codigo: number; nome: string }[], 
         const semRegra = i % 9 === 8;
         const porCultura = semRegra
           ? []
-          : culturas
+          : todasAsCulturas
               .filter((_, j) => (i + j) % 3 !== 0)
+              .filter((c) => cultura === null || c.codigo === cultura)
               .map((c) => {
                 const area = Math.round((500 + r(c.ha) * 12000) / 10) * 10;
                 const parque = area / c.ha;
                 return { c, area, parque, demanda: Math.round((parque / c.anos) * 100) / 100 };
               });
+        const antes = soma(porCultura.map((p) => Math.round(p.demanda * p.c.antes * 100) / 100));
         const fatorPreco = 0.9 + r(2) * 0.25;
         const fatorCredito = 0.85 + r(3) * 0.3;
         const estrutural = soma(porCultura.map((p) => p.demanda));
@@ -663,6 +678,8 @@ export function demandaFicticia(municipios: { codigo: number; nome: string }[], 
           fatorDeCredito: semRegra ? null : Math.round(fatorCredito * 1000) / 1000,
           culturaPredominante: porCultura.length ? [...porCultura].sort((a, b) => b.parque - a.parque)[0].c.nome : null,
           variacaoPercentual: estrutural && ajustada !== null ? Math.round((ajustada / estrutural - 1) * 1000) / 10 : null,
+          demandaEstruturalAnoAnterior: antes,
+          variacaoAnoAnterior: estrutural !== null && antes ? Math.round((estrutural / antes - 1) * 1000) / 10 : null,
         };
       });
 
@@ -680,8 +697,18 @@ export function demandaFicticia(municipios: { codigo: number; nome: string }[], 
       demandaEstrutural: demanda,
       demandaAjustada: demanda === null ? null : Math.round(demanda * 1.04 * 100) / 100,
       variacaoPercentual: demanda === null ? null : 4,
+      areaAnoAnterior: demanda === null ? null : Math.round(demanda * c.anos * c.ha * c.antes),
+      parqueAnoAnterior: demanda === null ? null : Math.round(demanda * c.anos * c.antes),
+      demandaAnoAnterior: demanda === null ? null : Math.round(demanda * c.antes * 100) / 100,
     };
   });
+
+  // A ENTREGA DO ANO FISCAL: ~30% da demanda de cada mês, oscilando; o ano corrente (2026) vai até outubro, o mês da
+  // amostra; os anteriores, inteiros. Com cultura escolhida, nula — a máquina não diz a cultura.
+  const entregues = sazonalidade.map((s, i) =>
+    cultura !== null || ajustada === null ? null : Math.round(((ajustada * s) / 100) * (0.27 + 0.06 * Math.sin(i + anoFiscal))),
+  );
+  const somaEntregue = entregues.reduce<number>((t, v) => t + (v ?? 0), 0);
 
   const porLoja = lojas
     .map(([codigo, nome]) => {
@@ -717,6 +744,12 @@ export function demandaFicticia(municipios: { codigo: number; nome: string }[], 
       municipios: linhas.length,
       municipiosComDemanda: linhas.filter((l) => l.demandaEstrutural !== null).length,
       estimativa: true,
+      parqueAnoAnterior: soma(porCulturaDoRecorte.map((c) => c.parqueAnoAnterior)),
+      demandaEstruturalAnoAnterior: soma(linhas.map((l) => l.demandaEstruturalAnoAnterior)),
+      culturasComAumentoDeArea: culturas.filter((c) => c.antes < 1).map((c) => c.nome),
+      entreguesNoPeriodo: cultura !== null || linhas.length === 0 ? null : somaEntregue,
+      entreguesNoPeriodoAnterior: cultura !== null || linhas.length === 0 ? null : Math.round(somaEntregue * 0.89),
+      entregasAte: cultura !== null ? null : anoFiscal === 2026 ? '2026-10-02' : `${anoFiscal}-10-31`,
     },
     porCultura: porCulturaDoRecorte.filter((c) => c.demandaEstrutural !== null),
     previsaoMensal: meses.map((mes, i) => ({
@@ -726,6 +759,7 @@ export function demandaFicticia(municipios: { codigo: number; nome: string }[], 
       demandaAjustada: ajustada === null ? null : Math.round(ajustada * sazonalidade[i]) / 100,
       aEntregar: estrutural === null ? null : Math.round(estrutural * share * sazonalidade[i]) / 100,
       aEntregarAjustada: ajustada === null ? null : Math.round(ajustada * share * sazonalidade[i]) / 100,
+      entregues: entregues[i],
     })),
     porLoja,
     municipios: linhas,
@@ -733,7 +767,16 @@ export function demandaFicticia(municipios: { codigo: number; nome: string }[], 
     lacunas: [
       { metrica: 'sazonalidade', motivo: 'AMOSTRA FICTÍCIA — a sazonalidade ainda é a do protótipo da pasta 360, a confirmar.' },
       { metrica: 'porCliente', motivo: 'AMOSTRA FICTÍCIA — a demanda é por município, e não por cliente.' },
+      cultura !== null
+        ? { metrica: 'entregaPorCultura', motivo: 'AMOSTRA FICTÍCIA — a máquina entregue não diz para que cultura foi: com uma cultura escolhida, a entrega fica de fora.' }
+        : { metrica: 'entregaRealizada', motivo: 'AMOSTRA FICTÍCIA — a entrega realizada é a do ART pela data da entrega, dos compradores dos municípios do recorte.' },
+      { metrica: 'anoAnterior', motivo: 'AMOSTRA FICTÍCIA — o ano anterior é a mesma conta com a área da PAM de um ano antes.' },
     ],
+    anoFiscal,
+    anosFiscais: [2026, 2025, 2024, 2023],
+    cultura,
+    culturasDoFiltro: todasAsCulturas.map((c) => ({ codigo: c.codigo, nome: c.nome, demanda: null })),
+    anoDaAreaAnterior: 2023,
   };
 }
 

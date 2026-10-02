@@ -679,6 +679,24 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     linha.AreaPlantadaHectares, linha.AreaColhidaHectares, linha.QuantidadeProduzida, linha.ValorDaProducaoMilReais);
         }
 
+        // O ANO ANTERIOR DA PAM, SÓ QUANDO PEDIDO (a Demanda e Previsão, 02/10/2026): cada cultura no ano antes do dela — a
+        // mesma regra do "cada cultura no seu ano", um ano para trás. Sem a linha do ano anterior, a área fica nula, e a
+        // demanda daquele ano também: sigilo do IBGE não é lavoura zero.
+        var daRegraAnterior = new Dictionary<(int Codigo, int Produto), MedidasDaCultura>();
+        if (consulta.ComDemandaDoAnoAnterior && anoDaCultura.Count > 0)
+        {
+            var anosAnteriores = anoDaCultura.Values.Select(a => (short)(a - 1)).Distinct().ToList();
+            var linhasDoAnoAnterior = await (
+                    from linha in contexto.ProducoesAgricolasNosMunicipios.AsNoTracking()
+                    join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
+                    where anosAnteriores.Contains(linha.Ano) && produtos.Contains(linha.ProdutoCodigoIbge) && municipio.CodigoIbge != null
+                    select new { Codigo = municipio.CodigoIbge!.Value, linha.ProdutoCodigoIbge, linha.Ano, linha.AreaPlantadaHectares })
+                .ToListAsync(ct);
+
+            foreach (var linha in linhasDoAnoAnterior.Where(l => anoDaCultura.GetValueOrDefault(l.ProdutoCodigoIbge) - 1 == l.Ano))
+                daRegraAnterior[(linha.Codigo, linha.ProdutoCodigoIbge)] = new MedidasDaCultura(linha.AreaPlantadaHectares, null, null, null);
+        }
+
         var culturasNoEstado = await LerCulturasNoEstadoAsync(anoDaCultura, ct);
 
         // -----------------------------------------------------------------------------------------
@@ -761,18 +779,18 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
 
         // A ÁREA DE UMA CULTURA É A SOMA DOS PRODUTOS DELA, cada um no ano dele. Nenhum produto com área
         // divulgada devolve NULO, e não zero: sigilo do IBGE não é ausência de lavoura.
-        decimal? AreaDaCultura(int municipio, IReadOnlyList<int> produtosDaCultura)
+        decimal? AreaDaCultura(int municipio, IReadOnlyList<int> produtosDaCultura, Dictionary<(int Codigo, int Produto), MedidasDaCultura> medidas)
         {
             decimal? soma = null;
 
             foreach (var produto in produtosDaCultura)
-                if (daRegra.TryGetValue((municipio, produto), out var medida) && medida.AreaPlantadaHectares is { } plantada)
+                if (medidas.TryGetValue((municipio, produto), out var medida) && medida.AreaPlantadaHectares is { } plantada)
                     soma = (soma ?? 0m) + plantada;
 
             return soma;
         }
 
-        List<(string Codigo, PotencialDoRecorte Resultado)> MotorDoMunicipio(int municipio) =>
+        List<(string Codigo, PotencialDoRecorte Resultado)> MotorDoMunicipio(int municipio, bool doAnoAnterior = false) =>
         [
             .. categoriasDoMotor.Select(categoria => (
                 categoria.Key.CategoriaCodigo,
@@ -781,7 +799,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                     .. categoria.Select(r => new CulturaNoRecorte(
                         r.CulturaCodigo,
                         r.CulturaNome,
-                        AreaDaCultura(municipio, r.ProdutosDaPam),
+                        AreaDaCultura(municipio, r.ProdutosDaPam, doAnoAnterior ? daRegraAnterior : daRegra),
                         r.HectaresPorMaquina,
                         r.AnosDeRenovacao,
                         r.Confirmada,
@@ -928,7 +946,8 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
                         noMunicipio.MotivoSemDemanda),
                 oArtTrouxeVenda ? acumulador.MaquinasVendidas : null,
                 DemandaPorCategoriaECultura: DemandaDoMunicipio(doMotor),
-                ParqueConectado: parqueConectado.GetValueOrDefault(codigo)));
+                ParqueConectado: parqueConectado.GetValueOrDefault(codigo),
+                DemandaNoAnoAnterior: consulta.ComDemandaDoAnoAnterior && daAdr ? DemandaDoMunicipio(MotorDoMunicipio(codigo, doAnoAnterior: true)) : null));
         }
 
         var foraDoMapa = GruposForaDoMapa
