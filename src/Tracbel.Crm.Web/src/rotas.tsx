@@ -41,6 +41,7 @@ import { Configuracoes } from './telas/Configuracoes';
 import { DemandaEPrevisao } from './telas/DemandaEPrevisao';
 import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
 import { DimensionamentoAdr } from './telas/DimensionamentoAdr';
+import { FinanciamentosSicor } from './telas/FinanciamentosSicor';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
 import { EstoqueECobertura } from './telas/EstoqueECobertura';
 import { ForecastGerencia } from './telas/ForecastGerencia';
@@ -275,6 +276,13 @@ export const ROTAS: Rota[] = [
     titulo: 'Dimensionamento ADR',
     trilha: ['Inteligência de Mercado', 'Dimensionamento ADR'],
     Componente: DimensionamentoAdr,
+    usaApi: true,
+  },
+  {
+    caminho: '/mercado/financiamentos',
+    titulo: 'Gestão de Financiamentos',
+    trilha: ['Inteligência de Mercado', 'Gestão de Financiamentos'],
+    Componente: FinanciamentosSicor,
     usaApi: true,
   },
   {

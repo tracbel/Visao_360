@@ -28,6 +28,7 @@ import {
   IconeDiagnostico,
   IconeDimensionamento,
   IconeEquipamentos,
+  IconeFinanciamentos,
   IconeForecast,
   IconeEstoque,
   IconeFunil,
@@ -72,10 +73,11 @@ export const SECOES: SecaoNav[] = [
     // O PROTÓTIPO DA PASTA 360 NO CRM (épico 264, pedido do Ricardo de 27/09/2026): as abas dele viram telas deste
     // grupo, uma a uma. Os Indicadores Geográficos continuam nos Relatórios, onde já estavam.
     titulo: 'Inteligência de Mercado',
-    // A ORDEM É A DO RACIOCÍNIO: primeiro o tamanho do território (Dimensionamento), depois quanto o mercado pede e quanto a
-    // Tracbel tem de entregar (Demanda), e por fim onde agir (Diagnóstico) — a ordem das abas do protótipo.
+    // A ORDEM É A DAS ABAS DO PROTÓTIPO: primeiro o tamanho do território (Dimensionamento), o crédito que financia a máquina
+    // (Financiamentos), depois quanto o mercado pede e quanto a Tracbel tem de entregar (Demanda), e por fim onde agir (Diagnóstico).
     itens: [
       { caminho: '/mercado/dimensionamento', rotulo: 'Dimensionamento ADR', Icone: IconeDimensionamento },
+      { caminho: '/mercado/financiamentos', rotulo: 'Gestão de Financiamentos', Icone: IconeFinanciamentos },
       { caminho: '/mercado/demanda', rotulo: 'Demanda e Previsão', Icone: IconeDemanda },
       { caminho: '/mercado/diagnostico', rotulo: 'Diagnóstico Comercial', Icone: IconeDiagnostico },
     ],

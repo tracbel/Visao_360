@@ -1,6 +1,6 @@
 /** O cabeçalho de coluna que ordena a tabela — o mesmo botão e o mesmo `aria-sort` da matriz da Demanda. */
 
-import type { Ordem } from './dimensionamento';
+import type { Ordem } from './ordenacao';
 
 export function CabecalhoOrdenavel<C extends string>({
   coluna,

@@ -9,8 +9,9 @@
 import { useMemo, useState } from 'react';
 import { nomeProprio } from '../../telas/cadastro/formato';
 import type { CarteiraDoResponsavelNoDimensionamento } from '../../tipos/mercado';
-import { CabecalhoOrdenavel } from './CabecalhoOrdenavel';
-import { dataCurta, n, ordenar, proximaOrdem, type Ordem } from './dimensionamento';
+import { CabecalhoOrdenavel } from '../comum/CabecalhoOrdenavel';
+import { ordenar, proximaOrdem, type Ordem } from '../comum/ordenacao';
+import { dataCurta, n } from './dimensionamento';
 
 type Coluna = 'nome' | 'clientes' | 'naRegiao' | 'fora' | 'a' | 'b' | 'c' | 'd' | 'semClasse' | 'ate30' | 'ate60' | 'ate90' | 'ate120' | 'ultimo';
 
