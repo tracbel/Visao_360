@@ -26,6 +26,7 @@ import type {
   PaginaDe,
   VendaDaMaquina,
 } from '../../tipos/api';
+import type { OrdensDeServicoResumidas } from '../../tipos/ordensDeServico';
 import { ler, pedir, type ContextoDeAcesso } from './http';
 
 /** Os valores iniciais de uma consulta de equipamentos. */
@@ -97,6 +98,24 @@ export function listarMaquinasCompradasPeloCliente(
   sinal?: AbortSignal,
 ): Promise<ComProcedencia<MaquinaCompradaPeloCliente[]>> {
   return ler<MaquinaCompradaPeloCliente[]>(`/v1/clientes/${chaveDoCliente}/maquinas-compradas`, contexto, { sinal });
+}
+
+/** As ordens de serviço do cliente (pelo CPF/CNPJ do proprietário na OS do Protheus), com o resumo do pós-venda. */
+export function listarOrdensDeServicoDoCliente(
+  contexto: ContextoDeAcesso,
+  chaveDoCliente: string,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<OrdensDeServicoResumidas>> {
+  return ler<OrdensDeServicoResumidas>(`/v1/clientes/${chaveDoCliente}/ordens-de-servico`, contexto, { sinal });
+}
+
+/** As ordens de serviço da máquina (pelo chassi), com o resumo do pós-venda. */
+export function listarOrdensDeServicoDoEquipamento(
+  contexto: ContextoDeAcesso,
+  chave: string,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<OrdensDeServicoResumidas>> {
+  return ler<OrdensDeServicoResumidas>(`/v1/equipamentos/${chave}/ordens-de-servico`, contexto, { sinal });
 }
 
 /** Cadastra uma máquina — inclusive a do concorrente, que é o que a Cobertura usa. */

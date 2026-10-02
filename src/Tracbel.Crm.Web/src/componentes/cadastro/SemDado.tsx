@@ -145,8 +145,11 @@ export function LacunaConhecida({
  * Protheus estava no banco, de 09/2023 a 09/2026, e ganhou bloco próprio. "A
  * frota do ERP parou em 24/05/2024" era a `EXT_Veic` do Vórtice: o cadastro de
  * veículos do Protheus (VV1) é lido pela sincronia do parque, e a frota pelo dono
- * atual também ganhou bloco. As duas que ficam não dependem do Vórtice: o CRM não
- * lê nem guarda esses dados do Protheus.
+ * atual também ganhou bloco. As duas que ficaram não dependiam do Vórtice: o CRM
+ * não lia nem guardava esses dados do Protheus.
+ *
+ * EM 02/10/2026 AS ORDENS DE SERVIÇO SAÍRAM DAQUI: a rotina 15 POS_VENDA_PROTHEUS as
+ * traz das views do BI, e a ficha tem o bloco delas. Fica a de títulos em aberto.
  */
 export const LACUNAS_DA_FICHA_DO_CLIENTE = [
   {
@@ -155,13 +158,5 @@ export const LACUNAS_DA_FICHA_DO_CLIENTE = [
       'O CRM ainda não lê os títulos do Protheus: não há carga, tabela nem rota do contas a ' +
       'receber (SE1). Saldo, vencimento e inadimplência ficam no ERP até essa leitura existir — ' +
       'pelo mesmo caminho do faturamento, direto do banco do Protheus.',
-  },
-  {
-    metrica: 'Ordens de serviço',
-    motivo:
-      'O CRM ainda não carrega as ordens de serviço da oficina. A sincronia do parque consulta a ' +
-      'OS mais recente de cada máquina na VO1 do Protheus só para decidir o dono atual — ela vira ' +
-      'a evidência "ordem de serviço" da frota, e não é guardada. Não há tabela nem rota de OS ' +
-      'por cliente.',
   },
 ] as const;

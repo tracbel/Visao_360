@@ -38,6 +38,7 @@ import {
 } from '../../componentes/cadastro/CamposDeFormulario';
 import { DialogoConfirmacao } from '../../componentes/cadastro/DialogoConfirmacao';
 import { BlocoCarregando, BlocoErro } from '../../componentes/cadastro/EstadosDeTela';
+import { OrdensDeServicoDaMaquina } from '../../componentes/cadastro/OrdensDeServicoDaMaquina';
 import { SeletorDeCliente } from '../../componentes/cadastro/SeletorDeCliente';
 import { AvisoDeProcedencia, DadosAtualizadosEm } from '../../componentes/cadastro/SeloProcedencia';
 import { PaginaDoPainel } from '../../componentes/dashboard/Dashboard';
@@ -792,6 +793,8 @@ export function EquipamentoCadastro() {
               </div>
             )}
           </PainelDoMomento>
+
+          <OrdensDeServicoDaMaquina chave={maquina.chave} />
         </section>
       )}
 

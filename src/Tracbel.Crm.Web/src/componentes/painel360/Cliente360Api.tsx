@@ -21,9 +21,13 @@
  * faturamento substitui uma frase falsa ("parou em 11/04/2025"), que era da cópia
  * do Vórtice, e não do faturamento.
  *
- * OS BLOCOS QUE NÃO EXISTEM CONTINUAM NA TELA: títulos em aberto e ordens de
- * serviço, que o CRM ainda não carrega do Protheus. Some-los faria a tela
- * parecer completa; o que fica é o bloco, vazio, com o motivo de hoje.
+ * OS BLOCOS QUE NÃO EXISTEM CONTINUAM NA TELA: títulos em aberto, que o CRM
+ * ainda não carrega do Protheus. Some-lo faria a tela parecer completa; o que
+ * fica é o bloco, vazio, com o motivo de hoje.
+ *
+ * ---------------------------------------------------------------------------
+ * 02/10/2026 — AS ORDENS DE SERVIÇO saíram das lacunas e ganharam bloco: a
+ * rotina 15 POS_VENDA_PROTHEUS as traz das views do BI no banco do Protheus.
  */
 
 
@@ -46,6 +50,7 @@ import { LACUNAS_DA_FICHA_DO_CLIENTE, LacunaConhecida } from '../cadastro/SemDad
 import { SeloProcedencia } from '../cadastro/SeloProcedencia';
 import { BlocoCarteirasDoCliente } from './BlocoCarteirasDoCliente';
 import { BlocoFaturamentoDoCliente } from './BlocoFaturamentoDoCliente';
+import { BlocoOrdensDeServicoDoCliente } from './BlocoOrdensDeServicoDoCliente';
 import { BlocoPainel, type EstadoBloco } from './BlocoPainel';
 import { Dado, SemValor } from './DadoDoPainel';
 
@@ -190,6 +195,8 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
         </BlocoPainel>
 
         <BlocoFaturamentoDoCliente chave={chave} />
+
+        <BlocoOrdensDeServicoDoCliente chave={chave} />
 
         <BlocoPainel
           id="oportunidades"

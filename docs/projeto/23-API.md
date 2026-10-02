@@ -1008,6 +1008,8 @@ quem a chama. É a entrada da #5 (o catálogo gerado a partir do OpenAPI) e da #
 | `GET` | `/api/v1/equipamentos/{chave:guid}` | ATIVO | equipamentos.ts |
 | `GET` | `/api/v1/equipamentos/{chave:guid}/vendas` | ATIVO | equipamentos.ts |
 | `GET` | `/api/v1/clientes/{chave:guid}/maquinas-compradas` | ATIVO | equipamentos.ts |
+| `GET` | `/api/v1/equipamentos/{chave:guid}/ordens-de-servico` | ATIVO | equipamentos.ts |
+| `GET` | `/api/v1/clientes/{chave:guid}/ordens-de-servico` | ATIVO | equipamentos.ts |
 | `POST` | `/api/v1/equipamentos` | ATIVO | equipamentos.ts |
 | `PUT` | `/api/v1/equipamentos/{chave:guid}` | ATIVO | equipamentos.ts |
 | `DELETE` | `/api/v1/equipamentos/{chave:guid}` | ATIVO | equipamentos.ts |

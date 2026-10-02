@@ -236,6 +236,7 @@ builder.Services.AddScoped<IRepositorioDeRotinas>(s => s.GetRequiredService<Repo
 builder.Services.AddScoped<IConsultaDoHistoricoDeIntegracoes>(s => s.GetRequiredService<RepositorioDeIntegracoes>());
 builder.Services.AddScoped<IRepositorioIndicadoresExecutivos, RepositorioDeIndicadoresExecutivos>();
 builder.Services.AddScoped<IRepositorioHistoricoComercial, RepositorioDeHistoricoComercial>();
+builder.Services.AddScoped<IRepositorioDeOrdensDeServico, RepositorioDeOrdensDeServico>();
 builder.Services.AddScoped<IRepositorioSincronizacoes, RepositorioDeSincronizacoes>();
 builder.Services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalho>();
 
@@ -277,6 +278,7 @@ builder.Services.AddScoped<CriarEquipamento>();
 builder.Services.AddScoped<AlterarEquipamento>();
 builder.Services.AddScoped<InativarEquipamento>();
 builder.Services.AddScoped<ListarVendasDoEquipamento>();
+builder.Services.AddScoped<ListarOrdensDeServico>();
 builder.Services.AddScoped<ListarMaquinasCompradasPeloCliente>();
 
 // O registro das sincronizações, para a administração (documento 35, seção 11).

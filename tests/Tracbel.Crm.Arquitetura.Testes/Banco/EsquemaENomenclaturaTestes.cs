@@ -204,21 +204,21 @@ public sealed partial class EsquemaENomenclaturaTestes
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 10,
-            ["frota"] = 9,
+            ["frota"] = 10,
             ["auditoria"] = 1,
             ["integracao"] = 15,
             ["metadado"] = 2
         };
 
         porSchema.Should().BeEquivalentTo(esperado,
-            "a conta é 91 tabelas de modelo em 8 schemas — o financiamento das vendas do Vórtice (issue 262, 28/09/2026), a utilização das terras do Censo (28/09/2026), a conferência com a API Gestão de Negócios (28/09/2026), o estoque de máquinas e a cobertura da API Gestão de Negócios (28/09/2026), o planejamento da API Gestão de Negócios (o gestor de cada consultor, o forecast da gerência e o consórcio vendido, 28/09/2026), a percepção de campo por cultura (27/09/2026), a sazonalidade, os pesos do IOC e o share-alvo do planejamento (issue 256), o funil do Vórtice e a classificação dos resultados (documento 52), a meta de venda da API Gestão de Negócios (issue 138) e o preço de referência da máquina (issue 70): a fase 1 (documento 41) trouxe 80 em 10 " +
+            "a conta é 92 tabelas de modelo em 8 schemas — as ordens de serviço da oficina, do Protheus (02/10/2026), o financiamento das vendas do Vórtice (issue 262, 28/09/2026), a utilização das terras do Censo (28/09/2026), a conferência com a API Gestão de Negócios (28/09/2026), o estoque de máquinas e a cobertura da API Gestão de Negócios (28/09/2026), o planejamento da API Gestão de Negócios (o gestor de cada consultor, o forecast da gerência e o consórcio vendido, 28/09/2026), a percepção de campo por cultura (27/09/2026), a sazonalidade, os pesos do IOC e o share-alvo do planejamento (issue 256), o funil do Vórtice e a classificação dos resultados (documento 52), a meta de venda da API Gestão de Negócios (issue 138) e o preço de referência da máquina (issue 70): a fase 1 (documento 41) trouxe 80 em 10 " +
             "para 49, tirando as 31 que nunca receberam uma linha e esvaziando por completo os " +
             "schemas 'documento' e 'relatorio'; a issue 64 acrescentou o total do estado, a 65 as " +
             "cinco da estrutura agropecuária a 66 as duas dos preços de mercado a 67 a dos custos de produção a 68 as duas do crédito rural do SICOR e a 71 as duas dos parâmetros do potencial com vigência (os gerais e a percepção do gestor) a 136 as quatro das integrações configuráveis (conexão, verificação, rotina e execução da rotina) e a 154 o de-para entre a chave de cada fonte e o município do catálogo, e a 155 o total que o IBGE publica para o estado nas quatro pesquisas da estrutura agropecuária, e a 156 o milho separado em 1ª e 2ª safra, e a 165 as quatro do catálogo de culturas e categorias de máquina, e a 160 as duas do compartilhamento de máquina entre culturas, e a 69 o de-para entre a classificação de produto do CRM e a categoria de máquina — o último elo entre a venda do ART e a categoria de mercado (D-P08). O portão continua o mesmo nos dois sentidos: mudar " +
             "este número exige a decisão da seção 10.2 e a atualização do documento 14, seção 2.1, " +
             "na MESMA mudança");
 
-        porSchema.Values.Sum().Should().Be(91);
+        porSchema.Values.Sum().Should().Be(92);
     }
 
     [Fact]

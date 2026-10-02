@@ -979,6 +979,9 @@ public static class RotinasDoSistema
     /// <summary>A manutenção das tabelas de log particionadas por mês e a retenção da trilha (issue 268, D-10).</summary>
     public const string ParticaoDaAuditoria = "PARTICAO_AUDITORIA";
 
+    /// <summary>O pós-venda do Protheus: as ordens de serviço da oficina (pedido de 02/10/2026).</summary>
+    public const string PosVendaProtheus = "POS_VENDA_PROTHEUS";
+
     /// <summary>
     /// Quando as agendas semeadas passam a valer: o dia em que o orquestrador substituiu as tarefas do Windows. O
     /// que era devido antes dele (a mensal de 20/09) já rodou pelas tarefas antigas.
@@ -1157,7 +1160,21 @@ public static class RotinasDoSistema
             "Abre os meses seguintes das tabelas de log particionadas por mês e tira da trilha de alterações o que passou de " +
             "18 meses, uma partição por vez e sem DELETE. A mudança de permissão fica: ela é permanente.",
             ["--somente-particao-auditoria"], AgendaDaRotina.MensalEm(1, new TimeOnly(2, 0)), true,
-            [], null)
+            [], null),
+
+        // O PÓS-VENDA DO PROTHEUS (pedido do Ricardo em 02/10/2026) — a rotina 15, no FIM da lista como toda rotina nova (a
+        // posição é o identificador semeado). Lê as ordens de serviço da oficina pelas views do BI (as do extrator "Pós Vendas
+        // Serviços") e mantém frota.OrdemDeServico, casada com o cliente pelo documento e com a máquina pelo chassi. Diária às
+        // 06:00: depois da SA1 (03:30), com quem casa o cliente, e do parque (05:30), que traz as máquinas do dia. NASCE
+        // DESLIGADA, como toda rotina que traz dado novo para produção: quem liga é quem administra, com a conexão do banco do
+        // Protheus já testada — e a primeira rodada simulada mostra o que ela gravaria. Os modos e a descrição não são semeados
+        // (só o nome), e por isso as peças e os orçamentos entram depois como modos novos, sem migração.
+        new(PosVendaProtheus, "Pós-venda do Protheus",
+            "As ordens de serviço da oficina dos últimos três anos e as ainda abertas, de qualquer data, lidas pelas mesmas views " +
+            "do BI, com o valor de peças e de serviços na régua do painel de pós-venda — casadas com o cliente pelo CPF/CNPJ e com " +
+            "a máquina pelo chassi, sem nome nem contato de ninguém.",
+            ["--somente-ordens-de-servico"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)), false,
+            [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco)
     ];
 
     /// <summary>A rotina do catálogo pelo código; nula quando não existe.</summary>

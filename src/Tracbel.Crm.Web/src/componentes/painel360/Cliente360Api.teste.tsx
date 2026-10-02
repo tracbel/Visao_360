@@ -6,7 +6,9 @@
  * - o faturamento traz o total dos doze meses, a quebra em reais, a filial que emitiu a nota e a DATA DA CARGA;
  * - as carteiras trazem o CEN, a filial, a classe do cadastro e a cadência — e o último contato vazio vem como traço
  *   com o motivo;
- * - o bloco "O que a ficha não pode mostrar" não repete as frases falsas de antes (faturamento e frota "parados").
+ * - o bloco "O que a ficha não pode mostrar" não repete as frases falsas de antes (faturamento e frota "parados");
+ * - as ordens de serviço (02/10/2026) têm bloco próprio — a mais antiga aberta primeiro, na faixa vermelha dos 45 dias —
+ *   e saíram do cartão das lacunas; sem OS, o bloco mostra o traço com o motivo.
  */
 
 import { render, screen, within } from '@testing-library/react';
@@ -14,13 +16,18 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProvedorDeContextoDeAcesso } from '../../dados/api/contexto';
 import type { EquipamentoResumo } from '../../tipos/api';
+import type { OrdensDeServicoResumidas } from '../../tipos/ordensDeServico';
 import type { CarteirasDoCliente, FaturamentoDoCliente } from '../../tipos/relacionamento';
 import { Cliente360Api } from './Cliente360Api';
 
 const clientes = vi.hoisted(() => ({ obterCliente: vi.fn() }));
 vi.mock('../../dados/api/clientes', () => clientes);
 
-const equipamentos = vi.hoisted(() => ({ listarEquipamentos: vi.fn(), CONSULTA_INICIAL: { pagina: 1, tamanho: 25 } }));
+const equipamentos = vi.hoisted(() => ({
+  listarEquipamentos: vi.fn(),
+  listarOrdensDeServicoDoCliente: vi.fn(),
+  CONSULTA_INICIAL: { pagina: 1, tamanho: 25 },
+}));
 vi.mock('../../dados/api/equipamentos', () => equipamentos);
 
 const relacionamento = vi.hoisted(() => ({
@@ -109,6 +116,24 @@ const carteiras: CarteirasDoCliente = {
   metricasSemDado: [{ metrica: 'ultimoContato', motivo: 'Nenhum dos 1 vínculos deste cliente tem data de último contato.' }],
 };
 
+const ordemAberta = {
+  chave: 'os1', numero: '00012345', filialCodigo: '010116', filialNome: 'Votuporanga', situacao: 'Aberta' as const,
+  tipoDeAtendimento: 'OFICINA', abertaEm: '2026-08-01', liberadaEm: null, fechadaEm: null, canceladaEm: null,
+  chassi: '1RW7250PVMR000001', modelo: 'TRATOR 7250R', horimetro: 1234.5, equipamentoChave: 'm1', clienteChave: CHAVE,
+  clienteNome: 'Cliente de amostra', valorDePecas: 12500, valorDeServicos: 3200, itensDePeca: 4, itensDeServico: 2,
+};
+
+const ordens: OrdensDeServicoResumidas = {
+  emAberto: 1, emAbertoHaMaisDe45Dias: 1, diasDaMaisAntigaEmAberto: 62, valorEmAberto: 15700, nosUltimos12Meses: 0,
+  pecasNosUltimos12Meses: 0, servicosNosUltimos12Meses: 0, ultimaAbertaEm: '2026-08-01', totalDeOrdens: 1,
+  ordens: [{ ordem: ordemAberta, diasEmAberto: 62 }], carregadoEm: '2026-10-02T09:00:00', metricasSemDado: [],
+};
+
+const semOrdens: OrdensDeServicoResumidas = {
+  ...ordens, emAberto: 0, emAbertoHaMaisDe45Dias: 0, diasDaMaisAntigaEmAberto: null, valorEmAberto: 0, totalDeOrdens: 0, ordens: [],
+  metricasSemDado: [{ metrica: 'ordensDeServicoDoRecorte', motivo: 'Nenhuma ordem de serviço deste cliente nos últimos três anos.' }],
+};
+
 function montar() {
   render(
     <MemoryRouter>
@@ -144,6 +169,7 @@ describe('Cliente360Api', () => {
     relacionamento.listarInteracoes.mockResolvedValue({ dados: vazia, procedencia: PROCEDENCIA });
     relacionamento.obterFaturamentoDoCliente.mockResolvedValue({ dados: faturamento, procedencia: PROCEDENCIA });
     relacionamento.listarCarteirasDoCliente.mockResolvedValue({ dados: carteiras, procedencia: PROCEDENCIA });
+    equipamentos.listarOrdensDeServicoDoCliente.mockResolvedValue({ dados: ordens, procedencia: PROCEDENCIA });
 
     montar();
 
@@ -170,9 +196,18 @@ describe('Cliente360Api', () => {
     expect(within(cart).getByText(/cadência de 180 dias para a classe A/)).toBeInTheDocument();
     expect(within(cart).getByRole('button', { name: 'Por que o último contato não aparece' })).toBeInTheDocument();
 
+    // As ordens de serviço: a aberta há 62 dias está na faixa vermelha, com o valor e a data da carga.
+    const oficina = (await screen.findByText('Na oficina agora')).closest('[data-bloco="ordens-de-servico"]') as HTMLElement;
+    expect(within(oficina).getByText(/até a carga de/)).toBeInTheDocument();
+    expect(within(oficina).getByText('00012345')).toBeInTheDocument();
+    expect(within(oficina).getByText(/aberta há 62 dias/)).toBeInTheDocument();
+    expect(within(oficina).getByText(/15\.700/)).toBeInTheDocument();
+    expect(within(oficina).getByText('00012345').closest('li')).toHaveClass('p360-item-critico');
+    expect(within(oficina).getByRole('link', { name: 'TRATOR 7250R' })).toHaveAttribute('href', '/equipamentos/m1');
+
     // As lacunas que ficam dizem o motivo de hoje — e as frases falsas saíram.
     expect(screen.getByText('Títulos em aberto')).toBeInTheDocument();
-    expect(screen.getByText('Ordens de serviço')).toBeInTheDocument();
+    expect(screen.queryByText(/ainda não carrega as ordens de serviço/)).not.toBeInTheDocument();
     expect(screen.queryByText(/11\/04\/2025/)).not.toBeInTheDocument();
     expect(screen.queryByText(/24\/05\/2024/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Falta rota/)).not.toBeInTheDocument();
@@ -200,11 +235,18 @@ describe('Cliente360Api', () => {
       procedencia: PROCEDENCIA,
     });
 
+    equipamentos.listarOrdensDeServicoDoCliente.mockResolvedValue({ dados: semOrdens, procedencia: PROCEDENCIA });
+
     montar();
 
     expect(await screen.findByText(/Nenhuma máquina deste cliente ao seu alcance/)).toBeInTheDocument();
     const bloco = (await screen.findByText('Nota mais recente')).closest('[data-bloco="faturamento"]') as HTMLElement;
     expect(within(bloco).getByRole('button', { name: 'Por que a nota mais recente não aparece' })).toBeInTheDocument();
     expect(within(bloco).getByText(/Nenhuma nota de venda deste cliente/)).toBeInTheDocument();
+
+    // Sem OS, o bloco mostra o traço com o motivo — nunca um zero calado.
+    const oficina = (await screen.findByRole('button', { name: 'Por que o histórico de ordens de serviço não aparece' }))
+      .closest('[data-bloco="ordens-de-servico"]') as HTMLElement;
+    expect(within(oficina).getByText(/Nenhuma ordem de serviço deste cliente/)).toBeInTheDocument();
   });
 });
