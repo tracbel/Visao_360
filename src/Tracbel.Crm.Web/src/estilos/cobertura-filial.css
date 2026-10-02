@@ -1,0 +1,355 @@
+/* =============================================================================
+   COBERTURA POR FILIAL E CARTEIRA NA MAQUETE DO RICARDO (02/10/2026)
+   `docs/prototipo/capturas-referencia/cobertura-filial-maquete-2026-10-02.png`, em 1672 × 941.
+
+   TUDO MORA EMBAIXO DE `.dash-pagina.cobf-maquete` — a classe que só esta tela põe na página. As peças são as do padrão
+   (`mv-kpi`, `mom-painel`, `terr-*`, `cad-grupo`); o prefixo `.dash-pagina` é de propósito: o `dashboard.css` carrega
+   depois, e sem ele as regras dele ganhariam destas.
+   ============================================================================= */
+
+.cobf-maquete {
+  --cf-marinho: #0b1638;
+  --cf-cinza: #5b6776;
+  --cf-borda: #e3e8ee;
+  --cf-linha: #eef1f4;
+  --cf-verde: #16a34a;
+  --cf-azul: #2563eb;
+  --cf-roxo: #7c3aed;
+  --cf-laranja: #ea580c;
+}
+
+.dash-pagina.cobf-maquete { gap: 14px; }
+.dash-pagina.cobf-maquete .cobf-icone { flex: none; color: var(--cf-verde); }
+.dash-pagina.cobf-maquete .cobf-icone-escuro { flex: none; color: var(--cf-marinho); }
+
+/* O CABEÇALHO */
+.dash-pagina.cobf-maquete .page-header { margin-bottom: 0; }
+.dash-pagina.cobf-maquete .page-title { margin-bottom: 2px; font-size: 27px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; color: var(--cf-marinho); }
+.dash-pagina.cobf-maquete .page-subtitle { margin: 0; font-size: 13px; color: var(--cf-cinza); }
+.dash-pagina.cobf-maquete .dash-atualizado { align-self: flex-end; gap: 8px; font-size: 11.5px; color: var(--cf-cinza); }
+
+/* OS SEIS FILTROS — cada um uma caixa branca: o ícone colorido, o nome em cima e o valor embaixo, com a seta na ponta.
+   A linha não tem moldura própria: as caixas é que são os filtros. */
+.dash-pagina.cobf-maquete .dash-filtros-linha {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.dash-pagina.cobf-maquete .dash-filtros-linha > .cobf-filtro {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  max-width: none;
+  min-width: 0;
+  padding: 6px 10px 6px 12px;
+  background: #fff;
+  border: 1px solid var(--cf-borda);
+  border-left: 1px solid var(--cf-borda);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.cobf-maquete .cobf-filtro .dash-filtro-icone { width: auto; height: auto; padding: 0; border: 0; background: none; }
+.dash-pagina.cobf-maquete .cobf-filtro[data-cor='verde'] .dash-filtro-icone { color: var(--cf-verde); }
+.dash-pagina.cobf-maquete .cobf-filtro[data-cor='azul'] .dash-filtro-icone { color: var(--cf-azul); }
+.dash-pagina.cobf-maquete .cobf-filtro[data-cor='roxo'] .dash-filtro-icone { color: var(--cf-roxo); }
+.dash-pagina.cobf-maquete .cobf-filtro[data-cor='laranja'] .dash-filtro-icone { color: var(--cf-laranja); }
+
+.dash-pagina.cobf-maquete .cobf-filtro .dash-filtro-corpo { gap: 0; }
+.dash-pagina.cobf-maquete .cobf-filtro .dash-filtro-rotulo { min-height: 0; font-size: 11px; font-weight: 700; line-height: 1.3; color: var(--cf-marinho); }
+
+/* O VALOR SEM MOLDURA PRÓPRIA, com a seta na ponta da caixa. */
+.dash-pagina.cobf-maquete .dash-filtros-linha > .cobf-filtro select {
+  height: 22px;
+  padding: 0 22px 0 0;
+  border: 0;
+  background-color: transparent;
+  background-position: right 0 center;
+  font-size: 11.5px;
+  color: var(--cf-cinza);
+}
+
+.dash-pagina.cobf-maquete .dash-filtros-linha > .cobf-filtro select:disabled { cursor: default; opacity: 0.7; }
+.dash-pagina.cobf-maquete .dash-filtros-linha > .cobf-filtro:focus-within { border-color: var(--cf-verde); }
+
+@container indicadores (max-width: 999px) {
+  .dash-pagina.cobf-maquete .dash-filtros-linha { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@container indicadores (max-width: 559px) {
+  .dash-pagina.cobf-maquete .dash-filtros-linha { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* OS CINCO CARTÕES — a tinta da maquete, o ícone num ladrilho e duas linhas embaixo do número */
+.dash-pagina.cobf-maquete .dash-kpis.mv-kpis { gap: 12px; }
+
+.dash-pagina.cobf-maquete .mv-kpi {
+  align-items: start;
+  column-gap: 12px;
+  padding: 14px 14px 12px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.cobf-maquete .mv-kpi-glifo {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--mv-tom) 16%, #fff);
+}
+
+.dash-pagina.cobf-maquete .mv-kpi-glifo svg { width: 23px; height: 23px; stroke-width: 2.2; }
+.dash-pagina.cobf-maquete .mv-kpi-rotulo { font-size: 12.5px; font-weight: 700; line-height: 1.35; color: var(--cf-marinho); }
+.dash-pagina.cobf-maquete .mv-kpi-valor { column-gap: 8px; font-size: 26px; line-height: 1.2; color: var(--cf-marinho); }
+.dash-pagina.cobf-maquete .mv-kpi-valor > strong { font-weight: 800; }
+.dash-pagina.cobf-maquete .mv-kpi-unidade { font-size: 12px; color: var(--cf-cinza); }
+.dash-pagina.cobf-maquete .mv-kpi-contexto { font-size: 11.5px; line-height: 1.35; color: var(--cf-cinza); }
+
+.dash-pagina.cobf-maquete .mv-kpi[data-tom='demanda'] { --mv-tom: #16a34a; background: #f1fbf5; border-color: #cdebd8; }
+.dash-pagina.cobf-maquete .mv-kpi[data-tom='mercado'] { --mv-tom: #2563eb; background: #f0f6fe; border-color: #d3e3f7; }
+.dash-pagina.cobf-maquete .mv-kpi[data-tom='oportunidade'] { --mv-tom: #7c3aed; background: #f7f4fe; border-color: #e4dbfb; }
+.dash-pagina.cobf-maquete .mv-kpi[data-tom='captura'] { --mv-tom: #ea580c; background: #fff7f0; border-color: #f7dcc3; }
+
+/* O AVISO LARANJA — o ponto de exclamação, o título em negrito, o texto e o X */
+.dash-pagina.cobf-maquete .cobf-aviso {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #fff8ef;
+  border: 1px solid #f6c48f;
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #6b3a10;
+}
+
+.dash-pagina.cobf-maquete .cobf-aviso-icone { margin-top: 1px; color: #ea7a12; }
+.dash-pagina.cobf-maquete .cobf-aviso-titulo { display: block; margin-bottom: 1px; font-size: 12px; font-weight: 800; color: #b4410b; }
+.dash-pagina.cobf-maquete .cobf-aviso-corpo p { margin: 0; }
+.dash-pagina.cobf-maquete .cobf-aviso-corpo ul { margin: 4px 0 0; padding-left: 18px; }
+.dash-pagina.cobf-maquete .cobf-aviso-corpo code { padding: 0 4px; border-radius: 3px; background: #fde9d4; font-size: 10.5px; color: #8a3a0c; }
+.dash-pagina.cobf-maquete .cobf-aviso-corpo p + p,
+.dash-pagina.cobf-maquete .cobf-aviso-corpo p + ul,
+.dash-pagina.cobf-maquete .cobf-aviso-corpo ul + p { margin-top: 3px; }
+.dash-pagina.cobf-maquete .cobf-aviso-corpo p:has(> strong:only-child) { margin-top: 4px; }
+
+.dash-pagina.cobf-maquete .cobf-aviso-fechar {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: #c2410c;
+  cursor: pointer;
+}
+
+.dash-pagina.cobf-maquete .cobf-aviso-fechar:hover { background: #fde9d4; }
+
+/* AS DUAS SEÇÕES — o título com o ícone, o subtítulo e os painéis brancos */
+.dash-pagina.cobf-maquete section.dash-secao { display: grid; gap: 10px; }
+.dash-pagina.cobf-maquete section.dash-secao > .terr-secao-mercado { margin: 6px 0 0; }
+.dash-pagina.cobf-maquete section.dash-secao .terr-secao-cabecalho { align-items: center; }
+.dash-pagina.cobf-maquete section.dash-secao .terr-secao-titulo { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 800; color: var(--cf-marinho); }
+.dash-pagina.cobf-maquete section.dash-secao .terr-secao-subtitulo { margin: 2px 0 0; max-width: none; font-size: 12px; color: var(--cf-cinza); }
+
+.dash-pagina.cobf-maquete .cobf-dupla { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+
+@container indicadores (min-width: 1000px) {
+  .dash-pagina.cobf-maquete .cobf-dupla { grid-template-columns: minmax(0, 0.94fr) minmax(0, 1fr); }
+}
+
+.dash-pagina.cobf-maquete section.dash-secao .mom-painel {
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px 14px;
+  background: #fff;
+  border: 1px solid var(--cf-borda);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.dash-pagina.cobf-maquete .mom-painel-linha { flex-wrap: nowrap; align-items: center; }
+.dash-pagina.cobf-maquete .mom-painel-titulo { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 800; color: var(--cf-marinho); }
+.dash-pagina.cobf-maquete .mom-painel-direita { flex: none; margin-left: auto; }
+.dash-pagina.cobf-maquete .mom-painel-subtitulo { margin-top: 2px; font-size: 11px; color: var(--cf-cinza); }
+
+/* O MEDIDOR, e embaixo dele as três partes do total */
+.dash-pagina.cobf-maquete .cobf-medidor { display: grid; gap: 10px; justify-items: stretch; }
+.dash-pagina.cobf-maquete .cobf-medidor-arco { width: min(330px, 100%); justify-self: center; }
+.dash-pagina.cobf-maquete .cobf-medidor .cad-medidor-legenda { margin: 0; font-size: 11px; text-align: center; color: var(--cf-cinza); }
+
+.dash-pagina.cobf-maquete .cobf-partes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+
+.dash-pagina.cobf-maquete .cobf-parte {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.dash-pagina.cobf-maquete .cobf-parte[data-tom='verde'] { background: #eefaf2; }
+.dash-pagina.cobf-maquete .cobf-parte[data-tom='laranja'] { background: #fff3e8; }
+.dash-pagina.cobf-maquete .cobf-parte[data-tom='cinza'] { background: #f2f4f6; }
+
+.dash-pagina.cobf-maquete .cobf-parte-icone { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; }
+.dash-pagina.cobf-maquete .cobf-parte-icone svg { width: 15px; height: 15px; }
+.dash-pagina.cobf-maquete .cobf-parte[data-tom='verde'] .cobf-parte-icone { background: #d3f1dd; color: #15803d; }
+.dash-pagina.cobf-maquete .cobf-parte[data-tom='laranja'] .cobf-parte-icone { background: #fde0c6; color: #c2410c; }
+.dash-pagina.cobf-maquete .cobf-parte[data-tom='cinza'] .cobf-parte-icone { background: #e2e6ea; color: #4b5563; }
+
+.dash-pagina.cobf-maquete .cobf-parte-texto { display: grid; min-width: 0; line-height: 1.2; }
+.dash-pagina.cobf-maquete .cobf-parte-texto strong { font-size: 16px; font-weight: 800; color: var(--cf-marinho); }
+/* O NOME DA PARTE NUNCA CORTA: com o número grande, ele desce para a segunda linha em vez de virar reticências. */
+.dash-pagina.cobf-maquete .cobf-parte-texto span { font-size: 10.5px; line-height: 1.25; color: var(--cf-cinza); }
+.dash-pagina.cobf-maquete .cobf-parte-pct { font-size: 11.5px; font-weight: 800; }
+.dash-pagina.cobf-maquete .cobf-parte[data-tom='verde'] .cobf-parte-pct { color: #15803d; }
+.dash-pagina.cobf-maquete .cobf-parte[data-tom='laranja'] .cobf-parte-pct { color: #dc2626; }
+.dash-pagina.cobf-maquete .cobf-parte[data-tom='cinza'] .cobf-parte-pct { color: #374151; }
+
+/* AS BARRAS POR CARTEIRA — o nome, a barra verde no trilho cinza e o percentual; o "Ordenar por" no título */
+.dash-pagina.cobf-maquete .cobf-ordenar { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; color: var(--cf-cinza); }
+
+.dash-pagina.cobf-maquete .cobf-ordenar select {
+  height: 28px;
+  padding: 0 28px 0 10px;
+  border: 1px solid #dfe3e8;
+  border-radius: 6px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 9px center / 11px 11px;
+  appearance: none;
+  font-size: 11.5px;
+  color: var(--cf-marinho);
+  cursor: pointer;
+}
+
+.dash-pagina.cobf-maquete .cad-barras { gap: 0; }
+.dash-pagina.cobf-maquete .cad-barras-linha { grid-template-columns: minmax(120px, 0.36fr) minmax(0, 1fr) 52px; column-gap: 14px; padding: 5px 0; border-bottom: 1px solid var(--cf-linha); }
+.dash-pagina.cobf-maquete .cad-barras-linha:last-child { border-bottom: 0; }
+.dash-pagina.cobf-maquete .cad-barras-titulo { font-size: 11.5px; font-weight: 500; color: #2b3440; }
+.dash-pagina.cobf-maquete .cad-barras-detalhe { font-size: 10px; color: #8a94a1; }
+.dash-pagina.cobf-maquete .cad-barra-trilho { height: 9px; border-radius: 5px; background: #e9edf1; }
+.dash-pagina.cobf-maquete .cad-barra-mini { border-radius: 5px; background: #1e8e3e !important; }
+.dash-pagina.cobf-maquete .cad-barras-valor { font-size: 11.5px; font-weight: 600; text-align: right; color: #2b3440; }
+
+/* O TERRITÓRIO — "Expandir todos", os níveis recolhíveis e as tabelas */
+.dash-pagina.cobf-maquete .cobf-botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid #dfe3e8;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--cf-marinho);
+  cursor: pointer;
+}
+
+.dash-pagina.cobf-maquete .cobf-botao:disabled { cursor: default; opacity: 0.55; }
+
+.dash-pagina.cobf-maquete .cobf-recolher {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--cf-marinho);
+  cursor: pointer;
+}
+
+.dash-pagina.cobf-maquete .cobf-recolher:hover { background: #f1f3f5; }
+.dash-pagina.cobf-maquete .cobf-acoes-do-nivel { display: inline-flex; align-items: center; gap: 14px; }
+.dash-pagina.cobf-maquete .cobf-acoes-do-nivel .dash-caixa { font-size: 11.5px; }
+.dash-pagina.cobf-maquete .mom-painel[data-aberto='false'] { gap: 0; }
+
+.dash-pagina.cobf-maquete .cobf-tabela thead th {
+  padding: 7px 10px;
+  background: #f5f7f9;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5b6776;
+}
+
+.dash-pagina.cobf-maquete .cobf-tabela tbody th,
+.dash-pagina.cobf-maquete .cobf-tabela tbody td { padding: 8px 10px; font-size: 12px; vertical-align: middle; }
+.dash-pagina.cobf-maquete .cobf-tabela tbody th { font-weight: 700; text-transform: none; }
+.dash-pagina.cobf-maquete .cobf-tabela .cad-link-forte { font-size: 12px; font-weight: 700; color: var(--cf-marinho); }
+.dash-pagina.cobf-maquete .cobf-tabela .cad-sub { font-size: 10px; color: #8a94a1; }
+.dash-pagina.cobf-maquete .cobf-tabela td.mom-num,
+.dash-pagina.cobf-maquete .cobf-tabela th.mom-num { text-align: center; }
+.dash-pagina.cobf-maquete .cobf-coluna-abrir { width: 36px; text-align: right; }
+
+.dash-pagina.cobf-maquete .cobf-abrir {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--cf-marinho);
+  cursor: pointer;
+}
+
+.dash-pagina.cobf-maquete .cobf-abrir:hover { background: #eefaf2; color: #15803d; }
+
+/* O NÍVEL 2: cada carteira numa linha — o nome com a seta, a cobertura do período em barra e os números à direita */
+.dash-pagina.cobf-maquete .cobf-carteiras { display: grid; }
+.dash-pagina.cobf-maquete .cobf-grupo { border-top: 1px solid var(--cf-linha); }
+.dash-pagina.cobf-maquete .cobf-grupo:first-child { border-top: 0; }
+
+/* AS COLUNAS TÊM LARGURA FIXA: cada linha é uma grade própria, e com a largura "auto" a carteira sem estado
+   deslocava a barra da cobertura em relação às outras. */
+.dash-pagina.cobf-maquete .cobf-grupo .cad-grupo-cabecalho {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 210px) 170px;
+  align-items: center;
+  column-gap: 18px;
+  padding: 9px 6px;
+}
+
+.dash-pagina.cobf-maquete .cobf-grupo .cad-grupo-numeros { display: grid; grid-template-columns: 62px 48px 40px; justify-items: start; }
+
+.dash-pagina.cobf-maquete .cobf-grupo-nome { min-width: 0; }
+.dash-pagina.cobf-maquete .cobf-grupo .cad-grupo-nome { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--cf-marinho); }
+.dash-pagina.cobf-maquete .cobf-grupo .cad-grupo-meta { overflow: hidden; font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; color: #8a94a1; }
+.dash-pagina.cobf-maquete .cobf-grupo .cad-grupo-cabecalho:disabled .cad-grupo-nome { padding-left: 20px; }
+
+.dash-pagina.cobf-maquete .cobf-grupo-cobertura { display: grid; grid-template-columns: minmax(0, 1fr) 46px; align-items: center; gap: 8px; font-size: 11px; }
+.dash-pagina.cobf-maquete .cobf-grupo-trilho { display: block; height: 8px; overflow: hidden; border-radius: 4px; background: #e9edf1; }
+.dash-pagina.cobf-maquete .cobf-grupo-trilho > span { display: block; height: 100%; border-radius: 4px; background: #1e8e3e; }
+.dash-pagina.cobf-maquete .cobf-grupo-pct { font-weight: 700; text-align: right; color: #2b3440; }
+.dash-pagina.cobf-maquete .cobf-grupo .cad-grupo-numeros { gap: 10px; }
+.dash-pagina.cobf-maquete .cobf-grupo .cad-grupo-numero { font-size: 10px; color: #8a94a1; }
+.dash-pagina.cobf-maquete .cobf-grupo .cad-grupo-numero strong { font-size: 13px; color: var(--cf-marinho); }
+
+@container indicadores (max-width: 699px) {
+  .dash-pagina.cobf-maquete .mom-painel-linha { flex-wrap: wrap; }
+  .dash-pagina.cobf-maquete .mom-painel-direita { margin-left: 0; }
+  .dash-pagina.cobf-maquete .cobf-acoes-do-nivel { flex-wrap: wrap; }
+  .dash-pagina.cobf-maquete .cobf-partes { grid-template-columns: minmax(0, 1fr); }
+  .dash-pagina.cobf-maquete .cobf-grupo .cad-grupo-cabecalho { grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
+}

@@ -618,37 +618,42 @@ const MUNICIPIOS_FICTICIOS = Array.from({ length: 14 }, (_, i) => ({
 }));
 
 /**
- * As carteiras da filial com as cidades que atendem. No `completo`, cinco carteiras de campo declaram cidade e duas não
- * (o depósito de cadastro e a de teste) — a lacuna do cadastro de origem, que a tela mostra com zero em vez de esconder.
+ * As carteiras da filial com as cidades que atendem.
+ *
+ * SÃO AS MESMAS CARTEIRAS DA COBERTURA DE CONTATO (`coberturaPorCarteira`), com a mesma chave e o mesmo nome — em
+ * produção as duas rotas partem de `organizacao.Carteira`, e a Cobertura por Filial cruza uma com a outra pela chave
+ * (os filtros de filial, carteira, município e estado recortam também o medidor e as barras, 02/10/2026). No `completo`,
+ * as carteiras de campo declaram cidade, e algumas não — além do depósito de cadastro e da de teste —: a lacuna do
+ * cadastro de origem, que a tela mostra com zero em vez de esconder.
  */
 export function territorioDasCarteiras(estado: EstadoDaVisao360, codigo: string): Agregado<TerritorioDeCarteira> {
   if (semVinculo(estado)) {
     return { itens: [], metricasSemDado: [{ metrica: 'carteiras', motivo: 'Nenhuma carteira desta filial foi carregada ainda.' }] };
   }
   const f = filial(estado, codigo);
-  const carteira = (i: number, nome: string, linha: string, responsavel: string, cidades: number) => ({
-    carteiraChave: `00000000-0000-4000-8000-0000000c${String(100 + i).padStart(4, '0')}`,
-    carteiraCodigo: `CART_FICT_${i}`,
-    carteiraNome: nome,
-    linhaDeNegocioNome: linha,
-    responsavelNome: responsavel,
-    empresaCodigo: f.codigo,
-    empresaNome: f.nome,
-    municipios: MUNICIPIOS_FICTICIOS.slice(i % 4, (i % 4) + cidades),
+  // AS CIDADES DE CADA CARTEIRA, pela posição: quantas e a partir de qual — as de campo se sobrepõem, como na vida real.
+  const CIDADES_POR_POSICAO = [7, 5, 9, 3, 6, 4, 0, 8, 2, 5, 0, 3];
+  const itens = coberturaPorCarteira(estado, codigo).itens.map((c, i) => {
+    const cidades = c.naturezaDaCarteira !== 'Comercial' ? 0 : c.carteiraChave.endsWith('-im') ? 10 : (CIDADES_POR_POSICAO[i] ?? 0);
+    return {
+      carteiraChave: c.carteiraChave,
+      carteiraCodigo: c.carteiraCodigo,
+      carteiraNome: c.carteiraNome,
+      linhaDeNegocioNome: c.linhaDeNegocioNome,
+      responsavelNome: c.responsavelNome,
+      empresaCodigo: f.codigo,
+      empresaNome: f.nome,
+      municipios: MUNICIPIOS_FICTICIOS.slice(i % 5, (i % 5) + cidades),
+    };
   });
-  const itens = [
-    carteira(1, 'Carteira fictícia 1', 'Máquinas e Implementos', 'CEN OLIVEIRA', 7),
-    carteira(2, 'Carteira fictícia 2', 'Máquinas e Implementos', 'CEN GAMA', 5),
-    carteira(3, 'Carteira fictícia 3', 'Peças e AMS', 'CEN RIBEIRO', 9),
-    carteira(4, 'Carteira fictícia 4', 'Prospecção de Novos Clientes', 'CEN COSTA', 3),
-    carteira(5, 'Inteligência de Mercado (amostra)', 'Máquinas e Implementos', 'INTELIGÊNCIA (AMOSTRA)', 10),
-    carteira(6, 'Depósito de cadastro (amostra)', 'Administrativa', 'SISTEMA (AMOSTRA)', 0),
-    carteira(7, 'Carteira de teste (amostra)', 'Administrativa', 'TESTE (AMOSTRA)', 0),
-  ];
+  const semCidade = itens.filter((c) => c.municipios.length === 0).length;
   return {
     itens,
     metricasSemDado: [
-      { metrica: 'carteirasSemMunicipio', motivo: '2 de 7 carteiras não declaram nenhuma cidade no sistema de origem e aparecem com zero.' },
+      {
+        metrica: 'carteirasSemMunicipio',
+        motivo: `${semCidade} de ${itens.length} carteiras não declaram nenhuma cidade no sistema de origem e aparecem com zero.`,
+      },
     ],
   };
 }
