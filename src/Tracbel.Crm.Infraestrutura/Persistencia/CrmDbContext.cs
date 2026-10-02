@@ -470,6 +470,9 @@ public class CrmDbContext : DbContext
     /// <summary>A cobertura do estoque, em meses, por mês e por grupo (28/09/2026).</summary>
     public DbSet<CoberturaDoEstoque> CoberturasDoEstoque => Set<CoberturaDoEstoque>();
 
+    /// <summary>As ordens de serviço da oficina, do Protheus, com o total de peças e de serviços (02/10/2026).</summary>
+    public DbSet<OrdemDeServico> OrdensDeServico => Set<OrdemDeServico>();
+
     /// <summary>A ligação entre cliente e máquina, com natureza, origem e data.</summary>
     public DbSet<VinculoDeClienteComEquipamento> VinculosComEquipamento => Set<VinculoDeClienteComEquipamento>();
 

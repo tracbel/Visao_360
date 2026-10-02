@@ -61,11 +61,11 @@ public sealed class MigracaoNoContainerTestes
             ["seguranca"] = 4,
             ["comercial"] = 8,
             ["processo"] = 10,
-            ["frota"] = 9,
+            ["frota"] = 10,
             ["auditoria"] = 1,
             ["integracao"] = 15,
             ["metadado"] = 2
-        }, "é a conta do documento 14, seção 2.1 — 91 tabelas de modelo em 8 schemas (o financiamento das vendas do Vórtice, a utilização das terras do Censo, 28/09/2026, a conferência com a Gestão de Negócios, o estoque e a cobertura e o planejamento da API Gestão de Negócios, 28/09/2026, a percepção de campo por cultura, a sazonalidade, os pesos do IOC e o " +
+        }, "é a conta do documento 14, seção 2.1 — 92 tabelas de modelo em 8 schemas (as ordens de serviço do Protheus, 02/10/2026, o financiamento das vendas do Vórtice, a utilização das terras do Censo, 28/09/2026, a conferência com a Gestão de Negócios, o estoque e a cobertura e o planejamento da API Gestão de Negócios, 28/09/2026, a percepção de campo por cultura, a sazonalidade, os pesos do IOC e o " +
            "share-alvo do planejamento, issue 256, o funil do Vórtice e a classificação " +
            "dos resultados, documento 52, a meta de venda da issue 138 e o preço da máquina da issue 70), no banco de " +
            "verdade. A migração inicial criava 80 em 10; a fase 1 do documento 41 removeu as 31 " +
@@ -75,13 +75,13 @@ public sealed class MigracaoNoContainerTestes
            "RENAME da tabela da PAM, que preserva a área plantada já carregada — também funcionam " +
            "em banco que nasce agora");
 
-        porSchema.Values.Sum().Should().Be(91);
+        porSchema.Values.Sum().Should().Be(92);
 
         // AS INTEGRAÇÕES SEMEADAS (#138): a conexão 13 é a API Gestão de Negócios e a rotina 9 são as metas — as duas no
         // fim da lista, sem renumerar as que já existem (a 8 é a do funil do Vórtice, #247). A conexão 14 e a rotina 11 são a
         // telemetria do Operations Center (28/09/2026); a rotina 12, o estoque da Gestão de Negócios (28/09/2026).
         ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Conexao").Should().Be(14);
-        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Rotina").Should().Be(14);
+        ConsultarInteiro(contexto, "SELECT COUNT(*) FROM integracao.Rotina").Should().Be(15);
         contexto.Conexoes.Single(c => c.Id == 13).Codigo.Should().Be("GESTAO_NEGOCIOS");
         contexto.Conexoes.Single(c => c.Id == 14).Codigo.Should().Be("OPERATIONS_CENTER");
         contexto.Rotinas.Single(r => r.Id == 9).Codigo.Should().Be("METAS_GESTAO_NEGOCIOS");
@@ -99,6 +99,10 @@ public sealed class MigracaoNoContainerTestes
         var particao = contexto.Rotinas.Single(r => r.Id == 14);
         particao.Codigo.Should().Be("PARTICAO_AUDITORIA");
         particao.EstaLigada.Should().BeTrue();
+
+        // A ROTINA 15 É O PÓS-VENDA DO PROTHEUS (02/10/2026): as ordens de serviço, desligada como toda rotina que traz dado.
+        var posVenda = contexto.Rotinas.Single(r => r.Id == 15);
+        (posVenda.Codigo, posVenda.EstaLigada).Should().Be(("POS_VENDA_PROTHEUS", false));
     }
 
     [FatoSeHouverSqlServer]
