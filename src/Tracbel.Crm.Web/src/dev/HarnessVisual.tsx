@@ -185,7 +185,13 @@ function instalarInterceptador(): void {
     // A DEMANDA E PREVISÃO (issue 258): os mesmos municípios da amostra do diagnóstico.
     if (caminho === '/v1/mercado/demanda') {
       const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;
-      return envelope(demandaFicticia(municipiosDaMalha(malha, 40), estado === 'parcialmenteVazio'));
+      const parametros = new URL(url, window.location.href).searchParams;
+      return envelope(
+        demandaFicticia(municipiosDaMalha(malha, 40), estado === 'parcialmenteVazio', {
+          anoFiscal: parametros.get('anoFiscal') ? Number(parametros.get('anoFiscal')) : null,
+          cultura: parametros.get('cultura'),
+        }),
+      );
     }
 
     if (caminho === '/v1/territorio/indicadores') {

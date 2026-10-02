@@ -371,6 +371,8 @@ builder.Services.AddScoped<ObterMetaERealizado>();
 
 // O FORECAST DA GERÊNCIA DA API GESTÃO DE NEGÓCIOS (28/09/2026).
 builder.Services.AddScoped<IRepositorioDoForecast, RepositorioDoForecast>();
+// AS ENTREGAS DO ART PELA DATA DA ENTREGA — a "Entrega realizada" da Demanda e Previsão (02/10/2026).
+builder.Services.AddScoped<IRepositorioDeEntregas, RepositorioDeEntregas>();
 builder.Services.AddScoped<ObterForecastDaGerencia>();
 
 // O ESTOQUE E A COBERTURA DA API GESTÃO DE NEGÓCIOS (28/09/2026).
