@@ -91,6 +91,56 @@ public static class EndpointsDeMercado
                 "mês e no mesmo trecho do ano anterior; `cultura` recorta a demanda (e deixa a entrega de fora, porque a máquina " +
                 "não diz a cultura); e cada número traz a mesma conta com a área do ano anterior da PAM.");
 
+        // O DIMENSIONAMENTO DA ADR (issue 259) — a PAM do estado inteiro e a carteira, com o mesmo alcance do Diagnóstico.
+        grupo.MapGet("/dimensionamento", async (
+                ObterDimensionamentoDaAdr caso,
+                CancellationToken ct,
+                string? anoBase = null,
+                string? cultura = null,
+                string? regiao = null,
+                string? lojaCodigo = null,
+                string? visao = null,
+                string? responsavel = null,
+                string? classe = null,
+                string? usina = null) =>
+            (await caso.ExecutarAsync(anoBase, cultura, regiao, lojaCodigo, visao, responsavel, classe, usina, ct)).Responder())
+            .WithName("ObterDimensionamentoDaAdr")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("O tamanho da ADR dentro de São Paulo, o perfil de cada loja, a matriz municipal e a carteira que cobre o território.")
+            .WithDescription(
+                "Área plantada, quantidade e valor da produção são os da PAM do IBGE (tabela 5457), no ano-base e no anterior: o " +
+                "recorte é a soma dos municípios, e São Paulo é o total que o IBGE publica para o estado — sem o total carregado, a " +
+                "fatia sai vazia com o motivo. A cultura de cada produto vem do catálogo; o resto vai para `OUTRAS`. A quantidade " +
+                "soma só o que é publicado em toneladas.\n\n" +
+                "A carteira é a dos Indicadores (vínculo em carteira comercial, município do endereço principal, classe da curva ABC), " +
+                "em faixas ACUMULADAS de dias desde o último contato (< 30, 60, 90 e 120). Com região, loja ou usina, ela conta só os " +
+                "clientes dos municípios do recorte; com o CEN, o território é o dos municípios onde ele tem cliente.\n\n" +
+                "Padrão: o ano mais recente da PAM, todas as culturas, a ADR inteira.");
+
+        // A GESTÃO DE FINANCIAMENTOS (issue 261) — o SICOR de máquinas com o período, o produto e o programa escolhidos.
+        grupo.MapGet("/financiamentos", async (
+                ObterFinanciamentosDoSicor caso,
+                CancellationToken ct,
+                string? de = null,
+                string? ate = null,
+                string? produto = null,
+                string? programa = null,
+                string? recorte = null,
+                string? lojaCodigo = null,
+                string? usina = null) =>
+            (await caso.ExecutarAsync(de, ate, produto, programa, recorte, lojaCodigo, usina, ct)).Responder())
+            .WithName("ObterFinanciamentosDoSicor")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("O crédito de mecanização do SICOR por município e por loja, no período, produto e programa escolhidos.")
+            .WithDescription(
+                "Linhas e valor financiado dos produtos de máquina do SICOR (investimento), comparados com o MESMO período do ano " +
+                "anterior. O índice é o do CRM (70% linhas, 30% valor) e a situação é a faixa dele — e não os cortes de ±5%/±20% do " +
+                "protótipo. LINHA NÃO É CONTRATO: o Banco Central não publica quantidade de contrato.\n\n" +
+                "A série vai do primeiro ao último mês do SICOR, para a tela agrupar por mês, trimestre, semestre ou ano. O momento " +
+                "traz R3, R6 e R12 terminando no fim do período.\n\n" +
+                "Padrão: os 12 meses que terminam no último mês do SICOR descontada a carência, os três produtos de máquina, todos os " +
+                "programas, a Região Tracbel (`recorte=adr`). O share da Tracbel contra a concorrência é a issue 262, no painel do crédito.");
+
         return app;
     }
 }

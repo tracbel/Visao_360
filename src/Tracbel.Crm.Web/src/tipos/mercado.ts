@@ -573,6 +573,252 @@ export type DemandaEPrevisaoDaRegiao = {
 
 export type FiltrosDaDemanda = { regiao?: string; lojaCodigo?: string; categoria?: string; anoFiscal?: number; cultura?: string };
 
+// ------------------------------------------------------------------------------------------------
+// Dimensionamento da ADR — `GET /api/v1/mercado/dimensionamento` (issue 259)
+// ------------------------------------------------------------------------------------------------
+
+/** A parte, o todo e quanto a parte é do todo, em %; nulo sem os dois ou com o todo zero. */
+export type Fatia = { parte: number | null; todo: number | null; percentual: number | null };
+
+/** Uma medida no ano-base e no anterior; a variação já vem em %. */
+export type MedidaComAnterior = { atual: number | null; anterior: number | null; variacaoPercentual: number | null };
+
+/** As faixas ACUMULADAS de dias desde o último contato: quem foi contatado há 20 dias está nas quatro. */
+export type FaixasDoUltimoContato = { ate30: number; ate60: number; ate90: number; ate120: number; sem120: number };
+
+export type ClientesDaCarteira = {
+  clientes: number;
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  /** O cliente sem faturamento apurado — contado à parte, e não como D. */
+  semClasse: number;
+  faixas: FaixasDoUltimoContato;
+  /** A e B sem contato nos últimos 120 dias. */
+  abSemContato: number;
+  ultimoContatoEm: string | null;
+};
+
+export type CulturaDoDimensionamento = { codigo: string; nome: string };
+
+export type TotaisDaProducao = {
+  /** Hectares plantados. */
+  area: MedidaComAnterior;
+  /** Toneladas — só os produtos publicados em toneladas. */
+  quantidade: MedidaComAnterior;
+  /** Mil reais. */
+  valor: MedidaComAnterior;
+  /** Reais por hectare plantado. */
+  densidade: MedidaComAnterior;
+  /** Com uma cultura, toneladas por hectare colhido. */
+  produtividade: number | null;
+  municipiosComProducao: number;
+};
+
+export type MunicipioNoMapaDoDimensionamento = {
+  codigoIbge: number;
+  nome: string;
+  emFoco: boolean;
+  area: number | null;
+  quantidade: number | null;
+  valor: number | null;
+  clientes: number | null;
+};
+
+export type CulturaTracbelNoEstado = {
+  codigo: string;
+  nome: string;
+  area: Fatia;
+  quantidade: Fatia;
+  valor: Fatia;
+  fatiaDaLojaNaTracbel: number | null;
+};
+
+export type PerfilDaLoja = {
+  lojaCodigo: string | null;
+  loja: string;
+  municipios: number;
+  area: number | null;
+  valor: number | null;
+  reaisPorHectare: number | null;
+  /** A produtividade da loja em % da média do recorte. */
+  tecnificacao: number | null;
+  culturaDominante: string | null;
+};
+
+export type MunicipioPrioritario = {
+  codigoIbge: number;
+  nome: string;
+  valor: number | null;
+  clientes: number;
+  coberturaAte90Percentual: number;
+  lacunaPercentual: number;
+  /** Valor × lacuna: o valor de produção sem cobertura, em mil reais. */
+  prioridade: number | null;
+};
+
+export type LinhaDaMatrizMunicipal = {
+  codigoIbge: number;
+  nome: string;
+  regiao: string | null;
+  lojaCodigo: string | null;
+  loja: string | null;
+  vendedor: string | null;
+  culturaPrincipal: string | null;
+  area: MedidaComAnterior;
+  quantidade: MedidaComAnterior;
+  valor: MedidaComAnterior;
+  fatiaNaRegiao: number | null;
+  fatiaNoEstado: number | null;
+  clientes: ClientesDaCarteira;
+  usinas: number;
+};
+
+export type CarteiraDoResponsavelNoDimensionamento = {
+  responsavelId: number;
+  nome: string;
+  natureza: string;
+  naRegiao: number;
+  fora: number;
+  clientes: ClientesDaCarteira;
+};
+
+export type DimensionamentoDaAdr = {
+  anoBase: number | null;
+  anoAnterior: number | null;
+  anosDisponiveis: number[];
+  cultura: string | null;
+  culturaNome: string;
+  culturas: CulturaDoDimensionamento[];
+  lojas: { codigo: string; nome: string; municipios: number }[];
+  responsaveis: ResponsavelDeCarteira[];
+  recorte: string;
+  municipiosNoRecorte: number;
+  tracbelNoEstado: { area: Fatia; quantidade: Fatia; valor: Fatia };
+  representatividade: { lojaCodigo: string; loja: string; area: Fatia; quantidade: Fatia; valor: Fatia } | null;
+  totais: TotaisDaProducao;
+  momento: { indice: number | null; faixa: string | null; motivo: string; ultimoMes: string | null } | null;
+  mapa: MunicipioNoMapaDoDimensionamento[];
+  porCultura: CulturaTracbelNoEstado[];
+  porLoja: PerfilDaLoja[];
+  carteira: { clientes: ClientesDaCarteira; naRegiao: number; fora: number | null; potencialMedio: number | null };
+  prioritarios: MunicipioPrioritario[];
+  matriz: LinhaDaMatrizMunicipal[];
+  porVendedor: CarteiraDoResponsavelNoDimensionamento[];
+  lacunas: { metrica: string; motivo: string }[];
+};
+
+/** Os filtros do Dimensionamento; ausente é o padrão do servidor (o ano mais novo da PAM, todas as culturas, a ADR). */
+export type FiltrosDoDimensionamento = {
+  anoBase?: string;
+  cultura?: string;
+  regiao?: string;
+  lojaCodigo?: string;
+  visao?: 'Filial' | 'Empresa';
+  responsavel?: string;
+  classe?: string;
+  /** `com` ou `sem` usina de etanol. */
+  usina?: string;
+};
+
+// ------------------------------------------------------------------------------------------------
+// Gestão de Financiamentos — `GET /api/v1/mercado/financiamentos` (issue 261)
+// ------------------------------------------------------------------------------------------------
+
+/** Um código do catálogo do SICOR com o nome do Banco Central. */
+export type OpcaoDoSicor = { codigo: number; nome: string };
+
+/** As linhas e o valor de máquina num mês. Linha do SICOR não é contrato. */
+export type LinhasDoSicorNoMes = { mes: string; linhas: number; valor: number };
+
+export type TotaisDoCredito = {
+  linhas: number;
+  valor: number;
+  /** Nulo quando o mesmo período do ano anterior começa antes do SICOR. */
+  linhasAnteriores: number | null;
+  valorAnterior: number | null;
+  indice: IndiceDeCredito | null;
+};
+
+export type MomentoDoCredito = { meses: number; janelas: JanelasDeCredito | null; indice: IndiceDeCredito | null };
+
+export type RecorteNoEstado = {
+  linhas: number;
+  linhasDoEstado: number;
+  fatiaDasLinhas: number | null;
+  valor: number;
+  valorDoEstado: number;
+  fatiaDoValor: number | null;
+};
+
+export type SituacoesDoCredito = {
+  retraidos: number;
+  intermediarios: number;
+  aquecidos: number;
+  superaquecidos: number;
+  /** Sem crédito no mesmo período do ano anterior — sem faixa. */
+  semBase: number;
+  basePequena: number;
+};
+
+export type CreditoDaLoja = { lojaCodigo: string; loja: string; municipios: number; janelas: JanelasDeCredito; indice: IndiceDeCredito | null };
+
+export type CreditoDoMunicipio = {
+  codigoIbge: number;
+  nome: string;
+  pertenceAAdr: boolean;
+  lojaCodigo: string | null;
+  loja: string | null;
+  janelas: JanelasDeCredito;
+  /** Quanto do valor de São Paulo no período é deste município, em %. */
+  fatiaNoEstado: number | null;
+  /** Quantos pontos a fatia mudou contra o ano anterior. */
+  variacaoDaFatia: number | null;
+  indice: IndiceDeCredito | null;
+};
+
+export type FinanciamentosDoSicor = {
+  primeiroMesDoSicor: string | null;
+  ultimoMesDoSicor: string | null;
+  mesesDeCarencia: number;
+  carenciaDecidida: boolean;
+  de: string | null;
+  ate: string | null;
+  meses: number;
+  anteriorDe: string | null;
+  anteriorAte: string | null;
+  produto: number | null;
+  programa: number | null;
+  produtos: OpcaoDoSicor[];
+  programas: OpcaoDoSicor[];
+  recorte: string;
+  recorteNome: string;
+  municipiosNoRecorte: number;
+  lojas: { codigo: string; nome: string; municipios: number }[];
+  totais: TotaisDoCredito;
+  momento: MomentoDoCredito[];
+  serie: LinhasDoSicorNoMes[];
+  noEstado: RecorteNoEstado | null;
+  situacoes: SituacoesDoCredito;
+  porLoja: CreditoDaLoja[];
+  municipios: CreditoDoMunicipio[];
+  lacunas: { metrica: string; motivo: string }[];
+};
+
+/** Os filtros dos Financiamentos; ausente é o padrão do servidor (12 meses fechados, os três produtos, a Região). */
+export type FiltrosDosFinanciamentos = {
+  /** aaaa-mm */
+  de?: string;
+  ate?: string;
+  produto?: string;
+  programa?: string;
+  /** `adr`, `norte`, `noroeste`, `sp` ou `fora`. */
+  recorte?: string;
+  lojaCodigo?: string;
+  usina?: string;
+};
+
 /**
  * O SHARE DA TRACBEL NO CRÉDITO DE MECANIZAÇÃO (issue 262, decisões de 28/09/2026): o crédito rural que a Tracbel
  * financiou (formulários da venda do Vórtice, sem recurso próprio e sem consórcio) dividido pelo crédito de máquinas

@@ -20,8 +20,12 @@
 
 import type {
   ClasseDePrioridade,
+  ClientesDaCarteira,
   DemandaEPrevisaoDaRegiao,
   DiagnosticoComercialDaRegiao,
+  DimensionamentoDaAdr,
+  FaixaDeMercado,
+  FinanciamentosDoSicor,
   MediaPlurianual,
   PainelDeCreditoRural,
   PrecoImplicitoDoRecorte,
@@ -775,5 +779,273 @@ export function demandaFicticia(
     cultura,
     culturasDoFiltro: todasAsCulturas.map((c) => ({ codigo: c.codigo, nome: c.nome, demanda: null })),
     anoDaAreaAnterior: 2023,
+  };
+}
+
+/**
+ * O DIMENSIONAMENTO FICTÍCIO (issue 259) — números inventados e coerentes: os municípios da amostra são o recorte, e o resto
+ * da malha entra no mapa como "demais SP". A fatia no estado é o recorte contra a soma da malha inteira, e a carteira soma
+ * os clientes dos municípios. No `vazio`, a PAM não foi carregada.
+ */
+export function dimensionamentoFicticio(
+  malha: { codigo: number; nome: string }[],
+  recorte: { codigo: number; nome: string }[],
+  vazio: boolean,
+): DimensionamentoDaAdr {
+  const doRecorte = new Set(recorte.map((m) => m.codigo));
+  const lojas = [
+    ['010110', 'ARARAQUARA'],
+    ['010111', 'RIBEIRÃO PRETO'],
+    ['010112', 'BARRETOS'],
+    ['010113', 'FRANCA'],
+    ['010114', 'BEBEDOURO'],
+  ] as const;
+  const vendedores = ['ANA PAULA LIMA', 'CARLOS EDUARDO ROCHA', 'JULIANA MENDES', 'RAFAEL SOUZA'];
+  const r = (i: number, k: number) => ((i * 37 + k * 17) % 100) / 100;
+  const vazioDeClientes: ClientesDaCarteira = { clientes: 0, a: 0, b: 0, c: 0, d: 0, semClasse: 0, faixas: { ate30: 0, ate60: 0, ate90: 0, ate120: 0, sem120: 0 }, abSemContato: 0, ultimoContatoEm: null };
+  const carteiraDe = (i: number): ClientesDaCarteira => {
+    const total = 4 + Math.round(r(i, 9) * 60);
+    const a = Math.round(total * 0.12), b = Math.round(total * 0.2), c = Math.round(total * 0.3), d = Math.round(total * 0.25);
+    const ate120 = Math.round(total * (0.3 + r(i, 4) * 0.5));
+    const ate90 = Math.round(ate120 * 0.8), ate60 = Math.round(ate90 * 0.7), ate30 = Math.round(ate60 * 0.5);
+    return {
+      clientes: total, a, b, c, d, semClasse: total - a - b - c - d,
+      faixas: { ate30, ate60, ate90, ate120, sem120: total - ate120 },
+      abSemContato: Math.round((a + b) * (1 - ate120 / total)),
+      ultimoContatoEm: `2026-09-${String(1 + (i % 28)).padStart(2, '0')}T12:00:00Z`,
+    };
+  };
+  const producaoDe = (i: number, ano: 'atual' | 'anterior') => {
+    const fator = ano === 'atual' ? 1 : 0.88 + r(i, 3) * 0.2;
+    const area = Math.round((2000 + r(i, 1) * 40000) * fator);
+    return { area, quantidade: Math.round(area * (8 + r(i, 2) * 60)), valor: Math.round(area * (4 + r(i, 5) * 9)) };
+  };
+
+  const mapa = vazio
+    ? []
+    : malha.map((m, i) => {
+        const p = producaoDe(i, 'atual');
+        const noRecorte = doRecorte.has(m.codigo);
+        return { codigoIbge: m.codigo, nome: m.nome, emFoco: noRecorte, area: p.area, quantidade: p.quantidade, valor: p.valor, clientes: noRecorte ? carteiraDe(i).clientes : null };
+      });
+  const linhas = vazio
+    ? []
+    : recorte.map((m, i) => {
+        const atual = producaoDe(malha.findIndex((x) => x.codigo === m.codigo), 'atual');
+        const anterior = producaoDe(malha.findIndex((x) => x.codigo === m.codigo), 'anterior');
+        const delta = (a: number, b: number) => Math.round((a / b - 1) * 1000) / 10;
+        const [lojaCodigo, loja] = lojas[i % lojas.length];
+        return {
+          codigoIbge: m.codigo, nome: m.nome, regiao: i % 2 ? 'Noroeste' : 'Norte', lojaCodigo, loja,
+          vendedor: vendedores[i % vendedores.length], culturaPrincipal: ['Cana-de-açúcar', 'Soja', 'Café', 'Laranja'][i % 4],
+          area: { atual: atual.area, anterior: anterior.area, variacaoPercentual: delta(atual.area, anterior.area) },
+          quantidade: { atual: atual.quantidade, anterior: anterior.quantidade, variacaoPercentual: delta(atual.quantidade, anterior.quantidade) },
+          valor: { atual: atual.valor, anterior: anterior.valor, variacaoPercentual: delta(atual.valor, anterior.valor) },
+          fatiaNaRegiao: null as number | null, fatiaNoEstado: null as number | null,
+          clientes: carteiraDe(i), usinas: i % 5 === 0 ? 2 : i % 3 === 0 ? 1 : 0,
+        };
+      });
+  const soma = (xs: number[]) => xs.reduce((s, x) => s + x, 0);
+  const valorDoRecorte = soma(linhas.map((l) => l.valor.atual));
+  const valorDoEstado = soma(mapa.map((m) => m.valor ?? 0));
+  for (const l of linhas) {
+    l.fatiaNaRegiao = Math.round((10000 * l.valor.atual) / valorDoRecorte) / 100;
+    l.fatiaNoEstado = Math.round((10000 * l.valor.atual) / valorDoEstado) / 100;
+  }
+  const fatia = (parte: number, todo: number) => ({ parte, todo, percentual: todo > 0 ? Math.round((10000 * parte) / todo) / 100 : null });
+  const somaDe = (campo: 'area' | 'quantidade' | 'valor', ano: 'atual' | 'anterior') => soma(linhas.map((l) => l[campo][ano]));
+  const medida = (campo: 'area' | 'quantidade' | 'valor') => {
+    const atual = somaDe(campo, 'atual'), anterior = somaDe(campo, 'anterior');
+    return { atual, anterior, variacaoPercentual: anterior > 0 ? Math.round((atual / anterior - 1) * 1000) / 10 : null };
+  };
+  const somarClientes = (xs: ClientesDaCarteira[]): ClientesDaCarteira =>
+    xs.reduce(
+      (t, c) => ({
+        clientes: t.clientes + c.clientes, a: t.a + c.a, b: t.b + c.b, c: t.c + c.c, d: t.d + c.d, semClasse: t.semClasse + c.semClasse,
+        faixas: { ate30: t.faixas.ate30 + c.faixas.ate30, ate60: t.faixas.ate60 + c.faixas.ate60, ate90: t.faixas.ate90 + c.faixas.ate90, ate120: t.faixas.ate120 + c.faixas.ate120, sem120: t.faixas.sem120 + c.faixas.sem120 },
+        abSemContato: t.abSemContato + c.abSemContato,
+        ultimoContatoEm: '2026-09-28T12:00:00Z',
+      }),
+      vazioDeClientes,
+    );
+  const total = somarClientes(linhas.map((l) => l.clientes));
+  const area = medida('area'), quantidade = medida('quantidade'), valor = medida('valor');
+  const culturas = [
+    ['CAFE', 'Café', 0.08], ['CANA', 'Cana-de-açúcar', 0.55], ['SOJA', 'Soja', 0.18], ['MILHO', 'Milho', 0.07],
+    ['LARANJA', 'Laranja', 0.08], ['AMENDOIM', 'Amendoim', 0.03], ['OUTRAS', 'Outras', 0.01],
+  ] as const;
+
+  return {
+    anoBase: vazio ? null : 2024,
+    anoAnterior: vazio ? null : 2023,
+    anosDisponiveis: vazio ? [] : [2024, 2023, 2022],
+    cultura: null,
+    culturaNome: 'Todas as culturas',
+    culturas: culturas.map(([codigo, nome]) => ({ codigo, nome })),
+    lojas: lojas.map(([codigo, nome]) => ({ codigo, nome, municipios: linhas.filter((l) => l.lojaCodigo === codigo).length })),
+    responsaveis: vendedores.map((nome, i) => ({ id: 100 + i, nome, natureza: 'Pessoa', carteiras: 2, gestor: null })),
+    recorte: `ADR (${recorte.length} municípios)`,
+    municipiosNoRecorte: linhas.length,
+    tracbelNoEstado: {
+      area: fatia(area.atual, soma(mapa.map((m) => m.area ?? 0))),
+      quantidade: fatia(quantidade.atual, soma(mapa.map((m) => m.quantidade ?? 0))),
+      valor: fatia(valor.atual, valorDoEstado),
+    },
+    representatividade: null,
+    totais: {
+      area, quantidade, valor,
+      densidade: {
+        atual: area.atual > 0 ? (valor.atual * 1000) / area.atual : null,
+        anterior: area.anterior > 0 ? (valor.anterior * 1000) / area.anterior : null,
+        variacaoPercentual: area.atual > 0 && area.anterior > 0 ? Math.round(((valor.atual / area.atual) / (valor.anterior / area.anterior) - 1) * 1000) / 10 : null,
+      },
+      produtividade: null,
+      municipiosComProducao: linhas.length,
+    },
+    momento: null,
+    mapa,
+    porCultura: culturas.map(([codigo, nome, peso]) => ({
+      codigo, nome,
+      area: fatia(Math.round(area.atual * peso), Math.round((soma(mapa.map((m) => m.area ?? 0)) * peso) / 0.9)),
+      quantidade: codigo === 'OUTRAS' ? { parte: null, todo: null, percentual: null } : fatia(Math.round(quantidade.atual * peso), Math.round((soma(mapa.map((m) => m.quantidade ?? 0)) * peso) / 0.9)),
+      valor: fatia(Math.round(valor.atual * peso), Math.round((valorDoEstado * peso) / 0.9)),
+      fatiaDaLojaNaTracbel: null,
+    })),
+    porLoja: lojas.map(([codigo, nome]) => {
+      const daLoja = linhas.filter((l) => l.lojaCodigo === codigo);
+      const a = soma(daLoja.map((l) => l.area.atual)), v = soma(daLoja.map((l) => l.valor.atual));
+      return { lojaCodigo: codigo, loja: nome, municipios: daLoja.length, area: a, valor: v, reaisPorHectare: a > 0 ? (v * 1000) / a : null, tecnificacao: null, culturaDominante: daLoja[0]?.culturaPrincipal ?? null };
+    }),
+    carteira: { clientes: total, naRegiao: total.clientes, fora: Math.round(total.clientes * 0.08), potencialMedio: 2.41 },
+    prioritarios: linhas
+      .map((l) => ({
+        codigoIbge: l.codigoIbge, nome: l.nome, valor: l.valor.atual, clientes: l.clientes.clientes,
+        coberturaAte90Percentual: Math.round((1000 * l.clientes.faixas.ate90) / l.clientes.clientes) / 10,
+        lacunaPercentual: Math.round((1000 * l.clientes.faixas.sem120) / l.clientes.clientes) / 10,
+        prioridade: Math.round((l.valor.atual * l.clientes.faixas.sem120) / l.clientes.clientes),
+      }))
+      .filter((p) => p.prioridade > 0)
+      .sort((a, b) => b.prioridade - a.prioridade)
+      .slice(0, 20),
+    matriz: linhas,
+    porVendedor: vendedores.map((nome, i) => {
+      const deles = linhas.filter((_, j) => j % vendedores.length === i).map((l) => l.clientes);
+      const c = somarClientes(deles);
+      return { responsavelId: 100 + i, nome, natureza: 'Pessoa', naRegiao: c.clientes, fora: Math.round(c.clientes * 0.06), clientes: c };
+    }),
+    lacunas: vazio
+      ? [{ metrica: 'pam', motivo: 'AMOSTRA FICTÍCIA — a PAM do IBGE ainda não foi carregada.' }]
+      : [
+          { metrica: 'pesoDaFilial', motivo: 'AMOSTRA FICTÍCIA — o peso 0–100 da filial do protótipo usa pesos que ninguém decidiu no CRM.' },
+          { metrica: 'areaResponsavel', motivo: 'AMOSTRA FICTÍCIA — a área responsável (Varejo, Digital, Grandes Contas) vem da planilha do comercial.' },
+        ],
+  };
+}
+
+/**
+ * OS FINANCIAMENTOS FICTÍCIOS (issue 261) — números inventados e coerentes: a série mensal de 2022 a 08/2026, o período de
+ * 09/2025 a 08/2026 contra o ano anterior, e os municípios da amostra com o índice 70/30 e a faixa das regras do CRM. No
+ * `vazio`, o SICOR não foi carregado.
+ */
+export function financiamentosFicticios(municipios: { codigo: number; nome: string }[], vazio: boolean): FinanciamentosDoSicor {
+  const lojas = [
+    ['010110', 'TRACBEL AGRO — ARARAQUARA'],
+    ['010111', 'TRACBEL AGRO — RIBEIRÃO PRETO'],
+    ['010112', 'TRACBEL AGRO — BARRETOS'],
+    ['010113', 'TRACBEL AGRO — FRANCA'],
+  ] as const;
+  const r = (i: number, k: number) => ((i * 41 + k * 19) % 100) / 100;
+  const faixa = (indice: number): FaixaDeMercado => (indice < 1 ? 'Retraido' : indice <= 1.2 ? 'Intermediaria' : indice <= 1.4 ? 'Aquecido' : 'Superaquecido');
+  const indiceDe = (j: { linhas: number; valor: number; linhasAnteriores: number; valorAnterior: number }) => {
+    if (j.linhasAnteriores === 0 || j.valorAnterior <= 0)
+      return { indice: null, faixa: null, indiceDeLinhas: null, indiceDeValor: null, linhas: j.linhas, linhasAnteriores: j.linhasAnteriores, valorMedioPorLinha: j.linhas ? j.valor / j.linhas : null, valorMedioAnterior: null, indiceDoValorMedio: null, basePequena: false, motivo: 'SemBaseDeComparacao' as const };
+    const deLinhas = j.linhas / j.linhasAnteriores;
+    const deValor = j.valor / j.valorAnterior;
+    const indice = 0.7 * deLinhas + 0.3 * deValor;
+    return {
+      indice, faixa: faixa(indice), indiceDeLinhas: deLinhas, indiceDeValor: deValor, linhas: j.linhas, linhasAnteriores: j.linhasAnteriores,
+      valorMedioPorLinha: j.valor / Math.max(1, j.linhas), valorMedioAnterior: j.valorAnterior / j.linhasAnteriores,
+      indiceDoValorMedio: (j.valor / Math.max(1, j.linhas)) / (j.valorAnterior / j.linhasAnteriores), basePequena: false, motivo: 'Nenhum' as const,
+    };
+  };
+
+  const serie = vazio
+    ? []
+    : Array.from({ length: 56 }, (_, i) => {
+        const ano = 2022 + Math.floor(i / 12);
+        const mes = (i % 12) + 1;
+        const sazonal = [0.7, 0.8, 1.1, 1.2, 1.1, 1, 0.9, 1, 1.1, 1.2, 1, 0.8][mes - 1];
+        const linhas = Math.round((110 + i * 1.4) * sazonal);
+        return { mes: `${ano}-${String(mes).padStart(2, '0')}-01`, linhas, valor: Math.round(linhas * (310_000 + i * 2_500)) };
+      });
+
+  const linhas = vazio
+    ? []
+    : municipios.map((m, i) => {
+        const anteriores = i % 11 === 10 ? 0 : 3 + Math.round(r(i, 1) * 40);
+        const atuais = Math.max(1, Math.round(anteriores * (0.7 + r(i, 2) * 0.9)) || 2 + Math.round(r(i, 3) * 6));
+        const medio = 260_000 + r(i, 4) * 300_000;
+        const janelas = {
+          linhas: atuais,
+          valor: Math.round(atuais * medio),
+          linhasAnteriores: anteriores,
+          valorAnterior: Math.round(anteriores * medio * (0.85 + r(i, 5) * 0.2)),
+        };
+        const [lojaCodigo, loja] = lojas[i % lojas.length];
+        return {
+          codigoIbge: m.codigo, nome: m.nome, pertenceAAdr: true, lojaCodigo, loja, janelas,
+          fatiaNoEstado: Math.round((janelas.valor / 4_200_000_000) * 100000) / 1000,
+          variacaoDaFatia: Math.round((r(i, 6) - 0.5) * 100) / 1000,
+          indice: indiceDe(janelas),
+        };
+      });
+
+  const somar = (xs: typeof linhas) =>
+    xs.reduce((s, l) => ({ linhas: s.linhas + l.janelas.linhas, valor: s.valor + l.janelas.valor, linhasAnteriores: s.linhasAnteriores + l.janelas.linhasAnteriores, valorAnterior: s.valorAnterior + l.janelas.valorAnterior }), { linhas: 0, valor: 0, linhasAnteriores: 0, valorAnterior: 0 });
+  const total = somar(linhas);
+  const contar = (f: string) => linhas.filter((l) => l.indice.faixa === f).length;
+
+  return {
+    primeiroMesDoSicor: vazio ? null : '2022-01-01',
+    ultimoMesDoSicor: vazio ? null : '2026-08-01',
+    mesesDeCarencia: 0,
+    carenciaDecidida: false,
+    de: vazio ? null : '2025-09-01',
+    ate: vazio ? null : '2026-08-01',
+    meses: vazio ? 0 : 12,
+    anteriorDe: vazio ? null : '2024-09-01',
+    anteriorAte: vazio ? null : '2025-08-01',
+    produto: null,
+    programa: null,
+    produtos: [{ codigo: 7080, nome: 'TRATORES' }, { codigo: 4860, nome: 'IMPLEMENTOS AGRÍCOLAS' }, { codigo: 2700, nome: 'COLHEITADEIRAS' }],
+    programas: [{ codigo: 154, nome: 'PRONAMP' }, { codigo: 155, nome: 'PRONAF' }, { codigo: 160, nome: 'MODERFROTA' }],
+    recorte: 'adr',
+    recorteNome: 'Região Tracbel',
+    municipiosNoRecorte: municipios.length,
+    lojas: lojas.map(([codigo, nome]) => ({ codigo, nome, municipios: linhas.filter((l) => l.lojaCodigo === codigo).length })),
+    totais: { ...total, indice: indiceDe(total) },
+    momento: [3, 6, 12].map((meses) => {
+      const fator = 1 + meses / 100;
+      const j = { linhas: Math.round(total.linhas * meses / 12 * fator), valor: Math.round(total.valor * meses / 12 * fator), linhasAnteriores: Math.round(total.linhasAnteriores * meses / 12), valorAnterior: Math.round(total.valorAnterior * meses / 12) };
+      return { meses, janelas: j, indice: indiceDe(j) };
+    }),
+    serie,
+    noEstado: vazio ? null : { linhas: total.linhas, linhasDoEstado: total.linhas * 3, fatiaDasLinhas: 33.3, valor: total.valor, valorDoEstado: total.valor * 3.2, fatiaDoValor: 31.25 },
+    situacoes: {
+      retraidos: contar('Retraido'), intermediarios: contar('Intermediaria'), aquecidos: contar('Aquecido'), superaquecidos: contar('Superaquecido'),
+      semBase: linhas.filter((l) => l.janelas.linhasAnteriores === 0).length, basePequena: 0,
+    },
+    porLoja: lojas.map(([codigo, nome]) => {
+      const daLoja = linhas.filter((l) => l.lojaCodigo === codigo);
+      const j = somar(daLoja);
+      return { lojaCodigo: codigo, loja: nome, municipios: daLoja.length, janelas: j, indice: indiceDe(j) };
+    }),
+    municipios: linhas.sort((a, b) => b.janelas.valor - a.janelas.valor),
+    lacunas: vazio
+      ? [{ metrica: 'sicor', motivo: 'AMOSTRA FICTÍCIA — o SICOR ainda não foi carregado.' }]
+      : [
+          { metrica: 'linhas', motivo: 'AMOSTRA FICTÍCIA — linha do SICOR não é contrato.' },
+          { metrica: 'shareTracbel', motivo: 'AMOSTRA FICTÍCIA — o share da Tracbel no crédito é a issue 262.' },
+        ],
   };
 }
