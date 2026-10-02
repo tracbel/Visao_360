@@ -636,3 +636,41 @@ export interface ShareNoCreditoDeMecanizacao {
   foraDaRegiao: FinanciadoForaDaRegiao;
   procedencia: ProcedenciaDoIndicador | null;
 }
+
+// ------------------------------------------------------------------------------------------------
+// Preço de commodities — `GET /api/v1/mercado/precos` (issue 260)
+// ------------------------------------------------------------------------------------------------
+
+/** Um índice de momento de preço: a média recente sobre a anterior; 1,10 é 10% acima. */
+export type IndiceDeMomento = {
+  indice: number | null;
+  faixa: FaixaDeMercado | null;
+  mediaRecente: number | null;
+  mediaAnterior: number | null;
+  mesesRecentes: number;
+  mesesAnteriores: number;
+  motivo: MotivoSemIndicador;
+  /** `Mensal`, ou `AnualPam` quando o R12 é o preço anual da PAM. */
+  serie: string;
+  anoRecente: number | null;
+};
+
+export type HorizonteDoPreco = { meses: number; indice: IndiceDeMomento };
+
+export type PrecoDaCultura = {
+  codigo: string;
+  nome: string;
+  fonte: string;
+  unidade: string;
+  ultimoMes: string | null;
+  ultimoValor: number | null;
+  /** Mês, R3, R6 e R12. */
+  horizontes: HorizonteDoPreco[];
+  serie: { mes: string; valor: number }[];
+};
+
+export type PrecosDasCulturas = {
+  ultimoMesDePreco: string | null;
+  culturas: PrecoDaCultura[];
+  lacunas: { metrica: string; motivo: string }[];
+};

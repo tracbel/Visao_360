@@ -35,6 +35,7 @@ import {
   creditoFicticio,
   custosFicticios,
   demandaFicticia,
+  precosDasCulturasFicticios,
   diagnosticoFicticio,
   parametrosFicticios,
   precoImplicitoFicticio,
@@ -189,6 +190,9 @@ function instalarInterceptador(): void {
     }
 
     // A DEMANDA E PREVISÃO (issue 258): os mesmos municípios da amostra do diagnóstico.
+    // O PREÇO DE COMMODITIES (issue 260): as séries não dependem da malha.
+    if (caminho === '/v1/mercado/precos') return envelope(precosDasCulturasFicticios(estado === 'parcialmenteVazio'));
+
     if (caminho === '/v1/mercado/demanda') {
       const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;
       const parametros = new URL(url, window.location.href).searchParams;

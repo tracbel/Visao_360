@@ -22,6 +22,7 @@ import type {
   ClasseDePrioridade,
   DemandaEPrevisaoDaRegiao,
   DiagnosticoComercialDaRegiao,
+  PrecosDasCulturas,
   MediaPlurianual,
   PainelDeCreditoRural,
   PrecoImplicitoDoRecorte,
@@ -775,5 +776,58 @@ export function demandaFicticia(
     cultura,
     culturasDoFiltro: todasAsCulturas.map((c) => ({ codigo: c.codigo, nome: c.nome, demanda: null })),
     anoDaAreaAnterior: 2023,
+  };
+}
+
+/**
+ * OS PREÇOS FICTÍCIOS (issue 260) — números inventados e coerentes: a cana com 30 meses de ATR (o R12 sai pelo mensal), as
+ * outras culturas com 13 meses (o R12 vem do anual da PAM), e o milho sem série. No `vazio`, nenhuma cotação carregada.
+ */
+export function precosDasCulturasFicticios(vazio: boolean): PrecosDasCulturas {
+  const faixa = (i: number) => (i < 1 ? 'Retraido' : i <= 1.2 ? 'Intermediaria' : i <= 1.4 ? 'Aquecido' : 'Superaquecido') as 'Retraido' | 'Intermediaria' | 'Aquecido' | 'Superaquecido';
+  const culturas: [string, string, string, string, number, number, number][] = [
+    ['CAFE', 'Café', 'CONAB', 'R$/60 kg', 2_150, 13, 0.012],
+    ['CANA', 'Cana-de-açúcar', 'SOCICANA', 'kg de ATR', 1.12, 30, 0.004],
+    ['SOJA', 'Soja', 'CONAB', 'R$/60 kg', 128, 13, -0.006],
+    ['MILHO', 'Milho', 'CONAB', 'R$/60 kg', 64, 0, 0],
+    ['LARANJA', 'Laranja', 'CONAB', 'R$/40,8 kg', 61, 13, 0.02],
+  ];
+  const ultimo = new Date(Date.UTC(2026, 7, 1));
+  return {
+    ultimoMesDePreco: vazio ? null : '2026-08-01',
+    culturas: vazio
+      ? []
+      : culturas.map(([codigo, nome, fonte, unidade, base, meses, tendencia]) => {
+          const serie = Array.from({ length: meses }, (_, i) => {
+            const d = new Date(ultimo);
+            d.setUTCMonth(d.getUTCMonth() - (meses - 1 - i));
+            return { mes: d.toISOString().slice(0, 10), valor: Math.round(base * (1 + tendencia * (i - meses / 2) + 0.03 * Math.sin(i)) * 1000) / 1000 };
+          });
+          const valores = serie.map((m) => m.valor);
+          const horizonte = (n: number) => {
+            if (n === 12 && meses < 24) {
+              const indice = 1 + tendencia * 6;
+              return { meses: n, indice: { indice, faixa: faixa(indice), mediaRecente: base, mediaAnterior: base / indice, mesesRecentes: 12, mesesAnteriores: 12, motivo: 'Nenhum' as const, serie: 'AnualPam', anoRecente: 2025 } };
+            }
+            if (valores.length < 2 * n)
+              return { meses: n, indice: { indice: null, faixa: null, mediaRecente: null, mediaAnterior: null, mesesRecentes: Math.min(n, valores.length), mesesAnteriores: 0, motivo: 'SerieCurta' as const, serie: 'Mensal', anoRecente: null } };
+            const media = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
+            const recente = media(valores.slice(-n));
+            const anterior = media(valores.slice(-2 * n, -n));
+            const indice = recente / anterior;
+            return { meses: n, indice: { indice, faixa: faixa(indice), mediaRecente: recente, mediaAnterior: anterior, mesesRecentes: n, mesesAnteriores: n, motivo: 'Nenhum' as const, serie: 'Mensal', anoRecente: null } };
+          };
+          return {
+            codigo, nome, fonte, unidade,
+            ultimoMes: serie.at(-1)?.mes ?? null,
+            ultimoValor: serie.at(-1)?.valor ?? null,
+            horizontes: [1, 3, 6, 12].map(horizonte),
+            serie,
+          };
+        }),
+    lacunas: [
+      { metrica: 'faixas', motivo: 'AMOSTRA FICTÍCIA — as faixas são as do momento do CRM, e não os cortes do protótipo.' },
+      { metrica: 'r12Anual', motivo: 'AMOSTRA FICTÍCIA — o R12 de quem tem 13 meses é o preço anual da PAM.' },
+    ],
   };
 }

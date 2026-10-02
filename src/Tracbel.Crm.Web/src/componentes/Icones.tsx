@@ -7,7 +7,7 @@
  * Geográficos e a marca por extenso do menu, que o protótipo não tinha.
  */
 
-import { CalendarRange as Previsao, ListChecks as Conferir, Map as Mapa, Package as Caixa, Target as Alvo, TrendingUp as Tendencia } from 'lucide-react';
+import { CalendarRange as Previsao, ChartCandlestick as Cotacao, ListChecks as Conferir, Map as Mapa, Package as Caixa, Target as Alvo, TrendingUp as Tendencia } from 'lucide-react';
 
 type Props = { tamanho?: number };
 
@@ -128,6 +128,11 @@ export function IconeIndicadoresGeograficos({ tamanho = 18 }: Props) {
 /** O alvo do Diagnóstico Comercial (issue 257) — onde mirar primeiro. Tela nova, sem par no protótipo de referência. */
 export function IconeDiagnostico({ tamanho = 18 }: Props) {
   return <Alvo size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
+}
+
+/** O gráfico de cotação do Preço de Commodities (issue 260) — o momento do preço de cada cultura. */
+export function IconePrecos({ tamanho = 18 }: Props) {
+  return <Cotacao size={tamanho} strokeWidth={1.75} aria-hidden="true" />;
 }
 
 /** O calendário da Demanda e previsão (issue 258) — a demanda do ano distribuída mês a mês. */

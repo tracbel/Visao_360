@@ -33,6 +33,7 @@ import {
   IconeIndicadoresGeograficos,
   IconePerformance,
   IconePipeline,
+  IconePrecos,
   IconeVisao360,
 } from './Icones';
 
@@ -74,6 +75,7 @@ export const SECOES: SecaoNav[] = [
     // A ORDEM É A DO RACIOCÍNIO: primeiro quanto o mercado pede e quanto a Tracbel tem de entregar (Demanda), depois
     // onde agir (Diagnóstico).
     itens: [
+      { caminho: '/mercado/precos', rotulo: 'Preço de Commodities', Icone: IconePrecos },
       { caminho: '/mercado/demanda', rotulo: 'Demanda e Previsão', Icone: IconeDemanda },
       { caminho: '/mercado/diagnostico', rotulo: 'Diagnóstico Comercial', Icone: IconeDiagnostico },
     ],

@@ -152,6 +152,7 @@ for (const { nome, largura, altura } of TODAS) {
 const TELAS_DE_MERCADO = [
   { nome: 'demanda', rota: '/mercado/demanda', cartoes: 4, secoes: 2 },
   { nome: 'diagnostico', rota: '/mercado/diagnostico', cartoes: 4, secoes: 2 },
+  { nome: 'precos', rota: '/mercado/precos', cartoes: 4, secoes: 2 },
 ] as const;
 
 async function abrirNoShell(pagina: Page, rota: string, cartoes: number) {
