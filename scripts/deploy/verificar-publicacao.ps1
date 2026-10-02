@@ -4,8 +4,9 @@
       .\scripts\deploy\verificar-publicacao.ps1
       .\scripts\deploy\verificar-publicacao.ps1 -Log        # mostra o ultimo log inteiro
 
-  So leitura. Responde tres coisas: em que versao o servidor esta, se ha alguma coisa esperando
-  autorizacao, e o que aconteceu na ultima rodada.
+  So leitura. Responde quatro coisas: em que versao o servidor esta, se ha alguma coisa esperando
+  autorizacao, o que aconteceu na ultima rodada, e o que a ultima limpeza do servidor achou (o log do
+  banco, a memoria, o disco e as sessoes de Area de Trabalho Remota desconectadas).
 #>
 
 [CmdletBinding()]
@@ -65,6 +66,30 @@ Write-Output ''
 Write-Output '=== tarefa agendada ==='
 & schtasks.exe /Query /TN 'TracbelCrmPublicacao' /FO LIST /V 2>&1 |
     Select-String 'Nome da tarefa|Task Name|Pr.xima|Next Run|Status|.ltimo Resultado|Last Result'
+
+# A LIMPEZA DO SERVIDOR (02/10/2026): o que a ultima rodada achou, e os avisos dela - entre eles as sessoes
+# de Area de Trabalho Remota esquecidas abertas, que ela so avisa e nao encerra.
+Write-Output ''
+Write-Output '=== limpeza do servidor ==='
+`$limpeza = Join-Path `$pasta 'limpeza.json'
+if (Test-Path `$limpeza) {
+    `$l = Get-Content `$limpeza -Raw | ConvertFrom-Json
+    Write-Output ('ultima rodada ........ ' + `$l.quando)
+    Write-Output ('log do banco ......... ' + `$l.banco.logMbDepois + ' MB (recuperacao ' + `$l.banco.recuperacao + ')')
+    Write-Output ('copias apagadas ...... ' + `$l.copiasDoAgente.apagadas + ' (' + `$l.copiasDoAgente.gbLiberados + ' GB)')
+    Write-Output ('memoria disponivel ... ' + `$l.memoria.disponivelMb + ' MB de ' + `$l.memoria.totalMb + ' MB (cache ' + `$l.memoria.cacheMb + ' MB)')
+    Write-Output ('o CRM ocupa .......... API ' + `$l.memoria.apiMb + ' MB, sincronizacao ' + `$l.memoria.sincronizacaoMb + ' MB, SQL Server ' + `$l.memoria.sqlServerMb + ' MB')
+    Write-Output ('disco C: ............. ' + `$l.disco.livreGb + ' GB livres de ' + `$l.disco.totalGb + ' GB')
+    foreach (`$s in `$l.sessoesDesconectadas) {
+        Write-Output ('sessao desconectada .. ' + `$s.usuario + ', ha ' + `$s.horas + ' h, ' + `$s.memoriaMb + ' MB')
+    }
+    foreach (`$a in `$l.avisos) { Write-Output ('AVISO: ' + `$a) }
+    foreach (`$e in `$l.erros) { Write-Output ('ERRO: ' + `$e) }
+} else {
+    Write-Output 'A limpeza ainda nao rodou: rode instalar-agente-de-publicacao.ps1 -SoAtualizarOsScripts.'
+}
+& schtasks.exe /Query /TN 'TracbelCrmLimpeza' /FO LIST /V 2>&1 |
+    Select-String 'Nome da tarefa|Task Name|Pr.xima|Next Run|.ltimo Resultado|Last Result'
 
 if ('$($Log.IsPresent)' -eq 'True') {
     Write-Output ''

@@ -28,6 +28,8 @@
  * ---------------------------------------------------------------------------
  * 02/10/2026 — AS ORDENS DE SERVIÇO saíram das lacunas e ganharam bloco: a
  * rotina 15 POS_VENDA_PROTHEUS as traz das views do BI no banco do Protheus.
+ * Logo depois vieram as PEÇAS — balcão × oficina, grupo comercial, vendedor e
+ * os orçamentos em aberto —, pelo segundo modo da mesma rotina.
  */
 
 
@@ -51,6 +53,7 @@ import { SeloProcedencia } from '../cadastro/SeloProcedencia';
 import { BlocoCarteirasDoCliente } from './BlocoCarteirasDoCliente';
 import { BlocoFaturamentoDoCliente } from './BlocoFaturamentoDoCliente';
 import { BlocoOrdensDeServicoDoCliente } from './BlocoOrdensDeServicoDoCliente';
+import { BlocoPecasDoCliente } from './BlocoPecasDoCliente';
 import { BlocoPainel, type EstadoBloco } from './BlocoPainel';
 import { Dado, SemValor } from './DadoDoPainel';
 
@@ -197,6 +200,8 @@ export function Cliente360Api({ chave, aoLimpar }: { chave: string; aoLimpar: ()
         <BlocoFaturamentoDoCliente chave={chave} />
 
         <BlocoOrdensDeServicoDoCliente chave={chave} />
+
+        <BlocoPecasDoCliente chave={chave} />
 
         <BlocoPainel
           id="oportunidades"

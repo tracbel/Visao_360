@@ -65,7 +65,8 @@ public static class RotulosDaTrilha
         ["EquipamentoEmEstoque"] = "Máquina em estoque (Gestão de Negócios)",
         ["CoberturaDoEstoque"] = "Cobertura do estoque (Gestão de Negócios)",
         ["FinanciamentoDaVenda"] = "Financiamento da venda (Vórtice)",
-        ["OrdemDeServico"] = "Ordem de serviço (Protheus)"
+        ["OrdemDeServico"] = "Ordem de serviço (Protheus)",
+        ["OrcamentoDePecas"] = "Orçamento de peças (Protheus)"
     };
 
     // Os campos que se repetem em várias entidades, com o mesmo sentido.
@@ -302,6 +303,10 @@ public static class RotulosDaTrilha
         {
             ["EmpresaId"] = "Filial", ["ClienteId"] = "Cliente", ["Situacao"] = "Situação", ["FechadaEm"] = "Fechamento",
             ["CanceladaEm"] = "Cancelamento"
+        },
+        ["OrcamentoDePecas"] = new(StringComparer.Ordinal)
+        {
+            ["EmpresaId"] = "Filial", ["ClienteId"] = "Cliente", ["Situacao"] = "Situação", ["ValidoAte"] = "Validade"
         }
     };
 
@@ -332,7 +337,9 @@ public static class RotulosDaTrilha
         [("CotaDeConsorcioVendida", "ConsultorUsuarioId")] = TipoDeReferencia.Usuario,
         [("EquipamentoEmEstoque", "EmpresaId")] = TipoDeReferencia.Empresa,
         [("OrdemDeServico", "EmpresaId")] = TipoDeReferencia.Empresa,
-        [("OrdemDeServico", "ClienteId")] = TipoDeReferencia.Cliente
+        [("OrdemDeServico", "ClienteId")] = TipoDeReferencia.Cliente,
+        [("OrcamentoDePecas", "EmpresaId")] = TipoDeReferencia.Empresa,
+        [("OrcamentoDePecas", "ClienteId")] = TipoDeReferencia.Cliente
     };
 
     /// <summary>A profundidade como a pessoa entende — o mesmo texto da tela de perfis.</summary>

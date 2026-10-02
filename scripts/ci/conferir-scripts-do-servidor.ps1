@@ -34,7 +34,8 @@ $ErrorActionPreference = 'Stop'
 $doServidor = @(
     'scripts/deploy/agente-de-publicacao.ps1',
     'scripts/deploy/publicar-pacote.ps1',
-    'scripts/deploy/registrar-rotinas.ps1'
+    'scripts/deploy/registrar-rotinas.ps1',
+    'scripts/deploy/limpeza-do-servidor.ps1'
 )
 
 $problemas = [System.Collections.Generic.List[string]]::new()

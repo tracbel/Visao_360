@@ -21,7 +21,7 @@ public class ScriptsDoServidorTestes
 {
     /// <summary>Os que o agente executa no próprio processo, no 5.1, como SYSTEM.</summary>
     private static readonly string[] RodamNoServidor =
-        ["agente-de-publicacao.ps1", "publicar-pacote.ps1", "registrar-rotinas.ps1"];
+        ["agente-de-publicacao.ps1", "publicar-pacote.ps1", "registrar-rotinas.ps1", "limpeza-do-servidor.ps1"];
 
     /// <summary>O que só existe do PowerShell 6 em diante e, no 5.1, quebra ou nem deixa o script abrir.</summary>
     private static readonly (string Padrao, string Motivo)[] SoNoPowerShell7 =
@@ -154,6 +154,72 @@ public class ScriptsDoServidorTestes
                      "TracbelCrm-antes-dos-clientes-20260924-1059.bak", "TracbelCrm-antes-da-estrutura-20260924-1208.bak"
                  })
             Casa(padrao, feitaAMao).Should().BeFalse($"{feitaAMao} foi feita à mão e não é do agente");
+    }
+
+    /// <summary>
+    /// A LIMPEZA DO SERVIDOR SÓ AVISA DAS SESSÕES (decisão do Ricardo em 02/10/2026). Ela lê as sessões de Área de
+    /// Trabalho Remota desconectadas e conta quanto de memória cada uma segura, mas não encerra, não desconecta e não para
+    /// processo de ninguém: quem está desconectado pode ter trabalho aberto. O teste barra cada jeito de fazer isso.
+    /// </summary>
+    [Fact]
+    public void A_limpeza_so_avisa_das_sessoes_e_nao_encerra_ninguem()
+    {
+        var codigo = SemComentarios(Ler("limpeza-do-servidor.ps1"));
+
+        codigo.Should().Contain("WTSEnumerateSessionsW", "as sessões são lidas pela API do Windows, e não pela saída traduzida do quser");
+        foreach (var proibido in new[] { "logoff", "WTSLogoffSession", "WTSDisconnectSession", "rwinsta", "reset session", "Stop-Process", "Stop-Service", "tsdiscon" })
+            codigo.Should().NotContainEquivalentOf(proibido, $"a limpeza só avisa: '{proibido}' encerraria a sessão ou o trabalho de alguém");
+    }
+
+    /// <summary>
+    /// O LOG DO BANCO: recuperação SIMPLES (decisão do Ricardo em 02/10/2026) e, acima do limite, encolhido só o arquivo de
+    /// LOG. Encolher o banco inteiro (SHRINKDATABASE) encolheria também o de dados, fragmentando os índices.
+    /// </summary>
+    [Fact]
+    public void A_limpeza_poe_o_banco_em_recuperacao_simples_e_encolhe_so_o_log()
+    {
+        var codigo = SemComentarios(Ler("limpeza-do-servidor.ps1"));
+
+        codigo.Should().Contain("SET RECOVERY SIMPLE")
+            .And.Contain("DBCC SHRINKFILE")
+            .And.Contain("WHERE type_desc = 'LOG'", "o arquivo encolhido é o de log, procurado pelo tipo");
+        codigo.Should().NotContainEquivalentOf("SHRINKDATABASE", "encolher o banco inteiro mexeria no arquivo de dados");
+        codigo.Should().NotContainEquivalentOf("RECOVERY FULL", "a decisão é a recuperação simples");
+    }
+
+    /// <summary>
+    /// AS CÓPIAS QUE A LIMPEZA APAGA SÃO SÓ AS DO AGENTE, pelo mesmo nome que a publicação dá — a rede de segurança das
+    /// duas vezes em que o disco encheu (28/09 e 30/09/2026). As feitas à mão ficam.
+    /// </summary>
+    [Fact]
+    public void A_limpeza_apaga_so_as_copias_antigas_do_agente()
+    {
+        var codigo = SemComentarios(Ler("limpeza-do-servidor.ps1"));
+
+        codigo.Should().Contain("\"{0}-antes-de-*.bak\" -f $cfg.banco", "o nome que a própria publicação dá à cópia");
+        codigo.Should().Contain("Select-Object -Skip $CopiasDoAgenteMantidas", "as mais recentes ficam");
+        Regex.Matches(codigo, @"Remove-Item\b").Count.Should().Be(2, "só os logs antigos da própria limpeza e as cópias antigas do agente saem");
+    }
+
+    /// <summary>
+    /// A LIMPEZA CHEGA AO SERVIDOR PELO CAMINHO QUE JÁ EXISTE: o <c>-SoAtualizarOsScripts</c>, que o Ricardo roda a cada
+    /// correção do agente, copia o script e registra a tarefa — sem isso, ela ficaria no repositório e nunca rodaria lá.
+    /// </summary>
+    [Fact]
+    public void O_instalador_leva_a_limpeza_e_registra_a_tarefa_tambem_no_so_atualizar_os_scripts()
+    {
+        var instalador = SemComentarios(Ler("instalar-agente-de-publicacao.ps1"));
+
+        var soScripts = instalador.IndexOf("if ($SoAtualizarOsScripts)", StringComparison.Ordinal);
+        var fimDoSoScripts = instalador.IndexOf("return", soScripts, StringComparison.Ordinal);
+        soScripts.Should().BePositive();
+        var bloco = instalador[soScripts..fimDoSoScripts];
+
+        bloco.Should().Contain("Copy-Item (Join-Path $PSScriptRoot 'limpeza-do-servidor.ps1')")
+            .And.Contain("RegistrarALimpeza");
+        instalador.Should().Contain("'/SC', 'DAILY'")
+            .And.Contain("'/RU', 'SYSTEM'")
+            .And.Contain("[string] $NomeDaLimpeza = 'TracbelCrmLimpeza'");
     }
 
     /// <summary>O curinga do <c>Get-ChildItem -Filter</c> (<c>*</c>) como expressão regular, sem diferenciar caixa.</summary>
