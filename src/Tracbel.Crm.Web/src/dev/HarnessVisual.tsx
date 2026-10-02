@@ -179,7 +179,13 @@ function instalarInterceptador(): void {
     // mesmos das outras telas; no `parcialmenteVazio` a ADR vem sem município nenhum.
     if (caminho === '/v1/mercado/diagnostico') {
       const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;
-      return envelope(diagnosticoFicticio(municipiosDaMalha(malha, 40), estado === 'parcialmenteVazio'));
+      return envelope(
+        diagnosticoFicticio(
+          municipiosDaMalha(malha, 40),
+          estado === 'parcialmenteVazio',
+          new URL(url, window.location.href).searchParams.get('responsavel'),
+        ),
+      );
     }
 
     // A DEMANDA E PREVISÃO (issue 258): os mesmos municípios da amostra do diagnóstico.

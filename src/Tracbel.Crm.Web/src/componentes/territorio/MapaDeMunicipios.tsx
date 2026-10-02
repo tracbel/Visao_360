@@ -36,6 +36,11 @@ type Props = {
   /** O município sob o cursor, em qualquer um dos mapas. */
   emFoco?: number | null;
   aoPassar?: (codigo: number | null) => void;
+  /**
+   * O PEDAÇO DO DESENHO À VISTA, em unidades do enquadramento — o zoom do mapa do Diagnóstico (02/10/2026). Ausente é o
+   * desenho inteiro, como os outros mapas sempre foram.
+   */
+  recorte?: { x: number; y: number; largura: number; altura: number };
 };
 
 export function MapaDeMunicipios({
@@ -49,6 +54,7 @@ export function MapaDeMunicipios({
   aoSelecionar,
   emFoco = null,
   aoPassar,
+  recorte,
 }: Props) {
   const hachura = `${ID_HACHURA_SEM_DADO}-${id}`;
   const escolhido = selecionado === null ? null : poligonos.find((p) => p.codigo === selecionado);
@@ -57,7 +63,11 @@ export function MapaDeMunicipios({
   return (
     <svg
       className="terr-svg"
-      viewBox={`0 0 ${enquadramento.largura.toFixed(0)} ${enquadramento.altura.toFixed(0)}`}
+      viewBox={
+        recorte
+          ? `${recorte.x.toFixed(1)} ${recorte.y.toFixed(1)} ${recorte.largura.toFixed(1)} ${recorte.altura.toFixed(1)}`
+          : `0 0 ${enquadramento.largura.toFixed(0)} ${enquadramento.altura.toFixed(0)}`
+      }
       role="img"
       aria-label={titulo}
       onMouseLeave={() => aoPassar?.(null)}

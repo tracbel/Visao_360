@@ -1,20 +1,29 @@
 /**
- * Os filtros do Diagnóstico Comercial — o mesmo desenho dos Indicadores Geográficos (28/09/2026): selo de ícone,
- * rótulo pequeno em cima do campo com moldura própria, os de decisão sempre à vista e o resto em **Mais filtros**.
+ * Os filtros do Diagnóstico Comercial — na ordem da maquete de 02/10/2026: Período, Regional / Loja, Cultura principal e
+ * CEN / Gestor na linha, e o resto em **Mais filtros** (o tipo de máquina, o município da ficha e o período à mão). Tudo
+ * aplica na hora, sem botão.
  *
  * O PERÍODO VAZIO SÃO OS 12 MESES FECHADOS, e não o ano fiscal dos Indicadores: o IOC compara a venda com a demanda
  * de UM ANO, e doze meses seguidos são um ano inteiro qualquer que seja o começo — sem depender da sazonalidade. O ano
  * fiscal continua na lista, e aí a venda é levada a um ano pela sazonalidade vigente (a tela diz isso no período).
  *
- * O MUNICÍPIO NÃO FILTRA A CONSULTA: ele escolhe o município da ficha, como o clique no mapa e na tabela. O IOC é uma
- * ordem entre municípios, e a régua do potencial é o percentil 90 deles — tirar os outros mudaria o número do escolhido.
+ * REGIONAL / LOJA É UM CAMPO SÓ, como a maquete: a sub-região da ADR (Norte ou Noroeste) ou a filial responsável — um ou
+ * outro. A CULTURA PRINCIPAL recorta a lista na tela, sem pedir de novo: o IOC é uma ordem entre TODOS os municípios, e a
+ * régua do potencial é o percentil 90 deles. O CEN / GESTOR (decisão de 02/10/2026) é o CEN da carteira — o mesmo filtro
+ * dos Indicadores —, e vai ao servidor: os clientes das outras carteiras saem da conta.
+ *
+ * O TIPO DE MÁQUINA MORA EM "MAIS FILTROS" (decisão de 02/10/2026), e o selo do botão conta quando ele não é o trator; os
+ * cartões dizem a categoria.
+ *
+ * O MUNICÍPIO NÃO FILTRA A CONSULTA: ele escolhe o município da ficha, como o clique no mapa e na tabela.
  */
 
 import * as Popover from '@radix-ui/react-popover';
-import { CalendarDays, Funnel, MapPin, Store, Tractor, User } from 'lucide-react';
+import { CalendarDays, Funnel, MapPin, MapPinned, Sprout, Tractor, UserRound } from 'lucide-react';
 import { useMemo } from 'react';
 import { InfoTooltip } from '../InfoTooltip';
 import { anoFiscalFechado, dozeMesesFechados, mes as mesPorExtenso, nomeDoAnoFiscal } from '../territorio/indicadoresDaAdr';
+import { nomeProprio } from '../../telas/cadastro/formato';
 import type { DiagnosticoComercialDaRegiao, FiltrosDoDiagnostico, MunicipioNoDiagnostico } from '../../tipos/mercado';
 
 type Preset = '12meses' | 'anoFiscal' | 'personalizado';
@@ -24,6 +33,9 @@ export function FiltrosDoDiagnosticoComercial({
   aoMudar,
   dados,
   lojasConhecidas,
+  culturas,
+  cultura,
+  aoMudarCultura,
   municipios,
   escolhido,
   aoEscolher,
@@ -33,6 +45,10 @@ export function FiltrosDoDiagnosticoComercial({
   dados: DiagnosticoComercialDaRegiao | null;
   /** As lojas que as respostas já mostraram — a lista não encolhe ao filtrar uma sub-região. */
   lojasConhecidas: ReadonlyMap<string, string>;
+  /** As culturas principais que as respostas já mostraram. */
+  culturas: readonly string[];
+  cultura: string | null;
+  aoMudarCultura: (cultura: string | null) => void;
   municipios: readonly MunicipioNoDiagnostico[];
   escolhido: MunicipioNoDiagnostico | null;
   aoEscolher: (codigo: number | null) => void;
@@ -51,19 +67,21 @@ export function FiltrosDoDiagnosticoComercial({
     ? `${mesPorExtenso(dados.competenciaInicial.slice(0, 7))} a ${mesPorExtenso(dados.competenciaFinal.slice(0, 7))}`
     : null;
 
-  const secundariosAtivos = (preset === 'personalizado' ? 1 : 0) + (filtros.lojaCodigo ? 1 : 0);
+  const categoria = filtros.categoria ?? dados?.categoria ?? 'TRATOR';
+  const secundariosAtivos = (preset === 'personalizado' ? 1 : 0) + (categoria !== 'TRATOR' ? 1 : 0) + (escolhido ? 1 : 0);
 
   const opcoesDeMunicipio = useMemo(
     () => [...municipios].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
     [municipios],
   );
-
   const categorias = dados?.categorias.length ? dados.categorias : [{ codigo: 'TRATOR', nome: 'Trator', ordem: 1 }];
+  const responsaveis = dados?.responsaveis ?? [];
+  const regionalOuLoja = filtros.lojaCodigo ? `loja:${filtros.lojaCodigo}` : filtros.regiao ? `regiao:${filtros.regiao}` : '';
 
   return (
     <div className="dash-filtros" data-bloco="filtros">
       <div className="dash-filtros-linha">
-        <label className="dash-filtro">
+        <label className="dash-filtro" data-bloco="periodo">
           <span className="dash-filtro-icone" aria-hidden="true">
             <CalendarDays size={17} strokeWidth={2} />
           </span>
@@ -112,58 +130,72 @@ export function FiltrosDoDiagnosticoComercial({
           </span>
         </label>
 
-        <label className="dash-filtro">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <Tractor size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">
-              Tipo de máquina
-              <InfoTooltip
-                rotulo="Por que o tipo de máquina muda o índice"
-                texto="A demanda, a meta (share-alvo) e as vendas são da categoria escolhida. Em todas as categorias, as três somam as categorias com regra de potencial."
-              />
-            </span>
-            <select value={filtros.categoria ?? dados?.categoria ?? 'TRATOR'} onChange={(e) => aoMudar({ categoria: e.target.value })}>
-              {categorias.map((c) => (
-                <option key={c.codigo} value={c.codigo}>
-                  {c.nome}
-                </option>
-              ))}
-              <option value="TODAS">Todas as categorias</option>
-            </select>
-          </span>
-        </label>
-
-        <label className="dash-filtro">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <User size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Sub-região</span>
-            <select value={filtros.regiao ?? ''} onChange={(e) => aoMudar({ regiao: e.target.value || undefined })}>
-              <option value="">Região Tracbel inteira</option>
-              <option value="Norte">Norte</option>
-              <option value="Noroeste">Noroeste</option>
-            </select>
-          </span>
-        </label>
-
-        <label className="dash-filtro">
+        <label className="dash-filtro" data-bloco="regional">
           <span className="dash-filtro-icone" aria-hidden="true">
             <MapPin size={17} strokeWidth={2} />
           </span>
           <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Município</span>
+            <span className="dash-filtro-rotulo">Regional / Loja</span>
             <select
-              value={escolhido ? String(escolhido.codigoIbge) : ''}
-              onChange={(e) => aoEscolher(e.target.value === '' ? null : Number(e.target.value))}
-              data-ativo={escolhido ? 'true' : undefined}
+              value={regionalOuLoja}
+              onChange={(e) => {
+                const [tipo, valor] = e.target.value.split(':');
+                aoMudar({ regiao: tipo === 'regiao' ? valor : undefined, lojaCodigo: tipo === 'loja' ? valor : undefined });
+              }}
             >
-              <option value="">Todos os municípios</option>
-              {opcoesDeMunicipio.map((m) => (
-                <option key={m.codigoIbge} value={m.codigoIbge}>
-                  {m.nome}
+              <option value="">Todas as regiões</option>
+              <optgroup label="Sub-região da ADR">
+                <option value="regiao:Norte">Região Norte</option>
+                <option value="regiao:Noroeste">Região Noroeste</option>
+              </optgroup>
+              {lojasConhecidas.size > 0 && (
+                <optgroup label="Loja responsável">
+                  {[...lojasConhecidas.entries()]
+                    .sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'))
+                    .map(([codigo, nome]) => (
+                      <option key={codigo} value={`loja:${codigo}`}>
+                        {nome}
+                      </option>
+                    ))}
+                </optgroup>
+              )}
+            </select>
+          </span>
+        </label>
+
+        <label className="dash-filtro" data-bloco="cultura">
+          <span className="dash-filtro-icone" aria-hidden="true">
+            <Sprout size={17} strokeWidth={2} />
+          </span>
+          <span className="dash-filtro-corpo">
+            <span className="dash-filtro-rotulo">Cultura principal</span>
+            <select value={cultura ?? ''} onChange={(e) => aoMudarCultura(e.target.value || null)}>
+              <option value="">Todas as culturas</option>
+              {culturas.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </span>
+        </label>
+
+        <label className="dash-filtro" data-bloco="cen">
+          <span className="dash-filtro-icone" aria-hidden="true">
+            <UserRound size={17} strokeWidth={2} />
+          </span>
+          <span className="dash-filtro-corpo">
+            <span className="dash-filtro-rotulo">CEN / Gestor</span>
+            <select
+              value={filtros.responsavel ?? ''}
+              onChange={(e) => aoMudar({ responsavel: e.target.value || undefined })}
+              disabled={responsaveis.length === 0 && !filtros.responsavel}
+              title={responsaveis.length === 0 ? 'Nenhuma carteira comercial ao seu alcance tem responsável.' : undefined}
+            >
+              <option value="">Todos os gestores</option>
+              {responsaveis.map((r) => (
+                <option key={r.id} value={String(r.id)}>
+                  {nomeProprio(r.nome)}
                 </option>
               ))}
             </select>
@@ -182,22 +214,38 @@ export function FiltrosDoDiagnosticoComercial({
             <Popover.Portal>
               <Popover.Content className="dash-popover" sideOffset={6} collisionPadding={16} align="end">
                 <div className="dash-popover-titulo">Mais filtros</div>
-                {/* A LOJA MORA AQUI, e não na linha (28/09/2026): com cinco campos na linha, o período e a sub-região
-                    saíam cortados a 1.536 px. A linha fica com os quatro dos Indicadores — período, tipo, sub-região e
-                    município —, e o selo do botão conta a loja quando ela está escolhida. */}
                 <label className="dash-filtro">
                   <span className="dash-filtro-rotulo">
-                    <Store size={14} strokeWidth={2} aria-hidden="true" /> Loja
+                    <Tractor size={14} strokeWidth={2} aria-hidden="true" /> Tipo de máquina
+                    <InfoTooltip
+                      rotulo="Por que o tipo de máquina muda o índice"
+                      texto="A demanda, a meta (share-alvo) e as vendas são da categoria escolhida. Em todas as categorias, as três somam as categorias com regra de potencial."
+                    />
                   </span>
-                  <select value={filtros.lojaCodigo ?? ''} onChange={(e) => aoMudar({ lojaCodigo: e.target.value || undefined })}>
-                    <option value="">Todas</option>
-                    {[...lojasConhecidas.entries()]
-                      .sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'))
-                      .map(([codigo, nome]) => (
-                        <option key={codigo} value={codigo}>
-                          {nome}
-                        </option>
-                      ))}
+                  <select value={categoria} onChange={(e) => aoMudar({ categoria: e.target.value })}>
+                    {categorias.map((c) => (
+                      <option key={c.codigo} value={c.codigo}>
+                        {c.nome}
+                      </option>
+                    ))}
+                    <option value="TODAS">Todas as categorias</option>
+                  </select>
+                </label>
+                <label className="dash-filtro">
+                  <span className="dash-filtro-rotulo">
+                    <MapPinned size={14} strokeWidth={2} aria-hidden="true" /> Município (abre a ficha)
+                  </span>
+                  <select
+                    value={escolhido ? String(escolhido.codigoIbge) : ''}
+                    onChange={(e) => aoEscolher(e.target.value === '' ? null : Number(e.target.value))}
+                    data-ativo={escolhido ? 'true' : undefined}
+                  >
+                    <option value="">Todos os municípios</option>
+                    {opcoesDeMunicipio.map((m) => (
+                      <option key={m.codigoIbge} value={m.codigoIbge}>
+                        {m.nome}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <label className="dash-filtro">
