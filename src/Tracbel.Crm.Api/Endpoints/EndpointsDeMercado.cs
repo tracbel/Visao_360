@@ -75,8 +75,10 @@ public static class EndpointsDeMercado
                 string? regiao = null,
                 string? lojaCodigo = null,
                 string? visao = null,
-                string? categoria = null) =>
-            (await caso.ExecutarAsync(regiao, lojaCodigo, visao, categoria, ct)).Responder())
+                string? categoria = null,
+                string? anoFiscal = null,
+                string? cultura = null) =>
+            (await caso.ExecutarAsync(regiao, lojaCodigo, visao, categoria, ct, anoFiscal, cultura)).Responder())
             .WithName("ObterDemandaEPrevisao")
             .ExigePermissao(Permissoes.TerritorioLer)
             .WithSummary("A demanda anual de máquinas da ADR, o que a Tracbel tem de entregar pelo share-alvo, e a previsão por mês e por loja.")
@@ -84,7 +86,10 @@ public static class EndpointsDeMercado
                 "O parque e a demanda de cada cultura em cada município são as parcelas do motor do potencial; a ajustada usa " +
                 "o fator de ciclo (preço, crédito e percepção). O \"a entregar\" é a demanda × o share-alvo vigente da " +
                 "categoria, e a previsão mensal a distribui pela sazonalidade vigente, de novembro a outubro (o ano fiscal).\n\n" +
-                "Padrão: a categoria TRATOR; `categoria=TODAS` soma as categorias com demanda, cada uma pelo próprio share.");
+                "Padrão: a categoria TRATOR; `categoria=TODAS` soma as categorias com demanda, cada uma pelo próprio share.\n\n" +
+                "Desde 02/10/2026: `anoFiscal` (padrão, o corrente) escolhe o ano das ENTREGAS do ART, pela data da entrega, mês a " +
+                "mês e no mesmo trecho do ano anterior; `cultura` recorta a demanda (e deixa a entrega de fora, porque a máquina " +
+                "não diz a cultura); e cada número traz a mesma conta com a área do ano anterior da PAM.");
 
         // O DIMENSIONAMENTO DA ADR (issue 259) — a PAM do estado inteiro e a carteira, com o mesmo alcance do Diagnóstico.
         grupo.MapGet("/dimensionamento", async (

@@ -89,7 +89,16 @@ export function SeloProcedencia({ procedencia }: { procedencia: Procedencia | nu
  * ficar a um passo de distância — foi assim que 17 meses de faturamento parado
  * passaram por atual no legado.
  */
-export function DadosAtualizadosEm({ procedencia }: { procedencia: Procedencia }) {
+export function DadosAtualizadosEm({ procedencia, dicaNoTexto = false }: { procedencia: Procedencia; dicaNoTexto?: boolean }) {
+  // NAS TELAS DAS MAQUETES DE 02/10/2026 a linha não tem o ⓘ: a origem do dado vai na dica do próprio texto.
+  if (dicaNoTexto) {
+    return (
+      <>
+        <span title={detalheDaProcedencia(procedencia)}>Dados atualizados em {formatarInstante(procedencia.lidoEmUtc)}</span>
+        {procedencia.estaDesatualizado && <span className="cad-procedencia-alerta">dado desatualizado</span>}
+      </>
+    );
+  }
   return (
     <>
       Dados atualizados em {formatarInstante(procedencia.lidoEmUtc)}

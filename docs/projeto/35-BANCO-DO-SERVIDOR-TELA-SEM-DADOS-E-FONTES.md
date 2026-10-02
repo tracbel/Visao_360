@@ -1,5 +1,9 @@
 # O banco do servidor, a tela sem dados e o caminho dos dados até lá
 
+> **Versão 2.1 · 02/10/2026 — as peças do Protheus:** o segundo modo da rotina 15 apura o faturamento de peças por mês
+> (balcão × oficina, grupo comercial, linha e vendedor) e sincroniza os orçamentos de peças, pelas views do extrator
+> "Faturamento Peças" do BI; a ficha 360 ganha o bloco "Peças". Em **§18**. Sem custo nem margem; nada foi lido da produção.
+>
 > **Versão 2.0 · 02/10/2026 — as ordens de serviço da oficina:** a rotina 15 `POS_VENDA_PROTHEUS` lê as OS do Protheus
 > pelas mesmas views do BI e mantém `frota.OrdemDeServico`, com o valor de peças e de serviços na régua do painel de
 > pós-venda; a ficha do cliente e a da máquina passam a mostrá-las. Em **§17**. Nasce desligada; nada foi lido da
@@ -1438,3 +1442,51 @@ contra o painel. Se o login da conexão não tiver leitura nas views, a rodada p
 - **Ficha da máquina** — quadro "Ordens de serviço" no histórico, pelo chassi, com o horímetro de cada OS.
 - **Rotas:** `GET /api/v1/clientes/{chave}/ordens-de-servico` e `GET /api/v1/equipamentos/{chave}/ordens-de-servico`,
   com a permissão `Equipamento.Ler`; a OS passa pela fronteira de filial.
+
+## 18. As peças do Protheus, pelas views do BI (02/10/2026)
+
+A segunda parte do pós-venda, logo depois das ordens de serviço (§17): o **faturamento de peças** e os **orçamentos de
+peças**, pelas views do extrator **"Faturamento Peças"** do Qlik. É o segundo modo da rotina 15 `POS_VENDA_PROTHEUS`,
+`--somente-pecas-protheus`, que roda depois das OS.
+
+### 18.1 A fonte e o que entra
+
+| View | Como o CRM lê | O que guarda |
+|---|---|---|
+| `X_V_BI_FATURAMENTO_PECAS` | **somada no próprio banco**, por filial, mês e pelas colunas de que as regras do painel precisam (janela de três anos pela emissão) | `comercial.FaturamentoDePecasNoMes`: por mês, filial, cliente, setor (balcão, oficina), grupo comercial, linha e vendedor — quantidade, valor líquido, devoluções, desconto e valor de tabela |
+| `X_V_BI_POSICAO_ORC_PECAS` | item a item (os de dois anos e os ainda abertos, de qualquer data), somado na carga | `comercial.OrcamentoDePecas`: um por orçamento — situação, prazo, reserva, datas, vendedor, total, desconto e itens |
+
+**O que não entra, de propósito:** o custo médio, a margem (`margem_reais`, `margem_perc`, `vlr_margem_lucro_orc`), os
+impostos e o frete — é custo, e o CRM não guarda custo, como no ART e no estoque —; o nome e a cidade do cliente; e o produto
+item a item. O cliente é casado pelo CPF/CNPJ da nota (`seq_pessoa`, que é o `A1_CGC`) e do orçamento.
+
+### 18.2 As regras do painel
+
+`RegrasDasPecas`, portada da aba "05 - FATURAMENTO_PEÇAS" do painel:
+
+- **Faturamento** = soma do `vlr_liquido_item`, faturamento e devolução juntos — a devolução (`origem` diferente de
+  `FAT_PECAS`) entra com o sinal da view e fica também em "devoluções", à parte.
+- **Grupo comercial**: pneus pela linha `PNEUS/RODADOS`; baterias (1104), aditivos (1106), Coolgard (1109), Forquímica
+  (1113), graxas (1105), lubrificantes (1103), Metisa (1115), TeeJet (1112), Unimil by JD (2001–2012, 2202) e Precision
+  Upgrade (5000) pelo código da família; o resto pela própria origem, sem o prefixo (`PECAS`).
+- **Quantidade** zerada na cortesia fora da garantia de fábrica (FGP) e no complemento de preço (chamado GLPI 78148).
+- **Filial**: a view a escreve com dois dígitos; o CRM a lê como `0101NN`.
+
+### 18.3 A carga
+
+O **faturamento é apuração**: cada rodada regrava a janela de três anos inteira, como a conferência com a Gestão de
+Negócios, e por isso não tem trilha. Os **orçamentos são sincronia**, como as OS: o novo entra, o que muda é atualizado (a
+trilha guarda a situação, a validade, a filial e o cliente), o que some dentro da janela é excluído sem apagar, e o que
+volta é reativado. **As travas:** faturamento vazio não apaga nada; o que encolheria a menos da metade das combinações já
+gravadas na janela é leitura parcial; orçamento ilegível acima de 5%, ou excluir mais de 20% dos vigentes, aborta tudo —
+só `--aceitar-remocao`, no terminal, passa pelas de encolhimento.
+
+A simulação (`--somente-pecas-protheus --simular`) mostra o faturamento por **ano fiscal** (novembro a outubro), com as
+devoluções, e os orçamentos em aberto — os mesmos recortes do painel, para conferir antes de ligar. Conta também as linhas
+de devolução com valor positivo, se houver: o painel soma faturamento e devolução, o que supõe a devolução negativa na view.
+
+### 18.4 Onde aparece
+
+- **Ficha 360 do cliente** — bloco "Peças": os doze meses (o mês corrente parcial), balcão × oficina, o grupo comercial, a
+  série, a última compra, o vendedor principal e os orçamentos em aberto (o vencido na faixa vermelha).
+- **Rota:** `GET /api/v1/clientes/{chave}/pecas`, com a permissão `Faturamento.Ler`; passa pela fronteira de filial.

@@ -238,6 +238,7 @@ builder.Services.AddScoped<IConsultaDoHistoricoDeIntegracoes>(s => s.GetRequired
 builder.Services.AddScoped<IRepositorioIndicadoresExecutivos, RepositorioDeIndicadoresExecutivos>();
 builder.Services.AddScoped<IRepositorioHistoricoComercial, RepositorioDeHistoricoComercial>();
 builder.Services.AddScoped<IRepositorioDeOrdensDeServico, RepositorioDeOrdensDeServico>();
+builder.Services.AddScoped<IRepositorioDePecas, RepositorioDePecas>();
 builder.Services.AddScoped<IRepositorioSincronizacoes, RepositorioDeSincronizacoes>();
 builder.Services.AddScoped<IUnidadeDeTrabalho, UnidadeDeTrabalho>();
 
@@ -298,6 +299,7 @@ builder.Services.AddScoped<ObterFunilPorEstagio>();
 builder.Services.AddScoped<ObterPainelDoCen>();
 builder.Services.AddScoped<ObterFaturamento>();
 builder.Services.AddScoped<ObterFaturamentoDoCliente>();
+builder.Services.AddScoped<ObterPecasDoCliente>();
 builder.Services.AddScoped<ListarCarteirasDoCliente>();
 builder.Services.AddScoped<ListarTarefas>();
 builder.Services.AddScoped<ObterPainelDaAgenda>();
@@ -375,6 +377,8 @@ builder.Services.AddScoped<ObterMetaERealizado>();
 
 // O FORECAST DA GERÊNCIA DA API GESTÃO DE NEGÓCIOS (28/09/2026).
 builder.Services.AddScoped<IRepositorioDoForecast, RepositorioDoForecast>();
+// AS ENTREGAS DO ART PELA DATA DA ENTREGA — a "Entrega realizada" da Demanda e Previsão (02/10/2026).
+builder.Services.AddScoped<IRepositorioDeEntregas, RepositorioDeEntregas>();
 builder.Services.AddScoped<ObterForecastDaGerencia>();
 
 // O ESTOQUE E A COBERTURA DA API GESTÃO DE NEGÓCIOS (28/09/2026).

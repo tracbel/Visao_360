@@ -248,7 +248,11 @@ public static class PoliticaDeAuditoria
         // AS ORDENS DE SERVIÇO DO PROTHEUS (02/10/2026): a OS que muda de situação (abriu, liberou, fechou, cancelou), de
         // filial ou de cliente casado, e a que some da origem e volta. Os valores não: crescem a cada peça requisitada
         // enquanto a OS está aberta, e a trilha diária deles diria só "a oficina trabalhou".
-        ["OrdemDeServico"] = ["EmpresaId", "ClienteId", "Situacao", "FechadaEm", "CanceladaEm", CampoDeExclusaoLogica]
+        ["OrdemDeServico"] = ["EmpresaId", "ClienteId", "Situacao", "FechadaEm", "CanceladaEm", CampoDeExclusaoLogica],
+
+        // OS ORÇAMENTOS DE PEÇAS (02/10/2026): o que muda de situação (abriu, foi atendido, encerrou), de validade ou de cliente, e o
+        // que some e volta. O faturamento de peças é apuração regravada a cada rodada — não tem trilha, como o do cliente.
+        ["OrcamentoDePecas"] = ["EmpresaId", "ClienteId", "Situacao", "ValidoAte", CampoDeExclusaoLogica]
     };
 
     /// <summary>As entidades auditadas, por nome de tipo.</summary>

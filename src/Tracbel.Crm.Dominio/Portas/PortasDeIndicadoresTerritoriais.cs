@@ -45,6 +45,10 @@ public enum VisaoTerritorial
 /// O mês em curso em São Paulo, no dia 1. Quando o período termina nele, o último mês está pela metade e a
 /// comparação com o ano anterior fica vazia, com o motivo; nulo é não conferir.
 /// </param>
+/// <param name="ComDemandaDoAnoAnterior">
+/// Calcula também a demanda de cada município da ADR com a área plantada do ANO ANTERIOR da PAM — cada cultura no ano
+/// antes do dela (a Demanda e Previsão, 02/10/2026). É uma leitura a mais da PAM; quem não compara não paga por ela.
+/// </param>
 public sealed record ConsultaDeIndicadoresTerritoriais(
     DateOnly CompetenciaInicial,
     DateOnly CompetenciaFinal,
@@ -55,7 +59,8 @@ public sealed record ConsultaDeIndicadoresTerritoriais(
     int? FilialDoClienteId = null,
     string? CategoriaDeMaquina = null,
     long? ResponsavelId = null,
-    DateOnly? MesCorrente = null)
+    DateOnly? MesCorrente = null,
+    bool ComDemandaDoAnoAnterior = false)
 {
     /// <summary>O mês em curso, quando o período termina nele ou depois — o mês pela metade; nulo quando não.</summary>
     public DateOnly? MesEmCurso => MesCorrente is { } corrente && CompetenciaFinal >= corrente ? CompetenciaFinal : null;
@@ -574,6 +579,11 @@ public sealed record ResponsavelPelaCarteira(string Nome, string Natureza, int V
 /// As máquinas do parque do CRM cuja última posição da telemetria cai aqui (Operations Center, 28/09/2026). Nulo quando
 /// nenhuma cai.
 /// </param>
+/// <param name="DemandaNoAnoAnterior">
+/// A mesma demanda por categoria e cultura com a área plantada do ano anterior da PAM — só quando a consulta pede
+/// (<see cref="ConsultaDeIndicadoresTerritoriais.ComDemandaDoAnoAnterior"/>), e só nos municípios da ADR. Nulo quando não
+/// foi pedida.
+/// </param>
 public sealed record IndicadoresDoMunicipio(
     int CodigoIbge,
     string Nome,
@@ -596,7 +606,8 @@ public sealed record IndicadoresDoMunicipio(
     IReadOnlyList<UnidadesNaCategoria>? MaquinasPorCategoria = null,
     IReadOnlyList<DemandaNoMunicipio>? DemandaPorCategoriaECultura = null,
     NumerosDeDecisao? NumerosDeDecisao = null,
-    ParqueConectadoNoMunicipio? ParqueConectado = null);
+    ParqueConectadoNoMunicipio? ParqueConectado = null,
+    IReadOnlyList<DemandaNoMunicipio>? DemandaNoAnoAnterior = null);
 
 /// <summary>
 /// AS MÁQUINAS CONECTADAS NUM MUNICÍPIO — a telemetria do Operations Center da John Deere (decisão de 28/09/2026).

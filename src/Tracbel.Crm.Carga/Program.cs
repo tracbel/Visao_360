@@ -286,6 +286,14 @@ var somenteParticaoDaAuditoria = args.Contains("--somente-particao-auditoria", S
 // os totais em reais para conferir com o BI. --aceitar-remocao existe SO no terminal.
 var somenteOrdensDeServico = args.Contains("--somente-ordens-de-servico", StringComparer.Ordinal);
 
+// --somente-pecas-protheus [--simular] [--aceitar-remocao] — AS PEÇAS DO PROTHEUS (02/10/2026), o segundo modo da rotina 15.
+//
+// Le as views do BI X_V_BI_FATURAMENTO_PECAS (somada por mes no proprio banco) e X_V_BI_POSICAO_ORC_PECAS (so SELECT, NOLOCK).
+// REGRAVA a janela de tres anos de comercial.FaturamentoDePecasNoMes (por mes, filial, cliente, setor, grupo, linha e vendedor,
+// nas regras do painel "Faturamento Pecas") e SINCRONIZA comercial.OrcamentoDePecas. Sem custo nem margem. Com --simular,
+// calcula o plano so com leitura e mostra os totais por ano fiscal para conferir com o BI.
+var somentePecasDoProtheus = args.Contains("--somente-pecas-protheus", StringComparer.Ordinal);
+
 var simular = args.Contains("--simular", StringComparer.Ordinal);
 
 // --somente-art --projetar — A PROJECAO DO PROXIMO CICLO DO ART, so com leitura: a mesma decisao por registro da carga,
@@ -318,6 +326,7 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 //   --somente-conferencia-gn  a conferência da meta e do realizado com a API Gestão de Negócios;
 //   --somente-particao-auditoria  os meses seguintes das tabelas de log e a retenção de 18 meses da trilha;
 //   --somente-ordens-de-servico  as ordens de serviço da oficina, pelas views do BI no banco do Protheus;
+//   --somente-pecas-protheus  o faturamento de peças por mês e os orçamentos de peças, pelas views do BI;
 //   --somente-medir         só conta linhas, não grava nada.
 //
 // AS LEITURAS DO VÓRTICE LIBERADAS:
@@ -344,7 +353,7 @@ bool[] modosSemVortice =
     somenteArt, somenteClientesDoProtheus, somenteCarteirasDoVortice, somenteParqueDoProtheus,
     somenteMetasGn, somenteProcessosDoVortice, somentePrecosDeMaquina, somenteOportunidadesDoVortice,
     somenteOperationsCenter, somentePlanejamentoGn, somenteEstoqueGn, somenteConferenciaGn, somenteFinanciamentosDoVortice,
-    somenteParticaoDaAuditoria, somenteOrdensDeServico
+    somenteParticaoDaAuditoria, somenteOrdensDeServico, somentePecasDoProtheus
 ];
 var algumModoSemVortice = modosSemVortice.Any(modo => modo);
 
@@ -1091,6 +1100,94 @@ if (somenteOrdensDeServico)
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
         Console.Error.WriteLine("A SINCRONIA DAS ORDENS DE SERVIÇO PAROU, e a transação foi desfeita: " + falha.Message);
+        if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
+            Console.Error.WriteLine("  causa: " + causa.Message);
+        return 3;
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Atalho — só as peças: o faturamento por mês e os orçamentos (02/10/2026). Lê o CRM e as views do BI no Protheus.
+// -------------------------------------------------------------------------------------------------
+
+if (somentePecasDoProtheus)
+{
+    var opcoesDoBancoParaAsPecas = new OpcoesDoBancoDoProtheus();
+    configuracao.GetSection(OpcoesDoBancoDoProtheus.Secao).Bind(opcoesDoBancoParaAsPecas);
+
+    if (!opcoesDoBancoParaAsPecas.EstaConfigurada)
+    {
+        Console.Error.WriteLine(
+            "As peças exigem ProtheusBanco__Servidor, __Banco, __Usuario e __Senha — ou a conexão \"Protheus — banco (leitura)\" " +
+            "configurada em Configurações > Integrações. Nada foi lido e nada foi gravado.");
+        return 2;
+    }
+
+    // A SIMULAÇÃO LÊ O CRM COM INTENÇÃO DE LEITURA DECLARADA, como a das ordens de serviço.
+    var opcoesDasPecas = simular
+        ? new DbContextOptionsBuilder<CrmDbContext>()
+            .UseSqlServer(
+                new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(conexaoDoCrm)
+                {
+                    ApplicationIntent = Microsoft.Data.SqlClient.ApplicationIntent.ReadOnly
+                }.ConnectionString,
+                sql => sql.CommandTimeout(600))
+            .Options
+        : new DbContextOptionsBuilder<CrmDbContext>().UseSqlServer(conexaoDoCrm, sql => sql.CommandTimeout(600)).Options;
+
+    Console.WriteLine(simular
+        ? "Peças do Protheus — SIMULAÇÃO: o plano é calculado só com leitura; nenhuma transação é aberta."
+        : "Peças do Protheus — apurando o faturamento e sincronizando os orçamentos.");
+    if (aceitarRemocao) Console.WriteLine("  --aceitar-remocao: as travas de encolhimento não abortam esta rodada.");
+    Console.WriteLine();
+
+    var cargaDasPecas = new CargaDasPecasDoProtheus(
+        () => new CrmDbContext(opcoesDasPecas, contexto, diario), new LeitorDasPecasDoProtheus(opcoesDoBancoParaAsPecas).LerAsync,
+        usuarioId, () => DateTime.UtcNow, Console.WriteLine);
+
+    try
+    {
+        await using var travaDasPecas = simular
+            ? null
+            : await TravaDeFluxo.TomarAsync(AbrirContexto(), Tracbel.Crm.Dominio.Comercial.FaturamentoDePecasNoMes.FluxoDaCarga, CancellationToken.None);
+
+        var resultadoDasPecas = await cargaDasPecas.ExecutarAsync(simular, aceitarRemocao, CancellationToken.None);
+        if (!resultadoDasPecas.EhSucesso)
+        {
+            Console.Error.WriteLine("A CARGA DAS PEÇAS PAROU: " + resultadoDasPecas.Erro);
+            return 3;
+        }
+
+        foreach (var etapa in resultadoDasPecas.Valor.Contagens.GroupBy(c => c.Etapa))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"- {etapa.Key} -");
+            foreach (var (_, rotulo, valor) in etapa)
+                Console.WriteLine($"  {valor,9:N0}  {rotulo}");
+        }
+
+        if (resultadoDasPecas.Valor.Observacoes.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("- Observações -");
+            foreach (var observacao in resultadoDasPecas.Valor.Observacoes) Console.WriteLine("  " + observacao);
+        }
+
+        var relatorioDasPecas = resultadoDasPecas.Valor;
+        Console.WriteLine();
+        Console.WriteLine(Orquestrador.PrefixoDoResumo + string.Format(
+            System.Globalization.CultureInfo.GetCultureInfo("pt-BR"),
+            "{0:N0} combinações do faturamento de peças ({1:N0} com cliente); {2:N0} orçamentos, {3:N0} novos{4}.",
+            relatorioDasPecas.Valor(CargaDasPecasDoProtheus.RotuloDeCombinacoes),
+            relatorioDasPecas.Valor(CargaDasPecasDoProtheus.RotuloDeCombinacoesComCliente),
+            relatorioDasPecas.Valor(CargaDasPecasDoProtheus.RotuloDeOrcamentos),
+            relatorioDasPecas.Valor(CargaDasPecasDoProtheus.RotuloDeNovos),
+            relatorioDasPecas.Simulada ? " (simulação: nada gravado)" : string.Empty));
+        return 0;
+    }
+    catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+    {
+        Console.Error.WriteLine("A CARGA DAS PEÇAS PAROU, e a transação foi desfeita: " + falha.Message);
         if (falha.GetBaseException() is { } causa && !ReferenceEquals(causa, falha))
             Console.Error.WriteLine("  causa: " + causa.Message);
         return 3;

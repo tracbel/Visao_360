@@ -18,13 +18,15 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { BarraDePaginacao } from '../cadastro/BarraDePaginacao';
 import { MenuDaLinha } from '../comum/MenuDaLinha';
 import { ValorAusente } from '../comum/ValorAusente';
+import { NomeDaLoja } from '../mercado/NomeDaLoja';
 import { PainelDoMomento } from '../mercado/momento/pecas';
 import type { MunicipioNoDiagnostico } from '../../tipos/mercado';
 import { acoesDoPlano, n, pct, ROTULO_DA_CLASSE, SEM_ART, variacao, type ColunaDoDiagnostico } from './diagnostico';
 
-const COLUNAS: { chave: ColunaDoDiagnostico; rotulo: string; texto?: boolean; numerica?: boolean; classe?: string }[] = [
+const COLUNAS: { chave: ColunaDoDiagnostico; rotulo: string; texto?: boolean; numerica?: boolean; classe?: string; semSeta?: boolean }[] = [
   { chave: 'nome', rotulo: 'Município', texto: true },
-  { chave: 'loja', rotulo: 'Regional / Loja', texto: true },
+  // A MAQUETE NÃO DESENHA A SETA NA REGIONAL / LOJA: a coluna continua ordenando pelo clique.
+  { chave: 'loja', rotulo: 'Regional / Loja', texto: true, semSeta: true },
   { chave: 'culturaPrincipal', rotulo: 'Cultura principal', texto: true },
   { chave: 'ioc', rotulo: 'IOC' },
   { chave: 'demandaEstrutural', rotulo: 'Demanda (un)', numerica: true },
@@ -87,18 +89,24 @@ export function TabelaDoIoc({
                     #
                   </th>
                   {COLUNAS.map((c) => {
-                    const ativa = ordem.coluna === c.chave;
+                    // A ORDEM PADRÃO (o maior IOC primeiro) TEM A SETA NEUTRA, como a maquete; a seta de sentido aparece quando
+                    // o usuário reordena.
+                    const padrao = ordem.coluna === 'ioc' && ordem.sentido === -1;
+                    const ordenada = ordem.coluna === c.chave;
+                    const ativa = ordenada && !padrao;
                     const Seta = !ativa ? ChevronsUpDown : ordem.sentido === 1 ? ArrowUp : ArrowDown;
                     return (
                       <th
                         key={c.chave}
                         scope="col"
                         className={[c.numerica ? 'mom-num' : '', c.classe ?? ''].join(' ').trim() || undefined}
-                        aria-sort={ativa ? (ordem.sentido === 1 ? 'ascending' : 'descending') : 'none'}
+                        aria-sort={ordenada ? (ordem.sentido === 1 ? 'ascending' : 'descending') : 'none'}
                       >
                         <button type="button" className="diag-ordenar" onClick={() => aoOrdenar(c.chave, c.texto)}>
                           {c.rotulo}
-                          <Seta size={12} strokeWidth={2.2} className={ativa ? 'diag-seta-ativa' : 'diag-seta-inativa'} aria-hidden="true" />
+                          {(!c.semSeta || ativa) && (
+                            <Seta size={11} strokeWidth={2.2} className={ativa ? 'diag-seta-ativa' : 'diag-seta-inativa'} aria-hidden="true" />
+                          )}
                         </button>
                       </th>
                     );
@@ -168,8 +176,8 @@ function Linha({
           {m.nome}
         </button>
       </td>
-      <td className="diag-loja" title={`Região ${m.regiao}${m.responsavel ? ` · CEN ${m.responsavel}` : ''}`}>
-        {m.loja ?? `Região ${m.regiao}`}
+      <td className="diag-loja" title={`${m.loja ? `${m.loja} · ` : ''}Região ${m.regiao}${m.responsavel ? ` · CEN ${m.responsavel}` : ''}`}>
+        {m.loja ? <NomeDaLoja nome={m.loja} /> : `Região ${m.regiao}`}
       </td>
       <td>
         {m.culturaPrincipal ? (

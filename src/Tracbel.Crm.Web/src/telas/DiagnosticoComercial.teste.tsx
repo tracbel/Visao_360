@@ -176,8 +176,11 @@ describe('Diagnóstico Comercial (issue 257, maquete de 02/10/2026)', () => {
     montar();
     await aTabela();
 
-    expect(kpi('Municípios prioritários')).toHaveTextContent('2de 4');
+    // OS TEXTOS DA MAQUETE: "prioridade acima da média", sem o "de N" (que foi para a dica), e o gráfico pequeno por classe.
+    expect(kpi('Municípios prioritários')).toHaveTextContent('Municípios prioritários2prioridade acima da média');
     expect(kpi('Municípios prioritários')).toHaveTextContent('(IOC médio: 60)');
+    expect(within(kpi('Municípios prioritários') as HTMLElement).getByRole('img', { name: /Municípios por classe/ })).toBeInTheDocument();
+    expect(kpi('Demanda anual')).toHaveTextContent(/Trator - (ajustada pelo momento; estimativa|estrutural)/);
     expect(kpi('Demanda anual')).toHaveTextContent('33unidades');
     expect(kpi('Meta de planejamento')).toHaveTextContent('share-alvo de 31%');
     expect(screen.getByRole('img', { name: 'Share-alvo de 31%' })).toBeInTheDocument();
@@ -216,7 +219,7 @@ describe('Diagnóstico Comercial (issue 257, maquete de 02/10/2026)', () => {
     fireEvent.change(campo('Cultura principal'), { target: { value: 'Soja' } });
 
     expect(nomesNaTabela()).toEqual(['Araraquara']);
-    expect(kpi('Municípios prioritários')).toHaveTextContent('1de 1');
+    expect(kpi('Municípios prioritários')).toHaveTextContent('Municípios prioritários1prioridade');
     expect(screen.getByText(/só a cultura principal Soja/)).toBeInTheDocument();
     expect(pedidos.length).toBe(antes);
   });
@@ -260,7 +263,7 @@ describe('Diagnóstico Comercial (issue 257, maquete de 02/10/2026)', () => {
 
     const ficha = () => document.querySelector('[data-bloco="ficha"]') as HTMLElement;
     expect(within(ficha()).getByText('Onde agir primeiro')).toBeInTheDocument();
-    expect(within(ficha()).getAllByText('Região Norte • Alfa M. Cruz').length).toBeGreaterThan(0);
+    expect(within(ficha()).getAllByText('Regional Norte • Alfa M. Cruz').length).toBeGreaterThan(0);
 
     fireEvent.click(within(screen.getByRole('table')).getByRole('button', { name: 'Barretos' }));
 

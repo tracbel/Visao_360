@@ -102,7 +102,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         {
                             t.HasCheckConstraint("CK_AlteracaoDeCampo_Campo", "[Campo] COLLATE Latin1_General_BIN2 LIKE '[A-Z]%' AND [Campo] COLLATE Latin1_General_BIN2 NOT LIKE '%[^A-Za-z0-9]%'");
 
-                            t.HasCheckConstraint("CK_AlteracaoDeCampo_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CoberturaDoEstoque', 'CompradorPendente', 'Conexao', 'ConferenciaDaGestaoDeNegocios', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotaDeConsorcioVendida', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EquipamentoEmEstoque', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FinanciamentoDaVenda', 'ForecastDaGerencia', 'FrotaDeTratoresNoMunicipio', 'GestorDoConsultor', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'OrdemDeServico', 'ParametroDoPlanejamento', 'ParametroDoPotencial', 'PercepcaoDaCultura', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'PrecoDeMaquinaNoMes', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'ShareAlvoDaCategoria', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'UtilizacaoDasTerrasNoMunicipio', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
+                            t.HasCheckConstraint("CK_AlteracaoDeCampo_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CoberturaDoEstoque', 'CompradorPendente', 'Conexao', 'ConferenciaDaGestaoDeNegocios', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotaDeConsorcioVendida', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EquipamentoEmEstoque', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDePecasNoMes', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FinanciamentoDaVenda', 'ForecastDaGerencia', 'FrotaDeTratoresNoMunicipio', 'GestorDoConsultor', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'OrcamentoDePecas', 'OrdemDeServico', 'ParametroDoPlanejamento', 'ParametroDoPotencial', 'PercepcaoDaCultura', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'PrecoDeMaquinaNoMes', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'ShareAlvoDaCategoria', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'UtilizacaoDasTerrasNoMunicipio', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
 
                             t.HasCheckConstraint("CK_AlteracaoDeCampo_Mudou", "([ValorAnterior] IS NOT NULL OR [ValorNovo] IS NOT NULL) AND ([ValorAnterior] IS NULL OR [ValorNovo] IS NULL OR [ValorAnterior] <> [ValorNovo])");
 
@@ -711,6 +711,137 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Tracbel.Crm.Dominio.Comercial.FaturamentoDePecasNoMes", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("AlteradoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<long?>("AlteradoPorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ApuradoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid>("ChavePublica")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<long?>("ClienteId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateOnly>("Competencia")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<long>("CriadoPorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExcluidoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Grupo")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int>("Itens")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Linha")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<decimal>("Quantidade")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Setor")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int>("SistemaId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ValorDeDesconto")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ValorDeDevolucoes")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ValorDeTabela")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ValorLiquido")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("VendedorCodigo")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("VendedorNome")
+                        .HasMaxLength(120)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<byte[]>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChavePublica")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FaturamentoDePecasNoMes_ChavePublica");
+
+                    b.HasIndex("ClienteId", "Competencia")
+                        .HasDatabaseName("IX_FaturamentoDePecasNoMes_Cliente")
+                        .HasFilter("[ClienteId] IS NOT NULL");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ClienteId", "Competencia"), new[] { "Setor", "Grupo", "ValorLiquido" });
+
+                    b.HasIndex("EmpresaId", "Competencia")
+                        .HasDatabaseName("IX_FaturamentoDePecasNoMes_Empresa");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EmpresaId", "Competencia"), new[] { "Setor", "Grupo", "ValorLiquido" });
+
+                    b.HasIndex("SistemaId", "Competencia")
+                        .HasDatabaseName("IX_FaturamentoDePecasNoMes_Sistema_Competencia");
+
+                    b.ToTable("FaturamentoDePecasNoMes", "comercial", t =>
+                        {
+                            t.HasCheckConstraint("CK_FaturamentoDePecasNoMes_Competencia", "DAY([Competencia]) = 1");
+
+                            t.HasCheckConstraint("CK_FaturamentoDePecasNoMes_Itens", "[Itens] > 0");
+                        });
+                });
+
             modelBuilder.Entity("Tracbel.Crm.Dominio.Comercial.FaturamentoDoCliente", b =>
                 {
                     b.Property<long>("Id")
@@ -927,6 +1058,157 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                             t.HasCheckConstraint("CK_FaturamentoSemCliente_Natureza", "[Natureza] IN ('Indefinida','ClienteNaoCadastrado','Fabrica','EmpresaDoGrupo','OutraRevenda','SemDocumento')");
 
                             t.HasCheckConstraint("CK_FaturamentoSemCliente_Valor", "[ValorLiquido] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Tracbel.Crm.Dominio.Comercial.OrcamentoDePecas", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("AlteradoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateOnly?>("AlteradoNaOrigemEm")
+                        .HasColumnType("date");
+
+                    b.Property<long?>("AlteradoPorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ChaveNaOrigem")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<Guid>("ChavePublica")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<long?>("ClienteId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<long>("CriadoPorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExcluidoEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("HashDaOrigem")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("Itens")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LidaEm")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateOnly>("OrcadoEm")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Prazo")
+                        .HasMaxLength(60)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Reserva")
+                        .HasMaxLength(60)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int>("SistemaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Situacao")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("TipoDeAtendimento")
+                        .HasMaxLength(60)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("TipoDeOrcamento")
+                        .HasMaxLength(60)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<DateOnly?>("ValidoAte")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("ValorDeDesconto")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ValorTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("VendedorCodigo")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("VendedorNome")
+                        .HasMaxLength(120)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<byte[]>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChavePublica")
+                        .IsUnique()
+                        .HasDatabaseName("UX_OrcamentoDePecas_ChavePublica");
+
+                    b.HasIndex("ClienteId")
+                        .HasDatabaseName("IX_OrcamentoDePecas_Cliente")
+                        .HasFilter("[ClienteId] IS NOT NULL AND [ExcluidoEm] IS NULL");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ClienteId"), new[] { "Situacao", "OrcadoEm", "ValidoAte", "ValorTotal" });
+
+                    b.HasIndex("EmpresaId", "Situacao")
+                        .HasDatabaseName("IX_OrcamentoDePecas_Empresa_Situacao")
+                        .HasFilter("[ExcluidoEm] IS NULL");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EmpresaId", "Situacao"), new[] { "OrcadoEm", "ValorTotal" });
+
+                    b.HasIndex("SistemaId", "ChaveNaOrigem")
+                        .IsUnique()
+                        .HasDatabaseName("UX_OrcamentoDePecas_Sistema_Chave");
+
+                    b.ToTable("OrcamentoDePecas", "comercial", t =>
+                        {
+                            t.HasCheckConstraint("CK_OrcamentoDePecas_Itens", "[Itens] > 0");
                         });
                 });
 
@@ -1973,7 +2255,7 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
 
                     b.ToTable("ChaveExterna", "integracao", t =>
                         {
-                            t.HasCheckConstraint("CK_ChaveExterna_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CoberturaDoEstoque', 'CompradorPendente', 'Conexao', 'ConferenciaDaGestaoDeNegocios', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotaDeConsorcioVendida', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EquipamentoEmEstoque', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FinanciamentoDaVenda', 'ForecastDaGerencia', 'FrotaDeTratoresNoMunicipio', 'GestorDoConsultor', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'OrdemDeServico', 'ParametroDoPlanejamento', 'ParametroDoPotencial', 'PercepcaoDaCultura', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'PrecoDeMaquinaNoMes', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'ShareAlvoDaCategoria', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'UtilizacaoDasTerrasNoMunicipio', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
+                            t.HasCheckConstraint("CK_ChaveExterna_Entidade", "[Entidade] COLLATE Latin1_General_BIN2 IN ('AlteracaoDeCampo', 'AreaTerritorialDoMunicipio', 'CanalContato', 'Carteira', 'CarteiraMunicipio', 'Catalogo', 'CatalogoItem', 'CategoriaDeMaquina', 'ChaveExterna', 'ClassificacaoDeResultadoDoVortice', 'Cliente', 'ClienteCarteira', 'ClienteContato', 'CoberturaDoEstoque', 'CompradorPendente', 'Conexao', 'ConferenciaDaGestaoDeNegocios', 'Contato', 'CorrespondenciaDaOrigem', 'CorrespondenciaDeMunicipio', 'CotaDeConsorcioVendida', 'CotacaoDeProduto', 'CotacaoDoDolar', 'CreditoRuralDeInvestimento', 'Cultura', 'CulturaNoGrupoDeCompartilhamento', 'CustoDeProducao', 'DivergenciaDeIntegracao', 'Empresa', 'Endereco', 'Equipamento', 'EquipamentoEmEstoque', 'EstabelecimentosPorAreaNoMunicipio', 'EstagioDoProcesso', 'ExecucaoDeRotina', 'ExecucaoDeSincronizacao', 'Familia', 'Fase', 'FaturamentoDePecasNoMes', 'FaturamentoDoCliente', 'FaturamentoSemCliente', 'FinanciamentoDaVenda', 'ForecastDaGerencia', 'FrotaDeTratoresNoMunicipio', 'GestorDoConsultor', 'GrupoDeCompartilhamento', 'Interacao', 'ItemDoSicor', 'LinhaDeNegocio', 'LinhaDeProduto', 'LinhaDeProdutoNaCategoria', 'Marca', 'MedidaDoIbgeNoEstado', 'MensagemDescartada', 'MetaDeVenda', 'Modelo', 'MotivoDePerda', 'Municipio', 'MunicipioDaAreaDeAtuacao', 'OrcamentoDePecas', 'OrdemDeServico', 'ParametroDoPlanejamento', 'ParametroDoPotencial', 'PercepcaoDaCultura', 'PercepcaoDoGestor', 'Perfil', 'PerfilPermissao', 'PontoDeSincronismo', 'PrecoDeMaquinaNoMes', 'Processo', 'ProducaoAgricolaNoEstado', 'ProducaoAgricolaNoMunicipio', 'ProducaoDeMilhoPorSafraNoMunicipio', 'ProdutoDaPamNaCultura', 'ProdutoDoSicorNaCategoria', 'RebanhoNoMunicipio', 'RegistroDeOrigem', 'RegraDePotencial', 'ResponsavelPeloMunicipio', 'Resultado', 'Rotina', 'ShareAlvoDaCategoria', 'Sistema', 'Tarefa', 'TipoProcesso', 'TipoTarefa', 'UsinaDeEtanol', 'Usuario', 'UsuarioPerfil', 'UtilizacaoDasTerrasNoMunicipio', 'VendaDeMaquina', 'VendaPerdida', 'VerificacaoDeConexao', 'VinculoDeClienteComEquipamento')");
                         });
                 });
 
@@ -9354,6 +9636,26 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("Tracbel.Crm.Dominio.Comercial.FaturamentoDePecasNoMes", b =>
+                {
+                    b.HasOne("Tracbel.Crm.Dominio.Comercial.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Tracbel.Crm.Dominio.Organizacao.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Tracbel.Crm.Dominio.Integracao.Sistema", null)
+                        .WithMany()
+                        .HasForeignKey("SistemaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Tracbel.Crm.Dominio.Comercial.FaturamentoDoCliente", b =>
                 {
                     b.HasOne("Tracbel.Crm.Dominio.Comercial.Cliente", null)
@@ -9374,6 +9676,26 @@ namespace Tracbel.Crm.Infraestrutura.Migrations
                     b.HasOne("Tracbel.Crm.Dominio.Organizacao.Empresa", null)
                         .WithMany()
                         .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Tracbel.Crm.Dominio.Comercial.OrcamentoDePecas", b =>
+                {
+                    b.HasOne("Tracbel.Crm.Dominio.Comercial.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Tracbel.Crm.Dominio.Organizacao.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Tracbel.Crm.Dominio.Integracao.Sistema", null)
+                        .WithMany()
+                        .HasForeignKey("SistemaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

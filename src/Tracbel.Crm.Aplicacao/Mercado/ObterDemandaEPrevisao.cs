@@ -22,6 +22,11 @@ namespace Tracbel.Crm.Aplicacao.Mercado;
 ///
 /// <para><b>O mês é o do ano fiscal</b> (novembro a outubro): a previsão mensal começa em novembro, como o ano da
 /// Tracbel.</para>
+///
+/// <para><b>A maquete do Ricardo de 02/10/2026</b> acrescentou, com as decisões dele: a ENTREGA REALIZADA do ART mês a mês,
+/// pela data da entrega, no ano fiscal escolhido; o mesmo trecho do ano fiscal anterior para comparar; e a demanda com a
+/// área plantada do ANO ANTERIOR da PAM — parque, demanda, culturas com aumento de área e a variação de cada município.
+/// O filtro de cultura recorta a demanda; a entrega não tem cultura, e com ele fica de fora, com o motivo.</para>
 /// </summary>
 public sealed class ObterDemandaEPrevisao(
     IRepositorioIndicadoresTerritoriais territorio,
@@ -29,9 +34,12 @@ public sealed class ObterDemandaEPrevisao(
     IRepositorioDoPlanejamento planejamento,
     IRepositorioDeParametrosDoPotencial parametros,
     IRepositorioDoCatalogoNoPotencial catalogo,
+    IRepositorioDeEntregas entregas,
     IProvedorContextoAcesso acesso,
     IRelogio relogio)
 {
+    /// <summary>Quantos anos fiscais o filtro "Período" oferece: o corrente e os anteriores.</summary>
+    public const int AnosFiscaisNoFiltro = 4;
     private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
 
     /// <summary>A categoria de todas — a soma das que têm demanda.</summary>
@@ -49,10 +57,28 @@ public sealed class ObterDemandaEPrevisao(
     /// <param name="visao"><c>Filial</c> (padrão) ou <c>Empresa</c>.</param>
     /// <param name="categoria">O código da categoria de máquina, ou <c>TODAS</c>. Nulo é trator.</param>
     /// <param name="ct">Cancelamento.</param>
+    /// <param name="anoFiscal">O ano fiscal das entregas (<c>2026</c> é nov/2025 a out/2026); nulo é o corrente.</param>
+    /// <param name="cultura">O código da cultura que recorta a demanda; nulo é todas.</param>
     public async Task<Resultado<ComProcedencia<DemandaEPrevisaoDaRegiao>>> ExecutarAsync(
-        string? regiao, string? lojaCodigo, string? visao, string? categoria, CancellationToken ct)
+        string? regiao, string? lojaCodigo, string? visao, string? categoria, CancellationToken ct,
+        string? anoFiscal = null, string? cultura = null)
     {
         var (filtros, erros, semPermissao) = await FiltrosDeAlcance.LerAsync(territorio, acesso.Atual, visao, null, null, null, null, ct);
+
+        var anoFiscalCorrente = AnoFiscal.Do(AnoFiscal.MesCorrenteEmSaoPaulo(relogio.Agora));
+        var anoEscolhido = anoFiscalCorrente;
+        if (!string.IsNullOrWhiteSpace(anoFiscal))
+        {
+            if (int.TryParse(anoFiscal.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var lido)
+                && lido <= anoFiscalCorrente && lido > anoFiscalCorrente - AnosFiscaisNoFiltro)
+                anoEscolhido = lido;
+            else
+                erros.Registrar("anoFiscal",
+                    $"Informe um ano fiscal de {anoFiscalCorrente - AnosFiscaisNoFiltro + 1} a {anoFiscalCorrente} (2026 é nov/2025 a out/2026).",
+                    anoFiscal);
+        }
+
+        var culturaPedida = string.IsNullOrWhiteSpace(cultura) ? null : cultura.Trim().ToUpperInvariant();
 
         RegiaoDaAreaDeAtuacao? regiaoEscolhida = null;
         if (!string.IsNullOrWhiteSpace(regiao))
@@ -87,7 +113,7 @@ public sealed class ObterDemandaEPrevisao(
             new ConsultaDeIndicadoresTerritoriais(
                 ultimoFechado.AddMonths(-11), ultimoFechado, regiaoEscolhida,
                 string.IsNullOrWhiteSpace(lojaCodigo) ? null : lojaCodigo.Trim(),
-                filtros!.Visao, null, null, null, null, mesCorrente),
+                filtros!.Visao, null, null, null, null, mesCorrente, ComDemandaDoAnoAnterior: true),
             agora,
             ct);
 
@@ -108,9 +134,27 @@ public sealed class ObterDemandaEPrevisao(
 
         // AS PARCELAS DA CATEGORIA, AJUSTADAS: cada cultura de cada município com o preço dela, o crédito do município e
         // a percepção da cultura somada à do município — a mesma conta do Diagnóstico e dos Indicadores.
+        // A CULTURA RECORTA A DEMANDA (02/10/2026): a cultura pedida tem de existir entre as parcelas da categoria no recorte
+        // — senão é recusada, e não devolve uma tela vazia sem dizer por quê.
+        bool DaCategoria(DemandaNoMunicipio p) => todas || string.Equals(p.CategoriaCodigo, codigoDaCategoria, StringComparison.Ordinal);
+        bool DaCultura(DemandaNoMunicipio p) => culturaPedida is null || string.Equals(p.CulturaCodigo, culturaPedida, StringComparison.OrdinalIgnoreCase);
+
+        var culturasDaCategoria = daAdr
+            .SelectMany(m => (m.DemandaPorCategoriaECultura ?? []).Where(DaCategoria))
+            .Select(p => (p.CulturaCodigo, p.Cultura))
+            .DistinctBy(c => c.CulturaCodigo, StringComparer.Ordinal)
+            .OrderBy(c => c.Cultura, StringComparer.Create(PtBr, ignoreCase: true))
+            .ToList();
+        if (culturaPedida is not null && !culturasDaCategoria.Any(c => string.Equals(c.CulturaCodigo, culturaPedida, StringComparison.OrdinalIgnoreCase)))
+        {
+            var errosDaCultura = new ColetorDeErros();
+            errosDaCultura.Registrar("cultura", "Esta cultura não tem demanda na categoria e no recorte escolhidos.", cultura);
+            return errosDaCultura.Recusar<ComProcedencia<DemandaEPrevisaoDaRegiao>>("A consulta tem parâmetros que não valem.");
+        }
+
         var parcelas = daAdr
             .SelectMany(m => (m.DemandaPorCategoriaECultura ?? [])
-                .Where(p => todas || string.Equals(p.CategoriaCodigo, codigoDaCategoria, StringComparison.Ordinal))
+                .Where(p => DaCategoria(p) && DaCultura(p))
                 .Select(p =>
                 {
                     var ajuste = FatorDeCiclo.Ajustar(
@@ -127,16 +171,72 @@ public sealed class ObterDemandaEPrevisao(
         var comDemanda = parcelas.Where(p => p.Demanda.DemandaAnual is not null).ToList();
         var fracoes = MesesDoAnoFiscal.ToDictionary(mes => mes, mes => doPlanejamento?.FracaoDoMes(mes) ?? 1m / 12m);
 
-        var totais = Totais(parcelas, comDemanda, daAdr.Count, indicadores.Regras, codigoDaCategoria, todas);
-        var porCultura = PorCultura(parcelas);
+        // O ANO ANTERIOR DA PAM — as mesmas parcelas com a área de um ano antes, cada cultura no dela. Sem ajuste: o momento é
+        // o de hoje, e a comparação é de estrutural com estrutural.
+        var anteriores = daAdr
+            .SelectMany(m => (m.DemandaNoAnoAnterior ?? []).Where(p => DaCategoria(p) && DaCultura(p)).Select(p => (Municipio: m.CodigoIbge, Demanda: p)))
+            .ToList();
+
+        // AS ENTREGAS DO ART NO ANO FISCAL ESCOLHIDO E NO ANTERIOR, pela data da entrega, dos compradores dos municípios do
+        // recorte e das categorias da demanda. Sem venda do ART na apuração, ou com uma cultura escolhida, ficam nulas.
+        var fiscal = AnoFiscal.Inteiro(anoEscolhido);
+        var inicioDoAno = fiscal.Inicial;
+        var fimDoAno = fiscal.Final.AddMonths(1);
+        var amanha = ParametroComVigencia.HojeNoBrasil(agora).AddDays(1);
+        var corte = fimDoAno < amanha ? fimDoAno : amanha;
+        var semArt = indicadores.MaquinasVendidas is null;
+        var comEntregas = !semArt && culturaPedida is null;
+        IReadOnlyList<DateOnly> entregues = [];
+        if (comEntregas)
+        {
+            var doRecorte = daAdr.Select(m => m.CodigoIbge).ToHashSet();
+            var categoriasDaDemanda = todas
+                ? comDemanda.Select(p => p.Demanda.CategoriaCodigo).ToHashSet(StringComparer.Ordinal)
+                : new HashSet<string>([codigoDaCategoria], StringComparer.Ordinal);
+            entregues = [.. (await entregas.ListarAsync(inicioDoAno.AddYears(-1), fimDoAno, ct))
+                .Where(e => e.MunicipioIbge is { } codigo && doRecorte.Contains(codigo)
+                            && e.CategoriaCodigo is { } c && categoriasDaDemanda.Contains(c))
+                .Select(e => e.EntregueEm)];
+        }
+
+        var totais = Totais(parcelas, comDemanda, daAdr.Count, indicadores.Regras, codigoDaCategoria, todas) with
+        {
+            ParqueAnoAnterior = Arredondar(SomaOuNulo(anteriores.Select(a => a.Demanda.Parque))),
+            DemandaEstruturalAnoAnterior = Arredondar(SomaOuNulo(anteriores.Select(a => a.Demanda.DemandaAnual))),
+            EntreguesNoPeriodo = comEntregas ? entregues.Count(d => d >= inicioDoAno && d < corte) : null,
+            EntreguesNoPeriodoAnterior = comEntregas ? entregues.Count(d => d >= inicioDoAno.AddYears(-1) && d < corte.AddYears(-1)) : null,
+            EntregasAte = comEntregas ? corte.AddDays(-1) : null
+        };
+        var porCultura = PorCultura(parcelas, anteriores.Select(a => a.Demanda).ToList());
+        totais = totais with
+        {
+            CulturasComAumentoDeArea =
+            [
+                .. porCultura
+                    .Where(c => c.AreaUtilHectares is { } atual && c.AreaAnoAnterior is { } antes && atual > antes)
+                    .Select(c => c.Cultura)
+            ]
+        };
+
+        var mesCorrenteDoAno = AnoFiscal.MesCorrenteEmSaoPaulo(agora);
         var previsao = MesesDoAnoFiscal
-            .Select(mes => new PrevisaoDoMes(
-                mes,
-                decimal.Round(fracoes[mes], 4),
-                Vezes(totais.DemandaEstrutural, fracoes[mes]),
-                Vezes(totais.DemandaAjustada, fracoes[mes]),
-                Vezes(totais.AEntregar, fracoes[mes]),
-                Vezes(totais.AEntregarAjustada, fracoes[mes])))
+            .Select(mes =>
+            {
+                // O MÊS NO ANO FISCAL ESCOLHIDO: novembro e dezembro são do ano civil anterior. Mês que ainda não começou não
+                // tem entrega — nulo, e não zero.
+                var competencia = new DateOnly(mes >= AnoFiscal.MesInicial ? anoEscolhido - 1 : anoEscolhido, mes, 1);
+                int? noMes = comEntregas && competencia <= mesCorrenteDoAno
+                    ? entregues.Count(d => d.Year == competencia.Year && d.Month == competencia.Month)
+                    : null;
+                return new PrevisaoDoMes(
+                    mes,
+                    decimal.Round(fracoes[mes], 4),
+                    Vezes(totais.DemandaEstrutural, fracoes[mes]),
+                    Vezes(totais.DemandaAjustada, fracoes[mes]),
+                    Vezes(totais.AEntregar, fracoes[mes]),
+                    Vezes(totais.AEntregarAjustada, fracoes[mes]),
+                    noMes);
+            })
             .ToList();
 
         var porLoja = comDemanda
@@ -154,7 +254,10 @@ public sealed class ObterDemandaEPrevisao(
             .ToList();
 
         var municipios = daAdr
-            .Select(m => Municipio(m, parcelas.Where(p => p.Municipio.CodigoIbge == m.CodigoIbge).ToList()))
+            .Select(m => Municipio(
+                m,
+                parcelas.Where(p => p.Municipio.CodigoIbge == m.CodigoIbge).ToList(),
+                [.. anteriores.Where(a => a.Municipio == m.CodigoIbge).Select(a => a.Demanda)]))
             .OrderByDescending(m => m.DemandaAjustada ?? m.DemandaEstrutural ?? -1)
             .ThenBy(m => m.Nome, StringComparer.Create(PtBr, ignoreCase: true))
             .ToList();
@@ -193,7 +296,12 @@ public sealed class ObterDemandaEPrevisao(
             porLoja,
             municipios,
             culturas,
-            Lacunas(indicadores, doPlanejamento, gerais, todas, codigoDaCategoria, shareDe, comDemanda));
+            Lacunas(indicadores, doPlanejamento, gerais, todas, codigoDaCategoria, shareDe, comDemanda, semArt, culturaPedida is not null, anteriores.Count > 0),
+            anoEscolhido,
+            [.. Enumerable.Range(0, AnosFiscaisNoFiltro).Select(i => anoFiscalCorrente - i)],
+            culturaPedida is null ? null : culturasDaCategoria.First(c => string.Equals(c.CulturaCodigo, culturaPedida, StringComparison.OrdinalIgnoreCase)).CulturaCodigo,
+            [.. culturasDaCategoria.Select(c => new CulturaDaMatriz(c.CulturaCodigo, c.Cultura, null))],
+            indicadores.AnoDaAreaPlantada is { } anoDaArea ? (short)(anoDaArea - 1) : null);
 
         return Resultado<ComProcedencia<DemandaEPrevisaoDaRegiao>>.Ok(
             ComProcedencia<DemandaEPrevisaoDaRegiao>.DoNossoBanco(
@@ -232,7 +340,7 @@ public sealed class ObterDemandaEPrevisao(
             parcelas.Any(p => p.Ajuste.Fator.Estimativa));
     }
 
-    private static List<DemandaDaCultura> PorCultura(List<Parcela> parcelas) =>
+    private static List<DemandaDaCultura> PorCultura(List<Parcela> parcelas, List<DemandaNoMunicipio> anteriores) =>
     [
         .. parcelas
             .GroupBy(p => (p.Demanda.CulturaCodigo, p.Demanda.Cultura))
@@ -243,6 +351,7 @@ public sealed class ObterDemandaEPrevisao(
                 var demanda = SomaOuNulo(g.Select(p => p.Demanda.DemandaAnual));
                 var ajustadas = g.Where(p => p.Demanda.DemandaAnual is not null).Select(p => p.Ajuste.DemandaAjustada).ToList();
                 decimal? ajustada = ajustadas.Count > 0 && ajustadas.All(a => a is not null) ? ajustadas.Sum() : null;
+                var antes = anteriores.Where(a => string.Equals(a.CulturaCodigo, g.Key.CulturaCodigo, StringComparison.Ordinal)).ToList();
                 return new DemandaDaCultura(
                     g.Key.CulturaCodigo,
                     g.Key.Cultura,
@@ -254,15 +363,19 @@ public sealed class ObterDemandaEPrevisao(
                     Arredondar(parque),
                     Arredondar(demanda),
                     Arredondar(ajustada),
-                    demanda is > 0 && ajustada is { } a ? decimal.Round((a / demanda.Value - 1) * 100m, 1) : null);
+                    demanda is > 0 && ajustada is { } a ? decimal.Round((a / demanda.Value - 1) * 100m, 1) : null,
+                    Arredondar(SomaOuNulo(antes.Select(x => x.AreaUtilHectares))),
+                    Arredondar(SomaOuNulo(antes.Select(x => x.Parque))),
+                    Arredondar(SomaOuNulo(antes.Select(x => x.DemandaAnual))));
             })
             .OrderByDescending(c => c.DemandaEstrutural ?? -1)
     ];
 
-    private static DemandaDoMunicipioNaPrevisao Municipio(IndicadoresDoMunicipio m, List<Parcela> doMunicipio)
+    private static DemandaDoMunicipioNaPrevisao Municipio(IndicadoresDoMunicipio m, List<Parcela> doMunicipio, List<DemandaNoMunicipio> anteriores)
     {
         var comDemanda = doMunicipio.Where(p => p.Demanda.DemandaAnual is not null).ToList();
         var estrutural = SomaOuNulo(comDemanda.Select(p => p.Demanda.DemandaAnual));
+        var antes = SomaOuNulo(anteriores.Select(a => a.DemandaAnual));
         var ajustadas = comDemanda.Select(p => p.Ajuste.DemandaAjustada).ToList();
         decimal? ajustada = ajustadas.Count > 0 && ajustadas.All(a => a is not null) ? ajustadas.Sum() : null;
 
@@ -301,7 +414,10 @@ public sealed class ObterDemandaEPrevisao(
             Ponderado(f => f.ParcelaDePreco),
             Ponderado(f => f.ParcelaDeCredito),
             predominante,
-            estrutural is > 0 && ajustada is { } a ? decimal.Round((a / estrutural.Value - 1) * 100m, 1) : null);
+            estrutural is > 0 && ajustada is { } a ? decimal.Round((a / estrutural.Value - 1) * 100m, 1) : null,
+            Arredondar(antes),
+            // A VARIAÇÃO CONTRA O ANO ANTERIOR é de estrutural com estrutural: a área plantada mudou, e só ela.
+            estrutural is { } e && antes is > 0 ? decimal.Round((e / antes.Value - 1) * 100m, 1) : null);
     }
 
     private static List<MetricaSemDado> Lacunas(
@@ -311,9 +427,31 @@ public sealed class ObterDemandaEPrevisao(
         bool todas,
         string categoria,
         IReadOnlyDictionary<string, ShareAlvoDaCategoria> shareDe,
-        List<Parcela> comDemanda)
+        List<Parcela> comDemanda,
+        bool semArt,
+        bool comCultura,
+        bool comAnoAnterior)
     {
         var lacunas = new List<MetricaSemDado>();
+
+        if (semArt)
+            lacunas.Add(new MetricaSemDado(
+                "entregaRealizada",
+                "O ART não trouxe venda de máquina ao alcance desta consulta: a entrega realizada e o atendimento ficam vazios. Ausência de carga não é entrega zero."));
+        else if (comCultura)
+            lacunas.Add(new MetricaSemDado(
+                "entregaPorCultura",
+                "A máquina entregue não diz para que cultura foi: com uma cultura escolhida, a entrega realizada e o atendimento ficam de fora."));
+        else
+            lacunas.Add(new MetricaSemDado(
+                "entregaRealizada",
+                "A entrega realizada é a do ART pela data da ENTREGA (a régua da Gestão de Negócios), dos compradores com endereço principal nos municípios do recorte e das categorias da demanda. A venda sem categoria ou sem endereço fica de fora."));
+
+        lacunas.Add(new MetricaSemDado(
+            "anoAnterior",
+            comAnoAnterior
+                ? "O ano anterior é a mesma conta com a área plantada da PAM de um ano antes, cada cultura no dela, e pelas regras de hoje: a variação é da área, e só dela. A demanda ajustada não se compara — o momento é o de hoje."
+                : "A PAM não tem o ano anterior das culturas do recorte: as comparações com o ano anterior ficam vazias."));
 
         if (doPlanejamento is null)
             lacunas.Add(new MetricaSemDado(
@@ -381,6 +519,11 @@ public sealed class ObterDemandaEPrevisao(
 /// <param name="Municipios">A matriz município × potencial.</param>
 /// <param name="Culturas">As culturas da matriz, da maior demanda para a menor — as colunas.</param>
 /// <param name="Lacunas">O que a leitura não afirma, com o motivo.</param>
+/// <param name="AnoFiscal">O ano fiscal das entregas (2026 é nov/2025 a out/2026).</param>
+/// <param name="AnosFiscais">Os anos fiscais que o filtro "Período" oferece, do mais novo para o mais velho.</param>
+/// <param name="Cultura">O código da cultura que recorta a demanda; nulo é todas.</param>
+/// <param name="CulturasDoFiltro">As culturas com demanda na categoria e no recorte — o filtro "Cultura".</param>
+/// <param name="AnoDaAreaAnterior">O ano da PAM da comparação — um antes do da área plantada.</param>
 public sealed record DemandaEPrevisaoDaRegiao(
     string Categoria,
     string CategoriaNome,
@@ -396,7 +539,12 @@ public sealed record DemandaEPrevisaoDaRegiao(
     IReadOnlyList<EntregaDaLoja> PorLoja,
     IReadOnlyList<DemandaDoMunicipioNaPrevisao> Municipios,
     IReadOnlyList<CulturaDaMatriz> Culturas,
-    IReadOnlyList<MetricaSemDado> Lacunas);
+    IReadOnlyList<MetricaSemDado> Lacunas,
+    int AnoFiscal = 0,
+    IReadOnlyList<int>? AnosFiscais = null,
+    string? Cultura = null,
+    IReadOnlyList<CulturaDaMatriz>? CulturasDoFiltro = null,
+    short? AnoDaAreaAnterior = null);
 
 /// <summary>Os números do topo.</summary>
 /// <param name="Parque">As máquinas que a área da região comporta.</param>
@@ -408,6 +556,12 @@ public sealed record DemandaEPrevisaoDaRegiao(
 /// <param name="Municipios">Municípios da ADR no recorte.</param>
 /// <param name="MunicipiosComDemanda">Deles, os com demanda.</param>
 /// <param name="Estimativa">Se algum parâmetro usado ainda está a confirmar.</param>
+/// <param name="ParqueAnoAnterior">O parque com a área do ano anterior da PAM.</param>
+/// <param name="DemandaEstruturalAnoAnterior">A demanda estrutural com a área do ano anterior.</param>
+/// <param name="CulturasComAumentoDeArea">As culturas cuja área útil no recorte cresceu sobre o ano anterior.</param>
+/// <param name="EntreguesNoPeriodo">As máquinas entregues no ano fiscal até hoje (ou nele inteiro, se já fechou); nulo sem ART ou com cultura.</param>
+/// <param name="EntreguesNoPeriodoAnterior">O mesmo trecho do ano fiscal anterior.</param>
+/// <param name="EntregasAte">O último dia contado nas entregas.</param>
 public sealed record TotaisDaDemanda(
     decimal? Parque,
     decimal? DemandaEstrutural,
@@ -417,7 +571,13 @@ public sealed record TotaisDaDemanda(
     IReadOnlyList<string> CulturasComRegra,
     int Municipios,
     int MunicipiosComDemanda,
-    bool Estimativa);
+    bool Estimativa,
+    decimal? ParqueAnoAnterior = null,
+    decimal? DemandaEstruturalAnoAnterior = null,
+    IReadOnlyList<string>? CulturasComAumentoDeArea = null,
+    int? EntreguesNoPeriodo = null,
+    int? EntreguesNoPeriodoAnterior = null,
+    DateOnly? EntregasAte = null);
 
 /// <summary>Uma cultura na tabela de parâmetros.</summary>
 /// <param name="CulturaCodigo">O código.</param>
@@ -429,6 +589,9 @@ public sealed record TotaisDaDemanda(
 /// <param name="DemandaEstrutural">A renovação anual.</param>
 /// <param name="DemandaAjustada">A mesma pelo momento.</param>
 /// <param name="VariacaoPercentual">Quanto a ajustada difere da estrutural.</param>
+/// <param name="AreaAnoAnterior">A área útil com a PAM do ano anterior.</param>
+/// <param name="ParqueAnoAnterior">O parque com ela.</param>
+/// <param name="DemandaAnoAnterior">A demanda estrutural com ela.</param>
 public sealed record DemandaDaCultura(
     string CulturaCodigo,
     string Cultura,
@@ -438,7 +601,10 @@ public sealed record DemandaDaCultura(
     decimal? Parque,
     decimal? DemandaEstrutural,
     decimal? DemandaAjustada,
-    decimal? VariacaoPercentual);
+    decimal? VariacaoPercentual,
+    decimal? AreaAnoAnterior = null,
+    decimal? ParqueAnoAnterior = null,
+    decimal? DemandaAnoAnterior = null);
 
 /// <summary>Um mês da previsão.</summary>
 /// <param name="Mes">O mês do calendário (1 a 12).</param>
@@ -447,8 +613,10 @@ public sealed record DemandaDaCultura(
 /// <param name="DemandaAjustada">A ajustada no mês.</param>
 /// <param name="AEntregar">O que a Tracbel tem de entregar no mês.</param>
 /// <param name="AEntregarAjustada">O mesmo pela ajustada.</param>
+/// <param name="Entregues">As máquinas entregues no mês do ano fiscal escolhido (ART, pela entrega); nulo no mês que não começou, sem ART ou com cultura.</param>
 public sealed record PrevisaoDoMes(
-    int Mes, decimal Fracao, decimal? DemandaEstrutural, decimal? DemandaAjustada, decimal? AEntregar, decimal? AEntregarAjustada);
+    int Mes, decimal Fracao, decimal? DemandaEstrutural, decimal? DemandaAjustada, decimal? AEntregar, decimal? AEntregarAjustada,
+    int? Entregues = null);
 
 /// <summary>O que uma loja tem de entregar.</summary>
 /// <param name="LojaCodigo">O código da filial.</param>
@@ -474,6 +642,8 @@ public sealed record EntregaDaLoja(string? LojaCodigo, string Loja, decimal? AEn
 /// <param name="FatorDeCredito">1 + a parcela do crédito.</param>
 /// <param name="CulturaPredominante">A de maior parque.</param>
 /// <param name="VariacaoPercentual">O efeito líquido do momento sobre a demanda.</param>
+/// <param name="DemandaEstruturalAnoAnterior">A demanda estrutural com a área do ano anterior da PAM.</param>
+/// <param name="VariacaoAnoAnterior">A estrutural de hoje sobre a do ano anterior, em %.</param>
 public sealed record DemandaDoMunicipioNaPrevisao(
     int CodigoIbge,
     string Nome,
@@ -490,7 +660,9 @@ public sealed record DemandaDoMunicipioNaPrevisao(
     decimal? FatorDePreco,
     decimal? FatorDeCredito,
     string? CulturaPredominante,
-    decimal? VariacaoPercentual);
+    decimal? VariacaoPercentual,
+    decimal? DemandaEstruturalAnoAnterior = null,
+    decimal? VariacaoAnoAnterior = null);
 
 /// <summary>A demanda de uma cultura num município.</summary>
 /// <param name="CulturaCodigo">A cultura.</param>
