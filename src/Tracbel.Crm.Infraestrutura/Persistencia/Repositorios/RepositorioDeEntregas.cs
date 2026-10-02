@@ -33,6 +33,7 @@ public sealed class RepositorioDeEntregas(CrmDbContext contexto) : IRepositorioD
                 select new
                 {
                     venda.Id,
+                    venda.CompradorId,
                     EntregueEm = venda.EntregueEm!.Value,
                     LinhaDeProdutoId = maquina == null ? null : maquina.LinhaDeProdutoId,
                     MunicipioIbge = municipio == null ? null : municipio.CodigoIbge,
@@ -62,7 +63,8 @@ public sealed class RepositorioDeEntregas(CrmDbContext contexto) : IRepositorioD
                     && codigoDaLinha.TryGetValue(linha, out var codigo)
                     && categoriaDaLinha.TryGetValue(codigo, out var categoria)
                         ? categoria
-                        : null))
+                        : null,
+                    e.CompradorId))
         ];
     }
 }

@@ -52,6 +52,7 @@ public static class RotulosDaTrilha
         ["PercepcaoDaCultura"] = "Percepção de campo da cultura",
         ["ParametroDoPlanejamento"] = "Sazonalidade e pesos do IOC",
         ["ShareAlvoDaCategoria"] = "Share-alvo da categoria",
+        ["MetaDoCenarioNoMunicipio"] = "Meta do município (Cenários de mercado)",
         ["VendaDeMaquina"] = "Venda de máquina",
         ["Conexao"] = "Conexão de integração",
         ["Rotina"] = "Rotina do servidor",
@@ -233,6 +234,11 @@ public static class RotulosDaTrilha
         {
             ["CategoriaDeMaquinaId"] = "Categoria de máquina", ["Percentual"] = "Share-alvo (%)"
         },
+        ["MetaDoCenarioNoMunicipio"] = new(StringComparer.Ordinal)
+        {
+            ["MunicipioId"] = "Município", ["CategoriaDeMaquinaId"] = "Categoria de máquina", ["AnoFiscal"] = "Ano fiscal",
+            ["Cenario"] = "Cenário", ["ValorManual"] = "Meta digitada (máquinas)", ["MetaNaEscolha"] = "Meta combinada (máquinas)"
+        },
         ["VendaDeMaquina"] = new(StringComparer.Ordinal)
         {
             ["EmpresaId"] = "Filial", ["EmpresaDoFaturamentoId"] = "Filial do faturamento", ["VendidaEm"] = "Vendida em",
@@ -325,6 +331,7 @@ public static class RotulosDaTrilha
         [("Equipamento", "ClienteId")] = TipoDeReferencia.Cliente,
         [("Endereco", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("PercepcaoDoGestor", "MunicipioId")] = TipoDeReferencia.Municipio,
+        [("MetaDoCenarioNoMunicipio", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("CreditoRuralDeInvestimento", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("FinanciamentoDaVenda", "MunicipioId")] = TipoDeReferencia.Municipio,
         [("UsinaDeEtanol", "MunicipioId")] = TipoDeReferencia.Municipio,
