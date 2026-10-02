@@ -6,8 +6,10 @@ import type { ComProcedencia } from '../../tipos/api';
 import type {
   DemandaEPrevisaoDaRegiao,
   DiagnosticoComercialDaRegiao,
+  DimensionamentoDaAdr,
   FiltrosDaDemanda,
   FiltrosDoDiagnostico,
+  FiltrosDoDimensionamento,
 } from '../../tipos/mercado';
 import { ler, type ContextoDeAcesso } from './http';
 
@@ -45,6 +47,27 @@ export function obterDemandaEPrevisao(
       categoria: filtros.categoria,
       anoFiscal: filtros.anoFiscal === undefined ? undefined : String(filtros.anoFiscal),
       cultura: filtros.cultura,
+    },
+  });
+}
+
+/** O tamanho da ADR em São Paulo, o perfil das lojas, a matriz municipal e a carteira (issue 259). */
+export function obterDimensionamentoDaAdr(
+  contexto: ContextoDeAcesso,
+  filtros: FiltrosDoDimensionamento,
+  sinal?: AbortSignal,
+): Promise<ComProcedencia<DimensionamentoDaAdr>> {
+  return ler<DimensionamentoDaAdr>('/v1/mercado/dimensionamento', contexto, {
+    sinal,
+    parametros: {
+      anoBase: filtros.anoBase,
+      cultura: filtros.cultura,
+      regiao: filtros.regiao,
+      lojaCodigo: filtros.lojaCodigo,
+      visao: filtros.visao,
+      responsavel: filtros.responsavel,
+      classe: filtros.classe,
+      usina: filtros.usina,
     },
   });
 }

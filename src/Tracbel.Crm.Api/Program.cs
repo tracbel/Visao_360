@@ -202,6 +202,7 @@ builder.Services.AddScoped<IRepositorioCarteiras, RepositorioDeCarteiras>();
 builder.Services.AddScoped<IRepositorioTerritorio, RepositorioDeTerritorio>();
 builder.Services.AddScoped<IRepositorioDoMotorDoPotencial, RepositorioDoMotorDoPotencial>();
 builder.Services.AddScoped<IRepositorioDeIndicadoresDeMercado, RepositorioDeIndicadoresDeMercado>();
+builder.Services.AddScoped<IRepositorioDoDimensionamento, RepositorioDoDimensionamento>();
 // O MESMO REPOSITÓRIO RESPONDE AS DUAS PORTAS do território: o painel (uma janela, todos os municípios)
 // e o histórico (todos os anos, um município).
 builder.Services.AddScoped<RepositorioDeIndicadoresTerritoriais>();
@@ -313,6 +314,7 @@ builder.Services.AddScoped<ObterHistoricoDoMunicipio>();
 builder.Services.AddScoped<SimularMaquinas>();
 builder.Services.AddScoped<ObterDiagnosticoComercial>();
 builder.Services.AddScoped<ObterDemandaEPrevisao>();
+builder.Services.AddScoped<ObterDimensionamentoDaAdr>();
 builder.Services.AddScoped<ObterPrecosDeMercado>();
 builder.Services.AddScoped<ObterPrecoImplicitoDaPam>();
 builder.Services.AddScoped<ObterCustosDeProducao>();
