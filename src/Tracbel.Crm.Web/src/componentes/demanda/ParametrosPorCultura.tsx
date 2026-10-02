@@ -6,7 +6,8 @@
  * anterior da PAM mora na dica de cada célula.
  *
  * HECTARES POR MÁQUINA, E NÃO "MÁQUINAS/HA" como escreve a maquete: é o parâmetro como ele é registrado em Configurações ›
- * Potencial de mercado — o inverso seria um número que ninguém digitou.
+ * Potencial de mercado — o inverso seria um número que ninguém digitou. "Desempenho (un.)" é o nome da maquete para a
+ * demanda estrutural, e a dica do cabeçalho diz isso.
  */
 
 import { Citrus, Coffee, Leaf, Nut, Sprout, Wheat, type LucideIcon } from 'lucide-react';
@@ -51,10 +52,14 @@ export function ParametrosPorCultura({
           <tr>
             <th scope="col">Cultura</th>
             <th scope="col" className="mom-num">Área (ha)</th>
-            <th scope="col" className="mom-num">ha/máquina</th>
+            <th scope="col" className="mom-num" title="Hectares por máquina: o parâmetro da regra, como está em Configurações › Potencial de mercado">
+              ha/máquina
+            </th>
             <th scope="col" className="mom-num">Renovação anual</th>
             <th scope="col" className="mom-num">Frota estimada</th>
-            <th scope="col" className="mom-num">Demanda (un.)</th>
+            <th scope="col" className="mom-num" title="A demanda estrutural da cultura: a frota estimada × a renovação anual, sem o momento">
+              Desempenho (un.)
+            </th>
             <th scope="col" className="mom-num">Ajustada (un.)</th>
             <th scope="col" className="mom-num">Efeito do momento</th>
           </tr>

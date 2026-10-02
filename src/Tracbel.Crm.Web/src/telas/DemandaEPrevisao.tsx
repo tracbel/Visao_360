@@ -17,7 +17,7 @@
  */
 
 import * as Popover from '@radix-ui/react-popover';
-import { BarChart3, CalendarDays, Funnel, Leaf, ListFilter, MapPin, Package, RefreshCw, Store, Target, Tractor, TrendingUp } from 'lucide-react';
+import { BarChart3, CalendarDays, Download, Funnel, Leaf, ListFilter, MapPin, Package, RefreshCw, Sheet, Store, Tractor, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTela';
 import { MetricasSemDado } from '../componentes/cadastro/SemDado';
@@ -25,6 +25,7 @@ import { DadosAtualizadosEm } from '../componentes/cadastro/SeloProcedencia';
 import { MenuDaLinha } from '../componentes/comum/MenuDaLinha';
 import { PaginaDoPainel } from '../componentes/dashboard/Dashboard';
 import { CartaoDeDecisao } from '../componentes/mercado/CartaoDeDecisao';
+import { MiniGrafico } from '../componentes/mercado/MiniGrafico';
 import { PainelDoMomento } from '../componentes/mercado/momento/pecas';
 import { TituloDaSecao } from '../componentes/territorio/TituloDaSecao';
 import { EntregaPorLoja } from '../componentes/demanda/EntregaPorLoja';
@@ -46,6 +47,18 @@ import '../estilos/demanda.css';
 
 type Base = 'ajustada' | 'estrutural';
 
+/**
+ * O FILTRO "META / PREVISÃO" DA MAQUETE: "Todos os cenários" (o padrão, como na imagem) mostra a estrutural no número e a
+ * ajustada ao lado; as outras duas escolhem a base de tudo.
+ */
+type Cenario = 'todos' | Base;
+
+/** "soja, milho e café" — a lista de culturas em texto corrido. */
+function emTexto(itens: string[]): string {
+  const minusculas = itens.map((i) => i.toLocaleLowerCase('pt-BR'));
+  return minusculas.length <= 1 ? (minusculas[0] ?? '') : `${minusculas.slice(0, -1).join(', ')} e ${minusculas[minusculas.length - 1]}`;
+}
+
 /** "FY2026 (nov/2025 a out/2026)". */
 const nomeDoAno = (ano: number) => `FY${ano} (nov/${ano - 1} a out/${ano})`;
 
@@ -58,7 +71,7 @@ export function DemandaEPrevisao() {
   const { contexto } = useContextoDeAcesso();
   const [filtros, setFiltros] = useState<FiltrosDaDemanda>({});
   const [mes, setMes] = useState<number | null>(null);
-  const [basePedida, setBasePedida] = useState<Base | null>(null);
+  const [cenario, setCenario] = useState<Cenario>('todos');
   const [lojasConhecidas, setLojasConhecidas] = useState<Map<string, string>>(() => new Map());
 
   const leitura = useRecurso(
@@ -76,14 +89,18 @@ export function DemandaEPrevisao() {
   const dados = leitura.dados;
   const totais = dados?.totais;
   const comAjustada = totais?.demandaAjustada != null;
-  // A BASE PADRÃO É A AJUSTADA, quando o momento está medido; sem ela, a estrutural — e a opção diz por quê.
-  const base: Base = basePedida === 'estrutural' || !comAjustada ? 'estrutural' : 'ajustada';
+  // A BASE DOS NÚMEROS: a ajustada só quando foi escolhida e o momento está medido; em "Todos os cenários", a estrutural no
+  // número e a ajustada ao lado, como a maquete ("3.097,3 unidades · 1.618,9 ajustada pelo momento atual").
+  const base: Base = cenario === 'ajustada' && comAjustada ? 'ajustada' : 'estrutural';
+  const prevista = (m: { demandaEstrutural: number | null; demandaAjustada: number | null }) =>
+    base === 'ajustada' ? (m.demandaAjustada ?? m.demandaEstrutural) : m.demandaEstrutural;
+  const todasAsCategorias = dados?.categoria === 'TODAS';
   const mudar = (parcial: Partial<FiltrosDaDemanda>) => setFiltros((f) => ({ ...f, ...parcial }));
 
   const demandaDoAno = totais ? (base === 'ajustada' ? totais.demandaAjustada : totais.demandaEstrutural) : null;
   const aEntregarDoAno = totais ? (base === 'ajustada' ? (totais.aEntregarAjustada ?? totais.aEntregar) : totais.aEntregar) : null;
   const doMes = mes === null ? null : (dados?.previsaoMensal.find((m) => m.mes === mes) ?? null);
-  const previstaDoMes = doMes ? (base === 'ajustada' ? (doMes.demandaAjustada ?? doMes.demandaEstrutural) : doMes.demandaEstrutural) : null;
+  const previstaDoMes = doMes ? prevista(doMes) : null;
   const entregue = doMes ? doMes.entregues : (totais?.entreguesNoPeriodo ?? null);
   const atendimento = doMes
     ? (entregue !== null && previstaDoMes ? entregue / previstaDoMes : null)
@@ -107,7 +124,7 @@ export function DemandaEPrevisao() {
           </p>
         </div>
         <p className="dash-atualizado">
-          {leitura.procedencia ? <DadosAtualizadosEm procedencia={leitura.procedencia} /> : 'Lendo a demanda…'}
+          {leitura.procedencia ? <DadosAtualizadosEm procedencia={leitura.procedencia} dicaNoTexto /> : 'Lendo a demanda…'}
           <button
             type="button"
             className="dash-recarregar"
@@ -166,8 +183,9 @@ export function DemandaEPrevisao() {
               ))}
             </select>
           </Campo>
-          <Campo icone={Target} rotulo="Meta / Previsão" bloco="base">
-            <select value={base} onChange={(e) => setBasePedida(e.target.value as Base)}>
+          <Campo icone={UserRound} rotulo="Meta / Previsão" bloco="base">
+            <select value={cenario === 'ajustada' && !comAjustada ? 'todos' : cenario} onChange={(e) => setCenario(e.target.value as Cenario)}>
+              <option value="todos">Todos os cenários</option>
               <option value="ajustada" disabled={!comAjustada}>
                 {comAjustada ? 'Ajustada pelo momento' : 'Ajustada pelo momento (sem fator de ciclo)'}
               </option>
@@ -230,19 +248,26 @@ export function DemandaEPrevisao() {
           valor={totais?.parque != null ? n(totais.parque, 0) : null}
           carregando={leitura.carregando && !dados}
           selo={<Variacao valor={variacaoSobre(totais?.parque, totais?.parqueAnoAnterior)} />}
-          variacao={
-            dados ? (
-              <>
-                <span>{dados.categoriaNome} na área plantada</span>
-                <span className="dem-kpi-nota">
-                  PAM {dados.anoDaAreaPlantada ?? '—'}
-                  {totais?.parqueAnoAnterior != null && ` · ${n(totais.parqueAnoAnterior, 0)} em ${dados.anoDaAreaAnterior ?? 'o ano anterior'}`}
-                </span>
-              </>
-            ) : null
+          variacao={dados ? <span>{todasAsCategorias ? 'Trator + equipamentos' : dados.categoriaNome} na área plantada comparável</span> : null}
+          grafico={
+            dados && (
+              <MiniGrafico
+                tipo="barras"
+                cor="#16a34a"
+                valores={dados.porCultura.map((c) => c.parque ?? 0).sort((a, b) => a - b)}
+                rotulo={`Parque potencial por cultura: ${dados.porCultura.map((c) => `${c.cultura} ${n(c.parque ?? 0, 0)}`).join(', ')}`}
+              />
+            )
           }
           motivoSemDado="Nenhum município do recorte tem regra de potencial para esta categoria."
-          sobre="A área plantada do recorte (PAM do IBGE) ÷ os hectares por máquina da regra de cada cultura: o parque que a área comporta. A variação é contra a mesma conta com a área do ano anterior da PAM."
+          sobre={
+            <>
+              A área plantada do recorte (PAM do IBGE{dados?.anoDaAreaPlantada ? `, ${dados.anoDaAreaPlantada}` : ''}) ÷ os hectares por máquina da
+              regra de cada cultura: o parque que a área comporta. A variação é contra a mesma conta com a área do ano anterior da PAM
+              {totais?.parqueAnoAnterior != null && ` (${n(totais.parqueAnoAnterior, 0)} em ${dados?.anoDaAreaAnterior ?? 'o ano anterior'})`} — a área
+              comparável. O gráfico é o parque de cada cultura.
+            </>
+          }
         />
         <CartaoDeDecisao
           rotulo="Demanda anual"
@@ -257,21 +282,37 @@ export function DemandaEPrevisao() {
                 <span>
                   {(() => {
                     const v = variacaoSobre(totais.demandaEstrutural, totais.demandaEstruturalAnoAnterior);
-                    return v === null ? 'sem o ano anterior na PAM' : `${variacaoPercentual(v)} em relação ao ano anterior`;
+                    return v === null ? (
+                      'sem o ano anterior na PAM'
+                    ) : (
+                      <>
+                        <Variacao valor={v} naLinha /> em relação ao ano anterior
+                      </>
+                    );
                   })()}
                 </span>
-                <span className="dem-kpi-nota">
+                <span>
                   {base === 'ajustada'
-                    ? `estrutural ${n(totais.demandaEstrutural)}`
+                    ? `${n(totais.demandaEstrutural)} estrutural, sem o momento`
                     : comAjustada
                       ? `${n(totais.demandaAjustada!)} ajustada pelo momento atual`
-                      : 'a renovação do parque'}
+                      : 'sem o fator de ciclo medido'}
                 </span>
               </>
             ) : null
           }
+          grafico={
+            dados && (
+              <MiniGrafico
+                tipo="linha"
+                cor="#16a34a"
+                valores={dados.previsaoMensal.map((m) => prevista(m) ?? 0)}
+                rotulo={`A demanda prevista mês a mês, de ${NOME_DO_MES_POR_EXTENSO[dados.previsaoMensal[0]?.mes ?? 11]} a ${NOME_DO_MES_POR_EXTENSO[dados.previsaoMensal[dados.previsaoMensal.length - 1]?.mes ?? 10]}`}
+              />
+            )
+          }
           motivoSemDado="Sem ciclo de renovação nas regras da categoria: o parque sai, a demanda anual não."
-          sobre="O parque ÷ os anos de renovação: as máquinas que a região pede por ano — 100% do mercado. A ajustada é a mesma demanda pelo fator de ciclo (preço da cultura, crédito do município e percepção). A variação é da estrutural contra a do ano anterior da PAM: a área mudou, e só ela."
+          sobre="O parque ÷ os anos de renovação: as máquinas que a região pede por ano — 100% do mercado. A ajustada é a mesma demanda pelo fator de ciclo (preço da cultura, crédito do município e percepção). A variação é da estrutural contra a do ano anterior da PAM: a área mudou, e só ela. O gráfico é a previsão mês a mês."
         />
         <CartaoDeDecisao
           rotulo={doMes ? `Entrega em ${NOME_DO_MES_POR_EXTENSO[doMes.mes]}` : 'Entrega no período'}
@@ -285,15 +326,34 @@ export function DemandaEPrevisao() {
               <>
                 <span>{atendimento !== null ? `${n(atendimento * 100, 0)}% da previsão ${doMes ? 'do mês' : 'anual'}` : 'sem previsão para comparar'}</span>
                 {!doMes && (
-                  <span className="dem-kpi-nota">
+                  <span>
                     {(() => {
                       const v = variacaoSobre(totais?.entreguesNoPeriodo, totais?.entreguesNoPeriodoAnterior);
-                      return v === null ? 'sem entrega no mesmo período do ano anterior' : `${variacaoPercentual(v)} vs. mesmo período ano anterior`;
+                      return v === null ? (
+                        'sem entrega no mesmo período do ano anterior'
+                      ) : (
+                        <>
+                          <Variacao valor={v} naLinha /> vs. mesmo período ano anterior
+                        </>
+                      );
                     })()}
                   </span>
                 )}
               </>
             ) : null
+          }
+          grafico={
+            dados && (
+              <MiniGrafico
+                tipo="barras"
+                cor="#f07a17"
+                valores={dados.previsaoMensal.filter((m) => m.entregues !== null).map((m) => m.entregues!)}
+                rotulo={`As máquinas entregues mês a mês: ${dados.previsaoMensal
+                  .filter((m) => m.entregues !== null)
+                  .map((m) => `${NOME_DO_MES[m.mes]} ${n(m.entregues!, 0)}`)
+                  .join(', ')}`}
+              />
+            )
           }
           motivoSemDado={motivoSemEntrega}
           sobre={
@@ -312,16 +372,25 @@ export function DemandaEPrevisao() {
           tom="mercado"
           valor={totais ? n(crescidas.length, 0) : null}
           carregando={leitura.carregando && !dados}
-          unidade={totais ? `de ${n(totais.culturasComRegra.length, 0)}` : undefined}
           variacao={
             totais
               ? crescidas.length > 0
-                ? `Aumento em área: ${crescidas.join(', ').toLocaleLowerCase('pt-BR')}`
-                : 'nenhuma cultura cresceu em área sobre o ano anterior'
+                ? `Aumento em área, puxado por ${emTexto(crescidas)}`
+                : 'Nenhuma cultura com aumento em área sobre o ano anterior'
               : null
           }
+          grafico={
+            dados && (
+              <MiniGrafico
+                tipo="barras"
+                cor="#2f6fe0"
+                valores={dados.porCultura.map((c) => c.areaUtilHectares ?? 0).sort((a, b) => a - b)}
+                rotulo={`Área plantada por cultura (ha): ${dados.porCultura.map((c) => `${c.cultura} ${n(c.areaUtilHectares ?? 0, 0)}`).join(', ')}`}
+              />
+            )
+          }
           motivoSemDado={leitura.carregando ? undefined : 'A leitura da demanda não respondeu.'}
-          sobre={`As culturas do recorte cuja área útil cresceu sobre o ano anterior da PAM — onde há espaço para mais máquina —, entre as que têm regra de potencial nesta categoria${totais ? ` (${totais.culturasComRegra.join(', ')})` : ''}.`}
+          sobre={`As culturas do recorte cuja área útil cresceu sobre o ano anterior da PAM — onde há espaço para mais máquina —, entre as ${totais ? `${n(totais.culturasComRegra.length, 0)} ` : ''}que têm regra de potencial nesta categoria${totais ? ` (${totais.culturasComRegra.join(', ')})` : ''}. O gráfico é a área plantada de cada cultura.`}
         />
       </div>
 
@@ -354,7 +423,11 @@ export function DemandaEPrevisao() {
                     <i className="dem-legenda-realizada" aria-hidden="true" /> Entrega realizada (un.)
                   </li>
                   <li>
-                    <i className="dem-legenda-linha" aria-hidden="true" /> % de atendimento
+                    <svg className="dem-legenda-linha" width="26" height="10" viewBox="0 0 26 10" aria-hidden="true">
+                      <line x1="1" x2="25" y1="5" y2="5" />
+                      <circle cx="13" cy="5" r="3" />
+                    </svg>
+                    % de atendimento
                   </li>
                 </ul>
                 <PrevisaoMensal meses={dados.previsaoMensal} base={base} mesEscolhido={mes} aoEscolherMes={setMes} />
@@ -399,7 +472,7 @@ export function DemandaEPrevisao() {
 
               <PainelDoMomento
                 titulo="Maiores municípios por potencial"
-                icone={<TrendingUp size={17} strokeWidth={2.2} className="dem-icone-verde" aria-hidden="true" />}
+                icone={<Sheet size={17} strokeWidth={2.2} className="dem-icone-verde" aria-hidden="true" />}
                 direita={
                   <button
                     type="button"
@@ -407,6 +480,7 @@ export function DemandaEPrevisao() {
                     onClick={() => baixarCsv(`demanda-${dados.categoria.toLowerCase()}-${carimboDeData()}`, cabecalhoDoCsv(dados), linhasDoCsv(dados))}
                     disabled={dados.municipios.length === 0}
                   >
+                    <Download size={14} strokeWidth={2.2} aria-hidden="true" />
                     Exportar CSV
                   </button>
                 }
@@ -446,10 +520,12 @@ function SeletorDeUnidade() {
   );
 }
 
-/** A variação ao lado do número do cartão: verde quando sobe, vermelha quando cai, nada sem base. */
-function Variacao({ valor }: { valor: number | null }) {
+/** A variação ao lado do número do cartão, ou no começo de uma linha dele: verde quando sobe, vermelha quando cai, nada sem base. */
+function Variacao({ valor, naLinha = false }: { valor: number | null; naLinha?: boolean }) {
   if (valor === null) return null;
-  return <span className={`dem-variacao ${valor > 0 ? 'sobe' : valor < 0 ? 'desce' : ''}`}>{variacaoPercentual(valor)}</span>;
+  return (
+    <span className={`dem-variacao ${naLinha ? 'na-linha' : ''} ${valor > 0 ? 'sobe' : valor < 0 ? 'desce' : ''}`}>{variacaoPercentual(valor)}</span>
+  );
 }
 
 function Limitacoes({ dados }: { dados: DemandaEPrevisaoDaRegiao }) {

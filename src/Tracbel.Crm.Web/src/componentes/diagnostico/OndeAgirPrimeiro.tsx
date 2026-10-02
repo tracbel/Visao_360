@@ -8,8 +8,17 @@
 
 import { ArrowRight, Target } from 'lucide-react';
 import { nomeCurto } from '../../telas/cadastro/formato';
-import type { MunicipioNoDiagnostico } from '../../tipos/mercado';
-import { CURTO_DA_CLASSE, n, ROTULO_DA_CLASSE } from './diagnostico';
+import type { ClasseDePrioridade, MunicipioNoDiagnostico } from '../../tipos/mercado';
+import { n, ROTULO_DA_CLASSE } from './diagnostico';
+
+/** O selo da linha, como a maquete escreve ("Máximo") — o nível do índice; o nome da classe fica na dica. */
+const SELO_DA_CLASSE: Record<ClasseDePrioridade, string> = {
+  Maxima: 'Máximo',
+  Alta: 'Alto',
+  Moderada: 'Moderado',
+  Baixa: 'Baixo',
+  Manutencao: 'Manutenção',
+};
 
 export function OndeAgirPrimeiro({
   primeiros,
@@ -49,7 +58,7 @@ export function OndeAgirPrimeiro({
                 <span className="diag-primeiro-nome">
                   <strong>{p.nome}</strong>
                   <span className="diag-primeiro-onde">
-                    Região {p.regiao}
+                    Regional {p.regiao}
                     {p.responsavel && <> • {nomeCurto(p.responsavel)}</>}
                   </span>
                 </span>
@@ -60,7 +69,7 @@ export function OndeAgirPrimeiro({
                     </span>
                     <span className="diag-primeiro-ioc">{n(p.ioc)}</span>
                     <span className={`diag-primeiro-classe diag-classe-${p.classe}`} title={ROTULO_DA_CLASSE[p.classe]}>
-                      {CURTO_DA_CLASSE[p.classe]}
+                      {SELO_DA_CLASSE[p.classe]}
                     </span>
                   </>
                 )}

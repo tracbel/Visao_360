@@ -461,7 +461,8 @@ export function diagnosticoFicticio(
   const escolhido = responsaveis.find((r) => String(r.id) === responsavel) ?? null;
   const pesos = { potencial: 25, cobertura: 20, credito: 15, rentabilidade: 15, clientes: 10, realizacao: 5, penetracao: 10 };
   const culturas = ['Cana-de-açúcar', 'Soja', 'Café', 'Laranja', 'Milho', 'Amendoim'];
-  const lojas = ['Araraquara', 'Ribeirão Preto', 'Barretos', 'Franca', 'Bebedouro'];
+  // O NOME DA LOJA COMO ELE VEM DE PRODUÇÃO ("Tracbel Agro — Cidade", o padrão das filiais), e como a maquete escreve.
+  const lojas = ['Araraquara', 'Ribeirão Preto', 'Barretos', 'Franca', 'Bebedouro'].map((cidade) => `Tracbel Agro — ${cidade}`);
   const classe = (ioc: number): ClasseDePrioridade =>
     ioc >= 80 ? 'Maxima' : ioc >= 60 ? 'Alta' : ioc >= 40 ? 'Moderada' : ioc >= 20 ? 'Baixa' : 'Manutencao';
 
@@ -621,12 +622,13 @@ export function demandaFicticia(
   const cultura = opcoes.cultura ? opcoes.cultura.toUpperCase() : null;
   const culturas = todasAsCulturas.filter((c) => cultura === null || c.codigo === cultura);
   const anoFiscal = opcoes.anoFiscal ?? 2026;
+  // O NOME DA LOJA COMO ELE VEM DE PRODUÇÃO ("Tracbel Agro — Cidade"), e como a maquete escreve.
   const lojas = [
-    ['010110', 'Araraquara'],
-    ['010111', 'Ribeirão Preto'],
-    ['010112', 'Barretos'],
-    ['010113', 'Franca'],
-    ['010114', 'Bebedouro'],
+    ['010110', 'Tracbel Agro — Araraquara'],
+    ['010111', 'Tracbel Agro — Ribeirão Preto'],
+    ['010112', 'Tracbel Agro — Barretos'],
+    ['010113', 'Tracbel Agro — Franca'],
+    ['010114', 'Tracbel Agro — Bebedouro'],
   ];
   const share = 0.31;
   const sazonalidade = [7, 6, 6, 7, 8, 9, 10, 10, 10, 10, 9, 8]; // nov..out, soma 100

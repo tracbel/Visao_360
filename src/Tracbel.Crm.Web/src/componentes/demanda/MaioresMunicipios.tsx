@@ -96,14 +96,17 @@ export function MaioresMunicipios({ dados, base }: { dados: DemandaEPrevisaoDaRe
                 #
               </th>
               {COLUNAS.map((c) => {
-                const ativa = ordem.coluna === c.chave;
+                // A ORDEM PADRÃO (a maior demanda primeiro) NÃO TEM SETA, como a maquete; a seta aparece quando o usuário
+                // reordena, e a das outras colunas só ao passar o mouse.
+                const padrao = ordem.coluna === 'demanda' && ordem.sentido === -1;
+                const ativa = ordem.coluna === c.chave && !padrao;
                 const Seta = !ativa ? ChevronsUpDown : ordem.sentido === 1 ? ArrowUp : ArrowDown;
                 return (
                   <th
                     key={c.chave}
                     scope="col"
                     className={c.texto ? undefined : 'mom-num'}
-                    aria-sort={ativa ? (ordem.sentido === 1 ? 'ascending' : 'descending') : 'none'}
+                    aria-sort={ordem.coluna === c.chave ? (ordem.sentido === 1 ? 'ascending' : 'descending') : 'none'}
                   >
                     <button type="button" className="diag-ordenar" onClick={() => ordenarPor(c.chave, c.texto)}>
                       {c.rotulo}
@@ -139,7 +142,7 @@ export function MaioresMunicipios({ dados, base }: { dados: DemandaEPrevisaoDaRe
                     {num(demandaDe(m, base))}
                   </td>
                   <td
-                    className="mom-num dem-destaque"
+                    className="mom-num"
                     title={[
                       m.fatorDePreco !== null ? `preço ${variacaoDoFator(m.fatorDePreco)}` : '',
                       m.fatorDeCredito !== null ? `crédito ${variacaoDoFator(m.fatorDeCredito)}` : '',
@@ -178,8 +181,14 @@ export function MaioresMunicipios({ dados, base }: { dados: DemandaEPrevisaoDaRe
       ) : null}
       {dados.municipios.length > MUNICIPIOS_A_VISTA && (
         <div className="dem-ver-todas">
-          <button type="button" className="dem-botao-link" onClick={() => setTodos((t) => !t)} aria-expanded={todos}>
-            {todos ? `Ver só os ${MUNICIPIOS_A_VISTA} maiores` : `Ver todos os municípios (${dados.municipios.length})`}
+          <button
+            type="button"
+            className="dem-botao-link"
+            onClick={() => setTodos((t) => !t)}
+            aria-expanded={todos}
+            title={`${dados.municipios.length} municípios da ADR no recorte`}
+          >
+            {todos ? `Ver só os ${MUNICIPIOS_A_VISTA} maiores` : 'Ver todos os municípios'}
             <ArrowRight size={14} strokeWidth={2.2} aria-hidden="true" />
           </button>
         </div>

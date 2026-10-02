@@ -5,6 +5,10 @@
    TUDO MORA EMBAIXO DE `.dash-pagina.dem-maquete` — a classe que só esta tela põe na página. As peças são as do padrão
    dos Indicadores (`mv-kpi`, `mom-painel`, `terr-*`); o prefixo `.dash-pagina` é de propósito: o `dashboard.css` carrega
    depois, e sem ele as regras dele ganhariam destas.
+
+   AS MEDIDAS SÃO AS DA IMAGEM, conferidas lado a lado a 1.672 px (02/10/2026, depois do "não está igualzinho" do Ricardo):
+   a barra de filtros com 58 px, os cartões com 117, o campo com 28, as tabelas densas — na maquete, a primeira dobra
+   chega até as primeiras linhas das duas tabelas de baixo.
    ============================================================================= */
 
 .dem-maquete {
@@ -24,46 +28,54 @@
 .dash-pagina.dem-maquete .page-header { margin-bottom: 0; }
 .dash-pagina.dem-maquete .page-title { margin-bottom: 2px; font-size: 28px; font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; color: var(--dm-marinho); }
 .dash-pagina.dem-maquete .page-subtitle { margin: 0; font-size: 13px; color: var(--dm-cinza); }
-.dash-pagina.dem-maquete .dash-atualizado { align-self: center; gap: 8px; font-size: 12px; color: var(--dm-cinza); }
+.dash-pagina.dem-maquete .dash-atualizado { align-self: flex-end; gap: 8px; font-size: 11.5px; color: var(--dm-cinza); }
 
-/* A BARRA DE FILTROS — branca, o ladrilho do ícone à esquerda de cada campo */
+/* A BARRA DE FILTROS — branca, o ladrilho do ícone à esquerda de cada campo, e os campos repartindo a linha inteira, sem
+   filete entre eles: "Mais filtros" fecha a linha na ponta direita, alto como o grupo. */
 .dash-pagina.dem-maquete .dash-filtros-linha {
-  align-items: flex-end;
-  gap: 12px 16px;
-  padding: 12px 18px 14px;
+  align-items: center;
+  gap: 12px 14px;
+  padding: 8px 12px;
   background: #fff;
   border-color: var(--dm-borda);
   border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
-.dash-pagina.dem-maquete .dash-filtros-linha .dash-filtro-rotulo { font-size: 12px; font-weight: 600; color: #2b3440; }
-.dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro select { height: 34px; border-color: #dfe3e8; border-radius: 6px; font-size: 12.5px; color: var(--dm-marinho); }
-.dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtros-acao { margin-left: auto; }
+.dash-pagina.dem-maquete .dash-filtros-linha .dash-filtro-icone { width: 32px; height: 32px; border-radius: 7px; background: #f3f5f7; border-color: #e3e7eb; }
+.dash-pagina.dem-maquete .dash-filtros-linha .dash-filtro-icone svg { width: 16px; height: 16px; }
+.dash-pagina.dem-maquete .dash-filtros-linha .dash-filtro-rotulo { min-height: 0; font-size: 11px; font-weight: 500; color: #374151; }
+.dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro select { height: 28px; padding-left: 10px; border-color: #dfe3e8; border-radius: 6px; font-size: 12px; color: var(--dm-marinho); }
+
+.dash-pagina.dem-maquete .dash-mais-filtros {
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dm-marinho);
+}
 
 @container indicadores (min-width: 1000px) {
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='periodo'] { flex: 0 1 252px; max-width: 252px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='regional'] { flex: 0 1 230px; max-width: 230px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='loja'] { flex: 0 1 230px; max-width: 230px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cultura'] { flex: 0 1 230px; max-width: 230px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='base'] { flex: 0 1 250px; max-width: 250px; }
+  .dash-pagina.dem-maquete .dash-filtros-linha { flex-wrap: nowrap; }
+  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro + .dash-filtro,
+  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtros-acao { padding-left: 0; border-left: 0; }
+  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco] { flex: 1 1 0; max-width: none; }
+  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='regional'] { flex-grow: 1.08; }
+  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtros-acao { margin-left: 4px; }
 }
 
-@container indicadores (min-width: 1000px) and (max-width: 1399px) {
-  .dash-pagina.dem-maquete .dash-filtros-linha { gap: 12px 12px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='periodo'] { flex-basis: 236px; max-width: 236px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='regional'],
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='loja'],
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cultura'] { flex-basis: 184px; max-width: 184px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='base'] { flex-basis: 214px; max-width: 214px; }
-}
-
-/* OS QUATRO CARTÕES — a tinta da maquete, o ícone num ladrilho, a variação ao lado do número e duas linhas embaixo */
+/* OS QUATRO CARTÕES — a tinta da maquete, o ícone num ladrilho, a variação ao lado do número, duas linhas embaixo e o
+   gráfico pequeno no canto de cima, à direita. */
 .dash-pagina.dem-maquete .dash-kpis.mv-kpis { gap: 12px; }
 
 .dash-pagina.dem-maquete .mv-kpi {
+  position: relative;
   align-items: start;
   column-gap: 14px;
-  padding: 16px 16px 14px;
+  padding: 14px 16px 12px;
   border-radius: 10px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
@@ -71,23 +83,28 @@
 .dash-pagina.dem-maquete .mv-kpi-glifo {
   display: inline-grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
-  margin-top: 0;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  margin-top: 2px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--mv-tom) 15%, #fff);
 }
 
-.dash-pagina.dem-maquete .mv-kpi-glifo svg { width: 25px; height: 25px; stroke-width: 2.3; }
-.dash-pagina.dem-maquete .mv-kpi-rotulo { font-size: 13px; font-weight: 700; line-height: 1.35; color: var(--dm-marinho); }
-.dash-pagina.dem-maquete .mv-kpi-valor { column-gap: 10px; font-size: 28px; line-height: 1.2; color: var(--dm-marinho); }
+.dash-pagina.dem-maquete .mv-kpi-glifo svg { width: 23px; height: 23px; stroke-width: 2.3; }
+.dash-pagina.dem-maquete .mv-kpi-rotulo { font-size: 12.5px; font-weight: 700; line-height: 1.35; color: var(--dm-marinho); }
+.dash-pagina.dem-maquete .mv-kpi-valor { column-gap: 10px; font-size: 26px; line-height: 1.2; color: var(--dm-marinho); }
 .dash-pagina.dem-maquete .mv-kpi-valor > strong { font-weight: 800; }
 .dash-pagina.dem-maquete .mv-kpi-unidade { font-size: 13px; color: var(--dm-cinza); }
 .dash-pagina.dem-maquete .mv-kpi-selo { margin-left: 0; }
-.dash-pagina.dem-maquete .mv-kpi-contexto { display: grid; gap: 2px; font-size: 12px; line-height: 1.35; color: #2b3440; }
-.dash-pagina.dem-maquete .dem-kpi-nota { color: var(--dm-cinza); }
+.dash-pagina.dem-maquete .mv-kpi-contexto { display: grid; gap: 1px; margin-top: 2px; font-size: 12px; line-height: 1.4; color: var(--dm-cinza); }
+
+.dash-pagina.dem-maquete .mv-kpi-grafico { position: absolute; top: 14px; right: 16px; }
+.dash-pagina.dem-maquete .mv-kpi:has(.mv-kpi-grafico) .mv-kpi-rotulo,
+.dash-pagina.dem-maquete .mv-kpi:has(.mv-kpi-grafico) .mv-kpi-valor { padding-right: 70px; }
+.dash-pagina.dem-maquete .mini-grafico { display: block; }
 
 .dash-pagina.dem-maquete .dem-variacao { font-size: 13px; font-weight: 700; color: var(--dm-cinza); }
+.dash-pagina.dem-maquete .dem-variacao.na-linha { font-size: inherit; font-weight: 600; }
 .dash-pagina.dem-maquete .dem-variacao.sobe { color: #15803d; }
 .dash-pagina.dem-maquete .dem-variacao.desce { color: #dc2626; }
 
@@ -96,77 +113,81 @@
 .dash-pagina.dem-maquete .mv-kpi[data-tom='captura'] { --mv-tom: #f07a17; background: #fff7f0; border-color: #f7dcc3; }
 
 /* AS DUAS SEÇÕES — o título e o subtítulo soltos na página, e os painéis como cartões brancos lado a lado */
-.dash-pagina.dem-maquete section.dem-cartao { display: grid; gap: 12px; }
-.dash-pagina.dem-maquete section.dem-cartao > .terr-secao-mercado { margin: 6px 0 0; }
-.dash-pagina.dem-maquete section.dem-cartao .terr-secao-titulo { font-size: 19px; font-weight: 800; color: var(--dm-marinho); }
+.dash-pagina.dem-maquete section.dem-cartao { display: grid; gap: 10px; }
+.dash-pagina.dem-maquete section.dem-cartao > .terr-secao-mercado { margin: 8px 0 0; }
+.dash-pagina.dem-maquete section.dem-cartao .terr-secao-titulo { font-size: 20px; font-weight: 800; color: var(--dm-marinho); }
 .dash-pagina.dem-maquete section.dem-cartao .terr-secao-subtitulo { margin: 2px 0 0; max-width: none; font-size: 12px; color: var(--dm-cinza); }
 
-.dash-pagina.dem-maquete .dem-dupla { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.dash-pagina.dem-maquete .dem-dupla { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 
 @container indicadores (min-width: 1100px) {
-  .dash-pagina.dem-maquete .dem-dupla-previsao { grid-template-columns: minmax(0, 1fr) minmax(0, 0.98fr); }
-  .dash-pagina.dem-maquete .dem-dupla-origem { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .dash-pagina.dem-maquete .dem-dupla-previsao { grid-template-columns: minmax(0, 1.28fr) minmax(0, 1fr); }
+  .dash-pagina.dem-maquete .dem-dupla-origem { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); }
 }
 
 .dash-pagina.dem-maquete .dem-dupla > .mom-painel {
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  padding: 14px 16px 16px;
+  padding: 12px 14px 12px;
   background: #fff;
   border: 1px solid var(--dm-borda);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 .dash-pagina.dem-maquete .dem-dupla .mom-painel-linha { flex-wrap: nowrap; align-items: center; }
-.dash-pagina.dem-maquete .dem-dupla .mom-painel-titulo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: var(--dm-marinho); }
+.dash-pagina.dem-maquete .dem-dupla .mom-painel-titulo { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 800; color: var(--dm-marinho); }
 .dash-pagina.dem-maquete .dem-dupla .mom-painel-direita { flex: none; margin-left: auto; }
 .dash-pagina.dem-maquete .dem-acoes { display: inline-flex; align-items: center; gap: 6px; }
 
 .dash-pagina.dem-maquete .dem-unidade {
-  height: 30px;
-  min-width: 96px;
+  height: 28px;
+  min-width: 92px;
   padding: 0 28px 0 10px;
   border: 1px solid #dfe3e8;
   border-radius: 6px;
   background: #fff;
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--dm-marinho);
 }
 
 .dash-pagina.dem-maquete .dem-unidade:disabled { opacity: 1; cursor: default; }
 
 .dash-pagina.dem-maquete .dem-exportar {
-  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
   padding: 0 12px;
   border: 1px solid #dfe3e8;
   border-radius: 6px;
   background: #fff;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #1f2937;
   cursor: pointer;
 }
 
 /* A PREVISÃO MENSAL — a legenda em linha e o gráfico em SVG, que rola dentro do painel abaixo de 640px */
-.dash-pagina.dem-maquete .dem-legenda { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 0; list-style: none; font-size: 12px; color: #2b3440; }
+.dash-pagina.dem-maquete .dem-legenda { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 0; list-style: none; font-size: 11.5px; color: #374151; }
 .dash-pagina.dem-maquete .dem-legenda li { display: inline-flex; align-items: center; gap: 7px; }
 .dash-pagina.dem-maquete .dem-legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 .dash-pagina.dem-maquete .dem-legenda-prevista { background: var(--dm-verde-escuro); }
 .dash-pagina.dem-maquete .dem-legenda-realizada { background: var(--dm-verde-claro); }
-.dash-pagina.dem-maquete .dem-legenda-linha { width: 18px !important; height: 0 !important; border-radius: 0 !important; border-top: 2px dashed #4b5563; }
+.dash-pagina.dem-maquete .dem-legenda-linha line { stroke: #4b5563; stroke-width: 1.4; stroke-dasharray: 3 2; }
+.dash-pagina.dem-maquete .dem-legenda-linha circle { fill: #fff; stroke: #374151; stroke-width: 1.4; }
 
 .dash-pagina.dem-maquete .dem-grafico-rolagem { overflow-x: auto; }
 .dash-pagina.dem-maquete .dem-grafico { display: block; width: 100%; min-width: 600px; height: auto; }
 .dash-pagina.dem-maquete .dem-grafico-grade { stroke: #eef1f3; stroke-width: 1; }
 .dash-pagina.dem-maquete .dem-grafico-eixo { font-size: 11px; fill: #6b7280; }
 .dash-pagina.dem-maquete .dem-grafico-mes-nome { font-size: 11px; font-weight: 600; fill: #4b5563; }
-.dash-pagina.dem-maquete .dem-grafico-valor { font-size: 11px; font-weight: 700; fill: var(--dm-marinho); }
-.dash-pagina.dem-maquete .dem-grafico-valor-claro { font-size: 10.5px; fill: #4b5563; }
-.dash-pagina.dem-maquete .dem-grafico-pct { font-size: 10.5px; fill: #374151; }
+.dash-pagina.dem-maquete .dem-grafico-valor { font-size: 11.5px; font-weight: 700; fill: var(--dm-marinho); }
+.dash-pagina.dem-maquete .dem-grafico-valor-claro { font-size: 11px; fill: #4b5563; }
+.dash-pagina.dem-maquete .dem-grafico-pct { font-size: 11px; fill: #374151; }
 .dash-pagina.dem-maquete .dem-barra-prevista { fill: var(--dm-verde-escuro); }
 .dash-pagina.dem-maquete .dem-barra-realizada { fill: var(--dm-verde-claro); }
-.dash-pagina.dem-maquete .dem-linha-atendimento { fill: none; stroke: #4b5563; stroke-width: 1.4; stroke-dasharray: 4 3; }
+.dash-pagina.dem-maquete .dem-linha-atendimento { fill: none; stroke: #4b5563; stroke-width: 1.4; stroke-dasharray: 3 3; }
 .dash-pagina.dem-maquete .dem-ponto-atendimento { fill: #fff; stroke: #374151; stroke-width: 1.6; }
 .dash-pagina.dem-maquete .dem-grafico-alvo { fill: transparent; }
 .dash-pagina.dem-maquete .dem-grafico-mes { cursor: pointer; outline: none; }
@@ -175,28 +196,29 @@
 .dash-pagina.dem-maquete .dem-grafico-mes[aria-pressed='true'] .dem-grafico-alvo { fill: #e8f3eb; }
 .dash-pagina.dem-maquete .dem-grafico-mes[data-apagado='true'] { opacity: 0.45; }
 
-/* A ENTREGA POR LOJA × MÊS — o mapa de calor: o número sempre escrito, a cor só reforça */
+/* A ENTREGA POR LOJA × MÊS — o mapa de calor: o número sempre escrito, a cor só reforça. A loja tem largura fixa e os
+   doze meses repartem o resto; a `.cad-tabela` do cadastro tem largura mínima de 860 px, e aqui ela só rola abaixo de 440. */
 .dash-pagina.dem-maquete .dem-calor-rolagem { overflow-x: auto; }
-.dash-pagina.dem-maquete .dem-calor { width: 100%; border-collapse: separate; border-spacing: 2px; }
-.dash-pagina.dem-maquete .dem-calor thead th { padding: 6px 4px; background: none; font-size: 10px; font-weight: 700; letter-spacing: 0.02em; text-align: center; text-transform: uppercase; color: #4b5563; }
-.dash-pagina.dem-maquete .dem-calor thead th:first-child { text-align: left; }
+.dash-pagina.dem-maquete .dem-calor { width: 100%; min-width: 440px; table-layout: fixed; border-collapse: separate; border-spacing: 2px; }
+.dash-pagina.dem-maquete .dem-calor thead th { padding: 7px 2px; background: #f3f5f7; font-size: 9.5px; font-weight: 700; letter-spacing: 0.02em; text-align: center; text-transform: uppercase; color: #4b5563; }
+.dash-pagina.dem-maquete .dem-calor thead th:first-child { width: 168px; padding-left: 8px; text-align: left; }
+.dash-pagina.dem-maquete .dem-calor thead th.dem-calor-total { width: 46px; }
 .dash-pagina.dem-maquete .dem-calor thead th[data-escolhido='true'] { color: var(--dm-verde-escuro); }
 
 .dash-pagina.dem-maquete .dem-calor th[scope='row'] {
-  max-width: 190px;
-  padding: 8px 8px 8px 4px;
+  padding: 9px 4px 9px 8px;
   overflow: hidden;
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-transform: none;
   color: #2b3440;
 }
 
-.dash-pagina.dem-maquete .dem-calor-celula { min-width: 30px; padding: 8px 2px; border: 0; border-radius: 2px; font-size: 11.5px; font-variant-numeric: tabular-nums; text-align: center; color: #1f3d27; }
+.dash-pagina.dem-maquete .dem-calor-celula { min-width: 0; padding: 9px 0; border: 0; border-radius: 2px; font-size: 10.5px; font-variant-numeric: tabular-nums; text-align: center; color: #1f3d27; }
 .dash-pagina.dem-maquete .dem-calor-celula[data-escolhido='true'] { box-shadow: inset 0 0 0 2px var(--dm-marinho); }
-.dash-pagina.dem-maquete .dem-calor-total { min-width: 0; padding: 8px 4px 8px 10px; font-size: 12px; text-align: right; white-space: nowrap; }
+.dash-pagina.dem-maquete .dem-calor-total { min-width: 0; padding: 9px 4px 9px 8px; font-size: 11.5px; text-align: right; white-space: nowrap; }
 .dash-pagina.dem-maquete .dem-calor-total strong { margin: 0; font-weight: 800; color: var(--dm-marinho); }
 
 .dash-pagina.dem-maquete .dem-ver-todas { display: flex; justify-content: flex-end; }
@@ -205,65 +227,81 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 30px;
+  height: 28px;
   padding: 0 12px;
   border: 1px solid #dfe3e8;
   border-radius: 6px;
   background: #fff;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #1f2937;
   cursor: pointer;
 }
 
-/* AS DUAS TABELAS DE "DE ONDE VEM O NÚMERO" */
+.dash-pagina.dem-maquete .dem-botao-link[aria-disabled='true'] { cursor: default; }
+
+/* AS DUAS TABELAS DE "DE ONDE VEM O NÚMERO" — densas como na maquete, com o cabeçalho numa linha só e filetes finos */
 .dash-pagina.dem-maquete .dem-culturas,
 .dash-pagina.dem-maquete .dem-maiores { width: 100%; }
 
 .dash-pagina.dem-maquete .dem-culturas thead th,
 .dash-pagina.dem-maquete .dem-maiores thead th {
-  padding: 7px 8px;
+  padding: 6px 5px;
   background: #f3f5f7;
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 9.5px;
+  font-weight: 600;
   letter-spacing: 0;
+  line-height: 1.25;
   text-transform: none;
   white-space: nowrap;
-  color: #4b5563;
+  vertical-align: middle;
+  color: #374151;
 }
 
+.dash-pagina.dem-maquete .dem-culturas thead th + th { border-left: 1px solid #e7eaee; }
+
 .dash-pagina.dem-maquete .dem-culturas tbody th,
-.dash-pagina.dem-maquete .dem-culturas tbody td,
-.dash-pagina.dem-maquete .dem-maiores tbody td {
-  padding: 7px 8px;
+.dash-pagina.dem-maquete .dem-culturas tbody td {
+  padding: 5px 5px;
   border-bottom: 1px solid var(--dm-linha);
-  font-size: 12px;
+  font-size: 11px;
   white-space: nowrap;
   color: #2b3440;
 }
 
-.dash-pagina.dem-maquete .dem-culturas tbody th { font-weight: 600; text-transform: none; }
+.dash-pagina.dem-maquete .dem-maiores tbody td {
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--dm-linha);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: nowrap;
+  color: #2b3440;
+}
+
+.dash-pagina.dem-maquete .dem-culturas tbody th { font-weight: 500; text-transform: none; }
 .dash-pagina.dem-maquete .dem-cultura { display: inline-flex; align-items: center; gap: 8px; }
 .dash-pagina.dem-maquete .dem-cultura-sem-icone { display: inline-block; width: 15px; }
 .dash-pagina.dem-maquete .dem-destaque { font-weight: 700; color: var(--dm-marinho); }
-.dash-pagina.dem-maquete .dem-posicao { width: 26px; color: var(--dm-cinza); }
-.dash-pagina.dem-maquete .dem-municipio { font-weight: 600; color: #2b3440; white-space: nowrap; }
-.dash-pagina.dem-maquete .dem-maiores .diag-ordenar { display: inline-flex; align-items: center; gap: 4px; }
-.dash-pagina.dem-maquete .dem-seta-inativa { color: #b3bcc6; }
+.dash-pagina.dem-maquete .dem-posicao { width: 22px; color: var(--dm-cinza); }
+.dash-pagina.dem-maquete .dem-municipio { font-weight: 500; color: #2b3440; white-space: nowrap; }
+.dash-pagina.dem-maquete .dem-maiores .diag-ordenar { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; font: inherit; color: inherit; white-space: nowrap; cursor: pointer; }
+.dash-pagina.dem-maquete .dem-maiores .diag-ordenar:hover { text-decoration: underline; }
+.dash-pagina.dem-maquete .dem-seta-inativa { display: none; }
 .dash-pagina.dem-maquete .dem-seta-ativa { color: #374151; }
+.dash-pagina.dem-maquete .diag-seta { font-weight: 600; }
 .dash-pagina.dem-maquete .diag-seta.sobe { color: #15803d; }
 .dash-pagina.dem-maquete .diag-seta.desce { color: #dc2626; }
 
 .dash-pagina.dem-maquete .dem-busca {
   justify-self: start;
   width: min(280px, 100%);
-  height: 30px;
+  height: 28px;
   padding: 0 10px;
   border: 1px solid #dfe3e8;
   border-radius: 6px;
   background: #fff;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 @container indicadores (max-width: 699px) {
@@ -271,47 +309,37 @@
   .dash-pagina.dem-maquete .dem-dupla .mom-painel-direita { margin-left: 0; }
 }
 
-/* AJUSTES DA PRIMEIRA CONFERÊNCIA (02/10/2026, a 1.672 px — conteúdo de ~1.376 px) */
+/* NA TELA DO RICARDO (1.536 px, conteúdo de ~1.240): os mesmos cinco campos numa linha, um pouco mais justos. */
 @container indicadores (min-width: 1000px) and (max-width: 1399px) {
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='periodo'] { flex-basis: 228px; max-width: 228px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='regional'],
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='loja'],
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cultura'] { flex-basis: 204px; max-width: 204px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='base'] { flex-basis: 236px; max-width: 236px; }
-}
-
-/* O MAPA DE CALOR CABE NO PAINEL: a loja com largura fixa e os doze meses repartindo o resto. */
-.dash-pagina.dem-maquete .dem-calor { table-layout: fixed; }
-.dash-pagina.dem-maquete .dem-calor thead th:first-child { width: 118px; }
-.dash-pagina.dem-maquete .dem-calor thead th.dem-calor-total { width: 46px; }
-.dash-pagina.dem-maquete .dem-calor th[scope='row'] { max-width: none; }
-.dash-pagina.dem-maquete .dem-calor-celula { min-width: 0; padding: 8px 0; font-size: 11px; }
-
-/* AS DUAS TABELAS DE BAIXO CABEM NO PAINEL: o cabeçalho quebra em duas linhas, e as células ficam mais justas. */
-.dash-pagina.dem-maquete .dem-culturas thead th,
-.dash-pagina.dem-maquete .dem-maiores thead th { padding: 6px 6px; white-space: normal; line-height: 1.25; vertical-align: bottom; }
-.dash-pagina.dem-maquete .dem-maiores .diag-ordenar { white-space: normal; text-align: inherit; }
-.dash-pagina.dem-maquete .dem-culturas tbody th,
-.dash-pagina.dem-maquete .dem-culturas tbody td,
-.dash-pagina.dem-maquete .dem-maiores tbody td { padding: 7px 6px; }
-
-/* AJUSTES DA SEGUNDA CONFERÊNCIA (02/10/2026, a 1.536 px) */
-/* A `.cad-tabela` do cadastro tem largura mínima de 860 px: aqui o mapa de calor cabe no painel, e só rola abaixo de 520. */
-.dash-pagina.dem-maquete .dem-calor { min-width: 520px; }
-
-@container indicadores (min-width: 1000px) and (max-width: 1399px) {
-  .dash-pagina.dem-maquete .dash-filtros-linha { gap: 10px; padding-left: 14px; padding-right: 14px; }
+  .dash-pagina.dem-maquete .dash-filtros-linha { gap: 10px; padding-left: 10px; padding-right: 10px; }
   .dash-pagina.dem-maquete .dash-filtros-linha .dash-filtro-icone { width: 30px; height: 30px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro select { font-size: 12px; padding-left: 8px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='periodo'] { flex-basis: 200px; max-width: 200px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='regional'] { flex-basis: 196px; max-width: 196px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='loja'] { flex-basis: 168px; max-width: 168px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cultura'] { flex-basis: 184px; max-width: 184px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='base'] { flex-basis: 214px; max-width: 214px; }
+  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro select { font-size: 11.5px; padding-left: 8px; }
+  .dash-pagina.dem-maquete .dash-mais-filtros { padding: 0 12px; }
+  .dash-pagina.dem-maquete .dem-calor thead th:first-child { width: 164px; }
+  .dash-pagina.dem-maquete .dem-calor-celula { font-size: 10px; }
+  /* O GRÁFICO PEQUENO MENOR, para o nome e o número do cartão caberem na linha deles. */
+  .dash-pagina.dem-maquete .mini-grafico { width: 42px; height: 30px; }
+  .dash-pagina.dem-maquete .mv-kpi:has(.mv-kpi-grafico) .mv-kpi-rotulo,
+  .dash-pagina.dem-maquete .mv-kpi:has(.mv-kpi-grafico) .mv-kpi-valor { padding-right: 48px; }
 }
 
-@container indicadores (min-width: 1000px) and (max-width: 1399px) {
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='loja'] { flex-basis: 184px; max-width: 184px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='cultura'] { flex-basis: 198px; max-width: 198px; }
-  .dash-pagina.dem-maquete .dash-filtros-linha > .dash-filtro[data-bloco='base'] { flex-basis: 226px; max-width: 226px; }
+/* ABAIXO DE 1.300 PX DE CONTEÚDO (a tela do Ricardo), a loja do mapa de calor encolhe — o nome inteiro fica na dica —, e
+   os doze meses e o total cabem no painel sem rolar. */
+@container indicadores (min-width: 1000px) and (max-width: 1299px) {
+  .dash-pagina.dem-maquete .dem-calor thead th:first-child { width: 112px; }
+  .dash-pagina.dem-maquete .dem-calor thead th.dem-calor-total { width: 34px; }
+  .dash-pagina.dem-maquete .dem-calor-total { padding-left: 2px; }
+  /* A COLUNA DA LOJA CURTA MOSTRA A CIDADE: "Tracbel Agro — B…" em todas as linhas não dizia qual loja é. */
+  .dash-pagina.dem-maquete .dem-calor .nome-da-loja-marca { display: none; }
+  /* O NÚMERO DO CARTÃO E A UNIDADE NA MESMA LINHA: o gráfico pequeno fica acima do fim dela. */
+  .dash-pagina.dem-maquete .mv-kpi:has(.mv-kpi-grafico) .mv-kpi-valor { padding-right: 0; }
+  .dash-pagina.dem-maquete .mv-kpi-valor { column-gap: 8px; }
+  .dash-pagina.dem-maquete .dem-culturas thead th,
+  .dash-pagina.dem-maquete .dem-culturas tbody th,
+  .dash-pagina.dem-maquete .dem-culturas tbody td { padding-left: 4px; padding-right: 4px; }
+  .dash-pagina.dem-maquete .dem-calor { border-spacing: 1px; }
+  .dash-pagina.dem-maquete .dem-calor thead th { padding-left: 0; padding-right: 0; font-size: 9px; }
+  .dash-pagina.dem-maquete .dem-calor-celula { font-size: 9.5px; }
+  /* Os dois painéis de baixo ficam com ~600 px: o cabeçalho dos parâmetros quebra em duas linhas para caber sem rolar. */
+  .dash-pagina.dem-maquete .dem-culturas thead th { white-space: normal; }
 }

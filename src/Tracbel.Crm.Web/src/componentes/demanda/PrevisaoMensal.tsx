@@ -15,8 +15,10 @@ import type { PrevisaoDoMes } from '../../tipos/mercado';
 import { n, NOME_DO_MES, NOME_DO_MES_POR_EXTENSO } from './demanda';
 
 const LARGURA = 760;
-const ALTURA = 286;
-const MARGEM = { esquerda: 44, direita: 48, topo: 34, base: 30 };
+const ALTURA = 262;
+const MARGEM = { esquerda: 44, direita: 48, topo: 26, base: 26 };
+/** A fração da altura útil que as barras ocupam; o atendimento corre na faixa de cima, como na maquete. */
+const ALTURA_DAS_BARRAS = 0.74;
 
 /** Um teto "redondo" acima do maior valor, e os quatro degraus até ele. */
 function escala(maior: number): number[] {
@@ -45,9 +47,10 @@ export function PrevisaoMensal({
     return m.entregues !== null && p !== null && p > 0 ? m.entregues / p : null;
   };
 
-  // AS BARRAS OCUPAM OS DOIS TERÇOS DE BAIXO e o atendimento corre numa faixa própria em cima delas, como a maquete:
-  // na mesma escala, a linha de 30% cruzava as barras e os números das duas se sobrepunham.
-  const degraus = escala(Math.max(0, ...meses.flatMap((m) => [prevista(m) ?? 0, m.entregues ?? 0])) * 1.45);
+  // AS BARRAS OCUPAM OS TRÊS QUARTOS DE BAIXO — o degrau de cima do eixo fica no topo dessa faixa — e o atendimento corre
+  // numa faixa própria em cima delas, como a maquete: na mesma escala, a linha de 30% cruzava as barras e os números das
+  // duas se sobrepunham.
+  const degraus = escala(Math.max(0, ...meses.flatMap((m) => [prevista(m) ?? 0, m.entregues ?? 0])));
   const teto = degraus[4];
   const percentuais = meses.map(atendimento).filter((v): v is number => v !== null);
   const maiorPct = percentuais.length ? Math.max(...percentuais) : 0;
@@ -56,10 +59,12 @@ export function PrevisaoMensal({
   const larguraUtil = LARGURA - MARGEM.esquerda - MARGEM.direita;
   const alturaUtil = ALTURA - MARGEM.topo - MARGEM.base;
   const coluna = larguraUtil / meses.length;
-  const barra = Math.min(22, coluna * 0.32);
-  const y = (v: number) => MARGEM.topo + alturaUtil * (1 - (teto > 0 ? v / teto : 0));
-  const faixaTopo = MARGEM.topo + 4;
-  const faixaBase = MARGEM.topo + alturaUtil * 0.24;
+  const barra = Math.min(26, coluna * 0.4);
+  const barraClara = Math.min(20, coluna * 0.3);
+  const base0 = MARGEM.topo + alturaUtil;
+  const y = (v: number) => base0 - alturaUtil * ALTURA_DAS_BARRAS * (teto > 0 ? v / teto : 0);
+  const faixaTopo = MARGEM.topo + 6;
+  const faixaBase = MARGEM.topo + alturaUtil * (1 - ALTURA_DAS_BARRAS) - 4;
   const yPct = (v: number) =>
     maiorPct > menorPct ? faixaBase - ((v - menorPct) / (maiorPct - menorPct)) * (faixaBase - faixaTopo) : (faixaTopo + faixaBase) / 2;
   const centro = (i: number) => MARGEM.esquerda + coluna * i + coluna / 2;
@@ -124,8 +129,8 @@ export function PrevisaoMensal({
               )}
               {m.entregues !== null && (
                 <>
-                  <rect x={centro(i) + 1} y={y(m.entregues)} width={barra} height={Math.max(0, y(0) - y(m.entregues))} className="dem-barra-realizada" rx="2" />
-                  <text x={centro(i) + barra / 2 + 1} y={y(m.entregues) - 5} textAnchor="middle" className="dem-grafico-valor-claro">
+                  <rect x={centro(i) + 1} y={y(m.entregues)} width={barraClara} height={Math.max(0, y(0) - y(m.entregues))} className="dem-barra-realizada" rx="2" />
+                  <text x={centro(i) + barraClara / 2 + 1} y={y(m.entregues) - 5} textAnchor="middle" className="dem-grafico-valor-claro">
                     {n(m.entregues, 0)}
                   </text>
                 </>

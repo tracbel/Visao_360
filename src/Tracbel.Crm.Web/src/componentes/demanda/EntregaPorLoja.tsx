@@ -9,6 +9,7 @@
 import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import type { EntregaDaLoja } from '../../tipos/mercado';
+import { NomeDaLoja } from '../mercado/NomeDaLoja';
 import { n, NOME_DO_MES } from './demanda';
 
 /** Quantas lojas a tabela mostra antes de "Ver todas as lojas". */
@@ -47,7 +48,7 @@ export function EntregaPorLoja({ lojas, meses, mesEscolhido }: { lojas: EntregaD
             {visiveis.map((l) => (
               <tr key={l.lojaCodigo ?? l.loja}>
                 <th scope="row" title={l.loja}>
-                  {l.loja}
+                  <NomeDaLoja nome={l.loja} />
                 </th>
                 {l.porMes.map((v, i) => {
                   const intensidade = maiorCelula > 0 && v !== null ? v / maiorCelula : 0;
@@ -71,14 +72,20 @@ export function EntregaPorLoja({ lojas, meses, mesEscolhido }: { lojas: EntregaD
           </tbody>
         </table>
       </div>
-      {lojas.length > LOJAS_A_VISTA && (
-        <div className="dem-ver-todas">
-          <button type="button" className="dem-botao-link" onClick={() => setTodas((t) => !t)} aria-expanded={todas}>
-            {todas ? `Ver só as ${LOJAS_A_VISTA} maiores` : `Ver todas as lojas (${lojas.length})`}
-            <ArrowRight size={14} strokeWidth={2.2} aria-hidden="true" />
-          </button>
-        </div>
-      )}
+      {/* O BOTÃO ESTÁ SEMPRE, como na maquete; com até cinco lojas, todas já estão na tabela, e a dica diz isso. */}
+      <div className="dem-ver-todas">
+        <button
+          type="button"
+          className="dem-botao-link"
+          onClick={() => lojas.length > LOJAS_A_VISTA && setTodas((t) => !t)}
+          aria-expanded={lojas.length > LOJAS_A_VISTA ? todas : undefined}
+          aria-disabled={lojas.length <= LOJAS_A_VISTA || undefined}
+          title={lojas.length > LOJAS_A_VISTA ? `${lojas.length} lojas com demanda no recorte` : `As ${lojas.length} lojas do recorte já estão na tabela`}
+        >
+          {todas ? `Ver só as ${LOJAS_A_VISTA} maiores` : 'Ver todas as lojas'}
+          <ArrowRight size={14} strokeWidth={2.2} aria-hidden="true" />
+        </button>
+      </div>
     </>
   );
 }

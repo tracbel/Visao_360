@@ -19,7 +19,7 @@
  */
 
 import * as Popover from '@radix-ui/react-popover';
-import { CalendarDays, Funnel, MapPin, MapPinned, Sprout, Tractor, UserRound } from 'lucide-react';
+import { CalendarDays, Funnel, Leaf, MapPin, MapPinned, Tractor, Users } from 'lucide-react';
 import { useMemo } from 'react';
 import { InfoTooltip } from '../InfoTooltip';
 import { anoFiscalFechado, dozeMesesFechados, mes as mesPorExtenso, nomeDoAnoFiscal } from '../territorio/indicadoresDaAdr';
@@ -86,33 +86,18 @@ export function FiltrosDoDiagnosticoComercial({
             <CalendarDays size={17} strokeWidth={2} />
           </span>
           <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">
-              Período
-              <InfoTooltip
-                rotulo="O período das vendas e como ele entra no IOC"
-                texto={
-                  <>
-                    <p>
-                      O período vale para as <strong>vendas</strong>. O crédito e o preço são o momento mais recente — a
-                      janela dos parâmetros do potencial —, e a carteira e a cobertura são o estado de hoje, no alcance da
-                      filial do cabeçalho.
-                    </p>
-                    <p>
-                      O padrão são os <strong>12 meses fechados</strong>: o IOC compara a venda com a demanda de um ano, e
-                      doze meses seguidos são um ano inteiro. Em outro período, a venda é levada a um ano pela{' '}
-                      <strong>sazonalidade</strong> vigente, e não por regra de três — meses de safra pesam mais.
-                    </p>
-                    {dados && dados.fracaoDoAnoNoPeriodo !== 1 && (
-                      <p>
-                        Este período vale <strong>{Math.round(dados.fracaoDoAnoNoPeriodo * 100)}% do ano</strong> pela
-                        sazonalidade.
-                      </p>
-                    )}
-                  </>
-                }
-              />
-            </span>
+            {/* SEM ⓘ NO RÓTULO, como a maquete: a explicação do período vai na dica do próprio campo. */}
+            <span className="dash-filtro-rotulo">Período</span>
             <select
+              title={
+                'O período vale para as vendas. O crédito e o preço são o momento mais recente — a janela dos parâmetros do ' +
+                'potencial —, e a carteira e a cobertura são o estado de hoje, no alcance da filial do cabeçalho. O padrão são ' +
+                'os 12 meses fechados: o IOC compara a venda com a demanda de um ano, e doze meses seguidos são um ano inteiro. ' +
+                'Em outro período, a venda é levada a um ano pela sazonalidade vigente, e não por regra de três.' +
+                (dados && dados.fracaoDoAnoNoPeriodo !== 1
+                  ? ` Este período vale ${Math.round(dados.fracaoDoAnoNoPeriodo * 100)}% do ano pela sazonalidade.`
+                  : '')
+              }
               value={preset}
               onChange={(e) => {
                 if (e.target.value === '12meses') aoMudar({ competenciaInicial: undefined, competenciaFinal: undefined });
@@ -165,7 +150,7 @@ export function FiltrosDoDiagnosticoComercial({
 
         <label className="dash-filtro" data-bloco="cultura">
           <span className="dash-filtro-icone" aria-hidden="true">
-            <Sprout size={17} strokeWidth={2} />
+            <Leaf size={17} strokeWidth={2} />
           </span>
           <span className="dash-filtro-corpo">
             <span className="dash-filtro-rotulo">Cultura principal</span>
@@ -182,7 +167,7 @@ export function FiltrosDoDiagnosticoComercial({
 
         <label className="dash-filtro" data-bloco="cen">
           <span className="dash-filtro-icone" aria-hidden="true">
-            <UserRound size={17} strokeWidth={2} />
+            <Users size={17} strokeWidth={2} />
           </span>
           <span className="dash-filtro-corpo">
             <span className="dash-filtro-rotulo">CEN / Gestor</span>

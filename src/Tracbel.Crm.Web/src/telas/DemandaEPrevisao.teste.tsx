@@ -121,27 +121,33 @@ describe('Demanda e Previsão (issue 258, maquete de 02/10/2026)', () => {
     montar();
     await aTela();
 
+    // O PADRÃO É "TODOS OS CENÁRIOS", como a maquete: a estrutural no número e a ajustada ao lado.
+    expect(campo('Meta / Previsão')).toHaveDisplayValue('Todos os cenários');
     expect(kpi(/Parque potencial/)).toHaveTextContent('90');
     expect(kpi(/Parque potencial/)).toHaveTextContent('+25%');
-    expect(kpi(/Demanda anual/)).toHaveTextContent('20unidades');
+    expect(kpi(/Parque potencial/)).toHaveTextContent('Trator na área plantada comparável');
+    expect(kpi(/Demanda anual/)).toHaveTextContent('18unidades');
     expect(kpi(/Demanda anual/)).toHaveTextContent('+25% em relação ao ano anterior');
-    expect(kpi(/Demanda anual/)).toHaveTextContent('estrutural 18');
+    expect(kpi(/Demanda anual/)).toHaveTextContent('20 ajustada pelo momento atual');
     expect(kpi(/Entrega no período/)).toHaveTextContent('5unidades');
-    expect(kpi(/Entrega no período/)).toHaveTextContent('25% da previsão anual');
+    expect(kpi(/Entrega no período/)).toHaveTextContent('28% da previsão anual');
     expect(kpi(/Entrega no período/)).toHaveTextContent('+25% vs. mesmo período ano anterior');
-    expect(kpi(/Culturas com espaço/)).toHaveTextContent('1de 2');
-    expect(kpi(/Culturas com espaço/)).toHaveTextContent('Aumento em área: café');
+    expect(kpi(/Culturas com espaço/)).toHaveTextContent('Culturas com espaço1');
+    expect(kpi(/Culturas com espaço/)).toHaveTextContent('Aumento em área, puxado por café');
+    // OS GRÁFICOS PEQUENOS DOS CARTÕES SÃO SÉRIES DE VERDADE, e dizem qual.
+    expect(within(kpi(/Demanda anual/) as HTMLElement).getByRole('img', { name: /A demanda prevista mês a mês/ })).toBeInTheDocument();
   });
 
-  it('a base estrutural troca os números da tela inteira, sem pedir de novo', async () => {
+  it('a base ajustada troca os números da tela inteira, sem pedir de novo', async () => {
     montar();
     await aTela();
     const antes = pedidos.length;
 
-    fireEvent.change(campo('Meta / Previsão'), { target: { value: 'estrutural' } });
+    fireEvent.change(campo('Meta / Previsão'), { target: { value: 'ajustada' } });
 
-    expect(kpi(/Demanda anual/)).toHaveTextContent('18unidades');
-    expect(kpi(/Demanda anual/)).toHaveTextContent('20 ajustada pelo momento atual');
+    expect(kpi(/Demanda anual/)).toHaveTextContent('20unidades');
+    expect(kpi(/Demanda anual/)).toHaveTextContent('18 estrutural, sem o momento');
+    expect(kpi(/Entrega no período/)).toHaveTextContent('25% da previsão anual');
     expect(pedidos.length).toBe(antes);
   });
 
@@ -153,13 +159,13 @@ describe('Demanda e Previsão (issue 258, maquete de 02/10/2026)', () => {
     const meses = within(previsao).getAllByRole('button', { pressed: false });
     expect(meses[0]).toHaveAccessibleName(/^novembro/);
     expect(meses[11]).toHaveAccessibleName(/^outubro/);
-    expect(within(previsao).getByRole('button', { name: /^maio: 2,4 máquinas de demanda prevista, 1 entregues, 42% de atendimento/ })).toBeInTheDocument();
+    expect(within(previsao).getByRole('button', { name: /^maio: 1,5 máquinas de demanda prevista, 1 entregues, 67% de atendimento/ })).toBeInTheDocument();
     // O MÊS SEM ENTREGA CONTADA (o que ainda não começou) NÃO TEM ATENDIMENTO: nem zero, nem ponto.
     expect(within(previsao).getByRole('button', { name: /^setembro/ })).not.toHaveAccessibleName(/entregues/);
 
     fireEvent.click(within(previsao).getByRole('button', { name: /^maio/ }));
     expect(kpi(/Entrega em maio/)).toHaveTextContent('1unidades');
-    expect(kpi(/Entrega em maio/)).toHaveTextContent('42% da previsão do mês');
+    expect(kpi(/Entrega em maio/)).toHaveTextContent('67% da previsão do mês');
   });
 
   it('a entrega por loja mostra as cinco maiores, o total, e "Ver todas as lojas" abre o resto', async () => {
@@ -172,7 +178,7 @@ describe('Demanda e Previsão (issue 258, maquete de 02/10/2026)', () => {
     expect(within(linha).getByText('6,2')).toBeInTheDocument();
     expect(within(lojas).queryByText('Loja F')).toBeNull();
 
-    fireEvent.click(within(lojas).getByRole('button', { name: /Ver todas as lojas \(6\)/ }));
+    fireEvent.click(within(lojas).getByRole('button', { name: /Ver todas as lojas/ }));
     expect(within(lojas).getByText('Loja F')).toBeInTheDocument();
   });
 
@@ -197,7 +203,7 @@ describe('Demanda e Previsão (issue 258, maquete de 02/10/2026)', () => {
     expect(nomes()[0]).toBe('Município A');
     expect(within(tabela).getAllByText('+25%').length).toBe(10);
 
-    fireEvent.click(within(tabela).getByRole('button', { name: /Ver todos os municípios \(12\)/ }));
+    fireEvent.click(within(tabela).getByRole('button', { name: /Ver todos os municípios/ }));
     fireEvent.change(within(tabela).getByRole('searchbox', { name: 'Buscar município' }), { target: { value: 'município l' } });
     expect(nomes()).toEqual(['Município L']);
   });
