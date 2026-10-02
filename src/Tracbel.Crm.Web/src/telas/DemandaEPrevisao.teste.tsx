@@ -208,15 +208,26 @@ describe('Demanda e Previsão (issue 258, maquete de 02/10/2026)', () => {
     expect(nomes()).toEqual(['Município L']);
   });
 
-  it('o período, a cultura e o tipo de máquina pedem a demanda de novo', async () => {
+  // UM FILTRO POR TESTE: os três pedidos num teste só passavam dos 5 s quando a suíte inteira disputava a máquina.
+  it('o período pede a demanda de novo, do ano fiscal escolhido', async () => {
     montar();
     await aTela();
 
     fireEvent.change(campo('Período'), { target: { value: '2025' } });
     await waitFor(() => expect(pedidos.some((p) => p.includes('anoFiscal=2025'))).toBe(true));
+  });
+
+  it('a cultura pede a demanda de novo, recortada', async () => {
+    montar();
+    await aTela();
 
     fireEvent.change(campo('Cultura'), { target: { value: 'CAFE' } });
     await waitFor(() => expect(pedidos.some((p) => p.includes('cultura=CAFE'))).toBe(true));
+  });
+
+  it('o tipo de máquina mora em "Mais filtros" e pede a demanda de novo', async () => {
+    montar();
+    await aTela();
 
     fireEvent.click(screen.getByRole('button', { name: /Mais filtros/ }));
     const tipo = (await screen.findByText('Tipo de máquina')).closest('label')!.querySelector('select')!;
