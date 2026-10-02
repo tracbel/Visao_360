@@ -40,6 +40,7 @@ import { ConferenciaComAGestao } from './telas/ConferenciaComAGestao';
 import { Configuracoes } from './telas/Configuracoes';
 import { DemandaEPrevisao } from './telas/DemandaEPrevisao';
 import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
+import { FinanciamentosSicor } from './telas/FinanciamentosSicor';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
 import { EstoqueECobertura } from './telas/EstoqueECobertura';
 import { ForecastGerencia } from './telas/ForecastGerencia';
@@ -269,6 +270,13 @@ export const ROTAS: Rota[] = [
     usaApi: true,
   },
   /* ---- Inteligência de Mercado: o protótipo da pasta 360 no CRM (épico 264) ---- */
+  {
+    caminho: '/mercado/financiamentos',
+    titulo: 'Gestão de Financiamentos',
+    trilha: ['Inteligência de Mercado', 'Gestão de Financiamentos'],
+    Componente: FinanciamentosSicor,
+    usaApi: true,
+  },
   {
     caminho: '/mercado/demanda',
     titulo: 'Demanda e Previsão',

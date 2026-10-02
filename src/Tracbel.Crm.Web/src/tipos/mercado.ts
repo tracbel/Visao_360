@@ -543,6 +543,103 @@ export type DemandaEPrevisaoDaRegiao = {
 
 export type FiltrosDaDemanda = { regiao?: string; lojaCodigo?: string; categoria?: string };
 
+// ------------------------------------------------------------------------------------------------
+// Gestão de Financiamentos — `GET /api/v1/mercado/financiamentos` (issue 261)
+// ------------------------------------------------------------------------------------------------
+
+/** Um código do catálogo do SICOR com o nome do Banco Central. */
+export type OpcaoDoSicor = { codigo: number; nome: string };
+
+/** As linhas e o valor de máquina num mês. Linha do SICOR não é contrato. */
+export type LinhasDoSicorNoMes = { mes: string; linhas: number; valor: number };
+
+export type TotaisDoCredito = {
+  linhas: number;
+  valor: number;
+  /** Nulo quando o mesmo período do ano anterior começa antes do SICOR. */
+  linhasAnteriores: number | null;
+  valorAnterior: number | null;
+  indice: IndiceDeCredito | null;
+};
+
+export type MomentoDoCredito = { meses: number; janelas: JanelasDeCredito | null; indice: IndiceDeCredito | null };
+
+export type RecorteNoEstado = {
+  linhas: number;
+  linhasDoEstado: number;
+  fatiaDasLinhas: number | null;
+  valor: number;
+  valorDoEstado: number;
+  fatiaDoValor: number | null;
+};
+
+export type SituacoesDoCredito = {
+  retraidos: number;
+  intermediarios: number;
+  aquecidos: number;
+  superaquecidos: number;
+  /** Sem crédito no mesmo período do ano anterior — sem faixa. */
+  semBase: number;
+  basePequena: number;
+};
+
+export type CreditoDaLoja = { lojaCodigo: string; loja: string; municipios: number; janelas: JanelasDeCredito; indice: IndiceDeCredito | null };
+
+export type CreditoDoMunicipio = {
+  codigoIbge: number;
+  nome: string;
+  pertenceAAdr: boolean;
+  lojaCodigo: string | null;
+  loja: string | null;
+  janelas: JanelasDeCredito;
+  /** Quanto do valor de São Paulo no período é deste município, em %. */
+  fatiaNoEstado: number | null;
+  /** Quantos pontos a fatia mudou contra o ano anterior. */
+  variacaoDaFatia: number | null;
+  indice: IndiceDeCredito | null;
+};
+
+export type FinanciamentosDoSicor = {
+  primeiroMesDoSicor: string | null;
+  ultimoMesDoSicor: string | null;
+  mesesDeCarencia: number;
+  carenciaDecidida: boolean;
+  de: string | null;
+  ate: string | null;
+  meses: number;
+  anteriorDe: string | null;
+  anteriorAte: string | null;
+  produto: number | null;
+  programa: number | null;
+  produtos: OpcaoDoSicor[];
+  programas: OpcaoDoSicor[];
+  recorte: string;
+  recorteNome: string;
+  municipiosNoRecorte: number;
+  lojas: { codigo: string; nome: string; municipios: number }[];
+  totais: TotaisDoCredito;
+  momento: MomentoDoCredito[];
+  serie: LinhasDoSicorNoMes[];
+  noEstado: RecorteNoEstado | null;
+  situacoes: SituacoesDoCredito;
+  porLoja: CreditoDaLoja[];
+  municipios: CreditoDoMunicipio[];
+  lacunas: { metrica: string; motivo: string }[];
+};
+
+/** Os filtros dos Financiamentos; ausente é o padrão do servidor (12 meses fechados, os três produtos, a Região). */
+export type FiltrosDosFinanciamentos = {
+  /** aaaa-mm */
+  de?: string;
+  ate?: string;
+  produto?: string;
+  programa?: string;
+  /** `adr`, `norte`, `noroeste`, `sp` ou `fora`. */
+  recorte?: string;
+  lojaCodigo?: string;
+  usina?: string;
+};
+
 /**
  * O SHARE DA TRACBEL NO CRÉDITO DE MECANIZAÇÃO (issue 262, decisões de 28/09/2026): o crédito rural que a Tracbel
  * financiou (formulários da venda do Vórtice, sem recurso próprio e sem consórcio) dividido pelo crédito de máquinas
