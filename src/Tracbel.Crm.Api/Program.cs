@@ -197,6 +197,7 @@ builder.Services.AddSingleton<ContadorDeGravacoesNaReferencia>();
 builder.Services.AddSingleton<IAssinaturaDosAssuntos, AssinaturaDosAssuntos>();
 builder.Services.AddSingleton<CacheDeReferencia>();
 builder.Services.AddSingleton<IRepositorioDoTerritorioDeReferencia, TerritorioDeReferenciaEmCache>();
+builder.Services.AddSingleton<IRepositorioDoPotencialDeReferencia, PotencialDeReferenciaEmCache>();
 
 // -------------------------------------------------------------------------------------------
 // As portas do domínio e seus adaptadores. O caso de uso conhece a interface; só esta linha

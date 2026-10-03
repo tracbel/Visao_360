@@ -26,17 +26,26 @@ public sealed class OrcamentoDeConsultasNaApiTestes(ITestOutputHelper saida) : I
     /// </summary>
     private const int AssinaturaDoTerritorio = 5;
 
+    /// <summary>A ASSINATURA DO POTENCIAL: as mesmas cinco contas, nas tabelas da PAM, das regras e do estado.</summary>
+    private const int AssinaturaDoPotencial = 5;
+
     /// <summary>
-    /// A segunda leitura, com o cache de referência cheio. A LINHA DE BASE DE 03/10/2026 (doc 54, antes de qualquer
-    /// otimização), em consultas ao banco por chamada: indicadores 73, demanda 81, diagnóstico 77, cenários 87,
-    /// dimensionamento 24, financiamentos 16, preços 16.
+    /// O ANO ANTERIOR DA PAM vem sempre junto no potencial de referência — uma leitura a mais por versão, em vez de duas
+    /// versões guardadas. A Demanda e os Cenários já o pediam; os Indicadores e o Diagnóstico passam a pagá-lo no frio.
+    /// </summary>
+    private const int AnoAnteriorDaPam = 1;
+
+    /// <summary>
+    /// A segunda leitura, com o cache de referência cheio — o medido depois do território e do potencial de referência
+    /// (doc 54 §3.1). A LINHA DE BASE DE 03/10/2026, antes de qualquer otimização, era: indicadores 73, demanda 81,
+    /// diagnóstico 77, cenários 87, dimensionamento 24, financiamentos 16, preços 16.
     /// </summary>
     private static readonly Dictionary<string, int> TetoQuente = new(StringComparer.Ordinal)
     {
-        ["/api/v1/territorio/indicadores"] = 73,
-        ["/api/v1/mercado/demanda"] = 81,
-        ["/api/v1/mercado/diagnostico"] = 77,
-        ["/api/v1/mercado/cenarios"] = 87,
+        ["/api/v1/territorio/indicadores"] = 58,
+        ["/api/v1/mercado/demanda"] = 65,
+        ["/api/v1/mercado/diagnostico"] = 62,
+        ["/api/v1/mercado/cenarios"] = 71,
         ["/api/v1/mercado/dimensionamento"] = 24,
         ["/api/v1/mercado/financiamentos"] = 16,
         ["/api/v1/mercado/precos"] = 16,
@@ -45,10 +54,10 @@ public sealed class OrcamentoDeConsultasNaApiTestes(ITestOutputHelper saida) : I
     /// <summary>A primeira leitura, com o cache de referência vazio: a linha de base mais a assinatura de cada assunto lido.</summary>
     private static readonly Dictionary<string, int> TetoFrio = new(StringComparer.Ordinal)
     {
-        ["/api/v1/territorio/indicadores"] = 73 + AssinaturaDoTerritorio,
-        ["/api/v1/mercado/demanda"] = 81 + AssinaturaDoTerritorio,
-        ["/api/v1/mercado/diagnostico"] = 77 + AssinaturaDoTerritorio,
-        ["/api/v1/mercado/cenarios"] = 87 + AssinaturaDoTerritorio,
+        ["/api/v1/territorio/indicadores"] = 73 + AssinaturaDoTerritorio + AssinaturaDoPotencial + AnoAnteriorDaPam,
+        ["/api/v1/mercado/demanda"] = 81 + AssinaturaDoTerritorio + AssinaturaDoPotencial,
+        ["/api/v1/mercado/diagnostico"] = 77 + AssinaturaDoTerritorio + AssinaturaDoPotencial + AnoAnteriorDaPam,
+        ["/api/v1/mercado/cenarios"] = 87 + AssinaturaDoTerritorio + AssinaturaDoPotencial,
         ["/api/v1/mercado/dimensionamento"] = 24,
         ["/api/v1/mercado/financiamentos"] = 16,
         ["/api/v1/mercado/precos"] = 16,

@@ -134,9 +134,9 @@ public sealed class VisaoDaEmpresaTestes : IDisposable
     {
         _provedor.Atual = contexto;
         await using var db = NovoContexto();
-        // O MOTOR DO POTENCIAL É OUTRO REPOSITÓRIO desde a issue 161 — a calculadora precisa do mesmo
-        // catálogo, e duas leituras dele divergiriam. Aqui ele lê o mesmo contexto.
-        return await new RepositorioDeIndicadoresTerritoriais(db, new RepositorioDoMotorDoPotencial(db))
+        // O TERRITÓRIO E O POTENCIAL SÃO LEITORES DE REFERÊNCIA desde o documento 54 (o motor, desde a issue 161). Sem o
+        // cache da API, o construtor curto os lê do mesmo contexto.
+        return await new RepositorioDeIndicadoresTerritoriais(db)
             .ApurarAsync(consulta, Agora, CancellationToken.None);
     }
 
