@@ -38,7 +38,7 @@ public sealed class LeitorDasPecasNoConteinerTestes
             """);
 
         var opcoes = Opcoes();
-        var resultado = await new LeitorDasPecasDoProtheus(opcoes).LerAsync(new DateOnly(2023, 10, 1), new DateOnly(2024, 10, 1), CancellationToken.None);
+        var resultado = await new LeitorDasPecasDoProtheus(opcoes).LerAsync(new DateOnly(2023, 10, 1), new DateOnly(2024, 10, 1), null, CancellationToken.None);
 
         resultado.EhSucesso.Should().BeTrue(resultado.Erro ?? string.Empty);
         var leitura = resultado.Valor;
@@ -52,6 +52,29 @@ public sealed class LeitorDasPecasNoConteinerTestes
         var aberto = leitura.Orcamentos.Single(o => o.Numero == "000777");
         (aberto.OrcadoEm, aberto.ValidoAte, aberto.Documento, aberto.ValorTotal).Should().Be(
             ((DateOnly?)new DateOnly(2026, 9, 20), (DateOnly?)new DateOnly(2026, 10, 20), "11444777000161", (decimal?)300m));
+    }
+
+    [FatoSeHouverSqlServer]
+    public async Task A_leitura_curta_traz_o_orcamento_antigo_alterado_ha_pouco_so_quando_pede_os_alterados()
+    {
+        RecriarBancoComAsViews();
+
+        Executar("""
+            INSERT INTO dbo.X_V_BI_POSICAO_ORC_PECAS (filial_orc, nro_orc, STATUS_ORC, Situacao_orc, status_reserva_orc, tipo_atendimento_orc,
+                tipo_orcamento_orc, cpf_cnpj_orc, [data_orçamento_orc], data_validade_orc, data_alteracao_orc, cod_vededor_orc, nome_vededor_orc,
+                cod_item_orc, vlr_total_orc, vlr_desc_orc, vlr_margem_lucro_orc) VALUES
+                -- Orçado em 2024, encerrado e alterado em setembro de 2026: só a leitura curta, pelos alterados, o traz.
+                ('01', '000500', 'Encerrado', 'ATENDIDO', 'RESERVADO', 'BALCAO', 'VENDA', '11444777000161', '2024-01-10', '2024-02-10', '2026-09-20', '000123', 'VENDEDOR A', 'PECA-5', 80, 0, 1),
+                -- Orçado e alterado em 2024: fora das duas.
+                ('01', '000501', 'Encerrado', 'ATENDIDO', 'RESERVADO', 'BALCAO', 'VENDA', '11444777000161', '2024-01-10', '2024-02-10', '2024-01-11', '000123', 'VENDEDOR A', 'PECA-6', 90, 0, 1);
+            """);
+
+        var leitor = new LeitorDasPecasDoProtheus(Opcoes());
+        var curta = (await leitor.LerAsync(new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 1), CancellationToken.None)).Valor;
+        var semOsAlterados = (await leitor.LerAsync(new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 1), null, CancellationToken.None)).Valor;
+
+        curta.Orcamentos.Select(o => o.Numero).Should().BeEquivalentTo(["000500"], "alterado em 20/09/2026, depois do início curto");
+        semOsAlterados.Orcamentos.Should().BeEmpty("sem os alterados, a consulta é a de sempre: orçado na janela ou aberto");
     }
 
     // -----------------------------------------------------------------------------------------

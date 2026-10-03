@@ -1173,10 +1173,10 @@ public static class RotinasDoSistema
         // O SEGUNDO MODO SÃO AS PEÇAS (02/10/2026): o faturamento de peças por mês, setor, grupo, linha e vendedor, e os
         // orçamentos de peças — as views do extrator "Faturamento Peças" do BI. Independe das ordens de serviço; vai depois delas.
         new(PosVendaProtheus, "Pós-venda do Protheus",
-            "As ordens de serviço da oficina dos últimos três anos e as ainda abertas, de qualquer data, lidas pelas mesmas views " +
-            "do BI, com o valor de peças e de serviços na régua do painel de pós-venda — casadas com o cliente pelo CPF/CNPJ e com " +
-            "a máquina pelo chassi, sem nome nem contato de ninguém. Depois, o faturamento de peças por mês (balcão e oficina, " +
-            "grupo, linha e vendedor) e os orçamentos de peças, sem custo nem margem.",
+            "As ordens de serviço da oficina dos últimos três anos e as ainda abertas, pelas views do BI, com o valor de peças e de serviços na régua " +
+            "do painel de pós-venda — casadas com o cliente pelo CPF/CNPJ e com a máquina pelo chassi, sem nome nem contato de ninguém —; depois, o " +
+            "faturamento de peças por mês e os orçamentos de peças, sem custo nem margem. Nos dias comuns lê só o que pode ter mudado desde o mês " +
+            "dos últimos três dias; no domingo relê tudo e conta o que a leitura curta não teria visto.",
             ["--somente-ordens-de-servico", "--somente-pecas-protheus"], AgendaDaRotina.DiariaAs(new TimeOnly(6, 0)), false,
             [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco)
     ];

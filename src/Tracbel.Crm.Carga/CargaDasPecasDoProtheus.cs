@@ -14,10 +14,12 @@ namespace Tracbel.Crm.Carga;
 /// <param name="Simulada">Verdadeiro quando nada foi gravado.</param>
 /// <param name="Contagens">As contagens por etapa.</param>
 /// <param name="Observacoes">O que merece leitura humana — inclusive os totais em reais, para conferir com o BI.</param>
+/// <param name="Alcance">Curta ou completa, desde quando, e o que a completa corrigiu fora do alcance curto — vai para o resumo.</param>
 internal sealed record RelatorioDasPecas(
     bool Simulada,
     IReadOnlyList<(string Etapa, string Rotulo, int Valor)> Contagens,
-    IReadOnlyList<string> Observacoes)
+    IReadOnlyList<string> Observacoes,
+    string Alcance = "")
 {
     /// <summary>A soma das contagens com este rótulo, em qualquer etapa.</summary>
     public int Valor(string rotulo) => Contagens.Where(c => c.Rotulo == rotulo).Sum(c => c.Valor);
@@ -36,10 +38,15 @@ internal sealed record RelatorioDasPecas(
 /// <para><b>As travas:</b> leitura vazia não apaga nada; o faturamento que encolheria a menos da metade das combinações que
 /// já estão na janela é leitura parcial; orçamento ilegível acima de 5%, ou excluir mais de 20% dos vigentes, aborta tudo. Só
 /// <c>--aceitar-remocao</c>, no terminal, passa por cima das travas de encolhimento.</para>
+///
+/// <para><b>Curta nos dias comuns, completa no domingo</b> (plano 3 do documento 54; <see cref="AlcanceDaLeitura"/>). A curta
+/// regrava o faturamento desde o mês dos últimos três dias de emissão, lê os orçamentos orçados desde então, os abertos e os
+/// ALTERADOS desde então (a view tem a data de alteração), e só exclui o orçamento orçado dentro dela. A completa conta o que
+/// corrigiu fora do alcance curto: os meses-filial do faturamento com valor diferente, com os reais, e os orçamentos.</para>
 /// </summary>
 internal sealed class CargaDasPecasDoProtheus(
     Func<CrmDbContext> abrirContexto,
-    Func<DateOnly, DateOnly, CancellationToken, Task<Resultado<LeituraDasPecas>>> ler,
+    Func<DateOnly, DateOnly, DateOnly?, CancellationToken, Task<Resultado<LeituraDasPecas>>> ler,
     long usuarioId,
     Func<DateTime> relogio,
     Action<string> relatar)
@@ -95,25 +102,50 @@ internal sealed class CargaDasPecasDoProtheus(
     /// <summary>Rótulo: reativados.</summary>
     internal const string RotuloDeReativados = "orçamentos que voltaram à origem (reativados)";
 
+    /// <summary>Rótulo: os meses-filial do faturamento que só a completa corrige.</summary>
+    internal const string RotuloDeMesesCorrigidosForaDoCurto = "meses-filial do faturamento corrigidos fora do alcance curto — o que a leitura curta não teria visto";
+
+    /// <summary>Rótulo: os orçamentos que só a completa corrige.</summary>
+    internal const string RotuloDeOrcamentosCorrigidosForaDoCurto = "orçamentos corrigidos fora do alcance curto — o que a leitura curta não teria visto";
+
+    /// <summary>O ponto da leitura completa: o instante dela decide quando a próxima é completa.</summary>
+    internal const string FluxoDaLeituraCompleta = "PROTHEUS.FATURAMENTO_PECAS_COMPLETO";
+
     private readonly List<(string Etapa, string Rotulo, int Valor)> _contagens = [];
     private readonly List<string> _observacoes = [];
 
     /// <summary>O primeiro dia da janela dos orçamentos.</summary>
     internal static DateOnly InicioDosOrcamentos(DateOnly hoje) => new DateOnly(hoje.Year, hoje.Month, 1).AddMonths(-MesesDosOrcamentos);
 
-    /// <summary>Executa a carga.</summary>
+    /// <summary>Executa a carga — curta ou completa pela agenda da semana.</summary>
     /// <param name="simular">Só planeja e conta.</param>
     /// <param name="aceitarRemocao">Passa por cima das travas de encolhimento — só no terminal.</param>
     /// <param name="ct">Cancelamento.</param>
-    public async Task<Resultado<RelatorioDasPecas>> ExecutarAsync(bool simular, bool aceitarRemocao, CancellationToken ct)
+    public Task<Resultado<RelatorioDasPecas>> ExecutarAsync(bool simular, bool aceitarRemocao, CancellationToken ct) =>
+        ExecutarAsync(simular, aceitarRemocao, completaPedida: false, ct);
+
+    /// <summary>Executa a carga.</summary>
+    /// <param name="simular">Só planeja e conta.</param>
+    /// <param name="aceitarRemocao">Passa por cima das travas de encolhimento — só no terminal.</param>
+    /// <param name="completaPedida">Força a leitura completa em qualquer dia (<c>--completa</c>).</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<RelatorioDasPecas>> ExecutarAsync(bool simular, bool aceitarRemocao, bool completaPedida, CancellationToken ct)
     {
         var agora = relogio();
         var hoje = DateOnly.FromDateTime(agora);
-        var desdeDoFaturamento = CargaDasOrdensDeServicoDoProtheus.InicioDaJanela(hoje);
-        var desdeDosOrcamentos = InicioDosOrcamentos(hoje);
 
-        relatar($"Lendo o faturamento de peças desde {desdeDoFaturamento:MM/yyyy} e os orçamentos desde {desdeDosOrcamentos:MM/yyyy} (views do BI, só leitura)…");
-        var lida = await ler(desdeDoFaturamento, desdeDosOrcamentos, ct);
+        DateTime? ultimaCompleta;
+        await using (var banco = abrirContexto())
+            ultimaCompleta = await RodadaCompleta.LerAsync(banco, FluxoDaLeituraCompleta, ct);
+        var alcance = AlcanceDaLeitura.Decidir(agora, ultimaCompleta, completaPedida, CargaDasOrdensDeServicoDoProtheus.InicioDaJanela(hoje));
+        var curta = alcance.Modo == ModoDaLeitura.Curta;
+        var desdeDoFaturamento = alcance.Desde;
+        var desdeDosOrcamentos = curta ? alcance.Desde : InicioDosOrcamentos(hoje);
+
+        relatar(curta
+            ? $"Leitura curta das peças: o faturamento desde {desdeDoFaturamento:MM/yyyy}, os orçamentos orçados ou alterados desde {desdeDosOrcamentos:dd/MM/yyyy} e os abertos ({alcance.Motivo})…"
+            : $"Lendo o faturamento de peças desde {desdeDoFaturamento:MM/yyyy} e os orçamentos desde {desdeDosOrcamentos:MM/yyyy} — leitura COMPLETA ({alcance.Motivo})…");
+        var lida = await ler(desdeDoFaturamento, desdeDosOrcamentos, curta ? alcance.Desde : null, ct);
         if (!lida.EhSucesso) return Resultado<RelatorioDasPecas>.Indisponivel(lida.Erro!);
 
         var origem = lida.Valor;
@@ -125,7 +157,7 @@ internal sealed class CargaDasPecasDoProtheus(
         Plano plano;
         await using (var banco = abrirContexto())
         {
-            plano = await PlanejarAsync(banco, origem, ct);
+            plano = await PlanejarAsync(banco, origem, alcance, desdeDosOrcamentos, ct);
         }
 
         Relatar(plano);
@@ -162,20 +194,34 @@ internal sealed class CargaDasPecasDoProtheus(
         if (simular)
         {
             relatar("SIMULAÇÃO: nada foi gravado — o plano foi calculado só com leitura.");
-            return Resultado<RelatorioDasPecas>.Ok(new RelatorioDasPecas(true, _contagens, _observacoes));
+            return Resultado<RelatorioDasPecas>.Ok(new RelatorioDasPecas(true, _contagens, _observacoes, TextoDoAlcance(alcance, plano)));
         }
 
         await AplicarAsync(plano, agora, origem, ct);
-        return Resultado<RelatorioDasPecas>.Ok(new RelatorioDasPecas(false, _contagens, _observacoes));
+        return Resultado<RelatorioDasPecas>.Ok(new RelatorioDasPecas(false, _contagens, _observacoes, TextoDoAlcance(alcance, plano)));
     }
+
+    /// <summary>O alcance da rodada em uma frase, para o resumo da rotina.</summary>
+    private static string TextoDoAlcance(AlcanceDaLeitura alcance, Plano plano) => alcance.Modo == ModoDaLeitura.Curta
+        ? string.Format(CultureInfo.GetCultureInfo("pt-BR"), "leitura curta desde {0:dd/MM/yyyy}", alcance.Desde)
+        : string.Format(CultureInfo.GetCultureInfo("pt-BR"),
+            "leitura COMPLETA desde {0:dd/MM/yyyy}, {1:N0} mês(es)-filial do faturamento corrigido(s) (R$ {2:N0}) e {3:N0} orçamento(s) fora do alcance curto",
+            alcance.Desde, plano.MesesCorrigidosForaDoCurto, plano.ValorCorrigidoForaDoCurto, plano.OrcamentosCorrigidosForaDoCurto);
 
     // =============================================================================================
     // O plano — só leitura
     // =============================================================================================
 
-    private static async Task<Plano> PlanejarAsync(CrmDbContext banco, LeituraDasPecas origem, CancellationToken ct)
+    private static async Task<Plano> PlanejarAsync(
+        CrmDbContext banco, LeituraDasPecas origem, AlcanceDaLeitura alcance, DateOnly desdeDosOrcamentos, CancellationToken ct)
     {
-        var plano = new Plano { EsquemaExiste = await EsquemaExisteAsync(banco, ct), FaturamentoDesde = origem.FaturamentoDesde };
+        // A JANELA É A DO ALCANCE, e não o "desde" da leitura: na curta, a apuração regrava só o mês curto.
+        var plano = new Plano
+        {
+            EsquemaExiste = await EsquemaExisteAsync(banco, ct),
+            FaturamentoDesde = alcance.Desde,
+            Completa = alcance.Modo == ModoDaLeitura.Completa
+        };
 
         var empresaPorCodigo = await banco.Empresas.AsNoTracking().ToDictionaryAsync(e => e.Codigo, e => e.Id, StringComparer.Ordinal, ct);
         var clientesPorDocumento = (await banco.Clientes.AsNoTracking()
@@ -234,8 +280,31 @@ internal sealed class CargaDasPecasDoProtheus(
 
         plano.FaturamentoNaJanela = sistema is { } s0
             ? await banco.FaturamentosDePecasNoMes.IgnoreQueryFilters().AsNoTracking()
-                .CountAsync(f => f.SistemaId == s0 && f.Competencia >= origem.FaturamentoDesde, ct)
+                .CountAsync(f => f.SistemaId == s0 && f.Competencia >= plano.FaturamentoDesde, ct)
             : 0;
+
+        // A CONTA DA COMPLETA NO FATURAMENTO: o total de cada mês-filial antes do início curto, como está gravado e como a leitura
+        // o refaz. O que difere é o que a leitura curta, sozinha, não teria corrigido.
+        if (plano.Completa && sistema is { } s2)
+        {
+            var antes = (await banco.FaturamentosDePecasNoMes.IgnoreQueryFilters().AsNoTracking()
+                    .Where(f => f.SistemaId == s2 && f.Competencia >= plano.FaturamentoDesde && f.Competencia < alcance.InicioDaJanelaCurta)
+                    .Select(f => new { f.EmpresaId, f.Competencia, f.ValorLiquido })
+                    .ToListAsync(ct))
+                .GroupBy(f => (f.EmpresaId, f.Competencia))
+                .ToDictionary(g => g.Key, g => g.Sum(f => f.ValorLiquido));
+            var depois = plano.Combinacoes.Where(c => c.Competencia < alcance.InicioDaJanelaCurta)
+                .GroupBy(c => (c.EmpresaId, c.Competencia))
+                .ToDictionary(g => g.Key, g => g.Sum(c => c.ValorLiquido));
+
+            foreach (var chave in antes.Keys.Union(depois.Keys))
+            {
+                var diferenca = depois.GetValueOrDefault(chave) - antes.GetValueOrDefault(chave);
+                if (diferenca == 0) continue;
+                plano.MesesCorrigidosForaDoCurto++;
+                plano.ValorCorrigidoForaDoCurto += Math.Abs(diferenca);
+            }
+        }
 
         // ---- os orçamentos: o cabeçalho, com o total dos itens ----
         var noCrm = sistema is { } s1
@@ -295,18 +364,27 @@ internal sealed class CargaDasPecasDoProtheus(
             };
             plano.OrcamentosValidos.Add((chave, dados));
 
+            var mudou = true;
             if (!noCrm.TryGetValue(chave, out var existente)) plano.Novos++;
             else
             {
                 if (existente.Excluido) plano.AReativar++;
                 if (existente.Hash != dados.HashDaOrigem || existente.EmpresaId != empresaId || existente.ClienteId != clienteId) plano.AAtualizar++;
+                else if (!existente.Excluido) mudou = false;
             }
+
+            // O QUE SÓ A COMPLETA VÊ: orçado antes do início curto, fechado, e sem alteração depois dele.
+            if (mudou && plano.Completa && orcadoEm.Value < alcance.InicioDaJanelaCurta && !OrcamentoDePecas.EstaEmAbertoNa(situacao)
+                && !(dados.AlteradoNaOrigemEm >= alcance.InicioDaJanelaCurta))
+                plano.OrcamentosCorrigidosForaDoCurto++;
         }
 
-        var desde = origem.OrcamentosDesde;
-        bool NaJanela(OrcamentoNoCrm o) => o.OrcadoEm >= desde || OrcamentoDePecas.EstaEmAbertoNa(o.Situacao);
+        // NA LEITURA CURTA a janela da exclusão é só a dos orçados nela: o orçamento antigo que não veio espera a completa.
+        bool NaJanela(OrcamentoNoCrm o) => o.OrcadoEm >= desdeDosOrcamentos || (plano.Completa && OrcamentoDePecas.EstaEmAbertoNa(o.Situacao));
         plano.OrcamentosVigentes = noCrm.Values.Count(o => !o.Excluido && NaJanela(o));
         plano.AExcluir.AddRange(noCrm.Values.Where(o => !o.Excluido && NaJanela(o) && !plano.Vistos.Contains(o.Chave)).Select(o => o.Chave));
+        if (plano.Completa)
+            plano.OrcamentosCorrigidosForaDoCurto += noCrm.Values.Count(o => o.OrcadoEm < alcance.InicioDaJanelaCurta && plano.AExcluir.Contains(o.Chave));
         return plano;
     }
 
@@ -325,7 +403,7 @@ internal sealed class CargaDasPecasDoProtheus(
 
         // O FATURAMENTO É APURAÇÃO: a janela é regravada inteira, como a conferência com a Gestão de Negócios.
         await banco.FaturamentosDePecasNoMes.IgnoreQueryFilters()
-            .Where(f => f.SistemaId == sistemaId && f.Competencia >= origem.FaturamentoDesde)
+            .Where(f => f.SistemaId == sistemaId && f.Competencia >= plano.FaturamentoDesde)
             .ExecuteDeleteAsync(ct);
         foreach (var bloco in plano.Combinacoes.Chunk(5000))
         {
@@ -367,6 +445,10 @@ internal sealed class CargaDasPecasDoProtheus(
         await CargaDeTerritorio.RegistrarRodadaAsync(banco, sistemaId, OrcamentoDePecas.FluxoDaCarga, plano.Orcamentos, gravados,
             plano.OrcamentosRecusados + plano.OrcamentosSemFilial, ct, instante);
 
+        // O PONTO DA COMPLETA NA MESMA TRANSAÇÃO: a completa que cai no meio não vira "última completa".
+        if (plano.Completa)
+            await RodadaCompleta.RegistrarAsync(banco, sistemaId, FluxoDaLeituraCompleta, lidaEm, origem.Faturamento.Count, plano.Combinacoes.Count + gravados, ct);
+
         await transacao.CommitAsync(ct);
         relatar($"Gravado ({plano.Combinacoes.Count:N0} combinações do faturamento de peças; {gravados:N0} orçamentos novos, mudados, reativados ou excluídos).");
     }
@@ -395,6 +477,13 @@ internal sealed class CargaDasPecasDoProtheus(
         Contar(EtapaDosOrcamentos, RotuloDeAtualizados, plano.AAtualizar);
         Contar(EtapaDosOrcamentos, RotuloDeReativados, plano.AReativar);
         Contar(EtapaDosOrcamentos, RotuloDeExcluidos, plano.AExcluir.Count);
+
+        // A CONTA DA COMPLETA SAI ATÉ QUANDO É ZERO: "nada corrigido" é a confirmação de que a leitura curta basta.
+        if (plano.Completa)
+        {
+            Contar(EtapaDoFaturamento, RotuloDeMesesCorrigidosForaDoCurto, plano.MesesCorrigidosForaDoCurto);
+            Contar(EtapaDosOrcamentos, RotuloDeOrcamentosCorrigidosForaDoCurto, plano.OrcamentosCorrigidosForaDoCurto);
+        }
 
         // OS TOTAIS EM REAIS, pelo ano fiscal do painel "Faturamento Peças" (novembro a outubro) — é por eles que se confere.
         var brasil = CultureInfo.GetCultureInfo("pt-BR");
@@ -468,6 +557,10 @@ internal sealed class CargaDasPecasDoProtheus(
     private sealed class Plano
     {
         public bool EsquemaExiste { get; init; }
+        public bool Completa { get; init; }
+        public int MesesCorrigidosForaDoCurto { get; set; }
+        public decimal ValorCorrigidoForaDoCurto { get; set; }
+        public int OrcamentosCorrigidosForaDoCurto { get; set; }
         public DateOnly FaturamentoDesde { get; init; }
         public List<DadosDoFaturamentoDePecas> Combinacoes { get; } = [];
         public int FaturamentoNaJanela { get; set; }

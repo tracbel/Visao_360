@@ -58,7 +58,13 @@ internal static class CenarioDasPecas
             [.. faturamento ?? FaturamentoPadrao()], [.. orcamentos ?? OrcamentosPadrao()]);
     }
 
-    /// <summary>A carga sobre a leitura dada.</summary>
-    public static CargaDasPecasDoProtheus CargaDePecas(Func<CrmDbContext> abrir, LeituraDasPecas leitura, DateTime agora, long operador) =>
-        new(abrir, (_, _, _) => Task.FromResult(Resultado<LeituraDasPecas>.Ok(leitura)), operador, () => agora, _ => { });
+    /// <summary>A carga sobre a leitura dada; <paramref name="pedidos"/> anota as janelas que a carga pediu à leitura.</summary>
+    public static CargaDasPecasDoProtheus CargaDePecas(
+        Func<CrmDbContext> abrir, LeituraDasPecas leitura, DateTime agora, long operador,
+        List<(DateOnly Faturamento, DateOnly Orcamentos, DateOnly? Alterados)>? pedidos = null) =>
+        new(abrir, (faturamento, orcamentos, alterados, _) =>
+        {
+            pedidos?.Add((faturamento, orcamentos, alterados));
+            return Task.FromResult(Resultado<LeituraDasPecas>.Ok(leitura));
+        }, operador, () => agora, _ => { });
 }

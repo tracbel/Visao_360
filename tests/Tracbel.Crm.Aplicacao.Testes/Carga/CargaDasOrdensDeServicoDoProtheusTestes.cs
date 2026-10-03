@@ -53,9 +53,12 @@ public sealed class CargaDasOrdensDeServicoDoProtheusTestes : IDisposable
 
     private CrmDbContext DaCarga() => new(_opcoes, new ContextoDeCargaDeSistema(_semente.Operador, _semente.RibeiraoPreto, _semente.Filiais));
 
+    // OS TESTES DA SINCRONIA EM SI PEDEM A COMPLETA: várias rodadas na mesma sexta-feira seriam curtas pela agenda, e é a
+    // completa que eles descrevem. O alcance — curta ou completa — tem os testes dele, no fim do arquivo.
     private Task<Resultado<RelatorioDasOrdensDeServico>> Tentar(
         LeituraDasOrdensDeServico? leitura = null, bool simular = false, bool aceitarRemocao = false, DateTime? quando = null) =>
-        Sincronia(DaCarga, leitura ?? Leitura(quando ?? Agora), quando ?? Agora, _semente.Operador).ExecutarAsync(simular, aceitarRemocao, CancellationToken.None);
+        Sincronia(DaCarga, leitura ?? Leitura(quando ?? Agora), quando ?? Agora, _semente.Operador)
+            .ExecutarAsync(simular, aceitarRemocao, completaPedida: true, CancellationToken.None);
 
     private async Task<RelatorioDasOrdensDeServico> Sincronizar(
         LeituraDasOrdensDeServico? leitura = null, bool simular = false, bool aceitarRemocao = false, DateTime? quando = null)
@@ -200,5 +203,93 @@ public sealed class CargaDasOrdensDeServicoDoProtheusTestes : IDisposable
         vazia.EhSucesso.Should().BeFalse();
         vazia.Erro.Should().Contain("vazias");
         (await Gravadas()).Should().OnlyContain(o => !o.EstaExcluido);
+    }
+
+    // =============================================================================================
+    // O alcance: curta nos dias comuns, completa no domingo (documento 54, passo 6)
+    // =============================================================================================
+
+    private static readonly DateTime Sabado = new(2026, 10, 3, 8, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime Domingo = new(2026, 10, 4, 8, 0, 0, DateTimeKind.Utc);
+
+    private async Task<(RelatorioDasOrdensDeServico Relatorio, (DateOnly Desde, DateOnly? Mudancas) Pedido)> Rodar(
+        LeituraDasOrdensDeServico leitura, DateTime quando)
+    {
+        var pedidos = new List<(DateOnly Desde, DateOnly? Mudancas)>();
+        var resultado = await Sincronia(DaCarga, leitura, quando, _semente.Operador, pedidos)
+            .ExecutarAsync(simular: false, aceitarRemocao: false, completaPedida: false, CancellationToken.None);
+        resultado.EhSucesso.Should().BeTrue(resultado.Erro);
+        return (resultado.Valor, pedidos.Single());
+    }
+
+    private async Task<DateTime?> UltimaCompleta()
+    {
+        await using var db = Sistema();
+        return await RodadaCompleta.LerAsync(db, CargaDasOrdensDeServicoDoProtheus.FluxoDaLeituraCompleta, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Sem_completa_registrada_a_sincronia_e_completa_e_a_seguinte_em_dia_comum_e_curta_com_as_mudancas()
+    {
+        var primeira = await Rodar(Leitura(Agora), Agora);   // sexta, 02/10
+        var segunda = await Rodar(Leitura(Agora), Sabado);   // sábado, 03/10
+
+        primeira.Pedido.Should().Be((new DateOnly(2023, 10, 1), (DateOnly?)null));
+        segunda.Pedido.Should().Be((new DateOnly(2026, 9, 1), (DateOnly?)new DateOnly(2026, 9, 1)),
+            "a curta pede as abertas desde o início curto e as fechadas ou canceladas desde ele");
+        primeira.Relatorio.Alcance.Should().StartWith("leitura COMPLETA");
+        segunda.Relatorio.Alcance.Should().StartWith("leitura curta");
+        (await UltimaCompleta()).Should().Be(Agora, "só a completa grava o ponto dela, com o instante da leitura");
+    }
+
+    [Fact]
+    public async Task A_leitura_curta_nao_exclui_a_OS_antiga_que_nao_veio_e_exclui_a_recente_que_sumiu()
+    {
+        var comRecente = ItensPadrao();
+        comRecente.Add(Item("010101", "00000004", "F", new DateOnly(2026, 9, 15), fechada: new DateOnly(2026, 9, 16)));
+        await Rodar(Leitura(Agora, comRecente), Agora);
+
+        // NO SÁBADO a origem manda só a A, aberta: a B — antiga e fechada — não entra na leitura curta; a 4, aberta em
+        // setembro, sumiu da origem.
+        var soA = ItensPadrao().Where(i => i.NumeroOs == "00000001").ToList();
+        var (relatorio, _) = await Rodar(Leitura(Agora, soA), Sabado);
+
+        relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloDeExcluidas).Should().Be(1);
+        var ordens = await Gravadas();
+        ordens.Single(o => o.Numero == "00000002").EstaExcluido.Should().BeFalse("a leitura curta não a lê — quem decide é a completa");
+        ordens.Single(o => o.Numero == "00000004").EstaExcluido.Should().BeTrue("aberta dentro da janela curta e ausente da origem");
+    }
+
+    [Fact]
+    public async Task A_completa_de_domingo_conta_as_OS_corrigidas_fora_do_alcance_curto()
+    {
+        await Rodar(Leitura(Agora), Agora);
+
+        // NO DOMINGO a origem corrigiu a B (antiga e fechada: o desconto da peça) e a A (aberta: o alcance curto já a veria).
+        var corrigidas = ItensPadrao();
+        corrigidas[2] = corrigidas[2] with { ValorDoDesconto = 5m };
+        corrigidas[0] = corrigidas[0] with { Quantidade = 3m };
+        var (relatorio, pedido) = await Rodar(Leitura(Domingo, corrigidas), Domingo);
+
+        pedido.Mudancas.Should().BeNull("a completa lê como sempre leu");
+        relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloDeAtualizadas).Should().Be(2);
+        relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloCorrigidasForaDoCurto).Should().Be(1, "só a B — a A, aberta, a leitura curta já veria");
+        relatorio.Alcance.Should().Contain("1 OS corrigida");
+    }
+
+    [Fact]
+    public async Task A_completa_abortada_nao_grava_o_ponto_da_completa()
+    {
+        var ilegiveis = new List<ItemDaOrdemNaOrigem>
+        {
+            Item("010101", "00000001", "A", new DateOnly(2026, 9, 1)),
+            Item("010101", "00000002", "X", new DateOnly(2026, 9, 1))
+        };
+
+        var abortada = await Sincronia(DaCarga, Leitura(Agora, ilegiveis, []), Agora, _semente.Operador)
+            .ExecutarAsync(simular: false, aceitarRemocao: false, completaPedida: false, CancellationToken.None);
+
+        abortada.EhSucesso.Should().BeFalse();
+        (await UltimaCompleta()).Should().BeNull("a próxima rodada tem de ser completa de novo");
     }
 }

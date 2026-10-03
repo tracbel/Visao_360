@@ -41,7 +41,6 @@ public sealed class TamanhoDeArquivoTestes
         ["src/Tracbel.Crm.Infraestrutura/Persistencia/CrmDbContext.cs"] = 1009,
         ["src/Tracbel.Crm.Integracao/Carga/LeitorDeCargaDoVortice.cs"] = 732,
         ["src/Tracbel.Crm.Integracao/Carga/LeitorDeCargaDoVortice.Processo.cs"] = 983,
-        ["src/Tracbel.Crm.Integracao/Protheus/LeitorDasOrdensDeServicoDoProtheus.cs"] = 607,
     };
 
     [Fact]
