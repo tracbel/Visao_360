@@ -1,9 +1,10 @@
 # 54 — Desempenho e arquitetura: telas em até 2 segundos, código dividido por responsabilidade
 
-> **Versão 1.1 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
+> **Versão 1.2 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
 > **desempenho + arquitetura** → banco sem redundância → o que falta → material da diretoria.
 > Diagnóstico de partida: `.omc/plans/diagnostico-da-organizacao-2026-10-03.md`.
 > A 1.1 registra o que o plano 1 de 3 entregou (§7) e corrige a §3.2: a versão é a assinatura do próprio dado.
+> A 1.2 registra a captura de produção depois do plano 1 (§7.1) e o que o plano 2 de 3 entregou (§7.2).
 
 ## 1. Decisões que este documento cumpre
 
@@ -201,10 +202,94 @@ Entregue na branch `feat/desempenho-e-arquitetura`. O que mudou:
 - as regras de arquitetura do front: nada de `src/dev` em produção, componente não importa tela, tela não importa tela (hoje sem nenhuma exceção);
 - o tamanho de arquivo: até 600 linhas. Os grandes de hoje, 29 em C# e 26 no front, estão listados e só diminuem.
 
-**Ainda falta medir** o p95 de produção depois da publicação, pela captura da tela de Desempenho.
+**A captura de produção depois da publicação** (03/10/2026, publicação das 14:01, tela Configurações › Integrações ›
+Desempenho). Quase toda rota estava na primeira chamada depois da subida. Não houve captura "antes".
 
-### 7.2 Próximos passos
+| Rota | p50 (ms) | p95 (ms) | Consultas por chamada |
+|---|---|---|---|
+| `territorio/indicadores` (1 chamada) | — | **10.629** | 102 |
+| `indicadores-executivos` | 619 | 2.949 | 21 |
+| `mercado/demanda` | — | 2.909 | 40 |
+| `mercado/financiamentos` | — | 2.748 | 20 |
+| `mercado/dimensionamento` | — | 2.602 | 24 |
+| `funil-por-estagio` | 936 | 2.505 | — |
+| `cen` | — | 2.461 | — |
+| `faturamento` | — | 2.102 | — |
+| `metas` | 189 | 1.752 | — |
+| `vendas-perdidas` | 15 | 1.742 | — |
 
-- **Plano 2 — Indicadores e Diagnóstico.** Leitores do recorte (cobertura, faturamento, vendas do ART), o fim do `ApurarAsync` e a divisão do `RepositorioDeIndicadoresTerritoriais` (2.032 linhas). Entram também os utilitários únicos da §3.5 (`SomaOuNulo`, `Arredondar`, mês `aaaa-mm`) e as peças comuns do front em `componentes/comum`.
+**O que ela mostra:** o pior é a primeira chamada depois de cada subida. Nela o EF compila cada consulta pela primeira
+vez e os caches de referência estão vazios. Onde houve várias chamadas, o p50 já é baixo (funil 936 ms, metas 189 ms,
+vendas perdidas 15 ms). Por isso o plano 2 ganhou duas peças que não estavam no desenho: o aquecimento na subida e a
+estrutura agropecuária como terceiro assunto de referência.
+
+### 7.2 Plano 2 de 3 — Indicadores e Diagnóstico: estrutura de referência, aquecimento e a apuração dividida (03/10/2026)
+
+Entregue na branch `feat/desempenho-plano-2`. Nenhuma tabela nova e nenhuma migração. O que mudou:
+
+- **A estrutura agropecuária é dado de referência.** O parque de tratores do Censo, as propriedades, o rebanho, as
+  usinas, os totais do estado e da região e o ano de cada fonte formam o terceiro assunto do cache, ao lado do
+  território e do potencial (`RepositorioDaEstruturaDeReferencia`). A vocação agrícola depende do recorte; ela é
+  calculada a cada apuração sobre uma cópia, e a estrutura guardada não muda.
+- **A assinatura de cada assunto é uma consulta só.** Eram cinco idas ao banco por assunto; agora são subconsultas numa
+  consulta. Uma armadilha do EF ficou registrada no código: `Count()` sem predicado dentro da projeção vira uma ida
+  própria ao banco, e por isso a assinatura usa `Count(_ => true)`.
+- **O aquecimento na subida** (`AquecimentoDaApi`). Logo depois que a API sobe, ele:
+  - calcula as três referências;
+  - roda a apuração dos Indicadores uma vez, no período padrão, sob contexto de sistema;
+  - deixa as consultas do EF compiladas antes do primeiro usuário.
+
+  A falha vai para o log e não derruba nada: a primeira tela volta a pagar a conta inteira, como antes.
+  `Aquecimento:Ligado = false` desliga (doc 23 §2.15).
+- **A apuração virou composição.** O `ApurarAsync` só lê e compõe; a conta acontece em memória, sem banco. O
+  `RepositorioDeIndicadoresTerritoriais` desceu de **2.032 para 221 linhas** e saiu da lista dos arquivos grandes:
+
+  | Arquivo | Linhas | O que faz |
+  |---|---|---|
+  | `LeitoresDoRecorteTerritorial` | 323 | clientes, cobertura, faturamento com e sem cliente, vendas do ART, parque conectado — o que passa pelo filtro de filial |
+  | `AcumulacaoDoRecorte` | 308 | cada cliente, vínculo, nota e venda num grupo (município de SP ou fora do mapa) |
+  | `MontagemDosIndicadores` | 501 | os municípios do recorte por cima da referência, o ano anterior e as procedências |
+  | `PotencialNaMontagem` | 136 | o potencial do recorte e a relevância contra São Paulo |
+  | `AcumuladorDoRecorte` | 124 | o contador de cada grupo e os grupos fora do mapa |
+  | `RepositorioDoHistoricoDoMunicipio` | 266 | a série de cada município, numa classe própria |
+  | `CriterioDasVendasDoArt` / `CodigosDoIbge` | 80 / 98 | o critério de data do ART e os códigos do IBGE, cada um num lugar só |
+
+- **O mesmo número antes e depois.** Durante o plano, a apuração antiga ficou copiada nos testes, e a nova foi comparada
+  com ela campo a campo em onze consultas. Os casos: filial, empresa, região, loja, filial da venda, filial do cliente,
+  categoria, CEN, mês em curso, ano anterior e dezoito meses. As onze bateram depois de cada passo, e a cópia saiu no
+  fim. Nenhuma expectativa numérica dos testes existentes foi editada.
+- **Os utilitários únicos** (§3.5):
+  - `Numeros.SomaOuNulo` e `Numeros.Arredondar` no Domínio, e `LeituraDeCompetencia.Ler` (o mês `aaaa-mm`) na
+    Aplicação, substituem doze cópias privadas espalhadas por oito arquivos;
+  - no front, as três cópias da moeda compacta passaram a usar `formatarBRLCompacto`, de `dados/formatadores`;
+  - duas regras de arquitetura reprovam cópia nova, uma no C# e uma no front.
+
+**Consultas ao banco por chamada**, no teste de orçamento com o mesmo cenário de dados:
+
+| Rota | Linha de base | Plano 1, quente | **Plano 2, quente** | Plano 1, frio | **Plano 2, frio** |
+|---|---|---|---|---|---|
+| Indicadores Geográficos | 73 | 58 | **43** | 84 | **72** |
+| Demanda e Previsão | 81 | 29 | **29** | 55 | **47** |
+| Diagnóstico Comercial | 77 | 62 | **47** | 88 | **76** |
+| Cenários de Mercado | 87 | 35 | **35** | 61 | **53** |
+| Dimensionamento ADR | 24 | 24 | 24 | 24 | 24 |
+| Gestão de Financiamentos | 16 | 16 | 16 | 16 | 16 |
+| Preço de Commodities | 16 | 16 | 16 | 16 | 16 |
+
+- O frio desce em todas as rotas que usam a referência, porque a assinatura passou de cinco consultas para uma.
+- O quente dos Indicadores e do Diagnóstico desce 15, porque a estrutura não é mais relida.
+- Este cenário de teste não tem Censo nem rebanho, e metade das leituras da estrutura já era pulada. Com as fontes
+  carregadas, como em produção, a contagem das leituras dá perto de 31 consultas a menos em cada uma das duas telas.
+  É estimativa: a captura do "depois" é que mede.
+
+**Ainda falta medir** a captura de produção depois desta publicação, com as telas pesadas abertas algumas vezes. É ela
+que diz se a primeira chamada depois da subida desceu dos 10,6 s e se a meta de 2 s foi alcançada.
+
+### 7.3 Próximos passos
+
+- **A captura do "depois"** do plano 2 entra na §7.2, e as rotas que ainda passarem de 2 s viram o passo 7.
 - **Plano 3 — rotinas incrementais** (§3.3): uma por PR, cada uma depois de confirmar na origem a data de alteração.
-- **Passo 7 — as outras rotas lentas** que a captura de produção mostrar.
+- **Passo 7 — as outras rotas lentas** da captura: `indicadores-executivos`, `funil-por-estagio`, `cen`, `faturamento`
+  e o que a nova captura mostrar.
+- **As peças comuns do front em `componentes/comum`**, além da moeda compacta, ficaram fora do plano 2 e voltam junto
+  com o passo 7.
