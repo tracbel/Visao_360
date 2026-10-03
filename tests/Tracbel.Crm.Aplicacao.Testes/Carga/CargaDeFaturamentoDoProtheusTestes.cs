@@ -5,6 +5,7 @@ using Tracbel.Crm.Carga;
 using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
+using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Identidade;
@@ -271,6 +272,133 @@ public sealed class CargaDeFaturamentoDoProtheusTestes : IDisposable
     [InlineData(SituacaoDoCliente.Encerrado, false)]
     public void So_Suspect_e_Prospect_sao_promovidos_pela_venda(SituacaoDoCliente situacao, bool promove) =>
         CargaDeFaturamentoDoProtheus.PromoveAoFaturar(situacao).Should().Be(promove);
+
+    [Fact]
+    public async Task A_leitura_curta_mantem_a_curva_nos_36_meses()
+    {
+        var antigo = NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
+        var recente = NovoCliente(DeOutroCliente, SituacaoDoCliente.Cliente);
+
+        // O cliente que comprou muito em março e nada desde então continua no faturamento dos 36 meses.
+        await using (var db = DaCarga())
+        {
+            db.FaturamentoDosClientes.Add(FaturamentoDoCliente.Criar(Ribeirao, antigo, new DateOnly(2026, 3, 1), 700m, 1, 1, new QuebraDoFaturamento(700m, 0m, 0m, 0m)));
+            await db.SaveChangesAsync();
+        }
+
+        // A leitura curta só traz agosto, e só do cliente recente. (700 de 1.000 é A; quem passa de 80% sozinho é B.)
+        var curta = Lote(Linha(DeOutroCliente, "010101", Agosto, 300m)) with { Desde = Agosto };
+        await NovaCarga().GravarAsync(curta, inicioDaCurva: new DateOnly(2023, 9, 1), conferirAntesDe: null, CancellationToken.None);
+
+        await using var leitura = Leitura();
+        var classes = await leitura.Clientes.ToDictionaryAsync(c => c.Id, c => c.Classe);
+        classes[antigo].Should().Be(ClasseDeCliente.A, "a curva olha 36 meses mesmo quando a leitura foi curta");
+        classes[recente].Should().Be(ClasseDeCliente.C);
+        (await leitura.FaturamentoDosClientes.CountAsync()).Should().Be(2, "março é anterior à janela curta e fica como está");
+    }
+
+    [Fact]
+    public async Task A_completa_mede_o_que_corrigiu_antes_da_janela_curta()
+    {
+        var cliente = NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
+        var maio = new DateOnly(2026, 5, 1);
+        var junho = new DateOnly(2026, 6, 1);
+
+        await using (var db = DaCarga())
+        {
+            db.FaturamentoDosClientes.Add(FaturamentoDoCliente.Criar(Ribeirao, cliente, maio, 100m, 1, 1, new QuebraDoFaturamento(0m, 100m, 0m, 0m)));
+            db.FaturamentoDosClientes.Add(FaturamentoDoCliente.Criar(Ribeirao, cliente, junho, 30m, 1, 1, new QuebraDoFaturamento(0m, 30m, 0m, 0m)));
+            db.FaturamentoDosClientes.Add(FaturamentoDoCliente.Criar(Ribeirao, cliente, Agosto, 40m, 1, 1, new QuebraDoFaturamento(0m, 40m, 0m, 0m)));
+            await db.SaveChangesAsync();
+        }
+
+        // A origem corrigiu maio (100 → 120), cancelou junho inteiro e tem julho sem cliente (50, novo).
+        // Agosto mudou também (40 → 45), mas está dentro da janela curta: a leitura curta já o pegaria.
+        var resumo = await NovaCarga().GravarAsync(
+            Lote(Linha(DoCliente, "010101", maio, 120m), Linha(SemCadastro, "010101", Julho, 50m), Linha(DoCliente, "010101", Agosto, 45m)),
+            inicioDaCurva: new DateOnly(2023, 9, 1), conferirAntesDe: Agosto, CancellationToken.None);
+
+        resumo.Conferencia.Should().Be(new ConferenciaDaJanelaCurta(Agosto, 3, 20m + 30m + 50m),
+            "maio corrigido em R$ 20, junho removido (R$ 30) e julho novo (R$ 50) — agosto é da janela curta");
+        resumo.Decisoes.Keys.Should().Contain(d => d.StartsWith("Conferência semanal", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_leitura_curta_nao_tem_conferencia()
+    {
+        NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
+        var resumo = await NovaCarga().GravarAsync(Lote(Linha(DoCliente, "010101", Agosto, 40m)), CancellationToken.None);
+        resumo.Conferencia.Should().BeNull();
+    }
+
+    // =============================================================================================
+    // A rodada: curta ou completa, registrada por fluxo
+    // =============================================================================================
+
+    private static Func<DateOnly, CancellationToken, Task<Resultado<LoteDoProtheus>>> Lendo(
+        Func<DateOnly, LoteDoProtheus> lote, List<DateOnly>? pedidos = null) =>
+        (desde, _) =>
+        {
+            pedidos?.Add(desde);
+            return Task.FromResult(Resultado<LoteDoProtheus>.Ok(lote(desde)));
+        };
+
+    [Fact]
+    public async Task Sem_completa_registrada_a_rodada_e_completa_e_a_seguinte_em_dia_comum_e_curta()
+    {
+        NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
+        var pedidos = new List<DateOnly>();
+        var ler = Lendo(desde => Lote(Linha(DoCliente, "010101", new DateOnly(2026, 10, 1), 10m)) with { Desde = desde }, pedidos);
+
+        var primeira = await NovaCarga().ExecutarAsync(ler, completaPedida: false, () => new DateTime(2026, 10, 8, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
+        var segunda = await NovaCarga().ExecutarAsync(ler, completaPedida: false, () => new DateTime(2026, 10, 9, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
+
+        (primeira.Valor.Modo, segunda.Valor.Modo).Should().Be((ModoDaLeituraDoFaturamento.Completa, ModoDaLeituraDoFaturamento.Curta));
+        pedidos.Should().Equal(new DateOnly(2023, 10, 1), new DateOnly(2026, 10, 1));
+
+        await using var db = Leitura();
+        (await db.ExecucoesDeSincronizacao.OrderBy(e => e.Id).Select(e => new { e.Fluxo, e.Resultado }).ToListAsync())
+            .Select(e => (e.Fluxo, e.Resultado))
+            .Should().Equal(
+                (CargaDeFaturamentoDoProtheus.FluxoDaLeituraCompleta, ResultadoDaExecucao.Sucesso),
+                (CargaDeFaturamentoDoProtheus.FluxoDaLeituraCurta, ResultadoDaExecucao.Sucesso));
+    }
+
+    [Fact]
+    public async Task A_completa_que_falha_nao_conta_e_a_seguinte_e_completa()
+    {
+        NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
+        Func<DateOnly, CancellationToken, Task<Resultado<LoteDoProtheus>>> falhando =
+            (_, _) => Task.FromResult(Resultado<LoteDoProtheus>.Indisponivel("O banco do Protheus não respondeu (erro SQL 53)."));
+
+        var caiu = await NovaCarga().ExecutarAsync(falhando, completaPedida: false, () => new DateTime(2026, 10, 11, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
+        var seguinte = await NovaCarga().ExecutarAsync(
+            Lendo(desde => Lote(Linha(DoCliente, "010101", new DateOnly(2026, 10, 1), 10m)) with { Desde = desde }),
+            completaPedida: false, () => new DateTime(2026, 10, 12, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
+
+        caiu.EhSucesso.Should().BeFalse();
+        seguinte.Valor.Modo.Should().Be(ModoDaLeituraDoFaturamento.Completa, "a completa de domingo caiu; segunda-feira é completa");
+
+        await using var db = Leitura();
+        (await db.ExecucoesDeSincronizacao.OrderBy(e => e.Id).Select(e => e.Resultado).ToListAsync())
+            .Should().Equal(ResultadoDaExecucao.Falha, ResultadoDaExecucao.Sucesso);
+    }
+
+    [Fact]
+    public void O_resumo_diz_o_modo_a_janela_e_na_completa_o_que_corrigiu()
+    {
+        var curva = new Dictionary<ClasseDeCliente, int>();
+        var decisoes = new Dictionary<string, int>();
+
+        CargaDeFaturamentoDoProtheus.LinhaDoResumo(new ResumoDoFaturamento(3, 120, 1, 0, curva, decisoes,
+                null, ModoDaLeituraDoFaturamento.Curta, new DateOnly(2026, 10, 1)))
+            .Should().Be("leitura curta desde 01/10/2026: 3 mês(es) novo(s), 120 reapurado(s), 1 removido(s)");
+
+        CargaDeFaturamentoDoProtheus.LinhaDoResumo(new ResumoDoFaturamento(0, 59_000, 4, 0, curva, decisoes,
+                new ConferenciaDaJanelaCurta(new DateOnly(2026, 10, 1), 2, 1234.5m), ModoDaLeituraDoFaturamento.Completa, new DateOnly(2023, 10, 1)))
+            .Should().Be("leitura COMPLETA desde 01/10/2023: 0 mês(es) novo(s), 59.000 reapurado(s), 4 removido(s) · " +
+                         "antes de 10/2026, 2 mês(es) corrigido(s) (R$ 1.235) que a leitura curta não teria visto");
+    }
 
     [Fact]
     public void A_janela_comeca_no_dia_1_de_36_meses_atras()

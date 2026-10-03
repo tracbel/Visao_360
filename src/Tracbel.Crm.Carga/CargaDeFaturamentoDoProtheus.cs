@@ -41,7 +41,7 @@ namespace Tracbel.Crm.Carga;
 /// <param name="protheus">A leitura da SD2.</param>
 /// <param name="usuarioResponsavelId">Quem responde pelas gravações.</param>
 /// <param name="relatar">Onde a carga escreve o andamento.</param>
-internal sealed class CargaDeFaturamentoDoProtheus(
+internal sealed partial class CargaDeFaturamentoDoProtheus(
     Func<CrmDbContext> abrirContexto,
     LeitorDeFaturamentoDoProtheus protheus,
     long usuarioResponsavelId,
@@ -90,16 +90,114 @@ internal sealed class CargaDeFaturamentoDoProtheus(
     internal static DateOnly InicioDaJanela(DateTime agoraUtc) =>
         new DateOnly(agoraUtc.Year, agoraUtc.Month, 1).AddMonths(-MesesDeFaturamento);
 
-    /// <summary>Lê o faturamento do Protheus, grava e reapura a curva ABC.</summary>
+    /// <summary>A leitura curta, registrada como execução de sincronização — a tela de Integrações a lista por fluxo.</summary>
+    internal const string FluxoDaLeituraCurta = "PROTHEUS.FATURAMENTO";
+
+    /// <summary>A leitura completa — a última com sucesso decide quando a próxima é completa.</summary>
+    internal const string FluxoDaLeituraCompleta = "PROTHEUS.FATURAMENTO_COMPLETO";
+
+    /// <summary>Lê o faturamento do Protheus, grava e reapura a curva ABC — curta ou completa pela agenda da semana.</summary>
     /// <param name="ct">Cancelamento.</param>
-    public async Task<Resultado<ResumoDoFaturamento>> ExecutarAsync(CancellationToken ct)
+    public Task<Resultado<ResumoDoFaturamento>> ExecutarAsync(CancellationToken ct) => ExecutarAsync(completaPedida: false, ct);
+
+    /// <summary>Lê, grava e reapura; <paramref name="completaPedida"/> força os 36 meses (<c>--completa</c>).</summary>
+    /// <param name="completaPedida">Se a leitura deve ser completa em qualquer dia.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public Task<Resultado<ResumoDoFaturamento>> ExecutarAsync(bool completaPedida, CancellationToken ct) =>
+        ExecutarAsync((desde, c) => protheus.LerAsync(desde, relatar, c), completaPedida, () => DateTime.UtcNow, ct);
+
+    /// <summary>A rodada inteira com a leitura e o relógio de fora — é o que o teste exercita.</summary>
+    /// <param name="ler">A leitura da SD2 a partir de uma data.</param>
+    /// <param name="completaPedida">Se a leitura deve ser completa em qualquer dia.</param>
+    /// <param name="relogio">O relógio: decide o alcance e carimba a execução registrada.</param>
+    /// <param name="ct">Cancelamento.</param>
+    internal async Task<Resultado<ResumoDoFaturamento>> ExecutarAsync(
+        Func<DateOnly, CancellationToken, Task<Resultado<LoteDoProtheus>>> ler, bool completaPedida, Func<DateTime> relogio, CancellationToken ct)
     {
-        relatar("Lendo o faturamento direto do banco do Protheus — três anos, para a curva ABC ter base…");
+        var agoraUtc = relogio();
+        _sistemaId = await GarantirSistemaAsync(ct);
+        var alcance = AlcanceDaLeituraDoFaturamento.Decidir(agoraUtc, await UltimaLeituraCompletaAsync(ct), completaPedida);
+        var completa = alcance.Modo == ModoDaLeituraDoFaturamento.Completa;
 
-        var lido = await protheus.LerAsync(InicioDaJanela(DateTime.UtcNow), relatar, ct);
-        if (!lido.EhSucesso) return Resultado<ResumoDoFaturamento>.Indisponivel(lido.Erro!);
+        relatar(completa
+            ? $"Leitura COMPLETA do faturamento — três anos, desde {alcance.Desde:dd/MM/yyyy} ({alcance.Motivo})…"
+            : $"Leitura curta do faturamento — desde {alcance.Desde:dd/MM/yyyy} ({alcance.Motivo}); a completa roda no domingo…");
 
-        return Resultado<ResumoDoFaturamento>.Ok(await GravarAsync(lido.Valor, ct));
+        // A RODADA, REGISTRADA POR FLUXO: a tela de Integrações lista as duas, e a última completa com sucesso decide quando a
+        // próxima é completa. A que cai no meio fica como falha — e não conta.
+        var execucaoId = await IniciarExecucaoAsync(completa ? FluxoDaLeituraCompleta : FluxoDaLeituraCurta, relogio(), ct);
+        try
+        {
+            var lido = await ler(alcance.Desde, ct);
+            if (!lido.EhSucesso)
+            {
+                await EncerrarExecucaoAsync(execucaoId, e => e.Falhar(1, lido.Erro!, relogio()), ct);
+                return Resultado<ResumoDoFaturamento>.Indisponivel(lido.Erro!);
+            }
+
+            var resumo = await GravarAsync(lido.Valor, InicioDaJanela(agoraUtc), completa ? alcance.InicioDaJanelaCurta : null, ct) with
+            {
+                Modo = alcance.Modo,
+                Desde = alcance.Desde
+            };
+
+            await EncerrarExecucaoAsync(execucaoId, e => e.Concluir(
+                1, lido.Valor.Faturamento.Count, resumo.MesesNovos, resumo.MesesReapurados + resumo.MesesRemovidos, 0,
+                LinhaDoResumo(resumo), relogio()), ct);
+            return Resultado<ResumoDoFaturamento>.Ok(resumo);
+        }
+        catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+        {
+            await EncerrarExecucaoAsync(
+                execucaoId, e => e.Falhar(1, $"A carga parou no meio: {falha.GetBaseException().Message}", relogio()), ct);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// A LINHA DA RODADA — o que o orquestrador guarda na execução da rotina e a tela de Integrações mostra: o modo, desde
+    /// quando leu e, na completa, o que ela corrigiu antes da janela curta.
+    ///
+    /// <para>O valor sai como "R$" + número, e não pelo formato de moeda: o do pt-BR põe um espaço não separável depois do
+    /// símbolo, que a tela e o teste leriam diferente.</para>
+    /// </summary>
+    /// <param name="resumo">O resumo da rodada.</param>
+    internal static string LinhaDoResumo(ResumoDoFaturamento resumo)
+    {
+        var modo = resumo.Modo == ModoDaLeituraDoFaturamento.Completa ? "leitura COMPLETA" : "leitura curta";
+        var desde = resumo.Desde is { } d ? string.Create(CulturaDoRelatorio, $" desde {d:dd/MM/yyyy}") : string.Empty;
+        var linha = string.Create(CulturaDoRelatorio,
+            $"{modo}{desde}: {resumo.MesesNovos:N0} mês(es) novo(s), {resumo.MesesReapurados:N0} reapurado(s), {resumo.MesesRemovidos:N0} removido(s)");
+
+        return resumo.Conferencia is not { } conferencia
+            ? linha
+            : linha + string.Create(CulturaDoRelatorio,
+                $" · antes de {conferencia.Antes:MM/yyyy}, {conferencia.Meses:N0} mês(es) corrigido(s) (R$ {conferencia.Valor:N0}) que a leitura curta não teria visto");
+    }
+
+    /// <summary>O fim da última leitura completa com sucesso; nulo quando nunca houve.</summary>
+    private async Task<DateTime?> UltimaLeituraCompletaAsync(CancellationToken ct)
+    {
+        await using var contexto = abrirContexto();
+        return await contexto.ExecucoesDeSincronizacao.AsNoTracking()
+            .Where(e => e.Fluxo == FluxoDaLeituraCompleta && e.Resultado == ResultadoDaExecucao.Sucesso)
+            .MaxAsync(e => e.TerminadaEm, ct);
+    }
+
+    private async Task<long> IniciarExecucaoAsync(string fluxo, DateTime quando, CancellationToken ct)
+    {
+        await using var contexto = abrirContexto();
+        var execucao = ExecucaoDeSincronizacao.Iniciar(_sistemaId!.Value, fluxo, Environment.MachineName, quando);
+        contexto.ExecucoesDeSincronizacao.Add(execucao);
+        await contexto.SaveChangesAsync(ct);
+        return execucao.Id;
+    }
+
+    private async Task EncerrarExecucaoAsync(long execucaoId, Action<ExecucaoDeSincronizacao> encerrar, CancellationToken ct)
+    {
+        await using var contexto = abrirContexto();
+        encerrar(await contexto.ExecucoesDeSincronizacao.FirstAsync(e => e.Id == execucaoId, ct));
+        await contexto.SaveChangesAsync(ct);
     }
 
     /// <summary>
@@ -107,30 +205,50 @@ internal sealed class CargaDeFaturamentoDoProtheus(
     /// </summary>
     /// <param name="lote">O que a leitura da SD2 produziu.</param>
     /// <param name="ct">Cancelamento.</param>
-    internal async Task<ResumoDoFaturamento> GravarAsync(LoteDoProtheus lote, CancellationToken ct)
+    internal Task<ResumoDoFaturamento> GravarAsync(LoteDoProtheus lote, CancellationToken ct) =>
+        GravarAsync(lote, InicioDaJanela(DateTime.UtcNow), conferirAntesDe: null, ct);
+
+    /// <summary>Grava um lote já lido, com a janela da curva e a fronteira da conferência explícitas.</summary>
+    /// <param name="lote">O que a leitura da SD2 produziu — curta ou completa.</param>
+    /// <param name="inicioDaCurva">O início dos 36 meses da curva ABC, o mesmo nos dois modos.</param>
+    /// <param name="conferirAntesDe">Na leitura completa, onde a janela curta começa: o que mudar antes disso é contado.</param>
+    /// <param name="ct">Cancelamento.</param>
+    internal async Task<ResumoDoFaturamento> GravarAsync(
+        LoteDoProtheus lote, DateOnly inicioDaCurva, DateOnly? conferirAntesDe, CancellationToken ct)
     {
         _sistemaId = await GarantirSistemaAsync(ct);
+        var conferidos = conferirAntesDe is { } antes ? new Conferidos(antes) : null;
 
         RegistrarDescartesDaLeitura(lote);
 
-        var gravacao = await GravarFaturamentoAsync(lote, ct);
+        var gravacao = await GravarFaturamentoAsync(lote, conferidos, ct);
 
         relatar(
             $"  {gravacao.Novos} mês(es) novo(s), {gravacao.Reapurados} reapurado(s) e {gravacao.Removidos} removido(s) " +
             $"da janela · nota mais recente: {lote.EmissaoMaisRecente:dd/MM/yyyy}.");
 
-        var (curva, promovidos) = await ApurarCurvaAbcAsync(lote.Desde, ct);
+        // A CURVA OLHA OS 36 MESES NOS DOIS MODOS (plano 3 do documento 54): com a janela da leitura, a rodada curta
+        // rebaixaria a D o cliente que comprou muito em março e nada desde então.
+        var (curva, promovidos) = await ApurarCurvaAbcAsync(inicioDaCurva, ct);
         relatar(
             "  curva ABC: " +
             string.Join(" · ", curva.OrderBy(p => p.Key).Select(p => $"{p.Key} {p.Value}")) +
             $" · {promovidos} cliente(s) promovido(s) a Cliente pelo faturamento.");
+
+        // A CONFERÊNCIA SAI ATÉ QUANDO É ZERO: "nenhum mês corrigido" é justamente a confirmação de que a leitura curta basta.
+        var conferencia = conferidos?.Fechar();
+        if (conferencia is not null)
+            Decidir(
+                $"Conferência semanal: meses ANTES da janela curta ({conferencia.Antes:MM/yyyy}) corrigidos pela leitura " +
+                $"completa — {Reais(conferencia.Valor)} que a leitura curta não teria visto",
+                conferencia.Meses);
 
         // AS DECISÕES SAEM JUNTO, e não só a contagem. Elas são o que diz quanto dinheiro ficou de fora
         // e por quê — sem isso o comando terminaria com "6.849 meses gravados" e o descarte voltaria a
         // ser invisível.
         return new ResumoDoFaturamento(
             gravacao.Novos, gravacao.Reapurados, gravacao.Removidos, promovidos, curva,
-            new Dictionary<string, int>(_decisoes, StringComparer.Ordinal));
+            new Dictionary<string, int>(_decisoes, StringComparer.Ordinal), conferencia);
     }
 
     // =============================================================================================
@@ -138,7 +256,7 @@ internal sealed class CargaDeFaturamentoDoProtheus(
     // =============================================================================================
 
     private async Task<(int Novos, int Reapurados, int Removidos)> GravarFaturamentoAsync(
-        LoteDoProtheus lote, CancellationToken ct)
+        LoteDoProtheus lote, Conferidos? conferidos, CancellationToken ct)
     {
         var faturamento = lote.Faturamento;
 
@@ -201,7 +319,7 @@ internal sealed class CargaDeFaturamentoDoProtheus(
             foreach (var (linha, _, empresaId) in semDono)
                 produzidosSemCliente.Add((linha.DocumentoDoCliente, empresaId, linha.Competencia));
 
-            await GravarSemClienteAsync(contexto, semDono.Select(x => (x.Linha, x.EmpresaId)), lote.Desde, ct);
+            await GravarSemClienteAsync(contexto, semDono.Select(x => (x.Linha, x.EmpresaId)), lote.Desde, conferidos, ct);
 
             var doBloco = resolvido.Where(x => x.ClienteId != 0 && x.EmpresaId != 0).ToList();
             if (doBloco.Count > 0)
@@ -218,11 +336,13 @@ internal sealed class CargaDeFaturamentoDoProtheus(
 
                     if (existentes.TryGetValue(chave, out var jaExiste))
                     {
+                        conferidos?.Contar(linha.Competencia, linha.ValorLiquido - jaExiste.ValorLiquido);
                         jaExiste.Reapurar(linha.ValorLiquido, linha.Notas, linha.Itens, linha.Quebra);
                         reapurados++;
                         continue;
                     }
 
+                    conferidos?.Contar(linha.Competencia, linha.ValorLiquido);
                     contexto.FaturamentoDosClientes.Add(FaturamentoDoCliente.Criar(
                         empresaId, clienteId, linha.Competencia,
                         linha.ValorLiquido, linha.Notas, linha.Itens, linha.Quebra));
@@ -234,7 +354,7 @@ internal sealed class CargaDeFaturamentoDoProtheus(
             await transacao.CommitAsync(ct);
         }
 
-        var removidos = await RemoverOQueSaiuDaOrigemAsync(lote.Desde, produzidosComCliente, produzidosSemCliente, ct);
+        var removidos = await RemoverOQueSaiuDaOrigemAsync(lote.Desde, produzidosComCliente, produzidosSemCliente, conferidos, ct);
 
         if (documentosSemCliente.Count > 0)
             Decidir(
@@ -276,26 +396,27 @@ internal sealed class CargaDeFaturamentoDoProtheus(
         DateOnly desde,
         HashSet<(long ClienteId, int EmpresaId, DateOnly Competencia)> comCliente,
         HashSet<(string Documento, int EmpresaId, DateOnly Competencia)> semCliente,
+        Conferidos? conferidos,
         CancellationToken ct)
     {
         await using var contexto = AbrirContextoDaCarga();
 
         var naJanelaComCliente = await contexto.FaturamentoDosClientes.AsNoTracking()
             .Where(f => f.Competencia >= desde)
-            .Select(f => new { f.Id, f.ClienteId, f.EmpresaId, f.Competencia })
+            .Select(f => new { f.Id, f.ClienteId, f.EmpresaId, f.Competencia, f.ValorLiquido })
             .ToListAsync(ct);
         var obsoletosComCliente = naJanelaComCliente
             .Where(f => !comCliente.Contains((f.ClienteId, f.EmpresaId, f.Competencia)))
-            .Select(f => f.Id)
+            .Select(f => (f.Id, f.Competencia, f.ValorLiquido))
             .ToList();
 
         var naJanelaSemCliente = await contexto.FaturamentoSemClientes.AsNoTracking()
             .Where(f => f.Competencia >= desde)
-            .Select(f => new { f.Id, f.Documento, f.EmpresaId, f.Competencia })
+            .Select(f => new { f.Id, f.Documento, f.EmpresaId, f.Competencia, f.ValorLiquido })
             .ToListAsync(ct);
         var obsoletosSemCliente = naJanelaSemCliente
             .Where(f => !semCliente.Contains((f.Documento, f.EmpresaId, f.Competencia)))
-            .Select(f => f.Id)
+            .Select(f => (f.Id, f.Competencia, f.ValorLiquido))
             .ToList();
 
         if (obsoletosComCliente.Count == 0 && obsoletosSemCliente.Count == 0) return 0;
@@ -318,13 +439,18 @@ internal sealed class CargaDeFaturamentoDoProtheus(
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
         var removidos = 0;
 
-        foreach (var bloco in obsoletosComCliente.Chunk(TamanhoDoBloco))
+        foreach (var bloco in obsoletosComCliente.Select(f => f.Id).Chunk(TamanhoDoBloco))
             removidos += await contexto.FaturamentoDosClientes.Where(f => bloco.Contains(f.Id)).ExecuteDeleteAsync(ct);
 
-        foreach (var bloco in obsoletosSemCliente.Chunk(TamanhoDoBloco))
+        foreach (var bloco in obsoletosSemCliente.Select(f => f.Id).Chunk(TamanhoDoBloco))
             removidos += await contexto.FaturamentoSemClientes.Where(f => bloco.Contains(f.Id)).ExecuteDeleteAsync(ct);
 
         await transacao.CommitAsync(ct);
+
+        // O MÊS QUE SAIU TAMBÉM É CORREÇÃO: a nota de junho cancelada em setembro só a leitura completa vê.
+        foreach (var (_, competencia, valor) in obsoletosComCliente.Concat(obsoletosSemCliente))
+            conferidos?.Contar(competencia, valor);
+
         return removidos;
     }
 
@@ -338,6 +464,7 @@ internal sealed class CargaDeFaturamentoDoProtheus(
         CrmDbContext contexto,
         IEnumerable<(FaturamentoParaCarga Linha, int EmpresaId)> linhas,
         DateOnly desde,
+        Conferidos? conferidos,
         CancellationToken ct)
     {
         var doBloco = linhas.ToList();
@@ -356,12 +483,14 @@ internal sealed class CargaDeFaturamentoDoProtheus(
 
             if (existentes.TryGetValue(chave, out var jaExiste))
             {
+                conferidos?.Contar(linha.Competencia, linha.ValorLiquido - jaExiste.ValorLiquido);
                 jaExiste.Reapurar(
                     linha.NomeNaOrigem, natureza,
                     linha.ValorLiquido, linha.Notas, linha.Itens, linha.Quebra);
                 continue;
             }
 
+            conferidos?.Contar(linha.Competencia, linha.ValorLiquido);
             contexto.FaturamentoSemClientes.Add(FaturamentoSemCliente.Criar(
                 empresaId, linha.Competencia, linha.DocumentoDoCliente, linha.NomeNaOrigem,
                 natureza, linha.ValorLiquido, linha.Notas, linha.Itens, linha.Quebra));
@@ -553,301 +682,6 @@ internal sealed class CargaDeFaturamentoDoProtheus(
     }
 
     // =============================================================================================
-    // A SIMULAÇÃO — lê o CRM e o Protheus, e não grava nada
-    // =============================================================================================
-
-    /// <summary>
-    /// <c>--somente-faturamento --simular</c>: o que a carga gravaria, sem gravar.
-    ///
-    /// <para><b>Nenhuma transação é aberta e nenhum <c>SaveChanges</c> é chamado</b> — não é a
-    /// transação desfeita das outras simulações, é leitura pura, porque ela roda contra o banco de
-    /// produção a partir de uma estação. O sistema de origem também não é criado.</para>
-    ///
-    /// <para><b>Duas visões.</b> "CRM de hoje" casa a venda com os clientes que o banco tem agora.
-    /// "CRM + carga da SA1" casa também com os clientes que <c>--somente-clientes-protheus</c> criaria
-    /// — que é o que importa enquanto a produção tiver o cadastro vazio.</para>
-    /// </summary>
-    /// <param name="cadastroDaSa1">A leitura da SA1, para a segunda visão; nula dispensa a visão.</param>
-    /// <param name="ct">Cancelamento.</param>
-    public async Task<Resultado<SimulacaoDoFaturamento>> SimularAsync(
-        LeitorDeClientesDoProtheus? cadastroDaSa1, CancellationToken ct)
-    {
-        relatar("Lendo o faturamento direto do banco do Protheus — três anos (SIMULAÇÃO: nada será gravado)…");
-
-        var lido = await protheus.LerAsync(InicioDaJanela(DateTime.UtcNow), relatar, ct);
-        if (!lido.EhSucesso) return Resultado<SimulacaoDoFaturamento>.Indisponivel(lido.Erro!);
-
-        IReadOnlySet<string>? daSa1 = null;
-        if (cadastroDaSa1 is not null)
-        {
-            relatar("Lendo a SA1 para projetar os clientes que a carga de clientes criaria…");
-            var projetados = await DocumentosQueACargaDaSa1CriariaAsync(cadastroDaSa1, ct);
-            if (!projetados.EhSucesso) relatar("  a SA1 não foi lida: " + projetados.Erro + " — só a visão do CRM de hoje.");
-            else daSa1 = projetados.Valor;
-        }
-
-        return Resultado<SimulacaoDoFaturamento>.Ok(await SimularAsync(lido.Valor, daSa1, ct));
-    }
-
-    /// <summary>A simulação sobre um lote já lido — é o que o teste exercita.</summary>
-    /// <param name="lote">O lote.</param>
-    /// <param name="documentosDaSa1">Os documentos que a carga da SA1 criaria; nulo dispensa a segunda visão.</param>
-    /// <param name="ct">Cancelamento.</param>
-    internal async Task<SimulacaoDoFaturamento> SimularAsync(
-        LoteDoProtheus lote, IReadOnlySet<string>? documentosDaSa1, CancellationToken ct)
-    {
-        await using var contexto = abrirContexto();
-
-        var clientes = await contexto.Clientes.AsNoTracking()
-            .Where(c => c.ExcluidoEm == null && c.Documento != null)
-            .Select(c => new { c.Id, Documento = c.Documento!.Value.Numero, c.Situacao })
-            .ToListAsync(ct);
-
-        var porDocumento = new Dictionary<string, long>(StringComparer.Ordinal);
-        var situacaoPorId = new Dictionary<long, SituacaoDoCliente>();
-        foreach (var cliente in clientes)
-        {
-            porDocumento.TryAdd(cliente.Documento, cliente.Id);
-            situacaoPorId[cliente.Id] = cliente.Situacao;
-        }
-
-        var totalDeClientes = await contexto.Clientes.AsNoTracking().CountAsync(c => c.ExcluidoEm == null, ct);
-
-        var empresas = await contexto.Empresas.AsNoTracking()
-            .Select(e => new { e.Id, e.Codigo, e.Nome })
-            .ToListAsync(ct);
-        var porCodigoDeEmpresa = empresas.ToDictionary(e => e.Codigo, e => e.Id, StringComparer.Ordinal);
-        var nomeDaEmpresa = empresas.ToDictionary(e => e.Id, e => e.Nome);
-
-        // O QUE O BANCO TEM HOJE NA JANELA, para dizer quanto seria incluído, reapurado e removido.
-        var existentesComCliente = (await contexto.FaturamentoDosClientes.AsNoTracking()
-                .Where(f => f.Competencia >= lote.Desde)
-                .Select(f => new { f.ClienteId, f.EmpresaId, f.Competencia })
-                .ToListAsync(ct))
-            .Select(f => (f.ClienteId, f.EmpresaId, f.Competencia))
-            .ToHashSet();
-        var existentesSemCliente = (await contexto.FaturamentoSemClientes.AsNoTracking()
-                .Where(f => f.Competencia >= lote.Desde)
-                .Select(f => new { f.Documento, f.EmpresaId, f.Competencia })
-                .ToListAsync(ct))
-            .Select(f => (f.Documento, f.EmpresaId, f.Competencia))
-            .ToHashSet();
-
-        var hoje = Visao("CRM de hoje", lote, porDocumento, situacaoPorId, totalDeClientes, porCodigoDeEmpresa, nomeDaEmpresa);
-
-        // A DIFERENÇA CONTRA O BANCO é da visão de hoje: é o que a carga faria se rodasse agora.
-        var produzidosComCliente = new HashSet<(long, int, DateOnly)>();
-        var produzidosSemCliente = new HashSet<(string, int, DateOnly)>();
-        foreach (var linha in lote.Faturamento)
-        {
-            var (clienteId, empresaId) = Resolver(linha, porDocumento, porCodigoDeEmpresa);
-            if (empresaId == 0) continue;
-            if (clienteId != 0) produzidosComCliente.Add((clienteId, empresaId, linha.Competencia));
-            else produzidosSemCliente.Add((linha.DocumentoDoCliente, empresaId, linha.Competencia));
-        }
-
-        var reapuraria = produzidosComCliente.Count(existentesComCliente.Contains) + produzidosSemCliente.Count(existentesSemCliente.Contains);
-        var incluiria = produzidosComCliente.Count + produzidosSemCliente.Count - reapuraria;
-        var removeria = existentesComCliente.Count(k => !produzidosComCliente.Contains(k)) + existentesSemCliente.Count(k => !produzidosSemCliente.Contains(k));
-
-        VisaoDaSimulacao? comSa1 = null;
-        if (documentosDaSa1 is not null)
-        {
-            // OS CLIENTES QUE A SA1 CRIARIA ganham um identificador provisório, negativo, só para a
-            // curva: nascem Suspect, que é o que a carga de clientes grava.
-            var ampliado = new Dictionary<string, long>(porDocumento, StringComparer.Ordinal);
-            var situacoes = new Dictionary<long, SituacaoDoCliente>(situacaoPorId);
-            long provisorio = 0;
-            foreach (var documento in documentosDaSa1.Order(StringComparer.Ordinal))
-            {
-                if (ampliado.ContainsKey(documento)) continue;
-                ampliado[documento] = --provisorio;
-                situacoes[provisorio] = SituacaoDoCliente.Suspect;
-            }
-
-            comSa1 = Visao("CRM + carga da SA1", lote, ampliado, situacoes, totalDeClientes - (int)provisorio,
-                porCodigoDeEmpresa, nomeDaEmpresa);
-        }
-
-        return new SimulacaoDoFaturamento(lote, hoje, comSa1, incluiria, reapuraria, removeria);
-    }
-
-    /// <summary>Uma visão da simulação: o lote resolvido contra um cadastro de clientes.</summary>
-    private static VisaoDaSimulacao Visao(
-        string nome,
-        LoteDoProtheus lote,
-        IReadOnlyDictionary<string, long> porDocumento,
-        IReadOnlyDictionary<long, SituacaoDoCliente> situacaoPorId,
-        int totalDeClientes,
-        IReadOnlyDictionary<string, int> porCodigoDeEmpresa,
-        IReadOnlyDictionary<int, string> nomeDaEmpresa)
-    {
-        var porMes = new SortedDictionary<DateOnly, Acumulado>();
-        var porFilial = new SortedDictionary<string, Acumulado>(StringComparer.Ordinal);
-        var comCliente = new List<(long, int, decimal)>();
-        var documentosComCliente = new HashSet<string>(StringComparer.Ordinal);
-        var documentosSemCliente = new HashSet<string>(StringComparer.Ordinal);
-        int linhasComCliente = 0, linhasSemCliente = 0, linhasSemFilial = 0;
-
-        foreach (var linha in lote.Faturamento)
-        {
-            var (clienteId, empresaId) = Resolver(linha, porDocumento, porCodigoDeEmpresa);
-            var codigo = linha.CodigoDaFilial ?? "(sem filial)";
-            var rotuloDaFilial = empresaId != 0 && nomeDaEmpresa.TryGetValue(empresaId, out var n) ? $"{codigo} {n}" : $"{codigo} (sem empresa no CRM)";
-
-            foreach (var acumulado in new[] { Obter(porMes, linha.Competencia), Obter(porFilial, rotuloDaFilial) })
-            {
-                acumulado.Linhas++;
-                acumulado.Total += linha.ValorLiquido;
-                acumulado.Maquina += linha.Quebra.Maquina;
-                if (empresaId == 0) acumulado.SemFilial += linha.ValorLiquido;
-                else if (clienteId != 0) acumulado.ComCliente += linha.ValorLiquido;
-                else acumulado.SemCliente += linha.ValorLiquido;
-            }
-
-            if (empresaId == 0) { linhasSemFilial++; continue; }
-
-            if (clienteId != 0)
-            {
-                linhasComCliente++;
-                documentosComCliente.Add(linha.DocumentoDoCliente);
-                comCliente.Add((clienteId, empresaId, linha.ValorLiquido));
-            }
-            else
-            {
-                linhasSemCliente++;
-                documentosSemCliente.Add(linha.DocumentoDoCliente);
-            }
-        }
-
-        var curva = ClassificarCurva(comCliente);
-        var contagem = curva.Values.GroupBy(v => v.Classe).ToDictionary(g => g.Key, g => g.Count());
-        contagem[ClasseDeCliente.D] = Math.Max(0, totalDeClientes - curva.Count);
-
-        var promovidos = curva.Keys.Count(id => situacaoPorId.TryGetValue(id, out var s) && PromoveAoFaturar(s));
-
-        return new VisaoDaSimulacao(
-            nome,
-            [.. porMes.Select(p => p.Value.Linha(p.Key.ToString("yyyy-MM", CultureInfo.InvariantCulture)))],
-            [.. porFilial.Select(p => p.Value.Linha(p.Key))],
-            linhasComCliente, linhasSemCliente, linhasSemFilial,
-            documentosComCliente.Count, documentosSemCliente.Count, promovidos, contagem);
-
-        static Acumulado Obter<TChave>(SortedDictionary<TChave, Acumulado> onde, TChave chave) where TChave : notnull
-        {
-            if (!onde.TryGetValue(chave, out var acumulado)) onde[chave] = acumulado = new Acumulado();
-            return acumulado;
-        }
-    }
-
-    private sealed class Acumulado
-    {
-        public int Linhas;
-        public decimal Total;
-        public decimal Maquina;
-        public decimal ComCliente;
-        public decimal SemCliente;
-        public decimal SemFilial;
-
-        public LinhaDaSimulacao Linha(string chave) => new(chave, Linhas, Total, Maquina, ComCliente, SemCliente, SemFilial);
-    }
-
-    /// <summary>
-    /// Os documentos que <c>--somente-clientes-protheus</c> transformaria em cliente — só para a simulação.
-    ///
-    /// <para><b>A mesma sequência de <see cref="CargaDeClientesDoProtheus"/></b>, na mesma ordem: loja
-    /// principal por documento (<see cref="CargaDeClientesDoProtheus.EscolherAPrincipal"/>, a mesma
-    /// função), dígito verificador, UF conhecida, município no catálogo e filial responsável na área de
-    /// atuação. Aquela carga só simula dentro de uma transação desfeita — que grava e desfaz —, e esta
-    /// simulação roda contra a produção sem abrir transação nenhuma; por isso a projeção é refeita
-    /// aqui, em leitura pura. Se a regra de lá mudar, esta visão precisa acompanhar.</para>
-    /// </summary>
-    private async Task<Resultado<IReadOnlySet<string>>> DocumentosQueACargaDaSa1CriariaAsync(
-        LeitorDeClientesDoProtheus cadastroDaSa1, CancellationToken ct)
-    {
-        var lido = await cadastroDaSa1.LerAsync(ct);
-        if (!lido.EhSucesso) return Resultado<IReadOnlySet<string>>.Indisponivel(lido.Erro!);
-
-        await using var contexto = abrirContexto();
-
-        var municipios = await contexto.Municipios.AsNoTracking()
-            .Where(m => m.CodigoIbge != null)
-            .Select(m => new { m.Id, CodigoIbge = m.CodigoIbge!.Value, m.Uf })
-            .ToListAsync(ct);
-
-        var municipioPorIbge = municipios.ToDictionary(m => m.CodigoIbge, m => m.Id);
-        var prefixoDaUf = municipios
-            .GroupBy(m => m.Uf, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First().CodigoIbge / 100_000, StringComparer.OrdinalIgnoreCase);
-
-        var comFilial = (await contexto.MunicipiosDaAreaDeAtuacao.AsNoTracking()
-                .Where(a => a.EncerradoEm == null && a.EmpresaResponsavelId != null)
-                .Select(a => a.MunicipioId)
-                .ToListAsync(ct))
-            .ToHashSet();
-
-        var documentos = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var grupo in lido.Valor.GroupBy(l => l.Documento, StringComparer.Ordinal))
-        {
-            var loja = CargaDeClientesDoProtheus.EscolherAPrincipal(grupo);
-
-            if (!CpfCnpj.TentarCriar(grupo.Key, out _)) continue;
-            if (string.IsNullOrWhiteSpace(loja.Uf) || !prefixoDaUf.TryGetValue(loja.Uf, out var prefixo)) continue;
-
-            var codigoIbge = LeitorDeClientesDoProtheus.CodigoIbge(prefixo, loja.CodigoDoMunicipio);
-            if (codigoIbge is null || !municipioPorIbge.TryGetValue(codigoIbge.Value, out var municipioId)) continue;
-            if (!comFilial.Contains(municipioId)) continue;
-
-            documentos.Add(grupo.Key);
-        }
-
-        relatar($"  {documentos.Count:N0} documento(s) da SA1 virariam cliente (área de atuação).");
-        return Resultado<IReadOnlySet<string>>.Ok(documentos);
-    }
-
-    /// <summary>
-    /// Imprime a simulação: por mês, por filial, e o que mudaria no banco.
-    /// </summary>
-    /// <param name="simulacao">A simulação.</param>
-    /// <param name="escrever">Onde escrever.</param>
-    internal static void Imprimir(SimulacaoDoFaturamento simulacao, Action<string> escrever)
-    {
-        var lote = simulacao.Lote;
-        escrever(string.Empty);
-        escrever($"Janela lida: desde {lote.Desde:dd/MM/yyyy} · nota mais recente {lote.EmissaoMaisRecente:dd/MM/yyyy} · " +
-                 $"{lote.Faturamento.Count:N0} meses de faturamento por documento e filial · " +
-                 $"filiais nas notas: {string.Join(", ", lote.FiliaisVistas)}.");
-        escrever($"Fora da venda: {lote.ItensQueNaoSaoVenda:N0} itens que não são venda ({Reais(lote.ValorQueNaoEhVenda)}); " +
-                 $"{lote.CodigosSemDocumento:N0} códigos sem documento na SA1 ({Reais(lote.ValorSemDocumento)}).");
-        escrever($"No banco, se a carga rodasse agora (visão de hoje): incluiria {simulacao.Incluiria:N0}, reapuraria " +
-                 $"{simulacao.Reapuraria:N0} e removeria {simulacao.Removeria:N0} linha(s).");
-
-        foreach (var visao in new[] { simulacao.Hoje, simulacao.ComSa1 }.OfType<VisaoDaSimulacao>())
-        {
-            escrever(string.Empty);
-            escrever($"=== {visao.Nome} ===");
-            escrever($"  {visao.LinhasComCliente:N0} linha(s) em FaturamentoDoCliente ({visao.DocumentosComCliente:N0} documentos) · " +
-                     $"{visao.LinhasSemCliente:N0} em FaturamentoSemCliente ({visao.DocumentosSemCliente:N0} documentos) · " +
-                     $"{visao.LinhasSemFilial:N0} descartada(s) sem empresa.");
-            escrever("  curva ABC: " + string.Join(" · ", visao.Curva.OrderBy(p => p.Key).Select(p => $"{p.Key} {p.Value:N0}")) +
-                     $" · {visao.ClientesPromovidos:N0} promovido(s) a Cliente.");
-
-            escrever(string.Empty);
-            escrever($"  {"competência",-12}{"linhas",8}{"total R$ mi",14}{"máquina",10}{"c/ cliente",12}{"s/ cliente",12}{"s/ filial",11}");
-            foreach (var linha in visao.PorMes) escrever("  " + Formatar(linha, 12));
-
-            escrever(string.Empty);
-            escrever($"  {"filial",-44}{"linhas",8}{"total R$ mi",14}{"máquina",10}{"c/ cliente",12}{"s/ cliente",12}{"s/ filial",11}");
-            foreach (var linha in visao.PorFilial) escrever("  " + Formatar(linha, 44));
-        }
-
-        static string Formatar(LinhaDaSimulacao l, int largura) =>
-            $"{l.Chave.PadRight(largura)}{l.Linhas,8:N0}{Mi(l.Total),14}{Mi(l.Maquina),10}{Mi(l.ComCliente),12}{Mi(l.SemCliente),12}{Mi(l.SemFilial),11}";
-
-        static string Mi(decimal valor) => (valor / 1_000_000m).ToString("N2", CulturaDoRelatorio);
-    }
-
-    // =============================================================================================
     // Apoio
     // =============================================================================================
 
@@ -921,6 +755,30 @@ internal sealed class CargaDeFaturamentoDoProtheus(
         return mapa;
     }
 
+    /// <summary>
+    /// O QUE A LEITURA COMPLETA CORRIGE ANTES DA JANELA CURTA, enquanto a gravação passa: mês novo, mês com valor mudado e mês
+    /// removido. Mês igual não conta — e mês dentro da janela curta também não, porque a leitura curta já o veria.
+    /// </summary>
+    /// <param name="antes">Onde a janela curta começa.</param>
+    private sealed class Conferidos(DateOnly antes)
+    {
+        private int _meses;
+        private decimal _valor;
+
+        /// <summary>Conta um mês, quando ele é anterior à janela curta e o valor mudou.</summary>
+        /// <param name="competencia">O mês.</param>
+        /// <param name="diferenca">O valor novo menos o antigo; o valor inteiro no mês novo ou removido.</param>
+        public void Contar(DateOnly competencia, decimal diferenca)
+        {
+            if (competencia >= antes || diferenca == 0) return;
+            _meses++;
+            _valor += Math.Abs(diferenca);
+        }
+
+        /// <summary>O total da rodada.</summary>
+        public ConferenciaDaJanelaCurta Fechar() => new(antes, _meses, decimal.Round(_valor, 2));
+    }
+
     private void Decidir(string decisao, int quantas) =>
         _decisoes[decisao] = _decisoes.TryGetValue(decisao, out var atual) ? atual + quantas : quantas;
 
@@ -947,49 +805,25 @@ internal sealed class CargaDeFaturamentoDoProtheus(
 /// O que foi descartado e por quê — com o valor em reais no próprio texto, porque a ordem de
 /// grandeza é o que separa resíduo de problema.
 /// </param>
+/// <param name="Conferencia">Na leitura completa, o que ela corrigiu antes da janela curta; nula na curta.</param>
+/// <param name="Modo">Curta ou completa.</param>
+/// <param name="Desde">O primeiro dia lido; nulo quando o lote foi gravado sem passar pela rodada.</param>
 internal sealed record ResumoDoFaturamento(
     int MesesNovos,
     int MesesReapurados,
     int MesesRemovidos,
     int ClientesPromovidos,
     IReadOnlyDictionary<ClasseDeCliente, int> Curva,
-    IReadOnlyDictionary<string, int> Decisoes);
+    IReadOnlyDictionary<string, int> Decisoes,
+    ConferenciaDaJanelaCurta? Conferencia = null,
+    ModoDaLeituraDoFaturamento Modo = ModoDaLeituraDoFaturamento.Completa,
+    DateOnly? Desde = null);
 
-/// <summary>Uma linha da simulação — um mês ou uma filial.</summary>
-/// <param name="Chave">A competência (<c>yyyy-MM</c>) ou a filial.</param>
-/// <param name="Linhas">Meses de faturamento por documento.</param>
-/// <param name="Total">O valor.</param>
-/// <param name="Maquina">Quanto foi máquina.</param>
-/// <param name="ComCliente">Quanto casou com cliente do CRM.</param>
-/// <param name="SemCliente">Quanto iria para <c>FaturamentoSemCliente</c>.</param>
-/// <param name="SemFilial">Quanto seria descartado por não ter empresa no CRM.</param>
-internal sealed record LinhaDaSimulacao(
-    string Chave, int Linhas, decimal Total, decimal Maquina, decimal ComCliente, decimal SemCliente, decimal SemFilial);
-
-/// <summary>Uma visão da simulação: o lote casado contra um cadastro de clientes.</summary>
-internal sealed record VisaoDaSimulacao(
-    string Nome,
-    IReadOnlyList<LinhaDaSimulacao> PorMes,
-    IReadOnlyList<LinhaDaSimulacao> PorFilial,
-    int LinhasComCliente,
-    int LinhasSemCliente,
-    int LinhasSemFilial,
-    int DocumentosComCliente,
-    int DocumentosSemCliente,
-    int ClientesPromovidos,
-    IReadOnlyDictionary<ClasseDeCliente, int> Curva);
-
-/// <summary>O que <c>--somente-faturamento --simular</c> apurou.</summary>
-/// <param name="Lote">O que a leitura trouxe.</param>
-/// <param name="Hoje">A visão contra o cadastro de hoje.</param>
-/// <param name="ComSa1">A visão com os clientes que a carga da SA1 criaria; nula sem a SA1.</param>
-/// <param name="Incluiria">Linhas novas, na visão de hoje.</param>
-/// <param name="Reapuraria">Linhas existentes que seriam reapuradas.</param>
-/// <param name="Removeria">Linhas da janela que a origem não tem mais.</param>
-internal sealed record SimulacaoDoFaturamento(
-    LoteDoProtheus Lote,
-    VisaoDaSimulacao Hoje,
-    VisaoDaSimulacao? ComSa1,
-    int Incluiria,
-    int Reapuraria,
-    int Removeria);
+/// <summary>
+/// O QUE A LEITURA COMPLETA CORRIGIU ANTES DA JANELA CURTA (documento 54, passo 6) — mês novo, mês com valor mudado e mês
+/// removido, com e sem cliente. É a medida de quanto a leitura curta, sozinha, teria deixado de ver.
+/// </summary>
+/// <param name="Antes">Onde a janela curta começa: só o que é anterior a esta competência conta.</param>
+/// <param name="Meses">Quantos meses (por cliente ou documento e filial) mudaram.</param>
+/// <param name="Valor">Quanto, em reais: o valor do mês novo ou removido, e a diferença do mês corrigido.</param>
+internal sealed record ConferenciaDaJanelaCurta(DateOnly Antes, int Meses, decimal Valor);

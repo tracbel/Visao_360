@@ -82,15 +82,14 @@ var somenteMedir = args.Contains("--somente-medir", StringComparer.Ordinal);
 var somenteCadastro = args.Contains("--somente-cadastro", StringComparer.Ordinal);
 var somenteRelacionamento = args.Contains("--somente-relacionamento", StringComparer.Ordinal);
 
-// --somente-faturamento [--simular] — A ETAPA QUE NAO PRECISA DO VORTICE.
+// --somente-faturamento [--simular] [--completa] — A ETAPA QUE NAO PRECISA DO VORTICE.
 //
 // O faturamento vem da SD2 do Protheus, lida direto no banco (so SELECT), e o cliente vem do nosso
-// proprio cadastro: o sistema de origem nao entra em lugar nenhum dessa etapa. Reler o Vortice
-// inteiro para atualizar o faturamento custa horas e nao muda nada do que o Vortice traz — e o
-// faturamento e justamente o dado que muda TODO DIA, porque ha nota emitida hoje.
-//
-// E o que permite atualizar o numero da diretoria sem uma janela de migracao. Com --simular, le o
-// CRM e o Protheus e imprime o que gravaria, sem abrir transacao nenhuma.
+// proprio cadastro: reler o Vortice para atualizar o faturamento custaria horas e nao mudaria nada —
+// e o faturamento e o dado que muda TODO DIA. Com --simular, le e imprime o que gravaria, sem gravar.
+// A LEITURA E CURTA NOS DIAS COMUNS (plano 3 do documento 54): o mes dos ultimos tres dias de emissao.
+// No domingo, ou com a ultima completa de sete dias ou mais, rele os tres anos e diz o que corrigiu
+// antes da janela curta. --completa forca os tres anos em qualquer dia.
 var somenteFaturamento = args.Contains("--somente-faturamento", StringComparer.Ordinal);
 
 // --somente-territorio — O MUNICIPIO OFICIAL, A ADR, OS RESPONSAVEIS E A AREA PLANTADA (documento 32).
@@ -309,7 +308,7 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 // uma opção de rotina, e quem quiser rodá-lo precisa dizer isso em voz alta na linha de comando.
 //
 // O QUE CONTINUA LIVRE, porque nada disso lê o Vórtice:
-//   --somente-faturamento   o faturamento do Protheus, que muda todo dia e é o número da diretoria;
+//   --somente-faturamento   o faturamento do Protheus, que muda todo dia e é o número da diretoria (--completa: 3 anos);
 //   --somente-territorio    as planilhas do comercial e o IBGE;
 //   --somente-pam           só a produção agrícola do IBGE — a rotina anual do servidor;
 //   --somente-estrutura     o Censo, o rebanho, a área territorial e as usinas da ANP;
@@ -1865,7 +1864,7 @@ if (somenteFaturamento)
     Resultado<ResumoDoFaturamento> resultadoDoFaturamento;
     try
     {
-        resultadoDoFaturamento = await faturamentoDoProtheus.ExecutarAsync(CancellationToken.None);
+        resultadoDoFaturamento = await faturamentoDoProtheus.ExecutarAsync(args.Contains("--completa", StringComparer.Ordinal), CancellationToken.None);
     }
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
@@ -1885,7 +1884,8 @@ if (somenteFaturamento)
     Console.WriteLine("Decisões da carga:");
     foreach (var (decisao, quantas) in resultadoDoFaturamento.Valor.Decisoes.OrderBy(p => p.Key))
         Console.WriteLine($"  {quantas,8}  {decisao}");
-
+    // A LINHA QUE CHEGA À TELA DE INTEGRAÇÕES (o orquestrador guarda a última com o prefixo do resumo).
+    Console.WriteLine(Orquestrador.PrefixoDoResumo + CargaDeFaturamentoDoProtheus.LinhaDoResumo(resultadoDoFaturamento.Valor));
     return 0;
 }
 
