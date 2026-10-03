@@ -273,6 +273,64 @@ public sealed class CargaDeFaturamentoDoProtheusTestes : IDisposable
         CargaDeFaturamentoDoProtheus.PromoveAoFaturar(situacao).Should().Be(promove);
 
     [Fact]
+    public async Task A_leitura_curta_mantem_a_curva_nos_36_meses()
+    {
+        var antigo = NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
+        var recente = NovoCliente(DeOutroCliente, SituacaoDoCliente.Cliente);
+
+        // O cliente que comprou muito em março e nada desde então continua no faturamento dos 36 meses.
+        await using (var db = DaCarga())
+        {
+            db.FaturamentoDosClientes.Add(FaturamentoDoCliente.Criar(Ribeirao, antigo, new DateOnly(2026, 3, 1), 700m, 1, 1, new QuebraDoFaturamento(700m, 0m, 0m, 0m)));
+            await db.SaveChangesAsync();
+        }
+
+        // A leitura curta só traz agosto, e só do cliente recente. (700 de 1.000 é A; quem passa de 80% sozinho é B.)
+        var curta = Lote(Linha(DeOutroCliente, "010101", Agosto, 300m)) with { Desde = Agosto };
+        await NovaCarga().GravarAsync(curta, inicioDaCurva: new DateOnly(2023, 9, 1), conferirAntesDe: null, CancellationToken.None);
+
+        await using var leitura = Leitura();
+        var classes = await leitura.Clientes.ToDictionaryAsync(c => c.Id, c => c.Classe);
+        classes[antigo].Should().Be(ClasseDeCliente.A, "a curva olha 36 meses mesmo quando a leitura foi curta");
+        classes[recente].Should().Be(ClasseDeCliente.C);
+        (await leitura.FaturamentoDosClientes.CountAsync()).Should().Be(2, "março é anterior à janela curta e fica como está");
+    }
+
+    [Fact]
+    public async Task A_completa_mede_o_que_corrigiu_antes_da_janela_curta()
+    {
+        var cliente = NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
+        var maio = new DateOnly(2026, 5, 1);
+        var junho = new DateOnly(2026, 6, 1);
+
+        await using (var db = DaCarga())
+        {
+            db.FaturamentoDosClientes.Add(FaturamentoDoCliente.Criar(Ribeirao, cliente, maio, 100m, 1, 1, new QuebraDoFaturamento(0m, 100m, 0m, 0m)));
+            db.FaturamentoDosClientes.Add(FaturamentoDoCliente.Criar(Ribeirao, cliente, junho, 30m, 1, 1, new QuebraDoFaturamento(0m, 30m, 0m, 0m)));
+            db.FaturamentoDosClientes.Add(FaturamentoDoCliente.Criar(Ribeirao, cliente, Agosto, 40m, 1, 1, new QuebraDoFaturamento(0m, 40m, 0m, 0m)));
+            await db.SaveChangesAsync();
+        }
+
+        // A origem corrigiu maio (100 → 120), cancelou junho inteiro e tem julho sem cliente (50, novo).
+        // Agosto mudou também (40 → 45), mas está dentro da janela curta: a leitura curta já o pegaria.
+        var resumo = await NovaCarga().GravarAsync(
+            Lote(Linha(DoCliente, "010101", maio, 120m), Linha(SemCadastro, "010101", Julho, 50m), Linha(DoCliente, "010101", Agosto, 45m)),
+            inicioDaCurva: new DateOnly(2023, 9, 1), conferirAntesDe: Agosto, CancellationToken.None);
+
+        resumo.Conferencia.Should().Be(new ConferenciaDaJanelaCurta(Agosto, 3, 20m + 30m + 50m),
+            "maio corrigido em R$ 20, junho removido (R$ 30) e julho novo (R$ 50) — agosto é da janela curta");
+        resumo.Decisoes.Keys.Should().Contain(d => d.StartsWith("Conferência semanal", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_leitura_curta_nao_tem_conferencia()
+    {
+        NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
+        var resumo = await NovaCarga().GravarAsync(Lote(Linha(DoCliente, "010101", Agosto, 40m)), CancellationToken.None);
+        resumo.Conferencia.Should().BeNull();
+    }
+
+    [Fact]
     public void A_janela_comeca_no_dia_1_de_36_meses_atras()
     {
         CargaDeFaturamentoDoProtheus.InicioDaJanela(new DateTime(2026, 9, 24, 8, 0, 0, DateTimeKind.Utc))

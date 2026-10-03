@@ -107,30 +107,50 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
     /// </summary>
     /// <param name="lote">O que a leitura da SD2 produziu.</param>
     /// <param name="ct">Cancelamento.</param>
-    internal async Task<ResumoDoFaturamento> GravarAsync(LoteDoProtheus lote, CancellationToken ct)
+    internal Task<ResumoDoFaturamento> GravarAsync(LoteDoProtheus lote, CancellationToken ct) =>
+        GravarAsync(lote, InicioDaJanela(DateTime.UtcNow), conferirAntesDe: null, ct);
+
+    /// <summary>Grava um lote já lido, com a janela da curva e a fronteira da conferência explícitas.</summary>
+    /// <param name="lote">O que a leitura da SD2 produziu — curta ou completa.</param>
+    /// <param name="inicioDaCurva">O início dos 36 meses da curva ABC, o mesmo nos dois modos.</param>
+    /// <param name="conferirAntesDe">Na leitura completa, onde a janela curta começa: o que mudar antes disso é contado.</param>
+    /// <param name="ct">Cancelamento.</param>
+    internal async Task<ResumoDoFaturamento> GravarAsync(
+        LoteDoProtheus lote, DateOnly inicioDaCurva, DateOnly? conferirAntesDe, CancellationToken ct)
     {
         _sistemaId = await GarantirSistemaAsync(ct);
+        var conferidos = conferirAntesDe is { } antes ? new Conferidos(antes) : null;
 
         RegistrarDescartesDaLeitura(lote);
 
-        var gravacao = await GravarFaturamentoAsync(lote, ct);
+        var gravacao = await GravarFaturamentoAsync(lote, conferidos, ct);
 
         relatar(
             $"  {gravacao.Novos} mês(es) novo(s), {gravacao.Reapurados} reapurado(s) e {gravacao.Removidos} removido(s) " +
             $"da janela · nota mais recente: {lote.EmissaoMaisRecente:dd/MM/yyyy}.");
 
-        var (curva, promovidos) = await ApurarCurvaAbcAsync(lote.Desde, ct);
+        // A CURVA OLHA OS 36 MESES NOS DOIS MODOS (plano 3 do documento 54): com a janela da leitura, a rodada curta
+        // rebaixaria a D o cliente que comprou muito em março e nada desde então.
+        var (curva, promovidos) = await ApurarCurvaAbcAsync(inicioDaCurva, ct);
         relatar(
             "  curva ABC: " +
             string.Join(" · ", curva.OrderBy(p => p.Key).Select(p => $"{p.Key} {p.Value}")) +
             $" · {promovidos} cliente(s) promovido(s) a Cliente pelo faturamento.");
+
+        // A CONFERÊNCIA SAI ATÉ QUANDO É ZERO: "nenhum mês corrigido" é justamente a confirmação de que a leitura curta basta.
+        var conferencia = conferidos?.Fechar();
+        if (conferencia is not null)
+            Decidir(
+                $"Conferência semanal: meses ANTES da janela curta ({conferencia.Antes:MM/yyyy}) corrigidos pela leitura " +
+                $"completa — {Reais(conferencia.Valor)} que a leitura curta não teria visto",
+                conferencia.Meses);
 
         // AS DECISÕES SAEM JUNTO, e não só a contagem. Elas são o que diz quanto dinheiro ficou de fora
         // e por quê — sem isso o comando terminaria com "6.849 meses gravados" e o descarte voltaria a
         // ser invisível.
         return new ResumoDoFaturamento(
             gravacao.Novos, gravacao.Reapurados, gravacao.Removidos, promovidos, curva,
-            new Dictionary<string, int>(_decisoes, StringComparer.Ordinal));
+            new Dictionary<string, int>(_decisoes, StringComparer.Ordinal), conferencia);
     }
 
     // =============================================================================================
@@ -138,7 +158,7 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
     // =============================================================================================
 
     private async Task<(int Novos, int Reapurados, int Removidos)> GravarFaturamentoAsync(
-        LoteDoProtheus lote, CancellationToken ct)
+        LoteDoProtheus lote, Conferidos? conferidos, CancellationToken ct)
     {
         var faturamento = lote.Faturamento;
 
@@ -201,7 +221,7 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
             foreach (var (linha, _, empresaId) in semDono)
                 produzidosSemCliente.Add((linha.DocumentoDoCliente, empresaId, linha.Competencia));
 
-            await GravarSemClienteAsync(contexto, semDono.Select(x => (x.Linha, x.EmpresaId)), lote.Desde, ct);
+            await GravarSemClienteAsync(contexto, semDono.Select(x => (x.Linha, x.EmpresaId)), lote.Desde, conferidos, ct);
 
             var doBloco = resolvido.Where(x => x.ClienteId != 0 && x.EmpresaId != 0).ToList();
             if (doBloco.Count > 0)
@@ -218,11 +238,13 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
 
                     if (existentes.TryGetValue(chave, out var jaExiste))
                     {
+                        conferidos?.Contar(linha.Competencia, linha.ValorLiquido - jaExiste.ValorLiquido);
                         jaExiste.Reapurar(linha.ValorLiquido, linha.Notas, linha.Itens, linha.Quebra);
                         reapurados++;
                         continue;
                     }
 
+                    conferidos?.Contar(linha.Competencia, linha.ValorLiquido);
                     contexto.FaturamentoDosClientes.Add(FaturamentoDoCliente.Criar(
                         empresaId, clienteId, linha.Competencia,
                         linha.ValorLiquido, linha.Notas, linha.Itens, linha.Quebra));
@@ -234,7 +256,7 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
             await transacao.CommitAsync(ct);
         }
 
-        var removidos = await RemoverOQueSaiuDaOrigemAsync(lote.Desde, produzidosComCliente, produzidosSemCliente, ct);
+        var removidos = await RemoverOQueSaiuDaOrigemAsync(lote.Desde, produzidosComCliente, produzidosSemCliente, conferidos, ct);
 
         if (documentosSemCliente.Count > 0)
             Decidir(
@@ -276,26 +298,27 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
         DateOnly desde,
         HashSet<(long ClienteId, int EmpresaId, DateOnly Competencia)> comCliente,
         HashSet<(string Documento, int EmpresaId, DateOnly Competencia)> semCliente,
+        Conferidos? conferidos,
         CancellationToken ct)
     {
         await using var contexto = AbrirContextoDaCarga();
 
         var naJanelaComCliente = await contexto.FaturamentoDosClientes.AsNoTracking()
             .Where(f => f.Competencia >= desde)
-            .Select(f => new { f.Id, f.ClienteId, f.EmpresaId, f.Competencia })
+            .Select(f => new { f.Id, f.ClienteId, f.EmpresaId, f.Competencia, f.ValorLiquido })
             .ToListAsync(ct);
         var obsoletosComCliente = naJanelaComCliente
             .Where(f => !comCliente.Contains((f.ClienteId, f.EmpresaId, f.Competencia)))
-            .Select(f => f.Id)
+            .Select(f => (f.Id, f.Competencia, f.ValorLiquido))
             .ToList();
 
         var naJanelaSemCliente = await contexto.FaturamentoSemClientes.AsNoTracking()
             .Where(f => f.Competencia >= desde)
-            .Select(f => new { f.Id, f.Documento, f.EmpresaId, f.Competencia })
+            .Select(f => new { f.Id, f.Documento, f.EmpresaId, f.Competencia, f.ValorLiquido })
             .ToListAsync(ct);
         var obsoletosSemCliente = naJanelaSemCliente
             .Where(f => !semCliente.Contains((f.Documento, f.EmpresaId, f.Competencia)))
-            .Select(f => f.Id)
+            .Select(f => (f.Id, f.Competencia, f.ValorLiquido))
             .ToList();
 
         if (obsoletosComCliente.Count == 0 && obsoletosSemCliente.Count == 0) return 0;
@@ -318,13 +341,18 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
         await using var transacao = await contexto.Database.BeginTransactionAsync(ct);
         var removidos = 0;
 
-        foreach (var bloco in obsoletosComCliente.Chunk(TamanhoDoBloco))
+        foreach (var bloco in obsoletosComCliente.Select(f => f.Id).Chunk(TamanhoDoBloco))
             removidos += await contexto.FaturamentoDosClientes.Where(f => bloco.Contains(f.Id)).ExecuteDeleteAsync(ct);
 
-        foreach (var bloco in obsoletosSemCliente.Chunk(TamanhoDoBloco))
+        foreach (var bloco in obsoletosSemCliente.Select(f => f.Id).Chunk(TamanhoDoBloco))
             removidos += await contexto.FaturamentoSemClientes.Where(f => bloco.Contains(f.Id)).ExecuteDeleteAsync(ct);
 
         await transacao.CommitAsync(ct);
+
+        // O MÊS QUE SAIU TAMBÉM É CORREÇÃO: a nota de junho cancelada em setembro só a leitura completa vê.
+        foreach (var (_, competencia, valor) in obsoletosComCliente.Concat(obsoletosSemCliente))
+            conferidos?.Contar(competencia, valor);
+
         return removidos;
     }
 
@@ -338,6 +366,7 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
         CrmDbContext contexto,
         IEnumerable<(FaturamentoParaCarga Linha, int EmpresaId)> linhas,
         DateOnly desde,
+        Conferidos? conferidos,
         CancellationToken ct)
     {
         var doBloco = linhas.ToList();
@@ -356,12 +385,14 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
 
             if (existentes.TryGetValue(chave, out var jaExiste))
             {
+                conferidos?.Contar(linha.Competencia, linha.ValorLiquido - jaExiste.ValorLiquido);
                 jaExiste.Reapurar(
                     linha.NomeNaOrigem, natureza,
                     linha.ValorLiquido, linha.Notas, linha.Itens, linha.Quebra);
                 continue;
             }
 
+            conferidos?.Contar(linha.Competencia, linha.ValorLiquido);
             contexto.FaturamentoSemClientes.Add(FaturamentoSemCliente.Criar(
                 empresaId, linha.Competencia, linha.DocumentoDoCliente, linha.NomeNaOrigem,
                 natureza, linha.ValorLiquido, linha.Notas, linha.Itens, linha.Quebra));
@@ -626,6 +657,30 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
         return mapa;
     }
 
+    /// <summary>
+    /// O QUE A LEITURA COMPLETA CORRIGE ANTES DA JANELA CURTA, enquanto a gravação passa: mês novo, mês com valor mudado e mês
+    /// removido. Mês igual não conta — e mês dentro da janela curta também não, porque a leitura curta já o veria.
+    /// </summary>
+    /// <param name="antes">Onde a janela curta começa.</param>
+    private sealed class Conferidos(DateOnly antes)
+    {
+        private int _meses;
+        private decimal _valor;
+
+        /// <summary>Conta um mês, quando ele é anterior à janela curta e o valor mudou.</summary>
+        /// <param name="competencia">O mês.</param>
+        /// <param name="diferenca">O valor novo menos o antigo; o valor inteiro no mês novo ou removido.</param>
+        public void Contar(DateOnly competencia, decimal diferenca)
+        {
+            if (competencia >= antes || diferenca == 0) return;
+            _meses++;
+            _valor += Math.Abs(diferenca);
+        }
+
+        /// <summary>O total da rodada.</summary>
+        public ConferenciaDaJanelaCurta Fechar() => new(antes, _meses, decimal.Round(_valor, 2));
+    }
+
     private void Decidir(string decisao, int quantas) =>
         _decisoes[decisao] = _decisoes.TryGetValue(decisao, out var atual) ? atual + quantas : quantas;
 
@@ -652,10 +707,21 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
 /// O que foi descartado e por quê — com o valor em reais no próprio texto, porque a ordem de
 /// grandeza é o que separa resíduo de problema.
 /// </param>
+/// <param name="Conferencia">Na leitura completa, o que ela corrigiu antes da janela curta; nula na curta.</param>
 internal sealed record ResumoDoFaturamento(
     int MesesNovos,
     int MesesReapurados,
     int MesesRemovidos,
     int ClientesPromovidos,
     IReadOnlyDictionary<ClasseDeCliente, int> Curva,
-    IReadOnlyDictionary<string, int> Decisoes);
+    IReadOnlyDictionary<string, int> Decisoes,
+    ConferenciaDaJanelaCurta? Conferencia = null);
+
+/// <summary>
+/// O QUE A LEITURA COMPLETA CORRIGIU ANTES DA JANELA CURTA (documento 54, passo 6) — mês novo, mês com valor mudado e mês
+/// removido, com e sem cliente. É a medida de quanto a leitura curta, sozinha, teria deixado de ver.
+/// </summary>
+/// <param name="Antes">Onde a janela curta começa: só o que é anterior a esta competência conta.</param>
+/// <param name="Meses">Quantos meses (por cliente ou documento e filial) mudaram.</param>
+/// <param name="Valor">Quanto, em reais: o valor do mês novo ou removido, e a diferença do mês corrigido.</param>
+internal sealed record ConferenciaDaJanelaCurta(DateOnly Antes, int Meses, decimal Valor);
