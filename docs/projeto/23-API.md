@@ -512,6 +512,26 @@ visão só com letras, números e poucos sinais (entram em cadeia de conexão e 
 intervalo de 15 a 1.440 minutos; mudar a agenda ou religar vale daqui para a frente; rotina com conexão exigida sem
 credencial não liga nem roda (409).
 
+### 2.15 Desempenho medido pela própria API — `GET /api/v1/integracoes/desempenho` (issue 51; consultas: doc 54, 03/10/2026)
+
+Permissão `Integracao.Ler`. A medida é da própria API, em memória, desde a última subida do serviço; a procedência diz
+isso. A resposta tem `desdeUtc`, `amostrasPorRota` (as últimas 1.000 chamadas de cada rota) e uma linha por rota, do p95
+mais alto para o mais baixo:
+
+| Campo | O que é |
+|---|---|
+| `metodo`, `rota` | o verbo e o modelo da rota (`/api/v1/clientes/{chave:guid}`), e não o endereço com a chave |
+| `chamadas`, `amostras` | quantas chamadas desde a subida, e quantas estão na janela |
+| `p50`, `p95`, `maximo` | o tempo de resposta, em milissegundos, do começo ao fim do pipeline |
+| `erros` | as respostas 5xx |
+| `grava` | se a rota grava (passa pela trilha) |
+| `consultasP95`, `consultasMaximo` | **as idas ao banco por chamada** (doc 54 §3.5): o p95 e o máximo da janela |
+
+**Toda resposta de `/api` traz o cabeçalho `X-Consultas-Ao-Banco`** com o número de comandos SQL que aquela chamada
+mandou ao banco. Quem conta é um interceptador do EF Core, por requisição. A conta inclui as leituras do cache de
+referência que a chamada disparou (a assinatura de cada assunto e a conta do leitor, quando o cache estava vazio). O
+teste `OrcamentoDeConsultasNaApiTestes` prende o máximo de cada rota pesada, e o teto só desce.
+
 ## 3. O formato de erro
 
 Toda recusa é `application/problem+json`. O status vem da **natureza** da falha, declarada pelo

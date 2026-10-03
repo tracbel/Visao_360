@@ -1,8 +1,9 @@
 # 54 — Desempenho e arquitetura: telas em até 2 segundos, código dividido por responsabilidade
 
-> **Versão 1.0 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
+> **Versão 1.1 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
 > **desempenho + arquitetura** → banco sem redundância → o que falta → material da diretoria.
 > Diagnóstico de partida: `.omc/plans/diagnostico-da-organizacao-2026-10-03.md`.
+> A 1.1 registra o que o plano 1 de 3 entregou (§7) e corrige a §3.2: a versão é a assinatura do próprio dado.
 
 ## 1. Decisões que este documento cumpre
 
@@ -79,7 +80,7 @@
 
 ### 3.2 Cache por assunto, e não "limpa tudo"
 
-- **Uma versão por assunto.** Cada assunto de referência tem a sua versão (território, PAM e regras, estrutura, preços e crédito), avançada **só pela rotina que o carrega, e só quando ela gravou alguma coisa**. Uma rodada sem mudança não limpa nada.
+- **Uma versão por assunto.** Cada assunto de referência tem a sua versão (território, PAM e regras, estrutura, preços e crédito). A versão é a **assinatura do próprio dado**: máximos de data e contagens nas tabelas do assunto, relidos a cada 15 s. Somam-se a ela as gravações feitas pela tela de Configurações do potencial. A rotina não precisa avisar ninguém, e a rodada que não grava nada não muda a versão.
 - **Onde fica o cache.** Na memória da API (é um servidor só). Ele guarda o resultado do leitor, e não a resposta HTTP: a Demanda, os Cenários e o Diagnóstico aproveitam o Potencial que os Indicadores já calcularam.
 - **Gravação pela tela.** Um parâmetro do potencial gravado na tela de Configurações avança a versão do assunto dele na hora. Quem grava a regra vê o número novo no mesmo instante.
 - **O cache de 10 minutos por endereço continua** para o recorte, como hoje.
@@ -121,7 +122,7 @@ A confirmação é a primeira tarefa de cada rotina, e cada rotina é um PR à p
 |---|---|
 | **Orçamento de consultas por rota** | Um contador de comandos SQL por requisição. Aparece ao lado do p95 em Configurações › Integrações › Desempenho, e um teste da API prende o máximo de cada rota pesada. |
 | **Tempo antes e depois** | O p95 de produção, pela captura da tela de Desempenho antes e depois de cada entrega, e o número de consultas medido nos testes. |
-| **Tamanho de arquivo** | Teste de arquitetura: arquivo novo com no máximo 600 linhas (C# e TS). Os 30 que passam disso hoje ficam numa lista que **só pode diminuir**. |
+| **Tamanho de arquivo** | Teste de arquitetura: arquivo novo com no máximo 600 linhas (C# e TS). Os que passam disso hoje (29 em C# e 26 no front) ficam numa lista que **só pode diminuir**. |
 | **Arquitetura do front** | Teste de arquitetura: tela não importa outra tela; componente não importa tela; `dev/` não é importado pelo código de produção; peças comuns (filtros, formatos de número, ordenação) moram em `componentes/comum`. |
 | **Duplicação no C#** | `SomaOuNulo`, `Arredondar`, leitura de mês `aaaa-mm` e repasse de falha viram utilitários únicos na Aplicação. |
 
@@ -145,11 +146,65 @@ A confirmação é a primeira tarefa de cada rotina, e cada rotina é um PR à p
 
 | Risco | Contenção |
 |---|---|
-| O cache mostrar número velho depois de uma carga | Versão por assunto avançada pela própria rotina, na mesma transação da gravação; teste que grava e lê em seguida. |
+| O cache mostrar número velho depois de uma carga | A versão é a assinatura do próprio dado (máximos e contagens, relidos a cada 15 s), e a gravação pela tela entra na hora. Testes gravam e leem em seguida: a PAM gravada por fora muda a assinatura, e a regra trocada pela tela chega à Demanda na leitura seguinte. |
 | A carga de 3 dias perder alteração antiga | Só vira incremental a rotina com data de alteração confirmada, e a conferência semanal relê tudo. |
 | Dividir a apuração mudar um número | Teste de "número igual" antes e depois de cada passo, com o mesmo cenário de dados dos testes de hoje. |
 | Memória da API | O dado de referência é pequeno (645 municípios × poucas culturas e categorias); o recorte não fica em cache além do de hoje. |
 | O teste instável conhecido do cache das leituras ("non-concurrent collections" com a conexão SQLite compartilhada em `ApiEmMemoria`) | Corrigido no passo que mexe no cache (passo 2), antes de qualquer regra nova em cima dele. |
 
-> **A PAM do ano anterior sob pedido** (`ComDemandaDoAnoAnterior`, #329) é parte do leitor de Potencial: a mesma conta, um ano
-> para trás, calculada só quando uma tela pede, e guardada no cache do mesmo assunto.
+> **A PAM do ano anterior** (`ComDemandaDoAnoAnterior`, #329) é parte do leitor de Potencial: a mesma conta, um ano para
+> trás. Ela vem sempre junto, porque é uma leitura a mais por versão, e evita guardar duas versões do mesmo assunto.
+
+## 7. Andamento
+
+### 7.1 Plano 1 de 3 — medir, leitores de referência, front sob demanda e vigilância (03/10/2026)
+
+Entregue na branch `feat/desempenho-e-arquitetura`. O que mudou:
+
+- **O contador de consultas.** Toda resposta da API diz quantas vezes foi ao banco (cabeçalho `X-Consultas-Ao-Banco`), e a tela de Desempenho mostra o p95 e o máximo de consultas por rota, ao lado do tempo.
+- **O cache de referência.** O território e o potencial são calculados uma vez por versão do assunto e compartilhados entre telas e usuários. A conta de cada município no motor também é feita uma vez e guardada.
+- **A Demanda, os Cenários e a Sugestão de porte** deixaram de passar pela apuração inteira: leem só o território e o potencial de referência, mais o que é delas.
+- **A apuração dos Indicadores** usa os dois leitores no lugar das leituras que fazia por conta própria.
+- **O front baixa só a tela aberta.** Se a aba ficou aberta durante uma publicação e o pedaço sumiu, a página recarrega uma vez sozinha.
+- **O teste instável do cache das leituras** foi corrigido: o vigia da versão não roda mais nos testes, porque disputava a conexão SQLite com a criação do banco.
+- **A revisão final corrigiu três pontos, cada um com um teste que falhava antes:**
+  - a conta que falhava depois que a tela tinha sido fechada ficava guardada; agora a leitura seguinte recalcula;
+  - a assinatura do território não via o município que a carga reconhece no IBGE (código e nome mudam na mesma linha). Agora ela soma também os códigos e o tamanho dos nomes;
+  - com o armazenamento do navegador bloqueado (navegação anônima), nenhuma tela abria.
+
+**Consultas ao banco por chamada**, medidas pelo teste de orçamento com o mesmo cenário de dados:
+
+| Rota | Antes (linha de base) | Depois, frio | Depois, quente |
+|---|---|---|---|
+| Indicadores Geográficos | 73 | 84 | **58** |
+| Demanda e Previsão | 81 | 55 | **29** |
+| Diagnóstico Comercial | 77 | 88 | **62** |
+| Cenários de Mercado | 87 | 61 | **35** |
+| Dimensionamento ADR | 24 | 24 | 24 |
+| Gestão de Financiamentos | 16 | 16 | 16 |
+| Preço de Commodities | 16 | 16 | 16 |
+
+- **Frio** é a primeira chamada depois que a API sobe ou que o dado de referência muda. Ela paga a assinatura de cada assunto (5 consultas por assunto) e a conta do leitor, uma vez para todas as telas.
+- **Quente** é a chamada com o cache cheio, que é o caso comum. Depois de 15 s sem chamada, a seguinte relê só as assinaturas (+5 por assunto), sem refazer a conta.
+- Indicadores e Diagnóstico ainda passam pela apuração do recorte inteira: são o plano 2.
+
+**O pacote do navegador:**
+
+| | Antes | Depois |
+|---|---|---|
+| Pacote inicial (`index`) | 1.566 KB | **517 KB** |
+| Pedaços | 1 | 104 (o maior de tela é o dos Indicadores, 275 KB) |
+
+**A vigilância que entrou** (cada uma é um teste que reprova):
+
+- o orçamento de consultas das sete rotas pesadas, em que o teto só desce;
+- as regras de arquitetura do front: nada de `src/dev` em produção, componente não importa tela, tela não importa tela (hoje sem nenhuma exceção);
+- o tamanho de arquivo: até 600 linhas. Os grandes de hoje, 29 em C# e 26 no front, estão listados e só diminuem.
+
+**Ainda falta medir** o p95 de produção depois da publicação, pela captura da tela de Desempenho.
+
+### 7.2 Próximos passos
+
+- **Plano 2 — Indicadores e Diagnóstico.** Leitores do recorte (cobertura, faturamento, vendas do ART), o fim do `ApurarAsync` e a divisão do `RepositorioDeIndicadoresTerritoriais` (2.032 linhas). Entram também os utilitários únicos da §3.5 (`SomaOuNulo`, `Arredondar`, mês `aaaa-mm`) e as peças comuns do front em `componentes/comum`.
+- **Plano 3 — rotinas incrementais** (§3.3): uma por PR, cada uma depois de confirmar na origem a data de alteração.
+- **Passo 7 — as outras rotas lentas** que a captura de produção mostrar.
