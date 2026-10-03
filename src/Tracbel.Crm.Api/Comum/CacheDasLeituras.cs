@@ -5,6 +5,7 @@ using Microsoft.Net.Http.Headers;
 using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Persistencia;
+using Tracbel.Crm.Infraestrutura.Persistencia.Cache;
 
 namespace Tracbel.Crm.Api.Comum;
 
@@ -131,7 +132,7 @@ public sealed class VigiaDaVersaoDosDados(
 /// CONTA AS GRAVAÇÕES FEITAS PELA API: toda chamada que não é leitura e terminou bem muda a
 /// <see cref="VersaoDosDados"/>. Quem cadastra um cliente vê o cliente na lista seguinte, e não daqui a 10 minutos.
 /// </summary>
-public sealed class MeioDeCampoDeGravacao(RequestDelegate proximo, VersaoDosDados versao)
+public sealed class MeioDeCampoDeGravacao(RequestDelegate proximo, VersaoDosDados versao, ContadorDeGravacoesNaReferencia referencia)
 {
     /// <summary>Executa o meio de campo.</summary>
     /// <param name="http">A requisição em curso.</param>
@@ -142,7 +143,10 @@ public sealed class MeioDeCampoDeGravacao(RequestDelegate proximo, VersaoDosDado
         var metodo = http.Request.Method;
         var leitura = HttpMethods.IsGet(metodo) || HttpMethods.IsHead(metodo) || HttpMethods.IsOptions(metodo);
         if (!leitura && http.Response.StatusCode < 400 && http.Request.Path.StartsWithSegments("/api"))
+        {
             versao.RegistrarGravacao();
+            referencia.RegistrarGravacao(http.Request.Path.Value ?? string.Empty);
+        }
     }
 }
 

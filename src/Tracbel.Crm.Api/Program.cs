@@ -17,6 +17,7 @@ using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 using Tracbel.Crm.Infraestrutura.Persistencia.Diagnostico;
+using Tracbel.Crm.Infraestrutura.Persistencia.Cache;
 using Microsoft.Extensions.Options;
 using Tracbel.Crm.Infraestrutura.Seguranca;
 using Tracbel.Crm.Integracao.Conexoes;
@@ -188,6 +189,13 @@ builder.Services.AddOutputCache();
 builder.Services.AddOptions<Microsoft.AspNetCore.OutputCaching.OutputCacheOptions>()
     .Configure<VersaoDosDados, IOptions<OpcoesDoCacheDasLeituras>>((cache, versao, opcoes) =>
         cache.AddBasePolicy(new PoliticaDeCacheDasLeituras(versao, opcoes)));
+
+// O CACHE DE REFERÊNCIA (documento 54 §3.2): território e potencial calculados uma vez por versão do assunto.
+builder.Services.AddMemoryCache();
+builder.Services.Configure<OpcoesDoCacheDeReferencia>(builder.Configuration.GetSection(OpcoesDoCacheDeReferencia.Secao));
+builder.Services.AddSingleton<ContadorDeGravacoesNaReferencia>();
+builder.Services.AddSingleton<IAssinaturaDosAssuntos, AssinaturaDosAssuntos>();
+builder.Services.AddSingleton<CacheDeReferencia>();
 
 // -------------------------------------------------------------------------------------------
 // As portas do domínio e seus adaptadores. O caso de uso conhece a interface; só esta linha

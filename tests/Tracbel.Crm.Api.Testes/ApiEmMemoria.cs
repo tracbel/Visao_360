@@ -61,6 +61,10 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
         // segundos. Quem testa o cache liga com `MinutosDoCache`.
         builder.UseSetting("CacheDasLeituras:Minutos", MinutosDoCache.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
+        // A ASSINATURA DO DADO DE REFERÊNCIA É RELIDA A CADA LEITURA NOS TESTES: eles gravam direto no banco entre duas
+        // leituras, como as rotinas, e não podem esperar a janela de 15 s.
+        builder.UseSetting("CacheDeReferencia:SegundosEntreConferencias", "0");
+
         builder.ConfigureServices(servicos =>
         {
             // Tira o registro de SQL Server que o Program.cs fez e põe SQLite no lugar. É a
