@@ -5,6 +5,7 @@ using Tracbel.Crm.Carga;
 using Tracbel.Crm.Dominio.Auditoria;
 using Tracbel.Crm.Dominio.Comercial;
 using Tracbel.Crm.Dominio.Comum;
+using Tracbel.Crm.Dominio.Integracao;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Identidade;
@@ -328,6 +329,59 @@ public sealed class CargaDeFaturamentoDoProtheusTestes : IDisposable
         NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
         var resumo = await NovaCarga().GravarAsync(Lote(Linha(DoCliente, "010101", Agosto, 40m)), CancellationToken.None);
         resumo.Conferencia.Should().BeNull();
+    }
+
+    // =============================================================================================
+    // A rodada: curta ou completa, registrada por fluxo
+    // =============================================================================================
+
+    private static Func<DateOnly, CancellationToken, Task<Resultado<LoteDoProtheus>>> Lendo(
+        Func<DateOnly, LoteDoProtheus> lote, List<DateOnly>? pedidos = null) =>
+        (desde, _) =>
+        {
+            pedidos?.Add(desde);
+            return Task.FromResult(Resultado<LoteDoProtheus>.Ok(lote(desde)));
+        };
+
+    [Fact]
+    public async Task Sem_completa_registrada_a_rodada_e_completa_e_a_seguinte_em_dia_comum_e_curta()
+    {
+        NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
+        var pedidos = new List<DateOnly>();
+        var ler = Lendo(desde => Lote(Linha(DoCliente, "010101", new DateOnly(2026, 10, 1), 10m)) with { Desde = desde }, pedidos);
+
+        var primeira = await NovaCarga().ExecutarAsync(ler, completaPedida: false, () => new DateTime(2026, 10, 8, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
+        var segunda = await NovaCarga().ExecutarAsync(ler, completaPedida: false, () => new DateTime(2026, 10, 9, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
+
+        (primeira.Valor.Modo, segunda.Valor.Modo).Should().Be((ModoDaLeituraDoFaturamento.Completa, ModoDaLeituraDoFaturamento.Curta));
+        pedidos.Should().Equal(new DateOnly(2023, 10, 1), new DateOnly(2026, 10, 1));
+
+        await using var db = Leitura();
+        (await db.ExecucoesDeSincronizacao.OrderBy(e => e.Id).Select(e => new { e.Fluxo, e.Resultado }).ToListAsync())
+            .Select(e => (e.Fluxo, e.Resultado))
+            .Should().Equal(
+                (CargaDeFaturamentoDoProtheus.FluxoDaLeituraCompleta, ResultadoDaExecucao.Sucesso),
+                (CargaDeFaturamentoDoProtheus.FluxoDaLeituraCurta, ResultadoDaExecucao.Sucesso));
+    }
+
+    [Fact]
+    public async Task A_completa_que_falha_nao_conta_e_a_seguinte_e_completa()
+    {
+        NovoCliente(DoCliente, SituacaoDoCliente.Cliente);
+        Func<DateOnly, CancellationToken, Task<Resultado<LoteDoProtheus>>> falhando =
+            (_, _) => Task.FromResult(Resultado<LoteDoProtheus>.Indisponivel("O banco do Protheus não respondeu (erro SQL 53)."));
+
+        var caiu = await NovaCarga().ExecutarAsync(falhando, completaPedida: false, () => new DateTime(2026, 10, 11, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
+        var seguinte = await NovaCarga().ExecutarAsync(
+            Lendo(desde => Lote(Linha(DoCliente, "010101", new DateOnly(2026, 10, 1), 10m)) with { Desde = desde }),
+            completaPedida: false, () => new DateTime(2026, 10, 12, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
+
+        caiu.EhSucesso.Should().BeFalse();
+        seguinte.Valor.Modo.Should().Be(ModoDaLeituraDoFaturamento.Completa, "a completa de domingo caiu; segunda-feira é completa");
+
+        await using var db = Leitura();
+        (await db.ExecucoesDeSincronizacao.OrderBy(e => e.Id).Select(e => e.Resultado).ToListAsync())
+            .Should().Equal(ResultadoDaExecucao.Falha, ResultadoDaExecucao.Sucesso);
     }
 
     [Fact]

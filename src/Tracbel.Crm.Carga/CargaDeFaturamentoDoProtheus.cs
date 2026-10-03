@@ -90,16 +90,114 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
     internal static DateOnly InicioDaJanela(DateTime agoraUtc) =>
         new DateOnly(agoraUtc.Year, agoraUtc.Month, 1).AddMonths(-MesesDeFaturamento);
 
-    /// <summary>Lê o faturamento do Protheus, grava e reapura a curva ABC.</summary>
+    /// <summary>A leitura curta, registrada como execução de sincronização — a tela de Integrações a lista por fluxo.</summary>
+    internal const string FluxoDaLeituraCurta = "PROTHEUS.FATURAMENTO";
+
+    /// <summary>A leitura completa — a última com sucesso decide quando a próxima é completa.</summary>
+    internal const string FluxoDaLeituraCompleta = "PROTHEUS.FATURAMENTO_COMPLETO";
+
+    /// <summary>Lê o faturamento do Protheus, grava e reapura a curva ABC — curta ou completa pela agenda da semana.</summary>
     /// <param name="ct">Cancelamento.</param>
-    public async Task<Resultado<ResumoDoFaturamento>> ExecutarAsync(CancellationToken ct)
+    public Task<Resultado<ResumoDoFaturamento>> ExecutarAsync(CancellationToken ct) => ExecutarAsync(completaPedida: false, ct);
+
+    /// <summary>Lê, grava e reapura; <paramref name="completaPedida"/> força os 36 meses (<c>--completa</c>).</summary>
+    /// <param name="completaPedida">Se a leitura deve ser completa em qualquer dia.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public Task<Resultado<ResumoDoFaturamento>> ExecutarAsync(bool completaPedida, CancellationToken ct) =>
+        ExecutarAsync((desde, c) => protheus.LerAsync(desde, relatar, c), completaPedida, () => DateTime.UtcNow, ct);
+
+    /// <summary>A rodada inteira com a leitura e o relógio de fora — é o que o teste exercita.</summary>
+    /// <param name="ler">A leitura da SD2 a partir de uma data.</param>
+    /// <param name="completaPedida">Se a leitura deve ser completa em qualquer dia.</param>
+    /// <param name="relogio">O relógio: decide o alcance e carimba a execução registrada.</param>
+    /// <param name="ct">Cancelamento.</param>
+    internal async Task<Resultado<ResumoDoFaturamento>> ExecutarAsync(
+        Func<DateOnly, CancellationToken, Task<Resultado<LoteDoProtheus>>> ler, bool completaPedida, Func<DateTime> relogio, CancellationToken ct)
     {
-        relatar("Lendo o faturamento direto do banco do Protheus — três anos, para a curva ABC ter base…");
+        var agoraUtc = relogio();
+        _sistemaId = await GarantirSistemaAsync(ct);
+        var alcance = AlcanceDaLeituraDoFaturamento.Decidir(agoraUtc, await UltimaLeituraCompletaAsync(ct), completaPedida);
+        var completa = alcance.Modo == ModoDaLeituraDoFaturamento.Completa;
 
-        var lido = await protheus.LerAsync(InicioDaJanela(DateTime.UtcNow), relatar, ct);
-        if (!lido.EhSucesso) return Resultado<ResumoDoFaturamento>.Indisponivel(lido.Erro!);
+        relatar(completa
+            ? $"Leitura COMPLETA do faturamento — três anos, desde {alcance.Desde:dd/MM/yyyy} ({alcance.Motivo})…"
+            : $"Leitura curta do faturamento — desde {alcance.Desde:dd/MM/yyyy} ({alcance.Motivo}); a completa roda no domingo…");
 
-        return Resultado<ResumoDoFaturamento>.Ok(await GravarAsync(lido.Valor, ct));
+        // A RODADA, REGISTRADA POR FLUXO: a tela de Integrações lista as duas, e a última completa com sucesso decide quando a
+        // próxima é completa. A que cai no meio fica como falha — e não conta.
+        var execucaoId = await IniciarExecucaoAsync(completa ? FluxoDaLeituraCompleta : FluxoDaLeituraCurta, relogio(), ct);
+        try
+        {
+            var lido = await ler(alcance.Desde, ct);
+            if (!lido.EhSucesso)
+            {
+                await EncerrarExecucaoAsync(execucaoId, e => e.Falhar(1, lido.Erro!, relogio()), ct);
+                return Resultado<ResumoDoFaturamento>.Indisponivel(lido.Erro!);
+            }
+
+            var resumo = await GravarAsync(lido.Valor, InicioDaJanela(agoraUtc), completa ? alcance.InicioDaJanelaCurta : null, ct) with
+            {
+                Modo = alcance.Modo,
+                Desde = alcance.Desde
+            };
+
+            await EncerrarExecucaoAsync(execucaoId, e => e.Concluir(
+                1, lido.Valor.Faturamento.Count, resumo.MesesNovos, resumo.MesesReapurados + resumo.MesesRemovidos, 0,
+                LinhaDoResumo(resumo), relogio()), ct);
+            return Resultado<ResumoDoFaturamento>.Ok(resumo);
+        }
+        catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
+        {
+            await EncerrarExecucaoAsync(
+                execucaoId, e => e.Falhar(1, $"A carga parou no meio: {falha.GetBaseException().Message}", relogio()), ct);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// A LINHA DA RODADA — o que o orquestrador guarda na execução da rotina e a tela de Integrações mostra: o modo, desde
+    /// quando leu e, na completa, o que ela corrigiu antes da janela curta.
+    ///
+    /// <para>O valor sai como "R$" + número, e não pelo formato de moeda: o do pt-BR põe um espaço não separável depois do
+    /// símbolo, que a tela e o teste leriam diferente.</para>
+    /// </summary>
+    /// <param name="resumo">O resumo da rodada.</param>
+    internal static string LinhaDoResumo(ResumoDoFaturamento resumo)
+    {
+        var modo = resumo.Modo == ModoDaLeituraDoFaturamento.Completa ? "leitura COMPLETA" : "leitura curta";
+        var desde = resumo.Desde is { } d ? string.Create(CulturaDoRelatorio, $" desde {d:dd/MM/yyyy}") : string.Empty;
+        var linha = string.Create(CulturaDoRelatorio,
+            $"{modo}{desde}: {resumo.MesesNovos:N0} mês(es) novo(s), {resumo.MesesReapurados:N0} reapurado(s), {resumo.MesesRemovidos:N0} removido(s)");
+
+        return resumo.Conferencia is not { } conferencia
+            ? linha
+            : linha + string.Create(CulturaDoRelatorio,
+                $" · antes de {conferencia.Antes:MM/yyyy}, {conferencia.Meses:N0} mês(es) corrigido(s) (R$ {conferencia.Valor:N0}) que a leitura curta não teria visto");
+    }
+
+    /// <summary>O fim da última leitura completa com sucesso; nulo quando nunca houve.</summary>
+    private async Task<DateTime?> UltimaLeituraCompletaAsync(CancellationToken ct)
+    {
+        await using var contexto = abrirContexto();
+        return await contexto.ExecucoesDeSincronizacao.AsNoTracking()
+            .Where(e => e.Fluxo == FluxoDaLeituraCompleta && e.Resultado == ResultadoDaExecucao.Sucesso)
+            .MaxAsync(e => e.TerminadaEm, ct);
+    }
+
+    private async Task<long> IniciarExecucaoAsync(string fluxo, DateTime quando, CancellationToken ct)
+    {
+        await using var contexto = abrirContexto();
+        var execucao = ExecucaoDeSincronizacao.Iniciar(_sistemaId!.Value, fluxo, Environment.MachineName, quando);
+        contexto.ExecucoesDeSincronizacao.Add(execucao);
+        await contexto.SaveChangesAsync(ct);
+        return execucao.Id;
+    }
+
+    private async Task EncerrarExecucaoAsync(long execucaoId, Action<ExecucaoDeSincronizacao> encerrar, CancellationToken ct)
+    {
+        await using var contexto = abrirContexto();
+        encerrar(await contexto.ExecucoesDeSincronizacao.FirstAsync(e => e.Id == execucaoId, ct));
+        await contexto.SaveChangesAsync(ct);
     }
 
     /// <summary>
@@ -708,6 +806,8 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
 /// grandeza é o que separa resíduo de problema.
 /// </param>
 /// <param name="Conferencia">Na leitura completa, o que ela corrigiu antes da janela curta; nula na curta.</param>
+/// <param name="Modo">Curta ou completa.</param>
+/// <param name="Desde">O primeiro dia lido; nulo quando o lote foi gravado sem passar pela rodada.</param>
 internal sealed record ResumoDoFaturamento(
     int MesesNovos,
     int MesesReapurados,
@@ -715,7 +815,9 @@ internal sealed record ResumoDoFaturamento(
     int ClientesPromovidos,
     IReadOnlyDictionary<ClasseDeCliente, int> Curva,
     IReadOnlyDictionary<string, int> Decisoes,
-    ConferenciaDaJanelaCurta? Conferencia = null);
+    ConferenciaDaJanelaCurta? Conferencia = null,
+    ModoDaLeituraDoFaturamento Modo = ModoDaLeituraDoFaturamento.Completa,
+    DateOnly? Desde = null);
 
 /// <summary>
 /// O QUE A LEITURA COMPLETA CORRIGIU ANTES DA JANELA CURTA (documento 54, passo 6) — mês novo, mês com valor mudado e mês
