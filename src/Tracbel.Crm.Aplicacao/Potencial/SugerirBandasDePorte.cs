@@ -12,12 +12,13 @@ namespace Tracbel.Crm.Aplicacao.Potencial;
 /// os números saem da demanda que a tela já mostra, e este caso de uso só os calcula — quem registra a vigência é
 /// o administrador, pelo formulário dos parâmetros gerais, que vê os números antes.
 ///
-/// <para><b>A demanda é a mesma da tela</b>: a apuração dos indicadores territoriais, sem filtro de região nem de
+/// <para><b>A demanda é a mesma da tela</b>: a do potencial de referência (documento 54), sem filtro de região nem de
 /// loja. A área de atuação e o potencial são mapa da empresa e não dependem da filial de quem pede — os cortes
 /// saem iguais para qualquer administrador.</para>
 /// </summary>
 public sealed class SugerirBandasDePorte(
-    IRepositorioIndicadoresTerritoriais indicadores,
+    IRepositorioDoTerritorioDeReferencia territorio,
+    IRepositorioDoPotencialDeReferencia potencial,
     IProvedorContextoAcesso acesso,
     IRelogio relogio)
 {
@@ -32,25 +33,24 @@ public sealed class SugerirBandasDePorte(
 
         var agora = relogio.Agora;
         var hoje = ParametroComVigencia.HojeNoBrasil(agora);
-        var mes = new DateOnly(hoje.Year, hoje.Month, 1);
 
-        var apurado = await indicadores.ApurarAsync(new ConsultaDeIndicadoresTerritoriais(mes, mes, null, null), agora, ct);
+        var doTerritorio = await territorio.LerAsync(ct);
+        var doPotencial = await potencial.LerAsync(hoje, ct);
 
-        var daAdr = apurado.Municipios.Where(m => m.PertenceAAdr).ToList();
-        var demandas = daAdr
-            .Select(m => m.PotencialEstrutural?.DemandaAnualDeMaquinas)
-            .OfType<decimal>()
-            .ToList();
+        var daAdr = doTerritorio.Area.Values.Where(m => m.PertenceAAdr).ToList();
+        var demandas = doPotencial.Categorias.Count == 0
+            ? []
+            : daAdr.Select(m => doPotencial.DoMunicipio(m.Codigo).Sobreposto.DemandaAnual).OfType<decimal>().ToList();
 
         var bandas = ParametroDoPotencial.BandasPelosTercis(demandas);
 
         var sugestao = bandas is { } b
             ? new SugestaoDasBandasDePorte(
-                b.MedioAPartirDe, b.GrandeAPartirDe, daAdr.Count, demandas.Count, apurado.AnoDaAreaPlantada,
-                Justificativa(b.MedioAPartirDe, b.GrandeAPartirDe, demandas.Count, apurado.AnoDaAreaPlantada),
+                b.MedioAPartirDe, b.GrandeAPartirDe, daAdr.Count, demandas.Count, doPotencial.AnoDaAreaPlantada,
+                Justificativa(b.MedioAPartirDe, b.GrandeAPartirDe, demandas.Count, doPotencial.AnoDaAreaPlantada),
                 null)
             : new SugestaoDasBandasDePorte(
-                null, null, daAdr.Count, demandas.Count, apurado.AnoDaAreaPlantada, null,
+                null, null, daAdr.Count, demandas.Count, doPotencial.AnoDaAreaPlantada, null,
                 demandas.Count < 3
                     ? $"Só {demandas.Count} município(s) da ADR têm demanda anual — o tercil pede pelo menos três. A demanda sai da área plantada do IBGE e das regras de potencial: confira se as duas estão carregadas."
                     : "Os tercis da demanda não sobem: um terço dos municípios da ADR está sem demanda nenhuma, ou todos têm a mesma. Um corte que não separa ninguém não é banda — informe os valores à mão.");

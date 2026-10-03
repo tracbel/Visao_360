@@ -285,6 +285,23 @@ public sealed class DemandaEPrevisaoNaApiTestes(ApiEmMemoria api) : IClassFixtur
         dados.GetProperty("lacunas").EnumerateArray().Select(l => l.GetProperty("metrica").GetString()).Should().Contain("entregaPorCultura");
     }
 
+    [Fact]
+    public async Task O_potencial_e_o_mesmo_para_as_duas_filiais_e_a_entrega_e_so_a_do_alcance_de_cada_uma()
+    {
+        var ribeirao = await ComDemandaAsync();
+        var barretos = api.ClienteDeBarretos();
+
+        var deRibeirao = await DadosAsync(await ribeirao.GetAsync(Rota));
+        var deBarretos = await DadosAsync(await barretos.GetAsync(Rota));
+
+        // O POTENCIAL É DADO DE REFERÊNCIA (documento 54): a área de atuação, a PAM e a regra não têm dono de filial.
+        deBarretos.GetProperty("totais").GetProperty("demandaEstrutural").GetDecimal()
+            .Should().Be(deRibeirao.GetProperty("totais").GetProperty("demandaEstrutural").GetDecimal(), "o potencial é dado de referência");
+        deRibeirao.GetProperty("totais").GetProperty("entreguesNoPeriodo").GetInt32().Should().Be(1);
+        deBarretos.GetProperty("totais").GetProperty("entreguesNoPeriodo").ValueKind.Should().NotBe(JsonValueKind.Number,
+            "a venda do ART é da filial de Ribeirão, fora do alcance de Barretos");
+    }
+
     [Theory]
     [InlineData("anoFiscal=2019", "anoFiscal")]
     [InlineData("anoFiscal=abc", "anoFiscal")]

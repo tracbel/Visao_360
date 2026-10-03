@@ -30,6 +30,8 @@ namespace Tracbel.Crm.Aplicacao.Mercado;
 /// </summary>
 public sealed class ObterDemandaEPrevisao(
     IRepositorioIndicadoresTerritoriais territorio,
+    IRepositorioDoTerritorioDeReferencia territorioDeReferencia,
+    IRepositorioDoPotencialDeReferencia potencialDeReferencia,
     IRepositorioDeIndicadoresDeMercado mercado,
     IRepositorioDoPlanejamento planejamento,
     IRepositorioDeParametrosDoPotencial parametros,
@@ -104,21 +106,25 @@ public sealed class ObterDemandaEPrevisao(
             return Resultado<ComProcedencia<DemandaEPrevisaoDaRegiao>>.SemPermissao(semPermissao);
 
         var agora = relogio.Agora;
-        var mesCorrente = AnoFiscal.MesCorrenteEmSaoPaulo(agora);
-        var ultimoFechado = mesCorrente.AddMonths(-1);
-
-        // O PERÍODO NÃO MUDA NADA AQUI: a demanda é de um ano de parque, e não de vendas. A apuração pede um período, e
-        // os 12 meses fechados são o mais neutro.
-        var indicadores = await territorio.ApurarAsync(
-            new ConsultaDeIndicadoresTerritoriais(
-                ultimoFechado.AddMonths(-11), ultimoFechado, regiaoEscolhida,
-                string.IsNullOrWhiteSpace(lojaCodigo) ? null : lojaCodigo.Trim(),
-                filtros!.Visao, null, null, null, null, mesCorrente, ComDemandaDoAnoAnterior: true),
-            agora,
-            ct);
-
         var hoje = ParametroComVigencia.HojeNoBrasil(agora);
-        var daAdr = indicadores.Municipios.Where(m => m.PertenceAAdr).ToList();
+
+        // O TERRITÓRIO E O POTENCIAL SÃO DADO DE REFERÊNCIA (documento 54): a mesma conta para todas as telas, guardada pela
+        // versão do assunto. A Demanda não lê carteira nem faturamento — nunca usou.
+        var doTerritorio = await territorioDeReferencia.LerAsync(ct);
+        var potencial = await potencialDeReferencia.LerAsync(hoje, ct);
+        var lojaPedida = string.IsNullOrWhiteSpace(lojaCodigo) ? null : lojaCodigo.Trim();
+        var comMotor = potencial.Categorias.Count > 0;
+
+        var daAdr = doTerritorio.Area.Values
+            .Where(m => m.PertenceAAdr
+                        && (regiaoEscolhida is null || m.Regiao == regiaoEscolhida)
+                        && (lojaPedida is null || m.LojaCodigo == lojaPedida))
+            .OrderBy(m => m.Codigo)
+            .Select(m => new MunicipioDaDemanda(
+                m.Codigo, m.Nome, m.Regiao.ToString(), m.LojaCodigo, m.LojaNome,
+                potencial.DoMunicipio(m.Codigo).Demanda,
+                comMotor ? potencial.DoMunicipio(m.Codigo, doAnoAnterior: true).Demanda : []))
+            .ToList();
         var deMercado = await mercado.LerPorMunicipioAsync(hoje, [.. daAdr.Select(m => m.CodigoIbge)], ct);
         var gerais = ParametroComVigencia.VigenteEm(await parametros.ListarGeraisAsync(ct), hoje);
         var doPlanejamento = ParametroComVigencia.VigenteEm(await planejamento.ListarParametrosAsync(ct), hoje);
@@ -140,7 +146,7 @@ public sealed class ObterDemandaEPrevisao(
         bool DaCultura(DemandaNoMunicipio p) => culturaPedida is null || string.Equals(p.CulturaCodigo, culturaPedida, StringComparison.OrdinalIgnoreCase);
 
         var culturasDaCategoria = daAdr
-            .SelectMany(m => (m.DemandaPorCategoriaECultura ?? []).Where(DaCategoria))
+            .SelectMany(m => m.DemandaPorCategoriaECultura.Where(DaCategoria))
             .Select(p => (p.CulturaCodigo, p.Cultura))
             .DistinctBy(c => c.CulturaCodigo, StringComparer.Ordinal)
             .OrderBy(c => c.Cultura, StringComparer.Create(PtBr, ignoreCase: true))
@@ -153,7 +159,7 @@ public sealed class ObterDemandaEPrevisao(
         }
 
         var parcelas = daAdr
-            .SelectMany(m => (m.DemandaPorCategoriaECultura ?? [])
+            .SelectMany(m => m.DemandaPorCategoriaECultura
                 .Where(p => DaCategoria(p) && DaCultura(p))
                 .Select(p =>
                 {
@@ -174,7 +180,7 @@ public sealed class ObterDemandaEPrevisao(
         // O ANO ANTERIOR DA PAM — as mesmas parcelas com a área de um ano antes, cada cultura no dela. Sem ajuste: o momento é
         // o de hoje, e a comparação é de estrutural com estrutural.
         var anteriores = daAdr
-            .SelectMany(m => (m.DemandaNoAnoAnterior ?? []).Where(p => DaCategoria(p) && DaCultura(p)).Select(p => (Municipio: m.CodigoIbge, Demanda: p)))
+            .SelectMany(m => m.DemandaNoAnoAnterior.Where(p => DaCategoria(p) && DaCultura(p)).Select(p => (Municipio: m.CodigoIbge, Demanda: p)))
             .ToList();
 
         // AS ENTREGAS DO ART NO ANO FISCAL ESCOLHIDO E NO ANTERIOR, pela data da entrega, dos compradores dos municípios do
@@ -184,7 +190,7 @@ public sealed class ObterDemandaEPrevisao(
         var fimDoAno = fiscal.Final.AddMonths(1);
         var amanha = ParametroComVigencia.HojeNoBrasil(agora).AddDays(1);
         var corte = fimDoAno < amanha ? fimDoAno : amanha;
-        var semArt = indicadores.MaquinasVendidas is null;
+        var semArt = !await entregas.ExisteVendaAsync(ct);
         var comEntregas = !semArt && culturaPedida is null;
         IReadOnlyList<DateOnly> entregues = [];
         if (comEntregas)
@@ -199,7 +205,7 @@ public sealed class ObterDemandaEPrevisao(
                 .Select(e => e.EntregueEm)];
         }
 
-        var totais = Totais(parcelas, comDemanda, daAdr.Count, indicadores.Regras, codigoDaCategoria, todas) with
+        var totais = Totais(parcelas, comDemanda, daAdr.Count, potencial.RegrasAplicadas, codigoDaCategoria, todas) with
         {
             ParqueAnoAnterior = Arredondar(SomaOuNulo(anteriores.Select(a => a.Demanda.Parque))),
             DemandaEstruturalAnoAnterior = Arredondar(SomaOuNulo(anteriores.Select(a => a.Demanda.DemandaAnual))),
@@ -268,9 +274,9 @@ public sealed class ObterDemandaEPrevisao(
             .OrderByDescending(c => c.Demanda ?? -1)
             .ToList();
 
-        var ordem = filtros.Categorias.ToDictionary(c => c.Codigo, c => c.Ordem, StringComparer.Ordinal);
+        var ordem = filtros!.Categorias.ToDictionary(c => c.Codigo, c => c.Ordem, StringComparer.Ordinal);
         var categoriasComDemanda = daAdr
-            .SelectMany(m => m.DemandaPorCategoriaECultura ?? [])
+            .SelectMany(m => m.DemandaPorCategoriaECultura)
             .Where(p => p.DemandaAnual is not null)
             .Select(p => (p.CategoriaCodigo, p.CategoriaNome))
             .Distinct()
@@ -289,19 +295,19 @@ public sealed class ObterDemandaEPrevisao(
             shareDaCategoria is { InformadoPorId: null },
             doPlanejamento?.VigenteDesde,
             doPlanejamento is { InformadoPorId: null },
-            indicadores.AnoDaAreaPlantada,
+            potencial.AnoDaAreaPlantada,
             totais,
             porCultura,
             previsao,
             porLoja,
             municipios,
             culturas,
-            Lacunas(indicadores, doPlanejamento, gerais, todas, codigoDaCategoria, shareDe, comDemanda, semArt, culturaPedida is not null, anteriores.Count > 0),
+            Lacunas(potencial.RegrasAplicadas, doPlanejamento, gerais, todas, codigoDaCategoria, shareDe, comDemanda, semArt, culturaPedida is not null, anteriores.Count > 0),
             anoEscolhido,
             [.. Enumerable.Range(0, AnosFiscaisNoFiltro).Select(i => anoFiscalCorrente - i)],
             culturaPedida is null ? null : culturasDaCategoria.First(c => string.Equals(c.CulturaCodigo, culturaPedida, StringComparison.OrdinalIgnoreCase)).CulturaCodigo,
             [.. culturasDaCategoria.Select(c => new CulturaDaMatriz(c.CulturaCodigo, c.Cultura, null))],
-            indicadores.AnoDaAreaPlantada is { } anoDaArea ? (short)(anoDaArea - 1) : null);
+            potencial.AnoDaAreaPlantada is { } anoDaArea ? (short)(anoDaArea - 1) : null);
 
         return Resultado<ComProcedencia<DemandaEPrevisaoDaRegiao>>.Ok(
             ComProcedencia<DemandaEPrevisaoDaRegiao>.DoNossoBanco(
@@ -310,7 +316,12 @@ public sealed class ObterDemandaEPrevisao(
                 relogio));
     }
 
-    private sealed record Parcela(IndicadoresDoMunicipio Municipio, DemandaNoMunicipio Demanda, PotencialAjustado Ajuste, decimal? Share)
+    /// <summary>Um município da ADR no recorte, com a demanda do motor — o que a Demanda usa da área e do potencial.</summary>
+    private sealed record MunicipioDaDemanda(
+        int CodigoIbge, string Nome, string Regiao, string? LojaCodigo, string? LojaNome,
+        IReadOnlyList<DemandaNoMunicipio> DemandaPorCategoriaECultura, IReadOnlyList<DemandaNoMunicipio> DemandaNoAnoAnterior);
+
+    private sealed record Parcela(MunicipioDaDemanda Municipio, DemandaNoMunicipio Demanda, PotencialAjustado Ajuste, decimal? Share)
     {
         public decimal? AEntregar => Demanda.DemandaAnual is { } d && Share is { } s ? d * s : null;
         public decimal? AEntregarAjustada => Ajuste.DemandaAjustada is { } d && Share is { } s ? d * s : null;
@@ -371,7 +382,7 @@ public sealed class ObterDemandaEPrevisao(
             .OrderByDescending(c => c.DemandaEstrutural ?? -1)
     ];
 
-    private static DemandaDoMunicipioNaPrevisao Municipio(IndicadoresDoMunicipio m, List<Parcela> doMunicipio, List<DemandaNoMunicipio> anteriores)
+    private static DemandaDoMunicipioNaPrevisao Municipio(MunicipioDaDemanda m, List<Parcela> doMunicipio, List<DemandaNoMunicipio> anteriores)
     {
         var comDemanda = doMunicipio.Where(p => p.Demanda.DemandaAnual is not null).ToList();
         var estrutural = SomaOuNulo(comDemanda.Select(p => p.Demanda.DemandaAnual));
@@ -421,7 +432,7 @@ public sealed class ObterDemandaEPrevisao(
     }
 
     private static List<MetricaSemDado> Lacunas(
-        IndicadoresTerritoriais indicadores,
+        IReadOnlyList<RegraDePotencialAplicada> regras,
         ParametroDoPlanejamento? doPlanejamento,
         ParametroDoPotencial? gerais,
         bool todas,
@@ -480,7 +491,7 @@ public sealed class ObterDemandaEPrevisao(
                 "fatorDeCiclo",
                 "Sem os pesos do fator de ciclo (D-P05), a demanda não é ajustada pelo momento: a ajustada fica vazia."));
 
-        if (indicadores.Regras.Any(r => r.Situacao == nameof(SituacaoDaRegraDePotencial.AConfirmar)))
+        if (regras.Any(r => r.Situacao == nameof(SituacaoDaRegraDePotencial.AConfirmar)))
             lacunas.Add(new MetricaSemDado(
                 "regraDePotencial",
                 "Parte das regras de potencial ainda está a confirmar: a demanda é estimativa de renovação de frota, e não previsão de venda."));

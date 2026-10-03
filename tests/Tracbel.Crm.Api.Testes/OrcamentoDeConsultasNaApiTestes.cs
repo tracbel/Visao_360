@@ -37,27 +37,40 @@ public sealed class OrcamentoDeConsultasNaApiTestes(ITestOutputHelper saida) : I
 
     /// <summary>
     /// A segunda leitura, com o cache de referência cheio — o medido depois do território e do potencial de referência
-    /// (doc 54 §3.1). A LINHA DE BASE DE 03/10/2026, antes de qualquer otimização, era: indicadores 73, demanda 81,
-    /// diagnóstico 77, cenários 87, dimensionamento 24, financiamentos 16, preços 16.
+    /// (doc 54 §3.1). Em consultas ao banco por chamada:
+    ///
+    /// <code>
+    /// rota              linha de base (03/10)   depois do cache de referência
+    /// indicadores                73                       58
+    /// demanda                    81                       29   (só território e potencial, sem a apuração)
+    /// diagnóstico                77                       62
+    /// cenários                   87                       35   (a Demanda por dentro)
+    /// dimensionamento            24                       24
+    /// financiamentos             16                       16
+    /// preços                     16                       16
+    /// </code>
     /// </summary>
     private static readonly Dictionary<string, int> TetoQuente = new(StringComparer.Ordinal)
     {
         ["/api/v1/territorio/indicadores"] = 58,
-        ["/api/v1/mercado/demanda"] = 65,
+        ["/api/v1/mercado/demanda"] = 29,
         ["/api/v1/mercado/diagnostico"] = 62,
-        ["/api/v1/mercado/cenarios"] = 71,
+        ["/api/v1/mercado/cenarios"] = 35,
         ["/api/v1/mercado/dimensionamento"] = 24,
         ["/api/v1/mercado/financiamentos"] = 16,
         ["/api/v1/mercado/precos"] = 16,
     };
 
-    /// <summary>A primeira leitura, com o cache de referência vazio: a linha de base mais a assinatura de cada assunto lido.</summary>
+    /// <summary>
+    /// A primeira leitura, com o cache de referência vazio. Onde a rota ainda passa pela apuração inteira, é a linha de base
+    /// mais a assinatura de cada assunto lido; a Demanda e os Cenários, que já não passam, têm o medido.
+    /// </summary>
     private static readonly Dictionary<string, int> TetoFrio = new(StringComparer.Ordinal)
     {
         ["/api/v1/territorio/indicadores"] = 73 + AssinaturaDoTerritorio + AssinaturaDoPotencial + AnoAnteriorDaPam,
-        ["/api/v1/mercado/demanda"] = 81 + AssinaturaDoTerritorio + AssinaturaDoPotencial,
+        ["/api/v1/mercado/demanda"] = 55,
         ["/api/v1/mercado/diagnostico"] = 77 + AssinaturaDoTerritorio + AssinaturaDoPotencial + AnoAnteriorDaPam,
-        ["/api/v1/mercado/cenarios"] = 87 + AssinaturaDoTerritorio + AssinaturaDoPotencial,
+        ["/api/v1/mercado/cenarios"] = 61,
         ["/api/v1/mercado/dimensionamento"] = 24,
         ["/api/v1/mercado/financiamentos"] = 16,
         ["/api/v1/mercado/precos"] = 16,
