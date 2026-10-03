@@ -103,10 +103,25 @@ public sealed class AssinaturaDosAssuntos(
         {
             var area = await db.MunicipiosDaAreaDeAtuacao.AsNoTracking().MaxAsync(a => (DateTime?)a.ImportadoEm, ct);
             var encerrada = await db.MunicipiosDaAreaDeAtuacao.AsNoTracking().MaxAsync(a => a.EncerradoEm, ct);
-            var municipios = await db.Municipios.AsNoTracking().CountAsync(ct);
+
+            // O CATÁLOGO DE MUNICÍPIOS MUDA SEM MUDAR DE TAMANHO: a carga reconhece o município no IBGE e ele ganha o código e
+            // o nome oficial na mesma linha (Municipio.ReconhecerNoIbge) — e só com o código ele entra na área. Sem data de
+            // alteração na tabela, a assinatura soma os códigos e o tamanho dos nomes, numa consulta só.
+            var municipios = await db.Municipios.AsNoTracking()
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Quantos = g.Count(),
+                    ComCodigo = g.Count(m => m.CodigoIbge != null),
+                    Codigos = g.Sum(m => (long?)m.CodigoIbge),
+                    Letras = g.Sum(m => (long)m.Nome.Length)
+                })
+                .FirstOrDefaultAsync(ct);
+
             var lojas = await db.Empresas.AsNoTracking().MaxAsync(e => (DateTime?)(e.AlteradoEm ?? e.CriadoEm), ct);
             var quantasLojas = await db.Empresas.AsNoTracking().CountAsync(ct);
-            return $"{area:O}|{encerrada:O}|{municipios}|{lojas:O}|{quantasLojas}";
+            return $"{area:O}|{encerrada:O}|{municipios?.Quantos}:{municipios?.ComCodigo}:{municipios?.Codigos}:{municipios?.Letras}" +
+                   $"|{lojas:O}|{quantasLojas}";
         }
 
         var pam = await db.ProducoesAgricolasNosMunicipios.AsNoTracking().MaxAsync(p => (DateTime?)p.ImportadoEm, ct);
@@ -122,7 +137,8 @@ public sealed class AssinaturaDosAssuntos(
 /// O CACHE DE REFERÊNCIA (documento 54 §3.2) — o resultado de um leitor guardado na memória da API pela versão do assunto.
 ///
 /// <para><b>Uma conta por versão, mesmo com dez telas pedindo ao mesmo tempo:</b> o que fica guardado é a tarefa da conta,
-/// e quem chega depois espera a mesma. A conta que falha sai do cache na hora — a leitura seguinte recalcula.</para>
+/// e quem chega depois espera a mesma. A conta que falha não fica guardada — a leitura seguinte recalcula, mesmo quando
+/// quem a pediu já tinha desistido antes de ela falhar.</para>
 ///
 /// <para><b>A versão velha some sozinha</b>: a chave nova é outra, e a entrada antiga expira sem uso em 6 horas.</para>
 /// </summary>
@@ -138,20 +154,52 @@ public sealed class CacheDeReferencia(IMemoryCache memoria, IAssinaturaDosAssunt
         where T : class
     {
         var completa = $"referencia|{assunto}|{await assinatura.LerAsync(assunto, ct)}|{chave}";
-        var tarefa = memoria.GetOrCreate(completa, entrada =>
+        var conta = Guardada(completa, calcular);
+
+        // A CONTA GUARDADA JÁ FALHOU, e ninguém a tirou: quem a pediu tinha desistido (a tela foi fechada) antes de o banco
+        // cair. Ela sai, e esta leitura recalcula. Só a conta que já estava guardada — a que esta leitura começa agora, se
+        // falhar, falha para ela.
+        if (conta.IsValueCreated && (conta.Value.IsFaulted || conta.Value.IsCanceled))
         {
-            entrada.SlidingExpiration = TimeSpan.FromHours(6);
-            return new Lazy<Task<T>>(calcular, LazyThreadSafetyMode.ExecutionAndPublication);
-        })!;
+            TirarSeForEsta(completa, conta);
+            conta = Guardada(completa, calcular);
+        }
 
         try
         {
-            return await tarefa.Value.WaitAsync(ct);
+            return await conta.Value.WaitAsync(ct);
         }
         catch when (!ct.IsCancellationRequested)
         {
-            memoria.Remove(completa);
+            TirarSeForEsta(completa, conta);
             throw;
         }
+    }
+
+    private Lazy<Task<T>> Guardada<T>(string chave, Func<Task<T>> calcular) =>
+        memoria.GetOrCreate(chave, entrada =>
+        {
+            entrada.SlidingExpiration = TimeSpan.FromHours(6);
+            return new Lazy<Task<T>>(() => Iniciar(calcular), LazyThreadSafetyMode.ExecutionAndPublication);
+        })!;
+
+    // A FALHA SÍNCRONA VIRA TAREFA FALHA: o Lazy guardaria a exceção para sempre, e a conferência acima não a veria.
+    private static Task<T> Iniciar<T>(Func<Task<T>> calcular)
+    {
+        try
+        {
+            return calcular();
+        }
+        catch (Exception erro)
+        {
+            return Task.FromException<T>(erro);
+        }
+    }
+
+    // SÓ SAI A MESMA CONTA: outra leitura pode já ter guardado uma nova no lugar, e essa não é para tirar.
+    private void TirarSeForEsta(string chave, object conta)
+    {
+        if (memoria.TryGetValue(chave, out var atual) && ReferenceEquals(atual, conta))
+            memoria.Remove(chave);
     }
 }
