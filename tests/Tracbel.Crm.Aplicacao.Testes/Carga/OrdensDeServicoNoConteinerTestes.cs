@@ -49,7 +49,8 @@ public sealed class OrdensDeServicoNoConteinerTestes
         var opcoes = Opcoes();
         CrmDbContext Abrir() => new(opcoes, new ContextoDeCargaDeSistema(semente.Operador, semente.RibeiraoPreto, semente.Filiais));
 
-        var resultado = await Sincronia(Abrir, leitura, quando, semente.Operador).ExecutarAsync(simular, false, CancellationToken.None);
+        // A COMPLETA, PEDIDA: as rodadas deste teste caem no mesmo dia e seriam curtas pela agenda (plano 3 do documento 54).
+        var resultado = await Sincronia(Abrir, leitura, quando, semente.Operador).ExecutarAsync(simular, false, completaPedida: true, CancellationToken.None);
         resultado.EhSucesso.Should().BeTrue(resultado.Erro);
         return resultado.Valor;
     }
