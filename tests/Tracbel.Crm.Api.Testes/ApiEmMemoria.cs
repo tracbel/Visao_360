@@ -72,6 +72,17 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
             // tirar esse, os dois provedores acabam no mesmo contêiner e o EF recusa com
             // "Only a single database provider can be registered" — o erro sai só na primeira
             // consulta, não no registro.
+            // O VIGIA DA VERSÃO DOS DADOS NÃO RODA NOS TESTES (documento 54, o teste instável do cache). Ele faz a primeira
+            // conferência no instante em que o serviço sobe — junto com a criação do banco do teste, na MESMA conexão
+            // SQLite —, e o SQLite não aceita duas operações ao mesmo tempo numa conexão: era o "Operations that change
+            // non-concurrent collections must have exclusive access". Os testes mudam a versão à mão
+            // (VersaoDosDados.AtualizarDoBanco) e leem a marca pelo método estático, que é o que o vigia faria.
+            foreach (var vigia in servicos
+                         .Where(d => d.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)
+                                     && d.ImplementationType == typeof(Tracbel.Crm.Api.Comum.VigiaDaVersaoDosDados))
+                         .ToList())
+                servicos.Remove(vigia);
+
             servicos.RemoveAll<DbContextOptions<CrmDbContext>>();
             servicos.RemoveAll<DbContextOptions>();
             servicos.RemoveAll(typeof(IDbContextOptionsConfiguration<CrmDbContext>));
