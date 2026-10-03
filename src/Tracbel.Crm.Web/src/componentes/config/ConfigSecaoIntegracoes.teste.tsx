@@ -76,8 +76,8 @@ const DESEMPENHO = {
     desdeUtc: '2026-09-28T03:00:00Z',
     amostrasPorRota: 1000,
     rotas: [
-      { metodo: 'POST', rota: '/api/v1/clientes', chamadas: 1500, amostras: 1000, p50: 21.4, p95: 46.3, maximo: 120, erros: 0, grava: true },
-      { metodo: 'GET', rota: '/api/v1/territorio/indicadores', chamadas: 40, amostras: 40, p50: 310, p95: 980.5, maximo: 1200, erros: 1, grava: false },
+      { metodo: 'POST', rota: '/api/v1/clientes', chamadas: 1500, amostras: 1000, p50: 21.4, p95: 46.3, maximo: 120, erros: 0, grava: true, consultasP95: 3, consultasMaximo: 4 },
+      { metodo: 'GET', rota: '/api/v1/territorio/indicadores', chamadas: 40, amostras: 40, p50: 310, p95: 980.5, maximo: 1200, erros: 1, grava: false, consultasP95: 38, consultasMaximo: 41 },
     ],
   },
   procedencia: { ...PROCEDENCIA, objeto: 'medição da própria API, em memória, desde a última subida do serviço' },
@@ -163,6 +163,8 @@ describe('ConfigSecaoIntegracoes', () => {
     expect(within(tabela).getByText('46,3 ms')).toBeInTheDocument();
     expect(within(tabela).getByText('as últimas 1.000')).toBeInTheDocument();
     expect(within(tabela).getByText('/api/v1/territorio/indicadores')).toBeInTheDocument();
+    // AS IDAS AO BANCO DE CADA ROTA (documento 54 §3.5): o p95 e o máximo, lado a lado.
+    expect(within(tabela).getByText('38 / 41')).toBeInTheDocument();
 
     fireEvent.click(within(cartao).getByLabelText('Só as gravações'));
 

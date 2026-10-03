@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Routing;
+using Tracbel.Crm.Infraestrutura.Persistencia.Diagnostico;
 
 namespace Tracbel.Crm.Api.Comum;
 
@@ -36,8 +37,9 @@ public sealed class MedidorDeDesempenho
     /// <param name="rota">O modelo da rota.</param>
     /// <param name="milissegundos">Quanto durou, do começo ao fim do pipeline.</param>
     /// <param name="status">O código HTTP devolvido.</param>
-    public void Registrar(string metodo, string rota, double milissegundos, int status) =>
-        _rotas.GetOrAdd((metodo, rota), _ => new JanelaDaRota()).Registrar(milissegundos, status >= 500);
+    /// <param name="consultas">Quantas vezes a chamada foi ao banco (documento 54 §3.5).</param>
+    public void Registrar(string metodo, string rota, double milissegundos, int status, int consultas = 0) =>
+        _rotas.GetOrAdd((metodo, rota), _ => new JanelaDaRota()).Registrar(milissegundos, status >= 500, consultas);
 
     /// <summary>O resumo de cada rota medida, da que tem o p95 mais alto para a mais baixa.</summary>
     public IReadOnlyList<DesempenhoDaRota> Resumo() =>
@@ -61,20 +63,28 @@ public sealed class MedidorDeDesempenho
         return ordenadas[Math.Clamp(posto, 1, ordenadas.Count) - 1];
     }
 
+    /// <summary>O mesmo percentil, para as consultas ao banco de cada chamada.</summary>
+    /// <param name="ordenadas">As contagens, em ordem crescente.</param>
+    /// <param name="percentil">De 0 a 100.</param>
+    public static double PercentilDasConsultas(IReadOnlyList<int> ordenadas, double percentil) =>
+        Percentil([.. ordenadas.Select(c => (double)c)], percentil);
+
     private sealed class JanelaDaRota
     {
         private readonly double[] _anel = new double[AmostrasPorRota];
+        private readonly int[] _consultas = new int[AmostrasPorRota];
         private readonly Lock _trava = new();
         private int _preenchidas;
         private int _proxima;
         private long _chamadas;
         private long _erros;
 
-        public void Registrar(double milissegundos, bool erro)
+        public void Registrar(double milissegundos, bool erro, int consultas)
         {
             lock (_trava)
             {
                 _anel[_proxima] = milissegundos;
+                _consultas[_proxima] = consultas;
                 _proxima = (_proxima + 1) % AmostrasPorRota;
                 if (_preenchidas < AmostrasPorRota) _preenchidas++;
                 _chamadas++;
@@ -85,15 +95,18 @@ public sealed class MedidorDeDesempenho
         public DesempenhoDaRota Resumir(string metodo, string rota)
         {
             double[] copia;
+            int[] consultas;
             long chamadas, erros;
             lock (_trava)
             {
                 copia = _anel[.._preenchidas];
+                consultas = _consultas[.._preenchidas];
                 chamadas = _chamadas;
                 erros = _erros;
             }
 
             Array.Sort(copia);
+            Array.Sort(consultas);
             return new DesempenhoDaRota(
                 metodo,
                 rota,
@@ -104,7 +117,9 @@ public sealed class MedidorDeDesempenho
                 copia.Length == 0 ? 0 : Math.Round(copia[^1], 1),
                 erros,
                 // GRAVAÇÃO PASSA PELA TRILHA de auditoria na mesma transação (fase 2) — é a leitura que o doc 45 pede.
-                !HttpMethods.IsGet(metodo) && !HttpMethods.IsHead(metodo));
+                !HttpMethods.IsGet(metodo) && !HttpMethods.IsHead(metodo),
+                PercentilDasConsultas(consultas, 95),
+                consultas.Length == 0 ? 0 : consultas[^1]);
         }
     }
 }
@@ -119,8 +134,11 @@ public sealed class MedidorDeDesempenho
 /// <param name="Maximo">A mais lenta da janela, em milissegundos.</param>
 /// <param name="Erros">Quantas responderam 5xx desde a subida.</param>
 /// <param name="Grava">Se é gravação — e, portanto, passa pela trilha de auditoria.</param>
+/// <param name="ConsultasP95">O p95 das idas ao banco por chamada (documento 54 §3.5).</param>
+/// <param name="ConsultasMaximo">A chamada que mais foi ao banco, na janela.</param>
 public sealed record DesempenhoDaRota(
-    string Metodo, string Rota, long Chamadas, int Amostras, double P50, double P95, double Maximo, long Erros, bool Grava);
+    string Metodo, string Rota, long Chamadas, int Amostras, double P50, double P95, double Maximo, long Erros, bool Grava,
+    double ConsultasP95 = 0, int ConsultasMaximo = 0);
 
 /// <summary>A medição inteira.</summary>
 /// <param name="DesdeUtc">Desde quando o serviço está medindo — a última subida.</param>
@@ -146,6 +164,16 @@ public sealed class MeioDeCampoDeDesempenho(RequestDelegate proximo, MedidorDeDe
             return;
         }
 
+        using var medicao = ContadorDeConsultas.Iniciar();
+
+        // O CABEÇALHO SAI QUANDO A RESPOSTA COMEÇA, e aí as consultas já foram feitas. A resposta servida do cache das
+        // leituras sai com zero — e é verdade: ela não foi ao banco.
+        http.Response.OnStarting(() =>
+        {
+            http.Response.Headers["X-Consultas-Ao-Banco"] = medicao.Consultas.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return Task.CompletedTask;
+        });
+
         var inicio = Stopwatch.GetTimestamp();
         try
         {
@@ -156,7 +184,7 @@ public sealed class MeioDeCampoDeDesempenho(RequestDelegate proximo, MedidorDeDe
             // A ROTA DE GRUPO VEM COM A BARRA DO FIM ("/api/v1/clientes/"): sem ela, a tela mostra o endereço que se digita.
             var modelo = (http.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText;
             var rota = modelo is null ? "(rota não encontrada)" : modelo.Length > 1 ? modelo.TrimEnd('/') : modelo;
-            medidor.Registrar(http.Request.Method, rota, Stopwatch.GetElapsedTime(inicio).TotalMilliseconds, http.Response.StatusCode);
+            medidor.Registrar(http.Request.Method, rota, Stopwatch.GetElapsedTime(inicio).TotalMilliseconds, http.Response.StatusCode, medicao.Consultas);
         }
     }
 }

@@ -16,6 +16,7 @@ using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
+using Tracbel.Crm.Infraestrutura.Persistencia.Diagnostico;
 using Microsoft.Extensions.Options;
 using Tracbel.Crm.Infraestrutura.Seguranca;
 using Tracbel.Crm.Integracao.Conexoes;
@@ -91,7 +92,10 @@ static string LerCadeiaDeConexao(IConfiguration configuracao)
         "infra/docker-compose.yml. Ver docs/projeto/23-API.md.");
 }
 
-builder.Services.AddDbContext<CrmDbContext>(opcoes =>
+// O CONTADOR DE CONSULTAS (documento 54 §3.5): cada comando ao banco conta para a requisição que o fez.
+builder.Services.AddSingleton<InterceptadorDeConsultas>();
+
+builder.Services.AddDbContext<CrmDbContext>((servicos, opcoes) =>
     opcoes.UseSqlServer(
         // VAZIO CONTA COMO AUSENTE. O `??` sozinho só pega nulo, e o appsettings versionado traz
         // a chave com string vazia de propósito — a senha não mora nele. Sem esta checagem, o
@@ -118,7 +122,8 @@ builder.Services.AddDbContext<CrmDbContext>(opcoes =>
             // a estratégia de retentativa recusa `BeginTransaction` — a carga precisa de
             // `ExecutionStrategy.Execute` em volta de cada bloco, que é outro trabalho. Leitura
             // não tem transação e não tem esse problema.
-            .EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null)));
+            .EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null))
+        .AddInterceptors(servicos.GetRequiredService<InterceptadorDeConsultas>()));
 
 // -------------------------------------------------------------------------------------------
 // O CONTEXTO DE ACESSO — quem está agindo nesta requisição.

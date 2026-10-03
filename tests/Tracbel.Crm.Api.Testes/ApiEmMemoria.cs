@@ -12,6 +12,7 @@ using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Persistencia;
+using Tracbel.Crm.Infraestrutura.Persistencia.Diagnostico;
 
 namespace Tracbel.Crm.Api.Testes;
 
@@ -83,7 +84,8 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
             // ela faz no teste o que faz no SQL Server: diferencia caixa e acento.
             _conexao.CreateCollation("Latin1_General_BIN2", (a, b) => string.CompareOrdinal(a, b));
 
-            servicos.AddDbContext<CrmDbContext>(opcoes => opcoes.UseSqlite(_conexao));
+            servicos.AddDbContext<CrmDbContext>((provedor, opcoes) =>
+                opcoes.UseSqlite(_conexao).AddInterceptors(provedor.GetRequiredService<InterceptadorDeConsultas>()));
 
             // A SEGUNDA SUBSTITUIÇÃO, SÓ QUANDO O TESTE PEDE: o que falaria com a internet (o botão "Testar" das
             // integrações) responde por um manipulador do próprio teste. O CI não depende de site externo no ar.
