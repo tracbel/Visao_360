@@ -32,33 +32,37 @@
  */
 
 import type { ComponentType } from 'react';
-import { Agenda } from './telas/Agenda';
+import { sobDemanda } from './componentes/sobDemanda';
 import { ClienteFicha } from './telas/ClienteFicha';
-import { CoberturaCarteira } from './telas/CoberturaCarteira';
-import { CoberturaRegional } from './telas/CoberturaRegional';
-import { ConferenciaComAGestao } from './telas/ConferenciaComAGestao';
-import { Configuracoes } from './telas/Configuracoes';
-import { DemandaEPrevisao } from './telas/DemandaEPrevisao';
-import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
-import { DimensionamentoAdr } from './telas/DimensionamentoAdr';
-import { FinanciamentosSicor } from './telas/FinanciamentosSicor';
-import { PrecoDeCommodities } from './telas/PrecoDeCommodities';
-import { CenariosDeMercado } from './telas/CenariosDeMercado';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
-import { EstoqueECobertura } from './telas/EstoqueECobertura';
-import { ForecastGerencia } from './telas/ForecastGerencia';
-import { Funil } from './telas/Funil';
-import { IndicadoresGeograficos } from './telas/IndicadoresGeograficos';
 import { Inicio } from './telas/Inicio';
 import { NovaOportunidade } from './telas/NovaOportunidade';
-import { OportunidadeFicha } from './telas/OportunidadeFicha';
-import { PerformanceCen } from './telas/PerformanceCen';
-import { Pipeline } from './telas/Pipeline';
-import { Visao360 } from './telas/Visao360';
-import { ClienteCadastro } from './telas/cadastro/ClienteCadastro';
-import { ClientesLista } from './telas/cadastro/ClientesLista';
-import { EquipamentoCadastro } from './telas/cadastro/EquipamentoCadastro';
-import { EquipamentosLista } from './telas/cadastro/EquipamentosLista';
+
+// AS TELAS DE PRODUÇÃO SÃO BAIXADAS QUANDO ABERTAS (documento 54 §3.4): cada uma vira um pedaço do pacote. As quatro do
+// protótipo, acima, ficam com import estático — o ternário do DEV é o que as tira do pacote.
+const Agenda = sobDemanda(() => import('./telas/Agenda'), (m) => m.Agenda);
+const CoberturaCarteira = sobDemanda(() => import('./telas/CoberturaCarteira'), (m) => m.CoberturaCarteira);
+const CoberturaRegional = sobDemanda(() => import('./telas/CoberturaRegional'), (m) => m.CoberturaRegional);
+const ConferenciaComAGestao = sobDemanda(() => import('./telas/ConferenciaComAGestao'), (m) => m.ConferenciaComAGestao);
+const Configuracoes = sobDemanda(() => import('./telas/Configuracoes'), (m) => m.Configuracoes);
+const DemandaEPrevisao = sobDemanda(() => import('./telas/DemandaEPrevisao'), (m) => m.DemandaEPrevisao);
+const DiagnosticoComercial = sobDemanda(() => import('./telas/DiagnosticoComercial'), (m) => m.DiagnosticoComercial);
+const DimensionamentoAdr = sobDemanda(() => import('./telas/DimensionamentoAdr'), (m) => m.DimensionamentoAdr);
+const FinanciamentosSicor = sobDemanda(() => import('./telas/FinanciamentosSicor'), (m) => m.FinanciamentosSicor);
+const PrecoDeCommodities = sobDemanda(() => import('./telas/PrecoDeCommodities'), (m) => m.PrecoDeCommodities);
+const CenariosDeMercado = sobDemanda(() => import('./telas/CenariosDeMercado'), (m) => m.CenariosDeMercado);
+const EstoqueECobertura = sobDemanda(() => import('./telas/EstoqueECobertura'), (m) => m.EstoqueECobertura);
+const ForecastGerencia = sobDemanda(() => import('./telas/ForecastGerencia'), (m) => m.ForecastGerencia);
+const Funil = sobDemanda(() => import('./telas/Funil'), (m) => m.Funil);
+const IndicadoresGeograficos = sobDemanda(() => import('./telas/IndicadoresGeograficos'), (m) => m.IndicadoresGeograficos);
+const OportunidadeFicha = sobDemanda(() => import('./telas/OportunidadeFicha'), (m) => m.OportunidadeFicha);
+const PerformanceCen = sobDemanda(() => import('./telas/PerformanceCen'), (m) => m.PerformanceCen);
+const Pipeline = sobDemanda(() => import('./telas/Pipeline'), (m) => m.Pipeline);
+const Visao360 = sobDemanda(() => import('./telas/Visao360'), (m) => m.Visao360);
+const ClienteCadastro = sobDemanda(() => import('./telas/cadastro/ClienteCadastro'), (m) => m.ClienteCadastro);
+const ClientesLista = sobDemanda(() => import('./telas/cadastro/ClientesLista'), (m) => m.ClientesLista);
+const EquipamentoCadastro = sobDemanda(() => import('./telas/cadastro/EquipamentoCadastro'), (m) => m.EquipamentoCadastro);
+const EquipamentosLista = sobDemanda(() => import('./telas/cadastro/EquipamentosLista'), (m) => m.EquipamentosLista);
 
 export type Rota = {
   caminho: string;
