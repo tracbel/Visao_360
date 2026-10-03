@@ -129,6 +129,20 @@ public sealed class CacheDeReferenciaTestes(ApiEmMemoria api) : IClassFixture<Ap
             .Should().NotBe(antes, "o catálogo de municípios mudou sem mudar de tamanho");
     }
 
+    [Theory]
+    [InlineData(AssuntoDeReferencia.Territorio)]
+    [InlineData(AssuntoDeReferencia.Potencial)]
+    [InlineData(AssuntoDeReferencia.Estrutura)]
+    public async Task A_assinatura_de_cada_assunto_e_uma_consulta_so(AssuntoDeReferencia assunto)
+    {
+        var assinatura = api.Services.GetRequiredService<IAssinaturaDosAssuntos>();
+
+        using var medicao = Infraestrutura.Persistencia.Diagnostico.ContadorDeConsultas.Iniciar();
+        await assinatura.LerAsync(assunto, default);
+
+        medicao.Consultas.Should().Be(1, "as contas de máximo e de contagem são subconsultas do mesmo SELECT (plano 2 do doc 54)");
+    }
+
     [Fact]
     public async Task A_pam_gravada_por_outro_processo_muda_a_assinatura_do_potencial()
     {

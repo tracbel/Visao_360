@@ -64,8 +64,8 @@ public sealed class ObterDiagnosticoComercial(
         // OS ÚLTIMOS 12 MESES FECHADOS, como no protótipo: o IOC compara com a demanda de UM ANO, e um ano fechado não
         // depende de sazonalidade. Outro período é aceito — e é levado a um ano pela sazonalidade, não por regra de três.
         var ultimoFechado = mesCorrente.AddMonths(-1);
-        var final = LerCompetencia(competenciaFinal, "competenciaFinal", ultimoFechado, erros);
-        var inicial = LerCompetencia(competenciaInicial, "competenciaInicial", final.AddMonths(-11), erros);
+        var final = LeituraDeCompetencia.Ler(competenciaFinal, "competenciaFinal", ultimoFechado, erros);
+        var inicial = LeituraDeCompetencia.Ler(competenciaInicial, "competenciaInicial", final.AddMonths(-11), erros);
         if (final > mesCorrente)
             erros.Registrar("competenciaFinal", "O período não pode terminar depois do mês corrente.", competenciaFinal);
         if (inicial > final)
@@ -289,11 +289,11 @@ public sealed class ObterDiagnosticoComercial(
             o.IndiceDePrecoDaPrincipal,
             o.IndiceDeCredito,
             credito?.BasePequena ?? false,
-            Arredondar(o.DemandaEstrutural),
-            Arredondar(o.DemandaAjustada),
-            Arredondar(o.MetaDePlanejamento),
+            Numeros.Arredondar(o.DemandaEstrutural),
+            Numeros.Arredondar(o.DemandaAjustada),
+            Numeros.Arredondar(o.MetaDePlanejamento),
             e.VendidasNoPeriodo,
-            Arredondar(o.VendidasNoAno),
+            Numeros.Arredondar(o.VendidasNoAno),
             o.Clientes,
             m.Cobertura.PorClasse,
             m.Cobertura.ClientesEmCarteira,
@@ -313,8 +313,6 @@ public sealed class ObterDiagnosticoComercial(
             // carteira com mais vínculos aqui — a mesma lista dos Indicadores, já em ordem.
             m.ResponsaveisPelasCarteiras.FirstOrDefault()?.Nome);
     }
-
-    private static decimal? Arredondar(decimal? valor) => valor is { } v ? decimal.Round(v, 2) : null;
 
     private static ResumoDoDiagnostico Resumir(IReadOnlyList<MunicipioNoDiagnostico> linhas, bool comArt)
     {
@@ -409,17 +407,6 @@ public sealed class ObterDiagnosticoComercial(
                 "de frota, e não previsão de venda."));
 
         return lacunas;
-    }
-
-    private static DateOnly LerCompetencia(string? texto, string campo, DateOnly padrao, ColetorDeErros erros)
-    {
-        if (string.IsNullOrWhiteSpace(texto)) return padrao;
-
-        if (DateOnly.TryParseExact(texto.Trim(), "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var mes))
-            return mes;
-
-        erros.Registrar(campo, "Use o formato aaaa-mm, por exemplo 2026-08.", texto);
-        return padrao;
     }
 }
 

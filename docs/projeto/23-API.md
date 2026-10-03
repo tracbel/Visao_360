@@ -532,6 +532,12 @@ mandou ao banco. Quem conta é um interceptador do EF Core, por requisição. A 
 referência que a chamada disparou (a assinatura de cada assunto e a conta do leitor, quando o cache estava vazio). O
 teste `OrcamentoDeConsultasNaApiTestes` prende o máximo de cada rota pesada, e o teto só desce.
 
+**O aquecimento na subida** (`AquecimentoDaApi`, doc 54 §7.2). Logo depois que o serviço sobe, ele calcula as três
+referências (território, potencial e estrutura) e roda a apuração dos Indicadores uma vez, no período padrão, sob
+contexto de sistema. Assim as consultas do EF já estão compiladas quando o primeiro usuário chega. Ele não entra neste
+medidor, porque não é requisição; o tempo dele vai para o log (`API aquecida em … ms`). Se falhar, o erro vai para o
+log, a API continua de pé e a primeira tela paga a conta inteira, como antes. `Aquecimento:Ligado = false` desliga.
+
 ## 3. O formato de erro
 
 Toda recusa é `application/problem+json`. O status vem da **natureza** da falha, declarada pelo

@@ -58,4 +58,11 @@ describe('arquitetura do front', () => {
     );
     expect(violacoes.sort()).toEqual(TELA_QUE_IMPORTA_TELA);
   });
+
+  it('a moeda compacta mora em dados/formatadores e em nenhum outro arquivo (documento 54 §3.5)', () => {
+    const copias = PRODUCAO.filter(([arquivo]) => arquivo !== '/src/dados/formatadores.ts')
+      .filter(([, codigo]) => /function (fmtBRLcompact|formatarBRLCompacto)\(/.test(codigo))
+      .map(([arquivo]) => arquivo);
+    expect(copias).toEqual([]);
+  });
 });

@@ -21,40 +21,28 @@ namespace Tracbel.Crm.Api.Testes;
 public sealed class OrcamentoDeConsultasNaApiTestes(ITestOutputHelper saida) : IAsyncLifetime
 {
     /// <summary>
-    /// A ASSINATURA DO TERRITÓRIO (documento 54 §3.2): cinco contas de máximo e contagem, relidas na primeira leitura de
-    /// cada janela de 15 s. É o preço, pago uma vez por janela, de não reler a área de atuação a cada chamada.
-    /// </summary>
-    private const int AssinaturaDoTerritorio = 5;
-
-    /// <summary>A ASSINATURA DO POTENCIAL: as mesmas cinco contas, nas tabelas da PAM, das regras e do estado.</summary>
-    private const int AssinaturaDoPotencial = 5;
-
-    /// <summary>
-    /// O ANO ANTERIOR DA PAM vem sempre junto no potencial de referência — uma leitura a mais por versão, em vez de duas
-    /// versões guardadas. A Demanda e os Cenários já o pediam; os Indicadores e o Diagnóstico passam a pagá-lo no frio.
-    /// </summary>
-    private const int AnoAnteriorDaPam = 1;
-
-    /// <summary>
-    /// A segunda leitura, com o cache de referência cheio — o medido depois do território e do potencial de referência
-    /// (doc 54 §3.1). Em consultas ao banco por chamada:
+    /// A segunda leitura, com o cache de referência cheio — o medido depois de cada etapa do documento 54. Em consultas ao
+    /// banco por chamada:
     ///
     /// <code>
-    /// rota              linha de base (03/10)   depois do cache de referência
-    /// indicadores                73                       58
-    /// demanda                    81                       29   (só território e potencial, sem a apuração)
-    /// diagnóstico                77                       62
-    /// cenários                   87                       35   (a Demanda por dentro)
-    /// dimensionamento            24                       24
-    /// financiamentos             16                       16
-    /// preços                     16                       16
+    /// rota              linha de base (03/10)   plano 1 (cache de referência)   plano 2 (estrutura de referência)
+    /// indicadores                73                       58                              43
+    /// demanda                    81                       29                              29
+    /// diagnóstico                77                       62                              47
+    /// cenários                   87                       35                              35
+    /// dimensionamento            24                       24                              24
+    /// financiamentos             16                       16                              16
+    /// preços                     16                       16                              16
     /// </code>
+    ///
+    /// <para>Neste cenário não há Censo nem rebanho, e metade das leituras da estrutura já era pulada: em produção, com as
+    /// fontes carregadas, a estrutura de referência tira perto de 31 consultas dos Indicadores e do Diagnóstico.</para>
     /// </summary>
     private static readonly Dictionary<string, int> TetoQuente = new(StringComparer.Ordinal)
     {
-        ["/api/v1/territorio/indicadores"] = 58,
+        ["/api/v1/territorio/indicadores"] = 43,
         ["/api/v1/mercado/demanda"] = 29,
-        ["/api/v1/mercado/diagnostico"] = 62,
+        ["/api/v1/mercado/diagnostico"] = 47,
         ["/api/v1/mercado/cenarios"] = 35,
         ["/api/v1/mercado/dimensionamento"] = 24,
         ["/api/v1/mercado/financiamentos"] = 16,
@@ -62,20 +50,19 @@ public sealed class OrcamentoDeConsultasNaApiTestes(ITestOutputHelper saida) : I
     };
 
     /// <summary>
-    /// A primeira leitura, com o cache de referência vazio. Onde a rota ainda passa pela apuração inteira, é a linha de base
-    /// mais a assinatura de cada assunto lido; a Demanda e os Cenários, que já não passam, têm o medido.
+    /// A primeira leitura, com o cache de referência vazio: a assinatura de cada assunto (uma consulta, plano 2) e a conta de
+    /// cada leitor de referência, uma vez para todas as telas — o medido.
     /// </summary>
     private static readonly Dictionary<string, int> TetoFrio = new(StringComparer.Ordinal)
     {
-        ["/api/v1/territorio/indicadores"] = 73 + AssinaturaDoTerritorio + AssinaturaDoPotencial + AnoAnteriorDaPam,
-        ["/api/v1/mercado/demanda"] = 55,
-        ["/api/v1/mercado/diagnostico"] = 77 + AssinaturaDoTerritorio + AssinaturaDoPotencial + AnoAnteriorDaPam,
-        ["/api/v1/mercado/cenarios"] = 61,
+        ["/api/v1/territorio/indicadores"] = 72,
+        ["/api/v1/mercado/demanda"] = 47,
+        ["/api/v1/mercado/diagnostico"] = 76,
+        ["/api/v1/mercado/cenarios"] = 53,
         ["/api/v1/mercado/dimensionamento"] = 24,
         ["/api/v1/mercado/financiamentos"] = 16,
         ["/api/v1/mercado/precos"] = 16,
     };
-
     private readonly ApiEmMemoria _api = new() { SegundosEntreConferenciasDaReferencia = 15 };
 
     public Task InitializeAsync() => _api.InitializeAsync();

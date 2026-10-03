@@ -15,7 +15,10 @@ public enum AssuntoDeReferencia
     Territorio,
 
     /// <summary>As regras, o catálogo do motor, a PAM e o estado.</summary>
-    Potencial
+    Potencial,
+
+    /// <summary>O parque, as propriedades, o rebanho, a área, as usinas e os totais do estado e da região (plano 2).</summary>
+    Estrutura
 }
 
 /// <summary>As opções do cache de referência — a seção <c>CacheDeReferencia</c>.</summary>
@@ -67,8 +70,8 @@ public interface IAssinaturaDosAssuntos
 /// grava em outro processo muda a assinatura sem precisar avisar ninguém; a rodada que não grava nada não muda nada.
 ///
 /// <para><b>Relida no máximo a cada <see cref="OpcoesDoCacheDeReferencia.SegundosEntreConferencias"/> segundos</b>, sob
-/// contexto de sistema: são cinco contas de máximo em colunas de tabelas pequenas. As gravações pela API entram na hora,
-/// sem esperar a janela.</para>
+/// contexto de sistema: é uma consulta só, com as contas de máximo e de contagem como subconsultas. As gravações pela API
+/// entram na hora, sem esperar a janela.</para>
 /// </summary>
 public sealed class AssinaturaDosAssuntos(
     IServiceScopeFactory fabrica,
@@ -98,38 +101,102 @@ public sealed class AssinaturaDosAssuntos(
         using var escopo = fabrica.CreateScope();
         var opcoesDoBanco = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
         await using var db = new CrmDbContext(opcoesDoBanco, ProvedorDeContextoDeSistema.Instancia);
+        return await LerDoBancoAsync(db, assunto, ct);
+    }
+
+    /// <summary>
+    /// A ASSINATURA NUMA CONSULTA SÓ (plano 2 do documento 54): cada conta de máximo e de contagem é uma subconsulta escalar
+    /// do mesmo SELECT. Cinco idas ao banco por assunto, a cada janela de 15 s, viravam o custo de quem abria a tela depois
+    /// de um minuto parado.
+    ///
+    /// <para><b>Ancorado numa linha do catálogo de categorias de máquina</b>, que a semente cria em todo banco do CRM (o de
+    /// produção, o de ensaio e o dos testes). Sem categoria não há potencial nem território a calcular, e a assinatura
+    /// sai vazia.</para>
+    /// </summary>
+    /// <param name="db">O banco, sob contexto de sistema.</param>
+    /// <param name="assunto">O assunto.</param>
+    /// <param name="ct">Cancelamento.</param>
+    public static async Task<string> LerDoBancoAsync(CrmDbContext db, AssuntoDeReferencia assunto, CancellationToken ct)
+    {
+        var ancora = db.CategoriasDeMaquina.AsNoTracking().OrderBy(c => c.Id).Take(1);
+
+        // O `Count(_ => true)` É DE PROPÓSITO: o `Count()` sem predicado, numa tabela que não depende da linha da âncora, o EF
+        // calcula ANTES, numa ida própria ao banco, e manda como parâmetro. Com o predicado ele vira subconsulta do mesmo
+        // SELECT — `COUNT(*)`, o mesmo número.
 
         if (assunto == AssuntoDeReferencia.Territorio)
         {
-            var area = await db.MunicipiosDaAreaDeAtuacao.AsNoTracking().MaxAsync(a => (DateTime?)a.ImportadoEm, ct);
-            var encerrada = await db.MunicipiosDaAreaDeAtuacao.AsNoTracking().MaxAsync(a => a.EncerradoEm, ct);
-
             // O CATÁLOGO DE MUNICÍPIOS MUDA SEM MUDAR DE TAMANHO: a carga reconhece o município no IBGE e ele ganha o código e
-            // o nome oficial na mesma linha (Municipio.ReconhecerNoIbge) — e só com o código ele entra na área. Sem data de
-            // alteração na tabela, a assinatura soma os códigos e o tamanho dos nomes, numa consulta só.
-            var municipios = await db.Municipios.AsNoTracking()
-                .GroupBy(_ => 1)
-                .Select(g => new
-                {
-                    Quantos = g.Count(),
-                    ComCodigo = g.Count(m => m.CodigoIbge != null),
-                    Codigos = g.Sum(m => (long?)m.CodigoIbge),
-                    Letras = g.Sum(m => (long)m.Nome.Length)
-                })
-                .FirstOrDefaultAsync(ct);
+            // o nome oficial na mesma linha (Municipio.ReconhecerNoIbge) — por isso a soma dos códigos e o tamanho dos nomes.
+            var t = await ancora.Select(_ => new
+            {
+                Area = db.MunicipiosDaAreaDeAtuacao.Max(a => (DateTime?)a.ImportadoEm),
+                Encerrada = db.MunicipiosDaAreaDeAtuacao.Max(a => a.EncerradoEm),
+                Municipios = db.Municipios.Count(_ => true),
+                ComCodigo = db.Municipios.Count(m => m.CodigoIbge != null),
+                Codigos = db.Municipios.Sum(m => (long?)m.CodigoIbge),
+                Letras = db.Municipios.Sum(m => (long?)m.Nome.Length),
+                Lojas = db.Empresas.Max(e => (DateTime?)(e.AlteradoEm ?? e.CriadoEm)),
+                QuantasLojas = db.Empresas.Count(_ => true)
+            }).FirstOrDefaultAsync(ct);
 
-            var lojas = await db.Empresas.AsNoTracking().MaxAsync(e => (DateTime?)(e.AlteradoEm ?? e.CriadoEm), ct);
-            var quantasLojas = await db.Empresas.AsNoTracking().CountAsync(ct);
-            return $"{area:O}|{encerrada:O}|{municipios?.Quantos}:{municipios?.ComCodigo}:{municipios?.Codigos}:{municipios?.Letras}" +
-                   $"|{lojas:O}|{quantasLojas}";
+            return t is null
+                ? string.Empty
+                : $"{t.Area:O}|{t.Encerrada:O}|{t.Municipios}:{t.ComCodigo}:{t.Codigos}:{t.Letras}|{t.Lojas:O}|{t.QuantasLojas}";
         }
 
-        var pam = await db.ProducoesAgricolasNosMunicipios.AsNoTracking().MaxAsync(p => (DateTime?)p.ImportadoEm, ct);
-        var linhasDaPam = await db.ProducoesAgricolasNosMunicipios.AsNoTracking().CountAsync(ct);
-        var regraInformada = await db.RegrasDePotencial.AsNoTracking().MaxAsync(r => (DateTime?)r.InformadoEm, ct);
-        var regraRevogada = await db.RegrasDePotencial.AsNoTracking().MaxAsync(r => r.RevogadoEm, ct);
-        var estado = await db.ProducoesAgricolasNosEstados.AsNoTracking().MaxAsync(p => (DateTime?)p.ImportadoEm, ct);
-        return $"{pam:O}|{linhasDaPam}|{regraInformada:O}|{regraRevogada:O}|{estado:O}";
+        if (assunto == AssuntoDeReferencia.Estrutura)
+        {
+            // A ESTRUTURA DEPENDE DE ONZE TABELAS: as cinco da estrutura, as usinas, o total publicado do estado, a PAM (o ano
+            // e a lavoura da região), a PAM do estado, a área de atuação (os totais da região) e o catálogo de municípios.
+            var e = await ancora.Select(_ => new
+            {
+                Area = db.MunicipiosDaAreaDeAtuacao.Max(a => (DateTime?)a.ImportadoEm),
+                AreaEncerrada = db.MunicipiosDaAreaDeAtuacao.Max(a => a.EncerradoEm),
+                LinhasDaArea = db.MunicipiosDaAreaDeAtuacao.Count(_ => true),
+                Pam = db.ProducoesAgricolasNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDaPam = db.ProducoesAgricolasNosMunicipios.Count(_ => true),
+                Estado = db.ProducoesAgricolasNosEstados.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDoEstado = db.ProducoesAgricolasNosEstados.Count(_ => true),
+                Frota = db.FrotasDeTratoresNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDaFrota = db.FrotasDeTratoresNosMunicipios.Count(_ => true),
+                Faixas = db.EstabelecimentosPorAreaNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDasFaixas = db.EstabelecimentosPorAreaNosMunicipios.Count(_ => true),
+                Utilizacao = db.UtilizacoesDasTerrasNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDaUtilizacao = db.UtilizacoesDasTerrasNosMunicipios.Count(_ => true),
+                Rebanho = db.RebanhosNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDoRebanho = db.RebanhosNosMunicipios.Count(_ => true),
+                AreaTerritorial = db.AreasTerritoriaisDosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDaAreaTerritorial = db.AreasTerritoriaisDosMunicipios.Count(_ => true),
+                Publicado = db.MedidasDoIbgeNosEstados.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDoPublicado = db.MedidasDoIbgeNosEstados.Count(_ => true),
+                Usina = db.UsinasDeEtanol.Max(x => (DateTime?)x.ImportadoEm),
+                UsinaEncerrada = db.UsinasDeEtanol.Max(x => x.EncerradaEm),
+                Usinas = db.UsinasDeEtanol.Count(_ => true),
+                Municipios = db.Municipios.Count(_ => true),
+                Codigos = db.Municipios.Sum(m => (long?)m.CodigoIbge)
+            }).FirstOrDefaultAsync(ct);
+
+            return e is null
+                ? string.Empty
+                : string.Join('|',
+                    $"{e.Area:O}", $"{e.AreaEncerrada:O}", e.LinhasDaArea, $"{e.Pam:O}", e.LinhasDaPam, $"{e.Estado:O}", e.LinhasDoEstado,
+                    $"{e.Frota:O}", e.LinhasDaFrota, $"{e.Faixas:O}", e.LinhasDasFaixas, $"{e.Utilizacao:O}", e.LinhasDaUtilizacao,
+                    $"{e.Rebanho:O}", e.LinhasDoRebanho, $"{e.AreaTerritorial:O}", e.LinhasDaAreaTerritorial,
+                    $"{e.Publicado:O}", e.LinhasDoPublicado, $"{e.Usina:O}", $"{e.UsinaEncerrada:O}", e.Usinas,
+                    e.Municipios, e.Codigos);
+        }
+
+        var p = await ancora.Select(_ => new
+        {
+            Pam = db.ProducoesAgricolasNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+            LinhasDaPam = db.ProducoesAgricolasNosMunicipios.Count(_ => true),
+            RegraInformada = db.RegrasDePotencial.Max(r => (DateTime?)r.InformadoEm),
+            RegraRevogada = db.RegrasDePotencial.Max(r => r.RevogadoEm),
+            Estado = db.ProducoesAgricolasNosEstados.Max(x => (DateTime?)x.ImportadoEm)
+        }).FirstOrDefaultAsync(ct);
+
+        return p is null ? string.Empty : $"{p.Pam:O}|{p.LinhasDaPam}|{p.RegraInformada:O}|{p.RegraRevogada:O}|{p.Estado:O}";
     }
 }
 

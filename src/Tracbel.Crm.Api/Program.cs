@@ -198,6 +198,10 @@ builder.Services.AddSingleton<IAssinaturaDosAssuntos, AssinaturaDosAssuntos>();
 builder.Services.AddSingleton<CacheDeReferencia>();
 builder.Services.AddSingleton<IRepositorioDoTerritorioDeReferencia, TerritorioDeReferenciaEmCache>();
 builder.Services.AddSingleton<IRepositorioDoPotencialDeReferencia, PotencialDeReferenciaEmCache>();
+builder.Services.AddSingleton<IRepositorioDaEstruturaDeReferencia, EstruturaDeReferenciaEmCache>();
+
+// O AQUECIMENTO NA SUBIDA (plano 2 do documento 54): as três referências e a apuração antes do primeiro usuário.
+builder.Services.AddHostedService<AquecimentoDaApi>();
 
 // -------------------------------------------------------------------------------------------
 // As portas do domínio e seus adaptadores. O caso de uso conhece a interface; só esta linha
@@ -222,7 +226,7 @@ builder.Services.AddScoped<IRepositorioDoDimensionamento, RepositorioDoDimension
 // e o histórico (todos os anos, um município).
 builder.Services.AddScoped<RepositorioDeIndicadoresTerritoriais>();
 builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais>(s => s.GetRequiredService<RepositorioDeIndicadoresTerritoriais>());
-builder.Services.AddScoped<IRepositorioHistoricoDoMunicipio>(s => s.GetRequiredService<RepositorioDeIndicadoresTerritoriais>());
+builder.Services.AddScoped<IRepositorioHistoricoDoMunicipio, RepositorioDoHistoricoDoMunicipio>();
 builder.Services.AddScoped<IRepositorioDePrecosDeMercado, RepositorioDePrecosDeMercado>();
 builder.Services.AddScoped<IRepositorioDosPrecosDasCulturas, RepositorioDosPrecosDasCulturas>();
 builder.Services.AddScoped<IRepositorioDoPrecoImplicito, RepositorioDoPrecoImplicito>();

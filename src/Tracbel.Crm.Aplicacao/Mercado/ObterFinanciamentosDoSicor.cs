@@ -234,7 +234,7 @@ public sealed class ObterFinanciamentosDoSicor(
                     municipio.LojaCodigo,
                     municipio.LojaNome,
                     j,
-                    Arredondar(fatia, 3),
+                    Numeros.Arredondar(fatia, 3),
                     fatia is { } f && fatiaAntes is { } fa ? decimal.Round(f - fa, 3) : null,
                     Indice(j));
             })
@@ -357,8 +357,6 @@ public sealed class ObterFinanciamentosDoSicor(
 
         return lacunas;
     }
-
-    private static decimal? Arredondar(decimal? valor, int casas) => valor is { } v ? decimal.Round(v, casas) : null;
 }
 
 /// <summary>A Gestão de Financiamentos consultada.</summary>

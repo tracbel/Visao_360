@@ -215,9 +215,9 @@ public sealed class ObterDimensionamentoDaAdr(
                         m.CodigoIbge,
                         m.Nome,
                         emFoco.Contains(m.CodigoIbge),
-                        Arredondar(medidas.Area),
-                        Arredondar(medidas.Quantidade),
-                        Arredondar(medidas.Valor),
+                        Numeros.Arredondar(medidas.Area),
+                        Numeros.Arredondar(medidas.Quantidade),
+                        Numeros.Arredondar(medidas.Valor),
                         carteiraDe.TryGetValue(m.CodigoIbge, out var c) ? c.Clientes.Clientes : null);
                 })
                 .ToList()
@@ -252,9 +252,9 @@ public sealed class ObterDimensionamentoDaAdr(
                         g.Key.LojaCodigo,
                         g.Key.LojaNome ?? "Sem loja responsável",
                         g.Count(),
-                        Arredondar(daLoja.Area),
-                        Arredondar(daLoja.Valor),
-                        Arredondar(daLoja.ReaisPorHectare),
+                        Numeros.Arredondar(daLoja.Area),
+                        Numeros.Arredondar(daLoja.Valor),
+                        Numeros.Arredondar(daLoja.ReaisPorHectare),
                         culturaDaProdutividade ? Tecnificacao(daLoja.Produtividade, atual.Produtividade) : null,
                         conta.CulturaPrincipal(codigos, anoDoPerfil));
                 })
@@ -273,7 +273,7 @@ public sealed class ObterDimensionamentoDaAdr(
                     return new MunicipioPrioritario(
                         m.CodigoIbge,
                         m.Nome,
-                        Arredondar(valor),
+                        Numeros.Arredondar(valor),
                         clientes.Clientes,
                         decimal.Round(100m * clientes.Faixas.Ate90 / clientes.Clientes, 1),
                         decimal.Round(100m * lacuna, 1),
@@ -357,9 +357,7 @@ public sealed class ObterDimensionamentoDaAdr(
         produtividade is { } p && media is > 0 ? decimal.Round(100m * p / media.Value, 1) : null;
 
     private static MedidaComAnterior ComAnterior(decimal? atual, decimal? anterior) =>
-        new(Arredondar(atual), Arredondar(anterior), atual is { } a && anterior is > 0 ? decimal.Round((a / anterior.Value - 1) * 100m, 1) : null);
-
-    private static decimal? Arredondar(decimal? valor) => valor is { } v ? decimal.Round(v, 2) : null;
+        new(Numeros.Arredondar(atual), Numeros.Arredondar(anterior), atual is { } a && anterior is > 0 ? decimal.Round((a / anterior.Value - 1) * 100m, 1) : null);
 
     private static List<MetricaSemDado> Lacunas(
         ProducaoParaODimensionamento producao,
@@ -468,10 +466,10 @@ public sealed class ObterDimensionamentoDaAdr(
         {
             var lista = linhas.ToList();
             return new Medidas(
-                SomaOuNulo(lista.Select(p => p.AreaPlantadaHectares)),
-                SomaOuNulo(lista.Select(p => p.AreaColhidaHectares)),
-                SomaOuNulo(lista.Select(p => p.QuantidadeToneladas)),
-                SomaOuNulo(lista.Select(p => p.ValorMilReais)));
+                Numeros.SomaOuNulo(lista.Select(p => p.AreaPlantadaHectares)),
+                Numeros.SomaOuNulo(lista.Select(p => p.AreaColhidaHectares)),
+                Numeros.SomaOuNulo(lista.Select(p => p.QuantidadeToneladas)),
+                Numeros.SomaOuNulo(lista.Select(p => p.ValorMilReais)));
         }
 
         /// <summary>A densidade econômica: o valor (em reais) por hectare plantado.</summary>
@@ -479,12 +477,6 @@ public sealed class ObterDimensionamentoDaAdr(
 
         /// <summary>A produtividade, como o IBGE: quantidade sobre área COLHIDA.</summary>
         public decimal? Produtividade => UnidadesDaPam.Produtividade(Quantidade, AreaColhida);
-
-        private static decimal? SomaOuNulo(IEnumerable<decimal?> valores)
-        {
-            var com = valores.OfType<decimal>().ToList();
-            return com.Count > 0 ? com.Sum() : null;
-        }
     }
 }
 

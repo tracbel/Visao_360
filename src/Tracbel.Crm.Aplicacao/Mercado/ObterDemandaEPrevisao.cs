@@ -207,8 +207,8 @@ public sealed class ObterDemandaEPrevisao(
 
         var totais = Totais(parcelas, comDemanda, daAdr.Count, potencial.RegrasAplicadas, codigoDaCategoria, todas) with
         {
-            ParqueAnoAnterior = Arredondar(SomaOuNulo(anteriores.Select(a => a.Demanda.Parque))),
-            DemandaEstruturalAnoAnterior = Arredondar(SomaOuNulo(anteriores.Select(a => a.Demanda.DemandaAnual))),
+            ParqueAnoAnterior = Numeros.Arredondar(Numeros.SomaOuNulo(anteriores.Select(a => a.Demanda.Parque))),
+            DemandaEstruturalAnoAnterior = Numeros.Arredondar(Numeros.SomaOuNulo(anteriores.Select(a => a.Demanda.DemandaAnual))),
             EntreguesNoPeriodo = comEntregas ? entregues.Count(d => d >= inicioDoAno && d < corte) : null,
             EntreguesNoPeriodoAnterior = comEntregas ? entregues.Count(d => d >= inicioDoAno.AddYears(-1) && d < corte.AddYears(-1)) : null,
             EntregasAte = comEntregas ? corte.AddDays(-1) : null
@@ -249,11 +249,11 @@ public sealed class ObterDemandaEPrevisao(
             .GroupBy(p => (p.Municipio.LojaCodigo, p.Municipio.LojaNome))
             .Select(g =>
             {
-                var anual = SomaOuNulo(g.Select(p => p.AEntregarAjustada ?? p.AEntregar));
+                var anual = Numeros.SomaOuNulo(g.Select(p => p.AEntregarAjustada ?? p.AEntregar));
                 return new EntregaDaLoja(
                     g.Key.LojaCodigo,
                     g.Key.LojaNome ?? "Sem loja responsável",
-                    Arredondar(anual),
+                    Numeros.Arredondar(anual),
                     [.. MesesDoAnoFiscal.Select(mes => Vezes(anual, fracoes[mes]))]);
             })
             .OrderByDescending(l => l.AEntregarNoAno ?? -1)
@@ -270,7 +270,7 @@ public sealed class ObterDemandaEPrevisao(
 
         var culturas = parcelas
             .GroupBy(p => (p.Demanda.CulturaCodigo, p.Demanda.Cultura))
-            .Select(g => new CulturaDaMatriz(g.Key.CulturaCodigo, g.Key.Cultura, Arredondar(SomaOuNulo(g.Select(p => p.Demanda.DemandaAnual)))))
+            .Select(g => new CulturaDaMatriz(g.Key.CulturaCodigo, g.Key.Cultura, Numeros.Arredondar(Numeros.SomaOuNulo(g.Select(p => p.Demanda.DemandaAnual)))))
             .OrderByDescending(c => c.Demanda ?? -1)
             .ToList();
 
@@ -340,11 +340,11 @@ public sealed class ObterDemandaEPrevisao(
             .ToList();
 
         return new TotaisDaDemanda(
-            Arredondar(SomaOuNulo(parcelas.Select(p => p.Demanda.Parque))),
-            Arredondar(SomaOuNulo(comDemanda.Select(p => p.Demanda.DemandaAnual))),
-            ajustadas.Count > 0 && ajustadas.All(a => a is not null) ? Arredondar(ajustadas.Sum()) : null,
-            Arredondar(SomaOuNulo(comDemanda.Select(p => p.AEntregar))),
-            Arredondar(SomaOuNulo(comDemanda.Select(p => p.AEntregarAjustada))),
+            Numeros.Arredondar(Numeros.SomaOuNulo(parcelas.Select(p => p.Demanda.Parque))),
+            Numeros.Arredondar(Numeros.SomaOuNulo(comDemanda.Select(p => p.Demanda.DemandaAnual))),
+            ajustadas.Count > 0 && ajustadas.All(a => a is not null) ? Numeros.Arredondar(ajustadas.Sum()) : null,
+            Numeros.Arredondar(Numeros.SomaOuNulo(comDemanda.Select(p => p.AEntregar))),
+            Numeros.Arredondar(Numeros.SomaOuNulo(comDemanda.Select(p => p.AEntregarAjustada))),
             culturasComRegra,
             municipios,
             comDemanda.Select(p => p.Municipio.CodigoIbge).Distinct().Count(),
@@ -357,27 +357,27 @@ public sealed class ObterDemandaEPrevisao(
             .GroupBy(p => (p.Demanda.CulturaCodigo, p.Demanda.Cultura))
             .Select(g =>
             {
-                var area = SomaOuNulo(g.Select(p => p.Demanda.AreaUtilHectares));
-                var parque = SomaOuNulo(g.Select(p => p.Demanda.Parque));
-                var demanda = SomaOuNulo(g.Select(p => p.Demanda.DemandaAnual));
+                var area = Numeros.SomaOuNulo(g.Select(p => p.Demanda.AreaUtilHectares));
+                var parque = Numeros.SomaOuNulo(g.Select(p => p.Demanda.Parque));
+                var demanda = Numeros.SomaOuNulo(g.Select(p => p.Demanda.DemandaAnual));
                 var ajustadas = g.Where(p => p.Demanda.DemandaAnual is not null).Select(p => p.Ajuste.DemandaAjustada).ToList();
                 decimal? ajustada = ajustadas.Count > 0 && ajustadas.All(a => a is not null) ? ajustadas.Sum() : null;
                 var antes = anteriores.Where(a => string.Equals(a.CulturaCodigo, g.Key.CulturaCodigo, StringComparison.Ordinal)).ToList();
                 return new DemandaDaCultura(
                     g.Key.CulturaCodigo,
                     g.Key.Cultura,
-                    Arredondar(area),
+                    Numeros.Arredondar(area),
                     // OS PARÂMETROS SAEM DA PRÓPRIA CONTA: ha/máquina = área ÷ parque e ciclo = parque ÷ demanda. Numa
                     // cultura com uma regra só, são exatamente os da regra; com duas categorias, é a média delas.
                     area is > 0 && parque is > 0 ? decimal.Round(area.Value / parque.Value, 1) : null,
                     parque is > 0 && demanda is > 0 ? decimal.Round(parque.Value / demanda.Value, 1) : null,
-                    Arredondar(parque),
-                    Arredondar(demanda),
-                    Arredondar(ajustada),
+                    Numeros.Arredondar(parque),
+                    Numeros.Arredondar(demanda),
+                    Numeros.Arredondar(ajustada),
                     demanda is > 0 && ajustada is { } a ? decimal.Round((a / demanda.Value - 1) * 100m, 1) : null,
-                    Arredondar(SomaOuNulo(antes.Select(x => x.AreaUtilHectares))),
-                    Arredondar(SomaOuNulo(antes.Select(x => x.Parque))),
-                    Arredondar(SomaOuNulo(antes.Select(x => x.DemandaAnual))));
+                    Numeros.Arredondar(Numeros.SomaOuNulo(antes.Select(x => x.AreaUtilHectares))),
+                    Numeros.Arredondar(Numeros.SomaOuNulo(antes.Select(x => x.Parque))),
+                    Numeros.Arredondar(Numeros.SomaOuNulo(antes.Select(x => x.DemandaAnual))));
             })
             .OrderByDescending(c => c.DemandaEstrutural ?? -1)
     ];
@@ -385,8 +385,8 @@ public sealed class ObterDemandaEPrevisao(
     private static DemandaDoMunicipioNaPrevisao Municipio(MunicipioDaDemanda m, List<Parcela> doMunicipio, List<DemandaNoMunicipio> anteriores)
     {
         var comDemanda = doMunicipio.Where(p => p.Demanda.DemandaAnual is not null).ToList();
-        var estrutural = SomaOuNulo(comDemanda.Select(p => p.Demanda.DemandaAnual));
-        var antes = SomaOuNulo(anteriores.Select(a => a.DemandaAnual));
+        var estrutural = Numeros.SomaOuNulo(comDemanda.Select(p => p.Demanda.DemandaAnual));
+        var antes = Numeros.SomaOuNulo(anteriores.Select(a => a.DemandaAnual));
         var ajustadas = comDemanda.Select(p => p.Ajuste.DemandaAjustada).ToList();
         decimal? ajustada = ajustadas.Count > 0 && ajustadas.All(a => a is not null) ? ajustadas.Sum() : null;
 
@@ -413,20 +413,20 @@ public sealed class ObterDemandaEPrevisao(
             m.Regiao,
             m.LojaCodigo,
             m.LojaNome,
-            Arredondar(SomaOuNulo(doMunicipio.Select(p => p.Demanda.AreaUtilHectares))),
-            Arredondar(SomaOuNulo(doMunicipio.Select(p => p.Demanda.Parque))),
+            Numeros.Arredondar(Numeros.SomaOuNulo(doMunicipio.Select(p => p.Demanda.AreaUtilHectares))),
+            Numeros.Arredondar(Numeros.SomaOuNulo(doMunicipio.Select(p => p.Demanda.Parque))),
             [.. comDemanda
                 .GroupBy(p => p.Demanda.CulturaCodigo)
-                .Select(g => new DemandaDaCulturaNoMunicipio(g.Key, Arredondar(g.Sum(p => p.Demanda.DemandaAnual!.Value))!.Value))],
-            Arredondar(estrutural),
-            Arredondar(ajustada),
-            Arredondar(SomaOuNulo(comDemanda.Select(p => p.AEntregar))),
-            Arredondar(SomaOuNulo(comDemanda.Select(p => p.AEntregarAjustada))),
+                .Select(g => new DemandaDaCulturaNoMunicipio(g.Key, Numeros.Arredondar(g.Sum(p => p.Demanda.DemandaAnual!.Value))!.Value))],
+            Numeros.Arredondar(estrutural),
+            Numeros.Arredondar(ajustada),
+            Numeros.Arredondar(Numeros.SomaOuNulo(comDemanda.Select(p => p.AEntregar))),
+            Numeros.Arredondar(Numeros.SomaOuNulo(comDemanda.Select(p => p.AEntregarAjustada))),
             Ponderado(f => f.ParcelaDePreco),
             Ponderado(f => f.ParcelaDeCredito),
             predominante,
             estrutural is > 0 && ajustada is { } a ? decimal.Round((a / estrutural.Value - 1) * 100m, 1) : null,
-            Arredondar(antes),
+            Numeros.Arredondar(antes),
             // A VARIAÇÃO CONTRA O ANO ANTERIOR é de estrutural com estrutural: a área plantada mudou, e só ela.
             estrutural is { } e && antes is > 0 ? decimal.Round((e / antes.Value - 1) * 100m, 1) : null);
     }
@@ -503,15 +503,7 @@ public sealed class ObterDemandaEPrevisao(
         return lacunas;
     }
 
-    private static decimal? SomaOuNulo(IEnumerable<decimal?> valores)
-    {
-        var com = valores.OfType<decimal>().ToList();
-        return com.Count > 0 ? com.Sum() : null;
-    }
-
     private static decimal? Vezes(decimal? valor, decimal fracao) => valor is { } v ? decimal.Round(v * fracao, 2) : null;
-
-    private static decimal? Arredondar(decimal? valor) => valor is { } v ? decimal.Round(v, 2) : null;
 }
 
 /// <summary>A demanda e a previsão da região consultada.</summary>

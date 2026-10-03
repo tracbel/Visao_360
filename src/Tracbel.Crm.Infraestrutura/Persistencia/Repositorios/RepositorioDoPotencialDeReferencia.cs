@@ -5,6 +5,7 @@ using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Persistencia.Cache;
+using static Tracbel.Crm.Infraestrutura.Persistencia.Repositorios.CodigosDoIbge;
 
 namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 
@@ -17,11 +18,6 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 public sealed class RepositorioDoPotencialDeReferencia(CrmDbContext contexto, IRepositorioDoMotorDoPotencial motor)
     : IRepositorioDoPotencialDeReferencia
 {
-    private const int CodigoDeSaoPaulo = 35;
-
-    /// <summary>Os produtos que contariam duas vezes numa soma de culturas — o café arábica e o canéfora (o total fica).</summary>
-    private static readonly int[] ProdutosQueDuplicamNaSoma = [40140, 40141];
-
     /// <inheritdoc />
     public async Task<PotencialDeReferencia> LerAsync(DateOnly hoje, CancellationToken ct)
     {
