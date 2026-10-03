@@ -25,7 +25,7 @@ namespace Tracbel.Crm.Api.Testes;
 /// precisam aparecer somados à parte para o total fechar.</para>
 /// </summary>
 [Trait("Categoria", "Territorio")]
-public sealed partial class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemoria>
+public sealed class IndicadoresTerritoriaisTestes(ApiEmMemoria api) : IClassFixture<ApiEmMemoria>
 {
     private const int RibeiraoPreto = 3543402;
     private const int Serrana = 3551504;
