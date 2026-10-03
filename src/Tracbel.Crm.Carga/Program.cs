@@ -1060,7 +1060,7 @@ if (somenteOrdensDeServico)
             ? null
             : await TravaDeFluxo.TomarAsync(AbrirContexto(), Tracbel.Crm.Dominio.Frota.OrdemDeServico.FluxoDaCarga, CancellationToken.None);
 
-        var resultadoDasOrdens = await cargaDasOrdens.ExecutarAsync(simular, aceitarRemocao, CancellationToken.None);
+        var resultadoDasOrdens = await cargaDasOrdens.ExecutarAsync(simular, aceitarRemocao, args.Contains("--completa", StringComparer.Ordinal), CancellationToken.None);
         if (!resultadoDasOrdens.EhSucesso)
         {
             Console.Error.WriteLine("A SINCRONIA DAS ORDENS DE SERVIÇO PAROU: " + resultadoDasOrdens.Erro);
@@ -1087,13 +1087,13 @@ if (somenteOrdensDeServico)
         Console.WriteLine();
         Console.WriteLine(Orquestrador.PrefixoDoResumo + string.Format(
             System.Globalization.CultureInfo.GetCultureInfo("pt-BR"),
-            "{0:N0} OS lidas; {1:N0} com cliente do CRM; {2:N0} novas, {3:N0} atualizadas, {4:N0} excluídas{5}.",
+            "{6}: {0:N0} OS lidas; {1:N0} com cliente do CRM; {2:N0} novas, {3:N0} atualizadas, {4:N0} excluídas{5}.",
             relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloDeOrdensLidas),
             relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloComCliente),
             relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloDeNovas),
             relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloDeAtualizadas),
             relatorio.Valor(CargaDasOrdensDeServicoDoProtheus.RotuloDeExcluidas),
-            relatorio.Simulada ? " (simulação: nada gravado)" : string.Empty));
+            relatorio.Simulada ? " (simulação: nada gravado)" : string.Empty, relatorio.Alcance));
         return 0;
     }
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)

@@ -14,10 +14,12 @@ namespace Tracbel.Crm.Carga;
 /// <param name="Simulada">Verdadeiro quando nada foi gravado.</param>
 /// <param name="Contagens">As contagens por etapa.</param>
 /// <param name="Observacoes">O que merece leitura humana — inclusive os totais em reais, para conferir com o BI.</param>
+/// <param name="Alcance">Curta ou completa, desde quando, e o que a completa corrigiu fora do alcance curto — vai para o resumo.</param>
 internal sealed record RelatorioDasOrdensDeServico(
     bool Simulada,
     IReadOnlyList<(string Etapa, string Rotulo, int Valor)> Contagens,
-    IReadOnlyList<string> Observacoes)
+    IReadOnlyList<string> Observacoes,
+    string Alcance = "")
 {
     /// <summary>A soma das contagens com este rótulo, em qualquer etapa.</summary>
     public int Valor(string rotulo) => Contagens.Where(c => c.Rotulo == rotulo).Sum(c => c.Valor);
@@ -40,15 +42,20 @@ internal sealed record RelatorioDasOrdensDeServico(
 /// <para><b>As travas das outras cargas</b>: mais de <see cref="FracaoMaximaDeRecusa"/> de OS ilegíveis (sem situação
 /// conhecida ou sem abertura), ou excluir mais de <see cref="FracaoMaximaDeRemocao"/> do que está vigente na janela,
 /// aborta a rodada inteira. Só <c>--aceitar-remocao</c>, no terminal, passa por cima da segunda.</para>
+///
+/// <para><b>Curta nos dias comuns, completa no domingo</b> (plano 3 do documento 54; <see cref="AlcanceDaLeitura"/>). A curta lê
+/// as OS abertas desde o mês dos últimos três dias, as ainda na oficina e as fechadas ou canceladas desde então — a VO1 não tem
+/// data de alteração —, e só exclui a OS aberta dentro dela: a antiga que não veio espera a completa, que conta o que corrigiu
+/// fora do alcance curto.</para>
 /// </summary>
 /// <param name="abrirContexto">Abre um contexto de banco com alcance de sistema.</param>
-/// <param name="ler">A leitura das views do Protheus, a partir da abertura dada.</param>
+/// <param name="ler">A leitura das views do Protheus, a partir da abertura dada e, na curta, das mudanças desde a data dada.</param>
 /// <param name="usuarioId">Quem roda a carga.</param>
 /// <param name="relogio">O relógio (UTC).</param>
 /// <param name="relatar">Onde a carga escreve o andamento.</param>
 internal sealed class CargaDasOrdensDeServicoDoProtheus(
     Func<CrmDbContext> abrirContexto,
-    Func<DateOnly, CancellationToken, Task<Resultado<LeituraDasOrdensDeServico>>> ler,
+    Func<DateOnly, DateOnly?, CancellationToken, Task<Resultado<LeituraDasOrdensDeServico>>> ler,
     long usuarioId,
     Func<DateTime> relogio,
     Action<string> relatar)
@@ -107,6 +114,12 @@ internal sealed class CargaDasOrdensDeServicoDoProtheus(
     /// <summary>Rótulo: reativadas.</summary>
     internal const string RotuloDeReativadas = "voltaram à origem (reativadas na mesma linha)";
 
+    /// <summary>Rótulo: o que só a completa vê.</summary>
+    internal const string RotuloCorrigidasForaDoCurto = "corrigidas fora do alcance curto — o que a leitura curta não teria visto";
+
+    /// <summary>O ponto da leitura completa: o instante dela decide quando a próxima é completa.</summary>
+    internal const string FluxoDaLeituraCompleta = "PROTHEUS.ORDENS_DE_SERVICO_COMPLETO";
+
     private readonly List<(string Etapa, string Rotulo, int Valor)> _contagens = [];
     private readonly List<string> _observacoes = [];
 
@@ -118,18 +131,33 @@ internal sealed class CargaDasOrdensDeServicoDoProtheus(
     internal static bool RemocaoPassaDaTrava(int vigentes, int aExcluir) =>
         vigentes >= JanelaMinima && aExcluir > vigentes * FracaoMaximaDeRemocao;
 
-    /// <summary>Executa a sincronia.</summary>
+    /// <summary>Executa a sincronia — curta ou completa pela agenda da semana.</summary>
     /// <param name="simular">Só planeja e conta.</param>
     /// <param name="aceitarRemocao">Passa por cima da trava de remoção — só no terminal.</param>
     /// <param name="ct">Cancelamento.</param>
-    public async Task<Resultado<RelatorioDasOrdensDeServico>> ExecutarAsync(bool simular, bool aceitarRemocao, CancellationToken ct)
+    public Task<Resultado<RelatorioDasOrdensDeServico>> ExecutarAsync(bool simular, bool aceitarRemocao, CancellationToken ct) =>
+        ExecutarAsync(simular, aceitarRemocao, completaPedida: false, ct);
+
+    /// <summary>Executa a sincronia.</summary>
+    /// <param name="simular">Só planeja e conta.</param>
+    /// <param name="aceitarRemocao">Passa por cima da trava de remoção — só no terminal.</param>
+    /// <param name="completaPedida">Força a leitura completa em qualquer dia (<c>--completa</c>).</param>
+    /// <param name="ct">Cancelamento.</param>
+    public async Task<Resultado<RelatorioDasOrdensDeServico>> ExecutarAsync(bool simular, bool aceitarRemocao, bool completaPedida, CancellationToken ct)
     {
         var agora = relogio();
         var hoje = DateOnly.FromDateTime(agora);
-        var desde = InicioDaJanela(hoje);
 
-        relatar($"Lendo as ordens de serviço do Protheus abertas desde {desde:dd/MM/yyyy}, e as ainda abertas (views do BI, só leitura)…");
-        var lida = await ler(desde, ct);
+        DateTime? ultimaCompleta;
+        await using (var banco = abrirContexto())
+            ultimaCompleta = await RodadaCompleta.LerAsync(banco, FluxoDaLeituraCompleta, ct);
+        var alcance = AlcanceDaLeitura.Decidir(agora, ultimaCompleta, completaPedida, InicioDaJanela(hoje));
+        var curta = alcance.Modo == ModoDaLeitura.Curta;
+
+        relatar(curta
+            ? $"Leitura curta das ordens de serviço: abertas, fechadas ou canceladas desde {alcance.Desde:dd/MM/yyyy}, e as ainda abertas ({alcance.Motivo})…"
+            : $"Lendo as ordens de serviço do Protheus abertas desde {alcance.Desde:dd/MM/yyyy}, e as ainda abertas — leitura COMPLETA ({alcance.Motivo})…");
+        var lida = await ler(alcance.Desde, curta ? alcance.Desde : null, ct);
         if (!lida.EhSucesso) return Resultado<RelatorioDasOrdensDeServico>.Indisponivel(lida.Erro!);
 
         var origem = lida.Valor;
@@ -144,7 +172,7 @@ internal sealed class CargaDasOrdensDeServicoDoProtheus(
         Plano plano;
         await using (var banco = abrirContexto())
         {
-            plano = await PlanejarAsync(banco, origem, hoje, ct);
+            plano = await PlanejarAsync(banco, origem, alcance, ct);
         }
 
         Relatar(origem, plano, hoje);
@@ -172,20 +200,35 @@ internal sealed class CargaDasOrdensDeServicoDoProtheus(
         if (simular)
         {
             relatar("SIMULAÇÃO: nada foi gravado — o plano foi calculado só com leitura.");
-            return Resultado<RelatorioDasOrdensDeServico>.Ok(new RelatorioDasOrdensDeServico(true, _contagens, _observacoes));
+            return Resultado<RelatorioDasOrdensDeServico>.Ok(new RelatorioDasOrdensDeServico(true, _contagens, _observacoes, TextoDoAlcance(alcance, plano)));
         }
 
         await AplicarAsync(plano, agora, origem, ct);
-        return Resultado<RelatorioDasOrdensDeServico>.Ok(new RelatorioDasOrdensDeServico(false, _contagens, _observacoes));
+        return Resultado<RelatorioDasOrdensDeServico>.Ok(new RelatorioDasOrdensDeServico(false, _contagens, _observacoes, TextoDoAlcance(alcance, plano)));
     }
+
+    /// <summary>O alcance da rodada em uma frase, para o resumo da rotina.</summary>
+    private static string TextoDoAlcance(AlcanceDaLeitura alcance, Plano plano) => alcance.Modo == ModoDaLeitura.Curta
+        ? string.Format(CultureInfo.GetCultureInfo("pt-BR"), "leitura curta desde {0:dd/MM/yyyy}", alcance.Desde)
+        : string.Format(CultureInfo.GetCultureInfo("pt-BR"), "leitura COMPLETA desde {0:dd/MM/yyyy}, {1:N0} OS corrigida(s) fora do alcance curto",
+            alcance.Desde, plano.CorrigidasForaDoCurto);
+
+    /// <summary>
+    /// SE SÓ A COMPLETA VERIA ESTA OS: aberta antes do início curto, fora da oficina, e sem fechamento nem cancelamento depois
+    /// dele. Na leitura curta nada é "fora do alcance curto".
+    /// </summary>
+    private static bool ForaDoAlcanceCurto(
+        AlcanceDaLeitura alcance, DateOnly abertaEm, SituacaoDaOrdemDeServico situacao, DateOnly? fechadaEm, DateOnly? canceladaEm) =>
+        alcance.Modo == ModoDaLeitura.Completa && abertaEm < alcance.InicioDaJanelaCurta && !OrdemDeServico.EstaEmAbertoNa(situacao)
+        && !(fechadaEm >= alcance.InicioDaJanelaCurta) && !(canceladaEm >= alcance.InicioDaJanelaCurta);
 
     // =============================================================================================
     // O plano — só leitura
     // =============================================================================================
 
-    private static async Task<Plano> PlanejarAsync(CrmDbContext banco, LeituraDasOrdensDeServico origem, DateOnly hoje, CancellationToken ct)
+    private static async Task<Plano> PlanejarAsync(CrmDbContext banco, LeituraDasOrdensDeServico origem, AlcanceDaLeitura alcance, CancellationToken ct)
     {
-        var plano = new Plano { EsquemaExiste = await EsquemaExisteAsync(banco, ct) };
+        var plano = new Plano { EsquemaExiste = await EsquemaExisteAsync(banco, ct), Completa = alcance.Modo == ModoDaLeitura.Completa };
 
         var empresaPorCodigo = await banco.Empresas.AsNoTracking().ToDictionaryAsync(e => e.Codigo, e => e.Id, StringComparer.Ordinal, ct);
 
@@ -301,23 +344,30 @@ internal sealed class CargaDasOrdensDeServicoDoProtheus(
             plano.Validas.Add((chave, dados));
             plano.Vistas.Add(chave);
 
+            var mudou = true;
             if (!noCrm.TryGetValue(chave, out var existente)) plano.Novas++;
             else
             {
                 if (existente.Excluida) plano.AReativar++;
                 if (existente.Hash != hash || existente.EmpresaId != empresaId || existente.ClienteId != clienteId
                     || existente.EquipamentoId != equipamentoId) plano.AAtualizar++;
-                else if (!existente.Excluida) plano.Iguais++;
+                else if (!existente.Excluida) { plano.Iguais++; mudou = false; }
             }
+
+            if (mudou && ForaDoAlcanceCurto(alcance, abertaEm.Value, situacao.Value, fechadaEm, canceladaEm)) plano.CorrigidasForaDoCurto++;
         }
 
         plano.ServicosSemOrdem = servicosPorOs.Where(s => !chavesDasOrdens.Contains(s.Key)).Sum(s => s.Value.Count);
 
-        // A EXCLUSÃO SÓ DENTRO DA JANELA: a OS fechada que envelheceu e saiu da leitura continua sendo história da máquina.
-        var desde = origem.Desde;
-        bool NaJanela(NoCrm o) => o.AbertaEm >= desde || OrdemDeServico.EstaEmAbertoNa(o.Situacao);
+        // A EXCLUSÃO SÓ DENTRO DA JANELA: a OS fechada que envelheceu e saiu da leitura continua sendo história da máquina. NA
+        // LEITURA CURTA a janela é só a das aberturas: a OS antiga, aberta aqui, que não veio pode ter sido fechada com a rotina
+        // parada — quem a exclui ou a atualiza é a completa.
+        var desde = alcance.Desde;
+        bool NaJanela(NoCrm o) => o.AbertaEm >= desde || (plano.Completa && OrdemDeServico.EstaEmAbertoNa(o.Situacao));
         plano.VigentesNaJanela = noCrm.Values.Count(o => !o.Excluida && NaJanela(o));
         plano.AExcluir.AddRange(noCrm.Values.Where(o => !o.Excluida && NaJanela(o) && !plano.Vistas.Contains(o.Chave)).Select(o => o.Chave));
+        if (plano.Completa)
+            plano.CorrigidasForaDoCurto += noCrm.Values.Count(o => o.AbertaEm < alcance.InicioDaJanelaCurta && plano.AExcluir.Contains(o.Chave));
         return plano;
     }
 
@@ -371,6 +421,9 @@ internal sealed class CargaDasOrdensDeServicoDoProtheus(
         await CargaDeTerritorio.RegistrarRodadaAsync(banco, sistemaId, OrdemDeServico.FluxoDaCarga, plano.Ordens, gravadas,
             plano.Recusadas + plano.SemFilial, ct, lidaEm.ToString("O", CultureInfo.InvariantCulture));
 
+        // O PONTO DA COMPLETA NA MESMA TRANSAÇÃO: a completa que cai no meio não vira "última completa".
+        if (plano.Completa) await RodadaCompleta.RegistrarAsync(banco, sistemaId, FluxoDaLeituraCompleta, lidaEm, plano.Ordens, gravadas, ct);
+
         await transacao.CommitAsync(ct);
         relatar($"Gravado ({gravadas:N0} OS novas, mudadas, reativadas ou excluídas; {origem.Itens.Count:N0} itens lidos). A sincronia pode " +
                 "rodar de novo a qualquer hora: sem mudança na origem, nada muda aqui.");
@@ -410,6 +463,8 @@ internal sealed class CargaDasOrdensDeServicoDoProtheus(
         Contar(EtapaDaSincronia, RotuloDeIguais, plano.Iguais);
         Contar(EtapaDaSincronia, RotuloDeReativadas, plano.AReativar);
         Contar(EtapaDaSincronia, RotuloDeExcluidas, plano.AExcluir.Count);
+        // A CONTA DA COMPLETA SAI ATÉ QUANDO É ZERO: "nenhuma OS corrigida" é a confirmação de que a leitura curta basta.
+        if (plano.Completa) Contar(EtapaDaSincronia, RotuloCorrigidasForaDoCurto, plano.CorrigidasForaDoCurto);
 
         // OS TOTAIS EM REAIS, nos recortes do painel "Pós-Venda (Serviços)" do BI — é por eles que se confere a régua.
         var brasil = CultureInfo.GetCultureInfo("pt-BR");
@@ -474,6 +529,8 @@ internal sealed class CargaDasOrdensDeServicoDoProtheus(
     private sealed class Plano
     {
         public bool EsquemaExiste { get; init; }
+        public bool Completa { get; init; }
+        public int CorrigidasForaDoCurto { get; set; }
         public int Ordens { get; set; }
         public int Recusadas { get; set; }
         public int SemFilial { get; set; }

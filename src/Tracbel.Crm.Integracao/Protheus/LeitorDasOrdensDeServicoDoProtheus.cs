@@ -125,6 +125,9 @@ public sealed record LeituraDasOrdensDeServico(
 /// convertida no banco pelos dois formatos possíveis (data de verdade, ou texto <c>DD/MM/AAAA</c> ou <c>AAAAMMDD</c>),
 /// porque o tipo da coluna da view não se vê daqui.</para>
 ///
+/// <para><b>A LEITURA CURTA</b> (plano 3 do documento 54): com <c>mudancasDesde</c>, entram também as OS fechadas ou canceladas
+/// desde ela — a OS aberta há meses e fechada ontem. Sem ele, a consulta é a de sempre.</para>
+///
 /// <para><b>O QUE NÃO VEM</b>: o histórico da Noroeste de 2022 a 2024, que o BI lê de outro banco
 /// (<c>NOROESTE_OS_FECHADA_HIST</c>), e o de-para de filial por consultor que o BI aplica por planilha
 /// (<c>De_Para_Filiais_e_Consultores.xlsx</c>) — planilha não é fonte; a filial é a do Protheus.</para>
@@ -155,6 +158,8 @@ public sealed class LeitorDasOrdensDeServicoDoProtheus(OpcoesDoBancoDoProtheus o
         FROM dbo.X_V_BI_SERVICOS_CAPA_E_ITENS_OS WITH (NOLOCK)
         WHERE {string.Format(CultureInfo.InvariantCulture, DataDaAbertura, "DATA_ABER")} >= @desde
            OR UPPER(LTRIM(RTRIM(CONVERT(varchar(5), STATUS_CAPA_OS)))) IN ('A', 'L', 'D')
+           OR (@mudancas IS NOT NULL AND ({string.Format(CultureInfo.InvariantCulture, DataDaAbertura, "DATA_FECH")} >= @mudancas
+               OR {string.Format(CultureInfo.InvariantCulture, DataDaAbertura, "DATA_CANC")} >= @mudancas))
         """;
 
     /// <summary>
@@ -174,12 +179,15 @@ public sealed class LeitorDasOrdensDeServicoDoProtheus(OpcoesDoBancoDoProtheus o
         WHERE {string.Format(CultureInfo.InvariantCulture, DataDaAbertura, "ABERTURA")} >= @desde
            OR (NULLIF(LTRIM(RTRIM(CONVERT(varchar(30), FECHAMENTO, 112))), '') IS NULL
                AND NULLIF(LTRIM(RTRIM(CONVERT(varchar(30), CANCELAMENTO, 112))), '') IS NULL)
+           OR (@mudancas IS NOT NULL AND ({string.Format(CultureInfo.InvariantCulture, DataDaAbertura, "FECHAMENTO")} >= @mudancas
+               OR {string.Format(CultureInfo.InvariantCulture, DataDaAbertura, "CANCELAMENTO")} >= @mudancas))
         """;
 
     /// <summary>Lê as duas views.</summary>
     /// <param name="desde">A primeira abertura da janela.</param>
+    /// <param name="mudancasDesde">Na leitura curta, desde quando entram também as OS fechadas ou canceladas; nulo é a de sempre.</param>
     /// <param name="ct">Cancelamento.</param>
-    public async Task<Resultado<LeituraDasOrdensDeServico>> LerAsync(DateOnly desde, CancellationToken ct)
+    public async Task<Resultado<LeituraDasOrdensDeServico>> LerAsync(DateOnly desde, DateOnly? mudancasDesde, CancellationToken ct)
     {
         if (!opcoes.EstaConfigurada)
             return Resultado<LeituraDasOrdensDeServico>.Indisponivel(
@@ -200,7 +208,7 @@ public sealed class LeitorDasOrdensDeServicoDoProtheus(OpcoesDoBancoDoProtheus o
         {
             await using var conexao = new SqlConnection(construtor.ConnectionString);
             await conexao.OpenAsync(ct);
-            return Resultado<LeituraDasOrdensDeServico>.Ok(await LerAsync(conexao, desde, ct));
+            return Resultado<LeituraDasOrdensDeServico>.Ok(await LerAsync(conexao, desde, mudancasDesde, ct));
         }
         catch (SqlException falha)
         {
@@ -217,16 +225,18 @@ public sealed class LeitorDasOrdensDeServicoDoProtheus(OpcoesDoBancoDoProtheus o
         }
     }
 
-    /// <summary>Lê as duas views numa conexão já aberta — a do teste de contêiner, ou a de <see cref="LerAsync(DateOnly, CancellationToken)"/>.</summary>
+    /// <summary>Lê as duas views numa conexão já aberta — a do teste de contêiner, ou a de <see cref="LerAsync(DateOnly, DateOnly?, CancellationToken)"/>.</summary>
     /// <param name="conexao">A conexão aberta.</param>
     /// <param name="desde">A primeira abertura da janela.</param>
+    /// <param name="mudancasDesde">Na leitura curta, desde quando entram também as OS fechadas ou canceladas.</param>
     /// <param name="ct">Cancelamento.</param>
-    public static async Task<LeituraDasOrdensDeServico> LerAsync(SqlConnection conexao, DateOnly desde, CancellationToken ct)
+    public static async Task<LeituraDasOrdensDeServico> LerAsync(SqlConnection conexao, DateOnly desde, DateOnly? mudancasDesde, CancellationToken ct)
     {
         var itens = new List<ItemDaOrdemNaOrigem>(200_000);
         await using (var comando = new SqlCommand(ConsultaDosItens, conexao) { CommandTimeout = 900 })
         {
             comando.Parameters.Add(new SqlParameter("@desde", System.Data.SqlDbType.Date) { Value = desde.ToDateTime(TimeOnly.MinValue) });
+            comando.Parameters.Add(new SqlParameter("@mudancas", System.Data.SqlDbType.Date) { Value = (object?)mudancasDesde?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value });
             await using var leitor = await comando.ExecuteReaderAsync(ct);
             while (await leitor.ReadAsync(ct))
             {
@@ -265,6 +275,7 @@ public sealed class LeitorDasOrdensDeServicoDoProtheus(OpcoesDoBancoDoProtheus o
         await using (var comando = new SqlCommand(ConsultaDosServicos, conexao) { CommandTimeout = 900 })
         {
             comando.Parameters.Add(new SqlParameter("@desde", System.Data.SqlDbType.Date) { Value = desde.ToDateTime(TimeOnly.MinValue) });
+            comando.Parameters.Add(new SqlParameter("@mudancas", System.Data.SqlDbType.Date) { Value = (object?)mudancasDesde?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value });
             await using var leitor = await comando.ExecuteReaderAsync(ct);
             while (await leitor.ReadAsync(ct))
             {

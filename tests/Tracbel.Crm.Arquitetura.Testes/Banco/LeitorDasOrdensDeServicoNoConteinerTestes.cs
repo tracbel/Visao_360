@@ -56,7 +56,7 @@ public sealed class LeitorDasOrdensDeServicoNoConteinerTestes
                  '1', 0, '1', 'C', 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 80, 150, 0, 0, 0, 0);
             """);
 
-        var resultado = await new LeitorDasOrdensDeServicoDoProtheus(Opcoes()).LerAsync(new DateOnly(2023, 10, 1), CancellationToken.None);
+        var resultado = await new LeitorDasOrdensDeServicoDoProtheus(Opcoes()).LerAsync(new DateOnly(2023, 10, 1), null, CancellationToken.None);
 
         resultado.EhSucesso.Should().BeTrue(resultado.Erro ?? string.Empty);
         var leitura = resultado.Valor;
@@ -90,12 +90,48 @@ public sealed class LeitorDasOrdensDeServicoNoConteinerTestes
     }
 
     [FatoSeHouverSqlServer]
+    public async Task A_leitura_curta_traz_a_OS_antiga_fechada_ha_pouco_so_quando_pede_as_mudancas()
+    {
+        RecriarBancoComAsViews();
+
+        Executar($"""
+            INSERT INTO dbo.X_V_BI_SERVICOS_CAPA_E_ITENS_OS (FILIAL, NUMERO_OS, STATUS_CAPA_OS, DESC_TIPO_ATEND_CAPA, DATA_ABER, DATA_LIBE,
+                DATA_CANC, DATA_FECH, CHASSI, MODELO, HORIME, CPF_CNPJ, PEC_OU_SRV, TIPO_TEMPO, COD_ITEM, NOSS_NUM_REQ, QTDADE, VLR_UNIT,
+                VLR_DESC, FORMULA, GRUPO, PROD_REQ, ORIGI_PARALE) VALUES
+                -- Aberta em 2021 e fechada em setembro de 2026: só a leitura curta, pelas mudanças, a traz.
+                ('010101', '00000999', 'F', 'OFICINA', '2021-03-10', NULL, NULL, '2026-09-20', 'PY6110J055555', 'TRATOR 6110J', NULL,
+                 '{CnpjDoProprietario}', 'PEÇ', 'C', 'PECA-5', '00000005', 1, 10, 0, NULL, NULL, NULL, NULL),
+                -- Aberta em 2021 e cancelada em 2022: fora das duas.
+                ('010105', '00000888', 'C', 'OFICINA', '2021-03-10', NULL, '2022-01-05', NULL, 'PY6110J099999', 'TRATOR 6110J', NULL,
+                 '{CnpjDoProprietario}', 'PEÇ', 'C', 'PECA-9', '00000001', 1, 10, 0, NULL, NULL, NULL, NULL);
+
+            INSERT INTO dbo.X_V_BI_SERVICOS_SRV_EXECUTADO_OS (VO4_FILIAL, VO4_NUMOSV, COD_PROD, ABERTURA, FECHAMENTO, CANCELAMENTO, TpTpo,
+                Desc_TpTpo, TpServico, GruServico, CodServico, DEP_INT_OS, DEP_GAR_OS, VOK_INCMOB, VOK_PREKIL, VOI_SITTPO, VO4_TIPTEM,
+                TEMPAD, TEMTRA, TEMCOB, TEMVEN, TEMPAD_TOTAL, TEMTRA_TOTAL, TEMCOB_TOTAL, TEMVEN_TOTAL, VZ1_VALDES, VSC_VALDES, VO4_VALDES,
+                VO4_PREKIL, VO4_KILROD, VSC_KILROD, VO4_VALINT, VO4_VALHOR, VO4_VALVEN, VZ1_VALUNI, VZ1_VALBRU, VSC_VALBRU) VALUES
+                ('010101', '00000999', 'TEC05', '10/03/2021', '20/09/2026', '', 'C', 'CLIENTE', 'MO', 'AG', 'REVISAO', NULL, NULL,
+                 '1', 0, '1', 'C', 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 80, 150, 0, 0, 0, 0),
+                ('010105', '00000888', 'TEC03', '10/03/2021', '', '05/01/2022', 'C', 'CLIENTE', 'MO', 'AG', 'REVISAO', NULL, NULL,
+                 '1', 0, '1', 'C', 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 80, 150, 0, 0, 0, 0);
+            """);
+
+        var leitor = new LeitorDasOrdensDeServicoDoProtheus(Opcoes());
+        var curta = (await leitor.LerAsync(new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 1), CancellationToken.None)).Valor;
+        var semAsMudancas = (await leitor.LerAsync(new DateOnly(2026, 9, 1), null, CancellationToken.None)).Valor;
+
+        curta.Itens.Select(i => i.NumeroOs).Should().BeEquivalentTo(["00000999"], "fechada em 20/09/2026, depois do início curto");
+        curta.Servicos.Select(s => s.NumeroOs).Should().BeEquivalentTo(["00000999"]);
+        semAsMudancas.Itens.Should().BeEmpty("sem as mudanças, a consulta é a de sempre: abertura ou situação em aberto");
+        semAsMudancas.Servicos.Should().BeEmpty();
+    }
+
+    [FatoSeHouverSqlServer]
     public async Task A_view_que_nao_existe_diz_o_motivo_sem_citar_servidor_nem_usuario()
     {
         RecriarBancoComAsViews();
         Executar("DROP TABLE dbo.X_V_BI_SERVICOS_SRV_EXECUTADO_OS;");
 
-        var resultado = await new LeitorDasOrdensDeServicoDoProtheus(Opcoes()).LerAsync(new DateOnly(2023, 10, 1), CancellationToken.None);
+        var resultado = await new LeitorDasOrdensDeServicoDoProtheus(Opcoes()).LerAsync(new DateOnly(2023, 10, 1), null, CancellationToken.None);
 
         resultado.EhSucesso.Should().BeFalse();
         resultado.Erro.Should().Contain("erro SQL 208").And.Contain("não existe neste banco").And.NotContain(Opcoes().Usuario!);

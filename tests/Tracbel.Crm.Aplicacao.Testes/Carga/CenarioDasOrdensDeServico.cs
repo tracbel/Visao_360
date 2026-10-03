@@ -63,7 +63,12 @@ internal static class CenarioDasOrdensDeServico
         DateTime quando, IEnumerable<ItemDaOrdemNaOrigem>? itens = null, IEnumerable<ServicoExecutadoNaOrigem>? servicos = null) =>
         new(CargaDasOrdensDeServicoDoProtheus.InicioDaJanela(DateOnly.FromDateTime(quando)), [.. itens ?? ItensPadrao()], [.. servicos ?? ServicosPadrao()]);
 
-    /// <summary>A carga sobre a leitura dada.</summary>
-    public static CargaDasOrdensDeServicoDoProtheus Sincronia(Func<CrmDbContext> abrir, LeituraDasOrdensDeServico leitura, DateTime agora, long operador) =>
-        new(abrir, (_, _) => Task.FromResult(Resultado<LeituraDasOrdensDeServico>.Ok(leitura)), operador, () => agora, _ => { });
+    /// <summary>A carga sobre a leitura dada; <paramref name="pedidos"/> anota a janela que a carga pediu à leitura.</summary>
+    public static CargaDasOrdensDeServicoDoProtheus Sincronia(
+        Func<CrmDbContext> abrir, LeituraDasOrdensDeServico leitura, DateTime agora, long operador, List<(DateOnly Desde, DateOnly? Mudancas)>? pedidos = null) =>
+        new(abrir, (desde, mudancas, _) =>
+        {
+            pedidos?.Add((desde, mudancas));
+            return Task.FromResult(Resultado<LeituraDasOrdensDeServico>.Ok(leitura));
+        }, operador, () => agora, _ => { });
 }
