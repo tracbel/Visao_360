@@ -132,6 +132,7 @@ public sealed class CacheDeReferenciaTestes(ApiEmMemoria api) : IClassFixture<Ap
     [Theory]
     [InlineData(AssuntoDeReferencia.Territorio)]
     [InlineData(AssuntoDeReferencia.Potencial)]
+    [InlineData(AssuntoDeReferencia.Estrutura)]
     public async Task A_assinatura_de_cada_assunto_e_uma_consulta_so(AssuntoDeReferencia assunto)
     {
         var assinatura = api.Services.GetRequiredService<IAssinaturaDosAssuntos>();

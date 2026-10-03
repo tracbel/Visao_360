@@ -15,7 +15,10 @@ public enum AssuntoDeReferencia
     Territorio,
 
     /// <summary>As regras, o catálogo do motor, a PAM e o estado.</summary>
-    Potencial
+    Potencial,
+
+    /// <summary>O parque, as propriedades, o rebanho, a área, as usinas e os totais do estado e da região (plano 2).</summary>
+    Estrutura
 }
 
 /// <summary>As opções do cache de referência — a seção <c>CacheDeReferencia</c>.</summary>
@@ -140,6 +143,48 @@ public sealed class AssinaturaDosAssuntos(
             return t is null
                 ? string.Empty
                 : $"{t.Area:O}|{t.Encerrada:O}|{t.Municipios}:{t.ComCodigo}:{t.Codigos}:{t.Letras}|{t.Lojas:O}|{t.QuantasLojas}";
+        }
+
+        if (assunto == AssuntoDeReferencia.Estrutura)
+        {
+            // A ESTRUTURA DEPENDE DE ONZE TABELAS: as cinco da estrutura, as usinas, o total publicado do estado, a PAM (o ano
+            // e a lavoura da região), a PAM do estado, a área de atuação (os totais da região) e o catálogo de municípios.
+            var e = await ancora.Select(_ => new
+            {
+                Area = db.MunicipiosDaAreaDeAtuacao.Max(a => (DateTime?)a.ImportadoEm),
+                AreaEncerrada = db.MunicipiosDaAreaDeAtuacao.Max(a => a.EncerradoEm),
+                LinhasDaArea = db.MunicipiosDaAreaDeAtuacao.Count(_ => true),
+                Pam = db.ProducoesAgricolasNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDaPam = db.ProducoesAgricolasNosMunicipios.Count(_ => true),
+                Estado = db.ProducoesAgricolasNosEstados.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDoEstado = db.ProducoesAgricolasNosEstados.Count(_ => true),
+                Frota = db.FrotasDeTratoresNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDaFrota = db.FrotasDeTratoresNosMunicipios.Count(_ => true),
+                Faixas = db.EstabelecimentosPorAreaNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDasFaixas = db.EstabelecimentosPorAreaNosMunicipios.Count(_ => true),
+                Utilizacao = db.UtilizacoesDasTerrasNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDaUtilizacao = db.UtilizacoesDasTerrasNosMunicipios.Count(_ => true),
+                Rebanho = db.RebanhosNosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDoRebanho = db.RebanhosNosMunicipios.Count(_ => true),
+                AreaTerritorial = db.AreasTerritoriaisDosMunicipios.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDaAreaTerritorial = db.AreasTerritoriaisDosMunicipios.Count(_ => true),
+                Publicado = db.MedidasDoIbgeNosEstados.Max(x => (DateTime?)x.ImportadoEm),
+                LinhasDoPublicado = db.MedidasDoIbgeNosEstados.Count(_ => true),
+                Usina = db.UsinasDeEtanol.Max(x => (DateTime?)x.ImportadoEm),
+                UsinaEncerrada = db.UsinasDeEtanol.Max(x => x.EncerradaEm),
+                Usinas = db.UsinasDeEtanol.Count(_ => true),
+                Municipios = db.Municipios.Count(_ => true),
+                Codigos = db.Municipios.Sum(m => (long?)m.CodigoIbge)
+            }).FirstOrDefaultAsync(ct);
+
+            return e is null
+                ? string.Empty
+                : string.Join('|',
+                    $"{e.Area:O}", $"{e.AreaEncerrada:O}", e.LinhasDaArea, $"{e.Pam:O}", e.LinhasDaPam, $"{e.Estado:O}", e.LinhasDoEstado,
+                    $"{e.Frota:O}", e.LinhasDaFrota, $"{e.Faixas:O}", e.LinhasDasFaixas, $"{e.Utilizacao:O}", e.LinhasDaUtilizacao,
+                    $"{e.Rebanho:O}", e.LinhasDoRebanho, $"{e.AreaTerritorial:O}", e.LinhasDaAreaTerritorial,
+                    $"{e.Publicado:O}", e.LinhasDoPublicado, $"{e.Usina:O}", $"{e.UsinaEncerrada:O}", e.Usinas,
+                    e.Municipios, e.Codigos);
         }
 
         var p = await ancora.Select(_ => new
