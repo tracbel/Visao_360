@@ -18,14 +18,9 @@
  * compartilhada; não há captura de referência que dependa da ordem afetada
  * (a tela abre no modo "Minha performance", com 1 único CEN).
  */
+import { formatarBRLCompacto } from './formatadores';
 import { obterOportunidadesNovas } from './persistencia';
 import type { PerfCen, PerfDetalheCen, PerfGrupo, PerfSeries, PersonaPerf } from '../tipos/performanceCen';
-
-function fmtBRLcompact(v: number): string {
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(v >= 10_000_000 ? 1 : 2)}M`;
-  if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(0)}k`;
-  return `R$ ${v}`;
-}
 
 /** Retorno de `calcularPerfCEN` (app.js linha 6025 / perf-block.js linha 108). */
 export function calcularPerfCEN(cenId: string, cens: PerfCen[], series: PerfSeries): PerfDetalheCen {
@@ -184,7 +179,7 @@ export function gerarInsights(
       insights.push({
         tipo: 'info',
         icon: '💰',
-        texto: `<strong>Discrepância de ticket médio</strong>: ${alto.cen.nome.split(' ')[0]} (${fmtBRLcompact(alto.ticket_medio_fytd)}) vende ${((alto.ticket_medio_fytd / baixo.ticket_medio_fytd - 1) * 100).toFixed(0)}% acima de ${baixo.cen.nome.split(' ')[0]} (${fmtBRLcompact(baixo.ticket_medio_fytd)}). Verificar mix de produto e perfil de cliente.`,
+        texto: `<strong>Discrepância de ticket médio</strong>: ${alto.cen.nome.split(' ')[0]} (${formatarBRLCompacto(alto.ticket_medio_fytd)}) vende ${((alto.ticket_medio_fytd / baixo.ticket_medio_fytd - 1) * 100).toFixed(0)}% acima de ${baixo.cen.nome.split(' ')[0]} (${formatarBRLCompacto(baixo.ticket_medio_fytd)}). Verificar mix de produto e perfil de cliente.`,
       });
     }
   }
@@ -215,13 +210,13 @@ export function gerarInsights(
     insights.push({
       tipo: d.fytd_atingimento >= mediaRegional.fytd_atingimento ? 'ok' : 'warn',
       icon: d.fytd_atingimento >= mediaRegional.fytd_atingimento ? '✅' : '⚠️',
-      texto: `<strong>Comparado com média MT Norte</strong>: seu atingimento FYTD é ${(d.fytd_atingimento * 100).toFixed(0)}% vs ${(mediaRegional.fytd_atingimento * 100).toFixed(0)}% da regional. Ticket médio: ${fmtBRLcompact(d.ticket_medio_fytd)} vs ${fmtBRLcompact(mediaRegional.ticket_medio_fytd)}.`,
+      texto: `<strong>Comparado com média MT Norte</strong>: seu atingimento FYTD é ${(d.fytd_atingimento * 100).toFixed(0)}% vs ${(mediaRegional.fytd_atingimento * 100).toFixed(0)}% da regional. Ticket médio: ${formatarBRLCompacto(d.ticket_medio_fytd)} vs ${formatarBRLCompacto(mediaRegional.ticket_medio_fytd)}.`,
     });
     if (d.mes_atingimento < 0.85) {
       insights.push({
         tipo: 'warn',
         icon: '🎯',
-        texto: `<strong>Atingimento de agosto em ${(d.mes_atingimento * 100).toFixed(0)}%</strong> — parcial de 17 dias úteis. Faltam ${fmtBRLcompact(d.mes_meta - d.mes_vendas)} para bater os R$ ${(d.mes_meta / 1e6).toFixed(1)}M do mês. Pipeline aberto: ${fmtBRLcompact(d.pipeline_aberto)}.`,
+        texto: `<strong>Atingimento de agosto em ${(d.mes_atingimento * 100).toFixed(0)}%</strong> — parcial de 17 dias úteis. Faltam ${formatarBRLCompacto(d.mes_meta - d.mes_vendas)} para bater os R$ ${(d.mes_meta / 1e6).toFixed(1)}M do mês. Pipeline aberto: ${formatarBRLCompacto(d.pipeline_aberto)}.`,
       });
     }
   }

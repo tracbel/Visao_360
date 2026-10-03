@@ -26,18 +26,13 @@ import {
 } from 'chart.js';
 import { Link } from 'react-router-dom';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import { formatarBRLCompacto } from '../dados/formatadores';
 import type { PosVendasCliente } from '../tipos/clientes';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
 function fmtBRL(v: number): string {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-}
-
-function fmtBRLcompact(v: number): string {
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(v >= 10_000_000 ? 1 : 2)}M`;
-  if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(0)}k`;
-  return `R$ ${v}`;
 }
 
 function fmtData(iso: string): string {
@@ -152,11 +147,11 @@ export function AbaPosVendas({ dados: p }: Props) {
           <div className="pv-kpi-valor">{fmtBRL(p.fat_pv.fytd_total)}</div>
           <div className="pv-kpi-hint">
             <span className="pv-kpi-split">
-              <b>{fmtBRLcompact(p.fat_pv.fytd_pecas)}</b> peças
+              <b>{formatarBRLCompacto(p.fat_pv.fytd_pecas)}</b> peças
             </span>
             <span className="pv-kpi-sep">·</span>
             <span className="pv-kpi-split">
-              <b>{fmtBRLcompact(p.fat_pv.fytd_servicos)}</b> serviços
+              <b>{formatarBRLCompacto(p.fat_pv.fytd_servicos)}</b> serviços
             </span>
           </div>
           <div className="pv-kpi-sub">
@@ -182,7 +177,7 @@ export function AbaPosVendas({ dados: p }: Props) {
               <span className="pv-badge pv-badge-green">todas no prazo</span>
             )}
             <span className="pv-kpi-sep">·</span>
-            <span>{fmtBRLcompact(p.os_abertas.reduce((s, o) => s + o.valor, 0))} em execução</span>
+            <span>{formatarBRLCompacto(p.os_abertas.reduce((s, o) => s + o.valor, 0))} em execução</span>
           </div>
         </div>
 
@@ -362,7 +357,7 @@ export function AbaPosVendas({ dados: p }: Props) {
                     <span className={`pv-status pv-status-${o.status_cor}`}>{o.status}</span>
                   </td>
                   <td>{o.tecnico}</td>
-                  <td className="num pv-mono">{o.valor > 0 ? fmtBRLcompact(o.valor) : <span className="pv-tenue">—</span>}</td>
+                  <td className="num pv-mono">{o.valor > 0 ? formatarBRLCompacto(o.valor) : <span className="pv-tenue">—</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -466,7 +461,7 @@ export function AbaPosVendas({ dados: p }: Props) {
                   <td>
                     {fmtData(c.inicio)} → {fmtData(c.fim)}
                   </td>
-                  <td className="num pv-mono">{fmtBRLcompact(c.valor_anual)}</td>
+                  <td className="num pv-mono">{formatarBRLCompacto(c.valor_anual)}</td>
                 </tr>
               ))}
             </tbody>
@@ -482,7 +477,7 @@ export function AbaPosVendas({ dados: p }: Props) {
           <div className="pv-op-corpo">
             <div className="pv-op-valor">
               <span className="pv-op-label">Potencial anual estimado</span>
-              <span className="pv-op-num">{fmtBRLcompact(p.frota_sem_jdcp.reduce((s, x) => s + x.potencial, 0))}</span>
+              <span className="pv-op-num">{formatarBRLCompacto(p.frota_sem_jdcp.reduce((s, x) => s + x.potencial, 0))}</span>
             </div>
             <ul className="pv-op-lista">
               {p.frota_sem_jdcp.map((e) => (
@@ -490,7 +485,7 @@ export function AbaPosVendas({ dados: p }: Props) {
                   <span>
                     {e.modelo} · {e.ano} · chassi ...{e.chassi.slice(-6)}
                   </span>
-                  <span className="pv-mono">{fmtBRLcompact(e.potencial)}/ano</span>
+                  <span className="pv-mono">{formatarBRLCompacto(e.potencial)}/ano</span>
                 </li>
               ))}
             </ul>
