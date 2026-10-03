@@ -1150,7 +1150,7 @@ if (somentePecasDoProtheus)
             ? null
             : await TravaDeFluxo.TomarAsync(AbrirContexto(), Tracbel.Crm.Dominio.Comercial.FaturamentoDePecasNoMes.FluxoDaCarga, CancellationToken.None);
 
-        var resultadoDasPecas = await cargaDasPecas.ExecutarAsync(simular, aceitarRemocao, CancellationToken.None);
+        var resultadoDasPecas = await cargaDasPecas.ExecutarAsync(simular, aceitarRemocao, args.Contains("--completa", StringComparer.Ordinal), CancellationToken.None);
         if (!resultadoDasPecas.EhSucesso)
         {
             Console.Error.WriteLine("A CARGA DAS PEÇAS PAROU: " + resultadoDasPecas.Erro);
@@ -1176,12 +1176,12 @@ if (somentePecasDoProtheus)
         Console.WriteLine();
         Console.WriteLine(Orquestrador.PrefixoDoResumo + string.Format(
             System.Globalization.CultureInfo.GetCultureInfo("pt-BR"),
-            "{0:N0} combinações do faturamento de peças ({1:N0} com cliente); {2:N0} orçamentos, {3:N0} novos{4}.",
+            "{5}: {0:N0} combinações do faturamento de peças ({1:N0} com cliente); {2:N0} orçamentos, {3:N0} novos{4}.",
             relatorioDasPecas.Valor(CargaDasPecasDoProtheus.RotuloDeCombinacoes),
             relatorioDasPecas.Valor(CargaDasPecasDoProtheus.RotuloDeCombinacoesComCliente),
             relatorioDasPecas.Valor(CargaDasPecasDoProtheus.RotuloDeOrcamentos),
             relatorioDasPecas.Valor(CargaDasPecasDoProtheus.RotuloDeNovos),
-            relatorioDasPecas.Simulada ? " (simulação: nada gravado)" : string.Empty));
+            relatorioDasPecas.Simulada ? " (simulação: nada gravado)" : string.Empty, relatorioDasPecas.Alcance));
         return 0;
     }
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)

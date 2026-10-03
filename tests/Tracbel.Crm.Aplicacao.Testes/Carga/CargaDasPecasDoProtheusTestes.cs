@@ -53,8 +53,11 @@ public sealed class CargaDasPecasDoProtheusTestes : IDisposable
 
     private CrmDbContext DaCarga() => new(_opcoes, new ContextoDeCargaDeSistema(_semente.Operador, _semente.RibeiraoPreto, _semente.Filiais));
 
+    // OS TESTES DA CARGA EM SI PEDEM A COMPLETA: várias rodadas na mesma sexta-feira seriam curtas pela agenda, e é a completa
+    // que eles descrevem. O alcance — curta ou completa — tem os testes dele, no fim do arquivo.
     private Task<Resultado<RelatorioDasPecas>> Tentar(LeituraDasPecas? leitura = null, bool simular = false, bool aceitarRemocao = false, DateTime? quando = null) =>
-        CargaDePecas(DaCarga, leitura ?? LeituraDePecas(quando ?? Agora), quando ?? Agora, _semente.Operador).ExecutarAsync(simular, aceitarRemocao, CancellationToken.None);
+        CargaDePecas(DaCarga, leitura ?? LeituraDePecas(quando ?? Agora), quando ?? Agora, _semente.Operador)
+            .ExecutarAsync(simular, aceitarRemocao, completaPedida: true, CancellationToken.None);
 
     private async Task<RelatorioDasPecas> Rodar(LeituraDasPecas? leitura = null, bool simular = false, bool aceitarRemocao = false, DateTime? quando = null)
     {
@@ -180,5 +183,94 @@ public sealed class CargaDasPecasDoProtheusTestes : IDisposable
         vazia.EhSucesso.Should().BeFalse();
         vazia.Erro.Should().Contain("vazio");
         (await Gravado()).Faturamento.Should().HaveCount(3);
+    }
+
+    // =============================================================================================
+    // O alcance: curta nos dias comuns, completa no domingo (documento 54, passo 6)
+    // =============================================================================================
+
+    private static readonly DateTime Sabado = new(2026, 10, 3, 8, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime Domingo = new(2026, 10, 4, 8, 0, 0, DateTimeKind.Utc);
+
+    private async Task<(RelatorioDasPecas Relatorio, (DateOnly Faturamento, DateOnly Orcamentos, DateOnly? Alterados) Pedido)> PelaAgenda(
+        LeituraDasPecas leitura, DateTime quando)
+    {
+        var pedidos = new List<(DateOnly Faturamento, DateOnly Orcamentos, DateOnly? Alterados)>();
+        var resultado = await CargaDePecas(DaCarga, leitura, quando, _semente.Operador, pedidos)
+            .ExecutarAsync(simular: false, aceitarRemocao: false, completaPedida: false, CancellationToken.None);
+        resultado.EhSucesso.Should().BeTrue(resultado.Erro);
+        return (resultado.Valor, pedidos.Single());
+    }
+
+    private static List<PecasFaturadasNaOrigem> ComJunho(decimal valorDeJunho)
+    {
+        var faturamento = FaturamentoPadrao();
+        faturamento.Add(Peca(mes: 6, valor: valorDeJunho, desconto: 0m, tabela: valorDeJunho, vendedor: "000555"));
+        return faturamento;
+    }
+
+    [Fact]
+    public async Task A_leitura_curta_pede_o_mes_curto_e_os_alterados_e_regrava_so_o_mes_curto()
+    {
+        var primeira = await PelaAgenda(LeituraDePecas(Agora, ComJunho(400m)), Agora);   // sexta, 02/10: completa
+
+        // NO SÁBADO a leitura curta traz só setembro, com outro valor — e a leitura vem inteira de propósito: quem diz a janela
+        // regravada é o alcance, e não o "desde" da leitura.
+        var setembro = FaturamentoPadrao();
+        setembro[0] = setembro[0] with { ValorLiquido = 1500m };
+        var segunda = await PelaAgenda(LeituraDePecas(Agora, setembro), Sabado);
+
+        primeira.Pedido.Should().Be((new DateOnly(2023, 10, 1), new DateOnly(2024, 10, 1), (DateOnly?)null));
+        segunda.Pedido.Should().Be((new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 1), (DateOnly?)new DateOnly(2026, 9, 1)));
+        segunda.Relatorio.Alcance.Should().StartWith("leitura curta");
+
+        var (faturamento, _) = await Gravado();
+        faturamento.Single(f => f.Competencia == new DateOnly(2026, 6, 1)).ValorLiquido.Should().Be(400m, "junho é anterior à janela curta e fica");
+        faturamento.Single(f => f.Grupo == "PECAS" && f.EmpresaId == _semente.RibeiraoPreto && f.Competencia == new DateOnly(2026, 9, 1))
+            .ValorLiquido.Should().Be(1300m, "setembro é regravado: 1.500 menos a devolução de 200");
+    }
+
+    [Fact]
+    public async Task A_leitura_curta_nao_exclui_o_orcamento_antigo_que_nao_veio()
+    {
+        await PelaAgenda(LeituraDePecas(Agora), Agora);
+
+        // NO SÁBADO a origem manda só o aberto: o encerrado de junho não entra na leitura curta.
+        var soOAberto = OrcamentosPadrao().Where(o => o.Numero == "000777").ToList();
+        var (relatorio, _) = await PelaAgenda(LeituraDePecas(Agora, null, soOAberto), Sabado);
+
+        relatorio.Valor(CargaDasPecasDoProtheus.RotuloDeExcluidos).Should().Be(0);
+        (await Gravado()).Orcamentos.Should().OnlyContain(o => !o.EstaExcluido, "quem decide sobre o orçamento antigo é a completa");
+    }
+
+    [Fact]
+    public async Task A_completa_de_domingo_conta_o_que_corrigiu_fora_do_alcance_curto()
+    {
+        await PelaAgenda(LeituraDePecas(Agora, ComJunho(400m)), Agora);
+
+        // NO DOMINGO a origem corrigiu junho (400 → 450) e o orçamento encerrado de junho.
+        var orcamentos = OrcamentosPadrao();
+        orcamentos[2] = orcamentos[2] with { ValorTotal = 150m };
+        var (relatorio, pedido) = await PelaAgenda(LeituraDePecas(Domingo, ComJunho(450m), orcamentos), Domingo);
+
+        pedido.Alterados.Should().BeNull("a completa lê como sempre leu");
+        relatorio.Valor(CargaDasPecasDoProtheus.RotuloDeMesesCorrigidosForaDoCurto).Should().Be(1, "junho em Ribeirão");
+        relatorio.Valor(CargaDasPecasDoProtheus.RotuloDeOrcamentosCorrigidosForaDoCurto).Should().Be(1, "o encerrado de junho");
+        relatorio.Alcance.Should().Contain("R$ 50");
+    }
+
+    [Fact]
+    public async Task A_completa_abortada_nao_grava_o_ponto_da_completa()
+    {
+        var ilegivel = OrcamentosPadrao();
+        ilegivel.Add(ItemDeOrcamento(numero: "000779", situacao: null));
+
+        var abortada = await CargaDePecas(DaCarga, LeituraDePecas(Agora, null, ilegivel), Agora, _semente.Operador)
+            .ExecutarAsync(simular: false, aceitarRemocao: false, completaPedida: false, CancellationToken.None);
+
+        abortada.EhSucesso.Should().BeFalse();
+        await using var db = Sistema();
+        (await RodadaCompleta.LerAsync(db, CargaDasPecasDoProtheus.FluxoDaLeituraCompleta, CancellationToken.None))
+            .Should().BeNull("a próxima rodada tem de ser completa de novo");
     }
 }

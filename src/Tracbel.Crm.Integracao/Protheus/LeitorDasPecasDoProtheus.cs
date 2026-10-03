@@ -146,13 +146,18 @@ public sealed class LeitorDasPecasDoProtheus(OpcoesDoBancoDoProtheus opcoes)
         FROM dbo.X_V_BI_POSICAO_ORC_PECAS WITH (NOLOCK)
         WHERE {DataDe("[data_orçamento_orc]")} >= @desde
            OR UPPER(LTRIM(RTRIM(CONVERT(nvarchar(60), STATUS_ORC)))) IN (N'ABERTO', N'PARCIALMENTE ATENDIDO')
+           OR (@alterados IS NOT NULL AND {DataDe("data_alteracao_orc")} >= @alterados)
         """;
 
     /// <summary>Lê as duas views.</summary>
     /// <param name="faturamentoDesde">O primeiro mês do faturamento.</param>
     /// <param name="orcamentosDesde">A primeira data dos orçamentos.</param>
+    /// <param name="alteradosDesde">
+    /// Na leitura curta (plano 3 do documento 54), desde quando entram também os orçamentos alterados — a view tem a data de
+    /// alteração; nulo é a leitura de sempre.
+    /// </param>
     /// <param name="ct">Cancelamento.</param>
-    public async Task<Resultado<LeituraDasPecas>> LerAsync(DateOnly faturamentoDesde, DateOnly orcamentosDesde, CancellationToken ct)
+    public async Task<Resultado<LeituraDasPecas>> LerAsync(DateOnly faturamentoDesde, DateOnly orcamentosDesde, DateOnly? alteradosDesde, CancellationToken ct)
     {
         if (!opcoes.EstaConfigurada)
             return Resultado<LeituraDasPecas>.Indisponivel(
@@ -173,7 +178,7 @@ public sealed class LeitorDasPecasDoProtheus(OpcoesDoBancoDoProtheus opcoes)
         {
             await using var conexao = new SqlConnection(construtor.ConnectionString);
             await conexao.OpenAsync(ct);
-            return Resultado<LeituraDasPecas>.Ok(await LerAsync(conexao, faturamentoDesde, orcamentosDesde, ct));
+            return Resultado<LeituraDasPecas>.Ok(await LerAsync(conexao, faturamentoDesde, orcamentosDesde, alteradosDesde, ct));
         }
         catch (SqlException falha)
         {
@@ -190,7 +195,8 @@ public sealed class LeitorDasPecasDoProtheus(OpcoesDoBancoDoProtheus opcoes)
     }
 
     /// <summary>Lê as duas views numa conexão já aberta.</summary>
-    public static async Task<LeituraDasPecas> LerAsync(SqlConnection conexao, DateOnly faturamentoDesde, DateOnly orcamentosDesde, CancellationToken ct)
+    public static async Task<LeituraDasPecas> LerAsync(
+        SqlConnection conexao, DateOnly faturamentoDesde, DateOnly orcamentosDesde, DateOnly? alteradosDesde, CancellationToken ct)
     {
         var faturamento = new List<PecasFaturadasNaOrigem>(100_000);
         await using (var comando = new SqlCommand(ConsultaDoFaturamento, conexao) { CommandTimeout = 900 })
@@ -234,6 +240,7 @@ public sealed class LeitorDasPecasDoProtheus(OpcoesDoBancoDoProtheus opcoes)
         await using (var comando = new SqlCommand(ConsultaDosOrcamentos, conexao) { CommandTimeout = 900 })
         {
             comando.Parameters.Add(new SqlParameter("@desde", System.Data.SqlDbType.Date) { Value = orcamentosDesde.ToDateTime(TimeOnly.MinValue) });
+            comando.Parameters.Add(new SqlParameter("@alterados", System.Data.SqlDbType.Date) { Value = (object?)alteradosDesde?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value });
             await using var leitor = await comando.ExecuteReaderAsync(ct);
             while (await leitor.ReadAsync(ct))
             {
