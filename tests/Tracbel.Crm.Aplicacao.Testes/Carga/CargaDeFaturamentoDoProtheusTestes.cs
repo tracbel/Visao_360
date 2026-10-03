@@ -385,6 +385,22 @@ public sealed class CargaDeFaturamentoDoProtheusTestes : IDisposable
     }
 
     [Fact]
+    public void O_resumo_diz_o_modo_a_janela_e_na_completa_o_que_corrigiu()
+    {
+        var curva = new Dictionary<ClasseDeCliente, int>();
+        var decisoes = new Dictionary<string, int>();
+
+        CargaDeFaturamentoDoProtheus.LinhaDoResumo(new ResumoDoFaturamento(3, 120, 1, 0, curva, decisoes,
+                null, ModoDaLeituraDoFaturamento.Curta, new DateOnly(2026, 10, 1)))
+            .Should().Be("leitura curta desde 01/10/2026: 3 mês(es) novo(s), 120 reapurado(s), 1 removido(s)");
+
+        CargaDeFaturamentoDoProtheus.LinhaDoResumo(new ResumoDoFaturamento(0, 59_000, 4, 0, curva, decisoes,
+                new ConferenciaDaJanelaCurta(new DateOnly(2026, 10, 1), 2, 1234.5m), ModoDaLeituraDoFaturamento.Completa, new DateOnly(2023, 10, 1)))
+            .Should().Be("leitura COMPLETA desde 01/10/2023: 0 mês(es) novo(s), 59.000 reapurado(s), 4 removido(s) · " +
+                         "antes de 10/2026, 2 mês(es) corrigido(s) (R$ 1.235) que a leitura curta não teria visto");
+    }
+
+    [Fact]
     public void A_janela_comeca_no_dia_1_de_36_meses_atras()
     {
         CargaDeFaturamentoDoProtheus.InicioDaJanela(new DateTime(2026, 9, 24, 8, 0, 0, DateTimeKind.Utc))

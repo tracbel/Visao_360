@@ -91,7 +91,12 @@ var somenteRelacionamento = args.Contains("--somente-relacionamento", StringComp
 //
 // E o que permite atualizar o numero da diretoria sem uma janela de migracao. Com --simular, le o
 // CRM e o Protheus e imprime o que gravaria, sem abrir transacao nenhuma.
+//
+// A LEITURA E CURTA NOS DIAS COMUNS (plano 3 do documento 54): o mes dos ultimos tres dias de emissao.
+// No domingo, ou quando a ultima completa tem sete dias ou mais, ela rele os tres anos e diz o que
+// corrigiu antes da janela curta. --completa forca os tres anos em qualquer dia.
 var somenteFaturamento = args.Contains("--somente-faturamento", StringComparer.Ordinal);
+var faturamentoCompletoPedido = args.Contains("--completa", StringComparer.Ordinal);
 
 // --somente-territorio — O MUNICIPIO OFICIAL, A ADR, OS RESPONSAVEIS E A AREA PLANTADA (documento 32).
 //
@@ -309,7 +314,8 @@ var projetar = args.Contains("--projetar", StringComparer.Ordinal);
 // uma opção de rotina, e quem quiser rodá-lo precisa dizer isso em voz alta na linha de comando.
 //
 // O QUE CONTINUA LIVRE, porque nada disso lê o Vórtice:
-//   --somente-faturamento   o faturamento do Protheus, que muda todo dia e é o número da diretoria;
+//   --somente-faturamento   o faturamento do Protheus, que muda todo dia e é o número da diretoria
+//                           (curto nos dias comuns; --completa relê os três anos);
 //   --somente-territorio    as planilhas do comercial e o IBGE;
 //   --somente-pam           só a produção agrícola do IBGE — a rotina anual do servidor;
 //   --somente-estrutura     o Censo, o rebanho, a área territorial e as usinas da ANP;
@@ -1865,7 +1871,7 @@ if (somenteFaturamento)
     Resultado<ResumoDoFaturamento> resultadoDoFaturamento;
     try
     {
-        resultadoDoFaturamento = await faturamentoDoProtheus.ExecutarAsync(CancellationToken.None);
+        resultadoDoFaturamento = await faturamentoDoProtheus.ExecutarAsync(faturamentoCompletoPedido, CancellationToken.None);
     }
     catch (Exception falha) when (falha is DbUpdateException or RegraDeNegocioViolada or InvalidOperationException)
     {
@@ -1885,6 +1891,10 @@ if (somenteFaturamento)
     Console.WriteLine("Decisões da carga:");
     foreach (var (decisao, quantas) in resultadoDoFaturamento.Valor.Decisoes.OrderBy(p => p.Key))
         Console.WriteLine($"  {quantas,8}  {decisao}");
+
+    // A LINHA QUE CHEGA À TELA: o orquestrador guarda na execução da rotina a última linha com este prefixo — o modo, a
+    // janela e, no domingo, o que a completa corrigiu antes da janela curta.
+    Console.WriteLine(Orquestrador.PrefixoDoResumo + CargaDeFaturamentoDoProtheus.LinhaDoResumo(resultadoDoFaturamento.Valor));
 
     return 0;
 }

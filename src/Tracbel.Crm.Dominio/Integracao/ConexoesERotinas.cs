@@ -1006,7 +1006,7 @@ public static class RotinasDoSistema
         // exige é a de banco, a mesma da carga de clientes e da conferência do ART. A descrição e as
         // conexões moram só aqui — não estão na semente —, então a troca não pede migração.
         new(Faturamento, "Faturamento do Protheus",
-            "As notas de venda (SD2) dos últimos três anos, lidas direto no banco do Protheus, que alimentam o faturamento, a curva ABC e os indicadores da diretoria.",
+            "As notas de venda (SD2) lidas direto no banco do Protheus — nos dias comuns, o mês dos últimos três dias de emissão; no domingo, os três anos inteiros, com a conta do que a leitura curta não teria visto. Alimentam o faturamento, a curva ABC e os indicadores da diretoria.",
             ["--somente-faturamento"], AgendaDaRotina.DiariaAs(new TimeOnly(5, 0)), false,
             [ConexoesDoSistema.ProtheusBanco], ConexoesDoSistema.ProtheusBanco),
         new(ArtVendas, "Vendas de máquina do ART",
