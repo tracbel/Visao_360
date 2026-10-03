@@ -39,7 +39,7 @@ public sealed class TamanhoDeArquivoTestes
         ["src/Tracbel.Crm.Dominio/Portas/PortasDeIndicadoresTerritoriais.cs"] = 1233,
         ["src/Tracbel.Crm.Dominio/Portas/PortasDeRelacionamento.cs"] = 699,
         ["src/Tracbel.Crm.Infraestrutura/Persistencia/CrmDbContext.cs"] = 1009,
-        ["src/Tracbel.Crm.Infraestrutura/Persistencia/Repositorios/RepositorioDeIndicadoresTerritoriais.cs"] = 1622,
+        ["src/Tracbel.Crm.Infraestrutura/Persistencia/Repositorios/RepositorioDeIndicadoresTerritoriais.cs"] = 1306,
         ["src/Tracbel.Crm.Integracao/Carga/LeitorDeCargaDoVortice.cs"] = 732,
         ["src/Tracbel.Crm.Integracao/Carga/LeitorDeCargaDoVortice.Processo.cs"] = 983,
         ["src/Tracbel.Crm.Integracao/Protheus/LeitorDasOrdensDeServicoDoProtheus.cs"] = 607,

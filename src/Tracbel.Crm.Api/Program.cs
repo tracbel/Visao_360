@@ -226,7 +226,7 @@ builder.Services.AddScoped<IRepositorioDoDimensionamento, RepositorioDoDimension
 // e o histórico (todos os anos, um município).
 builder.Services.AddScoped<RepositorioDeIndicadoresTerritoriais>();
 builder.Services.AddScoped<IRepositorioIndicadoresTerritoriais>(s => s.GetRequiredService<RepositorioDeIndicadoresTerritoriais>());
-builder.Services.AddScoped<IRepositorioHistoricoDoMunicipio>(s => s.GetRequiredService<RepositorioDeIndicadoresTerritoriais>());
+builder.Services.AddScoped<IRepositorioHistoricoDoMunicipio, RepositorioDoHistoricoDoMunicipio>();
 builder.Services.AddScoped<IRepositorioDePrecosDeMercado, RepositorioDePrecosDeMercado>();
 builder.Services.AddScoped<IRepositorioDosPrecosDasCulturas, RepositorioDosPrecosDasCulturas>();
 builder.Services.AddScoped<IRepositorioDoPrecoImplicito, RepositorioDoPrecoImplicito>();
