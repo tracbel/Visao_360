@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Metadado;
 using Tracbel.Crm.Dominio.Portas;
 using Tracbel.Crm.Dominio.Processo;
@@ -99,7 +100,8 @@ public sealed class RepositorioDeVendasPerdidas(CrmDbContext contexto) : IReposi
                     a.Quantidade,
                     a.Maquinas,
                     a.ComOsDoisPrecos,
-                    Arredondar(a.DiferencaMedia)))
+                    // Centavo não muda decisão de diretoria, e engorda o JSON — aqui e nos concorrentes, abaixo.
+                    Numeros.Arredondar(a.DiferencaMedia)))
                 .OrderByDescending(f => f.Quantidade)
         ];
     }
@@ -137,14 +139,10 @@ public sealed class RepositorioDeVendasPerdidas(CrmDbContext contexto) : IReposi
                     a.Quantidade,
                     a.Maquinas,
                     a.ComOsDoisPrecos,
-                    Arredondar(a.DiferencaMedia)))
+                    Numeros.Arredondar(a.DiferencaMedia)))
                 .OrderByDescending(f => f.Quantidade)
         ];
     }
-
-    /// <summary>Centavo não muda decisão de diretoria, e engorda o JSON.</summary>
-    private static decimal? Arredondar(decimal? valor) =>
-        valor is null ? null : decimal.Round(valor.Value, 2);
 
     /// <summary>O agrupamento como o banco o devolve, antes de ganhar nome.</summary>
     private sealed record Bruto(

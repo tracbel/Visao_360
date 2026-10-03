@@ -756,8 +756,8 @@ public sealed class ObterIndicadoresTerritoriais(
         // domínio, e não uma refeita aqui. Com só o último mês, o começo é o do ano fiscal que o contém — a
         // mesma regra, e não doze meses para trás.
         var padrao = AnoFiscal.AteOUltimoMesFechado(mesCorrente);
-        var final = LerCompetencia(competenciaFinal, "competenciaFinal", padrao.Final, erros);
-        var inicial = LerCompetencia(competenciaInicial, "competenciaInicial", AnoFiscal.InicioDe(final), erros);
+        var final = LeituraDeCompetencia.Ler(competenciaFinal, "competenciaFinal", padrao.Final, erros);
+        var inicial = LeituraDeCompetencia.Ler(competenciaInicial, "competenciaInicial", AnoFiscal.InicioDe(final), erros);
 
         if (final > mesCorrente)
             erros.Registrar("competenciaFinal", "O período não pode terminar depois do mês corrente.", competenciaFinal);
@@ -1021,17 +1021,6 @@ public sealed class ObterIndicadoresTerritoriais(
                 "carteira no CRM, pelas carteiras do Vórtice. É quem tem os clientes, e não a divisão oficial do território: " +
                 "qual CEN responde por qual município ainda não foi decidido (D-P14, issue 107).")
         ];
-    }
-
-    private static DateOnly LerCompetencia(string? texto, string campo, DateOnly padrao, ColetorDeErros erros)
-    {
-        if (string.IsNullOrWhiteSpace(texto)) return padrao;
-
-        if (DateOnly.TryParseExact(texto.Trim(), "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var mes))
-            return mes;
-
-        erros.Registrar(campo, "Use o formato aaaa-mm, por exemplo 2026-08.", texto);
-        return padrao;
     }
 }
 

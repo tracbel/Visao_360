@@ -154,7 +154,7 @@ public sealed class ObterCenariosDeMercado(
             .ThenBy(l => l.Nome, StringComparer.Create(PtBr, ignoreCase: true))
             .ToList();
 
-        var potencial = SomaOuNulo(linhas.Select(l => l.Potencial));
+        var potencial = Numeros.SomaOuNulo(linhas.Select(l => l.Potencial));
         int? realizado = semArt ? null : linhas.Sum(l => l.RealizadoNoAno ?? 0);
         var totais = new TotaisDosCenarios(
             realizado,
@@ -163,11 +163,11 @@ public sealed class ObterCenariosDeMercado(
             semArt ? null : linhas.Sum(l => l.RealizadoNoIntervalo ?? 0),
             semArt ? null : entregues.Where(e => e.EntregueEm >= fiscal.Inicial && e.EntregueEm < fimDoAno && e.CompradorId is not null)
                 .Select(e => e.CompradorId).Distinct().Count(),
-            Arredondar(potencial),
-            Arredondar(SomaOuNulo(linhas.Select(l => l.MercadoAjustado))),
-            Arredondar(SomaOuNulo(linhas.Select(l => l.MetaEstrutural))),
+            Numeros.Arredondar(potencial),
+            Numeros.Arredondar(Numeros.SomaOuNulo(linhas.Select(l => l.MercadoAjustado))),
+            Numeros.Arredondar(Numeros.SomaOuNulo(linhas.Select(l => l.MetaEstrutural))),
             realizado is { } r && potencial is > 0 ? decimal.Round(r / potencial.Value * 100m, 1) : null,
-            Arredondar(SomaOuNulo(linhas.Select(l => l.AEntregar))),
+            Numeros.Arredondar(Numeros.SomaOuNulo(linhas.Select(l => l.AEntregar))),
             linhas.Count(l => l.Escolha is not null),
             linhas.Count,
             semArt ? null : Menor(fimDoAno, amanha).AddDays(-1));
@@ -285,12 +285,12 @@ public sealed class ObterCenariosDeMercado(
             m.AEntregar,
             Share(noAno, m.DemandaEstrutural),
             Share(noAno, m.DemandaAjustada),
-            Arredondar(conservador),
-            Arredondar(moderado),
-            Arredondar(otimista),
+            Numeros.Arredondar(conservador),
+            Numeros.Arredondar(moderado),
+            Numeros.Arredondar(otimista),
             ajustada,
             escolha,
-            Arredondar(aEntregar),
+            Numeros.Arredondar(aEntregar),
             enquadramento,
             doModerado,
             recomendacao,
@@ -376,14 +376,6 @@ public sealed class ObterCenariosDeMercado(
 
     private static decimal? Share(int? realizado, decimal? base_) =>
         realizado is { } r && base_ is > 0 ? decimal.Round(r / base_.Value * 100m, 1) : null;
-
-    private static decimal? SomaOuNulo(IEnumerable<decimal?> valores)
-    {
-        var com = valores.Where(v => v is not null).ToList();
-        return com.Count == 0 ? null : com.Sum();
-    }
-
-    private static decimal? Arredondar(decimal? valor) => valor is { } v ? decimal.Round(v, 2) : null;
 
     private static DateOnly Menor(DateOnly a, DateOnly b) => a < b ? a : b;
 

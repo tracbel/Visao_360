@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Tracbel.Crm.Dominio.Comercial;
+using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
 
@@ -155,10 +156,10 @@ public sealed class RepositorioDoDimensionamento(CrmDbContext contexto) : IRepos
                 g.Key.Codigo,
                 g.Key.Ano,
                 g.Key.Cultura,
-                SomaOuNulo(g.Select(x => x.Linha.AreaPlantada)),
-                SomaOuNulo(g.Select(x => x.Linha.AreaColhida)),
-                SomaOuNulo(g.Where(x => UnidadesDaPam.DaQuantidade(x.Linha.Produto, x.Linha.Ano).EhMassa).Select(x => x.Linha.Quantidade)),
-                SomaOuNulo(g.Select(x => x.Linha.Valor))))
+                Numeros.SomaOuNulo(g.Select(x => x.Linha.AreaPlantada)),
+                Numeros.SomaOuNulo(g.Select(x => x.Linha.AreaColhida)),
+                Numeros.SomaOuNulo(g.Where(x => UnidadesDaPam.DaQuantidade(x.Linha.Produto, x.Linha.Ano).EhMassa).Select(x => x.Linha.Quantidade)),
+                Numeros.SomaOuNulo(g.Select(x => x.Linha.Valor))))
     ];
 
     /// <inheritdoc />
@@ -279,10 +280,4 @@ public sealed class RepositorioDoDimensionamento(CrmDbContext contexto) : IRepos
     }
 
     private sealed record ClienteNaCarteira(ClasseDeCliente? Classe, int? CodigoIbge, bool NaAdr);
-
-    private static decimal? SomaOuNulo(IEnumerable<decimal?> valores)
-    {
-        var com = valores.OfType<decimal>().ToList();
-        return com.Count > 0 ? com.Sum() : null;
-    }
 }
