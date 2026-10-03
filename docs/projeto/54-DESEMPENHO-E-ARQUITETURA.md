@@ -149,3 +149,7 @@ A confirmação é a primeira tarefa de cada rotina, e cada rotina é um PR à p
 | A carga de 3 dias perder alteração antiga | Só vira incremental a rotina com data de alteração confirmada, e a conferência semanal relê tudo. |
 | Dividir a apuração mudar um número | Teste de "número igual" antes e depois de cada passo, com o mesmo cenário de dados dos testes de hoje. |
 | Memória da API | O dado de referência é pequeno (645 municípios × poucas culturas e categorias); o recorte não fica em cache além do de hoje. |
+| O teste instável conhecido do cache das leituras ("non-concurrent collections" com a conexão SQLite compartilhada em `ApiEmMemoria`) | Corrigido no passo que mexe no cache (passo 2), antes de qualquer regra nova em cima dele. |
+
+> **A PAM do ano anterior sob pedido** (`ComDemandaDoAnoAnterior`, #329) é parte do leitor de Potencial: a mesma conta, um ano
+> para trás, calculada só quando uma tela pede, e guardada no cache do mesmo assunto.
