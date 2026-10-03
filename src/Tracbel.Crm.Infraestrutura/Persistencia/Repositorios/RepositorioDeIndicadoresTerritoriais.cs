@@ -123,6 +123,37 @@ public sealed class RepositorioDeIndicadoresTerritoriais(
         var inativados = doRecorte.Inativados;
         var clientesDoResponsavel = doRecorte.DoResponsavel;
 
+        var cobertura = await new LeitorDaCoberturaDoRecorte(contexto).LerAsync(ct);
+        var cadencias = cobertura.Carteiras.ToDictionary(c => c.Id, c => c.Cadencia);
+        var responsavelDaCarteira = cobertura.Carteiras.ToDictionary(c => c.Id, c => c.ResponsavelId);
+        var vinculos = cobertura.Vinculos;
+        var responsaveisDasCarteiras = cobertura.Responsaveis;
+
+        // AS DUAS JANELAS NUMA LEITURA SÓ, a nota sem cliente e desde quando há carga: o leitor do faturamento (plano 2).
+        var doFaturamento = await new LeitorDoFaturamentoDoRecorte(contexto).LerAsync(consulta, ct);
+        var faturamento = doFaturamento.ComCliente;
+        var primeiraCompetenciaDoFaturamento = doFaturamento.PrimeiraCompetencia;
+
+        var art = await new LeitorDasVendasDoArtNoRecorte(contexto).LerAsync(consulta, ct);
+        var oArtTrouxeVenda = art is not null;
+        var categoriaDaLinha = art?.CategoriaDaLinha ?? new Dictionary<string, (string Codigo, string Nome, short Ordem)>(StringComparer.Ordinal);
+        var vendasSemAData = art?.VendasSemAData ?? 0;
+        var vendaMaisRecente = art?.VendaMaisRecente;
+        var primeiroMesDoArt = art?.PrimeiroMes;
+        var carregadoAte = art?.CarregadoAte;
+
+        // A REFERÊNCIA (documento 54): igual para todo mundo, guardada pela versão de cada assunto.
+        var hoje = ParametroComVigencia.HojeNoBrasil(agoraUtc);
+        var potencial = await potencialDeReferencia.LerAsync(hoje, ct);
+        var deReferencia = await estruturaDeReferencia.LerAsync(ct);
+
+        // O RESTO DO RECORTE: o parque conectado e as marcas do cadastro.
+        var parqueConectado = await new LeitorDoParqueConectado(contexto).LerAsync(ct);
+        var interacaoMaisRecente = await contexto.ClienteCarteiras.AsNoTracking().MaxAsync(v => v.UltimaInteracaoEm, ct);
+        var enderecos = await contexto.Enderecos.AsNoTracking().CountAsync(e => e.ExcluidoEm == null, ct);
+        var enderecosComArea = await contexto.Enderecos.AsNoTracking()
+            .CountAsync(e => e.ExcluidoEm == null && e.Hectares != null && e.CulturaId != null, ct);
+
         var grupoDoCliente = new Dictionary<long, int>();
         var classeDoCliente = new Dictionary<long, ClasseDeCliente?>();
         var acumuladores = new Dictionary<int, Acumulador>();
@@ -193,11 +224,6 @@ public sealed class RepositorioDeIndicadoresTerritoriais(
         // -----------------------------------------------------------------------------------------
         // Cobertura: vínculo em carteira comercial, contra a cadência da linha de negócio.
         // -----------------------------------------------------------------------------------------
-        var cobertura = await new LeitorDaCoberturaDoRecorte(contexto).LerAsync(ct);
-        var cadencias = cobertura.Carteiras.ToDictionary(c => c.Id, c => c.Cadencia);
-        var responsavelDaCarteira = cobertura.Carteiras.ToDictionary(c => c.Id, c => c.ResponsavelId);
-        var vinculos = cobertura.Vinculos;
-        var responsaveisDasCarteiras = cobertura.Responsaveis;
 
         foreach (var vinculo in vinculos)
         {
@@ -243,10 +269,6 @@ public sealed class RepositorioDeIndicadoresTerritoriais(
         // O volume é o de linhas cliente × mês de um período de até 36 meses ao alcance da filial —
         // dezenas de milhares, não milhões.
         // -----------------------------------------------------------------------------------------
-        // AS DUAS JANELAS NUMA LEITURA SÓ, a nota sem cliente e desde quando há carga: o leitor do faturamento (plano 2).
-        var doFaturamento = await new LeitorDoFaturamentoDoRecorte(contexto).LerAsync(consulta, ct);
-        var faturamento = doFaturamento.ComCliente;
-        var primeiraCompetenciaDoFaturamento = doFaturamento.PrimeiraCompetencia;
 
         foreach (var cliente in faturamento.GroupBy(f => f.ClienteId))
         {
@@ -323,13 +345,6 @@ public sealed class RepositorioDeIndicadoresTerritoriais(
         // bloco inteiro sai NULO, e a captura sai vazia com o motivo. Zero é medida — a filial existe,
         // o ART trouxe dado e ela não vendeu máquina no período.
         // -----------------------------------------------------------------------------------------
-        var art = await new LeitorDasVendasDoArtNoRecorte(contexto).LerAsync(consulta, ct);
-        var oArtTrouxeVenda = art is not null;
-        var categoriaDaLinha = art?.CategoriaDaLinha ?? new Dictionary<string, (string Codigo, string Nome, short Ordem)>(StringComparer.Ordinal);
-        var vendasSemAData = art?.VendasSemAData ?? 0;
-        var vendaMaisRecente = art?.VendaMaisRecente;
-        var primeiroMesDoArt = art?.PrimeiroMes;
-        var carregadoAte = art?.CarregadoAte;
 
         if (art is not null)
         {
@@ -399,8 +414,6 @@ public sealed class RepositorioDeIndicadoresTerritoriais(
         // Potencial: o LEITOR DE REFERÊNCIA (documento 54) — as regras vigentes hoje, o catálogo do motor, a PAM de cada
         // cultura no seu ano e no anterior, a lavoura inteira e o estado, calculados uma vez por versão do assunto.
         // -----------------------------------------------------------------------------------------
-        var hoje = ParametroComVigencia.HojeNoBrasil(agoraUtc);
-        var potencial = await potencialDeReferencia.LerAsync(hoje, ct);
         var regras = potencial.Regras;
         var categoriaDaRegra = potencial.CategoriasDasRegras;
         var catalogoDoMotor = potencial.Catalogo;
@@ -412,7 +425,6 @@ public sealed class RepositorioDeIndicadoresTerritoriais(
 
         // A ESTRUTURA É DADO DE REFERÊNCIA (plano 2 do documento 54): guardada pela versão do assunto, e COPIADA aqui — a
         // vocação abaixo é do recorte desta consulta, e a guardada é de todas as telas.
-        var deReferencia = await estruturaDeReferencia.LerAsync(ct);
         var estrutura = new Dictionary<int, EstruturaDoMunicipio>(deReferencia.PorMunicipio);
 
         // A VOCAÇÃO AGRÍCOLA (decidida em 28/09/2026): os tercis da fatia de lavoura entre os municípios da ADR — a ADR
@@ -423,7 +435,6 @@ public sealed class RepositorioDeIndicadoresTerritoriais(
         foreach (var (codigo, vocacao) in vocacoes)
             estrutura[codigo] = estrutura[codigo] with { Vocacao = vocacao };
         var totaisDoEstado = deReferencia.TotaisDoEstado;
-        var parqueConectado = await new LeitorDoParqueConectado(contexto).LerAsync(ct);
 
         // -----------------------------------------------------------------------------------------
         // A montagem: os municípios de SP da área de atuação ou com dado, depois dos filtros.
@@ -669,13 +680,13 @@ public sealed class RepositorioDeIndicadoresTerritoriais(
             consulta.CompetenciaInicial,
             consulta.CompetenciaFinal,
             agoraUtc,
-            await contexto.ClienteCarteiras.AsNoTracking().MaxAsync(v => v.UltimaInteracaoEm, ct),
+            interacaoMaisRecente,
             ano,
             [.. potencial.RegrasAplicadas],
             itens,
             foraDoMapa,
-            await contexto.Enderecos.AsNoTracking().CountAsync(e => e.ExcluidoEm == null, ct),
-            await contexto.Enderecos.AsNoTracking().CountAsync(e => e.ExcluidoEm == null && e.Hectares != null && e.CulturaId != null, ct),
+            enderecos,
+            enderecosComArea,
             consulta.Visao.ToString(),
             totaisDoEstado,
             culturasNoEstado,
