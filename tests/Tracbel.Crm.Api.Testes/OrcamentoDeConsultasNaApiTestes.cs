@@ -21,13 +21,14 @@ namespace Tracbel.Crm.Api.Testes;
 public sealed class OrcamentoDeConsultasNaApiTestes(ITestOutputHelper saida) : IAsyncLifetime
 {
     /// <summary>
-    /// A ASSINATURA DO TERRITÓRIO (documento 54 §3.2): cinco contas de máximo e contagem, relidas na primeira leitura de
-    /// cada janela de 15 s. É o preço, pago uma vez por janela, de não reler a área de atuação a cada chamada.
+    /// A ASSINATURA DO TERRITÓRIO (documento 54 §3.2): as contas de máximo e contagem, relidas na primeira leitura de cada
+    /// janela de 15 s — uma consulta só desde o plano 2. É o preço, pago uma vez por janela, de não reler a área de atuação
+    /// a cada chamada.
     /// </summary>
-    private const int AssinaturaDoTerritorio = 5;
+    private const int AssinaturaDoTerritorio = 1;
 
-    /// <summary>A ASSINATURA DO POTENCIAL: as mesmas cinco contas, nas tabelas da PAM, das regras e do estado.</summary>
-    private const int AssinaturaDoPotencial = 5;
+    /// <summary>A ASSINATURA DO POTENCIAL: as contas nas tabelas da PAM, das regras e do estado — uma consulta só (plano 2).</summary>
+    private const int AssinaturaDoPotencial = 1;
 
     /// <summary>
     /// O ANO ANTERIOR DA PAM vem sempre junto no potencial de referência — uma leitura a mais por versão, em vez de duas
@@ -68,9 +69,9 @@ public sealed class OrcamentoDeConsultasNaApiTestes(ITestOutputHelper saida) : I
     private static readonly Dictionary<string, int> TetoFrio = new(StringComparer.Ordinal)
     {
         ["/api/v1/territorio/indicadores"] = 73 + AssinaturaDoTerritorio + AssinaturaDoPotencial + AnoAnteriorDaPam,
-        ["/api/v1/mercado/demanda"] = 55,
+        ["/api/v1/mercado/demanda"] = 47,
         ["/api/v1/mercado/diagnostico"] = 77 + AssinaturaDoTerritorio + AssinaturaDoPotencial + AnoAnteriorDaPam,
-        ["/api/v1/mercado/cenarios"] = 61,
+        ["/api/v1/mercado/cenarios"] = 53,
         ["/api/v1/mercado/dimensionamento"] = 24,
         ["/api/v1/mercado/financiamentos"] = 16,
         ["/api/v1/mercado/precos"] = 16,
