@@ -214,7 +214,8 @@ public sealed class ParametrosDoPotencialTestes
         administrador.IndexOf(Permissoes.UsuarioLer).Should().Be(24, "a da issue 113 entrou depois, no fim");
         administrador.IndexOf(Permissoes.AuditoriaLer).Should().Be(25, "a da issue 135 entrou depois dela, no fim");
         administrador.IndexOf(Permissoes.IntegracaoAdministrar).Should().Be(26, "a da issue 136 entrou depois dela, no fim");
-        administrador[^1].Should().Be(Permissoes.MetaLer, "a da #138 entrou depois, no fim");
+        administrador.IndexOf(Permissoes.MetaLer).Should().Be(27, "a da #138 entrou depois dela, no fim");
+        administrador[^1].Should().Be(Permissoes.PlanejamentoGravar, "a da #263 entrou depois, no fim");
     }
     // =============================================================================================
     // A carência do SICOR (D-IM-03, issue 157)

@@ -43,6 +43,7 @@ import { DiagnosticoComercial } from './telas/DiagnosticoComercial';
 import { DimensionamentoAdr } from './telas/DimensionamentoAdr';
 import { FinanciamentosSicor } from './telas/FinanciamentosSicor';
 import { PrecoDeCommodities } from './telas/PrecoDeCommodities';
+import { CenariosDeMercado } from './telas/CenariosDeMercado';
 import { EquipamentoFicha } from './telas/EquipamentoFicha';
 import { EstoqueECobertura } from './telas/EstoqueECobertura';
 import { ForecastGerencia } from './telas/ForecastGerencia';
@@ -298,6 +299,13 @@ export const ROTAS: Rota[] = [
     titulo: 'Demanda e Previsão',
     trilha: ['Inteligência de Mercado', 'Demanda e Previsão'],
     Componente: DemandaEPrevisao,
+    usaApi: true,
+  },
+  {
+    caminho: '/mercado/cenarios',
+    titulo: 'Cenários de Mercado',
+    trilha: ['Inteligência de Mercado', 'Cenários de Mercado'],
+    Componente: CenariosDeMercado,
     usaApi: true,
   },
   {

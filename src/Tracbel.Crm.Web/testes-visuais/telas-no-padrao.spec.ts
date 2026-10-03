@@ -156,6 +156,7 @@ const TELAS_DE_MERCADO = [
   { nome: 'dimensionamento', rota: '/mercado/dimensionamento', cartoes: 4, secoes: 3 },
   { nome: 'financiamentos', rota: '/mercado/financiamentos', cartoes: 4, secoes: 2 },
   { nome: 'precos', rota: '/mercado/precos', cartoes: 4, secoes: 2 },
+  { nome: 'cenarios', rota: '/mercado/cenarios', cartoes: 4, secoes: 1 },
 ] as const;
 
 async function abrirNoShell(pagina: Page, rota: string, cartoes: number) {

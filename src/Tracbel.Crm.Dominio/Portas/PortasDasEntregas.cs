@@ -4,7 +4,8 @@ namespace Tracbel.Crm.Dominio.Portas;
 /// <param name="EntregueEm">O dia da entrega (ART).</param>
 /// <param name="MunicipioIbge">O município do endereço principal do comprador; nulo sem endereço ou sem código IBGE.</param>
 /// <param name="CategoriaCodigo">A categoria da máquina pelo de-para da linha de produto; nula quando não se sabe.</param>
-public sealed record EntregaDeMaquina(DateOnly EntregueEm, int? MunicipioIbge, string? CategoriaCodigo);
+/// <param name="CompradorId">O cliente que recebeu a máquina — os Cenários de mercado contam os clientes distintos (issue 263).</param>
+public sealed record EntregaDeMaquina(DateOnly EntregueEm, int? MunicipioIbge, string? CategoriaCodigo, long? CompradorId = null);
 
 /// <summary>
 /// AS ENTREGAS DE MÁQUINA DO ART (a Demanda e Previsão, decisão do Ricardo em 02/10/2026) — pela data da ENTREGA, a régua da

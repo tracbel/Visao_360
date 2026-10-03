@@ -118,6 +118,13 @@ public static class Permissoes
     public const string MetaLer = "Meta.Ler";
 
     /// <summary>
+    /// Gravar a meta escolhida de um município nos Cenários de mercado — conservador, moderado, otimista ou manual (issue 263,
+    /// decisão do Ricardo em 02/10/2026: a Gerência e a Diretoria gravam; o CEN vê). Na profundidade
+    /// <see cref="Profundidade.EmpresaEAbaixo"/>, só os municípios das lojas ao alcance; em <see cref="Profundidade.Organizacao"/>, todos.
+    /// </summary>
+    public const string PlanejamentoGravar = "Planejamento.Gravar";
+
+    /// <summary>
     /// Todas as permissões que existem, com o que cada uma deixa fazer. É a lista que o perfil aceita:
     /// conceder um código fora dela é recusado.
     /// </summary>
@@ -150,7 +157,8 @@ public static class Permissoes
         [PercepcaoDoGestorInformar] = "Informar a percepção do gestor por município",
         [AuditoriaLer] = "Ler a trilha de auditoria: quem mudou o quê, e quando",
         [IntegracaoAdministrar] = "Configurar e testar as integrações: credenciais, agendas e APIs monitoradas",
-        [MetaLer] = "Ler a meta de venda e o realizado"
+        [MetaLer] = "Ler a meta de venda e o realizado",
+        [PlanejamentoGravar] = "Gravar a meta escolhida de cada município nos Cenários de mercado"
     };
 
     /// <summary>A permissão existe no catálogo?</summary>
@@ -252,7 +260,8 @@ public static class PerfisDeSistema
         Seguranca.Permissoes.UsuarioLer,
         Seguranca.Permissoes.AuditoriaLer,
         Seguranca.Permissoes.IntegracaoAdministrar,
-        Seguranca.Permissoes.MetaLer
+        Seguranca.Permissoes.MetaLer,
+        Seguranca.Permissoes.PlanejamentoGravar
     ];
 
     /// <summary>
@@ -324,7 +333,10 @@ public static class PerfisDeSistema
                 (Seguranca.Permissoes.UsuarioLer, Profundidade.Organizacao),
                 (Seguranca.Permissoes.AuditoriaLer, Profundidade.Organizacao),
                 (Seguranca.Permissoes.IntegracaoAdministrar, Profundidade.Organizacao),
-                (Seguranca.Permissoes.MetaLer, Profundidade.Organizacao)
+                (Seguranca.Permissoes.MetaLer, Profundidade.Organizacao),
+
+                // #263 (02/10/2026): grava a meta dos Cenários em qualquer município.
+                (Seguranca.Permissoes.PlanejamentoGravar, Profundidade.Organizacao)
             ]),
 
         new(5, GestorComercial, "Gestor comercial",
@@ -346,7 +358,10 @@ public static class PerfisDeSistema
                 (Seguranca.Permissoes.UsuarioLer, Profundidade.EmpresaEAbaixo),
 
                 // #138 (D-M5): o gerente vê a meta da filial inteira, inclusive a dos consultores sem conta. Linha 604.
-                (Seguranca.Permissoes.MetaLer, Profundidade.EmpresaEAbaixo)
+                (Seguranca.Permissoes.MetaLer, Profundidade.EmpresaEAbaixo),
+
+                // #263 (decisão de 02/10/2026): o gerente grava a meta dos Cenários nos municípios das lojas da filial dele.
+                (Seguranca.Permissoes.PlanejamentoGravar, Profundidade.EmpresaEAbaixo)
             ]),
 
         new(7, Diretoria, "Diretoria",
@@ -365,7 +380,10 @@ public static class PerfisDeSistema
 
                 // #138 (D-M5): a diretoria vê TODAS as filiais pelo alcance que já tem ("Todas as filiais" no seletor, com a
                 // visão entre filiais) — a meta é por filial, e o consolidado é a soma. Linha 706.
-                (Seguranca.Permissoes.MetaLer, Profundidade.EmpresaEAbaixo)
+                (Seguranca.Permissoes.MetaLer, Profundidade.EmpresaEAbaixo),
+
+                // #263 (decisão de 02/10/2026): a diretoria grava a meta dos Cenários em qualquer município.
+                (Seguranca.Permissoes.PlanejamentoGravar, Profundidade.Organizacao)
             ])
     ];
 }

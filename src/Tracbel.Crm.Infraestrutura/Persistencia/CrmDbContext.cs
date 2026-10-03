@@ -345,6 +345,9 @@ public class CrmDbContext : DbContext
     /// <summary>O share-alvo de cada categoria de máquina, com vigência (issue 256).</summary>
     public DbSet<ShareAlvoDaCategoria> SharesAlvo => Set<ShareAlvoDaCategoria>();
 
+    /// <summary>A meta escolhida de cada município nos Cenários de mercado, por categoria e ano fiscal (issue 263).</summary>
+    public DbSet<MetaDoCenarioNoMunicipio> MetasDosCenarios => Set<MetaDoCenarioNoMunicipio>();
+
     /// <summary>As metas de venda da API Gestão de Negócios, uma por linha da origem (#138).</summary>
     public DbSet<MetaDeVenda> MetasDeVenda => Set<MetaDeVenda>();
 

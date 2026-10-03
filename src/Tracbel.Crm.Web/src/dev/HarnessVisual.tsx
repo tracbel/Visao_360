@@ -38,6 +38,7 @@ import {
   dimensionamentoFicticio,
   financiamentosFicticios,
   precosDasCulturasFicticios,
+  cenariosFicticios,
   diagnosticoFicticio,
   parametrosFicticios,
   precoImplicitoFicticio,
@@ -194,6 +195,12 @@ function instalarInterceptador(): void {
     // A DEMANDA E PREVISÃO (issue 258): os mesmos municípios da amostra do diagnóstico.
     // O PREÇO DE COMMODITIES (issue 260): as séries não dependem da malha.
     if (caminho === '/v1/mercado/precos') return envelope(precosDasCulturasFicticios(estado === 'parcialmenteVazio'));
+
+    // OS CENÁRIOS DE MERCADO (issue 263): sobre a amostra da Demanda, com os mesmos municípios.
+    if (caminho === '/v1/mercado/cenarios') {
+      const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;
+      return envelope(cenariosFicticios(municipiosDaMalha(malha, 40), estado === 'parcialmenteVazio'));
+    }
 
     if (caminho === '/v1/mercado/demanda') {
       const malha = (await (await fetchDeVerdade(`${import.meta.env.BASE_URL}geo/sp-municipios.json`)).json()) as ColecaoMunicipal;

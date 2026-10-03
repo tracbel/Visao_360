@@ -152,6 +152,44 @@ public static class EndpointsDeMercado
                 "mensal ainda não fecha 24 meses (`serie = AnualPam`). As faixas são as do CRM, e não os cortes do protótipo.\n\n" +
                 "A série de cada cultura é a do índice quando ela declara uma (a cana pelo ATR mensal da Socicana), e senão a do " +
                 "preço (CONAB), na unidade em que a fonte publica.");
+
+        // OS CENÁRIOS DE MERCADO (issue 263) — a leitura é a mesma porta do território; a gravação tem permissão própria.
+        grupo.MapGet("/cenarios", async (
+                ObterCenariosDeMercado caso,
+                CancellationToken ct,
+                string? categoria = null,
+                string? anoFiscal = null,
+                string? de = null,
+                string? ate = null,
+                string? regiao = null,
+                string? lojaCodigo = null,
+                string? visao = null) =>
+            (await caso.ExecutarAsync(categoria, anoFiscal, de, ate, regiao, lojaCodigo, visao, ct)).Responder())
+            .WithName("ObterCenariosDeMercado")
+            .ExigePermissao(Permissoes.TerritorioLer)
+            .WithSummary("O planejamento da meta de cada município: realizado, média, potencial, meta estrutural e os três cenários.")
+            .WithDescription(
+                "O potencial, o mercado ajustado e a meta estrutural (potencial × share-alvo) são os da Demanda e Previsão. Os " +
+                "cenários são o mercado ajustado × share com −5% (conservador), 0% (moderado) e +5% (otimista), como no " +
+                "protótipo; sem o fator de ciclo, partem da meta estrutural (`baseAjustada = false`).\n\n" +
+                "O realizado é a ENTREGA do ART no ano fiscal, pelo município do comprador; a média é a dos quatro anos fiscais " +
+                "fechados antes do escolhido; a recomendação compara o moderado com o ano fiscal anterior inteiro.\n\n" +
+                "Padrão: TRATOR (ou `COLHEDORA_DE_CANA`), o ano fiscal corrente, o intervalo do início do ano até hoje.");
+
+        grupo.MapPut("/cenarios/{codigoIbge:int}", async (
+                int codigoIbge,
+                EscolhaDeMetaDoCenario corpo,
+                EscolherMetaDoCenario caso,
+                CancellationToken ct) =>
+            (await caso.ExecutarAsync(codigoIbge, corpo, ct)).Responder())
+            .WithName("EscolherMetaDoCenario")
+            .ExigePermissao(Permissoes.PlanejamentoGravar)
+            .WithSummary("Grava a meta de um município no ano fiscal: conservador, moderado, otimista ou um número.")
+            .WithDescription(
+                "A meta é uma por município, categoria e ano fiscal (o corrente ou o próximo); escolher de novo altera a mesma, e " +
+                "a trilha guarda o antes. O número dos três cenários é calculado aqui, com o mercado de hoje — só o manual leva o " +
+                "número digitado (`valorManual`). A Gerência grava nos municípios das filiais ao alcance dela; a Diretoria e o " +
+                "Administrador, em todos.");
         return app;
     }
 }
