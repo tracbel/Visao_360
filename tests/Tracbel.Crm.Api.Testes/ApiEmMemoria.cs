@@ -82,11 +82,15 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
             // SQLite —, e o SQLite não aceita duas operações ao mesmo tempo numa conexão: era o "Operations that change
             // non-concurrent collections must have exclusive access". Os testes mudam a versão à mão
             // (VersaoDosDados.AtualizarDoBanco) e leem a marca pelo método estático, que é o que o vigia faria.
-            foreach (var vigia in servicos
+            //
+            // O AQUECIMENTO TAMBÉM NÃO RODA (plano 2): ele leria o banco na subida, junto com a criação do banco do teste, na
+            // mesma conexão SQLite — o mesmo choque do vigia. Os testes dele o chamam à mão.
+            foreach (var servicoDeFundo in servicos
                          .Where(d => d.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)
-                                     && d.ImplementationType == typeof(Tracbel.Crm.Api.Comum.VigiaDaVersaoDosDados))
+                                     && (d.ImplementationType == typeof(Tracbel.Crm.Api.Comum.VigiaDaVersaoDosDados)
+                                         || d.ImplementationType == typeof(Tracbel.Crm.Api.Comum.AquecimentoDaApi)))
                          .ToList())
-                servicos.Remove(vigia);
+                servicos.Remove(servicoDeFundo);
 
             servicos.RemoveAll<DbContextOptions<CrmDbContext>>();
             servicos.RemoveAll<DbContextOptions>();

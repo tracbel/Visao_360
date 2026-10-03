@@ -200,6 +200,9 @@ builder.Services.AddSingleton<IRepositorioDoTerritorioDeReferencia, TerritorioDe
 builder.Services.AddSingleton<IRepositorioDoPotencialDeReferencia, PotencialDeReferenciaEmCache>();
 builder.Services.AddSingleton<IRepositorioDaEstruturaDeReferencia, EstruturaDeReferenciaEmCache>();
 
+// O AQUECIMENTO NA SUBIDA (plano 2 do documento 54): as três referências e a apuração antes do primeiro usuário.
+builder.Services.AddHostedService<AquecimentoDaApi>();
+
 // -------------------------------------------------------------------------------------------
 // As portas do domínio e seus adaptadores. O caso de uso conhece a interface; só esta linha
 // sabe qual implementação entra (documento 22, seção 7).
