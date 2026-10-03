@@ -11,16 +11,35 @@ import { BlocoCarregando } from './cadastro/EstadosDeTela';
 
 const MARCA_DA_RECARGA = 'tracbel-crm-recarregou-por-pedaco';
 
+/** Apaga a marca. Navegação anônima ou armazenamento bloqueado: a marca é conveniência, e a tela abre do mesmo jeito. */
+function apagarMarca() {
+  try {
+    sessionStorage.removeItem(MARCA_DA_RECARGA);
+  } catch {
+    // Sem armazenamento não há marca a apagar.
+  }
+}
+
+/** Marca a recarga, se ainda não marcada. Sem armazenamento devolve falso: recarregar sem marca poderia entrar em laço. */
+function marcarRecargaPelaPrimeiraVez(): boolean {
+  try {
+    if (sessionStorage.getItem(MARCA_DA_RECARGA)) return false;
+    sessionStorage.setItem(MARCA_DA_RECARGA, '1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function sobDemanda<M>(carregar: () => Promise<M>, escolher: (modulo: M) => ComponentType): ComponentType {
   const Tela = lazy(() =>
     carregar().then(
       (modulo) => {
-        sessionStorage.removeItem(MARCA_DA_RECARGA);
+        apagarMarca();
         return { default: escolher(modulo) };
       },
       (erro: unknown) => {
-        if (!sessionStorage.getItem(MARCA_DA_RECARGA)) {
-          sessionStorage.setItem(MARCA_DA_RECARGA, '1');
+        if (marcarRecargaPelaPrimeiraVez()) {
           window.location.reload();
           return new Promise<never>(() => {});
         }

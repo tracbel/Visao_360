@@ -27,6 +27,26 @@ describe('a tela baixada sob demanda', () => {
     expect(await screen.findByText('tela pronta')).toBeInTheDocument();
   });
 
+  it('abre a tela mesmo com o armazenamento do navegador bloqueado', async () => {
+    // NAVEGAÇÃO ANÔNIMA OU ARMAZENAMENTO BLOQUEADO: o acesso ao sessionStorage estoura, e a marca da recarga é conveniência.
+    const bloqueado = () => {
+      throw new DOMException('O armazenamento está bloqueado.', 'SecurityError');
+    };
+    vi.stubGlobal('sessionStorage', { getItem: bloqueado, setItem: bloqueado, removeItem: bloqueado, clear: bloqueado });
+    try {
+      const Tela = sobDemanda(async () => ({ Pronta: () => <p>tela com o armazenamento bloqueado</p> }), (m) => m.Pronta);
+      render(<Tela />);
+      expect(await screen.findByText('tela com o armazenamento bloqueado')).toBeInTheDocument();
+    } finally {
+      vi.stubGlobal('sessionStorage', {
+        getItem: (chave: string) => guardado.get(chave) ?? null,
+        setItem: (chave: string, valor: string) => void guardado.set(chave, valor),
+        removeItem: (chave: string) => void guardado.delete(chave),
+        clear: () => guardado.clear(),
+      });
+    }
+  });
+
   it('recarrega a página uma vez quando o pedaço sumiu depois de uma publicação', async () => {
     const recarregar = vi.fn();
     const original = window.location;
