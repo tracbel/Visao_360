@@ -22,7 +22,7 @@ public sealed class TamanhoDeArquivoTestes
         ["src/Tracbel.Crm.Carga/CargaDaEstruturaAgropecuaria.cs"] = 767,
         ["src/Tracbel.Crm.Carga/CargaDasOportunidadesDoVortice.cs"] = 1146,
         ["src/Tracbel.Crm.Carga/CargaDeCarteirasDoVortice.cs"] = 1166,
-        ["src/Tracbel.Crm.Carga/CargaDeFaturamentoDoProtheus.cs"] = 995,
+        ["src/Tracbel.Crm.Carga/CargaDeFaturamentoDoProtheus.cs"] = 829,
         ["src/Tracbel.Crm.Carga/CargaDeProcessoDoVortice.cs"] = 1869,
         ["src/Tracbel.Crm.Carga/CargaDeTerritorio.cs"] = 1030,
         ["src/Tracbel.Crm.Carga/CargaDoArt.cs"] = 1101,

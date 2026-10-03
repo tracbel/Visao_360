@@ -1,10 +1,11 @@
 # 54 — Desempenho e arquitetura: telas em até 2 segundos, código dividido por responsabilidade
 
-> **Versão 1.2 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
+> **Versão 1.3 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
 > **desempenho + arquitetura** → banco sem redundância → o que falta → material da diretoria.
 > Diagnóstico de partida: `.omc/plans/diagnostico-da-organizacao-2026-10-03.md`.
 > A 1.1 registra o que o plano 1 de 3 entregou (§7) e corrige a §3.2: a versão é a assinatura do próprio dado.
 > A 1.2 registra a captura de produção depois do plano 1 (§7.1) e o que o plano 2 de 3 entregou (§7.2).
+> A 1.3 registra a primeira rotina incremental, o faturamento (§3.3 e §7.3).
 
 ## 1. Decisões que este documento cumpre
 
@@ -97,7 +98,7 @@
 | 1 FONTES_ANUAIS (IBGE, ANP) | anual, completa | **continua**: é anual e pequena | — |
 | 2 PRECOS_MENSAIS (CONAB, Socicana, PTAX, SICOR) | mensal | **continua**, relendo só os meses recentes que a fonte revisa | janela de revisão do SICOR |
 | 3 CADASTRO_CLIENTES (SA1) | completa | **incremental** + semanal | coluna de alteração da SA1 (`S_T_A_M_P_`/`I_N_S_D_T_`) |
-| 4 FATURAMENTO_PROTHEUS | regrava 36 meses | **incremental pela emissão/alteração** + semanal | data de alteração/cancelamento da nota |
+| 4 FATURAMENTO_PROTHEUS | regrava 36 meses | **incremental pela emissão** (o mês dos últimos 3 dias) + completa no domingo — **entregue no plano 3** (§7.3) | a SD2 não tem data de alteração confirmada; decisão de 03/10/2026: a completa de domingo mede o que a curta não veria |
 | 5 ART_VENDAS | serviço com marcador | **incremental** (já tem marcador) + semanal | se a view tem data de alteração |
 | 6 CARTEIRAS_VORTICE | completa | **incremental** + semanal | datas de vínculo e de contato no Vórtice |
 | 7 PARQUE_PROTHEUS (VV1) | completa | incremental se houver data; senão **diária completa** | coluna de alteração da VV1 |
@@ -285,10 +286,54 @@ Entregue na branch `feat/desempenho-plano-2`. Nenhuma tabela nova e nenhuma migr
 **Ainda falta medir** a captura de produção depois desta publicação, com as telas pesadas abertas algumas vezes. É ela
 que diz se a primeira chamada depois da subida desceu dos 10,6 s e se a meta de 2 s foi alcançada.
 
-### 7.3 Próximos passos
+### 7.3 Plano 3 de 3 — rotinas incrementais (03/10/2026)
+
+**1. O faturamento** (`FATURAMENTO_PROTHEUS`), entregue na branch `feat/incremental-faturamento`.
+
+A confirmação na origem, que o §3.3 exige antes de cada rotina, não fechou para a SD2:
+
+- **A leitura de produção desta estação está negada.**
+- **O extrator do BI não resolve.** Ele usa o `S_T_A_M_P_` para carga incremental na SB1 e na SF4, mas lê a SD2 e a SF2
+  inteiras. Os blocos incrementais delas estão comentados, copiados da SB1.
+
+O Ricardo decidiu, em 03/10/2026, ir **pela emissão, com a completa semanal medindo o que a curta não veria**:
+
+- **Nos dias comuns**, a rotina relê só o mês em que caem os últimos três dias de emissão. Nos três primeiros dias do
+  mês, ela começa no mês anterior. O que é anterior a essa janela fica como está.
+- **No domingo**, ela relê os 36 meses. Também relê em qualquer dia quando a última completa com sucesso tem sete dias ou
+  mais, quando nunca houve uma, ou com `--somente-faturamento --completa`. A completa que cai no meio fica como falha e
+  não conta.
+- **A curva ABC olha 36 meses nos dois modos.** Com a janela da leitura curta, ela rebaixaria a D o cliente que comprou
+  em março e nada desde então.
+- **A medida que confirma.** A completa conta o que corrigiu antes da janela curta, com e sem cliente: mês novo, mês com
+  valor mudado e mês removido. Ela escreve o resultado no relatório, inclusive quando é zero.
+- **O que espera até domingo, de propósito.** O cliente cadastrado no CRM durante a semana só herda os meses dele
+  ANTERIORES à janela curta na completa. Até lá, esses meses ficam no faturamento sem cadastro, e a classe ABC dele não os
+  conta. O total não muda, porque nada é contado duas vezes. O caso é raro: cliente novo costuma ter só venda recente,
+  que a leitura curta já atribui. A conta da completa inclui essa mudança (um mês removido do sem cadastro e um novo no
+  cliente).
+- **Onde ver:** Configurações › Integrações, na mensagem da rotina e nos dois fluxos de sincronização,
+  `PROTHEUS.FATURAMENTO` (curta) e `PROTHEUS.FATURAMENTO_COMPLETO`. A linha da rotina diz o modo, desde quando leu e, no
+  domingo, "antes de mm/aaaa, N mês(es) corrigido(s) (R$ X) que a leitura curta não teria visto".
+
+**Ainda falta medir:** o tempo da rodada curta contra o da completa, e o "corrigido antes da janela curta" dos primeiros
+domingos, depois da publicação. Se o corrigido for grande e frequente, a janela curta aumenta.
+
+**As próximas rotinas, na ordem do §4, e o que cada uma ainda precisa confirmar:**
+
+| Rotina | O que falta confirmar |
+|---|---|
+| 15 PÓS-VENDA (OS e peças) | O extrator do BI anota que **VO1, VO3 e VO4 não tinham `S_T_A_M_P_`** (07/07/2026). A OS não tem data de alteração: o caminho provável é o mesmo do faturamento, pela data da OS e da nota, com a completa semanal |
+| 8 PROCESSOS DO VÓRTICE | data do histórico (`IV_HISTORICO`) — pelo agente do Vórtice |
+| 6 CARTEIRAS DO VÓRTICE | datas de vínculo e de contato — pelo agente do Vórtice |
+| 3 CADASTRO DE CLIENTES (SA1) | se a SA1 tem `S_T_A_M_P_` (a SB1 tem; a SB2 e a SBM não tinham em 06/2026) |
+| 5 ART | se a view tem data de alteração (o serviço já tem marcador) |
+
+### 7.4 Próximos passos
 
 - **A captura do "depois"** do plano 2 entra na §7.2, e as rotas que ainda passarem de 2 s viram o passo 7.
-- **Plano 3 — rotinas incrementais** (§3.3): uma por PR, cada uma depois de confirmar na origem a data de alteração.
+- **O resumo da rotina do faturamento** num dia comum e no primeiro domingo entra na §7.3 como a medida do ganho.
+- **As próximas rotinas incrementais** da §7.3, uma por PR.
 - **Passo 7 — as outras rotas lentas** da captura: `indicadores-executivos`, `funil-por-estagio`, `cen`, `faturamento`
   e o que a nova captura mostrar.
 - **As peças comuns do front em `componentes/comum`**, além da moeda compacta, ficaram fora do plano 2 e voltam junto
