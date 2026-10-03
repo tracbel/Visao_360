@@ -62,8 +62,9 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
         builder.UseSetting("CacheDasLeituras:Minutos", MinutosDoCache.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         // A ASSINATURA DO DADO DE REFERÊNCIA É RELIDA A CADA LEITURA NOS TESTES: eles gravam direto no banco entre duas
-        // leituras, como as rotinas, e não podem esperar a janela de 15 s.
-        builder.UseSetting("CacheDeReferencia:SegundosEntreConferencias", "0");
+        // leituras, como as rotinas, e não podem esperar a janela de 15 s. Quem mede o servidor liga a janela.
+        builder.UseSetting("CacheDeReferencia:SegundosEntreConferencias",
+            SegundosEntreConferenciasDaReferencia.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         builder.ConfigureServices(servicos =>
         {
@@ -113,6 +114,9 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
 
     /// <summary>Por quantos minutos as leituras ficam guardadas. Zero (o padrão dos testes) desliga o cache.</summary>
     public int MinutosDoCache { get; init; }
+
+    /// <summary>De quantos em quantos segundos a assinatura do dado de referência é relida. Zero (o padrão dos testes) relê sempre.</summary>
+    public int SegundosEntreConferenciasDaReferencia { get; init; }
 
     /// <inheritdoc />
     public async Task InitializeAsync()

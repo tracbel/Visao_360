@@ -97,4 +97,29 @@ public sealed class CacheDeReferenciaTestes(ApiEmMemoria api) : IClassFixture<Ap
         contador.RegistrarGravacao("/api/v1/admin/parametros-do-potencial/culturas");
         (await assinatura.LerAsync(AssuntoDeReferencia.Potencial, default)).Should().NotBe(antes);
     }
+
+    [Fact]
+    public async Task O_territorio_vem_do_cache_na_segunda_leitura_e_muda_quando_a_area_de_atuacao_muda()
+    {
+        await CenarioDosCenarios.SemearAsync(api);
+        var leitor = api.Services.GetRequiredService<Dominio.Portas.IRepositorioDoTerritorioDeReferencia>();
+
+        var primeira = await leitor.LerAsync(default);
+        primeira.Area[CenarioDosCenarios.C3].PertenceAAdr.Should().BeTrue();
+        (await leitor.LerAsync(default)).Should().BeSameAs(primeira, "a segunda leitura é a mesma conta guardada");
+
+        using (var escopo = api.Services.CreateScope())
+        {
+            var opcoes = escopo.ServiceProvider.GetRequiredService<DbContextOptions<CrmDbContext>>();
+            await using var db = new CrmDbContext(opcoes, ProvedorDeContextoDeSistema.Instancia);
+            var municipio = Municipio.Criar("Município novo da ADR", "SP", 3596002);
+            db.Municipios.Add(municipio);
+            await db.SaveChangesAsync();
+            db.MunicipiosDaAreaDeAtuacao.Add(MunicipioDaAreaDeAtuacao.Registrar(
+                municipio.Id, true, RegiaoDaAreaDeAtuacao.Norte, 1, "Area de Atuação.xlsx", 99, 100, DateTime.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
+        (await leitor.LerAsync(default)).Area.Should().ContainKey(3596002, "a rotina gravou um município novo na área");
+    }
 }

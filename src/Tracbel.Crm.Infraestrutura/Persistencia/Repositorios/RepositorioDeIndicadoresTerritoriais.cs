@@ -27,9 +27,19 @@ namespace Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
 /// </summary>
 /// <param name="contexto">O contexto do banco.</param>
 /// <param name="motor">A entrada do motor do potencial — as regras vigentes ligadas ao catálogo (issue 161).</param>
-public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, IRepositorioDoMotorDoPotencial motor)
+/// <param name="territorioDeReferencia">A área de atuação, os municípios e as lojas — dado de referência (documento 54).</param>
+public sealed class RepositorioDeIndicadoresTerritoriais(
+    CrmDbContext contexto,
+    IRepositorioDoMotorDoPotencial motor,
+    IRepositorioDoTerritorioDeReferencia territorioDeReferencia)
     : IRepositorioIndicadoresTerritoriais, IRepositorioHistoricoDoMunicipio
 {
+    /// <summary>Sem cache — o teste de contêiner e quem monta o repositório à mão leem o território direto do banco.</summary>
+    /// <param name="contexto">O contexto do banco.</param>
+    /// <param name="motor">A entrada do motor do potencial.</param>
+    public RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, IRepositorioDoMotorDoPotencial motor)
+        : this(contexto, motor, new RepositorioDoTerritorioDeReferencia(contexto)) { }
+
     private const string SaoPaulo = "SP";
 
     private const int SemMunicipio = -1;
@@ -180,27 +190,10 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
             ? contexto.AbrirAlcanceEntreEmpresas("Visão consolidada da empresa nos indicadores territoriais (documento 32)")
             : null;
 
-        var area = await (
-                from linha in contexto.MunicipiosDaAreaDeAtuacao.AsNoTracking().Where(a => a.EncerradoEm == null)
-                join municipio in contexto.Municipios.AsNoTracking() on linha.MunicipioId equals municipio.Id
-                join loja in contexto.Empresas.AsNoTracking() on linha.EmpresaResponsavelId equals (int?)loja.Id into lojas
-                from loja in lojas.DefaultIfEmpty()
-                where municipio.CodigoIbge != null
-                select new
-                {
-                    Codigo = municipio.CodigoIbge!.Value,
-                    municipio.Nome,
-                    linha.PertenceAAdr,
-                    linha.Regiao,
-                    LojaCodigo = loja == null ? null : loja.Codigo,
-                    LojaNome = loja == null ? null : loja.Nome,
-                    LojaAtiva = loja == null ? (bool?)null : loja.EstaAtiva
-                })
-            .ToDictionaryAsync(a => a.Codigo, ct);
-
-        var municipios = await contexto.Municipios.AsNoTracking()
-            .Select(m => new { m.Id, m.CodigoIbge, m.Uf, m.Nome })
-            .ToDictionaryAsync(m => m.Id, ct);
+        // O TERRITÓRIO É DADO DE REFERÊNCIA (documento 54): igual para todo mundo, guardado pela versão do assunto.
+        var territorio = await territorioDeReferencia.LerAsync(ct);
+        var area = territorio.Area;
+        var municipios = territorio.MunicipiosPorId;
 
         // -----------------------------------------------------------------------------------------
         // O grupo de cada cliente: um município de SP, ou um dos grupos fora do mapa.
@@ -752,10 +745,7 @@ public sealed class RepositorioDeIndicadoresTerritoriais(CrmDbContext contexto, 
         // -----------------------------------------------------------------------------------------
         var filtrado = consulta.Regiao is not null || consulta.LojaCodigo is not null;
 
-        var nomeOficial = municipios.Values
-            .Where(m => m.CodigoIbge is not null && m.Uf == SaoPaulo)
-            .GroupBy(m => m.CodigoIbge!.Value)
-            .ToDictionary(g => g.Key, g => g.First().Nome);
+        var nomeOficial = territorio.NomeOficialEmSp;
 
         List<ResponsavelPelaCarteira> ResponsaveisDe(Acumulador acumulador) =>
         [
