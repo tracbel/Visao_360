@@ -67,4 +67,8 @@ public sealed class RepositorioDeEntregas(CrmDbContext contexto) : IRepositorioD
                     e.CompradorId))
         ];
     }
+
+    /// <inheritdoc />
+    public Task<bool> ExisteVendaAsync(CancellationToken ct) =>
+        contexto.VendasDeMaquina.AsNoTracking().AnyAsync(v => v.ExcluidoEm == null, ct);
 }

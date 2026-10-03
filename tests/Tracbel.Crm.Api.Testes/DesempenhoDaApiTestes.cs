@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Tracbel.Crm.Api.Comum;
 using Tracbel.Crm.Dominio.Seguranca;
 using Xunit;
@@ -83,5 +84,34 @@ public sealed class DesempenhoDaApiTestes(ApiEmMemoria api) : IClassFixture<ApiE
         dados.GetProperty("amostrasPorRota").GetInt32().Should().Be(MedidorDeDesempenho.AmostrasPorRota);
         JsonDocument.Parse(corpo).RootElement.GetProperty("procedencia").GetProperty("objeto").GetString()
             .Should().Contain("em memória");
+    }
+
+    // =============================================================================================
+    // As consultas ao banco de cada chamada (documento 54 §3.5)
+    // =============================================================================================
+
+    [Fact]
+    public void O_medidor_guarda_as_consultas_de_cada_chamada_e_resume_o_p95_e_o_maximo()
+    {
+        var medidor = new MedidorDeDesempenho();
+        for (var i = 1; i <= 100; i++) medidor.Registrar("GET", "/api/v1/mercado/demanda", 50, 200, consultas: i);
+
+        var rota = medidor.Resumo().Single();
+        rota.ConsultasP95.Should().Be(95, "o percentil por posto mais próximo, como o do tempo");
+        rota.ConsultasMaximo.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task Cada_resposta_da_api_diz_quantas_vezes_foi_ao_banco_e_o_medidor_guarda_o_numero()
+    {
+        var http = api.ClienteDeRibeirao();
+
+        var resposta = await http.GetAsync("/api/v1/catalogos/ORIGEM_LEAD");
+
+        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+        var consultas = int.Parse(resposta.Headers.GetValues("X-Consultas-Ao-Banco").Single(), System.Globalization.CultureInfo.InvariantCulture);
+        consultas.Should().BeGreaterThan(0, "a rota lê o catálogo no banco");
+        api.Services.GetRequiredService<MedidorDeDesempenho>().Resumo()
+            .Single(r => r.Metodo == "GET" && r.Rota == "/api/v1/catalogos/{codigo}").ConsultasMaximo.Should().BeGreaterThanOrEqualTo(consultas);
     }
 }

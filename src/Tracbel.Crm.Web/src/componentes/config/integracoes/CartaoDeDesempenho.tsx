@@ -64,6 +64,9 @@ export function CartaoDeDesempenho() {
                     <th scope="col">p50</th>
                     <th scope="col">p95</th>
                     <th scope="col">Máximo</th>
+                    <th scope="col" title="Quantas vezes a rota foi ao banco: p95 e máximo das chamadas recentes">
+                      Consultas
+                    </th>
                     <th scope="col">Erros</th>
                   </tr>
                 </thead>
@@ -81,6 +84,9 @@ export function CartaoDeDesempenho() {
                       <td className="cad-mono">{ms(r.p50)}</td>
                       <td className="cad-mono">{ms(r.p95)}</td>
                       <td className="cad-mono">{ms(r.maximo)}</td>
+                      <td className="cad-mono" title="p95 / máximo de idas ao banco por chamada">
+                        {r.consultasP95.toLocaleString('pt-BR')} / {r.consultasMaximo.toLocaleString('pt-BR')}
+                      </td>
                       <td className="cad-mono">{r.erros === 0 ? '0' : r.erros.toLocaleString('pt-BR')}</td>
                     </tr>
                   ))}

@@ -177,6 +177,10 @@ export type DesempenhoDaRota = {
   erros: number;
   /** Gravação — passa pela trilha de auditoria na mesma transação. */
   grava: boolean;
+  /** O p95 das idas ao banco por chamada (documento 54 §3.5). */
+  consultasP95: number;
+  /** A chamada que mais foi ao banco, na janela. */
+  consultasMaximo: number;
 };
 
 export type DesempenhoDaApi = { desdeUtc: string; amostrasPorRota: number; rotas: DesempenhoDaRota[] };

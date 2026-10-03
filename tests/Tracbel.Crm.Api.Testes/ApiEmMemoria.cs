@@ -12,6 +12,7 @@ using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Persistencia;
+using Tracbel.Crm.Infraestrutura.Persistencia.Diagnostico;
 
 namespace Tracbel.Crm.Api.Testes;
 
@@ -60,6 +61,11 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
         // segundos. Quem testa o cache liga com `MinutosDoCache`.
         builder.UseSetting("CacheDasLeituras:Minutos", MinutosDoCache.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
+        // A ASSINATURA DO DADO DE REFERÊNCIA É RELIDA A CADA LEITURA NOS TESTES: eles gravam direto no banco entre duas
+        // leituras, como as rotinas, e não podem esperar a janela de 15 s. Quem mede o servidor liga a janela.
+        builder.UseSetting("CacheDeReferencia:SegundosEntreConferencias",
+            SegundosEntreConferenciasDaReferencia.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
         builder.ConfigureServices(servicos =>
         {
             // Tira o registro de SQL Server que o Program.cs fez e põe SQLite no lugar. É a
@@ -71,6 +77,17 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
             // tirar esse, os dois provedores acabam no mesmo contêiner e o EF recusa com
             // "Only a single database provider can be registered" — o erro sai só na primeira
             // consulta, não no registro.
+            // O VIGIA DA VERSÃO DOS DADOS NÃO RODA NOS TESTES (documento 54, o teste instável do cache). Ele faz a primeira
+            // conferência no instante em que o serviço sobe — junto com a criação do banco do teste, na MESMA conexão
+            // SQLite —, e o SQLite não aceita duas operações ao mesmo tempo numa conexão: era o "Operations that change
+            // non-concurrent collections must have exclusive access". Os testes mudam a versão à mão
+            // (VersaoDosDados.AtualizarDoBanco) e leem a marca pelo método estático, que é o que o vigia faria.
+            foreach (var vigia in servicos
+                         .Where(d => d.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)
+                                     && d.ImplementationType == typeof(Tracbel.Crm.Api.Comum.VigiaDaVersaoDosDados))
+                         .ToList())
+                servicos.Remove(vigia);
+
             servicos.RemoveAll<DbContextOptions<CrmDbContext>>();
             servicos.RemoveAll<DbContextOptions>();
             servicos.RemoveAll(typeof(IDbContextOptionsConfiguration<CrmDbContext>));
@@ -83,7 +100,8 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
             // ela faz no teste o que faz no SQL Server: diferencia caixa e acento.
             _conexao.CreateCollation("Latin1_General_BIN2", (a, b) => string.CompareOrdinal(a, b));
 
-            servicos.AddDbContext<CrmDbContext>(opcoes => opcoes.UseSqlite(_conexao));
+            servicos.AddDbContext<CrmDbContext>((provedor, opcoes) =>
+                opcoes.UseSqlite(_conexao).AddInterceptors(provedor.GetRequiredService<InterceptadorDeConsultas>()));
 
             // A SEGUNDA SUBSTITUIÇÃO, SÓ QUANDO O TESTE PEDE: o que falaria com a internet (o botão "Testar" das
             // integrações) responde por um manipulador do próprio teste. O CI não depende de site externo no ar.
@@ -96,6 +114,9 @@ public sealed class ApiEmMemoria : WebApplicationFactory<Program>, IAsyncLifetim
 
     /// <summary>Por quantos minutos as leituras ficam guardadas. Zero (o padrão dos testes) desliga o cache.</summary>
     public int MinutosDoCache { get; init; }
+
+    /// <summary>De quantos em quantos segundos a assinatura do dado de referência é relida. Zero (o padrão dos testes) relê sempre.</summary>
+    public int SegundosEntreConferenciasDaReferencia { get; init; }
 
     /// <inheritdoc />
     public async Task InitializeAsync()

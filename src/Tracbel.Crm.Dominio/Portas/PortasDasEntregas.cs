@@ -21,4 +21,8 @@ public interface IRepositorioDeEntregas
     /// <param name="fimExclusivo">O dia seguinte ao último.</param>
     /// <param name="ct">Cancelamento.</param>
     Task<IReadOnlyList<EntregaDeMaquina>> ListarAsync(DateOnly inicio, DateOnly fimExclusivo, CancellationToken ct);
+
+    /// <summary>Se o ART trouxe alguma venda de máquina ao alcance de quem lê — ausência de carga não é entrega zero.</summary>
+    /// <param name="ct">Cancelamento.</param>
+    Task<bool> ExisteVendaAsync(CancellationToken ct);
 }

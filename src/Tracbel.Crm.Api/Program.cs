@@ -16,6 +16,8 @@ using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Multiempresa;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
+using Tracbel.Crm.Infraestrutura.Persistencia.Diagnostico;
+using Tracbel.Crm.Infraestrutura.Persistencia.Cache;
 using Microsoft.Extensions.Options;
 using Tracbel.Crm.Infraestrutura.Seguranca;
 using Tracbel.Crm.Integracao.Conexoes;
@@ -91,7 +93,10 @@ static string LerCadeiaDeConexao(IConfiguration configuracao)
         "infra/docker-compose.yml. Ver docs/projeto/23-API.md.");
 }
 
-builder.Services.AddDbContext<CrmDbContext>(opcoes =>
+// O CONTADOR DE CONSULTAS (documento 54 §3.5): cada comando ao banco conta para a requisição que o fez.
+builder.Services.AddSingleton<InterceptadorDeConsultas>();
+
+builder.Services.AddDbContext<CrmDbContext>((servicos, opcoes) =>
     opcoes.UseSqlServer(
         // VAZIO CONTA COMO AUSENTE. O `??` sozinho só pega nulo, e o appsettings versionado traz
         // a chave com string vazia de propósito — a senha não mora nele. Sem esta checagem, o
@@ -118,7 +123,8 @@ builder.Services.AddDbContext<CrmDbContext>(opcoes =>
             // a estratégia de retentativa recusa `BeginTransaction` — a carga precisa de
             // `ExecutionStrategy.Execute` em volta de cada bloco, que é outro trabalho. Leitura
             // não tem transação e não tem esse problema.
-            .EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null)));
+            .EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null))
+        .AddInterceptors(servicos.GetRequiredService<InterceptadorDeConsultas>()));
 
 // -------------------------------------------------------------------------------------------
 // O CONTEXTO DE ACESSO — quem está agindo nesta requisição.
@@ -183,6 +189,15 @@ builder.Services.AddOutputCache();
 builder.Services.AddOptions<Microsoft.AspNetCore.OutputCaching.OutputCacheOptions>()
     .Configure<VersaoDosDados, IOptions<OpcoesDoCacheDasLeituras>>((cache, versao, opcoes) =>
         cache.AddBasePolicy(new PoliticaDeCacheDasLeituras(versao, opcoes)));
+
+// O CACHE DE REFERÊNCIA (documento 54 §3.2): território e potencial calculados uma vez por versão do assunto.
+builder.Services.AddMemoryCache();
+builder.Services.Configure<OpcoesDoCacheDeReferencia>(builder.Configuration.GetSection(OpcoesDoCacheDeReferencia.Secao));
+builder.Services.AddSingleton<ContadorDeGravacoesNaReferencia>();
+builder.Services.AddSingleton<IAssinaturaDosAssuntos, AssinaturaDosAssuntos>();
+builder.Services.AddSingleton<CacheDeReferencia>();
+builder.Services.AddSingleton<IRepositorioDoTerritorioDeReferencia, TerritorioDeReferenciaEmCache>();
+builder.Services.AddSingleton<IRepositorioDoPotencialDeReferencia, PotencialDeReferenciaEmCache>();
 
 // -------------------------------------------------------------------------------------------
 // As portas do domínio e seus adaptadores. O caso de uso conhece a interface; só esta linha
