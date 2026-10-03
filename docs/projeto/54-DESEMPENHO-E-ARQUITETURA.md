@@ -1,11 +1,12 @@
 # 54 — Desempenho e arquitetura: telas em até 2 segundos, código dividido por responsabilidade
 
-> **Versão 1.3 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
+> **Versão 1.4 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
 > **desempenho + arquitetura** → banco sem redundância → o que falta → material da diretoria.
 > Diagnóstico de partida: `.omc/plans/diagnostico-da-organizacao-2026-10-03.md`.
 > A 1.1 registra o que o plano 1 de 3 entregou (§7) e corrige a §3.2: a versão é a assinatura do próprio dado.
 > A 1.2 registra a captura de produção depois do plano 1 (§7.1) e o que o plano 2 de 3 entregou (§7.2).
 > A 1.3 registra a primeira rotina incremental, o faturamento (§3.3 e §7.3).
+> A 1.4 registra a segunda, o pós-venda: ordens de serviço, faturamento de peças e orçamentos (§3.3 e §7.3).
 
 ## 1. Decisões que este documento cumpre
 
@@ -108,7 +109,7 @@
 | 11 TELEMETRIA (Operations Center) | última leitura por máquina | **continua** (já é só a última) | — |
 | 12 CONFERÊNCIA GN | comparação | **continua**: é comparação inteira por natureza | — |
 | 14 PARTIÇÃO DA AUDITORIA | manutenção | — | — |
-| 15 PÓS-VENDA PROTHEUS (OS, peças) | regrava 3 anos | **incremental** + semanal | data de alteração da OS e da nota de peça |
+| 15 PÓS-VENDA PROTHEUS (OS, peças) | regrava 3 anos | **incremental** + completa no domingo — **entregue no plano 3** (§7.3): OS pela abertura e pela mudança de situação, peças pelo mês curto, orçamentos pela data de alteração | a OS não tem `S_T_A_M_P_` (VO1, VO3, VO4); o orçamento tem `data_alteracao_orc` |
 
 A confirmação é a primeira tarefa de cada rotina, e cada rotina é um PR à parte. **Nada muda de comportamento antes da confirmação.**
 
@@ -319,11 +320,35 @@ O Ricardo decidiu, em 03/10/2026, ir **pela emissão, com a completa semanal med
 **Ainda falta medir:** o tempo da rodada curta contra o da completa, e o "corrigido antes da janela curta" dos primeiros
 domingos, depois da publicação. Se o corrigido for grande e frequente, a janela curta aumenta.
 
+**2. O pós-venda** (`POS_VENDA_PROTHEUS`, os dois modos), entregue na branch `feat/incremental-pos-venda`.
+
+O alcance é o mesmo do faturamento. Ele virou genérico (`AlcanceDaLeitura`), e cada carga passa o início da janela inteira
+dela. O que cada leitura curta pega:
+
+| Dado | Leitura curta | O que ela não exclui |
+|---|---|---|
+| **Ordens de serviço** (sincronia) | as abertas desde o início curto, as ainda na oficina (A, L, D) e as **fechadas ou canceladas desde o início curto**. A VO1 não tem data de alteração; a data de fechamento faz o papel dela | a OS antiga que não veio: pode ter sido fechada com a rotina parada, e quem a resolve é a completa |
+| **Faturamento de peças** (apuração por mês) | o mês curto, regravado inteiro; os meses anteriores ficam como estão | — |
+| **Orçamentos de peças** (sincronia) | os orçados desde o início curto, os abertos e os **alterados desde o início curto** (a view tem `data_alteracao_orc`) | o orçamento antigo que não veio |
+
+- **A conta da completa.** Ela conta as OS e os orçamentos corrigidos fora do alcance curto, e os meses-filial do
+  faturamento de peças com valor diferente antes do início curto, com os reais.
+- **A última completa de cada modo** é um ponto de sincronismo próprio: `PROTHEUS.ORDENS_DE_SERVICO_COMPLETO` e
+  `PROTHEUS.FATURAMENTO_PECAS_COMPLETO`. Ele é gravado na mesma transação da carga, então a completa que cai no meio não
+  conta.
+- **O resumo da rotina** começa pelo alcance: "leitura curta desde dd/mm/aaaa", ou "leitura COMPLETA desde …, N corrigidas
+  fora do alcance curto".
+- **A janela regravada vem do alcance, e não do "desde" da leitura.** Com a leitura que viesse inteira numa rodada curta,
+  a apuração das peças apagaria os 36 meses.
+- **O leitor das OS** saiu da lista dos arquivos grandes: as regras de valor do BI foram para arquivo próprio.
+- **O que esperar do ganho.** As consultas das views comparam datas convertidas, como já faziam, e o SQL Server do
+  Protheus provavelmente continua varrendo as views nas duas leituras. O que cai com certeza é o volume que atravessa a
+  rede e o trabalho do CRM. O tempo da rodada curta contra o da completa, em Integrações, é que mede o ganho.
+
 **As próximas rotinas, na ordem do §4, e o que cada uma ainda precisa confirmar:**
 
 | Rotina | O que falta confirmar |
 |---|---|
-| 15 PÓS-VENDA (OS e peças) | O extrator do BI anota que **VO1, VO3 e VO4 não tinham `S_T_A_M_P_`** (07/07/2026). A OS não tem data de alteração: o caminho provável é o mesmo do faturamento, pela data da OS e da nota, com a completa semanal |
 | 8 PROCESSOS DO VÓRTICE | data do histórico (`IV_HISTORICO`) — pelo agente do Vórtice |
 | 6 CARTEIRAS DO VÓRTICE | datas de vínculo e de contato — pelo agente do Vórtice |
 | 3 CADASTRO DE CLIENTES (SA1) | se a SA1 tem `S_T_A_M_P_` (a SB1 tem; a SB2 e a SBM não tinham em 06/2026) |
@@ -332,7 +357,8 @@ domingos, depois da publicação. Se o corrigido for grande e frequente, a janel
 ### 7.4 Próximos passos
 
 - **A captura do "depois"** do plano 2 entra na §7.2, e as rotas que ainda passarem de 2 s viram o passo 7.
-- **O resumo da rotina do faturamento** num dia comum e no primeiro domingo entra na §7.3 como a medida do ganho.
+- **O resumo das rotinas do faturamento e do pós-venda** num dia comum e no primeiro domingo entra na §7.3 como a medida
+  do ganho.
 - **As próximas rotinas incrementais** da §7.3, uma por PR.
 - **Passo 7 — as outras rotas lentas** da captura: `indicadores-executivos`, `funil-por-estagio`, `cen`, `faturamento`
   e o que a nova captura mostrar.
