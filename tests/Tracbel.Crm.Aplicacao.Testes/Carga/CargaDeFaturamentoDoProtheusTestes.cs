@@ -353,7 +353,7 @@ public sealed class CargaDeFaturamentoDoProtheusTestes : IDisposable
         var primeira = await NovaCarga().ExecutarAsync(ler, completaPedida: false, () => new DateTime(2026, 10, 8, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
         var segunda = await NovaCarga().ExecutarAsync(ler, completaPedida: false, () => new DateTime(2026, 10, 9, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
 
-        (primeira.Valor.Modo, segunda.Valor.Modo).Should().Be((ModoDaLeituraDoFaturamento.Completa, ModoDaLeituraDoFaturamento.Curta));
+        (primeira.Valor.Modo, segunda.Valor.Modo).Should().Be((ModoDaLeitura.Completa, ModoDaLeitura.Curta));
         pedidos.Should().Equal(new DateOnly(2023, 10, 1), new DateOnly(2026, 10, 1));
 
         await using var db = Leitura();
@@ -377,7 +377,7 @@ public sealed class CargaDeFaturamentoDoProtheusTestes : IDisposable
             completaPedida: false, () => new DateTime(2026, 10, 12, 8, 0, 0, DateTimeKind.Utc), CancellationToken.None);
 
         caiu.EhSucesso.Should().BeFalse();
-        seguinte.Valor.Modo.Should().Be(ModoDaLeituraDoFaturamento.Completa, "a completa de domingo caiu; segunda-feira é completa");
+        seguinte.Valor.Modo.Should().Be(ModoDaLeitura.Completa, "a completa de domingo caiu; segunda-feira é completa");
 
         await using var db = Leitura();
         (await db.ExecucoesDeSincronizacao.OrderBy(e => e.Id).Select(e => e.Resultado).ToListAsync())
@@ -391,11 +391,11 @@ public sealed class CargaDeFaturamentoDoProtheusTestes : IDisposable
         var decisoes = new Dictionary<string, int>();
 
         CargaDeFaturamentoDoProtheus.LinhaDoResumo(new ResumoDoFaturamento(3, 120, 1, 0, curva, decisoes,
-                null, ModoDaLeituraDoFaturamento.Curta, new DateOnly(2026, 10, 1)))
+                null, ModoDaLeitura.Curta, new DateOnly(2026, 10, 1)))
             .Should().Be("leitura curta desde 01/10/2026: 3 mês(es) novo(s), 120 reapurado(s), 1 removido(s)");
 
         CargaDeFaturamentoDoProtheus.LinhaDoResumo(new ResumoDoFaturamento(0, 59_000, 4, 0, curva, decisoes,
-                new ConferenciaDaJanelaCurta(new DateOnly(2026, 10, 1), 2, 1234.5m), ModoDaLeituraDoFaturamento.Completa, new DateOnly(2023, 10, 1)))
+                new ConferenciaDaJanelaCurta(new DateOnly(2026, 10, 1), 2, 1234.5m), ModoDaLeitura.Completa, new DateOnly(2023, 10, 1)))
             .Should().Be("leitura COMPLETA desde 01/10/2023: 0 mês(es) novo(s), 59.000 reapurado(s), 4 removido(s) · " +
                          "antes de 10/2026, 2 mês(es) corrigido(s) (R$ 1.235) que a leitura curta não teria visto");
     }

@@ -116,8 +116,8 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
     {
         var agoraUtc = relogio();
         _sistemaId = await GarantirSistemaAsync(ct);
-        var alcance = AlcanceDaLeituraDoFaturamento.Decidir(agoraUtc, await UltimaLeituraCompletaAsync(ct), completaPedida);
-        var completa = alcance.Modo == ModoDaLeituraDoFaturamento.Completa;
+        var alcance = AlcanceDaLeitura.Decidir(agoraUtc, await UltimaLeituraCompletaAsync(ct), completaPedida, InicioDaJanela(agoraUtc));
+        var completa = alcance.Modo == ModoDaLeitura.Completa;
 
         relatar(completa
             ? $"Leitura COMPLETA do faturamento — três anos, desde {alcance.Desde:dd/MM/yyyy} ({alcance.Motivo})…"
@@ -164,7 +164,7 @@ internal sealed partial class CargaDeFaturamentoDoProtheus(
     /// <param name="resumo">O resumo da rodada.</param>
     internal static string LinhaDoResumo(ResumoDoFaturamento resumo)
     {
-        var modo = resumo.Modo == ModoDaLeituraDoFaturamento.Completa ? "leitura COMPLETA" : "leitura curta";
+        var modo = resumo.Modo == ModoDaLeitura.Completa ? "leitura COMPLETA" : "leitura curta";
         var desde = resumo.Desde is { } d ? string.Create(CulturaDoRelatorio, $" desde {d:dd/MM/yyyy}") : string.Empty;
         var linha = string.Create(CulturaDoRelatorio,
             $"{modo}{desde}: {resumo.MesesNovos:N0} mês(es) novo(s), {resumo.MesesReapurados:N0} reapurado(s), {resumo.MesesRemovidos:N0} removido(s)");
@@ -816,7 +816,7 @@ internal sealed record ResumoDoFaturamento(
     IReadOnlyDictionary<ClasseDeCliente, int> Curva,
     IReadOnlyDictionary<string, int> Decisoes,
     ConferenciaDaJanelaCurta? Conferencia = null,
-    ModoDaLeituraDoFaturamento Modo = ModoDaLeituraDoFaturamento.Completa,
+    ModoDaLeitura Modo = ModoDaLeitura.Completa,
     DateOnly? Desde = null);
 
 /// <summary>
