@@ -69,6 +69,8 @@ import { useContextoDeAcesso } from '../dados/api/contexto';
 import { obterFunilPorEstagio, obterVendasPerdidas } from '../dados/api/relacionamento';
 import { useRecurso } from '../dados/api/useRecurso';
 import type { BaseDoFunil, EstagioNoFunil, FatiaDeVendaPerdida } from '../tipos/relacionamento';
+import { formatarNumero as nº } from '../dados/formatadores';
+import { CampoDoFiltro } from '../componentes/comum/CampoDoFiltro';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
@@ -103,7 +105,6 @@ const FORMULARIOS = [
 /** As duas abas do painel das perdas. */
 type AbaDasPerdas = 'motivo' | 'concorrente';
 
-const nº = (v: number) => v.toLocaleString('pt-BR');
 const pct =(v: number | null) => (v === null ? null : `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`);
 
 export function Funil() {
@@ -180,56 +181,44 @@ export function Funil() {
           para as perdas. Sem período escolhido, vale o padrão do servidor — o ano fiscal até o último mês fechado. */}
       <div className="dash-filtros" data-bloco="filtros">
         <div className="dash-filtros-linha">
-          <label className="dash-filtro" data-bloco="de">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <CalendarDays size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">
+          <CampoDoFiltro
+            icone={CalendarDays}
+            rotulo={
+              <>
                 De
                 <InfoTooltip
                   texto="O período padrão é o ano fiscal (novembro a outubro) até o último mês fechado, calculado no servidor. Trocar uma das datas troca o período do funil e das perdas."
                   rotulo="Como o período é contado"
                 />
-              </span>
-              <input
-                type="date"
-                value={periodoMostrado?.de ?? ''}
-                onChange={(e) => e.target.value && setPeriodo({ de: e.target.value, ate: periodoMostrado?.ate ?? e.target.value })}
-              />
-            </span>
-          </label>
+              </>
+            }
+            bloco="de"
+          >
+            <input
+              type="date"
+              value={periodoMostrado?.de ?? ''}
+              onChange={(e) => e.target.value && setPeriodo({ de: e.target.value, ate: periodoMostrado?.ate ?? e.target.value })}
+            />
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="ate">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <CalendarDays size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Até</span>
-              <input
-                type="date"
-                value={periodoMostrado?.ate ?? ''}
-                onChange={(e) => e.target.value && setPeriodo({ de: periodoMostrado?.de ?? e.target.value, ate: e.target.value })}
-              />
-            </span>
-          </label>
+          <CampoDoFiltro icone={CalendarDays} rotulo="Até" bloco="ate">
+            <input
+              type="date"
+              value={periodoMostrado?.ate ?? ''}
+              onChange={(e) => e.target.value && setPeriodo({ de: periodoMostrado?.de ?? e.target.value, ate: e.target.value })}
+            />
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="formulario">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <FileText size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Formulário da venda perdida</span>
-              <select value={formulario} onChange={(e) => setFormulario(e.target.value)}>
-                <option value="">Todos os formulários</option>
-                {FORMULARIOS.map((f) => (
-                  <option key={f.codigo} value={f.codigo}>
-                    {f.nome}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={FileText} rotulo="Formulário da venda perdida" bloco="formulario">
+            <select value={formulario} onChange={(e) => setFormulario(e.target.value)}>
+              <option value="">Todos os formulários</option>
+              {FORMULARIOS.map((f) => (
+                <option key={f.codigo} value={f.codigo}>
+                  {f.nome}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
           {periodo && (
             <div className="dash-filtros-acao">

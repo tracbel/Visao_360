@@ -26,14 +26,10 @@ import {
 } from 'chart.js';
 import { Link } from 'react-router-dom';
 import { Bar, Doughnut } from 'react-chartjs-2';
-import { formatarBRLCompacto } from '../dados/formatadores';
+import { formatarBRLCompacto, formatarBRL } from '../dados/formatadores';
 import type { PosVendasCliente } from '../tipos/clientes';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
-
-function fmtBRL(v: number): string {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-}
 
 function fmtData(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR');
@@ -144,7 +140,7 @@ export function AbaPosVendas({ dados: p }: Props) {
             </svg>
             <span>Faturamento pós-vendas FYTD</span>
           </div>
-          <div className="pv-kpi-valor">{fmtBRL(p.fat_pv.fytd_total)}</div>
+          <div className="pv-kpi-valor">{formatarBRL(p.fat_pv.fytd_total)}</div>
           <div className="pv-kpi-hint">
             <span className="pv-kpi-split">
               <b>{formatarBRLCompacto(p.fat_pv.fytd_pecas)}</b> peças
@@ -155,7 +151,7 @@ export function AbaPosVendas({ dados: p }: Props) {
             </span>
           </div>
           <div className="pv-kpi-sub">
-            2025: {fmtBRL(p.fat_pv.ano_2025_total)} · 2024: {fmtBRL(p.fat_pv.ano_2024_total)}
+            2025: {formatarBRL(p.fat_pv.ano_2025_total)} · 2024: {formatarBRL(p.fat_pv.ano_2024_total)}
           </div>
         </div>
 
@@ -275,7 +271,7 @@ export function AbaPosVendas({ dados: p }: Props) {
             </div>
             <div className="pv-ticket-medio">
               <span className="pv-ticket-label">Ticket médio de peças</span>
-              <span className="pv-ticket-valor">{fmtBRL(p.fat_pv.ticket_medio_pecas)}</span>
+              <span className="pv-ticket-valor">{formatarBRL(p.fat_pv.ticket_medio_pecas)}</span>
             </div>
           </div>
         </div>

@@ -8,16 +8,11 @@
 
 import type { MercadoAnual, PrecoDeReferenciaDaCategoria } from '../../tipos/territorio';
 import { reaisCompactos } from '../territorio/escalas';
-
-/** `aaaa-mm-dd` → `mm/aaaa`. */
-const mesAno = (aaaammdd: string) => {
-  const [ano, mes] = aaaammdd.split('-');
-  return mes && ano ? `${mes}/${ano}` : aaaammdd;
-};
+import { formatarMesNumerico } from '../../dados/formatadores';
 
 function doPreco(p: PrecoDeReferenciaDaCategoria): string {
   const meses = p.meses === 1 ? '1 mês' : `${p.meses} meses`;
-  return `${p.categoria}: ${reaisCompactos(p.preco)} (mediana de ${meses} de notas, até ${mesAno(p.ultimoMes)})`;
+  return `${p.categoria}: ${reaisCompactos(p.preco)} (mediana de ${meses} de notas, até ${formatarMesNumerico(p.ultimoMes)})`;
 }
 
 /**

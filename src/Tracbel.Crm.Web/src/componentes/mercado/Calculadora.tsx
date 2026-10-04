@@ -17,8 +17,7 @@ import { simularMaquinas } from '../../dados/api/territorio';
 import { ErroDaApi, type ContextoDeAcesso } from '../../dados/api/http';
 import { useRecurso } from '../../dados/api/useRecurso';
 import type { CulturaNaCalculadora } from '../../tipos/territorio';
-
-const nº = (v: number) => v.toLocaleString('pt-BR');
+import { formatarNumero as nº } from '../../dados/formatadores';
 
 /** Arredonda para mostrar: máquina é coisa inteira, e "7,3 tratores" não existe no pátio. */
 const maquinas = (v: number | null) => (v === null ? '—' : nº(Math.round(v)));

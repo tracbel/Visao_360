@@ -69,6 +69,7 @@ import { useRecurso } from '../dados/api/useRecurso';
 import { baixarCsv, carimboDeData } from '../dados/exportarCsv';
 import type { LinhaDoForecast, RelatorioDoForecast } from '../tipos/forecast';
 import { nomeCurto, nomeProprio } from './cadastro/formato';
+import { formatarMesComAno, formatarNumero } from '../dados/formatadores';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
@@ -78,12 +79,9 @@ import '../estilos/forecast.css';
 
 const NAO_INFORMADO = 'O gestor não informou este número na Gestão de Negócios: fica vazio, e não zero.';
 
-const n = (v: number) => v.toLocaleString('pt-BR');
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-const mesPorExtenso = (aaaammdd: string) => `${MESES[Number(aaaammdd.slice(5, 7)) - 1]}/${aaaammdd.slice(0, 4)}`;
 /** "Set/2026", como o seletor da maquete. */
 const mesDoSeletor = (aaaammdd: string) => {
-  const texto = mesPorExtenso(aaaammdd);
+  const texto = formatarMesComAno(aaaammdd);
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 };
 
@@ -372,7 +370,7 @@ export function ForecastGerencia() {
           rotulo="PG"
           icone={Target}
           tom="demanda"
-          valor={total ? n(total.meta) : null}
+          valor={total ? formatarNumero(total.meta) : null}
           carregando={forecast.carregando}
           unidade="máquinas"
           motivoSemDado={undefined}
@@ -383,7 +381,7 @@ export function ForecastGerencia() {
           rotulo="Forecast"
           icone={ChartColumn}
           tom="mercado"
-          valor={total?.forecast != null ? n(total.forecast) : null}
+          valor={total?.forecast != null ? formatarNumero(total.forecast) : null}
           carregando={forecast.carregando}
           unidade="máquinas"
           motivoSemDado={total ? NAO_INFORMADO : undefined}
@@ -401,7 +399,7 @@ export function ForecastGerencia() {
           rotulo="Best Guess"
           icone={TrendingUp}
           tom="oportunidade"
-          valor={total?.bestGuess != null ? n(total.bestGuess) : null}
+          valor={total?.bestGuess != null ? formatarNumero(total.bestGuess) : null}
           carregando={forecast.carregando}
           unidade="máquinas"
           motivoSemDado={total ? NAO_INFORMADO : undefined}
@@ -419,7 +417,7 @@ export function ForecastGerencia() {
           rotulo="Realizado"
           icone={ChartPie}
           tom="captura"
-          valor={total ? n(total.realizado) : null}
+          valor={total ? formatarNumero(total.realizado) : null}
           carregando={forecast.carregando}
           unidade="máquinas"
           motivoSemDado={undefined}
@@ -437,17 +435,17 @@ export function ForecastGerencia() {
           rotulo="Gestores"
           icone={UsersRound}
           tom="neutro"
-          valor={recorte ? n(recorte.gestores.length) : null}
+          valor={recorte ? formatarNumero(recorte.gestores.length) : null}
           carregando={forecast.carregando}
           unidade="gestores"
           motivoSemDado={undefined}
           variacao={
             recorte && dados
               ? gestorEscolhido
-                ? `de ${n(dados.gestores.length)} gestores no mês`
+                ? `de ${formatarNumero(dados.gestores.length)} gestores no mês`
                 : gestoresComTime === recorte.gestores.length
                   ? 'com pelo menos um consultor no time'
-                  : `${n(recorte.gestores.length - gestoresComTime)} sem consultor no de-para`
+                  : `${formatarNumero(recorte.gestores.length - gestoresComTime)} sem consultor no de-para`
               : null
           }
           sobre="Os gestores com forecast, PG ou venda no mês. O time de cada um é o de-para de consultores da Gestão de Negócios."
@@ -509,7 +507,7 @@ export function ForecastGerencia() {
           area="fc-distribuicao"
           data-bloco="distribuicao"
           icone={<CircleGauge className="fc-painel-icone" size={22} strokeWidth={2.2} aria-hidden="true" />}
-          subtitulo={total ? `Participação no total de ${n(total.realizado)} máquinas.` : 'Participação no total do realizado.'}
+          subtitulo={total ? `Participação no total de ${formatarNumero(total.realizado)} máquinas.` : 'Participação no total do realizado.'}
           dica={`Os cinco que mais venderam no mês e o resto somado em "Demais".${visao === 'gestor' && !gestorEscolhido ? ' As vendas cujo vendedor não está no de-para de consultores entram no total e em gestor nenhum — elas têm a fatia delas.' : ''}`}
         >
           {forecast.carregando && <BlocoCarregando oQue="a distribuição do realizado" />}
@@ -653,10 +651,10 @@ function AtencaoDaGerencia({ total, anterior, comGestor }: { total: Soma; anteri
     if (forecast > realizado) {
       const diferenca = forecast - realizado;
       frases.push(
-        `O forecast (${n(forecast)}) está acima do realizado (${n(realizado)}), com uma diferença de ${n(diferenca)} ${diferenca === 1 ? 'máquina' : 'máquinas'}${realizado > 0 ? ` (+${Math.round((100 * diferenca) / realizado)}%)` : ''}.`,
+        `O forecast (${formatarNumero(forecast)}) está acima do realizado (${formatarNumero(realizado)}), com uma diferença de ${formatarNumero(diferenca)} ${diferenca === 1 ? 'máquina' : 'máquinas'}${realizado > 0 ? ` (+${Math.round((100 * diferenca) / realizado)}%)` : ''}.`,
       );
     } else {
-      frases.push(`O realizado (${n(realizado)}) já alcançou o forecast (${n(forecast)}).`);
+      frases.push(`O realizado (${formatarNumero(realizado)}) já alcançou o forecast (${formatarNumero(forecast)}).`);
     }
   }
   if (bestGuess !== null) {
@@ -669,7 +667,7 @@ function AtencaoDaGerencia({ total, anterior, comGestor }: { total: Soma; anteri
             return pct === 0 ? ', igual ao mês anterior' : `, ${Math.abs(pct)}% ${pct < 0 ? 'abaixo' : 'acima'} do mês anterior`;
           })()
         : '';
-    frases.push(`O Best Guess (${n(bestGuess)})${cenario}${contraOAnterior}.`);
+    frases.push(`O Best Guess (${formatarNumero(bestGuess)})${cenario}${contraOAnterior}.`);
   }
 
   return (
@@ -716,7 +714,7 @@ function RankingPorAtingimento({ grupos, quantos }: { grupos: Grupo[]; quantos: 
             <span className="fc-ranking-valor">{Math.round(valor * 100)}%</span>
           </span>
           <span className="cad-so-leitor">
-            {i + 1}º, {grupo.nome}: {Math.round(valor * 100)}% do PG — {n(grupo.soma.realizado)} de {n(grupo.soma.meta)} máquinas
+            {i + 1}º, {grupo.nome}: {Math.round(valor * 100)}% do PG — {formatarNumero(grupo.soma.realizado)} de {formatarNumero(grupo.soma.meta)} máquinas
           </span>
         </li>
       ))}
@@ -740,16 +738,16 @@ function PgERealizado({ grupos }: { grupos: Grupo[] }) {
             <span className="fc-pg-par">
               <span className="fc-pg-barra" data-serie="pg" style={{ width: `${(100 * g.soma.meta) / maior * 0.86}%` }} />
               <span className="fc-pg-valor" data-serie="pg">
-                {n(g.soma.meta)}
+                {formatarNumero(g.soma.meta)}
               </span>
             </span>
             <span className="fc-pg-par">
               <span className="fc-pg-barra" data-serie="realizado" style={{ width: `${(100 * g.soma.realizado) / maior * 0.86}%` }} />
-              <span className="fc-pg-valor">{n(g.soma.realizado)}</span>
+              <span className="fc-pg-valor">{formatarNumero(g.soma.realizado)}</span>
             </span>
           </span>
           <span className="cad-so-leitor">
-            {g.nome}: PG {n(g.soma.meta)}, realizado {n(g.soma.realizado)} máquinas
+            {g.nome}: PG {formatarNumero(g.soma.meta)}, realizado {formatarNumero(g.soma.realizado)} máquinas
           </span>
         </li>
       ))}
@@ -786,11 +784,11 @@ function DistribuicaoDoRealizado({
         altura={150}
         cutout="62%"
         bordaBranca
-        centro={{ linha1: n(total), linha2: 'máquinas', corLinha1: '#0B1638', tamanhoLinha1: total >= 1_000 ? 20 : 24, tamanhoLinha2: 12 }}
+        centro={{ linha1: formatarNumero(total), linha2: 'máquinas', corLinha1: '#0B1638', tamanhoLinha1: total >= 1_000 ? 20 : 24, tamanhoLinha2: 12 }}
         tooltipUnidade="máquinas"
       />
       <table className="fc-distribuicao-legenda">
-        <caption className="cad-so-leitor">Distribuição do realizado de {n(total)} máquinas</caption>
+        <caption className="cad-so-leitor">Distribuição do realizado de {formatarNumero(total)} máquinas</caption>
         <tbody>
           {fatias.map((f) => (
             <tr key={f.inteiro}>
@@ -920,7 +918,7 @@ function TabelaDoForecast({
                 <span className="fc-nome">{g.nome}</span>
                 {g.consultores !== null && (
                   <span className="fc-consultores">
-                    {n(g.consultores)} {g.consultores === 1 ? 'consultor' : 'consultores'}
+                    {formatarNumero(g.consultores)} {g.consultores === 1 ? 'consultor' : 'consultores'}
                   </span>
                 )}
               </th>
@@ -953,7 +951,7 @@ function TabelaDoForecast({
                   )}
                 </button>
                 <span className="fc-nome">
-                  Demais {visao === 'gestor' ? 'gestores' : 'linhas'} ({n(demais.length)})
+                  Demais {visao === 'gestor' ? 'gestores' : 'linhas'} ({formatarNumero(demais.length)})
                 </span>
               </th>
               <Numeros soma={somaDeDemais} forte />
@@ -965,7 +963,7 @@ function TabelaDoForecast({
                     {g.nome}
                     {g.consultores !== null && (
                       <span className="fc-consultores">
-                        {n(g.consultores)} {g.consultores === 1 ? 'consultor' : 'consultores'}
+                        {formatarNumero(g.consultores)} {g.consultores === 1 ? 'consultor' : 'consultores'}
                       </span>
                     )}
                   </td>
@@ -978,7 +976,7 @@ function TabelaDoForecast({
           <tr className="fc-soma">
             <th scope="rowgroup">
               <span className="fc-nome">{rotuloDoTotal}</span>
-              {vendasSemGestor > 0 && <span className="fc-consultores">com {n(vendasSemGestor)} venda(s) sem gestor</span>}
+              {vendasSemGestor > 0 && <span className="fc-consultores">com {formatarNumero(vendasSemGestor)} venda(s) sem gestor</span>}
             </th>
             <Numeros soma={total} forte total />
           </tr>
@@ -1003,10 +1001,10 @@ function Numeros({ soma: l, forte = false, total = false }: { soma: Soma; forte?
   const razao = atingimento(l);
   return (
     <>
-      <td className="mom-num">{n(l.meta)}</td>
-      <td className="mom-num">{l.forecast === null ? <ValorAusente motivo={NAO_INFORMADO} oQue="o forecast" /> : n(l.forecast)}</td>
-      <td className="mom-num">{l.bestGuess === null ? <ValorAusente motivo={NAO_INFORMADO} oQue="o best guess" /> : n(l.bestGuess)}</td>
-      <td className="mom-num">{n(l.realizado)}</td>
+      <td className="mom-num">{formatarNumero(l.meta)}</td>
+      <td className="mom-num">{l.forecast === null ? <ValorAusente motivo={NAO_INFORMADO} oQue="o forecast" /> : formatarNumero(l.forecast)}</td>
+      <td className="mom-num">{l.bestGuess === null ? <ValorAusente motivo={NAO_INFORMADO} oQue="o best guess" /> : formatarNumero(l.bestGuess)}</td>
+      <td className="mom-num">{formatarNumero(l.realizado)}</td>
       <td className="fc-coluna-atingimento">
         {razao === null ? (
           <ValorAusente motivo="Sem PG nesta linha: não há base para a razão." oQue="o atingimento" />

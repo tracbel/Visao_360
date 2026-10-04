@@ -21,6 +21,7 @@ import {
   FAIXAS_VALOR_DA_PRODUCAO,
 } from './escalas';
 import type { FiltrosTerritoriais, MotivoSemPotencial } from '../../tipos/territorio';
+export { formatarMesComAno as mes, formatarNumero as nº } from '../../dados/formatadores';
 
 /** A largura de referência do desenho; o SVG escala para o cartão. */
 export const LARGURA_DO_DESENHO = 520;
@@ -128,14 +129,7 @@ export const MOTIVO_SEM_PARQUE: Record<MotivoSemPotencial, string> = {
   SemCicloDeRenovacao: 'falta o ciclo de renovação',
 };
 
-export const nº = (v: number) => v.toLocaleString('pt-BR');
 export const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
-
-/** `2025-09-01` vira `set/2025`. */
-export function mes(competencia: string): string {
-  const [ano, m] = competencia.split('-');
-  return `${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(m) - 1]}/${ano}`;
-}
 
 /**
  * O NOME DO RECORTE FILTRADO — para o texto que fala dos municípios da leitura.

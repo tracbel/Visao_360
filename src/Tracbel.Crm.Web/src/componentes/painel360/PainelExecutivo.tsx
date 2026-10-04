@@ -95,6 +95,8 @@ import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { TituloDaSecao } from '../territorio/TituloDaSecao';
 import { FiltroDoPerfil } from './FiltroDoPerfil';
 import type { PerfilId } from './perfis';
+import { formatarDiaEHora, formatarMesComAno, formatarMesCurto, formatarNumero as nº } from '../../dados/formatadores';
+import { CampoDoFiltro } from '../comum/CampoDoFiltro';
 import '../../estilos/mercado-visao.css';
 import '../../estilos/momento.css';
 import '../../estilos/territorio.css';
@@ -159,26 +161,8 @@ function emMilhoes(valor: number): string {
   return `R$ ${(valor / 1_000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`;
 }
 
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-
-/** `2026-09-01` vira `set/2026`. */
-function mesPorExtenso(competencia: string): string {
-  const [ano, mes] = competencia.slice(0, 7).split('-');
-  return `${MESES[Number(mes) - 1]}/${ano}`;
-}
-
-/** `2026-09-01` vira `set/26` — o rótulo curto do eixo. */
-function mesCurto(competencia: string): string {
-  const [ano, mes] = competencia.slice(0, 7).split('-');
-  return `${MESES[Number(mes) - 1]}/${ano.slice(2)}`;
-}
-
-/** `2026-09-08T18:46:07Z` vira `08/09 15:46`, no fuso de quem lê. */
-function diaEHora(instante: string | null): string {
-  if (!instante) return 'data não informada';
-  const utc = /Z|[+-]\d\d:\d\d$/.test(instante) ? instante : `${instante}Z`;
-  return new Date(utc).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
+/** `2026-09-08T18:46:07Z` vira `08/09 15:46`, no fuso de quem lê; sem o instante, o aviso. */
+const diaEHoraOuAviso = (instante: string | null) => (instante ? formatarDiaEHora(instante) : 'data não informada');
 
 /** O instante vira `29/09/2026 15:58`, no fuso de quem lê — a "Última atualização" do cabeçalho. */
 function diaEHoraCompletos(instante: Date): string {
@@ -268,7 +252,6 @@ const TOP = 5;
 /** Enquanto a leitura das perdas não volta — ou quando nenhuma filial respondeu. */
 const SEM_VENDA_PERDIDA = { registradas: 0, processosPerdidos: 0, porMotivo: [], porConcorrente: [] };
 
-const nº = (v: number) => v.toLocaleString('pt-BR');
 const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
 type AbaDasPerdas = 'motivo' | 'concorrente';
@@ -428,24 +411,24 @@ export function PainelExecutivo({
           27/09/2026. O nome do ano aparece sempre com o intervalo ao lado: "FY2026" sozinho se lê como ano civil. */}
       <div className="dash-filtros" data-bloco="filtros">
         <div className="dash-filtros-linha">
-          <label className="dash-filtro" data-bloco="periodo">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <CalendarDays size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">
+          <CampoDoFiltro
+            icone={CalendarDays}
+            rotulo={
+              <>
                 Período · ano fiscal (nov–out)
                 <InfoTooltip texto={DICA_DO_ANO_FISCAL} rotulo="Como o ano fiscal é contado" />
-              </span>
-              <select value={ano} onChange={(e) => setAno(Number(e.target.value))}>
-                {anos.map((a) => (
-                  <option key={a} value={a}>
-                    {nomeDoAno(a)}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+              </>
+            }
+            bloco="periodo"
+          >
+            <select value={ano} onChange={(e) => setAno(Number(e.target.value))}>
+              {anos.map((a) => (
+                <option key={a} value={a}>
+                  {nomeDoAno(a)}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
           <FiltroDoPerfil perfil={perfil} aoTrocar={aoTrocarPerfil} />
 
@@ -761,7 +744,7 @@ export function PainelExecutivo({
                           </InfoTooltip>
                           <span className="v360-ranking-meta">
                             {cliente.ultimaCompraEm
-                              ? `última compra em ${mesPorExtenso(cliente.ultimaCompraEm)}`
+                              ? `última compra em ${formatarMesComAno(cliente.ultimaCompraEm)}`
                               : 'sem compra na janela'}
                           </span>
                         </span>
@@ -1010,7 +993,7 @@ function PainelDoFaturamentoMensal({
         dica={DICA_DO_FATURAMENTO_NOTA}
         subtitulo={
           faturamento.serie.length > 0
-            ? `${mesPorExtenso(faturamento.serie[0].competencia)} a ${mesPorExtenso(faturamento.competenciaMaisRecente!)} · notas com cliente no CRM`
+            ? `${formatarMesComAno(faturamento.serie[0].competencia)} a ${formatarMesComAno(faturamento.competenciaMaisRecente!)} · notas com cliente no CRM`
             : 'Nota fiscal de saída, lida do Protheus.'
         }
         direita={seletor}
@@ -1021,7 +1004,7 @@ function PainelDoFaturamentoMensal({
           <MolduraDeGrafico altura={150} preencher>
             {(l, a) => (
               <GraficoLinhaMensal
-                rotulos={faturamento.serie.map((m) => mesCurto(m.competencia))}
+                rotulos={faturamento.serie.map((m) => formatarMesCurto(m.competencia))}
                 valores={faturamento.serie.map((m) => m.valorLiquido)}
                 largura={l}
                 altura={a}
@@ -1045,7 +1028,7 @@ function PainelDoFaturamentoMensal({
   // sem valor de venda — nunca um gráfico em zero.
   const maquinas = serie?.reduce((s, m) => s + m.maquinas, 0) ?? 0;
   const comValor = serie?.some((m) => m.valor > 0) ?? false;
-  const periodo = serie && serie.length > 0 ? `${mesPorExtenso(serie[0].inicio)} a ${mesPorExtenso(serie.at(-1)!.inicio)}` : null;
+  const periodo = serie && serie.length > 0 ? `${formatarMesComAno(serie[0].inicio)} a ${formatarMesComAno(serie.at(-1)!.inicio)}` : null;
   const porque = !ex
     ? 'A leitura dos indicadores das filiais não respondeu.'
     : !serie
@@ -1072,7 +1055,7 @@ function PainelDoFaturamentoMensal({
         <MolduraDeGrafico altura={150} preencher>
           {(l, a) => (
             <GraficoLinhaMensal
-              rotulos={serie.map((m) => mesCurto(m.inicio))}
+              rotulos={serie.map((m) => formatarMesCurto(m.inicio))}
               valores={serie.map((m) => m.valor)}
               largura={l}
               altura={a}
@@ -1119,7 +1102,7 @@ function CartaoDoFaturamento({ ex }: { ex: ExecutivoConsolidado }) {
   const motivo = !ano
     ? 'A leitura não trouxe o faturamento pelo ART: o servidor ainda não tem a versão de 29/09/2026.'
     : ano.maquinas === 0
-      ? `Nenhuma máquina com entrega de ${mesPorExtenso(ano.inicio)} a ${mesPorExtenso(ano.fim)} no ART ${noRecorte(ex.filiais[0]?.filial)}.`
+      ? `Nenhuma máquina com entrega de ${formatarMesComAno(ano.inicio)} a ${formatarMesComAno(ano.fim)} no ART ${noRecorte(ex.filiais[0]?.filial)}.`
       : `As ${nº(ano.maquinas)} máquinas entregues ainda estão sem valor de venda: o valor do ART passou a ser lido em 29/09/2026 e chega na primeira leitura do ART depois da publicação.`;
 
   // A VARIAÇÃO COMPARA O VALOR COM ELE MESMO, no mesmo trecho do ano anterior; sem valor de antes, não há percentual.
@@ -1142,33 +1125,33 @@ function CartaoDoFaturamento({ ex }: { ex: ExecutivoConsolidado }) {
       valor={valor}
       selo={variacao !== null ? <SeloDaVariacao percentual={variacao} /> : undefined}
       motivoSemDado={motivo}
-      variacao={ano ? `${nº(ano.maquinas)} máquinas entregues · até ${mesPorExtenso(ano.fim)}` : undefined}
+      variacao={ano ? `${nº(ano.maquinas)} máquinas entregues · até ${formatarMesComAno(ano.fim)}` : undefined}
       sobre={
         <>
           <p>
             <strong>O valor de venda do ART das máquinas ENTREGUES</strong> — a data de entrega preenchida
-            {ano ? `, de ${mesPorExtenso(ano.inicio)} a ${mesPorExtenso(ano.fim)} (o último mês fechado)` : ''} —, com e sem
+            {ano ? `, de ${formatarMesComAno(ano.inicio)} a ${formatarMesComAno(ano.fim)} (o último mês fechado)` : ''} —, com e sem
             comprador no CRM, pela filial da unidade que vendeu: uma máquina por venda do ART, como a Gestão de Negócios conta.{' '}
             Medido {noRecorte(ex.filiais[0]?.filial)}.
           </p>
           {ressalvas.length > 0 && <p>{ressalvas.join('. ')}.</p>}
           {anterior && (
             <p>
-              Mesmo trecho do ano anterior ({mesPorExtenso(anterior.inicio)} a {mesPorExtenso(anterior.fim)}): {emMilhoes(anterior.valor)} em{' '}
+              Mesmo trecho do ano anterior ({formatarMesComAno(anterior.inicio)} a {formatarMesComAno(anterior.fim)}): {emMilhoes(anterior.valor)} em{' '}
               {nº(anterior.maquinas)} máquinas
               {variacao !== null ? ` — ${variacao > 0 ? '+' : variacao < 0 ? '−' : ''}${porcento(Math.abs(variacao))} no valor` : ''}.
             </p>
           )}
           {mesEmCurso && (
             <p>
-              {mesPorExtenso(mesEmCurso.inicio)}, em curso e à parte: {emMilhoes(mesEmCurso.valor)} em {nº(mesEmCurso.maquinas)} máquinas
+              {formatarMesComAno(mesEmCurso.inicio)}, em curso e à parte: {emMilhoes(mesEmCurso.valor)} em {nº(mesEmCurso.maquinas)} máquinas
               entregues até agora.
             </p>
           )}
           {nota && (
             <p>
               Conferência, sem somar: a nota de saída do Protheus (máquina, peça e serviço) somou {emMilhoes(ex.realizadoDoAno.total)} no
-              ano e {emMilhoes(nota.total)} em {mesPorExtenso(nota.competencia)}, até {diaEHora(nota.carregadoEm)} — devolução não abatida.
+              ano e {emMilhoes(nota.total)} em {formatarMesComAno(nota.competencia)}, até {diaEHoraOuAviso(nota.carregadoEm)} — devolução não abatida.
             </p>
           )}
         </>
@@ -1228,7 +1211,7 @@ function CartaoDaMeta({ metas, carregando }: { metas: MetasConsolidadas | null; 
         : null,
     `mesmo trecho do FY anterior: ${nº(metas.realizadoNoAnterior)}`,
     metas.mesEmCurso
-      ? `${mesPorExtenso(metas.mesEmCurso.competencia)} em curso: ${nº(metas.mesEmCurso.realizadoMaquinas)} de ${nº(metas.mesEmCurso.metaMaquinas)}`
+      ? `${formatarMesComAno(metas.mesEmCurso.competencia)} em curso: ${nº(metas.mesEmCurso.realizadoMaquinas)} de ${nº(metas.mesEmCurso.metaMaquinas)}`
       : null,
   ].filter((p): p is string => p !== null);
 
@@ -1268,7 +1251,7 @@ function CartaoDaMeta({ metas, carregando }: { metas: MetasConsolidadas | null; 
           </p>
           <p>{REGRA_DA_META}</p>
           <p>
-            {`Cadastro lido em ${diaEHora(origem.lidaEm)}${proprio ? '' : `, ${metas.respondidas} filial(is)`}.`}{' '}
+            {`Cadastro lido em ${diaEHoraOuAviso(origem.lidaEm)}${proprio ? '' : `, ${metas.respondidas} filial(is)`}.`}{' '}
             {metas.observacoes.join(' ')}
           </p>
         </>

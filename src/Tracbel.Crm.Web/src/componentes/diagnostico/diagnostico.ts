@@ -7,6 +7,8 @@
  */
 
 import type { ClasseDePrioridade, ComponentesDoIoc, MunicipioNoDiagnostico, ResumoDoDiagnostico } from '../../tipos/mercado';
+import { formatarNumeroComCasas } from '../../dados/formatadores';
+import { ordenar as ordenarPelaColuna } from '../comum/ordenacao';
 
 /**
  * As cinco classes: o nome inteiro nos cartões e no CSV, o curto no selo da tabela, a faixa do IOC e a cor do mapa.
@@ -40,7 +42,7 @@ export const COMPONENTES: { chave: keyof ComponentesDoIoc; rotulo: string; mede:
 
 export const SEM_ART = 'O ART não trouxe as vendas de máquina deste recorte: ausência de carga não é venda zero.';
 
-export const n = (v: number, casas = 1) => v.toLocaleString('pt-BR', { maximumFractionDigits: casas });
+export const n = (v: number, casas = 1) => formatarNumeroComCasas(v, casas);
 export const pct = (v: number) => `${n(v * 100, 0)}%`;
 
 /** O índice de momento (1,00 é estável) como variação: 1,12 vira "+12%". */
@@ -85,15 +87,7 @@ export function ordenar(
   coluna: ColunaDoDiagnostico,
   sentido: 1 | -1,
 ): MunicipioNoDiagnostico[] {
-  return [...linhas].sort((a, b) => {
-    const va = a[coluna];
-    const vb = b[coluna];
-    if (va === null && vb === null) return 0;
-    if (va === null) return 1;
-    if (vb === null) return -1;
-    if (typeof va === 'string' && typeof vb === 'string') return sentido * va.localeCompare(vb, 'pt-BR');
-    return sentido * ((va as number) - (vb as number));
-  });
+  return ordenarPelaColuna(linhas, { coluna, sentido }, (linha, c) => linha[c]);
 }
 
 /**

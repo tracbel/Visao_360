@@ -4,8 +4,10 @@
  */
 
 import type { CenarioDeMercado, CenarioDoMunicipio, CenariosDeMercado, EscolhaDoCenario } from '../../tipos/mercado';
+import { formatarNumeroComCasas } from '../../dados/formatadores';
+export { formatarMesCurto as mesCurto } from '../../dados/formatadores';
 
-export const n = (v: number, casas = 1) => v.toLocaleString('pt-BR', { maximumFractionDigits: casas });
+export const n = (v: number, casas = 1) => formatarNumeroComCasas(v, casas);
 
 /** O número, ou o traço. */
 export const numeroOuTraco = (v: number | null | undefined, casas = 1) => (v === null || v === undefined ? '—' : n(v, casas));
@@ -75,14 +77,6 @@ export const aEntregarDe = (linha: CenarioDoMunicipio, escolha: EscolhaDoCenario
 
 /** "FY2026 (nov/2025 a out/2026)". */
 export const nomeDoAnoFiscal = (ano: number) => `FY${ano} (nov/${ano - 1} a out/${ano})`;
-
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-
-/** "2025-11" vira "nov/25". */
-export function mesCurto(iso: string): string {
-  const [ano, mes] = iso.split('-').map(Number);
-  return `${MESES[mes - 1]}/${String(ano).slice(2)}`;
-}
 
 // ------------------------------------------------------------------------------------------------
 // O CSV — todas as colunas, uma por medida

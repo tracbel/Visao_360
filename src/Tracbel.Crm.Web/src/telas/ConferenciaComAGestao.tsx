@@ -27,6 +27,8 @@ import { useContextoDeAcesso } from '../dados/api/contexto';
 import { useRecurso } from '../dados/api/useRecurso';
 import { baixarCsv, carimboDeData } from '../dados/exportarCsv';
 import type { DivergenciaNaTela, NumerosDaConferencia } from '../tipos/conferencia';
+import { formatarMesComAno, formatarNumero } from '../dados/formatadores';
+import { CampoDoFiltro } from '../componentes/comum/CampoDoFiltro';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
@@ -34,16 +36,12 @@ import '../estilos/painel-executivo.css';
 import '../estilos/territorio.css';
 import '../estilos/conferencia.css';
 
-const n = (v: number) => v.toLocaleString('pt-BR');
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-const mes = (aaaammdd: string) => `${MESES[Number(aaaammdd.slice(5, 7)) - 1]}/${aaaammdd.slice(0, 4)}`;
-
 const NAO_APURADA = 'ainda não apurada';
 
 /** A diferença como a tela escreve: o CRM menos a GN, com sinal; zero é "bate". */
 export function diferenca(crm: number, gn: number): string {
   const d = crm - gn;
-  return d === 0 ? 'bate' : `${d > 0 ? '+' : '−'}${n(Math.abs(d))}`;
+  return d === 0 ? 'bate' : `${d > 0 ? '+' : '−'}${formatarNumero(Math.abs(d))}`;
 }
 
 /** As divergências do filtro, e o CSV leva exatamente essas. */
@@ -57,11 +55,11 @@ const CABECALHO_DO_CSV = ['Tipo', 'Chassi', 'Filial', 'Na Gestão de Negócios',
 function Numeros({ numeros: x }: { numeros: NumerosDaConferencia }) {
   return (
     <>
-      <td className="mom-num">{n(x.metaNaGestao)}</td>
-      <td className="mom-num">{n(x.metaNoCrm)}</td>
+      <td className="mom-num">{formatarNumero(x.metaNaGestao)}</td>
+      <td className="mom-num">{formatarNumero(x.metaNoCrm)}</td>
       <td className={`mom-num conf-dif${x.metaNoCrm === x.metaNaGestao ? ' bate' : ''}`}>{diferenca(x.metaNoCrm, x.metaNaGestao)}</td>
-      <td className="mom-num">{n(x.realizadoNaGestao)}</td>
-      <td className="mom-num">{n(x.realizadoNoCrm)}</td>
+      <td className="mom-num">{formatarNumero(x.realizadoNaGestao)}</td>
+      <td className="mom-num">{formatarNumero(x.realizadoNoCrm)}</td>
       <td className={`mom-num conf-dif${x.realizadoNoCrm === x.realizadoNaGestao ? ' bate' : ''}`}>
         {diferenca(x.realizadoNoCrm, x.realizadoNaGestao)}
       </td>
@@ -102,7 +100,7 @@ export function ConferenciaComAGestao() {
   const t = dados?.totais;
 
   /** Um número da conferência: sem apuração, o traço — e a linha de baixo diz que não foi apurada, como a faixa antiga. */
-  const apurado = (valor: number | undefined) => (t && apurada && valor !== undefined ? n(valor) : null);
+  const apurado = (valor: number | undefined) => (t && apurada && valor !== undefined ? formatarNumero(valor) : null);
   const linhaDeBaixo = (deOnde: string) => (conferencia.carregando ? null : t && apurada ? deOnde : NAO_APURADA);
   const motivo = dados ? 'A conferência ainda não foi apurada pela rotina 13, que roda uma vez por dia.' : undefined;
 
@@ -136,32 +134,20 @@ export function ConferenciaComAGestao() {
           por filial e por mês são sempre da conferência inteira. */}
       <div className="dash-filtros" data-bloco="filtros">
         <div className="dash-filtros-linha">
-          <label className="dash-filtro" data-bloco="tipo">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <ListFilter size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Tipo</span>
-              <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
-                <option value="">Todos</option>
-                {dados?.porTipo.map((p) => (
-                  <option key={p.tipo} value={p.tipo}>
-                    {p.rotulo}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={ListFilter} rotulo="Tipo" bloco="tipo">
+            <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="">Todos</option>
+              {dados?.porTipo.map((p) => (
+                <option key={p.tipo} value={p.tipo}>
+                  {p.rotulo}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="busca">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <Search size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Chassi</span>
-              <input type="search" value={busca} placeholder="Buscar pelo chassi" onChange={(e) => setBusca(e.target.value)} />
-            </span>
-          </label>
+          <CampoDoFiltro icone={Search} rotulo="Chassi" bloco="busca">
+            <input type="search" value={busca} placeholder="Buscar pelo chassi" onChange={(e) => setBusca(e.target.value)} />
+          </CampoDoFiltro>
         </div>
       </div>
 
@@ -216,7 +202,7 @@ export function ConferenciaComAGestao() {
           rotulo="Máquinas que não batem"
           icone={TriangleAlert}
           tom="neutro"
-          valor={dados && apurada ? n(dados.divergencias.length) : null}
+          valor={dados && apurada ? formatarNumero(dados.divergencias.length) : null}
           carregando={conferencia.carregando}
           unidade="máquinas"
           motivoSemDado={motivo}
@@ -273,7 +259,7 @@ export function ConferenciaComAGestao() {
                   <tbody>
                     {dados.porMes.map((m) => (
                       <tr key={m.competencia}>
-                        <th scope="row">{mes(m.competencia)}</th>
+                        <th scope="row">{formatarMesComAno(m.competencia)}</th>
                         <Numeros numeros={m.numeros} />
                       </tr>
                     ))}
@@ -292,7 +278,7 @@ export function ConferenciaComAGestao() {
           <PainelDoMomento
             titulo="Máquinas que não batem"
             data-bloco="divergencias"
-            subtitulo={dados.porTipo.filter((p) => p.quantidade > 0).map((p) => `${p.rotulo}: ${n(p.quantidade)}`).join(' · ') || 'nenhuma divergência aberta'}
+            subtitulo={dados.porTipo.filter((p) => p.quantidade > 0).map((p) => `${p.rotulo}: ${formatarNumero(p.quantidade)}`).join(' · ') || 'nenhuma divergência aberta'}
             direita={
               <button
                 type="button"

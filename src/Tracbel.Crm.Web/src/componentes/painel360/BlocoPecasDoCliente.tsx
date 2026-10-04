@@ -21,33 +21,7 @@ import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { BlocoPainel, type EstadoBloco } from './BlocoPainel';
 import { Dado } from './DadoDoPainel';
 import { nomeDoGrupo, nomeDoSetor } from './textosDasPecas';
-
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-
-/** `2026-09-01` vira `set/26`. */
-function mesCurto(competencia: string): string {
-  const [ano, mes] = competencia.slice(0, 7).split('-');
-  return `${MESES[Number(mes) - 1]}/${ano.slice(2)}`;
-}
-
-/** `2026-09-01` vira `09/2026`. */
-function mesAno(competencia: string): string {
-  const [ano, mes] = competencia.slice(0, 7).split('-');
-  return `${mes}/${ano}`;
-}
-
-/** `2026-09-24T16:27:48` (UTC) vira `24/09 13:27`, no fuso de quem lê. */
-function diaEHora(instante: string): string {
-  const utc = /Z|[+-]\d\d:\d\d$/.test(instante) ? instante : `${instante}Z`;
-  return new Date(utc).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
-
-/** O eixo do gráfico, curto: `R$ 50 mil`, `R$ 1,2 mi`. */
-function reaisCurtos(valor: number): string {
-  if (Math.abs(valor) >= 1_000_000) return `R$ ${(valor / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`;
-  if (Math.abs(valor) >= 1_000) return `R$ ${(valor / 1_000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`;
-  return formatarDinheiro(valor);
-}
+import { formatarDiaEHora, formatarMesCurto, formatarMesNumerico, formatarReaisCurtos } from '../../dados/formatadores';
 
 function estadoDe(carregando: boolean, erro: Error | null, dados: PecasDoCliente | null): EstadoBloco {
   if (carregando) return 'carregando';
@@ -71,7 +45,7 @@ export function BlocoPecasDoCliente({ chave }: { chave: string }) {
   const dados = leitura.dados;
 
   const subtitulo = dados?.carregadoEm
-    ? `faturamento de peças do Protheus, na régua do painel do BI · até a carga de ${diaEHora(dados.carregadoEm)}`
+    ? `faturamento de peças do Protheus, na régua do painel do BI · até a carga de ${formatarDiaEHora(dados.carregadoEm)}`
     : 'faturamento de peças do Protheus, na régua do painel do BI';
 
   return (
@@ -101,7 +75,7 @@ function Conteudo({ dados }: { dados: PecasDoCliente }) {
         <Dado
           rotulo="Peças em 12 meses"
           valor={semCarga ? <ValorAusente motivo={semCarga} oQue="o faturamento de peças" /> : formatarDinheiro(dados.dozeMeses)}
-          detalhe={`${mesAno(dados.de)} a ${mesAno(dados.ate)} · mês corrente parcial`}
+          detalhe={`${formatarMesNumerico(dados.de)} a ${formatarMesNumerico(dados.ate)} · mês corrente parcial`}
         />
         <Dado
           rotulo="Balcão e oficina"
@@ -116,7 +90,7 @@ function Conteudo({ dados }: { dados: PecasDoCliente }) {
         />
         <Dado
           rotulo="Última compra"
-          valor={dados.ultimaCompraEm ? mesAno(dados.ultimaCompraEm) : <ValorAusente motivo={semCarga ?? semCompra} oQue="a última compra" />}
+          valor={dados.ultimaCompraEm ? formatarMesNumerico(dados.ultimaCompraEm) : <ValorAusente motivo={semCarga ?? semCompra} oQue="a última compra" />}
           detalhe={dados.vendedorPrincipal ? `vendedor principal: ${dados.vendedorPrincipal}` : undefined}
         />
         <Dado
@@ -134,11 +108,11 @@ function Conteudo({ dados }: { dados: PecasDoCliente }) {
         <MolduraDeGrafico altura={120}>
           {(largura, altura) => (
             <GraficoLinhaMensal
-              rotulos={dados.serie.map((m) => mesCurto(m.competencia))}
+              rotulos={dados.serie.map((m) => formatarMesCurto(m.competencia))}
               valores={dados.serie.map((m) => m.valor)}
               largura={largura}
               altura={altura}
-              formatar={reaisCurtos}
+              formatar={formatarReaisCurtos}
               ultimoParcial
             />
           )}

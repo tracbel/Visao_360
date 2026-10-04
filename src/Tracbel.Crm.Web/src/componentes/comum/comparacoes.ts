@@ -37,8 +37,9 @@
  */
 
 import type { MedidaDeRazao, MedidaSomavel } from '../../tipos/territorio';
+import { formatarNumeroComCasas } from '../../dados/formatadores';
 
-const pt = (v: number, casas = 1) => v.toLocaleString('pt-BR', { maximumFractionDigits: casas });
+const pt = (v: number, casas = 1) => formatarNumeroComCasas(v, casas);
 
 /**
  * A fatia, com a mesma regra do servidor: denominador ausente ou zerado NÃO vira 0%.

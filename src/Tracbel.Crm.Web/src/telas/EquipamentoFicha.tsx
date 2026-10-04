@@ -25,29 +25,13 @@ import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTel
 import { baixarCsv, carimboDeData } from '../dados/exportarCsv';
 import { useDados } from '../dados/useDados';
 import type { Equipamento, EquipamentoRevisao } from '../tipos/equipamento';
-
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+import { MESES_CURTOS, formatarBRL, formatarDiaDaSemanaEHora, formatarNumero } from '../dados/formatadores';
 
 // "Hoje" fixo do protótipo (mesma referência de AGENDA_HOJE/HOJE_CARTEIRA em
 // prototipo/dados-seed/constantes-escalares.json) — o original usa `new Date()`
 // aqui, mas isso tornaria a garantia (KPI "2 anos") dependente do dia em que a
 // tela é aberta. Fixamos para bater sempre com a captura de referência.
 const HOJE_FICHA = new Date('2026-08-25T12:00:00.000Z');
-
-function fmtBRL(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-}
-function fmtNum(v: number) {
-  return v.toLocaleString('pt-BR');
-}
-function fmtDataHora(iso: string) {
-  const d = new Date(iso);
-  return `${DIAS_SEMANA[d.getDay()]} · ${d.getDate().toString().padStart(2, '0')}/${MESES[d.getMonth()]} · ${d
-    .getHours()
-    .toString()
-    .padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
 
 /** Ícone de chave de fenda — usado no alerta de chamado aberto e no marcador de cada revisão. */
 function IconeChave() {
@@ -161,10 +145,10 @@ export function EquipamentoFicha() {
         <div className="kpi">
           <span className="kpi-label">Horas de operação</span>
           <span className="kpi-value">
-            {fmtNum(e.horas_operacao.atual)}
+            {formatarNumero(e.horas_operacao.atual)}
             <span style={{ fontSize: 14, color: 'var(--text-tertiary)', fontWeight: 500 }}> h</span>
           </span>
-          <span className="kpi-hint">Última leitura: {fmtDataHora(e.horas_operacao.ultima_leitura)}</span>
+          <span className="kpi-hint">Última leitura: {formatarDiaDaSemanaEHora(e.horas_operacao.ultima_leitura)}</span>
         </div>
         <div className="kpi kpi-highlight">
           <span className="kpi-label">Garantia</span>
@@ -177,7 +161,7 @@ export function EquipamentoFicha() {
           <span className="kpi-label">Uso da garantia</span>
           <span className="kpi-value">{e.garantia.percentual_uso.toFixed(1)}%</span>
           <span className="kpi-hint">
-            {fmtNum(e.garantia.horas_atual)}h de {fmtNum(e.garantia.horas_limite)}h
+            {formatarNumero(e.garantia.horas_atual)}h de {formatarNumero(e.garantia.horas_limite)}h
           </span>
         </div>
         <div className="kpi">
@@ -323,10 +307,10 @@ function AbaVisaoGeral({ e }: { e: Equipamento }) {
               {e.historico_horas.map((h) => {
                 const pct = ((h.horas / max) * 100).toFixed(0);
                 const [ano, mes] = h.data.split('-');
-                const mesLabel = MESES[parseInt(mes, 10) - 1];
+                const mesLabel = MESES_CURTOS[parseInt(mes, 10) - 1];
                 return (
                   <div className="horas-bar-col" key={h.data}>
-                    <div className="horas-bar-val">{fmtNum(h.horas)}</div>
+                    <div className="horas-bar-val">{formatarNumero(h.horas)}</div>
                     <div className="horas-bar" style={{ height: `${pct}%` }}>
                       <div className="horas-bar-fill" />
                     </div>
@@ -416,7 +400,7 @@ function AbaVisaoGeral({ e }: { e: Equipamento }) {
             <div className="garantia-linha">
               <span>Uso</span>
               <strong>
-                {e.garantia.percentual_uso.toFixed(1)}% ({fmtNum(e.garantia.horas_atual)}/{fmtNum(e.garantia.horas_limite)}h)
+                {e.garantia.percentual_uso.toFixed(1)}% ({formatarNumero(e.garantia.horas_atual)}/{formatarNumero(e.garantia.horas_limite)}h)
               </strong>
             </div>
             <div className="garantia-bar-track">
@@ -479,13 +463,13 @@ function RevisaoTimelineItem({ r }: { r: EquipamentoRevisao }) {
           <div>
             <div className="revisao-titulo">{r.tipo}</div>
             <div className="revisao-meta">
-              {new Date(r.data).toLocaleDateString('pt-BR')} · {fmtNum(r.horas)}h · {r.tecnico} · {r.duracao_h}h de
+              {new Date(r.data).toLocaleDateString('pt-BR')} · {formatarNumero(r.horas)}h · {r.tecnico} · {r.duracao_h}h de
               execução
             </div>
           </div>
           <div className="revisao-actions">
             <span className="revisao-os mono">{r.os}</span>
-            <span className="revisao-custo">{fmtBRL(r.custo)}</span>
+            <span className="revisao-custo">{formatarBRL(r.custo)}</span>
           </div>
         </div>
         <div className="revisao-obs">{r.obs}</div>
@@ -530,7 +514,7 @@ function AbaPecas({ e }: { e: Equipamento }) {
       <div className="card-header">
         <div>
           <div className="card-title">Peças aplicadas · {e.pecas.length} itens</div>
-          <div className="card-subtitle">Total gasto em peças: {fmtBRL(total)}</div>
+          <div className="card-subtitle">Total gasto em peças: {formatarBRL(total)}</div>
         </div>
         <button type="button" className="btn btn-ghost btn-sm" onClick={exportar}>
           Exportar CSV
@@ -556,9 +540,9 @@ function AbaPecas({ e }: { e: Equipamento }) {
                 <td className="mono">{p.codigo}</td>
                 <td>{p.descricao}</td>
                 <td className="num">{p.qtd}</td>
-                <td className="num">{fmtBRL(p.valor)}</td>
+                <td className="num">{formatarBRL(p.valor)}</td>
                 <td className="num">
-                  <strong>{fmtBRL(p.valor * p.qtd)}</strong>
+                  <strong>{formatarBRL(p.valor * p.qtd)}</strong>
                 </td>
                 <td className="mono">{p.os}</td>
               </tr>
@@ -608,7 +592,7 @@ function AbaTelemetria({ e }: { e: Equipamento }) {
         <div className="card-header">
           <div>
             <div className="card-title">Telemetria John Deere Operations Center</div>
-            <div className="card-subtitle">Última sincronização: {fmtDataHora(e.telemetria.ultimo_sync)}</div>
+            <div className="card-subtitle">Última sincronização: {formatarDiaDaSemanaEHora(e.telemetria.ultimo_sync)}</div>
           </div>
           {/* "Abrir no JD Connect" saiu: não há endereço do portal por chassi
               nesta base, e um link externo sem destino é pior que nenhum. */}
@@ -681,18 +665,18 @@ function AbaComercial({ e }: { e: Equipamento }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div className="valor-row">
               <span>Valor de lista</span>
-              <strong>{fmtBRL(e.aquisicao.valor_lista)}</strong>
+              <strong>{formatarBRL(e.aquisicao.valor_lista)}</strong>
             </div>
             <div className="valor-row" style={{ color: '#DC2626' }}>
               <span>Desconto</span>
-              <strong>−{fmtBRL(e.aquisicao.desconto)}</strong>
+              <strong>−{formatarBRL(e.aquisicao.desconto)}</strong>
             </div>
             <div className="valor-row" style={{ paddingTop: 12, borderTop: '1px dashed var(--border-primary)', fontSize: 16 }}>
               <span>
                 <strong>Valor faturado</strong>
               </span>
               <strong style={{ color: 'var(--jd-green-dark)', fontFamily: "'JetBrains Mono',monospace" }}>
-                {fmtBRL(e.aquisicao.valor_faturado)}
+                {formatarBRL(e.aquisicao.valor_faturado)}
               </strong>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>

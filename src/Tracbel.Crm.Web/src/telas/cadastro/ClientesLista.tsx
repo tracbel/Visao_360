@@ -35,6 +35,7 @@ import { useContextoDeAcesso } from '../../dados/api/contexto';
 import { useRecurso } from '../../dados/api/useRecurso';
 import { CATALOGO, type ConsultaDeClientes, type OrdemDeCliente } from '../../tipos/api';
 import { formatarDataHora } from './formato';
+import { CampoDoFiltro } from '../../componentes/comum/CampoDoFiltro';
 import '../../estilos/dashboard.css';
 import '../../estilos/momento.css';
 import '../../estilos/territorio.css';
@@ -153,61 +154,43 @@ export function ClientesLista() {
 
       <div className="dash-filtros" data-bloco="filtros">
         <div className="dash-filtros-linha">
-          <label className="dash-filtro" data-bloco="busca">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <Search size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Buscar cliente</span>
-              <input
-                type="search"
-                aria-label="Buscar cliente por nome, nome fantasia ou documento"
-                placeholder="Buscar por nome, nome fantasia ou documento…"
-                value={termoDigitado}
-                onChange={(e) => setTermoDigitado(e.target.value)}
-              />
-            </span>
-          </label>
+          <CampoDoFiltro icone={Search} rotulo="Buscar cliente" bloco="busca">
+            <input
+              type="search"
+              aria-label="Buscar cliente por nome, nome fantasia ou documento"
+              placeholder="Buscar por nome, nome fantasia ou documento…"
+              value={termoDigitado}
+              onChange={(e) => setTermoDigitado(e.target.value)}
+            />
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="situacao">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <ListFilter size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Situação</span>
-              <select
-                value={consulta.situacao}
-                onChange={(e) => setConsulta((c) => ({ ...c, situacao: e.target.value, pagina: 1 }))}
-              >
-                <option value="">Todas</option>
-                {situacoes.map((s) => (
-                  <option key={s.codigo} value={s.codigo}>
-                    {s.descricao}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={ListFilter} rotulo="Situação" bloco="situacao">
+            <select
+              value={consulta.situacao}
+              onChange={(e) => setConsulta((c) => ({ ...c, situacao: e.target.value, pagina: 1 }))}
+            >
+              <option value="">Todas</option>
+              {situacoes.map((s) => (
+                <option key={s.codigo} value={s.codigo}>
+                  {s.descricao}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="tipo-de-pessoa">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <Users size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Tipo de pessoa</span>
-              <select
-                value={consulta.tipoDePessoa}
-                onChange={(e) => setConsulta((c) => ({ ...c, tipoDePessoa: e.target.value, pagina: 1 }))}
-              >
-                <option value="">Todos</option>
-                {tipos.map((t) => (
-                  <option key={t.codigo} value={t.codigo}>
-                    {t.descricao}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={Users} rotulo="Tipo de pessoa" bloco="tipo-de-pessoa">
+            <select
+              value={consulta.tipoDePessoa}
+              onChange={(e) => setConsulta((c) => ({ ...c, tipoDePessoa: e.target.value, pagina: 1 }))}
+            >
+              <option value="">Todos</option>
+              {tipos.map((t) => (
+                <option key={t.codigo} value={t.codigo}>
+                  {t.descricao}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
           <div className="dash-filtros-acao">
             <label className="dash-caixa">

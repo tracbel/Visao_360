@@ -26,6 +26,28 @@ const ehTela = (modulo: string) => modulo.startsWith('/src/telas/') && `${modulo
 /** As exceções de hoje (03/10/2026), e só podem diminuir. */
 const COMPONENTE_QUE_IMPORTA_TELA: string[] = [];
 const TELA_QUE_IMPORTA_TELA: string[] = [];
+const FILTRO_DO_PADRAO_ESCRITO_A_MAO: string[] = [];
+/** O ranking das culturas do Momento desempata o vazio pelo nome da cultura — é outra regra, e não cópia. */
+const ORDENACAO_COM_REGRA_PROPRIA = ['/src/componentes/mercado/momento/contas.ts'];
+
+/**
+ * AS CÓPIAS DE FORMATO QUE JÁ EXISTIRAM, cada uma idêntica em duas ou mais telas até 03/10/2026. O `reaisCurtos` do
+ * Momento do Mercado fica: ele tem regra própria (a faixa "bi" e a moeda com casas), e não é cópia.
+ */
+const COPIAS_DE_FORMATO: { oQue: string; padrao: RegExp; excecoes?: string[] }[] = [
+  { oQue: 'moeda compacta', padrao: /function (fmtBRLcompact|formatarBRLCompacto)\(/ },
+  { oQue: 'moeda, número ou data de ficha (fmtBRL, fmtNum, fmtDataHora)', padrao: /function (fmtBRL|fmtNum|fmtDataHora)\(/ },
+  { oQue: 'reais curtos', padrao: /function reaisCurtos\(/, excecoes: ['/src/componentes/mercado/momento/formatos.ts'] },
+  { oQue: 'mês da competência (mesCurto, mesAno, mesPorExtenso)', padrao: /(?:function|const) (mesCurto|mesCurtoDe|mesAno|mesPorExtenso)\b/ },
+  { oQue: 'dia e hora do instante da API', padrao: /function diaEHora\(/ },
+  { oQue: 'percentual da parte', padrao: /function percentual\(parte: number, todo: number\)/ },
+  {
+    oQue: 'número (com ou sem casas)',
+    padrao: /const [\wº]+ = \(v: number(?:, casas = \d)?\) => v\.toLocaleString\('pt-BR'(?:, \{ maximumFractionDigits: casas \})?\);/,
+  },
+  { oQue: 'a lista dos meses curtos', padrao: /['"]jan['"],\s*['"]fev['"],\s*['"]mar['"]/ },
+  { oQue: 'a lista dos dias da semana', padrao: /['"]dom['"],\s*['"]seg['"],\s*['"]ter['"]/ },
+];
 
 describe('arquitetura do front', () => {
   it('a varredura enxerga os imports, inclusive o import() das telas baixadas sob demanda', () => {
@@ -59,10 +81,26 @@ describe('arquitetura do front', () => {
     expect(violacoes.sort()).toEqual(TELA_QUE_IMPORTA_TELA);
   });
 
-  it('a moeda compacta mora em dados/formatadores e em nenhum outro arquivo (documento 54 §3.5)', () => {
-    const copias = PRODUCAO.filter(([arquivo]) => arquivo !== '/src/dados/formatadores.ts')
-      .filter(([, codigo]) => /function (fmtBRLcompact|formatarBRLCompacto)\(/.test(codigo))
-      .map(([arquivo]) => arquivo);
+  it('os formatos de número, moeda e data moram em dados/formatadores e em nenhum outro arquivo (documento 54 §3.5)', () => {
+    // AS AMOSTRAS DE src/dev ficam de fora: a lista dos meses nelas é dado de exemplo, e não formato.
+    const fora = (arquivo: string) => arquivo === '/src/dados/formatadores.ts' || arquivo.startsWith('/src/dev/');
+    const copias = PRODUCAO.filter(([arquivo]) => !fora(arquivo)).flatMap(([arquivo, codigo]) =>
+      COPIAS_DE_FORMATO.filter((c) => c.padrao.test(codigo) && !c.excecoes?.includes(arquivo)).map((c) => `${arquivo}: ${c.oQue}`),
+    );
     expect(copias).toEqual([]);
+  });
+
+  it('a ordenação das tabelas, com o vazio no fim, mora em componentes/comum/ordenacao (documento 54 §3.5)', () => {
+    const copias = PRODUCAO.filter(([arquivo]) => arquivo !== '/src/componentes/comum/ordenacao.ts')
+      .filter(([, codigo]) => /if \(va === null\) return 1;/.test(codigo))
+      .map(([arquivo]) => arquivo);
+    expect(copias.sort()).toEqual(ORDENACAO_COM_REGRA_PROPRIA);
+  });
+
+  it('o filtro do padrão mora em componentes/comum/CampoDoFiltro (documento 54 §3.5)', () => {
+    const copias = PRODUCAO.filter(([arquivo]) => arquivo !== '/src/componentes/comum/CampoDoFiltro.tsx')
+      .filter(([, codigo]) => codigo.includes('dash-filtro-icone'))
+      .map(([arquivo]) => arquivo);
+    expect(copias.sort()).toEqual(FILTRO_DO_PADRAO_ESCRITO_A_MAO);
   });
 });

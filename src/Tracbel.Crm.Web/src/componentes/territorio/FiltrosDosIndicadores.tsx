@@ -66,6 +66,7 @@ import type {
 } from '../../tipos/territorio';
 import { AlcanceDaConsulta } from './CartaoDeAlcance';
 import { anoCivilFechado, anoFiscalFechado, dozeMesesFechados, mes, nomeDoAnoFiscal } from './indicadoresDaAdr';
+import { CampoDoFiltro } from '../comum/CampoDoFiltro';
 
 export function FiltrosDosIndicadores({
   filtros,
@@ -188,12 +189,10 @@ export function FiltrosDosIndicadores({
             APLICADO. Escrever o intervalo do ano civil embaixo de "12 meses"
             exigiria calcular aqui de novo a janela que o servidor calcula — duas
             contas para a mesma data é como elas passam a discordar. */}
-        <label className="dash-filtro">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <CalendarDays size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">
+        <CampoDoFiltro
+          icone={CalendarDays}
+          rotulo={
+            <>
               Período
               {/* A PROCEDÊNCIA DO RECORTE MORA NESTA DICA (fidelidade às
                   maquetes, 23/09/2026). Era uma linha de metadado embaixo dos
@@ -242,49 +241,48 @@ export function FiltrosDosIndicadores({
                   </>
                 }
               />
-            </span>
-            <select
-              value={presetDoPeriodo}
-              onChange={(e) => {
-                // O ANO FISCAL É O FILTRO VAZIO: quem decide o intervalo é o servidor,
-                // pela mesma regra do domínio — o que a tela mostra é o que ele aplicou.
-                if (e.target.value === 'anoFiscal') aoMudarFiltros((f) => ({ ...f, competenciaInicial: '', competenciaFinal: '' }));
-                else if (e.target.value === '12meses') aoMudarFiltros((f) => ({ ...f, ...dozeMeses }));
-                else if (e.target.value === 'anoCivil') aoMudarFiltros((f) => ({ ...f, ...anoCivil }));
-              }}
-            >
-              {/* O ANO FISCAL É O PRIMEIRO E O PADRÃO (27/09/2026): é o calendário em
-                  que a Tracbel fecha o ano. O rótulo em vigor é "FY2026 (nov/2025 a
-                  ago/2026)" — o nome sempre ao lado do intervalo, e sem "Ano fiscal"
-                  na frente, porque com as duas coisas o texto não cabe no campo e o
-                  ano saía cortado. O civil fica, porque é o calendário de toda fonte
-                  pública com que a tela compara — IBGE, CONAB, SICOR. */}
-              <option value="anoFiscal">
-                {presetDoPeriodo === 'anoFiscal' && intervalo
-                  ? `${nomeDoAnoFiscal(indicadores?.competenciaFinal ?? '') ?? 'Ano fiscal'} (${intervalo})`
-                  : 'Ano fiscal'}
-              </option>
-              <option value="12meses">12 meses{presetDoPeriodo === '12meses' && intervalo ? ` (${intervalo})` : ''}</option>
-              <option value="anoCivil">Ano civil{presetDoPeriodo === 'anoCivil' && intervalo ? ` (${intervalo})` : ''}</option>
-              {/* A opção personalizada só existe quando ela está em vigor: quem a
-                  escolhe é o par de campos de mês em "Mais filtros", e uma opção
-                  que não se pode escolher daqui não fica na lista prometendo. */}
-              {presetDoPeriodo === 'personalizado' && (
-                <option value="personalizado">Personalizado{intervalo ? ` (${intervalo})` : ''}</option>
-              )}
-            </select>
-          </span>
-        </label>
+            </>
+          }
+        >
+          <select
+            value={presetDoPeriodo}
+            onChange={(e) => {
+              // O ANO FISCAL É O FILTRO VAZIO: quem decide o intervalo é o servidor,
+              // pela mesma regra do domínio — o que a tela mostra é o que ele aplicou.
+              if (e.target.value === 'anoFiscal') aoMudarFiltros((f) => ({ ...f, competenciaInicial: '', competenciaFinal: '' }));
+              else if (e.target.value === '12meses') aoMudarFiltros((f) => ({ ...f, ...dozeMeses }));
+              else if (e.target.value === 'anoCivil') aoMudarFiltros((f) => ({ ...f, ...anoCivil }));
+            }}
+          >
+            {/* O ANO FISCAL É O PRIMEIRO E O PADRÃO (27/09/2026): é o calendário em
+                que a Tracbel fecha o ano. O rótulo em vigor é "FY2026 (nov/2025 a
+                ago/2026)" — o nome sempre ao lado do intervalo, e sem "Ano fiscal"
+                na frente, porque com as duas coisas o texto não cabe no campo e o
+                ano saía cortado. O civil fica, porque é o calendário de toda fonte
+                pública com que a tela compara — IBGE, CONAB, SICOR. */}
+            <option value="anoFiscal">
+              {presetDoPeriodo === 'anoFiscal' && intervalo
+                ? `${nomeDoAnoFiscal(indicadores?.competenciaFinal ?? '') ?? 'Ano fiscal'} (${intervalo})`
+                : 'Ano fiscal'}
+            </option>
+            <option value="12meses">12 meses{presetDoPeriodo === '12meses' && intervalo ? ` (${intervalo})` : ''}</option>
+            <option value="anoCivil">Ano civil{presetDoPeriodo === 'anoCivil' && intervalo ? ` (${intervalo})` : ''}</option>
+            {/* A opção personalizada só existe quando ela está em vigor: quem a
+                escolhe é o par de campos de mês em "Mais filtros", e uma opção
+                que não se pode escolher daqui não fica na lista prometendo. */}
+            {presetDoPeriodo === 'personalizado' && (
+              <option value="personalizado">Personalizado{intervalo ? ` (${intervalo})` : ''}</option>
+            )}
+          </select>
+        </CampoDoFiltro>
 
         {/* SUB-REGIÃO, E NÃO "REGIÃO" (issue 163): Norte e Noroeste são partes da
             Região Tracbel, que é a ADR inteira. Chamar isto de "região" fazia
             "4,2% da região" ser lido como fatia da ADR quando era fatia do Norte. */}
-        <label className="dash-filtro">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <User size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">
+        <CampoDoFiltro
+          icone={User}
+          rotulo={
+            <>
               Sub-região
               {/* O ALCANCE DA CONSULTA MORA NESTA DICA (fidelidade às
                   maquetes): é recorte — filial ou empresa inteira —, e a
@@ -307,36 +305,31 @@ export function FiltrosDosIndicadores({
                   </>
                 }
               />
-            </span>
-            <select
-              value={filtros.regiao}
-              onChange={(e) => aoMudarFiltros((f) => ({ ...f, regiao: e.target.value as FiltrosTerritoriais['regiao'] }))}
-            >
-              <option value="">Região Tracbel inteira</option>
-              <option value="Norte">Norte</option>
-              <option value="Noroeste">Noroeste</option>
-            </select>
-          </span>
-        </label>
+            </>
+          }
+        >
+          <select
+            value={filtros.regiao}
+            onChange={(e) => aoMudarFiltros((f) => ({ ...f, regiao: e.target.value as FiltrosTerritoriais['regiao'] }))}
+          >
+            <option value="">Região Tracbel inteira</option>
+            <option value="Norte">Norte</option>
+            <option value="Noroeste">Noroeste</option>
+          </select>
+        </CampoDoFiltro>
 
-        <label className="dash-filtro">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <Store size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Loja</span>
-            <select value={filtros.lojaCodigo} onChange={(e) => aoMudarFiltros((f) => ({ ...f, lojaCodigo: e.target.value }))}>
-              <option value="">Todas</option>
-              {[...lojasConhecidas.entries()]
-                .sort((a, b) => a[1].localeCompare(b[1]))
-                .map(([codigo, nome]) => (
-                  <option key={codigo} value={codigo}>
-                    {nome}
-                  </option>
-                ))}
-            </select>
-          </span>
-        </label>
+        <CampoDoFiltro icone={Store} rotulo="Loja">
+          <select value={filtros.lojaCodigo} onChange={(e) => aoMudarFiltros((f) => ({ ...f, lojaCodigo: e.target.value }))}>
+            <option value="">Todas</option>
+            {[...lojasConhecidas.entries()]
+              .sort((a, b) => a[1].localeCompare(b[1]))
+              .map(([codigo, nome]) => (
+                <option key={codigo} value={codigo}>
+                  {nome}
+                </option>
+              ))}
+          </select>
+        </CampoDoFiltro>
 
         {/* O MUNICÍPIO É FILTRO DE RECORTE e vale para as duas abas: o lugar dele
             é aqui, junto dos outros, e não flutuando entre blocos.
@@ -345,33 +338,27 @@ export function FiltrosDosIndicadores({
             teclado ganhou com isso: antes só se escolhia município pelo mapa
             (ponteiro) ou pela tabela de Território; agora o campo alcança os
             duzentos pelo Tab e pelas setas, de qualquer aba. */}
-        <label className="dash-filtro">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <MapPin size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Município</span>
-            <select
-              value={municipioEscolhido ? String(municipioEscolhido.codigoIbge) : ''}
-              onChange={(e) => aoEscolherMunicipio(e.target.value === '' ? null : Number(e.target.value))}
-              data-bloco="municipio"
-              // O RECORTE ATIVO APARECE NO CAMPO: um município escolhido muda a
-              // página inteira, e o campo ganha a borda verde para isso não
-              // passar por "Todos" num relance.
-              data-ativo={municipioEscolhido ? 'true' : undefined}
-            >
-              <option value="">Todos os municípios</option>
-              {escolhidoForaDaLista && (
-                <option value={escolhidoForaDaLista.codigoIbge}>{escolhidoForaDaLista.nome} (fora da ADR)</option>
-              )}
-              {opcoesDeMunicipio.map((m) => (
-                <option key={m.codigoIbge} value={m.codigoIbge}>
-                  {m.nome}
-                </option>
-              ))}
-            </select>
-          </span>
-        </label>
+        <CampoDoFiltro icone={MapPin} rotulo="Município">
+          <select
+            value={municipioEscolhido ? String(municipioEscolhido.codigoIbge) : ''}
+            onChange={(e) => aoEscolherMunicipio(e.target.value === '' ? null : Number(e.target.value))}
+            data-bloco="municipio"
+            // O RECORTE ATIVO APARECE NO CAMPO: um município escolhido muda a
+            // página inteira, e o campo ganha a borda verde para isso não
+            // passar por "Todos" num relance.
+            data-ativo={municipioEscolhido ? 'true' : undefined}
+          >
+            <option value="">Todos os municípios</option>
+            {escolhidoForaDaLista && (
+              <option value={escolhidoForaDaLista.codigoIbge}>{escolhidoForaDaLista.nome} (fora da ADR)</option>
+            )}
+            {opcoesDeMunicipio.map((m) => (
+              <option key={m.codigoIbge} value={m.codigoIbge}>
+                {m.nome}
+              </option>
+            ))}
+          </select>
+        </CampoDoFiltro>
 
         {/* "MAIS FILTROS" LOGO DEPOIS DO MUNICÍPIO (maquete): ele não é o quinto
             filtro, é a porta para o resto deles — e na maquete ele fica colado

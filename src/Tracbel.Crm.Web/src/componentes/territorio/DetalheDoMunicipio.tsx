@@ -47,8 +47,7 @@ import { OportunidadesDoMunicipio } from './carteira/OportunidadesDoMunicipio';
 import { usePeriodoDaLeitura } from './carteira/periodo';
 import { VisaoGeralDoMunicipio } from './carteira/VisaoGeralDoMunicipio';
 import { reaisCompactos, reaisDaProducao } from './escalas';
-
-const nº = (v: number) => v.toLocaleString('pt-BR');
+import { formatarNumero as nº } from '../../dados/formatadores';
 
 /** A produtividade na unidade que o servidor mandou — sem unidade, não se mostra número. */
 function produtividade(valor: number | null, unidade: string | null): string {

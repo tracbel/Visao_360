@@ -38,6 +38,7 @@ import { obterDemandaEPrevisao } from '../dados/api/mercado';
 import { useRecurso } from '../dados/api/useRecurso';
 import { baixarCsv, carimboDeData } from '../dados/exportarCsv';
 import type { DemandaEPrevisaoDaRegiao, FiltrosDaDemanda } from '../tipos/mercado';
+import { CampoDoFiltro } from '../componentes/comum/CampoDoFiltro';
 import '../estilos/territorio.css';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
@@ -140,7 +141,7 @@ export function DemandaEPrevisao() {
 
       <div className="dash-filtros" data-bloco="filtros">
         <div className="dash-filtros-linha">
-          <Campo icone={CalendarDays} rotulo="Período" bloco="periodo">
+          <CampoDoFiltro icone={CalendarDays} rotulo="Período" bloco="periodo">
             <select
               value={filtros.anoFiscal ?? dados?.anoFiscal ?? ''}
               onChange={(e) => mudar({ anoFiscal: e.target.value ? Number(e.target.value) : undefined })}
@@ -153,15 +154,15 @@ export function DemandaEPrevisao() {
               ))}
               {!dados && <option value="">Ano fiscal corrente</option>}
             </select>
-          </Campo>
-          <Campo icone={MapPin} rotulo="Regional / Loja" bloco="regional">
+          </CampoDoFiltro>
+          <CampoDoFiltro icone={MapPin} rotulo="Regional / Loja" bloco="regional">
             <select value={filtros.regiao ?? ''} onChange={(e) => mudar({ regiao: e.target.value || undefined })}>
               <option value="">Todas as regionais</option>
               <option value="Norte">Região Norte</option>
               <option value="Noroeste">Região Noroeste</option>
             </select>
-          </Campo>
-          <Campo icone={Store} rotulo="Loja / Filial" bloco="loja">
+          </CampoDoFiltro>
+          <CampoDoFiltro icone={Store} rotulo="Loja / Filial" bloco="loja">
             <select value={filtros.lojaCodigo ?? ''} onChange={(e) => mudar({ lojaCodigo: e.target.value || undefined })}>
               <option value="">Todas as lojas</option>
               {[...lojasConhecidas.entries()]
@@ -172,8 +173,8 @@ export function DemandaEPrevisao() {
                   </option>
                 ))}
             </select>
-          </Campo>
-          <Campo icone={ListFilter} rotulo="Cultura" bloco="cultura">
+          </CampoDoFiltro>
+          <CampoDoFiltro icone={ListFilter} rotulo="Cultura" bloco="cultura">
             <select value={filtros.cultura ?? ''} onChange={(e) => mudar({ cultura: e.target.value || undefined })}>
               <option value="">Todas as culturas</option>
               {(dados?.culturasDoFiltro ?? []).map((c) => (
@@ -182,8 +183,8 @@ export function DemandaEPrevisao() {
                 </option>
               ))}
             </select>
-          </Campo>
-          <Campo icone={UserRound} rotulo="Meta / Previsão" bloco="base">
+          </CampoDoFiltro>
+          <CampoDoFiltro icone={UserRound} rotulo="Meta / Previsão" bloco="base">
             <select value={cenario === 'ajustada' && !comAjustada ? 'todos' : cenario} onChange={(e) => setCenario(e.target.value as Cenario)}>
               <option value="todos">Todos os cenários</option>
               <option value="ajustada" disabled={!comAjustada}>
@@ -191,7 +192,7 @@ export function DemandaEPrevisao() {
               </option>
               <option value="estrutural">Estrutural (renovação do parque)</option>
             </select>
-          </Campo>
+          </CampoDoFiltro>
 
           <div className="dash-filtros-acao">
             <Popover.Root>
@@ -493,21 +494,6 @@ export function DemandaEPrevisao() {
         </>
       )}
     </PaginaDoPainel>
-  );
-}
-
-/** Um campo da linha de filtros: o ladrilho do ícone, o rótulo em cima e o seletor. */
-function Campo({ icone: Icone, rotulo, bloco, children }: { icone: typeof CalendarDays; rotulo: string; bloco: string; children: React.ReactNode }) {
-  return (
-    <label className="dash-filtro" data-bloco={bloco}>
-      <span className="dash-filtro-icone" aria-hidden="true">
-        <Icone size={17} strokeWidth={2} />
-      </span>
-      <span className="dash-filtro-corpo">
-        <span className="dash-filtro-rotulo">{rotulo}</span>
-        {children}
-      </span>
-    </label>
   );
 }
 
