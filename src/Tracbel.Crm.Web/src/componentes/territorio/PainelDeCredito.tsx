@@ -69,8 +69,7 @@ import {
   Seletor,
   Variacao,
 } from '../mercado/momento/pecas';
-
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+import { MESES_CURTOS } from '../../dados/formatadores';
 
 const BASE = 'vs. 12 meses anteriores';
 const SEM_BASE =
@@ -431,7 +430,7 @@ export function PainelDeCredito({ municipioSelecionado = null }: { municipioSele
                 `na Região Tracbel. São Paulo é o estado inteiro. Janela: ${textoDaJanela(janela)}`
               : 'O SICOR chega a esta leitura somado por ANO e para São Paulo inteiro — máquinas: trator, máquinas e ' +
                 'implementos e colheitadeiras. O mês a mês por recorte não veio nesta resposta: desenhar meses seria ' +
-                `fingir um detalhe que ela não traz. ${anos.at(-1)?.ano ?? ''} vai até ${MESES[mesFim - 1] ?? '—'}, ` +
+                `fingir um detalhe que ela não traz. ${anos.at(-1)?.ano ?? ''} vai até ${MESES_CURTOS[mesFim - 1] ?? '—'}, ` +
                 'e por isso o último ponto aparece tracejado.'
           }
           direita={

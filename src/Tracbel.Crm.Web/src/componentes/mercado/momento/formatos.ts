@@ -1,3 +1,4 @@
+export { formatarMesCurto as mesCurto } from '../../../dados/formatadores';
 /**
  * COMO OS NÚMEROS DO MOMENTO SE ESCREVEM — um lugar só para as cinco abas.
  *
@@ -87,13 +88,6 @@ export function sentido(valor: number | null, limiar = 0.005): '↑' | '→' | '
 export function tomDoSentido(valor: number | null, limiar = 0.005): 'alta' | 'baixa' | 'neutro' {
   const s = sentido(valor, limiar);
   return s === '↑' ? 'alta' : s === '↓' ? 'baixa' : 'neutro';
-}
-
-/** `aaaa-mm-01` → "jan/24". */
-export function mesCurto(iso: string): string {
-  const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-  const [ano, mes] = iso.split('-').map(Number);
-  return `${MESES[mes - 1]}/${String(ano).slice(2)}`;
 }
 
 /** `aaaa-mm-dd` → "21/09/2026". */

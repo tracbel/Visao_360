@@ -20,23 +20,8 @@ import { BlocoCarregando, BlocoErro } from '../componentes/cadastro/EstadosDeTel
 import { useDados } from '../dados/useDados';
 import type { ClienteFichaData, PosVendasCliente } from '../tipos/clientes';
 import type { FasePipeline, OportunidadeNova } from '../tipos/oportunidade';
+import { formatarBRL, formatarDiaDaSemanaEHora, formatarNumero } from '../dados/formatadores';
 
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-
-function fmtBRL(v: number): string {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-}
-function fmtNum(v: number): string {
-  return v.toLocaleString('pt-BR');
-}
-function fmtDataHora(iso: string): string {
-  const d = new Date(iso);
-  return `${DIAS_SEMANA[d.getDay()]} · ${d.getDate().toString().padStart(2, '0')}/${MESES[d.getMonth()]} · ${d
-    .getHours()
-    .toString()
-    .padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
 function iniciaisContato(nome: string): string {
   return nome
     .split(' ')
@@ -183,12 +168,12 @@ export function ClienteFicha() {
       <div className="kpi-grid kpi-grid-5" style={{ marginBottom: 24 }}>
         <div className="kpi">
           <span className="kpi-label">Faturamento YTD 2026</span>
-          <span className="kpi-value">{fmtBRL(c.financeiro.faturamento_ytd_2026)}</span>
-          <span className="kpi-hint">2025: {fmtBRL(c.financeiro.faturamento_2025)}</span>
+          <span className="kpi-value">{formatarBRL(c.financeiro.faturamento_ytd_2026)}</span>
+          <span className="kpi-hint">2025: {formatarBRL(c.financeiro.faturamento_2025)}</span>
         </div>
         <div className="kpi kpi-highlight">
           <span className="kpi-label">Pipeline aberto</span>
-          <span className="kpi-value">{fmtBRL(totalPipeline)}</span>
+          <span className="kpi-value">{formatarBRL(totalPipeline)}</span>
           <span className="kpi-hint">
             {totalOportunidades} oportunidades
             {novasClienteSA.length > 0 && (
@@ -209,13 +194,13 @@ export function ClienteFicha() {
         </div>
         <div className="kpi">
           <span className="kpi-label">Área total</span>
-          <span className="kpi-value">{fmtNum(c.segmentacao.hectares_totais)} ha</span>
+          <span className="kpi-value">{formatarNumero(c.segmentacao.hectares_totais)} ha</span>
           <span className="kpi-hint">{c.enderecos_adicionais.filter((e) => e.hectares > 0).length} fazendas</span>
         </div>
         <div className="kpi">
           <span className="kpi-label">Crédito disponível</span>
-          <span className="kpi-value">{fmtBRL(c.financeiro.limite_disponivel)}</span>
-          <span className="kpi-hint">de {fmtBRL(c.financeiro.limite_credito)} · 0 inadimplência</span>
+          <span className="kpi-value">{formatarBRL(c.financeiro.limite_disponivel)}</span>
+          <span className="kpi-hint">de {formatarBRL(c.financeiro.limite_credito)} · 0 inadimplência</span>
         </div>
       </div>
 
@@ -352,7 +337,7 @@ function AbaVisaoGeral({ c }: { c: ClienteFichaData }) {
                   <div className="fazenda-nome">{e.tipo}</div>
                   <div className="fazenda-sub">
                     {e.cidade}
-                    {e.hectares > 0 ? ` · ${fmtNum(e.hectares)} ha` : ''} · {e.cultura}
+                    {e.hectares > 0 ? ` · ${formatarNumero(e.hectares)} ha` : ''} · {e.cultura}
                   </div>
                 </div>
               </div>
@@ -444,7 +429,7 @@ function AbaVisaoGeral({ c }: { c: ClienteFichaData }) {
             </div>
             <div className="ff">
               <label>Área plantada</label>
-              <span>{fmtNum(c.segmentacao.hectares_totais)} ha</span>
+              <span>{formatarNumero(c.segmentacao.hectares_totais)} ha</span>
             </div>
             <div className="ff">
               <label>Culturas</label>
@@ -553,7 +538,7 @@ function AbaFrota({ c }: { c: ClienteFichaData }) {
                   </td>
                   <td>{f.linha}</td>
                   <td className="num">{f.ano}</td>
-                  <td className="num">{fmtNum(f.horas)}</td>
+                  <td className="num">{formatarNumero(f.horas)}</td>
                   <td>
                     {f.garantia.startsWith('Ativa') ? (
                       <span className="badge badge-success">{f.garantia}</span>
@@ -639,8 +624,8 @@ function AbaOportunidades({
             </div>
             <div className="oport-valor">
               <div className="oport-valor-label">Valor</div>
-              <div className="oport-valor-num">{fmtBRL(op.valor)}</div>
-              <div className="oport-valor-ponderado">Ponderado: {fmtBRL((op.valor * op.probabilidade) / 100)}</div>
+              <div className="oport-valor-num">{formatarBRL(op.valor)}</div>
+              <div className="oport-valor-ponderado">Ponderado: {formatarBRL((op.valor * op.probabilidade) / 100)}</div>
             </div>
           </div>
         );
@@ -675,8 +660,8 @@ function AbaOportunidades({
           </div>
           <div className="oport-valor">
             <div className="oport-valor-label">Valor</div>
-            <div className="oport-valor-num">{fmtBRL(o.valor)}</div>
-            <div className="oport-valor-ponderado">Ponderado: {fmtBRL((o.valor * o.prob) / 100)}</div>
+            <div className="oport-valor-num">{formatarBRL(o.valor)}</div>
+            <div className="oport-valor-ponderado">Ponderado: {formatarBRL((o.valor * o.prob) / 100)}</div>
           </div>
         </div>
       ))}
@@ -702,7 +687,7 @@ function AbaHistorico({ c }: { c: ClienteFichaData }) {
                 </span>
               </div>
               <div className="timeline-meta">
-                {fmtDataHora(i.data)} · {i.autor} · <strong>{i.resultado}</strong>
+                {formatarDiaDaSemanaEHora(i.data)} · {i.autor} · <strong>{i.resultado}</strong>
               </div>
               {i.obs && <div className="timeline-obs">{i.obs}</div>}
             </div>
@@ -721,16 +706,16 @@ function AbaFinanceiro({ c }: { c: ClienteFichaData }) {
       <div className="kpi-grid" style={{ marginBottom: 20 }}>
         <div className="kpi">
           <span className="kpi-label">Faturamento 2024</span>
-          <span className="kpi-value">{fmtBRL(f.faturamento_2024)}</span>
+          <span className="kpi-value">{formatarBRL(f.faturamento_2024)}</span>
         </div>
         <div className="kpi">
           <span className="kpi-label">Faturamento 2025</span>
-          <span className="kpi-value">{fmtBRL(f.faturamento_2025)}</span>
+          <span className="kpi-value">{formatarBRL(f.faturamento_2025)}</span>
         </div>
         <div className="kpi kpi-highlight">
           <span className="kpi-label">Faturamento YTD 2026</span>
-          <span className="kpi-value">{fmtBRL(f.faturamento_ytd_2026)}</span>
-          <span className="kpi-hint">Projeção anual: {fmtBRL((f.faturamento_ytd_2026 * 12) / 8)}</span>
+          <span className="kpi-value">{formatarBRL(f.faturamento_ytd_2026)}</span>
+          <span className="kpi-hint">Projeção anual: {formatarBRL((f.faturamento_ytd_2026 * 12) / 8)}</span>
         </div>
         <div className="kpi">
           <span className="kpi-label">Dias em atraso · máx.</span>
@@ -754,13 +739,13 @@ function AbaFinanceiro({ c }: { c: ClienteFichaData }) {
             </div>
             <div className="credit-bar-legend">
               <span>
-                <strong>{fmtBRL(f.limite_usado)}</strong> utilizados
+                <strong>{formatarBRL(f.limite_usado)}</strong> utilizados
               </span>
               <span>
-                <strong>{fmtBRL(f.limite_disponivel)}</strong> disponíveis
+                <strong>{formatarBRL(f.limite_disponivel)}</strong> disponíveis
               </span>
               <span>
-                Limite total: <strong>{fmtBRL(f.limite_credito)}</strong>
+                Limite total: <strong>{formatarBRL(f.limite_credito)}</strong>
               </span>
             </div>
           </div>

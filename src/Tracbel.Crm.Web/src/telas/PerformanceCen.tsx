@@ -124,14 +124,13 @@ import type {
   VendasPerdidas,
 } from '../tipos/relacionamento';
 import { formatarData, nomeCurto } from './cadastro/formato';
+import { formatarPercentualDaParte, formatarNumero as nº } from '../dados/formatadores';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
 import '../estilos/painel-executivo.css';
 import '../estilos/territorio.css';
 import '../estilos/performance-cen.css';
-
-const nº = (v: number) => v.toLocaleString('pt-BR');
 
 /**
  * As métricas que o ranking sabe desenhar. Todas saem do MESMO agregado que a
@@ -950,7 +949,7 @@ function BarrasPorClasse({ classes, emPercentual }: { classes: CoberturaPorClass
             </span>
             <span className="cad-so-leitor">
               Classe {c.classe}, {nº(c.clientes)} vínculos —{' '}
-              {FAIXAS_DE_COBERTURA.map((f) => `${f.nome.toLowerCase()}: ${percentual(f.medir(c), c.clientes)}`).join(', ')}
+              {FAIXAS_DE_COBERTURA.map((f) => `${f.nome.toLowerCase()}: ${formatarPercentualDaParte(f.medir(c), c.clientes)}`).join(', ')}
             </span>
           </li>
         ))}
@@ -1057,11 +1056,11 @@ function PrincipalAlerta({ classes }: { classes: CoberturaPorClasse[] }) {
       <strong className="pcen-alerta-rotulo">Principal alerta</strong>
       <div className="pcen-alerta-texto">
         <strong>
-          Classe {pior.classe} concentra o maior volume de vínculos fora da cadência ({percentual(pior.foraDaCadencia, pior.clientes)}) e
-          nunca contatados ({percentual(pior.nuncaContatados, pior.clientes)}).
+          Classe {pior.classe} concentra o maior volume de vínculos fora da cadência ({formatarPercentualDaParte(pior.foraDaCadencia, pior.clientes)}) e
+          nunca contatados ({formatarPercentualDaParte(pior.nuncaContatados, pior.clientes)}).
         </strong>
         <span>
-          Essa classe representa {percentual(pior.clientes, total)} de todos os vínculos e deve ser priorizada nas ações
+          Essa classe representa {formatarPercentualDaParte(pior.clientes, total)} de todos os vínculos e deve ser priorizada nas ações
           comerciais.
         </span>
       </div>
@@ -1092,7 +1091,7 @@ function CarteiraDosCens({ cens, escolhido }: { cens: LinhaDeCen[]; escolhido: s
             </span>
             <span className="cad-so-leitor">
               {c.responsavelNome}, {nº(c.clientes)} vínculos —{' '}
-              {FAIXAS_DE_CONTATO.map((f) => `${f.nome.toLowerCase()}: ${percentual(f.medir(c), c.clientes)}`).join(', ')}
+              {FAIXAS_DE_CONTATO.map((f) => `${f.nome.toLowerCase()}: ${formatarPercentualDaParte(f.medir(c), c.clientes)}`).join(', ')}
             </span>
           </li>
         ))}
@@ -1569,12 +1568,6 @@ function OQueEstaMetricaNaoFaz({ carteirasForaDoRanking, carteiras }: { carteira
       )}
     </div>
   );
-}
-
-/** A fração, quando ela tem denominador. Zero vínculo não vira "0%". */
-function percentual(parte: number, todo: number): string {
-  if (todo <= 0) return '—';
-  return `${Math.round((parte / todo) * 100)}%`;
 }
 
 /** Uma fatia com o denominador escrito. Sem denominador, o percentual não significa nada. */

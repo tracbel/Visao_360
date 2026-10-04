@@ -85,14 +85,14 @@ import {
 } from '../dados/api/relacionamento';
 import { useRecurso } from '../dados/api/useRecurso';
 import type { CoberturaDeFilial, ResumoDeCobertura, TerritorioDeCarteira } from '../tipos/relacionamento';
+import { formatarNumero as nº } from '../dados/formatadores';
+import { CampoDoFiltro } from '../componentes/comum/CampoDoFiltro';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
 import '../estilos/painel-executivo.css';
 import '../estilos/territorio.css';
 import '../estilos/cobertura-filial.css';
-
-const nº = (v: number) => v.toLocaleString('pt-BR');
 
 /**
  * As faixas do medidor, no desenho da maquete de 02/10/2026: do vermelho ao verde, em seis cores.
@@ -795,15 +795,8 @@ export function CoberturaRegional() {
   );
 }
 
-/** Um filtro da maquete: o ícone colorido, o nome pequeno em cima e o valor escolhido, numa caixa só. */
-function Filtro({
-  icone: Icone,
-  cor,
-  rotulo,
-  bloco,
-  dica,
-  children,
-}: {
+/** Um filtro da maquete: o ícone colorido e um pouco maior, o nome pequeno em cima e o valor escolhido, numa caixa só. */
+function Filtro(props: {
   icone: LucideIcon;
   cor: 'verde' | 'azul' | 'roxo' | 'laranja';
   rotulo: string;
@@ -812,15 +805,7 @@ function Filtro({
   children: ReactNode;
 }) {
   return (
-    <label className="dash-filtro cobf-filtro" data-bloco={bloco} data-cor={cor} title={dica}>
-      <span className="dash-filtro-icone" aria-hidden="true">
-        <Icone size={18} strokeWidth={2.1} />
-      </span>
-      <span className="dash-filtro-corpo">
-        <span className="dash-filtro-rotulo">{rotulo}</span>
-        {children}
-      </span>
-    </label>
+    <CampoDoFiltro classe="cobf-filtro" tamanhoDoIcone={18} espessura={2.1} {...props} />
   );
 }
 

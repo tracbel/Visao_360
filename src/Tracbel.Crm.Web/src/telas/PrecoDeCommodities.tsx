@@ -28,6 +28,7 @@ import { useContextoDeAcesso } from '../dados/api/contexto';
 import { obterPrecosDasCulturas } from '../dados/api/mercado';
 import { useRecurso } from '../dados/api/useRecurso';
 import type { PrecosDasCulturas } from '../tipos/mercado';
+import { CampoDoFiltro } from '../componentes/comum/CampoDoFiltro';
 import '../estilos/territorio.css';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
@@ -84,58 +85,46 @@ export function PrecoDeCommodities() {
 
       <div className="dash-filtros" data-bloco="filtros">
         <div className="dash-filtros-linha">
-          <label className="dash-filtro" data-bloco="cultura">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <Sprout size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Cultura</span>
-              <select value={cultura?.codigo ?? ''} onChange={(e) => setCodigo(e.target.value)} disabled={!dados}>
-                {(dados?.culturas ?? []).map((c) => (
-                  <option key={c.codigo} value={c.codigo}>
-                    {c.nome}
-                    {c.serie.length === 0 ? ' (sem série)' : ''}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
-          <label className="dash-filtro" data-bloco="horizonte">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <CalendarRange size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">
+          <CampoDoFiltro icone={Sprout} rotulo="Cultura" bloco="cultura">
+            <select value={cultura?.codigo ?? ''} onChange={(e) => setCodigo(e.target.value)} disabled={!dados}>
+              {(dados?.culturas ?? []).map((c) => (
+                <option key={c.codigo} value={c.codigo}>
+                  {c.nome}
+                  {c.serie.length === 0 ? ' (sem série)' : ''}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
+          <CampoDoFiltro
+            icone={CalendarRange}
+            rotulo={
+              <>
                 Horizonte de comparação
                 <InfoTooltip
                   rotulo="Os horizontes"
                   texto="A média dos últimos N meses sobre a dos N anteriores: o mês (1 contra 1), o trimestre (R3), o semestre (R6) e o ciclo (R12). O R12 é o que entra no fator de ciclo da demanda."
                 />
-              </span>
-              <select value={horizonte} onChange={(e) => setHorizonte(Number(e.target.value) as Horizonte)}>
-                {HORIZONTES.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.rotulo}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
-          <label className="dash-filtro" data-bloco="janela">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <History size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Série histórica</span>
-              <select value={janela} onChange={(e) => setJanela(Number(e.target.value))}>
-                {JANELAS.map((j) => (
-                  <option key={j.id} value={j.id}>
-                    {j.rotulo}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+              </>
+            }
+            bloco="horizonte"
+          >
+            <select value={horizonte} onChange={(e) => setHorizonte(Number(e.target.value) as Horizonte)}>
+              {HORIZONTES.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.rotulo}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
+          <CampoDoFiltro icone={History} rotulo="Série histórica" bloco="janela">
+            <select value={janela} onChange={(e) => setJanela(Number(e.target.value))}>
+              {JANELAS.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.rotulo}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
         </div>
       </div>
 

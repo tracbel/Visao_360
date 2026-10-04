@@ -63,6 +63,7 @@ import {
   type PaginaDe,
 } from '../../tipos/api';
 import { formatarDataHora } from './formato';
+import { CampoDoFiltro } from '../../componentes/comum/CampoDoFiltro';
 import '../../estilos/dashboard.css';
 import '../../estilos/momento.css';
 import '../../estilos/territorio.css';
@@ -293,79 +294,55 @@ export function EquipamentosLista() {
 
       <div className="dash-filtros" data-bloco="filtros">
         <div className="dash-filtros-linha">
-          <label className="dash-filtro" data-bloco="busca">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <Search size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Buscar máquina</span>
-              <input
-                type="search"
-                aria-label="Buscar equipamento por chassi, número de série ou placa"
-                placeholder="Chassi completo, número de série ou placa…"
-                value={termoDigitado}
-                onChange={(e) => setTermoDigitado(e.target.value)}
-              />
-            </span>
-          </label>
+          <CampoDoFiltro icone={Search} rotulo="Buscar máquina" bloco="busca">
+            <input
+              type="search"
+              aria-label="Buscar equipamento por chassi, número de série ou placa"
+              placeholder="Chassi completo, número de série ou placa…"
+              value={termoDigitado}
+              onChange={(e) => setTermoDigitado(e.target.value)}
+            />
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="classificacao">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <Tractor size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Classificação</span>
-              <select
-                value={consulta.linhaDeProduto}
-                onChange={(e) => setConsulta((c) => ({ ...c, linhaDeProduto: e.target.value, pagina: 1 }))}
-              >
-                <option value="">Todas</option>
-                {classificacoes.map((l) => (
-                  <option key={l.codigo} value={l.codigo}>
-                    {l.descricao}
-                  </option>
-                ))}
-                <option value={SEM_CLASSIFICACAO}>Sem classificação</option>
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={Tractor} rotulo="Classificação" bloco="classificacao">
+            <select
+              value={consulta.linhaDeProduto}
+              onChange={(e) => setConsulta((c) => ({ ...c, linhaDeProduto: e.target.value, pagina: 1 }))}
+            >
+              <option value="">Todas</option>
+              {classificacoes.map((l) => (
+                <option key={l.codigo} value={l.codigo}>
+                  {l.descricao}
+                </option>
+              ))}
+              <option value={SEM_CLASSIFICACAO}>Sem classificação</option>
+            </select>
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="porte">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <Gauge size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Porte</span>
-              <select value={consulta.porte} onChange={(e) => setConsulta((c) => ({ ...c, porte: e.target.value, pagina: 1 }))}>
-                <option value="">Todos</option>
-                {portes.map((p) => (
-                  <option key={p.codigo} value={p.codigo}>
-                    {p.descricao}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={Gauge} rotulo="Porte" bloco="porte">
+            <select value={consulta.porte} onChange={(e) => setConsulta((c) => ({ ...c, porte: e.target.value, pagina: 1 }))}>
+              <option value="">Todos</option>
+              {portes.map((p) => (
+                <option key={p.codigo} value={p.codigo}>
+                  {p.descricao}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="situacao">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <ListFilter size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Situação</span>
-              <select
-                value={consulta.situacao}
-                onChange={(e) => setConsulta((c) => ({ ...c, situacao: e.target.value, pagina: 1 }))}
-              >
-                <option value="">Todas</option>
-                {situacoes.map((s) => (
-                  <option key={s.codigo} value={s.codigo}>
-                    {s.descricao}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={ListFilter} rotulo="Situação" bloco="situacao">
+            <select
+              value={consulta.situacao}
+              onChange={(e) => setConsulta((c) => ({ ...c, situacao: e.target.value, pagina: 1 }))}
+            >
+              <option value="">Todas</option>
+              {situacoes.map((s) => (
+                <option key={s.codigo} value={s.codigo}>
+                  {s.descricao}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
           <div className="dash-filtros-acao">
             <Popover.Root>

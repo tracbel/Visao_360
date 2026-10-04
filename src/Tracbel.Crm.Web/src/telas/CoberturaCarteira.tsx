@@ -116,6 +116,8 @@ import type {
   ResumoDeCobertura,
 } from '../tipos/relacionamento';
 import { formatarData } from './cadastro/formato';
+import { formatarPercentualDaParte, formatarNumero as nº } from '../dados/formatadores';
+import { CampoDoFiltro } from '../componentes/comum/CampoDoFiltro';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
@@ -133,8 +135,6 @@ const COLUNAS: { rotulo: string; ordem?: OrdemDeCobertura; numerica?: boolean }[
   { rotulo: 'Ciclo declarado', numerica: true },
   { rotulo: 'Prioridade' },
 ];
-
-const nº = (v: number) => v.toLocaleString('pt-BR');
 
 /** Faixas de atraso oferecidas no filtro. Todas resolvidas no banco. */
 const FAIXAS = [
@@ -341,46 +341,40 @@ export function CoberturaCarteira() {
       {/* A BARRA DOS INDICADORES: os três filtros da lista, todos resolvidos no banco. */}
       <div className="dash-filtros" data-bloco="filtros">
         <div className="dash-filtros-linha">
-          <label className="dash-filtro" data-bloco="sem-contato-ha">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <CalendarClock size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Sem contato há</span>
-              <select
-                value={consulta.diasSemContato}
-                onChange={(e) => setConsulta((c) => ({ ...c, diasSemContato: e.target.value, pagina: 1 }))}
-              >
-                {FAIXAS.map((f) => (
-                  <option key={f.valor} value={f.valor}>
-                    {f.rotulo}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={CalendarClock} rotulo="Sem contato há" bloco="sem-contato-ha">
+            <select
+              value={consulta.diasSemContato}
+              onChange={(e) => setConsulta((c) => ({ ...c, diasSemContato: e.target.value, pagina: 1 }))}
+            >
+              {FAIXAS.map((f) => (
+                <option key={f.valor} value={f.valor}>
+                  {f.rotulo}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="classe">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <Layers size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">
+          <CampoDoFiltro
+            icone={Layers}
+            rotulo={
+              <>
                 Classe
                 <InfoTooltip
                   texto="Curva ABC apurada do faturamento (Cliente.Classe) — não a classe do vínculo importada do Vórtice."
                   rotulo="Qual classe é esta"
                 />
-              </span>
-              <select value={consulta.classe} onChange={(e) => setConsulta((c) => ({ ...c, classe: e.target.value, pagina: 1 }))}>
-                {CLASSES.map((cl) => (
-                  <option key={cl.valor} value={cl.valor}>
-                    {cl.rotulo}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+              </>
+            }
+            bloco="classe"
+          >
+            <select value={consulta.classe} onChange={(e) => setConsulta((c) => ({ ...c, classe: e.target.value, pagina: 1 }))}>
+              {CLASSES.map((cl) => (
+                <option key={cl.valor} value={cl.valor}>
+                  {cl.rotulo}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
           <div className="dash-filtros-acao">
             <label className="dash-caixa">
@@ -709,11 +703,11 @@ export function CoberturaCarteira() {
                     <td className="mom-num">{nº(c.clientes)}</td>
                     <td className="mom-num">
                       {nº(c.comContatoEm30Dias)}
-                      <div className="cad-sub">{percentual(c.comContatoEm30Dias, c.clientes)}</div>
+                      <div className="cad-sub">{formatarPercentualDaParte(c.comContatoEm30Dias, c.clientes)}</div>
                     </td>
                     <td className="mom-num">
                       {nº(c.comContatoEm90Dias)}
-                      <div className="cad-sub">{percentual(c.comContatoEm90Dias, c.clientes)}</div>
+                      <div className="cad-sub">{formatarPercentualDaParte(c.comContatoEm90Dias, c.clientes)}</div>
                     </td>
                     <td className="mom-num">
                       <span className={c.nuncaContatados > 0 ? 'cad-atencao' : undefined}>{nº(c.nuncaContatados)}</span>
@@ -1067,12 +1061,6 @@ function FichaDeCobertura({ linha }: { linha: CoberturaResumo }) {
       </div>
     </div>
   );
-}
-
-/** A fração, quando ela tem denominador. Zero cliente não vira "0%". */
-function percentual(parte: number, todo: number): string {
-  if (todo <= 0) return '—';
-  return `${Math.round((parte / todo) * 100)}%`;
 }
 
 function ariaOrdem(campo: OrdemDeCobertura | undefined, consulta: ConsultaDeCobertura) {

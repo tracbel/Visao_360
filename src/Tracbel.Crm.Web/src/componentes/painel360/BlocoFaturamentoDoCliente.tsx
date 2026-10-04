@@ -25,34 +25,8 @@ import { GraficoLinhaMensal } from '../GraficoLinhaMensal';
 import { MolduraDeGrafico } from '../MolduraDeGrafico';
 import { BlocoPainel, type EstadoBloco } from './BlocoPainel';
 import { Dado } from './DadoDoPainel';
+import { formatarDiaEHora, formatarMesCurto, formatarMesNumerico, formatarReaisCurtos } from '../../dados/formatadores';
 import '../../estilos/ficha-do-cliente.css';
-
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-
-/** `2026-09-01` vira `set/26`. */
-function mesCurto(competencia: string): string {
-  const [ano, mes] = competencia.slice(0, 7).split('-');
-  return `${MESES[Number(mes) - 1]}/${ano.slice(2)}`;
-}
-
-/** `2026-09-01` vira `09/2026`. */
-function mesAno(competencia: string): string {
-  const [ano, mes] = competencia.slice(0, 7).split('-');
-  return `${mes}/${ano}`;
-}
-
-/** `2026-09-24T16:27:48` (UTC) vira `24/09 13:27`, no fuso de quem lê — a régua do cartão da Visão 360. */
-function diaEHora(instante: string): string {
-  const utc = /Z|[+-]\d\d:\d\d$/.test(instante) ? instante : `${instante}Z`;
-  return new Date(utc).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
-
-/** O eixo do gráfico, curto: `R$ 50 mil`, `R$ 1,2 mi`. */
-function reaisCurtos(valor: number): string {
-  if (Math.abs(valor) >= 1_000_000) return `R$ ${(valor / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`;
-  if (Math.abs(valor) >= 1_000) return `R$ ${(valor / 1_000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`;
-  return formatarDinheiro(valor);
-}
 
 function estadoDe(carregando: boolean, erro: Error | null, dados: FaturamentoDoCliente | null): EstadoBloco {
   if (carregando) return 'carregando';
@@ -66,7 +40,7 @@ export function BlocoFaturamentoDoCliente({ chave }: { chave: string }) {
   const dados = leitura.dados;
 
   const subtitulo = dados?.carregadoEm
-    ? `notas de saída do Protheus (SD2), pela filial que emitiu a nota · até a carga de ${diaEHora(dados.carregadoEm)}`
+    ? `notas de saída do Protheus (SD2), pela filial que emitiu a nota · até a carga de ${formatarDiaEHora(dados.carregadoEm)}`
     : 'notas de saída do Protheus (SD2), pela filial que emitiu a nota';
 
   return (
@@ -109,24 +83,24 @@ function Conteudo({ dados }: { dados: FaturamentoDoCliente }) {
         <Dado
           rotulo="Últimos 12 meses"
           valor={formatarDinheiro(doze.valorLiquido)}
-          detalhe={`${mesAno(doze.de)} a ${mesAno(doze.ate)}${dados.ultimoMesEstaIncompleto ? ' · último mês parcial' : ''}`}
+          detalhe={`${formatarMesNumerico(doze.de)} a ${formatarMesNumerico(doze.ate)}${dados.ultimoMesEstaIncompleto ? ' · último mês parcial' : ''}`}
         />
         <Dado rotulo="Máquina, em reais" valor={formatarDinheiro(doze.maquina)} detalhe="grupo VEIC da nota" />
         <Dado rotulo="Peça, serviço e outros" valor={formatarDinheiro(resto)} detalhe={`${doze.notas.toLocaleString('pt-BR')} notas no período`} />
         <Dado
           rotulo="Nota mais recente"
-          valor={dados.ultimaCompraEm ? mesAno(dados.ultimaCompraEm) : <ValorAusente motivo={motivoSemNota} oQue="a nota mais recente" />}
+          valor={dados.ultimaCompraEm ? formatarMesNumerico(dados.ultimaCompraEm) : <ValorAusente motivo={motivoSemNota} oQue="a nota mais recente" />}
         />
       </dl>
 
       <MolduraDeGrafico altura={140}>
         {(largura, altura) => (
           <GraficoLinhaMensal
-            rotulos={dados.serie.map((m) => mesCurto(m.competencia))}
+            rotulos={dados.serie.map((m) => formatarMesCurto(m.competencia))}
             valores={dados.serie.map((m) => m.valorLiquido)}
             largura={largura}
             altura={altura}
-            formatar={reaisCurtos}
+            formatar={formatarReaisCurtos}
             ultimoParcial={dados.ultimoMesEstaIncompleto}
           />
         )}
@@ -144,7 +118,7 @@ function Conteudo({ dados }: { dados: FaturamentoDoCliente }) {
                 <span className="ficha-filial-valor">{formatarDinheiro(f.dozeMeses)}</span>
                 <span className="ficha-filial-meta">
                   em 12 meses{f.maquinaNosDozeMeses > 0 ? ` (máquina ${formatarDinheiro(f.maquinaNosDozeMeses)})` : ''} ·{' '}
-                  {formatarDinheiro(f.naJanela)} na janela · última nota {mesAno(f.ultimaNotaEm)}
+                  {formatarDinheiro(f.naJanela)} na janela · última nota {formatarMesNumerico(f.ultimaNotaEm)}
                 </span>
               </li>
             ))}
@@ -154,7 +128,7 @@ function Conteudo({ dados }: { dados: FaturamentoDoCliente }) {
 
       {janela && janela.valorLiquido > 0 && (
         <p className="p360-item-obs">
-          Na janela que a carga mantém ({mesAno(janela.de)} a {mesAno(janela.ate)}): {formatarDinheiro(janela.valorLiquido)} — máquina{' '}
+          Na janela que a carga mantém ({formatarMesNumerico(janela.de)} a {formatarMesNumerico(janela.ate)}): {formatarDinheiro(janela.valorLiquido)} — máquina{' '}
           {formatarDinheiro(janela.maquina)}, peça {formatarDinheiro(janela.peca)}, serviço {formatarDinheiro(janela.servico)}
           {janela.outros > 0 ? `, outros ${formatarDinheiro(janela.outros)}` : ''}.
         </p>

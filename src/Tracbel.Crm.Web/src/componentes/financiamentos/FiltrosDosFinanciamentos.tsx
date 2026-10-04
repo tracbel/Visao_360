@@ -15,6 +15,7 @@ import { InfoTooltip } from '../InfoTooltip';
 import { nomeProprio } from '../../telas/cadastro/formato';
 import type { FiltrosDosFinanciamentos, FinanciamentosDoSicor } from '../../tipos/mercado';
 import { comoFiltro, textoDoPeriodo } from './financiamentos';
+import { CampoDoFiltro } from '../comum/CampoDoFiltro';
 
 type Atalho = '12' | '6' | '3' | 'personalizado';
 
@@ -54,103 +55,85 @@ export function FiltrosDosFinanciamentosDoSicor({
   return (
     <div className="dash-filtros" data-bloco="filtros">
       <div className="dash-filtros-linha">
-        <label className="dash-filtro" data-bloco="periodo">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <CalendarDays size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">
+        <CampoDoFiltro
+          icone={CalendarDays}
+          rotulo={
+            <>
               Período
               <InfoTooltip
                 rotulo="O período e a comparação"
                 texto="Toda variação é contra o MESMO período do ano anterior, que respeita a sazonalidade da safra. O padrão são os 12 meses que terminam no último mês do SICOR descontada a carência — o Banco Central ainda completa os meses recentes com registro atrasado."
               />
-            </span>
-            <select
-              value={atalho}
-              onChange={(e) => {
-                const escolha = e.target.value as Atalho;
-                if (escolha === '12') aoMudar({ de: undefined, ate: undefined });
-                else if (fimPadrao && escolha !== 'personalizado')
-                  aoMudar({ ate: fimPadrao, de: somarMeses(fimPadrao, -(Number(escolha) - 1)) });
-              }}
-            >
-              <option value="12">12 meses{atalho === '12' && intervalo ? ` (${intervalo})` : ''}</option>
-              <option value="6" disabled={!fimPadrao}>6 meses{atalho === '6' && intervalo ? ` (${intervalo})` : ''}</option>
-              <option value="3" disabled={!fimPadrao}>3 meses{atalho === '3' && intervalo ? ` (${intervalo})` : ''}</option>
-              {atalho === 'personalizado' && <option value="personalizado">Personalizado{intervalo ? ` (${intervalo})` : ''}</option>}
-            </select>
-          </span>
-        </label>
+            </>
+          }
+          bloco="periodo"
+        >
+          <select
+            value={atalho}
+            onChange={(e) => {
+              const escolha = e.target.value as Atalho;
+              if (escolha === '12') aoMudar({ de: undefined, ate: undefined });
+              else if (fimPadrao && escolha !== 'personalizado')
+                aoMudar({ ate: fimPadrao, de: somarMeses(fimPadrao, -(Number(escolha) - 1)) });
+            }}
+          >
+            <option value="12">12 meses{atalho === '12' && intervalo ? ` (${intervalo})` : ''}</option>
+            <option value="6" disabled={!fimPadrao}>6 meses{atalho === '6' && intervalo ? ` (${intervalo})` : ''}</option>
+            <option value="3" disabled={!fimPadrao}>3 meses{atalho === '3' && intervalo ? ` (${intervalo})` : ''}</option>
+            {atalho === 'personalizado' && <option value="personalizado">Personalizado{intervalo ? ` (${intervalo})` : ''}</option>}
+          </select>
+        </CampoDoFiltro>
 
-        <label className="dash-filtro" data-bloco="produto">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <Tractor size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Produto</span>
-            <select value={filtros.produto ?? ''} onChange={(e) => aoMudar({ produto: e.target.value || undefined })}>
-              <option value="">Todos ({dados?.produtos.length ?? 3} de máquina)</option>
-              {(dados?.produtos ?? []).map((p) => (
-                <option key={p.codigo} value={String(p.codigo)}>
-                  {nomeProprio(p.nome)}
-                </option>
-              ))}
-            </select>
-          </span>
-        </label>
+        <CampoDoFiltro icone={Tractor} rotulo="Produto" bloco="produto">
+          <select value={filtros.produto ?? ''} onChange={(e) => aoMudar({ produto: e.target.value || undefined })}>
+            <option value="">Todos ({dados?.produtos.length ?? 3} de máquina)</option>
+            {(dados?.produtos ?? []).map((p) => (
+              <option key={p.codigo} value={String(p.codigo)}>
+                {nomeProprio(p.nome)}
+              </option>
+            ))}
+          </select>
+        </CampoDoFiltro>
 
-        <label className="dash-filtro" data-bloco="programa">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <Landmark size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Programa</span>
-            <select value={filtros.programa ?? ''} onChange={(e) => aoMudar({ programa: e.target.value || undefined })}>
-              <option value="">Todos os programas</option>
-              {(dados?.programas ?? []).map((p) => (
-                <option key={p.codigo} value={String(p.codigo)} title={p.nome}>
-                  {p.nome.length > 40 ? `${p.nome.slice(0, 40)}…` : p.nome}
-                </option>
-              ))}
-            </select>
-          </span>
-        </label>
+        <CampoDoFiltro icone={Landmark} rotulo="Programa" bloco="programa">
+          <select value={filtros.programa ?? ''} onChange={(e) => aoMudar({ programa: e.target.value || undefined })}>
+            <option value="">Todos os programas</option>
+            {(dados?.programas ?? []).map((p) => (
+              <option key={p.codigo} value={String(p.codigo)} title={p.nome}>
+                {p.nome.length > 40 ? `${p.nome.slice(0, 40)}…` : p.nome}
+              </option>
+            ))}
+          </select>
+        </CampoDoFiltro>
 
-        <label className="dash-filtro" data-bloco="regional">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <MapPin size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Regional / Loja</span>
-            <select
-              value={regionalOuLoja}
-              onChange={(e) => {
-                const [tipo, valor] = e.target.value.split(':');
-                aoMudar({ recorte: tipo === 'recorte' ? valor : undefined, lojaCodigo: tipo === 'loja' ? valor : undefined });
-              }}
-            >
-              <option value="">Região Tracbel</option>
-              <optgroup label="Sub-região da ADR">
-                <option value="recorte:norte">Região Norte</option>
-                <option value="recorte:noroeste">Região Noroeste</option>
+        <CampoDoFiltro icone={MapPin} rotulo="Regional / Loja" bloco="regional">
+          <select
+            value={regionalOuLoja}
+            onChange={(e) => {
+              const [tipo, valor] = e.target.value.split(':');
+              aoMudar({ recorte: tipo === 'recorte' ? valor : undefined, lojaCodigo: tipo === 'loja' ? valor : undefined });
+            }}
+          >
+            <option value="">Região Tracbel</option>
+            <optgroup label="Sub-região da ADR">
+              <option value="recorte:norte">Região Norte</option>
+              <option value="recorte:noroeste">Região Noroeste</option>
+            </optgroup>
+            {(dados?.lojas.length ?? 0) > 0 && (
+              <optgroup label="Loja responsável">
+                {dados!.lojas.map((l) => (
+                  <option key={l.codigo} value={`loja:${l.codigo}`}>
+                    {nomeProprio(l.nome)}
+                  </option>
+                ))}
               </optgroup>
-              {(dados?.lojas.length ?? 0) > 0 && (
-                <optgroup label="Loja responsável">
-                  {dados!.lojas.map((l) => (
-                    <option key={l.codigo} value={`loja:${l.codigo}`}>
-                      {nomeProprio(l.nome)}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              <optgroup label="Além da ADR">
-                <option value="recorte:sp">Estado de São Paulo</option>
-                <option value="recorte:fora">Fora da Região Tracbel</option>
-              </optgroup>
-            </select>
-          </span>
-        </label>
+            )}
+            <optgroup label="Além da ADR">
+              <option value="recorte:sp">Estado de São Paulo</option>
+              <option value="recorte:fora">Fora da Região Tracbel</option>
+            </optgroup>
+          </select>
+        </CampoDoFiltro>
 
         <div className="dash-filtros-acao">
           <Popover.Root>

@@ -22,6 +22,7 @@
  */
 import type { TipoTarefa } from '../tipos/agenda';
 import type { ClienteCarteira, MetaFrequencia, StatusCobertura } from '../tipos/visao360';
+import { DIAS_DA_SEMANA_CURTOS, MESES_CURTOS } from './formatadores';
 
 const MS_DIA = 1000 * 60 * 60 * 24;
 
@@ -270,15 +271,12 @@ export function clientesQuePedemAcao(
 /* Formatação compartilhada pelos blocos                                   */
 /* ---------------------------------------------------------------------- */
 
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-
 export function formatarData(iso: string | Date): string {
   const d = typeof iso === 'string' ? new Date(iso) : iso;
-  return `${String(d.getDate()).padStart(2, '0')}/${MESES[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
+  return `${String(d.getDate()).padStart(2, '0')}/${MESES_CURTOS[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
 }
 
 export function formatarDataHora(iso: string | Date): string {
   const d = typeof iso === 'string' ? new Date(iso) : iso;
-  return `${DIAS_SEMANA[d.getDay()]} · ${formatarData(d)} · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${DIAS_DA_SEMANA_CURTOS[d.getDay()]} · ${formatarData(d)} · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }

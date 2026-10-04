@@ -7,8 +7,9 @@
  */
 
 import type { DimensionamentoDaAdr, MedidaComAnterior } from '../../tipos/mercado';
+import { formatarNumeroComCasas } from '../../dados/formatadores';
 
-export const n = (v: number, casas = 0) => v.toLocaleString('pt-BR', { maximumFractionDigits: casas });
+export const n = (v: number, casas = 0) => formatarNumeroComCasas(v, casas);
 
 /** Hectares: "12.345 ha", e acima de um milhão "1,23 mi ha". */
 export function hectares(v: number | null): string {

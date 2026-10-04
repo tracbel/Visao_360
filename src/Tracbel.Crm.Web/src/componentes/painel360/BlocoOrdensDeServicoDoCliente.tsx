@@ -22,15 +22,10 @@ import { ValorAusente } from '../comum/ValorAusente';
 import { BlocoPainel, type EstadoBloco } from './BlocoPainel';
 import { Dado } from './DadoDoPainel';
 import { DIAS_DA_FAIXA_VERMELHA, rotuloDaSituacao } from './regrasDasOrdensDeServico';
+import { formatarDiaEHora } from '../../dados/formatadores';
 
 /** Quantas OS a lista mostra — o resto fica contado. */
 const LINHAS = 6;
-
-/** `2026-09-24T16:27:48` (UTC) vira `24/09 13:27`, no fuso de quem lê — a régua do bloco de faturamento. */
-function diaEHora(instante: string): string {
-  const utc = /Z|[+-]\d\d:\d\d$/.test(instante) ? instante : `${instante}Z`;
-  return new Date(utc).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
 
 function estadoDe(carregando: boolean, erro: Error | null, dados: OrdensDeServicoResumidas | null): EstadoBloco {
   if (carregando) return 'carregando';
@@ -44,7 +39,7 @@ export function BlocoOrdensDeServicoDoCliente({ chave }: { chave: string }) {
   const dados = leitura.dados;
 
   const subtitulo = dados?.carregadoEm
-    ? `oficina do Protheus, pelo CPF/CNPJ do proprietário na OS · até a carga de ${diaEHora(dados.carregadoEm)}`
+    ? `oficina do Protheus, pelo CPF/CNPJ do proprietário na OS · até a carga de ${formatarDiaEHora(dados.carregadoEm)}`
     : 'oficina do Protheus, pelo CPF/CNPJ do proprietário na OS';
 
   return (

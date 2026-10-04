@@ -25,6 +25,7 @@ import { InfoTooltip } from '../InfoTooltip';
 import { anoFiscalFechado, dozeMesesFechados, mes as mesPorExtenso, nomeDoAnoFiscal } from '../territorio/indicadoresDaAdr';
 import { nomeProprio } from '../../telas/cadastro/formato';
 import type { DiagnosticoComercialDaRegiao, FiltrosDoDiagnostico, MunicipioNoDiagnostico } from '../../tipos/mercado';
+import { CampoDoFiltro } from '../comum/CampoDoFiltro';
 
 type Preset = '12meses' | 'anoFiscal' | 'personalizado';
 
@@ -81,111 +82,87 @@ export function FiltrosDoDiagnosticoComercial({
   return (
     <div className="dash-filtros" data-bloco="filtros">
       <div className="dash-filtros-linha">
-        <label className="dash-filtro" data-bloco="periodo">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <CalendarDays size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            {/* SEM ⓘ NO RÓTULO, como a maquete: a explicação do período vai na dica do próprio campo. */}
-            <span className="dash-filtro-rotulo">Período</span>
-            <select
-              title={
-                'O período vale para as vendas. O crédito e o preço são o momento mais recente — a janela dos parâmetros do ' +
-                'potencial —, e a carteira e a cobertura são o estado de hoje, no alcance da filial do cabeçalho. O padrão são ' +
-                'os 12 meses fechados: o IOC compara a venda com a demanda de um ano, e doze meses seguidos são um ano inteiro. ' +
-                'Em outro período, a venda é levada a um ano pela sazonalidade vigente, e não por regra de três.' +
-                (dados && dados.fracaoDoAnoNoPeriodo !== 1
-                  ? ` Este período vale ${Math.round(dados.fracaoDoAnoNoPeriodo * 100)}% do ano pela sazonalidade.`
-                  : '')
-              }
-              value={preset}
-              onChange={(e) => {
-                if (e.target.value === '12meses') aoMudar({ competenciaInicial: undefined, competenciaFinal: undefined });
-                else if (e.target.value === 'anoFiscal') aoMudar(anoFiscal);
-              }}
-            >
-              <option value="12meses">12 meses{preset === '12meses' && intervalo ? ` (${intervalo})` : ''}</option>
-              <option value="anoFiscal">
-                {preset === 'anoFiscal' && intervalo
-                  ? `${nomeDoAnoFiscal(anoFiscal.competenciaFinal) ?? 'Ano fiscal'} (${intervalo})`
-                  : `Ano fiscal (${nomeDoAnoFiscal(anoFiscal.competenciaFinal) ?? ''} até o último mês)`}
-              </option>
-              {preset === 'personalizado' && <option value="personalizado">Personalizado{intervalo ? ` (${intervalo})` : ''}</option>}
-            </select>
-          </span>
-        </label>
+        {/* SEM ⓘ NO RÓTULO, como a maquete: a explicação do período vai na dica do próprio campo. */}
+        <CampoDoFiltro icone={CalendarDays} rotulo="Período" bloco="periodo">
+          <select
+            title={
+              'O período vale para as vendas. O crédito e o preço são o momento mais recente — a janela dos parâmetros do ' +
+              'potencial —, e a carteira e a cobertura são o estado de hoje, no alcance da filial do cabeçalho. O padrão são ' +
+              'os 12 meses fechados: o IOC compara a venda com a demanda de um ano, e doze meses seguidos são um ano inteiro. ' +
+              'Em outro período, a venda é levada a um ano pela sazonalidade vigente, e não por regra de três.' +
+              (dados && dados.fracaoDoAnoNoPeriodo !== 1
+                ? ` Este período vale ${Math.round(dados.fracaoDoAnoNoPeriodo * 100)}% do ano pela sazonalidade.`
+                : '')
+            }
+            value={preset}
+            onChange={(e) => {
+              if (e.target.value === '12meses') aoMudar({ competenciaInicial: undefined, competenciaFinal: undefined });
+              else if (e.target.value === 'anoFiscal') aoMudar(anoFiscal);
+            }}
+          >
+            <option value="12meses">12 meses{preset === '12meses' && intervalo ? ` (${intervalo})` : ''}</option>
+            <option value="anoFiscal">
+              {preset === 'anoFiscal' && intervalo
+                ? `${nomeDoAnoFiscal(anoFiscal.competenciaFinal) ?? 'Ano fiscal'} (${intervalo})`
+                : `Ano fiscal (${nomeDoAnoFiscal(anoFiscal.competenciaFinal) ?? ''} até o último mês)`}
+            </option>
+            {preset === 'personalizado' && <option value="personalizado">Personalizado{intervalo ? ` (${intervalo})` : ''}</option>}
+          </select>
+        </CampoDoFiltro>
 
-        <label className="dash-filtro" data-bloco="regional">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <MapPin size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Regional / Loja</span>
-            <select
-              value={regionalOuLoja}
-              onChange={(e) => {
-                const [tipo, valor] = e.target.value.split(':');
-                aoMudar({ regiao: tipo === 'regiao' ? valor : undefined, lojaCodigo: tipo === 'loja' ? valor : undefined });
-              }}
-            >
-              <option value="">Todas as regiões</option>
-              <optgroup label="Sub-região da ADR">
-                <option value="regiao:Norte">Região Norte</option>
-                <option value="regiao:Noroeste">Região Noroeste</option>
+        <CampoDoFiltro icone={MapPin} rotulo="Regional / Loja" bloco="regional">
+          <select
+            value={regionalOuLoja}
+            onChange={(e) => {
+              const [tipo, valor] = e.target.value.split(':');
+              aoMudar({ regiao: tipo === 'regiao' ? valor : undefined, lojaCodigo: tipo === 'loja' ? valor : undefined });
+            }}
+          >
+            <option value="">Todas as regiões</option>
+            <optgroup label="Sub-região da ADR">
+              <option value="regiao:Norte">Região Norte</option>
+              <option value="regiao:Noroeste">Região Noroeste</option>
+            </optgroup>
+            {lojasConhecidas.size > 0 && (
+              <optgroup label="Loja responsável">
+                {[...lojasConhecidas.entries()]
+                  .sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'))
+                  .map(([codigo, nome]) => (
+                    <option key={codigo} value={`loja:${codigo}`}>
+                      {nome}
+                    </option>
+                  ))}
               </optgroup>
-              {lojasConhecidas.size > 0 && (
-                <optgroup label="Loja responsável">
-                  {[...lojasConhecidas.entries()]
-                    .sort((a, b) => a[1].localeCompare(b[1], 'pt-BR'))
-                    .map(([codigo, nome]) => (
-                      <option key={codigo} value={`loja:${codigo}`}>
-                        {nome}
-                      </option>
-                    ))}
-                </optgroup>
-              )}
-            </select>
-          </span>
-        </label>
+            )}
+          </select>
+        </CampoDoFiltro>
 
-        <label className="dash-filtro" data-bloco="cultura">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <Leaf size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Cultura principal</span>
-            <select value={cultura ?? ''} onChange={(e) => aoMudarCultura(e.target.value || null)}>
-              <option value="">Todas as culturas</option>
-              {culturas.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </span>
-        </label>
+        <CampoDoFiltro icone={Leaf} rotulo="Cultura principal" bloco="cultura">
+          <select value={cultura ?? ''} onChange={(e) => aoMudarCultura(e.target.value || null)}>
+            <option value="">Todas as culturas</option>
+            {culturas.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </CampoDoFiltro>
 
-        <label className="dash-filtro" data-bloco="cen">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <Users size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">CEN / Gestor</span>
-            <select
-              value={filtros.responsavel ?? ''}
-              onChange={(e) => aoMudar({ responsavel: e.target.value || undefined })}
-              disabled={responsaveis.length === 0 && !filtros.responsavel}
-              title={responsaveis.length === 0 ? 'Nenhuma carteira comercial ao seu alcance tem responsável.' : undefined}
-            >
-              <option value="">Todos os gestores</option>
-              {responsaveis.map((r) => (
-                <option key={r.id} value={String(r.id)}>
-                  {nomeProprio(r.nome)}
-                </option>
-              ))}
-            </select>
-          </span>
-        </label>
+        <CampoDoFiltro icone={Users} rotulo="CEN / Gestor" bloco="cen">
+          <select
+            value={filtros.responsavel ?? ''}
+            onChange={(e) => aoMudar({ responsavel: e.target.value || undefined })}
+            disabled={responsaveis.length === 0 && !filtros.responsavel}
+            title={responsaveis.length === 0 ? 'Nenhuma carteira comercial ao seu alcance tem responsável.' : undefined}
+          >
+            <option value="">Todos os gestores</option>
+            {responsaveis.map((r) => (
+              <option key={r.id} value={String(r.id)}>
+                {nomeProprio(r.nome)}
+              </option>
+            ))}
+          </select>
+        </CampoDoFiltro>
 
         <div className="dash-filtros-acao">
           <Popover.Root>

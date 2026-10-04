@@ -7,6 +7,7 @@
  */
 
 import type { FaixaDeMercado, FinanciamentosDoSicor, IndiceDeCredito, JanelasDeCredito, LinhasDoSicorNoMes } from '../../tipos/mercado';
+import { MESES_CURTOS, formatarMesCurto, formatarNumeroComCasas } from '../../dados/formatadores';
 
 export const NOME_DA_FAIXA: Record<FaixaDeMercado, string> = {
   Retraido: 'Retraído',
@@ -33,7 +34,7 @@ export const COR_DA_FAIXA: Record<FaixaDeMercado, string> = {
 
 export const COR_SEM_FAIXA = '#9AA39A';
 
-export const n = (v: number, casas = 0) => v.toLocaleString('pt-BR', { maximumFractionDigits: casas });
+export const n = (v: number, casas = 0) => formatarNumeroComCasas(v, casas);
 
 /** Uma razão entre janelas como variação: 1,12 vira "+12%"; nulo vira o traço. */
 export function variacaoDaRazao(razao: number | null | undefined, casas = 1): string {
@@ -62,14 +63,7 @@ export function situacaoDe(indice: IndiceDeCredito | null, janelas: JanelasDeCre
 /** "set/25 a ago/26" a partir de duas datas `aaaa-mm-dd`. */
 export function textoDoPeriodo(de: string | null, ate: string | null): string {
   if (!de || !ate) return '—';
-  return de === ate ? mesCurtoDe(de) : `${mesCurtoDe(de)} a ${mesCurtoDe(ate)}`;
-}
-
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-
-export function mesCurtoDe(iso: string): string {
-  const [ano, mes] = iso.split('-').map(Number);
-  return `${MESES[mes - 1]}/${String(ano).slice(2)}`;
+  return de === ate ? formatarMesCurto(de) : `${formatarMesCurto(de)} a ${formatarMesCurto(ate)}`;
 }
 
 /** O mês `aaaa-mm-dd` como `aaaa-mm`, o formato do filtro. */
@@ -117,7 +111,7 @@ export function agrupar(serie: readonly LinhasDoSicorNoMes[], granularidade: Gra
     const indice = Math.floor((mes - 1) / tamanho);
     const rotulo =
       granularidade === 'mes'
-        ? `${MESES[mes - 1]}/${String(ano).slice(2)}`
+        ? `${MESES_CURTOS[mes - 1]}/${String(ano).slice(2)}`
         : granularidade === 'tri'
           ? `${indice + 1}º tri/${String(ano).slice(2)}`
           : granularidade === 'sem'

@@ -10,29 +10,30 @@
 import { UserRound } from 'lucide-react';
 import { InfoTooltip } from '../InfoTooltip';
 import { PERFIS, type PerfilId } from './perfis';
+import { CampoDoFiltro } from '../comum/CampoDoFiltro';
 
 export function FiltroDoPerfil({ perfil, aoTrocar }: { perfil: PerfilId; aoTrocar?: (p: PerfilId) => void }) {
   return (
-    <label className="dash-filtro" data-bloco="perfil">
-      <span className="dash-filtro-icone" aria-hidden="true">
-        <UserRound size={17} strokeWidth={2} />
-      </span>
-      <span className="dash-filtro-corpo">
-        <span className="dash-filtro-rotulo">
+    <CampoDoFiltro
+      icone={UserRound}
+      rotulo={
+        <>
           Perfil
           <InfoTooltip
             rotulo="O que muda com o perfil"
             texto="Diretoria e Gerente abrem o painel consolidado das filiais em operação. O CEN abre o trabalho do dia — tarefas e clientes sem contato — e o 360 de qualquer cliente da filial do cabeçalho."
           />
-        </span>
-        <select value={perfil} onChange={(e) => aoTrocar?.(e.target.value as PerfilId)} disabled={!aoTrocar}>
-          {PERFIS.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.rotulo}
-            </option>
-          ))}
-        </select>
-      </span>
-    </label>
+        </>
+      }
+      bloco="perfil"
+    >
+      <select value={perfil} onChange={(e) => aoTrocar?.(e.target.value as PerfilId)} disabled={!aoTrocar}>
+        {PERFIS.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.rotulo}
+          </option>
+        ))}
+      </select>
+    </CampoDoFiltro>
   );
 }

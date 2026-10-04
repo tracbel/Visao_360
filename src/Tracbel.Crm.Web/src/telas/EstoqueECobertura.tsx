@@ -30,6 +30,8 @@ import { obterEstoqueECobertura } from '../dados/api/estoque';
 import { useRecurso } from '../dados/api/useRecurso';
 import { baixarCsv, carimboDeData } from '../dados/exportarCsv';
 import type { ItemDaCobertura, MaquinaNaLista } from '../tipos/estoque';
+import { formatarMesCurto, formatarNumero } from '../dados/formatadores';
+import { CampoDoFiltro } from '../componentes/comum/CampoDoFiltro';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
@@ -46,12 +48,9 @@ const RECORTES: { chave: Recorte; rotulo: string }[] = [
   { chave: 'todas', rotulo: 'Todas' },
 ];
 
-const n = (v: number) => v.toLocaleString('pt-BR');
 const meses = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const data = (aaaammdd: string) => `${aaaammdd.slice(8, 10)}/${aaaammdd.slice(5, 7)}/${aaaammdd.slice(0, 4)}`;
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-const mesCurto = (item: ItemDaCobertura) =>
-  item.competencia ? `${MESES[Number(item.competencia.slice(5, 7)) - 1]}/${item.competencia.slice(2, 4)}` : item.chave;
+const rotuloDoMes = (item: ItemDaCobertura) => (item.competencia ? formatarMesCurto(item.competencia) : item.chave);
 
 const NAO_LIDO = 'o estoque ainda não foi lido';
 
@@ -108,7 +107,7 @@ export function EstoqueECobertura() {
   const lido = dados?.lidoEm != null;
 
   /** Um número do estoque: sem leitura, o traço — e a linha de baixo diz que o estoque não foi lido, como a faixa antiga. */
-  const doEstoque = (valor: number | undefined) => (t && lido && valor !== undefined ? n(valor) : null);
+  const doEstoque = (valor: number | undefined) => (t && lido && valor !== undefined ? formatarNumero(valor) : null);
   const linhaDeBaixo = (deOnde: string) => (estoque.carregando ? null : t && lido ? deOnde : NAO_LIDO);
   const motivo = dados ? 'O estoque ainda não foi lido pela rotina da Gestão de Negócios.' : undefined;
 
@@ -144,48 +143,30 @@ export function EstoqueECobertura() {
           sempre do estoque inteiro da filial. */}
       <div className="dash-filtros" data-bloco="filtros">
         <div className="dash-filtros-linha">
-          <label className="dash-filtro" data-bloco="recorte">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <ListFilter size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Mostrar</span>
-              <select value={recorte} onChange={(e) => setRecorte(e.target.value as Recorte)}>
-                {RECORTES.map((r) => (
-                  <option key={r.chave} value={r.chave}>
-                    {r.rotulo}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={ListFilter} rotulo="Mostrar" bloco="recorte">
+            <select value={recorte} onChange={(e) => setRecorte(e.target.value as Recorte)}>
+              {RECORTES.map((r) => (
+                <option key={r.chave} value={r.chave}>
+                  {r.rotulo}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="grupo">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <Layers size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Grupo</span>
-              <select value={grupo} onChange={(e) => setGrupo(e.target.value)}>
-                <option value="">Todos</option>
-                {grupos.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={Layers} rotulo="Grupo" bloco="grupo">
+            <select value={grupo} onChange={(e) => setGrupo(e.target.value)}>
+              <option value="">Todos</option>
+              {grupos.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="busca">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <Search size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Modelo</span>
-              <input type="search" value={busca} placeholder="Buscar pelo modelo" onChange={(e) => setBusca(e.target.value)} />
-            </span>
-          </label>
+          <CampoDoFiltro icone={Search} rotulo="Modelo" bloco="busca">
+            <input type="search" value={busca} placeholder="Buscar pelo modelo" onChange={(e) => setBusca(e.target.value)} />
+          </CampoDoFiltro>
         </div>
       </div>
 
@@ -307,15 +288,15 @@ export function EstoqueECobertura() {
                       {dados.porGrupo.map((g) => (
                         <tr key={g.grupo}>
                           <th scope="row">{g.grupo}</th>
-                          <td className="mom-num">{n(g.noPatio)}</td>
-                          <td className="mom-num">{n(g.disponiveis)}</td>
-                          <td className="mom-num">{n(g.reservadas)}</td>
-                          <td className="mom-num">{n(g.pedidosAFabrica)}</td>
+                          <td className="mom-num">{formatarNumero(g.noPatio)}</td>
+                          <td className="mom-num">{formatarNumero(g.disponiveis)}</td>
+                          <td className="mom-num">{formatarNumero(g.reservadas)}</td>
+                          <td className="mom-num">{formatarNumero(g.pedidosAFabrica)}</td>
                           <td className="mom-num">
                             {g.idadeMediaEmDias === null ? (
                               <ValorAusente motivo="Nenhuma máquina do grupo no pátio com data de entrada." oQue={`a idade de ${g.grupo}`} />
                             ) : (
-                              `${n(g.idadeMediaEmDias)} dias`
+                              `${formatarNumero(g.idadeMediaEmDias)} dias`
                             )}
                           </td>
                           <td className="mom-num">
@@ -342,7 +323,7 @@ export function EstoqueECobertura() {
                 <BlocoVazio titulo="Cobertura não lida" texto="Ela vem da mesma rotina do estoque." />
               ) : (
                 <div className="est-cobertura">
-                  <Barras titulo="No ritmo de venda de cada mês" itens={dados.cobertura.porMes} rotulo={mesCurto} media={dados.cobertura.mediaPorMes} />
+                  <Barras titulo="No ritmo de venda de cada mês" itens={dados.cobertura.porMes} rotulo={rotuloDoMes} media={dados.cobertura.mediaPorMes} />
                   <Barras titulo="Por grupo, no período inteiro" itens={dados.cobertura.porGrupo} rotulo={(i) => i.chave} media={dados.cobertura.mediaPorGrupo} />
                 </div>
               )}
@@ -358,7 +339,7 @@ export function EstoqueECobertura() {
           <PainelDoMomento
             titulo="Máquinas"
             data-bloco="maquinas"
-            subtitulo={`${n(visiveis.length)} de ${n(dados.maquinas.length)} · dias no pátio contados até ${data(dados.hoje)}`}
+            subtitulo={`${formatarNumero(visiveis.length)} de ${formatarNumero(dados.maquinas.length)} · dias no pátio contados até ${data(dados.hoje)}`}
             direita={
               <button
                 type="button"
@@ -413,7 +394,7 @@ export function EstoqueECobertura() {
                           ) : m.diasNoPatio === null ? (
                             <ValorAusente motivo="A máquina não tem data de entrada no TOTVS." oQue="os dias no pátio" />
                           ) : (
-                            <span className={m.diasNoPatio > 180 ? 'est-velha' : undefined}>{`${n(m.diasNoPatio)} dias`}</span>
+                            <span className={m.diasNoPatio > 180 ? 'est-velha' : undefined}>{`${formatarNumero(m.diasNoPatio)} dias`}</span>
                           )}
                         </td>
                         <td>{m.pago ? 'Sim' : 'Não'}</td>
@@ -452,7 +433,7 @@ function Barras({
       </div>
       <ul>
         {itens.map((i) => (
-          <li key={i.chave} title={`${n(i.vendas)} vendas no período`}>
+          <li key={i.chave} title={`${formatarNumero(i.vendas)} vendas no período`}>
             <span className="est-barra-rotulo">{rotulo(i)}</span>
             <span className="est-barra" aria-hidden="true">
               <span style={{ width: `${(100 * i.meses) / maior}%` }} />

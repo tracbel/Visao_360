@@ -32,8 +32,8 @@ import { InfoTooltip } from '../../InfoTooltip';
 import { CartaoDeIndicador, GradeDeIndicadores } from '../../dashboard/Dashboard';
 import { fraseDosPrecos, marcaDeParcial } from '../../mercado/precosDeReferencia';
 import { reaisCompactos } from '../escalas';
+import { formatarNumero as nº } from '../../../dados/formatadores';
 
-const nº = (v: number) => v.toLocaleString('pt-BR');
 /** Máquinas com uma casa: a demanda do município é estimativa, e 0,2 máquina é informação. */
 const maquinas = (v: number) => v.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 const porcento = (v: number) => `${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;

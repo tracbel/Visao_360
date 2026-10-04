@@ -11,6 +11,7 @@
 import type { CreditoDeMaquinasNoMunicipio, JanelasDeCredito, RentabilidadeDaCultura } from '../../../tipos/mercado';
 import type { PercepcaoDoGestorNoMes, TendenciaDaPercepcao } from '../../../tipos/potencial';
 import type { ResponsavelPelaCarteira } from '../../../tipos/territorio';
+import { ordenar } from '../../comum/ordenacao';
 
 /* ---------------------------------------------------------------------------
    RENTABILIDADE
@@ -221,14 +222,7 @@ export function ordenarMunicipios(
   criterio: CriterioDoCredito,
 ): CreditoDeMaquinasNoMunicipio[] {
   if (criterio === 'nome') return [...municipios].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-  return [...municipios].sort((a, b) => {
-    const va = valorDoMunicipio(a, criterio);
-    const vb = valorDoMunicipio(b, criterio);
-    if (va === null && vb === null) return 0;
-    if (va === null) return 1;
-    if (vb === null) return -1;
-    return vb - va;
-  });
+  return ordenar(municipios, { coluna: criterio, sentido: -1 }, valorDoMunicipio);
 }
 
 /**

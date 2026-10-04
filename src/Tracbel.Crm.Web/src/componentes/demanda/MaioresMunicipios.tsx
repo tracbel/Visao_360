@@ -13,13 +13,13 @@ import { ArrowDown, ArrowRight, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { BarraDePaginacao } from '../cadastro/BarraDePaginacao';
 import type { DemandaDoMunicipioNaPrevisao, DemandaEPrevisaoDaRegiao } from '../../tipos/mercado';
+import { ordenar, proximaOrdem, type Ordem } from '../comum/ordenacao';
 import { n, variacaoDoFator, variacaoPercentual } from './demanda';
 
 /** Quantos municípios a tabela mostra antes de "Ver todos". */
 export const MUNICIPIOS_A_VISTA = 10;
 
 type Coluna = 'nome' | 'culturaPredominante' | 'parque' | 'demanda' | 'demandaAjustada' | 'variacaoAnoAnterior';
-type Ordem = { coluna: Coluna; sentido: 1 | -1 };
 
 const COLUNAS: { chave: Coluna; rotulo: string; texto?: boolean }[] = [
   { chave: 'nome', rotulo: 'Município', texto: true },
@@ -41,22 +41,13 @@ const valorDe = (m: DemandaDoMunicipioNaPrevisao, coluna: Coluna, base: Base): n
 export function MaioresMunicipios({ dados, base }: { dados: DemandaEPrevisaoDaRegiao; base: Base }) {
   const [todos, setTodos] = useState(false);
   const [busca, setBusca] = useState('');
-  const [ordem, setOrdem] = useState<Ordem>({ coluna: 'demanda', sentido: -1 });
+  const [ordem, setOrdem] = useState<Ordem<Coluna>>({ coluna: 'demanda', sentido: -1 });
   const [tamanho, setTamanho] = useState(25);
 
   const linhas = useMemo(() => {
     const termo = todos ? busca.trim().toLocaleLowerCase('pt-BR') : '';
-    return dados.municipios
-      .filter((m) => !termo || m.nome.toLocaleLowerCase('pt-BR').includes(termo))
-      .sort((a, b) => {
-        const va = valorDe(a, ordem.coluna, base);
-        const vb = valorDe(b, ordem.coluna, base);
-        if (va === null && vb === null) return 0;
-        if (va === null) return 1;
-        if (vb === null) return -1;
-        if (typeof va === 'string' && typeof vb === 'string') return ordem.sentido * va.localeCompare(vb, 'pt-BR');
-        return ordem.sentido * ((va as number) - (vb as number));
-      });
+    const filtrados = dados.municipios.filter((m) => !termo || m.nome.toLocaleLowerCase('pt-BR').includes(termo));
+    return ordenar(filtrados, ordem, (m, coluna) => valorDe(m, coluna, base));
   }, [dados.municipios, busca, ordem, todos, base]);
 
   // A PÁGINA VOLTA PARA A PRIMEIRA quando a lista ou a ordem muda — derivado na renderização, e não num efeito.
@@ -72,7 +63,7 @@ export function MaioresMunicipios({ dados, base }: { dados: DemandaEPrevisaoDaRe
   const num = (v: number | null, casas = 1) => (v === null ? '—' : n(v, casas));
 
   function ordenarPor(coluna: Coluna, texto?: boolean) {
-    setOrdem((o) => (o.coluna === coluna ? { coluna, sentido: o.sentido === 1 ? -1 : 1 } : { coluna, sentido: texto ? 1 : -1 }));
+    setOrdem((o) => proximaOrdem(o, coluna, texto ?? false));
   }
 
   return (

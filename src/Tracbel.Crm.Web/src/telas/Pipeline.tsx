@@ -94,6 +94,7 @@ import {
   type ProcessoResumo,
 } from '../tipos/relacionamento';
 import { formatarData, formatarDinheiro } from './cadastro/formato';
+import { formatarNumero as nº } from '../dados/formatadores';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
@@ -120,8 +121,6 @@ const ROTULO_DA_ORDEM: Record<OrdemDeProcesso, string> = {
   FaseDesde: 'tempo parado na fase',
   CriadoEm: 'data de criação',
 };
-
-const nº = (v: number) => v.toLocaleString('pt-BR');
 
 /** Espera antes de mandar a busca à API, para não consultar a cada tecla. */
 const ESPERA_DA_BUSCA_MS = 350;

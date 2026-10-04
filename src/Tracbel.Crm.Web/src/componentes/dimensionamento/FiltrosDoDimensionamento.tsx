@@ -14,6 +14,7 @@ import { CalendarDays, Factory, Funnel, MapPin, Sprout, Star, UserRound } from '
 import { InfoTooltip } from '../InfoTooltip';
 import { nomeProprio } from '../../telas/cadastro/formato';
 import type { DimensionamentoDaAdr, FiltrosDoDimensionamento } from '../../tipos/mercado';
+import { CampoDoFiltro } from '../comum/CampoDoFiltro';
 
 export function FiltrosDoDimensionamentoDaAdr({
   filtros,
@@ -34,108 +35,96 @@ export function FiltrosDoDimensionamentoDaAdr({
   return (
     <div className="dash-filtros" data-bloco="filtros">
       <div className="dash-filtros-linha">
-        <label className="dash-filtro" data-bloco="ano-base">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <CalendarDays size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">
+        <CampoDoFiltro
+          icone={CalendarDays}
+          rotulo={
+            <>
               Ano-base
               <InfoTooltip
                 rotulo="O ano-base e o ano comparado"
                 texto="O ano da Produção Agrícola Municipal do IBGE (tabela 5457). Toda variação é contra o ano anterior a ele. O IBGE publica cada ano no segundo semestre do ano seguinte."
               />
-            </span>
-            <select
-              value={filtros.anoBase ?? (dados?.anoBase != null ? String(dados.anoBase) : '')}
-              onChange={(e) => aoMudar({ anoBase: e.target.value || undefined })}
-              disabled={anos.length === 0}
-            >
-              {anos.length === 0 && <option value="">Sem PAM carregada</option>}
-              {anos.map((a) => (
-                <option key={a} value={String(a)}>
-                  {a} (vs {a - 1})
-                </option>
-              ))}
-            </select>
-          </span>
-        </label>
+            </>
+          }
+          bloco="ano-base"
+        >
+          <select
+            value={filtros.anoBase ?? (dados?.anoBase != null ? String(dados.anoBase) : '')}
+            onChange={(e) => aoMudar({ anoBase: e.target.value || undefined })}
+            disabled={anos.length === 0}
+          >
+            {anos.length === 0 && <option value="">Sem PAM carregada</option>}
+            {anos.map((a) => (
+              <option key={a} value={String(a)}>
+                {a} (vs {a - 1})
+              </option>
+            ))}
+          </select>
+        </CampoDoFiltro>
 
-        <label className="dash-filtro" data-bloco="cultura">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <Sprout size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Cultura</span>
-            <select value={filtros.cultura ?? ''} onChange={(e) => aoMudar({ cultura: e.target.value || undefined })}>
-              <option value="">Todas as culturas</option>
-              {culturas.map((c) => (
-                <option key={c.codigo} value={c.codigo}>
-                  {c.nome}
-                </option>
-              ))}
-            </select>
-          </span>
-        </label>
+        <CampoDoFiltro icone={Sprout} rotulo="Cultura" bloco="cultura">
+          <select value={filtros.cultura ?? ''} onChange={(e) => aoMudar({ cultura: e.target.value || undefined })}>
+            <option value="">Todas as culturas</option>
+            {culturas.map((c) => (
+              <option key={c.codigo} value={c.codigo}>
+                {c.nome}
+              </option>
+            ))}
+          </select>
+        </CampoDoFiltro>
 
-        <label className="dash-filtro" data-bloco="regional">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <MapPin size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">Regional / Loja</span>
-            <select
-              value={regionalOuLoja}
-              onChange={(e) => {
-                const [tipo, valor] = e.target.value.split(':');
-                aoMudar({ regiao: tipo === 'regiao' ? valor : undefined, lojaCodigo: tipo === 'loja' ? valor : undefined });
-              }}
-            >
-              <option value="">Região Tracbel inteira</option>
-              <optgroup label="Sub-região da ADR">
-                <option value="regiao:Norte">Região Norte</option>
-                <option value="regiao:Noroeste">Região Noroeste</option>
+        <CampoDoFiltro icone={MapPin} rotulo="Regional / Loja" bloco="regional">
+          <select
+            value={regionalOuLoja}
+            onChange={(e) => {
+              const [tipo, valor] = e.target.value.split(':');
+              aoMudar({ regiao: tipo === 'regiao' ? valor : undefined, lojaCodigo: tipo === 'loja' ? valor : undefined });
+            }}
+          >
+            <option value="">Região Tracbel inteira</option>
+            <optgroup label="Sub-região da ADR">
+              <option value="regiao:Norte">Região Norte</option>
+              <option value="regiao:Noroeste">Região Noroeste</option>
+            </optgroup>
+            {lojas.length > 0 && (
+              <optgroup label="Loja responsável">
+                {lojas.map((l) => (
+                  <option key={l.codigo} value={`loja:${l.codigo}`}>
+                    {nomeProprio(l.nome)}
+                  </option>
+                ))}
               </optgroup>
-              {lojas.length > 0 && (
-                <optgroup label="Loja responsável">
-                  {lojas.map((l) => (
-                    <option key={l.codigo} value={`loja:${l.codigo}`}>
-                      {nomeProprio(l.nome)}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-          </span>
-        </label>
+            )}
+          </select>
+        </CampoDoFiltro>
 
-        <label className="dash-filtro" data-bloco="cen">
-          <span className="dash-filtro-icone" aria-hidden="true">
-            <UserRound size={17} strokeWidth={2} />
-          </span>
-          <span className="dash-filtro-corpo">
-            <span className="dash-filtro-rotulo">
+        <CampoDoFiltro
+          icone={UserRound}
+          rotulo={
+            <>
               CEN / Vendedor
               <InfoTooltip
                 rotulo="O que o CEN recorta"
                 texto="Os clientes das carteiras comerciais dele — e o território também: só os municípios onde ele tem cliente entram na produção, no mapa e na matriz, como o filtro de vendedor do protótipo."
               />
-            </span>
-            <select
-              value={filtros.responsavel ?? ''}
-              onChange={(e) => aoMudar({ responsavel: e.target.value || undefined })}
-              disabled={responsaveis.length === 0 && !filtros.responsavel}
-              title={responsaveis.length === 0 ? 'Nenhuma carteira comercial ao seu alcance tem responsável.' : undefined}
-            >
-              <option value="">Todos os vendedores</option>
-              {responsaveis.map((r) => (
-                <option key={r.id} value={String(r.id)}>
-                  {nomeProprio(r.nome)}
-                </option>
-              ))}
-            </select>
-          </span>
-        </label>
+            </>
+          }
+          bloco="cen"
+        >
+          <select
+            value={filtros.responsavel ?? ''}
+            onChange={(e) => aoMudar({ responsavel: e.target.value || undefined })}
+            disabled={responsaveis.length === 0 && !filtros.responsavel}
+            title={responsaveis.length === 0 ? 'Nenhuma carteira comercial ao seu alcance tem responsável.' : undefined}
+          >
+            <option value="">Todos os vendedores</option>
+            {responsaveis.map((r) => (
+              <option key={r.id} value={String(r.id)}>
+                {nomeProprio(r.nome)}
+              </option>
+            ))}
+          </select>
+        </CampoDoFiltro>
 
         <div className="dash-filtros-acao">
           <Popover.Root>

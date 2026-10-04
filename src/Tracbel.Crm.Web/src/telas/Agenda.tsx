@@ -75,6 +75,7 @@ import {
   type TarefaResumo,
 } from '../tipos/relacionamento';
 import { formatarData, formatarDataHora } from './cadastro/formato';
+import { CampoDoFiltro } from '../componentes/comum/CampoDoFiltro';
 import '../estilos/dashboard.css';
 import '../estilos/mercado-visao.css';
 import '../estilos/momento.css';
@@ -218,42 +219,24 @@ export function Agenda() {
       {/* A BARRA DOS INDICADORES. Os filtros valem para a lista; o painel do topo acompanha só o "Só as minhas". */}
       <div className="dash-filtros" data-bloco="filtros">
         <div className="dash-filtros-linha">
-          <label className="dash-filtro" data-bloco="situacao">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <ListFilter size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Situação</span>
-              <select value={consulta.situacao} onChange={(e) => setConsulta((c) => ({ ...c, situacao: e.target.value, pagina: 1 }))}>
-                <option value="">Todas</option>
-                {SITUACOES_DE_TAREFA.map((s) => (
-                  <option key={s} value={s}>
-                    {NOME_DA_SITUACAO[s]}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
+          <CampoDoFiltro icone={ListFilter} rotulo="Situação" bloco="situacao">
+            <select value={consulta.situacao} onChange={(e) => setConsulta((c) => ({ ...c, situacao: e.target.value, pagina: 1 }))}>
+              <option value="">Todas</option>
+              {SITUACOES_DE_TAREFA.map((s) => (
+                <option key={s} value={s}>
+                  {NOME_DA_SITUACAO[s]}
+                </option>
+              ))}
+            </select>
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="de">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <CalendarDays size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Agendada a partir de</span>
-              <input type="date" value={consulta.de} onChange={(e) => setConsulta((c) => ({ ...c, de: e.target.value, pagina: 1 }))} />
-            </span>
-          </label>
+          <CampoDoFiltro icone={CalendarDays} rotulo="Agendada a partir de" bloco="de">
+            <input type="date" value={consulta.de} onChange={(e) => setConsulta((c) => ({ ...c, de: e.target.value, pagina: 1 }))} />
+          </CampoDoFiltro>
 
-          <label className="dash-filtro" data-bloco="ate">
-            <span className="dash-filtro-icone" aria-hidden="true">
-              <CalendarDays size={17} strokeWidth={2} />
-            </span>
-            <span className="dash-filtro-corpo">
-              <span className="dash-filtro-rotulo">Até</span>
-              <input type="date" value={consulta.ate} onChange={(e) => setConsulta((c) => ({ ...c, ate: e.target.value, pagina: 1 }))} />
-            </span>
-          </label>
+          <CampoDoFiltro icone={CalendarDays} rotulo="Até" bloco="ate">
+            <input type="date" value={consulta.ate} onChange={(e) => setConsulta((c) => ({ ...c, ate: e.target.value, pagina: 1 }))} />
+          </CampoDoFiltro>
 
           <div className="dash-filtros-acao">
             <label className="dash-caixa">

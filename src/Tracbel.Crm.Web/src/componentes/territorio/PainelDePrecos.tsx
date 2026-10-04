@@ -31,6 +31,7 @@ import { obterPrecosDeMercado } from '../../dados/api/territorio';
 import { useRecurso } from '../../dados/api/useRecurso';
 import type { SerieDePreco } from '../../tipos/mercado';
 import type { CulturaNoCatalogo } from '../../tipos/potencial';
+import { formatarMesCurto } from '../../dados/formatadores';
 
 /**
  * AS CULTURAS DO CATÁLOGO, e não uma lista escrita aqui (issue 165).
@@ -50,14 +51,6 @@ const SEM_LAVOURA = ['BOI', 'LEITE'];
 const NIVEL_ACUMULADO = 'ACUMULADO DA SAFRA';
 
 type Moeda = 'reais' | 'dolares';
-
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-
-/** `2026-08-01` → `ago/26`. */
-function rotuloDoMes(iso: string): string {
-  const [ano, mes] = iso.split('-');
-  return `${MESES[Number(mes) - 1]}/${ano.slice(2)}`;
-}
 
 function chave(s: SerieDePreco): string {
   return `${s.fonte}|${s.codigoNaFonte}|${s.nivel}`;
@@ -156,7 +149,7 @@ export function PainelDePrecos({ produtosDoMunicipio = [] }: { produtosDoMunicip
   // memoizar sobre ela não guardaria nada.
   const pontos = (selecionada?.meses ?? [])
     .map((m) => ({
-      rotulo: rotuloDoMes(m.mes),
+      rotulo: formatarMesCurto(m.mes),
       valor: selecionada ? naUnidadeComercial(selecionada, moeda === 'reais' ? m.valorEmReais : m.valorEmDolares) : null,
     }))
     .filter((p): p is { rotulo: string; valor: number } => p.valor !== null);
@@ -245,7 +238,7 @@ export function PainelDePrecos({ produtosDoMunicipio = [] }: { produtosDoMunicip
                           {s.classificacao} · {s.fonte}
                         </div>
                       </td>
-                      <td className="cad-mono">{rotuloDoMes(ultimo.mes)}</td>
+                      <td className="cad-mono">{formatarMesCurto(ultimo.mes)}</td>
                       <td className="terr-num">
                         <span className="cad-mono">
                           {valor === null ? (
