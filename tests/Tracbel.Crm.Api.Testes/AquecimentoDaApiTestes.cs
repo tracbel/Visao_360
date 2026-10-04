@@ -50,6 +50,37 @@ public sealed class AquecimentoDaApiTestes(ApiEmMemoria api) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task O_aquecimento_roda_as_telas_pesadas_da_captura()
+    {
+        await CenarioDosCenarios.SemearAsync(api);
+        var aquecimento = ActivatorUtilities.CreateInstance<AquecimentoDaApi>(api.Services);
+
+        var telas = await aquecimento.AquecerAsync(default);
+
+        telas.Select(t => t.Tela).Should().Equal(
+            "Indicadores", "Visão 360", "Funil por estágio", "Painel do CEN", "Faturamento", "Metas", "Vendas perdidas");
+        telas.Should().OnlyContain(t => t.Falha == null, "cada tela roda o caso de uso dela, no padrão da tela, sem recusa");
+    }
+
+    [Fact]
+    public async Task Uma_tela_que_falha_nao_impede_as_outras()
+    {
+        var aquecimento = ActivatorUtilities.CreateInstance<AquecimentoDaApi>(api.Services);
+        var sistema = Tracbel.Crm.Infraestrutura.Identidade.ProvedorDeContextoDeSistema.Instancia;
+
+        var telas = await aquecimento.AquecerTelasAsync(
+        [
+            new TelaParaAquecer("Primeira", sistema, (_, _) => Task.FromResult<string?>(null)),
+            new TelaParaAquecer("Quebra", sistema, (_, _) => throw new InvalidOperationException("banco fora do ar")),
+            new TelaParaAquecer("Recusa", sistema, (_, _) => Task.FromResult<string?>("sem permissão")),
+            new TelaParaAquecer("Última", sistema, (_, _) => Task.FromResult<string?>(null))
+        ], default);
+
+        telas.Select(t => (t.Tela, t.Falha)).Should().Equal(
+            ("Primeira", (string?)null), ("Quebra", "banco fora do ar"), ("Recusa", "sem permissão"), ("Última", (string?)null));
+    }
+
+    [Fact]
     public async Task O_aquecimento_que_falha_nao_derruba_a_api()
     {
         var aquecimento = ComOTerritorioQueFalha(new ConfigurationBuilder().Build());
