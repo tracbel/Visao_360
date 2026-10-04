@@ -1,12 +1,14 @@
 # 54 — Desempenho e arquitetura: telas em até 2 segundos, código dividido por responsabilidade
 
-> **Versão 1.4 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
+> **Versão 1.5 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
 > **desempenho + arquitetura** → banco sem redundância → o que falta → material da diretoria.
 > Diagnóstico de partida: `.omc/plans/diagnostico-da-organizacao-2026-10-03.md`.
 > A 1.1 registra o que o plano 1 de 3 entregou (§7) e corrige a §3.2: a versão é a assinatura do próprio dado.
 > A 1.2 registra a captura de produção depois do plano 1 (§7.1) e o que o plano 2 de 3 entregou (§7.2).
 > A 1.3 registra a primeira rotina incremental, o faturamento (§3.3 e §7.3).
 > A 1.4 registra a segunda, o pós-venda: ordens de serviço, faturamento de peças e orçamentos (§3.3 e §7.3).
+> A 1.5 registra que as rotinas 3, 5, 6 e 8 continuam completas (§3.3) e a parte 1 do passo 7: as outras telas pesadas
+> aquecidas na subida e com orçamento de consultas (§7.4).
 
 ## 1. Decisões que este documento cumpre
 
@@ -98,12 +100,12 @@
 |---|---|---|---|
 | 1 FONTES_ANUAIS (IBGE, ANP) | anual, completa | **continua**: é anual e pequena | — |
 | 2 PRECOS_MENSAIS (CONAB, Socicana, PTAX, SICOR) | mensal | **continua**, relendo só os meses recentes que a fonte revisa | janela de revisão do SICOR |
-| 3 CADASTRO_CLIENTES (SA1) | completa | **incremental** + semanal | coluna de alteração da SA1 (`S_T_A_M_P_`/`I_N_S_D_T_`) |
+| 3 CADASTRO_CLIENTES (SA1) | completa | **continua completa** (decisão de 03/10/2026, abaixo) | — |
 | 4 FATURAMENTO_PROTHEUS | regrava 36 meses | **incremental pela emissão** (o mês dos últimos 3 dias) + completa no domingo — **entregue no plano 3** (§7.3) | a SD2 não tem data de alteração confirmada; decisão de 03/10/2026: a completa de domingo mede o que a curta não veria |
-| 5 ART_VENDAS | serviço com marcador | **incremental** (já tem marcador) + semanal | se a view tem data de alteração |
-| 6 CARTEIRAS_VORTICE | completa | **incremental** + semanal | datas de vínculo e de contato no Vórtice |
+| 5 ART_VENDAS | serviço com marcador | **continua como está** (decisão de 03/10/2026, abaixo) | — |
+| 6 CARTEIRAS_VORTICE | completa | **continua completa** (decisão de 03/10/2026, abaixo) | confirmado: `IVS_Pes.DtaAlteracao` e `IV_HISTORICO.UltAlteracao` servem |
 | 7 PARQUE_PROTHEUS (VV1) | completa | incremental se houver data; senão **diária completa** | coluna de alteração da VV1 |
-| 8 PROCESSOS_VORTICE | desde 11/2023 | **incremental pelo histórico** + semanal | data do histórico (`IV_HISTORICO`) |
+| 8 PROCESSOS_VORTICE | desde 11/2023 | **continua completa** (decisão de 03/10/2026, abaixo) | confirmado: `IV_HISTORICO.UltAlteracao` e `IV_PROCESSO.DtaAlteracao` servem |
 | 9 METAS / PLANEJAMENTO GN | completa, de hora em hora | **continua completa** (volume pequeno), mas só avança a versão quando muda algo | se a API GN aceita filtro por data |
 | 10 ESTOQUE GN | completa | **continua**: com janela de datas a API perde os pedidos | — |
 | 11 TELEMETRIA (Operations Center) | última leitura por máquina | **continua** (já é só a última) | — |
@@ -112,6 +114,29 @@
 | 15 PÓS-VENDA PROTHEUS (OS, peças) | regrava 3 anos | **incremental** + completa no domingo — **entregue no plano 3** (§7.3): OS pela abertura e pela mudança de situação, peças pelo mês curto, orçamentos pela data de alteração | a OS não tem `S_T_A_M_P_` (VO1, VO3, VO4); o orçamento tem `data_alteracao_orc` |
 
 A confirmação é a primeira tarefa de cada rotina, e cada rotina é um PR à parte. **Nada muda de comportamento antes da confirmação.**
+
+**As rotinas 3, 5, 6 e 8 continuam completas** (decisão do Ricardo, 03/10/2026). A carga incremental existe para tirar
+tempo da rodada, e o que o código registra dessas leituras é de segundos:
+
+- **processos do Vórtice** (funil, oportunidades, vendas perdidas e financiamentos): o funil em 2 a 3 s e os formulários
+  em 1 s (medido em 27/09/2026);
+- **carteiras**: a consulta mais pesada, a do último contato, em 1,3 s na primeira leitura e 0,7 s na segunda (27/09/2026);
+- **ART**: a view inteira volta em segundos, e a carga só grava o que mudou;
+- **cadastro de clientes (SA1)**: não há tempo registrado no código. São cerca de 33 mil clientes, e o tempo real sai do
+  resumo da rotina em Configurações › Integrações.
+
+Ficar completa também evita o risco que a §3.3 aponta: a rodada curta perder alteração antiga. A confirmação na origem
+do Vórtice foi feita mesmo assim, pelo agente do Vórtice, só leitura (`.omc/research/confirmacao-vortice-incremental-2026-10-03.md`).
+Nenhuma tabela tem gatilho nem `rowversion`: as datas são mantidas pela aplicação.
+
+| Tabela | Coluna | Preenchida | O que ela diz |
+|---|---|---|---|
+| `IV_HISTORICO` | `UltAlteracao` | ~100% | acompanha a edição; 97,7% do retroativo de 2026 entra em até 3 dias |
+| `IV_PROCESSO` | `DtaAlteracao` | 100% | 51% dos processos de 2026 mudam mais de 3 dias depois da inclusão: a inclusão não serve |
+| `IVS_Pes` | `DtaAlteracao` | 99,2% | — |
+| `IVS_Carteira`, `IVS_CartDepto`, `IV_VENDEDOR` | — | — | 655, 206 e 352 linhas: lidas inteiras de qualquer jeito |
+
+Se um dia a rodada dessas rotinas pesar, o caminho incremental está confirmado.
 
 ### 3.4 O navegador baixa só a tela aberta
 
@@ -136,8 +161,8 @@ A confirmação é a primeira tarefa de cada rotina, e cada rotina é um PR à p
 3. **Indicadores Geográficos** compondo os leitores. O `ApurarAsync` deixa de existir.
 4. **Front:** carregamento por tela e as regras de arquitetura do front.
 5. **Regras de vigilância:** tamanho de arquivo, utilitários únicos e orçamento de consultas.
-6. **Rotinas incrementais**, uma por PR, na ordem do ganho: faturamento, pós-venda, processos do Vórtice, carteiras, clientes e ART.
-7. **As outras rotas lentas** que a captura de produção mostrar (Visão 360, Performance de CEN, Cobertura…), com o mesmo padrão.
+6. **Rotinas incrementais**, uma por PR, na ordem do ganho: faturamento, pós-venda, processos do Vórtice, carteiras, clientes e ART. Faturamento e pós-venda entregues; as outras quatro continuam completas (§3.3).
+7. **As outras rotas lentas** que a captura de produção mostrar (Visão 360, Performance de CEN, Cobertura…), com o mesmo padrão. Parte 1 entregue (§7.4): aquecimento e orçamento de consultas.
 
 ## 5. O que não muda
 
@@ -345,22 +370,57 @@ dela. O que cada leitura curta pega:
   Protheus provavelmente continua varrendo as views nas duas leituras. O que cai com certeza é o volume que atravessa a
   rede e o trabalho do CRM. O tempo da rodada curta contra o da completa, em Integrações, é que mede o ganho.
 
-**As próximas rotinas, na ordem do §4, e o que cada uma ainda precisa confirmar:**
+**As outras quatro rotinas** (processos e carteiras do Vórtice, cadastro de clientes e ART) **continuam completas**, por
+decisão de 03/10/2026: já leem em segundos (§3.3). Com isso o passo 6 está encerrado.
 
-| Rotina | O que falta confirmar |
-|---|---|
-| 8 PROCESSOS DO VÓRTICE | data do histórico (`IV_HISTORICO`) — pelo agente do Vórtice |
-| 6 CARTEIRAS DO VÓRTICE | datas de vínculo e de contato — pelo agente do Vórtice |
-| 3 CADASTRO DE CLIENTES (SA1) | se a SA1 tem `S_T_A_M_P_` (a SB1 tem; a SB2 e a SBM não tinham em 06/2026) |
-| 5 ART | se a view tem data de alteração (o serviço já tem marcador) |
+### 7.4 Passo 7, parte 1 — as outras telas pesadas aquecidas e com orçamento (03/10/2026)
 
-### 7.4 Próximos passos
+Entregue na branch `feat/passo-7-telas-lentas`. Nenhuma tabela nova, nenhuma migração e nenhum número de tela mudado.
 
-- **A captura do "depois"** do plano 2 entra na §7.2, e as rotas que ainda passarem de 2 s viram o passo 7.
+**O que a medida mostrou antes de mexer.** As seis rotas de relatório que a captura de produção mostrou entre 1,7 s e
+2,9 s (§7.1) vão pouco ao banco, e o mesmo tanto na primeira chamada e na segunda. Nenhuma faz consulta dentro de laço.
+Onde houve várias chamadas, o p50 já era baixo (funil 936 ms, metas 189 ms, vendas perdidas 15 ms). O peso delas é a
+primeira chamada depois da subida, quando o EF compila cada consulta. É o mesmo diagnóstico dos Indicadores, e o mesmo
+remédio do plano 2.
+
+**O que mudou:**
+
+- **O aquecimento roda as seis telas.** Além das três referências e dos Indicadores, o `AquecimentoDaApi` roda, uma vez
+  cada, no padrão da tela e num banco em contexto de sistema, o caso de uso de:
+  - Visão 360;
+  - funil por estágio;
+  - painel do CEN;
+  - faturamento;
+  - metas;
+  - vendas perdidas.
+- **A meta confere `Meta.Ler` no caso de uso**, e o contexto de sistema passa: serviço de sistema alcança toda permissão
+  na organização. Nenhum contexto novo foi criado.
+- **Cada tela é isolada.** A que lança ou é recusada vai para o log com aviso, e as outras rodam. O log da subida diz o
+  tempo de cada tela: `API aquecida em … ms: referências e Indicadores … ms, Visão 360 … ms, …`.
+- **O orçamento de consultas ganhou as seis rotas**, com o teto igual ao medido, que só desce.
+
+**Consultas ao banco por chamada**, no teste de orçamento, com o cenário de dados dos Cenários de Mercado:
+
+| Rota | Frio | Quente |
+|---|---|---|
+| Visão 360 (`relatorios/indicadores-executivos`) | 19 | 19 |
+| Funil por estágio | 11 | 11 |
+| Painel do CEN | 10 | 10 |
+| Faturamento | 8 | 8 |
+| Metas | 15 | 15 |
+| Vendas perdidas | 12 | 12 |
+
+Frio e quente dão o mesmo número porque essas rotas não usam o cache de referência.
+
+**Ainda falta medir:** a captura de produção depois desta publicação, com as telas abertas algumas vezes, e o log `API
+aquecida em …` da subida. Se uma rota ainda passar de 2 s com o aquecimento feito, o problema é a consulta dela, e não a
+compilação. Ela vira a parte 2 do passo 7, com o plano de execução da consulta no SQL Server.
+
+### 7.5 Próximos passos
+
+- **A captura do "depois"** dos planos 2 e 4 entra nas §7.2 e §7.4. As rotas que ainda passarem de 2 s viram a parte 2
+  do passo 7.
 - **O resumo das rotinas do faturamento e do pós-venda** num dia comum e no primeiro domingo entra na §7.3 como a medida
   do ganho.
-- **As próximas rotinas incrementais** da §7.3, uma por PR.
-- **Passo 7 — as outras rotas lentas** da captura: `indicadores-executivos`, `funil-por-estagio`, `cen`, `faturamento`
-  e o que a nova captura mostrar.
-- **As peças comuns do front em `componentes/comum`**, além da moeda compacta, ficaram fora do plano 2 e voltam junto
-  com o passo 7.
+- **As peças comuns do front em `componentes/comum`**, além da moeda compacta, ficaram fora do plano 2 e continuam na
+  fila.
