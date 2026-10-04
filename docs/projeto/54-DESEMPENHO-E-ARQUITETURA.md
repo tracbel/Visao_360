@@ -393,8 +393,8 @@ remédio do plano 2.
   - faturamento;
   - metas;
   - vendas perdidas.
-- **A meta confere `Meta.Ler` no caso de uso.** Para ela, o aquecimento usa um contexto próprio: o de sistema, com essa
-  permissão na organização. Ele existe só dentro do aquecimento e não entra no DI, então não vira permissão de ninguém.
+- **A meta confere `Meta.Ler` no caso de uso**, e o contexto de sistema passa: serviço de sistema alcança toda permissão
+  na organização. Nenhum contexto novo foi criado.
 - **Cada tela é isolada.** A que lança ou é recusada vai para o log com aviso, e as outras rodam. O log da subida diz o
   tempo de cada tela: `API aquecida em … ms: referências e Indicadores … ms, Visão 360 … ms, …`.
 - **O orçamento de consultas ganhou as seis rotas**, com o teto igual ao medido, que só desce.

@@ -4,7 +4,6 @@ using Tracbel.Crm.Aplicacao.Relacionamento;
 using Tracbel.Crm.Dominio.Comum;
 using Tracbel.Crm.Dominio.Organizacao;
 using Tracbel.Crm.Dominio.Portas;
-using Tracbel.Crm.Dominio.Seguranca;
 using Tracbel.Crm.Infraestrutura.Identidade;
 using Tracbel.Crm.Infraestrutura.Persistencia;
 using Tracbel.Crm.Infraestrutura.Persistencia.Repositorios;
@@ -13,7 +12,7 @@ namespace Tracbel.Crm.Api.Comum;
 
 /// <summary>Uma tela do aquecimento: o nome, o contexto de acesso do banco dela e o que ela roda.</summary>
 /// <param name="Tela">O nome, para o log.</param>
-/// <param name="Acesso">O contexto de acesso do banco da tela — o de sistema, ou o do aquecimento.</param>
+/// <param name="Acesso">O contexto de acesso do banco da tela; nas telas pesadas, o de sistema.</param>
 /// <param name="Aquecer">O que a tela roda; devolve nulo quando deu certo, ou o motivo da recusa.</param>
 public sealed record TelaParaAquecer(string Tela, IProvedorContextoAcesso Acesso, Func<CrmDbContext, CancellationToken, Task<string?>> Aquecer);
 
@@ -149,29 +148,12 @@ public sealed class AquecimentoDaApi(
                 (await new ObterPainelDoCen(new RepositorioDoPainelDoCen(db), relogio).ExecutarAsync(null, ct)).Erro),
             new("Faturamento", sistema, async (db, ct) =>
                 (await new ObterFaturamento(new RepositorioDeFaturamento(db), relogio).ExecutarAsync(null, ct)).Erro),
-            new("Metas", ProvedorDoAquecimento.Instancia, async (db, ct) =>
-                (await new ObterMetaERealizado(new RepositorioDeMetas(db), ProvedorDoAquecimento.Instancia, relogio).ExecutarAsync(null, null, ct)).Erro),
+            // A META CONFERE Meta.Ler NO CASO DE USO, e o contexto de sistema passa: serviço de sistema alcança toda permissão
+            // na organização (ContextoAcesso.ProfundidadeDe).
+            new("Metas", sistema, async (db, ct) =>
+                (await new ObterMetaERealizado(new RepositorioDeMetas(db), sistema, relogio).ExecutarAsync(null, null, ct)).Erro),
             new("Vendas perdidas", sistema, async (db, ct) =>
                 (await new ObterVendasPerdidas(new RepositorioDeVendasPerdidas(db), relogio).ExecutarAsync(null, null, null, null, ct)).Erro)
         ];
-    }
-
-    /// <summary>
-    /// O CONTEXTO DO AQUECIMENTO: o de sistema, com <c>Meta.Ler</c> na organização — a meta confere a permissão no caso de uso,
-    /// e o contexto de sistema não declara nenhuma. Ele existe só aqui dentro: não entra no DI e não é contexto de ninguém.
-    /// </summary>
-    private sealed class ProvedorDoAquecimento : IProvedorContextoAcesso
-    {
-        public static ProvedorDoAquecimento Instancia { get; } = new();
-
-        public ContextoAcesso Atual { get; } = new(
-            usuarioId: 0,
-            nomeExibicao: "aquecimento",
-            empresaId: 0,
-            empresasVisiveis: new HashSet<int>(),
-            subordinadosIds: new HashSet<long>(),
-            equipesIds: new HashSet<long>(),
-            profundidades: new Dictionary<string, Profundidade> { [Permissoes.MetaLer] = Profundidade.Organizacao },
-            ehServicoDeSistema: true);
     }
 }

@@ -543,8 +543,8 @@ três referências (território, potencial e estrutura) e roda, uma vez cada, no
 - as metas;
 - as vendas perdidas.
 
-Assim as consultas do EF já estão compiladas quando o primeiro usuário chega. A meta confere `Meta.Ler` no caso de uso;
-para ela, o aquecimento usa um contexto próprio, que é o de sistema com essa permissão. Esse contexto não entra no DI.
+Assim as consultas do EF já estão compiladas quando o primeiro usuário chega. A meta confere `Meta.Ler` no caso de uso,
+e o contexto de sistema passa, porque serviço de sistema alcança toda permissão na organização.
 
 O aquecimento não entra neste medidor, porque não é requisição. O tempo vai para o log, com o de cada tela (`API
 aquecida em … ms: referências e Indicadores … ms, Visão 360 … ms, …`). A tela que falha ou é recusada vai para o log com
