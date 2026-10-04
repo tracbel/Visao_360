@@ -532,11 +532,23 @@ mandou ao banco. Quem conta é um interceptador do EF Core, por requisição. A 
 referência que a chamada disparou (a assinatura de cada assunto e a conta do leitor, quando o cache estava vazio). O
 teste `OrcamentoDeConsultasNaApiTestes` prende o máximo de cada rota pesada, e o teto só desce.
 
-**O aquecimento na subida** (`AquecimentoDaApi`, doc 54 §7.2). Logo depois que o serviço sobe, ele calcula as três
-referências (território, potencial e estrutura) e roda a apuração dos Indicadores uma vez, no período padrão, sob
-contexto de sistema. Assim as consultas do EF já estão compiladas quando o primeiro usuário chega. Ele não entra neste
-medidor, porque não é requisição; o tempo dele vai para o log (`API aquecida em … ms`). Se falhar, o erro vai para o
-log, a API continua de pé e a primeira tela paga a conta inteira, como antes. `Aquecimento:Ligado = false` desliga.
+**O aquecimento na subida** (`AquecimentoDaApi`, doc 54 §7.2 e §7.4). Logo depois que o serviço sobe, ele calcula as
+três referências (território, potencial e estrutura) e roda, uma vez cada, no padrão da tela e sob contexto de sistema:
+
+- a apuração dos Indicadores;
+- a Visão 360 (`relatorios/indicadores-executivos`);
+- o funil por estágio;
+- o painel do CEN;
+- o faturamento;
+- as metas;
+- as vendas perdidas.
+
+Assim as consultas do EF já estão compiladas quando o primeiro usuário chega. A meta confere `Meta.Ler` no caso de uso;
+para ela, o aquecimento usa um contexto próprio, que é o de sistema com essa permissão. Esse contexto não entra no DI.
+
+O aquecimento não entra neste medidor, porque não é requisição. O tempo vai para o log, com o de cada tela (`API
+aquecida em … ms: referências e Indicadores … ms, Visão 360 … ms, …`). A tela que falha ou é recusada vai para o log com
+aviso, e as outras rodam. A primeira chamada dela paga a conta inteira, como antes. `Aquecimento:Ligado = false` desliga.
 
 ## 3. O formato de erro
 
