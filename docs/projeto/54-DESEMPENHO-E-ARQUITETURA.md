@@ -1,6 +1,6 @@
 # 54 — Desempenho e arquitetura: telas em até 2 segundos, código dividido por responsabilidade
 
-> **Versão 1.5 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
+> **Versão 1.6 — 03/10/2026.** Primeira das cinco frentes de organização pedidas pelo Ricardo em 03/10/2026, nesta ordem:
 > **desempenho + arquitetura** → banco sem redundância → o que falta → material da diretoria.
 > Diagnóstico de partida: `.omc/plans/diagnostico-da-organizacao-2026-10-03.md`.
 > A 1.1 registra o que o plano 1 de 3 entregou (§7) e corrige a §3.2: a versão é a assinatura do próprio dado.
@@ -9,6 +9,7 @@
 > A 1.4 registra a segunda, o pós-venda: ordens de serviço, faturamento de peças e orçamentos (§3.3 e §7.3).
 > A 1.5 registra que as rotinas 3, 5, 6 e 8 continuam completas (§3.3) e a parte 1 do passo 7: as outras telas pesadas
 > aquecidas na subida e com orçamento de consultas (§7.4).
+> A 1.6 registra as peças comuns do front num lugar só, cada uma com a regra que reprova a cópia nova (§3.5 e §7.5).
 
 ## 1. Decisões que este documento cumpre
 
@@ -151,7 +152,7 @@ Se um dia a rodada dessas rotinas pesar, o caminho incremental está confirmado.
 | **Orçamento de consultas por rota** | Um contador de comandos SQL por requisição. Aparece ao lado do p95 em Configurações › Integrações › Desempenho, e um teste da API prende o máximo de cada rota pesada. |
 | **Tempo antes e depois** | O p95 de produção, pela captura da tela de Desempenho antes e depois de cada entrega, e o número de consultas medido nos testes. |
 | **Tamanho de arquivo** | Teste de arquitetura: arquivo novo com no máximo 600 linhas (C# e TS). Os que passam disso hoje (29 em C# e 26 no front) ficam numa lista que **só pode diminuir**. |
-| **Arquitetura do front** | Teste de arquitetura: tela não importa outra tela; componente não importa tela; `dev/` não é importado pelo código de produção; peças comuns (filtros, formatos de número, ordenação) moram em `componentes/comum`. |
+| **Arquitetura do front** | Teste de arquitetura: tela não importa outra tela; componente não importa tela; `dev/` não é importado pelo código de produção; as peças comuns moram num lugar só — o filtro do padrão em `componentes/comum/CampoDoFiltro`, a ordenação das tabelas em `componentes/comum/ordenacao` e os formatos de número, moeda e data em `dados/formatadores` (§7.5). |
 | **Duplicação no C#** | `SomaOuNulo`, `Arredondar`, leitura de mês `aaaa-mm` e repasse de falha viram utilitários únicos na Aplicação. |
 
 ## 4. Ordem de execução (cada passo é um PR pequeno, com teste e medida)
@@ -416,11 +417,63 @@ Frio e quente dão o mesmo número porque essas rotas não usam o cache de refer
 aquecida em …` da subida. Se uma rota ainda passar de 2 s com o aquecimento feito, o problema é a consulta dela, e não a
 compilação. Ela vira a parte 2 do passo 7, com o plano de execução da consulta no SQL Server.
 
-### 7.5 Próximos passos
+### 7.5 As peças comuns do front num lugar só (03/10/2026)
+
+Entregue na branch `feat/pecas-comuns-do-front`. Só o front: nenhuma mudança de C#, de API ou de banco.
+
+**A regra do trabalho foi juntar só o que dá o mesmo texto.** Função parecida com regra diferente ficou onde estava, e o
+porquê está escrito na regra de arquitetura.
+
+| Peça | Onde mora agora | O que saiu das telas |
+|---|---|---|
+| **O filtro do padrão** (ícone, rótulo e controle) | `componentes/comum/CampoDoFiltro` | o mesmo JSX escrito à mão 41 vezes em 14 arquivos, e os componentes locais dos Cenários, da Demanda e da Cobertura Regional |
+| **A ordenação das tabelas** (vazio no fim, clicar de novo inverte) | `componentes/comum/ordenacao` | as cópias da Demanda (maiores municípios), do Diagnóstico e do crédito por município no Momento |
+| **Os formatos de número, moeda e data** | `dados/formatadores` | moeda e número das fichas; o número com e sem casas (`n`, `nº`, `pt`) em 19 arquivos; reais curtos, mês da competência (`set/26`, `set/2026`, `09/2026`), dia e hora da API e o percentual da parte; 16 listas dos meses e 3 dos dias |
+
+- **Quem importava o nome antigo continua importando.** Os módulos que exportavam `mes`, `nº` ou `mesCurto` passaram a
+  reexportar o formato comum com o mesmo nome. Onde a cópia era local, a linha saiu e entrou um import com o nome dela.
+- **Ficaram de fora, por terem outra regra:**
+  - a tabela de municípios dos Indicadores, que desempata pelo nome e tem cabeçalho próprio;
+  - o ranking das culturas no Momento, que desempata o vazio pelo nome da cultura;
+  - o `reaisCurtos` do Momento, que tem a faixa "bi" e a moeda com casas;
+  - as datas do painel 360 com o ano (`03/out/26`).
+- **As regras novas** (`arquitetura.teste.ts`) falharam antes da troca e passam depois:
+  - o filtro do padrão só no `CampoDoFiltro`;
+  - a ordenação "vazio no fim" só em `ordenacao`;
+  - os formatos só em `dados/formatadores`, procurados pelo nome das cópias que existiram e pelas listas de meses e dias.
+- **Os testes novos:**
+  - o HTML do `CampoDoFiltro` é igual ao do JSX que ele substitui, com e sem os opcionais;
+  - cada formato novo tem a saída exata, inclusive o espaço inseparável da moeda.
+- **Arquivos menores.** Doze dos grandes encolheram, e o teto de cada um desceu ao tamanho novo.
+
+**A conferência de que nenhuma tela mudou.** A suíte visual salva as capturas, mas não as compara. Por isso todas as
+telas foram capturadas duas vezes na base e duas vezes na branch (as quatro rodadas com 635 testes verdes, 464 imagens
+cada), e comparadas arquivo a arquivo:
+
+| Comparação | Resultado |
+|---|---|
+| Base × branch | 343 idênticas e 121 diferentes |
+| Das 121, as que variam também entre as duas rodadas da branch, sem nenhuma mudança de código | 98 — a variação natural da captura |
+| Das 23 restantes, as iguais à segunda rodada da base, ou que variam entre as duas rodadas da base | 22 |
+| A que sobra | 1 — a Cobertura por Filial a 1920 px |
+
+- **A variação natural** é o relógio da "Última atualização" e as animações capturadas em pontos diferentes: a rosca, o
+  sublinhado da aba, o gráfico de linha, o esqueleto de carregamento e o menu abrindo. O relógio também muda a quebra de
+  linha da descrição da Visão 360 a 1024 px.
+- **O que sobra** é só o texto do medidor, que é desenhado num `<canvas>` (`ctx.fillText`). Os arcos e a agulha são
+  idênticos pixel a pixel, e o texto é o mesmo, na mesma fonte e na mesma posição. Muda a rasterização dos glifos, que no
+  canvas depende de quando a fonte terminou de carregar. Duas provas:
+  - a mesma tela sai idêntica byte a byte, nas quatro rodadas, a 768, 1024, 1440, 1536 e 2400 px;
+  - o mesmo texto do medidor também variou entre as duas rodadas da própria base (a 390 px) e entre as duas da branch
+    (a 1280 px).
+- **Nenhuma diferença vem do código.** A suíte visual, sozinha, não serve para provar "nenhuma tela mudou": as capturas
+  variam entre rodadas. A prova precisa de duas rodadas de cada lado.
+
+### 7.6 Próximos passos
 
 - **A captura do "depois"** dos planos 2 e 4 entra nas §7.2 e §7.4. As rotas que ainda passarem de 2 s viram a parte 2
   do passo 7.
 - **O resumo das rotinas do faturamento e do pós-venda** num dia comum e no primeiro domingo entra na §7.3 como a medida
   do ganho.
-- **As peças comuns do front em `componentes/comum`**, além da moeda compacta, ficaram fora do plano 2 e continuam na
-  fila.
+- **Com isso, a frente 1 está fechada no código.** O que falta são as duas medidas de produção acima. A frente seguinte é
+  o banco sem redundância.
