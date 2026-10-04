@@ -37,6 +37,10 @@ public sealed class OrcamentoDeConsultasNaApiTestes(ITestOutputHelper saida) : I
     ///
     /// <para>Neste cenário não há Censo nem rebanho, e metade das leituras da estrutura já era pulada: em produção, com as
     /// fontes carregadas, a estrutura de referência tira perto de 31 consultas dos Indicadores e do Diagnóstico.</para>
+    ///
+    /// <para><b>As rotas de relatório</b> (passo 7 do documento 54, 03/10/2026) entram com o medido, igual no frio e no quente
+    /// porque não usam a referência: Visão 360 19, funil por estágio 11, CEN 10, faturamento 8, metas 15, vendas perdidas 12.
+    /// Nenhuma consulta em laço — o peso delas na captura de produção era a primeira chamada, que o aquecimento cobre.</para>
     /// </summary>
     private static readonly Dictionary<string, int> TetoQuente = new(StringComparer.Ordinal)
     {
@@ -47,6 +51,12 @@ public sealed class OrcamentoDeConsultasNaApiTestes(ITestOutputHelper saida) : I
         ["/api/v1/mercado/dimensionamento"] = 24,
         ["/api/v1/mercado/financiamentos"] = 16,
         ["/api/v1/mercado/precos"] = 16,
+        ["/api/v1/relatorios/indicadores-executivos"] = 19,
+        ["/api/v1/relatorios/funil-por-estagio"] = 11,
+        ["/api/v1/relatorios/cen"] = 10,
+        ["/api/v1/relatorios/faturamento"] = 8,
+        ["/api/v1/relatorios/metas"] = 15,
+        ["/api/v1/relatorios/vendas-perdidas"] = 12,
     };
 
     /// <summary>
@@ -62,6 +72,12 @@ public sealed class OrcamentoDeConsultasNaApiTestes(ITestOutputHelper saida) : I
         ["/api/v1/mercado/dimensionamento"] = 24,
         ["/api/v1/mercado/financiamentos"] = 16,
         ["/api/v1/mercado/precos"] = 16,
+        ["/api/v1/relatorios/indicadores-executivos"] = 19,
+        ["/api/v1/relatorios/funil-por-estagio"] = 11,
+        ["/api/v1/relatorios/cen"] = 10,
+        ["/api/v1/relatorios/faturamento"] = 8,
+        ["/api/v1/relatorios/metas"] = 15,
+        ["/api/v1/relatorios/vendas-perdidas"] = 12,
     };
     private readonly ApiEmMemoria _api = new() { SegundosEntreConferenciasDaReferencia = 15 };
 
